@@ -683,6 +683,11 @@ export async function streamGenerateFromTemplate(
     courtData,
   );
 
+  // T-429 (Ajay 0864b04, ea02c86): what the model is given. discharge_application
+  // keeps its NI Act related_acts entry and its Para 10 body prompt line only
+  // when the charge (after old-law conversion) includes NI Act s.138.
+  const promptConfig = templateForCharge(templateConfig, convertedFormData);
+
   // ── Set up SSE headers ─────────────────────────────────────────────────────
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache, no-transform');
@@ -696,7 +701,7 @@ export async function streamGenerateFromTemplate(
     let aiModel: string | undefined;
     let transport: 'direct' | undefined;
 
-    for (const section of templateConfig.document_structure.sections) {
+    for (const section of promptConfig.document_structure.sections) {
       if (section.type === 'template') {
         // Pure placeholder replacement — zero AI
         const rendered = renderTemplateSection(section, ctx);
@@ -704,7 +709,7 @@ export async function streamGenerateFromTemplate(
       } else if (section.type === 'ai_generated') {
         // Stream AI generation for this section
         const systemPrompt = buildAISystemPrompt(
-          templateConfig,
+          promptConfig,
           courtData?.courtRule,
           courtData,
           ctx,
@@ -1122,6 +1127,119 @@ export function packForDrawer(pack: RulePack, values: Record<string, unknown>): 
   };
 }
 
+// ── T-429: discharge_application's NI Act material only on a s.138 charge ────
+// Ajay's rulings 0864b04 (T-429) and ea02c86 (T-429 scoping follow-ups, item 1),
+// and his s.138 gate test, handoff/legal/T-427-T-430-verify-signed.md: the
+// discharge pack's NI Act entry (s.138, s.141), its Para 10 instruction on NI
+// Act director prosecutions and its S.M.S. Pharmaceuticals key citation reach
+// the model only when the sections charged include NI Act s.138. A blank or
+// placeholder charge drops them.
+
+/** The one pack these rulings cover (rule-pack id = file stem = template_id). */
+const DISCHARGE_PACK_ID = 'discharge_application';
+
+/** "Negotiable Instruments", or "NI Act" / "N.I. Act" with optional dots and spaces. */
+const NI_ACT_NAME = /negotiable\s+instruments|\bn\.?\s*i\.?\s*act\b/i;
+
+/** A "138" that is not part of a longer number (so not 1138 or 1380). */
+const S138_TOKEN = /(?<!\d)138(?!\d)/;
+
+/** The two placeholder blanks a brief, ledger or form value may carry. */
+const PLACEHOLDER_BLANK = /\[To be confirmed:[^\]]*\]|\{\{\s*MISSING\s*:[^}]*\}\}/gi;
+
+/**
+ * T-429: true only when the text (the discharge pack's `offences_charged`)
+ * names the NI Act and has a 138 token, after NFKC normalisation and with any
+ * placeholder blank taken out. A non-string, blank or placeholder-only value
+ * is false. Ajay's s.138 gate test, handoff/legal/T-427-T-430-verify-signed.md.
+ */
+export function niS138Charged(text: unknown): boolean {
+  if (typeof text !== 'string') return false;
+  const plain = text.normalize('NFKC').replace(PLACEHOLDER_BLANK, ' ');
+  if (plain.trim().length === 0) return false;
+  return NI_ACT_NAME.test(plain) && S138_TOKEN.test(plain);
+}
+
+/**
+ * T-429: an instruction (or body prompt line) that is NI Act s.138 material,
+ * found by the same test as the charge. In discharge_application this is
+ * exactly the Para 10 instruction ("Para 10: NI Act S.138 prosecutions of
+ * company directors ..."); no other instruction in the pack names the NI Act.
+ */
+function isNiS138Line(line: string): boolean {
+  return niS138Charged(line);
+}
+
+/**
+ * T-429: the pack as the model is to be given it for this charge. Applies to
+ * discharge_application only. When `niS138Charged(values.offences_charged)` is
+ * false, the result is a shallow copy without the NI Act relevantActs entry
+ * and without the NI Act s.138 drafting instruction (Para 10); every other act
+ * and instruction is kept, in order. Otherwise, and for every other pack, the
+ * same object is returned. The pack passed in (the loader's cached object) is
+ * never changed. The pack's key_citations are not read by the rule-pack loader
+ * (RulePack has no such field), so the S.M.S. Pharmaceuticals citation does
+ * not reach the model on this path at all.
+ */
+export function packForCharge(pack: RulePack, values: Record<string, unknown>): RulePack {
+  if (pack.id !== DISCHARGE_PACK_ID) return pack;
+  if (niS138Charged(values.offences_charged)) return pack;
+  const hasNiAct = pack.relevantActs.some((a) => isNiAct(a.act));
+  const hasNiLine = pack.draftingInstructions.some(isNiS138Line);
+  if (!hasNiAct && !hasNiLine) return pack;
+  return {
+    ...pack,
+    relevantActs: pack.relevantActs.filter((a) => !isNiAct(a.act)),
+    draftingInstructions: pack.draftingInstructions.filter((line) => !isNiS138Line(line)),
+  };
+}
+
+/**
+ * T-429: the template config as the model is to be given it on the template
+ * (form) path, for this charge. Applies to discharge_application only. When
+ * `niS138Charged(values.offences_charged)` is false, the result is a shallow
+ * copy whose related_acts drop the NI Act entry and whose ai_generated
+ * sections' prompt_context drop every line that is NI Act s.138 material (the
+ * Para 10 instruction, which the template promoter puts in the body prompt).
+ * Otherwise, and for every other template, the same object is returned. The
+ * config passed in (the registry's cached object) is never changed. The
+ * promoter does not carry key_citations into the config, so the S.M.S.
+ * Pharmaceuticals citation does not reach the model on this path at all.
+ */
+export function templateForCharge(
+  config: TemplateConfig,
+  values: Record<string, unknown>,
+): TemplateConfig {
+  if (config.template_id !== DISCHARGE_PACK_ID) return config;
+  if (niS138Charged(values.offences_charged)) return config;
+  const hasNiAct = config.related_acts.some(isNiAct);
+  const hasNiLine = config.document_structure.sections.some(
+    (s) =>
+      s.type === 'ai_generated' &&
+      typeof s.prompt_context === 'string' &&
+      s.prompt_context.split('\n').some(isNiS138Line),
+  );
+  if (!hasNiAct && !hasNiLine) return config;
+  return {
+    ...config,
+    related_acts: config.related_acts.filter((act) => !isNiAct(act)),
+    document_structure: {
+      ...config.document_structure,
+      sections: config.document_structure.sections.map((s) =>
+        s.type === 'ai_generated' && typeof s.prompt_context === 'string'
+          ? {
+              ...s,
+              prompt_context: s.prompt_context
+                .split('\n')
+                .filter((line) => !isNiS138Line(line))
+                .join('\n'),
+            }
+          : s,
+      ),
+    },
+  };
+}
+
 export async function streamGenerateFromBrief(
   input: BriefGenerateInput,
   res: Response,
@@ -1159,7 +1277,10 @@ export async function streamGenerateFromBrief(
   // input.pack. formData.respondent_type is the drawer type as the template's
   // own guard reads it: the brief's label turned back into its option id, or
   // the brief / ledger blank when not given.
-  const pack = packForDrawer(loadedPack, formData);
+  // T-429 (Ajay 0864b04, ea02c86): discharge_application keeps its NI Act entry
+  // and its Para 10 instruction only when formData.offences_charged (the brief /
+  // ledger value, blank when not given) includes NI Act s.138.
+  const pack = packForCharge(packForDrawer(loadedPack, formData), formData);
 
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache, no-transform');

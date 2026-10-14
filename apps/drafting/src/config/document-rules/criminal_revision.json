@@ -249,15 +249,18 @@
       "sections": [
         {
           "number": "S.438",
-          "description": "Revisional powers of HC (replaces S.397 / S.401 CrPC)"
+          "description": "Calling for records to exercise powers of revision (was S.397 CrPC)"
         },
         { "number": "S.438(2)", "description": "Bar on revision against interlocutory orders" },
         { "number": "S.438(3)", "description": "Bar on second revision — one revision only" },
         { "number": "S.438(4)", "description": "Revision not where appeal lies" },
         { "number": "S.439", "description": "Corresponding power of Sessions" },
-        { "number": "S.440", "description": "Sessions Judge's reference to HC" },
+        {
+          "number": "S.440",
+          "description": "Sessions Judge's powers of revision (was S.399 CrPC)"
+        },
         { "number": "S.441", "description": "Procedure on revision" },
-        { "number": "S.442", "description": "Revisional jurisdiction of Sessions" },
+        { "number": "S.442", "description": "High Court's powers of revision (was S.401 CrPC)" },
         { "number": "S.443", "description": "HC's power to order inquiry" },
         { "number": "S.528", "description": "Inherent powers of HC — concurrent / residual" }
       ]
