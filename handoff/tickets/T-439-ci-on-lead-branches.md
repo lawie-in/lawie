@@ -2,7 +2,7 @@
 
 | Field  | Value                                                                 |
 | ------ | --------------------------------------------------------------------- |
-| Status | Todo. Kunal, right after T-432 is pushed. Priya, 14 Oct 2026          |
+| Status | Merged into develop_staging 82ad70ec (Kunal, 14 Oct 2026). Priya      |
 | Owner  | Kunal (build), Arjun (rule)                                           |
 | Mode   | Small fix (CI file only; root config claim)                           |
 
