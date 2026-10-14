@@ -2,7 +2,7 @@
 
 | Field  | Value                                    |
 | ------ | ---------------------------------------- |
-| Status | Todo. Ajay verifies. Priya, 14 Oct 2026  |
+| Status | Done 2fcf6c4: lower-court lines signed, built in T-404 part 2 (Shashank). HC/SC lines moved to T-427. Priya, 14 Oct 2026 |
 | Owner  | Ajay (verification; 477fcaa)             |
 | Mode   | Verification; any code change gets its own ticket |
 
