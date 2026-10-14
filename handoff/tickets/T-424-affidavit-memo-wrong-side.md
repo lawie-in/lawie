@@ -2,7 +2,7 @@
 
 | Field  | Value                                                         |
 | ------ | ------------------------------------------------------------- |
-| Status | Ready. Mahak, after T-423. Small fix. Arjun: one resolver (brief-party-fields.ts), read path only; Ajay T-381 Addendum 5 04c1630. Priya, 14 Oct 2026 |
+| Status | Code done, reviewer PASS, Ajay signed; golden update b852d32 pushed; full tests and doc-writer next (Mahak). Priya, 14 Oct 2026 |
 | Owner  | Arjun (scope), Ajay (party-side rule), drafting lead (build)  |
 | Mode   | Full chain (legal content: party mapping)                     |
 
