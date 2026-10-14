@@ -79,3 +79,11 @@ Unchanged: sessions, fact-list records, waitlist.
 Parked: "Server logs: until we delete them" names no period (DPDP s.8(7)); Arjun to give a log retention period, then I sign a line.
 
 Bump the Privacy Policy "Last updated" date in the merge.
+
+### 3. T-115b merging before T-115c (Priya, 14 Oct 2026)
+
+The gap is acceptable on develop_staging and develop. Users only see main, and nothing reaches main without the founder's release after Anushka's PASS.
+
+Condition: T-115b goes to main only with T-115c, or with this interim line. In that case, replace `Lawie does not yet have a delete button; we erase on request.` in §7 with:
+`You can delete any single document from the document itself. To erase your account, write to us from your account email and we will do it.`
+No change in T-115b itself.
