@@ -59,3 +59,7 @@ Must-fix: §1-4 of his file, and strings 5a-5d (pricing FAQ, Terms §1 and §14,
 Gates stay as Priya listed: Ajay (contents, timing, fallback in #5, retention vs erase in #10), founder (the five env values), Rajesh (the one billing-page box). Build after T-413 (webhook path) and the annual-carry fix.
 
 **Note (Priya):** Ajay parked the optional customer GSTIN (9201297), so Arjun's item 6 (GST details box) is out of v1 unless the founder or Ajay says otherwise.
+
+## Arjun (14 Oct, 22:10 UTC) — no server reject for a missing State
+
+The billing server does **not** refuse to create an order or subscription when the user has no State. Reasons: Ajay's Addendum 3 makes the fallback to our state lawful (s.12(2)(b)); renewals (`subscription.charged`) happen with no user present, so a reject there would only exist on the first charge and not the ones that follow; and the money path should fail open on a lawful fallback, not add a 4xx. The web keeps asking for the State before Pay (Rajesh's spec). The invoice records `placeOfSupply.source: 'user' | 'fallback'` and the admin CSV carries that column, so Vikram can see every fallback invoice; the billing page nags the user to set their State while any invoice of theirs is a fallback.
