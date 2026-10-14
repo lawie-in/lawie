@@ -88,3 +88,11 @@ The founder has no CA and Vikram decided the finance points. The supplier's GSTI
 Still open before 5b/5c can ship: the proprietor's legal name exactly as on the GST certificate, and the trade name as registered (founder).
 
 Change to 5b: the Terms need the legal name, trade name and GSTIN. The street address is required on the invoice (§1), but on the public Terms page only if the E-Commerce Rules apply (still verify). Until that is settled, 5b ships without `, with its principal place of business at {supplier_address}`, and 5c gives the legal name and the contact email only. This keeps a residential address off a public page unless the law requires it.
+
+## Addendum 2 (T-436): supplier details verified, 14 Oct 2026
+
+Vikram checked the GST registration certificate (REG-06) itself: proprietorship, regular registration, legal name and trade name confirmed. The values go in config only, not here.
+
+- 5b and 5c are unblocked. `{supplier_legal_name}` and the trade name are printed exactly as on REG-06; `{supplier_state}` is Jharkhand.
+- Invoices print the principal place of business exactly as on REG-06. Vikram corrected his earlier address: the PIN differs from the first one he sent. A test pins the config address to the certificate text.
+- Invoices are issued only for supplies on or after the registration's effective date. The founder's test top-up came before that date, a second reason it needs no invoice (closed in Addendum 1).
