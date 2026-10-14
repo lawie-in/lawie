@@ -59,6 +59,7 @@ Where each lead stopped:
 
 ## Last done
 
+- kunal: T-415 merged 42703a4 (14 Oct 2026). A stuck Ink grant is finished by Razorpay's next retry, never twice.
 - mahak: T-381 CI green (run 523, 13 Oct 2026).
 - mahak: T-381 merged 9e3cafa (13 Oct 2026). Create annexures: one PDF with Vakalatnama, Memo of Parties and the rest, party names filled; missing names are named, never blank. Ajay Addenda 1-4. Unblocks Anushka T-313, T-318.
 - vishal: T-397 CI green (run 522).

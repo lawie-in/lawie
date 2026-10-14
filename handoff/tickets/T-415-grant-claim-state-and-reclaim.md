@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | Building. Kunal, full chain. Priya, 13 Oct 2026 |
+| Status | Merged into develop_staging 42703a4 (Kunal, 14 Oct 2026). Waiting for Anushka on develop. Priya |
 | Owner | Kunal (build), Arjun (call) |
 | Mode | Full chain (billing grant logic; Kunal, 13 Oct) |
 
