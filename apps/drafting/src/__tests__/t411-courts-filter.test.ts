@@ -271,6 +271,119 @@ describe('T-411 template-scoped court picker (server)', () => {
     });
   });
 
+  // ── Operator / array payloads in the query string ───────────────────────────
+
+  describe('non-string query payloads (NoSQL injection guard)', () => {
+    const T = 'template=consumer_complaint';
+    const LEVEL_ERROR = { error: 'level must be one of district|state|national' };
+
+    it.each([
+      'state[$ne]=x',
+      'state[$eq]=bihar',
+      'state[$in][]=bihar',
+      'state[$regex]=^bihar',
+      'state[]=bihar',
+      'state[]=bihar&state[]=delhi',
+    ])('/courts: %s is ignored, giving the consumer list unfiltered by state', async (q) => {
+      const base = await request(app).get(`/courts?${T}`);
+      const res = await request(app).get(`/courts?${T}&${q}`);
+      expect(res.status).toBe(200);
+      expect(ids(res.body.courts)).toEqual(ALL_CONSUMER);
+      expect(res.body).toEqual(base.body);
+    });
+
+    it('/courts: an operator state with level=district stays within district commissions', async () => {
+      const res = await request(app).get(`/courts?${T}&level=district&state[$ne]=x`);
+      expect(res.status).toBe(200);
+      expect(ids(res.body.courts)).toEqual(['delhi_dccdrc', ...BIHAR_DISTRICT].sort());
+    });
+
+    it('/courts: operator state never widens beyond consumer courts or reveals inactive ones', async () => {
+      const res = await request(app).get(`/courts?${T}&state[$ne]=bihar`);
+      const returned = ids(res.body.courts);
+      expect(returned).not.toContain('inactive_consumer');
+      expect(returned).not.toContain('patna_hc');
+      expect(returned).not.toContain('nclt_mumbai');
+    });
+
+    it.each([
+      'level[$in]=national',
+      'level[$ne]=x',
+      'level=district&level=state',
+      'level[]=national',
+    ])('/courts: %s returns 400 with the level error', async (q) => {
+      const res = await request(app).get(`/courts?${T}&${q}`);
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual(LEVEL_ERROR);
+    });
+
+    it.each(['level[$in]=national', 'level=district&level=state'])(
+      '/courts/types and /courts/states: %s returns 400 with the level error',
+      async (q) => {
+        const t = await request(app).get(`/courts/types?state=bihar&${T}&${q}`);
+        const s = await request(app).get(`/courts/states?${T}&${q}`);
+        expect(t.status).toBe(400);
+        expect(t.body).toEqual(LEVEL_ERROR);
+        expect(s.status).toBe(400);
+        expect(s.body).toEqual(LEVEL_ERROR);
+      },
+    );
+
+    it.each([
+      'template[$ne]=x',
+      'template[]=consumer_complaint',
+      'template[$in]=consumer_complaint',
+    ])('/courts: %s returns the baseline (no-template) result', async (q) => {
+      const base = await request(app).get('/courts');
+      const res = await request(app).get(`/courts?${q}`);
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual(base.body);
+      expect(ids(res.body.courts)).toContain('patna_hc');
+    });
+
+    it('/courts: an array template does not apply the level check either', async () => {
+      const base = await request(app).get('/courts');
+      const res = await request(app).get('/courts?template[]=consumer_complaint&level=bogus');
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual(base.body);
+    });
+
+    it('/courts/types: operator or array state is treated as missing (400), or ignored for national', async () => {
+      for (const q of ['state[$ne]=x', 'state[]=bihar']) {
+        const missing = await request(app).get(`/courts/types?${T}&${q}`);
+        expect(missing.status).toBe(400);
+        expect(missing.body).toEqual({ error: 'state query parameter is required' });
+        const noTemplate = await request(app).get(`/courts/types?${q}`);
+        expect(noTemplate.status).toBe(400);
+        const national = await request(app).get(`/courts/types?${T}&level=national&${q}`);
+        expect(national.status).toBe(200);
+        expect(national.body.types).toEqual([{ id: 'tribunal', label: 'tribunal' }]);
+      }
+    });
+
+    it('/courts/types and /courts/states: operator or array template returns the baseline', async () => {
+      const baseTypes = await request(app).get('/courts/types?state=bihar');
+      const baseStates = await request(app).get('/courts/states');
+      for (const q of ['template[$ne]=x', 'template[]=consumer_complaint']) {
+        const t = await request(app).get(`/courts/types?state=bihar&${q}`);
+        const s = await request(app).get(`/courts/states?${q}`);
+        expect(t.status).toBe(200);
+        expect(t.body).toEqual(baseTypes.body);
+        expect(s.status).toBe(200);
+        expect(s.body).toEqual(baseStates.body);
+      }
+    });
+
+    it('/courts/states ignores any state param in consumer mode', async () => {
+      const base = await request(app).get(`/courts/states?${T}`);
+      for (const q of ['state[$ne]=x', 'state[]=bihar']) {
+        const res = await request(app).get(`/courts/states?${T}&${q}`);
+        expect(res.status).toBe(200);
+        expect(res.body).toEqual(base.body);
+      }
+    });
+  });
+
   // ── AC4: no auto-select, no leak ────────────────────────────────────────────
 
   describe('response hygiene', () => {
