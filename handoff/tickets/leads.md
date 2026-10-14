@@ -63,6 +63,7 @@ Where each lead stopped:
 
 ## Last done
 
+- tanvi: T-411 merged 6db7e551 (14 Oct 2026). Consumer complaint court picker: District/State/National Commission, NCDRC without a state, 'Consumer Commission' label. BriefStep.tsx and DynamicFormRenderer.tsx released to Kunal (T-388). Next T-425.
 - vishal: T-376 CI green (run 530); golden-set.yml first run skipped cleanly.
 - vishal: T-376 merged b5961c1 (14 Oct 2026). Real-model golden set runs on drafting prompt/pack/section changes and nightly, in its own golden-set.yml. Green after the founder's secrets. Next T-407 part 1 merge.
 - kunal: T-396 CI green (run 529). Now T-388.
