@@ -36,6 +36,7 @@ import {
   Value,
 } from './briefTypes';
 import CourtPicker from './CourtPicker';
+import InkCostLine, { inkCostState } from './InkCostLine';
 import {
   card,
   h1,
@@ -60,15 +61,8 @@ import ValueInput from './ValueInput';
 const DESCRIPTION_IS_USED =
   'Your description is used in full, together with this brief. If anything in it is wrong, or should not be in the draft, change the description before you generate.';
 
-/**
- * T-372: the line under Confirm saying what the draft costs. Wording final
- * (Meera, design): "Uses 1 Ink" / "Uses N Ink"; Ink takes no s. Null when
- * there is no positive cost to show.
- */
-export function formatInkCost(n: number | undefined): string | null {
-  if (typeof n !== 'number' || !Number.isFinite(n) || n <= 0) return null;
-  return `Uses ${n} Ink`;
-}
+/** T-372: the line under Confirm saying what the draft costs (now in InkCostLine, T-388). */
+export { formatInkCost } from './InkCostLine';
 
 /** T-372: id of the Ink cost line, which describes the confirm button. */
 export const INK_COST_ID = 'brief-confirm-ink-cost';
@@ -496,6 +490,9 @@ export default function BriefStep({
   onConfirm,
   confirmDescribedBy,
   inkCost,
+  inkCostLoading = false,
+  onInkCostRetry,
+  inkCostKind,
   askedAnswers,
 }: {
   brief: Brief;
@@ -528,6 +525,12 @@ export default function BriefStep({
   confirmDescribedBy?: string;
   /** T-372: the template's Ink cost, shown under the confirm button when positive. */
   inkCost?: number;
+  /** T-388: the cost is being fetched. */
+  inkCostLoading?: boolean;
+  /** T-388: fetches the cost again when it could not be worked out. */
+  onInkCostRetry?: () => void;
+  /** T-388: the document kind id, for the Sentry report only (defaults to the brief's kind). */
+  inkCostKind?: string;
   /** T-365 AC2: the advocate's answers to the items sent as `asked_empty`, by key. */
   askedAnswers?: Record<string, Value>;
 }) {
@@ -557,14 +560,13 @@ export default function BriefStep({
     ? ledger.unresolved.filter((u) => !ledger.facts.some((f) => f.key === u.key))
     : [];
   const nothingRead = ledger !== null && ledgerFacts.length === 0 && outstanding.length === 0;
-  // T-372: the Ink cost line, when there is a cost, also describes the confirm button.
-  const inkCostLine = formatInkCost(inkCost);
+  // T-372 / T-388: the Ink cost slot (loading, "Uses N Ink" or the notice)
+  // always describes the confirm button. Confirm charges, so it waits for a
+  // known cost (Arjun); like its other blockers it stays aria-disabled only.
+  const costKnown = inkCostState(inkCost, inkCostLoading) === 'known';
+  const confirmOff = !canConfirm || !costKnown;
   const confirmDescribedByIds =
-    [
-      confirmDescribedBy,
-      inkCostLine ? INK_COST_ID : undefined,
-      datesHeld ? DATE_CHECK_ID : undefined,
-    ]
+    [confirmDescribedBy, INK_COST_ID, datesHeld ? DATE_CHECK_ID : undefined]
       .filter(Boolean)
       .join(' ') || undefined;
 
@@ -967,22 +969,27 @@ export default function BriefStep({
         <div className="flex flex-col items-stretch gap-1 sm:items-end">
           <button
             type="button"
-            onClick={canConfirm ? onConfirm : focusFirstBlocker}
-            aria-disabled={!canConfirm || busy || confirming}
+            // T-388: with an unknown cost nothing starts and focus does not move;
+            // the notice in the cost slot says why.
+            onClick={!canConfirm ? focusFirstBlocker : costKnown ? onConfirm : undefined}
+            aria-disabled={confirmOff || busy || confirming}
             aria-describedby={confirmDescribedByIds}
             disabled={busy || confirming}
-            className={`${primaryButton} ${canConfirm ? '' : 'opacity-40'}`}
+            className={`${primaryButton} ${confirmOff ? 'opacity-40' : ''}`}
           >
             {(busy || confirming) && (
               <Loader2 size={16} className="animate-spin" aria-hidden="true" />
             )}
             Confirm brief and continue
           </button>
-          {inkCostLine && (
-            <p id={INK_COST_ID} className="text-sm text-slate-600">
-              {inkCostLine}
-            </p>
-          )}
+          <InkCostLine
+            id={INK_COST_ID}
+            cost={inkCost}
+            loading={inkCostLoading}
+            onRetry={onInkCostRetry}
+            kind={inkCostKind ?? brief.kind.id ?? 'unknown'}
+            action="confirm"
+          />
         </div>
       </div>
     </div>

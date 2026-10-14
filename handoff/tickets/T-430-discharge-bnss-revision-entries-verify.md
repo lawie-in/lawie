@@ -2,7 +2,7 @@
 
 | Field  | Value                                   |
 | ------ | --------------------------------------- |
-| Status | Todo. Ajay verifies. Priya, 14 Oct 2026 |
+| Status | Done 03b3e6e. s.438/s.442 descriptions fixed and s.440 added: built in T-429 (Vishal, same pack). Priya, 14 Oct 2026 |
 | Owner  | Ajay (from 0864b04)                     |
 | Mode   | Verification; any change gets its own build ticket |
 

@@ -6,7 +6,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 
 import OneFlow from '../OneFlow';
-import type { Brief, DraftResult } from '../briefTypes';
+import type { Brief, DraftResult, KindSummary } from '../briefTypes';
 
 (globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 Object.assign(globalThis, { TextDecoder: NodeTextDecoder, TextEncoder: NodeTextEncoder });
@@ -50,6 +50,18 @@ const brief: Brief = {
   confirm_message: null,
 };
 
+// T-388: Confirm waits for a known Ink cost, so the kind carries one.
+const KINDS: KindSummary[] = [
+  {
+    template_id: 'bail',
+    display_name: 'Bail application',
+    category: 'criminal',
+    description: '',
+    plan_access: 'free',
+    credits_cost: 1,
+  },
+];
+
 let container: HTMLDivElement;
 let root: Root;
 const flush = () =>
@@ -90,7 +102,7 @@ async function run(done: Record<string, unknown>, warnings?: unknown[]) {
   events.push(['done', { docId: 'd1', ...done }]);
   mockPrivacyFetch.mockResolvedValue(sse(events));
   await act(async () => {
-    root.render(<OneFlow kinds={[]} loadingKinds={false} />);
+    root.render(<OneFlow kinds={KINDS} loadingKinds={false} />);
   });
   const ta = container.querySelector('textarea') as HTMLTextAreaElement;
   await act(async () => {

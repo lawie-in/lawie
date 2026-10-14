@@ -122,6 +122,7 @@ async function mount(
         config={configOf(templateId, patch)}
         onSubmit={onSubmit}
         onCancel={jest.fn()}
+        inkCost={1}
       />,
     );
   });

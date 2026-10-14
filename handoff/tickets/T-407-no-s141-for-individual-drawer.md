@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Vishal (holds ai.service.ts and brief-drafter.ts) + Ajay; template-engine.service.ts in turn after Kunal's T-395 and Shashank's T-404 part 1 |
 | Mode   | Full chain (legal content) |
-| Status | To do. Vishal, after T-373 and T-397, before T-392. Ajay's ruling 2 on the T-363 fix. Split off by Shashank, 13 Oct 2026 |
+| Status | Part 1 merged b0d0b38, waiting for Anushka on develop; part 2 after T-404 part 2. Vishal, 14 Oct 2026 |
 | Source | Shashank's T-363 proprietor fix (ff08db3) did the twin side (s.141 header guard for company and partnership only) |
 
 ## Problem
