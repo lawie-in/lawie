@@ -22,9 +22,11 @@
           },
           {
             "field_id": "execution_place",
-            "label": "Place of Execution",
+            "label": "Place of execution",
             "type": "text",
             "required": true,
+            "help": "City or town where the document will be signed.",
+            "ask_when_empty": true,
             "inject_into": ["header", "closing"]
           },
           {

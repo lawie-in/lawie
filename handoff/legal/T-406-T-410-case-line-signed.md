@@ -110,3 +110,5 @@ Neither names one level or cites s.35, because the section depends on the forum 
    - Drop `district_court_generic` (the civil district court) and the Magistrate records (cjm, jmfc).
 
    If a record's type can't tell a civil court from a Sessions court, keep it rather than block a valid filing. The T-426 generic case line covers it.
+
+**T-425, tribunals and civil courts (14 Oct 2026): drop them.** No tribunal (family court, NCLT, CAT, DRT, ITAT, labour court) and no civil court has power to grant or cancel bail under the BNSS. The five non-anticipatory bail packs keep only Sessions, the criminal-side `*_district` records, the High Courts and their benches, and CJM/JMFC. Must-fix. Test: one tribunal record and civil_court are absent for each of the five packs.

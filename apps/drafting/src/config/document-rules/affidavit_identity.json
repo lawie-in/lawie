@@ -92,7 +92,14 @@
       "required": false
     },
     { "name": "execution_date", "label": "Date of Execution", "type": "date", "required": true },
-    { "name": "execution_place", "label": "Place of Execution", "type": "text", "required": true },
+    {
+      "name": "execution_place",
+      "label": "Place of execution",
+      "type": "text",
+      "required": true,
+      "help": "City or town where the document will be signed.",
+      "ask_when_empty": true
+    },
     {
       "name": "stamp_paper_value",
       "label": "Stamp Paper Value (₹)",

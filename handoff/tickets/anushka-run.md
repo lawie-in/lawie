@@ -1054,3 +1054,43 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - It works by keyboard and screen reader. Other documents' court pickers are unchanged.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-407 part 1 — No s.141 for an individual drawer (b0d0b38, vishal, 14 Oct 2026)
+
+- Draft a cheque-bounce notice from a brief against an individual, a HUF, or a drawer whose type isn't known: the draft no longer cites the section that makes companies and their officers liable.
+- For a company or a partnership firm it still does.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-404 part 2 — Place of execution and bail case lines (1e58ce0, shashank, 14 Oct 2026)
+
+- Type the city or town where a deed will be signed and see it printed in the deed, never a court's city.
+- Get a bail application whose case line is the court's own bail line or a clear "[To be confirmed: case type and number]" blank, never a civil suit or consumer complaint number.
+- Start a court document before choosing a court and see a blank case line to fill in later, not a guessed one.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-388 — Ink cost under every charging button (0ad6869, kunal, 14 Oct 2026)
+
+- See "Uses N Ink" under every button that spends Ink, including Try again and "generate anyway".
+- Be charged exactly that number.
+- If the cost can't be worked out, the button stays off with "We could not work out the Ink cost for this. Try again in a moment." and a Try again link.
+- Out of Ink shows the real cost, never a made-up "1 Ink".
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-425 part 1 — Bail court list shows only courts that hear bail (2d0b93b2, tanvi, 14 Oct 2026)
+
+- When drafting a bail application from a brief, the court list shows only Sessions courts, criminal-side District courts, High Courts and their benches, and (not for anticipatory bail) CJM/JMFC courts.
+- No Consumer Commission, Supreme Court, tribunal or civil court is offered.
+- An older draft that already has a court not offered keeps it, marked "(not offered for this document)".
+- The classic bail form is not changed yet (part 2).
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-425 part 2 — Classic bail form shows only bail courts (a7674bdb, tanvi, 14 Oct 2026)
+
+- On the standard bail form, the court list shows only courts that hear bail (same rule as part 1).
+- An older draft's court that is no longer offered stays, marked "(not offered for this document)".
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

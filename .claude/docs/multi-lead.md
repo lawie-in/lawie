@@ -61,7 +61,7 @@ Six sessions run apart: the whole team (Priya leads), `vishal`, `mahak`, `shasha
 
 **The relay.** For messages between sessions. Kinds: `note`; `claim` (a lead asking Priya for a file or an extension); `conflict` (two tickets touching the same path); `resolution` (Priya's answer). Every session reads the relay and its own tickets' comments at start, before branching and before merging into `develop_staging`.
 
-**@mentions.** Address people with `@name` from the roster only: priya, vishal, mahak, shashank, kunal, tanvi, arjun, meera, vikram, ajay, rita, madhuri, rajesh, annu, kavya, anushka, founder. Use `@founder` for anything only he decides. Tagging someone does not grant a gate: Ajay, Arjun and Rajesh sign-offs still need a reference.
+**@mentions.** Address people with `@name` from the roster only: priya, vishal, mahak, shashank, kunal, tanvi, arjun, meera, vikram, ajay, rita, madhuri, rajesh, annu, kavya, anushka, mohan, founder. (Mohan: Finance Associate, billing and unit economics, added 14 Oct 2026 per Vikram, founder-approved. He reports to and takes instructions only from Vikram; read-only on Razorpay, no code, no pricing calls. Send finance asks to Vikram, not to Mohan.) Use `@founder` for anything only he decides. Tagging someone does not grant a gate: Ajay, Arjun and Rajesh sign-offs still need a reference.
 
 ## Worktrees
 
