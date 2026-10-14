@@ -63,6 +63,7 @@ Where each lead stopped:
 
 ## Last done
 
+- vishal: T-376 CI green (run 530); golden-set.yml first run skipped cleanly.
 - vishal: T-376 merged b5961c1 (14 Oct 2026). Real-model golden set runs on drafting prompt/pack/section changes and nightly, in its own golden-set.yml. Green after the founder's secrets. Next T-407 part 1 merge.
 - kunal: T-396 CI green (run 529). Now T-388.
 - kunal: T-396 merged 9096c39 (14 Oct 2026). Memo and affidavit: relation as given or a blank, wider party roles, State line only against the State, Lawie footer on the Memo. annexures.service.ts and annexures.test.ts released to Mahak (T-424) once CI is green. Next T-388.
