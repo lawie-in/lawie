@@ -41,7 +41,7 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'rea
 import { PaywallModal } from '@/components/credits/PaywallModal';
 import PipelineStatus, { PipelineState } from '@/components/draft/PipelineStatus';
 import DynamicFormRenderer from '@/components/form/DynamicFormRenderer';
-import { INK_COST_UNKNOWN, inkCostState } from '@/components/intake/InkCostLine';
+import { NOT_STARTED_LINE, inkCostState } from '@/components/intake/InkCostLine';
 import OneFlow from '@/components/intake/OneFlow';
 import {
   PrivacyBlockedNotice,
@@ -313,7 +313,9 @@ function NewDocumentContent() {
       // "Generate document". "Try again" here waits for the cost (its own
       // notice and retry link) and then drafts from the saved inputs.
       if (!templateInkCostKnown) {
-        setGenerationError(INK_COST_UNKNOWN);
+        // The card says the draft did not start; the cost notice is the line
+        // under its "Try again", so it is not repeated (and cannot go stale) here.
+        setGenerationError(NOT_STARTED_LINE);
         setGenerationRetryable(true);
         setPipelineState('generation_failed');
         return;

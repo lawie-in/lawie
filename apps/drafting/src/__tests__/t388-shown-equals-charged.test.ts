@@ -128,17 +128,8 @@ interface GenPath {
   url: string;
   /** The id the cost is priced under (enforceCredits). */
   priceId: string;
-  /** How a retry finds the failed attempt it continues (resolveRun's match). */
-  match: { templateId: string } | { docType: string };
-  docType: string;
   body: (extra?: Record<string, unknown>) => Record<string, unknown>;
   answer: string;
-  /** The ai.service function the route calls (for a plain-Error throw). */
-  pipeline:
-    | 'streamGenerateFromTemplate'
-    | 'streamGenerateFromBrief'
-    | 'streamGenerateGuided'
-    | 'streamGenerateDocument';
 }
 
 const PATHS: GenPath[] = [
@@ -146,28 +137,20 @@ const PATHS: GenPath[] = [
     name: 'template',
     url: '/generate-from-template',
     priceId: 'bail_regular',
-    match: { templateId: 'bail_regular' },
-    docType: 'bail_application',
     body: (extra = {}) => ({ template_id: 'bail_regular', form_data: BAIL_FORM_DATA, ...extra }),
     answer: '1. Applicant seeks bail.',
-    pipeline: 'streamGenerateFromTemplate',
   },
   {
     name: 'brief (rule pack)',
     url: '/generate-from-brief',
     priceId: 'bail_regular',
-    match: { templateId: 'bail_regular' },
-    docType: 'bail_application',
     body: (extra = {}) => ({ kind: 'bail_regular', values: PACK_VALUES, court: COURT, ...extra }),
     answer: PACK_ANSWER,
-    pipeline: 'streamGenerateFromBrief',
   },
   {
     name: 'brief (guided, no rule pack)',
     url: '/generate-from-brief',
     priceId: 'guided',
-    match: { templateId: 'guided' },
-    docType: 'guided',
     body: (extra = {}) => ({
       kind: 'none',
       kind_name: 'consent letter for use of premises',
@@ -175,14 +158,11 @@ const PATHS: GenPath[] = [
       ...extra,
     }),
     answer: LETTER,
-    pipeline: 'streamGenerateGuided',
   },
   {
     name: 'legacy',
     url: '/generate',
     priceId: 'petition',
-    match: { docType: 'petition' },
-    docType: 'petition',
     body: (extra = {}) => ({
       docType: 'petition',
       courtName: 'Patna High Court',
@@ -192,7 +172,6 @@ const PATHS: GenPath[] = [
       ...extra,
     }),
     answer: '1. The petitioner submits.',
-    pipeline: 'streamGenerateDocument',
   },
 ];
 

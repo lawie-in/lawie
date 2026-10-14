@@ -34,6 +34,12 @@ export function formatInkCost(n: number | undefined): string | null {
 export const INK_COST_UNKNOWN =
   'We could not work out the Ink cost for this. Try again in a moment.';
 
+/**
+ * T-388 (Meera, final): a draft that could not start, e.g. a 402 with neither
+ * a cost nor a line of its own. Re-exported from OneFlow.
+ */
+export const NOT_STARTED_LINE = "We couldn't start this just now. Please try again in a moment.";
+
 /** The loading line (spec section 4). */
 export const INK_COST_LOADING = 'Working out the Ink cost...';
 

@@ -46,7 +46,7 @@ import DescribeStep from './DescribeStep';
 import DocumentChoiceStep, { NONE_OF_THESE } from './DocumentChoiceStep';
 import DraftReadyStep from './DraftReadyStep';
 import GeneratingStep from './GeneratingStep';
-import { inkCostState } from './InkCostLine';
+import { NOT_STARTED_LINE, inkCostState } from './InkCostLine';
 import NoMatchStep from './NoMatchStep';
 import QuestionsStep from './QuestionsStep';
 
@@ -137,8 +137,8 @@ function inkCostOf(
     : kinds.find((k) => k.template_id === kindId)?.credits_cost;
 }
 
-/** T-388 (Meera, final): a 402 that carries neither a cost nor a line of its own. */
-export const NOT_STARTED_LINE = "We couldn't start this just now. Please try again in a moment.";
+/** T-388 (Meera, final): a 402 that carries neither a cost nor a line of its own (now in InkCostLine). */
+export { NOT_STARTED_LINE };
 
 export default function OneFlow({
   kinds,
