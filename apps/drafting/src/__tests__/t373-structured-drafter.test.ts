@@ -9,6 +9,8 @@ import './setupEnv';
 
 import { Response } from 'express';
 
+import * as factVerifier from '../services/fact-verifier';
+
 import {
   GenerationFailedError,
   streamGenerateFromBrief,
@@ -104,6 +106,8 @@ async function run(
     loadSkeleton?: ((id: string) => Skeleton | null) | undefined;
     ledger?: boolean;
     pack?: typeof pack;
+    userId?: string;
+    runId?: string;
   } = {},
 ): Promise<Run> {
   const facts = opts.facts ?? regularBase();
@@ -139,8 +143,8 @@ async function run(
         language: opts.language ?? 'en',
         targetParagraphs: 12,
         advocateName: 'Test Advocate',
-        userId: 'u1',
-        runId: 'r1',
+        userId: opts.userId ?? 'u1',
+        runId: opts.runId ?? 'r1',
         runSequence: 1,
         runType: 'initial',
         loadSkeleton: 'loadSkeleton' in opts ? opts.loadSkeleton : () => skeleton,
@@ -468,7 +472,11 @@ describe('the fallback log', () => {
     '34',
   ];
 
-  async function runLogged(out: DraftParagraphsOutput, facts = cleanFacts()) {
+  async function runLogged(
+    out: DraftParagraphsOutput,
+    facts = cleanFacts(),
+    ids: { userId?: string; runId?: string } = {},
+  ) {
     const was = process.env.NODE_ENV;
     const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
     const info = jest.spyOn(console, 'info').mockImplementation(() => undefined);
@@ -477,7 +485,7 @@ describe('the fallback log', () => {
     process.env.NODE_ENV = 'production';
     try {
       mockParse.mockResolvedValue(sdkParseResponse(out));
-      const r = await run({ facts });
+      const r = await run({ facts, ...ids });
       const lines = [warn, info, log, err].flatMap((s) =>
         s.mock.calls.map((c) => c.map(String).join(' ')),
       );
@@ -491,30 +499,29 @@ describe('the fallback log', () => {
     }
   }
 
-  it('logs each fallback with pack, runId, clauseId and reason', async () => {
+  const renderLines = (lines: string[]) => lines.filter((l) => l.includes('D1 render'));
+
+  it('logs the fallback in the one D1 render line: pack, runId, and fallbackClauses=facts:unverified', async () => {
     const out = goodOutput(cleanFacts());
     out.paragraphs.find((p) => p.clauseId === 'facts')!.text =
       'He was arrested on 5 May 2026 by Suresh.';
     const { r, lines } = await runLogged(out);
     expect(r.error).toBeUndefined();
-    const fb = lines.filter((l) => /fallback/i.test(l));
+    const fb = renderLines(lines);
     expect(fb).toHaveLength(1);
-    expect(fb[0]).toContain('bail_regular');
+    expect(fb[0]).toContain('kind=bail_regular');
     expect(fb[0]).toContain('runId=r1');
-    expect(fb[0]).toContain('clause=facts');
-    expect(fb[0]).toContain('reason=unverified');
+    expect(fb[0]).toContain('fallbacks=1');
+    expect(fb[0]).toContain('fallbackClauses=facts:unverified)');
   });
 
-  it('a clause the model did not return is logged as not_returned', async () => {
+  it('a clause the model did not return is logged as facts:not_returned', async () => {
     const out = goodOutput(cleanFacts());
     out.paragraphs = out.paragraphs.filter((p) => p.clauseId !== 'facts');
     const { lines } = await runLogged(out);
-    expect(
-      lines.filter(
-        (l) =>
-          /fallback/i.test(l) && l.includes('reason=not_returned') && l.includes('clause=facts'),
-      ),
-    ).toHaveLength(1);
+    const fb = renderLines(lines);
+    expect(fb).toHaveLength(1);
+    expect(fb[0]).toContain('fallbackClauses=facts:not_returned)');
   });
 
   it("no PII: no log line from a D1 run holds the advocate's words, a name, a date, a number or the model's text", async () => {
@@ -526,38 +533,156 @@ describe('the fallback log', () => {
     for (const l of lines) for (const pii of PII) expect(l).not.toContain(pii);
   });
 
-  it('a draft with no fallback logs none', async () => {
-    const { lines } = await runLogged(goodOutput(cleanFacts()));
-    expect(lines.filter((l) => /fallback/i.test(l))).toEqual([]);
+  it('a draft with no fallback logs exactly one D1 render line, fallbacks=0, fallbackClauses=none, via console.info', async () => {
+    const info = jest.spyOn(console, 'info').mockImplementation(() => undefined);
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const was = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+    try {
+      mockParse.mockResolvedValue(sdkParseResponse(goodOutput(cleanFacts())));
+      const { result } = await run({ facts: cleanFacts() });
+      const own = new Set(skeleton.clauses.filter((c) => c.source === 'advocate').map((c) => c.id));
+      const m = result!.rendered!.filter((x) => own.has(x.clauseId)).length;
+      const inInfo = info.mock.calls.map((c) => c.map(String).join(' '));
+      const inWarn = warn.mock.calls.map((c) => c.map(String).join(' '));
+      expect(renderLines(inInfo)).toHaveLength(1);
+      expect(renderLines(inWarn)).toEqual([]);
+      expect(renderLines(inInfo)[0]).toBe(
+        `[drafting] D1 render (kind=bail_regular, runId=r1, clauses=${result!.rendered!.length}, ownWordsClauses=${m}, fallbacks=0, fallbackClauses=none)`,
+      );
+    } finally {
+      process.env.NODE_ENV = was;
+      info.mockRestore();
+      warn.mockRestore();
+    }
   });
 
-  it('the fallback line ends with the counts: fallbacks=N, ownWordsClauses=M, one line per fallback, no text', async () => {
-    const facts = [
+  describe('one D1 render line per draft', () => {
+    const twoFallbackFacts = () => [
       ...cleanFacts(),
       fact('additional_context', 'His brother is a witness.', {
         raw_span: 'his brother is a witness',
       }),
     ];
-    const out = goodOutput(facts);
-    out.paragraphs.find((p) => p.clauseId === 'facts')!.text = 'It is a violent dispute.';
-    out.paragraphs.find((p) => p.clauseId === 'further_grounds')!.text =
-      'His brother is a violent witness.';
-    const { r, lines } = await runLogged(out, facts);
-    const fb = lines.filter((l) => /fallback/i.test(l));
-    expect(fb).toHaveLength(2);
-    const own = new Set(skeleton.clauses.filter((c) => c.source === 'advocate').map((c) => c.id));
-    const m = r.result!.rendered!.filter((x) => own.has(x.clauseId)).length;
-    expect(m).toBeGreaterThanOrEqual(2);
-    for (const l of fb) {
-      expect(l).toMatch(
-        new RegExp(
-          `\\(kind=bail_regular, runId=r1, clause=\\w+, reason=unverified, fallbacks=2, ownWordsClauses=${m}\\)$`,
-        ),
+    const twoFallbackOutput = (facts: ReturnType<typeof cleanFacts>) => {
+      const out = goodOutput(facts);
+      out.paragraphs.find((p) => p.clauseId === 'facts')!.text = 'It is a violent dispute.';
+      out.paragraphs.find((p) => p.clauseId === 'further_grounds')!.text =
+        'His brother is a violent witness.';
+      return out;
+    };
+
+    it('2 fallbacks: exactly one line across warn, info, log and error; fallbacks=2 with both ids; via console.warn', async () => {
+      const facts = twoFallbackFacts();
+      const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+      const info = jest.spyOn(console, 'info').mockImplementation(() => undefined);
+      const was = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'production';
+      let warned: string[] = [];
+      let informed: string[] = [];
+      try {
+        mockParse.mockResolvedValue(sdkParseResponse(twoFallbackOutput(facts)));
+        await run({ facts });
+        warned = warn.mock.calls.map((c) => c.map(String).join(' '));
+        informed = info.mock.calls.map((c) => c.map(String).join(' '));
+      } finally {
+        process.env.NODE_ENV = was;
+        warn.mockRestore();
+        info.mockRestore();
+      }
+      expect(renderLines(warned)).toHaveLength(1);
+      expect(renderLines(informed)).toEqual([]);
+      const l = renderLines(warned)[0];
+      expect(l).toContain('fallbacks=2');
+      expect(l).toContain('facts:unverified');
+      expect(l).toContain('further_grounds:unverified');
+      expect(l).toMatch(/fallbackClauses=\w+:unverified,\w+:unverified\)$/);
+    });
+
+    it.each([
+      ['with 2 fallbacks', true],
+      ['with 0 fallbacks', false],
+    ])(
+      '%s: exactly one D1 render line over all four console methods, clauses= is the rendered count',
+      async (_n, withFallbacks) => {
+        const facts = withFallbacks ? twoFallbackFacts() : cleanFacts();
+        const out = withFallbacks ? twoFallbackOutput(facts) : goodOutput(facts);
+        const { r, lines } = await runLogged(out, facts);
+        expect(r.error).toBeUndefined();
+        const fb = renderLines(lines);
+        expect(fb).toHaveLength(1);
+        expect(fb[0]).toContain(`clauses=${r.result!.rendered!.length},`);
+        expect(fb[0]).toContain(`fallbacks=${withFallbacks ? 2 : 0}`);
+        expect(lines.filter((l) => /fallback/i.test(l))).toEqual(fb);
+      },
+    );
+
+    it.each([
+      ['with 2 fallbacks', true],
+      ['with 0 fallbacks', false],
+    ])(
+      '%s: the line holds no raw_span, no display value, no PII, no model text; runId is the run id, not the user id or an email',
+      async (_n, withFallbacks) => {
+        const facts = withFallbacks ? twoFallbackFacts() : cleanFacts();
+        const out = withFallbacks ? twoFallbackOutput(facts) : goodOutput(facts);
+        out.paragraphs.find((p) => p.clauseId === 'opening')!.text =
+          'Zebra paragraph text from the model.';
+        const userId = 'user-9f8e7d6c5b';
+        const runId = 'run-a1b2c3d4';
+        const { lines } = await runLogged(out, facts, { userId, runId });
+        const fb = renderLines(lines);
+        expect(fb).toHaveLength(1);
+        const l = fb[0];
+        expect(l).toContain(`runId=${runId},`);
+        expect(l).not.toContain(userId);
+        expect(l).not.toContain('9f8e7d6c5b');
+        expect(l).not.toContain('@');
+        expect(l).not.toContain('u1');
+        for (const f of facts) {
+          if (f.raw_span) expect(l).not.toContain(f.raw_span);
+          expect(l).not.toContain(f.display);
+        }
+        for (const p of out.paragraphs) if (p.text) expect(l).not.toContain(p.text);
+        for (const pii of [...PII, 'violent', 'brother', 'dispute', 'Zebra', 'Test Advocate'])
+          expect(l).not.toContain(pii);
+        // Closed shape: nothing but the fixed fields.
+        expect(l).toMatch(
+          /^\[drafting\] D1 render \(kind=bail_regular, runId=run-a1b2c3d4, clauses=\d+, ownWordsClauses=\d+, fallbacks=\d+, fallbackClauses=(none|\w+:(not_returned|unverified)(,\w+:(not_returned|unverified))*)\)$/,
+        );
+      },
+    );
+
+    it('an LLM failure before render logs no D1 render line', async () => {
+      mockParse.mockRejectedValue(new Error('upstream down'));
+      const was = process.env.NODE_ENV;
+      const spies = (['warn', 'info', 'log', 'error'] as const).map((m) =>
+        jest.spyOn(console, m).mockImplementation(() => undefined),
       );
-    }
-    expect(fb.map((l) => /clause=(\w+)/.exec(l)![1]).sort()).toEqual(['facts', 'further_grounds']);
-    for (const l of fb)
-      for (const bad of ['violent', 'brother', 'dispute', ...PII]) expect(l).not.toContain(bad);
+      process.env.NODE_ENV = 'production';
+      try {
+        const r = await run();
+        expect(r.error).toBeDefined();
+        const lines = spies.flatMap((s) => s.mock.calls.map((c) => c.map(String).join(' ')));
+        expect(renderLines(lines)).toEqual([]);
+      } finally {
+        process.env.NODE_ENV = was;
+        spies.forEach((s) => s.mockRestore());
+      }
+    });
+
+    it('a throw after render (verifier throws) still logs exactly one D1 render line', async () => {
+      const verify = jest.spyOn(factVerifier, 'verifyDraft').mockImplementation(() => {
+        throw new Error('verifier boom');
+      });
+      try {
+        const { r, lines } = await runLogged(goodOutput(cleanFacts()));
+        expect(verify).toHaveBeenCalled();
+        expect(r.error).toBeDefined();
+        expect(renderLines(lines)).toHaveLength(1);
+      } finally {
+        verify.mockRestore();
+      }
+    });
   });
 
   it('an added content word in the advocate clause is what makes the line (end to end)', async () => {

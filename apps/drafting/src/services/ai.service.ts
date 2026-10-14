@@ -1915,19 +1915,23 @@ async function d1GenerateFromBrief(c: D1Context): Promise<BriefGenerateResult> {
   });
   // Ajay (T-373): every own-words fallback is logged. Ids, the reason and
   // counts only, never text. Arjun (bcdf5b7): the fallback rate per pack, as
-  // fallbacks out of the own-words clauses printed, in the same line, so the
-  // stop list can be tuned.
+  // fallbacks out of the own-words clauses printed, so the stop list can be
+  // tuned. T-408: exactly one line per draft, written right after render (so a
+  // later throw cannot drop it), including when there are no fallbacks. Clause
+  // ids are skeleton ids and the reason is a closed enum: no document text.
   if (process.env.NODE_ENV !== 'test') {
     const ownIds = new Set(
       skeleton.clauses.filter((cl) => cl.source === 'advocate').map((cl) => cl.id),
     );
     const ownPrinted = rendered.rendered.filter((r) => ownIds.has(r.clauseId)).length;
-    const rate = `fallbacks=${rendered.fallbacks.length}, ownWordsClauses=${ownPrinted}`;
-    for (const f of rendered.fallbacks) {
-      console.warn(
-        `[drafting] D1 own-words fallback (kind=${pack.id}, runId=${input.runId}, clause=${f.clauseId}, reason=${f.reason}, ${rate})`,
-      );
-    }
+    const fallbackCount = rendered.fallbacks.length;
+    const fallbackClauses =
+      fallbackCount === 0
+        ? 'none'
+        : rendered.fallbacks.map((f) => `${f.clauseId}:${f.reason}`).join(',');
+    const line = `[drafting] D1 render (kind=${pack.id}, runId=${input.runId}, clauses=${rendered.rendered.length}, ownWordsClauses=${ownPrinted}, fallbacks=${fallbackCount}, fallbackClauses=${fallbackClauses})`;
+    if (fallbackCount === 0) console.info(line);
+    else console.warn(line);
   }
 
   // ── No case law on its own (T-148): kept on D1 ────────────────────────────
