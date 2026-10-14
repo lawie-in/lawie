@@ -63,6 +63,7 @@ Where each lead stopped:
 
 ## Last done
 
+- shashank: T-428 merged 3649e73b (14 Oct 2026). Lower-court bail case lines (Ajay 2fcf6c4); Jharkhand/Allahabad HC AB heading; other HCs/SC show the to-be-confirmed blank. CI pending. Court-rules files released. Next T-433 (merge waits on the founder's yearly-carry confirmation). Merge slot to Kunal T-432 once CI is green.
 - kunal: T-115b CI green (run 538). Now T-432.
 - kunal: T-115b merged 14efaa66 (14 Oct 2026). Delete a document (list and document page), erased everywhere incl. review links; failure message with privacy@lawie.in. Main only with T-115c. Next T-432.
 - vishal: T-407 part 2 CI green (run 537). T-407 done.

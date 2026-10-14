@@ -1110,3 +1110,12 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - If it fails, see a message with privacy@lawie.in to write to.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-428 — Bail case lines by court (3649e73b, shashank, 14 Oct 2026)
+
+- Draft a bail or anticipatory bail application in a district or sessions court and see that court's own bail case line, with the number and year to fill in.
+- Draft a bail application before a Magistrate and see the bail line, not a criminal case number.
+- Draft before the Jharkhand or Allahabad High Court and see that court's own anticipatory bail heading.
+- Draft before any other High Court or the Supreme Court and see a clear "[To be confirmed: case type and number]" instead of a guessed line.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
