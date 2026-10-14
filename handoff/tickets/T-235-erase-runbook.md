@@ -7,6 +7,7 @@
 > - **Manual:** `yarn workspace @lawie/auth erase-user <userId> [--dry-run|--resume]`. Exit codes: 0 done, 1 failed, 2 refused (admin, golden-set, active plan, bad usage), 3 pending (rerun with `--resume`).
 > - **Kept:** billing payment, top-up and plan rows and subscriptions (for tax). Ink grant rows keep only type, amount and date. Sent-email jobs stay in Redis for up to 7 days. Sentry and logs are manual checks.
 > - **Reviewer feedback:** feedback this user gave on other people's documents stays. Their token is anonymised in place (`reviewerErased`): owners see "A reviewer", and admins see "reviewer: erased".
+> - **Keeping an unverified account (T-358):** a user who writes to privacy@lawie.in asking to keep it is handled by hand. Ops marks the account verified, which removes it from the 30-day sweep. There is no code for this.
 > - User-facing summary: the "Closing and erasing an account" section of the root README.md.
 
 
