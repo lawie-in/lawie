@@ -61,10 +61,11 @@ Where each lead stopped:
 - kunal: T-415 on fix/t-415-grant-claim-state bc35be1, ready to merge.
 - tanvi: T-411 server half on feature/t-411-consumer-court-picker 41fe294 (built, tested); UI waits for Rajesh's Figma link.
 
-**MERGE SLOT v2 (Arjun, multi-lead.md): waiting on the founder's confirmation before the slot ends at the push. Until then the old rule holds: the next merge waits for the previous CI to be green. Queue: Kunal T-432 after T-428's CI is green, then first-ready. Never run a bare git pull; use --ff-only.**
+**MERGE SLOT v2 (Arjun, multi-lead.md): waiting on the founder's confirmation before the slot ends at the push. Until then the old rule holds: the next merge waits for the previous CI to be green. Queue: first-ready (T-432 merged 09a12b63 under v2 before the founder's confirmation). Never run a bare git pull; use --ff-only.**
 
 ## Last done
 
+- kunal: T-432 merged 09a12b63 (14 Oct 2026). Template form keeps every answer on return (privacy, paywall, verify email, Edit form); phone button row; single cost notice with "Check the cost again". CI run 540 pending (on top of T-428 run 539). Next T-439.
 - shashank: T-428 merged 3649e73b (14 Oct 2026). Lower-court bail case lines (Ajay 2fcf6c4); Jharkhand/Allahabad HC AB heading; other HCs/SC show the to-be-confirmed blank. CI pending. Court-rules files released. Next T-433 (merge waits on the founder's yearly-carry confirmation). Merge slot to Kunal T-432 once CI is green.
 - kunal: T-115b CI green (run 538). Now T-432.
 - kunal: T-115b merged 14efaa66 (14 Oct 2026). Delete a document (list and document page), erased everywhere incl. review links; failure message with privacy@lawie.in. Main only with T-115c. Next T-432.

@@ -1119,3 +1119,11 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - Draft before any other High Court or the Supreme Court and see a clear "[To be confirmed: case type and number]" instead of a guessed line.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-432 — Template form keeps your answers (09a12b63, kunal, 14 Oct 2026)
+
+- Fill in a template form, then get sent off to accept the privacy update, top up Ink, verify your email, or press "Edit form". When you come back, you're on the same step with every answer still there.
+- On a phone, the Generate button sits clearly apart from Cancel.
+- When the Ink cost can't be worked out, the notice shows once, with a "Check the cost again" link that can't be mistaken for "Try again".
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

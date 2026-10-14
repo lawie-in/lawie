@@ -2,7 +2,7 @@
 
 | Field  | Value                                                           |
 | ------ | --------------------------------------------------------------- |
-| Status | Todo. Kunal, after T-115b. Priya, 14 Oct 2026                   |
+| Status | Merged into develop_staging 09a12b63 (Kunal, 14 Oct 2026). Priya |
 | Owner  | Kunal (build)                                                   |
 | Mode   | Small fix (web)                                                 |
 
