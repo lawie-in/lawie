@@ -44,3 +44,7 @@ She tests a running app in a browser. She cannot sign in (no passwords, no Googl
 ## History
 
 - 6 Oct 2026: gate on every merge into `develop` and `main`. 6 Oct rule superseded for develop on 8 Oct 2026.
+
+## Before Anushka's run on develop (pre-run checklist)
+
+- Model rates are set in the admin AI config on develop. Without them every Generation logs `costStatus: 'rate_missing'` and `costUsd: 0`, and the run cannot measure cost per draft (Vikram, 14 Oct 2026).
