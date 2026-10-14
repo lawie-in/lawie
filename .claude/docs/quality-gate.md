@@ -44,3 +44,7 @@ She tests a running app in a browser. She cannot sign in (no passwords, no Googl
 ## History
 
 - 6 Oct 2026: gate on every merge into `develop` and `main`. 6 Oct rule superseded for develop on 8 Oct 2026.
+
+## Before Anushka's run on develop (pre-run checklist)
+
+- Model rates are set in the admin AI config on develop: `ai.rates.<model-slug>` for every model id in `ai.drafting_model`, `ai.preflight_model` and `ai.intake_model`, plus `finance.usd_inr`. Without them every Generation and LlmAuxCall logs `costStatus: 'rate_missing'` and `costUsd: 0`, and the run cannot measure cost per draft (Vikram, Arjun, 14 Oct 2026). The founder enters the values; the lead who last merged drafting work confirms on develop that no new row shows `rate_missing` before Priya declares the batch ready.

@@ -703,7 +703,12 @@ export async function streamGenerateFromTemplate(
         renderedSections.push(rendered);
       } else if (section.type === 'ai_generated') {
         // Stream AI generation for this section
-        const systemPrompt = buildAISystemPrompt(templateConfig, courtData?.courtRule, courtData);
+        const systemPrompt = buildAISystemPrompt(
+          templateConfig,
+          courtData?.courtRule,
+          courtData,
+          ctx,
+        );
         const userPrompt = buildAIUserPrompt(section, ctx);
 
         let aiText = '';

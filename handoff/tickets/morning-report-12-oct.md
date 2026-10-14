@@ -41,6 +41,9 @@ T-208, T-209, T-210, T-197, T-189, T-194, T-227, T-248, T-251, T-200, T-252a, T-
 
 ## Your to-dos (need your logins)
 
+0m. ~~GST details for invoices~~ Done 14 Oct: all details with Vikram (for T-436 env config at build time).
+0n. **Before Anushka's next run on develop (Vikram, Arjun, 14 Oct):** in the admin AI config on develop, set `ai.rates.<model-slug>` for every model in ai.drafting_model / ai.preflight_model / ai.intake_model, plus `finance.usd_inr` (Arjun sent you the values). Otherwise every draft logs cost 0.
+0o. **Release note for main (Ajay 13f74fe, 14 Oct):** T-115b (delete a document) should reach main only together with T-115c (close account), because T-115c carries the Privacy §7 update. If you ever release T-115b alone, include Ajay's interim §7 line from his file.
 0k. **Low: set the CODECOV_TOKEN secret (Arjun, 13 Oct).** In the GitHub repo settings, under Secrets and variables → Actions, add CODECOV_TOKEN from codecov.io. Coverage uploads from develop_staging currently fail with "Token required because branch is protected". CI still passes, so it's harmless; we just lose the coverage numbers.
 0j. **Prod Redis must not evict (Arjun, 13 Oct):** in the hosted Redis console (redis.io), set `maxmemory-policy` to `noeviction` on the prod instance, and on develop's too. Most hosted defaults are volatile-lru or allkeys-lru. BullMQ (all email jobs) can corrupt its queue state under any eviction. Arjun can't read the config, so tell him what you find.
 0i. **Possible double top-up grants before T-413 (Arjun, 13 Oct; Vikram decides):** before T-413, a retried top-up webhook could grant Ink twice. To see whether it ever happened, run a read-only count of inkledger rows with reason `topup_purchase` and an empty reference, grouped by user, on prod. Nothing has been sold yet, so this should be zero; it's just a check. Send the result to Vikram. His rule if it isn't zero: it was our bug, so Ink already spent stays spent, unspent duplicate Ink is removed with a ledger row naming the duplicate, and the user is told in one line.
@@ -53,7 +56,7 @@ T-208, T-209, T-210, T-197, T-189, T-194, T-227, T-248, T-251, T-200, T-252a, T-
 0b. **(Not needed if your next develop_staging → develop merge includes T-371, merged ac0eb57; any merge from now on does. It serves sections from the signed files, not Mongo. Arjun, 13 Oct.)** ~~Develop section reseed (T-360, Shashank):~~ develop still serves the old CrPC→BNSS table, which caused Anushka's 358–362 failure. Run a clean build, then `seed:sections --force` (docs/seeding.md §7), then delete the Redis keys sections:forward, sections:reverse and sections:loaded_at. Develop only; production waits as noted below. 0. **New users get describe-first by default (T-356 part 1, merging soon):** on the develop and prod servers, remove `FEATURE_DEFAULT_DESCRIBE_FIRST=off` from the server env file, or set it to `on`. Also set the `feature.describe_first` app setting to `on`, or delete it, if it holds a user-id list. Otherwise the new default is overridden.
 
 1. **`feature.fact_ledger`** stays as you set it until T-356 part 2 (after T-187 + T-188) turns it on by default. For Anushka's next run, switch it off once so she can test the "off" half.
-2. **SES and DNS for T-220** (the "policy changed" email and verification mail). Once T-223 merges, the develop email worker also needs `AUTH_SERVICE_URL` set (step 7 of the email doc, Arjun).
+2. ~~**SES and DNS for T-220**~~ SES production access done 14 Oct (ap-south-1, out of sandbox; Arjun). (the "policy changed" email and verification mail). Once T-223 merges, the develop email worker also needs `AUTH_SERVICE_URL` set (step 7 of the email doc, Arjun).
 3. **The registered address, with PIN code,** for the privacy policy, invoices and the footer of the verification email (T-223; no verification email goes out until it is filled). Going live for email (T-379): fill the footer, then restart the email worker. Until then the worker holds every email in the queue and its /health returns 503.
 4. **Rotate `INTERNAL_SECRET`** after T-229 merges.
 5. **Production section reseed** (your database), only after T-250 + T-255 and T-275 are merged; develop first.
@@ -83,7 +86,7 @@ T-227 (shown price = charged price), T-249 (CI skips docs-only pushes), T-248 (t
 3. **Razorpay dashboard:** confirm the plans charge exactly ₹799, ₹7,990, ₹1,999 and ₹19,990.
 4. **Is the live site publicly reachable today?** The converter page's false claim is being removed; I treat it as live until I know.
 5. **Cash on hand** (to confirm the ₹1,00,000 marketing budget at launch) and **GST status** with a CA (the pricing page says prices include tax).
-6. **Facts only you can confirm:** Atlas region; Redis Cloud region; Sentry region; whether we have a zero-retention agreement with Anthropic; whether to move off Atlas M0 for backups before v1; pm2 log rotation on the server.
+6. **Facts only you can confirm:** ~~Atlas region~~ (done 14 Oct: lawie-dev, M0, AWS Mumbai, Mongo 8.0; Arjun via Atlas); Redis Cloud region; Sentry region; whether we have a zero-retention agreement with Anthropic; whether to move off Atlas M0 for backups before v1; pm2 log rotation on the server.
 7. **Grievance Officer's name** for the privacy policy §11.
 8. **A practising advocate to review each template batch** before it goes live (Ajay's condition).
 9. **Describe-first for all users:** done by T-356 part 1 (default on). Fact ledger follows in part 2.

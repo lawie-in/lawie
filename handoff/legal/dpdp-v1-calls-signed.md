@@ -47,3 +47,43 @@ Conditions:
 2. A partial erase is never left in place. The server retries until it completes, and logs the failure with ids only, no content.
 3. The account is signed out and cannot be used once closing has started, even if the erase failed.
 4. `{support email}` is the address in the Privacy Policy.
+
+## T-115c: erase list and Privacy Policy text (signed 14 Oct 2026)
+
+### 1. User fields the runbook missed (Tanvi's list)
+
+Erase all of them: signupSource, yearsOfExperience, privacyHistory, emailVerifyToken*, passwordResetExpires, lastLoginAt, referralInkCode, and the terms/privacy consent stamps. Keep nothing on the User record. A hard delete of the whole User document (if Arjun rules it) is preferred and satisfies this.
+
+- Consent stamps go too. Once the account is erased there is nothing left to prove consent for. The erasure record holds the user id, time and reason code only, no email and no name.
+- What survives erasure: payment records and tax invoices (tax law), which keep only what the invoice itself prints. Nothing else.
+- Test: after closing, no collection holds the user's email, name or any field above under that user id, except the billing/invoice records.
+
+### 2. Privacy Policy (legal content: Tanvi ships these in T-115c, byte-exact)
+
+Must-fix: the current §7 line "Lawie does not yet have a delete button; we erase on request" becomes false the moment T-115c ships.
+
+**§7, replace the paragraph starting "Write to privacy@lawie.in" with:**
+`You can close your account and erase your data from Settings, and delete any single document from the document itself. You can also write to <a>privacy@lawie.in</a> from your account email and we will do it for you. Erasure covers our database and session store, and we remove what we can find of your data in our error reports (Sentry). Backup copies are erased within 7 days. We keep payment records and tax invoices for as long as tax law requires; an invoice keeps the name and State printed on it. Erasure cannot reach data already sent to Helicone (see §5) or copies you have downloaded.`
+(The link keeps its current mailto markup. If T-115b has not merged when T-115c ships, drop `, and delete any single document from the document itself` until it does.)
+
+**§9, change these bullets:**
+- `Everything else (account, case details, drafts): while your account exists, until you ask us to erase it.` becomes
+  `Everything else (account, case details, drafts): until you close your account or delete the document. Backup copies are erased within 7 days after that.`
+- Add: `Emails we could not send: up to 30 days.` (T-220 facts).
+- Payment bullet becomes:
+  `Payment records and tax invoices: for as long as GST law requires (72 months from the due date of the annual return for the year of the invoice), even after you close your account.`
+  This is the same text as GST ruling 5d (T-436). Whichever ticket merges first ships it; the other checks it is already there.
+- T-358's signed line (`If you do not verify your email address within 30 days of signing up, we delete your account and everything in it.`) goes into §9 with T-358, not T-115c, unless T-358 has already merged.
+
+Unchanged: sessions, fact-list records, waitlist.
+Parked: "Server logs: until we delete them" names no period (DPDP s.8(7)); Arjun to give a log retention period, then I sign a line.
+
+Bump the Privacy Policy "Last updated" date in the merge.
+
+### 3. T-115b merging before T-115c (Priya, 14 Oct 2026)
+
+The gap is acceptable on develop_staging and develop. Users only see main, and nothing reaches main without the founder's release after Anushka's PASS.
+
+Condition: T-115b goes to main only with T-115c, or with this interim line. In that case, replace `Lawie does not yet have a delete button; we erase on request.` in §7 with:
+`You can delete any single document from the document itself. To erase your account, write to us from your account email and we will do it.`
+No change in T-115b itself.
