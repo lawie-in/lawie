@@ -29,3 +29,6 @@ Should-fixes and nice-to-haves that are not tickets (Arjun's rule, 14 Oct 2026; 
 | 14 Oct 2026 | T-115c (Tanvi) | The 'erase keeps failing' warning has no alert. Tie it to Ajay's parked operator-alert item. |
 | 14 Oct 2026 | T-436a (Kunal) | Refund cap is check-then-insert; two refunds at the same instant could over-credit (refunds are founder-run; Razorpay caps the refund). Arjun: should-fix (credit notes are idempotent on refundId and Razorpay caps the refund). Fix in T-436b: make the cap a conditional $inc on the invoice's refundedTotal (CAS). |
 | 14 Oct 2026 | T-436a (Kunal) | Invoice-number allocation retries have no backoff; a burst hands work to the sweep early. |
+| 14 Oct 2026 | T-440 (Shashank) | ai.service.ts :676/:1268 never pass extra.notKnownDates to buildPlaceholderContext. No user can reach it (brief drafts never take the template route). Wire it or comment it. |
+| 14 Oct 2026 | T-440 (Shashank) | blankLabel is copied 3 times (intake-brief, template-engine blankWords, s138BlankLabel). Merge into one, minding the intake-brief/s138 import cycle. |
+| 14 Oct 2026 | T-440 (Shashank) | The guided drafter prompt lacks Ajay's not-known line (unreachable today; guided has no pack). Take it to Ajay before any pack-less brief can carry 'Not known'. |
