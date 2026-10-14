@@ -172,3 +172,16 @@ Conditions:
 (a) Signed line appended to the end of D1 rule 3 (ADVOCATE CLAUSES): **approved.**
 
 (b) `arrested_on` in bail_regular, bail_before_magistrate and default_bail: **print the line with the blank when the arrest date is answered "Not known"**: `The applicant was arrested on [To be confirmed: date of arrest].` A bail application presupposes the arrest; only its date is unknown, and the advocate must fill it (in default bail, the custody period runs from it). Q4's "leave it out" applies only to an optional date left empty, where the fact itself may not exist. An unanswered or empty arrest date still leaves the clause out. The D1 path must match the brief and ledger paths. Nothing computes a custody period from an unknown date (49a8eaa condition 1).
+
+### T-440 byte check: 6286e70 (fix/t-440-not-known-date-tbc), 14 Oct 2026
+
+| Item | Result |
+|---|---|
+| `NOT_KNOWN_DATE_LINE` | Byte-exact with the signed line. |
+| Placement | End of brief rule 3, brief repair rule 2, ledger rule 3, ledger repair rule 2, D1 rule 3, template system rule 7: as approved. |
+| `DATES MARKED AS NOT KNOWN:` block | As signed: one `- [To be confirmed: …]` per date answered "Not known" only. |
+| s.138 `Date:` | Blank, "Not known", the ledger missing marker or the blank itself all give `[To be confirmed: date the notice is sent]`; there is no fallback to today (Q1). |
+| Blank labels | Lower case after "To be confirmed: ", capitals kept for words like FIR; the date-meaning label wins (Q2). |
+| Empty optional date | Label blank only where the template prints the field; omitted where the line is conditional; no prompt note (Q4). |
+
+**Approved. T-440 is closed from my side.** Merge-body ref: "Legal: T-440 signed by Ajay, 49a8eaa + a9bc957 + 4b46053 + 69ac17a + this check".
