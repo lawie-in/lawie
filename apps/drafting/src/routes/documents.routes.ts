@@ -1857,10 +1857,7 @@ router.get(
     let courtDocument = false;
     let hasParty = false;
     try {
-      const { packId, mapped, briefCourtDocument } = partyMappingOf(
-        doc,
-        readFormInputs(doc) ?? {},
-      );
+      const { packId, mapped, briefCourtDocument } = partyMappingOf(doc, readFormInputs(doc) ?? {});
       courtDocument =
         packId === GUIDED_ID
           ? briefCourtDocument === true
@@ -2116,8 +2113,7 @@ function partyMappingOf(
   formData: Record<string, unknown>,
 ): { packId: string; mapped: PartyFieldsResult; briefCourtDocument?: boolean } {
   const packId =
-    doc.rulePackId ||
-    (typeof formData.template_id === 'string' ? formData.template_id.trim() : '');
+    doc.rulePackId || (typeof formData.template_id === 'string' ? formData.template_id.trim() : '');
   const fromBrief =
     formData.source === 'brief' && typeof doc.brief === 'string' && doc.brief !== '';
   const sealed = hasPartyInputs(packId, formData);

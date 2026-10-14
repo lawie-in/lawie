@@ -1,12 +1,12 @@
 # T-390 — Held verification emails: send one, and refund the resend cap
 
-| Field  | Value |
-| ------ | ----- |
-| Phase  | 4 — Polish and release |
-| Owner  | Lead (auth) |
-| Mode   | Small fix |
+| Field  | Value                                                                                           |
+| ------ | ----------------------------------------------------------------------------------------------- |
+| Phase  | 4 — Polish and release                                                                          |
+| Owner  | Lead (auth)                                                                                     |
+| Mode   | Small fix                                                                                       |
 | Status | Merged into develop_staging ed2e18a (Mahak, 13 Oct 2026). Waiting for Anushka on develop. Priya |
-| Source | T-379 review |
+| Source | T-379 review                                                                                    |
 
 ## Background
 
@@ -22,4 +22,5 @@ T-379 holds verify-email jobs in the queue while the email footer is unfilled. W
 **Arjun (13 Oct, AC2):** option B, drop AC2. The hold is a configuration state (footer unfilled) that must never be true in production; the resend cap is an abuse limit, not a delivery promise, and AC1's dedupe already means one email per user when the hold lifts. No cross-service "held" signal. Condition: the held state is visible — email-worker /health reports it and T-379's log line fires once — so nobody is silently capped in prod.
 
 ## Arjun (13 Oct 2026, via Mahak)
+
 AC2 dropped: the resend cap stays as it is. His condition, that the held state is visible, is already met: email-worker /health returns 503 unfilled_footer_placeholders, and the hold is logged once at boot.

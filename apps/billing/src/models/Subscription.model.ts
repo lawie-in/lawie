@@ -43,6 +43,12 @@ export interface ISubscription extends Document {
   inkDripCount?: number;
   lastGrantedPaidCount?: number;
   lastGrantedPeriodStart?: Date;
+  // T-415: state of the claim on the cycle above ('pending' until the grant
+  // succeeds), when it was (re-)claimed, and the claiming attempt's token.
+  // Absent on pre-T-415 documents, which count as granted.
+  grantClaimState?: 'pending' | 'granted';
+  grantClaimedAt?: Date;
+  grantClaimToken?: string;
 
   cancelledAt?: Date;
   createdAt: Date;
@@ -109,6 +115,9 @@ const SubscriptionSchema = new Schema<ISubscription>(
     inkDripCount: Number,
     lastGrantedPaidCount: Number,
     lastGrantedPeriodStart: Date,
+    grantClaimState: { type: String, enum: ['pending', 'granted'] },
+    grantClaimedAt: Date,
+    grantClaimToken: String,
 
     cancelledAt: Date,
   },
