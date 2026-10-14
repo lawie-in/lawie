@@ -281,12 +281,13 @@ function applicantAgeOf(formData: Record<string, unknown>): unknown {
 function relationOf(formData: Record<string, unknown>): string {
   const row = packRow(formData);
   const relKey = RELATION_SOURCES.find((k) => normaliseRelation(formData[k]) !== undefined);
-  const parentName = firstNonBlank(
+  // A "[To be confirmed: …]" placeholder is not a given name (as TE's isGivenName).
+  const parentName = [
     formData.father_name,
     formData.parent_name,
     ...PARENT_NAME_SOURCES.map((k) => formData[k]),
     ...(row?.details.parentage ?? []).map((k) => formData[k]),
-  );
+  ].find((v) => typeof v === 'string' && v.trim() !== '' && !/^\[To be confirmed/i.test(v.trim()));
   return esc(relationLine(relKey && formData[relKey], parentName));
 }
 

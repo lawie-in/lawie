@@ -82,6 +82,33 @@ describe('T-396 AC1/AC3: relation in memo and affidavit', () => {
     expect(memo + affidavit).not.toContain('S/o');
   });
 
+  it('a placeholder father_name is skipped for the real name in applicant_parentage', async () => {
+    const { memo, affidavit } = await build({
+      ...WOMAN,
+      father_name: BLANK_FULL,
+      applicant_parentage: 'Mohan Lal',
+      applicant_relation: 'W/o',
+    });
+    for (const part of [memo, affidavit]) {
+      expect(part).toContain('W/o Mohan Lal');
+      expect(part).not.toContain('[To be confirmed');
+    }
+  });
+
+  it('a placeholder parent_name (father_name absent) is skipped for applicant_father_name', async () => {
+    const { memo, affidavit } = await build({
+      ...WOMAN,
+      father_name: undefined,
+      parent_name: '[to be confirmed: name of parent or spouse]',
+      applicant_father_name: 'Mohan Lal',
+      applicant_relation: 'W/o',
+    });
+    for (const part of [memo, affidavit]) {
+      expect(part).toContain('W/o Mohan Lal');
+      expect(part).not.toContain('[To be confirmed');
+    }
+  });
+
   it('a woman with a name but no relation: the relation blank, no guess from sex', async () => {
     const { memo, affidavit } = await build(WOMAN);
     expect(memo).toContain(`${BLANK_REL} Mohan Lal`);
