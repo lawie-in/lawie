@@ -16,6 +16,7 @@ import { ChevronLeft, ChevronRight, IndianRupee, Paperclip, Search, X } from 'lu
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import ConsumerLevelGroup, {
+  CONSUMER_COURT_LABEL,
   CONSUMER_COURT_TYPE,
   CONSUMER_NO_MATCH,
   CONSUMER_TEMPLATE_ID,
@@ -1466,7 +1467,7 @@ export default function DynamicFormRenderer({
                   htmlFor="dfr-consumer-court"
                   className="block text-xs font-medium text-slate-600"
                 >
-                  Commission
+                  {CONSUMER_COURT_LABEL}
                 </label>
                 <select
                   id="dfr-consumer-court"

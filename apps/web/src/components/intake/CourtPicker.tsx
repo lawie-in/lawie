@@ -9,6 +9,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { BriefCourt } from './briefTypes';
 import ConsumerLevelGroup, {
+  CONSUMER_COURT_LABEL,
   CONSUMER_COURT_TYPE,
   CONSUMER_NO_MATCH,
   CONSUMER_TEMPLATE_ID,
@@ -267,7 +268,7 @@ export default function CourtPicker({
             )}
             <div>
               <label htmlFor="brief-court-court" className={label}>
-                Commission
+                {CONSUMER_COURT_LABEL}
               </label>
               {courts.length > SEARCH_FROM && (
                 <input

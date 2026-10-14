@@ -24,6 +24,8 @@ export const CONSUMER_GROUP_LABEL = 'Which Commission?';
 export const NCDRC_OPTION_LABEL =
   'National Consumer Disputes Redressal Commission (NCDRC), New Delhi';
 export const CONSUMER_NO_MATCH = 'No Commission is listed for this state yet.';
+/** The court select's label in consumer mode (Ajay, ad03fd4). */
+export const CONSUMER_COURT_LABEL = 'Consumer Commission';
 
 export const LIVE_STATE_SHOWN = 'State select shown.';
 export const LIVE_COURT_SHOWN = 'Commission select shown.';
