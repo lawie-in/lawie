@@ -30,6 +30,7 @@ import {
   CLAUSES_MARKER,
 } from '../services/brief-drafter';
 import { buildBrief, buildChecklist, type Brief, type GivenValue } from '../services/intake-brief';
+import { loadAvermentLists } from '../services/averments';
 import { loadRulePack, type RulePack } from '../services/rule-pack.service';
 import { loadTemplateConfig } from '../services/template-engine.service';
 import { SdkStreamParams, sdkAnswer } from './sdkStream';
@@ -78,8 +79,8 @@ describe('T-407 A: s141Applies', () => {
   it.each([
     ['company', true],
     ['partnership', true],
-    [' company ', true],
-    ['\tpartnership\n', true],
+    [' company ', false], // exact ===, like the template guard: no trim
+    ['\tpartnership\n', false],
     ['individual', false],
     ['huf', false],
     ['', false],
@@ -141,6 +142,30 @@ describe('T-407 B: packForDrawer on the real s.138 pack', () => {
     expect(other).toBeTruthy();
     for (const t of ['individual', 'company', undefined, '']) {
       expect(packForDrawer(other as RulePack, { respondent_type: t })).toBe(other);
+    }
+  });
+
+  it('discharge_application (NI Act, no respondent_type): same reference, S.141 kept', () => {
+    const pack = loadRulePack('discharge_application');
+    expect(pack).toBeTruthy();
+    const p = pack as RulePack;
+    expect(p.id).not.toBe(PACK_ID);
+    expect(JSON.stringify(p)).toMatch(/S\.\s?141/);
+    expect(packForDrawer(p, {})).toBe(p);
+    expect(packForDrawer(p, { respondent_type: 'individual' })).toBe(p);
+    expect(JSON.stringify(packForDrawer(p, {}))).toMatch(/S\.\s?141/);
+  });
+
+  it('a synthetic pack with another id and an NI Act 141 is returned as it is', () => {
+    const synthetic = {
+      ...s138Pack(),
+      id: 'some_other_ni_pack',
+    } as RulePack;
+    expect(sectionNumbers(synthetic)).toContain('141');
+    for (const t of [undefined, 'individual', 'huf', '']) {
+      const out = packForDrawer(synthetic, { respondent_type: t });
+      expect(out).toBe(synthetic);
+      expect(sectionNumbers(out)).toContain('141');
     }
   });
 
@@ -243,7 +268,7 @@ const TYPE_LABEL: Record<string, string> = {
   huf: 'HUF',
 };
 
-async function promptsSentFor(type: string | undefined): Promise<string> {
+async function promptsSentFor(type: string | undefined, viaLedger = false): Promise<string> {
   const pack = s138Pack();
   const values: GivenValue[] = Object.entries(BASE).map(([k, v]) => ({
     key: k,
@@ -276,7 +301,15 @@ async function promptsSentFor(type: string | undefined): Promise<string> {
       runId: 'r1',
       runSequence: 1,
       runType: 'initial',
-    } as Parameters<typeof streamGenerateFromBrief>[0],
+      ...(viaLedger
+        ? {
+            ledger: {
+              facts: heldFacts(type ? TYPE_LABEL[type] : null),
+              lists: loadAvermentLists(PACK_ID),
+            },
+          }
+        : {}),
+    } as unknown as Parameters<typeof streamGenerateFromBrief>[0],
     res as unknown as Response,
   );
   // every call (drafter and any repair) is checked
@@ -301,6 +334,23 @@ describe('T-407 D: streamGenerateFromBrief on an s.138 brief', () => {
 
   it.each(['company', 'partnership'])('drawer %s: the prompt names 141', async (t) => {
     const text = await promptsSentFor(t);
+    expect(text).toContain('Offences by companies');
+    expect(text).toContain('141');
+  });
+
+  // The ledger path (input.ledger set): the ledger drafter and its repair/verifier calls.
+  it.each(['individual', 'huf', undefined])(
+    'ledger path, drawer %s: nothing sent to the model has 141',
+    async (t) => {
+      const text = await promptsSentFor(t, true);
+      expect(mockMessagesStream).toHaveBeenCalled();
+      expect(text).toContain('138');
+      expect(text).not.toContain('141');
+    },
+  );
+
+  it.each(['company', 'partnership'])('ledger path, drawer %s: the prompt names 141', async (t) => {
+    const text = await promptsSentFor(t, true);
     expect(text).toContain('Offences by companies');
     expect(text).toContain('141');
   });
