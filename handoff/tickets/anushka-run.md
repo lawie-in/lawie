@@ -1175,3 +1175,11 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - The invoice list, the email and the download ship in part (c); the State picker ships in part (b).
 
 Quality: nothing to test in the UI — server-side only; the invoice list, email and download ship in part c
+
+## T-440 — A date you don't know prints as "to be confirmed" (518d55ae, shashank, 14 Oct 2026)
+
+- Answer "Not known" for a date and see "[To be confirmed: date of arrest]" (or that date's name) in the draft, the same however the draft was started, never a blank, a line of underscores or a guessed date.
+- Draft a cheque-bounce notice without knowing the send date and see "Date: [To be confirmed: date the notice is sent]" instead of today's date.
+- The draft makes no claim that a deadline is met or missed when the date it depends on is not known.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
