@@ -25,3 +25,11 @@ Ajay condition 5 on T-242: deleting an account must remove the whole User docume
 - Failed email jobs: kept up to 30 days (T-220), already in Ajay's text.
 
 | Status | Todo. Tanvi, after T-425. Spec handoff/marketing/close-account-spec-t115c.md; Ajay text a84e298. Priya, 14 Oct 2026 |
+
+## Arjun (14 Oct, 20:30 UTC) — Tanvi's five questions
+
+1. **Hard-delete the User document** as the last step (Ajay T-242 cond. 5 allows it). No placeholder email, no partial-index migration on a database with no backups. The `account_delete` AuditLog row (userId, type, time) and the stripped audit rows are the record that the account existed; `erasure.stage` lives on the User doc until that last step, and the final state is the AuditLog row, so the sweep treats "no User doc + account_delete row" as done. Billing rows keep the `userId` ObjectId as an opaque reference — nothing joins back. Re-registering the same email later makes a new account, as designed.
+2. **Yes**: store `authAt` on the Session at login and at OAuth callback, carry it unchanged through `/refresh`, and check `authAt` within 15 minutes for Google-only users. Password users re-prove with the password, no time check.
+3. **Yes**: wrong password on close → **403 `{ error: 'wrong_password' }`**, never 401, so `apiFetch` does not refresh-and-retry. Put the close endpoint behind the same rate limit as login (it is a bcrypt compare on a known account; without the limit it is a password oracle). One 403 text; no "account not found" variant.
+4. **Auth calls billing**, never reads the subscriptions collection (design decision 10: each service owns its data). Billing adds `GET /internal/subscription-status/:userId` (internal secret) returning `{ active: boolean, status }`. Block (409 `subscription_active`) on any subscription in `active`, `authenticated`, `pending`, `halted` or `paused` — every state Razorpay may still charge from. Allowed: `created`, `cancelled`, `completed`, `expired`, none. Billing down → 503, not 409; the user retries.
+5. **Yes** to all: `apps/auth/src/scripts/erase-user.ts`; refuse `role: Admin` and `GOLDEN_SET_USER_ID`; 200 when every step is done, 202 `{ status: 'pending' }` when locked and the sweep finishes it (same contract as T-115b). A repeat DELETE while pending → 202; after the User doc is gone → the normal 401 (no session), which is correct.

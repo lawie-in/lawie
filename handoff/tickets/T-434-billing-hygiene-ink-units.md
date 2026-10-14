@@ -33,3 +33,7 @@ Checked on origin/develop_staging:
 3. **AC6 is out.** `UsageLog` has no writer (confirmed), but it is a drafting model and the T-115 erase design references the collection; deleting it here drags a third service into the claim while Kunal holds drafting for T-115b. Document it as unused in the same post-v1 cleanup ticket; delete it after T-115c lands.
 
 Everything else stands. Still full chain (two services).
+
+## Also (Vikram, 14 Oct)
+
+When touching billing env, check that RAZORPAY_PLAN_* in each env holds the four live plan IDs; compare against the Razorpay dashboard, not a copied list.

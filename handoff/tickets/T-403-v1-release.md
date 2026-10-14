@@ -69,3 +69,5 @@ Production starts fresh. If any document saved on develop before T-300 is ever c
 - T-351: no free Ink for an unverified email sign-up (founder, 12 Oct 2026). Merged eae46a9.
 - T-223 (merged 9ae7d51) + T-220: email verification link actually sends (founder, 12 Oct 2026).
 - T-356: describe-first (and, after T-187 + T-188, the fact ledger) on by default for new users (founder, 12 Oct 2026).
+
+- Production database (Arjun, 14 Oct): its own Atlas cluster, M10 or higher, backups on with 7-day retention. Not `lawie-dev`; develop and prod never share a database.
