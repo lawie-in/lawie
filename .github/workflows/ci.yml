@@ -318,6 +318,10 @@ jobs:
     name: Golden set — Drafting (real model)
     runs-on: ubuntu-latest
     if: github.event_name != 'push' || github.ref == 'refs/heads/develop_staging'
+    # T-376 (Arjun, 14 Oct): own group, never cancelled by a later push; a real run costs money.
+    concurrency:
+      group: golden-${{ github.sha }}
+      cancel-in-progress: false
     timeout-minutes: 45
     env:
       NODE_ENV: test
