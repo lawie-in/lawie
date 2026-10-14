@@ -2,7 +2,7 @@
 import { act } from 'react';
 import { createRoot, Root } from 'react-dom/client';
 
-import BriefStep from '../BriefStep';
+import BriefStep, { INK_COST_ID } from '../BriefStep';
 import type { Brief } from '../briefTypes';
 
 (globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -32,7 +32,7 @@ afterEach(() => {
   container.remove();
 });
 
-function mount(extra: { confirmDescribedBy?: string }, onConfirm = jest.fn()) {
+function mount(extra: { confirmDescribedBy?: string; inkCost?: number }, onConfirm = jest.fn()) {
   const noop = jest.fn();
   act(() => {
     root.render(
@@ -64,18 +64,20 @@ function confirmButton(): HTMLButtonElement {
 
 describe('BriefStep confirmDescribedBy', () => {
   it('sets aria-describedby on the confirm button when given', () => {
-    mount({ confirmDescribedBy: 'reaccept-p7-generate' });
-    expect(confirmButton().getAttribute('aria-describedby')).toBe('reaccept-p7-generate');
+    mount({ confirmDescribedBy: 'reaccept-p7-generate', inkCost: 1 });
+    expect(confirmButton().getAttribute('aria-describedby')).toBe(
+      `reaccept-p7-generate ${INK_COST_ID}`,
+    );
   });
 
-  it('sets nothing when the prop is absent', () => {
-    mount({});
-    expect(confirmButton().hasAttribute('aria-describedby')).toBe(false);
+  it('points only at the Ink cost line when the prop is absent', () => {
+    mount({ inkCost: 1 });
+    expect(confirmButton().getAttribute('aria-describedby')).toBe(INK_COST_ID);
   });
 
   it('still calls onConfirm when clicked', () => {
     const onConfirm = jest.fn();
-    mount({ confirmDescribedBy: 'x' }, onConfirm);
+    mount({ confirmDescribedBy: 'x', inkCost: 1 }, onConfirm);
     act(() => confirmButton().click());
     expect(onConfirm).toHaveBeenCalledTimes(1);
   });

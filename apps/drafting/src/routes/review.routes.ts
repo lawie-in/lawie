@@ -145,8 +145,11 @@ router.get(
         documentId: t.documentId,
         documentTitle: docMap.get(String(t.documentId))?.title ?? '(deleted)',
         documentType: docMap.get(String(t.documentId))?.docType ?? null,
-        assignedTo: t.assignedTo,
-        assignedEmail: t.assignedEmail,
+        // T-115c: a reviewer who erased their account has no name or email left; the admin
+        // page shows "reviewer: erased" for these rows.
+        assignedTo: t.reviewerErased ? null : t.assignedTo,
+        assignedEmail: t.reviewerErased ? null : t.assignedEmail,
+        reviewerErased: t.reviewerErased === true,
         expiresAt: t.expiresAt,
         isActive: t.isActive,
         isUsed: t.isUsed,
@@ -200,11 +203,13 @@ router.get(
       const docMeta = docMap.get(String(t.documentId));
       return {
         token: t.token,
-        assignedTo: t.assignedTo,
+        // T-115c: see GET /admin/review-tokens above.
+        assignedTo: t.reviewerErased ? null : t.assignedTo,
+        reviewerErased: t.reviewerErased === true,
         documentId: t.documentId,
         documentTitle: docMeta?.title ?? '(deleted)',
         documentType: docMeta?.docType ?? null,
-        status: fb ? 'submitted' : (t.isActive && t.expiresAt > new Date() ? 'pending' : 'expired'),
+        status: fb ? 'submitted' : t.isActive && t.expiresAt > new Date() ? 'pending' : 'expired',
         verdict: fb?.overallVerdict ?? null,
         submittedAt: fb?.submittedAt ?? null,
         comments: fb?.comments ?? null,
@@ -262,7 +267,8 @@ router.get('/review/:token', async (req: Request, res: Response): Promise<void> 
     return;
   }
 
-  const doc = await LawieDocument.findById(rt.documentId).lean();
+  // T-115b: a document pending erase is hidden, so it gets the same answer as a missing one.
+  const doc = await LawieDocument.findOne({ _id: rt.documentId, isDeleted: { $ne: true } }).lean();
   if (!doc) {
     res.status(404).json({ error: 'Document no longer available' });
     return;
@@ -307,6 +313,15 @@ router.post('/review/:token/feedback', async (req: Request, res: Response): Prom
   }
   if (rt.isUsed) {
     res.status(409).json({ error: 'Feedback already submitted for this link' });
+    return;
+  }
+
+  // T-115b: no feedback for a document that is missing or pending erase (same 404 as GET).
+  const doc = await LawieDocument.findOne({ _id: rt.documentId, isDeleted: { $ne: true } })
+    .select('_id')
+    .lean();
+  if (!doc) {
+    res.status(404).json({ error: 'Document no longer available' });
     return;
   }
 

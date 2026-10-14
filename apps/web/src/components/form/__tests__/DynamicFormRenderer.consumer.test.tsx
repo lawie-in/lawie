@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// T-411 AC1-AC6, AC8: DynamicFormRenderer's consumer court block, and bail_regular unchanged.
+// T-411 AC1-AC6, AC8: DynamicFormRenderer's consumer court block, and other templates unchanged (bail_regular now scoped, T-425).
 import { act } from 'react';
 import { createRoot, Root } from 'react-dom/client';
 
@@ -122,6 +122,7 @@ async function mount(
         config={configOf(templateId, patch)}
         onSubmit={onSubmit}
         onCancel={jest.fn()}
+        inkCost={1}
       />,
     );
   });
@@ -456,9 +457,9 @@ describe('DynamicFormRenderer, consumer_complaint states fetch and required fiel
   });
 });
 
-describe('DynamicFormRenderer, bail_regular unchanged', () => {
-  it('has no level group, fetches types, and uses the old URLs without template', async () => {
-    await mount('bail_regular');
+describe('DynamicFormRenderer, other templates unchanged', () => {
+  it('suspension_of_sentence: no level group, fetches types, old URLs without template', async () => {
+    await mount('suspension_of_sentence');
     expect(container.querySelector('[role="radiogroup"]')).toBeNull();
     expect(container.querySelector('[aria-live="polite"]')).toBeNull();
     expect(container.textContent).not.toContain('Which Commission?');
@@ -473,5 +474,23 @@ describe('DynamicFormRenderer, bail_regular unchanged', () => {
     await flush();
     expect(paths()).toContain('/api/courts/types?state=delhi');
     expect(paths().some((p) => p.includes('template=') || p.includes('level='))).toBe(false);
+  });
+
+  it('bail_regular (T-425): no level group, but the lists are asked for with template=', async () => {
+    routes['/api/courts/states?template=bail_regular'] = {
+      states: [{ id: 'delhi', name: 'Delhi' }],
+    };
+    await mount('bail_regular');
+    expect(container.querySelector('[role="radiogroup"]')).toBeNull();
+    expect(paths()).toEqual(['/api/courts/states?template=bail_regular']);
+    const trigger = Array.from(container.querySelectorAll<HTMLElement>('div.cursor-pointer'))[0];
+    act(() => trigger.click());
+    const delhi = Array.from(container.querySelectorAll('button')).find(
+      (b) => b.textContent === 'Delhi',
+    )!;
+    act(() => delhi.click());
+    await flush();
+    expect(paths()).toContain('/api/courts/types?state=delhi&template=bail_regular');
+    expect(paths().some((p) => p.includes('level='))).toBe(false);
   });
 });

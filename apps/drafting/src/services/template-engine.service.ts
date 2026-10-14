@@ -20,6 +20,7 @@ import {
   type CatalogueCategoryId,
 } from '../config/catalogue';
 import courtDocuments from '../config/intake/court-documents.json';
+import dateMeanings from '../config/intake/date-meanings.json';
 import logger from '../config/logger';
 
 import {
@@ -32,6 +33,7 @@ import {
   readSectionsCharged,
   resolveOffence,
 } from './bns-offence-resolver';
+import { NOT_KNOWN_DATE_LINE } from './drafter.prompts';
 import { getTemplateRegistry } from './template-promoter';
 
 /**
@@ -1345,14 +1347,61 @@ function labelBlanksFor(config: TemplateConfig, fieldId: string): Set<string> {
     .find((f) => f.field_id === fieldId);
   if (!field?.label) return new Set();
   const flat = field.label.replace(/\s+/g, ' ').trim();
-  const lowered = flat
+  return new Set([
+    `[To be confirmed: ${blankWords(flat)}]`,
+    `{{MISSING: ${flat.replace(/[{}]/g, '') || 'detail'}}}`,
+  ]);
+}
+
+/** Lower case, except for words written in capitals such as FIR (intake-brief `blankLabel`). */
+function blankWords(label: string): string {
+  return label
+    .replace(/\s+/g, ' ')
+    .trim()
     .split(' ')
     .map((w) => (/^[A-Z0-9./-]{2,}$/.test(w) ? w : w.toLowerCase()))
     .join(' ');
-  return new Set([
-    `[To be confirmed: ${lowered}]`,
-    `{{MISSING: ${flat.replace(/[{}]/g, '') || 'detail'}}}`,
-  ]);
+}
+
+/** The kind of date of each fact name (config/intake/date-meanings.json), read as intake-brief reads it. */
+const DATE_KIND_LABEL_OF_FIELD = new Map<string, { id: string; label: string }>();
+for (const kind of dateMeanings.kinds as Array<{ id: string; label: string; facts: string[] }>) {
+  for (const fact of kind.facts) DATE_KIND_LABEL_OF_FIELD.set(fact, kind);
+}
+
+/**
+ * T-440 (Ajay, a9bc957, Q2): the blank of a declared date field,
+ * `[To be confirmed: <what it is the date of, lower case>]`. The date-meaning
+ * label wins, as on the brief (intake-brief `dateMeaningOf`): the kind's label
+ * when this form declares no other date of that kind, else the form label.
+ */
+export function dateBlankFor(config: TemplateConfig, fieldId: string): string {
+  const fields = (config.form_schema?.steps ?? []).flatMap((s) => s.fields ?? []);
+  const field = fields.find((f) => f.field_id === fieldId);
+  const kind = DATE_KIND_LABEL_OF_FIELD.get(fieldId);
+  const sameKind = kind
+    ? fields.filter((f) => f.type === 'date' && DATE_KIND_LABEL_OF_FIELD.get(f.field_id) === kind)
+        .length
+    : 0;
+  const meaning = kind && sameKind <= 1 ? kind.label : (field?.label ?? fieldId.replace(/_/g, ' '));
+  return `[To be confirmed: ${blankWords(meaning)}]`;
+}
+
+/**
+ * T-440: the server-only context key holding the blanks of the dates answered
+ * "Not known" (`extra.notKnownDates`), as JSON. `buildAIUserPrompt` lists them.
+ */
+export const NOT_KNOWN_DATES_KEY = '__not_known_dates';
+
+/** The field ids a section of this template prints or gives the model as `{field}`. */
+function fieldsTheTemplatePrints(config: TemplateConfig): Set<string> {
+  const ids = new Set<string>();
+  for (const section of config.document_structure?.sections ?? []) {
+    for (const text of [section.template, section.prompt_context]) {
+      for (const m of (text ?? '').matchAll(/\{(\w+)\}/g)) ids.add(m[1]);
+    }
+  }
+  return ids;
 }
 
 /** T-393: the relations Ajay allows (AC6 Addendum 3), as they print. */
@@ -1683,11 +1732,20 @@ function typedOrProfile(typed: unknown, profileValue: string | null | undefined)
  * `{governing_provision}` (T-245a will compute it). `extra.enrollmentNumber`
  * is the profile's number, used only when no number was typed and the name is
  * the profile's (T-311).
+ * T-440: `extra.notKnownDates` are the declared date fields the advocate
+ * answered "Not known" (a brief's `asked_empty` dates, `notKnownDateKeys`).
+ * Their blanks go to the model's prompt (`buildAIUserPrompt`); a date that is
+ * merely empty gets no such note (Ajay, a9bc957, Q4).
  */
 export function buildPlaceholderContext(
   config: TemplateConfig,
   rawFormData: Record<string, unknown>,
-  extra?: { advocateName?: string; enrollmentNumber?: string; governingProvision?: string },
+  extra?: {
+    advocateName?: string;
+    enrollmentNumber?: string;
+    governingProvision?: string;
+    notKnownDates?: readonly string[];
+  },
   courtData?: CourtLookupData,
 ): PlaceholderContext {
   const { kept: formData, dropped } = clientFormData(config, rawFormData);
@@ -1769,6 +1827,30 @@ export function buildPlaceholderContext(
       ctx[key] = String(val);
     }
   }
+
+  // T-440 (Ajay, 49a8eaa; a9bc957, Q4): a declared date left empty, that a
+  // section prints (or gives the model) as {field} whatever its value, prints
+  // its label blank, never nothing and never "_____". A line printed only when
+  // the date is given is a computed field, worked out above from the form
+  // values, so it stays omitted. A field the form hides (show_if) is left out.
+  const printed = fieldsTheTemplatePrints(config);
+  const notKnownBlanks: string[] = [];
+  const notKnown = new Set(extra?.notKnownDates ?? []);
+  for (const field of (config.form_schema?.steps ?? []).flatMap((s) => s.fields ?? [])) {
+    if (field.type !== 'date' || field.field_id === 'verification_date') continue;
+    const id = field.field_id;
+    // A date typed as "Not known" (Ajay, a9bc957, Q1) is not known too.
+    const typedNotKnown = /^not known$/i.test((ctx[id] ?? '').trim());
+    const empty = (ctx[id] ?? '').trim() === '' || typedNotKnown;
+    const condition = field.show_if ?? field.depends_on;
+    const shown = !condition || evaluateShowIf(condition, formData);
+    if (empty && shown && printed.has(id)) ctx[id] = dateBlankFor(config, id);
+    if (notKnown.has(id) || typedNotKnown) {
+      const v = (ctx[id] ?? '').trim();
+      notKnownBlanks.push(IS_BLANK.test(v) || LEDGER_BLANK.test(v) ? v : dateBlankFor(config, id));
+    }
+  }
+  if (notKnownBlanks.length > 0) ctx[NOT_KNOWN_DATES_KEY] = JSON.stringify(notKnownBlanks);
 
   // T-311: a template that declares advocate_enrollment prints
   // {advocate_enrollment} itself (legal_notice_s138, _s80). Same number as
@@ -2281,12 +2363,20 @@ export function drafterPromptCourtRule(
  * Build the AI system prompt for config-driven generation.
  * T-410: `courtData` (optional) tells a District from a State Commission for
  * consumer_complaint's localRules.
+ * T-407: `ctx` (optional) is the placeholder context of this draft. When it is
+ * given, each related_acts entry is rendered through replacePlaceholders, so a
+ * computed field (e.g. the s.138 notice's {ni_act_related_sections}) picks the
+ * sections for this drawer. Without ctx each entry still goes through
+ * replacePlaceholders with an empty context, so an unresolved {token} prints as
+ * the normal blank and never reaches the model raw.
  */
 export function buildAISystemPrompt(
   config: TemplateConfig,
   chosenCourtRule?: CourtRuleData | null,
   courtData?: CourtLookupData,
+  ctx?: PlaceholderContext,
 ): string {
+  const relatedActs = config.related_acts.map((act) => replacePlaceholders(act, ctx ?? {}));
   const courtRule =
     config.template_id === CONSUMER_COMPLAINT_ID
       ? consumerPromptRule(chosenCourtRule, courtData)
@@ -2315,7 +2405,7 @@ CRITICAL RULES:
    - Any court header or cause-title block ("IN THE COURT OF..." / "IN THE HIGH COURT OF...") — the cause title is already rendered above by the template engine; a second copy corrupts the document (A7)
    - The prayer clause, verification clause, or advocate block
    - The footer disclaimer ("First draft generated with AI" / "Lawie does not provide legal advice") — it is added to the export footer automatically and must NOT appear in the body (A6)
-7. Write any date as D Month YYYY, for example 4 April 2026. Never work out, add or change a date that is not given.${contractRule}
+7. Write any date as D Month YYYY, for example 4 April 2026. Never work out, add or change a date that is not given. ${NOT_KNOWN_DATE_LINE}${contractRule}
 
 ANTI-HALLUCINATION GUARDRAILS (MANDATORY):
 - Use the EXACT respondent / opposite party name provided in the form data. NEVER substitute, guess, or infer a different entity name (e.g., do NOT replace a retailer name with a manufacturer name).
@@ -2324,7 +2414,7 @@ ANTI-HALLUCINATION GUARDRAILS (MANDATORY):
 - NEVER invent witness names, case numbers, dates, or factual assertions not present in the user's form data.
 - All dates must be reproduced EXACTLY as provided — do not convert formats.
 
-RELATED ACTS: ${config.related_acts.join(', ')}${courtRule?.localRules?.length ? `\n\nCOURT-SPECIFIC RULES (MANDATORY — these override generic conventions):\n${courtRule.localRules.map((r, i) => `${i + 1}. ${r}`).join('\n')}` : ''}${
+RELATED ACTS: ${relatedActs.join(', ')}${courtRule?.localRules?.length ? `\n\nCOURT-SPECIFIC RULES (MANDATORY — these override generic conventions):\n${courtRule.localRules.map((r, i) => `${i + 1}. ${r}`).join('\n')}` : ''}${
     courtRule?.party_designation
       ? `\n\nPARTY DESIGNATIONS FOR THIS COURT:\n${partyDesignationsPromptLines(
           courtRule,
@@ -2438,6 +2528,18 @@ function parseSectionsChargedRead(
   return undefined;
 }
 
+/** T-440: the blanks `buildPlaceholderContext` stored for the dates answered "Not known". */
+function notKnownDateBlanks(ctx: PlaceholderContext): string[] {
+  const raw = ctx[NOT_KNOWN_DATES_KEY];
+  if (!raw) return [];
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((b): b is string => typeof b === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
 /**
  * Build the AI user prompt from an ai_generated section's prompt_context.
  */
@@ -2445,6 +2547,14 @@ export function buildAIUserPrompt(section: DocumentSection, ctx: PlaceholderCont
   if (!section.prompt_context) return '';
 
   let prompt = replacePlaceholders(section.prompt_context, ctx);
+
+  // T-440 (Ajay, a9bc957): the dates answered "Not known", each with the blank
+  // to copy (system prompt rule 7 carries the signed line). None for a date
+  // that is merely empty (Q4).
+  const notKnownBlanks = notKnownDateBlanks(ctx);
+  if (notKnownBlanks.length > 0) {
+    prompt += `\n\nDATES MARKED AS NOT KNOWN:\n${notKnownBlanks.map((b) => `- ${b}`).join('\n')}`;
+  }
 
   // Inject respondent name guardrail (SCRUM-52 S1 — prevent AI from substituting)
   if (ctx.respondent_name) {

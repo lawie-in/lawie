@@ -15,6 +15,10 @@ import {
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import DeleteDocumentDialog, {
+  rememberDeleteOutcome,
+  type DeleteOutcome,
+} from '@/components/documents/DeleteDocumentDialog';
 import AnnexuresCard, { annexuresCardVisible } from '@/components/editor/AnnexuresCard';
 import DocumentEditor from '@/components/editor/DocumentEditor';
 import ExportBlanksDialog from '@/components/editor/ExportBlanksDialog';
@@ -28,6 +32,7 @@ import {
   type Blank,
   type ExportBlanksGoBackDetail,
 } from '@/components/editor/exportUtils';
+import { secondaryButton } from '@/components/intake/ui';
 import { useAuth } from '@/context/AuthContext';
 import { getAccessToken } from '@/lib/auth';
 
@@ -84,6 +89,12 @@ export default function DocumentEditorPage() {
   } | null>(null);
   // T-233: the export that failed, so the banner can offer "Try again" in the same format.
   const [exportError, setExportError] = useState<ExportFormat | null>(null);
+  // T-115b — the Delete document button and its dialog (Rajesh's spec §1, §4).
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const handleDeleted = (outcome: DeleteOutcome) => {
+    rememberDeleteOutcome(outcome);
+    router.push('/dashboard/documents');
+  };
 
   // Track the latest HTML for export and auto-save
   const latestHtmlRef = useRef('');
@@ -694,7 +705,23 @@ export default function DocumentEditorPage() {
             </div>
           </dl>
         </div>
+
+        {/* T-115b — at the bottom, away from Download and Edit, so it is not hit by mistake */}
+        <div className="pt-2">
+          <button type="button" onClick={() => setDeleteOpen(true)} className={secondaryButton}>
+            Delete document
+          </button>
+        </div>
       </div>
+
+      {deleteOpen && (
+        <DeleteDocumentDialog
+          documentId={doc._id}
+          title={doc.title}
+          onClose={() => setDeleteOpen(false)}
+          onDeleted={handleDeleted}
+        />
+      )}
     </div>
   );
 }

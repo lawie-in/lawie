@@ -2758,7 +2758,7 @@ exports[`court-rules-golden — annexures pack HTML per court up_district render
 
 exports[`court-rules-golden — placeholder context per (court × template) allahabad_hc bail_anticipatory resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Criminal Misc. Bail Application No. _____ of 2026",
+  "case_nomenclature": "Criminal Misc. Anticipatory Bail Application U/S 482 BNSS No. _____ of 2026",
   "courtType": "high_court",
   "court_city": "Prayagraj",
   "court_designation": "HIGH COURT OF JUDICATURE AT ALLAHABAD",
@@ -2956,7 +2956,7 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) bihar_district bail_anticipatory resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Criminal Miscellaneous Case No. _____ of 2026",
+  "case_nomenclature": "Anticipatory Bail Application No. _____ of 2026",
   "courtType": "district_court",
   "court_city": "Patna",
   "court_designation": "DISTRICT & SESSIONS JUDGE, PATNA",
@@ -2989,7 +2989,7 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) bihar_district bail_regular resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Criminal Miscellaneous Case No. _____ of 2026",
+  "case_nomenclature": "Bail Application No. _____ of 2026",
   "courtType": "district_court",
   "court_city": "Patna",
   "court_designation": "DISTRICT & SESSIONS JUDGE, PATNA",
@@ -3187,7 +3187,7 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) cjm_generic bail_regular resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Criminal Case No. _____ of 2026",
+  "case_nomenclature": "Bail Application No. _____ of 2026",
   "courtType": "cjm",
   "court_city": "Patna",
   "court_designation": "CHIEF JUDICIAL MAGISTRATE, PATNA",
@@ -3550,7 +3550,7 @@ COMPLAINANT",
 
 exports[`court-rules-golden — placeholder context per (court × template) delhi_district bail_anticipatory resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Bail Application No. _____ of 2026",
+  "case_nomenclature": "Anticipatory Bail Application No. _____ of 2026",
   "courtType": "district_court",
   "court_city": "New Delhi",
   "court_designation": "ADDITIONAL SESSIONS JUDGE, NEW DELHI",
@@ -4144,7 +4144,7 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) jharkhand_district bail_anticipatory resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Criminal Miscellaneous Case No. _____ of 2026",
+  "case_nomenclature": "Anticipatory Bail Application No. _____ of 2026",
   "courtType": "district_court",
   "court_city": "Ranchi",
   "court_designation": "DISTRICT & SESSIONS JUDGE, RANCHI",
@@ -4177,7 +4177,7 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) jharkhand_district bail_regular resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Criminal Miscellaneous Case No. _____ of 2026",
+  "case_nomenclature": "Bail Application No. _____ of 2026",
   "courtType": "district_court",
   "court_city": "Ranchi",
   "court_designation": "DISTRICT & SESSIONS JUDGE, RANCHI",
@@ -4342,7 +4342,7 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) jharkhand_hc bail_anticipatory resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Cr. Misc. No. _____ of 2026",
+  "case_nomenclature": "A.B.A. No. _____ of 2026",
   "courtType": "high_court",
   "court_city": "Ranchi",
   "court_designation": "HIGH COURT OF JHARKHAND AT RANCHI",
@@ -4375,7 +4375,7 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) jharkhand_hc bail_regular resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Cr. Misc. No. _____ of 2026",
+  "case_nomenclature": "Bail Application No. _____ of 2026",
   "courtType": "high_court",
   "court_city": "Ranchi",
   "court_designation": "HIGH COURT OF JHARKHAND AT RANCHI",
@@ -4573,7 +4573,7 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) jmfc_generic bail_regular resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Criminal Case No. _____ of 2026",
+  "case_nomenclature": "Bail Application No. _____ of 2026",
   "courtType": "jmfc",
   "court_city": "Patna",
   "court_designation": "JUDICIAL MAGISTRATE FIRST CLASS, PATNA",
@@ -4936,7 +4936,7 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) sessions_generic bail_anticipatory resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Criminal Miscellaneous Case No. _____ of 2026",
+  "case_nomenclature": "Anticipatory Bail Application No. _____ of 2026",
   "courtType": "sessions",
   "court_city": "Mumbai",
   "court_designation": "SESSIONS FOR GREATER BOMBAY AT MUMBAI",
@@ -4969,7 +4969,7 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) sessions_generic bail_regular resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Criminal Miscellaneous Case No. _____ of 2026",
+  "case_nomenclature": "Bail Application No. _____ of 2026",
   "courtType": "sessions",
   "court_city": "Mumbai",
   "court_designation": "SESSIONS FOR GREATER BOMBAY AT MUMBAI",
@@ -5134,7 +5134,7 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) up_district bail_anticipatory resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Criminal Miscellaneous Case No. _____ of 2026",
+  "case_nomenclature": "Anticipatory Bail Application No. _____ of 2026",
   "courtType": "district_court",
   "court_city": "Agra",
   "court_designation": "DISTRICT & SESSIONS JUDGE, AGRA",
@@ -5167,7 +5167,7 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) up_district bail_regular resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Criminal Miscellaneous Case No. _____ of 2026",
+  "case_nomenclature": "Bail Application No. _____ of 2026",
   "courtType": "district_court",
   "court_city": "Agra",
   "court_designation": "DISTRICT & SESSIONS JUDGE, AGRA",

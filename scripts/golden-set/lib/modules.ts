@@ -29,11 +29,29 @@ export function requireFromDrafting<T = unknown>(name: string): T {
 
 export type CallPurpose = 'reception' | 'extract' | 'drafter' | 'repair' | 'fact_repair' | 'other';
 
+/** A text block of a system prompt, as the SDK's `TextBlockParam` (T-437 sends cached blocks). */
+interface SystemTextBlock {
+  type: 'text';
+  text: string;
+  cache_control?: unknown;
+}
+
+/** A request's `system`: a plain string, or an array of text blocks. */
+export type SystemParam = string | SystemTextBlock[];
+
 interface StreamParams {
   model: string;
   max_tokens: number;
-  system: string;
+  system: SystemParam;
   messages: Array<{ role: string; content: string }>;
+}
+
+/**
+ * The text of a request's `system`, whichever form it was sent in. T-437:
+ * the D1 call sends its system prompt as cached text blocks, not a string.
+ */
+export function systemText(system: SystemParam): string {
+  return typeof system === 'string' ? system : system.map((b) => b.text).join('');
 }
 
 /** Which pipeline call a request is, read from its system prompt. */
@@ -64,9 +82,9 @@ export function purposeOf(system: string): CallPurpose {
 
 /** The stream events of one answer, in the shapes the SDK emits. Token counts are estimates. */
 export function stubEvents(text: string, params: StreamParams): unknown[] {
-  const input = Math.ceil(
-    (params.system.length + params.messages.map((m) => m.content).join('').length) / 4,
-  );
+  const promptChars =
+    systemText(params.system).length + params.messages.map((m) => m.content).join('').length;
+  const input = Math.ceil(promptChars / 4);
   return [
     { type: 'message_start', message: { usage: { input_tokens: input, output_tokens: 0 } } },
     { type: 'content_block_delta', delta: { type: 'text_delta', text } },
@@ -96,9 +114,9 @@ export function stubParsedMessage(text: string, params: ParseParams): unknown {
       parsed = null;
     }
   }
-  const input = Math.ceil(
-    (params.system.length + params.messages.map((m) => m.content).join('').length) / 4,
-  );
+  const promptChars =
+    systemText(params.system).length + params.messages.map((m) => m.content).join('').length;
+  const input = Math.ceil(promptChars / 4);
   return {
     type: 'message',
     role: 'assistant',
@@ -160,7 +178,7 @@ export function installModelSeam(mode: 'stub' | 'real'): ModelSeam {
         configurable: true,
         value: {
           stream: (params: StreamParams) => {
-            const purpose = purposeOf(params.system);
+            const purpose = purposeOf(systemText(params.system));
             calls.push(purpose);
             if (mode === 'stub') {
               const text = stubText(purpose);
@@ -183,7 +201,7 @@ export function installModelSeam(mode: 'stub' | 'real'): ModelSeam {
           },
           // T-373: the D1 Drafter's structured call (not streamed).
           parse: async (params: ParseParams) => {
-            const purpose = purposeOf(params.system);
+            const purpose = purposeOf(systemText(params.system));
             calls.push(purpose);
             if (mode === 'stub') return stubParsedMessage(stubText(purpose), params);
             return realMessages.parse(params);

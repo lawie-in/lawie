@@ -88,3 +88,25 @@ export function sdkAnswer(text: string, input: number, output: number): AsyncIte
     { type: 'message_delta', usage: { output_tokens: output } },
   ]);
 }
+
+/**
+ * T-437: the `system` a cached call sends is an array of text blocks, a
+ * per-request one is still a plain string. Flattens either to its text, so a
+ * test that concatenates or searches the system prompt never reads
+ * "[object Object]" and never matches against array elements by accident.
+ */
+export function systemText(system: unknown): string {
+  if (typeof system === 'string') return system;
+  if (Array.isArray(system)) return system.map((b) => (b as { text: string }).text).join('');
+  throw new Error(`system is neither a string nor a block array: ${typeof system}`);
+}
+
+/**
+ * T-437: `system` is exactly one text block holding `text` byte for byte,
+ * carrying the single 1h ephemeral cache_control. The expected shape is
+ * written out here rather than built by cachedSystemBlocks, so a change to
+ * the TTL or the block shape fails the test.
+ */
+export function expectCachedSystem(system: unknown, text: string): void {
+  expect(system).toEqual([{ type: 'text', text, cache_control: { type: 'ephemeral', ttl: '1h' } }]);
+}

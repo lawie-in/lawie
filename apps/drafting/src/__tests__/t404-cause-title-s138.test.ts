@@ -241,6 +241,14 @@ describe('T-404 s.138: the blank the generator writes is the one the twin tests 
   });
 });
 
+// T-440 Q1 (Ajay, a9bc957): with no notice date the header's Date line is this blank, not
+// today. It is the one blank these fixtures may print: it is removed before the no-blank checks.
+const DATE_BLANK_LINE = 'Date: [To be confirmed: date the notice is sent]';
+const withoutDateBlank = (s: string): string => {
+  expect(s.split(DATE_BLANK_LINE).length - 1).toBeLessThanOrEqual(1);
+  return s.replace(DATE_BLANK_LINE, '');
+};
+
 describe.each(paths)('T-404 s.138 cause title, filled: %s', (_n, render) => {
   it('prints the answers byte-for-byte as before', () => {
     const r = render({});
@@ -251,7 +259,8 @@ describe.each(paths)('T-404 s.138 cause title, filled: %s', (_n, render) => {
     expect(r.subject).toContain('on behalf of my client, Suresh Gupta, I hereby serve');
     expect(r.closing).toContain('A. Advocate\nAdvocate');
     expect(r.closing).toContain('(Counsel for Suresh Gupta)');
-    for (const s of [r.header, r.subject, noEnrol(r.closing)]) {
+    expect(r.header).toContain(DATE_BLANK_LINE);
+    for (const s of [withoutDateBlank(r.header), r.subject, noEnrol(r.closing)]) {
       expect(s).not.toMatch(/To be confirmed|MISSING/);
     }
   });
@@ -359,7 +368,7 @@ describe('T-404 rule 4: the court', () => {
     expect(ctx.court_designation).toBe(ctx.courtDesignation);
     expect(ctx.courtHeader).toBeTruthy();
     expect(ctx.courtHeader).not.toContain('court]');
-    expect(ctx.caseNomenclature).toBe(`Criminal Case No. _____ of ${new Date().getFullYear()}`);
+    expect(ctx.caseNomenclature).toBe(`Bail Application No. _____ of ${new Date().getFullYear()}`);
     for (const k of ['courtHeader', 'courtDesignation', 'caseNomenclature']) {
       expect(ctx[k]).not.toBe(COURT_BLANK);
     }

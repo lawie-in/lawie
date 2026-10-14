@@ -53,6 +53,7 @@ import {
   settleInk,
   wasInkSettled,
 } from '../services/credits.service';
+import { eraseDocument } from '../services/document-erase.service';
 import {
   factDiffRunType,
   FactDiffRunType,
@@ -70,7 +71,16 @@ import {
   isFactLedgerEnabled,
   updateBrief,
 } from '../services/intake.service';
-import { getModelRates, priceUsage, RateLookup } from '../services/llm-usage';
+import {
+  CacheUsage,
+  cacheCounts,
+  effectiveCacheRates,
+  getModelRates,
+  priceCacheUsage,
+  priceUsage,
+  RateLookup,
+  totalTokens,
+} from '../services/llm-usage';
 import {
   blanksInContent,
   contentToHtml,
@@ -179,13 +189,16 @@ async function profileEnrollmentNumber(userId: string): Promise<string | undefin
  * are still real either way (T-003 §3.6).
  */
 async function priceGeneration(
-  usage: { inputTokens: number; outputTokens: number },
+  usage: { inputTokens: number; outputTokens: number } & CacheUsage,
   aiModel: string | undefined,
-): Promise<{ costUsd: number; rate: RateLookup }> {
-  if (!aiModel) return { costUsd: 0, rate: { costStatus: 'rate_missing', rate: null } };
+): Promise<{ costUsd: number; cacheWriteUsd: number; cacheReadUsd: number; rate: RateLookup }> {
+  const none = { cacheWriteUsd: 0, cacheReadUsd: 0 };
+  if (!aiModel) return { costUsd: 0, ...none, rate: { costStatus: 'rate_missing', rate: null } };
   const rate = await getModelRates(aiModel);
-  const costUsd = rate.costStatus === 'priced' ? priceUsage(usage, rate.rate) : 0;
-  return { costUsd, rate };
+  if (rate.costStatus !== 'priced') return { costUsd: 0, ...none, rate };
+  // T-437: costUsd includes the cache cost; the split is kept for the admin screen.
+  const costUsd = priceUsage(usage, rate.rate, aiModel);
+  return { costUsd, ...priceCacheUsage(usage, rate.rate, aiModel), rate };
 }
 
 export interface RecordGenerationInput {
@@ -196,7 +209,8 @@ export interface RecordGenerationInput {
   documentId?: mongoose.Types.ObjectId;
   aiModel?: string;
   transport?: 'direct';
-  usage: {
+  /** T-437: inputTokens is uncached input; cache counts are the optional CacheUsage fields. */
+  usage: CacheUsage & {
     inputTokens: number;
     outputTokens: number;
     llmCalls: number;
@@ -226,7 +240,11 @@ export interface RecordGenerationInput {
 export async function recordGeneration(
   input: RecordGenerationInput,
 ): Promise<{ duplicate: boolean }> {
-  const { costUsd, rate } = await priceGeneration(input.usage, input.aiModel);
+  const { costUsd, cacheWriteUsd, cacheReadUsd, rate } = await priceGeneration(
+    input.usage,
+    input.aiModel,
+  );
+  const cacheRates = rate.costStatus === 'priced' ? effectiveCacheRates(rate.rate) : undefined;
   try {
     await Generation.create({
       userId: input.userId,
@@ -236,9 +254,11 @@ export async function recordGeneration(
       documentId: input.documentId,
       aiModel: input.aiModel,
       transport: input.transport,
-      tokensUsed: input.usage.inputTokens + input.usage.outputTokens,
+      // T-437: tokensUsed counts every token processed, cache writes and reads included.
+      tokensUsed: totalTokens(input.usage),
       inputTokens: input.usage.inputTokens,
       outputTokens: input.usage.outputTokens,
+      ...cacheCounts(input.usage),
       llmCalls: input.usage.llmCalls,
       usageSource: input.usage.usageSource,
       calls: input.usage.calls,
@@ -252,6 +272,16 @@ export async function recordGeneration(
       costStatus: rate.costStatus,
       rateInputUsdPerMTok: rate.costStatus === 'priced' ? rate.rate.inputUsdPerMTok : undefined,
       rateOutputUsdPerMTok: rate.costStatus === 'priced' ? rate.rate.outputUsdPerMTok : undefined,
+      // T-437: present only when the generation used the cache, so a row without
+      // cache activity is written exactly as before (the schema defaults the costs to 0).
+      ...(cacheWriteUsd > 0 || cacheReadUsd > 0
+        ? {
+            cacheWriteCostUsd: cacheWriteUsd,
+            cacheReadCostUsd: cacheReadUsd,
+            rateCacheWriteUsdPerMTok: cacheRates?.cacheWriteUsdPerMTok,
+            rateCacheReadUsdPerMTok: cacheRates?.cacheReadUsdPerMTok,
+          }
+        : {}),
     });
     return { duplicate: false };
   } catch (dbErr) {
@@ -1991,6 +2021,57 @@ router.patch(
     }
 
     res.json({ version: doc.version, status: doc.status, updatedAt: doc.updatedAt });
+  },
+);
+
+// DELETE /documents/:id — T-115b: hard delete, owner only (Arjun, T-115 decision 11).
+// Marks and hides the document first, then erases it (services/document-erase.service.ts).
+// 200 only once every step is done; 202 { status: 'pending' } when a step failed (the
+// document is already hidden and the sweep finishes it). Another user's id, an unknown
+// id or a finished erase is 404. Logs ids and the error name only.
+router.delete(
+  '/:id',
+  validateObjectId,
+  authenticate,
+  async (req: Request, res: Response): Promise<void> => {
+    const payload = req.jwtPayload!;
+    const own = { _id: req.params.id, userId: payload.sub };
+    let found: unknown;
+    try {
+      found = await LawieDocument.findOneAndUpdate(
+        { ...own, isDeleted: { $ne: true } },
+        { $set: { isDeleted: true, 'deletion.requestedAt': new Date() } },
+        { new: true, projection: { _id: 1 } },
+      ).lean();
+      // A repeat while an erase is still pending re-runs it.
+      if (!found) {
+        found = await LawieDocument.findOne({ ...own, 'deletion.requestedAt': { $exists: true } })
+          .select('_id')
+          .lean();
+      }
+    } catch (err) {
+      logger.error(
+        {
+          documentId: req.params.id,
+          collection: 'documents',
+          errName: err instanceof Error ? err.name : 'UnknownError',
+        },
+        'Delete document: could not mark the document',
+      );
+      res.status(500).json({ error: 'Could not delete this document' });
+      return;
+    }
+    if (!found) {
+      res.status(404).json({ error: 'Document not found' });
+      return;
+    }
+
+    const result = await eraseDocument(req.params.id);
+    if (!result.done) {
+      res.status(202).json({ status: 'pending' });
+      return;
+    }
+    res.status(200).json({ status: 'deleted' });
   },
 );
 

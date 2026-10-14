@@ -84,6 +84,8 @@ sequenceDiagram
   Note over U: Sections free-text field — TODO SCRUM-46<br/>currently has no ?q= search API
 ```
 
+**Template scope on the court endpoints (T-425).** `/courts`, `/courts/types` and `/courts/states` accept `?template=<id>`. For the six bail packs (`bail_regular`, `bail_anticipatory`, `bail_before_magistrate`, `default_bail`, `interim_bail`, `bail_cancellation`) the result is limited to sessions courts, criminal-side `*_district` district courts, `high_court`, `high_court_bench` and, except for `bail_anticipatory`, `cjm`/`jmfc`. Consumer Commissions, NCDRC, Supreme Court, tribunals, `civil_court` and `district_court_generic` are excluded. `state` and `type` narrow further inside that scope. Passing a non-empty `level` together with a bail `template` returns 400 `level is not accepted for template <id>`. `suspension_of_sentence` and all other templates are unfiltered (`consumer_complaint` keeps its own T-411 `level` filter). `/courts/types` labels `high_court_bench` as "High Court Bench". Both web pickers, the brief `CourtPicker` and the classic-form `DynamicFormRenderer`, send `?template=<id>` for these six ids on states, types and courts; the id list in `apps/web/src/components/intake/bailCourts.ts` must match the one in `courts.routes.ts`, so change them together.
+
 The "states dropdown empty" bug means step 5 returned `[]`. The fix is always: run `yarn workspace @lawie/drafting seed:courts` against that DB.
 
 ---
@@ -108,6 +110,9 @@ yarn workspace @lawie/drafting seed:all
 yarn workspace @lawie/drafting seed:setting ai.drafting_model claude-sonnet-4-6
 yarn workspace @lawie/drafting seed:setting ai.preflight_model claude-haiku-4-5-20251001
 ```
+
+Model prices live in `appsettings` as one JSON value per model, key `ai.rates.<model-slug>` (for example `ai.rates.claude-sonnet-4-6`). It holds four numbers, all USD per million tokens: `input_usd_per_mtok`, `output_usd_per_mtok`, `cache_write_usd_per_mtok` and `cache_read_usd_per_mtok`.
+`cache_write_usd_per_mtok` must be the **1-hour** cache-write price, 2× input (for example `6` for Sonnet 4.6 at `3` input), because the drafting calls use only the 1-hour prompt cache (T-437).
 
 All four scripts read `MONGO_URI` from `.env.${NODE_ENV ?? 'development'}` at the repo root.
 

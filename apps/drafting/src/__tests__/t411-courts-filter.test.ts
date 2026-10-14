@@ -220,14 +220,14 @@ describe('T-411 template-scoped court picker (server)', () => {
     const paths = ['/courts', '/courts?state=bihar', '/courts?state=bihar&type=sessions'];
 
     it.each(paths)(
-      '%s: bail_regular, unknown, duplicated and level-only match baseline',
+      '%s: suspension_of_sentence, unknown, duplicated and level-only match baseline',
       async (p) => {
         const sep = p.includes('?') ? '&' : '?';
         const base = await request(app).get(p);
         expect(base.status).toBe(200);
         const variants = [
-          `${p}${sep}template=bail_regular`,
-          `${p}${sep}template=bail_regular&level=national`,
+          `${p}${sep}template=suspension_of_sentence`,
+          `${p}${sep}template=suspension_of_sentence&level=national`,
           `${p}${sep}template=no_such_template`,
           `${p}${sep}template=consumer_complaint&template=consumer_complaint`,
           `${p}${sep}template=`,
@@ -246,18 +246,18 @@ describe('T-411 template-scoped court picker (server)', () => {
       const returned = base.body.courts.map((c: CourtRow) => c.courtId);
       expect(returned).toEqual(expect.arrayContaining(['patna_hc', 'delhi_saket', 'nclt_mumbai']));
       expect(returned).not.toContain('inactive_consumer');
-      const withTemplate = await request(app).get('/courts?template=bail_regular');
+      const withTemplate = await request(app).get('/courts?template=suspension_of_sentence');
       expect(withTemplate.body.courts.map((c: CourtRow) => c.courtId)).toEqual(returned);
       expect(Object.keys(withTemplate.body.courts[0]).sort()).toEqual(
         Object.keys(base.body.courts[0]).sort(),
       );
     });
 
-    it('/types and /states match baseline for bail_regular, unknown and duplicated template', async () => {
+    it('/types and /states match baseline for suspension_of_sentence, unknown and duplicated template', async () => {
       const baseTypes = await request(app).get('/courts/types?state=bihar');
       const baseStates = await request(app).get('/courts/states');
       for (const q of [
-        'template=bail_regular',
+        'template=suspension_of_sentence',
         'template=zzz',
         'template=consumer_complaint&template=consumer_complaint',
       ]) {
@@ -266,7 +266,9 @@ describe('T-411 template-scoped court picker (server)', () => {
         expect(t.body).toEqual(baseTypes.body);
         expect(s.body).toEqual(baseStates.body);
       }
-      const noState = await request(app).get('/courts/types?template=bail_regular&level=national');
+      const noState = await request(app).get(
+        '/courts/types?template=suspension_of_sentence&level=national',
+      );
       expect(noState.status).toBe(400);
     });
   });

@@ -54,6 +54,39 @@ const SignupSourceSchema = new Schema<ISignupSource>(
   { _id: false },
 );
 
+/**
+ * T-115c — account close and erase (Arjun's revised design, ruling 1). `stage` is the last
+ * step that finished, so a retry (the sweep or erase-user.ts --resume) starts after it. There
+ * is no 'done' stage: the last step hard-deletes this document, and an `account_delete`
+ * AuditLog row is the record that the erase finished.
+ */
+export const ERASURE_STAGES = [
+  'locked',
+  'drafting_erased',
+  'billing_erased',
+  'auth_data_erased',
+  'audit_done',
+] as const;
+export type ErasureStage = (typeof ERASURE_STAGES)[number];
+
+export interface IErasure {
+  requestedAt: Date;
+  stage: ErasureStage;
+  /** Last failed attempt (stage it stopped at is `stage`); ids and times only. */
+  lastAttemptAt?: Date;
+  attempts?: number;
+}
+
+const ErasureSchema = new Schema<IErasure>(
+  {
+    requestedAt: { type: Date, required: true },
+    stage: { type: String, enum: ERASURE_STAGES, required: true },
+    lastAttemptAt: { type: Date },
+    attempts: { type: Number, min: 0 },
+  },
+  { _id: false },
+);
+
 export interface IUser extends Document {
   email: string;
   password?: string;
@@ -115,6 +148,8 @@ export interface IUser extends Document {
   // 24 h expiry. Set by mintVerifyLink, cleared on use. Never selected by default.
   emailVerifyTokenHash?: string;
   emailVerifyExpires?: Date;
+  // T-115c — present only once closing the account has started (the account is locked).
+  erasure?: IErasure;
   createdAt: Date;
   updatedAt: Date;
 
@@ -267,6 +302,8 @@ const UserSchema = new Schema<IUser>(
       type: Date,
       select: false,
     },
+    // T-115c — no default: absent means the account is not being closed.
+    erasure: { type: ErasureSchema },
   },
   {
     timestamps: true,
@@ -289,6 +326,8 @@ UserSchema.index({ plan: 1 });
 UserSchema.index({ createdAt: -1 });
 // T-223 — verifyEmailToken looks a user up by the token hash. Sparse: only users with a live link.
 UserSchema.index({ emailVerifyTokenHash: 1 }, { sparse: true });
+// T-115c — the erase sweep finds unfinished erases by this. Sparse: only accounts being closed.
+UserSchema.index({ 'erasure.requestedAt': 1 }, { sparse: true });
 
 // -- Pre-save: bcrypt password hashing --
 UserSchema.pre('save', async function (next) {

@@ -15,6 +15,7 @@
 import { ChevronLeft, ChevronRight, IndianRupee, Paperclip, Search, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { isBailTemplate, NOT_OFFERED_SUFFIX, SAVED_TYPE_NAMES } from '../intake/bailCourts';
 import ConsumerLevelGroup, {
   CONSUMER_COURT_LABEL,
   CONSUMER_COURT_TYPE,
@@ -31,6 +32,7 @@ import ConsumerLevelGroup, {
   type ConsumerLevel,
   type LevelChangeHow,
 } from '../intake/ConsumerLevelGroup';
+import InkCostLine, { inkCostState } from '../intake/InkCostLine';
 
 // ── Types (mirrored from backend template-engine types) ─────────────────────
 
@@ -106,7 +108,43 @@ interface DynamicFormRendererProps {
   submitting?: boolean;
   /** T-343: aria-describedby for the Generate (last-step) button, e.g. the privacy P7 box. */
   submitDescribedBy?: string;
+  /** T-388: what "Generate document" charges (template-configs `credits_cost`). */
+  inkCost?: number;
+  /** T-388: the cost is being fetched. */
+  inkCostLoading?: boolean;
+  /** T-388: fetches the cost again when it could not be worked out. */
+  onInkCostRetry?: () => void;
+  /** T-388: the template id, for the Sentry report only. */
+  templateId?: string;
+  /**
+   * T-432: answers to start from, read on mount only (merged over the schema
+   * defaults). The page passes back the last snapshot when it shows the form
+   * again, so a return from the privacy block, the paywall, the verify-email
+   * bounce or "Edit form" keeps what was typed. Held in memory by the caller;
+   * never written to browser storage.
+   */
+  initialValues?: Record<string, unknown>;
+  /** T-432: the step to start on, read on mount only (clamped to the schema). */
+  initialStep?: number;
+  /** T-432: the consumer Commission level to start with, read on mount only. */
+  initialLevel?: ConsumerLevel | null;
+  /** T-432: called with the answers, step and level whenever any of them changes. */
+  onStateChange?: (
+    values: Record<string, unknown>,
+    step: number,
+    level: ConsumerLevel | null,
+  ) => void;
 }
+
+/** T-432: what the form reports through `onStateChange`, for the caller to hold. */
+export interface FormSnapshot {
+  values: Record<string, unknown>;
+  step: number;
+  level: ConsumerLevel | null;
+}
+
+/** T-388: id of the Ink cost line under "Generate document". */
+export const SUBMIT_INK_COST_ID = 'form-submit-ink-cost';
 
 // ── Helper: evaluate show_if / depends_on expressions ──────────────────────
 //
@@ -892,23 +930,44 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 /**
  * T-411: an optional template scope. For consumer_complaint the lists are filtered by the
  * Commission level (part 1 server API); with no scope everything behaves as before.
+ * T-425: for the six bail packs the three lists are asked for with `template=<id>`.
  */
 export interface CourtsScope {
   templateId?: string;
   level?: ConsumerLevel | null;
+  /** T-425 (AC3): the form field holding the court, so a saved court can be kept. */
+  courtFieldId?: string;
+}
+
+interface SavedCourt {
+  id: string;
+  name: string;
+  state: string;
 }
 
 export function useCourtsData(formData: Record<string, unknown>, scope?: CourtsScope) {
   const [states, setStates] = useState<FieldOption[]>([]);
+  const [statesLoaded, setStatesLoaded] = useState(false);
   const [courtTypes, setCourtTypes] = useState<FieldOption[]>([]);
+  const [typesLoaded, setTypesLoaded] = useState(false);
   const [courts, setCourts] = useState<FieldOption[]>([]);
   const [courtsLoaded, setCourtsLoaded] = useState(false);
+  const [saved, setSaved] = useState<SavedCourt | null>(null);
+  // T-425: saved court ids whose by-id lookup failed; not asked again.
+  const lookupFailed = useRef<Set<string>>(new Set());
 
   const stateId = String(formData.state ?? '');
   const courtType = String(formData.court_type ?? '');
+  const courtId = scope?.courtFieldId ? String(formData[scope.courtFieldId] ?? '') : '';
   const consumer = scope?.templateId === CONSUMER_TEMPLATE_ID;
+  const bail = isBailTemplate(scope?.templateId);
   const level = consumer ? (scope?.level ?? null) : null;
-  const query = consumer && level ? `template=${CONSUMER_TEMPLATE_ID}&level=${level}` : '';
+  const query =
+    consumer && level
+      ? `template=${CONSUMER_TEMPLATE_ID}&level=${level}`
+      : bail
+        ? `template=${encodeURIComponent(scope?.templateId as string)}`
+        : '';
 
   // Fetch states once on mount (once per level in consumer mode)
   const statesFetched = useRef<string | null>(null);
@@ -916,11 +975,13 @@ export function useCourtsData(formData: Record<string, unknown>, scope?: CourtsS
     if (consumer && (!level || level === 'national')) {
       statesFetched.current = null;
       setStates([]);
+      setStatesLoaded(false);
       return;
     }
     if (statesFetched.current === query) return;
     statesFetched.current = query;
     let off = false;
+    setStatesLoaded(false);
     fetch(`${API_URL}/api/courts/states${query ? `?${query}` : ''}`)
       .then((r) => r.json())
       .then((data) => {
@@ -929,6 +990,7 @@ export function useCourtsData(formData: Record<string, unknown>, scope?: CourtsS
           setStates(
             data.states.map((s: { id: string; name: string }) => ({ id: s.id, label: s.name })),
           );
+          setStatesLoaded(true);
         }
       })
       .catch(() => {});
@@ -945,24 +1007,34 @@ export function useCourtsData(formData: Record<string, unknown>, scope?: CourtsS
     if (consumer) {
       // The level replaces the court type in consumer mode.
       setCourtTypes([]);
+      setTypesLoaded(false);
       return;
     }
     if (!stateId) {
       setCourtTypes([]);
+      setTypesLoaded(false);
       setCourts([]);
       return;
     }
-    fetch(`${API_URL}/api/courts/types?state=${encodeURIComponent(stateId)}`)
+    const typesPath = `${API_URL}/api/courts/types?state=${encodeURIComponent(stateId)}`;
+    let off = false;
+    setTypesLoaded(false);
+    fetch(query ? `${typesPath}&${query}` : typesPath)
       .then((r) => r.json())
       .then((data) => {
+        if (off) return;
         if (data.types) {
           setCourtTypes(
             data.types.map((t: { id: string; label: string }) => ({ id: t.id, label: t.label })),
           );
+          setTypesLoaded(true);
         }
       })
       .catch(() => {});
-  }, [stateId, consumer]);
+    return () => {
+      off = true;
+    };
+  }, [stateId, consumer, query]);
 
   // Fetch courts when state + court_type change
   useEffect(() => {
@@ -980,9 +1052,11 @@ export function useCourtsData(formData: Record<string, unknown>, scope?: CourtsS
     } else {
       if (!stateId || !courtType) {
         setCourts([]);
+        setCourtsLoaded(false);
         return;
       }
       path = `${API_URL}/api/courts?state=${encodeURIComponent(stateId)}&type=${encodeURIComponent(courtType)}`;
+      if (query) path = `${path}&${query}`;
     }
     let off = false;
     setCourtsLoaded(false);
@@ -1007,7 +1081,59 @@ export function useCourtsData(formData: Record<string, unknown>, scope?: CourtsS
     };
   }, [stateId, courtType, consumer, level, query]);
 
-  return { states, courtTypes, courts, courtsLoaded };
+  // T-425 (AC3): a bail form holding a court this pack no longer offers keeps it. Ask for
+  // that court by id only to name it in the list; the value itself is never changed.
+  const courtNotOffered =
+    bail && courtId !== '' && courtsLoaded && !courts.some((c) => c.id === courtId);
+  useEffect(() => {
+    if (!courtNotOffered || saved?.id === courtId) return;
+    const id = courtId;
+    if (lookupFailed.current.has(id)) return;
+    let off = false;
+    fetch(`${API_URL}/api/courts/${encodeURIComponent(id)}`)
+      .then(async (res) => {
+        if (!res.ok) throw new Error('court');
+        const data = (await res.json()) as { court?: { name?: string; state?: string } };
+        if (!data.court?.name) throw new Error('court');
+        if (!off) setSaved({ id, name: data.court.name, state: data.court.state ?? '' });
+      })
+      // Only the label is lost: the saved id still shows. A failure is about the id, so it
+      // is remembered even if this run was superseded.
+      .catch(() => {
+        lookupFailed.current.add(id);
+      });
+    return () => {
+      off = true;
+    };
+  }, [courtNotOffered, courtId, saved?.id]);
+
+  const savedName = saved && saved.id === courtId ? saved : null;
+  const keptStateLabel =
+    bail && stateId && statesLoaded && !states.some((s) => s.id === stateId)
+      ? `${savedName?.state || stateId}${NOT_OFFERED_SUFFIX}`
+      : null;
+  const keptTypeLabel =
+    bail && courtType && typesLoaded && !courtTypes.some((t) => t.id === courtType)
+      ? `${SAVED_TYPE_NAMES[courtType] ?? courtType}${NOT_OFFERED_SUFFIX}`
+      : null;
+  const keptCourtLabel = courtNotOffered
+    ? `${savedName?.name ?? courtId}${NOT_OFFERED_SUFFIX}`
+    : null;
+
+  const shownStates = useMemo(
+    () => (keptStateLabel ? [{ id: stateId, label: keptStateLabel }, ...states] : states),
+    [keptStateLabel, stateId, states],
+  );
+  const shownTypes = useMemo(
+    () => (keptTypeLabel ? [{ id: courtType, label: keptTypeLabel }, ...courtTypes] : courtTypes),
+    [keptTypeLabel, courtType, courtTypes],
+  );
+  const shownCourts = useMemo(
+    () => (keptCourtLabel ? [{ id: courtId, label: keptCourtLabel }, ...courts] : courts),
+    [keptCourtLabel, courtId, courts],
+  );
+
+  return { states: shownStates, courtTypes: shownTypes, courts: shownCourts, courtsLoaded };
 }
 
 export function resolveOptions(
@@ -1262,9 +1388,21 @@ export default function DynamicFormRenderer({
   onCancel,
   submitting = false,
   submitDescribedBy,
+  inkCost,
+  inkCostLoading = false,
+  onInkCostRetry,
+  templateId,
+  initialValues,
+  initialStep,
+  initialLevel,
+  onStateChange,
 }: DynamicFormRendererProps) {
   const steps = config.form_schema.steps;
-  const [step, setStep] = useState(0);
+  // T-432: seeded on mount only; with no seed this starts at step 1 as before.
+  const [step, setStep] = useState(() => {
+    if (typeof initialStep !== 'number' || !Number.isInteger(initialStep)) return 0;
+    return Math.min(Math.max(initialStep, 0), steps.length - 1);
+  });
   const [formData, setFormData] = useState<Record<string, unknown>>(() => {
     // Initialize with defaults from the schema. Array-shaped fields (checkbox group,
     // multi-select, file) get `[]`, scalar fields get '' unless the config supplies a default.
@@ -1284,12 +1422,15 @@ export default function DynamicFormRenderer({
         }
       }
     }
-    return initial;
+    // T-432: a returning advocate's answers win over the defaults.
+    return initialValues ? { ...initial, ...initialValues } : initial;
   });
 
   // T-411: a consumer complaint picks the Commission level first.
   const consumer = config.template_id === CONSUMER_TEMPLATE_ID;
-  const [level, setLevel] = useState<ConsumerLevel | null>(null);
+  const [level, setLevel] = useState<ConsumerLevel | null>(() =>
+    consumer ? (initialLevel ?? null) : null,
+  );
   const [live, setLive] = useState('');
   const focusNext = useRef<string | null>(null);
   const courtFieldIds = useMemo(() => {
@@ -1316,6 +1457,15 @@ export default function DynamicFormRenderer({
     return ids;
   }, [steps]);
 
+  // T-432: hand every change to the caller, which holds it in memory so the
+  // form can be shown again as it was. The ref keeps a new callback identity
+  // from re-running this.
+  const onStateChangeRef = useRef(onStateChange);
+  onStateChangeRef.current = onStateChange;
+  useEffect(() => {
+    onStateChangeRef.current?.(formData, step, level);
+  }, [formData, step, level]);
+
   useEffect(() => {
     if (!focusNext.current) return;
     const el = document.getElementById(focusNext.current);
@@ -1324,9 +1474,15 @@ export default function DynamicFormRenderer({
   });
 
   // Courts data from API — cascading dropdowns (SCRUM-50)
+  // T-425: the bail packs ask for their lists with template=<id> and keep a saved court.
+  const bail = isBailTemplate(config.template_id);
   const courtsData = useCourtsData(
     formData,
-    consumer ? { templateId: config.template_id, level } : undefined,
+    consumer
+      ? { templateId: config.template_id, level }
+      : bail
+        ? { templateId: config.template_id, courtFieldId: courtFieldIds.court }
+        : undefined,
   );
 
   const onLevel = (next: ConsumerLevel, how: LevelChangeHow) => {
@@ -1428,9 +1584,16 @@ export default function DynamicFormRenderer({
   }, [visibleFields, formData, fieldErrors]);
 
   const isLastStep = step === steps.length - 1;
+  // T-388 (Arjun): "Generate document" charges, so it waits for a known cost.
+  // "Next" charges nothing and is not held.
+  const costBlocked = isLastStep && inkCostState(inkCost, inkCostLoading) !== 'known';
+  const submitDescribedByIds = isLastStep
+    ? [submitDescribedBy, SUBMIT_INK_COST_ID].filter(Boolean).join(' ')
+    : undefined;
 
   function handleNext() {
     if (isLastStep) {
+      if (costBlocked) return;
       onSubmit(formData);
     } else {
       setStep((s) => s + 1);
@@ -1573,37 +1736,52 @@ export default function DynamicFormRenderer({
         </div>
       </div>
 
-      {/* Navigation */}
-      <div className="mt-4 flex items-center justify-between">
+      {/* Navigation (T-388: top-aligned, so the Ink cost line under the button moves nothing).
+          T-432: stacked at phone width (Generate and its cost line above Cancel/Back, with a
+          real gap); a row from sm up, as before. */}
+      <div className="mt-4 flex flex-col-reverse gap-3 sm:flex-row sm:items-start sm:justify-between">
         <button
           type="button"
           onClick={() => (step === 0 ? onCancel() : setStep((s) => s - 1))}
-          className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50"
+          className="flex items-center gap-1.5 self-start rounded-lg border border-slate-200 px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50"
         >
           <ChevronLeft size={14} />
           {step === 0 ? 'Cancel' : 'Back'}
         </button>
 
-        <button
-          type="button"
-          disabled={!canAdvance || submitting}
-          onClick={handleNext}
-          aria-describedby={isLastStep ? submitDescribedBy : undefined}
-          className={`flex items-center gap-1.5 rounded-lg px-5 py-2 text-xs font-semibold text-white shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
-            isLastStep ? 'bg-slate-900 hover:bg-slate-700' : 'bg-amber-500 hover:bg-amber-600'
-          }`}
-        >
-          {submitting ? (
-            'Generating…'
-          ) : isLastStep ? (
-            'Generate document'
-          ) : (
-            <>
-              Next
-              <ChevronRight size={14} />
-            </>
+        <div className="flex flex-col items-stretch gap-1 sm:items-end">
+          <button
+            type="button"
+            disabled={!canAdvance || submitting || costBlocked}
+            aria-disabled={costBlocked ? 'true' : undefined}
+            onClick={handleNext}
+            aria-describedby={submitDescribedByIds}
+            className={`flex items-center justify-center gap-1.5 rounded-lg px-5 py-2 text-xs font-semibold text-white shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+              isLastStep ? 'bg-slate-900 hover:bg-slate-700' : 'bg-amber-500 hover:bg-amber-600'
+            }`}
+          >
+            {submitting ? (
+              'Generating…'
+            ) : isLastStep ? (
+              'Generate document'
+            ) : (
+              <>
+                Next
+                <ChevronRight size={14} />
+              </>
+            )}
+          </button>
+          {isLastStep && (
+            <InkCostLine
+              id={SUBMIT_INK_COST_ID}
+              cost={inkCost}
+              loading={inkCostLoading}
+              onRetry={onInkCostRetry}
+              kind={templateId ?? config.template_id ?? 'unknown'}
+              action="submit"
+            />
           )}
-        </button>
+        </div>
       </div>
     </div>
   );

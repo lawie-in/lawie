@@ -7,14 +7,7 @@
  * Design: docs/Admin Panel Design/Jharkhand panel matrix with verdict distribution.png
  */
 
-import {
-  CheckCircle2,
-  Copy,
-  ExternalLink,
-  Loader2,
-  Send,
-  XCircle,
-} from 'lucide-react';
+import { CheckCircle2, Copy, ExternalLink, Loader2, Send, XCircle } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
@@ -28,7 +21,10 @@ interface DocumentSummary {
 
 interface MatrixRow {
   token: string;
-  assignedTo: string;
+  /** Null once the reviewer erased their account (T-115c). */
+  assignedTo: string | null;
+  /** T-115c: the reviewer closed their Lawie account; shown as REVIEWER_ERASED_LABEL. */
+  reviewerErased?: boolean;
   documentId: string;
   documentTitle: string;
   documentType: string | null;
@@ -49,6 +45,9 @@ interface PanelData {
     verdicts: Record<string, number>;
   };
 }
+
+/** T-115c (Arjun, Ajay 96ad274): how the admin panel names a reviewer who erased their account. */
+const REVIEWER_ERASED_LABEL = 'reviewer: erased';
 
 const VERDICT_LABEL: Record<string, string> = {
   ready_to_file: 'Ready to file',
@@ -84,8 +83,9 @@ export default function PanelReviewPage() {
   const [newLink, setNewLink] = useState('');
   const [copied, setCopied] = useState(false);
 
-  const [statusFilter, setStatusFilter] =
-    useState<'all' | 'submitted' | 'pending' | 'expired'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'submitted' | 'pending' | 'expired'>(
+    'all',
+  );
   const [expandedToken, setExpandedToken] = useState<string | null>(null);
 
   const fetchAll = useCallback(async () => {
@@ -141,10 +141,9 @@ export default function PanelReviewPage() {
   };
 
   const handleDisable = async (token: string) => {
-    await apiFetch(
-      `/api/drafting/admin/review-tokens/${encodeURIComponent(token)}/disable`,
-      { method: 'PATCH' },
-    );
+    await apiFetch(`/api/drafting/admin/review-tokens/${encodeURIComponent(token)}/disable`, {
+      method: 'PATCH',
+    });
     await fetchAll();
   };
 
@@ -169,10 +168,7 @@ export default function PanelReviewPage() {
 
   return (
     <div>
-      <AdminPageHeader
-        title="Panel review"
-        eyebrow="Single-shot review links · Jharkhand panel"
-      >
+      <AdminPageHeader title="Panel review" eyebrow="Single-shot review links · Jharkhand panel">
         <a
           href="#"
           onClick={(e) => e.preventDefault()}
@@ -258,15 +254,13 @@ export default function PanelReviewPage() {
       </form>
 
       {/* Filter tabs */}
-      <div className="mb-3 flex items-center gap-1 rounded-lg bg-slate-100 p-1 w-fit">
+      <div className="mb-3 flex w-fit items-center gap-1 rounded-lg bg-slate-100 p-1">
         {(['all', 'submitted', 'pending', 'expired'] as const).map((s) => (
           <button
             key={s}
             onClick={() => setStatusFilter(s)}
             className={`rounded-md px-3 py-1.5 text-xs font-medium transition ${
-              statusFilter === s
-                ? 'bg-slate-900 text-white'
-                : 'text-slate-600 hover:bg-slate-200'
+              statusFilter === s ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-200'
             }`}
           >
             {s.charAt(0).toUpperCase() + s.slice(1)}
@@ -303,9 +297,7 @@ export default function PanelReviewPage() {
                   key={r.token}
                   row={r}
                   expanded={expandedToken === r.token}
-                  onToggle={() =>
-                    setExpandedToken((t) => (t === r.token ? null : r.token))
-                  }
+                  onToggle={() => setExpandedToken((t) => (t === r.token ? null : r.token))}
                   onCopy={() => copyUrl(reviewUrl(r.token))}
                   onDisable={() => handleDisable(r.token)}
                 />
@@ -398,7 +390,7 @@ function RowGroup({
         <td className="px-4 py-3">
           <div className="flex items-center gap-2">
             <span className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-[10px] font-semibold text-slate-600">
-              {row.assignedTo
+              {(row.reviewerErased || !row.assignedTo ? '' : row.assignedTo)
                 .split(' ')
                 .map((s) => s[0])
                 .filter(Boolean)
@@ -406,7 +398,11 @@ function RowGroup({
                 .join('')
                 .toUpperCase()}
             </span>
-            <span className="font-medium text-slate-800">{row.assignedTo}</span>
+            {row.reviewerErased || !row.assignedTo ? (
+              <span className="font-medium italic text-slate-500">{REVIEWER_ERASED_LABEL}</span>
+            ) : (
+              <span className="font-medium text-slate-800">{row.assignedTo}</span>
+            )}
           </div>
         </td>
         <td className="px-4 py-3 text-slate-600">{row.documentTitle}</td>
@@ -425,7 +421,9 @@ function RowGroup({
         </td>
         <td className="px-4 py-3">
           {row.verdict ? (
-            <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${VERDICT_PILL[row.verdict] ?? 'bg-slate-100'}`}>
+            <span
+              className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${VERDICT_PILL[row.verdict] ?? 'bg-slate-100'}`}
+            >
               {VERDICT_LABEL[row.verdict] ?? row.verdict}
             </span>
           ) : (
@@ -444,14 +442,17 @@ function RowGroup({
         </td>
         <td className="px-4 py-3 text-right">
           <div className="flex items-center justify-end gap-2">
-            <button
-              type="button"
-              onClick={onCopy}
-              className="text-slate-400 hover:text-slate-700"
-              title="Copy review URL"
-            >
-              <Copy size={13} />
-            </button>
+            {/* T-115c: an erased reviewer's link is revoked and its string replaced: nothing to copy. */}
+            {!row.reviewerErased && (
+              <button
+                type="button"
+                onClick={onCopy}
+                className="text-slate-400 hover:text-slate-700"
+                title="Copy review URL"
+              >
+                <Copy size={13} />
+              </button>
+            )}
             {row.status === 'submitted' ? (
               <button
                 type="button"

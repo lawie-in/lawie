@@ -42,7 +42,10 @@ export const S138_INPUT_KEYS = {
 
 export type S138Input = keyof typeof S138_INPUT_KEYS;
 
-/** Ajay's exact labels. Used in every `[To be confirmed: label]`. */
+/**
+ * Ajay's exact labels. Used in every `[To be confirmed: label]`, in lower case
+ * there (T-440, Ajay a9bc957, Q2: `s138BlankLabel`).
+ */
 export const S138_INPUT_LABELS: Record<S138Input, string> = {
   L1: 'Date on the cheque',
   L2: 'Last date of validity printed on the cheque, if any',
@@ -94,8 +97,20 @@ export const S138_LINE_TEXTS: Record<S138Line, string> = {
   B5: 'Notice in time not checked.',
 };
 
-/** The visible blank for a missing input. */
+/** The visible blank for a missing input. `{label}` is `s138BlankLabel` of the input. */
 export const S138_BLANK = '[To be confirmed: {label}]';
+
+/**
+ * T-440 (Ajay, a9bc957, Q2): the label as it is written after "To be
+ * confirmed: ", in lower case (a word written in capitals keeps them, as in
+ * the brief's blanks). Only the blank changes; no other check text does.
+ */
+export function s138BlankLabel(input: S138Input): string {
+  return S138_INPUT_LABELS[input]
+    .split(' ')
+    .map((w) => (/^[A-Z0-9./-]{2,}$/.test(w) ? w : w.toLowerCase()))
+    .join(' ');
+}
 
 /** Months added to the date on the cheque (RBI validity, as signed). */
 export const S138_VALIDITY_MONTHS = 3;
@@ -208,7 +223,7 @@ export function formatS138Line(
       return iso ? s138DateText(iso) : match;
     },
   );
-  const blanks = missing.map((k) => S138_BLANK.replace('{label}', S138_INPUT_LABELS[k]));
+  const blanks = missing.map((k) => S138_BLANK.replace('{label}', s138BlankLabel(k)));
   return [text, ...blanks].join(' ');
 }
 

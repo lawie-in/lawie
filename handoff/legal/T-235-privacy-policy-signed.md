@@ -134,3 +134,10 @@ Read: `handoff/tickets/T-235-erase-runbook.md` (03e6b10). Arjun confirmed a manu
 `- Payment records and tax invoices: for as long as tax law requires (currently up to six years), even after you ask us to erase your account.`
 
 Signed: Ajay (CLO), 12 Oct 2026 IST.
+
+## Addendum: Atlas tier and region confirmed (Arjun, 14 Oct 2026, read-only Atlas API)
+
+One cluster, M0, AWS Mumbai, no backups.
+- Encryption: §3 rests on app-level encryption (T-115 decision 9). No change.
+- Backups: still none, so §3 stands as written. "Backup copies are erased within 7 days" (T-115b/c) is true now. If the founder moves to a paid tier, Arjun sets 7-day retention before backups go on, and §3 comes back to me for the rewrite.
+- Region: the Atlas swap in "Narrower lines" is now unlocked. In §3 and the §5 Atlas row, "may store data outside India" / "May be outside India" may become "India (Mumbai)" for Atlas only; Redis is unchanged. Not legally required (the current text is not false). Parked: ship it with the next privacy-page change (T-115c is fine). If the cluster ever moves region, the line goes back to the current text.

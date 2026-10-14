@@ -17,6 +17,20 @@ const envSchema = z.object({
 
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),
   SENTRY_DSN: z.string().default(''),
+
+  // T-436: GST tax invoice seller details, set by the founder per environment.
+  // Never hard-coded. Empty defaults keep billing bootable without them; the
+  // invoice service refuses to issue (and the sweep retries) while any is empty.
+  GST_GSTIN: z.string().default(''),
+  GST_LEGAL_NAME: z.string().default(''),
+  GST_TRADE_NAME: z.string().default(''),
+  GST_ADDRESS: z.string().default(''),
+  GST_STATE_CODE: z.string().default(''),
+  // ISO date (YYYY-MM-DD, read as midnight IST) or ISO date-time: the GST
+  // registration's effective date. Payments before it get no invoice.
+  GST_EFFECTIVE_FROM: z.string().default(''),
+  // Optional path to a scanned signature image for the invoice PDF.
+  GST_SIGNATURE_PATH: z.string().default(''),
 });
 
 export type Env = z.infer<typeof envSchema>;

@@ -67,20 +67,44 @@ describe('criterion 1: the two Drafter prompts are part 2, A and A2, character f
   const OLD_B = 'bailable or non-bailable, that a claim is within limitation,';
   const NEW_B =
     'bailable or non-bailable, that an offence is complete, that a claim is within limitation,';
+  // T-440 (Ajay, a9bc957 and 4b46053 item 1): his signed line closes the DATES rule
+  // of PACK (rule 3) and the second rule of REPAIR. Typed from the signed file, which
+  // holds it on the T-404 sign-off (handoff/legal/T-404-cause-title-fields-signed.md).
+  const NOT_KNOWN_LINE =
+    'A date marked as not known is unknown: copy its blank exactly as given, never state or infer the date, and do not say whether any period, deadline or limitation that depends on it is met or missed.';
+  const PACK_R3_END = 'never say that such a period has or has not run unless the BRIEF says so.';
+  const REPAIR_R2_END =
+    'where they differ from another part of the BRIEF on any point, the other part wins, and only its version is stated.';
   const replaceOnce = (text: string, from: string, to: string): string => {
     expect(text.split(from)).toHaveLength(2); // present exactly once in the signed text
     return text.replace(from, () => to);
   };
 
-  it('DRAFTER_PACK_SYSTEM_PROMPT is A of part 2 with Ajay’s T-148 rule 7 and T-397 change B', () => {
+  it('DRAFTER_PACK_SYSTEM_PROMPT is A of part 2 with Ajay’s T-148 rule 7, T-397 change B and the T-440 line', () => {
     expect(DRAFTER_PACK_SYSTEM_PROMPT).toBe(
-      replaceOnce(replaceOnce(signedA, OLD_RULE_7, NEW_RULE_7), OLD_B, NEW_B),
+      replaceOnce(
+        replaceOnce(
+          replaceOnce(signedA, OLD_RULE_7, NEW_RULE_7),
+          PACK_R3_END,
+          `${PACK_R3_END} ${NOT_KNOWN_LINE}`,
+        ),
+        OLD_B,
+        NEW_B,
+      ),
     );
   });
 
-  it('DRAFTER_REPAIR_SYSTEM_PROMPT is A2 of part 2 with Ajay’s T-148 repair rule 5 and T-397 change B', () => {
+  it('DRAFTER_REPAIR_SYSTEM_PROMPT is A2 of part 2 with Ajay’s T-148 repair rule 5, T-397 change B and the T-440 line', () => {
     expect(DRAFTER_REPAIR_SYSTEM_PROMPT).toBe(
-      replaceOnce(replaceOnce(signedA2, OLD_R5_LAST, NEW_R5_LAST), OLD_B, NEW_B),
+      replaceOnce(
+        replaceOnce(
+          replaceOnce(signedA2, OLD_R5_LAST, NEW_R5_LAST),
+          REPAIR_R2_END,
+          `${REPAIR_R2_END} ${NOT_KNOWN_LINE}`,
+        ),
+        OLD_B,
+        NEW_B,
+      ),
     );
   });
 

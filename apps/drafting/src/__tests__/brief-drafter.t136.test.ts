@@ -318,10 +318,10 @@ describe('removeRepeatedParts (T-136, part 1 condition 4)', () => {
   });
 
   it('does not remove a block that differs only by the word "No"', () => {
-    const changed = BAIL_SYSTEM.before.replace('Case No. ', 'Case ');
+    const changed = BAIL_SYSTEM.before.replace('Bail Application No. ', 'Bail Application ');
     expect(changed).not.toBe(BAIL_SYSTEM.before);
     const out = removeRepeatedParts(`${changed}\n\n${PARA_TEXT}`, BAIL_SYSTEM);
-    expect(out.body).toContain('Criminal Miscellaneous Case _____ of 2026');
+    expect(out.body).toContain('Bail Application _____ of 2026');
   });
 
   it('never removes a numbered paragraph, even one that repeats a system part word for word', () => {

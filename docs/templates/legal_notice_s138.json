@@ -294,13 +294,16 @@
   },
   "computed_fields": {
     "notice_date_unless_form_blank": {
-      "logic": "if notice_sent_date === '' then '{current_date}' else '{notice_sent_date}'"
+      "logic": "if notice_sent_date === '' then '[To be confirmed: date the notice is sent]' else '{notice_sent_date}'"
+    },
+    "notice_date_unless_not_known": {
+      "logic": "if notice_sent_date === 'Not known' then '[To be confirmed: date the notice is sent]' else '{notice_date_unless_form_blank}'"
     },
     "notice_date_unless_ledger_blank": {
-      "logic": "if notice_sent_date === '{{MISSING: Date the notice is sent}}' then '{current_date}' else '{notice_date_unless_form_blank}'"
+      "logic": "if notice_sent_date === '{{MISSING: date the notice is sent}}' then '[To be confirmed: date the notice is sent]' else '{notice_date_unless_not_known}'"
     },
     "notice_date": {
-      "logic": "if notice_sent_date === '[To be confirmed: date the notice is sent]' then '{current_date}' else '{notice_date_unless_ledger_blank}'"
+      "logic": "if notice_sent_date === '[To be confirmed: date the notice is sent]' then '[To be confirmed: date the notice is sent]' else '{notice_date_unless_ledger_blank}'"
     },
     "payment_deadline_days": {
       "logic": "'15'"
@@ -310,6 +313,12 @@
     },
     "ni_act_sections_ref": {
       "logic": "if respondent_type === 'company' then '138 read with Sections 141 and 142' else '{ni_act_sections_ref_unless_partnership}'"
+    },
+    "ni_act_related_sections_unless_partnership": {
+      "logic": "if respondent_type === 'partnership' then '138, 139, 141, 142' else '138, 139, 142'"
+    },
+    "ni_act_related_sections": {
+      "logic": "if respondent_type === 'company' then '138, 139, 141, 142' else '{ni_act_related_sections_unless_partnership}'"
     },
     "addressee_name_unless_form_blank": {
       "logic": "if respondent_name === '' then '[To be confirmed: name of the addressee]' else '{respondent_name}'"
@@ -403,7 +412,7 @@
     ]
   },
   "related_acts": [
-    "Negotiable Instruments Act 1881 — Sections 138, 139, 141, 142",
+    "Negotiable Instruments Act 1881 — Sections {ni_act_related_sections}",
     "BNS"
   ],
   "special_prayer_additions": [],

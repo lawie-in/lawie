@@ -273,8 +273,8 @@ export async function deductInk(input: {
 /**
  * Grant subscription ink on billing renewal.
  * - Resets inkSub to the new allotment.
- * - For annual plans: carries 50% of remaining inkSub into inkAnnualCarry,
- *   capped at 2× the new monthly allotment.
+ * - No carry on any plan, yearly included (T-433): unspent plan Ink expires.
+ *   inkAnnualCarry is not written; an existing value is left as it is.
  * - Writes a ledger row.
  * Returns the new inkSub value.
  */
@@ -300,25 +300,11 @@ export async function grantSubscriptionInk(input: {
   if (!mongoose.Types.ObjectId.isValid(userId)) return 0;
   const oid = new mongoose.Types.ObjectId(userId);
 
-  // Read current balances for carry calc
-  const current = await User.findById(oid).select('inkSub inkAnnualCarry').lean();
-  if (!current) return 0;
-
-  const currentInkSub = (current.inkSub as number | undefined) ?? 0;
-  const currentAnnualCarry = (current.inkAnnualCarry as number | undefined) ?? 0;
-
-  // Carry logic (annual plans only)
-  let newAnnualCarry = currentAnnualCarry;
-  if (billingCycle === 'yearly') {
-    const carry = Math.floor(currentInkSub * 0.5); // 50% of remaining sub
-    const cap = inkUnits * 2; // 2× new monthly allotment
-    newAnnualCarry = Math.min(currentAnnualCarry + carry, cap);
-  }
-
+  // T-433: no carry. inkAnnualCarry is deliberately left out of $set so a grant
+  // never creates or increases it, and never zeroes an existing balance.
   const $set: Record<string, unknown> = {
     inkSub: inkUnits,
     inkSubMonthlyAllotment: inkUnits,
-    inkAnnualCarry: newAnnualCarry,
     plan: 'pro' as const,
     planTier,
     billingCycle,
@@ -329,7 +315,7 @@ export async function grantSubscriptionInk(input: {
   if (!updated) return 0;
 
   const newSub = (updated.inkSub as number | undefined) ?? inkUnits;
-  const updatedCarry = (updated.inkAnnualCarry as number | undefined) ?? newAnnualCarry;
+  const updatedCarry = (updated.inkAnnualCarry as number | undefined) ?? 0;
   const updatedTopup = (updated.inkTopup as number | undefined) ?? 0;
   const totalAfter = newSub + updatedCarry + updatedTopup;
 
@@ -345,7 +331,7 @@ export async function grantSubscriptionInk(input: {
   });
 
   logger.info(
-    { userId, inkUnits, planTier, billingCycle, newAnnualCarry },
+    { userId, inkUnits, planTier, billingCycle, inkAnnualCarry: updatedCarry },
     'subscription ink granted',
   );
 

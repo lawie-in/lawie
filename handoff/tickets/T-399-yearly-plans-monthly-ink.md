@@ -34,7 +34,7 @@ Billing lead (Kunal holds billing): Priya assigns and claims `subscription.servi
 
 ## Vikram (13 Oct 2026)
 
-The numbers don't change, only the timing: solo_yearly ₹7,990 gives 50 Ink/month (600 a year), pro_yearly ₹19,990 gives 150 Ink/month (1,800 a year). Drips follow the monthly reset rule. The capped annual carry stays, but is never advertised. "Save 2 months" is true once the drip ships.
+The numbers don't change, only the timing: solo_yearly ₹7,990 gives 50 Ink/month (600 a year), pro_yearly ₹19,990 gives 150 Ink/month (1,800 a year). Drips follow the monthly reset rule. The annual carry was removed by T-433 (47d5d011, 14 Oct 2026); nothing is banked. "Save 2 months" is true once the drip ships.
 
 Open (Arjun + Ajay): "cancel stops the drip" on a prepaid year is a refund-policy question. Finance's position: cancel means no renewal, and the drip runs to the end of the paid period, unless the unused months are refunded.
 
@@ -72,3 +72,13 @@ The refund policy allows no refunds, full or partial, on any plan. Every cancel,
 **Arjun (13 Oct, double-grant key):** key the per-cycle grant on the subscription entity's `paid_count` (monotonic, means "this cycle was paid"), stored as `lastGrantedPaidCount`; grant only when `paid_count > lastGrantedPaidCount`. If the payload has no `paid_count`, fall back to `current_start` compared with the stored one; with neither, keep today's behaviour and log a warning. Billing calls `settleYearlyDrip` from `getInkBalance` only; the charge webhook resets the drip state itself, so no settle call there.
 
 **Arjun (13 Oct, webhook ack, Kunal's finding):** `billing.routes.ts:278` acks 200 before the handler runs, so a failed grant is never retried by Razorpay. Follow-up ticket (Priya logs; Kunal after T-399, small fix): verify the signature and the T-323 body shape first (400 pre-ack stays), then run `handleWebhookEvent` synchronously and return 500 on a thrown error so Razorpay retries; the `paid_count` key (and the T-399 rollback on failure) makes the retry idempotent. No reconcile job: no job runtime, and a retry is what the sender already offers. A repeated failure on one event goes to Sentry as one alert, not per retry.
+
+## Arjun (14 Oct, 19:40 UTC) — annual carry goes (founder ruling via Vikram, 14 Oct)
+
+Founder: plan Ink expires monthly, top-up Ink never expires. T-399 already does this for drips and monthly renewals; the leftover is the yearly branch of `grantSubscriptionInk` (`apps/billing/src/services/ink-ledger.service.ts`), which moves 50% of unspent `inkSub` into `inkAnnualCarry` (capped at 2× monthly) and never expires it.
+
+Ruling for the follow-up ticket (Priya creates it; small fix, `apps/billing` only):
+- Remove the carry write: a yearly charge is a plain monthly reset, same as the monthly branch. No carry, no cap.
+- **Keep the `inkAnnualCarry` field, always 0.** It is read in ~60 places across billing, drafting (balance, holds, admin), auth and web; dropping it now is a four-workspace change for no user-visible gain. A separate cleanup ticket after v1 removes the field and every read.
+- Tests: update the billing tests that expect a carry (`ink-ledger.service.test.ts`, `t399-yearly-drip.test.ts`); add one that a yearly charge with unspent `inkSub` leaves `inkAnnualCarry` at 0 and `inkSub` at the plain monthly amount. Nothing elsewhere changes.
+- No migration: nothing sold. The T-399 backfill already writes `inkAnnualCarry: 0`.

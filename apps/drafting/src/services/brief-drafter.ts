@@ -21,7 +21,13 @@ import type { LedgerFact } from '@lawie/shared';
 import { factEntriesByKey, loadAvermentLists } from './averments';
 import type { AvermentCondition, ResolvedAverments } from './averments';
 import type { RenderedClause } from './draft-renderer';
-import { dateKindLabel, PROTECTED_QUESTION_KEY, statedDates } from './intake-brief';
+import {
+  blankLabel,
+  dateKindLabel,
+  dateMeaningOf,
+  PROTECTED_QUESTION_KEY,
+  statedDates,
+} from './intake-brief';
 import type { Brief, BriefItem, ChecklistItem } from './intake-brief';
 import { datesAsWritten, datesInText, normalise } from './intake-text';
 import { applyFieldAliases } from './rule-pack.service';
@@ -58,6 +64,27 @@ export function systemParts(config: TemplateConfig): SystemPart[] {
 
 function isEmpty(v: string | string[] | null): boolean {
   return v === null || v === '' || (Array.isArray(v) && v.length === 0);
+}
+
+/**
+ * T-440 (Ajay, 49a8eaa and a9bc957, Q3): a date the advocate answered "Not
+ * known": a date item marked `asked_empty`, with no value. Dates only; any other
+ * fact answered "Not known" keeps T-190 condition 4 (no fact, no forced blank).
+ */
+export function isNotKnownDate(
+  item: Pick<BriefItem, 'kind' | 'value' | 'asked_empty' | 'unconfirmed'>,
+): boolean {
+  return (
+    item.kind === 'date' &&
+    item.asked_empty === true &&
+    item.unconfirmed !== true &&
+    isEmpty(item.value)
+  );
+}
+
+/** T-440: the keys of the brief's dates answered "Not known" (`isNotKnownDate`). */
+export function notKnownDateKeys(brief: Pick<Brief, 'items'>): string[] {
+  return brief.items.filter(isNotKnownDate).map((i) => i.key);
 }
 
 /**
@@ -146,7 +173,8 @@ interface BriefParts {
   numbers: Array<{ key: string; what: string; value: string | string[] }>;
   asked_for: Array<{ key: string; what: string; value: string | string[] }>;
   other: Array<{ what: string; value: string | string[] }>;
-  unknown: Array<{ what: string; blank: string }>;
+  /** T-440: `not_known` marks a date the advocate answered "Not known". */
+  unknown: Array<{ what: string; blank: string; not_known?: true }>;
 }
 
 export interface DrafterBrief extends BriefParts {
@@ -197,6 +225,10 @@ function briefParts(
   converted?: Record<string, unknown>,
   profileAdvocateName?: string | null,
 ): BriefParts {
+  // T-440 (Ajay, a9bc957, Q3): a date answered "Not known" is listed as unknown,
+  // with its blank and the mark, so the Drafter writes the blank (rule 4) and
+  // the signed not-known line applies to it.
+  const notKnown = new Set(notKnownDateKeys(brief));
   const out: BriefParts = {
     document: brief.kind.name,
     court: brief.kind.court_document ? (courtLine ?? '[To be confirmed: court]') : null,
@@ -208,10 +240,25 @@ function briefParts(
     other: brief.unplaced.map((u) => ({ what: u.label, value: u.value })),
     unknown: brief.still_unknown
       .filter((u) => !knownAdvocateName(u.key, profileAdvocateName))
-      .map((u) => ({ what: u.label, blank: u.placeholder })),
+      .map((u) => ({
+        what: u.label,
+        blank: u.placeholder,
+        ...(notKnown.has(u.key) ? { not_known: true as const } : {}),
+      })),
   };
+  const listed = new Set(brief.still_unknown.map((u) => u.key));
   for (const item of brief.items) {
-    if (isEmpty(item.value)) continue;
+    if (isEmpty(item.value)) {
+      // T-440: an optional date answered "Not known" (a required one is in still_unknown).
+      if (notKnown.has(item.key) && !listed.has(item.key)) {
+        out.unknown.push({
+          what: item.meaning ?? item.label,
+          blank: item.placeholder,
+          not_known: true,
+        });
+      }
+      continue;
+    }
     // T-336: a description-read "none" on earlier bail applications, not yet
     // confirmed, is not a fact. It is listed as unknown, so the Drafter writes
     // its blank even though the advocate's description appears to give it.
@@ -359,8 +406,24 @@ export interface LedgerDrafterFacts {
   court: string | null;
   /** The ledger's facts. Only what the draft may print: no comparison key, no span. */
   facts: Array<{ key: string; label: string; type: string; display: string }>;
-  /** Each required fact the ledger does not hold, unresolved ones included, with its placeholder. */
-  missing: Array<{ key: string; label: string; write: string }>;
+  /**
+   * Each required fact the ledger does not hold, unresolved ones included, with
+   * its placeholder. T-440: also each date answered "Not known", marked
+   * `not_known`.
+   */
+  missing: Array<{ key: string; label: string; write: string; not_known?: true }>;
+}
+
+/**
+ * T-440 (Ajay, a9bc957, Q2): the ledger blank for a date names what it is the
+ * date of, in lower case after "MISSING: " (it prints as "[To be confirmed:
+ * …]"), as the brief's blank does. Any other item keeps its label as it is.
+ */
+function ledgerBlankFor(
+  item: Pick<ChecklistItem, 'kind' | 'label'> & { dateKind?: string | null; meaning?: string },
+): string {
+  if (item.kind !== 'date') return missingPlaceholder(item.label);
+  return missingPlaceholder(blankLabel(item.meaning ?? dateMeaningOf(item) ?? item.label));
 }
 
 /**
@@ -377,19 +440,33 @@ export interface LedgerDrafterFacts {
  * that the advocate answered "Not known" (no fact, no longer unresolved), gets
  * no blank (T-190, condition 4). Earlier bail applications is left to its
  * mandatory clause, which prints its own blank (T-136 B4), so it is not doubled.
+ *
+ * T-440 (Ajay, a9bc957, Q3): dates only, a date answered "Not known" with no
+ * fact is missing too, marked `not_known`. `notKnownDates` is the brief (its
+ * `notKnownDateKeys` are read) or those keys. A date's placeholder names what it is the date of, in lower
+ * case (Q2). A checklist item without `kind` is treated as not a date.
  */
 export function ledgerDrafterFacts(
   facts: readonly LedgerFact[],
-  checklist: ReadonlyArray<Pick<ChecklistItem, 'key' | 'label' | 'required'>>,
+  checklist: ReadonlyArray<
+    Pick<ChecklistItem, 'key' | 'label' | 'required'> &
+      Partial<Pick<ChecklistItem, 'kind' | 'dateKind'>>
+  >,
   courtLine: string | null,
   courtDocument: boolean,
   unresolvedKeys: readonly string[] = [],
   profileAdvocateName?: string | null,
+  notKnownDates: Pick<Brief, 'items'> | readonly string[] = [],
 ): LedgerDrafterFacts {
   const held = factEntriesByKey(facts);
   const unresolved = new Set(
     unresolvedKeys.filter((k) => lastSegment(k) !== PROTECTED_QUESTION_KEY),
   );
+  const notKnown = new Set(
+    'items' in notKnownDates ? notKnownDateKeys(notKnownDates) : notKnownDates,
+  );
+  const isNotKnown = (i: { key: string; kind?: string }): boolean =>
+    i.kind === 'date' && notKnown.has(i.key);
   return {
     court: courtDocument ? (courtLine ?? missingPlaceholder('court')) : null,
     // T-189: a list or several choices gives one fact per entry, sharing its key.
@@ -400,10 +477,15 @@ export function ledgerDrafterFacts(
       display: f.display.trim(),
     })),
     missing: checklist
-      .filter((i) => (i.required || unresolved.has(i.key)) && !held.has(i.key))
+      .filter((i) => (i.required || unresolved.has(i.key) || isNotKnown(i)) && !held.has(i.key))
       // T-365 AC1: a profile name means the advocate name is not missing.
       .filter((i) => !knownAdvocateName(i.key, profileAdvocateName))
-      .map((i) => ({ key: i.key, label: i.label, write: missingPlaceholder(i.label) })),
+      .map((i) => ({
+        key: i.key,
+        label: i.label,
+        write: i.kind ? ledgerBlankFor({ ...i, kind: i.kind }) : missingPlaceholder(i.label),
+        ...(isNotKnown(i) ? { not_known: true as const } : {}),
+      })),
   };
 }
 
@@ -427,7 +509,8 @@ export function ledgerSkeletonBrief(brief: Brief, facts: readonly LedgerFact[]):
       const entries = held.get(item.key);
       // T-341: with no fact there is no value, so no source: it is never a confirmed fact.
       if (!entries) {
-        return { ...rest, value: null, source: null, placeholder: missingPlaceholder(item.label) };
+        // T-440 (Q2): a date's blank names its meaning, in lower case.
+        return { ...rest, value: null, source: null, placeholder: ledgerBlankFor(item) };
       }
       // T-341: the ledger's source, in the brief's words. A fact the advocate
       // typed (`asked`) is the user's; one read from the description (the
@@ -442,10 +525,17 @@ export function ledgerSkeletonBrief(brief: Brief, facts: readonly LedgerFact[]):
       return { ...rest, value: entries[entries.length - 1].display.trim(), source };
     }),
     unplaced: [],
-    still_unknown: brief.still_unknown.map((u) => ({
-      ...u,
-      placeholder: missingPlaceholder(u.label),
-    })),
+    still_unknown: brief.still_unknown.map((u) => {
+      // T-440 (Q2): a required date keeps the same blank as its item above.
+      const item = brief.items.find((i) => i.key === u.key);
+      return {
+        ...u,
+        placeholder:
+          item?.kind === 'date' && !held.has(item.key)
+            ? ledgerBlankFor(item)
+            : missingPlaceholder(u.label),
+      };
+    }),
   };
 }
 
