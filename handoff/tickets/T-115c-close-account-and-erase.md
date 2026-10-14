@@ -5,7 +5,7 @@
 | Phase          | 4 — Polish and release |
 | Owner          | Lead (build). Arjun designed it |
 | Mode           | Build (auth + services + web) |
-| Status         | To do. Unassigned. Waits for Rajesh's design and Ajay's text. After T-115a |
+| Status | Merged into develop_staging ac3a0482 (Tanvi, 14 Oct 2026). T-115b can now go to main together with it (Ajay 13f74fe). Priya |
 | Parent         | T-115 |
 
 Account close (blocked while a subscription is active) goes through `/internal/erase-user`: auth orchestrates, each service erases its own data; `scripts/erase-user.ts` uses the same path. Per Arjun's revised design in `T-115-permanent-delete-and-encrypted-inputs.md`. Billing rows: Ajay decides whether they stay.

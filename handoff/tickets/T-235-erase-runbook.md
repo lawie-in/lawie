@@ -1,6 +1,13 @@
 # Manual erase of one user: runbook (Arjun, 12 Oct 2026)
 
-> **Stale (Priya, 14 Oct 2026):** T-115c changed the erase flow (auth-orchestrated, new erase-user exit codes, reviewer feedback anonymised). Until this file is rewritten, follow the "Closing and erasing an account" section of the root README.md.
+> **Updated for T-115c (Priya from Tanvi, 14 Oct 2026). This section replaces anything below that contradicts it.**
+>
+> - **Flow:** the user closes the account from Settings. Auth `DELETE /me` re-proves who they are (password, or email plus a sign-in within 15 min), then checks billing for an active plan (409 if there is one). It then locks the account and kills sessions, erases drafting data, erases billing data, erases auth data, keeps a stripped audit (payment, account_delete), rechecks drafting and billing, and finally hard-deletes the User.
+> - **202 pending:** the auth sweep retries every 10 min, oldest attempt first, and logs a warning "Account erase keeps failing" at 5+ attempts. There is no alert yet, so check the logs.
+> - **Manual:** `yarn workspace @lawie/auth erase-user <userId> [--dry-run|--resume]`. Exit codes: 0 done, 1 failed, 2 refused (admin, golden-set, active plan, bad usage), 3 pending (rerun with `--resume`).
+> - **Kept:** billing payment, top-up and plan rows and subscriptions (for tax). Ink grant rows keep only type, amount and date. Sent-email jobs stay in Redis for up to 7 days. Sentry and logs are manual checks.
+> - **Reviewer feedback:** feedback this user gave on other people's documents stays. Their token is anonymised in place (`reviewerErased`): owners see "A reviewer", and admins see "reviewer: erased".
+> - User-facing summary: the "Closing and erasing an account" section of the root README.md.
 
 
 This meets T-235's go-live condition: Arjun confirms a manual erase can be run today.

@@ -72,3 +72,13 @@ Production starts fresh. If any document saved on develop before T-300 is ever c
 
 - Production database (Arjun, 14 Oct): its own Atlas cluster, M10 or higher, backups on with 7-day retention. Not `lawie-dev`; develop and prod never share a database.
 - Prod cluster, founder steps (Vikram approved, Arjun, 14 Oct): M10 Mumbai, budget about ₹6,500/month + GST, daily snapshots with 7-day retention, no continuous backup; starts only when prod is set up. When creating it: (1) put the GSTIN in the Atlas org billing profile so the GST is input credit; (2) set Atlas billing alerts at ₹7,000 and ₹8,000 a month; (3) set backup retention to 7 days before turning backups on, then tell Ajay (his Privacy §3 condition).
+
+## Email footer and held verify queue — prod order (Arjun, 14 Oct 2026, T-436 AC10; aligned to Ajay 8a2b639/9e42eea)
+
+1. `queue:purge --dry-run`, then `queue:purge` (every held verify job; the dry run only counts).
+2. Set the registered-address footer env (founder).
+3. Deploy.
+4. Run `curl <email-worker>/health` by hand and check it returns 200 (Kunal checked the repo on 14 Oct: email-worker is in no compose file, deploy workflow, healthcheck or uptime config, and deploy.sh only builds email-client, so the 503 to 200 change will not show in any deploy log). Also confirm, and that uptime and deploy checks treat it as a real gate (nothing muted).
+5. `verify:resend-all --dry-run`, then `verify:resend-all` (one fresh verify email per unverified user, batched under the T-223 cap).
+
+Arjun says "ready" explicitly when both commands are on the env. T-358 stamps `firstVerifySentAt` on confirmed send; deletion is no earlier than 30 days after the first email that reaches the user.
