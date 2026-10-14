@@ -84,6 +84,8 @@ sequenceDiagram
   Note over U: Sections free-text field — TODO SCRUM-46<br/>currently has no ?q= search API
 ```
 
+**Template scope on the court endpoints (T-425).** `/courts`, `/courts/types` and `/courts/states` accept `?template=<id>`. For the six bail packs (`bail_regular`, `bail_anticipatory`, `bail_before_magistrate`, `default_bail`, `interim_bail`, `bail_cancellation`) the result is limited to sessions courts, criminal-side `*_district` district courts, `high_court`, `high_court_bench` and, except for `bail_anticipatory`, `cjm`/`jmfc`. Consumer Commissions, NCDRC, Supreme Court, tribunals, `civil_court` and `district_court_generic` are excluded. `state` and `type` narrow further inside that scope. Passing a non-empty `level` together with a bail `template` returns 400 `level is not accepted for template <id>`. `suspension_of_sentence` and all other templates are unfiltered (`consumer_complaint` keeps its own T-411 `level` filter). `/courts/types` labels `high_court_bench` as "High Court Bench".
+
 The "states dropdown empty" bug means step 5 returned `[]`. The fix is always: run `yarn workspace @lawie/drafting seed:courts` against that DB.
 
 ---
