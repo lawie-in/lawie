@@ -302,9 +302,10 @@ describe('T-424 B: vakalatnama, index and synopsis', () => {
       expect(index).not.toMatch(STALE_RE);
     });
 
-    it('the synopsis keeps its wording and reads the petitioner', async () => {
+    it('the synopsis party bullet is "Petitioner: <petitioner>", never "Applicant/Petitioner"', async () => {
       const { synopsis } = await renderPack(id, { ...raw, ...STALE });
-      expect(synopsis).toContain(`Applicant/Petitioner: ${NITA.name}`);
+      expect(synopsis).toContain(`<li>Petitioner: ${NITA.name}</li>`);
+      expect(synopsis).not.toContain('Applicant/Petitioner');
       expect(synopsis).not.toMatch(STALE_RE);
     });
   });
@@ -312,7 +313,7 @@ describe('T-424 B: vakalatnama, index and synopsis', () => {
 
 describe('T-424 B: other packs keep their wording (single "the")', () => {
   it('bail_regular still says "the above-named Applicant/Petitioner"', async () => {
-    const { affidavit, memo } = await render({
+    const { affidavit, memo, synopsis } = await render({
       template_id: 'bail_regular',
       court_id: 'allahabad_hc',
       court_type: 'high_court',
@@ -325,6 +326,7 @@ describe('T-424 B: other packs keep their wording (single "the")', () => {
       '1. That I am the above-named Applicant/Petitioner in the accompanying matter',
     );
     expect(affidavit).not.toMatch(/the the/i);
+    expect(synopsis).toContain('Applicant/Petitioner: Bail Person');
     expect(affidavit).toContain('I, <strong>Bail Person</strong>');
     expect(memo).toContain('<strong>Bail Person</strong>');
     expect(memo).toContain('Age: 30 years');

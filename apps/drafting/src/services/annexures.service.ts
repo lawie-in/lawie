@@ -448,10 +448,11 @@ function annexureMemoOfParties(
 // ── Annexure B — Synopsis ─────────────────────────────────────────────────────
 
 function annexureSynopsis(formData: Record<string, unknown>, rules: CourtRules): string {
-  // T-424: on a sided pack the "Applicant/Petitioner" line is the petitioner.
-  const applicant = safeEsc(
-    clientSideOf(formData) ? formData.petitioner_name : applicantNameOf(formData),
-  );
+  // T-424 (Ajay, 14 Oct): on a sided pack the party line is "Petitioner:" and
+  // names the petitioner.
+  const sided = clientSideOf(formData) !== null;
+  const applicant = safeEsc(sided ? formData.petitioner_name : applicantNameOf(formData));
+  const partyLabel = sided ? 'Petitioner' : 'Applicant/Petitioner';
   const courtDesig = esc(rules.designation);
   const docType = safeEsc(formData.template_id ?? formData.doc_type ?? 'Application');
   const sections = str(formData.sections_charged ?? formData.bns_sections ?? formData.sections, '');
@@ -460,7 +461,7 @@ function annexureSynopsis(formData: Record<string, unknown>, rules: CourtRules):
   const year = new Date().getFullYear();
 
   const bulletPoints: string[] = [
-    `Applicant/Petitioner: ${applicant}`,
+    `${partyLabel}: ${applicant}`,
     sections ? `Sections invoked: ${esc(sections)}` : '',
     firNo !== '___________' ? `FIR/Complaint No.: ${firNo}, PS: ${ps}` : '',
     `Court: ${courtDesig}`,
