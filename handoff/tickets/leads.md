@@ -61,6 +61,7 @@ Where each lead stopped:
 
 ## Last done
 
+- shashank: T-404 part 1 CI green (run 525).
 - shashank: T-404 part 1 merged 680b41c (14 Oct 2026). s.138 notice, advocate and court gaps print '[To be confirmed: ...]', never '_____' or an invented court; bail court, case type and place flagged. Part 2 building.
 - kunal: T-415 CI green (run 524).
 - kunal: T-415 merged 42703a4 (14 Oct 2026). A stuck Ink grant is finished by Razorpay's next retry, never twice.
