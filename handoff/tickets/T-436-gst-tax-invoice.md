@@ -2,7 +2,7 @@
 
 | Field  | Value                                                                        |
 | ------ | ---------------------------------------------------------------------------- |
-| Status | Ready, gates clear (Ajay 9201297 + Addenda 1-2 2a31eed; Arjun design; founder GST details with Vikram, env config only). Next free lead. Priya, 14 Oct 2026 |
+| Status | Doing. Kunal; Explore first, files to Priya (incl. packages/shared privacy version constant). Priya, 14 Oct 2026 |
 | Owner  | Lead (build), Vikram (requirements), Ajay (contents/wording), Arjun (mechanism), Rajesh (any new checkout fields) |
 | Mode   | Full chain (billing + web; email-worker if invoices are emailed by us)       |
 
@@ -26,6 +26,8 @@ Vikram, 14 Oct 2026, founder-approved: Lawie is GST-registered (sole proprietors
 5. Refunds produce a credit note against the original invoice.
 6. Invoice emailed and downloadable from the billing page; stored for Ajay's retention period; no case content on it.
 7. Monthly CSV export of all invoices and credit notes for GSTR-1, to Vikram.
+8. Bump CURRENT_PRIVACY_VERSION so users get the re-accept prompt, because the State (place of supply) is new data collected (Ajay fc0d74d, dpdp file §6). Ajay signs the change summary when the build is ready.
+   Claim note (Arjun): T-436's claim includes the privacy version constant in packages/shared (one holder at a time), and its full chain covers the re-acceptance flow (T-343). T-115c does not touch it.
 
 ## Ajay's ruling (9201297, handoff/legal/gst-tax-invoice-signed.md)
 
