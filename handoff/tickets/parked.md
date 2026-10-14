@@ -22,3 +22,4 @@ Should-fixes and nice-to-haves that are not tickets (Arjun's rule, 14 Oct 2026; 
 | 14 Oct 2026 | T-433 (Shashank) | Terms §6 still says 'short ones use 1'; T-238 signed 'short documents' wherever the Ink line appears. Needs Ajay's word; ships with the next terms-page change. |
 | 14 Oct 2026 | T-429 (Vishal) | template-promoter readComputedFields shallow-copies value_map, which is shared with the cached rule JSON; deep-copy it. |
 | 14 Oct 2026 | T-384 (Meera/Rajesh) | Let the advocate choose 'Not known' on a date row from the brief itself; T-384 covers only a date already answered 'Not known'. |
+| 14 Oct 2026 | T-384 (Meera/Rajesh) | The 'Change' link on a 'Not known' date needs an accessible name with the row label, e.g. 'Change {row label}'. Low priority. |
