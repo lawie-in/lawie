@@ -4,18 +4,28 @@
  * Individual, HUF, unknown, empty and placeholder give no s.141.
  *
  * Covers the brief / ledger / repair / D1 paths in ai.service.ts (packForDrawer).
- * The config path (buildAISystemPrompt) is part 2 and is NOT tested here.
+ * Part 2 (F, G, H below) covers the config path: buildAISystemPrompt with a
+ * PlaceholderContext, and streamGenerateFromTemplate end to end.
  *
  * A  s141Applies truth table
  * B  packForDrawer on the real s.138 pack
  * C  the prompt renderers with the filtered pack
  * D  streamGenerateFromBrief end to end with a stubbed model
+ * E  advocate-visible labels through formDataFromBrief
+ * F  config path: buildAISystemPrompt RELATED ACTS per drawer
+ * G  config path: streamGenerateFromTemplate end to end with a stubbed model
+ * H  guard parity: ni_act_related_sections vs ni_act_sections_ref
  */
 import './setupEnv';
 
 import { Response } from 'express';
 
-import { packForDrawer, s141Applies, streamGenerateFromBrief } from '../services/ai.service';
+import {
+  packForDrawer,
+  s141Applies,
+  streamGenerateFromBrief,
+  streamGenerateFromTemplate,
+} from '../services/ai.service';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
@@ -32,7 +42,12 @@ import {
 import { buildBrief, buildChecklist, type Brief, type GivenValue } from '../services/intake-brief';
 import { loadAvermentLists } from '../services/averments';
 import { loadRulePack, type RulePack } from '../services/rule-pack.service';
-import { loadTemplateConfig } from '../services/template-engine.service';
+import {
+  buildAISystemPrompt,
+  buildPlaceholderContext,
+  loadTemplateConfig,
+  replacePlaceholders,
+} from '../services/template-engine.service';
 import { SdkStreamParams, sdkAnswer } from './sdkStream';
 
 const mockMessagesStream = jest.fn();
@@ -467,5 +482,147 @@ describe('T-407 E: advocate-visible labels through formDataFromBrief', () => {
           .respondent_type,
       ),
     ).toMatch(/^\{\{MISSING: /);
+  });
+});
+
+// ── Part 2: the config path ──────────────────────────────────────────────
+const RT_FIELD = TWIN.form_schema.steps
+  .flatMap((s) => s.fields)
+  .find((f) => f.field_id === 'respondent_type') as unknown as {
+  placeholder?: string;
+};
+const optId = (id: string) => OPTIONS.find((o) => o.id === id)!.id;
+
+// Drawer values that must give no s.141, ids taken from the template's options.
+const CFG_NO_S141: Array<[string, unknown]> = [
+  ['individual', optId('individual')],
+  ['huf', optId('huf')],
+  ['empty string', ''],
+  ['undefined', undefined],
+  ['padded " company"', ` ${optId('company')}`],
+  ['padded "partnership "', `${optId('partnership')} `],
+  ['to-be-confirmed placeholder', '[To be confirmed: drawer type]'],
+  ['MISSING placeholder', '{{MISSING: Drawer Type}}'],
+  ['option label "Company / LLP"', labelOf('company')],
+];
+const CFG_S141: Array<[string, string]> = [
+  ['company', optId('company')],
+  ['partnership', optId('partnership')],
+];
+
+function cfgCtx(drawer: unknown) {
+  const config = loadTemplateConfig(PACK_ID)!;
+  const data: Record<string, unknown> = { ...BASE };
+  if (drawer !== undefined) data.respondent_type = drawer;
+  return { config, ctx: buildPlaceholderContext(config, data) };
+}
+
+function relatedLine(prompt: string): string {
+  const m = prompt.match(/RELATED ACTS: ([^\n]*)/);
+  if (!m) throw new Error('no RELATED ACTS line');
+  return m[1];
+}
+
+// ── F ────────────────────────────────────────────────────────────────────
+describe('T-407 F: buildAISystemPrompt RELATED ACTS per drawer (config path)', () => {
+  it('premise: the template carries the computed field and the related_acts placeholder', () => {
+    const config = loadTemplateConfig(PACK_ID)!;
+    expect(config.related_acts.join(' ')).toContain('{ni_act_related_sections}');
+    expect(Object.keys(config.computed_fields ?? {})).toContain('ni_act_related_sections');
+    expect(typeof (RT_FIELD.placeholder ?? '')).toBe('string');
+  });
+
+  it.each(CFG_NO_S141)('%s: no 141, has "138, 139, 142"', (_n, d) => {
+    const { config, ctx } = cfgCtx(d);
+    const line = relatedLine(buildAISystemPrompt(config, undefined, undefined, ctx));
+    expect(line).not.toContain('141');
+    expect(line).toContain('Sections 138, 139, 142');
+    expect(buildAISystemPrompt(config, undefined, undefined, ctx)).not.toContain(
+      '{ni_act_related_sections}',
+    );
+  });
+
+  it.each(CFG_S141)('%s: names 141', (_n, d) => {
+    const { config, ctx } = cfgCtx(d);
+    const line = relatedLine(buildAISystemPrompt(config, undefined, undefined, ctx));
+    expect(line).toContain('Sections 138, 139, 141, 142');
+  });
+
+  it('without ctx the entries are unchanged (the literal placeholder, no 141 digits)', () => {
+    const config = loadTemplateConfig(PACK_ID)!;
+    const line = relatedLine(buildAISystemPrompt(config));
+    expect(line).toContain('{ni_act_related_sections}');
+    expect(line).not.toContain('141');
+  });
+
+  it('does not mutate config.related_acts', () => {
+    const { config, ctx } = cfgCtx(optId('company'));
+    const before = [...config.related_acts];
+    buildAISystemPrompt(config, undefined, undefined, ctx);
+    expect(config.related_acts).toEqual(before);
+  });
+});
+
+// ── G ────────────────────────────────────────────────────────────────────
+async function templatePromptsFor(drawer: unknown): Promise<string> {
+  const config = loadTemplateConfig(PACK_ID)!;
+  mockMessagesStream
+    .mockReset()
+    .mockImplementation(async () => sdkAnswer('1. That the cheque was dishonoured.', 4000, 800));
+  const formData: Record<string, unknown> = { ...BASE };
+  if (drawer !== undefined) formData.respondent_type = drawer;
+  const res = { setHeader: jest.fn(), write: jest.fn(), end: jest.fn(), headersSent: false };
+  await streamGenerateFromTemplate(
+    {
+      templateConfig: config,
+      formData,
+      userId: 'u1',
+      runId: 'r1',
+      runSequence: 1,
+      runType: 'initial',
+    } as unknown as Parameters<typeof streamGenerateFromTemplate>[0],
+    res as unknown as Response,
+  );
+  return mockMessagesStream.mock.calls
+    .map((c) => {
+      const p = c[0] as SdkStreamParams;
+      return `${p.system}\n${p.messages.map((m) => m.content).join('\n')}`;
+    })
+    .join('\n=====\n');
+}
+
+describe('T-407 G: streamGenerateFromTemplate on the s.138 config (end to end)', () => {
+  it.each(CFG_NO_S141.filter(([n]) => !n.startsWith('option label')))(
+    'drawer %s: no stream call has 141 anywhere',
+    async (_n, d) => {
+      const text = await templatePromptsFor(d);
+      expect(mockMessagesStream).toHaveBeenCalled();
+      expect(text).toContain('Sections 138, 139, 142');
+      // The BNS whitelist line lists BNS s.141 (a different Act, unrelated to the NI Act);
+      // it is the only other place the digits appear, so it is set aside by name.
+      const hits = text
+        .split('\n')
+        .filter((l) => l.includes('141') && !l.startsWith('BNS SECTION WHITELIST'));
+      expect(hits).toEqual([]);
+    },
+  );
+
+  it.each(CFG_S141)('drawer %s: the prompt names 141', async (_n, d) => {
+    const text = await templatePromptsFor(d);
+    expect(mockMessagesStream).toHaveBeenCalled();
+    expect(text).toContain('Sections 138, 139, 141, 142');
+  });
+});
+
+// ── H ────────────────────────────────────────────────────────────────────
+describe('T-407 H: ni_act_related_sections and ni_act_sections_ref use the same guard', () => {
+  it.each([...CFG_NO_S141, ...CFG_S141])('%s: 141 in one iff 141 in the other', (_n, d) => {
+    const { ctx } = cfgCtx(d);
+    const related = replacePlaceholders('{ni_act_related_sections}', ctx);
+    const ref = replacePlaceholders('{ni_act_sections_ref}', ctx);
+    expect(related).not.toContain('{');
+    expect(ref).not.toContain('{');
+    expect(related.includes('141')).toBe(ref.includes('141'));
+    expect(related.includes('141')).toBe(d === 'company' || d === 'partnership');
   });
 });
