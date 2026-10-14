@@ -1307,8 +1307,10 @@ export const PLACE_BLANK = '[To be confirmed: place]';
 
 /**
  * T-404 (Ajay, 49b5fd2): the place fields a not-court pack may declare for its
- * place of execution. Of the 32 `not_court_documents`, only rent_agreement
- * declares one (`execution_place`).
+ * place of execution. rent_agreement and the 11 deeds (affidavit_identity,
+ * gift_deed, joint_development_agreement, lease_deed, license_agreement,
+ * mortgage_deed, mou, partition_deed, release_deed, sale_deed, will) declare
+ * `execution_place` (T-404 part 2, Ajay 687c19f).
  */
 const NOT_COURT_PLACE_FIELDS = ['execution_place'];
 
