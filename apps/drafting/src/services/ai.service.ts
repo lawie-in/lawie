@@ -1071,12 +1071,13 @@ const S141_DRAWER_TYPES: ReadonlySet<string> = new Set(['company', 'partnership'
 
 /**
  * T-407: true only when the drawer type is exactly the option id `company` or
- * `partnership` (after trim). Anything else, including a non-string, an empty
- * value or a placeholder blank, is false: s.141 is never cited without
+ * `partnership`: the same `===` test as the shipped guard, with no trim and no
+ * change of case. Anything else, including a non-string, an empty value, a
+ * padded value or a placeholder blank, is false: s.141 is never cited without
  * knowing the drawer type (Ajay, T-363 Addendum 4).
  */
 export function s141Applies(respondentType: unknown): boolean {
-  return typeof respondentType === 'string' && S141_DRAWER_TYPES.has(respondentType.trim());
+  return typeof respondentType === 'string' && S141_DRAWER_TYPES.has(respondentType);
 }
 
 /** "141", "S. 141", "Section 141", "Sec. 141": the section number alone, no sub-section. */
@@ -1086,17 +1087,22 @@ function isNiAct(actName: string): boolean {
   return /negotiable\s+instruments/i.test(actName);
 }
 
+/** The one pack ruling 2 covers: the s.138 notice (rule-pack id = file stem). */
+const S138_NOTICE_PACK_ID = 'legal_notice_s138';
+
 /**
  * T-407: the pack as the model is to be given it for this drawer. Applies to
- * any pack whose relevantActs hold s.141 of the Negotiable Instruments Act
- * (today only legal_notice_s138), not to a pack id: a pack without that entry
- * is returned as it is. When `s141Applies(values.respondent_type)` is false,
- * the result is a shallow copy whose relevantActs drop s.141 from every NI Act
- * entry; every other act and section is kept, in order. The pack passed in
- * (the loader's cached object) is never changed. Ajay's ruling 2,
- * handoff/legal/T-363-s138-notice-wording-signed.md.
+ * the s.138 notice pack (`legal_notice_s138`) only, per Ajay's ruling 2: no
+ * other pack's s.141 entry (for example discharge_application's) is ruled on,
+ * so every other pack is returned as the same object. For the s.138 notice,
+ * when `s141Applies(values.respondent_type)` is false and an NI Act entry
+ * holds s.141, the result is a shallow copy whose relevantActs drop s.141 from
+ * every NI Act entry; every other act and section is kept, in order. Otherwise
+ * the same object is returned. The pack passed in (the loader's cached object)
+ * is never changed. Ruling 2, handoff/legal/T-363-s138-notice-wording-signed.md.
  */
 export function packForDrawer(pack: RulePack, values: Record<string, unknown>): RulePack {
+  if (pack.id !== S138_NOTICE_PACK_ID) return pack;
   const hasS141 = pack.relevantActs.some(
     (a) => isNiAct(a.act) && a.sections.some((s) => NI_ACT_S141.test(s.number.trim())),
   );
