@@ -373,20 +373,24 @@ function annexureMemoOfParties(
 
   // T-149: a signed document type uses the signed labels; others as before.
   const signed = signedPartyLabels(rules, String(formData.template_id ?? formData.doc_type ?? ''));
-  const applicantLabel = esc(
-    side
-      ? (signed?.petitioner ?? rules.party_designation.petitioner ?? 'Petitioner')
-      : (signed?.petitioner ??
+  // T-424 (Ajay, ad5aeb3): on a sided pack the labels are always exactly
+  // "Petitioner" and "Respondent", whatever the court rule or signed label says.
+  const applicantLabel = side
+    ? 'Petitioner'
+    : esc(
+        signed?.petitioner ??
           rules.party_designation.applicant ??
           rules.party_designation.petitioner ??
-          'Applicant'),
-  );
-  const respondentLabel = esc(
-    signed?.respondent ??
-      rules.party_designation.respondent ??
-      rules.party_designation.opposite_party ??
-      'Respondent',
-  );
+          'Applicant',
+      );
+  const respondentLabel = side
+    ? 'Respondent'
+    : esc(
+        signed?.respondent ??
+          rules.party_designation.respondent ??
+          rules.party_designation.opposite_party ??
+          'Respondent',
+      );
 
   const clientDetails = (age: string, relation: string, addr: string): string => `<br>
         ${age !== '___________' ? `Age: ${age} years<br>` : ''}
@@ -690,7 +694,7 @@ function annexureAffidavit(
   <br>
   <p>I, <strong>${deponent}</strong>,${deponentAge !== '___________' ? ` aged about ${deponentAge} years,` : ''} ${deponentRelation}, resident of ${deponentAddr !== '___________' ? deponentAddr : '___________'}, do hereby solemnly affirm and state on oath as under:</p>
   <br>
-  <p class="indent">1. That I am the ${designation} in the accompanying matter and am well acquainted with the facts of the case.</p>
+  <p class="indent">1. That I am ${designation} in the accompanying matter and am well acquainted with the facts of the case.</p>
   <p class="indent">2. That the facts stated in the accompanying petition/application are true and correct to the best of my knowledge and belief.</p>
   <p class="indent">3. That no material fact has been concealed or misstated in the accompanying petition/application.</p>
   <p class="indent">4. That the Annexures filed along with the accompanying petition/application are true copies of the originals.</p>
