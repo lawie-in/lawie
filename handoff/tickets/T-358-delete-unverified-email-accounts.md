@@ -37,3 +37,9 @@ Ruling: T-358 is a small ticket **after T-115c**, not a separate delete path. A 
 6. **Yes** to the conditional lock: the lock's `updateOne` re-checks `emailVerified: false` and the age inside the filter, so a user who verifies mid-sweep is never locked. **Keep the billing-status guard** (defence in depth; checkout requires verification today but that may change) — on a 409 from it, log and skip the row, never loop.
 
 **Arjun (14 Oct, 23:32 UTC) — two more:** (1) Deactivated unverified accounts get a notice **without a verify link** ("this deactivated account will be removed on <date>; write to privacy@lawie.in to keep it"); Ajay signs that variant. Same delete timing. A link we know cannot work must not be sent. (2) The notice's verify link is issued with a **7-day** lifetime, matching the promise; T-223's 24 h stays for ordinary verify mails. A 7-day promise with a 24-hour link is a trap.
+
+## Ajay, 14 Oct 2026 (8a2b639, dpdp file §10) — must-fix
+
+- The 30 days count from the user's first sent verify email, not from sign-up. An account that never had a verify email sent is never noticed and never deleted.
+- The queue of verify emails held since T-379 is purged (weeks-late emails with stale links look like phishing). Each affected user then gets one fresh verify email once the footer is fixed; the 30 days start from that email.
+- Arjun owns the mechanics.
