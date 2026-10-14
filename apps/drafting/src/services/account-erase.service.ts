@@ -14,18 +14,21 @@
  *      Done first, while the intake ids can still be read from Mongo.
  *      intake:cache:* is encrypted, keyed by a hash, and expires in 30
  *      minutes: it cannot be matched to a user and is left to expire.
- *   2. as a REVIEWER on other owners' documents (Ajay 8067679), found through the
- *      review tokens whose assignedEmail is the user's email (if given):
- *      - reviewerfeedbacks: the feedback is kept, text and checklist unchanged; the
- *        reviewer's name (`assignedTo`) becomes REVIEWER_PLACEHOLDER and the token
- *        ref (`reviewTokenId`, required and unique) is replaced by a fresh id that
- *        points at nothing. ReviewFeedback holds no reviewer email.
+ *   2. as a REVIEWER on other owners' documents (Ajay 8067679, 96ad274; Arjun),
+ *      found through the review tokens whose assignedEmail is the user's email
+ *      (if given) on documents the user does not own. Nothing is deleted:
+ *      - reviewerfeedbacks: the feedback is kept with its reviewTokenId, text and
+ *        checklist unchanged; its `assignedTo` becomes REVIEWER_PLACEHOLDER, what
+ *        the document owner sees. ReviewFeedback holds no reviewer email.
  *      - reviewerevents: `panel_review_submitted` events for those tokens get the
  *        same placeholder in `metadata.assignedTo` and lose `metadata.token`.
- *      Every reader prints the stored name as it is, so the placeholder is what the
- *      admin pages show; no reader needs a fallback.
- *   3. reviewfeedbacks, reviewtokens: by the user's document ids;
- *      reviewtokens also where assignedEmail is the user's email (if given)
+ *      - reviewertokens (last, it removes what the steps above search by): the
+ *        token row and its _id stay; assignedTo and assignedEmail are unset, the
+ *        link string is replaced by a random one (it is unique and required, so it
+ *        cannot be unset on more than one row), the link is revoked, and
+ *        `reviewerErased: true` is set. The admin panel shows "reviewer: erased".
+ *   3. reviewfeedbacks, reviewtokens: deleted by the user's document ids (tokens
+ *      on the user's own documents go with the documents)
  *   4. factdiffs (deleteFactDiffsFor), factledgers, generations, llmauxcalls,
  *      usagelogs, events, templateusages, sectionbookmarks, sectionrecents,
  *      bonuscredits: by userId
@@ -36,13 +39,15 @@
  * Not touched here: creditledgers and inkledger (billing owns them), users,
  * sessions and auditlogs (auth owns them).
  *
- * Idempotent: every step is a delete by a filter, so a second run finds
- * nothing and returns zero counts. `dryRun` runs the same filters as counts
+ * Idempotent: every step is a delete or update by a filter that the step
+ * itself stops matching, so a second run finds nothing and returns zero counts. `dryRun` runs the same filters as counts
  * and changes nothing.
  *
  * Logs hold the userId, the step name, `err.name` and counts only: never the
  * email, a name, a title or any content, and nothing is sent to Sentry.
  */
+import crypto from 'crypto';
+
 import mongoose, { Types } from 'mongoose';
 
 import logger from '../config/logger';
@@ -68,6 +73,7 @@ export type AccountEraseStep =
   | 'redisKeys'
   | 'reviewerfeedbacks'
   | 'reviewerevents'
+  | 'reviewertokens'
   | 'reviewfeedbacks'
   | 'reviewtokens'
   | 'factdiffs'
@@ -82,7 +88,9 @@ export type AccountEraseStep =
   | 'bonuscredits'
   | 'documents';
 
-export type AccountEraseCounts = Partial<Record<Exclude<AccountEraseStep, 'read'>, number>>;
+export type AccountEraseCounts = Partial<
+  Record<Exclude<AccountEraseStep, 'read'> | 'reviewerEmailSkipped', number>
+>;
 
 export interface AccountEraseResult {
   /** True only when every step finished. */
@@ -100,6 +108,9 @@ export interface AccountEraseInput {
   email?: string;
   dryRun?: boolean;
 }
+
+/** ReviewToken.assignedEmail's maxlength: a longer address cannot be on any token. */
+const REVIEW_TOKEN_EMAIL_MAX_LENGTH = 200;
 
 /** What a reviewer's name reads once the reviewer has erased their account (Ajay 8067679). */
 export const REVIEWER_PLACEHOLDER = 'A reviewer';
@@ -147,8 +158,13 @@ async function removeKeys(keys: string[], dryRun: boolean): Promise<number> {
 export async function eraseAccount(input: AccountEraseInput): Promise<AccountEraseResult> {
   const { userId } = input;
   const dryRun = input.dryRun === true;
-  const email = input.email;
+  // An address longer than any ReviewToken can hold cannot match one: skip the
+  // assignedEmail match, and say so in the counts (reviewerEmailSkipped: 1).
+  const emailTooLong =
+    typeof input.email === 'string' && input.email.length > REVIEW_TOKEN_EMAIL_MAX_LENGTH;
+  const email = emailTooLong ? undefined : input.email;
   const counts: AccountEraseCounts = {};
+  if (emailTooLong) counts.reviewerEmailSkipped = 1;
   let step: AccountEraseStep = 'read';
 
   if (!mongoose.isValidObjectId(userId)) {
@@ -193,32 +209,20 @@ export async function eraseAccount(input: AccountEraseInput): Promise<AccountEra
     const reviewerTokenStrings = reviewerTokens.map((t) => t.token);
 
     step = 'reviewerfeedbacks';
-    if (reviewerTokenIds.length === 0) {
-      counts.reviewerfeedbacks = 0;
-    } else if (dryRun) {
-      counts.reviewerfeedbacks = await ReviewFeedback.countDocuments({
-        reviewTokenId: { $in: reviewerTokenIds },
-      });
-    } else {
-      const fbs = await ReviewFeedback.find({ reviewTokenId: { $in: reviewerTokenIds } })
-        .select('_id')
-        .lean();
-      // One fresh id per row: reviewTokenId is required and unique, so it cannot be unset.
-      const result =
-        fbs.length === 0
-          ? null
-          : await ReviewFeedback.bulkWrite(
-              fbs.map((f) => ({
-                updateOne: {
-                  filter: { _id: f._id, reviewTokenId: { $in: reviewerTokenIds } },
-                  update: {
-                    $set: { assignedTo: REVIEWER_PLACEHOLDER, reviewTokenId: new Types.ObjectId() },
-                  },
-                },
-              })),
-            );
-      counts.reviewerfeedbacks = result?.modifiedCount ?? 0;
-    }
+    const feedbackFilter = {
+      reviewTokenId: { $in: reviewerTokenIds },
+      assignedTo: { $ne: REVIEWER_PLACEHOLDER },
+    };
+    counts.reviewerfeedbacks =
+      reviewerTokenIds.length === 0
+        ? 0
+        : dryRun
+          ? await ReviewFeedback.countDocuments(feedbackFilter)
+          : (
+              await ReviewFeedback.updateMany(feedbackFilter, {
+                $set: { assignedTo: REVIEWER_PLACEHOLDER },
+              })
+            ).modifiedCount;
 
     step = 'reviewerevents';
     const eventFilter = {
@@ -237,6 +241,31 @@ export async function eraseAccount(input: AccountEraseInput): Promise<AccountEra
               })
             ).modifiedCount;
 
+    step = 'reviewertokens';
+    if (reviewerTokenIds.length === 0) {
+      counts.reviewertokens = 0;
+    } else if (dryRun) {
+      counts.reviewertokens = reviewerTokenIds.length;
+    } else {
+      // One random link string per row: `token` is required and unique (not sparse).
+      const result = await ReviewToken.bulkWrite(
+        reviewerTokenIds.map((id) => ({
+          updateOne: {
+            filter: { _id: id, assignedEmail: email },
+            update: {
+              $set: {
+                token: crypto.randomBytes(16).toString('hex'),
+                isActive: false,
+                reviewerErased: true,
+              },
+              $unset: { assignedTo: '', assignedEmail: '' },
+            },
+          },
+        })),
+      );
+      counts.reviewertokens = result.modifiedCount;
+    }
+
     step = 'reviewfeedbacks';
     counts.reviewfeedbacks =
       documentIds.length === 0
@@ -244,11 +273,10 @@ export async function eraseAccount(input: AccountEraseInput): Promise<AccountEra
         : await remove(ReviewFeedback, { documentId: { $in: documentIds } });
 
     step = 'reviewtokens';
-    const tokenFilters: Record<string, unknown>[] = [];
-    if (documentIds.length > 0) tokenFilters.push({ documentId: { $in: documentIds } });
-    if (email) tokenFilters.push({ assignedEmail: email });
     counts.reviewtokens =
-      tokenFilters.length === 0 ? 0 : await remove(ReviewToken, { $or: tokenFilters });
+      documentIds.length === 0
+        ? 0
+        : await remove(ReviewToken, { documentId: { $in: documentIds } });
 
     step = 'factdiffs';
     counts.factdiffs = dryRun

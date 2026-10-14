@@ -19,6 +19,9 @@
  *   audit_done         an `account_delete` AuditLog row (userId, eventType, createdAt only);
  *                      `payment` and `account_delete` rows stripped to those three fields;
  *                      every other audit row of the user deleted (Ajay e13d474)
+ *   recheck            drafting and billing erase-user once more (both idempotent): a request
+ *                      already in flight when the lock landed may have written rows after
+ *                      drafting_erased. A failure here is a failed step; the sweep retries.
  *   (last)             the User document hard-deleted (Arjun ruling 1). No placeholder.
  *
  * `erasure.stage` is the last step that finished, so a retry starts after it. A failed step
@@ -237,11 +240,50 @@ export interface AccountEraseRun {
   done: boolean;
   dryRun: boolean;
   /** Per service: rows or keys removed, or that would be on a dry run. */
-  counts: { drafting?: Counts; billing?: Counts; auth?: Counts };
+  counts: {
+    drafting?: Counts;
+    billing?: Counts;
+    auth?: Counts;
+    /** The second drafting and billing pass just before the User document goes. */
+    recheck?: { drafting?: Counts; billing?: Counts };
+  };
   /** The step that failed, when done is false. */
-  failedAt?: ErasureStage | 'user' | 'read';
+  failedAt?: ErasureStage | 'recheck' | 'user' | 'read';
   /** No User document and no account_delete row: there was nothing to erase. */
   notFound?: boolean;
+}
+
+/** After this many failed attempts an unfinished erase is logged at warn on every failure. */
+export const ERASE_ATTEMPTS_WARN_THRESHOLD = 5;
+
+/**
+ * A failed step: record when (the sweep orders by this, least recently tried first) and how
+ * many times. Ids and counts only in the logs. Never throws.
+ */
+async function recordFailedAttempt(
+  uid: Types.ObjectId,
+  failedAt: string,
+  err: unknown,
+  counts: AccountEraseRun['counts'],
+): Promise<void> {
+  const userId = String(uid);
+  logger.warn(
+    { userId, failedAt, errName: errName(err), counts },
+    'Account erase step failed; the sweep retries',
+  );
+  try {
+    const after = await User.findOneAndUpdate(
+      { _id: uid, erasure: { $exists: true } },
+      { $set: { 'erasure.lastAttemptAt': new Date() }, $inc: { 'erasure.attempts': 1 } },
+      { new: true, projection: { 'erasure.attempts': 1 } },
+    ).lean();
+    const attempts = after?.erasure?.attempts ?? 0;
+    if (attempts >= ERASE_ATTEMPTS_WARN_THRESHOLD) {
+      logger.warn({ userId, failedAt, attempts }, 'Account erase keeps failing');
+    }
+  } catch {
+    // Recording the attempt is best effort; the sweep still finds the account.
+  }
 }
 
 function stageIndex(stage: ErasureStage | undefined): number {
@@ -326,15 +368,13 @@ export async function runAccountErase(
         await User.updateOne({ _id: uid }, { $set: { 'erasure.stage': step.stage } });
       }
     } catch (err) {
-      logger.warn(
-        { userId, dryRun, failedAt: step.stage, errName: errName(err), counts },
-        'Account erase step failed; the sweep retries',
-      );
-      if (!dryRun) {
-        await User.updateOne(
-          { _id: uid },
-          { $set: { 'erasure.lastAttemptAt': new Date() }, $inc: { 'erasure.attempts': 1 } },
-        ).catch(() => undefined);
+      if (dryRun) {
+        logger.warn(
+          { userId, dryRun, failedAt: step.stage, errName: errName(err), counts },
+          'Account erase dry run step failed',
+        );
+      } else {
+        await recordFailedAttempt(uid, step.stage, err, counts);
       }
       return { done: false, dryRun, counts, failedAt: step.stage };
     }
@@ -346,15 +386,27 @@ export async function runAccountErase(
     return { done: true, dryRun, counts };
   }
 
+  // Recheck: a drafting or billing request in flight when the lock landed can still write
+  // rows after drafting_erased / billing_erased. Both erases are idempotent, so run them once
+  // more right before the User document goes. A failure stays pending for the sweep.
+  try {
+    const drafting = await eraseRemote('drafting', {
+      userId,
+      ...(user.email ? { email: user.email } : {}),
+    });
+    const billing = await eraseRemote('billing', { userId });
+    counts.recheck = { drafting, billing };
+  } catch (err) {
+    await recordFailedAttempt(uid, 'recheck', err, counts);
+    return { done: false, dryRun, counts, failedAt: 'recheck' };
+  }
+
   try {
     // Last: the User document itself, every field with it (Arjun ruling 1, Ajay e13d474).
     const removed = await User.deleteOne({ _id: uid, erasure: { $exists: true } });
     counts.auth = { ...(counts.auth ?? {}), users: removed.deletedCount };
   } catch (err) {
-    logger.warn(
-      { userId, failedAt: 'user', errName: errName(err), counts },
-      'Account erase step failed; the sweep retries',
-    );
+    await recordFailedAttempt(uid, 'user', err, counts);
     return { done: false, dryRun, counts, failedAt: 'user' };
   }
 
@@ -449,7 +501,9 @@ export async function runAccountEraseSweep(): Promise<AccountEraseSweepCounts> {
   try {
     const users = await User.find({ 'erasure.requestedAt': { $exists: true } })
       .select('_id')
-      .sort({ 'erasure.requestedAt': 1 })
+      // Least recently tried first; never tried (no lastAttemptAt) sorts before any date, so a
+      // few erases that keep failing cannot starve newer ones.
+      .sort({ 'erasure.lastAttemptAt': 1, 'erasure.requestedAt': 1 })
       .limit(ACCOUNT_ERASE_SWEEP_BATCH)
       .lean();
     counts.found = users.length;

@@ -29,6 +29,9 @@ import { isFixtureUser } from '../services/run-origin';
 
 const router = Router();
 
+/** Same as auth's limit for the address it sends (account-erase.service.ts, EMAIL_MAX_LENGTH). */
+const EMAIL_MAX_LENGTH = 320;
+
 /**
  * Constant-time, as auth's internalSecretMatches: both sides hashed to 32
  * bytes first, so the length does not leak either. False when no secret is
@@ -95,7 +98,9 @@ router.post(
       res.status(400).json({ error: 'dryRun must be a boolean' });
       return;
     }
-    if (email !== undefined && (typeof email !== 'string' || email.length > 200)) {
+    // Up to 320, auth's own limit: a 400 here would leave a locked account unerasable. An
+    // address longer than ReviewToken's 200 cannot match a token; the service skips that match.
+    if (email !== undefined && (typeof email !== 'string' || email.length > EMAIL_MAX_LENGTH)) {
       res.status(400).json({ error: 'email must be a string' });
       return;
     }

@@ -76,3 +76,33 @@ export function getSessionUser(): AuthUser | null {
 export function isAuthenticated(): boolean {
   return getSessionUser() !== null;
 }
+
+/**
+ * T-115c — the analytics consent choice (AnalyticsConsent's CONSENT_STORAGE_KEY). It is about
+ * this browser, not the account (a random id, no name or email), so closing an account keeps it.
+ * Copied here, not imported, so this module stays free of component imports.
+ */
+const KEPT_ON_ACCOUNT_CLOSE = new Set(['lawie.consent.analytics']);
+
+/**
+ * T-115c (Rajesh's spec §4) — after an account is closed, remove everything the app stored in
+ * this browser: the tokens and privacy-prompt flags (clearTokens), then every other Lawie key in
+ * localStorage and sessionStorage (all start with `lawie`: lawie.sectionFinder.*,
+ * lawie_referral_shown, lawie.oauth.verifier, lawie_signup_utm, lawie:document-delete-outcome,
+ * lawie_splash_seen). Only the analytics consent choice stays. Never throws.
+ */
+export function clearAllLocalState(): void {
+  if (typeof window === 'undefined') return;
+  clearTokens();
+  for (const getStore of [() => window.localStorage, () => window.sessionStorage]) {
+    try {
+      const store = getStore();
+      for (let i = store.length - 1; i >= 0; i -= 1) {
+        const k = store.key(i);
+        if (k && k.startsWith('lawie') && !KEPT_ON_ACCOUNT_CLOSE.has(k)) store.removeItem(k);
+      }
+    } catch {
+      // Storage unavailable: nothing to clear.
+    }
+  }
+}
