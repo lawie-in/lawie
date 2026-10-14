@@ -2,7 +2,7 @@
 
 | Field  | Value                                                                  |
 | ------ | ---------------------------------------------------------------------- |
-| Status | Todo. Shashank, after T-433 merges; files to Priya after Explore. Priya, 14 Oct 2026 |
+| Status | Ready to merge b89719ee (Shashank; reviewer PASS, Ajay closed 0653e4f). Waits for green develop_staging. Priya, 14 Oct 2026 |
 | Owner  | Shashank (build), Ajay (ruled 49a8eaa)                                 |
 | Mode   | Full chain (drafting prompts and printed text are legal content)       |
 

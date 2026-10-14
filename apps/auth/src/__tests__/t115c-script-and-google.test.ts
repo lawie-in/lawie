@@ -9,6 +9,20 @@ import './setupEnv';
 
 jest.mock('ioredis', () => require('ioredis-mock'));
 
+// CI has no Google client id/secret, so initPassport would return before building the strategy
+// and the captured verify callback would be missing. Give it test values, real env otherwise.
+jest.mock('../config/env', () => {
+  const actual = jest.requireActual('../config/env');
+  return {
+    ...actual,
+    env: {
+      ...actual.env,
+      GOOGLE_CLIENT_ID: 'test-client-id',
+      GOOGLE_CLIENT_SECRET: 'test-client-secret',
+    },
+  };
+});
+
 jest.mock('passport-google-oauth20', () => ({
   Strategy: class {
     constructor(_opts: unknown, cb: unknown) {
@@ -261,9 +275,6 @@ describe('a locked account is refused by Google sign-in', () => {
     profile: Record<string, unknown>,
     done: (err: unknown, user?: unknown, info?: unknown) => void,
   ) => Promise<void>;
-  beforeAll(() => {
-    jest.doMock('../config/env', () => jest.requireActual('../config/env'));
-  });
   function verify(profile: Record<string, unknown>) {
     initPassport();
     const v = (globalThis as { __verify?: Verify }).__verify!;
