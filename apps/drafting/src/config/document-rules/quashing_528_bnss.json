@@ -292,9 +292,13 @@
         { "number": "S.210", "description": "Cognizance by Magistrate (replaces S.190 CrPC)" },
         {
           "number": "S.438",
-          "description": "Revisional powers of HC (replaces S.397 CrPC, partly)"
+          "description": "Calling for records to exercise powers of revision (was S.397 CrPC)"
         },
-        { "number": "S.442", "description": "Revisional powers of Court of Session" }
+        {
+          "number": "S.440",
+          "description": "Sessions Judge's powers of revision (was S.399 CrPC)"
+        },
+        { "number": "S.442", "description": "High Court's powers of revision (was S.401 CrPC)" }
       ]
     },
     {
