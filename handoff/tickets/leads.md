@@ -63,6 +63,7 @@ Where each lead stopped:
 
 ## Last done
 
+- mahak: T-423 CI green (run 528).
 - mahak: T-423 merged c9ba205 (14 Oct 2026). Annexures from a brief: Memo prints the State's proper name; party names only from brief-accepted values. Now T-424.
 - tanvi: T-408 CI green (run 527).
 - tanvi: T-408 merged b7b12cff (14 Oct 2026). One log line per D1 draft (kind, run id, clause and fallback counts; warn on fallbacks), no text or user id. Logs only. CI running at stop. ai.service.ts :1916-1931 released to Vishal's T-407.
