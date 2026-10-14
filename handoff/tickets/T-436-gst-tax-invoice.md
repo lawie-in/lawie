@@ -82,3 +82,9 @@ Traps:
 Tax rule: code 20 (our state) gives CGST 9% + SGST 9%. Every other code, all UTs included, gives IGST 18%.
 
 9. A test asserts the 36 codes, and the split: 20 gives CGST+SGST, every other code gives IGST (Vikram).
+
+## Arjun (14 Oct, 22:15 UTC) — Kunal's three Explore calls
+
+1. **New field `User.gstStateCode`** (2-digit GST state code as a string, e.g. `"10"`), not a reuse of `User.state` — that is free-text Bar Council state, nothing writes it, and a tax field must be exact. Auth: `PATCH /me` accepts `gstStateCode` validated against the signed list of GST state codes (Ajay's State collection, AC8), `GET /me` returns it; billing reads it from the user record at invoice time. `User.state` is untouched.
+2. **`/admin/billing/invoices.csv`** — under the billing service's admin routes, so the gateway proxy and the admin auth are the ones billing already has; no new top-level admin namespace.
+3. **Public endpoint, not build env**: `GET /api/billing/public/supplier` returns the five supplier values (GSTIN, legal name, trade name, address, state code) from billing's env — the same values that print on the invoice, so Terms 5b/5c and the invoice can never disagree. `Cache-Control: public, max-age=3600`. Not `NEXT_PUBLIC_*`: that needs a web rebuild to change and can drift from the invoice.
