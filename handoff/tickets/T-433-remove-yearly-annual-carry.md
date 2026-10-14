@@ -22,3 +22,8 @@ Founder ruling, 14 Oct 2026, relayed by Vikram: plan Ink (monthly, and the yearl
 - Keep `inkAnnualCarry` at 0, do not drop the field (about 60 reads across four workspaces; dropping it is a separate post-v1 cleanup).
 - Update the two billing tests that expect a carry; add one asserting the carry stays 0. No migration.
 - Merge waits for the founder's own confirmation of the ruling (Priya).
+
+## Wording (Ajay, 925bc30, must-fix; ships in the same merge)
+
+- Remove "Unused Ink rolls over" from the upgrade modal (apps/web/src/components/credits/UpgradeSuccessModal.tsx).
+- Add the expiry line to Terms §6 and the pricing FAQ, word for word from handoff/legal/T-433-ink-expiry-wording-signed.md.
