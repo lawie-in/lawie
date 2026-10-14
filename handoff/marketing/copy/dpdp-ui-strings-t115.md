@@ -42,7 +42,7 @@ Draft for Meera. Specs: `delete-document-spec-t115b.md`, `close-account-spec-t11
 | 409, no cancel path (3) | `Cancel your plan first.` + `Write to contact@lawie.in to cancel.` | Arjun's fallback |
 | Other error (3) | `We could not close your account. Try again.` | |
 | Old Google session (3) | add `Sign in again, then try once more.` | |
-| Failure midway through erase (3) | `[Ajay to supply]` | NEEDS AJAY. Not written by me |
+| Failure midway through erase (3) | `We couldn't finish closing your account. Some of your data may not be erased yet. Please try again, or write to us at {support email} and we will finish it.` | Ajay, signed (14 Oct). {support email} = Privacy Policy address. Signed in 1a842e1 |
 
 ## C. /account-closed page (4)
 
@@ -58,6 +58,6 @@ Draft for Meera. Specs: `delete-document-spec-t115b.md`, `close-account-spec-t11
 
 ## Needs Ajay
 
-- Mid-erase failure line (B): `[Ajay to supply]`.
+- Mid-erase failure line (B): signed by Ajay, now in the table above. T-115b equivalent: `We couldn't finish deleting this document. Please try again. If this keeps happening, write to us at {support email}.`
 - Error line in A with "Nothing was deleted", only if the lead wants it.
 - Any added line on /account-closed about erased data.
