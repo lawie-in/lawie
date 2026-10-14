@@ -302,10 +302,10 @@ describe('T-363 proprietor placeholder: pin to the twin', () => {
 
   it('AC4: the then/else outputs are unchanged', () => {
     expect(logic('drawer_addressee_unless_form_blank')).toBe(
-      "if drawer_proprietor === '' then '{respondent_name}' else '{drawer_proprietor},\nProprietor,\n{respondent_name},'",
+      "if drawer_proprietor === '' then '{addressee_name}' else '{drawer_proprietor},\nProprietor,\n{addressee_name},'",
     );
     expect(logic('payee_client_unless_form_blank')).toBe(
-      "if payee_proprietor === '' then '{applicant_name}' else '{applicant_name}, through its proprietor {payee_proprietor}'",
+      "if payee_proprietor === '' then '{notice_client_name}' else '{notice_client_name}, through its proprietor {payee_proprietor}'",
     );
   });
 });

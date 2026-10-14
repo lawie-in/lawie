@@ -1,12 +1,12 @@
 # T-410 — Consumer complaint takes a criminal or bail case line at non-consumer courts
 
-| Field  | Value |
-| ------ | ----- |
-| Phase  | 4 — Polish and release |
-| Owner  | Lead (drafting) + Ajay |
-| Mode   | Small fix (moves goldens) |
+| Field  | Value                                                                                                     |
+| ------ | --------------------------------------------------------------------------------------------------------- |
+| Phase  | 4 — Polish and release                                                                                    |
+| Owner  | Lead (drafting) + Ajay                                                                                    |
+| Mode   | Small fix (moves goldens)                                                                                 |
 | Status | Merged into develop_staging 0a18bda (Tanvi, in T-410, 13 Oct 2026). Waiting for Anushka on develop. Priya |
-| Source | T-406 Explore (template-engine.service.ts ~:1751 fallback) |
+| Source | T-406 Explore (template-engine.service.ts ~:1751 fallback)                                                |
 
 ## Acceptance criteria
 
