@@ -11,14 +11,14 @@ interface UpgradeSuccessModalProps {
 
 const FEATURES: Record<string, string[]> = {
   solo: [
-    '50 Ink / month — reset each billing cycle',
-    'Unused Ink rolls over (up to 2× cap on yearly)',
+    '50 Ink a month',
+    'Plan Ink resets each month; top-up Ink never expires',
     'All document templates unlocked',
     'PDF + DOCX export',
   ],
   pro: [
-    '150 Ink / month — reset each billing cycle',
-    'Unused Ink rolls over (up to 2× cap on yearly)',
+    '150 Ink a month',
+    'Plan Ink resets each month; top-up Ink never expires',
     'All document templates unlocked',
     'Priority support',
     'PDF + DOCX export',
