@@ -2,7 +2,7 @@
 
 | Field  | Value                                                                 |
 | ------ | --------------------------------------------------------------------- |
-| Status | Todo. Shashank, after T-428. Priya, 14 Oct 2026                       |
+| Status | Building (Shashank). Founder ruling via Vikram 14 Oct, recorded in T-399 16ed9d26 (Arjun). Merge in his slot. Priya |
 | Owner  | Shashank (build), Arjun (details), Vikram (ruling)                    |
 | Mode   | Small fix (billing only)                                              |
 
