@@ -63,6 +63,7 @@ Where each lead stopped:
 
 ## Last done
 
+- vishal: T-422 CI green (run 526).
 - vishal: T-422 merged d2565d8 (14 Oct 2026). Bail packs, repair rounds and guided drafts no longer claim an offence is complete unless the brief says so. Now on T-376.
 - shashank: T-404 part 1 CI green (run 525).
 - shashank: T-404 part 1 merged 680b41c (14 Oct 2026). s.138 notice, advocate and court gaps print '[To be confirmed: ...]', never '_____' or an invented court; bail court, case type and place flagged. Part 2 building.
