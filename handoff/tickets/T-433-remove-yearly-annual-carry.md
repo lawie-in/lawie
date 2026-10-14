@@ -15,3 +15,10 @@ Founder ruling, 14 Oct 2026, relayed by Vikram: plan Ink (monthly, and the yearl
 1. No Ink is carried over at the yearly charge; unspent plan Ink expires as it does monthly. Top-up Ink is unchanged and never expires.
 2. Billing tests updated (t399 yearly drip and backfill, t413 if affected); Arjun gives the details.
 3. Any user-facing text that promises a carry is found and removed (Meera/Ajay check the wording if one exists).
+
+## Arjun's scope (14 Oct, in T-399)
+
+- apps/billing only: remove the yearly carry write in `grantSubscriptionInk` (apps/billing/src/services/ink-ledger.service.ts).
+- Keep `inkAnnualCarry` at 0, do not drop the field (about 60 reads across four workspaces; dropping it is a separate post-v1 cleanup).
+- Update the two billing tests that expect a carry; add one asserting the carry stays 0. No migration.
+- Merge waits for the founder's own confirmation of the ruling (Priya).
