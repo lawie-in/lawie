@@ -2,7 +2,7 @@
 
 | Field  | Value                                                                        |
 | ------ | ---------------------------------------------------------------------------- |
-| Status | Todo, after T-115c's findings. Priya, 14 Oct 2026                            |
+| Status | Assigned to Tanvi, 15 Oct 2026 (files to Priya after Explore). Priya |
 | Owner  | Lead (build), Arjun (findings)                                               |
 | Mode   | Small fix (billing only, plus auth and drafting if the same secret check is there) |
 

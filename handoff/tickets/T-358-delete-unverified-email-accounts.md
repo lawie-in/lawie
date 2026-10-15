@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (auth) |
 | Mode   | Small fix |
-| Status | To do. Unassigned. After T-223. Not a release gate. From Ajay, 12 Oct 2026 (T-223 sign-off cbe17ce) |
+| Status | Merged into develop_staging aed2599b (Tanvi, 15 Oct 2026). Sweep is off until the operator sets UNVERIFIED_SWEEP_ENABLED=true (last step in T-403). Follow-up: queue:purge to also clear auth.unverifiedDeletionNotice (Kunal, after T-364). Priya |
 | Source | Ajay: a password sign-up can hold someone else's address; we should not keep it indefinitely |
 
 ## Acceptance criteria

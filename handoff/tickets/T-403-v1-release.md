@@ -80,7 +80,7 @@ Production starts fresh. If any document saved on develop before T-300 is ever c
 3. Deploy.
 4. Run `curl <email-worker>/health` by hand and check it returns 200 (the deploy script check is T-442). Also confirm uptime and deploy checks treat it as a real gate.
 5. `verify:resend-all --dry-run`, then `verify:resend-all` (one fresh verify email per unverified user, batched under the T-223 cap).
-6. Set `UNVERIFIED_SWEEP_ENABLED=true` (default false), then deploy auth.
+6. Set `UNVERIFIED_SWEEP_ENABLED=true` (LAST, after purge, footer, deploy, /health and resend-all) (default false), then deploy auth.
 
 Arjun says "ready" explicitly when the commands are on the env. T-358 stamps `firstVerifySentAt` on confirmed send; deletion is no earlier than 30 days after the first email that reaches the user. Keeping an unverified account is a manual verify by ops (T-235 runbook).
 

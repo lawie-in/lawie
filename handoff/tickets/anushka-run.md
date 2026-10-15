@@ -1218,3 +1218,12 @@ Quality: nothing to test in the UI — headers and ops doc only
 - Nothing new on screen. When the email service is switched on, people who signed up earlier and never got a verification email receive one, once.
 
 Quality: nothing to test in the UI — operator scripts and docs only
+
+## T-358 — Unconfirmed accounts are emailed before deletion (aed2599b, tanvi, 15 Oct 2026)
+
+- If you sign up and never confirm your email, we now email you before deleting your account, with a link to confirm (first notice within a day if no other email reached you; a reminder about three weeks in, link good for seven days).
+- Confirming at any point keeps your account. A deactivated account gets a notice with no link: write to privacy@lawie.in to keep it.
+- Unconfirmed accounts are deleted at the end of day 30 (Indian time), never sooner than a week after the reminder, and never without an email that was actually sent.
+- Switches on only when the operator turns it on, so it cannot be seen on develop until then.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
