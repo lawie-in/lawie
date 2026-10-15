@@ -17,6 +17,8 @@ The always-V1 items, signed one by one (Vishal sends Ajay the list):
 - any judgment inside fixed clause text that prints into the document (for example service_agreement);
 - the "Suraj Lamp Disclaimer" clause name (gpa/spa).
 
+File:line list from Vishal's sweep (15 Oct): form labels: curative_petition :72, fir_quashing :103, divorce_mutual_consent :148, dv_act_complaint :82, plaint_recovery :202, plaint_partition :93; printed clause text: service_agreement :75; clause name: gpa :239, spa :233.
+
 Form labels and printed clause text reach the user or the filed document, so they are V1 whatever the pack group.
 
 ## Rules (Ajay, T-245 file Addendum 8, 15 Oct 2026; apply mechanically)
