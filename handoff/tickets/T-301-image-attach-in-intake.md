@@ -102,3 +102,5 @@ Relayed by Priya: founder, 15 Oct, uploads are V1. This section replaces the acc
 - Order (agreed with Priya): T-303 spike → T-302 close-out → T-301 → T-304. Vishal after T-441.
 
 Correction (Arjun, 05:15 UTC): `FactSource` is `'user' | 'asked' | 'computed'` in `packages/shared/src/types/fact-ledger.ts`, mirrored in `apps/web/src/components/intake/briefTypes.ts`. Adding `'upload'` touches `packages/shared`, so T-301's claim includes that one file (one lead at a time; v2 rule 7 wait in slot), and the web mirror.
+
+Stale lines (Arjun, 05:25 UTC): in the original acceptance criteria, "D4 pending the founder" is closed (T-118), and "`apps/web` has no tests and is not in CI" is false since T-439 (web tests run in CI). The re-scope section above governs; the manual-check list with 360 px and desktop screenshots stays as a merge-commit requirement.
