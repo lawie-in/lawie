@@ -141,6 +141,7 @@ Parked on purpose. None of these is a launch task.
   | T-451 | Judgment names in form labels and printed clause text | todo | - | Ajay: reaches the user or the filed document, always V1 |
 | T-452 | Drawer type has no silent default on the s.138 notice | todo | shashank | Ajay: wrong content (s.141 withheld) for a company drawer |
 | T-453 | Model switch verification (Sonnet 5.5 body, Haiku 5.5 intake and preflight) | todo | vishal | go-live prerequisite (Arjun, Ajay, Vikram) |
+| T-454 | "Upgrade to Pro" claims that are false or stale (four places) | todo | - | Ajay: live false claim (unlimited, watermark) |
   | T-302 | Consent line and retention rule for uploads | delivered | ajay | founder 15 Oct: uploads are V1 (policy wording to be read by a practising lawyer) |
   | T-303 | Spike: can we read Hindi and handwritten FIRs? | todo | vishal | founder 15 Oct: uploads are V1 |
   | T-301 | Attach images as matter context | todo | vishal | founder 15 Oct: uploads are V1 (needs re-scope onto the brief flow) |
