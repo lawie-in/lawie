@@ -24,6 +24,10 @@ Vikram prices (D7 still open); packages/shared is held by one lead at a time
 
 See the Arjun section below.
 
+## Branch (founder, 15 Oct 2026)
+
+v2 work lives on `develop_staging_v2`, cut from `develop_staging` at bafe88d3. Cut this ticket's branch from `develop_staging_v2` and merge back into `develop_staging_v2`. Never into `develop_staging` or `develop`. Only the founder merges `develop_staging_v2` anywhere.
+
 ## Architecture reference
 
 handoff/design/drafting-v2/ (ADR-026, HLD, system design, DB design, LLD).

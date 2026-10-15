@@ -120,3 +120,7 @@ Also approved: the post-v1 CNR lookup pilot (`08-fact-ledger-from-apis.md`) — 
 - P0-10 `FactSource 'lookup'` + `CaseLookupProvider` interface + eCourtsIndia adapter spike, bail kind only, confirm-gated. (packages/shared, web, drafting) — needs the API key as an environment secret.
 
 Each needs Rajesh's design where it has a screen (P0-2 banner, P0-4, P0-6) and Ajay's sign-off where it has legal content (P0-7). Architecture reference for all of them: this ADR.
+
+## 12. Branch (founder, 15 Oct 2026)
+
+All v2 work goes on `develop_staging_v2` (created from `develop_staging` at bafe88d3). Rules in `.claude/docs/multi-lead.md`, "Drafting v2 branch".
