@@ -24,7 +24,7 @@ Not wording: the rule "Editable before each payment, not afterwards on an issued
 | Card heading | Invoices | 8 | No |
 | PDF link, visible | PDF | 3 | No |
 | PDF link, aria-label | Download invoice {invoiceNumber} as PDF | 38 + number | No |
-| PDF aria-label, credit-note row | Download credit note {invoiceNumber} as PDF | 42 + number | No; only if credit notes are listed (open question in the list spec, ask Ajay/Vikram) |
+| PDF aria-label, credit-note row | Download credit note {invoiceNumber} as PDF | 42 + number | No. Credit notes ARE listed (Arjun, 14 Oct; linked to the original invoice), so this applies |
 | Empty state | No invoices yet | 15 | No. I add no reason line: any reason would touch his s.2 and would need Ajay |
 | Loading (visually hidden, `role="status"`) | Loading invoices… | 17 | No |
 | Error | Could not load your invoices. | 29 | No |
