@@ -31,3 +31,7 @@ Founder ruling, 14 Oct 2026, relayed by Vikram: plan Ink (monthly, and the yearl
 ## Also (Ajay 74fe979, T-388 AC4 cleared)
 
 Add Ajay's approved "cost before you generate" line to the pricing FAQ's "What is Ink?" answer in the same edit as the T-433 expiry string (both strings are in the same answer; merge both, word for word).
+
+## Founder confirmation (15 Oct 2026)
+
+The founder said "yes for T-433" in the Priya session on 15 Oct 2026: the ruling stands. Plan Ink expires every month, the yearly annual carry is gone, top-up Ink never expires. The merge (47d5d011) stays. Priya.
