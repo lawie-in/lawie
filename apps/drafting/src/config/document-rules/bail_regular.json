@@ -26,6 +26,7 @@
             "label": "Date of FIR, or of the complaint if no FIR",
             "type": "date",
             "required": false,
+            "ask_when_empty": true,
             "inject_into": ["body_para_1", "prayer"]
           },
           {

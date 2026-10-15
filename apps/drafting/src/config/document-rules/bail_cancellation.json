@@ -72,7 +72,8 @@
       "name": "fir_date",
       "label": "Date of FIR, or of the complaint if no FIR",
       "type": "date",
-      "required": false
+      "required": false,
+      "ask_when_empty": true
     },
     {
       "name": "offence_date",
