@@ -365,3 +365,14 @@ Signed: Ajay (CLO), 15 Oct 2026 IST.
 3. curative_petition validation rule: if Kunal finds that validation_rules reach preflight or the model, use `At least one recognised curative ground must be selected`. If they do not, the rule is user-facing only and its citation is correct, so it stays as it is.
 
 Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+### T-451 gpa/spa ids (Priya, 15 Oct 2026)
+
+The model sees both ids, so they are renamed in T-451 with the same read-time alias. This matches the gpa/spa clause names already signed.
+
+| Old | New |
+|---|---|
+| `suraj_lamp_disclaimer` | `title_disclaimer` |
+| `yes_flag_suraj_lamp_warning` | `yes_flag_title_warning` |
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.
