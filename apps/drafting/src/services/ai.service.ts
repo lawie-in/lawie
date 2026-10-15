@@ -102,6 +102,7 @@ import {
 import { Brief, buildChecklist, FIXED_KEYS } from './intake-brief';
 import {
   DEFAULT_BAIL_CRPC_ACT,
+  fillLawSwitchTokens,
   isLawSwitchPack,
   relatedActsForProcedure,
   LAW_SWITCH_FACT_KEYS,
@@ -147,7 +148,6 @@ import {
   CourtRuleData,
   PLACEHOLDER_ALIASES,
   MONTH_NAMES,
-  replacePlaceholders,
 } from './template-engine.service';
 import {
   validate,
@@ -1379,8 +1379,10 @@ const LAW_SWITCH_FACT_LABELS: Record<(typeof LAW_SWITCH_FACT_KEYS)[number], stri
  * `notice_provision present` condition reads them.
  */
 function withLawSwitchFacts(facts: readonly LedgerFact[], law: LawSwitchResult): LedgerFact[] {
+  // A stored fact under one of these keys, grouped or not (last key segment,
+  // as lawSwitchForBrief reads keys), is dropped: only the switch sets them.
   const keys = new Set<string>(LAW_SWITCH_FACT_KEYS);
-  const stored = facts.filter((f) => !keys.has(f.key));
+  const stored = facts.filter((f) => !keys.has(lastKeySegment(f.key)));
   const derived: Array<[(typeof LAW_SWITCH_FACT_KEYS)[number], string | null]> = [
     ['governing_provision', law.governingProvision],
     ['women_proviso', law.womenProviso],
@@ -1534,14 +1536,14 @@ export async function streamGenerateFromBrief(
         input.advocateName,
       ),
       // T-245a: the case-details lines (PROCEDURE CODE, GOVERNING PROVISION)
-      // first; a bail pack's provision instruction reads {governing_provision}
-      // and {do_not_cite} from the context.
+      // first; a bail pack's provision instruction has only {governing_provision}
+      // and {do_not_cite} filled from the context; any other {token} is left as is.
       statedInstructions: [
         ...(law?.lines ?? []),
         ...provisions
           .map((p) => p.instruction)
           .filter((i): i is string => i !== null)
-          .map((i) => (law !== null ? replacePlaceholders(i, ctx) : i)),
+          .map((i) => (law !== null ? fillLawSwitchTokens(i, ctx) : i)),
       ],
       systemParts: parts,
       systemText,

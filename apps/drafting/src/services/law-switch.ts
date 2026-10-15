@@ -148,21 +148,36 @@ function validYmd(y: number, m: number, d: number): string | null {
   return `${String(y).padStart(4, '0')}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 }
 
+/** India Standard Time: UTC+5:30, a fixed offset with no daylight saving. */
+const IST_OFFSET_MS = (5 * 60 + 30) * 60 * 1000;
+
+/** An instant's calendar date in Asia/Kolkata, or null for an invalid Date. */
+function istYmd(d: Date): string | null {
+  if (isNaN(d.getTime())) return null;
+  const ist = new Date(d.getTime() + IST_OFFSET_MS);
+  return validYmd(ist.getUTCFullYear(), ist.getUTCMonth() + 1, ist.getUTCDate());
+}
+
 /**
  * A date as `YYYY-MM-DD`, or null when it cannot be read for certain.
  * Reads ISO (`2024-07-01`, with or without a time part) and day-first
  * `dd/mm/yyyy`, `dd.mm.yyyy`, `dd-mm-yyyy`. A two-digit year, a month name or
  * any other form is not read: a date Lawie is not sure of is treated as not given.
+ * T-245a review: a Date object, or an ISO string with a time and a zone (an
+ * instant), is read as its date in India (Asia/Kolkata, UTC+5:30). A date-only
+ * string, or a time with no zone, is read as written.
  */
 export function parseLawDate(value: unknown): string | null {
-  if (value instanceof Date) {
-    if (isNaN(value.getTime())) return null;
-    return validYmd(value.getUTCFullYear(), value.getUTCMonth() + 1, value.getUTCDate());
-  }
+  if (value instanceof Date) return istYmd(value);
   if (typeof value !== 'string') return null;
   const s = value.trim();
-  const iso = /^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T ][\d:.]+(?:Z|[+-]\d{2}:?\d{2})?)?$/.exec(s);
-  if (iso) return validYmd(Number(iso[1]), Number(iso[2]), Number(iso[3]));
+  const iso = /^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T ]([\d:.]+)(Z|[+-]\d{2}:?\d{2})?)?$/.exec(s);
+  if (iso) {
+    const ymd = validYmd(Number(iso[1]), Number(iso[2]), Number(iso[3]));
+    if (ymd === null || iso[5] === undefined) return ymd;
+    const zone = iso[5] === 'Z' ? 'Z' : iso[5].replace(/^([+-]\d{2}):?(\d{2})$/, '$1:$2');
+    return istYmd(new Date(`${ymd}T${iso[4]}${zone}`));
+  }
   const dmy = /^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/.exec(s);
   if (dmy) return validYmd(Number(dmy[3]), Number(dmy[2]), Number(dmy[1]));
   return null;
@@ -431,4 +446,21 @@ export function relatedActsForProcedure<T>(
   if (templateId !== 'default_bail' || procedureCode === 'BNSS') return [...own];
   if (procedureCode === 'CrPC') return [crpc];
   return [...own, crpc];
+}
+
+/** The two law-switch tokens an instruction may carry. */
+const LAW_SWITCH_TOKEN = /\{(governing_provision|do_not_cite)\}/g;
+
+/**
+ * T-245a review: fills only `{governing_provision}` and `{do_not_cite}` in a
+ * text, from the given values. Any other `{token}`, and either of these two
+ * with no value, is left exactly as it was.
+ */
+export function fillLawSwitchTokens(
+  text: string,
+  values: Readonly<Partial<Record<'governing_provision' | 'do_not_cite', string>>>,
+): string {
+  return text.replace(LAW_SWITCH_TOKEN, (match, key: 'governing_provision' | 'do_not_cite') =>
+    values[key] !== undefined ? values[key]! : match,
+  );
 }

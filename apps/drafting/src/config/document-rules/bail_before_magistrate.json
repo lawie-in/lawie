@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "description": "Document-rules config for bail_before_magistrate — regular bail at Magistrate level under BNSS 480 — distinct from Sessions/HC bail under BNSS 483",
+    "description": "Document-rules config for bail_before_magistrate — regular bail at Magistrate level under Section 480 BNSS (Section 437 CrPC) — distinct from Sessions/HC bail under Section 483 BNSS (Section 439 CrPC)",
     "owner": "Ajay (CLO)",
     "validated_by": "Ajay (CLO) — Batch 1 templates pass 2026-05-12",
     "last_updated": "2026-05-12",
@@ -11,7 +11,7 @@
   "docType": "bail_before_magistrate",
   "parentDocType": "bail_application",
   "title": "Bail Application before Magistrate",
-  "displayName": "Bail Application before Magistrate (BNSS 480)",
+  "displayName": "Bail Application before Magistrate (Section 480 BNSS / Section 437 CrPC)",
   "category": "criminal_bail",
   "creditsCost": 2,
   "court_levels": ["magistrate", "cjm"],
@@ -398,7 +398,7 @@
   ],
   "validation_rules": [
     "offence_classification must be specified",
-    "if offence is punishable with death/life and applicant is not in special category, recommend BNSS 483 (Sessions/HC) bail instead",
+    "if offence is punishable with death/life and applicant is not in special category, recommend Section 483 BNSS (Section 439 CrPC) before the Court of Session or High Court",
     "grounds_for_bail must be non-empty",
     "arrest_date must be on or before today",
     "days_in_custody must be consistent with arrest_date"
