@@ -49,6 +49,57 @@ import Redis from 'ioredis';
 import { bullPrefix, WORKER_QUEUE_NAMES } from '../src/queues';
 /* eslint-enable import/order, import/first */
 
+/** Our own output. Library console output is muted in the CLI (see guardOutput). */
+const out = (line: string): void => void process.stdout.write(`${line}\n`);
+const errOut = (line: string): void => void process.stderr.write(`${line}\n`);
+
+/** Names of errors seen from Redis or a library; reported by name only. */
+const seenErrors = new Set<string>();
+const errorName = (err: unknown): string =>
+  err instanceof Error && typeof err.name === 'string' && err.name ? err.name : 'UnknownError';
+
+/**
+ * CLI only: ioredis and BullMQ print an error with no listener (or an "Unhandled error event")
+ * through console, and a Redis AUTH error's `command.args` holds the user and password. Mute
+ * every console method and turn unhandled errors into one redacted line and exit 1, so nothing
+ * but this script's own lines can reach the terminal.
+ */
+function guardOutput(target: string): void {
+  const mute = (...args: unknown[]): void => {
+    for (const a of args) if (a instanceof Error) seenErrors.add(errorName(a));
+  };
+  console.log = mute;
+  console.info = mute;
+  console.warn = mute;
+  console.error = mute;
+  console.debug = mute;
+  console.trace = mute;
+  const die = (err: unknown): void => {
+    errOut(`Purge stopped: ${errorName(err)} (Redis ${target})`);
+    process.exit(1);
+  };
+  process.on('unhandledRejection', die);
+  process.on('uncaughtException', die);
+}
+
+/** One PING on a client that never retries, so a bad URL or password fails fast and quietly. */
+async function probeRedis(url: string): Promise<void> {
+  const probe = new Redis(url, {
+    lazyConnect: true,
+    maxRetriesPerRequest: 0,
+    retryStrategy: () => null,
+    connectTimeout: 5000,
+    enableOfflineQueue: false,
+  });
+  probe.on('error', (err: unknown) => seenErrors.add(errorName(err)));
+  try {
+    await probe.connect();
+    await probe.ping();
+  } finally {
+    probe.disconnect();
+  }
+}
+
 const USAGE = 'Usage: yarn workspace @lawie/email-worker queue:purge [--dry-run|--yes]';
 
 export const VERIFY_TEMPLATE = 'auth.verifyEmail';
@@ -127,6 +178,10 @@ export async function purgeHeldVerifyJobs(opts: {
 
   for (const name of opts.queueNames ?? WORKER_QUEUE_NAMES) {
     const queue = new Queue(name, { connection: opts.connection, prefix: opts.prefix });
+    // A BullMQ object with no 'error' listener prints the raw error, and a Redis AUTH error
+    // carries the user and password in `command.args`. Never print it; a failure reaches the
+    // caller as the rejected command instead.
+    queue.on('error', () => undefined);
     try {
       const counts: QueuePurgeCounts = {
         queue: name,
@@ -222,31 +277,47 @@ export function formatResult(result: PurgeResult, apply: boolean): string[] {
 async function main(): Promise<void> {
   const parsed = parseArgs(process.argv.slice(2));
   if (!parsed) {
-    console.error(USAGE);
+    errOut(USAGE);
     process.exit(2);
   }
   const { apply } = parsed;
 
   const redisUrl = process.env.REDIS_URL;
   if (!redisUrl) {
-    console.error('REDIS_URL is not set.');
+    errOut('REDIS_URL is not set.');
     process.exit(2);
   }
+  const redacted = redactRedisUrl(redisUrl);
+  guardOutput(redacted);
   const prefix = bullPrefix(process.env.EMAIL_QUEUE_PREFIX);
-  const target = `${redactRedisUrl(redisUrl)}, prefix ${prefix}`;
+  const target = `${redacted}, prefix ${prefix}`;
   if (apply) {
-    console.log('='.repeat(72));
-    console.log(`  --yes: REMOVING held ${VERIFY_TEMPLATE} jobs on ${target}`);
-    console.log('='.repeat(72));
+    out('='.repeat(72));
+    out(`  --yes: REMOVING held ${VERIFY_TEMPLATE} jobs on ${target}`);
+    out('='.repeat(72));
   } else {
-    console.log(`Target (dry run, nothing removed): ${target}`);
+    out(`Target (dry run, nothing removed): ${target}`);
   }
 
-  const connection = new Redis(redisUrl, { maxRetriesPerRequest: null, enableReadyCheck: false });
-  // Error events carry the URL in some ioredis versions: log the name only.
-  connection.on('error', (err: unknown) => {
-    console.error(`Redis error: ${err instanceof Error ? err.name : 'UnknownError'}`);
+  try {
+    await probeRedis(redisUrl);
+  } catch (err) {
+    // The probe's own 'error' event names the cause (e.g. ReplyError for a bad password); the
+    // rejection itself is a generic "connection closed".
+    const reason = [...seenErrors][0] ?? errorName(err);
+    errOut(`Purge stopped: cannot use Redis at ${redacted} (${reason})`);
+    process.exit(1);
+  }
+
+  const connection = new Redis(redisUrl, {
+    maxRetriesPerRequest: null,
+    enableReadyCheck: false,
+    // A few reconnects, then give up: pending commands reject and the run ends with exit 1
+    // instead of waiting forever.
+    retryStrategy: (times) => (times > 3 ? null : times * 500),
   });
+  // Name only: an AUTH error carries the password in `command.args`.
+  connection.on('error', (err: unknown) => seenErrors.add(errorName(err)));
   let result: PurgeResult;
   try {
     result = await purgeHeldVerifyJobs({
@@ -255,16 +326,16 @@ async function main(): Promise<void> {
       apply,
     });
   } finally {
-    await connection.quit().catch(() => undefined);
+    await connection.quit().catch(() => connection.disconnect());
   }
 
-  for (const line of formatResult(result, apply)) console.log(line);
+  for (const line of formatResult(result, apply)) out(line);
   if (!apply) {
-    console.log('Dry run: nothing removed. Run with --yes to remove.');
+    out('Dry run: nothing removed. Run with --yes to remove.');
     return;
   }
   if (result.totalLockedActive > 0) {
-    console.error(
+    errOut(
       'Some verify jobs are being sent by a live worker and were not removed. Stop the worker or wait, then rerun.',
     );
     process.exit(1);
@@ -273,7 +344,8 @@ async function main(): Promise<void> {
 
 if (require.main === module) {
   main().catch((err: unknown) => {
-    console.error(`Purge stopped: ${err instanceof Error ? err.name : 'UnknownError'}`);
+    const target = process.env.REDIS_URL ? ` (Redis ${redactRedisUrl(process.env.REDIS_URL)})` : '';
+    errOut(`Purge stopped: ${errorName(err)}${target}`);
     process.exit(1);
   });
 }

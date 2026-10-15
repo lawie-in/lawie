@@ -69,6 +69,7 @@ import {
   EMAIL_TIER_BY_TEMPLATE,
   disconnectEmailClient,
 } from '@lawie/email-client';
+import IORedis from 'ioredis';
 import type Redis from 'ioredis';
 import mongoose from 'mongoose';
 
@@ -152,12 +153,26 @@ export function parseOptions(args: string[], source: NodeJS.ProcessEnv): Options
   }
   if (apply && dryRun) return null;
 
-  const sizeRaw = batchSizeRaw ?? source.VERIFY_RESEND_BATCH_SIZE;
-  const pauseRaw = batchPauseRaw ?? source.VERIFY_RESEND_BATCH_PAUSE_MS;
-  const batchSize =
-    sizeRaw === undefined || sizeRaw === '' ? DEFAULT_BATCH_SIZE : parseInteger(sizeRaw, 1);
-  const batchPauseMs =
-    pauseRaw === undefined || pauseRaw === '' ? DEFAULT_BATCH_PAUSE_MS : parseInteger(pauseRaw, 0);
+  // A flag given with any value, empty included, must be a valid number: no silent fallback.
+  // An unset or empty env var means "use the default".
+  const resolve = (
+    flag: string | undefined,
+    envRaw: string | undefined,
+    dflt: number,
+    min: number,
+  ) =>
+    flag !== undefined
+      ? parseInteger(flag, min)
+      : envRaw === undefined || envRaw === ''
+        ? dflt
+        : parseInteger(envRaw, min);
+  const batchSize = resolve(batchSizeRaw, source.VERIFY_RESEND_BATCH_SIZE, DEFAULT_BATCH_SIZE, 1);
+  const batchPauseMs = resolve(
+    batchPauseRaw,
+    source.VERIFY_RESEND_BATCH_PAUSE_MS,
+    DEFAULT_BATCH_PAUSE_MS,
+    0,
+  );
   if (batchSize === null || batchPauseMs === null) return null;
   return { apply, batchSize, batchPauseMs };
 }
@@ -201,6 +216,68 @@ async function enqueueLanded(
 }
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+/** Our own output. Library console output is muted in the CLI (see guardOutput). */
+const out = (line: string): void => void process.stdout.write(`${line}\n`);
+const errOut = (line: string): void => void process.stderr.write(`${line}\n`);
+
+/** Names of errors seen from Redis, Mongo or a library; reported by name only. */
+const seenErrors = new Set<string>();
+const errorName = (err: unknown): string =>
+  err instanceof Error && typeof err.name === 'string' && err.name ? err.name : 'UnknownError';
+
+/**
+ * CLI only: the email client's ioredis and BullMQ objects have no 'error' listener, so a Redis
+ * failure is printed raw through console, and a Redis AUTH error's `command.args` holds the
+ * user and password. Mute every console method and turn unhandled errors into one redacted
+ * line and exit 1, so nothing but this script's own lines can reach the terminal.
+ */
+function guardOutput(): void {
+  const mute = (...args: unknown[]): void => {
+    for (const a of args) if (a instanceof Error) seenErrors.add(errorName(a));
+  };
+  console.log = mute;
+  console.info = mute;
+  console.warn = mute;
+  console.error = mute;
+  console.debug = mute;
+  console.trace = mute;
+  const die = (err: unknown): void => {
+    errOut(`Resend stopped: ${errorName(err)} (${redactedTarget()})`);
+    process.exit(1);
+  };
+  process.on('unhandledRejection', die);
+  process.on('uncaughtException', die);
+  // Auth's shared client: its own listener logs through pino (muted at fatal); count the name.
+  redis.on('error', (err: unknown) => seenErrors.add(errorName(err)));
+}
+
+function redactedTarget(): string {
+  return `Mongo ${redactMongoUri(env.MONGO_URI)}, Redis ${redactRedisUrl(env.REDIS_URL)}`;
+}
+
+/** One PING on a client that never retries, so a bad URL or password fails fast and quietly. */
+async function probeRedis(url: string): Promise<void> {
+  const probe = new IORedis(url, {
+    lazyConnect: true,
+    maxRetriesPerRequest: 0,
+    retryStrategy: () => null,
+    connectTimeout: 5000,
+    enableOfflineQueue: false,
+  });
+  probe.on('error', (err: unknown) => seenErrors.add(errorName(err)));
+  try {
+    await probe.connect();
+    await probe.ping();
+  } finally {
+    probe.disconnect();
+  }
+}
+
+/** Resolves after `p` or `ms`, whichever is first; never rejects. */
+async function within(p: Promise<unknown>, ms: number): Promise<void> {
+  await Promise.race([p.catch(() => undefined), sleep(ms)]);
+}
 
 /**
  * Sends one batch and waits for its enqueues. Mutates `tally`. Prints nothing.
@@ -271,26 +348,35 @@ export function redactRedisUrl(url: string): string {
 async function main(): Promise<number> {
   const opts = parseOptions(process.argv.slice(2), process.env);
   if (!opts) {
-    console.error(USAGE);
+    errOut(USAGE);
     return 2;
   }
   const keyPrefix = verifyQueueKeyPrefix(process.env);
-  const target = `Mongo ${redactMongoUri(env.MONGO_URI)}, Redis ${redactRedisUrl(env.REDIS_URL)}`;
+  const target = redactedTarget();
   if (opts.apply) {
-    console.log('='.repeat(72));
-    console.log(`  --yes: SENDING verify emails via ${target}`);
-    console.log('='.repeat(72));
+    out('='.repeat(72));
+    out(`  --yes: SENDING verify emails via ${target}`);
+    out('='.repeat(72));
   } else {
-    console.log(`Target (dry run, nothing sent): ${target}`);
+    out(`Target (dry run, nothing sent): ${target}`);
   }
-  console.log(`batch size ${opts.batchSize}, pause between batches ${opts.batchPauseMs} ms`);
+  out(`batch size ${opts.batchSize}, pause between batches ${opts.batchPauseMs} ms`);
+
+  try {
+    await probeRedis(env.REDIS_URL);
+  } catch (err) {
+    // The probe's 'error' event names the cause (e.g. ReplyError for a bad password).
+    const reason = [...seenErrors][0] ?? errorName(err);
+    errOut(`Resend stopped: cannot use Redis at ${redactRedisUrl(env.REDIS_URL)} (${reason})`);
+    return 1;
+  }
 
   await mongoose.connect(env.MONGO_URI, { serverSelectionTimeoutMS: 5000, autoIndex: false });
   const users = await User.find(RESEND_FILTER, { _id: 1 }).lean();
   const ids = users.map((u) => String(u._id));
   const batches = Math.ceil(ids.length / opts.batchSize);
-  console.log(`users found: ${ids.length}`);
-  console.log(`batches: ${batches}`);
+  out(`users found: ${ids.length}`);
+  out(`batches: ${batches}`);
 
   if (!opts.apply) {
     let marked = 0;
@@ -299,11 +385,11 @@ async function main(): Promise<number> {
       if ((await redis.exists(rerunMarkerKey(id))) === 1) marked += 1;
       else if (await hasPendingVerifyJob(redis, keyPrefix, id)) pending += 1;
     }
-    console.log(`of which sent by an earlier run in the last 24 h (would skip): ${marked}`);
-    console.log(`of which already have a pending verify job (would skip): ${pending}`);
+    out(`of which sent by an earlier run in the last 24 h (would skip): ${marked}`);
+    out(`of which already have a pending verify job (would skip): ${pending}`);
     const pauseSeconds = Math.round((Math.max(0, batches - 1) * opts.batchPauseMs) / 1000);
-    console.log(`time spent in pauses: about ${pauseSeconds} s`);
-    console.log('Dry run: nothing sent. Run with --yes to send.');
+    out(`time spent in pauses: about ${pauseSeconds} s`);
+    out('Dry run: nothing sent. Run with --yes to send.');
     return 0;
   }
 
@@ -318,28 +404,31 @@ async function main(): Promise<number> {
   for (let b = 0; b < batches; b += 1) {
     const slice = ids.slice(b * opts.batchSize, (b + 1) * opts.batchSize);
     await runBatch(slice, tally, { redis, keyPrefix });
-    console.log(`batch ${b + 1}/${batches} done`);
+    out(`batch ${b + 1}/${batches} done`);
     if (b < batches - 1 && opts.batchPauseMs > 0) await sleep(opts.batchPauseMs);
   }
-  for (const k of TALLY_BUCKETS) console.log(`${k}: ${tally[k]}`);
+  for (const k of TALLY_BUCKETS) out(`${k}: ${tally[k]}`);
   return tally.failed > 0 ? 1 : 0;
 }
 
 async function teardown(): Promise<void> {
   // Every confirmed enqueue has finished; close the producer's queues, then the DB and Redis.
-  await disconnectEmailClient().catch(() => undefined);
-  await mongoose.disconnect().catch(() => undefined);
-  await redis.quit().catch(() => undefined);
+  // Bounded, so a dead Redis or Mongo cannot keep the process from exiting.
+  await within(disconnectEmailClient(), 5000);
+  await within(mongoose.disconnect(), 5000);
+  await within(redis.quit(), 2000);
+  redis.disconnect();
 }
 
 if (require.main === module) {
+  guardOutput();
   main()
     .then(async (code) => {
       await teardown();
       process.exit(code);
     })
     .catch(async (err: unknown) => {
-      console.error(`Resend stopped: ${err instanceof Error ? err.name : 'UnknownError'}`);
+      errOut(`Resend stopped: ${errorName(err)} (${redactedTarget()})`);
       await teardown();
       process.exit(1);
     });
