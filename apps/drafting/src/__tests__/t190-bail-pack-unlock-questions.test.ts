@@ -128,7 +128,18 @@ function signedRows(): Signed[] {
 const SIGNED = signedRows();
 const ORDER = SIGNED.map((s) => s.key);
 const NUMS = SIGNED.map((s) => s.num);
-const signedOf = (key: string) => SIGNED.find((s) => s.key === key)!;
+// T-245a, Ajay Addendum 5 #3 (41a4b27): fir_date is asked when empty, never required, and the
+// question is the one he signed at 940ef87. It is not one of the 16 T-190 rows and not in their
+// order or block: it is asked first, and stays where it is in the form.
+const FIR_DATE_SIGNED: Signed = {
+  num: 'A5-3',
+  key: 'fir_date',
+  label: 'Date of FIR, or of the complaint if no FIR',
+  question: 'On what date was the FIR registered, or the complaint filed if there is no FIR?',
+  form: 'Date',
+};
+const signedOf = (key: string) =>
+  key === 'fir_date' ? FIR_DATE_SIGNED : SIGNED.find((s) => s.key === key)!;
 const optionsOf = (s: Signed): string[] | null =>
   s.form.startsWith('Choices: ') ? s.form.slice(9).split('. ')[0].split(' / ') : null;
 
@@ -223,16 +234,19 @@ describe.each(PACKS)('T-190 AC1-AC3 pack file %s', (packId) => {
     files.push(['docs/templates', join(REPO, 'docs', 'templates', `${packId}.json`)]);
   }
   const want = expectedOrder(packId);
+  // fir_date first (Addendum 5 #3), then the 16 T-190 items (13 for bail_anticipatory).
+  const askedWant = ['fir_date', ...want];
 
   it.each(files)(
     '%s: the asked items are the signed ones, in order, with the exact text, all optional',
     (_n, path) => {
       const fields = rawFields(path);
       const asked = fields.filter((f) => f.ask_when_empty === true);
-      expect(asked.map((f) => f.id)).toEqual(want);
-      // consecutive in the file
+      expect(asked.map((f) => f.id)).toEqual(askedWant);
+      // the T-190 items are consecutive in the file (fir_date sits with the FIR fields)
       const at = fields.findIndex((f) => f.id === want[0]);
       expect(fields.slice(at, at + want.length).map((f) => f.id)).toEqual(want);
+      expect(fields.find((f) => f.id === 'fir_date')!.ask_when_empty).toBe(true);
       for (const f of asked) {
         const s = signedOf(f.id);
         expect(f.label).toBe(s.label);
@@ -253,7 +267,7 @@ describe.each(PACKS)('T-190 AC1-AC3 pack file %s', (packId) => {
   it('the pack the service loads carries the same questions (source pack) and optional ask_when_empty items', () => {
     const cl = buildChecklist(loadRulePack(packId)!);
     const asked = cl.filter((i) => i.askWhenEmpty);
-    expect(asked.map((i) => i.key)).toEqual(want);
+    expect(asked.map((i) => i.key)).toEqual(askedWant);
     for (const i of asked) {
       expect(i.question).toBe(signedOf(i.key).question);
       expect(i.required).toBe(false);
@@ -612,6 +626,35 @@ describe('T-190 buildQuestions: exact lists, alwaysAsk, 240-character rule, conf
       confirm: new Set(['investigation_status']),
     });
     expect(re.find((x) => x.key === 'investigation_status')).toMatchObject({ confirm: true });
+  });
+
+  it('Addendum 5 #3: fir_date is asked when empty, optional, and "Not known" is no fact and is not asked again', () => {
+    const cl = buildChecklist(loadRulePack('bail_regular')!);
+    const fir = cl.find((i) => i.key === 'fir_date')!;
+    expect(fir.askWhenEmpty).toBe(true);
+    expect(fir.required).toBe(false);
+    expect(fir.question).toBe(
+      'On what date was the FIR registered, or the complaint filed if there is no FIR?',
+    );
+    // Empty: asked.
+    // A description brief with every other typical fact, so the 10-question cap is not full.
+    const emptyBrief = buildBrief({
+      kind: KIND('bail_regular'),
+      checklist: cl,
+      values: typicalValues(cl).filter((v) => v.key !== 'fir_date'),
+    }) as Brief;
+    expect(
+      keysOf(buildQuestions(emptyBrief, new Map(), new Set(), new Set(), { checklist: cl })),
+    ).toContain('fir_date');
+    // "Not known" writes no fact, marks the item asked_empty, and it is not asked again.
+    expect(isNoFactAnswer(fir, 'Not known')).toBe(true);
+    const { brief } = briefFor('bail_regular', true, [{ key: 'fir_date', value: 'Not known' }]);
+    const it_ = brief.items.find((i) => i.key === 'fir_date')!;
+    expect(it_.value).toBeNull();
+    expect(it_.asked_empty).toBe(true);
+    expect(
+      keysOf(buildQuestions(brief, new Map(), new Set(), new Set(), { checklist: cl })),
+    ).not.toContain('fir_date');
   });
 
   it('a whole-answer "Not known" is empty; "Not known to have any antecedents" is a real answer', () => {
