@@ -66,7 +66,12 @@ describe('T-278: auto-detected IPC with no table row', () => {
     const auto = (await checkBailEligibility(['999'])).sections[0];
     const explicit = (await checkBailEligibility(['999-IPC'])).sections[0];
     expect(explicit.note).toBe(NOT_VERIFIED);
-    expect({ ...auto, input: '' }).toEqual({ ...explicit, input: '' });
+    // T-361 AC4: only the bare number carries Ajay's code reminder.
+    expect(auto.codeReminder).toBe(
+      'Add the code before the number, for example BNS 351 or IPC 351.',
+    );
+    expect(explicit.codeReminder).toBeUndefined();
+    expect({ ...auto, codeReminder: undefined, input: '' }).toEqual({ ...explicit, input: '' });
   });
 
   it('"999" is undetermined in the summary, not a bailable/non-bailable verdict', async () => {

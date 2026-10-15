@@ -857,7 +857,7 @@ describe('T-399: yearly grant fails after the claim (drip reset is part of the c
     expect(sub.inkDripNextAt).toEqual(addOneMonth(START));
   });
 
-  it('after a successful paid_count grant, Subscription.updateOne is called once, only to mark the claim granted', async () => {
+  it('after a successful paid_count grant, Subscription.updateOne is called once, to mark the claim granted', async () => {
     const userId = await seedUser();
     await Subscription.create({ userId, razorpaySubscriptionId: SUB_ID, status: 'created' });
     const spy = jest.spyOn(Subscription, 'updateOne');
@@ -870,7 +870,8 @@ describe('T-399: yearly grant fails after the claim (drip reset is part of the c
         paidCount: 1,
       }),
     );
-    // T-415: the only call is the mark-granted write; no rollback, no drip rewrite.
+    // T-415/T-444: the status is set inside the claim, so the only updateOne is the
+    // mark-granted write; no rollback, no drip rewrite.
     expect(spy).toHaveBeenCalledTimes(1);
     expect((spy.mock.calls[0] as unknown[])[1]).toEqual({ $set: { grantClaimState: 'granted' } });
     const sub = await subOf();

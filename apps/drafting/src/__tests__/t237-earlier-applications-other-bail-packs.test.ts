@@ -20,6 +20,9 @@ const BRIEF = {
   still_unknown: [],
 } as unknown as Brief;
 
+// Signed: T-245 file, Addendum 8 (Ajay, 15 Oct 2026).
+const NO_JUDGMENT_SENTENCE =
+  'Do not name any judgment. Where an authority would normally be cited, write [Authority \u2014 add if relied upon].';
 const PACKS = ['bail_anticipatory', 'interim_bail', 'bail_before_magistrate'] as const;
 const pack = (id: string) => loadRulePack(id) as RulePack;
 
@@ -316,8 +319,12 @@ describe("T-282: Ajay's signed strings, word for word", () => {
     '%s: the signed earlier-application instruction is second from last, before the verification line',
     (id) => {
       const ins = rawPack(id).promptInstructions;
-      expect(ins[ins.length - 2]).toBe(EA_INSTRUCTION[id]);
-      expect(ins[ins.length - 1].startsWith(VERIFICATION)).toBe(true);
+      // T-441 (Addendum 8 R3): interim_bail ends with the signed no-judgment sentence S,
+      // so the pair sits at [len-3] and [len-2].
+      const tail = id === 'interim_bail' ? 1 : 0;
+      expect(ins[ins.length - 2 - tail]).toBe(EA_INSTRUCTION[id]);
+      expect(ins[ins.length - 1 - tail].startsWith(VERIFICATION)).toBe(true);
+      if (tail) expect(ins[ins.length - 1]).toBe(NO_JUDGMENT_SENTENCE);
     },
   );
 

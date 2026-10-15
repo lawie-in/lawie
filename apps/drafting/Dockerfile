@@ -1,7 +1,9 @@
 # syntax=docker/dockerfile:1
 FROM node:20-alpine AS builder
 WORKDIR /app
+ENV HUSKY=0
 COPY package.json yarn.lock ./
+COPY .husky/install.mjs ./.husky/
 COPY apps/drafting/package.json ./apps/drafting/
 COPY packages/shared/package.json ./packages/shared/
 RUN yarn install --frozen-lockfile
@@ -12,12 +14,14 @@ RUN yarn workspace @lawie/shared build && yarn workspace @lawie/drafting build
 
 FROM node:20-alpine AS production
 WORKDIR /app
+ENV HUSKY=0
 ENV NODE_ENV=production
 # Chromium for Puppeteer server-side PDF rendering
 RUN apk add --no-cache chromium
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
     PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 COPY package.json yarn.lock ./
+COPY .husky/install.mjs ./.husky/
 COPY apps/drafting/package.json ./apps/drafting/
 COPY packages/shared/package.json ./packages/shared/
 RUN yarn install --frozen-lockfile --production && yarn cache clean

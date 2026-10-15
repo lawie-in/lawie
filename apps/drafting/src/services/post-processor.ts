@@ -177,14 +177,34 @@ function familyCourtSeatParts(courtName: string | undefined | null): string[] {
  * Dwarka count only when a Delhi name is also typed; otherwise the T-176
  * typed-seat output stands ("IN THE FAMILY COURT AT DWARKA").
  */
-const DELHI_FAMILY_COMPLEXES: ReadonlyArray<{ aliases: RegExp; heading: string; delhiOnly: boolean }> = [
-  { aliases: /^(?:tis|tees)\s+hazari$/i, heading: 'IN THE FAMILY COURT AT TIS HAZARI, DELHI', delhiOnly: true },
-  { aliases: /^(?:karkardooma|kadkadooma)$/i, heading: 'IN THE FAMILY COURT AT KARKARDOOMA, DELHI', delhiOnly: true },
+const DELHI_FAMILY_COMPLEXES: ReadonlyArray<{
+  aliases: RegExp;
+  heading: string;
+  delhiOnly: boolean;
+}> = [
+  {
+    aliases: /^(?:tis|tees)\s+hazari$/i,
+    heading: 'IN THE FAMILY COURT AT TIS HAZARI, DELHI',
+    delhiOnly: true,
+  },
+  {
+    aliases: /^(?:karkardooma|kadkadooma)$/i,
+    heading: 'IN THE FAMILY COURT AT KARKARDOOMA, DELHI',
+    delhiOnly: true,
+  },
   { aliases: /^rohini$/i, heading: 'IN THE FAMILY COURT AT ROHINI, DELHI', delhiOnly: false },
   { aliases: /^saket$/i, heading: 'IN THE FAMILY COURT AT SAKET, NEW DELHI', delhiOnly: false },
   { aliases: /^dwarka$/i, heading: 'IN THE FAMILY COURT AT DWARKA, NEW DELHI', delhiOnly: false },
-  { aliases: /^patiala\s+house$/i, heading: 'IN THE FAMILY COURT AT PATIALA HOUSE, NEW DELHI', delhiOnly: true },
-  { aliases: /^rouse\s+avenue$/i, heading: 'IN THE FAMILY COURT AT ROUSE AVENUE, NEW DELHI', delhiOnly: true },
+  {
+    aliases: /^patiala\s+house$/i,
+    heading: 'IN THE FAMILY COURT AT PATIALA HOUSE, NEW DELHI',
+    delhiOnly: true,
+  },
+  {
+    aliases: /^rouse\s+avenue$/i,
+    heading: 'IN THE FAMILY COURT AT ROUSE AVENUE, NEW DELHI',
+    delhiOnly: true,
+  },
 ];
 
 /**
@@ -265,7 +285,12 @@ function classifyDelhiPart(part: string): DelhiPart | null {
   const complexName = core.replace(/\s+(?:courts?(?:\s+complex)?)$/i, '');
   const complex = DELHI_FAMILY_COMPLEXES.find((c) => c.aliases.test(complexName));
   if (complex) {
-    return { kind: 'complex', heading: complex.heading, delhiOnly: complex.delhiOnly, withDelhi: core !== p };
+    return {
+      kind: 'complex',
+      heading: complex.heading,
+      delhiOnly: complex.delhiOnly,
+      withDelhi: core !== p,
+    };
   }
   return null;
 }
@@ -339,7 +364,10 @@ export function delhiFamilyCourtHeading(courtName: string | undefined | null): s
  * FAMILY_COURT_SEAT_BLANK for `{place}` when no seat can be read. Falls back
  * to the rule's designation if the format has no `{place}`.
  */
-export function familyCourtHeading(courtRule: CourtRuleConfig, courtName: string | undefined): string {
+export function familyCourtHeading(
+  courtRule: CourtRuleConfig,
+  courtName: string | undefined,
+): string {
   const format = courtRule.formattingPreferences?.causeListFormat;
   if (!format || !format.includes('{place}')) return courtRule.designation;
   // T-179: a Delhi name, complex or district prints Ajay's line verbatim.

@@ -251,3 +251,165 @@ T-441 review note (Vishal, 15 Oct 2026): restore the two propositions, as R1 wou
 - twin: `(ii) the conditions the court may impose when granting anticipatory bail, (iii) that custodial interrogation is not necessary as applicant is willing to join investigation.` followed by S.
 
 Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+### T-447 byte check (feature/t-447-criminal-judgment-names, diff e1b13796.., 15 Oct 2026)
+
+Packs: criminal_appeal, curative_petition, fir_quashing, quashing_528_bnss, review_petition, surrender_application, suspension_of_sentence. S appears verbatim once per pack, last. No case name is left in any model-visible field (only key_citations, `_meta`, top-level `description`, form labels and validation_rules; the last two go to T-451, below). No new law (R5 met).
+
+R4 labels: **approved as proposed.**
+
+- fir_quashing: title `citing the recognised categories for quashing`; clause `Recognised Quashing Categories Verbatim`; `Quashing category 5 application` / `Quashing category 7 application`; `The seven categories are illustrative…`; `Para 8: Seven categories verbatim quotation paragraph…`; `(Cat 5 / Cat 1)`, `(Cat 6)`, `(Cat 7)`.
+- quashing_528_bnss: clause and Para 5 `Recognised Quashing Categories Invoked` / `Recognised quashing categories invoked`; `cat 5 squarely applies`.
+- curative_petition: `the recognised curative grounds`; `which curative ground is invoked`.
+
+must-fix in T-447 (quashing_528_bnss), delete two lines:
+
+- `Comprehensive principles on quashing on settlement.` There is no law left, and the two lines above already state it.
+- `Three categories of cases for quashing.` This is unanchored and sits beside the quoted seven categories, so the model may invent a second list.
+
+Questions:
+
+- (a) curative_petition `prompt_context.promptInstructions: [S]`: **OK.** readDraftingInstructions flattens prompt_context, so S comes last. Condition: the T-447 test shows S as the last numbered instruction in curative's assembled prompt.
+- (b) **Keep the CLO line.** R6 amended: each such `_meta.change_protocol` becomes `All edits require CLO sign-off. Do not name judgments in model-visible text (Ajay, T-441).`. This applies to the three in T-447, and to any T-441 pack where the CLO line was dropped.
+- (c) **Yes, add to T-451:**
+  - fir_quashing :103 label becomes `Recognised quashing categories invoked (one or more)`.
+  - curative_petition :72 label becomes `Curative ground`.
+  - curative_petition :196 validation rule becomes `At least one recognised curative ground must be selected`, if validation_rules reach preflight or the model.
+
+With the two deletions, (a)'s test and (b) applied: **T-447 is approved.** Merge-body ref: "Legal: T-447 signed by Ajay, T-245 file, T-447 byte check".
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+### T-451 ids (Priya, 15 Oct 2026)
+
+Both ids reach the model: clause ids go through clauseLines (brief-drafter.ts:299), and form keys through the brief entry (`key`, :280). So R1/R4 apply, and they cannot stay. R4 replacements:
+
+| Where                                                   | Old                             | New                            |
+| ------------------------------------------------------- | ------------------------------- | ------------------------------ |
+| Clause id (fir_quashing, quashing_528_bnss) | `bhajan_lal_paragraph`          | `quashing_categories_paragraph` |
+| Form key (fir_quashing)                                 | `bhajan_lal_categories_invoked` | `quashing_categories_invoked`   |
+
+This is no new law (R5). CLAUSE_CUES, the skeletons and any saved-form or draft mapping follow the rename; how that is done is Arjun's call, not mine. The wording does not change, so no golden should move; any golden that does move comes to me.
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+### T-449 questions (Priya / Kunal, 15 Oct 2026)
+
+1. **Where S goes when a pack has no promptInstructions** (rejoinder_affidavit, restoration_application, interim_application). Do not append it to `system_prompt_addendum` or `system_role`. Field order puts it before tone and key_phrases, so it would not come last. Do the same as curative_petition (T-447 (a)): add `prompt_context.promptInstructions: [S]` as the **last key** of prompt_context. Never add a top-level `promptInstructions` to these packs: prompt-assembler then uses only that list and drops all of prompt_context. Condition: a test shows S as the last numbered instruction for each of the three.
+2. **_meta.** For mact_claim, yes to the reset, but use the amended R6 text that keeps the CLO line: `All edits require CLO sign-off. Do not name judgments in model-visible text (Ajay, T-441).` For plaint_declaration and plaint_partition, **leave** the _meta: it is not model-visible and makes no citation mandatory.
+3. **R4 labels.** I will mark them when Kunal's diff arrives.
+4. **rera_complaint :155 label.** Labels reach the model (item.label), so it goes into T-451, not left as it is. New label: `Any previous Consumer / Civil proceedings on same cause? (the consumer remedy is concurrent)`.
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+### T-449 byte check (feature/t-449-civil-family-no-judgments, 27 packs, 15 Oct 2026)
+
+S appears verbatim once, last, in 24 packs. It is missing from interim_application, rejoinder_affidavit and restoration_application: add it as ruled in T-449 Q1. No case name is left in any added line.
+
+R4 marks:
+
+| # | Proposed | Mark |
+|---|---|---|
+| 1 | mact_claim clause: `Multiplier method, with personal expenses deduction and conventional heads` | Approved with one addition: `Multiplier method, with future prospects, personal expenses deduction and conventional heads` |
+| 2 | mact_claim Para 18: `…largely superseded by multiplier-method computation in S.166 claims` | Approved |
+| 3 | interim_application: `plead all three limbs (prima facie case, balance of convenience, irreparable injury) explicitly` | Approved |
+| 4 | guardianship clause | Reworded: `Details of father and mother — death/unfitness/incapacity/absence; for Hindu minors per S.6 HMGA father is natural guardian and after him mother, with 'after' read as 'in the absence of'; subject to S.4` |
+| 5 | plaint_partition Para 7: `…coparcenary status is conferred retrospectively.` | **Not approved, legally wrong.** The amended S.6 is retroactive, not retrospective. Use: `Para 7: For pre-2005 demises or earlier partitions, plead carefully — the daughter's right under amended S.6 HSA arises by birth and operates retroactively, not retrospectively; a partition by registered deed or court decree before 20.12.2004 is not reopened.` |
+
+The mact_claim R2 deletions (the minor-death and non-earning-member citation lines) are approved: nothing of law is left in them.
+
+must-fix in T-449 (mact_claim :290, an error that was already there): the future-prospects line wrongly splits fixed salary out. It becomes: `   - Future prospects addition: permanent job — 50% if deceased below 40, 30% if 40-50, 15% if 50-60; self-employed or fixed salary — 40% / 25% / 10% for the same age bands.`
+
+With the three S placements, #1, #4, #5 and :290 applied: **T-449 is approved.** Merge-body ref: "Legal: T-449 signed by Ajay, T-245 file, T-449 byte check".
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+### T-449 reviewer round 1 (Priya / Kunal, 15 Oct 2026)
+
+1. plaint_partition clause id `vineeta_sharma_paragraph` becomes `daughter_coparcener_paragraph`. Its cue and skeleton change with it.
+2. ibc_application :150 label becomes `Any pre-existing dispute disclosed by CD (S.9 — dispute raised before the demand notice) — details`. It goes in T-451. The clause name at :226, if still named, becomes `No Pre-existing Dispute (S.9)` in T-449.
+3. dv_act keeps a plain cue, placed where the deleted line stood: `Where maintenance or other monetary relief is sought, file an affidavit of assets and liabilities of both parties.`
+4. condonation: reword to `Rejection of mechanical approach to condonation.` (the count goes; "Fifteen principles" points at nothing).
+5. filing_checklist and validation_rules are shown to the user and not sent to the model (ai.service streams the checklist; the prompt assembler reads neither). They are outside T-441/T-451 and stay as they are, but only as citations I have checked. Priya: send me the list. I verify each one, and any I cannot verify is removed from that list.
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+### T-449 item 5: user-facing citations (Kunal, 15 Oct 2026)
+
+These are not sent to the model. I checked each one:
+
+| # | Where | Mark |
+|---|---|---|
+| 1 | plaint_partition validation_rules.13 (Vineeta Sharma) | Keep: correct |
+| 2 | plaint_recovery validation_rules.11 (Patil Automation) | Reword: as written it states the rule too broadly (it applies only to commercial suits, and urgent interim relief is an exception). New text: `pre_institution_mediation must be true for a commercial suit, unless urgent interim relief is sought (S.12A Commercial Courts Act, 2015; Patil Automation)` |
+| 3 | legal_notice_copyright_infringement validation_rules.1 (Eastern Book Co. v. D.B. Modak) | Keep: correct |
+| 4 | restoration_application validation_rules.parimal_standard (Parimal v. Veena) | Keep: correct |
+| 5 | dv_act_complaint filing_checklist.9 (Rajnesh v. Neha) | Keep: correct |
+| 6 | maintenance_bnss_144 filing_checklist.8 (Rajnesh v. Neha) | Keep: correct |
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+### T-449 round 2 (Priya / Kunal reviewer optionals, 15 Oct 2026)
+
+1. maintenance_bnss_144 "Supreme Court framework requiring affidavits of assets and liabilities": **leave**. The requirement is stated correctly.
+2. itat_appeal Para 9: "Constitution Bench" is wrong (it was a three-judge bench). Reword the parenthesis to `(the Supreme Court struck down the third proviso to S.254(2A))`.
+
+Separate item, not T-449: the Income-tax Act, 2025 has applied since 1 April 2026, so the 1961-Act section numbers in itat_appeal are marked "verify" until I map them. Priya opens the ticket.
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+### T-451 questions (Priya / Kunal, 15 Oct 2026)
+
+1. fir_quashing :103 label: use the earlier string, `Grounds for quashing invoked (one or more)`. This withdraws the T-447 (c) string "Recognised quashing categories invoked (one or more)".
+2. quashing_528_bnss :109-115 option ids: rename them, dropping the `_bhajan_lal_cat_N` suffix. The model sees the suffix, and its numbers also do not match the seven categories quoted in the pack (e.g. "absurd" is category 5, not 3). New ids: `no_offence_disclosed`, `ingredients_not_made_out`, `facts_absurd_inherently_improbable`, `express_legal_bar`, `civil_dispute_criminal_colour`, `mala_fide_personal_vendetta`, `procedural_illegality`. The two compromise ids stay. Mapping saved answers is Arjun's call. Any golden that moves comes to me.
+3. curative_petition validation rule: if Kunal finds that validation_rules reach preflight or the model, use `At least one recognised curative ground must be selected`. If they do not, the rule is user-facing only and its citation is correct, so it stays as it is.
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+### T-451 gpa/spa ids (Priya, 15 Oct 2026)
+
+The model sees both ids, so they are renamed in T-451 with the same read-time alias. This matches the gpa/spa clause names already signed.
+
+| Old | New |
+|---|---|
+| `suraj_lamp_disclaimer` | `title_disclaimer` |
+| `yes_flag_suraj_lamp_warning` | `yes_flag_title_warning` |
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+### T-451 joint_development_agreement id (Priya, 15 Oct 2026)
+
+- joint_development_agreement :246 option `yes_general_gpa_with_suraj_lamp_flag` becomes `yes_general_gpa_with_title_flag`, with the same read-time alias. The :641 validation rule follows the new id.
+- I swept every pack for judgment names in ids. The only carriers left are the ones already ruled for T-451 (fir_quashing, quashing_528_bnss, gpa, spa, and this one). `_averments/bail_regular` `arnesh_kumar_type_citation` is a ban-list id and stays under R7.
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+### T-450 questions (Priya / Shashank, 15 Oct 2026)
+
+1. partition_deed `_meta.change_protocol`: **leave**, as for plaint_partition. It is not model-visible, and what it makes mandatory is the daughters' rights, not a citation.
+2. gpa and sale_deed `_meta.change_protocol`: **leave**. Same reason: the disclaimer stays mandatory. Any model-visible text that names the judgment follows R1/R4 and becomes "title disclaimer".
+3. The six hits are **in scope for T-450**. Exact text:
+
+| Where | New text |
+|---|---|
+| gift_deed :367 description | `Coparcener cannot gift away coparcenary interest except for pious / charitable purposes` |
+| spa :269 | `Para 7: TITLE DISCLAIMER (if SPA authorises sale) — same as GPA: SPA does not itself transfer title; only registered Sale Deed transfers title.` |
+| license_agreement :262 description | `Critical to preserve license vs lease distinction (substance, not form: a lease passes an interest in the property, a licence does not)` |
+| shareholders_agreement :93 note | `Must be mirrored in AOA to bind company` |
+| shareholders_agreement :168 note | `Critical` |
+| shareholders_agreement :178 system_role | Delete ` (V.B. Rangaraj)`. The sentence ends `…mirrorable in AOA.` |
+| aoa :191 | `Reserved matters / affirmative vote provisions are enforceable only if also reflected in AOA.` |
+
+4. joint_development_agreement :497 goes into **T-450**: replace `Suraj Lamp disclaimer` with `title disclaimer`. The rest of the line stays.
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+### T-451 byte check (fix/t-451-judgment-labels at 175c0a4, 15 Oct 2026)
+
+Every label, id and option rename matches the signed strings byte for byte: the curative label; divorce; dv_act; fir_quashing (`quashing_categories_invoked`, `Grounds for quashing invoked (one or more)`, `quashing_categories_paragraph` and its validation rule); quashing_528_bnss (`quashing_categories_paragraph` and the 7 option ids); gpa and spa (`title_disclaimer`, `Title disclaimer (…)`, `yes_flag_title_warning`); jda (`yes_general_gpa_with_title_flag`); ibc; plaint_partition; plaint_recovery; rera; and the service_agreement deletion.
+
+The curative :196 validation rule is unchanged. That is allowed under my ruling: validation_rules are not model-visible, and the citation is correct. The judgment names still on this branch are in key_citations, in `_meta`, in user-facing validation_rules (allowed), or in deed packs that belong to T-450 (gpa :263/:371, sale_deed, partition_deed, jda :497).
+
+**T-451 is approved.** Merge-body ref: "Legal: T-451 signed by Ajay, T-245 file, T-451 byte check 175c0a4".
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.
