@@ -279,3 +279,16 @@ Questions:
 With the two deletions, (a)'s test and (b) applied: **T-447 is approved.** Merge-body ref: "Legal: T-447 signed by Ajay, T-245 file, T-447 byte check".
 
 Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+### T-451 ids (Priya, 15 Oct 2026)
+
+Both ids reach the model: clause ids go through clauseLines (brief-drafter.ts:299), and form keys through the brief entry (`key`, :280). So R1/R4 apply, and they cannot stay. R4 replacements:
+
+| Where                                                   | Old                             | New                            |
+| ------------------------------------------------------- | ------------------------------- | ------------------------------ |
+| Clause id (fir_quashing, quashing_528_bnss) | `bhajan_lal_paragraph`          | `quashing_categories_paragraph` |
+| Form key (fir_quashing)                                 | `bhajan_lal_categories_invoked` | `quashing_categories_invoked`   |
+
+This is no new law (R5). CLAUSE_CUES, the skeletons and any saved-form or draft mapping follow the rename; how that is done is Arjun's call, not mine. The wording does not change, so no golden should move; any golden that does move comes to me.
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.
