@@ -86,3 +86,37 @@ Ink v2 accepted with lots, spend order, cancel-keeps-paid-Ink, two-lot migration
 ## 10. Diagrams (15 Oct)
 
 All of the above drawn out — big picture, compile pipeline, ingest sequence, authority graph, ERD, deployment, Ink v2 lots and draft-run lifecycle, rollout gantt — in `07-diagrams.md` (Mermaid, source of truth) and as a rendered page for the founder: https://claude.ai/artifact/TLSLeyLGTovGCGm15bLP1j
+
+## 11. Founder approval (15 Oct 2026)
+
+Founder: "Approved all." Recorded as:
+
+| # | Decision |
+|---|---|
+| D1 | Direction approved: compiler + Law Library, not templates. |
+| D2 | Atlas Search + Vector; no separate search service. |
+| D3 | Voyage `voyage-law-2` for embeddings, phase 2, revenue-gated. |
+| D4 | Plan/judge Haiku 5.5, body Sonnet 5.5 (already live on develop). Opus parked. |
+| D5 | Start on free primary sources. Commercial databases, books and a citator feed are added when the founder licenses them; Indian Kanoon API on that list. |
+| D6 | Ink v2: lots with expiry, spend order, one ledger; migration = two lots. |
+| D7 | Ink classes S/M/L: Vikram proposes prices, founder sets them (still open — Vikram). |
+| D8 | Ajay signs law content and judgment status; founder/Priya sign kinds. |
+| D9 | Phase 0 starts after T-403 (v1 on main after Anushka's PASS). |
+| D10 | Unsigned kind renders with a banner, not blocked. |
+
+Also approved: the post-v1 CNR lookup pilot (`08-fact-ledger-from-apis.md`) — needs the founder's eCourtsIndia account; Ajay reads the vendor terms first.
+
+### Phase 0 tickets (for Priya to post; not to be started before T-403)
+
+- P0-1 Grammar registry: `part_types` and `kinds` collections + boot sync; the 92 templates become kind rows with `engine: legacy`; no behaviour change. (drafting)
+- P0-2 Per-kind engine switch and `signOff` banner (D10). (drafting, web banner)
+- P0-3 Law Library schema: `sources`, `source_versions`, `provisions`, `judgments`, `passages`, `authority_edges`, `law_mappings` + indexes; Atlas Search index definition. (drafting)
+- P0-4 Admin: source upload, class, licence, displayPolicy; S3 original; status flow uploaded → review → live with versions. (web admin + drafting)
+- P0-5 Ingest worker: BullMQ job, extract, split, byte-exact passages with hash; worker entrypoint in the drafting image; CI job. (drafting, CI)
+- P0-6 Review screen: Ajay sets judgment status per paragraph, as-of dates; approve = new version. (web admin + drafting)
+- P0-7 Seed: Bare Acts BNS/BNSS/BSA + the bail-family rules from official sources, through the same upload path. (content, Ajay)
+- P0-8 Ink v2: `ink_lots` + `ink_ledger`, grant/spend/refund/expiry, spend order, two-lot migration, liability report. (billing, packages/shared)
+- P0-9 Yearly plan = 12 scheduled grants; remove drip/carry (`yearly-drip.ts`) after migration. (billing, packages/shared)
+- P0-10 `FactSource 'lookup'` + `CaseLookupProvider` interface + eCourtsIndia adapter spike, bail kind only, confirm-gated. (packages/shared, web, drafting) — needs the API key as an environment secret.
+
+Each needs Rajesh's design where it has a screen (P0-2 banner, P0-4, P0-6) and Ajay's sign-off where it has legal content (P0-7). Architecture reference for all of them: this ADR.
