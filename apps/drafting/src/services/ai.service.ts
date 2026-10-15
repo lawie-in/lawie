@@ -67,6 +67,13 @@ import {
   withoutDisclaimers,
   withoutDisclaimerText,
 } from './brief-drafter';
+import {
+  CaseSide,
+  mapPartyFields,
+  PartyMissing,
+  pickPartyInputs,
+  SIDED_PACKS,
+} from './brief-party-fields';
 import { citationWarnings, removeUngivenCitations } from './citation-check';
 import {
   buildDraftParagraphsSchema,
@@ -132,6 +139,7 @@ import {
   TemplateConfig,
   RenderedSection,
   CourtLookupData,
+  PlaceholderContext,
   buildPlaceholderContext,
   sectionContext,
   renderTemplateSection,
@@ -411,13 +419,13 @@ function classifyLlmError(err: unknown): ClassifiedLlmError {
  *  usage was captured before the failure (T-003) so the route can still
  *  record a Generation row for the attempt instead of losing it. */
 export class GenerationFailedError extends Error {
-  readonly code: ClassifiedLlmError['code'];
+  readonly code: ClassifiedLlmError['code'] | 'party_details_missing';
   readonly usage: UsageTotals;
   readonly aiModel?: string;
   readonly transport?: 'direct';
   constructor(
     message: string,
-    code: ClassifiedLlmError['code'],
+    code: ClassifiedLlmError['code'] | 'party_details_missing',
     usage: UsageTotals,
     aiModel?: string,
     transport?: 'direct',
@@ -432,6 +440,168 @@ export class GenerationFailedError extends Error {
 }
 
 export type DocTypeKey = keyof typeof bnsMapping;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// T-431: THE DEPONENT ON A SIDED PACK (counter_affidavit, rejoinder_affidavit)
+// Arjun's scope ruling (15 Oct 2026) on Ajay's side rule (T-381 Addendum 5).
+// Both drafting paths take the deponent and the client's side from the T-424
+// resolver (brief-party-fields.ts: client_role, then the signed row, then
+// refuse), as the annexures route does. Never from applicant_name.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** The keys only the resolver sets on a sided pack (brief-party-fields.ts SIDED_RENDER_KEYS). */
+const DEPONENT_KEYS: readonly string[] = [
+  'deponent_name',
+  'deponent_address',
+  'deponent_age',
+  'deponent_father_name',
+  'client_side',
+];
+
+/**
+ * T-431: the client-render keys T-424's applyPartyFields clears
+ * (brief-party-fields.ts CLIENT_RENDER_KEYS), less petitioner_name, which is a
+ * party's own name on a sided pack and is kept. A stray one (e.g. applicant_name)
+ * would otherwise reach the model as a second identity beside the deponent.
+ */
+const CLIENT_RENDER_KEYS: readonly string[] = [
+  'applicant_name',
+  'party_name',
+  'applicant_address',
+  'address',
+  'applicant_age',
+  'age',
+  'father_name',
+  'parent_name',
+];
+
+export type SidedDeponent =
+  | { kind: 'resolved'; formData: Record<string, unknown> }
+  | { kind: 'refused'; missing: PartyMissing[] };
+
+/**
+ * T-431: on SIDED_PACKS, `formData` with the resolver's deponent_* and
+ * client_side set, from `partyValues` (what the resolver reads: the form, or
+ * the brief's accepted party inputs). Any deponent_* or client_side, and any
+ * CLIENT_RENDER_KEYS key, already in `formData` (a client value, dotted or
+ * not) is removed first, so it never stands in. Refused, with what is
+ * missing, when the resolver refuses (T-424: no side is guessed). Null on
+ * every other pack: `formData` is used as it is.
+ * Pure; logs nothing (the values are PII).
+ */
+export function resolveSidedDeponent(
+  packId: string,
+  formData: Record<string, unknown>,
+  partyValues: Record<string, unknown>,
+): SidedDeponent | null {
+  if (!Object.prototype.hasOwnProperty.call(SIDED_PACKS, packId)) return null;
+  const mapped = mapPartyFields(packId, partyValues);
+  if (mapped.missing.length > 0) return { kind: 'refused', missing: mapped.missing };
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(formData)) {
+    const name = key.slice(key.lastIndexOf('.') + 1);
+    if (!DEPONENT_KEYS.includes(name) && !CLIENT_RENDER_KEYS.includes(name)) out[key] = value;
+  }
+  for (const k of DEPONENT_KEYS) {
+    if (mapped.fields[k] !== undefined) out[k] = mapped.fields[k];
+  }
+  return { kind: 'resolved', formData: out };
+}
+
+/**
+ * T-431: the brief's party inputs as the brief route seals them for the
+ * annexures pack (its acceptedBriefValues, then pickPartyInputs), so the draft
+ * and the pack resolve the same deponent.
+ */
+export function briefPartyValues(packId: string, brief: Brief): Record<string, string> {
+  const accepted: Array<{ key: string; value: string | string[] }> = [];
+  for (const item of brief.items) {
+    if (item.asked_empty || item.unconfirmed) continue;
+    const v = item.value;
+    if (v === null || v === undefined) continue;
+    if (Array.isArray(v) ? v.length === 0 : v.trim() === '') continue;
+    accepted.push({ key: item.key, value: v });
+  }
+  return pickPartyInputs(packId, accepted);
+}
+
+/**
+ * T-424's missing-details line, word for word as the annexures card builds it
+ * (apps/web/src/components/editor/AnnexuresCard.tsx: ANNEX_STRINGS.missing_body,
+ * missing_named, MISSING_WHAT and its order; Ajay, T-381 Addenda 2 and 4).
+ * Not new wording: keep it identical to the card's.
+ */
+const PARTY_MISSING_WHAT: Readonly<Record<PartyMissing, string>> = {
+  client_role: "the client's role",
+  client_name: "the client's name",
+  opposite_party_name: "the opposite party's name",
+};
+const PARTY_MISSING_ORDER: readonly PartyMissing[] = [
+  'client_role',
+  'client_name',
+  'opposite_party_name',
+];
+
+export function partyMissingLine(missing: readonly PartyMissing[]): string {
+  const what = PARTY_MISSING_ORDER.filter((f) => missing.includes(f)).map(
+    (f) => PARTY_MISSING_WHAT[f],
+  );
+  if (what.length === 0)
+    return 'Add the names and roles of the parties to this draft, then try again.';
+  return `Add ${what.join(' and ')} to this draft, then try again.`;
+}
+
+/**
+ * T-431: the T-424 refusal on a drafting path, before any prompt is built or
+ * model called. The route has no hook here, so it is sent as the paths' own
+ * `event: error` (the annexures route's `error: 'party_details_missing'` and
+ * `missing`, with the card's line as `reason`), and the GenerationFailedError
+ * returned is thrown: the route returns the hold, saves the failed row (no
+ * tokens) and ends the response.
+ */
+function refuseMissingParty(
+  res: Response,
+  runId: string,
+  missing: PartyMissing[],
+): GenerationFailedError {
+  const reason = partyMissingLine(missing);
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.write(
+    `event: error\ndata: ${JSON.stringify({
+      section: 'body',
+      reason,
+      retryable: false,
+      code: 'party_details_missing',
+      error: 'party_details_missing',
+      missing,
+      runId,
+    })}\n\n`,
+  );
+  return new GenerationFailedError(reason, 'party_details_missing', new UsageMeter().totals());
+}
+
+/**
+ * T-431 (legal content, Ajay signs: addendum to T-381 Addendum 5): the one
+ * system-prompt line that pins the deponent of a sided pack's affidavit and
+ * verification, from the resolver's deponent_name and client_side. Null on
+ * every other pack, so their system prompt is unchanged byte for byte.
+ */
+export function sidedDeponentPromptLine(packId: string, ctx: PlaceholderContext): string | null {
+  if (!Object.prototype.hasOwnProperty.call(SIDED_PACKS, packId)) return null;
+  const name = ctx.deponent_name?.trim();
+  const side = ctx.client_side as CaseSide | undefined;
+  if (!name || (side !== 'petitioner' && side !== 'respondent')) return null;
+  const label = side === 'respondent' ? ctx.party_label_respondent : ctx.party_label_petitioner;
+  return `DEPONENT: This affidavit and its verification are sworn by a natural person, in the first person. Where "${name}", the ${label} (${side} side), is an individual, that individual is the deponent. Where it is a company, bank, body or department, the deponent is the officer named in the deponent designation, who swears as its authorised representative. Never write the entity itself as "I". If the user has typed a deponent name, use that name and do not substitute another. If none is given for an entity, leave a blank for the deponent's name and designation. Do not invent one. Never name anyone from the other side as the deponent.`;
+}
+
+/** `system` with the T-431 deponent line after it, or `system` unchanged when there is none. */
+function withDeponentLine(system: string, line: string | null): string {
+  return line === null ? system : `${system}\n\n${line}`;
+}
 
 export interface GenerateDocumentInput extends PromptInput {
   userId?: string;
@@ -738,6 +908,16 @@ export async function streamGenerateFromTemplate(
     }
   }
 
+  // ── T-431: a sided pack's deponent, by the T-424 resolver ──────────────────
+  // A client-sent deponent_* / client_side is stripped; the resolver's are set.
+  // A refusal stops the draft here, before any prompt is built.
+  const sided = resolveSidedDeponent(
+    templateConfig.template_id,
+    convertedFormData,
+    convertedFormData,
+  );
+  if (sided?.kind === 'refused') throw refuseMissingParty(res, input.runId, sided.missing);
+
   // ── Build placeholder context ──────────────────────────────────────────────
   // T-245a: the six bail packs' law switch, from the form's own values.
   const law = lawSwitchForCase(
@@ -747,7 +927,7 @@ export async function streamGenerateFromTemplate(
   );
   const ctx = buildPlaceholderContext(
     templateConfig,
-    convertedFormData,
+    sided?.kind === 'resolved' ? sided.formData : convertedFormData,
     {
       advocateName,
       enrollmentNumber,
@@ -794,11 +974,10 @@ export async function streamGenerateFromTemplate(
         renderedSections.push(rendered);
       } else if (section.type === 'ai_generated') {
         // Stream AI generation for this section
-        const systemPrompt = buildAISystemPrompt(
-          promptConfig,
-          courtData?.courtRule,
-          courtData,
-          ctx,
+        // T-431: a sided pack's system prompt ends with the deponent line.
+        const systemPrompt = withDeponentLine(
+          buildAISystemPrompt(promptConfig, courtData?.courtRule, courtData, ctx),
+          sidedDeponentPromptLine(templateConfig.template_id, ctx),
         );
         const userPrompt = buildAIUserPrompt(section, ctx);
 
@@ -1446,9 +1625,18 @@ export async function streamGenerateFromBrief(
     }
   }
 
+  // T-431: a sided pack's deponent, by the T-424 resolver, from the party
+  // inputs the annexures pack is later given. A refusal stops the draft here.
+  const sided = resolveSidedDeponent(
+    loadedPack.id,
+    formData,
+    briefPartyValues(loadedPack.id, input.brief),
+  );
+  if (sided?.kind === 'refused') throw refuseMissingParty(res, input.runId, sided.missing);
+
   const ctx = buildPlaceholderContext(
     templateConfig,
-    formData,
+    sided?.kind === 'resolved' ? sided.formData : formData,
     {
       advocateName: input.advocateName,
       enrollmentNumber: input.enrollmentNumber,
@@ -1584,6 +1772,8 @@ export async function streamGenerateFromBrief(
         }
       : null;
     const described = ledgerInput ? null : input.described;
+    // T-431: the deponent line for a sided pack's system prompts; null on every other pack.
+    const deponentLine = sidedDeponentPromptLine(loadedPack.id, ctx);
     /**
      * The Drafter's text as it goes into the document: no disclaimer, no word
      * SYSTEM in brackets, and no repeat of a part the system has written, where
@@ -1632,14 +1822,19 @@ export async function streamGenerateFromBrief(
     }
 
     try {
+      // T-431: a sided pack's system prompt ends with the deponent line; it
+      // varies per request, so that prompt is not cached (T-437).
       for await (const text of streamLLM(
-        ledgerInput ? DRAFTER_LEDGER_SYSTEM_PROMPT : DRAFTER_PACK_SYSTEM_PROMPT,
+        withDeponentLine(
+          ledgerInput ? DRAFTER_LEDGER_SYSTEM_PROMPT : DRAFTER_PACK_SYSTEM_PROMPT,
+          deponentLine,
+        ),
         ledgerInput
           ? buildLedgerDrafterUserPrompt(ledgerInput)
           : buildDrafterUserPrompt(promptInput),
         8192,
         draft,
-        { cacheSystem: true },
+        { cacheSystem: deponentLine === null },
       )) {
         raw += text;
         // The clause report after the document is for the server, never for the user.
@@ -1697,14 +1892,18 @@ export async function streamGenerateFromBrief(
       const repairDraft: CallUsageDraft = { inputTokens: 0, outputTokens: 0, usageSource: 'none' };
       try {
         const missingIds = missing.map((m) => m.id);
+        // T-431: the repair may add the verification, so it gets the same line.
         for await (const text of streamLLM(
-          ledgerInput ? DRAFTER_LEDGER_REPAIR_SYSTEM_PROMPT : DRAFTER_REPAIR_SYSTEM_PROMPT,
+          withDeponentLine(
+            ledgerInput ? DRAFTER_LEDGER_REPAIR_SYSTEM_PROMPT : DRAFTER_REPAIR_SYSTEM_PROMPT,
+            deponentLine,
+          ),
           ledgerInput
             ? buildLedgerRepairUserPrompt(ledgerInput, output.body, missingIds)
             : buildRepairUserPrompt(promptInput, output.body, missingIds),
           8192,
           repairDraft,
-          { cacheSystem: true },
+          { cacheSystem: deponentLine === null },
         )) {
           repairRaw += text;
         }
