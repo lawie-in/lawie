@@ -22,6 +22,7 @@ import {
   createSubscription,
   getSubscriptionStatus,
   handleWebhookEvent,
+  SubscriptionExistsError,
   verifyWebhookSignature,
 } from '../services/subscription.service';
 
@@ -108,6 +109,16 @@ router.post(
       const result = await createSubscription(userId, email, planId);
       res.json({ status: 'success', data: result });
     } catch (err) {
+      // T-444 (Arjun ruling 7): a live sub exists; the user fixes or cancels it first.
+      if (err instanceof SubscriptionExistsError) {
+        res.status(409).json({
+          error: 'subscription_exists',
+          status: err.status,
+          planId: err.planId,
+          paidThrough: err.paidThrough,
+        });
+        return;
+      }
       logger.error(
         { err: err instanceof Error ? err.message : err },
         'Failed to create subscription',

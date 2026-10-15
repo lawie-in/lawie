@@ -21,8 +21,9 @@
  *   without an anchor chains one month from the previous date instead.
  * - Cancel stops renewal, not the drip (Ajay, T-399-yearly-cancel-signed.md):
  *   a cancelled plan drips until `paidThrough`.
- * - After `paidThrough`, a cancelled or expired plan is zeroed and downgraded to
- *   free here too, in case the `subscription.expired` webhook never arrives.
+ * - After `paidThrough`, a cancelled, halted, paused, completed or expired plan
+ *   is zeroed and downgraded to free here too, in case the
+ *   `subscription.expired` webhook never arrives (T-444).
  *   Conditional update, so a second call does nothing.
  *
  * Works on the raw collections (`users`, `subscriptions`, `inkledger`) through a
@@ -55,6 +56,20 @@ export const INK_DRIP_COLLECTIONS = {
   subscriptions: 'subscriptions',
   ledger: 'inkledger',
 } as const;
+
+/**
+ * T-444: statuses that keep access until the paid period ends, then expire
+ * here. Halted, paused and pending drip nothing (the drip query is
+ * active/cancelled/completed); cancelled and completed drip until paidThrough.
+ */
+const PAID_THROUGH_STATUSES = ['cancelled', 'halted', 'paused', 'completed'];
+/** T-444: statuses the lazy expiry downgrades once the paid period is over. */
+const ENDED_STATUSES = [...PAID_THROUGH_STATUSES, 'expired'];
+/**
+ * T-444 review fix: a pending sub keeps access on paidThrough only (never the
+ * currentPeriodEnd fallback) and expires lazily at paidThrough like halted.
+ */
+const PENDING = 'pending';
 
 /** Drips after the yearly charge: 11, so 12 monthly grants per paid year. */
 export const YEARLY_DRIP_MAX = 11;
@@ -128,12 +143,14 @@ export async function settleYearlyDrip(input: {
   const ledger = db.collection(INK_DRIP_COLLECTIONS.ledger);
   const result: SettleYearlyDripResult = { granted: 0, expired: false };
 
-  // ── Drip: a yearly plan still inside its paid year (active or cancelled) ──
+  // ── Drip: a yearly plan still inside its paid year (active, cancelled, completed) ──
   const sub = await subs.findOne(
     {
       userId,
       billingCycle: 'yearly',
-      status: { $in: ['active', 'cancelled'] },
+      // T-444 (Arjun): completed is paid in full, so it drips until paidThrough.
+      // halted, paused and pending drip nothing.
+      status: { $in: ['active', 'cancelled', 'completed'] },
       paidThrough: { $gte: now },
     },
     { sort: { createdAt: -1 } },
@@ -184,18 +201,35 @@ export async function settleYearlyDrip(input: {
     return result;
   }
 
-  // ── Lazy expiry: a cancelled/expired plan past its paid period ────────────
+  // ── Lazy expiry: an ended plan past its paid period ──────────────────────
+  // T-444 (Arjun ruling 1): paidThrough, else currentPeriodEnd; with neither,
+  // the paid period is over (never keep Pro on a sub not proven paid).
   const ended = await subs.findOne({
     userId,
-    status: { $in: ['cancelled', 'expired'] },
-    paidThrough: { $lt: now },
+    $or: [
+      { status: { $in: ENDED_STATUSES }, paidThrough: { $lt: now } },
+      { status: { $in: ENDED_STATUSES }, paidThrough: null, currentPeriodEnd: { $lt: now } },
+      { status: { $in: ENDED_STATUSES }, paidThrough: null, currentPeriodEnd: null },
+      { status: PENDING, paidThrough: { $lt: now } },
+      { status: PENDING, paidThrough: null, currentPeriodEnd: { $lt: now } },
+      { status: PENDING, paidThrough: null, currentPeriodEnd: null },
+    ],
   });
   if (!ended) return result;
 
   // Same guard as the expiry webhook: keep the plan if another sub still runs.
   const current = await subs.findOne({
     userId,
-    $or: [{ status: 'active' }, { status: 'cancelled', paidThrough: { $gte: now } }],
+    $or: [
+      { status: 'active' },
+      { status: { $in: PAID_THROUGH_STATUSES }, paidThrough: { $gte: now } },
+      {
+        status: { $in: PAID_THROUGH_STATUSES },
+        paidThrough: null,
+        currentPeriodEnd: { $gte: now },
+      },
+      { status: PENDING, paidThrough: { $gte: now } },
+    ],
   });
   if (current) return result;
 
