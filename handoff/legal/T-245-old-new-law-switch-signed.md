@@ -229,3 +229,13 @@ Signed: Ajay (CLO), 15 Oct 2026 IST.
 | spa.json :233 name | `Title disclaimer (if power to sell)`; the description stays. |
 
 Any golden that moves (service_agreement especially) comes to me.
+
+### T-441 byte check (feature/t-441-no-judgment-names, diff 7e94b5e9.., 15 Oct 2026)
+
+The five signed strings are applied verbatim; S appears once per pack, last; no case name is left in any model-visible field of the four files (only key_citations, which R6 leaves alone); no golden moved.
+
+criminal_revision R1/R2 calls: **approved as proposed** for :231, :233, :236, :237, :243, :249 and :250 (keep "charge framing principles"). The deletions of :232 and :238 are approved (nothing of law left).
+
+Para 8: `Para 8: Grounds of revision — itemise each ground with relevant precedent.` becomes `Para 8: Grounds of revision — itemise each ground.` "With relevant precedent" invites a citation S forbids. must-fix in T-441.
+
+With Para 8 changed: **T-441 is approved.** Merge-body ref: "Legal: T-441 signed by Ajay, 2ec63fc + this check".
