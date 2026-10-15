@@ -1,10 +1,10 @@
 # T-431: counter and rejoinder affidavit drafts may name the wrong deponent
 
-| Field  | Value                                                                   |
-| ------ | ----------------------------------------------------------------------- |
-| Status | Assigned to Mahak, Explore 15 Oct 2026 (files to Priya). Priya |
-| Owner  | Mahak (build), Ajay (side rule, T-381 Addendum 5 04c1630)               |
-| Mode   | Small fix unless Explore finds more (legal content: party mapping)      |
+| Field  | Value                                                              |
+| ------ | ------------------------------------------------------------------ |
+| Status | Assigned to Mahak, Explore 15 Oct 2026 (files to Priya). Priya     |
+| Owner  | Mahak (build), Ajay (side rule, T-381 Addendum 5 04c1630)          |
+| Mode   | Small fix unless Explore finds more (legal content: party mapping) |
 
 ## Problem
 

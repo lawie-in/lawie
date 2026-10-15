@@ -1,12 +1,26 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
-export type SubscriptionStatus =
-  | 'created'
-  | 'authenticated'
-  | 'active'
-  | 'paused'
-  | 'cancelled'
-  | 'expired';
+/**
+ * T-438: every documented Razorpay subscription status. Single source for the
+ * TS type, the schema enum and the admin sync's check of Razorpay's live value.
+ */
+export const SUBSCRIPTION_STATUSES = [
+  'created',
+  'authenticated',
+  'active',
+  'pending',
+  'halted',
+  'paused',
+  'cancelled',
+  'completed',
+  'expired',
+] as const;
+
+export type SubscriptionStatus = (typeof SUBSCRIPTION_STATUSES)[number];
+
+export function isSubscriptionStatus(value: unknown): value is SubscriptionStatus {
+  return typeof value === 'string' && (SUBSCRIPTION_STATUSES as readonly string[]).includes(value);
+}
 
 export interface IPaymentRecord {
   paymentId: string;
@@ -96,7 +110,7 @@ const SubscriptionSchema = new Schema<ISubscription>(
 
     status: {
       type: String,
-      enum: ['created', 'authenticated', 'active', 'paused', 'cancelled', 'expired'],
+      enum: SUBSCRIPTION_STATUSES,
       required: true,
     },
     currentPeriodStart: Date,

@@ -1,14 +1,14 @@
 # T-304 — Attach PDFs as matter context
 
-| Field      | Value                    |
-| ---------- | ------------------------ |
-| Phase      | 3 — Matter context       |
-| Owner      | Vishal                   |
-| Mode       | Full chain               |
+| Field      | Value                                                               |
+| ---------- | ------------------------------------------------------------------- |
+| Phase      | 3 — Matter context                                                  |
+| Owner      | Vishal                                                              |
+| Mode       | Full chain                                                          |
 | Status     | Founder 15 Oct 2026: uploads are V1. After T-301 (and T-108). Priya |
-| Depends on | T-301, T-108             |
-| Branch     | feature/t-304-pdf-upload |
-| Created    | 2026-10-03               |
+| Depends on | T-301, T-108                                                        |
+| Branch     | feature/t-304-pdf-upload                                            |
+| Created    | 2026-10-03                                                          |
 
 ## Goal
 

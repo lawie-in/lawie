@@ -16,7 +16,7 @@ import { SUBSCRIPTION_PLANS } from '../config/credit-skus';
 import logger from '../config/logger';
 import { razorpay } from '../config/razorpay';
 import { authenticate } from '../middleware/authenticate';
-import { Subscription } from '../models/Subscription.model';
+import { Subscription, isSubscriptionStatus } from '../models/Subscription.model';
 import { User } from '../models/User.model';
 import { buildInvoiceCsv } from '../services/invoice-export.service';
 
@@ -184,11 +184,24 @@ router.post(
       return;
     }
 
+    // T-438: findOneAndUpdate does not run schema validators, so check
+    // Razorpay's live status against the known list before writing anything.
+    const liveStatus = razSub['status'];
+    if (!isSubscriptionStatus(liveStatus)) {
+      const shown = typeof liveStatus === 'string' ? liveStatus.slice(0, 64) : typeof liveStatus;
+      logger.warn(
+        { razorpaySubscriptionId: razId, status: shown },
+        'Admin sync: unknown Razorpay subscription status, nothing written',
+      );
+      res.status(400).json({ error: 'Unknown Razorpay subscription status', status: shown });
+      return;
+    }
+
     const updated = await Subscription.findOneAndUpdate(
       { razorpaySubscriptionId: razId },
       {
         $set: {
-          status: razSub['status'],
+          status: liveStatus,
           currentPeriodStart: razSub['current_start']
             ? new Date(Number(razSub['current_start']) * 1000)
             : undefined,

@@ -1266,3 +1266,9 @@ Quality: nothing to test in the UI — Markdown and code comments only
 - Intake asks "On what date was the FIR registered, or the complaint filed if there is no FIR?". You can answer "Not known" and carry on.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-438 and t428 test fix (9d9e3cee, 9cfd2f14, 15 Oct 2026)
+
+- Nothing a user sees. Billing no longer breaks on a plan Razorpay reports as pending, halted or completed, and the services' shared-secret check no longer leaks timing.
+
+Quality: nothing to test in the UI — operator/security fix and tests only

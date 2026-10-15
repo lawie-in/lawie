@@ -2,7 +2,7 @@
 
 | Field  | Value                                                                        |
 | ------ | ---------------------------------------------------------------------------- |
-| Status | Assigned to Tanvi, 15 Oct 2026. Scope per Arjun 01:10: enum, three constant-time secret checks, admin sync validates live status (400 + log). Handlers moved to T-444. Priya |
+| Status | Merged into develop_staging 9d9e3cee (Tanvi, 15 Oct 2026). Handlers moved to T-444. Priya |
 | Owner  | Lead (build), Arjun (findings)                                               |
 | Mode   | Small fix (billing only, plus auth and drafting if the same secret check is there) |
 
