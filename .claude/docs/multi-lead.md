@@ -155,3 +155,7 @@ Waiver extended (Arjun, 15 Oct 2026, 05:00 UTC): the same `t428-bail-case-lines`
 3. Priya keeps a second merge queue for `develop_staging_v2` in `leads.md` once v2 starts (after T-403). The one-ticket-per-lead and file-claim rules are unchanged and apply across both branches: a lead holds one ticket, on one branch.
 4. Arjun refreshes `develop_staging_v2` from `develop_staging` (merge, never rebase) when v1 lands something v2 needs; he announces the merge in the relay.
 5. CI runs on push to `develop_staging_v2` the same as `develop_staging` (workflow change ticketed with T-462's CI work; until then, the branch run on the ticket branch is the gate).
+
+## No `cd` in commands (founder, standing since about 13 Oct 2026, written down 15 Oct 2026)
+
+Never put `cd` in a Bash command, least of all in git or commit commands. A command that starts with `cd` is blocked and the permission prompt lands on the founder. Run git from anywhere with `git -C <worktree> <cmd>`, and run tools with their own path flags (for example `yarn --cwd <worktree> ...`). The same goes for every crew subagent. A prompt reaching the founder because of this is a lead's mistake, not his job. Priya reminds a lead once and notes repeats in the relay.
