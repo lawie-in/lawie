@@ -1193,3 +1193,9 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - If the brief gives some other role for your client, you get a clear message instead of a wrong document; if the other side's name is missing, it is named as a gap.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-442 — Deploys fail loudly when a service is down (04930a7, mahak, 15 Oct 2026)
+
+- Nothing to test in the UI. A deploy that leaves a service down, or the email worker held, now stops loudly instead of finishing silently.
+
+Quality: nothing to test in the UI — deploy script only
