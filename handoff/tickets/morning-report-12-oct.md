@@ -151,7 +151,7 @@ Run the section seed with --force on develop (seed-sections) after T-280 merges 
 
 - **T-229 (Sentry scrub): AC4 and the INTERNAL_SECRET rotation need your login** (Tanvi's Explore, 15 Oct). Details land in the T-229 ticket when she writes it up.
 
-- **Model switch (Arjun, Ajay, Vikram, 15 Oct): add `ai.rates` rows for claude-sonnet-5-5 and claude-haiku-5-5 and set the three model settings on develop** (body claude-sonnet-5-5, intake and preflight claude-haiku-5-5; note handoff/design/drafting-model-arjun-15-oct.md). Vishal's T-453 verification run needs this. Prod gets the settings with T-403 after Ajay's PASS.
+- ~~**Model switch**~~ DONE (founder, 15 Oct 09:15 UTC): rates rows for claude-sonnet-5-5 and claude-haiku-5-5, usd_inr 88 and the three model settings are set on develop. T-453 (Vishal) is unblocked.
 
 - **T-303 spike run needs a key (Arjun, 15 Oct):** add a dev ANTHROPIC_API_KEY with a low spend limit (USD 5) to the cloud environment secrets so Vishal can run it, or run the spike script locally yourself. Nobody on the team holds a key.
 
