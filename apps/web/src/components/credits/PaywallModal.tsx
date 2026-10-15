@@ -1,5 +1,6 @@
 'use client';
 
+import { PLANS } from '@lawie/shared';
 import { ShieldAlert, ArrowRight, Calendar, X } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
@@ -120,7 +121,9 @@ export function PaywallModal({ documentLabel, cost, balance, onClose }: PaywallM
                 </span>
               </div>
               <p className="mt-2 text-sm font-semibold text-slate-900">Upgrade to Solo</p>
-              <p className="text-xs text-slate-500">50 Ink / mo · ₹799</p>
+              <p className="text-xs text-slate-500">
+                {`${PLANS.solo_monthly.inkPerCycle} Ink / mo · ₹${PLANS.solo_monthly.priceInr.toLocaleString('en-IN')}`}
+              </p>
               <span className="mt-3 inline-flex items-center gap-1 rounded-lg bg-amber-400 px-3 py-1.5 text-xs font-semibold text-slate-900 hover:bg-amber-500">
                 Upgrade <ArrowRight size={11} />
               </span>
