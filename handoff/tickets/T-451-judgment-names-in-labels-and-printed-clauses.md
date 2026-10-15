@@ -89,3 +89,7 @@ CLAUSE_CUES, the skeletons and the saved-form mapping follow the rename. How sav
 ## Arjun's ruling on saved forms (15 Oct 2026)
 
 Read-time alias, no migration. At the one place form inputs are loaded and the one place clause ids are resolved, map `bhajan_lal_categories_invoked` to `quashing_categories_invoked` and `bhajan_lal_paragraph` to `quashing_categories_paragraph` before use. Write only the new key from now on. One test with an old saved form. Add the comment `// T-451 alias, remove in the post-v1 cleanup` so it lands on the cleanup list. A migration script is out: pre-v1 data is tiny, and a migration would trigger the rule-7 CI wait and cannot be undone.
+
+## Added label (Ajay, 15 Oct 2026, T-449 ruling 4a7c7fb)
+
+`rera_complaint` form label at :155 ("(Pioneer Urban — concurrent remedy)") becomes: "Any previous Consumer / Civil proceedings on same cause? (the consumer remedy is concurrent)". T-449 leaves it untouched.
