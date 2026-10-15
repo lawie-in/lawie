@@ -52,6 +52,8 @@ export interface Drafting {
   CURRENT_PRIVACY_VERSION: string;
   internalSecret: string;
   parseModelJson: (t: string) => any;
+  /** T-453: tags every llm_call log line with the fixture running now. */
+  setLlmLogFixtureId: (id: string | null) => void;
 }
 
 export function loadDrafting(internalSecret: string): Drafting {
@@ -76,6 +78,7 @@ export function loadDrafting(internalSecret: string): Drafting {
     CURRENT_PRIVACY_VERSION: requireFromDrafting<any>('@lawie/shared').CURRENT_PRIVACY_VERSION,
     internalSecret,
     parseModelJson: r<any>('services/intake-text').parseModelJson,
+    setLlmLogFixtureId: r<any>('services/llm-usage').setLlmLogFixtureId,
   };
 }
 
@@ -187,6 +190,7 @@ export async function runFixture(
   const court = fixture.court ?? undefined;
   let fields: Record<string, string> = {};
 
+  d.setLlmLogFixtureId(fixture.id);
   try {
     await d.redis.flushall();
 
@@ -281,6 +285,8 @@ export async function runFixture(
       e instanceof Stop
         ? e.message
         : `harness: ${e instanceof Error ? e.name : 'error'}: ${e instanceof Error ? e.message.split('\n')[0] : ''}`;
+  } finally {
+    d.setLlmLogFixtureId(null);
   }
 
   ev.calls = seam.takeCalls();

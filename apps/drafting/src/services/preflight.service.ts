@@ -44,7 +44,9 @@ import {
   cacheCounts,
   effectiveCacheRates,
   estimateOutputTokens,
+  getAiEffort,
   getModelRates,
+  logLlmCall,
   parseAnthropicMessageUsage,
   priceUsage,
 } from './llm-usage';
@@ -638,17 +640,50 @@ async function runLLMChecks(
     // degrades gracefully to rules-only (fail-open per ADR-018).
     const model = await getAppSetting(APP_SETTING_KEYS.PREFLIGHT_MODEL);
     const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
+    // T-453: effort from ai.effort.preflight (default low). Never throws.
+    const effort = await getAiEffort('preflight');
     const startedAt = Date.now();
     // T-437: not cached (Arjun ruling 2) — the system prompt stays a plain string.
-    const response = await client.messages.create({
-      model,
-      max_tokens: 300,
-      system: HAIKU_SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: JSON.stringify(payload) }],
-    });
+    let response: Anthropic.Message;
+    try {
+      response = await client.messages.create({
+        model,
+        max_tokens: 300,
+        system: HAIKU_SYSTEM_PROMPT,
+        messages: [{ role: 'user', content: JSON.stringify(payload) }],
+        ...(effort ? { output_config: { effort } } : {}),
+      });
+    } catch (callErr) {
+      logLlmCall({
+        stage: 'preflight',
+        call: 'preflight',
+        model,
+        effort: effort ?? null,
+        status: 'failed',
+      });
+      throw callErr;
+    }
     const durationMs = Date.now() - startedAt;
+    const callUsage = parseAnthropicMessageUsage(response);
+    logLlmCall({
+      stage: 'preflight',
+      call: 'preflight',
+      model,
+      effort: effort ?? null,
+      status: 'completed',
+      inputTokens: callUsage.inputTokens,
+      outputTokens: callUsage.outputTokens,
+      cacheReadInputTokens: callUsage.cacheReadInputTokens,
+      cacheCreationInputTokens: callUsage.cacheCreationInputTokens,
+      stopReason: typeof response?.stop_reason === 'string' ? response.stop_reason : null,
+    });
 
-    const text = response.content[0]?.type === 'text' ? response.content[0].text : '';
+    // T-453: the first text block, not content[0] — Haiku 5.5 thinks by default,
+    // so content[0] can be a thinking block.
+    const textBlock = (response.content ?? []).find(
+      (b): b is Anthropic.TextBlock => b?.type === 'text',
+    );
+    const text = textBlock?.text ?? '';
 
     // Strip markdown fences if any
     const clean = text.replace(/```(?:json)?/gi, '').trim();

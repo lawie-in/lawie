@@ -114,6 +114,8 @@ yarn workspace @lawie/drafting seed:setting ai.preflight_model claude-haiku-4-5-
 Model prices live in `appsettings` as one JSON value per model, key `ai.rates.<model-slug>` (for example `ai.rates.claude-sonnet-4-6`). It holds four numbers, all USD per million tokens: `input_usd_per_mtok`, `output_usd_per_mtok`, `cache_write_usd_per_mtok` and `cache_read_usd_per_mtok`.
 `cache_write_usd_per_mtok` must be the **1-hour** cache-write price, 2× input (for example `6` for Sonnet 4.6 at `3` input), because the drafting calls use only the 1-hour prompt cache (T-437).
 
+Reasoning effort is set per stage by `ai.effort.intake`, `ai.effort.preflight` and `ai.effort.body` (sent as `output_config.effort`). Defaults when unset: `low`, `low`, `medium`. Nothing needs seeding. To change one, run `seed:setting ai.effort.<stage> <value>`. Each stage's value is cached for 60 seconds, and an invalid value falls back to the default with a warning. No thinking budget is set.
+
 All four scripts read `MONGO_URI` from `.env.${NODE_ENV ?? 'development'}` at the repo root.
 
 ---
