@@ -30,3 +30,13 @@ packages/shared/src/utils/normalize/date.ts and its test; apps/drafting/src/serv
 - Neutral-label dates are read into the right field; every case in the rules above has a test.
 - Before/after table on the golden set sent to Ajay.
 - Ajay's ref and the allowlist in the merge body.
+
+## Arjun's scope (15 Oct 2026, 22:09 UTC; replaces the loose wording above where they differ)
+
+- date.ts accepts a leading label before a date ("remand 4 June 2026", "FIR dated 12.03.2026", "on 4th June, 2026") without changing its meaning.
+- Qualifiers ("before", "after", "by") are never read as exact dates.
+- Fillers are limited to an explicit allowlist: on, dated, date, of, the, dt, w.e.f, wef.
+- A label maps to a field only when the label names the field (Ajay's rule): "next" → next_hearing_date only; "filed" does not become order_date.
+- Tests for every case. Before/after table of every date fixture for Ajay.
+- Legal-content gate: Ajay. Owner: Vishal, after T-453 closes (his R1+R2 branch carries the work). Mode: full chain.
+- Not blocking v1, unless Anushka reports unrecognised dates in the bail flows.
