@@ -73,6 +73,7 @@ Where each lead stopped:
 
 ## Last done
 
+- kunal: T-364 merged 403b768f (15 Oct 2026). Plans and prices read one list in packages/shared (constants/ink.ts), billing credit-skus, pricing/home/upgrade/Settings. packages/shared released. HOLD next slot for a green run on 403b768f (shared change).
 - mahak: T-443 merged cc2adc0 (15 Oct 2026). POST /documents/generate now answers 410 before auth, Ink hold or model call; 13 files (documents.routes.ts, new t443 test, 11 legacy tests edited/deleted). Full drafting suite 210 suites green. Row released; next T-116.
 - tanvi: T-358 merged aed2599b (15 Oct 2026). Unconfirmed accounts get a notice before deletion (first within a day, reminder about three weeks in), deleted end of day 30 (IST) only after an email actually sent. Sweep OFF by default (UNVERIFIED_SWEEP_ENABLED unset); turn on LAST in T-403. Follow-up for Kunal after T-364: queue:purge also clears auth.unverifiedDeletionNotice (Arjun asked for both). Tanvi next: T-171.
 - kunal: T-436 AC10 round 2 merged 33107053 (15 Oct 2026). queue:purge and verify:resend-all operator scripts (dry-run default), email-worker queues/worker, README order for T-403. Next: T-364 (holds packages/shared).
