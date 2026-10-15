@@ -301,14 +301,15 @@
       "Para on Cause of Action — Order VII R.1(e) requires specific statement of when and where cause of action accrued. State all relevant dates: date of advance, date of demand, date of refusal, date of legal notice.",
       "Para on Limitation — Order VII R.6 requires specific pleading of grounds of exemption if suit is filed beyond ordinary limitation. Cite specific Article (e.g., Article 19 for money lent — 3 years from when loan made; Article 34 for PN payable on demand — 3 years from date of PN).",
       "Para on Jurisdiction — Order VII R.1(f). Territorial jurisdiction under S.20 CPC (defendant resides / carries on business / cause of action wholly or in part arose). Pecuniary jurisdiction per state-specific notification.",
-      "If suit value exceeds Rs. 3 lakh and dispute is 'commercial' u/s 2(1)(c) Commercial Courts Act 2015, file before Commercial Court / Commercial Division. Pre-institution mediation u/s 12A CCA is mandatory unless urgent interim relief sought (Patil Automation v. Rakheja Engineers (2022) — mandatory).",
+      "If suit value exceeds Rs. 3 lakh and dispute is 'commercial' u/s 2(1)(c) Commercial Courts Act 2015, file before Commercial Court / Commercial Division. Pre-institution mediation u/s 12A CCA is mandatory unless urgent interim relief sought.",
       "Para on Valuation and Court Fee — Order VII R.1(i)(j). Valuation must equal the amount claimed. Court fee per state Schedule (e.g., Court Fees Act 1870 + state amendments).",
       "Para on Relief — Order VII R.7. Specifically claim: (i) principal sum; (ii) interest up to date of suit (cite agreement/PN or S.80 NI Act for cheque); (iii) pendente lite and future interest u/s 34 CPC; (iv) costs.",
       "Tone: precise, fact-based. Avoid argumentative tone — plead facts, not law.",
       "Verification: Order VI R.15 — verify which paragraphs are on personal knowledge and which on information/legal advice.",
       "Affidavit in support: Order VI R.15(4) post-2002 amendment — mandatory affidavit verifying plaint.",
       "List of documents (Order VII R.14) and list of witnesses (Order XVI R.1) must accompany the plaint.",
-      "Append Lawie disclaimer."
+      "Append Lawie disclaimer.",
+      "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
   "relevantActs": [
@@ -396,7 +397,7 @@
         { "number": "S.12", "description": "Specified value — Rs. 3 lakh and above" },
         {
           "number": "S.12A",
-          "description": "Pre-institution mediation — mandatory (Patil Automation)"
+          "description": "Pre-institution mediation — mandatory"
         }
       ]
     },
@@ -437,7 +438,7 @@
     "territorial_jurisdiction must not be empty",
     "court_fee_paid must be > 0",
     "If total_suit_amount >= 300000 and commercial_dispute=true, flag for Commercial Court track",
-    "If commercial_dispute=true and no urgent interim relief, pre_institution_mediation must be true (Patil Automation)",
+    "pre_institution_mediation must be true for a commercial suit, unless urgent interim relief is sought (S.12A Commercial Courts Act, 2015; Patil Automation)",
     "advocate_enrollment must match Bar Council format"
   ],
   "key_citations": [

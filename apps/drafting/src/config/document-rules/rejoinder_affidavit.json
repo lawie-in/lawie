@@ -155,7 +155,7 @@
     }
   ],
   "prompt_context": {
-    "system_prompt_addendum": "You are drafting a REJOINDER AFFIDAVIT. CRITICAL CONSTRAINTS: (1) A rejoinder is NOT a second petition. It is limited to addressing NEW pleas, fresh assertions, or new documents introduced in the counter-affidavit. (2) Petitioner cannot use rejoinder to fill gaps in the petition or to raise new grounds. (3) Reaffirm petition contents in one para; do NOT re-argue them. (4) Leave of court is generally required (analogous to Order VIII Rule 9 CPC for written statement after period). Cite *Manmohan Singh v. Punjab National Bank* (2005) on limits of rejoinder. (5) Para-wise response only to those paras of counter that contain new material. (6) Verification clause mandatory. (7) Keep rejoinder concise — courts disfavour bloated rejoinders.",
+    "system_prompt_addendum": "You are drafting a REJOINDER AFFIDAVIT. CRITICAL CONSTRAINTS: (1) A rejoinder is NOT a second petition. It is limited to addressing NEW pleas, fresh assertions, or new documents introduced in the counter-affidavit. (2) Petitioner cannot use rejoinder to fill gaps in the petition or to raise new grounds. (3) Reaffirm petition contents in one para; do NOT re-argue them. (4) Leave of court is generally required (analogous to Order VIII Rule 9 CPC for written statement after period). (5) Para-wise response only to those paras of counter that contain new material. (6) Verification clause mandatory. (7) Keep rejoinder concise — courts disfavour bloated rejoinders.",
     "tone": "Reaffirming, precise, narrowly focused. Avoid repetition of petition.",
     "key_phrases": [
       "pursuant to leave granted",
@@ -163,6 +163,9 @@
       "the new plea is misconceived",
       "the petitioner reiterates",
       "save as specifically denied"
+    ],
+    "promptInstructions": [
+      "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
   "relevantActs": [
