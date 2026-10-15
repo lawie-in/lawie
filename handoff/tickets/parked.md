@@ -42,7 +42,7 @@ Should-fixes and nice-to-haves that are not tickets (Arjun's rule, 14 Oct 2026; 
 | 15 Oct 2026 | T-442 (Mahak) | T-117 cites docker-compose.prod.yml line 5, now deleted. |
 | 15 Oct 2026 | T-442 (Mahak) | email-worker app.ts comment says /health is 'for docker-compose'; it is now the deploy gate (comment only). |
 | 15 Oct 2026 | T-442 (Mahak) | The web deploy check is GET / without -L; a redirect from / would false-fail (none today). Add a /health route to apps/web later. |
-| 15 Oct 2026 | T-377 (Mahak) | The API's Google callback GET /api/auth/google/callback?code=...&state=... (apps/auth/src/routes/oauth.routes.ts:138) still logs the single-use code in full in nginx.prod.conf; the map matches only /auth/callback at the path start. Arjun to rule whether to widen the regex. |
-| 15 Oct 2026 | T-377 (Mahak) | docker/nginx/nginx.prod.conf upstream ports (3000-3003) differ from CLAUDE.md (4000-4003); one is stale. Check and fix. |
+| 15 Oct 2026 | T-377 (Mahak) | The API's Google callback GET /api/auth/google/callback?code=...&state=... (apps/auth/src/routes/oauth.routes.ts:138) still logs the single-use code in full in nginx.prod.conf; the map matches only /auth/callback at the path start. Arjun ruled 15 Oct: widen it in T-377. DONE in T-377. |
+| 15 Oct 2026 | T-377 (Mahak) | docker/nginx/nginx.prod.conf upstream ports (3000-3003) differ from CLAUDE.md (4000-4003); Arjun ruled 15 Oct: ecosystem.config.js is the source of truth; Mahak fixes the conf under T-442. |
 | 15 Oct 2026 | T-377 (Mahak) | apps/web build is `next build`, not tsc, so CLAUDE.md's 'build = typecheck' does not hold for web. Fix the doc or add a typecheck script. |
 | 15 Oct 2026 | T-377 (Mahak) | The t377-referrer-header test spawns node and needs @sentry/nextjs installed; a broken install fails it with a spawn error, not an assertion. |
