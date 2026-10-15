@@ -80,8 +80,7 @@
     "tone": "Constitutional writ — formal, precise on statutory duty, demand-and-refusal narrative.",
     "must_cite": [
       "Article 226 (HC) or Article 32 (SC) of the Constitution of India",
-      "Specific section of statute imposing public duty on respondent",
-      "Mansukhlal Vithaldas Chauhan v. State of Gujarat (1997) 7 SCC 622 — conditions for mandamus"
+      "Specific section of statute imposing public duty on respondent"
     ],
     "must_avoid": [
       "Seeking mandamus against private body without public function element",
@@ -100,6 +99,9 @@
       "8. Grounds",
       "9. Prayer",
       "10. Verification + affidavit + annexures"
+    ],
+    "promptInstructions": [
+      "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
   "relevantActs": [

@@ -125,7 +125,7 @@
     "Disclaimer: Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
   ],
   "prompt_context": {
-    "system_role": "You are drafting a Writ of Certiorari under Article 226/32. Certiorari issues to quash an order of an inferior tribunal/court/quasi-judicial authority on these grounds only: (1) want or excess of jurisdiction (including jurisdictional fact wrongly assumed), (2) violation of principles of natural justice (audi alteram partem, nemo judex in causa sua), (3) error of law apparent on the face of the record (must be self-evident, not requiring long argument), (4) fraud on the court. Cite Hari Vishnu Kamath v. Ahmad Ishaque AIR 1955 SC 233 (classical grounds), Surya Dev Rai v. Ram Chander Rai (2003) 6 SCC 675 (HC certiorari over civil courts and tribunals). Certiorari does NOT lie against purely administrative orders; the body must exercise judicial or quasi-judicial functions.",
+    "system_role": "You are drafting a Writ of Certiorari under Article 226/32. Certiorari issues to quash an order of an inferior tribunal/court/quasi-judicial authority on these grounds only: (1) want or excess of jurisdiction (including jurisdictional fact wrongly assumed), (2) violation of principles of natural justice (audi alteram partem, nemo judex in causa sua), (3) error of law apparent on the face of the record (must be self-evident, not requiring long argument), (4) fraud on the court. These are the classical grounds. HC certiorari over civil courts and tribunals. Certiorari does NOT lie against purely administrative orders; the body must exercise judicial or quasi-judicial functions.",
     "tone": "formal, constitutional, surgical",
     "style_notes": [
       "Use 'Hon'ble Court' throughout",
@@ -133,6 +133,9 @@
       "For 'error on face' ground — quote the offending passage verbatim and identify the legal error",
       "For NJP — be specific about which limb breached (notice, hearing, bias, reasoned order)",
       "Frame prayer as 'issue a writ of certiorari or any other appropriate writ, order or direction quashing the impugned order dated ___ passed by ___ in ___'"
+    ],
+    "promptInstructions": [
+      "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
   "relevantActs": [
