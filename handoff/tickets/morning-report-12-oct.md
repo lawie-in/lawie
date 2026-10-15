@@ -148,3 +148,7 @@ Run the section seed with --force on develop (seed-sections) after T-280 merges 
 - **Uploads are V1 (founder, 15 Oct): T-302 policy wording is your call.** A practising data-protection lawyer reads Ajay's sections 6 and 7 of the T-302 delivery, or you accept the CLO draft for V1 in writing. Uploads can merge and be tested on develop before that, but cannot ship to main without it. (Arjun, 15 Oct.) ADR-019 decision D4 is closed: Helicone was removed on 9 Oct, every model call is direct.
 
 - **Uploads spike T-303: photograph 3-4 handwritten made-up FIR pages (founder, 15 Oct).** Ajay writes the made-up English and Hindi text; you (or Anushka) copy it by hand and photograph it. No real FIRs. (Arjun, 15 Oct.)
+
+- **T-229 (Sentry scrub): AC4 and the INTERNAL_SECRET rotation need your login** (Tanvi's Explore, 15 Oct). Details land in the T-229 ticket when she writes it up.
+
+- **Model switch (Arjun, Ajay, Vikram, 15 Oct): add `ai.rates` rows for claude-sonnet-5-5 and claude-haiku-5-5 and set the three model settings on develop** (body claude-sonnet-5-5, intake and preflight claude-haiku-5-5; note handoff/design/drafting-model-arjun-15-oct.md). Vishal's T-453 verification run needs this. Prod gets the settings with T-403 after Ajay's PASS.
