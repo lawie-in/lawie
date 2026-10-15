@@ -1398,6 +1398,97 @@ describe('T-444c: create lock and Razorpay cancel of a lapsed sub', () => {
     expect(cancelMock()).not.toHaveBeenCalled();
   });
 
+  it('Arjun: sub turns active during the cancel: 409, id-only error log, Sentry warning, no expire, no create', async () => {
+    const userId = newUserId();
+    await seedLapsed(userId, 'halted');
+    cancelMock().mockImplementation(async () => {
+      await Subscription.updateOne({ razorpaySubscriptionId: 'sub_lapsed' }, { status: 'active' });
+    });
+    const errSpy = jest.spyOn(logger, 'error').mockImplementation(() => logger);
+
+    await expect(createSubscription(userId, 'a@example.com')).rejects.toMatchObject({
+      name: 'SubscriptionExistsError',
+      status: 'active',
+    });
+
+    const call = errSpy.mock.calls.find((c) => c[1] === 'billing.resubscribe.cancelled_paid_sub');
+    errSpy.mockRestore();
+    expect(call).toBeDefined();
+    expect(call![0]).toEqual({ subscriptionId: 'sub_lapsed' });
+    expect(mockCaptureMessage).toHaveBeenCalledWith(
+      'billing.resubscribe.cancelled_paid_sub',
+      'warning',
+    );
+    expect(createMock()).not.toHaveBeenCalled();
+    expect((await getSub('sub_lapsed'))!.status).toBe('active');
+    expect(await Subscription.countDocuments({ userId })).toBe(1);
+    expect(await lockCount(userId)).toBe(0);
+  });
+
+  describe('15 s Razorpay timeout', () => {
+    // Only the 15 s timer is captured (the Mongo driver's own timers pass through), then fired by hand.
+    let fire15s: () => void;
+    let setTimeoutSpy: jest.SpyInstance;
+    beforeEach(() => {
+      fire15s = () => undefined;
+      const real = global.setTimeout;
+      setTimeoutSpy = jest.spyOn(global, 'setTimeout').mockImplementation(((
+        fn: () => void,
+        ms?: number,
+        ...rest: unknown[]
+      ) => {
+        if (ms === 15_000) {
+          fire15s = fn;
+          return real(() => undefined, 0);
+        }
+        return real(fn, ms, ...rest);
+      }) as unknown as typeof setTimeout);
+    });
+    afterEach(() => setTimeoutSpy.mockRestore());
+    const waitFor15s = async () => {
+      for (let i = 0; i < 200 && setTimeoutSpy.mock.calls.every((c) => c[1] !== 15_000); i++) {
+        await new Promise((r) => setImmediate(r));
+      }
+    };
+
+    it('a cancel that never resolves gives 503 (cancel-failed), status unchanged, lock released', async () => {
+      const userId = newUserId();
+      await seedLapsed(userId, 'halted');
+      cancelMock().mockReturnValue(new Promise(() => undefined));
+      fetchMock().mockRejectedValue(new Error('rzp down'));
+
+      const p = createSubscription(userId, 'a@example.com');
+      const settled = p.then(
+        () => 'ok',
+        (e: Error) => e.name,
+      );
+      await waitFor15s();
+      fire15s();
+
+      expect(await settled).toBe('SubscriptionCancelFailedError');
+      expect(fetchMock()).toHaveBeenCalledWith('sub_lapsed');
+      expect(createMock()).not.toHaveBeenCalled();
+      expect((await getSub('sub_lapsed'))!.status).toBe('halted');
+      expect(await lockCount(userId)).toBe(0);
+    });
+
+    it('a create that never resolves throws, leaves no local row, releases the lock', async () => {
+      const userId = newUserId();
+      createMock().mockReturnValue(new Promise(() => undefined));
+
+      const settled = createSubscription(userId, 'a@example.com').then(
+        () => 'ok',
+        (e: Error) => e.name,
+      );
+      await waitFor15s();
+      fire15s();
+
+      expect(await settled).toBe('RazorpayTimeoutError');
+      expect(await Subscription.countDocuments({ userId })).toBe(0);
+      expect(await lockCount(userId)).toBe(0);
+    });
+  });
+
   it.each(['cancelled', 'completed', 'expired'])(
     'a terminal %s sub is not cancelled again at Razorpay',
     async (status) => {
