@@ -149,19 +149,35 @@ describe('T-441: pinned wording (R1 keeps the proposition word for word)', () =>
     ).toBe(false);
   });
 
-  it('interim_bail prompt_context is the approved string, byte for byte', () => {
+  // Signed byte-exact in the T-245 file, T-441 review note (Ajay, 8a437e1).
+  const INTERIM_RESTORED =
+    'The court has power to grant interim bail pending disposal of the bail application.';
+  const TWIN_RESTORED =
+    '(ii) the conditions the court may impose when granting anticipatory bail, (iii) that custodial interrogation is not necessary as applicant is willing to join investigation.';
+
+  it('interim_bail prompt_context is the approved string with the restored proposition, byte for byte', () => {
     expect(rule('interim_bail').prompt_context).toBe(
-      'Draft an Interim Bail Application under the inherent powers of the Court read with the provision given as GOVERNING PROVISION in the case details. Interim bail is a short-duration release pending adjudication of the main regular bail / anticipatory bail application. The application must establish: (1) pendency of a main bail application; (2) compelling urgency that cannot await the main hearing; (3) specific period sought; (4) undertakings of cooperation and surrender at end of interim period. The application must be tight — interim bail is an exceptional remedy and the court must be satisfied of urgency.',
+      'Draft an Interim Bail Application under the inherent powers of the Court read with the provision given as GOVERNING PROVISION in the case details. Interim bail is a short-duration release pending adjudication of the main regular bail / anticipatory bail application. ' +
+        INTERIM_RESTORED +
+        ' The application must establish: (1) pendency of a main bail application; (2) compelling urgency that cannot await the main hearing; (3) specific period sought; (4) undertakings of cooperation and surrender at end of interim period. The application must be tight \u2014 interim bail is an exceptional remedy and the court must be satisfied of urgency.',
     );
   });
 
-  it('bail_anticipatory twin: the (ii)/(iii) list is reduced to the kept proposition', () => {
-    const text = JSON.stringify(load(TWIN_PATH));
-    expect(text).toContain('{governing_provision}');
-    expect(text).toContain(
-      'Include reference to: (i) Article 21 of Constitution, (ii) that custodial interrogation is not necessary as applicant is willing to join investigation. ' +
+  it('bail_anticipatory twin: body prompt_context is the approved string, byte for byte', () => {
+    const hits: string[] = [];
+    const walk = (v: any) => {
+      if (typeof v === 'string') {
+        if (v.startsWith('Generate 8-12 numbered paragraphs')) hits.push(v);
+      } else if (v && typeof v === 'object') Object.values(v).forEach(walk);
+    };
+    walk(load(TWIN_PATH));
+    expect(hits).toHaveLength(1);
+    expect(hits[0]).toBe(
+      'Generate 8-12 numbered paragraphs for an Anticipatory Bail application under {governing_provision}. Paragraph 1 must mention FIR No. {fir_number} dated {fir_date}, registered at PS {police_station}, under Section(s) {sections_charged}, as written in the FIR. State that the applicant APPREHENDS arrest and has NOT been arrested yet. Paragraphs 2-4 should narrate the facts: {facts_narrative}. Subsequent paragraphs should establish grounds: {grounds_for_bail}. Include reference to: (i) Article 21 of Constitution, ' +
+        TWIN_RESTORED +
+        ' ' +
         S +
-        ' Do NOT generate the prayer clause or verification',
+        ' Do NOT generate the prayer clause or verification \u2014 those are template-handled.',
     );
   });
 
