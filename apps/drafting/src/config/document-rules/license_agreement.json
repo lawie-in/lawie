@@ -259,7 +259,7 @@
       "id": "licensor_retains_possession_clause",
       "name": "Licensor Retains Legal Possession & Control",
       "required": true,
-      "description": "Critical to preserve license vs lease distinction (Associated Hotels test)"
+      "description": "Critical to preserve license vs lease distinction (substance, not form: a lease passes an interest in the property, a licence does not)"
     },
     {
       "id": "purpose_clause",
@@ -359,7 +359,7 @@
       "Draft a LICENSE AGREEMENT under the Easements Act, 1882, Section 52.",
       "S.52 Easements Act — LICENSE DEFINED: 'Where one person grants to another, or to a definite number of other persons, a right to do, or continue to do, in or upon the immovable property of the grantor, something which would, in the absence of such right, be unlawful, and such right does not amount to an easement or an interest in the property, the right is called a license.'",
       "ESSENTIAL FEATURES OF LICENSE (distinguishes from lease):\n   (a) PERMISSION — not transfer of any interest.\n   (b) NO INTEREST IN LAND created.\n   (c) PERSONAL to licensee — not transferable / heritable (by default).\n   (d) REVOCABLE (S.60 Easements Act) — except where coupled with transfer of property OR where licensee has incurred expenses on faith of license (S.60 proviso).\n   (e) LICENSOR RETAINS LEGAL POSSESSION AND CONTROL of premises.",
-      "CRITICAL DISTINCTION — LICENSE vs LEASE: Cite Associated Hotels of India Ltd v. R.N. Kapoor AIR 1959 SC 1262, and Khalil Ahmed Bashir Ahmed v. Tufelhussein Samasbhai (1988) 1 SCC 155. Test:\n   (i) INTENTION of the parties.\n   (ii) EXCLUSIVE POSSESSION — if grantee has exclusive possession (i.e., right to exclude even the grantor) — strong indicator of LEASE.\n   (iii) Substance over form — labelling as 'license' is not conclusive if substance is lease.\n   (iv) Right to make structural changes / sublease — indicators of lease.",
+      "CRITICAL DISTINCTION — LICENSE vs LEASE: Test:\n   (i) INTENTION of the parties.\n   (ii) EXCLUSIVE POSSESSION — if grantee has exclusive possession (i.e., right to exclude even the grantor) — strong indicator of LEASE.\n   (iii) Substance over form — labelling as 'license' is not conclusive if substance is lease.\n   (iv) Right to make structural changes / sublease — indicators of lease.",
       "If license language is overly lease-like (e.g., 'shall have exclusive possession for the term', 'transferable', 'fixed long term with renewal'), the courts and Stamp Authority MAY RE-CHARACTERISE as lease — exposing parties to (i) higher stamp duty, (ii) tenancy rights for licensee, (iii) registration mandate, (iv) Rent Control Act applicability.",
       "DRAFTING PRINCIPLES to preserve LICENSE character:",
       "  - Use 'PERMISSION TO USE' language, NOT 'grants possession' or 'demises'.",
@@ -396,7 +396,8 @@
       "Schedule A — Licensed Premises description.",
       "Two witnesses' attestation.",
       "Append Lawie disclaimer.",
-      "WHERE LICENSEE INVESTS IN PREMISES on faith of license — flag S.60 proviso Easements Act: license becomes irrevocable to extent of investment unless terms expressly negative this. Include explicit clause that no investment / improvement creates any equity / right of irrevocability."
+      "WHERE LICENSEE INVESTS IN PREMISES on faith of license — flag S.60 proviso Easements Act: license becomes irrevocable to extent of investment unless terms expressly negative this. Include explicit clause that no investment / improvement creates any equity / right of irrevocability.",
+      "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
   "relevantActs": [
