@@ -5,7 +5,7 @@
 | Phase      | 3 — Matter context                             |
 | Owner      | Vishal, Ajay reviews the result                |
 | Mode       | Spike, time-boxed to 1 day, no production code |
-| Status     | Ready. T-302 is delivered                      |
+| Status     | Founder 15 Oct 2026: uploads are V1. Ready: T-302 delivered. Vishal runs the spike, Ajay reviews. Priya |
 | Depends on | None open. T-302 is delivered                  |
 | Branch     | None                                           |
 | Created    | 2026-10-03                                     |
