@@ -3,8 +3,8 @@
  *  1. Producer: three verify resends for one user leave ONE waiting job (2nd/3rd deduped:true,
  *     the returned jobId is the pending one); another user gets its own job; once the user's job
  *     completes or is removed, a new resend queues again.
- *  2. End to end (T-379 held, live mode, footer unfilled): no worker starts, three resends for
- *     one user leave one waiting job; when the footer is stubbed filled and workers start, mint
+ *  2. End to end (T-379 held, live mode, an injected unfilled footer; T-436 filled the real one): no worker starts, three resends for
+ *     one user leave one waiting job; when the injected footer is cleared (the real one is filled) and workers start, mint
  *     and send are each called exactly once for that user, and the logs hold no PII.
  *
  * Runs against REDIS_TEST_URL if set (loopback), else a private redis-server (never REDIS_URL).
@@ -24,14 +24,14 @@ jest.mock('@sentry/node', () => ({
   captureException: jest.fn(),
   captureMessage: jest.fn(),
 }));
-let mockFooterFilled = false;
+let mockFooterUnfilled = false; // T-436: the real footer is filled; tests inject an unfilled one
 jest.mock('../placeholders', () => {
   const actual = jest.requireActual('../placeholders');
   return {
     ...actual,
-    anyTemplateUnfilled: () => (mockFooterFilled ? false : actual.anyTemplateUnfilled()),
+    anyTemplateUnfilled: () => mockFooterUnfilled || actual.anyTemplateUnfilled(),
     templateHasUnfilledFooter: (id: string) =>
-      mockFooterFilled ? false : actual.templateHasUnfilledFooter(id),
+      (mockFooterUnfilled && id === 'auth.verifyEmail') || actual.templateHasUnfilledFooter(id),
   };
 });
 const mockRender = jest.fn();
@@ -193,7 +193,7 @@ describe('T-390 held verify jobs: one email per user when the footer is filled',
     const send = jest.fn(async () => ({ messageId: 'live-ok' }));
     const mint = jest.fn(async () => ({ email: LEAK_ADDRESS, name: LEAK_NAME, link: LINK }));
     mockRender.mockResolvedValue({ subject: 'Verify', html: '<p>filled</p>', text: 'filled' });
-    mockFooterFilled = false;
+    mockFooterUnfilled = true;
     try {
       // Held: no worker starts.
       expect(startWorkers({ connection, send, mint })).toEqual([]);
@@ -209,7 +209,7 @@ describe('T-390 held verify jobs: one email per user when the footer is filled',
       expect(send).not.toHaveBeenCalled();
 
       // Footer filled: release.
-      mockFooterFilled = true;
+      mockFooterUnfilled = false;
       expect(startWorkers({ connection, send, mint }).length).toBeGreaterThan(0);
       const deadline = Date.now() + 30_000;
       for (;;) {
@@ -229,7 +229,7 @@ describe('T-390 held verify jobs: one email per user when the footer is filled',
         expect(logs).not.toContain(s);
       }
     } finally {
-      mockFooterFilled = false;
+      mockFooterUnfilled = false;
       await stopWorkers();
     }
   });
