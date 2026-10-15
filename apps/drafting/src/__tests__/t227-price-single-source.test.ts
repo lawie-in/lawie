@@ -4,12 +4,12 @@
  * One price list (`TEMPLATE_PRICES` + `NON_TEMPLATE_PRICES` + `PRICE_ALIASES`
  * in credits.service). The price shown (promoter -> Template rows ->
  * GET /templates) and the price charged (enforceCredits -> spendInk) are both
- * read from it. These tests loop over EVERY rule file, EVERY legacy /generate
- * docType and `guided`, so a missing or differing price fails CI (Vikram,
+ * read from it. These tests loop over EVERY rule file, EVERY legacy
+ * docType (the route is 410 since T-443, the prices stay) and `guided`, so a missing or differing price fails CI (Vikram,
  * 12 Oct 2026). Document-rules files are read, never edited.
  */
 import './setupDb';
-import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'fs';
+import { mkdtempSync, readdirSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 
@@ -52,7 +52,6 @@ const INTERNAL_SECRET = process.env.INTERNAL_SECRET!;
 const USER_ID = '507f1f77bcf86cd799439227';
 const MODEL = 'claude-sonnet-4-5-20250929';
 const RULES_DIR = join(__dirname, '..', 'config', 'document-rules');
-const ROUTES_FILE = join(__dirname, '..', 'routes', 'documents.routes.ts');
 
 // Vikram, 11 Oct 2026: the 31 documents that cost 1 Ink. Everything else is 2.
 const ONE_INK_IDS = [
@@ -106,14 +105,25 @@ const RULE_FILE_IDS = readdirSync(RULES_DIR)
   .map((f) => f.replace(/\.json$/, ''))
   .sort();
 
-/** The docType enum of the legacy POST /generate, read from the route source. */
-function legacyDocTypes(): string[] {
-  const src = readFileSync(ROUTES_FILE, 'utf-8');
-  const m = /const generateSchema = z\.object\(\{\s*docType: z\.enum\(\[([^\]]*)\]\)/.exec(src);
-  if (!m) throw new Error('generateSchema.docType enum not found in documents.routes.ts');
-  return [...m[1].matchAll(/'([a-z0-9_]+)'/g)].map((x) => x[1]);
-}
-const LEGACY_DOC_TYPES = legacyDocTypes();
+/**
+ * The docType enum of the old POST /generate (the removed generateSchema, 11 values), pinned here.
+ * T-443 retired the route (410) but left these rows priced (NON_TEMPLATE_PRICES and the aliases
+ * stay until T-435), so the price tests keep looping over them. The enum was not derivable from
+ * NON_TEMPLATE_PRICES: it also held rule-file ids and aliases.
+ */
+const LEGACY_DOC_TYPES: string[] = [
+  'bail_application',
+  'petition',
+  'legal_notice',
+  'affidavit',
+  'vakalatnama',
+  'plaint',
+  'written_statement',
+  'injunction',
+  'reply',
+  'complaint',
+  'rent_agreement',
+];
 
 async function seedUser(inkTopup = 2000) {
   await User.create({
@@ -249,7 +259,7 @@ describe('AC2 - one source of truth', () => {
     }
   });
 
-  it('prices every legacy /generate docType (enum read from documents.routes.ts) and guided', () => {
+  it('prices every legacy docType (the pinned old /generate enum) and guided', () => {
     expect(LEGACY_DOC_TYPES.length).toBeGreaterThanOrEqual(11);
     for (const id of [...LEGACY_DOC_TYPES, 'guided']) {
       const cost = costForTemplate(id);
@@ -428,17 +438,17 @@ describe('unknown id: 400 from enforceCredits, before any spend or LLM call', ()
     await expectRefused(res, tag, 2000, key);
   });
 
-  it('POST /generate (legacy) with an unknown docType', async () => {
+  it('POST /generate-from-template with an unknown docType (no template_id)', async () => {
     const res = await request(app)
-      .post('/generate')
+      .post('/generate-from-template')
       .set(headers())
       .send({ docType: 'sale_deed_of_the_moon' });
     await expectRefused(res, '(unlisted)', 2000, 'sale_deed_of_the_moon');
   });
 
-  it('a body with both ids that differ is a (conflict) on legacy /generate', async () => {
+  it('a body with both ids that differ is a (conflict) on /generate-from-template', async () => {
     const res = await request(app)
-      .post('/generate')
+      .post('/generate-from-template')
       .set(headers())
       .send({ docType: 'petition', template_id: 'nda' });
     await expectRefused(res, '(conflict)', 2000, 'petition');
@@ -448,7 +458,7 @@ describe('unknown id: 400 from enforceCredits, before any spend or LLM call', ()
   it('a conflict is refused even when the balance is zero (400, not 402)', async () => {
     await User.updateOne({ _id: USER_ID }, { inkTopup: 0 });
     const res = await request(app)
-      .post('/generate')
+      .post('/generate-from-template')
       .set(headers())
       .send({ docType: 'petition', template_id: 'nda' });
     await expectRefused(res, '(conflict)', 0);
@@ -456,7 +466,7 @@ describe('unknown id: 400 from enforceCredits, before any spend or LLM call', ()
 
   it('an empty template_id next to a docType counts as present, so it is a conflict', async () => {
     const res = await request(app)
-      .post('/generate')
+      .post('/generate-from-template')
       .set(headers())
       .send({ docType: 'petition', template_id: '' });
     await expectRefused(res, '(conflict)');
