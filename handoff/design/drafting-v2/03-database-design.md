@@ -95,3 +95,12 @@ _id, kindId, runAt, fixtures: n, passed, failed, blankRate, citationMissRate, av
 
 ## 5. What goes away (post-migration)
 `Template`, `TemplateUsage`, `SectionMapping` (→ `law_mappings`), the JSON pack files (→ `kinds` + `part_types`), `bns-*.json` (→ `provisions` + `law_mappings`). Not before every kind is on v2 and the golden set passes.
+
+## 6. Amendments from Ajay's constraints (f44eb59)
+
+- `sources.kind` gains `'constitution' | 'notification' | 'state_amendment' | 'practice_direction' | 'statutory_form'`; `sources.jurisdiction.state` is required for `state_amendment`; `court` required for `court_rules`, `practice_direction`.
+- `judgments.status` becomes `{ code: 'good'|'overruled'|'reversed_or_modified'|'per_incuriam'|'referred_to_larger_bench'|'stayed'|'review_pending', scope: [{paras: [n], point?: string}], by?: judgmentId, since?, verifiedBy, verifiedOn, source: 'citator'|'clo'|'admin', notes: [{kind:'distinguished'|..., by: judgmentId, text}] }`; plus `benchStrength: number`, `neutralCitation?`, `reportCitations: [{style, text, licensed: boolean}]`.
+- `passages` gain `role: 'ratio'|'obiter'|'headnote'|'facts'|'order'|'text'` (judgment paras tagged at ingest, CLO-correctable) and `quotable: boolean` (false for headnotes, summaries, commentary).
+- `kinds` gain `registry: { statutoryBasis, forum, verificationForm, mandatoryParts: [partTypeId], courtFeeHint?, limitationHint?, signedBy?, signedAt?, signatureRef? }` and `asOf: { substantive: factKey, procedure: factKey }` replacing `asOfRule`; `status` gains `'unreviewed'` (drafts with the banner, per D10).
+- `part_types.schema.allowedAuthority` never includes `'commentary'`.
+- New `suggestions` on `draft_runs`: `{ grounds: [{text, authorityIds, accepted: boolean}], judgments: [{judgmentId, point, accepted: boolean}] }` — shown, never inserted until accepted.

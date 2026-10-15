@@ -88,3 +88,11 @@ Ink: hold before `plan`, settle after `render` with the measured cost (Ink v2 si
 
 ## 6. Tests
 Unit: parsers per source kind with fixtures; provision lookup across validity windows and law mappings; verifier per failure reason (one test each, mutation-checked); marker parser. Contract: plan JSON schema; context pack budget. Golden: per kind, recorded replies off on dispatch, diffs to Ajay; new fixtures from approved drafts.
+
+## 7. Amendments from Ajay's constraints (f44eb59)
+
+- Verifier adds: `auth_status_not_good_for_point` (status scope vs the point relied on), `auth_referred_needs_flag` (allowed only if the rendered sentence carries the printed flag), `auth_unknown_status`, `quote_not_quotable` (headnote/summary/commentary), `quote_wrong_language`, `deadline_from_unknown_date`, `oath_completed`, `advocate_signed`, `outcome_predicted`, `user_quote_altered`, `commentary_as_authority`.
+- Retrieval: commentary passages are returned to the **planner** only (to find provisions/judgments); the drafter's context pack never contains them. Judgment search filters `status.code = 'good'` for the point, or `'referred_to_larger_bench'` with `flag: true`.
+- As-of: `Plan.asOf` becomes `{ substantive: {factKey, date|null}, procedure: {factKey, date|null} }`; a `null` date makes every need that depends on it a blank, never today's date.
+- Suggestions: the planner may emit `suggestedGrounds[]` and `suggestedJudgments[]`; they go to the brief as an acceptance list (`draft_runs.suggestions`); the drafter sees only accepted ones.
+- Render: citations composed from metadata by a `formatCitation(judgment)` function (neutral → licensed report → para → bench strength when relied on); unreviewed kinds print the banner line; the two signed disclaimer lines are appended per family.
