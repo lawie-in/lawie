@@ -58,12 +58,10 @@ export default function ContactPage() {
             <p>We typically reply within 24 hours.</p>
           </div>
           <div className="address">
-            <span className="lbl">Registered Address</span>
+            <span className="lbl">Based in</span>
             Lawie (Sole Proprietorship)
             <br />
-            [Street address placeholder]
-            <br />
-            Patna, Bihar — [PIN]
+            Ranchi, Jharkhand
           </div>
           <div className="route-grid">
             <article className="card route">

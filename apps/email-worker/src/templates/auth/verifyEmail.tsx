@@ -13,8 +13,9 @@
  * The subject is a fixed string: it carries no name and no address.
  *
  * Footer: T-225 AC1c, except line 2, which Ajay changed for this email only (the recipient
- * may not be the person who signed up). `[registered address]` and `[PIN]` are the founder's
- * placeholders: no live send until they are filled (dry run is fine).
+ * may not be the person who signed up). Line 1 is Ajay's signed address
+ * (handoff/legal/gst-tax-invoice-signed.md, Addendum 4 point 3, T-436): no street line and no
+ * bracketed placeholders. placeholders.ts still refuses a live send if one ever comes back.
  *
  * Plain text: the signed body with `Verify email: {verifyUrl}` in place of the button, built
  * by `text()` below rather than derived from the HTML.
@@ -52,7 +53,7 @@ export const VERIFY_EMAIL_STRINGS = {
   disclaimer:
     'Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.',
   signOff: 'Team Lawie',
-  footer1: 'Lawie (Sole Proprietorship), [registered address], Patna, Bihar [PIN]',
+  footer1: 'Lawie (Sole Proprietorship), Ranchi, Jharkhand',
   footer2: 'You are receiving this because this address was used to create a Lawie account.',
   footer3: 'Help: contact@lawie.in · Data and privacy requests: privacy@lawie.in',
   footer4: 'Privacy Policy: https://lawie.in/privacy · Terms: https://lawie.in/terms',
