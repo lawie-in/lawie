@@ -57,3 +57,7 @@ Owner: Rajesh. For the lead on T-436. No code. Source: `handoff/legal/gst-tax-in
 - Help wording: Madhuri; Ajay to check if it states more than his phrase.
 - Parked GSTIN box is not designed here (its State overrides the chosen one per Ajay).
 - Existing users with no State: check how `User.state` reaches the web.
+
+## Superseded by Arjun (15 Oct 2026)
+
+- The line "server refuses payment with no State" no longer applies. There is no server reject; the fallback in Ajay's addendum 3 covers it. The client still asks before the first payment.
