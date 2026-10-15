@@ -6,20 +6,20 @@ Kinds: must-fix = legally wrong until done (ticket); parked = one line to Priya 
 
 ## 1. Invoice contents (CGST Rules r.46) — must-fix
 
-| Field | Ruling |
-|---|---|
-| Supplier name | Legal name exactly as on the GST registration (the proprietor), then "trading as Lawie". |
-| Supplier GSTIN and address | GSTIN and principal place of business as registered. |
-| Invoice number | Consecutive serial, max 16 characters (letters, digits, "-" and "/"), unique for the financial year (Apr–Mar). Restart allowed only with a FY prefix, e.g. `LAW/2026-27/0001`. No gaps from deleted or failed invoices. |
-| Date of issue | Required. |
-| Recipient | Name and address on record, with State name and State code. GSTIN if the customer gave one. |
-| Description | "Lawie subscription — {plan}, {period}" or "Lawie Ink top-up — {n} Ink". |
-| SAC | verify: Vikram / CA to fix the SAC and rate. I sign no code. |
-| Values | Taxable value, rate and amount of each tax, total. Prices are tax-inclusive: back the tax out of the price shown; never add it on top. |
-| Tax split | Supplier State = place of supply: CGST + SGST, half each. Different State: IGST. |
-| Place of supply | State name (and code). IGST Act s.12(2): registered recipient = their GSTIN's State; otherwise the address on record. |
-| Reverse charge | "Tax payable on reverse charge: No". |
-| Signature | verify: whether a system-generated electronic invoice needs a digital signature under r.46. Until verified, use "This is a computer-generated invoice." and ask the CA. |
+| Field                      | Ruling                                                                                                                                                                                                                  |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Supplier name              | Legal name exactly as on the GST registration (the proprietor), then "trading as Lawie".                                                                                                                                |
+| Supplier GSTIN and address | GSTIN and principal place of business as registered.                                                                                                                                                                    |
+| Invoice number             | Consecutive serial, max 16 characters (letters, digits, "-" and "/"), unique for the financial year (Apr–Mar). Restart allowed only with a FY prefix, e.g. `LAW/2026-27/0001`. No gaps from deleted or failed invoices. |
+| Date of issue              | Required.                                                                                                                                                                                                               |
+| Recipient                  | Name and address on record, with State name and State code. GSTIN if the customer gave one.                                                                                                                             |
+| Description                | "Lawie subscription — {plan}, {period}" or "Lawie Ink top-up — {n} Ink".                                                                                                                                                |
+| SAC                        | verify: Vikram / CA to fix the SAC and rate. I sign no code.                                                                                                                                                            |
+| Values                     | Taxable value, rate and amount of each tax, total. Prices are tax-inclusive: back the tax out of the price shown; never add it on top.                                                                                  |
+| Tax split                  | Supplier State = place of supply: CGST + SGST, half each. Different State: IGST.                                                                                                                                        |
+| Place of supply            | State name (and code). IGST Act s.12(2): registered recipient = their GSTIN's State; otherwise the address on record.                                                                                                   |
+| Reverse charge             | "Tax payable on reverse charge: No".                                                                                                                                                                                    |
+| Signature                  | verify: whether a system-generated electronic invoice needs a digital signature under r.46. Until verified, use "This is a computer-generated invoice." and ask the CA.                                                 |
 
 Not applicable at our size: e-invoicing (IRN) and the B2C dynamic QR code. Vikram re-checks if turnover crosses either threshold.
 
@@ -33,11 +33,11 @@ Not applicable at our size: e-invoicing (IRN) and the B2C dynamic QR code. Vikra
 
 ## 3. Customer data at checkout
 
-| Item | Ruling | Kind |
-|---|---|---|
-| Customer's State | Ask before the first payment, from a fixed list of States/UTs; needed to fix the place of supply and CGST+SGST vs IGST. Editable before each payment, not afterwards on an issued invoice. | must-fix |
-| Billing name and address | Name on record plus the State is enough at our prices. The full address becomes required only for an unregistered recipient on an invoice above ₹50,000 (r.46); not reachable today. | none |
-| Customer GSTIN (optional) | Optional field: format check, then the GSTIN's State (first two digits) overrides the chosen State, and the invoice shows the GSTIN. Not legally required of us; it lets firms claim input credit. | parked |
+| Item                      | Ruling                                                                                                                                                                                             | Kind     |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| Customer's State          | Ask before the first payment, from a fixed list of States/UTs; needed to fix the place of supply and CGST+SGST vs IGST. Editable before each payment, not afterwards on an issued invoice.         | must-fix |
+| Billing name and address  | Name on record plus the State is enough at our prices. The full address becomes required only for an unregistered recipient on an invoice above ₹50,000 (r.46); not reachable today.               | none     |
+| Customer GSTIN (optional) | Optional field: format check, then the GSTIN's State (first two digits) overrides the chosen State, and the invoice shows the GSTIN. Not legally required of us; it lets firms claim input credit. | parked   |
 
 Privacy policy must list State (and GSTIN if built) among the data collected, with "to issue GST tax invoices" as the purpose, in the same build. must-fix.
 
@@ -79,11 +79,11 @@ Legal: GST invoice ruling signed by Ajay.
 
 The founder has no CA and Vikram decided the finance points. The supplier's GSTIN, address and legal name stay in config only, never in this repo's handoff files: the GSTIN carries the proprietor's PAN.
 
-| Item | Vikram's answer | Ruling |
-|---|---|---|
-| SAC and rate | SAC 998319, 18%. Supplier State Jharkhand (code 20): CGST 9% + SGST 9% within Jharkhand, IGST 18% elsewhere. | Accepted; the SAC is a finance call. The split matches §1. |
-| Signature | No IRN (below threshold). The PDF carries the proprietor's name, "Authorised Signatory", a scanned signature image and "Computer-generated invoice". | Acceptable for v1. Do not print "signature not required": the r.46 waiver is only for e-invoices. A scanned image is not an electronic signature under the IT Act; a Class 3 DSC on the PDF is the clean form. parked. |
-| Founder's test top-up | Proprietor paid his own proprietorship: not a supply, no invoice, booked as proprietor's funds. | Agreed. Closed. |
+| Item                  | Vikram's answer                                                                                                                                      | Ruling                                                                                                                                                                                                                 |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| SAC and rate          | SAC 998319, 18%. Supplier State Jharkhand (code 20): CGST 9% + SGST 9% within Jharkhand, IGST 18% elsewhere.                                         | Accepted; the SAC is a finance call. The split matches §1.                                                                                                                                                             |
+| Signature             | No IRN (below threshold). The PDF carries the proprietor's name, "Authorised Signatory", a scanned signature image and "Computer-generated invoice". | Acceptable for v1. Do not print "signature not required": the r.46 waiver is only for e-invoices. A scanned image is not an electronic signature under the IT Act; a Class 3 DSC on the PDF is the clean form. parked. |
+| Founder's test top-up | Proprietor paid his own proprietorship: not a supply, no invoice, booked as proprietor's funds.                                                      | Agreed. Closed.                                                                                                                                                                                                        |
 
 Still open before 5b/5c can ship: the proprietor's legal name exactly as on the GST certificate, and the trade name as registered (founder).
 
@@ -104,6 +104,7 @@ Vikram checked the GST registration certificate (REG-06) itself: proprietorship,
 When it applies: any charge where we have no State on record at the moment of invoicing. That covers renewals or top-ups by users who paid before the State question existed (none today, per Vikram), and edge cases where checkout did not capture it.
 
 Conditions:
+
 1. New checkouts still ask the State before the first payment (§3). The fallback is never the default path.
 2. Never guess the State (no IP, no phone prefix, no card data).
 3. Once the user gives a State on the billing page, it applies from the next invoice. Past invoices stay as issued; they were correct when made. No re-issue and no credit note for this.
@@ -128,12 +129,12 @@ Test: no public page or email contains "Patna, Bihar" naming Lawie, or any "[...
 
 ## Addendum 5 (T-436): invoice email (Madhuri's draft, handoff/marketing/copy/invoice-email-t436.md) and the number format, 14 Oct 2026
 
-| # | Question | Ruling |
-|---|---|---|
-| 1 | Footer address | `Lawie (Sole Proprietorship), Ranchi, Jharkhand` (Addendum 4). |
-| 2 | Footer line 2 | Change to: `You are receiving this because a payment was made on your Lawie account.` |
-| 3 | "invoice" vs "GST tax invoice" | The email may say "invoice". The PDF itself is headed `Tax Invoice` (credit notes: `Credit Note`). Use subject (A) `Your Lawie invoice {invoiceNumber}` and button (A) `Download invoice (PDF)`. |
-| 4 | Number and amount in the body | Yes. The amount line reads `Thank you for your payment of {amount} (including GST) on {date}.` Total only, no tax breakdown. If `{name}` is empty: `Hello,`. |
+| #   | Question                       | Ruling                                                                                                                                                                                           |
+| --- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | Footer address                 | `Lawie (Sole Proprietorship), Ranchi, Jharkhand` (Addendum 4).                                                                                                                                   |
+| 2   | Footer line 2                  | Change to: `You are receiving this because a payment was made on your Lawie account.`                                                                                                            |
+| 3   | "invoice" vs "GST tax invoice" | The email may say "invoice". The PDF itself is headed `Tax Invoice` (credit notes: `Credit Note`). Use subject (A) `Your Lawie invoice {invoiceNumber}` and button (A) `Download invoice (PDF)`. |
+| 4   | Number and amount in the body  | Yes. The amount line reads `Thank you for your payment of {amount} (including GST) on {date}.` Total only, no tax breakdown. If `{name}` is empty: `Hello,`.                                     |
 
 Rest of the draft (preheader, body, help line, footer lines 3–4) **approved as written**. No case content and no attachment, as drafted.
 
@@ -141,27 +142,29 @@ Rest of the draft (preheader, body, help line, footer lines 3–4) **approved as
 
 ## Addendum 6 (T-436 a): Kunal's build points, 14 Oct 2026
 
-| # | Point | Ruling |
-|---|---|---|
-| 1 | Credit-note number `LAW-CN/2026-27/0001` is 19 characters, over the 16 limit | My example was wrong. `LCN/2026-27/0001` (16 characters) is approved. |
-| 2 | PDF amounts as "Rs. 1,999.00" (no ₹ glyph) | Approved. The law requires the value, not the symbol. |
-| 3 | Legacy subscription with no matching plan prints "Lawie subscription — Pro, {period}" | No: that guesses the plan. Print the plan only from the charge's own record; if it is unknown, `Lawie subscription — {period}`. (No subscription has been charged yet, per Vikram, so this should never fire.) |
-| — | Street address removed from the public supplier endpoint, kept on the PDF | Approved, per Addendum 1. |
+| #   | Point                                                                                 | Ruling                                                                                                                                                                                                         |
+| --- | ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Credit-note number `LAW-CN/2026-27/0001` is 19 characters, over the 16 limit          | My example was wrong. `LCN/2026-27/0001` (16 characters) is approved.                                                                                                                                          |
+| 2   | PDF amounts as "Rs. 1,999.00" (no ₹ glyph)                                            | Approved. The law requires the value, not the symbol.                                                                                                                                                          |
+| 3   | Legacy subscription with no matching plan prints "Lawie subscription — Pro, {period}" | No: that guesses the plan. Print the plan only from the charge's own record; if it is unknown, `Lawie subscription — {period}`. (No subscription has been charged yet, per Vikram, so this should never fire.) |
+| —   | Street address removed from the public supplier endpoint, kept on the PDF             | Approved, per Addendum 1.                                                                                                                                                                                      |
 
 ## Addendum 7 (T-436 b/c): Shashank's legal-content questions, 15 Oct 2026
 
-| # | Question | Ruling |
-|---|---|---|
-| 1 | Privacy §1 and §2 strings | §1 bullet `Plan, Ink balance, payments and referrals.` becomes `Plan, Ink balance, payments and referrals, and the State you give us for your tax invoices.` In §2, `take payments,` becomes `take payments, issue GST tax invoices,` (the rest of §2 unchanged). |
-| 2 | State saved before the re-accept prompt | **No.** The State is not stored before the bumped policy is accepted. Either show the re-accept prompt before the picker, or keep the picked State in the page and save it only after acceptance, on Pay. must-fix. |
-| 3a | Terms version | **Bump CURRENT_TERMS_VERSION** with this merge: the contracting party and the courts change, which is material. If a terms re-accept prompt exists, its summary (signed): `We now name the business behind Lawie, and disputes go to the courts at Ranchi, Jharkhand.` |
-| 3b | Supplier endpoint returns 503 (env not set) | Never show a placeholder. With no legal name, hide 5b and 5c entirely. With a legal name but no GSTIN, show 5b without `(GSTIN {supplier_gstin})`. Condition: the env is set before any release to main, so main always shows the full 5b. |
-| 4a | Credit note email? | Yes, to the account email. Subject `Your Lawie credit note {creditNoteNumber}`. Body line `We have issued a credit note of {amount} (including GST) against invoice {invoiceNumber}.` Button `Download credit note (PDF)`. Everything else as in the invoice email. |
-| 4b | Backfilled invoices emailed? | None are expected: no subscription has been charged, and the founder's test top-up needs no invoice. If the backfill does produce any, email each once. |
-| 4c | Amount format | The email may use `₹` and the PDF `Rs.`. Both are lawful; the figure must match the PDF exactly. |
-| 5 | Template id | Not a legal point; Priya decides. |
+| #   | Question                                    | Ruling                                                                                                                                                                                                                                                                 |
+| --- | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Privacy §1 and §2 strings                   | §1 bullet `Plan, Ink balance, payments and referrals.` becomes `Plan, Ink balance, payments and referrals, and the State you give us for your tax invoices.` In §2, `take payments,` becomes `take payments, issue GST tax invoices,` (the rest of §2 unchanged).      |
+| 2   | State saved before the re-accept prompt     | **No.** The State is not stored before the bumped policy is accepted. Either show the re-accept prompt before the picker, or keep the picked State in the page and save it only after acceptance, on Pay. must-fix.                                                    |
+| 3a  | Terms version                               | **Bump CURRENT_TERMS_VERSION** with this merge: the contracting party and the courts change, which is material. If a terms re-accept prompt exists, its summary (signed): `We now name the business behind Lawie, and disputes go to the courts at Ranchi, Jharkhand.` |
+| 3b  | Supplier endpoint returns 503 (env not set) | Never show a placeholder. With no legal name, hide 5b and 5c entirely. With a legal name but no GSTIN, show 5b without `(GSTIN {supplier_gstin})`. Condition: the env is set before any release to main, so main always shows the full 5b.                             |
+| 4a  | Credit note email?                          | Yes, to the account email. Subject `Your Lawie credit note {creditNoteNumber}`. Body line `We have issued a credit note of {amount} (including GST) against invoice {invoiceNumber}.` Button `Download credit note (PDF)`. Everything else as in the invoice email.    |
+| 4b  | Backfilled invoices emailed?                | None are expected: no subscription has been charged, and the founder's test top-up needs no invoice. If the backfill does produce any, email each once.                                                                                                                |
+| 4c  | Amount format                               | The email may use `₹` and the PDF `Rs.`. Both are lawful; the figure must match the PDF exactly.                                                                                                                                                                       |
+| 5   | Template id                                 | Not a legal point; Priya decides.                                                                                                                                                                                                                                      |
 
 ## Addendum 8 (T-436): trade name and erased users (Shashank, 15 Oct 2026)
 
 1. **5b uses the endpoint's `tradeName`**: `{supplier_trade_name} is a trade name of {supplier_legal_name}, …`. That keeps it exactly as on REG-06 (Addendum 2), which today reads "Lawie". The rest of 5b, including `In these Terms, "Lawie", "we" and "us" mean that proprietorship.`, stays as signed. If tradeName is missing, the same hide rule as Addendum 7 (3b) applies.
 2. **Erased users: no credit-note email.** The customer snapshot is kept only as the tax record (CGST s.36). Using its email to contact someone who erased their account is a new use after erasure. Issue and keep the credit note; send nothing. If the person writes in, it is provided on request. Test: a credit note for an erased user sends no email.
+
+Addendum 8 follow-up (Shashank, 15 Oct 2026): (a) Skipping the email for an erased user on **invoices** too: **approved**, for the same reason. (b) **Yes:** "erasure started" (the `erasure` sub-document is present) counts as erased for this skip, matching T-115c condition 3 (the account cannot be used once closing has started). Test both: user gone, and user mid-erasure.

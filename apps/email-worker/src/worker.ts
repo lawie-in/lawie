@@ -48,7 +48,7 @@
  * against its own Redis without jest.mock. Importing this module opens no
  * Redis connection; startWorkers() does, unless one is passed in.
  */
-import { EMAIL_QUEUE_NAMES, type EmailTemplate } from '@lawie/email-client';
+import { type EmailTemplate } from '@lawie/email-client';
 import { INTERNAL_HEADERS } from '@lawie/shared';
 import * as Sentry from '@sentry/node';
 import {
@@ -65,6 +65,7 @@ import { logger } from './config/logger';
 import { anyTemplateUnfilled, isLiveSend, templateHasUnfilledFooter } from './placeholders';
 import { EmailSendError, sendEmail, type SendEmailFn } from './providers';
 import { safeErrorFields, toSentrySafeError, userIdFromData } from './providers/safe-log';
+import { bullPrefix, WORKER_QUEUE_NAMES } from './queues';
 import { renderTemplate } from './templates';
 
 export interface EmailJobData {
@@ -518,11 +519,11 @@ export function startWorkers(options: StartWorkersOptions = {}): Worker[] {
   const connection = options.connection ?? (defaultConnection() as any);
   const processor = createProcessor(options.send, options.mint, options.notice);
   const started: Worker[] = [];
-  for (const queueName of [EMAIL_QUEUE_NAMES.high, EMAIL_QUEUE_NAMES.low]) {
+  for (const queueName of WORKER_QUEUE_NAMES) {
     const worker = new Worker<EmailJobData>(queueName, processor, {
       connection,
       concurrency: env.EMAIL_WORKER_CONCURRENCY,
-      prefix: `{${env.EMAIL_QUEUE_PREFIX}}`,
+      prefix: bullPrefix(env.EMAIL_QUEUE_PREFIX),
     });
     worker.on('completed', (job, result) => {
       logger.debug({ jobId: job.id, queue: queueName, result }, 'Job completed');
