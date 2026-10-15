@@ -73,6 +73,7 @@
       "label": "Date of FIR, or of the complaint if no FIR",
       "type": "date",
       "required": false,
+      "question": "On what date was the FIR registered, or the complaint filed if there is no FIR?",
       "ask_when_empty": true
     },
     {
