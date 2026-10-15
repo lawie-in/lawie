@@ -323,3 +323,13 @@ must-fix in T-449 (mact_claim :290, an error that was already there): the future
 With the three S placements, #1, #4, #5 and :290 applied: **T-449 is approved.** Merge-body ref: "Legal: T-449 signed by Ajay, T-245 file, T-449 byte check".
 
 Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+### T-449 reviewer round 1 (Priya / Kunal, 15 Oct 2026)
+
+1. plaint_partition clause id `vineeta_sharma_paragraph` becomes `daughter_coparcener_paragraph`. Its cue and skeleton change with it.
+2. ibc_application :150 label becomes `Any pre-existing dispute disclosed by CD (S.9 — dispute raised before the demand notice) — details`. It goes in T-451. The clause name at :226, if still named, becomes `No Pre-existing Dispute (S.9)` in T-449.
+3. dv_act keeps a plain cue, placed where the deleted line stood: `Where maintenance or other monetary relief is sought, file an affidavit of assets and liabilities of both parties.`
+4. condonation: reword to `Rejection of mechanical approach to condonation.` (the count goes; "Fifteen principles" points at nothing).
+5. filing_checklist and validation_rules are shown to the user and not sent to the model (ai.service streams the checklist; the prompt assembler reads neither). They are outside T-441/T-451 and stay as they are, but only as citations I have checked. Priya: send me the list. I verify each one, and any I cannot verify is removed from that list.
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.
