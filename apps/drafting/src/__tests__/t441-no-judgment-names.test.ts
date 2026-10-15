@@ -10,7 +10,7 @@ import { join } from 'path';
 
 // S, byte-exact (U+2014 dash), Addendum 8.
 const S =
-  'Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon].';
+  'Do not name any judgment. Where an authority would normally be cited, write [Authority \u2014 add if relied upon].';
 
 const RULES_DIR = join(__dirname, '..', 'config', 'document-rules');
 const TWIN_PATH = join(
@@ -72,9 +72,10 @@ const instructionsOf = (id: string): string[] => {
 
 describe('T-441: the no-judgment sentence S (Addendum 8, R3)', () => {
   it('S in this file is the signed text, with the U+2014 dash', () => {
-    expect(S).toContain('—');
+    expect(S).toContain('\u2014');
+    expect(S).not.toMatch(/\u2013|Authority - add/);
     expect(S).toBe(
-      'Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon].',
+      'Do not name any judgment. Where an authority would normally be cited, write [Authority \u2014 add if relied upon].',
     );
   });
 
@@ -135,13 +136,11 @@ describe('T-441: no judgment name in any model-visible field (R1, R2)', () => {
 
 describe('T-441: pinned wording (R1 keeps the proposition word for word)', () => {
   // The signed file approves these "as proposed" (Addendum 8 (a)) but does not print them
-  // byte for byte; the strings below are the developer's reported text, pending Ajay's byte-check.
-  it('bail_cancellation prompt_context: names and citations removed, proposition kept', () => {
-    const pc: string = rule('bail_cancellation').prompt_context;
-    expect(pc).toContain(
-      'Cancellation grounds are well-established: (1) tampering with evidence; (2) threatening or influencing witnesses;',
+  // byte for byte; the strings below are the built text, byte-checked and approved by Ajay (8d740cc).
+  it('bail_cancellation prompt_context is the approved string, byte for byte', () => {
+    expect(rule('bail_cancellation').prompt_context).toBe(
+      "Draft an Application for Cancellation of Bail under the provision given as GOVERNING PROVISION in the case details. The petitioner may be the State, informant, or even the accused (in case of seeking variation of onerous conditions imposed). Cancellation grounds are well-established: (1) tampering with evidence; (2) threatening or influencing witnesses; (3) breach of bail conditions; (4) commission of similar/fresh offence while on bail; (5) abuse of concession; (6) fleeing from justice. The court that granted bail (or a superior court) has jurisdiction to cancel. The application must distinguish between 'cancellation' (for misconduct post-bail) and 'setting aside' (for being granted on irrelevant considerations).",
     );
-    expect(pc).not.toMatch(/well-established \(/);
   });
 
   it('bail_cancellation: the "Cite ... on grounds for cancellation" entry is deleted (R2)', () => {
@@ -150,8 +149,10 @@ describe('T-441: pinned wording (R1 keeps the proposition word for word)', () =>
     ).toBe(false);
   });
 
-  it('interim_bail: prompt_context carries no judgment name', () => {
-    expect(rule('interim_bail').prompt_context).not.toMatch(/Kamlendra|Lal\b.*v\./);
+  it('interim_bail prompt_context is the approved string, byte for byte', () => {
+    expect(rule('interim_bail').prompt_context).toBe(
+      'Draft an Interim Bail Application under the inherent powers of the Court read with the provision given as GOVERNING PROVISION in the case details. Interim bail is a short-duration release pending adjudication of the main regular bail / anticipatory bail application. The application must establish: (1) pendency of a main bail application; (2) compelling urgency that cannot await the main hearing; (3) specific period sought; (4) undertakings of cooperation and surrender at end of interim period. The application must be tight — interim bail is an exceptional remedy and the court must be satisfied of urgency.',
+    );
   });
 
   it('bail_anticipatory twin: the (ii)/(iii) list is reduced to the kept proposition', () => {
