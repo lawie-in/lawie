@@ -15,6 +15,9 @@ import { createHash } from 'crypto';
 import { readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 
+import { buildDrafterUserPrompt, DrafterBrief } from '../services/brief-drafter';
+import { loadRulePack, readDraftingInstructionList } from '../services/rule-pack.service';
+
 const RULES_DIR = join(__dirname, '..', 'config', 'document-rules');
 
 /** The 27 packs T-449 edits. */
@@ -216,6 +219,36 @@ function judgmentHits(text: string, names: string[]): string[] {
   return hits;
 }
 
+/**
+ * A snake_case clause id reaches the model (clauseLines prints it first). Read
+ * "vineeta_sharma_paragraph" as "vineeta sharma paragraph" against the names.
+ */
+function idHits(id: string, names: string[]): string[] {
+  if (!/^[a-z0-9]+(_[a-z0-9]+)+$/.test(id)) return [];
+  const spaced = id.replace(/_/g, ' ');
+  return names
+    .filter((n) => new RegExp(`(?<![\\w])${escapeRe(n)}(?![\\w])`, 'i').test(spaced))
+    .map((n) => `id: ${n}`);
+}
+
+/** Every clause id the pack hands the model. */
+function clauseIds(pack: Json): string[] {
+  const out: string[] = [];
+  for (const k of ['mandatory_clauses', 'mandatoryClauses']) {
+    const list = pack[k];
+    if (!Array.isArray(list)) continue;
+    for (const c of list) {
+      if (c !== null && typeof c === 'object') {
+        for (const key of ['id', 'clause_id']) {
+          const v = (c as Json)[key];
+          if (typeof v === 'string') out.push(v);
+        }
+      }
+    }
+  }
+  return out;
+}
+
 // ── (a) no judgment name in model-visible text ──────────────────────────────
 
 describe('T-449 (a): no judgment name in model-visible text', () => {
@@ -241,6 +274,26 @@ describe('T-449 (a): no judgment name in model-visible text', () => {
       'Cite Mannalal Khetan v. Kedar Nath Khetan',
     ];
     for (const p of planted) expect(judgmentHits(p, names)).not.toEqual([]);
+  });
+
+  it('the id check catches a judgment-named snake_case id and leaves plain ids alone', () => {
+    expect(idHits('vineeta_sharma_paragraph', names)).not.toEqual([]);
+    expect(idHits('mobilox_pre_existing_dispute', names)).not.toEqual([]);
+    expect(idHits('daughter_coparcener_paragraph', names)).toEqual([]);
+    expect(idHits('prayer', names)).toEqual([]);
+  });
+
+  it.each(PACKS)('%s: no clause id names a judgment', (id) => {
+    const found = clauseIds(readPack(id)).flatMap((c) =>
+      idHits(c, names).map((h) => `${h} <- ${c}`),
+    );
+    expect(found).toEqual([]);
+  });
+
+  it('plaint_partition clause id is daughter_coparcener_paragraph and the old id is gone', () => {
+    const ids = clauseIds(readPack('plaint_partition'));
+    expect(ids).toContain('daughter_coparcener_paragraph');
+    expect(ids).not.toContain('vineeta_sharma_paragraph');
   });
 
   it('the detector leaves the legitimate wording alone', () => {
@@ -334,9 +387,9 @@ function protocol(id: string): string {
 
 describe('T-449 (c): change_protocol no longer makes a citation mandatory', () => {
   it.each(['posh_complaint', 'ibc_application', 'rera_complaint', 'mact_claim'])(
-    '%s: change_protocol is the exact R6 sentence followed by the CLO sign-off sentence',
+    '%s: change_protocol is the CLO sign-off sentence, then the exact R6 sentence',
     (id) => {
-      expect(protocol(id)).toBe(`${R6} All edits require CLO sign-off.`);
+      expect(protocol(id)).toBe(`All edits require CLO sign-off. ${R6}`);
     },
   );
 
@@ -445,6 +498,11 @@ describe('T-449 (f): every edited pack parses and the propositions are kept word
 
   const KEPT: [string, string][] = [
     ['mact_claim', 'Para 13: Computation — apply MULTIPLIER METHOD:'],
+    ['condonation_of_delay', 'Rejection of mechanical approach to condonation.'],
+    [
+      'dv_act_complaint',
+      'Monetary relief under S.20 — adequate, fair, reasonable, consistent with standard of living to which aggrieved person is accustomed. Include heads: maintenance, medical, loss of earnings, mortgage/rent. Where maintenance or other monetary relief is sought, file an affidavit of assets and liabilities of both parties.',
+    ],
     [
       'mact_claim',
       'Multiplier method, with future prospects, personal expenses deduction and conventional heads',
@@ -496,5 +554,56 @@ describe('T-449 (f): every edited pack parses and the propositions are kept word
 
   it.each(KEPT)('%s keeps: %s', (id, text) => {
     expect(visibleStrings(readPack(id))).toContain(text);
+  });
+});
+
+// ── (g) the REAL reader and prompt assembly keep S last (Ajay, T-449 Q1) ────
+
+describe('T-449 (g): through the real reader, S is the last instruction the model is given', () => {
+  it.each(PACKS)('%s: readDraftingInstructionList ends with S, once', (id) => {
+    const list = readDraftingInstructionList(readPack(id));
+    expect(list[list.length - 1]).toBe(S);
+    expect(list.filter((x) => x === S)).toHaveLength(1);
+  });
+
+  it.each(PACKS)('%s: the assembled drafter prompt lists S as its last INSTRUCTIONS line', (id) => {
+    const pack = loadRulePack(id);
+    expect(pack).not.toBeNull();
+    if (pack === null) return;
+    const prompt = buildDrafterUserPrompt({
+      pack,
+      brief: { described: null } as unknown as DrafterBrief,
+      systemParts: [],
+      courtRules: [],
+      target: 10,
+      language: 'en',
+    });
+    const m = /\nINSTRUCTIONS:\n([\s\S]*?)\n\n?ACTS:/.exec(prompt);
+    expect(m).not.toBeNull();
+    const lines = (m?.[1] ?? '').split('\n').filter((l) => l.startsWith('- '));
+    expect(lines.length).toBeGreaterThan(1);
+    expect(lines[lines.length - 1]).toBe(`- ${S}`);
+    expect(lines.filter((l) => l === `- ${S}`)).toHaveLength(1);
+  });
+});
+
+describe('T-449 round 2: exact strings', () => {
+  it('condonation_of_delay no longer carries "Fifteen principles" in model-visible text', () => {
+    expect(visibleStrings(readPack('condonation_of_delay')).join('\n')).not.toMatch(
+      /Fifteen principles/,
+    );
+  });
+
+  it('ibc_application clause name is "No Pre-existing Dispute (S.9)"', () => {
+    const clauses = readPack('ibc_application').mandatory_clauses as { name?: string }[];
+    expect(clauses.map((c) => c.name)).toContain('No Pre-existing Dispute (S.9)');
+    expect(JSON.stringify(visibleStrings(readPack('ibc_application')))).not.toMatch(/Mobilox/);
+  });
+
+  it('plaint_recovery validation_rules[11] (user-facing, not model-visible) keeps its citation', () => {
+    const rules = readPack('plaint_recovery').validation_rules as unknown[];
+    expect(rules[11]).toBe(
+      'pre_institution_mediation must be true for a commercial suit, unless urgent interim relief is sought (S.12A Commercial Courts Act, 2015; Patil Automation)',
+    );
   });
 });
