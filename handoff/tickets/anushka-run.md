@@ -1199,3 +1199,10 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - Nothing to test in the UI. A deploy that leaves a service down, or the email worker held, now stops loudly instead of finishing silently.
 
 Quality: nothing to test in the UI — deploy script only
+
+## T-436 AC10 — Ranchi, Jharkhand (b92aae6e, kunal, 15 Oct 2026)
+
+- Read the Terms and the contact page: they say Ranchi, Jharkhand as where Lawie is based and where disputes are heard. No placeholder text such as "[PIN]" is left.
+- The verification email footer says the same. The email only sends once the email service is switched on and deployed with the registered address.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

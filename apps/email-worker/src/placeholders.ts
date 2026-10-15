@@ -1,7 +1,9 @@
 /**
- * T-223 review (Ajay, T-225 AC1c): the footer placeholders are the founder's to fill, and no
- * email is sent until they are. Dry run (EMAIL_DRY_RUN=true or EMAIL_PROVIDER=dry-run) is
- * unaffected: it sends nothing and is how the copy is checked before the founder fills it.
+ * T-223 review (Ajay, T-225 AC1c): no email is sent while a template footer carries an
+ * unfilled placeholder. T-436 filled the auth.verifyEmail footer (Ranchi, Jharkhand; Addendum 4
+ * point 3), so today nothing is refused; the guard stays to catch a placeholder that comes back
+ * or a new template that ships with one. Dry run (EMAIL_DRY_RUN=true or EMAIL_PROVIDER=dry-run)
+ * is unaffected: it sends nothing.
  *
  * T-379: the check is STATIC. It looks at each template's own footer strings, never at the
  * rendered email, so user data that happens to contain "[PIN]" (a name, say) is not refused.
@@ -26,8 +28,8 @@ function footerLines(strings: Record<string, string>): readonly string[] {
 }
 
 /**
- * Each template's static footer. A template with no footer placeholders (auth.welcome) has no
- * entry. Add a template here when its footer carries the founder's placeholders.
+ * Each template's static footer. A template with no footer (auth.welcome) has no entry. Add a
+ * template here when it has a footer, so a placeholder in it is caught.
  */
 const TEMPLATE_FOOTERS: Partial<Record<EmailTemplate, readonly string[]>> = {
   'auth.verifyEmail': footerLines(VERIFY_EMAIL_STRINGS),
