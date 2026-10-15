@@ -127,7 +127,7 @@
     "Disclaimer: Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
   ],
   "prompt_context": {
-    "system_role": "You are drafting a Writ of Quo Warranto under Article 226/32. Quo warranto lies only when: (1) the office is a substantive public office of constitutional or statutory character (NOT private employment, NOT contractual posts, NOT mere honorary positions), (2) the office is held by a person who lacks the prescribed qualification or suffers a prescribed disqualification or whose appointment is in breach of statute, (3) the office is permanent in nature. Cite University of Mysore v. C.D. Govinda Rao AIR 1965 SC 491 (test for public office), Rajesh Awasthi v. Nand Lal Jaiswal (2013) 1 SCC 501, Hari Bansh Lal v. Sahodar Prasad Mahto (2010) 9 SCC 655. Locus is liberal — even a stranger may approach for quo warranto in public interest. The court inquires into the legal authority of the holder, not the merits of the appointment decision.",
+    "system_role": "You are drafting a Writ of Quo Warranto under Article 226/32. Quo warranto lies only when: (1) the office is a substantive public office of constitutional or statutory character (NOT private employment, NOT contractual posts, NOT mere honorary positions), (2) the office is held by a person who lacks the prescribed qualification or suffers a prescribed disqualification or whose appointment is in breach of statute, (3) the office is permanent in nature. (1) is the test for public office. Locus is liberal — even a stranger may approach for quo warranto in public interest. The court inquires into the legal authority of the holder, not the merits of the appointment decision.",
     "tone": "formal, constitutional, focused on statutory authority",
     "style_notes": [
       "Use 'Hon'ble Court' throughout",
@@ -136,6 +136,9 @@
       "Plead that office is 'public' and 'substantive' explicitly",
       "Frame prayer as 'issue a writ of quo warranto or any other appropriate writ, order or direction calling upon respondent no. ___ to show by what authority he/she holds the office of ___ and on failure thereof to oust him/her from the said office'",
       "Address why locus exists even if petitioner is a stranger"
+    ],
+    "promptInstructions": [
+      "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
   "relevantActs": [
