@@ -37,7 +37,7 @@ See also `.claude/docs/golden-snapshots.md` — most of the court-rules paths ab
 - `apps/drafting/src/services/annexures.service.ts` (the Memo of Parties, affidavit and vakalatnama text and the disclaimer lines; Ajay signed T-381 and T-424 against it). Added by Priya, 15 Oct 2026 (T-116), on Ajay's ruling. Any change comes with Ajay's signed text.
 - `apps/drafting/src/services/fact-verifier.ts`: all of the file except the banner wording (`factCheckBannerText`), which stays with Priya, Madhuri and Rajesh. This covers `FACT_CHECK_DISCLAIMER` and the verification rules (what counts as a failed fact check). Added by Priya, 15 Oct 2026 (T-116), on Ajay's ruling. Any change comes with Ajay's signed text.
 
-Any NEW file that holds a prompt is legal content from the day it is created. A prompt moved to a new file stays legal content. A prompt split out of, or copied from, a listed file is covered from the commit that moves it. The ticket that creates the file adds its path to this list in the same change.
+Any NEW file that holds a prompt is legal content from the day it is created. A prompt moved to a new file stays legal content. A prompt split out of, or copied from, a listed file is covered from the commit that moves or copies it. The ticket that creates the file adds its path to this list in the same change.
 
 **Deliberately not on this list (Ajay, 15 Oct 2026)**
 
