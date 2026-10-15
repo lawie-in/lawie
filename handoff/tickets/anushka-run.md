@@ -1206,3 +1206,9 @@ Quality: nothing to test in the UI — deploy script only
 - The verification email footer says the same. The email only sends once the email service is switched on and deployed with the registered address.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-377 — Verify link no longer travels to other sites (846ad85, mahak, 15 Oct 2026)
+
+- Nothing a user sees. The one-time verification link no longer travels in the Referer to other sites. The documented server log change (founder step) keeps it out of the access log once applied.
+
+Quality: nothing to test in the UI — headers and ops doc only

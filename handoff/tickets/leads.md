@@ -71,6 +71,7 @@ Where each lead stopped:
 
 ## Last done
 
+- mahak: T-377 merged 846ad85 (15 Oct 2026). /verify-email gets Referrer-Policy no-referrer; nginx.prod.conf strips the query from /verify-email and /auth/callback in the access log; docs/nginx-access-log.md for the founder's server step. Follow-up coming: widen the map to /api/auth/google/callback and fix the nginx ports (T-442). Row stays open for the follow-up.
 - kunal: T-436 AC10 round 1 merged b92aae6e (15 Oct 2026). Terms §12, contact page and the verify-email footer say Ranchi, Jharkhand; placeholder text removed; guard tests. terms/page.tsx, the contact page, verifyEmail.tsx and placeholders.ts released to Shashank. Round 2 (queue:purge, verify:resend-all, queues.ts, worker.ts change) follows; Kunal then T-364.
 - mahak: T-442 merged 04930a7 (15 Oct 2026). deploy.sh checks /health on gateway, auth, drafting, billing and email-worker (and web on /) after pm2 reload, retries 10 x 3 s, exits 1 on any failure; email-worker 503 (held) fails the deploy. docker-compose.prod.yml deleted; README corrected. deploy.sh, README and the compose file released. Next T-377.
 - mahak: T-424 merged cb74664 (15 Oct 2026). Affidavit and Memo of Parties put the advocate's client on the right side; opening line 'That I am the above-named Respondent/Petitioner'; no doubled 'the'; synopsis 'Petitioner:'; a clear message for an unknown role, and the missing other side named as a gap. brief-party-fields, annexures, t381 test and the 13 golden annexures entries released. Next T-442.
