@@ -24,3 +24,7 @@ Find why the firm is dropped (intake or ledger not keeping it, the body not usin
 ## Not a blocker for
 
 Anushka starting her run on develop; but she should see this case, and it must be green before anything goes to main.
+
+## Also in this ticket (Ajay, 15 Oct 2026, T-453 run 64)
+
+Extend the golden-set verifier list with BNSS s.144 (maintenance, old s.125 CrPC) and s.145 (procedure, old s.126) for the maintenance_bnss_144 pack only; both are in that pack's own signed text. No general whitelist.
