@@ -325,3 +325,79 @@ export function lawSwitch(input: LawSwitchInput): LawSwitchResult {
     lines,
   };
 }
+
+// ── Part 2: reading the case, and the signed shared text ────────────────────
+
+/**
+ * The signed S-text (Groups A and B), byte for byte from the signed file's
+ * "Shared Drafter text". It is also each pack's `promptInstructions` [1].
+ */
+export const S_TEXT =
+  'Cite the offences as the BRIEF gives them (FIR, charge sheet, complaint or order). The law of the offence follows the date of the offence: an offence committed before 1 July 2024 is under the Indian Penal Code, 1860; one committed on or after that date is under the Bharatiya Nyaya Sanhita, 2023. Never convert a section from one code to the other. Where the BRIEF does not give the date of the offence, write the sections as the BRIEF gives them and add [To be confirmed: date of the alleged offence, which decides whether the IPC or the BNS applies]. Where the sections the BRIEF gives are under the other code from the one the date points to, or the alleged acts run across 1 July 2024, keep the sections as the BRIEF gives them and add [To be confirmed: whether the IPC or the BNS applies to the offence].';
+
+/**
+ * The signed P-text (Groups A and C), byte for byte from the signed file's
+ * "Shared Drafter text". It is also each pack's `promptInstructions` [2].
+ */
+export const P_TEXT =
+  'Cite the procedure under the code given as PROCEDURE CODE in the case details: the Bharatiya Nagarik Suraksha Sanhita, 2023 with the Bharatiya Sakshya Adhiniyam, 2023, or the Code of Criminal Procedure, 1973 with the Indian Evidence Act, 1872. Cite only that code, in the heading, the body and the prayer. Where no PROCEDURE CODE is given, cite the provision in both forms inside a blank, for example [To be confirmed: Section 437 of the CrPC or Section 480 of the BNSS].';
+
+/** bail_before_magistrate's two `offence_classification` options (label and id). */
+const CLASSIFICATION_BAILABLE = 'Bailable';
+const CLASSIFICATION_NON_BAILABLE = "Non-bailable (within Magistrate's powers)";
+
+/**
+ * bail_before_magistrate's `offence_classification` as `offenceBailable`:
+ * `Bailable` true, `Non-bailable (within Magistrate's powers)` false, read from
+ * the option label or its id. Anything else (no answer, a blank, free text) is
+ * null: the classification is never guessed.
+ */
+export function offenceBailableFromClassification(value: unknown): boolean | null {
+  if (typeof value !== 'string') return null;
+  const v = slug(value);
+  if (v === slug(CLASSIFICATION_BAILABLE)) return true;
+  if (v === slug(CLASSIFICATION_NON_BAILABLE)) return false;
+  return null;
+}
+
+/**
+ * The switch's input from a case's values (form data, or ledger values keyed
+ * the same way): `procedure_code`, `fir_date`, `offence_date` and, for
+ * bail_before_magistrate only, `offence_classification`. The court is read from
+ * a courts-db court type id only (`bailCourtFromCourtType`).
+ */
+export function lawSwitchInputFromCase(
+  templateId: string,
+  values: Readonly<Record<string, unknown>>,
+  courtType: unknown,
+): LawSwitchInput {
+  return {
+    templateId,
+    procedureCode: values.procedure_code,
+    firDate: values.fir_date,
+    offenceDate: values.offence_date,
+    court: bailCourtFromCourtType(courtType),
+    offenceBailable:
+      templateId === 'bail_before_magistrate'
+        ? offenceBailableFromClassification(values.offence_classification)
+        : null,
+  };
+}
+
+/** The case values the switch reads (`lawSwitchInputFromCase`). */
+export const LAW_SWITCH_INPUT_KEYS = [
+  'procedure_code',
+  'fir_date',
+  'offence_date',
+  'offence_classification',
+] as const;
+
+/**
+ * The derived ledger keys the D1 skeleton slots and the s35 averment read.
+ * Worked out per request from the switch, never stored.
+ */
+export const LAW_SWITCH_FACT_KEYS = [
+  'governing_provision',
+  'women_proviso',
+  'notice_provision',
+] as const;
