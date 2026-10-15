@@ -101,7 +101,9 @@ import {
 } from './fact-verifier';
 import { Brief, buildChecklist, FIXED_KEYS } from './intake-brief';
 import {
+  DEFAULT_BAIL_CRPC_ACT,
   isLawSwitchPack,
+  relatedActsForProcedure,
   LAW_SWITCH_FACT_KEYS,
   LAW_SWITCH_INPUT_KEYS,
   lawSwitch,
@@ -757,7 +759,20 @@ export async function streamGenerateFromTemplate(
   // T-429 (Ajay 0864b04, ea02c86): what the model is given. discharge_application
   // keeps its NI Act related_acts entry and its Para 10 body prompt line only
   // when the charge (after old-law conversion) includes NI Act s.138.
-  const promptConfig = templateForCharge(templateConfig, convertedFormData);
+  const chargedConfig = templateForCharge(templateConfig, convertedFormData);
+  // T-245a (Ajay, Addendum 4 #1): default_bail's related acts follow the procedure.
+  const promptConfig: TemplateConfig =
+    law !== null && chargedConfig.template_id === 'default_bail'
+      ? {
+          ...chargedConfig,
+          related_acts: relatedActsForProcedure(
+            chargedConfig.template_id,
+            law.procedureCode,
+            chargedConfig.related_acts,
+            DEFAULT_BAIL_CRPC_ACT.act,
+          ),
+        }
+      : chargedConfig;
 
   // ── Set up SSE headers ─────────────────────────────────────────────────────
   res.setHeader('Content-Type', 'text/event-stream');
@@ -1448,7 +1463,26 @@ export async function streamGenerateFromBrief(
   // T-429 (Ajay 0864b04, ea02c86): discharge_application keeps its NI Act entry
   // and its Para 10 instruction only when formData.offences_charged (the brief /
   // ledger value, blank when not given) includes NI Act s.138.
-  const pack = packForCharge(packForDrawer(loadedPack, formData), formData);
+  const chargedPack = packForCharge(packForDrawer(loadedPack, formData), formData);
+  // T-245a (Ajay, Addendum 4 #1): default_bail's relevant acts follow the procedure.
+  const pack: RulePack =
+    law !== null && chargedPack.id === 'default_bail'
+      ? {
+          ...chargedPack,
+          relevantActs: relatedActsForProcedure<RulePack['relevantActs'][number]>(
+            chargedPack.id,
+            law.procedureCode,
+            chargedPack.relevantActs,
+            {
+              act: DEFAULT_BAIL_CRPC_ACT.act,
+              sections: DEFAULT_BAIL_CRPC_ACT.sections.map((s) => ({ ...s })),
+              note: null,
+              appliesWhen: null,
+              stateSpecific: false,
+            },
+          ),
+        }
+      : chargedPack;
 
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache, no-transform');

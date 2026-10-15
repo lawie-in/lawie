@@ -401,3 +401,34 @@ export const LAW_SWITCH_FACT_KEYS = [
   'women_proviso',
   'notice_provision',
 ] as const;
+
+/**
+ * Addendum 4 #1 (Ajay, 15 Oct 2026): default_bail's CrPC relatedActs entry,
+ * exact. CrPC choice: this entry only. BNSS choice: the pack's own (BNSS)
+ * entries only, as before. No choice: both.
+ */
+export const DEFAULT_BAIL_CRPC_ACT = {
+  act: 'Code of Criminal Procedure, 1973',
+  sections: [
+    {
+      number: '167(2)',
+      description: 'Procedure when investigation cannot be completed in twenty-four hours',
+    },
+  ],
+} as const;
+
+/**
+ * default_bail's related acts for the procedure (Addendum 4 #1): `own` are the
+ * pack's entries, `crpc` the CrPC entry in the caller's shape. Every other pack
+ * keeps `own` unchanged.
+ */
+export function relatedActsForProcedure<T>(
+  templateId: string,
+  procedureCode: ProcedureCode | null,
+  own: readonly T[],
+  crpc: T,
+): T[] {
+  if (templateId !== 'default_bail' || procedureCode === 'BNSS') return [...own];
+  if (procedureCode === 'CrPC') return [crpc];
+  return [...own, crpc];
+}
