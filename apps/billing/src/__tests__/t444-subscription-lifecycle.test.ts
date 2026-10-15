@@ -13,11 +13,12 @@ import { settleYearlyDrip } from '@lawie/shared';
 
 import logger from '../config/logger';
 import { Subscription } from '../models/Subscription.model';
+import { SubscriptionCreateLock } from '../models/SubscriptionCreateLock.model';
 import { User } from '../models/User.model';
 import { handleWebhookEvent, createSubscription } from '../services/subscription.service';
 
 jest.mock('../config/razorpay', () => ({
-  razorpay: { subscriptions: { create: jest.fn(), fetch: jest.fn() } },
+  razorpay: { subscriptions: { create: jest.fn(), fetch: jest.fn(), cancel: jest.fn() } },
 }));
 
 const mockCaptureMessage = jest.fn();
@@ -40,6 +41,13 @@ const ledger = (userId: mongoose.Types.ObjectId) =>
   db().collection('inkledger').find({ userId }).toArray();
 const getSub = (id = SUB_ID) => Subscription.findOne({ razorpaySubscriptionId: id }).lean();
 const getUser = async (userId: mongoose.Types.ObjectId) => (await User.findById(userId).lean())!;
+
+const DAY_MS = 86_400_000;
+const mockNewSub = () =>
+  (razorpay.subscriptions.create as jest.Mock).mockResolvedValue({
+    id: 'sub_new',
+    short_url: 'https://rzp.io/new',
+  });
 
 function payload(opts: { subId?: string; status?: string; paidCount?: number; planId?: string }) {
   const entity: Record<string, unknown> = { id: opts.subId ?? SUB_ID };
@@ -82,6 +90,7 @@ beforeEach(() => {
   mockCaptureMessage.mockClear();
   (razorpay.subscriptions.create as jest.Mock).mockReset();
   (razorpay.subscriptions.fetch as jest.Mock).mockReset();
+  (razorpay.subscriptions.cancel as jest.Mock).mockReset().mockResolvedValue({});
 });
 
 // ─── AC1: pending ────────────────────────────────────────────────────────────
@@ -558,6 +567,7 @@ describe('T-444 AC6: createSubscription reuse rules', () => {
         razorpaySubscriptionId: 'sub_live',
         status,
         planId: 'solo_monthly',
+        paidThrough: new Date(Date.now() + 10 * DAY_MS),
       });
       await expect(
         createSubscription(userId, 'a@example.com', 'solo_yearly'),
@@ -566,9 +576,9 @@ describe('T-444 AC6: createSubscription reuse rules', () => {
     },
   );
 
-  it('paidThrough in the error falls back to currentPeriodEnd, then null', async () => {
+  it('paidThrough in the error falls back to currentPeriodEnd', async () => {
     const withEnd = new mongoose.Types.ObjectId().toString();
-    const periodEnd = new Date('2026-12-01T00:00:00.000Z');
+    const periodEnd = new Date(Date.now() + 30 * DAY_MS);
     await Subscription.create({
       userId: withEnd,
       razorpaySubscriptionId: 'sub_a',
@@ -577,19 +587,138 @@ describe('T-444 AC6: createSubscription reuse rules', () => {
       currentPeriodEnd: periodEnd,
     });
     await expect(createSubscription(withEnd, 'a@example.com')).rejects.toMatchObject({
+      status: 'paused',
       paidThrough: periodEnd,
     });
+    expect((await getSub('sub_a'))!.status).toBe('paused');
+  });
 
+  it('a paused sub with neither date is lapsed: expired and a new sub is created', async () => {
     const neither = new mongoose.Types.ObjectId().toString();
     await Subscription.create({
       userId: neither,
       razorpaySubscriptionId: 'sub_b',
       status: 'paused',
     });
-    await expect(createSubscription(neither, 'a@example.com')).rejects.toMatchObject({
-      paidThrough: null,
-      planId: null,
+    mockNewSub();
+    const r = await createSubscription(neither, 'a@example.com');
+    expect(r.subscriptionId).toBe('sub_new');
+    expect((await getSub('sub_b'))!.status).toBe('expired');
+  });
+
+  describe('T-444b: a lapsed halted/paused/pending sub does not block', () => {
+    it.each(['halted', 'paused', 'pending'] as const)(
+      'lapsed %s: old sub marked expired, new sub created',
+      async (status) => {
+        const userId = new mongoose.Types.ObjectId().toString();
+        await Subscription.create({
+          userId,
+          razorpaySubscriptionId: 'sub_lapsed',
+          status,
+          planId: 'solo_monthly',
+          paidThrough: new Date(Date.now() - DAY_MS),
+        });
+        mockNewSub();
+
+        const r = await createSubscription(userId, 'a@example.com', 'solo_yearly');
+
+        expect(r).toEqual({
+          subscriptionId: 'sub_new',
+          shortUrl: 'https://rzp.io/new',
+          planId: 'solo_yearly',
+        });
+        expect(razorpay.subscriptions.create).toHaveBeenCalledTimes(1);
+        expect((await getSub('sub_lapsed'))!.status).toBe('expired');
+        expect((await getSub('sub_new'))!.status).toBe('created');
+      },
+    );
+
+    it.each(['halted', 'paused', 'pending'] as const)(
+      '%s before paidThrough stays 409 and is not expired',
+      async (status) => {
+        const userId = new mongoose.Types.ObjectId().toString();
+        await Subscription.create({
+          userId,
+          razorpaySubscriptionId: 'sub_paid',
+          status,
+          paidThrough: new Date(Date.now() + DAY_MS),
+        });
+        await expect(createSubscription(userId, 'a@example.com')).rejects.toMatchObject({
+          name: 'SubscriptionExistsError',
+          status,
+        });
+        expect((await getSub('sub_paid'))!.status).toBe(status);
+        expect(razorpay.subscriptions.create).not.toHaveBeenCalled();
+      },
+    );
+
+    it('halted with no paidThrough and a future currentPeriodEnd gives 409, not expired', async () => {
+      const userId = new mongoose.Types.ObjectId().toString();
+      await Subscription.create({
+        userId,
+        razorpaySubscriptionId: 'sub_h',
+        status: 'halted',
+        currentPeriodEnd: new Date(Date.now() + DAY_MS),
+      });
+      await expect(createSubscription(userId, 'a@example.com')).rejects.toMatchObject({
+        name: 'SubscriptionExistsError',
+        status: 'halted',
+      });
+      expect((await getSub('sub_h'))!.status).toBe('halted');
+      expect(razorpay.subscriptions.create).not.toHaveBeenCalled();
     });
+
+    it('pending with no paidThrough but a future currentPeriodEnd is lapsed', async () => {
+      const userId = new mongoose.Types.ObjectId().toString();
+      await Subscription.create({
+        userId,
+        razorpaySubscriptionId: 'sub_p',
+        status: 'pending',
+        currentPeriodEnd: new Date(Date.now() + DAY_MS),
+      });
+      mockNewSub();
+      const r = await createSubscription(userId, 'a@example.com');
+      expect(r.subscriptionId).toBe('sub_new');
+      expect((await getSub('sub_p'))!.status).toBe('expired');
+    });
+
+    it('an active sub still gives 409 even with a past paidThrough', async () => {
+      const userId = new mongoose.Types.ObjectId().toString();
+      await Subscription.create({
+        userId,
+        razorpaySubscriptionId: 'sub_act',
+        status: 'active',
+        paidThrough: new Date(Date.now() - DAY_MS),
+      });
+      await expect(createSubscription(userId, 'a@example.com')).rejects.toMatchObject({
+        name: 'SubscriptionExistsError',
+        status: 'active',
+      });
+      expect((await getSub('sub_act'))!.status).toBe('active');
+    });
+
+    it.each(['halted', 'paused', 'pending'] as const)(
+      'resubscribing over a lapsed %s sub leaves the User plan and Ink unchanged',
+      async (status) => {
+        const userId = await proUser(`t444b-${status}@example.com`);
+        await addSub(userId, 'sub_lapsed', {
+          status,
+          paidThrough: new Date(Date.now() - DAY_MS),
+        });
+        const rowsBefore = (await ledger(userId)).length;
+        mockNewSub();
+
+        await createSubscription(userId.toString(), 'a@example.com');
+
+        expect((await getSub('sub_lapsed'))!.status).toBe('expired');
+        const u = await getUser(userId);
+        expect(u.plan).toBe('pro');
+        expect(u.planTier).toBe('solo');
+        expect(u.inkSub).toBe(80);
+        expect(u.inkAnnualCarry).toBe(10);
+        expect((await ledger(userId)).length).toBe(rowsBefore);
+      },
+    );
   });
 
   it.each(['cancelled', 'completed', 'expired'] as const)(
@@ -662,7 +791,6 @@ describe('T-444 AC6: createSubscription reuse rules', () => {
 
 // ─── Review round 2 rulings (c)-(g) ──────────────────────────────────────────
 const NOW = new Date('2026-06-01T00:00:00.000Z');
-const DAY_MS = 86_400_000;
 const future = new Date(NOW.getTime() + DAY_MS);
 const past = new Date(NOW.getTime() - DAY_MS);
 
@@ -1011,6 +1139,34 @@ describe('T-444 round 3: charged and the claim own the status', () => {
     expect((await getUser(userId)).plan).toBe('pro');
   });
 
+  describe('T-444b: charged with no paid_count and no current_start', () => {
+    const unclaimed = () => payload({ planId: 'solo_monthly' });
+
+    it('on a halted sub keeps it halted', async () => {
+      const userId = await seedUser();
+      await Subscription.create({ userId, razorpaySubscriptionId: SUB_ID, status: 'halted' });
+      await handleWebhookEvent('subscription.charged', unclaimed());
+      expect((await getSub())!.status).toBe('halted');
+    });
+
+    it.each(['cancelled', 'completed', 'expired'] as const)(
+      'on a %s sub leaves the status unchanged',
+      async (status) => {
+        const userId = await seedUser();
+        await Subscription.create({ userId, razorpaySubscriptionId: SUB_ID, status });
+        await handleWebhookEvent('subscription.charged', unclaimed());
+        expect((await getSub())!.status).toBe(status);
+      },
+    );
+
+    it('on a created sub becomes active', async () => {
+      const userId = await seedUser();
+      await Subscription.create({ userId, razorpaySubscriptionId: SUB_ID, status: 'created' });
+      await handleWebhookEvent('subscription.charged', unclaimed());
+      expect((await getSub())!.status).toBe('active');
+    });
+  });
+
   it('charged on a completed sub keeps completed and still grants Ink', async () => {
     const userId = await seedUser();
     await Subscription.create({ userId, razorpaySubscriptionId: SUB_ID, status: 'completed' });
@@ -1025,4 +1181,322 @@ describe('T-444 round 3: charged and the claim own the status', () => {
     expect((await ledger(userId)).filter((r) => r.reason === 'sub_renewal')).toHaveLength(1);
     expect((await getUser(userId)).inkSub).toBeGreaterThan(0);
   });
+});
+
+// ─── T-444c: one subscription per user, no double charge ─────────────────────
+describe('T-444c: create lock and Razorpay cancel of a lapsed sub', () => {
+  const cancelMock = () => razorpay.subscriptions.cancel as jest.Mock;
+  const fetchMock = () => razorpay.subscriptions.fetch as jest.Mock;
+  const createMock = () => razorpay.subscriptions.create as jest.Mock;
+  const fetchMockForReuse = () =>
+    fetchMock().mockResolvedValue({ id: 'sub_new', short_url: 'https://rzp.io/new' });
+  const newUserId = () => new mongoose.Types.ObjectId().toString();
+  const lockCount = (userId: string) => SubscriptionCreateLock.countDocuments({ userId });
+  const seedLapsed = (userId: string, status = 'halted', id = 'sub_lapsed') =>
+    Subscription.create({
+      userId,
+      razorpaySubscriptionId: id,
+      status,
+      planId: 'solo_monthly',
+      paidThrough: new Date(Date.now() - DAY_MS),
+    });
+
+  it('AC1: two parallel creates produce exactly one Razorpay create; the other gets in-progress', async () => {
+    const userId = newUserId();
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r));
+    createMock().mockImplementation(async () => {
+      await gate;
+      return { id: 'sub_new', short_url: 'https://rzp.io/new' };
+    });
+
+    const settled: string[] = [];
+    const track = (p: Promise<unknown>) =>
+      p.then(
+        () => settled.push('ok'),
+        (e: Error) => settled.push(e.name),
+      );
+    const p1 = createSubscription(userId, 'a@example.com');
+    const p2 = createSubscription(userId, 'a@example.com');
+    const all = Promise.all([track(p1), track(p2)]);
+
+    // The loser fails while the winner is still inside the Razorpay call.
+    for (let i = 0; i < 100 && settled.length === 0; i++)
+      await new Promise((r) => setTimeout(r, 10));
+    expect(settled).toEqual(['SubscriptionInProgressError']);
+    release();
+    await all;
+
+    expect(settled.sort()).toEqual(['SubscriptionInProgressError', 'ok']);
+    expect(createMock()).toHaveBeenCalledTimes(1);
+    expect(await Subscription.countDocuments({ userId })).toBe(1);
+  });
+
+  it('a held lock gives SubscriptionInProgressError with no Razorpay call and no lock change', async () => {
+    const userId = newUserId();
+    await SubscriptionCreateLock.create({ userId });
+
+    await expect(createSubscription(userId, 'a@example.com')).rejects.toMatchObject({
+      name: 'SubscriptionInProgressError',
+    });
+
+    expect(createMock()).not.toHaveBeenCalled();
+    expect(cancelMock()).not.toHaveBeenCalled();
+    expect(fetchMock()).not.toHaveBeenCalled();
+    expect(await lockCount(userId)).toBe(1); // the holder's lock is untouched
+  });
+
+  it('a lock for another user does not block', async () => {
+    await SubscriptionCreateLock.create({ userId: newUserId() });
+    mockNewSub();
+    const r = await createSubscription(newUserId(), 'a@example.com');
+    expect(r.subscriptionId).toBe('sub_new');
+  });
+
+  it('the lock is released after success', async () => {
+    const userId = newUserId();
+    mockNewSub();
+    await createSubscription(userId, 'a@example.com');
+    expect(await lockCount(userId)).toBe(0);
+    // and a second sequential call is not blocked by it (it reuses the created sub)
+    fetchMockForReuse();
+    await expect(createSubscription(userId, 'a@example.com')).resolves.toMatchObject({
+      subscriptionId: 'sub_new',
+    });
+    expect(await lockCount(userId)).toBe(0);
+  });
+
+  it('the lock is released when Razorpay create rejects', async () => {
+    const userId = newUserId();
+    createMock().mockRejectedValue(new Error('Razorpay down'));
+    await expect(createSubscription(userId, 'a@example.com')).rejects.toThrow('Razorpay down');
+    expect(await lockCount(userId)).toBe(0);
+  });
+
+  it('the lock is released on a SubscriptionExistsError', async () => {
+    const userId = newUserId();
+    await Subscription.create({
+      userId,
+      razorpaySubscriptionId: 'sub_live',
+      status: 'active',
+      paidThrough: new Date(Date.now() + DAY_MS),
+    });
+    await expect(createSubscription(userId, 'a@example.com')).rejects.toMatchObject({
+      name: 'SubscriptionExistsError',
+    });
+    expect(await lockCount(userId)).toBe(0);
+  });
+
+  it.each(['halted', 'paused', 'pending'])(
+    'AC2: lapsed %s: cancelled at Razorpay with (oldId, false), old expired, new created',
+    async (status) => {
+      const userId = newUserId();
+      await seedLapsed(userId, status);
+      mockNewSub();
+
+      const r = await createSubscription(userId, 'a@example.com', 'solo_yearly');
+
+      expect(cancelMock()).toHaveBeenCalledTimes(1);
+      expect(cancelMock()).toHaveBeenCalledWith('sub_lapsed', false);
+      expect(r.subscriptionId).toBe('sub_new');
+      expect((await getSub('sub_lapsed'))!.status).toBe('expired');
+      expect((await getSub('sub_new'))!.status).toBe('created');
+      expect(await lockCount(userId)).toBe(0);
+    },
+  );
+
+  it('AC2: the cancel happens before the local expire and before the new create', async () => {
+    const userId = newUserId();
+    await seedLapsed(userId);
+    const order: string[] = [];
+    cancelMock().mockImplementation(async () => {
+      order.push(`cancel:${(await getSub('sub_lapsed'))!.status}`);
+    });
+    createMock().mockImplementation(async () => {
+      order.push(`create:${(await getSub('sub_lapsed'))!.status}`);
+      return { id: 'sub_new', short_url: 'https://rzp.io/new' };
+    });
+    await createSubscription(userId, 'a@example.com');
+    expect(order).toEqual(['cancel:halted', 'create:expired']);
+  });
+
+  it.each([
+    ['fetch rejects', () => fetchMock().mockRejectedValue(new Error('rzp down'))],
+    [
+      'fetch says halted',
+      () => fetchMock().mockResolvedValue({ id: 'sub_lapsed', status: 'halted' }),
+    ],
+    [
+      'fetch says active',
+      () => fetchMock().mockResolvedValue({ id: 'sub_lapsed', status: 'active' }),
+    ],
+    ['fetch returns no status', () => fetchMock().mockResolvedValue({ id: 'sub_lapsed' })],
+  ])(
+    'AC3: cancel rejects and %s: fails closed, nothing changed, lock released',
+    async (_n, arrange) => {
+      const userId = newUserId();
+      await seedLapsed(userId, 'halted');
+      cancelMock().mockRejectedValue(new Error('rzp 500'));
+      arrange();
+
+      await expect(createSubscription(userId, 'a@example.com')).rejects.toMatchObject({
+        name: 'SubscriptionCancelFailedError',
+      });
+
+      expect(createMock()).not.toHaveBeenCalled();
+      const old = await getSub('sub_lapsed');
+      expect(old!.status).toBe('halted');
+      expect(await Subscription.countDocuments({ userId })).toBe(1);
+      expect(await lockCount(userId)).toBe(0);
+    },
+  );
+
+  it.each(['cancelled', 'completed', 'expired'])(
+    'cancel rejects but Razorpay says %s: counts as success and proceeds',
+    async (rzpStatus) => {
+      const userId = newUserId();
+      await seedLapsed(userId, 'paused');
+      cancelMock().mockRejectedValue(new Error('already cancelled'));
+      fetchMock().mockResolvedValue({ id: 'sub_lapsed', status: rzpStatus });
+      mockNewSub();
+
+      const r = await createSubscription(userId, 'a@example.com');
+
+      expect(fetchMock()).toHaveBeenCalledWith('sub_lapsed');
+      expect(r.subscriptionId).toBe('sub_new');
+      expect((await getSub('sub_lapsed'))!.status).toBe('expired');
+      expect(createMock()).toHaveBeenCalledTimes(1);
+      expect(await lockCount(userId)).toBe(0);
+    },
+  );
+
+  it.each(['halted', 'paused', 'pending'])(
+    'a still-paid %s sub is never cancelled at Razorpay (409, status unchanged)',
+    async (status) => {
+      const userId = newUserId();
+      await Subscription.create({
+        userId,
+        razorpaySubscriptionId: 'sub_paid',
+        status,
+        paidThrough: new Date(Date.now() + DAY_MS),
+      });
+      await expect(createSubscription(userId, 'a@example.com')).rejects.toMatchObject({
+        name: 'SubscriptionExistsError',
+      });
+      expect(cancelMock()).not.toHaveBeenCalled();
+      expect(fetchMock()).not.toHaveBeenCalled();
+      expect((await getSub('sub_paid'))!.status).toBe(status);
+    },
+  );
+
+  it('an active sub with a past paidThrough is never cancelled at Razorpay', async () => {
+    const userId = newUserId();
+    await seedLapsed(userId, 'active', 'sub_act');
+    await expect(createSubscription(userId, 'a@example.com')).rejects.toMatchObject({
+      name: 'SubscriptionExistsError',
+    });
+    expect(cancelMock()).not.toHaveBeenCalled();
+  });
+
+  it('Arjun: sub turns active during the cancel: 409, id-only error log, Sentry warning, no expire, no create', async () => {
+    const userId = newUserId();
+    await seedLapsed(userId, 'halted');
+    cancelMock().mockImplementation(async () => {
+      await Subscription.updateOne({ razorpaySubscriptionId: 'sub_lapsed' }, { status: 'active' });
+    });
+    const errSpy = jest.spyOn(logger, 'error').mockImplementation(() => logger);
+
+    await expect(createSubscription(userId, 'a@example.com')).rejects.toMatchObject({
+      name: 'SubscriptionExistsError',
+      status: 'active',
+    });
+
+    const call = errSpy.mock.calls.find((c) => c[1] === 'billing.resubscribe.cancelled_paid_sub');
+    errSpy.mockRestore();
+    expect(call).toBeDefined();
+    expect(call![0]).toEqual({ subscriptionId: 'sub_lapsed' });
+    expect(mockCaptureMessage).toHaveBeenCalledWith(
+      'billing.resubscribe.cancelled_paid_sub',
+      'warning',
+    );
+    expect(createMock()).not.toHaveBeenCalled();
+    expect((await getSub('sub_lapsed'))!.status).toBe('active');
+    expect(await Subscription.countDocuments({ userId })).toBe(1);
+    expect(await lockCount(userId)).toBe(0);
+  });
+
+  describe('15 s Razorpay timeout', () => {
+    // Only the 15 s timer is captured (the Mongo driver's own timers pass through), then fired by hand.
+    let fire15s: () => void;
+    let setTimeoutSpy: jest.SpyInstance;
+    beforeEach(() => {
+      fire15s = () => undefined;
+      const real = global.setTimeout;
+      setTimeoutSpy = jest.spyOn(global, 'setTimeout').mockImplementation(((
+        fn: () => void,
+        ms?: number,
+        ...rest: unknown[]
+      ) => {
+        if (ms === 15_000) {
+          fire15s = fn;
+          return real(() => undefined, 0);
+        }
+        return real(fn, ms, ...rest);
+      }) as unknown as typeof setTimeout);
+    });
+    afterEach(() => setTimeoutSpy.mockRestore());
+    const waitFor15s = async () => {
+      for (let i = 0; i < 200 && setTimeoutSpy.mock.calls.every((c) => c[1] !== 15_000); i++) {
+        await new Promise((r) => setImmediate(r));
+      }
+    };
+
+    it('a cancel that never resolves gives 503 (cancel-failed), status unchanged, lock released', async () => {
+      const userId = newUserId();
+      await seedLapsed(userId, 'halted');
+      cancelMock().mockReturnValue(new Promise(() => undefined));
+      fetchMock().mockRejectedValue(new Error('rzp down'));
+
+      const p = createSubscription(userId, 'a@example.com');
+      const settled = p.then(
+        () => 'ok',
+        (e: Error) => e.name,
+      );
+      await waitFor15s();
+      fire15s();
+
+      expect(await settled).toBe('SubscriptionCancelFailedError');
+      expect(fetchMock()).toHaveBeenCalledWith('sub_lapsed');
+      expect(createMock()).not.toHaveBeenCalled();
+      expect((await getSub('sub_lapsed'))!.status).toBe('halted');
+      expect(await lockCount(userId)).toBe(0);
+    });
+
+    it('a create that never resolves throws, leaves no local row, releases the lock', async () => {
+      const userId = newUserId();
+      createMock().mockReturnValue(new Promise(() => undefined));
+
+      const settled = createSubscription(userId, 'a@example.com').then(
+        () => 'ok',
+        (e: Error) => e.name,
+      );
+      await waitFor15s();
+      fire15s();
+
+      expect(await settled).toBe('RazorpayTimeoutError');
+      expect(await Subscription.countDocuments({ userId })).toBe(0);
+      expect(await lockCount(userId)).toBe(0);
+    });
+  });
+
+  it.each(['cancelled', 'completed', 'expired'])(
+    'a terminal %s sub is not cancelled again at Razorpay',
+    async (status) => {
+      const userId = newUserId();
+      await Subscription.create({ userId, razorpaySubscriptionId: 'sub_old', status });
+      mockNewSub();
+      await createSubscription(userId, 'a@example.com');
+      expect(cancelMock()).not.toHaveBeenCalled();
+    },
+  );
 });

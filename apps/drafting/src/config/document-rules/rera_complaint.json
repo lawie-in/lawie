@@ -4,7 +4,7 @@
     "owner": "Ajay (CLO)",
     "validated_by": "Ajay (CLO) — Batch 7 writs + tribunals 2026-05-12",
     "last_updated": "2026-05-12",
-    "change_protocol": "All edits require CLO sign-off. Pioneer Urban concurrent-remedy cite mandatory. State-RERA mapping required in indian-courts.json — see note."
+    "change_protocol": "All edits require CLO sign-off. Do not name judgments in model-visible text (Ajay, T-441)."
   },
   "template_id": "rera_complaint",
   "card_description": "A complaint before the State Real Estate Regulatory Authority under Section 31 of the RERA Act, 2016.",
@@ -235,7 +235,7 @@
       "id": "alternative_remedies_paragraph",
       "name": "Position on Alternative Remedies",
       "required": true,
-      "description": "No parallel Consumer / Civil action OR concurrent under Pioneer Urban"
+      "description": "No parallel Consumer / Civil action OR concurrent"
     },
     {
       "id": "reliefs_paragraph",
@@ -280,7 +280,7 @@
       "Para 2: Jurisdiction — S.20 + S.31 — State RERA where project is located. Filing fee per state Rules (e.g., Bihar RERA ₹1,000; UP RERA ₹1,000; MahaRERA ₹5,000 per unit).",
       "Para 3: Project details — name, RERA registration number (S.3 mandatory registration), location, sanctioned plan, promised completion date.",
       "Para 4: Allotment details — unit, agreement for sale (S.13 mandatory — agreement before accepting more than 10% of consideration), consideration, payments made.",
-      "Para 5: Promised vs actual possession — quantify delay in months. Cite Aftab Singh v. Emaar MGF (2019) NCDRC reaffirming RERA + Consumer concurrent jurisdiction.",
+      "Para 5: Promised vs actual possession — quantify delay in months. RERA + Consumer concurrent jurisdiction.",
       "Para 6-8: Factual narrative — chronology.",
       "Para 9: Specific violations:",
       "   - S.11: Promoter functions (project disclosures + maintenance till conveyance);",
@@ -289,21 +289,22 @@
       "   - S.14: Compliance with sanctioned plan; structural defects — 5-year warranty;",
       "   - S.18: Return of amount + compensation on failure to give possession; interest till handover;",
       "   - S.19: Rights and duties of allottees.",
-      "Para 10: Alternative remedies — Cite Pioneer Urban Land & Infrastructure Ltd v. Govindan Raghavan (2019) 5 SCC 725 — RERA, Consumer, and Civil court remedies are CONCURRENT, not mutually exclusive. M3M India Pvt Ltd v. Dinesh Sharma (2019) — RERA preferred for matters under the Act. Newtech Promoters v. State of UP (2021) 9 SCC 743 — RERA applies retroactively.",
+      "Para 10: Alternative remedies — RERA, Consumer, and Civil court remedies are CONCURRENT, not mutually exclusive. RERA preferred for matters under the Act. RERA applies retroactively.",
       "Para 11: Reliefs:",
       "   - Possession with delay interest (S.18(1)) — rate at 'such rate as may be prescribed' — typically SBI MCLR + 2% per state Rules.",
       "   - Refund (allottee's election) with same rate of interest.",
       "   - Completion of promised amenities (S.14).",
       "   - Compensation under S.18(3) for mental harassment / financial loss.",
       "   - Penalty against promoter under S.59 (non-registration), S.60 (false information), S.61 (other contraventions) — these are penal and discretionary.",
-      "Para 12: Where wrongful termination — S.19(6) read with agreement; cite National Buildings Construction Corporation v. Pritam Singh Gill (2020) [where applicable].",
+      "Para 12: Where wrongful termination — S.19(6) read with agreement.",
       "Para 13: Where deviation from sanctioned plan — S.14(2): promoter cannot change layout/amenities/specs without consent of 2/3rds of allottees.",
       "Para 14: Where structural defects within 5 years from handover — S.14(3) liability to rectify within 30 days without cost.",
-      "Para 15: Appeal — to State Real Estate Appellate Tribunal under S.43-44 within 60 days; further appeal to HC on substantial question of law (S.58) within 60 days. (Pre-deposit may apply for promoter appeals — Newtech Promoters.)",
+      "Para 15: Appeal — to State Real Estate Appellate Tribunal under S.43-44 within 60 days; further appeal to HC on substantial question of law (S.58) within 60 days. (Pre-deposit may apply for promoter appeals.)",
       "Para 16: Penalty — S.60-72 — penal provisions; complaint can pray for action.",
       "Form fields: typically (i) project name, (ii) RERA registration, (iii) allotment details, (iv) date of agreement, (v) date of possession promised, (vi) date of payment made, (vii) reliefs sought, (viii) consent for online proceedings.",
       "Affidavit in support — mandatory.",
-      "Append Lawie disclaimer."
+      "Append Lawie disclaimer.",
+      "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
   "relevantActs": [

@@ -52,7 +52,7 @@ const CONFIG = path.join(ROOT, 'src', 'config');
 const TABLE_PATH = path.join(CONFIG, 'bns-offences.json');
 const SIGNED_MD = path.join(REPO, 'handoff', 'legal', 'T-277-bns-offences-corrected-signed.md');
 
-const SIGNED_SHA = '5f0ac29ad09aaed919826275cf22c425766c8dc7196dd089bfd5c8dacecb07de';
+const SIGNED_SHA = 'bc0c62931faf0a343460d8a8fdb94ea91306c019943ec609aaf71a61a3d43e9c';
 
 const DEPENDS_187 = 'Depends on the offence. Check BNSS section 187.';
 const R1_NOTE = (n: string): string => `Section ${n}: ${DEPENDS_187}`;
@@ -361,10 +361,10 @@ describe('R1 default-bail period (timeline)', () => {
     expect(r.periodNote).toBeNull();
   });
 
-  it('303 (exact key, 5 years) gives 60 days', () => {
+  it('303 (exact key, 3 years since T-361) gives 60 days', () => {
     const r = calculateTimeline({ arrestDate: ARREST, sections: ['303'] });
     expect(r.judicialCustodyDays).toBe(60);
-    expect(r.maxYears).toBe(5);
+    expect(r.maxYears).toBe(3);
     expect(r.periodNote).toBeNull();
   });
 
@@ -1081,10 +1081,10 @@ describe('pack and fixture lines', () => {
 
   const FIXTURES = path.join(REPO, 'scripts', 'golden-set', 'fixtures');
 
-  it('fixture 15: description says "saza 5 saal tak" (303(2) is 5 years)', () => {
+  it('fixture 15: description says "saza 3 saal tak" (303(2) is 3 years, Ajay T-361)', () => {
     const f = readJson(FIXTURES, '15-default-bail-no-arithmetic.json') as { description: string };
-    expect(f.description).toContain('section 303(2) BNS, saza 5 saal tak.');
-    expect(f.description).not.toContain('saza 3 saal tak');
+    expect(f.description).toContain('section 303(2) BNS, saza 3 saal tak.');
+    expect(f.description).not.toContain('saza 5 saal tak');
   });
 
   it('fixture 18: risk, description and absent.why carry the signed lines', () => {
@@ -1107,8 +1107,8 @@ describe('pack and fixture lines', () => {
     expect(whys.some((w) => w.includes('10-year'))).toBe(false);
   });
 
-  it('fixtures 15 and 18 agree with the table: 303(2) = 5 years, 318(4) = 7 years', () => {
-    expect(OFFENCES['303(2)'].max_years).toBe(5);
+  it('table maxima: 303(2) = 3 years (T-361), 318(4) = 7 years', () => {
+    expect(OFFENCES['303(2)'].max_years).toBe(3);
     expect(OFFENCES['318(4)'].max_years).toBe(7);
   });
 

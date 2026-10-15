@@ -206,7 +206,7 @@
       "id": "consequential_relief_paragraph",
       "name": "Consequential Relief — Proviso to S.34 SRA",
       "required": true,
-      "description": "Plaintiff must claim further relief or explain why none lies — bare declaration not maintainable (Anathula Sudhakar v. P. Buchi Reddy)"
+      "description": "Plaintiff must claim further relief or explain why none lies — bare declaration not maintainable"
     },
     {
       "id": "cause_of_action",
@@ -265,7 +265,7 @@
       "S.34 SRA: 'Any person entitled to any legal character, or to any right as to any property, may institute a suit against any person denying, or interested to deny, his title to such character or right, and the court may in its discretion make therein a declaration that he is so entitled, and the plaintiff need not in such suit ask for any further relief.'",
       "CRITICAL — Proviso to S.34: 'No court shall make any such declaration where the plaintiff, being able to seek further relief than a mere declaration of title, omits to do so.'",
       "Therefore, if plaintiff is out of possession of property to which declaration relates, he MUST seek consequential relief (possession). Bare declaration is NOT maintainable.",
-      "Cite Anathula Sudhakar v. P. Buchi Reddy (2008) 4 SCC 594: where plaintiff is not in possession and defendant is in possession, suit for bare declaration is not maintainable — possession must be claimed as consequential relief.",
+      "Where plaintiff is not in possession and defendant is in possession, suit for bare declaration is not maintainable — possession must be claimed as consequential relief.",
       "If plaintiff is in possession and defendant is making cloud on title, suit for declaration + permanent injunction is appropriate.",
       "If plaintiff is dispossessed, suit must be for declaration + recovery of possession (and pay court fee on possession claim under state Court Fees Act).",
       "Para 1: Plaintiff description (Order VII R.1(a)).",
@@ -274,14 +274,15 @@
       "Plead how defendant denies the character / right or is interested to deny it (mere apprehension is not enough; denial must be actual or imminent).",
       "Plead plaintiff's present possession status — this determines what consequential relief is needed.",
       "Cause of Action — Order VII R.1(e): state when defendant first asserted adverse title / denied plaintiff's right.",
-      "Limitation — Article 58 of Limitation Act: 3 years from when right to sue first accrues, i.e., when right is first denied. Cite C. Mohammad Yunus v. Syed Unnissa (1961) 3 SCR 642 (continuing denial does not extend limitation).",
+      "Limitation — Article 58 of Limitation Act: 3 years from when right to sue first accrues, i.e., when right is first denied (continuing denial does not extend limitation).",
       "Jurisdiction — territorial under S.16 CPC for property suits (where property situated), or S.20 for other declarations.",
       "Valuation — Suits Valuation Act 1887 + state rules. Court fee on declaratory suits typically fixed (or ad valorem on consequential relief) — refer state Schedule. In Bihar/Jharkhand/UP follow Bihar Court Fees Act / UP Court Fees Act.",
       "Prayer must include: (i) declaration in specific terms; (ii) consequential relief specifically pleaded; (iii) costs.",
       "Verification: Order VI R.15 — verify each paragraph's source (knowledge/belief).",
       "Affidavit in support: Order VI R.15(4).",
       "Tone: precise legal pleading. Avoid argumentative tone.",
-      "Append Lawie disclaimer."
+      "Append Lawie disclaimer.",
+      "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
   "relevantActs": [

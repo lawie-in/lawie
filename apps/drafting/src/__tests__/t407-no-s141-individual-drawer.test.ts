@@ -47,6 +47,7 @@ import {
   buildPlaceholderContext,
   loadTemplateConfig,
   replacePlaceholders,
+  validateFormData,
 } from '../services/template-engine.service';
 import { SdkStreamParams, sdkAnswer } from './sdkStream';
 
@@ -609,6 +610,93 @@ describe('T-407 G: streamGenerateFromTemplate on the s.138 config (end to end)',
     const text = await templatePromptsFor(d);
     expect(mockMessagesStream).toHaveBeenCalled();
     expect(text).toContain('Sections 138, 139, 141, 142');
+  });
+});
+
+// ── I: T-452, the drawer type has no silent default ──────────────────────
+type RtField = { field_id: string; required?: boolean; default?: unknown; type?: string };
+const rtFieldOf = (schema: { form_schema: { steps: Array<{ fields: RtField[] }> } }): RtField =>
+  schema.form_schema.steps.flatMap((s) => s.fields).find((f) => f.field_id === 'respondent_type')!;
+
+describe('T-452 I: drawer type has no default (AC1, AC2)', () => {
+  // AC1: the config the form is served from (loadTemplateConfig) and the rule-pack source.
+  it('loaded template config: respondent_type has no default and stays required', () => {
+    const f = rtFieldOf(loadTemplateConfig(PACK_ID) as never);
+    expect(f.type).toBe('dropdown');
+    expect(f.required).toBe(true);
+    expect('default' in f).toBe(false);
+    expect(f.default).toBeUndefined();
+  });
+
+  it('document-rules source file: respondent_type has no default and stays required', () => {
+    const src = JSON.parse(
+      readFileSync(join(__dirname, '../config/document-rules/legal_notice_s138.json'), 'utf8'),
+    );
+    const f = rtFieldOf(src);
+    expect(f.required).toBe(true);
+    expect('default' in f).toBe(false);
+  });
+
+  it('docs/templates twin: respondent_type has no default and stays required', () => {
+    const f = rtFieldOf(TWIN as never);
+    expect(f.required).toBe(true);
+    expect('default' in f).toBe(false);
+  });
+
+  // AC1: required blocks generation while empty (server side).
+  it.each([
+    ['empty string', ''],
+    ['undefined', undefined],
+    ['null', null],
+  ])('validateFormData rejects respondent_type %s', (_n, v) => {
+    const data: Record<string, unknown> = { ...BASE };
+    if (v !== undefined) data.respondent_type = v;
+    else delete data.respondent_type;
+    const errors = validateFormData(loadTemplateConfig(PACK_ID)!, data);
+    expect(errors).toContain('Drawer Type is required');
+  });
+
+  it('validateFormData does not flag the drawer type once one is chosen', () => {
+    const errors = validateFormData(loadTemplateConfig(PACK_ID)!, {
+      ...BASE,
+      respondent_type: 'company',
+    });
+    expect(errors).not.toContain('Drawer Type is required');
+  });
+
+  // AC2: an unset drawer type withholds s.141 and nothing fills in "individual".
+  it.each([
+    ['empty string', { respondent_type: '' }],
+    ['undefined value', { respondent_type: undefined }],
+  ])('packForDrawer, %s: s.141 withheld, no "individual" substituted', (_n, values) => {
+    const pack = s138Pack();
+    const input = { ...values } as Record<string, unknown>;
+    const out = packForDrawer(pack, input);
+    expect(sectionNumbers(out)).toEqual(['138', '142', '143', '144']);
+    expect(sectionNumbers(pack)).toContain('141');
+    // the caller's values are left as they were: no "individual" written back
+    expect(input).toEqual(values);
+    expect(input.respondent_type === 'individual').toBe(false);
+  });
+
+  it('the generation prompt for an unset drawer is not the "individual" text and has no 141', async () => {
+    const unset = await templatePromptsFor(undefined);
+    const empty = await templatePromptsFor('');
+    expect(unset).not.toContain('Offences by companies');
+    expect(empty).not.toContain('Offences by companies');
+    expect(unset).not.toMatch(/respondent_type[^\n]*individual/i);
+    expect(empty).not.toMatch(/respondent_type[^\n]*individual/i);
+  });
+
+  it('the brief and ledger paths give a blank, never "individual", for an unset drawer', () => {
+    const brief = formDataFromBrief(labelBrief(null), loadTemplateConfig(PACK_ID)!, 'en');
+    const ledger = formDataFromBrief(
+      ledgerSkeletonBrief(labelBrief(null), heldFacts(null)),
+      loadTemplateConfig(PACK_ID)!,
+      'en',
+    );
+    expect(brief.respondent_type).not.toBe('individual');
+    expect(ledger.respondent_type).not.toBe('individual');
   });
 });
 
