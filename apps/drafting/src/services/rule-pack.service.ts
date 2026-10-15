@@ -1912,6 +1912,12 @@ export const OPTION_VALUE_ALIASES: Readonly<
       yes_flag_suraj_lamp_warning: 'yes_flag_title_warning',
     }),
   }),
+  // T-451 alias, remove in the post-v1 cleanup
+  joint_development_agreement: Object.freeze({
+    gpa_to_developer: Object.freeze({
+      yes_general_gpa_with_suraj_lamp_flag: 'yes_general_gpa_with_title_flag',
+    }),
+  }),
 });
 
 /**
