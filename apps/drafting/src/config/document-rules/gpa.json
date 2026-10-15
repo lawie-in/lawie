@@ -236,7 +236,7 @@
     },
     {
       "id": "suraj_lamp_disclaimer",
-      "name": "Suraj Lamp Disclaimer (if power to sell included)",
+      "name": "Title disclaimer (if power to sell included)",
       "required": false,
       "description": "GPA cannot transfer title; sale only by registered sale deed"
     },

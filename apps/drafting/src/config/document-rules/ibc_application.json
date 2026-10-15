@@ -147,7 +147,7 @@
       },
       {
         "id": "pre_existing_dispute",
-        "label": "Any pre-existing dispute disclosed by CD (S.9 — Mobilox test) — details",
+        "label": "Any pre-existing dispute disclosed by CD (S.9 — dispute raised before the demand notice) — details",
         "type": "textarea",
         "required": false
       },

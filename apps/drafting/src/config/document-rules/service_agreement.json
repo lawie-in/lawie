@@ -72,7 +72,7 @@
       "clause_id": "independent_contractor",
       "title": "Independent Contractor Relationship",
       "must_appear": true,
-      "content": "The Service Provider is engaged as an independent contractor and not as an employee, agent, partner, or joint venturer of the Client. No employer-employee relationship is created. The Service Provider is responsible for own income tax, social security, and all statutory dues. Reference: Dharangadhara Chemical Works v. Workmen AIR 1957 SC 264 (control test)."
+      "content": "The Service Provider is engaged as an independent contractor and not as an employee, agent, partner, or joint venturer of the Client. No employer-employee relationship is created. The Service Provider is responsible for own income tax, social security, and all statutory dues."
     },
     { "clause_id": "no_authority", "title": "No Authority to Bind", "must_appear": true },
     {

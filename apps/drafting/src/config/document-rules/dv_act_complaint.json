@@ -79,7 +79,7 @@
       },
       {
         "id": "additional_respondents",
-        "label": "Additional respondents (in-laws, family members — Hiral Harsora applies)",
+        "label": "Additional respondents (in-laws, family members)",
         "type": "textarea",
         "required": false
       },
