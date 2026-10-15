@@ -117,15 +117,30 @@ async function setEmailMarker(rowId: unknown): Promise<void> {
 }
 
 /**
+ * True when the user is erased or being erased (Ajay e591d0d): the user
+ * document is gone (T-115c hard-deletes it), or it carries auth's `erasure`
+ * sub-document (set once when erasure starts, `{ requestedAt, stage, … }`,
+ * never cleared; auth itself tests it with `$exists`). Billing's User schema
+ * does not declare `erasure` (strict: false), so it is projected explicitly
+ * and checked here rather than in the query filter. Throws on a DB error.
+ */
+export async function isErasedUser(userId: unknown): Promise<boolean> {
+  const user = await User.findById(userId)
+    .select({ _id: 1, erasure: 1 })
+    .lean<{ _id: unknown; erasure?: unknown } | null>();
+  return user === null || (user.erasure !== undefined && user.erasure !== null);
+}
+
+/**
  * Queues the email for one issued row and sets its marker. Never throws:
  * everything is logged and left for the sweep.
  *
- * Erased users (Ajay, GST file Addendum 8 #2; T-115c deletes the user
- * document): if the row's user no longer exists, nothing is queued and the
- * marker is set, so the sweep does not retry it. The invoice or credit note
- * itself stays issued and kept. The marker then means "email handled" (sent
- * to the queue, or deliberately not sent); the 'skipped_erased' log line is
- * the record of which.
+ * Erased users (Ajay, GST file Addendum 8 #2 and e591d0d; invoices and
+ * credit notes alike): see isErasedUser. Nothing is queued and the marker is
+ * set, so the sweep does not retry it. The invoice or credit note itself
+ * stays issued and kept. The marker then means "email handled" (sent to the
+ * queue, or deliberately not sent); the 'skipped_erased' log line is the
+ * record of which.
  */
 export async function queueInvoiceEmail(row: EmailRow): Promise<QueueInvoiceEmailOutcome> {
   const invoiceId = String(row._id);
@@ -140,7 +155,7 @@ export async function queueInvoiceEmail(row: EmailRow): Promise<QueueInvoiceEmai
   }
 
   try {
-    if ((await User.exists({ _id: row.userId })) === null) {
+    if (await isErasedUser(row.userId)) {
       await setEmailMarker(row._id);
       logger.info(
         { invoiceId, userId: String(row.userId), kind: row.kind },
