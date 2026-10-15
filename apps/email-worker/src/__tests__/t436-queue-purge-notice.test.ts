@@ -19,6 +19,7 @@ import {
   VERIFY_TEMPLATE,
   formatResult,
   purgeHeldVerifyJobs,
+  redactRedisUrl,
 } from '../../scripts/queue-purge';
 
 import { type AuthProxy, createAuthProxy } from './helpers/t436-auth-proxy';
@@ -781,7 +782,7 @@ describe('queue-purge main() with notice jobs (child process)', () => {
     const { code, out, err } = await runScript(['--yes']);
     expect(code).toBe(0);
     expect(err).toBe('');
-    const target = `redis://127.0.0.1:${new URL(redis.url).port}, prefix ${prefix}`;
+    const target = `${redactRedisUrl(redis.url)}, prefix ${prefix}`;
     const banner = out.split('\n').find((l) => l.includes('REMOVING'));
     expect(banner).toBe(`  ${BANNER(target)}`);
     expect(out).toContain('total held verify jobs: 4');
