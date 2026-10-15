@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
 
 import ConfirmCloseAccountDialog from '@/components/account/ConfirmCloseAccountDialog';
+import { InvoicesCard } from '@/components/billing/InvoicesCard';
 import { PlanUpgrade } from '@/components/billing/PlanUpgrade';
 import { secondaryButton } from '@/components/intake/ui';
 import { useAuth } from '@/context/AuthContext';
@@ -126,6 +127,9 @@ export default function SettingsPage() {
           </div>
         )}
       </div>
+
+      {/* T-436 — Invoices (Rajesh's spec, as settled by Arjun): after Plan, before Close account. */}
+      <InvoicesCard />
 
       {/* T-115c — Close account (Rajesh's spec §1): below Plan, above Sign out, apart from both
           so it is not hit by mistake. Strings: Madhuri, dpdp-ui-strings-t115.md B. */}
