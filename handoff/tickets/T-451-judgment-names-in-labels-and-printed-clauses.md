@@ -93,3 +93,7 @@ Read-time alias, no migration. At the one place form inputs are loaded and the o
 ## Added label (Ajay, 15 Oct 2026, T-449 ruling 4a7c7fb)
 
 `rera_complaint` form label at :155 ("(Pioneer Urban — concurrent remedy)") becomes: "Any previous Consumer / Civil proceedings on same cause? (the consumer remedy is concurrent)". T-449 leaves it untouched.
+
+## Added label (Ajay, 15 Oct 2026, T-449 round 1, 93d63ae)
+
+`ibc_application` form label at :150 ("S.9 — Mobilox test") becomes "…(S.9 — dispute raised before the demand notice) — details". The exact string is in the T-245 file. The clause name at :226 changes in T-449 ("No Pre-existing Dispute (S.9)"), not here.
