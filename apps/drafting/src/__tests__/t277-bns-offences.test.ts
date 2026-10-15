@@ -1081,10 +1081,10 @@ describe('pack and fixture lines', () => {
 
   const FIXTURES = path.join(REPO, 'scripts', 'golden-set', 'fixtures');
 
-  it('fixture 15: description says "saza 5 saal tak" (303(2) is 5 years)', () => {
+  it('fixture 15: description says "saza 3 saal tak" (303(2) is 3 years, Ajay T-361)', () => {
     const f = readJson(FIXTURES, '15-default-bail-no-arithmetic.json') as { description: string };
-    expect(f.description).toContain('section 303(2) BNS, saza 5 saal tak.');
-    expect(f.description).not.toContain('saza 3 saal tak');
+    expect(f.description).toContain('section 303(2) BNS, saza 3 saal tak.');
+    expect(f.description).not.toContain('saza 5 saal tak');
   });
 
   it('fixture 18: risk, description and absent.why carry the signed lines', () => {
@@ -1107,7 +1107,7 @@ describe('pack and fixture lines', () => {
     expect(whys.some((w) => w.includes('10-year'))).toBe(false);
   });
 
-  it('table maxima: 303(2) = 3 years (T-361; fixture 15 text still says 5, see report), 318(4) = 7 years', () => {
+  it('table maxima: 303(2) = 3 years (T-361), 318(4) = 7 years', () => {
     expect(OFFENCES['303(2)'].max_years).toBe(3);
     expect(OFFENCES['318(4)'].max_years).toBe(7);
   });
