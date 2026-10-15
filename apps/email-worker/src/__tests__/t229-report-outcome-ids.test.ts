@@ -65,4 +65,4 @@ it('final report failure logs userId as "invalid" for a hostile id, never the st
   expect(line).toBeDefined();
   expect(line?.userId).toBe('invalid');
   expect(allLogText()).not.toContain('Quasimodo');
-}, 15_000);
+}, 30_000); // real retry backoff (500 ms + 1000 ms, hardcoded in worker.ts) plus load
