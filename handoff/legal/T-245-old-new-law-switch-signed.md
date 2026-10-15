@@ -427,3 +427,21 @@ must-fix in T-450:
 With 1-3 applied, **T-450 is approved.** Merge-body ref: "Legal: T-450 signed by Ajay, T-245 file, T-450 byte check e665603 + fixes".
 
 Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+### T-448 byte check (fix/t-448-writ-packs-no-judgment-names at 8827785, 15 Oct 2026)
+
+Packs: cat_oa, certiorari, mandamus, pil, quo_warranto, writ_petition_civil, writ_petition_criminal. S appears once, last, in each. No case name is left in model-visible text. R1/R2 are applied correctly. Approved:
+
+- the certiorari Article 227 sentence, which is the correct present position on judicial orders of civil courts;
+- the R4 labels "mandatory PIL disclosure guidelines", "exceptions to the alternative-remedy bar" and "custodial torture guidelines".
+
+must-fix in T-448:
+
+1. **R6.** cat_oa, pil, writ_petition_civil and writ_petition_criminal dropped the CLO line. Use `All edits require CLO sign-off. Do not name judgments in model-visible text (Ajay, T-441).`
+2. **Wrong section (already in the pack before this ticket).** "S.35(7)" is not the arrest-without-warrant conditions. writ_petition_criminal Art. 22 line becomes: `   Art. 22 — Arrest procedures — conditions for arrest without warrant in offences punishable up to 7 years: S.35(1)(b) BNSS [S.41(1)(b) CrPC]; notice of appearance: S.35(3) BNSS [S.41A CrPC].` relevantActs description becomes: `When police may arrest (replaces S.41 CrPC)`.
+3. writ_petition_civil: restore the deleted proposition as `Where action affects livelihood / human dignity — plead Article 21.`
+4. cat_oa Para 15: `Para 15: Where penalty challenged — separate grounds on proportionality and on irrationality and, where applicable, S.11(2) CCS (CCA) Rules.` Proportionality and irrationality are two different tests.
+
+With 1-4 applied: **T-448 is approved.** Merge-body ref: "Legal: T-448 signed by Ajay, T-245 file, T-448 byte check 8827785 + fixes".
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.

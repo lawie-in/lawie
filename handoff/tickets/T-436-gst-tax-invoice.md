@@ -138,3 +138,9 @@ Tax rule: code 20 (our state) gives CGST 9% + SGST 9%. Every other code, all UTs
 4. **One bump, T-436's, with the summary.** Ajay (fc0d74d) already said the privacy-version bump rides on T-436 AC8; T-358 AC5 is dropped — T-358 never bumps, whichever lands first. Tanvi told.
 
 Claim: billing gains `@lawie/email-client` and `REDIS_URL` (Dockerfile, ci.yml billing filter, build step) — root config/CI, Priya extends the claim.
+
+## Arjun (15 Oct 2026) — environment fact, from the founder
+
+There is no production server. The only deployed box is a free test server running branch `develop`, and it is deliberately kept on a "coming soon" page rather than the dashboard so no customer is served before Anushka's PASS. The founder will not change anything on that server by hand. The GST values have been added as environment variables by the founder (not on the box); they reach billing at the next deploy of `develop`, which is his merge and his timing. Nothing in this ticket waits on a `pm2 restart` or a live `GET /api/billing/public/supplier` check — tests cover the endpoint; the live check happens on the first deploy that carries T-436.
+
+Addendum: that test server is what answers at `lawie.in` — it is there so the home page is reachable and the founder can watch traffic in Google Analytics. It is not production and must not be treated as such in any ticket, test or handoff.
