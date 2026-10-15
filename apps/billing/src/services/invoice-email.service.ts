@@ -10,8 +10,12 @@
  *   guarded, null-only update the Invoice model allows. A failed or skipped
  *   enqueue leaves it null, so the invoice sweep tries again; the jobId keeps a
  *   retry from sending twice.
- * - With REDIS_URL unset, nothing is queued (a warning is logged) and the
- *   marker stays null.
+ * - With INVOICE_EMAIL_ENABLED not "true" (the default) or REDIS_URL unset,
+ *   nothing is queued and the marker stays null; the sweep sends the backlog
+ *   once both are set.
+ * - Each enqueue is bounded by INVOICE_EMAIL_ENQUEUE_TIMEOUT_MS: a stuck Redis
+ *   gives 'failed' (marker null) and never holds up the issue path or the
+ *   sweep. If the late push still lands, the next try is deduped by the jobId.
  * - Backfilled rows (`draft.source: 'backfill'`) are emailed once too (Ajay
  *   Addendum 7 #4b): see EMAIL_BACKFILLED_INVOICES.
  *
@@ -23,6 +27,7 @@ import mongoose from 'mongoose';
 import { env } from '../config/env';
 import logger from '../config/logger';
 import { Invoice, type IInvoice, type InvoiceKindValue } from '../models/Invoice.model';
+import { User } from '../models/User.model';
 
 /**
  * Template ids, one per document kind (pending Priya's final call; keep both
@@ -60,16 +65,38 @@ export function unqueuedEmailFilter(): Record<string, unknown> {
   };
 }
 
+/** Longest wait for one enqueue before it counts as failed. */
+export const INVOICE_EMAIL_ENQUEUE_TIMEOUT_MS = 5_000;
+
+export class InvoiceEmailEnqueueTimeoutError extends Error {
+  constructor() {
+    super('invoice email enqueue timed out');
+    this.name = 'InvoiceEmailEnqueueTimeoutError';
+  }
+}
+
+/** Rejects with InvoiceEmailEnqueueTimeoutError if `p` has not settled within `ms`. */
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  let timer: NodeJS.Timeout | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new InvoiceEmailEnqueueTimeoutError()), ms);
+    timer.unref();
+  });
+  return Promise.race([p, timeout]).finally(() => clearTimeout(timer));
+}
+
+/** Both switches: INVOICE_EMAIL_ENABLED is "true" and REDIS_URL is set. */
 export function emailQueueConfigured(): boolean {
-  return env.REDIS_URL.length > 0;
+  return env.INVOICE_EMAIL_ENABLED && env.REDIS_URL.length > 0;
 }
 
 export type QueueInvoiceEmailOutcome =
   | 'queued' // enqueued (or deduped by jobId) and marker set
   | 'already_queued' // marker was already set
   | 'not_emailed' // backfill row, or not issued
-  | 'no_queue' // REDIS_URL unset; marker left null
-  | 'failed'; // enqueue or marker write failed; marker left null
+  | 'no_queue' // INVOICE_EMAIL_ENABLED off or REDIS_URL unset; marker left null
+  | 'skipped_erased' // the user's account is erased: nothing queued, marker set
+  | 'failed'; // enqueue failed or timed out, or a DB read/write failed; marker left null
 
 type EmailRow = Pick<IInvoice, 'kind' | 'state' | 'userId' | 'emailQueuedAt'> & {
   _id: unknown;
@@ -77,8 +104,28 @@ type EmailRow = Pick<IInvoice, 'kind' | 'state' | 'userId' | 'emailQueuedAt'> & 
 };
 
 /**
+ * Sets the row's one-shot marker through the guarded, null-only update the
+ * Invoice model allows. timestamps: false, or Mongoose adds updatedAt and the
+ * guard refuses it.
+ */
+async function setEmailMarker(rowId: unknown): Promise<void> {
+  await Invoice.updateOne(
+    { _id: rowId },
+    { $set: { emailQueuedAt: new Date() } },
+    { timestamps: false },
+  );
+}
+
+/**
  * Queues the email for one issued row and sets its marker. Never throws:
  * everything is logged and left for the sweep.
+ *
+ * Erased users (Ajay, GST file Addendum 8 #2; T-115c deletes the user
+ * document): if the row's user no longer exists, nothing is queued and the
+ * marker is set, so the sweep does not retry it. The invoice or credit note
+ * itself stays issued and kept. The marker then means "email handled" (sent
+ * to the queue, or deliberately not sent); the 'skipped_erased' log line is
+ * the record of which.
  */
 export async function queueInvoiceEmail(row: EmailRow): Promise<QueueInvoiceEmailOutcome> {
   const invoiceId = String(row._id);
@@ -87,18 +134,38 @@ export async function queueInvoiceEmail(row: EmailRow): Promise<QueueInvoiceEmai
   if (!emailQueueConfigured()) {
     logger.warn(
       { invoiceId },
-      'invoice email: REDIS_URL not set; not queued, the sweep will retry',
+      'invoice email: INVOICE_EMAIL_ENABLED off or REDIS_URL not set; not queued, the sweep will retry',
     );
     return 'no_queue';
   }
 
   try {
-    await enqueueEmail({
-      template: INVOICE_EMAIL_TEMPLATES[row.kind],
-      to: [],
-      data: { userId: String(row.userId), invoiceId },
-      idempotencyKey: invoiceEmailJobId(invoiceId),
-    });
+    if ((await User.exists({ _id: row.userId })) === null) {
+      await setEmailMarker(row._id);
+      logger.info(
+        { invoiceId, userId: String(row.userId), kind: row.kind },
+        'invoice email: skipped_erased',
+      );
+      return 'skipped_erased';
+    }
+  } catch (err) {
+    logger.error(
+      { invoiceId, errName: err instanceof Error ? err.name : 'unknown' },
+      'invoice email: user check failed; the sweep will retry',
+    );
+    return 'failed';
+  }
+
+  try {
+    await withTimeout(
+      enqueueEmail({
+        template: INVOICE_EMAIL_TEMPLATES[row.kind],
+        to: [],
+        data: { userId: String(row.userId), invoiceId },
+        idempotencyKey: invoiceEmailJobId(invoiceId),
+      }),
+      INVOICE_EMAIL_ENQUEUE_TIMEOUT_MS,
+    );
   } catch (err) {
     logger.error(
       { invoiceId, errName: err instanceof Error ? err.name : 'unknown' },
@@ -108,13 +175,7 @@ export async function queueInvoiceEmail(row: EmailRow): Promise<QueueInvoiceEmai
   }
 
   try {
-    // The one update the immutability guard lets through on an issued row.
-    // timestamps: false, or Mongoose adds updatedAt and the guard refuses it.
-    await Invoice.updateOne(
-      { _id: row._id },
-      { $set: { emailQueuedAt: new Date() } },
-      { timestamps: false },
-    );
+    await setEmailMarker(row._id);
   } catch (err) {
     // Queued but not marked: the sweep re-enqueues with the same jobId, which
     // BullMQ drops while the first job is kept (7 days after it completes).

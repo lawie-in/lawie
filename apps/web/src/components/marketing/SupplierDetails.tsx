@@ -3,13 +3,15 @@
 /**
  * T-436: the supplier lines on the Terms page (Ajay, handoff/legal/gst-tax-invoice-signed.md).
  *
- * - 5b (Terms §1), as amended by Addendum 1 (no street address on public pages):
- *   `Lawie is a trade name of {supplier_legal_name}, a sole proprietorship registered for GST in
- *   {supplier_state} (GSTIN {supplier_gstin}). In these Terms, "Lawie", "we" and "us" mean that
- *   proprietorship.`
+ * - 5b (Terms §1), as amended by Addendum 1 (no street address on public pages) and Addendum 8
+ *   (#1: the trade name comes from the endpoint, as on REG-06):
+ *   `{supplier_trade_name} is a trade name of {supplier_legal_name}, a sole proprietorship
+ *   registered for GST in {supplier_state} (GSTIN {supplier_gstin}). In these Terms, "Lawie",
+ *   "we" and "us" mean that proprietorship.`
  * - 5c (Terms §14), as amended by Addendum 1: the legal name, above the contact email.
  * - Addendum 7 (3b): never a placeholder. No legal name: 5b and 5c are hidden. A legal name
- *   but no GSTIN: 5b without ` (GSTIN {supplier_gstin})`.
+ *   but no GSTIN: 5b without ` (GSTIN {supplier_gstin})`. Addendum 8: no trade name hides 5b
+ *   (5c needs only the legal name).
  *
  * Values come from billing's public GET /api/billing/public/supplier (the same values the
  * invoice prints), fetched in the browser once per page load. Any failure (503 while the env
@@ -22,6 +24,8 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
 export interface SupplierDetails {
   legalName: string;
+  /** '' when the endpoint gives none (then 5b is hidden). */
+  tradeName: string;
   gstin: string;
   stateName: string;
 }
@@ -35,14 +39,19 @@ export function parseSupplier(body: unknown): SupplierDetails | null {
   const b = (body ?? {}) as Record<string, unknown>;
   const legalName = str(b.legalName);
   if (!legalName) return null;
-  return { legalName, gstin: str(b.gstin), stateName: str(b.stateName) };
+  return {
+    legalName,
+    tradeName: str(b.tradeName),
+    gstin: str(b.gstin),
+    stateName: str(b.stateName),
+  };
 }
 
-/** Ajay 5b (Addendum 1 and 7), or null when it cannot be shown without a placeholder. */
+/** Ajay 5b (Addenda 1, 7 and 8), or null when it cannot be shown without a placeholder. */
 export function supplierTermsSentence(s: SupplierDetails | null): string | null {
-  if (!s || !s.stateName) return null;
+  if (!s || !s.tradeName || !s.stateName) return null;
   const gstin = s.gstin ? ` (GSTIN ${s.gstin})` : '';
-  return `Lawie is a trade name of ${s.legalName}, a sole proprietorship registered for GST in ${s.stateName}${gstin}. In these Terms, "Lawie", "we" and "us" mean that proprietorship.`;
+  return `${s.tradeName} is a trade name of ${s.legalName}, a sole proprietorship registered for GST in ${s.stateName}${gstin}. In these Terms, "Lawie", "we" and "us" mean that proprietorship.`;
 }
 
 let pending: Promise<SupplierDetails | null> | null = null;

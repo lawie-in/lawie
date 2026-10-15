@@ -13,7 +13,10 @@
  * `emailQueuedAt` is still null (REDIS_URL unset at issue, an enqueue that
  * failed, or a crash before the marker), with the same jobId `invoice-<id>`.
  * Backfilled rows are included (Ajay Addendum 7 #4b). This pass needs no
- * seller config, so it runs even while issuing is blocked by it.
+ * seller config, so it runs even while issuing is blocked by it. It queues
+ * nothing until INVOICE_EMAIL_ENABLED is "true" and REDIS_URL is set; each
+ * enqueue is bounded by INVOICE_EMAIL_ENQUEUE_TIMEOUT_MS (in queueInvoiceEmail),
+ * so a stuck Redis cannot hang a run.
  *
  * Logs counts, ids and err.name only.
  */
@@ -50,6 +53,8 @@ export interface InvoiceSweepCounts {
   emailsQueued: number;
   /** T-436 (c): issued rows still without a queued email after this run. */
   emailsPending: number;
+  /** T-436 (Ajay Addendum 8 #2): rows whose user is erased; not emailed, marker set. */
+  emailsSkippedErased: number;
 }
 
 /**
@@ -63,7 +68,7 @@ async function sweepUnqueuedEmails(before: Date, counts: InvoiceSweepCounts): Pr
     if (counts.emailsPending > 0) {
       logger.warn(
         { pending: counts.emailsPending },
-        'Invoice sweep: REDIS_URL not set; invoice emails waiting',
+        'Invoice sweep: INVOICE_EMAIL_ENABLED off or REDIS_URL not set; invoice emails waiting',
       );
     }
     return;
@@ -76,6 +81,7 @@ async function sweepUnqueuedEmails(before: Date, counts: InvoiceSweepCounts): Pr
   for (const row of rows) {
     const outcome = await queueInvoiceEmail(row);
     if (outcome === 'queued') counts.emailsQueued += 1;
+    else if (outcome === 'skipped_erased') counts.emailsSkippedErased += 1;
     else if (outcome !== 'already_queued' && outcome !== 'not_emailed') counts.emailsPending += 1;
   }
 }
@@ -91,6 +97,7 @@ export async function runInvoiceSweep(now: Date = new Date()): Promise<InvoiceSw
     blockedByConfig: 0,
     emailsQueued: 0,
     emailsPending: 0,
+    emailsSkippedErased: 0,
   };
   const before = new Date(now.getTime() - INVOICE_SWEEP_MIN_AGE_MS);
 
@@ -154,7 +161,9 @@ export async function runInvoiceSweep(now: Date = new Date()): Promise<InvoiceSw
 
   await sweepUnqueuedEmails(before, counts);
 
-  if (counts.found > 0 || counts.emailsQueued > 0) logger.info(counts, 'Invoice sweep');
+  if (counts.found > 0 || counts.emailsQueued > 0 || counts.emailsSkippedErased > 0) {
+    logger.info(counts, 'Invoice sweep');
+  }
   return counts;
 }
 

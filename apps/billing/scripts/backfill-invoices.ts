@@ -25,9 +25,11 @@
  * second run issues nothing twice.
  *
  * T-436 (c): each backfilled invoice is emailed once (Ajay, GST file Addendum
- * 7 #4b), queued by the same issue step as the webhook, or by the invoice
- * sweep if that enqueue fails (EMAIL_BACKFILLED_INVOICES in
- * src/services/invoice-email.service.ts).
+ * 7 #4b), but this script does not wait for it: the issue step's enqueue runs
+ * in the background and the script exits once done (process.exit after the
+ * Mongo disconnect, so an open queue connection cannot hold it). The billing
+ * service's invoice sweep sends the emails for any row whose `emailQueuedAt`
+ * is still null, once INVOICE_EMAIL_ENABLED is "true" and REDIS_URL is set.
  *
  * The dry run writes nothing to Mongo; it does read from Razorpay (GET only).
  *
@@ -303,6 +305,9 @@ async function main(): Promise<void> {
   } finally {
     await mongoose.disconnect();
   }
+  // Exit explicitly: a queue connection opened by a background enqueue would
+  // otherwise keep the process alive. The sweep sends any email cut off here.
+  process.exit(process.exitCode ?? 0);
 }
 
 main().catch((err: unknown) => {
