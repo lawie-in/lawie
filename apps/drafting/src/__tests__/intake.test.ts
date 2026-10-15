@@ -257,10 +257,11 @@ describe('POST /intake — invalid values are dropped and listed as missing', ()
         'currently_in_custody',
         'court_name',
         'police_station',
-        'fir_date',
         'applicant_age',
       ]),
     );
+    // T-245a (Addendum 1, last row): fir_date is optional, so it is not listed as missing.
+    expect(res.body.missing).not.toContain('fir_date');
   });
 
   it('a field given two different values is left empty (§4.1.5); a valid option is kept', async () => {

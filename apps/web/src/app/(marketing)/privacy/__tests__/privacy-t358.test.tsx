@@ -3,7 +3,8 @@
  *  - §9 gets the 14 Oct line, byte for byte, straight after the "Everything else" bullet, once;
  *    the 12 Oct wording ("deleted 30 days after sign-up") does not appear;
  *  - "Last updated" moves to 15 October 2026;
- *  - CURRENT_PRIVACY_VERSION is NOT bumped (no re-accept prompt), so it stays '2026-10-12b'.
+ *  - CURRENT_PRIVACY_VERSION is NOT bumped by T-358 itself (no re-accept prompt); T-436 bumps it
+ *    to '2026-10-15' (Ajay, GST file Addendum 4) and the pin below follows.
  */
 import * as fs from 'fs';
 import * as path from 'path';
@@ -99,8 +100,8 @@ describe('Last updated and the version', () => {
     expect(text).not.toContain('14 October 2026');
   });
 
-  it('CURRENT_PRIVACY_VERSION is unchanged: 2026-10-12b (no re-accept prompt)', () => {
-    expect(sharedPrivacy).toContain("export const CURRENT_PRIVACY_VERSION = '2026-10-12b';");
+  it('CURRENT_PRIVACY_VERSION is 2026-10-15, set in shared (T-436 bump, Ajay Addendum 4)', () => {
+    expect(sharedPrivacy).toContain("export const CURRENT_PRIVACY_VERSION = '2026-10-15';");
   });
 
   it('the page source does not set a version of its own', () => {

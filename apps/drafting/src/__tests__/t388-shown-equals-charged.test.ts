@@ -1,8 +1,8 @@
 /**
  * T-388 AC2 (server side) - the Ink cost shown is the Ink cost charged.
  *
- * For each of the three charging routes (POST /generate-from-template, POST /generate-from-brief
- * with a rule pack and with none, and the legacy POST /generate) the amount held (holdInk's
+ * For each of the three charging paths (POST /generate-from-template, POST /generate-from-brief
+ * with a rule pack and with none; the legacy POST /generate is 410 since T-443) the amount held (holdInk's
  * costCredits), the amount the ledger then charges, and the number GET /template-configs shows the
  * web (credits_cost, guided_credits_cost) all come from costForTemplate. An id with no price is
  * refused before any hold. Fixtures follow t226-ink-holds.routes.test.ts; the model is the SDK stub.
@@ -159,20 +159,6 @@ const PATHS: GenPath[] = [
     }),
     answer: LETTER,
   },
-  {
-    name: 'legacy',
-    url: '/generate',
-    priceId: 'petition',
-    body: (extra = {}) => ({
-      docType: 'petition',
-      courtName: 'Patna High Court',
-      courtType: 'high_court',
-      keyFacts: 'The petitioner was denied a ration card without reason.',
-      reliefPrayer: 'Issue the ration card.',
-      ...extra,
-    }),
-    answer: '1. The petitioner submits.',
-  },
 ];
 
 /** The number the web is shown for this path: GET /template-configs. */
@@ -259,11 +245,9 @@ describe.each(PATHS)('T-388 AC2 - shown equals charged: $name', (p) => {
     // charged
     expect(await ledgerInk()).toBe(expected);
     expect(START - (await inkLeft())).toBe(expected);
-    // shown (the web reads this; the legacy route has no list entry, so its price is the only source)
-    if (p.url !== '/generate') {
-      expect(await shownCost(p)).toBe(expected);
-      expect(await shownCost(p)).toBe(holdSpy.mock.calls[0][0].costCredits);
-    }
+    // shown (the web reads this)
+    expect(await shownCost(p)).toBe(expected);
+    expect(await shownCost(p)).toBe(holdSpy.mock.calls[0][0].costCredits);
   });
 
   it('an id with no price is refused before any hold: nothing held, no model call, no Ink spent', async () => {
@@ -284,7 +268,6 @@ describe.each(PATHS)('T-388 AC2 - shown equals charged: $name', (p) => {
   });
 
   it('the list leaves the number out for the same unpriced id, so the web blocks rather than guesses', async () => {
-    if (p.url === '/generate') return; // no list entry for the legacy docType
     const real = credits.costForTemplate;
     jest
       .spyOn(credits, 'costForTemplate')

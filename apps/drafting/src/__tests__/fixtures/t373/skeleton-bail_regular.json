@@ -1,6 +1,6 @@
 {
   "pack": "bail_regular",
-  "version": 3,
+  "version": 4,
   "none_values": "first_bail_application.equals (T-334)",
   "antecedents_none_values": [
     "none",
@@ -28,8 +28,8 @@
       "order": 10,
       "required": true,
       "source": "fixed",
-      "text": "The applicant, {applicant_name}, aged {applicant_age} years, resident of {address}, submits this application for regular bail under Section 483 of the Bharatiya Nagarik Suraksha Sanhita, 2023.",
-      "slots": ["applicant_name", "applicant_age", "address"]
+      "text": "The applicant, {applicant_name}, aged {applicant_age} years, resident of {address}, submits this application for regular bail under {governing_provision}.",
+      "slots": ["applicant_name", "applicant_age", "address", "governing_provision"]
     },
     {
       "id": "fir_details",
@@ -254,7 +254,8 @@
         "key": "s35_notice_status",
         "in": ["not_served"]
       },
-      "text": "No notice under Section 35 of the Bharatiya Nagarik Suraksha Sanhita, 2023 was served on the applicant before arrest."
+      "text": "No notice under {notice_provision} was served on the applicant before arrest.",
+      "slots": ["notice_provision"]
     },
     {
       "id": "parity",

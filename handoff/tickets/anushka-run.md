@@ -1227,3 +1227,42 @@ Quality: nothing to test in the UI — operator scripts and docs only
 - Switches on only when the operator turns it on, so it cannot be seen on develop until then.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-443 — Old generate route retired (cc2adc0, mahak, 15 Oct 2026)
+
+- Nothing a user sees. A direct call to the old generate route is refused with a clear message instead of charging Ink for a draft that could cite the wrong law.
+
+Quality: nothing to test in the UI — API route only
+
+## T-364 — One plan list everywhere (403b768f, kunal, 15 Oct 2026)
+
+- You see the same plans and prices on the pricing page, home page, upgrade prompts and Settings, because they all read one list. Nothing looks different today.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+> Note for the batch (15 Oct): on develop the invoice email switch is off, so the pricing line "we email you a GST tax invoice" produces no email there. Download of the invoice from Settings works.
+
+## T-436 b/c — Choose your State, see and download invoices (6be2d5b1, shashank, 15 Oct 2026)
+
+- Choose your State when upgrading, buying Ink or in Settings, so your tax invoice shows the right GST; you are asked to accept the updated privacy policy first.
+- See every invoice and credit note in Settings and download each as a PDF.
+- Get an email with each invoice and credit note once emails are switched on (off on develop, so no email there; the Settings download works).
+- Read in the Terms who supplies Lawie and its GST registration, in the Privacy policy why the State is asked, and on the pricing page that prices include GST.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-116 and T-445 — Legal-content list complete (b2d6e6f, c60801b, mahak, 15 Oct 2026)
+
+- Nothing a user sees. A change to any listed prompt, signed-text file, seed script or sample PDF now asks for Ajay's sign-off.
+
+Quality: nothing to test in the UI — Markdown and code comments only
+
+## T-245a — Bail applications cite the law that applies (ac4ef134, vishal, 15 Oct 2026)
+
+- In a bail application, the draft cites the law that applies to your case: IPC for an offence before 1 July 2024, BNS on or after.
+- If the FIR was registered on or after 1 July 2024, the draft uses the BNSS and BSA. For an older FIR you choose BNSS and BSA, or CrPC and Evidence Act.
+- The heading, prayer and governing provision name the section you chose, for example "Section 439 of the Code of Criminal Procedure, 1973". The arrest-notice point (41A CrPC or 35(3) BNSS), the women's proviso and the related acts follow it.
+- With no choice and an old or unknown FIR date, the draft leaves a "[To be confirmed: ...]" blank for you. It never guesses, and your IPC sections are never silently turned into BNS sections.
+- Intake asks "On what date was the FIR registered, or the complaint filed if there is no FIR?". You can answer "Not known" and carry on.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

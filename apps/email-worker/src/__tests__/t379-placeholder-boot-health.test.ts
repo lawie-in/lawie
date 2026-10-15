@@ -27,7 +27,7 @@ import {
   resetSink,
   withEnv,
 } from './helpers/t220-capture';
-import { renderReal } from './helpers/t223-real-render';
+import { INVOICE_SENTINEL_FIELDS, renderReal } from './helpers/t223-real-render';
 
 jest.mock('../config/logger', () =>
   jest.requireActual('./helpers/t220-capture').makeCapturingLogger(),
@@ -149,6 +149,8 @@ describe('tripwire: every registered template vs TEMPLATE_FOOTERS', () => {
     deletionDate: '21 October 2026',
     variant: 'A',
     url: 'https://app.lawie.in/x',
+    // billing.taxInvoice / billing.creditNote (T-436 b/c) refuse to render without these.
+    ...INVOICE_SENTINEL_FIELDS,
   };
   const ids: string[] = jest.requireActual('../templates').listTemplates();
 

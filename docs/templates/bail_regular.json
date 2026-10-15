@@ -2,7 +2,7 @@
   "template_id": "bail_regular",
   "display_name": "Regular Bail Application",
   "category": "criminal",
-  "description": "Application for regular bail: Section 480 BNSS, 2023 before a Magistrate, Section 483 before a Court of Session or a High Court",
+  "description": "Application for regular bail",
   "icon": "scales",
   "plan_access": "free",
   "applicable_courts": {
@@ -41,12 +41,43 @@
           },
           {
             "field_id": "fir_date",
-            "label": "FIR Date",
+            "label": "Date of FIR, or of the complaint if no FIR",
             "type": "date",
-            "required": true,
+            "required": false,
+            "question": "On what date was the FIR registered, or the complaint filed if there is no FIR?",
+            "ask_when_empty": true,
             "inject_into": [
               "body_para_1",
               "prayer"
+            ]
+          },
+          {
+            "field_id": "offence_date",
+            "label": "Date of the alleged offence (or of the offence of conviction)",
+            "type": "date",
+            "required": false,
+            "inject_into": [
+              "ai_prompt"
+            ]
+          },
+          {
+            "field_id": "procedure_code",
+            "label": "This application is under",
+            "type": "dropdown",
+            "options": [
+              {
+                "id": "bnss_and_bsa",
+                "label": "BNSS and BSA"
+              },
+              {
+                "id": "crpc_and_evidence_act",
+                "label": "CrPC and Evidence Act"
+              }
+            ],
+            "required": false,
+            "help": "Matters only for a case that began before 1 July 2024. For an FIR on or after that date, Lawie uses the BNSS.",
+            "inject_into": [
+              "ai_prompt"
             ]
           },
           {
@@ -65,7 +96,7 @@
             "type": "multi_select_search",
             "source": "bns_mapping",
             "required": true,
-            "auto_convert_old": true,
+            "auto_convert_old": false,
             "inject_into": [
               "body_para_1",
               "ai_prompt"
@@ -288,7 +319,7 @@
           },
           {
             "field_id": "s35_notice_status",
-            "label": "Notice under Section 35 BNSS",
+            "label": "Notice to appear (Section 35 BNSS / Section 41A CrPC)",
             "type": "dropdown",
             "options": [
               {
@@ -305,7 +336,7 @@
               }
             ],
             "required": false,
-            "question": "Before the arrest, was a notice of appearance under Section 35(3) of the BNSS served on the applicant?",
+            "question": "Before the arrest, was a notice of appearance under Section 35(3) of the BNSS or Section 41A of the CrPC served on the applicant?",
             "ask_when_empty": true
           },
           {
@@ -546,7 +577,7 @@
         "high_court": "483",
         "high_court_bench": "483"
       },
-      "instruction": "This application is made under Section {value} of the Bharatiya Nagarik Suraksha Sanhita, 2023. Cite only this one provision as the provision under which bail is sought. Do not cite Section 481 or Section 482."
+      "instruction": "This application is made under {governing_provision}. Cite only this one provision as the provision under which bail is sought. {do_not_cite}."
     },
     "bail_type_label": {
       "logic": "'Regular Bail'"
@@ -576,7 +607,7 @@
         "section_id": "application_heading",
         "type": "template",
         "alignment": "center",
-        "template": "APPLICATION FOR REGULAR BAIL UNDER SECTION {bail_section} OF THE BHARATIYA NAGARIK SURAKSHA SANHITA, 2023"
+        "template": "APPLICATION FOR REGULAR BAIL UNDER {GOVERNING_PROVISION}"
       },
       {
         "section_id": "addressing_clause",
@@ -587,7 +618,7 @@
       {
         "section_id": "body",
         "type": "ai_generated",
-        "prompt_context": "Generate 7-10 numbered paragraphs for a {bail_type_label} application. Paragraph 1 must mention FIR No. {fir_number} dated {fir_date}, registered at PS {police_station}, under Sections {sections_charged} of BNS, 2023. Paragraphs 2-3 should narrate the facts based on: {facts_narrative}. Subsequent paragraphs should establish the grounds for bail: {grounds_for_bail}. Reference Article 21 of Constitution. Use formal legal language. Do NOT generate the prayer clause or verification — those are template-handled.",
+        "prompt_context": "Generate 7-10 numbered paragraphs for a {bail_type_label} application. Paragraph 1 must mention FIR No. {fir_number} dated {fir_date}, registered at PS {police_station}, under Section(s) {sections_charged}, as written in the FIR. Paragraphs 2-3 should narrate the facts based on: {facts_narrative}. Subsequent paragraphs should establish the grounds for bail: {grounds_for_bail}. Reference Article 21 of Constitution. Use formal legal language. Do NOT generate the prayer clause or verification — those are template-handled.",
         "numbering": "numeric",
         "min_paragraphs": 7,
         "max_paragraphs": 12
@@ -596,7 +627,7 @@
         "section_id": "prayer",
         "type": "template",
         "alignment": "left",
-        "template": "PRAYER\n\n{prayer_opening}\n\na) Grant {bail_type_label} to the {party_label_petitioner}, {applicant_name}, in connection with FIR No. {fir_number} dated {fir_date}, PS {police_station}, under Section {bail_section} of BNSS, 2023, on such terms and conditions as this Hon'ble Court may deem fit;\n\nb) Pass such other orders as this Hon'ble Court may deem fit and proper in the facts and circumstances of the case, in the interest of justice.\n\n{prayer_closing}"
+        "template": "PRAYER\n\n{prayer_opening}\n\na) Grant {bail_type_label} to the {party_label_petitioner}, {applicant_name}, in connection with FIR No. {fir_number} dated {fir_date}, PS {police_station}, under {governing_provision}, on such terms and conditions as this Hon'ble Court may deem fit;\n\nb) Pass such other orders as this Hon'ble Court may deem fit and proper in the facts and circumstances of the case, in the interest of justice.\n\n{prayer_closing}"
       },
       {
         "section_id": "verification",
@@ -638,7 +669,7 @@
       "CrPC",
       "IEA"
     ],
-    "auto_convert_old_to_new": true,
+    "auto_convert_old_to_new": false,
     "mandatory_sections": [
       "cause_title",
       "application_heading",

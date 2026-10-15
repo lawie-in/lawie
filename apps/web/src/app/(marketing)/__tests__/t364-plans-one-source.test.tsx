@@ -1,0 +1,215 @@
+// T-364 AC3/AC4: one source of plan data (PLANS in @lawie/shared). The pricing page, the home
+// cards, the paywall, the upgrade-success modal and the Settings plan list all show the numbers
+// billing's GET /plans serves (billing builds that response from the same PLANS).
+import { PLANS } from '@lawie/shared';
+import { act, type ReactElement } from 'react';
+import { createRoot, type Root } from 'react-dom/client';
+
+import { PlanUpgrade } from '@/components/billing/PlanUpgrade';
+import { PaywallModal } from '@/components/credits/PaywallModal';
+import { UpgradeSuccessModal } from '@/components/credits/UpgradeSuccessModal';
+import { formatPlanInk, formatPlanPrice, type SubscriptionPlan } from '@/lib/plans';
+
+import HomePage from '../page';
+import { metadata as pricingMetadata } from '../pricing/layout';
+import PricingPage from '../pricing/page';
+
+jest.mock('@/components/marketing/SiteNav', () => ({ __esModule: true, default: () => null }));
+jest.mock('@/components/marketing/SiteFooter', () => ({ __esModule: true, default: () => null }));
+jest.mock('@/components/marketing/FloatCta', () => ({ __esModule: true, default: () => null }));
+
+const mockFetchPlans = jest.fn();
+jest.mock('@/lib/plans', () => ({
+  ...jest.requireActual('@/lib/plans'),
+  fetchPlans: () => mockFetchPlans(),
+}));
+jest.mock('@/components/PrivacyUpdatePrompt', () => ({
+  PrivacyBlockedNotice: () => null,
+  isPrivacyBlocked: () => false,
+  privacyFetch: jest.fn(),
+  usePrivacyDescribedBy: () => undefined,
+  // T-436: the State picker waits for acceptance through this.
+  onPrivacyAccepted: () => () => {},
+}));
+// T-436: PlanUpgrade renders a State picker, which reads the signed-in user (none here).
+jest.mock('@/context/AuthContext', () => ({ useAuth: () => ({ user: null }) }));
+jest.mock('@/components/VerifyEmailPrompt', () => ({
+  VerifyEmailCard: () => null,
+  isEmailVerificationRequired: async () => false,
+  useNeedsEmailVerification: () => false,
+}));
+jest.mock('@/components/credits/TopUpModal', () => ({ TopUpModal: () => null }));
+
+(globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+
+type PlanId = keyof typeof PLANS;
+const IDS = ['solo_monthly', 'solo_yearly', 'pro_monthly', 'pro_yearly'] as const;
+
+/** What billing's GET /plans serves for subscriptions: PLANS plus the id. */
+const servedPlan = (id: PlanId): SubscriptionPlan => ({ id, ...PLANS[id] });
+const inr = (n: number) => `₹${n.toLocaleString('en-IN')}`;
+
+let container: HTMLDivElement;
+let root: Root;
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  container = document.createElement('div');
+  document.body.appendChild(container);
+  root = createRoot(container);
+});
+afterEach(() => {
+  act(() => root.unmount());
+  container.remove();
+});
+
+function render(el: ReactElement): string {
+  act(() => root.render(el));
+  return container.textContent ?? '';
+}
+
+async function renderAsync(el: ReactElement): Promise<string> {
+  await act(async () => {
+    root.render(el);
+  });
+  await act(async () => {
+    for (let i = 0; i < 10; i += 1) await Promise.resolve();
+  });
+  return container.textContent ?? '';
+}
+
+function clickYearly() {
+  const btn = container.querySelector('button[data-period="yearly"]') as HTMLButtonElement;
+  act(() => btn.click());
+  return container.textContent ?? '';
+}
+
+describe('T-364 PLANS pinned', () => {
+  it('has the four SKUs with the agreed numbers', () => {
+    expect(Object.keys(PLANS)).toEqual([...IDS]);
+    expect(PLANS.solo_monthly.priceInr).toBe(799);
+    expect(PLANS.solo_yearly.priceInr).toBe(7990);
+    expect(PLANS.pro_monthly.priceInr).toBe(1999);
+    expect(PLANS.pro_yearly.priceInr).toBe(19990);
+    expect(IDS.map((id) => PLANS[id].inkPerCycle)).toEqual([50, 50, 150, 150]);
+  });
+});
+
+describe('T-364 pricing page', () => {
+  it('monthly view shows the PLANS prices, yearly teasers and Ink', () => {
+    const text = render(<PricingPage />);
+    expect(text).toContain(formatPlanPrice(servedPlan('solo_monthly')));
+    expect(text).toContain(formatPlanPrice(servedPlan('pro_monthly')));
+    expect(text).toContain('₹799/month');
+    expect(text).toContain('₹1,999/month');
+    expect(text).toContain('or ₹7,990/year — save 2 months');
+    expect(text).toContain('or ₹19,990/year — save 2 months');
+    expect(text).toContain(formatPlanInk(servedPlan('solo_monthly')));
+    expect(text).toContain(formatPlanInk(servedPlan('pro_monthly')));
+    expect(text).toContain('50 Ink/month');
+    expect(text).toContain('150 Ink/month');
+  });
+
+  it('yearly view shows the yearly prices and the savings computed from PLANS', () => {
+    render(<PricingPage />);
+    const text = clickYearly();
+    expect(text).toContain(formatPlanPrice(servedPlan('solo_yearly')));
+    expect(text).toContain(formatPlanPrice(servedPlan('pro_yearly')));
+    expect(text).toContain('₹7,990/year');
+    expect(text).toContain('₹19,990/year');
+    expect(text).toContain('₹1,598 saved');
+    expect(text).toContain('₹3,998 saved');
+    expect(text).toContain(
+      `${inr(12 * PLANS.solo_monthly.priceInr - PLANS.solo_yearly.priceInr)} saved`,
+    );
+    expect(text).toContain(
+      `${inr(12 * PLANS.pro_monthly.priceInr - PLANS.pro_yearly.priceInr)} saved`,
+    );
+    expect(text).toContain('50 Ink/month');
+    expect(text).toContain('150 Ink/month');
+  });
+
+  it('metadata description carries the Solo price and Ink from PLANS', () => {
+    const d = String(pricingMetadata.description);
+    expect(d).toContain(`Solo at ${inr(PLANS.solo_monthly.priceInr)}/month`);
+    expect(d).toContain(`${PLANS.solo_monthly.inkPerCycle} Ink/month`);
+    expect(d).toContain('Solo at ₹799/month for 50 Ink/month');
+    expect(d).not.toMatch(/unlimited/i);
+  });
+});
+
+describe('T-364 Settings plan list equals the pricing page (the /plans cross-check)', () => {
+  it.each(IDS)('%s: Settings shows the price and Ink the pricing page shows', async (id) => {
+    const served = servedPlan(id);
+    mockFetchPlans.mockResolvedValue({ subscriptions: IDS.map(servedPlan), topups: [] });
+
+    // Pricing page, in the period of this SKU.
+    render(<PricingPage />);
+    const pricingText = served.cycle === 'yearly' ? clickYearly() : (container.textContent ?? '');
+    expect(pricingText).toContain(formatPlanPrice(served));
+    expect(pricingText).toContain(formatPlanInk(served));
+    act(() => root.unmount());
+    container.remove();
+
+    // Settings plan list for the same SKU.
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+    const settingsText = await renderAsync(<PlanUpgrade planId={id} />);
+    expect(settingsText).toContain(
+      `Upgrade to ${served.tier === 'pro' ? 'Pro' : 'Solo'} — ${formatPlanPrice(served)}`,
+    );
+    expect(settingsText).toContain(formatPlanInk(served));
+    expect(settingsText).not.toMatch(/unlimited/i);
+    expect(settingsText).not.toContain('₹799 Unlimited');
+  });
+});
+
+describe('T-364 home, paywall, upgrade-success', () => {
+  it('home Solo and Pro cards use the PLANS price and Ink', () => {
+    const text = render(<HomePage />).replace(/\s+/g, ' ');
+    expect(text).toContain(`${inr(PLANS.solo_monthly.priceInr)}/month`);
+    expect(text).toContain(`${inr(PLANS.pro_monthly.priceInr)}/month`);
+    expect(text).toContain('₹799/month');
+    expect(text).toContain('₹1,999/month');
+    expect(text).toContain(`${PLANS.solo_monthly.inkPerCycle} Ink a month`);
+    expect(text).toContain(`${PLANS.pro_monthly.inkPerCycle} Ink a month`);
+    expect(text).toContain('50 Ink a month');
+    expect(text).toContain('150 Ink a month');
+    expect(text).not.toMatch(/unlimited/i);
+  });
+
+  it('PaywallModal shows the Solo Ink and price from PLANS', () => {
+    const text = render(
+      <PaywallModal documentLabel="Bail application" cost={2} balance={0} onClose={() => {}} />,
+    );
+    expect(text).toContain(
+      `${PLANS.solo_monthly.inkPerCycle} Ink / mo · ${inr(PLANS.solo_monthly.priceInr)}`,
+    );
+    expect(text).toContain('50 Ink / mo · ₹799');
+    expect(text).not.toMatch(/unlimited/i);
+  });
+
+  it('UpgradeSuccessModal shows the Ink for each tier from PLANS', () => {
+    const solo = render(
+      <UpgradeSuccessModal planLabel="Solo" inkPerCycle={50} renewsOn="1 Nov" onClose={() => {}} />,
+    );
+    expect(solo).toContain(`${PLANS.solo_monthly.inkPerCycle} Ink a month`);
+    expect(solo).not.toMatch(/unlimited/i);
+    act(() => root.unmount());
+    root = createRoot(container);
+    const pro = render(
+      <UpgradeSuccessModal planLabel="Pro" inkPerCycle={150} renewsOn="1 Nov" onClose={() => {}} />,
+    );
+    expect(pro).toContain(`${PLANS.pro_monthly.inkPerCycle} Ink a month`);
+    expect(pro).toContain('150 Ink a month');
+    expect(pro).not.toMatch(/unlimited/i);
+  });
+
+  it('no page says "Unlimited"', () => {
+    expect(render(<PricingPage />)).not.toMatch(/unlimited/i);
+    act(() => root.unmount());
+    root = createRoot(container);
+    expect(render(<HomePage />)).not.toMatch(/unlimited/i);
+  });
+});

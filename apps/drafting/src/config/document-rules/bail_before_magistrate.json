@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "description": "Document-rules config for bail_before_magistrate — regular bail at Magistrate level under BNSS 480 — distinct from Sessions/HC bail under BNSS 483",
+    "description": "Document-rules config for bail_before_magistrate — regular bail at Magistrate level under Section 480 BNSS (Section 437 CrPC) — distinct from Sessions/HC bail under Section 483 BNSS (Section 439 CrPC)",
     "owner": "Ajay (CLO)",
     "validated_by": "Ajay (CLO) — Batch 1 templates pass 2026-05-12",
     "last_updated": "2026-05-12",
@@ -11,17 +11,17 @@
   "docType": "bail_before_magistrate",
   "parentDocType": "bail_application",
   "title": "Bail Application before Magistrate",
-  "displayName": "Bail Application before Magistrate (BNSS 480)",
+  "displayName": "Bail Application before Magistrate (Section 480 BNSS / Section 437 CrPC)",
   "category": "criminal_bail",
   "creditsCost": 2,
   "court_levels": ["magistrate", "cjm"],
   "causeTitle": {
-    "format": "IN THE COURT OF {courtDesignation}\n\n{caseNomenclature}\n\nIN THE MATTER OF:\n{applicant} ... Applicant/Accused\nVERSUS\nState of {state} ... Respondent",
+    "format": "IN THE COURT OF {courtDesignation}\n\n{caseNomenclature}\n(Under {governing_provision})\n\nIN THE MATTER OF:\n{applicant} ... Applicant/Accused\nVERSUS\nState of {state} ... Respondent",
     "partyDesignations": [
       { "role": "applicant", "label": "Applicant/Accused" },
       { "role": "respondent", "label": "Respondent (State)" }
     ],
-    "caseNomenclature": "BAIL APPLICATION No. _____ of [YEAR]\n(Under Section 480 BNSS, 2023)"
+    "caseNomenclature": "BAIL APPLICATION No. _____ of [YEAR]"
   },
   "form_schema": [
     { "name": "applicant_name", "label": "Applicant Name", "type": "text", "required": true },
@@ -59,11 +59,32 @@
       "required": true
     },
     { "name": "fir_number", "label": "FIR Number", "type": "text", "required": true },
-    { "name": "fir_date", "label": "FIR Date", "type": "date", "required": true },
+    {
+      "name": "fir_date",
+      "label": "Date of FIR, or of the complaint if no FIR",
+      "type": "date",
+      "required": false,
+      "question": "On what date was the FIR registered, or the complaint filed if there is no FIR?",
+      "ask_when_empty": true
+    },
+    {
+      "name": "offence_date",
+      "label": "Date of the alleged offence (or of the offence of conviction)",
+      "type": "date",
+      "required": false
+    },
+    {
+      "name": "procedure_code",
+      "label": "This application is under",
+      "type": "select",
+      "options": ["BNSS and BSA", "CrPC and Evidence Act"],
+      "required": false,
+      "help": "Matters only for a case that began before 1 July 2024. For an FIR on or after that date, Lawie uses the BNSS."
+    },
     { "name": "police_station", "label": "Police Station", "type": "text", "required": true },
     {
       "name": "offences_alleged",
-      "label": "Offences Alleged (BNS sections)",
+      "label": "Offences Alleged (as written in the FIR)",
       "type": "textarea",
       "required": true
     },
@@ -204,11 +225,11 @@
     },
     {
       "name": "s35_notice_status",
-      "label": "Notice under Section 35 BNSS",
+      "label": "Notice to appear (Section 35 BNSS / Section 41A CrPC)",
       "type": "select",
       "options": ["Served", "Not served", "Not known"],
       "required": false,
-      "question": "Before the arrest, was a notice of appearance under Section 35(3) of the BNSS served on the applicant?",
+      "question": "Before the arrest, was a notice of appearance under Section 35(3) of the BNSS or Section 41A of the CrPC served on the applicant?",
       "ask_when_empty": true
     },
     {
@@ -318,19 +339,20 @@
       "description": "Verification on oath"
     }
   ],
-  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, it is most respectfully prayed that this Hon'ble Court may graciously be pleased to:\n\na) Release the applicant {applicant} on bail in connection with FIR No. {fir_number} dated {fir_date} of Police Station {police_station}, under Section 480 of the BNSS, 2023;\nb) Direct release on such bond and sureties as this Hon'ble Court may deem fit;\nc) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the applicant shall ever pray.",
+  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, it is most respectfully prayed that this Hon'ble Court may graciously be pleased to:\n\na) Release the applicant {applicant} on bail in connection with FIR No. {fir_number} dated {fir_date} of Police Station {police_station}, under {governing_provision};\nb) Direct release on such bond and sureties as this Hon'ble Court may deem fit;\nc) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the applicant shall ever pray.",
   "verificationTemplate": "VERIFICATION\n\nI, {applicant}, {parentRelation}, aged about {age} years{custody_clause}, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above application are true and correct to the best of my knowledge and belief. No part of it is false and nothing material has been concealed therein.\n\nVerified at {place} on this {date}.\n\nDeponent",
-  "prompt_context": "Draft a Bail Application before the Magistrate / CJM under Section 480 of the Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023 (corresponding to Section 437 CrPC). DISTINCTION: Section 480 BNSS deals with bail by the trial court / magistrate; Section 483 BNSS deals with special powers of High Court / Sessions Court. The Magistrate's competence is limited — it cannot grant bail in offences punishable with death or imprisonment for life, unless certain conditions are met (under-18, woman, sick/infirm, no prima facie case after the court hears the prosecution). The application must: (1) establish particulars of FIR; (2) demonstrate offence is within Magistrate's bail competence; (3) address flight risk, tampering with evidence and influencing witnesses as reasoning on the facts in the brief, naming no judgment — where an authority would normally be cited, write [Authority — add if relied upon]; (4) state the applicant's antecedents only as the BRIEF gives them, with a blank where it does not; (5) furnish undertakings. Cite BNS for offences (never IPC), BNSS for procedural provisions.",
+  "prompt_context": "Draft a Bail Application before the Magistrate / CJM under the provision given as GOVERNING PROVISION in the case details. DISTINCTION: Section 480 BNSS (Section 437 CrPC) deals with bail by the trial court / magistrate; Section 483 BNSS (Section 439 CrPC) deals with special powers of High Court / Sessions Court. The Magistrate's competence is limited — it cannot grant bail in offences punishable with death or imprisonment for life, unless certain conditions are met (under-18, woman, sick/infirm, no prima facie case after the court hears the prosecution). The application must: (1) establish particulars of FIR; (2) demonstrate offence is within Magistrate's bail competence; (3) address flight risk, tampering with evidence and influencing witnesses as reasoning on the facts in the brief, naming no judgment — where an authority would normally be cited, write [Authority — add if relied upon]; (4) state the applicant's antecedents only as the BRIEF gives them, with a blank where it does not; (5) furnish undertakings.",
   "promptInstructions": [
-    "Draft a Bail Application before the Magistrate under Section 480 BNSS, 2023 (successor to Section 437 CrPC).",
-    "Confirm at outset that the offence is within the Magistrate's bail competence under BNSS 480.",
+    "Draft a Bail Application before the Magistrate under the provision given as GOVERNING PROVISION in the case details.",
+    "Cite the offences as the BRIEF gives them (FIR, charge sheet, complaint or order). The law of the offence follows the date of the offence: an offence committed before 1 July 2024 is under the Indian Penal Code, 1860; one committed on or after that date is under the Bharatiya Nyaya Sanhita, 2023. Never convert a section from one code to the other. Where the BRIEF does not give the date of the offence, write the sections as the BRIEF gives them and add [To be confirmed: date of the alleged offence, which decides whether the IPC or the BNS applies]. Where the sections the BRIEF gives are under the other code from the one the date points to, or the alleged acts run across 1 July 2024, keep the sections as the BRIEF gives them and add [To be confirmed: whether the IPC or the BNS applies to the offence].",
+    "Cite the procedure under the code given as PROCEDURE CODE in the case details: the Bharatiya Nagarik Suraksha Sanhita, 2023 with the Bharatiya Sakshya Adhiniyam, 2023, or the Code of Criminal Procedure, 1973 with the Indian Evidence Act, 1872. Cite only that code, in the heading, the body and the prayer. Where no PROCEDURE CODE is given, cite the provision in both forms inside a blank, for example [To be confirmed: Section 437 of the CrPC or Section 480 of the BNSS].",
+    "Confirm at outset that the offence is within the Magistrate's bail competence under the provision given as GOVERNING PROVISION in the case details.",
     "If offence is punishable with death / life imprisonment, the Magistrate's powers are restricted — flag whether applicant falls in special categories (woman / under-18 / sick / infirm).",
     "Set out the FIR particulars and the circumstances of arrest as the BRIEF gives them. Use a blank for any of them the BRIEF does not give.",
     "Address the risk of flight, of tampering with the evidence and of influencing witnesses as submissions, each written as \"It is submitted that ...\" and each reasoned only on facts the BRIEF gives (for example residence, family, occupation, antecedents, the stage of investigation). Do not state any such fact the BRIEF does not give. Where the BRIEF gives no fact for one of the three, write [To be confirmed: facts relied on to show no risk of <flight / tampering with the evidence / influencing witnesses>] for that one.",
     "Do not name any judgment. Where an authority on bail would normally be cited, write [Authority — add if relied upon].",
     "Only if the BRIEF states that the charge sheet has been filed, submit that custody is no longer required for investigation. Do not say that the charge sheet has been filed, or that investigation is complete, unless the BRIEF states it.",
     "Include undertakings: attend court on every date, not tamper with evidence, not leave jurisdiction.",
-    "Use BNS section numbers for offences (never IPC).",
     "State every earlier bail application in this matter that the BRIEF mentions: the court it was made to, the date of the order and the result, or that it is still pending, each as the BRIEF gives it. Use a blank for any of these the BRIEF does not give. Where the BRIEF mentions no earlier bail application, do not say that this is the first application or that none is pending; write [To be confirmed: whether any earlier bail application was made in this matter, to which court, and with what result].",
     "Do NOT generate the verification clause or advocate signature block — those are added programmatically."
   ],
@@ -376,7 +398,7 @@
   ],
   "validation_rules": [
     "offence_classification must be specified",
-    "if offence is punishable with death/life and applicant is not in special category, recommend BNSS 483 (Sessions/HC) bail instead",
+    "if offence is punishable with death/life and applicant is not in special category, recommend Section 483 BNSS (Section 439 CrPC) before the Court of Session or High Court",
     "grounds_for_bail must be non-empty",
     "arrest_date must be on or before today",
     "days_in_custody must be consistent with arrest_date"

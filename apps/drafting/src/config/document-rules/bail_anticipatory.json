@@ -23,10 +23,37 @@
           },
           {
             "field_id": "fir_date",
-            "label": "FIR Date",
+            "label": "Date of FIR, or of the complaint if no FIR",
             "type": "date",
-            "required": true,
+            "required": false,
+            "question": "On what date was the FIR registered, or the complaint filed if there is no FIR?",
+            "ask_when_empty": true,
             "inject_into": ["body_para_1", "prayer"]
+          },
+          {
+            "field_id": "offence_date",
+            "label": "Date of the alleged offence (or of the offence of conviction)",
+            "type": "date",
+            "required": false,
+            "inject_into": ["ai_prompt"]
+          },
+          {
+            "field_id": "procedure_code",
+            "label": "This application is under",
+            "type": "dropdown",
+            "options": [
+              {
+                "id": "bnss_and_bsa",
+                "label": "BNSS and BSA"
+              },
+              {
+                "id": "crpc_and_evidence_act",
+                "label": "CrPC and Evidence Act"
+              }
+            ],
+            "required": false,
+            "help": "Matters only for a case that began before 1 July 2024. For an FIR on or after that date, Lawie uses the BNSS.",
+            "inject_into": ["ai_prompt"]
           },
           {
             "field_id": "police_station",
@@ -41,7 +68,7 @@
             "type": "multi_select_search",
             "source": "bns_mapping",
             "required": true,
-            "auto_convert_old": true,
+            "auto_convert_old": false,
             "inject_into": ["body_para_1", "ai_prompt"]
           },
           {
@@ -411,7 +438,7 @@
   "displayName": "Anticipatory Bail Application",
   "category": "criminal",
   "causeTitle": {
-    "format": "IN THE COURT OF {courtDesignation}\n\n{caseNomenclature}\n\n{applicant} ... Applicant\nVERSUS\nState of {state} / {respondent} ... Respondent",
+    "format": "IN THE COURT OF {courtDesignation}\n\n{caseNomenclature}\n(Under {governing_provision})\n\n{applicant} ... Applicant\nVERSUS\nState of {state} / {respondent} ... Respondent",
     "partyDesignations": [
       { "role": "applicant", "label": "Applicant" },
       { "role": "respondent", "label": "Respondent" }
@@ -495,11 +522,12 @@
     }
   ],
   "promptInstructions": [
-    "Draft an Anticipatory Bail Application under Section 482 BNSS, 2023.",
+    "Draft an Anticipatory Bail Application under the provision given as GOVERNING PROVISION in the case details.",
+    "Cite the offences as the BRIEF gives them (FIR, charge sheet, complaint or order). The law of the offence follows the date of the offence: an offence committed before 1 July 2024 is under the Indian Penal Code, 1860; one committed on or after that date is under the Bharatiya Nyaya Sanhita, 2023. Never convert a section from one code to the other. Where the BRIEF does not give the date of the offence, write the sections as the BRIEF gives them and add [To be confirmed: date of the alleged offence, which decides whether the IPC or the BNS applies]. Where the sections the BRIEF gives are under the other code from the one the date points to, or the alleged acts run across 1 July 2024, keep the sections as the BRIEF gives them and add [To be confirmed: whether the IPC or the BNS applies to the offence].",
+    "Cite the procedure under the code given as PROCEDURE CODE in the case details: the Bharatiya Nagarik Suraksha Sanhita, 2023 with the Bharatiya Sakshya Adhiniyam, 2023, or the Code of Criminal Procedure, 1973 with the Indian Evidence Act, 1872. Cite only that code, in the heading, the body and the prayer. Where no PROCEDURE CODE is given, cite the provision in both forms inside a blank, for example [To be confirmed: Section 437 of the CrPC or Section 480 of the BNSS].",
     "Begin with the facts that give the applicant reason to believe that the applicant may be arrested (for example a complaint, an FIR, a notice or summons received, or a threat), only as the BRIEF gives them. Do not add a fact the BRIEF does not give; where the BRIEF does not say what the apprehension rests on, write [To be confirmed: the facts on which the applicant apprehends arrest].",
     "Set out the grounds for anticipatory bail that the BRIEF gives, and no others. Do not assert a ground (for example no prima facie case, false implication, malafide intention of the complainant, no criminal antecedents, cooperation with the investigation, roots in the community) unless the BRIEF states it. State each ground as the BRIEF puts it: do not add a reason or a detail to it. A submission on the law or the facts is written as \"It is submitted that ...\", among the grounds, never among the facts.",
     "Address the nature and gravity of the accusation, the applicant's role, and the likelihood of the applicant fleeing from justice, as reasoning on the facts in the brief. Do not name any judgment; where an authority would normally be cited, write [Authority — add if relied upon].",
-    "Reference Bharatiya Nyaya Sanhita (BNS) section numbers — NEVER use old IPC section numbers.",
     "Give the undertakings as undertakings by the applicant for the future, never as facts and never as undertakings by the advocate: the applicant undertakes that, if granted anticipatory bail, the applicant will make himself or herself available for interrogation by the police as and when required, will not make any inducement, threat or promise to any witness or other person acquainted with the facts of the case, will not leave India without this Hon'ble Court's permission, and will abide by every condition this Hon'ble Court imposes.",
     "Use formal, respectful legal language appropriate for Indian courts.",
     "State every earlier application for anticipatory bail or bail in this matter that the BRIEF mentions: the court it was made to, the date of the order and the result, or that it is still pending, each as the BRIEF gives it. Use a blank for any of these the BRIEF does not give. Where the BRIEF mentions no earlier application, do not say that this is the first application or that none is pending; write [To be confirmed: whether any earlier application for anticipatory bail or bail was made in this matter, to which court, and with what result].",

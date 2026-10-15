@@ -172,6 +172,8 @@ describe('T-182 — snake_case rule files', () => {
     // sha256 of `${systemPrompt}\n=====USER=====\n${userPrompt}\n` starts 08984e74, ends 912d.
     // T-267 re-record (Ajay approved): bail_regular.json line 324 "103" -> "103(1)" is the only change;
     // undoing that one string reproduces the old digest 08984e74...912d. New digest starts 2ff33967, ends 3156.
+    // T-245a re-record (Ajay approved, 41a4b27): bail_regular instructions per Addenda 1-3.
+    // New digest starts 108eb018, ends 4625 (full: 108eb0184a123e3dbac89e4ad7bdd730507d58c5727d67d5219948f0bfe34625).
     // Fails if the bail_regular rule JSON or the assembler's output changes on purpose;
     // then re-record it, do not loosen it.
     it('matches the sha256 recorded from develop', async () => {
@@ -179,8 +181,8 @@ describe('T-182 — snake_case rule files', () => {
       const digest = createHash('sha256')
         .update(`${p.systemPrompt}\n=====USER=====\n${p.userPrompt}\n`)
         .digest('hex');
-      expect(digest.startsWith('2ff33967')).toBe(true);
-      expect(digest.endsWith('3156')).toBe(true);
+      expect(digest.startsWith('108eb018')).toBe(true);
+      expect(digest.endsWith('4625')).toBe(true);
     });
   });
 

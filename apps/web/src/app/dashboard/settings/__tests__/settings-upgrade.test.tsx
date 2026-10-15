@@ -26,6 +26,8 @@ jest.mock('@/components/PrivacyUpdatePrompt', () => ({
   isPrivacyBlocked: () => false,
   privacyFetch: (...args: unknown[]) => mockPrivacyFetch(...args),
   usePrivacyDescribedBy: () => undefined,
+  // T-436: the State picker waits for acceptance through this.
+  onPrivacyAccepted: () => () => {},
 }));
 
 const CATALOGUE = {
@@ -56,7 +58,12 @@ const upgradeButton = () =>
 beforeEach(() => {
   jest.clearAllMocks();
   mockPlan = 'free';
-  mockApiFetch.mockResolvedValue({ ok: true, status: 200, json: async () => CATALOGUE });
+  // T-436: the user already has a State saved (GET /api/auth/me), so Subscribe is not blocked.
+  mockApiFetch.mockImplementation(async (path: string) => ({
+    ok: true,
+    status: 200,
+    json: async () => (path === '/api/auth/me' ? { data: { gstStateCode: '07' } } : CATALOGUE),
+  }));
   mockPrivacyFetch.mockResolvedValue({
     ok: true,
     status: 200,
@@ -100,7 +107,12 @@ describe('T-370 settings page upgrade', () => {
   it('shows no upgrade block, and no "Unlimited", for a Pro user', async () => {
     mockPlan = 'pro';
     await mount();
-    expect(mockApiFetch).not.toHaveBeenCalled();
+    // T-436: the Invoices card fetches /api/billing/invoices for every user, Pro included. The
+    // plan catalogue is still not fetched for Pro, and nothing else is, except /me for the
+    // State picker in the Plan card.
+    const paths = mockApiFetch.mock.calls.map((c) => c[0]);
+    expect(paths).not.toContain('/api/billing/plans');
+    expect(paths.filter((p) => p !== '/api/billing/invoices' && p !== '/api/auth/me')).toEqual([]);
     expect(upgradeButton()).toBeUndefined();
     expect(container.textContent).toContain('Pro plan');
     expect(container.textContent).not.toMatch(/unlimited/i);

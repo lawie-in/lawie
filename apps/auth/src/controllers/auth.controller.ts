@@ -10,6 +10,8 @@ import {
   resetPassword,
   getPrivacyStatus,
   acceptPrivacy,
+  setGstStateCode,
+  SET_GST_STATE_PRIVACY_BODY,
 } from '../services/auth.service';
 import {
   VERIFY_RESEND_LIMITED,
@@ -17,7 +19,7 @@ import {
   requestVerifyEmail,
   verifyEmailToken,
 } from '../services/verify-email.service';
-import { validateRegister, validateLogin } from '../validators/auth.validator';
+import { validateRegister, validateLogin, validateUpdateMe } from '../validators/auth.validator';
 
 export async function register(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
@@ -216,6 +218,41 @@ export async function getMe(req: Request, res: Response, next: NextFunction): Pr
     res.setHeader('Cache-Control', 'no-store');
     const status = await getPrivacyStatus(req.jwtPayload!.sub);
     res.status(200).json({ status: 'success', data: status });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * T-436 — PATCH /me { gstStateCode }: the GST State/UT for the user's tax invoices.
+ *   200 { status: 'success', data: { gstStateCode } }  saved
+ *   422 any other field, a missing field, or a code not in GST_STATES (validateUpdateMe)
+ *   403 { error: 'privacy_reaccept_required' }  the current privacy version is not accepted
+ *       (Ajay, GST file Addendum 7 (2)); nothing stored. The T-343 shape, so the web's
+ *       privacyFetch shows the re-accept prompt.
+ *   401 user not found, inactive or being closed (as GET /me)
+ * The body is never logged.
+ */
+export async function updateMeHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    res.setHeader('Cache-Control', 'no-store');
+    const { gstStateCode } = validateUpdateMe(req.body);
+    const outcome = await setGstStateCode(req.jwtPayload!.sub, gstStateCode);
+    switch (outcome.kind) {
+      case 'saved':
+        res.status(200).json({ status: 'success', data: { gstStateCode: outcome.gstStateCode } });
+        return;
+      case 'privacy_reaccept_required':
+        res.status(403).json(SET_GST_STATE_PRIVACY_BODY);
+        return;
+      case 'not_found':
+        res.status(401).json({ status: 'error', message: 'User not found or inactive' });
+        return;
+    }
   } catch (err) {
     next(err);
   }

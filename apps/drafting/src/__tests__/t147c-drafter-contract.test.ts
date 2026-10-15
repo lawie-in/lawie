@@ -352,7 +352,13 @@ describe('AC1: the Drafter call is built from the ledger and the skeleton only',
     mockModel(drafterAnswer());
     await draft(id);
     const f = factsOf(callOf(0).user);
-    expect(f.facts.map((x) => x.key)).toEqual(['applicant_name']);
+    // T-245a part 2: the law switch's computed facts (Addenda 1 and 2) are added per request;
+    // with no choice they are the both-forms blanks. The ledger's own facts are still only the one.
+    expect(f.facts.map((x) => x.key)).toEqual([
+      'applicant_name',
+      'governing_provision',
+      'notice_provision',
+    ]);
     expect(f.facts[0].display).toBe('Only Ledger Name');
   });
 });

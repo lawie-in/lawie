@@ -1,6 +1,6 @@
 {
   "pack": "bail_before_magistrate",
-  "version": 5,
+  "version": 6,
   "none_values": "first_bail_application.equals (T-334)",
   "antecedents_none_values": [
     "none",
@@ -34,16 +34,16 @@
             "key": "offence_classification",
             "in": ["Bailable"]
           },
-          "text": "The applicant, {applicant_name}, aged {applicant_age} years, resident of {applicant_address}, submits this application for bail under Section 478 of the Bharatiya Nagarik Suraksha Sanhita, 2023, the offence alleged being bailable.",
-          "slots": ["applicant_name", "applicant_age", "applicant_address"]
+          "text": "The applicant, {applicant_name}, aged {applicant_age} years, resident of {applicant_address}, submits this application for bail under {governing_provision}, the offence alleged being bailable.",
+          "slots": ["applicant_name", "applicant_age", "applicant_address", "governing_provision"]
         },
         {
           "when": {
             "key": "offence_classification",
             "in": ["Non-bailable (within Magistrate's powers)"]
           },
-          "text": "The applicant, {applicant_name}, aged {applicant_age} years, resident of {applicant_address}, submits this application for bail under Section 480 of the Bharatiya Nagarik Suraksha Sanhita, 2023.",
-          "slots": ["applicant_name", "applicant_age", "applicant_address"]
+          "text": "The applicant, {applicant_name}, aged {applicant_age} years, resident of {applicant_address}, submits this application for bail under {governing_provision}.",
+          "slots": ["applicant_name", "applicant_age", "applicant_address", "governing_provision"]
         }
       ],
       "missing_label": "Offence Classification"
@@ -175,7 +175,8 @@
           }
         ]
       },
-      "text": "It is submitted that the applicant is a woman, and under the first proviso to Section 480(1) of the BNSS this Hon'ble Court may release her on bail even where the offence falls within clause (i) or (ii) of that sub-section."
+      "text": "It is submitted that the applicant is a woman, and under {women_proviso} this Hon'ble Court may release her on bail even where the offence falls within clause (i) or (ii) of that sub-section.",
+      "slots": ["women_proviso"]
     },
     {
       "id": "further_grounds",
@@ -246,7 +247,8 @@
         "key": "s35_notice_status",
         "in": ["not_served"]
       },
-      "text": "No notice under Section 35 of the Bharatiya Nagarik Suraksha Sanhita, 2023 was served on the applicant before arrest."
+      "text": "No notice under {notice_provision} was served on the applicant before arrest.",
+      "slots": ["notice_provision"]
     },
     {
       "id": "parity",

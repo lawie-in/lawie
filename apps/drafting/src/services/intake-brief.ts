@@ -27,6 +27,7 @@ import {
   REGULAR_BAIL_NOT_IN_CUSTODY_WARNING,
 } from './bail-guard';
 import { datesInText, iso, isOwnWords, normalise } from './intake-text';
+import { isLawSwitchPack } from './law-switch';
 import type { RulePack, RulePackFact } from './rule-pack.service';
 import { s138BriefDateCheck } from './s138-date-checks';
 import { evaluateShowIf } from './template-engine.service';
@@ -1321,12 +1322,17 @@ const IPC_WORD =
   /(?<![a-z0-9])(ipc|i\.\s?p\.\s?c\.?|indian penal code|भा\.\s?दं\.\s?सं\.?|भारतीय दंड संहिता)(?![a-z0-9])/;
 
 /**
- * The date of the offence or occurrence, else the date of the FIR, as the
- * brief gives it. Null when neither is given.
+ * The date of the offence or occurrence, as the brief gives it. Null when it is
+ * not given. T-245a (Ajay, Addendum 1 ruling 7, 2992891): offence date only. The
+ * FIR date is never a stand-in for it: with no offence date there is no note
+ * (the S-text blank handles it). That rule is for the six T-245a bail packs
+ * only (`isLawSwitchPack`); every other kind keeps the FIR date fallback it had
+ * before T-245a.
  */
 function offenceOrFirDate(
   checklist: ChecklistItem[],
   placed: Map<string, GivenValue>,
+  kindId: string | null,
 ): string | null {
   const dateOf = (test: (i: ChecklistItem) => boolean): string | null => {
     for (const item of checklist) {
@@ -1341,10 +1347,11 @@ function offenceOrFirDate(
       i.dateKind === 'incident' ||
       /(^|_)(offen[cs]e|occurrence|incident)(_|$)/.test(lastSegment(i.key)),
   );
+  if (kindId !== null && isLawSwitchPack(kindId)) return offence;
   return offence ?? dateOf((i) => i.dateKind === 'fir' || lastSegment(i.key) === 'fir_date');
 }
 
-/** The sections item cites the IPC and the matter is dated on or after 1 July 2024. */
+/** The sections item cites the IPC and the offence is dated on or after 1 July 2024. */
 function needsIpcNote(
   item: ChecklistItem,
   value: string | string[],
@@ -1449,7 +1456,7 @@ export function buildBrief(input: BuildBriefInput): Brief {
 
   // T-153: a fact the form hides (show_if false) is not asked and shows no blank.
   const hidden = hiddenByShowIf(input.checklist, placed);
-  const matterDate = offenceOrFirDate(input.checklist, placed);
+  const matterDate = offenceOrFirDate(input.checklist, placed, input.kind.id);
   const items: BriefItem[] = input.checklist
     .filter((item) => !(hidden.has(item.key) && !placed.has(item.key)))
     .map((item) => {

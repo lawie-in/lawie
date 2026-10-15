@@ -1,5 +1,6 @@
 'use client';
 
+import { PLANS } from '@lawie/shared';
 import { CheckCircle, X, Zap } from 'lucide-react';
 
 interface UpgradeSuccessModalProps {
@@ -11,13 +12,13 @@ interface UpgradeSuccessModalProps {
 
 const FEATURES: Record<string, string[]> = {
   solo: [
-    '50 Ink a month',
+    `${PLANS.solo_monthly.inkPerCycle} Ink a month`,
     'Plan Ink resets each month; top-up Ink never expires',
     'All document templates unlocked',
     'PDF + DOCX export',
   ],
   pro: [
-    '150 Ink a month',
+    `${PLANS.pro_monthly.inkPerCycle} Ink a month`,
     'Plan Ink resets each month; top-up Ink never expires',
     'All document templates unlocked',
     'Priority support',

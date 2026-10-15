@@ -263,12 +263,16 @@ describe('POST /generate-from-brief — a draft that passes', () => {
     expect(sections.application_heading).toBe(
       'APPLICATION FOR REGULAR BAIL UNDER SECTION 483 OF THE BHARATIYA NAGARIK SURAKSHA SANHITA, 2023',
     );
-    expect(sections.prayer).toContain('under Section 483 of BNSS, 2023');
+    expect(sections.prayer).toContain(
+      'under Section 483 of the Bharatiya Nagarik Suraksha Sanhita, 2023',
+    );
     expect(sections.prayer).not.toContain('480');
 
     const told = bodyOf(fetchMock, 0).messages[1].content;
     expect(told).toContain(
-      'INSTRUCTIONS:\n- This application is made under Section 483 of the Bharatiya Nagarik Suraksha Sanhita, 2023. Cite only this one provision as the provision under which bail is sought. Do not cite Section 481 or Section 482.',
+      // T-245a part 2: the case-details lines (signed: PROCEDURE CODE, GOVERNING PROVISION) come
+      // first; the FIR of 10 Mar 2026 forces BNSS.
+      'INSTRUCTIONS:\n- PROCEDURE CODE: BNSS and BSA\n- GOVERNING PROVISION: Section 483 of the Bharatiya Nagarik Suraksha Sanhita, 2023\n- This application is made under Section 483 of the Bharatiya Nagarik Suraksha Sanhita, 2023. Cite only this one provision as the provision under which bail is sought. Do not cite Section 481 or Section 482.',
     );
     expect(told).not.toContain('480/481/482');
     expect(told).not.toMatch(/\b481 \(|\b482 \(/);
@@ -301,7 +305,9 @@ describe('POST /generate-from-brief — a draft that passes', () => {
       }>
     ).reduce<Record<string, string>>((all, s) => ({ ...all, [s.section_id]: s.content }), {});
     expect(sections.application_heading).toContain('UNDER SECTION 480 OF THE');
-    expect(sections.prayer).toContain('under Section 480 of BNSS, 2023');
+    expect(sections.prayer).toContain(
+      'under Section 480 of the Bharatiya Nagarik Suraksha Sanhita, 2023',
+    );
     expect(bodyOf(fetchMock, 0).messages[1].content).toContain(
       'This application is made under Section 480 of the Bharatiya Nagarik Suraksha Sanhita, 2023.',
     );
@@ -540,7 +546,10 @@ describe('POST /generate-from-brief — nothing the brief does not give', () => 
     expect(prayer).toContain('FIR No. [To be confirmed: FIR number]');
     expect(prayer).toContain('dated [To be confirmed: date of FIR]');
     const sent = bodyOf(fetchMock, 0).messages[1].content;
-    expect(sent).toContain('"blank": "[To be confirmed: date of FIR]"');
+    // T-245a (Addendum 1, last row): fir_date is optional, so the Drafter's unknown list names
+    // the FIR number and not the date; the prayer above still carries the date blank.
+    expect(sent).toContain('"blank": "[To be confirmed: FIR number]"');
+    expect(sent).not.toContain('"blank": "[To be confirmed: date of FIR]"');
     expect(sent).not.toContain('124/2026');
   });
 

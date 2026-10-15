@@ -39,27 +39,27 @@ const LEGAL = join(REPO, 'handoff', 'legal');
 
 const PACKS = ['bail_regular', 'bail_anticipatory', 'bail_before_magistrate', 'default_bail'];
 
-/** SHA-256 of each signed md FILE, pinned (computed 13 Oct 2026), and of the json block + "\n". */
+/** SHA-256 of each signed md FILE, pinned (computed 14 Oct 2026, T-245a v4/v5/v6/v2), and of the json block + "\n". */
 const SIGNED: Record<string, { version: number; mdSha: string; blockSha: string }> = {
   bail_regular: {
-    version: 3,
-    mdSha: '74c0aa4dc5dc5fe5a465cbbd163316923e71bc851f15488db7b607ea4a18c6bb',
-    blockSha: '4eec8dfb4ea8f7fac728675df30c032e8f8555b75cdfeaf1f59b5f7acc7c843b',
+    version: 4,
+    mdSha: 'f5c12070ab1d7cf1fa37849cb305373a146709b6230dd35a221355d1ec764405',
+    blockSha: 'd09d7bac30fd495f9c8c4e6db3898525ee0f0977c286df3c65c909d5ebfda54d',
   },
   bail_anticipatory: {
-    version: 4,
-    mdSha: '5639ce4ad42c05e18d9a467038076f12d201a4de3e8880a7a79f1222c0d14913',
-    blockSha: 'bd20c4a0cae5347b49a7999dd9bafd93cfd0baeccefd271635103bc1759bf858',
+    version: 5,
+    mdSha: 'c50c2c5689f35cd7fedaa63a803de3209b440e34e56a5980a045cf4b47a458c7',
+    blockSha: 'dec4efbdfddd47d120627506a9e34f96d536da96d238efe7d24eefa71a804e3a',
   },
   bail_before_magistrate: {
-    version: 5,
-    mdSha: '3ef120ed16a7fd68791d3ba964c4e69e5b74421878204968e4fddf52c87827a0',
-    blockSha: 'c52210817dd3a14e6c7f663dc678944334245cc6b4359a1f0eac719bfeba81cd',
+    version: 6,
+    mdSha: 'd6faadf7c5d634ec62bf906ac66ec9a1d80aa7c4c68cae936bf394f5ea6d543b',
+    blockSha: '7f8a6c1eee3a299769df4cf3ecca8e962ce381c96022a05a30c4fb5c056d1a14',
   },
   default_bail: {
-    version: 1,
-    mdSha: '0b69bb754066e4898a94396cede4ff02c910687618e6a1f904b1c506c584fabb',
-    blockSha: '1f0384f6c8f2feffa289622b63c9bb8c1b9c698cb5744c9159fc079032349720',
+    version: 2,
+    mdSha: '39e3dc4eb5d4ad0463f760c36c10b472a7de4eacc84426f97d5e5aeb52999e3a',
+    blockSha: '1abd4b802a904b54c53dc1bfbbf43ee6ce5749b2abb0a61cc46bf8a431ad5dc6',
   },
 };
 

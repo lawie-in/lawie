@@ -37,8 +37,10 @@ import {
 import logger from '../config/logger';
 import { Invoice, type IInvoice, type InvoiceDraft } from '../models/Invoice.model';
 import { InvoiceCounter, type IInvoiceCounter } from '../models/InvoiceCounter.model';
+import { RefundCap } from '../models/RefundCap.model';
 import { User } from '../models/User.model';
 
+import { queueInvoiceEmailInBackground } from './invoice-email.service';
 import {
   financialYear,
   formatIstDate,
@@ -196,9 +198,50 @@ export interface ProcessedRefund {
 }
 
 /**
+ * Makes sure the RefundCap row for `original` exists. A new row is seeded with
+ * any credit notes already recorded against the invoice (rows made before the
+ * cap existed, T-436 a); after that, credit notes are only ever recorded after
+ * the cap counted them, so the seed is exact. A concurrent first insert loses
+ * on the unique index and is ignored.
+ */
+async function ensureRefundCap(original: IInvoice): Promise<void> {
+  const prior = await Invoice.find({ kind: 'credit_note', originalInvoiceId: original._id })
+    .select('refundId draft.amount')
+    .lean();
+  const refundIds = prior
+    .map((cn) => cn.refundId)
+    .filter((id): id is string => typeof id === 'string' && id.length > 0);
+  const total = prior.reduce((sum, cn) => sum + (cn.draft?.amount ?? 0), 0);
+  try {
+    await RefundCap.updateOne(
+      { originalInvoiceId: original._id },
+      { $setOnInsert: { refundedTotal: total, creditedRefundIds: refundIds } },
+      { upsert: true },
+    );
+  } catch (err) {
+    if (!isDuplicateKey(err)) throw err;
+  }
+}
+
+/**
  * Upserts the credit note row for a processed refund in state 'issuing'.
  * Returns null (and logs) when the refunded payment has no invoice: then no
  * tax invoice exists to credit (e.g. a payment before GST_EFFECTIVE_FROM).
+ *
+ * Refund cap (T-436 b, Arjun #3): the refund is counted against the original
+ * invoice by ONE conditional update on its RefundCap row: `$inc refundedTotal`
+ * and `$addToSet creditedRefundIds`, matched only while this refundId is not
+ * yet listed and refundedTotal + amount <= the invoiced amount. Concurrent
+ * refunds therefore cannot together exceed the invoice (no check-then-insert).
+ *
+ * - Counted now, or already counted (refundId listed): record the credit note.
+ * - Neither (the cap would be exceeded): log an error, return null.
+ *
+ * Crash between the `$inc` and the credit note upsert: the refundId is in
+ * creditedRefundIds, so Razorpay's retry (or any re-run) does not match the
+ * conditional update again (no second `$inc`), sees the refundId listed, and
+ * goes on to the credit note upsert, which is keyed by refundId and inserts the
+ * missing row (or returns it if it exists). One count, one credit note.
  */
 export async function recordCreditNoteForRefund(r: ProcessedRefund): Promise<IInvoice | null> {
   if (!r.refundId || !r.paymentId || !Number.isSafeInteger(r.amount) || r.amount <= 0) {
@@ -218,25 +261,32 @@ export async function recordCreditNoteForRefund(r: ProcessedRefund): Promise<IIn
   const existing = await Invoice.findOne(filter);
   if (existing) return existing;
 
-  // Partial refunds: this one plus every other credit note against the same
-  // invoice must not exceed what was invoiced.
-  const others = await Invoice.aggregate<{ total: number }>([
+  await ensureRefundCap(original);
+  const counted = await RefundCap.findOneAndUpdate(
     {
-      $match: {
-        kind: 'credit_note',
-        originalInvoiceId: original._id,
-        refundId: { $ne: r.refundId },
+      originalInvoiceId: original._id,
+      creditedRefundIds: { $ne: r.refundId },
+      $expr: {
+        $lte: [{ $add: [{ $ifNull: ['$refundedTotal', 0] }, r.amount] }, original.draft.amount],
       },
     },
-    { $group: { _id: null, total: { $sum: '$draft.amount' } } },
-  ]);
-  const alreadyCredited = others[0]?.total ?? 0;
-  if (alreadyCredited + r.amount > original.draft.amount) {
-    logger.error(
-      { refundId: r.refundId, paymentId: r.paymentId },
-      'credit note: refund exceeds the invoiced amount (with earlier credit notes); not recorded, check by hand',
-    );
-    return null;
+    { $inc: { refundedTotal: r.amount }, $addToSet: { creditedRefundIds: r.refundId } },
+    { new: true },
+  );
+  if (!counted) {
+    const already = await RefundCap.exists({
+      originalInvoiceId: original._id,
+      creditedRefundIds: r.refundId,
+    });
+    if (!already) {
+      logger.error(
+        { refundId: r.refundId, paymentId: r.paymentId },
+        'credit note: refund exceeds the invoiced amount (with earlier credit notes); not recorded, check by hand',
+      );
+      return null;
+    }
+    // Counted by an earlier attempt (a retry, or a crash before the credit
+    // note was written): fall through to the refundId-keyed upsert.
   }
 
   try {
@@ -400,6 +450,19 @@ async function finalizeAllocation(
         },
       );
       wrote = res.modifiedCount === 1;
+      if (wrote) {
+        // T-436 (c): the single write point for every issue (issueInvoice and
+        // finishPendingIn), so every issued row is queued from here. Fire and
+        // forget: the email never delays or fails issuing; the sweep retries.
+        queueInvoiceEmailInBackground({
+          _id: row._id,
+          kind: row.kind,
+          state: 'issued',
+          userId: row.userId,
+          emailQueuedAt: null,
+          draft: { source: row.draft.source },
+        });
+      }
     }
   }
 

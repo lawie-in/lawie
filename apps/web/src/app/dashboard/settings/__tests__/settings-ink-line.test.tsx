@@ -22,6 +22,8 @@ jest.mock('@/components/PrivacyUpdatePrompt', () => ({
   isPrivacyBlocked: () => false,
   privacyFetch: jest.fn(),
   usePrivacyDescribedBy: () => undefined,
+  // T-436: the State picker waits for acceptance through this.
+  onPrivacyAccepted: () => () => {},
 }));
 
 const mockApiFetch = jest.fn();

@@ -33,9 +33,11 @@ lawie/
 │   ├── auth/           # Auth Service — email+password, Google, user model     (port 4001)
 │   ├── drafting/       # Drafting Service — AI engine, templates, sections     (port 4002)
 │   ├── billing/        # Billing Service — Razorpay subscriptions              (port 4003)
+│   ├── email-worker/   # BullMQ email worker (no HTTP port)
 │   └── web/            # Next.js frontend                                      (port 3000)
 ├── packages/
-│   └── shared/         # Shared types, constants, utilities
+│   ├── shared/         # Shared types, constants, utilities
+│   └── email-client/   # Queue client used by auth and billing to enqueue email
 ├── docker/
 │   ├── mongo/          # MongoDB init scripts
 │   └── nginx/          # Nginx configs (prod + demo)
@@ -189,6 +191,19 @@ yarn workspace @lawie/auth verify:resend-all [--yes] [--batch-size N] [--batch-p
 - `verify:resend-all` picks users with `emailVerified != true` who are not Google sign-ins, are active and are not erased, and calls the real `requestVerifyEmail`. It skips users already re-sent (a 30-day Redis marker `auth:verify-resend-all:<userId>`, or a still-fresh link) and users with a job already pending, so a rerun is safe. Tally: queued, already_pending, rate_limited, already_verified, failed, skipped_rerun. It sends in batches of 50 with a 60 s pause (`VERIFY_RESEND_BATCH_SIZE` / `VERIFY_RESEND_BATCH_PAUSE_MS`, or the flags).
 
 Order for the T-403 release: purge dry run, `purge --yes`, set the footer address env, deploy, check `/health` returns 200, resend-all dry run, `resend-all --yes`. Purge before the deploy so no old-footer email goes out; resend only after the new footer is live.
+
+### GST tax invoices and credit notes: state of supply and email (T-436 b/c)
+
+Each captured payment gets a GST tax invoice, and each refund a credit note. The place of supply is the user's State, stored as `User.gstStateCode`. `GET /api/auth/me` returns it. `PATCH /api/auth/me` sets it only after the user has accepted the current privacy version (`CURRENT_PRIVACY_VERSION` in `@lawie/shared`; `CURRENT_TERMS_VERSION` in auth; both `2026-10-15`). The web app asks for the State on upgrade, top-up and Settings, and Settings has an Invoices card with PDF download (`GET /api/billing/invoices`, `/invoices/:id/pdf`). Refunds are capped atomically per invoice (`RefundCap`).
+
+Invoice and credit-note emails go through the `billing.taxInvoice` and `billing.creditNote` templates. The job carries only the invoice id. The email-worker fetches the content from billing at send time (`GET /internal/invoices/:id/email-view`, header `x-internal-secret`; 410 if the user has been erased) and does not log it.
+
+Env vars:
+
+- Billing: `INVOICE_EMAIL_ENABLED` (default off; `true`, `false` or empty; any other value fails at boot). Emails are queued only when it is `true` and `REDIS_URL` is set; the enqueue has a 5 s timeout. While off, nothing is queued and rows stay unemailed; a sweep in billing emails issued rows once and stops at the first failure. Users who are gone or mid-erasure are skipped. `yarn workspace @lawie/billing backfill:invoices [--apply]` (dry run by default) issues invoices for earlier payments and emails them once.
+- Email-worker: `BILLING_SERVICE_URL` (optional). Without it the worker runs, but invoice and credit-note jobs fail and retry until it is set. It also needs `INTERNAL_SECRET`, as before.
+
+Billing now depends on `@lawie/email-client` (see its Dockerfile and `ci.yml`).
 
 ### Pre-commit secret scanning
 

@@ -3,6 +3,7 @@
 import { Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
+import { GstStatePicker } from '@/components/billing/GstStatePicker';
 import {
   PrivacyBlockedNotice,
   isPrivacyBlocked,
@@ -14,13 +15,20 @@ import {
   isEmailVerificationRequired,
   useNeedsEmailVerification,
 } from '@/components/VerifyEmailPrompt';
+import { type GstStateController, useGstState } from '@/hooks/useGstState';
 import { fetchPlans, type PlanCycle, type PlanTier, type SubscriptionPlan } from '@/lib/plans';
 
 /**
  * T-370: the settings "Upgrade" block. The label (name, price, Ink) comes from billing's
  * GET /plans and the subscribe call sends that plan's id, so the plan shown is the plan bought.
  */
-export type PlanUpgradeProps = { planId?: string } | { tier: PlanTier; cycle: PlanCycle };
+export type PlanUpgradeProps = ({ planId?: string } | { tier: PlanTier; cycle: PlanCycle }) & {
+  /**
+   * T-436: a State picker the parent already renders (settings Plan block). Without it this
+   * block renders its own picker above the Upgrade button.
+   */
+  gst?: GstStateController;
+};
 
 const DEFAULT_PLAN_ID = 'pro_monthly';
 
@@ -43,7 +51,21 @@ function planInk(plan: SubscriptionPlan): string {
   return `${plan.inkPerCycle} Ink/month`;
 }
 
+/** T-436: the block with its own State picker (no `gst` from the parent). */
+function PlanUpgradeWithPicker(props: PlanUpgradeProps) {
+  const gst = useGstState('gst-state-upgrade');
+  return <PlanUpgradeBlock {...props} gst={gst} ownPicker />;
+}
+
 export function PlanUpgrade(props: PlanUpgradeProps = {}) {
+  if (props.gst) return <PlanUpgradeBlock {...props} gst={props.gst} ownPicker={false} />;
+  return <PlanUpgradeWithPicker {...props} />;
+}
+
+function PlanUpgradeBlock(
+  props: PlanUpgradeProps & { gst: GstStateController; ownPicker: boolean },
+) {
+  const { gst, ownPicker } = props;
   const [plan, setPlan] = useState<SubscriptionPlan | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [subscribing, setSubscribing] = useState(false);
@@ -80,6 +102,9 @@ export function PlanUpgrade(props: PlanUpgradeProps = {}) {
     setSubscribing(true);
     setSubscribeError('');
     try {
+      // T-436 (spec §2): no State -> the error shows and the select takes focus; no billing
+      // call. An unsaved pick is saved first (only after privacy acceptance, Ajay 7 (2)).
+      if (!(await gst.ensureReady())) return; // finally resets
       const res = await privacyFetch('subscribe', '/api/billing/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -120,6 +145,7 @@ export function PlanUpgrade(props: PlanUpgradeProps = {}) {
       <div className="mt-3">
         <PrivacyBlockedNotice actionKey="subscribe" />
       </div>
+      {ownPicker && !needsVerification && <GstStatePicker gst={gst} className="mt-4 max-w-xs" />}
       {needsVerification ? (
         <div className="mt-4">
           <VerifyEmailCard />

@@ -42,7 +42,21 @@
  * itself fails after a real send, the job still completes (no second email); the account just
  * stays unstamped, which can only delay a deletion.
  *
- * Test seam (T-220 AC4): createProcessor(send, mint, notice) takes the provider send
+ * T-436 (b/c, Arjun #1): billing.taxInvoice and billing.creditNote jobs carry { userId, invoiceId }
+ * only (`to` is empty and ignored, as are cc/bcc/replyTo). The processor asks billing (GET
+ * BILLING_SERVICE_URL/internal/invoices/:id/email-view, INTERNAL_SECRET header) for the number,
+ * total, date, name, address and download link, checks the row belongs to the job's user and
+ * matches the template's kind, then renders and sends to the snapshot address.
+ *  - 410 (user erased or being erased; Ajay Addendum 8 #2, e591d0d): dropped, like a verify 409:
+ *    the job completes with no send, no retry and no Sentry event.
+ *  - 404 / 409 (no such row, not issued), 400, a userId / invoiceId / kind mismatch, or a job
+ *    without both ids: UnrecoverableError (failed once, no retry, kept for replay).
+ *  - 5xx, 401, a network error or timeout, a malformed 200, or BILLING_SERVICE_URL unset:
+ *    BillingViewError, retried with the producer's backoff.
+ * The view is PII and an amount: never logged, never in job data, meta, the return value,
+ * failedReason or Sentry. Logs carry jobId, template, userId, invoiceId and HTTP status only.
+ *
+ * Test seam (T-220 AC4): createProcessor(send, mint, notice, invoiceView) takes the provider send
  * function and the verify-link mint function, and startWorkers({ connection, send }) takes both the Redis
  * connection and the send function, so a test can force a provider error
  * against its own Redis without jest.mock. Importing this module opens no
@@ -66,7 +80,8 @@ import { anyTemplateUnfilled, isLiveSend, templateHasUnfilledFooter } from './pl
 import { EmailSendError, sendEmail, type SendEmailFn } from './providers';
 import { safeErrorFields, toSentrySafeError, userIdFromData } from './providers/safe-log';
 import { bullPrefix, WORKER_QUEUE_NAMES } from './queues';
-import { renderTemplate } from './templates';
+import { isTemplateRegistered, renderTemplate } from './templates';
+import { formatInr, formatIstDate } from './templates/billing/format';
 
 export interface EmailJobData {
   template: EmailTemplate;
@@ -317,6 +332,139 @@ async function reportMailOutcome(
   return false;
 }
 
+// ── T-436 (b/c): invoice email view (billing) ─────────────────────────────────
+
+/** The invoice-email templates and the Invoice.kind each one must render. */
+const INVOICE_TEMPLATE_KIND: Partial<Record<EmailTemplate, InvoiceEmailView['kind']>> = {
+  'billing.taxInvoice': 'invoice',
+  'billing.creditNote': 'credit_note',
+};
+
+/** What billing's email-view route returns on 200. PII and an amount: never log any of it. */
+export interface InvoiceEmailView {
+  invoiceId: string;
+  userId: string;
+  kind: 'invoice' | 'credit_note';
+  number: string;
+  /** ISO timestamp of issue. */
+  issuedAt: string;
+  /** Paise, GST included. */
+  total: number;
+  customer: { name: string; email: string };
+  /** Credit notes only (null for an invoice). */
+  originalInvoiceNumber: string | null;
+  downloadUrl: string;
+}
+
+/**
+ * 'ok': render and send. 'erased' (410): drop, no retry. 'rejected' (400 / 404 / 409): the row's
+ * state will not change, so the job fails without retry.
+ */
+export type InvoiceViewResult =
+  | { status: 'ok'; view: InvoiceEmailView }
+  | { status: 'erased' }
+  | { status: 'rejected'; httpStatus: number };
+
+/**
+ * Asks billing for the email view of one invoice or credit note. Throws a value-free
+ * BillingViewError on any failure worth retrying (5xx, 401, network, timeout, malformed body,
+ * BILLING_SERVICE_URL unset).
+ */
+export type FetchInvoiceViewFn = (invoiceId: string) => Promise<InvoiceViewResult>;
+
+/** Value-free error for a failed email-view call: name + code only, no URL, no body. */
+export class BillingViewError extends Error {
+  readonly code: string;
+  constructor(code: string) {
+    super(`invoice email-view failed: ${code}`);
+    this.name = 'BillingViewError';
+    this.code = code;
+  }
+}
+
+const BILLING_VIEW_TIMEOUT_MS = 10_000;
+const OBJECT_ID = /^[a-f0-9]{24}$/i;
+
+function parseInvoiceView(body: unknown): InvoiceEmailView | null {
+  if (!body || typeof body !== 'object') return null;
+  const b = body as Record<string, unknown>;
+  const customer = (b.customer ?? null) as Record<string, unknown> | null;
+  const issuedAt = typeof b.issuedAt === 'string' ? new Date(b.issuedAt) : null;
+  const valid =
+    nonEmpty(b.invoiceId) &&
+    nonEmpty(b.userId) &&
+    (b.kind === 'invoice' || b.kind === 'credit_note') &&
+    nonEmpty(b.number) &&
+    issuedAt !== null &&
+    !Number.isNaN(issuedAt.getTime()) &&
+    typeof b.total === 'number' &&
+    Number.isSafeInteger(b.total) &&
+    b.total >= 0 &&
+    customer !== null &&
+    typeof customer === 'object' &&
+    nonEmpty(customer.email) &&
+    (customer.name === undefined || typeof customer.name === 'string') &&
+    nonEmpty(b.downloadUrl) &&
+    // A credit note names the invoice it is against; an invoice names none.
+    (b.kind === 'credit_note'
+      ? nonEmpty(b.originalInvoiceNumber)
+      : b.originalInvoiceNumber === null || b.originalInvoiceNumber === undefined);
+  if (!valid || !customer) return null;
+  return {
+    invoiceId: b.invoiceId as string,
+    userId: b.userId as string,
+    kind: b.kind as InvoiceEmailView['kind'],
+    number: b.number as string,
+    issuedAt: b.issuedAt as string,
+    total: b.total as number,
+    customer: {
+      name: typeof customer.name === 'string' ? customer.name : '',
+      email: customer.email as string,
+    },
+    originalInvoiceNumber: b.kind === 'credit_note' ? (b.originalInvoiceNumber as string) : null,
+    downloadUrl: b.downloadUrl as string,
+  };
+}
+
+export const fetchInvoiceViewViaBilling: FetchInvoiceViewFn = async (invoiceId) => {
+  if (!env.BILLING_SERVICE_URL) throw new BillingViewError('NO_BILLING_URL');
+  const base = env.BILLING_SERVICE_URL.replace(/\/+$/, '');
+  let res: Response;
+  try {
+    res = await fetch(`${base}/internal/invoices/${encodeURIComponent(invoiceId)}/email-view`, {
+      method: 'GET',
+      headers: { [INTERNAL_HEADERS.SECRET]: env.INTERNAL_SECRET },
+      signal: AbortSignal.timeout(BILLING_VIEW_TIMEOUT_MS),
+    });
+  } catch (err) {
+    // Network error or timeout. The original message can carry the URL: not kept.
+    const name = (err as { name?: unknown } | null)?.name;
+    throw new BillingViewError(name === 'TimeoutError' ? 'TIMEOUT' : 'NETWORK');
+  }
+  if (res.status === 410) return { status: 'erased' };
+  if (res.status === 400 || res.status === 404 || res.status === 409) {
+    return { status: 'rejected', httpStatus: res.status };
+  }
+  if (!res.ok) throw new BillingViewError(`HTTP_${res.status}`);
+  const view = parseInvoiceView(await res.json().catch(() => null));
+  if (!view) throw new BillingViewError('BAD_RESPONSE');
+  return { status: 'ok', view };
+};
+
+/** The merge fields a template needs, from the view. Formatting throws value-free errors. */
+function invoiceRenderData(view: InvoiceEmailView, userId: string): Record<string, unknown> {
+  const common = {
+    name: view.customer.name,
+    amount: formatInr(view.total),
+    date: formatIstDate(new Date(view.issuedAt)),
+    downloadUrl: view.downloadUrl,
+    userId,
+  };
+  return view.kind === 'credit_note'
+    ? { ...common, creditNoteNumber: view.number, invoiceNumber: view.originalInvoiceNumber }
+    : { ...common, invoiceNumber: view.number };
+}
+
 const UNFILLED_PLACEHOLDER_MESSAGE = 'email has unfilled footer placeholders; not sent';
 /** Errors raised by the placeholder guard: rethrown as-is, without the Sentry/log path. */
 const placeholderRefusals = new WeakSet<object>();
@@ -325,6 +473,7 @@ export function createProcessor(
   send: SendEmailFn = sendEmail,
   mint: MintVerifyLinkFn = mintVerifyLinkViaAuth,
   notice: UnverifiedNoticeDeps = unverifiedNoticeViaAuth,
+  invoiceView: FetchInvoiceViewFn = fetchInvoiceViewViaBilling,
 ): Processor<EmailJobData> {
   return async (job: Job<EmailJobData>) => {
     const { template, cc, bcc, replyTo, data } = job.data;
@@ -333,8 +482,13 @@ export function createProcessor(
     const attempt = job.attemptsMade + 1;
     const isVerify = template === 'auth.verifyEmail';
     const isNotice = template === 'auth.unverifiedDeletionNotice';
-    // Both resolve the recipient through auth; the job's cc/bcc/replyTo are never used.
-    const userIdOnly = isVerify || isNotice;
+    // T-436: invoice and credit-note emails resolve the recipient through billing.
+    const invoiceKind = INVOICE_TEMPLATE_KIND[template];
+    const rawInvoiceId = data?.invoiceId;
+    const invoiceId = invoiceKind && nonEmpty(rawInvoiceId) ? rawInvoiceId : undefined;
+    // All of these resolve the recipient through auth or billing; the job's to/cc/bcc/replyTo
+    // are never used.
+    const userIdOnly = isVerify || isNotice || invoiceKind !== undefined;
     // T-358: which verify-link mail this is, for the outcome report (set once known).
     let mail: VerifyMail | null = isVerify ? 'verify' : null;
     Sentry.addBreadcrumb({
@@ -400,6 +554,43 @@ export function createProcessor(
           deletionDate: prepared.deletionDate,
           userId,
         };
+      }
+      if (invoiceKind) {
+        // T-436 (b/c): number, total, name, address and link come from billing at send time,
+        // never from the job.
+        if (!userId || !invoiceId || !OBJECT_ID.test(invoiceId)) {
+          logger.error({ jobId, template, userId }, 'Invoice email job without valid ids');
+          throw new UnrecoverableError('invoice email job without a valid userId and invoiceId');
+        }
+        // Checked before the fetch, so no PII is pulled for an email that cannot render.
+        if (!isTemplateRegistered(template)) {
+          throw new Error(`Template "${template}" is not registered`);
+        }
+        const result = await invoiceView(invoiceId);
+        if (result.status === 'erased') {
+          logger.info(
+            { jobId, template, userId, invoiceId, status: 410 },
+            'Invoice email not sent: user erased or being erased',
+          );
+          return { skipped: 'erased' };
+        }
+        if (result.status === 'rejected') {
+          logger.warn(
+            { jobId, template, userId, invoiceId, status: result.httpStatus },
+            'Invoice email not sent: billing has no issued row for this id',
+          );
+          throw new UnrecoverableError(`invoice email-view HTTP_${result.httpStatus}`);
+        }
+        const { view } = result;
+        if (view.userId !== userId || view.invoiceId !== invoiceId || view.kind !== invoiceKind) {
+          logger.error(
+            { jobId, template, userId, invoiceId },
+            'Invoice email not sent: billing row does not match the job (user, id or kind)',
+          );
+          throw new UnrecoverableError('invoice email-view does not match the job');
+        }
+        to = [view.customer.email];
+        renderData = invoiceRenderData(view, userId);
       }
 
       const rendered = await renderTemplate(template, renderData);
@@ -503,6 +694,8 @@ export interface StartWorkersOptions {
   mint?: MintVerifyLinkFn;
   /** T-358 notice prepare/report functions; default to the calls to auth's internal routes. */
   notice?: UnverifiedNoticeDeps;
+  /** T-436 invoice email-view fetch; defaults to the call to billing's internal route. */
+  invoiceView?: FetchInvoiceViewFn;
 }
 
 export function startWorkers(options: StartWorkersOptions = {}): Worker[] {
@@ -517,7 +710,12 @@ export function startWorkers(options: StartWorkersOptions = {}): Worker[] {
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const connection = options.connection ?? (defaultConnection() as any);
-  const processor = createProcessor(options.send, options.mint, options.notice);
+  const processor = createProcessor(
+    options.send,
+    options.mint,
+    options.notice,
+    options.invoiceView,
+  );
   const started: Worker[] = [];
   for (const queueName of WORKER_QUEUE_NAMES) {
     const worker = new Worker<EmailJobData>(queueName, processor, {
