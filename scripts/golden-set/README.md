@@ -68,6 +68,10 @@ GOLDEN_SET_ANTHROPIC_API_KEY=... GOLDEN_SET_MONGODB_URI=... \
 
 The runner listens in-process to the service's `llm_call` records (stage, call, model, effort, status, token counts, stop reason; ids and counts only). After the fixture lines it prints a block with, per stage, the median and p90 tokens per completed call, the count of each stop reason, and every call that stopped on `max_tokens` (a cap hit). The results JSON gains `llmCalls`: `{ summary, calls }` for each fixture. Use it to see whether a lower effort or a cap is cutting calls off. The golden set runs intake and drafting only; it does not exercise the preflight stage.
 
+### Date confidence (T-453)
+
+After the model-usage block the runner prints a date-confidence table: one row per date read, with the model's confidence and whether the read was right or wrong against the fixture's `expect.ledger` (a read with no expected value is unscored). Below it is a histogram of those reads by confidence bucket (`<0.80`, `0.80`, `0.85`, `0.90`, `0.95`, `1.00`), split into right and wrong. The results JSON gains `dateConfidence`: `{ rows, histogram }`. Use it to see how high the model's confidence runs on wrong dates before changing a confidence floor.
+
 Exit codes: `0` all passed; `1` a fixture failed or the token cap stopped the run; `2` refused (bad flags, missing secrets or over the caps); `3` **fixture isolation breached**; `4` harness error.
 
 ## Environment for `--real`

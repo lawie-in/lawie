@@ -433,6 +433,26 @@ describe('the runner', () => {
     for (const r of saved.results) expect(r.runId).toBeTruthy();
   }, 300_000);
 
+  it('T-453: a dry run prints the date-confidence table and saves dateConfidence {rows, histogram}', () => {
+    const out = mkdtempSync(join(tmpdir(), 'golden-'));
+    const r = run(['--dry-run', '--only', '1a,1b', '--out', out]);
+    expect(r.status).toBe(0);
+    expect(r.stdout).toContain('Date reads by model confidence');
+    const file = readdirSync(out).find((n) => n.endsWith('-dry.json'))!;
+    const saved = JSON.parse(readFileSync(join(out, file), 'utf-8')) as {
+      dateConfidence: { rows: unknown[]; histogram: Array<{ bucket: string }> };
+    };
+    expect(Array.isArray(saved.dateConfidence.rows)).toBe(true);
+    expect(saved.dateConfidence.histogram.map((b) => b.bucket)).toEqual([
+      '<0.80',
+      '0.80',
+      '0.85',
+      '0.90',
+      '0.95',
+      '1.00',
+    ]);
+  }, 300_000);
+
   it('--stub t147 (an invented-averment prose run) still fails the gate for 1a: exit 1, FAIL, a readable diff', () => {
     // 1a is a D1 pack now: the prose recording is no draft the structured call can read, so the
     // gate fails at the pipeline, not on the four banned ids. What matters is that it fails.

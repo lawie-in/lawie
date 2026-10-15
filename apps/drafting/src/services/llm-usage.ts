@@ -154,8 +154,10 @@ export type AiEffort = 'low' | 'medium' | 'high' | 'xhigh' | 'max';
 
 const AI_EFFORTS: readonly AiEffort[] = ['low', 'medium', 'high', 'xhigh', 'max'];
 
+// Arjun, 15 Oct 2026 (after golden run 61): intake back to medium; low on
+// Haiku 5.5 cost quality.
 export const AI_EFFORT_DEFAULTS: Record<LlmStage, AiEffort> = {
-  intake: 'low',
+  intake: 'medium',
   preflight: 'low',
   body: 'medium',
 };
@@ -190,8 +192,10 @@ if (typeof onAppSettingInvalidated === 'function') {
   onAppSettingInvalidated((key) => {
     if (key === null) {
       effortCache.clear();
+      extractCapCache = null;
       return;
     }
+    if (key === APP_SETTING_KEYS.CAP_INTAKE_EXTRACT) extractCapCache = null;
     for (const stage of Object.keys(AI_EFFORT_KEYS) as LlmStage[])
       if (AI_EFFORT_KEYS[stage] === key) effortCache.delete(stage);
   });
@@ -224,6 +228,58 @@ export async function getAiEffort(stage: LlmStage): Promise<AiEffort> {
   if (hit && hit.expiresAt > now) return hit.value;
   const value = await resolveAiEffort(stage);
   effortCache.set(stage, { value, expiresAt: now + AI_EFFORT_TTL_MS });
+  return value;
+}
+
+// ── intake_extract max_tokens cap (T-453 follow-up) ─────────────────────────
+//
+// Arjun, 15 Oct 2026: intake_extract hit its 1500 cap on golden fixtures
+// 21-24 (thinking counts against max_tokens), so the cap is config:
+// ai.cap.intake_extract, default 3000. The other intake caps stay in code.
+
+export const INTAKE_EXTRACT_CAP_DEFAULT = 3000;
+export const INTAKE_EXTRACT_CAP_MIN = 500;
+export const INTAKE_EXTRACT_CAP_MAX = 8000;
+
+let extractCapCache: { value: number; expiresAt: number } | null = null;
+
+/** Test helper — clear the intake_extract cap cache. NOT called in production paths. */
+export function _clearIntakeExtractCapCache(): void {
+  extractCapCache = null;
+}
+
+async function resolveIntakeExtractCap(): Promise<number> {
+  const key = APP_SETTING_KEYS.CAP_INTAKE_EXTRACT;
+  let raw: string;
+  try {
+    raw = await getAppSetting(key);
+  } catch {
+    return INTAKE_EXTRACT_CAP_DEFAULT;
+  }
+  const v = typeof raw === 'string' ? raw.trim() : '';
+  if (/^\d+$/.test(v)) {
+    const n = Number(v);
+    if (n >= INTAKE_EXTRACT_CAP_MIN && n <= INTAKE_EXTRACT_CAP_MAX) return n;
+  }
+  // Once per cache period: the fallback is cached below. Key only, never the value.
+  logger.warn(
+    { key },
+    `[llm-usage] ${key} is not an integer in ${INTAKE_EXTRACT_CAP_MIN}-${INTAKE_EXTRACT_CAP_MAX}; using the default`,
+  );
+  return INTAKE_EXTRACT_CAP_DEFAULT;
+}
+
+/**
+ * `ai.cap.intake_extract`: max_tokens for the intake_extract call. Never
+ * throws: a missing key (or a failed settings read) is the default (3000); a
+ * value that is not a whole number in 500-8000 is the default with a warn
+ * that names the key only. Cached 60 s, defaults included.
+ */
+export async function getIntakeExtractCap(): Promise<number> {
+  const now = Date.now();
+  if (extractCapCache && extractCapCache.expiresAt > now) return extractCapCache.value;
+  const value = await resolveIntakeExtractCap();
+  extractCapCache = { value, expiresAt: now + AI_EFFORT_TTL_MS };
   return value;
 }
 

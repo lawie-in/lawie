@@ -22,7 +22,17 @@ import { mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { join, resolve } from 'path';
 
 import { evaluate, skipped } from './lib/assert';
-import { calibrate, CalibrationSample, renderCalibration, samplesFor } from './lib/calibrate';
+import {
+  calibrate,
+  CalibrationSample,
+  DateConfidenceRow,
+  DateReader,
+  dateConfidenceHistogram,
+  dateConfidenceRows,
+  renderCalibration,
+  renderDateConfidence,
+  samplesFor,
+} from './lib/calibrate';
 import { estimateCost, Rate, renderEstimate, RUN_LIMITS } from './lib/cost';
 import { checkComposition, FixtureFileError, loadFixtures, selectFixtures } from './lib/fixtures';
 import {
@@ -232,6 +242,17 @@ async function main(): Promise<number> {
     // ── Run ──────────────────────────────────────────────────────────────────
     const results: FixtureResult[] = [];
     const samples: CalibrationSample[] = [];
+    // T-453 round 2: every date read with its confidence, normalised as the ledger does.
+    const sharedForDates = requireFromDrafting<any>('@lawie/shared');
+    const ledgerSvc = requireFromDrafting<any>(
+      join(DRAFTING_DIR, 'src', 'services', 'fact-ledger.service'),
+    );
+    const refYear: number = ledgerSvc.referenceYear(new Date());
+    const readDate: DateReader = (text) => {
+      const n = sharedForDates.normalizeDate(text, { referenceYear: refYear });
+      return n.ok ? n.value : null;
+    };
+    const dateRows: DateConfidenceRow[] = [];
     let used = 0;
     let capped = false;
     let breach = false;
@@ -247,6 +268,7 @@ async function main(): Promise<number> {
         used += ev.tokens.inputTokens + ev.tokens.outputTokens;
         if (!ev.isolation.ok) breach = true;
         samples.push(...samplesFor(f, ev.extraction, ev.ledger));
+        dateRows.push(...dateConfidenceRows(f, ev.extraction, readDate));
         results.push(evaluate(f, ev));
       }
       for (const l of renderFixture(results[results.length - 1])) console.log(l);
@@ -256,6 +278,7 @@ async function main(): Promise<number> {
     const llmSummary = summariseLlmCalls(llmCalls);
     for (const l of renderLlmCalls(llmSummary)) console.log(l);
     for (const l of renderSummary(summary)) console.log(l);
+    for (const l of renderDateConfidence(dateRows)) console.log(l);
     let calibration = null;
     if (args.calibrate) {
       const shared = requireFromDrafting<any>('@lawie/shared');
@@ -279,6 +302,7 @@ async function main(): Promise<number> {
           llmCalls: { summary: llmSummary, calls: llmCalls },
           results,
           calibration,
+          dateConfidence: { rows: dateRows, histogram: dateConfidenceHistogram(dateRows) },
         },
         null,
         2,
