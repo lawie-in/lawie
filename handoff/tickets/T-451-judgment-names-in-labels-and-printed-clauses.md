@@ -81,3 +81,7 @@ The model sees both ids, so neither can stay:
 - Form key `bhajan_lal_categories_invoked` becomes `quashing_categories_invoked`.
 
 CLAUSE_CUES, the skeletons and the saved-form mapping follow the rename. How saved forms that carry the old key are handled is Arjun's call (asked 15 Oct). Any golden that moves goes to Ajay.
+
+## Arjun (15 Oct 2026, 07:15 UTC) — renamed ids: read-time alias, no migration
+
+`bhajan_lal_categories_invoked` → `quashing_categories_invoked` (form key) and `bhajan_lal_paragraph` → `quashing_categories_paragraph` (clause id): alias old → new at the one place form inputs are loaded and the one place clause ids are resolved; write only the new key from now on; one test with an old saved form; comment `// T-451 alias, remove in the post-v1 cleanup`. No migration script (tiny pre-v1 data; a script is irreversible and triggers the rule-7 CI wait).
