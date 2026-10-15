@@ -160,3 +160,8 @@ Rest of the draft (preheader, body, help line, footer lines 3–4) **approved as
 | 4b | Backfilled invoices emailed? | None are expected: no subscription has been charged, and the founder's test top-up needs no invoice. If the backfill does produce any, email each once. |
 | 4c | Amount format | The email may use `₹` and the PDF `Rs.`. Both are lawful; the figure must match the PDF exactly. |
 | 5 | Template id | Not a legal point; Priya decides. |
+
+## Addendum 8 (T-436): trade name and erased users (Shashank, 15 Oct 2026)
+
+1. **5b uses the endpoint's `tradeName`**: `{supplier_trade_name} is a trade name of {supplier_legal_name}, …`. That keeps it exactly as on REG-06 (Addendum 2), which today reads "Lawie". The rest of 5b, including `In these Terms, "Lawie", "we" and "us" mean that proprietorship.`, stays as signed. If tradeName is missing, the same hide rule as Addendum 7 (3b) applies.
+2. **Erased users: no credit-note email.** The customer snapshot is kept only as the tax record (CGST s.36). Using its email to contact someone who erased their account is a new use after erasure. Issue and keep the credit note; send nothing. If the person writes in, it is provided on request. Test: a credit note for an erased user sends no email.
