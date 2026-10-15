@@ -1,0 +1,93 @@
+{
+  "_note": "T-303 spike, throwaway. Transcribed from handoff/legal/t303-made-up-firs.md (Ajay, commit 3000cdb2). All values are invented. 'date' is the date of report. accused_names lists named accused only; unknown persons are left out.",
+  "pages": {
+    "E1": {
+      "language": "en",
+      "fir_number": "214/2023",
+      "police_station": "Rampurwa",
+      "district": "Bhojgarh",
+      "date_as_written": "10-12-2023",
+      "date_iso": "2023-12-10",
+      "sections_as_written": "379, 34 IPC",
+      "complainant_name": "Ramesh Kumar Yadav",
+      "accused_names": ["Sunil Mahto"]
+    },
+    "E2": {
+      "language": "en",
+      "fir_number": "087/2024",
+      "police_station": "Nawadih Kala",
+      "district": "Kolpur",
+      "date_as_written": "18-08-2024",
+      "date_iso": "2024-08-18",
+      "sections_as_written": "331(4), 305(a), 3(5) BNS",
+      "complainant_name": "Smt. Geeta Devi",
+      "accused_names": ["Rakesh Munda"]
+    },
+    "E3": {
+      "language": "en",
+      "fir_number": "056/2024",
+      "police_station": "Chandrapur Kalan",
+      "district": "Bhojgarh",
+      "date_as_written": "02-03-2024",
+      "date_iso": "2024-03-02",
+      "sections_as_written": "323, 341, 504, 506, 34 IPC",
+      "complainant_name": "Dilip Singh Rathore",
+      "accused_names": ["Arvind Singh", "Pramod Singh"]
+    },
+    "E4": {
+      "language": "en",
+      "fir_number": "301/2024",
+      "police_station": "Sadar Thana",
+      "district": "Kolpur",
+      "date_as_written": "14-11-2024",
+      "date_iso": "2024-11-14",
+      "sections_as_written": "318(4), 316(2) BNS",
+      "complainant_name": "Pradeep Kumar Sinha",
+      "accused_names": ["Vinod Agarwal"]
+    },
+    "H1": {
+      "language": "hi",
+      "fir_number": "178/2023",
+      "police_station": "रामपुरवा",
+      "district": "भोजगढ़",
+      "date_as_written": "03-09-2023",
+      "date_iso": "2023-09-03",
+      "sections_as_written": "420, 406 भा.दं.वि.",
+      "complainant_name": "सुरेश प्रसाद",
+      "accused_names": ["मनोज कुमार चौधरी"]
+    },
+    "H2": {
+      "language": "hi",
+      "fir_number": "119/2024",
+      "police_station": "नवादीह कला",
+      "district": "कोलपुर",
+      "date_as_written": "22-09-2024",
+      "date_iso": "2024-09-22",
+      "sections_as_written": "115(2), 126(2), 352, 351(2) भा.न्या.सं.",
+      "complainant_name": "अनिता कुमारी",
+      "accused_names": ["संजय महतो", "कविता देवी"]
+    },
+    "H3": {
+      "language": "hi",
+      "fir_number": "042/2025",
+      "police_station": "महिला थाना, भोजगढ़",
+      "district": "भोजगढ़",
+      "date_as_written": "05-02-2025",
+      "date_iso": "2025-02-05",
+      "sections_as_written": "85, 115(2) भा.न्या.सं. एवं धारा 3/4 दहेज निषेध अधिनियम",
+      "complainant_name": "पूजा कुमारी",
+      "accused_names": ["अमित कुमार", "रामकिशोर प्रसाद", "शांति देवी"]
+    },
+    "H4": {
+      "language": "hi",
+      "fir_number": "066/2024",
+      "police_station": "सदर थाना",
+      "district": "कोलपुर",
+      "date_as_written": "19-02-2024",
+      "date_iso": "2024-02-19",
+      "sections_as_written": "279, 337, 338 भा.दं.वि.",
+      "complainant_name": "मोहम्मद इरफ़ान अंसारी",
+      "accused_names": []
+    }
+  }
+}
