@@ -7,7 +7,7 @@
  */
 import logger from '../config/logger';
 
-import { APP_SETTING_KEYS, getAppSetting } from './app-settings.service';
+import { APP_SETTING_KEYS, getAppSetting, onAppSettingInvalidated } from './app-settings.service';
 
 // ── Pure stream-event parsers ────────────────────────────────────────────────
 // Take one already-JSON-parsed event/line and return whatever fragment of
@@ -171,11 +171,33 @@ function isAiEffort(v: string): v is AiEffort {
 }
 
 /**
- * `ai.effort.<stage>`. Never throws: a missing key (or a settings read that
- * fails) is the default; a value outside low|medium|high|xhigh|max is the
- * default with a warn that names the key only, never the value.
+ * The resolved effort per stage, defaults included, for 60 s (as
+ * getAppSetting's own cache). getAppSetting never caches a missing key, so
+ * without this every call would read Mongo while no ai.effort.* row exists,
+ * and an invalid value would warn on every call. Cleared with the settings
+ * cache (setAppSetting for an effort key, _clearAppSettingsCache).
  */
-export async function getAiEffort(stage: LlmStage): Promise<AiEffort> {
+const AI_EFFORT_TTL_MS = 60_000;
+const effortCache = new Map<LlmStage, { value: AiEffort; expiresAt: number }>();
+
+/** Test helper — clear the effort cache. NOT called in production paths. */
+export function _clearAiEffortCache(): void {
+  effortCache.clear();
+}
+
+// Guarded: a test that replaces app-settings.service wholesale may not provide it.
+if (typeof onAppSettingInvalidated === 'function') {
+  onAppSettingInvalidated((key) => {
+    if (key === null) {
+      effortCache.clear();
+      return;
+    }
+    for (const stage of Object.keys(AI_EFFORT_KEYS) as LlmStage[])
+      if (AI_EFFORT_KEYS[stage] === key) effortCache.delete(stage);
+  });
+}
+
+async function resolveAiEffort(stage: LlmStage): Promise<AiEffort> {
   const key = AI_EFFORT_KEYS[stage];
   let raw: string;
   try {
@@ -185,8 +207,24 @@ export async function getAiEffort(stage: LlmStage): Promise<AiEffort> {
   }
   const v = typeof raw === 'string' ? raw.trim().toLowerCase() : '';
   if (isAiEffort(v)) return v;
+  // Once per key per cache period: the fallback is cached below.
   logger.warn({ key }, `[llm-usage] ${key} is not a valid effort; using the default`);
   return AI_EFFORT_DEFAULTS[stage];
+}
+
+/**
+ * `ai.effort.<stage>`. Never throws: a missing key (or a settings read that
+ * fails) is the default; a value outside low|medium|high|xhigh|max is the
+ * default with a warn that names the key only, never the value. Cached 60 s
+ * per stage, defaults included.
+ */
+export async function getAiEffort(stage: LlmStage): Promise<AiEffort> {
+  const now = Date.now();
+  const hit = effortCache.get(stage);
+  if (hit && hit.expiresAt > now) return hit.value;
+  const value = await resolveAiEffort(stage);
+  effortCache.set(stage, { value, expiresAt: now + AI_EFFORT_TTL_MS });
+  return value;
 }
 
 /**

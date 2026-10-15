@@ -9,6 +9,7 @@ import { Response } from 'express';
 
 import logger from '../config/logger';
 import { streamGenerateFromBrief } from '../services/ai.service';
+import { _clearAiEffortCache } from '../services/llm-usage';
 import { loadAvermentLists } from '../services/averments';
 import { buildBrief, buildChecklist, GivenValue } from '../services/intake-brief';
 import { loadRulePack } from '../services/rule-pack.service';
@@ -97,6 +98,7 @@ beforeEach(() => {
   mockStream.mockReset();
   mockParse.mockReset();
   bodyEffort = undefined;
+  _clearAiEffortCache();
 });
 afterEach(() => jest.restoreAllMocks());
 

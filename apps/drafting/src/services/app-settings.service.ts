@@ -23,6 +23,28 @@ interface CacheEntry {
 
 const cache = new Map<string, CacheEntry>();
 
+/**
+ * T-453: modules that keep their own cache of a resolved setting (llm-usage's
+ * effort cache) register here, so an admin write (the key) or a full clear
+ * (null) reaches them too.
+ */
+type InvalidationListener = (key: string | null) => void;
+const invalidationListeners = new Set<InvalidationListener>();
+
+export function onAppSettingInvalidated(fn: InvalidationListener): void {
+  invalidationListeners.add(fn);
+}
+
+function notifyInvalidated(key: string | null): void {
+  for (const fn of invalidationListeners) {
+    try {
+      fn(key);
+    } catch {
+      // A listener must never fail a settings write.
+    }
+  }
+}
+
 export class AppSettingMissingError extends Error {
   readonly key: string;
   constructor(key: string) {
@@ -79,6 +101,7 @@ export async function setAppSetting(input: {
   ).lean();
 
   cache.delete(key);
+  notifyInvalidated(key);
 
   return {
     key: doc!.key,
@@ -106,6 +129,7 @@ export async function listAppSettings(): Promise<
 /** Test helper — clear the in-memory cache. NOT called in production paths. */
 export function _clearAppSettingsCache(): void {
   cache.clear();
+  notifyInvalidated(null);
 }
 
 // ── Well-known keys (string constants only — NOT default values) ────────────
