@@ -509,6 +509,22 @@ describe('check 3: mutation / wrong fact', () => {
     ).toBe(true);
   });
 
+  it.each([
+    ['remand 14 September 2026'],
+    ['custody w.e.f. 14.09.2026'],
+    ['on 14th September, 2026'],
+  ])('T-453: a wrong date still flagged when the span carries a label (%s)', (labelled) => {
+    const body = RB_CLEAN.replace('since 13 September 2026', `since ${labelled}`);
+    expect(body).not.toBe(RB_CLEAN);
+    const vs = verifyDraft(inputOf(RB, body));
+    expect(vs.length).toBeGreaterThan(0);
+    expect(
+      vs.some(
+        (v) => v.check === 'mutation' && v.ledgerKey === 'custody_since' && v.reason === 'differs',
+      ),
+    ).toBe(true);
+  });
+
   it('a value given for an unresolved key is flagged, as a number and as a relative phrase', () => {
     const numeric = `${S138_CLEAN}\n\n4. That the cheque memo dated 20.09.2026 was received.`;
     const v1 = verifyDraft(inputOf(S138, numeric)).filter((v) => v.check === 'mutation');

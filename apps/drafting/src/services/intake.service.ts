@@ -85,7 +85,14 @@ import {
   RECEPTION_PACK_SYSTEM_PROMPT,
   ReceptionAnswer,
 } from './intake.prompts';
-import { getAiEffort, getModelRates, logLlmCall, priceUsage } from './llm-usage';
+import {
+  getAiEffort,
+  getIntakeExtractCap,
+  getModelRates,
+  INTAKE_EXTRACT_CAP_DEFAULT,
+  logLlmCall,
+  priceUsage,
+} from './llm-usage';
 import { loadRulePack, RulePack } from './rule-pack.service';
 import {
   evaluateShowIf,
@@ -136,8 +143,12 @@ export const INTAKE_LIMITS = {
   fillMaxTokens: 1500,
   /** T-105: Reception reads up to 40 checklist lines and words up to 10 questions. */
   receptionMaxTokens: 3000,
-  /** T-147b: the extraction pass returns one short span per fact, for up to 40 facts. */
-  extractMaxTokens: 1500,
+  /**
+   * T-147b: the extraction pass returns one short span per fact, for up to 40 facts.
+   * T-453 follow-up: the default only; the cap in use is ai.cap.intake_extract
+   * (getIntakeExtractCap, 500-8000, default 3000).
+   */
+  extractMaxTokens: INTAKE_EXTRACT_CAP_DEFAULT,
   /** T-147b: versions one fact ledger may hold. One `/intake/brief/update` request writes at most one. */
   maxLedgerVersions: 100,
   /** T-105: model-calling requests allowed for one intake after its first (rounds and changes of kind). */
@@ -871,7 +882,7 @@ async function modelCall(
   maxTokens: number,
 ): Promise<string | null> {
   const started = Date.now();
-  // T-453: effort per stage from ai.effort.intake (default low). Never throws.
+  // T-453: effort per stage from ai.effort.intake (default medium). Never throws.
   const effort = await getAiEffort('intake');
   const log = (status: 'completed' | 'failed', u: AuxCallUsage) =>
     logLlmCall({
@@ -1150,13 +1161,9 @@ async function extractCall(ctx: BriefContext, user: string): Promise<string | nu
   const cached = await readIntakeCache(cacheParts);
   if (cached !== null) return cached;
   if (!ctx.hasSpent()) return null;
-  const text = await modelCall(
-    ctx,
-    'intake_extract',
-    EXTRACT_SYSTEM_PROMPT,
-    user,
-    INTAKE_LIMITS.extractMaxTokens,
-  );
+  // T-453 follow-up: the cap is config (ai.cap.intake_extract). Never throws.
+  const maxTokens = await getIntakeExtractCap();
+  const text = await modelCall(ctx, 'intake_extract', EXTRACT_SYSTEM_PROMPT, user, maxTokens);
   if (text !== null) await writeIntakeCache(cacheParts, text);
   return text;
 }

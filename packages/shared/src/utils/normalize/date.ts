@@ -183,6 +183,45 @@ export function normalizeDate(input: unknown, options?: DateOptions | null): Nor
   if (!t.ok) return t;
   const s = devanagariToArabic(t.text).normalize('NFC').trim().replace(/\s+/g, ' ');
 
+  const whole = matchDate(s, referenceYear);
+  if (whole !== null) return whole;
+  // T-453 round 2: a short leading label ("remand 4 June 2026", "FIR dated
+  // 12.03.2026", "on 4th June, 2026"). Only when the whole span is no date.
+  const tail = matchAfterLabel(s, referenceYear);
+  if (tail !== null) return tail;
+  return unresolved('unrecognised', 'This is not a date format we read.');
+}
+
+/** The most words a leading label may have. */
+const MAX_LABEL_WORDS = 6;
+/** A label word: letters and the punctuation of `w.e.f.` or `dated:`, no digit. */
+const LABEL_WORD = /^[\p{L}\p{M}.,:;'()-]+$/u;
+
+/**
+ * The span after a leading label, read with the same anchored patterns as a
+ * whole span. The label is a run of up to MAX_LABEL_WORDS words with no digit
+ * and no month name (a month name in the label could be a second date, so the
+ * span stays unrecognised). The tail must be a date on its own: a tail whose
+ * "month" is not a month (the label word read as one) does not count. Null
+ * when no tail is a date.
+ */
+function matchAfterLabel(s: string, referenceYear: number | undefined): Normalized<string> | null {
+  const words = s.split(' ');
+  const limit = Math.min(MAX_LABEL_WORDS, words.length - 1);
+  for (let k = 1; k <= limit; k++) {
+    const w = words[k - 1];
+    if (!LABEL_WORD.test(w)) return null;
+    if (MONTHS.has(w.replace(/[^\p{L}\p{M}]/gu, '').toLowerCase())) return null;
+    const r = matchDate(words.slice(k).join(' '), referenceYear);
+    if (r === null) continue;
+    if (!r.ok && r.reason === 'unknown_month') continue;
+    return r;
+  }
+  return null;
+}
+
+/** The anchored patterns on one span. Null when none matches. */
+function matchDate(s: string, referenceYear: number | undefined): Normalized<string> | null {
   const iso = ISO_YMD.exec(s);
   if (iso) return build(Number(iso[1]), Number(iso[2]), Number(iso[3]));
 
@@ -228,7 +267,7 @@ export function normalizeDate(input: unknown, options?: DateOptions | null): Nor
     return build(y.year, month, Number(dayRaw));
   }
 
-  return unresolved('unrecognised', 'This is not a date format we read.');
+  return null;
 }
 
 /** Equal when both normalise to the same calendar day. */
