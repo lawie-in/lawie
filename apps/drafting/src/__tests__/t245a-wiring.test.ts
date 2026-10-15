@@ -17,6 +17,7 @@ import app from '../app';
 import { AppSetting } from '../models/AppSetting.model';
 import { Court } from '../models/Court.model';
 import { LawieDocument } from '../models/Document.model';
+import { FactDiff } from '../models/FactDiff.model';
 import { User } from '../models/User.model';
 import { _clearAppSettingsCache } from '../services/app-settings.service';
 import { createLedger } from '../services/fact-ledger.service';
@@ -560,5 +561,89 @@ describe('the brief path: D1 route with the law switch', () => {
     expect(r.body).toContain('Section 437 of the Code of Criminal Procedure, 1973');
     expect(r.body).toContain('first proviso to Section 437(1) of the CrPC');
     expect(r.body).not.toContain('Section 480(1) of the BNSS');
+  });
+
+  // ── CI 617: the verifier holds the server-computed law-switch facts ────────
+  // The rendered proviso is a computed 'text' fact the verifier did not hold, so
+  // "Section 480(1) of the BNSS" was flagged unsupported. Expected strings are the
+  // signed literals (Addendum 1), not built from the code under test.
+
+  /** The unsupported-section findings the D1 verifier logged for the last draft. */
+  const sectionFindings = async (): Promise<string[]> =>
+    (await FactDiff.find({ check: 'unsupported', entityType: 'section' }).lean()).map((r) =>
+      r.draftValue ? decrypt(r.draftValue) : '',
+    );
+  const withNarrativeText = (facts: Fact[], text: string): Fact[] => [
+    ...withoutKeys(facts, 'facts_narrative'),
+    fact('facts_narrative', text, { raw_span: text }),
+  ];
+
+  it('bail_before_magistrate, woman, BNSS (FIR 2026): prints the 480(1) proviso, no section finding', async () => {
+    const r = await generate('bail_before_magistrate', magistrateBase());
+    expect(r.status).toBe(200);
+    expect(r.body).toContain('first proviso to Section 480(1) of the BNSS');
+    expect(r.body).toContain('Section 480 of the Bharatiya Nagarik Suraksha Sanhita, 2023');
+    expect(await sectionFindings()).toEqual([]);
+  });
+
+  it('bail_before_magistrate, woman, CrPC chosen with FIR 2023 (BNSS not forced): 437(1), no section finding', async () => {
+    const r = await generate('bail_before_magistrate', [
+      ...withoutKeys(magistrateBase(), 'fir_date'),
+      fact('fir_date', '2 June 2023', { type: 'date', value: '2023-06-02' }),
+      fact('procedure_code', CRPC_CHOICE, { type: 'enum' }),
+    ]);
+    expect(r.status).toBe(200);
+    expect(r.body).toContain('first proviso to Section 437(1) of the CrPC');
+    expect(await sectionFindings()).toEqual([]);
+  });
+
+  it('bail_before_magistrate, BNSS chosen, FIR 2023, woman: 480(1) printed, no section finding', async () => {
+    const r = await generate('bail_before_magistrate', [
+      ...withoutKeys(magistrateBase(), 'fir_date'),
+      fact('fir_date', '2 June 2023', { type: 'date', value: '2023-06-02' }),
+      fact('procedure_code', BNSS_CHOICE, { type: 'enum' }),
+    ]);
+    expect(r.status).toBe(200);
+    expect(r.body).toContain('first proviso to Section 480(1) of the BNSS');
+    expect(await sectionFindings()).toEqual([]);
+  });
+
+  it('negative: a section no fact holds (480(2) under BNSS) is still flagged', async () => {
+    const r = await generate(
+      'bail_before_magistrate',
+      withNarrativeText(magistrateBase(), 'Bail is also sought under Section 480(2) of the BNSS.'),
+    );
+    expect(r.status).toBe(200);
+    expect(r.body).toContain('first proviso to Section 480(1) of the BNSS');
+    const found = await sectionFindings();
+    expect(found.some((v) => /480\(2\)/.test(v))).toBe(true);
+    expect(found.some((v) => /480\(1\)/.test(v))).toBe(false);
+  });
+
+  it('negative: 437(1) of the CrPC under BNSS is still flagged', async () => {
+    const r = await generate(
+      'bail_before_magistrate',
+      withNarrativeText(magistrateBase(), 'Bail is also sought under Section 437(1) of the CrPC.'),
+    );
+    expect(r.status).toBe(200);
+    expect(r.body).toContain('first proviso to Section 480(1) of the BNSS');
+    const found = await sectionFindings();
+    expect(found.some((v) => /437\(1\)/.test(v))).toBe(true);
+  });
+
+  it('a stored fact under a law-switch key holds no section: the computed value wins and 480(2) stays flagged', async () => {
+    const r = await generate('bail_before_magistrate', [
+      ...withNarrativeText(
+        magistrateBase(),
+        'Bail is also sought under Section 480(2) of the BNSS.',
+      ),
+      fact('women_proviso', 'the first proviso to Section 480(2) of the BNSS'),
+      fact('case.governing_provision', 'Section 480(2) of the BNSS'),
+    ]);
+    expect(r.status).toBe(200);
+    expect(r.body).toContain('first proviso to Section 480(1) of the BNSS');
+    expect(r.body).not.toContain('first proviso to Section 480(2)');
+    const found = await sectionFindings();
+    expect(found.some((v) => /480\(2\)/.test(v))).toBe(true);
   });
 });

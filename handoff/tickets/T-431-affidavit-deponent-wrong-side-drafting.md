@@ -1,10 +1,10 @@
 # T-431: counter and rejoinder affidavit drafts may name the wrong deponent
 
-| Field  | Value                                                                   |
-| ------ | ----------------------------------------------------------------------- |
-| Status | Assigned to Mahak, Explore 15 Oct 2026 (files to Priya). Priya |
-| Owner  | Mahak (build), Ajay (side rule, T-381 Addendum 5 04c1630)               |
-| Mode   | Small fix unless Explore finds more (legal content: party mapping)      |
+| Field  | Value                                                              |
+| ------ | ------------------------------------------------------------------ |
+| Status | Assigned to Mahak, Explore 15 Oct 2026 (files to Priya). Priya     |
+| Owner  | Mahak (build), Ajay (side rule, T-381 Addendum 5 04c1630)          |
+| Mode   | Small fix unless Explore finds more (legal content: party mapping) |
 
 ## Problem
 
@@ -31,3 +31,7 @@ What (b) means here, and no more:
 Mode: full chain (legal content, two services' worth of paths in one file). Tests per AC3: both packs, both sides, plus "raw deponent_name from the client is ignored" and "no side → refuse" on each drafting path.
 
 Priya: Mahak takes this now rather than the next ticket; it is smaller than it reads because the resolver exists. If the refuse rule stops a draft Anushka would otherwise get, that is correct behaviour, and the message tells her what to fill.
+
+## Arjun (15 Oct 2026, 03:30 UTC) — entity deponent gap: option (a)
+
+Mahak found that `parties.deponent_designation` reaches the context only as a dotted key and the two packs' prompt_context has no placeholder for it, so a typed officer designation is not passed to the model and the draft leaves a blank. Ruling: accept for V1. A visible, accurate blank under Ajay's deponent line is correct; nothing is invented. Parked (V1.1, with the verification template): "entity-aware deponent and verification" — pass the typed designation through a prompt placeholder, Ajay signs the addendum. No form change needed; the value is already collected. Not blocking; chain continues to tester.
