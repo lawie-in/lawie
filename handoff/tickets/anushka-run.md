@@ -1183,3 +1183,13 @@ Quality: nothing to test in the UI — server-side only; the invoice list, email
 - The draft makes no claim that a deadline is met or missed when the date it depends on is not known.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-424 — Affidavit and Memo of Parties on the right side (cb74664, mahak, 15 Oct 2026)
+
+- Draft a counter-affidavit as the Respondent's advocate: the Memo of Parties lists Petitioner and Respondent correctly, and your client's name and address sit on the Respondent row only.
+- Draft a rejoinder as the Petitioner's advocate: your client shows as the Petitioner the same way.
+- The affidavit is sworn by your client, and the opening line reads "That I am the above-named Respondent" (or Petitioner), with no doubled "the" on any affidavit.
+- The synopsis names your client's side as "Petitioner:".
+- If the brief gives some other role for your client, you get a clear message instead of a wrong document; if the other side's name is missing, it is named as a gap.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

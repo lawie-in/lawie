@@ -2,7 +2,7 @@
 
 | Field  | Value                                                         |
 | ------ | ------------------------------------------------------------- |
-| Status | Code done, reviewer PASS, Ajay signed; golden update b852d32 pushed; full tests and doc-writer next (Mahak). Priya, 14 Oct 2026 |
+| Status | Merged into develop_staging cb74664 (Mahak, 15 Oct 2026). Waiting for Anushka on develop. Priya |
 | Owner  | Arjun (scope), Ajay (party-side rule), drafting lead (build)  |
 | Mode   | Full chain (legal content: party mapping)                     |
 

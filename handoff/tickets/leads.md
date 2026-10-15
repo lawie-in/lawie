@@ -65,12 +65,13 @@ Where each lead stopped:
 
 **v2 rule 7 (founder 21:45, written by Arjun): no CI wait by default. Hold the next slot for green only after a merge touching .github/workflows/**, packages/shared/**, root config or a backfill/migration script. Now: T-439b (workflow), so T-433 pushes once run 548 is green.**
 
-**Slot order: T-440 pushed 518d55ae. Next Mahak T-424, then Kunal AC10, then Vishal T-245a (parts 1+2 together). CI run 573 drafting tests being confirmed at 00:05.**
+**Slot order: T-424 pushed cb74664. Next: Kunal AC10 and Vishal T-245a when each is ready (first-ready). CI run 576 (T-440) / the run for cb74664 being confirmed.**
 
 **REBALANCE (founder, 14 Oct 23:20 UTC): Kunal, Mahak and Tanvi now run on Sonnet; Vishal and Shashank on Opus. The harder tickets (multi-part, money, legal drafting) go to Vishal and Shashank. T-436 parts (b) and (c) move from Kunal to Shashank after T-440 merges. T-431 moves from Mahak to Vishal. The QUEUE on each row wins over older 'then …' text. packages/shared order (Arjun): Kunal keeps it for T-364 right after T-436 (a). Shashank's T-436 (b) AC8 privacy bump touches shared only after T-364 merges; he does AC10 and the non-shared parts first.**
 
 ## Last done
 
+- mahak: T-424 merged cb74664 (15 Oct 2026). Affidavit and Memo of Parties put the advocate's client on the right side; opening line 'That I am the above-named Respondent/Petitioner'; no doubled 'the'; synopsis 'Petitioner:'; a clear message for an unknown role, and the missing other side named as a gap. brief-party-fields, annexures, t381 test and the 13 golden annexures entries released. Next T-442.
 - shashank: T-440 merged 518d55ae (14 Oct 2026). A date answered 'Not known' prints '[To be confirmed: <date name>]' on both drafting paths, never blank or guessed; an s.138 notice with no send date prints a to-be-confirmed date line; no deadline claims from an unknown date. template-engine, brief-drafter, intake-brief, drafter.prompts, draft-renderer and the ai.service ranges released to Vishal (T-245a part 2). Next T-436 (b) and (c), then T-438.
 - kunal: T-436 part (a) merged 6cca6f0d (14 Oct 2026). Every payment now produces a GST tax invoice on Lawie's side; the admin can export the month's invoices for GST filing; credit notes on refund; public supplier endpoint. Nothing new on screen yet (parts b and c). Invoices start once the GST_* env values are set (morning list). packages/shared and yarn.lock held until its CI (run 573) is green. Next AC10, then T-364.
 - tanvi: red run 567 fixed, d61a99b2 (14 Oct 2026). t115c-script-and-google.test.ts mocks ../config/env with its own Google values; verified with the vars unset (18/18; full auth 974). T-358 resumes.
