@@ -166,7 +166,13 @@ const JUDGMENTS = [
   'Ravindran',
 ];
 
-const GP_BLANK = '[To be confirmed: Section 167(2) CrPC or Section 187(3) BNSS]';
+// Addendum 1 (2992891), no choice: `[To be confirmed: Section {crpc} of the CrPC or Section {bnss} of the BNSS]`,
+// approved for default_bail by Addendum 2 #7 (d5a3005). Replaces T-251's interim wording
+// "Section 167(2) CrPC or Section 187(3) BNSS".
+const GP_BLANK = '[To be confirmed: Section 167(2) of the CrPC or Section 187(3) of the BNSS]';
+// Addendum 1, BNSS / CrPC choice, byte-exact.
+const GP_BNSS = 'Section 187(3) of the Bharatiya Nagarik Suraksha Sanhita, 2023';
+const GP_CRPC = 'Section 167(2) of the Code of Criminal Procedure, 1973';
 
 describe('AC1: Ajay’s text is applied word for word', () => {
   const pack = loadRulePack('default_bail')!;
@@ -612,20 +618,108 @@ describe('AC2 (wiring): the draft built from the brief, model stubbed', () => {
     willingness_to_furnish_bond: 'Yes',
   };
 
-  it('the rendered prayer carries the both-forms blank exactly, and no raw placeholder', async () => {
+  it('FIR on or after 1 Jul 2024 forces BNSS: the prayer carries Section 187(3) of the BNSS, no blank, no raw placeholder', async () => {
+    // Addendum 1 #8: an FIR date on or after 1 July 2024 forces BNSS. The fixture FIR is 2 Jun 2026.
     const out = await draftWith(BODY, FULL_GIVEN);
+    const prayer = out.sectionText('prayer');
+    expect(prayer).toContain(
+      `Release the applicant Deepak Ravidas on default bail under ${GP_BNSS} in connection with FIR No.`,
+    );
+    expect(prayer).not.toContain(GP_BLANK);
+    expect(prayer).not.toContain('{governing_provision}');
+    expect(prayer).not.toMatch(/statutory period/i);
+    expect(out.fullText).not.toContain('{governing_provision}');
+    expect(out.fullText).not.toContain('To be confirmed: Section 167(2)');
+    expect(out.user).not.toContain('{governing_provision}');
+  });
+
+  it('FIR before 1 Jul 2024 and no choice: the prayer carries the both-forms blank exactly, and no raw placeholder', async () => {
+    const out = await draftWith(BODY, { ...FULL_GIVEN, fir_date: '2023-06-02' });
     const prayer = out.sectionText('prayer');
     expect(prayer).toContain(
       `Release the applicant Deepak Ravidas on default bail under ${GP_BLANK} in connection with FIR No.`,
     );
     expect(prayer).not.toContain('{governing_provision}');
-    expect(prayer).not.toMatch(/statutory period/i);
     expect(out.fullText).not.toContain('{governing_provision}');
     expect(out.user).not.toContain('{governing_provision}');
   });
 
-  it('T-194: findBlanks counts the governing_provision blank in the rendered prayer', async () => {
+  it('FIR before 1 Jul 2024 and a CrPC choice: CrPC 167(2) in the cause title and the prayer, no BNSS', async () => {
+    const out = await draftWith(BODY, {
+      ...FULL_GIVEN,
+      fir_date: '2023-06-02',
+      procedure_code: 'CrPC and Evidence Act',
+    });
+    expect(out.sectionText('prayer')).toContain(
+      `on default bail under ${GP_CRPC} in connection with FIR No.`,
+    );
+    expect(out.fullText).toContain(`(Under ${GP_CRPC})`);
+    expect(out.fullText).not.toContain('Bharatiya Nagarik Suraksha Sanhita');
+    expect(out.fullText).not.toContain('To be confirmed: Section 167(2)');
+  });
+
+  // Addendum 4 #1 (b99a51e): default_bail RELATED ACTS follow the procedure.
+  const actsBlock = (user: string): string => {
+    const i = user.indexOf('ACTS:');
+    return user.slice(i, user.indexOf('\n\n', i));
+  };
+  const OLD = { ...FULL_GIVEN, fir_date: '2023-06-02' };
+
+  it('Addendum 4 #1: a CrPC choice lists the CrPC 167(2) entry only, with the BNSS entry dropped', async () => {
+    const out = await draftWith(BODY, { ...OLD, procedure_code: 'CrPC and Evidence Act' });
+    const acts = actsBlock(out.user);
+    expect(acts).toContain('Code of Criminal Procedure, 1973');
+    expect(acts).toContain('167(2)');
+    expect(acts).toContain('Procedure when investigation cannot be completed in twenty-four hours');
+    expect(acts).not.toContain('187(3)');
+    expect(acts).not.toContain('Bharatiya Nagarik Suraksha Sanhita');
+  });
+
+  it('Addendum 4 #1: a BNSS choice lists the BNSS entry only, as today', async () => {
+    const out = await draftWith(BODY, { ...OLD, procedure_code: 'BNSS and BSA' });
+    const acts = actsBlock(out.user);
+    expect(acts).toContain('187(3)');
+    expect(acts).not.toContain('Code of Criminal Procedure, 1973');
+    expect(acts).not.toContain('167(2)');
+  });
+
+  it('Addendum 4 #1: an FIR on or after 1 Jul 2024 forces BNSS even with a CrPC choice', async () => {
+    const out = await draftWith(BODY, { ...FULL_GIVEN, procedure_code: 'CrPC and Evidence Act' });
+    const acts = actsBlock(out.user);
+    expect(acts).toContain('187(3)');
+    expect(acts).not.toContain('167(2)');
+  });
+
+  it('Addendum 4 #1: no choice lists both entries', async () => {
+    const out = await draftWith(BODY, OLD);
+    const acts = actsBlock(out.user);
+    expect(acts).toContain('187(3)');
+    expect(acts).toContain('167(2)');
+    expect(acts).toContain('Code of Criminal Procedure, 1973');
+  });
+
+  it('the case-details lines come first in INSTRUCTIONS (CrPC choice), byte-exact', async () => {
+    const out = await draftWith(BODY, { ...OLD, procedure_code: 'CrPC and Evidence Act' });
+    const i = out.user.indexOf('INSTRUCTIONS:\n');
+    expect(out.user.slice(i).split('\n').slice(1, 3)).toEqual([
+      '- PROCEDURE CODE: CrPC and Evidence Act',
+      `- GOVERNING PROVISION: ${GP_CRPC}`,
+    ]);
+  });
+
+  it('no choice: no case-details lines (the P-text blank applies)', async () => {
+    const out = await draftWith(BODY, OLD);
+    expect(out.user).not.toContain('PROCEDURE CODE:');
+    expect(out.user).not.toContain('- GOVERNING PROVISION:');
+  });
+
+  it('T-194: findBlanks counts no governing_provision blank when BNSS is forced', async () => {
     const out = await draftWith(BODY, FULL_GIVEN);
+    expect(findBlanks(out.fullText).filter((b) => b.text === GP_BLANK)).toEqual([]);
+  });
+
+  it('T-194: findBlanks counts the governing_provision blank in the rendered prayer (no choice, old FIR)', async () => {
+    const out = await draftWith(BODY, { ...FULL_GIVEN, fir_date: '2023-06-02' });
     const blanks = findBlanks(out.sectionText('prayer'));
     expect(blanks.map((b) => b.text)).toEqual([GP_BLANK]);
     // And in the whole document: T-245a (Ajay, Addendum 1 ruling 1, 2992891) adds
@@ -982,7 +1076,7 @@ describe('willingness_to_furnish_bond = "No" must act like an unticked box (Ajay
 describe('buildPlaceholderContext: {governing_provision}', () => {
   const cfg = loadTemplateConfig('default_bail')!;
 
-  it('the constant is Ajay’s interim wording', () => {
+  it('the constant is the Addendum 1 no-choice wording (Addendum 2 #7)', () => {
     expect(GOVERNING_PROVISION_BLANK).toBe(GP_BLANK);
   });
 
@@ -1052,11 +1146,26 @@ describe('buildPlaceholderContext: {governing_provision}', () => {
     ]);
   });
 
-  it('another pack does NOT get ctx.governing_provision set (the default is default_bail’s own)', () => {
-    for (const id of ['bail_regular', 'bail_anticipatory']) {
-      const ctx = buildPlaceholderContext(loadTemplateConfig(id)!, { applicant_name: 'X' });
-      expect(ctx.governing_provision).toBeUndefined();
-    }
+  it('another pack gets its own governing_provision from the law switch, never default_bail’s blank', () => {
+    // T-245a part 2 (Addendum 1 #2-3): bail_regular and bail_anticipatory read the switch's value.
+    // bail_regular with no choice and no court is the court-unknown both-forms blank (Addendum 1 #4).
+    const reg = buildPlaceholderContext(loadTemplateConfig('bail_regular')!, {
+      applicant_name: 'X',
+    });
+    expect(reg.governing_provision).toBe(
+      '[To be confirmed: Section 437 or 439 of the CrPC, or Section 480 or 483 of the BNSS]',
+    );
+    // anticipatory with no choice: Section 438 of the CrPC or Section 482 of the BNSS, both forms.
+    const ant = buildPlaceholderContext(loadTemplateConfig('bail_anticipatory')!, {
+      applicant_name: 'X',
+    });
+    expect(ant.governing_provision).toBe(
+      '[To be confirmed: Section 438 of the CrPC or Section 482 of the BNSS]',
+    );
+    // A pack with no law switch (and not default_bail) still gets no value.
+    expect(
+      buildPlaceholderContext(loadTemplateConfig('rent_agreement')!, {}).governing_provision,
+    ).toBeUndefined();
     // A value the server gives to another pack is still kept as given.
     expect(
       buildPlaceholderContext(

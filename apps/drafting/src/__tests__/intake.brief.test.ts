@@ -190,8 +190,11 @@ describe('POST /intake/brief — a request with a rule pack', () => {
       confirm_message: 'Choose the court to continue.',
     });
     expect(brief.still_unknown.map((u: { key: string }) => u.key)).toEqual(
-      expect.arrayContaining(['fir_date', 'father_name']),
+      expect.arrayContaining(['father_name']),
     );
+
+    // T-245a (Addendum 1, last row): fir_date is optional now, so it is not still_unknown.
+    expect(brief.still_unknown.map((u: { key: string }) => u.key)).not.toContain('fir_date');
 
     // At most 5 questions a round, 2 rounds, and only about the checklist.
     expect(questions.length).toBeLessThanOrEqual(10);
@@ -199,7 +202,9 @@ describe('POST /intake/brief — a request with a rule pack', () => {
     const byKey = new Map(
       questions.map((q: { key: string; question: string }) => [q.key, q.question]),
     );
-    expect(byKey.get('fir_date')).toBe('On what date was the FIR registered?');
+    // T-245a (Addendum 1, last row): fir_date is optional, so it is no longer among the asked
+    // questions (open question for the lead: it now decides the procedure).
+    expect(byKey.has('fir_date')).toBe(false);
     expect(byKey.has('court')).toBe(false);
     expect(byKey.has('applicant_name')).toBe(false);
     // Given in the description, so neither asked nor "still unknown" (T-139).

@@ -128,9 +128,12 @@ describe('POST /intake/answers', () => {
       ]),
     );
     expect(res.body.fields.fir_date).toBeUndefined();
-    expect(res.body.missing).toEqual(expect.arrayContaining(['fir_date', 'currently_in_custody']));
+    // T-245a (Addendum 1, last row): fir_date is optional, so it is not "missing"; the invalid
+    // answer is still reported above and not kept.
+    expect(res.body.missing).toEqual(expect.arrayContaining(['currently_in_custody']));
+    expect(res.body.missing).not.toContain('fir_date');
     expect(res.body.questions.map((q: { field_id: string }) => q.field_id)).toEqual(
-      expect.arrayContaining(['fir_date', 'currently_in_custody']),
+      expect.arrayContaining(['currently_in_custody']),
     );
   });
 

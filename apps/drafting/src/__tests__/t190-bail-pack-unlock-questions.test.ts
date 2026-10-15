@@ -701,8 +701,20 @@ describe('T-190 AC4 and AC5: an answer is an asked fact with a raw_span, and unl
     const r = answer(key, text);
     const f = r.next!.facts[0];
     expect(f).toMatchObject({ key, source: 'asked', raw_span: text });
-    const facts = [...r.next!.facts, ADDRESS];
+    // T-245a (Addendum 2 #1): the s35 averment also needs the derived notice_provision fact.
+    const facts = [
+      ...r.next!.facts,
+      ADDRESS,
+      ...(key === 's35_notice_status'
+        ? [idFact('notice_provision', 'Section 35(3) of the BNSS')]
+        : []),
+    ];
     const out = resolveAverments(LISTS, facts);
+    if (key === 's35_notice_status') {
+      expect(out.allowed.find((a) => a.id === 's35_notice_illegal_arrest')!.text).toBe(
+        'no notice under Section 35(3) of the BNSS was served on the applicant before arrest',
+      );
+    }
     for (const id of allowedIds) expect(out.allowed.map((a) => a.id)).toContain(id);
     if (banned) expect(out.banned.map((b) => b.id)).not.toContain(banned);
     const texts = out.allowed.filter((a) => allowedIds.includes(a.id)).map((a) => a.text);
@@ -1402,8 +1414,13 @@ describe('T-190 round 2 (Ajay): a displaced REQUIRED alwaysAsk key reaches the D
       expect(m!.write).toBe(`{{MISSING: ${item(k).label}}}`);
       expect(user).toContain(`{{MISSING: ${item(k).label}}}`);
     }
-    // nothing the advocate was not asked is turned into a fact
-    expect(facts.facts).toEqual([]);
+    // nothing the advocate was not asked is turned into a fact. T-245a part 2: the only facts in
+    // FACTS are the computed law-switch ones (no choice: both-forms blanks, Addenda 1 and 2).
+    const listed = facts.facts as Array<{ key: string; value: string }>;
+    expect(listed.map((f) => f.key).sort()).toEqual(['governing_provision', 'notice_provision']);
+    expect(JSON.stringify(listed.find((f) => f.key === 'notice_provision'))).toContain(
+      '[To be confirmed: Section 41A of the CrPC or Section 35(3) of the BNSS]',
+    );
   });
 });
 

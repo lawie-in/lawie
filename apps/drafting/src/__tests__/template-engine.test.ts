@@ -341,7 +341,9 @@ describe('renderTemplateSection', () => {
 
     const rendered = renderTemplateSection(section, ctx);
     expect(rendered.content).toContain('Regular Bail');
-    expect(rendered.content).toContain('under Section 483 of BNSS, 2023');
+    expect(rendered.content).toContain(
+      'under Section 483 of the Bharatiya Nagarik Suraksha Sanhita, 2023',
+    );
     expect(rendered.content).not.toContain('480');
     expect(rendered.content).toContain('Ram Kumar');
     expect(rendered.content).toContain('124/2026');

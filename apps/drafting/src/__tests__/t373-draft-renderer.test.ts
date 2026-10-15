@@ -152,6 +152,28 @@ function lawFacts(input: LawSwitchInput): LedgerFact[] {
   ];
 }
 
+/**
+ * T-245a part 2: the law facts the D1 route now adds to the ledger (BNSS chosen; bail_regular in a
+ * Court of Session / High Court, bail_before_magistrate non-bailable unless said otherwise). Left
+ * alone when the facts already carry a governing_provision.
+ */
+function withLaw(
+  templateId: string,
+  facts: LedgerFact[],
+  opts: { court?: 'magistrate' | 'sessions_or_hc'; bailable?: boolean } = {},
+): LedgerFact[] {
+  if (facts.some((f) => f.key === 'governing_provision')) return facts;
+  return [
+    ...facts,
+    ...lawFacts({
+      templateId,
+      procedureCode: 'BNSS and BSA',
+      court: opts.court ?? (templateId === 'bail_regular' ? 'sessions_or_hc' : undefined),
+      offenceBailable: templateId === 'bail_before_magistrate' ? (opts.bailable ?? false) : null,
+    }),
+  ];
+}
+
 // ── The skeleton fixtures are the signed ones ───────────────────────────────
 
 describe('fixtures: the signed skeletons', () => {
@@ -251,7 +273,8 @@ describe('ADR unit cases', () => {
   });
 
   it('(b) a fixed slot filled from the ledger prints the fact display', () => {
-    const { text, status } = render('bail_regular', regularBase());
+    const { text, status } = render('bail_regular', withLaw('bail_regular', regularBase()));
+    // Signed (Addendum 1, byte-exact): BNSS, Court of Session / High Court is 439 -> 483.
     expect(text('opening')).toBe(
       'The applicant, Ramesh Kumar, aged 34 years, resident of Village Kotwali, Patna, submits this application for regular bail under Section 483 of the Bharatiya Nagarik Suraksha Sanhita, 2023.',
     );
@@ -403,7 +426,7 @@ describe('order and required clauses', () => {
 
 describe('ruling 2: MISSING appears only when the fact is absent', () => {
   it('ruling: a fixed clause the model omitted entirely is printed from the signed text and the ledger', () => {
-    const facts = regularBase();
+    const facts = withLaw('bail_regular', regularBase());
     const skeleton = loadFixtureSkeleton('bail_regular');
     const output = goodOutput(skeleton, facts);
     output.paragraphs = output.paragraphs.filter((p) => p.clauseId !== 'opening');
@@ -413,7 +436,7 @@ describe('ruling 2: MISSING appears only when the fact is absent', () => {
   });
 
   it('ruling: a fixed slot the model did not name in factRefs still fills from the ledger', () => {
-    const facts = regularBase();
+    const facts = withLaw('bail_regular', regularBase());
     const skeleton = loadFixtureSkeleton('bail_regular');
     const output = goodOutput(skeleton, facts);
     output.paragraphs.find((p) => p.clauseId === 'opening')!.factRefs = [];
@@ -423,7 +446,9 @@ describe('ruling 2: MISSING appears only when the fact is absent', () => {
   });
 
   it('ruling: an empty output still prints every fixed clause the ledger can fill, and the undertaking', () => {
-    const { text, result } = render('bail_regular', regularBase(), { paragraphs: [] });
+    const { text, result } = render('bail_regular', withLaw('bail_regular', regularBase()), {
+      paragraphs: [],
+    });
     expect(text('opening')).toContain('Ramesh Kumar');
     expect(text('fir_details')).toContain('143/2026');
     expect(text('no_flight_risk')).toBe(
@@ -433,8 +458,9 @@ describe('ruling 2: MISSING appears only when the fact is absent', () => {
   });
 
   it('ruling: null output renders the same as an empty one (fixed text from the ledger)', () => {
-    const a = render('bail_regular', regularBase(), null).result.body;
-    const b = render('bail_regular', regularBase(), { paragraphs: [] }).result.body;
+    const a = render('bail_regular', withLaw('bail_regular', regularBase()), null).result.body;
+    const b = render('bail_regular', withLaw('bail_regular', regularBase()), { paragraphs: [] })
+      .result.body;
     expect(a).toBe(b);
     expect(a).not.toContain('{{MISSING');
   });
@@ -446,7 +472,7 @@ describe('ruling 2: MISSING appears only when the fact is absent', () => {
   });
 
   it('ruling: an advocate clause the model omitted falls back to raw_span, status fallback, never MISSING', () => {
-    const facts = regularBase();
+    const facts = withLaw('bail_regular', regularBase());
     const output = goodOutput(loadFixtureSkeleton('bail_regular'), facts);
     output.paragraphs = output.paragraphs.filter((p) => p.clauseId !== 'facts');
     const { text, status } = render('bail_regular', facts, output);
@@ -695,13 +721,13 @@ describe('variants and when', () => {
   });
 
   it('a conditional clause renders when its value is given (named_in_fir = No, cooperated = Yes, s35 not served)', () => {
-    const facts = [
+    const facts = withLaw('bail_regular', [
       ...regularBase(),
       choice('named_in_fir', 'No', 'no'),
       choice('cooperated_with_investigation', 'Yes', 'yes'),
       choice('s35_notice_status', 'Not served', 'not_served'),
       choice('investigation_status', 'Charge sheet filed', 'charge_sheet_filed'),
-    ];
+    ]);
     const { text } = render('bail_regular', facts);
     expect(text('not_named_in_fir')).toBe('The applicant is not named in the FIR.');
     expect(text('cooperated')).toBe('The applicant has cooperated with the investigation.');
@@ -1332,7 +1358,7 @@ describe('Arjun: every rendered string comes from a skeleton, a ledger fact, or 
   ];
 
   it.each(cases)('%s', (_name, packId, mk, texts) => {
-    const facts = mk();
+    const facts = withLaw(packId, mk());
     const { result, skeleton } = render(packId, facts, undefined, texts);
     const model = Object.values(texts);
     const left = residual(

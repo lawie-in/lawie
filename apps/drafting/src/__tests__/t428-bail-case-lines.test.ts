@@ -20,7 +20,12 @@ const RULES_REL = 'apps/drafting/src/config/court-rules';
 const form = { applicant_name: 'Ramesh Kumar', state: 'bihar', fir_number: '12/2026' };
 const year = String(new Date().getFullYear());
 
-function line(ruleId: string, courtType: string, template: string): unknown {
+function line(
+  ruleId: string,
+  courtType: string,
+  template: string,
+  extraForm: Record<string, string> = {},
+): unknown {
   const court: CourtLookupData = {
     designation: 'IN THE COURT OF TEST',
     city: 'Patna',
@@ -30,7 +35,8 @@ function line(ruleId: string, courtType: string, template: string): unknown {
     courtRule: loadCourtRule(ruleId) ?? undefined,
   };
   const cfg = loadTemplateConfig(template) as TemplateConfig;
-  return buildPlaceholderContext(cfg, form, { advocateName: 'A' }, court).caseNomenclature;
+  return buildPlaceholderContext(cfg, { ...form, ...extraForm }, { advocateName: 'A' }, court)
+    .caseNomenclature;
 }
 
 function developStagingRule(id: string): { case_nomenclature: unknown } {
@@ -71,10 +77,48 @@ describe('T-428 bail case lines', () => {
     );
   });
 
-  it('allahabad_hc: exact anticipatory line', () => {
-    expect(line('allahabad_hc', 'high_court', 'bail_anticipatory')).toBe(
-      `Criminal Misc. Anticipatory Bail Application U/S 482 BNSS No. _____ of ${year}`,
-    );
+  // Addendum 1 #6 (2992891): "U/S 482 BNSS" stays for a BNSS choice; a CrPC choice or no choice
+  // prints the T-426 generic `Anticipatory Bail Application No. _____ of {year}`.
+  const ALLAHABAD_BNSS = `Criminal Misc. Anticipatory Bail Application U/S 482 BNSS No. _____ of ${year}`;
+  const GENERIC = `Anticipatory Bail Application No. _____ of ${year}`;
+
+  it('allahabad_hc: a BNSS choice keeps the U/S 482 BNSS line', () => {
+    expect(
+      line('allahabad_hc', 'high_court', 'bail_anticipatory', { procedure_code: 'BNSS and BSA' }),
+    ).toBe(ALLAHABAD_BNSS);
+  });
+
+  it('allahabad_hc: an FIR on or after 1 Jul 2024 forces BNSS, whatever was chosen', () => {
+    expect(
+      line('allahabad_hc', 'high_court', 'bail_anticipatory', {
+        procedure_code: 'CrPC and Evidence Act',
+        fir_date: '2026-03-01',
+      }),
+    ).toBe(ALLAHABAD_BNSS);
+  });
+
+  it('allahabad_hc: a CrPC choice prints the generic line, not U/S 482 BNSS', () => {
+    const l = line('allahabad_hc', 'high_court', 'bail_anticipatory', {
+      procedure_code: 'CrPC and Evidence Act',
+      fir_date: '2023-03-01',
+    });
+    expect(l).toBe(GENERIC);
+    expect(l).not.toContain('BNSS');
+  });
+
+  it('allahabad_hc: no choice prints the generic line, not U/S 482 BNSS', () => {
+    const l = line('allahabad_hc', 'high_court', 'bail_anticipatory');
+    expect(l).toBe(GENERIC);
+    expect(l).not.toContain('BNSS');
+  });
+
+  it('allahabad_hc: the procedure choice does not touch the regular bail line', () => {
+    const none = line('allahabad_hc', 'high_court', 'bail_regular');
+    expect(
+      line('allahabad_hc', 'high_court', 'bail_regular', {
+        procedure_code: 'CrPC and Evidence Act',
+      }),
+    ).toBe(none);
   });
 
   it('supreme_court: bail lines are the case-type blank (Ajay e512365)', () => {
