@@ -78,3 +78,7 @@ Ajay's file is binding on this design; where it conflicts with §§1–7 above, 
 7. **The never-list (11 rules)** maps to the verifier's `forbids` and to two product rules that change the brief: **suggested grounds and suggested judgments are shown as lists for the advocate to accept; nothing is inserted silently** (never 3 and 4). Also: no deadline computed from an unknown date (6), no completed oath or advocate signature (8), no outcome prediction (9), user-supplied quotes untouched except marking (10).
 
 New decision for the founder: **D10** — unreviewed kinds: banner or hidden. New line in the founder's licensing list: a **citator feed** (judgment status) if he wants judgments at scale without CLO hand-verification.
+
+## 9. Finance constraints folded in (Vikram, 15 Oct)
+
+Ink v2 accepted with lots, spend order, cancel-keeps-paid-Ink, two-lot migration, idempotent refund and a month-end liability report (`06-ink-v2.md` §5). Library: M30 and embeddings are phase 2, revenue-gated; **licence costs are the unpriced line** — D1 is a decision about licences as much as about code. The design starts on **free primary sources** (Bare Acts, Rules and notifications from the official gazette, judgments from court websites) so phase 0 and 1 carry no licence cost; commercial databases and books are added when priced.
