@@ -51,3 +51,11 @@ Rules I followed: no tax explanation, no mention of which State was used (Ajay's
 - Nothing else in this file states a tax or place-of-supply fact.
 
 Ready for next task.
+
+## Added 15 Oct (Priya, Shashank)
+
+| String | Text | Needs Ajay |
+| --- | --- | --- |
+| Credit-note row link to original invoice | Against invoice {invoiceNumber} | No. Link text only, no refund or tax wording |
+| PDF download failed (inline, role=alert, near the row) | We could not download this invoice. Please try again. | No |
+| Settings nag (already in section C) | Your State is not set. Action: Set your State (focuses the picker) | No |
