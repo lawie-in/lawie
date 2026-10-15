@@ -168,3 +168,27 @@ Rest of the draft (preheader, body, help line, footer lines 3–4) **approved as
 2. **Erased users: no credit-note email.** The customer snapshot is kept only as the tax record (CGST s.36). Using its email to contact someone who erased their account is a new use after erasure. Issue and keep the credit note; send nothing. If the person writes in, it is provided on request. Test: a credit note for an erased user sends no email.
 
 Addendum 8 follow-up (Shashank, 15 Oct 2026): (a) Skipping the email for an erased user on **invoices** too: **approved**, for the same reason. (b) **Yes:** "erasure started" (the `erasure` sub-document is present) counts as erased for this skip, matching T-115c condition 3 (the account cannot be used once closing has started). Test both: user gone, and user mid-erasure.
+
+Addendum 7 (3a) follow-up (Shashank, 15 Oct 2026): there is no Terms re-accept flow. **The version bump and the new "Last updated" date are enough for v1:** pre-v1 there are no real users to re-ask, and everyone who signs up from now on accepts the new Terms. Parked: a Terms re-accept prompt, like the privacy one, needed before the first material Terms change **after** launch.
+
+### T-436 byte check: a7525134 (feature/t-436-gst-invoice-bc), 15 Oct 2026
+
+Byte-exact: the privacy summary for version '2026-10-15'; the §1 bullet; the §2 insertion; both "Last updated" dates (15 October 2026); CURRENT_TERMS_VERSION '2026-10-15'; pricing 5a (ships only with the invoice email); State picker strings; 5b in SupplierDetails (no address, GSTIN optional, tradeName from the endpoint, hidden when unavailable). The State save is blocked server-side until the new privacy version is accepted (Addendum 7 (2)), and the privacy.ts comment is corrected. **Approved.** Invoice and credit-note email strings (slice 4) still to check.
+
+## Addendum 9 (T-436 slice 4): credit-note email strings and amount format, 15 Oct 2026
+
+Credit-note email, byte-exact, replacing the invoice lines that do not fit:
+1. Preheader: `Your credit note is ready to download.`
+2. In place of "Your invoice number is…": `Your credit note number is {creditNoteNumber}.` (The Addendum 7 (4a) line naming the original invoice stays above it.)
+3. Plain-text link line: `Download credit note (PDF): {downloadUrl}`. Approved.
+4. `{date}` in a credit-note email is the credit note's issue date. Approved.
+5. Footer line 2: `You are receiving this because a credit note was issued on your Lawie account.`
+The rest (greeting, help line, sign-off, footer lines 1, 3 and 4) is as in the invoice email.
+
+Amount format: `₹799` / `₹799.50` (Indian grouping, no ".00" on whole rupees) is approved. "Match exactly" means the same value as the PDF, not the same typography. The invoice-email strings as listed are approved, subject to the byte check of the pushed SHA.
+
+### T-436 slice 4 byte check: 2b8bf638 (15 Oct 2026)
+
+taxInvoice.tsx and creditNote.tsx: every user-facing string is byte-exact with Addenda 5 and 9 (subjects, preheaders, greeting, body lines, buttons, plain-text link lines, help line, sign-off, the four footer lines, and the credit-note footer line 2). Amounts use ₹ with Indian grouping and dates "14 Oct 2026" IST: approved. Erased users get no email (billing skips the enqueue; email-view returns 410). **Approved. T-436 legal content is closed from my side.**
+
+Merge-body ref: "Legal: T-436 signed by Ajay, gst-tax-invoice-signed.md Addenda 1–9; byte checks 1204b05 + this check".

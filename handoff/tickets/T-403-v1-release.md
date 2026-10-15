@@ -100,3 +100,4 @@ Note (Mahak's reviewer, T-377b): docker/nginx/nginx.prod.conf only runs on the n
 
 - Terms "Last updated" and `CURRENT_TERMS_VERSION` bumped (T-436, Ajay Addendum 7 #3a). The Ranchi §12 text from AC10 went in without a version bump, so the bump must ship with T-436 (b)/(c).
 - Billing `INVOICE_EMAIL_ENABLED` (billing env; values `true`, `false` or empty; default `false`; any other value fails boot). List it next to the `GST_*` variables. It must stay false until the email-worker templates and the email-view fetch are deployed (invoice emails would otherwise dead-letter).
+- Billing `INVOICE_EMAIL_ENABLED` must also stay off until BOTH the invoice and the credit-note email templates ship in the email worker, or credit-note jobs fail and need a replay. Worker needs `BILLING_SERVICE_URL` (optional; `INTERNAL_SECRET` is reused). (Shashank, 15 Oct)

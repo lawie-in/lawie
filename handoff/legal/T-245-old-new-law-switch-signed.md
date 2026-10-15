@@ -178,3 +178,9 @@ Addendum 5 #3 follow-up (15 Oct 2026). fir_date question, signed byte-exact, rep
 3. Court-rule practice notes ("S.483 BNSS" / "S.482 BNSS"): **parked**. The P-text governs what is cited. A follow-up adds the CrPC pair to each note.
 
 Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+## Addendum 7: T-245a review round 2 notes (Vishal, 15 Oct 2026)
+
+1. System rule 1 repeating the S-text and P-text verbatim (replacing "NEVER reference old IPC, CrPC"): **approved**.
+2. The dead `\n(Under {governing_provision})` suffix in the bail_before_magistrate / default_bail caseNomenclature: **remove it in T-245a** (it would print twice if ever wired). No other change to those strings.
+3. Offence-date-only warning scoped to the six packs until T-245b: noted.
