@@ -2143,6 +2143,53 @@ describe("Ajay's renderer review: own-words rephrases that change who did what f
       expect(ownWordsReordered('arrested on 2 March 2025', 'arrested on 2 Mar 2025')).toBe(false);
       expect(ownWordsReordered('arrested on 2 Mar 2025', 'arrested on 2 March 2025')).toBe(false);
     });
+    // T-414 proofs (Ajay): dates are marked by match position, not by substring split.
+    it('T-414 (a): "2 March" does not match inside "12 March" when both dates are present', () => {
+      const raw = 'Applicant arrested on 2 March 2025 and released on 12 March 2025';
+      const rephrase = 'Applicant arrested on 2 March 2025 and released on 12 Mar 2025';
+      expect(ownWordsReordered(raw, rephrase)).toBe(false);
+      expect(ownWordsReordered(rephrase, raw)).toBe(false);
+    });
+    it('T-414 (a) end to end: both dates present, the check does not misfire', () => {
+      // "was arrested on" is a banned phrase unless the raw has it, so the raw says it.
+      const { status, result } = render(
+        'bail_regular',
+        withNarrative('He was arrested on 2 March 2025 and released on 12 March 2025.'),
+        undefined,
+        { facts: 'He was arrested on 2 March 2025 and was released on 12 March 2025.' },
+      );
+      expect(status('facts')).toBe('ok');
+      expect(result.fallbacks).toEqual([]);
+    });
+    it('T-414 (b): a date the user never gave still falls back', () => {
+      const raw = 'Applicant arrested on 2 March 2025 and released on 12 March 2025.';
+      expect(
+        ownWordsReordered(raw, 'Applicant arrested on 5 March 2025 and released on 12 March 2025.'),
+      ).toBe(true);
+      expect(
+        ownWordsReordered(raw, 'Applicant arrested on 2 March 2025 and released on 13 March 2025.'),
+      ).toBe(true);
+      const { text, status, result } = render('bail_regular', withNarrative(raw), undefined, {
+        facts: 'Applicant arrested on 5 March 2025 and released on 12 March 2025.',
+      });
+      expect(status('facts')).toBe('fallback');
+      expect(result.fallbacks).toEqual([{ clauseId: 'facts', reason: 'unverified' }]);
+      expect(text('facts')).toContain(raw);
+    });
+    it('T-414 (c): a second written form of the same date is marked too', () => {
+      expect(
+        ownWordsReordered(
+          'Applicant arrested on 2 March 2025 and heard on 02/03/2025',
+          'Applicant arrested on 2 March 2025 and heard on 2 March 2025',
+        ),
+      ).toBe(false);
+      expect(
+        ownWordsReordered(
+          'Applicant arrested on 2 March 2025 and heard on 2 March 2025',
+          'Applicant arrested on 2 March 2025 and heard on 02/03/2025',
+        ),
+      ).toBe(false);
+    });
     it('a date moved past a content word is a reorder', () => {
       expect(
         ownWordsReordered(
@@ -2161,7 +2208,7 @@ describe("Ajay's renderer review: own-words rephrases that change who did what f
       expect(ownWordsReordered('He owes Rs 800000', 'He owes Rs 8,00,000')).toBe(false);
       expect(ownWordsReordered('He owes ₹8,00,000', 'He owes Rs 800000')).toBe(false);
     });
-    it('regrouped date and amount stay ok through renderDraft', () => {
+    it('a date written another way, and an amount written the same with a stop word added, stay ok through renderDraft', () => {
       kept('He was arrested on 2 Mar 2025', 'He was arrested on 2 March 2025');
       kept(
         'He owes the seller Rs 8,00,000 for the land.',
