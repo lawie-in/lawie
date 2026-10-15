@@ -25,6 +25,7 @@ Local ticket files, one per ticket. Founder decision on 3 Oct 2026: no Jira or N
 ## Branch flow (founder, 11 Oct 2026)
 
 - Cut every ticket branch from `develop_staging`. Merge finished work back into `develop_staging`.
+- Exception: Drafting v2 tickets (T-458 to T-467) are cut from and merged into `develop_staging_v2`, never `develop_staging`. Only the founder merges `develop_staging_v2` anywhere. They do not start before T-403 (rule: `.claude/docs/multi-lead.md`, "Drafting v2 branch").
 - Nobody on the team opens a PR to `develop` or merges into it. The founder merges `develop_staging` into `develop`, normally at night.
 - `main` is still production. "Merged to develop" in a Status line below, from before 11 Oct, is history; new work reads "Merged to develop_staging".
 
