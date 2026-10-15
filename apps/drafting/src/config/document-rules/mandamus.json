@@ -124,7 +124,10 @@
     { "rule": "MUST identify specific statutory provision imposing duty", "severity": "blocker" },
     { "rule": "MUST plead demand and refusal/inaction", "severity": "blocker" },
     { "rule": "MUST address alternative remedy", "severity": "high" },
-    { "rule": "MUST cite Mansukhlal Vithaldas Chauhan or equivalent", "severity": "medium" },
+    {
+      "rule": "Grounds must show a public legal duty, a clear legal right of the petitioner, demand and refusal, and no equally efficacious alternative remedy",
+      "severity": "medium"
+    },
     { "rule": "Respondent MUST be public authority/officer", "severity": "blocker" },
     {
       "rule": "Disclaimer: Lawie is a drafting assistant; advocate is responsible for legal accuracy and filing.",
