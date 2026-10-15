@@ -174,3 +174,15 @@ Addendum 7 (3a) follow-up (Shashank, 15 Oct 2026): there is no Terms re-accept f
 ### T-436 byte check: a7525134 (feature/t-436-gst-invoice-bc), 15 Oct 2026
 
 Byte-exact: the privacy summary for version '2026-10-15'; the §1 bullet; the §2 insertion; both "Last updated" dates (15 October 2026); CURRENT_TERMS_VERSION '2026-10-15'; pricing 5a (ships only with the invoice email); State picker strings; 5b in SupplierDetails (no address, GSTIN optional, tradeName from the endpoint, hidden when unavailable). The State save is blocked server-side until the new privacy version is accepted (Addendum 7 (2)), and the privacy.ts comment is corrected. **Approved.** Invoice and credit-note email strings (slice 4) still to check.
+
+## Addendum 9 (T-436 slice 4): credit-note email strings and amount format, 15 Oct 2026
+
+Credit-note email, byte-exact, replacing the invoice lines that do not fit:
+1. Preheader: `Your credit note is ready to download.`
+2. In place of "Your invoice number is…": `Your credit note number is {creditNoteNumber}.` (The Addendum 7 (4a) line naming the original invoice stays above it.)
+3. Plain-text link line: `Download credit note (PDF): {downloadUrl}`. Approved.
+4. `{date}` in a credit-note email is the credit note's issue date. Approved.
+5. Footer line 2: `You are receiving this because a credit note was issued on your Lawie account.`
+The rest (greeting, help line, sign-off, footer lines 1, 3 and 4) is as in the invoice email.
+
+Amount format: `₹799` / `₹799.50` (Indian grouping, no ".00" on whole rupees) is approved. "Match exactly" means the same value as the PDF, not the same typography. The invoice-email strings as listed are approved, subject to the byte check of the pushed SHA.
