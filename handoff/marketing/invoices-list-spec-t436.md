@@ -58,3 +58,9 @@ Owner: Rajesh. For the lead on T-436. No code. Source: `handoff/legal/gst-tax-in
 
 1. Credit notes: list them (own series `LAW-CN/...`, negative amounts) or not? Ajay's file requires them to exist, not to be listed. Ask Ajay/Vikram.
 2. Number format clash: Ajay `LAW/2026-27/0001` (max 16 chars) vs Arjun `FY25-26/000123`. Layout works for both; lead to settle.
+
+## Drift settled by Arjun (15 Oct 2026)
+
+- The settings page also has a Close account section (T-115c); place Invoices after Plan, before it.
+- The PDF route is `/invoices/:id/pdf`, not `/:id.pdf`.
+- A plain link cannot send the sign-in token, so the PDF is a blob download. The file name follows billing's.
