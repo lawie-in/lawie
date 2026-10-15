@@ -170,3 +170,7 @@ Rest of the draft (preheader, body, help line, footer lines 3–4) **approved as
 Addendum 8 follow-up (Shashank, 15 Oct 2026): (a) Skipping the email for an erased user on **invoices** too: **approved**, for the same reason. (b) **Yes:** "erasure started" (the `erasure` sub-document is present) counts as erased for this skip, matching T-115c condition 3 (the account cannot be used once closing has started). Test both: user gone, and user mid-erasure.
 
 Addendum 7 (3a) follow-up (Shashank, 15 Oct 2026): there is no Terms re-accept flow. **The version bump and the new "Last updated" date are enough for v1:** pre-v1 there are no real users to re-ask, and everyone who signs up from now on accepts the new Terms. Parked: a Terms re-accept prompt, like the privacy one, needed before the first material Terms change **after** launch.
+
+### T-436 byte check: a7525134 (feature/t-436-gst-invoice-bc), 15 Oct 2026
+
+Byte-exact: the privacy summary for version '2026-10-15'; the §1 bullet; the §2 insertion; both "Last updated" dates (15 October 2026); CURRENT_TERMS_VERSION '2026-10-15'; pricing 5a (ships only with the invoice email); State picker strings; 5b in SupplierDetails (no address, GSTIN optional, tradeName from the endpoint, hidden when unavailable). The State save is blocked server-side until the new privacy version is accepted (Addendum 7 (2)), and the privacy.ts comment is corrected. **Approved.** Invoice and credit-note email strings (slice 4) still to check.
