@@ -11,6 +11,7 @@ import './setupDb';
 import { buildBrief, buildChecklist } from '../services/intake-brief';
 import {
   bailCourtFromCourtType,
+  fillLawSwitchTokens,
   firForcesBnss,
   lawSwitch,
   offenceLawFor,
@@ -325,6 +326,104 @@ describe('parseLawDate', () => {
   });
   it.each([null, undefined, 20240701, {}, [], new Date('x')])('rejects non-date %p', (v) => {
     expect(parseLawDate(v)).toBeNull();
+  });
+});
+
+describe('parseLawDate: an instant is read as its calendar date in India (Asia/Kolkata, +5:30)', () => {
+  it.each([
+    ['2024-06-30T18:30:00Z', '2024-07-01'],
+    ['2024-06-30T18:29:59Z', '2024-06-30'],
+    ['2024-06-30T20:00:00-0400', '2024-07-01'],
+    ['2024-06-30T20:00:00-04:00', '2024-07-01'],
+    ['2024-07-01T00:00:00+05:30', '2024-07-01'],
+    ['2024-06-30T23:59:59+05:30', '2024-06-30'],
+    // a time with no zone, and a date alone, are read as written
+    ['2024-06-30T23:00', '2024-06-30'],
+    ['2024-06-30 23:00:00', '2024-06-30'],
+    ['2024-06-30', '2024-06-30'],
+    ['30/06/2024', '2024-06-30'],
+  ])('reads %s as %s', (v, want) => {
+    expect(parseLawDate(v)).toBe(want);
+  });
+  it('a Date object is read in India', () => {
+    expect(parseLawDate(new Date('2024-06-30T18:30:00Z'))).toBe('2024-07-01');
+    expect(parseLawDate(new Date('2024-06-30T18:29:59Z'))).toBe('2024-06-30');
+  });
+  it('firForcesBnss at the boundary follows the Indian date', () => {
+    expect(firForcesBnss('2024-06-30T18:30:00Z')).toBe(true);
+    expect(firForcesBnss('2024-06-30T18:29:59Z')).toBe(false);
+    expect(firForcesBnss(new Date('2024-06-30T18:30:00Z'))).toBe(true);
+    expect(firForcesBnss(new Date('2024-06-30T18:29:59Z'))).toBe(false);
+    expect(firForcesBnss('2024-06-30T20:00:00-0400')).toBe(true);
+    expect(firForcesBnss('2024-06-30T23:00')).toBe(false);
+  });
+  it('an invalid zoned time is not read', () => {
+    expect(parseLawDate('2024-06-30T25:99:00Z')).toBeNull();
+  });
+});
+
+describe('fillLawSwitchTokens fills only the two law-switch tokens', () => {
+  it('fills {governing_provision} and {do_not_cite} when a value is set', () => {
+    expect(
+      fillLawSwitchTokens('Cite {governing_provision}. Never cite {do_not_cite}.', {
+        governing_provision: 'Section 439 of the CrPC',
+        do_not_cite: 'Section 483 of the BNSS',
+      }),
+    ).toBe('Cite Section 439 of the CrPC. Never cite Section 483 of the BNSS.');
+  });
+  it('fills every occurrence', () => {
+    expect(
+      fillLawSwitchTokens('{governing_provision}/{governing_provision}', {
+        governing_provision: 'X',
+      }),
+    ).toBe('X/X');
+  });
+  it('leaves {value} and {other} literal', () => {
+    expect(
+      fillLawSwitchTokens('{value} and {other} under {governing_provision}', {
+        governing_provision: 'Y',
+        do_not_cite: 'Z',
+      }),
+    ).toBe('{value} and {other} under Y');
+  });
+  it('leaves a token with no value as it was', () => {
+    expect(fillLawSwitchTokens('{governing_provision} {do_not_cite}', { do_not_cite: 'Z' })).toBe(
+      '{governing_provision} Z',
+    );
+    expect(fillLawSwitchTokens('{governing_provision} {do_not_cite}', {})).toBe(
+      '{governing_provision} {do_not_cite}',
+    );
+  });
+});
+
+// Addendum 6 (b016997): strings literal from handoff/legal/T-245-old-new-law-switch-signed.md on
+// origin/develop_staging, each checked present in backticks there, never read from the JSON.
+describe('Addendum 6: signed wording in the packs', () => {
+  const rules = (id: string) =>
+    JSON.parse(
+      readFileSync(join(__dirname, '..', 'config', 'document-rules', `${id}.json`), 'utf8'),
+    );
+  const CANCEL =
+    'Draft an Application for Cancellation of Bail under the provision given as GOVERNING PROVISION in the case details.';
+  const DISPLAY = 'Bail Application before Magistrate (Section 480 BNSS / Section 437 CrPC)';
+  const RULE =
+    'recommend Section 483 BNSS (Section 439 CrPC) before the Court of Session or High Court';
+
+  it('bail_cancellation prompt_context opens with the signed sentence, not "read with"', () => {
+    const pc: string = rules('bail_cancellation').prompt_context;
+    expect(pc.startsWith(CANCEL)).toBe(true);
+    expect(pc).not.toContain('read with');
+  });
+  it('bail_before_magistrate displayName is the signed pairing', () => {
+    expect(rules('bail_before_magistrate').displayName).toBe(DISPLAY);
+  });
+  it('bail_before_magistrate _meta description follows the same pairing', () => {
+    const d: string = rules('bail_before_magistrate')._meta.description;
+    expect(d).toContain('Section 480 BNSS (Section 437 CrPC)');
+    expect(d).toContain('Section 483 BNSS (Section 439 CrPC)');
+  });
+  it('bail_before_magistrate validation rule ends with the signed recommendation', () => {
+    expect(JSON.stringify(rules('bail_before_magistrate'))).toContain(RULE + '"');
   });
 });
 

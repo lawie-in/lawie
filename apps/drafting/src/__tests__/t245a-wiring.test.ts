@@ -513,6 +513,24 @@ describe('the brief path: D1 route with the law switch', () => {
     expect(r.body).not.toContain('a stored proviso');
   });
 
+  it('a group-prefixed stored notice_provision is dropped too; the computed value wins', async () => {
+    const r = await generate(
+      'bail_regular',
+      oldFir([
+        fact('procedure_code', CRPC_CHOICE, { type: 'enum' }),
+        fact('case.notice_provision', 'Section 7 of a stored act'),
+        fact('case.governing_provision', 'Section 998 of another made-up code'),
+      ]),
+    );
+    expect(r.status).toBe(200);
+    expect(r.prompt).not.toContain('Section 7 of a stored act');
+    expect(r.prompt).not.toContain('Section 998');
+    expect(r.body).not.toContain('Section 7 of a stored act');
+    expect(r.body).toContain(
+      'No notice under Section 41A of the CrPC was served on the applicant before arrest.',
+    );
+  });
+
   it('bail_regular, FIR 2023, no choice: both-forms blanks, nothing assumed', async () => {
     const r = await generate('bail_regular', oldFir([]));
     expect(r.status).toBe(200);
