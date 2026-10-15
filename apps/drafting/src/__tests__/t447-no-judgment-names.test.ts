@@ -27,10 +27,8 @@ const instructionsOf = (id: string): string[] => {
 
 // Left on purpose (developer report): form labels and prose that still carry a name.
 // They are removed from the model-visible text before scanning, and nothing else is.
-const EXEMPT_STRINGS: Record<string, string[]> = {
-  fir_quashing: ['Bhajan Lal categories invoked (one or more)'],
-  curative_petition: ['Curative Ground (Rupa Ashok Hurra)'],
-};
+// T-451 (Ajay's signed text) renamed the two labels that were exempt here; nothing is exempt now.
+const EXEMPT_STRINGS: Record<string, string[]> = {};
 const EXEMPT_FIELDS: Record<string, string[]> = {
   curative_petition: ['description', 'validation_rules'],
 };

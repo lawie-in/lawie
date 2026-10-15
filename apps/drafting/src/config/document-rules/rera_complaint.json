@@ -152,7 +152,7 @@
       },
       {
         "id": "previous_consumer_or_civil_proceedings",
-        "label": "Any previous Consumer / Civil proceedings on same cause? (Pioneer Urban — concurrent remedy)",
+        "label": "Any previous Consumer / Civil proceedings on same cause? (the consumer remedy is concurrent)",
         "type": "textarea",
         "required": true
       },

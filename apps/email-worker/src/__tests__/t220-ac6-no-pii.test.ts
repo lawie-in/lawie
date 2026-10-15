@@ -208,7 +208,7 @@ describe('T-220 AC6 worker processor', () => {
         to: [LEAK_ADDRESS],
         cc: [],
         bcc: [],
-        data: { name: LEAK_NAME, userId: 'user-42' },
+        data: { name: LEAK_NAME, userId: '507f1f77bcf86cd799439011' },
       },
     }) as never;
 
@@ -235,7 +235,7 @@ describe('T-220 AC6 worker processor', () => {
     expect(failed).toMatchObject({
       jobId: 'job-1',
       template: 'auth.welcome',
-      userId: 'user-42',
+      userId: '507f1f77bcf86cd799439011',
       attempt: 1,
     });
 
@@ -246,7 +246,7 @@ describe('T-220 AC6 worker processor', () => {
     expectClean(sentry);
     expect(Sentry.captureException).toHaveBeenCalledTimes(1);
     expect(sentry).toContain('auth.welcome');
-    expect(sentry).toContain('user-42');
+    expect(sentry).toContain('507f1f77bcf86cd799439011');
   });
 
   it('success path: logs and breadcrumbs clean, template + userId present', async () => {
@@ -257,10 +257,10 @@ describe('T-220 AC6 worker processor', () => {
     expectClean(allLogText());
     const sentry = dump((Sentry.addBreadcrumb as jest.Mock).mock.calls);
     expectClean(sentry);
-    expect(sentry).toContain('user-42');
+    expect(sentry).toContain('507f1f77bcf86cd799439011');
     expect(parsedLogs().find((l) => l.msg === 'Email sent')).toMatchObject({
       template: 'auth.welcome',
-      userId: 'user-42',
+      userId: '507f1f77bcf86cd799439011',
     });
   });
 

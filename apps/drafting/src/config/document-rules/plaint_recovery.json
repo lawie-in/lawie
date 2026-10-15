@@ -199,7 +199,7 @@
       },
       {
         "id": "pre_institution_mediation",
-        "label": "Pre-institution mediation completed u/s 12A CCA (if commercial and no urgent interim relief) — Patil Automation v. Rakheja Engineers (2022)",
+        "label": "Pre-institution mediation completed under Section 12A of the Commercial Courts Act, 2015 (if commercial and no urgent interim relief)",
         "type": "boolean",
         "required": false
       },
