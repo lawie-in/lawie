@@ -2,10 +2,11 @@
  * T-375 part 2 - the plaint switch (feature.template_civil_plaint) on the documents routes.
  *
  * Off (the code default): GET /template-configs leaves out all six civil_plaints_suits ids,
- * GET /template-configs/:id, POST /generate-from-template, POST /generate-from-brief and the
- * legacy POST /generate (docType 'plaint') answer 404 { error: 'Template not found' } before
- * any credit check, hold or model call. On: the same routes behave as before. Other ids are
- * unaffected either way. The fixture user always sees plaints. A read error hides them.
+ * GET /template-configs/:id, POST /generate-from-template and POST /generate-from-brief
+ * answer 404 { error: 'Template not found' } before any credit check, hold or model call.
+ * (T-443: the legacy POST /generate is now 410 for every docType, switch on or off.)
+ * On: the same routes behave as before. Other ids are unaffected either way. The fixture user
+ * always sees plaints. A read error hides them.
  * A missing or non-string field passes through to the existing 400.
  *
  * getAppSetting is a jest.fn that falls through to the real in-memory Mongo unless a test
@@ -411,71 +412,53 @@ describe('POST /generate-from-brief', () => {
   });
 });
 
-describe("legacy POST /generate (docType 'plaint')", () => {
+describe('legacy POST /generate is retired (T-443): 410 whatever the plaint switch says', () => {
   const post = (body: unknown, userId = USER_ID) =>
     request(app)
       .post('/generate')
       .set(headers(userId))
       .send(body as object);
+  const isGone = (b: unknown) => JSON.stringify(b).includes('"error":"Gone"');
 
-  it("docType 'plaint' is 404 when off, before any credit check", async () => {
-    stub({ [P]: 'off' });
+  it.each(['off', 'on', 'throw'] as const)(
+    "docType 'plaint' is 410 with the switch %s, before any credit check",
+    async (v) => {
+      stub({ [P]: v });
+      const res = await post({ docType: 'plaint' });
+      expect(res.status).toBe(410);
+      expect(isGone(res.body)).toBe(true);
+      expect(isHiddenBody(res.body)).toBe(false);
+      expectNothingSpent();
+    },
+  );
+
+  it('is 410 by default (no AppSetting doc)', async () => {
     const res = await post({ docType: 'plaint' });
-    expect(res.status).toBe(404);
-    expect(res.body).toEqual({ error: 'Template not found' });
+    expect(res.status).toBe(410);
     expectNothingSpent();
   });
 
-  it("docType 'plaint' is 404 by default and on a read error", async () => {
-    let res = await post({ docType: 'plaint' });
-    expect(res.status).toBe(404);
-    stub({ [P]: 'throw' });
-    res = await post({ docType: 'plaint' });
-    expect(res.status).toBe(404);
-    expect(res.body).toEqual(TEMPLATE_NOT_FOUND);
-    expectNothingSpent();
-  });
-
-  it.each(PLAINT_IDS)('a catalogue plaint id %s as docType is 404 when off', async (id) => {
+  it.each(PLAINT_IDS)('a catalogue plaint id %s as docType is 410 when off', async (id) => {
     stub({ [P]: 'off' });
     const res = await post({ docType: id });
-    expect(res.status).toBe(404);
+    expect(res.status).toBe(410);
     expectNothingSpent();
   });
 
-  it("on: docType 'plaint' reaches the credit gate", async () => {
-    stub({ [P]: 'on' });
-    const res = await post({ docType: 'plaint' });
-    expect(isHiddenBody(res.body)).toBe(false);
-    expect(res.status).not.toBe(404);
-    expect(balanceSpy).toHaveBeenCalled();
-  });
-
-  it('another docType is not blocked either way', async () => {
-    for (const v of ['off', 'on'] as const) {
-      balanceSpy.mockClear();
-      stub({ [P]: v });
-      const res = await post({ docType: 'legal_notice' });
+  it('another docType, the fixture user and a malformed body are 410 too', async () => {
+    stub({ [P]: 'off' });
+    for (const [body, user] of [
+      [{ docType: 'legal_notice' }, USER_ID],
+      [{ docType: 'plaint' }, GOLDEN_SET_USER_ID],
+      [{}, USER_ID],
+      [{ docType: 5 }, USER_ID],
+      [{ docType: null }, USER_ID],
+    ] as Array<[unknown, string]>) {
+      const res = await post(body, user);
+      expect(res.status).toBe(410);
       expect(isHiddenBody(res.body)).toBe(false);
-      expect(balanceSpy).toHaveBeenCalled();
     }
-  });
-
-  it("the fixture user's 'plaint' is not blocked when off", async () => {
-    stub({ [P]: 'off' });
-    const res = await post({ docType: 'plaint' }, GOLDEN_SET_USER_ID);
-    expect(isHiddenBody(res.body)).toBe(false);
-  });
-
-  it.each([
-    ['no docType', {}],
-    ['a number', { docType: 5 }],
-    ['null', { docType: null }],
-  ])('%s passes through to the existing 400', async (_n, body) => {
-    stub({ [P]: 'off' });
-    const res = await post(body);
-    expect(res.status).toBe(400);
-    expect(isHiddenBody(res.body)).toBe(false);
+    expectNothingSpent();
   });
 });
 

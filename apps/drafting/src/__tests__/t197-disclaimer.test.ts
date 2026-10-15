@@ -266,19 +266,6 @@ describe('T-197 AC5: the other finished-draft routes', () => {
     expect(res.status).toBe(200);
     expect(event(res.text, 'done')!.disclaimer).toBe(EXACT);
   });
-
-  it('legacy POST /generate done carries the disclaimer', async () => {
-    mockMessagesStream.mockResolvedValue(sdkAnswer('1. The petitioner submits.', 400, 80));
-    const res = await request(app).post('/generate').set(headers()).send({
-      docType: 'petition',
-      courtName: 'Patna High Court',
-      courtType: 'high_court',
-      keyFacts: 'The petitioner was denied a ration card without reason.',
-      reliefPrayer: 'Issue the ration card.',
-    });
-    expect(res.status).toBe(200);
-    expect(event(res.text, 'done')!.disclaimer).toBe(EXACT);
-  });
 });
 
 describe('T-197 AC2/AC5: GET /:id', () => {

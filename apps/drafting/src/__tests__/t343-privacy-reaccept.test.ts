@@ -39,7 +39,9 @@ function headers(privacyVersion?: string) {
   return h;
 }
 
-const GENERATE_ROUTES = ['/generate-from-template', '/generate-from-brief', '/generate'];
+// T-443: the legacy POST /generate is retired (410, answers before every middleware), so it is no
+// longer a gated generate route; see t443-legacy-generate-410.test.ts.
+const GENERATE_ROUTES = ['/generate-from-template', '/generate-from-brief'];
 
 describe('T-343 requireCurrentPrivacy on the generate routes (real middleware)', () => {
   it('uses the real current version', () => {

@@ -18,7 +18,6 @@ import { effectiveRunType, Generation, RunType } from '../models/Generation.mode
 import { User } from '../models/User.model';
 import {
   GenerationFailedError,
-  streamGenerateDocument,
   streamGenerateFromBrief,
   streamGenerateGuided,
   streamGenerateFromTemplate,
@@ -97,8 +96,6 @@ import {
   loadCourtRule,
   loadTemplateConfig,
   listTemplateConfigs,
-  resolveEnrollmentNumber,
-  resolveLegacyAdvocate,
   validateFormData,
 } from '../services/template-engine.service';
 import {
@@ -136,20 +133,6 @@ function validateObjectId(req: Request, _res: Response, next: NextFunction): voi
 }
 
 const router = Router();
-
-/**
- * T-314: the legacy body's advocateEnrollment under the same check as the
- * advocate name (T-300, `resolveLegacyAdvocate`), but capped at 50: after trim,
- * 1-50 characters (Ajay, 12 Oct 2026; the name stays 1-100) with no `{`, `}`,
- * CR, LF, U+2028 or U+2029. A value that fails is dropped (undefined), so it
- * counts as empty under T-311's order. Never a refusal, and nothing from the
- * value is logged.
- */
-function checkedLegacyEnrollment(bodyValue: string | undefined): string | undefined {
-  const typed = bodyValue?.trim() ?? '';
-  const ok = typed.length >= 1 && typed.length <= 50 && !/[{}\r\n\u2028\u2029]/.test(typed);
-  return ok ? typed : undefined;
-}
 
 /**
  * T-357 AC3: log a template-config load failure once. Only the message is
@@ -651,50 +634,6 @@ export async function withInkHold(
     await release();
   }
 }
-
-const generateSchema = z.object({
-  docType: z.enum([
-    'bail_application',
-    'petition',
-    'legal_notice',
-    'affidavit',
-    'vakalatnama',
-    'plaint',
-    'written_statement',
-    'injunction',
-    'reply',
-    'complaint',
-    'rent_agreement',
-  ]),
-  courtName: z.string().min(1).max(200),
-  courtType: z.enum([
-    'district_court',
-    'high_court',
-    'supreme_court',
-    'tribunal',
-    'consumer_forum',
-    'family_court',
-    'sessions',
-    'cjm',
-    'jmfc',
-    'civil_court',
-  ]),
-  partyDetails: z.record(z.string()).default({}),
-  keyFacts: z.string().min(10).max(5000),
-  reliefPrayer: z.string().min(5).max(2000),
-  advocateName: z.string().optional(),
-  advocateEnrollment: z.string().optional(),
-  // Bail-specific fields (CLO fix #1, #2)
-  firNumber: z.string().optional(),
-  firDate: z.string().optional(),
-  policeStation: z.string().optional(),
-  district: z.string().optional(),
-  fatherName: z.string().optional(),
-  // CLO fix #9 — mediation willingness
-  mediationWilling: z.boolean().optional(),
-  // T-003 §3.8 — a retry resends this to keep the same run
-  run_id: z.string().uuid().optional(),
-});
 
 // GET /documents/usage — return this month's generation count + limit for the caller
 router.get('/usage', authenticate, async (req: Request, res: Response): Promise<void> => {
@@ -1653,212 +1592,16 @@ router.post(
   },
 );
 
-// POST /documents/generate — legacy generation (ink-gated)
-router.post(
-  '/generate',
-  authenticate,
-  requireCurrentPrivacy, // T-343 — new drafts need the current privacy version
-  templateGuard(bodyField('docType')), // T-375: 'plaint' too
-  enforceCredits,
-  spendCapCheck,
-  async (req: Request, res: Response): Promise<void> => {
-    const parsed = generateSchema.safeParse(req.body);
-    if (!parsed.success) {
-      res.status(400).json({
-        error: 'Invalid request',
-        issues: parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`),
-      });
-      return;
-    }
-
-    const payload = req.jwtPayload!;
-    const input = parsed.data;
-
-    // T-300: the body's advocateName is used only if it passes the check in
-    // resolveLegacyAdvocateName; otherwise the profile name. Never a refusal.
-    const advocate = resolveLegacyAdvocate(input.advocateName, { name: payload.name });
-    input.advocateName = advocate.name;
-    // T-311: a typed advocateEnrollment always prints; the profile number fills
-    // an empty one only when the name is the profile's. Never a refusal.
-    // T-314: a typed value that fails checkedLegacyEnrollment is dropped first.
-    input.advocateEnrollment = resolveEnrollmentNumber(
-      checkedLegacyEnrollment(input.advocateEnrollment),
-      await profileEnrollmentNumber(payload.sub),
-      advocate.fromProfile,
-    );
-
-    // Inject bail-specific fields into partyDetails so post-processor can use them (CLO fixes)
-    if (input.fatherName) {
-      input.partyDetails.fatherName = input.fatherName;
-    }
-    if (input.firNumber) {
-      input.partyDetails.firNumber = input.firNumber;
-    }
-
-    // T-003 §3.8 — legacy pipeline has no template_id, so docType is the
-    // equivalent "same kind of request" match key for a retry.
-    const { runId, runSequence, runType } = await resolveRun(
-      payload.sub,
-      { docType: input.docType },
-      input.run_id,
-    );
-    res.setHeader('X-Run-Id', runId);
-    res.setHeader('X-Run-Sequence', String(runSequence));
-    const startedAt = Date.now();
-
-    // T-226: hold the cost before any model call (402/409 refusals as JSON;
-    // no header has been sent yet). Every ending below closes the hold.
-    // The pre-stream 500 body below ("Generation failed"), with its existing
-    // fallback message rather than a database error's text.
-    const holdError = { error: 'Generation failed', message: 'Unknown generation error' };
-    const inkKey = { runId, runSequence };
-    const inkCost = chargedCost(req); // T-227: no default price
-    await withInkHold(req, res, inkKey, inkCost, holdError, async (ink) => {
-      // Stream the AI response via three-layer pipeline
-      let result;
-      try {
-        result = await streamGenerateDocument(
-          { ...input, userId: payload.sub, runId, runSequence, runType },
-          res,
-        );
-      } catch (genErr) {
-        // T-226: a failed run returns its hold, before the response ends.
-        await ink.release();
-        // GenerationFailedError = mid-stream LLM failure. SSE `event: error` was
-        // already emitted and the response is closed. Still record what the
-        // attempt actually used (T-003) — a failed generation isn't free.
-        if (genErr instanceof GenerationFailedError) {
-          await recordGeneration({
-            userId: payload.sub,
-            docType: input.docType,
-            status: 'failed',
-            aiModel: genErr.aiModel,
-            transport: genErr.transport,
-            usage: genErr.usage,
-            paragraphCount: 0,
-            durationMs: Date.now() - startedAt,
-            runId,
-            runSequence,
-            runType,
-          });
-          // Ended only now — after the row exists — so a fast retry's
-          // resolveRun query can never race the write that makes it findable.
-          res.end();
-          return;
-        }
-
-        // No usage data from the pipeline for this kind of failure, but a
-        // runId already exists and was already handed to the client, so it
-        // still gets a failed row (T-003 §3.8).
-        const msg = genErr instanceof Error ? genErr.message : 'Unknown generation error';
-        console.error(
-          `[drafting] legacy generate threw (runId=${runId}, runType=${runType}):`,
-          msg,
-        );
-        await recordGeneration({
-          userId: payload.sub,
-          docType: input.docType,
-          status: 'failed',
-          usage: { inputTokens: 0, outputTokens: 0, llmCalls: 0, usageSource: 'provider' },
-          paragraphCount: 0,
-          durationMs: Date.now() - startedAt,
-          runId,
-          runSequence,
-          runType,
-        });
-        if (!res.headersSent) {
-          res.status(500).json({ error: 'Generation failed', message: msg });
-        } else {
-          res.write(
-            `event: error\ndata: ${JSON.stringify({
-              reason:
-                'The drafting service hit an unexpected error. Please try again — your inputs are saved.',
-              retryable: true,
-              code: 'unknown',
-              runId,
-            })}\n\n`,
-          );
-          res.end();
-        }
-        return;
-      }
-
-      // Save to DB — must not block the done event if DB is unavailable (mirrors
-      // the template route; a DB hiccup shouldn't strand the advocate's draft).
-      let docId: string | null = null;
-      let duplicateAttempt = false;
-      const paragraphCount = estimateBodyParaCount(result.fullText);
-      try {
-        const encryptedContent = encrypt(result.fullText);
-        const title = `${input.docType.replace(/_/g, ' ')} — ${input.courtName}`.slice(0, 300);
-        // Sequential, not Promise.all — Generation.documentId needs the Document's _id.
-        const doc = await LawieDocument.create({
-          userId: payload.sub,
-          title,
-          docType: input.docType,
-          courtType: input.courtType,
-          courtName: input.courtName,
-          formInputsEnc: sealFormInputs(input),
-          generatedContent: encryptedContent,
-          sectionsCited: result.sectionsCited,
-          filingChecklistEnc: sealFilingChecklist(result.filingChecklist),
-          checklistState: result.filingChecklist.map(() => false),
-          status: 'draft',
-          runId,
-          runSequence,
-        });
-        docId = String(doc._id);
-
-        const { duplicate } = await recordGeneration({
-          userId: payload.sub,
-          docType: input.docType,
-          status: 'completed',
-          documentId: doc._id,
-          aiModel: result.aiModel,
-          transport: result.transport,
-          usage: result.usage,
-          paragraphCount,
-          durationMs: Date.now() - startedAt,
-          runId,
-          runSequence,
-          runType,
-        });
-        duplicateAttempt = duplicate;
-
-        if (process.env.NODE_ENV !== 'test') {
-          console.info(
-            `[drafting] Generated doc ${docId} for user ${payload.sub} (runId=${runId}, runSequence=${runSequence}, runType=${runType})`,
-          );
-        }
-      } catch (dbErr) {
-        console.error(
-          `[drafting] DB save failed for legacy generate (runId=${runId}, runType=${runType}):`,
-          dbErr instanceof Error ? dbErr.message : dbErr,
-        );
-      }
-
-      // T-226: close the hold by the charge rule — settled when the draft
-      // reached the user (saved, or the client is still here), else released.
-      // A duplicate attempt releases this request's hold (never charged twice).
-      await ink.finish({
-        saved: docId !== null,
-        duplicate: duplicateAttempt,
-        reference: docId ?? undefined,
-      });
-
-      // Send done event with docId so frontend can redirect to editor
-      ink.sendDone({
-        complete: true,
-        docId,
-        runId,
-        sectionsCited: result.sectionsCited,
-        mandatoryClausesComplete: result.mandatoryClausesComplete,
-        // T-197: the signed disclaimer goes with every finished draft.
-        disclaimer: FACT_CHECK_DISCLAIMER,
-      });
-    });
-  },
-);
+// POST /documents/generate — retired (T-443, Arjun 15 Oct 2026). Nothing in web
+// or the gateway calls it, and its legacy prompt could produce a wrong-law draft.
+// Answers 410 before any auth, privacy, template, Ink or validation step, and
+// does nothing else: no hold, no Generation row, no model call, no document.
+router.post('/generate', (_req: Request, res: Response): void => {
+  res.status(410).json({
+    error: 'Gone',
+    message: 'This endpoint has been retired. Use the document flow in the app.',
+  });
+});
 
 const patchSchema = z.object({
   finalContent: z.string().min(1).max(200_000).optional(),
