@@ -1873,7 +1873,57 @@ export function buildRulePackReport(result: RulePackLoadResult, generatedOn: str
  */
 export const FIELD_ALIASES: Readonly<Record<string, string>> = Object.freeze({
   advocate_enrolment: 'advocate_enrollment',
+  // T-451 alias, remove in the post-v1 cleanup
+  bhajan_lal_categories_invoked: 'quashing_categories_invoked',
 });
+
+/**
+ * Old keys in {@link FIELD_ALIASES} that are deleted after aliasing, so nothing
+ * downstream (the verifier included) sees two keys for one fact (Arjun, 15 Oct
+ * 2026, T-451). `advocate_enrolment` is not listed: T-382 keeps the old key.
+ */
+// T-451 alias, remove in the post-v1 cleanup
+const REPLACED_FIELD_ALIAS_KEYS: ReadonlySet<string> = new Set(['bhajan_lal_categories_invoked']);
+
+/**
+ * Stored option ids renamed by Ajay (T-245 file, T-451 answers, db89fdde):
+ * field key -> (old option id -> new option id). The old value is replaced.
+ */
+// T-451 alias, remove in the post-v1 cleanup
+export const OPTION_VALUE_ALIASES: Readonly<Record<string, Readonly<Record<string, string>>>> =
+  Object.freeze({
+    grounds_for_quashing: Object.freeze({
+      no_offence_disclosed_bhajan_lal_cat_1: 'no_offence_disclosed',
+      ingredients_not_made_out_bhajan_lal_cat_2: 'ingredients_not_made_out',
+      facts_absurd_inherently_improbable_bhajan_lal_cat_3: 'facts_absurd_inherently_improbable',
+      express_legal_bar_bhajan_lal_cat_4: 'express_legal_bar',
+      civil_dispute_criminal_colour_bhajan_lal_cat_5: 'civil_dispute_criminal_colour',
+      mala_fide_personal_vendetta_bhajan_lal_cat_6: 'mala_fide_personal_vendetta',
+      procedural_illegality_bhajan_lal_cat_7: 'procedural_illegality',
+    }),
+  });
+
+/**
+ * Maps one stored answer through `map`: a string, each string in an array, or
+ * each key of a plain object (`{ option_id: true }`; an existing new key wins
+ * over a renamed old one). Anything else is returned unchanged. Never mutates
+ * `value`.
+ */
+function mapOptionValue(value: unknown, map: Readonly<Record<string, string>>): unknown {
+  const has = (k: string): boolean => Object.prototype.hasOwnProperty.call(map, k);
+  if (typeof value === 'string') return has(value) ? map[value] : value;
+  if (Array.isArray(value)) return value.map((v) => (typeof v === 'string' && has(v) ? map[v] : v));
+  if (value !== null && typeof value === 'object') {
+    const src = value as Record<string, unknown>;
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(src)) if (!has(k)) out[k] = v;
+    for (const [k, v] of Object.entries(src)) {
+      if (has(k) && !Object.prototype.hasOwnProperty.call(out, map[k])) out[map[k]] = v;
+    }
+    return out;
+  }
+  return value;
+}
 
 /**
  * Returns a shallow copy of `data` where, for each `old -> new` pair in
@@ -1882,7 +1932,12 @@ export const FIELD_ALIASES: Readonly<Record<string, string>> = Object.freeze({
  * explicit `undefined`/`null` under `new` counts as present and is not
  * overwritten.
  *
- * Never deletes `old`, never overwrites `new`, never mutates `data`.
+ * Old keys in `REPLACED_FIELD_ALIAS_KEYS` (T-451) are then deleted from the
+ * copy, whether or not they were copied; other old keys (T-382) are kept.
+ * A stored answer under a key in {@link OPTION_VALUE_ALIASES} then has its old
+ * option ids replaced by the new ones.
+ *
+ * Never overwrites `new`, never mutates `data`.
  *
  * Non-object input: `null` or `undefined` yields a new empty object `{}`;
  * any other non-object (string, number, boolean) or an array is returned
@@ -1899,6 +1954,10 @@ export function applyFieldAliases(data: Record<string, unknown>): Record<string,
     ) {
       out[newKey] = out[oldKey];
     }
+    if (REPLACED_FIELD_ALIAS_KEYS.has(oldKey)) delete out[oldKey];
+  }
+  for (const [key, map] of Object.entries(OPTION_VALUE_ALIASES)) {
+    if (Object.prototype.hasOwnProperty.call(out, key)) out[key] = mapOptionValue(out[key], map);
   }
   return out;
 }
