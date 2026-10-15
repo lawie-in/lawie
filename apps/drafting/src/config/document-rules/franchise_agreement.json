@@ -216,13 +216,16 @@
       "Operations Manual is confidential - protect under confidentiality clause.",
       "Quality control is essential for TM license enforceability.",
       "Tying of suppliers - justify on system uniformity/quality, not pure economic exclusion.",
-      "Post-term non-compete: limit to 1-2 years and reasonable geographic radius (cite Niranjan Shankar Golikari for reasonableness test).",
+      "Post-term non-compete: limit to 1-2 years and reasonable geographic radius.",
       "Termination must include cure period for curable breaches.",
       "De-identification post-termination is critical - prevent passing off.",
       "Stamp duty per state, sometimes ad valorem on franchise fee.",
       "Disclosure: India has no mandatory franchise disclosure document, but good practice to provide FDD-style info."
     ],
-    "tone": "Formal commercial-legal, franchisor-protective but balanced."
+    "tone": "Formal commercial-legal, franchisor-protective but balanced.",
+    "promptInstructions": [
+      "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
+    ]
   },
   "relevantActs": [
     { "act": "Indian Contract Act 1872", "sections": ["S.27"] },

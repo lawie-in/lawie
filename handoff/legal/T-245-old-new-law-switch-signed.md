@@ -403,3 +403,27 @@ Signed: Ajay (CLO), 15 Oct 2026 IST.
 4. joint_development_agreement :497 goes into **T-450**: replace `Suraj Lamp disclaimer` with `title disclaimer`. The rest of the line stays.
 
 Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+### T-451 byte check (fix/t-451-judgment-labels at 175c0a4, 15 Oct 2026)
+
+Every label, id and option rename matches the signed strings byte for byte: the curative label; divorce; dv_act; fir_quashing (`quashing_categories_invoked`, `Grounds for quashing invoked (one or more)`, `quashing_categories_paragraph` and its validation rule); quashing_528_bnss (`quashing_categories_paragraph` and the 7 option ids); gpa and spa (`title_disclaimer`, `Title disclaimer (…)`, `yes_flag_title_warning`); jda (`yes_general_gpa_with_title_flag`); ibc; plaint_partition; plaint_recovery; rera; and the service_agreement deletion.
+
+The curative :196 validation rule is unchanged. That is allowed under my ruling: validation_rules are not model-visible, and the citation is correct. The judgment names still on this branch are in key_citations, in `_meta`, in user-facing validation_rules (allowed), or in deed packs that belong to T-450 (gpa :263/:371, sale_deed, partition_deed, jda :497).
+
+**T-451 is approved.** Merge-body ref: "Legal: T-451 signed by Ajay, T-245 file, T-451 byte check 175c0a4".
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+### T-450 byte check (feature/t-450-deeds-no-judgments at e665603, 15 Oct 2026)
+
+The sweep strings from 50dc3c1 are applied verbatim: gift_deed, spa :269, license :262, shareholders ×3, aoa :191, jda :497. The R2 whole-line deletions are approved (lease :445, founders :169, service :174, partition :296, will (e)): nothing of law is left in them. Approved as well: spa :278 dropping "Key precedent:", and gpa :279 keeping "(per state amendments)". S appears once, last, in 18 of the 19 packs.
+
+must-fix in T-450:
+
+1. partition_deed :294 replaces the whole line with: `Daughter is coparcener by birth, irrespective of whether father was alive on 09.09.2005; the amended S.6 HSA operates retroactively, not retrospectively.` This drops "RETROSPECTIVE", as in T-449.
+2. joint_development_agreement: S is missing. Add it once, as the last instruction, per R3.
+3. gpa relevantActs :319 description, which now ends mid-sentence. New text: `Documents of which registration is compulsory — a GPA for sale of immovable property may fall within it`.
+
+With 1-3 applied, **T-450 is approved.** Merge-body ref: "Legal: T-450 signed by Ajay, T-245 file, T-450 byte check e665603 + fixes".
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.

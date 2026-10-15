@@ -441,8 +441,7 @@
       "S.107 TPA — Mode: A lease of immovable property from year to year, or for any term exceeding ONE YEAR, or reserving a yearly rent, can be made ONLY by a REGISTERED INSTRUMENT. All other leases may be made either by a registered instrument or by oral agreement accompanied by delivery of possession.",
       "S.17(1)(d) REGISTRATION ACT — Leases of immovable property from year to year, or for any term exceeding ONE YEAR, or reserving a yearly rent, MUST be registered.",
       "STAMP DUTY: state-specific schedules — depends on annual rent + security deposit + lease tenure. Rough indicators (verify current rates):\n   - Bihar: 1% of average annual rent + premium for terms up to 10 years; higher for longer; + 2% registration.\n   - Jharkhand: similar — % of total rent payable over term.\n   - UP: 4% of average annual rent for term up to 10 years; sliding scale for longer; + 1% registration.\n   - Delhi: 2% of average annual rent + advance + premium for terms up to 5 years; 3% for 5-10 years; 5% for > 10 years.\n   DO NOT hardcode — flag advocate to verify.",
-      "Cite Anthony v. K.C. Ittoop & Sons (2000) 6 SCC 394 — even where a deed of lease for a term exceeding one year is unregistered, possession and rent receipts may create a year-to-year tenancy under S.107 second paragraph; however, the registered deed's specific terms (renewal, options) cannot be enforced from an unregistered deed.",
-      "Cite Anthony Lawrence v. Pridhi (1985) 1 SCC 469 (where applicable) — for principles of forfeiture and re-entry.",
+      "Even where a deed of lease for a term exceeding one year is unregistered, possession and rent receipts may create a year-to-year tenancy under S.107 second paragraph; however, the registered deed's specific terms (renewal, options) cannot be enforced from an unregistered deed.",
       "STRUCTURE OF DEED:",
       "Para 1: Parties — full identification including PAN, Aadhaar (last 4), business identity for entities (CIN for company, GSTIN, registered office).",
       "Para 2: Recital — Lessor is absolute owner of demise; chain of title.",
@@ -470,7 +469,8 @@
       "Append Lawie disclaimer.",
       "Where commercial lease — additional clauses for fit-out period (rent-free period during fit-out), rent commencement date distinct from possession date, hand-over conditions, anti-corruption / anti-bribery, confidentiality, indemnity caps.",
       "Where lessor is HUF — Karta executes with consent of adult coparceners.",
-      "Where lessor is a company — board resolution required and annexed."
+      "Where lessor is a company — board resolution required and annexed.",
+      "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
   "relevantActs": [
