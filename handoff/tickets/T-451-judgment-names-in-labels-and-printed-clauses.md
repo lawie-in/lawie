@@ -85,3 +85,7 @@ CLAUSE_CUES, the skeletons and the saved-form mapping follow the rename. How sav
 ## Arjun (15 Oct 2026, 07:15 UTC) — renamed ids: read-time alias, no migration
 
 `bhajan_lal_categories_invoked` → `quashing_categories_invoked` (form key) and `bhajan_lal_paragraph` → `quashing_categories_paragraph` (clause id): alias old → new at the one place form inputs are loaded and the one place clause ids are resolved; write only the new key from now on; one test with an old saved form; comment `// T-451 alias, remove in the post-v1 cleanup`. No migration script (tiny pre-v1 data; a script is irreversible and triggers the rule-7 CI wait).
+
+## Arjun's ruling on saved forms (15 Oct 2026)
+
+Read-time alias, no migration. At the one place form inputs are loaded and the one place clause ids are resolved, map `bhajan_lal_categories_invoked` to `quashing_categories_invoked` and `bhajan_lal_paragraph` to `quashing_categories_paragraph` before use. Write only the new key from now on. One test with an old saved form. Add the comment `// T-451 alias, remove in the post-v1 cleanup` so it lands on the cleanup list. A migration script is out: pre-v1 data is tiny, and a migration would trigger the rule-7 CI wait and cannot be undone.
