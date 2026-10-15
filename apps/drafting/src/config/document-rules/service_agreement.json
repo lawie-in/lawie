@@ -160,7 +160,7 @@
     }
   ],
   "prompt_context": {
-    "system_role": "You are drafting an Indian service / independent contractor agreement. Critical: maintain independent contractor framing - no employer-employee features. Apply control test thinking from Dharangadhara Chemical Works.",
+    "system_role": "You are drafting an Indian service / independent contractor agreement. Critical: maintain independent contractor framing - no employer-employee features. Apply control test thinking.",
     "drafting_rules": [
       "Independent contractor clause MUST be prominent. Avoid features that suggest employment (no fixed hours, no leave, no PF/ESI, fees not 'salary').",
       "IP vesting in Client is market standard for work-for-hire.",
@@ -170,10 +170,12 @@
       "Liability cap typical: fees paid in trailing 12 months.",
       "Carve-out from liability cap: confidentiality, IP infringement, indemnification, gross negligence, wilful misconduct.",
       "Avoid 'employee benefits' language entirely.",
-      "Termination for convenience common with 15-30 day notice.",
-      "Reference Dharangadhara Chemical Works v. Workmen for control test if relationship is challenged."
+      "Termination for convenience common with 15-30 day notice."
     ],
-    "tone": "Formal commercial-legal, clear delineation from employment."
+    "tone": "Formal commercial-legal, clear delineation from employment.",
+    "promptInstructions": [
+      "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
+    ]
   },
   "relevantActs": [
     { "act": "Indian Contract Act 1872" },
