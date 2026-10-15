@@ -95,3 +95,8 @@ On the web-domain nginx on the EC2 server, apply the snippet in `docs/nginx-acce
 Note (Mahak, T-377): the nginx map regex and `map` value behaviour are unverified until the founder's `nginx -t` on the server. Run it before reload.
 
 Note (Mahak's reviewer, T-377b): docker/nginx/nginx.prod.conf only runs on the now-unused docker path, so the LIVE nginx on EC2 is protected only once the founder applies `docs/nginx-access-log.md` on BOTH domains (the web domain and the API domain). Two known limits are in that doc: the nginx error log on an upstream failure, and case/percent-encoding/double-slash variants are not stripped.
+
+## Release blockers for main (from T-436, Shashank, 15 Oct 2026)
+
+- Terms "Last updated" and `CURRENT_TERMS_VERSION` bumped (T-436, Ajay Addendum 7 #3a). The Ranchi §12 text from AC10 went in without a version bump, so the bump must ship with T-436 (b)/(c).
+- Billing `INVOICE_EMAIL_ENABLED` stays false until the email worker templates and the email-view fetch are deployed (invoice emails would otherwise dead-letter).
