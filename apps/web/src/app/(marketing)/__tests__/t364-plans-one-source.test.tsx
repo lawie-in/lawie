@@ -28,7 +28,11 @@ jest.mock('@/components/PrivacyUpdatePrompt', () => ({
   isPrivacyBlocked: () => false,
   privacyFetch: jest.fn(),
   usePrivacyDescribedBy: () => undefined,
+  // T-436: the State picker waits for acceptance through this.
+  onPrivacyAccepted: () => () => {},
 }));
+// T-436: PlanUpgrade renders a State picker, which reads the signed-in user (none here).
+jest.mock('@/context/AuthContext', () => ({ useAuth: () => ({ user: null }) }));
 jest.mock('@/components/VerifyEmailPrompt', () => ({
   VerifyEmailCard: () => null,
   isEmailVerificationRequired: async () => false,
