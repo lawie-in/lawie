@@ -100,3 +100,5 @@ Relayed by Priya: founder, 15 Oct, uploads are V1. This section replaces the acc
 - Legal: Ajay's five conditions (T-302 §9). 1, 3, 5 are built here; 2 is met by T-118; **4 (policy and terms text) is the founder's: a practising data-protection lawyer reads Ajay's §6–7 text, or the founder accepts the CLO draft for V1 in writing.** Uploads do not ship to `main` until 4 is settled; they may merge to `develop_staging` and be tested on develop before that.
 - Out of scope: PDFs (T-304), storing uploads, adding pages after round 1, FIR-number fetch (T-305), OCR vendors.
 - Order (agreed with Priya): T-303 spike → T-302 close-out → T-301 → T-304. Vishal after T-441.
+
+Correction (Arjun, 05:15 UTC): `FactSource` is `'user' | 'asked' | 'computed'` in `packages/shared/src/types/fact-ledger.ts`, mirrored in `apps/web/src/components/intake/briefTypes.ts`. Adding `'upload'` touches `packages/shared`, so T-301's claim includes that one file (one lead at a time; v2 rule 7 wait in slot), and the web mirror.
