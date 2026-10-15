@@ -119,6 +119,14 @@ export const APP_SETTING_KEYS = {
   PREFLIGHT_MODEL: 'ai.preflight_model',
   /** ADR-019 §3.8 — a Haiku model id (a bare alias or a dated id). No default in code. */
   INTAKE_MODEL: 'ai.intake_model',
+  /**
+   * T-453 — output_config.effort per stage (low | medium | high | xhigh | max).
+   * Optional: a missing or invalid value falls back to the default in
+   * llm-usage.ts (getAiEffort), never a failed call.
+   */
+  EFFORT_INTAKE: 'ai.effort.intake',
+  EFFORT_PREFLIGHT: 'ai.effort.preflight',
+  EFFORT_BODY: 'ai.effort.body',
 } as const;
 
 // Per-model USD rates (`ai.rates.<model-slug>`) and the USD→INR conversion

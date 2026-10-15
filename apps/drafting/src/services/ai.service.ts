@@ -122,8 +122,11 @@ import {
   CacheUsage,
   cacheCounts,
   CallUsage,
+  AiEffort,
   estimateOutputTokens,
+  getAiEffort,
   hasUsage,
+  logLlmCall,
   parseAnthropicMessageUsage,
   parseAnthropicStreamEvent,
   ParsedStreamFragment,
@@ -206,6 +209,32 @@ function applyUsage(usage: CallUsageDraft, f: ParsedStreamFragment): void {
 }
 
 /**
+ * T-453: the llm_call log line of one body call (streamLLM or the D1 call).
+ * Counts, model, effort and stop reason only; never prompt or draft text.
+ */
+function logBodyCall(
+  call: 'stream' | 'd1',
+  model: string,
+  effort: AiEffort | undefined,
+  completed: boolean,
+  d: CallUsageDraft,
+  stopReason: string | null | undefined,
+): void {
+  logLlmCall({
+    stage: 'body',
+    call,
+    model,
+    effort: effort ?? null,
+    status: completed ? 'completed' : 'failed',
+    inputTokens: d.inputTokens,
+    outputTokens: d.outputTokens,
+    cacheReadInputTokens: d.cacheReadInputTokens,
+    cacheCreationInputTokens: d.cacheCreationInputTokens,
+    stopReason: stopReason ?? null,
+  });
+}
+
+/**
  * The UsageMeter record for one finished (or failed) call. Output falls back
  * to an estimate from the text when the provider reported nothing. Cache
  * counts are carried only when non-zero.
@@ -278,16 +307,29 @@ export async function* streamLLM(
   // output_tokens near the end) — reading it off these events rather than
   // only from stream.finalMessage() means a mid-stream throw still leaves
   // the last-seen counts on `usage`. Confirmed live (T-003 spike).
-  const stream = await directClient.messages.stream({
-    model,
-    max_tokens: maxTokens,
-    system: options.cacheSystem ? cachedSystemBlocks(systemPrompt) : systemPrompt,
-    messages: [{ role: 'user', content: userPrompt }],
-  });
-  for await (const event of stream) {
-    const fragment = parseAnthropicStreamEvent(event);
-    if (fragment.text) yield fragment.text;
-    if (usage) applyUsage(usage, fragment);
+  // T-453: effort from ai.effort.body (default medium). Never throws.
+  const effort = await getAiEffort('body');
+  // Counts for the llm_call line; the caller's draft when one is passed.
+  const seen: CallUsageDraft = usage ?? { inputTokens: 0, outputTokens: 0, usageSource: 'none' };
+  let stopReason: string | undefined;
+  let completed = false;
+  try {
+    const stream = await directClient.messages.stream({
+      model,
+      max_tokens: maxTokens,
+      system: options.cacheSystem ? cachedSystemBlocks(systemPrompt) : systemPrompt,
+      messages: [{ role: 'user', content: userPrompt }],
+      ...(effort ? { output_config: { effort } } : {}),
+    });
+    for await (const event of stream) {
+      const fragment = parseAnthropicStreamEvent(event);
+      if (fragment.text) yield fragment.text;
+      applyUsage(seen, fragment);
+      if (fragment.stopReason !== undefined) stopReason = fragment.stopReason;
+    }
+    completed = true;
+  } finally {
+    logBodyCall('stream', model, effort, completed, seen, stopReason);
   }
 }
 
@@ -2373,17 +2415,27 @@ async function callD1Drafter(
   const model = await getAppSetting(APP_SETTING_KEYS.DRAFTING_MODEL);
   usage.model = model;
   usage.transport = 'direct';
-  const message = await directClient.messages.parse({
-    model,
-    max_tokens: D1_MAX_TOKENS,
-    // T-437: cached only when it is the constant D1 prompt; the facts and
-    // the skeleton are in the user message.
-    system: system === DRAFTER_D1_SYSTEM_PROMPT ? cachedSystemBlocks(system) : system,
-    messages: [{ role: 'user', content: user }],
-    output_config: { format },
-  });
-  applyUsage(usage, parseAnthropicMessageUsage(message));
-  return message.parsed_output ?? null;
+  // T-453: effort from ai.effort.body (default medium). Never throws.
+  const effort = await getAiEffort('body');
+  let stopReason: string | null = null;
+  let completed = false;
+  try {
+    const message = await directClient.messages.parse({
+      model,
+      max_tokens: D1_MAX_TOKENS,
+      // T-437: cached only when it is the constant D1 prompt; the facts and
+      // the skeleton are in the user message.
+      system: system === DRAFTER_D1_SYSTEM_PROMPT ? cachedSystemBlocks(system) : system,
+      messages: [{ role: 'user', content: user }],
+      output_config: { format, ...(effort ? { effort } : {}) },
+    });
+    applyUsage(usage, parseAnthropicMessageUsage(message));
+    stopReason = typeof message?.stop_reason === 'string' ? message.stop_reason : null;
+    completed = true;
+    return message.parsed_output ?? null;
+  } finally {
+    logBodyCall('d1', model, effort, completed, usage, stopReason);
+  }
 }
 
 /**

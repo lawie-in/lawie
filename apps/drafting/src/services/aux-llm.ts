@@ -14,7 +14,7 @@ import Anthropic from '@anthropic-ai/sdk';
 
 import { env } from '../config/env';
 
-import { estimateOutputTokens, parseAnthropicStreamEvent } from './llm-usage';
+import { AiEffort, estimateOutputTokens, parseAnthropicStreamEvent } from './llm-usage';
 
 const directClient = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
 
@@ -23,6 +23,8 @@ export interface AuxCallInput {
   system: string;
   user: string;
   maxTokens: number;
+  /** T-453: output_config.effort. Omitted from the request when absent. */
+  effort?: AiEffort;
 }
 
 export interface AuxCallUsage {
@@ -30,6 +32,10 @@ export interface AuxCallUsage {
   outputTokens: number;
   usageSource: 'provider' | 'estimated';
   transport: 'direct';
+  /** T-453: cache counts and stop reason, for the llm_call log line. Absent when not reported. */
+  cacheReadInputTokens?: number;
+  cacheCreationInputTokens?: number;
+  stopReason?: string;
 }
 
 export interface AuxCallResult extends AuxCallUsage {
@@ -52,12 +58,18 @@ export async function callAuxModel(input: AuxCallInput): Promise<AuxCallResult> 
   let inputTokens = 0;
   let outputTokens = 0;
   let sawUsage = false;
+  let cacheReadInputTokens: number | undefined;
+  let cacheCreationInputTokens: number | undefined;
+  let stopReason: string | undefined;
 
   const usageNow = (): AuxCallUsage => ({
     inputTokens,
     outputTokens: sawUsage ? outputTokens : text ? estimateOutputTokens(text) : 0,
     usageSource: sawUsage ? 'provider' : 'estimated',
     transport,
+    ...(cacheReadInputTokens !== undefined ? { cacheReadInputTokens } : {}),
+    ...(cacheCreationInputTokens !== undefined ? { cacheCreationInputTokens } : {}),
+    ...(stopReason !== undefined ? { stopReason } : {}),
   });
 
   try {
@@ -66,6 +78,7 @@ export async function callAuxModel(input: AuxCallInput): Promise<AuxCallResult> 
       max_tokens: input.maxTokens,
       system: input.system,
       messages: [{ role: 'user', content: input.user }],
+      ...(input.effort ? { output_config: { effort: input.effort } } : {}),
     });
     for await (const event of stream) {
       const f = parseAnthropicStreamEvent(event);
@@ -78,6 +91,10 @@ export async function callAuxModel(input: AuxCallInput): Promise<AuxCallResult> 
         outputTokens = f.outputTokens;
         sawUsage = true;
       }
+      if (f.cacheReadInputTokens !== undefined) cacheReadInputTokens = f.cacheReadInputTokens;
+      if (f.cacheCreationInputTokens !== undefined)
+        cacheCreationInputTokens = f.cacheCreationInputTokens;
+      if (f.stopReason !== undefined) stopReason = f.stopReason;
     }
   } catch (err) {
     throw new AuxCallError(err instanceof Error ? err.message : 'aux call failed', usageNow());

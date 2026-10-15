@@ -7,7 +7,7 @@
  */
 import logger from '../config/logger';
 
-import { getAppSetting } from './app-settings.service';
+import { APP_SETTING_KEYS, getAppSetting } from './app-settings.service';
 
 // ── Pure stream-event parsers ────────────────────────────────────────────────
 // Take one already-JSON-parsed event/line and return whatever fragment of
@@ -25,6 +25,8 @@ export interface ParsedStreamFragment {
   /** T-437: the 1h / 5m split of cacheCreationInputTokens, when the API reports it. */
   cacheCreation1hInputTokens?: number;
   cacheCreation5mInputTokens?: number;
+  /** T-453: why the model stopped (message_delta.delta.stop_reason). Never text. */
+  stopReason?: string;
 }
 
 /** The numeric fields of an Anthropic `usage` object we read. Everything else is ignored. */
@@ -64,7 +66,7 @@ export function parseAnthropicStreamEvent(event: unknown): ParsedStreamFragment 
   const e = event as {
     type?: string;
     message?: { usage?: AnthropicUsage };
-    delta?: { type?: string; text?: string };
+    delta?: { type?: string; text?: string; stop_reason?: unknown };
     usage?: AnthropicUsage;
   };
 
@@ -76,9 +78,10 @@ export function parseAnthropicStreamEvent(event: unknown): ParsedStreamFragment 
   if (e.type === 'content_block_delta' && e.delta?.type === 'text_delta' && e.delta.text) {
     return { text: e.delta.text };
   }
-  if (e.type === 'message_delta' && e.usage) {
+  if (e.type === 'message_delta') {
     const out: ParsedStreamFragment = {};
     readUsage(e.usage, out);
+    if (typeof e.delta?.stop_reason === 'string') out.stopReason = e.delta.stop_reason;
     return out;
   }
   return {};
@@ -134,6 +137,150 @@ export function cacheCounts(from: CacheUsage): CacheUsage {
     if (typeof v === 'number' && v > 0) out[k] = v;
   }
   return out;
+}
+
+// ── Effort per stage and the per-call log line (T-453) ──────────────────────
+//
+// Arjun, 15 Oct 2026: both 5.5 models think by default and thinking counts as
+// output and against max_tokens. Each stage sends output_config.effort, read
+// from AppSettings (getAppSetting's 60 s cache) so the budget is config, not a
+// redeploy. budget_tokens and thinking:{type:'disabled'} are never sent (400 on
+// these models).
+
+export type LlmStage = 'intake' | 'preflight' | 'body';
+
+/** The effort values the installed SDK's OutputConfig accepts (0.91.0: low..max). */
+export type AiEffort = 'low' | 'medium' | 'high' | 'xhigh' | 'max';
+
+const AI_EFFORTS: readonly AiEffort[] = ['low', 'medium', 'high', 'xhigh', 'max'];
+
+export const AI_EFFORT_DEFAULTS: Record<LlmStage, AiEffort> = {
+  intake: 'low',
+  preflight: 'low',
+  body: 'medium',
+};
+
+const AI_EFFORT_KEYS: Record<LlmStage, string> = {
+  intake: APP_SETTING_KEYS.EFFORT_INTAKE,
+  preflight: APP_SETTING_KEYS.EFFORT_PREFLIGHT,
+  body: APP_SETTING_KEYS.EFFORT_BODY,
+};
+
+function isAiEffort(v: string): v is AiEffort {
+  return (AI_EFFORTS as readonly string[]).includes(v);
+}
+
+/**
+ * `ai.effort.<stage>`. Never throws: a missing key (or a settings read that
+ * fails) is the default; a value outside low|medium|high|xhigh|max is the
+ * default with a warn that names the key only, never the value.
+ */
+export async function getAiEffort(stage: LlmStage): Promise<AiEffort> {
+  const key = AI_EFFORT_KEYS[stage];
+  let raw: string;
+  try {
+    raw = await getAppSetting(key);
+  } catch {
+    return AI_EFFORT_DEFAULTS[stage];
+  }
+  const v = typeof raw === 'string' ? raw.trim().toLowerCase() : '';
+  if (isAiEffort(v)) return v;
+  logger.warn({ key }, `[llm-usage] ${key} is not a valid effort; using the default`);
+  return AI_EFFORT_DEFAULTS[stage];
+}
+
+/**
+ * Golden set only (scripts/golden-set): the fixture running now, carried on
+ * every llm_call line until cleared. Fixtures run one at a time. Production
+ * never sets it.
+ */
+let currentFixtureId: string | null = null;
+
+export function setLlmLogFixtureId(id: string | null): void {
+  currentFixtureId = id;
+}
+
+/** The fields of one llm_call line, as logged. Ids and counts only. */
+export interface LlmCallRecord {
+  event: 'llm_call';
+  stage: LlmStage;
+  call: string;
+  model: string;
+  effort: AiEffort | null;
+  status: 'completed' | 'failed';
+  input_tokens: number;
+  output_tokens: number;
+  cache_read_input_tokens: number;
+  cache_creation_input_tokens: number;
+  stop_reason: string | null;
+  intake_id?: string;
+  run_id?: string;
+  fixture_id?: string;
+}
+
+/**
+ * Golden set only: an in-process listener that gets each llm_call record
+ * (a copy) as it is logged, so the harness can report per stage without
+ * reading log output. Production never sets one. A throwing listener is ignored.
+ */
+let llmCallListener: ((r: LlmCallRecord) => void) | null = null;
+
+export function setLlmCallListener(fn: ((r: LlmCallRecord) => void) | null): void {
+  llmCallListener = fn;
+}
+
+export interface LlmCallLog {
+  stage: LlmStage;
+  /** Which call within the stage (intake_match, preflight, stream, d1, ...). A code label, never text. */
+  call: string;
+  model: string;
+  effort: AiEffort | null;
+  status: 'completed' | 'failed';
+  inputTokens?: number;
+  outputTokens?: number;
+  cacheReadInputTokens?: number;
+  cacheCreationInputTokens?: number;
+  stopReason?: string | null;
+  /** The intake id, where the stage has one. */
+  intakeId?: string;
+  /** The generation run id, where the stage has one. */
+  runId?: string;
+}
+
+/**
+ * One Pino line per model call (T-453, Arjun ruling 2). Ids and counts only:
+ * no prompt, no draft, no user content and no user id, because logs go to
+ * third parties. Never throws.
+ */
+export function logLlmCall(c: LlmCallLog): void {
+  const record: LlmCallRecord = {
+    event: 'llm_call',
+    stage: c.stage,
+    call: c.call,
+    model: c.model,
+    effort: c.effort,
+    status: c.status,
+    input_tokens: c.inputTokens ?? 0,
+    output_tokens: c.outputTokens ?? 0,
+    cache_read_input_tokens: c.cacheReadInputTokens ?? 0,
+    cache_creation_input_tokens: c.cacheCreationInputTokens ?? 0,
+    stop_reason: c.stopReason ?? null,
+    ...(c.intakeId ? { intake_id: c.intakeId } : {}),
+    ...(c.runId ? { run_id: c.runId } : {}),
+    ...(currentFixtureId ? { fixture_id: currentFixtureId } : {}),
+  };
+  try {
+    logger.info(record, 'llm_call');
+  } catch {
+    // Logging must never fail a model call.
+  }
+  if (llmCallListener) {
+    try {
+      llmCallListener({ ...record });
+    } catch {
+      // A listener must never fail a model call.
+    }
+  }
 }
 
 // ── Estimation fallback (D5) ─────────────────────────────────────────────────
