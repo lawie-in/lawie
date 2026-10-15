@@ -35,12 +35,21 @@ S = `Do not name any judgment. Where an authority would normally be cited, write
 
 Ajay byte-checks each group's diff; he does not pre-sign every line. The file:line list of every pack and string is Vishal's T-441 sweep (ask Vishal, or see his T-441 report).
 
-## Acceptance criteria
+## Acceptance criteria (signed byte-exact by Ajay, 15 Oct 2026, fb7b92b, T-245 file Addendum 8)
 
-1. Every pack in the group follows R1 to R7. S is present once per pack.
-2. No sentence in a model-visible field names a judgment; no new law appears.
-3. Golden snapshots and tests updated only where the removed text was pinned; Ajay signs any snapshot change.
-4. A test pins "no judgment name in model-visible text" for the group's packs.
+| File:line | New text |
+|---|---|
+| curative_petition.json :72 label | `Curative ground` |
+| fir_quashing.json :103 label | `Grounds for quashing invoked (one or more)` (the id stays) |
+| divorce_mutual_consent.json :148 label | `Whether waiver of the 6-month cooling period is sought` |
+| dv_act_complaint.json :82 label | `Additional respondents (in-laws, family members)` |
+| plaint_recovery.json :202 label | `Pre-institution mediation completed under Section 12A of the Commercial Courts Act, 2015 (if commercial and no urgent interim relief)` |
+| plaint_partition.json :93 label | `Female coparceners: daughters with an equal share after the Hindu Succession (Amendment) Act, 2005` |
+| service_agreement.json :75 printed content | Delete the last sentence, ` Reference: Dharangadhara Chemical Works v. Workmen AIR 1957 SC 264 (control test).`. The clause ends at `…all statutory dues.` |
+| gpa.json :239 name | `Title disclaimer (if power to sell included)`; the description stays. |
+| spa.json :233 name | `Title disclaimer (if power to sell)`; the description stays. |
+
+Any golden that moves (service_agreement especially) comes to Ajay. No extra round with him otherwise.
 
 ## Legal sign-off
 
