@@ -2150,8 +2150,8 @@ describe("Ajay's renderer review: own-words rephrases that change who did what f
       expect(ownWordsReordered(raw, rephrase)).toBe(false);
       expect(ownWordsReordered(rephrase, raw)).toBe(false);
     });
-    it('T-414 (a) end to end: both dates present, the check does not misfire', () => {
-      // "was arrested on" is a banned phrase unless the raw has it, so the raw says it.
+    it('T-414 (a) end to end (smoke, not a proof): both dates present, the check does not misfire', () => {
+      // Smoke only: a draft that writes a date another way than the raw falls back in the verifier, so the old/new difference is proved by the unit test (a) above.
       const { status, result } = render(
         'bail_regular',
         withNarrative('He was arrested on 2 March 2025 and released on 12 March 2025.'),

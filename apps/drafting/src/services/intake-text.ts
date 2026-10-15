@@ -131,8 +131,12 @@ export function datesAsWritten(text: string): Array<{ value: string; words: stri
 /**
  * Every place a date is written in `text` (T-414), in order of position, with
  * no dedupe: the same date written twice, or in two forms, is two entries.
- * `at` and `length` are positions in `text` (matches the regexes find in
- * different formats may overlap; the caller picks).
+ * `at` and `length` are positions in the lower-cased copy of `text` (with
+ * Devanagari digits read as ASCII). They are positions in `text` only while
+ * lower-casing keeps its length, so a caller that splices by position should
+ * pass text that is already normalised and lower-cased, as
+ * `contentWordSequence` does. Matches the regexes find in different formats
+ * may overlap; the caller picks.
  */
 export function dateMatchesInText(
   text: string,
