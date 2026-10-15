@@ -1212,3 +1212,9 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - Nothing a user sees. The one-time verification link no longer travels in the Referer to other sites. The documented server log change (founder step) keeps it out of the access log once applied.
 
 Quality: nothing to test in the UI — headers and ops doc only
+
+## T-436 AC10 round 2 — Earlier sign-ups get one verification email (33107053, kunal, 15 Oct 2026)
+
+- Nothing new on screen. When the email service is switched on, people who signed up earlier and never got a verification email receive one, once.
+
+Quality: nothing to test in the UI — operator scripts and docs only
