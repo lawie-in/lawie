@@ -170,3 +170,11 @@ Signed: Ajay (CLO), 15 Oct 2026 IST.
 
 Addendum 5 #3 follow-up (15 Oct 2026). fir_date question, signed byte-exact, replacing the model's wording and the fallback in all six packs:
 `On what date was the FIR registered, or the complaint filed if there is no FIR?`
+
+## Addendum 6: T-245a review wording (Vishal, 15 Oct 2026)
+
+1. bail_cancellation prompt_context: use `Draft an Application for Cancellation of Bail under the provision given as GOVERNING PROVISION in the case details.` (not "read with").
+2. bail_before_magistrate. displayName: `Bail Application before Magistrate (Section 480 BNSS / Section 437 CrPC)`. The _meta description follows the same pairing. Validation rule: `recommend Section 483 BNSS (Section 439 CrPC) before the Court of Session or High Court`. Fold into T-245a. must-fix (the displayName is shown to users).
+3. Court-rule practice notes ("S.483 BNSS" / "S.482 BNSS"): **parked**. The P-text governs what is cited. A follow-up adds the CrPC pair to each note.
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.

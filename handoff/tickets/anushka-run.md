@@ -1233,3 +1233,9 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - Nothing a user sees. A direct call to the old generate route is refused with a clear message instead of charging Ink for a draft that could cite the wrong law.
 
 Quality: nothing to test in the UI — API route only
+
+## T-364 — One plan list everywhere (403b768f, kunal, 15 Oct 2026)
+
+- You see the same plans and prices on the pricing page, home page, upgrade prompts and Settings, because they all read one list. Nothing looks different today.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
