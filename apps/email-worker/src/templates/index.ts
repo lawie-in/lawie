@@ -26,6 +26,7 @@ import type { ReactElement } from 'react';
 import { authUnverifiedDeletionNoticeTemplate } from './auth/unverifiedDeletionNotice';
 import { authVerifyEmailTemplate } from './auth/verifyEmail';
 import { authWelcomeTemplate } from './auth/welcome';
+import { billingCreditNoteTemplate } from './billing/creditNote';
 import { billingTaxInvoiceTemplate } from './billing/taxInvoice';
 
 export interface TemplateDef<Data = Record<string, unknown>> {
@@ -43,9 +44,9 @@ const REGISTRY: Partial<Record<EmailTemplate, TemplateDef<any>>> = {
   'auth.welcome': authWelcomeTemplate,
   'auth.verifyEmail': authVerifyEmailTemplate,
   'auth.unverifiedDeletionNotice': authUnverifiedDeletionNoticeTemplate,
-  // T-436 (b/c): Ajay Addendum 5. 'billing.creditNote' is not registered yet: its copy is
-  // incomplete (preheader and number line), so a credit-note job fails before any fetch.
+  // T-436 (b/c): Ajay Addendum 5 (invoice); Addendum 7 (4a) and Addendum 9 (credit note).
   'billing.taxInvoice': billingTaxInvoiceTemplate,
+  'billing.creditNote': billingCreditNoteTemplate,
   // Madhuri's 8 templates land here as they ship.
 };
 
