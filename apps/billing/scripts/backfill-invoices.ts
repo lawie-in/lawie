@@ -24,6 +24,11 @@
  * it is idempotent: a payment that already has an invoice is skipped, and a
  * second run issues nothing twice.
  *
+ * T-436 (c): each backfilled invoice is emailed once (Ajay, GST file Addendum
+ * 7 #4b), queued by the same issue step as the webhook, or by the invoice
+ * sweep if that enqueue fails (EMAIL_BACKFILLED_INVOICES in
+ * src/services/invoice-email.service.ts).
+ *
  * The dry run writes nothing to Mongo; it does read from Razorpay (GET only).
  *
  * Needs the billing env of the target environment (MONGO_URI, Razorpay keys,

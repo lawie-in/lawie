@@ -14,6 +14,15 @@
  *   For auth's close-account gate (Arjun, T-115c ruling 4).
  *     200 { active: boolean, status: string }  (status 'none' when no subscription)
  *     400 bad userId, 401 bad secret, 500 read failed
+ *
+ * GET /internal/invoices/:id/email-view
+ *   For the email-worker at send time (T-436 c, Arjun #1): the job carries only
+ *   userId + invoiceId, so the number, total, name and address come from here.
+ *   No case content, no tax breakdown, no seller details.
+ *     200 { invoiceId, userId, kind, number, issuedAt, total (paise),
+ *           customer: { name, email }, originalInvoiceNumber (credit notes, else null),
+ *           downloadUrl }
+ *     400 bad id, 401 bad secret, 404 no such row, 409 not issued, 500 read failed
  */
 import crypto from 'crypto';
 
@@ -22,7 +31,17 @@ import mongoose from 'mongoose';
 
 import { env } from '../config/env';
 import logger from '../config/logger';
+import { Invoice } from '../models/Invoice.model';
 import { eraseBillingAccount, subscriptionStatusFor } from '../services/account-erase.service';
+
+/** Where the invoices list (and PDF download) lives in the web app. */
+export const INVOICE_DOWNLOAD_PATH = '/dashboard/settings';
+
+/** FRONTEND_URL + the invoices page; just the path if FRONTEND_URL is empty. */
+export function invoiceDownloadUrl(frontendUrl: string = env.FRONTEND_URL): string {
+  const base = frontendUrl.trim().replace(/\/+$/, '');
+  return base ? `${base}${INVOICE_DOWNLOAD_PATH}` : INVOICE_DOWNLOAD_PATH;
+}
 
 const router = Router();
 
@@ -89,6 +108,51 @@ router.get(
         'subscription-status read failed',
       );
       res.status(500).json({ error: 'status_unavailable' });
+    }
+  },
+);
+
+router.get(
+  '/internal/invoices/:id/email-view',
+  requireInternalSecret,
+  async (req: Request, res: Response): Promise<void> => {
+    const { id } = req.params;
+    if (typeof id !== 'string' || !mongoose.Types.ObjectId.isValid(id)) {
+      res.status(400).json({ error: 'valid invoice id is required' });
+      return;
+    }
+    try {
+      const row = await Invoice.findById(id)
+        .select(
+          'kind state userId number issuedAt total customer.name customer.email originalInvoiceNumber',
+        )
+        .lean();
+      if (!row) {
+        res.status(404).json({ error: 'not_found' });
+        return;
+      }
+      if (row.state !== 'issued') {
+        res.status(409).json({ error: 'not_issued' });
+        return;
+      }
+      res.status(200).json({
+        invoiceId: String(row._id),
+        userId: String(row.userId),
+        kind: row.kind,
+        number: row.number ?? null,
+        issuedAt: row.issuedAt ?? null,
+        total: row.total ?? null,
+        customer: { name: row.customer?.name ?? '', email: row.customer?.email ?? '' },
+        originalInvoiceNumber:
+          row.kind === 'credit_note' ? (row.originalInvoiceNumber ?? null) : null,
+        downloadUrl: invoiceDownloadUrl(),
+      });
+    } catch (err) {
+      logger.warn(
+        { invoiceId: id, errName: err instanceof Error ? err.name : 'UnknownError' },
+        'invoice email-view read failed',
+      );
+      res.status(500).json({ error: 'view_unavailable' });
     }
   },
 );

@@ -35,6 +35,8 @@ export type EmailTemplate =
   | 'billing.paymentFailed'
   | 'billing.monthlyInvoice'
   | 'billing.lowCreditWarning'
+  | 'billing.taxInvoice'
+  | 'billing.creditNote'
   | 'drafting.draftComplete'
   | 'admin.referralIssued'
   | 'admin.advocatePackInvite'
@@ -55,6 +57,8 @@ const TIER_BY_TEMPLATE: Record<EmailTemplate, 'high' | 'low'> = {
   'billing.paymentFailed': 'high',
   'billing.monthlyInvoice': 'low',
   'billing.lowCreditWarning': 'low',
+  'billing.taxInvoice': 'high',
+  'billing.creditNote': 'high',
   'drafting.draftComplete': 'low',
   'admin.referralIssued': 'low',
   'admin.advocatePackInvite': 'low',

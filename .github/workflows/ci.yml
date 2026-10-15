@@ -64,8 +64,10 @@ jobs:
             drafting:
               - 'apps/drafting/**'
               - 'scripts/golden-set/**'
+            # T-436: billing imports @lawie/email-client at runtime (resolved from its dist).
             billing:
               - 'apps/billing/**'
+              - 'packages/email-client/**'
             # T-320: email-worker builds against email-client's dist; shared changes come in via the shared filter.
             email-worker:
               - 'apps/email-worker/**'
@@ -225,6 +227,8 @@ jobs:
             mongoms-${{ runner.os }}-7.0.24-
       - run: yarn install --frozen-lockfile
       - run: yarn workspace @lawie/shared build
+      # T-436: billing resolves @lawie/email-client from its dist (gitignored), so build it first.
+      - run: yarn workspace @lawie/email-client build
       # T-211: download the binary once, serially, before parallel Jest workers race for it. No-op on a cache hit.
       - name: Pre-download Mongo binary
         run: yarn workspace @lawie/billing node -e "require('mongodb-memory-server').MongoMemoryServer.create().then(s => s.stop()).catch(e => { console.error(e); process.exit(1); })"
