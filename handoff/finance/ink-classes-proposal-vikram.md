@@ -26,6 +26,14 @@ Basis: approved models (Sonnet 5.5 body, Haiku 5.5 intake and preflight), list p
 2. **Copy:** "Most documents use 2 Ink; short ones 1" gains "long pleadings 5". Meera and Ajay re-sign it before L ships.
 3. **Plan value check:** Solo's 50 Ink buys 25 M drafts or 10 L drafts. Meera to confirm that still sells.
 
+## Update, 15 Oct (Arjun's shape check; accepted as D7: S=1, M=2, L=5, seeded in T-465)
+
+The v2 compiler adds a Haiku judge pass (pennies) and repair rounds on the Sonnet body (about 30% of drafts, about half a body each). That adds 10–15% on M and L; S barely moves.
+- **M becomes borderline:** ₹3.31 × 1.10–1.15 ≈ ₹3.65–3.80 per Ink, right at the ₹3.70 line. If T-453 measures M over the line, the options in order are: cut repair rounds (better first drafts), prompt caching on the rules pack, then move the heaviest M kinds to L. M's price stays at 2.
+- **L at 5:** about ₹3.6–3.7 per Ink. Tight, so keep 5 and let T-453 measure.
+- T-453 acceptance criterion: p90 cost per draft including thinking, per class, under ₹3.70/Ink, or the class is re-priced before it ships. Thinking is capped (lowest effort on Haiku, capped body budget, values visible in AppSettings).
+- Monthly review also tracks the Atlas tier (Search and Vector Search run on the cluster, so M30 in phase 2), not just model cost.
+
 ## Also on the finance list
 
 - CNR lookup pilot (eCourtsIndia, credits-based, pricing not public): approved post-v1. I price it once the founder has an account (ADR-026 §11).
