@@ -227,7 +227,7 @@
       "id": "natural_guardian_status",
       "name": "Status of Natural Guardians",
       "required": true,
-      "description": "Details of father and mother — death/unfitness/incapacity/absence; for Hindu minors per S.6 HMGA father is natural guardian and after him mother, subject to S.4 and Gita Hariharan ruling"
+      "description": "Details of father and mother — death/unfitness/incapacity/absence; for Hindu minors per S.6 HMGA father is natural guardian and after him mother, subject to S.4 and 'after' being read as 'in absence of'"
     },
     {
       "id": "ground_for_appointment",
@@ -245,7 +245,7 @@
       "id": "welfare_of_minor",
       "name": "Welfare of Minor",
       "required": true,
-      "description": "Paramount consideration per S.17 GWA and S.13 HMGA; cite Gaurav Nagpal v. Sumedha Nagpal"
+      "description": "Paramount consideration per S.17 GWA and S.13 HMGA"
     },
     {
       "id": "type_of_guardianship",
@@ -283,19 +283,20 @@
   "prompt_context": {
     "promptInstructions": [
       "Draft a petition for appointment as guardian and grant of custody of minor under the Guardians and Wards Act, 1890 (and/or Hindu Minority and Guardianship Act, 1956 for Hindu minors).",
-      "PARAMOUNT PRINCIPLE: Welfare of the minor is the paramount consideration. Every section of the petition must orient toward welfare — physical, mental, moral, educational, emotional. Cite Gaurav Nagpal v. Sumedha Nagpal (2009) 1 SCC 42 and Nil Ratan Kundu v. Abhijit Kundu (2008) 9 SCC 413.",
+      "PARAMOUNT PRINCIPLE: Welfare of the minor is the paramount consideration. Every section of the petition must orient toward welfare — physical, mental, moral, educational, emotional.",
       "Identify the minor — name, date of birth, current age, gender, religion (relevant for HMGA), and place where minor ordinarily resides.",
-      "Status of natural guardians: For Hindu minor, S.6 HMGA — father is natural guardian and after him the mother. Per Githa Hariharan v. RBI (1999) 2 SCC 228, 'after' read as 'in absence of' — mother can act as natural guardian during father's lifetime in his absence or inability.",
+      "Status of natural guardians: For Hindu minor, S.6 HMGA — father is natural guardian and after him the mother. 'after' read as 'in absence of' — mother can act as natural guardian during father's lifetime in his absence or inability.",
       "Plead the ground for petition: death of natural guardian / incapacity / unfitness / custody dispute / absence / welfare requirement.",
       "Demonstrate petitioner's suitability per S.17 GWA factors: capacity to provide for minor, character, financial means, kinship to minor, religious affinity, age, sex (for protection), and any wishes of deceased parent.",
       "If minor is of sufficient age (typically 9+ years) to form intelligent preference, mention minor's preference per S.17(3) GWA.",
       "Identify whether guardianship of PERSON, PROPERTY, or both is sought. For property, give particulars of minor's property and proposed safeguards.",
-      "Jurisdiction under S.9 GWA — application must be made to District Court (or Family Court) of the place where minor ORDINARILY RESIDES. Not casual residence. Refer to Ruchi Majoo v. Sanjeev Majoo (2011) 6 SCC 479.",
+      "Jurisdiction under S.9 GWA — application must be made to District Court (or Family Court) of the place where minor ORDINARILY RESIDES. Not casual residence.",
       "Disclose any prior proceedings — divorce, prior custody orders, foreign court orders.",
       "If seeking interim custody, plead urgency and prima facie welfare basis.",
       "Tone: child-centric. Avoid pejorative attacks on natural guardian unless legally necessary to plead unfitness — even then, factual and proportionate.",
       "Note for advocate: Section 7 GWA — court can appoint guardian for welfare of minor. Section 19 GWA — court cannot appoint where father is living unless unfit.",
-      "Append Lawie disclaimer."
+      "Append Lawie disclaimer.",
+      "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
   "relevantActs": [

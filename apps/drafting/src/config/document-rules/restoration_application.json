@@ -115,7 +115,7 @@
       "clause_id": "sufficient_cause_pleading",
       "title": "Sufficient Cause",
       "required": true,
-      "content_guidance": "Para 4-5: detailed pleading of sufficient cause for absence — illness (with medical certificate), bereavement, unavoidable travel, miscommunication with counsel, court holiday/strike, etc. Cite specific facts and documents. Pleading must be honest — courts disfavour vague or evasive sufficient cause (*Parimal v. Veena* (2011) 3 SCC 545)."
+      "content_guidance": "Para 4-5: detailed pleading of sufficient cause for absence — illness (with medical certificate), bereavement, unavoidable travel, miscommunication with counsel, court holiday/strike, etc. Cite specific facts and documents. Pleading must be honest — courts disfavour vague or evasive sufficient cause."
     },
     {
       "clause_id": "limitation_compliance",
@@ -149,7 +149,7 @@
     }
   ],
   "prompt_context": {
-    "system_prompt_addendum": "You are drafting an application for restoration of suit under Order IX Rule 9 CPC. CRITICAL POINTS: (1) Available ONLY where suit dismissed for plaintiff's NON-APPEARANCE (Order IX Rule 8 / 9). For ex-parte decree against defendant, use Order IX Rule 13 (separate template). (2) Limitation: 30 days from dismissal (Limitation Act Article 122). Beyond 30 days, plead Section 5 Limitation Act condonation with detailed reasons. (3) 'Sufficient cause' is the touchstone — must be specific, factually anchored, supported by documents. Vague pleas (e.g., 'unable to attend') will fail. Cite *Parimal v. Veena* (2011) 3 SCC 545 — sufficient cause not interpreted liberally if absence appears deliberate. (4) Affidavit in support is MANDATORY. (5) Counsel's mistake can constitute sufficient cause but must be honestly pleaded. (6) No prejudice to defendant must be affirmatively pleaded. (7) Notice to defendant required before restoration order (Order IX Rule 9(2)).",
+    "system_prompt_addendum": "You are drafting an application for restoration of suit under Order IX Rule 9 CPC. CRITICAL POINTS: (1) Available ONLY where suit dismissed for plaintiff's NON-APPEARANCE (Order IX Rule 8 / 9). For ex-parte decree against defendant, use Order IX Rule 13 (separate template). (2) Limitation: 30 days from dismissal (Limitation Act Article 122). Beyond 30 days, plead Section 5 Limitation Act condonation with detailed reasons. (3) 'Sufficient cause' is the touchstone — must be specific, factually anchored, supported by documents. Vague pleas (e.g., 'unable to attend') will fail. Sufficient cause not interpreted liberally if absence appears deliberate. (4) Affidavit in support is MANDATORY. (5) Counsel's mistake can constitute sufficient cause but must be honestly pleaded. (6) No prejudice to defendant must be affirmatively pleaded. (7) Notice to defendant required before restoration order (Order IX Rule 9(2)).",
     "tone": "Apologetic, factual, honest. Sufficient cause must ring true.",
     "key_phrases": [
       "dismissed for default",

@@ -254,13 +254,13 @@
       "id": "shared_household",
       "name": "Shared Household u/s 2(s)",
       "required": true,
-      "description": "Place where aggrieved person lives or has lived in domestic relationship — Satish Chander Ahuja v. Sneha Ahuja applies"
+      "description": "Place where aggrieved person lives or has lived in domestic relationship"
     },
     {
       "id": "respondent_definition",
       "name": "Respondent u/s 2(q)",
       "required": true,
-      "description": "Adult male / or per Hiral P. Harsora v. Kusum Narottamdas Harsora (2016) any relative including female relatives"
+      "description": "Adult male / or any relative including female relatives"
     },
     {
       "id": "acts_of_violence",
@@ -305,18 +305,18 @@
     "promptInstructions": [
       "Draft an application under Section 12 of the Protection of Women from Domestic Violence Act, 2005.",
       "Establish three statutory ingredients explicitly: (i) aggrieved person status u/s 2(a); (ii) domestic relationship u/s 2(f); (iii) shared household u/s 2(s).",
-      "Identify respondent(s) per S.2(q). Per Hiral P. Harsora v. Kusum Narottamdas Harsora (2016) 10 SCC 165, the word 'adult male' has been struck down — female relatives (mother-in-law, sister-in-law) may be respondents.",
+      "Identify respondent(s) per S.2(q). The word 'adult male' has been struck down — female relatives (mother-in-law, sister-in-law) may be respondents.",
       "Plead specific incidents of violence with dates, places, witnesses, and nature (physical / sexual / verbal / emotional / economic abuse — S.3 and Explanations).",
-      "Cite Indra Sarma v. V.K.V. Sarma (2013) 15 SCC 755 for live-in relationship tests if applicable.",
-      "Shared household — refer to Satish Chander Ahuja v. Sneha Ahuja (2021) 1 SCC 414 (overruling S.R. Batra v. Taruna Batra on this point): right to reside is not limited to households owned/rented by husband.",
+      "Shared household — right to reside is not limited to households owned/rented by husband.",
       "Identify reliefs sought clearly and separately — S.18 protection, S.19 residence, S.20 monetary, S.21 custody, S.22 compensation. Multi-relief is the strength of PWDV.",
-      "Monetary relief under S.20 — adequate, fair, reasonable, consistent with standard of living to which aggrieved person is accustomed. Include heads: maintenance, medical, loss of earnings, mortgage/rent. Cross-reference Rajnesh v. Neha for affidavit of assets.",
+      "Monetary relief under S.20 — adequate, fair, reasonable, consistent with standard of living to which aggrieved person is accustomed. Include heads: maintenance, medical, loss of earnings, mortgage/rent.",
       "Plead jurisdiction under S.27 — court of JMFC / Metropolitan Magistrate where aggrieved person resides, or temporarily resides, or carries on business; or where respondent resides; or where cause of action arose.",
       "Mention DIR (Domestic Incident Report) by Protection Officer if obtained.",
       "Seek ex-parte interim orders under S.23(2) where prima facie violence shown.",
       "Tone: factual, compassionate but professional. Documentary evidence is critical — medical, police, photographs, financial records.",
       "Note: PWDV proceedings are quasi-civil though before Magistrate — procedure largely under CrPC/BNSS (S.28 PWDV).",
-      "Append Lawie disclaimer."
+      "Append Lawie disclaimer.",
+      "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
   "relevantActs": [
@@ -333,7 +333,7 @@
         },
         {
           "number": "2(q)",
-          "description": "'Respondent' — read down per Hiral Harsora; includes female relatives"
+          "description": "'Respondent' — read down; includes female relatives"
         },
         { "number": "2(s)", "description": "'Shared household'" },
         {

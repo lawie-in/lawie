@@ -211,7 +211,7 @@
       "id": "vineeta_sharma_paragraph",
       "name": "Daughters' Equal Coparcenary Rights — HSA S.6 (2005 amendment)",
       "required": true,
-      "description": "Per Vineeta Sharma v. Rakesh Sharma (2020), daughter is coparcener by birth, irrespective of whether father alive on 09.09.2005"
+      "description": "Daughter is coparcener by birth, irrespective of whether father alive on 09.09.2005"
     },
     {
       "id": "demand_and_refusal_paragraph",
@@ -275,14 +275,14 @@
       "Draft a plaint for partition of joint Hindu family / coparcenary / co-owned property under CPC read with Hindu Succession Act, 1956 (post-2005 amendment).",
       "Identify the school applicable — Mitakshara (most of India) or Dayabhaga (West Bengal, Assam). Under Mitakshara, coparcener has share by birth; under Dayabhaga, only on father's death.",
       "POST 2005 HSA AMENDMENT (Section 6 HSA): Daughters become coparceners BY BIRTH in same manner as sons, with same rights and liabilities. Survivorship under Mitakshara is ABOLISHED — devolution is now by intestate / testamentary succession, with notional partition on death.",
-      "Vineeta Sharma v. Rakesh Sharma (2020) 9 SCC 1 — landmark: daughter is coparcener by birth, irrespective of whether father was alive on 09.09.2005. Reverses Prakash v. Phulavati (2016) 2 SCC 36 on this point.",
+      "Daughter is coparcener by birth, irrespective of whether father was alive on 09.09.2005.",
       "Para 1: Plaintiff description and relationship to joint family.",
       "Para 2: Defendants — ALL coparceners and co-sharers must be impleaded. Non-joinder of necessary party is fatal (Order I R.9).",
       "Para 3: Common ancestor and genealogy — provide family tree showing descent from common ancestor (typically 3-4 generations).",
       "Para 4: Nature of property — joint Hindu family / Mitakshara coparcenary / Dayabhaga / ancestral / self-acquired property thrown into common hotchpot / co-owned.",
       "Para 5: Schedule of properties — detailed list with boundaries (for land/buildings), denominations (for shares/securities), valuation each.",
       "Para 6: Plaintiff's share computation — per HSA S.6 and notional partition principles. For daughter: equal share with sons. Wife: under notional partition, takes share equal to son in father's share.",
-      "Para 7: For pre-2005 demises or earlier partitions, plead carefully — pre-2005 daughters did not have coparcenary status, but Vineeta Sharma clarifies retrospective conferment.",
+      "Para 7: For pre-2005 demises or earlier partitions, plead carefully — pre-2005 daughters did not have coparcenary status, but coparcenary status is conferred retrospectively.",
       "Para 8: Current possession of each property and who is enjoying income.",
       "Para 9: Demand for partition — under Mitakshara, severance of status occurs on unequivocal demand. Plead specific date and mode.",
       "Para 10: Defendant's refusal / denial.",
@@ -295,7 +295,8 @@
       "Note: partition suit follows TWO stages — preliminary decree (declares shares) and final decree (effects physical partition usually through Court Commissioner).",
       "Stamp duty payable on final partition decree (state-specific Schedule).",
       "Verification and affidavit mandatory.",
-      "Append Lawie disclaimer."
+      "Append Lawie disclaimer.",
+      "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
   "relevantActs": [

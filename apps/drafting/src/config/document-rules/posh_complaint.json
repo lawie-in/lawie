@@ -4,7 +4,7 @@
     "owner": "Ajay (CLO)",
     "validated_by": "Ajay (CLO) — Batch 7 writs + tribunals 2026-05-12",
     "last_updated": "2026-05-12",
-    "change_protocol": "All edits require CLO sign-off. Confidentiality protection S.16 paramount. Vishaka heritage cite mandatory."
+    "change_protocol": "Do not name judgments in model-visible text (Ajay, T-441)."
   },
   "template_id": "posh_complaint",
   "card_description": "A complaint of sexual harassment at the workplace under the POSH Act, 2013.",
@@ -337,7 +337,7 @@
   "verificationTemplate": "VERIFICATION\n\nI, {complainant_name}, the Aggrieved Woman / Complainant herein, do hereby verify under solemn affirmation that the contents of paragraphs 1 to {lastParagraph} of the above complaint are true and correct to my personal knowledge. No part is false and nothing material has been concealed. I invoke the confidentiality protections under Section 16 of the Act.\n\nVerified at {place} on this {date}.\n\nComplainant",
   "prompt_context": {
     "promptInstructions": [
-      "Draft a complaint under the Sexual Harassment of Women at Workplace (Prevention, Prohibition and Redressal) Act, 2013 — 'POSH Act' / 'SH Act'. Legislation traces lineage to Vishaka v. State of Rajasthan (1997) 6 SCC 241.",
+      "Draft a complaint under the Sexual Harassment of Women at Workplace (Prevention, Prohibition and Redressal) Act, 2013 — 'POSH Act' / 'SH Act'.",
       "MANDATORY: Caption 'CONFIDENTIAL' on every page. Section 16 of the Act mandates confidentiality of the woman's identity, contents of complaint, inquiry proceedings, recommendations. Disclosure can lead to penalty under S.17.",
       "Forum: ICC (Internal Complaints Committee — workplace with ≥10 employees, mandatory under S.4) OR LC (Local Complaints Committee — district level for workplaces with <10 employees / unorganised sector / where complaint against employer himself, S.6-7).",
       "Para 1: Parties — anonymise where appropriate; do NOT publish in any extra-committee forum.",
@@ -373,7 +373,8 @@
       "Para 17: Where conduct also constitutes a crime under BNS — woman may simultaneously file FIR; POSH Committee does NOT bar criminal action.",
       "Annexures: Identity proof; documentary evidence; witness list; medical / psychological reports if any.",
       "Verification on solemn affirmation.",
-      "Append Lawie disclaimer."
+      "Append Lawie disclaimer.",
+      "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
   "relevantActs": [

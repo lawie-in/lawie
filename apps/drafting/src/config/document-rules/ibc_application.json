@@ -4,7 +4,7 @@
     "owner": "Ajay (CLO)",
     "validated_by": "Ajay (CLO) — Batch 7 writs + tribunals 2026-05-12",
     "last_updated": "2026-05-12",
-    "change_protocol": "All edits require CLO sign-off. Innoventive, Mobilox, Swiss Ribbons cites mandatory. Form 1/2/3/4/5 per CIRP Regulations."
+    "change_protocol": "Do not name judgments in model-visible text (Ajay, T-441)."
   },
   "template_id": "ibc_application",
   "card_description": "An application before the NCLT under the Insolvency and Bankruptcy Code, 2016 to start insolvency proceedings.",
@@ -223,7 +223,7 @@
     },
     {
       "id": "pre_existing_dispute_paragraph",
-      "name": "No Pre-existing Dispute (S.9 — Mobilox)",
+      "name": "No Pre-existing Dispute (S.9)",
       "required": false,
       "description": "OC application barred if dispute pre-existed S.8 notice"
     },
@@ -231,7 +231,7 @@
       "id": "limitation_paragraph",
       "name": "Limitation",
       "required": true,
-      "description": "3 years from default per B.K. Educational Services"
+      "description": "3 years from default"
     },
     {
       "id": "irp_proposal_paragraph",
@@ -284,20 +284,20 @@
       "Para 1: Parties — Applicant + Corporate Debtor.",
       "Para 2: NCLT bench jurisdiction.",
       "Para 3: Applicant status:",
-      "   - S.7 Financial Creditor: 'financial debt' definition S.5(8) — disbursal for time value of money; loans, debentures, real estate allottees (Pioneer Urban Land), security deposits where commercial effect of borrowing.",
+      "   - S.7 Financial Creditor: 'financial debt' definition S.5(8) — disbursal for time value of money; loans, debentures, real estate allottees, security deposits where commercial effect of borrowing.",
       "   - S.9 Operational Creditor: 'operational debt' S.5(21) — claim in respect of provision of goods or services including employment, or debt to government for taxes.",
       "   - S.10 Corporate Applicant: corporate debtor itself; must produce special resolution + financial statements.",
       "Para 4: Debt particulars — amount in default; documentary basis; books of account; information utility (IU) records — NeSL records preferred (S.7(3)(a)(ii)). For S.9, invoices + demand notice + reply (if any).",
       "Para 5: Default — date + evidence. For S.7 / S.9, default is non-payment of debt that has become due and payable, and not paid. For S.10, financial information disclosing default + special resolution authorising CIRP filing.",
       "Para 6: Threshold compliance — confirm ≥ ₹1 crore.",
       "Para 7 (S.9 ONLY): S.8 Demand Notice — mandatory precondition. Form 3 (general demand) or Form 4 (invoice-based demand) — delivered by registered post / hand delivery + 10-day waiting period before filing.",
-      "Para 8 (S.9 ONLY): No pre-existing dispute — Cite Mobilox Innovations Pvt Ltd v. Kirusa Software Pvt Ltd (2018) 1 SCC 353 — pre-existing dispute test: (i) dispute must be raised BEFORE receipt of demand notice, (ii) must not be a moonshine / hypothetical / illusory dispute, (iii) court only checks plausibility of dispute, not its merits.",
-      "Para 9: Limitation — Cite B.K. Educational Services v. Parag Gupta (2019) 11 SCC 633: Article 137 Limitation Act applies — 3 years from default. Acknowledgments under S.18 Limitation Act extend (Asset Reconstruction Co v. Bishal Jaiswal (2021) 6 SCC 366).",
-      "Para 10: Cite Innoventive Industries Ltd v. ICICI Bank (2018) 1 SCC 407 — IBC overrides inconsistent state laws; financial creditor application admission criteria.",
-      "Para 11: Cite Swiss Ribbons Pvt Ltd v. Union of India (2019) 4 SCC 17 — constitutionality of IBC; FC vs OC distinction upheld.",
-      "Para 12: Cite Vidarbha Industries Power Ltd v. Axis Bank (2022) 8 SCC 352 — NCLT may exercise discretion at admission stage of S.7 application; not mechanical admission.",
-      "Para 13: Cite Pioneer Urban Land v. Union of India (2019) 8 SCC 416 — homebuyers as financial creditors; threshold of 100 or 10% allottees for class application (post-2020 amendment).",
-      "Para 14: Cite Macquarie Bank Ltd v. Shilpi Cable Technologies (2018) 2 SCC 674 — strict S.8 / S.9 procedural compliance for OC.",
+      "Para 8 (S.9 ONLY): No pre-existing dispute — pre-existing dispute test: (i) dispute must be raised BEFORE receipt of demand notice, (ii) must not be a moonshine / hypothetical / illusory dispute, (iii) court only checks plausibility of dispute, not its merits.",
+      "Para 9: Limitation — Article 137 Limitation Act applies — 3 years from default. Acknowledgments under S.18 Limitation Act extend.",
+      "Para 10: IBC overrides inconsistent state laws; financial creditor application admission criteria.",
+      "Para 11: Constitutionality of IBC; FC vs OC distinction upheld.",
+      "Para 12: NCLT may exercise discretion at admission stage of S.7 application; not mechanical admission.",
+      "Para 13: Homebuyers as financial creditors; threshold of 100 or 10% allottees for class application (post-2020 amendment).",
+      "Para 14: Strict S.8 / S.9 procedural compliance for OC.",
       "Para 15: Proposed IRP — name + IBBI registration. WRITTEN CONSENT in Form 2 mandatory. For S.10, applicant CD must propose IRP.",
       "Para 16: Moratorium under S.14 — automatic on admission; effects:",
       "   (a) institution / continuation of suits / proceedings prohibited;",
@@ -313,7 +313,8 @@
       "   - S.9 Form 5: Part I-IV (similar) + Part V (invoice / demand notice / dispute particulars).",
       "   - S.10 Form 6: financial information, special resolution, audited financials.",
       "Verification + affidavit per Form Part on solemn affirmation.",
-      "Append Lawie disclaimer."
+      "Append Lawie disclaimer.",
+      "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
   "relevantActs": [
