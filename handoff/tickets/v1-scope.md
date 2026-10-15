@@ -57,6 +57,7 @@ Must be done and merged (and Anushka passed) before T-403.
 | T-438 | Razorpay status values and timing-safe internal secret | todo | - | privacy, money, legal or wrong-data must-fix (Arjun's rule) |
 | T-440 | Not known date prints To be confirmed | review | shashank | privacy, money, legal or wrong-data must-fix (Arjun's rule) |
 | T-442 | Deploys fail loudly when a service is unhealthy; one deploy path | todo | mahak | go-live prerequisite (Arjun) |
+| T-443 | Retire the legacy POST /documents/generate route (410) | todo | mahak | wrong-law draft reachable by API (Arjun) |
 | T-441 | Remove judgment names from drafting prompts | todo | vishal | privacy, money, legal or wrong-data must-fix (Arjun's rule) |
 
 ## V1.1: soon after launch
