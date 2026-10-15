@@ -18,16 +18,33 @@ describe('FIELD_ALIASES (T-382)', () => {
       /* ignore */
     }
     try {
+      m.bhajan_lal_categories_invoked = 'z';
+    } catch {
+      /* ignore */
+    }
+    try {
       delete m.advocate_enrolment;
     } catch {
       /* ignore */
     }
-    expect(FIELD_ALIASES).toEqual({ advocate_enrolment: 'advocate_enrollment' });
+    try {
+      delete m.bhajan_lal_categories_invoked;
+    } catch {
+      /* ignore */
+    }
+    expect(FIELD_ALIASES).toEqual({
+      advocate_enrolment: 'advocate_enrollment',
+      bhajan_lal_categories_invoked: 'quashing_categories_invoked',
+    });
   });
 
-  it('has exactly one key, advocate_enrolment -> advocate_enrollment', () => {
-    expect(Object.keys(FIELD_ALIASES)).toEqual(['advocate_enrolment']);
+  it('has exactly two keys (T-382 and T-451), in order', () => {
+    expect(Object.keys(FIELD_ALIASES)).toEqual([
+      'advocate_enrolment',
+      'bhajan_lal_categories_invoked',
+    ]);
     expect(FIELD_ALIASES.advocate_enrolment).toBe('advocate_enrollment');
+    expect(FIELD_ALIASES.bhajan_lal_categories_invoked).toBe('quashing_categories_invoked');
   });
 
   it('guard: holds none of the SLOT_ALIASES keys (Arjun ruling 8cfbce3)', () => {
