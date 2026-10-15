@@ -16,6 +16,10 @@
 import type { EmailTemplate } from '@lawie/email-client';
 
 import { env } from './config/env';
+import {
+  UNVERIFIED_DELETION_NOTICE_B_STRINGS,
+  UNVERIFIED_DELETION_NOTICE_STRINGS,
+} from './templates/auth/unverifiedDeletionNotice';
 import { VERIFY_EMAIL_STRINGS } from './templates/auth/verifyEmail';
 
 export const UNFILLED_PLACEHOLDERS = ['[registered address]', '[PIN]'] as const;
@@ -33,6 +37,12 @@ function footerLines(strings: Record<string, string>): readonly string[] {
  */
 const TEMPLATE_FOOTERS: Partial<Record<EmailTemplate, readonly string[]>> = {
   'auth.verifyEmail': footerLines(VERIFY_EMAIL_STRINGS),
+  // T-358: signed with the Ranchi footer (no placeholders), listed so the guard keeps checking it.
+  // Both variants (A with a link, B without) are checked.
+  'auth.unverifiedDeletionNotice': [
+    ...footerLines(UNVERIFIED_DELETION_NOTICE_STRINGS),
+    ...footerLines(UNVERIFIED_DELETION_NOTICE_B_STRINGS),
+  ],
 };
 
 /** True when the template's own footer still has [registered address] or [PIN]. */

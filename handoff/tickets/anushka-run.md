@@ -1017,7 +1017,7 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 
 ## T-404 part 1 — Marked blanks, not gaps (680b41c, shashank, 14 Oct 2026)
 
-- Generate a s.138 notice without every party detail and get clearly marked "[To be confirmed: ...]" blanks to fill in, not "_____".
+- Generate a s.138 notice without every party detail and get clearly marked "[To be confirmed: ...]" blanks to fill in, not "**\_**".
 - See a marked blank, not an empty gap, for the advocate's name, address and enrolment number when the profile lacks them.
 - Start a draft before choosing a court and see "[To be confirmed: court]", with no court name invented.
 - Draft a bail application with the court, case type and place each flagged for confirmation, not guessed.
@@ -1132,7 +1132,7 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 
 - Draft a discharge application on a BNS charge: the draft no longer drags in cheque-bounce law or company-director case law. On a cheque-bounce charge, it is still there.
 - Discharge, quashing and criminal revision drafts show the right revision section for the forum: Section 440 for the Sessions Judge, Section 442 for the High Court.
-- A criminal revision prayer names "Section 438 read with Section 442" (or 440) for the forum chosen. Where the forum isn't known, it shows a clear "To be confirmed" blank instead of "_____".
+- A criminal revision prayer names "Section 438 read with Section 442" (or 440) for the forum chosen. Where the forum isn't known, it shows a clear "To be confirmed" blank instead of "**\_**".
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 
@@ -1212,3 +1212,9 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - Nothing a user sees. The one-time verification link no longer travels in the Referer to other sites. The documented server log change (founder step) keeps it out of the access log once applied.
 
 Quality: nothing to test in the UI — headers and ops doc only
+
+## T-436 AC10 round 2 — Earlier sign-ups get one verification email (33107053, kunal, 15 Oct 2026)
+
+- Nothing new on screen. When the email service is switched on, people who signed up earlier and never got a verification email receive one, once.
+
+Quality: nothing to test in the UI — operator scripts and docs only

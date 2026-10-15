@@ -16,7 +16,7 @@
  * One queue per priority tier (per ADR latency budgets):
  *   email:high → verifyEmail, passwordReset, paymentReceipt, paymentFailed
  *   email:low  → digest, draftComplete, monthlyInvoice, lowCredit, referral,
- *                advocatePackInvite, welcome
+ *                advocatePackInvite, welcome, unverifiedDeletionNotice (T-358)
  */
 import { randomUUID } from 'crypto';
 
@@ -31,6 +31,7 @@ import Redis from 'ioredis';
 export type EmailTemplate =
   | 'auth.welcome'
   | 'auth.verifyEmail'
+  | 'auth.unverifiedDeletionNotice'
   | 'billing.subscriptionConfirmed'
   | 'billing.paymentFailed'
   | 'billing.monthlyInvoice'
@@ -51,6 +52,8 @@ const QUEUE_BY_TIER = {
 const TIER_BY_TEMPLATE: Record<EmailTemplate, 'high' | 'low'> = {
   'auth.welcome': 'low',
   'auth.verifyEmail': 'high',
+  // T-358: deletion is held until this is sent, so it is not latency-critical.
+  'auth.unverifiedDeletionNotice': 'low',
   'billing.subscriptionConfirmed': 'high',
   'billing.paymentFailed': 'high',
   'billing.monthlyInvoice': 'low',
@@ -63,9 +66,12 @@ const TIER_BY_TEMPLATE: Record<EmailTemplate, 'high' | 'low'> = {
 
 // ── Public API ──────────────────────────────────────────────────────────────
 
-/** Every template except auth.verifyEmail: the producer knows and sends the address. */
+/** Templates whose job carries a userId only; the worker asks auth for the address. */
+export type UserIdOnlyTemplate = 'auth.verifyEmail' | 'auth.unverifiedDeletionNotice';
+
+/** Every template except the userId-only ones: the producer knows and sends the address. */
 export interface EnqueueAddressedEmailInput {
-  template: Exclude<EmailTemplate, 'auth.verifyEmail'>;
+  template: Exclude<EmailTemplate, UserIdOnlyTemplate>;
   to: string | string[];
   data: Record<string, unknown>;
   cc?: string[];
@@ -119,7 +125,25 @@ export interface EnqueueVerifyEmailInput {
   priority?: 'high' | 'low';
 }
 
-export type EnqueueEmailInput = EnqueueAddressedEmailInput | EnqueueVerifyEmailInput;
+/**
+ * T-358 (Arjun ruling 2): the unverified-account deletion notice carries the userId only, like
+ * T-223. The worker asks auth (/internal/unverified-notice/prepare) which notice is due, the
+ * variant, address, name, deletion date and (variant A) a fresh verify link at send time, and
+ * reports the outcome back. No address in Redis. The auth sweep passes idempotencyKey
+ * `unverified-notice:<userId>:<first|warning>` (used as the jobId, so a second enqueue of the
+ * same notice while its job is kept is dropped, and the first notice never blocks the warning).
+ */
+export interface EnqueueUnverifiedNoticeInput {
+  template: 'auth.unverifiedDeletionNotice';
+  userId: string;
+  idempotencyKey?: string;
+  priority?: 'high' | 'low';
+}
+
+export type EnqueueEmailInput =
+  | EnqueueAddressedEmailInput
+  | EnqueueVerifyEmailInput
+  | EnqueueUnverifiedNoticeInput;
 
 export interface EnqueueEmailResult {
   jobId: string;
@@ -186,6 +210,33 @@ export async function enqueueEmail(input: EnqueueEmailInput): Promise<EnqueueEma
     if (pending) return first;
     await queue.removeDeduplicationKey(deduplicationId);
     return addVerifyJob();
+  }
+
+  if (input.template === 'auth.unverifiedDeletionNotice') {
+    // T-358: no recipient in the job; the worker resolves it through auth at send time.
+    const noticeJobData = {
+      template: input.template,
+      to: [] as string[],
+      cc: [] as string[],
+      bcc: [] as string[],
+      data: { userId: input.userId },
+    };
+    if (input.idempotencyKey) opts.jobId = input.idempotencyKey;
+    // T-358 review: keep completed notice jobs by AGE only (7 days), not by the shared 1000-job
+    // count, which the sweep's 200/hour can cycle through in hours. While the job is kept, its
+    // jobId dedupes a re-queue, so a send whose outcome report failed is not repeated with a new
+    // date. Failed-job retention (30 days) is unchanged.
+    opts.removeOnComplete = { age: 7 * 24 * 60 * 60 };
+    const noticeJob = await queue.add(jobName, noticeJobData, opts);
+    const noticeDeduped =
+      typeof input.idempotencyKey === 'string' &&
+      typeof noticeJob.timestamp === 'number' &&
+      Date.now() - noticeJob.timestamp > 1000;
+    return {
+      jobId: String(noticeJob.id ?? input.idempotencyKey ?? jobName),
+      queue: queueName,
+      deduped: noticeDeduped,
+    };
   }
 
   const jobData = {

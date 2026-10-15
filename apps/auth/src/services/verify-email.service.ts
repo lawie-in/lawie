@@ -65,8 +65,11 @@ export function buildVerifyLink(token: string): string {
 /**
  * Filter for "needs verifying": the negation of VERIFIED_FOR_BONUS in credit-bonus.service.ts
  * (T-351). An email user whose address is not verified and who has no linked Google account.
+ * Exported for T-358 (the unverified sweep's definition of "unverified", Arjun ruling 5). It has
+ * a top-level $or: combine it with other filters under $and, never by spreading next to another
+ * $or.
  */
-const NOT_YET_VERIFIED = {
+export const NOT_YET_VERIFIED = {
   emailVerified: { $ne: true },
   authProvider: { $ne: 'google' },
   $or: [{ googleId: { $exists: false } }, { googleId: { $in: [null, ''] } }],
@@ -81,22 +84,40 @@ export type MintVerifyLinkResult =
   /** No such user (or not an ObjectId): 404, nothing minted. */
   | { kind: 'not_found' };
 
+export interface MintVerifyLinkOptions {
+  /**
+   * T-358: replaces the default `isActive: { $ne: false }` condition. The deletion notice
+   * passes its own eligibility (unverified sweep filter, which includes deactivated accounts).
+   * NOT_YET_VERIFIED is always applied as well.
+   */
+  eligibility?: Record<string, unknown>;
+  /**
+   * T-358 (Arjun 23:32, Ajay §9): link lifetime. Defaults to VERIFY_LINK_TTL_MS (24 h, T-223);
+   * the deletion notice passes 7 days to match its promise.
+   */
+  ttlMs?: number;
+}
+
 /**
  * Mints a fresh link for userId and stores only its hash. Replaces any earlier link in the same
  * atomic write that checks eligibility, so a user who became verified in between gets nothing.
  * The result carries PII and a live credential: callers must never log it.
  */
-export async function mintVerifyLink(userId: string): Promise<MintVerifyLinkResult> {
+export async function mintVerifyLink(
+  userId: string,
+  opts: MintVerifyLinkOptions = {},
+): Promise<MintVerifyLinkResult> {
   if (!mongoose.Types.ObjectId.isValid(userId)) return { kind: 'not_found' };
   const _id = new mongoose.Types.ObjectId(userId);
+  const eligibility = opts.eligibility ?? { isActive: { $ne: false } };
 
   const token = crypto.randomBytes(32).toString('hex');
   const updated = await User.findOneAndUpdate(
-    { _id, isActive: { $ne: false }, ...NOT_YET_VERIFIED },
+    { _id, $and: [eligibility, NOT_YET_VERIFIED] },
     {
       $set: {
         emailVerifyTokenHash: hashVerifyToken(token),
-        emailVerifyExpires: new Date(Date.now() + VERIFY_LINK_TTL_MS),
+        emailVerifyExpires: new Date(Date.now() + (opts.ttlMs ?? VERIFY_LINK_TTL_MS)),
       },
     },
     { new: true, projection: { email: 1, name: 1 } },
