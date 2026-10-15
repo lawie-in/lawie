@@ -29,6 +29,14 @@ import { join } from 'path';
 import { disconnectEmailClient, enqueueEmail } from '@lawie/email-client';
 import { Queue } from 'bullmq';
 import IORedis from 'ioredis';
+
+import {
+  CLEAN_MONGO,
+  CLEAN_REDIS,
+  fuzzCases,
+  mongoCases,
+  redisCases,
+} from './helpers/t436-redaction-cases';
 import mongoose from 'mongoose';
 
 import redis from '../config/redis';
@@ -39,6 +47,7 @@ import {
   DEFAULT_BATCH_SIZE,
   RERUN_MARKER_TTL_MS,
   RESEND_FILTER,
+  freshLinkThreshold,
   hasPendingVerifyJob,
   parseOptions,
   redactMongoUri,
@@ -212,7 +221,7 @@ describe('runBatch against real Redis, BullMQ and Mongo', () => {
     expect(await jobCount()).toBe(1);
   });
 
-  it('a queued user uses one cap slot, gets one job and a marker with a 24 h TTL', async () => {
+  it('a queued user uses one cap slot, gets one job and a marker with a 30-day TTL', async () => {
     const id = await addUser();
     const before = Date.now();
     const tally = await run([id]);
@@ -221,7 +230,7 @@ describe('runBatch against real Redis, BullMQ and Mongo', () => {
     expect(await hasPendingVerifyJob(redis, KEY_PREFIX, id)).toBe(true);
     expect(await redis.get(`auth:verify-email:day:${id}`)).toBe('1');
     expect(await redis.get(rerunMarkerKey(id))).toBe('1');
-    expect(RERUN_MARKER_TTL_MS).toBe(86_400_000);
+    expect(RERUN_MARKER_TTL_MS).toBe(30 * 24 * 60 * 60 * 1000);
     const pttl = await redis.pttl(rerunMarkerKey(id));
     expect(pttl).toBeGreaterThan(RERUN_MARKER_TTL_MS - (Date.now() - before) - 5_000);
     expect(pttl).toBeLessThanOrEqual(RERUN_MARKER_TTL_MS);
@@ -299,8 +308,8 @@ describe('runBatch against real Redis, BullMQ and Mongo', () => {
     expect(await redis.get(rerunMarkerKey(id))).toBe('1');
   });
 
-  it('a stale emailVerifyExpires (older link, under call time + 24 h) is not a confirmation', async () => {
-    const id = await addUser({ emailVerifyExpires: new Date(Date.now() + 23 * 3600_000) });
+  it('an old (already expired) emailVerifyExpires is not a confirmation and is not a fresh link', async () => {
+    const id = await addUser({ emailVerifyExpires: new Date(Date.now() - 3600_000) });
     enqueueMock.mockImplementation(async () => ({
       jobId: 'x',
       queue: 'email-high',
@@ -472,16 +481,7 @@ describe('redaction', () => {
     expect(redactMongoUri(`${M}${cred('dbuser', 'dbpass')}@127.0.0.1:27017/lawie`)).toBe(
       `${M}127.0.0.1:27017/lawie`,
     );
-    expect(
-      redactMongoUri(
-        `${MS}${cred('u', 'p%40ss')}@cluster0.abc.mongodb.net/lawie?retryWrites=true&w=majority`,
-      ),
-    ).toBe(`${MS}cluster0.abc.mongodb.net/lawie`);
-    expect(redactMongoUri(`${M}${cred('u', 'p@ss')}@h1:27017,h2:27017/db?replicaSet=rs0`)).toBe(
-      `${M}h1:27017,h2:27017/db`,
-    );
     expect(redactMongoUri(`${M}localhost:27017/test`)).toBe(`${M}localhost:27017/test`);
-    expect(redactMongoUri(`${M}only-user@host/db`)).toBe(`${M}host/db`);
     expect(redactMongoUri('no-scheme-secret')).toBe('(unparseable MONGO_URI)');
   });
   it('redactRedisUrl drops user, password, db and query', () => {
@@ -491,6 +491,139 @@ describe('redaction', () => {
     expect(redactRedisUrl('redis://:onlypw@10.0.0.5:6379/2?x=y')).toBe('redis://10.0.0.5:6379');
     expect(redactRedisUrl('not a url')).toBe('(unparseable REDIS_URL)');
     expect(redactRedisUrl('')).toBe('(unparseable REDIS_URL)');
+  });
+
+  it.each(redisCases().map((c) => [c.input, c] as const))('redactRedisUrl table: %s', (_i, c) => {
+    const out = redactRedisUrl(c.input);
+    expect(out).toBe(c.expected);
+    for (const secret of c.secrets) expect(out).not.toContain(secret);
+  });
+  it.each(mongoCases(M, MS).map((c) => [c.input, c] as const))(
+    'redactMongoUri table: %s',
+    (_i, c) => {
+      const out = redactMongoUri(c.input);
+      expect(out).toBe(c.expected);
+      for (const secret of c.secrets) expect(out).not.toContain(secret);
+    },
+  );
+
+  it('accepted limit: a Redis URL with no "@" at all prints as host:port (no user info exists)', () => {
+    // `default:1234` reads as host "default", port 1234. There is nothing to find a user in; this
+    // is the documented, accepted case, not a leak.
+    expect(redactRedisUrl('redis://default:1234')).toBe('redis://default:1234');
+  });
+
+  it('seeded fuzz (3000 Redis, 3000 Mongo): no marker in any output, output is unparseable or a clean host form', () => {
+    let cleanRedis = 0;
+    let cleanMongo = 0;
+    for (const f of fuzzCases('redis', 'redis://', 3000, 436)) {
+      const out = redactRedisUrl(f.input);
+      if (CLEAN_REDIS.test(out)) cleanRedis += 1;
+      for (const m of f.forbidden) expect([f.input, out.includes(m)]).toEqual([f.input, false]);
+      expect([f.input, out === '(unparseable REDIS_URL)' || CLEAN_REDIS.test(out)]).toEqual([
+        f.input,
+        true,
+      ]);
+    }
+    for (const scheme of [M, MS]) {
+      for (const f of fuzzCases('mongo', scheme, 1500, 4360)) {
+        const out = redactMongoUri(f.input);
+        if (CLEAN_MONGO.test(out)) cleanMongo += 1;
+        for (const m of f.forbidden) expect([f.input, out.includes(m)]).toEqual([f.input, false]);
+        expect([f.input, out === '(unparseable MONGO_URI)' || CLEAN_MONGO.test(out)]).toEqual([
+          f.input,
+          true,
+        ]);
+      }
+    }
+    // the fuzz is not vacuous: plenty of inputs come out as clean host forms (and many don't)
+    expect(cleanRedis).toBeGreaterThan(300);
+    expect(cleanRedis).toBeLessThan(2900);
+    expect(cleanMongo).toBeGreaterThan(300);
+  });
+});
+
+describe('fresh-link skip (freshLinkThreshold, hasFreshLink)', () => {
+  const H24 = 24 * 3600_000;
+  it('freshLinkThreshold = min(runStartedAt + 24 h, now)', () => {
+    expect(freshLinkThreshold(1_000, 5_000)).toBe(5_000);
+    expect(freshLinkThreshold(0, 10 * H24)).toBe(H24);
+    expect(freshLinkThreshold(H24, H24 + 1)).toBe(H24 + 1);
+    expect(freshLinkThreshold(5 * H24, 5 * H24)).toBe(5 * H24);
+    const before = Date.now();
+    const t = freshLinkThreshold(before - 10 * H24); // now defaults to Date.now()
+    expect(t).toBeGreaterThanOrEqual(before - 9 * H24);
+    expect(t).toBeLessThanOrEqual(Date.now() - 9 * H24);
+    const t2 = freshLinkThreshold(Date.now() + 10 * H24);
+    expect(t2).toBeGreaterThanOrEqual(before);
+    expect(t2).toBeLessThanOrEqual(Date.now());
+  });
+
+  it('expiry >= threshold is skipped_rerun with no call and no cap use; an older one is called', async () => {
+    const runStartedAt = Date.now() - 2 * H24; // threshold = runStartedAt + 24 h (a day ago)
+    const exactly = await addUser({ emailVerifyExpires: new Date(runStartedAt + H24) });
+    const newer = await addUser({ emailVerifyExpires: new Date(runStartedAt + H24 + 3600_000) });
+    const older = await addUser({ emailVerifyExpires: new Date(runStartedAt + H24 - 1) });
+    const none = await addUser();
+    const tally = emptyTally();
+    await runBatch([exactly, newer, older, none], tally, {
+      redis,
+      keyPrefix: KEY_PREFIX,
+      confirmTimeoutMs: 5_000,
+      runStartedAt,
+    });
+    expect(tally).toEqual({ ...emptyTally(), skipped_rerun: 2, queued: 2 });
+    expect(enqueueMock).toHaveBeenCalledTimes(2);
+    for (const id of [exactly, newer]) {
+      expect(await redis.exists(`auth:verify-email:min:${id}`)).toBe(0);
+      expect(await redis.exists(`auth:verify-email:day:${id}`)).toBe(0);
+      expect(await redis.exists(rerunMarkerKey(id))).toBe(0); // skipped, not marked
+    }
+    for (const id of [older, none]) expect(await redis.get(rerunMarkerKey(id))).toBe('1');
+    expect(await jobCount()).toBe(2);
+  });
+
+  it('runStartedAt defaults to now: a link minted 23 h ago (expires in 1 h) is skipped, an expired one is called', async () => {
+    const minted23hAgo = await addUser({ emailVerifyExpires: new Date(Date.now() + 3600_000) });
+    const expired = await addUser({ emailVerifyExpires: new Date(Date.now() - 3600_000) });
+    const tally = await run([minted23hAgo, expired]);
+    expect(tally).toEqual({ ...emptyTally(), skipped_rerun: 1, queued: 1 });
+    expect(enqueueMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('a link minted since the run started is skipped even when runStartedAt is recent', async () => {
+    const runStartedAt = Date.now() - 1_000;
+    const mintedDuringRun = await addUser({ emailVerifyExpires: new Date(Date.now() + H24) });
+    const tally = emptyTally();
+    await runBatch([mintedDuringRun], tally, { redis, keyPrefix: KEY_PREFIX, runStartedAt });
+    expect(tally.skipped_rerun).toBe(1);
+    expect(enqueueMock).not.toHaveBeenCalled();
+  });
+
+  it('check order: marker, then fresh link, then pending', async () => {
+    const fresh = () => new Date(Date.now() + 3600_000);
+    const markerAndFresh = await addUser({ emailVerifyExpires: fresh() });
+    const freshAndPending = await addUser({ emailVerifyExpires: fresh() });
+    const pendingOnly = await addUser();
+    await redis.set(rerunMarkerKey(markerAndFresh), '1', 'PX', 60_000);
+    await enqueueEmail({ template: 'auth.verifyEmail', userId: freshAndPending });
+    await enqueueEmail({ template: 'auth.verifyEmail', userId: pendingOnly });
+    enqueueMock.mockClear();
+
+    const findOne = jest.spyOn(User.collection, 'findOne');
+    try {
+      const tally = await run([markerAndFresh]);
+      expect(tally.skipped_rerun).toBe(1);
+      expect(findOne).not.toHaveBeenCalled(); // the marker answered first: no Mongo read
+      findOne.mockClear();
+
+      const t2 = await run([freshAndPending, pendingOnly]);
+      expect(t2).toEqual({ ...emptyTally(), skipped_rerun: 1, already_pending: 1 });
+      expect(findOne).toHaveBeenCalledTimes(2);
+    } finally {
+      findOne.mockRestore();
+    }
+    expect(enqueueMock).not.toHaveBeenCalled();
   });
 });
 
@@ -577,6 +710,7 @@ describe('verify-resend-all main() as a child process', () => {
     const a = await addUser();
     const b = await addUser();
     const c = await addUser();
+    const d = await addUser({ emailVerifyExpires: new Date(Date.now() + 23 * 3600_000) });
     await addUser({ emailVerified: true });
     await redis.set(rerunMarkerKey(a), '1', 'PX', 60_000);
     await enqueueEmail({ template: 'auth.verifyEmail', userId: b });
@@ -585,13 +719,19 @@ describe('verify-resend-all main() as a child process', () => {
     for (const args of [[], ['--dry-run']]) {
       const r = await runScript(args);
       expect(r.code).toBe(0);
-      expect(r.out).toContain('users found: 3');
+      expect(r.out).toContain('users found: 4');
       expect(r.out).toContain('batches: 1');
-      expect(r.out).toContain('(would skip): 1');
+      expect(r.out).toContain(
+        'of which sent by an earlier run in the last 30 days (would skip): 1',
+      );
+      expect(r.out).toContain(
+        'of which have a verify link minted in the last 24 h (would skip): 1',
+      );
+      expect(r.out).toContain('of which already have a pending verify job (would skip): 1');
       expect(r.out).toContain('Dry run: nothing sent');
       expect(r.out).not.toContain('queued:');
       const all = `${r.out}${r.err}`;
-      for (const id of [a, b, c]) expect(all).not.toContain(id);
+      for (const id of [a, b, c, d]) expect(all).not.toContain(id);
       expect(all).not.toContain('@example.com');
       expect(all).not.toContain('Resend Person');
     }

@@ -24,10 +24,12 @@ import {
   redactRedisUrl,
 } from '../../scripts/queue-purge';
 
+import { CLEAN_REDIS, fuzzCases, redisCases } from './helpers/t436-redaction-cases';
 import { type TestRedis, acquireRedis, purgePrefix } from './helpers/t220-redis';
 
 jest.setTimeout(60_000);
 
+const VANISH = join(__dirname, 'helpers', 't436-vanish.js');
 const NOISE = join(__dirname, 'helpers', 't436-console-noise.js');
 const SCRIPT = join(__dirname, '..', '..', 'scripts', 'queue-purge.ts');
 const USER = (n: number) => `64b7f0c2a1b2c3d4e5f6${String(n).padStart(4, '0')}`;
@@ -555,6 +557,115 @@ describe('queue-purge main() as a child process', () => {
     const { code, err } = await runScript([], { REDIS_URL: '' });
     expect(code).toBe(2);
     expect(err).toContain('REDIS_URL is not set');
+  });
+});
+
+describe('queue-purge: jobs gone before removal', () => {
+  const GONE = (n: number) =>
+    `${n} verify job(s) were gone before removal, most likely taken and sent by a worker. Check that no email-worker is processing, then rerun.`;
+
+  it('in-process: a job removed in the gap is counted vanished, not removed', async () => {
+    const high = queue('email-high');
+    await addVerify(high, USER(1));
+    await addVerify(high, USER(2));
+    const removeJob = Queue.prototype.remove;
+    const getJob = Queue.prototype.getJob;
+    const spy = jest.spyOn(Queue.prototype, 'getJob').mockImplementation(async function (
+      this: Queue,
+      id: string,
+    ) {
+      await removeJob.call(this, id); // a worker took it between listing and the re-read
+      return getJob.call(this, id);
+    });
+    try {
+      const r = await purge(true);
+      expect(r.totalFound).toBe(2);
+      expect(r.totalRemoved).toBe(0);
+      expect(r.totalVanished).toBe(2);
+      expect(r.totalLockedActive).toBe(0);
+      const text = formatResult(r, true).join('\n');
+      expect(text).toContain('gone before removal 2');
+      expect(text).toContain('total gone before removal: 2');
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it('--yes exits 1 with the "gone before removal" line when jobs vanish between listing and removal', async () => {
+    const high = queue('email-high');
+    await addVerify(high, USER(1));
+    await addVerify(high, USER(2));
+    const r = await runScript(['--yes'], {}, [VANISH]);
+    expect(r.code).toBe(1);
+    expect(r.err.split('\n').filter((l) => l.trim() !== '')).toEqual([GONE(2)]);
+    expect(r.out).toContain('total gone before removal: 2');
+    expect(r.out).toContain('total removed: 0');
+    expect(r.err).not.toContain('live worker');
+  });
+
+  it('a dry run never reports vanished jobs and exits 0 even with the patch', async () => {
+    const high = queue('email-high');
+    await addVerify(high, USER(1));
+    const r = await runScript([], {}, [VANISH]);
+    expect(r.code).toBe(0);
+    expect(r.err).toBe('');
+    expect(r.out).not.toContain('gone before removal');
+  });
+
+  it('--yes prints both lines (locked and gone) and exits 1 when both apply', async () => {
+    const high = queue('email-high');
+    const active = await addVerify(high, USER(1));
+    await addVerify(high, USER(2));
+    const { release } = await blockingWorker('email-high', 1);
+    expect(await active.getState()).toBe('active');
+    const r = await runScript(['--yes'], {}, [VANISH]);
+    release();
+    expect(r.code).toBe(1);
+    const lines = r.err.split('\n').filter((l) => l.trim() !== '');
+    expect(lines).toHaveLength(2);
+    expect(lines[0]).toContain('being sent by a live worker');
+    expect(lines[1]).toBe(GONE(1));
+    expect(r.out).toContain('total active and locked (not removed): 1');
+    expect(r.out).toContain('total gone before removal: 1');
+  });
+
+  it('exit 0 and an empty stderr when nothing vanished or was locked', async () => {
+    const high = queue('email-high');
+    await addVerify(high, USER(1));
+    await addVerify(high, USER(2), { delay: 3_600_000 });
+    const r = await runScript(['--yes']);
+    expect(r.code).toBe(0);
+    expect(r.err).toBe('');
+    expect(r.out).toContain('total removed: 2');
+    expect(r.out).toContain('total gone before removal: 0');
+  });
+});
+
+describe('redactRedisUrl (queue-purge): the user-info rule', () => {
+  it.each(redisCases().map((c) => [c.input, c] as const))('table: %s', (_i, c) => {
+    const out = redactRedisUrl(c.input);
+    expect(out).toBe(c.expected);
+    for (const secret of c.secrets) expect(out).not.toContain(secret);
+  });
+
+  it('accepted limit: a URL with no "@" at all prints as host:port (no user info exists)', () => {
+    // `default:1234` reads as host "default", port 1234; nothing to find a user in. Not a leak.
+    expect(redactRedisUrl('redis://default:1234')).toBe('redis://default:1234');
+  });
+
+  it('seeded fuzz (3000 cases): no marker in any output; output is unparseable or a clean host form', () => {
+    let clean = 0;
+    for (const f of fuzzCases('redis', 'redis://', 3000, 436)) {
+      const out = redactRedisUrl(f.input);
+      if (CLEAN_REDIS.test(out)) clean += 1;
+      for (const m of f.forbidden) expect([f.input, out.includes(m)]).toEqual([f.input, false]);
+      expect([f.input, out === '(unparseable REDIS_URL)' || CLEAN_REDIS.test(out)]).toEqual([
+        f.input,
+        true,
+      ]);
+    }
+    expect(clean).toBeGreaterThan(300);
+    expect(clean).toBeLessThan(2900);
   });
 });
 

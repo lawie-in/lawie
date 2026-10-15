@@ -17,7 +17,10 @@
  * How: for each user, the real requestVerifyEmail(userId), so the T-223 per-user cap (1 per
  * 60 s, 5 per 24 h) and the T-390 one-pending-job dedupe apply unchanged. Before the call:
  *  - a user with this script's marker `auth:verify-resend-all:<userId>` (set after a confirmed
- *    queue, 24 h TTL) is skipped: skipped_rerun. A rerun never sends a second email.
+ *    queue, 30-day TTL: Ajay, exactly one fresh email) is skipped: skipped_rerun.
+ *  - a user whose verify link was minted since this run started, or within the last 24 h (the
+ *    link lifetime), already got a fresh email and is skipped too: skipped_rerun. This catches
+ *    an enqueue that landed after the confirm window and was sent, but was never marked.
  *  - a user who already has a pending verify job (BullMQ dedupe key `de:verify:<userId>` on the
  *    verify queue, pointing at a job that still exists) is skipped: already_pending. The call
  *    is not made, so the cap is not used up and the pending job sends the email.
@@ -88,8 +91,31 @@ export const DEFAULT_BATCH_PAUSE_MS = 60_000;
 /** How long to wait, per batch, for the fire-and-forget enqueues to land. */
 export const CONFIRM_TIMEOUT_MS = 15_000;
 const CONFIRM_POLL_MS = 250;
-/** Rerun marker lifetime: 24 h, the T-223 day window. */
-export const RERUN_MARKER_TTL_MS = 24 * 60 * 60 * 1000;
+/** Rerun marker lifetime: 30 days (Ajay: each affected user gets exactly one fresh email). */
+export const RERUN_MARKER_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
+/**
+ * Earliest `emailVerifyExpires` that means "a fresh link was already minted". A mint sets the
+ * expiry to mint time + VERIFY_LINK_TTL_MS (24 h), so:
+ *  - minted since the run started  <=> expiry >= runStartedAt + 24 h
+ *  - minted within the last 24 h   <=> expiry >  now
+ * Either counts as already sent, so the threshold is the smaller of the two.
+ */
+export function freshLinkThreshold(runStartedAt: number, now: number = Date.now()): number {
+  return Math.min(runStartedAt + VERIFY_LINK_TTL_MS, now);
+}
+
+/** True when the user's current verify link was minted after the threshold (see above). */
+export async function hasFreshLink(userId: string, threshold: number): Promise<boolean> {
+  if (!mongoose.Types.ObjectId.isValid(userId)) return false;
+  // Raw read, the one field only; never printed.
+  const doc = await User.collection.findOne(
+    { _id: new mongoose.Types.ObjectId(userId) },
+    { projection: { emailVerifyExpires: 1 } },
+  );
+  const expires = doc?.emailVerifyExpires instanceof Date ? doc.emailVerifyExpires.getTime() : 0;
+  return expires >= threshold;
+}
 
 export const rerunMarkerKey = (userId: string): string => `auth:verify-resend-all:${userId}`;
 
@@ -285,11 +311,16 @@ async function within(p: Promise<unknown>, ms: number): Promise<void> {
 export async function runBatch(
   ids: string[],
   tally: Tally,
-  deps: { redis: Redis; keyPrefix: string; confirmTimeoutMs?: number },
+  deps: { redis: Redis; keyPrefix: string; confirmTimeoutMs?: number; runStartedAt?: number },
 ): Promise<void> {
+  const runStartedAt = deps.runStartedAt ?? Date.now();
   const toConfirm: { userId: string; callStart: number }[] = [];
   for (const userId of ids) {
     if ((await deps.redis.exists(rerunMarkerKey(userId))) === 1) {
+      tally.skipped_rerun += 1;
+      continue;
+    }
+    if (await hasFreshLink(userId, freshLinkThreshold(runStartedAt))) {
       tally.skipped_rerun += 1;
       continue;
     }
@@ -323,29 +354,66 @@ export async function runBatch(
 }
 
 /**
- * Scheme, host(s) and database of a Mongo URI, never the credentials or the query string
- * (as apps/billing/scripts/backfill-yearly-drip.ts). gitleaks:allow
+ * Where the authority starts, with any user info dropped, or null when that is ambiguous.
+ * A user-info part ends at the LAST `@`, but only if no `/`, `?`, `#` or `\` comes before that
+ * `@`: those end the authority, so an `@` after one of them may be in the path or the query
+ * (e.g. `?password=a@b`), or may be a password with an unencoded `/` in it
+ * (`default:1234/x@host`, which the WHATWG parser reads as host `default`, port 1234). Both are
+ * refused rather than guessed. The returned text never contains anything before that `@`.
  */
-export function redactMongoUri(uri: string): string {
-  const scheme = /^[a-z+]+:\/\//i.exec(uri)?.[0];
-  if (!scheme) return '(unparseable MONGO_URI)';
-  const rest = uri.slice(scheme.length);
-  const afterCreds = rest.slice(rest.lastIndexOf('@') + 1);
-  return scheme + afterCreds.split('?')[0];
+function authorityAfterUserInfo(rest: string): string | null {
+  const at = rest.lastIndexOf('@');
+  if (at < 0) return rest;
+  if (/[/?#\\]/.test(rest.slice(0, at))) return null;
+  return rest.slice(at + 1);
 }
 
-/** Scheme, host and port of a Redis URL, never the user, password, db or query. */
+/** One host: a DNS name or IPv4, or a bracketed IPv6, with an optional numeric port. */
+const HOST_RE =
+  /^(?:[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)*|\[[0-9A-Fa-f:.]+\])(?::\d{1,5})?$/;
+
+/**
+ * Scheme, host(s) and database of a Mongo URI, never the credentials or the query string:
+ * `mongodb+srv://user:pw@cluster.x.net/lawie?w=1` prints as `mongodb+srv://cluster.x.net/lawie`.
+ * Same user-info rule as the Redis URL; anything ambiguous or malformed prints as
+ * `(unparseable MONGO_URI)`, so no input can print any part of the user or password.
+ * gitleaks:allow
+ */
+export function redactMongoUri(uri: string): string {
+  const bad = '(unparseable MONGO_URI)';
+  const m = /^mongodb(?:\+srv)?:\/\//i.exec(uri);
+  if (!m) return bad;
+  const authority = authorityAfterUserInfo(uri.slice(m[0].length));
+  if (authority === null) return bad;
+  const [hostsAndPath] = authority.split(/[?#]/, 1);
+  const slash = hostsAndPath.indexOf('/');
+  const hosts = slash < 0 ? hostsAndPath : hostsAndPath.slice(0, slash);
+  const db = slash < 0 ? '' : hostsAndPath.slice(slash + 1);
+  if (hosts === '' || !hosts.split(',').every((h) => HOST_RE.test(h))) return bad;
+  if (!/^[A-Za-z0-9_.$-]*$/.test(db)) return bad;
+  return `${m[0]}${hosts}${slash < 0 ? '' : `/${db}`}`;
+}
+
+/**
+ * Scheme, host and port of a Redis URL, never the user, password, db or query:
+ * `rediss://default:pw@redis-1.cloud.example:14900/0` prints as
+ * `rediss://redis-1.cloud.example:14900`. Anything ambiguous or malformed prints as
+ * `(unparseable REDIS_URL)`, so no input can print any part of the user or password.
+ * gitleaks:allow
+ */
 export function redactRedisUrl(url: string): string {
-  try {
-    const u = new URL(url);
-    if (!u.protocol || !u.hostname) return '(unparseable REDIS_URL)';
-    return `${u.protocol}//${u.host}`;
-  } catch {
-    return '(unparseable REDIS_URL)';
-  }
+  const bad = '(unparseable REDIS_URL)';
+  const m = /^(rediss?):\/\//i.exec(url);
+  if (!m) return bad;
+  const authority = authorityAfterUserInfo(url.slice(m[0].length));
+  if (authority === null) return bad;
+  const host = authority.split(/[/?#]/, 1)[0];
+  if (!HOST_RE.test(host)) return bad;
+  return `${m[1].toLowerCase()}://${host.toLowerCase()}`;
 }
 
 async function main(): Promise<number> {
+  const runStartedAt = Date.now();
   const opts = parseOptions(process.argv.slice(2), process.env);
   if (!opts) {
     errOut(USAGE);
@@ -380,12 +448,15 @@ async function main(): Promise<number> {
 
   if (!opts.apply) {
     let marked = 0;
+    let fresh = 0;
     let pending = 0;
     for (const id of ids) {
       if ((await redis.exists(rerunMarkerKey(id))) === 1) marked += 1;
+      else if (await hasFreshLink(id, freshLinkThreshold(runStartedAt))) fresh += 1;
       else if (await hasPendingVerifyJob(redis, keyPrefix, id)) pending += 1;
     }
-    out(`of which sent by an earlier run in the last 24 h (would skip): ${marked}`);
+    out(`of which sent by an earlier run in the last 30 days (would skip): ${marked}`);
+    out(`of which have a verify link minted in the last 24 h (would skip): ${fresh}`);
     out(`of which already have a pending verify job (would skip): ${pending}`);
     const pauseSeconds = Math.round((Math.max(0, batches - 1) * opts.batchPauseMs) / 1000);
     out(`time spent in pauses: about ${pauseSeconds} s`);
@@ -403,7 +474,7 @@ async function main(): Promise<number> {
   };
   for (let b = 0; b < batches; b += 1) {
     const slice = ids.slice(b * opts.batchSize, (b + 1) * opts.batchSize);
-    await runBatch(slice, tally, { redis, keyPrefix });
+    await runBatch(slice, tally, { redis, keyPrefix, runStartedAt });
     out(`batch ${b + 1}/${batches} done`);
     if (b < batches - 1 && opts.batchPauseMs > 0) await sleep(opts.batchPauseMs);
   }

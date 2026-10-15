@@ -26,7 +26,7 @@
  * set. It reads them directly rather than the worker env module, which also demands
  * INTERNAL_SECRET, AUTH_SERVICE_URL and provider keys this script does not use.
  *
- * Exit codes: 0 done, 1 failed (or a job could not be removed), 2 usage.
+ * Exit codes: 0 done, 1 failed (or a job was locked by a worker or gone before removal), 2 usage.
  */
 /* eslint-disable import/order, import/first, no-console */
 import { config as loadDotenv } from 'dotenv';
@@ -230,18 +230,40 @@ export async function purgeHeldVerifyJobs(opts: {
 }
 
 /**
+ * Where the authority starts, with any user info dropped, or null when that is ambiguous.
+ * A user-info part ends at the LAST `@`, but only if no `/`, `?`, `#` or `\` comes before that
+ * `@`: those end the authority, so an `@` after one of them may be in the path or the query
+ * (e.g. `?password=a@b`), or may be a password with an unencoded `/` in it
+ * (`default:1234/x@host`, which the WHATWG parser reads as host `default`, port 1234). Both are
+ * refused rather than guessed. The returned text never contains anything before that `@`.
+ */
+function authorityAfterUserInfo(rest: string): string | null {
+  const at = rest.lastIndexOf('@');
+  if (at < 0) return rest;
+  if (/[/?#\\]/.test(rest.slice(0, at))) return null;
+  return rest.slice(at + 1);
+}
+
+/** One host: a DNS name or IPv4, or a bracketed IPv6, with an optional numeric port. */
+const HOST_RE =
+  /^(?:[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)*|\[[0-9A-Fa-f:.]+\])(?::\d{1,5})?$/;
+
+/**
  * Scheme, host and port of a Redis URL, never the user, password, db or query:
  * `rediss://default:pw@redis-1.cloud.example:14900/0` prints as
- * `rediss://redis-1.cloud.example:14900`. gitleaks:allow
+ * `rediss://redis-1.cloud.example:14900`. Anything ambiguous or malformed prints as
+ * `(unparseable REDIS_URL)`, so no input can print any part of the user or password.
+ * gitleaks:allow
  */
 export function redactRedisUrl(url: string): string {
-  try {
-    const u = new URL(url);
-    if (!u.protocol || !u.hostname) return '(unparseable REDIS_URL)';
-    return `${u.protocol}//${u.host}`;
-  } catch {
-    return '(unparseable REDIS_URL)';
-  }
+  const bad = '(unparseable REDIS_URL)';
+  const m = /^(rediss?):\/\//i.exec(url);
+  if (!m) return bad;
+  const authority = authorityAfterUserInfo(url.slice(m[0].length));
+  if (authority === null) return bad;
+  const host = authority.split(/[/?#]/, 1)[0];
+  if (!HOST_RE.test(host)) return bad;
+  return `${m[1].toLowerCase()}://${host.toLowerCase()}`;
 }
 
 export function parseArgs(args: string[]): { apply: boolean } | null {
@@ -334,12 +356,21 @@ async function main(): Promise<void> {
     out('Dry run: nothing removed. Run with --yes to remove.');
     return;
   }
+  let incomplete = false;
   if (result.totalLockedActive > 0) {
     errOut(
       'Some verify jobs are being sent by a live worker and were not removed. Stop the worker or wait, then rerun.',
     );
-    process.exit(1);
+    incomplete = true;
   }
+  if (result.totalVanished > 0) {
+    // Gone between listing and removal: usually a worker took the job and sent it.
+    errOut(
+      `${result.totalVanished} verify job(s) were gone before removal, most likely taken and sent by a worker. Check that no email-worker is processing, then rerun.`,
+    );
+    incomplete = true;
+  }
+  if (incomplete) process.exit(1);
 }
 
 if (require.main === module) {
