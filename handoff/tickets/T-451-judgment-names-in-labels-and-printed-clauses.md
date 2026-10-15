@@ -33,7 +33,7 @@ S = `Do not name any judgment. Where an authority would normally be cited, write
 - R6: key_citations, key_precedents and _meta are not sent to the model: leave them. But change each `_meta.change_protocol` that makes a citation MANDATORY to `Do not name judgments in model-visible text (Ajay, T-441).`
 - R7: the _averments ban lists stay as they are.
 
-Ajay byte-checks each group's diff; he does not pre-sign every line. The file:line list of every pack and string is Vishal's T-441 sweep (ask Vishal, or see his T-441 report).
+Ajay byte-checks each group's diff; he does not pre-sign every line. The file:line list of every pack and string is in handoff/tickets/T-441-judgment-sweep.md (Vishal, 15 Oct; re-grep, line numbers drift).
 
 ## Acceptance criteria (signed byte-exact by Ajay, 15 Oct 2026, fb7b92b, T-245 file Addendum 8)
 
