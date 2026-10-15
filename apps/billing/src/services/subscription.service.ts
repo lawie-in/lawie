@@ -14,6 +14,7 @@ import {
   Subscription,
   type SubscriptionStatus,
 } from '../models/Subscription.model';
+import { SubscriptionCreateLock } from '../models/SubscriptionCreateLock.model';
 import { User } from '../models/User.model';
 
 import {
@@ -80,7 +81,171 @@ export class SubscriptionExistsError extends Error {
   }
 }
 
+/**
+ * T-444c (Arjun ruling 1): another createSubscription for this user is in
+ * flight (the per-user lock is held). The route answers 409
+ * `subscription_in_progress`.
+ */
+export class SubscriptionInProgressError extends Error {
+  constructor() {
+    super('subscription_in_progress');
+    this.name = 'SubscriptionInProgressError';
+  }
+}
+
+/**
+ * T-444c (Arjun ruling 2): the Razorpay cancel of a lapsed sub failed, so it was
+ * not expired locally and no new sub was created. The route answers 503
+ * `try_again`.
+ */
+export class SubscriptionCancelFailedError extends Error {
+  constructor() {
+    super('subscription_cancel_failed');
+    this.name = 'SubscriptionCancelFailedError';
+  }
+}
+
+/** T-444c: Razorpay statuses that mean the sub can no longer charge. */
+const RAZORPAY_ENDED_STATUSES = ['cancelled', 'completed', 'expired'];
+
+/**
+ * T-444c (Arjun): bound on each Razorpay cancel / create call (and the status
+ * fetch after a failed cancel), well inside the 60 s create lock. The SDK
+ * (razorpay 2.9.6) passes no timeout to its axios client, so this is a
+ * Promise.race: on timeout the call is treated as failed, but the HTTP request
+ * itself is not aborted.
+ */
+export const RAZORPAY_CALL_TIMEOUT_MS = 15_000;
+
+export class RazorpayTimeoutError extends Error {
+  constructor(op: string) {
+    super(`razorpay_${op}_timeout`);
+    this.name = 'RazorpayTimeoutError';
+  }
+}
+
+function withRazorpayTimeout<T>(op: string, call: Promise<T>): Promise<T> {
+  let timer: NodeJS.Timeout | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new RazorpayTimeoutError(op)), RAZORPAY_CALL_TIMEOUT_MS);
+  });
+  return Promise.race([call, timeout]).finally(() => clearTimeout(timer));
+}
+
+/**
+ * T-444c (Arjun): the lapsed sub was cancelled at Razorpay but now reads
+ * active locally (a retry charge's webhook landed in between). One distinct
+ * error log and a Sentry warning, the subscription id only; ops refunds by
+ * hand. The caller answers 409 and changes nothing else.
+ */
+function reportCancelledPaidSub(razorpaySubscriptionId: string): void {
+  logger.error(
+    { subscriptionId: razorpaySubscriptionId },
+    'billing.resubscribe.cancelled_paid_sub',
+  );
+  Sentry.withScope((scope) => {
+    scope.setTag('razorpaySubscriptionId', razorpaySubscriptionId);
+    Sentry.captureMessage('billing.resubscribe.cancelled_paid_sub', 'warning');
+  });
+}
+
+/**
+ * T-444c (Arjun ruling 2): cancel a lapsed sub at Razorpay now
+ * (cancel_at_cycle_end false), so a Razorpay retry cannot charge it after the
+ * user resubscribes. If the cancel throws, the sub is fetched: a Razorpay
+ * status of cancelled, completed or expired means it is already ended, which
+ * counts as success. This reads the status rather than matching the error's
+ * text. Anything else (cancel and fetch both fail, or the sub is still live)
+ * throws SubscriptionCancelFailedError.
+ */
+async function cancelLapsedAtRazorpay(
+  userId: string,
+  razorpaySubscriptionId: string,
+): Promise<void> {
+  try {
+    await withRazorpayTimeout(
+      'cancel',
+      razorpay.subscriptions.cancel(razorpaySubscriptionId, false),
+    );
+    logger.info(
+      { userId, subscriptionId: razorpaySubscriptionId },
+      'Lapsed subscription cancelled at Razorpay on resubscribe',
+    );
+    return;
+  } catch (cancelErr) {
+    let rzpStatus: unknown;
+    try {
+      const rzpSub = (await withRazorpayTimeout(
+        'fetch',
+        razorpay.subscriptions.fetch(razorpaySubscriptionId),
+      )) as unknown as Record<string, unknown>;
+      rzpStatus = rzpSub.status;
+    } catch {
+      rzpStatus = undefined;
+    }
+    if (typeof rzpStatus === 'string' && RAZORPAY_ENDED_STATUSES.includes(rzpStatus)) {
+      logger.info(
+        { userId, subscriptionId: razorpaySubscriptionId, rzpStatus },
+        'Lapsed subscription already ended at Razorpay on resubscribe',
+      );
+      return;
+    }
+    logger.error(
+      {
+        userId,
+        subscriptionId: razorpaySubscriptionId,
+        rzpStatus: typeof rzpStatus === 'string' ? rzpStatus : null,
+        errName: cancelErr instanceof Error ? cancelErr.name : typeof cancelErr,
+      },
+      'Razorpay cancel of lapsed subscription failed; not resubscribing',
+    );
+    throw new SubscriptionCancelFailedError();
+  }
+}
+
+/**
+ * T-444c (Arjun ruling 1): one createSubscription per user at a time. The lock
+ * is one insert into SubscriptionCreateLock (unique userId); E11000 means
+ * another call holds it. The row is deleted in a finally, by its own _id, so a
+ * call whose lock already timed out never deletes a newer caller's lock.
+ */
 export async function createSubscription(
+  userId: string,
+  email: string,
+  planId?: string,
+): Promise<{
+  subscriptionId: string;
+  shortUrl: string;
+  planId: string;
+}> {
+  // The unique index must exist before the insert can act as a lock.
+  await SubscriptionCreateLock.init();
+  let lockId: unknown;
+  try {
+    const lock = await SubscriptionCreateLock.create({ userId, createdAt: new Date() });
+    lockId = lock._id;
+  } catch (err) {
+    if ((err as { code?: unknown } | null)?.code === 11000) {
+      throw new SubscriptionInProgressError();
+    }
+    throw err;
+  }
+  try {
+    return await createSubscriptionLocked(userId, email, planId);
+  } finally {
+    try {
+      await SubscriptionCreateLock.deleteOne({ _id: lockId });
+    } catch (releaseErr) {
+      // The TTL index removes it within ~2 min; the result stands.
+      logger.error(
+        { userId, errName: releaseErr instanceof Error ? releaseErr.name : typeof releaseErr },
+        'Failed to release subscription create lock',
+      );
+    }
+  }
+}
+
+async function createSubscriptionLocked(
   userId: string,
   email: string,
   planId?: string,
@@ -119,14 +284,31 @@ export async function createSubscription(
     // and Ink are left to the lazy expiry. The write itself decides lapsed, so
     // the 409 and the lazy expiry share one definition.
     if (!(LAPSABLE_STATUSES as string[]).includes(live.status)) refuse(live);
-    const expired = await Subscription.updateOne(
-      {
-        _id: live._id,
-        status: { $in: LAPSABLE_STATUSES, $ne: 'expired' },
-        $nor: stillPaidFilter(new Date()),
-      },
-      { $set: { status: 'expired' } },
-    );
+    // T-444c (Arjun ruling 2): cancel at Razorpay before the local expire, and
+    // only once the sub reads as lapsed (same filter as the write), so a sub
+    // still paid is never cancelled. A failed cancel throws before any write.
+    const now = new Date();
+    const lapsedFilter = {
+      _id: live._id,
+      status: { $in: LAPSABLE_STATUSES, $ne: 'expired' },
+      $nor: stillPaidFilter(now),
+    };
+    let cancelledAtRazorpay = false;
+    if (await Subscription.exists(lapsedFilter)) {
+      await cancelLapsedAtRazorpay(userId, live.razorpaySubscriptionId);
+      cancelledAtRazorpay = true;
+      // T-444c (Arjun): a retry charge may have landed between the lapsed
+      // check and the cancel. If the sub is now active, it was paid and is now
+      // cancelled: report it and answer 409; no local expire, no create.
+      const afterCancel = await Subscription.findById(live._id);
+      if (afterCancel?.status === 'active') {
+        reportCancelledPaidSub(live.razorpaySubscriptionId);
+        refuse(afterCancel);
+      }
+    }
+    const expired = await Subscription.updateOne(lapsedFilter, {
+      $set: { status: 'expired' },
+    });
     if (expired.matchedCount > 0) {
       logger.info(
         { userId, subscriptionId: live.razorpaySubscriptionId, priorStatus: live.status },
@@ -136,7 +318,13 @@ export async function createSubscription(
       // Still paid, or a race (the sub changed under us). Re-read and apply
       // the normal rules (live blocks with 409; else fall through to reuse).
       const reread = await findLive();
-      if (reread) refuse(reread);
+      if (reread) {
+        // T-444c: same report if the sub we just cancelled turned active.
+        if (cancelledAtRazorpay && reread._id.equals(live._id) && reread.status === 'active') {
+          reportCancelledPaidSub(live.razorpaySubscriptionId);
+        }
+        refuse(reread);
+      }
     }
   }
 
@@ -164,14 +352,27 @@ export async function createSubscription(
     };
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const sub = await (razorpay.subscriptions.create as any)({
-    plan_id: razorpayPlanId,
-    customer_notify: 1,
-    // No total_count — subscriptions auto-renew until cancelled (per SCRUM-102)
-    callback_url: `${env.FRONTEND_URL}/dashboard/payment/success`,
-    notes: { userId, email, planId: planSku.id, tier: planSku.tier, cycle: planSku.cycle },
-  });
+  // T-444c: bounded; a timeout throws (500), and no local row is written.
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  let sub: any;
+  try {
+    sub = await withRazorpayTimeout<any>(
+      'create',
+      (razorpay.subscriptions.create as any)({
+        plan_id: razorpayPlanId,
+        customer_notify: 1,
+        // No total_count — subscriptions auto-renew until cancelled (per SCRUM-102)
+        callback_url: `${env.FRONTEND_URL}/dashboard/payment/success`,
+        notes: { userId, email, planId: planSku.id, tier: planSku.tier, cycle: planSku.cycle },
+      }),
+    );
+  } catch (err) {
+    if (err instanceof RazorpayTimeoutError) {
+      logger.warn({ userId }, 'billing.subscription.create_timeout');
+    }
+    throw err;
+  }
+  /* eslint-enable @typescript-eslint/no-explicit-any */
 
   await Subscription.create({
     userId,
