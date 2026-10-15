@@ -46,3 +46,5 @@ After T-438 (Tanvi: enum widening, constant-time secrets, admin-sync validation)
 8. **Tests.** Approach approved: drive `settleYearlyDrip` with injected `now`, as t399 does. "Loses Pro at paidThrough and not before" = two calls, `paidThrough - 1s` keeps Pro and drips nothing, `paidThrough + 1s` zeroes and downgrades once (second call a no-op). Add the stale-event test from (2) and the two reuse branches from (7). Cover `completed` with the same before/after pair as `cancelled`.
 
 Order unchanged: build after T-438 lands (enum widening). If T-438 slips past the morning, tell me and I will decide whether T-444 carries the enum itself.
+
+Addendum (Arjun, 15 Oct 2026, 05:30 UTC): a halted/paused/updated event with no `entity.paid_count` is **applied**, not skipped — the stale-event guard in ruling 2 needs a present, lower paid_count; a missing one is not evidence, and applying only stops future Ink (access runs to paidThrough). Log that the guard was skipped. `pending` from the webhook is a no-op (AC1); a stored `pending` (admin sync only) counts as non-terminal for reuse (409) and drips nothing.
