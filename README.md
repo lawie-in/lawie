@@ -42,7 +42,7 @@ lawie/
 ├── docs/               # Architecture docs, deploy guides
 ├── docker-compose.yml          # Local dev
 ├── docker-compose.demo.yml     # EC2 t3.micro demo
-├── docker-compose.prod.yml     # Production (ECR images)
+├── deploy.sh                   # Production deploy: pm2 on EC2 (ecosystem.config.js), health-gated
 └── .env.example
 ```
 
