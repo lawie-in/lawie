@@ -72,3 +72,12 @@ Both reach the model and need Ajay's decision on the rename (CLAUSE_CUES and the
 
 1. Clause id `bhajan_lal_paragraph` (fir_quashing, quashing_528_bnss; brief-drafter.ts:299 and :738).
 2. Form key `bhajan_lal_categories_invoked` (brief-drafter.ts:280).
+
+## Ajay's rename (15 Oct 2026, T-245 file 15cd74f)
+
+The model sees both ids, so neither can stay:
+
+- Clause id `bhajan_lal_paragraph` becomes `quashing_categories_paragraph` (fir_quashing, quashing_528_bnss).
+- Form key `bhajan_lal_categories_invoked` becomes `quashing_categories_invoked`.
+
+CLAUSE_CUES, the skeletons and the saved-form mapping follow the rename. How saved forms that carry the old key are handled is Arjun's call (asked 15 Oct). Any golden that moves goes to Ajay.
