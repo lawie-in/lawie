@@ -73,6 +73,9 @@ Where each lead stopped:
 
 ## Last done
 
+- shashank: T-436 b/c merged 6be2d5b1 (15 Oct 2026). State picker, Settings Invoices card (PDF download), invoice and credit-note email worker templates behind INVOICE_EMAIL_ENABLED, privacy version bump 2026-10-15 (Ajay Addenda 1-9, byte checks 1204b05, 9a77d3f), Terms/Privacy/pricing text. Next: T-444 (after Tanvi T-438).
+- mahak: T-445 merged c60801b and T-116 merged b2d6e6f (15 Oct 2026). Legal-content list completed (Ajay signed). Row: NOW T-431 (affidavit deponent on drafting path).
+- CI: run 609 green on 5dec1940; run 611 green on b2d6e6f (T-116); run 615 on 6be2d5b1 (T-436 b/c) in progress. Docs-only pushes do not start a run.
 - kunal: red-CI fix pushed 5dec1940 (15 Oct 02:00). T-436 AC10 round 2 password-Redis tests now use an in-test AUTH-gate proxy over the shared test Redis (no redis-server binary). Test-only. Waiting for the CI run on 5dec1940 to be green before any other push. Cause of the red: aed2599b/403b768f runs 594, 600 (his tests, not T-358).
 - CI RED (15 Oct 01:15): run 594 on aed2599b (T-358): Test — Auth and Test — Email worker failed at the test step. Tanvi fixing first (before T-438). HOLD: nobody pushes on top of red except the fix. Run 597 (cc2adc0) and 600 (403b768f) pending. Vishal told to hold.
 - kunal: T-364 merged 403b768f (15 Oct 2026). Plans and prices read one list in packages/shared (constants/ink.ts), billing credit-skus, pricing/home/upgrade/Settings. packages/shared released. HOLD next slot for a green run on 403b768f (shared change).

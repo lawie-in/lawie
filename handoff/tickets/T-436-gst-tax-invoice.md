@@ -2,7 +2,7 @@
 
 | Field  | Value                                                                                                                                                        |
 | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Status | Part (a) merged into develop_staging 6cca6f0d (Kunal, 14 Oct 2026). Parts (b) and (c): Shashank, after T-440. AC10 (Ranchi, purge, resend-all): Kunal. Priya |
+| Status | Merged into develop_staging: (a) 6cca6f0d, AC10 round 1 b92aae6e, round 2 33107053 (+ CI fix 5dec1940), (b)/(c) 6be2d5b1 (Shashank, 15 Oct 2026). Waiting for Anushka on develop; invoice email stays off until the worker templates ship (see T-403). Priya |
 | Owner  | Lead (build), Vikram (requirements), Ajay (contents/wording), Arjun (mechanism), Rajesh (any new checkout fields)                                            |
 | Mode   | Full chain (billing + web; email-worker if invoices are emailed by us)                                                                                       |
 

@@ -2,7 +2,7 @@
 
 | Field  | Value |
 | ------ | ----- |
-| Status | To do. Mahak, after T-116 merges. Priya, 15 Oct 2026 |
+| Status | Merged into develop_staging c60801b (Mahak, 15 Oct 2026). Ajay signed 3966beb plus ab91c5f. Priya |
 | Owner  | Mahak (build), Ajay (rules the list) |
 | Mode   | Small fix (one Markdown file) |
 
