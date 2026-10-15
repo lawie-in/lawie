@@ -147,3 +147,16 @@ Rest of the draft (preheader, body, help line, footer lines 3–4) **approved as
 | 2 | PDF amounts as "Rs. 1,999.00" (no ₹ glyph) | Approved. The law requires the value, not the symbol. |
 | 3 | Legacy subscription with no matching plan prints "Lawie subscription — Pro, {period}" | No: that guesses the plan. Print the plan only from the charge's own record; if it is unknown, `Lawie subscription — {period}`. (No subscription has been charged yet, per Vikram, so this should never fire.) |
 | — | Street address removed from the public supplier endpoint, kept on the PDF | Approved, per Addendum 1. |
+
+## Addendum 7 (T-436 b/c): Shashank's legal-content questions, 15 Oct 2026
+
+| # | Question | Ruling |
+|---|---|---|
+| 1 | Privacy §1 and §2 strings | §1 bullet `Plan, Ink balance, payments and referrals.` becomes `Plan, Ink balance, payments and referrals, and the State you give us for your tax invoices.` In §2, `take payments,` becomes `take payments, issue GST tax invoices,` (the rest of §2 unchanged). |
+| 2 | State saved before the re-accept prompt | **No.** The State is not stored before the bumped policy is accepted. Either show the re-accept prompt before the picker, or keep the picked State in the page and save it only after acceptance, on Pay. must-fix. |
+| 3a | Terms version | **Bump CURRENT_TERMS_VERSION** with this merge: the contracting party and the courts change, which is material. If a terms re-accept prompt exists, its summary (signed): `We now name the business behind Lawie, and disputes go to the courts at Ranchi, Jharkhand.` |
+| 3b | Supplier endpoint returns 503 (env not set) | Never show a placeholder. With no legal name, hide 5b and 5c entirely. With a legal name but no GSTIN, show 5b without `(GSTIN {supplier_gstin})`. Condition: the env is set before any release to main, so main always shows the full 5b. |
+| 4a | Credit note email? | Yes, to the account email. Subject `Your Lawie credit note {creditNoteNumber}`. Body line `We have issued a credit note of {amount} (including GST) against invoice {invoiceNumber}.` Button `Download credit note (PDF)`. Everything else as in the invoice email. |
+| 4b | Backfilled invoices emailed? | None are expected: no subscription has been charged, and the founder's test top-up needs no invoice. If the backfill does produce any, email each once. |
+| 4c | Amount format | The email may use `₹` and the PDF `Rs.`. Both are lawful; the figure must match the PDF exactly. |
+| 5 | Template id | Not a legal point; Priya decides. |
