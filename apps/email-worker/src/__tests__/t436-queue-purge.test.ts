@@ -5,7 +5,7 @@
  *
  * main() (exit codes, printed output) is run as a child process, as the billing backfill test does.
  */
-import { type ChildProcess, spawn } from 'child_process';
+import { spawn } from 'child_process';
 import net from 'net';
 import os from 'os';
 import { existsSync, readFileSync, rmSync } from 'fs';
@@ -24,6 +24,7 @@ import {
   redactRedisUrl,
 } from '../../scripts/queue-purge';
 
+import { type AuthProxy, createAuthProxy } from './helpers/t436-auth-proxy';
 import { CLEAN_REDIS, fuzzCases, redisCases } from './helpers/t436-redaction-cases';
 import { type TestRedis, acquireRedis, purgePrefix } from './helpers/t220-redis';
 
@@ -395,49 +396,18 @@ describe('queue-purge main() as a child process', () => {
   });
 
   describe('against a private Redis that requires a password', () => {
-    let authed: ChildProcess;
+    let proxy: AuthProxy;
     let authedPort: number;
     const PW = 's3cr3t-pw-XYZ';
 
     beforeAll(async () => {
-      authedPort = await new Promise<number>((resolve, reject) => {
-        const s = net.createServer();
-        s.once('error', reject);
-        s.listen(0, '127.0.0.1', () => {
-          const { port } = s.address() as net.AddressInfo;
-          s.close(() => resolve(port));
-        });
-      });
-      authed = spawn(
-        'redis-server',
-        [
-          '--port',
-          String(authedPort),
-          '--bind',
-          '127.0.0.1',
-          '--save',
-          '',
-          '--appendonly',
-          'no',
-          '--dir',
-          os.tmpdir(),
-          '--requirepass',
-          PW,
-        ],
-        { stdio: 'ignore' },
-      );
-      const probe = new Redis(`redis://default:${PW}@127.0.0.1:${authedPort}`, {
-        maxRetriesPerRequest: 20,
-        retryStrategy: () => 100,
-      });
-      probe.on('error', () => undefined);
-      await probe.ping();
-      await probe.quit();
+      // a password gate in front of the shared Redis (CI has no redis-server binary to spawn)
+      proxy = await createAuthProxy(redis.url, PW);
+      authedPort = proxy.port;
     });
 
     afterAll(async () => {
-      authed.kill('SIGTERM');
-      await new Promise((r) => (authed.exitCode !== null ? r(null) : authed.once('exit', r)));
+      await proxy.close();
     });
 
     it('--yes removes, exits 0, and prints counts only (no user id, job id, credentials)', async () => {
