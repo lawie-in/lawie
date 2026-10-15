@@ -12,6 +12,7 @@ export * from './constants/redis';
 export * from './constants/headers';
 export * from './constants/privacy';
 export * from './constants/ink';
+export * from './constants/gst-states';
 
 // Utils
 export * from './utils/validators';

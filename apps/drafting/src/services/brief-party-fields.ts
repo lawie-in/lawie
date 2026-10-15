@@ -10,6 +10,11 @@
  * respondent_name, applicant_address, applicant_age, father_name, plus the
  * advocate passthrough). That file is not changed here (T-396).
  *
+ * T-424 (Addendum 5): on SIDED_PACKS (counter and rejoinder affidavits) the
+ * output is instead petitioner_name and respondent_name, each party under its
+ * own role, plus deponent_name/_address/_age/_father_name (the client) and
+ * client_side ('petitioner' | 'respondent').
+ *
  * Pure: no I/O, no model call, and nothing is logged (the values are PII).
  */
 
@@ -300,6 +305,56 @@ export interface PartyFieldsResult {
   counterpart: CounterpartRule['kind'];
   basis: PartyBasis;
   missing: PartyMissing[];
+  /**
+   * T-424 (Addendum 5): the client's side in the case on a pack whose Memo
+   * prints each party under its own role (SIDED_PACKS). null on every other
+   * pack, and when the side cannot be told (then `missing` is set).
+   */
+  clientSide: CaseSide | null;
+}
+
+// ── Addendum 5 (T-424): each party under its own role ───────────────────────
+
+/** A party's role in the case, on the packs whose Memo prints both by role. */
+export type CaseSide = 'petitioner' | 'respondent';
+
+/**
+ * Addendum 5: the packs whose client is on the petitioner or respondent side,
+ * and that side by the signed row. The client is the deponent; it is never
+ * printed as "applicant" or moved to the filer's side. Every other pack maps
+ * as T-381 does.
+ */
+export const SIDED_PACKS: Readonly<Record<string, CaseSide>> = {
+  counter_affidavit: 'respondent',
+  rejoinder_affidavit: 'petitioner',
+};
+
+const SIDE_NAME_FIELD: Readonly<Record<CaseSide, string>> = {
+  petitioner: 'petitioner_name',
+  respondent: 'respondent_name',
+};
+const OTHER_SIDE: Readonly<Record<CaseSide, CaseSide>> = {
+  petitioner: 'respondent',
+  respondent: 'petitioner',
+};
+/** Addendum 4/5: the deponent's own detail fields, after the role's. */
+const DEPONENT_DETAILS = { address: ['deponent_address'], age: ['deponent_age'] } as const;
+
+/**
+ * The render keys a sided pack adds for annexures.service.ts: the client as
+ * the deponent, and the client's side. The parties themselves go in
+ * `petitioner_name` and `respondent_name`.
+ */
+const SIDED_RENDER_KEYS = [
+  'deponent_name',
+  'deponent_address',
+  'deponent_age',
+  'deponent_father_name',
+  'client_side',
+] as const;
+
+function isSidedPack(templateId: string): boolean {
+  return Object.prototype.hasOwnProperty.call(SIDED_PACKS, templateId);
 }
 
 /** The answered client_role as an option id, or null. */
@@ -333,6 +388,91 @@ function clientFields(
   return out;
 }
 
+/** The client's details as the deponent's (sided packs). */
+function deponentFields(
+  name: string,
+  details: ClientRoleRow['details'],
+  flat: Record<string, unknown>,
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (name !== '') out.deponent_name = name;
+  const address = firstOf(flat, details.address);
+  const age = firstOf(flat, details.age);
+  const parentage = firstOf(flat, details.parentage);
+  if (address !== '') out.deponent_address = address;
+  if (age !== '') out.deponent_age = age;
+  if (parentage !== '') out.deponent_father_name = parentage;
+  return out;
+}
+
+/**
+ * Addendum 5: a sided pack. The side is an answered client_role (petitioner or
+ * respondent), else the signed row's. Any other non-empty client_role, an
+ * unrecognised value included, is refused with client_role (Ajay, T-424
+ * 44bf8a5); only an empty one falls back to the row. Each party prints under
+ * its own role; the client is also the deponent.
+ */
+function mapSidedPack(
+  templateId: string,
+  flat: Record<string, unknown>,
+  advocate: Record<string, string>,
+): PartyFieldsResult {
+  const tableRow = CLIENT_ROLE_TABLE[templateId];
+  const answered = answeredRole(flat);
+  const role: CaseSide | null =
+    answered === 'petitioner' || answered === 'respondent' ? answered : null;
+  if (text(flat.client_role) !== '' && role === null) {
+    return {
+      fields: advocate,
+      clientName: '',
+      counterpartName: '',
+      counterpart: 'none',
+      basis: 'client_role',
+      missing: ['client_role'],
+      clientSide: null,
+    };
+  }
+
+  const side: CaseSide = role ?? SIDED_PACKS[templateId];
+  const other = OTHER_SIDE[side];
+  let clientField: string;
+  let details: ClientRoleRow['details'];
+  if (role !== null) {
+    clientField = text(flat.client_name) !== '' ? 'client_name' : SIDE_NAME_FIELD[side];
+    const d = roleDetails(clientField);
+    details = {
+      address: [...d.address, ...DEPONENT_DETAILS.address],
+      age: [...d.age, ...DEPONENT_DETAILS.age],
+      parentage: d.parentage,
+    };
+  } else {
+    clientField = tableRow.client ?? SIDE_NAME_FIELD[side];
+    details = tableRow.details;
+  }
+
+  const clientName = text(flat[clientField]);
+  const counterpartName = text(flat[SIDE_NAME_FIELD[other]]);
+  const missing: PartyMissing[] = [];
+  if (clientName === '') missing.push('client_name');
+  if (counterpartName === '') missing.push('opposite_party_name');
+
+  return {
+    fields: {
+      ...advocate,
+      ...(clientName !== '' ? { [SIDE_NAME_FIELD[side]]: clientName } : {}),
+      ...(counterpartName !== '' ? { [SIDE_NAME_FIELD[other]]: counterpartName } : {}),
+      ...deponentFields(clientName, details, flat),
+      client_side: side,
+    },
+    clientName,
+    counterpartName,
+    counterpart: 'field',
+    basis: role !== null ? 'client_role' : 'table',
+    missing,
+    clientSide: side,
+  };
+}
+
 /**
  * The client and the opposite party for `templateId`, from flat or dotted
  * values (formInputs, or the brief's values). `missing` names what the route
@@ -345,6 +485,9 @@ export function mapPartyFields(
 ): PartyFieldsResult {
   const flat = flattenPartyValues(values);
   const advocate = advocatePassthrough(flat);
+
+  // T-424 (Addendum 5): each party under its own role, the client as deponent.
+  if (isSidedPack(templateId)) return mapSidedPack(templateId, flat, advocate);
 
   // Rule 1: an answered client_role always wins.
   const role = answeredRole(flat);
@@ -368,6 +511,7 @@ export function mapPartyFields(
       counterpart: counterpartName !== '' ? 'field' : 'none',
       basis: 'client_role',
       missing: clientName === '' ? ['client_name'] : [],
+      clientSide: null,
     };
   }
 
@@ -388,6 +532,7 @@ export function mapPartyFields(
       basis: !tableRow ? 'no_row' : caveatHit ? 'caveat' : 'blank_row',
       // Addendum 4: the side is unknown, so the role is what is missing.
       missing: ['client_role'],
+      clientSide: null,
     };
   }
 
@@ -419,6 +564,7 @@ export function mapPartyFields(
     counterpart: cp.kind,
     basis: 'table',
     missing,
+    clientSide: null,
   };
 }
 
@@ -520,6 +666,8 @@ export function applyPartyFields(
 ): Record<string, unknown> {
   const out: Record<string, unknown> = { ...formData };
   for (const k of CLIENT_RENDER_KEYS) delete out[k];
+  // T-424: only the resolver sets these; a raw form value never stands in.
+  for (const k of SIDED_RENDER_KEYS) delete out[k];
   if (mapped.counterpart !== 'state') {
     for (const k of COUNTERPART_RENDER_KEYS) delete out[k];
   }

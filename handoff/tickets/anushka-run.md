@@ -1168,3 +1168,47 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - The privacy policy describes all of this.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-436 part (a) — GST tax invoices, server side (6cca6f0d, kunal, 14 Oct 2026)
+
+- Nothing new on screen yet. Every payment now produces a GST tax invoice on Lawie's side, and the admin can export the month's invoices for GST filing.
+- The invoice list, the email and the download ship in part (c); the State picker ships in part (b).
+
+Quality: nothing to test in the UI — server-side only; the invoice list, email and download ship in part c
+
+## T-440 — A date you don't know prints as "to be confirmed" (518d55ae, shashank, 14 Oct 2026)
+
+- Answer "Not known" for a date and see "[To be confirmed: date of arrest]" (or that date's name) in the draft, the same however the draft was started, never a blank, a line of underscores or a guessed date.
+- Draft a cheque-bounce notice without knowing the send date and see "Date: [To be confirmed: date the notice is sent]" instead of today's date.
+- The draft makes no claim that a deadline is met or missed when the date it depends on is not known.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-424 — Affidavit and Memo of Parties on the right side (cb74664, mahak, 15 Oct 2026)
+
+- Draft a counter-affidavit as the Respondent's advocate: the Memo of Parties lists Petitioner and Respondent correctly, and your client's name and address sit on the Respondent row only.
+- Draft a rejoinder as the Petitioner's advocate: your client shows as the Petitioner the same way.
+- The affidavit is sworn by your client, and the opening line reads "That I am the above-named Respondent" (or Petitioner), with no doubled "the" on any affidavit.
+- The synopsis names your client's side as "Petitioner:".
+- If the brief gives some other role for your client, you get a clear message instead of a wrong document; if the other side's name is missing, it is named as a gap.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-442 — Deploys fail loudly when a service is down (04930a7, mahak, 15 Oct 2026)
+
+- Nothing to test in the UI. A deploy that leaves a service down, or the email worker held, now stops loudly instead of finishing silently.
+
+Quality: nothing to test in the UI — deploy script only
+
+## T-436 AC10 — Ranchi, Jharkhand (b92aae6e, kunal, 15 Oct 2026)
+
+- Read the Terms and the contact page: they say Ranchi, Jharkhand as where Lawie is based and where disputes are heard. No placeholder text such as "[PIN]" is left.
+- The verification email footer says the same. The email only sends once the email service is switched on and deployed with the registered address.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-377 — Verify link no longer travels to other sites (846ad85, mahak, 15 Oct 2026)
+
+- Nothing a user sees. The one-time verification link no longer travels in the Referer to other sites. The documented server log change (founder step) keeps it out of the access log once applied.
+
+Quality: nothing to test in the UI — headers and ops doc only

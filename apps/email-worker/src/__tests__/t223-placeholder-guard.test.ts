@@ -5,7 +5,10 @@
  * worker (processor) or by POST /send. The check never looks at the rendered output (AC3), so
  * user data containing "[PIN]" is not refused. Dry run is unaffected.
  *
- * The footer fixtures come from the REAL renderer (child process, real footer). Env is switched
+ * T-436 filled the real auth.verifyEmail footer, so the guard is exercised with an INJECTED unfilled
+ * footer (mockUnfilledFooter swaps VERIFY_EMAIL_STRINGS.footer1 for one with [registered address]
+ * and [PIN]; see helpers/t436-unfilled-footer.ts). With the flag off the real, filled footer is
+ * used and verify emails go out in live mode. Env is switched
  * the way t220 does it: withEnv + jest.isolateModulesAsync, so env.ts is parsed fresh per case.
  * pino is real, writing to an in-memory sink; Sentry and the provider send are stubs.
  *
@@ -41,6 +44,10 @@ jest.mock('@sentry/node', () => ({
   captureException: jest.fn(),
   captureMessage: jest.fn(),
 }));
+let mockUnfilledFooter: boolean | string = true;
+jest.mock('../templates/auth/verifyEmail', () =>
+  jest.requireActual('./helpers/t436-unfilled-footer').verifyEmailModule(() => mockUnfilledFooter),
+);
 const mockRender = jest.fn();
 jest.mock('../templates', () => ({
   renderTemplate: (...a: unknown[]) => mockRender(...a),
@@ -83,6 +90,7 @@ beforeAll(() => {
 beforeEach(() => {
   resetSink();
   jest.clearAllMocks();
+  mockUnfilledFooter = true;
   mockProviderSend.mockResolvedValue({ messageId: 'sent-1' });
   mockRender.mockImplementation(async (id: string) =>
     id === 'auth.verifyEmail' ? verifyReal : welcomeReal,
@@ -93,6 +101,7 @@ const LIVE_ENVS: Array<[string, Record<string, string>]> = [
   ['ses', SES_ENV],
   ['smtp', SMTP_ENV],
 ];
+const DRY_ENV = { EMAIL_PROVIDER: 'dry-run', EMAIL_DRY_RUN: 'true' };
 const BASE_ENV_EXTRA = { AUTH_SERVICE_URL: 'http://localhost:4001' };
 
 function job(template: string, attemptsMade = 0, attempts = 5): Job<EmailJobData> {
@@ -177,10 +186,11 @@ function expectNoSensitive() {
 }
 
 describe('fixtures are the real rendered output', () => {
-  it('auth.verifyEmail really carries both placeholders in html and text', () => {
+  it('auth.verifyEmail, as shipped (T-436), carries neither placeholder in html and text', () => {
     for (const part of [verifyReal.html, verifyReal.text]) {
-      expect(part).toContain('[registered address]');
-      expect(part).toContain('[PIN]');
+      expect(part).not.toContain('[registered address]');
+      expect(part).not.toContain('[PIN]');
+      expect(part).toContain('Lawie (Sole Proprietorship), Ranchi, Jharkhand');
     }
   });
   it('auth.welcome, as shipped, carries neither', () => {
@@ -199,13 +209,41 @@ describe('templateHasUnfilledFooter / anyTemplateUnfilled (static footer)', () =
   it('removed the rendered-output check', () => {
     expect((ph as Record<string, unknown>).hasUnfilledPlaceholder).toBeUndefined();
   });
-  it('auth.verifyEmail is unfilled; auth.welcome and an unknown id are not', () => {
+  it('injected unfilled verifyEmail footer: flagged; auth.welcome and an unknown id are not', () => {
     expect(ph.templateHasUnfilledFooter('auth.verifyEmail')).toBe(true);
     expect(ph.templateHasUnfilledFooter('auth.welcome')).toBe(false);
     expect(ph.templateHasUnfilledFooter('nope.nothing' as never)).toBe(false);
   });
-  it('anyTemplateUnfilled is true while verifyEmail has the placeholders', () => {
+  it('anyTemplateUnfilled is true while verifyEmail has the injected placeholders', () => {
     expect(ph.anyTemplateUnfilled()).toBe(true);
+  });
+  it.each([
+    [
+      '[registered address] alone',
+      'Lawie (Sole Proprietorship), [registered address], Ranchi',
+      true,
+    ],
+    ['[PIN] alone', 'Lawie (Sole Proprietorship), Ranchi, Jharkhand [PIN]', true],
+    ['the signed footer', 'Lawie (Sole Proprietorship), Ranchi, Jharkhand', false],
+    [
+      'other brackets are not placeholders',
+      'Lawie (Sole Proprietorship) [Ranchi], Jharkhand',
+      false,
+    ],
+  ])('footer1 with %s -> flagged: %s', async (_l, footer1, expected) => {
+    mockUnfilledFooter = footer1;
+    await inEnv(DRY_ENV, async ({ ph: fresh }) => {
+      expect(fresh.templateHasUnfilledFooter('auth.verifyEmail')).toBe(expected);
+      expect(fresh.anyTemplateUnfilled()).toBe(expected);
+    });
+  });
+  it('real shipped footer (flag off): verifyEmail is NOT flagged and nothing is unfilled', async () => {
+    mockUnfilledFooter = false;
+    await inEnv(DRY_ENV, async ({ ph: fresh }) => {
+      expect(fresh.templateHasUnfilledFooter('auth.verifyEmail')).toBe(false);
+      expect(fresh.templateHasUnfilledFooter('auth.welcome')).toBe(false);
+      expect(fresh.anyTemplateUnfilled()).toBe(false);
+    });
   });
 });
 
@@ -234,6 +272,19 @@ describe.each(LIVE_ENVS)('queue worker, live mode (%s)', (_name, LIVE) => {
     expect(r.result).toBeUndefined();
     expectNoSensitive();
     expect(dump(r.thrown)).not.toContain(LEAK_ADDRESS);
+  });
+
+  it('T-436: with the real, filled footer a verify email is NOT refused: processed, mint and send once', async () => {
+    mockUnfilledFooter = false;
+    const r = await runProcessor(LIVE, 'auth.verifyEmail');
+    expect(r.thrown).toBeUndefined();
+    expect(r.mint).toHaveBeenCalledTimes(1);
+    expect(r.send).toHaveBeenCalledTimes(1);
+    expect(r.result).toEqual({ messageId: 'sent-1' });
+    expect(
+      parsedLogs().filter((l) => String(l.msg).includes('unfilled footer placeholders')),
+    ).toHaveLength(0);
+    expect(capture).not.toHaveBeenCalled();
   });
 
   it('the refusal comes before the userId check (job without a userId gets the same error)', async () => {
@@ -324,16 +375,19 @@ describe('queue worker, dry run', () => {
     ['EMAIL_DRY_RUN=true on smtp', { ...SMTP_ENV, EMAIL_DRY_RUN: 'true' }],
     ['provider dry-run', { EMAIL_PROVIDER: 'dry-run', EMAIL_DRY_RUN: 'false' }],
     ['setupEnv default', { EMAIL_PROVIDER: 'dry-run', EMAIL_DRY_RUN: 'true' }],
-  ])('auth.verifyEmail with the real footer sends normally (%s)', async (_l, env) => {
-    const r = await runProcessor(env, 'auth.verifyEmail');
-    expect(r.thrown).toBeUndefined();
-    expect(r.mint).toHaveBeenCalledTimes(1);
-    expect(r.send).toHaveBeenCalledTimes(1);
-    expect(r.result).toEqual({ messageId: 'sent-1' });
-    expect(
-      parsedLogs().filter((l) => String(l.msg).includes('unfilled footer placeholders')),
-    ).toHaveLength(0);
-  });
+  ])(
+    'auth.verifyEmail with an injected unfilled footer still sends in dry run (%s)',
+    async (_l, env) => {
+      const r = await runProcessor(env, 'auth.verifyEmail');
+      expect(r.thrown).toBeUndefined();
+      expect(r.mint).toHaveBeenCalledTimes(1);
+      expect(r.send).toHaveBeenCalledTimes(1);
+      expect(r.result).toEqual({ messageId: 'sent-1' });
+      expect(
+        parsedLogs().filter((l) => String(l.msg).includes('unfilled footer placeholders')),
+      ).toHaveLength(0);
+    },
+  );
 });
 
 describe('POST /send', () => {
@@ -397,6 +451,19 @@ describe('POST /send', () => {
       const r = await post(LIVE, BODY, { [INTERNAL_HEADERS.SECRET]: 'nope-nope-nope-nope' });
       expect(r.status).toBe(401);
       expect(mockRender).not.toHaveBeenCalled();
+    });
+  });
+
+  describe.each(LIVE_ENVS)('T-436 real filled footer, live (%s)', (_n, LIVE) => {
+    it('auth.verifyEmail -> 202, not 422; provider called once', async () => {
+      mockUnfilledFooter = false;
+      const r = await post(LIVE, BODY);
+      expect(r.status).toBe(202);
+      expect(JSON.parse(r.text)).toEqual({ messageId: 'sent-1' });
+      expect(mockProviderSend).toHaveBeenCalledTimes(1);
+      expect(
+        parsedLogs().filter((l) => String(l.msg).includes('unfilled footer placeholders')),
+      ).toHaveLength(0);
     });
   });
 

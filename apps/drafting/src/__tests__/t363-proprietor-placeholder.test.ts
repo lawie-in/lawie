@@ -127,7 +127,16 @@ function renderLedger(extra: Record<string, string>, omit: string[] = []) {
 
 const CLEAN_HEADER_START = 'To,\nDemo Traders\n5 Lajpat Nagar, Delhi\n';
 
-function expectNoProprietorHeader(h: string) {
+// T-440 Q1 (Ajay, a9bc957): with no notice date the header's Date line is this blank, not
+// today. It is the one blank these fixtures may print: it is removed before the no-blank checks.
+const DATE_BLANK_LINE = 'Date: [To be confirmed: date the notice is sent]';
+const withoutDateBlank = (s: string): string => {
+  expect(s.split(DATE_BLANK_LINE).length - 1).toBeLessThanOrEqual(1);
+  return s.replace(DATE_BLANK_LINE, '');
+};
+
+function expectNoProprietorHeader(header: string) {
+  const h = withoutDateBlank(header);
   expect(h).toContain(CLEAN_HEADER_START);
   expect(h).not.toMatch(/To be confirmed/i);
   expect(h).not.toMatch(/MISSING/);
@@ -229,7 +238,7 @@ describe.each(paths)('T-363 proprietor placeholder: %s', (_name, render) => {
     expect(header).toContain(
       'To,\nMohan Lal,\nProprietor,\nDemo Traders,\n5 Lajpat Nagar, Delhi\n',
     );
-    expect(header).not.toMatch(/To be confirmed|MISSING/);
+    expect(withoutDateBlank(header)).not.toMatch(/To be confirmed|MISSING/);
   });
 
   it('AC3: a given payee proprietor prints as before', () => {

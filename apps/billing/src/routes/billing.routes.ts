@@ -9,12 +9,15 @@ import {
   findSubscriptionPlan,
   findTopupSku,
 } from '../config/credit-skus';
+import { readSellerConfig } from '../config/gst';
 import logger from '../config/logger';
 import { razorpay } from '../config/razorpay';
 import { authenticate } from '../middleware/authenticate';
 import { CouponCode } from '../models/CouponCode.model';
+import { Invoice } from '../models/Invoice.model';
 import { User } from '../models/User.model';
 import { GrantClaimBusyError } from '../services/ink-ledger.service';
+import { invoicePdfFilename, renderInvoicePdf } from '../services/invoice-pdf.service';
 import {
   createSubscription,
   getSubscriptionStatus,
@@ -223,6 +226,110 @@ router.get('/status', authenticate, async (req: Request, res: Response) => {
   } catch (err) {
     logger.error({ err }, 'Failed to get subscription status');
     res.status(500).json({ error: 'Failed to get subscription status' });
+  }
+});
+
+// ── GET /public/supplier — T-436: GST supplier details for public pages ──────
+//
+// No auth (gateway: /api/billing/public/supplier, public like /plans). Legal
+// name, trade name, GSTIN and State from env. No street address: Ajay's
+// Addendum 1 keeps it off public pages until the E-Commerce Rules question is
+// settled (it stays on the invoice PDF). 503 with an empty body while any of
+// the five seller values (GST_ADDRESS included, which invoices need) is missing.
+router.get('/public/supplier', (_req: Request, res: Response) => {
+  const seller = readSellerConfig();
+  if (!seller) {
+    res.set('Cache-Control', 'no-store');
+    res.status(503).json({});
+    return;
+  }
+  res.set('Cache-Control', 'public, max-age=3600');
+  res.json({
+    legalName: seller.legalName,
+    tradeName: seller.tradeName,
+    gstin: seller.gstin,
+    stateCode: seller.stateCode,
+    stateName: seller.stateName,
+  });
+});
+
+// ── GET /invoices — T-436: the caller's issued invoices and credit notes ─────
+//
+// Newest first. Without the seller block (it is the same on every row and the
+// PDF carries it).
+router.get('/invoices', authenticate, async (req: Request, res: Response) => {
+  const userId = req.jwtPayload!.sub;
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    res.json({ status: 'success', data: [] });
+    return;
+  }
+  try {
+    const rows = await Invoice.find({
+      userId: new mongoose.Types.ObjectId(userId),
+      state: 'issued',
+    })
+      .sort({ issuedAt: -1, _id: -1 })
+      .select('-seller -draft -__v')
+      .lean();
+    res.json({
+      status: 'success',
+      data: rows.map((r) => ({
+        id: String(r._id),
+        number: r.number,
+        kind: r.kind,
+        issuedAt: r.issuedAt,
+        customer: r.customer,
+        placeOfSupply: r.placeOfSupply,
+        lines: r.lines,
+        price: r.price,
+        taxable: r.taxable,
+        cgst: r.cgst,
+        sgst: r.sgst,
+        igst: r.igst,
+        total: r.total,
+        originalInvoiceId: r.originalInvoiceId ? String(r.originalInvoiceId) : null,
+        originalInvoiceNumber: r.originalInvoiceNumber ?? null,
+      })),
+    });
+  } catch (err) {
+    logger.error(
+      { userId, errName: err instanceof Error ? err.name : 'unknown' },
+      'Failed to list invoices',
+    );
+    res.status(500).json({ error: 'Failed to list invoices' });
+  }
+});
+
+// ── GET /invoices/:id/pdf — T-436: one issued invoice as a PDF ───────────────
+//
+// Owner or Admin; anyone else (and any unknown, unissued or malformed id) 404.
+router.get('/invoices/:id/pdf', authenticate, async (req: Request, res: Response) => {
+  const { sub: userId, role } = req.jwtPayload!;
+  const id = req.params.id;
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    res.status(404).json({ error: 'Invoice not found' });
+    return;
+  }
+  try {
+    const inv = await Invoice.findOne({ _id: new mongoose.Types.ObjectId(id), state: 'issued' });
+    if (!inv || (role !== 'Admin' && String(inv.userId) !== userId)) {
+      res.status(404).json({ error: 'Invoice not found' });
+      return;
+    }
+    const pdf = await renderInvoicePdf(inv);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${invoicePdfFilename(inv.number!)}"`,
+      'Cache-Control': 'private, no-store',
+      'Content-Length': String(pdf.length),
+    });
+    res.send(pdf);
+  } catch (err) {
+    logger.error(
+      { invoiceId: id, errName: err instanceof Error ? err.name : 'unknown' },
+      'Failed to render invoice PDF',
+    );
+    res.status(500).json({ error: 'Failed to render invoice' });
   }
 });
 

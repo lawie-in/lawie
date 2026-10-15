@@ -14,7 +14,7 @@
 2. Deletion uses the same path as account deletion (T-242/T-235): the account and its data go, signupSource included.
 3. Logs record only a count of deleted accounts. No address and no userId go to third-party logs.
 4. Tests: a 29-day account is kept; a 31-day account is deleted; a verified account and a Google-linked account are kept at any age.
-5. Ajay signed (44326dc): 30 days after sign-up confirmed. In the same release, Privacy Policy §9 gets the line "Accounts whose email address is never verified: deleted 30 days after sign-up." Bump the policy version with no change summary, so no re-accept prompt (retention only gets shorter). The policy file is legal content: the lead lists it in the claim.
+5. Ajay signed (44326dc): 30 days after sign-up confirmed. In the same release, Privacy Policy §9 gets the line "Accounts whose email address is never verified: deleted 30 days after sign-up." ~~Bump the policy version with no change summary, so no re-accept prompt (retention only gets shorter).~~ **Struck 15 Oct 2026 (Arjun):** the single privacy-version bump, with its summary, rides on T-436 AC8 (Ajay fc0d74d). T-358 changes the §9 text only and does not bump the version. The policy file is legal content: the lead lists it in the claim.
 
 Out of scope: nothing on warning emails. Ajay a84e298 requires a 7-day notice email before deletion, so it is in scope.
 
@@ -50,3 +50,5 @@ The purge, no mass email and "resend at next sign-in" are approved (Arjun's mech
 - Whichever email reaches the user first (the resend or the T-358 notice) starts the clock. Deletion comes no earlier than 30 days after it, not 7.
 - If the notice is that first email, send a fresh link again 7 days before the deletion date.
 - Throttling can delay a notice but never shortens the 30 days.
+
+**Arjun (14 Oct, 23:58 UTC) — round 2:** (1) Keep the 24 h grace before the first notice; it only delays. (2) The sweep must not stockpile first notices while the worker is held. Gate it: `UNVERIFIED_SWEEP_ENABLED` env (default `false`); the sweep enqueues nothing while it is false and logs the "due" count. The founder flips it to `true` only after purge → footer env → deploy → `verify:resend-all`. Belt and braces: `queue:purge` (T-436 AC10) also purges `auth.unverifiedDeletionNotice` jobs. Order is owned by the T-403 checklist.

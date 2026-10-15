@@ -2,7 +2,7 @@
 
 | Field  | Value                                                                  |
 | ------ | ---------------------------------------------------------------------- |
-| Status | Todo. Mahak, after T-424. V1 go-live prerequisite. Priya, 14 Oct 2026  |
+| Status | Merged into develop_staging 04930a7 (Mahak, 15 Oct 2026). Nothing to test in the UI. Priya |
 | Owner  | Mahak (build), Arjun (design)                                          |
 | Mode   | Small fix (root config / deploy scripts; CI-file claim)                |
 

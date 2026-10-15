@@ -13,11 +13,17 @@ const nextConfig = {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000',
   },
   // T-306: the Google callback lands on /auth/callback?code=…; no Referer may carry that URL.
-  // Scoped to this one path. The page also renders <meta name="referrer"> as a backup.
+  // T-377: the verification link lands on /verify-email with the token in the URL fragment or
+  // query; no Referer may carry that URL either.
+  // Scoped to these two paths. Both pages also render <meta name="referrer"> as a backup.
   async headers() {
     return [
       {
         source: '/auth/callback',
+        headers: [{ key: 'Referrer-Policy', value: 'no-referrer' }],
+      },
+      {
+        source: '/verify-email',
         headers: [{ key: 'Referrer-Policy', value: 'no-referrer' }],
       },
     ];
