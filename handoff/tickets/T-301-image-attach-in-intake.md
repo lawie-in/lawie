@@ -5,7 +5,7 @@
 | Phase      | 3 — Matter context              |
 | Owner      | Vishal                          |
 | Mode       | Full chain                      |
-| Status     | Blocked: T-101, T-104 and T-109 |
+| Status     | Founder 15 Oct 2026: uploads are V1 (moves T-301 to T-304 from "after v1" to V1). Needs Arjun re-scope onto the brief flow (ADR-021); ADR-019 3.9 D4 (images sent direct to Anthropic) still needs the founder. Priya |
 | Depends on | T-101, T-104, T-109             |
 | Branch     | feature/t-301-image-attach      |
 | Created    | 2026-10-03                      |
