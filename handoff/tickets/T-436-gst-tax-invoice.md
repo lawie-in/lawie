@@ -129,3 +129,12 @@ Tax rule: code 20 (our state) gives CGST 9% + SGST 9%. Every other code, all UTs
 - `yarn.lock` has a hand-sorted pdfkit block; run `yarn install --frozen-lockfile` before pushing.
 
 **Arjun (14 Oct, 23:58 UTC) — AC10 purge covers the T-358 notice too:** `queue:purge` removes held `auth.unverifiedDeletionNotice` jobs as well as verify jobs. Prod order (T-403): purge dry-run → purge → set footer env → deploy → `verify:resend-all` dry-run → `verify:resend-all` → set `UNVERIFIED_SWEEP_ENABLED=true` → deploy auth.
+
+## Arjun (15 Oct, 00:10 UTC) — Shashank's four mechanism calls for (b)/(c)
+
+1. **(b): the job carries `userId` and `invoiceId` only.** The worker fetches name, address and amount at send time from a new billing internal route (`GET /internal/invoices/:id/email-view`, internal secret, `BILLING_SERVICE_URL` in the worker like the verify mint). Ajay's "{amount} (including GST)" is rendered at send time from that fetch; design #8 stands: Redis never carries an amount. Same pattern as T-223.
+2. **(a) plus the jobId.** One post-issue marker `emailQueuedAt`, set by a guarded update (`null` only) that the immutability guard explicitly allows; the sweep picks issued rows without it; BullMQ jobId `invoice-<id>` dedupes as belt and braces.
+3. **(b): a separate `RefundCap` collection** keyed by the original invoice id, conditional `$inc` on `refundedTotal` with `creditedRefundIds` for idempotency, then the credit note. Invoice rows stay immutable. This closes the parked should-fix from (a).
+4. **One bump, T-436's, with the summary.** Ajay (fc0d74d) already said the privacy-version bump rides on T-436 AC8; T-358 AC5 is dropped — T-358 never bumps, whichever lands first. Tanvi told.
+
+Claim: billing gains `@lawie/email-client` and `REDIS_URL` (Dockerfile, ci.yml billing filter, build step) — root config/CI, Priya extends the claim.
