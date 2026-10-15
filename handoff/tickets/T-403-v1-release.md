@@ -93,3 +93,5 @@ The four root env example files (production, staging, demo and the base example)
 On the web-domain nginx on the EC2 server, apply the snippet in `docs/nginx-access-log.md` (a `map` that replaces the query string with `?[stripped]` for `/verify-email` and `/auth/callback`, used in a custom `log_format`), run `nginx -t`, reload, and check with the one-line grep in that doc that no token shows. Arjun reviews the doc first.
 
 Note (Mahak, T-377): the nginx map regex and `map` value behaviour are unverified until the founder's `nginx -t` on the server. Run it before reload.
+
+Note (Mahak's reviewer, T-377b): docker/nginx/nginx.prod.conf only runs on the now-unused docker path, so the LIVE nginx on EC2 is protected only once the founder applies `docs/nginx-access-log.md` on BOTH domains (the web domain and the API domain). Two known limits are in that doc: the nginx error log on an upstream failure, and case/percent-encoding/double-slash variants are not stripped.
