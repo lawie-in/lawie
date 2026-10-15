@@ -114,7 +114,7 @@
       "clause_id": "non_compete_in_service",
       "title": "Non-Compete During Employment",
       "must_appear": true,
-      "note": "Post-employment non-compete on employees is VOID under S.27 Contract Act per Superintendence Co. v. Krishan Murgai. Do NOT include post-termination non-compete restraint."
+      "note": "Post-employment non-compete on employees is VOID under S.27 Contract Act. Do NOT include post-termination non-compete restraint."
     },
     { "clause_id": "garden_leave", "title": "Garden Leave / Notice Buyout", "must_appear": true },
     {
@@ -165,7 +165,7 @@
   "prompt_context": {
     "system_role": "You are drafting an Indian employment contract. Comply with S.27 Contract Act - NO post-employment non-compete. Confidentiality, non-solicit, and IP assignment are enforceable post-termination. Apply Shops & Establishments Act of relevant state for hours/leave/holidays.",
     "drafting_rules": [
-      "Do NOT include post-employment non-compete (void per S.27 - cite Niranjan Shankar Golikari and Superintendence Co. v. Krishan Murgai).",
+      "Do NOT include post-employment non-compete (void per S.27).",
       "Confidentiality survives termination - enforceable.",
       "Non-solicit (employees, customers) for 12-24 months post-termination - reasonable, enforceable as protecting legitimate interest.",
       "IP assignment - express, broad, covers during-employment IP.",
@@ -178,7 +178,10 @@
       "Termination for cause: misconduct, fraud, breach. Termination otherwise: notice period.",
       "Stamp on appropriate value paper (state-wise, usually INR 100-500)."
     ],
-    "tone": "Formal employment contract, balanced, India-compliant."
+    "tone": "Formal employment contract, balanced, India-compliant.",
+    "promptInstructions": [
+      "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
+    ]
   },
   "relevantActs": [
     { "act": "Indian Contract Act 1872", "sections": ["S.27 (void non-compete)"] },

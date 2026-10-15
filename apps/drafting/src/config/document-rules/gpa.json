@@ -260,7 +260,7 @@
       "Draft a GENERAL POWER OF ATTORNEY under the Powers-of-Attorney Act, 1882 read with Indian Contract Act, 1872 (Chapter X — Agency, S.182-238).",
       "Powers of Attorney Act, 1882, S.1A — defines 'Power of Attorney' as any instrument empowering a specified person to act for and in the name of the person executing it.",
       "S.2 — Execution under power of attorney is execution in name of principal; binding on principal.",
-      "CRITICAL — Suraj Lamp & Industries Pvt Ltd v. State of Haryana (2012) 1 SCC 656: GPA-cum-Sale or 'SA-cum-GPA-cum-Will' transactions are NOT valid modes of transfer of immovable property. A GPA, even if it includes power to sell, does NOT itself transfer title. Title can only pass by a registered sale deed. The Supreme Court has SPECIFICALLY held that such GPA-cum-sale shortcuts are an evasion of stamp duty + registration + tax law and not legally effective for transfer of ownership.",
+      "CRITICAL — GPA-cum-Sale or 'SA-cum-GPA-cum-Will' transactions are NOT valid modes of transfer of immovable property. A GPA, even if it includes power to sell, does NOT itself transfer title. Title can only pass by a registered sale deed. The Supreme Court has SPECIFICALLY held that such GPA-cum-sale shortcuts are an evasion of stamp duty + registration + tax law and not legally effective for transfer of ownership.",
       "If user data shows GPA includes power to sell immovable property — MUST insert a prominent disclaimer in the deed: 'This GPA confers powers of management and representation. It does NOT operate as a transfer of ownership of any immovable property. Any sale of immovable property covered hereby shall be effected only by a duly stamped and registered Sale Deed. The Grantor's title shall stand transferred ONLY upon registration of such Sale Deed.'",
       "DISTINGUISH FROM SPA: SPA (Special Power of Attorney) is for a SPECIFIC transaction (e.g., 'to execute sale deed of plot X to buyer Y at consideration Z'). GPA is broader.",
       "STRUCTURE:",
@@ -276,10 +276,11 @@
       "Para 10: TERMINATION on death of grantor (per S.201 ICA), insolvency, insanity.",
       "Para 11: INDEMNITY — attorney indemnifies grantor for losses arising from unauthorised acts.",
       "Para 12: STAMP DUTY — state-specific (verify):\n   - Bihar: Article 48 Bihar Stamp Schedule — Rs.100 to higher amounts depending on type.\n   - Jharkhand: similar.\n   - UP: Article 48 — Rs.10 to Rs.100 for general; higher where GPA authorises sale of immovable.\n   - Delhi: Article 48 Delhi Stamp Schedule — varies; for sale authorisation, higher duty applicable.",
-      "Para 13: AUTHENTICATION:\n   (a) Notarisation — minimum requirement under Notaries Act, 1952.\n   (b) Registration under S.17(1) Registration Act — NOT mandatory for ordinary GPA, BUT mandatory for GPA executed by NRIs OR for GPAs that include power to sell immovable property (per state amendments and Suraj Lamp directives). Several states (Delhi, Haryana, UP) have circulars requiring registration for property GPAs.\n   (c) GPA executed abroad — must be (i) attested by Indian Consulate / Embassy OR (ii) apostilled (if grantor in Hague Apostille Convention country) AND (iii) authenticated under S.18 Registration Act within 3 months of arrival in India.",
+      "Para 13: AUTHENTICATION:\n   (a) Notarisation — minimum requirement under Notaries Act, 1952.\n   (b) Registration under S.17(1) Registration Act — NOT mandatory for ordinary GPA, BUT mandatory for GPA executed by NRIs OR for GPAs that include power to sell immovable property (per state amendments). Several states (Delhi, Haryana, UP) have circulars requiring registration for property GPAs.\n   (c) GPA executed abroad — must be (i) attested by Indian Consulate / Embassy OR (ii) apostilled (if grantor in Hague Apostille Convention country) AND (iii) authenticated under S.18 Registration Act within 3 months of arrival in India.",
       "Para 14: WITNESSES — two adult attesting witnesses (mandatory under Notaries Act / Registration Act).",
       "Para 15: Where Grantor is a company — Board Resolution authorising execution annexed; signed by Authorised Signatory.",
-      "Append Lawie disclaimer."
+      "Append Lawie disclaimer.",
+      "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
   "relevantActs": [
@@ -316,7 +317,7 @@
       "sections": [
         {
           "number": "S.17",
-          "description": "Documents of which registration is compulsory — GPA for sale of immovable property arguably falls under read with Suraj Lamp"
+          "description": "Documents of which registration is compulsory — GPA for sale of immovable property arguably falls under"
         },
         {
           "number": "S.18",
