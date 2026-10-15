@@ -73,6 +73,7 @@ Where each lead stopped:
 
 ## Last done
 
+- tanvi: T-358 merged aed2599b (15 Oct 2026). Unconfirmed accounts get a notice before deletion (first within a day, reminder about three weeks in), deleted end of day 30 (IST) only after an email actually sent. Sweep OFF by default (UNVERIFIED_SWEEP_ENABLED unset); turn on LAST in T-403. Follow-up for Kunal after T-364: queue:purge also clears auth.unverifiedDeletionNotice (Arjun asked for both). Tanvi next: T-171.
 - kunal: T-436 AC10 round 2 merged 33107053 (15 Oct 2026). queue:purge and verify:resend-all operator scripts (dry-run default), email-worker queues/worker, README order for T-403. Next: T-364 (holds packages/shared).
 - mahak: T-377b follow-up merged 20d0cb9 (15 Oct 2026). nginx.prod.conf strips the query on /verify-email, /auth/callback and the Google callback (/api/auth/google/callback); upstream ports fixed to 4000-4003; docs/nginx-access-log.md covers both domains; t377 test 28 cases. The two staging file deletions are not in (need the founder's approval). Row open for T-443.
 - CI: run 582 green on 846ad85, the first uncancelled full-tree run since 550. Covers everything merged since.

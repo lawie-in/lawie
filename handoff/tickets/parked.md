@@ -52,3 +52,4 @@ Should-fixes and nice-to-haves that are not tickets (Arjun's rule, 14 Oct 2026; 
 | 15 Oct 2026 | T-358 (Tanvi) | Partial index on firstVerifySentAt / unverifiedNoticeSentAt for the hourly sweep counts (index migration). |
 | 15 Oct 2026 | T-442/T-377b (Mahak) | Once docker-compose.staging.yml and deploy-staging.yml are deleted: README.md:189 says `develop` 'auto-deploys staging' (wrong), .gitleaks.toml:37 allowlists .env.staging.example, the root staging env example is orphaned, .github/copilot-instructions.md:90 is stale. Fix with the deletions. |
 | 15 Oct 2026 | T-436 (Shashank) | On a credit-note row, 'Against invoice {n}' is plain text. A link to the original invoice row or PDF would be nicer (Rajesh/Meera). |
+- T-358: partial index for the sweep counts; stamp the notice at send time; a failed notice job blocks re-queue for up to 30 days (fails safe). (tanvi, 15 Oct)
