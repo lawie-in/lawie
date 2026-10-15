@@ -127,6 +127,15 @@ yarn workspace @lawie/billing test
 yarn workspace @lawie/drafting test:watch
 ```
 
+### Sentry scrubbing (T-229)
+
+No credentials or personal data may reach Sentry from any service. One scrub does it: `packages/shared/src/observability/sentry-scrub.ts` (exported from `@lawie/shared`). It keeps only an allowlist of request headers, removes request bodies, cookies and query strings, masks emails and reset/review tokens in URLs, cuts `event.user` to `{id}`, and scrubs tags and breadcrumb data. The header comment in that file lists the full rules.
+
+- Every service that initialises Sentry must run the scrub from **both** `beforeSend` and `beforeSendTransaction`. Transactions skip `beforeSend` but carry the same request data. This covers gateway, auth, drafting, billing, email-worker (`apps/email-worker/src/config/sentry.ts`) and the web server and edge configs. A new service copies that pattern.
+- Each service has a `t229-sentry-hooks` test that checks both hooks. Do not use the SDK's `dataCollection` option instead; it loosens other defaults.
+- Gotcha for local tests: the services call `Sentry.init` (and so register the hooks) only when `SENTRY_DSN` is set, and CI leaves it unset. A test that exercises the hooks must set a dummy `SENTRY_DSN`, mock the SDK, and load the config module fresh (`jest.isolateModules`), as the `t229-sentry-hooks` tests do. (email-worker takes the env as an argument: call `initSentry({ SENTRY_DSN: ... })`.)
+- Build `@lawie/shared` before running service tests, as CI does.
+
 ---
 
 ## Environment Variables
