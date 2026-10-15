@@ -88,7 +88,7 @@ import {
   renderPdf,
 } from '../services/pdf-export.service';
 import { preflightCheck } from '../services/preflight.service';
-import { loadRulePack } from '../services/rule-pack.service';
+import { applyFieldAliases, loadRulePack } from '../services/rule-pack.service';
 import { NOT_FIXTURE, NOT_FIXTURE_GENERATION } from '../services/run-origin';
 import { withS138DateChecks } from '../services/s138-date-checks';
 import {
@@ -779,9 +779,12 @@ router.post(
       return;
     }
 
+    // T-451 alias, remove in the post-v1 cleanup
+    const aliasedFormData = applyFieldAliases(form_data, template_id);
+
     try {
       const userId = req.jwtPayload?.sub;
-      const result = await preflightCheck(template_id, form_data, userId, {
+      const result = await preflightCheck(template_id, aliasedFormData, userId, {
         advocateName: req.jwtPayload?.name || undefined,
         enrollmentNumber:
           userId && template_id === 'vakalatnama'
@@ -820,7 +823,9 @@ router.post(
     }
 
     const payload = req.jwtPayload!;
-    const { template_id, form_data, run_id, intake_id } = parsed.data;
+    const { template_id, form_data: postedFormData, run_id, intake_id } = parsed.data;
+    // T-451 alias, remove in the post-v1 cleanup
+    const form_data = applyFieldAliases(postedFormData, template_id);
 
     // Load template config
     let templateConfig: ReturnType<typeof loadTemplateConfig>;

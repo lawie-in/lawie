@@ -106,13 +106,13 @@
         "type": "checkbox_multi",
         "required": true,
         "options": [
-          "no_offence_disclosed_bhajan_lal_cat_1",
-          "ingredients_not_made_out_bhajan_lal_cat_2",
-          "facts_absurd_inherently_improbable_bhajan_lal_cat_3",
-          "express_legal_bar_bhajan_lal_cat_4",
-          "civil_dispute_criminal_colour_bhajan_lal_cat_5",
-          "mala_fide_personal_vendetta_bhajan_lal_cat_6",
-          "procedural_illegality_bhajan_lal_cat_7",
+          "no_offence_disclosed",
+          "ingredients_not_made_out",
+          "facts_absurd_inherently_improbable",
+          "express_legal_bar",
+          "civil_dispute_criminal_colour",
+          "mala_fide_personal_vendetta",
+          "procedural_illegality",
           "compromise_compoundable_offence",
           "settlement_in_matrimonial_or_commercial_dispute"
         ]
@@ -182,7 +182,7 @@
       "description": "Why the ingredients of each BNS section are not made out"
     },
     {
-      "id": "bhajan_lal_paragraph",
+      "id": "quashing_categories_paragraph",
       "name": "Recognised Quashing Categories Invoked",
       "required": true,
       "description": "Which of the 7 categories applies, with reasoning"

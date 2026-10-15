@@ -99,8 +99,8 @@
         ]
       },
       {
-        "id": "bhajan_lal_categories_invoked",
-        "label": "Bhajan Lal categories invoked (one or more)",
+        "id": "quashing_categories_invoked",
+        "label": "Grounds for quashing invoked (one or more)",
         "type": "checkbox_multi",
         "required": true,
         "options": [
@@ -203,7 +203,7 @@
       "description": "Why each ingredient of each BNS section invoked is missing"
     },
     {
-      "id": "bhajan_lal_paragraph",
+      "id": "quashing_categories_paragraph",
       "name": "Recognised Quashing Categories Verbatim",
       "required": true,
       "description": "Quote 7 categories VERBATIM and apply applicable ones"
@@ -362,7 +362,7 @@
     "petitioner_name must not be empty",
     "fir_number, fir_date, police_station must not be empty",
     "offences_alleged must use BNS sections (warn if IPC sections detected)",
-    "bhajan_lal_categories_invoked must have at least one selected",
+    "quashing_categories_invoked must have at least one selected",
     "factual_matrix must not be empty",
     "ingredient_analysis_per_section must not be empty",
     "interim_relief_required must have at least one option selected",
