@@ -160,6 +160,20 @@ Manual operator steps (nothing alerts on these yet):
 - Watch Sentry and auth logs for erase failures.
 - Check auth logs for the sweep's stuck-erase warning (logged at 5 or more attempts) and run the script with `--resume` for that user.
 
+### Held verification emails: purge and resend (T-436 AC10)
+
+Two operator scripts for clearing held `auth.verifyEmail` jobs and re-sending verification links once the corrected footer address is live. Both are dry runs by default and print counts only (the Redis URL is redacted). Run them with the target environment's `REDIS_URL` (and `EMAIL_QUEUE_PREFIX` if set); resend-all also needs the rest of the auth env (`MONGO_URI`).
+
+```bash
+yarn workspace @lawie/email-worker queue:purge [--yes]
+yarn workspace @lawie/auth verify:resend-all [--yes] [--batch-size N] [--batch-pause-ms N]
+```
+
+- `queue:purge` removes every held `auth.verifyEmail` job from `email-high` and `email-low` (wait, paused, prioritized, delayed, stalled-active). Locked active jobs are counted, not removed, and the script exits 1. It also exits 1 if jobs vanish during removal. Failed jobs are kept. Without `--yes` it removes nothing.
+- `verify:resend-all` picks users with `emailVerified != true` who are not Google sign-ins, are active and are not erased, and calls the real `requestVerifyEmail`. It skips users already re-sent (a 30-day Redis marker `auth:verify-resend-all:<userId>`, or a still-fresh link) and users with a job already pending, so a rerun is safe. Tally: queued, already_pending, rate_limited, already_verified, failed, skipped_rerun. It sends in batches of 50 with a 60 s pause (`VERIFY_RESEND_BATCH_SIZE` / `VERIFY_RESEND_BATCH_PAUSE_MS`, or the flags).
+
+Order for the T-403 release: purge dry run, `purge --yes`, set the footer address env, deploy, check `/health` returns 200, resend-all dry run, `resend-all --yes`. Purge before the deploy so no old-footer email goes out; resend only after the new footer is live.
+
 ### Pre-commit secret scanning
 
 ```bash
