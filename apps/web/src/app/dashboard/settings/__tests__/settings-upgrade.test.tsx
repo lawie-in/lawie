@@ -100,7 +100,11 @@ describe('T-370 settings page upgrade', () => {
   it('shows no upgrade block, and no "Unlimited", for a Pro user', async () => {
     mockPlan = 'pro';
     await mount();
-    expect(mockApiFetch).not.toHaveBeenCalled();
+    // T-436: the Invoices card fetches /api/billing/invoices for every user, Pro included. The
+    // plan catalogue is still not fetched for Pro, and nothing else is.
+    const paths = mockApiFetch.mock.calls.map((c) => c[0]);
+    expect(paths).not.toContain('/api/billing/plans');
+    expect(paths.filter((p) => p !== '/api/billing/invoices')).toEqual([]);
     expect(upgradeButton()).toBeUndefined();
     expect(container.textContent).toContain('Pro plan');
     expect(container.textContent).not.toMatch(/unlimited/i);
