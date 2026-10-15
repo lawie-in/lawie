@@ -1227,3 +1227,9 @@ Quality: nothing to test in the UI — operator scripts and docs only
 - Switches on only when the operator turns it on, so it cannot be seen on develop until then.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-443 — Old generate route retired (cc2adc0, mahak, 15 Oct 2026)
+
+- Nothing a user sees. A direct call to the old generate route is refused with a clear message instead of charging Ink for a draft that could cite the wrong law.
+
+Quality: nothing to test in the UI — API route only
