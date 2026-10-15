@@ -67,6 +67,8 @@ Not blocking. Weekly review with Arjun picks what to pull forward.
 | Ticket | Title | Status | Owner | Why |
 | --- | --- | --- | --- | --- |
 | T-446 | Upgrade page shows a 'fix your payment' message on 409 subscription_exists | todo | - | small improvement, after T-444 (Arjun) |
+| T-449 | Civil and family packs: no judgment names in model-visible text | todo | - | Ajay: same rule, V1.1 group |
+| T-450 | Deeds and agreements packs: no judgment names in model-visible text | todo | - | Ajay: same rule, V1.1 group |
 | T-128 | Fill the gaps in the rule packs | hold | - | old rule-pack sweep (quality polish) |
 | T-129 | Prayer and verification text for packs that have none | hold | - | old rule-pack sweep (quality polish) |
 | T-134 | Ask the user which document, do not guess | hold | - | parked should-fix items |
@@ -138,3 +140,6 @@ Parked on purpose. None of these is a launch task.
 - T-243 (waitlist form): Arjun's view is V1.1 unless launch is waitlist-gated. Placed V1.1 here; tell me if launch is gated by a waitlist.
 - T-252 (public site copy only says what the product does): V1 whatever the marketing plan, because claims on the public site are Ajay's domain (Arjun).
 - T-245b: V1 for every criminal pack in the launch catalogue; packs outside it are V1.1 (Ajay). Which packs are in the launch catalogue is still to be listed.
+| T-447 | Criminal packs: no judgment names in model-visible text | todo | - | Ajay: wrong-law/citation risk in drafts (T-441 group) |
+| T-448 | Writ packs: no judgment names in model-visible text | todo | - | Ajay: same rule, writs group |
+| T-451 | Judgment names in form labels and printed clause text | todo | - | Ajay: reaches the user or the filed document, always V1 |

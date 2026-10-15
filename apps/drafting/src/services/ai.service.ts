@@ -1584,6 +1584,27 @@ function withLawSwitchFacts(facts: readonly LedgerFact[], law: LawSwitchResult):
   return [...stored, ...added];
 }
 
+/**
+ * T-245a: the law switch's own computed displays (only facts withLawSwitchFacts
+ * added: source 'computed', id computed:<key>). The D1 renderer prints them
+ * into the signed skeleton's slots ({women_proviso}, {governing_provision},
+ * {notice_provision}), so the verifier reads them as signed skeleton text.
+ * Otherwise skeletonTexts gives it the bare `{women_proviso}` token and the
+ * signed "Section 480(1) of the BNSS" is flagged as unsupported.
+ */
+function lawSwitchSlotTexts(facts: readonly LedgerFact[]): string[] {
+  const keys = new Set<string>(LAW_SWITCH_FACT_KEYS);
+  return facts
+    .filter(
+      (f) =>
+        f.source === 'computed' &&
+        keys.has(f.key) &&
+        f.id === `computed:${f.key}` &&
+        typeof f.display === 'string',
+    )
+    .map((f) => f.display as string);
+}
+
 export async function streamGenerateFromBrief(
   rawInput: BriefGenerateInput,
   res: Response,
@@ -2571,6 +2592,7 @@ async function d1GenerateFromBrief(c: D1Context): Promise<BriefGenerateResult> {
         ...(ledgerInput.facts.court ? [ledgerInput.facts.court] : []),
         ...(promptInput.statedInstructions ?? []),
         ...skeletonTexts(skeleton),
+        ...lawSwitchSlotTexts(ledger.facts),
       ],
     }).filter((v) => !statedByAdvocate(v)),
   );

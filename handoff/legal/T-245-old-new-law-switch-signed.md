@@ -184,3 +184,48 @@ Signed: Ajay (CLO), 15 Oct 2026 IST.
 1. System rule 1 repeating the S-text and P-text verbatim (replacing "NEVER reference old IPC, CrPC"): **approved**.
 2. The dead `\n(Under {governing_provision})` suffix in the bail_before_magistrate / default_bail caseNomenclature: **remove it in T-245a** (it would print twice if ever wired). No other change to those strings.
 3. Offence-date-only warning scoped to the six packs until T-245b: noted.
+
+## Addendum 8: T-441, judgment names (Vishal, 15 Oct 2026)
+
+S = `Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon].`
+
+**(a) The five strings: approved as proposed** (including #2, bail_cancellation prompt_context :187, which I had missed). S is added once per pack, not once per line.
+
+**(b) T-441 covers the whole of criminal_revision, bail_cancellation, bail_anticipatory (twin) and interim_bail**, by the rules below. Same files as T-245a.
+
+**(c) The rest of the catalogue: one ticket per group, applying these signed rules mechanically.** I byte-check each group's diff; I do not pre-sign every line.
+
+| Rule | Text |
+|---|---|
+| R1 | In model-visible text (promptInstructions, prompt_context, system_role, clause names and descriptions, relevantActs descriptions, notes), delete each judgment name, its citation and its connector ("per", "in", "as held in", "see", "following", "cite … on"). Keep the legal proposition word for word. |
+| R2 | If a line only says to cite a judgment, delete the line. |
+| R3 | Add S once per pack, as the last promptInstructions entry. |
+| R4 | Where a name is used as a label ("Bhajan Lal categories", "Sarla Verma method"), replace it with a plain description proposed in the diff (e.g. "the recognised categories for quashing"). I check each one. |
+| R5 | No new law in any replacement: no new section, case or proposition. |
+| R6 | key_citations, key_precedents and _meta are not sent to the model: leave them. But change each `_meta.change_protocol` that makes a citation MANDATORY to `Do not name judgments in model-visible text (Ajay, T-441).` |
+| R7 | The _averments ban lists stay as they are. |
+
+**Always V1, whatever the group, signed one by one (send me the list):**
+- the 6 user-facing form labels naming cases (curative, fir_quashing, divorce_mutual, dv_act, plaint_recovery, plaint_partition);
+- any judgment inside fixed clause text that prints into the document (e.g. service_agreement);
+- the "Suraj Lamp Disclaimer" clause name (gpa/spa).
+
+Group order: criminal and writs **V1**; civil/family and deeds/agreements **V1.1**, except the always-V1 items above.
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+### Addendum 8: always-V1 items, signed byte-exact (15 Oct 2026)
+
+| File:line | New text |
+|---|---|
+| curative_petition.json :72 label | `Curative ground` |
+| fir_quashing.json :103 label | `Grounds for quashing invoked (one or more)` (the id stays) |
+| divorce_mutual_consent.json :148 label | `Whether waiver of the 6-month cooling period is sought` |
+| dv_act_complaint.json :82 label | `Additional respondents (in-laws, family members)` |
+| plaint_recovery.json :202 label | `Pre-institution mediation completed under Section 12A of the Commercial Courts Act, 2015 (if commercial and no urgent interim relief)` |
+| plaint_partition.json :93 label | `Female coparceners: daughters with an equal share after the Hindu Succession (Amendment) Act, 2005` |
+| service_agreement.json :75 printed content | Delete the last sentence, ` Reference: Dharangadhara Chemical Works v. Workmen AIR 1957 SC 264 (control test).`. The clause ends at `…all statutory dues.` |
+| gpa.json :239 name | `Title disclaimer (if power to sell included)`; the description stays. |
+| spa.json :233 name | `Title disclaimer (if power to sell)`; the description stays. |
+
+Any golden that moves (service_agreement especially) comes to me.
