@@ -3,8 +3,10 @@
 FROM node:20-alpine AS deps
 
 WORKDIR /app
+ENV HUSKY=0
 
 COPY package.json yarn.lock ./
+COPY .husky/install.mjs ./.husky/
 COPY apps/web/package.json ./apps/web/
 COPY packages/shared/package.json ./packages/shared/
 
