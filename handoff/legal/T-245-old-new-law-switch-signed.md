@@ -376,3 +376,10 @@ The model sees both ids, so they are renamed in T-451 with the same read-time al
 | `yes_flag_suraj_lamp_warning` | `yes_flag_title_warning` |
 
 Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+### T-451 joint_development_agreement id (Priya, 15 Oct 2026)
+
+- joint_development_agreement :246 option `yes_general_gpa_with_suraj_lamp_flag` becomes `yes_general_gpa_with_title_flag`, with the same read-time alias. The :641 validation rule follows the new id.
+- I swept every pack for judgment names in ids. The only carriers left are the ones already ruled for T-451 (fir_quashing, quashing_528_bnss, gpa, spa, and this one). `_averments/bail_regular` `arnesh_kumar_type_citation` is a ban-list id and stays under R7.
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.
