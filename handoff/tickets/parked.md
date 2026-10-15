@@ -35,3 +35,10 @@ Should-fixes and nice-to-haves that are not tickets (Arjun's rule, 14 Oct 2026; 
 | 14 Oct 2026 | T-437 fix (Vishal) | scripts/golden-set/__tests__/harness.test.ts runs in no CI job or workspace script, which is why the T-437 break showed only in the dry run. Add a CI step or a script. |
 | 14 Oct 2026 | T-436a (Kunal) | One unnamed billing failure under load (1 of 632), not reproducible in 7 reruns. If it shows in CI, the log has the name; Kunal chases it then. Likely a timing-dependent new async test (sweep timers or the concurrency test). |
 | 15 Oct 2026 | T-424 (Mahak) | gitleaks is not installed in the lead sandboxes, so the commit secret scan degrades to a warning (CLAUDE.md). Install it in the sandbox image, or confirm CI secret scanning covers pushes. |
+| 15 Oct 2026 | T-442 (Mahak) | The deploy health check retries 10 x 3 s; a slow fork-mode boot may false-fail (never false-pass). Arjun may want 20 tries. |
+| 15 Oct 2026 | T-442 (Mahak) | docker-compose.staging.yml and the .env*.example files still mention ECR_REGISTRY (staging is its own path). |
+| 15 Oct 2026 | T-442 (Mahak) | .env.production.example sets GATEWAY_PORT/AUTH_PORT/DRAFTING_PORT/BILLING_PORT but no service reads them (services read PORT). |
+| 15 Oct 2026 | T-442 (Mahak) | deploy-production.yml points to docs/DEPLOY.md, which does not exist. |
+| 15 Oct 2026 | T-442 (Mahak) | T-117 cites docker-compose.prod.yml line 5, now deleted. |
+| 15 Oct 2026 | T-442 (Mahak) | email-worker app.ts comment says /health is 'for docker-compose'; it is now the deploy gate (comment only). |
+| 15 Oct 2026 | T-442 (Mahak) | The web deploy check is GET / without -L; a redirect from / would false-fail (none today). Add a /health route to apps/web later. |
