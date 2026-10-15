@@ -34,6 +34,9 @@ export const INVOICES_STRINGS = {
   showMore: 'Show more',
   moreShown: (n: number) => `${n} more invoices shown`,
   creditNote: 'Credit note',
+  // Added 15 Oct (Priya, Shashank), same file.
+  againstInvoice: (invoiceNumber: string) => `Against invoice ${invoiceNumber}`,
+  pdfFailed: 'We could not download this invoice. Please try again.',
 } as const;
 
 /** Rajesh's spec §6: the list's accessible name. */
@@ -128,6 +131,8 @@ export function InvoicesCard() {
   const [state, setState] = useState<LoadState>({ kind: 'loading' });
   const [expanded, setExpanded] = useState(false);
   const [announce, setAnnounce] = useState('');
+  /** The row whose last PDF download failed (its inline alert shows), or null. */
+  const [pdfFailedId, setPdfFailedId] = useState<string | null>(null);
   const downloading = useRef(new Set<string>());
 
   const load = useCallback(async () => {
@@ -154,15 +159,19 @@ export function InvoicesCard() {
   const downloadPdf = async (row: InvoiceRow) => {
     if (downloading.current.has(row.id)) return;
     downloading.current.add(row.id);
+    // A new attempt clears the last failure message.
+    setPdfFailedId(null);
     try {
       const res = await apiFetch(`/api/billing/invoices/${encodeURIComponent(row.id)}/pdf`);
       if (!res.ok) {
         console.error('[invoices] pdf failed:', res.status);
+        setPdfFailedId(row.id);
         return;
       }
       downloadBlob(await res.blob(), invoicePdfFilename(row.number));
     } catch (err) {
       console.error('[invoices] pdf failed:', err instanceof Error ? err.name : 'error');
+      setPdfFailedId(row.id);
     } finally {
       downloading.current.delete(row.id);
     }
@@ -227,13 +236,18 @@ export function InvoicesCard() {
                 // grid; 1280 px: one line, date first, by `order`.
                 <li
                   key={row.id}
-                  className="grid grid-cols-[1fr_auto] items-center gap-x-3 py-3 sm:flex sm:gap-x-4"
+                  className="grid grid-cols-[1fr_auto] items-center gap-x-3 py-3 sm:flex sm:flex-wrap sm:gap-x-4"
                 >
                   <span className="flex flex-wrap items-center gap-2 break-all text-sm text-slate-800 sm:order-2 sm:flex-1">
                     {row.number}
                     {isCreditNote && (
                       <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
                         {INVOICES_STRINGS.creditNote}
+                      </span>
+                    )}
+                    {isCreditNote && row.originalInvoiceNumber && (
+                      <span className="basis-full text-xs text-slate-500">
+                        {INVOICES_STRINGS.againstInvoice(row.originalInvoiceNumber)}
                       </span>
                     )}
                   </span>
@@ -261,6 +275,14 @@ export function InvoicesCard() {
                       {INVOICES_STRINGS.pdf}
                     </button>
                   </span>
+                  {pdfFailedId === row.id && (
+                    <p
+                      role="alert"
+                      className="text-brand-error col-span-2 mt-1 text-xs sm:order-5 sm:basis-full"
+                    >
+                      {INVOICES_STRINGS.pdfFailed}
+                    </p>
+                  )}
                 </li>
               );
             })}
