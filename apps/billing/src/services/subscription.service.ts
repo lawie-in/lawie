@@ -47,6 +47,16 @@ const LIVE_STATUSES: SubscriptionStatus[] = ['active', 'pending', 'halted', 'pau
 const PAID_THROUGH_STATUSES: SubscriptionStatus[] = ['cancelled', 'halted', 'paused', 'completed'];
 /** T-444: terminal statuses; a charge never moves a sub out of them. */
 const TERMINAL_STATUSES: SubscriptionStatus[] = ['cancelled', 'completed', 'expired'];
+/**
+ * T-444b: live statuses that stop blocking createSubscription once paidThrough
+ * has passed (they are then written expired locally).
+ */
+const LAPSABLE_STATUSES: SubscriptionStatus[] = ['halted', 'paused', 'pending'];
+/**
+ * T-444b (Arjun must-fix): on the charge path with no paid_count and no
+ * current_start (no claim), only these statuses may be moved to active.
+ */
+const UNCLAIMED_ACTIVE_FROM: SubscriptionStatus[] = ['created', 'authenticated', 'active'];
 
 /**
  * T-444 (Arjun ruling 7): the user already has a live subscription. The route
@@ -88,16 +98,46 @@ export async function createSubscription(
 
   // T-444 (Arjun ruling 7): one non-terminal sub per user. A live sub (paid, or
   // in payment trouble) blocks a new one; the user fixes or cancels it first.
-  const live = await Subscription.findOne({
-    userId,
-    status: { $in: LIVE_STATUSES },
-  }).sort({ createdAt: -1 });
-  if (live) {
+  const findLive = () =>
+    Subscription.findOne({
+      userId,
+      status: { $in: LIVE_STATUSES },
+    }).sort({ createdAt: -1 });
+  const refuse = (s: NonNullable<Awaited<ReturnType<typeof findLive>>>): never => {
     throw new SubscriptionExistsError({
-      status: live.status,
-      planId: live.planId ?? null,
-      paidThrough: live.paidThrough ?? live.currentPeriodEnd ?? null,
+      status: s.status,
+      planId: s.planId ?? null,
+      paidThrough: s.paidThrough ?? s.currentPeriodEnd ?? null,
     });
+  };
+  const live = await findLive();
+  if (live) {
+    // T-444b (Arjun): a halted/paused/pending sub that is no longer paid, by
+    // the same stillPaidFilter the lazy expiry uses, no longer blocks. It is
+    // written expired locally (one guarded terminal write whose filter is the
+    // negation of stillPaidFilter) and a new sub is created. The user's plan
+    // and Ink are left to the lazy expiry. The write itself decides lapsed, so
+    // the 409 and the lazy expiry share one definition.
+    if (!(LAPSABLE_STATUSES as string[]).includes(live.status)) refuse(live);
+    const expired = await Subscription.updateOne(
+      {
+        _id: live._id,
+        status: { $in: LAPSABLE_STATUSES, $ne: 'expired' },
+        $nor: stillPaidFilter(new Date()),
+      },
+      { $set: { status: 'expired' } },
+    );
+    if (expired.matchedCount > 0) {
+      logger.info(
+        { userId, subscriptionId: live.razorpaySubscriptionId, priorStatus: live.status },
+        'Lapsed subscription expired locally on resubscribe',
+      );
+    } else {
+      // Still paid, or a race (the sub changed under us). Re-read and apply
+      // the normal rules (live blocks with 409; else fall through to reuse).
+      const reread = await findLive();
+      if (reread) refuse(reread);
+    }
   }
 
   // Checkout not finished: hand back the existing sub's link and its own plan,
@@ -404,15 +444,17 @@ export async function handleWebhookEvent(
         ...(currentEnd ? { paidThrough: new Date(currentEnd * 1000) } : {}),
         ...(planSku ? { planId: planSku.id, billingCycle: planSku.cycle } : {}),
       };
-      const chargeUpdate = (fields: Record<string, unknown>) => [
+      // `activeFrom` (T-444b): when given, only those prior statuses become
+      // active and every other status is kept; else the terminal rule above.
+      const chargeUpdate = (fields: Record<string, unknown>, activeFrom?: SubscriptionStatus[]) => [
         {
           $set: {
             ...Object.fromEntries(
               Object.entries({ ...chargeFields, ...fields }).map(([k, v]) => [k, { $literal: v }]),
             ),
-            status: {
-              $cond: [{ $in: ['$status', TERMINAL_STATUSES] }, '$status', 'active'],
-            },
+            status: activeFrom
+              ? { $cond: [{ $in: ['$status', activeFrom] }, 'active', '$status'] }
+              : { $cond: [{ $in: ['$status', TERMINAL_STATUSES] }, '$status', 'active'] },
           },
         },
       ];
@@ -517,12 +559,21 @@ export async function handleWebhookEvent(
           'subscription webhook has no paid_count or current_start; grant not deduplicated',
         );
         // No claim to ride on: one unconditional write of the period, plan,
-        // status (same terminal rule) and drip reset, before the grant.
+        // status and drip reset, before the grant. T-444b (Arjun must-fix):
+        // status becomes active only from created/authenticated/active; any
+        // other status (terminal, halted, paused, pending) is kept as is.
         const before = await Subscription.findOneAndUpdate(
           { _id: sub._id },
-          chargeUpdate(dripReset),
+          chargeUpdate(dripReset, UNCLAIMED_ACTIVE_FROM),
         );
         logIfTerminal(before);
+        const prior = before?.get('status');
+        if (typeof prior === 'string' && (LAPSABLE_STATUSES as string[]).includes(prior)) {
+          logger.info(
+            { subId, event, status: prior },
+            'Unclaimed charge on a halted/paused/pending subscription; status kept',
+          );
+        }
       }
 
       if (planSku && !isNewCycle) {

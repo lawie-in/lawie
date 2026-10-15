@@ -41,6 +41,13 @@ const ledger = (userId: mongoose.Types.ObjectId) =>
 const getSub = (id = SUB_ID) => Subscription.findOne({ razorpaySubscriptionId: id }).lean();
 const getUser = async (userId: mongoose.Types.ObjectId) => (await User.findById(userId).lean())!;
 
+const DAY_MS = 86_400_000;
+const mockNewSub = () =>
+  (razorpay.subscriptions.create as jest.Mock).mockResolvedValue({
+    id: 'sub_new',
+    short_url: 'https://rzp.io/new',
+  });
+
 function payload(opts: { subId?: string; status?: string; paidCount?: number; planId?: string }) {
   const entity: Record<string, unknown> = { id: opts.subId ?? SUB_ID };
   if (opts.status) entity.status = opts.status;
@@ -558,6 +565,7 @@ describe('T-444 AC6: createSubscription reuse rules', () => {
         razorpaySubscriptionId: 'sub_live',
         status,
         planId: 'solo_monthly',
+        paidThrough: new Date(Date.now() + 10 * DAY_MS),
       });
       await expect(
         createSubscription(userId, 'a@example.com', 'solo_yearly'),
@@ -566,9 +574,9 @@ describe('T-444 AC6: createSubscription reuse rules', () => {
     },
   );
 
-  it('paidThrough in the error falls back to currentPeriodEnd, then null', async () => {
+  it('paidThrough in the error falls back to currentPeriodEnd', async () => {
     const withEnd = new mongoose.Types.ObjectId().toString();
-    const periodEnd = new Date('2026-12-01T00:00:00.000Z');
+    const periodEnd = new Date(Date.now() + 30 * DAY_MS);
     await Subscription.create({
       userId: withEnd,
       razorpaySubscriptionId: 'sub_a',
@@ -577,19 +585,138 @@ describe('T-444 AC6: createSubscription reuse rules', () => {
       currentPeriodEnd: periodEnd,
     });
     await expect(createSubscription(withEnd, 'a@example.com')).rejects.toMatchObject({
+      status: 'paused',
       paidThrough: periodEnd,
     });
+    expect((await getSub('sub_a'))!.status).toBe('paused');
+  });
 
+  it('a paused sub with neither date is lapsed: expired and a new sub is created', async () => {
     const neither = new mongoose.Types.ObjectId().toString();
     await Subscription.create({
       userId: neither,
       razorpaySubscriptionId: 'sub_b',
       status: 'paused',
     });
-    await expect(createSubscription(neither, 'a@example.com')).rejects.toMatchObject({
-      paidThrough: null,
-      planId: null,
+    mockNewSub();
+    const r = await createSubscription(neither, 'a@example.com');
+    expect(r.subscriptionId).toBe('sub_new');
+    expect((await getSub('sub_b'))!.status).toBe('expired');
+  });
+
+  describe('T-444b: a lapsed halted/paused/pending sub does not block', () => {
+    it.each(['halted', 'paused', 'pending'] as const)(
+      'lapsed %s: old sub marked expired, new sub created',
+      async (status) => {
+        const userId = new mongoose.Types.ObjectId().toString();
+        await Subscription.create({
+          userId,
+          razorpaySubscriptionId: 'sub_lapsed',
+          status,
+          planId: 'solo_monthly',
+          paidThrough: new Date(Date.now() - DAY_MS),
+        });
+        mockNewSub();
+
+        const r = await createSubscription(userId, 'a@example.com', 'solo_yearly');
+
+        expect(r).toEqual({
+          subscriptionId: 'sub_new',
+          shortUrl: 'https://rzp.io/new',
+          planId: 'solo_yearly',
+        });
+        expect(razorpay.subscriptions.create).toHaveBeenCalledTimes(1);
+        expect((await getSub('sub_lapsed'))!.status).toBe('expired');
+        expect((await getSub('sub_new'))!.status).toBe('created');
+      },
+    );
+
+    it.each(['halted', 'paused', 'pending'] as const)(
+      '%s before paidThrough stays 409 and is not expired',
+      async (status) => {
+        const userId = new mongoose.Types.ObjectId().toString();
+        await Subscription.create({
+          userId,
+          razorpaySubscriptionId: 'sub_paid',
+          status,
+          paidThrough: new Date(Date.now() + DAY_MS),
+        });
+        await expect(createSubscription(userId, 'a@example.com')).rejects.toMatchObject({
+          name: 'SubscriptionExistsError',
+          status,
+        });
+        expect((await getSub('sub_paid'))!.status).toBe(status);
+        expect(razorpay.subscriptions.create).not.toHaveBeenCalled();
+      },
+    );
+
+    it('halted with no paidThrough and a future currentPeriodEnd gives 409, not expired', async () => {
+      const userId = new mongoose.Types.ObjectId().toString();
+      await Subscription.create({
+        userId,
+        razorpaySubscriptionId: 'sub_h',
+        status: 'halted',
+        currentPeriodEnd: new Date(Date.now() + DAY_MS),
+      });
+      await expect(createSubscription(userId, 'a@example.com')).rejects.toMatchObject({
+        name: 'SubscriptionExistsError',
+        status: 'halted',
+      });
+      expect((await getSub('sub_h'))!.status).toBe('halted');
+      expect(razorpay.subscriptions.create).not.toHaveBeenCalled();
     });
+
+    it('pending with no paidThrough but a future currentPeriodEnd is lapsed', async () => {
+      const userId = new mongoose.Types.ObjectId().toString();
+      await Subscription.create({
+        userId,
+        razorpaySubscriptionId: 'sub_p',
+        status: 'pending',
+        currentPeriodEnd: new Date(Date.now() + DAY_MS),
+      });
+      mockNewSub();
+      const r = await createSubscription(userId, 'a@example.com');
+      expect(r.subscriptionId).toBe('sub_new');
+      expect((await getSub('sub_p'))!.status).toBe('expired');
+    });
+
+    it('an active sub still gives 409 even with a past paidThrough', async () => {
+      const userId = new mongoose.Types.ObjectId().toString();
+      await Subscription.create({
+        userId,
+        razorpaySubscriptionId: 'sub_act',
+        status: 'active',
+        paidThrough: new Date(Date.now() - DAY_MS),
+      });
+      await expect(createSubscription(userId, 'a@example.com')).rejects.toMatchObject({
+        name: 'SubscriptionExistsError',
+        status: 'active',
+      });
+      expect((await getSub('sub_act'))!.status).toBe('active');
+    });
+
+    it.each(['halted', 'paused', 'pending'] as const)(
+      'resubscribing over a lapsed %s sub leaves the User plan and Ink unchanged',
+      async (status) => {
+        const userId = await proUser(`t444b-${status}@example.com`);
+        await addSub(userId, 'sub_lapsed', {
+          status,
+          paidThrough: new Date(Date.now() - DAY_MS),
+        });
+        const rowsBefore = (await ledger(userId)).length;
+        mockNewSub();
+
+        await createSubscription(userId.toString(), 'a@example.com');
+
+        expect((await getSub('sub_lapsed'))!.status).toBe('expired');
+        const u = await getUser(userId);
+        expect(u.plan).toBe('pro');
+        expect(u.planTier).toBe('solo');
+        expect(u.inkSub).toBe(80);
+        expect(u.inkAnnualCarry).toBe(10);
+        expect((await ledger(userId)).length).toBe(rowsBefore);
+      },
+    );
   });
 
   it.each(['cancelled', 'completed', 'expired'] as const)(
@@ -662,7 +789,6 @@ describe('T-444 AC6: createSubscription reuse rules', () => {
 
 // ─── Review round 2 rulings (c)-(g) ──────────────────────────────────────────
 const NOW = new Date('2026-06-01T00:00:00.000Z');
-const DAY_MS = 86_400_000;
 const future = new Date(NOW.getTime() + DAY_MS);
 const past = new Date(NOW.getTime() - DAY_MS);
 
@@ -1009,6 +1135,34 @@ describe('T-444 round 3: charged and the claim own the status', () => {
     expect(sub!.status).toBe('active');
     expect(sub!.lastGrantedPaidCount).toBe(1);
     expect((await getUser(userId)).plan).toBe('pro');
+  });
+
+  describe('T-444b: charged with no paid_count and no current_start', () => {
+    const unclaimed = () => payload({ planId: 'solo_monthly' });
+
+    it('on a halted sub keeps it halted', async () => {
+      const userId = await seedUser();
+      await Subscription.create({ userId, razorpaySubscriptionId: SUB_ID, status: 'halted' });
+      await handleWebhookEvent('subscription.charged', unclaimed());
+      expect((await getSub())!.status).toBe('halted');
+    });
+
+    it.each(['cancelled', 'completed', 'expired'] as const)(
+      'on a %s sub leaves the status unchanged',
+      async (status) => {
+        const userId = await seedUser();
+        await Subscription.create({ userId, razorpaySubscriptionId: SUB_ID, status });
+        await handleWebhookEvent('subscription.charged', unclaimed());
+        expect((await getSub())!.status).toBe(status);
+      },
+    );
+
+    it('on a created sub becomes active', async () => {
+      const userId = await seedUser();
+      await Subscription.create({ userId, razorpaySubscriptionId: SUB_ID, status: 'created' });
+      await handleWebhookEvent('subscription.charged', unclaimed());
+      expect((await getSub())!.status).toBe('active');
+    });
   });
 
   it('charged on a completed sub keeps completed and still grants Ink', async () => {
