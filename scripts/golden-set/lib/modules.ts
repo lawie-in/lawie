@@ -44,6 +44,8 @@ interface StreamParams {
   max_tokens: number;
   system: SystemParam;
   messages: Array<{ role: string; content: string }>;
+  /** T-453: the stage's effort; the stub accepts it and ignores it. */
+  output_config?: { effort?: string };
 }
 
 /**
@@ -88,13 +90,17 @@ export function stubEvents(text: string, params: StreamParams): unknown[] {
   return [
     { type: 'message_start', message: { usage: { input_tokens: input, output_tokens: 0 } } },
     { type: 'content_block_delta', delta: { type: 'text_delta', text } },
-    { type: 'message_delta', usage: { output_tokens: Math.ceil(text.length / 4) } },
+    {
+      type: 'message_delta',
+      delta: { stop_reason: 'end_turn' },
+      usage: { output_tokens: Math.ceil(text.length / 4) },
+    },
   ];
 }
 
 /** The structured-output request of `messages.parse` (T-373), as far as the stub reads it. */
 interface ParseParams extends StreamParams {
-  output_config?: { format?: { parse?: (content: string) => unknown } };
+  output_config?: { effort?: string; format?: { parse?: (content: string) => unknown } };
 }
 
 /**

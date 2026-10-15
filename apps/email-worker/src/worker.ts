@@ -62,7 +62,7 @@
  * against its own Redis without jest.mock. Importing this module opens no
  * Redis connection; startWorkers() does, unless one is passed in.
  */
-import { type EmailTemplate } from '@lawie/email-client';
+import { EMAIL_TIER_BY_TEMPLATE, type EmailTemplate } from '@lawie/email-client';
 import { INTERNAL_HEADERS } from '@lawie/shared';
 import * as Sentry from '@sentry/node';
 import {
@@ -321,7 +321,13 @@ async function reportMailOutcome(
     } catch (err) {
       if (i === NOTICE_REPORT_ATTEMPTS) {
         logger.error(
-          { userId, jobId, mail, outcome, err: safeErrorFields(err) },
+          {
+            userId: safeLogIds(undefined, userId).userId,
+            jobId,
+            mail,
+            outcome,
+            err: safeErrorFields(err),
+          },
           'Verify mail outcome not recorded; the T-358 clock is not stamped and nothing is deleted',
         );
         return false;
@@ -469,6 +475,26 @@ const UNFILLED_PLACEHOLDER_MESSAGE = 'email has unfilled footer placeholders; no
 /** Errors raised by the placeholder guard: rethrown as-is, without the Sentry/log path. */
 const placeholderRefusals = new WeakSet<object>();
 
+/**
+ * T-229 (Kunal, T-455 review): `template` and `data.userId` come from the job unchecked. Logs,
+ * Sentry breadcrumbs/tags/extra and the send `meta` get only a known template id (a key of
+ * @lawie/email-client's EMAIL_TIER_BY_TEMPLATE, the full EmailTemplate list; else
+ * 'unregistered') and a 24-hex userId (else 'invalid'; omitted when absent). The real values
+ * still drive the logic (isVerify, INVOICE_TEMPLATE_KIND, mint, render, send).
+ */
+export function safeLogIds(
+  template: unknown,
+  userId: string | undefined,
+): { template: string; userId: string | undefined } {
+  const registered =
+    typeof template === 'string' &&
+    Object.prototype.hasOwnProperty.call(EMAIL_TIER_BY_TEMPLATE, template);
+  return {
+    template: registered ? (template as string) : 'unregistered',
+    userId: userId === undefined ? undefined : OBJECT_ID.test(userId) ? userId : 'invalid',
+  };
+}
+
 export function createProcessor(
   send: SendEmailFn = sendEmail,
   mint: MintVerifyLinkFn = mintVerifyLinkViaAuth,
@@ -478,6 +504,8 @@ export function createProcessor(
   return async (job: Job<EmailJobData>) => {
     const { template, cc, bcc, replyTo, data } = job.data;
     const userId = userIdFromData(data);
+    // Log/Sentry-safe copies; `template` and `userId` themselves drive the logic below.
+    const ids = safeLogIds(template, userId);
     const jobId = job.id;
     const attempt = job.attemptsMade + 1;
     const isVerify = template === 'auth.verifyEmail';
@@ -497,8 +525,8 @@ export function createProcessor(
       data: {
         jobId,
         queue: job.queueName,
-        template,
-        userId,
+        template: ids.template,
+        userId: ids.userId,
         attempt,
         recipientsCount: job.data.to.length,
       },
@@ -510,7 +538,7 @@ export function createProcessor(
       // refused job never rotates the user's verify token. Dry run is unaffected. Fixed message,
       // ids only, no Sentry, no retry.
       if (isLiveSend() && templateHasUnfilledFooter(template)) {
-        logger.error({ userId, jobId }, 'Email not sent: unfilled footer placeholders');
+        logger.error({ userId: ids.userId, jobId }, 'Email not sent: unfilled footer placeholders');
         const refusal = new UnrecoverableError(UNFILLED_PLACEHOLDER_MESSAGE);
         placeholderRefusals.add(refusal);
         throw refusal;
@@ -524,7 +552,7 @@ export function createProcessor(
         const minted = await mint(userId);
         if (!minted) {
           logger.info(
-            { jobId, template, userId },
+            { jobId, template: ids.template, userId: ids.userId },
             'Verify email not sent: already verified, Google account or no such user',
           );
           return { skipped: 'not_eligible' };
@@ -540,7 +568,7 @@ export function createProcessor(
         const prepared = await notice.prepare(userId);
         if (!prepared) {
           logger.info(
-            { jobId, template, userId },
+            { jobId, template: ids.template, userId: ids.userId },
             'Unverified notice not sent: no longer eligible or no such user',
           );
           return { skipped: 'not_eligible' };
@@ -559,7 +587,10 @@ export function createProcessor(
         // T-436 (b/c): number, total, name, address and link come from billing at send time,
         // never from the job.
         if (!userId || !invoiceId || !OBJECT_ID.test(invoiceId)) {
-          logger.error({ jobId, template, userId }, 'Invoice email job without valid ids');
+          logger.error(
+            { jobId, template: ids.template, userId: ids.userId },
+            'Invoice email job without valid ids',
+          );
           throw new UnrecoverableError('invoice email job without a valid userId and invoiceId');
         }
         // Checked before the fetch, so no PII is pulled for an email that cannot render.
@@ -569,14 +600,20 @@ export function createProcessor(
         const result = await invoiceView(invoiceId);
         if (result.status === 'erased') {
           logger.info(
-            { jobId, template, userId, invoiceId, status: 410 },
+            { jobId, template: ids.template, userId: ids.userId, invoiceId, status: 410 },
             'Invoice email not sent: user erased or being erased',
           );
           return { skipped: 'erased' };
         }
         if (result.status === 'rejected') {
           logger.warn(
-            { jobId, template, userId, invoiceId, status: result.httpStatus },
+            {
+              jobId,
+              template: ids.template,
+              userId: ids.userId,
+              invoiceId,
+              status: result.httpStatus,
+            },
             'Invoice email not sent: billing has no issued row for this id',
           );
           throw new UnrecoverableError(`invoice email-view HTTP_${result.httpStatus}`);
@@ -584,7 +621,7 @@ export function createProcessor(
         const { view } = result;
         if (view.userId !== userId || view.invoiceId !== invoiceId || view.kind !== invoiceKind) {
           logger.error(
-            { jobId, template, userId, invoiceId },
+            { jobId, template: ids.template, userId: ids.userId, invoiceId },
             'Invoice email not sent: billing row does not match the job (user, id or kind)',
           );
           throw new UnrecoverableError('invoice email-view does not match the job');
@@ -604,7 +641,7 @@ export function createProcessor(
           subject: rendered.subject,
           html: rendered.html,
           text: rendered.text,
-          meta: { template, userId, jobId },
+          meta: { template: ids.template, userId: ids.userId, jobId },
         });
       } catch (sendErr) {
         // T-358: a recipient hard bounce of a verify-link mail counts as sent (Ajay). Record it
@@ -612,7 +649,10 @@ export function createProcessor(
         // rethrown, retried, nothing reported.
         if (mail && userId && noticeOutcomeReportable() && isRecipientHardBounce(sendErr)) {
           await reportMailOutcome(notice.report, userId, mail, 'bounced', jobId);
-          logger.info({ jobId, template, userId }, 'Hard bounce at send; counted as sent');
+          logger.info(
+            { jobId, template: ids.template, userId: ids.userId },
+            'Hard bounce at send; counted as sent',
+          );
           return { skipped: 'hard_bounce' };
         }
         throw sendErr;
@@ -620,21 +660,27 @@ export function createProcessor(
       Sentry.addBreadcrumb({
         category: 'email.send.success',
         level: 'info',
-        data: { jobId, template, userId, messageId: result.messageId },
+        data: { jobId, template: ids.template, userId: ids.userId, messageId: result.messageId },
       });
       logger.info(
-        { jobId, template, userId, queue: job.queueName, messageId: result.messageId },
+        {
+          jobId,
+          template: ids.template,
+          userId: ids.userId,
+          queue: job.queueName,
+          messageId: result.messageId,
+        },
         'Email sent',
       );
       // T-223 AC7: in dry run, one line with the userId only (no address, token or link).
-      if (isVerify && !isLiveSend()) logger.info({ userId }, 'verify email sent');
+      if (isVerify && !isLiveSend()) logger.info({ userId: ids.userId }, 'verify email sent');
       if (mail && userId) {
         if (noticeOutcomeReportable()) {
           await reportMailOutcome(notice.report, userId, mail, 'sent', jobId);
         } else {
           // Dry run or a dev redirect: the user got nothing, so the clock does not start.
           logger.info(
-            { userId, jobId, mail },
+            { userId: ids.userId, jobId, mail },
             'Verify mail outcome not recorded: dry run or redirect',
           );
         }
@@ -647,7 +693,7 @@ export function createProcessor(
       Sentry.addBreadcrumb({
         category: 'email.send.failure',
         level: 'error',
-        data: { jobId, template, userId, attempt, error: errFields },
+        data: { jobId, template: ids.template, userId: ids.userId, attempt, error: errFields },
       });
       // Name/code/status only, no original message: this is what Sentry gets
       // AND what BullMQ stores as failedReason (kept 30 days). Throwing it
@@ -658,12 +704,19 @@ export function createProcessor(
       const finalAttempt = isFinalAttempt(job, safeErr);
       if (finalAttempt) {
         Sentry.captureException(safeErr, {
-          tags: { template, queue: job.queueName },
-          extra: { jobId, userId, attempt, maxAttempts: job.opts?.attempts ?? 1 },
+          tags: { template: ids.template, queue: job.queueName },
+          extra: { jobId, userId: ids.userId, attempt, maxAttempts: job.opts?.attempts ?? 1 },
         });
       }
       logger.error(
-        { jobId, template, userId, attempt, finalAttempt, err: errFields },
+        {
+          jobId,
+          template: ids.template,
+          userId: ids.userId,
+          attempt,
+          finalAttempt,
+          err: errFields,
+        },
         'Email send failed',
       );
       throw safeErr;
@@ -736,7 +789,7 @@ export function startWorkers(options: StartWorkersOptions = {}): Worker[] {
         {
           jobId: job?.id,
           queue: queueName,
-          template: job?.data.template,
+          template: safeLogIds(job?.data.template, undefined).template,
           attemptsMade: job?.attemptsMade,
           err: safeErrorFields(err),
         },

@@ -17,15 +17,11 @@ import { safeErrorFields, toSentrySafeError } from './providers/safe-log';
 import { startWorkers, stopWorkers } from './worker';
 // eslint-disable-next-line import/order, import/first
 import { createApp } from './app';
+// eslint-disable-next-line import/order, import/first
+import { initSentry } from './config/sentry';
 
-if (env.SENTRY_DSN) {
-  Sentry.init({
-    dsn: env.SENTRY_DSN,
-    environment: env.NODE_ENV,
-    tracesSampleRate: env.NODE_ENV === 'production' ? 0.2 : 0,
-    serverName: 'email-worker',
-  });
-}
+// T-229: beforeSend and beforeSendTransaction run the shared scrub (config/sentry.ts).
+initSentry(env);
 
 async function bootstrap() {
   startWorkers();

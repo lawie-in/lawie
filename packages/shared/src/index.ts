@@ -25,3 +25,6 @@ export * from './billing/yearly-drip';
 // HTTP
 export * from './http/json-body-error-handler';
 export * from './http/require-current-privacy';
+
+// Observability (T-229): one Sentry scrub for every service and apps/web
+export * from './observability/sentry-scrub';

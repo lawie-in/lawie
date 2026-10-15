@@ -31,8 +31,14 @@ import {
   installRedisMock,
   requireFromDrafting,
 } from './lib/modules';
-import { renderFixture, renderSummary, summarise } from './lib/report';
-import { FixtureResult } from './lib/types';
+import {
+  renderFixture,
+  renderLlmCalls,
+  renderSummary,
+  summarise,
+  summariseLlmCalls,
+} from './lib/report';
+import { FixtureResult, LlmCallObserved } from './lib/types';
 
 export interface Args {
   mode: 'dry' | 'real' | null;
@@ -198,6 +204,10 @@ async function main(): Promise<number> {
       join(DRAFTING_DIR, 'src', 'services', 'app-settings.service'),
     );
     const usage = requireFromDrafting<any>(join(DRAFTING_DIR, 'src', 'services', 'llm-usage'));
+    // T-453: every model call's llm_call record (ids and counts only), through
+    // the service's in-process listener; the log lines stay muted at LOG_LEVEL=error.
+    const llmCalls: LlmCallObserved[] = [];
+    usage.setLlmCallListener((r: LlmCallObserved) => llmCalls.push(r));
     const rateOf = async (key: string): Promise<Rate | null> => {
       try {
         const r = await usage.getModelRates(await settings.getAppSetting(key));
@@ -243,6 +253,8 @@ async function main(): Promise<number> {
     }
 
     const summary = summarise(results);
+    const llmSummary = summariseLlmCalls(llmCalls);
+    for (const l of renderLlmCalls(llmSummary)) console.log(l);
     for (const l of renderSummary(summary)) console.log(l);
     let calibration = null;
     if (args.calibrate) {
@@ -264,6 +276,7 @@ async function main(): Promise<number> {
           composition,
           estimate,
           summary,
+          llmCalls: { summary: llmSummary, calls: llmCalls },
           results,
           calibration,
         },

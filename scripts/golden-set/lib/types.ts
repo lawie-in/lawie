@@ -234,3 +234,54 @@ export interface FixtureResult {
   verifierFindings: number;
   missingClauses: string[];
 }
+
+// ── T-453: per-call model usage, from the service's llm_call listener ───────
+
+export type LlmStageName = 'intake' | 'preflight' | 'body';
+
+/** One model call as the service's logLlmCall reported it. Ids and counts only, never text. */
+export interface LlmCallObserved {
+  stage: LlmStageName;
+  /** A code label (intake_extract, preflight, stream, d1, ...). */
+  call: string;
+  model: string;
+  effort: string | null;
+  status: 'completed' | 'failed';
+  input_tokens: number;
+  output_tokens: number;
+  cache_read_input_tokens: number;
+  cache_creation_input_tokens: number;
+  stop_reason: string | null;
+  intake_id?: string;
+  run_id?: string;
+  fixture_id?: string;
+}
+
+export interface Percentiles {
+  median: number;
+  p90: number;
+}
+
+export interface LlmStageStats {
+  calls: number;
+  failed: number;
+  /** Over completed calls only; null when the stage had none. */
+  inputTokens: Percentiles | null;
+  outputTokens: Percentiles | null;
+  /** Count per stop_reason ('none' when the call reported none). */
+  stopReasons: Record<string, number>;
+  maxTokensHits: number;
+}
+
+/** A call that stopped on its max_tokens cap. */
+export interface LlmCapHit {
+  fixtureId: string | null;
+  stage: LlmStageName;
+  call: string;
+  outputTokens: number;
+}
+
+export interface LlmCallSummary {
+  stages: Record<LlmStageName, LlmStageStats>;
+  capHits: LlmCapHit[];
+}

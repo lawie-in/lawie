@@ -23,6 +23,28 @@ interface CacheEntry {
 
 const cache = new Map<string, CacheEntry>();
 
+/**
+ * T-453: modules that keep their own cache of a resolved setting (llm-usage's
+ * effort cache) register here, so an admin write (the key) or a full clear
+ * (null) reaches them too.
+ */
+type InvalidationListener = (key: string | null) => void;
+const invalidationListeners = new Set<InvalidationListener>();
+
+export function onAppSettingInvalidated(fn: InvalidationListener): void {
+  invalidationListeners.add(fn);
+}
+
+function notifyInvalidated(key: string | null): void {
+  for (const fn of invalidationListeners) {
+    try {
+      fn(key);
+    } catch {
+      // A listener must never fail a settings write.
+    }
+  }
+}
+
 export class AppSettingMissingError extends Error {
   readonly key: string;
   constructor(key: string) {
@@ -79,6 +101,7 @@ export async function setAppSetting(input: {
   ).lean();
 
   cache.delete(key);
+  notifyInvalidated(key);
 
   return {
     key: doc!.key,
@@ -106,6 +129,7 @@ export async function listAppSettings(): Promise<
 /** Test helper — clear the in-memory cache. NOT called in production paths. */
 export function _clearAppSettingsCache(): void {
   cache.clear();
+  notifyInvalidated(null);
 }
 
 // ── Well-known keys (string constants only — NOT default values) ────────────
@@ -119,6 +143,14 @@ export const APP_SETTING_KEYS = {
   PREFLIGHT_MODEL: 'ai.preflight_model',
   /** ADR-019 §3.8 — a Haiku model id (a bare alias or a dated id). No default in code. */
   INTAKE_MODEL: 'ai.intake_model',
+  /**
+   * T-453 — output_config.effort per stage (low | medium | high | xhigh | max).
+   * Optional: a missing or invalid value falls back to the default in
+   * llm-usage.ts (getAiEffort), never a failed call.
+   */
+  EFFORT_INTAKE: 'ai.effort.intake',
+  EFFORT_PREFLIGHT: 'ai.effort.preflight',
+  EFFORT_BODY: 'ai.effort.body',
 } as const;
 
 // Per-model USD rates (`ai.rates.<model-slug>`) and the USD→INR conversion

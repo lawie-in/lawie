@@ -145,7 +145,7 @@
       },
       {
         "id": "waiver_of_cooling_period_sought",
-        "label": "Whether waiver of 6-month cooling period sought (Amardeep Singh v. Harveen Kaur grounds)",
+        "label": "Whether waiver of the 6-month cooling period is sought",
         "type": "boolean",
         "required": false
       },

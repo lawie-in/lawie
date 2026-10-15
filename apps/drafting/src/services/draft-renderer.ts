@@ -69,7 +69,7 @@ import { missingPlaceholder, notKnownDateKeys } from './brief-drafter';
 import { FactViolation, verifyDraft, VerifierInput } from './fact-verifier';
 import { blankLabel, dateMeaningOf } from './intake-brief';
 import type { Brief, ChecklistItem } from './intake-brief';
-import { datesAsWritten, datesInText, normalise } from './intake-text';
+import { dateMatchesInText, datesAsWritten, datesInText, normalise } from './intake-text';
 import type { RulePackFact } from './rule-pack.service';
 
 // ── The model's structured output ───────────────────────────────────────────
@@ -745,15 +745,24 @@ function contentWordSequence(text: string): string[] {
     const [n] = amountsInText(whole);
     return n === undefined ? ' ' : mark('amount_' + String(n));
   });
-  // Then dates, by value (the same reading as `datesInText`), every place each is written.
-  for (const d of datesAsWritten(marked)) {
-    const words = normalise(d.words);
-    if (words === '') continue;
-    const parts = marked.split(words);
-    marked = parts.reduce(
-      (acc, part, i) => (i === 0 ? part : acc + mark('date_' + d.value) + part),
-      '',
-    );
+  // Then dates, by value (the same reading as `datesInText`), every place each
+  // is written, by match position (T-414): "2 March 2025" does not cut into
+  // "12 March 2025", and a second written form of a date is marked too. Where
+  // two matches overlap, the earlier (then the longer) one is kept.
+  const spans: Array<{ value: string; at: number; end: number }> = [];
+  const matches = dateMatchesInText(marked)
+    .filter((d) => d.length > 0)
+    .sort((a, b) => a.at - b.at || b.length - a.length);
+  for (const d of matches) {
+    const last = spans[spans.length - 1];
+    if (last && d.at < last.end) continue;
+    spans.push({ value: d.value, at: d.at, end: d.at + d.length });
+  }
+  // Marks are numbered in reading order, then spliced in from the end so
+  // earlier positions stay valid.
+  const dateMarks = spans.map((s) => mark('date_' + s.value));
+  for (let i = spans.length - 1; i >= 0; i--) {
+    marked = marked.slice(0, spans[i].at) + dateMarks[i] + marked.slice(spans[i].end);
   }
   return wordsOf(marked.replace(/(?<=\d),(?=\d)/g, () => '')).flatMap((w) => {
     const v = VALUE_MARK_RE.exec(w);

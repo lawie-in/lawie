@@ -136,7 +136,7 @@ export function formDataFromBrief(
   if (brief.court.court) data.court_name = brief.court.court;
   data.language = language;
   // T-382: a brief item keyed by the old pack key also fills the new one.
-  return applyFieldAliases(data);
+  return applyFieldAliases(data, config.template_id);
 }
 
 // ── What the Drafter is given ───────────────────────────────────────────────

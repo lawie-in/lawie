@@ -1,3 +1,4 @@
+import { maskPathTokens } from '@lawie/shared';
 import * as Sentry from '@sentry/node';
 import { Request, Response, NextFunction } from 'express';
 
@@ -32,7 +33,7 @@ export function errorHandler(
   logger.error(
     {
       err,
-      req: { method: req.method, url: maskEmails(path), ip: req.ip },
+      req: { method: req.method, url: maskPathTokens(maskEmails(path)), ip: req.ip },
       statusCode,
     },
     'Request failed',

@@ -20,6 +20,8 @@ export type FormInputs = Record<string, unknown>;
 export interface FormInputsCarrier {
   formInputsEnc?: string | null;
   formInputs?: unknown;
+  /** T-451: the pack, so pack-scoped option-id aliases apply (else the stored template_id). */
+  rulePackId?: string | null;
 }
 
 function isRecord(v: unknown): v is FormInputs {
@@ -44,9 +46,9 @@ export function readFormInputs(doc: FormInputsCarrier): FormInputs | null {
   if (typeof enc === 'string' && enc.length > 0) {
     const parsed: unknown = JSON.parse(decrypt(enc));
     if (!isRecord(parsed)) throw new Error('formInputsEnc does not hold an object');
-    return applyFieldAliases(parsed);
+    return applyFieldAliases(parsed, doc.rulePackId);
   }
-  return isRecord(doc.formInputs) ? applyFieldAliases(doc.formInputs) : null;
+  return isRecord(doc.formInputs) ? applyFieldAliases(doc.formInputs, doc.rulePackId) : null;
 }
 
 // ── Filing checklist (T-115a) ───────────────────────────────────────────────

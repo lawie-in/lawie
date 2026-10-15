@@ -243,7 +243,7 @@
         "required": true,
         "options": [
           "yes_limited_gpa_for_developer_share_sales",
-          "yes_general_gpa_with_suraj_lamp_flag",
+          "yes_general_gpa_with_title_flag",
           "no_separate_sale_deeds_for_each_unit"
         ]
       },
@@ -639,7 +639,7 @@
     "approvals_timeline_months > 0",
     "if (estimated_built_up_area > 500 OR estimated_number_of_units > 8) — rera_required must be 'yes_rera_registration_mandatory'",
     "if rera_required == 'yes_rera_registration_mandatory' — rera_authority must be specified (not 'not_applicable')",
-    "gpa_to_developer must be specified; if 'yes_general_gpa_with_suraj_lamp_flag' — Suraj Lamp disclaimer required",
+    "gpa_to_developer must be specified; if 'yes_general_gpa_with_title_flag' — Suraj Lamp disclaimer required",
     "termination_grounds must not be empty",
     "property_boundaries must mention N/S/E/W",
     "stamp_duty_paid > 0",

@@ -85,7 +85,7 @@ import {
   RECEPTION_PACK_SYSTEM_PROMPT,
   ReceptionAnswer,
 } from './intake.prompts';
-import { getModelRates, priceUsage } from './llm-usage';
+import { getAiEffort, getModelRates, logLlmCall, priceUsage } from './llm-usage';
 import { loadRulePack, RulePack } from './rule-pack.service';
 import {
   evaluateShowIf,
@@ -871,13 +871,31 @@ async function modelCall(
   maxTokens: number,
 ): Promise<string | null> {
   const started = Date.now();
+  // T-453: effort per stage from ai.effort.intake (default low). Never throws.
+  const effort = await getAiEffort('intake');
+  const log = (status: 'completed' | 'failed', u: AuxCallUsage) =>
+    logLlmCall({
+      stage: 'intake',
+      call: purpose,
+      model: req.model,
+      effort: effort ?? null,
+      status,
+      inputTokens: u.inputTokens,
+      outputTokens: u.outputTokens,
+      cacheReadInputTokens: u.cacheReadInputTokens,
+      cacheCreationInputTokens: u.cacheCreationInputTokens,
+      stopReason: u.stopReason,
+      intakeId: req.intakeId,
+    });
   try {
     const r = await callAuxModel({
       model: req.model,
       system,
       user,
       maxTokens,
+      effort,
     });
+    log('completed', r);
     await recordAuxCall({
       ...req,
       purpose,
@@ -891,6 +909,7 @@ async function modelCall(
       err instanceof AuxCallError
         ? err.usage
         : { inputTokens: 0, outputTokens: 0, usageSource: 'estimated', transport: 'direct' };
+    log('failed', usage);
     await recordAuxCall({
       ...req,
       purpose,

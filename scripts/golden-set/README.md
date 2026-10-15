@@ -64,6 +64,10 @@ GOLDEN_SET_ANTHROPIC_API_KEY=... GOLDEN_SET_MONGODB_URI=... \
 | `--out <dir>`          | Where the results JSON goes. The default is `scripts/golden-set/results/`, which is git-ignored.                                        |
 | `--verbose`            | Also prints the service's own log lines for each fixture. These are ids and counts only.                                                |
 
+### Model usage per stage (T-453)
+
+The runner listens in-process to the service's `llm_call` records (stage, call, model, effort, status, token counts, stop reason; ids and counts only). After the fixture lines it prints a block with, per stage, the median and p90 tokens per completed call, the count of each stop reason, and every call that stopped on `max_tokens` (a cap hit). The results JSON gains `llmCalls`: `{ summary, calls }` for each fixture. Use it to see whether a lower effort or a cap is cutting calls off. The golden set runs intake and drafting only; it does not exercise the preflight stage.
+
 Exit codes: `0` all passed; `1` a fixture failed or the token cap stopped the run; `2` refused (bad flags, missing secrets or over the caps); `3` **fixture isolation breached**; `4` harness error.
 
 ## Environment for `--real`
