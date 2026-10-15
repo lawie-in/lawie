@@ -93,10 +93,10 @@ const okStream = (stop = 'end_turn') =>
 
 describe('getAiEffort', () => {
   it('returns the default per stage when the key is missing', async () => {
-    expect(await getAiEffort('intake')).toBe('low');
+    expect(await getAiEffort('intake')).toBe('medium');
     expect(await getAiEffort('preflight')).toBe('low');
     expect(await getAiEffort('body')).toBe('medium');
-    expect(AI_EFFORT_DEFAULTS).toEqual({ intake: 'low', preflight: 'low', body: 'medium' });
+    expect(AI_EFFORT_DEFAULTS).toEqual({ intake: 'medium', preflight: 'low', body: 'medium' });
   });
 
   it('returns the default when the settings read fails', async () => {
@@ -107,7 +107,7 @@ describe('getAiEffort', () => {
     _clearAppSettingsCache();
     expect(svc).toBeDefined();
     expect(await getAiEffort('body')).toBe('medium');
-    expect(await getAiEffort('intake')).toBe('low');
+    expect(await getAiEffort('intake')).toBe('medium');
   });
 
   it('uses a valid value per stage', async () => {
@@ -157,7 +157,7 @@ describe('call sites send output_config.effort', () => {
     expect(r.outputTokens).toBe(55);
   });
 
-  it('intake (runIntake) sends the ai.effort.intake value (default low), logs llm_call with intake_id and no description text', async () => {
+  it('intake (runIntake) sends the ai.effort.intake value (default medium), logs llm_call with intake_id and no description text', async () => {
     const info = jest.spyOn(logger, 'info').mockImplementation(() => undefined);
     await AppSetting.create({ key: 'ai.intake_model', value: 'claude-haiku-4-5-20251001' });
     mockStream.mockResolvedValue(
@@ -176,14 +176,14 @@ describe('call sites send output_config.effort', () => {
     expect(r.intake_id).toBe('intake-xyz');
     expect(mockStream).toHaveBeenCalled();
     const p = mockStream.mock.calls[0][0];
-    expect(p.output_config).toEqual({ effort: 'low' });
+    expect(p.output_config).toEqual({ effort: 'medium' });
     noForbiddenParams(p);
     const lines = llmCallLines(info);
     expect(lines.length).toBeGreaterThanOrEqual(1);
     expect(lines[0]).toMatchObject({
       stage: 'intake',
       call: 'intake_match',
-      effort: 'low',
+      effort: 'medium',
       status: 'completed',
       stop_reason: 'end_turn',
       intake_id: 'intake-xyz',

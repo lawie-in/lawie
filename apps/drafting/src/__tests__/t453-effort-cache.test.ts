@@ -33,7 +33,7 @@ describe('getAiEffort cache', () => {
   it('reads settings once per stage per 60 s, even when the key is missing', async () => {
     for (let i = 0; i < 5; i++) {
       expect(await getAiEffort('body')).toBe('medium');
-      expect(await getAiEffort('intake')).toBe('low');
+      expect(await getAiEffort('intake')).toBe('medium');
     }
     expect(readsOf('ai.effort.body')).toBe(1);
     expect(readsOf('ai.effort.intake')).toBe(1);
@@ -70,7 +70,7 @@ describe('getAiEffort cache', () => {
 
     await setAppSetting({ key: 'ai.effort.body', value: 'xhigh' });
     expect(await getAiEffort('body')).toBe('xhigh');
-    expect(await getAiEffort('intake')).toBe('low');
+    expect(await getAiEffort('intake')).toBe('medium');
     expect(readsOf('ai.effort.intake')).toBe(1); // intake entry kept
     expect(readsOf('ai.effort.body')).toBeGreaterThanOrEqual(2); // body re-read
   });
