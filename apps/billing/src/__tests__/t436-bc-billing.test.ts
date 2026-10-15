@@ -687,16 +687,68 @@ describe('invoice sweep emails (Arjun 2)', () => {
     expect(warn.mock.calls.some((c) => String(c[1]).includes('REDIS_URL'))).toBe(true);
   });
 
-  it('a failing enqueue counts as pending and does not stop the rest of the run', async () => {
+  it('stops at the first failure: that row and the untried rows are pending, one warning with the untried count; the next run resumes', async () => {
     withRedis();
-    const old = new Date(Date.now() - 5 * 60_000);
+    const t = Date.now() - 5 * 60_000;
     const userId = await seedUser();
-    await makeIssued(userId, { seq: 1, issuedAt: new Date(old.getTime() - 1000) });
-    await makeIssued(userId, { seq: 2, issuedAt: old });
+    for (let n = 1; n <= 4; n += 1) {
+      await makeIssued(userId, { seq: n, issuedAt: new Date(t + n * 1000) });
+    }
+    enq.mockRejectedValueOnce(new Error('down'));
+    const warn = jest.spyOn(logger, 'warn');
+    const counts = await runInvoiceSweep(new Date());
+    expect(counts).toMatchObject({ emailsQueued: 0, emailsPending: 4 });
+    expect(enq).toHaveBeenCalledTimes(1); // the loop stopped; rows 2-4 were not tried
+    expect(await Invoice.countDocuments({ emailQueuedAt: null })).toBe(4);
+    const stops = warn.mock.calls.filter((c) => String(c[1]).includes('rest of the batch'));
+    expect(stops).toHaveLength(1);
+    expect(stops[0][0]).toEqual({ untried: 3 });
+
+    // the next run starts with the same (oldest) row and goes through
+    const next = await runInvoiceSweep(new Date());
+    expect(next).toMatchObject({ emailsQueued: 4, emailsPending: 0 });
+    expect(enq).toHaveBeenCalledTimes(5);
+    expect(enq.mock.calls[1][0].idempotencyKey).toBe(enq.mock.calls[0][0].idempotencyKey);
+  });
+
+  it('a failure on the last row warns about nothing untried', async () => {
+    withRedis();
+    const userId = await seedUser();
+    await makeIssued(userId, { issuedAt: new Date(Date.now() - 5 * 60_000) });
+    enq.mockRejectedValueOnce(new Error('down'));
+    const warn = jest.spyOn(logger, 'warn');
+    expect(await runInvoiceSweep(new Date())).toMatchObject({ emailsQueued: 0, emailsPending: 1 });
+    expect(warn.mock.calls.some((c) => String(c[1]).includes('rest of the batch'))).toBe(false);
+  });
+
+  it('skipped_erased does not stop the loop', async () => {
+    withRedis();
+    const t = Date.now() - 5 * 60_000;
+    const gone = await seedUser();
+    const live = await seedUser();
+    await makeIssued(gone, { seq: 1, issuedAt: new Date(t + 1000) });
+    await makeIssued(live, { seq: 2, issuedAt: new Date(t + 2000) });
+    await makeIssued(gone, { seq: 3, issuedAt: new Date(t + 3000) });
+    await makeIssued(live, { seq: 4, issuedAt: new Date(t + 4000) });
+    await mongoose.connection.db!.collection('users').deleteOne({ _id: gone });
+    const counts = await runInvoiceSweep(new Date());
+    expect(counts).toMatchObject({ emailsSkippedErased: 2, emailsQueued: 2, emailsPending: 0 });
+    expect(enq).toHaveBeenCalledTimes(2);
+  });
+
+  it('erased rows before the failure are skipped and marked; rows after it stay pending', async () => {
+    withRedis();
+    const t = Date.now() - 5 * 60_000;
+    const gone = await seedUser();
+    const live = await seedUser();
+    await makeIssued(gone, { seq: 1, issuedAt: new Date(t + 1000) });
+    await makeIssued(live, { seq: 2, issuedAt: new Date(t + 2000) });
+    await makeIssued(live, { seq: 3, issuedAt: new Date(t + 3000) });
+    await mongoose.connection.db!.collection('users').deleteOne({ _id: gone });
     enq.mockRejectedValueOnce(new Error('down'));
     const counts = await runInvoiceSweep(new Date());
-    expect(counts).toMatchObject({ emailsQueued: 1, emailsPending: 1 });
-    expect(await Invoice.countDocuments({ emailQueuedAt: { $ne: null } })).toBe(1);
+    expect(counts).toMatchObject({ emailsSkippedErased: 1, emailsQueued: 0, emailsPending: 2 });
+    expect(enq).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -1203,6 +1255,83 @@ describe('GET /internal/invoices/:id/email-view (Arjun 1)', () => {
     expect(res.body).toEqual({ error: 'view_unavailable' });
     expect(JSON.stringify(warn.mock.calls)).toContain('MongoNetworkError');
     expect(JSON.stringify(warn.mock.calls)).not.toContain('user:pw');
+  });
+
+  describe('410 for an erased user', () => {
+    const erasedCases: Array<[string, (u: mongoose.Types.ObjectId) => Promise<unknown>]> = [
+      [
+        'user document gone',
+        (u) => mongoose.connection.db!.collection('users').deleteOne({ _id: u }),
+      ],
+      [
+        'erasure subdocument set',
+        (u) =>
+          mongoose.connection
+            .db!.collection('users')
+            .updateOne(
+              { _id: u },
+              { $set: { erasure: { requestedAt: new Date(), stage: 'started' } } },
+            ),
+      ],
+    ];
+
+    it.each(erasedCases)(
+      '%s: 410 {error:"erased"}, no customer fields, ids-only log',
+      async (_n, erase) => {
+        const userId = await seedUser({ name: 'Rukhsar Bano', email: 'rukhsar.b@example.com' });
+        const inv = await makeIssued(userId, { seq: 1 });
+        const cn = await makeIssued(userId, { kind: 'credit_note', seq: 1 });
+        await erase(userId);
+        const info = jest.spyOn(logger, 'info');
+        for (const row of [inv, cn]) {
+          const res = await get(String(row._id));
+          expect(res.status).toBe(410);
+          expect(res.body).toEqual({ error: 'erased' });
+          expect(res.headers['cache-control']).toBe('no-store');
+          const wire = JSON.stringify(res.body) + JSON.stringify(res.text);
+          for (const banned of ['Asha', 'asha@', 'customer', 'number', 'total', row.number!]) {
+            expect(wire).not.toContain(banned);
+          }
+        }
+        const logged = JSON.stringify(info.mock.calls);
+        expect(logged).toContain(String(inv._id));
+        expect(logged).toContain(String(userId));
+        for (const pii of ['Rukhsar', 'rukhsar.b', '@example.com', 'Asha', inv.number!]) {
+          expect(logged).not.toContain(pii);
+        }
+        // the issued documents are untouched
+        expect((await Invoice.findById(inv._id).lean())!.state).toBe('issued');
+      },
+    );
+
+    it('401, 400, 404 and 409 still come first', async () => {
+      expect((await get(String(new mongoose.Types.ObjectId()), 'bad')).status).toBe(401);
+      expect((await get('nope')).status).toBe(400);
+      expect((await get(String(new mongoose.Types.ObjectId()))).status).toBe(404);
+    });
+
+    it('a user in good standing is still 200', async () => {
+      const row = await makeIssued(await seedUser());
+      expect((await get(String(row._id))).status).toBe(200);
+    });
+
+    it('500 when the user lookup throws, logging the error name only', async () => {
+      const row = await makeIssued(await seedUser());
+      const warn = jest.spyOn(logger, 'warn');
+      jest.spyOn(User, 'findOne').mockImplementation(() => {
+        throw Object.assign(new Error('mongodb://u:pw@h'), { name: 'MongoNetworkError' });
+      });
+      jest.spyOn(User, 'findById').mockImplementation(() => {
+        throw Object.assign(new Error('mongodb://u:pw@h'), { name: 'MongoNetworkError' });
+      });
+      jest.spyOn(User, 'exists').mockImplementation(() => {
+        throw Object.assign(new Error('mongodb://u:pw@h'), { name: 'MongoNetworkError' });
+      });
+      const res = await get(String(row._id));
+      expect(res.status).toBe(500);
+      expect(res.body).toEqual({ error: 'view_unavailable' });
+      expect(JSON.stringify(warn.mock.calls)).not.toContain('u:pw');
+    });
   });
 
   it('is not reachable without the secret through the public invoice routes either', async () => {
