@@ -53,6 +53,8 @@ export interface BnsOffenceRow {
   compoundable: boolean | null;
   chapter: string;
   verify?: string;
+  /** T-361 AC2 (Ajay, e7c0418): signed text shown under the punishment line, as is. */
+  note?: string;
   variants?: Record<string, BnsOffenceVariant>;
 }
 
@@ -110,6 +112,12 @@ export interface ResolvedOffence {
   compoundableNote: string | null;
   /** The table's verify note for the row, when present. */
   verify?: string;
+  /**
+   * T-361 AC2: the row's signed `note` (e.g. 303 / 303(2) community service), shown
+   * under the punishment line as is. Set for exact and parent resolutions only.
+   * Not the same as `note` below.
+   */
+  punishmentNote?: string;
   /** NOT_AN_OFFENCE for kind 'not_an_offence'. */
   note?: string;
 }
@@ -548,6 +556,7 @@ function fromRow(
     triableBy: resolveTriableBy(section),
     ...notes(row.bailable, row.cognizable, compoundable),
     ...(row.verify ? { verify: row.verify } : {}),
+    ...(row.note ? { punishmentNote: row.note } : {}),
   };
 }
 
@@ -666,6 +675,9 @@ export const ATTRIBUTE_DEPENDS =
 /** Ajay (CLO), T-371 Addendum 1 point 4: no entered section has a known maximum. */
 export const MOST_SERIOUS_CANNOT_BE_DETERMINED =
   'The most serious offence cannot be worked out from these sections. Check the BNSS First Schedule.';
+
+/** Ajay (CLO), T-361 AC4 (signed): shown on a row whose input is a bare number with no code. */
+export const CODE_REMINDER = 'Add the code before the number, for example BNS 351 or IPC 351.';
 
 /** The BNS has 358 sections; a higher number is outside the Act (T-371 Addendum 1 point 1). */
 export const BNS_LAST_SECTION = 358;

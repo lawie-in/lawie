@@ -200,9 +200,9 @@
       "Order 11 R.14 — production — court may order production of documents and inspection at any stage.",
       "Order 11 R.15-19 — inspection of documents referred to in pleadings, affidavits, notices, etc.",
       "Order 11 R.21 — consequences of non-compliance: court may strike out defence / dismiss suit; adverse inference is well-recognised.",
-      "Cite M.L. Sethi v. R.P. Kapur (1972) 2 SCC 427 — discovery is to enable parties to know what case other party will set up; not a fishing expedition.",
-      "Cite Krishna Lal v. State of Haryana (1980) 3 SCC 159 — relevance and necessity tests for production.",
-      "Cite Mathew George v. Cherian Punnan AIR 1990 Ker 67 — specific identification of documents necessary.",
+      "Discovery is to enable parties to know what case other party will set up; not a fishing expedition.",
+      "Relevance and necessity tests for production.",
+      "Specific identification of documents necessary.",
       "Para 1: Reference to main suit, parties, stage.",
       "Para 2: Issues / matters in controversy to which documents relate.",
       "Para 3: Itemised list of documents — each described with: nature, date, parties, subject, approximate description. Avoid vague descriptions like 'all documents relating to'.",
@@ -220,7 +220,8 @@
       "Inspection facility — usually at advocate's office under supervision; copies on payment of cost.",
       "Interrogatories must be specific, relate to matters in question, not be in nature of cross-examination, not be oppressive.",
       "Affidavit in support is mandatory.",
-      "Append Lawie disclaimer."
+      "Append Lawie disclaimer.",
+      "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
   "relevantActs": [

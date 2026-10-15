@@ -12,6 +12,7 @@
 import {
   ANY_MAGISTRATE,
   attributeNotes,
+  CODE_REMINDER,
   COURT_OF_SESSION,
   DEPENDS_FIRST_SCHEDULE,
   MAGISTRATE_FIRST_CLASS,
@@ -42,6 +43,8 @@ export interface OffenceInfo {
   /** Variant's offence description, when resolved through a variant */
   offenceDescription?: string;
   punishment: string;
+  /** T-361 AC2: the row's signed note (Ajay, e7c0418), shown under the punishment line as is */
+  note?: string;
   /** Only an exact-key row carries max_years; null otherwise (T-277, R1) */
   maxYears: number | null;
   /** Term for the BNSS 480/483 choice only: exact row or parent row without variants */
@@ -86,6 +89,11 @@ export interface SectionResult {
    * (displaySection): "400", "IPC 236", "21 of another Act". Never the raw token.
    */
   display?: string;
+  /**
+   * T-361 AC4: CODE_REMINDER (Ajay, signed) when the input was a bare number with no
+   * code ("351", including one guessed as IPC), found or not. Never set for a coded input.
+   */
+  codeReminder?: string;
 }
 
 export interface BailCheckResult {
@@ -146,6 +154,7 @@ function lookupOffence(bnsSection: string): OffenceInfo | null {
     title: r.title ?? '',
     ...(r.offence ? { offenceDescription: r.offence } : {}),
     punishment: r.punishment ?? '',
+    ...(r.punishmentNote ? { note: r.punishmentNote } : {}),
     maxYears: r.maxYears,
     courtMaxYears: r.courtMaxYears,
     triableBy: r.triableBy,
@@ -333,6 +342,8 @@ export async function checkBailEligibility(sectionInputs: string[]): Promise<Bai
     let note: string | undefined;
     /** An IPC input that did not reach a BNS target. */
     let ipcUnresolved = false;
+    /** T-361 AC4: a bare number, no code given (readBailInputs passes it through as is). */
+    const bareNumber = !OTHER_ACT_TOKEN.test(input) && !dashMatch;
 
     if (OTHER_ACT_TOKEN.test(input)) {
       // T-371: an Act the signed tables do not cover; never looked up as BNS.
@@ -418,6 +429,7 @@ export async function checkBailEligibility(sectionInputs: string[]): Promise<Bai
       found: offence !== null,
       ...(note ? { note } : {}),
       ...(offence ? {} : { display: displaySection(input, ipcSection, bnsSection) }),
+      ...(bareNumber ? { codeReminder: CODE_REMINDER } : {}),
     });
   }
 

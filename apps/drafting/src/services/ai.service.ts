@@ -1973,7 +1973,20 @@ export async function streamGenerateFromBrief(
     );
     // T-200, R2b.1: a code edit records the changed paragraphs again.
     recordAgainAfterCodeEdit(output.report, output.body, citations.text, recorded, missing);
+    // T-236 (Ajay, 15 Oct 2026): the removal may take out text a clause
+    // depends on, so the clauses are checked again on the body as delivered.
+    // A clause missing now but not before is lost in the removal: it gets the
+    // advocate warning below, with no model call and no second repair pass.
+    const lostInRemoval = new Set<string>();
+    const removalChanged = citations.text !== output.body;
     output = { ...output, body: citations.text };
+    if (removalChanged) {
+      const afterRemoval = findMissingClauses(pack, output, parts, { ...clauseCheck, recorded });
+      for (const m of afterRemoval) {
+        if (!missing.some((was) => was.id === m.id)) lostInRemoval.add(m.id);
+      }
+      missing = afterRemoval;
+    }
 
     // ── The fact verifier (T-147d): the ledger path only ──────────────────────
     // Every ledger draft is checked against the ledger in code. On failure one
@@ -2054,14 +2067,36 @@ export async function streamGenerateFromBrief(
         factCheck.body,
         ledgerCitationSources(ledgerInput.facts),
       ).text;
+      // T-236: what is missing before this removal, on copies so the probe
+      // records nothing, tells a clause lost in the removal from one the
+      // verifier took out.
+      const beforeRemoval =
+        checkedBody === factCheck.body
+          ? null
+          : findMissingClauses(pack, { ...output, body: factCheck.body }, parts, {
+              ...clauseCheck,
+              notChecked: new Map(notChecked),
+              recorded: new Map(recorded),
+            });
       // T-200, R2b.1: a code edit records the changed paragraphs again.
-      recordAgainAfterCodeEdit(output.report, factCheck.body, checkedBody, recorded, missing);
+      recordAgainAfterCodeEdit(
+        output.report,
+        factCheck.body,
+        checkedBody,
+        recorded,
+        beforeRemoval ?? missing,
+      );
       output = { ...output, body: checkedBody };
       // T-147e (T-147d review follow-up): the verifier may strip a sentence or
       // replace a paragraph, so the mandatory clauses are checked again on the
       // body as it will be delivered. Re-signed by Ajay (CLO) for T-147e.
-      if (!factCheck.passed) {
-        missing = findMissingClauses(pack, output, parts, { ...clauseCheck, recorded });
+      // T-236 (Ajay, 15 Oct 2026): always, as the removal above may also
+      // take out text a clause depends on.
+      missing = findMissingClauses(pack, output, parts, { ...clauseCheck, recorded });
+      if (beforeRemoval) {
+        for (const m of missing) {
+          if (!beforeRemoval.some((was) => was.id === m.id)) lostInRemoval.add(m.id);
+        }
       }
     }
 
@@ -2193,10 +2228,15 @@ export async function streamGenerateFromBrief(
     allWarnings.push(...citationWarnings(citations.removed));
 
     // Every mandatory clause of the pack (ADR-021, rule 1).
+    // T-236 (Ajay, 15 Oct 2026): a clause lost in a citation removal keeps the
+    // same message, which names the clause, with Ajay's closing sentences.
+    // The removed citation is never named here.
     for (const clause of missing) {
       allWarnings.push({
         type: 'missing_clause',
-        message: `This draft does not cover "${clause.title}". Add it before use.`,
+        message: lostInRemoval.has(clause.id)
+          ? `This draft does not cover "${clause.title}". Add it before use. Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.`
+          : `This draft does not cover "${clause.title}". Add it before use.`,
         details: { clauseId: clause.id },
       });
     }

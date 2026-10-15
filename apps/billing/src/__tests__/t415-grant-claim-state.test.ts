@@ -88,12 +88,13 @@ const PERIOD_START = new Date(1_800_000_000 * 1000);
 const signals = () => (Sentry.captureMessage as jest.Mock).mock.calls;
 
 /** Makes the first `n` Subscription.updateOne calls throw (as a thenable query), then calls through. */
-function failSubscriptionUpdateOne(n: number) {
+// `skip` leading calls pass through.
+function failSubscriptionUpdateOne(n: number, skip = 0) {
   const real = Subscription.updateOne.bind(Subscription);
   let calls = 0;
   const spy = jest.spyOn(Subscription, 'updateOne').mockImplementation(((...a: unknown[]) => {
     calls += 1;
-    if (calls <= n) {
+    if (calls > skip && calls <= n + skip) {
       const rejected = () => Promise.reject(new Error('ZZSECRET'));
       return { exec: rejected, then: (f: never, r: never) => rejected().then(f, r) };
     }

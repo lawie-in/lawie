@@ -22,6 +22,9 @@ import {
   createSubscription,
   getSubscriptionStatus,
   handleWebhookEvent,
+  SubscriptionCancelFailedError,
+  SubscriptionExistsError,
+  SubscriptionInProgressError,
   verifyWebhookSignature,
 } from '../services/subscription.service';
 
@@ -108,6 +111,27 @@ router.post(
       const result = await createSubscription(userId, email, planId);
       res.json({ status: 'success', data: result });
     } catch (err) {
+      // T-444 (Arjun ruling 7): a live sub exists; the user fixes or cancels it first.
+      if (err instanceof SubscriptionExistsError) {
+        res.status(409).json({
+          error: 'subscription_exists',
+          status: err.status,
+          planId: err.planId,
+          paidThrough: err.paidThrough,
+        });
+        return;
+      }
+      // T-444c (Arjun ruling 1): another create for this user is in flight.
+      if (err instanceof SubscriptionInProgressError) {
+        res.status(409).json({ error: 'subscription_in_progress' });
+        return;
+      }
+      // T-444c (Arjun ruling 2): the lapsed sub could not be cancelled at
+      // Razorpay; nothing was changed and no new sub was created.
+      if (err instanceof SubscriptionCancelFailedError) {
+        res.status(503).json({ error: 'try_again' });
+        return;
+      }
       logger.error(
         { err: err instanceof Error ? err.message : err },
         'Failed to create subscription',

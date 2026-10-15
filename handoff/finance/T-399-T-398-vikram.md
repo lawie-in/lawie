@@ -18,8 +18,8 @@ Razorpay plans and `apps/billing/src/config/credit-skus.ts` stay as they are. No
 **(b) Rollover and expiry. Confirmed.**
 
 - Each of the 12 drips follows the monthly rule exactly: inkSub resets to the allotment, unspent sub Ink does not roll over.
-- The annual carry at the yearly recharge (50% of remaining inkSub into inkAnnualCarry, capped at 2× monthly allotment) stays. It is a yearly-only perk, funded only from Ink already granted and unspent, so it costs nothing new. It is not advertised anywhere and must not be.
-- Cost bound per yearly sub per year (worst case): solo 12 × 50 + 100 = 700 Ink; pro 12 × 150 + 300 = 2,100 Ink. Real exposure is lower because the carry can only come from unspent Ink.
+- **Superseded 15 Oct 2026 (T-433, founder ruling 14 Oct, confirmed 15 Oct):** there is no annual carry. The yearly recharge is a plain monthly reset like every other grant: plan Ink expires monthly, top-up Ink never expires. `inkAnnualCarry` stays at 0.
+- Cost bound per yearly sub per year: solo 12 × 50 = 600 Ink; pro 12 × 150 = 1,800 Ink.
 
 **(c) "Save 2 months". Confirmed, conditional on the drip shipping.**
 

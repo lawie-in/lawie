@@ -51,3 +51,11 @@ Order, no code change expected:
 5. Vikram updates the financial model; the Ink price does not move.
 
 Not now: prompt caching option B (T-437b) and per-tier models — re-read after Anushka's run with real costUsd numbers.
+
+## 6. Founder approval (15 Oct 2026, relayed by Vikram, ~09:00 UTC)
+
+"Approved": Sonnet 5.5 for the body, Haiku 5.5 for intake and preflight, Ink prices unchanged; `ai.rates` rows before the switch; the verification ticket measures thinking tokens. Vikram carries the new setup in the financial model as ~₹2.60/Ink, provisional until the measured number from the verification run replaces it.
+
+## 7. Applied on develop (founder, 15 Oct 2026, ~09:15 UTC)
+
+Verified from the founder's mongosh output: `ai.drafting_model` = `claude-sonnet-5-5`; `ai.intake_model` = `ai.preflight_model` = `claude-haiku-5-5`; `ai.rates.claude-sonnet-5-5` = {2, 10, 4, 0.2}; `ai.rates.claude-haiku-5-5` = {0.1, 0.5, 0.2, 0.01}; `finance.usd_inr` = 88. The old `ai.rates.claude-haiku-4-5-20251001` row stays for historical usage rows. T-453 (verification on the real models) released to Vishal. Prod follows with T-403 after Ajay's PASS on the golden diffs.

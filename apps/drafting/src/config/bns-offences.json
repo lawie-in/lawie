@@ -3052,8 +3052,9 @@
     },
     "303": {
       "title": "Theft",
-      "punishment": "Rigorous imprisonment for not be less than 1 year but which may extend to 5 years and fine. Upon return of the value of property or restoration of the stolen property, shall be punished with community service.",
-      "max_years": 5,
+      "punishment": "Up to 3 years, or fine, or both. On a second or later conviction: rigorous imprisonment of 1 to 5 years, and fine.",
+      "note": "Where the property is worth less than ₹5,000, it is a first conviction, and the property is returned or its value restored, the punishment is community service.",
+      "max_years": 3,
       "bailable": null,
       "cognizable": null,
       "compoundable": true,
@@ -3062,7 +3063,7 @@
       "variants": {
         "303(2)": {
           "offence": "Theft. Where value of property is less than 5,000 rupees.",
-          "punishment": "Rigorous imprisonment for not be less than 1 year but which may extend to 5 years and fine. Upon return of the value of property or restoration of the stolen property, shall be punished with community service.",
+          "punishment": "Community service, where it is a first conviction and the property is returned or its value restored.",
           "cognizable": "yes; no",
           "bailable": "no; yes",
           "compoundable": "yes"
@@ -3071,8 +3072,9 @@
     },
     "303(2)": {
       "title": "Theft",
-      "punishment": "1 to 5 years, and fine; second/subsequent: rigorous 1 to 5 years and fine",
-      "max_years": 5,
+      "punishment": "Up to 3 years, or fine, or both. On a second or later conviction: rigorous imprisonment of 1 to 5 years, and fine.",
+      "note": "Where the property is worth less than ₹5,000, it is a first conviction, and the property is returned or its value restored, the punishment is community service.",
+      "max_years": 3,
       "bailable": null,
       "cognizable": null,
       "compoundable": true,
@@ -3081,7 +3083,7 @@
       "variants": {
         "303(2)": {
           "offence": "Theft. Where value of property is less than 5,000 rupees.",
-          "punishment": "Rigorous imprisonment for not be less than 1 year but which may extend to 5 years and fine. Upon return of the value of property or restoration of the stolen property, shall be punished with community service.",
+          "punishment": "Community service, where it is a first conviction and the property is returned or its value restored.",
           "cognizable": "yes; no",
           "bailable": "no; yes",
           "compoundable": "yes"

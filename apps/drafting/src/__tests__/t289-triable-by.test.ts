@@ -34,7 +34,7 @@ describe('T-289 signed files are untouched', () => {
 
   it('bns-offences.json is still the signed T-277 file', () => {
     expect(sha(path.join(CONFIG, 'bns-offences.json'))).toBe(
-      '5f0ac29ad09aaed919826275cf22c425766c8dc7196dd089bfd5c8dacecb07de',
+      'bc0c62931faf0a343460d8a8fdb94ea91306c019943ec609aaf71a61a3d43e9c',
     );
   });
 });
