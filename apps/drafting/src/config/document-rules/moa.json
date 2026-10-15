@@ -116,7 +116,7 @@
         "B. Matters considered necessary in furtherance of the main objects"
       ],
       "must_appear": true,
-      "note": "Ultra vires acts are void per Lakshmanaswami Mudaliar v. LIC."
+      "note": "Ultra vires acts are void."
     },
     {
       "clause_id": "liability_clause",
@@ -172,7 +172,10 @@
       "Each subscriber must subscribe to at least one share.",
       "Mention witness with full address and occupation."
     ],
-    "tone": "Formal, archaic corporate-legal English consistent with Schedule I format."
+    "tone": "Formal, archaic corporate-legal English consistent with Schedule I format.",
+    "promptInstructions": [
+      "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
+    ]
   },
   "relevantActs": [
     {

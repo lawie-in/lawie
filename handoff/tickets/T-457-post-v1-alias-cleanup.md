@@ -26,3 +26,8 @@ After v1 is live and a week of drafts has passed with no old-name hits. Arjun pi
 
 1. No alias code or alias test remains; grep for the old names finds nothing outside handoff/ and legal records.
 2. Drafting tests and golden set green.
+
+## Arjun (15 Oct 2026, 12:40 UTC)
+
+- T-382's alias is in scope: `advocate_enrolment` → `advocate_enrollment`, in the shared alias map in `rule-pack.service.ts`, applied in `readFormInputs`. It predates the `// T-451 alias` comment; find it by the map.
+- Date: **14 days after the T-403 release to `main`**, on condition that the last 7 of those days show zero old-name hits in saved drafts (one aggregate over `Document.formInputs` for the old names — counts only, no content in messages). A hit pushes the date by a week; look again.

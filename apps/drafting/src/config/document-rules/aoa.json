@@ -188,14 +188,17 @@
     "drafting_rules": [
       "Adopt Table F of Schedule I except where modified.",
       "Private company: include restrictions on share transfer, 200-member cap, no public invitation.",
-      "Reserved matters / affirmative vote provisions are enforceable only if also reflected in AOA (V.B. Rangaraj doctrine).",
+      "Reserved matters / affirmative vote provisions are enforceable only if also reflected in AOA.",
       "Quorum for board: minimum per S.174 (1/3rd or 2, whichever higher).",
       "Quorum for general meetings: per S.103 (5 for Public if <1000 members; 2 for Private).",
       "Borrowing powers above paid-up capital + free reserves require S.180 special resolution.",
       "Directors min/max per S.149: Pvt 2-15, Public 3-15, OPC 1-15 (exceed 15 needs SR).",
       "Reference statutory sections in clauses for clarity."
     ],
-    "tone": "Formal corporate-legal, Table F style."
+    "tone": "Formal corporate-legal, Table F style.",
+    "promptInstructions": [
+      "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
+    ]
   },
   "relevantActs": [
     {

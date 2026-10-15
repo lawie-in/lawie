@@ -71,3 +71,5 @@ Should-fixes and nice-to-haves that are not tickets (Arjun's rule, 14 Oct 2026; 
 - queue:purge follow-up (kunal, 15 Oct): stderr lines in queue-purge.ts:440,447 still say "verify jobs" when only notices are involved; the static guard in the t436-stamp-on-send-only pin test only walks apps/auth/src (widen to apps/\*/src and scripts).
 - T-398 (tanvi, 15 Oct): apps/web enforceFreeLimit.ts:60 says "Upgrade to Pro" (likely dead code); separate ticket if live.
 - T-444 follow-up (shashank, 15 Oct): apps/billing/scripts/backfill-yearly-drip.ts:107,140 hard-codes ["active","cancelled"], so its dry-run report will not count completed yearly subscriptions that now drip. Reporting gap only, no money effect.
+
+- T-414 follow-up (Vishal, 15 Oct 2026): `withoutDates` and apps/drafting/src/services/brief-drafter.ts still use the old substring split for dates, so "2 March" can still match inside "12 March" there. Same fix as T-414; small; legal-content check with Ajay for any model-visible effect. Not V1 unless Ajay says the model-visible output changes.

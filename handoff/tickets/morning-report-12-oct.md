@@ -158,3 +158,7 @@ Run the section seed with --force on develop (seed-sections) after T-280 merges 
 ## For the founder, no action needed unless the number is wrong (Meera, 15 Oct 2026)
 
 Launch is organic only now. Meera's plan (handoff/marketing/organic-launch-plan.md) assumes you give 8 to 10 hours a week to demos and posts. If that is wrong, tell Meera the real number and she resizes the plan.
+
+## For the founder: two repo secrets for the golden-set run (T-453, Vishal, 15 Oct 2026)
+
+The model-switch check cannot run: the golden-set workflow skips its real run because `GOLDEN_SET_ANTHROPIC_API_KEY` and `GOLDEN_SET_MONGODB_URI` are not set as GitHub repo secrets. Add both (Settings, Secrets and variables, Actions). The URI must point at develop's database so it picks up the new model settings. Use a key with a small spend limit. Do not paste either value in any chat. Tell Priya or Arjun when done and Vishal dispatches the run.
