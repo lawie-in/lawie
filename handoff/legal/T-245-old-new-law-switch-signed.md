@@ -333,3 +333,18 @@ Signed: Ajay (CLO), 15 Oct 2026 IST.
 5. filing_checklist and validation_rules are shown to the user and not sent to the model (ai.service streams the checklist; the prompt assembler reads neither). They are outside T-441/T-451 and stay as they are, but only as citations I have checked. Priya: send me the list. I verify each one, and any I cannot verify is removed from that list.
 
 Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+### T-449 item 5: user-facing citations (Kunal, 15 Oct 2026)
+
+These are not sent to the model. I checked each one:
+
+| # | Where | Mark |
+|---|---|---|
+| 1 | plaint_partition validation_rules.13 (Vineeta Sharma) | Keep: correct |
+| 2 | plaint_recovery validation_rules.11 (Patil Automation) | Reword: as written it states the rule too broadly (it applies only to commercial suits, and urgent interim relief is an exception). New text: `pre_institution_mediation must be true for a commercial suit, unless urgent interim relief is sought (S.12A Commercial Courts Act, 2015; Patil Automation)` |
+| 3 | legal_notice_copyright_infringement validation_rules.1 (Eastern Book Co. v. D.B. Modak) | Keep: correct |
+| 4 | restoration_application validation_rules.parimal_standard (Parimal v. Veena) | Keep: correct |
+| 5 | dv_act_complaint filing_checklist.9 (Rajnesh v. Neha) | Keep: correct |
+| 6 | maintenance_bnss_144 filing_checklist.8 (Rajnesh v. Neha) | Keep: correct |
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.
