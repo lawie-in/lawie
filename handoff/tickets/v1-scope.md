@@ -67,6 +67,8 @@ Not blocking. Weekly review with Arjun picks what to pull forward.
 | Ticket | Title | Status | Owner | Why |
 | --- | --- | --- | --- | --- |
 | T-446 | Upgrade page shows a 'fix your payment' message on 409 subscription_exists | todo | - | small improvement, after T-444 (Arjun) |
+| T-449 | Civil and family packs: no judgment names in model-visible text | todo | - | Ajay: same rule, V1.1 group |
+| T-450 | Deeds and agreements packs: no judgment names in model-visible text | todo | - | Ajay: same rule, V1.1 group |
 | T-128 | Fill the gaps in the rule packs | hold | - | old rule-pack sweep (quality polish) |
 | T-129 | Prayer and verification text for packs that have none | hold | - | old rule-pack sweep (quality polish) |
 | T-134 | Ask the user which document, do not guess | hold | - | parked should-fix items |
@@ -122,10 +124,6 @@ Parked on purpose. None of these is a launch task.
 | T-265 | Template batch 2: criminal, first 11 templates | hold | - | template catalogue growth |
 | T-283 | Remove the describe_first and fact_ledger switches after v1 | hold | - | after-v1 cleanup and extensions |
 | T-286 | Judgments P0: summary of a judgment the advocate gives us | hold | ajay | new features and epics (assistant, judgments, bail checker, civil plaint) |
-| T-301 | Attach images as matter context | hold | - | uploads (images, PDFs, FIR reading) |
-| T-302 | Consent line and retention rule for uploads | hold | - | uploads (images, PDFs, FIR reading) |
-| T-303 | Spike: can we read Hindi and handwritten FIRs? | hold | - | uploads (images, PDFs, FIR reading) |
-| T-304 | Attach PDFs as matter context | hold | - | uploads (images, PDFs, FIR reading) |
 | T-361 | Bail checker reads BNS and gives the right punishment | hold | shashank | new features and epics (assistant, judgments, bail checker, civil plaint) |
 | T-368 | Civil plaint for recovery of money: right court and pleadings | hold | - | new features and epics (assistant, judgments, bail checker, civil plaint) |
 | T-386 | Hindi for the D1 packs | hold | - | after-v1 cleanup and extensions |
@@ -138,3 +136,10 @@ Parked on purpose. None of these is a launch task.
 - T-243 (waitlist form): Arjun's view is V1.1 unless launch is waitlist-gated. Placed V1.1 here; tell me if launch is gated by a waitlist.
 - T-252 (public site copy only says what the product does): V1 whatever the marketing plan, because claims on the public site are Ajay's domain (Arjun).
 - T-245b: V1 for every criminal pack in the launch catalogue; packs outside it are V1.1 (Ajay). Which packs are in the launch catalogue is still to be listed.
+| T-447 | Criminal packs: no judgment names in model-visible text | todo | - | Ajay: wrong-law/citation risk in drafts (T-441 group) |
+| T-448 | Writ packs: no judgment names in model-visible text | todo | - | Ajay: same rule, writs group |
+| T-451 | Judgment names in form labels and printed clause text | todo | - | Ajay: reaches the user or the filed document, always V1 |
+| T-302 | Consent line and retention rule for uploads | delivered | ajay | founder 15 Oct: uploads are V1 (policy wording to be read by a practising lawyer) |
+| T-303 | Spike: can we read Hindi and handwritten FIRs? | todo | vishal | founder 15 Oct: uploads are V1 |
+| T-301 | Attach images as matter context | todo | vishal | founder 15 Oct: uploads are V1 (needs re-scope onto the brief flow) |
+| T-304 | Attach PDFs as matter context | todo | vishal | founder 15 Oct: uploads are V1, after T-301 |
