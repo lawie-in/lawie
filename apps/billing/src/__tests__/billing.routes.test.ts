@@ -5,6 +5,7 @@ import request from 'supertest';
 import { CURRENT_PRIVACY_VERSION } from '@lawie/shared';
 import { User } from '../models/User.model';
 import { Subscription } from '../models/Subscription.model';
+import { SubscriptionCreateLock } from '../models/SubscriptionCreateLock.model';
 import * as subscriptionService from '../services/subscription.service';
 
 // Mock Razorpay SDK
@@ -13,6 +14,7 @@ jest.mock('../config/razorpay', () => ({
     subscriptions: {
       create: jest.fn(),
       fetch: jest.fn(),
+      cancel: jest.fn(),
     },
   },
 }));
@@ -228,6 +230,42 @@ describe('Billing Routes', () => {
         shortUrl: 'https://rzp.io/created-route',
         planId: 'solo_monthly',
       });
+    });
+
+    it('T-444c: returns 409 subscription_in_progress when the create lock is held, with no Razorpay call', async () => {
+      (razorpay.subscriptions.create as jest.Mock).mockClear();
+      const userId = await seedVerifiedUser('inprogress@example.com');
+      const headers = internalHeaders({ sub: userId, email: 'inprogress@example.com', name: 'I' });
+      await SubscriptionCreateLock.create({ userId });
+
+      const res = await request(app).post('/subscribe').set(headers);
+
+      expect(res.status).toBe(409);
+      expect(res.body).toEqual({ error: 'subscription_in_progress' });
+      expect(razorpay.subscriptions.create).not.toHaveBeenCalled();
+    });
+
+    it('T-444c: returns 503 try_again when the Razorpay cancel of a lapsed sub fails; old sub unchanged', async () => {
+      (razorpay.subscriptions.create as jest.Mock).mockClear();
+      const userId = await seedVerifiedUser('cancelfail@example.com');
+      const headers = internalHeaders({ sub: userId, email: 'cancelfail@example.com', name: 'C' });
+      await Subscription.create({
+        userId,
+        razorpaySubscriptionId: 'sub_lapsed_route',
+        status: 'halted',
+        paidThrough: new Date(Date.now() - 86_400_000),
+      });
+      (razorpay.subscriptions.cancel as jest.Mock).mockRejectedValueOnce(new Error('rzp 500'));
+      (razorpay.subscriptions.fetch as jest.Mock).mockRejectedValueOnce(new Error('rzp 500'));
+
+      const res = await request(app).post('/subscribe').set(headers);
+
+      expect(res.status).toBe(503);
+      expect(res.body).toEqual({ error: 'try_again' });
+      expect(razorpay.subscriptions.create).not.toHaveBeenCalled();
+      const old = await Subscription.findOne({ razorpaySubscriptionId: 'sub_lapsed_route' }).lean();
+      expect(old!.status).toBe('halted');
+      expect(await SubscriptionCreateLock.countDocuments({ userId })).toBe(0);
     });
 
     it('returns 500 when subscription creation throws', async () => {
