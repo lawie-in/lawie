@@ -27,8 +27,10 @@
  * passes is returned unchanged. Nothing here logs, and nothing here reads the
  * advocate's description.
  *
- * Not legal content: the checks are code. The repair prompt is in
- * `drafter.prompts.ts` (signed: Ajay (CLO), 13 Oct 2026,
+ * `FACT_CHECK_DISCLAIMER` and the verification rules (what counts as a failed
+ * fact check) are legal content (see `.claude/docs/legal-content-paths.md`;
+ * Ajay, 15 Oct 2026, T-116): any change to them needs his signed text. The
+ * repair prompt is in `drafter.prompts.ts` (signed: Ajay (CLO), 13 Oct 2026,
  * handoff/legal/T-397-ledger-prompts-signed.md, 86f9d9c). The banner wording
  * is a plain functional string awaiting Priya, Madhuri and Rajesh.
  */
@@ -59,7 +61,9 @@ export const REPAIR_PROMPT_VERSION = createHash('sha256')
   .digest('hex')
   .slice(0, 12);
 
-// ── Banner (plain functional wording; Priya, Madhuri and Rajesh to word it) ─
+// ── Banner and disclaimer ───────────────────────────────────────────────────
+// The banner (`factCheckBannerText`) is plain functional wording (Priya, Madhuri
+// and Rajesh to word it). `FACT_CHECK_DISCLAIMER` is legal content (Ajay, T-116).
 
 export const FACT_CHECK_DISCLAIMER =
   'Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.';
