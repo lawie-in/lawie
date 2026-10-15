@@ -69,6 +69,8 @@ Where each lead stopped:
 
 **REBALANCE (founder, 14 Oct 23:20 UTC): Kunal, Mahak and Tanvi now run on Sonnet; Vishal and Shashank on Opus. The harder tickets (multi-part, money, legal drafting) go to Vishal and Shashank. T-436 parts (b) and (c) move from Kunal to Shashank after T-440 merges. T-431 moves from Mahak to Vishal. The QUEUE on each row wins over older 'then …' text. packages/shared order (Arjun): Kunal keeps it for T-364 right after T-436 (a). Shashank's T-436 (b) AC8 privacy bump touches shared only after T-364 merges; he does AC10 and the non-shared parts first.**
 
+**CI HOLD (15 Oct 00:16 UTC): runs 570, 573, 576, 577, 579 and 580 were all cancelled by the next push (cancel-in-progress), so no full-tree run has finished since 550 (47d5d011). The run on 846ad85 (T-377) is the head and covers T-436 a, T-440, T-424, T-442, AC10 r1 and T-377. Nobody pushes until it finishes; then the queue resumes: Mahak follow-up, Kunal AC10 r2, Vishal T-245a.**
+
 ## Last done
 
 - mahak: T-377 merged 846ad85 (15 Oct 2026). /verify-email gets Referrer-Policy no-referrer; nginx.prod.conf strips the query from /verify-email and /auth/callback in the access log; docs/nginx-access-log.md for the founder's server step. Follow-up coming: widen the map to /api/auth/google/callback and fix the nginx ports (T-442). Row stays open for the follow-up.
