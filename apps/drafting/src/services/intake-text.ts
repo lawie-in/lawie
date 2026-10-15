@@ -121,6 +121,26 @@ export function datesInText(text: string): string[] {
  * each date, the first place it is written.
  */
 export function datesAsWritten(text: string): Array<{ value: string; words: string }> {
+  const out = new Map<string, string>();
+  for (const f of dateMatchesInText(text)) {
+    if (!out.has(f.value)) out.set(f.value, f.words);
+  }
+  return [...out.entries()].map(([value, words]) => ({ value, words }));
+}
+
+/**
+ * Every place a date is written in `text` (T-414), in order of position, with
+ * no dedupe: the same date written twice, or in two forms, is two entries.
+ * `at` and `length` are positions in the lower-cased copy of `text` (with
+ * Devanagari digits read as ASCII). They are positions in `text` only while
+ * lower-casing keeps its length, so a caller that splices by position should
+ * pass text that is already normalised and lower-cased, as
+ * `contentWordSequence` does. Matches the regexes find in different formats
+ * may overlap; the caller picks.
+ */
+export function dateMatchesInText(
+  text: string,
+): Array<{ value: string; words: string; at: number; length: number }> {
   const found: Array<{ value: string; at: number; length: number }> = [];
   const add = (value: string | null, m: RegExpMatchArray): void => {
     if (value) found.push({ value, at: m.index ?? 0, length: m[0].length });
@@ -165,11 +185,9 @@ export function datesAsWritten(text: string): Array<{ value: string; words: stri
   // Lower-casing keeps the length for the text users write here. If it ever
   // does not, the words are taken from the lower-cased text.
   const source = t.length === text.length ? text : t;
-  const out = new Map<string, string>();
-  for (const f of found.sort((a, b) => a.at - b.at)) {
-    if (!out.has(f.value)) out.set(f.value, source.slice(f.at, f.at + f.length));
-  }
-  return [...out.entries()].map(([value, words]) => ({ value, words }));
+  return found
+    .sort((a, b) => a.at - b.at)
+    .map((f) => ({ ...f, words: source.slice(f.at, f.at + f.length) }));
 }
 
 /** True when `value` (allowing "…" / "..." cuts) is the user's own words, in order. */

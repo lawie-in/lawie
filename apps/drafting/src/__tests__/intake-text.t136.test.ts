@@ -4,7 +4,30 @@
  * order of first appearance; `datesInText` still returns the same set.
  * No database, no model call.
  */
-import { datesAsWritten, datesInText } from '../services/intake-text';
+import { datesAsWritten, datesInText, dateMatchesInText } from '../services/intake-text';
+
+describe('dateMatchesInText (T-414)', () => {
+  it('gives every match with its position, sorted, with no dedupe', () => {
+    const text = 'On 12 March 2025 and 2 March 2025, again 2 March 2025, also 02/03/2025.';
+    const out = dateMatchesInText(text);
+    const first = text.indexOf('2 March 2025, again');
+    expect(out).toEqual([
+      { value: '2025-03-12', words: '12 March 2025', at: 3, length: 13 },
+      { value: '2025-03-02', words: '2 March 2025', at: first, length: 12 },
+      {
+        value: '2025-03-02',
+        words: '2 March 2025',
+        at: text.lastIndexOf('2 March 2025'),
+        length: 12,
+      },
+      { value: '2025-03-02', words: '02/03/2025', at: text.indexOf('02/03/2025'), length: 10 },
+    ]);
+  });
+
+  it('returns nothing when there is no date', () => {
+    expect(dateMatchesInText('')).toEqual([]);
+  });
+});
 
 describe('datesAsWritten', () => {
   it('gives each date once, with the words as written, in order of first appearance', () => {

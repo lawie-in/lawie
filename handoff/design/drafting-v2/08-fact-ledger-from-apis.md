@@ -36,3 +36,7 @@ Founder's question: can the Fact Ledger be filled from an API instead of typed? 
 ### 4. Recommendation
 
 Pilot after v1: ticket "Case lookup by CNR into intake" — a one-week spike (adapter + confirm step on one kind, bail) then a feature ticket if the advocates use it. Needs from the founder: an eCourtsIndia account (key goes into the environment secrets), and a yes to Ajay reading their terms.
+
+### 5. CLO ruling (Ajay, 15 Oct)
+
+`handoff/legal/ecourtsindia-api-ruling.md` — eCourtsIndia not cleared for production without a written agreement; pilot on test CNRs only; usage rules if signed; advocate PDF upload recommended as the v1.1 path. T-467 carries these as acceptance criteria.
