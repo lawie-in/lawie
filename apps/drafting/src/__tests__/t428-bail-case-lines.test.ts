@@ -1,9 +1,11 @@
 /**
  * T-428 (Ajay: 2fcf6c4, 03b3e6e, e512365): signed bail case lines for lower courts and
  * three high courts. Supreme Court bail lines are the case-type blank; patna_hc and
- * delhi_hc are unchanged versus develop_staging.
+ * delhi_hc case lines match the committed T-428 baseline fixture
+ * (fixtures/t428-hc-case-nomenclature-baseline.json, taken at develop_staging ead7f7e4).
+ * That fixture is legal content: changing it needs Ajay's sign-off.
  */
-import { execFileSync } from 'child_process';
+import { readFileSync } from 'fs';
 import { join } from 'path';
 import {
   buildPlaceholderContext,
@@ -15,8 +17,9 @@ import {
 } from '../services/template-engine.service';
 
 const BLANK = '[To be confirmed: case type and number]';
-const REPO_ROOT = join(__dirname, '../../../..');
-const RULES_REL = 'apps/drafting/src/config/court-rules';
+const BASELINE: Record<string, unknown> = JSON.parse(
+  readFileSync(join(__dirname, 'fixtures/t428-hc-case-nomenclature-baseline.json'), 'utf-8'),
+);
 const form = { applicant_name: 'Ramesh Kumar', state: 'bihar', fir_number: '12/2026' };
 const year = String(new Date().getFullYear());
 
@@ -37,14 +40,6 @@ function line(
   const cfg = loadTemplateConfig(template) as TemplateConfig;
   return buildPlaceholderContext(cfg, { ...form, ...extraForm }, { advocateName: 'A' }, court)
     .caseNomenclature;
-}
-
-function developStagingRule(id: string): { case_nomenclature: unknown } {
-  const out = execFileSync('git', ['show', `origin/develop_staging:${RULES_REL}/${id}.json`], {
-    cwd: REPO_ROOT,
-    encoding: 'utf-8',
-  });
-  return JSON.parse(out);
 }
 
 beforeEach(() => clearConfigCache());
@@ -133,8 +128,9 @@ describe('T-428 bail case lines', () => {
     expect(cn.anticipatory_bail).toBe(BLANK);
   });
 
-  it.each(['patna_hc', 'delhi_hc'])('%s is unchanged versus develop_staging', (id) => {
+  it.each(['patna_hc', 'delhi_hc'])('%s case lines match the committed T-428 baseline', (id) => {
+    expect(BASELINE[id]).toBeDefined();
     const rule = loadCourtRule(id)!;
-    expect(rule.case_nomenclature).toEqual(developStagingRule(id).case_nomenclature);
+    expect(rule.case_nomenclature).toEqual(BASELINE[id]);
   });
 });

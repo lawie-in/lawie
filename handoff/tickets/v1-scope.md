@@ -124,10 +124,6 @@ Parked on purpose. None of these is a launch task.
 | T-265 | Template batch 2: criminal, first 11 templates | hold | - | template catalogue growth |
 | T-283 | Remove the describe_first and fact_ledger switches after v1 | hold | - | after-v1 cleanup and extensions |
 | T-286 | Judgments P0: summary of a judgment the advocate gives us | hold | ajay | new features and epics (assistant, judgments, bail checker, civil plaint) |
-| T-301 | Attach images as matter context | hold | - | uploads (images, PDFs, FIR reading) |
-| T-302 | Consent line and retention rule for uploads | hold | - | uploads (images, PDFs, FIR reading) |
-| T-303 | Spike: can we read Hindi and handwritten FIRs? | hold | - | uploads (images, PDFs, FIR reading) |
-| T-304 | Attach PDFs as matter context | hold | - | uploads (images, PDFs, FIR reading) |
 | T-361 | Bail checker reads BNS and gives the right punishment | hold | shashank | new features and epics (assistant, judgments, bail checker, civil plaint) |
 | T-368 | Civil plaint for recovery of money: right court and pleadings | hold | - | new features and epics (assistant, judgments, bail checker, civil plaint) |
 | T-386 | Hindi for the D1 packs | hold | - | after-v1 cleanup and extensions |
@@ -143,3 +139,7 @@ Parked on purpose. None of these is a launch task.
 | T-447 | Criminal packs: no judgment names in model-visible text | todo | - | Ajay: wrong-law/citation risk in drafts (T-441 group) |
 | T-448 | Writ packs: no judgment names in model-visible text | todo | - | Ajay: same rule, writs group |
 | T-451 | Judgment names in form labels and printed clause text | todo | - | Ajay: reaches the user or the filed document, always V1 |
+| T-302 | Consent line and retention rule for uploads | delivered | ajay | founder 15 Oct: uploads are V1 (policy wording to be read by a practising lawyer) |
+| T-303 | Spike: can we read Hindi and handwritten FIRs? | todo | vishal | founder 15 Oct: uploads are V1 |
+| T-301 | Attach images as matter context | todo | vishal | founder 15 Oct: uploads are V1 (needs re-scope onto the brief flow) |
+| T-304 | Attach PDFs as matter context | todo | vishal | founder 15 Oct: uploads are V1, after T-301 |
