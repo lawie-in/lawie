@@ -292,3 +292,12 @@ Both ids reach the model: clause ids go through clauseLines (brief-drafter.ts:29
 This is no new law (R5). CLAUSE_CUES, the skeletons and any saved-form or draft mapping follow the rename; how that is done is Arjun's call, not mine. The wording does not change, so no golden should move; any golden that does move comes to me.
 
 Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+### T-449 questions (Priya / Kunal, 15 Oct 2026)
+
+1. **Where S goes when a pack has no promptInstructions** (rejoinder_affidavit, restoration_application, interim_application). Do not append it to `system_prompt_addendum` or `system_role`. Field order puts it before tone and key_phrases, so it would not come last. Do the same as curative_petition (T-447 (a)): add `prompt_context.promptInstructions: [S]` as the **last key** of prompt_context. Never add a top-level `promptInstructions` to these packs: prompt-assembler then uses only that list and drops all of prompt_context. Condition: a test shows S as the last numbered instruction for each of the three.
+2. **_meta.** For mact_claim, yes to the reset, but use the amended R6 text that keeps the CLO line: `All edits require CLO sign-off. Do not name judgments in model-visible text (Ajay, T-441).` For plaint_declaration and plaint_partition, **leave** the _meta: it is not model-visible and makes no citation mandatory.
+3. **R4 labels.** I will mark them when Kunal's diff arrives.
+4. **rera_complaint :155 label.** Labels reach the model (item.label), so it goes into T-451, not left as it is. New label: `Any previous Consumer / Civil proceedings on same cause? (the consumer remedy is concurrent)`.
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.
