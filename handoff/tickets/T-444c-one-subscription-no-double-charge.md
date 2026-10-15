@@ -24,3 +24,9 @@ Same as T-444b: apps/billing/src/services/subscription.service.ts and the t444 t
 ## Out of scope
 
 Web, legal content, packages/shared, the parked V1.1 lines in T-444b.
+
+## Added (Priya, 15 Oct 2026, at Shashank's request)
+
+- Files also include apps/billing/src/routes/billing.routes.ts.
+- Response codes: lock held gives 409 `subscription_in_progress`; Razorpay cancel failure gives 503 `try_again`, no new subscription.
+- Order: T-444c before T-361.
