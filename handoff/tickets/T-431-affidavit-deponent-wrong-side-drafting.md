@@ -2,7 +2,7 @@
 
 | Field  | Value                                                                   |
 | ------ | ----------------------------------------------------------------------- |
-| Status | Todo. Mahak, after T-424 (template-engine region after Shashank's T-404 part 2 and Vishal's T-407 release it). Priya, 14 Oct 2026 |
+| Status | Assigned to Mahak, Explore 15 Oct 2026 (files to Priya). Priya |
 | Owner  | Mahak (build), Ajay (side rule, T-381 Addendum 5 04c1630)               |
 | Mode   | Small fix unless Explore finds more (legal content: party mapping)      |
 
