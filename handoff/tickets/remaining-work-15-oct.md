@@ -39,3 +39,9 @@ GST_* environment values and signature image; registered address; nginx step; br
 ## After the code
 
 Anushka's end-to-end run on develop (needs everything merged and the develop deploy including the T-452 redeploy), her PASS, then the founder's release to main (T-403).
+
+## Pause reports (11:12 UTC)
+
+- Shashank: all merges green. T-450 stopped mid-developer; the pack edits are stashed locally in his worktree on branch feature/t-450-deeds-no-judgments (clean at 601ff134), nothing pushed. Risk: a stash lives only in his container. If the container is reclaimed, the edits are lost and T-450 restarts from Ajay's table (50dc3c1).
+- Ajay: all sign-offs pushed (last 50dc3c1). Still owed: T-450 and T-451 byte checks, model-switch golden-run diffs, any moved goldens, itat mapping (T-456).
+- Vishal: T-447 merged 808647ff, CI run 686 green. Branch clean, nothing in flight. T-453 and T-414 not started (T-414 also needs Ajay's ref; he asked me to put T-414 on his row).
