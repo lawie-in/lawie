@@ -46,3 +46,9 @@ After T-438 (Tanvi: enum widening, constant-time secrets, admin-sync validation)
 8. **Tests.** Approach approved: drive `settleYearlyDrip` with injected `now`, as t399 does. "Loses Pro at paidThrough and not before" = two calls, `paidThrough - 1s` keeps Pro and drips nothing, `paidThrough + 1s` zeroes and downgrades once (second call a no-op). Add the stale-event test from (2) and the two reuse branches from (7). Cover `completed` with the same before/after pair as `cancelled`.
 
 Order unchanged: build after T-438 lands (enum widening). If T-438 slips past the morning, tell me and I will decide whether T-444 carries the enum itself.
+
+Addendum (Arjun, 15 Oct 2026, 05:30 UTC): a halted/paused/updated event with no `entity.paid_count` is **applied**, not skipped — the stale-event guard in ruling 2 needs a present, lower paid_count; a missing one is not evidence, and applying only stops future Ink (access runs to paidThrough). Log that the guard was skipped. `pending` from the webhook is a no-op (AC1); a stored `pending` (admin sync only) counts as non-terminal for reuse (409) and drips nothing.
+
+Review r1 fixes confirmed (Arjun, 15 Oct 2026, 05:35 UTC): (1) stored `pending` joins the still-paid guards (paidThrough only) and the lazy `ended` set; (2) `resumed` applies only from paused/halted under the stale guard; `updated` never writes `pending` and never moves halted/paused to active; (3) a late `charged` on a completed/cancelled/expired sub grants the paid cycle's Ink and sets paidThrough/lastGrantedPaidCount but does not revive the status; (4) 409 body stays flat `{error, status, planId, paidThrough}`.
+
+Review r2 (Arjun, 15 Oct 2026, 05:37 UTC): `completed` joins the yearly drip query (a paid-in-full year drips to paidThrough); halted/paused/pending do not drip. A stored `pending` with no paidThrough uses the ruling-1 ladder (currentPeriodEnd, else ends on the next settle).

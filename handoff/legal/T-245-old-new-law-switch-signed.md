@@ -174,7 +174,7 @@ Addendum 5 #3 follow-up (15 Oct 2026). fir_date question, signed byte-exact, rep
 ## Addendum 6: T-245a review wording (Vishal, 15 Oct 2026)
 
 1. bail_cancellation prompt_context: use `Draft an Application for Cancellation of Bail under the provision given as GOVERNING PROVISION in the case details.` (not "read with").
-2. bail_before_magistrate. displayName: `Bail Application before Magistrate (Section 480 BNSS / Section 437 CrPC)`. The _meta description follows the same pairing. Validation rule: `recommend Section 483 BNSS (Section 439 CrPC) before the Court of Session or High Court`. Fold into T-245a. must-fix (the displayName is shown to users).
+2. bail_before_magistrate. displayName: `Bail Application before Magistrate (Section 480 BNSS / Section 437 CrPC)`. The \_meta description follows the same pairing. Validation rule: `recommend Section 483 BNSS (Section 439 CrPC) before the Court of Session or High Court`. Fold into T-245a. must-fix (the displayName is shown to users).
 3. Court-rule practice notes ("S.483 BNSS" / "S.482 BNSS"): **parked**. The P-text governs what is cited. A follow-up adds the CrPC pair to each note.
 
 Signed: Ajay (CLO), 15 Oct 2026 IST.
@@ -195,17 +195,18 @@ S = `Do not name any judgment. Where an authority would normally be cited, write
 
 **(c) The rest of the catalogue: one ticket per group, applying these signed rules mechanically.** I byte-check each group's diff; I do not pre-sign every line.
 
-| Rule | Text |
-|---|---|
-| R1 | In model-visible text (promptInstructions, prompt_context, system_role, clause names and descriptions, relevantActs descriptions, notes), delete each judgment name, its citation and its connector ("per", "in", "as held in", "see", "following", "cite … on"). Keep the legal proposition word for word. |
-| R2 | If a line only says to cite a judgment, delete the line. |
-| R3 | Add S once per pack, as the last promptInstructions entry. |
-| R4 | Where a name is used as a label ("Bhajan Lal categories", "Sarla Verma method"), replace it with a plain description proposed in the diff (e.g. "the recognised categories for quashing"). I check each one. |
-| R5 | No new law in any replacement: no new section, case or proposition. |
-| R6 | key_citations, key_precedents and _meta are not sent to the model: leave them. But change each `_meta.change_protocol` that makes a citation MANDATORY to `Do not name judgments in model-visible text (Ajay, T-441).` |
-| R7 | The _averments ban lists stay as they are. |
+| Rule | Text                                                                                                                                                                                                                                                                                                        |
+| ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1   | In model-visible text (promptInstructions, prompt_context, system_role, clause names and descriptions, relevantActs descriptions, notes), delete each judgment name, its citation and its connector ("per", "in", "as held in", "see", "following", "cite … on"). Keep the legal proposition word for word. |
+| R2   | If a line only says to cite a judgment, delete the line.                                                                                                                                                                                                                                                    |
+| R3   | Add S once per pack, as the last promptInstructions entry.                                                                                                                                                                                                                                                  |
+| R4   | Where a name is used as a label ("Bhajan Lal categories", "Sarla Verma method"), replace it with a plain description proposed in the diff (e.g. "the recognised categories for quashing"). I check each one.                                                                                                |
+| R5   | No new law in any replacement: no new section, case or proposition.                                                                                                                                                                                                                                         |
+| R6   | key_citations, key_precedents and \_meta are not sent to the model: leave them. But change each `_meta.change_protocol` that makes a citation MANDATORY to `Do not name judgments in model-visible text (Ajay, T-441).`                                                                                     |
+| R7   | The \_averments ban lists stay as they are.                                                                                                                                                                                                                                                                 |
 
 **Always V1, whatever the group, signed one by one (send me the list):**
+
 - the 6 user-facing form labels naming cases (curative, fir_quashing, divorce_mutual, dv_act, plaint_recovery, plaint_partition);
 - any judgment inside fixed clause text that prints into the document (e.g. service_agreement);
 - the "Suraj Lamp Disclaimer" clause name (gpa/spa).
@@ -216,17 +217,17 @@ Signed: Ajay (CLO), 15 Oct 2026 IST.
 
 ### Addendum 8: always-V1 items, signed byte-exact (15 Oct 2026)
 
-| File:line | New text |
-|---|---|
-| curative_petition.json :72 label | `Curative ground` |
-| fir_quashing.json :103 label | `Grounds for quashing invoked (one or more)` (the id stays) |
-| divorce_mutual_consent.json :148 label | `Whether waiver of the 6-month cooling period is sought` |
-| dv_act_complaint.json :82 label | `Additional respondents (in-laws, family members)` |
-| plaint_recovery.json :202 label | `Pre-institution mediation completed under Section 12A of the Commercial Courts Act, 2015 (if commercial and no urgent interim relief)` |
-| plaint_partition.json :93 label | `Female coparceners: daughters with an equal share after the Hindu Succession (Amendment) Act, 2005` |
+| File:line                                  | New text                                                                                                                                                   |
+| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| curative_petition.json :72 label           | `Curative ground`                                                                                                                                          |
+| fir_quashing.json :103 label               | `Grounds for quashing invoked (one or more)` (the id stays)                                                                                                |
+| divorce_mutual_consent.json :148 label     | `Whether waiver of the 6-month cooling period is sought`                                                                                                   |
+| dv_act_complaint.json :82 label            | `Additional respondents (in-laws, family members)`                                                                                                         |
+| plaint_recovery.json :202 label            | `Pre-institution mediation completed under Section 12A of the Commercial Courts Act, 2015 (if commercial and no urgent interim relief)`                    |
+| plaint_partition.json :93 label            | `Female coparceners: daughters with an equal share after the Hindu Succession (Amendment) Act, 2005`                                                       |
 | service_agreement.json :75 printed content | Delete the last sentence, ` Reference: Dharangadhara Chemical Works v. Workmen AIR 1957 SC 264 (control test).`. The clause ends at `…all statutory dues.` |
-| gpa.json :239 name | `Title disclaimer (if power to sell included)`; the description stays. |
-| spa.json :233 name | `Title disclaimer (if power to sell)`; the description stays. |
+| gpa.json :239 name                         | `Title disclaimer (if power to sell included)`; the description stays.                                                                                     |
+| spa.json :233 name                         | `Title disclaimer (if power to sell)`; the description stays.                                                                                              |
 
 Any golden that moves (service_agreement especially) comes to me.
 
@@ -241,10 +242,11 @@ Para 8: `Para 8: Grounds of revision — itemise each ground with relevant prece
 With Para 8 changed: **T-441 is approved.** Merge-body ref: "Legal: T-441 signed by Ajay, 2ec63fc + this check".
 
 T-441 review note (Vishal, 15 Oct 2026): restore the two propositions, as R1 would:
+
 - interim_bail prompt_context, where the deleted sentence stood: `The court has power to grant interim bail pending disposal of the bail application.`
 - bail_anticipatory twin: `Include reference to: (i) Article 21 of Constitution, (ii) the conditions the court may impose when granting anticipatory bail, (iii) that custodial interrogation is not necessary as applicant is willing to join investigation. ` + S.
-Fold into T-441 before merge; the rest stays approved.
-The two strings above, byte-exact:
+  Fold into T-441 before merge; the rest stays approved.
+  The two strings above, byte-exact:
 - interim_bail: `The court has power to grant interim bail pending disposal of the bail application.`
 - twin: `(ii) the conditions the court may impose when granting anticipatory bail, (iii) that custodial interrogation is not necessary as applicant is willing to join investigation.` followed by S.
 
