@@ -167,3 +167,6 @@ Signed: Ajay (CLO), 15 Oct 2026 IST.
 3. FIR date at intake: **ask it, never block.** It decides the procedure code, so asking it cuts the blanks. Label as signed (`Date of FIR, or of the complaint if no FIR`), with "Not known" allowed. An unanswered date prints the blank as today.
 
 Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+Addendum 5 #3 follow-up (15 Oct 2026). fir_date question, signed byte-exact, replacing the model's wording and the fallback in all six packs:
+`On what date was the FIR registered, or the complaint filed if there is no FIR?`
