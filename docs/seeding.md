@@ -41,9 +41,9 @@ What lives in JSON files in the codebase but is **not** seeded — these are rea
 - `apps/drafting/src/config/court-rules/*.json` — 15 court-specific formatting rule files (fonts, margins, cause-title format)
 - `apps/drafting/src/config/document-rules/*.json` — 5 document-type rule files (bail, S138, etc.)
 - `apps/drafting/src/config/bns-offences.json` and `bns-triable-by.json` — bail-checker reference (bailability is derived from `bns-offences.json` at load time by `services/bns-offence-resolver.ts`)
-- `apps/billing/src/config/credit-skus.ts` — plan tiers + top-up SKUs powering `/api/billing/plans`
+- `apps/billing/src/config/credit-skus.ts` — top-up SKUs powering `/api/billing/plans`. The plan tiers (price, Ink per cycle) are not defined here: `credit-skus.ts` builds them from the `PLANS` const in `packages/shared/src/constants/ink.ts`, which is the one source for plan data. The web pricing page, home cards, PaywallModal and UpgradeSuccessModal read the same const at build time.
 
-If you change any of these, redeploy the drafting (or billing) service — no DB step needed.
+If you change any of these, redeploy the drafting (or billing) service — no DB step needed. A change to `PLANS` also needs `@lawie/shared` rebuilt and the web app rebuilt and redeployed, because web reads it at build time.
 
 ---
 

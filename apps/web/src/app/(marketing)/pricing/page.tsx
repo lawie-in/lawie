@@ -1,5 +1,6 @@
 'use client';
 
+import { PLANS } from '@lawie/shared';
 import { Check, ArrowRight, Lightbulb, Minus } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
@@ -43,15 +44,28 @@ const pricingFaq = [
   },
 ];
 
+/** "₹7,990" from 7990 (T-364: prices come from PLANS in @lawie/shared). */
+const inr = (n: number): string => `₹${n.toLocaleString('en-IN')}`;
+
+/** Saving from paying yearly instead of 12 monthly charges. */
+const soloYearlySaving = 12 * PLANS.solo_monthly.priceInr - PLANS.solo_yearly.priceInr;
+const proYearlySaving = 12 * PLANS.pro_monthly.priceInr - PLANS.pro_yearly.priceInr;
+
 export default function PricingPage() {
   const [period, setPeriod] = useState<'monthly' | 'yearly'>('monthly');
 
-  const soloPrice = period === 'monthly' ? '₹799' : '₹7,990';
-  const proPrice = period === 'monthly' ? '₹1,999' : '₹19,990';
+  const soloPrice =
+    period === 'monthly' ? inr(PLANS.solo_monthly.priceInr) : inr(PLANS.solo_yearly.priceInr);
+  const proPrice =
+    period === 'monthly' ? inr(PLANS.pro_monthly.priceInr) : inr(PLANS.pro_yearly.priceInr);
   const soloAlt =
-    period === 'monthly' ? 'or ₹7,990/year — save 2 months' : '₹1,598 saved vs paying monthly';
+    period === 'monthly'
+      ? `or ${inr(PLANS.solo_yearly.priceInr)}/year — save 2 months`
+      : `${inr(soloYearlySaving)} saved vs paying monthly`;
   const proAlt =
-    period === 'monthly' ? 'or ₹19,990/year — save 2 months' : '₹3,998 saved vs paying monthly';
+    period === 'monthly'
+      ? `or ${inr(PLANS.pro_yearly.priceInr)}/year — save 2 months`
+      : `${inr(proYearlySaving)} saved vs paying monthly`;
   const soloPeriodLabel = period === 'monthly' ? '/month' : '/year';
   const proPeriodLabel = period === 'monthly' ? '/month' : '/year';
 
@@ -144,7 +158,7 @@ export default function PricingPage() {
               <div className="plan-alt">{soloAlt}</div>
               <ul>
                 <li>
-                  <Check strokeWidth={2} /> 50 Ink/month
+                  <Check strokeWidth={2} /> {PLANS.solo_monthly.inkPerCycle} Ink/month
                 </li>
                 <li className="head">Everything in Free, plus</li>
                 <li>
@@ -171,7 +185,7 @@ export default function PricingPage() {
               <div className="plan-alt">{proAlt}</div>
               <ul>
                 <li>
-                  <Check strokeWidth={2} /> 150 Ink/month
+                  <Check strokeWidth={2} /> {PLANS.pro_monthly.inkPerCycle} Ink/month
                 </li>
                 <li className="head">Everything in Solo, plus</li>
                 <li>
