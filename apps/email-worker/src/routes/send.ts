@@ -5,6 +5,7 @@ import { z } from 'zod';
 
 import { env } from '../config/env';
 import { logger } from '../config/logger';
+import { internalSecretMatches } from '../internal-secret';
 import { isLiveSend, templateHasUnfilledFooter } from '../placeholders';
 import { sendEmail } from '../providers';
 import { safeErrorFields, userIdFromData } from '../providers/safe-log';
@@ -21,8 +22,7 @@ const bodySchema = z.object({
 });
 
 export async function sendHandler(req: Request, res: Response): Promise<void> {
-  const secret = req.headers[INTERNAL_HEADERS.SECRET] as string | undefined;
-  if (!secret || secret !== env.INTERNAL_SECRET) {
+  if (!internalSecretMatches(req.headers[INTERNAL_HEADERS.SECRET], env.INTERNAL_SECRET)) {
     res.status(401).json({ error: 'Unauthorized' });
     return;
   }

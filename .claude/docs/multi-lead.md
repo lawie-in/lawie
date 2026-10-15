@@ -4,11 +4,11 @@ Read by `vishal`, `mahak`, `shashank`, `kunal` and `tanvi` when a ticket starts,
 
 ## Who does what
 
-| Role | Does | Never does |
-|---|---|---|
-| Priya (coordinator) | Assigns tickets, writes the claim record, orders merges, sends the founder one status update | Writes code, commits, runs the crew |
-| Lead (`vishal`, `mahak`, `shashank`, `kunal`, `tanvi`) | Runs one ticket through the crew, commits, merges into `develop_staging` in its slot and pushes | Takes an unassigned ticket, holds two tickets, changes files outside its claim |
-| Crew (`developer`, `tester`, `reviewer`, `doc-writer`) | Shared by all five leads. One step each, as before | Talk to the founder, commit, or look past its handoff packet. It needs no idea which lead sent it |
+| Role                                                   | Does                                                                                            | Never does                                                                                        |
+| ------------------------------------------------------ | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Priya (coordinator)                                    | Assigns tickets, writes the claim record, orders merges, sends the founder one status update    | Writes code, commits, runs the crew                                                               |
+| Lead (`vishal`, `mahak`, `shashank`, `kunal`, `tanvi`) | Runs one ticket through the crew, commits, merges into `develop_staging` in its slot and pushes | Takes an unassigned ticket, holds two tickets, changes files outside its claim                    |
+| Crew (`developer`, `tester`, `reviewer`, `doc-writer`) | Shared by all five leads. One step each, as before                                              | Talk to the founder, commit, or look past its handoff packet. It needs no idea which lead sent it |
 
 ## The claim record
 
@@ -17,11 +17,11 @@ One file: `handoff/tickets/leads.md`, on `develop_staging`. Priya is its only wr
 ```markdown
 ## Claims
 
-| Lead | Ticket | Branch | Files and folders claimed | Legal paths | Since |
-|---|---|---|---|---|---|
-| vishal | T-135 | fix/t-135-bail-provisions | apps/drafting/src/services/brief-drafter.ts | yes: brief-drafter.ts (Ajay ref: ...) | 11 Oct 10:40 |
-| mahak | T-138 | fix/t-138-phone-width | apps/web/src/app/drafts/ | no | 11 Oct 10:45 |
-| shashank | none | | | | |
+| Lead     | Ticket | Branch                    | Files and folders claimed                   | Legal paths                           | Since        |
+| -------- | ------ | ------------------------- | ------------------------------------------- | ------------------------------------- | ------------ |
+| vishal   | T-135  | fix/t-135-bail-provisions | apps/drafting/src/services/brief-drafter.ts | yes: brief-drafter.ts (Ajay ref: ...) | 11 Oct 10:40 |
+| mahak    | T-138  | fix/t-138-phone-width     | apps/web/src/app/drafts/                    | no                                    | 11 Oct 10:45 |
+| shashank | none   |                           |                                             |                                       |              |
 
 ## Merge queue
 
@@ -108,7 +108,6 @@ Until the founder's morning report, nobody asks the founder anything or tags him
 - **Relay times (founder, 11 Oct 2026, night):** the `ts` on every relay post or ticket comment is the real time from `date -u +%Y-%m-%dT%H:%M:%S.000Z`, pasted as is. Never type a time by hand. The board shows it in the reader's local time (IST for the founder).
 - **No `cd` before git (founder, 11 Oct 2026, night):** a command that changes directory and then runs git always asks for permission, whatever the allow rules say. Use `git -C /home/user/lawie-wt/<lead> <subcommand>` with absolute paths, one command per call, and no `&&` chains or pipes around `git commit`, `merge` or `push`. Leads put this in every crew handoff packet.
 
-
 ## Merge slot v2 — the slot is the push, not the CI wait (Arjun, 14 Oct 2026, 21:20 UTC; founder: "resolve ASAP")
 
 **Why.** The last 12 pushes to `develop_staging` were all green and each CI run takes 8–13 minutes. The queue made every lead wait for the previous lead's CI, then run the full local suite, then push: 25–35 minutes per merge, five leads, so most of the day was spent waiting on green runs. Of the 23 merge commits in the last 24 hours, 15 were `git pull` noise ("Merge branch 'develop_staging' of … into develop_staging"), each starting a CI run of its own.
@@ -141,7 +140,7 @@ Founder: "if it is a small fix don't wait for CI. Decide according to the commit
 
 ### v2 rule 8 — a red run already on your branch is a stop sign (Arjun, 15 Oct 2026, 03:10 UTC)
 
-Rule 1 says you do not *wait* for CI before leaving the slot. It does not say you may ignore a CI run that has already finished. CI runs on every push to `feature/**` and `fix/**` (T-439). So, before `git merge` into `develop_staging`: look at the last **completed** run on your branch (`mcp__github__actions_list`, `list_workflow_runs`, branch = your branch). Red → you do not merge; fix it on the branch first (through `developer` + `tester`, a fresh `reviewer` if source changed). Still running or green → merge as rule 1 says. A run that was cancelled by your own later push does not count either way; look at the one before it. Why: run 613 on `feature/t-245a-old-law-switch` had already failed on the golden dry run (fixture 22) five minutes before the branch was merged as run 617, which turned `develop_staging` red for everyone. The cost of the look is one API call; the cost of skipping it was an hour of held queue.
+Rule 1 says you do not _wait_ for CI before leaving the slot. It does not say you may ignore a CI run that has already finished. CI runs on every push to `feature/**` and `fix/**` (T-439). So, before `git merge` into `develop_staging`: look at the last **completed** run on your branch (`mcp__github__actions_list`, `list_workflow_runs`, branch = your branch). Red → you do not merge; fix it on the branch first (through `developer` + `tester`, a fresh `reviewer` if source changed). Still running or green → merge as rule 1 says. A run that was cancelled by your own later push does not count either way; look at the one before it. Why: run 613 on `feature/t-245a-old-law-switch` had already failed on the golden dry run (fixture 22) five minutes before the branch was merged as run 617, which turned `develop_staging` red for everyone. The cost of the look is one API call; the cost of skipping it was an hour of held queue.
 
 Waiver (Arjun, 15 Oct 2026, 03:30 UTC): a red run caused by a failure already confirmed to hit every branch (not your change) may be waived for one ticket, by Arjun, in writing in the ticket; the merge commit names the waiver. Nobody waives their own. First case: `t428-bail-case-lines` reading `origin/develop_staging` in branch CI (tests never read git refs or the remote for a baseline; fix is a committed snapshot, Shashank), waived for T-438 only.
 

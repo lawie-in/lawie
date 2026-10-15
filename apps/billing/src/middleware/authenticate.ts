@@ -2,6 +2,7 @@ import { INTERNAL_HEADERS } from '@lawie/shared';
 import { Request, Response, NextFunction } from 'express';
 
 import { env } from '../config/env';
+import { internalSecretMatches } from '../utils/internal-secret';
 
 export interface JwtPayload {
   sub: string;
@@ -25,9 +26,7 @@ declare global {
  * User context is read from X-User-* headers injected by the gateway.
  */
 export function authenticate(req: Request, res: Response, next: NextFunction): void {
-  const secret = req.headers[INTERNAL_HEADERS.SECRET] as string | undefined;
-
-  if (!secret || secret !== env.INTERNAL_SECRET) {
+  if (!internalSecretMatches(req.headers[INTERNAL_HEADERS.SECRET], env.INTERNAL_SECRET)) {
     res.status(401).json({ error: 'Unauthorized' });
     return;
   }
