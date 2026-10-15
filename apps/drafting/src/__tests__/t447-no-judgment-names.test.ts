@@ -5,10 +5,10 @@
  *
  * Signed: handoff/legal/T-245-old-new-law-switch-signed.md, Addendum 8 (Ajay, 15 Oct 2026):
  * rules R1-R7 and the sentence S. Pattern: t441-no-judgment-names.test.ts.
- * R4 replacement labels are NOT pinned here (pending Ajay).
  */
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { readDraftingInstructionList } from '../services/rule-pack.service';
 
 // S, byte-exact (U+2014 dash), Addendum 8.
 const S =
@@ -125,6 +125,15 @@ describe('T-447: the no-judgment sentence S (Addendum 8, R3)', () => {
       expect(ins[ins.length - 1]).toBe(S);
       expect(ins.filter((e) => e === S)).toHaveLength(1);
       expect(count(JSON.stringify(rule(id)), S)).toBe(1);
+    },
+  );
+
+  it.each(IDS)(
+    '%s: as read by readDraftingInstructionList, S is the last entry and appears once',
+    (id) => {
+      const list = readDraftingInstructionList(rule(id));
+      expect(list[list.length - 1]).toBe(S);
+      expect(list.filter((e) => e === S)).toHaveLength(1);
     },
   );
 
