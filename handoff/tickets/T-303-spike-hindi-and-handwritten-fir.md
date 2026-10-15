@@ -1,14 +1,14 @@
 # T-303 — Spike: can we read Hindi and handwritten FIRs?
 
-| Field      | Value                                          |
-| ---------- | ---------------------------------------------- |
-| Phase      | 3 — Matter context                             |
-| Owner      | Vishal, Ajay reviews the result                |
-| Mode       | Spike, time-boxed to 1 day, no production code |
-| Status     | Ready. T-302 is delivered                      |
-| Depends on | None open. T-302 is delivered                  |
-| Branch     | None                                           |
-| Created    | 2026-10-03                                     |
+| Field      | Value                                                                                                   |
+| ---------- | ------------------------------------------------------------------------------------------------------- |
+| Phase      | 3 — Matter context                                                                                      |
+| Owner      | Vishal, Ajay reviews the result                                                                         |
+| Mode       | Spike, time-boxed to 1 day, no production code                                                          |
+| Status     | Founder 15 Oct 2026: uploads are V1. Ready: T-302 delivered. Vishal runs the spike, Ajay reviews. Priya |
+| Depends on | None open. T-302 is delivered                                                                           |
+| Branch     | None                                                                                                    |
+| Created    | 2026-10-03                                                                                              |
 
 ## Goal
 

@@ -1,0 +1,28 @@
+{
+  "_source": "Baseline of patna_hc and delhi_hc case_nomenclature at develop_staging ead7f7e4 (T-428). Changing this file is a legal-content change and needs Ajay's sign-off.",
+  "patna_hc": {
+    "anticipatory_bail": "Cr. Misc. No. _____ of {year}",
+    "regular_bail": "Cr. Misc. No. _____ of {year}",
+    "quashing": "Cr. Misc. No. _____ of {year}",
+    "criminal_appeal": "Cr. Appeal (DB) No. _____ of {year}",
+    "criminal_writ": "Cr. WJC No. _____ of {year}",
+    "civil_writ": "CWJC No. _____ of {year}",
+    "criminal_revision": "Cr. Revision No. _____ of {year}",
+    "civil_revision": "C.R. No. _____ of {year}",
+    "first_appeal": "Appeal from Original Decree No. _____ of {year}",
+    "misc_appeal": "Misc. Appeal No. _____ of {year}"
+  },
+  "delhi_hc": {
+    "anticipatory_bail": "Bail Appln. No. _____ of {year}",
+    "regular_bail": "Bail Appln. No. _____ of {year}",
+    "quashing": "CRL.M.C. _____ of {year}",
+    "criminal_writ": "W.P.(CRL) _____ of {year}",
+    "civil_writ": "W.P.(C) _____ of {year}",
+    "commercial_suit": "CS(OS) _____ of {year}",
+    "criminal_appeal": "CRL.A. _____ of {year}",
+    "criminal_revision": "CRL.REV. _____ of {year}",
+    "civil_revision": "C.R.P. _____ of {year}",
+    "first_appeal": "FAO _____ of {year}",
+    "execution_petition": "EX.P. _____ of {year}"
+  }
+}
