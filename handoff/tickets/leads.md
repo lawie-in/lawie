@@ -73,6 +73,7 @@ Where each lead stopped:
 
 ## Last done
 
+- kunal: red-CI fix pushed 5dec1940 (15 Oct 02:00). T-436 AC10 round 2 password-Redis tests now use an in-test AUTH-gate proxy over the shared test Redis (no redis-server binary). Test-only. Waiting for the CI run on 5dec1940 to be green before any other push. Cause of the red: aed2599b/403b768f runs 594, 600 (his tests, not T-358).
 - CI RED (15 Oct 01:15): run 594 on aed2599b (T-358): Test — Auth and Test — Email worker failed at the test step. Tanvi fixing first (before T-438). HOLD: nobody pushes on top of red except the fix. Run 597 (cc2adc0) and 600 (403b768f) pending. Vishal told to hold.
 - kunal: T-364 merged 403b768f (15 Oct 2026). Plans and prices read one list in packages/shared (constants/ink.ts), billing credit-skus, pricing/home/upgrade/Settings. packages/shared released. HOLD next slot for a green run on 403b768f (shared change).
 - mahak: T-443 merged cc2adc0 (15 Oct 2026). POST /documents/generate now answers 410 before auth, Ink hold or model call; 13 files (documents.routes.ts, new t443 test, 11 legacy tests edited/deleted). Full drafting suite 210 suites green. Row released; next T-116.
