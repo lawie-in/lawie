@@ -22,8 +22,18 @@ none
 
 ## Acceptance criteria
 
-To be added by Arjun (per-ticket rulings) before this ticket is assigned.
+See the Arjun section below.
 
 ## Architecture reference
 
 handoff/design/drafting-v2/ (ADR-026, HLD, system design, DB design, LLD).
+
+## Arjun (15 Oct 2026) — acceptance criteria
+
+1. Two new Mongoose models in `apps/drafting`: `PartType` (`key`, `name`, `schema` (JSON schema of the part's inputs), `verifierRules[]`, `signedBy`, `signedAt`) and `Kind` (`key`, `family`, `title`, `partTypeKeys[]`, `forumFormatKey`, `engine: 'legacy'|'compiler'`, `signOff: 'approved'|'banner'`, `legacyTemplateId`). Unique indexes on `key`.
+2. A boot sync (same pattern as `runBootSync`/`syncTemplateRegistry`) upserts one `Kind` row per existing template (92 today), `engine: 'legacy'`, `signOff: 'approved'`, `legacyTemplateId` = the template's id, `partTypeKeys` = []. Idempotent: a second boot changes nothing; a hash on the source row decides whether to `$set`.
+3. No behaviour change: every existing drafting route reads templates exactly as before; the golden set and all drafting tests pass unchanged. `Kind` is read-only data in this ticket — nothing in the request path depends on it yet.
+4. `GET /admin/kinds` (admin auth, same guard as the other admin routes) lists kinds with `engine` and `signOff`; no write route in this ticket.
+5. `part_types` is seeded with the first batch from `01-hld.md` (the ~40 signed names) as rows with `signedBy: null` — unsigned placeholders; signing is T-459's concern.
+6. Tests: boot sync idempotence; 92 rows after sync on a seeded template set; admin list route auth. Coverage thresholds unchanged.
+7. Out of scope: engine switch (T-459), any compiler code, template file changes.

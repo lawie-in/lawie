@@ -22,8 +22,19 @@ Vikram prices (D7 still open); packages/shared is held by one lead at a time
 
 ## Acceptance criteria
 
-To be added by Arjun (per-ticket rulings) before this ticket is assigned.
+See the Arjun section below.
 
 ## Architecture reference
 
 handoff/design/drafting-v2/ (ADR-026, HLD, system design, DB design, LLD).
+
+## Arjun (15 Oct 2026) — acceptance criteria
+
+1. In `packages/shared/src/billing/`: pure functions `applyGrant`, `spend`, `refund`, `expireLots` over `{lots: Lot[], ledger: LedgerRow[]}` with `Lot = {id, source: 'plan'|'topup'|'promo', ink, remaining, grantedAt, expiresAt}`; spend order = earliest `expiresAt` first, `topup` lots last regardless of date; `refund(draftRunId)` returns Ink to the same lots it was taken from and is a no-op if a refund row for that `draftRunId` already exists; `spend` is a no-op (returns `already_spent`) if a spend row for the same `draftRunId` exists.
+2. In `apps/billing`: collections `ink_lots` and `ink_ledger` (one row per movement: `grant|spend|refund|expire`, `lotId`, `delta`, `draftRunId?`, `at`, `reason`); `InkService` wraps the shared functions in a Mongo transaction per call; balance = Σ `remaining` of unexpired lots, computed, never stored.
+3. Routes replacing today's Ink calls one-for-one (same paths the drafting service calls today; same response shape plus `lots[]`): reserve, spend, refund, balance. Reserve = a `hold` row that `spend` converts or a failure releases; holds older than 30 min are released by a scheduled job.
+4. Expiry: a daily job writes one `expire` row per lot past `expiresAt` with `remaining > 0`.
+5. Migration (script under `apps/billing/scripts/`, idempotent, dry-run flag): each user's current balance becomes two lots — plan-derived Ink (expires at the current period end) and top-up Ink (expires 180 days from migration); ledger row `grant` with `reason: 'migration'` per lot. Dry-run output (counts, totals) is pasted in the tester's report; the founder runs the real migration.
+6. Liability report: `GET /admin/ink/liability?asOf=` returns Σ unexpired `remaining` by lot source and by plan tier — Vikram's month-end number.
+7. Prices per class (S/M/L Ink cost) come from AppSettings keys `ink.class.S|M|L` (Vikram's numbers once the founder sets them, D7); the ticket ships with today's per-draft cost as `M` so behaviour is unchanged until the settings are changed.
+8. Tests: shared functions (spend order incl. topup-last, idempotent spend/refund, expiry); billing transaction paths; migration dry-run on a fixture of 5 users; liability sums. packages/shared claim rules apply.

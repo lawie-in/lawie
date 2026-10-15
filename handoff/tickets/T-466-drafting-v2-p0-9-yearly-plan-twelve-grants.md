@@ -22,8 +22,16 @@ After P0-8; packages/shared is held by one lead at a time
 
 ## Acceptance criteria
 
-To be added by Arjun (per-ticket rulings) before this ticket is assigned.
+See the Arjun section below.
 
 ## Architecture reference
 
 handoff/design/drafting-v2/ (ADR-026, HLD, system design, DB design, LLD).
+
+## Arjun (15 Oct 2026) — acceptance criteria
+
+1. Depends on T-465 being merged. A yearly subscription creates 12 scheduled grants (`scheduled_grants` collection: `subscriptionId`, `dueAt`, `ink`, `grantedAt?`, `lotId?`), one per month from `paidThrough` backwards to the start; a daily job grants each due one as a lot expiring at the next due date. Monthly plans create one grant per cycle on payment.
+2. Cancel: no new scheduled grants are created and ungranted ones past `paidThrough` are deleted; already granted lots keep their expiry (Vikram's rule: cancel keeps Ink to `paidThrough`).
+3. `packages/shared/src/billing/yearly-drip.ts` and every caller are removed; the T-444 status guards it contained move to the subscription service unchanged, with their tests carried over (T-444 rulings 1–8 remain in force).
+4. Migration for existing yearly subscribers: create the remaining scheduled grants from today to `paidThrough`; past months are not back-granted (they were dripped already). Script idempotent with dry-run; founder runs it.
+5. Tests: 12 grants on create; daily job grants exactly the due ones once; cancel behaviour; T-444 regression suite still green; drip code gone (grep test).

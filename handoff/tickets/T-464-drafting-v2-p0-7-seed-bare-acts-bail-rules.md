@@ -22,8 +22,16 @@ Ajay sign-off (legal content)
 
 ## Acceptance criteria
 
-To be added by Arjun (per-ticket rulings) before this ticket is assigned.
+See the Arjun section below.
 
 ## Architecture reference
 
 handoff/design/drafting-v2/ (ADR-026, HLD, system design, DB design, LLD).
+
+## Arjun (15 Oct 2026) — acceptance criteria
+
+1. Load, through T-461's upload path and T-462's worker, the Bharatiya Nyaya Sanhita 2023, Bharatiya Nagarik Suraksha Sanhita 2023 and Bharatiya Sakshya Adhiniyam 2023 from the official gazette text (India Code / eGazette), plus the bail-family rules the bail kinds cite today (`apps/drafting` court-rules fixtures tell the developer which). Class `statute` / `rules`, `displayPolicy: quote`, licence `government_open`.
+2. Acceptance is Ajay's: he spot-checks ≥ 20 sections per Act against the gazette text (byte-exact), sets `asOfFrom` (1 Jul 2024 for the three Sanhitas) and approves each version. The ticket is done when all sources are `live` with his name on `approvedBy`.
+3. `law_mappings` seeded for the IPC→BNS, CrPC→BNSS and IEA→BSA renumbering tables from the official comparative tables; Ajay signs the mapping file (committed under `apps/drafting/seeds/law-mappings/`, legal content path — add it to `.claude/docs/legal-content-paths.md`).
+4. No model, no retrieval change, no drafting change in this ticket. Content only; the lead's crew runs the loads against the develop DB with the founder's read-write credentials in the environment, never in a ticket.
+5. Tests: the mapping seed file validates (every row references an existing provision once the Acts are live) — a script, run by the tester, with output pasted in the report.
