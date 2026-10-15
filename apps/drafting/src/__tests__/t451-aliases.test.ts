@@ -5,8 +5,7 @@
  * is removed (unlike T-382, which keeps its old key). Old `grounds_for_quashing` option ids
  * read as the new ids. Modelled on t382-enrollment-rename.test.ts.
  *
- * PHASE A: the packs fir_quashing.json and quashing_528_bnss.json are not yet renamed
- * (waiting on T-447); the static pin below lists them as the only pending files.
+ * PHASE B: the quashing packs are renamed too; the static pin expects no old name left.
  */
 import './setupEnv';
 import './setupDb';
@@ -336,11 +335,9 @@ describe('T-451 static pins', () => {
       .filter((p) => p !== SERVICE && re.test(readFileSync(p, 'utf8')))
       .map((p) => p.slice(SRC.length + 1))
       .sort();
-    // PHASE B flips this to [] once the T-447 merge lets the two packs be renamed.
-    expect(hits).toEqual([
-      'config/document-rules/fir_quashing.json',
-      'config/document-rules/quashing_528_bnss.json',
-    ]);
+    // PHASE B: the packs are renamed, so nothing is left. key_citations text ("Bhajan Lal" with a
+    // space) is not an id and does not match.
+    expect(hits).toEqual([]);
   });
 
   it('inside rule-pack.service.ts the old names appear only in the alias block', () => {
@@ -348,6 +345,103 @@ describe('T-451 static pins', () => {
     const first = lines.findIndex((l) => l.includes('Field aliases (T-382)'));
     lines.forEach((l, i) => {
       if (/bhajan_lal/.test(l)) expect(i).toBeGreaterThan(first);
+    });
+  });
+});
+
+// ── The renamed packs (PHASE B) ──────────────────────────────────────────────
+
+describe('T-451 renamed quashing packs', () => {
+  type Obj = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+  const pack = (id: string): Obj => JSON.parse(readFileSync(join(RULES, `${id}.json`), 'utf8'));
+  const field = (id: string, fid: string): Obj =>
+    pack(id).form_schema.fields.find((f: Obj) => f.id === fid);
+  const NEW_IDS = RENAMED.map(([, n]) => n);
+  const COMPROMISE = [
+    'compromise_compoundable_offence',
+    'settlement_in_matrimonial_or_commercial_dispute',
+  ];
+  const outsideCitations = (id: string): string => {
+    const copy = pack(id);
+    for (const k of ['key_citations', 'key_precedents', '_meta', 'description']) delete copy[k];
+    return JSON.stringify(copy);
+  };
+
+  describe('fir_quashing', () => {
+    it('form field id and label', () => {
+      const f = field('fir_quashing', NEW);
+      expect(f.label).toBe('Grounds for quashing invoked (one or more)');
+      expect(f.type).toBe('checkbox_multi');
+      expect(field('fir_quashing', OLD)).toBeUndefined();
+    });
+    it('clause id and validation rule text', () => {
+      const p = pack('fir_quashing');
+      const ids = p.mandatory_clauses.map((c: Obj) => c.id);
+      expect(ids).toContain('quashing_categories_paragraph');
+      expect(ids).not.toContain('bhajan_lal_paragraph');
+      expect(p.validation_rules).toContain(
+        'quashing_categories_invoked must have at least one selected',
+      );
+    });
+    it('no bhajan_lal id or key outside key_citations and description', () => {
+      expect(outsideCitations('fir_quashing')).not.toMatch(/bhajan_lal/i);
+      expect(outsideCitations('fir_quashing')).not.toContain('Bhajan Lal');
+    });
+    it('category_N_* option ids are unchanged', () => {
+      expect(field('fir_quashing', NEW).options).toEqual([
+        'category_1_no_offence_disclosed',
+        'category_2_no_cognizable_offence_no_magistrate_order',
+        'category_3_uncontroverted_allegations_no_offence',
+        'category_4_only_non_cognizable_no_magistrate_order',
+        'category_5_absurd_inherently_improbable',
+        'category_6_express_legal_bar_or_efficacious_alternative',
+        'category_7_mala_fide_vendetta',
+      ]);
+    });
+  });
+
+  describe('quashing_528_bnss', () => {
+    it('clause id', () => {
+      const ids = pack('quashing_528_bnss').mandatory_clauses.map((c: Obj) => c.id);
+      expect(ids).toContain('quashing_categories_paragraph');
+      expect(ids).not.toContain('bhajan_lal_paragraph');
+    });
+    it('option ids are exactly the 7 new ids plus the compromise ids', () => {
+      expect(field('quashing_528_bnss', OPTION_FIELD).options).toEqual([...NEW_IDS, ...COMPROMISE]);
+    });
+    it('every new id is a target of the option map and no old id is an option', () => {
+      const map = OPTION_VALUE_ALIASES[OPTION_PACK][OPTION_FIELD];
+      const options = field('quashing_528_bnss', OPTION_FIELD).options as string[];
+      for (const id of NEW_IDS) expect(Object.values(map)).toContain(id);
+      for (const old of Object.keys(map)) expect(options).not.toContain(old);
+    });
+    it('no bhajan_lal id or key outside key_citations and description', () => {
+      expect(outsideCitations('quashing_528_bnss')).not.toMatch(/bhajan_lal/i);
+    });
+  });
+
+  describe('an old saved form arrives with the new key and ids (real load path)', () => {
+    it('fir_quashing: old key becomes the new key, nothing "bhajan_lal" is left', () => {
+      const ids = ['category_1_no_offence_disclosed', 'category_7_mala_fide_vendetta'];
+      const out = readFormInputs({
+        formInputsEnc: encrypt(JSON.stringify({ applicant_name: 'R', [OLD]: ids })),
+        rulePackId: 'fir_quashing',
+      })!;
+      expect(out[NEW]).toEqual(ids);
+      expect(JSON.stringify(out)).not.toContain('bhajan_lal');
+      const declared = field('fir_quashing', NEW).options as string[];
+      for (const id of out[NEW] as string[]) expect(declared).toContain(id);
+    });
+    it('quashing_528_bnss: old option ids arrive as ids the pack declares', () => {
+      const saved = RENAMED.map(([o]) => o).concat('compromise_compoundable_offence');
+      const out = readFormInputs({
+        formInputs: { [OPTION_FIELD]: saved },
+        rulePackId: OPTION_PACK,
+      })!;
+      const declared = field('quashing_528_bnss', OPTION_FIELD).options as string[];
+      expect(out[OPTION_FIELD]).toEqual([...NEW_IDS, 'compromise_compoundable_offence']);
+      for (const id of out[OPTION_FIELD] as string[]) expect(declared).toContain(id);
+      expect(JSON.stringify(out)).not.toContain('bhajan_lal');
     });
   });
 });
