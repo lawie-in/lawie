@@ -149,3 +149,12 @@ Moved goldens (part 2) come to me before merge.
 | 6 | Label reuse for the notice_provision condition | Approved. |
 
 Signed: Ajay (CLO), 14 Oct 2026 IST.
+
+## Addendum 4: T-245a part 2 (Vishal, 15 Oct 2026)
+
+1. default_bail RELATED ACTS. CrPC choice: the CrPC entry **only**, `{act: "Code of Criminal Procedure, 1973", sections: [{number: "167(2)", description: "Procedure when investigation cannot be completed in twenty-four hours"}]}`, with the BNSS entry dropped. BNSS choice: the BNSS entry only, as today. No choice: both entries. **Approved.**
+2. Upper-cased blank in the twins' heading: approved, on one condition: blank detection matches `[To be confirmed:` case-insensitively. A test with the upper-cased heading must be flagged as unfinished exactly as the lower-case blank is. must-fix if the detection misses it.
+
+No golden moved (fixture FIR 2026): noted. The CrPC / no-choice Allahabad test is welcome.
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.
