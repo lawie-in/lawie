@@ -106,8 +106,10 @@ describe('T-334 the signed lines', () => {
 
 describe('T-334 the _averments hashes are the ones Ajay signed', () => {
   // Ajay, T-334 Addendum 1, signed 9b484ee on develop_staging (recomputed by him at a8e516a).
+  // bail_regular re-recorded by T-245a, approved by Ajay in Addendum 5 (41a4b27), for the Addendum 2 #1 diff only
+  // (the notice_provision condition and averment). Old value 14bc53c3…0b04.
   const SIGNED: Record<string, string> = {
-    bail_regular: '14bc53c396b5241ea09c874a5c0a09ccf12c68ed29adabb725dc055db1590b04',
+    bail_regular: 'df163457bd78cd19698d968d8e80a278fd738590aa779018c6ab25202f1fa923',
     bail_anticipatory: '270a841d242ef26fc74859cfa94b4bf6feb414bbf0a01ffb32f1a7ae8caa83de',
     default_bail: '2e882516bf7c5ad8f35edace6fbc53b5c264112fc9f4005a06b5878e78bdc96d',
   };

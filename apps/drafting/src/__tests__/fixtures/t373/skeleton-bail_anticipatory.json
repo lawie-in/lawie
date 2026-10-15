@@ -1,6 +1,6 @@
 {
   "pack": "bail_anticipatory",
-  "version": 4,
+  "version": 5,
   "none_values": "first_bail_application.equals (T-334)",
   "antecedents_none_values": [
     "none",
@@ -28,8 +28,8 @@
       "order": 10,
       "required": true,
       "source": "fixed",
-      "text": "The applicant, {applicant_name}, aged {applicant_age} years, resident of {address}, submits this application for anticipatory bail under Section 482 of the Bharatiya Nagarik Suraksha Sanhita, 2023.",
-      "slots": ["applicant_name", "applicant_age", "address"]
+      "text": "The applicant, {applicant_name}, aged {applicant_age} years, resident of {address}, submits this application for anticipatory bail under {governing_provision}.",
+      "slots": ["applicant_name", "applicant_age", "address", "governing_provision"]
     },
     {
       "id": "fir_details",

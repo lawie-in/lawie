@@ -101,6 +101,17 @@ import {
 } from './fact-verifier';
 import { Brief, buildChecklist, FIXED_KEYS } from './intake-brief';
 import {
+  DEFAULT_BAIL_CRPC_ACT,
+  fillLawSwitchTokens,
+  isLawSwitchPack,
+  relatedActsForProcedure,
+  LAW_SWITCH_FACT_KEYS,
+  LAW_SWITCH_INPUT_KEYS,
+  lawSwitch,
+  lawSwitchInputFromCase,
+  type LawSwitchResult,
+} from './law-switch';
+import {
   CacheUsage,
   cacheCounts,
   CallUsage,
@@ -680,7 +691,11 @@ export async function streamGenerateFromTemplate(
 
   // ── Auto-convert old-law references in text fields ─────────────────────────
   const convertedFormData = { ...formData };
-  if (templateConfig.validation_rules.auto_convert_old_to_new) {
+  // T-245a: never for the six bail packs (offences print as given).
+  if (
+    templateConfig.validation_rules.auto_convert_old_to_new &&
+    !isLawSwitchPack(templateConfig.template_id)
+  ) {
     for (const step of templateConfig.form_schema.steps) {
       for (const field of step.fields) {
         if (
@@ -724,12 +739,19 @@ export async function streamGenerateFromTemplate(
   }
 
   // ── Build placeholder context ──────────────────────────────────────────────
+  // T-245a: the six bail packs' law switch, from the form's own values.
+  const law = lawSwitchForCase(
+    templateConfig.template_id,
+    convertedFormData,
+    courtData?.courtType ?? convertedFormData.court_type,
+  );
   const ctx = buildPlaceholderContext(
     templateConfig,
     convertedFormData,
     {
       advocateName,
       enrollmentNumber,
+      lawSwitch: law,
     },
     courtData,
   );
@@ -737,7 +759,20 @@ export async function streamGenerateFromTemplate(
   // T-429 (Ajay 0864b04, ea02c86): what the model is given. discharge_application
   // keeps its NI Act related_acts entry and its Para 10 body prompt line only
   // when the charge (after old-law conversion) includes NI Act s.138.
-  const promptConfig = templateForCharge(templateConfig, convertedFormData);
+  const chargedConfig = templateForCharge(templateConfig, convertedFormData);
+  // T-245a (Ajay, Addendum 4 #1): default_bail's related acts follow the procedure.
+  const promptConfig: TemplateConfig =
+    law !== null && chargedConfig.template_id === 'default_bail'
+      ? {
+          ...chargedConfig,
+          related_acts: relatedActsForProcedure(
+            chargedConfig.template_id,
+            law.procedureCode,
+            chargedConfig.related_acts,
+            DEFAULT_BAIL_CRPC_ACT.act,
+          ),
+        }
+      : chargedConfig;
 
   // ── Set up SSE headers ─────────────────────────────────────────────────────
   res.setHeader('Content-Type', 'text/event-stream');
@@ -1281,10 +1316,111 @@ export function templateForCharge(
   };
 }
 
+// ── T-245a: the law switch on the drafting paths ────────────────────────────
+
+/** The law switch for one of the six bail packs, else null. */
+function lawSwitchForCase(
+  templateId: string,
+  values: Readonly<Record<string, unknown>>,
+  courtType: unknown,
+): LawSwitchResult | null {
+  if (!isLawSwitchPack(templateId)) return null;
+  return lawSwitch(lawSwitchInputFromCase(templateId, values, courtType));
+}
+
+/** A ledger or brief key's last segment (`<group>.<name>` or `<name>`). */
+const lastKeySegment = (key: string): string => key.slice(key.lastIndexOf('.') + 1);
+
+/**
+ * The switch's inputs for the brief path. A ledger fact's machine value comes
+ * first (an ISO date, an option id), then its display; with no such fact, the
+ * brief item's value. A computed fact is never an input. The court is the
+ * courts data's court type, else the brief's.
+ */
+function lawSwitchForBrief(input: BriefGenerateInput): LawSwitchResult | null {
+  const templateId = input.templateConfig.template_id;
+  if (!isLawSwitchPack(templateId)) return null;
+  const values: Record<string, unknown> = {};
+  for (const key of LAW_SWITCH_INPUT_KEYS) {
+    const fact = input.ledger?.facts.find(
+      (f) => f.source !== 'computed' && lastKeySegment(f.key) === key,
+    );
+    if (fact) {
+      values[key] = typeof fact.value === 'string' && fact.value !== '' ? fact.value : fact.display;
+      continue;
+    }
+    const item = input.brief.items.find((i) => lastKeySegment(i.key) === key);
+    if (item && typeof item.value === 'string') values[key] = item.value;
+  }
+  return lawSwitchForCase(
+    templateId,
+    values,
+    input.courtData?.courtType ?? input.brief.court.court_type,
+  );
+}
+
+/**
+ * T-245a: the label each derived fact carries. notice_provision reuses the
+ * signed s35 label (Addendum 1 #9, Addendum 3 #6); governing_provision is the
+ * signed case-details line's name; women_proviso has no signed label, so it
+ * keeps its key.
+ */
+const LAW_SWITCH_FACT_LABELS: Record<(typeof LAW_SWITCH_FACT_KEYS)[number], string> = {
+  governing_provision: 'GOVERNING PROVISION',
+  women_proviso: 'women_proviso',
+  notice_provision: 'Notice to appear (Section 35 BNSS / Section 41A CrPC)',
+};
+
+/**
+ * The ledger facts with the law switch's derived facts: any stored fact under
+ * one of those keys is dropped, and each value the switch gives is added with
+ * `source: 'computed'` and `required_in_draft: false` (the s.138 convention).
+ * The D1 renderer fills the skeleton slots from them and the s35 averment's
+ * `notice_provision present` condition reads them.
+ */
+function withLawSwitchFacts(facts: readonly LedgerFact[], law: LawSwitchResult): LedgerFact[] {
+  // A stored fact under one of these keys, grouped or not (last key segment,
+  // as lawSwitchForBrief reads keys), is dropped: only the switch sets them.
+  const keys = new Set<string>(LAW_SWITCH_FACT_KEYS);
+  const stored = facts.filter((f) => !keys.has(lastKeySegment(f.key)));
+  const derived: Array<[(typeof LAW_SWITCH_FACT_KEYS)[number], string | null]> = [
+    ['governing_provision', law.governingProvision],
+    ['women_proviso', law.womenProviso],
+    ['notice_provision', law.noticeProvision],
+  ];
+  const added: LedgerFact[] = derived
+    .filter((d): d is [(typeof LAW_SWITCH_FACT_KEYS)[number], string] => d[1] !== null)
+    .map(([key, display]) => ({
+      id: `computed:${key}`,
+      key,
+      label: LAW_SWITCH_FACT_LABELS[key],
+      type: 'text',
+      value: display,
+      display,
+      raw_span: '',
+      source: 'computed',
+      confidence: 1,
+      required_in_draft: false,
+    }));
+  return [...stored, ...added];
+}
+
 export async function streamGenerateFromBrief(
-  input: BriefGenerateInput,
+  rawInput: BriefGenerateInput,
   res: Response,
 ): Promise<BriefGenerateResult> {
+  // T-245a: the six bail packs' law switch, read from the ledger's machine
+  // values (ISO dates, option ids), else the brief's. With a ledger, its
+  // derived facts (governing_provision, women_proviso, notice_provision) are
+  // added per request and never stored, as the s.138 computed facts are.
+  const law = lawSwitchForBrief(rawInput);
+  const input: BriefGenerateInput =
+    law !== null && rawInput.ledger
+      ? {
+          ...rawInput,
+          ledger: { ...rawInput.ledger, facts: withLawSwitchFacts(rawInput.ledger.facts, law) },
+        }
+      : rawInput;
   const { pack: loadedPack, templateConfig, courtData } = input;
   // T-147c: with the ledger, everything the system writes and every check reads
   // the ledger's displays; without it, the brief exactly as before.
@@ -1293,7 +1429,11 @@ export async function streamGenerateFromBrief(
   // ── The brief as form values, for the parts the system adds ───────────────
   const formData = formDataFromBrief(brief, templateConfig, input.language);
   const converted: Record<string, unknown> = {};
-  if (templateConfig.validation_rules.auto_convert_old_to_new) {
+  // T-245a: never for the six bail packs (offences print as given).
+  if (
+    templateConfig.validation_rules.auto_convert_old_to_new &&
+    !isLawSwitchPack(templateConfig.template_id)
+  ) {
     for (const step of templateConfig.form_schema.steps) {
       for (const field of step.fields) {
         const value = formData[field.field_id];
@@ -1309,7 +1449,11 @@ export async function streamGenerateFromBrief(
   const ctx = buildPlaceholderContext(
     templateConfig,
     formData,
-    { advocateName: input.advocateName, enrollmentNumber: input.enrollmentNumber },
+    {
+      advocateName: input.advocateName,
+      enrollmentNumber: input.enrollmentNumber,
+      lawSwitch: law,
+    },
     courtData,
   );
 
@@ -1321,7 +1465,26 @@ export async function streamGenerateFromBrief(
   // T-429 (Ajay 0864b04, ea02c86): discharge_application keeps its NI Act entry
   // and its Para 10 instruction only when formData.offences_charged (the brief /
   // ledger value, blank when not given) includes NI Act s.138.
-  const pack = packForCharge(packForDrawer(loadedPack, formData), formData);
+  const chargedPack = packForCharge(packForDrawer(loadedPack, formData), formData);
+  // T-245a (Ajay, Addendum 4 #1): default_bail's relevant acts follow the procedure.
+  const pack: RulePack =
+    law !== null && chargedPack.id === 'default_bail'
+      ? {
+          ...chargedPack,
+          relevantActs: relatedActsForProcedure<RulePack['relevantActs'][number]>(
+            chargedPack.id,
+            law.procedureCode,
+            chargedPack.relevantActs,
+            {
+              act: DEFAULT_BAIL_CRPC_ACT.act,
+              sections: DEFAULT_BAIL_CRPC_ACT.sections.map((s) => ({ ...s })),
+              note: null,
+              appliesWhen: null,
+              stateSpecific: false,
+            },
+          ),
+        }
+      : chargedPack;
 
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache, no-transform');
@@ -1372,9 +1535,16 @@ export async function streamGenerateFromBrief(
         // T-365 AC1: the profile name (T-300) means the advocate name is not unknown.
         input.advocateName,
       ),
-      statedInstructions: provisions
-        .map((p) => p.instruction)
-        .filter((i): i is string => i !== null),
+      // T-245a: the case-details lines (PROCEDURE CODE, GOVERNING PROVISION)
+      // first; a bail pack's provision instruction has only {governing_provision}
+      // and {do_not_cite} filled from the context; any other {token} is left as is.
+      statedInstructions: [
+        ...(law?.lines ?? []),
+        ...provisions
+          .map((p) => p.instruction)
+          .filter((i): i is string => i !== null)
+          .map((i) => (law !== null ? fillLawSwitchTokens(i, ctx) : i)),
+      ],
       systemParts: parts,
       systemText,
       courtRules: [

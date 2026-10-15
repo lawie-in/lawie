@@ -16,7 +16,7 @@
   "creditsCost": 2,
   "court_levels": ["sessions", "high_court", "district", "cjm"],
   "causeTitle": {
-    "format": "IN THE COURT OF {courtDesignation}\n\n{caseNomenclature}\n\nIN THE MATTER OF:\n{petitioner} ... Petitioner\nVERSUS\n{respondent} ... Respondent/Accused",
+    "format": "IN THE COURT OF {courtDesignation}\n\n{caseNomenclature}\n(Under {governing_provision})\n\nIN THE MATTER OF:\n{petitioner} ... Petitioner\nVERSUS\n{respondent} ... Respondent/Accused",
     "partyDesignations": [
       { "role": "petitioner", "label": "Petitioner (State / Informant / Accused)" },
       { "role": "respondent", "label": "Respondent" }
@@ -68,11 +68,32 @@
       "required": true
     },
     { "name": "fir_number", "label": "FIR Number", "type": "text", "required": true },
-    { "name": "fir_date", "label": "FIR Date", "type": "date", "required": true },
+    {
+      "name": "fir_date",
+      "label": "Date of FIR, or of the complaint if no FIR",
+      "type": "date",
+      "required": false,
+      "question": "On what date was the FIR registered, or the complaint filed if there is no FIR?",
+      "ask_when_empty": true
+    },
+    {
+      "name": "offence_date",
+      "label": "Date of the alleged offence (or of the offence of conviction)",
+      "type": "date",
+      "required": false
+    },
+    {
+      "name": "procedure_code",
+      "label": "This application is under",
+      "type": "select",
+      "options": ["BNSS and BSA", "CrPC and Evidence Act"],
+      "required": false,
+      "help": "Matters only for a case that began before 1 July 2024. For an FIR on or after that date, Lawie uses the BNSS."
+    },
     { "name": "police_station", "label": "Police Station", "type": "text", "required": true },
     {
       "name": "offences_alleged",
-      "label": "Offences (BNS sections)",
+      "label": "Offences (as written in the FIR)",
       "type": "textarea",
       "required": true
     },
@@ -163,15 +184,16 @@
   ],
   "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, it is most respectfully prayed that this Hon'ble Court may graciously be pleased to:\n\na) Cancel the bail granted to the Respondent/Accused {respondent} vide order dated {bail_order_date} in Bail Application No. {bail_application_number} by the {granting_court};\nb) Direct the Respondent/Accused to be taken into custody forthwith;\nc) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the Petitioner shall ever pray.",
   "verificationTemplate": "VERIFICATION\n\nI, {petitioner}, aged about {age} years, resident of {address}, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above application are true and correct to the best of my knowledge and belief, based on records and information received. No part of it is false and nothing material has been concealed therein.\n\nVerified at {place} on this {date}.\n\nDeponent",
-  "prompt_context": "Draft an Application for Cancellation of Bail under BNSS Section 483(3) (High Court / Sessions Court) read with BNSS Section 480. The petitioner may be the State, informant, or even the accused (in case of seeking variation of onerous conditions imposed). Cancellation grounds are well-established (Dolat Ram v. State of Haryana (1995) 1 SCC 349; Bhagirathsinh v. State of Gujarat (1984) 1 SCC 284): (1) tampering with evidence; (2) threatening or influencing witnesses; (3) breach of bail conditions; (4) commission of similar/fresh offence while on bail; (5) abuse of concession; (6) fleeing from justice. The court that granted bail (or a superior court) has jurisdiction to cancel. The application must distinguish between 'cancellation' (for misconduct post-bail) and 'setting aside' (for being granted on irrelevant considerations). Reference BNS section numbers throughout — never IPC.",
+  "prompt_context": "Draft an Application for Cancellation of Bail under the provision given as GOVERNING PROVISION in the case details. The petitioner may be the State, informant, or even the accused (in case of seeking variation of onerous conditions imposed). Cancellation grounds are well-established (Dolat Ram v. State of Haryana (1995) 1 SCC 349; Bhagirathsinh v. State of Gujarat (1984) 1 SCC 284): (1) tampering with evidence; (2) threatening or influencing witnesses; (3) breach of bail conditions; (4) commission of similar/fresh offence while on bail; (5) abuse of concession; (6) fleeing from justice. The court that granted bail (or a superior court) has jurisdiction to cancel. The application must distinguish between 'cancellation' (for misconduct post-bail) and 'setting aside' (for being granted on irrelevant considerations).",
   "promptInstructions": [
-    "Draft an Application for Cancellation of Bail under Section 483(3) BNSS, 2023 read with Section 480 BNSS.",
+    "Draft an Application for Cancellation of Bail under the provision given as GOVERNING PROVISION in the case details.",
+    "Cite the offences as the BRIEF gives them (FIR, charge sheet, complaint or order). The law of the offence follows the date of the offence: an offence committed before 1 July 2024 is under the Indian Penal Code, 1860; one committed on or after that date is under the Bharatiya Nyaya Sanhita, 2023. Never convert a section from one code to the other. Where the BRIEF does not give the date of the offence, write the sections as the BRIEF gives them and add [To be confirmed: date of the alleged offence, which decides whether the IPC or the BNS applies]. Where the sections the BRIEF gives are under the other code from the one the date points to, or the alleged acts run across 1 July 2024, keep the sections as the BRIEF gives them and add [To be confirmed: whether the IPC or the BNS applies to the offence].",
+    "Cite the procedure under the code given as PROCEDURE CODE in the case details: the Bharatiya Nagarik Suraksha Sanhita, 2023 with the Bharatiya Sakshya Adhiniyam, 2023, or the Code of Criminal Procedure, 1973 with the Indian Evidence Act, 1872. Cite only that code, in the heading, the body and the prayer. Where no PROCEDURE CODE is given, cite the provision in both forms inside a blank, for example [To be confirmed: Section 437 of the CrPC or Section 480 of the BNSS].",
     "If party_role = 'State / Prosecution' or 'Informant', frame as cancellation due to misconduct or breach by accused.",
     "If party_role = 'Accused', frame as application for variation/relaxation of bail conditions (NOT cancellation of own bail).",
     "Set out the bail order particulars: date, application number, conditions imposed, granting court.",
     "State supervening events that justify cancellation — be specific with dates, places, witness names where possible.",
     "Cite Dolat Ram v. State of Haryana (1995) 1 SCC 349 and Bhagirathsinh v. State of Gujarat (1984) 1 SCC 284 on grounds for cancellation.",
-    "Use BNS sections for underlying offences (never IPC).",
     "Do NOT generate the verification clause or advocate signature block — those are added programmatically."
   ],
   "relevantActs": [

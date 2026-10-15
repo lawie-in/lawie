@@ -175,9 +175,14 @@ describe('T-300 AC2: list A keys, a client value changes nothing', () => {
     expect(attacked).toEqual(clean);
   });
 
-  it('governing_provision on another pack: unset', () => {
+  it('governing_provision on bail_regular: the law switch value, not the client value', () => {
+    // T-245a part 2: bail_regular reads the switch. No choice and no court here: Addendum 1 #4's
+    // court-unknown both-forms blank.
     const { clean, attacked } = pair(regular, { governing_provision: FORGED });
-    expect(attacked.governing_provision).toBeUndefined();
+    expect(attacked.governing_provision).toBe(
+      '[To be confirmed: Section 437 or 439 of the CrPC, or Section 480 or 483 of the BNSS]',
+    );
+    expect(attacked.governing_provision).not.toBe(FORGED);
     expect(attacked).toEqual(clean);
   });
 

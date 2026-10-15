@@ -32,6 +32,9 @@ const BASE = {
   fir_number: '091/2024',
   fir_date: '15.06.2024',
   incident_date: '10.06.2024',
+  // T-245a (Ajay, Addendum 1 ruling 7): old_law_section follows the offence date only, so these
+  // IPC cases are restated with an offence on or after 1 July 2024.
+  offence_date: '2025-03-01',
   facts_narrative:
     'The petitioner was falsely implicated in the FIR. At the time of the alleged incident, the petitioner was at his residence in Patna. The victim was injured but received timely medical treatment and is now recovering.',
 };

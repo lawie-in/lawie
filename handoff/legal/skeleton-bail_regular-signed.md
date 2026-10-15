@@ -30,12 +30,16 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
 
 - v3, 13 Oct 2026: missing_label added per skeleton-missing-labels-pending-signed.md (07bd3b5), signed Ajay. `facts` gets `missing_label` "Brief facts of the case". Nothing else changes in any clause.
 
+## Version 4, 14 Oct 2026 (supersedes SHA `4eec8dfb4ea8f7fac728675df30c032e8f8555b75cdfeaf1f59b5f7acc7c843b`)
+
+- v4, 14 Oct 2026: T-245a, per handoff/legal/T-245-old-new-law-switch-signed.md Addenda 1, 2 and 3 (2992891, d5a3005, 8e3167e), signed Ajay. The opening clause's `Section 483 of the Bharatiya Nagarik Suraksha Sanhita, 2023` becomes `{governing_provision}` (slot `governing_provision`; court-keyed 437/439 → 480/483, Addendum 1 ruling 2). The `s35_notice` clause's `Section 35 of the Bharatiya Nagarik Suraksha Sanhita, 2023` becomes `{notice_provision}` (slot `notice_provision`, Addendum 2 ruling 1): BNSS `Section 35(3) of the BNSS`; CrPC `Section 41A of the CrPC`; no choice `[To be confirmed: Section 41A of the CrPC or Section 35(3) of the BNSS]`. Nothing else changes in any clause.
+
 ## Skeleton JSON
 
 ```json
 {
   "pack": "bail_regular",
-  "version": 3,
+  "version": 4,
   "none_values": "first_bail_application.equals (T-334)",
   "antecedents_none_values": [
     "none",
@@ -63,11 +67,12 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
       "order": 10,
       "required": true,
       "source": "fixed",
-      "text": "The applicant, {applicant_name}, aged {applicant_age} years, resident of {address}, submits this application for regular bail under Section 483 of the Bharatiya Nagarik Suraksha Sanhita, 2023.",
+      "text": "The applicant, {applicant_name}, aged {applicant_age} years, resident of {address}, submits this application for regular bail under {governing_provision}.",
       "slots": [
         "applicant_name",
         "applicant_age",
-        "address"
+        "address",
+        "governing_provision"
       ]
     },
     {
@@ -326,7 +331,10 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
           "not_served"
         ]
       },
-      "text": "No notice under Section 35 of the Bharatiya Nagarik Suraksha Sanhita, 2023 was served on the applicant before arrest."
+      "text": "No notice under {notice_provision} was served on the applicant before arrest.",
+      "slots": [
+        "notice_provision"
+      ]
     },
     {
       "id": "parity",
@@ -407,4 +415,4 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
 }
 ```
 
-SHA-256 of the JSON block (between the fences, final newline included): `4eec8dfb4ea8f7fac728675df30c032e8f8555b75cdfeaf1f59b5f7acc7c843b`
+SHA-256 of the JSON block (between the fences, final newline included): `d09d7bac30fd495f9c8c4e6db3898525ee0f0977c286df3c65c909d5ebfda54d`

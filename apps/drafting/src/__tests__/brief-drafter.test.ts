@@ -54,6 +54,7 @@ import {
   loadTemplateConfig,
   resolveComputedFields,
   TemplateConfig,
+  replacePlaceholders,
 } from '../services/template-engine.service';
 
 function pack(id: string): RulePack {
@@ -517,15 +518,39 @@ describe('the provision follows the court (T-135, Ajay 6 Oct 2026)', () => {
         field: 'bail_section',
         value: '483',
         others: ['480'],
+        // T-245a (Addendum 2 #3, Addendum 3 #4): the pack's instruction reads the placeholders;
+        // ai.service fills them from the law switch before the Drafter sees it (next test).
         instruction:
-          'This application is made under Section 483 of the Bharatiya Nagarik Suraksha Sanhita, 2023. Cite only this one provision as the provision under which bail is sought. Do not cite Section 481 or Section 482.',
+          'This application is made under {governing_provision}. Cite only this one provision as the provision under which bail is sought. {do_not_cite}.',
       },
     ]);
   });
 
+  it('with a BNSS choice the instruction, once filled, is Ajay’s old words (Addendum 3 #4: "as it was")', () => {
+    const raw = forCourt('sessions')[0].instruction as string;
+    const ctx = {
+      governing_provision: 'Section 483 of the Bharatiya Nagarik Suraksha Sanhita, 2023',
+      do_not_cite: 'Do not cite Section 481 or Section 482',
+    } as never;
+    expect(replacePlaceholders(raw, ctx)).toBe(
+      'This application is made under Section 483 of the Bharatiya Nagarik Suraksha Sanhita, 2023. Cite only this one provision as the provision under which bail is sought. Do not cite Section 481 or Section 482.',
+    );
+  });
+
+  it('with a CrPC choice the instruction, once filled, names the CrPC section and the CrPC do-not-cite', () => {
+    const raw = forCourt('sessions')[0].instruction as string;
+    const ctx = {
+      governing_provision: 'Section 439 of the Code of Criminal Procedure, 1973',
+      do_not_cite: 'Do not cite Section 437A or Section 438 of the CrPC',
+    } as never;
+    expect(replacePlaceholders(raw, ctx)).toBe(
+      'This application is made under Section 439 of the Code of Criminal Procedure, 1973. Cite only this one provision as the provision under which bail is sought. Do not cite Section 437A or Section 438 of the CrPC.',
+    );
+  });
+
   it('a Magistrate is Section 480', () => {
     expect(forCourt('cjm')[0]).toMatchObject({ value: '480', others: ['483'] });
-    expect(forCourt('jmfc')[0].instruction).toContain('under Section 480 of the Bharatiya');
+    expect(forCourt('jmfc')[0].instruction).toContain('under {governing_provision}');
   });
 
   it('a court that cannot hear it has no provision and no instruction', () => {
@@ -544,7 +569,15 @@ describe('the provision follows the court (T-135, Ajay 6 Oct 2026)', () => {
     const prompt = buildDrafterUserPrompt({
       pack: BAIL,
       brief: drafterBrief(briefWith(VALUES), 'SESSIONS JUDGE, PATNA'),
-      statedInstructions: [forCourt('sessions')[0].instruction as string],
+      statedInstructions: [
+        replacePlaceholders(
+          forCourt('sessions')[0].instruction as string,
+          {
+            governing_provision: 'Section 483 of the Bharatiya Nagarik Suraksha Sanhita, 2023',
+            do_not_cite: 'Do not cite Section 481 or Section 482',
+          } as never,
+        ),
+      ],
       systemParts: PARTS,
       courtRules: [],
       target: 12,

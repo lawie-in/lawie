@@ -24,11 +24,7 @@ import {
   GivenValue,
   IPC_AFTER_1_JULY_2024_NOTE,
 } from '../services/intake-brief';
-import {
-  amountInWords,
-  sameAmountWords,
-  withAmountInWords,
-} from '../services/intake-text';
+import { amountInWords, sameAmountWords, withAmountInWords } from '../services/intake-text';
 import { loadRulePack } from '../services/rule-pack.service';
 import { stripStationSuffix } from '../services/template-engine.service';
 
@@ -80,7 +76,11 @@ function unknownKeys(brief: Brief): string[] {
 describe('T-139 criterion 1: the police station, read from the description', () => {
   it.each([
     ['Saraidhela PS', 'My client was arrested by Saraidhela PS in FIR 11/2026.', 'Saraidhela PS'],
-    ['PS Kaiserbagh', 'FIR 22/2026 was registered at PS Kaiserbagh against my client.', 'PS Kaiserbagh'],
+    [
+      'PS Kaiserbagh',
+      'FIR 22/2026 was registered at PS Kaiserbagh against my client.',
+      'PS Kaiserbagh',
+    ],
     [
       'Civil Lines thana Gaya',
       'mere client ko police ne utha liya, FIR Civil Lines thana Gaya mein hai.',
@@ -107,7 +107,12 @@ describe('T-139 criterion 1: the police station, read from the description', () 
 
   it.each([
     ['a district alone', 'My client lives in Gaya and was arrested.', 'Gaya', 'in Gaya'],
-    ['a locality alone', 'The incident took place at Kankarbagh, Patna.', 'Kankarbagh', 'at Kankarbagh'],
+    [
+      'a locality alone',
+      'The incident took place at Kankarbagh, Patna.',
+      'Kankarbagh',
+      'at Kankarbagh',
+    ],
     [
       'a name that is not in the quote',
       'FIR registered at Kotwali PS.',
@@ -157,15 +162,20 @@ describe('T-139 criterion 1c: no "PS P.S." doubling at render', () => {
 
   it('a bail draft prints "P.S. Saraidhela", never the station word twice', () => {
     // Imported late: the template engine needs the test env.
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
     require('./setupEnv');
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
     const { loadAllDocRules } = require('../services/template-promoter');
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
     const engine = require('../services/template-engine.service');
     const { configs, byFile } = loadAllDocRules();
     const bail = configs.get(byFile.get('bail_before_magistrate.json').template_id);
-    for (const station of ['Saraidhela PS', 'PS Kaiserbagh', 'Kankarbagh P.S.', 'Civil Lines thana']) {
+    for (const station of [
+      'Saraidhela PS',
+      'PS Kaiserbagh',
+      'Kankarbagh P.S.',
+      'Civil Lines thana',
+    ]) {
       const ctx = engine.buildPlaceholderContext(bail, { police_station: station }, {});
       const printed = ctx.police_station as string;
       expect(printed).not.toMatch(/(^|\s)(p\.?\s?s\.?|thana|police station)(\s|$)/i);
@@ -185,7 +195,11 @@ describe('T-139 criterion 1: sections', () => {
   it('"303(2) and 317(2) BNS" is read as both sections, with the act kept, and not asked', () => {
     const text = 'FIR 33/2026 under sections 303(2) and 317(2) BNS was registered.';
     const quote = 'under sections 303(2) and 317(2) BNS';
-    for (const value of [['303(2) and 317(2) BNS'], ['303(2)', '317(2)'], ['303(2) BNS', '317(2) BNS']]) {
+    for (const value of [
+      ['303(2) and 317(2) BNS'],
+      ['303(2)', '317(2)'],
+      ['303(2) BNS', '317(2) BNS'],
+    ]) {
       const r = sections(value, quote, text);
       expect(r.dropped).toEqual([]);
       const got = valueOf(r.brief, 'sections_charged') as string[];
@@ -255,7 +269,12 @@ describe('T-139 criterion 1: the dates', () => {
   });
 
   it('a bare "the amount remains unpaid" gives no date of dishonour', () => {
-    const r = run(S138, s138Kind, 'The amount remains unpaid. Cheque no. 000123 was given on 1 July 2026.', []);
+    const r = run(
+      S138,
+      s138Kind,
+      'The amount remains unpaid. Cheque no. 000123 was given on 1 July 2026.',
+      [],
+    );
     expect(valueOf(r.brief, 'dishonour_date')).toBeNull();
     expect(r.asked).toContain('dishonour_date');
   });
@@ -281,7 +300,10 @@ describe('T-139 criterion 3: the amount in words', () => {
     ['240000', 'Rupees Two Lakh Forty Thousand only'],
     ['1,25,50,075', 'Rupees One Crore Twenty Five Lakh Fifty Thousand Seventy Five only'],
     ['15,000.50', 'Rupees Fifteen Thousand and Paise Fifty only'],
-    ['99,99,99,999', 'Rupees Ninety Nine Crore Ninety Nine Lakh Ninety Nine Thousand Nine Hundred Ninety Nine only'],
+    [
+      '99,99,99,999',
+      'Rupees Ninety Nine Crore Ninety Nine Lakh Ninety Nine Thousand Nine Hundred Ninety Nine only',
+    ],
     ['1', 'Rupees One only'],
     ['100', 'Rupees One Hundred only'],
     ['1,00,000', 'Rupees One Lakh only'],
@@ -292,9 +314,12 @@ describe('T-139 criterion 3: the amount in words', () => {
     expect(amountInWords(figures)).toBe(words);
   });
 
-  it.each(['', 'abc', '0', '0.50', '-5', '1.234', '2 lakh'])('amountInWords(%j) is null', (figures) => {
-    expect(amountInWords(figures)).toBeNull();
-  });
+  it.each(['', 'abc', '0', '0.50', '-5', '1.234', '2 lakh'])(
+    'amountInWords(%j) is null',
+    (figures) => {
+      expect(amountInWords(figures)).toBeNull();
+    },
+  );
 
   it('compares the advocate’s words loosely and not the amount', () => {
     const derived = 'Rupees Two Lakh Forty Thousand only';
@@ -344,11 +369,15 @@ describe('T-139 criterion 3: the amount in words', () => {
     expect(valueOf(r.brief, 'cheque_amount')).toBeNull();
     expect(valueOf(r.brief, 'amount_in_words')).toBeNull();
     // Asked: both are back under "still unknown" (the question list itself is capped at ten).
-    expect(unknownKeys(r.brief)).toEqual(expect.arrayContaining(['cheque_amount', 'amount_in_words']));
+    expect(unknownKeys(r.brief)).toEqual(
+      expect.arrayContaining(['cheque_amount', 'amount_in_words']),
+    );
   });
 
   it('no figures read (or they failed the check): no words are made up', () => {
-    const r = run(S138, s138Kind, text, [{ id: 'cheque_amount', value: '3,40,000', quote: 'for Rs 2,40,000' }]);
+    const r = run(S138, s138Kind, text, [
+      { id: 'cheque_amount', value: '3,40,000', quote: 'for Rs 2,40,000' },
+    ]);
     expect(valueOf(r.brief, 'cheque_amount')).toBeNull();
     expect(valueOf(r.brief, 'amount_in_words')).toBeNull();
     expect(unknownKeys(r.brief)).toContain('amount_in_words');
@@ -367,7 +396,8 @@ describe('T-139 criterion 4: IPC on a matter dated on or after 1 July 2024', () 
     const values: GivenValue[] = [
       { key: 'sections_charged', value: ['379 IPC'], source: 'description', quote: 'u/s 379 IPC' },
     ];
-    if (date) values.push({ key: 'fir_date', value: date, source: 'description', quote: 'x' });
+    // T-245a (Ajay, Addendum 1 ruling 7): the note follows the OFFENCE date only.
+    if (date) values.push({ key: 'offence_date', value: date, source: 'description', quote: 'x' });
     return buildBrief({ kind: bailKind, checklist, values });
   };
   const sectionsItem = (b: Brief) => b.items.find((i) => i.key === 'sections_charged');
@@ -378,7 +408,7 @@ describe('T-139 criterion 4: IPC on a matter dated on or after 1 July 2024', () 
     );
   });
 
-  it.each(['2024-07-01', '2026-03-15'])('fires for IPC with an FIR dated %s', (date) => {
+  it.each(['2024-07-01', '2026-03-15'])('fires for IPC with an offence dated %s', (date) => {
     const item = sectionsItem(ipc(date));
     expect(item).toMatchObject({ please_check: true, note: IPC_AFTER_1_JULY_2024_NOTE });
     // Warn only: the value stays as the advocate wrote it.
@@ -387,6 +417,23 @@ describe('T-139 criterion 4: IPC on a matter dated on or after 1 July 2024', () 
 
   it('does not fire before 1 July 2024', () => {
     expect(sectionsItem(ipc('2024-06-30'))?.note).toBeUndefined();
+  });
+
+  it('does not fire when only the FIR is dated 2026: the FIR date is no stand-in for the offence date (Addendum 1 ruling 7)', () => {
+    const b = buildBrief({
+      kind: bailKind,
+      checklist: BAIL,
+      values: [
+        {
+          key: 'sections_charged',
+          value: ['379 IPC'],
+          source: 'description',
+          quote: 'u/s 379 IPC',
+        },
+        { key: 'fir_date', value: '2026-03-15', source: 'description', quote: 'x' },
+      ],
+    });
+    expect(sectionsItem(b)?.note).toBeUndefined();
   });
 
   it('does not fire with no date at all', () => {
@@ -464,11 +511,14 @@ describe('T-139 round 2, Blocker 1: the station check applies to every police-st
     },
   );
 
-  it.each(['fir_police_station', 'police_station_name'])('key %s: "Saraidhela PS" is kept', (key) => {
-    const r = read(key, 'Saraidhela PS', 'Saraidhela PS', 'FIR at Saraidhela PS.');
-    expect(r.dropped).toEqual([]);
-    expect(r.values.get(key)?.value).toBe('Saraidhela PS');
-  });
+  it.each(['fir_police_station', 'police_station_name'])(
+    'key %s: "Saraidhela PS" is kept',
+    (key) => {
+      const r = read(key, 'Saraidhela PS', 'Saraidhela PS', 'FIR at Saraidhela PS.');
+      expect(r.dropped).toEqual([]);
+      expect(r.values.get(key)?.value).toBe('Saraidhela PS');
+    },
+  );
 
   it('pins the accepted risk: "Gaya P.S. Kotwali" with value "Gaya" passes', () => {
     const r = read('police_station', 'Gaya', 'Gaya P.S. Kotwali', 'FIR at Gaya P.S. Kotwali.');
@@ -482,9 +532,9 @@ describe('T-139 round 2: every template with {police_station} writes a station w
     path.join(__dirname, '../config/document-rules'),
     path.join(__dirname, '../../../../docs/templates'),
   ];
-  const STATION_BEFORE =
-    /(?:p\.?\s?s\.?|thana|police\s+station|थाना|पुलिस\s+स्टेशन)[\s,:]*$/i;
-  const STATION_AFTER = /^[\s,:]*(?:p\.?\s?s\.?|thana|police\s+station|थाना|पुलिस\s+स्टेशन)(?![A-Za-z])/i;
+  const STATION_BEFORE = /(?:p\.?\s?s\.?|thana|police\s+station|थाना|पुलिस\s+स्टेशन)[\s,:]*$/i;
+  const STATION_AFTER =
+    /^[\s,:]*(?:p\.?\s?s\.?|thana|police\s+station|थाना|पुलिस\s+स्टेशन)(?![A-Za-z])/i;
 
   const files = dirs.flatMap((dir) =>
     fs
@@ -509,7 +559,8 @@ describe('T-139 round 2: every template with {police_station} writes a station w
     while (at >= 0) {
       const before = flat.slice(Math.max(0, at - 40), at);
       const after = flat.slice(at + '{police_station}'.length, at + '{police_station}'.length + 40);
-      if (!STATION_BEFORE.test(before) && !STATION_AFTER.test(after)) bad.push(before + '{police_station}' + after);
+      if (!STATION_BEFORE.test(before) && !STATION_AFTER.test(after))
+        bad.push(before + '{police_station}' + after);
       at = flat.indexOf('{police_station}', at + 1);
     }
     expect(bad).toEqual([]);
@@ -532,7 +583,10 @@ describe('T-139 round 2, Blockers 2 and 3: the act put back on sections', () => 
     run(BAIL, bailKind, quote, [{ id: 'sections_charged', value, quote }]);
 
   it('Blocker 2: "25 Arms Act" is not given the BNS; dropped as act_unclear and asked', () => {
-    const r = sections(['303(2)', '317(2)', '25 Arms Act'], 'u/s 303(2), 317(2) BNS and 25 Arms Act');
+    const r = sections(
+      ['303(2)', '317(2)', '25 Arms Act'],
+      'u/s 303(2), 317(2) BNS and 25 Arms Act',
+    );
     expect(r.dropped).toEqual([{ key: 'sections_charged', reason: 'act_unclear' }]);
     expect(r.asked).toContain('sections_charged');
     expect(JSON.stringify(valueOf(r.brief, 'sections_charged'))).not.toMatch(/Arms Act BNS/i);
@@ -589,15 +643,19 @@ describe('T-139 round 2, small 2: amount words not in Latin script', () => {
 
 describe('T-139 round 3, A1: Hindi leading station word, through the render', () => {
   function bailCtx(station: string) {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
     require('./setupEnv');
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
     const { loadAllDocRules } = require('../services/template-promoter');
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
     const engine = require('../services/template-engine.service');
     const { configs, byFile } = loadAllDocRules();
     const bail = configs.get(byFile.get('bail_before_magistrate.json').template_id);
-    return { engine, bail, ctx: engine.buildPlaceholderContext(bail, { police_station: station }, {}) };
+    return {
+      engine,
+      bail,
+      ctx: engine.buildPlaceholderContext(bail, { police_station: station }, {}),
+    };
   }
 
   it.each([
@@ -705,7 +763,11 @@ describe('T-139 round 4, C1: a section number needs the act the quote ties to it
     dropped('u/s 498A IPC and 3/4 Dowry Prohibition Act', ['498A', '4'], 'act_unclear');
   });
   it('Hindi IPC and BNS with bare ["302","103"] fails as two_acts_in_quote (two acts named, bare tokens)', () => {
-    dropped('भा.दं.सं. की धारा 302 एवं भा.न्या.सं. की धारा 103', ['302', '103'], 'two_acts_in_quote');
+    dropped(
+      'भा.दं.सं. की धारा 302 एवं भा.न्या.सं. की धारा 103',
+      ['302', '103'],
+      'two_acts_in_quote',
+    );
   });
   it.each([
     ['302/34 IPC', ['302/34 IPC']],
@@ -731,15 +793,17 @@ describe('T-139 round 4, C2: station prefix and suffix', () => {
     ['Thana Bhawan PS', 'Thana Bhawan'],
     ['थाना सिविल लाइन्स', 'सिविल लाइन्स'], // Ajay accepted this risk
   ])('"%s" prints as "%s"', (value, expected) => {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
     require('./setupEnv');
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
     const { loadAllDocRules } = require('../services/template-promoter');
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
     const engine = require('../services/template-engine.service');
     const { configs, byFile } = loadAllDocRules();
     const bail = configs.get(byFile.get('bail_before_magistrate.json').template_id);
-    expect(engine.buildPlaceholderContext(bail, { police_station: value }, {}).police_station).toBe(expected);
+    expect(engine.buildPlaceholderContext(bail, { police_station: value }, {}).police_station).toBe(
+      expected,
+    );
   });
 });
 
@@ -770,7 +834,7 @@ describe('T-139 round 4: Hindi IPC names get the 1 July 2024 note', () => {
       checklist: BAIL,
       values: [
         { key: 'sections_charged', value: [value], source: 'description', quote },
-        { key: 'fir_date', value: '2026-03-15', source: 'description', quote: 'x' },
+        { key: 'offence_date', value: '2026-03-15', source: 'description', quote: 'x' },
       ],
     });
     const item = b.items.find((i) => i.key === 'sections_charged');

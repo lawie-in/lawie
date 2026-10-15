@@ -34,6 +34,15 @@ import {
   resolveOffence,
 } from './bns-offence-resolver';
 import { NOT_KNOWN_DATE_LINE } from './drafter.prompts';
+import {
+  isLawSwitchPack,
+  lawSwitch,
+  lawSwitchInputFromCase,
+  P_TEXT,
+  S_TEXT,
+  type LawSwitchResult,
+  type ProcedureCode,
+} from './law-switch';
 import { getTemplateRegistry } from './template-promoter';
 
 /**
@@ -583,8 +592,16 @@ function ruleCaseNomenclatureKey(templateId: string): string | undefined {
 function ruleCaseLineFor(
   rule: Pick<CourtRuleData, 'case_nomenclature'> | undefined,
   templateId: string,
+  procedureCode?: ProcedureCode | null,
 ): string | undefined {
   const key = ruleCaseNomenclatureKey(templateId);
+  // T-245a (Ajay, Addendum 1 #6): a court line that names the BNSS section
+  // ("U/S 482 BNSS", allahabad_hc) is kept for a BNSS choice only. For a CrPC
+  // choice or no choice, the rule's `<key>_crpc_or_no_choice` line, when it has one.
+  if (templateId === 'bail_anticipatory' && procedureCode !== 'BNSS' && key) {
+    const alt = rule?.case_nomenclature?.[`${key}_crpc_or_no_choice`];
+    if (typeof alt === 'string' && alt.trim() !== '') return alt;
+  }
   const line = key ? rule?.case_nomenclature?.[key] : undefined;
   return typeof line === 'string' && line.trim() !== '' ? line : undefined;
 }
@@ -1046,6 +1063,8 @@ export function resolveComputedFields(
   config: TemplateConfig,
   formData: Record<string, unknown>,
   courtData?: CourtLookupData,
+  /** T-245a: the procedure code from the law switch (bail_anticipatory's court line). */
+  procedureCode?: ProcedureCode | null,
 ): Record<string, string> {
   const computed: Record<string, string> = {};
 
@@ -1140,7 +1159,7 @@ export function resolveComputedFields(
         // blank too (Addendum 3 #4, 2957f50 (a)).
         // `{year}` becomes `{current_year}`, which the recursive pass fills in.
         computed[fieldId] =
-          ruleCaseLineFor(courtData?.courtRule, config.template_id)?.replace(
+          ruleCaseLineFor(courtData?.courtRule, config.template_id, procedureCode)?.replace(
             /\{year\}/g,
             '{current_year}',
           ) ?? CASE_TYPE_BLANK;
@@ -1225,9 +1244,16 @@ export interface PlaceholderContext {
   [key: string]: string;
 }
 
-/** T-251: what {governing_provision} prints while no procedure code is given. */
+/**
+ * T-251: what default_bail's {governing_provision} prints while no procedure
+ * code is given. T-245a: the Addendum 1 no-choice form (approved for
+ * default_bail in Addendum 2 #7), the same string lawSwitch gives.
+ */
 export const GOVERNING_PROVISION_BLANK =
-  '[To be confirmed: Section 167(2) CrPC or Section 187(3) BNSS]';
+  '[To be confirmed: Section 167(2) of the CrPC or Section 187(3) of the BNSS]';
+
+/** T-245a: the server-only context key holding the law switch's case-details lines. */
+export const LAW_SWITCH_LINES_KEY = '__law_switch_lines';
 
 /**
  * T-393 (Ajay, T-359 AC6, signed dff323f): what the relation prints when
@@ -1554,6 +1580,11 @@ const SERVER_ONLY_KEYS: ReadonlySet<string> = new Set([
   'current_year',
   'enrollment_number',
   'governing_provision',
+  // T-245a: the law switch's values, set by the server only.
+  'GOVERNING_PROVISION',
+  'women_proviso',
+  'notice_provision',
+  'do_not_cite',
   'custody_clause',
   'state_respondent',
   'case_nomenclature',
@@ -1745,6 +1776,12 @@ export function buildPlaceholderContext(
     enrollmentNumber?: string;
     governingProvision?: string;
     notKnownDates?: readonly string[];
+    /**
+     * T-245a: the law switch for this case, worked out by the caller from
+     * values it can read for certain (ledger ISO dates). Absent: worked out
+     * here from the form data and the court type, for the six bail packs only.
+     */
+    lawSwitch?: LawSwitchResult | null;
   },
   courtData?: CourtLookupData,
 ): PlaceholderContext {
@@ -1756,7 +1793,20 @@ export function buildPlaceholderContext(
     );
   }
 
-  const computed = resolveComputedFields(config, formData, courtData);
+  // T-245a: the six bail packs' law switch (procedure by FIR date or choice,
+  // offence law by offence date). Never for any other template.
+  const law: LawSwitchResult | null = isLawSwitchPack(config.template_id)
+    ? (extra?.lawSwitch ??
+      lawSwitch(
+        lawSwitchInputFromCase(
+          config.template_id,
+          formData,
+          courtData?.courtType ?? formData.court_type,
+        ),
+      ))
+    : null;
+
+  const computed = resolveComputedFields(config, formData, courtData, law?.procedureCode ?? null);
 
   const advocate = resolveAdvocate(formData, { name: extra?.advocateName }, config);
   const declaresEnrollment = declaredFieldIds(config).has('advocate_enrollment');
@@ -1931,7 +1981,7 @@ export function buildPlaceholderContext(
     } else if (familyLine !== null) {
       ctx.case_nomenclature = familyLine.replace(/\{year\}/g, ctx.current_year);
     } else {
-      const nomen = ruleCaseLineFor(rule, config.template_id);
+      const nomen = ruleCaseLineFor(rule, config.template_id, law?.procedureCode ?? null);
       if (nomen !== undefined) {
         ctx.case_nomenclature = nomen.replace(/\{year\}/g, ctx.current_year);
       }
@@ -1997,10 +2047,26 @@ export function buildPlaceholderContext(
   // value (extra.governingProvision, T-300) wins; a client value never reaches
   // here. The pair is default_bail's own, so only that pack gets it; other
   // packs will carry their own pair.
+  // T-245a: the six bail packs take the law switch's value (its no-choice
+  // blank included, which for default_bail is GOVERNING_PROVISION_BLANK).
+  for (const key of ['GOVERNING_PROVISION', 'women_proviso', 'notice_provision', 'do_not_cite']) {
+    delete ctx[key];
+  }
+  delete ctx[LAW_SWITCH_LINES_KEY];
   if (extra?.governingProvision?.trim()) {
     ctx.governing_provision = extra.governingProvision;
+  } else if (law !== null) {
+    ctx.governing_provision = law.governingProvision;
   } else if (config.template_id === 'default_bail') {
     ctx.governing_provision = GOVERNING_PROVISION_BLANK;
+  }
+  if (law !== null) {
+    // Addendum 1: in an all-caps heading it is upper-cased as a whole.
+    ctx.GOVERNING_PROVISION = (ctx.governing_provision ?? law.governingProvision).toUpperCase();
+    ctx.notice_provision = law.noticeProvision;
+    if (law.womenProviso !== null) ctx.women_proviso = law.womenProviso;
+    if (law.doNotCite !== null) ctx.do_not_cite = law.doNotCite;
+    if (law.lines.length > 0) ctx[LAW_SWITCH_LINES_KEY] = law.lines.join('\n');
   }
 
   // T-393 (Ajay, T-359 AC6): {parent_relation} / {parentRelation} is the
@@ -2390,13 +2456,20 @@ export function buildAISystemPrompt(
 8. CONTRACTS — ANTI-INVENTION RULE: Do NOT introduce any term, clause, rate, percentage, penalty, or condition that is not explicitly present in the user-provided form data. You may only arrange and formalise the terms given. If the user has not specified an interest rate, notice period, or penalty — do NOT invent one.`;
   }
 
+  // T-245a: the six bail packs never get the "never IPC/CrPC" rule. Their rule 1
+  // is Ajay's signed S-text (offence law by the date of the offence) and P-text
+  // (procedure by the PROCEDURE CODE the law switch puts in the case details).
+  const lawRule = isLawSwitchPack(config.template_id)
+    ? `${S_TEXT} ${P_TEXT}`
+    : 'Use ONLY Bharatiya Nyaya Sanhita (BNS) 2023, Bharatiya Nagarik Suraksha Sanhita (BNSS) 2023, and Bharatiya Sakshya Adhiniyam (BSA) 2023 section numbers. NEVER reference old IPC, CrPC, or IEA section numbers.';
+
   return `You are a senior Indian advocate with 20+ years of practice, drafting a court-ready legal document.
 
 DOCUMENT TYPE: ${config.display_name}
 CATEGORY: ${config.category}
 
 CRITICAL RULES:
-1. Use ONLY Bharatiya Nyaya Sanhita (BNS) 2023, Bharatiya Nagarik Suraksha Sanhita (BNSS) 2023, and Bharatiya Sakshya Adhiniyam (BSA) 2023 section numbers. NEVER reference old IPC, CrPC, or IEA section numbers.
+1. ${lawRule}
 2. Format with numbered paragraphs (1, 2, 3...) for the body.
 3. Use formal, respectful legal language appropriate for Indian courts.
 4. Do NOT include any commentary or notes outside the document content.
@@ -2547,6 +2620,11 @@ export function buildAIUserPrompt(section: DocumentSection, ctx: PlaceholderCont
   if (!section.prompt_context) return '';
 
   let prompt = replacePlaceholders(section.prompt_context, ctx);
+
+  // T-245a (signed file, "Form keys"): the case details carry the two derived
+  // lines, PROCEDURE CODE and GOVERNING PROVISION. None with no procedure code.
+  const lawLines = ctx[LAW_SWITCH_LINES_KEY];
+  if (lawLines) prompt += `\n\n${lawLines}`;
 
   // T-440 (Ajay, a9bc957): the dates answered "Not known", each with the blank
   // to copy (system prompt rule 7 carries the signed line). None for a date

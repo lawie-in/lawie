@@ -16,7 +16,7 @@
   "creditsCost": 2,
   "court_levels": ["sessions", "high_court", "district", "cjm", "magistrate"],
   "causeTitle": {
-    "format": "IN THE COURT OF {courtDesignation}\n\n{caseNomenclature}\n\nIN THE MATTER OF:\n{applicant} ... Applicant/Accused\nVERSUS\nState of {state} ... Respondent",
+    "format": "IN THE COURT OF {courtDesignation}\n\n{caseNomenclature}\n(Under {governing_provision})\n\nIN THE MATTER OF:\n{applicant} ... Applicant/Accused\nVERSUS\nState of {state} ... Respondent",
     "partyDesignations": [
       { "role": "applicant", "label": "Applicant/Accused" },
       { "role": "respondent", "label": "Respondent (State)" }
@@ -54,11 +54,32 @@
       "required": true
     },
     { "name": "fir_number", "label": "FIR Number", "type": "text", "required": true },
-    { "name": "fir_date", "label": "FIR Date", "type": "date", "required": true },
+    {
+      "name": "fir_date",
+      "label": "Date of FIR, or of the complaint if no FIR",
+      "type": "date",
+      "required": false,
+      "question": "On what date was the FIR registered, or the complaint filed if there is no FIR?",
+      "ask_when_empty": true
+    },
+    {
+      "name": "offence_date",
+      "label": "Date of the alleged offence (or of the offence of conviction)",
+      "type": "date",
+      "required": false
+    },
+    {
+      "name": "procedure_code",
+      "label": "This application is under",
+      "type": "select",
+      "options": ["BNSS and BSA", "CrPC and Evidence Act"],
+      "required": false,
+      "help": "Matters only for a case that began before 1 July 2024. For an FIR on or after that date, Lawie uses the BNSS."
+    },
     { "name": "police_station", "label": "Police Station", "type": "text", "required": true },
     {
       "name": "offences_alleged",
-      "label": "Offences Alleged (BNS sections)",
+      "label": "Offences Alleged (as written in the FIR)",
       "type": "textarea",
       "required": true
     },
@@ -206,11 +227,11 @@
     },
     {
       "name": "s35_notice_status",
-      "label": "Notice under Section 35 BNSS",
+      "label": "Notice to appear (Section 35 BNSS / Section 41A CrPC)",
       "type": "select",
       "options": ["Served", "Not served", "Not known"],
       "required": false,
-      "question": "Before the arrest, was a notice of appearance under Section 35(3) of the BNSS served on the applicant?",
+      "question": "Before the arrest, was a notice of appearance under Section 35(3) of the BNSS or Section 41A of the CrPC served on the applicant?",
       "ask_when_empty": true
     },
     {
@@ -299,14 +320,15 @@
   ],
   "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, it is most respectfully prayed that this Hon'ble Court may graciously be pleased to:\n\na) Grant interim bail to the applicant {applicant} for a period of {duration_sought_days} days, pending the disposal of the main Bail Application No. {main_bail_application_number} of [YEAR];\nb) Direct release of the applicant on furnishing personal bond and sureties to the satisfaction of the trial court;\nc) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the applicant shall ever pray.",
   "verificationTemplate": "VERIFICATION\n\nI, {applicant}, {parentRelation}, aged about {age} years, resident of {address}, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above application are true and correct to the best of my knowledge and belief. No part of it is false and nothing material has been concealed therein.\n\nVerified at {place} on this {date}.\n\nDeponent",
-  "prompt_context": "Draft an Interim Bail Application under the inherent powers of the Court read with BNSS Section 480/483. Interim bail is a short-duration release pending adjudication of the main regular bail / anticipatory bail application. The Hon'ble Supreme Court in Lal Kamlendra Pratap Singh v. State of U.P. (2009) 4 SCC 437 recognised the power of courts to grant interim bail. The application must establish: (1) pendency of a main bail application; (2) compelling urgency that cannot await the main hearing; (3) specific period sought; (4) undertakings of cooperation and surrender at end of interim period. Reference BNS section numbers for offences (never IPC). The application must be tight — interim bail is an exceptional remedy and the court must be satisfied of urgency.",
+  "prompt_context": "Draft an Interim Bail Application under the inherent powers of the Court read with the provision given as GOVERNING PROVISION in the case details. Interim bail is a short-duration release pending adjudication of the main regular bail / anticipatory bail application. The Hon'ble Supreme Court in Lal Kamlendra Pratap Singh v. State of U.P. (2009) 4 SCC 437 recognised the power of courts to grant interim bail. The application must establish: (1) pendency of a main bail application; (2) compelling urgency that cannot await the main hearing; (3) specific period sought; (4) undertakings of cooperation and surrender at end of interim period. The application must be tight — interim bail is an exceptional remedy and the court must be satisfied of urgency.",
   "promptInstructions": [
-    "Draft an Interim Bail Application invoking inherent powers read with Section 480/483 BNSS, 2023.",
+    "Draft an Interim Bail Application in the pending bail proceedings, under the provision given as GOVERNING PROVISION in the case details.",
+    "Cite the offences as the BRIEF gives them (FIR, charge sheet, complaint or order). The law of the offence follows the date of the offence: an offence committed before 1 July 2024 is under the Indian Penal Code, 1860; one committed on or after that date is under the Bharatiya Nyaya Sanhita, 2023. Never convert a section from one code to the other. Where the BRIEF does not give the date of the offence, write the sections as the BRIEF gives them and add [To be confirmed: date of the alleged offence, which decides whether the IPC or the BNS applies]. Where the sections the BRIEF gives are under the other code from the one the date points to, or the alleged acts run across 1 July 2024, keep the sections as the BRIEF gives them and add [To be confirmed: whether the IPC or the BNS applies to the offence].",
+    "Cite the procedure under the code given as PROCEDURE CODE in the case details: the Bharatiya Nagarik Suraksha Sanhita, 2023 with the Bharatiya Sakshya Adhiniyam, 2023, or the Code of Criminal Procedure, 1973 with the Indian Evidence Act, 1872. Cite only that code, in the heading, the body and the prayer. Where no PROCEDURE CODE is given, cite the provision in both forms inside a blank, for example [To be confirmed: Section 437 of the CrPC or Section 480 of the BNSS].",
     "Open with paragraph identifying applicant, FIR particulars and pending main bail application.",
     "Establish the compelling urgency (medical emergency / death in family / examination / other) with dates and specifics.",
     "State that the applicant has filed Bail Application No. ___ which is pending hearing on [date] — interim relief is sought for the intervening period.",
     "Include undertakings: cooperation with investigation, will not tamper with evidence, will surrender on expiry of interim period.",
-    "Cite BNS sections (NEVER IPC) for the underlying offences.",
     "Prayer must be SPECIFIC to interim duration — do not seek regular bail in this application.",
     "Apart from the pending main application, state every earlier application for interim bail, bail or anticipatory bail in this matter that the BRIEF mentions: the court it was made to, the date of the order and the result, or that it is still pending, each as the BRIEF gives it. Use a blank for any of these the BRIEF does not give. Where the BRIEF mentions no such earlier application, do not say that there was none; write [To be confirmed: whether any earlier application for interim bail, bail or anticipatory bail, other than the pending main application, was made in this matter, to which court, and with what result].",
     "Do NOT generate the verification clause or advocate signature block — those are added programmatically."

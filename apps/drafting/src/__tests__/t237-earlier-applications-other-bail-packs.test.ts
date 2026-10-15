@@ -329,7 +329,8 @@ describe("T-282: Ajay's signed strings, word for word", () => {
     expect(clause('interim_bail', 'no_flight_risk')).toEqual(NFR_INTERIM);
   });
 
-  it('bail_anticipatory: promptInstructions[5] is the signed undertakings instruction', () => {
-    expect(rawPack('bail_anticipatory').promptInstructions[5]).toBe(ANTICIPATORY_ENTRY_5);
+  // T-245a (Addendum 2 #6): S-text and P-text at [1] and [2], so the undertakings entry moved from [5] to [6].
+  it('bail_anticipatory: promptInstructions[6] is the signed undertakings instruction', () => {
+    expect(rawPack('bail_anticipatory').promptInstructions[6]).toBe(ANTICIPATORY_ENTRY_5);
   });
 });
