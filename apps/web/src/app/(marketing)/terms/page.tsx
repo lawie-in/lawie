@@ -34,7 +34,7 @@ export default function TermsPage() {
         <div className="container">
           <div style={{ marginBottom: '44px' }}>
             <span className="legal-updated">
-              <Calendar strokeWidth={1.5} /> Last updated: 14 October 2026
+              <Calendar strokeWidth={1.5} /> Last updated: 15 October 2026
             </span>
             <p
               style={{

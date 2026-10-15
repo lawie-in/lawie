@@ -53,6 +53,11 @@ export interface InvoiceRow {
   /** Paise, GST-inclusive; positive for credit notes too. */
   total: number;
   originalInvoiceNumber: string | null;
+  /**
+   * T-436 (b): 'fallback' when billing had no State for the user and used ours (Ajay Addendum
+   * 3); null when the row does not say. Drives the settings nag only; never shown on the row.
+   */
+  placeOfSupplySource: 'user' | 'fallback' | null;
 }
 
 /** billing's invoicePdfFilename: every character but A-Z, a-z, 0-9 and "-" becomes "-". */
@@ -105,6 +110,8 @@ export function parseInvoices(body: unknown): InvoiceRow[] | null {
     ) {
       continue;
     }
+    const pos = (r.placeOfSupply ?? null) as { source?: unknown } | null;
+    const source = pos?.source;
     rows.push({
       id: r.id,
       number: r.number,
@@ -113,6 +120,7 @@ export function parseInvoices(body: unknown): InvoiceRow[] | null {
       total: r.total,
       originalInvoiceNumber:
         typeof r.originalInvoiceNumber === 'string' ? r.originalInvoiceNumber : null,
+      placeOfSupplySource: source === 'user' || source === 'fallback' ? source : null,
     });
   }
   return rows;
@@ -127,7 +135,12 @@ const pdfButtonClass =
 const smallButtonClass =
   'min-h-[44px] rounded-lg border border-slate-300 px-3 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50';
 
-export function InvoicesCard() {
+export interface InvoicesCardProps {
+  /** T-436 (b): called with the rows each time they load (the settings State nag reads them). */
+  onRowsLoaded?: (rows: InvoiceRow[]) => void;
+}
+
+export function InvoicesCard({ onRowsLoaded }: InvoicesCardProps = {}) {
   const [state, setState] = useState<LoadState>({ kind: 'loading' });
   const [expanded, setExpanded] = useState(false);
   const [announce, setAnnounce] = useState('');
@@ -155,6 +168,15 @@ export function InvoicesCard() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Kept in a ref so a new callback identity does not reload the list.
+  const onRowsLoadedRef = useRef(onRowsLoaded);
+  useEffect(() => {
+    onRowsLoadedRef.current = onRowsLoaded;
+  }, [onRowsLoaded]);
+  useEffect(() => {
+    if (state.kind === 'loaded') onRowsLoadedRef.current?.(state.rows);
+  }, [state]);
 
   const downloadPdf = async (row: InvoiceRow) => {
     if (downloading.current.has(row.id)) return;
