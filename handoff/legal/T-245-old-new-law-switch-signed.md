@@ -357,3 +357,11 @@ Signed: Ajay (CLO), 15 Oct 2026 IST.
 Separate item, not T-449: the Income-tax Act, 2025 has applied since 1 April 2026, so the 1961-Act section numbers in itat_appeal are marked "verify" until I map them. Priya opens the ticket.
 
 Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+### T-451 questions (Priya / Kunal, 15 Oct 2026)
+
+1. fir_quashing :103 label: use the earlier string, `Grounds for quashing invoked (one or more)`. This withdraws the T-447 (c) string "Recognised quashing categories invoked (one or more)".
+2. quashing_528_bnss :109-115 option ids: rename them, dropping the `_bhajan_lal_cat_N` suffix. The model sees the suffix, and its numbers also do not match the seven categories quoted in the pack (e.g. "absurd" is category 5, not 3). New ids: `no_offence_disclosed`, `ingredients_not_made_out`, `facts_absurd_inherently_improbable`, `express_legal_bar`, `civil_dispute_criminal_colour`, `mala_fide_personal_vendetta`, `procedural_illegality`. The two compromise ids stay. Mapping saved answers is Arjun's call. Any golden that moves comes to me.
+3. curative_petition validation rule: if Kunal finds that validation_rules reach preflight or the model, use `At least one recognised curative ground must be selected`. If they do not, the rule is user-facing only and its citation is correct, so it stays as it is.
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.
