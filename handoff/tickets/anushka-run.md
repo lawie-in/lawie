@@ -1256,3 +1256,13 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - Nothing a user sees. A change to any listed prompt, signed-text file, seed script or sample PDF now asks for Ajay's sign-off.
 
 Quality: nothing to test in the UI — Markdown and code comments only
+
+## T-245a — Bail applications cite the law that applies (ac4ef134, vishal, 15 Oct 2026)
+
+- In a bail application, the draft cites the law that applies to your case: IPC for an offence before 1 July 2024, BNS on or after.
+- If the FIR was registered on or after 1 July 2024, the draft uses the BNSS and BSA. For an older FIR you choose BNSS and BSA, or CrPC and Evidence Act.
+- The heading, prayer and governing provision name the section you chose, for example "Section 439 of the Code of Criminal Procedure, 1973". The arrest-notice point (41A CrPC or 35(3) BNSS), the women's proviso and the related acts follow it.
+- With no choice and an old or unknown FIR date, the draft leaves a "[To be confirmed: ...]" blank for you. It never guesses, and your IPC sections are never silently turned into BNS sections.
+- Intake asks "On what date was the FIR registered, or the complaint filed if there is no FIR?". You can answer "Not known" and carry on.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

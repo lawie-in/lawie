@@ -73,6 +73,7 @@ Where each lead stopped:
 
 ## Last done
 
+- vishal: T-245a merged ac4ef134 (15 Oct 2026). Bail packs cite IPC/CrPC for offences before 1 July 2024 and BNS/BNSS/BSA on or after; user picks the regime for old FIRs; FIR-date intake question; never guesses. Next: T-441, T-431 is Mahak's, T-245b waits on Ajay's launch-catalogue list.
 - shashank: T-436 b/c merged 6be2d5b1 (15 Oct 2026). State picker, Settings Invoices card (PDF download), invoice and credit-note email worker templates behind INVOICE_EMAIL_ENABLED, privacy version bump 2026-10-15 (Ajay Addenda 1-9, byte checks 1204b05, 9a77d3f), Terms/Privacy/pricing text. Next: T-444 (after Tanvi T-438).
 - mahak: T-445 merged c60801b and T-116 merged b2d6e6f (15 Oct 2026). Legal-content list completed (Ajay signed). Row: NOW T-431 (affidavit deponent on drafting path).
 - CI: run 609 green on 5dec1940; run 611 green on b2d6e6f (T-116); run 615 on 6be2d5b1 (T-436 b/c) in progress. Docs-only pushes do not start a run.
