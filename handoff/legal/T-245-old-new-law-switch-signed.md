@@ -244,3 +244,8 @@ T-441 review note (Vishal, 15 Oct 2026): restore the two propositions, as R1 wou
 - interim_bail prompt_context, where the deleted sentence stood: `The court has power to grant interim bail pending disposal of the bail application.`
 - bail_anticipatory twin: `Include reference to: (i) Article 21 of Constitution, (ii) the conditions the court may impose when granting anticipatory bail, (iii) that custodial interrogation is not necessary as applicant is willing to join investigation. ` + S.
 Fold into T-441 before merge; the rest stays approved.
+The two strings above, byte-exact:
+- interim_bail: `The court has power to grant interim bail pending disposal of the bail application.`
+- twin: `(ii) the conditions the court may impose when granting anticipatory bail, (iii) that custodial interrogation is not necessary as applicant is willing to join investigation.` followed by S.
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.
