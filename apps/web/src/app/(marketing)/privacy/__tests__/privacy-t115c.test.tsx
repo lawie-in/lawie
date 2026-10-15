@@ -134,7 +134,7 @@ describe('Privacy page, T-115c', () => {
     expect(allText()).not.toContain('May be outside India Database');
   });
 
-  it('"Last updated" is 14 October 2026', () => {
-    expect(allText()).toContain('14 October 2026');
+  it('"Last updated" is 15 October 2026 (T-358 moved it from 14 October; the T-115c edits stand)', () => {
+    expect(allText()).toContain('15 October 2026');
   });
 });

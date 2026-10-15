@@ -160,6 +160,22 @@ Manual operator steps (nothing alerts on these yet):
 - Watch Sentry and auth logs for erase failures.
 - Check auth logs for the sweep's stuck-erase warning (logged at 5 or more attempts) and run the script with `--resume` for that user.
 
+### Deleting unverified accounts (T-358)
+
+An hourly sweep in auth (also run at boot) deletes accounts whose email was never verified. The clock starts at `firstVerifySentAt`, stamped once on the first confirmed send of any verify-carrying email (verify email, resend, or the deletion notice). If it is not set yet, the sweep sends the deletion notice as the first email (a 24-hour grace for new sign-ups). A warning notice goes out at day 23 with a 7-day link. Deletion happens at the end of the IST day of day 30, and only 7 or more days after the warning. Deactivated accounts get a variant with no link ("write to privacy@lawie.in to keep it"). The notice is the `auth.unverifiedDeletionNotice` email template (job carries only the userId; the worker looks up address, name and link when it sends).
+
+The worker reports each verify-email and notice outcome to auth through `POST /internal/unverified-notice/prepare` and `/outcome` (header `x-internal-secret`). Only an SMTP recipient rejection (RCPT TO, reply 550/551/553, enhanced status 5.1.1, 5.1.2, 5.1.3, 5.1.6 or 5.1.10) counts as a hard bounce. Any other failure holds the deletion and the job retries (3 attempts, exponential backoff). New User fields (`firstVerifySentAt`, `firstVerifySentVia`, `unverifiedNoticeSentAt`) go away with the T-115c hard delete.
+
+Env var, in auth only:
+
+- `UNVERIFIED_SWEEP_ENABLED` (default off). Only the exact string `true` turns it on; unset, `1`, `TRUE` and anything else are off. While off, the sweep only counts and logs what is due (`enabled:false`, counts only) and enqueues, locks and deletes nothing. The internal routes and the worker are not gated, so verify emails and stamps keep working.
+
+Operator steps:
+
+- Before enabling, watch the sweep log line in auth and check the due counts look sane.
+- To keep an account whose owner asks, mark it verified by hand. That removes it from the sweep.
+- Go-live order (T-403 checklist): queue purge dry-run, purge, footer env, deploy, `/health` check, resend-all dry-run, resend-all, set `UNVERIFIED_SWEEP_ENABLED=true`, deploy auth.
+
 ### Pre-commit secret scanning
 
 ```bash

@@ -128,6 +128,8 @@ describe('tripwire: every registered template vs TEMPLATE_FOOTERS', () => {
     verifyUrl: 'https://app.lawie.in/verify-email?token=sentinel',
     loginUrl: 'https://app.lawie.in/login',
     link: 'https://app.lawie.in/x',
+    deletionDate: '21 October 2026',
+    variant: 'A',
     url: 'https://app.lawie.in/x',
   };
   const ids: string[] = jest.requireActual('../templates').listTemplates();
