@@ -16,7 +16,12 @@ jest.mock('@/lib/apiFetch', () => ({ apiFetch: (...a: unknown[]) => mockApiFetch
 
 (globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
-const FULL = { legalName: 'Asha Verma', gstin: '20ABCDE1234F1Z5', stateName: 'Jharkhand' };
+const FULL = {
+  legalName: 'Asha Verma',
+  tradeName: 'Lawie',
+  gstin: '20ABCDE1234F1Z5',
+  stateName: 'Jharkhand',
+};
 const S5B_FULL =
   'Lawie is a trade name of Asha Verma, a sole proprietorship registered for GST in Jharkhand (GSTIN 20ABCDE1234F1Z5). In these Terms, "Lawie", "we" and "us" mean that proprietorship.';
 const S5B_NO_GSTIN =
@@ -92,7 +97,9 @@ describe('T-436 Terms 5b / 5c', () => {
   });
 
   it('no GSTIN (empty or absent): the " (GSTIN ...)" clause is dropped', async () => {
-    mockFetch.mockResolvedValue(res({ legalName: 'Asha Verma', stateName: 'Jharkhand' }));
+    mockFetch.mockResolvedValue(
+      res({ legalName: 'Asha Verma', tradeName: 'Lawie', stateName: 'Jharkhand' }),
+    );
     await mount();
     expect(text(sec('acceptance'))).toContain(S5B_NO_GSTIN);
     expect(text(sec('acceptance'))).not.toContain('GSTIN');
@@ -140,8 +147,39 @@ describe('T-436 Terms 5b / 5c', () => {
     expect(sec('contact').querySelectorAll('p')).toHaveLength(1);
   });
 
+  it('5b starts with the trade name from the endpoint, not a hard-coded one', async () => {
+    mockFetch.mockResolvedValue(res({ ...FULL, tradeName: 'Lawie Legal' }));
+    await mount();
+    const acceptance = text(sec('acceptance'));
+    expect(acceptance).toContain(
+      'Lawie Legal is a trade name of Asha Verma, a sole proprietorship registered for GST in Jharkhand (GSTIN 20ABCDE1234F1Z5).',
+    );
+    expect(acceptance).not.toContain('Lawie is a trade name');
+  });
+
+  it.each([
+    ['absent', { legalName: 'Asha Verma', gstin: FULL.gstin, stateName: 'Jharkhand' }],
+    ['empty', { ...FULL, tradeName: '' }],
+    ['blank', { ...FULL, tradeName: '   ' }],
+    ['not a string', { ...FULL, tradeName: 7 }],
+  ])('tradeName %s: 5b hidden, no placeholder, 5c (legal name) kept', async (_n, body) => {
+    mockFetch.mockResolvedValue(res(body));
+    await mount();
+    const all = text(container);
+    expect(all).not.toContain('trade name of');
+    expect(all).not.toContain('sole proprietorship');
+    expect(all).not.toContain('registered for GST in');
+    expect(all).not.toMatch(/undefined|null|\{|\[supplier/i);
+    expect(text(sec('acceptance'))).toContain('If you do not agree, you must not use the Service.');
+    const ps = Array.from(sec('contact').querySelectorAll('p'));
+    expect(ps[0].textContent).toBe('Asha Verma');
+    expect(ps).toHaveLength(2);
+  });
+
   it('missing stateName: 5b hidden (no placeholder); 5c, the legal name, still shows', async () => {
-    mockFetch.mockResolvedValue(res({ legalName: 'Asha Verma', gstin: FULL.gstin }));
+    mockFetch.mockResolvedValue(
+      res({ legalName: 'Asha Verma', tradeName: 'Lawie', gstin: FULL.gstin }),
+    );
     await mount();
     expect(text(container)).not.toContain('sole proprietorship');
     expect(text(container)).not.toContain('registered for GST in');

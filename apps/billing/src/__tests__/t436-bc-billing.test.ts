@@ -17,7 +17,9 @@ import { env } from '../config/env';
 import logger from '../config/logger';
 import { Invoice, isEmailMarkerUpdate } from '../models/Invoice.model';
 import { RefundCap } from '../models/RefundCap.model';
+import { User } from '../models/User.model';
 import {
+  INVOICE_EMAIL_ENQUEUE_TIMEOUT_MS,
   INVOICE_EMAIL_TEMPLATES,
   invoiceEmailJobId,
   queueInvoiceEmail,
@@ -42,7 +44,19 @@ const later = () => new Date(Date.now() + 2 * 60 * 1000);
 /** Run a test body with env.REDIS_URL set to a dummy (the email client is mocked). */
 let restoreRedis: (() => void) | null = null;
 function withRedis(): void {
-  restoreRedis = withGstEnv({ REDIS_URL: DUMMY_REDIS });
+  const restoreUrl = withGstEnv({ REDIS_URL: DUMMY_REDIS });
+  const e = env as unknown as Record<string, unknown>;
+  const savedFlag = e.INVOICE_EMAIL_ENABLED;
+  e.INVOICE_EMAIL_ENABLED = true; // the parsed value is a boolean
+  restoreRedis = () => {
+    restoreUrl();
+    e.INVOICE_EMAIL_ENABLED = savedFlag;
+  };
+}
+
+/** Sets the (parsed, boolean) INVOICE_EMAIL_ENABLED flag; undone by afterEach via restoreRedis. */
+function setFlag(on: boolean): void {
+  (env as unknown as Record<string, unknown>).INVOICE_EMAIL_ENABLED = on;
 }
 
 beforeEach(() => {
@@ -683,6 +697,330 @@ describe('invoice sweep emails (Arjun 2)', () => {
     const counts = await runInvoiceSweep(new Date());
     expect(counts).toMatchObject({ emailsQueued: 1, emailsPending: 1 });
     expect(await Invoice.countDocuments({ emailQueuedAt: { $ne: null } })).toBe(1);
+  });
+});
+
+// ── Round 2: INVOICE_EMAIL_ENABLED switch ────────────────────────────────────
+
+describe('INVOICE_EMAIL_ENABLED switch', () => {
+  /** Loads a fresh config/env with the given INVOICE_EMAIL_ENABLED; returns the flag, or 'exit'. */
+  function parsedFlag(value: string | undefined): boolean | 'exit' {
+    const saved = process.env.INVOICE_EMAIL_ENABLED;
+    if (value === undefined) delete process.env.INVOICE_EMAIL_ENABLED;
+    else process.env.INVOICE_EMAIL_ENABLED = value;
+    const exit = jest.spyOn(process, 'exit').mockImplementation((() => {
+      throw new Error('exit');
+    }) as never);
+    jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    try {
+      let flag: boolean | 'exit' = 'exit';
+      jest.isolateModules(() => {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-require-imports
+          flag = require('../config/env').env.INVOICE_EMAIL_ENABLED as boolean;
+        } catch {
+          flag = 'exit';
+        }
+      });
+      expect(exit.mock.calls.length > 0).toBe(flag === 'exit');
+      return flag;
+    } finally {
+      if (saved === undefined) delete process.env.INVOICE_EMAIL_ENABLED;
+      else process.env.INVOICE_EMAIL_ENABLED = saved;
+    }
+  }
+
+  it('is on only for the exact string "true"; default off', () => {
+    expect(parsedFlag(undefined)).toBe(false);
+    expect(parsedFlag('')).toBe(false);
+    expect(parsedFlag('false')).toBe(false);
+    expect(parsedFlag('true')).toBe(true);
+  });
+
+  it('"1", "TRUE", "yes" never turn it on (the schema refuses them at boot)', () => {
+    for (const v of ['1', 'TRUE', 'True', 'yes', ' true']) {
+      expect(parsedFlag(v)).not.toBe(true);
+    }
+  });
+
+  it('flag off + REDIS_URL set: nothing queued, marker null, at issue and in the sweep', async () => {
+    withRedis();
+    setFlag(false);
+    expect(env.REDIS_URL).toBe(DUMMY_REDIS);
+    const inv = await recordAndIssue({ paymentId: 'pay_flagoff' });
+    await settle();
+    expect(enq).not.toHaveBeenCalled();
+    expect((await Invoice.findById(inv._id).lean())!.emailQueuedAt ?? null).toBeNull();
+    expect(await queueInvoiceEmail(inv as never)).toBe('no_queue');
+    const counts = await runInvoiceSweep(later());
+    expect(counts).toMatchObject({ emailsQueued: 0, emailsPending: 1 });
+    expect(enq).not.toHaveBeenCalled();
+    expect(await Invoice.countDocuments({ emailQueuedAt: null })).toBe(1);
+  });
+
+  it('flag on but REDIS_URL empty: still nothing queued', async () => {
+    setFlag(true);
+    const inv = await recordAndIssue({ paymentId: 'pay_flagon_noredis' });
+    await settle();
+    setFlag(false);
+    expect(enq).not.toHaveBeenCalled();
+    expect((await Invoice.findById(inv._id).lean())!.emailQueuedAt ?? null).toBeNull();
+  });
+
+  it('flag on + REDIS_URL: queued and marked', async () => {
+    withRedis();
+    const inv = await recordAndIssue({ paymentId: 'pay_flagon' });
+    await waitFor(
+      async () => (await Invoice.findById(inv._id).lean())!.emailQueuedAt instanceof Date,
+    );
+    expect(enq).toHaveBeenCalledTimes(1);
+  });
+
+  it('the sweep sends the whole backlog once the flag flips on, and only once', async () => {
+    withRedis();
+    setFlag(false);
+    const userId = await seedUser();
+    const old = new Date(Date.now() - 5 * 60_000);
+    await makeIssued(userId, { seq: 1, issuedAt: old });
+    await makeIssued(userId, { kind: 'credit_note', seq: 1, issuedAt: old });
+    await makeIssued(userId, {
+      seq: 2,
+      issuedAt: old,
+      draft: { amount: 1, description: 'd', paidAt: old, source: 'backfill' },
+    });
+    expect((await runInvoiceSweep(new Date())).emailsQueued).toBe(0);
+    expect(enq).not.toHaveBeenCalled();
+
+    setFlag(true);
+    const counts = await runInvoiceSweep(new Date());
+    expect(counts.emailsQueued).toBe(3);
+    expect(enq).toHaveBeenCalledTimes(3);
+    expect(await Invoice.countDocuments({ emailQueuedAt: null })).toBe(0);
+    expect((await runInvoiceSweep(new Date())).emailsQueued).toBe(0);
+    expect(enq).toHaveBeenCalledTimes(3);
+  });
+});
+
+// ── Round 2: enqueue timeout ─────────────────────────────────────────────────
+
+describe('enqueue timeout', () => {
+  afterEach(() => jest.useRealTimers());
+  const realTick = () => new Promise((r) => setImmediate(r));
+  async function untilEnqueued(): Promise<void> {
+    for (let i = 0; i < 2000 && enq.mock.calls.length === 0; i += 1) await realTick();
+    expect(enq).toHaveBeenCalled();
+  }
+
+  it('exports a 5 s timeout', () => {
+    expect(INVOICE_EMAIL_ENQUEUE_TIMEOUT_MS).toBe(5000);
+  });
+
+  it('a never-resolving enqueue gives "failed" at the timeout, marker null, error name logged', async () => {
+    withRedis();
+    const row = await makeIssued(await seedUser());
+    enq.mockImplementation(() => new Promise(() => undefined));
+    const error = jest.spyOn(logger, 'error');
+    jest.useFakeTimers({ doNotFake: ['nextTick', 'setImmediate', 'queueMicrotask'] });
+    let outcome: string | undefined;
+    const p = queueInvoiceEmail(row).then((o) => {
+      outcome = o;
+    });
+    await untilEnqueued();
+    await jest.advanceTimersByTimeAsync(INVOICE_EMAIL_ENQUEUE_TIMEOUT_MS - 1);
+    expect(outcome).toBeUndefined();
+    await jest.advanceTimersByTimeAsync(1);
+    await p;
+    expect(outcome).toBe('failed');
+    jest.useRealTimers();
+    expect((await Invoice.findById(row._id).lean())!.emailQueuedAt ?? null).toBeNull();
+    expect(JSON.stringify(error.mock.calls)).toContain('InvoiceEmailEnqueueTimeoutError');
+  });
+
+  it('a stuck queue does not hold up the sweep: the row stays pending, the next run retries', async () => {
+    withRedis();
+    const row = await makeIssued(await seedUser(), { issuedAt: new Date(Date.now() - 5 * 60_000) });
+    enq.mockImplementationOnce(() => new Promise(() => undefined));
+    jest.useFakeTimers({ doNotFake: ['nextTick', 'setImmediate', 'queueMicrotask'] });
+    const run = runInvoiceSweep(new Date());
+    await untilEnqueued();
+    await jest.advanceTimersByTimeAsync(INVOICE_EMAIL_ENQUEUE_TIMEOUT_MS);
+    const counts = await run;
+    jest.useRealTimers();
+    expect(counts).toMatchObject({ emailsQueued: 0, emailsPending: 1 });
+    expect((await Invoice.findById(row._id).lean())!.emailQueuedAt ?? null).toBeNull();
+    expect((await runInvoiceSweep(new Date())).emailsQueued).toBe(1);
+    expect(enq.mock.calls[1][0].idempotencyKey).toBe(enq.mock.calls[0][0].idempotencyKey);
+  });
+
+  it('the issue pass returns at once while the enqueue is stuck', async () => {
+    withRedis();
+    enq.mockImplementation(() => new Promise(() => undefined));
+    const t0 = Date.now();
+    const inv = await recordAndIssue({ paymentId: 'pay_stuck_issue' });
+    expect(Date.now() - t0).toBeLessThan(INVOICE_EMAIL_ENQUEUE_TIMEOUT_MS);
+    expect(inv.state).toBe('issued');
+    expect(inv.emailQueuedAt ?? null).toBeNull();
+  });
+
+  it('a normal enqueue clears its timer (no timeout error afterwards)', async () => {
+    withRedis();
+    const row = await makeIssued(await seedUser());
+    const error = jest.spyOn(logger, 'error');
+    expect(await queueInvoiceEmail(row)).toBe('queued');
+    expect(error).not.toHaveBeenCalled();
+  });
+});
+
+// ── Round 2: erased users (Ajay Addendum 8 #2) ───────────────────────────────
+
+/**
+ * Each way a user counts as "erased". To widen the rule, add a case here: `erase` runs after the
+ * invoice/credit note is recorded and before it is issued (or, for the sweep, before the sweep).
+ */
+const ERASED_CASES: Array<{
+  name: string;
+  erase: (userId: mongoose.Types.ObjectId) => Promise<void>;
+}> = [
+  {
+    name: 'user document gone',
+    erase: async (userId) => {
+      await mongoose.connection.db!.collection('users').deleteOne({ _id: userId });
+    },
+  },
+  {
+    name: 'user mid-erasure (erasure subdocument set)',
+    erase: async (userId) => {
+      await mongoose.connection
+        .db!.collection('users')
+        .updateOne(
+          { _id: userId },
+          { $set: { erasure: { requestedAt: new Date(), stage: 'started' } } },
+        );
+    },
+  },
+];
+
+describe.each(ERASED_CASES)('erased user: $name', ({ erase }) => {
+  beforeEach(() => withRedis());
+
+  async function recordedFor(userId: mongoose.Types.ObjectId, paymentId: string) {
+    return recordInvoiceForPayment({
+      paymentId,
+      userId: String(userId),
+      amount: 100000,
+      paidAt: new Date(),
+      description: 'Lawie Ink top-up',
+      source: 'order.paid',
+    });
+  }
+
+  async function expectSkipped(id: unknown, kind: 'invoice' | 'credit_note') {
+    await waitFor(async () => (await Invoice.findById(id).lean())!.emailQueuedAt instanceof Date);
+    const row = (await Invoice.findById(id).lean())!;
+    expect(row.kind).toBe(kind);
+    expect(row.state).toBe('issued'); // the tax document is kept
+    expect(row.number).toBeTruthy();
+    expect(enq).not.toHaveBeenCalled();
+    return row;
+  }
+
+  it('invoice: still issued and kept, NO enqueue, marker set, the sweep does not retry', async () => {
+    const userId = await seedUser({ name: 'Rukhsar Bano', email: 'rukhsar.b@example.com' });
+    const row = await recordedFor(userId, 'pay_erased_inv');
+    await erase(userId);
+    const info = jest.spyOn(logger, 'info');
+    expect(await issueInvoice(row!._id as mongoose.Types.ObjectId)).toBe('issued');
+    const issued = await expectSkipped(row!._id, 'invoice');
+
+    const counts = await runInvoiceSweep(later());
+    expect(counts).toMatchObject({ emailsQueued: 0, emailsPending: 0, emailsSkippedErased: 0 });
+    expect(enq).not.toHaveBeenCalled();
+    expect((await Invoice.findById(row!._id).lean())!.number).toBe(issued.number);
+
+    const call = info.mock.calls.find((c) => String(c[1]).includes('skipped_erased'));
+    expect(call).toBeDefined();
+    expect(call![0]).toEqual({
+      invoiceId: String(row!._id),
+      userId: String(userId),
+      kind: 'invoice',
+    });
+    const logged = JSON.stringify(info.mock.calls);
+    for (const pii of ['Rukhsar', 'rukhsar.b', '@example.com', issued.number!, '100000']) {
+      expect(logged).not.toContain(pii);
+    }
+  });
+
+  it('credit note: still issued and kept, NO enqueue, marker set, the sweep does not retry', async () => {
+    const userId = await seedUser();
+    const inv = await recordedFor(userId, 'pay_erased_cn');
+    expect(await issueInvoice(inv!._id as mongoose.Types.ObjectId)).toBe('issued');
+    await waitFor(
+      async () => (await Invoice.findById(inv!._id).lean())!.emailQueuedAt instanceof Date,
+    );
+    enq.mockClear();
+
+    const cn = await recordCreditNoteForRefund(refund('rf_erased', 'pay_erased_cn', 30000));
+    await erase(userId);
+    const info = jest.spyOn(logger, 'info');
+    expect(await issueInvoice(cn!._id as mongoose.Types.ObjectId)).toBe('issued');
+    await expectSkipped(cn!._id, 'credit_note');
+
+    expect((await runInvoiceSweep(later())).emailsQueued).toBe(0);
+    expect(enq).not.toHaveBeenCalled();
+    const call = info.mock.calls.find((c) => String(c[1]).includes('skipped_erased'));
+    expect(call![0]).toEqual({
+      invoiceId: String(cn!._id),
+      userId: String(userId),
+      kind: 'credit_note',
+    });
+  });
+
+  it('sweep path: an unmarked issued row of an erased user is skipped once and counted', async () => {
+    const userId = await seedUser();
+    const old = new Date(Date.now() - 5 * 60_000);
+    const inv = await makeIssued(userId, { seq: 1, issuedAt: old });
+    const cn = await makeIssued(userId, { kind: 'credit_note', seq: 1, issuedAt: old });
+    await erase(userId);
+    const counts = await runInvoiceSweep(new Date());
+    expect(counts).toMatchObject({ emailsSkippedErased: 2, emailsQueued: 0, emailsPending: 0 });
+    expect(enq).not.toHaveBeenCalled();
+    for (const r of [inv, cn]) {
+      const after = (await Invoice.findById(r._id).lean())!;
+      expect(after.emailQueuedAt).toBeInstanceOf(Date);
+      expect(after.state).toBe('issued');
+      expect(after.number).toBe(r.number);
+    }
+    expect((await runInvoiceSweep(new Date())).emailsSkippedErased).toBe(0);
+  });
+
+  it('another user of the same sweep is still emailed', async () => {
+    const gone = await seedUser();
+    const live = await seedUser();
+    const old = new Date(Date.now() - 5 * 60_000);
+    await makeIssued(gone, { seq: 1, issuedAt: old });
+    const kept = await makeIssued(live, { seq: 2, issuedAt: old });
+    await erase(gone);
+    const counts = await runInvoiceSweep(new Date());
+    expect(counts).toMatchObject({ emailsSkippedErased: 1, emailsQueued: 1 });
+    expect(enq).toHaveBeenCalledTimes(1);
+    expect(enq.mock.calls[0][0].idempotencyKey).toBe(`invoice-${String(kept._id)}`);
+  });
+
+  it('a failing user lookup is "failed" (marker null, retried), not a skip', async () => {
+    const row = await makeIssued(await seedUser());
+    await erase(row.userId as mongoose.Types.ObjectId);
+    jest.spyOn(User, 'findById').mockImplementation(() => {
+      throw new Error('boom');
+    });
+    jest.spyOn(User, 'findOne').mockImplementation(() => {
+      throw new Error('boom');
+    });
+    jest.spyOn(User, 'exists').mockImplementation(() => {
+      throw new Error('boom');
+    });
+    expect(await queueInvoiceEmail(row)).toBe('failed');
+    expect(enq).not.toHaveBeenCalled();
+    expect((await Invoice.findById(row._id).lean())!.emailQueuedAt ?? null).toBeNull();
   });
 });
 
