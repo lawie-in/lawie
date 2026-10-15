@@ -43,6 +43,15 @@
             ]
           },
           {
+            "field_id": "payee_proprietor",
+            "label": "Name of the proprietor (if your client is a proprietorship firm)",
+            "type": "text",
+            "required": false,
+            "inject_into": [
+              "body"
+            ]
+          },
+          {
             "field_id": "applicant_address",
             "label": "Payee Address",
             "type": "textarea",
@@ -59,6 +68,15 @@
             "inject_into": [
               "header",
               "body"
+            ]
+          },
+          {
+            "field_id": "drawer_proprietor",
+            "label": "Name of the proprietor (if the drawer is a proprietorship firm)",
+            "type": "text",
+            "required": false,
+            "inject_into": [
+              "header"
             ]
           },
           {
@@ -93,7 +111,6 @@
               }
             ],
             "required": true,
-            "default": "individual",
             "inject_into": [
               "header"
             ]
@@ -255,7 +272,7 @@
             "label": "Reason for Dishonour (as per memo)",
             "type": "text",
             "required": true,
-            "placeholder": "e.g., Funds Insufficient, Account Closed",
+            "placeholder": "Quote only as the memo gives it",
             "inject_into": [
               "body"
             ]
@@ -277,19 +294,85 @@
   },
   "computed_fields": {
     "notice_date_unless_form_blank": {
-      "logic": "if notice_sent_date === '' then '{current_date}' else '{notice_sent_date}'"
+      "logic": "if notice_sent_date === '' then '[To be confirmed: date the notice is sent]' else '{notice_sent_date}'"
+    },
+    "notice_date_unless_not_known": {
+      "logic": "if notice_sent_date === 'Not known' then '[To be confirmed: date the notice is sent]' else '{notice_date_unless_form_blank}'"
     },
     "notice_date_unless_ledger_blank": {
-      "logic": "if notice_sent_date === '{{MISSING: Date the notice is sent}}' then '{current_date}' else '{notice_date_unless_form_blank}'"
+      "logic": "if notice_sent_date === '{{MISSING: date the notice is sent}}' then '[To be confirmed: date the notice is sent]' else '{notice_date_unless_not_known}'"
     },
     "notice_date": {
-      "logic": "if notice_sent_date === '[To be confirmed: date the notice is sent]' then '{current_date}' else '{notice_date_unless_ledger_blank}'"
+      "logic": "if notice_sent_date === '[To be confirmed: date the notice is sent]' then '[To be confirmed: date the notice is sent]' else '{notice_date_unless_ledger_blank}'"
     },
     "payment_deadline_days": {
       "logic": "'15'"
     },
+    "ni_act_sections_ref_unless_partnership": {
+      "logic": "if respondent_type === 'partnership' then '138 read with Sections 141 and 142' else '138 read with Section 142'"
+    },
     "ni_act_sections_ref": {
-      "logic": "if respondent_type === 'individual' then '138 read with Section 142' else '138 read with Sections 141 and 142'"
+      "logic": "if respondent_type === 'company' then '138 read with Sections 141 and 142' else '{ni_act_sections_ref_unless_partnership}'"
+    },
+    "ni_act_related_sections_unless_partnership": {
+      "logic": "if respondent_type === 'partnership' then '138, 139, 141, 142' else '138, 139, 142'"
+    },
+    "ni_act_related_sections": {
+      "logic": "if respondent_type === 'company' then '138, 139, 141, 142' else '{ni_act_related_sections_unless_partnership}'"
+    },
+    "addressee_name_unless_form_blank": {
+      "logic": "if respondent_name === '' then '[To be confirmed: name of the addressee]' else '{respondent_name}'"
+    },
+    "addressee_name_unless_ledger_blank": {
+      "logic": "if respondent_name === '{{MISSING: Drawer / Noticee}}' then '[To be confirmed: name of the addressee]' else '{addressee_name_unless_form_blank}'"
+    },
+    "addressee_name": {
+      "logic": "if respondent_name === '[To be confirmed: drawer / noticee]' then '[To be confirmed: name of the addressee]' else '{addressee_name_unless_ledger_blank}'"
+    },
+    "addressee_address_unless_form_blank": {
+      "logic": "if respondent_address === '' then '[To be confirmed: address of the addressee]' else '{respondent_address}'"
+    },
+    "addressee_address_unless_ledger_blank": {
+      "logic": "if respondent_address === '{{MISSING: Drawer Address}}' then '[To be confirmed: address of the addressee]' else '{addressee_address_unless_form_blank}'"
+    },
+    "addressee_address": {
+      "logic": "if respondent_address === '[To be confirmed: drawer address]' then '[To be confirmed: address of the addressee]' else '{addressee_address_unless_ledger_blank}'"
+    },
+    "notice_client_name_unless_form_blank": {
+      "logic": "if applicant_name === '' then '[To be confirmed: name of the client]' else '{applicant_name}'"
+    },
+    "notice_client_name_unless_ledger_blank": {
+      "logic": "if applicant_name === '{{MISSING: Payee / Notice Sender}}' then '[To be confirmed: name of the client]' else '{notice_client_name_unless_form_blank}'"
+    },
+    "notice_client_name": {
+      "logic": "if applicant_name === '[To be confirmed: payee / notice sender]' then '[To be confirmed: name of the client]' else '{notice_client_name_unless_ledger_blank}'"
+    },
+    "client_address_unless_form_blank": {
+      "logic": "if applicant_address === '' then '[To be confirmed: address of the client]' else '{applicant_address}'"
+    },
+    "client_address_unless_ledger_blank": {
+      "logic": "if applicant_address === '{{MISSING: Payee Address}}' then '[To be confirmed: address of the client]' else '{client_address_unless_form_blank}'"
+    },
+    "client_address": {
+      "logic": "if applicant_address === '[To be confirmed: payee address]' then '[To be confirmed: address of the client]' else '{client_address_unless_ledger_blank}'"
+    },
+    "drawer_addressee_unless_form_blank": {
+      "logic": "if drawer_proprietor === '' then '{addressee_name}' else '{drawer_proprietor},\nProprietor,\n{addressee_name},'"
+    },
+    "drawer_addressee_unless_ledger_blank": {
+      "logic": "if drawer_proprietor === '{{MISSING: Name of the proprietor (if the drawer is a proprietorship firm)}}' then '{addressee_name}' else '{drawer_addressee_unless_form_blank}'"
+    },
+    "drawer_addressee": {
+      "logic": "if drawer_proprietor === '[To be confirmed: name of the proprietor (if the drawer is a proprietorship firm)]' then '{addressee_name}' else '{drawer_addressee_unless_ledger_blank}'"
+    },
+    "payee_client_unless_form_blank": {
+      "logic": "if payee_proprietor === '' then '{notice_client_name}' else '{notice_client_name}, through its proprietor {payee_proprietor}'"
+    },
+    "payee_client_unless_ledger_blank": {
+      "logic": "if payee_proprietor === '{{MISSING: Name of the proprietor (if your client is a proprietorship firm)}}' then '{notice_client_name}' else '{payee_client_unless_form_blank}'"
+    },
+    "payee_client": {
+      "logic": "if payee_proprietor === '[To be confirmed: name of the proprietor (if your client is a proprietorship firm)]' then '{notice_client_name}' else '{payee_client_unless_ledger_blank}'"
     }
   },
   "document_structure": {
@@ -298,49 +381,49 @@
         "section_id": "header",
         "type": "template",
         "alignment": "left",
-        "template": "LEGAL NOTICE\n(Under Section {ni_act_sections_ref} of the Negotiable Instruments Act, 1881)\n\nDate: {notice_date}\nBy Registered Post A.D. / Speed Post / UPC\n\nTo,\n{respondent_name}\n{respondent_address}\n\nFrom,\n{applicant_name}\nThrough: {advocate_name}, Advocate\n{advocate_address}"
+        "template": "LEGAL NOTICE\n(Under Section {ni_act_sections_ref} of the Negotiable Instruments Act, 1881)\n\nDate: {notice_date}\nBy Registered Post A.D. / Speed Post / UPC\n\nTo,\n{drawer_addressee}\n{addressee_address}\n\nFrom,\n{notice_client_name}\n{client_address}\nThrough: {advocate_name}, Advocate\n{advocate_address}"
       },
       {
         "section_id": "subject_line",
         "type": "template",
         "alignment": "left",
-        "template": "Subject: Statutory Demand Notice under Section 138 of the Negotiable Instruments Act, 1881 — Cheque No. {cheque_number} dated {cheque_date} for Rs. {cheque_amount}/- ({amount_in_words}) drawn on {drawee_bank}, {drawee_branch} — dishonoured on {dishonour_date}\n\nSir/Madam,\n\nUnder instructions from and on behalf of my client, {applicant_name}, I hereby serve upon you this statutory notice under Section 138 of the Negotiable Instruments Act, 1881, and call upon you to note as under:"
+        "template": "Subject: Statutory Demand Notice under Section 138 of the Negotiable Instruments Act, 1881 — Cheque No. {cheque_number} dated {cheque_date} for Rs. {cheque_amount}/- ({amount_in_words}) drawn on {drawee_bank}, {drawee_branch} — dishonoured on {dishonour_date}\n\nSir/Madam,\n\nUnder instructions from and on behalf of my client, {payee_client}, I hereby serve upon you this statutory notice under Section 138 of the Negotiable Instruments Act, 1881, and call upon you to note as under:"
       },
       {
         "section_id": "body",
         "type": "ai_generated",
-        "prompt_context": "Generate 5-7 numbered paragraphs for a Section 138 NI Act cheque bounce notice. This is a STATUTORY DEMAND NOTICE — tone must be firm and legal. Structure:\nPara 1: State the underlying liability — {underlying_liability}.\nPara 2: State that towards discharge of said liability, the noticee ({respondent_name}) issued Cheque No. {cheque_number} dated {cheque_date} for Rs. {cheque_amount}/- ({amount_in_words}) drawn on {drawee_bank}, {drawee_branch}.\nPara 3: State that the cheque was presented to the payee's bank on {presentation_date} and was returned dishonoured vide bank's return memo dated {dishonour_date} with the endorsement '{dishonour_reason}'.\nPara 4: State that the dishonour constitutes a criminal offence under Section 138 NI Act punishable with imprisonment up to 2 years or fine up to twice the cheque amount or both.\nPara 5: State that as per proviso (b) to Section 138, the payee is required to make a demand within 30 days of receiving information of dishonour.\nDo NOT generate the demand clause or closing — those are template-handled.",
+        "prompt_context": "Generate 3 to 5 numbered paragraphs. Do not state or suggest that any offence is complete when the cheque is issued, presented or dishonoured. On liability, use only the sentence given. This is a STATUTORY DEMAND NOTICE — tone must be firm and legal. Structure:\nPara 1: State the underlying liability — {underlying_liability}.\nPara 2: State that towards discharge of said liability, the noticee ({respondent_name}) issued Cheque No. {cheque_number} dated {cheque_date} for Rs. {cheque_amount}/- ({amount_in_words}) drawn on {drawee_bank}, {drawee_branch}.\nPara 3: State that the cheque was presented to the payee's bank on {presentation_date} and was returned dishonoured vide bank's return memo dated {dishonour_date} with the endorsement '{dishonour_reason}'.\nDo NOT generate the demand clause or closing — those are template-handled.",
         "numbering": "numeric",
-        "min_paragraphs": 5,
-        "max_paragraphs": 7
+        "min_paragraphs": 3,
+        "max_paragraphs": 5
       },
       {
         "section_id": "demand_clause",
         "type": "template",
         "alignment": "left",
-        "template": "DEMAND\n\nYou are hereby called upon to make payment of the said sum of Rs. {cheque_amount}/- ({amount_in_words}) to my client within a period of fifteen (15) days from the date of receipt of this notice, failing which my client shall be constrained to initiate criminal proceedings against you under Section 138 of the Negotiable Instruments Act, 1881, before the competent Magistrate having jurisdiction, at your risk, cost, and consequences.\n\nPlease note that under Section 138, if you fail to make payment within 15 days of receipt of this notice, my client shall file a criminal complaint within 30 days thereafter, and upon conviction you shall be liable to imprisonment for a term which may extend to two years, or with fine which may extend to twice the amount of the cheque, or with both."
+        "template": "DEMAND\n\nI therefore call upon you to pay my client the said amount of Rs. {cheque_amount}, being the amount of the said cheque, within fifteen days of receipt of this notice. If you fail to pay the said amount within fifteen days of receipt of this notice, an offence punishable under Section 138 of the Negotiable Instruments Act, 1881 will be complete, and my client will initiate proceedings against you."
       },
       {
         "section_id": "closing",
         "type": "template",
         "alignment": "left",
-        "template": "A copy of this notice is retained in my office for record and further legal action.\n\nYours faithfully,\n\n\n_________________________\n{advocate_name}\nAdvocate\nEnrollment No. {advocate_enrollment}\n{advocate_address}\n\n(Counsel for {applicant_name})"
+        "template": "A copy of this notice is retained in my office for record and further legal action.\n\nYours faithfully,\n\n\n_________________________\n{advocate_name}\nAdvocate\nEnrollment No. {advocate_enrollment}\n{advocate_address}\n\n(Counsel for {notice_client_name})"
       }
     ]
   },
   "related_acts": [
-    "Negotiable Instruments Act 1881 — Sections 138, 139, 141, 142",
+    "Negotiable Instruments Act 1881 — Sections {ni_act_related_sections}",
     "BNS"
   ],
   "special_prayer_additions": [],
   "filing_checklist": [
-    "Send within 30 days of receiving dishonour information (bank memo date)",
+    "Send the notice within 30 days of receiving the bank's return memo (Section 138, proviso (b)).",
     "Send via Registered Post AD — retain postal receipt",
     "Send additional copy via Speed Post / UPC for safety",
     "Retain original dishonoured cheque safely (primary evidence)",
     "Retain bank return memo / dishonour slip",
     "Wait 15 days from date of receipt by noticee",
-    "If no payment within 15 days — file complaint within next 30 days (S.142(1)(b))",
+    "If payment is not made within 15 days of receipt of the notice, file the complaint within one month after those 15 days end (Section 142(1)(b)).",
     "Keep AD card as proof of service",
     "Verify noticee's correct residential / business address"
   ],
@@ -360,7 +443,7 @@
       "closing"
     ],
     "fact_alteration_check": true,
-    "min_body_paragraphs": 5
+    "min_body_paragraphs": 3
   },
   "metadata": {
     "version": "1.0",

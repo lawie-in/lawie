@@ -15,6 +15,7 @@
  */
 import { DocumentRuleConfig, CourtRuleConfig } from './prompt-assembler';
 import { readFilingChecklist } from './rule-pack.service';
+import { normaliseRelation, RELATION_BLANK, relationLine } from './template-engine.service';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -121,7 +122,7 @@ const COURT_NUMBER_TOKEN =
 function hasCourtNumberToken(part: string): boolean {
   return part
     .split(/[\s\-–]+/)
-    .map((t) => t.replace(/^[(\[]+|[)\].,:;]+$/g, ''))
+    .map((t) => t.replace(/^[([]+|[)\].,:;]+$/g, ''))
     .some((t) => t !== '' && COURT_NUMBER_TOKEN.test(t));
 }
 
@@ -493,9 +494,20 @@ export function generateVerificationClause(
   const verification = docRule.verificationTemplate
     .replace(/{applicant}/g, deponentName)
     .replace(
-      /{relation}/g,
-      partyDetails.relation_type ?? partyDetails.relation ?? 'S/o / D/o / W/o',
+      /{appellant}/g,
+      partyDetails.appellant || partyDetails.appellant_name || '[DEPONENT NAME]',
     )
+    // T-393 (Ajay, T-359 AC6): the relation and parent or spouse, or the signed blanks.
+    .replace(
+      /{parentRelation}/g,
+      relationLine(
+        [partyDetails.applicant_relation, partyDetails.relation_type, partyDetails.relation].find(
+          (v) => normaliseRelation(v) !== undefined,
+        ),
+        partyDetails.fatherName || partyDetails.parentName,
+      ),
+    )
+    .replace(/{relation}/g, partyDetails.relation_type ?? partyDetails.relation ?? RELATION_BLANK)
     .replace(/{parentName}/g, parentName)
     .replace(/{age}/g, partyDetails.age || '[AGE]')
     .replace(/{address}/g, partyDetails.address || '[ADDRESS]')

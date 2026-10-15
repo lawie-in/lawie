@@ -12,7 +12,7 @@
  * The files are parsed (YAML / Dockerfile instructions), not grepped, so a build step that only
  * appears in a comment, another job, or after the tests does not satisfy the check.
  * T223_CI_YML and T223_AUTH_DOCKERFILE point the test at a copy (used for mutation checks).
- * `yaml` is not a declared dependency of auth; it is already in the lockfile (hoisted).
+ * `yaml` is a declared devDependency of auth (T-379), resolved from the existing lockfile entry.
  */
 import fs from 'fs';
 import path from 'path';

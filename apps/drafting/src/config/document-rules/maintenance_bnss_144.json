@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. Section number is 144 BNSS — never use 125 CrPC."
   },
   "template_id": "maintenance_bnss_144",
+  "card_description": "An application for maintenance under Section 144 BNSS (Section 125 CrPC).",
   "docType": "maintenance_bnss_144",
   "title": "Application for Maintenance under Section 144 BNSS, 2023",
   "displayName": "Maintenance Application (s.144 BNSS)",

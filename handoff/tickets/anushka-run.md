@@ -39,7 +39,6 @@ Priya collects each lead's "What a user can now do" text here after a merge into
 - I sign up and sign in exactly as before; nothing looks or works differently.
 - My email, name, phone number and password are no longer kept in Lawie's server logs or in error reports, even when something goes wrong while I sign up or sign in.
 
-
 ## T-189 (vishal, merged to develop_staging 8bab9f7, 12 Oct 2026)
 
 Needs the `feature.fact_ledger` setup above, or she sees the old path.
@@ -502,7 +501,7 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - A clear message when Google sign-in fails; a Contact support link if the account is deactivated.
 - A wrong email or a wrong password gives the same answer either way.
 - Linking Google signs out your other sessions; signing out ends the old login everywhere in the account service.
-- The Privacy Policy says Google Analytics runs on public pages only and sets _ga cookies.
+- The Privacy Policy says Google Analytics runs on public pages only and sets \_ga cookies.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 
@@ -533,6 +532,7 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 ## T-190 + T-199 — bail packs ask for the facts behind their averments (65d8707, mahak, 12 Oct 2026)
 
 What a user can now do:
+
 - When drafting a regular, interim, anticipatory or Magistrate bail application, be asked (after the required details, up to 10 questions) about earlier bail applications, criminal history, arrest date, investigation stage, health, whether the applicant is named in the FIR, recovery, cooperation, work, whether the applicant is the only earning member, who depends on them, local ties, the Section 35 notice and a co-accused's bail, using buttons for yes/no and stage answers.
 - Answer "Not known" or "None" and get no claim about it in the draft; leave any of them blank and still get the draft.
 - If the description says no earlier bail application was made, be asked to confirm it once; skip it and the draft leaves that line blank for them to fill.
@@ -543,6 +543,7 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 ## T-328 + T-332 — cookie card focus, splash, no browser error reporting (5482b37, kunal, 12 Oct 2026)
 
 What a user can now do:
+
 - After answering the cookie card, keyboard and screen-reader users land on the page content with no stray focus stop left behind.
 - The logo splash always finishes and the cookie card still appears, even when the browser blocks storage (private mode).
 - Nothing about a visitor's browser goes to an error service, same as before.
@@ -552,6 +553,7 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 ## T-339 — splash with blocked storage (5adf962, kunal, 12 Oct 2026)
 
 What a user can now do:
+
 - With browser storage blocked (private mode, site data off), the opening logo animation plays and finishes normally with no error.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
@@ -559,6 +561,7 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 ## T-270 — wrong-section warnings for code-first citations (e43420d, shashank, 12 Oct 2026)
 
 What a user can now do:
+
 - After a draft is generated, get a warning for a wrong section in any of the six codes, written any common way ("BSA 85", "85 BSA", "S. 85 of the BSA", "Ss. 3-5 BSA"). There's never a false warning for a real old IPC, CrPC or IEA section.
 - Each section number is checked against the Act it's cited under, so "Section 3 BSA" no longer passes just because the Oaths Act has a section 3.
 
@@ -567,6 +570,7 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 ## T-336 — confirm a "None" on earlier bail applications, ledger off (273b6d4, mahak, 12 Oct 2026)
 
 What a user can now do:
+
 - With the fact-ledger setting off: if their description says "Earlier bail applications: None" (or nil, no, koi nahi and the like), see that question asked again to confirm it.
 - Confirm it and get the draft saying it is the first application; skip it and get a blank in the draft to fill in instead.
 
@@ -575,6 +579,7 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 ## T-333 — every draft path checks sections in all codes (2852e94, shashank, 12 Oct 2026)
 
 What a user can now do:
+
 - Drafts made from a template, a brief or the guided flow get the same section warnings as any other draft. A wrong BSA, BNSS, IPC, CrPC or IEA section is flagged, not only BNS.
 - Cite a range like "Ss. 100-105 BNS" without a murder warning when the facts don't mention a death. An explicit "BNS 103" still gets it.
 
@@ -583,6 +588,7 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 ## T-341 — warning when "first bail application" wasn't confirmed (08103ec, mahak, 12 Oct 2026)
 
 What a user can now do:
+
 - If a bail draft says no earlier bail application was made but they never confirmed that, see a warning asking them to check it before filing.
 - If they said an earlier bail application was made and the draft still says it is the first, see a warning to correct the draft.
 - Confirm "None" (or say it is the first application) and see no such warning.
@@ -592,6 +598,7 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 ## T-240 — templates grouped under plain-language categories (6a6cd2a, tanvi, 12 Oct 2026)
 
 What a user can now do:
+
 - Browse templates grouped under the 26 plain-language categories, in a fixed order, when starting a new document, changing the document type, or in the templates library.
 - Admins see and filter by each document's category.
 
@@ -600,6 +607,7 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 ## T-338 — blanks for half-read or unasked bail details (10faf08, mahak, 12 Oct 2026)
 
 What a user can now do:
+
 - With the fact-ledger setting on: when a bail detail was only half-read from their description or was never asked, see a clear blank for it in the draft to fill in, instead of the point being left out.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
@@ -607,6 +615,7 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 ## T-192 — cheque-bounce notice date checks (5dd6388, vishal, 12 Oct 2026)
 
 What a user can now do:
+
 - In a cheque-bounce notice, enter the cheque validity, return-memo-received and notice-sent dates. Lawie checks presentation in time and notice within 30 days, and only then lets the notice say so.
 - A missing date leaves a named blank. The notice is dated with the sending date, or today.
 
@@ -615,7 +624,8 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 ## T-242 — sign-up source and referral links (6b37ed6, kunal, 12 Oct 2026)
 
 What a user can now do:
-- Arrive from a campaign link with utm_ tags and sign up by email or Google; the account records the campaign. The tags vanish from the address bar and aren't shared with GA or anyone else.
+
+- Arrive from a campaign link with utm\_ tags and sign up by email or Google; the account records the campaign. The tags vanish from the address bar and aren't shared with GA or anyone else.
 - /login?ref=CODE opens Create account with the referral box filled in.
 - Admins can see how many sign-ups came from each source.
 - The privacy page says the campaign tags are kept.
@@ -625,6 +635,7 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 ## T-347 — impossible section numbers flagged (a75c522, shashank, 12 Oct 2026)
 
 What a user can now do:
+
 - See a wrong-section warning when a draft cites a section number that cannot exist, like "BNS 1034" or "Section 4521 CrPC".
 - Years such as "2023" and ordinary numbers like amounts, pages or days are never flagged.
 
@@ -633,6 +644,7 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 ## T-335 — answers survive a description edit (fcc74a5, mahak, 12 Oct 2026)
 
 What a user can now do:
+
 - With the fact-ledger setting on: answer "Not known" to a question, then edit the description, and the answer stays "Not known" instead of the old reading coming back.
 - Type or answer a detail, then edit the description, and the draft still uses what they typed.
 
@@ -641,6 +653,7 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 ## T-344 — campaign source kept through a cancelled Google sign-in (c16b5db, kunal, 12 Oct 2026)
 
 What a user can now do:
+
 - Arrive from a campaign link, start a Google sign-in, cancel, then try again in the same tab. The account still records which campaign brought them.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
@@ -648,6 +661,7 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 ## T-334 — "none filed" in the advocate's own words (828d55e, mahak, 12 Oct 2026)
 
 What a user can now do:
+
 - Answer the earlier-bail-applications question in their own words, such as "none filed", "koi bail nahi" or "कोई नहीं", and get the draft saying no other bail application has been made, with no "earlier bail applications are: koi bail nahi" line.
 - If a draft claims no earlier bail application was filed but they never confirmed it, have that claim removed or flagged before filing.
 
@@ -656,6 +670,7 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 ## T-345 + T-340 — one date format, no false "facts changed", clean category names (0d90ed7, tanvi, 12 Oct 2026)
 
 What a user can now do:
+
 - See every date in a template draft written like "4 April 2026", including dates of birth and custody dates.
 - Type dates as numbers without a false "facts changed" warning; a real change is still flagged.
 - See category names without underscores.
@@ -665,6 +680,7 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 ## T-351 — no free credits before an email is verified (eae46a9, shashank, 12 Oct 2026)
 
 What a user can now do:
+
 - Sign up with Google and get the free Ink straight away, as before.
 - Sign up with an email and password and start with no free Ink until the address is verified; the daily bonus waits for that too.
 
@@ -673,6 +689,7 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 ## T-343 — accept a changed privacy policy (3cbcd78, kunal, 12 Oct 2026)
 
 What a user can now do:
+
 - After a privacy change, see a short notice of what changed on the next sign-in, with a link to the policy and two choices: Accept or Not now.
 - After Not now, still view, download and export. A new draft or payment asks for acceptance right at the button, and anything typed is kept.
 - Accept and carry on without signing in again. A dismissed notice doesn't come back in the same sign-in.
@@ -683,6 +700,7 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 ## T-331 — admin template usage (d1b4372, mahak, 12 Oct 2026)
 
 What a user can now do:
+
 - An admin opening document analytics sees which templates are used, by name, with counts and how many were finalised, instead of an empty table.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
@@ -694,6 +712,7 @@ Report: `handoff/quality/2026-10-13-run-3-develop-FAIL.md`. Fix tickets: T-359 t
 ## T-349 + T-350 — dates read naturally; bad links fail cleanly (6be8b14, tanvi, 12 Oct 2026)
 
 What a user can now do:
+
 - See dates in brief drafts and annexures written like "4 April 2026".
 - An impossible date shows exactly as typed, not changed into another date.
 - A malformed document link gives "not found".
@@ -703,6 +722,7 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 ## T-354 — privacy acceptance fails safely (8e38f59, kunal, 13 Oct 2026)
 
 What a user can now do:
+
 - Nothing new is visible. If saving the privacy acceptance fails, the user sees the retry message and is asked to sign in again on the next action.
 - Please run a real screen reader over the privacy prompt (T-343). Kunal's check was only a proxy.
 
@@ -711,6 +731,7 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 ## T-356 part 1 — describe-first for everyone (552076a, shashank, 13 Oct 2026)
 
 What a user can now do:
+
 - Every user, new or existing, starts a document by describing their case in their own words, without anyone having to switch it on for them.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
@@ -718,6 +739,7 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 ## T-342 — cheque-bounce notice reads the key dates (cb8d9e5, vishal, 13 Oct 2026)
 
 What a user can now do:
+
 - In a cheque-bounce notice, Lawie picks up the cheque's validity date, the date the return memo was received and the date the notice is sent from the description. If the last two are missing, it asks for them, so it can check the deadlines. Nothing changes for other documents.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
@@ -725,6 +747,7 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 ## T-223 — verify a new email account (9ae7d51, mahak, 13 Oct 2026)
 
 What a user can now do:
+
 - Sign up with an email and password, get a "verify your email" link, and receive the 5 free sign-up Ink once they open it.
 - Ask for a new link from the banner if it didn't arrive or has expired, with a clear wait time if they ask too often.
 - When they run out of Ink or try to buy Ink before verifying, see a prompt to verify instead of the payment screen.
@@ -736,6 +759,7 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 ## T-370 — "Upgrade to Pro" buys Pro (280dd3a, kunal, 13 Oct 2026)
 
 What a user can now do:
+
 - On Settings, see "Upgrade to Pro" with Pro's real price and monthly Ink, and pay for Pro, not the cheaper plan.
 - On the dashboard, see the same Pro price on the upgrade link. A Pro user sees the plan's monthly Ink instead of "unlimited documents".
 - An unverified email user still sees the verify card instead of the button.
@@ -747,6 +771,7 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 Re-tests run 3 failures T-250, T-275, T-296 and T-277.
 
 What a user can now do:
+
 - Convert an old IPC, CrPC or Evidence Act section and get the right new section, such as CrPC 362 to BNSS 403, without anyone reloading data.
 - Paste a list like "Sections 420, 406 and 120B IPC" into the bulk converter and get every one converted, each with its own label.
 - Look up a sub-section such as CrPC 156(3) and get BNSS 175(3).
@@ -759,7 +784,491 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 ## T-383 — criminal conspiracy shows correctly (7569b14, shashank, 13 Oct 2026)
 
 What a user can now do:
+
 - Look up IPC 120B or BNS 61(2) in the converter or the bail checker and see it as criminal conspiracy, not "not an offence".
 - In the bail checker, see a section that isn't found named plainly ("Section 400"), not as the raw code "400-BNS".
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-372 — Ink cost and balance (587ce69, kunal, 13 Oct 2026)
+
+Re-tests run 3 failures T-227 and T-190 ("Not known").
+
+What a user can now do:
+
+- See the Ink balance on the dashboard and settings instead of a "documents used" counter or a monthly allowance.
+- See "Uses N Ink" under "Confirm brief and continue" before drafting, for every document type and for a draft with no type.
+- See the header Ink balance drop as soon as a draft finishes.
+- On the brief, press "Not known" or "None" and see it stay selected.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-374 — signed skeleton loader (1c9da98, tanvi, 13 Oct 2026)
+
+What a user can now do:
+
+- Nothing on screen yet. Bail drafts use the signed skeletons once T-373 lands.
+
+Quality: nothing to test in the UI — loader only, not used until T-373
+
+## T-367 — Timeline tracker deadlines (1706a41, shashank, 13 Oct 2026)
+
+Re-tests run 3's timeline failures. Once T-375 merges the tracker is hidden by default, so for this run the founder switches `feature.tool_timeline` on.
+
+What a user can now do:
+
+- Enter the date of the first remand and see the right deadlines. For a first remand on 1 January 2026 under a 60-day offence: police custody up to 9 February, the last day for the charge sheet 1 March, and default bail from 2 March.
+- See police custody explained as up to 15 days, in one go or in parts, within the first 40 or 60 days, with BNSS 187(2) and 187(3) cited.
+- See every date written out, like "1 March 2026", and a countdown such as "60-day period · 12 days left".
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-379 — Email worker guard (b3d01a7, kunal, 13 Oct 2026)
+
+What a user can now do:
+
+- Nothing changes on screen. Before real emails are switched on, an unfinished email footer can no longer cause a verification email to go out or invalidate a link the user already has. Their email is held and sent once the footer is filled in.
+- A user whose name or address contains text like "[PIN]" still gets their emails.
+
+Quality: nothing to test in the UI — email-worker start-up and health guard
+
+## T-365 + T-382 + T-387 — Brief picker, enrolment, pre-filing check (492426a, mahak, 13 Oct 2026)
+
+Re-tests run 3 failures on the brief, enrolment and pre-filing check.
+
+T-365, what a user can now do:
+
+- Leave the advocate name empty and see their own profile name on the draft.
+- Browse document types grouped by category, the same way as the templates library.
+- Press "Use template" and start describing with that document already chosen.
+- See a short, plain description on every document card, with no internal notes.
+- On a bail application before a Magistrate, give the brief facts of the case, as in regular bail.
+
+T-382, what a user can now do:
+
+- Type a Bar Council enrolment number on a bail, surrender, suspension or vakalatnama form and see it printed on the draft.
+
+T-387, what a user can now do:
+
+- Pass the vakalatnama pre-filing check using the enrolment number saved in the profile, without typing it again.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-394 — Promoter keeps field source (5708bf3, mahak, 13 Oct 2026)
+
+What a user can now do:
+
+- Nothing new on screen. Section search and court pickers already work on the bail, consumer and notice forms. This keeps them working if those forms are later served from the rule packs.
+
+Quality: nothing to test in the UI — latent: overrides already send source
+
+## T-393 — Relation in bail drafts (3b0fdf2, kunal, 13 Oct 2026)
+
+Re-tests run 3's "S/o for a woman" failure (T-359 AC6).
+
+What a user can now do:
+
+- In a bail draft, see the applicant written as son, daughter, wife or husband of exactly as given, in the verification and the cause title. A woman is never written as "S/o".
+- If the relation or the name isn't known, see a clear "[To be confirmed: …]" note instead of a guess.
+- Answer the new optional question "Relation to the person named below" on bail forms. The name field now reads "Name of father, mother or spouse".
+
+Not yet: the memo of parties and the affidavit (T-396).
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-375 — v1 scope switches (bb8fd47, tanvi, 13 Oct 2026)
+
+What a user can now do:
+
+- Civil plaints are gone from the templates list, the brief picker and "describe your matter". They can't be opened or generated until switched on.
+- The bail checker and timeline tracker are hidden from the Tools page, and their pages show "not found" until switched on.
+- Existing drafts are untouched.
+
+For this run, the founder turns on `feature.tool_timeline` (`yarn workspace @lawie/drafting seed:setting feature.tool_timeline on`; it shows within about 2 minutes), because T-367 is merged. `feature.tool_bail_checker` stays off until T-361 merges, and `feature.template_civil_plaint` stays off for v1.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-380 — Web tests typecheck (9349b6a, mahak, 13 Oct 2026)
+
+What a user can now do:
+
+- Nothing changes on screen. This is test files and typecheck config only.
+
+Quality: nothing to test in the UI — test files and typecheck config only
+
+## T-363 — s.138 notice (7f99f96, shashank, 13 Oct 2026)
+
+Re-tests run 3's s.138 failures (T-192).
+
+What a user can now do:
+
+- See a warning on the brief when the notice date is more than 30 days after the return memo, and choose to continue with those dates or change them.
+- Describe dates in words, such as "fifteenth September 2026", and have them filled in. Write the year with word dates, or the brief asks for it.
+- Get a notice that states the real position: the offence arises if the amount isn't paid within 15 days of receiving the notice, not when the cheque is issued.
+- Get a notice that keeps the proprietor and the payee's address when given, and states the return reason only as the memo gives it.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-366 — Site copy and free-tool legal lines (78318a3, tanvi, 13 Oct 2026)
+
+Re-tests run 3's copy failures (T-317, T-306).
+
+What a user can now do:
+
+- Read FAQ and About pages that describe what Lawie does today: 5 free Ink once your email is verified, every document type, PDF and DOCX export, and BNS/BNSS/BSA section numbers on criminal drafts.
+- See the bail checker card on the Tools page cite S.478 BNSS.
+- See a home page tab title that matches the signed-in pages.
+- See "once your email is verified" wherever 5 free Ink is offered.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-395 — Appellant name in suspension and appeals (a242a7f, kunal, 13 Oct 2026)
+
+- In an application for suspension of sentence, see the verification read "I, <appellant's name>, …, aged about <age> years" instead of blanks.
+- In a criminal or income-tax appeal, see the appellant's name in the cause title.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-363 fix — s.138 proprietor blanks and s.141 (d9a354c, shashank, 13 Oct 2026)
+
+- Leave the proprietor questions blank and get a clean notice, with no "[To be confirmed …]" text in the header or the subject line.
+- See s.141 cited only for a company, LLP or partnership drawer, never for an individual, HUF or unanswered drawer type.
+- Pick the drawer type yourself: the form no longer pre-selects "individual".
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-385 — Template configs through one public projection (68937a7, mahak, 13 Oct 2026)
+
+- Nothing looks different. The template list and form work as before, and civil plaint templates stay out of the list while they're switched off.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-406 — No case-number line on non-court documents (43dc53f, tanvi, 13 Oct 2026)
+
+- Nothing changes on screen. A legal notice, deed or agreement can no longer pick up a court case-number line, whichever court is chosen.
+
+Quality: nothing to test in the UI — latent; no current template printed the line
+
+## T-373 — Bail drafts from signed text and your own facts (3e031ac, vishal, 13 Oct 2026)
+
+- Draft a regular, anticipatory, Magistrate or default bail application and get only the facts you gave. Every paragraph is Lawie's signed text filled with your details, or your own words tidied for grammar. Nothing invented is added, and a gap shows as a clearly marked blank.
+- See in the checks list exactly which parts are still missing, by name.
+- Where the tidied wording would change what you said, see your own words used instead, exactly as typed.
+- Draft these applications in Hindi as before; the draft is marked as a starting draft.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-399 — Yearly Ink monthly; cancel keeps Ink to period end (4fe03d7, kunal, 13 Oct 2026)
+
+- On a yearly Solo or Pro plan, get your 50 or 150 Ink every month, not once a year.
+- Cancel any plan and keep your Ink (on yearly, the monthly Ink too) until the end of the period you paid for.
+- See the refund page say so, in Ajay's sentence.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-413 — Payments always credit Ink, never twice (9cf199e, kunal, 13 Oct 2026)
+
+- If a top-up or plan payment goes through but the Ink isn't credited straight away, it's retried until the Ink lands, and it's never credited twice. If it still can't be credited, the team is alerted to add the Ink by hand.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-390 + T-416 — One verify email after held resends (ed2e18a, mahak, 13 Oct 2026)
+
+- Press "resend verification email" several times before emails start going out, and get one email whose link works.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-405 — Shared public-field helper (ac78327, mahak, 13 Oct 2026)
+
+- Nothing changes on screen (internal refactor).
+
+Quality: nothing to test in the UI — internal refactor, output pinned unchanged
+
+## T-410 (+ T-412, T-417, T-418) — Consumer complaint goes to a Consumer Commission (0a18bda, tanvi, 13 Oct 2026)
+
+- In a consumer complaint, see the Commission you chose named (District, State or National).
+- At a State or National Commission, see "Consumer Complaint No. **\_** of <year>".
+- Open an older draft that named a non-Commission court and see "[To be confirmed: Consumer Commission]" and "[To be confirmed: place]", not a wrong court or a criminal case line.
+- See the document called "Consumer Complaint", citing the 2021 Jurisdiction Rules.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-397 — Older drafting paths stop inventing relatives and conclusions (7e23038, vishal, 13 Oct 2026)
+
+- In a cheque-bounce notice, a Hindi bail draft or any document not yet on the signed-clause path, see no "S/o" or parent's or spouse's name you didn't give; a clearly marked blank shows instead.
+- See no claim that an offence is complete on its own.
+- See dates kept in the format you entered.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-381 — Create annexures from a draft (9e3cafa, mahak, 13 Oct 2026)
+
+- On a court document that names the parties, press "Create annexures" and download one PDF with the Vakalatnama, Memo of Parties and the other annexures, with the client's and the opposite party's names filled in.
+- If a name or the client's side is missing, see the card say what to add, never a blank printed.
+- This is the check for your T-313 and T-318.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-415 — Stuck Ink credits finish on retry (42703a4, kunal, 14 Oct 2026)
+
+- If a payment's Ink credit gets stuck part-way, Razorpay's next retry finishes it, and it's never credited twice.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-404 part 1 — Marked blanks, not gaps (680b41c, shashank, 14 Oct 2026)
+
+- Generate a s.138 notice without every party detail and get clearly marked "[To be confirmed: ...]" blanks to fill in, not "**\_**".
+- See a marked blank, not an empty gap, for the advocate's name, address and enrolment number when the profile lacks them.
+- Start a draft before choosing a court and see "[To be confirmed: court]", with no court name invented.
+- Draft a bail application with the court, case type and place each flagged for confirmation, not guessed.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-422 — No 'offence complete' claims in bail packs, repairs, guided drafts (d2565d8, vishal, 14 Oct 2026)
+
+- In bail packs, repair rounds and guided drafts, Lawie no longer states on its own that an offence is complete; it says so only when the brief does.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-423 — State name and accepted values on brief annexures (c9ba205, mahak, 14 Oct 2026)
+
+- Create annexures for a bail draft made from a brief and see "State of Bihar" on the Memo of Parties, not "State of bihar".
+- Party names on the annexures come only from what the brief accepted.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-396 — Memo of Parties and affidavit: relation and parties (9096c39, kunal, 14 Oct 2026)
+
+- The Memo of Parties and the affidavit show W/o, D/o, H/o or S/o as chosen, or a clear blank, never a guessed S/o.
+- The plaintiff, defendant, complainant or accused is named, with the petitioner's address and age.
+- "State of …, through the concerned authority" appears only where the State is the other side, and the State is written properly.
+- The Memo carries the usual Lawie footer.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-411 — Consumer Commission picker (6db7e551, tanvi, 14 Oct 2026)
+
+- When drafting a consumer complaint, choose District, State or National Commission and see only Consumer Commissions.
+- Choose NCDRC with no state.
+- The field reads "Consumer Commission".
+- It works by keyboard and screen reader. Other documents' court pickers are unchanged.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-407 part 1 — No s.141 for an individual drawer (b0d0b38, vishal, 14 Oct 2026)
+
+- Draft a cheque-bounce notice from a brief against an individual, a HUF, or a drawer whose type isn't known: the draft no longer cites the section that makes companies and their officers liable.
+- For a company or a partnership firm it still does.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-404 part 2 — Place of execution and bail case lines (1e58ce0, shashank, 14 Oct 2026)
+
+- Type the city or town where a deed will be signed and see it printed in the deed, never a court's city.
+- Get a bail application whose case line is the court's own bail line or a clear "[To be confirmed: case type and number]" blank, never a civil suit or consumer complaint number.
+- Start a court document before choosing a court and see a blank case line to fill in later, not a guessed one.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-388 — Ink cost under every charging button (0ad6869, kunal, 14 Oct 2026)
+
+- See "Uses N Ink" under every button that spends Ink, including Try again and "generate anyway".
+- Be charged exactly that number.
+- If the cost can't be worked out, the button stays off with "We could not work out the Ink cost for this. Try again in a moment." and a Try again link.
+- Out of Ink shows the real cost, never a made-up "1 Ink".
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-425 part 1 — Bail court list shows only courts that hear bail (2d0b93b2, tanvi, 14 Oct 2026)
+
+- When drafting a bail application from a brief, the court list shows only Sessions courts, criminal-side District courts, High Courts and their benches, and (not for anticipatory bail) CJM/JMFC courts.
+- No Consumer Commission, Supreme Court, tribunal or civil court is offered.
+- An older draft that already has a court not offered keeps it, marked "(not offered for this document)".
+- The classic bail form is not changed yet (part 2).
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-425 part 2 — Classic bail form shows only bail courts (a7674bdb, tanvi, 14 Oct 2026)
+
+- On the standard bail form, the court list shows only courts that hear bail (same rule as part 1).
+- An older draft's court that is no longer offered stays, marked "(not offered for this document)".
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-407 part 2 — No s.141 on the template form for an individual drawer (5489513c, vishal, 14 Oct 2026)
+
+- Draft a cheque-bounce notice from the template form against an individual, a HUF, or a drawer whose type isn't given: the draft no longer cites the section that makes companies and their officers liable.
+- For a company or a partnership firm it still does.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-115b — Delete a document (14efaa66, kunal, 14 Oct 2026)
+
+- Delete a document from My documents, or from the bottom of the document page, after one confirm.
+- See it leave the list at once. After that it can't be opened, exported, or read through a review link.
+- See "Document deleted." only once everything is erased; if the erase is still finishing, see "Deleting the document." and it completes on its own.
+- If it fails, see a message with privacy@lawie.in to write to.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-428 — Bail case lines by court (3649e73b, shashank, 14 Oct 2026)
+
+- Draft a bail or anticipatory bail application in a district or sessions court and see that court's own bail case line, with the number and year to fill in.
+- Draft a bail application before a Magistrate and see the bail line, not a criminal case number.
+- Draft before the Jharkhand or Allahabad High Court and see that court's own anticipatory bail heading.
+- Draft before any other High Court or the Supreme Court and see a clear "[To be confirmed: case type and number]" instead of a guessed line.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-432 — Template form keeps your answers (09a12b63, kunal, 14 Oct 2026)
+
+- Fill in a template form, then get sent off to accept the privacy update, top up Ink, verify your email, or press "Edit form". When you come back, you're on the same step with every answer still there.
+- On a phone, the Generate button sits clearly apart from Cancel.
+- When the Ink cost can't be worked out, the notice shows once, with a "Check the cost again" link that can't be mistaken for "Try again".
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-429 — Discharge and revision sections (8240327c, vishal, 14 Oct 2026)
+
+- Draft a discharge application on a BNS charge: the draft no longer drags in cheque-bounce law or company-director case law. On a cheque-bounce charge, it is still there.
+- Discharge, quashing and criminal revision drafts show the right revision section for the forum: Section 440 for the Sessions Judge, Section 442 for the High Court.
+- A criminal revision prayer names "Section 438 read with Section 442" (or 440) for the forum chosen. Where the forum isn't known, it shows a clear "To be confirmed" blank instead of "**\_**".
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-433 — No yearly Ink carry (47d5d011, shashank, 14 Oct 2026)
+
+- The pricing page and the Terms say plan Ink is fresh each month, unused plan Ink does not carry over, and top-up Ink never expires.
+- The pricing page says the Ink cost is shown before you generate.
+- On a yearly plan, Ink resets to the monthly amount each month, with nothing banked.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-384 — "Not known" dates (3ceb2fc8, kunal, 14 Oct 2026)
+
+- A date row answered "Not known" shows "Not known" instead of an empty date box.
+- Press "Change" to set the date after all.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-437 — Prompt caching (7943bb54, vishal, 14 Oct 2026)
+
+- Drafting is unchanged for advocates.
+- An admin can see cache tokens, cache cost, net saving and cache hit share on the AI cost panel.
+- Draft cost now matches what the provider charges. Check first that cache_write_usd_per_mtok is set to the 1-hour price (pre-run checklist).
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-115c — Close your account (ac3a0482, tanvi, 14 Oct 2026)
+
+- Close your account from Settings. Confirm with your password, or, for a Google-only account, type your email after a sign-in within the last 15 minutes.
+- With an active plan, you're told to cancel it first, and nothing changes.
+- Once you confirm, you're signed out everywhere, and your account, profile and documents are erased. Payment records are kept for tax. Feedback you gave on other people's documents stays, without your name.
+- If erasing takes longer, you're told it will be finished for you.
+- The privacy policy describes all of this.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-436 part (a) — GST tax invoices, server side (6cca6f0d, kunal, 14 Oct 2026)
+
+- Nothing new on screen yet. Every payment now produces a GST tax invoice on Lawie's side, and the admin can export the month's invoices for GST filing.
+- The invoice list, the email and the download ship in part (c); the State picker ships in part (b).
+
+Quality: nothing to test in the UI — server-side only; the invoice list, email and download ship in part c
+
+## T-440 — A date you don't know prints as "to be confirmed" (518d55ae, shashank, 14 Oct 2026)
+
+- Answer "Not known" for a date and see "[To be confirmed: date of arrest]" (or that date's name) in the draft, the same however the draft was started, never a blank, a line of underscores or a guessed date.
+- Draft a cheque-bounce notice without knowing the send date and see "Date: [To be confirmed: date the notice is sent]" instead of today's date.
+- The draft makes no claim that a deadline is met or missed when the date it depends on is not known.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-424 — Affidavit and Memo of Parties on the right side (cb74664, mahak, 15 Oct 2026)
+
+- Draft a counter-affidavit as the Respondent's advocate: the Memo of Parties lists Petitioner and Respondent correctly, and your client's name and address sit on the Respondent row only.
+- Draft a rejoinder as the Petitioner's advocate: your client shows as the Petitioner the same way.
+- The affidavit is sworn by your client, and the opening line reads "That I am the above-named Respondent" (or Petitioner), with no doubled "the" on any affidavit.
+- The synopsis names your client's side as "Petitioner:".
+- If the brief gives some other role for your client, you get a clear message instead of a wrong document; if the other side's name is missing, it is named as a gap.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-442 — Deploys fail loudly when a service is down (04930a7, mahak, 15 Oct 2026)
+
+- Nothing to test in the UI. A deploy that leaves a service down, or the email worker held, now stops loudly instead of finishing silently.
+
+Quality: nothing to test in the UI — deploy script only
+
+## T-436 AC10 — Ranchi, Jharkhand (b92aae6e, kunal, 15 Oct 2026)
+
+- Read the Terms and the contact page: they say Ranchi, Jharkhand as where Lawie is based and where disputes are heard. No placeholder text such as "[PIN]" is left.
+- The verification email footer says the same. The email only sends once the email service is switched on and deployed with the registered address.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-377 — Verify link no longer travels to other sites (846ad85, mahak, 15 Oct 2026)
+
+- Nothing a user sees. The one-time verification link no longer travels in the Referer to other sites. The documented server log change (founder step) keeps it out of the access log once applied.
+
+Quality: nothing to test in the UI — headers and ops doc only
+
+## T-436 AC10 round 2 — Earlier sign-ups get one verification email (33107053, kunal, 15 Oct 2026)
+
+- Nothing new on screen. When the email service is switched on, people who signed up earlier and never got a verification email receive one, once.
+
+Quality: nothing to test in the UI — operator scripts and docs only
+
+## T-358 — Unconfirmed accounts are emailed before deletion (aed2599b, tanvi, 15 Oct 2026)
+
+- If you sign up and never confirm your email, we now email you before deleting your account, with a link to confirm (first notice within a day if no other email reached you; a reminder about three weeks in, link good for seven days).
+- Confirming at any point keeps your account. A deactivated account gets a notice with no link: write to privacy@lawie.in to keep it.
+- Unconfirmed accounts are deleted at the end of day 30 (Indian time), never sooner than a week after the reminder, and never without an email that was actually sent.
+- Switches on only when the operator turns it on, so it cannot be seen on develop until then.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-443 — Old generate route retired (cc2adc0, mahak, 15 Oct 2026)
+
+- Nothing a user sees. A direct call to the old generate route is refused with a clear message instead of charging Ink for a draft that could cite the wrong law.
+
+Quality: nothing to test in the UI — API route only
+
+## T-364 — One plan list everywhere (403b768f, kunal, 15 Oct 2026)
+
+- You see the same plans and prices on the pricing page, home page, upgrade prompts and Settings, because they all read one list. Nothing looks different today.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+> Note for the batch (15 Oct): on develop the invoice email switch is off, so the pricing line "we email you a GST tax invoice" produces no email there. Download of the invoice from Settings works.
+
+## T-436 b/c — Choose your State, see and download invoices (6be2d5b1, shashank, 15 Oct 2026)
+
+- Choose your State when upgrading, buying Ink or in Settings, so your tax invoice shows the right GST; you are asked to accept the updated privacy policy first.
+- See every invoice and credit note in Settings and download each as a PDF.
+- Get an email with each invoice and credit note once emails are switched on (off on develop, so no email there; the Settings download works).
+- Read in the Terms who supplies Lawie and its GST registration, in the Privacy policy why the State is asked, and on the pricing page that prices include GST.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-116 and T-445 — Legal-content list complete (b2d6e6f, c60801b, mahak, 15 Oct 2026)
+
+- Nothing a user sees. A change to any listed prompt, signed-text file, seed script or sample PDF now asks for Ajay's sign-off.
+
+Quality: nothing to test in the UI — Markdown and code comments only
+
+## T-245a — Bail applications cite the law that applies (ac4ef134, vishal, 15 Oct 2026)
+
+- In a bail application, the draft cites the law that applies to your case: IPC for an offence before 1 July 2024, BNS on or after.
+- If the FIR was registered on or after 1 July 2024, the draft uses the BNSS and BSA. For an older FIR you choose BNSS and BSA, or CrPC and Evidence Act.
+- The heading, prayer and governing provision name the section you chose, for example "Section 439 of the Code of Criminal Procedure, 1973". The arrest-notice point (41A CrPC or 35(3) BNSS), the women's proviso and the related acts follow it.
+- With no choice and an old or unknown FIR date, the draft leaves a "[To be confirmed: ...]" blank for you. It never guesses, and your IPC sections are never silently turned into BNS sections.
+- Intake asks "On what date was the FIR registered, or the complaint filed if there is no FIR?". You can answer "Not known" and carry on.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-438 and t428 test fix (9d9e3cee, 9cfd2f14, 15 Oct 2026)
+
+- Nothing a user sees. Billing no longer breaks on a plan Razorpay reports as pending, halted or completed, and the services' shared-secret check no longer leaks timing.
+
+Quality: nothing to test in the UI — operator/security fix and tests only

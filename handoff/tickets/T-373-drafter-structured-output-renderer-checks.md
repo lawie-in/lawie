@@ -1,22 +1,23 @@
 # T-373 — Drafter structured output, renderer and checks panel (four bail packs)
 
-| Field  | Value |
-| ------ | ----- |
-| Phase  | 4 — Polish and release |
-| Owner  | Lead A (drafting) + Ajay (sign) + Arjun (contract) |
-| Mode   | Full chain |
-| Status | To do; ready to start (spec ebea19e). Ordered by Arjun (NEXT 2, ADR-025 D1, lead A). Priya, 13 Oct 2026 |
-| Source | ADR-025 (Arjun, 13 Oct 2026, handoff/tickets/ADR-025-structured-drafting-and-signed-data.md) |
+| Field  | Value                                                                                                                 |
+| ------ | --------------------------------------------------------------------------------------------------------------------- |
+| Phase  | 4 — Polish and release                                                                                                |
+| Owner  | Lead A (drafting) + Ajay (sign) + Arjun (contract)                                                                    |
+| Mode   | Full chain                                                                                                            |
+| Status | Merged into develop_staging 3e031ac (Vishal, 13 Oct 2026). Ajay signed 17e8b6f. Waiting for Anushka on develop. Priya |
+| Source | ADR-025 (Arjun, 13 Oct 2026, handoff/tickets/ADR-025-structured-drafting-and-signed-data.md)                          |
 
 ## Acceptance criteria
 
 **The build spec is in ADR-025 (ebea19e): skeleton format, Drafter tool schema, renderer rules, tests, and the two-lead split with the interface fixed. Build to it.** Lead A needs no skeleton from Ajay to begin. Questions go straight to Arjun. Scope from ADR-025 D1:
+
 - The Drafter returns structured output: `paragraphs[]{ clauseId, factRefs[], text }`.
 - A code renderer builds the document. A paragraph with no clauseId is dropped. A missing required factRef becomes `{{MISSING: label}}`. An entity not in the referenced fact becomes a blank. Duplicate sections print once.
 - Free text only in clauses sourced from the advocate's own words, rephrased for grammar only. Grounds come back as a list with one ref each.
 - The checks panel reads the rendered clause ids.
 - Golden assertions for the four bail packs; Anushka's run-3 drafts are fixtures.
-T-359 and T-362 are delivered by this ticket and T-374, not by prompt or list tuning.
+  T-359 and T-362 are delivered by this ticket and T-374, not by prompt or list tuning.
 
 ## Arjun (13 Oct 2026): the renderer is not legal content
 
@@ -48,3 +49,17 @@ Ajay's add-on to T-365 AC1: when the advocate's profile has a name, don't tell t
 
 (A) Option (b), in `fact-ledger.service.ts`: when the ledger is built for a pack with no `facts_narrative` field, the intake's `fixed.facts` text is written to the ledger under the key `facts_narrative` (source `user`, `raw_span` = the advocate's text). The ledger key the skeleton names is canonical; `fixed.facts` is an intake-side name. No pack change, no loader alias. `ai.service.ts:1406` already treats the three names as one.
 (B) Smaller than proposed. No `boolean | null` retyping: on D1 packs the response omits the `factCheck` object altogether (the panel is `rendered[]`). Keep the `path` field (`legacy` | `d1`) on `FactDiffDraft`, the `FactDiff` model and `writeFactCheckLog`, so the read-only D1 findings are filterable. Priya extends the claim with `FactDiff.model.ts` and the file holding `writeFactCheckLog`; `fact-verifier.ts` is untouched.
+
+## Arjun (13 Oct 2026): Magistrate facts, second ruling (c10f763)
+
+Option (a). `bail_before_magistrate.json` gets a `facts_narrative` textarea, the same field definition as `bail_regular` (label, placeholder, part `facts`, position after the sections step). Ajay signs it; it is a copy of wording he already signed. Mahak adds it in her one pack pass (T-365 AC6 + T-382 touch this file already) so the seven packs still change once. Vishal removes the `fixed.facts` copy code (dead once the field exists), keeps the real-checklist test pinned, and builds against a fixture copy of the pack until Mahak's merge. Not (b2): no silent checklist rule across packs.
+
+## Arjun (13 Oct 2026): loader default
+
+1. An invalid skeleton file fails loudly, no legacy fallback. Also validate every `_skeletons/*.json` at boot (shape + clause ids against the pack) so an invalid file fails the service start and /health, not the advocate's first draft. Missing file → `null` → legacy path, unchanged.
+2. Legacy suites: mock the loader to `null` in setup only, and each such suite asserts once that it ran the legacy path, so the mock is never silently load-bearing. New route-level D1 tests on the four real skeletons, including the T-359 AC fixtures.
+3. The enrolment pair is intentionally not in `SLOT_ALIASES`: it is a stored-key rewrite in `FIELD_ALIASES` (T-382), and after T-382 every pack spells `advocate_enrollment`, so skeleton slots resolve directly.
+
+## Arjun (13 Oct 2026): review round 1
+
+Two-way own-words check, yes: fall back when any `raw_span` content word (stemmed, not on the stop list) is missing from the text, or any `raw_span` number or date (by value) is missing. Dropped words are the worse direction — "not named" → "named" is a reversal. Stop list: remove "as" and the modals (may, might, could, should, must), and never list negations (not, no, never, without, nor, neither) or quantifiers (all, any, only, every): those are content. Keep the two gap tests plus one for the reversal.

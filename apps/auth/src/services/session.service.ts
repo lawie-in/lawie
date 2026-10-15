@@ -8,6 +8,13 @@ import { Session } from '../models/Session.model';
 export interface SessionMeta {
   ip?: string;
   userAgent?: string;
+  /**
+   * T-115c (Arjun ruling 2) — ISO time the user last proved who they are: a password login,
+   * sign-up or a Google sign-in. Set by those paths; /refresh and the privacy re-accept carry
+   * the old session's value forward, so a refresh never makes it newer. Closing a Google-only
+   * account needs it to be under 15 minutes old.
+   */
+  authAt?: string;
 }
 
 export interface SessionData {
@@ -19,6 +26,14 @@ export interface SessionData {
   ip?: string;
   userAgent?: string;
   createdAt: string;
+  /** T-115c — see SessionMeta.authAt. Absent on sessions made before T-115c. */
+  authAt?: string;
+}
+
+/** T-115c — what the refresh key holds: the access hash, and authAt to carry through /refresh. */
+export interface RefreshSessionData {
+  accessTokenHash: string;
+  authAt?: string;
 }
 
 /** SHA-256 hash of a token — used as Redis key component */
@@ -49,6 +64,11 @@ export async function createSession(
     ip: meta.ip,
     userAgent: meta.userAgent,
     createdAt: new Date().toISOString(),
+    ...(meta.authAt ? { authAt: meta.authAt } : {}),
+  };
+  const refreshData: RefreshSessionData = {
+    accessTokenHash: accessHash,
+    ...(meta.authAt ? { authAt: meta.authAt } : {}),
   };
 
   // Write both Redis keys in a pipeline for atomicity
@@ -61,7 +81,7 @@ export async function createSession(
   );
   pipeline.set(
     refreshSessionKey(userId, refreshHash),
-    JSON.stringify({ accessTokenHash: accessHash }),
+    JSON.stringify(refreshData),
     'EX',
     SESSION_TTL.REFRESH,
   );

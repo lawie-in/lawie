@@ -7,6 +7,7 @@
     "review_notes": "Writ of mandamus under Art 226 (HC) / Art 32 (SC). Strict pre-conditions: existence of public statutory duty, clear legal right in petitioner, demand and refusal, no equally efficacious alternative remedy (subject to exceptions). Mansukhlal Vithaldas Chauhan v. State of Gujarat (1997) 7 SCC 622 is leading authority. Will not issue against private parties, discretionary functions, or to direct legislation."
   },
   "template_id": "mandamus",
+  "card_description": "A writ petition for mandamus directing an authority to perform its legal duty.",
   "title": "Writ Petition for Mandamus (Art. 226/32)",
   "category": "writ",
   "creditsCost": 2,

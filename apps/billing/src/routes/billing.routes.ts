@@ -1,4 +1,5 @@
 import { requireCurrentPrivacy } from '@lawie/shared';
+import * as Sentry from '@sentry/node';
 import { Router, Request, Response, NextFunction } from 'express';
 import mongoose from 'mongoose';
 
@@ -8,15 +9,20 @@ import {
   findSubscriptionPlan,
   findTopupSku,
 } from '../config/credit-skus';
+import { readSellerConfig } from '../config/gst';
 import logger from '../config/logger';
 import { razorpay } from '../config/razorpay';
 import { authenticate } from '../middleware/authenticate';
 import { CouponCode } from '../models/CouponCode.model';
+import { Invoice } from '../models/Invoice.model';
 import { User } from '../models/User.model';
+import { GrantClaimBusyError } from '../services/ink-ledger.service';
+import { invoicePdfFilename, renderInvoicePdf } from '../services/invoice-pdf.service';
 import {
   createSubscription,
   getSubscriptionStatus,
   handleWebhookEvent,
+  SubscriptionExistsError,
   verifyWebhookSignature,
 } from '../services/subscription.service';
 
@@ -103,6 +109,16 @@ router.post(
       const result = await createSubscription(userId, email, planId);
       res.json({ status: 'success', data: result });
     } catch (err) {
+      // T-444 (Arjun ruling 7): a live sub exists; the user fixes or cancels it first.
+      if (err instanceof SubscriptionExistsError) {
+        res.status(409).json({
+          error: 'subscription_exists',
+          status: err.status,
+          planId: err.planId,
+          paidThrough: err.paidThrough,
+        });
+        return;
+      }
       logger.error(
         { err: err instanceof Error ? err.message : err },
         'Failed to create subscription',
@@ -224,9 +240,113 @@ router.get('/status', authenticate, async (req: Request, res: Response) => {
   }
 });
 
+// ── GET /public/supplier — T-436: GST supplier details for public pages ──────
+//
+// No auth (gateway: /api/billing/public/supplier, public like /plans). Legal
+// name, trade name, GSTIN and State from env. No street address: Ajay's
+// Addendum 1 keeps it off public pages until the E-Commerce Rules question is
+// settled (it stays on the invoice PDF). 503 with an empty body while any of
+// the five seller values (GST_ADDRESS included, which invoices need) is missing.
+router.get('/public/supplier', (_req: Request, res: Response) => {
+  const seller = readSellerConfig();
+  if (!seller) {
+    res.set('Cache-Control', 'no-store');
+    res.status(503).json({});
+    return;
+  }
+  res.set('Cache-Control', 'public, max-age=3600');
+  res.json({
+    legalName: seller.legalName,
+    tradeName: seller.tradeName,
+    gstin: seller.gstin,
+    stateCode: seller.stateCode,
+    stateName: seller.stateName,
+  });
+});
+
+// ── GET /invoices — T-436: the caller's issued invoices and credit notes ─────
+//
+// Newest first. Without the seller block (it is the same on every row and the
+// PDF carries it).
+router.get('/invoices', authenticate, async (req: Request, res: Response) => {
+  const userId = req.jwtPayload!.sub;
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    res.json({ status: 'success', data: [] });
+    return;
+  }
+  try {
+    const rows = await Invoice.find({
+      userId: new mongoose.Types.ObjectId(userId),
+      state: 'issued',
+    })
+      .sort({ issuedAt: -1, _id: -1 })
+      .select('-seller -draft -__v')
+      .lean();
+    res.json({
+      status: 'success',
+      data: rows.map((r) => ({
+        id: String(r._id),
+        number: r.number,
+        kind: r.kind,
+        issuedAt: r.issuedAt,
+        customer: r.customer,
+        placeOfSupply: r.placeOfSupply,
+        lines: r.lines,
+        price: r.price,
+        taxable: r.taxable,
+        cgst: r.cgst,
+        sgst: r.sgst,
+        igst: r.igst,
+        total: r.total,
+        originalInvoiceId: r.originalInvoiceId ? String(r.originalInvoiceId) : null,
+        originalInvoiceNumber: r.originalInvoiceNumber ?? null,
+      })),
+    });
+  } catch (err) {
+    logger.error(
+      { userId, errName: err instanceof Error ? err.name : 'unknown' },
+      'Failed to list invoices',
+    );
+    res.status(500).json({ error: 'Failed to list invoices' });
+  }
+});
+
+// ── GET /invoices/:id/pdf — T-436: one issued invoice as a PDF ───────────────
+//
+// Owner or Admin; anyone else (and any unknown, unissued or malformed id) 404.
+router.get('/invoices/:id/pdf', authenticate, async (req: Request, res: Response) => {
+  const { sub: userId, role } = req.jwtPayload!;
+  const id = req.params.id;
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    res.status(404).json({ error: 'Invoice not found' });
+    return;
+  }
+  try {
+    const inv = await Invoice.findOne({ _id: new mongoose.Types.ObjectId(id), state: 'issued' });
+    if (!inv || (role !== 'Admin' && String(inv.userId) !== userId)) {
+      res.status(404).json({ error: 'Invoice not found' });
+      return;
+    }
+    const pdf = await renderInvoicePdf(inv);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${invoicePdfFilename(inv.number!)}"`,
+      'Cache-Control': 'private, no-store',
+      'Content-Length': String(pdf.length),
+    });
+    res.send(pdf);
+  } catch (err) {
+    logger.error(
+      { invoiceId: id, errName: err instanceof Error ? err.name : 'unknown' },
+      'Failed to render invoice PDF',
+    );
+    res.status(500).json({ error: 'Failed to render invoice' });
+  }
+});
+
 // POST /webhook/razorpay — receive Razorpay webhook events
 // Raw body required for HMAC signature verification — mounted before express.json()
-router.post('/webhook/razorpay', (req: Request, res: Response) => {
+router.post('/webhook/razorpay', async (req: Request, res: Response) => {
   const signature = req.headers['x-razorpay-signature'] as string;
 
   if (!signature) {
@@ -274,17 +394,60 @@ router.post('/webhook/razorpay', (req: Request, res: Response) => {
   }
   const payload = parsed as { event: string; payload: Record<string, unknown> };
 
-  // Acknowledge immediately — process async so Razorpay doesn't retry
-  res.json({ status: 'ok' });
-
-  handleWebhookEvent(payload.event, payload.payload).catch((err: unknown) => {
+  // T-413: ack only after the handler succeeds. A thrown error (e.g. a failed Ink
+  // grant) returns 500 so Razorpay retries; T-399's per-cycle claim, rolled back on a
+  // failed grant, makes that retry grant exactly once. Fixed 500 body, nothing from err.
+  try {
+    await handleWebhookEvent(payload.event, payload.payload);
+  } catch (err: unknown) {
     // T-323: no err.message or stack (a duplicate-key message carries the duplicate value).
     const e = err as { name?: unknown; code?: unknown } | null | undefined;
+    // T-415: another attempt holds a fresh grant claim (normal for the order.paid +
+    // payment.captured pair). 500 so Razorpay retries, but it is not an alert.
+    if (err instanceof GrantClaimBusyError || e?.name === 'GrantClaimBusyError') {
+      logger.warn(
+        { event: payload.event, errorName: e?.name, errorCode: e?.code },
+        'Webhook grant claim pending in another attempt; asking Razorpay to retry',
+      );
+      res.status(500).json({ error: 'Internal Server Error' });
+      return;
+    }
     logger.error(
       { event: payload.event, errorName: e?.name, errorCode: e?.code },
       'Webhook handler error',
     );
-  });
+    // T-413 (Arjun): one Sentry issue per Razorpay event, however many retries. The
+    // event-id header is used only as the fingerprint. Never capture the original err
+    // (its message can carry PII, e.g. E11000 echoes the key); the request (body,
+    // headers, IP) is stripped from the event.
+    const eventIdHeader = req.headers['x-razorpay-event-id'];
+    const errorName = typeof e?.name === 'string' ? e.name : undefined;
+    const errorCode =
+      typeof e?.code === 'string' || typeof e?.code === 'number' ? e.code : undefined;
+    Sentry.withScope((scope) => {
+      scope.setFingerprint([
+        'razorpay-webhook',
+        typeof eventIdHeader === 'string' && eventIdHeader ? eventIdHeader : payload.event,
+      ]);
+      scope.setSDKProcessingMetadata({ normalizedRequest: undefined, ipAddress: undefined });
+      scope.addEventProcessor((event) => {
+        delete event.request;
+        delete event.user;
+        return event;
+      });
+      scope.setTags({ event: payload.event, errorName, errorCode });
+      Sentry.captureException(
+        new Error(
+          `Razorpay webhook handler failed: ${errorName ?? 'unknown'}${
+            errorCode !== undefined ? ` (${errorCode})` : ''
+          }`,
+        ),
+      );
+    });
+    res.status(500).json({ error: 'Internal Server Error' });
+    return;
+  }
+  res.json({ status: 'ok' });
 });
 
 export default router;

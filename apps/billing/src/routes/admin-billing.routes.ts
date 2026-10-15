@@ -5,6 +5,7 @@
  *   GET  /admin/billing/subscriptions/:id    Single subscription detail + payment history
  *   POST /admin/billing/subscriptions/:id/sync  Re-fetch live status from Razorpay
  *   GET  /admin/billing/revenue              Revenue KPIs + 6-month trend + plan mix
+ *   GET  /admin/billing/invoices.csv?month=YYYY-MM  T-436: GST invoices + credit notes (GSTR-1)
  *
  * All Admin-only (role === 'Admin').
  */
@@ -12,10 +13,12 @@ import { Router, Request, Response } from 'express';
 import mongoose from 'mongoose';
 
 import { SUBSCRIPTION_PLANS } from '../config/credit-skus';
+import logger from '../config/logger';
 import { razorpay } from '../config/razorpay';
 import { authenticate } from '../middleware/authenticate';
-import { Subscription } from '../models/Subscription.model';
+import { Subscription, isSubscriptionStatus } from '../models/Subscription.model';
 import { User } from '../models/User.model';
+import { buildInvoiceCsv } from '../services/invoice-export.service';
 
 const router = Router();
 
@@ -181,11 +184,24 @@ router.post(
       return;
     }
 
+    // T-438: findOneAndUpdate does not run schema validators, so check
+    // Razorpay's live status against the known list before writing anything.
+    const liveStatus = razSub['status'];
+    if (!isSubscriptionStatus(liveStatus)) {
+      const shown = typeof liveStatus === 'string' ? liveStatus.slice(0, 64) : typeof liveStatus;
+      logger.warn(
+        { razorpaySubscriptionId: razId, status: shown },
+        'Admin sync: unknown Razorpay subscription status, nothing written',
+      );
+      res.status(400).json({ error: 'Unknown Razorpay subscription status', status: shown });
+      return;
+    }
+
     const updated = await Subscription.findOneAndUpdate(
       { razorpaySubscriptionId: razId },
       {
         $set: {
-          status: razSub['status'],
+          status: liveStatus,
           currentPeriodStart: razSub['current_start']
             ? new Date(Number(razSub['current_start']) * 1000)
             : undefined,
@@ -316,6 +332,38 @@ router.get(
       planMix: planMixMap,
       trend,
     });
+  },
+);
+
+// ── GET /admin/billing/invoices.csv?month=YYYY-MM ────────────────────────────
+// T-436: invoices and credit notes issued in that calendar month (IST), credit
+// notes as negative amounts. Through the gateway: /api/billing/admin/billing/invoices.csv.
+
+router.get(
+  '/admin/billing/invoices.csv',
+  authenticate,
+  requireAdmin,
+  async (req: Request, res: Response): Promise<void> => {
+    const month = String(req.query['month'] ?? '');
+    try {
+      const result = await buildInvoiceCsv(month);
+      if (!result) {
+        res.status(400).json({ error: 'month must be YYYY-MM' });
+        return;
+      }
+      res.set({
+        'Content-Type': 'text/csv; charset=utf-8',
+        'Content-Disposition': `attachment; filename="invoices-${month}.csv"`,
+        'Cache-Control': 'private, no-store',
+      });
+      res.send(result.csv);
+    } catch (err) {
+      logger.error(
+        { errName: err instanceof Error ? err.name : 'unknown' },
+        'Failed to export invoices CSV',
+      );
+      res.status(500).json({ error: 'Failed to export invoices' });
+    }
   },
 );
 

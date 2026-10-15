@@ -83,8 +83,7 @@ export default function AboutPage() {
                 advocate block for your selected court.
               </li>
               <li>
-                <Check strokeWidth={2} /> Exports a finished document as PDF or DOCX, with a filing
-                checklist.
+                <Check strokeWidth={2} /> Exports the draft as PDF or DOCX.
               </li>
             </ul>
           </div>
@@ -126,7 +125,7 @@ export default function AboutPage() {
         <div className="narrow about-cta container" style={{ margin: '0 auto' }}>
           <h2>Start drafting.</h2>
           <p className="lede" style={{ margin: '14px 0 30px' }}>
-            Free for your first 5 Ink. No card required.
+            Free for your first 5 Ink, once your email is verified. No card required.
           </p>
           <Link className="btn btn-primary btn-lg" href="/login">
             Start Drafting Free <ArrowRight strokeWidth={1.5} />

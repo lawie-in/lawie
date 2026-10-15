@@ -1,14 +1,14 @@
 # T-304 — Attach PDFs as matter context
 
-| Field      | Value                    |
-| ---------- | ------------------------ |
-| Phase      | 3 — Matter context       |
-| Owner      | Vishal                   |
-| Mode       | Full chain               |
-| Status     | Blocked: T-301           |
-| Depends on | T-301, T-108             |
-| Branch     | feature/t-304-pdf-upload |
-| Created    | 2026-10-03               |
+| Field      | Value                                                               |
+| ---------- | ------------------------------------------------------------------- |
+| Phase      | 3 — Matter context                                                  |
+| Owner      | Vishal                                                              |
+| Mode       | Full chain                                                          |
+| Status     | Founder 15 Oct 2026: uploads are V1. After T-301 (and T-108). Priya |
+| Depends on | T-301, T-108                                                        |
+| Branch     | feature/t-304-pdf-upload                                            |
+| Created    | 2026-10-03                                                          |
 
 ## Goal
 
@@ -53,3 +53,12 @@ The user can attach a PDF, such as an order or a chargesheet, as reference for t
 | -------- | ----------- | ----------------------------------------------------------------------- |
 | Arjun    | Approved    | Feasible after T-301. The page limit keeps it inside the request limit. |
 | Ajay     | Conditional | Same as T-301.                                                          |
+
+## Arjun (15 Oct 2026, 05:10 UTC) — re-scope onto the brief flow, after the founder's V1 ruling
+
+Same path and rules as T-301's re-scope (brief round 1, `source: 'upload'` facts, confirm before draft, memory only, direct to Anthropic). Differences:
+
+1. **V1 limits: one PDF, up to 10 pages, 8 MB.** Larger is refused with a clear message. The 30-page cap with a per-page charge after page 5 waits for T-108's charge mechanics and is V1.1; do not build a page charge here.
+2. **Split by our code, server side**, in drafting: text pages → extracted text, passed to the intake model as "page text" (not as the user's description, and never written as `source: 'user'`); scanned pages → rasterised to images at 1,568 px long edge, max 5 per model call, so a 10-page scanned PDF is two intake calls whose facts merge into one ledger. Anthropic's PDF input is not used (it bills each page twice). New dependency (`pdfjs-dist` or `pdf-parse` + a rasteriser) goes in `apps/drafting/package.json`; the `yarn.lock` change puts the ticket under the root-config claim rule (one lead at a time, v2 rule 7 wait in slot).
+3. **Cost**: Vikram decides before this ships whether a 10-page PDF stays inside the base charge; T-004's numbers plus the spike's token counts are the input. Until he rules, the cap is 10 pages inside the base charge.
+4. Depends on T-301 merged and T-303's result. Full chain. Same legal gate as T-301 (Ajay's five conditions; condition 4 is the founder's).

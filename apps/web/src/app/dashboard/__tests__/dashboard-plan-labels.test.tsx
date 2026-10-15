@@ -117,6 +117,15 @@ describe('T-370 dashboard: free user Upgrade link', () => {
   });
 });
 
+describe('T-372 dashboard: documents counter hidden', () => {
+  it('shows no "documents used" text or usage count to a free user', async () => {
+    await mount();
+    expect(upgradeLink()).not.toBeNull(); // the populated free branch did render
+    expect(container.textContent).not.toMatch(/documents used/i);
+    expect(container.textContent).not.toMatch(/\d+ of \d+ documents/i);
+  });
+});
+
 describe('T-370 dashboard: Pro user subtitle and banner', () => {
   beforeEach(() => {
     mockPlan = 'pro';

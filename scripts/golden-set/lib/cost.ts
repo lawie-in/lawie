@@ -70,7 +70,7 @@ export function renderEstimate(e: CostEstimate): string[] {
 
 /** Caps per run. The runner refuses more fixtures and stops once the token cap is passed. */
 export const RUN_LIMITS = {
-  maxFixturesDefault: 20,
+  maxFixturesDefault: 30,
   maxFixturesHard: 40,
   maxTokensDefault: 600_000,
 } as const;

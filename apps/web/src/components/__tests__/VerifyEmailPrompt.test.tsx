@@ -1,4 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
+// Makes this file a module so its top-level names do not clash with other test files under tsc.
+export {};
 // T-223 AC4 (web) — verify-your-email prompt: banner, modal instead of paywall, checkout card.
 // Mounted with react-dom/client like PrivacyUpdatePrompt.test.tsx. The component keeps
 // module-level state, so every test loads a fresh copy with jest.resetModules().
@@ -531,7 +533,8 @@ describe('T-223 AC4 — trigger 3: checkout', () => {
 
   it('billing 403 email_verification_required replaces Pay with the card; the total stays', async () => {
     // /me here is read by the privacy status only, so it carries no T-223 fields.
-    handlers[ME] = { body: { data: { needsPrivacyAcceptance: false } } };
+    // T-436: a State is already saved, so Pay is not stopped by the State picker.
+    handlers[ME] = { body: { data: { needsPrivacyAcceptance: false, gstStateCode: '07' } } };
     handlers[ORDER] = { status: 403, body: { error: 'email_verification_required' } };
     await mountTopUp();
     expect(byText(PAY)).toBeDefined();
@@ -587,7 +590,8 @@ describe('T-223 AC4 — trigger 3: checkout', () => {
   });
 
   it('a 403 with a different error code is not treated as verification (shows the server error)', async () => {
-    handlers[ME] = { body: { data: { needsPrivacyAcceptance: false } } };
+    // T-436: a State is already saved, so Pay is not stopped by the State picker.
+    handlers[ME] = { body: { data: { needsPrivacyAcceptance: false, gstStateCode: '07' } } };
     handlers[ORDER] = { status: 403, body: { error: 'something_else' } };
     await mountTopUp();
     await h.click(byText(PAY) as Element);
@@ -601,9 +605,10 @@ describe('T-223 AC4 — trigger 3: checkout', () => {
       body: {
         data: {
           privacyVersion: '2026-10-11',
-          currentPrivacyVersion: '2026-10-12b',
+          currentPrivacyVersion: '2026-10-15',
           needsPrivacyAcceptance: true,
           summary: 'Summary text.',
+          gstStateCode: '07',
         },
       },
     };
@@ -694,7 +699,7 @@ describe('T-223 AC4 — callers are wired (OneFlow and new/page are too large to
     const code = src('components/billing/PlanUpgrade.tsx');
     expect(code).toContain('await isEmailVerificationRequired(res)');
     expect(code).toContain('<VerifyEmailCard />');
-    expect(src('app/dashboard/settings/page.tsx')).toContain('<PlanUpgrade />');
+    expect(src('app/dashboard/settings/page.tsx')).toContain('<PlanUpgrade gst={gst} />');
   });
 
   it('the dashboard layout mounts the banner', () => {

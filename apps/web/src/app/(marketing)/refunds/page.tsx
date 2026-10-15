@@ -47,7 +47,9 @@ export default function RefundsPage() {
             </p>
             <p>
               You can cancel your subscription at any time from your account settings. Cancellation
-              stops all future charges. Cancellation does not refund payments already made.
+              stops all future charges. Cancellation does not refund payments already made. If you
+              cancel an annual plan, you keep your monthly Ink until the end of the year you paid
+              for.
             </p>
             <p>
               For billing questions, contact us at{' '}

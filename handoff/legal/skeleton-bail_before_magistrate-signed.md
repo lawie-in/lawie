@@ -36,12 +36,20 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
 - Left out on purpose: "no other case" and "no case pending", because they speak to pending cases, not past record.
 - The loader resolves a `when.in` string by looking up the top-level key it names.
 
+## Version 5, 13 Oct 2026 (supersedes SHA `0404960987deb50cc19d24ef70535298185aa0c882db8ddc0afa39fbe9794f23`)
+
+- v5, 13 Oct 2026: missing_label added per skeleton-missing-labels-pending-signed.md (07bd3b5), signed Ajay. `facts` gets `missing_label` "Brief facts of the case"; `grounds` gets `missing_label` "Grounds for bail". Nothing else changes in any clause.
+
+## Version 6, 14 Oct 2026 (supersedes SHA `c52210817dd3a14e6c7f663dc678944334245cc6b4359a1f0eac719bfeba81cd`)
+
+- v6, 14 Oct 2026: T-245a, per handoff/legal/T-245-old-new-law-switch-signed.md Addenda 1, 2 and 3 (2992891, d5a3005, 8e3167e), signed Ajay. The non-bailable variant's `Section 480 of the Bharatiya Nagarik Suraksha Sanhita, 2023` (Addendum 1 ruling 2) and the bailable variant's `Section 478 of the Bharatiya Nagarik Suraksha Sanhita, 2023` (Addendum 2 ruling 4, pair CrPC 436 → BNSS 478; classification unknown gives the Addendum 3 ruling 5 blank) become `{governing_provision}` (slot `governing_provision`). The women's proviso becomes `{women_proviso}` (slot `women_proviso`): BNSS `the first proviso to Section 480(1) of the BNSS`; CrPC `the first proviso to Section 437(1) of the CrPC`; no choice `the first proviso to [To be confirmed: Section 437(1) of the CrPC or Section 480(1) of the BNSS]`. The `s35_notice` clause's `Section 35 of the Bharatiya Nagarik Suraksha Sanhita, 2023` becomes `{notice_provision}` (slot `notice_provision`, Addendum 2 ruling 1): BNSS `Section 35(3) of the BNSS`; CrPC `Section 41A of the CrPC`; no choice `[To be confirmed: Section 41A of the CrPC or Section 35(3) of the BNSS]`. Nothing else changes in any clause.
+
 ## Skeleton JSON
 
 ```json
 {
   "pack": "bail_before_magistrate",
-  "version": 4,
+  "version": 6,
   "none_values": "first_bail_application.equals (T-334)",
   "antecedents_none_values": [
     "none",
@@ -77,11 +85,12 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
               "Bailable"
             ]
           },
-          "text": "The applicant, {applicant_name}, aged {applicant_age} years, resident of {applicant_address}, submits this application for bail under Section 478 of the Bharatiya Nagarik Suraksha Sanhita, 2023, the offence alleged being bailable.",
+          "text": "The applicant, {applicant_name}, aged {applicant_age} years, resident of {applicant_address}, submits this application for bail under {governing_provision}, the offence alleged being bailable.",
           "slots": [
             "applicant_name",
             "applicant_age",
-            "applicant_address"
+            "applicant_address",
+            "governing_provision"
           ]
         },
         {
@@ -91,11 +100,12 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
               "Non-bailable (within Magistrate's powers)"
             ]
           },
-          "text": "The applicant, {applicant_name}, aged {applicant_age} years, resident of {applicant_address}, submits this application for bail under Section 480 of the Bharatiya Nagarik Suraksha Sanhita, 2023.",
+          "text": "The applicant, {applicant_name}, aged {applicant_age} years, resident of {applicant_address}, submits this application for bail under {governing_provision}.",
           "slots": [
             "applicant_name",
             "applicant_age",
-            "applicant_address"
+            "applicant_address",
+            "governing_provision"
           ]
         }
       ],
@@ -150,7 +160,8 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
       "required": true,
       "source": "advocate",
       "slot": "facts_narrative",
-      "intro": "The brief facts of the case are as follows:"
+      "intro": "The brief facts of the case are as follows:",
+      "missing_label": "Brief facts of the case"
     },
     {
       "id": "chargesheet_filed",
@@ -224,7 +235,8 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
       "source": "advocate",
       "list": true,
       "slot": "grounds_for_bail",
-      "intro": "The applicant seeks bail on the following grounds:"
+      "intro": "The applicant seeks bail on the following grounds:",
+      "missing_label": "Grounds for bail"
     },
     {
       "id": "woman_proviso",
@@ -247,7 +259,10 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
           }
         ]
       },
-      "text": "It is submitted that the applicant is a woman, and under the first proviso to Section 480(1) of the BNSS this Hon'ble Court may release her on bail even where the offence falls within clause (i) or (ii) of that sub-section."
+      "text": "It is submitted that the applicant is a woman, and under {women_proviso} this Hon'ble Court may release her on bail even where the offence falls within clause (i) or (ii) of that sub-section.",
+      "slots": [
+        "women_proviso"
+      ]
     },
     {
       "id": "further_grounds",
@@ -324,7 +339,10 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
           "not_served"
         ]
       },
-      "text": "No notice under Section 35 of the Bharatiya Nagarik Suraksha Sanhita, 2023 was served on the applicant before arrest."
+      "text": "No notice under {notice_provision} was served on the applicant before arrest.",
+      "slots": [
+        "notice_provision"
+      ]
     },
     {
       "id": "parity",
@@ -417,4 +435,4 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
 }
 ```
 
-SHA-256 of the JSON block (between the fences, final newline included): `0404960987deb50cc19d24ef70535298185aa0c882db8ddc0afa39fbe9794f23`
+SHA-256 of the JSON block (between the fences, final newline included): `7f8a6c1eee3a299769df4cf3ecca8e962ce381c96022a05a30c4fb5c056d1a14`

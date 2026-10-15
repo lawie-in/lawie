@@ -114,6 +114,13 @@ export function blanksInContent(content: string, find: FindBlanks = findBlanks):
   return find(blankText(missingAsBlanks(normaliseLineEnds(content))));
 }
 
+/**
+ * downloadBlob / filenameFromDisposition moved to lib/download (T-436: the invoice PDFs use
+ * them too, without this module's export code). Re-exported here so existing imports (the
+ * PDF export, the T-381 annexures pack) keep working.
+ */
+export { downloadBlob, filenameFromDisposition } from '@/lib/download';
+
 /** Options shared by both exports (T-194). */
 export interface ExportBlankOptions {
   /** Defaults to the shared `findBlanks`. */

@@ -178,6 +178,58 @@ describe('Billing Routes', () => {
       expect(res.body.data.shortUrl).toBe('https://rzp.io/route-test');
     });
 
+    it.each(['active', 'pending', 'halted', 'paused'] as const)(
+      'T-444: returns 409 subscription_exists for a %s sub, with the existing sub data',
+      async (status) => {
+        (razorpay.subscriptions.create as jest.Mock).mockClear();
+        const userId = await seedVerifiedUser('live@example.com');
+        const headers = internalHeaders({ sub: userId, email: 'live@example.com', name: 'Live' });
+        const paidThrough = new Date('2027-01-15T10:00:00.000Z');
+        await Subscription.create({
+          userId,
+          razorpaySubscriptionId: 'sub_live_route',
+          status,
+          planId: 'solo_monthly',
+          paidThrough,
+        });
+
+        const res = await request(app).post('/subscribe').set(headers);
+
+        expect(res.status).toBe(409);
+        expect(res.body).toEqual({
+          error: 'subscription_exists',
+          status,
+          planId: 'solo_monthly',
+          paidThrough: paidThrough.toISOString(),
+        });
+        expect(razorpay.subscriptions.create).not.toHaveBeenCalled();
+      },
+    );
+
+    it('T-444: a created sub is reused (200) with its own planId', async () => {
+      const userId = await seedVerifiedUser('created@example.com');
+      const headers = internalHeaders({ sub: userId, email: 'created@example.com', name: 'C' });
+      await Subscription.create({
+        userId,
+        razorpaySubscriptionId: 'sub_created_route',
+        status: 'created',
+        planId: 'solo_monthly',
+      });
+      (razorpay.subscriptions.fetch as jest.Mock).mockResolvedValue({
+        id: 'sub_created_route',
+        short_url: 'https://rzp.io/created-route',
+      });
+
+      const res = await request(app).post('/subscribe').set(headers);
+
+      expect(res.status).toBe(200);
+      expect(res.body.data).toEqual({
+        subscriptionId: 'sub_created_route',
+        shortUrl: 'https://rzp.io/created-route',
+        planId: 'solo_monthly',
+      });
+    });
+
     it('returns 500 when subscription creation throws', async () => {
       const userId = await seedVerifiedUser('test@example.com');
       const headers = internalHeaders({ sub: userId, email: 'test@example.com', name: 'Test' });
@@ -256,7 +308,7 @@ describe('Billing Routes', () => {
       expect(res.body.error).toBe('Invalid signature');
     });
 
-    it('returns 200 even when async handler rejects', async () => {
+    it('returns 500 when the handler rejects, so Razorpay retries', async () => {
       jest
         .spyOn(subscriptionService, 'handleWebhookEvent')
         .mockRejectedValueOnce(new Error('handler boom'));
@@ -270,10 +322,34 @@ describe('Billing Routes', () => {
         .set('x-razorpay-signature', signature)
         .send(body);
 
+      expect(res.status).toBe(500);
+      expect(res.body).toEqual({ error: 'Internal Server Error' });
+    });
+
+    it('T-444: an unknown subscription event or status returns 200 and changes nothing', async () => {
+      const user = await User.create({ email: 'unknown-ev@test.com', plan: 'free' });
+      await Subscription.create({
+        userId: user._id,
+        razorpaySubscriptionId: 'sub_unknown_ev',
+        status: 'active',
+      });
+      const body = JSON.stringify({
+        event: 'subscription.frobnicated',
+        payload: { subscription: { entity: { id: 'sub_unknown_ev', status: 'frobnicated' } } },
+      });
+      const signature = crypto.createHmac('sha256', WEBHOOK_SECRET).update(body).digest('hex');
+
+      const res = await request(app)
+        .post('/webhook/razorpay')
+        .type('json')
+        .set('x-razorpay-signature', signature)
+        .send(body);
+
       expect(res.status).toBe(200);
       expect(res.body.status).toBe('ok');
-      // give the async catch a tick to execute
-      await new Promise((r) => setTimeout(r, 20));
+      expect(
+        (await Subscription.findOne({ razorpaySubscriptionId: 'sub_unknown_ev' }))!.status,
+      ).toBe('active');
     });
 
     it('returns 200 and processes valid webhook event', async () => {

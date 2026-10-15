@@ -62,6 +62,16 @@ import { SdkStreamParams, sdkAnswer } from './sdkStream';
 
 jest.setTimeout(30_000);
 
+// T-373: these tests drive the legacy (text-stream) path. The signed skeletons are on by default, so the
+// loader is pinned to null here; every lookup is counted so the last test can show the mock was reached.
+const mockSkeletonLookups: string[] = [];
+jest.mock('../services/rule-pack.service', () => ({
+  ...jest.requireActual('../services/rule-pack.service'),
+  loadSkeleton: (packId: string) => {
+    mockSkeletonLookups.push(packId);
+    return null;
+  },
+}));
 const mockMessagesStream = jest.fn();
 jest.mock('@anthropic-ai/sdk', () =>
   // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-require-imports
@@ -1404,9 +1414,10 @@ describe('T-189 AC9: no prompt text changed', () => {
       'c052d071b9a866609626d6439e78ba364981d83e9517bf3e4b694a91f82e142f',
     );
   });
-  it('the ledger Drafter system prompt is unchanged', () => {
+  // T-440: re-pinned with Ajay's signed not-known date line at the end of the DATES rule (a9bc957, 4b46053).
+  it('the ledger Drafter system prompt is as re-pinned in T-440', () => {
     expect(sha(DRAFTER_LEDGER_SYSTEM_PROMPT)).toBe(
-      '299e8a93dbcbb4926eb43af131f7525e2e32061d3540d94ca34876428d3ac34c',
+      '874b2b129f8ceadd811fb822aa55e741c4c907e5ba3cb60bdb2b8b55dd2ef99a',
     );
   });
   it('the extraction user prompt template is unchanged', () => {
@@ -1776,5 +1787,13 @@ describe('T-189 AC5 and AC6: bail_regular, from the description to the Drafter i
     // a single string keeps its own, larger, cap
     expect((await send('d'.repeat(6000))).status).toBe(200);
     expect((await send('d'.repeat(6001))).status).toBe(400);
+  });
+});
+
+describe('T-373: this suite ran the legacy path', () => {
+  it('the skeleton loader was consulted and returned null, so d1SkeletonFor gave null and the drafts above took the legacy text stream', () => {
+    // If the loader mock were removed, bail packs would take D1 (messages.parse) and this stays 0 or the
+    // tests above fail; either way the mock is not silently load-bearing.
+    expect(mockSkeletonLookups.length).toBeGreaterThan(0);
   });
 });

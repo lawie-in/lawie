@@ -8,6 +8,7 @@
     "note": "A practising advocate checks this pack before it goes live, in particular the default-bail periods (60 and 90 days), which the pack leaves to the advocate to state."
   },
   "template_id": "default_bail",
+  "card_description": "An application for default bail when the police report is not filed within the period the law allows.",
   "docType": "default_bail",
   "parentDocType": "bail_application",
   "title": "Default Bail Application",
@@ -16,18 +17,25 @@
   "creditsCost": 2,
   "court_levels": ["magistrate", "cjm", "sessions", "district"],
   "causeTitle": {
-    "format": "IN THE COURT OF {courtDesignation}\n\n{caseNomenclature}\n\nIN THE MATTER OF:\n{applicant} ... Applicant/Accused\nVERSUS\nState of {state} ... Respondent",
+    "format": "IN THE COURT OF {courtDesignation}\n\n{caseNomenclature}\n(Under {governing_provision})\n\nIN THE MATTER OF:\n{applicant} ... Applicant/Accused\nVERSUS\nState of {state} ... Respondent",
     "partyDesignations": [
       { "role": "applicant", "label": "Applicant/Accused" },
       { "role": "respondent", "label": "Respondent (State)" }
     ],
-    "caseNomenclature": "DEFAULT BAIL APPLICATION No. _____ of [YEAR]\n(Under {governing_provision})"
+    "caseNomenclature": "DEFAULT BAIL APPLICATION No. _____ of [YEAR]"
   },
   "form_schema": [
     { "name": "applicant_name", "label": "Applicant Name", "type": "text", "required": true },
     {
+      "name": "applicant_relation",
+      "label": "Relation to the person named below",
+      "type": "select",
+      "options": ["Son of (S/o)", "Daughter of (D/o)", "Wife of (W/o)", "Husband of (H/o)"],
+      "required": false
+    },
+    {
       "name": "applicant_parentage",
-      "label": "Father's / Husband's Name",
+      "label": "Name of father, mother or spouse",
       "type": "text",
       "required": true
     },
@@ -47,11 +55,32 @@
       "required": true
     },
     { "name": "fir_number", "label": "FIR Number", "type": "text", "required": true },
-    { "name": "fir_date", "label": "FIR Date", "type": "date", "required": true },
+    {
+      "name": "fir_date",
+      "label": "Date of FIR, or of the complaint if no FIR",
+      "type": "date",
+      "required": false,
+      "question": "On what date was the FIR registered, or the complaint filed if there is no FIR?",
+      "ask_when_empty": true
+    },
+    {
+      "name": "offence_date",
+      "label": "Date of the alleged offence (or of the offence of conviction)",
+      "type": "date",
+      "required": false
+    },
+    {
+      "name": "procedure_code",
+      "label": "This application is under",
+      "type": "select",
+      "options": ["BNSS and BSA", "CrPC and Evidence Act"],
+      "required": false,
+      "help": "Matters only for a case that began before 1 July 2024. For an FIR on or after that date, Lawie uses the BNSS."
+    },
     { "name": "police_station", "label": "Police Station", "type": "text", "required": true },
     {
       "name": "offences_alleged",
-      "label": "Offences (BNS sections)",
+      "label": "Offences (as written in the FIR)",
       "type": "textarea",
       "required": true
     },
@@ -113,7 +142,7 @@
     },
     { "name": "advocate_name", "label": "Advocate Name", "type": "text", "required": true },
     {
-      "name": "advocate_enrolment",
+      "name": "advocate_enrollment",
       "label": "Bar Council Enrolment No.",
       "type": "text",
       "required": true
@@ -176,7 +205,7 @@
     }
   ],
   "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, it is most respectfully prayed that this Hon'ble Court may graciously be pleased to:\n\na) Release the applicant {applicant} on default bail under {governing_provision} in connection with FIR No. {fir_number} dated {fir_date} of Police Station {police_station};\nb) Direct release on such bond and sureties as this Hon'ble Court may deem fit;\nc) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the applicant shall ever pray.",
-  "verificationTemplate": "VERIFICATION\n\nI, {applicant}, S/o {parentName}, aged about {age} years, currently in judicial custody at {jail}, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above application are true and correct to the best of my knowledge and belief. No part of it is false and nothing material has been concealed therein.\n\nVerified at {place} on this {date}.\n\nDeponent",
+  "verificationTemplate": "VERIFICATION\n\nI, {applicant}, {parentRelation}, aged about {age} years, currently in judicial custody at {jail}, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above application are true and correct to the best of my knowledge and belief. No part of it is false and nothing material has been concealed therein.\n\nVerified at {place} on this {date}.\n\nDeponent",
   "prompt_context": "Draft a Default Bail Application under the provision given as GOVERNING PROVISION in the case details. The application rests on dates the BRIEF gives: the date of arrest, the date of first remand, the period the advocate says applies (60 days, 90 days, or the period under a special Act) and whether a police report has been filed. Lawie does not work out which period applies and does not count days.",
   "promptInstructions": [
     "Draft a Default Bail Application under the provision given as GOVERNING PROVISION in the case details, and cite only that provision as the provision under which bail is sought.",

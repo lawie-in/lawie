@@ -27,7 +27,7 @@ import { hashToken, validateSession } from '../services/session.service';
 
 const PASSWORD = 'Passw0rdOk';
 const OLD_VERSION = '2026-10-11';
-const SUMMARY = PRIVACY_VERSION_SUMMARIES['2026-10-12b'];
+const SUMMARY = PRIVACY_VERSION_SUMMARIES['2026-10-15'];
 const AGENT = 'T343-Test-Agent/1.0';
 
 const bearer = (t: string) => ({ Authorization: `Bearer ${t}` });
@@ -77,6 +77,10 @@ describe('T-343 AC1/AC3 — GET /me for older, current and missing versions', ()
         // T-223: /me also reports the verification state (seeded as an unverified email user).
         emailVerified: false,
         hasGoogle: false,
+        // T-115c: the close-account dialog asks for a password only when there is one.
+        hasPassword: true,
+        // T-436: the GST State for tax invoices, null until the user gives one.
+        gstStateCode: null,
       },
     });
     expect(res.headers['cache-control']).toBe('no-store');
@@ -93,6 +97,8 @@ describe('T-343 AC1/AC3 — GET /me for older, current and missing versions', ()
       needsPrivacyAcceptance: false,
       emailVerified: false,
       hasGoogle: false,
+      hasPassword: true,
+      gstStateCode: null,
     });
     expect(res.body.data).not.toHaveProperty('summary');
   });

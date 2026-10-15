@@ -26,6 +26,7 @@ import logger from '../config/logger';
 
 import { costForTemplate } from './credits.service';
 import type {
+  ComputedField,
   DocumentSection,
   FieldOption,
   FormField,
@@ -44,6 +45,8 @@ interface DocRuleSource {
   title?: string;
   displayName?: string;
   description?: string;
+  /** T-365 AC6: the signed, user-facing card line (Ajay). Cards show only this. */
+  card_description?: string;
   category?: string;
   creditsCost?: number;
   court_levels?: string[];
@@ -66,6 +69,13 @@ interface DocRuleSource {
   form_schema?: unknown;
   [key: string]: unknown;
 }
+
+/**
+ * T-365 AC6: a promoted config may carry the pack's signed card line. Kept off
+ * TemplateConfig (template-engine.service.ts) so the engine type is untouched;
+ * read it through utils/cardDescription#cardDescriptionFor.
+ */
+export type PromotedTemplateConfig = TemplateConfig & { card_description?: string };
 
 export interface PromoterOutput {
   config: TemplateConfig;
@@ -391,6 +401,33 @@ function normaliseValidationRules(raw: unknown, mismatches: string[]): Validatio
   };
 }
 
+// ── Computed fields (T-429) ─────────────────────────────────────────────────
+
+/**
+ * T-429 (Ajay c55d390 / 00d9401): the rule file's own `computed_fields`, when
+ * it is a plain object, carried into the template config so buildPlaceholderContext
+ * evaluates them on both the template and the brief path (criminal_revision's
+ * {applicable_section} from revisional_forum). An entry without a string
+ * `logic` is skipped and reported, since resolveComputedFields reads `logic`.
+ * A file without the key gets `{}`, as before.
+ */
+function readComputedFields(raw: unknown, mismatches: string[]): TemplateConfig['computed_fields'] {
+  const out: TemplateConfig['computed_fields'] = {};
+  if (raw === undefined) return out;
+  if (!isPlainObject(raw)) {
+    mismatches.push('computed_fields: not an object; ignored');
+    return out;
+  }
+  for (const [id, def] of Object.entries(raw)) {
+    if (isPlainObject(def) && typeof def.logic === 'string') {
+      out[id] = { ...(def as unknown as ComputedField) };
+    } else {
+      mismatches.push(`computed_fields.${id}: no string 'logic'; skipped`);
+    }
+  }
+  return out;
+}
+
 // ── Document-structure synthesis (SCRUM-84) ─────────────────────────────────
 
 /**
@@ -703,7 +740,7 @@ function synthesiseDocumentStructure(rule: DocRuleSource): DocumentSection[] {
       type: 'template',
       alignment: 'right',
       template:
-        'THROUGH:\n\n_________________________\n{advocate_name}\nAdvocate\nEnrollment No. {enrollment_number}\n\nPlace: {court_city}\nDate: {current_date}',
+        'THROUGH:\n\n_________________________\n{advocate_name}\nAdvocate\nEnrollment No. {enrollment_number}\n\nPlace: {place}\nDate: {current_date}',
     });
     return sections;
   }
@@ -787,6 +824,14 @@ export function promoteDocRuleToTemplateConfig(
         ? rule._meta.description
         : '';
 
+  // T-365 AC6: the card line comes only from the pack's signed `card_description`.
+  // No fallback to `description` or `_meta.description` (internal notes, unsigned).
+  // `description` above stays as-is: the intake match prompt still reads it.
+  const card_description =
+    typeof rule.card_description === 'string' && rule.card_description.length > 0
+      ? rule.card_description
+      : undefined;
+
   // form_schema → single synthetic step
   const { fields: rawFields, shape } = normaliseFormSchema(rule.form_schema, mismatches);
   const formFields: FormField[] = rawFields.map(({ field_id, raw, required }) => {
@@ -833,6 +878,10 @@ export function promoteDocRuleToTemplateConfig(
     if (typeof raw.help === 'string') field.help = raw.help;
     if (raw.multiple === true) field.multiple = true;
     if (typeof raw.accept === 'string') field.accept = raw.accept;
+    // T-394: field-level data source (`courts_db.*`, `bns_mapping`), verbatim, as the
+    // docs/templates overrides send it. DynamicFormRenderer reads it for court lists
+    // and the section search. Absent on fields that declare none.
+    if (typeof raw.source === 'string') field.source = raw.source;
     return field;
   });
 
@@ -861,7 +910,7 @@ export function promoteDocRuleToTemplateConfig(
         .filter((s) => s.length > 0)
     : [];
 
-  const config: TemplateConfig & {
+  const config: PromotedTemplateConfig & {
     creditsCost?: number;
     _source?: Record<string, unknown>;
   } = {
@@ -877,7 +926,7 @@ export function promoteDocRuleToTemplateConfig(
     },
     supported_languages: ['en'],
     form_schema: { steps: [step] },
-    computed_fields: {},
+    computed_fields: readComputedFields(rule.computed_fields, mismatches),
     document_structure: { sections: synthesiseDocumentStructure(rule) },
     related_acts: relatedActs,
     special_prayer_additions: [],
@@ -893,6 +942,9 @@ export function promoteDocRuleToTemplateConfig(
       status: 'active',
     },
   };
+
+  // T-365 AC6: set only when the pack has a non-empty signed line.
+  if (card_description !== undefined) config.card_description = card_description;
 
   // Preserve fields the engine doesn't model yet but downstream consumers (SCRUM-80
   // / SCRUM-81 golden-PDF compare / billing credit math) need to read.

@@ -1,4 +1,7 @@
 import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
+
+import { getToolFeatures } from '@/lib/features';
 
 export const metadata: Metadata = {
   title: 'Bail Eligibility Checker | BNS Bailable Non-Bailable — Lawie',
@@ -16,6 +19,9 @@ export const metadata: Metadata = {
   ],
 };
 
-export default function BailCheckerLayout({ children }: { children: React.ReactNode }) {
+// T-375: hidden (404) while its feature switch is off, or the flag can't be read.
+export default async function BailCheckerLayout({ children }: { children: React.ReactNode }) {
+  const features = await getToolFeatures();
+  if (!features.tool_bail_checker) notFound();
   return children;
 }

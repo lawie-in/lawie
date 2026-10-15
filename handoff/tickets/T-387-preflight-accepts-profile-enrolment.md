@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (drafting) + Ajay (rule) + Arjun |
 | Mode   | Small fix |
-| Status | To do. Ajay ruled yes (13 Oct 2026). Mahak, after T-365/T-382 merges (she holds preflight.service.ts) |
+| Status | Merged into develop_staging 492426a (mahak, with T-365/T-382/T-387, 13 Oct 2026). Waiting for Anushka on develop. Priya |
 | Source | Preflight F4 hard-blocks a vakalatnama whose enrolment field is empty, even when the advocate's profile has an enrolment number that the draft prints (T-311) |
 
 ## Acceptance criteria (Ajay, 13 Oct 2026)

@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (drafting tools) + Ajay (sign data changes) |
 | Mode   | Small fix |
-| Status | To do. RELEASE GATE for main (Anushka FAIL). Ajay signed; ready for a lead. Unassigned. Priya, 13 Oct 2026 |
+| Status | Parked: waiting for the founder to approve copying Ajay's 303/303(2) rows (morning report 0d). Shashank keeps the files. Priya, 13 Oct 2026 |
 | Source | Anushka run 3 FAIL, 13 Oct 2026 (handoff/quality/2026-10-13-run-3-develop-FAIL.md). Failed entries: T-277 |
 
 ## Acceptance criteria

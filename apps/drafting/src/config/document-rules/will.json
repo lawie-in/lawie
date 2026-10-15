@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. Two witnesses are non-negotiable. For Muslim wills, MUST flag 1/3 rule and need for heir consent for excess. Probate requirement varies by jurisdiction."
   },
   "template_id": "will",
+  "card_description": "A will under the Indian Succession Act, 1925.",
   "docType": "will",
   "title": "Last Will and Testament (Indian Succession Act, 1925, S.59-63)",
   "displayName": "Last Will and Testament",
@@ -179,6 +180,14 @@
           "yes_christian_parsi_will",
           "no_hindu_will_outside_metros"
         ]
+      },
+      {
+        "id": "execution_place",
+        "label": "Place of execution",
+        "type": "text",
+        "required": false,
+        "help": "City or town where the document will be signed.",
+        "ask_when_empty": true
       },
       {
         "id": "witness_1_name_address",

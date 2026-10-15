@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. Form 36 schema strictly per ITAT Rules 1963."
   },
   "template_id": "itat_appeal",
+  "card_description": "An appeal before the Income Tax Appellate Tribunal under Section 253 of the Income-tax Act, 1961.",
   "docType": "itat_appeal",
   "title": "Appeal under Section 253 of the Income-tax Act, 1961 before the Income Tax Appellate Tribunal",
   "displayName": "ITAT Appeal (S.253 IT Act)",

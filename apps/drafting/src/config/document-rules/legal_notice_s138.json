@@ -1,4 +1,5 @@
 {
+  "card_description": "A demand notice under Section 138 of the Negotiable Instruments Act, 1881 after a cheque is dishonoured.",
   "_meta": {
     "description": "Document-rules config for legal_notice_s138 — drives prompt, validation, mandatory clauses",
     "owner": "Ajay (CLO)",
@@ -27,6 +28,13 @@
             "inject_into": ["header", "body"]
           },
           {
+            "field_id": "payee_proprietor",
+            "label": "Name of the proprietor (if your client is a proprietorship firm)",
+            "type": "text",
+            "required": false,
+            "inject_into": ["body"]
+          },
+          {
             "field_id": "applicant_address",
             "label": "Payee Address",
             "type": "textarea",
@@ -39,6 +47,13 @@
             "type": "text",
             "required": true,
             "inject_into": ["header", "body"]
+          },
+          {
+            "field_id": "drawer_proprietor",
+            "label": "Name of the proprietor (if the drawer is a proprietorship firm)",
+            "type": "text",
+            "required": false,
+            "inject_into": ["header"]
           },
           {
             "field_id": "respondent_address",
@@ -200,7 +215,7 @@
             "label": "Reason for Dishonour (as per memo)",
             "type": "text",
             "required": true,
-            "placeholder": "e.g., Funds Insufficient, Account Closed",
+            "placeholder": "Quote only as the memo gives it",
             "inject_into": ["body"]
           },
           {
@@ -239,7 +254,7 @@
       "id": "dishonour_details",
       "name": "Dishonour Details",
       "required": true,
-      "description": "Date of dishonour, reason for dishonour (e.g., insufficient funds), bank memo reference"
+      "description": "Date of dishonour, reason for dishonour as the return memo gives it, bank memo reference"
     },
     {
       "id": "underlying_liability",
@@ -266,17 +281,17 @@
       "description": "Name and enrollment number of advocate"
     }
   ],
-  "prayerTemplate": "You are hereby called upon and demanded to make the payment of Rs. {amount}/- ({amountInWords}) within 15 (fifteen) days from the date of receipt of this notice.\n\nPlease note that in the event of your failure to make the said payment within the stipulated period of 15 days, my client shall be constrained to file a Criminal Complaint against you under Section 138 of the Negotiable Instruments Act, 1881 before the competent court, at your risk, cost, and consequences.\n\nThis notice is without prejudice to the rights of my client to initiate civil proceedings for recovery of the said amount along with interest, damages, and cost of litigation.",
+  "prayerTemplate": "I therefore call upon you to pay my client the said amount of Rs. {amount}, being the amount of the said cheque, within fifteen days of receipt of this notice. If you fail to pay the said amount within fifteen days of receipt of this notice, an offence punishable under Section 138 of the Negotiable Instruments Act, 1881 will be complete, and my client will initiate proceedings against you.",
   "verificationTemplate": "",
   "filingChecklist": [
-    "Notice sent within 30 days of receiving information of dishonour",
+    "Send the notice within 30 days of receiving the bank's return memo (Section 138, proviso (b)).",
     "Notice sent by Registered Post AD / Speed Post AD",
     "Copy of notice retained",
     "Postal receipt preserved",
     "Copy of dishonoured cheque",
     "Copy of bank memo / return memo",
     "Wait 15 days from receipt of notice before filing complaint",
-    "File complaint within 30 days after expiry of 15-day notice period"
+    "If payment is not made within 15 days of receipt of the notice, file the complaint within one month after those 15 days end (Section 142(1)(b))."
   ],
   "relevantActs": [
     {
@@ -296,10 +311,11 @@
     "Clearly state ALL cheque details: cheque number, date, amount (in figures and words), drawn on which bank and branch.",
     "State the underlying legally enforceable debt/liability for which the cheque was issued.",
     "Mention the date the cheque was presented for encashment and the date it was dishonoured.",
-    "State the reason for dishonour as mentioned in the bank's return memo (e.g., 'insufficient funds', 'account closed').",
+    "State the reason for dishonour only as the bank's return memo gives it. Do not add or infer any reason.",
     "The demand for payment and the time allowed for it are added by the system. Do not write a demand in the body.",
     "The warning of prosecution is added by the system. Do not write it in the body.",
     "Give each date the BRIEF gives: the date of the cheque, of its presentation, of its dishonour, and the date the client received the bank's return memo. Do not say that the notice is within time and do not work out any period.",
+    "Do not state or suggest that any offence is complete when the cheque is issued, presented or dishonoured. On liability, use only the sentence given.",
     "Use firm but professional legal language.",
     "Do NOT generate the advocate signature block — it is added programmatically."
   ]

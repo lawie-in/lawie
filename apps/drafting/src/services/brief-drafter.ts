@@ -20,9 +20,17 @@ import type { LedgerFact } from '@lawie/shared';
 
 import { factEntriesByKey, loadAvermentLists } from './averments';
 import type { AvermentCondition, ResolvedAverments } from './averments';
-import { dateKindLabel, PROTECTED_QUESTION_KEY, statedDates } from './intake-brief';
+import type { RenderedClause } from './draft-renderer';
+import {
+  blankLabel,
+  dateKindLabel,
+  dateMeaningOf,
+  PROTECTED_QUESTION_KEY,
+  statedDates,
+} from './intake-brief';
 import type { Brief, BriefItem, ChecklistItem } from './intake-brief';
 import { datesAsWritten, datesInText, normalise } from './intake-text';
+import { applyFieldAliases } from './rule-pack.service';
 import type { RulePack, RulePackClause } from './rule-pack.service';
 import { formatIsoDraftDate } from './template-engine.service';
 import type { RenderedSection, TemplateConfig } from './template-engine.service';
@@ -59,6 +67,27 @@ function isEmpty(v: string | string[] | null): boolean {
 }
 
 /**
+ * T-440 (Ajay, 49a8eaa and a9bc957, Q3): a date the advocate answered "Not
+ * known": a date item marked `asked_empty`, with no value. Dates only; any other
+ * fact answered "Not known" keeps T-190 condition 4 (no fact, no forced blank).
+ */
+export function isNotKnownDate(
+  item: Pick<BriefItem, 'kind' | 'value' | 'asked_empty' | 'unconfirmed'>,
+): boolean {
+  return (
+    item.kind === 'date' &&
+    item.asked_empty === true &&
+    item.unconfirmed !== true &&
+    isEmpty(item.value)
+  );
+}
+
+/** T-440: the keys of the brief's dates answered "Not known" (`isNotKnownDate`). */
+export function notKnownDateKeys(brief: Pick<Brief, 'items'>): string[] {
+  return brief.items.filter(isNotKnownDate).map((i) => i.key);
+}
+
+/**
  * The brief as the values the existing template sections expect.
  *
  * - A choice is stored in the brief by its label. The template's own logic
@@ -92,6 +121,9 @@ export function formDataFromBrief(
   for (const item of brief.items) {
     // T-336: a description-read "none" not yet confirmed is not a fact. Its blank shows.
     if (isEmpty(item.value) || item.unconfirmed === true) {
+      // T-365 (Ajay, 13 Oct 2026): the advocate's blank is not a typed name, so
+      // it is left out and the profile name (T-300) prints instead.
+      if (item.key === 'advocate_name') continue;
       data[item.key] = item.placeholder;
     } else if (Array.isArray(item.value)) {
       data[item.key] = item.value.map((v) => toId(item.key, v));
@@ -103,7 +135,8 @@ export function formDataFromBrief(
   if (brief.court.court_type) data.court_type = brief.court.court_type;
   if (brief.court.court) data.court_name = brief.court.court;
   data.language = language;
-  return data;
+  // T-382: a brief item keyed by the old pack key also fills the new one.
+  return applyFieldAliases(data);
 }
 
 // ── What the Drafter is given ───────────────────────────────────────────────
@@ -140,7 +173,8 @@ interface BriefParts {
   numbers: Array<{ key: string; what: string; value: string | string[] }>;
   asked_for: Array<{ key: string; what: string; value: string | string[] }>;
   other: Array<{ what: string; value: string | string[] }>;
-  unknown: Array<{ what: string; blank: string }>;
+  /** T-440: `not_known` marks a date the advocate answered "Not known". */
+  unknown: Array<{ what: string; blank: string; not_known?: true }>;
 }
 
 export interface DrafterBrief extends BriefParts {
@@ -163,18 +197,38 @@ export function drafterBrief(
   courtLine: string | null,
   converted?: Record<string, unknown>,
   described?: string | null,
+  profileAdvocateName?: string | null,
 ): DrafterBrief {
   return {
-    ...briefParts(brief, courtLine, converted),
+    ...briefParts(brief, courtLine, converted, profileAdvocateName),
     described: typeof described === 'string' && described.trim() !== '' ? described.trim() : null,
   };
+}
+
+/**
+ * T-365 AC1 (Ajay's add-on, folded into T-373 by Priya, 13 Oct 2026): when the
+ * advocate's profile has a name, the advocate name is not unknown, so it is
+ * left out of what the Drafter is told is unknown or missing. The advocate
+ * block prints the profile name (T-300). With no profile name the blank stays.
+ */
+export function knownAdvocateName(key: string, profileAdvocateName?: string | null): boolean {
+  return (
+    typeof profileAdvocateName === 'string' &&
+    profileAdvocateName.trim() !== '' &&
+    lastSegment(key) === 'advocate_name'
+  );
 }
 
 function briefParts(
   brief: Brief,
   courtLine: string | null,
   converted?: Record<string, unknown>,
+  profileAdvocateName?: string | null,
 ): BriefParts {
+  // T-440 (Ajay, a9bc957, Q3): a date answered "Not known" is listed as unknown,
+  // with its blank and the mark, so the Drafter writes the blank (rule 4) and
+  // the signed not-known line applies to it.
+  const notKnown = new Set(notKnownDateKeys(brief));
   const out: BriefParts = {
     document: brief.kind.name,
     court: brief.kind.court_document ? (courtLine ?? '[To be confirmed: court]') : null,
@@ -184,15 +238,34 @@ function briefParts(
     numbers: [],
     asked_for: [],
     other: brief.unplaced.map((u) => ({ what: u.label, value: u.value })),
-    unknown: brief.still_unknown.map((u) => ({ what: u.label, blank: u.placeholder })),
+    unknown: brief.still_unknown
+      .filter((u) => !knownAdvocateName(u.key, profileAdvocateName))
+      .map((u) => ({
+        what: u.label,
+        blank: u.placeholder,
+        ...(notKnown.has(u.key) ? { not_known: true as const } : {}),
+      })),
   };
+  const listed = new Set(brief.still_unknown.map((u) => u.key));
   for (const item of brief.items) {
-    if (isEmpty(item.value)) continue;
+    if (isEmpty(item.value)) {
+      // T-440: an optional date answered "Not known" (a required one is in still_unknown).
+      if (notKnown.has(item.key) && !listed.has(item.key)) {
+        out.unknown.push({
+          what: item.meaning ?? item.label,
+          blank: item.placeholder,
+          not_known: true,
+        });
+      }
+      continue;
+    }
     // T-336: a description-read "none" on earlier bail applications, not yet
     // confirmed, is not a fact. It is listed as unknown, so the Drafter writes
     // its blank even though the advocate's description appears to give it.
     if (item.unconfirmed === true) {
-      out.unknown.push({ what: item.label, blank: item.placeholder });
+      if (!knownAdvocateName(item.key, profileAdvocateName)) {
+        out.unknown.push({ what: item.label, blank: item.placeholder });
+      }
       continue;
     }
     const value = shown(item, converted);
@@ -333,8 +406,24 @@ export interface LedgerDrafterFacts {
   court: string | null;
   /** The ledger's facts. Only what the draft may print: no comparison key, no span. */
   facts: Array<{ key: string; label: string; type: string; display: string }>;
-  /** Each required fact the ledger does not hold, unresolved ones included, with its placeholder. */
-  missing: Array<{ key: string; label: string; write: string }>;
+  /**
+   * Each required fact the ledger does not hold, unresolved ones included, with
+   * its placeholder. T-440: also each date answered "Not known", marked
+   * `not_known`.
+   */
+  missing: Array<{ key: string; label: string; write: string; not_known?: true }>;
+}
+
+/**
+ * T-440 (Ajay, a9bc957, Q2): the ledger blank for a date names what it is the
+ * date of, in lower case after "MISSING: " (it prints as "[To be confirmed:
+ * …]"), as the brief's blank does. Any other item keeps its label as it is.
+ */
+function ledgerBlankFor(
+  item: Pick<ChecklistItem, 'kind' | 'label'> & { dateKind?: string | null; meaning?: string },
+): string {
+  if (item.kind !== 'date') return missingPlaceholder(item.label);
+  return missingPlaceholder(blankLabel(item.meaning ?? dateMeaningOf(item) ?? item.label));
 }
 
 /**
@@ -351,18 +440,33 @@ export interface LedgerDrafterFacts {
  * that the advocate answered "Not known" (no fact, no longer unresolved), gets
  * no blank (T-190, condition 4). Earlier bail applications is left to its
  * mandatory clause, which prints its own blank (T-136 B4), so it is not doubled.
+ *
+ * T-440 (Ajay, a9bc957, Q3): dates only, a date answered "Not known" with no
+ * fact is missing too, marked `not_known`. `notKnownDates` is the brief (its
+ * `notKnownDateKeys` are read) or those keys. A date's placeholder names what it is the date of, in lower
+ * case (Q2). A checklist item without `kind` is treated as not a date.
  */
 export function ledgerDrafterFacts(
   facts: readonly LedgerFact[],
-  checklist: ReadonlyArray<Pick<ChecklistItem, 'key' | 'label' | 'required'>>,
+  checklist: ReadonlyArray<
+    Pick<ChecklistItem, 'key' | 'label' | 'required'> &
+      Partial<Pick<ChecklistItem, 'kind' | 'dateKind'>>
+  >,
   courtLine: string | null,
   courtDocument: boolean,
   unresolvedKeys: readonly string[] = [],
+  profileAdvocateName?: string | null,
+  notKnownDates: Pick<Brief, 'items'> | readonly string[] = [],
 ): LedgerDrafterFacts {
   const held = factEntriesByKey(facts);
   const unresolved = new Set(
     unresolvedKeys.filter((k) => lastSegment(k) !== PROTECTED_QUESTION_KEY),
   );
+  const notKnown = new Set(
+    'items' in notKnownDates ? notKnownDateKeys(notKnownDates) : notKnownDates,
+  );
+  const isNotKnown = (i: { key: string; kind?: string }): boolean =>
+    i.kind === 'date' && notKnown.has(i.key);
   return {
     court: courtDocument ? (courtLine ?? missingPlaceholder('court')) : null,
     // T-189: a list or several choices gives one fact per entry, sharing its key.
@@ -373,8 +477,15 @@ export function ledgerDrafterFacts(
       display: f.display.trim(),
     })),
     missing: checklist
-      .filter((i) => (i.required || unresolved.has(i.key)) && !held.has(i.key))
-      .map((i) => ({ key: i.key, label: i.label, write: missingPlaceholder(i.label) })),
+      .filter((i) => (i.required || unresolved.has(i.key) || isNotKnown(i)) && !held.has(i.key))
+      // T-365 AC1: a profile name means the advocate name is not missing.
+      .filter((i) => !knownAdvocateName(i.key, profileAdvocateName))
+      .map((i) => ({
+        key: i.key,
+        label: i.label,
+        write: i.kind ? ledgerBlankFor({ ...i, kind: i.kind }) : missingPlaceholder(i.label),
+        ...(isNotKnown(i) ? { not_known: true as const } : {}),
+      })),
   };
 }
 
@@ -398,7 +509,8 @@ export function ledgerSkeletonBrief(brief: Brief, facts: readonly LedgerFact[]):
       const entries = held.get(item.key);
       // T-341: with no fact there is no value, so no source: it is never a confirmed fact.
       if (!entries) {
-        return { ...rest, value: null, source: null, placeholder: missingPlaceholder(item.label) };
+        // T-440 (Q2): a date's blank names its meaning, in lower case.
+        return { ...rest, value: null, source: null, placeholder: ledgerBlankFor(item) };
       }
       // T-341: the ledger's source, in the brief's words. A fact the advocate
       // typed (`asked`) is the user's; one read from the description (the
@@ -413,10 +525,17 @@ export function ledgerSkeletonBrief(brief: Brief, facts: readonly LedgerFact[]):
       return { ...rest, value: entries[entries.length - 1].display.trim(), source };
     }),
     unplaced: [],
-    still_unknown: brief.still_unknown.map((u) => ({
-      ...u,
-      placeholder: missingPlaceholder(u.label),
-    })),
+    still_unknown: brief.still_unknown.map((u) => {
+      // T-440 (Q2): a required date keeps the same blank as its item above.
+      const item = brief.items.find((i) => i.key === u.key);
+      return {
+        ...u,
+        placeholder:
+          item?.kind === 'date' && !held.has(item.key)
+            ? ledgerBlankFor(item)
+            : missingPlaceholder(u.label),
+      };
+    }),
   };
 }
 
@@ -2386,8 +2505,15 @@ export interface GuidedDrafterBrief extends BriefParts {
  * The confirmed brief as the Drafter reads it when there is no rule pack. It
  * has no "described": the prompt for these documents does not name it (T-145).
  */
-export function guidedDrafterBrief(brief: Brief, courtLine: string | null): GuidedDrafterBrief {
-  return { ...briefParts(brief, courtLine), sections_given: sectionsGiven(textValues(brief)) };
+export function guidedDrafterBrief(
+  brief: Brief,
+  courtLine: string | null,
+  profileAdvocateName?: string | null,
+): GuidedDrafterBrief {
+  return {
+    ...briefParts(brief, courtLine, undefined, profileAdvocateName),
+    sections_given: sectionsGiven(textValues(brief)),
+  };
 }
 
 /**
@@ -2475,15 +2601,44 @@ export function briefText(brief: Brief): string {
 export function needsStartingDraftLabel(
   missing: MissingClause[],
   warnings: ValidationWarning[],
+  rendered?: readonly RenderedClause[],
 ): boolean {
-  return missing.length > 0 || warnings.length > 0;
+  return withRenderedMissing(missing, rendered).length > 0 || warnings.length > 0;
 }
 
-/** The line shown with a labelled draft (T-127, section 7.3). */
-export function labelReason(
+/**
+ * T-373 (ADR-025 renderer rule 5): on a D1 pack the clauses missing are the
+ * renderer's `rendered[]` entries with status `missing`, each with the labels
+ * of the blanks it printed. The one place this is derived: the checks panel,
+ * the label and the done event all read it.
+ */
+export function missingFromRendered(rendered: readonly RenderedClause[]): MissingClause[] {
+  return rendered
+    .filter((r) => r.status === 'missing')
+    .map((r) => ({
+      id: r.clauseId,
+      title: (r.missing ?? []).join('; ') || r.clauseId,
+      reason: 'reported_missing' as const,
+    }));
+}
+
+/** `missing` plus each `rendered[]` missing clause not already in it. Without `rendered`, `missing` as given. */
+function withRenderedMissing(
   missing: MissingClause[],
+  rendered: readonly RenderedClause[] | undefined,
+): MissingClause[] {
+  if (!rendered) return missing;
+  const ids = new Set(missing.map((m) => m.id));
+  return [...missing, ...missingFromRendered(rendered).filter((m) => !ids.has(m.id))];
+}
+
+/** The line shown with a labelled draft (T-127, section 7.3). On a D1 pack, `rendered` is read too. */
+export function labelReason(
+  missingGiven: MissingClause[],
   warnings: ValidationWarning[],
+  rendered?: readonly RenderedClause[],
 ): string | null {
+  const missing = withRenderedMissing(missingGiven, rendered);
   if (missing.length > 0) {
     return `This draft does not cover: ${missing.map((m) => m.title).join('; ')}. Add them before use.`;
   }

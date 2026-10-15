@@ -1,13 +1,13 @@
 /**
- * Real-Redis helper for T-220 AC4. Uses the Redis at process.env.REDIS_URL if
- * it answers PING within 1.5 s (CI service container), otherwise starts its own
- * redis-server on a free loopback port. If neither works it THROWS (the suite
- * fails; it never skips).
- *
- * NB: src/__tests__/setupEnv.ts overwrites REDIS_URL with redis://localhost:6379
- * before every test file, so inside Jest a remote REDIS_URL from the shell is
- * never reached. Only a loopback Redis is used here, and every key is under a
- * unique queue prefix that is deleted afterwards.
+ * The ONE shared real-Redis picker for the email-worker tests (T-379, Arjun's rule: tests never
+ * touch a hosted Redis, prefix or not).
+ *  1. REDIS_TEST_URL, if set: must be a loopback URL that answers PING within 1.5 s and accepts a
+ *     write (a Redis in MISCONF answers PING but refuses writes). If it is set and unusable this
+ *     THROWS; it never falls back silently.
+ *  2. Otherwise a private redis-server on a free loopback port.
+ *  3. If neither works it THROWS (the suite fails; it never skips).
+ * REDIS_URL is never read to choose the server. Tests may still SET process.env.REDIS_URL to the
+ * chosen URL for the code under test. Every key is under a unique queue prefix that is purged.
  */
 import { type ChildProcess, spawn } from 'child_process';
 import net from 'net';
@@ -17,7 +17,7 @@ import Redis from 'ioredis';
 
 export interface TestRedis {
   url: string;
-  source: 'REDIS_URL' | 'spawned redis-server';
+  source: 'REDIS_TEST_URL' | 'spawned redis-server';
   stop: () => Promise<void>;
 }
 
@@ -30,7 +30,7 @@ function isLoopback(url: string): boolean {
   }
 }
 
-async function ping(url: string, timeoutMs: number): Promise<boolean> {
+async function ping(url: string, timeoutMs: number, writeProbe = false): Promise<boolean> {
   const r = new Redis(url, {
     lazyConnect: true,
     maxRetriesPerRequest: 0,
@@ -42,7 +42,12 @@ async function ping(url: string, timeoutMs: number): Promise<boolean> {
     await Promise.race([
       (async () => {
         await r.connect();
-        return r.ping();
+        await r.ping();
+        if (writeProbe) {
+          const key = `t220-probe-${process.pid}-${Date.now()}`;
+          await r.set(key, '1', 'EX', 5);
+          await r.del(key);
+        }
       })(),
       new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), timeoutMs)),
     ]);
@@ -65,10 +70,17 @@ function freePort(): Promise<number> {
   });
 }
 
-export async function acquireRedis(): Promise<TestRedis> {
-  const configured = process.env.REDIS_URL;
-  if (configured && isLoopback(configured) && (await ping(configured, 1500))) {
-    return { url: configured, source: 'REDIS_URL', stop: async () => undefined };
+export async function acquireRedis(
+  env: { REDIS_TEST_URL?: string } = process.env,
+): Promise<TestRedis> {
+  const configured = env.REDIS_TEST_URL;
+  if (configured) {
+    if (isLoopback(configured) && (await ping(configured, 1500, true))) {
+      return { url: configured, source: 'REDIS_TEST_URL', stop: async () => undefined };
+    }
+    throw new Error(
+      'REDIS_TEST_URL is set but is not a usable loopback Redis (no PING, writes refused, or not loopback). Tests never use a hosted Redis. Unset it to spawn a local redis-server.',
+    );
   }
 
   const port = await freePort();
@@ -108,11 +120,9 @@ export async function acquireRedis(): Promise<TestRedis> {
   }
   child.kill('SIGKILL');
   throw new Error(
-    'T-220 AC4 needs a real Redis and none is available: REDIS_URL (' +
-      (configured ? 'set but not reachable on loopback' : 'unset') +
-      ') did not answer and redis-server could not be started' +
+    'The real Redis tests need a Redis and none is available: REDIS_TEST_URL is unset and redis-server could not be started' +
       (spawnError ? ` (${spawnError.message})` : '') +
-      '. In CI add a redis service to test-email-worker. This test fails rather than skips.',
+      '. In CI set REDIS_TEST_URL to the redis service. This test fails rather than skips.',
   );
 }
 

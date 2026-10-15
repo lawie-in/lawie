@@ -43,3 +43,7 @@ He answered Shashank's six points. Two change: point 1 (a non-offence BNS sectio
 **Moved out:** the BNS 61(2) bug is its own ticket, T-383 (Ajay's request). Shashank does it after T-371.
 
 **Ajay approved the legal-content diff (51531fe), with one summary-line change (1363d68).**
+
+## Arjun (13 Oct 2026): BNS 303(2) row
+
+Shashank's way, which is D2: Ajay re-signs the one row in the T-277 table (up to 3 years, max 3), Shashank copies it into `bns-offences.json`, the /health SHA moves and the test pins the new SHA. No code override, no second source. The same rule for every future correction: fix the signed file, never the code.

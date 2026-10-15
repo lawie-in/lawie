@@ -19,6 +19,8 @@ import {
   requireCatalogueCategory,
   type CatalogueCategoryId,
 } from '../config/catalogue';
+import courtDocuments from '../config/intake/court-documents.json';
+import dateMeanings from '../config/intake/date-meanings.json';
 import logger from '../config/logger';
 
 import {
@@ -31,7 +33,31 @@ import {
   readSectionsCharged,
   resolveOffence,
 } from './bns-offence-resolver';
+import { SIDED_PACKS } from './brief-party-fields';
+import { NOT_KNOWN_DATE_LINE } from './drafter.prompts';
+import {
+  isLawSwitchPack,
+  lawSwitch,
+  lawSwitchInputFromCase,
+  P_TEXT,
+  S_TEXT,
+  type LawSwitchResult,
+  type ProcedureCode,
+} from './law-switch';
 import { getTemplateRegistry } from './template-promoter';
+
+/**
+ * T-406 (Ajay, T-404 Addendum 2 item 9): a document that is not filed in court
+ * carries no case nomenclature. Not a court document = listed in Ajay's
+ * `not_court_documents` (read here directly; importing `isCourtDocument` from
+ * intake-brief would be a circular import).
+ */
+const NOT_COURT_DOCUMENTS = new Set<string>(courtDocuments.not_court_documents);
+
+/** T-406: whether a document type may carry a case nomenclature. */
+export function nomenclatureAllowed(templateId: string): boolean {
+  return !NOT_COURT_DOCUMENTS.has(templateId);
+}
 
 /** Sorted list of valid BNS section numbers for system-prompt injection (SCRUM-64). */
 const BNS_VALID_SECTIONS = [...BNS_OFFENCE_KEYS].sort((a, b) => parseFloat(a) - parseFloat(b));
@@ -546,6 +572,41 @@ export function matterTypeFor(templateId: string): string | null {
   return MATTER_TYPE_BY_TEMPLATE.get(templateId) ?? null;
 }
 
+/**
+ * The court rule's `case_nomenclature` key for a document type, or undefined
+ * (bail packs, quashing, writs; the mapping the court-rule block has used since
+ * SCRUM-50).
+ */
+function ruleCaseNomenclatureKey(templateId: string): string | undefined {
+  if (templateId.includes('anticipatory')) return 'anticipatory_bail';
+  if (templateId.includes('bail')) return 'regular_bail';
+  if (templateId.includes('quashing')) return 'quashing';
+  if (templateId.includes('writ')) return 'civil_writ';
+  return undefined;
+}
+
+/**
+ * The court rule's own case line for a document type, with `{year}` not yet
+ * filled in. Undefined when there is no rule, the document type has no key, or
+ * the rule has no non-empty line under that key.
+ */
+function ruleCaseLineFor(
+  rule: Pick<CourtRuleData, 'case_nomenclature'> | undefined,
+  templateId: string,
+  procedureCode?: ProcedureCode | null,
+): string | undefined {
+  const key = ruleCaseNomenclatureKey(templateId);
+  // T-245a (Ajay, Addendum 1 #6): a court line that names the BNSS section
+  // ("U/S 482 BNSS", allahabad_hc) is kept for a BNSS choice only. For a CrPC
+  // choice or no choice, the rule's `<key>_crpc_or_no_choice` line, when it has one.
+  if (templateId === 'bail_anticipatory' && procedureCode !== 'BNSS' && key) {
+    const alt = rule?.case_nomenclature?.[`${key}_crpc_or_no_choice`];
+    if (typeof alt === 'string' && alt.trim() !== '') return alt;
+  }
+  const line = key ? rule?.case_nomenclature?.[key] : undefined;
+  return typeof line === 'string' && line.trim() !== '' ? line : undefined;
+}
+
 /** T-177: the family court rule's id (config/court-rules/family_court.json). */
 const FAMILY_COURT_RULE_ID = 'family_court';
 
@@ -907,6 +968,88 @@ function courtHeading(courtData: CourtLookupData): { designation: string; header
 }
 
 /**
+ * T-410 (Ajay, T-406-T-410 ruling and Addendum 1; c894ab9): consumer_complaint
+ * is filed before a Consumer Commission only.
+ */
+const CONSUMER_COMPLAINT_ID = 'consumer_complaint';
+
+/** T-410: the consumer rule, for party labels, prayer and verification. */
+const CONSUMER_RULE_ID = 'consumer_commission_generic';
+
+/** T-410: printed for the court, the case line and the designation at a court that is not a Commission. */
+export const CONSUMER_COMMISSION_BLANK = '[To be confirmed: Consumer Commission]';
+
+/**
+ * T-410 (Ajay 2957f50, T-404 item c): `{place}` with no Commission. Same value
+ * as T-404's PLACE_BLANK; local, so the two never clash.
+ */
+const CONSUMER_PLACE_BLANK = '[To be confirmed: place]';
+
+/** T-410 Addendum 1, items 2 and 3: the complaint's case line at a State Commission and at NCDRC. */
+const CONSUMER_COMPLAINT_LINE = 'Consumer Complaint No. _____ of {current_year}';
+
+/** T-410 Addendum 1: the s.35 heading prints at a District Commission only. */
+const COMPLAINT_HEADING_DISTRICT =
+  'CONSUMER COMPLAINT UNDER SECTION 35 OF THE CONSUMER PROTECTION ACT, 2019';
+
+/** T-410 Addendum 1: the heading at a State or National Commission. */
+const COMPLAINT_HEADING_ACT = 'CONSUMER COMPLAINT UNDER THE CONSUMER PROTECTION ACT, 2019';
+
+/**
+ * T-410: which Consumer Commission the chosen court is, or null when it is not
+ * one. National is the ncdrc rule. District and State share courtType
+ * `consumer_commission` and are told apart by the courts-list designation;
+ * a Commission court whose designation names neither is null (never guessed).
+ */
+export function consumerForum(
+  courtData?: CourtLookupData,
+): 'district' | 'state' | 'national' | null {
+  if (!courtData) return null;
+  if (courtData.formattingRulesRef === 'ncdrc') return 'national';
+  if (courtData.courtType !== 'consumer_commission') return null;
+  const own = courtData.designation ?? '';
+  if (/\bDISTRICT CONSUMER DISPUTES REDRESSAL COMMISSION\b/i.test(own)) return 'district';
+  if (/\bSTATE CONSUMER DISPUTES REDRESSAL COMMISSION\b/i.test(own)) return 'state';
+  return null;
+}
+
+/**
+ * T-410: the court lines of a consumer_complaint. At a court that is not a
+ * Commission, the header, designation and case line are the signed blank and
+ * the city line is dropped (see `sectionTemplate`), and no "State of ..."
+ * respondent is set (Addendum 1, item 4). `{place}` and `{courtPlace}` are the
+ * Commission's city, or CONSUMER_PLACE_BLANK. At a State Commission the
+ * State Commission's own designation from the courts list prints, never the
+ * District rule's, and never the list's appeal line. Values may hold
+ * `{current_year}`, filled in by the recursive pass.
+ */
+function consumerComplaintCourt(
+  courtData: CourtLookupData | undefined,
+  ctx: PlaceholderContext,
+): void {
+  const forum = consumerForum(courtData);
+  // Ajay 2957f50 (c): "Place:" and "Verified at" print the Commission's city, else the blank.
+  ctx.place = (forum !== null && ctx.court_city?.trim()) || CONSUMER_PLACE_BLANK;
+  ctx.courtPlace = ctx.place;
+  if (forum === null) {
+    ctx.court_header = CONSUMER_COMMISSION_BLANK;
+    ctx.court_designation = CONSUMER_COMMISSION_BLANK;
+    ctx.case_nomenclature = CONSUMER_COMMISSION_BLANK;
+    ctx.complaint_heading_text = COMPLAINT_HEADING_ACT;
+    delete ctx.state_respondent;
+    return;
+  }
+  if (forum === 'state' && courtData) {
+    const designation = courtData.designation.trim().replace(/^BEFORE THE\s*/i, '');
+    ctx.court_designation = designation;
+    ctx.court_header = `BEFORE THE ${designation}`;
+  }
+  if (forum !== 'district') ctx.case_nomenclature = CONSUMER_COMPLAINT_LINE;
+  ctx.complaint_heading_text =
+    forum === 'district' ? COMPLAINT_HEADING_DISTRICT : COMPLAINT_HEADING_ACT;
+}
+
+/**
  * Resolve computed fields from the template config using form data.
  *
  * Supports:
@@ -921,6 +1064,8 @@ export function resolveComputedFields(
   config: TemplateConfig,
   formData: Record<string, unknown>,
   courtData?: CourtLookupData,
+  /** T-245a: the procedure code from the law switch (bail_anticipatory's court line). */
+  procedureCode?: ProcedureCode | null,
 ): Record<string, string> {
   const computed: Record<string, string> = {};
 
@@ -976,19 +1121,20 @@ export function resolveComputedFields(
           designation,
           header,
           city: courtData.city,
-          case_nomenclature: courtData.caseNomenclature,
+          case_nomenclature: nomenclatureAllowed(config.template_id)
+            ? courtData.caseNomenclature
+            : '',
           court_type: courtData.courtType ?? String(formData.court_type ?? ''),
         };
         computed[fieldId] = propMap[prop] ?? '';
       } else {
         // Fallback when no court data provided (e.g. unit tests without DB)
+        // T-404 Addendum 3 #4: no court at all prints the signed blank, never a made-up court.
         const courtName = String(formData[courtsMatch[1]] ?? '');
         if (prop === 'designation') {
-          computed[fieldId] = courtName || "THE HON'BLE COURT";
+          computed[fieldId] = courtName || COURT_BLANK;
         } else if (prop === 'header') {
-          computed[fieldId] = courtName
-            ? `IN THE COURT OF ${courtName}`
-            : "IN THE COURT OF THE HON'BLE COURT";
+          computed[fieldId] = courtName ? `IN THE COURT OF ${courtName}` : COURT_BLANK;
         } else if (prop === 'city') {
           computed[fieldId] = extractCityFromCourtName(courtName);
         } else if (prop === 'court_type') {
@@ -1004,8 +1150,20 @@ export function resolveComputedFields(
     const courtRulesMatch = logic.match(/^court_rules\[(\w+)\]\.(\w+)\s*\|\|\s*'([^']*)'$/);
     if (courtRulesMatch) {
       const [, , prop, defaultVal] = courtRulesMatch;
-      if (courtData && prop === 'case_nomenclature') {
-        computed[fieldId] = courtData.caseNomenclature || defaultVal;
+      if (prop === 'case_nomenclature' && !nomenclatureAllowed(config.template_id)) {
+        computed[fieldId] = '';
+      } else if (prop === 'case_nomenclature') {
+        // T-404 part 2 (Ajay, 6f567e6): the chosen court's rule line for this
+        // pack, else the case-type blank. Never the courts list's court-wide
+        // line ("Civil Suit No.", "O.A. No." ...) and never the pack's own
+        // default. No court record (none chosen, or only a typed name) is the
+        // blank too (Addendum 3 #4, 2957f50 (a)).
+        // `{year}` becomes `{current_year}`, which the recursive pass fills in.
+        computed[fieldId] =
+          ruleCaseLineFor(courtData?.courtRule, config.template_id, procedureCode)?.replace(
+            /\{year\}/g,
+            '{current_year}',
+          ) ?? CASE_TYPE_BLANK;
       } else {
         computed[fieldId] = defaultVal;
       }
@@ -1087,9 +1245,267 @@ export interface PlaceholderContext {
   [key: string]: string;
 }
 
-/** T-251: what {governing_provision} prints while no procedure code is given. */
+/**
+ * T-251: what default_bail's {governing_provision} prints while no procedure
+ * code is given. T-245a: the Addendum 1 no-choice form (approved for
+ * default_bail in Addendum 2 #7), the same string lawSwitch gives.
+ */
 export const GOVERNING_PROVISION_BLANK =
-  '[To be confirmed: Section 167(2) CrPC or Section 187(3) BNSS]';
+  '[To be confirmed: Section 167(2) of the CrPC or Section 187(3) of the BNSS]';
+
+/** T-245a: the server-only context key holding the law switch's case-details lines. */
+export const LAW_SWITCH_LINES_KEY = '__law_switch_lines';
+
+/**
+ * T-393 (Ajay, T-359 AC6, signed dff323f): what the relation prints when
+ * neither the relation nor the name of the parent or spouse is given.
+ */
+export const RELATION_BLANK = '[To be confirmed: relation and name of parent or spouse]';
+
+/** T-393 (Ajay, T-359 AC6 Addendum 2): the relation part, when only the name is given. */
+export const RELATION_ONLY_BLANK = '[To be confirmed: relation]';
+
+/** T-393 (Ajay, T-359 AC6 Addendum 2): the name part, when only the relation is given. */
+export const PARENT_NAME_BLANK = '[To be confirmed: name of parent or spouse]';
+
+/** T-404 rule 3 (Ajay, 13 Oct 2026): no advocate name from the form or the profile. */
+export const ADVOCATE_NAME_BLANK = "[To be confirmed: advocate's name]";
+
+/** T-404 rule 3, Addendum 2 #8: no advocate address in the form (the profile has none yet). */
+export const ADVOCATE_ADDRESS_BLANK = "[To be confirmed: advocate's address]";
+
+/** T-404 rule 4: what {courtHeader}, {courtDesignation} and {caseNomenclature} print with no court. */
+export const COURT_BLANK = '[To be confirmed: court]';
+
+/** The ledger path's blank for a fact it does not hold (`missingPlaceholder`). */
+const LEDGER_BLANK = /^\{\{MISSING: [^}]*\}\}$/;
+
+/**
+ * T-404 rule 3: the advocate address as typed, else the signed blank. Empty,
+ * whitespace only, or a blank the brief or ledger path put in for the field
+ * (`[To be confirmed: …]`, `{{MISSING: …}}`) counts as not given (rule 2).
+ */
+function advocateAddressOrBlank(value: string | undefined): string {
+  const v = value?.trim() ?? '';
+  if (v === '' || /^\[To be confirmed: [^\]]*\]$/.test(v) || LEDGER_BLANK.test(v)) {
+    return ADVOCATE_ADDRESS_BLANK;
+  }
+  return value as string;
+}
+
+/**
+ * T-404 rule 4: with no court chosen, {courtHeader} and {courtDesignation}
+ * print the court blank and {caseNomenclature} the case-type blank (2be946d
+ * (b)), never `_____`. Only the camelCase
+ * tokens: `court_designation` stays as it was, since the Drafter is told the
+ * court from it. Runs after `applyPlaceholderAliases`, so a value wins.
+ * T-406: a document not filed in court (`allowNomenclature` false) gets no
+ * case-line blank; its {caseNomenclature} stays empty.
+ */
+function applyCourtBlanks(
+  ctx: PlaceholderContext,
+  courtData?: CourtLookupData,
+  allowNomenclature = true,
+): void {
+  if (chosenCourtHeading(courtData)) {
+    // T-404 Addendum 3 #5: a court with no case line of its own.
+    if (allowNomenclature && !ctx.caseNomenclature?.trim()) {
+      ctx.caseNomenclature = CASE_TYPE_BLANK;
+    }
+    return;
+  }
+  for (const alias of ['courtHeader', 'courtDesignation']) {
+    if (!ctx[alias]?.trim()) ctx[alias] = COURT_BLANK;
+  }
+  // T-404 2be946d (b): with no court, the case line is the case-type blank in
+  // every court pack; the court blank is for the court itself.
+  if (allowNomenclature && !ctx.caseNomenclature?.trim()) {
+    ctx.caseNomenclature = CASE_TYPE_BLANK;
+  }
+  // T-404 (2957f50, c): "Place:" / "Verified at" with no court and no city.
+  for (const alias of ['place', 'courtPlace']) {
+    if (!ctx[alias]?.trim()) ctx[alias] = PLACE_BLANK;
+  }
+}
+
+/** T-404 Addendum 3 #5: {caseNomenclature} when the court chosen has no case line. */
+export const CASE_TYPE_BLANK = '[To be confirmed: case type and number]';
+
+/** T-404 (2957f50, c): {place} and the default verification's place with no court and no city. */
+export const PLACE_BLANK = '[To be confirmed: place]';
+
+/**
+ * T-404 (Ajay, 49b5fd2): the place fields a not-court pack may declare for its
+ * place of execution. rent_agreement and the 11 deeds (affidavit_identity,
+ * gift_deed, joint_development_agreement, lease_deed, license_agreement,
+ * mortgage_deed, mou, partition_deed, release_deed, sale_deed, will) declare
+ * `execution_place` (T-404 part 2, Ajay 687c19f).
+ */
+const NOT_COURT_PLACE_FIELDS = ['execution_place'];
+
+/**
+ * T-404 (Ajay, 49b5fd2): the place a not-court document (T-406 list) prints
+ * for {place} / {courtPlace} and its verification. Only a place field this
+ * pack declares and the advocate filled; never a court city. Empty, or a
+ * `[To be confirmed: …]` / `{{MISSING: …}}` blank, is the signed blank.
+ */
+function notCourtPlace(config: TemplateConfig, ctx: PlaceholderContext): string {
+  const declared = declaredFieldIds(config);
+  for (const field of NOT_COURT_PLACE_FIELDS) {
+    if (!declared.has(field)) continue;
+    const v = ctx[field]?.trim() ?? '';
+    if (v !== '' && !IS_BLANK.test(v) && !LEDGER_BLANK.test(v)) return ctx[field];
+  }
+  return PLACE_BLANK;
+}
+
+/** T-404 Addendum 3 #2b: no enrolment number after the T-311 resolver. */
+export const ENROLMENT_BLANK = "[To be confirmed: advocate's enrolment number]";
+
+/**
+ * The blanks the brief and ledger paths put in for a declared field left
+ * empty: `[To be confirmed: <label, lower case>]` (intake-brief `placeholderFor`)
+ * and `{{MISSING: <label>}}` (brief-drafter `missingPlaceholder`). Kept in step
+ * with those two by hand; importing them here would be circular.
+ */
+function labelBlanksFor(config: TemplateConfig, fieldId: string): Set<string> {
+  const field = (config.form_schema?.steps ?? [])
+    .flatMap((s) => s.fields ?? [])
+    .find((f) => f.field_id === fieldId);
+  if (!field?.label) return new Set();
+  const flat = field.label.replace(/\s+/g, ' ').trim();
+  return new Set([
+    `[To be confirmed: ${blankWords(flat)}]`,
+    `{{MISSING: ${flat.replace(/[{}]/g, '') || 'detail'}}}`,
+  ]);
+}
+
+/** Lower case, except for words written in capitals such as FIR (intake-brief `blankLabel`). */
+function blankWords(label: string): string {
+  return label
+    .replace(/\s+/g, ' ')
+    .trim()
+    .split(' ')
+    .map((w) => (/^[A-Z0-9./-]{2,}$/.test(w) ? w : w.toLowerCase()))
+    .join(' ');
+}
+
+/** The kind of date of each fact name (config/intake/date-meanings.json), read as intake-brief reads it. */
+const DATE_KIND_LABEL_OF_FIELD = new Map<string, { id: string; label: string }>();
+for (const kind of dateMeanings.kinds as Array<{ id: string; label: string; facts: string[] }>) {
+  for (const fact of kind.facts) DATE_KIND_LABEL_OF_FIELD.set(fact, kind);
+}
+
+/**
+ * T-440 (Ajay, a9bc957, Q2): the blank of a declared date field,
+ * `[To be confirmed: <what it is the date of, lower case>]`. The date-meaning
+ * label wins, as on the brief (intake-brief `dateMeaningOf`): the kind's label
+ * when this form declares no other date of that kind, else the form label.
+ */
+export function dateBlankFor(config: TemplateConfig, fieldId: string): string {
+  const fields = (config.form_schema?.steps ?? []).flatMap((s) => s.fields ?? []);
+  const field = fields.find((f) => f.field_id === fieldId);
+  const kind = DATE_KIND_LABEL_OF_FIELD.get(fieldId);
+  const sameKind = kind
+    ? fields.filter((f) => f.type === 'date' && DATE_KIND_LABEL_OF_FIELD.get(f.field_id) === kind)
+        .length
+    : 0;
+  const meaning = kind && sameKind <= 1 ? kind.label : (field?.label ?? fieldId.replace(/_/g, ' '));
+  return `[To be confirmed: ${blankWords(meaning)}]`;
+}
+
+/**
+ * T-440: the server-only context key holding the blanks of the dates answered
+ * "Not known" (`extra.notKnownDates`), as JSON. `buildAIUserPrompt` lists them.
+ */
+export const NOT_KNOWN_DATES_KEY = '__not_known_dates';
+
+/** The field ids a section of this template prints or gives the model as `{field}`. */
+function fieldsTheTemplatePrints(config: TemplateConfig): Set<string> {
+  const ids = new Set<string>();
+  for (const section of config.document_structure?.sections ?? []) {
+    for (const text of [section.template, section.prompt_context]) {
+      for (const m of (text ?? '').matchAll(/\{(\w+)\}/g)) ids.add(m[1]);
+    }
+  }
+  return ids;
+}
+
+/** T-393: the relations Ajay allows (AC6 Addendum 3), as they print. */
+export type PartyRelation = 'S/o' | 'D/o' | 'W/o' | 'H/o';
+
+/**
+ * T-393: the context keys the applicant's relation may be given under. Nothing
+ * asks for it yet (Ajay's question comes later, in the rule files).
+ */
+export const RELATION_SOURCES = ['applicant_relation', 'relation_type', 'relation'];
+
+/**
+ * T-393: the context keys the name of the applicant's (or, in
+ * suspension_of_sentence, the appellant's) parent or spouse may be given under.
+ */
+export const PARENT_NAME_SOURCES = [
+  'father_name',
+  'applicant_parentage',
+  'applicant_father_name',
+  'appellant_parentage',
+  'parentName',
+];
+
+const RELATION_WORDS: Record<string, PartyRelation> = {
+  so: 'S/o',
+  sonof: 'S/o',
+  sonofso: 'S/o',
+  do: 'D/o',
+  daughterof: 'D/o',
+  daughterofdo: 'D/o',
+  wo: 'W/o',
+  wifeof: 'W/o',
+  wifeofwo: 'W/o',
+  ho: 'H/o',
+  husbandof: 'H/o',
+  husbandofho: 'H/o',
+};
+
+/**
+ * T-393: the relation as given, normalised to `S/o`, `D/o`, `W/o` or `H/o`
+ * ("s/o", "Son of", "Son of (S/o)" and "son_of" are all `S/o`). Anything else,
+ * including a blank, is not a relation and gives undefined. The relation is
+ * never inferred from the applicant's sex or from anything else.
+ */
+export function normaliseRelation(value: unknown): PartyRelation | undefined {
+  if (typeof value !== 'string') return undefined;
+  return RELATION_WORDS[value.toLowerCase().replace(/[^a-z]/g, '')];
+}
+
+/** T-393: true for a name that is given (not empty, not a `[To be confirmed: …]` blank). */
+function isGivenName(value: unknown): value is string {
+  return typeof value === 'string' && value.trim() !== '' && !IS_BLANK.test(value.trim());
+}
+
+/**
+ * T-393 (Ajay, T-359 AC6 and its Addendum): what prints for the relation and
+ * the name of the parent or spouse. Never a default `S/o`.
+ * - both given: `S/o Suresh Kumar`
+ * - name only: `[To be confirmed: relation] Suresh Kumar`
+ * - relation only: `S/o [To be confirmed: name of parent or spouse]`
+ * - neither: `[To be confirmed: relation and name of parent or spouse]`
+ */
+export function relationLine(relation: unknown, parentName: unknown): string {
+  const rel = normaliseRelation(relation);
+  const name = isGivenName(parentName) ? parentName.trim() : undefined;
+  if (rel && name) return `${rel} ${name}`;
+  if (name) return `${RELATION_ONLY_BLANK} ${name}`;
+  if (rel) return `${rel} ${PARENT_NAME_BLANK}`;
+  return RELATION_BLANK;
+}
+
+/** T-393: `relationLine` from a context, each part from the first source that has it. */
+export function relationLineFor(ctx: Record<string, unknown>): string {
+  const relKey = RELATION_SOURCES.find((k) => normaliseRelation(ctx[k]) !== undefined);
+  const nameKey = PARENT_NAME_SOURCES.find((k) => isGivenName(ctx[k]));
+  return relationLine(relKey && ctx[relKey], nameKey && ctx[nameKey]);
+}
 
 /** The `source` of a form field (e.g. 'bns_mapping'), if the template defines one. */
 export function fieldSourceOf(config: TemplateConfig | null, fieldId: string): string | undefined {
@@ -1165,6 +1581,11 @@ const SERVER_ONLY_KEYS: ReadonlySet<string> = new Set([
   'current_year',
   'enrollment_number',
   'governing_provision',
+  // T-245a: the law switch's values, set by the server only.
+  'GOVERNING_PROVISION',
+  'women_proviso',
+  'notice_provision',
+  'do_not_cite',
   'custody_clause',
   'state_respondent',
   'case_nomenclature',
@@ -1343,11 +1764,26 @@ function typedOrProfile(typed: unknown, profileValue: string | null | undefined)
  * `{governing_provision}` (T-245a will compute it). `extra.enrollmentNumber`
  * is the profile's number, used only when no number was typed and the name is
  * the profile's (T-311).
+ * T-440: `extra.notKnownDates` are the declared date fields the advocate
+ * answered "Not known" (a brief's `asked_empty` dates, `notKnownDateKeys`).
+ * Their blanks go to the model's prompt (`buildAIUserPrompt`); a date that is
+ * merely empty gets no such note (Ajay, a9bc957, Q4).
  */
 export function buildPlaceholderContext(
   config: TemplateConfig,
   rawFormData: Record<string, unknown>,
-  extra?: { advocateName?: string; enrollmentNumber?: string; governingProvision?: string },
+  extra?: {
+    advocateName?: string;
+    enrollmentNumber?: string;
+    governingProvision?: string;
+    notKnownDates?: readonly string[];
+    /**
+     * T-245a: the law switch for this case, worked out by the caller from
+     * values it can read for certain (ledger ISO dates). Absent: worked out
+     * here from the form data and the court type, for the six bail packs only.
+     */
+    lawSwitch?: LawSwitchResult | null;
+  },
   courtData?: CourtLookupData,
 ): PlaceholderContext {
   const { kept: formData, dropped } = clientFormData(config, rawFormData);
@@ -1358,7 +1794,20 @@ export function buildPlaceholderContext(
     );
   }
 
-  const computed = resolveComputedFields(config, formData, courtData);
+  // T-245a: the six bail packs' law switch (procedure by FIR date or choice,
+  // offence law by offence date). Never for any other template.
+  const law: LawSwitchResult | null = isLawSwitchPack(config.template_id)
+    ? (extra?.lawSwitch ??
+      lawSwitch(
+        lawSwitchInputFromCase(
+          config.template_id,
+          formData,
+          courtData?.courtType ?? formData.court_type,
+        ),
+      ))
+    : null;
+
+  const computed = resolveComputedFields(config, formData, courtData, law?.procedureCode ?? null);
 
   const advocate = resolveAdvocate(formData, { name: extra?.advocateName }, config);
   const declaresEnrollment = declaredFieldIds(config).has('advocate_enrollment');
@@ -1367,6 +1816,12 @@ export function buildPlaceholderContext(
     extra?.enrollmentNumber,
     advocate.fromProfile,
   );
+  // T-404 Addendum 3 #2b: after the resolver, nothing (or the brief or ledger
+  // blank for the field) prints Ajay's signed blank.
+  const enrollmentOrBlank =
+    enrollment === undefined || labelBlanksFor(config, 'advocate_enrollment').has(enrollment.trim())
+      ? ENROLMENT_BLANK
+      : enrollment;
 
   const now = new Date();
   const ctx: PlaceholderContext = {
@@ -1376,11 +1831,12 @@ export function buildPlaceholderContext(
     current_year: String(now.getFullYear()),
 
     // Advocate details: the declared, typed name, else the user profile (T-300)
-    advocate_name: advocate.name ?? '____________________',
+    // T-404 rule 3: with neither, Ajay's signed blank.
+    advocate_name: advocate.name ?? ADVOCATE_NAME_BLANK,
     // T-311: the declared, typed advocate_enrollment, else the profile number
     // when the name is the profile's (extra.enrollmentNumber). A client
     // `enrollment_number` is list A (T-300).
-    enrollment_number: enrollment ?? '____________________',
+    enrollment_number: enrollmentOrBlank,
 
     // Computed fields
     ...computed,
@@ -1423,10 +1879,47 @@ export function buildPlaceholderContext(
     }
   }
 
+  // T-440 (Ajay, 49a8eaa; a9bc957, Q4): a declared date left empty, that a
+  // section prints (or gives the model) as {field} whatever its value, prints
+  // its label blank, never nothing and never "_____". A line printed only when
+  // the date is given is a computed field, worked out above from the form
+  // values, so it stays omitted. A field the form hides (show_if) is left out.
+  const printed = fieldsTheTemplatePrints(config);
+  const notKnownBlanks: string[] = [];
+  const notKnown = new Set(extra?.notKnownDates ?? []);
+  for (const field of (config.form_schema?.steps ?? []).flatMap((s) => s.fields ?? [])) {
+    if (field.type !== 'date' || field.field_id === 'verification_date') continue;
+    const id = field.field_id;
+    // A date typed as "Not known" (Ajay, a9bc957, Q1) is not known too.
+    const typedNotKnown = /^not known$/i.test((ctx[id] ?? '').trim());
+    const empty = (ctx[id] ?? '').trim() === '' || typedNotKnown;
+    const condition = field.show_if ?? field.depends_on;
+    const shown = !condition || evaluateShowIf(condition, formData);
+    if (empty && shown && printed.has(id)) ctx[id] = dateBlankFor(config, id);
+    if (notKnown.has(id) || typedNotKnown) {
+      const v = (ctx[id] ?? '').trim();
+      notKnownBlanks.push(IS_BLANK.test(v) || LEDGER_BLANK.test(v) ? v : dateBlankFor(config, id));
+    }
+  }
+  if (notKnownBlanks.length > 0) ctx[NOT_KNOWN_DATES_KEY] = JSON.stringify(notKnownBlanks);
+
   // T-311: a template that declares advocate_enrollment prints
   // {advocate_enrollment} itself (legal_notice_s138, _s80). Same number as
-  // {enrollment_number}; with none, the flattened value (or nothing) stays.
-  if (declaresEnrollment && enrollment !== undefined) ctx.advocate_enrollment = enrollment;
+  // {enrollment_number}; with none, the signed blank (T-404 Addendum 3 #2b).
+  if (declaresEnrollment) ctx.advocate_enrollment = enrollmentOrBlank;
+
+  // T-404 rule 3, Addendum 2 #8: the form answer, else the signed blank.
+  ctx.advocate_address = advocateAddressOrBlank(ctx.advocate_address);
+
+  // T-404 (Ajay, 49b5fd2): a not-court document's place never comes from a
+  // court city. Set before the aliases, so they leave it alone.
+  const notCourtPlaceValue = nomenclatureAllowed(config.template_id)
+    ? undefined
+    : notCourtPlace(config, ctx);
+  if (notCourtPlaceValue !== undefined) {
+    ctx.place = notCourtPlaceValue;
+    ctx.courtPlace = notCourtPlaceValue;
+  }
 
   // SCRUM-54 B2: Capitalise state name (form sends lowercase stateId like "bihar")
   if (ctx.state) {
@@ -1446,12 +1939,32 @@ export function buildPlaceholderContext(
     if (formatted !== null) ctx[key] = formatted;
   }
 
-  applyCourtAndAliases(ctx, computed, courtData);
+  applyCourtAndAliases(ctx, computed, courtData, nomenclatureAllowed(config.template_id));
+
+  // T-410 (Addendum 1, item 4): a consumer_complaint at a court that is not a
+  // Commission takes the consumer rule, never the court's.
+  const isConsumerComplaint = config.template_id === CONSUMER_COMPLAINT_ID;
+  const consumerNotCommission = isConsumerComplaint && consumerForum(courtData) === null;
+  const courtRule = consumerNotCommission
+    ? (loadCourtRule(CONSUMER_RULE_ID) ?? undefined)
+    : courtData?.courtRule;
+
+  // T-431: on SIDED_PACKS the verification reads the T-424 resolver's
+  // deponent_name / client_side (set by ai.service.ts), never applicant_name.
+  // The designation is the party label of the client's own side; no resolved
+  // side prints the blank, never a guessed side.
+  const sidedPack = Object.prototype.hasOwnProperty.call(SIDED_PACKS, config.template_id);
+  const sidedDeponentLabel = (c: PlaceholderContext): string =>
+    c.client_side === 'respondent'
+      ? (c.party_label_respondent ?? 'Respondent')
+      : c.client_side === 'petitioner'
+        ? (c.party_label_petitioner ?? 'Petitioner')
+        : '_____';
 
   // ── SCRUM-50: Inject court-rule-driven placeholders ───────────────────────
-  if (courtData?.courtRule) {
+  if (courtData && courtRule) {
     // T-158: labels and verification follow the document's matter type.
-    const rule = ruleForMatter(courtData.courtRule, config.template_id);
+    const rule = ruleForMatter(courtRule, config.template_id);
 
     // Party labels from court rule
     // T-149: labels follow the document's side where Ajay signed them.
@@ -1474,23 +1987,15 @@ export function buildPlaceholderContext(
     // Case nomenclature — resolve by template type
     // T-177 (AJ-2026-10-09-T177): a family template in a family court takes
     // the family court rule's line, or the placeholder; never the list entry's.
+    // T-406: none on a document that is not filed in court.
     const familyLine = familyCaseNomenclature(rule, config.template_id);
-    if (familyLine !== null) {
+    if (!nomenclatureAllowed(config.template_id)) {
+      // no case nomenclature
+    } else if (familyLine !== null) {
       ctx.case_nomenclature = familyLine.replace(/\{year\}/g, ctx.current_year);
-    } else if (rule.case_nomenclature) {
-      const templateId = config.template_id;
-      // Map template_id to case_nomenclature key
-      const nomenKey = templateId.includes('anticipatory')
-        ? 'anticipatory_bail'
-        : templateId.includes('bail')
-          ? 'regular_bail'
-          : templateId.includes('quashing')
-            ? 'quashing'
-            : templateId.includes('writ')
-              ? 'civil_writ'
-              : undefined;
-      const nomen = nomenKey ? rule.case_nomenclature[nomenKey] : undefined;
-      if (typeof nomen === 'string' && nomen) {
+    } else {
+      const nomen = ruleCaseLineFor(rule, config.template_id, law?.procedureCode ?? null);
+      if (nomen !== undefined) {
         ctx.case_nomenclature = nomen.replace(/\{year\}/g, ctx.current_year);
       }
     }
@@ -1504,13 +2009,23 @@ export function buildPlaceholderContext(
     // Verification format from court rule
     // Note: {body_para_count} is kept as a deferred placeholder — resolved after AI generation
     if (rule.verification_format) {
+      // T-431: a sided pack's deponent is the resolved client, under its own side's label.
       ctx.verification_text = rule.verification_format
-        .replace(/\{deponent_name\}/g, ctx.applicant_name ?? '_____')
+        .replace(
+          /\{deponent_name\}/g,
+          (sidedPack ? ctx.deponent_name : ctx.applicant_name) ?? '_____',
+        )
         .replace(
           /\{designation\}/g,
-          `the ${ctx.party_label_petitioner ?? 'Petitioner'} herein above named`,
+          `the ${sidedPack ? sidedDeponentLabel(ctx) : (ctx.party_label_petitioner ?? 'Petitioner')} herein above named`,
         )
-        .replace(/\{place\}/g, ctx.court_city ?? courtData.city)
+        // T-404 (49b5fd2): a not-court document takes its own place, never the court's.
+        // T-410 (Ajay 2957f50, c): no Commission, no city in "Verified at".
+        .replace(
+          /\{place\}/g,
+          notCourtPlaceValue ??
+            (consumerNotCommission ? CONSUMER_PLACE_BLANK : (ctx.court_city ?? courtData.city)),
+        )
         .replace(/\{date\}/g, '_____ day of _________, ' + ctx.current_year)
         .replace(/\{body_para_count\}/g, '{body_para_count}');
     }
@@ -1530,23 +2045,56 @@ export function buildPlaceholderContext(
   if (!ctx.prayer_closing)
     ctx.prayer_closing = 'And for this act of kindness, the petitioner shall ever pray.';
   if (!ctx.verification_text) {
-    ctx.verification_text = `I, ${ctx.applicant_name ?? '_____'}, the ${ctx.party_label_petitioner} herein above named, do hereby verify that the contents of paragraphs 1 to {body_para_count} of the above application are true and correct to the best of my knowledge and belief, and nothing material has been concealed therefrom.\n\nVerified at ${ctx.court_city ?? '_____'} on this _____ day of _________, ${ctx.current_year}.`;
+    // T-404 (2957f50, c): no court and no city prints the place blank.
+    // T-404 (49b5fd2): a not-court document takes its own place, never the court's.
+    const verifiedAt =
+      notCourtPlaceValue ??
+      (!chosenCourtHeading(courtData) && !ctx.court_city?.trim()
+        ? PLACE_BLANK
+        : (ctx.court_city ?? '_____'));
+    ctx.verification_text = `I, ${(sidedPack ? ctx.deponent_name : ctx.applicant_name) ?? '_____'}, the ${sidedPack ? sidedDeponentLabel(ctx) : ctx.party_label_petitioner} herein above named, do hereby verify that the contents of paragraphs 1 to {body_para_count} of the above application are true and correct to the best of my knowledge and belief, and nothing material has been concealed therefrom.\n\nVerified at ${verifiedAt} on this _____ day of _________, ${ctx.current_year}.`;
   }
+
+  // T-410: after the court-rule block, the computed fields and the defaults,
+  // before the aliases.
+  if (isConsumerComplaint) consumerComplaintCourt(courtData, ctx);
 
   // T-251 (Ajay's interim rule, 12 Oct 2026): until T-245a supplies the
   // provision, {governing_provision} prints the both-forms blank. The server's
   // value (extra.governingProvision, T-300) wins; a client value never reaches
   // here. The pair is default_bail's own, so only that pack gets it; other
   // packs will carry their own pair.
+  // T-245a: the six bail packs take the law switch's value (its no-choice
+  // blank included, which for default_bail is GOVERNING_PROVISION_BLANK).
+  for (const key of ['GOVERNING_PROVISION', 'women_proviso', 'notice_provision', 'do_not_cite']) {
+    delete ctx[key];
+  }
+  delete ctx[LAW_SWITCH_LINES_KEY];
   if (extra?.governingProvision?.trim()) {
     ctx.governing_provision = extra.governingProvision;
+  } else if (law !== null) {
+    ctx.governing_provision = law.governingProvision;
   } else if (config.template_id === 'default_bail') {
     ctx.governing_provision = GOVERNING_PROVISION_BLANK;
   }
+  if (law !== null) {
+    // Addendum 1: in an all-caps heading it is upper-cased as a whole.
+    ctx.GOVERNING_PROVISION = (ctx.governing_provision ?? law.governingProvision).toUpperCase();
+    ctx.notice_provision = law.noticeProvision;
+    if (law.womenProviso !== null) ctx.women_proviso = law.womenProviso;
+    if (law.doNotCite !== null) ctx.do_not_cite = law.doNotCite;
+    if (law.lines.length > 0) ctx[LAW_SWITCH_LINES_KEY] = law.lines.join('\n');
+  }
+
+  // T-393 (Ajay, T-359 AC6): {parent_relation} / {parentRelation} is the
+  // relation and the name of the parent or spouse, or the signed blanks. Always
+  // the server's value; never a default `S/o`.
+  ctx.parent_relation = relationLineFor(ctx);
 
   // T-146: aliases are set after the SCRUM-50 court-rule block, so an alias
   // such as {caseNomenclature} reads the same value as {case_nomenclature}.
   applyPlaceholderAliases(ctx);
+  applyCourtBlanks(ctx, courtData, nomenclatureAllowed(config.template_id));
 
   // Recursive placeholder pass — resolve {token} references that may exist inside
   // ctx values themselves (e.g. caseNomenclature from courts DB contains "{current_year}"
@@ -1594,8 +2142,11 @@ export const PLACEHOLDER_ALIASES: ReadonlyArray<
   ['place', ['court_city']],
   ['caseNomenclature', ['case_nomenclature']],
   ['applicant', ['applicant_name']],
+  // T-395: suspension_of_sentence's verification and cause title name the appellant.
+  ['appellant', ['appellant_name']],
   ['parentName', ['applicant_parentage', 'applicant_father_name']],
-  ['age', ['applicant_age']],
+  ['parentRelation', ['parent_relation']],
+  ['age', ['applicant_age', 'appellant_age']],
   ['applicantAddress', ['applicant_address']],
   ['respondentAddress', ['respondent_address']],
   ['advocateName', ['advocate_name']],
@@ -1645,6 +2196,7 @@ function applyCourtAndAliases(
   ctx: PlaceholderContext,
   computed: Record<string, string>,
   courtData?: CourtLookupData,
+  allowNomenclature = true,
 ): void {
   const chosen = chosenCourtHeading(courtData);
   if (chosen) {
@@ -1654,7 +2206,7 @@ function applyCourtAndAliases(
   }
   const city = courtData?.city?.trim();
   if (city && (!ctx.court_city || IS_BLANK.test(ctx.court_city))) ctx.court_city = city;
-  if (courtData?.caseNomenclature && !ctx.case_nomenclature) {
+  if (allowNomenclature && courtData?.caseNomenclature && !ctx.case_nomenclature) {
     ctx.case_nomenclature = courtData.caseNomenclature.replace(/\{year\}/g, ctx.current_year);
   }
 
@@ -1788,9 +2340,15 @@ const CITY_LINE_AFTER_DESIGNATION = /\{court_designation\},?[ \t]*\n[ \t]*\{cour
  * the city (designations from the courts list do), the city line that follows
  * it is dropped, so the addressing clause names the city once. Other mentions
  * of `{court_city}` ("Place:", "Verified at") are untouched.
+ * T-410 (Addendum 1, item 1): with the Consumer Commission blank as the
+ * designation, the city line is left out too.
  */
 export function sectionTemplate(template: string, ctx: PlaceholderContext): string {
-  if (!designationNamesCity(ctx.court_designation, ctx.court_city)) return template;
+  if (
+    ctx.court_designation !== CONSUMER_COMMISSION_BLANK &&
+    !designationNamesCity(ctx.court_designation, ctx.court_city)
+  )
+    return template;
   return template.replace(CITY_LINE_AFTER_DESIGNATION, '{court_designation}');
 }
 
@@ -1838,12 +2396,74 @@ export function sanitiseAIBody(text: string): string {
 }
 
 /**
+ * T-410 (Ajay 2a8b722, ruling 4 covers the prompt): the rule a consumer_complaint
+ * prompt reads. A Commission's own rule, else the consumer rule; never a court
+ * that is not a Commission. Its party designations are Complainant / Opposite
+ * Party only: the `state` party is left out.
+ *
+ * localRules (Ajay 4e42ef8 item 3, amended (a) 27fcccd): the generic rule's
+ * District lines at a District Commission, the ncdrc rule's lines at NCDRC,
+ * none at a State Commission, a court that is not a Commission, or no court.
+ * State and District share one rule, so District lines need `courtData` to
+ * name a District Commission; without it the generic rule's lines are left out.
+ */
+function consumerPromptRule(
+  courtRule?: CourtRuleData | null,
+  courtData?: CourtLookupData,
+): CourtRuleData | null {
+  const base =
+    courtRule?.courtType === 'consumer_commission' ? courtRule : loadCourtRule(CONSUMER_RULE_ID);
+  if (!base) return base;
+  const forum = courtData
+    ? consumerForum(courtData)
+    : courtRule?.courtId === 'ncdrc'
+      ? 'national'
+      : null;
+  const parties =
+    base.party_designation &&
+    Object.fromEntries(Object.entries(base.party_designation).filter(([role]) => role !== 'state'));
+  return {
+    ...base,
+    ...(parties && { party_designation: parties }),
+    localRules: forum === 'district' || forum === 'national' ? base.localRules : undefined,
+  };
+}
+
+/**
+ * T-410 (Ajay 2a8b722): the rule the Drafter prompt reads, chosen as
+ * buildAISystemPrompt chooses it. consumer_complaint takes consumerPromptRule;
+ * every other template takes the chosen court's rule unchanged.
+ */
+export function drafterPromptCourtRule(
+  templateId: string,
+  courtData?: CourtLookupData,
+): CourtRuleData | undefined {
+  if (templateId !== CONSUMER_COMPLAINT_ID) return courtData?.courtRule;
+  return consumerPromptRule(courtData?.courtRule, courtData) ?? undefined;
+}
+
+/**
  * Build the AI system prompt for config-driven generation.
+ * T-410: `courtData` (optional) tells a District from a State Commission for
+ * consumer_complaint's localRules.
+ * T-407: `ctx` (optional) is the placeholder context of this draft. When it is
+ * given, each related_acts entry is rendered through replacePlaceholders, so a
+ * computed field (e.g. the s.138 notice's {ni_act_related_sections}) picks the
+ * sections for this drawer. Without ctx each entry still goes through
+ * replacePlaceholders with an empty context, so an unresolved {token} prints as
+ * the normal blank and never reaches the model raw.
  */
 export function buildAISystemPrompt(
   config: TemplateConfig,
-  courtRule?: CourtRuleData | null,
+  chosenCourtRule?: CourtRuleData | null,
+  courtData?: CourtLookupData,
+  ctx?: PlaceholderContext,
 ): string {
+  const relatedActs = config.related_acts.map((act) => replacePlaceholders(act, ctx ?? {}));
+  const courtRule =
+    config.template_id === CONSUMER_COMPLAINT_ID
+      ? consumerPromptRule(chosenCourtRule, courtData)
+      : chosenCourtRule;
   const isContract =
     config.category === 'civil' && ['rent_agreement', 'nda', 'mou'].includes(config.template_id);
 
@@ -1853,13 +2473,20 @@ export function buildAISystemPrompt(
 8. CONTRACTS — ANTI-INVENTION RULE: Do NOT introduce any term, clause, rate, percentage, penalty, or condition that is not explicitly present in the user-provided form data. You may only arrange and formalise the terms given. If the user has not specified an interest rate, notice period, or penalty — do NOT invent one.`;
   }
 
+  // T-245a: the six bail packs never get the "never IPC/CrPC" rule. Their rule 1
+  // is Ajay's signed S-text (offence law by the date of the offence) and P-text
+  // (procedure by the PROCEDURE CODE the law switch puts in the case details).
+  const lawRule = isLawSwitchPack(config.template_id)
+    ? `${S_TEXT} ${P_TEXT}`
+    : 'Use ONLY Bharatiya Nyaya Sanhita (BNS) 2023, Bharatiya Nagarik Suraksha Sanhita (BNSS) 2023, and Bharatiya Sakshya Adhiniyam (BSA) 2023 section numbers. NEVER reference old IPC, CrPC, or IEA section numbers.';
+
   return `You are a senior Indian advocate with 20+ years of practice, drafting a court-ready legal document.
 
 DOCUMENT TYPE: ${config.display_name}
 CATEGORY: ${config.category}
 
 CRITICAL RULES:
-1. Use ONLY Bharatiya Nyaya Sanhita (BNS) 2023, Bharatiya Nagarik Suraksha Sanhita (BNSS) 2023, and Bharatiya Sakshya Adhiniyam (BSA) 2023 section numbers. NEVER reference old IPC, CrPC, or IEA section numbers.
+1. ${lawRule}
 2. Format with numbered paragraphs (1, 2, 3...) for the body.
 3. Use formal, respectful legal language appropriate for Indian courts.
 4. Do NOT include any commentary or notes outside the document content.
@@ -1868,7 +2495,7 @@ CRITICAL RULES:
    - Any court header or cause-title block ("IN THE COURT OF..." / "IN THE HIGH COURT OF...") — the cause title is already rendered above by the template engine; a second copy corrupts the document (A7)
    - The prayer clause, verification clause, or advocate block
    - The footer disclaimer ("First draft generated with AI" / "Lawie does not provide legal advice") — it is added to the export footer automatically and must NOT appear in the body (A6)
-7. Write any date as D Month YYYY, for example 4 April 2026. Never work out, add or change a date that is not given.${contractRule}
+7. Write any date as D Month YYYY, for example 4 April 2026. Never work out, add or change a date that is not given. ${NOT_KNOWN_DATE_LINE}${contractRule}
 
 ANTI-HALLUCINATION GUARDRAILS (MANDATORY):
 - Use the EXACT respondent / opposite party name provided in the form data. NEVER substitute, guess, or infer a different entity name (e.g., do NOT replace a retailer name with a manufacturer name).
@@ -1877,7 +2504,7 @@ ANTI-HALLUCINATION GUARDRAILS (MANDATORY):
 - NEVER invent witness names, case numbers, dates, or factual assertions not present in the user's form data.
 - All dates must be reproduced EXACTLY as provided — do not convert formats.
 
-RELATED ACTS: ${config.related_acts.join(', ')}${courtRule?.localRules?.length ? `\n\nCOURT-SPECIFIC RULES (MANDATORY — these override generic conventions):\n${courtRule.localRules.map((r, i) => `${i + 1}. ${r}`).join('\n')}` : ''}${
+RELATED ACTS: ${relatedActs.join(', ')}${courtRule?.localRules?.length ? `\n\nCOURT-SPECIFIC RULES (MANDATORY — these override generic conventions):\n${courtRule.localRules.map((r, i) => `${i + 1}. ${r}`).join('\n')}` : ''}${
     courtRule?.party_designation
       ? `\n\nPARTY DESIGNATIONS FOR THIS COURT:\n${partyDesignationsPromptLines(
           courtRule,
@@ -1991,6 +2618,18 @@ function parseSectionsChargedRead(
   return undefined;
 }
 
+/** T-440: the blanks `buildPlaceholderContext` stored for the dates answered "Not known". */
+function notKnownDateBlanks(ctx: PlaceholderContext): string[] {
+  const raw = ctx[NOT_KNOWN_DATES_KEY];
+  if (!raw) return [];
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((b): b is string => typeof b === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
 /**
  * Build the AI user prompt from an ai_generated section's prompt_context.
  */
@@ -1998,6 +2637,19 @@ export function buildAIUserPrompt(section: DocumentSection, ctx: PlaceholderCont
   if (!section.prompt_context) return '';
 
   let prompt = replacePlaceholders(section.prompt_context, ctx);
+
+  // T-245a (signed file, "Form keys"): the case details carry the two derived
+  // lines, PROCEDURE CODE and GOVERNING PROVISION. None with no procedure code.
+  const lawLines = ctx[LAW_SWITCH_LINES_KEY];
+  if (lawLines) prompt += `\n\n${lawLines}`;
+
+  // T-440 (Ajay, a9bc957): the dates answered "Not known", each with the blank
+  // to copy (system prompt rule 7 carries the signed line). None for a date
+  // that is merely empty (Q4).
+  const notKnownBlanks = notKnownDateBlanks(ctx);
+  if (notKnownBlanks.length > 0) {
+    prompt += `\n\nDATES MARKED AS NOT KNOWN:\n${notKnownBlanks.map((b) => `- ${b}`).join('\n')}`;
+  }
 
   // Inject respondent name guardrail (SCRUM-52 S1 — prevent AI from substituting)
   if (ctx.respondent_name) {
@@ -2007,10 +2659,9 @@ export function buildAIUserPrompt(section: DocumentSection, ctx: PlaceholderCont
   // Inject applicant identity guardrail — prevent AI from inventing party details
   if (ctx.applicant_name) {
     const identityParts = [`Name: ${ctx.applicant_name}`];
-    if (ctx.father_name) {
-      const rel = (ctx.relation_type as string | undefined) ?? 'S/o / D/o / W/o';
-      identityParts.push(`${rel}: ${ctx.father_name}`);
-    }
+    // T-393: the relation as given, or the signed blank; never a presumed one.
+    const parentage = relationLineFor(ctx);
+    if (parentage !== RELATION_BLANK) identityParts.push(`Parentage: ${parentage}`);
     if (ctx.applicant_age) identityParts.push(`Age: ${ctx.applicant_age} years`);
     if (ctx.address) identityParts.push(`Address: ${ctx.address}`);
     prompt += `\n\nIMMUTABLE APPLICANT IDENTITY (use EXACTLY as given — do NOT change name, parentage, age, or address):\n${identityParts.join('\n')}`;

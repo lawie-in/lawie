@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (web + drafting) |
 | Mode   | Full chain |
-| Status | To do. RELEASE GATE for main (Anushka FAIL). Unassigned. Priya, 13 Oct 2026 |
+| Status | Merged into develop_staging 492426a (mahak, with T-365/T-382/T-387, 13 Oct 2026). Waiting for Anushka on develop. Priya |
 | Source | Anushka run 3 FAIL, 13 Oct 2026 (handoff/quality/2026-10-13-run-3-develop-FAIL.md). Failed entries: T-300, T-190, T-199, T-240, T-290, T-309, T-318 |
 
 ## Acceptance criteria

@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. Vineeta Sharma is non-negotiable — daughters' coparcenary rights post-2005 must be reflected. Stamp duty often higher than sale deed where shares reduced."
   },
   "template_id": "partition_deed",
+  "card_description": "A deed dividing joint family or co-owned property among its members.",
   "docType": "partition_deed",
   "title": "Partition Deed (Hindu Joint Family — Mitakshara Coparcenary)",
   "displayName": "Partition Deed",
@@ -143,6 +144,14 @@
           "yes_registered_mandatory_for_immovable",
           "no_oral_partition_followed_by_memorandum"
         ]
+      },
+      {
+        "id": "execution_place",
+        "label": "Place of execution",
+        "type": "text",
+        "required": false,
+        "help": "City or town where the document will be signed.",
+        "ask_when_empty": true
       },
       {
         "id": "witness_1_name_address",

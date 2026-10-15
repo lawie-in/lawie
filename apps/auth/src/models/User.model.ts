@@ -1,4 +1,4 @@
-import { CURRENT_PRIVACY_VERSION, UserRole, UserPlan } from '@lawie/shared';
+import { CURRENT_PRIVACY_VERSION, UserRole, UserPlan, isGstStateCode } from '@lawie/shared';
 import bcrypt from 'bcryptjs';
 import mongoose, { Document, Schema, Types } from 'mongoose';
 
@@ -7,10 +7,12 @@ import mongoose, { Document, Schema, Types } from 'mongoose';
 // handoff/legal/T-234-login-copy-signed.md); they are maintained by hand, not read from the pages.
 // CURRENT_TERMS_VERSION: bump when /terms changes, with Ajay's sign-off.
 // T-299: terms '2026-10-12' matches /terms "Last updated: 12 October 2026" (T-268, f6566b4).
+// T-436 (Ajay, GST file Addendum 7 (3a)): '2026-10-15', the T-436 merge date, matches /terms
+// "Last updated: 15 October 2026": the contracting party (5b/5c) and the courts (Ranchi) change.
 // T-343: CURRENT_PRIVACY_VERSION now lives in @lawie/shared (constants/privacy.ts, with its
 // history and the per-version signed summaries); re-exported here so existing imports still work.
 // Versions are opaque strings: compare them for equality only, never parse them as dates.
-export const CURRENT_TERMS_VERSION = '2026-10-12';
+export const CURRENT_TERMS_VERSION = '2026-10-15';
 export { CURRENT_PRIVACY_VERSION };
 export type TermsAcceptedVia = 'password' | 'google';
 /**
@@ -18,6 +20,8 @@ export type TermsAcceptedVia = 'password' | 'google';
  * T-234 Google consent stamp on a linked or returning account set privacyVersion at sign-in.
  */
 export type PrivacyAcceptedVia = 'signup' | 'reaccept' | 'signin';
+/** T-358 — which email started the unverified-account clock. */
+export type FirstVerifySentVia = 'verify' | 'notice';
 
 /** T-343 (Ajay §4) — one accepted privacy version. No IP address and no user agent. */
 export interface IPrivacyAcceptance {
@@ -54,6 +58,39 @@ const SignupSourceSchema = new Schema<ISignupSource>(
   { _id: false },
 );
 
+/**
+ * T-115c — account close and erase (Arjun's revised design, ruling 1). `stage` is the last
+ * step that finished, so a retry (the sweep or erase-user.ts --resume) starts after it. There
+ * is no 'done' stage: the last step hard-deletes this document, and an `account_delete`
+ * AuditLog row is the record that the erase finished.
+ */
+export const ERASURE_STAGES = [
+  'locked',
+  'drafting_erased',
+  'billing_erased',
+  'auth_data_erased',
+  'audit_done',
+] as const;
+export type ErasureStage = (typeof ERASURE_STAGES)[number];
+
+export interface IErasure {
+  requestedAt: Date;
+  stage: ErasureStage;
+  /** Last failed attempt (stage it stopped at is `stage`); ids and times only. */
+  lastAttemptAt?: Date;
+  attempts?: number;
+}
+
+const ErasureSchema = new Schema<IErasure>(
+  {
+    requestedAt: { type: Date, required: true },
+    stage: { type: String, enum: ERASURE_STAGES, required: true },
+    lastAttemptAt: { type: Date },
+    attempts: { type: Number, min: 0 },
+  },
+  { _id: false },
+);
+
 export interface IUser extends Document {
   email: string;
   password?: string;
@@ -64,6 +101,14 @@ export interface IUser extends Document {
   phone?: string;
   barCouncilId?: string;
   state?: string;
+  /**
+   * T-436 (Arjun, 14 Oct 2026) — the GST State/UT code the user gave for the place of supply on
+   * their tax invoices: a 2-digit string from GST_STATES ("01", never 1). Set only by PATCH /me,
+   * and only once the current privacy version is accepted (Ajay, GST file Addendum 7 (2)).
+   * Billing reads it directly at invoice time (CUSTOMER_STATE_CODE_FIELD). Not `state` above,
+   * which is the free-text Bar Council State.
+   */
+  gstStateCode?: string;
   practiceAreas: string[];
   yearsOfExperience?: number;
 
@@ -115,6 +160,18 @@ export interface IUser extends Document {
   // 24 h expiry. Set by mintVerifyLink, cleared on use. Never selected by default.
   emailVerifyTokenHash?: string;
   emailVerifyExpires?: Date;
+  // T-115c — present only once closing the account has started (the account is locked).
+  erasure?: IErasure;
+  // T-358 (Ajay 8a2b639 / 9e42eea) — the clock. When the FIRST email carrying a verify link
+  // (the T-223 verify email, a resend, or the T-358 notice itself) was confirmed sent, or
+  // hard-bounced, to this unverified account, and which kind it was. Set once, by the worker's
+  // outcome report, never at enqueue. An account without it is never deleted.
+  firstVerifySentAt?: Date;
+  firstVerifySentVia?: FirstVerifySentVia;
+  // T-358 — when the WARNING notice (due at firstVerifySentAt + 23 days) was confirmed sent or
+  // hard-bounced. The notice that set firstVerifySentAt never counts as the warning. The
+  // unverified sweep deletes no account without it (Arjun ruling 3).
+  unverifiedNoticeSentAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 
@@ -165,6 +222,14 @@ const UserSchema = new Schema<IUser>(
     state: {
       type: String,
       trim: true,
+    },
+    // T-436 — no default: absent means no State given (billing then uses its fallback).
+    gstStateCode: {
+      type: String,
+      validate: {
+        validator: (v: unknown) => v === undefined || v === null || isGstStateCode(v),
+        message: 'Invalid GST State code',
+      },
     },
     practiceAreas: {
       type: [String],
@@ -267,6 +332,12 @@ const UserSchema = new Schema<IUser>(
       type: Date,
       select: false,
     },
+    // T-115c — no default: absent means the account is not being closed.
+    erasure: { type: ErasureSchema },
+    // T-358 — no defaults: absent means no verify-link email / no warning notice has gone out.
+    firstVerifySentAt: { type: Date },
+    firstVerifySentVia: { type: String, enum: ['verify', 'notice'] },
+    unverifiedNoticeSentAt: { type: Date },
   },
   {
     timestamps: true,
@@ -289,6 +360,8 @@ UserSchema.index({ plan: 1 });
 UserSchema.index({ createdAt: -1 });
 // T-223 — verifyEmailToken looks a user up by the token hash. Sparse: only users with a live link.
 UserSchema.index({ emailVerifyTokenHash: 1 }, { sparse: true });
+// T-115c — the erase sweep finds unfinished erases by this. Sparse: only accounts being closed.
+UserSchema.index({ 'erasure.requestedAt': 1 }, { sparse: true });
 
 // -- Pre-save: bcrypt password hashing --
 UserSchema.pre('save', async function (next) {

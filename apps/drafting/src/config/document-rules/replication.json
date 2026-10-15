@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. Replication is restricted to dealing with new facts in WS; not re-statement of plaint."
   },
   "template_id": "replication",
+  "card_description": "A replication by the plaintiff to the defendant's written statement.",
   "docType": "replication",
   "title": "Replication / Rejoinder to Written Statement (Order VIII R.9 CPC)",
   "displayName": "Replication (Order VIII R.9 CPC)",

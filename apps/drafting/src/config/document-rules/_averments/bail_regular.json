@@ -833,13 +833,22 @@
         "bina notice ke giraftari"
       ],
       "unlocked_by": {
-        "key": "s35_notice_status",
-        "label": "Notice under Section 35 BNSS",
-        "equals": [
-          "not served",
-          "not issued",
-          "no notice",
-          "none"
+        "all_of": [
+          {
+            "key": "s35_notice_status",
+            "label": "Notice to appear (Section 35 BNSS / Section 41A CrPC)",
+            "equals": [
+              "not served",
+              "not issued",
+              "no notice",
+              "none"
+            ]
+          },
+          {
+            "key": "notice_provision",
+            "label": "Notice to appear (Section 35 BNSS / Section 41A CrPC)",
+            "present": true
+          }
         ]
       }
     },
@@ -1446,15 +1455,24 @@
     {
       "id": "s35_notice_illegal_arrest",
       "kind": "averment",
-      "averment": "no notice under Section 35 of the Bharatiya Nagarik Suraksha Sanhita, 2023 was served on the applicant before arrest",
+      "averment": "no notice under {{notice_provision}} was served on the applicant before arrest",
       "requires": {
-        "key": "s35_notice_status",
-        "label": "Notice under Section 35 BNSS",
-        "equals": [
-          "not served",
-          "not issued",
-          "no notice",
-          "none"
+        "all_of": [
+          {
+            "key": "s35_notice_status",
+            "label": "Notice to appear (Section 35 BNSS / Section 41A CrPC)",
+            "equals": [
+              "not served",
+              "not issued",
+              "no notice",
+              "none"
+            ]
+          },
+          {
+            "key": "notice_provision",
+            "label": "Notice to appear (Section 35 BNSS / Section 41A CrPC)",
+            "present": true
+          }
         ]
       }
     },

@@ -146,7 +146,9 @@ function facts(d: Dates, extra: Record<string, unknown> = {}): LedgerFact[] {
 }
 const A = (d: Dates, unresolved: string[] = []) => s138DateChecks(facts(d), PACK, unresolved).a;
 const B = (d: Dates, unresolved: string[] = []) => s138DateChecks(facts(d), PACK, unresolved).b;
-const blank = (label: string) => S138_BLANK.replace('{label}', label);
+// T-440 (Ajay, a9bc957, Q2): the label reads in lower case after "To be confirmed: ".
+const blank = (label: string) =>
+  S138_BLANK.replace('{label}', label.charAt(0).toLowerCase() + label.slice(1));
 
 // ═════════════════════════════════════════════════════════════════════════════
 // AC1: pinned against the signed md
@@ -389,7 +391,7 @@ describe('T-192 AC7 check (a): presented within validity', () => {
       expect(r.missing).toEqual(['L2']);
       expect(r.end).toBeNull();
       expect(r.text).toContain(
-        '[To be confirmed: Last date of validity printed on the cheque, if any]',
+        '[To be confirmed: last date of validity printed on the cheque, if any]',
       );
     }
   });
@@ -479,7 +481,7 @@ describe('T-192 AC7 check (b): notice within thirty days', () => {
     expect(r.text).toContain(
       'Send the notice on or before 4 April 2026 (30 days from receipt of the return memo on 5 March 2026).',
     );
-    expect(r.text).toContain('[To be confirmed: Date the notice is sent]');
+    expect(r.text).toContain('[To be confirmed: date the notice is sent]');
   });
 
   it('L4 missing gives B5 with the L4 blank', () => {
@@ -839,7 +841,7 @@ function readFileListing(): string[] {
 // ═════════════════════════════════════════════════════════════════════════════
 // Date line: the notice header
 // ═════════════════════════════════════════════════════════════════════════════
-describe('T-192 date line: L5 when given, today when missing (format not pinned)', () => {
+describe('T-192 date line: L5 when given, the blank when missing (T-440 Q1: never today)', () => {
   beforeEach(() => clearConfigCache());
 
   function headerOf(formData: Record<string, unknown>): string {
@@ -895,14 +897,14 @@ describe('T-192 date line: L5 when given, today when missing (format not pinned)
     ['not given', {}],
     ['empty', { notice_sent_date: '' }],
     ['the visible blank', { notice_sent_date: '[To be confirmed: date the notice is sent]' }],
-    ['the ledger blank', { notice_sent_date: '{{MISSING: Date the notice is sent}}' }],
-  ])("with notice_sent_date %s the line has today's date", (_n, form) => {
+    ['the ledger blank', { notice_sent_date: '{{MISSING: date the notice is sent}}' }],
+    ['"Not known"', { notice_sent_date: 'Not known' }],
+  ])('with notice_sent_date %s the line has the blank, never today (T-440 Q1)', (_n, form) => {
     const line = dateLine(headerOf(form as Record<string, unknown>));
-    expect(holdsToday(line)).toBe(true);
-    expect(line).not.toContain('{');
+    expect(line).toBe('Date: [To be confirmed: date the notice is sent]');
+    expect(holdsToday(line)).toBe(false);
     expect(line).not.toContain('_____');
     expect(line).not.toContain('MISSING');
-    expect(line).not.toContain('To be confirmed');
   });
 });
 

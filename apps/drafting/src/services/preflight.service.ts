@@ -28,6 +28,7 @@ import mongoose from 'mongoose';
 import { env } from '../config/env';
 import { Court } from '../models/Court.model';
 import { Event } from '../models/Event.model';
+import { LlmAuxCall } from '../models/LlmAuxCall.model';
 
 import { APP_SETTING_KEYS, getAppSetting } from './app-settings.service';
 import {
@@ -38,8 +39,25 @@ import {
   resolveBnsKey,
   resolveOffence,
 } from './bns-offence-resolver';
+import { isLawSwitchPack, offenceLawFor } from './law-switch';
+import {
+  cacheCounts,
+  effectiveCacheRates,
+  estimateOutputTokens,
+  getModelRates,
+  parseAnthropicMessageUsage,
+  priceUsage,
+} from './llm-usage';
 import { lookupOldToNew } from './sections.service';
-import { fieldSourceOf, loadTemplateConfig, oldLawLine } from './template-engine.service';
+import {
+  clientFormData,
+  declaredFieldIds,
+  fieldSourceOf,
+  loadTemplateConfig,
+  oldLawLine,
+  resolveAdvocate,
+  resolveEnrollmentNumber,
+} from './template-engine.service';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -80,6 +98,38 @@ const BNSS_BAIL_SECTIONS = new Set(['478', '479', '480', '481', '482', '483', '4
 
 function str(v: unknown): string {
   return typeof v === 'string' ? v.trim() : '';
+}
+
+/**
+ * T-387: the profile values the renderer would use — the JWT name and the
+ * profile's enrolment number. Both optional; absent means an empty profile.
+ */
+export interface PreflightProfile {
+  advocateName?: string;
+  enrollmentNumber?: string;
+}
+
+/**
+ * T-387: the enrolment number the draft will print, by the same steps as
+ * buildPlaceholderContext (T-311): a typed advocate_enrollment wins; else the
+ * profile number, only when the printed name is also the profile's; else
+ * undefined. No config means nothing is rendered, so nothing is printed.
+ */
+function printedEnrollmentNumber(
+  templateId: string,
+  rawFormData: Record<string, unknown>,
+  profile?: PreflightProfile,
+): string | undefined {
+  const config = loadTemplateConfig(templateId);
+  if (!config) return undefined;
+  const { kept: formData } = clientFormData(config, rawFormData);
+  const advocate = resolveAdvocate(formData, { name: profile?.advocateName }, config);
+  const declaresEnrollment = declaredFieldIds(config).has('advocate_enrollment');
+  return resolveEnrollmentNumber(
+    declaresEnrollment ? formData.advocate_enrollment : undefined,
+    profile?.enrollmentNumber,
+    advocate.fromProfile,
+  );
 }
 
 function num(v: unknown): number | null {
@@ -200,6 +250,7 @@ function nearMatch(a: string, b: string): boolean {
 async function runPureRules(
   templateId: string,
   formData: Record<string, unknown>,
+  profile?: PreflightProfile,
 ): Promise<PreflightFinding[]> {
   const findings: PreflightFinding[] = [];
   const today = new Date();
@@ -271,15 +322,24 @@ async function runPureRules(
   const sections = parseSectionsCharged(templateId, formData['sections_charged']);
   // `sections` comes from the T-277 reader, already deduped on (code, number).
   const matchedAliases = await bnsMatchedAliasIndices(sections);
+  // T-245a (Ajay, Addendum 1 ruling 7, 2992891): the old-law finding follows the
+  // offence date only. It is raised only when the offence date is given and is on
+  // or after 1 July 2024. No offence date: no finding (the S-text blank handles it);
+  // the FIR date is never a stand-in for the offence date. This gate is for the
+  // six T-245a bail packs only; every other template keeps the finding with no
+  // date gate, as before T-245a.
+  const oldLawFindingOn = isLawSwitchPack(templateId)
+    ? offenceLawFor(formData['offence_date']) === 'BNS'
+    : true;
   for (const [i, e] of sections.entries()) {
     // T-295 (Priya's soft decision; Arjun's ruling: the T-277 reader, not a per-part
     // loop): an IPC / CrPC / IEA entry is a SOFT warning carrying Ajay's signed line.
     // Never a section_whitelist finding; an old-law number never goes through the BNS
-    // whitelist. T-245 will make this date-aware.
+    // whitelist. T-245a: date-aware, on the offence date only (see above).
     // T-324: an IPC alias on a BNS entry the T-267 table maps it to gets no finding.
     const oldLine = oldLawLine(e.code, e.number);
     if (oldLine) {
-      if (!matchedAliases.has(i)) {
+      if (oldLawFindingOn && !matchedAliases.has(i)) {
         findings.push({ rule_id: 'old_law_section', severity: 'soft', question: oldLine });
       }
     } else if (e.code === null) {
@@ -323,9 +383,13 @@ async function runPureRules(
     }
   }
 
-  // F4: vakalatnama — bar enrolment number required
+  // F4: vakalatnama — bar enrolment number required. T-387 (Ajay, 13 Oct
+  // 2026): F4 checks the number the draft will print, resolved as
+  // buildPlaceholderContext does (T-311), on the same un-aliased form data the
+  // renderer reads, so a body carrying only the old T-382 key resolves as the
+  // draft would.
   if (templateId === 'vakalatnama') {
-    if (!str(formData['advocate_enrolment_no'])) {
+    if (!str(printedEnrollmentNumber(templateId, formData, profile))) {
       findings.push({
         rule_id: 'F4',
         severity: 'hard',
@@ -488,9 +552,66 @@ Rules:
 - Return empty findings array if nothing is unusual
 - Max 3 findings total`;
 
+/**
+ * T-437 (Arjun ruling 2): one LlmAuxCall row per preflight model call, the
+ * same fields as intake's rows (numbers and ids only, never the form data or
+ * the reply). No intake id reaches the preflight route, so the row has none.
+ * Never throws: a failed write is logged and preflight goes on.
+ */
+async function recordPreflightCall(args: {
+  userId?: string;
+  status: 'completed' | 'failed';
+  model: string;
+  response: unknown;
+  text: string;
+  durationMs: number;
+}): Promise<void> {
+  if (!args.userId || !mongoose.Types.ObjectId.isValid(args.userId)) return;
+  try {
+    const counts = parseAnthropicMessageUsage(args.response);
+    const fromProvider = counts.inputTokens !== undefined || counts.outputTokens !== undefined;
+    const usage = {
+      inputTokens: counts.inputTokens ?? 0,
+      outputTokens: fromProvider
+        ? (counts.outputTokens ?? 0)
+        : args.text
+          ? estimateOutputTokens(args.text)
+          : 0,
+      ...cacheCounts(counts),
+    };
+    const rate = await getModelRates(args.model);
+    const priced = rate.costStatus === 'priced';
+    const usedCache = Object.keys(cacheCounts(counts)).length > 0;
+    const cacheRates = priced && usedCache ? effectiveCacheRates(rate.rate) : undefined;
+    await LlmAuxCall.create({
+      userId: args.userId,
+      purpose: 'preflight',
+      status: args.status,
+      aiModel: args.model,
+      transport: 'direct',
+      ...usage,
+      imageCount: 0,
+      costUsd: priced ? priceUsage(usage, rate.rate, args.model) : 0,
+      costStatus: rate.costStatus,
+      usageSource: fromProvider ? 'provider' : 'estimated',
+      rateInputUsdPerMTok: priced ? rate.rate.inputUsdPerMTok : undefined,
+      rateOutputUsdPerMTok: priced ? rate.rate.outputUsdPerMTok : undefined,
+      rateCacheWriteUsdPerMTok: cacheRates?.cacheWriteUsdPerMTok,
+      rateCacheReadUsdPerMTok: cacheRates?.cacheReadUsdPerMTok,
+      durationMs: args.durationMs,
+    });
+  } catch (err) {
+    console.error(
+      '[preflight] failed to record LlmAuxCall (purpose=preflight):',
+      err instanceof Error ? err.message : 'unknown error',
+    );
+  }
+}
+
 async function runLLMChecks(
   templateId: string,
   formData: Record<string, unknown>,
+  userId?: string,
 ): Promise<{ findings: PreflightFinding[]; ran: boolean }> {
   if (!env.ANTHROPIC_API_KEY) {
     return { findings: [], ran: false };
@@ -517,22 +638,33 @@ async function runLLMChecks(
     // degrades gracefully to rules-only (fail-open per ADR-018).
     const model = await getAppSetting(APP_SETTING_KEYS.PREFLIGHT_MODEL);
     const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
+    const startedAt = Date.now();
+    // T-437: not cached (Arjun ruling 2) — the system prompt stays a plain string.
     const response = await client.messages.create({
       model,
       max_tokens: 300,
       system: HAIKU_SYSTEM_PROMPT,
       messages: [{ role: 'user', content: JSON.stringify(payload) }],
     });
+    const durationMs = Date.now() - startedAt;
 
-    const text = response.content[0].type === 'text' ? response.content[0].text : '';
+    const text = response.content[0]?.type === 'text' ? response.content[0].text : '';
 
     // Strip markdown fences if any
     const clean = text.replace(/```(?:json)?/gi, '').trim();
-    const parsed = JSON.parse(clean) as {
+    let parsed: {
       unusual: boolean;
       hard_block: boolean;
       findings: Array<{ rule_id: string; question: string }>;
     };
+    try {
+      parsed = JSON.parse(clean) as typeof parsed;
+    } catch (parseErr) {
+      // The call was made and billed even though its reply is unusable.
+      await recordPreflightCall({ userId, status: 'failed', model, response, text, durationMs });
+      throw parseErr;
+    }
+    await recordPreflightCall({ userId, status: 'completed', model, response, text, durationMs });
 
     const findings: PreflightFinding[] = (parsed.findings ?? []).map((f) => ({
       rule_id: f.rule_id,
@@ -559,17 +691,22 @@ async function runLLMChecks(
  * @param templateId  The template being generated (e.g. "bail_anticipatory")
  * @param formData    The advocate-submitted form data
  * @param userId      For telemetry (optional)
+ * @param profile     T-387: the profile's advocate name (JWT) and enrolment
+ *                    number, so F4 resolves the number the vakalatnama will
+ *                    print exactly as the renderer does (optional; absent
+ *                    means an empty profile)
  * @returns PreflightResult — verdict, questions, optional hard-block reason
  */
 export async function preflightCheck(
   templateId: string,
   formData: Record<string, unknown>,
   userId?: string,
+  profile?: PreflightProfile,
 ): Promise<PreflightResult> {
   // Run pure rules + Haiku in parallel (ADR-018: run alongside each other)
   const [ruleFindings, llmResult] = await Promise.all([
-    runPureRules(templateId, formData),
-    runLLMChecks(templateId, formData),
+    runPureRules(templateId, formData, profile),
+    runLLMChecks(templateId, formData, userId),
   ]);
 
   const allFindings = [...ruleFindings, ...llmResult.findings];

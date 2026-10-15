@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. RERA compliance is non-negotiable for qualifying projects. GST on JDA per CBIC Notification 04/2018-CT(R) and 06/2019-CT(R) — flag for landowner."
   },
   "template_id": "joint_development_agreement",
+  "card_description": "An agreement between a landowner and a developer to build on the land and share the result.",
   "docType": "joint_development_agreement",
   "title": "Joint Development Agreement (JDA) — Landowner & Developer",
   "displayName": "Joint Development Agreement (JDA)",
@@ -264,6 +265,14 @@
         "type": "select",
         "required": true,
         "options": ["bihar", "jharkhand", "uttar_pradesh", "delhi"]
+      },
+      {
+        "id": "execution_place",
+        "label": "Place of execution",
+        "type": "text",
+        "required": false,
+        "help": "City or town where the document will be signed.",
+        "ask_when_empty": true
       },
       {
         "id": "witness_1_name_address",

@@ -27,7 +27,9 @@ import {
   REGULAR_BAIL_NOT_IN_CUSTODY_WARNING,
 } from './bail-guard';
 import { datesInText, iso, isOwnWords, normalise } from './intake-text';
+import { isLawSwitchPack } from './law-switch';
 import type { RulePack, RulePackFact } from './rule-pack.service';
+import { s138BriefDateCheck } from './s138-date-checks';
 import { evaluateShowIf } from './template-engine.service';
 
 // ── Shapes ──────────────────────────────────────────────────────────────────
@@ -140,6 +142,12 @@ export interface Brief {
   confirm_blockers: Array<'court' | 'parties'>;
   /** The line shown under Confirm when it is off (T-127, section 7.2). */
   confirm_message: string | null;
+  /**
+   * T-363 AC1: for a `legal_notice_s138` whose own dates give T-192's B2, the
+   * signed B2 line. The advocate confirms the dates before drafting. The
+   * entry stays banned (T-192). Absent for any other result or pack.
+   */
+  date_check?: { line: 'B2'; text: string };
 }
 
 export interface LooseDate {
@@ -354,6 +362,18 @@ export function dateKindLabel(kindId: string): string | null {
   return DATE_KIND_BY_ID.get(kindId)?.label ?? null;
 }
 
+/**
+ * T-440 (Ajay, a9bc957, Q2): what a date item's blank names, as the brief's
+ * `meaning` is worked out: the kind's label when the item has a kind, else the
+ * item's own label. Null for an item that is not a date.
+ */
+export function dateMeaningOf(
+  item: Pick<ChecklistItem, 'kind' | 'label'> & { dateKind?: string | null },
+): string | null {
+  if (item.kind !== 'date') return null;
+  return (item.dateKind ? dateKindLabel(item.dateKind) : null) ?? item.label;
+}
+
 export interface StatedDate {
   value: string;
   /** The kind of date the user's words give it, or null when they give none or more than one. */
@@ -500,15 +520,22 @@ function isPartyName(name: string, kind: ValueKind, part: BriefPart): boolean {
   return PARTY_ROLE.test(name) && !name.includes('_');
 }
 
-function placeholderFor(label: string): string {
-  // Lower case, except for words written in capitals such as FIR.
-  const lowered = label
+/**
+ * A label as it is written after "To be confirmed: ": lower case, except for
+ * words written in capitals such as FIR. T-440 (Ajay, a9bc957, Q2): the ledger
+ * path's `{{MISSING: …}}` blank for a date uses the same words.
+ */
+export function blankLabel(label: string): string {
+  return label
     .replace(/\s+/g, ' ')
     .trim()
     .split(' ')
     .map((w) => (/^[A-Z0-9./-]{2,}$/.test(w) ? w : w.toLowerCase()))
     .join(' ');
-  return `[To be confirmed: ${lowered}]`;
+}
+
+function placeholderFor(label: string): string {
+  return `[To be confirmed: ${blankLabel(label)}]`;
 }
 
 export const FIXED_KEYS = {
@@ -1295,12 +1322,17 @@ const IPC_WORD =
   /(?<![a-z0-9])(ipc|i\.\s?p\.\s?c\.?|indian penal code|भा\.\s?दं\.\s?सं\.?|भारतीय दंड संहिता)(?![a-z0-9])/;
 
 /**
- * The date of the offence or occurrence, else the date of the FIR, as the
- * brief gives it. Null when neither is given.
+ * The date of the offence or occurrence, as the brief gives it. Null when it is
+ * not given. T-245a (Ajay, Addendum 1 ruling 7, 2992891): offence date only. The
+ * FIR date is never a stand-in for it: with no offence date there is no note
+ * (the S-text blank handles it). That rule is for the six T-245a bail packs
+ * only (`isLawSwitchPack`); every other kind keeps the FIR date fallback it had
+ * before T-245a.
  */
 function offenceOrFirDate(
   checklist: ChecklistItem[],
   placed: Map<string, GivenValue>,
+  kindId: string | null,
 ): string | null {
   const dateOf = (test: (i: ChecklistItem) => boolean): string | null => {
     for (const item of checklist) {
@@ -1315,10 +1347,11 @@ function offenceOrFirDate(
       i.dateKind === 'incident' ||
       /(^|_)(offen[cs]e|occurrence|incident)(_|$)/.test(lastSegment(i.key)),
   );
+  if (kindId !== null && isLawSwitchPack(kindId)) return offence;
   return offence ?? dateOf((i) => i.dateKind === 'fir' || lastSegment(i.key) === 'fir_date');
 }
 
-/** The sections item cites the IPC and the matter is dated on or after 1 July 2024. */
+/** The sections item cites the IPC and the offence is dated on or after 1 July 2024. */
 function needsIpcNote(
   item: ChecklistItem,
   value: string | string[],
@@ -1423,13 +1456,12 @@ export function buildBrief(input: BuildBriefInput): Brief {
 
   // T-153: a fact the form hides (show_if false) is not asked and shows no blank.
   const hidden = hiddenByShowIf(input.checklist, placed);
-  const matterDate = offenceOrFirDate(input.checklist, placed);
+  const matterDate = offenceOrFirDate(input.checklist, placed, input.kind.id);
   const items: BriefItem[] = input.checklist
     .filter((item) => !(hidden.has(item.key) && !placed.has(item.key)))
     .map((item) => {
       const given = placed.get(item.key);
-      const kindLabel = item.kind === 'date' && item.dateKind ? dateKindLabel(item.dateKind) : null;
-      const meaning = item.kind === 'date' ? (kindLabel ?? item.label) : undefined;
+      const meaning = dateMeaningOf(item) ?? undefined;
       // T-150, Rule B: a regular bail for a client not in custody. Warn, never block.
       const custodyWarning =
         item.kind === 'choice' &&
@@ -1513,6 +1545,9 @@ export function buildBrief(input: BuildBriefInput): Brief {
             meaning: d.kind ? dateKindLabel(d.kind) : null,
           }));
 
+  // T-363 AC1: T-192's B2 on the brief's own dates, for the advocate to confirm.
+  const dateCheck = s138BriefDateCheck(input.kind.id, items);
+
   return {
     kind: input.kind,
     court,
@@ -1523,6 +1558,7 @@ export function buildBrief(input: BuildBriefInput): Brief {
     can_confirm: blockers.length === 0,
     confirm_blockers: blockers,
     confirm_message,
+    ...(dateCheck ? { date_check: dateCheck } : {}),
   };
 }
 

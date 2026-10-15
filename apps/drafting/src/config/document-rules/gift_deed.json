@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. Acceptance during donor's lifetime is non-negotiable. Concessional stamp duty for blood-relative gift varies by state — flag but do NOT hardcode."
   },
   "template_id": "gift_deed",
+  "card_description": "A deed gifting movable or immovable property under the Transfer of Property Act, 1882.",
   "docType": "gift_deed",
   "title": "Gift Deed (Transfer of Property Act, 1882 — S.122-129)",
   "displayName": "Gift Deed",
@@ -154,6 +155,14 @@
         "type": "select",
         "required": true,
         "options": ["bihar", "jharkhand", "uttar_pradesh", "delhi"]
+      },
+      {
+        "id": "execution_place",
+        "label": "Place of execution",
+        "type": "text",
+        "required": false,
+        "help": "City or town where the document will be signed.",
+        "ask_when_empty": true
       },
       {
         "id": "witness_1_name_address",

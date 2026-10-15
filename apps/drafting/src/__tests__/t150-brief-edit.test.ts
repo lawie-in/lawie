@@ -31,6 +31,7 @@ import { sdkAnswer } from './sdkStream';
 
 const mockMessagesStream = jest.fn();
 jest.mock('@anthropic-ai/sdk', () =>
+  // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-require-imports
   require('./sdkStream').sdkModuleStub((...args: unknown[]) => mockMessagesStream(...args)),
 );
 
@@ -70,7 +71,7 @@ function brief(kindId: string, checklist = BAIL, values: GivenValue[] = []) {
 }
 
 describe('Rule B text and trigger (bail-guard)', () => {
-  it('the text is Ajay\'s, word for word', () => {
+  it("the text is Ajay's, word for word", () => {
     expect(REGULAR_BAIL_NOT_IN_CUSTODY_WARNING).toBe(WARNING);
   });
 
@@ -91,7 +92,8 @@ describe('Rule B text and trigger (bail-guard)', () => {
 });
 
 describe('Rule B on the brief (criteria 3, 4, 5)', () => {
-  const custody = (b: ReturnType<typeof brief>) => b.items.find((i) => i.key === 'currently_in_custody')!;
+  const custody = (b: ReturnType<typeof brief>) =>
+    b.items.find((i) => i.key === 'currently_in_custody')!;
 
   it('criterion 3: regular bail + "No — anticipating arrest" is marked with the exact text', () => {
     const b = brief('bail_regular', BAIL, [typed('currently_in_custody', NOT_ARRESTED)]);
@@ -123,7 +125,9 @@ describe('Rule B on the brief (criteria 3, 4, 5)', () => {
   it('criterion 5: anticipatory bail + "No — anticipating arrest" has no warning', () => {
     const b = brief('bail_anticipatory', ANTI, [typed('currently_in_custody', NOT_ARRESTED)]);
     expect(b.items.some((i) => i.note !== undefined)).toBe(false);
-    expect(b.items.find((i) => i.key === 'currently_in_custody')?.please_check ?? false).toBe(false);
+    expect(b.items.find((i) => i.key === 'currently_in_custody')?.please_check ?? false).toBe(
+      false,
+    );
   });
 });
 
@@ -134,7 +138,12 @@ describe('Rule A on the values (criteria 1, 2)', () => {
   ]);
 
   it('criterion 1: a contradicting earlier answer is replaced by the new reading', () => {
-    const r = valuesAfterEditedDescription(BAIL, read, [], [typed('currently_in_custody', NOT_ARRESTED)]);
+    const r = valuesAfterEditedDescription(
+      BAIL,
+      read,
+      [],
+      [typed('currently_in_custody', NOT_ARRESTED)],
+    );
     expect(r.replaced).toEqual(['currently_in_custody']);
     const b = brief('bail_regular', BAIL, r.values);
     expect(b.items.find((i) => i.key === 'currently_in_custody')).toMatchObject({
@@ -148,7 +157,12 @@ describe('Rule A on the values (criteria 1, 2)', () => {
   });
 
   it('criterion 2: a description silent on custody keeps the earlier answer, unmarked', () => {
-    const r = valuesAfterEditedDescription(BAIL, new Map(), [], [typed('currently_in_custody', POLICE)]);
+    const r = valuesAfterEditedDescription(
+      BAIL,
+      new Map(),
+      [],
+      [typed('currently_in_custody', POLICE)],
+    );
     expect(r.replaced).toEqual([]);
     const b = brief('bail_regular', BAIL, r.values);
     expect(b.items.find((i) => i.key === 'currently_in_custody')).toMatchObject({
@@ -171,7 +185,12 @@ describe('Rule A on the values (criteria 1, 2)', () => {
   });
 
   it('a new reading equal to the earlier answer changes nothing', () => {
-    const r = valuesAfterEditedDescription(BAIL, read, [], [typed('currently_in_custody', JUDICIAL)]);
+    const r = valuesAfterEditedDescription(
+      BAIL,
+      read,
+      [],
+      [typed('currently_in_custody', JUDICIAL)],
+    );
     expect(r.replaced).toEqual([]);
   });
 });
@@ -182,7 +201,9 @@ describe('Ajay call 3 and call 1 on the values (names, cleared facts, Magistrate
     const r = valuesAfterEditedDescription(BAIL, read, [], [typed('applicant_name', 'Ram Kumar')]);
     expect(r.nameDiffers).toEqual(['applicant_name']);
     expect(r.replaced).toEqual([]);
-    const item = brief('bail_regular', BAIL, r.values).items.find((i) => i.key === 'applicant_name')!;
+    const item = brief('bail_regular', BAIL, r.values).items.find(
+      (i) => i.key === 'applicant_name',
+    )!;
     expect(item).toMatchObject({ value: 'Ram Kumar', source: 'user', please_check: true });
     expect(item.note).toBeUndefined();
   });
@@ -191,7 +212,9 @@ describe('Ajay call 3 and call 1 on the values (names, cleared facts, Magistrate
     const read = new Map([['applicant_name', { value: 'ram  KUMAR', quote: 'Ram Kumar' }]]);
     const r = valuesAfterEditedDescription(BAIL, read, [], [typed('applicant_name', 'Ram Kumar')]);
     expect(r.nameDiffers).toEqual([]);
-    const item = brief('bail_regular', BAIL, r.values).items.find((i) => i.key === 'applicant_name')!;
+    const item = brief('bail_regular', BAIL, r.values).items.find(
+      (i) => i.key === 'applicant_name',
+    )!;
     expect(item).toMatchObject({ value: 'Ram Kumar', please_check: false });
   });
 
@@ -211,7 +234,9 @@ describe('Ajay call 3 and call 1 on the values (names, cleared facts, Magistrate
     expect(item.placeholder).toBeTruthy();
     // Without alsoAsk a not-required fact is not asked; with it, it is.
     expect(buildQuestions(b, new Map()).some((q) => q.key === OPTIONAL.key)).toBe(false);
-    expect(buildQuestions(b, new Map(), new Set(r.cleared)).some((q) => q.key === OPTIONAL.key)).toBe(true);
+    expect(
+      buildQuestions(b, new Map(), new Set(r.cleared)).some((q) => q.key === OPTIONAL.key),
+    ).toBe(true);
   });
 
   it('Magistrate bail with custody "not given" shows the Rule B note, T-153 (option (a) is superseded)', () => {
@@ -237,18 +262,20 @@ describe('POST /intake/brief with a stubbed model (criteria 1 to 5)', () => {
   function stub(read: unknown[]) {
     mockMessagesStream.mockReset();
     mockMessagesStream.mockResolvedValueOnce(
-      sdkAnswer(
-        JSON.stringify({ outcome: 'read', read, conflicts: [], questions: [] }),
-        900,
-        120,
-      ),
+      sdkAnswer(JSON.stringify({ outcome: 'read', read, conflicts: [], questions: [] }), 900, 120),
     );
     return mockMessagesStream;
   }
 
   const post = (body: Record<string, unknown>) =>
     request(app).post('/intake/brief').set(headers).send(body);
-  type It = { key: string; value: unknown; source: string | null; please_check: boolean; note?: string };
+  type It = {
+    key: string;
+    value: unknown;
+    source: string | null;
+    please_check: boolean;
+    note?: string;
+  };
   const find = (res: request.Response, key: string): It =>
     res.body.brief.items.find((i: It) => i.key === key);
 
@@ -357,7 +384,11 @@ describe('POST /intake/brief with a stubbed model (criteria 1 to 5)', () => {
     expect(spy).not.toHaveBeenCalled();
     // And an edit (no intake_id, non-empty keep) does.
     stub([]);
-    await post({ description: EDIT_NO_CUSTODY, kind: 'bail_regular', keep: [{ key: 'currently_in_custody', value: POLICE }] });
+    await post({
+      description: EDIT_NO_CUSTODY,
+      kind: 'bail_regular',
+      keep: [{ key: 'currently_in_custody', value: POLICE }],
+    });
     expect(spy).toHaveBeenCalledTimes(1);
   });
 
@@ -382,7 +413,11 @@ describe('POST /intake/brief with a stubbed model (criteria 1 to 5)', () => {
 
   it('Magistrate bail, custody not given: the Rule B warning is on the custody item, T-153', async () => {
     stub([{ id: 'applicant_name', value: 'Ram Kumar', quote: 'My client Ram Kumar' }]);
-    const res = await post({ description: EDIT_NO_CUSTODY, kind: 'bail_before_magistrate', keep: [] });
+    const res = await post({
+      description: EDIT_NO_CUSTODY,
+      kind: 'bail_before_magistrate',
+      keep: [],
+    });
     expect(res.body.outcome).toBe('brief');
     expect(find(res, 'currently_in_custody')).toMatchObject({ please_check: true, note: WARNING });
   });
@@ -399,7 +434,13 @@ describe('Review round 1 fixes: the mark survives /intake/brief/update', () => {
   };
   const update = (body: Record<string, unknown>) =>
     request(app).post('/intake/brief/update').set(headers).send(body);
-  type It = { key: string; value: unknown; source: string | null; please_check: boolean; note?: string };
+  type It = {
+    key: string;
+    value: unknown;
+    source: string | null;
+    please_check: boolean;
+    note?: string;
+  };
   const item = (res: request.Response, key: string): It =>
     res.body.brief.items.find((i: It) => i.key === key);
   const CUSTODY = BAIL.find((i) => i.kind === 'choice' && i.options.includes(JUDICIAL))!.key;
@@ -413,12 +454,19 @@ describe('Review round 1 fixes: the mark survives /intake/brief/update', () => {
   it('(1) a kept differing name keeps its mark when another field changes (intake_id is ignored)', async () => {
     // Step 0: the edit. The advocate typed Ram Kumar, the description says Shyam Kumar.
     const read = new Map([['applicant_name', { value: 'Shyam Kumar', quote: 'Shyam Kumar' }]]);
-    const edited = valuesAfterEditedDescription(BAIL, read, [], [typed('applicant_name', 'Ram Kumar')]);
+    const edited = valuesAfterEditedDescription(
+      BAIL,
+      read,
+      [],
+      [typed('applicant_name', 'Ram Kumar')],
+    );
     const first = brief('bail_regular', BAIL, edited.values);
     // What the web app sends back (its valuesAfter, not run here: apps/web has no runner).
     const nameItem = first.items.find((i) => i.key === 'applicant_name')!;
     expect(nameItem).toMatchObject({ value: 'Ram Kumar', source: 'user', please_check: true });
-    const held = [{ key: 'applicant_name', value: 'Ram Kumar', source: 'user', please_check: true }];
+    const held = [
+      { key: 'applicant_name', value: 'Ram Kumar', source: 'user', please_check: true },
+    ];
     const res = await update({
       intake_id: '507f1f77bcf86cd799439099',
       kind: 'bail_regular',
@@ -439,7 +487,10 @@ describe('Review round 1 fixes: the mark survives /intake/brief/update', () => {
       kind: 'bail_regular',
       values: [{ key: 'applicant_name', value: 'Ram Kumar Singh' }], // web drops please_check on edit
     });
-    expect(item(res, 'applicant_name')).toMatchObject({ value: 'Ram Kumar Singh', please_check: false });
+    expect(item(res, 'applicant_name')).toMatchObject({
+      value: 'Ram Kumar Singh',
+      please_check: false,
+    });
   });
 
   it('(3) valueSchema accepts please_check in values and in keep, and a non-boolean is refused', async () => {
@@ -492,7 +543,9 @@ describe('Review round 1 fixes: cleared facts and the question cap', () => {
     const filled = buildBrief({
       kind: { id: 'bail_regular', name: 'bail_regular', court_document: true },
       checklist: BAIL,
-      values: [typed(OPTIONAL.key, OPTIONAL.kind === 'date' ? '2026-03-10' : (OPTIONAL.options[0] ?? '5'))],
+      values: [
+        typed(OPTIONAL.key, OPTIONAL.kind === 'date' ? '2026-03-10' : (OPTIONAL.options[0] ?? '5')),
+      ],
       reask: [OPTIONAL.key],
     });
     expect(filled.items.find((i) => i.key === OPTIONAL.key)!.reask).toBeUndefined();
@@ -501,7 +554,9 @@ describe('Review round 1 fixes: cleared facts and the question cap', () => {
   it('(4) with more than ten missing required facts the cleared fact is still asked, ahead of non-party facts', () => {
     const b = brief('bail_regular');
     const missingRequired = b.items.filter((i) => i.required && i.value === null);
-    expect(missingRequired.length).toBeGreaterThan(10);
+    // T-245a (Addendum 1, last row): fir_date is optional, so bail_regular has exactly ten required
+    // facts missing; the cleared optional fact makes eleven candidates for the ten places.
+    expect(missingRequired.length).toBeGreaterThanOrEqual(10);
     const qs = buildQuestions(b, new Map(), new Set([OPTIONAL.key]));
     expect(qs).toHaveLength(10);
     const keys = qs.map((q) => q.key);

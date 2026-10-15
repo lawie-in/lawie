@@ -23,8 +23,11 @@ import type { EmailTemplate } from '@lawie/email-client';
 import { render } from '@react-email/render';
 import type { ReactElement } from 'react';
 
+import { authUnverifiedDeletionNoticeTemplate } from './auth/unverifiedDeletionNotice';
 import { authVerifyEmailTemplate } from './auth/verifyEmail';
 import { authWelcomeTemplate } from './auth/welcome';
+import { billingCreditNoteTemplate } from './billing/creditNote';
+import { billingTaxInvoiceTemplate } from './billing/taxInvoice';
 
 export interface TemplateDef<Data = Record<string, unknown>> {
   subject: (data: Data) => string;
@@ -40,6 +43,10 @@ export interface TemplateDef<Data = Record<string, unknown>> {
 const REGISTRY: Partial<Record<EmailTemplate, TemplateDef<any>>> = {
   'auth.welcome': authWelcomeTemplate,
   'auth.verifyEmail': authVerifyEmailTemplate,
+  'auth.unverifiedDeletionNotice': authUnverifiedDeletionNoticeTemplate,
+  // T-436 (b/c): Ajay Addendum 5 (invoice); Addendum 7 (4a) and Addendum 9 (credit note).
+  'billing.taxInvoice': billingTaxInvoiceTemplate,
+  'billing.creditNote': billingCreditNoteTemplate,
   // Madhuri's 8 templates land here as they ship.
 };
 
@@ -69,6 +76,11 @@ export async function renderTemplate(
     html,
     text,
   };
+}
+
+/** True when the template id has a registered definition. */
+export function isTemplateRegistered(templateId: EmailTemplate): boolean {
+  return REGISTRY[templateId] !== undefined;
 }
 
 export function listTemplates(): EmailTemplate[] {

@@ -7,6 +7,7 @@
     "notes": "Counter-affidavit / reply affidavit by respondent. Para-wise admit/deny + new pleadings. Verification + affirmation mandatory."
   },
   "template_id": "counter_affidavit",
+  "card_description": "A counter affidavit replying to the petition on behalf of a respondent.",
   "title": "Counter-Affidavit / Reply Affidavit (Respondent)",
   "category": "procedural",
   "creditsCost": 1,

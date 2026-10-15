@@ -31,3 +31,12 @@ Use the relation as given (`S/o`, `D/o`, `W/o`). If it is not given, print `[To 
 ## AC9
 
 Prompt and check changes come to me as a diff before merge. Golden snapshots that move are reviewed by me.
+
+## AC6 Addendum (T-393, Kunal), 13 Oct 2026
+
+1. **Cause title too.** The AC6 rule applies everywhere the relation prints: cause title, memo of parties, verification and affidavit. Never a fixed `S/o`.
+2. **Name given, relation not given:** print `[To be confirmed: relation] {name}`. Neither given: the full AC6 blank. Relation given, name not given: `{relation} [To be confirmed: name of parent or spouse]`.
+3. **New question for the bail packs**, exactly. Label: `Relation to the person named below`. Options: `Son of (S/o)`, `Daughter of (D/o)`, `Wife of (W/o)`, `Husband of (H/o)`. Not required. It prints as `S/o`, `D/o`, `W/o` or `H/o`. The next field's label: `Name of father, mother or spouse`. Never infer the relation from sex.
+4. **Scope.** Fix interim_bail, surrender_application and suspension_of_sentence in this ticket. It is the same defect and the same text, and I check them all in one diff.
+
+**T-393 build (Kunal, fix/t-393-relation-blank, c19899fc + 83329557): approved, 13 Oct 2026.** All 7 bail packs, the 2 docs twins and the cause titles use the relation token. No fixed `S/o {` remains in any of them. The blanks are byte-equal to this addendum: `[To be confirmed: relation]`, `[To be confirmed: name of parent or spouse]` and the full AC6 blank. The question "Relation to the person named below" (S/o, D/o, W/o, H/o) and the label "Name of father, mother or spouse" are byte-equal.

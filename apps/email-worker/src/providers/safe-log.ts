@@ -68,10 +68,27 @@ export class EmailSendError extends Error {
   readonly statusCode: number | undefined;
   /** 'client' | 'server' for SES (AWS SDK `$fault`); undefined otherwise. */
   readonly fault: string | undefined;
+  /**
+   * T-358: SMTP only. The SMTP command that failed, from a fixed list (e.g. 'RCPT TO',
+   * 'MAIL FROM'); undefined when absent or not on the list. Not in the message or the logs.
+   */
+  readonly smtpCommand: string | undefined;
+  /**
+   * T-358: SMTP only. The RFC 3463 enhanced status code at the start of the server reply
+   * (e.g. '5.1.1'), and nothing else from the reply. Not in the message or the logs.
+   */
+  readonly enhancedStatus: string | undefined;
 
   constructor(
     provider: EmailProviderName,
-    info: { errorName?: string; code?: string; statusCode?: number; fault?: string },
+    info: {
+      errorName?: string;
+      code?: string;
+      statusCode?: number;
+      fault?: string;
+      smtpCommand?: string;
+      enhancedStatus?: string;
+    },
   ) {
     const bits = [info.errorName, info.code, info.statusCode].filter((b) => b !== undefined);
     super(`${provider} send failed${bits.length > 0 ? `: ${bits.join(' ')}` : ''}`);
@@ -81,7 +98,42 @@ export class EmailSendError extends Error {
     this.code = info.code;
     this.statusCode = info.statusCode;
     this.fault = info.fault;
+    this.smtpCommand = info.smtpCommand;
+    this.enhancedStatus = info.enhancedStatus;
   }
+}
+
+/** SMTP commands nodemailer reports in `err.command`; anything else is dropped. */
+const SMTP_COMMANDS = new Set([
+  'CONN',
+  'EHLO',
+  'HELO',
+  'STARTTLS',
+  'AUTH',
+  'MAIL FROM',
+  'RCPT TO',
+  'DATA',
+]);
+
+function smtpCommandOf(v: unknown): string | undefined {
+  if (typeof v !== 'string') return undefined;
+  // nodemailer may append the mechanism (e.g. 'AUTH PLAIN'): keep the command word(s) only.
+  const upper = v.trim().toUpperCase();
+  if (SMTP_COMMANDS.has(upper)) return upper;
+  return upper.startsWith('AUTH ') ? 'AUTH' : undefined;
+}
+
+/**
+ * The enhanced status code (RFC 3463, 'class.subject.detail') right after the 3-digit reply
+ * code, e.g. '550 5.1.1 <x@y>: ...' gives '5.1.1'. Only those digits are kept; the rest of the
+ * reply (which can echo the address) is never read further or stored.
+ */
+const ENHANCED_STATUS = /^\s*\d{3}[ -]([245]\.\d{1,3}\.\d{1,3})(?=[\s,;:]|$)/;
+
+function enhancedStatusOf(v: unknown): string | undefined {
+  if (typeof v !== 'string') return undefined;
+  const m = ENHANCED_STATUS.exec(v.slice(0, 32));
+  return m ? m[1] : undefined;
 }
 
 /** Wrap an AWS SDK v3 SES error. Reads name, Code/code, $metadata and $fault only. */
@@ -96,13 +148,18 @@ export function fromSesError(err: unknown): EmailSendError {
   });
 }
 
-/** Wrap a nodemailer error. Reads name, code and responseCode only (never `response`). */
+/**
+ * Wrap a nodemailer error. Reads name, code, responseCode, the command (allowlisted) and, from
+ * `response`, only the leading enhanced status code (T-358). The response text is never kept.
+ */
 export function fromSmtpError(err: unknown): EmailSendError {
   const e = (err ?? {}) as Record<string, unknown>;
   return new EmailSendError('smtp', {
     errorName: safeToken(e.name),
     code: safeToken(e.code),
     statusCode: safeStatus(e.responseCode),
+    smtpCommand: smtpCommandOf(e.command),
+    enhancedStatus: enhancedStatusOf(e.response),
   });
 }
 

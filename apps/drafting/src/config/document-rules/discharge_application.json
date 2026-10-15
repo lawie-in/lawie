@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. 'No prima facie case' standard non-negotiable; not a mini-trial."
   },
   "template_id": "discharge_application",
+  "card_description": "An application under the BNSS to discharge the accused before charges are framed.",
   "docType": "discharge_application",
   "title": "Application for Discharge under BNSS",
   "displayName": "Discharge Application",
@@ -247,7 +248,7 @@
       "Burden — at discharge stage, defence cannot adduce evidence; only chargesheet material is examined. Accused may produce documents only if material in chargesheet itself supports defence (per State of Orissa v. Debendra Nath Padhi (2005) 1 SCC 568).",
       "IMPORTANT — Cite Debendra Nath Padhi: at framing/discharge stage, court cannot consider documents produced by defence; only chargesheet material relied. EXCEPT: documents of unimpeachable character (court orders, statutory documents).",
       "However in Nitya Dharmananda v. Gopal Sheelum Reddy (2018) 2 SCC 93 — relaxed Debendra Padhi where prosecution itself relied on certain documents.",
-      "Discharge order is appealable / revisable (S.438 BNSS revision to HC by State).",
+      "Revision against the discharge order lies under S.438 read with S.440 (Sessions Judge) or S.442 (High Court) BNSS.",
       "Affidavit in support is advisable.",
       "Append Lawie disclaimer."
     ]
@@ -271,8 +272,15 @@
           "number": "S.268",
           "description": "Discharge in a warrant case instituted on a complaint (replaces S.245 CrPC)"
         },
-        { "number": "S.438", "description": "Revisional powers of HC" },
-        { "number": "S.442", "description": "Revisional powers of Court of Session" }
+        {
+          "number": "S.438",
+          "description": "Calling for records to exercise powers of revision (was S.397 CrPC)"
+        },
+        {
+          "number": "S.440",
+          "description": "Sessions Judge's powers of revision (was S.399 CrPC)"
+        },
+        { "number": "S.442", "description": "High Court's powers of revision (was S.401 CrPC)" }
       ]
     },
     {

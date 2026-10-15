@@ -6,6 +6,7 @@ import {
   refreshSessionKey,
   sessionKey,
   getPrivacyVersionSummary,
+  PRIVACY_REACCEPT_REQUIRED,
 } from '@lawie/shared';
 import bcrypt from 'bcryptjs';
 
@@ -126,7 +127,8 @@ export async function registerUser(
     tokens.accessToken,
     tokens.refreshToken,
     { plan: user.plan, email: user.email, role: user.role, name: user.name },
-    meta,
+    // T-115c — the sign-up form just took the password.
+    { ...meta, authAt: new Date().toISOString() },
   );
 
   return { user, tokens, referralApplied };
@@ -171,7 +173,8 @@ export async function loginUser(
     tokens.accessToken,
     tokens.refreshToken,
     { plan: user.plan, email: user.email, role: user.role, name: user.name },
-    meta,
+    // T-115c — the password was just proved.
+    { ...meta, authAt: new Date().toISOString() },
   );
 
   // SCRUM-73 — daily login bonus, non-blocking on the login hot path.
@@ -203,9 +206,11 @@ export async function refreshTokens(
     throw new AppError(401, INVALID_REFRESH_MESSAGE);
   }
   let oldAccessTokenHash: unknown;
+  let oldAuthAt: unknown;
   try {
-    oldAccessTokenHash = (JSON.parse(oldRefreshData) as { accessTokenHash?: unknown })
-      .accessTokenHash;
+    const parsed = JSON.parse(oldRefreshData) as { accessTokenHash?: unknown; authAt?: unknown };
+    oldAccessTokenHash = parsed.accessTokenHash;
+    oldAuthAt = parsed.authAt;
   } catch {
     oldAccessTokenHash = undefined;
   }
@@ -235,7 +240,8 @@ export async function refreshTokens(
     tokens.accessToken,
     tokens.refreshToken,
     { plan: user.plan, email: user.email, role: user.role, name: user.name },
-    meta,
+    // T-115c — carried, never refreshed: a refresh proves nothing new about the user.
+    { ...meta, authAt: typeof oldAuthAt === 'string' ? oldAuthAt : undefined },
   );
 
   return tokens;
@@ -274,12 +280,19 @@ export type MeStatus = PrivacyStatus & {
   emailVerified: boolean;
   /** T-223: a Google account or a linked googleId (counts as verified, T-351). */
   hasGoogle: boolean;
+  /**
+   * T-115c: the account has a password, so closing it asks for the password; without one
+   * (Google-only) it asks the user to type their email. Read from +password, not authProvider.
+   */
+  hasPassword: boolean;
+  /** T-436: the GST State/UT code for tax invoices (2-digit string), or null when not given. */
+  gstStateCode: string | null;
 };
 
 export async function getPrivacyStatus(userId: string): Promise<MeStatus> {
   // googleId is select:false on the schema, so it is asked for explicitly (+googleId).
   const user = await User.findById(userId).select(
-    'privacyVersion isActive emailVerified authProvider +googleId',
+    'privacyVersion isActive emailVerified authProvider gstStateCode +googleId +password',
   );
   if (!user || !user.isActive) {
     throw new AppError(401, 'User not found or inactive');
@@ -291,7 +304,56 @@ export async function getPrivacyStatus(userId: string): Promise<MeStatus> {
     ...privacyStatusFor(user),
     emailVerified: user.emailVerified === true,
     hasGoogle,
+    hasPassword: typeof user.password === 'string' && user.password.length > 0,
+    gstStateCode: typeof user.gstStateCode === 'string' ? user.gstStateCode : null,
   };
+}
+
+/** T-436 — the PATCH /me outcome; the controller maps each kind to a status. */
+export type SetGstStateOutcome =
+  | { kind: 'saved'; gstStateCode: string }
+  | { kind: 'privacy_reaccept_required' }
+  | { kind: 'not_found' };
+
+/** T-436 — the 403 body for a PATCH /me refused for privacy (the T-343 shape the web knows). */
+export const SET_GST_STATE_PRIVACY_BODY = { error: PRIVACY_REACCEPT_REQUIRED } as const;
+
+/**
+ * T-436 — PATCH /me { gstStateCode } (already validated against GST_STATES).
+ *
+ * Consent order (Ajay, GST file Addendum 7 (2), must-fix): the State is new personal data under
+ * the bumped privacy version, so it is stored only for a user whose stored privacyVersion is
+ * CURRENT_PRIVACY_VERSION. The check reads the user record, not the token's `pv` claim (auth is
+ * the source of truth for acceptance, and a stale token cannot slip through), and is part of the
+ * update filter itself, so there is no gap between the check and the write.
+ *
+ * As requireCurrentPrivacy (Arjun, T-343 Addendum 2.1): when the current version has no signed
+ * summary no prompt can show, so the version is not required.
+ *
+ * An account being closed (erasure present) or inactive is 'not_found' (401, as GET /me).
+ * Never logs the State.
+ */
+export async function setGstStateCode(
+  userId: string,
+  gstStateCode: string,
+): Promise<SetGstStateOutcome> {
+  const privacyGated = getPrivacyVersionSummary(CURRENT_PRIVACY_VERSION) !== undefined;
+  const result = await User.updateOne(
+    {
+      _id: userId,
+      isActive: true,
+      erasure: { $exists: false },
+      ...(privacyGated ? { privacyVersion: CURRENT_PRIVACY_VERSION } : {}),
+    },
+    { $set: { gstStateCode } },
+    { runValidators: true },
+  );
+  if (result.matchedCount === 1) return { kind: 'saved', gstStateCode };
+
+  // Nothing matched: say why, without writing anything.
+  const user = await User.findById(userId).select('isActive erasure privacyVersion').lean();
+  if (!user || !user.isActive || user.erasure) return { kind: 'not_found' };
+  return { kind: 'privacy_reaccept_required' };
 }
 
 /**
@@ -339,9 +401,11 @@ export async function acceptPrivacy(
   }
   // The taken session's refresh key and audit row go too (as deleteSession does).
   let oldRefreshHash: unknown;
+  let oldAuthAt: unknown;
   try {
-    oldRefreshHash = (JSON.parse(oldSessionData) as { refreshTokenHash?: unknown })
-      .refreshTokenHash;
+    const parsed = JSON.parse(oldSessionData) as { refreshTokenHash?: unknown; authAt?: unknown };
+    oldRefreshHash = parsed.refreshTokenHash;
+    oldAuthAt = parsed.authAt;
   } catch {
     oldRefreshHash = undefined;
   }
@@ -384,7 +448,8 @@ export async function acceptPrivacy(
     tokens.accessToken,
     tokens.refreshToken,
     { plan: user.plan, email: user.email, role: user.role, name: user.name },
-    meta,
+    // T-115c — carried from the session that was taken, like /refresh.
+    { ...meta, authAt: typeof oldAuthAt === 'string' ? oldAuthAt : undefined },
   );
 
   logger.info({ userId: user._id.toString() }, 'Privacy version accepted');

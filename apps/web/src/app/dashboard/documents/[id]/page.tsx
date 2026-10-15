@@ -15,17 +15,24 @@ import {
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import DeleteDocumentDialog, {
+  rememberDeleteOutcome,
+  type DeleteOutcome,
+} from '@/components/documents/DeleteDocumentDialog';
+import AnnexuresCard, { annexuresCardVisible } from '@/components/editor/AnnexuresCard';
 import DocumentEditor from '@/components/editor/DocumentEditor';
 import ExportBlanksDialog from '@/components/editor/ExportBlanksDialog';
 import {
   EXPORT_BLANKS_GO_BACK_EVENT,
   blankListItems,
   blanksInContent,
+  downloadBlob,
   exportDocx,
   exportPdf,
   type Blank,
   type ExportBlanksGoBackDetail,
 } from '@/components/editor/exportUtils';
+import { secondaryButton } from '@/components/intake/ui';
 import { useAuth } from '@/context/AuthContext';
 import { getAccessToken } from '@/lib/auth';
 
@@ -50,6 +57,10 @@ interface DocumentData {
   startingDraftFooter?: string | null;
   /** T-197 — the signed disclaimer, shown on every draft. The text comes from the service. */
   disclaimer?: string | null;
+  /** T-381 — not one of the 32 not_court_documents. Sent by the service; absent means no card. */
+  courtDocument?: boolean;
+  /** T-381 — the brief or the form inputs hold at least one party. Absent means no card. */
+  hasParty?: boolean;
 }
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
@@ -78,6 +89,12 @@ export default function DocumentEditorPage() {
   } | null>(null);
   // T-233: the export that failed, so the banner can offer "Try again" in the same format.
   const [exportError, setExportError] = useState<ExportFormat | null>(null);
+  // T-115b — the Delete document button and its dialog (Rajesh's spec §1, §4).
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const handleDeleted = (outcome: DeleteOutcome) => {
+    rememberDeleteOutcome(outcome);
+    router.push('/dashboard/documents');
+  };
 
   // Track the latest HTML for export and auto-save
   const latestHtmlRef = useRef('');
@@ -243,12 +260,7 @@ export default function DocumentEditorPage() {
 
     const blob = await response.blob();
     const filename = `${doc.title.replace(/[^a-zA-Z0-9\s-]/g, '').slice(0, 60)}.pdf`;
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.click();
-    window.URL.revokeObjectURL(url);
+    downloadBlob(blob, filename);
   };
 
   // Makes the DOCX as today; T-194 adds the header and blank style when the draft has blanks.
@@ -575,6 +587,9 @@ export default function DocumentEditorPage() {
           </div>
         )}
 
+        {/* T-381 — the Annexures card: court documents with a party only */}
+        {annexuresCardVisible(doc) && <AnnexuresCard docId={doc._id} title={doc.title} />}
+
         {/* Editor */}
         <div className="lg:min-h-0 lg:flex-1">
           <DocumentEditor initialContent={doc.content} onUpdate={handleEditorUpdate} />
@@ -690,7 +705,23 @@ export default function DocumentEditorPage() {
             </div>
           </dl>
         </div>
+
+        {/* T-115b — at the bottom, away from Download and Edit, so it is not hit by mistake */}
+        <div className="pt-2">
+          <button type="button" onClick={() => setDeleteOpen(true)} className={secondaryButton}>
+            Delete document
+          </button>
+        </div>
       </div>
+
+      {deleteOpen && (
+        <DeleteDocumentDialog
+          documentId={doc._id}
+          title={doc.title}
+          onClose={() => setDeleteOpen(false)}
+          onDeleted={handleDeleted}
+        />
+      )}
     </div>
   );
 }

@@ -18,6 +18,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import BriefStep, { BriefLoadError, BriefLoading } from './BriefStep';
 import {
+  askedEmptyAnswers,
   Brief,
   BriefCourt,
   BriefItem,
@@ -34,6 +35,7 @@ import {
   LedgerEditResult,
   NO_RULE_PACK,
   readFactCheckBanner,
+  RenderedClause,
   Value,
   valuesAfter,
   withValue,
@@ -44,6 +46,7 @@ import DescribeStep from './DescribeStep';
 import DocumentChoiceStep, { NONE_OF_THESE } from './DocumentChoiceStep';
 import DraftReadyStep from './DraftReadyStep';
 import GeneratingStep from './GeneratingStep';
+import { NOT_STARTED_LINE, inkCostState } from './InkCostLine';
 import NoMatchStep from './NoMatchStep';
 import QuestionsStep from './QuestionsStep';
 
@@ -56,6 +59,7 @@ import {
   usePrivacyDescribedBy,
 } from '@/components/PrivacyUpdatePrompt';
 import { openVerifyInsteadOfPaywall } from '@/components/VerifyEmailPrompt';
+import { notifyCreditsChanged } from '@/hooks/useCredits';
 import { apiFetch } from '@/lib/apiFetch';
 
 type Phase =
@@ -118,12 +122,42 @@ function openQuestions(
   return questions.filter((q) => open.has(q.key) && (round === undefined || q.round === round));
 }
 
+/**
+ * T-372 / T-388: what a draft of this kind charges, from template-configs
+ * (`credits_cost`, or `guided_credits_cost` with no rule pack). Shown under
+ * Confirm and "Try again", and checked before the draft starts.
+ */
+function inkCostOf(
+  kindId: string,
+  kinds: KindSummary[],
+  guidedInkCost: number | undefined,
+): number | undefined {
+  return kindId === NO_RULE_PACK
+    ? guidedInkCost
+    : kinds.find((k) => k.template_id === kindId)?.credits_cost;
+}
+
+/** T-388 (Meera, final): a 402 that carries neither a cost nor a line of its own (now in InkCostLine). */
+export { NOT_STARTED_LINE };
+
 export default function OneFlow({
   kinds,
   loadingKinds,
+  guidedInkCost,
+  inkCostLoading = false,
+  onInkCostRetry,
+  initialKind,
 }: {
   kinds: KindSummary[];
   loadingKinds: boolean;
+  /** T-372: the Ink cost of a draft with no rule pack (the guided draft). */
+  guidedInkCost?: number;
+  /** T-388: the Ink costs (template-configs) are being fetched. */
+  inkCostLoading?: boolean;
+  /** T-388: fetches the Ink costs again when they could not be worked out. */
+  onInkCostRetry?: () => void;
+  /** T-365 AC5: a template_id from `?kind=` (the templates library); preset once if listed. */
+  initialKind?: string;
 }) {
   const router = useRouter();
   const privacyDescribedBy = usePrivacyDescribedBy('generate'); // T-343
@@ -150,6 +184,8 @@ export default function OneFlow({
   const [changeOpen, setChangeOpen] = useState(false);
   const [briefMessage, setBriefMessage] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
+  /** T-365 AC2: what the advocate answered on each item the service sends as `asked_empty`. */
+  const [askedAnswers, setAskedAnswers] = useState<Record<string, Value>>({});
   /** T-147b, section 6: the first reading of a brief is on its way, or it failed. */
   const [reading, setReading] = useState<'loading' | 'failed' | null>(null);
   const lastReadBody = useRef<Record<string, unknown> | null>(null);
@@ -190,6 +226,7 @@ export default function OneFlow({
     (next: Brief) => {
       valuesRef.current = valuesAfter(next, valuesRef.current);
       courtRef.current = next.court;
+      setAskedAnswers(askedEmptyAnswers(next, valuesRef.current));
       setBrief(next);
     },
     [setBrief],
@@ -484,6 +521,8 @@ export default function OneFlow({
                   value: isEmptyValue(value) ? null : value,
                   source: 'user',
                   please_check: false,
+                  // T-365: a new answer replaces an earlier "Not known" until the service says otherwise.
+                  asked_empty: undefined,
                 }
               : i,
           ),
@@ -565,6 +604,10 @@ export default function OneFlow({
     async (retry: boolean) => {
       const current = briefRef.current;
       if (!current) return;
+      // T-388 (Arjun): nothing that charges starts while the Ink cost is not
+      // known. Confirm and "Try again" are off then too; this is the backstop.
+      const cost = inkCostOf(current.kind.id ?? NO_RULE_PACK, kinds, guidedInkCost);
+      if (inkCostState(cost, inkCostLoading) !== 'known') return;
       // T-343: ask before leaving the brief, so focus stays on the confirm button.
       if (await privacyPrecheck('generate')) return;
       if (!retry) runId.current = undefined;
@@ -616,10 +659,16 @@ export default function OneFlow({
               setPhase('brief');
               return;
             }
-            setPaywall({
-              cost: data.cost ?? 1,
-              balance: data.balance?.totalInk ?? data.balance?.total ?? 0,
-            });
+            // T-388: the paywall shows the server's cost, never a made-up one.
+            // Without a cost there is no paywall; the service's own line is shown.
+            if (typeof data.cost === 'number' && Number.isFinite(data.cost) && data.cost > 0) {
+              setPaywall({
+                cost: data.cost,
+                balance: data.balance?.totalInk ?? data.balance?.total ?? 0,
+              });
+            } else {
+              setBriefMessage(data.message ?? NOT_STARTED_LINE);
+            }
             setPhase('brief');
             return;
           }
@@ -709,10 +758,36 @@ export default function OneFlow({
           return;
         }
 
+        // T-372: the draft is done and paid for. Apply the new Ink balance it carries,
+        // or have every balance widget refetch when it carries none.
+        const totalInk = (done.balance as { totalInk?: unknown } | undefined)?.totalInk;
+        if (typeof totalInk === 'number' && Number.isFinite(totalInk)) {
+          notifyCreditsChanged({ totalInk });
+        } else {
+          notifyCreditsChanged();
+        }
+
         const missing = Array.isArray(done.missingClauses)
           ? (done.missingClauses as Array<{ id: string; title: string }>)
           : [];
-        const missingIds = new Set(missing.map((m) => m.id));
+        // T-373: on a D1 pack the service sends the clauses the renderer printed; the
+        // checks panel reads those clause ids. Absent on every other pack.
+        const rendered = Array.isArray(done.rendered)
+          ? (done.rendered as unknown[]).filter(
+              (r): r is RenderedClause =>
+                typeof r === 'object' &&
+                r !== null &&
+                typeof (r as Record<string, unknown>).clauseId === 'string' &&
+                ['ok', 'missing', 'fallback'].includes(
+                  (r as Record<string, unknown>).status as string,
+                ),
+            )
+          : undefined;
+        const missingIds = new Set(
+          rendered
+            ? rendered.filter((r) => r.status === 'missing').map((r) => r.clauseId)
+            : missing.map((m) => m.id),
+        );
         const name = current.kind.name;
         // The draft is written. Nothing the advocate typed is kept on this page any longer.
         reset();
@@ -736,13 +811,14 @@ export default function OneFlow({
           // T-197: sent with every finished draft. Falls back to the banner's own line.
           disclaimer:
             typeof done.disclaimer === 'string' ? done.disclaimer : (factCheck?.disclaimer ?? null),
+          ...(rendered ? { rendered } : {}),
         });
         setPhase('ready');
       } catch {
         setGenError({ reason: 'Lost the connection to the drafting service.', retryable: true });
       }
     },
-    [description, reset, update],
+    [description, reset, update, kinds, guidedInkCost, inkCostLoading],
   );
 
   // ── Moving between the screens ────────────────────────────────────────────
@@ -782,6 +858,30 @@ export default function OneFlow({
     fromOutstanding.current = false;
     setFocusOutstanding(true);
   }, [onBriefScreen]);
+
+  // T-365 AC5: once the list has loaded, a listed `initialKind` is preset exactly
+  // as a pick in "Browse document types"; an unknown or unlisted id leaves a
+  // plain describe. Runs once; `?kind=` is then dropped so a reload does not
+  // preset again after the advocate changes document. If the advocate has already
+  // acted before the list arrived (typed, submitted, browsed, picked), their
+  // choice stands and the preset is skipped.
+  const initialKindDone = useRef(false);
+  useEffect(() => {
+    if (initialKindDone.current || !initialKind || loadingKinds) return;
+    initialKindDone.current = true;
+    const acted =
+      phase !== 'describe' || busy || chosenKind.current !== undefined || description.trim() !== '';
+    const k = acted ? undefined : kinds.find((x) => x.template_id === initialKind);
+    if (k) {
+      setPreset({ id: k.template_id, name: k.display_name });
+      chosenKind.current = k.template_id;
+      setMessage(null);
+      setPhase('describe');
+    }
+    const url = new URL(window.location.href);
+    url.searchParams.delete('kind');
+    window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
+  }, [initialKind, kinds, loadingKinds, phase, busy, description]);
 
   if (reading === 'loading') return <BriefLoading />;
   if (reading === 'failed') {
@@ -871,9 +971,18 @@ export default function OneFlow({
     );
   }
 
+  // T-372 / T-388: the one Ink cost of this brief, shown under Confirm and
+  // under "Try again", from the same template-configs price.
+  const briefKind = brief ? (brief.kind.id ?? NO_RULE_PACK) : undefined;
+  const inkCost = briefKind === undefined ? undefined : inkCostOf(briefKind, kinds, guidedInkCost);
+
   if (phase === 'generating') {
     return (
       <GeneratingStep
+        inkCost={inkCost}
+        inkCostLoading={inkCostLoading}
+        onInkCostRetry={onInkCostRetry}
+        kind={briefKind}
         documentName={brief?.kind.name ?? 'document'}
         repairing={repairing}
         error={genError}
@@ -945,6 +1054,11 @@ export default function OneFlow({
           onCancel={cancel}
           onConfirm={() => void generate(false)}
           confirmDescribedBy={privacyDescribedBy}
+          inkCost={inkCost}
+          inkCostLoading={inkCostLoading}
+          onInkCostRetry={onInkCostRetry}
+          inkCostKind={briefKind}
+          askedAnswers={askedAnswers}
         />
         <ChangeDocumentDialog
           open={changeOpen}

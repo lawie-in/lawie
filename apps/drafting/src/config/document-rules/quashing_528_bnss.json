@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. Bhajan Lal seven categories must be cited verbatim where invoked."
   },
   "template_id": "quashing_528_bnss",
+  "card_description": "A petition to the High Court under Section 528 BNSS to quash criminal proceedings.",
   "docType": "quashing_528_bnss",
   "title": "Petition for Quashing under Section 528 BNSS (Inherent Powers of High Court)",
   "displayName": "Quashing Petition (S.528 BNSS)",
@@ -291,9 +292,13 @@
         { "number": "S.210", "description": "Cognizance by Magistrate (replaces S.190 CrPC)" },
         {
           "number": "S.438",
-          "description": "Revisional powers of HC (replaces S.397 CrPC, partly)"
+          "description": "Calling for records to exercise powers of revision (was S.397 CrPC)"
         },
-        { "number": "S.442", "description": "Revisional powers of Court of Session" }
+        {
+          "number": "S.440",
+          "description": "Sessions Judge's powers of revision (was S.399 CrPC)"
+        },
+        { "number": "S.442", "description": "High Court's powers of revision (was S.401 CrPC)" }
       ]
     },
     {

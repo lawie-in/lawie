@@ -1,4 +1,5 @@
 {
+  "card_description": "A rent agreement for residential or commercial premises.",
   "_meta": {
     "description": "Document-rules config for rent_agreement — drives prompt, validation, mandatory clauses",
     "owner": "Ajay (CLO)",
@@ -21,9 +22,11 @@
           },
           {
             "field_id": "execution_place",
-            "label": "Place of Execution",
+            "label": "Place of execution",
             "type": "text",
             "required": true,
+            "help": "City or town where the document will be signed.",
+            "ask_when_empty": true,
             "inject_into": ["header", "closing"]
           },
           {

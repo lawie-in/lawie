@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. Time-bar check is jurisdictional."
   },
   "template_id": "criminal_appeal",
+  "card_description": "A criminal appeal under the BNSS against a conviction, acquittal or sentence.",
   "docType": "criminal_appeal",
   "title": "Criminal Appeal under BNSS",
   "displayName": "Criminal Appeal (S.415-419 BNSS)",

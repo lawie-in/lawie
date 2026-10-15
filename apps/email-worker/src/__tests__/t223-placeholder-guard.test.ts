@@ -1,16 +1,18 @@
 /**
- * T-223 review round 2 (Ajay: "No send until [registered address] and [PIN] are filled").
- * Live mode = EMAIL_PROVIDER ses or smtp with EMAIL_DRY_RUN not true. In live mode a rendered
- * email that still holds a footer placeholder is never sent, by the queue worker (processor) or
- * by POST /send. Dry run is unaffected.
+ * T-223 review round 2 (Ajay: "No send until [registered address] and [PIN] are filled"),
+ * reworked for T-379. Live mode = EMAIL_PROVIDER ses or smtp with EMAIL_DRY_RUN not true. In live
+ * mode a template whose own STATIC footer still holds a placeholder is never sent, by the queue
+ * worker (processor) or by POST /send. The check never looks at the rendered output (AC3), so
+ * user data containing "[PIN]" is not refused. Dry run is unaffected.
  *
- * The rendered bodies come from the REAL renderer (child process, real footer). Env is switched
+ * T-436 filled the real auth.verifyEmail footer, so the guard is exercised with an INJECTED unfilled
+ * footer (mockUnfilledFooter swaps VERIFY_EMAIL_STRINGS.footer1 for one with [registered address]
+ * and [PIN]; see helpers/t436-unfilled-footer.ts). With the flag off the real, filled footer is
+ * used and verify emails go out in live mode. Env is switched
  * the way t220 does it: withEnv + jest.isolateModulesAsync, so env.ts is parsed fresh per case.
  * pino is real, writing to an in-memory sink; Sentry and the provider send are stubs.
  *
- * Finding recorded in the report: auth.welcome as shipped has NO footer placeholders, so the guard
- * lets it through in live mode (asserted below). The "any template" claim is proven with a
- * template whose output carries a placeholder.
+ * auth.welcome as shipped has NO footer placeholders, so the guard lets it through in live mode.
  */
 import http from 'http';
 import type { AddressInfo } from 'net';
@@ -42,6 +44,10 @@ jest.mock('@sentry/node', () => ({
   captureException: jest.fn(),
   captureMessage: jest.fn(),
 }));
+let mockUnfilledFooter: boolean | string = true;
+jest.mock('../templates/auth/verifyEmail', () =>
+  jest.requireActual('./helpers/t436-unfilled-footer').verifyEmailModule(() => mockUnfilledFooter),
+);
 const mockRender = jest.fn();
 jest.mock('../templates', () => ({
   renderTemplate: (...a: unknown[]) => mockRender(...a),
@@ -84,6 +90,7 @@ beforeAll(() => {
 beforeEach(() => {
   resetSink();
   jest.clearAllMocks();
+  mockUnfilledFooter = true;
   mockProviderSend.mockResolvedValue({ messageId: 'sent-1' });
   mockRender.mockImplementation(async (id: string) =>
     id === 'auth.verifyEmail' ? verifyReal : welcomeReal,
@@ -94,6 +101,7 @@ const LIVE_ENVS: Array<[string, Record<string, string>]> = [
   ['ses', SES_ENV],
   ['smtp', SMTP_ENV],
 ];
+const DRY_ENV = { EMAIL_PROVIDER: 'dry-run', EMAIL_DRY_RUN: 'true' };
 const BASE_ENV_EXTRA = { AUTH_SERVICE_URL: 'http://localhost:4001' };
 
 function job(template: string, attemptsMade = 0, attempts = 5): Job<EmailJobData> {
@@ -178,13 +186,14 @@ function expectNoSensitive() {
 }
 
 describe('fixtures are the real rendered output', () => {
-  it('auth.verifyEmail really carries both placeholders in html and text', () => {
+  it('auth.verifyEmail, as shipped (T-436), carries neither placeholder in html and text', () => {
     for (const part of [verifyReal.html, verifyReal.text]) {
-      expect(part).toContain('[registered address]');
-      expect(part).toContain('[PIN]');
+      expect(part).not.toContain('[registered address]');
+      expect(part).not.toContain('[PIN]');
+      expect(part).toContain('Lawie (Sole Proprietorship), Ranchi, Jharkhand');
     }
   });
-  it('auth.welcome, as shipped, carries neither (finding: the guard does not block it)', () => {
+  it('auth.welcome, as shipped, carries neither', () => {
     for (const part of [welcomeReal.html, welcomeReal.text]) {
       expect(part).not.toContain('[registered address]');
       expect(part).not.toContain('[PIN]');
@@ -192,33 +201,49 @@ describe('fixtures are the real rendered output', () => {
   });
 });
 
-describe('hasUnfilledPlaceholder (exact, case-sensitive substring match)', () => {
-  let has: typeof import('../placeholders').hasUnfilledPlaceholder;
+describe('templateHasUnfilledFooter / anyTemplateUnfilled (static footer)', () => {
+  let ph: typeof import('../placeholders');
   beforeAll(async () => {
-    has = (await import('../placeholders')).hasUnfilledPlaceholder;
+    ph = await import('../placeholders');
   });
-  const mk = (html: string, text: string) => ({ html, text });
-
-  it('true when html alone has either placeholder', () => {
-    expect(has(mk('<p>[registered address]</p>', 'clean'))).toBe(true);
-    expect(has(mk('<p>[PIN]</p>', 'clean'))).toBe(true);
+  it('removed the rendered-output check', () => {
+    expect((ph as Record<string, unknown>).hasUnfilledPlaceholder).toBeUndefined();
   });
-  it('true when text alone has either placeholder', () => {
-    expect(has(mk('<p>clean</p>', 'x [registered address] y'))).toBe(true);
-    expect(has(mk('<p>clean</p>', 'Patna 800001 [PIN]'))).toBe(true);
+  it('injected unfilled verifyEmail footer: flagged; auth.welcome and an unknown id are not', () => {
+    expect(ph.templateHasUnfilledFooter('auth.verifyEmail')).toBe(true);
+    expect(ph.templateHasUnfilledFooter('auth.welcome')).toBe(false);
+    expect(ph.templateHasUnfilledFooter('nope.nothing' as never)).toBe(false);
   });
-  it('false for a filled footer and for empty parts', () => {
-    expect(has(mk('<p>12 MG Road, Patna 800001</p>', '12 MG Road, Patna 800001'))).toBe(false);
-    expect(has(mk('', ''))).toBe(false);
+  it('anyTemplateUnfilled is true while verifyEmail has the injected placeholders', () => {
+    expect(ph.anyTemplateUnfilled()).toBe(true);
   });
-  it('no false positive on [PINK], [PINCODE], "PIN" without brackets', () => {
-    expect(has(mk('[PINK] [PINCODE] PIN 800001', '[PINK] PIN'))).toBe(false);
+  it.each([
+    [
+      '[registered address] alone',
+      'Lawie (Sole Proprietorship), [registered address], Ranchi',
+      true,
+    ],
+    ['[PIN] alone', 'Lawie (Sole Proprietorship), Ranchi, Jharkhand [PIN]', true],
+    ['the signed footer', 'Lawie (Sole Proprietorship), Ranchi, Jharkhand', false],
+    [
+      'other brackets are not placeholders',
+      'Lawie (Sole Proprietorship) [Ranchi], Jharkhand',
+      false,
+    ],
+  ])('footer1 with %s -> flagged: %s', async (_l, footer1, expected) => {
+    mockUnfilledFooter = footer1;
+    await inEnv(DRY_ENV, async ({ ph: fresh }) => {
+      expect(fresh.templateHasUnfilledFooter('auth.verifyEmail')).toBe(expected);
+      expect(fresh.anyTemplateUnfilled()).toBe(expected);
+    });
   });
-  it('is case- and spacing-sensitive: [pin], [Registered Address], [ PIN ] are NOT caught', () => {
-    // Documents current behaviour: only the exact tokens from the template are matched.
-    expect(has(mk('[pin]', '[pin]'))).toBe(false);
-    expect(has(mk('[Registered Address]', '[REGISTERED ADDRESS]'))).toBe(false);
-    expect(has(mk('[ PIN ]', '[registered  address]'))).toBe(false);
+  it('real shipped footer (flag off): verifyEmail is NOT flagged and nothing is unfilled', async () => {
+    mockUnfilledFooter = false;
+    await inEnv(DRY_ENV, async ({ ph: fresh }) => {
+      expect(fresh.templateHasUnfilledFooter('auth.verifyEmail')).toBe(false);
+      expect(fresh.templateHasUnfilledFooter('auth.welcome')).toBe(false);
+      expect(fresh.anyTemplateUnfilled()).toBe(false);
+    });
   });
 });
 
@@ -236,18 +261,41 @@ describe('isLiveSend', () => {
 });
 
 describe.each(LIVE_ENVS)('queue worker, live mode (%s)', (_name, LIVE) => {
-  it('auth.verifyEmail with the real footer: UnrecoverableError, fixed message, send never called', async () => {
+  it('auth.verifyEmail: UnrecoverableError, fixed message, mint and send never called', async () => {
     const r = await runProcessor(LIVE, 'auth.verifyEmail');
-    expect(r.mint).toHaveBeenCalledTimes(1); // rendering needs the minted data
+    expect(r.mint).not.toHaveBeenCalled(); // T-379: a refused job never rotates the token
     expect(r.send).not.toHaveBeenCalled();
+    expect(mockRender).not.toHaveBeenCalled();
     expect(mockProviderSend).not.toHaveBeenCalled();
     expectUnrecoverable(r.thrown);
     expect((r.thrown as Error).message).toBe(FIXED_MESSAGE);
-    expect((r.thrown as Error).name).toBe('UnrecoverableError');
     expect(r.result).toBeUndefined();
     expectNoSensitive();
-    expectNoSensitive(); // idempotent read
     expect(dump(r.thrown)).not.toContain(LEAK_ADDRESS);
+  });
+
+  it('T-436: with the real, filled footer a verify email is NOT refused: processed, mint and send once', async () => {
+    mockUnfilledFooter = false;
+    const r = await runProcessor(LIVE, 'auth.verifyEmail');
+    expect(r.thrown).toBeUndefined();
+    expect(r.mint).toHaveBeenCalledTimes(1);
+    expect(r.send).toHaveBeenCalledTimes(1);
+    expect(r.result).toEqual({ messageId: 'sent-1' });
+    expect(
+      parsedLogs().filter((l) => String(l.msg).includes('unfilled footer placeholders')),
+    ).toHaveLength(0);
+    expect(capture).not.toHaveBeenCalled();
+  });
+
+  it('the refusal comes before the userId check (job without a userId gets the same error)', async () => {
+    const send = jest.fn(async () => ({ messageId: 'x' }));
+    const mint = jest.fn();
+    await inEnv(LIVE, async ({ worker }) => {
+      const j = job('auth.verifyEmail');
+      j.data.data = {};
+      await expect(worker.createProcessor(send, mint)(j, 't')).rejects.toThrow(FIXED_MESSAGE);
+    });
+    expect(mint).not.toHaveBeenCalled();
   });
 
   it('logs one error line with only userId and jobId as fields', async () => {
@@ -282,38 +330,28 @@ describe.each(LIVE_ENVS)('queue worker, live mode (%s)', (_name, LIVE) => {
     expect(r.isFinal(job('auth.verifyEmail', 0, 5), r.thrown)).toBe(true);
   });
 
-  it('a placeholder in only the text part, or only the html part, still blocks', async () => {
-    for (const variant of [
-      { ...CLEAN, text: 'Lawie, [registered address], Patna' },
-      { ...CLEAN, html: '<p>Patna [PIN]</p>' },
-    ]) {
-      mockRender.mockResolvedValue(variant);
-      const r = await runProcessor(LIVE, 'auth.welcome');
-      expect(r.send).not.toHaveBeenCalled();
-      expect((r.thrown as Error).message).toBe(FIXED_MESSAGE);
-    }
-  });
-
-  it('guard is not specific to verifyEmail: any template whose output has a placeholder is blocked', async () => {
-    mockRender.mockResolvedValue({ ...welcomeReal, html: `${welcomeReal.html}<p>[PIN]</p>` });
-    const r = await runProcessor(LIVE, 'auth.welcome');
-    expect(r.send).not.toHaveBeenCalled();
-    expectUnrecoverable(r.thrown);
-    expect((r.thrown as Error).message).toBe(FIXED_MESSAGE);
-    expect(capture).not.toHaveBeenCalled();
-    expectNoSensitive();
-  });
-
-  it('auth.welcome as shipped (no placeholders) is sent in live mode', async () => {
+  it('AC3: user data containing [PIN] / [registered address] is NOT refused (auth.welcome)', async () => {
+    const tricky = renderReal('auth.welcome', {
+      name: '[PIN] [registered address]',
+      loginUrl: 'https://lawie.in/login',
+      userId: USER_ID,
+    });
+    mockRender.mockResolvedValue(tricky);
     const r = await runProcessor(LIVE, 'auth.welcome');
     expect(r.thrown).toBeUndefined();
     expect(r.send).toHaveBeenCalledTimes(1);
     expect(r.result).toEqual({ messageId: 'sent-1' });
   });
 
-  it('a template with no placeholders sends', async () => {
-    mockRender.mockResolvedValue(CLEAN);
-    const r = await runProcessor(LIVE, 'auth.verifyEmail');
+  it('AC3: the check ignores the rendered output (a placeholder in the render of a clean template does not block)', async () => {
+    mockRender.mockResolvedValue({ ...welcomeReal, html: `${welcomeReal.html}<p>[PIN]</p>` });
+    const r = await runProcessor(LIVE, 'auth.welcome');
+    expect(r.thrown).toBeUndefined();
+    expect(r.send).toHaveBeenCalledTimes(1);
+  });
+
+  it('auth.welcome as shipped (no placeholders) is sent in live mode', async () => {
+    const r = await runProcessor(LIVE, 'auth.welcome');
     expect(r.thrown).toBeUndefined();
     expect(r.send).toHaveBeenCalledTimes(1);
     expect(r.result).toEqual({ messageId: 'sent-1' });
@@ -337,15 +375,19 @@ describe('queue worker, dry run', () => {
     ['EMAIL_DRY_RUN=true on smtp', { ...SMTP_ENV, EMAIL_DRY_RUN: 'true' }],
     ['provider dry-run', { EMAIL_PROVIDER: 'dry-run', EMAIL_DRY_RUN: 'false' }],
     ['setupEnv default', { EMAIL_PROVIDER: 'dry-run', EMAIL_DRY_RUN: 'true' }],
-  ])('auth.verifyEmail with the real footer sends normally (%s)', async (_l, env) => {
-    const r = await runProcessor(env, 'auth.verifyEmail');
-    expect(r.thrown).toBeUndefined();
-    expect(r.send).toHaveBeenCalledTimes(1);
-    expect(r.result).toEqual({ messageId: 'sent-1' });
-    expect(
-      parsedLogs().filter((l) => String(l.msg).includes('unfilled footer placeholders')),
-    ).toHaveLength(0);
-  });
+  ])(
+    'auth.verifyEmail with an injected unfilled footer still sends in dry run (%s)',
+    async (_l, env) => {
+      const r = await runProcessor(env, 'auth.verifyEmail');
+      expect(r.thrown).toBeUndefined();
+      expect(r.mint).toHaveBeenCalledTimes(1);
+      expect(r.send).toHaveBeenCalledTimes(1);
+      expect(r.result).toEqual({ messageId: 'sent-1' });
+      expect(
+        parsedLogs().filter((l) => String(l.msg).includes('unfilled footer placeholders')),
+      ).toHaveLength(0);
+    },
+  );
 });
 
 describe('POST /send', () => {
@@ -375,12 +417,18 @@ describe('POST /send', () => {
     to: LEAK_ADDRESS,
     data: { userId: USER_ID, name: LEAK_NAME, verifyUrl: LINK },
   };
+  const WELCOME_BODY = {
+    template: 'auth.welcome',
+    to: LEAK_ADDRESS,
+    data: { userId: USER_ID, name: '[PIN]', loginUrl: 'https://lawie.in/login' },
+  };
 
   describe.each(LIVE_ENVS)('live (%s)', (_n, LIVE) => {
-    it('placeholder template -> 422 {error: unfilled_placeholders}, provider never called, ids-only log', async () => {
+    it('unfilled-footer template -> 422 {error: unfilled_placeholders}, nothing rendered or sent, ids-only log', async () => {
       const r = await post(LIVE, BODY);
       expect(r.status).toBe(422);
       expect(JSON.parse(r.text)).toEqual({ error: 'unfilled_placeholders' });
+      expect(mockRender).not.toHaveBeenCalled();
       expect(mockProviderSend).not.toHaveBeenCalled();
       const line = parsedLogs().find((l) => String(l.msg).includes('unfilled footer placeholders'));
       expect(line).toMatchObject({ template: 'auth.verifyEmail', userId: USER_ID });
@@ -392,9 +440,8 @@ describe('POST /send', () => {
       expectNoSensitive();
     });
 
-    it('template without placeholders -> 202 and the provider is called once', async () => {
-      mockRender.mockResolvedValue(CLEAN);
-      const r = await post(LIVE, BODY);
+    it('AC3: template without a footer placeholder and user data "[PIN]" -> 202, provider called once', async () => {
+      const r = await post(LIVE, WELCOME_BODY);
       expect(r.status).toBe(202);
       expect(JSON.parse(r.text)).toEqual({ messageId: 'sent-1' });
       expect(mockProviderSend).toHaveBeenCalledTimes(1);
@@ -404,6 +451,19 @@ describe('POST /send', () => {
       const r = await post(LIVE, BODY, { [INTERNAL_HEADERS.SECRET]: 'nope-nope-nope-nope' });
       expect(r.status).toBe(401);
       expect(mockRender).not.toHaveBeenCalled();
+    });
+  });
+
+  describe.each(LIVE_ENVS)('T-436 real filled footer, live (%s)', (_n, LIVE) => {
+    it('auth.verifyEmail -> 202, not 422; provider called once', async () => {
+      mockUnfilledFooter = false;
+      const r = await post(LIVE, BODY);
+      expect(r.status).toBe(202);
+      expect(JSON.parse(r.text)).toEqual({ messageId: 'sent-1' });
+      expect(mockProviderSend).toHaveBeenCalledTimes(1);
+      expect(
+        parsedLogs().filter((l) => String(l.msg).includes('unfilled footer placeholders')),
+      ).toHaveLength(0);
     });
   });
 

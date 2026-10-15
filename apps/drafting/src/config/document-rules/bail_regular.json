@@ -1,4 +1,5 @@
 {
+  "card_description": "A regular bail application for an accused person in custody.",
   "_meta": {
     "description": "Document-rules config for bail_regular — drives prompt, validation, mandatory clauses",
     "owner": "Ajay (CLO)",
@@ -22,10 +23,37 @@
           },
           {
             "field_id": "fir_date",
-            "label": "FIR Date",
+            "label": "Date of FIR, or of the complaint if no FIR",
             "type": "date",
-            "required": true,
+            "required": false,
+            "question": "On what date was the FIR registered, or the complaint filed if there is no FIR?",
+            "ask_when_empty": true,
             "inject_into": ["body_para_1", "prayer"]
+          },
+          {
+            "field_id": "offence_date",
+            "label": "Date of the alleged offence (or of the offence of conviction)",
+            "type": "date",
+            "required": false,
+            "inject_into": ["ai_prompt"]
+          },
+          {
+            "field_id": "procedure_code",
+            "label": "This application is under",
+            "type": "dropdown",
+            "options": [
+              {
+                "id": "bnss_and_bsa",
+                "label": "BNSS and BSA"
+              },
+              {
+                "id": "crpc_and_evidence_act",
+                "label": "CrPC and Evidence Act"
+              }
+            ],
+            "required": false,
+            "help": "Matters only for a case that began before 1 July 2024. For an FIR on or after that date, Lawie uses the BNSS.",
+            "inject_into": ["ai_prompt"]
           },
           {
             "field_id": "police_station",
@@ -40,7 +68,7 @@
             "type": "multi_select_search",
             "source": "bns_mapping",
             "required": true,
-            "auto_convert_old": true,
+            "auto_convert_old": false,
             "inject_into": ["body_para_1", "ai_prompt"]
           },
           {
@@ -256,7 +284,7 @@
           },
           {
             "field_id": "s35_notice_status",
-            "label": "Notice under Section 35 BNSS",
+            "label": "Notice to appear (Section 35 BNSS / Section 41A CrPC)",
             "type": "dropdown",
             "options": [
               {
@@ -273,7 +301,7 @@
               }
             ],
             "required": false,
-            "question": "Before the arrest, was a notice of appearance under Section 35(3) of the BNSS served on the applicant?",
+            "question": "Before the arrest, was a notice of appearance under Section 35(3) of the BNSS or Section 41A of the CrPC served on the applicant?",
             "ask_when_empty": true
           },
           {
@@ -333,8 +361,21 @@
             "inject_into": ["cause_title", "verification", "prayer"]
           },
           {
+            "field_id": "applicant_relation",
+            "label": "Relation to the person named below",
+            "type": "dropdown",
+            "options": [
+              { "id": "son_of", "label": "Son of (S/o)" },
+              { "id": "daughter_of", "label": "Daughter of (D/o)" },
+              { "id": "wife_of", "label": "Wife of (W/o)" },
+              { "id": "husband_of", "label": "Husband of (H/o)" }
+            ],
+            "required": false,
+            "inject_into": ["cause_title", "verification"]
+          },
+          {
             "field_id": "father_name",
-            "label": "Father's / Husband's Name",
+            "label": "Name of father, mother or spouse",
             "type": "text",
             "required": true,
             "inject_into": ["cause_title"]
@@ -450,7 +491,7 @@
   "displayName": "Regular Bail Application",
   "category": "criminal",
   "causeTitle": {
-    "format": "IN THE COURT OF {courtDesignation}\n\n{caseNomenclature}\n\n{applicant} ... Applicant/Accused\nVERSUS\nState of {state} / {respondent} ... Respondent/Complainant",
+    "format": "IN THE COURT OF {courtDesignation}\n\n{caseNomenclature}\n(Under {governing_provision})\n\n{applicant} ... Applicant/Accused\nVERSUS\nState of {state} / {respondent} ... Respondent/Complainant",
     "partyDesignations": [
       { "role": "applicant", "label": "Applicant/Accused" },
       { "role": "respondent", "label": "Respondent/Complainant" }
@@ -507,11 +548,11 @@
       "description": "Name and enrollment number of advocate"
     }
   ],
-  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, it is most respectfully prayed that this Hon'ble Court may graciously be pleased to:\n\na) Grant regular bail to the applicant {applicant} in connection with {firDetails} under Section 480 (before a Magistrate) or Section 483 (before a Court of Session or a High Court) of the Bharatiya Nagarik Suraksha Sanhita, 2023, on such terms and conditions as this Hon'ble Court may deem fit and proper;\nb) Direct the release of the applicant on furnishing personal bond with surety to the satisfaction of this Hon'ble Court;\nc) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the applicant shall ever pray.",
+  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, it is most respectfully prayed that this Hon'ble Court may graciously be pleased to:\n\na) Grant regular bail to the applicant {applicant} in connection with {firDetails} under {governing_provision}, on such terms and conditions as this Hon'ble Court may deem fit and proper;\nb) Direct the release of the applicant on furnishing personal bond with surety to the satisfaction of this Hon'ble Court;\nc) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the applicant shall ever pray.",
   "specialPrayerAdditions": {
     "dv_dowry": "d) Direct the applicant to furnish an undertaking not to contact the complainant or her family members directly or indirectly;\ne) Direct the applicant to provide an undertaking regarding the return/safekeeping of stridhan and dowry articles as per the inventory;"
   },
-  "verificationTemplate": "VERIFICATION\n\nI, {applicant}, {relation} of {parentName}, aged about {age} years, resident of {address}, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above application are true and correct to the best of my knowledge and belief. No part of it is false and nothing material has been concealed therein.\n\nVerified at {place} on this {date}.\n\nDeponent",
+  "verificationTemplate": "VERIFICATION\n\nI, {applicant}, {parentRelation}, aged about {age} years, resident of {address}, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above application are true and correct to the best of my knowledge and belief. No part of it is false and nothing material has been concealed therein.\n\nVerified at {place} on this {date}.\n\nDeponent",
   "filingChecklist": [
     "Application (original + 2 copies)",
     "Vakalatnama / Memo of Appearance",
@@ -562,16 +603,17 @@
         { "number": "20", "description": "Monetary reliefs" },
         { "number": "22", "description": "Compensation orders" }
       ],
-      "note": "When bail application involves BNS 85/80 (domestic violence/dowry), reference PWDVA provisions in the grounds."
+      "note": "When the bail application involves cruelty or dowry death, reference PWDVA provisions in the grounds."
     }
   ],
   "promptInstructions": [
-    "Draft a Regular Bail Application. Before a Magistrate it is made under Section 480 of the Bharatiya Nagarik Suraksha Sanhita, 2023; before a Court of Session or a High Court, under Section 483. Cite only that one provision as the provision under which bail is sought, in the heading, the opening paragraph and the prayer. Do not cite Section 481 or Section 482.",
+    "Draft a Regular Bail Application under the provision given as GOVERNING PROVISION in the case details, and cite only that provision as the provision under which bail is sought, in the heading, the opening paragraph and the prayer.",
+    "Cite the offences as the BRIEF gives them (FIR, charge sheet, complaint or order). The law of the offence follows the date of the offence: an offence committed before 1 July 2024 is under the Indian Penal Code, 1860; one committed on or after that date is under the Bharatiya Nyaya Sanhita, 2023. Never convert a section from one code to the other. Where the BRIEF does not give the date of the offence, write the sections as the BRIEF gives them and add [To be confirmed: date of the alleged offence, which decides whether the IPC or the BNS applies]. Where the sections the BRIEF gives are under the other code from the one the date points to, or the alleged acts run across 1 July 2024, keep the sections as the BRIEF gives them and add [To be confirmed: whether the IPC or the BNS applies to the offence].",
+    "Cite the procedure under the code given as PROCEDURE CODE in the case details: the Bharatiya Nagarik Suraksha Sanhita, 2023 with the Bharatiya Sakshya Adhiniyam, 2023, or the Code of Criminal Procedure, 1973 with the Indian Evidence Act, 1872. Cite only that code, in the heading, the body and the prayer. Where no PROCEDURE CODE is given, cite the provision in both forms inside a blank, for example [To be confirmed: Section 437 of the CrPC or Section 480 of the BNSS].",
     "Begin PARAGRAPH 1 with the exact FIR details provided — FIR number, date, police station, district, offences alleged. Use the values EXACTLY as given in the case details.",
     "State the custody status as the BRIEF gives it: the date of arrest, the date from which the applicant has been in custody, and whether that custody is judicial or police. Where the BRIEF gives the date of arrest and the date custody began as two dates, keep them as two dates. Do not work out the number of days in custody.",
     "Set out the grounds for bail that the BRIEF gives, and no others. Do not assert a ground (for example no criminal history, cooperation with the investigation, roots in the community, ill health, investigation complete, parity with a co-accused) unless the BRIEF states it. State each ground as the BRIEF puts it: do not add a reason or a detail to it.",
-    "Reference Bharatiya Nyaya Sanhita (BNS) section numbers for the alleged offences — NEVER use old IPC section numbers. IPC 498A = BNS 85, IPC 304B = BNS 80.",
-    "If the case involves domestic violence (BNS 85/80), also reference the Protection of Women from Domestic Violence Act (PWDVA) 2005 where relevant, especially Sections 12, 18, 19, 20, 22.",
+    "If the case involves cruelty or dowry death, also reference the Protection of Women from Domestic Violence Act (PWDVA) 2005 where relevant, especially Sections 12, 18, 19, 20, 22.",
     "Give the standard undertakings as undertakings by the applicant for the future, never as facts and never as undertakings by the advocate: the applicant undertakes that, if released on bail, the applicant will not abscond, will not tamper with the evidence, will not make any inducement, threat or promise to any witness or other person acquainted with the facts of the case, will appear on every date fixed, and will abide by every condition this Hon'ble Court imposes.",
     "State every earlier bail application in this matter that the BRIEF mentions: the court it was made to, the date of the order and the result, or that it is still pending, each as the BRIEF gives it. Use a blank for any of these the BRIEF does not give. Where the BRIEF mentions no earlier bail application, do not say that this is the first application or that none is pending; write [To be confirmed: whether any earlier bail application was made in this matter, to which court, and with what result].",
     "For DV/dowry cases, include specific undertakings: no contact with complainant, undertaking regarding stridhan/dowry articles.",

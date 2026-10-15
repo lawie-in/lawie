@@ -43,6 +43,16 @@ import { SdkStreamParams, sdkAnswer } from './sdkStream';
 
 jest.setTimeout(30_000);
 
+// T-373: these tests drive the legacy (text-stream) path. The signed skeletons are on by default, so the
+// loader is pinned to null here; every lookup is counted so the last test can show the mock was reached.
+const mockSkeletonLookups: string[] = [];
+jest.mock('../services/rule-pack.service', () => ({
+  ...jest.requireActual('../services/rule-pack.service'),
+  loadSkeleton: (packId: string) => {
+    mockSkeletonLookups.push(packId);
+    return null;
+  },
+}));
 const mockMessagesStream = jest.fn();
 jest.mock('@anthropic-ai/sdk', () =>
   // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
@@ -103,12 +113,33 @@ function signedRows(): Signed[] {
     tenA,
     tenB,
   );
+  // T-245a: Ajay moved the s35 label and question on purpose
+  // (handoff/legal/T-245-old-new-law-switch-signed.md, Addendum 1 #9 at 2992891 for the label,
+  // Addendum 3 #1 at 8e3167e for the question: "...under Section 35(3) of the BNSS or Section 41A
+  // of the CrPC..." with the rest unchanged). The T-190 ticket table still has the old text.
+  const s35 = rows.find((r) => r.key === 's35_notice_status');
+  if (!s35) throw new Error('no s35_notice_status row in T-190');
+  if (s35.label !== 'Notice under Section 35 BNSS') throw new Error('T-190 s35 label changed');
+  s35.label = 'Notice to appear (Section 35 BNSS / Section 41A CrPC)';
+  s35.question =
+    'Before the arrest, was a notice of appearance under Section 35(3) of the BNSS or Section 41A of the CrPC served on the applicant?';
   return rows;
 }
 const SIGNED = signedRows();
 const ORDER = SIGNED.map((s) => s.key);
 const NUMS = SIGNED.map((s) => s.num);
-const signedOf = (key: string) => SIGNED.find((s) => s.key === key)!;
+// T-245a, Ajay Addendum 5 #3 (41a4b27): fir_date is asked when empty, never required, and the
+// question is the one he signed at 940ef87. It is not one of the 16 T-190 rows and not in their
+// order or block: it is asked first, and stays where it is in the form.
+const FIR_DATE_SIGNED: Signed = {
+  num: 'A5-3',
+  key: 'fir_date',
+  label: 'Date of FIR, or of the complaint if no FIR',
+  question: 'On what date was the FIR registered, or the complaint filed if there is no FIR?',
+  form: 'Date',
+};
+const signedOf = (key: string) =>
+  key === 'fir_date' ? FIR_DATE_SIGNED : SIGNED.find((s) => s.key === key)!;
 const optionsOf = (s: Signed): string[] | null =>
   s.form.startsWith('Choices: ') ? s.form.slice(9).split('. ')[0].split(' / ') : null;
 
@@ -203,16 +234,19 @@ describe.each(PACKS)('T-190 AC1-AC3 pack file %s', (packId) => {
     files.push(['docs/templates', join(REPO, 'docs', 'templates', `${packId}.json`)]);
   }
   const want = expectedOrder(packId);
+  // fir_date first (Addendum 5 #3), then the 16 T-190 items (13 for bail_anticipatory).
+  const askedWant = ['fir_date', ...want];
 
   it.each(files)(
     '%s: the asked items are the signed ones, in order, with the exact text, all optional',
     (_n, path) => {
       const fields = rawFields(path);
       const asked = fields.filter((f) => f.ask_when_empty === true);
-      expect(asked.map((f) => f.id)).toEqual(want);
-      // consecutive in the file
+      expect(asked.map((f) => f.id)).toEqual(askedWant);
+      // the T-190 items are consecutive in the file (fir_date sits with the FIR fields)
       const at = fields.findIndex((f) => f.id === want[0]);
       expect(fields.slice(at, at + want.length).map((f) => f.id)).toEqual(want);
+      expect(fields.find((f) => f.id === 'fir_date')!.ask_when_empty).toBe(true);
       for (const f of asked) {
         const s = signedOf(f.id);
         expect(f.label).toBe(s.label);
@@ -233,7 +267,7 @@ describe.each(PACKS)('T-190 AC1-AC3 pack file %s', (packId) => {
   it('the pack the service loads carries the same questions (source pack) and optional ask_when_empty items', () => {
     const cl = buildChecklist(loadRulePack(packId)!);
     const asked = cl.filter((i) => i.askWhenEmpty);
-    expect(asked.map((i) => i.key)).toEqual(want);
+    expect(asked.map((i) => i.key)).toEqual(askedWant);
     for (const i of asked) {
       expect(i.question).toBe(signedOf(i.key).question);
       expect(i.required).toBe(false);
@@ -383,14 +417,14 @@ describe.each(PACKS)('T-190 buildQuestions on %s', (packId) => {
     const want = expectedOrder(packId).filter((k) => optional.includes(k));
     expect(optional).toEqual(want);
     // not-asked optional items stay out
-    for (const k of [
-      'custody_since',
-      'advocate_enrollment',
-      'additional_context',
-      'next_hearing_date',
-    ]) {
+    for (const k of ['custody_since', 'additional_context', 'next_hearing_date']) {
       expect(keys).not.toContain(k);
     }
+    // advocate_enrollment is optional (not asked) in bail_regular and bail_anticipatory; interim_bail
+    // and bail_before_magistrate mark it required, so it is asked there (T-382 key-only rename).
+    const enr = cl.find((i) => i.key === 'advocate_enrollment')!;
+    if (enr.required) expect(keys).toContain('advocate_enrollment');
+    else expect(keys).not.toContain('advocate_enrollment');
     for (const k of keys) {
       const own = signedRows().find((s) => s.key === k);
       const item = q.find((x) => x.key === k)!;
@@ -507,7 +541,7 @@ describe('T-190 buildQuestions: exact lists, alwaysAsk, 240-character rule, conf
     const worded = new Map([
       [PROTECTED, longModel],
       ['fir_number', longModel],
-      ['fir_date', 'On what date was the FIR registered?'],
+      ['police_station', 'At which police station was the FIR registered?'],
     ]);
     const q = buildQuestions(brief, worded, new Set(), new Set(), { checklist: cl });
     const prot = q.find((x) => x.key === PROTECTED)!;
@@ -517,8 +551,9 @@ describe('T-190 buildQuestions: exact lists, alwaysAsk, 240-character rule, conf
     expect(fir.question).not.toBe(longModel);
     expect(fir.question.length).toBeLessThanOrEqual(240);
     expect(fir.source).toBeUndefined();
-    expect(q.find((x) => x.key === 'fir_date')!.question).toBe(
-      'On what date was the FIR registered?',
+    // T-245a: fir_date is optional now and is not asked here; police_station is still required.
+    expect(q.find((x) => x.key === 'police_station')!.question).toBe(
+      'At which police station was the FIR registered?',
     );
   });
 
@@ -591,6 +626,35 @@ describe('T-190 buildQuestions: exact lists, alwaysAsk, 240-character rule, conf
       confirm: new Set(['investigation_status']),
     });
     expect(re.find((x) => x.key === 'investigation_status')).toMatchObject({ confirm: true });
+  });
+
+  it('Addendum 5 #3: fir_date is asked when empty, optional, and "Not known" is no fact and is not asked again', () => {
+    const cl = buildChecklist(loadRulePack('bail_regular')!);
+    const fir = cl.find((i) => i.key === 'fir_date')!;
+    expect(fir.askWhenEmpty).toBe(true);
+    expect(fir.required).toBe(false);
+    expect(fir.question).toBe(
+      'On what date was the FIR registered, or the complaint filed if there is no FIR?',
+    );
+    // Empty: asked.
+    // A description brief with every other typical fact, so the 10-question cap is not full.
+    const emptyBrief = buildBrief({
+      kind: KIND('bail_regular'),
+      checklist: cl,
+      values: typicalValues(cl).filter((v) => v.key !== 'fir_date'),
+    }) as Brief;
+    expect(
+      keysOf(buildQuestions(emptyBrief, new Map(), new Set(), new Set(), { checklist: cl })),
+    ).toContain('fir_date');
+    // "Not known" writes no fact, marks the item asked_empty, and it is not asked again.
+    expect(isNoFactAnswer(fir, 'Not known')).toBe(true);
+    const { brief } = briefFor('bail_regular', true, [{ key: 'fir_date', value: 'Not known' }]);
+    const it_ = brief.items.find((i) => i.key === 'fir_date')!;
+    expect(it_.value).toBeNull();
+    expect(it_.asked_empty).toBe(true);
+    expect(
+      keysOf(buildQuestions(brief, new Map(), new Set(), new Set(), { checklist: cl })),
+    ).not.toContain('fir_date');
   });
 
   it('a whole-answer "Not known" is empty; "Not known to have any antecedents" is a real answer', () => {
@@ -680,8 +744,20 @@ describe('T-190 AC4 and AC5: an answer is an asked fact with a raw_span, and unl
     const r = answer(key, text);
     const f = r.next!.facts[0];
     expect(f).toMatchObject({ key, source: 'asked', raw_span: text });
-    const facts = [...r.next!.facts, ADDRESS];
+    // T-245a (Addendum 2 #1): the s35 averment also needs the derived notice_provision fact.
+    const facts = [
+      ...r.next!.facts,
+      ADDRESS,
+      ...(key === 's35_notice_status'
+        ? [idFact('notice_provision', 'Section 35(3) of the BNSS')]
+        : []),
+    ];
     const out = resolveAverments(LISTS, facts);
+    if (key === 's35_notice_status') {
+      expect(out.allowed.find((a) => a.id === 's35_notice_illegal_arrest')!.text).toBe(
+        'no notice under Section 35(3) of the BNSS was served on the applicant before arrest',
+      );
+    }
     for (const id of allowedIds) expect(out.allowed.map((a) => a.id)).toContain(id);
     if (banned) expect(out.banned.map((b) => b.id)).not.toContain(banned);
     const texts = out.allowed.filter((a) => allowedIds.includes(a.id)).map((a) => a.text);
@@ -969,10 +1045,15 @@ describe('T-190 pack text and averment files are unchanged where they must be', 
   const sha = (s: Buffer | string) => createHash('sha256').update(s).digest('hex');
   const PINNED: Record<string, string> = {
     // bail_regular and bail_anticipatory re-pinned for T-334 (Ajay, T-334 Addendum 1, signed 9b484ee).
-    bail_regular: '14bc53c396b5241ea09c874a5c0a09ccf12c68ed29adabb725dc055db1590b04',
+    // T-245a: re-pinned (Ajay, Addenda 1 #9 and 2 #1): the two s35 entries carry the new label
+    // and {{notice_provision}}. The develop_staging copy is still the T-334 file until this merges.
+    bail_regular: 'df163457bd78cd19698d968d8e80a278fd738590aa779018c6ab25202f1fa923',
     interim_bail: '8951ebda37020b9527672013595fabc1c1a7c80470d8ceade8f33c4883d3bf66',
     bail_before_magistrate: '6519fdc6a96efbe03d98f71f6f67ab55633e9634e28b6dbffe321e72c50efa56',
     bail_anticipatory: '270a841d242ef26fc74859cfa94b4bf6feb414bbf0a01ffb32f1a7ae8caa83de',
+  };
+  const BEFORE_T245A: Record<string, string> = {
+    bail_regular: '14bc53c396b5241ea09c874a5c0a09ccf12c68ed29adabb725dc055db1590b04',
   };
   it.each(Object.keys(PINNED))(
     'T-199 AC5: _averments/%s.json hash is the one Ajay signed (origin/develop_staging)',
@@ -992,7 +1073,9 @@ describe('T-190 pack text and averment files are unchanged where they must be', 
       } catch {
         upstream = null; // no such ref here (shallow clone): the pinned hash stands
       }
-      if (upstream) expect(sha(upstream)).toBe(PINNED[id]);
+      if (upstream) {
+        expect([PINNED[id], BEFORE_T245A[id]].filter(Boolean)).toContain(sha(upstream));
+      }
     },
   );
 });
@@ -1346,9 +1429,10 @@ describe('T-190 round 2 (Ajay): a displaced REQUIRED alwaysAsk key reaches the D
     const id = res.body.ledger.ledger_id as string;
     const unresolved = (res.body.ledger.unresolved as Array<{ key: string }>).map((u) => u.key);
     expect(res.body.ledger.facts).toEqual([]);
-    const required = CL.filter((i) => i.required && !i.partyName).map((i) => i.key);
-    // the always set is the required non-party keys that came back unresolved, in brief order
-    const always = required.filter((k) => unresolved.includes(k));
+    // the always set is the non-party keys that came back unresolved, in brief order.
+    // T-245a (Ajay, Addendum 1, last row): fir_date is optional now, so it is no longer a
+    // required key, but it comes back unresolved here and still takes a place in the cap.
+    const always = CL.filter((i) => !i.partyName && unresolved.includes(i.key)).map((i) => i.key);
     expect(always.length).toBeGreaterThanOrEqual(9); // party name (1) + alwaysAsk (>= 9) fill the cap
 
     const q = (res.body.questions as Q[]).map((x) => x.key);
@@ -1365,14 +1449,21 @@ describe('T-190 round 2 (Ajay): a displaced REQUIRED alwaysAsk key reaches the D
       facts: unknown[];
       missing: Array<{ key: string; label: string; write: string }>;
     };
-    for (const k of displaced) {
+    expect(displaced.some((k) => item(k).required)).toBe(true);
+    // only a displaced REQUIRED key is a {{MISSING: label}}; an optional one is simply not asked
+    for (const k of displaced.filter((k) => item(k).required)) {
       const m = facts.missing.find((x) => x.key === k);
       expect(m).toBeDefined();
       expect(m!.write).toBe(`{{MISSING: ${item(k).label}}}`);
       expect(user).toContain(`{{MISSING: ${item(k).label}}}`);
     }
-    // nothing the advocate was not asked is turned into a fact
-    expect(facts.facts).toEqual([]);
+    // nothing the advocate was not asked is turned into a fact. T-245a part 2: the only facts in
+    // FACTS are the computed law-switch ones (no choice: both-forms blanks, Addenda 1 and 2).
+    const listed = facts.facts as Array<{ key: string; value: string }>;
+    expect(listed.map((f) => f.key).sort()).toEqual(['governing_provision', 'notice_provision']);
+    expect(JSON.stringify(listed.find((f) => f.key === 'notice_provision'))).toContain(
+      '[To be confirmed: Section 41A of the CrPC or Section 35(3) of the BNSS]',
+    );
   });
 });
 
@@ -1560,5 +1651,13 @@ describe('T-190 round 2 reviewer fix 2: isNoFactAnswer needs askWhenEmpty', () =
       2026,
     );
     expect(r.next!.facts[0]).toMatchObject({ key: 'medical_condition', raw_span: 'None' });
+  });
+});
+
+describe('T-373: this suite ran the legacy path', () => {
+  it('the skeleton loader was consulted and returned null, so d1SkeletonFor gave null and the drafts above took the legacy text stream', () => {
+    // If the loader mock were removed, bail packs would take D1 (messages.parse) and this stays 0 or the
+    // tests above fail; either way the mock is not silently load-bearing.
+    expect(mockSkeletonLookups.length).toBeGreaterThan(0);
   });
 });

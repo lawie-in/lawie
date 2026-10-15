@@ -1,5 +1,7 @@
 /**
- * T-223 AC3 / Arjun condition 4 against a REAL Redis (an existing Redis, else a private redis-server; see t223-real-redis-env.ts):
+ * T-223 AC3 / Arjun condition 4 against a REAL loopback Redis, picked by t223-real-redis-env.ts:
+ * REDIS_TEST_URL if set (loopback, must answer PING and accept a write, else it throws), otherwise
+ * a private redis-server with persistence off, otherwise it throws. REDIS_URL is never read.
  * 1 verify mail per user per 60 s and 5 per 24 h, through the real resend route. No ioredis-mock,
  * so SET NX / PTTL / INCR / PEXPIRE behave as in production. Keys are per-user, removed afterwards,
  * and flushall is never called. The test FAILS (does not skip) when Redis is not reachable.

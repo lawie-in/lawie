@@ -1,4 +1,5 @@
 {
+  "card_description": "A complaint before a Consumer Commission about defective goods or deficient service.",
   "_meta": {
     "description": "Document-rules config for consumer_complaint — drives prompt, validation, mandatory clauses",
     "owner": "Ajay (CLO)",
@@ -31,7 +32,7 @@
           },
           {
             "field_id": "court_name",
-            "label": "Forum Name",
+            "label": "Consumer Commission",
             "type": "dropdown_search",
             "source": "courts_db.courts",
             "filtered_by": ["state", "court_type"],

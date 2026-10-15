@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. Binding vs non-binding language must be UNAMBIGUOUS. Specifically carve out which clauses bind (typically confidentiality, exclusivity, dispute resolution, governing law)."
   },
   "template_id": "mou",
+  "card_description": "A Memorandum of Understanding recording what the parties intend to agree.",
   "docType": "mou",
   "title": "Memorandum of Understanding (MOU)",
   "displayName": "Memorandum of Understanding",
@@ -181,6 +182,14 @@
         "type": "select",
         "required": true,
         "options": ["bihar", "jharkhand", "uttar_pradesh", "delhi", "other"]
+      },
+      {
+        "id": "execution_place",
+        "label": "Place of execution",
+        "type": "text",
+        "required": false,
+        "help": "City or town where the document will be signed.",
+        "ask_when_empty": true
       },
       {
         "id": "witness_1_name_address",

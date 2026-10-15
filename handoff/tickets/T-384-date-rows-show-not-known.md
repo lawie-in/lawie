@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (web) + Rajesh (small design call) |
 | Mode   | Small fix |
-| Status | To do. Unassigned. After T-372 merges. From Kunal, 13 Oct 2026 |
+| Status | Merged into develop_staging 3ceb2fc8 (Kunal, 14 Oct 2026). Priya |
 | Source | T-365 AC2 (Anushka run 3): an answered row must never look empty |
 
 ## Acceptance criteria

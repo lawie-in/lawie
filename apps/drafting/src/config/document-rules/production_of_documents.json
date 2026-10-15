@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. Adverse inference under O.11 R.21 must be flagged."
   },
   "template_id": "production_of_documents",
+  "card_description": "An application under Order 11 CPC for production and inspection of documents.",
   "docType": "production_of_documents",
   "title": "Application for Production and Inspection of Documents (Order 11 R.12 / R.14 CPC)",
   "displayName": "Production of Documents Application (Order 11 CPC)",

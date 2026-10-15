@@ -71,6 +71,8 @@ export interface Brief {
   can_confirm: boolean;
   confirm_blockers: Array<'court' | 'parties'>;
   confirm_message: string | null;
+  /** T-363 AC1: T-192's signed B2 line, when the brief's own s.138 dates give it. */
+  date_check?: { line: 'B2'; text: string };
 }
 
 export interface BriefQuestion {
@@ -241,6 +243,8 @@ export interface KindSummary {
   category: string;
   description: string;
   plan_access: 'free' | 'pro';
+  /** T-372: the template's Ink cost, from the template-configs API when sent. */
+  credits_cost?: number;
 }
 
 export interface Finding {
@@ -272,6 +276,20 @@ export interface DraftResult {
    * Null when the service sent none; the web app keeps no copy of the text.
    */
   disclaimer?: string | null;
+  /**
+   * T-373 (ADR-025 D1): the clauses the renderer printed, as the service sent them.
+   * Present only for a D1 pack; the checks panel is then built from this list.
+   */
+  rendered?: RenderedClause[];
+}
+
+/** T-373: one clause the D1 renderer printed, with its status. */
+export interface RenderedClause {
+  clauseId: string;
+  status: 'ok' | 'missing' | 'fallback';
+  /** The labels of the blanks left in the clause. */
+  missing?: string[];
+  reason?: 'not_returned' | 'unverified';
 }
 
 /** T-147d: the fact verifier's banner, printed as the service sent it. */
@@ -353,6 +371,21 @@ export function valuesAfter(brief: Brief, previous: GivenValue[]): GivenValue[] 
           brief.unplaced.some((u) => sameValue(u.value, v.value)))),
   );
   return [...placed, ...kept];
+}
+
+/**
+ * T-365 AC2: the advocate's own answer to each item the service marks
+ * `asked_empty` ("Not known", "none"). The service sends such an item with no
+ * value; `valuesAfter` keeps the answer, so the row can still show it.
+ */
+export function askedEmptyAnswers(brief: Brief, values: GivenValue[]): Record<string, Value> {
+  const out: Record<string, Value> = {};
+  for (const item of brief.items) {
+    if (!item.asked_empty) continue;
+    const given = values.find((v) => v.key === item.key && !isEmptyValue(v.value));
+    if (given) out[item.key] = given.value;
+  }
+  return out;
 }
 
 /** Set, replace or clear one value the user typed. The new value carries no "Please check" mark. */

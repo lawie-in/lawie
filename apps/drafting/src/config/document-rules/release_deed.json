@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. Distinguish release vs gift vs sale vs partition — substance determines stamp duty + tax. Concessional rates for release to family co-sharer in many states."
   },
   "template_id": "release_deed",
+  "card_description": "A deed by which a co-owner or heir gives up their share in a property.",
   "docType": "release_deed",
   "title": "Release / Relinquishment Deed",
   "displayName": "Release Deed (Relinquishment)",
@@ -149,6 +150,14 @@
         "type": "select",
         "required": true,
         "options": ["bihar", "jharkhand", "uttar_pradesh", "delhi"]
+      },
+      {
+        "id": "execution_place",
+        "label": "Place of execution",
+        "type": "text",
+        "required": false,
+        "help": "City or town where the document will be signed.",
+        "ask_when_empty": true
       },
       {
         "id": "witness_1_name_address",

@@ -489,7 +489,7 @@ describe('POST /documents/:id/annexures-pack', () => {
       docType: 'bail_application',
       courtName: 'sessions-gaya-t156',
       generatedContent: encrypt('Paragraph one.\n\nParagraph two.'),
-      formInputs: { template_id: 'bail_regular', source: 'brief' },
+      formInputs: { template_id: 'bail_regular', source: 'brief', applicant_name: 'Ramesh Kumar' },
       filingChecklist: [],
       checklistState: [],
     });
@@ -512,7 +512,7 @@ describe('POST /documents/:id/annexures-pack', () => {
       docType: 'bail_application',
       courtName: 'no-such-court',
       generatedContent: encrypt('Paragraph one.'),
-      formInputs: { template_id: 'bail_regular', source: 'brief' },
+      formInputs: { template_id: 'bail_regular', source: 'brief', applicant_name: 'Ramesh Kumar' },
       filingChecklist: [],
       checklistState: [],
     });

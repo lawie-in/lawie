@@ -27,9 +27,12 @@
  * passes is returned unchanged. Nothing here logs, and nothing here reads the
  * advocate's description.
  *
- * Not legal content: the checks are code. The repair prompt is in
- * `drafter.prompts.ts` (PROPOSED, not yet signed). The banner wording is a
- * plain functional string awaiting Priya, Madhuri and Rajesh.
+ * Ajay's ruling: all of this file except the banner wording
+ * (`factCheckBannerText`) is legal content (Ajay, 15 Oct 2026, T-116). See
+ * `.claude/docs/legal-content-paths.md`. Any change to it needs his signed text.
+ * The repair prompt is in `drafter.prompts.ts` (signed: Ajay (CLO), 13 Oct 2026,
+ * handoff/legal/T-397-ledger-prompts-signed.md, 86f9d9c). The banner wording
+ * is a plain functional string awaiting Priya, Madhuri and Rajesh.
  */
 import { createHash } from 'crypto';
 
@@ -58,7 +61,10 @@ export const REPAIR_PROMPT_VERSION = createHash('sha256')
   .digest('hex')
   .slice(0, 12);
 
-// ── Banner (plain functional wording; Priya, Madhuri and Rajesh to word it) ─
+// ── Banner and disclaimer ───────────────────────────────────────────────────
+// `factCheckBannerText` is plain functional wording (Priya, Madhuri and Rajesh to word it).
+// `FACT_CHECK_DISCLAIMER` is legal content, like all of this file except the banner wording
+// (`factCheckBannerText`) (Ajay, 15 Oct 2026, T-116).
 
 export const FACT_CHECK_DISCLAIMER =
   'Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.';

@@ -1,17 +1,61 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { useCallback, useRef, useState } from 'react';
 
+import ConfirmCloseAccountDialog from '@/components/account/ConfirmCloseAccountDialog';
+import { GST_STATE_NAG_STRINGS, GstStatePicker } from '@/components/billing/GstStatePicker';
+import { InvoicesCard, type InvoiceRow } from '@/components/billing/InvoicesCard';
 import { PlanUpgrade } from '@/components/billing/PlanUpgrade';
+import { secondaryButton } from '@/components/intake/ui';
 import { useAuth } from '@/context/AuthContext';
-import { useUsage } from '@/hooks/useUsage';
+import { useCredits } from '@/hooks/useCredits';
+import { useGstState } from '@/hooks/useGstState';
+
+/**
+ * T-372 (ADR-025 D3): Ink is the only entitlement shown. The line is left out
+ * while the balance is loading or unknown, never showing the empty default's 0.
+ * Its own component, so the balance is fetched only where the line can show.
+ */
+/** T-115c — secondaryButton in the error colour (Rajesh's spec §1); no new colours. */
+const closeButtonClass = secondaryButton.replace(
+  'border-brand-navy text-brand-navy',
+  'border-brand-error text-brand-error',
+);
+
+/** The settings Plan block's State select (the nag focuses it). */
+const SETTINGS_GST_SELECT_ID = 'settings-gst-state';
+
+function InkBalanceLine() {
+  const { balance, loaded } = useCredits();
+  if (!loaded || !Number.isFinite(balance.totalInk)) return null;
+  return <p className="mt-1 text-sm text-slate-600">{`You have ${balance.totalInk} Ink`}</p>;
+}
 
 export default function SettingsPage() {
   const { user, logout } = useAuth();
-  const { data: usage } = useUsage();
   const router = useRouter();
+  const [closeOpen, setCloseOpen] = useState(false);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  // T-436 (b): the State picker sits in the Plan block (spec §2: saved on change).
+  const gst = useGstState('gst-state-settings');
+  // T-436 (Arjun, 14 Oct): any invoice issued with our State as the fallback.
+  const [hasFallbackInvoice, setHasFallbackInvoice] = useState(false);
+  const onInvoicesLoaded = useCallback((rows: InvoiceRow[]) => {
+    setHasFallbackInvoice(rows.some((r) => r.placeOfSupplySource === 'fallback'));
+  }, []);
 
   if (!user) return null;
+
+  // The nag: no State on file and at least one invoice used the fallback.
+  const showStateNag = gst.loaded && gst.savedCode === null && hasFallbackInvoice;
+
+  function focusStatePicker() {
+    const el = gst.selectRef.current;
+    if (!el) return;
+    el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    el.focus({ preventScroll: true });
+  }
 
   const isPro = user.plan === 'pro';
 
@@ -82,10 +126,7 @@ export default function SettingsPage() {
                 <p className="text-xs text-slate-400">Next billing cycle — managed via Razorpay</p>
               </>
             ) : (
-              <p className="mt-1 text-sm text-slate-600">
-                {usage?.used ?? 0} of {usage?.limit ?? 3} documents used —{' '}
-                <span className="font-medium">{usage?.remaining ?? 3} remaining</span>
-              </p>
+              <InkBalanceLine />
             )}
           </div>
           {isPro && (
@@ -95,7 +136,22 @@ export default function SettingsPage() {
           )}
         </div>
 
-        {!isPro && <PlanUpgrade />}
+        {/* T-436 (Madhuri C): the nag, then the State picker, above Upgrade. */}
+        {showStateNag && (
+          <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-slate-700">
+            <p>{GST_STATE_NAG_STRINGS.nag}</p>
+            <button
+              type="button"
+              onClick={focusStatePicker}
+              className="min-h-[44px] rounded-lg border border-slate-300 px-3 text-xs font-medium text-slate-700 transition-colors hover:bg-white"
+            >
+              {GST_STATE_NAG_STRINGS.action}
+            </button>
+          </div>
+        )}
+        <GstStatePicker gst={gst} id={SETTINGS_GST_SELECT_ID} className="mt-4 max-w-xs" />
+
+        {!isPro && <PlanUpgrade gst={gst} />}
 
         {isPro && (
           <div className="mt-4 flex gap-2">
@@ -108,6 +164,37 @@ export default function SettingsPage() {
           </div>
         )}
       </div>
+
+      {/* T-436 — Invoices (Rajesh's spec, as settled by Arjun): after Plan, before Close account. */}
+      <InvoicesCard onRowsLoaded={onInvoicesLoaded} />
+
+      {/* T-115c — Close account (Rajesh's spec §1): below Plan, above Sign out, apart from both
+          so it is not hit by mistake. Strings: Madhuri, dpdp-ui-strings-t115.md B. */}
+      <section
+        aria-labelledby="close-account-heading"
+        className="mt-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
+      >
+        <h2 id="close-account-heading" className="text-sm font-semibold text-slate-700">
+          Close account
+        </h2>
+        <p className="mt-1 text-sm text-slate-600">
+          Close your Lawie account. You will be asked to confirm first.
+        </p>
+        <button
+          ref={closeButtonRef}
+          type="button"
+          onClick={() => setCloseOpen(true)}
+          className={`${closeButtonClass} mt-4 w-full sm:w-auto`}
+        >
+          Close account
+        </button>
+      </section>
+      {closeOpen && (
+        <ConfirmCloseAccountDialog
+          onClose={() => setCloseOpen(false)}
+          fallbackFocusRef={closeButtonRef}
+        />
+      )}
 
       {/* Sign out */}
       <div className="mt-8 border-t border-slate-200 pt-6">

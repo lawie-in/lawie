@@ -20,12 +20,16 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
 - Grounds render as the fixed signed sentence per ticked option. This is stricter than renderer rule 3 and stays so.
 - `when`, `variants` and `none_values` extend the ADR format. The loader must read them; it must not drop them.
 
+## Version 2, 14 Oct 2026 (supersedes SHA `1f0384f6c8f2feffa289622b63c9bb8c1b9c698cb5744c9159fc079032349720`)
+
+- v2, 14 Oct 2026: T-245a, per handoff/legal/T-245-old-new-law-switch-signed.md Addendum 1 ruling 2 (2992891), signed Ajay. The hard-coded `Section N of the Bharatiya Nagarik Suraksha Sanhita, 2023` becomes `{governing_provision}` (slot `governing_provision`). Nothing else changes in any clause.
+
 ## Skeleton JSON
 
 ```json
 {
   "pack": "default_bail",
-  "version": 1,
+  "version": 2,
   "none_values": "first_bail_application.equals (T-334)",
   "clauses": [
     {
@@ -33,10 +37,11 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
       "order": 10,
       "required": true,
       "source": "fixed",
-      "text": "The applicant, {applicant_name}, resident of {applicant_address}, submits this application for release on bail under Section 187(3) of the Bharatiya Nagarik Suraksha Sanhita, 2023.",
+      "text": "The applicant, {applicant_name}, resident of {applicant_address}, submits this application for release on bail under {governing_provision}.",
       "slots": [
         "applicant_name",
-        "applicant_address"
+        "applicant_address",
+        "governing_provision"
       ]
     },
     {
@@ -219,4 +224,4 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
 }
 ```
 
-SHA-256 of the JSON block (between the fences, final newline included): `1f0384f6c8f2feffa289622b63c9bb8c1b9c698cb5744c9159fc079032349720`
+SHA-256 of the JSON block (between the fences, final newline included): `1abd4b802a904b54c53dc1bfbbf43ee6ce5749b2abb0a61cc46bf8a431ad5dc6`
