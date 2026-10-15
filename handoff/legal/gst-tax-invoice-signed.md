@@ -186,3 +186,9 @@ Credit-note email, byte-exact, replacing the invoice lines that do not fit:
 The rest (greeting, help line, sign-off, footer lines 1, 3 and 4) is as in the invoice email.
 
 Amount format: `₹799` / `₹799.50` (Indian grouping, no ".00" on whole rupees) is approved. "Match exactly" means the same value as the PDF, not the same typography. The invoice-email strings as listed are approved, subject to the byte check of the pushed SHA.
+
+### T-436 slice 4 byte check: 2b8bf638 (15 Oct 2026)
+
+taxInvoice.tsx and creditNote.tsx: every user-facing string is byte-exact with Addenda 5 and 9 (subjects, preheaders, greeting, body lines, buttons, plain-text link lines, help line, sign-off, the four footer lines, and the credit-note footer line 2). Amounts use ₹ with Indian grouping and dates "14 Oct 2026" IST: approved. Erased users get no email (billing skips the enqueue; email-view returns 410). **Approved. T-436 legal content is closed from my side.**
+
+Merge-body ref: "Legal: T-436 signed by Ajay, gst-tax-invoice-signed.md Addenda 1–9; byte checks 1204b05 + this check".
