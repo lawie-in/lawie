@@ -239,3 +239,8 @@ criminal_revision R1/R2 calls: **approved as proposed** for :231, :233, :236, :2
 Para 8: `Para 8: Grounds of revision — itemise each ground with relevant precedent.` becomes `Para 8: Grounds of revision — itemise each ground.` "With relevant precedent" invites a citation S forbids. must-fix in T-441.
 
 With Para 8 changed: **T-441 is approved.** Merge-body ref: "Legal: T-441 signed by Ajay, 2ec63fc + this check".
+
+T-441 review note (Vishal, 15 Oct 2026): restore the two propositions, as R1 would:
+- interim_bail prompt_context, where the deleted sentence stood: `The court has power to grant interim bail pending disposal of the bail application.`
+- bail_anticipatory twin: `Include reference to: (i) Article 21 of Constitution, (ii) the conditions the court may impose when granting anticipatory bail, (iii) that custodial interrogation is not necessary as applicant is willing to join investigation. ` + S.
+Fold into T-441 before merge; the rest stays approved.
