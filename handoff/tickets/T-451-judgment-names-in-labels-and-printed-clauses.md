@@ -65,3 +65,10 @@ Three more strings join this ticket. Signed text is in the T-245 file (Ajay 7d77
 3. `curative_petition` validation rule at :196.
 
 T-447 leaves these three untouched; they ride here, byte-exact from the signed text.
+
+## Two more name carriers (Vishal's T-447 reviewer, 15 Oct 2026)
+
+Both reach the model and need Ajay's decision on the rename (CLAUSE_CUES and the skeletons use them):
+
+1. Clause id `bhajan_lal_paragraph` (fir_quashing, quashing_528_bnss; brief-drafter.ts:299 and :738).
+2. Form key `bhajan_lal_categories_invoked` (brief-drafter.ts:280).
