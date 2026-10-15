@@ -50,3 +50,5 @@ The 19 non-passing cases, by bucket:
 Confidence table: 0.85 reads 3/3 right, zero wrong-valued reads, 4 correct dates held back by the 0.9 floor.
 
 Ajay (15 Oct): everything in run 64 acceptable except the drawer firm (T-471). Open after this ticket: reception cap, T-469, T-470, T-471.
+
+Vikram (15 Oct): $0.69 for 27 fixtures is about Rs 2.25 a draft, about Rs 1.1-1.3 per Ink; well under his Rs 2.60 working figure and the Rs 3.70 line. No price change; he keeps Rs 2.60 until real drafts confirm it. Ask for the record: tag cost per class (S/M) separately once the class table lands, so the monthly Rs 3.70 review has per-class p90s.
