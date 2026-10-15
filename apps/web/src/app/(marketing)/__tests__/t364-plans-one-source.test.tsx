@@ -78,12 +78,6 @@ async function renderAsync(el: ReactElement): Promise<string> {
   return container.textContent ?? '';
 }
 
-function clickYearly() {
-  const btn = container.querySelector('button[data-period="yearly"]') as HTMLButtonElement;
-  act(() => btn.click());
-  return container.textContent ?? '';
-}
-
 describe('T-364 PLANS pinned', () => {
   it('has the four SKUs with the agreed numbers', () => {
     expect(Object.keys(PLANS)).toEqual([...IDS]);
@@ -96,37 +90,71 @@ describe('T-364 PLANS pinned', () => {
 });
 
 describe('T-364 pricing page', () => {
-  it('monthly view shows the PLANS prices, yearly teasers and Ink', () => {
+  it('monthly view shows the PLANS prices and Ink, with no yearly teaser (T-398 hold)', () => {
     const text = render(<PricingPage />);
     expect(text).toContain(formatPlanPrice(servedPlan('solo_monthly')));
     expect(text).toContain(formatPlanPrice(servedPlan('pro_monthly')));
     expect(text).toContain('₹799/month');
     expect(text).toContain('₹1,999/month');
-    expect(text).toContain('or ₹7,990/year — save 2 months');
-    expect(text).toContain('or ₹19,990/year — save 2 months');
     expect(text).toContain(formatPlanInk(servedPlan('solo_monthly')));
     expect(text).toContain(formatPlanInk(servedPlan('pro_monthly')));
     expect(text).toContain('50 Ink/month');
     expect(text).toContain('150 Ink/month');
   });
 
-  it('yearly view shows the yearly prices and the savings computed from PLANS', () => {
+  it('T-398 yearly is held: no toggle, no yearly price or text anywhere', () => {
+    const text = render(<PricingPage />);
+    expect(container.querySelector('button[data-period="yearly"]')).toBeNull();
+    expect(container.querySelector('.price-toggle')).toBeNull();
+    expect(container.querySelector('.pricing-toggle-row')).toBeNull();
+    expect(text).not.toMatch(/year/i);
+    expect(text).not.toMatch(/yearly|annual/i);
+    expect(text).not.toMatch(/save 2 months/i);
+    expect(text).not.toMatch(/saved/i);
+    expect(text).not.toContain(inr(PLANS.solo_yearly.priceInr));
+    expect(text).not.toContain(inr(PLANS.pro_yearly.priceInr));
+    expect(text).not.toContain('7,990');
+    expect(text).not.toContain('19,990');
+    expect(text).not.toContain('1,598');
+    expect(text).not.toContain('3,998');
+  });
+
+  it('T-398 Pro card: PLANS price, four bullets, button; no false rows', () => {
     render(<PricingPage />);
-    const text = clickYearly();
-    expect(text).toContain(formatPlanPrice(servedPlan('solo_yearly')));
-    expect(text).toContain(formatPlanPrice(servedPlan('pro_yearly')));
-    expect(text).toContain('₹7,990/year');
-    expect(text).toContain('₹19,990/year');
-    expect(text).toContain('₹1,598 saved');
-    expect(text).toContain('₹3,998 saved');
-    expect(text).toContain(
-      `${inr(12 * PLANS.solo_monthly.priceInr - PLANS.solo_yearly.priceInr)} saved`,
+    const pro = Array.from(container.querySelectorAll('.plan')).find(
+      (e) => e.querySelector('.plan-name')?.textContent === 'Pro',
+    ) as HTMLElement;
+    expect(pro).toBeDefined();
+    expect(pro.querySelector('.plan-price')?.textContent).toBe(
+      `${inr(PLANS.pro_monthly.priceInr)}/month`,
     );
-    expect(text).toContain(
-      `${inr(12 * PLANS.pro_monthly.priceInr - PLANS.pro_yearly.priceInr)} saved`,
+    const rows = Array.from(pro.querySelectorAll('li')).map((l) => l.textContent?.trim());
+    expect(rows).toEqual([
+      `${PLANS.pro_monthly.inkPerCycle} Ink/month`,
+      'Everything in Solo',
+      'Ink refills every month',
+      'Top-up packs available anytime',
+    ]);
+    expect(pro.textContent).not.toContain('Everything in Solo, plus');
+    expect(pro.querySelector('a.btn')?.textContent?.trim()).toBe('Sign up to choose Pro');
+  });
+
+  it('T-398 Free and Solo cards: buttons, price, no yearly line', () => {
+    render(<PricingPage />);
+    const cards = Array.from(container.querySelectorAll('.plan')) as HTMLElement[];
+    const byName = (n: string) =>
+      cards.find((e) => e.querySelector('.plan-name')?.textContent === n) as HTMLElement;
+    expect(byName('Free').querySelector('a.btn')?.textContent?.trim()).toBe(
+      'Start with 5 free Ink',
     );
-    expect(text).toContain('50 Ink/month');
-    expect(text).toContain('150 Ink/month');
+    expect(byName('Solo').querySelector('a.btn')?.textContent?.trim()).toBe(
+      'Sign up to choose Solo',
+    );
+    expect(byName('Solo').querySelector('.plan-price')?.textContent).toBe(
+      `${inr(PLANS.solo_monthly.priceInr)}/month`,
+    );
+    expect(byName('Solo').querySelector('.plan-alt')?.textContent).toBe('');
+    expect(byName('Pro').querySelector('.plan-alt')?.textContent).toBe('');
   });
 
   it('metadata description carries the Solo price and Ink from PLANS', () => {
@@ -143,11 +171,16 @@ describe('T-364 Settings plan list equals the pricing page (the /plans cross-che
     const served = servedPlan(id);
     mockFetchPlans.mockResolvedValue({ subscriptions: IDS.map(servedPlan), topups: [] });
 
-    // Pricing page, in the period of this SKU.
-    render(<PricingPage />);
-    const pricingText = served.cycle === 'yearly' ? clickYearly() : (container.textContent ?? '');
-    expect(pricingText).toContain(formatPlanPrice(served));
-    expect(pricingText).toContain(formatPlanInk(served));
+    // Pricing page. Yearly is held (T-398): the page shows monthly prices only, so a yearly SKU
+    // is checked for NOT appearing on the page; monthly SKUs must match Settings exactly.
+    const pricingText = render(<PricingPage />);
+    if (served.cycle === 'yearly') {
+      expect(pricingText).not.toContain(formatPlanPrice(served));
+      expect(pricingText).not.toContain(inr(served.priceInr));
+    } else {
+      expect(pricingText).toContain(formatPlanPrice(served));
+      expect(pricingText).toContain(formatPlanInk(served));
+    }
     act(() => root.unmount());
     container.remove();
 
