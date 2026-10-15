@@ -213,3 +213,19 @@ S = `Do not name any judgment. Where an authority would normally be cited, write
 Group order: criminal and writs **V1**; civil/family and deeds/agreements **V1.1**, except the always-V1 items above.
 
 Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+### Addendum 8: always-V1 items, signed byte-exact (15 Oct 2026)
+
+| File:line | New text |
+|---|---|
+| curative_petition.json :72 label | `Curative ground` |
+| fir_quashing.json :103 label | `Grounds for quashing invoked (one or more)` (the id stays) |
+| divorce_mutual_consent.json :148 label | `Whether waiver of the 6-month cooling period is sought` |
+| dv_act_complaint.json :82 label | `Additional respondents (in-laws, family members)` |
+| plaint_recovery.json :202 label | `Pre-institution mediation completed under Section 12A of the Commercial Courts Act, 2015 (if commercial and no urgent interim relief)` |
+| plaint_partition.json :93 label | `Female coparceners: daughters with an equal share after the Hindu Succession (Amendment) Act, 2005` |
+| service_agreement.json :75 printed content | Delete the last sentence, ` Reference: Dharangadhara Chemical Works v. Workmen AIR 1957 SC 264 (control test).`. The clause ends at `…all statutory dues.` |
+| gpa.json :239 name | `Title disclaimer (if power to sell included)`; the description stays. |
+| spa.json :233 name | `Title disclaimer (if power to sell)`; the description stays. |
+
+Any golden that moves (service_agreement especially) comes to me.
