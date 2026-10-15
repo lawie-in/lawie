@@ -1239,3 +1239,5 @@ Quality: nothing to test in the UI — API route only
 - You see the same plans and prices on the pricing page, home page, upgrade prompts and Settings, because they all read one list. Nothing looks different today.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+> Note for the batch (15 Oct): on develop the invoice email switch is off, so the pricing line "we email you a GST tax invoice" produces no email there. Download of the invoice from Settings works.
