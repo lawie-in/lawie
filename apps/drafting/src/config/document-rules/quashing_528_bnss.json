@@ -4,7 +4,7 @@
     "owner": "Ajay (CLO)",
     "validated_by": "Ajay (CLO) — Batch 5 criminal petitions pass 2026-05-12",
     "last_updated": "2026-05-12",
-    "change_protocol": "Do not name judgments in model-visible text (Ajay, T-441)."
+    "change_protocol": "All edits require CLO sign-off. Do not name judgments in model-visible text (Ajay, T-441)."
   },
   "template_id": "quashing_528_bnss",
   "card_description": "A petition to the High Court under Section 528 BNSS to quash criminal proceedings.",
@@ -242,7 +242,6 @@
       "Inherent jurisdiction distinguished from revisional jurisdiction.",
       "Quashing on compromise — distinction between compoundable and non-compoundable offences; HC's wider power under inherent jurisdiction; categories of cases where settlement valid even in non-compoundable offences (e.g., matrimonial, family, commercial, civil flavor offences).",
       "Categories of offences which cannot be quashed even on settlement (heinous, public interest).",
-      "Comprehensive principles on quashing on settlement.",
       "Para 1: Description of parties.",
       "Para 2: FIR details — number, date, PS, district, sections invoked. Note: must use BNS / BNSS / BSA section numbers, not IPC / CrPC / IEA, for offences registered after 1 July 2024. Pre-1 July 2024 FIRs continue under old code.",
       "Para 3: Factual matrix — what genuinely happened, from petitioner's perspective.",
@@ -254,7 +253,6 @@
       "Para 9: Why no alternative remedy adequate — recall S.528 is invocable to prevent abuse of process and secure ends of justice; revisional jurisdiction to lower court inadequate where FIR itself bad in law.",
       "Para 10: Interim relief — stay of investigation / arrest / further proceedings.",
       "Para 11: Stage of proceedings — investigation pending / chargesheet filed / cognizance taken / trial commenced. The stage affects scope of inherent power.",
-      "Three categories of cases for quashing.",
       "Quashing not available where prima facie offence disclosed.",
       "Caution against using S.482 (now S.528) to short-circuit trial.",
       "Interim relief while quashing pending; principles for staying investigation.",
