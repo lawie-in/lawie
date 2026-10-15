@@ -2,9 +2,10 @@
  * T-311 - drafting reads the advocate's enrolment number from the profile.
  * Ajay's pairing rule (12 Oct 2026): a typed number always prints (a "[To be confirmed: ...]"
  * placeholder included); else the profile number, only when the printed advocate name came from
- * the profile; else the blank. Same rule in the draft, the annexures and the legacy route.
- * Typed sources: the declared advocate_enrollment (draft, annexures), the body advocateEnrollment
- * (legacy). A client enrollment_number is never read.
+ * the profile; else the blank. Same rule in the draft and the annexures (T-443: the legacy
+ * POST /generate route, which used the body advocateEnrollment, is retired and gone from here).
+ * Typed source: the declared advocate_enrollment (draft, annexures). A client enrollment_number
+ * is never read.
  * Puppeteer is mocked, as in annexures.test.ts.
  */
 import './setupEnv';
@@ -370,7 +371,7 @@ describe('T-311 annexures (Memo of Parties and Vakalatnama)', () => {
   });
 });
 
-// ── Legacy POST /generate and the template route ─────────────────────────────
+// ── The template route ─────────────────────────────
 
 describe('T-311 routes', () => {
   const USER_ID = '507f1f77bcf86cd7994393a1';
@@ -422,114 +423,6 @@ describe('T-311 routes', () => {
     spy.mockRestore();
     warn.mockRestore();
     jest.restoreAllMocks();
-  });
-
-  describe('legacy POST /generate', () => {
-    const body = (extra: Record<string, unknown> = {}) => ({
-      docType: 'petition',
-      courtName: 'Patna High Court',
-      courtType: 'high_court',
-      keyFacts: 'The petitioner was denied a ration card without reason.',
-      reliefPrayer: 'Issue the ration card.',
-      ...extra,
-    });
-    const post = (extra: Record<string, unknown>, id = USER_ID) =>
-      request(app).post('/generate').set(headers(id)).send(body(extra));
-    const sent = () =>
-      spy.mock.calls[0][0] as { advocateName?: string; advocateEnrollment?: string };
-
-    it('profile name, typed number: the body number prints in "Enrl. No."', async () => {
-      await setProfileNumber(USER_ID, PROFILE_NUM);
-      const res = await post({ advocateEnrollment: TYPED_NUM });
-      expect(res.status).toBe(200);
-      expect(res.text).toContain(`Enrl. No. ${TYPED_NUM}`);
-      expect(res.text).not.toContain(PROFILE_NUM);
-    });
-    it.each([
-      ['empty', ''],
-      ['whitespace', '   '],
-      ['missing', undefined],
-    ])('profile name, number %s: the profile number', async (_l, v) => {
-      await setProfileNumber(USER_ID, PROFILE_NUM);
-      const res = await post({ advocateEnrollment: v });
-      expect(res.status).toBe(200);
-      expect(sent().advocateName).toBe(PROFILE_NAME);
-      expect(sent().advocateEnrollment).toBe(PROFILE_NUM);
-      expect(res.text).toContain(`Enrl. No. ${PROFILE_NUM}`);
-    });
-    it('profile name, no profile number: no "Enrl. No." line, not refused', async () => {
-      const res = await post({});
-      expect(res.status).toBe(200);
-      expect(sent().advocateEnrollment).toBeUndefined();
-      expect(res.text).not.toContain('Enrl. No.');
-    });
-    it('typed name, typed number: typed prints', async () => {
-      await setProfileNumber(USER_ID, PROFILE_NUM);
-      const res = await post({ advocateName: TYPED_NAME, advocateEnrollment: TYPED_NUM });
-      expect(res.status).toBe(200);
-      expect(res.text).toContain(`Enrl. No. ${TYPED_NUM}`);
-    });
-    it('typed name, empty number: no "Enrl. No." line, never the profile’s', async () => {
-      await setProfileNumber(USER_ID, PROFILE_NUM);
-      const res = await post({ advocateName: TYPED_NAME, advocateEnrollment: '' });
-      expect(res.status).toBe(200);
-      expect(sent().advocateName).toBe(TYPED_NAME);
-      expect(sent().advocateEnrollment).toBeUndefined();
-      expect(res.text).not.toContain('Enrl. No.');
-      expect(res.text).not.toContain(PROFILE_NUM);
-    });
-    it('a "[To be confirmed: ...]" number stays as typed', async () => {
-      await setProfileNumber(USER_ID, PROFILE_NUM);
-      const res = await post({ advocateEnrollment: TBC });
-      expect(res.status).toBe(200);
-      expect(sent().advocateEnrollment).toBe(TBC);
-    });
-    it('lookup throws: not refused, treated as empty, warn has userId and error name only', async () => {
-      await setProfileNumber(USER_ID, PROFILE_NUM);
-      failProfileLookup('MongoServerError');
-      const res = await post({});
-      expect(res.status).toBe(200);
-      expect(sent().advocateEnrollment).toBeUndefined();
-      expect(res.text).not.toContain('Enrl. No.');
-      const call = warn.mock.calls.find((c) => String(c[1]).includes('T-311'));
-      expect(call).toBeDefined();
-      expect(call![0]).toEqual({ userId: USER_ID, error: 'MongoServerError' });
-      expect(JSON.stringify(warn.mock.calls)).not.toContain(PROFILE_NUM);
-    });
-    it('lookup throws with a typed number: the typed number still prints', async () => {
-      failProfileLookup('CastError');
-      const res = await post({ advocateEnrollment: TYPED_NUM });
-      expect(res.status).toBe(200);
-      expect(res.text).toContain(`Enrl. No. ${TYPED_NUM}`);
-    });
-    it('another user’s number never prints', async () => {
-      await setProfileNumber(USER_ID, PROFILE_NUM);
-      await setProfileNumber(OTHER_ID, 'OTHER/999/2001');
-      const a = await post({});
-      expect(a.text).toContain(`Enrl. No. ${PROFILE_NUM}`);
-      expect(a.text).not.toContain('OTHER/999/2001');
-      spy.mockClear();
-      const b = await post({}, OTHER_ID);
-      expect(b.text).toContain('Enrl. No. OTHER/999/2001');
-      expect(b.text).not.toContain(PROFILE_NUM);
-    });
-    it('a malformed sub (a real CastError): not refused by the lookup, treated as empty, warn names CastError', async () => {
-      const real = User.findById.bind(User);
-      jest.spyOn(User, 'findById').mockImplementation(((id: unknown, ...rest: unknown[]) => {
-        const q = real(id as string, ...(rest as []));
-        const select = q.select.bind(q);
-        (q as { select: unknown }).select = (arg: unknown) =>
-          arg === 'enrollmentNumber'
-            ? real('not-an-object-id').select(arg as string)
-            : select(arg as string);
-        return q;
-      }) as unknown as typeof User.findById);
-      const res = await post({});
-      expect(res.status).toBe(200);
-      expect(res.text).not.toContain('Enrl. No.');
-      const call = warn.mock.calls.find((c) => String(c[1]).includes('T-311'));
-      expect(call![0]).toEqual({ userId: USER_ID, error: 'CastError' });
-    });
   });
 
   describe('POST /generate-from-template (lookup)', () => {

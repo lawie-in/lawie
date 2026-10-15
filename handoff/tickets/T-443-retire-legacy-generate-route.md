@@ -2,7 +2,7 @@
 
 | Field  | Value                                                                  |
 | ------ | ---------------------------------------------------------------------- |
-| Status | Todo. Mahak, after her T-377/T-442 follow-up. V1 must-fix. Priya, 15 Oct 2026 |
+| Status | Merged into develop_staging cc2adc0 (Mahak, 15 Oct 2026). Priya |
 | Owner  | Mahak (build), Arjun (ruled)                                           |
 | Mode   | Small fix (drafting only)                                              |
 

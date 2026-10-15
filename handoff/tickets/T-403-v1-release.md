@@ -80,7 +80,7 @@ Production starts fresh. If any document saved on develop before T-300 is ever c
 3. Deploy.
 4. Run `curl <email-worker>/health` by hand and check it returns 200 (the deploy script check is T-442). Also confirm uptime and deploy checks treat it as a real gate.
 5. `verify:resend-all --dry-run`, then `verify:resend-all` (one fresh verify email per unverified user, batched under the T-223 cap).
-6. Set `UNVERIFIED_SWEEP_ENABLED=true` (default false), then deploy auth.
+6. Set `UNVERIFIED_SWEEP_ENABLED=true` (LAST, after purge, footer, deploy, /health and resend-all) (default false), then deploy auth.
 
 Arjun says "ready" explicitly when the commands are on the env. T-358 stamps `firstVerifySentAt` on confirmed send; deletion is no earlier than 30 days after the first email that reaches the user. Keeping an unverified account is a manual verify by ops (T-235 runbook).
 
@@ -95,3 +95,8 @@ On the web-domain nginx on the EC2 server, apply the snippet in `docs/nginx-acce
 Note (Mahak, T-377): the nginx map regex and `map` value behaviour are unverified until the founder's `nginx -t` on the server. Run it before reload.
 
 Note (Mahak's reviewer, T-377b): docker/nginx/nginx.prod.conf only runs on the now-unused docker path, so the LIVE nginx on EC2 is protected only once the founder applies `docs/nginx-access-log.md` on BOTH domains (the web domain and the API domain). Two known limits are in that doc: the nginx error log on an upstream failure, and case/percent-encoding/double-slash variants are not stripped.
+
+## Release blockers for main (from T-436, Shashank, 15 Oct 2026)
+
+- Terms "Last updated" and `CURRENT_TERMS_VERSION` bumped (T-436, Ajay Addendum 7 #3a). The Ranchi §12 text from AC10 went in without a version bump, so the bump must ship with T-436 (b)/(c).
+- Billing `INVOICE_EMAIL_ENABLED` (billing env; values `true`, `false` or empty; default `false`; any other value fails boot). List it next to the `GST_*` variables. It must stay false until the email-worker templates and the email-view fetch are deployed (invoice emails would otherwise dead-letter).

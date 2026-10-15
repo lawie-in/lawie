@@ -17,7 +17,7 @@ Must be done and merged (and Anushka passed) before T-403.
 | T-113 | Intake test set and the gate before switching on | doing | - | release gate or go-live prerequisite |
 | T-115 | Permanent delete, and encrypt saved case details | doing | - | privacy, money, legal or wrong-data must-fix (Arjun's rule) |
 | T-116 | Complete the legal-content list | todo | - | release gate or go-live prerequisite |
-| T-171 | Unmatched High Court falls back to Patna HC rules | todo | - | a draft or export is wrong, or Ajay's legal condition |
+| T-171 | Unmatched High Court falls back to Patna HC rules | closed (already built) | - | a draft or export is wrong, or Ajay's legal condition |
 | T-172 | Annexure text with '$&' is mangled by String.replace | todo | - | Arjun: wrong text in a filed document is a user-visible bug (one-line fix) |
 | T-187 | Retention and deletion rule for the Fact Ledger and intake_extract row | todo | arjun | a draft or export is wrong, or Ajay's legal condition |
 | T-188 | Unresolved ledger items past the question cap are never silently guess | todo | arjun | a draft or export is wrong, or Ajay's legal condition |

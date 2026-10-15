@@ -1,8 +1,8 @@
 /**
- * T-226 — a user cannot draft past their balance. Route-level tests for all
- * four generate paths: POST /generate-from-template, POST /generate-from-brief
- * with a rule pack, POST /generate-from-brief with no rule pack (guided), and
- * the legacy POST /generate.
+ * T-226 — a user cannot draft past their balance. Route-level tests for the
+ * three generate paths: POST /generate-from-template, POST /generate-from-brief
+ * with a rule pack, and POST /generate-from-brief with no rule pack (guided).
+ * (The legacy POST /generate was retired in T-443: it is 410 and takes no hold.)
  *
  * AC6.1 parallel requests, AC6.2 failure release, AC6.3 client abort,
  * AC6.4 concurrent duplicate attempt, AC6.6 fixture user. The sweep (AC6.5) and
@@ -144,11 +144,7 @@ interface GenPath {
   body: (extra?: Record<string, unknown>) => Record<string, unknown>;
   answer: string;
   /** The ai.service function the route calls (for a plain-Error throw). */
-  pipeline:
-    | 'streamGenerateFromTemplate'
-    | 'streamGenerateFromBrief'
-    | 'streamGenerateGuided'
-    | 'streamGenerateDocument';
+  pipeline: 'streamGenerateFromTemplate' | 'streamGenerateFromBrief' | 'streamGenerateGuided';
 }
 
 const PATHS: GenPath[] = [
@@ -186,23 +182,6 @@ const PATHS: GenPath[] = [
     }),
     answer: LETTER,
     pipeline: 'streamGenerateGuided',
-  },
-  {
-    name: 'legacy',
-    url: '/generate',
-    priceId: 'petition',
-    match: { docType: 'petition' },
-    docType: 'petition',
-    body: (extra = {}) => ({
-      docType: 'petition',
-      courtName: 'Patna High Court',
-      courtType: 'high_court',
-      keyFacts: 'The petitioner was denied a ration card without reason.',
-      reliefPrayer: 'Issue the ration card.',
-      ...extra,
-    }),
-    answer: '1. The petitioner submits.',
-    pipeline: 'streamGenerateDocument',
   },
 ];
 

@@ -18,6 +18,8 @@ export type TermsAcceptedVia = 'password' | 'google';
  * T-234 Google consent stamp on a linked or returning account set privacyVersion at sign-in.
  */
 export type PrivacyAcceptedVia = 'signup' | 'reaccept' | 'signin';
+/** T-358 — which email started the unverified-account clock. */
+export type FirstVerifySentVia = 'verify' | 'notice';
 
 /** T-343 (Ajay §4) — one accepted privacy version. No IP address and no user agent. */
 export interface IPrivacyAcceptance {
@@ -150,6 +152,16 @@ export interface IUser extends Document {
   emailVerifyExpires?: Date;
   // T-115c — present only once closing the account has started (the account is locked).
   erasure?: IErasure;
+  // T-358 (Ajay 8a2b639 / 9e42eea) — the clock. When the FIRST email carrying a verify link
+  // (the T-223 verify email, a resend, or the T-358 notice itself) was confirmed sent, or
+  // hard-bounced, to this unverified account, and which kind it was. Set once, by the worker's
+  // outcome report, never at enqueue. An account without it is never deleted.
+  firstVerifySentAt?: Date;
+  firstVerifySentVia?: FirstVerifySentVia;
+  // T-358 — when the WARNING notice (due at firstVerifySentAt + 23 days) was confirmed sent or
+  // hard-bounced. The notice that set firstVerifySentAt never counts as the warning. The
+  // unverified sweep deletes no account without it (Arjun ruling 3).
+  unverifiedNoticeSentAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 
@@ -304,6 +316,10 @@ const UserSchema = new Schema<IUser>(
     },
     // T-115c — no default: absent means the account is not being closed.
     erasure: { type: ErasureSchema },
+    // T-358 — no defaults: absent means no verify-link email / no warning notice has gone out.
+    firstVerifySentAt: { type: Date },
+    firstVerifySentVia: { type: String, enum: ['verify', 'notice'] },
+    unverifiedNoticeSentAt: { type: Date },
   },
   {
     timestamps: true,

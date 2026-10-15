@@ -3,7 +3,7 @@
  *
  * Covers: a first draft, a failed draft, a retry (keeps the retried
  * attempt's runType), rows written before T-110 (read as 'initial'), the
- * Generation row, and the legacy /generate route.
+ * Generation row. (The legacy /generate case was removed in T-443: the route is 410.)
  */
 import './setupDb';
 import request from 'supertest';
@@ -14,9 +14,10 @@ import { effectiveRunType, Generation } from '../models/Generation.model';
 import { User } from '../models/User.model';
 import { resolveRun } from '../routes/documents.routes';
 import { _clearAppSettingsCache } from '../services/app-settings.service';
-import { SdkStreamParams, sdkAnswer } from './sdkStream';
+import { sdkAnswer } from './sdkStream';
 const mockMessagesStream = jest.fn();
 jest.mock('@anthropic-ai/sdk', () =>
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
   require('./sdkStream').sdkModuleStub((...args: unknown[]) => mockMessagesStream(...args)),
 );
 
@@ -24,7 +25,6 @@ jest.mock('@anthropic-ai/sdk', () =>
 beforeEach(() => {
   mockMessagesStream.mockReset();
 });
-
 
 const INTERNAL_SECRET = process.env.INTERNAL_SECRET!;
 const USER_ID = '507f1f77bcf86cd799439081';
@@ -99,8 +99,7 @@ describe('T-110 — runType on /generate-from-template', () => {
   });
 
   it('a failed draft writes runType initial on the failed row', async () => {
-    const fetchMock = mockMessagesStream
-      .mockRejectedValue(new Error('503 service unavailable'));
+    mockMessagesStream.mockRejectedValue(new Error('503 service unavailable'));
 
     const res = await request(app)
       .post('/generate-from-template')
@@ -136,27 +135,6 @@ describe('T-110 — runType on /generate-from-template', () => {
       [2, 'completed', 'initial'],
     ]);
     expect(fetchMock).toHaveBeenCalledTimes(2);
-  });
-});
-
-describe('T-110 — runType on the legacy /generate route', () => {
-  it('writes runType initial', async () => {
-    const fetchMock = mockMessagesStream
-      .mockResolvedValue(sdkAnswer('1. The petitioner submits.', 400, 80));
-
-    const res = await request(app).post('/generate').set(internalHeaders()).send({
-      docType: 'petition',
-      courtName: 'Patna High Court',
-      courtType: 'high_court',
-      keyFacts: 'The petitioner was denied a ration card without reason.',
-      reliefPrayer: 'Issue the ration card.',
-    });
-
-    expect(res.status).toBe(200);
-    const gen = await Generation.findOne({ userId: USER_ID }).lean();
-    expect(gen).not.toBeNull();
-    expect(gen!.runType).toBe('initial');
-    expect(fetchMock).toHaveBeenCalled();
   });
 });
 

@@ -10,7 +10,8 @@
     "test": "jest --coverage --forceExit --detectOpenHandles",
     "test:watch": "jest --watch",
     "lint": "eslint 'src/**/*.ts' --fix",
-    "replay": "ts-node --transpile-only scripts/replay.ts"
+    "replay": "ts-node --transpile-only scripts/replay.ts",
+    "queue:purge": "ts-node --transpile-only scripts/queue-purge.ts"
   },
   "dependencies": {
     "@aws-sdk/client-sesv2": "^3.654.0",

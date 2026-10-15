@@ -2,7 +2,7 @@
  * T-115a — saved case details (formInputs and the Fact Ledger) are stored
  * encrypted.
  *
- * A: the three generate paths store formInputsEnc and no plain case details.
+ * A: the generate paths (from-template, from-brief; the legacy /generate is 410 since T-443) store formInputsEnc and no plain case details.
  * B: annexures-pack reads a legacy plain doc and a new encrypted doc alike.
  * C: readFormInputs / openVersion on lean and hydrated rows, and every failure.
  * D: ledgers: new rows hold no plain facts; old, new and mixed rows read the same.
@@ -147,7 +147,7 @@ beforeEach(async () => {
   });
 });
 
-// ── A: the three generate paths ─────────────────────────────────────────────
+// ── A: the generate paths ─────────────────────────────────────────────
 
 const TEMPLATE_FORM = {
   fir_number: '124/2026',
@@ -225,7 +225,6 @@ function expectSealedChecklist(row: Record<string, unknown>, fir?: string) {
   expect(row).not.toHaveProperty('filingChecklist');
   expect(typeof row.filingChecklistEnc).toBe('string');
   const items = readFilingChecklist(row as FilingChecklistCarrier);
-  // The legacy route makes an empty checklist; it is still stored sealed.
   if (fir) {
     expect(items.length).toBeGreaterThan(0);
     expect(items.join('\n')).toContain(fir);
@@ -290,31 +289,6 @@ describe('T-115a AC1/AC4 A: a new document holds no plain case details', () => {
       address: '88 Wrenfield Brief Lane, Patna',
       court_type: 'sessions',
       state: 'Bihar',
-    });
-  });
-
-  it('POST /generate (legacy)', async () => {
-    mockMessagesStream.mockResolvedValue(sdkAnswer('1. The petitioner submits.', 400, 80));
-    const { row } = await rawDocAfter('/generate', {
-      docType: 'petition',
-      courtName: 'Patna High Court',
-      courtType: 'high_court',
-      partyDetails: { petitioner: 'Zorbaxx Legacy Petitioner' },
-      keyFacts: 'Zorbaxx legacy facts: the petitioner was denied a ration card without reason.',
-      reliefPrayer: 'Zorbaxx legacy relief: issue the ration card.',
-    });
-
-    expect(row).not.toHaveProperty('formInputs');
-    expect(typeof row.formInputsEnc).toBe('string');
-    const text = plainText(row);
-    expect(text).not.toContain('Zorbaxx');
-    expect(text).not.toContain('ration card');
-    expectSealedChecklist(row);
-    const back = readRaw(row)!;
-    expect(back).toMatchObject({
-      docType: 'petition',
-      partyDetails: { petitioner: 'Zorbaxx Legacy Petitioner' },
-      keyFacts: expect.stringContaining('Zorbaxx legacy facts'),
     });
   });
 });

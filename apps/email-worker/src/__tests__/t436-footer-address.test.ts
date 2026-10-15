@@ -20,6 +20,9 @@ const SENTINEL = {
   loginUrl: 'https://app.lawie.in/login',
   link: 'https://app.lawie.in/x',
   url: 'https://app.lawie.in/x',
+  // auth.unverifiedDeletionNotice (T-358) refuses to render without these.
+  variant: 'A',
+  deletionDate: '21 October 2026',
 };
 
 describe('auth.verifyEmail footer (Ajay, byte-exact)', () => {
