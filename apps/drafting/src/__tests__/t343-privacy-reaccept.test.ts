@@ -45,7 +45,7 @@ const GENERATE_ROUTES = ['/generate-from-template', '/generate-from-brief'];
 
 describe('T-343 requireCurrentPrivacy on the generate routes (real middleware)', () => {
   it('uses the real current version', () => {
-    expect(CURRENT_PRIVACY_VERSION).toBe('2026-10-12b');
+    expect(CURRENT_PRIVACY_VERSION).toBe('2026-10-15');
   });
 
   describe.each(GENERATE_ROUTES)('POST %s', (path) => {
@@ -62,7 +62,13 @@ describe('T-343 requireCurrentPrivacy on the generate routes (real middleware)',
     });
 
     it('returns 403 for an empty header and a near-miss version', async () => {
-      for (const v of ['', '2026-10-12', '2026-10-12B', `${CURRENT_PRIVACY_VERSION}x`]) {
+      for (const v of [
+        '',
+        '2026-10-12',
+        '2026-10-12b',
+        '2026-10-15x',
+        `${CURRENT_PRIVACY_VERSION}x`,
+      ]) {
         const res = await request(app).post(path).set(headers(v)).send({});
         expect(res.status).toBe(403);
         expect(res.body.error).toBe('privacy_reaccept_required');
@@ -199,8 +205,9 @@ describe('T-343 @lawie/shared: requireCurrentPrivacy unit', () => {
     expect(PRIVACY_VERSION_SUMMARIES['2026-10-12b']).toBe(
       'We now explain how Google Analytics works on our public pages, and that we keep the campaign link a new account came from.',
     );
+    // T-436 (Ajay, GST file Addendum 4): the current version's summary, byte for byte.
     expect(getPrivacyVersionSummary(CURRENT_PRIVACY_VERSION)).toBe(
-      PRIVACY_VERSION_SUMMARIES['2026-10-12b'],
+      'We now ask for your State to issue GST tax invoices, and we explain how you can close your account and how long we keep your data.',
     );
   });
 

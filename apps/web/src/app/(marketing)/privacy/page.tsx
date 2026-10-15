@@ -29,10 +29,13 @@ export const metadata: Metadata = {
 // a self-serve close alerts the operator; §9 adds the sent-emails bullet.
 // T-358 (Ajay a84e298, dpdp-v1-calls-signed.md §8 rows 1-2): §9 adds the unverified-account
 // line after "Everything else"; "Last updated" only, CURRENT_PRIVACY_VERSION unchanged.
+// T-436 (Ajay, handoff/legal/gst-tax-invoice-signed.md Addendum 7 (1)): the §1 payments bullet
+// adds the State and §2 adds "issue GST tax invoices,"; the §9 tax-invoice retention is 5d.
 
-// T-310: set to the T-310 merge date at merge. Keep in step with CURRENT_PRIVACY_VERSION in
-// apps/auth/src/models/User.model.ts (the same date as YYYY-MM-DD, plus a letter suffix when the
-// policy changes more than once on one date, e.g. '2026-10-12b' for T-242).
+// The date the policy text last changed (T-436: its merge date). CURRENT_PRIVACY_VERSION in
+// packages/shared/src/constants/privacy.ts is bumped only when the policy adds data, a purpose
+// or a recipient, with Ajay's sign-off; a change that only moves this date does not bump it
+// (Ajay, GST file Addendum 4). When it does bump, its id is the same date as YYYY-MM-DD.
 const PRIVACY_LAST_UPDATED = '15 October 2026';
 
 // Byte for byte; one string so the hash can be checked.
@@ -182,7 +185,10 @@ export default function PrivacyPage() {
                     Professional details you choose to give: phone number, Bar Council, enrolment
                     number, state, practice areas and years of practice.
                   </li>
-                  <li>Plan, Ink balance, payments and referrals.</li>
+                  <li>
+                    Plan, Ink balance, payments and referrals, and the State you give us for your
+                    tax invoices.
+                  </li>
                   <li>
                     How you found us: if the link that brought you to Lawie carried campaign tags,
                     the source, medium and campaign named in it, saved with your account when you
@@ -209,8 +215,8 @@ export default function PrivacyPage() {
                 <h3>2. How We Use Information</h3>
                 <p>
                   We use it to create the drafts you ask for, keep you signed in, take payments,
-                  send you service emails, prevent misuse, and fix errors. We use case details only
-                  to produce and show your drafts.
+                  issue GST tax invoices, send you service emails, prevent misuse, and fix errors.
+                  We use case details only to produce and show your drafts.
                 </p>
               </section>
               <section id="storage">

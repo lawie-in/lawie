@@ -7,6 +7,9 @@ process.env.RAZORPAY_KEY_SECRET = 'rzp_test_dummy_key_secret';
 process.env.RAZORPAY_PLAN_ID = 'plan_test_dummy_plan_id';
 process.env.RAZORPAY_WEBHOOK_SECRET = 'whsec_test_dummy_webhook_secret';
 process.env.LOG_LEVEL = 'error';
+// SAFETY: a plain `yarn test` must never reach a live Redis queue. Tests that
+// need a REDIS_URL set a dummy value and mock @lawie/email-client.
+delete process.env.REDIS_URL;
 // T-436: FAKE GST seller details for tests only (not the real registration).
 process.env.GST_GSTIN = '20AAAAA0000A1Z5';
 process.env.GST_LEGAL_NAME = 'Test Proprietor';

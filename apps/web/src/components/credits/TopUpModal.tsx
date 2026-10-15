@@ -3,6 +3,7 @@
 import { CheckCircle2, Loader2, Tag, Zap, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
+import { GstStatePicker } from '@/components/billing/GstStatePicker';
 import {
   PrivacyBlockedNotice,
   isPrivacyBlocked,
@@ -15,6 +16,7 @@ import {
   useNeedsEmailVerification,
 } from '@/components/VerifyEmailPrompt';
 import { notifyCreditsChanged } from '@/hooks/useCredits';
+import { useGstState } from '@/hooks/useGstState';
 import { apiFetch } from '@/lib/apiFetch';
 
 interface TopupSku {
@@ -51,6 +53,8 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
   const privacyDescribedBy = usePrivacyDescribedBy('topup');
   // T-223 trigger 3: unverified email user -> the verify card replaces the pay button.
   const needsVerification = useNeedsEmailVerification();
+  // T-436: the State for the tax invoice. Asks /me itself: the modal opens from anywhere.
+  const gst = useGstState('gst-state-topup');
 
   // Coupon state
   const [couponInput, setCouponInput] = useState('');
@@ -106,6 +110,9 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
     setSubmitting(true);
     setError('');
     try {
+      // T-436 (spec §2): no State -> the error shows and the select takes focus; Razorpay is
+      // not opened. An unsaved pick is saved first (only after privacy acceptance, Ajay 7 (2)).
+      if (!(await gst.ensureReady())) return setSubmitting(false);
       const orderRes = await privacyFetch('topup', '/api/billing/topup/order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -316,6 +323,12 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
           {couponError && <p className="mt-1.5 text-xs text-red-600">{couponError}</p>}
         </div>
 
+        {/* T-436: State picker below the coupon, above Pay (spec §2); tab order coupon, State, Pay. */}
+        {!needsVerification && (
+          <div className="px-6 pb-4">
+            <GstStatePicker gst={gst} className="w-full" />
+          </div>
+        )}
         {/* T-343: P7 box above the pay button (only after a privacy block). */}
         <div className="px-6">
           <PrivacyBlockedNotice actionKey="topup" />

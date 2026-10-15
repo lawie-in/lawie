@@ -7,7 +7,7 @@ A ticket touching any of the following requires Ajay's sign-off reference in the
 - `apps/drafting/src/config/courts/`
 - `apps/drafting/src/config/sections/`
 - `docs/templates/*.json`
-- The template seed scripts
+- The seed scripts. The data the template, section and court seeds copy into the database is already covered by the folders above. These files need sign-off only where they could change which text is served or hold legal input text: `apps/drafting/src/services/template-seed.service.ts` and `apps/drafting/src/scripts/seed-templates.ts` (copy `document-rules/` into the templates collection), `apps/drafting/scripts/seed-sample-pdfs.ts` (holds the four sample input forms), `apps/drafting/src/scripts/seed-sections.ts` (deprecated), `apps/drafting/src/scripts/seed-courts.ts`. `apps/drafting/scripts/seed-app-setting.ts` (sets an AppSetting from the command line, such as a model name) and `apps/drafting/src/scripts/template-diff.ts` (a report) hold no legal text and are not listed.
 - `apps/drafting/src/services/ai.service.ts`
 - `apps/drafting/src/services/preflight.service.ts`
 - `apps/drafting/src/services/intake.prompts.ts` (ADR-019 §3.12, added by T-101)
@@ -19,7 +19,9 @@ A ticket touching any of the following requires Ajay's sign-off reference in the
 See also `.claude/docs/golden-snapshots.md` — most of the court-rules paths above are covered by golden snapshot tests that the `tester` must never auto-update.
 
 - `apps/drafting/src/services/citation-check.ts` (removes case law the advocate did not give: T-148, rule matching of case names: T-263). Added by Priya, 12 Oct 2026. Any change comes with Ajay's signed rule.
-- `apps/drafting/src/assistant/prompt/` (the Lawie Assistant system prompt, refusal lines and disclaimer: T-253b, ADR-023 section 3b). Added by Arjun, 12 Oct 2026. Any change comes with Ajay's signed text.
+- `apps/drafting/src/assistant/prompt/` (planned, not built yet: ADR-023 section 3b names one file, `apps/drafting/src/assistant/prompt/system.ts`, the Lawie Assistant system prompt, refusal lines and disclaimer; T-253b creates it. Until then the path does not exist.) Added by Arjun, 12 Oct 2026. Any change comes with Ajay's signed text.
+- `apps/drafting/src/assistant/guard/output-filter.ts` (planned, not built yet: the Assistant output blocklist, ADR-023; T-253b creates it. Any change comes with Ajay's signed list.)
+- `apps/drafting/src/assistant/help/*.md` (planned, not built yet: public help copy, ADR-023; T-253b creates it. A change that adds or alters a legal claim comes with Ajay's check; wording and layout changes do not.)
 - The signed BNS tables and their readers (T-371, ADR-025 D2). Added by the T-371 lead, 13 Oct 2026; Ajay checks this list. Any change comes with Ajay's signed text or table:
   - `apps/drafting/src/config/bns-offences.json`, `apps/drafting/src/config/bns-mapping.json`, `apps/drafting/src/config/bns-triable-by.json`
   - `apps/drafting/src/services/signed-tables.ts` (the loader: what is served, and its SHA-256 in `GET /health`)
@@ -37,7 +39,9 @@ See also `.claude/docs/golden-snapshots.md` — most of the court-rules paths ab
 - `apps/drafting/src/services/annexures.service.ts` (the Memo of Parties, affidavit and vakalatnama text and the disclaimer lines; Ajay signed T-381 and T-424 against it). Added by Priya, 15 Oct 2026 (T-116), on Ajay's ruling. Any change comes with Ajay's signed text.
 - `apps/drafting/src/services/fact-verifier.ts`: all of the file except the banner wording (`factCheckBannerText`), which stays with Priya, Madhuri and Rajesh. This covers `FACT_CHECK_DISCLAIMER` and the verification rules (what counts as a failed fact check). Added by Priya, 15 Oct 2026 (T-116), on Ajay's ruling. Any change comes with Ajay's signed text.
 
-Any NEW file that holds a prompt is legal content from the day it is created. A prompt moved to a new file stays legal content. A prompt split out of, or copied from, a listed file is covered from the commit that moves or copies it. The ticket that creates the file adds its path to this list in the same change.
+Database content, not a repo path: the four sample PDFs (output of `apps/drafting/scripts/seed-sample-pdfs.ts`, stored in MongoDB, served at `/api/samples/*`; T-254). They are not files in the repo, and each regenerated PDF still needs Ajay's signature on its exported text before any link is restored. HARD RULE: run `apps/drafting/scripts/seed-sample-pdfs.ts` against a non-production database only. The script loads `.env.production` first when that file exists, and a `MONGO_URI` already exported in your shell beats every env file, so check the effective `MONGO_URI` before every run: the value in your shell, and the env file the script reports loading (`→ Loaded env from ...`).
+
+Any NEW file that holds a prompt is legal content from the day it is created. A prompt moved to a new file stays legal content. A prompt split out of, or copied from, a listed file is covered from the commit that moves or copies it. The ticket that creates the file adds its path to this list in the same change. Whoever builds a planned file removes its "planned" marker, and corrects the path if it differs, in the same change.
 
 **Deliberately not on this list (Ajay, 15 Oct 2026)**
 

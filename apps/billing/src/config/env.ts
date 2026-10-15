@@ -15,6 +15,20 @@ const envSchema = z.object({
 
   FRONTEND_URL: z.string().default('http://localhost:3000'),
 
+  // T-436 (c): the email queue (@lawie/email-client reads process.env.REDIS_URL
+  // itself). Optional: with it unset, invoice emails are not queued (a warning
+  // is logged), `emailQueuedAt` stays null and the invoice sweep retries later.
+  REDIS_URL: z.string().default(''),
+  // T-436 (c): invoice / credit note emails are queued only when this is
+  // "true" (and REDIS_URL is set). Default false until the email-worker can
+  // render billing.taxInvoice / billing.creditNote: while false nothing is
+  // queued, `emailQueuedAt` stays null, and the sweep sends the backlog once
+  // it is switched on. Only the exact string "true" enables it.
+  INVOICE_EMAIL_ENABLED: z
+    .union([z.literal('true'), z.literal('false'), z.literal('')])
+    .default('false')
+    .transform((v) => v === 'true'),
+
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),
   SENTRY_DSN: z.string().default(''),
 

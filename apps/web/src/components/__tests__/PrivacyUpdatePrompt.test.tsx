@@ -754,3 +754,61 @@ describe('T-354 AC1 — accept 500, then the retry signs the user out', () => {
     expect(liveRegion().textContent).toBe(''); // no P9: nothing was accepted
   });
 });
+
+describe('T-436 onPrivacyAccepted (a held State is saved after acceptance)', () => {
+  const ACCEPT = '/api/auth/me/privacy-acceptance';
+
+  it('calls the listener once after a successful Accept in the dialog, not before', async () => {
+    handlers[ACCEPT] = { body: { data: { accessToken: 'A2', refreshToken: 'R2' } } };
+    const listener = jest.fn();
+    h.mod.onPrivacyAccepted(listener);
+    await h.mount();
+    expect(listener).not.toHaveBeenCalled();
+    await h.click(btnIn(dialog() as HTMLElement, SIGNED.P5) as HTMLElement);
+    expect(listener).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not call it when the Accept fails (P8) or on Not now', async () => {
+    handlers[ACCEPT] = { status: 500, body: {} };
+    const listener = jest.fn();
+    h.mod.onPrivacyAccepted(listener);
+    await h.mount();
+    await h.click(btnIn(dialog() as HTMLElement, SIGNED.P5) as HTMLElement);
+    expect(listener).not.toHaveBeenCalled();
+    await h.click(btnIn(dialog() as HTMLElement, SIGNED.P6) as HTMLElement);
+    expect(listener).not.toHaveBeenCalled();
+  });
+
+  it('calls it after Accept in the P7 box too', async () => {
+    handlers[GEN] = BLOCKED;
+    handlers[ACCEPT] = { body: { data: { accessToken: 'A2', refreshToken: 'R2' } } };
+    const listener = jest.fn();
+    h.mod.onPrivacyAccepted(listener);
+    await h.mount();
+    await h.click(btnIn(dialog() as HTMLElement, SIGNED.P6) as HTMLElement);
+    genBtn().focus();
+    await h.click(genBtn());
+    await h.click(btnIn(dialog() as HTMLElement, SIGNED.P6) as HTMLElement);
+    const box = (document.getElementById('reaccept-p7-gen') as HTMLElement)
+      .parentElement as HTMLElement;
+    await h.click(btnIn(box, SIGNED.P5) as HTMLElement);
+    expect(listener).toHaveBeenCalledTimes(1);
+  });
+
+  it('unsubscribe stops calls, and a throwing listener does not undo the acceptance', async () => {
+    handlers[ACCEPT] = { body: { data: { accessToken: 'A2', refreshToken: 'R2' } } };
+    const gone = jest.fn();
+    h.mod.onPrivacyAccepted(gone)();
+    h.mod.onPrivacyAccepted(() => {
+      throw new Error('boom');
+    });
+    const after = jest.fn();
+    h.mod.onPrivacyAccepted(after);
+    await h.mount();
+    await h.click(btnIn(dialog() as HTMLElement, SIGNED.P5) as HTMLElement);
+    expect(gone).not.toHaveBeenCalled();
+    expect(after).toHaveBeenCalledTimes(1);
+    expect(dialog()).toBeNull();
+    expect(mockLogin).toHaveBeenCalledWith('A2', 'R2');
+  });
+});

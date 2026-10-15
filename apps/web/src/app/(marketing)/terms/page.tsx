@@ -5,6 +5,7 @@ import Link from 'next/link';
 import FloatCta from '@/components/marketing/FloatCta';
 import SiteFooter from '@/components/marketing/SiteFooter';
 import SiteNav from '@/components/marketing/SiteNav';
+import { SupplierContactLine, SupplierTermsSentence } from '@/components/marketing/SupplierDetails';
 
 export const metadata: Metadata = {
   title: 'Lawie — Terms of Service',
@@ -33,7 +34,7 @@ export default function TermsPage() {
         <div className="container">
           <div style={{ marginBottom: '44px' }}>
             <span className="legal-updated">
-              <Calendar strokeWidth={1.5} /> Last updated: 14 October 2026
+              <Calendar strokeWidth={1.5} /> Last updated: 15 October 2026
             </span>
             <p
               style={{
@@ -100,7 +101,10 @@ export default function TermsPage() {
                 <h3>1. Acceptance of Terms</h3>
                 <p>
                   By accessing or using Lawie (&quot;the Service&quot;), you agree to be bound by
-                  these Terms of Service. If you do not agree, you must not use the Service.
+                  these Terms of Service.{' '}
+                  {/* T-436: Ajay 5b (Addenda 1, 7 and 8); hidden when the supplier details are unavailable. */}
+                  <SupplierTermsSentence />
+                  If you do not agree, you must not use the Service.
                 </p>
               </section>
               <section id="description">
@@ -218,6 +222,8 @@ export default function TermsPage() {
               </section>
               <section id="contact">
                 <h3>14. Contact</h3>
+                {/* T-436: Ajay 5c (Addendum 1: legal name only); hidden when unavailable. */}
+                <SupplierContactLine />
                 <p>
                   Questions about these Terms can be sent to{' '}
                   <a href="mailto:legal@lawie.in">legal@lawie.in</a>.

@@ -1241,3 +1241,18 @@ Quality: nothing to test in the UI — API route only
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 
 > Note for the batch (15 Oct): on develop the invoice email switch is off, so the pricing line "we email you a GST tax invoice" produces no email there. Download of the invoice from Settings works.
+
+## T-436 b/c — Choose your State, see and download invoices (6be2d5b1, shashank, 15 Oct 2026)
+
+- Choose your State when upgrading, buying Ink or in Settings, so your tax invoice shows the right GST; you are asked to accept the updated privacy policy first.
+- See every invoice and credit note in Settings and download each as a PDF.
+- Get an email with each invoice and credit note once emails are switched on (off on develop, so no email there; the Settings download works).
+- Read in the Terms who supplies Lawie and its GST registration, in the Privacy policy why the State is asked, and on the pricing page that prices include GST.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-116 and T-445 — Legal-content list complete (b2d6e6f, c60801b, mahak, 15 Oct 2026)
+
+- Nothing a user sees. A change to any listed prompt, signed-text file, seed script or sample PDF now asks for Ajay's sign-off.
+
+Quality: nothing to test in the UI — Markdown and code comments only

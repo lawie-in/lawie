@@ -98,8 +98,8 @@ describe('T-433 Terms §6', () => {
     expect(text).toContain(TERMS_ANCHOR + TERMS_SENTENCES);
   });
 
-  it('bumps Last updated to 14 October 2026', () => {
-    expect(norm(render(<TermsPage />))).toContain('Last updated: 14 October 2026');
+  it('bumped Last updated to 14 October 2026; T-436 moved it on to 15 October 2026', () => {
+    expect(norm(render(<TermsPage />))).toContain('Last updated: 15 October 2026');
   });
 
   it('has no unsigned rollover / carry wording', () => {
