@@ -163,6 +163,9 @@
       "the new plea is misconceived",
       "the petitioner reiterates",
       "save as specifically denied"
+    ],
+    "promptInstructions": [
+      "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
   "relevantActs": [

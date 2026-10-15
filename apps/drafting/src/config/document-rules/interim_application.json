@@ -142,6 +142,9 @@
       "For stay/injunction prayers, plead all three limbs (prima facie case, balance of convenience, irreparable injury) explicitly",
       "For urgent mentioning IAs — clearly state irreparable consequences of normal listing",
       "Always pray for ad-interim relief pending notice + final relief on IA"
+    ],
+    "promptInstructions": [
+      "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
   "relevantActs": [

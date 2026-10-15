@@ -4,7 +4,7 @@
     "owner": "Ajay (CLO)",
     "validated_by": "Ajay (CLO) — Batch 7 writs + tribunals 2026-05-12",
     "last_updated": "2026-05-12",
-    "change_protocol": "Do not name judgments in model-visible text (Ajay, T-441)."
+    "change_protocol": "Do not name judgments in model-visible text (Ajay, T-441). All edits require CLO sign-off."
   },
   "template_id": "mact_claim",
   "card_description": "A claim petition before the Motor Accidents Claims Tribunal under Section 166 of the Motor Vehicles Act, 1988.",
@@ -233,7 +233,7 @@
       "id": "computation_paragraph",
       "name": "Computation of Compensation — Multiplier Method",
       "required": true,
-      "description": "Multiplier method, with personal expenses deduction and conventional heads"
+      "description": "Multiplier method, with future prospects, personal expenses deduction and conventional heads"
     },
     {
       "id": "vehicle_insurance_paragraph",
@@ -287,7 +287,7 @@
       "Para 13: Computation — apply MULTIPLIER METHOD:",
       "   - Age multiplier table: 15 (up to 15 years), 18 (15-20), 17 (21-25), 16 (26-30), 16 (31-35), 16 (36-40), 15 (41-45), 13 (46-50), 11 (51-55), 8 (56-60), 5 (61-65), 5 (66-70).",
       "   - Annual income calculation.",
-      "   - Future prospects addition: 50% if deceased ≤40 with permanent job; 30% if 40-50; 15% if 50-60 with permanent job; for self-employed: 40% / 25% / 10%; for fixed salary: 30% / 20% / 10%.",
+      "   - Future prospects addition: permanent job — 50% if deceased below 40, 30% if 40-50, 15% if 50-60; self-employed or fixed salary — 40% / 25% / 10% for the same age bands.",
       "   - Personal expenses deduction: 1/3 (married + dependants), 1/2 (bachelor), graduated by family size.",
       "   - Conventional heads: Loss of estate ₹15,000; Loss of consortium ₹40,000 per spouse; Funeral expenses ₹15,000 — to be enhanced by 10% every 3 years.",
       "Para 14: For injury claims — heads: medical expenses; loss of earning during treatment; future loss of earning capacity (based on permanent disability percent and age); pain & suffering; future medical expenses; loss of amenities; conveyance; attendant charges.",

@@ -227,7 +227,7 @@
       "id": "natural_guardian_status",
       "name": "Status of Natural Guardians",
       "required": true,
-      "description": "Details of father and mother — death/unfitness/incapacity/absence; for Hindu minors per S.6 HMGA father is natural guardian and after him mother, subject to S.4 and 'after' being read as 'in absence of'"
+      "description": "Details of father and mother — death/unfitness/incapacity/absence; for Hindu minors per S.6 HMGA father is natural guardian and after him mother, with 'after' read as 'in the absence of'; subject to S.4"
     },
     {
       "id": "ground_for_appointment",
