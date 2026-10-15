@@ -438,7 +438,7 @@
     "territorial_jurisdiction must not be empty",
     "court_fee_paid must be > 0",
     "If total_suit_amount >= 300000 and commercial_dispute=true, flag for Commercial Court track",
-    "If commercial_dispute=true and no urgent interim relief, pre_institution_mediation must be true (Patil Automation)",
+    "pre_institution_mediation must be true for a commercial suit, unless urgent interim relief is sought (S.12A Commercial Courts Act, 2015; Patil Automation)",
     "advocate_enrollment must match Bar Council format"
   ],
   "key_citations": [
