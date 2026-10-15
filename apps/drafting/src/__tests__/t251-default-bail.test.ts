@@ -240,9 +240,7 @@ describe('AC1: Ajay’s text is applied word for word', () => {
 
   it('caseNomenclature and prayerTemplate use {governing_provision}; the old opening words are deleted', () => {
     const ct = RAW.causeTitle as { caseNomenclature: string };
-    expect(ct.caseNomenclature).toBe(
-      'DEFAULT BAIL APPLICATION No. _____ of [YEAR]\n(Under {governing_provision})',
-    );
+    expect(ct.caseNomenclature).toBe('DEFAULT BAIL APPLICATION No. _____ of [YEAR]');
     expect(pack.causeTitle?.caseNomenclature).toBe(ct.caseNomenclature);
     const prayer = RAW.prayerTemplate as string;
     expect(prayer).toContain(

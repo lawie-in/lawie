@@ -585,3 +585,67 @@ describe('intake brief: IPC note on the offence date, no FIR fallback', () => {
     ).toBeUndefined();
   });
 });
+
+describe('Addendum 7: the offence-date-only gate is scoped to the six packs', () => {
+  const BASE = {
+    court_name: 'patna_hc',
+    applicant_name: 'Ramesh Kumar',
+    father_name: 'Suresh Kumar',
+    respondent_name: 'State of Bihar',
+    applicant_age: 35,
+    fir_number: '091/2024',
+    facts_narrative:
+      'The petitioner was falsely implicated in the FIR. At the time of the alleged incident, the petitioner was at his residence in Patna. The victim was injured but received timely medical treatment and is now recovering.',
+    sections_charged: '302 IPC',
+  };
+  const hits = async (template: string, extra: Record<string, unknown> = {}) => {
+    const r = await preflightCheck(template, { ...BASE, ...extra });
+    return r._meta?.rule_hits ?? [];
+  };
+
+  it.each(['criminal_appeal', 'fir_quashing'])(
+    '%s with an IPC section and no offence date still gets old_law_section',
+    async (template) => {
+      expect(await hits(template)).toContain('old_law_section');
+      expect(await hits(template, { fir_date: '2026-01-01' })).toContain('old_law_section');
+    },
+  );
+  it('a T-245a pack with an IPC section and no offence date gets none', async () => {
+    expect(await hits('bail_anticipatory')).not.toContain('old_law_section');
+  });
+
+  const NOTE =
+    'If the offence was committed on or after 1 July 2024, the Bharatiya Nyaya Sanhita, 2023 (BNS) applies, not the Indian Penal Code (IPC). Check the sections before you file.';
+  const pack = loadRulePack('bail_regular')!;
+  const noteForKind = (kindId: string, firDate: string) =>
+    buildBrief({
+      kind: { id: kindId, name: kindId, court_document: true },
+      checklist: buildChecklist(pack),
+      values: [
+        { key: 'sections_charged', value: ['379 IPC'], source: 'description', quote: 'x' },
+        { key: 'fir_date', value: firDate, source: 'description', quote: 'x' },
+      ],
+    }).items.find((i) => i.key === 'sections_charged')?.note;
+
+  it('a non-T-245a kind with only an FIR date of 2025 still gets the IPC note', () => {
+    expect(noteForKind('criminal_appeal', '2025-03-15')).toBe(NOTE);
+  });
+  it('a T-245a pack with only an FIR date of 2025 gets none', () => {
+    expect(noteForKind('bail_regular', '2025-03-15')).toBeUndefined();
+  });
+
+  it('caseNomenclature has no "(Under" in either pack; causeTitle.format keeps it', () => {
+    for (const id of ['bail_before_magistrate', 'default_bail']) {
+      const ct = (
+        rawPack(id) as unknown as { causeTitle: { caseNomenclature: string; format: string } }
+      ).causeTitle;
+      expect(ct.caseNomenclature).not.toContain('(Under');
+      expect(ct.format).toContain('(Under {governing_provision})');
+    }
+    const nom = (id: string) =>
+      (rawPack(id) as unknown as { causeTitle: { caseNomenclature: string } }).causeTitle
+        .caseNomenclature;
+    expect(nom('bail_before_magistrate')).toBe('BAIL APPLICATION No. _____ of [YEAR]');
+    expect(nom('default_bail')).toBe('DEFAULT BAIL APPLICATION No. _____ of [YEAR]');
+  });
+});
