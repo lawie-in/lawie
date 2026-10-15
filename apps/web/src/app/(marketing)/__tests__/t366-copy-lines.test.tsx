@@ -149,12 +149,77 @@ describe('T-366 every 5-Ink sign-up promise says verified (AC5)', () => {
     const text = norm(render(<PricingPage />));
     expect(text).not.toContain('5 Ink — forever');
     const cells = Array.from(container.querySelectorAll('.plan-alt')).map((e) => e.textContent);
-    expect(cells).toContain('5 Ink, lifetime, once email verified');
     const freeCell = cells.find((c) => c?.startsWith('5 Ink'));
-    expect(freeCell).toBe('5 Ink, lifetime, once email verified');
+    expect(freeCell).toBe('5 Ink on sign-up, once your email is verified (lifetime)');
     expect(freeCell).not.toMatch(/forever/i);
     expect(text).toContain(
       'The Free plan gives you 5 Ink on sign-up, once your email is verified (lifetime).',
     );
+  });
+});
+
+describe('T-398 pricing page copy (Ajay conditions 1-4)', () => {
+  const planCard = (name: string) =>
+    Array.from(container.querySelectorAll('.plan')).find(
+      (e) => e.querySelector('.plan-name')?.textContent === name,
+    ) as HTMLElement;
+
+  it('Free card: ₹0 without /lifetime, Ink line, button, document-type row', () => {
+    render(<PricingPage />);
+    const free = planCard('Free');
+    expect(free.querySelector('.plan-price')?.textContent).toBe('₹0');
+    expect(free.textContent).not.toMatch(/\/\s*lifetime/i);
+    expect(free.querySelector('.plan-alt')?.textContent).toBe(
+      '5 Ink on sign-up, once your email is verified (lifetime)',
+    );
+    expect(free.querySelector('a.btn')?.textContent?.trim()).toBe('Start with 5 free Ink');
+    expect(free.textContent).toContain('Every document type on Lawie');
+  });
+
+  it('hero subline is the verified 5 free Ink line', () => {
+    const text = norm(render(<PricingPage />));
+    expect(text).toContain(
+      'Start with 5 free Ink once your email is verified. Buy more when you need it.',
+    );
+  });
+
+  it('no watermark, Priority or Early access text anywhere on the page', () => {
+    const text = norm(render(<PricingPage />));
+    expect(text).not.toMatch(/watermark/i);
+    expect(text).not.toMatch(/priority/i);
+    expect(text).not.toMatch(/early access/i);
+  });
+
+  it('the word "free" appears only with "5 Ink" (hero and Free button included)', () => {
+    const text = norm(render(<PricingPage />));
+    // Plan-name uses ("Free" card title, "Everything in Free", "Free plan") are capitalised;
+    // every lower-case marketing "free" must sit in "5 free Ink".
+    const lower = Array.from(text.matchAll(/free/gi)).filter((m) => m[0] === 'free');
+    expect(lower.length).toBeGreaterThanOrEqual(2); // hero + Free button
+    for (const m of lower) {
+      expect(text.slice(m.index! - 2, m.index! + 8)).toBe('5 free Ink');
+    }
+    // Any capitalised "Free" is only the plan name.
+    for (const m of text.matchAll(/free/gi)) {
+      if (m[0] === 'free') continue;
+      expect(text.slice(m.index!, m.index! + 7)).toMatch(/^(Free₹0|Free, p|Free pl)/);
+    }
+  });
+
+  it('Pro is not added anywhere other than the Pro card', () => {
+    render(<PricingPage />);
+    const pro = planCard('Pro');
+    const clone = container.cloneNode(true) as HTMLElement;
+    const cards = Array.from(clone.querySelectorAll('.plan'));
+    const proClone = cards.find((e) => e.querySelector('.plan-name')?.textContent === 'Pro');
+    proClone?.remove();
+    expect(pro).toBeDefined();
+    clone.querySelectorAll('style').forEach((e) => e.remove());
+    const rest = norm(clone.textContent ?? '');
+    // The only other "Pro" is the existing signed FAQ sentence in "What is Ink?" (pre-T-398,
+    // untouched); nothing new was added. Any further occurrence fails this.
+    const stripped = rest.replace('Solo and Pro plans give you fresh Ink every month', '');
+    expect(stripped).not.toMatch(/\bPro\b/);
+    expect(pro.textContent).toMatch(/\bPro\b/);
   });
 });
