@@ -83,3 +83,7 @@ Production starts fresh. If any document saved on develop before T-300 is ever c
 6. Set `UNVERIFIED_SWEEP_ENABLED=true` (default false), then deploy auth.
 
 Arjun says "ready" explicitly when the commands are on the env. T-358 stamps `firstVerifySentAt` on confirmed send; deletion is no earlier than 30 days after the first email that reaches the user. Keeping an unverified account is a manual verify by ops (T-235 runbook).
+
+## Env example files (15 Oct 2026)
+
+The four root env example files (production, staging, demo and the base example) should list the new variables with a comment each: `UNVERIFIED_SWEEP_ENABLED=false` (T-358) and the seven `GST_*` values and billing's `BILLING_SERVICE_URL` / `REDIS_URL` additions (T-436). The lead sandboxes cannot read or edit these files, so Arjun or the founder adds the lines at release time. Do not put real values in them.
