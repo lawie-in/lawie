@@ -82,3 +82,7 @@ New decision for the founder: **D10** — unreviewed kinds: banner or hidden. Ne
 ## 9. Finance constraints folded in (Vikram, 15 Oct)
 
 Ink v2 accepted with lots, spend order, cancel-keeps-paid-Ink, two-lot migration, idempotent refund and a month-end liability report (`06-ink-v2.md` §5). Library: M30 and embeddings are phase 2, revenue-gated; **licence costs are the unpriced line** — D1 is a decision about licences as much as about code. The design starts on **free primary sources** (Bare Acts, Rules and notifications from the official gazette, judgments from court websites) so phase 0 and 1 carry no licence cost; commercial databases and books are added when priced.
+
+## 10. Diagrams (15 Oct)
+
+All of the above drawn out — big picture, compile pipeline, ingest sequence, authority graph, ERD, deployment, Ink v2 lots and draft-run lifecycle, rollout gantt — in `07-diagrams.md` (Mermaid, source of truth) and as a rendered page for the founder: https://claude.ai/artifact/TLSLeyLGTovGCGm15bLP1j
