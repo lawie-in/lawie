@@ -348,3 +348,12 @@ These are not sent to the model. I checked each one:
 | 6 | maintenance_bnss_144 filing_checklist.8 (Rajnesh v. Neha) | Keep: correct |
 
 Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+### T-449 round 2 (Priya / Kunal reviewer optionals, 15 Oct 2026)
+
+1. maintenance_bnss_144 "Supreme Court framework requiring affidavits of assets and liabilities": **leave**. The requirement is stated correctly.
+2. itat_appeal Para 9: "Constitution Bench" is wrong (it was a three-judge bench). Reword the parenthesis to `(the Supreme Court struck down the third proviso to S.254(2A))`.
+
+Separate item, not T-449: the Income-tax Act, 2025 has applied since 1 April 2026, so the 1961-Act section numbers in itat_appeal are marked "verify" until I map them. Priya opens the ticket.
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.
