@@ -33,6 +33,7 @@ import {
   readSectionsCharged,
   resolveOffence,
 } from './bns-offence-resolver';
+import { SIDED_PACKS } from './brief-party-fields';
 import { NOT_KNOWN_DATE_LINE } from './drafter.prompts';
 import {
   isLawSwitchPack,
@@ -1948,6 +1949,18 @@ export function buildPlaceholderContext(
     ? (loadCourtRule(CONSUMER_RULE_ID) ?? undefined)
     : courtData?.courtRule;
 
+  // T-431: on SIDED_PACKS the verification reads the T-424 resolver's
+  // deponent_name / client_side (set by ai.service.ts), never applicant_name.
+  // The designation is the party label of the client's own side; no resolved
+  // side prints the blank, never a guessed side.
+  const sidedPack = Object.prototype.hasOwnProperty.call(SIDED_PACKS, config.template_id);
+  const sidedDeponentLabel = (c: PlaceholderContext): string =>
+    c.client_side === 'respondent'
+      ? (c.party_label_respondent ?? 'Respondent')
+      : c.client_side === 'petitioner'
+        ? (c.party_label_petitioner ?? 'Petitioner')
+        : '_____';
+
   // ── SCRUM-50: Inject court-rule-driven placeholders ───────────────────────
   if (courtData && courtRule) {
     // T-158: labels and verification follow the document's matter type.
@@ -1996,11 +2009,15 @@ export function buildPlaceholderContext(
     // Verification format from court rule
     // Note: {body_para_count} is kept as a deferred placeholder — resolved after AI generation
     if (rule.verification_format) {
+      // T-431: a sided pack's deponent is the resolved client, under its own side's label.
       ctx.verification_text = rule.verification_format
-        .replace(/\{deponent_name\}/g, ctx.applicant_name ?? '_____')
+        .replace(
+          /\{deponent_name\}/g,
+          (sidedPack ? ctx.deponent_name : ctx.applicant_name) ?? '_____',
+        )
         .replace(
           /\{designation\}/g,
-          `the ${ctx.party_label_petitioner ?? 'Petitioner'} herein above named`,
+          `the ${sidedPack ? sidedDeponentLabel(ctx) : (ctx.party_label_petitioner ?? 'Petitioner')} herein above named`,
         )
         // T-404 (49b5fd2): a not-court document takes its own place, never the court's.
         // T-410 (Ajay 2957f50, c): no Commission, no city in "Verified at".
@@ -2035,7 +2052,7 @@ export function buildPlaceholderContext(
       (!chosenCourtHeading(courtData) && !ctx.court_city?.trim()
         ? PLACE_BLANK
         : (ctx.court_city ?? '_____'));
-    ctx.verification_text = `I, ${ctx.applicant_name ?? '_____'}, the ${ctx.party_label_petitioner} herein above named, do hereby verify that the contents of paragraphs 1 to {body_para_count} of the above application are true and correct to the best of my knowledge and belief, and nothing material has been concealed therefrom.\n\nVerified at ${verifiedAt} on this _____ day of _________, ${ctx.current_year}.`;
+    ctx.verification_text = `I, ${(sidedPack ? ctx.deponent_name : ctx.applicant_name) ?? '_____'}, the ${sidedPack ? sidedDeponentLabel(ctx) : ctx.party_label_petitioner} herein above named, do hereby verify that the contents of paragraphs 1 to {body_para_count} of the above application are true and correct to the best of my knowledge and belief, and nothing material has been concealed therefrom.\n\nVerified at ${verifiedAt} on this _____ day of _________, ${ctx.current_year}.`;
   }
 
   // T-410: after the court-rule block, the computed fields and the defaults,
