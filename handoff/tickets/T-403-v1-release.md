@@ -87,3 +87,7 @@ Arjun says "ready" explicitly when the commands are on the env. T-358 stamps `fi
 ## Env example files (15 Oct 2026)
 
 The four root env example files (production, staging, demo and the base example) should list the new variables with a comment each: `UNVERIFIED_SWEEP_ENABLED=false` (T-358) and the seven `GST_*` values and billing's `BILLING_SERVICE_URL` / `REDIS_URL` additions (T-436). The lead sandboxes cannot read or edit these files, so Arjun or the founder adds the lines at release time. Do not put real values in them.
+
+## Founder step: nginx access log (T-377 AC2, 15 Oct 2026)
+
+On the web-domain nginx on the EC2 server, apply the snippet in `docs/nginx-access-log.md` (a `map` that replaces the query string with `?[stripped]` for `/verify-email` and `/auth/callback`, used in a custom `log_format`), run `nginx -t`, reload, and check with the one-line grep in that doc that no token shows. Arjun reviews the doc first.
