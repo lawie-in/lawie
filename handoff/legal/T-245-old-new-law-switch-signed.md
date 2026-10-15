@@ -279,3 +279,47 @@ Questions:
 With the two deletions, (a)'s test and (b) applied: **T-447 is approved.** Merge-body ref: "Legal: T-447 signed by Ajay, T-245 file, T-447 byte check".
 
 Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+### T-451 ids (Priya, 15 Oct 2026)
+
+Both ids reach the model: clause ids go through clauseLines (brief-drafter.ts:299), and form keys through the brief entry (`key`, :280). So R1/R4 apply, and they cannot stay. R4 replacements:
+
+| Where                                                   | Old                             | New                            |
+| ------------------------------------------------------- | ------------------------------- | ------------------------------ |
+| Clause id (fir_quashing, quashing_528_bnss) | `bhajan_lal_paragraph`          | `quashing_categories_paragraph` |
+| Form key (fir_quashing)                                 | `bhajan_lal_categories_invoked` | `quashing_categories_invoked`   |
+
+This is no new law (R5). CLAUSE_CUES, the skeletons and any saved-form or draft mapping follow the rename; how that is done is Arjun's call, not mine. The wording does not change, so no golden should move; any golden that does move comes to me.
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+### T-449 questions (Priya / Kunal, 15 Oct 2026)
+
+1. **Where S goes when a pack has no promptInstructions** (rejoinder_affidavit, restoration_application, interim_application). Do not append it to `system_prompt_addendum` or `system_role`. Field order puts it before tone and key_phrases, so it would not come last. Do the same as curative_petition (T-447 (a)): add `prompt_context.promptInstructions: [S]` as the **last key** of prompt_context. Never add a top-level `promptInstructions` to these packs: prompt-assembler then uses only that list and drops all of prompt_context. Condition: a test shows S as the last numbered instruction for each of the three.
+2. **_meta.** For mact_claim, yes to the reset, but use the amended R6 text that keeps the CLO line: `All edits require CLO sign-off. Do not name judgments in model-visible text (Ajay, T-441).` For plaint_declaration and plaint_partition, **leave** the _meta: it is not model-visible and makes no citation mandatory.
+3. **R4 labels.** I will mark them when Kunal's diff arrives.
+4. **rera_complaint :155 label.** Labels reach the model (item.label), so it goes into T-451, not left as it is. New label: `Any previous Consumer / Civil proceedings on same cause? (the consumer remedy is concurrent)`.
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+### T-449 byte check (feature/t-449-civil-family-no-judgments, 27 packs, 15 Oct 2026)
+
+S appears verbatim once, last, in 24 packs. It is missing from interim_application, rejoinder_affidavit and restoration_application: add it as ruled in T-449 Q1. No case name is left in any added line.
+
+R4 marks:
+
+| # | Proposed | Mark |
+|---|---|---|
+| 1 | mact_claim clause: `Multiplier method, with personal expenses deduction and conventional heads` | Approved with one addition: `Multiplier method, with future prospects, personal expenses deduction and conventional heads` |
+| 2 | mact_claim Para 18: `…largely superseded by multiplier-method computation in S.166 claims` | Approved |
+| 3 | interim_application: `plead all three limbs (prima facie case, balance of convenience, irreparable injury) explicitly` | Approved |
+| 4 | guardianship clause | Reworded: `Details of father and mother — death/unfitness/incapacity/absence; for Hindu minors per S.6 HMGA father is natural guardian and after him mother, with 'after' read as 'in the absence of'; subject to S.4` |
+| 5 | plaint_partition Para 7: `…coparcenary status is conferred retrospectively.` | **Not approved, legally wrong.** The amended S.6 is retroactive, not retrospective. Use: `Para 7: For pre-2005 demises or earlier partitions, plead carefully — the daughter's right under amended S.6 HSA arises by birth and operates retroactively, not retrospectively; a partition by registered deed or court decree before 20.12.2004 is not reopened.` |
+
+The mact_claim R2 deletions (the minor-death and non-earning-member citation lines) are approved: nothing of law is left in them.
+
+must-fix in T-449 (mact_claim :290, an error that was already there): the future-prospects line wrongly splits fixed salary out. It becomes: `   - Future prospects addition: permanent job — 50% if deceased below 40, 30% if 40-50, 15% if 50-60; self-employed or fixed salary — 40% / 25% / 10% for the same age bands.`
+
+With the three S placements, #1, #4, #5 and :290 applied: **T-449 is approved.** Merge-body ref: "Legal: T-449 signed by Ajay, T-245 file, T-449 byte check".
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.

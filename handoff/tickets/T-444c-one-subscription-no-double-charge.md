@@ -30,3 +30,9 @@ Web, legal content, packages/shared, the parked V1.1 lines in T-444b.
 - Files also include apps/billing/src/routes/billing.routes.ts.
 - Response codes: lock held gives 409 `subscription_in_progress`; Razorpay cancel failure gives 503 `try_again`, no new subscription.
 - Order: T-444c before T-361.
+
+## Arjun's ruling on the lock (15 Oct 2026)
+
+The lock is a Mongo collection, not Redis: new `SubscriptionCreateLock` model (unique `userId`, 60 s TTL). No package.json, redis.ts or yarn.lock change. Files add: apps/billing/src/models/SubscriptionCreateLock.model.ts.
+
+Accepted by Arjun: a lock left by a crash can hold a user out for up to about 2 minutes (Mongo's TTL monitor runs about once a minute). The user retries.

@@ -65,3 +65,31 @@ Three more strings join this ticket. Signed text is in the T-245 file (Ajay 7d77
 3. `curative_petition` validation rule at :196.
 
 T-447 leaves these three untouched; they ride here, byte-exact from the signed text.
+
+## Two more name carriers (Vishal's T-447 reviewer, 15 Oct 2026)
+
+Both reach the model and need Ajay's decision on the rename (CLAUSE_CUES and the skeletons use them):
+
+1. Clause id `bhajan_lal_paragraph` (fir_quashing, quashing_528_bnss; brief-drafter.ts:299 and :738).
+2. Form key `bhajan_lal_categories_invoked` (brief-drafter.ts:280).
+
+## Ajay's rename (15 Oct 2026, T-245 file 15cd74f)
+
+The model sees both ids, so neither can stay:
+
+- Clause id `bhajan_lal_paragraph` becomes `quashing_categories_paragraph` (fir_quashing, quashing_528_bnss).
+- Form key `bhajan_lal_categories_invoked` becomes `quashing_categories_invoked`.
+
+CLAUSE_CUES, the skeletons and the saved-form mapping follow the rename. How saved forms that carry the old key are handled is Arjun's call (asked 15 Oct). Any golden that moves goes to Ajay.
+
+## Arjun (15 Oct 2026, 07:15 UTC) — renamed ids: read-time alias, no migration
+
+`bhajan_lal_categories_invoked` → `quashing_categories_invoked` (form key) and `bhajan_lal_paragraph` → `quashing_categories_paragraph` (clause id): alias old → new at the one place form inputs are loaded and the one place clause ids are resolved; write only the new key from now on; one test with an old saved form; comment `// T-451 alias, remove in the post-v1 cleanup`. No migration script (tiny pre-v1 data; a script is irreversible and triggers the rule-7 CI wait).
+
+## Arjun's ruling on saved forms (15 Oct 2026)
+
+Read-time alias, no migration. At the one place form inputs are loaded and the one place clause ids are resolved, map `bhajan_lal_categories_invoked` to `quashing_categories_invoked` and `bhajan_lal_paragraph` to `quashing_categories_paragraph` before use. Write only the new key from now on. One test with an old saved form. Add the comment `// T-451 alias, remove in the post-v1 cleanup` so it lands on the cleanup list. A migration script is out: pre-v1 data is tiny, and a migration would trigger the rule-7 CI wait and cannot be undone.
+
+## Added label (Ajay, 15 Oct 2026, T-449 ruling 4a7c7fb)
+
+`rera_complaint` form label at :155 ("(Pioneer Urban — concurrent remedy)") becomes: "Any previous Consumer / Civil proceedings on same cause? (the consumer remedy is concurrent)". T-449 leaves it untouched.
