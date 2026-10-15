@@ -158,3 +158,11 @@ Signed: Ajay (CLO), 14 Oct 2026 IST.
 No golden moved (fixture FIR 2026): noted. The CrPC / no-choice Allahabad test is welcome.
 
 Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+## Addendum 5: T-245a hash pins and the FIR-date question (Vishal, 15 Oct 2026)
+
+1. `_averments/bail_regular.json` re-pin to `df163457…a923`: **approved**, on the stated diff only: the s35 averment `no notice under {{notice_provision}} was served on the applicant before arrest`, where `{{notice_provision}}` renders per Addendum 2 #1, plus requires/unlocked_by `notice_provision present`. Any other change in that file is not covered.
+2. t182 bail_regular prompt digest: **approved** to re-record. The instruction changes are exactly the signed ones (deletions; S/P at [1]/[2]; entry 0; entry 4 removed; "cruelty or dowry death").
+3. FIR date at intake: **ask it, never block.** It decides the procedure code, so asking it cuts the blanks. Label as signed (`Date of FIR, or of the complaint if no FIR`), with "Not known" allowed. An unanswered date prints the blank as today.
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.
