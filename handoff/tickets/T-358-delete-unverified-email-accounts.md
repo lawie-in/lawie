@@ -14,7 +14,7 @@
 2. Deletion uses the same path as account deletion (T-242/T-235): the account and its data go, signupSource included.
 3. Logs record only a count of deleted accounts. No address and no userId go to third-party logs.
 4. Tests: a 29-day account is kept; a 31-day account is deleted; a verified account and a Google-linked account are kept at any age.
-5. Ajay signed (44326dc): 30 days after sign-up confirmed. In the same release, Privacy Policy §9 gets the line "Accounts whose email address is never verified: deleted 30 days after sign-up." Bump the policy version with no change summary, so no re-accept prompt (retention only gets shorter). The policy file is legal content: the lead lists it in the claim.
+5. Ajay signed (44326dc): 30 days after sign-up confirmed. In the same release, Privacy Policy §9 gets the line "Accounts whose email address is never verified: deleted 30 days after sign-up." ~~Bump the policy version with no change summary, so no re-accept prompt (retention only gets shorter).~~ **Struck 15 Oct 2026 (Arjun):** the single privacy-version bump, with its summary, rides on T-436 AC8 (Ajay fc0d74d). T-358 changes the §9 text only and does not bump the version. The policy file is legal content: the lead lists it in the claim.
 
 Out of scope: nothing on warning emails. Ajay a84e298 requires a 7-day notice email before deletion, so it is in scope.
 
