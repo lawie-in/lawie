@@ -4,7 +4,7 @@
     "owner": "Ajay (CLO)",
     "validated_by": "Ajay (CLO) — Batch 7 writs + tribunals 2026-05-12",
     "last_updated": "2026-05-12",
-    "change_protocol": "Do not name judgments in model-visible text (Ajay, T-441)."
+    "change_protocol": "All edits require CLO sign-off. Do not name judgments in model-visible text (Ajay, T-441)."
   },
   "template_id": "writ_petition_civil",
   "card_description": "A civil writ petition before the High Court under Article 226 of the Constitution.",
@@ -236,6 +236,7 @@
       "Para 10: Grounds — numbered (A), (B), (C)... constitutional grounds (Article 14 arbitrariness, Article 19 unreasonable restriction, Article 21 procedure not just/fair/reasonable, Article 300A property without authority of law); statutory grounds (ultra vires the statute, contrary to statutory mandate, non-application of mind, mala fides, irrelevant considerations, irrationality (no reasonable authority could have so decided)).",
       "Doctrine of legitimate expectation.",
       "Doctrine of proportionality.",
+      "Where action affects livelihood / human dignity — plead Article 21.",
       "Where service matter — HC writ over service tribunals; scope of judicial review in service matters — limited to procedural infirmity, mala fides, perversity.",
       "Where regulatory order challenged — judicial review in commercial matters limited.",
       "Para 11: Interim relief — stay of impugned order / status quo; balance of convenience and irreparable injury.",

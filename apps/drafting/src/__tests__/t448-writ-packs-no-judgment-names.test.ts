@@ -28,7 +28,8 @@ jest.mock('../services/sections.service', () => ({
 // S, byte-exact (U+2014 dash), Addendum 8. Typed here, not imported from any pack.
 const S =
   'Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon].';
-const CHANGE_PROTOCOL = 'Do not name judgments in model-visible text (Ajay, T-441).';
+const CHANGE_PROTOCOL =
+  'All edits require CLO sign-off. Do not name judgments in model-visible text (Ajay, T-441).';
 
 const RULES_DIR = join(__dirname, '..', 'config', 'document-rules');
 const PACKS = [
@@ -393,7 +394,8 @@ describe('T-448: propositions kept word for word after the name was removed (R1,
     expect(a).toBeGreaterThan(-1);
     expect(b).toBe(a + 1);
     expect(ins[a - 1]).toMatch(/^Para 10:/);
-    expect(ins[b + 1]).toMatch(/^Where service matter/);
+    expect(ins[b + 1]).toBe('Where action affects livelihood / human dignity — plead Article 21.');
+    expect(ins[b + 2]).toMatch(/^Where service matter/);
   });
 
   it('civil Para 10 says irrationality (no reasonable authority could have so decided)', () => {
@@ -401,14 +403,28 @@ describe('T-448: propositions kept word for word after the name was removed (R1,
     expect(para10).toContain('irrationality (no reasonable authority could have so decided)');
   });
 
-  it('civil: the livelihood / human dignity cite-only line stays deleted (R2)', () => {
-    const v = visible('writ_petition_civil');
-    expect(v).not.toMatch(/livelihood/i);
-    expect(v).not.toMatch(/human dignity/i);
+  it('civil: the livelihood / human dignity line is present once, with no case name', () => {
+    const line = 'Where action affects livelihood / human dignity — plead Article 21.';
+    expect(instr('writ_petition_civil').filter((e) => e === line)).toHaveLength(1);
+    expect(count(visible('writ_petition_civil'), 'livelihood')).toBe(1);
   });
 
-  it('cat_oa Para 15 says proportionality (irrationality standard)', () => {
-    expect(visible('cat_oa')).toContain('proportionality (irrationality standard)');
+  it('cat_oa Para 15 is the signed wording', () => {
+    expect(instr('cat_oa')).toContain(
+      'Para 15: Where penalty challenged — separate grounds on proportionality and on irrationality and, where applicable, S.11(2) CCS (CCA) Rules.',
+    );
+    expect(visible('cat_oa')).not.toContain('irrationality standard');
+  });
+
+  it('criminal: Art. 22 line and BNSS S.35 description are the signed wording; S.35(7) is nowhere', () => {
+    const p = load('writ_petition_criminal');
+    expect(p.prompt_context.promptInstructions).toContain(
+      '   Art. 22 — Arrest procedures — conditions for arrest without warrant in offences punishable up to 7 years: S.35(1)(b) BNSS [S.41(1)(b) CrPC]; notice of appearance: S.35(3) BNSS [S.41A CrPC].',
+    );
+    const bnss = p.relevantActs.find((a: any) => /BNSS/.test(a.act));
+    const s35 = bnss.sections.find((x: any) => x.number === 'S.35');
+    expect(s35.description).toBe('When police may arrest (replaces S.41 CrPC)');
+    expect(JSON.stringify(p)).not.toContain('S.35(7)');
   });
 
   it('certiorari system_role keeps "These are the classical grounds."', () => {

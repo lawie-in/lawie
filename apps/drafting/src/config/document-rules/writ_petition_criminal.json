@@ -4,7 +4,7 @@
     "owner": "Ajay (CLO)",
     "validated_by": "Ajay (CLO) — Batch 7 writs + tribunals 2026-05-12",
     "last_updated": "2026-05-12",
-    "change_protocol": "Do not name judgments in model-visible text (Ajay, T-441)."
+    "change_protocol": "All edits require CLO sign-off. Do not name judgments in model-visible text (Ajay, T-441)."
   },
   "template_id": "writ_petition_criminal",
   "card_description": "A criminal writ petition before the High Court under Article 226 of the Constitution.",
@@ -229,7 +229,7 @@
       "Para 7: Representations made — to SHO, SP, DGP, Home Secretary, Magistrate u/S.175(3) BNSS [S.156(3) CrPC]. FIR registration mandatory for cognizable offences; refusal contestable.",
       "Para 8: Fundamental rights violated:",
       "   Art. 21 — custodial torture guidelines + compensation; compensation for custodial death as constitutional remedy under Art. 32 / 226.",
-      "   Art. 22 — Arrest procedures — arrest checklist for offences ≤ 7 years — now mirrored in S.35(7) BNSS.",
+      "   Art. 22 — Arrest procedures — conditions for arrest without warrant in offences punishable up to 7 years: S.35(1)(b) BNSS [S.41(1)(b) CrPC]; notice of appearance: S.35(3) BNSS [S.41A CrPC].",
       "   Art. 14 — Arbitrary state action; equal protection.",
       "Para 9: For illegal detention short of habeas (where person not in absolute custody but liberty curtailed) — mention this distinction.",
       "Para 10: For custodial torture — the custodial torture guidelines (now substantially codified in BNSS): arrest memo, medical examination, intimation to relative, etc.",
@@ -267,7 +267,7 @@
       "sections": [
         {
           "number": "S.35",
-          "description": "When police may arrest (replaces S.41 CrPC) — arrest checklist codified at S.35(7)"
+          "description": "When police may arrest (replaces S.41 CrPC)"
         },
         { "number": "S.173", "description": "FIR registration (replaces S.154 CrPC)" },
         {
