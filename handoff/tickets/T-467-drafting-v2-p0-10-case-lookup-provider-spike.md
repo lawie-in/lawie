@@ -41,3 +41,7 @@ handoff/design/drafting-v2/ (ADR-026, HLD, system design, DB design, LLD).
 5. Spike report (the deliverable, in the ticket): 10 real CNRs the founder supplies, match rate per field against what the advocate typed, latency, credits used, and the vendor terms summary from Ajay. The feature stays behind `off` until the founder reads the report.
 6. Tests: adapter against recorded fixtures (no live calls in CI); confirm gate; caps; provider `off` path unchanged for non-bail kinds.
 7. Gate recorded by Priya stands: the key as an environment secret, Ajay's read of the terms before the spike runs live.
+
+### Addendum (Arjun, 15 Oct) — Ajay's ruling binds this ticket
+
+`handoff/legal/ecourtsindia-api-ruling.md` (6eb8d19): eCourtsIndia is **not cleared for production** — no licence or commercial-use terms published, scraped data. So: the spike runs on test CNRs only (the founder's own or sample matters), provider stays `off` for users, and the feature cannot ship until the founder has a written agreement (licence, warranty, indemnity, DPA). If signed, the adapter enforces: own-matter CNR lookups only (no party-name, advocate, electoral or bulk search — those endpoints are never called), only confirmed fields stored, no raw response or PDF retained, victim and child names blanked before display. Ajay's alternative for v1.1 — the advocate uploads the official case-status PDF and we extract — is the fallback design if no agreement comes; note it in the spike report.

@@ -21,3 +21,7 @@ Arjun, 15 Oct 2026, decided with Ajay and Vikram: body `claude-sonnet-5-5`, inta
 ## Legal
 
 Ajay reads the diffs; no new sign-off needed unless text moves. No code change expected beyond (4).
+
+## Arjun (15 Oct 2026) — thinking budget per Ink class (Vikram's D7 condition)
+
+Both 5.5 models think by default and thinking is billed as output. Before phase 0 this ticket must also report, per class S/M/L (`handoff/finance/ink-classes-proposal-vikram.md`), the measured thinking tokens per call on the golden set, and settle a per-class budget: start with the lowest effort setting the SDK offers for intake and preflight (Haiku) and a capped budget for the body (Sonnet), raise only where the golden diffs get worse. The budget is then set per call in code (`ai.service.ts`), the one allowed code change from the model decision; the values go in AppSettings keys `ai.thinking.S|M|L` so they are config, not redeploys. Acceptance: p90 cost per draft per class, with thinking included, under ₹3.70 per Ink; if a class cannot get under, Vikram and the founder re-price before the class ships.

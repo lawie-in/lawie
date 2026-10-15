@@ -42,3 +42,7 @@ handoff/design/drafting-v2/ (ADR-026, HLD, system design, DB design, LLD).
 6. Liability report: `GET /admin/ink/liability?asOf=` returns Σ unexpired `remaining` by lot source and by plan tier — Vikram's month-end number.
 7. Prices per class (S/M/L Ink cost) come from AppSettings keys `ink.class.S|M|L` (Vikram's numbers once the founder sets them, D7); the ticket ships with today's per-draft cost as `M` so behaviour is unchanged until the settings are changed.
 8. Tests: shared functions (spend order incl. topup-last, idempotent spend/refund, expiry); billing transaction paths; migration dry-run on a fixture of 5 users; liability sums. packages/shared claim rules apply.
+
+### Addendum (Arjun, 15 Oct) — class values
+
+Vikram's D7 proposal (`handoff/finance/ink-classes-proposal-vikram.md`, 33c30895): **S = 1, M = 2, L = 5** Ink. Seed `ink.class.S|M|L` with those; the founder's confirmation is the gate before any kind is assigned `L`. Every kind row (T-458) gets `inkClass`, default `M`, the 31 one-Ink kinds `S`; nothing is `L` until Meera and Ajay re-sign the copy (Vikram's condition 2).
