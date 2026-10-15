@@ -2,7 +2,7 @@
 
 | Field  | Value                                                                  |
 | ------ | ---------------------------------------------------------------------- |
-| Status | Todo. Shashank, after T-433 merges; files to Priya after Explore. Priya, 14 Oct 2026 |
+| Status | Merged into develop_staging 518d55ae (Shashank, 14 Oct 2026). Waiting for Anushka on develop. Priya |
 | Owner  | Shashank (build), Ajay (ruled 49a8eaa)                                 |
 | Mode   | Full chain (drafting prompts and printed text are legal content)       |
 

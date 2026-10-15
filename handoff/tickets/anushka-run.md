@@ -1158,3 +1158,28 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - Draft cost now matches what the provider charges. Check first that cache_write_usd_per_mtok is set to the 1-hour price (pre-run checklist).
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-115c — Close your account (ac3a0482, tanvi, 14 Oct 2026)
+
+- Close your account from Settings. Confirm with your password, or, for a Google-only account, type your email after a sign-in within the last 15 minutes.
+- With an active plan, you're told to cancel it first, and nothing changes.
+- Once you confirm, you're signed out everywhere, and your account, profile and documents are erased. Payment records are kept for tax. Feedback you gave on other people's documents stays, without your name.
+- If erasing takes longer, you're told it will be finished for you.
+- The privacy policy describes all of this.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-436 part (a) — GST tax invoices, server side (6cca6f0d, kunal, 14 Oct 2026)
+
+- Nothing new on screen yet. Every payment now produces a GST tax invoice on Lawie's side, and the admin can export the month's invoices for GST filing.
+- The invoice list, the email and the download ship in part (c); the State picker ships in part (b).
+
+Quality: nothing to test in the UI — server-side only; the invoice list, email and download ship in part c
+
+## T-440 — A date you don't know prints as "to be confirmed" (518d55ae, shashank, 14 Oct 2026)
+
+- Answer "Not known" for a date and see "[To be confirmed: date of arrest]" (or that date's name) in the draft, the same however the draft was started, never a blank, a line of underscores or a guessed date.
+- Draft a cheque-bounce notice without knowing the send date and see "Date: [To be confirmed: date the notice is sent]" instead of today's date.
+- The draft makes no claim that a deadline is met or missed when the date it depends on is not known.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

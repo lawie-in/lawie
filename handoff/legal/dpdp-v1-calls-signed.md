@@ -122,3 +122,39 @@ Parked: the billing rows are kept forever, not "72 months". A sweep that deletes
 | 1 | Sent-email jobs (with the address) stay in Redis 7 days and are not erased on close | Add to §9, after the failed-emails bullet: `Emails we have sent: up to 7 days, even after you close your account.` Erasing them on close as well is better; parked. | must-fix (the §9 line) |
 | 2 | §7 "we remove what we can find … in our error reports (Sentry)" is a manual runbook step | Keep the wording only if every self-serve close tells the operator automatically (user id only, no email) and the Sentry step is done within 7 days. If that alert is not in T-115c, the sentence comes out of §7 until it is. | must-fix (one or the other) |
 | 3 | Partial-failure message says "Please try again", but the account is already locked and signed out | Replace the signed T-115c failure line with: `We couldn't finish erasing your data. Your account is closed and you have been signed out. We will finish erasing it; if you have any questions, write to us at {support email}.` The conditions stand: the server retries until complete, and no "closed" success message shows until every part is done. | must-fix |
+
+### 8. T-358 build questions (Tanvi, 14 Oct 2026)
+
+| # | Question | Ruling |
+|---|---|---|
+| 1 | Which §9 line | The **14 Oct line** wins: `If you do not verify your email address within 30 days of signing up, we delete your account and everything in it.` It supersedes the 12 Oct line. Place it straight after the "Everything else" bullet. |
+| 2 | Bump the privacy version? | **No: "Last updated" only.** No new data or purpose. The T-436 summary ("…how long we keep your data") covers it at the next bump. |
+| 3 | Notice email parts | Subject: `Verify your email to keep your Lawie account`. Preheader: `We will delete your account on {date} unless you verify your email address.` Greeting: `Hello {name},` or `Hello,` with no name. Body: as signed. Button: **yes**, `Verify email address`, a fresh verify link. Footer line 1: `Lawie (Sole Proprietorship), Ranchi, Jharkhand`. Footer line 2: `You are receiving this because this email address was used to sign up for Lawie.` Then the help, privacy and terms lines as in the invoice email. `{date}`: `D Month YYYY` (e.g. `21 October 2026`), IST. Nothing is deleted before the end of that day, IST. |
+| 4 | Accounts already past 30 days; notice failures | Delete at the **later** of sign-up + 30 days and notice sent + 7 days; `{date}` in the email is that day. If **we** fail to send (job error, template not ready, footer placeholders still in it), **hold** the deletion until a notice goes out. A hard bounce from the recipient's side counts as sent: delete on schedule. |
+
+### 9. T-358 notice variant (B): deactivated, unverified accounts (Tanvi / Arjun, 14 Oct 2026)
+
+No link in (B): approved. Variant (A) is unchanged; its link lasting 7 days is approved.
+
+(B), byte-exact:
+- Subject: `Your deactivated Lawie account will be deleted`
+- Preheader: `We will delete it on {date} unless you write to us before then.`
+- Greeting: `Hello {name},` or `Hello,` with no name (as in A).
+- Body: `This Lawie account was deactivated and its email address was never verified. We will delete the account and everything in it on {date}. If you want to keep it, write to privacy@lawie.in from this email address before then.`
+- Footer: the same as (A).
+
+`{date}` and timing as in (A): the later of sign-up + 30 days and notice + 7 days, `D Month YYYY`, deleted no earlier than the end of that day IST. A request to keep the account received before then stops the deletion.
+
+### 10. Held verify emails (since T-379) and T-358 start (Priya, 14 Oct 2026)
+
+1. **Purge the held queue; do not send weeks-late emails.** A stale email with an old (likely expired) link is confusing and reads as a phishing attempt.
+2. **Each affected user gets one fresh verify email**, the normal one with a new link, once the footer is fixed (T-436 AC10).
+3. **T-358 clock for them:** the users who never received any verify email were not at fault. For them, the 30 days run from the day that fresh email is actually sent, not from sign-up: notice at day 23, deletion no earlier than day 30, end of day IST. Users who did receive a verify email keep the normal rule (Addendum §8).
+4. This applies to the T-358 sweep's first runs. Arjun picks the mechanics, such as a `verifyEmailFirstSentAt` stamp. Test: an account with no sent verify email is never noticed or deleted.
+
+must-fix (T-358 / T-436 AC10).
+
+**§10 follow-up: Arjun's mechanics (Priya, 14 Oct 2026). Yes, with one change.**
+- Purging held jobs older than 24 hours, sending younger ones normally, no mass email, and a resend offer at next sign-in: **approved**.
+- **Change:** for a held-queue user (never sent any verify email), the first email they get, whether the resend or the T-358 notice (variant A, with its 7-day link), starts their clock. Deletion comes no earlier than **30 days after that first email is sent**, not 7. The notice's `{date}` is that day. If the notice is the first email, a fresh link goes out again with a second reminder 7 days before `{date}`. Throttle the sends for SES; throttling may delay a notice, never shorten the 30 days.
+- The test from §10 stands: an account never sent a verify email is never deleted.

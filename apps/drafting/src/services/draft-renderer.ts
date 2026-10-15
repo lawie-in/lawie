@@ -65,8 +65,10 @@ import type {
 import type { AvermentCondition, AvermentLists } from './averments';
 import { factEntriesByKey } from './averments';
 import { readSectionsCharged } from './bns-offence-resolver';
-import { missingPlaceholder } from './brief-drafter';
+import { missingPlaceholder, notKnownDateKeys } from './brief-drafter';
 import { FactViolation, verifyDraft, VerifierInput } from './fact-verifier';
+import { blankLabel, dateMeaningOf } from './intake-brief';
+import type { Brief, ChecklistItem } from './intake-brief';
 import { datesAsWritten, datesInText, normalise } from './intake-text';
 import type { RulePackFact } from './rule-pack.service';
 
@@ -874,6 +876,22 @@ export interface DraftRenderInput {
   labels?: Readonly<Record<string, string>>;
   /** Title per clause id, for a clause's MISSING form with no `missing_label` (the pack's clauses). */
   clauseLabels?: Readonly<Record<string, string>>;
+  /**
+   * T-440 (Ajay, a9bc957 Q2, 4b46053 item 3): the pack checklist. A date slot
+   * the ledger does not hold prints `{{MISSING: <what it is the date of, lower
+   * case>}}` (intake-brief `dateMeaningOf`, `blankLabel`), as on the brief and
+   * ledger paths. Without it, a date slot's blank uses `labels` as before.
+   */
+  checklist?: ReadonlyArray<
+    Pick<ChecklistItem, 'key' | 'label' | 'kind'> & Partial<Pick<ChecklistItem, 'dateKind'>>
+  >;
+  /**
+   * T-440 (Ajay, 69ac17a (b)): the dates answered "Not known": the brief (its
+   * `notKnownDateKeys`) or those keys. For whether an optional clause prints,
+   * such a slot counts as given, with its blank, so the line prints with the
+   * blank; a date merely left empty still leaves the clause out (Q4).
+   */
+  notKnownDates?: Pick<Brief, 'items'> | readonly string[];
   optionIds?: OptionIdMap;
   valueLists?: ValueLists;
   /** What the fact verifier reads besides the paragraph and its facts (rule 3). */
@@ -952,6 +970,21 @@ export function renderDraft(input: DraftRenderInput): DraftRenderResult {
   }
 
   const labelOf = (key: string): string => held.get(key)?.[0]?.label ?? labels[key] ?? key;
+  // T-440 (Q2): a date's blank names its meaning, in lower case. Whether a
+  // line prints is unchanged: an optional clause with none of its facts is
+  // still left out (Q4), "Not known" or merely empty alike.
+  const dateMeanings = new Map<string, string>();
+  for (const item of input.checklist ?? []) {
+    const meaning = dateMeaningOf(item);
+    if (meaning !== null) dateMeanings.set(item.key, blankLabel(meaning));
+  }
+  const blankLabelOf = (key: string): string => dateMeanings.get(key) ?? labelOf(key);
+  const notKnownInput = input.notKnownDates ?? [];
+  const notKnown = new Set(
+    'items' in notKnownInput ? notKnownDateKeys(notKnownInput) : notKnownInput,
+  );
+  /** Held, or a date answered "Not known" (printed as its blank): a clause reading it prints. */
+  const given = (key: string): boolean => held.has(key) || notKnown.has(key);
   const optionIdOf = (key: string, f: LedgerFact): string | undefined => {
     const map = optionIds[key];
     if (!map) return undefined;
@@ -1046,7 +1079,7 @@ export function renderDraft(input: DraftRenderInput): DraftRenderResult {
       const source = d ? d.from : slot;
       const value = d ? derivedValue(d) : held.has(slot) ? displayOf(slot, held.get(slot)!) : null;
       if (value) return value;
-      const label = labelOf(source);
+      const label = blankLabelOf(source);
       missing.push(label);
       return missingPlaceholder(label);
     });
@@ -1056,7 +1089,7 @@ export function renderDraft(input: DraftRenderInput): DraftRenderResult {
   const clauseLabel = (c: SkeletonClause): string =>
     c.missing_label ??
     clauseLabels[c.id] ??
-    (c.slot ? labelOf(c.slot) : c.from ? labelOf(c.from) : undefined) ??
+    (c.slot ? blankLabelOf(c.slot) : c.from ? blankLabelOf(c.from) : undefined) ??
     c.id;
 
   const outcome = (
@@ -1115,12 +1148,12 @@ export function renderDraft(input: DraftRenderInput): DraftRenderResult {
       if (!v) return c.required ? missingForm(c, index) : null;
       text = v.text;
     }
-    if (c.render_if_any_slot && !held.has(c.render_if_any_slot)) {
+    if (c.render_if_any_slot && !given(c.render_if_any_slot)) {
       return c.required ? missingForm(c, index) : null;
     }
     if (text === undefined) return c.required ? missingForm(c, index) : null;
     const keys = slotKeysOf(text, c.derived);
-    if (!c.required && keys.length > 0 && keys.every((k) => !held.has(k))) return null;
+    if (!c.required && keys.length > 0 && keys.every((k) => !given(k))) return null;
     const filled = fill(text, c.derived);
     return outcome(c, index, {
       text: filled.text,
@@ -1230,7 +1263,7 @@ export function renderDraft(input: DraftRenderInput): DraftRenderResult {
         blanks = [f.display.trim()];
         line = missingPlaceholder(blanks[0]);
       } else if (item.requires && !holds(item.requires)) {
-        blanks = [item.missing_label ?? labelOf(conditionKeys(item.requires)[0] ?? c.from)];
+        blanks = [item.missing_label ?? blankLabelOf(conditionKeys(item.requires)[0] ?? c.from)];
         line = missingPlaceholder(blanks[0]);
       } else if (item.use_clause) {
         const used = firstPass.get(item.use_clause);

@@ -345,3 +345,22 @@ describe('T-343 — OAuth exchange tokens carry pv', () => {
     expect(claims).not.toHaveProperty('pv');
   });
 });
+
+describe('T-115c — a Google sign-in proves the user now (authAt)', () => {
+  it('the OAuth callback creates the session with a fresh authAt', async () => {
+    const { createSession } = jest.requireMock('../services/session.service') as {
+      createSession: jest.Mock;
+    };
+    createSession.mockClear();
+    const u = await User.create({
+      email: 'authat115c@example.com',
+      name: 'A',
+      googleId: 'g-authat',
+      authProvider: 'google',
+      termsAcceptedAt: new Date('2026-01-01'),
+    });
+    await exchangeFor(u);
+    const meta = createSession.mock.calls[0][4] as { authAt?: string };
+    expect(Date.now() - Date.parse(meta.authAt!)).toBeLessThan(10_000);
+  });
+});

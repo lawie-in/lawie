@@ -77,6 +77,8 @@ describe('T-343 AC1/AC3 — GET /me for older, current and missing versions', ()
         // T-223: /me also reports the verification state (seeded as an unverified email user).
         emailVerified: false,
         hasGoogle: false,
+        // T-115c: the close-account dialog asks for a password only when there is one.
+        hasPassword: true,
       },
     });
     expect(res.headers['cache-control']).toBe('no-store');
@@ -93,6 +95,7 @@ describe('T-343 AC1/AC3 — GET /me for older, current and missing versions', ()
       needsPrivacyAcceptance: false,
       emailVerified: false,
       hasGoogle: false,
+      hasPassword: true,
     });
     expect(res.body.data).not.toHaveProperty('summary');
   });

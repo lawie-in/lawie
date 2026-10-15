@@ -21,6 +21,15 @@ import {
   reportManualGrant,
   retryOnThrow,
 } from './ink-ledger.service';
+import {
+  capturedPaymentEntity,
+  fromUnix,
+  issueCreditNoteOnRefund,
+  issueInvoiceOnCapture,
+  planFromChargeNotes,
+  subscriptionDescription,
+  topupDescription,
+} from './invoice.service';
 
 export async function createSubscription(
   userId: string,
@@ -208,6 +217,49 @@ export async function handleWebhookEvent(
           );
         }
       }
+
+      // T-436: one GST invoice per captured top-up payment, keyed on the payment
+      // id (order.paid and payment.captured carry the same one). Issued even when
+      // the grant returned 0, so a retry after a crash finishes it. The amount is
+      // what Razorpay charged (coupons change it), never the SKU price.
+      const captured = capturedPaymentEntity(payload);
+      if (captured) {
+        await issueInvoiceOnCapture({
+          paymentId: captured.id,
+          userId: notes.user_id,
+          amount: captured.amount,
+          paidAt: captured.createdAt,
+          description: topupDescription(sku.ink),
+          source: event as 'order.paid' | 'payment.captured',
+          ...(razorpayOrderId ? { razorpayOrderId } : {}),
+        });
+      }
+    }
+    return;
+  }
+
+  // ── refund.processed — T-436: credit note against the original invoice ────
+  // Refunds are founder-run only (policy: no refunds). A refund of a payment
+  // with no invoice (e.g. before GST_EFFECTIVE_FROM) gets no credit note.
+  if (event === 'refund.processed') {
+    const refund = (payload.refund as Record<string, unknown> | undefined)?.entity as
+      | Record<string, unknown>
+      | undefined;
+    if (
+      refund &&
+      typeof refund.id === 'string' &&
+      typeof refund.payment_id === 'string' &&
+      typeof refund.amount === 'number' &&
+      (refund.status === undefined || refund.status === 'processed')
+    ) {
+      await issueCreditNoteOnRefund({
+        refundId: refund.id,
+        paymentId: refund.payment_id,
+        amount: refund.amount,
+        processedAt: fromUnix(refund.created_at),
+      });
+    } else {
+      logger.warn({ event }, 'Webhook: refund.processed without a usable refund entity');
     }
     return;
   }
@@ -463,6 +515,33 @@ export async function handleWebhookEvent(
           { userId: sub.userId, razorpayPlanId },
           'subscription.charged with no matching SKU — granted plan=pro without ink',
         );
+      }
+
+      // T-436: one GST invoice per captured subscription charge (every monthly
+      // or yearly charge), from subscription.charged only, never .activated.
+      // Reached after a grant, on the "cycle already granted" branch and on the
+      // no-SKU branch, so a Razorpay retry after a crash still issues it.
+      if (event === 'subscription.charged') {
+        const captured = capturedPaymentEntity(payload);
+        if (captured) {
+          await issueInvoiceOnCapture({
+            paymentId: captured.id,
+            userId: sub.userId.toString(),
+            amount: captured.amount,
+            paidAt: captured.createdAt,
+            // No SKU (legacy branch): the plan from the charge record's notes,
+            // else no plan in the line (Ajay 3325466), never a default.
+            description: subscriptionDescription(
+              planSku
+                ? { tier: planSku.tier, cycle: planSku.cycle }
+                : planFromChargeNotes(subPayload?.notes as Record<string, unknown> | undefined),
+              currentStart ? new Date(currentStart * 1000) : undefined,
+              currentEnd ? new Date(currentEnd * 1000) : undefined,
+            ),
+            source: 'subscription.charged',
+            razorpaySubscriptionId: subId,
+          });
+        }
       }
       break;
     }
