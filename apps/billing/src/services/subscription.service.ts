@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 
 import { addOneMonth } from '@lawie/shared';
+import * as Sentry from '@sentry/node';
 
 import { findPlanByRazorpayId, findSubscriptionPlan, findTopupSku } from '../config/credit-skus';
 import { env } from '../config/env';
@@ -8,7 +9,11 @@ import logger from '../config/logger';
 import { razorpay } from '../config/razorpay';
 import { CouponCode } from '../models/CouponCode.model';
 import { CouponUsage } from '../models/CouponUsage.model';
-import { Subscription } from '../models/Subscription.model';
+import {
+  isSubscriptionStatus,
+  Subscription,
+  type SubscriptionStatus,
+} from '../models/Subscription.model';
 import { User } from '../models/User.model';
 
 import {
@@ -31,6 +36,40 @@ import {
   topupDescription,
 } from './invoice.service';
 
+/** T-444: statuses whose checkout is unfinished; createSubscription reuses them. */
+const CHECKOUT_STATUSES: SubscriptionStatus[] = ['created', 'authenticated'];
+/** T-444: live statuses; createSubscription refuses a second sub (409). */
+const LIVE_STATUSES: SubscriptionStatus[] = ['active', 'pending', 'halted', 'paused'];
+/**
+ * T-444: statuses that keep access until the paid period ends (paidThrough,
+ * else currentPeriodEnd, else already over: Arjun ruling 1).
+ */
+const PAID_THROUGH_STATUSES: SubscriptionStatus[] = ['cancelled', 'halted', 'paused', 'completed'];
+/** T-444: terminal statuses; a charge never moves a sub out of them. */
+const TERMINAL_STATUSES: SubscriptionStatus[] = ['cancelled', 'completed', 'expired'];
+
+/**
+ * T-444 (Arjun ruling 7): the user already has a live subscription. The route
+ * answers 409 `subscription_exists` with these fields of the existing sub.
+ */
+export class SubscriptionExistsError extends Error {
+  readonly status: SubscriptionStatus;
+  readonly planId: string | null;
+  readonly paidThrough: Date | null;
+
+  constructor(existing: {
+    status: SubscriptionStatus;
+    planId: string | null;
+    paidThrough: Date | null;
+  }) {
+    super('subscription_exists');
+    this.name = 'SubscriptionExistsError';
+    this.status = existing.status;
+    this.planId = existing.planId;
+    this.paidThrough = existing.paidThrough;
+  }
+}
+
 export async function createSubscription(
   userId: string,
   email: string,
@@ -47,17 +86,41 @@ export async function createSubscription(
   }
   const razorpayPlanId = process.env[planSku.razorpayPlanIdEnvKey] ?? env.RAZORPAY_PLAN_ID;
 
-  // Check for existing active subscription (one active sub per user)
+  // T-444 (Arjun ruling 7): one non-terminal sub per user. A live sub (paid, or
+  // in payment trouble) blocks a new one; the user fixes or cancels it first.
+  const live = await Subscription.findOne({
+    userId,
+    status: { $in: LIVE_STATUSES },
+  }).sort({ createdAt: -1 });
+  if (live) {
+    throw new SubscriptionExistsError({
+      status: live.status,
+      planId: live.planId ?? null,
+      paidThrough: live.paidThrough ?? live.currentPeriodEnd ?? null,
+    });
+  }
+
+  // Checkout not finished: hand back the existing sub's link and its own plan,
+  // never the requested one.
   const existing = await Subscription.findOne({
     userId,
-    status: { $in: ['created', 'authenticated', 'active'] },
-  });
+    status: { $in: CHECKOUT_STATUSES },
+  }).sort({ createdAt: -1 });
   if (existing) {
-    const rzpSub = await razorpay.subscriptions.fetch(existing.razorpaySubscriptionId);
+    const rzpSub = (await razorpay.subscriptions.fetch(
+      existing.razorpaySubscriptionId,
+    )) as unknown as Record<string, unknown>;
+    const rzpNotes = rzpSub.notes as Record<string, unknown> | undefined;
+    const rzpPlanId = typeof rzpSub.plan_id === 'string' ? rzpSub.plan_id : undefined;
+    const existingPlanId =
+      existing.planId ??
+      (typeof rzpNotes?.planId === 'string' ? rzpNotes.planId : undefined) ??
+      (rzpPlanId ? findPlanByRazorpayId(rzpPlanId)?.id : undefined) ??
+      '';
     return {
       subscriptionId: existing.razorpaySubscriptionId,
-      shortUrl: ((rzpSub as unknown as Record<string, unknown>).short_url as string) ?? '',
-      planId: resolvedPlanId,
+      shortUrl: (rzpSub.short_url as string) ?? '',
+      planId: existingPlanId,
     };
   }
 
@@ -74,6 +137,8 @@ export async function createSubscription(
     userId,
     razorpaySubscriptionId: sub.id,
     status: 'created',
+    // T-444: so a checkout reuse can return this sub's own plan.
+    planId: planSku.id,
   });
 
   logger.info(
@@ -287,11 +352,6 @@ export async function handleWebhookEvent(
       const currentStart = subPayload?.current_start as number | undefined;
       const currentEnd = subPayload?.current_end as number | undefined;
       const paidCount = subPayload?.paid_count as number | undefined;
-      sub.status = 'active';
-      sub.currentPeriodStart = new Date();
-      if (chargeAt) sub.currentPeriodEnd = new Date(chargeAt * 1000);
-      if (currentEnd) sub.paidThrough = new Date(currentEnd * 1000);
-
       // Resolve plan SKU from Razorpay plan id → grant subscription ink
       const razorpayPlanId =
         (subPayload?.plan_id as string | undefined) ??
@@ -304,12 +364,6 @@ export async function handleWebhookEvent(
         : findSubscriptionPlan(
             (subPayload?.notes as Record<string, string> | undefined)?.planId ?? '',
           );
-
-      if (planSku) {
-        sub.planId = planSku.id;
-        sub.billingCycle = planSku.cycle;
-      }
-      await sub.save();
 
       // T-399 (Arjun): activated and charged both fire on the first payment, and
       // activated may carry no payment entity. Grant once per paid cycle: only
@@ -336,6 +390,41 @@ export async function handleWebhookEvent(
       // no state (pre-T-415), never is.
       const claimToken = newClaimToken();
       const claimNow = new Date();
+      // T-444 (Arjun, round 3): the period, plan and status ride in the claim
+      // update, so a duplicate that loses the claim changes nothing. Status is
+      // active from any non-terminal prior status (ruling 4: created,
+      // authenticated, halted, paused and pending included); a terminal sub
+      // (cancelled/completed/expired) keeps its status but still gets the grant
+      // and paidThrough, and the lazy expiry drops the user at paidThrough.
+      // An update pipeline, so the status condition sits in the same atomic
+      // write as the claim without being part of the claim's filter.
+      const chargeFields = {
+        currentPeriodStart: claimNow,
+        ...(chargeAt ? { currentPeriodEnd: new Date(chargeAt * 1000) } : {}),
+        ...(currentEnd ? { paidThrough: new Date(currentEnd * 1000) } : {}),
+        ...(planSku ? { planId: planSku.id, billingCycle: planSku.cycle } : {}),
+      };
+      const chargeUpdate = (fields: Record<string, unknown>) => [
+        {
+          $set: {
+            ...Object.fromEntries(
+              Object.entries({ ...chargeFields, ...fields }).map(([k, v]) => [k, { $literal: v }]),
+            ),
+            status: {
+              $cond: [{ $in: ['$status', TERMINAL_STATUSES] }, '$status', 'active'],
+            },
+          },
+        },
+      ];
+      const logIfTerminal = (before: { get(path: string): unknown } | null) => {
+        const prior = before?.get('status');
+        if (typeof prior === 'string' && (TERMINAL_STATUSES as string[]).includes(prior)) {
+          logger.info(
+            { subId, event, paidCount, status: prior },
+            'Charge on a terminal subscription; status kept, paid cycle granted',
+          );
+        }
+      };
       const staleBefore = new Date(claimNow.getTime() - CLAIM_STALE_MS);
       const claimFields = ['grantClaimState', 'grantClaimedAt', 'grantClaimToken'];
       const pendingClaim = (grants: boolean) => ({
@@ -367,16 +456,15 @@ export async function handleWebhookEvent(
               staleOn('lastGrantedPaidCount', paidCount),
             ],
           },
-          {
-            $set: {
-              lastGrantedPaidCount: paidCount,
-              ...(currentStart ? { lastGrantedPeriodStart: new Date(currentStart * 1000) } : {}),
-              // paid_count 0 grants nothing, so it must not reset the drip.
-              ...(paidCount > 0 ? dripReset : {}),
-              ...pendingClaim(paidCount > 0 && !!planSku),
-            },
-          },
+          chargeUpdate({
+            lastGrantedPaidCount: paidCount,
+            ...(currentStart ? { lastGrantedPeriodStart: new Date(currentStart * 1000) } : {}),
+            // paid_count 0 grants nothing, so it must not reset the drip.
+            ...(paidCount > 0 ? dripReset : {}),
+            ...pendingClaim(paidCount > 0 && !!planSku),
+          }),
         );
+        logIfTerminal(claimed);
         isNewCycle = paidCount > 0 && claimed !== null;
         if (claimed) {
           rollbackClaim = () =>
@@ -406,10 +494,13 @@ export async function handleWebhookEvent(
               staleOn('lastGrantedPeriodStart', periodStart),
             ],
           },
-          {
-            $set: { lastGrantedPeriodStart: periodStart, ...dripReset, ...pendingClaim(!!planSku) },
-          },
+          chargeUpdate({
+            lastGrantedPeriodStart: periodStart,
+            ...dripReset,
+            ...pendingClaim(!!planSku),
+          }),
         );
+        logIfTerminal(claimed);
         isNewCycle = claimed !== null;
         if (claimed) {
           rollbackClaim = () =>
@@ -425,8 +516,13 @@ export async function handleWebhookEvent(
           { subId, event },
           'subscription webhook has no paid_count or current_start; grant not deduplicated',
         );
-        // No claim to ride on: reset the drip state here, before the grant.
-        if (dripFields.length) await Subscription.updateOne({ _id: sub._id }, { $set: dripReset });
+        // No claim to ride on: one unconditional write of the period, plan,
+        // status (same terminal rule) and drip reset, before the grant.
+        const before = await Subscription.findOneAndUpdate(
+          { _id: sub._id },
+          chargeUpdate(dripReset),
+        );
+        logIfTerminal(before);
       }
 
       if (planSku && !isNewCycle) {
@@ -552,9 +648,15 @@ export async function handleWebhookEvent(
     // cancel call today. Any future cancel button MUST use
     // `cancel_at_cycle_end: 1`, never an immediate cancel.
     case 'subscription.cancelled': {
-      sub.status = 'cancelled';
-      sub.cancelledAt = new Date();
-      await sub.save();
+      // T-444 (Arjun): atomic, and never overwrites expired.
+      const cancelled = await Subscription.updateOne(
+        { _id: sub._id, status: { $ne: 'expired' } },
+        { $set: { status: 'cancelled', cancelledAt: new Date() } },
+      );
+      if (cancelled.matchedCount === 0) {
+        logger.info({ subId, event }, 'Subscription already expired; cancelled not stored');
+        break;
+      }
       logger.info({ userId: sub.userId, event }, 'Subscription cancelled; kept until paidThrough');
       break;
     }
@@ -565,10 +667,11 @@ export async function handleWebhookEvent(
       await sub.save();
       // T-399: a cancelled sub still inside its paid period also keeps the
       // plan (same rule as the lazy expiry in settleYearlyDrip).
+      // T-444: halted, paused and completed count the same way as cancelled.
       const otherActive = await Subscription.findOne({
         userId: sub.userId,
         _id: { $ne: sub._id },
-        $or: [{ status: 'active' }, { status: 'cancelled', paidThrough: { $gte: new Date() } }],
+        $or: stillPaidFilter(new Date()),
       });
       if (!otherActive) {
         await User.findByIdAndUpdate(sub.userId, {
@@ -584,12 +687,190 @@ export async function handleWebhookEvent(
       break;
     }
 
+    // T-444 (Arjun ruling 2): halted, paused, pending and updated are applied
+    // only if they are not older than the last granted charge. Halted and
+    // paused keep access until paidThrough and drip nothing (yearly-drip.ts).
+    case 'subscription.halted':
+    case 'subscription.paused': {
+      const status = event === 'subscription.halted' ? 'halted' : 'paused';
+      await applyIfFresh(sub, subPayload, event, status, {
+        status: { $nin: TERMINAL_STATUSES },
+      });
+      break;
+    }
+
+    // AC1: Razorpay retries a pending charge, so nothing changes; stale or not
+    // is logged for the trail.
+    case 'subscription.pending': {
+      const fresh = isFreshEvent(sub, subPayload);
+      logger.info(
+        { subId, event, paidCount: subPayload?.paid_count, fresh },
+        'Subscription pending; no change (Razorpay retries)',
+      );
+      break;
+    }
+
+    // AC5: store the status only, from the entity.
+    case 'subscription.updated': {
+      const rawStatus = subPayload?.status;
+      if (!isSubscriptionStatus(rawStatus)) {
+        reportUnknownStatus(subId, event, rawStatus);
+        break;
+      }
+      // Review fix: updated never writes pending (AC1: a webhook no-op), and
+      // never moves halted/paused to active (only charged or resumed do).
+      if (rawStatus === 'pending') {
+        logger.info(
+          { subId, event, status: rawStatus },
+          'Subscription updated to pending; no change',
+        );
+        break;
+      }
+      await applyIfFresh(sub, subPayload, event, rawStatus, {
+        status: {
+          $nin:
+            rawStatus === 'active' ? ['halted', 'paused', ...TERMINAL_STATUSES] : TERMINAL_STATUSES,
+        },
+      });
+      break;
+    }
+
+    // Ruling 2: authenticated moves a sub only from created.
+    case 'subscription.authenticated': {
+      const moved = await Subscription.updateOne(
+        { _id: sub._id, status: 'created' },
+        { $set: { status: 'authenticated' } },
+      );
+      if (moved.matchedCount === 0) {
+        logger.info(
+          { subId, event, status: sub.status },
+          'Subscription authenticated from a status other than created; no change',
+        );
+      }
+      break;
+    }
+
+    // Ruling 3: active again, no grant; the next charged grants.
+    case 'subscription.resumed': {
+      // Review fix: only from paused or halted, and only if not stale.
+      await applyIfFresh(sub, subPayload, event, 'active', {
+        status: { $in: ['paused', 'halted'] },
+      });
+      break;
+    }
+
+    // Ruling 5: terminal like cancelled; access until paidThrough, then the
+    // lazy expiry in settleYearlyDrip downgrades.
+    case 'subscription.completed': {
+      // Round 3: never overwrites expired.
+      const done = await Subscription.updateOne(
+        { _id: sub._id, status: { $ne: 'expired' } },
+        { $set: { status: 'completed' } },
+      );
+      if (done.matchedCount === 0) {
+        logger.info({ subId, event }, 'Subscription already expired; completed not stored');
+        break;
+      }
+      logger.info({ subId, event }, 'Subscription completed; kept until paidThrough');
+      break;
+    }
+
     case 'payment.failed': {
       logger.warn({ userId: sub.userId, subId }, 'Payment failed for subscription');
       break;
     }
 
     default:
-      logger.debug({ event }, 'Unhandled webhook event');
+      // Ruling 6: an unseen subscription event is a 200 with a warning, never a 500.
+      if (event.startsWith('subscription.')) {
+        reportUnknownStatus(subId, event, subPayload?.status);
+      } else {
+        logger.debug({ event }, 'Unhandled webhook event');
+      }
   }
+}
+
+/**
+ * T-444 (Arjun ruling 1): a sub keeps access while its paid period runs:
+ * active, or a paid-through status with paidThrough >= now (else, with no
+ * paidThrough, currentPeriodEnd >= now; with neither, the period is over).
+ * A pending sub counts on paidThrough >= now only.
+ */
+function stillPaidFilter(now: Date): Record<string, unknown>[] {
+  return [
+    { status: 'active' },
+    { status: { $in: PAID_THROUGH_STATUSES }, paidThrough: { $gte: now } },
+    { status: { $in: PAID_THROUGH_STATUSES }, paidThrough: null, currentPeriodEnd: { $gte: now } },
+    // Review fix: pending only on paidThrough, never the currentPeriodEnd fallback.
+    { status: 'pending', paidThrough: { $gte: now } },
+  ];
+}
+
+/**
+ * T-444 (Arjun ruling 2, and his 15 Oct follow-up): an event is stale only if
+ * it carries a paid_count lower than the sub's lastGrantedPaidCount. With no
+ * lastGrantedPaidCount nothing was granted, so any event is fresh; with no
+ * paid_count on the event, the guard is skipped and the event is applied.
+ */
+function freshFilter(subPayload: Record<string, unknown> | undefined): Record<string, unknown> {
+  const paidCount = subPayload?.paid_count;
+  return typeof paidCount === 'number'
+    ? { lastGrantedPaidCount: { $not: { $gt: paidCount } } }
+    : {};
+}
+
+function isFreshEvent(
+  sub: { lastGrantedPaidCount?: number },
+  subPayload: Record<string, unknown> | undefined,
+): boolean {
+  const paidCount = subPayload?.paid_count;
+  if (typeof sub.lastGrantedPaidCount !== 'number' || typeof paidCount !== 'number') return true;
+  return paidCount >= sub.lastGrantedPaidCount;
+}
+
+/**
+ * Store `status` if the event is fresh and the sub matches `statusFilter`
+ * (one conditional update); else log and no-op.
+ */
+async function applyIfFresh(
+  sub: { _id: unknown; status?: string; lastGrantedPaidCount?: number },
+  subPayload: Record<string, unknown> | undefined,
+  event: string,
+  status: SubscriptionStatus,
+  statusFilter: Record<string, unknown> = {},
+): Promise<void> {
+  const subId = subPayload?.id;
+  if (typeof subPayload?.paid_count !== 'number') {
+    logger.info({ subId, event, status }, 'Stale-event guard skipped: event has no paid_count');
+  }
+  const applied = await Subscription.updateOne(
+    { _id: sub._id, ...statusFilter, ...freshFilter(subPayload) },
+    { $set: { status } },
+  );
+  if (applied.matchedCount === 0) {
+    logger.info(
+      {
+        subId,
+        event,
+        status: sub.status,
+        paidCount: subPayload?.paid_count,
+        lastGrantedPaidCount: sub.lastGrantedPaidCount,
+      },
+      'Subscription event not applied (stale, or not allowed from the current status); no change',
+    );
+    return;
+  }
+  logger.info({ subId, event, status }, 'Subscription status stored');
+}
+
+/** Ruling 6: warn and count in Sentry; the subscription id only, no PII. */
+function reportUnknownStatus(subId: string, event: string, rawStatus: unknown): void {
+  const status = typeof rawStatus === 'string' ? rawStatus.slice(0, 64) : typeof rawStatus;
+  logger.warn({ subId, event, status }, 'Webhook: unknown subscription status or event; ignored');
+  Sentry.withScope((scope) => {
+    scope.setTag('razorpaySubscriptionId', subId);
+    scope.setExtra('event', event);
+    scope.setExtra('status', status);
+    Sentry.captureMessage('Billing: unknown subscription status', 'warning');
+  });
 }

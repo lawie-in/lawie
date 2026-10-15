@@ -251,3 +251,31 @@ T-441 review note (Vishal, 15 Oct 2026): restore the two propositions, as R1 wou
 - twin: `(ii) the conditions the court may impose when granting anticipatory bail, (iii) that custodial interrogation is not necessary as applicant is willing to join investigation.` followed by S.
 
 Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+### T-447 byte check (feature/t-447-criminal-judgment-names, diff e1b13796.., 15 Oct 2026)
+
+Packs: criminal_appeal, curative_petition, fir_quashing, quashing_528_bnss, review_petition, surrender_application, suspension_of_sentence. S appears verbatim once per pack, last. No case name is left in any model-visible field (only key_citations, `_meta`, top-level `description`, form labels and validation_rules; the last two go to T-451, below). No new law (R5 met).
+
+R4 labels: **approved as proposed.**
+
+- fir_quashing: title `citing the recognised categories for quashing`; clause `Recognised Quashing Categories Verbatim`; `Quashing category 5 application` / `Quashing category 7 application`; `The seven categories are illustrative…`; `Para 8: Seven categories verbatim quotation paragraph…`; `(Cat 5 / Cat 1)`, `(Cat 6)`, `(Cat 7)`.
+- quashing_528_bnss: clause and Para 5 `Recognised Quashing Categories Invoked` / `Recognised quashing categories invoked`; `cat 5 squarely applies`.
+- curative_petition: `the recognised curative grounds`; `which curative ground is invoked`.
+
+must-fix in T-447 (quashing_528_bnss), delete two lines:
+
+- `Comprehensive principles on quashing on settlement.` There is no law left, and the two lines above already state it.
+- `Three categories of cases for quashing.` This is unanchored and sits beside the quoted seven categories, so the model may invent a second list.
+
+Questions:
+
+- (a) curative_petition `prompt_context.promptInstructions: [S]`: **OK.** readDraftingInstructions flattens prompt_context, so S comes last. Condition: the T-447 test shows S as the last numbered instruction in curative's assembled prompt.
+- (b) **Keep the CLO line.** R6 amended: each such `_meta.change_protocol` becomes `All edits require CLO sign-off. Do not name judgments in model-visible text (Ajay, T-441).`. This applies to the three in T-447, and to any T-441 pack where the CLO line was dropped.
+- (c) **Yes, add to T-451:**
+  - fir_quashing :103 label becomes `Recognised quashing categories invoked (one or more)`.
+  - curative_petition :72 label becomes `Curative ground`.
+  - curative_petition :196 validation rule becomes `At least one recognised curative ground must be selected`, if validation_rules reach preflight or the model.
+
+With the two deletions, (a)'s test and (b) applied: **T-447 is approved.** Merge-body ref: "Legal: T-447 signed by Ajay, T-245 file, T-447 byte check".
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.

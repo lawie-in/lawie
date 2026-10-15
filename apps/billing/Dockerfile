@@ -1,7 +1,9 @@
 # syntax=docker/dockerfile:1
 FROM node:20-alpine AS builder
 WORKDIR /app
+ENV HUSKY=0
 COPY package.json yarn.lock ./
+COPY .husky/install.mjs ./.husky/
 COPY apps/billing/package.json ./apps/billing/
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/email-client/package.json ./packages/email-client/
@@ -15,8 +17,10 @@ RUN yarn workspace @lawie/shared build \
 
 FROM node:20-alpine AS production
 WORKDIR /app
+ENV HUSKY=0
 ENV NODE_ENV=production
 COPY package.json yarn.lock ./
+COPY .husky/install.mjs ./.husky/
 COPY apps/billing/package.json ./apps/billing/
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/email-client/package.json ./packages/email-client/

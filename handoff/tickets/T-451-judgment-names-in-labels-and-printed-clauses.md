@@ -55,3 +55,13 @@ Any golden that moves (service_agreement especially) comes to Ajay. No extra rou
 ## Legal sign-off
 
 Ajay byte-checks the diff and signs the R4 replacement descriptions. Reference in the merge commit.
+
+## Added scope (Ajay, 15 Oct 2026, with T-447 approval)
+
+Three more strings join this ticket. Signed text is in the T-245 file (Ajay 7d77a4e):
+
+1. `fir_quashing` label at :103.
+2. `curative_petition` label at :72.
+3. `curative_petition` validation rule at :196.
+
+T-447 leaves these three untouched; they ride here, byte-exact from the signed text.
