@@ -1,3 +1,4 @@
+import { PLANS } from '@lawie/shared';
 import {
   ArrowRight,
   ArrowDown,
@@ -78,8 +79,20 @@ const plans = [
     ink: '5 Ink, lifetime, once email verified',
     highlighted: false,
   },
-  { name: 'Solo', price: '₹799', period: '/month', ink: '50 Ink a month', highlighted: true },
-  { name: 'Pro', price: '₹1,999', period: '/month', ink: '150 Ink a month', highlighted: false },
+  {
+    name: 'Solo',
+    price: `₹${PLANS.solo_monthly.priceInr.toLocaleString('en-IN')}`,
+    period: '/month',
+    ink: `${PLANS.solo_monthly.inkPerCycle} Ink a month`,
+    highlighted: true,
+  },
+  {
+    name: 'Pro',
+    price: `₹${PLANS.pro_monthly.priceInr.toLocaleString('en-IN')}`,
+    period: '/month',
+    ink: `${PLANS.pro_monthly.inkPerCycle} Ink a month`,
+    highlighted: false,
+  },
 ];
 
 const homeFaqItems = [

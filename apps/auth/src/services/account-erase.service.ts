@@ -220,19 +220,38 @@ async function eraseAudit(userId: string, dryRun: boolean): Promise<Counts> {
  * the erasure marker when there is none, so a second lock never moves `requestedAt` or the
  * stage back. A session-kill failure is logged and left to the auth_data step, which kills
  * them again before the account is gone.
+ *
+ * T-358 (Arjun ruling 6): with `onlyIf`, the lock is CONDITIONAL. The filter is added (under
+ * $and) to the lock's own updateOne, so the check and the lock are one atomic write: if the
+ * account no longer matches (e.g. the user verified mid-sweep, or it is already being erased)
+ * nothing is written, no session is killed and false is returned. Without `onlyIf` the
+ * behaviour is unchanged and the result is always true.
  */
-export async function lockAccount(userId: string): Promise<void> {
-  await User.updateOne(
-    { _id: new Types.ObjectId(userId), erasure: { $exists: false } },
-    { $set: { isActive: false, erasure: { requestedAt: new Date(), stage: 'locked' } } },
-  );
-  // Also when the marker already existed: the account must stay locked.
-  await User.updateOne({ _id: new Types.ObjectId(userId) }, { $set: { isActive: false } });
+export async function lockAccount(
+  userId: string,
+  opts: { onlyIf?: Record<string, unknown> } = {},
+): Promise<boolean> {
+  const _id = new Types.ObjectId(userId);
+  const lockSet = {
+    $set: { isActive: false, erasure: { requestedAt: new Date(), stage: 'locked' } },
+  };
+  if (opts.onlyIf) {
+    const locked = await User.updateOne(
+      { _id, $and: [{ erasure: { $exists: false } }, opts.onlyIf] },
+      lockSet,
+    );
+    if (locked.matchedCount === 0) return false;
+  } else {
+    await User.updateOne({ _id, erasure: { $exists: false } }, lockSet);
+    // Also when the marker already existed: the account must stay locked.
+    await User.updateOne({ _id }, { $set: { isActive: false } });
+  }
   try {
     await deleteAllUserSessions(userId);
   } catch (err) {
     logger.warn({ userId, errName: errName(err) }, 'Account close: session kill failed; retried');
   }
+  return true;
 }
 
 export interface AccountEraseRun {

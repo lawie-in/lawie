@@ -27,11 +27,13 @@ export const metadata: Metadata = {
 // "India (Mumbai)" (Ajay's addendum ef06e89 in T-235-privacy-policy-signed.md; Redis unchanged).
 // T-115c review (Ajay b26b017, dpdp-v1-calls-signed.md §7): the §7 Sentry sentence is out until
 // a self-serve close alerts the operator; §9 adds the sent-emails bullet.
+// T-358 (Ajay a84e298, dpdp-v1-calls-signed.md §8 rows 1-2): §9 adds the unverified-account
+// line after "Everything else"; "Last updated" only, CURRENT_PRIVACY_VERSION unchanged.
 
 // T-310: set to the T-310 merge date at merge. Keep in step with CURRENT_PRIVACY_VERSION in
 // apps/auth/src/models/User.model.ts (the same date as YYYY-MM-DD, plus a letter suffix when the
 // policy changes more than once on one date, e.g. '2026-10-12b' for T-242).
-const PRIVACY_LAST_UPDATED = '14 October 2026';
+const PRIVACY_LAST_UPDATED = '15 October 2026';
 
 // Byte for byte; one string so the hash can be checked.
 const SECTION_6_BODY =
@@ -343,6 +345,10 @@ export default function PrivacyPage() {
                   <li>
                     Everything else (account, case details, drafts): until you close your account or
                     delete the document. Backup copies are erased within 7 days after that.
+                  </li>
+                  <li>
+                    If you do not verify your email address within 30 days of signing up, we delete
+                    your account and everything in it.
                   </li>
                   <li>
                     Waitlist details: until you ask us to delete them, and in any case no more than

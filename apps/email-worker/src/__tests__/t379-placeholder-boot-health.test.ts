@@ -5,6 +5,8 @@
  *    no PII; /health is 503 unhealthy; the processor refuses auth.verifyEmail BEFORE mint().
  *  - Dry run: workers start, /health is 200.
  *  - User data containing "[PIN]" is not refused when the template's footer is filled or absent.
+ * T-436 filled the real verifyEmail footer, so the refusal cases inject an unfilled one
+ * (mockUnfilledFooter, helpers/t436-unfilled-footer.ts); "real footer" cases turn the flag off.
  * Env is switched like t220-ac8 / t223 (withEnv + jest.isolateModulesAsync). bullmq and ioredis
  * are mocked, so no Redis is needed.
  */
@@ -54,6 +56,10 @@ jest.mock('ioredis', () => ({
     mockRedisCtor(...a);
   },
 }));
+let mockUnfilledFooter = true;
+jest.mock('../templates/auth/verifyEmail', () =>
+  jest.requireActual('./helpers/t436-unfilled-footer').verifyEmailModule(() => mockUnfilledFooter),
+);
 const mockRender = jest.fn();
 jest.mock('../templates', () => ({ renderTemplate: (...a: unknown[]) => mockRender(...a) }));
 const mockProviderSend = jest.fn();
@@ -68,6 +74,7 @@ const EXTRA = { AUTH_SERVICE_URL: 'http://localhost:4001' };
 beforeEach(() => {
   resetSink();
   jest.clearAllMocks();
+  mockUnfilledFooter = true;
   mockProviderSend.mockResolvedValue({ messageId: 'sent-1' });
   mockRender.mockResolvedValue({ subject: 's', html: '<p>h</p>', text: 'h' });
 });
@@ -108,12 +115,23 @@ function job(template: string): Job<EmailJobData> {
 }
 
 describe('static footer check', () => {
-  it('auth.verifyEmail is unfilled; auth.welcome and an unknown id are not', async () => {
+  it('injected unfilled verifyEmail footer is flagged; auth.welcome and an unknown id are not', async () => {
     await inEnv(DRY, async ({ ph }) => {
       expect(ph.templateHasUnfilledFooter('auth.verifyEmail')).toBe(true);
       expect(ph.templateHasUnfilledFooter('auth.welcome')).toBe(false);
       expect(ph.templateHasUnfilledFooter('no.such.template' as never)).toBe(false);
       expect(ph.anyTemplateUnfilled()).toBe(true);
+    });
+  });
+});
+
+describe('static footer check, real shipped footer (T-436)', () => {
+  it('nothing is unfilled', async () => {
+    mockUnfilledFooter = false;
+    await inEnv(DRY, async ({ ph }) => {
+      expect(ph.templateHasUnfilledFooter('auth.verifyEmail')).toBe(false);
+      expect(ph.templateHasUnfilledFooter('auth.welcome')).toBe(false);
+      expect(ph.anyTemplateUnfilled()).toBe(false);
     });
   });
 });
@@ -128,6 +146,8 @@ describe('tripwire: every registered template vs TEMPLATE_FOOTERS', () => {
     verifyUrl: 'https://app.lawie.in/verify-email?token=sentinel',
     loginUrl: 'https://app.lawie.in/login',
     link: 'https://app.lawie.in/x',
+    deletionDate: '21 October 2026',
+    variant: 'A',
     url: 'https://app.lawie.in/x',
   };
   const ids: string[] = jest.requireActual('../templates').listTemplates();
@@ -139,6 +159,7 @@ describe('tripwire: every registered template vs TEMPLATE_FOOTERS', () => {
   it.each(ids)(
     '%s renders a placeholder exactly when templateHasUnfilledFooter says so',
     async (id) => {
+      mockUnfilledFooter = false; // real strings on both sides of the comparison
       const rendered = renderReal(id, SENTINEL);
       const hasPlaceholder = [rendered.html, rendered.text].some(
         (part) => part.includes('[registered address]') || part.includes('[PIN]'),
@@ -166,6 +187,17 @@ describe('startWorkers', () => {
     expect(extra).toEqual([]);
     const text = allLogText();
     for (const s of [LEAK_ADDRESS, LEAK_NAME, USER_ID, 'redis://']) expect(text).not.toContain(s);
+  });
+
+  it('T-436 live mode, real filled footer: workers start (one per queue)', async () => {
+    mockUnfilledFooter = false;
+    await inEnv(LIVE, async ({ worker }) => {
+      expect(worker.startWorkers({ connection: { host: 'x', port: 1 } })).toHaveLength(2);
+    });
+    expect(mockWorkerCtor).toHaveBeenCalledTimes(2);
+    expect(parsedLogs().filter((l) => String(l.msg).includes('Workers not started'))).toHaveLength(
+      0,
+    );
   });
 
   it('live mode with an explicit connection still starts nothing', async () => {
@@ -200,6 +232,21 @@ describe('createProcessor', () => {
     expect(send).not.toHaveBeenCalled();
     expect(mockRender).not.toHaveBeenCalled();
     expect(allLogText()).not.toContain(LEAK_ADDRESS);
+  });
+
+  it('T-436 live mode, real filled footer: auth.verifyEmail is processed, mint and send once', async () => {
+    mockUnfilledFooter = false;
+    const send = jest.fn(async () => ({ messageId: 'm' }));
+    const mint = jest.fn(async () => ({ email: LEAK_ADDRESS, name: 'N', link: 'https://x/y' }));
+    await inEnv(LIVE, async ({ worker }) => {
+      await expect(
+        worker.createProcessor(send, mint)(job('auth.verifyEmail'), 't'),
+      ).resolves.toEqual({
+        messageId: 'm',
+      });
+    });
+    expect(mint).toHaveBeenCalledTimes(1);
+    expect(send).toHaveBeenCalledTimes(1);
   });
 
   it('dry run: auth.verifyEmail still mints and sends', async () => {
@@ -253,6 +300,19 @@ describe('/health', () => {
     expect(typeof r.body.timestamp).toBe('string');
   });
 
+  it('T-436 live mode, real filled footer: 200 ok', async () => {
+    mockUnfilledFooter = false;
+    const r = await health(LIVE);
+    expect(r.status).toBe(200);
+    expect(r.body).toMatchObject({
+      status: 'ok',
+      service: 'email-worker',
+      provider: 'ses',
+      dryRun: false,
+    });
+    expect(r.body.reason).toBeUndefined();
+  });
+
   it('dry run: 200 ok', async () => {
     const r = await health(DRY);
     expect(r.status).toBe(200);
@@ -288,7 +348,15 @@ describe('POST /send (live)', () => {
     expect(mockProviderSend).toHaveBeenCalledTimes(1);
   });
 
-  it('auth.verifyEmail is refused with 422 before rendering', async () => {
+  it('T-436 real filled footer: auth.verifyEmail -> 202, rendered and sent once', async () => {
+    mockUnfilledFooter = false;
+    const r = await post(LIVE, { template: 'auth.verifyEmail', to: LEAK_ADDRESS, data: {} });
+    expect(r.status).toBe(202);
+    expect(mockRender).toHaveBeenCalledTimes(1);
+    expect(mockProviderSend).toHaveBeenCalledTimes(1);
+  });
+
+  it('injected unfilled footer: auth.verifyEmail is refused with 422 before rendering', async () => {
     const r = await post(LIVE, { template: 'auth.verifyEmail', to: LEAK_ADDRESS, data: {} });
     expect(r.status).toBe(422);
     expect(r.body).toEqual({ error: 'unfilled_placeholders' });

@@ -29,6 +29,15 @@ const envSchema = z.object({
   DRAFTING_SERVICE_URL: z.string().default('http://localhost:4002'),
   BILLING_SERVICE_URL: z.string().default('http://localhost:4003'),
 
+  // T-358 (Arjun) — the unverified-account sweep may enqueue notices and delete accounts only
+  // when this is exactly 'true'. Fails closed: unset, '', '1', 'TRUE' or anything else is off,
+  // and an odd value never stops the service from starting. While off the sweep only logs
+  // counts. The founder turns it on after purge -> footer env -> deploy -> resend-all (T-403).
+  UNVERIFIED_SWEEP_ENABLED: z
+    .string()
+    .optional()
+    .transform((v) => v === 'true'),
+
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),
   SENTRY_DSN: z.string().default(''),
 });

@@ -15,6 +15,7 @@ import { env } from './config/env';
 import logger from './config/logger';
 import { disconnectRedis } from './config/redis';
 import { startAccountEraseSweep, stopAccountEraseSweep } from './services/account-erase.service';
+import { startUnverifiedSweep, stopUnverifiedSweep } from './services/unverified-sweep.service';
 
 async function bootstrap() {
   try {
@@ -22,6 +23,9 @@ async function bootstrap() {
     // T-115c — finishes account erases cut off by a failure or a restart. Boot run, then every
     // 10 minutes; unref'd, never overlaps, never throws.
     startAccountEraseSweep();
+    // T-358 — notices, then deletes, accounts never verified (30 days, 7 days' notice). Boot
+    // run, then hourly; unref'd, never overlaps, never throws.
+    startUnverifiedSweep();
     app.listen(env.PORT, () => {
       logger.info(`🔐 Auth Service running on http://localhost:${env.PORT}`);
       logger.info(`   Environment: ${env.NODE_ENV}`);
@@ -37,6 +41,7 @@ bootstrap();
 process.on('SIGTERM', async () => {
   logger.info('SIGTERM received — shutting down gracefully');
   stopAccountEraseSweep();
+  stopUnverifiedSweep();
   await disconnectRedis();
   process.exit(0);
 });

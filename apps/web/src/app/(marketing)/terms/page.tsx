@@ -203,7 +203,7 @@ export default function TermsPage() {
                 <h3>12. Governing Law</h3>
                 <p>
                   These Terms are governed by the laws of India. Any dispute is subject to the
-                  exclusive jurisdiction of the courts at Patna, Bihar. Nothing in this section
+                  exclusive jurisdiction of the courts at Ranchi, Jharkhand. Nothing in this section
                   limits any right you have to approach a Consumer Commission where you live or
                   work.
                 </p>

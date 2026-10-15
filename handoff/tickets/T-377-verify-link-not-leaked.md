@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (web) + Arjun (ops, nginx) |
 | Mode   | Small fix |
-| Status | To do. Follow-up from T-223 review (Mahak, 13 Oct 2026). Next free lead after T-223 merges. Priya |
+| Status | Merged into develop_staging 846ad85 and follow-up 20d0cb9 (Mahak, 15 Oct 2026): header, nginx query stripping incl. Google callback, ops doc. Founder applies docs/nginx-access-log.md on both domains. Priya |
 | Source | T-223 AC8 (no token or link in logs), at the infra level |
 
 ## Acceptance criteria

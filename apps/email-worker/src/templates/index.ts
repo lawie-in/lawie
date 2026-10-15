@@ -23,6 +23,7 @@ import type { EmailTemplate } from '@lawie/email-client';
 import { render } from '@react-email/render';
 import type { ReactElement } from 'react';
 
+import { authUnverifiedDeletionNoticeTemplate } from './auth/unverifiedDeletionNotice';
 import { authVerifyEmailTemplate } from './auth/verifyEmail';
 import { authWelcomeTemplate } from './auth/welcome';
 
@@ -40,6 +41,7 @@ export interface TemplateDef<Data = Record<string, unknown>> {
 const REGISTRY: Partial<Record<EmailTemplate, TemplateDef<any>>> = {
   'auth.welcome': authWelcomeTemplate,
   'auth.verifyEmail': authVerifyEmailTemplate,
+  'auth.unverifiedDeletionNotice': authUnverifiedDeletionNoticeTemplate,
   // Madhuri's 8 templates land here as they ship.
 };
 
