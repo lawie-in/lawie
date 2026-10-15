@@ -445,3 +445,15 @@ must-fix in T-448:
 With 1-4 applied: **T-448 is approved.** Merge-body ref: "Legal: T-448 signed by Ajay, T-245 file, T-448 byte check 8827785 + fixes".
 
 Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+### Rechecks and T-448 leftovers (15 Oct 2026, evening)
+
+- **T-451 at merge 1c8af6d8:** every signed label, id and option is present and unchanged. Closed.
+- **T-450 at 1167a239:** all three fixes are present (partition_deed :294 retroactive line, S in joint_development_agreement, gpa :319). **T-450 closed.**
+- **T-453 verifier "unsupported" on NI Act / BNSS section references (fixtures 06, 12-14):** a section number is law, not a fact, so it does not belong in the fact ledger. Extend the verifier's reference list with **only** the sections that appear in that pack's signed text or in a signed table (bns-offences, the T-245 pairs, the T-361 rows). A section found in neither stays "unsupported" and its draft comes to me. Do not add a general whitelist.
+- **T-448 leftovers (Mahak):**
+  - habeas_corpus :303 description becomes `Arrest by police — when permissible; conditions for arrest without warrant in offences punishable up to 7 years: S.35(1)(b) BNSS [S.41(1)(b) CrPC]`. This is the same wrong-section fix as T-448 #2, and it removes the judgment name.
+  - mandamus validation rule :127 becomes `{ "rule": "Grounds must show a public legal duty, a clear legal right of the petitioner, demand and refusal, and no equally efficacious alternative remedy", "severity": "medium" }`. A rule that requires citing a judgment contradicts S.
+  - certiorari system_role opening becomes `Certiorari issues to quash an order of an inferior tribunal or quasi-judicial authority on these grounds only:`. This drops "court", in line with the Article 227 sentence. The rest is unchanged.
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.
