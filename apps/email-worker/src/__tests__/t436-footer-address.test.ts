@@ -9,7 +9,7 @@ import { listTemplates } from '../templates';
 import { VERIFY_EMAIL_STRINGS } from '../templates/auth/verifyEmail';
 import { templateHasUnfilledFooter, anyTemplateUnfilled } from '../placeholders';
 
-import { renderReal } from './helpers/t223-real-render';
+import { INVOICE_SENTINEL_FIELDS, renderReal } from './helpers/t223-real-render';
 
 const SIGNED_FOOTER = 'Lawie (Sole Proprietorship), Ranchi, Jharkhand';
 const USER_ID = '64b7f0c2a1b2c3d4e5f60718';
@@ -23,6 +23,8 @@ const SENTINEL = {
   // auth.unverifiedDeletionNotice (T-358) refuses to render without these.
   variant: 'A',
   deletionDate: '21 October 2026',
+  // billing.taxInvoice / billing.creditNote (T-436 b/c) refuse to render without these.
+  ...INVOICE_SENTINEL_FIELDS,
 };
 
 describe('auth.verifyEmail footer (Ajay, byte-exact)', () => {

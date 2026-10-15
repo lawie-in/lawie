@@ -115,30 +115,11 @@ export function blanksInContent(content: string, find: FindBlanks = findBlanks):
 }
 
 /**
- * Saves a file the server sent (e.g. the server PDF) under `filename`. The
- * browser download starts only when this is called; nothing is saved before.
- * Shared by the PDF export and the T-381 annexures pack.
+ * downloadBlob / filenameFromDisposition moved to lib/download (T-436: the invoice PDFs use
+ * them too, without this module's export code). Re-exported here so existing imports (the
+ * PDF export, the T-381 annexures pack) keep working.
  */
-export function downloadBlob(blob: Blob, filename: string): void {
-  const url = window.URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  window.URL.revokeObjectURL(url);
-}
-
-/**
- * The file name from a `Content-Disposition` header (`filename="…"` or
- * `filename=…`), or `fallback` when the header is absent or names no file.
- * Any path part is dropped, so the name cannot point outside the download folder.
- */
-export function filenameFromDisposition(header: string | null, fallback: string): string {
-  const match = header?.match(/filename\s*=\s*(?:"([^"]*)"|([^;]*))/i);
-  const raw = (match?.[1] ?? match?.[2] ?? '').trim();
-  const name = raw.split(/[\\/]/).pop()?.trim() ?? '';
-  return name || fallback;
-}
+export { downloadBlob, filenameFromDisposition } from '@/lib/download';
 
 /** Options shared by both exports (T-194). */
 export interface ExportBlankOptions {

@@ -88,6 +88,20 @@ let returnFocusTo: HTMLElement | null = null;
 const actionTriggers = new Map<string, HTMLElement>();
 /** Responses that were a privacy block; callers check isPrivacyBlocked(res). */
 const blockedResponses = new WeakSet<Response>();
+/** T-436 — called after an Accept succeeds (new tokens saved), e.g. to retry a held save. */
+const acceptedListeners = new Set<() => void>();
+
+/**
+ * T-436 — run `listener` each time the user accepts the current privacy version (dialog or P7
+ * box). Returns the unsubscribe. For a save that must wait for acceptance (the GST State, Ajay
+ * GST file Addendum 7 (2)); blocked actions the user started still need a second press.
+ */
+export function onPrivacyAccepted(listener: () => void): () => void {
+  acceptedListeners.add(listener);
+  return () => {
+    acceptedListeners.delete(listener);
+  };
+}
 
 function setState(patch: Partial<PromptState>): void {
   state = { ...state, ...patch };
@@ -320,6 +334,13 @@ function useAccept(): (where: 'dialog' | string) => Promise<void> {
         });
         // Box Accept: the box's own button is gone; focus the blocked action's button.
         if (where !== 'dialog') focusAfterClose(actionTriggers.get(where) ?? null);
+        acceptedListeners.forEach((l) => {
+          try {
+            l();
+          } catch {
+            // A listener's failure never undoes the acceptance.
+          }
+        });
       } catch {
         setState({ pending: false, errorAt: where });
       }

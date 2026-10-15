@@ -23,15 +23,15 @@ const reg = (email: string, extra: Record<string, unknown> = {}) =>
     .send({ email, password: PASSWORD, name: 'Test Person', ...extra });
 
 describe('T-234 AC7 — password register records Terms acceptance', () => {
-  it('CURRENT_TERMS_VERSION is 2026-10-12 (matches /terms Last updated, T-299)', () => {
-    expect(CURRENT_TERMS_VERSION).toBe('2026-10-12');
+  it('CURRENT_TERMS_VERSION is 2026-10-15 (matches /terms Last updated, T-436)', () => {
+    expect(CURRENT_TERMS_VERSION).toBe('2026-10-15');
   });
 
-  it('CURRENT_PRIVACY_VERSION is 2026-10-12b (Ajay, Addendum 3); each constant equals its own current date', () => {
-    // T-299: the Terms version moved to 2026-10-12, so the two dates now coincide. They are still
+  it('CURRENT_PRIVACY_VERSION is 2026-10-15 (Ajay, GST file Addendum 4); each constant equals its own current date', () => {
+    // T-436: both versions are 2026-10-15 (the merge date), so the two dates coincide. They are still
     // separate constants, each asserted against its own date.
-    expect(CURRENT_PRIVACY_VERSION).toBe('2026-10-12b');
-    expect(CURRENT_TERMS_VERSION).toBe('2026-10-12');
+    expect(CURRENT_PRIVACY_VERSION).toBe('2026-10-15');
+    expect(CURRENT_TERMS_VERSION).toBe('2026-10-15');
   });
 
   it('sets termsAcceptedAt (server time), termsVersion and acceptedVia=password', async () => {
@@ -42,8 +42,8 @@ describe('T-234 AC7 — password register records Terms acceptance', () => {
     expect(u!.termsAcceptedAt).toBeInstanceOf(Date);
     expect(u!.termsAcceptedAt!.getTime()).toBeGreaterThanOrEqual(before - 1000);
     expect(u!.termsAcceptedAt!.getTime()).toBeLessThanOrEqual(Date.now() + 1000);
-    expect(u!.termsVersion).toBe('2026-10-12');
-    expect(u!.privacyVersion).toBe('2026-10-12b');
+    expect(u!.termsVersion).toBe('2026-10-15');
+    expect(u!.privacyVersion).toBe('2026-10-15');
     expect(u!.acceptedVia).toBe('password');
     await verifyAndSeed(u!._id);
   });
@@ -58,8 +58,8 @@ describe('T-234 AC7 — password register records Terms acceptance', () => {
     expect(res.status).toBe(201);
     const u = await User.findOne({ email: 'spoof@example.com' }).lean();
     expect(u!.termsAcceptedAt!.getFullYear()).toBeGreaterThanOrEqual(2026);
-    expect(u!.termsVersion).toBe('2026-10-12');
-    expect(u!.privacyVersion).toBe('2026-10-12b');
+    expect(u!.termsVersion).toBe('2026-10-15');
+    expect(u!.privacyVersion).toBe('2026-10-15');
     expect(u!.acceptedVia).toBe('password');
     await verifyAndSeed(u!._id);
   });
@@ -75,8 +75,8 @@ describe('T-234 AC7 — password register records Terms acceptance', () => {
     expect(res.status).toBe(409);
     const after = await User.findOne({ email: 'dupterms@example.com' }).lean();
     expect(after!.termsAcceptedAt).toEqual(first!.termsAcceptedAt);
-    expect(after!.termsVersion).toBe('2026-10-12');
-    expect(after!.privacyVersion).toBe('2026-10-12b');
+    expect(after!.termsVersion).toBe('2026-10-15');
+    expect(after!.privacyVersion).toBe('2026-10-15');
     expect(after!.acceptedVia).toBe('password');
     await verifyAndSeed(first!._id);
   });

@@ -9,6 +9,10 @@
  * delete through this model is filtered to `state != 'issued'`, and `save()` on
  * an existing row throws.
  *
+ * One exception (T-436 c, Arjun #2): the post-issue marker `emailQueuedAt` may
+ * be set once, from null, by an update that sets that field and nothing else
+ * (see isEmailMarkerUpdate). It is not part of the tax document.
+ *
  * Indexes: paymentId unique per invoice (credit notes repeat the original's
  * paymentId), refundId unique where present, (kind, fy, number) unique where a
  * number is set. `kind` is the numbering series ('invoice' | 'credit_note').
@@ -76,6 +80,9 @@ export interface IInvoice extends Document {
   originalInvoiceId?: mongoose.Types.ObjectId;
   originalInvoiceNumber?: string;
   originalInvoiceDate?: Date;
+
+  /** T-436 (c): when the invoice email was queued. Null/absent until then; set once. */
+  emailQueuedAt?: Date | null;
 
   createdAt: Date;
   updatedAt: Date;
@@ -163,6 +170,8 @@ const InvoiceSchema = new Schema<IInvoice>(
     originalInvoiceId: { type: Schema.Types.ObjectId },
     originalInvoiceNumber: String,
     originalInvoiceDate: Date,
+
+    emailQueuedAt: { type: Date, default: null },
   },
   { timestamps: true, collection: 'invoices' },
 );
@@ -197,8 +206,42 @@ const GUARDED_QUERY_OPS = [
   'findOneAndDelete',
 ] as const;
 
+/** Ops through which the email marker may be set (never replace or delete). */
+const MARKER_OPS: ReadonlySet<string> = new Set(['updateOne', 'findOneAndUpdate']);
+
+/**
+ * True only for an update whose whole effect is `$set: { emailQueuedAt: <Date> }`
+ * (T-436 c): no other operator, no other field, no upsert. Call it with
+ * `{ timestamps: false }` so Mongoose adds no `updatedAt` to the $set; if it
+ * does, this returns false and the issued row stays untouched.
+ */
+export function isEmailMarkerUpdate(
+  op: string,
+  update: unknown,
+  options: { upsert?: unknown } | undefined,
+): boolean {
+  if (!MARKER_OPS.has(op) || options?.upsert) return false;
+  if (!update || typeof update !== 'object' || Array.isArray(update)) return false;
+  const keys = Object.keys(update);
+  if (keys.length !== 1 || keys[0] !== '$set') return false;
+  const set = (update as { $set?: unknown }).$set;
+  if (!set || typeof set !== 'object' || Array.isArray(set)) return false;
+  const setKeys = Object.keys(set);
+  return (
+    setKeys.length === 1 &&
+    setKeys[0] === 'emailQueuedAt' &&
+    (set as { emailQueuedAt?: unknown }).emailQueuedAt instanceof Date
+  );
+}
+
 for (const op of GUARDED_QUERY_OPS) {
   InvoiceSchema.pre(op, { document: false, query: true }, function guardIssued() {
+    if (isEmailMarkerUpdate(op, this.getUpdate(), this.getOptions())) {
+      // The marker: only on an issued row whose marker is still null/absent,
+      // so it is set at most once and never overwritten.
+      this.setQuery({ $and: [this.getFilter(), { state: 'issued', emailQueuedAt: null }] });
+      return;
+    }
     this.setQuery({ $and: [this.getFilter(), { state: { $ne: 'issued' } }] });
   });
 }

@@ -169,15 +169,19 @@ describe('startInvoiceSweep / stopInvoiceSweep', () => {
   afterEach(cleanup);
 
   // Config reported incomplete and the count stubbed, so a run touches no database and the
-  // number of runs is the number of missingSellerConfig calls.
+  // number of runs is the number of missingSellerConfig calls. A run counts blocked rows
+  // ({state: 'issuing'}, held until release) and then, with no REDIS_URL, the issued rows still
+  // waiting for their email (filter has emailQueuedAt, answered at once with 0).
   function stubRuns() {
     const missing = jest.spyOn(gst, 'missingSellerConfig').mockReturnValue(['GST_GSTIN']);
-    const count = jest.spyOn(Invoice, 'countDocuments').mockImplementation(
-      (() =>
-        new Promise<number>((r) => {
-          pendingRuns.push(r);
-        })) as never,
-    );
+    const count = jest.spyOn(Invoice, 'countDocuments').mockImplementation(((
+      filter: Record<string, unknown>,
+    ) => {
+      if (filter && 'emailQueuedAt' in filter) return Promise.resolve(0);
+      return new Promise<number>((r) => {
+        pendingRuns.push(r);
+      });
+    }) as never);
     return { missing, count, release: () => pendingRuns.splice(0).forEach((r) => r(0)) };
   }
   const flush = async () => {

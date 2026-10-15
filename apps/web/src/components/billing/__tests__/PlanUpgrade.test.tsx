@@ -20,6 +20,18 @@ jest.mock('@/components/PrivacyUpdatePrompt', () => ({
   isPrivacyBlocked: (res: unknown) => mockIsPrivacyBlocked(res),
   privacyFetch: (...args: unknown[]) => mockPrivacyFetch(...args),
   usePrivacyDescribedBy: () => undefined,
+  // T-436: the State picker waits for acceptance through this.
+  onPrivacyAccepted: () => () => {},
+}));
+
+// T-436: the block renders its own State picker; the signed-in user already has a State saved
+// (GET /api/auth/me), so Subscribe is not blocked and the tests below keep their point.
+jest.mock('@/context/AuthContext', () => ({
+  useAuth: () => ({ user: { id: 'plan-upgrade-user' } }),
+}));
+const mockApiFetch = jest.fn();
+jest.mock('@/lib/apiFetch', () => ({
+  apiFetch: (...args: unknown[]) => mockApiFetch(...args),
 }));
 
 // T-223: the verify card replaces the upgrade button for an unverified email user.
@@ -72,6 +84,11 @@ beforeEach(() => {
   mockNeedsVerification.mockReturnValue(false);
   mockIsVerificationRequired.mockResolvedValue(false);
   mockFetchPlans.mockResolvedValue(CATALOGUE);
+  mockApiFetch.mockResolvedValue({
+    ok: true,
+    status: 200,
+    json: async () => ({ data: { gstStateCode: '07' } }),
+  });
   // jsdom's location.href setter is not implemented; swap in an object that records it.
   Object.defineProperty(window, 'location', {
     configurable: true,
