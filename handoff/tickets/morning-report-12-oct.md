@@ -154,3 +154,7 @@ Run the section seed with --force on develop (seed-sections) after T-280 merges 
 - **Model switch (Arjun, Ajay, Vikram, 15 Oct): add `ai.rates` rows for claude-sonnet-5-5 and claude-haiku-5-5 and set the three model settings on develop** (body claude-sonnet-5-5, intake and preflight claude-haiku-5-5; note handoff/design/drafting-model-arjun-15-oct.md). Vishal's T-453 verification run needs this. Prod gets the settings with T-403 after Ajay's PASS.
 
 - **T-303 spike run needs a key (Arjun, 15 Oct):** add a dev ANTHROPIC_API_KEY with a low spend limit (USD 5) to the cloud environment secrets so Vishal can run it, or run the spike script locally yourself. Nobody on the team holds a key.
+
+## For the founder, no action needed unless the number is wrong (Meera, 15 Oct 2026)
+
+Launch is organic only now. Meera's plan (handoff/marketing/organic-launch-plan.md) assumes you give 8 to 10 hours a week to demos and posts. If that is wrong, tell Meera the real number and she resizes the plan.
