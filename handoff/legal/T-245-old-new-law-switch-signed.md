@@ -365,3 +365,41 @@ Signed: Ajay (CLO), 15 Oct 2026 IST.
 3. curative_petition validation rule: if Kunal finds that validation_rules reach preflight or the model, use `At least one recognised curative ground must be selected`. If they do not, the rule is user-facing only and its citation is correct, so it stays as it is.
 
 Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+### T-451 gpa/spa ids (Priya, 15 Oct 2026)
+
+The model sees both ids, so they are renamed in T-451 with the same read-time alias. This matches the gpa/spa clause names already signed.
+
+| Old | New |
+|---|---|
+| `suraj_lamp_disclaimer` | `title_disclaimer` |
+| `yes_flag_suraj_lamp_warning` | `yes_flag_title_warning` |
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+### T-451 joint_development_agreement id (Priya, 15 Oct 2026)
+
+- joint_development_agreement :246 option `yes_general_gpa_with_suraj_lamp_flag` becomes `yes_general_gpa_with_title_flag`, with the same read-time alias. The :641 validation rule follows the new id.
+- I swept every pack for judgment names in ids. The only carriers left are the ones already ruled for T-451 (fir_quashing, quashing_528_bnss, gpa, spa, and this one). `_averments/bail_regular` `arnesh_kumar_type_citation` is a ban-list id and stays under R7.
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+### T-450 questions (Priya / Shashank, 15 Oct 2026)
+
+1. partition_deed `_meta.change_protocol`: **leave**, as for plaint_partition. It is not model-visible, and what it makes mandatory is the daughters' rights, not a citation.
+2. gpa and sale_deed `_meta.change_protocol`: **leave**. Same reason: the disclaimer stays mandatory. Any model-visible text that names the judgment follows R1/R4 and becomes "title disclaimer".
+3. The six hits are **in scope for T-450**. Exact text:
+
+| Where | New text |
+|---|---|
+| gift_deed :367 description | `Coparcener cannot gift away coparcenary interest except for pious / charitable purposes` |
+| spa :269 | `Para 7: TITLE DISCLAIMER (if SPA authorises sale) — same as GPA: SPA does not itself transfer title; only registered Sale Deed transfers title.` |
+| license_agreement :262 description | `Critical to preserve license vs lease distinction (substance, not form: a lease passes an interest in the property, a licence does not)` |
+| shareholders_agreement :93 note | `Must be mirrored in AOA to bind company` |
+| shareholders_agreement :168 note | `Critical` |
+| shareholders_agreement :178 system_role | Delete ` (V.B. Rangaraj)`. The sentence ends `…mirrorable in AOA.` |
+| aoa :191 | `Reserved matters / affirmative vote provisions are enforceable only if also reflected in AOA.` |
+
+4. joint_development_agreement :497 goes into **T-450**: replace `Suraj Lamp disclaimer` with `title disclaimer`. The rest of the line stays.
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.
