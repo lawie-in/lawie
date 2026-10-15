@@ -1,6 +1,8 @@
 /**
  * T-436 AC10 — one-off: purge every held auth.verifyEmail job (Arjun 23:45 UTC, 14 Oct 2026,
- * aligned to Ajay 8a2b639: purge the held queue, never send weeks-late verify emails).
+ * aligned to Ajay 8a2b639: purge the held queue, never send weeks-late verify emails), and every
+ * held auth.unverifiedDeletionNotice job (T-358; Arjun follow-up, approved by Priya), which would
+ * otherwise fire at once when email is switched on.
  *
  *   yarn workspace @lawie/email-worker queue:purge            # dry run (default)
  *   yarn workspace @lawie/email-worker queue:purge --dry-run  # same
@@ -9,16 +11,20 @@
  * Founder's order on each env (T-403): purge dry run -> purge --yes -> set the footer env ->
  * deploy -> verify:resend-all dry run -> verify:resend-all --yes.
  *
- * What it removes: every job named auth.verifyEmail (and carrying that template) on both worker
+ * What it removes: every job named auth.verifyEmail or auth.unverifiedDeletionNotice (and
+ * carrying that same template in its data; see PURGE_TEMPLATES) on both worker
  * queues, in every state from which it could still be sent: wait, paused, prioritized, delayed
  * (incl. retry backoff), and active. An active job is only removed when no worker holds its lock
  * (a stalled job, which BullMQ would otherwise move back to wait and send); a locked one is
  * being sent right now and is counted, not touched. Failed jobs are final (BullMQ never retries
  * them on its own, only scripts/replay.ts does), so they are counted and kept for replay
- * history. Removing a job also clears its T-390 dedupe key (verify:<userId>), so the user's next
- * resend or verify:resend-all queues normally. Other templates are never touched.
+ * history. Removing a verify job also clears its T-390 dedupe key (verify:<userId>), so the
+ * user's next resend or verify:resend-all queues normally. Removing a notice job frees its
+ * jobId (the sweep's idempotency key), so a later sweep run can queue that notice again.
+ * Other templates are never touched.
  *
- * Output is counts only (per queue, per state, totals) and the Redis host with no credentials.
+ * Output is counts only (per queue, per state, totals, per template) and the Redis host with no
+ * credentials. The "verify jobs" wording of the per-queue and total lines covers both templates.
  * Never a user id, an address, a job id or job data.
  *
  * Needs REDIS_URL of the target env (and EMAIL_QUEUE_PREFIX if not the default `lawie`); loads
@@ -103,6 +109,16 @@ async function probeRedis(url: string): Promise<void> {
 const USAGE = 'Usage: yarn workspace @lawie/email-worker queue:purge [--dry-run|--yes]';
 
 export const VERIFY_TEMPLATE = 'auth.verifyEmail';
+/** T-358's notice; same string as packages/email-client EmailTemplate and worker.ts. */
+export const UNVERIFIED_NOTICE_TEMPLATE = 'auth.unverifiedDeletionNotice';
+
+/**
+ * The only templates this script ever removes (Arjun, T-436 AC10 follow-up). A job counts only
+ * when its BullMQ name AND its data.template are the same entry of this list. Order is the print
+ * order.
+ */
+export const PURGE_TEMPLATES = [VERIFY_TEMPLATE, UNVERIFIED_NOTICE_TEMPLATE] as const;
+export type PurgeTemplate = (typeof PURGE_TEMPLATES)[number];
 
 /** States a held job can sit in and still be sent later. Order is the print order. */
 export const PURGE_STATES = ['wait', 'paused', 'prioritized', 'delayed', 'active'] as const;
@@ -120,7 +136,16 @@ export interface QueuePurgeCounts {
   lockedActive: number;
   /** Found but gone or moved before removal (sent or removed by someone else meanwhile). */
   vanished: number;
-  /** Failed verify jobs: final, not retried by BullMQ, kept. */
+  /** Failed purge-template jobs: final, not retried by BullMQ, kept. */
+  failedKept: number;
+}
+
+/** Counts for one template, summed over both queues. */
+export interface TemplatePurgeCounts {
+  found: number;
+  removed: number;
+  lockedActive: number;
+  vanished: number;
   failedKept: number;
 }
 
@@ -131,34 +156,60 @@ export interface PurgeResult {
   totalLockedActive: number;
   totalVanished: number;
   totalFailedKept: number;
+  /** Per-template split of the totals. Always set by purgeHeldVerifyJobs. */
+  byTemplate?: Record<PurgeTemplate, TemplatePurgeCounts>;
 }
 
 function zeroStates(): Record<PurgeState, number> {
   return { wait: 0, paused: 0, prioritized: 0, delayed: 0, active: 0 };
 }
 
-function isVerifyJob(job: { name?: unknown; data?: unknown } | undefined): boolean {
-  if (!job || job.name !== VERIFY_TEMPLATE) return false;
-  const template = (job.data as { template?: unknown } | null | undefined)?.template;
-  return template === VERIFY_TEMPLATE;
+function zeroTemplates(): Record<PurgeTemplate, TemplatePurgeCounts> {
+  const zero = (): TemplatePurgeCounts => ({
+    found: 0,
+    removed: 0,
+    lockedActive: 0,
+    vanished: 0,
+    failedKept: 0,
+  });
+  return { [VERIFY_TEMPLATE]: zero(), [UNVERIFIED_NOTICE_TEMPLATE]: zero() };
 }
 
-/** Ids of the verify jobs in one state, read page by page before anything is removed. */
-async function verifyJobIds(queue: Queue, state: JobType | 'failed'): Promise<string[]> {
-  const ids: string[] = [];
+/** The purge template of a job, or null when it is any other job (never touched). */
+function purgeTemplateOf(
+  job: { name?: unknown; data?: unknown } | undefined,
+): PurgeTemplate | null {
+  if (!job) return null;
+  const template = (job.data as { template?: unknown } | null | undefined)?.template;
+  for (const t of PURGE_TEMPLATES) {
+    if (job.name === t && template === t) return t;
+  }
+  return null;
+}
+
+interface HeldJob {
+  id: string;
+  template: PurgeTemplate;
+}
+
+/** The purge-template jobs in one state, read page by page before anything is removed. */
+async function purgeJobsIn(queue: Queue, state: JobType | 'failed'): Promise<HeldJob[]> {
+  const held: HeldJob[] = [];
   for (let start = 0; ; start += PAGE) {
     const jobs = await queue.getJobs([state], start, start + PAGE - 1, true);
     for (const job of jobs) {
-      if (job && job.id && isVerifyJob(job)) ids.push(job.id);
+      const template = purgeTemplateOf(job);
+      if (job && job.id && template) held.push({ id: job.id, template });
     }
     if (jobs.length < PAGE) break;
   }
-  return ids;
+  return held;
 }
 
 /**
- * Finds (and with apply=true removes) every held auth.verifyEmail job on the worker's queues.
- * The caller owns `connection`. Prints nothing; returns counts only.
+ * Finds (and with apply=true removes) every held auth.verifyEmail and
+ * auth.unverifiedDeletionNotice job on the worker's queues. The caller owns `connection`.
+ * Prints nothing; returns counts only.
  */
 export async function purgeHeldVerifyJobs(opts: {
   /** BullMQ connection (an ioredis client; typed loosely because bullmq bundles its own ioredis). */
@@ -174,7 +225,9 @@ export async function purgeHeldVerifyJobs(opts: {
     totalLockedActive: 0,
     totalVanished: 0,
     totalFailedKept: 0,
+    byTemplate: zeroTemplates(),
   };
+  const byTemplate = result.byTemplate as Record<PurgeTemplate, TemplatePurgeCounts>;
 
   for (const name of opts.queueNames ?? WORKER_QUEUE_NAMES) {
     const queue = new Queue(name, { connection: opts.connection, prefix: opts.prefix });
@@ -183,34 +236,48 @@ export async function purgeHeldVerifyJobs(opts: {
     // caller as the rejected command instead.
     queue.on('error', () => undefined);
     try {
+      const failed = await purgeJobsIn(queue, 'failed');
+      for (const j of failed) byTemplate[j.template].failedKept += 1;
       const counts: QueuePurgeCounts = {
         queue: name,
         found: zeroStates(),
         removed: 0,
         lockedActive: 0,
         vanished: 0,
-        failedKept: (await verifyJobIds(queue, 'failed')).length,
+        failedKept: failed.length,
       };
-      const byState = new Map<PurgeState, string[]>();
+      const byState = new Map<PurgeState, HeldJob[]>();
       for (const state of PURGE_STATES) {
-        const ids = await verifyJobIds(queue, state);
-        counts.found[state] = ids.length;
-        byState.set(state, ids);
+        const held = await purgeJobsIn(queue, state);
+        counts.found[state] = held.length;
+        for (const j of held) byTemplate[j.template].found += 1;
+        byState.set(state, held);
       }
 
       if (opts.apply) {
         for (const state of PURGE_STATES) {
-          for (const id of byState.get(state) ?? []) {
+          for (const { id, template } of byState.get(state) ?? []) {
+            const t = byTemplate[template];
             const job = await queue.getJob(id);
-            if (!job || !isVerifyJob(job)) {
+            // Re-checked against the template it was listed under: a job id reused by another
+            // template in between is not ours to remove.
+            if (!job || purgeTemplateOf(job) !== template) {
               counts.vanished += 1;
+              t.vanished += 1;
               continue;
             }
             // 1 removed, 0 locked by a worker (being processed). Throws only on a Redis error.
             const removed = await queue.remove(id);
-            if (removed === 1) counts.removed += 1;
-            else if ((await job.getState()) === 'active') counts.lockedActive += 1;
-            else counts.vanished += 1;
+            if (removed === 1) {
+              counts.removed += 1;
+              t.removed += 1;
+            } else if ((await job.getState()) === 'active') {
+              counts.lockedActive += 1;
+              t.lockedActive += 1;
+            } else {
+              counts.vanished += 1;
+              t.vanished += 1;
+            }
           }
         }
       }
@@ -293,6 +360,17 @@ export function formatResult(result: PurgeResult, apply: boolean): string[] {
     lines.push(`total gone before removal: ${result.totalVanished}`);
   }
   lines.push(`total failed verify jobs kept: ${result.totalFailedKept}`);
+  // The totals above cover every purge template (wording kept from round 2); split them here.
+  if (result.byTemplate) {
+    for (const t of PURGE_TEMPLATES) {
+      const c = result.byTemplate[t];
+      lines.push(
+        apply
+          ? `template ${t}: held ${c.found}, removed ${c.removed}, active and locked (not removed) ${c.lockedActive}, gone before removal ${c.vanished}, failed kept ${c.failedKept}`
+          : `template ${t}: held ${c.found}, failed kept ${c.failedKept}`,
+      );
+    }
+  }
   return lines;
 }
 
@@ -315,7 +393,7 @@ async function main(): Promise<void> {
   const target = `${redacted}, prefix ${prefix}`;
   if (apply) {
     out('='.repeat(72));
-    out(`  --yes: REMOVING held ${VERIFY_TEMPLATE} jobs on ${target}`);
+    out(`  --yes: REMOVING held ${PURGE_TEMPLATES.join(' and ')} jobs on ${target}`);
     out('='.repeat(72));
   } else {
     out(`Target (dry run, nothing removed): ${target}`);
