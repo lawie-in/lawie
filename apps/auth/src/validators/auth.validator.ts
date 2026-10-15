@@ -1,4 +1,4 @@
-import { RegisterPayload, LoginPayload } from '@lawie/shared';
+import { RegisterPayload, LoginPayload, isGstStateCode } from '@lawie/shared';
 import { z, ZodError } from 'zod';
 
 import { AppError } from '../middleware/errorHandler';
@@ -108,6 +108,33 @@ export function validateRegister(data: unknown): RegisterInput {
 
 export function validateLogin(data: unknown): LoginPayload {
   const result = loginSchema.safeParse(data);
+  if (!result.success) {
+    throw validationError(result.error);
+  }
+  return result.data;
+}
+
+// ── T-436: PATCH /me ─────────────────────────────────────────────────────────────────────────
+// Only { gstStateCode }: a 2-digit string that is one of the 36 GST State/UT codes (Vikram's
+// list, GST_STATES in @lawie/shared). .strict(): any other field is a 422, never silently
+// dropped, so this route can never be used to write another user field.
+const updateMeSchema = z
+  .object({
+    gstStateCode: z
+      .string({
+        required_error: 'gstStateCode is required',
+        invalid_type_error: 'gstStateCode must be a string',
+      })
+      .refine((v) => isGstStateCode(v), 'Invalid GST State code'),
+  })
+  .strict('Only gstStateCode can be changed');
+
+export interface UpdateMeInput {
+  gstStateCode: string;
+}
+
+export function validateUpdateMe(data: unknown): UpdateMeInput {
+  const result = updateMeSchema.safeParse(data ?? {});
   if (!result.success) {
     throw validationError(result.error);
   }

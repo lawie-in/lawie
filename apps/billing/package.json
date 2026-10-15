@@ -14,6 +14,7 @@
     "backfill:invoices": "ts-node --transpile-only scripts/backfill-invoices.ts"
   },
   "dependencies": {
+    "@lawie/email-client": "1.0.0",
     "@lawie/shared": "1.0.0",
     "@sentry/node": "^10.50.0",
     "cors": "^2.8.5",

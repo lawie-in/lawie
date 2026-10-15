@@ -35,7 +35,9 @@ const pricingFaq = [
   {
     question: 'Is GST included?',
     answer:
-      'The displayed prices are inclusive of applicable taxes. Your payment receipt from Razorpay will show the tax breakup where relevant.',
+      // Ajay, handoff/legal/gst-tax-invoice-signed.md 5a, byte for byte. "and you can download
+      // it from your account" ships because the Invoices card (/dashboard/settings) has the PDF.
+      'Yes. Prices shown include GST. After each payment we email you a GST tax invoice from Lawie, and you can download it from your account.',
   },
   {
     question: 'What is Ink?',

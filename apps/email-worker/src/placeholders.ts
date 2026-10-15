@@ -21,6 +21,8 @@ import {
   UNVERIFIED_DELETION_NOTICE_STRINGS,
 } from './templates/auth/unverifiedDeletionNotice';
 import { VERIFY_EMAIL_STRINGS } from './templates/auth/verifyEmail';
+import { CREDIT_NOTE_STRINGS } from './templates/billing/creditNote';
+import { TAX_INVOICE_STRINGS } from './templates/billing/taxInvoice';
 
 export const UNFILLED_PLACEHOLDERS = ['[registered address]', '[PIN]'] as const;
 
@@ -43,6 +45,10 @@ const TEMPLATE_FOOTERS: Partial<Record<EmailTemplate, readonly string[]>> = {
     ...footerLines(UNVERIFIED_DELETION_NOTICE_STRINGS),
     ...footerLines(UNVERIFIED_DELETION_NOTICE_B_STRINGS),
   ],
+  // T-436 (b/c): Ajay Addendum 5 #1, the Ranchi footer (no placeholders).
+  'billing.taxInvoice': footerLines(TAX_INVOICE_STRINGS),
+  // Addendum 9 #5 (footer line 2); lines 1, 3 and 4 as in the invoice email.
+  'billing.creditNote': footerLines(CREDIT_NOTE_STRINGS),
 };
 
 /** True when the template's own footer still has [registered address] or [PIN]. */

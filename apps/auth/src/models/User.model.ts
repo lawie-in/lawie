@@ -1,4 +1,4 @@
-import { CURRENT_PRIVACY_VERSION, UserRole, UserPlan } from '@lawie/shared';
+import { CURRENT_PRIVACY_VERSION, UserRole, UserPlan, isGstStateCode } from '@lawie/shared';
 import bcrypt from 'bcryptjs';
 import mongoose, { Document, Schema, Types } from 'mongoose';
 
@@ -7,10 +7,12 @@ import mongoose, { Document, Schema, Types } from 'mongoose';
 // handoff/legal/T-234-login-copy-signed.md); they are maintained by hand, not read from the pages.
 // CURRENT_TERMS_VERSION: bump when /terms changes, with Ajay's sign-off.
 // T-299: terms '2026-10-12' matches /terms "Last updated: 12 October 2026" (T-268, f6566b4).
+// T-436 (Ajay, GST file Addendum 7 (3a)): '2026-10-15', the T-436 merge date, matches /terms
+// "Last updated: 15 October 2026": the contracting party (5b/5c) and the courts (Ranchi) change.
 // T-343: CURRENT_PRIVACY_VERSION now lives in @lawie/shared (constants/privacy.ts, with its
 // history and the per-version signed summaries); re-exported here so existing imports still work.
 // Versions are opaque strings: compare them for equality only, never parse them as dates.
-export const CURRENT_TERMS_VERSION = '2026-10-12';
+export const CURRENT_TERMS_VERSION = '2026-10-15';
 export { CURRENT_PRIVACY_VERSION };
 export type TermsAcceptedVia = 'password' | 'google';
 /**
@@ -99,6 +101,14 @@ export interface IUser extends Document {
   phone?: string;
   barCouncilId?: string;
   state?: string;
+  /**
+   * T-436 (Arjun, 14 Oct 2026) — the GST State/UT code the user gave for the place of supply on
+   * their tax invoices: a 2-digit string from GST_STATES ("01", never 1). Set only by PATCH /me,
+   * and only once the current privacy version is accepted (Ajay, GST file Addendum 7 (2)).
+   * Billing reads it directly at invoice time (CUSTOMER_STATE_CODE_FIELD). Not `state` above,
+   * which is the free-text Bar Council State.
+   */
+  gstStateCode?: string;
   practiceAreas: string[];
   yearsOfExperience?: number;
 
@@ -212,6 +222,14 @@ const UserSchema = new Schema<IUser>(
     state: {
       type: String,
       trim: true,
+    },
+    // T-436 — no default: absent means no State given (billing then uses its fallback).
+    gstStateCode: {
+      type: String,
+      validate: {
+        validator: (v: unknown) => v === undefined || v === null || isGstStateCode(v),
+        message: 'Invalid GST State code',
+      },
     },
     practiceAreas: {
       type: [String],
