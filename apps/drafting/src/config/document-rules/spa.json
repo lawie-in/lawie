@@ -229,7 +229,7 @@
       "description": "Signed, witnessed, notarised / registered"
     },
     {
-      "id": "suraj_lamp_disclaimer",
+      "id": "title_disclaimer",
       "name": "Title disclaimer (if power to sell)",
       "required": false,
       "description": "SPA does not transfer title"

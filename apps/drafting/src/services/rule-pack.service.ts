@@ -1906,6 +1906,12 @@ export const OPTION_VALUE_ALIASES: Readonly<
       procedural_illegality_bhajan_lal_cat_7: 'procedural_illegality',
     }),
   }),
+  // T-451 alias, remove in the post-v1 cleanup
+  gpa: Object.freeze({
+    includes_power_to_sell: Object.freeze({
+      yes_flag_suraj_lamp_warning: 'yes_flag_title_warning',
+    }),
+  }),
 });
 
 /**
@@ -1921,9 +1927,18 @@ function mapOptionValue(value: unknown, map: Readonly<Record<string, string>>): 
   if (value !== null && typeof value === 'object') {
     const src = value as Record<string, unknown>;
     const out: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(src)) if (!has(k)) out[k] = v;
+    // An own key such as `__proto__` (from JSON.parse) is copied as a key, never set as the prototype.
+    const put = (k: string, v: unknown): void => {
+      Object.defineProperty(out, k, {
+        value: v,
+        enumerable: true,
+        writable: true,
+        configurable: true,
+      });
+    };
+    for (const [k, v] of Object.entries(src)) if (!has(k)) put(k, v);
     for (const [k, v] of Object.entries(src)) {
-      if (has(k) && !Object.prototype.hasOwnProperty.call(out, map[k])) out[map[k]] = v;
+      if (has(k) && !Object.prototype.hasOwnProperty.call(out, map[k])) put(map[k], v);
     }
     return out;
   }

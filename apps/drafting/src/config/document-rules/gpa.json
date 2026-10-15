@@ -162,7 +162,7 @@
         "label": "Does GPA include power to sell immovable property?",
         "type": "select",
         "required": true,
-        "options": ["yes_flag_suraj_lamp_warning", "no_only_management"]
+        "options": ["yes_flag_title_warning", "no_only_management"]
       },
       { "id": "advocate_name", "label": "Advocate name", "type": "text", "required": true },
       {
@@ -235,7 +235,7 @@
       "description": "Signed by grantor, witnessed; notarised / registered as applicable"
     },
     {
-      "id": "suraj_lamp_disclaimer",
+      "id": "title_disclaimer",
       "name": "Title disclaimer (if power to sell included)",
       "required": false,
       "description": "GPA cannot transfer title; sale only by registered sale deed"
@@ -374,7 +374,7 @@
     "grantor_age >= 18",
     "attorney_age >= 18",
     "powers_scope must contain at least 1 enumerated power",
-    "if includes_power_to_sell == 'yes_flag_suraj_lamp_warning' — Suraj Lamp disclaimer paragraph must be inserted",
+    "if includes_power_to_sell == 'yes_flag_title_warning' — Suraj Lamp disclaimer paragraph must be inserted",
     "if registration_or_notarisation == 'registered_under_S17_Registration_Act' — stamp duty must reflect registration schedule",
     "if state == 'executed_abroad' — registration_or_notarisation must be 'consulate_attested_if_grantor_abroad' or 'apostilled_if_grantor_in_apostille_country'",
     "duration field must be specified",
