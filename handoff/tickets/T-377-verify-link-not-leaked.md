@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (web) + Arjun (ops, nginx) |
 | Mode   | Small fix |
-| Status | Merged into develop_staging 846ad85 (Mahak, 15 Oct 2026): Referrer-Policy header, nginx.prod.conf query stripping, docs/nginx-access-log.md, test. Follow-up pending: widen the map to the Google callback (Arjun). Priya |
+| Status | Merged into develop_staging 846ad85 and follow-up 20d0cb9 (Mahak, 15 Oct 2026): header, nginx query stripping incl. Google callback, ops doc. Founder applies docs/nginx-access-log.md on both domains. Priya |
 | Source | T-223 AC8 (no token or link in logs), at the infra level |
 
 ## Acceptance criteria

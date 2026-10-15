@@ -73,6 +73,7 @@ Where each lead stopped:
 
 ## Last done
 
+- mahak: T-377b follow-up merged 20d0cb9 (15 Oct 2026). nginx.prod.conf strips the query on /verify-email, /auth/callback and the Google callback (/api/auth/google/callback); upstream ports fixed to 4000-4003; docs/nginx-access-log.md covers both domains; t377 test 28 cases. The two staging file deletions are not in (need the founder's approval). Row open for T-443.
 - CI: run 582 green on 846ad85, the first uncancelled full-tree run since 550. Covers everything merged since.
 - mahak: T-377 merged 846ad85 (15 Oct 2026). /verify-email gets Referrer-Policy no-referrer; nginx.prod.conf strips the query from /verify-email and /auth/callback in the access log; docs/nginx-access-log.md for the founder's server step. Follow-up coming: widen the map to /api/auth/google/callback and fix the nginx ports (T-442). Row stays open for the follow-up.
 - kunal: T-436 AC10 round 1 merged b92aae6e (15 Oct 2026). Terms §12, contact page and the verify-email footer say Ranchi, Jharkhand; placeholder text removed; guard tests. terms/page.tsx, the contact page, verifyEmail.tsx and placeholders.ts released to Shashank. Round 2 (queue:purge, verify:resend-all, queues.ts, worker.ts change) follows; Kunal then T-364.
