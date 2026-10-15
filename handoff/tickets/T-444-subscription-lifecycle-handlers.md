@@ -2,7 +2,7 @@
 
 | Field  | Value |
 | ------ | ----- |
-| Status | To do. V1 must-fix (money). Assigned to Shashank, after T-436 and after T-438 and T-399 merge. Priya, 15 Oct 2026 |
+| Status | Explore done (Shashank, 15 Oct 2026). Building on feature/t-444-subscription-lifecycle; push after T-438 lands. Needs packages/shared/src/billing/yearly-drip.ts (lazy expiry), so not billing-only (Arjun 874ffe1b). Priya |
 | Owner  | Shashank (build), Arjun (rules) |
 | Mode   | Full chain (money, billing only) |
 
@@ -19,14 +19,14 @@ The Razorpay webhook handles only activated, charged, cancelled and expired. Eve
 1. `pending`: no-op (Razorpay retries).
 2. `halted` and `paused`: store the status, grant no further Ink, keep access until `paidThrough` (the last paid `current_end`). After that the existing expiry logic drops the user to free exactly as cancel-at-cycle-end does (T-399).
 3. `resumed`: set `active`.
-4. `completed`: treat as `expired`.
+4. `completed`: store the status; terminal like `cancelled`, not immediate like `expired`. Access until `paidThrough`, then the lazy expiry drops the user to free (Arjun amended, 15 Oct).
 5. `authenticated` and `updated`: store the status only.
 6. `createSubscription` reuse check matches every non-terminal status (`created`, `authenticated`, `active`, `pending`, `halted`, `paused`). Terminal statuses are `cancelled`, `completed`, `expired`.
 7. Tests: one per status; "halted user loses Pro at paidThrough and not before"; "halted user cannot start a second subscription".
 
 ## Scope
 
-Billing only. No web change. No legal content.
+Billing and the lazy expiry in packages/shared/src/billing/yearly-drip.ts (with its tests). No web change (see T-446). No legal content.
 
 ## Order
 

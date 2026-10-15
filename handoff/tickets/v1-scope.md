@@ -66,6 +66,7 @@ Not blocking. Weekly review with Arjun picks what to pull forward.
 
 | Ticket | Title | Status | Owner | Why |
 | --- | --- | --- | --- | --- |
+| T-446 | Upgrade page shows a 'fix your payment' message on 409 subscription_exists | todo | - | small improvement, after T-444 (Arjun) |
 | T-128 | Fill the gaps in the rule packs | hold | - | old rule-pack sweep (quality polish) |
 | T-129 | Prayer and verification text for packs that have none | hold | - | old rule-pack sweep (quality polish) |
 | T-134 | Ask the user which document, do not guess | hold | - | parked should-fix items |
