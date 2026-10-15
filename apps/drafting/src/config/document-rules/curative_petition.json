@@ -114,7 +114,7 @@
     "Invocation of Article 137 of Constitution + Order XLVIII of SC Rules, 2013",
     "Recital of original judgment — date, bench, citation, holding",
     "Recital of review petition — filing, hearing mode, dismissal date",
-    "Specific ground from Rupa Ashok Hurra grounds — not merely a re-argument",
+    "Specific ground from the recognised curative grounds — not merely a re-argument",
     "Statement that grounds were either raised in review OR not available at review stage with reasons",
     "Senior advocate's certificate certifying that curative grounds exist (mandatory — Order XLVIII Rule 2(2))",
     "Advocate-on-Record certificate",
@@ -125,15 +125,18 @@
     "Disclaimer: Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
   ],
   "prompt_context": {
-    "system_role": "You are drafting a Curative Petition under Article 137 of the Constitution read with Order XLVIII of the Supreme Court Rules, 2013. This is the final remedy after dismissal of a review petition. Cite Rupa Ashok Hurra v. Ashok Hurra (2002) 4 SCC 388 — the curative jurisdiction was crafted to prevent (a) violation of principles of natural justice where the petitioner was not heard or not served, (b) apprehension of bias from a judge who did not disclose connection, (c) abuse of process of the court, (d) manifest injustice. Grounds must be those NOT taken at review or, if taken, not addressed. A curative petition is NOT a second review. It is heard in chambers in circulation by the three senior-most judges and the judges who passed the impugned judgment (if available), and is dismissed without hearing unless the bench is prima facie satisfied. Order XLVIII Rule 2(2) mandates a senior advocate's certificate certifying the grounds.",
+    "system_role": "You are drafting a Curative Petition under Article 137 of the Constitution read with Order XLVIII of the Supreme Court Rules, 2013. This is the final remedy after dismissal of a review petition. The curative jurisdiction was crafted to prevent (a) violation of principles of natural justice where the petitioner was not heard or not served, (b) apprehension of bias from a judge who did not disclose connection, (c) abuse of process of the court, (d) manifest injustice. Grounds must be those NOT taken at review or, if taken, not addressed. A curative petition is NOT a second review. It is heard in chambers in circulation by the three senior-most judges and the judges who passed the impugned judgment (if available), and is dismissed without hearing unless the bench is prima facie satisfied. Order XLVIII Rule 2(2) mandates a senior advocate's certificate certifying the grounds.",
     "tone": "extreme deference to the Court; restrained; non-repetitive of review grounds",
     "style_notes": [
       "Use 'Hon'ble Court' / 'Their Lordships' throughout",
       "Do NOT re-argue the merits of the original case — that is impermissible",
-      "Explicitly state which Rupa Ashok Hurra ground is invoked",
+      "Explicitly state which curative ground is invoked",
       "Explicitly state whether the ground was urged in review or was unavailable then",
       "Frame prayer modestly — for recall, reconsideration, or such other relief as the Court deems fit",
       "Senior advocate's certificate must be a separate document filed with the petition"
+    ],
+    "promptInstructions": [
+      "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
   "relevantActs": [

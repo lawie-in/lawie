@@ -38,3 +38,7 @@ Ajay byte-checks each group's diff; he does not pre-sign every line. The file:li
 ## Legal sign-off
 
 Ajay byte-checks the diff and signs the R4 replacement descriptions. Reference in the merge commit.
+
+## Added (Kunal, T-451 Explore, 15 Oct 2026)
+
+`service_agreement` system_role at :163 (Dharangadhara) is model-visible and was missing from this ticket's list. Add it under R1.

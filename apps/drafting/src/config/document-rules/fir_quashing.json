@@ -4,12 +4,12 @@
     "owner": "Ajay (CLO)",
     "validated_by": "Ajay (CLO) — Batch 5 criminal petitions pass 2026-05-12",
     "last_updated": "2026-05-12",
-    "change_protocol": "All edits require CLO sign-off. Bhajan Lal seven categories must be quoted VERBATIM in prompt and template."
+    "change_protocol": "All edits require CLO sign-off. Do not name judgments in model-visible text (Ajay, T-441)."
   },
   "template_id": "fir_quashing",
   "card_description": "A petition to the High Court under Section 528 BNSS to quash an FIR.",
   "docType": "fir_quashing",
-  "title": "Petition for Quashing of FIR (Section 528 BNSS — citing Bhajan Lal categories)",
+  "title": "Petition for Quashing of FIR (Section 528 BNSS — citing the recognised categories for quashing)",
   "displayName": "FIR Quashing Petition (S.528 BNSS)",
   "category": "criminal_petition",
   "creditsCost": 2,
@@ -204,7 +204,7 @@
     },
     {
       "id": "bhajan_lal_paragraph",
-      "name": "Bhajan Lal Categories Verbatim",
+      "name": "Recognised Quashing Categories Verbatim",
       "required": true,
       "description": "Quote 7 categories VERBATIM and apply applicable ones"
     },
@@ -212,13 +212,13 @@
       "id": "civil_colour_paragraph",
       "name": "Civil Dispute Given Criminal Colour (if applicable)",
       "required": false,
-      "description": "Bhajan Lal category 5 application"
+      "description": "Quashing category 5 application"
     },
     {
       "id": "mala_fides_paragraph",
       "name": "Mala Fides / Vendetta (if applicable)",
       "required": false,
-      "description": "Bhajan Lal category 7 application"
+      "description": "Quashing category 7 application"
     },
     {
       "id": "no_alternative_remedy_paragraph",
@@ -263,7 +263,7 @@
     "promptInstructions": [
       "Draft a petition for QUASHING OF FIR under Section 528 BNSS (inherent powers of HC) — variant of quashing focused specifically on FIR stage.",
       "S.528 BNSS = direct successor to S.482 CrPC. 'Nothing in this Sanhita shall be deemed to limit or affect the inherent powers of the High Court to make such orders as may be necessary to give effect to any order under this Sanhita, or to prevent abuse of the process of any Court or otherwise to secure the ends of justice.'",
-      "MANDATORY VERBATIM CITATION — State of Haryana v. Bhajan Lal 1992 Supp (1) SCC 335 — SEVEN CATEGORIES where HC may quash FIR or proceedings. Quote verbatim in the petition:",
+      "SEVEN CATEGORIES where HC may quash FIR or proceedings. Quote verbatim in the petition:",
       "CATEGORY 1: Where the allegations made in the First Information Report or the complaint, even if they are taken at their face value and accepted in their entirety do not prima facie constitute any offence or make out a case against the accused.",
       "CATEGORY 2: Where the allegations in the First Information Report and other materials, if any, accompanying the FIR do not disclose a cognizable offence, justifying an investigation by police officers under Section 156(1) of the Code [now S.175(1) BNSS] except under an order of a Magistrate within the purview of Section 155(2) of the Code [now S.174(2) BNSS].",
       "CATEGORY 3: Where the uncontroverted allegations made in the FIR or complaint and the evidence collected in support of the same do not disclose the commission of any offence and make out a case against the accused.",
@@ -271,7 +271,7 @@
       "CATEGORY 5: Where the allegations made in the FIR or complaint are so absurd and inherently improbable on the basis of which no prudent person can ever reach a just conclusion that there is sufficient ground for proceeding against the accused.",
       "CATEGORY 6: Where there is an express legal bar engrafted in any of the provisions of the Code [BNSS] or the concerned Act (under which a criminal proceeding is instituted) to the institution and continuance of the proceedings and/or where there is a specific provision in the Code [BNSS] or the concerned Act, providing efficacious redress for the grievance of the aggrieved party.",
       "CATEGORY 7: Where a criminal proceeding is manifestly attended with mala fide and/or where the proceeding is maliciously instituted with an ulterior motive for wreaking vengeance on the accused and with a view to spite him due to private and personal grudge.",
-      "Bhajan Lal categories are illustrative, not exhaustive — court repeatedly clarified.",
+      "The seven categories are illustrative, not exhaustive — court repeatedly clarified.",
       "Para 1: Description of parties — petitioner, State (through Respondent SHO), informant.",
       "Para 2: Petitioner's profile — clean antecedents, social/professional position, age.",
       "Para 3: Brief description of FIR — number, date, PS, district, BNS sections (NEVER use IPC).",
@@ -280,20 +280,21 @@
       "Para 6: Petitioner's version of factual matrix — true context.",
       "Para 7: Section-by-section ingredient analysis — for each BNS section in FIR:\n     (a) Quote the section.\n     (b) List ingredients.\n     (c) Demonstrate which ingredient is absent from FIR allegations themselves (taken at face value).",
       "Common BNS sections to analyse (ingredients): \n   - BNS 318(4) (Cheating, was IPC 420): dishonest inducement + deception + delivery of property OR consent OR omission causing damage.\n   - BNS 316(2) (Criminal breach of trust, was IPC 406): entrustment OR dominion + dishonest misappropriation OR conversion OR disposal in violation of law.\n   - BNS 85 (Cruelty, was IPC 498A): marriage subsisting + cruelty as defined in Explanation + intent or conduct linked to dowry.\n   - BNS 80 (Dowry death, was IPC 304B): death within 7 years of marriage + cruelty soon before death + cruelty in connection with dowry demand.\n   - BNS 351 (Criminal intimidation, was IPC 506): threat with intent to alarm or compel act.",
-      "Para 8: Bhajan Lal verbatim quotation paragraph — quote ALL SEVEN categories. Then identify applicable category(ies).",
-      "Para 9: Civil dispute given criminal colour (Bhajan Lal Cat 5 / Cat 1): demonstrate civil cause of action (recovery, partnership, contract) being dressed as cheating / breach of trust. Cite Indian Oil Corp v. NEPC India Ltd (2006) 6 SCC 736; G. Sagar Suri v. State of UP (2000) 2 SCC 636; Inder Mohan Goswami v. State of Uttaranchal (2007) 12 SCC 1.",
-      "Para 10: Where matrimonial — over-implication of in-laws: Cite Preeti Gupta v. State of Jharkhand (2010) 7 SCC 667; Geeta Mehrotra v. State of UP (2012) 10 SCC 741; Kahkashan Kausar v. State of Bihar (2022) 6 SCC 599.",
-      "Para 11: Mala fides (Bhajan Lal Cat 7): document pattern of complaints, prior disputes, motive, timing of FIR relative to other proceedings, allegations made years after alleged events.",
-      "Para 12: Express legal bar (Bhajan Lal Cat 6): where statutory bar exists — e.g., S.197 BNSS sanction for public servants, S.218 BNSS sanction for prosecution of judges, NDPS S.42 mandatory compliance, etc.",
-      "Para 13: Where settlement / compromise reached (esp matrimonial / commercial): Cite Gian Singh v. State of Punjab (2012) 10 SCC 303; Parbatbhai Aahir v. State of Gujarat (2017) 9 SCC 641; State of MP v. Laxmi Narayan (2019) 5 SCC 688. Caution: heinous offences (rape, murder, against state, against women involving public element) NOT compoundable even by settlement.",
+      "Para 8: Seven categories verbatim quotation paragraph — quote ALL SEVEN categories. Then identify applicable category(ies).",
+      "Para 9: Civil dispute given criminal colour (Cat 5 / Cat 1): demonstrate civil cause of action (recovery, partnership, contract) being dressed as cheating / breach of trust.",
+      "Para 10: Where matrimonial — over-implication of in-laws.",
+      "Para 11: Mala fides (Cat 7): document pattern of complaints, prior disputes, motive, timing of FIR relative to other proceedings, allegations made years after alleged events.",
+      "Para 12: Express legal bar (Cat 6): where statutory bar exists — e.g., S.197 BNSS sanction for public servants, S.218 BNSS sanction for prosecution of judges, NDPS S.42 mandatory compliance, etc.",
+      "Para 13: Where settlement / compromise reached (esp matrimonial / commercial). Caution: heinous offences (rape, murder, against state, against women involving public element) NOT compoundable even by settlement.",
       "Para 14: No alternative remedy adequate — police investigation cannot be effectively challenged in lower courts; S.528 BNSS / Art. 226 / Art. 227 jurisdictions invoked.",
-      "Para 15: Interim relief: (a) stay of investigation — Cite Neeharika Infrastructure Pvt Ltd v. State of Maharashtra (2021) 19 SCC 401 — stay of investigation in rarest cases; quashing more readily granted than investigation stay. (b) Stay of arrest / coercive steps — frequently granted as interim measure. (c) Restraint on filing chargesheet without leave.",
+      "Para 15: Interim relief: (a) stay of investigation — stay of investigation in rarest cases; quashing more readily granted than investigation stay. (b) Stay of arrest / coercive steps — frequently granted as interim measure. (c) Restraint on filing chargesheet without leave.",
       "Para 16: Stage of investigation — important. Quashing can be considered at any stage but post-chargesheet courts more cautious.",
-      "Para 17: Where second FIR on same incident: Cite T.T. Antony v. State of Kerala (2001) 6 SCC 181 — second FIR on same incident not permissible.",
+      "Para 17: Where second FIR on same incident: second FIR on same incident not permissible.",
       "Para 18: Where multiple accused: distinct grounds for each accused — applicant cannot piggyback on co-accused's case.",
       "VERY IMPORTANT — court examines FIR on its FACE; defence material not considered at quashing stage except documents of unimpeachable character (court orders, statutory documents that disprove allegations). Therefore, FRAME ARGUMENTS within FIR's four corners + such unimpeachable material.",
       "Affidavit in support is mandatory.",
-      "Append Lawie disclaimer."
+      "Append Lawie disclaimer.",
+      "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
   "relevantActs": [
