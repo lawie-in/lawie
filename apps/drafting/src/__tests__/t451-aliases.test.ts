@@ -36,6 +36,16 @@ const CATS = ['bhajan_lal_cat_1', 'bhajan_lal_cat_3'];
 const OPTION_FIELD = 'grounds_for_quashing';
 /** The pack the option-id map is scoped to (Arjun, 15 Oct 2026); fir_quashing is not touched. */
 const OPTION_PACK = 'quashing_528_bnss';
+const OLD_GROUND = 'express_legal_bar_bhajan_lal_cat_4';
+const NEW_GROUND = 'express_legal_bar';
+const JDA_PACK = 'joint_development_agreement';
+const JDA_FIELD = 'gpa_to_developer';
+const JDA_OLD = 'yes_general_gpa_with_suraj_lamp_flag';
+const JDA_NEW = 'yes_general_gpa_with_title_flag';
+const GPA_PACK = 'gpa';
+const GPA_FIELD = 'includes_power_to_sell';
+const GPA_OLD = 'yes_flag_suraj_lamp_warning';
+const GPA_NEW = 'yes_flag_title_warning';
 
 const SRC = join(__dirname, '..');
 const RULES = join(SRC, 'config', 'document-rules');
@@ -211,9 +221,15 @@ describe('T-451 option-id aliases', () => {
   const run = (v: unknown) => applyFieldAliases({ [OPTION_FIELD]: v }, OPTION_PACK)[OPTION_FIELD];
 
   it('the map holds exactly the seven renames for the field', () => {
-    expect(Object.keys(OPTION_VALUE_ALIASES)).toEqual([OPTION_PACK]);
+    expect(Object.keys(OPTION_VALUE_ALIASES).sort()).toEqual(
+      [GPA_PACK, JDA_PACK, OPTION_PACK].sort(),
+    );
     expect(Object.keys(OPTION_VALUE_ALIASES[OPTION_PACK])).toEqual([OPTION_FIELD]);
     expect(Object.entries(OPTION_VALUE_ALIASES[OPTION_PACK][OPTION_FIELD])).toEqual(RENAMED);
+    expect(OPTION_VALUE_ALIASES[JDA_PACK]).toEqual({ [JDA_FIELD]: { [JDA_OLD]: JDA_NEW } });
+    expect(OPTION_VALUE_ALIASES[GPA_PACK]).toEqual({
+      [GPA_FIELD]: { [GPA_OLD]: GPA_NEW },
+    });
   });
   it('the map is frozen', () => {
     expect(Object.isFrozen(OPTION_VALUE_ALIASES)).toBe(true);
@@ -311,12 +327,18 @@ describe('T-451 static pins', () => {
       `${OLD}: '${NEW}'`,
       'const REPLACED_FIELD_ALIAS_KEYS',
       'export const OPTION_VALUE_ALIASES',
+      `${GPA_PACK}: Object.freeze(`,
+      `${JDA_PACK}: Object.freeze(`,
     ]) {
       const i = at(needle);
       expect(i).toBeGreaterThan(0);
       expect(lines[i - 1].trim()).toBe(ALIAS_COMMENT);
     }
-    expect(service.split(ALIAS_COMMENT).length - 1).toBe(3);
+    // Every comment sits on a line of its own; no stray one without a block below it.
+    lines.forEach((l, i) => {
+      if (l.trim() === ALIAS_COMMENT) expect(lines[i + 1].trim()).not.toBe('');
+    });
+    expect(service.split(ALIAS_COMMENT).length - 1).toBeGreaterThanOrEqual(5);
   });
 
   function walk(dir: string, out: string[] = []): string[] {
@@ -346,6 +368,134 @@ describe('T-451 static pins', () => {
     lines.forEach((l, i) => {
       if (/bhajan_lal/.test(l)) expect(i).toBeGreaterThan(first);
     });
+  });
+});
+
+// ── mapOptionValue and __proto__ ─────────────────────────────────────────────
+
+describe('T-451 option map with a __proto__ own key', () => {
+  const posted = () =>
+    JSON.parse(`{"__proto__":{"x":1},"${OLD_GROUND}":true,"compromise_x":false}`);
+  it('JSON.parse gives __proto__ as an own key (the premise)', () => {
+    expect(Object.keys(posted())).toContain('__proto__');
+  });
+  it('the key stays an own key, the prototype is untouched, nothing leaks to Object.prototype', () => {
+    const out = applyFieldAliases({ [OPTION_FIELD]: posted() }, OPTION_PACK)[
+      OPTION_FIELD
+    ] as Record<string, unknown>;
+    expect(Object.getPrototypeOf(out)).toBe(Object.prototype);
+    expect(Object.keys(out).sort()).toEqual(['__proto__', 'compromise_x', NEW_GROUND].sort());
+    expect(Object.getOwnPropertyDescriptor(out, '__proto__')!.value).toEqual({ x: 1 });
+    expect(out[NEW_GROUND]).toBe(true);
+    expect(OLD_GROUND in out).toBe(false);
+    expect(({} as Record<string, unknown>).x).toBeUndefined();
+    expect((Object.prototype as Record<string, unknown>).x).toBeUndefined();
+    expect(Object.keys(Object.prototype)).toEqual([]);
+  });
+  it('the whole form with a top-level __proto__ key does not pollute either', () => {
+    const form = JSON.parse('{"__proto__":{"polluted":true},"a":1}');
+    const out = applyFieldAliases(form, OPTION_PACK);
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+    expect(out.a).toBe(1);
+  });
+  it('an object that maps to an existing __proto__-free new key still lets the new key win', () => {
+    const v = JSON.parse(`{"${OLD_GROUND}":"old","${NEW_GROUND}":"new"}`);
+    const out = applyFieldAliases({ [OPTION_FIELD]: v }, OPTION_PACK)[OPTION_FIELD];
+    expect(out).toEqual({ [NEW_GROUND]: 'new' });
+  });
+});
+
+// ── gpa / spa (PHASE D) ──────────────────────────────────────────────────────
+
+describe('T-451 gpa and spa title disclaimer ids', () => {
+  const gpa = readFileSync(join(RULES, 'gpa.json'), 'utf8');
+  const spa = readFileSync(join(RULES, 'spa.json'), 'utf8');
+  const clauseIds = (raw: string): string[] =>
+    JSON.parse(raw).mandatory_clauses.map((c: { id: string }) => c.id);
+
+  it('gpa: the field offers exactly the new value and the other one', () => {
+    const f = JSON.parse(gpa).form_schema.fields.find((x: { id: string }) => x.id === GPA_FIELD);
+    expect(f.options).toEqual([GPA_NEW, 'no_only_management']);
+  });
+  it('gpa: the validation rule uses the new value', () => {
+    const rules: string[] = JSON.parse(gpa).validation_rules;
+    expect(rules.some((r) => r.includes(`${GPA_FIELD} == '${GPA_NEW}'`))).toBe(true);
+    expect(JSON.stringify(rules)).not.toContain(GPA_OLD);
+  });
+  it.each([
+    ['gpa', gpa],
+    ['spa', spa],
+  ])('%s: clause id is title_disclaimer, exactly once, no suraj_lamp id', (_n, raw) => {
+    expect(clauseIds(raw).filter((i) => i === 'title_disclaimer')).toHaveLength(1);
+    expect(raw).not.toContain('suraj_lamp_disclaimer');
+    expect(raw).not.toContain(GPA_OLD);
+  });
+  it('spa has no option-map entry and its value is left alone', () => {
+    expect(OPTION_VALUE_ALIASES.spa).toBeUndefined();
+    expect(applyFieldAliases({ [GPA_FIELD]: GPA_OLD }, 'spa')[GPA_FIELD]).toBe(GPA_OLD);
+  });
+  it('no non-test source holds the old ids except the alias block', () => {
+    const re =
+      /suraj_lamp_disclaimer|yes_flag_suraj_lamp_warning|yes_general_gpa_with_suraj_lamp_flag/;
+    const walkAll = (dir: string, out: string[] = []): string[] => {
+      for (const name of readdirSync(dir)) {
+        const p = join(dir, name);
+        if (name === '__tests__') continue;
+        if (statSync(p).isDirectory()) walkAll(p, out);
+        else if (!/\.test\.tsx?$/.test(name)) out.push(p);
+      }
+      return out;
+    };
+    const hits = walkAll(SRC)
+      .filter((p) => re.test(readFileSync(p, 'utf8')))
+      .map((p) => p.slice(SRC.length + 1));
+    expect(hits).toEqual(['services/rule-pack.service.ts']);
+  });
+  describe('an old saved gpa form arrives with the new value', () => {
+    it('applyFieldAliases with the pack', () => {
+      expect(applyFieldAliases({ [GPA_FIELD]: GPA_OLD }, GPA_PACK)[GPA_FIELD]).toBe(GPA_NEW);
+    });
+    it('readFormInputs via template_id in the stored form', () => {
+      const out = readFormInputs({
+        formInputsEnc: encrypt(JSON.stringify({ template_id: GPA_PACK, [GPA_FIELD]: GPA_OLD })),
+      })!;
+      expect(out[GPA_FIELD]).toBe(GPA_NEW);
+    });
+    it('readFormInputs via rulePackId; another pack leaves it', () => {
+      const plainDoc = { formInputs: { [GPA_FIELD]: GPA_OLD } };
+      expect(readFormInputs({ ...plainDoc, rulePackId: GPA_PACK })![GPA_FIELD]).toBe(GPA_NEW);
+      expect(readFormInputs({ ...plainDoc, rulePackId: 'spa' })![GPA_FIELD]).toBe(GPA_OLD);
+    });
+  });
+});
+
+describe('T-451 joint_development_agreement gpa_to_developer (PHASE D)', () => {
+  const raw = readFileSync(join(RULES, `${JDA_PACK}.json`), 'utf8');
+  it('the field offers the new id once and the old one nowhere in the pack', () => {
+    const f = JSON.parse(raw).form_schema.fields.find((x: { id: string }) => x.id === JDA_FIELD);
+    expect((f.options as string[]).filter((o) => o === JDA_NEW)).toHaveLength(1);
+    expect(raw).not.toContain(JDA_OLD);
+  });
+  it('the validation rule uses the new id', () => {
+    const rules: string[] = JSON.parse(raw).validation_rules;
+    expect(rules.filter((r) => r.includes(`'${JDA_NEW}'`))).toHaveLength(1);
+  });
+  it('an old saved value maps with the pack, via template_id, and via rulePackId', () => {
+    expect(applyFieldAliases({ [JDA_FIELD]: JDA_OLD }, JDA_PACK)[JDA_FIELD]).toBe(JDA_NEW);
+    expect(applyFieldAliases({ template_id: JDA_PACK, [JDA_FIELD]: JDA_OLD })[JDA_FIELD]).toBe(
+      JDA_NEW,
+    );
+    expect(
+      readFormInputs({ formInputs: { [JDA_FIELD]: JDA_OLD }, rulePackId: JDA_PACK })![JDA_FIELD],
+    ).toBe(JDA_NEW);
+  });
+  it('the new id and other values pass through; other packs do not map', () => {
+    expect(applyFieldAliases({ [JDA_FIELD]: JDA_NEW }, JDA_PACK)[JDA_FIELD]).toBe(JDA_NEW);
+    expect(applyFieldAliases({ [JDA_FIELD]: 'no' }, JDA_PACK)[JDA_FIELD]).toBe('no');
+    for (const other of [GPA_PACK, 'spa', OPTION_PACK, 'fir_quashing']) {
+      expect(applyFieldAliases({ [JDA_FIELD]: JDA_OLD }, other)[JDA_FIELD]).toBe(JDA_OLD);
+    }
+    expect(applyFieldAliases({ [JDA_FIELD]: JDA_OLD })[JDA_FIELD]).toBe(JDA_OLD);
   });
 });
 
