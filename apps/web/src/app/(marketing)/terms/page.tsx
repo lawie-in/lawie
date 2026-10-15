@@ -102,7 +102,7 @@ export default function TermsPage() {
                 <p>
                   By accessing or using Lawie (&quot;the Service&quot;), you agree to be bound by
                   these Terms of Service.{' '}
-                  {/* T-436: Ajay 5b (Addenda 1 and 7); hidden when the supplier details are unavailable. */}
+                  {/* T-436: Ajay 5b (Addenda 1, 7 and 8); hidden when the supplier details are unavailable. */}
                   <SupplierTermsSentence />
                   If you do not agree, you must not use the Service.
                 </p>

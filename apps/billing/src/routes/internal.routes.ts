@@ -23,6 +23,9 @@
  *           customer: { name, email }, originalInvoiceNumber (credit notes, else null),
  *           downloadUrl }
  *     400 bad id, 401 bad secret, 404 no such row, 409 not issued, 500 read failed
+ *     410 { error: 'erased' }: the user is erased or being erased (isErasedUser;
+ *         Ajay Addendum 8 #2, e591d0d). No customer fields. The worker drops the
+ *         job and does not retry.
  */
 import crypto from 'crypto';
 
@@ -33,6 +36,7 @@ import { env } from '../config/env';
 import logger from '../config/logger';
 import { Invoice } from '../models/Invoice.model';
 import { eraseBillingAccount, subscriptionStatusFor } from '../services/account-erase.service';
+import { isErasedUser } from '../services/invoice-email.service';
 
 /** Where the invoices list (and PDF download) lives in the web app. */
 export const INVOICE_DOWNLOAD_PATH = '/dashboard/settings';
@@ -133,6 +137,15 @@ router.get(
       }
       if (row.state !== 'issued') {
         res.status(409).json({ error: 'not_issued' });
+        return;
+      }
+      // A lookup error throws into the catch below: 500, like any read error.
+      if (await isErasedUser(row.userId)) {
+        logger.info(
+          { invoiceId: String(row._id), userId: String(row.userId) },
+          'invoice email-view: user erased; 410',
+        );
+        res.status(410).json({ error: 'erased' });
         return;
       }
       res.status(200).json({

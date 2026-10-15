@@ -60,6 +60,11 @@ export interface InvoiceSweepCounts {
 /**
  * Queues the email for issued rows that have none queued yet, oldest issue
  * first. Rows issued within `before` are left to the issue path's own enqueue.
+ *
+ * Stops at the first 'failed' (enqueue error or timeout, or a DB error) and
+ * counts every row not yet tried as pending: a stuck Redis costs at most one
+ * INVOICE_EMAIL_ENQUEUE_TIMEOUT_MS per run, and the next run tries again.
+ * 'skipped_erased' is not a failure.
  */
 async function sweepUnqueuedEmails(before: Date, counts: InvoiceSweepCounts): Promise<void> {
   const filter = { ...unqueuedEmailFilter(), issuedAt: { $lt: before } };
@@ -78,11 +83,24 @@ async function sweepUnqueuedEmails(before: Date, counts: InvoiceSweepCounts): Pr
     .limit(INVOICE_SWEEP_BATCH)
     .select('_id kind state userId emailQueuedAt draft.source')
     .lean();
-  for (const row of rows) {
-    const outcome = await queueInvoiceEmail(row);
+  for (let i = 0; i < rows.length; i += 1) {
+    const outcome = await queueInvoiceEmail(rows[i]);
     if (outcome === 'queued') counts.emailsQueued += 1;
     else if (outcome === 'skipped_erased') counts.emailsSkippedErased += 1;
-    else if (outcome !== 'already_queued' && outcome !== 'not_emailed') counts.emailsPending += 1;
+    else if (outcome !== 'already_queued' && outcome !== 'not_emailed') {
+      counts.emailsPending += 1;
+      if (outcome === 'failed') {
+        const untried = rows.length - (i + 1);
+        counts.emailsPending += untried;
+        if (untried > 0) {
+          logger.warn(
+            { untried },
+            'Invoice sweep: email enqueue failed; rest of the batch left for the next run',
+          );
+        }
+        return;
+      }
+    }
   }
 }
 
