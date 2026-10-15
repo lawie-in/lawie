@@ -22,7 +22,7 @@
       { "role": "applicant", "label": "Applicant/Accused" },
       { "role": "respondent", "label": "Respondent (State)" }
     ],
-    "caseNomenclature": "DEFAULT BAIL APPLICATION No. _____ of [YEAR]\n(Under {governing_provision})"
+    "caseNomenclature": "DEFAULT BAIL APPLICATION No. _____ of [YEAR]"
   },
   "form_schema": [
     { "name": "applicant_name", "label": "Applicant Name", "type": "text", "required": true },
