@@ -91,3 +91,5 @@ The four root env example files (production, staging, demo and the base example)
 ## Founder step: nginx access log (T-377 AC2, 15 Oct 2026)
 
 On the web-domain nginx on the EC2 server, apply the snippet in `docs/nginx-access-log.md` (a `map` that replaces the query string with `?[stripped]` for `/verify-email` and `/auth/callback`, used in a custom `log_format`), run `nginx -t`, reload, and check with the one-line grep in that doc that no token shows. Arjun reviews the doc first.
+
+Note (Mahak, T-377): the nginx map regex and `map` value behaviour are unverified until the founder's `nginx -t` on the server. Run it before reload.
