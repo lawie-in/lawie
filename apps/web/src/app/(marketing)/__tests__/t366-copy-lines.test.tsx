@@ -192,7 +192,7 @@ describe('T-398 pricing page copy (Ajay conditions 1-4)', () => {
 
   it('the word "free" appears only with "5 Ink" (hero and Free button included)', () => {
     const text = norm(render(<PricingPage />));
-    // Plan-name uses ("Free" card title, "Everything in Free", "Free plan") are capitalised;
+    // Plan-name uses ("Free" card title, Solo row "Everything in Free", "Free plan") are capitalised;
     // every lower-case marketing "free" must sit in "5 free Ink".
     const lower = Array.from(text.matchAll(/free/gi)).filter((m) => m[0] === 'free');
     expect(lower.length).toBeGreaterThanOrEqual(2); // hero + Free button
@@ -202,8 +202,18 @@ describe('T-398 pricing page copy (Ajay conditions 1-4)', () => {
     // Any capitalised "Free" is only the plan name.
     for (const m of text.matchAll(/free/gi)) {
       if (m[0] === 'free') continue;
-      expect(text.slice(m.index!, m.index! + 7)).toMatch(/^(Free₹0|Free, p|Free pl)/);
+      const around = text.slice(Math.max(0, m.index! - 14), m.index! + 8);
+      expect(around).toMatch(/(Free₹0|Free, p|Free pl|Everything in FreeSign)/);
     }
+  });
+
+  it('Solo shows the row "Everything in Free", not the old "…, plus" heading', () => {
+    render(<PricingPage />);
+    const solo = planCard('Solo');
+    const rows = Array.from(solo.querySelectorAll('li')).map((l) => l.textContent?.trim());
+    expect(rows).toContain('Everything in Free');
+    expect(solo.querySelector('li.head')).toBeNull();
+    expect(norm(container.textContent ?? '')).not.toContain('Everything in Free, plus');
   });
 
   it('Pro is not added anywhere other than the Pro card', () => {

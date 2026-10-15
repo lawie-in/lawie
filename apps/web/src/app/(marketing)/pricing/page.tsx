@@ -170,7 +170,9 @@ export default function PricingPage() {
                 <li>
                   <Check strokeWidth={2} /> {PLANS.solo_monthly.inkPerCycle} Ink/month
                 </li>
-                <li className="head">Everything in Free, plus</li>
+                <li>
+                  <Check strokeWidth={2} /> Everything in Free
+                </li>
               </ul>
               <Link className="btn btn-primary btn-block" href="/login">
                 Sign up to choose Solo <ArrowRight strokeWidth={1.5} />
