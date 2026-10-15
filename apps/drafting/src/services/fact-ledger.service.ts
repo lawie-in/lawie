@@ -191,7 +191,7 @@ export function normalizeForItem(
     case 'amount':
       return normalizeAmount(text);
     case 'date':
-      return normalizeDate(text, { referenceYear: refYear, fieldKey: item.key });
+      return normalizeDate(text, { referenceYear: refYear });
     case 'person_name':
       return normalizePersonName(text);
     case 'place_name':

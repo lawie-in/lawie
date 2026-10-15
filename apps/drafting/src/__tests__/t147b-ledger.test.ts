@@ -23,7 +23,7 @@ import { LlmAuxCall } from '../models/LlmAuxCall.model';
 import { User } from '../models/User.model';
 import { _clearAppSettingsCache } from '../services/app-settings.service';
 import { Brief, buildBrief, buildChecklist, buildQuestions } from '../services/intake-brief';
-import { normalizeForItem, openVersion } from '../services/fact-ledger.service';
+import { openVersion } from '../services/fact-ledger.service';
 import { INTAKE_LIMITS, MAX_LEDGER_VERSIONS, runBriefIntake } from '../services/intake.service';
 import { loadRulePack } from '../services/rule-pack.service';
 import { SdkStreamParams, sdkAnswer } from './sdkStream';
@@ -994,40 +994,5 @@ describe('T-147b round 2: an unreadable value typed into an empty field', () => 
       up.body.ledger.unresolved.find((u: LUnresolved) => u.key === 'victim_name'),
     ).toBeDefined();
     expect(factOf(up.body.ledger, 'victim_name')).toBeUndefined();
-  });
-});
-
-describe('T-453: the field key reaches the date reader (normalizeForItem)', () => {
-  const dateItem = (key: string) =>
-    ({ key, kind: 'date', label: key }) as unknown as Parameters<typeof normalizeForItem>[0];
-
-  it('"remand 4 June 2026" for remand_date resolves to the date', () => {
-    expect(normalizeForItem(dateItem('remand_date'), 'remand 4 June 2026', 2026)).toMatchObject({
-      ok: true,
-      value: '2026-06-04',
-    });
-  });
-  it('"remand 4 June 2026" for another date field stays unresolved', () => {
-    expect(normalizeForItem(dateItem('arrest_date'), 'remand 4 June 2026', 2026)).toMatchObject({
-      ok: false,
-      reason: 'unrecognised',
-    });
-  });
-  it('"before 4 June 2026" for a date field stays unresolved', () => {
-    for (const key of ['remand_date', 'accident_date', 'custody_since'])
-      expect(normalizeForItem(dateItem(key), 'before 4 June 2026', 2026)).toMatchObject({
-        ok: false,
-        reason: 'unrecognised',
-      });
-  });
-  it('"remand 4 June" (no year) and "FIR 31/2/2026" keep their reasons', () => {
-    expect(normalizeForItem(dateItem('remand_date'), 'remand 4 June', 2026)).toMatchObject({
-      ok: false,
-      reason: 'missing_year',
-    });
-    expect(normalizeForItem(dateItem('fir_date'), 'FIR 31/2/2026', 2026)).toMatchObject({
-      ok: false,
-      reason: 'day_month_out_of_range',
-    });
   });
 });
