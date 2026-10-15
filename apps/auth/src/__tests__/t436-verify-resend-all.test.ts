@@ -20,7 +20,7 @@ jest.mock('@lawie/email-client', () => {
 
 import './setupDb';
 
-import { type ChildProcess, spawn } from 'child_process';
+import { spawn } from 'child_process';
 import { existsSync, readFileSync, rmSync } from 'fs';
 import net from 'net';
 import os from 'os';
@@ -28,8 +28,8 @@ import { join } from 'path';
 
 import { disconnectEmailClient, enqueueEmail } from '@lawie/email-client';
 import { Queue } from 'bullmq';
-import IORedis from 'ioredis';
 
+import { type AuthProxy, createAuthProxy } from './helpers/t436-auth-proxy';
 import {
   CLEAN_MONGO,
   CLEAN_REDIS,
@@ -84,7 +84,6 @@ const SHORT = 600; // confirm timeout for the in-process unconfirmed cases
 let n = 0;
 const allIds: string[] = [];
 let bullQueue: Queue;
-let authedRedis: ChildProcess | undefined;
 
 async function addUser(extra: Record<string, unknown> = {}): Promise<string> {
   n += 1;
@@ -139,7 +138,6 @@ afterAll(async () => {
   await bullQueue.close();
   await disconnectEmailClient();
   await redis.quit();
-  authedRedis?.kill('SIGTERM');
   stopPrivateRedis();
 });
 
@@ -852,40 +850,16 @@ const noStack = (r: ChildResult) => {
 describe('verify-resend-all against a Redis that requires a password', () => {
   const PW = 'goodpw-T436';
   let port: number;
-  let proc: ChildProcess;
+  let proxy: AuthProxy;
 
   beforeAll(async () => {
-    port = await freePort();
-    proc = spawn(
-      'redis-server',
-      [
-        '--port',
-        String(port),
-        '--bind',
-        '127.0.0.1',
-        '--save',
-        '',
-        '--appendonly',
-        'no',
-        '--dir',
-        os.tmpdir(),
-        '--requirepass',
-        PW,
-      ],
-      { stdio: 'ignore' },
-    );
-    const probe = new IORedis(`redis://default:${PW}@127.0.0.1:${port}`, {
-      maxRetriesPerRequest: 20,
-      retryStrategy: () => 100,
-    });
-    probe.on('error', () => undefined);
-    await probe.ping();
-    await probe.quit();
+    // a password gate in front of the shared Redis (CI has no redis-server binary to spawn)
+    proxy = await createAuthProxy(REAL_REDIS_URL, PW);
+    port = proxy.port;
   });
 
   afterAll(async () => {
-    proc.kill('SIGTERM');
-    await new Promise((r) => (proc.exitCode !== null ? r(null) : proc.once('exit', r)));
+    await proxy.close();
   });
 
   const expectFailFast = (r: ChildResult, secrets: string[]) => {
@@ -933,34 +907,25 @@ describe('verify-resend-all against a Redis that requires a password', () => {
   it('mid-run failure (password changed, clients killed): exit 1, one stopped line, no secrets, no stack', async () => {
     for (let i = 0; i < 4; i += 1) await addUser();
     const url = `redis://default:${PW}@127.0.0.1:${port}`;
-    const admin = new IORedis(url);
-    admin.on('error', () => undefined);
+    const ids = allIds.slice(-4);
     const child = runScript(['--yes', '--batch-size', '1', '--batch-pause-ms', '1500'], {
       REDIS_URL: url,
     });
-    // let the first batch finish, then break the server under the running script
+    // let the first batch finish (a rerun marker appears), then break the server under the script
     const t0 = Date.now();
     await new Promise<void>((resolve) => {
       const iv = setInterval(async () => {
-        const k = await admin.keys(`auth:verify-resend-all:*`).catch(() => []);
-        if (k.length > 0 || Date.now() - t0 > 20_000) {
+        const marked = await redis.exists(...ids.map(rerunMarkerKey)).catch(() => 0);
+        if (marked > 0 || Date.now() - t0 > 20_000) {
           clearInterval(iv);
           resolve();
         }
       }, 50);
     });
-    await admin.config('SET', 'requirepass', 'otherpw-T436');
-    await admin.call('CLIENT', 'KILL', 'TYPE', 'normal', 'SKIPME', 'yes');
+    proxy.setPassword('otherpw-T436');
+    proxy.killClients();
     const r = await child;
     const took = Date.now() - t0;
-    // restore so the keys can be cleaned and the server shut down
-    const back = new IORedis(`redis://default:otherpw-T436@127.0.0.1:${port}`);
-    back.on('error', () => undefined);
-    await back.config('SET', 'requirepass', PW);
-    const cleanup = await back.keys('auth:verify-*');
-    if (cleanup.length > 0) await back.del(...cleanup);
-    back.disconnect();
-    admin.disconnect();
 
     const all = `${r.out}\n${r.err}`;
     expect(r.code).toBe(1);
