@@ -3,7 +3,7 @@
 | Field  | Value |
 | ------ | ----- |
 | Status | To do. V1 BLOCKER (Ajay, ref 604af4bd, 16 Oct 2026). Priya |
-| Owner  | Vishal (owns the date normaliser, T-469), Ajay signs |
+| Owner | Vishal (same chain as T-469, second commit with its own tests), Ajay signs |
 | Mode   | Full chain (legal content: dates in drafts) |
 
 ## Source
@@ -24,3 +24,6 @@ A partial date must stay partial or become a signed blank ("[To be confirmed: da
 
 - Ajay 604af4bd: a month with no day, e.g. "June 2026", is read today as 20 June 2026, which is an invented fact. It must stay blank. V1 ticket.
 - Reach (Vishal): normalizeDate is called by fact-ledger.service.ts (normalizeForItem, the ledger path, now on for v1), fact-verifier.ts (draft checks) and fact-diff-log.ts (logs only). Forms and the no-ledger brief path do not use it. So a date span from the advocate's description could become a ledger fact "20 June 2026" and print in the draft.
+
+- Arjun: v1 blocker. normalizeDate returns no date for a partial (month+year, year-only, "mid-June"); the field stays blank or asked, never a synthesised day. Same file as T-469 (date.ts, Vishal's claim), so it goes to Vishal in the same chain as a second commit with its own tests, not to another lead. Ajay's before/after table covers both.
+- Ajay 8f0d980a: never supply a day. Calculation dates (limitation, s.138, default bail, notice periods): a month and year alone counts as unknown. Ask for the day; if none is given, print "[To be confirmed: exact date of {field}]" and compute nothing. Narrative dates: print as written ("in June 2026"), never with a day added. Same class as T-472.
