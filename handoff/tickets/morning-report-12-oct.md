@@ -169,3 +169,5 @@ The model-switch check cannot run: the golden-set workflow skips its real run be
 - The GST_* environment values are set on the develop box. The live check of the public supplier endpoint waits until develop_staging is merged into develop (develop is still at 13 Oct). Kunal's invoice work is not blocked.
 
 Correction (Arjun, founder's words, 15 Oct 2026): there is no production server, and nobody touches the test box by hand. Ignore any "pm2 restart" or live supplier-endpoint check above. The only deployed box is a free test server on branch develop, kept on a "coming soon" page on purpose until Anushka's PASS. The GST values reach billing on the founder's next deploy of develop. T-436 and the invoice work wait on nothing server-side; tests are the gate.
+
+- **Reset emails (T-221): set `LAWIE_SUPPLIER_STREET_ADDRESS` (email-worker env) to the street address for the email footer** (Ajay: "Lawie (Sole Proprietorship), Ranchi, Jharkhand" plus the street address). The reset email refuses a live send while it is blank. Needed before SES goes live. (Shashank, 16 Oct)
