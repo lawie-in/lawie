@@ -40,6 +40,8 @@ Fixtures 22–25 are Anushka's run-3 bail drafts (`handoff/quality/2026-10-13-ru
 
 Fixture 26 (T-475, `26-certiorari-civil-court-order-art-227`) is Ajay's check on the certiorari pack: when the impugned order is a civil court's judicial order, the draft must not pray for certiorari under Article 226 (the route is Article 227). Variants: `clean`, `art226` (must FAIL) and `art226_explained`.
 
+Fixture 27 (T-480, `27-t480-anushka-regular-bail-patna`) rebuilds Anushka's run-4 regular bail from her reports, with synthetic facts. It checks that the intake does not re-ask facts she gave, that the address, antecedents, dependants, arrest date and "BNSS and BSA" are read, that Section 483 is in the title and prayer, and that no grounds are left blank. Run it with the fact ledger on: her run-4 faults came from the drafting path without a ledger, which is what `feature.fact_ledger` defaults to on develop. Its `ajay` field asserts legal wording (Section 483), so Ajay (CLO) still has to confirm it. Known failing check: "in custody since" with no custody date (also on 1a), tracked as T-491.
+
 ## Commands
 
 ```sh

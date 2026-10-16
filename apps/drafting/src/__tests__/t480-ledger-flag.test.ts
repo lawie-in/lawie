@@ -241,6 +241,29 @@ describe("T-480: the done event and the Generation row record the path as ledger
   });
 });
 
+describe("T-480: a failed brief-path draft still records the path as ledger 'on' | 'off'", () => {
+  it("with a ledger: the failed row has ledger 'on'", async () => {
+    const id = await ledger(baseFacts());
+    mockMessagesStream.mockReset().mockRejectedValue(new Error('503 service unavailable'));
+    const res = await draft(id);
+    expect(event(res.text, 'done')).toBeNull();
+    const rows = await Generation.find({ userId: USER_ID }).lean();
+    expect(rows).toHaveLength(1);
+    expect(rows[0].status).toBe('failed');
+    expect(rows[0].ledger).toBe('on');
+  });
+
+  it("without a ledger: the failed row has ledger 'off'", async () => {
+    mockMessagesStream.mockReset().mockRejectedValue(new Error('503 service unavailable'));
+    const res = await draft(undefined);
+    expect(event(res.text, 'done')).toBeNull();
+    const rows = await Generation.find({ userId: USER_ID }).lean();
+    expect(rows).toHaveLength(1);
+    expect(rows[0].status).toBe('failed');
+    expect(rows[0].ledger).toBe('off');
+  });
+});
+
 describe('T-480: the Generation schema for the ledger field', () => {
   const ledgerError = (v?: unknown) => {
     const doc = new Generation(v === undefined ? {} : { ledger: v });

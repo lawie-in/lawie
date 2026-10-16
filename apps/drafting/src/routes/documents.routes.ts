@@ -1400,6 +1400,7 @@ router.post(
           runId,
           runSequence,
           runType,
+          ledger: ledger ? 'on' : 'off',
         });
         if (failed) {
           // The error event was already sent. End only now, after the row exists.
