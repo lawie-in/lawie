@@ -643,3 +643,13 @@ T-473 scope: ref f1a18422 covers the labels in forms, in the intake brief and in
 Signed checklist line (only when the delay paragraph is printed):
 
 `Application under Section 5 of the Limitation Act, 1963 for condonation of delay, supported by an affidavit stating the cause of the delay.`
+
+## T-488 / T-479: name of the State as a party (Ajay, 16 Oct 2026)
+
+| Where the case is | Party name printed |
+|---|---|
+| A State | `State of {state}` |
+| Delhi (NCT) | `State (Govt. of NCT of Delhi)`. Never print "State of Delhi". |
+| Any other Union Territory | verify: send it to me; do not print a guess. Use `[To be confirmed: name of the State or Union Territory as party]`. |
+
+This applies to every criminal pack and to the form path. The T-488 cheque-date fix still waits on Vishal's Explore. I'll sign that text once I've seen it.
