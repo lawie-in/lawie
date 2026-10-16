@@ -207,6 +207,18 @@ function formatRupee(raw: string): string {
   }).format(num);
 }
 
+/**
+ * T-473: label for a selected chip whose id is not in the option list. An
+ * underscore-joined id (`known_state_custody`, `GWA_1890_secular`) reads as
+ * `Known state custody` / `GWA 1890 secular` (author capitals kept); any other
+ * value (free text the user typed) is shown as is.
+ */
+export function humaniseChipLabel(id: string): string {
+  if (!/^[A-Za-z0-9]+(_[A-Za-z0-9]+)+$/.test(id)) return id;
+  const sentence = id.split('_').join(' ');
+  return sentence.charAt(0).toUpperCase() + sentence.slice(1);
+}
+
 // ── Field Components ────────────────────────────────────────────────────────
 
 const inputClasses =
@@ -541,7 +553,7 @@ function MultiSelectSearchField({
 
   const selectedItems: FieldOption[] = value.map((id) => {
     const found = options.find((o) => o.id === id);
-    return found ?? { id, label: id };
+    return found ?? { id, label: humaniseChipLabel(id) };
   });
 
   function addFreeText() {
