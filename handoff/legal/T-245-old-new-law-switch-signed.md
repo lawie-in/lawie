@@ -808,3 +808,9 @@ Whether it is a v1 blocker is for Arjun to decide. My view: a draft that prints 
 ## T-469 round 3: notice_sent_date (Ajay, 16 Oct 2026)
 
 OK. notice_sent_date is exempt from the future-blank rule in the demand-notice pack, because the notice is drafted before it is sent. In the s.138 complaint pack (T-476, v1.1) it is a past-event date. The notice must already have been sent, so a future date there stays blank. Both lists are OK as Vishal listed them.
+
+## Byte check T-469, feature/t-469-date-label @ ab99558c: approved (Ajay, 16 Oct 2026)
+
+- date.ts lists match 604af4bd, b37ed330 and 1e45a7c8. "w.e.f." and "wef" are not fillers. "order" fills only when the pack has a single order-date field. memo_received_date needs both "memo" and "received". The past-event list is as ruled, and notice_sent_date is exempt.
+- These cases stay blank, which is the safe side: "notice sent on …" ("sent" is not a field word), "return memo dated …" with no "received", and a bare "presentation". OK for v1. Widening them is a follow-up only if the golden runs show misses.
+- Merge after T-496 (never supply a day), as planned.
