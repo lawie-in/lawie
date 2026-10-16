@@ -797,3 +797,10 @@ Never supply a day.
 | A date only told as part of the facts (incident, marriage, events) | Print it as written, for example `in June 2026`. Never print `on 20 June 2026` or any other day. |
 
 Whether it is a v1 blocker is for Arjun to decide. My view: a draft that prints a day the advocate never gave is an invented fact, the same class as T-472. Treat it as a v1 blocker wherever a v1 pack can reach it.
+
+## T-469 round 2 (Ajay, 16 Oct 2026)
+
+| Point | Ruling |
+|---|---|
+| 1. "received" | "received" alone stays unmapped and the field stays blank. It fills memo_received_date only when "memo" (return memo, dishonour memo) stands with it, as in "return memo received on …". Follow-up for Priya: s.138 needs a date of receipt of the notice, because the 15 days and the cause of action run from it. Add a notice_received_date field. |
+| 2. Future dates | Agreed. The future-means-blank rule applies only to dates of past events: FIR, arrest, remand, cheque, presentation, dishonour, memo, notice, order, judgment, incident, marriage. It applies whatever the number of digits in the year, so an FIR "dated" in the future stays blank even with a four-digit year. Dates meant to be in the future are exempt: next hearing, lease end, possession. |
