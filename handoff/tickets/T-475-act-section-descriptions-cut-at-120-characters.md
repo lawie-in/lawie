@@ -23,3 +23,8 @@ Raise or remove the cap so the model sees the full signed description. Check the
 ## Also (separate, Ajay)
 
 Certiorari: system_role is an instruction to the model, not text printed in a draft, so "inferior tribunal or quasi-judicial authority" need not appear verbatim. Ajay says whether the printed draft must show it.
+
+## Ajay's rulings (16 Oct 2026)
+
+- No truncation of signed text at all. Set the cap at or above the longest signed description and add a test that fails if any description is cut. "A truncated section number is wrong law." Send the moved goldens to Ajay.
+- Certiorari: the instruction (system_role) is enough; the draft need not print "inferior tribunal or quasi-judicial authority". One check: if the impugned order is a civil court's judicial order, the draft must not pray for certiorari under Art. 226 (the Art. 227 route). Add one golden for that.
