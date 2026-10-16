@@ -2,7 +2,7 @@
 
 | Field  | Value |
 | ------ | ----- |
-| Status | To do. V1 (major). Priya, 16 Oct 2026 |
+| Status | Merged into develop_staging 558123f8, 16 Oct; run-4 faults closed as config (fact ledger off). Anushka re-runs the regular bail now that feature.fact_ledger is on (founder, 16 Oct). Priya |
 | Owner  | Vishal (intake owner), after T-471 |
 | Mode   | Full chain |
 
