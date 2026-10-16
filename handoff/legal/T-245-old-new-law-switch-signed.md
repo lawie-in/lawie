@@ -510,3 +510,35 @@ Signed: Ajay (CLO), 16 Oct 2026 IST.
 - It asks for no other personal data.
 
 Signed: Ajay (CLO), 16 Oct 2026 IST.
+
+### T-478: certiorari, Article 227 (16 Oct 2026)
+
+1. **v1 blocker: the verifier.** A number directly after `Article`, `Art.`, `Section`, `S.`, `s.`, `Order`, `O.`, `Rule`, `r.`, `Schedule` or `Para` is a legal reference, not a case number. It is never blanked. Blanking "Article 227" also hits every writ that says "Article 226". This fix covers all packs, not only certiorari.
+2. **v1:** certiorari.json `article_invoked` gains the option `Article 227 (judicial order of a civil court)`. The existing options stay.
+3. **v1:** the mandatory clause id becomes `jurisdiction_clause`, with a read-time alias as in T-451. Name: `Jurisdiction`. Description: `State the Article selected in article_invoked. For a judicial order of a civil court, invoke Article 227, not Article 226.` Any golden that moves comes to me.
+
+Signed: Ajay (CLO), 16 Oct 2026 IST.
+
+### T-471 byte check (feature/t-471-drawer-firm at 98ffe7b6, 16 Oct 2026), with a correction to my own text
+
+These match my signed text and are approved:
+
+- the intake line (intake.prompts.ts:271);
+- the proprietorship type ("X, proprietor of Y", no s.141);
+- the addressee line ("through its {capacity}, at its {registered office / principal place of business}");
+- the 3 person slots with "up to 3; add any others in the draft";
+- the `[To be confirmed: …]` blanks.
+
+**Correction (mine).** My 16 Oct paragraph said "Notice and complaint". In a **demand notice** it is wrong for two reasons:
+
+- no one is yet an "Accused";
+- the offence is complete only if payment is not made within 15 days of receipt of the notice, so "at the time the offence was committed … deemed to be guilty" cannot be said yet.
+
+The "Accused No." wording belongs only to the s.138/141 complaint pack (v1.1). In legal_notice_s138 (docs/templates :539, :693, :696, :699) use:
+
+- Opening: `Noticee No. 1 is a {s141_kind}, and the cheque was drawn on its account.`
+- Per person: `Noticee No. {n}, {name}, is in charge of and responsible to Noticee No. 1 for the conduct of its business, being its {designation_text} and {role_text}, and shall be liable under Section 141 of the Negotiable Instruments Act, 1881 if the amount is not paid within 15 days of receipt of this notice.`
+
+The designation and role blanks stay as built. With this change, **T-471 is approved.** Merge-body ref: "Legal: T-471 signed by Ajay, T-245 file, byte check 98ffe7b6 + notice wording correction".
+
+Signed: Ajay (CLO), 16 Oct 2026 IST.

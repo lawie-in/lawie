@@ -192,10 +192,11 @@ if (typeof onAppSettingInvalidated === 'function') {
   onAppSettingInvalidated((key) => {
     if (key === null) {
       effortCache.clear();
-      extractCapCache = null;
+      intakeCapCache.clear();
       return;
     }
-    if (key === APP_SETTING_KEYS.CAP_INTAKE_EXTRACT) extractCapCache = null;
+    for (const kind of Object.keys(INTAKE_CAP_KEYS) as IntakeCapKind[])
+      if (INTAKE_CAP_KEYS[kind] === key) intakeCapCache.delete(kind);
     for (const stage of Object.keys(AI_EFFORT_KEYS) as LlmStage[])
       if (AI_EFFORT_KEYS[stage] === key) effortCache.delete(stage);
   });
@@ -231,56 +232,94 @@ export async function getAiEffort(stage: LlmStage): Promise<AiEffort> {
   return value;
 }
 
-// ── intake_extract max_tokens cap (T-453 follow-up) ─────────────────────────
+// ── intake max_tokens caps (T-453 follow-up) ────────────────────────────────
 //
 // Arjun, 15 Oct 2026: intake_extract hit its 1500 cap on golden fixtures
 // 21-24 (thinking counts against max_tokens), so the cap is config:
-// ai.cap.intake_extract, default 3000. The other intake caps stay in code.
+// ai.cap.intake_extract, default 3000. Arjun, 15 Oct 2026 (golden run 64,
+// fixture 22 hit reception's 3000 cap): ai.cap.intake_reception, default 4000,
+// same range rule. match (300) and fill (1500) stay in code.
+
+export type IntakeCapKind = 'reception' | 'extract';
+
+export const INTAKE_CAP_MIN = 500;
+export const INTAKE_CAP_MAX = 8000;
 
 export const INTAKE_EXTRACT_CAP_DEFAULT = 3000;
-export const INTAKE_EXTRACT_CAP_MIN = 500;
-export const INTAKE_EXTRACT_CAP_MAX = 8000;
+export const INTAKE_EXTRACT_CAP_MIN = INTAKE_CAP_MIN;
+export const INTAKE_EXTRACT_CAP_MAX = INTAKE_CAP_MAX;
 
-let extractCapCache: { value: number; expiresAt: number } | null = null;
+export const INTAKE_RECEPTION_CAP_DEFAULT = 4000;
+export const INTAKE_RECEPTION_CAP_MIN = INTAKE_CAP_MIN;
+export const INTAKE_RECEPTION_CAP_MAX = INTAKE_CAP_MAX;
+
+const INTAKE_CAP_KEYS: Record<IntakeCapKind, string> = {
+  reception: APP_SETTING_KEYS.CAP_INTAKE_RECEPTION,
+  extract: APP_SETTING_KEYS.CAP_INTAKE_EXTRACT,
+};
+
+const INTAKE_CAP_DEFAULTS: Record<IntakeCapKind, number> = {
+  reception: INTAKE_RECEPTION_CAP_DEFAULT,
+  extract: INTAKE_EXTRACT_CAP_DEFAULT,
+};
+
+const intakeCapCache = new Map<IntakeCapKind, { value: number; expiresAt: number }>();
 
 /** Test helper — clear the intake_extract cap cache. NOT called in production paths. */
 export function _clearIntakeExtractCapCache(): void {
-  extractCapCache = null;
+  intakeCapCache.delete('extract');
 }
 
-async function resolveIntakeExtractCap(): Promise<number> {
-  const key = APP_SETTING_KEYS.CAP_INTAKE_EXTRACT;
+/** Test helper — clear the intake_reception cap cache. NOT called in production paths. */
+export function _clearIntakeReceptionCapCache(): void {
+  intakeCapCache.delete('reception');
+}
+
+async function resolveIntakeCap(kind: IntakeCapKind): Promise<number> {
+  const key = INTAKE_CAP_KEYS[kind];
+  const fallback = INTAKE_CAP_DEFAULTS[kind];
   let raw: string;
   try {
     raw = await getAppSetting(key);
   } catch {
-    return INTAKE_EXTRACT_CAP_DEFAULT;
+    return fallback;
   }
   const v = typeof raw === 'string' ? raw.trim() : '';
   if (/^\d+$/.test(v)) {
     const n = Number(v);
-    if (n >= INTAKE_EXTRACT_CAP_MIN && n <= INTAKE_EXTRACT_CAP_MAX) return n;
+    if (n >= INTAKE_CAP_MIN && n <= INTAKE_CAP_MAX) return n;
   }
   // Once per cache period: the fallback is cached below. Key only, never the value.
   logger.warn(
     { key },
-    `[llm-usage] ${key} is not an integer in ${INTAKE_EXTRACT_CAP_MIN}-${INTAKE_EXTRACT_CAP_MAX}; using the default`,
+    `[llm-usage] ${key} is not an integer in ${INTAKE_CAP_MIN}-${INTAKE_CAP_MAX}; using the default`,
   );
-  return INTAKE_EXTRACT_CAP_DEFAULT;
+  return fallback;
 }
 
 /**
- * `ai.cap.intake_extract`: max_tokens for the intake_extract call. Never
- * throws: a missing key (or a failed settings read) is the default (3000); a
- * value that is not a whole number in 500-8000 is the default with a warn
- * that names the key only. Cached 60 s, defaults included.
+ * `ai.cap.intake_<kind>`: max_tokens for that intake call. Never throws: a
+ * missing key (or a failed settings read) is the default (reception 4000,
+ * extract 3000); a value that is not a whole number in 500-8000 is the default
+ * with a warn that names the key only. Cached 60 s per kind, defaults included.
  */
-export async function getIntakeExtractCap(): Promise<number> {
+export async function getIntakeCap(kind: IntakeCapKind): Promise<number> {
   const now = Date.now();
-  if (extractCapCache && extractCapCache.expiresAt > now) return extractCapCache.value;
-  const value = await resolveIntakeExtractCap();
-  extractCapCache = { value, expiresAt: now + AI_EFFORT_TTL_MS };
+  const hit = intakeCapCache.get(kind);
+  if (hit && hit.expiresAt > now) return hit.value;
+  const value = await resolveIntakeCap(kind);
+  intakeCapCache.set(kind, { value, expiresAt: now + AI_EFFORT_TTL_MS });
   return value;
+}
+
+/** `ai.cap.intake_extract` (default 3000). See getIntakeCap. */
+export function getIntakeExtractCap(): Promise<number> {
+  return getIntakeCap('extract');
+}
+
+/** `ai.cap.intake_reception` (default 4000). See getIntakeCap. */
+export function getIntakeReceptionCap(): Promise<number> {
+  return getIntakeCap('reception');
 }
 
 /**
