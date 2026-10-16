@@ -542,3 +542,43 @@ The "Accused No." wording belongs only to the s.138/141 complaint pack (v1.1). I
 The designation and role blanks stay as built. With this change, **T-471 is approved.** Merge-body ref: "Legal: T-471 signed by Ajay, T-245 file, byte check 98ffe7b6 + notice wording correction".
 
 Signed: Ajay (CLO), 16 Oct 2026 IST.
+
+### Anushka run 4 triage (16 Oct 2026): T-485, T-484, T-479, T-482
+
+**T-485 (pack faults).**
+
+1. **Revision title follows the forum** (signed T-429 text):
+   - Sessions Court: `Criminal Revision under Section 438 read with Section 440 BNSS (Section 397 read with Section 399 CrPC)`.
+   - High Court: `Criminal Revision under Section 438 read with Section 442 BNSS (Section 397 read with Section 401 CrPC)`.
+   - Both forums stay selectable.
+   - Add one line: `Where a revision has already been filed before one of these courts, a further revision by the same person is barred (Section 438(3) BNSS / Section 397(3) CrPC).`
+2. **quashing_528_bnss.**
+   - Settlement or compromise must be offered and drafted as a ground. Use the existing `settlement_in_matrimonial_or_commercial_dispute` option, with the pack's signed caution that offences with a public element are not quashed on settlement.
+   - Since the source is not named (T-441), the categories are **set out, not quoted**: no quotation marks and no "verbatim".
+   - Clause name `Recognised Quashing Categories Verbatim` becomes `Recognised Quashing Categories` (this amends T-447). The instruction "quote verbatim" becomes `Set out the applicable categories in plain numbered form, not as a quotation.`
+   - S stays last.
+3. **"Disclaimer slip — Lawie drafting assistance acknowledged":** delete it from **every** filing checklist (amendment_of_pleadings, cat_oa, condonation_of_delay, criminal_appeal, criminal_revision, discharge_application, divorce_hma, divorce_mutual_consent, divorce_sma, dv_act_complaint and any others). Nothing about Lawie is filed in court.
+   - The Lawie disclaimer appears in the app and on the export cover note, **never inside the court document's text**.
+   - "Append Lawie disclaimer" in the prompts becomes a renderer action outside the pleading body.
+4. **"Shri/Smt.":** never print both. If the gender is given, use `Shri` or `Smt.`. If not, print the name with no honorific. Applies to all packs.
+
+**T-484 (caveat, s.148A CPC):** a real pack, v1.1. Until then show "This document type is not available yet"; there is no fallback draft. Required content:
+
+- court and proceeding (instituted or expected);
+- caveator and the expected applicant, with addresses;
+- the order or application expected;
+- caveator's address for service;
+- the s.148A(2) undertaking that notice of the caveat has been or will be served by registered post (acknowledgement due) on the expected applicant;
+- a note that the caveat lapses 90 days after lodging (s.148A(5)).
+
+Checklist: proof of service, the court fee as per State rules, and an affidavit where the High Court's rules require one. The State and High Court rules are **verify**: listed in the pack, not stated as law until I check them.
+
+**T-479 (cause titles):** no new wording. The signed T-404 cause-title fields apply. Mandamus uses the writ_petition_civil cause title. Send me any pack whose title has no signed text.
+
+**T-482 (maintenance forum):**
+
+- A s.144 BNSS application lies before the Family Court where one is established for the area (Family Courts Act s.7). Elsewhere it lies before the Judicial Magistrate First Class.
+- The pack offers `Principal Judge, Family Court, {district}` **only for districts I have confirmed**, otherwise `Court of the Judicial Magistrate First Class, {district}`.
+- The district list for Gaya and the other Bihar and Jharkhand districts is **verify**: I check it against each High Court's notification, and nothing is entered from memory.
+
+Signed: Ajay (CLO), 16 Oct 2026 IST.
