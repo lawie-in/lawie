@@ -301,3 +301,39 @@ describe('BriefStep parties blocker with the ledger (T-498)', () => {
     expect(lineBtn('Choose the court to continue.')).toBeDefined();
   });
 });
+
+describe('BriefStep party read by the ledger shows "Please check" before Confirm (Ajay, AJ-498-M1)', () => {
+  const nameItem = [
+    item({ key: 'applicant_name', label: 'Applicant Name', part: 'parties', party_name: true }),
+  ];
+  const run = (source: LedgerFact['source']) => {
+    const f = { ...fact('applicant_name', 'Ramesh Kumar Yadav'), source };
+    mount(
+      briefOf(nameItem, blocked(['parties'], 'Add the name of the applicant to continue.')),
+      ledgerOf([f]),
+    );
+  };
+  const values = () =>
+    Array.from(container.querySelectorAll('input, textarea')).map(
+      (e) => (e as HTMLInputElement).value,
+    );
+
+  it('source user (read from the description): the row shows the value and the mark; Confirm is enabled with it visible', () => {
+    run('user');
+    expect(values()).toContain('Ramesh Kumar Yadav');
+    expect(container.textContent).toContain('Please check');
+    expect(container.textContent).not.toContain('Add the name of the applicant');
+    expect(confirmBtn().getAttribute('aria-disabled')).not.toBe('true');
+  });
+
+  it('source asked (typed in a question): the value shows, no mark (documented)', () => {
+    run('asked');
+    expect(values()).toContain('Ramesh Kumar Yadav');
+    expect(container.querySelectorAll('span').length).toBeGreaterThan(0);
+    const marks = Array.from(container.querySelectorAll('span')).filter(
+      (s) => s.textContent === 'Please check',
+    );
+    expect(marks).toHaveLength(0);
+    expect(confirmBtn().getAttribute('aria-disabled')).not.toBe('true');
+  });
+});
