@@ -934,3 +934,11 @@ Approved as Vishal built it:
 - The held branch passes a held date only when it has no label, or when its labels name more than one field. A single explicit wrong label fails. That matches the ruling.
 - "memo dated X" is read as the dishonour date. OK, because the return memo bears the date of dishonour.
 - Part A: the s.138 notice does not require the State (971d2685). OK.
+
+## T-482 intake prompt line (Ajay, 16 Oct 2026)
+
+Kunal's wording is approved, with custody and guardianship added because "wife", "child" and "parents" are generic. Signed text:
+
+`- A catalogue line may end with "match terms": those terms alone are not enough to choose that template when the description also has divorce, Domestic Violence Act (DV Act), Hindu Adoptions and Maintenance Act (HAMA), custody or guardianship words; in that case use confidence "medium" and list it together with those templates in alternatives, so the advocate chooses.`
+
+The line format `<id> | <name> | <category> | <description> | match terms: <terms>` is OK. The scope is Bihar and Jharkhand only. OK.
