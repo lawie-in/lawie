@@ -31,6 +31,7 @@ import { isLawSwitchPack } from './law-switch';
 import type { RulePack, RulePackFact } from './rule-pack.service';
 import { s138BriefDateCheck } from './s138-date-checks';
 import { evaluateShowIf } from './template-engine.service';
+import { humaniseOptionLabel } from './template-promoter';
 
 // ── Shapes ──────────────────────────────────────────────────────────────────
 
@@ -711,7 +712,12 @@ function wholeIn(normQuote: string, value: string): boolean {
 
 function matchOption(options: string[], value: string): string | null {
   const nv = normalise(value);
-  return options.find((o) => normalise(o) === nv) ?? null;
+  // T-473: a value saved before labels were humanised holds the raw pack text
+  // (`yes_flag_title_warning`); the same helper turns it into today's label.
+  const nh = normalise(humaniseOptionLabel(value));
+  return (
+    options.find((o) => normalise(o) === nv) ?? options.find((o) => normalise(o) === nh) ?? null
+  );
 }
 
 function isIsoDate(v: string): boolean {

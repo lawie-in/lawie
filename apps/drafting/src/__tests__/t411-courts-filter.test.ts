@@ -162,14 +162,14 @@ describe('T-411 template-scoped court picker (server)', () => {
         '/courts/types?template=consumer_complaint&level=national',
       );
       expect(res.status).toBe(200);
-      expect(res.body.types).toEqual([{ id: 'tribunal', label: 'tribunal' }]);
+      expect(res.body.types).toEqual([{ id: 'tribunal', label: 'Tribunal' }]);
     });
 
     it('a state with district level gives only consumer_commission', async () => {
       const res = await request(app).get(
         '/courts/types?state=bihar&template=consumer_complaint&level=district',
       );
-      expect(res.body.types).toEqual([{ id: 'consumer_commission', label: 'consumer_commission' }]);
+      expect(res.body.types).toEqual([{ id: 'consumer_commission', label: 'Consumer Commission' }]);
     });
 
     it('does not leak high_court or sessions for a state', async () => {
@@ -359,7 +359,7 @@ describe('T-411 template-scoped court picker (server)', () => {
         expect(noTemplate.status).toBe(400);
         const national = await request(app).get(`/courts/types?${T}&level=national&${q}`);
         expect(national.status).toBe(200);
-        expect(national.body.types).toEqual([{ id: 'tribunal', label: 'tribunal' }]);
+        expect(national.body.types).toEqual([{ id: 'tribunal', label: 'Tribunal' }]);
       }
     });
 

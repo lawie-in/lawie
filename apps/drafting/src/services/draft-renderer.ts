@@ -269,6 +269,12 @@ export function packOptionIds(facts: readonly RulePackFact[]): OptionIdMap {
     f.options.forEach((label, i) => {
       map[folded(label)] = f.option_ids![i];
     });
+    // T-473: an answer saved before labels were humanised holds the pack's raw
+    // option text (`yes_flag_title_warning`), whose fold is its id's fold. Labels win.
+    f.option_ids.forEach((id) => {
+      const k = folded(id);
+      if (k !== '' && map[k] === undefined) map[k] = id;
+    });
     out[f.key] = map;
   }
   return out;
