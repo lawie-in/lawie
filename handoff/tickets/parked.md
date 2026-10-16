@@ -85,3 +85,7 @@ Should-fixes and nice-to-haves that are not tickets (Arjun's rule, 14 Oct 2026; 
 - The nginx error_log still has the reset token (the access log is fixed in T-221).
 - Port 4001 (auth) is published, so X-Forwarded-For can be spoofed to dodge the reset rate limit. Arjun to rule: unpublish or trust-proxy settings.
 - The reset rate limit is not atomic (a burst of parallel requests can pass the check).
+
+## Parked 16 Oct 2026: typed text wiped after "New document" (T-481 bug 3)
+
+Anushka run 4 saw text wiped several times. Tanvi's real-browser attempt (sidebar click, direct load, ?kind=, delayed flag/templates, delayed /auth/me, token refresh) never reproduced it. The one wipe found: a 401 with a failed refresh does window.location.replace('/login') (apiFetch.ts ~75-79), which drops the text. Anushka ran with four helper agents in parallel tabs on one account, so parallel tabs racing on the same refresh token (T-299) is the likely cause. Not a product fault for a single-tab user. Next Anushka run: test New document in a single tab first. Optional defensive fix (sessionStorage draft of the description) not approved yet; revisit if it shows in a single tab.
