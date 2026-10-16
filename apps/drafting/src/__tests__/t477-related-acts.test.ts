@@ -17,6 +17,7 @@
  */
 import './setupEnv';
 
+import { execFileSync } from 'child_process';
 import { readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 
@@ -164,10 +165,10 @@ describe('T-477 A: renderRelatedActs (unit)', () => {
 
   it('applies_when becomes " [only when: ...]" after the references', () => {
     expect(one({ act: 'SARFAESI Act 2002', applies_when: 'Lender is Bank/NBFC' })).toBe(
-      'SARFAESI Act 2002 [only when: Lender is Bank/NBFC]',
+      'SARFAESI Act 2002 [only when: the lender is a bank or an NBFC]',
     );
     expect(one({ act: 'B Act', sections: ['S.1'], applies_when: 'Foreign lender' })).toBe(
-      'B Act (S.1) [only when: Foreign lender]',
+      'B Act (S.1) [only when: the lender is outside India]',
     );
   });
 
@@ -294,8 +295,10 @@ describe('T-477 B: all packs through the real promoter', () => {
 
   it('loan_agreement carries its applies_when as a marker on the entry', () => {
     const acts = configs.get('loan_agreement')!.related_acts;
-    expect(acts).toContain('SARFAESI Act 2002 [only when: Lender is Bank/NBFC]');
-    expect(acts).toContain('FEMA 1999 + ECB Master Direction [only when: Foreign lender]');
+    expect(acts).toContain('SARFAESI Act 2002 [only when: the lender is a bank or an NBFC]');
+    expect(acts).toContain(
+      'FEMA 1999 + ECB Master Direction [only when: the lender is outside India]',
+    );
   });
 });
 
@@ -389,7 +392,7 @@ describe('T-477 E (Ajay): [only when: ...] and related_acts never reach the draf
     const { system } = await runTemplate('loan_agreement', FORM);
     expect(system.length).toBeGreaterThan(0);
     const line = relatedActsLine(system[0]);
-    expect(line).toContain('SARFAESI Act 2002 [only when: Lender is Bank/NBFC]');
+    expect(line).toContain('SARFAESI Act 2002 [only when: the lender is a bank or an NBFC]');
     expect(line).toContain('Transfer of Property Act 1882 (S.58-104 (mortgage);');
   });
 
@@ -653,5 +656,216 @@ describe('T-477 H: stripOnlyWhenMarkers / sanitiseAIBody (Arjun)', () => {
       '1. That the lender, SARFAESI Act 2002 [only when: Lender is Bank/NBFC], lends.\n\n2. That it is so.',
     );
     expect(out).toBe('1. That the lender, SARFAESI Act 2002, lends.\n\n2. That it is so.');
+  });
+});
+
+// ── I: round 3, signed marker wording (Ajay 8766fbf1) ────────────────────
+const SIGNED_FILE = 'handoff/legal/T-245-old-new-law-switch-signed.md';
+const REPO_ROOT = join(__dirname, '..', '..', '..', '..');
+
+/** The signed T-477 marker table (rows 2 to 12), read from the T-245 file; null if the section is missing. */
+function signedMarkerRows(): Array<{
+  n: number;
+  pack: string;
+  act: string;
+  marker: string;
+}> | null {
+  let text = '';
+  const tryRead = (): string => {
+    try {
+      return readFileSync(join(REPO_ROOT, SIGNED_FILE), 'utf8');
+    } catch {
+      return '';
+    }
+  };
+  text = tryRead();
+  if (!text.includes('Byte check T-477')) {
+    try {
+      text = execFileSync(
+        'git',
+        ['-C', REPO_ROOT, 'show', `origin/develop_staging:${SIGNED_FILE}`],
+        {
+          encoding: 'utf8',
+          maxBuffer: 20 * 1024 * 1024,
+        },
+      );
+    } catch {
+      text = '';
+    }
+  }
+  const at = text.indexOf('Byte check T-477');
+  if (at < 0) return null;
+  const rows: Array<{ n: number; pack: string; act: string; marker: string }> = [];
+  for (const line of text.slice(at).split('\n')) {
+    const m = /^\|\s*(\d+)\s*\|\s*([a-z_]+),\s*([^|]+?)\s*\|\s*`(\[only when: [^`]+\])`\s*\|/.exec(
+      line,
+    );
+    if (m) rows.push({ n: Number(m[1]), pack: m[2], act: m[3], marker: m[4] });
+    if (rows.length && /^Follow-up/.test(line)) break;
+  }
+  return rows;
+}
+
+describe('T-477 I: the markers are the signed words, never the pack text', () => {
+  const { configs, byFile } = (() => {
+    clearTemplateRegistryCache();
+    return loadAllDocRules();
+  })();
+  const RAW_CONDITIONS = [
+    'Workmen',
+    'Pre-IPO',
+    'Foreign lender',
+    'Cross-border',
+    'Cross-border distributor',
+    'Imported goods',
+    'Foreign investor',
+    'Lender is Bank/NBFC',
+    'Private money-lending business',
+    'Food/F&B franchise',
+    'Industrial establishments',
+  ];
+
+  it('every pack entry with a condition renders exactly "[only when: <signed words>]"', () => {
+    let withCondition = 0;
+    for (const file of PACK_FILES) {
+      const rendered = configs.get(byFile.get(file)!.template_id)!.related_acts;
+      const raw = rawPack(file);
+      const list = [
+        ...(Array.isArray(raw.relevantActs) ? raw.relevantActs : []),
+        ...(Array.isArray(raw.relatedActs) ? raw.relatedActs : []),
+      ];
+      readActList(list).forEach((a, i) => {
+        if (a.appliesWhen === null) {
+          expect(rendered[i]).not.toContain('[only when');
+          return;
+        }
+        withCondition += 1;
+        expect(Object.keys(APPLICABLE_WHEN_WORDS)).toContain(a.appliesWhen);
+        expect(rendered[i].endsWith(` [only when: ${APPLICABLE_WHEN_WORDS[a.appliesWhen]}]`)).toBe(
+          true,
+        );
+        expect(rendered[i].match(/\[only when:/g)).toHaveLength(1);
+      });
+    }
+    expect(withCondition).toBe(12);
+    expect(Object.keys(APPLICABLE_WHEN_WORDS)).toHaveLength(12);
+  });
+
+  it('no raw pack condition text reaches any rendered related_acts string', () => {
+    for (const c of configs.values())
+      for (const a of c.related_acts)
+        for (const raw of RAW_CONDITIONS) {
+          expect({ id: c.template_id, a, raw, hit: a.includes(raw) }).toEqual({
+            id: c.template_id,
+            a,
+            raw,
+            hit: false,
+          });
+        }
+  });
+
+  it('the signed table in the T-245 file: each row byte for byte what the code renders', () => {
+    const rows = signedMarkerRows();
+    if (rows === null) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `T-477 signed-table check SKIPPED: "Byte check T-477" not found in ${SIGNED_FILE} (worktree copy or origin/develop_staging).`,
+      );
+      return;
+    }
+    expect(rows.map((r) => r.n)).toEqual([2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+    for (const r of rows) {
+      // the file names the act short ("FEMA / ECB"): every part must be in the entry, which has a marker
+      const parts = r.act.split(' / ');
+      const acts = configs
+        .get(r.pack)!
+        .related_acts.filter((a) => a.includes('[only when') && parts.every((x) => a.includes(x)));
+      expect({ row: r.n, found: acts.length }).toEqual({ row: r.n, found: 1 });
+      expect(acts[0].endsWith(` ${r.marker}`)).toBe(true);
+    }
+  });
+
+  it('an unknown condition prints no marker and adds a mismatch note', () => {
+    const notes: string[] = [];
+    expect(
+      renderRelatedActs(
+        [{ act: 'Z Act, 1', sections: ['5'], applies_when: 'Some new pack note' }],
+        notes,
+      ),
+    ).toEqual(['Z Act, 1 (S.5)']);
+    expect(notes).toHaveLength(1);
+    expect(notes[0]).toContain('Some new pack note');
+    const { config, mismatches } = promoteDocRuleToTemplateConfig(
+      { template_id: 't', category: 'c', relevantActs: [{ act: 'Z', applies_when: 'Workmen x' }] },
+      't.json',
+    );
+    expect(config.related_acts).toEqual(['Z']);
+    expect(mismatches.some((m) => m.includes('Workmen x'))).toBe(true);
+  });
+
+  it('no wording in the table and no rendered marker holds "[" or "]"', () => {
+    for (const w of Object.values(APPLICABLE_WHEN_WORDS)) expect(w).not.toMatch(/[[\]]/);
+    for (const c of configs.values())
+      for (const a of c.related_acts) {
+        const marker = /\[only when: (.*)\]$/.exec(a);
+        if (marker) expect(marker[1]).not.toMatch(/[[\]]/);
+      }
+  });
+
+  it('the nested-bracket case, pinned as it is today (reviewer note)', () => {
+    // The marker ends at the first "]", so a "[" or "]" inside the wording would leave a tail
+    // behind: "c]" stays. This cannot happen while the table has no brackets (test above).
+    expect(stripOnlyWhenMarkers('[only when: a [b] c]')).toEqual({ text: ' c]', count: 1 });
+  });
+});
+
+describe('T-477 I: strip count on the template result (several AI sections)', () => {
+  it('sums stripOnlyWhenMarkers across AI sections', async () => {
+    const base = loadTemplateConfig('loan_agreement')!;
+    const ai = base.document_structure.sections.filter((x) => x.type === 'ai_generated');
+    expect(ai.length).toBeGreaterThanOrEqual(1);
+    const cfg = {
+      ...base,
+      document_structure: {
+        ...base.document_structure,
+        sections: [...base.document_structure.sections, { ...ai[0], section_id: 'ai_second' }],
+      },
+    };
+    const answers = ['1. A [only when: x] b [only when: y].', '2. C [only when: z] d.'];
+    let call = 0;
+    mockMessagesStream
+      .mockReset()
+      .mockImplementation(async () => sdkAnswer(answers[Math.min(call++, 1)], 4000, 800));
+    const out = await streamGenerateFromTemplate(
+      {
+        templateConfig: cfg,
+        formData: { applicant_name: 'S', advocate_name: 'A' },
+        userId: 'u1',
+        runId: 'r1',
+        runSequence: 1,
+        runType: 'initial',
+      } as unknown as Parameters<typeof streamGenerateFromTemplate>[0],
+      resStub() as unknown as Response,
+    );
+    expect(out.onlyWhenStrips).toBe(3);
+  });
+
+  it.each([
+    ['no marker', '1. That it is so.', 0],
+    ['two markers', '1. A [only when: x] b [only when: y].', 2],
+  ])('one section, %s', async (_n, answer, count) => {
+    mockMessagesStream.mockReset().mockImplementation(async () => sdkAnswer(answer, 4000, 800));
+    const out = await streamGenerateFromTemplate(
+      {
+        templateConfig: loadTemplateConfig('loan_agreement')!,
+        formData: { applicant_name: 'S', advocate_name: 'A' },
+        userId: 'u1',
+        runId: 'r1',
+        runSequence: 1,
+        runType: 'initial',
+      } as unknown as Parameters<typeof streamGenerateFromTemplate>[0],
+      resStub() as unknown as Response,
+    );
+    expect(out.onlyWhenStrips).toBe(count);
   });
 });

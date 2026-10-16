@@ -38,9 +38,53 @@ function withRefs(act: string, refs: string[]): string {
   return `${act} (${refs.join(REF_SEPARATOR)})`;
 }
 
-/** Point 3 (Ajay): the condition on an entry that only applies sometimes. */
-function withCondition(text: string, appliesWhen: string | null): string {
-  return appliesWhen ? `${text} [only when: ${appliesWhen}]` : text;
+/**
+ * Point 3: the plain words inside the "[only when: ...]" marker, keyed by the
+ * pack's own condition text (`applies_when`, or the `applicableWhen` key). The
+ * pack text itself never reaches the model: a condition not in this table
+ * prints no marker (renderRelatedActs reports it). dv_dowry: Ajay b101b4eb.
+ * 2-12: Ajay's signed wording, generated from
+ * handoff/legal/T-245-old-new-law-switch-signed.md, "Byte check T-477" (8766fbf1).
+ */
+export const APPLICABLE_WHEN_WORDS: Readonly<Record<string, string>> = Object.freeze({
+  // 1: bail_regular, Protection of Women from Domestic Violence Act (PWDVA), 2005
+  dv_dowry: 'the offence arises from domestic violence or a dowry demand',
+  // 2: distribution_agreement, FEMA 1999
+  'Cross-border distributor': 'the distributor is outside India',
+  // 3: distribution_agreement, Customs Act 1962
+  'Imported goods': 'the goods are imported',
+  // 4: employment_agreement, Industrial Employment (Standing Orders) Act 1946
+  'Industrial establishments >= 100 (or 50 in some states)':
+    'the employer is an industrial establishment covered by the Act',
+  // 5: employment_agreement, Industrial Disputes Act 1947
+  Workmen: 'the employee is a workman',
+  // 6: franchise_agreement, FEMA 1999 + FEMA (Current Account Transactions) Rules 2000
+  'Cross-border': 'the franchisor or the franchisee is outside India',
+  // 7: franchise_agreement, Food Safety and Standards Act 2006
+  'Food/F&B franchise': 'the franchise sells food or beverages',
+  // 8: loan_agreement, SARFAESI Act 2002
+  'Lender is Bank/NBFC': 'the lender is a bank or an NBFC',
+  // 9: loan_agreement, State Money-Lenders Acts
+  'Private money-lending business': 'the lender carries on a money-lending business',
+  // 10: loan_agreement, FEMA 1999 + ECB Master Direction
+  'Foreign lender': 'the lender is outside India',
+  // 11: shareholders_agreement, FEMA 1999 + FEMA (NDI) Rules 2019
+  'Foreign investor': 'an investor is outside India',
+  // 12: shareholders_agreement, SEBI ICDR Regulations 2018
+  'Pre-IPO': 'the company plans a public issue',
+});
+
+/** The signed words for an entry's condition, or null when there are none. */
+function conditionWords(appliesWhen: string | null): string | null {
+  if (appliesWhen === null) return null;
+  return Object.prototype.hasOwnProperty.call(APPLICABLE_WHEN_WORDS, appliesWhen)
+    ? APPLICABLE_WHEN_WORDS[appliesWhen]
+    : null;
+}
+
+/** How the condition attaches to an entry. */
+function withCondition(text: string, words: string | null): string {
+  return words ? `${text} [only when: ${words}]` : text;
 }
 
 /**
@@ -65,54 +109,29 @@ function refsOf(entry: RulePackAct): string[] {
   return out;
 }
 
-/** One `related_acts` string. An entry with no references is the bare act name. */
+/**
+ * One `related_acts` string. An entry with no references is the bare act name.
+ * A condition prints only as its words from APPLICABLE_WHEN_WORDS.
+ */
 export function renderRelatedAct(entry: RulePackAct): string {
   const refs = refsOf(entry);
   const text = refs.length > 0 ? withRefs(entry.act, refs) : entry.act;
-  return withCondition(text, entry.appliesWhen);
-}
-
-/**
- * Ajay b101b4eb: a pack's `applicableWhen` is a key, never model text. Each key
- * maps to the plain words printed in the "[only when: ...]" marker. A key not
- * in this table never prints raw (see resolveApplicableWhen).
- */
-export const APPLICABLE_WHEN_WORDS: Readonly<Record<string, string>> = Object.freeze({
-  dv_dowry: 'the offence arises from domestic violence or a dowry demand',
-});
-
-function isObj(v: unknown): v is Record<string, unknown> {
-  return typeof v === 'object' && v !== null && !Array.isArray(v);
-}
-
-/**
- * Swaps an entry's `applicableWhen` key for its plain words (as `applies_when`).
- * Plain-words `applies_when` on the same entry wins, as readActList reads it. A
- * key missing from APPLICABLE_WHEN_WORDS is dropped (no marker) and reported in
- * `notes`.
- */
-function resolveApplicableWhen(item: unknown, where: string, notes: string[]): unknown {
-  if (!isObj(item) || !('applicableWhen' in item)) return item;
-  const { applicableWhen, ...rest } = item;
-  if (typeof rest.applies_when === 'string' && rest.applies_when.trim().length > 0) return rest;
-  const key = typeof applicableWhen === 'string' ? applicableWhen.trim() : '';
-  if (Object.prototype.hasOwnProperty.call(APPLICABLE_WHEN_WORDS, key)) {
-    return { ...rest, applies_when: APPLICABLE_WHEN_WORDS[key] };
-  }
-  notes.push(
-    `${where}: applicableWhen ${JSON.stringify(applicableWhen)} is not in APPLICABLE_WHEN_WORDS, condition dropped`,
-  );
-  return rest;
+  return withCondition(text, conditionWords(entry.appliesWhen));
 }
 
 /**
  * `related_acts` for a raw list of act entries (any of the pack shapes), one
- * string per entry, in order. Unknown `applicableWhen` keys go to `notes`.
+ * string per entry, in order. A condition missing from APPLICABLE_WHEN_WORDS
+ * prints no marker and goes to `notes`.
  */
 export function renderRelatedActs(raw: unknown, notes: string[] = []): string[] {
-  if (!Array.isArray(raw)) return [];
-  const resolved = raw.map((item, idx) =>
-    resolveApplicableWhen(item, `related acts[${idx}]`, notes),
-  );
-  return readActList(resolved).map(renderRelatedAct);
+  const entries = readActList(raw);
+  for (const e of entries) {
+    if (e.appliesWhen !== null && conditionWords(e.appliesWhen) === null) {
+      notes.push(
+        `related acts (${e.act}): condition ${JSON.stringify(e.appliesWhen)} is not in APPLICABLE_WHEN_WORDS, no marker printed`,
+      );
+    }
+  }
+  return entries.map(renderRelatedAct);
 }
