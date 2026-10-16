@@ -36,7 +36,7 @@ On a D1 pack the Drafter's reply is the structured answer as JSON text, `{"parag
 
 Fixtures 22–25 are Anushka's run-3 bail drafts (`handoff/quality/2026-10-13-run-3-develop-FAIL.md`), one per D1 pack, with their facts re-made synthetically. Each has a `clean` variant and a `run3` variant, where the model slips her invented averments into an own-words clause. `--stub run3` must FAIL each of them on `rendered` (a `fallback`). The older bail fixtures 02–05, 09–11 and 15–18 have no recorded replies yet; when they are recorded, their Drafter replies must be structured JSON.
 
-**Fixture status:** every fixture was drafted by dev from Anushka's reports and has not yet been reviewed by Anushka. Each file records this in its `review` field. Fixtures 1–25 assert no prayer, verification or other legal wording, so their `ajay` field is `null`. Fixture 26 is the first that does: it carries a reason in `ajay` and an `absent`/`present` check on a prayer, and Ajay must confirm it.
+**Fixture status:** every fixture was drafted by dev from Anushka's reports and has not yet been reviewed by Anushka. Each file records this in its `review` field. Fixtures 1–25 assert no prayer, verification or other legal wording, so their `ajay` field is `null`. Fixture 26 is the first that does: it carries a reason in `ajay` and an `absent`/`present` check on a prayer, and Ajay (CLO) confirmed it on 16 Oct 2026.
 
 Fixture 26 (T-475, `26-certiorari-civil-court-order-art-227`) is Ajay's check on the certiorari pack: when the impugned order is a civil court's judicial order, the draft must not pray for certiorari under Article 226 (the route is Article 227). Variants: `clean`, `art226` (must FAIL) and `art226_explained`.
 
