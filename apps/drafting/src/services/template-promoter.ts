@@ -23,6 +23,7 @@ import { join } from 'path';
 
 import { catalogueCategoryFor } from '../config/catalogue';
 import logger from '../config/logger';
+import { OPTION_LABEL_OVERRIDES } from '../config/option-label-overrides';
 
 import { costForTemplate } from './credits.service';
 import type {
@@ -231,14 +232,109 @@ function caseOptionToken(token: string): string {
 }
 
 /**
- * T-473: the label shown for an option whose text is a bare snake_case name. Pure.
- * Text that is not underscore-joined (spaces, punctuation) is returned unchanged.
- * Snake_case text: drop DROPPED_OPTION_TOKENS, upper-case known abbreviations, sentence
- * case the rest (`known_state_custody` -> `Known state custody`). If every token would
- * be dropped, nothing is dropped. Never used for ids.
+ * T-473: the label shown for an option's text. Pure; never used for ids.
+ * 1. Ajay's signed label for the text (any case) wins, verbatim (OPTION_LABEL_OVERRIDES).
+ * 2. Snake_case text: drop DROPPED_OPTION_TOKENS, upper-case known abbreviations, sentence
+ *    case the rest (`known_state_custody` -> `Known state custody`). If every token would
+ *    be dropped, nothing is dropped. Other text (spaces, punctuation) is kept as written.
+ * 3. R1: state and court names in title case (`applyTitleCaseRule`).
  */
 export function humaniseOptionLabel(text: string): string {
-  if (!isSnakeCaseName(text)) return text;
+  const signed = signedOptionLabel(text);
+  if (signed !== undefined) return signed;
+  return applyTitleCaseRule(isSnakeCaseName(text) ? humaniseSnake(text) : text);
+}
+
+/** T-473: Ajay's signed label for an option id or raw text (any case), if any. */
+export function signedOptionLabel(text: string): string | undefined {
+  const key = text.toLowerCase();
+  return Object.prototype.hasOwnProperty.call(OPTION_LABEL_OVERRIDES, key)
+    ? OPTION_LABEL_OVERRIDES[key]
+    : undefined;
+}
+
+/**
+ * T-473 R1 (Ajay): state, union territory and court names in canonical title case,
+ * whole words, case-insensitive. For labels only, never ids.
+ */
+const TITLE_CASE_NAMES: readonly string[] = [
+  // States
+  'Andhra Pradesh',
+  'Arunachal Pradesh',
+  'Assam',
+  'Bihar',
+  'Chhattisgarh',
+  'Goa',
+  'Gujarat',
+  'Haryana',
+  'Himachal Pradesh',
+  'Jharkhand',
+  'Karnataka',
+  'Kerala',
+  'Madhya Pradesh',
+  'Maharashtra',
+  'Manipur',
+  'Meghalaya',
+  'Mizoram',
+  'Nagaland',
+  'Odisha',
+  'Punjab',
+  'Rajasthan',
+  'Sikkim',
+  'Tamil Nadu',
+  'Telangana',
+  'Tripura',
+  'Uttar Pradesh',
+  'Uttarakhand',
+  'West Bengal',
+  // Union territories
+  'Andaman and Nicobar Islands',
+  'Chandigarh',
+  'Dadra and Nagar Haveli and Daman and Diu',
+  'Delhi',
+  'Jammu and Kashmir',
+  'Ladakh',
+  'Lakshadweep',
+  'Puducherry',
+  // Courts
+  'Supreme Court',
+  'High Court',
+  'District Court',
+  'Sessions Court',
+  'Family Court',
+  'Civil Court',
+  'Commercial Court',
+  'Labour Court',
+];
+
+const TITLE_CASE_RES: ReadonlyArray<readonly [RegExp, string]> = TITLE_CASE_NAMES.map(
+  (name) =>
+    [new RegExp(`(?<![A-Za-z])${name.replace(/ /g, '\\s+')}(?![A-Za-z])`, 'gi'), name] as const,
+);
+
+const COURT_NAME_RE = /(?<![A-Za-z])court(?![A-Za-z])/i;
+const SMALL_WORDS: ReadonlySet<string> = new Set(['of', 'and', 'at', 'for', 'the', 'in']);
+
+/**
+ * T-473 R1: the label with every listed state, UT and court name in canonical case.
+ * An all-capitals court name (`HIGH COURT OF PATNA`) is title-cased as a whole
+ * (`High Court of Patna`), so no half-capitalised name is shown. Pure.
+ */
+export function applyTitleCaseRule(label: string): string {
+  let out = label;
+  if (/[A-Z]/.test(out) && !/[a-z]/.test(out) && COURT_NAME_RE.test(out)) {
+    out = out
+      .toLowerCase()
+      .replace(/[a-z]+/g, (w, at: number) =>
+        at > 0 && SMALL_WORDS.has(w) ? w : w.charAt(0).toUpperCase() + w.slice(1),
+      );
+  }
+  for (const [re, name] of TITLE_CASE_RES) out = out.replace(re, name);
+  return out;
+}
+
+/** T-473: the snake_case humaniser (drop list, abbreviations, sentence case). */
+function humaniseSnake(text: string): string {
   const tokens = text.split('_');
   const kept: string[] = [];
   for (let i = 0; i < tokens.length; i++) {
@@ -287,12 +383,19 @@ export function normaliseOption(o: unknown, idx: number): FieldOption | null {
 }
 
 /**
- * T-473: the shown label of an object option, given the text it falls back to. A
- * missing label, or a label equal to the id, is humanised; an authored label is
- * kept verbatim. Shared with `rule-pack.service` so the form and brief agree.
+ * T-473: the shown label of an object option, given the text it falls back to.
+ * Ajay's signed label for the option's id or text wins. Otherwise a missing label, or
+ * a label equal to the id, is humanised; an authored label is kept as written apart
+ * from R1 (state and court names in title case). Shared with `rule-pack.service` so
+ * the form and brief agree.
  */
 export function objectOptionLabel(obj: Record<string, unknown>, text: string): string {
-  return typeof obj.label !== 'string' || obj.label === obj.id ? humaniseOptionLabel(text) : text;
+  const signed =
+    (typeof obj.id === 'string' ? signedOptionLabel(obj.id) : undefined) ?? signedOptionLabel(text);
+  if (signed !== undefined) return signed;
+  return typeof obj.label !== 'string' || obj.label === obj.id
+    ? humaniseOptionLabel(text)
+    : applyTitleCaseRule(text);
 }
 
 function normaliseOptions(

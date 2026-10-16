@@ -583,7 +583,8 @@ describe('T-473 humaniseOptionLabel', () => {
 
   it('drops the whole tokens flag, warning, cat and type', () => {
     expect([...DROPPED_OPTION_TOKENS].sort()).toEqual(['cat', 'flag', 'type', 'warning']);
-    expect(humaniseOptionLabel('yes_flag_title_warning')).toBe('Yes title');
+    // unsigned ids only: signed ones (yes_flag_title_warning) are tested in t473-signed-labels
+    expect(humaniseOptionLabel('yes_flag_lien_warning')).toBe('Yes lien');
     expect(humaniseOptionLabel('mortgage_type_simple')).toBe('Mortgage simple');
     expect(humaniseOptionLabel('flag_unclear_title')).toBe('Unclear title');
   });
@@ -655,14 +656,14 @@ describe('T-473 humaniseOptionLabel', () => {
 
   it('humanises mixed-case ids, keeping authored capitals (the 22 formerly missed options)', () => {
     const cases: [string, string][] = [
-      ['wife_rape_sodomy_27_1A_i', 'Wife rape sodomy 27 1A i'],
-      ['wife_decree_maintenance_27_1A_ii', 'Wife decree maintenance 27 1A II'], // roman 'ii' is in the acronym list,
-      ['yes_194_IB', 'Yes 194 IB'],
-      ['yes_194_I', 'Yes 194 I'],
+      ['wife_rape_sodomy_28_1A_i', 'Wife rape sodomy 28 1A i'],
+      ['wife_decree_maintenance_28_1A_ii', 'Wife decree maintenance 28 1A II'], // roman 'ii' is in the acronym list,
+      ['yes_195_IB', 'Yes 195 IB'],
+      ['yes_195_I', 'Yes 195 I'],
       ['GWA_1890_secular', 'GWA 1890 secular'],
       ['HMGA_1956_hindu', 'HMGA 1956 hindu'],
       ['revocable_per_S126_grounds', 'Revocable per S126 grounds'],
-      ['uttar_pradesh_RERA_UPRERA', 'Uttar pradesh RERA UPRERA'],
+      ['uttar_pradesh_RERA_UPRERA', 'Uttar Pradesh RERA UPRERA'],
       ['action_under_indian_penal_law_BNS', 'Action under indian penal law BNS'],
     ];
     for (const [id, label] of cases) expect(humaniseOptionLabel(id)).toBe(label);

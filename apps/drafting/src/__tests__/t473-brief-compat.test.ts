@@ -31,13 +31,13 @@ const power = buildChecklist(gpa).find((i) => i.key === 'includes_power_to_sell'
 describe('T-473 brief: matchOption accepts an old raw answer', () => {
   it('the gpa question is a choice with the humanised labels', () => {
     expect(power.kind).toBe('choice');
-    expect(power.options).toEqual(['Yes title', 'No only management']);
+    expect(power.options).toEqual(['Yes (check title before any sale)', 'No only management']);
     expect(power.optionIds).toEqual(['yes_flag_title_warning', 'no_only_management']);
   });
 
   it('accepts the new label, in any case and spacing', () => {
-    expect(checkUserValue(power, 'Yes title')).toBeNull();
-    expect(checkUserValue(power, '  yes   TITLE ')).toBeNull();
+    expect(checkUserValue(power, 'Yes (check title before any sale)')).toBeNull();
+    expect(checkUserValue(power, '  YES (check   TITLE before any sale) ')).toBeNull();
     expect(checkUserValue(power, 'No only management')).toBeNull();
   });
 
@@ -63,7 +63,7 @@ describe('T-473 renderer: packOptionIds maps labels, old text and ids to the id'
   const ids = (): Record<string, string> => packOptionIds(gpa.facts)['includes_power_to_sell'];
 
   it('maps the new label and the old raw text to the unchanged id', () => {
-    expect(ids()[fold('Yes title')]).toBe('yes_flag_title_warning');
+    expect(ids()[fold('Yes (check title before any sale)')]).toBe('yes_flag_title_warning');
     expect(ids()[fold('yes_flag_title_warning')]).toBe('yes_flag_title_warning');
     expect(ids()[fold('No only management')]).toBe('no_only_management');
     expect(ids()[fold('no_only_management')]).toBe('no_only_management');
