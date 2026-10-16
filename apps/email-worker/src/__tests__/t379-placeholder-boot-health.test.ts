@@ -152,6 +152,13 @@ describe('tripwire: every registered template vs TEMPLATE_FOOTERS', () => {
     // billing.taxInvoice / billing.creditNote (T-436 b/c) refuse to render without these.
     ...INVOICE_SENTINEL_FIELDS,
   };
+
+  // T-221: auth.passwordReset refuses data without its own variant, so the sweep feeds it the data
+  // the worker really builds (never the shared sentinel, which has loginUrl and variant 'A').
+  const PASSWORD_RESET_DATA: Record<string, Record<string, unknown>> = {
+    link: { variant: 'link', resetUrl: 'https://app.lawie.in/reset-password/sentinel' },
+    google: { variant: 'google', loginUrl: 'https://app.lawie.in/login' },
+  };
   const ids: string[] = jest.requireActual('../templates').listTemplates();
 
   it('registers at least the two known templates', () => {
@@ -162,10 +169,14 @@ describe('tripwire: every registered template vs TEMPLATE_FOOTERS', () => {
     '%s renders a placeholder exactly when templateHasUnfilledFooter says so',
     async (id) => {
       mockUnfilledFooter = false; // real strings on both sides of the comparison
-      const rendered = renderReal(id, SENTINEL);
-      const hasPlaceholder = [rendered.html, rendered.text].some(
-        (part) => part.includes('[registered address]') || part.includes('[PIN]'),
-      );
+      const datasets =
+        id === 'auth.passwordReset' ? Object.values(PASSWORD_RESET_DATA) : [SENTINEL];
+      const hasPlaceholder = datasets.some((data) => {
+        const rendered = renderReal(id, data);
+        return [rendered.html, rendered.text].some(
+          (part) => part.includes('[registered address]') || part.includes('[PIN]'),
+        );
+      });
       const flagged = await inEnv(DRY, async ({ ph }) => ph.templateHasUnfilledFooter(id as never));
       expect(hasPlaceholder).toBe(flagged);
     },

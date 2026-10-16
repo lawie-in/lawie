@@ -126,6 +126,69 @@ describe('T-377b nginx access-log map', () => {
   });
 });
 
+// T-221: the password-reset token is a PATH segment (web page, API check and save), so the T-377
+// query-stripping line does not cover it. A second map line logs it as [token]. nginx tries regex
+// entries in file order and takes the first match, so logged() walks all of them in order.
+describe('T-221 nginx access-log map: reset token', () => {
+  const conf = fs.readFileSync(NGINX_CONF, 'utf8');
+  const mapBlock = conf.match(/map \$request_uri \$lawie_log_uri\s*\{([\s\S]*?)\n\s*\}/);
+  const entries = (mapBlock?.[1] ?? '')
+    .split('\n')
+    .map((l) => l.match(/^\s*(~\^\(\?<p>\S+)\s+"([^"]*)";\s*$/))
+    .filter((m): m is RegExpMatchArray => m !== null)
+    .map((m) => ({ regex: new RegExp(m[1].slice(1)), replacement: m[2] }));
+
+  function logged(uri: string): string {
+    for (const { regex, replacement } of entries) {
+      const m = regex.exec(uri);
+      if (m) return replacement.replace('$p', (m.groups as { p: string }).p);
+    }
+    return uri; // default $request_uri
+  }
+
+  const TOKEN = 'ab12'.repeat(16); // 64 hex
+
+  it('the map block has the T-377 line first and a reset-token line after it', () => {
+    expect(entries).toHaveLength(2);
+    expect(entries[0]!.replacement).toBe('$p?[stripped]');
+    expect(entries[1]!.replacement).toBe('$p/[token]');
+    expect(conf).toMatch(/default\s+\$request_uri;/);
+  });
+
+  it.each([
+    [`/api/auth/reset-password/${TOKEN}`, '/api/auth/reset-password/[token]'],
+    [`/reset-password/${TOKEN}`, '/reset-password/[token]'],
+    [`/reset-password/${TOKEN}?x=1`, '/reset-password/[token]'],
+    [`/reset-password/${TOKEN}/?x=1`, '/reset-password/[token]'],
+    [`/api/auth/reset-password/${TOKEN}?x=1&y=2`, '/api/auth/reset-password/[token]'],
+  ])('%s is logged as %s, with no token', (uri, expected) => {
+    const out = logged(uri);
+    expect(out).toBe(expected);
+    expect(out).not.toContain(TOKEN);
+    expect(out).not.toMatch(/[0-9a-f]{16}/);
+  });
+
+  it.each([
+    '/forgot-password',
+    '/reset-password',
+    '/reset-password?x=1',
+    '/api/auth/forgot-password',
+    '/api/auth/reset-password',
+    '/pricing/reset-password/abc',
+    '/foo/reset-password/abc',
+  ])('%s is logged unchanged', (uri) => {
+    expect(logged(uri)).toBe(uri);
+  });
+
+  it('the existing T-377 paths are unaffected by the new line', () => {
+    expect(logged('/verify-email?token=abc')).toBe('/verify-email?[stripped]');
+    expect(logged('/auth/callback?code=x&state=y')).toBe('/auth/callback?[stripped]');
+    expect(logged('/api/auth/google/callback?code=x')).toBe('/api/auth/google/callback?[stripped]');
+    expect(logged('/verify-email')).toBe('/verify-email');
+    expect(logged('/pricing?x=1')).toBe('/pricing?x=1');
+  });
+});
+
 describe('T-377b nginx upstream ports match the services PORT defaults', () => {
   const conf = fs.readFileSync(NGINX_CONF, 'utf8');
 

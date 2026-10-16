@@ -60,17 +60,40 @@ export function buildSignupSource(raw: UtmTags | undefined): ISignupSource | und
 // instead of a 422.
 const utmField = z.unknown().transform(sanitizeUtmValue);
 
+/**
+ * The four sign-up password rules. T-221: shared by sign-up and password reset, so a reset can
+ * never set a weaker password than sign-up allows (T-208 follow-up 3). Same messages as before.
+ */
+const PASSWORD_MESSAGES = {
+  required: 'Password is required',
+  min_length: 'Password must be at least 8 characters',
+  uppercase: 'Must contain at least one uppercase letter',
+  lowercase: 'Must contain at least one lowercase letter',
+  number: 'Must contain at least one number',
+} as const;
+
+export const passwordSchema = z
+  .string({ required_error: PASSWORD_MESSAGES.required })
+  .min(8, PASSWORD_MESSAGES.min_length)
+  .regex(/[A-Z]/, PASSWORD_MESSAGES.uppercase)
+  .regex(/[a-z]/, PASSWORD_MESSAGES.lowercase)
+  .regex(/\d/, PASSWORD_MESSAGES.number);
+
+/** T-221: the rule ids the reset page maps to its own checklist lines (never the raw text). */
+export type PasswordRule = 'min_length' | 'uppercase' | 'lowercase' | 'number';
+const RULE_BY_MESSAGE: Record<string, PasswordRule> = {
+  [PASSWORD_MESSAGES.min_length]: 'min_length',
+  [PASSWORD_MESSAGES.uppercase]: 'uppercase',
+  [PASSWORD_MESSAGES.lowercase]: 'lowercase',
+  [PASSWORD_MESSAGES.number]: 'number',
+};
+
 const registerSchema = z.object({
   email: z
     .string({ required_error: 'Email is required' })
     .email('Invalid email format')
     .toLowerCase(),
-  password: z
-    .string({ required_error: 'Password is required' })
-    .min(8, 'Password must be at least 8 characters')
-    .regex(/[A-Z]/, 'Must contain at least one uppercase letter')
-    .regex(/[a-z]/, 'Must contain at least one lowercase letter')
-    .regex(/\d/, 'Must contain at least one number'),
+  password: passwordSchema,
   name: z.string({ required_error: 'Name is required' }).min(1, 'Name is required').max(100).trim(),
   // No `role` here (T-196): self-registration can never choose a role. z.object
   // strips unknown keys, so a client-sent `role` is silently dropped.
@@ -112,6 +135,47 @@ export function validateLogin(data: unknown): LoginPayload {
     throw validationError(result.error);
   }
   return result.data;
+}
+
+// ── T-221: forgot / reset password ────────────────────────────────────────────────────────────
+const forgotPasswordSchema = z.object({
+  email: z
+    .string({ required_error: 'Email is required' })
+    .trim()
+    .max(254, 'Invalid email format')
+    .email('Invalid email format')
+    .toLowerCase(),
+});
+
+/**
+ * POST /forgot-password { email }: the lower-cased address, or null for a missing or badly
+ * formed one (the controller answers 400). The value is never put in an error or a log.
+ */
+export function parseForgotPasswordEmail(data: unknown): string | null {
+  const result = forgotPasswordSchema.safeParse(data ?? {});
+  return result.success ? result.data.email : null;
+}
+
+const resetPasswordSchema = z.object({ password: passwordSchema });
+
+export type ResetPasswordCheck =
+  | { ok: true; password: string }
+  /** 422: `message` is the sign-up validator text; `unmet` lists every rule not met. */
+  | { ok: false; message: string; unmet: PasswordRule[] };
+
+/**
+ * POST /reset-password/:token { password }: the same four rules as sign-up (passwordSchema). A
+ * missing or non-string password fails every rule. The password is never put in a log.
+ */
+export function checkResetPassword(data: unknown): ResetPasswordCheck {
+  const result = resetPasswordSchema.safeParse(data ?? {});
+  if (result.success) return { ok: true, password: result.data.password };
+  const rules = result.error.errors
+    .map((e) => RULE_BY_MESSAGE[e.message])
+    .filter((r): r is PasswordRule => r !== undefined);
+  const unmet: PasswordRule[] =
+    rules.length > 0 ? rules : ['min_length', 'uppercase', 'lowercase', 'number'];
+  return { ok: false, message: validationError(result.error).message, unmet };
 }
 
 // ── T-436: PATCH /me ─────────────────────────────────────────────────────────────────────────
