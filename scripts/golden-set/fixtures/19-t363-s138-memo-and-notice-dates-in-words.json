@@ -12,6 +12,11 @@
   "expect": {
     "ledger": [
       {
+        "key": "respondent_name",
+        "why": "T-471 (Ajay (a)): the drawer firm is the drawer's name",
+        "display": "Demo Traders"
+      },
+      {
         "key": "memo_received_date",
         "why": "AC2: 'fifteenth September 2026' fills the memo date",
         "display": "15 September 2026"

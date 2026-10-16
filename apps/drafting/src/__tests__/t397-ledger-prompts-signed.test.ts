@@ -31,19 +31,21 @@ const C = `${C_ANCHOR} Do not convert date formats.`;
 const count = (hay: string, needle: string) => hay.split(needle).length - 1;
 
 describe('T-397 AC2: signed text pinned byte for byte', () => {
+  // T-471 (Ajay, 722c548a and acbec79f, 16 Oct 2026): re-pinned with his signed rule-4 sentence; removing
+  // that sentence from each prompt gives the previous hash (checked), so nothing else moved. D1 is unchanged.
   it('LEDGER prompt hash is the signed one', () => {
     expect(sha(DRAFTER_LEDGER_SYSTEM_PROMPT)).toBe(
-      '874b2b129f8ceadd811fb822aa55e741c4c907e5ba3cb60bdb2b8b55dd2ef99a',
+      '516590deae9a9dc535820dd77f2dd1a86c58acec0501e4c52ef1a0e22c17db8b',
     );
   });
   it('LEDGER_REPAIR prompt hash is the signed one', () => {
     expect(sha(DRAFTER_LEDGER_REPAIR_SYSTEM_PROMPT)).toBe(
-      'a0075fbbd1c0b56d8e32164739557fdd7f95230abded0d1b00eaadd91cf9d677',
+      'e242d06bf65ecc90e845345bdc6881590c5c27a64fb34ad792e2bfe6c4ac2dd6',
     );
   });
   it('FACT_REPAIR prompt hash is unchanged (signed as is)', () => {
     expect(sha(DRAFTER_FACT_REPAIR_SYSTEM_PROMPT)).toBe(
-      '19d075fea6ed01208eaf41ace68f097078ea69fb05da8390706d6f1760da5ef4',
+      '02bcc090839b9ce435d78b25fef20bb5a12670b59c7f7486c365321f29341254',
     );
   });
 });
@@ -117,15 +119,17 @@ describe('T-397: prompts outside the review are unchanged', () => {
   // T-440 (Ajay, a9bc957 and 4b46053): the signed not-known date line was added to PACK,
   // REPAIR, LEDGER, LEDGER_REPAIR and D1 (end of rule 3), so those five were re-pinned
   // (re-pinning approved for T-440 only). GUIDED is unchanged.
+  // T-471 (Ajay, 722c548a and acbec79f, 16 Oct 2026): re-pinned with his signed rule-4 sentence; removing
+  // that sentence from each prompt gives the previous hash (checked), so nothing else moved. D1 is unchanged.
   it('PACK, REPAIR, D1 hashes are as re-pinned in T-440; GUIDED is as signed in T-422', () => {
     expect(sha(DRAFTER_PACK_SYSTEM_PROMPT)).toBe(
-      '28257542afb486fb1b4fc388c6c8f474cf6070536749d24ef149fa709d41e41e',
+      'bf32e87547753a13f04969f68adafce37a2cd867c1968cc359ae744d11e57e10',
     );
     expect(sha(DRAFTER_REPAIR_SYSTEM_PROMPT)).toBe(
-      '1679478acb0396cc7daf52fd3703d0bac0ba1caaf683f5d03975cbee9a263e07',
+      'f8b43cf15bdc5446e52cc04a77761b2126aea49ad758bc8c136b36f4a9352ab4',
     );
     expect(sha(DRAFTER_GUIDED_SYSTEM_PROMPT)).toBe(
-      'df9483c61babd16c0dc96bb5eb5720f62e64bddcd7df2b7d6c3145b38449ef6c',
+      'c15ffcd16d0782ae56708158d671212b06818b91945919f14f9d7504a8f1bb72',
     );
     expect(sha(DRAFTER_D1_SYSTEM_PROMPT)).toBe(
       '55aa15b13adeb0f2061e5441d2dfad7e214fe8b1e5a64cf9370dd0945816537d',

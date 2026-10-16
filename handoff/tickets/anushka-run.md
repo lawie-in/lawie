@@ -1272,3 +1272,11 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - Nothing a user sees. Billing no longer breaks on a plan Razorpay reports as pending, halted or completed, and the services' shared-secret check no longer leaks timing.
 
 Quality: nothing to test in the UI — operator/security fix and tests only
+
+## Note for Anushka's next batch (Priya, 16 Oct 2026)
+
+- Re-run the regular-bail flow only; her other run-4 results stand. The run-4 bail faults (re-asked facts, missing address, antecedents and dependants, law left to be confirmed) came from the fact ledger being off on develop. It is switched on before her re-run.
+- Drafts now show "ledger on/off" on the generation record. Report it with every finding.
+- T-471, T-475, T-221 and the others merged on 16 Oct are listed in the merge messages; her list is built from their "What a user can now do" lines.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

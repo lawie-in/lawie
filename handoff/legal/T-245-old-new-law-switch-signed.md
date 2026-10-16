@@ -284,10 +284,10 @@ Signed: Ajay (CLO), 15 Oct 2026 IST.
 
 Both ids reach the model: clause ids go through clauseLines (brief-drafter.ts:299), and form keys through the brief entry (`key`, :280). So R1/R4 apply, and they cannot stay. R4 replacements:
 
-| Where                                                   | Old                             | New                            |
-| ------------------------------------------------------- | ------------------------------- | ------------------------------ |
+| Where                                       | Old                             | New                             |
+| ------------------------------------------- | ------------------------------- | ------------------------------- |
 | Clause id (fir_quashing, quashing_528_bnss) | `bhajan_lal_paragraph`          | `quashing_categories_paragraph` |
-| Form key (fir_quashing)                                 | `bhajan_lal_categories_invoked` | `quashing_categories_invoked`   |
+| Form key (fir_quashing)                     | `bhajan_lal_categories_invoked` | `quashing_categories_invoked`   |
 
 This is no new law (R5). CLAUSE_CUES, the skeletons and any saved-form or draft mapping follow the rename; how that is done is Arjun's call, not mine. The wording does not change, so no golden should move; any golden that does move comes to me.
 
@@ -296,7 +296,7 @@ Signed: Ajay (CLO), 15 Oct 2026 IST.
 ### T-449 questions (Priya / Kunal, 15 Oct 2026)
 
 1. **Where S goes when a pack has no promptInstructions** (rejoinder_affidavit, restoration_application, interim_application). Do not append it to `system_prompt_addendum` or `system_role`. Field order puts it before tone and key_phrases, so it would not come last. Do the same as curative_petition (T-447 (a)): add `prompt_context.promptInstructions: [S]` as the **last key** of prompt_context. Never add a top-level `promptInstructions` to these packs: prompt-assembler then uses only that list and drops all of prompt_context. Condition: a test shows S as the last numbered instruction for each of the three.
-2. **_meta.** For mact_claim, yes to the reset, but use the amended R6 text that keeps the CLO line: `All edits require CLO sign-off. Do not name judgments in model-visible text (Ajay, T-441).` For plaint_declaration and plaint_partition, **leave** the _meta: it is not model-visible and makes no citation mandatory.
+2. **\_meta.** For mact_claim, yes to the reset, but use the amended R6 text that keeps the CLO line: `All edits require CLO sign-off. Do not name judgments in model-visible text (Ajay, T-441).` For plaint_declaration and plaint_partition, **leave** the \_meta: it is not model-visible and makes no citation mandatory.
 3. **R4 labels.** I will mark them when Kunal's diff arrives.
 4. **rera_complaint :155 label.** Labels reach the model (item.label), so it goes into T-451, not left as it is. New label: `Any previous Consumer / Civil proceedings on same cause? (the consumer remedy is concurrent)`.
 
@@ -308,13 +308,13 @@ S appears verbatim once, last, in 24 packs. It is missing from interim_applicati
 
 R4 marks:
 
-| # | Proposed | Mark |
-|---|---|---|
-| 1 | mact_claim clause: `Multiplier method, with personal expenses deduction and conventional heads` | Approved with one addition: `Multiplier method, with future prospects, personal expenses deduction and conventional heads` |
-| 2 | mact_claim Para 18: `…largely superseded by multiplier-method computation in S.166 claims` | Approved |
-| 3 | interim_application: `plead all three limbs (prima facie case, balance of convenience, irreparable injury) explicitly` | Approved |
-| 4 | guardianship clause | Reworded: `Details of father and mother — death/unfitness/incapacity/absence; for Hindu minors per S.6 HMGA father is natural guardian and after him mother, with 'after' read as 'in the absence of'; subject to S.4` |
-| 5 | plaint_partition Para 7: `…coparcenary status is conferred retrospectively.` | **Not approved, legally wrong.** The amended S.6 is retroactive, not retrospective. Use: `Para 7: For pre-2005 demises or earlier partitions, plead carefully — the daughter's right under amended S.6 HSA arises by birth and operates retroactively, not retrospectively; a partition by registered deed or court decree before 20.12.2004 is not reopened.` |
+| #   | Proposed                                                                                                               | Mark                                                                                                                                                                                                                                                                                                                                                           |
+| --- | ---------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | mact_claim clause: `Multiplier method, with personal expenses deduction and conventional heads`                        | Approved with one addition: `Multiplier method, with future prospects, personal expenses deduction and conventional heads`                                                                                                                                                                                                                                     |
+| 2   | mact_claim Para 18: `…largely superseded by multiplier-method computation in S.166 claims`                             | Approved                                                                                                                                                                                                                                                                                                                                                       |
+| 3   | interim_application: `plead all three limbs (prima facie case, balance of convenience, irreparable injury) explicitly` | Approved                                                                                                                                                                                                                                                                                                                                                       |
+| 4   | guardianship clause                                                                                                    | Reworded: `Details of father and mother — death/unfitness/incapacity/absence; for Hindu minors per S.6 HMGA father is natural guardian and after him mother, with 'after' read as 'in the absence of'; subject to S.4`                                                                                                                                         |
+| 5   | plaint_partition Para 7: `…coparcenary status is conferred retrospectively.`                                           | **Not approved, legally wrong.** The amended S.6 is retroactive, not retrospective. Use: `Para 7: For pre-2005 demises or earlier partitions, plead carefully — the daughter's right under amended S.6 HSA arises by birth and operates retroactively, not retrospectively; a partition by registered deed or court decree before 20.12.2004 is not reopened.` |
 
 The mact_claim R2 deletions (the minor-death and non-earning-member citation lines) are approved: nothing of law is left in them.
 
@@ -338,14 +338,14 @@ Signed: Ajay (CLO), 15 Oct 2026 IST.
 
 These are not sent to the model. I checked each one:
 
-| # | Where | Mark |
-|---|---|---|
-| 1 | plaint_partition validation_rules.13 (Vineeta Sharma) | Keep: correct |
-| 2 | plaint_recovery validation_rules.11 (Patil Automation) | Reword: as written it states the rule too broadly (it applies only to commercial suits, and urgent interim relief is an exception). New text: `pre_institution_mediation must be true for a commercial suit, unless urgent interim relief is sought (S.12A Commercial Courts Act, 2015; Patil Automation)` |
-| 3 | legal_notice_copyright_infringement validation_rules.1 (Eastern Book Co. v. D.B. Modak) | Keep: correct |
-| 4 | restoration_application validation_rules.parimal_standard (Parimal v. Veena) | Keep: correct |
-| 5 | dv_act_complaint filing_checklist.9 (Rajnesh v. Neha) | Keep: correct |
-| 6 | maintenance_bnss_144 filing_checklist.8 (Rajnesh v. Neha) | Keep: correct |
+| #   | Where                                                                                   | Mark                                                                                                                                                                                                                                                                                                       |
+| --- | --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | plaint_partition validation_rules.13 (Vineeta Sharma)                                   | Keep: correct                                                                                                                                                                                                                                                                                              |
+| 2   | plaint_recovery validation_rules.11 (Patil Automation)                                  | Reword: as written it states the rule too broadly (it applies only to commercial suits, and urgent interim relief is an exception). New text: `pre_institution_mediation must be true for a commercial suit, unless urgent interim relief is sought (S.12A Commercial Courts Act, 2015; Patil Automation)` |
+| 3   | legal_notice_copyright_infringement validation_rules.1 (Eastern Book Co. v. D.B. Modak) | Keep: correct                                                                                                                                                                                                                                                                                              |
+| 4   | restoration_application validation_rules.parimal_standard (Parimal v. Veena)            | Keep: correct                                                                                                                                                                                                                                                                                              |
+| 5   | dv_act_complaint filing_checklist.9 (Rajnesh v. Neha)                                   | Keep: correct                                                                                                                                                                                                                                                                                              |
+| 6   | maintenance_bnss_144 filing_checklist.8 (Rajnesh v. Neha)                               | Keep: correct                                                                                                                                                                                                                                                                                              |
 
 Signed: Ajay (CLO), 15 Oct 2026 IST.
 
@@ -370,9 +370,9 @@ Signed: Ajay (CLO), 15 Oct 2026 IST.
 
 The model sees both ids, so they are renamed in T-451 with the same read-time alias. This matches the gpa/spa clause names already signed.
 
-| Old | New |
-|---|---|
-| `suraj_lamp_disclaimer` | `title_disclaimer` |
+| Old                           | New                      |
+| ----------------------------- | ------------------------ |
+| `suraj_lamp_disclaimer`       | `title_disclaimer`       |
 | `yes_flag_suraj_lamp_warning` | `yes_flag_title_warning` |
 
 Signed: Ajay (CLO), 15 Oct 2026 IST.
@@ -390,15 +390,15 @@ Signed: Ajay (CLO), 15 Oct 2026 IST.
 2. gpa and sale_deed `_meta.change_protocol`: **leave**. Same reason: the disclaimer stays mandatory. Any model-visible text that names the judgment follows R1/R4 and becomes "title disclaimer".
 3. The six hits are **in scope for T-450**. Exact text:
 
-| Where | New text |
-|---|---|
-| gift_deed :367 description | `Coparcener cannot gift away coparcenary interest except for pious / charitable purposes` |
-| spa :269 | `Para 7: TITLE DISCLAIMER (if SPA authorises sale) — same as GPA: SPA does not itself transfer title; only registered Sale Deed transfers title.` |
-| license_agreement :262 description | `Critical to preserve license vs lease distinction (substance, not form: a lease passes an interest in the property, a licence does not)` |
-| shareholders_agreement :93 note | `Must be mirrored in AOA to bind company` |
-| shareholders_agreement :168 note | `Critical` |
-| shareholders_agreement :178 system_role | Delete ` (V.B. Rangaraj)`. The sentence ends `…mirrorable in AOA.` |
-| aoa :191 | `Reserved matters / affirmative vote provisions are enforceable only if also reflected in AOA.` |
+| Where                                   | New text                                                                                                                                          |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| gift_deed :367 description              | `Coparcener cannot gift away coparcenary interest except for pious / charitable purposes`                                                         |
+| spa :269                                | `Para 7: TITLE DISCLAIMER (if SPA authorises sale) — same as GPA: SPA does not itself transfer title; only registered Sale Deed transfers title.` |
+| license_agreement :262 description      | `Critical to preserve license vs lease distinction (substance, not form: a lease passes an interest in the property, a licence does not)`         |
+| shareholders_agreement :93 note         | `Must be mirrored in AOA to bind company`                                                                                                         |
+| shareholders_agreement :168 note        | `Critical`                                                                                                                                        |
+| shareholders_agreement :178 system_role | Delete ` (V.B. Rangaraj)`. The sentence ends `…mirrorable in AOA.`                                                                                |
+| aoa :191                                | `Reserved matters / affirmative vote provisions are enforceable only if also reflected in AOA.`                                                   |
 
 4. joint_development_agreement :497 goes into **T-450**: replace `Suraj Lamp disclaimer` with `title disclaimer`. The rest of the line stays.
 
@@ -488,6 +488,7 @@ Signed: Ajay (CLO), 16 Oct 2026 IST.
    `The present petition is filed after the period of limitation prescribed under {article/section}, with a delay of [To be confirmed: number of days of delay]. The petitioner has filed a separate application under Section 5 of the Limitation Act, 1963 for condonation of the delay, which may be read as part of this petition.`
 
    Also add the s.5 application to the filing checklist. The day count is printed only if code computed it; otherwise it stays the blank above.
+
 4. Any input date unknown: `[To be confirmed: whether the petition is within limitation]`. Nothing is computed.
 5. Scope: the same fault can occur in every pack whose text speaks of limitation. Today that is 19 packs: amendment_of_pleadings, certiorari, consumer_complaint, counter_affidavit, criminal_appeal, criminal_revision, curative_petition, default_bail, divorce_hma, divorce_sma, judicial_separation, legal_notice_breach_of_contract, legal_notice_consumer_deficiency, plaint_injunction, plaint_partition, plaint_recovery, posh_complaint, rejoinder_affidavit, restoration_application. Fix criminal_revision first (the blocker); the rest go in one follow-up under the same rule. Each pack's article or section comes from its signed text, and anything not there is **verify** and comes to me.
 
@@ -496,11 +497,13 @@ Signed: Ajay (CLO), 16 Oct 2026 IST.
 - Notice, addressees:
 
   `1. {drawer firm/company}, through its {authorised signatory / partner / director}, at {registered office / place of business}; 2. {name}, {designation}; 3. …` (one line per person the advocate names).
+
 - Notice and complaint, paragraph:
 
   `Accused No. 1 is a {company / partnership firm}, and the cheque was drawn on its account. Accused No. {n}, {name}, was, at the time the offence was committed, in charge of and responsible to Accused No. 1 for the conduct of its business, being its {designation} and {role: [To be confirmed: role of {name} in the conduct of the business]}. Accused No. {n} is therefore deemed to be guilty of the offence under Section 138 read with Section 141 of the Negotiable Instruments Act, 1881.`
 
   One such sentence is printed per person.
+
 - Sole proprietorship: no s.141, as T-471 (c).
 
 **T-221 forgot-password copy:** send me Madhuri's text and I will do the final pass. Conditions:
@@ -612,3 +615,44 @@ Default bail under S.187(3) BNSS (old S.167(2) CrPC) is available only where the
 promptInstructions[8] becomes conditional on the answer, as above.
 
 Signed: Ajay (CLO), 16 Oct 2026 IST.
+
+## T-479 follow-up: respondent numbering and Supreme Court mandamus title (Ajay, 16 Oct 2026)
+
+| Point                                     | Ruling                                                                                                                                                                                                    |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| (a) Advocate-typed numbering              | OK. Strip only a leading "n." or "n)" at the start of a respondent line before our numbering. Never change the rest of the line.                                                                          |
+| (b) Mandamus title, court = Supreme Court | A High Court / Article 226 title on a Supreme Court petition is wrong. Use the title below. If it is not built in v1, hide the Supreme Court option in mandamus. Never print the High Court title for it. |
+
+Signed Supreme Court title (one line each):
+
+```
+IN THE SUPREME COURT OF INDIA
+CIVIL ORIGINAL JURISDICTION
+WRIT PETITION (CIVIL) NO. ______ OF ______
+(Under Article 32 of the Constitution of India)
+```
+
+T-473 scope: ref f1a18422 covers the labels in forms, in the intake brief and in the intake extraction prompt, including the three court-type labels.
+
+## T-472 follow-up: copy time, missing copy dates, article wording, numbering (Ajay, 16 Oct 2026)
+
+| Point                | Ruling                                                                                                                                                                                                                                                                                                                                                                                           |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| (1) End of copy time | Accepted. Under s.12(2), the time excluded runs from the date the certified copy was applied for to the date it was **ready for delivery**. Time taken after it was ready is not excluded. Do **not** fall back to the date it was received: that can overstate the exclusion and show a late petition as in time. If the ready date is not known, the input is unknown: print the rule 4 blank. |
+| (2) No copy dates    | Ask whether a certified copy was applied for. Answer "No": compute with nothing excluded. Not answered, or "Yes" with any copy date missing: print the rule 4 blank, and print no day count.                                                                                                                                                                                                     |
+| (3) Article wording  | Use `Article 131 of the Schedule to the Limitation Act, 1963` (revision: 90 days from the order). The signed checklist line is below.                                                                                                                                                                                                                                                            |
+| (4) Numbering        | Paragraphs are numbered consecutively in the printed draft. A paragraph that is dropped or swapped must not leave a gap or a repeated number.                                                                                                                                                                                                                                                    |
+
+Signed checklist line (only when the delay paragraph is printed):
+
+`Application under Section 5 of the Limitation Act, 1963 for condonation of delay, supported by an affidavit stating the cause of the delay.`
+
+## T-488 / T-479: name of the State as a party (Ajay, 16 Oct 2026)
+
+| Where the case is         | Party name printed                                                                                                   |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| A State                   | `State of {state}`                                                                                                   |
+| Delhi (NCT)               | `State (Govt. of NCT of Delhi)`. Never print "State of Delhi".                                                       |
+| Any other Union Territory | verify: send it to me; do not print a guess. Use `[To be confirmed: name of the State or Union Territory as party]`. |
+
+This applies to every criminal pack and to the form path. The T-488 cheque-date fix still waits on Vishal's Explore. I'll sign that text once I've seen it.

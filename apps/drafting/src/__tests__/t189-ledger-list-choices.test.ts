@@ -1409,14 +1409,25 @@ describe('T-189 AC9: no prompt text changed', () => {
   const sha = (s: string) => createHash('sha256').update(s).digest('hex');
 
   // These hashes pin the wording Ajay signed. Change them only with his signed diff.
-  it('the extraction system prompt is unchanged', () => {
+  // T-471: re-pinned with Ajay's signed drawer line (T-245 signed file, 16 Oct 2026, ruling (b)):
+  // "A firm or company named as the drawer is the drawer's name. ..." Only that one line was added.
+  it('the extraction system prompt is as re-pinned in T-471', () => {
     expect(sha(EXTRACT_SYSTEM_PROMPT)).toBe(
-      'c052d071b9a866609626d6439e78ba364981d83e9517bf3e4b694a91f82e142f',
+      'c73f669ce6ff544f7a1853fe4f6013c32bafb9fb9933e5d52d9c74fc1d63dd5f',
     );
   });
   // T-440: re-pinned with Ajay's signed not-known date line at the end of the DATES rule (a9bc957, 4b46053).
-  it('the ledger Drafter system prompt is as re-pinned in T-440', () => {
+  // T-471: re-pinned with Ajay's signed rule-4 sentence (acbec79f), appended to rule 4 only.
+  const T471_LEDGER_RULE_4 =
+    ' Never write that a fact is missing, not given or not stated in the brief, the facts or the instructions; print only its placeholder in the form {{MISSING: \u2026}}.';
+  it('the ledger Drafter system prompt is as re-pinned in T-471', () => {
     expect(sha(DRAFTER_LEDGER_SYSTEM_PROMPT)).toBe(
+      '516590deae9a9dc535820dd77f2dd1a86c58acec0501e4c52ef1a0e22c17db8b',
+    );
+  });
+  it('the ledger Drafter prompt is the T-440 text plus that one sentence, once', () => {
+    expect(DRAFTER_LEDGER_SYSTEM_PROMPT.split(T471_LEDGER_RULE_4)).toHaveLength(2);
+    expect(sha(DRAFTER_LEDGER_SYSTEM_PROMPT.replace(T471_LEDGER_RULE_4, ''))).toBe(
       '874b2b129f8ceadd811fb822aa55e741c4c907e5ba3cb60bdb2b8b55dd2ef99a',
     );
   });

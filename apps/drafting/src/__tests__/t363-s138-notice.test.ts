@@ -283,7 +283,11 @@ const AC3_LINE =
 
 describe('T-363 AC3: the notice never says the offence is complete at issue', () => {
   it("the demand_clause is DEMAND plus Ajay's two sentences, exactly", () => {
-    expect(section('demand_clause').template).toBe(`DEMAND\n\n${DEMAND_SENTENCE} ${AC3_LINE}`);
+    // T-471: the heading is {demand_heading}, plain "DEMAND" unless s.141 paragraphs precede it
+    // (rendered in t471-drawer-firm.test.ts); the two signed sentences are unchanged.
+    expect(section('demand_clause').template).toBe(
+      `{demand_heading}\n\n${DEMAND_SENTENCE} ${AC3_LINE}`,
+    );
   });
 
   it('the AC3 line appears exactly once in the whole twin', () => {
@@ -396,7 +400,8 @@ describe('T-363 AC4: proprietor, payee address, invented reasons', () => {
       respondent_address: '5 Lajpat Nagar, Delhi',
       advocate_name: 'A. Advocate',
       advocate_address: 'Chamber 3, Tis Hazari',
-      respondent_type: 'partnership',
+      // T-471: individual, so the To block is the plain proprietor form (company/partnership: t471).
+      respondent_type: 'individual',
       ...form,
     });
     return replacePlaceholders((section(sectionId) as { template: string }).template, ctx);
@@ -410,9 +415,9 @@ describe('T-363 AC4: proprietor, payee address, invented reasons', () => {
     }
   });
 
-  it('header with a drawer proprietor: To, proprietor, Proprietor, firm, address', () => {
+  it('header with a drawer proprietor: To, "X, proprietor of Y", address', () => {
     const h = render('header', { drawer_proprietor: 'Mohan Lal' });
-    expect(h).toContain('To,\nMohan Lal,\nProprietor,\nDemo Traders,\n5 Lajpat Nagar, Delhi\n');
+    expect(h).toContain('To,\nMohan Lal, proprietor of Demo Traders\n5 Lajpat Nagar, Delhi\n');
   });
 
   it('header without a proprietor omits it: no blank, no MISSING, no stray comma', () => {

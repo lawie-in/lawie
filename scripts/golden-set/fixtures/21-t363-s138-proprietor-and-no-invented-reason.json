@@ -50,6 +50,11 @@
         "key": "cheque_amount",
         "why": "read from the description",
         "display": "Rs 85,000"
+      },
+      {
+        "key": "respondent_name",
+        "why": "T-471 (Ajay (a)): the drawer firm is the drawer's name, not its proprietor",
+        "display": "Gupta Electricals"
       }
     ],
     "allow_violations": []
