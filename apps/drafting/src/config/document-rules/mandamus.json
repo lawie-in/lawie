@@ -8,7 +8,22 @@
   },
   "template_id": "mandamus",
   "card_description": "A writ petition for mandamus directing an authority to perform its legal duty.",
+  "docType": "mandamus",
   "title": "Writ Petition for Mandamus (Art. 226/32)",
+  "displayName": "Writ Petition for Mandamus",
+  "causeTitle": {
+    "format": "IN THE HON'BLE HIGH COURT OF {state} AT {courtPlace}\n(EXTRAORDINARY CIVIL / WRIT JURISDICTION)\n\n{caseNomenclature}\n\nIN THE MATTER OF: Article 226 of the Constitution of India;\nAND IN THE MATTER OF: {statute_invoked};\nAND IN THE MATTER OF: {grievance_summary};\nAND IN THE MATTER OF:\n\n{petitioner} ... Petitioner\nVERSUS\n{respondents_list} ... Respondents",
+    "supremeCourtFormat": "IN THE SUPREME COURT OF INDIA\nCIVIL ORIGINAL JURISDICTION\nWRIT PETITION (CIVIL) NO. ______ OF ______\n(Under Article 32 of the Constitution of India)\n\nIN THE MATTER OF: Article 32 of the Constitution of India;\nAND IN THE MATTER OF: {statute_invoked};\nAND IN THE MATTER OF: {grievance_summary};\nAND IN THE MATTER OF:\n\n{petitioner} ... Petitioner\nVERSUS\n{respondents_list} ... Respondents",
+    "supremeCourtAddressee": "TO, THE HON'BLE THE CHIEF JUSTICE OF INDIA AND HIS COMPANION JUSTICES OF THE SUPREME COURT OF INDIA",
+    "partyDesignations": [
+      { "role": "petitioner", "label": "Petitioner" },
+      {
+        "role": "respondents",
+        "label": "Respondents (Union / State / authority + private respondents where applicable)"
+      }
+    ],
+    "caseNomenclature": "W.P. (C) No. _____ of [YEAR]"
+  },
   "category": "writ",
   "creditsCost": 2,
   "court_levels": ["HIGH_COURT", "SUPREME_COURT"],
