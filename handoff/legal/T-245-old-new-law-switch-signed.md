@@ -911,3 +911,54 @@ Prayer (existing): mandamus directing the respondent to do the act named in {gri
 | (2) Seats that are headquarters towns | Use the district-court style `{District} at {Seat}`. Labels: "Court of the Judicial Magistrate First Class, Saran at Chhapra", "…, Vaishali at Hajipur", "…, Palamu at Daltonganj", "…, West Singhbhum at Chaibasa", "…, East Singhbhum at Jamshedpur". Headings are the same in capitals, for example "…, SARAN AT CHHAPRA". Daltonganj is officially Medininagar, so **verify** which name the Palamu civil court uses before v1.1. "Daltonganj" is OK for v1. |
 | (3) Other States | OK. They fall back to the full court list, with no regression. v1 adds no new Family Court or JMFC records outside Bihar and Jharkhand. |
 | (4) 140-character cut | Not OK as is. T-475 forbids cutting signed text. Replace the description with this shorter signed one, 121 characters, which fits without a cut: `Maintenance application under Section 144 BNSS (old s.125 CrPC) by a wife, child or parent unable to maintain themselves.` The 9ad6a8f1 description is withdrawn. The 140 limit stays as it is for other packs. |
+
+## T-472 round 4 and Arjun's (d) design, message ref AJ-472-M1 (Ajay, 16 Oct 2026). Committed after the push freeze.
+
+- No lost grounds. Code never replaces the advocate's or the model's sentences. The limitation paragraph is a template section computed from the dates.
+- Prompt line: `Do not state whether the present petition is within or beyond limitation, or whether condonation of delay is needed; that paragraph is supplied. Grounds about limitation in other proceedings stay as the advocate gave them.`
+- Checks-panel warning: `Check this sentence: it states a limitation position. The limitation paragraph (para {n}) is computed from your dates.`
+- criminal_revision.json edits 1 to 5, as listed by Priya: approved. limitation_compliance is removed. Checklist addition for when the dates are unknown: `Check limitation from the dates; if the petition is late, file an application under Section 5 of the Limitation Act, 1963.`
+
+## T-488 verifier cues, message ref AJ-488-M1 (Ajay, 16 Oct 2026)
+
+Approved as Vishal built it:
+- Cue table with Hindi cue words (jama, dinank, prapt, mila, bheja, अनादरित, प्रस्तुत).
+- A label that names two or more other fields passes only when the date is a held date.
+- An explicit wrong label fails, and a date not in the facts is blanked.
+- cheque_validity_date is cued by "last", "validity" and "printed".
+- A label before the first date does not carry over to a second date.
+
+## Byte check T-488, feature/t-488-cheque-date-state @ bfb46db1 (verifier) and 3d06093d (part A): approved (Ajay, 16 Oct 2026)
+
+- The cue table and s138Labels match AJ-488-M1, 971d2685 and b37ed330. "cheque" alone is no cue. "received" needs a memo word, and "sent" needs a notice word.
+- The held branch passes a held date only when it has no label, or when its labels name more than one field. A single explicit wrong label fails. That matches the ruling.
+- "memo dated X" is read as the dishonour date. OK, because the return memo bears the date of dishonour.
+- Part A: the s.138 notice does not require the State (971d2685). OK.
+
+## T-482 intake prompt line (Ajay, 16 Oct 2026)
+
+Kunal's wording is approved, with custody and guardianship added because "wife", "child" and "parents" are generic. Signed text:
+
+`- A catalogue line may end with "match terms": those terms alone are not enough to choose that template when the description also has divorce, Domestic Violence Act (DV Act), Hindu Adoptions and Maintenance Act (HAMA), custody or guardianship words; in that case use confidence "medium" and list it together with those templates in alternatives, so the advocate chooses.`
+
+The line format `<id> | <name> | <category> | <description> | match terms: <terms>` is OK. The scope is Bihar and Jharkhand only. OK.
+
+## T-500 follow-up (Ajay, 16 Oct 2026)
+
+| Point | Ruling |
+|---|---|
+| (5) Place after the police station | If the place is a district name, print `, District {district}`, for example "Police Station Kadamkuan, District Patna". Otherwise print the place as written, for example `, {place}`. Never drop it. |
+| (6) "That …" | Match the pack's style. In bail_regular the strings from 088fc4f7 drop the leading "That ", as in "The applicant seeks bail on the following grounds, among others, each without prejudice to the other:" and "(a) {ground 1}.". Grounds, antecedents and dependants follow the same rule. Each sentence starts with a capital letter. The wording is otherwise unchanged. |
+| (7) Skeleton v5 | Confirmed. Once Arjun settles the format, send me the exact v5 JSON. I will check every string against 088fc4f7 and this table, then issue `skeleton-bail_regular-signed.md` v5 with its SHA the same turn. |
+
+## T-488 State items (Ajay, 16 Oct 2026)
+
+- (a) ca12ec2e covers the State as a party in criminal matters. In civil writs and certiorari, the f9415fe8 line stays: `Government of NCT of Delhi through [To be confirmed: Secretary of the concerned department]`. Both are right.
+- (b) The old criminal strings "State (NCT of Delhi)" and "[To be confirmed: name of the State]" are not wrong; both Delhi forms are used in practice. Aligning them with ca12ec2e is a separate v1.1 ticket. It needs the t157 and t158 snapshots moved, and I see the diffs.
+
+## Byte check T-489, feature/t-489-mandamus-fields @ bc32f076: approved with conditions (Ajay, 16 Oct 2026)
+
+- Fields at mandamus.json :51-63 and the six body instructions plus the prayer at :118-127 match 8e85ec44 byte for byte. The T-441 line is present. The alias matches f68d5592.
+- Condition 1: `{statute_invoked}` and `{grievance_summary}` in the structure lines must be substituted before the model sees them. If a field is empty, the T-479 blank goes in. Never leave a raw "{…}". Add a test for each.
+- Condition 2: an old multi-line statutory_duty answer is collapsed to one line (single spaces) before it prints in the cause title.
+- review_notes names a judgment. If review_notes is never model-visible, it is out of T-441's scope and stays. If it is visible to the model, remove the name under T-441.
