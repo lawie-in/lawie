@@ -8,7 +8,26 @@
   },
   "template_id": "certiorari",
   "card_description": "A writ petition asking the High Court or Supreme Court to quash an order.",
+  "docType": "certiorari",
   "title": "Writ Petition — Certiorari (Article 226/32)",
+  "displayName": "Writ Petition — Certiorari",
+  "causeTitle": {
+    "format": "IN THE HON'BLE HIGH COURT OF {state} AT {courtPlace}\n(EXTRAORDINARY CIVIL / WRIT JURISDICTION)\n\n{caseNomenclature}\n\nIN THE MATTER OF: Article 226 of the Constitution of India;\nAND IN THE MATTER OF: {statute_invoked};\nAND IN THE MATTER OF: {grievance_summary};\nAND IN THE MATTER OF:\n\n{petitioner} ... Petitioner\nVERSUS\n{respondents_list} ... Respondents",
+    "article227Format": "IN THE HON'BLE HIGH COURT OF {state} AT {courtPlace}\n([To be confirmed: jurisdiction as styled in this High Court for a petition under Article 227])\n\n[To be confirmed: case type and number as styled in this High Court]\n\nIN THE MATTER OF: Article 227 of the Constitution of India;\nAND IN THE MATTER OF: {statute_invoked};\nAND IN THE MATTER OF: {grievance_summary};\nAND IN THE MATTER OF:\n\n{petitioner} ... Petitioner\nVERSUS\n{respondents_list} ... Respondents",
+    "article226And227Format": "IN THE HON'BLE HIGH COURT OF {state} AT {courtPlace}\n(EXTRAORDINARY CIVIL / WRIT JURISDICTION)\n\n{caseNomenclature}\n\nIN THE MATTER OF: Articles 226 and 227 of the Constitution of India;\nAND IN THE MATTER OF: {statute_invoked};\nAND IN THE MATTER OF: {grievance_summary};\nAND IN THE MATTER OF:\n\n{petitioner} ... Petitioner\nVERSUS\n{respondents_list} ... Respondents",
+    "article227NoHighCourtFormat": "IN THE HIGH COURT OF [To be confirmed: High Court]\n([To be confirmed: jurisdiction as styled in this High Court for a petition under Article 227])\n\n[To be confirmed: case type and number as styled in this High Court]\n\nIN THE MATTER OF: Article 227 of the Constitution of India;\nAND IN THE MATTER OF: {statute_invoked};\nAND IN THE MATTER OF: {grievance_summary};\nAND IN THE MATTER OF:\n\n{petitioner} ... Petitioner\nVERSUS\n{respondents_list} ... Respondents",
+    "article226And227NoHighCourtFormat": "IN THE HIGH COURT OF [To be confirmed: High Court]\n(EXTRAORDINARY CIVIL / WRIT JURISDICTION)\n\n[To be confirmed: case type and number as styled in this High Court]\n\nIN THE MATTER OF: Articles 226 and 227 of the Constitution of India;\nAND IN THE MATTER OF: {statute_invoked};\nAND IN THE MATTER OF: {grievance_summary};\nAND IN THE MATTER OF:\n\n{petitioner} ... Petitioner\nVERSUS\n{respondents_list} ... Respondents",
+    "supremeCourtFormat": "IN THE SUPREME COURT OF INDIA\nCIVIL ORIGINAL JURISDICTION\nWRIT PETITION (CIVIL) NO. ______ OF ______\n(Under Article 32 of the Constitution of India)\n\nIN THE MATTER OF: Article 32 of the Constitution of India;\nAND IN THE MATTER OF: {statute_invoked};\nAND IN THE MATTER OF: {grievance_summary};\nAND IN THE MATTER OF:\n\n{petitioner} ... Petitioner\nVERSUS\n{respondents_list} ... Respondents",
+    "supremeCourtAddressee": "TO, THE HON'BLE THE CHIEF JUSTICE OF INDIA AND HIS COMPANION JUSTICES OF THE SUPREME COURT OF INDIA",
+    "partyDesignations": [
+      { "role": "petitioner", "label": "Petitioner" },
+      {
+        "role": "respondents",
+        "label": "Respondents (Union / State / authority + private respondents where applicable)"
+      }
+    ],
+    "caseNomenclature": "W.P. (C) No. _____ of [YEAR]"
+  },
   "category": "writ",
   "creditsCost": 2,
   "court_levels": ["high_court", "supreme_court"],

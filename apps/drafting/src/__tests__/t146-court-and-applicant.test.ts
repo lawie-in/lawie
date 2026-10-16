@@ -421,12 +421,7 @@ describe('T-146 criterion 5: placeholder coverage of every document rule', () =>
       'verification:relation',
     ],
     'criminal_appeal.json': ['cause_title:respondent', 'prayer:applicable_section'],
-    'criminal_revision.json': [
-      'cause_title:petitioner',
-      'cause_title:respondent',
-      'prayer:applicable_section',
-      'prayer:case_details',
-    ],
+    'criminal_revision.json': ['prayer:applicable_section', 'prayer:case_details'],
     'discharge_application.json': ['cause_title:accused'],
     'divorce_hma.json': ['cause_title:petitioner', 'cause_title:respondent'],
     'divorce_mutual_consent.json': [
@@ -437,13 +432,11 @@ describe('T-146 criterion 5: placeholder coverage of every document rule', () =>
     ],
     'divorce_sma.json': ['cause_title:petitioner', 'cause_title:respondent'],
     'dv_act_complaint.json': ['cause_title:aggrievedPerson', 'cause_title:respondent'],
-    'fir_quashing.json': ['cause_title:complainant', 'cause_title:petitioner'],
     'guardianship_petition.json': [
       'cause_title:petitioner',
       'cause_title:respondent',
       'prayer:parent_names',
     ],
-    'habeas_corpus.json': ['cause_title:petitioner', 'cause_title:respondents_list'],
     'ibc_application.json': [
       'prayer:irp_ibbi_number',
       'verification:applicant_authorised_rep_name',
@@ -468,12 +461,7 @@ describe('T-146 criterion 5: placeholder coverage of every document rule', () =>
     'maintenance_bnss_144.json': ['cause_title:respondent'],
     'memo_of_parties.json': ['cause_title:seat'],
     'mou.json': ['cause_title:date'],
-    'pil.json': [
-      'cause_title:petitioner',
-      'cause_title:respondents_list',
-      'prayer:primary_relief',
-      'prayer:subject_matter',
-    ],
+    'pil.json': ['prayer:primary_relief', 'prayer:subject_matter'],
     'plaint_declaration.json': ['cause_title:defendant', 'cause_title:plaintiff'],
     'plaint_eviction.json': [
       'cause_title:defendant',
@@ -495,9 +483,6 @@ describe('T-146 criterion 5: placeholder coverage of every document rule', () =>
     ],
     'production_of_documents.json': ['cause_title:respondent'],
     'quashing_528_bnss.json': [
-      'cause_title:complainant',
-      'cause_title:petitioner',
-      'cause_title:prosecuting_agency',
       'prayer:district',
       'prayer:fir_date',
       'prayer:fir_number',
@@ -537,7 +522,6 @@ describe('T-146 criterion 5: placeholder coverage of every document rule', () =>
     ],
     'will.json': ['cause_title:date'],
     'writ_petition_civil.json': [
-      'cause_title:petitioner',
       'prayer:impugned_order_brief',
       'prayer:positive_relief',
       'prayer:writ_type_primary',

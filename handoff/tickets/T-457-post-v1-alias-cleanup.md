@@ -35,3 +35,9 @@ After v1 is live and a week of drafts has passed with no old-name hits. Arjun pi
 ## Added 16 Oct 2026: T-478 clause-id alias
 
 T-478 (Tanvi) renames the certiorari clause id to jurisdiction_clause and keeps the old id as an alias in rule-pack.service.ts, marked "// T-478 alias, remove in the post-v1 cleanup". Remove it in this cleanup on the same date rule (14 days after T-403 release, last 7 days zero old-name hits).
+
+## Added 16 Oct 2026 (Priya)
+
+T-489's read-time alias `statutory_duty` to `statute_invoked` in mandamus.json (Ajay f68d5592) is also removed in this cleanup, with a comment `// T-489 alias, remove in the post-v1 cleanup`.
+
+Known limit of the T-489 alias (Shashank, 16 Oct 2026): on the ledger path an old `statutory_duty` fact is dropped (brief-drafter.ts:506 keeps only current checklist keys), so the blank prints; fixing it needs brief-drafter.ts (T-486 territory). Same limit as T-451's alias. Not fixed for v1; the field is new, so few old answers exist.

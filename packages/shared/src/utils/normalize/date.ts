@@ -148,8 +148,13 @@ const NUMERIC_DMY = /^(\d{1,2})([/.-])(\d{1,2})\2(\d{2,4})$/;
 const ISO_YMD = /^(\d{4})-(\d{1,2})-(\d{1,2})$/;
 /** `12 March 2026`, `12th Mar, 2026`, `12-Mar-2026`. */
 const NAMED_DMY = /^(\d{1,2})(?:st|nd|rd|th)?[\s.,/-]*([\p{L}\p{M}]+)\.?[\s.,/-]*(\d{2,4})?$/u;
-/** `March 12, 2026`. The month is named, so the order is not in doubt. */
-const NAMED_MDY = /^([\p{L}\p{M}]+)\.?\s+(\d{1,2})(?:st|nd|rd|th)?,?\s*(\d{2,4})?$/u;
+/**
+ * `March 12, 2026`. The month is named, so the order is not in doubt.
+ * T-496 (Ajay 604af4bd, 8f0d980a): the day must not run straight into more
+ * digits, so `June 2026` is not split into day 20 and year 26. A month and
+ * year with no day reads as no date; a day is never supplied.
+ */
+const NAMED_MDY = /^([\p{L}\p{M}]+)\.?\s+(\d{1,2})(?!\d)(?:st|nd|rd|th)?,?\s*(\d{2,4})?$/u;
 
 /**
  * T-363 AC2: the day of the month as an ordinal word. The same words as

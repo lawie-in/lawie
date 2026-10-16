@@ -2,7 +2,7 @@
 
 | Field  | Value                                                                 |
 | ------ | --------------------------------------------------------------------- |
-| Status | To do. V1 BLOCKER (Arjun, 16 Oct 2026). Priya                           |
+| Status | Merged into develop_staging 9e676caa, 16 Oct (Ajay f9415fe8, b101b4eb, 8766fbf1). Release: promoted templates re-sync on the next seed. Anushka to test on develop. Priya |
 | Owner  | Kunal (he holds template-promoter.ts for T-473), Ajay gates            |
 | Mode   | Full chain (legal content path)                                        |
 
@@ -40,3 +40,10 @@ Not everything is "ss.". Print the pack's own reference exactly: "O. XIX r. 3" f
 - Arjun: the "[only when: ...]" marker is stripped in sanitiseAIBody only (anchored to the literal shape), with the strip count on the run metadata (counts only, no text); tests with the marker mid-sentence, on its own line and absent.
 - New file apps/drafting/src/services/related-acts.ts is added to .claude/docs/legal-content-paths.md (prompt-text file).
 - Open: the PWDVA entry under relatedActs in bail_regular.json (applicableWhen "dv_dowry"): Ajay gives the plain-words condition or rules the difference intended.
+
+## Arjun (16 Oct 2026) — rulings
+
+- v1 blocker: the promoted (template-engine) path fed the prompt Act names without sections, so section numbers came from the model's memory on exactly the form-driven drafts Anushka runs. Fix in template-promoter.ts: render each entry as "<act> (S.<n>; Order XIX Rule 3)", refs joined "; ", entries ", "; isNiAct still matches; a bare number is a section and prints as (S.8) (Ajay).
+- default_bail's CrPC entry: in — one rendering line at ai.service.ts:994 through the same formatter. legal_notice_s138's unused registry config: V1.1.
+- "[only when: …]" echoed by the model: sanitiseAIBody strips the exact marker and counts strips on run metadata (counts only). Raw SSE chunks may still carry it; no third-party client exists → V1.1 ticket "sanitise streamed chunks before emit".
+- Ticket closed to further additions after that.
