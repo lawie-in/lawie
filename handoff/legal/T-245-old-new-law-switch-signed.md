@@ -710,3 +710,9 @@ This applies to every criminal pack and to the form path. The T-488 cheque-date 
 | (e) state_of_filing not fed into {state} | v1 if a wrong State can print. Park it (T-488) if the only result is the blank. |
 | (f) "Home Department" in the writ_petition_civil prompt | v1. The model sees it, so replace it with the signed department blank line (6a047469, point 4). |
 | T-477 bare number in an Act's brackets | A bare number is a section. It prints as `(S.8)`, not `(8)`. Adding "S." is part of the signed format, not a conversion. Nested brackets that are pack text verbatim are OK. |
+
+## T-477: wording of the conditions (Ajay, 16 Oct 2026)
+
+- Merging `relatedActs` with the other list is OK. The brief path and the promoted path must cite the same Acts.
+- `dv_dowry`: `[only when: the offence arises from domestic violence or a dowry demand]`.
+- A raw condition key (such as `dv_dowry`) never reaches the model. Every applicableWhen key needs plain words signed by me. Send me the list of all 11 keys with proposed wording before the byte check.
