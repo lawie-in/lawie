@@ -243,6 +243,7 @@ export function getCatalogue(): CatalogueEntry[] {
       display_name: t.display_name,
       category: t.category,
       description: presentDescription(t.description),
+      ...(t.match_terms ? { match_terms: t.match_terms } : {}),
     }))
     .sort((a, b) => a.template_id.localeCompare(b.template_id));
 }

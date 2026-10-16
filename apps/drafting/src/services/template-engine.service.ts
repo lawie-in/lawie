@@ -170,6 +170,8 @@ export interface TemplateConfig {
    */
   catalogueCategory?: CatalogueCategoryId;
   description: string;
+  /** T-482: the pack's signed `_meta.match_terms`, shown to the intake match prompt only. */
+  match_terms?: string[];
   icon: string;
   plan_access: 'free' | 'pro';
   applicable_courts: {
@@ -201,6 +203,8 @@ export interface TemplateSummary {
   catalogueCategoryName: string;
   catalogueCategoryOrder: number;
   description: string;
+  /** T-482: see TemplateConfig.match_terms. Absent when the pack has none. */
+  match_terms?: string[];
   icon: string;
   plan_access: 'free' | 'pro';
   supported_languages: string[];
@@ -406,6 +410,7 @@ export function listTemplateConfigs(): TemplateSummary[] {
       catalogueCategoryName: name,
       catalogueCategoryOrder: order,
       description: config.description,
+      ...(config.match_terms ? { match_terms: config.match_terms } : {}),
       icon: config.icon,
       plan_access: config.plan_access,
       supported_languages: config.supported_languages,

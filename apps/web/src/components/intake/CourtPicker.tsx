@@ -7,7 +7,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { isBailTemplate, NOT_OFFERED_SUFFIX, SAVED_TYPE_NAMES } from './bailCourts';
+import { isScopedCourtTemplate, NOT_OFFERED_SUFFIX, SAVED_TYPE_NAMES } from './bailCourts';
 import type { BriefCourt } from './briefTypes';
 import ConsumerLevelGroup, {
   CONSUMER_COURT_LABEL,
@@ -79,7 +79,9 @@ export default function CourtPicker({
   templateId?: string;
 }) {
   const consumer = templateId === CONSUMER_TEMPLATE_ID;
-  const bail = isBailTemplate(templateId);
+  // T-425 bail packs and T-482 maintenance: template-scoped lists in the generic picker,
+  // and a saved choice the scope no longer offers is kept and marked.
+  const scoped = isScopedCourtTemplate(templateId);
   const [states, setStates] = useState<Option[]>([]);
   const [statesLoaded, setStatesLoaded] = useState(false);
   const [types, setTypes] = useState<Option[]>([]);
@@ -128,7 +130,7 @@ export default function CourtPicker({
     ? level
       ? `template=${CONSUMER_TEMPLATE_ID}&level=${level}`
       : ''
-    : bail
+    : scoped
       ? `template=${encodeURIComponent(templateId as string)}`
       : '';
 
@@ -223,10 +225,11 @@ export default function CourtPicker({
     };
   }, [court.state, court.court_type, attempt, consumer, level, scope]);
 
-  // T-425 (AC3): a bail brief saved with a court this pack no longer offers keeps it. Ask
-  // for that court by id only to name it in the list; the choice itself is never changed.
+  // T-425 (AC3): a bail (or T-482 maintenance) brief saved with a court this pack no longer
+  // offers keeps it. Ask for that court by id only to name it in the list; the choice
+  // itself is never changed.
   const courtNotOffered =
-    bail && !!court.court && courtsLoaded && !courts.some((c) => c.id === court.court);
+    scoped && !!court.court && courtsLoaded && !courts.some((c) => c.id === court.court);
   useEffect(() => {
     if (!courtNotOffered || !court.court || saved?.id === court.court) return;
     const id = court.court;
@@ -269,11 +272,11 @@ export default function CourtPicker({
       : courts.filter((c) => c.id === court.court || c.name.toLowerCase().includes(q));
   const savedName = saved && saved.id === court.court ? saved : null;
   const keptState =
-    bail && court.state && statesLoaded && !states.some((s) => s.id === court.state)
+    scoped && court.state && statesLoaded && !states.some((s) => s.id === court.state)
       ? { id: court.state, name: `${savedName?.state || court.state}${NOT_OFFERED_SUFFIX}` }
       : null;
   const keptType =
-    bail && court.court_type && typesLoaded && !types.some((t) => t.id === court.court_type)
+    scoped && court.court_type && typesLoaded && !types.some((t) => t.id === court.court_type)
       ? {
           id: court.court_type,
           name: `${SAVED_TYPE_NAMES[court.court_type] ?? court.court_type}${NOT_OFFERED_SUFFIX}`,
