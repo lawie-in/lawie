@@ -2,7 +2,7 @@
 
 | Field  | Value |
 | ------ | ----- |
-| Status | To do. V1. Priya, 16 Oct 2026 |
+| Status | Bugs 1 and 2 merged into develop_staging 400836e8, 16 Oct (web). Bug 3 (lost typing) parked, not reproduced. The draft text for the bail-bonds "No" waits for T-486. Priya |
 | Owner  | Tanvi (after T-478), web lead |
 | Mode   | Full chain (web, no legal text) |
 
