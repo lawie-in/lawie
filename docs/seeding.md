@@ -118,6 +118,8 @@ Reasoning effort is set per stage by `ai.effort.intake`, `ai.effort.preflight` a
 
 The intake extraction call's `max_tokens` is set by `ai.cap.intake_extract` (a whole number from 500 to 8000; default `3000` when unset, so nothing needs seeding). To change it, run `seed:setting ai.cap.intake_extract <value>`. It is cached for 60 seconds, and an invalid value falls back to the default with a warning.
 
+The intake Reception calls' `max_tokens` (pack and guided) is set by `ai.cap.intake_reception` (a whole number from 500 to 8000; default `4000` when unset, so nothing needs seeding). To change it, run `seed:setting ai.cap.intake_reception <value>`. It is cached for 60 seconds, and an invalid value falls back to the default with a warning.
+
 All four scripts read `MONGO_URI` from `.env.${NODE_ENV ?? 'development'}` at the repo root.
 
 ---
