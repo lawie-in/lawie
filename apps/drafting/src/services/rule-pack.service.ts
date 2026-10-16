@@ -19,7 +19,7 @@ import { readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 
 import type { AvermentLists } from './averments';
-import { humaniseOptionLabel, normaliseOption } from './template-promoter';
+import { humaniseOptionLabel, normaliseOption, objectOptionLabel } from './template-promoter';
 
 // ── Output shape ────────────────────────────────────────────────────────────
 
@@ -204,7 +204,7 @@ function optionLabels(v: unknown): string[] {
       out.push(humaniseOptionLabel(String(o)));
     } else if (isObj(o)) {
       const label = firstStr(o.label, o.name, o.value, o.id);
-      if (label !== null) out.push(humaniseOptionLabel(label));
+      if (label !== null) out.push(objectOptionLabel(o, label));
     }
   }
   return out;

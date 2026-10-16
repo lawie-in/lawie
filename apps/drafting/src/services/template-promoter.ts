@@ -281,15 +281,18 @@ export function normaliseOption(o: unknown, idx: number): FieldOption | null {
       typeof obj.id === 'string' && obj.id.length > 0
         ? obj.id
         : slugifyOption(rawLabel) || `opt_${idx}`;
-    // T-473: a missing label (falls back to the id) or a label that is just the
-    // snake_case id gets humanised. An authored human label is kept verbatim.
-    const label =
-      typeof obj.label !== 'string' || obj.label === obj.id
-        ? humaniseOptionLabel(rawLabel)
-        : rawLabel;
-    return { id, label };
+    return { id, label: objectOptionLabel(obj, rawLabel) };
   }
   return null;
+}
+
+/**
+ * T-473: the shown label of an object option, given the text it falls back to. A
+ * missing label, or a label equal to the id, is humanised; an authored label is
+ * kept verbatim. Shared with `rule-pack.service` so the form and brief agree.
+ */
+export function objectOptionLabel(obj: Record<string, unknown>, text: string): string {
+  return typeof obj.label !== 'string' || obj.label === obj.id ? humaniseOptionLabel(text) : text;
 }
 
 function normaliseOptions(
