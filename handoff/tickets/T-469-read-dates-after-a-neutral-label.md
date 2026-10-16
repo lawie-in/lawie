@@ -40,3 +40,7 @@ packages/shared/src/utils/normalize/date.ts and its test; apps/drafting/src/serv
 - Tests for every case. Before/after table of every date fixture for Ajay.
 - Legal-content gate: Ajay. Owner: Vishal, after T-453 closes (his R1+R2 branch carries the work). Mode: full chain.
 - Not blocking v1, unless Anushka reports unrecognised dates in the bail flows.
+
+## Arjun (16 Oct 2026) — go
+
+Vishal may edit packages/shared/src/utils/normalize/date.ts and its tests, nothing else in shared. Conditions as ticketed (qualifier allowlist; Ajay's label-must-name-the-field rule; before/after table of every date fixture read by Ajay before the reviewer); full chain; shared merge waits for CI (rule 7). T-496 rides the same chain as a second commit. Off the v1 critical path: it does not hold the develop merge.
