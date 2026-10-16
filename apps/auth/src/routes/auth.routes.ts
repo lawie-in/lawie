@@ -7,6 +7,7 @@ import {
   logout,
   forgotPassword,
   resetPasswordHandler,
+  checkResetTokenHandler,
   getMe,
   updateMeHandler,
   acceptPrivacyHandler,
@@ -22,7 +23,10 @@ router.post('/register', register);
 router.post('/login', login);
 router.post('/refresh', refresh);
 router.post('/logout', authenticateAllowRevoked, logout);
+// T-221 — public. Rate limited per email and per IP inside forgotPassword (AC4), on top of the
+// gateway's publicRateLimiter. GET is the reset page's read-only check on load.
 router.post('/forgot-password', forgotPassword);
+router.get('/reset-password/:token', checkResetTokenHandler);
 router.post('/reset-password/:token', resetPasswordHandler);
 // T-343 — privacy re-acceptance. Both need a live session (authenticate, not AllowRevoked).
 router.get('/me', authenticate, getMe);

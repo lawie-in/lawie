@@ -56,7 +56,15 @@
  * The view is PII and an amount: never logged, never in job data, meta, the return value,
  * failedReason or Sentry. Logs carry jobId, template, userId, invoiceId and HTTP status only.
  *
- * Test seam (T-220 AC4): createProcessor(send, mint, notice, invoiceView) takes the provider send
+ * T-221: an auth.passwordReset job carries the userId only. The processor asks auth (POST
+ * /internal/password-reset/mint, INTERNAL_SECRET) for the address and either a freshly minted
+ * 30-minute reset link (variant 'link') or, for a Google-only account, the login URL (variant
+ * 'google'), then renders and sends. A 404 (no such user, inactive, being closed) completes the
+ * job with no send and no Sentry event. The mint response (address, link) is never logged, put
+ * in job data, meta, the return value, failedReason or Sentry. A BullMQ retry mints again; only
+ * the newest link works.
+ *
+ * Test seam (T-220 AC4): createProcessor(send, mint, notice, invoiceView, passwordReset) takes the provider send
  * function and the verify-link mint function, and startWorkers({ connection, send }) takes both the Redis
  * connection and the send function, so a test can force a provider error
  * against its own Redis without jest.mock. Importing this module opens no
@@ -76,7 +84,12 @@ import Redis from 'ioredis';
 
 import { env } from './config/env';
 import { logger } from './config/logger';
-import { anyTemplateUnfilled, isLiveSend, templateHasUnfilledFooter } from './placeholders';
+import {
+  anyTemplateUnfilled,
+  isLiveSend,
+  supplierStreetAddress,
+  templateHasUnfilledFooter,
+} from './placeholders';
 import { EmailSendError, sendEmail, type SendEmailFn } from './providers';
 import { safeErrorFields, toSentrySafeError, userIdFromData } from './providers/safe-log';
 import { bullPrefix, WORKER_QUEUE_NAMES } from './queues';
@@ -163,6 +176,60 @@ export const mintVerifyLinkViaAuth: MintVerifyLinkFn = async (userId) => {
     name: typeof body.name === 'string' ? body.name : '',
     link: body.link,
   };
+};
+
+// ── T-221: password-reset mint (auth) ───────────────────────────────────────
+
+/** What auth's password-reset mint returns. PII and a live credential: never log any of it. */
+export type MintedPasswordReset =
+  | { variant: 'link'; email: string; resetUrl: string }
+  | { variant: 'google'; email: string; loginUrl: string };
+
+/**
+ * Asks auth to mint a password-reset link for userId (or, for a Google-only account, the login
+ * URL). Returns null on 404 (no such user, inactive, being closed): the job is dropped. Throws a
+ * value-free error on any other failure, so BullMQ retries.
+ */
+export type MintPasswordResetFn = (userId: string) => Promise<MintedPasswordReset | null>;
+
+class PasswordResetMintError extends Error {
+  readonly code: string;
+  constructor(code: string) {
+    super(`password-reset mint failed: ${code}`);
+    this.name = 'PasswordResetMintError';
+    this.code = code;
+  }
+}
+
+export const mintPasswordResetViaAuth: MintPasswordResetFn = async (userId) => {
+  let res: Response;
+  try {
+    res = await fetch(`${env.AUTH_SERVICE_URL}/internal/password-reset/mint`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        [INTERNAL_HEADERS.SECRET]: env.INTERNAL_SECRET,
+      },
+      body: JSON.stringify({ userId }),
+      signal: AbortSignal.timeout(MINT_TIMEOUT_MS),
+    });
+  } catch (err) {
+    // Network error or timeout. The original message can carry the URL: not kept.
+    const name = (err as { name?: unknown } | null)?.name;
+    throw new PasswordResetMintError(name === 'TimeoutError' ? 'TIMEOUT' : 'NETWORK');
+  }
+  if (res.status === 404) return null;
+  if (!res.ok) throw new PasswordResetMintError(`HTTP_${res.status}`);
+  const body = (await res.json().catch(() => null)) as Record<string, unknown> | null;
+  if (body && nonEmpty(body.email)) {
+    if (body.variant === 'link' && nonEmpty(body.resetUrl)) {
+      return { variant: 'link', email: body.email, resetUrl: body.resetUrl };
+    }
+    if (body.variant === 'google' && nonEmpty(body.loginUrl)) {
+      return { variant: 'google', email: body.email, loginUrl: body.loginUrl };
+    }
+  }
+  throw new PasswordResetMintError('BAD_RESPONSE');
 };
 
 // ── T-358: verify-link mail outcome and the deletion notice (auth) ─────────
@@ -472,6 +539,8 @@ function invoiceRenderData(view: InvoiceEmailView, userId: string): Record<strin
 }
 
 const UNFILLED_PLACEHOLDER_MESSAGE = 'email has unfilled footer placeholders; not sent';
+const NO_STREET_ADDRESS_MESSAGE =
+  'password reset email needs the supplier street address; not sent';
 /** Errors raised by the placeholder guard: rethrown as-is, without the Sentry/log path. */
 const placeholderRefusals = new WeakSet<object>();
 
@@ -500,6 +569,7 @@ export function createProcessor(
   mint: MintVerifyLinkFn = mintVerifyLinkViaAuth,
   notice: UnverifiedNoticeDeps = unverifiedNoticeViaAuth,
   invoiceView: FetchInvoiceViewFn = fetchInvoiceViewViaBilling,
+  passwordReset: MintPasswordResetFn = mintPasswordResetViaAuth,
 ): Processor<EmailJobData> {
   return async (job: Job<EmailJobData>) => {
     const { template, cc, bcc, replyTo, data } = job.data;
@@ -510,13 +580,14 @@ export function createProcessor(
     const attempt = job.attemptsMade + 1;
     const isVerify = template === 'auth.verifyEmail';
     const isNotice = template === 'auth.unverifiedDeletionNotice';
+    const isPasswordReset = template === 'auth.passwordReset';
     // T-436: invoice and credit-note emails resolve the recipient through billing.
     const invoiceKind = INVOICE_TEMPLATE_KIND[template];
     const rawInvoiceId = data?.invoiceId;
     const invoiceId = invoiceKind && nonEmpty(rawInvoiceId) ? rawInvoiceId : undefined;
     // All of these resolve the recipient through auth or billing; the job's to/cc/bcc/replyTo
     // are never used.
-    const userIdOnly = isVerify || isNotice || invoiceKind !== undefined;
+    const userIdOnly = isVerify || isNotice || isPasswordReset || invoiceKind !== undefined;
     // T-358: which verify-link mail this is, for the outcome report (set once known).
     let mail: VerifyMail | null = isVerify ? 'verify' : null;
     Sentry.addBreadcrumb({
@@ -559,6 +630,43 @@ export function createProcessor(
         }
         to = [minted.email];
         renderData = { name: minted.name, verifyUrl: minted.link, userId };
+      }
+      if (isPasswordReset) {
+        // T-221: the address and the link (or the login URL) come from auth at send time,
+        // never from the job.
+        if (!userId) throw new UnrecoverableError('auth.passwordReset job without a userId');
+        // Checked before the mint, so a job that cannot render never rotates the user's token.
+        if (!isTemplateRegistered(template)) {
+          throw new Error(`Template "${template}" is not registered`);
+        }
+        // T-221 (Ajay condition 1): no live send until the supplier street address is set.
+        // Checked before the mint, so a refused job mints no token. Same handling as the
+        // placeholder guard: userId and reason only, no Sentry, no retry. Dry run renders a
+        // visible marker instead.
+        const streetAddress = supplierStreetAddress();
+        if (isLiveSend() && !streetAddress) {
+          logger.error(
+            { userId: ids.userId, reason: 'supplier_street_address_unset' },
+            'Password reset email not sent: supplier street address not set',
+          );
+          const refusal = new UnrecoverableError(NO_STREET_ADDRESS_MESSAGE);
+          placeholderRefusals.add(refusal);
+          throw refusal;
+        }
+        const minted = await passwordReset(userId);
+        if (!minted) {
+          logger.info(
+            { jobId, template: ids.template, userId: ids.userId },
+            'Password reset email not sent: no such user, inactive or being closed',
+          );
+          return { skipped: 'not_eligible' };
+        }
+        to = [minted.email];
+        renderData =
+          minted.variant === 'link'
+            ? { variant: 'link', resetUrl: minted.resetUrl, userId }
+            : { variant: 'google', loginUrl: minted.loginUrl, userId };
+        if (streetAddress) renderData = { ...renderData, streetAddress };
       }
       if (isNotice) {
         // T-358: address, name, date and link come from auth at send time, never from the job.
@@ -674,6 +782,9 @@ export function createProcessor(
       );
       // T-223 AC7: in dry run, one line with the userId only (no address, token or link).
       if (isVerify && !isLiveSend()) logger.info({ userId: ids.userId }, 'verify email sent');
+      if (isPasswordReset && !isLiveSend()) {
+        logger.info({ userId: ids.userId }, 'password reset email sent');
+      }
       if (mail && userId) {
         if (noticeOutcomeReportable()) {
           await reportMailOutcome(notice.report, userId, mail, 'sent', jobId);
@@ -749,6 +860,8 @@ export interface StartWorkersOptions {
   notice?: UnverifiedNoticeDeps;
   /** T-436 invoice email-view fetch; defaults to the call to billing's internal route. */
   invoiceView?: FetchInvoiceViewFn;
+  /** T-221 password-reset mint; defaults to the call to auth's internal route. */
+  passwordReset?: MintPasswordResetFn;
 }
 
 export function startWorkers(options: StartWorkersOptions = {}): Worker[] {
@@ -768,6 +881,7 @@ export function startWorkers(options: StartWorkersOptions = {}): Worker[] {
     options.mint,
     options.notice,
     options.invoiceView,
+    options.passwordReset,
   );
   const started: Worker[] = [];
   for (const queueName of WORKER_QUEUE_NAMES) {
