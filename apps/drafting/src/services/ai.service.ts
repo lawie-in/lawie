@@ -2052,6 +2052,7 @@ export async function streamGenerateFromBrief(
             ...(promptInput.statedInstructions ?? []),
           ],
           packText: packTexts(pack),
+          packId: pack.id,
         },
         async (system, user) => {
           res.write(`event: repair\ndata: ${JSON.stringify({ facts: true })}\n\n`);
@@ -2621,6 +2622,7 @@ async function d1GenerateFromBrief(c: D1Context): Promise<BriefGenerateResult> {
     unresolved: ledger.unresolved ?? [],
     lists: ledger.lists,
     packText: packTexts(pack),
+    packId: pack.id,
   };
   const rendered = renderDraft({
     skeleton,
