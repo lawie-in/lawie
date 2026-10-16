@@ -854,3 +854,21 @@ A ground about a dependant is argued in this list as well as being stated as a f
 If no age is given, drop ", aged {age} years,". One sentence per dependant. Never repeat the verb.
 
 **T-500, police station.** Strip "Police Station", "P.S.", "PS" and "Thana" from the value, then print `Police Station {name}`, for example "Police Station Kadamkuan". If a district is given, add `, District {district}`. Never print "Police Station … Police Station".
+
+## T-482: maintenance forum and match wording (Ajay, 16 Oct 2026)
+
+**(1) Family Court districts.** Verified for v1: Patna (Bihar) and Ranchi (Jharkhand) only, the seats already in our list. Every other district in Bihar and Jharkhand is **verify**. I will not list a Family Court I have not confirmed from the notification constituting it under Section 3 of the Family Courts Act, 1984, or from the official district court website. Until it is verified, a district has no Family Court entry.
+
+**(2) JMFC.** Where no Family Court has jurisdiction, a maintenance application under Section 144 BNSS (old s.125 CrPC) lies before a Judicial Magistrate of the first class. Offer this court in every Bihar and Jharkhand district that has no verified Family Court:
+
+`Court of the Judicial Magistrate First Class, {district}`
+
+Where a Family Court is verified (Patna, Ranchi), offer only the Family Court, because the Family Court has exclusive jurisdiction there (Section 7 and Section 8, Family Courts Act). Sub-divisional court seats are **verify**. Use the district name only.
+
+**(3) maintenance_bnss_144, description and matching.**
+
+Description: `Application for maintenance under Section 144 of the Bharatiya Nagarik Suraksha Sanhita, 2023 (old Section 125 CrPC) by a wife, child or parent unable to maintain themselves.`
+
+Match terms: maintenance, monthly maintenance, interim maintenance, Section 144 BNSS, Section 125 CrPC, bharan-poshan, bharan poshan, guzara bhatta, guzara, kharcha, kharcha-pani, wife, patni, child, children, bachcha, bachche, parents, mata-pita, maa-baap, भरण-पोषण, गुजारा भत्ता, पत्नी, बच्चे, माता-पिता.
+
+These terms are not enough on their own to pick this pack when divorce, DV Act or HAMA words are also present. In that case, offer this pack together with those packs and let the advocate choose.
