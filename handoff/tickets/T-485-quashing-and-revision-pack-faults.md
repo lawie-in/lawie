@@ -22,3 +22,10 @@ Anushka quality run 4 on develop, 16 Oct 2026 (handoff/quality/2026-10-16-run-4-
 
 Ajay rules each; Mahak fixes in one ticket. Explore first.
 
+
+## Ajay's rulings (16 Oct 2026, T-245 file 560c0e1e; exact text is there)
+
+- (a) The revision title follows the forum: Sessions revision -> s.438 read with s.440 BNSS; High Court -> s.438 read with s.442; plus the s.438(3) one-revision bar.
+- (b) Quashing: add a settlement ground with the public-element caution. The seven categories are set out, not quoted; the clause loses "Verbatim".
+- (c) Delete the "disclaimer slip" from every checklist; the disclaimer stays outside the court document.
+- (d) No "Shri/Smt.": use the gender if given, else no honorific.

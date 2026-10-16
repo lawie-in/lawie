@@ -23,3 +23,7 @@ Explore: where the party names go from the brief to the cause title (ledger fiel
 - Given petitioner and respondent names appear in the cause title in habeas, quashing, revision, regular bail, mandamus, certiorari.
 - Tests pin it; Ajay's ref.
 
+
+## Ajay's ruling (16 Oct 2026)
+
+No new wording needed: T-404 applies. Mandamus uses the writ_civil title.

@@ -18,3 +18,7 @@ The fallback does not refuse and asks sensible questions, but: title reads "Cave
 
 Keep the section the user names, carry advocate details, never put the court as a party, and prompt for the s.148A(2) service line. Ajay decides whether a caveat should be a real pack (likely, v1.1) or the fallback must do this right.
 
+
+## Ajay's ruling (16 Oct 2026, T-245 file 560c0e1e)
+
+The caveat is a real pack in v1.1 (contents in his file). Until then the no-template path says "not available yet" for a caveat instead of drafting one.

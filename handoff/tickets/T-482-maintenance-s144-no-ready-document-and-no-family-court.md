@@ -24,3 +24,7 @@ Explore: why the request is not routed to the maintenance_bnss_144 pack, and why
 - A Family Court is offered where one exists; the court list for Gaya is right (Ajay confirms the court data).
 - Tests and a golden for the routing.
 
+
+## Ajay's ruling (16 Oct 2026)
+
+Offer a Family Court only for districts he has verified; otherwise JMFC. He is checking the Bihar and Jharkhand list and will send it.
