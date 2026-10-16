@@ -902,3 +902,12 @@ These terms are not enough on their own to pick this pack when divorce, DV Act o
 Prayer (existing): mandamus directing the respondent to do the act named in {grievance_summary} within a time the Court may fix.
 
 **T-489 addendum.** Use (a): remove `statutory_duty` and keep `statute_invoked` with the signed label from 8e85ec44 (optional). Add a read-time alias from statutory_duty to statute_invoked, so old saved answers still fill it. Keep `refusal_or_inaction`. It feeds body paragraphs 4 and 5. `grievance_summary` stays as the one-line cause-title text.
+
+## T-482 byte-check points (Ajay, 16 Oct 2026)
+
+| Point | Ruling |
+|---|---|
+| (1) JMFC records | OK. There are 19 records, marked for maintenance_bnss_144 only. The heading `IN THE COURT OF JUDICIAL MAGISTRATE FIRST CLASS, <CITY>` is signed. "Criminal Case No." is not signed for maintenance, because High Courts and districts style it differently. Use `[To be confirmed: case type and number as styled in this court]`. |
+| (2) Seats that are headquarters towns | Use the district-court style `{District} at {Seat}`. Labels: "Court of the Judicial Magistrate First Class, Saran at Chhapra", "…, Vaishali at Hajipur", "…, Palamu at Daltonganj", "…, West Singhbhum at Chaibasa", "…, East Singhbhum at Jamshedpur". Headings are the same in capitals, for example "…, SARAN AT CHHAPRA". Daltonganj is officially Medininagar, so **verify** which name the Palamu civil court uses before v1.1. "Daltonganj" is OK for v1. |
+| (3) Other States | OK. They fall back to the full court list, with no regression. v1 adds no new Family Court or JMFC records outside Bihar and Jharkhand. |
+| (4) 140-character cut | Not OK as is. T-475 forbids cutting signed text. Replace the description with this shorter signed one, 121 characters, which fits without a cut: `Maintenance application under Section 144 BNSS (old s.125 CrPC) by a wife, child or parent unable to maintain themselves.` The 9ad6a8f1 description is withdrawn. The 140 limit stays as it is for other packs. |
