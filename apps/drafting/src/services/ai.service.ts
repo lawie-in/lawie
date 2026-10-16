@@ -119,6 +119,17 @@ import {
   type LawSwitchResult,
 } from './law-switch';
 import {
+  computeLimitation,
+  enforceLimitationTextDetailed,
+  enforceLimitationTextIn,
+  limitationInputFromLedger,
+  limitationInputFromValues,
+  limitationInstruction,
+  limitationRuleFor,
+  type LimitationResult,
+  withLimitationFact,
+} from './limitation.service';
+import {
   CacheUsage,
   cacheCounts,
   CallUsage,
@@ -1084,6 +1095,26 @@ export async function streamGenerateFromTemplate(
       }
     }
 
+    // ── T-472 (Ajay): limitation, computed by code from the form's dates ───────
+    // The model's own sentences on limitation, delay or condonation give way to
+    // the computed text, which is added if no AI section has it.
+    const limitation = limitationForValues(templateConfig.template_id, convertedFormData);
+    if (limitation !== null) {
+      const aiIndexes = renderedSections
+        .map((s, i) => (s.type === 'ai_generated' ? i : -1))
+        .filter((i) => i >= 0);
+      const enforced = enforceLimitationTextIn(
+        aiIndexes.map((i) => renderedSections[i].content),
+        limitation.text,
+      );
+      aiIndexes.forEach((sectionIndex, k) => {
+        renderedSections[sectionIndex] = {
+          ...renderedSections[sectionIndex],
+          content: enforced[k],
+        };
+      });
+    }
+
     // ── Assemble full document ─────────────────────────────────────────────────
     const { fullText, bodyParaCount } = assembleDocument(renderedSections);
 
@@ -1121,9 +1152,13 @@ export async function streamGenerateFromTemplate(
     );
 
     // ── Filing checklist from config ───────────────────────────────────────────
-    const filingChecklist = templateConfig.filing_checklist.map((item) =>
-      item.replace(/\{(\w+)\}/g, (_m, key: string) => ctx[key] ?? '_____'),
-    );
+    const filingChecklist = [
+      ...templateConfig.filing_checklist.map((item) =>
+        item.replace(/\{(\w+)\}/g, (_m, key: string) => ctx[key] ?? '_____'),
+      ),
+      // T-472: the s.5 application, when the computed limitation is beyond the period.
+      ...(limitation?.checklistItems ?? []),
+    ];
 
     if (filingChecklist.length > 0) {
       res.write(`event: checklist\ndata: ${JSON.stringify({ items: filingChecklist })}\n\n`);
@@ -1647,6 +1682,42 @@ function lawSwitchSlotTexts(facts: readonly LedgerFact[]): string[] {
     .map((f) => f.display as string);
 }
 
+// ── T-472: limitation, computed by code (Ajay, T-245 file, Anushka run 4) ───
+
+/** The limitation for a form-path case (values keyed by field id), or null for a pack without a rule. */
+function limitationForValues(
+  templateId: string,
+  values: Readonly<Record<string, unknown>>,
+): LimitationResult | null {
+  const rule = limitationRuleFor(templateId);
+  return rule === null ? null : computeLimitation(rule, limitationInputFromValues(rule, values));
+}
+
+/**
+ * The limitation for the brief path. With a ledger, from its `user`/`asked`
+ * facts only (an unresolved date is unknown; a computed fact is never an
+ * input). Without one, from the brief's items. Null for a pack without a rule.
+ */
+function limitationForBrief(input: BriefGenerateInput): LimitationResult | null {
+  const rule = limitationRuleFor(input.templateConfig.template_id);
+  if (rule === null) return null;
+  if (input.ledger) {
+    return computeLimitation(
+      rule,
+      limitationInputFromLedger(
+        rule,
+        input.ledger.facts,
+        (input.ledger.unresolved ?? []).map((u) => u.key),
+      ),
+    );
+  }
+  const values: Record<string, unknown> = {};
+  for (const item of input.brief.items) {
+    if (typeof item.value === 'string') values[lastKeySegment(item.key)] = item.value;
+  }
+  return computeLimitation(rule, limitationInputFromValues(rule, values));
+}
+
 export async function streamGenerateFromBrief(
   rawInput: BriefGenerateInput,
   res: Response,
@@ -1656,13 +1727,27 @@ export async function streamGenerateFromBrief(
   // derived facts (governing_provision, women_proviso, notice_provision) are
   // added per request and never stored, as the s.138 computed facts are.
   const law = lawSwitchForBrief(rawInput);
-  const input: BriefGenerateInput =
+  const lawInput: BriefGenerateInput =
     law !== null && rawInput.ledger
       ? {
           ...rawInput,
           ledger: { ...rawInput.ledger, facts: withLawSwitchFacts(rawInput.ledger.facts, law) },
         }
       : rawInput;
+  // T-472: limitation, computed by code from the case's dates (never stored).
+  // With a ledger, its one computed fact goes in the same way, so the Drafter's
+  // facts and the fact verifier's ledger carry it.
+  const limitation = limitationForBrief(lawInput);
+  const input: BriefGenerateInput =
+    limitation !== null && lawInput.ledger
+      ? {
+          ...lawInput,
+          ledger: {
+            ...lawInput.ledger,
+            facts: withLimitationFact(lawInput.ledger.facts, limitation),
+          },
+        }
+      : lawInput;
   const { pack: loadedPack, templateConfig, courtData } = input;
   // T-147c: with the ledger, everything the system writes and every check reads
   // the ledger's displays; without it, the brief exactly as before.
@@ -1791,6 +1876,8 @@ export async function streamGenerateFromBrief(
       // and {do_not_cite} filled from the context; any other {token} is left as is.
       statedInstructions: [
         ...(law?.lines ?? []),
+        // T-472: the limitation text the draft prints, as code computed it.
+        ...(limitation !== null ? [limitationInstruction(limitation)] : []),
         ...provisions
           .map((p) => p.instruction)
           .filter((i): i is string => i !== null)
@@ -1947,6 +2034,39 @@ export async function streamGenerateFromBrief(
     const clauseCheck = { brief, language: input.language, notChecked };
     let missing = findMissingClauses(pack, output, parts, { ...clauseCheck, recorded });
     let repaired = false;
+    /**
+     * T-472 (Ajay): the model never states limitation. Its own sentences on
+     * limitation, delay or condonation give way to the computed text, which is
+     * added if it is not there. A code edit: the changed paragraphs are
+     * recorded again (T-200, R2b.1) on the old numbers, then the paragraphs are
+     * renumbered with no gap (Ajay's follow-up (4)), the Drafter's clause
+     * report follows the new numbers, and the clauses are checked again.
+     */
+    const applyLimitationText = (): void => {
+      if (limitation === null || output.body.trim() === '') return;
+      const enforced = enforceLimitationTextDetailed([output.body], limitation.text);
+      const finalBody = enforced.bodies[0];
+      if (finalBody === output.body) return;
+      recordAgainAfterCodeEdit(output.report, output.body, enforced.edited[0], recorded, missing);
+      const renumber = enforced.renumber[0];
+      const report = output.report
+        ? new Map(
+            [...output.report].map(([id, status]) => [
+              id,
+              status.kind === 'paragraphs'
+                ? {
+                    ...status,
+                    numbers: status.numbers
+                      .map((n) => renumber.get(n))
+                      .filter((n): n is number => n !== undefined),
+                  }
+                : status,
+            ]),
+          )
+        : null;
+      output = { ...output, body: finalBody, report };
+      missing = findMissingClauses(pack, output, parts, { ...clauseCheck, recorded });
+    };
 
     // ── One repair pass, at our cost (decision D3) ────────────────────────────
     if (missing.length > 0 && output.body.length > 0) {
@@ -2029,6 +2149,8 @@ export async function streamGenerateFromBrief(
       }
       missing = afterRemoval;
     }
+    // T-472: before the fact verifier, so it reads the computed text.
+    applyLimitationText();
 
     // ── The fact verifier (T-147d): the ledger path only ──────────────────────
     // Every ledger draft is checked against the ledger in code. On failure one
@@ -2140,6 +2262,8 @@ export async function streamGenerateFromBrief(
           if (!beforeRemoval.some((was) => was.id === m.id)) lostInRemoval.add(m.id);
         }
       }
+      // T-472: again, in case the fact repair wrote its own limitation sentence.
+      applyLimitationText();
     }
 
     // ── The body takes its place among the parts the system wrote ─────────────
@@ -2170,9 +2294,13 @@ export async function streamGenerateFromBrief(
       templateConfig.filing_checklist.length > 0
         ? templateConfig.filing_checklist
         : pack.filingChecklist;
-    const filingChecklist = checklistSource.map((item) =>
-      item.replace(/\{(\w+)\}/g, (_m, key: string) => ctx[key] ?? '_____'),
-    );
+    const filingChecklist = [
+      ...checklistSource.map((item) =>
+        item.replace(/\{(\w+)\}/g, (_m, key: string) => ctx[key] ?? '_____'),
+      ),
+      // T-472: the s.5 application, when the computed limitation is beyond the period.
+      ...(limitation?.checklistItems ?? []),
+    ];
     if (filingChecklist.length > 0) {
       res.write(`event: checklist\ndata: ${JSON.stringify({ items: filingChecklist })}\n\n`);
     }

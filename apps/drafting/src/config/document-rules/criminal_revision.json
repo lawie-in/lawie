@@ -112,10 +112,28 @@
         "required": true
       },
       {
-        "id": "limitation_compliance",
-        "label": "Within limitation (90 days from impugned order — Art. 131 Limitation Act)",
-        "type": "text",
+        "id": "filing_date",
+        "label": "Date of filing of the revision petition (actual or proposed)",
+        "type": "date",
         "required": true
+      },
+      {
+        "id": "certified_copy_applied_for",
+        "label": "Was a certified copy of the impugned order applied for?",
+        "type": "boolean",
+        "required": true
+      },
+      {
+        "id": "certified_copy_applied",
+        "label": "Date certified copy of the impugned order was applied for",
+        "type": "date",
+        "required": false
+      },
+      {
+        "id": "certified_copy_ready",
+        "label": "Date certified copy was ready for delivery",
+        "type": "date",
+        "required": false
       },
       {
         "id": "documents_relied_on",
@@ -315,7 +333,6 @@
     "grounds_of_revision must not be empty",
     "specific_errors must not be empty",
     "no_appeal_available must not be empty",
-    "limitation_compliance must not be empty",
     "advocate_enrollment must match Bar Council format"
   ],
   "key_citations": [
