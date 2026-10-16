@@ -86,6 +86,8 @@ function user(key: string, value: string): GivenValue {
   return { key, value, source: 'user' };
 }
 const TYPE_LABEL: Record<string, string> = {
+  individual: 'Individual',
+  proprietorship: 'Proprietorship firm',
   partnership: 'Partnership Firm',
   company: 'Company / LLP',
 };
@@ -162,8 +164,12 @@ function generatedBlanks(key: string) {
   return { brief: item.placeholder as string, ledger: missingPlaceholder(item.label) };
 }
 
+// T-471: BASE is a partnership, whose To block is now the numbered s.141 form. These pins are
+// the individual drawer's To block (unchanged); the company/partnership form is pinned below.
+const INDIVIDUAL = { respondent_type: 'individual' };
+
 describe.each(paths)('T-404 s.138 cause title, nothing answered: %s', (_n, render) => {
-  const r = render({}, CAUSE_KEYS);
+  const r = render(INDIVIDUAL, CAUSE_KEYS);
 
   it("the header prints exactly Ajay's blanks and the filled lines unchanged", () => {
     expect(r.header).toContain(
@@ -251,7 +257,7 @@ const withoutDateBlank = (s: string): string => {
 
 describe.each(paths)('T-404 s.138 cause title, filled: %s', (_n, render) => {
   it('prints the answers byte-for-byte as before', () => {
-    const r = render({});
+    const r = render(INDIVIDUAL);
     expect(r.header).toContain(
       'To,\nDemo Traders\n5 Lajpat Nagar, Delhi\n\nFrom,\nSuresh Gupta\n12 Karol Bagh, Delhi\n' +
         'Through: A. Advocate, Advocate\nChamber 3, Tis Hazari',
@@ -266,20 +272,25 @@ describe.each(paths)('T-404 s.138 cause title, filled: %s', (_n, render) => {
   });
 
   it('proprietors given: unchanged lines', () => {
-    const r = render({ drawer_proprietor: 'Mohan Lal', payee_proprietor: 'Ravi Kumar' });
+    const r = render({
+      ...INDIVIDUAL,
+      drawer_proprietor: 'Mohan Lal',
+      payee_proprietor: 'Ravi Kumar',
+    });
+    // T-471 (Ajay (c)): "X, proprietor of Y" replaces the old three-line form.
     expect(r.header).toContain(
-      'To,\nMohan Lal,\nProprietor,\nDemo Traders,\n5 Lajpat Nagar, Delhi\n',
+      'To,\nMohan Lal, proprietor of Demo Traders\n5 Lajpat Nagar, Delhi\n',
     );
     expect(r.subject).toContain('Suresh Gupta, through its proprietor Ravi Kumar, I hereby serve');
   });
 
   it('a proprietor given with an empty firm name: the proprietor prints, the firm line is the signed blank', () => {
-    const r = render({ drawer_proprietor: 'Mohan Lal', payee_proprietor: 'Ravi Kumar' }, [
-      'respondent_name',
-      'applicant_name',
-    ]);
+    const r = render(
+      { ...INDIVIDUAL, drawer_proprietor: 'Mohan Lal', payee_proprietor: 'Ravi Kumar' },
+      ['respondent_name', 'applicant_name'],
+    );
     expect(r.header).toContain(
-      `To,\nMohan Lal,\nProprietor,\n${ADDRESSEE_BLANK},\n5 Lajpat Nagar, Delhi\n`,
+      `To,\nMohan Lal, proprietor of ${ADDRESSEE_BLANK}\n5 Lajpat Nagar, Delhi\n`,
     );
     expect(r.subject).toContain(
       `${CLIENT_BLANK}, through its proprietor Ravi Kumar, I hereby serve`,
@@ -287,6 +298,47 @@ describe.each(paths)('T-404 s.138 cause title, filled: %s', (_n, render) => {
     expect(r.header).not.toMatch(/MISSING|_____/);
   });
 });
+
+// T-471: a partnership or company drawer gets the numbered s.141 To block (Ajay (d)). This keeps
+// the cause-title purpose of the pins above for that drawer: the firm, its address and the signed
+// blanks print on every path, and no label-derived blank or brace leaks.
+describe.each(paths)(
+  'T-404 s.138 cause title, company and partnership drawer: %s',
+  (_n, render) => {
+    // The firm line's office wording follows respondent_type (Ajay, T-471), so it is matched loosely.
+    const OFFICE = '(registered office|principal place of business)';
+    it.each(['partnership', 'company'])(
+      '%s filled: numbered firm line, address, From block',
+      (t) => {
+        const r = render({ respondent_type: t });
+        expect(r.header).toMatch(
+          new RegExp(
+            'To,\\n1\\. Demo Traders, through its [^\\n]+, at its ' +
+              OFFICE +
+              ', 5 Lajpat Nagar, Delhi\\n\\nFrom,\\nSuresh Gupta\\n12 Karol Bagh, Delhi\\n' +
+              'Through: A\\. Advocate, Advocate\\nChamber 3, Tis Hazari',
+          ),
+        );
+      },
+    );
+
+    it.each(['partnership', 'company'])(
+      '%s with nothing answered: the signed blanks, no leak',
+      (t) => {
+        const r = render({ respondent_type: t }, CAUSE_KEYS);
+        const esc = (x: string) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        expect(r.header).toMatch(
+          new RegExp(
+            `To,\\n1\\. ${esc(ADDRESSEE_BLANK)}, through its [^\\n]+, at its ${OFFICE}, ` +
+              `${esc(ADDRESS_BLANK)}\\n\\nFrom,\\n${esc(CLIENT_BLANK)}\\n`,
+          ),
+        );
+        expect(withoutDateBlank(r.header)).not.toMatch(/_____|\{|\}|MISSING/);
+        expect(r.header).not.toContain('Proprietor,');
+      },
+    );
+  },
+);
 
 describe('T-404 rule 3: the advocate', () => {
   const cfg = () => {

@@ -72,6 +72,10 @@
                 "label": "Individual"
               },
               {
+                "id": "proprietorship",
+                "label": "Proprietorship firm"
+              },
+              {
                 "id": "company",
                 "label": "Company / LLP"
               },
@@ -86,6 +90,101 @@
             ],
             "required": true,
             "inject_into": ["header"]
+          },
+          {
+            "field_id": "drawer_signatory_capacity",
+            "label": "The drawer acts through its",
+            "type": "dropdown",
+            "options": [
+              {
+                "id": "authorised_signatory",
+                "label": "Authorised signatory"
+              },
+              {
+                "id": "partner",
+                "label": "Partner"
+              },
+              {
+                "id": "director",
+                "label": "Director"
+              }
+            ],
+            "required": false,
+            "show_if": "respondent_type !== individual && respondent_type !== proprietorship && respondent_type !== huf",
+            "inject_into": ["header"]
+          },
+          {
+            "field_id": "s141_person_1_name",
+            "label": "Name of partner or director 1",
+            "type": "text",
+            "required": false,
+            "help": "up to 3; add any others in the draft",
+            "show_if": "respondent_type !== individual && respondent_type !== proprietorship && respondent_type !== huf",
+            "inject_into": ["header", "body"]
+          },
+          {
+            "field_id": "s141_person_1_designation",
+            "label": "Designation of partner or director 1",
+            "type": "text",
+            "required": false,
+            "show_if": "respondent_type !== individual && respondent_type !== proprietorship && respondent_type !== huf",
+            "inject_into": ["header", "body"]
+          },
+          {
+            "field_id": "s141_person_1_role",
+            "label": "Role of partner or director 1 in running the business",
+            "type": "text",
+            "required": false,
+            "show_if": "respondent_type !== individual && respondent_type !== proprietorship && respondent_type !== huf",
+            "inject_into": ["body"]
+          },
+          {
+            "field_id": "s141_person_2_name",
+            "label": "Name of partner or director 2",
+            "type": "text",
+            "required": false,
+            "show_if": "respondent_type !== individual && respondent_type !== proprietorship && respondent_type !== huf",
+            "inject_into": ["header", "body"]
+          },
+          {
+            "field_id": "s141_person_2_designation",
+            "label": "Designation of partner or director 2",
+            "type": "text",
+            "required": false,
+            "show_if": "respondent_type !== individual && respondent_type !== proprietorship && respondent_type !== huf",
+            "inject_into": ["header", "body"]
+          },
+          {
+            "field_id": "s141_person_2_role",
+            "label": "Role of partner or director 2 in running the business",
+            "type": "text",
+            "required": false,
+            "show_if": "respondent_type !== individual && respondent_type !== proprietorship && respondent_type !== huf",
+            "inject_into": ["body"]
+          },
+          {
+            "field_id": "s141_person_3_name",
+            "label": "Name of partner or director 3",
+            "type": "text",
+            "required": false,
+            "show_if": "respondent_type !== individual && respondent_type !== proprietorship && respondent_type !== huf",
+            "inject_into": ["header", "body"]
+          },
+          {
+            "field_id": "s141_person_3_designation",
+            "label": "Designation of partner or director 3",
+            "type": "text",
+            "required": false,
+            "show_if": "respondent_type !== individual && respondent_type !== proprietorship && respondent_type !== huf",
+            "inject_into": ["header", "body"]
+          },
+          {
+            "field_id": "s141_person_3_role",
+            "label": "Role of partner or director 3 in running the business",
+            "type": "text",
+            "required": false,
+            "show_if": "respondent_type !== individual && respondent_type !== proprietorship && respondent_type !== huf",
+            "inject_into": ["body"]
           },
           {
             "field_id": "language",

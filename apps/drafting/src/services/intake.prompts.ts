@@ -248,6 +248,8 @@ ${answered}
 // Reception. It only copies the advocate's words for each fact: the code reads
 // every value from those words (the T-147a normalizer) and drops any span that
 // is not in the description.
+// T-471: one line added, Ajay's signed text (T-245 file, 16 Oct 2026): "A firm or
+// company named as the drawer ...".
 
 export const EXTRACT_SYSTEM_PROMPT = `You copy facts out of what an Indian advocate wrote, for a drafting tool.
 Your only job is to find, for each line of the FACT LIST, the advocate's own words that give that fact.
@@ -266,6 +268,7 @@ Rules:
 - Kind "date": record a date only when the advocate's words say what it is the date of, and that is the meaning on the FACT LIST line.
 - A date written next to a number or an event of another kind is not the date of that number or event. "12/3/26 ko arrest hua, FIR 45/26" gives the date of arrest. It does not give the date of the FIR.
 - Never use one span for two keys, unless the advocate's words say so for both.
+- A firm or company named as the drawer is the drawer's name. Put the proprietor, partners or directors named with it in their own fields, never in place of the firm.
 - Kind "choice": also give "option", one of the allowed values copied exactly. The span is the advocate's words that state it. If the words do not clearly state one of the allowed values, leave the key out.
 - "confidence": a number from 0 to 1, how sure you are that the span gives this fact.
 - If the advocate gives two different values for one key, give both, as two entries with the same key.

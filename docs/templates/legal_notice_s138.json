@@ -98,6 +98,10 @@
                 "label": "Individual"
               },
               {
+                "id": "proprietorship",
+                "label": "Proprietorship firm"
+              },
+              {
                 "id": "company",
                 "label": "Company / LLP"
               },
@@ -113,6 +117,127 @@
             "required": true,
             "inject_into": [
               "header"
+            ]
+          },
+          {
+            "field_id": "drawer_signatory_capacity",
+            "label": "The drawer acts through its",
+            "type": "dropdown",
+            "options": [
+              {
+                "id": "authorised_signatory",
+                "label": "Authorised signatory"
+              },
+              {
+                "id": "partner",
+                "label": "Partner"
+              },
+              {
+                "id": "director",
+                "label": "Director"
+              }
+            ],
+            "required": false,
+            "show_if": "respondent_type !== individual && respondent_type !== proprietorship && respondent_type !== huf",
+            "inject_into": [
+              "header"
+            ]
+          },
+          {
+            "field_id": "s141_person_1_name",
+            "label": "Name of partner or director 1",
+            "type": "text",
+            "required": false,
+            "help": "up to 3; add any others in the draft",
+            "show_if": "respondent_type !== individual && respondent_type !== proprietorship && respondent_type !== huf",
+            "inject_into": [
+              "header",
+              "body"
+            ]
+          },
+          {
+            "field_id": "s141_person_1_designation",
+            "label": "Designation of partner or director 1",
+            "type": "text",
+            "required": false,
+            "show_if": "respondent_type !== individual && respondent_type !== proprietorship && respondent_type !== huf",
+            "inject_into": [
+              "header",
+              "body"
+            ]
+          },
+          {
+            "field_id": "s141_person_1_role",
+            "label": "Role of partner or director 1 in running the business",
+            "type": "text",
+            "required": false,
+            "show_if": "respondent_type !== individual && respondent_type !== proprietorship && respondent_type !== huf",
+            "inject_into": [
+              "body"
+            ]
+          },
+          {
+            "field_id": "s141_person_2_name",
+            "label": "Name of partner or director 2",
+            "type": "text",
+            "required": false,
+            "show_if": "respondent_type !== individual && respondent_type !== proprietorship && respondent_type !== huf",
+            "inject_into": [
+              "header",
+              "body"
+            ]
+          },
+          {
+            "field_id": "s141_person_2_designation",
+            "label": "Designation of partner or director 2",
+            "type": "text",
+            "required": false,
+            "show_if": "respondent_type !== individual && respondent_type !== proprietorship && respondent_type !== huf",
+            "inject_into": [
+              "header",
+              "body"
+            ]
+          },
+          {
+            "field_id": "s141_person_2_role",
+            "label": "Role of partner or director 2 in running the business",
+            "type": "text",
+            "required": false,
+            "show_if": "respondent_type !== individual && respondent_type !== proprietorship && respondent_type !== huf",
+            "inject_into": [
+              "body"
+            ]
+          },
+          {
+            "field_id": "s141_person_3_name",
+            "label": "Name of partner or director 3",
+            "type": "text",
+            "required": false,
+            "show_if": "respondent_type !== individual && respondent_type !== proprietorship && respondent_type !== huf",
+            "inject_into": [
+              "header",
+              "body"
+            ]
+          },
+          {
+            "field_id": "s141_person_3_designation",
+            "label": "Designation of partner or director 3",
+            "type": "text",
+            "required": false,
+            "show_if": "respondent_type !== individual && respondent_type !== proprietorship && respondent_type !== huf",
+            "inject_into": [
+              "header",
+              "body"
+            ]
+          },
+          {
+            "field_id": "s141_person_3_role",
+            "label": "Role of partner or director 3 in running the business",
+            "type": "text",
+            "required": false,
+            "show_if": "respondent_type !== individual && respondent_type !== proprietorship && respondent_type !== huf",
+            "inject_into": [
+              "body"
             ]
           },
           {
@@ -357,7 +482,7 @@
       "logic": "if applicant_address === '[To be confirmed: payee address]' then '[To be confirmed: address of the client]' else '{client_address_unless_ledger_blank}'"
     },
     "drawer_addressee_unless_form_blank": {
-      "logic": "if drawer_proprietor === '' then '{addressee_name}' else '{drawer_proprietor},\nProprietor,\n{addressee_name},'"
+      "logic": "if drawer_proprietor === '' then '{addressee_name}' else '{drawer_proprietor}, proprietor of {addressee_name}'"
     },
     "drawer_addressee_unless_ledger_blank": {
       "logic": "if drawer_proprietor === '{{MISSING: Name of the proprietor (if the drawer is a proprietorship firm)}}' then '{addressee_name}' else '{drawer_addressee_unless_form_blank}'"
@@ -373,6 +498,217 @@
     },
     "payee_client": {
       "logic": "if payee_proprietor === '[To be confirmed: name of the proprietor (if your client is a proprietorship firm)]' then '{notice_client_name}' else '{payee_client_unless_ledger_blank}'"
+    },
+    "s141_on": {
+      "logic": "label_map[respondent_type]",
+      "label_map": {
+        "company": "y",
+        "partnership": "y"
+      }
+    },
+    "s141_kind": {
+      "logic": "if respondent_type === 'company' then 'company' else 'partnership firm'"
+    },
+    "s141_firm_capacity_word": {
+      "logic": "label_map[drawer_signatory_capacity]",
+      "label_map": {
+        "": "",
+        "{{MISSING: The drawer acts through its}}": "",
+        "[To be confirmed: the drawer acts through its]": "",
+        "Not known": "",
+        "not known": "",
+        "authorised_signatory": "authorised signatory",
+        "partner": "partner",
+        "director": "director",
+        "Authorised signatory": "authorised signatory",
+        "Partner": "partner",
+        "Director": "director"
+      }
+    },
+    "s141_firm_capacity": {
+      "logic": "if s141_firm_capacity_word === '' then '[To be confirmed: authorised signatory / partner / director]' else '{s141_firm_capacity_word}'"
+    },
+    "s141_firm_office": {
+      "logic": "label_map[respondent_type]",
+      "label_map": {
+        "company": "registered office",
+        "partnership": "principal place of business"
+      }
+    },
+    "s141_opening": {
+      "logic": "'Accused No. 1 is a {s141_kind}, and the cheque was drawn on its account.'"
+    },
+    "s141_p1_given": {
+      "logic": "label_map[s141_person_1_name]",
+      "label_map": {
+        "": "",
+        "{{MISSING: Name of partner or director 1}}": "",
+        "[To be confirmed: name of partner or director 1]": "",
+        "Not known": "",
+        "not known": ""
+      }
+    },
+    "s141_p1_designation_given": {
+      "logic": "label_map[s141_person_1_designation]",
+      "label_map": {
+        "": "",
+        "{{MISSING: Designation of partner or director 1}}": "",
+        "[To be confirmed: designation of partner or director 1]": "",
+        "Not known": "",
+        "not known": ""
+      }
+    },
+    "s141_p1_role_given": {
+      "logic": "label_map[s141_person_1_role]",
+      "label_map": {
+        "": "",
+        "{{MISSING: Role of partner or director 1 in running the business}}": "",
+        "[To be confirmed: role of partner or director 1 in running the business]": "",
+        "Not known": "",
+        "not known": ""
+      }
+    },
+    "s141_p1_designation_text": {
+      "logic": "if s141_p1_designation_given === '' then '[To be confirmed: designation of {s141_person_1_name}]' else '{s141_person_1_designation}'"
+    },
+    "s141_p1_role_text": {
+      "logic": "if s141_p1_role_given === '' then '[To be confirmed: role of {s141_person_1_name} in the conduct of the business]' else '{s141_person_1_role}'"
+    },
+    "s141_p2_given": {
+      "logic": "label_map[s141_person_2_name]",
+      "label_map": {
+        "": "",
+        "{{MISSING: Name of partner or director 2}}": "",
+        "[To be confirmed: name of partner or director 2]": "",
+        "Not known": "",
+        "not known": ""
+      }
+    },
+    "s141_p2_designation_given": {
+      "logic": "label_map[s141_person_2_designation]",
+      "label_map": {
+        "": "",
+        "{{MISSING: Designation of partner or director 2}}": "",
+        "[To be confirmed: designation of partner or director 2]": "",
+        "Not known": "",
+        "not known": ""
+      }
+    },
+    "s141_p2_role_given": {
+      "logic": "label_map[s141_person_2_role]",
+      "label_map": {
+        "": "",
+        "{{MISSING: Role of partner or director 2 in running the business}}": "",
+        "[To be confirmed: role of partner or director 2 in running the business]": "",
+        "Not known": "",
+        "not known": ""
+      }
+    },
+    "s141_p2_designation_text": {
+      "logic": "if s141_p2_designation_given === '' then '[To be confirmed: designation of {s141_person_2_name}]' else '{s141_person_2_designation}'"
+    },
+    "s141_p2_role_text": {
+      "logic": "if s141_p2_role_given === '' then '[To be confirmed: role of {s141_person_2_name} in the conduct of the business]' else '{s141_person_2_role}'"
+    },
+    "s141_p3_given": {
+      "logic": "label_map[s141_person_3_name]",
+      "label_map": {
+        "": "",
+        "{{MISSING: Name of partner or director 3}}": "",
+        "[To be confirmed: name of partner or director 3]": "",
+        "Not known": "",
+        "not known": ""
+      }
+    },
+    "s141_p3_designation_given": {
+      "logic": "label_map[s141_person_3_designation]",
+      "label_map": {
+        "": "",
+        "{{MISSING: Designation of partner or director 3}}": "",
+        "[To be confirmed: designation of partner or director 3]": "",
+        "Not known": "",
+        "not known": ""
+      }
+    },
+    "s141_p3_role_given": {
+      "logic": "label_map[s141_person_3_role]",
+      "label_map": {
+        "": "",
+        "{{MISSING: Role of partner or director 3 in running the business}}": "",
+        "[To be confirmed: role of partner or director 3 in running the business]": "",
+        "Not known": "",
+        "not known": ""
+      }
+    },
+    "s141_p3_designation_text": {
+      "logic": "if s141_p3_designation_given === '' then '[To be confirmed: designation of {s141_person_3_name}]' else '{s141_person_3_designation}'"
+    },
+    "s141_p3_role_text": {
+      "logic": "if s141_p3_role_given === '' then '[To be confirmed: role of {s141_person_3_name} in the conduct of the business]' else '{s141_person_3_role}'"
+    },
+    "s141_p1_no": {
+      "logic": "'2'"
+    },
+    "s141_p2_no": {
+      "logic": "if s141_p1_given === '' then '2' else '3'"
+    },
+    "s141_p3_no_before_2": {
+      "logic": "if s141_p1_given === '' then '2' else '3'"
+    },
+    "s141_p3_no_after_2": {
+      "logic": "label_map[s141_p3_no_before_2]",
+      "label_map": {
+        "2": "3",
+        "3": "4"
+      }
+    },
+    "s141_p3_no": {
+      "logic": "if s141_p2_given === '' then '{s141_p3_no_before_2}' else '{s141_p3_no_after_2}'"
+    },
+    "s141_p1_addressee": {
+      "logic": "if s141_p1_given === '' then '' else ';\n{s141_p1_no}. {s141_person_1_name}, {s141_p1_designation_text}'"
+    },
+    "s141_p2_addressee": {
+      "logic": "if s141_p2_given === '' then '' else ';\n{s141_p2_no}. {s141_person_2_name}, {s141_p2_designation_text}'"
+    },
+    "s141_p3_addressee": {
+      "logic": "if s141_p3_given === '' then '' else ';\n{s141_p3_no}. {s141_person_3_name}, {s141_p3_designation_text}'"
+    },
+    "s141_addressees": {
+      "logic": "'1. {addressee_name}, through its {s141_firm_capacity}, at its {s141_firm_office}, {addressee_address}{s141_p1_addressee}{s141_p2_addressee}{s141_p3_addressee}'"
+    },
+    "notice_to": {
+      "logic": "if s141_on === 'y' then '{s141_addressees}' else '{drawer_addressee}\n{addressee_address}'"
+    },
+    "s141_p2_lead": {
+      "logic": "if s141_p1_given === '' then '{s141_opening} ' else ''"
+    },
+    "s141_p3_lead_unless_2": {
+      "logic": "if s141_p1_given === '' then '{s141_opening} ' else ''"
+    },
+    "s141_p3_lead": {
+      "logic": "if s141_p2_given === '' then '{s141_p3_lead_unless_2}' else ''"
+    },
+    "s141_p1_para_if_named": {
+      "logic": "if s141_p1_given === '' then '' else '{s141_opening} Accused No. {s141_p1_no}, {s141_person_1_name}, was, at the time the offence was committed, in charge of and responsible to Accused No. 1 for the conduct of its business, being its {s141_p1_designation_text} and {s141_p1_role_text}. Accused No. {s141_p1_no} is therefore deemed to be guilty of the offence under Section 138 read with Section 141 of the Negotiable Instruments Act, 1881.\n\n'"
+    },
+    "s141_p2_para_if_named": {
+      "logic": "if s141_p2_given === '' then '' else '{s141_p2_lead}Accused No. {s141_p2_no}, {s141_person_2_name}, was, at the time the offence was committed, in charge of and responsible to Accused No. 1 for the conduct of its business, being its {s141_p2_designation_text} and {s141_p2_role_text}. Accused No. {s141_p2_no} is therefore deemed to be guilty of the offence under Section 138 read with Section 141 of the Negotiable Instruments Act, 1881.\n\n'"
+    },
+    "s141_p3_para_if_named": {
+      "logic": "if s141_p3_given === '' then '' else '{s141_p3_lead}Accused No. {s141_p3_no}, {s141_person_3_name}, was, at the time the offence was committed, in charge of and responsible to Accused No. 1 for the conduct of its business, being its {s141_p3_designation_text} and {s141_p3_role_text}. Accused No. {s141_p3_no} is therefore deemed to be guilty of the offence under Section 138 read with Section 141 of the Negotiable Instruments Act, 1881.\n\n'"
+    },
+    "s141_p1_para": {
+      "logic": "if s141_on === 'y' then '{s141_p1_para_if_named}' else ''"
+    },
+    "s141_p2_para": {
+      "logic": "if s141_on === 'y' then '{s141_p2_para_if_named}' else ''"
+    },
+    "s141_p3_para": {
+      "logic": "if s141_on === 'y' then '{s141_p3_para_if_named}' else ''"
+    },
+    "demand_heading": {
+      "logic": "'{s141_p1_para}{s141_p2_para}{s141_p3_para}DEMAND'"
     }
   },
   "document_structure": {
@@ -381,7 +717,7 @@
         "section_id": "header",
         "type": "template",
         "alignment": "left",
-        "template": "LEGAL NOTICE\n(Under Section {ni_act_sections_ref} of the Negotiable Instruments Act, 1881)\n\nDate: {notice_date}\nBy Registered Post A.D. / Speed Post / UPC\n\nTo,\n{drawer_addressee}\n{addressee_address}\n\nFrom,\n{notice_client_name}\n{client_address}\nThrough: {advocate_name}, Advocate\n{advocate_address}"
+        "template": "LEGAL NOTICE\n(Under Section {ni_act_sections_ref} of the Negotiable Instruments Act, 1881)\n\nDate: {notice_date}\nBy Registered Post A.D. / Speed Post / UPC\n\nTo,\n{notice_to}\n\nFrom,\n{notice_client_name}\n{client_address}\nThrough: {advocate_name}, Advocate\n{advocate_address}"
       },
       {
         "section_id": "subject_line",
@@ -401,7 +737,7 @@
         "section_id": "demand_clause",
         "type": "template",
         "alignment": "left",
-        "template": "DEMAND\n\nI therefore call upon you to pay my client the said amount of Rs. {cheque_amount}, being the amount of the said cheque, within fifteen days of receipt of this notice. If you fail to pay the said amount within fifteen days of receipt of this notice, an offence punishable under Section 138 of the Negotiable Instruments Act, 1881 will be complete, and my client will initiate proceedings against you."
+        "template": "{demand_heading}\n\nI therefore call upon you to pay my client the said amount of Rs. {cheque_amount}, being the amount of the said cheque, within fifteen days of receipt of this notice. If you fail to pay the said amount within fifteen days of receipt of this notice, an offence punishable under Section 138 of the Negotiable Instruments Act, 1881 will be complete, and my client will initiate proceedings against you."
       },
       {
         "section_id": "closing",

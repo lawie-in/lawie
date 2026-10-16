@@ -1409,9 +1409,11 @@ describe('T-189 AC9: no prompt text changed', () => {
   const sha = (s: string) => createHash('sha256').update(s).digest('hex');
 
   // These hashes pin the wording Ajay signed. Change them only with his signed diff.
-  it('the extraction system prompt is unchanged', () => {
+  // T-471: re-pinned with Ajay's signed drawer line (T-245 signed file, 16 Oct 2026, ruling (b)):
+  // "A firm or company named as the drawer is the drawer's name. ..." Only that one line was added.
+  it('the extraction system prompt is as re-pinned in T-471', () => {
     expect(sha(EXTRACT_SYSTEM_PROMPT)).toBe(
-      'c052d071b9a866609626d6439e78ba364981d83e9517bf3e4b694a91f82e142f',
+      'c73f669ce6ff544f7a1853fe4f6013c32bafb9fb9933e5d52d9c74fc1d63dd5f',
     );
   });
   // T-440: re-pinned with Ajay's signed not-known date line at the end of the DATES rule (a9bc957, 4b46053).
