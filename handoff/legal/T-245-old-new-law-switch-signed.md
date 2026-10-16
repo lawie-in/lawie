@@ -950,3 +950,8 @@ The line format `<id> | <name> | <category> | <description> | match terms: <term
 | (5) Place after the police station | If the place is a district name, print `, District {district}`, for example "Police Station Kadamkuan, District Patna". Otherwise print the place as written, for example `, {place}`. Never drop it. |
 | (6) "That …" | Match the pack's style. In bail_regular the strings from 088fc4f7 drop the leading "That ", as in "The applicant seeks bail on the following grounds, among others, each without prejudice to the other:" and "(a) {ground 1}.". Grounds, antecedents and dependants follow the same rule. Each sentence starts with a capital letter. The wording is otherwise unchanged. |
 | (7) Skeleton v5 | Confirmed. Once Arjun settles the format, send me the exact v5 JSON. I will check every string against 088fc4f7 and this table, then issue `skeleton-bail_regular-signed.md` v5 with its SHA the same turn. |
+
+## T-488 State items (Ajay, 16 Oct 2026)
+
+- (a) ca12ec2e covers the State as a party in criminal matters. In civil writs and certiorari, the f9415fe8 line stays: `Government of NCT of Delhi through [To be confirmed: Secretary of the concerned department]`. Both are right.
+- (b) The old criminal strings "State (NCT of Delhi)" and "[To be confirmed: name of the State]" are not wrong; both Delhi forms are used in practice. Aligning them with ca12ec2e is a separate v1.1 ticket. It needs the t157 and t158 snapshots moved, and I see the diffs.
