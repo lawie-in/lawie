@@ -398,7 +398,56 @@ export function limitationInstruction(result: LimitationResult): string {
 // of the court's powers) is the advocate's case and stays byte for byte.
 
 /**
- * Step 1, always protected: limitation as a ground of revision. Sections 468,
+ * What may stand between a filing verb and its time phrase: any words, but no
+ * full stop or semicolon, no word about the case below (cognizance, FIR,
+ * complaint, charge sheet, final report), no section number, and no second
+ * verb (filed, preferred, presented, instituted, moved, taken, lodged,
+ * registered). So the time phrase belongs to this petition's own filing:
+ * "is filed against the order taking cognizance beyond the period of
+ * limitation" is not a claim; "is filed before this Hon'ble Court within
+ * limitation" is.
+ */
+const CASE_BELOW_OR_VERB = String.raw`cogni[sz]ance|\bF\.?I\.?R\b|first information|complaint|charge[- ]?sheet|final report|\b(?:sections?|secs?\.?|ss?\.|u\/ss?\.?)\s*\d|\b(?:filed|preferred|presented|instituted|moved|taken|lodged|registered)\b`;
+const BETWEEN = String.raw`(?:(?!${CASE_BELOW_OR_VERB})[^.;])*?`;
+
+/** "within limitation", "within time", "within the (prescribed …) period", "within N days / months". */
+const WITHIN_PHRASE = String.raw`within\s+(?:the\s+)?(?:period of limitation|(?:prescribed |stipulated |statutory )?period|limitation|time|(?:\w+ )?\(?\d+\)? (?:days|months?)|ninety days|three months)\b`;
+
+/**
+ * Step 2 (checked first, before step 1), always replaced: "(petition |
+ * revision | application) … is (well / clearly) within (limitation | time |
+ * the period | N days)", with or without "filed" (Ajay's byte check). Words
+ * may stand between the subject and "is", but no comma, full stop or
+ * semicolon, so "This revision against the order taking cognizance is within
+ * limitation." is a claim.
+ */
+const IS_WITHIN_CLAIM = new RegExp(
+  String.raw`\b(?:petition|revision|application)\b[^.;,]*?\bis\s+(?:(?:well|clearly)\s+)?` +
+    WITHIN_PHRASE,
+  'i',
+);
+
+/**
+ * Step 2, always replaced: the petitioner has approached / moved / preferred /
+ * filed / presented / instituted (this petition) within limitation or time,
+ * or "approached this (Hon'ble) Court … within …". The time phrase must
+ * belong to that verb (`BETWEEN`), so "The petitioner has filed the complaint
+ * within time." is not a claim.
+ */
+const PETITIONER_CLAIM = new RegExp(
+  String.raw`\bpetitioners?\b[^.;,]*?\b(?:(?:has|have)\s+)?(?:approached|moved|preferred|filed|presented|instituted)\b` +
+    BETWEEN +
+    String.raw`\b` +
+    WITHIN_PHRASE +
+    String.raw`|\bapproached\s+this\s+(?:Hon['’]?ble\s+)?Court\b` +
+    BETWEEN +
+    String.raw`\b` +
+    WITHIN_PHRASE,
+  'i',
+);
+
+/**
+ * Step 1, protected unless step 2 matched: limitation as a ground of revision. Sections 468,
  * 469, 470, 473 CrPC or 513 to 519 BNSS, or "limitation(s) of/on …
  * power(s)/jurisdiction".
  */
@@ -411,10 +460,16 @@ const GROUND_ANCHOR =
  * sentence also names the cognizance order or the FIR. Present or present
  * perfect only, and no comma, full stop or semicolon between the subject and
  * the verb, so "In this revision, the complaint was filed beyond time." is
- * not this.
+ * not this. The time phrase must belong to the verb (`BETWEEN`): "is filed
+ * against the order taking cognizance beyond the period of limitation under
+ * Section 468 CrPC" is a ground, not a claim.
  */
-const FILED_CLAIM =
-  /\b(?:petition|revision|revisional application|present application|instant application|this application|the same)\b[^.;,]*?\b(?:is|are|has been|is being)\s+(?:so\s+)?(?:filed|preferred|presented|instituted|moved)\b[^.;]*?\b(?:within (?:the )?(?:period of )?(?:limitation|(?:prescribed |stipulated |statutory )?(?:period|time))|in time|within (?:\w+ )?\(?\d+\)? (?:days|months?)|within (?:ninety|three months)|without (?:any )?delay|after (?:the )?(?:period|expiry)|beyond (?:the )?(?:prescribed |stipulated |statutory )?(?:period|time|limitation))\b/i;
+const FILED_CLAIM = new RegExp(
+  String.raw`\b(?:petition|revision|revisional application|present application|instant application|this application|the same)\b[^.;,]*?\b(?:is|are|has been|is being)\s+(?:so\s+)?(?:filed|preferred|presented|instituted|moved)\b` +
+    BETWEEN +
+    String.raw`\b(?:within (?:the )?(?:period of )?(?:limitation|(?:prescribed |stipulated |statutory )?(?:period|time))|in time|within (?:\w+ )?\(?\d+\)? (?:days|months?)|within (?:ninety|three months)|without (?:any )?delay|after (?:the )?(?:period|expiry)|beyond (?:the )?(?:prescribed |stipulated |statutory )?(?:period|time|limitation))\b`,
+  'i',
+);
 
 /**
  * Step 3, otherwise protected: the sentence is about the case below.
@@ -446,8 +501,12 @@ const SELF_ANCHORED_CUE =
 
 /** True for the model's own statement on whether this petition is in time. */
 export function isPetitionLimitationClaim(sentence: string): boolean {
-  if (GROUND_ANCHOR.test(sentence)) return false;
+  // Ajay's byte check: a claim about this petition is replaced even when the
+  // same sentence names a ground section (468 / 473 CrPC, 513-519 BNSS).
   if (FILED_CLAIM.test(sentence)) return true;
+  if (IS_WITHIN_CLAIM.test(sentence)) return true;
+  if (PETITIONER_CLAIM.test(sentence)) return true;
+  if (GROUND_ANCHOR.test(sentence)) return false;
   if (NOT_THIS_PETITION.test(sentence)) return false;
   if (SELF_ANCHORED_CUE.test(sentence)) return true;
   return THIS_PETITION.test(sentence) && PETITION_TIME_CUE.test(sentence);

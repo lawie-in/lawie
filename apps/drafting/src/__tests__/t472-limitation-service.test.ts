@@ -842,6 +842,9 @@ describe('T-472 G: enforceLimitationText', () => {
     'The revision petition arising from the FIR is filed within limitation.',
     'The present revision against the order taking cognizance is filed within the period of limitation.',
     'Within limitation.',
+    'The application is within time.',
+    'This petition is filed within limitation, and cognizance was barred under Section 468 CrPC.',
+    'The petition is within limitation as Section 473 CrPC does not apply.',
   ])('model sentence "%s" is replaced', (sentence) => {
     const out = enforceLimitationText(`1. That the order is illegal.\n\n2. ${sentence}`, BEYOND_41);
     expect(out).toBe(`1. That the order is illegal.\n\n2. ${BEYOND_41}`);
@@ -850,7 +853,8 @@ describe('T-472 G: enforceLimitationText', () => {
   it.each([
     'There is a delay of 12 days in filing.',
     'Limitation is not an issue here.',
-    'The application is within time.',
+    'Section 473 CrPC does not save the prosecution.',
+    'The cognizance taken is barred by limitation under Section 468 CrPC.',
     'The complaint was filed beyond the period of limitation.',
     'Cognizance was taken beyond the period of limitation.',
     'In this revision, the complaint was filed beyond time.',

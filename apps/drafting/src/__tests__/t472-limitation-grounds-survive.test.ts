@@ -73,9 +73,10 @@ const SURVIVE_MORE = [
   'The complaint was filed beyond the period of limitation under Section 468 CrPC.',
   'Cognizance was taken beyond the period of limitation.',
   'In this revision, the complaint was filed beyond time.',
-  'The application is within time.',
   'The revision is also against the unexplained delay of the trial court in framing charges.',
   'The Trial Court delayed the proceedings, which is a ground for this revision.',
+  'Section 473 CrPC does not save the prosecution.',
+  'The cognizance taken is barred by limitation under Section 468 CrPC.',
 ];
 
 /** The model's own claim about this petition. */
@@ -99,6 +100,9 @@ const REPLACED = [
   'The revision petition arising from the FIR is filed within limitation.',
   'The present revision against the order taking cognizance is filed within the period of limitation.',
   'Within limitation.',
+  'The application is within time.',
+  'This petition is filed within limitation, and cognizance was barred under Section 468 CrPC.',
+  'The petition is within limitation as Section 473 CrPC does not apply.',
 ];
 
 const count = (hay: string, needle: string) => hay.split(needle).length - 1;
@@ -532,6 +536,9 @@ describe('T-472 F: shapes a model plausibly writes', () => {
     'The petitioner has filed this revision within ninety (90) days.',
     'The revision petition arising from the FIR is filed within limitation.',
     'The present revision against the order taking cognizance is filed within the period of limitation.',
+    'The application is within time.',
+    'This petition is filed within limitation, and cognizance was barred under Section 468 CrPC.',
+    'The petition is within limitation as Section 473 CrPC does not apply.',
   ])('replaced: "%s"', (s) => {
     expect(isPetitionLimitationClaim(s)).toBe(true);
     expect(enforceLimitationText(`1. ${s}`, WITHIN)).toBe(`1. ${WITHIN}`);
@@ -543,7 +550,6 @@ describe('T-472 F: shapes a model plausibly writes', () => {
   // Survive: a sentence that does not say the petition is in time or late, or a ground
   // about the case below. The computed paragraph is added after it.
   it.each([
-    'The application is within time.',
     'The revision is also against the unexplained delay of the trial court in framing charges.',
     'The Trial Court delayed the proceedings, which is a ground for this revision.',
   ])('survives: "%s"', (s) => {
@@ -559,4 +565,102 @@ describe('T-472 F: shapes a model plausibly writes', () => {
       expect(isPetitionLimitationClaim(g)).toBe(false);
     }
   });
+});
+
+// ── G: round 4, the two regex fixes (sentences typed by hand) ───────────────
+
+const R4_SURVIVE = [
+  'The present petition is filed against the order taking cognizance beyond the period of limitation under Section 468 CrPC.',
+  'The present revision is preferred against the summoning order on a complaint filed beyond the period of limitation.',
+  'The petitioner has filed the complaint within time.',
+  'The cognizance is barred under Section 468 CrPC.',
+  'The cognizance is barred under Section 473 CrPC.',
+  'The cognizance is barred under Section 514 BNSS.',
+  'There is a delay of 12 days in filing.',
+  'Limitation is not an issue here.',
+];
+
+const R4_REPLACED = [
+  'This revision against the order taking cognizance is within limitation.',
+  'The petition is well within time, the cognizance order being dated 5 January 2026.',
+  "The petitioner has approached this Hon'ble Court within the period of limitation.",
+  "The petition is filed before this Hon'ble Court within limitation.",
+  'There is no delay in approaching this Court.',
+  'There is no delay on the part of the petitioner.',
+  'The application is within time.',
+  'This petition is filed within limitation, and cognizance was barred under Section 468 CrPC.',
+  'The petition is within limitation as Section 473 CrPC does not apply.',
+];
+
+describe('T-472 G round 4: service and predicate', () => {
+  it.each(R4_SURVIVE)('survives: "%s"', (s) => {
+    expect(isPetitionLimitationClaim(s)).toBe(false);
+    expect(enforceLimitationText(`1. ${s}`, WITHIN)).toBe(`1. ${s}\n\n2. ${WITHIN}`);
+  });
+
+  it.each(R4_REPLACED)('replaced: "%s"', (s) => {
+    expect(isPetitionLimitationClaim(s)).toBe(true);
+    expect(enforceLimitationText(`1. ${s}`, WITHIN)).toBe(`1. ${WITHIN}`);
+    expect(
+      enforceLimitationText(`1. That the order is illegal.\n\n2. ${s}\n\n3. Prayer.`, WITHIN),
+    ).toBe(`1. That the order is illegal.\n\n2. ${WITHIN}\n\n3. Prayer.`);
+  });
+
+  it('beyond case: the petitioner sentence is replaced, so "within" and "41 days" never appear together', () => {
+    const body =
+      "1. The petitioner has approached this Hon'ble Court within the period of limitation.\n\n2. The cognizance taken is barred by limitation under Section 468 CrPC.";
+    const out = enforceLimitationText(body, BEYOND_41);
+    expect(out).toBe(
+      `1. ${BEYOND_41}\n\n2. The cognizance taken is barred by limitation under Section 468 CrPC.`,
+    );
+    expect(out).not.toMatch(/approached this/);
+    expect(out).toContain('41 days');
+  });
+});
+
+describe.each([
+  ['within the period', IN_TIME, WITHIN],
+  ['131 days (beyond)', LATE, BEYOND_41],
+])('T-472 G round 4: real paths, %s', (_n, filing, text) => {
+  const paths: Array<
+    [string, (b: string) => Promise<{ fullText: string }>, (x: string) => string]
+  > = [
+    ['brief, no ledger', (b) => runBrief(filing, b, false), (x) => x],
+    ['brief, ledger', (b) => runBrief(filing, b, true), P],
+    ['form', (b) => runForm(filing, b), P],
+  ];
+
+  describe.each(paths)('%s', (_p, run, wrap) => {
+    it.each(R4_SURVIVE)('survives untouched: "%s"', async (s) => {
+      const out = await run(
+        `1. That the petitioner is a resident of Patna.\n\n2. ${s}\n\n3. That the order is illegal.`,
+      );
+      expect(out.fullText).toContain(wrap(`2. ${s}`));
+      expect(count(out.fullText, s)).toBe(1);
+      expect(count(out.fullText, text)).toBe(1);
+    });
+
+    it.each(R4_REPLACED)('replaced: "%s"', async (claim) => {
+      const out = await run(
+        `1. That the petitioner is a resident of Patna.\n\n2. ${claim}\n\n3. That the order is illegal.`,
+      );
+      expect(out.fullText).toContain(wrap(`2. ${text}`));
+      expect(out.fullText).not.toContain(claim);
+      expect(count(out.fullText, text)).toBe(1);
+    });
+  });
+
+  if (text === BEYOND_41) {
+    it.each(paths)(
+      '%s: petitioner "within" sentence replaced, no within-and-41-days contradiction',
+      async (_p, run) => {
+        const out = await run(
+          "1. The petitioner has approached this Hon'ble Court within the period of limitation.\n\n2. That the order is illegal.",
+        );
+        expect(out.fullText).toContain('41 days');
+        expect(out.fullText).not.toMatch(/approached this Hon/);
+        expect(out.fullText).not.toMatch(/within the period of limitation(?! prescribed)/);
+      },
+    );
+  }
 });

@@ -252,11 +252,41 @@ describe.each([
     expect(eventsOf(r.sse, 'checklist')[0].items).not.toContain(S5_ITEM);
   });
 
-  it('the static checklist item stays in both cases (nothing else about the checklist changes)', async () => {
+  it('the static "Condonation ... 90 days" item is gone in both cases; the s.5 line is only on the delay path', async () => {
     const late = await runBrief({ ...BASE, ...dates(LATE) }, { ledger });
     const ok = await runBrief({ ...BASE, ...dates(IN_TIME) }, { ledger });
-    expect(checklistOf(ok)).toContain(STATIC_ITEM);
+    expect(checklistOf(ok)).not.toContain(STATIC_ITEM);
+    expect(checklistOf(late)).not.toContain(STATIC_ITEM);
+    expect(checklistOf(ok)).not.toContain(S5_ITEM);
     expect(checklistOf(late)).toEqual([...checklistOf(ok), S5_ITEM]);
+    expect(checklistOf(ok)).toContain('Disclaimer slip — Lawie drafting assistance acknowledged');
+  });
+
+  it.each([
+    'This petition is filed within limitation, and cognizance was barred under Section 468 CrPC.',
+    'The petition is within limitation as Section 473 CrPC does not apply.',
+    'The application is within time.',
+  ])('model claim "%s" in a real run is replaced by the computed text', async (claim) => {
+    const body = `1. That the petitioner is a resident of Patna.\n\n2. ${claim}\n\n3. That the order is illegal.`;
+    const r = await runBrief({ ...BASE, ...dates(LATE) }, { ledger, body });
+    expect(r.out.fullText).toContain(`2. ${BEYOND_41}`);
+    expect(count(r.out.fullText, BEYOND_41)).toBe(1);
+    expect(r.out.fullText).not.toContain(claim);
+  });
+
+  it.each([
+    'The cognizance taken is barred by limitation under Section 468 CrPC.',
+    'Section 473 CrPC does not save the prosecution.',
+  ])('plain ground "%s" in a real run stays untouched', async (ground) => {
+    const body = `1. That the petitioner is a resident of Patna.\n\n2. ${ground}\n\n3. That the order is illegal.`;
+    const r = await runBrief({ ...BASE, ...dates(LATE) }, { ledger, body });
+    // The ledger path may mask the unverified section number ({{MISSING: section}}); the
+    // sentence itself is kept and the computed paragraph is appended after it.
+    const kept = ground.replace(/(Section 468 CrPC|Section 473 CrPC)\.?$/, '').trim();
+    expect(r.out.fullText).toContain(kept.replace(/^Section 473 CrPC /, ''));
+    expect(r.out.fullText).toContain(`3. That the order is illegal.`);
+    expect(r.out.fullText).toMatch(new RegExp(`4\\. ${BEYOND_41.slice(0, 40)}`));
+    expect(count(r.out.fullText, BEYOND_41)).toBe(1);
   });
 
   it('unknown filing date: the signed blank, no number, no s.5 item', async () => {
@@ -605,7 +635,27 @@ describe('T-472 C: the template (form) path', () => {
     expectNoModelClaim(r.out.fullText);
     expect(r.out.fullText).not.toContain('with a delay of');
     expect(r.out.filingChecklist).not.toContain(S5_ITEM);
-    expect(r.out.filingChecklist).toContain(STATIC_ITEM);
+    expect(r.out.filingChecklist).not.toContain(STATIC_ITEM);
+  });
+
+  it.each([
+    'This petition is filed within limitation, and cognizance was barred under Section 468 CrPC.',
+    'The petition is within limitation as Section 473 CrPC does not apply.',
+  ])('form path: model claim "%s" is replaced', async (claim) => {
+    const answer = `1. That the petitioner is a resident of Patna.\n\n2. ${claim}\n\n3. That the order is illegal.`;
+    const r = await runForm({ filing_date: LATE }, answer);
+    expect(r.out.fullText).not.toContain(claim);
+    expect(count(r.out.fullText, BEYOND_41)).toBe(1);
+  });
+
+  it.each([
+    'The cognizance taken is barred by limitation under Section 468 CrPC.',
+    'Section 473 CrPC does not save the prosecution.',
+  ])('form path: plain ground "%s" is untouched', async (ground) => {
+    const answer = `1. That the petitioner is a resident of Patna.\n\n2. ${ground}\n\n3. That the order is illegal.`;
+    const r = await runForm({ filing_date: LATE }, answer);
+    expect(r.out.fullText).toContain(ground);
+    expect(count(r.out.fullText, BEYOND_41)).toBe(1);
   });
 
   it('unknown filing date: the blank, no number, no s.5 item', async () => {
@@ -789,6 +839,8 @@ const RULES = join(__dirname, '..', 'config', 'document-rules', 'criminal_revisi
 const raw = JSON.parse(readFileSync(RULES, 'utf8')) as {
   form_schema: { fields: Field[] };
   validation_rules: string[];
+  filing_checklist: string[];
+  prompt_context: { promptInstructions: string[] };
 };
 
 describe('T-472 D: criminal_revision.json', () => {
@@ -799,6 +851,39 @@ describe('T-472 D: criminal_revision.json', () => {
     expect(byId('limitation_compliance')).toBeUndefined();
     expect(raw.validation_rules.some((r) => r.includes('limitation_compliance'))).toBe(false);
     expect(readFileSync(RULES, 'utf8')).not.toContain('limitation_compliance');
+  });
+
+  it('Para 5 line tells the model not to write limitation', () => {
+    const p5 = raw.prompt_context.promptInstructions.filter((l) => l.startsWith('Para 5'));
+    expect(p5).toEqual([
+      'Para 5: Limitation — Lawie prints this paragraph from the dates given; do not write it',
+    ]);
+    expect(raw.prompt_context.promptInstructions.join('\n')).not.toContain('Art. 131');
+  });
+
+  it('limitation_paragraph description is the new wording', () => {
+    const clause = (raw as unknown as { mandatory_clauses: { id: string; description?: string }[] })
+      .mandatory_clauses;
+    const f = byId('limitation_paragraph') ?? clause.find((c) => c.id === 'limitation_paragraph');
+    expect(f).toBeDefined();
+    expect((f as { description?: string }).description).toBe(
+      'Limitation (printed by Lawie from the dates given)',
+    );
+  });
+
+  it('filing checklist: no "Condonation ... 90 days" item, Disclaimer slip stays', () => {
+    expect(raw.filing_checklist).not.toContain(STATIC_ITEM);
+    expect(raw.filing_checklist.some((i) => /condonation/i.test(i))).toBe(false);
+    expect(raw.filing_checklist).toContain(
+      'Disclaimer slip — Lawie drafting assistance acknowledged',
+    );
+  });
+
+  it('TIME-BAR CHECK rule has the new text', () => {
+    const rule = raw.validation_rules.filter((r) => r.startsWith('TIME-BAR CHECK'));
+    expect(rule).toEqual([
+      'TIME-BAR CHECK: Lawie computes limitation from the dates given (impugned_order_date, filing_date, certified copy dates)',
+    ]);
   });
 
   it('there is no yes/no field about limitation (text, boolean or select)', () => {
