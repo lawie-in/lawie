@@ -352,7 +352,7 @@
       "id": "dishonour_details",
       "name": "Dishonour Details",
       "required": true,
-      "description": "Date of dishonour, reason for dishonour as the return memo gives it, bank memo reference"
+      "description": "Date of dishonour, reason for dishonour as the return memo gives it, bank memo reference number (if not given: [To be confirmed: bank memo reference number])"
     },
     {
       "id": "underlying_liability",

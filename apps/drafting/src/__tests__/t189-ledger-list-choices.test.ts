@@ -1417,8 +1417,17 @@ describe('T-189 AC9: no prompt text changed', () => {
     );
   });
   // T-440: re-pinned with Ajay's signed not-known date line at the end of the DATES rule (a9bc957, 4b46053).
-  it('the ledger Drafter system prompt is as re-pinned in T-440', () => {
+  // T-471: re-pinned with Ajay's signed rule-4 sentence (acbec79f), appended to rule 4 only.
+  const T471_LEDGER_RULE_4 =
+    ' Never write that a fact is missing, not given or not stated in the brief, the facts or the instructions; print only its placeholder in the form {{MISSING: \u2026}}.';
+  it('the ledger Drafter system prompt is as re-pinned in T-471', () => {
     expect(sha(DRAFTER_LEDGER_SYSTEM_PROMPT)).toBe(
+      '516590deae9a9dc535820dd77f2dd1a86c58acec0501e4c52ef1a0e22c17db8b',
+    );
+  });
+  it('the ledger Drafter prompt is the T-440 text plus that one sentence, once', () => {
+    expect(DRAFTER_LEDGER_SYSTEM_PROMPT.split(T471_LEDGER_RULE_4)).toHaveLength(2);
+    expect(sha(DRAFTER_LEDGER_SYSTEM_PROMPT.replace(T471_LEDGER_RULE_4, ''))).toBe(
       '874b2b129f8ceadd811fb822aa55e741c4c907e5ba3cb60bdb2b8b55dd2ef99a',
     );
   });

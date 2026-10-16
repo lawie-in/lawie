@@ -481,14 +481,17 @@
     "client_address": {
       "logic": "if applicant_address === '[To be confirmed: payee address]' then '[To be confirmed: address of the client]' else '{client_address_unless_ledger_blank}'"
     },
+    "drawer_without_proprietor": {
+      "logic": "if respondent_type === 'proprietorship' then '[To be confirmed: name of the proprietor], proprietor of {addressee_name}' else '{addressee_name}'"
+    },
     "drawer_addressee_unless_form_blank": {
-      "logic": "if drawer_proprietor === '' then '{addressee_name}' else '{drawer_proprietor}, proprietor of {addressee_name}'"
+      "logic": "if drawer_proprietor === '' then '{drawer_without_proprietor}' else '{drawer_proprietor}, proprietor of {addressee_name}'"
     },
     "drawer_addressee_unless_ledger_blank": {
-      "logic": "if drawer_proprietor === '{{MISSING: Name of the proprietor (if the drawer is a proprietorship firm)}}' then '{addressee_name}' else '{drawer_addressee_unless_form_blank}'"
+      "logic": "if drawer_proprietor === '{{MISSING: Name of the proprietor (if the drawer is a proprietorship firm)}}' then '{drawer_without_proprietor}' else '{drawer_addressee_unless_form_blank}'"
     },
     "drawer_addressee": {
-      "logic": "if drawer_proprietor === '[To be confirmed: name of the proprietor (if the drawer is a proprietorship firm)]' then '{addressee_name}' else '{drawer_addressee_unless_ledger_blank}'"
+      "logic": "if drawer_proprietor === '[To be confirmed: name of the proprietor (if the drawer is a proprietorship firm)]' then '{drawer_without_proprietor}' else '{drawer_addressee_unless_ledger_blank}'"
     },
     "payee_client_unless_form_blank": {
       "logic": "if payee_proprietor === '' then '{notice_client_name}' else '{notice_client_name}, through its proprietor {payee_proprietor}'"

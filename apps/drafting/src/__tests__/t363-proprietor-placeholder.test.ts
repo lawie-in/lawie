@@ -312,7 +312,8 @@ describe('T-363 proprietor placeholder: pin to the twin', () => {
 
   it('AC4: the then/else outputs are unchanged', () => {
     expect(logic('drawer_addressee_unless_form_blank')).toBe(
-      "if drawer_proprietor === '' then '{addressee_name}' else '{drawer_proprietor}, proprietor of {addressee_name}'",
+      // T-471 (Ajay, c5887591): the blank branch prints the proprietorship blank, not the firm alone.
+      "if drawer_proprietor === '' then '{drawer_without_proprietor}' else '{drawer_proprietor}, proprietor of {addressee_name}'",
     );
     expect(logic('payee_client_unless_form_blank')).toBe(
       "if payee_proprietor === '' then '{notice_client_name}' else '{notice_client_name}, through its proprietor {payee_proprietor}'",

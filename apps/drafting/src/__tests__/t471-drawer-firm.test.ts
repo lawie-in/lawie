@@ -51,9 +51,17 @@ describe('T-471 A: respondent_name is the drawer as named (text)', () => {
     ...over,
   });
 
-  it('respondent_name is text, even when the brief marks it a party name', () => {
-    expect(factTypeFor(item('respondent_name'))).toBe('text');
-    expect(factTypeFor(item('respondent_name', { partyName: true }))).toBe('text');
+  // Round 5 (Priya): the typing is the s.138 drawer's alone, set as drawerAsNamed by intake.service.
+  it('respondent_name flagged drawerAsNamed is text, even when the brief marks it a party name', () => {
+    expect(factTypeFor(item('respondent_name', { drawerAsNamed: true }))).toBe('text');
+    expect(factTypeFor(item('respondent_name', { drawerAsNamed: true, partyName: true }))).toBe(
+      'text',
+    );
+  });
+
+  it('respondent_name without the flag (every other pack) is a person name again', () => {
+    expect(factTypeFor(item('respondent_name', { partyName: true }))).toBe('person_name');
+    expect(factTypeFor(item('respondent_name'))).toBe('person_name');
   });
 
   it('text is read at the 0.6 floor, which person_name is held above', () => {
@@ -167,9 +175,11 @@ describe('T-471 C: proprietorship (Ajay (c))', () => {
     expect(s.demand_clause.startsWith('DEMAND\n\nI therefore')).toBe(true);
   });
 
-  it('with no proprietor named: the firm alone, no 141 either', () => {
+  it('with no proprietor named: the signed blank, never the firm alone, no 141 either (c5887591)', () => {
     const s = sections({ respondent_type: 'proprietorship' });
-    expect(toBlock(s.header)).toBe('Demo Traders\n5 Lajpat Nagar, Delhi');
+    expect(toBlock(s.header)).toBe(
+      '[To be confirmed: name of the proprietor], proprietor of Demo Traders\n5 Lajpat Nagar, Delhi',
+    );
     expect(Object.values(s).join('\n')).not.toContain('141');
   });
 });
