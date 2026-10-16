@@ -660,3 +660,15 @@ This applies to every criminal pack and to the form path. The T-488 cheque-date 
 |---|---|
 | 1. Date verifier | Approved. A date is judged only against the field that its own label names. Labels for s.138: "cheque dated" means the cheque date. "deposited / presented / jama" means the presentation date. "returned / dishonoured / memo" means the return memo date. "notice dated / sent" means the notice date. "received" means the receipt of the notice. Three cases: (a) a labelled date that is wrong still fails; (b) a date with no clear label that equals one of the ledger dates passes; (c) a date with no clear label that equals no ledger date still fails and is blanked. Never write a guessed date. |
 | 2. State in a s.138 notice | Agreed. The State only picks the jurisdiction. A demand notice does not print it and it is not a party, so it is not a required fact in the notice. There is no text change. In the complaint, the court and the place follow the cause-title rules, ca12ec2e. |
+
+## T-479: Supreme Court mandamus, matter lines and addressee (Ajay, 16 Oct 2026)
+
+1. The first matter line takes the place of the Article 226 line, in the same form. The "AND IN THE MATTER OF" lines that follow it stay as they are:
+
+   `IN THE MATTER OF: Article 32 of the Constitution of India;`
+
+2. The addressing clause for a Supreme Court petition, which replaces the generic clause:
+
+   `TO, THE HON'BLE THE CHIEF JUSTICE OF INDIA AND HIS COMPANION JUSTICES OF THE SUPREME COURT OF INDIA`
+
+   The words follow current Supreme Court practice. If that practice changes, the clause comes back to me.
