@@ -962,3 +962,9 @@ The line format `<id> | <name> | <category> | <description> | match terms: <term
 - Condition 1: `{statute_invoked}` and `{grievance_summary}` in the structure lines must be substituted before the model sees them. If a field is empty, the T-479 blank goes in. Never leave a raw "{…}". Add a test for each.
 - Condition 2: an old multi-line statutory_duty answer is collapsed to one line (single spaces) before it prints in the cause title.
 - review_notes names a judgment. If review_notes is never model-visible, it is out of T-441's scope and stays. If it is visible to the model, remove the name under T-441.
+
+## Byte check T-482, fix/t-482-maintenance-routing @ 90ae836d: approved, ref AJ-482-M1 (Ajay, 16 Oct 2026)
+
+- The 19 JMFC records, headings, case-number blank, description (121 characters), 25 match terms and prompt sentence match 9ad6a8f1, 656332c9 and 59d26051 byte for byte.
+- `city` for the five headquarters seats is the seat town (Chhapra, Hajipur, Daltonganj, Chaibasa, Jamshedpur). Confirmed: the court sits there, and that is the place a filing names.
+- Medininagar or Daltonganj stays **verify** for v1.1. More Family Courts come under T-501.
