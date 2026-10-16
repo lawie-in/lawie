@@ -25,3 +25,10 @@ Reproduce each, fix the cause, add a test for each. Check that the "No" answer r
 - Confirm works on the first click after an edit; "No" selects and removes the bond undertaking; early typing is kept.
 - Web tests for each; no legal text changes.
 
+
+## Ajay's ruling on bug 2 (16 Oct 2026, T-245 file 5bc76d1a)
+
+- Yes -> the existing undertaking, unchanged.
+- Not answered -> "That the applicant [To be confirmed: whether the applicant is prepared to furnish bail and bonds as directed by this Hon'ble Court]."
+- No -> no undertaking (a post-check strips it), plus an in-app note, not in the draft: "Default bail under Section 187(3) BNSS is available only if the accused is prepared to furnish bail. Check this before filing."
+- Claim extended to default_bail.json (instruction 9) and the t251 test; the in-app note is web side. Ajay byte-checks the pack text.
