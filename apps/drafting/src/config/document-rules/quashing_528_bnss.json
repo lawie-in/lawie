@@ -15,7 +15,7 @@
   "creditsCost": 2,
   "court_levels": ["high_court_criminal_side"],
   "causeTitle": {
-    "format": "IN THE HON'BLE HIGH COURT OF {state} AT {courtPlace}\n(CRIMINAL MISCELLANEOUS / WRIT JURISDICTION)\n\n{caseNomenclature}\n\nIN THE MATTER OF:\n{petitioner} ... Petitioner\nVERSUS\n1. State of {state}, through {prosecuting_agency} ... Respondent No.1\n2. {complainant} ... Respondent No.2 (Informant/Complainant)",
+    "format": "IN THE HON'BLE HIGH COURT OF {state} AT {courtPlace}\n(CRIMINAL MISCELLANEOUS / WRIT JURISDICTION)\n\n{caseNomenclature}\n\nIN THE MATTER OF:\n{petitioner} ... Petitioner\nVERSUS\n1. {prosecuting_agency} ... Respondent No.1\n2. {complainant} ... Respondent No.2 (Informant/Complainant)",
     "partyDesignations": [
       { "role": "petitioner", "label": "Petitioner" },
       { "role": "state", "label": "Respondent No.1 (State)" },
@@ -55,6 +55,12 @@
         "label": "Complainant address",
         "type": "textarea",
         "required": true
+      },
+      {
+        "id": "prosecuting_agency",
+        "label": "Respondent No. 1 — the State or prosecuting agency (e.g. State of Bihar, State of Jharkhand, CBI)",
+        "type": "text",
+        "required": false
       },
       {
         "id": "what_to_quash",

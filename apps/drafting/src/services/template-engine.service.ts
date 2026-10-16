@@ -1928,6 +1928,7 @@ export function buildPlaceholderContext(
       .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
       .join(' ');
   }
+  applyStateFromCourt(config.template_id, ctx, courtData);
 
   // SCRUM-54 B5, T-340: an ISO date in any "*date*" key, or in any field the
   // template declares as type "date" (e.g. minor_dob, custody_since), prints as
@@ -2095,6 +2096,7 @@ export function buildPlaceholderContext(
   // such as {caseNomenclature} reads the same value as {case_nomenclature}.
   applyPlaceholderAliases(ctx);
   applyCourtBlanks(ctx, courtData, nomenclatureAllowed(config.template_id));
+  applyCauseTitlePartyBlanks(config.template_id, ctx);
 
   // Recursive placeholder pass — resolve {token} references that may exist inside
   // ctx values themselves (e.g. caseNomenclature from courts DB contains "{current_year}"
@@ -2125,6 +2127,10 @@ export function buildPlaceholderContext(
     );
   }
 
+  // T-479: set after the recursive pass, so the format's tokens are filled
+  // only by renderTemplateSection, never from text a user typed.
+  applySupremeCourtCauseTitle(config, ctx, courtData);
+
   return ctx;
 }
 
@@ -2144,6 +2150,12 @@ export const PLACEHOLDER_ALIASES: ReadonlyArray<
   ['applicant', ['applicant_name']],
   // T-395: suspension_of_sentence's verification and cause title name the appellant.
   ['appellant', ['appellant_name']],
+  // T-479 (T-404, Ajay): the cause-title party tokens read the form's name
+  // fields. `respondents_list` is never an alias: it is a field the advocate
+  // types, and an alias name is a key no client value may set (T-300).
+  ['petitioner', ['petitioner_name']],
+  ['respondent', ['respondent_name']],
+  ['complainant', ['complainant_name']],
   ['parentName', ['applicant_parentage', 'applicant_father_name']],
   ['parentRelation', ['parent_relation']],
   ['age', ['applicant_age', 'appellant_age']],
@@ -2152,6 +2164,131 @@ export const PLACEHOLDER_ALIASES: ReadonlyArray<
   ['advocateName', ['advocate_name']],
   ['advocateAddress', ['advocate_address']],
 ];
+
+/** T-479 (Ajay, 16 Oct 2026; T-404 Addendum 2 #2): unanswered respondents in habeas and PIL. */
+export const RESPONDENTS_LIST_BLANK = '[To be confirmed: respondents, with names and addresses]';
+/** T-479 (Ajay, 16 Oct 2026): quashing_528_bnss Respondent No. 1 left empty. */
+export const PROSECUTING_AGENCY_BLANK = '[To be confirmed: prosecuting agency]';
+/** T-479 (Ajay, 16 Oct 2026): mandamus's writ_civil title lines with no form field. */
+export const STATUTE_INVOKED_BLANK = '[To be confirmed: statute or rule imposing the duty]';
+export const GRIEVANCE_SUMMARY_BLANK = '[To be confirmed: grievance in brief]';
+
+/**
+ * T-479: the cause-title party fallbacks, per pack and per token, so no other
+ * pack's output changes. A token with no value, or holding a blank the brief
+ * or ledger path put in (`[To be confirmed: …]` label-derived, `{{MISSING: …}}`),
+ * prints Ajay's signed blank, never the label-derived text.
+ */
+const CAUSE_TITLE_PARTY_BLANKS: Readonly<Record<string, ReadonlyArray<readonly [string, string]>>> =
+  {
+    habeas_corpus: [['respondents_list', RESPONDENTS_LIST_BLANK]],
+    pil: [['respondents_list', RESPONDENTS_LIST_BLANK]],
+    quashing_528_bnss: [['prosecuting_agency', PROSECUTING_AGENCY_BLANK]],
+    mandamus: [
+      ['statute_invoked', STATUTE_INVOKED_BLANK],
+      ['grievance_summary', GRIEVANCE_SUMMARY_BLANK],
+    ],
+  };
+
+/** True for a value that is empty or a `[To be confirmed: …]` / `{{MISSING: …}}` blank. */
+function isUnanswered(value: string | undefined): boolean {
+  const v = value?.trim() ?? '';
+  return v === '' || IS_BLANK.test(v) || LEDGER_BLANK.test(v);
+}
+
+/**
+ * T-404 Addendum 2 #6: one respondent per line, in the order given, numbered
+ * `1.`, `2.`, … Lines with no text are left out. Ajay (T-479): each line is
+ * trimmed, then only a leading `n.` or `n)` is removed; the rest of the line is
+ * kept as typed (one space is put after our number only if the line has none).
+ */
+export function numberRespondents(list: string): string {
+  return (
+    list
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line !== '')
+      // A marker is `n.` / `n)` followed by a space or the line end, so a
+      // decimal such as "2.5 Acres" is text, not numbering.
+      .map((line) => line.replace(/^\d+[.)](?=\s|$)/, ''))
+      .map((line, i) => `${i + 1}.${/^\s/.test(line) ? '' : ' '}${line}`)
+      .join('\n')
+  );
+}
+
+function applyCauseTitlePartyBlanks(templateId: string, ctx: PlaceholderContext): void {
+  for (const [key, blank] of CAUSE_TITLE_PARTY_BLANKS[templateId] ?? []) {
+    if (isUnanswered(ctx[key])) {
+      ctx[key] = blank;
+    } else if (key === 'respondents_list') {
+      ctx[key] = numberRespondents(ctx[key]);
+    }
+  }
+}
+
+/**
+ * T-479: packs whose cause title prints {state} with no `state` question on the
+ * brief and ledger paths. There {state} is the chosen court's State, as the
+ * courts list stores it (its display name, e.g. "Bihar").
+ */
+const STATE_FROM_COURT_PACKS: ReadonlySet<string> = new Set([
+  'fir_quashing',
+  'quashing_528_bnss',
+  'writ_petition_civil',
+  'mandamus',
+]);
+
+/**
+ * T-479: an unanswered {state} in these packs reads the court's State. A court
+ * with no State (the Supreme Court, stored as "India", or "Not applicable")
+ * leaves {state} as it was.
+ */
+function applyStateFromCourt(
+  templateId: string,
+  ctx: PlaceholderContext,
+  courtData?: CourtLookupData,
+): void {
+  if (!STATE_FROM_COURT_PACKS.has(templateId) || !isUnanswered(ctx.state)) return;
+  const courtState = courtData?.state?.trim() ?? '';
+  if (courtState === '' || courtData?.courtType === 'supreme_court') return;
+  if (courtState.toLowerCase() === 'india' || isStateNotApplicable(courtState)) return;
+  ctx.state = courtState;
+}
+
+/**
+ * T-479 (Ajay, 0e5f64b7): the cause-title format a Supreme Court petition
+ * uses in place of the pack's High Court one. Server-only (`__` key).
+ */
+export const CAUSE_TITLE_FORMAT_KEY = '__cause_title_format';
+
+/** Packs whose rule file carries `causeTitle.supremeCourtFormat` (T-479). */
+const SUPREME_COURT_TITLE_PACKS: ReadonlySet<string> = new Set(['mandamus']);
+
+/**
+ * T-479: mandamus at the Supreme Court prints Ajay's signed Article 32 title,
+ * never the High Court / Article 226 one. The court is the Supreme Court when
+ * the chosen court's type says so (the courts list, or the brief's court
+ * picker `court_type`), or the pack's own `court` answer is `SUPREME_COURT`.
+ */
+function applySupremeCourtCauseTitle(
+  config: TemplateConfig,
+  ctx: PlaceholderContext,
+  courtData?: CourtLookupData,
+): void {
+  delete ctx[CAUSE_TITLE_FORMAT_KEY];
+  if (!SUPREME_COURT_TITLE_PACKS.has(config.template_id)) return;
+  const atSupremeCourt =
+    courtData?.courtType === 'supreme_court' ||
+    (ctx.court_type ?? '').trim().toLowerCase() === 'supreme_court' ||
+    (ctx.court ?? '').trim().toUpperCase() === 'SUPREME_COURT';
+  if (!atSupremeCourt) return;
+  const causeTitle = (config as { _source?: { causeTitle?: unknown } })._source?.causeTitle;
+  const format =
+    causeTitle !== null && typeof causeTitle === 'object'
+      ? (causeTitle as { supremeCourtFormat?: unknown }).supremeCourtFormat
+      : undefined;
+  if (typeof format === 'string' && format.trim() !== '') ctx[CAUSE_TITLE_FORMAT_KEY] = format;
+}
 
 /** Fill each camelCase alias from the first of its sources that has a value. */
 function applyPlaceholderAliases(ctx: PlaceholderContext): void {
@@ -2364,10 +2501,15 @@ export function renderTemplateSection(
   }
 
   const sectionCtx = sectionContext(section, ctx);
+  // T-479: a Supreme Court mandamus uses the signed Article 32 title.
+  const template =
+    section.section_id === 'cause_title' && sectionCtx[CAUSE_TITLE_FORMAT_KEY]
+      ? sectionCtx[CAUSE_TITLE_FORMAT_KEY]
+      : section.template;
   return {
     section_id: section.section_id,
     type: 'template',
-    content: replacePlaceholders(sectionTemplate(section.template, sectionCtx), sectionCtx),
+    content: replacePlaceholders(sectionTemplate(template, sectionCtx), sectionCtx),
     alignment: section.alignment,
     style: section.style,
   };

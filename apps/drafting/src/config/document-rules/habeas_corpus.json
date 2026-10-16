@@ -68,6 +68,14 @@
         "required": true
       },
       {
+        "id": "respondents_list",
+        "label": "Respondents (names, addresses)",
+        "type": "textarea",
+        "required": true,
+        "help": "Put each respondent on its own line: name, then address. Lawie does not fill this in for you.",
+        "placeholder": "e.g., Sample Authority, Sample Office, Sample Town"
+      },
+      {
         "id": "place_of_detention_known",
         "label": "Place of detention",
         "type": "select",
