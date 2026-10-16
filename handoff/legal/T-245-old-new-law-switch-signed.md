@@ -716,3 +716,7 @@ This applies to every criminal pack and to the form path. The T-488 cheque-date 
 - Merging `relatedActs` with the other list is OK. The brief path and the promoted path must cite the same Acts.
 - `dv_dowry`: `[only when: the offence arises from domestic violence or a dowry demand]`.
 - A raw condition key (such as `dv_dowry`) never reaches the model. Every applicableWhen key needs plain words signed by me. Send me the list of all 11 keys with proposed wording before the byte check.
+
+## T-483: ages in the period check (Ajay, 16 Oct 2026)
+
+Approved, with one condition. "N years" directly after "aged", "age of" or "aged about", or directly before "old" or "of age", is an age and not a period. An age is still a fact: check it against the ages in the brief, which come from the age field or from the description. If the age is not in the brief, the panel flags "The draft states an age that is not in your brief". Real periods, such as "custody for 3 years" or "within 15 days", are still checked as periods.
