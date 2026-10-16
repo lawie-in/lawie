@@ -2321,6 +2321,49 @@ function periodsIn(text: string, given = false): StatedPeriod[] {
   return out.sort((x, y) => x.at - y.at);
 }
 
+/** T-483: a count written in figures or in words, as an age is written. */
+const AGE_COUNT = `(\\d+|${NUMBER_IN_WORDS})`;
+/** Words that may stand between "aged" / "age of" and the count. */
+const AGE_ABOUT = '(?:(?:about|around|approximately|approx\\.?|nearly|almost)\\s+)?';
+/**
+ * T-483: an age as the brief or the description gives one: "aged 72",
+ * "aged about 72 years", "age 72", "age: 72", "age of 72", "72 years old",
+ * "72-year-old", "72 years of age".
+ */
+const AGE_GIVEN = [
+  new RegExp(
+    `(?<![\\p{L}\\p{N}])(?:aged|age(?:\\s+of|\\s*[:\\-]|\\s+is)?)\\s*${AGE_ABOUT}${AGE_COUNT}(?![\\p{L}\\p{N}])`,
+    'giu',
+  ),
+  new RegExp(
+    `(?<![\\p{L}\\p{N}.])${AGE_COUNT}(?:\\s*[-\\u2010-\\u2015]?\\s*(?:years?|yrs?\\.?))?\\s*[-\\u2010-\\u2015]?\\s*(?:old|of\\s+age)(?![\\p{L}\\p{N}])`,
+    'giu',
+  ),
+];
+/** Before a draft's "N years": the words that make it an age ("aged", "aged about", "age of"). */
+const AGE_BEFORE = new RegExp(`(?<![\\p{L}\\p{N}])(?:aged|age\\s+of)\\s+${AGE_ABOUT}$`, 'iu');
+/** After a draft's "N years": the words that make it an age ("old", "-old", "of age"). */
+const AGE_AFTER = /^(?:\s*[-\u2010-\u2015]?\s*old|\s+of\s+age)(?![\p{L}\p{N}])/iu;
+/** A brief item that holds an age: applicant_age, deponent_age, age. */
+const AGE_KEY = /(?:^|_)age$/i;
+
+/** T-483: each age a text the Drafter was given states, as a number ("72"). */
+function agesIn(text: string): string[] {
+  const flat = text.replace(/\s+/g, ' ');
+  const out: string[] = [];
+  for (const re of AGE_GIVEN) for (const m of flat.matchAll(re)) out.push(countOf(m[1]));
+  return out;
+}
+
+/** T-483: whether the period at `at` in the flat text is an age ("aged 72 years", "72 years old"). */
+function isAge(flat: string, period: StatedPeriod): boolean {
+  if (!/^year$/i.test(period.key.split(' ')[1] ?? '')) return false;
+  return (
+    AGE_BEFORE.test(flat.slice(0, period.at)) ||
+    AGE_AFTER.test(flat.slice(period.at + period.words.length))
+  );
+}
+
 /**
  * Finding C3 (Ajay, T-136): a length of time in the Drafter's text that
  * nothing it was given states. `known` is every text the Drafter was given:
@@ -2329,20 +2372,47 @@ function periodsIn(text: string, given = false): StatedPeriod[] {
  * statutory notice, is never reported (his condition 3): both sides are read
  * by the same reader, so the form it is written in does not matter. A count
  * that is a number of the brief (an age, a term in months) is the brief's own.
+ *
+ * T-483 (Ajay, bd33120b): "An age is still a fact, so don't exempt it
+ * outright. Check it against the ages in the brief (the age field or the
+ * description). If it isn't there, flag "The draft states an age that is not
+ * in your brief". Real periods are still checked." So an "N years" that is an
+ * age ("aged N years", "aged about N years", "age of N years", "N years old",
+ * "N years of age") is not read as a period: it is allowed only when N is an
+ * age the brief gives (a figures-only age field, or an age the brief's values
+ * or the description state, such as "aged 72" or "72 years old").
  */
 export function checkPeriods(body: string, known: string[], brief: Brief): ValidationWarning[] {
   const stated = new Set<string>();
   for (const text of known) for (const p of periodsIn(text, true)) stated.add(p.key);
   const numbers = new Set<string>();
+  const ages = new Set<string>();
   for (const item of brief.items) {
     if (typeof item.value === 'string' && /^\d+$/.test(item.value.trim())) {
       numbers.add(String(Number(item.value.trim())));
     }
+    // An age field may hold "45 years" or "about 45": its first figure is the age.
+    const n = String(item.value).match(/\d+/);
+    if (AGE_KEY.test(item.key) && n) ages.add(String(Number(n[0])));
   }
+  for (const text of known) for (const age of agesIn(text)) ages.add(age);
   const warnings: ValidationWarning[] = [];
   const told = new Set<string>();
-  for (const { key, words } of periodsIn(body)) {
-    if (stated.has(key) || numbers.has(key.split(' ')[0]) || told.has(key)) continue;
+  const flat = body.replace(/\s+/g, ' ');
+  for (const period of periodsIn(body)) {
+    const { key, words } = period;
+    const count = key.split(' ')[0];
+    if (isAge(flat, period)) {
+      if (ages.has(count) || told.has(`age ${count}`)) continue;
+      told.add(`age ${count}`);
+      warnings.push({
+        type: 'fact_alteration',
+        message: `The draft states an age that is not in your brief: ${words}. Check it before use.`,
+        details: { field: 'age', expected: words },
+      });
+      continue;
+    }
+    if (stated.has(key) || numbers.has(count) || told.has(key)) continue;
     told.add(key);
     warnings.push({
       type: 'fact_alteration',

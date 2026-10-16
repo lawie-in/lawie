@@ -7,6 +7,8 @@
  * `generate-from-brief` route (T-106).
  */
 
+import { blanksInContent } from '../editor/blankCount';
+
 export type ValueKind =
   | 'text'
   | 'narrative'
@@ -487,30 +489,17 @@ export function dateInWords(iso: string): string {
   return month ? `${Number(m[3])} ${month} ${m[1]}` : iso;
 }
 
-/** T-147c: `{{MISSING: label}}` is the blank of a draft written from the fact ledger. */
-const BLANK =
-  /\[To be confirmed: [^\]]*\]|\[Section — verify before filing\]|\[Authority — add if relied upon\]|\{\{\s*MISSING\s*:\s*[^}]*?\s*\}\}/gi;
-
-/** A run of underscores left for the user, such as "Case No. _____". */
-const UNDERSCORE_BLANK = /_{3,}/g;
-
-/** A line of underscores only: the line a signature goes on, not a blank. */
-const SIGNATURE_LINE = /^[ \t]*_{3,}[ \t]*$/gm;
-
-/** The verification's signing date, "___ day of __________, 20___": one blank. */
-const SIGNING_DATE_BLANK = /_{3,} day of _{3,}, 20_{3,}/g;
-
 /**
- * How many visible blanks the draft carries (T-107, section 4). T-146: a run of
- * three or more underscores inside a line (a case number, a date) is a blank too.
- * The signing date's three underscore runs count as one blank.
+ * How many visible blanks the draft carries (T-107, section 4). T-483: the same
+ * count the editor's export warning, the export header and the server PDF show
+ * for this content: Ajay's signed set in @lawie/shared (findBlanks), read through
+ * the export's own helper (missingAsBlanks first, then blankText). So the
+ * signing date of the verification ("on this ___ day of ___") and the cause
+ * title's "No. ___ of" are not counted, as the export does not count them, and
+ * every blank counts as the export dialog counts it (repeats included).
  */
 export function countBlanks(text: string): number {
-  const marked = (text.match(BLANK) ?? []).length;
-  const rest = text.replace(SIGNATURE_LINE, '');
-  const signingDates = (rest.match(SIGNING_DATE_BLANK) ?? []).length;
-  const underscores = (rest.replace(SIGNING_DATE_BLANK, ' ').match(UNDERSCORE_BLANK) ?? []).length;
-  return marked + signingDates + underscores;
+  return blanksInContent(text).length;
 }
 
 /** The words after "[To be confirmed: " in a blank, for showing it. */
