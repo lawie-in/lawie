@@ -210,8 +210,8 @@ router.get('/states', async (req: Request, res: Response): Promise<void> => {
  * GET /courts/types?state=<stateId>[&template=<id>[&level=<level>]]
  * Returns court types available in a given state. With a scoped template the types are
  * limited to the template's courts, and `state` is not required for a stateless level
- * (consumer_complaint&level=national). No label is added for consumer_commission or
- * tribunal: unknown types fall back to their id, and the UI hides this select in that mode.
+ * (consumer_complaint&level=national). Every seeded type has a plain label (T-473); a type
+ * not in TYPE_LABELS still falls back to its id.
  */
 router.get('/types', async (req: Request, res: Response): Promise<void> => {
   const { state } = req.query;
@@ -242,6 +242,10 @@ router.get('/types', async (req: Request, res: Response): Promise<void> => {
     cjm: 'Chief Judicial Magistrate',
     jmfc: 'Judicial Magistrate First Class',
     civil_court: 'Civil Court (Senior Division)',
+    // T-473: the other court types the courts seed carries, so no raw id shows.
+    supreme_court: 'Supreme Court',
+    tribunal: 'Tribunal',
+    consumer_commission: 'Consumer Commission',
   };
 
   const types = Array.from(typeSet)

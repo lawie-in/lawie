@@ -1,0 +1,108 @@
+{
+  "id": "27-t480-anushka-regular-bail-patna",
+  "pack": "bail_regular",
+  "title": "T-480, run 4, regular bail, Patna: every fact given is read, not re-asked, and the chosen BNSS shows as the governing law",
+  "risk": "Run 4 T-480: on the same facts as her 13 Oct regular bail, intake re-asked seven facts already in the description (name, FIR number, sections, police station, custody, father's name, age); the brief did not read the address, the antecedents ('never been accused') or the dependants ('elderly mother aged 72'); the governing law stayed '[To be confirmed: Section 439 of the CrPC or Section 483 of the BNSS]' in the title, para 2 and the prayer although she chose 'BNSS and BSA' and the arrest was on 20 Sep 2026; para 14 read 'the brief records \"None\". [To be confirmed: ...]' and para 7 read '[To be confirmed: grounds]' before listing them",
+  "source": "T-480 (handoff/tickets/T-480-intake-re-asks-facts-and-misses-given-facts.md); Anushka quality run 4 on develop, 16 Oct 2026 (handoff/quality/2026-10-16-run-4-develop-FAIL.md, section 3 'Regular bail, same facts as 13 Oct' and 'product words in court text'); her 13 Oct regular bail (handoff/quality/2026-10-13-run-3-develop-FAIL.md, T-189, T-200). Her exact text is not in the repo: facts re-made synthetically on the pattern of fixture 23. Live run only, no recorded replies.",
+  "review": "drafted by dev from Anushka's reports, not yet reviewed by Anushka",
+  "ajay": "Asserts legal wording: 'Section 483' (BNSS) as the governing provision of a regular bail when the advocate chose 'BNSS and BSA' and the arrest was after 1 July 2024 (T-480); Ajay sees the diffs and confirms.",
+  "language": "en",
+  "description": "Regular bail file karni hai Sessions Court Patna mein. My client Arvind Prasad s/o Shyam Sundar Prasad, age 42, R/o Kankarbagh, Patna. FIR No. 412/2026, PS Gandhi Maidan, sections BNS 318(4), BNS 316(2), BNS 318(4). He was arrested on 20 Sep 2026 and tab se judicial custody mein hai. Complainant ka allegation hai ki usne Rs 6,50,000 diye the and the applicant cheated him. Facts: the money was paid under a land-sale agreement of 2 Mar 2025; the sale did not go through because the land was under a family partition suit, and he has offered to return the money. Grounds: (1) the dispute is purely civil, it arises from the failed land-sale agreement of 2 Mar 2025; (2) he is falsely implicated to pressurise him in the civil dispute; (3) the charge sheet has been filed, so his custody is no longer needed for investigation. He has never been accused of any offence before. His elderly mother aged 72 depends on him. No earlier bail application has been filed.",
+  "court": {
+    "state": "Bihar",
+    "court_type": "sessions",
+    "court": "bihar_sessions_patna"
+  },
+  "answers": [
+    {
+      "key": "procedure_code",
+      "value": "BNSS and BSA"
+    },
+    {
+      "key": "earlier_bail_applications",
+      "value": "None"
+    }
+  ],
+  "expect": {
+    "absent": [
+      {
+        "any_of": [
+          "Section 439 CrPC or Section 483 BNSS",
+          "Section 439 of the CrPC or Section 483 of the BNSS"
+        ],
+        "why": "Run 4 T-480: the governing law was left as a CrPC-or-BNSS blank in the title, para 2 and the prayer although she chose 'BNSS and BSA' and the arrest was on 20 Sep 2026"
+      },
+      {
+        "any_of": ["[To be confirmed: grounds"],
+        "why": "Run 4 T-480: para 7 said '[To be confirmed: grounds]' and then listed the three grounds she gave"
+      },
+      {
+        "any_of": ["the brief records"],
+        "why": "Run 4 T-480: para 14 contradicted itself ('the brief records \"None\". [To be confirmed: ...]'); product words in court text"
+      }
+    ],
+    "present": [
+      {
+        "any_of": ["Section 483"],
+        "why": "Run 4 T-480: she chose 'BNSS and BSA' and the arrest was on 20 Sep 2026, so the governing provision is Section 483 BNSS"
+      }
+    ],
+    "ledger": [
+      {
+        "key": "applicant_name",
+        "display": "Arvind Prasad",
+        "why": "Run 4 T-480: re-asked although in the description"
+      },
+      {
+        "key": "father_name",
+        "display": "Shyam Sundar Prasad",
+        "why": "Run 4 T-480: re-asked although in the description"
+      },
+      {
+        "key": "applicant_age",
+        "display": "42",
+        "why": "Run 4 T-480: re-asked although in the description"
+      },
+      {
+        "key": "address",
+        "display": "Kankarbagh, Patna",
+        "why": "Run 4 T-480: not read on 16 Oct, read on 13 Oct"
+      },
+      {
+        "key": "fir_number",
+        "display": "412/2026",
+        "why": "Run 4 T-480: re-asked although in the description"
+      },
+      {
+        "key": "police_station",
+        "display": "Gandhi Maidan",
+        "why": "Run 4 T-480: re-asked although in the description"
+      },
+      {
+        "key": "currently_in_custody",
+        "display": "Yes — Judicial custody",
+        "why": "Run 4 T-480: custody re-asked although the description says judicial custody since arrest"
+      },
+      {
+        "key": "antecedents",
+        "display": "never been accused of any offence before",
+        "why": "Run 4 T-480: antecedents ('never been accused') not read on 16 Oct, read on 13 Oct"
+      },
+      {
+        "key": "dependants",
+        "display": "elderly mother aged 72",
+        "why": "Run 4 T-480: dependants ('elderly mother aged 72') not read on 16 Oct, read on 13 Oct"
+      },
+      {
+        "key": "arrest_date",
+        "display": "20 September 2026",
+        "why": "Run 4 T-480: the arrest on 20 Sep 2026, which with her choice puts the application under the BNSS"
+      },
+      {
+        "key": "procedure_code",
+        "display": "BNSS and BSA",
+        "why": "Run 4 T-480: her choice on the brief"
+      }
+    ]
+  }
+}
