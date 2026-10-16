@@ -70,6 +70,11 @@ export interface ChecklistItem {
   askWhenEmpty?: boolean;
   /** T-471: the s.138 drawer as named on the cheque (firm, company or person): read as text, not a person name. */
   drawerAsNamed?: boolean;
+  /**
+   * T-488 (Ajay, 971d2685): asked on the brief as usual, but not a fact the
+   * draft must print. Only the State on a s.138 notice (the jurisdiction picker).
+   */
+  notInDraft?: true;
 }
 
 export type ValueSource = 'description' | 'user';
@@ -360,6 +365,11 @@ export function dateKindsIn(words: string, scope?: ReadonlySet<string>): string[
   ).map((k) => k.id);
 }
 
+/** T-488: the kind of date a fact holds (by its bare name, e.g. `cheque_date`), or null when it has none. */
+export function dateKindOfFact(factName: string): string | null {
+  return DATE_KIND_OF_FACT.get(factName)?.id ?? null;
+}
+
 export function dateKindLabel(kindId: string): string | null {
   return DATE_KIND_BY_ID.get(kindId)?.label ?? null;
 }
@@ -629,6 +639,9 @@ export function buildChecklist(pack: RulePack): ChecklistItem[] {
         : {}),
       ...(fact.question?.source === 'pack' ? { question: fact.question.text } : {}),
       ...(fact.ask_when_empty === true ? { askWhenEmpty: true } : {}),
+      ...(pack.id === 'legal_notice_s138' && fact.name === 'state'
+        ? { notInDraft: true as const }
+        : {}),
     });
   }
 

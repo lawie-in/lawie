@@ -247,7 +247,7 @@ function makeFact(
     raw_span: rawSpan,
     source,
     confidence,
-    required_in_draft: item.required,
+    required_in_draft: item.required && item.notInDraft !== true,
   } as LedgerFact;
 }
 
@@ -1006,7 +1006,11 @@ export function carryOver(
       ...fresh.facts.filter((f) => !keys.has(f.key)),
       ...asked.map((f) => {
         const item = byKey.get(f.key) as ChecklistItem;
-        return { ...f, label: item.label, required_in_draft: item.required };
+        return {
+          ...f,
+          label: item.label,
+          required_in_draft: item.required && item.notInDraft !== true,
+        };
       }),
     ],
     unresolved: fresh.unresolved.filter((u) => !keys.has(u.key)),
