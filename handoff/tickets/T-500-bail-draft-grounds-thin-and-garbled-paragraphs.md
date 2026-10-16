@@ -25,3 +25,7 @@ Find where the grounds are taken from (ledger/brief facts vs the description) an
 
 - Her exact description gives all three grounds, a clean dependants paragraph, a clean antecedents sentence, "Kadamkuan Police Station" once.
 - Golden fixture 27 extended (assertions Ajay signs); no regression elsewhere.
+
+## Ajay's ruling (088fc4f7, 16 Oct 2026; exact text in the T-245 file)
+
+A signed grounds lead-in, then each of the advocate's grounds as its own (a), (b), (c), with none dropped or merged and the mother argued as a ground. Antecedents get three signed variants (none, listed, unknown). Dependants are one clean sentence each. Police station: strip the repeated words and print "Police Station {name}".

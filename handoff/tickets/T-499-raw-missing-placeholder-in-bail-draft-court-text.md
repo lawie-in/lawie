@@ -18,3 +18,7 @@ Ajay's rule (acbec79f): the ledger form `{{MISSING: ...}}` is converted to `[To 
 
 - No raw `{{MISSING` reaches the user from any pack or path; the same blank appears in the editor, export and blank count.
 - Tests for bail_regular with a missing FIR date, plus a scan test over every pack's rendered output.
+
+## Ajay's ruling (088fc4f7, 16 Oct 2026)
+
+No change to acbec79f. Convert {{MISSING}} in every part of the output, prayer included, with a test.
