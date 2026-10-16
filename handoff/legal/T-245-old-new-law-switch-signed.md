@@ -510,3 +510,11 @@ Signed: Ajay (CLO), 16 Oct 2026 IST.
 - It asks for no other personal data.
 
 Signed: Ajay (CLO), 16 Oct 2026 IST.
+
+### T-478: certiorari, Article 227 (16 Oct 2026)
+
+1. **v1 blocker: the verifier.** A number directly after `Article`, `Art.`, `Section`, `S.`, `s.`, `Order`, `O.`, `Rule`, `r.`, `Schedule` or `Para` is a legal reference, not a case number. It is never blanked. Blanking "Article 227" also hits every writ that says "Article 226". This fix covers all packs, not only certiorari.
+2. **v1:** certiorari.json `article_invoked` gains the option `Article 227 (judicial order of a civil court)`. The existing options stay.
+3. **v1:** the mandatory clause id becomes `jurisdiction_clause`, with a read-time alias as in T-451. Name: `Jurisdiction`. Description: `State the Article selected in article_invoked. For a judicial order of a civil court, invoke Article 227, not Article 226.` Any golden that moves comes to me.
+
+Signed: Ajay (CLO), 16 Oct 2026 IST.

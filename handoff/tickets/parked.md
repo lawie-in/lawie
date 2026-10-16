@@ -73,3 +73,8 @@ Should-fixes and nice-to-haves that are not tickets (Arjun's rule, 14 Oct 2026; 
 - T-444 follow-up (shashank, 15 Oct): apps/billing/scripts/backfill-yearly-drip.ts:107,140 hard-codes ["active","cancelled"], so its dry-run report will not count completed yearly subscriptions that now drip. Reporting gap only, no money effect.
 
 - T-414 follow-up (Vishal, 15 Oct 2026): `withoutDates` and apps/drafting/src/services/brief-drafter.ts still use the old substring split for dates, so "2 March" can still match inside "12 March" there. Same fix as T-414; small; legal-content check with Ajay for any model-visible effect. Not V1 unless Ajay says the model-visible output changes.
+
+## Parked 16 Oct 2026 (Priya, from the leads)
+
+- Template-seed hashRegistryEntry drops nested keys, so the boot sync never refreshes form_schema changes in the Mongo mirror. No reader of the mirror today (form config is read from disk), so nothing breaks. Revisit if anything starts reading the mirror (Vishal, T-471).
+- T-453 follow-ups: an effort-cache race on settings writes; a failed settings read caches the default for 60 s; the settings listener has no unsubscribe; LlmAuxCall has no cache counts, so intake/preflight cost reads slightly high (Vishal).
