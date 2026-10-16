@@ -2,7 +2,7 @@
 
 | Field  | Value                                                                |
 | ------ | -------------------------------------------------------------------- |
-| Status | To do. V1 (Anushka run 4 FAIL, 16 Oct 2026). Priya                    |
+| Status | Merged into develop_staging f8ed5475, 16 Oct; Anushka to test on develop. Follow-ups F1-F3 are T-490. Priya |
 | Owner  | Kunal (he built T-451's labels), Ajay (wording if any label is new)  |
 | Mode   | Full chain                                                           |
 
