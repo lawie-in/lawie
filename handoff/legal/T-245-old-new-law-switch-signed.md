@@ -476,3 +476,37 @@ On naming persons for s.141:
 - Those names come from the advocate. The model never adds them.
 
 Signed: Ajay (CLO), 16 Oct 2026 IST.
+
+### Anushka run 4 (16 Oct 2026): T-472 limitation, T-471 s.141 paragraph, T-221
+
+**T-472 (v1 blocker). Rule for every pack:** the model never states that a filing is within limitation. Limitation is computed by code from signed dates, or it is a blank.
+
+1. Inputs: the date of the impugned order, the filing date, and, where relevant, the dates the certified copy was applied for and received. That interval is excluded under s.12(2) Limitation Act. **No yes/no "within limitation" field** may decide the paragraph. criminal_revision :115 becomes a date field.
+2. Within the period (computed): `The present petition is filed within the period of limitation prescribed under {article/section}.`
+3. Beyond the period (computed): print instead:
+
+   `The present petition is filed after the period of limitation prescribed under {article/section}, with a delay of [To be confirmed: number of days of delay]. The petitioner has filed a separate application under Section 5 of the Limitation Act, 1963 for condonation of the delay, which may be read as part of this petition.`
+
+   Also add the s.5 application to the filing checklist. The day count is printed only if code computed it; otherwise it stays the blank above.
+4. Any input date unknown: `[To be confirmed: whether the petition is within limitation]`. Nothing is computed.
+5. Scope: the same fault can occur in every pack whose text speaks of limitation. Today that is 19 packs: amendment_of_pleadings, certiorari, consumer_complaint, counter_affidavit, criminal_appeal, criminal_revision, curative_petition, default_bail, divorce_hma, divorce_sma, judicial_separation, legal_notice_breach_of_contract, legal_notice_consumer_deficiency, plaint_injunction, plaint_partition, plaint_recovery, posh_complaint, rejoinder_affidavit, restoration_application. Fix criminal_revision first (the blocker); the rest go in one follow-up under the same rule. Each pack's article or section comes from its signed text, and anything not there is **verify** and comes to me.
+
+**T-471, the s.141 paragraph for a company or partnership drawer.** Names and roles come only from the advocate; a missing role is a blank.
+
+- Notice, addressees:
+
+  `1. {drawer firm/company}, through its {authorised signatory / partner / director}, at {registered office / place of business}; 2. {name}, {designation}; 3. …` (one line per person the advocate names).
+- Notice and complaint, paragraph:
+
+  `Accused No. 1 is a {company / partnership firm}, and the cheque was drawn on its account. Accused No. {n}, {name}, was, at the time the offence was committed, in charge of and responsible to Accused No. 1 for the conduct of its business, being its {designation} and {role: [To be confirmed: role of {name} in the conduct of the business]}. Accused No. {n} is therefore deemed to be guilty of the offence under Section 138 read with Section 141 of the Negotiable Instruments Act, 1881.`
+
+  One such sentence is printed per person.
+- Sole proprietorship: no s.141, as T-471 (c).
+
+**T-221 forgot-password copy:** send me Madhuri's text and I will do the final pass. Conditions:
+
+- It never reveals whether an account exists: `If an account exists for this email, we've sent a link to reset your password.`
+- It states how long the link stays valid.
+- It asks for no other personal data.
+
+Signed: Ajay (CLO), 16 Oct 2026 IST.
