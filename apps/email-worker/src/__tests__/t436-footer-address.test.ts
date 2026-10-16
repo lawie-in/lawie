@@ -27,6 +27,13 @@ const SENTINEL = {
   ...INVOICE_SENTINEL_FIELDS,
 };
 
+// T-221: auth.passwordReset refuses data without its own variant, so the sweep feeds it the data
+// the worker really builds (never the shared sentinel, which has loginUrl and variant 'A').
+const PASSWORD_RESET_DATA: Record<string, Record<string, unknown>> = {
+  link: { variant: 'link', resetUrl: 'https://app.lawie.in/reset-password/sentinel' },
+  google: { variant: 'google', loginUrl: 'https://app.lawie.in/login' },
+};
+
 describe('auth.verifyEmail footer (Ajay, byte-exact)', () => {
   const rendered = renderReal('auth.verifyEmail', SENTINEL);
 
@@ -77,11 +84,14 @@ describe('sweep: every registered template (T-436 AC10 test line)', () => {
   });
 
   it.each(ids)('%s renders with no placeholder token and no Patna', (id) => {
-    const r = renderReal(id, SENTINEL);
-    for (const part of [r.subject, r.html, r.text]) {
-      expect(part).not.toMatch(/\[[^\]]*(PIN|registered address|placeholder)[^\]]*\]/i);
-      expect(part).not.toContain('Patna');
-      expect(part).not.toContain('Patna, Bihar');
+    const datasets = id === 'auth.passwordReset' ? Object.values(PASSWORD_RESET_DATA) : [SENTINEL];
+    for (const data of datasets) {
+      const r = renderReal(id, data);
+      for (const part of [r.subject, r.html, r.text]) {
+        expect(part).not.toMatch(/\[[^\]]*(PIN|registered address|placeholder)[^\]]*\]/i);
+        expect(part).not.toContain('Patna');
+        expect(part).not.toContain('Patna, Bihar');
+      }
     }
   });
 });

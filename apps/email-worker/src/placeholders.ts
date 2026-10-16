@@ -16,6 +16,7 @@
 import type { EmailTemplate } from '@lawie/email-client';
 
 import { env } from './config/env';
+import { PASSWORD_RESET_STRINGS } from './templates/auth/passwordReset';
 import {
   UNVERIFIED_DELETION_NOTICE_B_STRINGS,
   UNVERIFIED_DELETION_NOTICE_STRINGS,
@@ -39,6 +40,9 @@ function footerLines(strings: Record<string, string>): readonly string[] {
  */
 const TEMPLATE_FOOTERS: Partial<Record<EmailTemplate, readonly string[]>> = {
   'auth.verifyEmail': footerLines(VERIFY_EMAIL_STRINGS),
+  // T-221: Ajay's signed Ranchi footer (T-221-forgot-password-signed.md condition 1), shared by
+  // both variants. Listed so a placeholder that comes back blocks live sends.
+  'auth.passwordReset': footerLines(PASSWORD_RESET_STRINGS),
   // T-358: signed with the Ranchi footer (no placeholders), listed so the guard keeps checking it.
   // Both variants (A with a link, B without) are checked.
   'auth.unverifiedDeletionNotice': [
@@ -60,6 +64,28 @@ export function templateHasUnfilledFooter(templateId: EmailTemplate): boolean {
 /** True when any template's footer still has an unfilled placeholder. */
 export function anyTemplateUnfilled(): boolean {
   return (Object.keys(TEMPLATE_FOOTERS) as EmailTemplate[]).some(templateHasUnfilledFooter);
+}
+
+/**
+ * T-221 (Ajay, T-221-forgot-password-signed.md condition 1): auth.passwordReset's footer carries
+ * the supplier's registered address, read from the environment at send time and never written
+ * in copy. Arjun: reuse GST_ADDRESS, the seller address billing already prints on tax invoices
+ * (apps/billing/src/config/gst.ts SELLER_KEYS). The two services are coupled on this name: if
+ * billing renames it, rename it here too. Read from process.env directly (not config/env.ts) so
+ * a worker without it still boots and sends every other email. Unset or blank → undefined;
+ * whitespace runs are collapsed.
+ *
+ * This is a passwordReset-only guard, enforced in the worker before the mint. It is deliberately
+ * NOT part of TEMPLATE_FOOTERS / UNFILLED_PLACEHOLDERS: anyTemplateUnfilled() gates boot and
+ * /health, and would hold the verify and invoice emails too.
+ */
+export const SUPPLIER_ADDRESS_ENV = 'GST_ADDRESS';
+
+export function supplierStreetAddress(): string | undefined {
+  const raw = process.env[SUPPLIER_ADDRESS_ENV];
+  if (typeof raw !== 'string') return undefined;
+  const value = raw.replace(/\s+/g, ' ').trim();
+  return value.length > 0 ? value : undefined;
 }
 
 /** True when a send would reach a real provider (not dry run). */

@@ -6,20 +6,29 @@ import {
   loginUser,
   refreshTokens,
   logoutUser,
-  initiatePasswordReset,
-  resetPassword,
   getPrivacyStatus,
   acceptPrivacy,
   setGstStateCode,
   SET_GST_STATE_PRIVACY_BODY,
 } from '../services/auth.service';
 import {
+  completePasswordReset,
+  isResetTokenLive,
+  requestPasswordReset,
+} from '../services/password-reset.service';
+import {
   VERIFY_RESEND_LIMITED,
   VERIFY_RESEND_LIMIT_MESSAGE,
   requestVerifyEmail,
   verifyEmailToken,
 } from '../services/verify-email.service';
-import { validateRegister, validateLogin, validateUpdateMe } from '../validators/auth.validator';
+import {
+  validateRegister,
+  validateLogin,
+  validateUpdateMe,
+  parseForgotPasswordEmail,
+  checkResetPassword,
+} from '../validators/auth.validator';
 
 export async function register(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
@@ -81,23 +90,92 @@ export async function refresh(req: Request, res: Response, next: NextFunction): 
   }
 }
 
+// ── T-221: forgot / reset password ──────────────────────────────────────────
+
+/** The fixed 200 body: identical for every address, known or not (AC1). */
+export const FORGOT_PASSWORD_ACCEPTED_BODY = {
+  status: 'success',
+  message: 'If an account exists with that email, we have sent it an email.',
+} as const;
+export const PASSWORD_RESET_RATE_LIMITED = 'rate_limited';
+export const PASSWORD_RESET_INVALID_TOKEN = 'invalid_or_expired_token';
+export const PASSWORD_RESET_WEAK = 'weak_password';
+
+/**
+ * The caller's IP for the per-IP limit. Auth sits behind the gateway, which forwards the
+ * X-Forwarded-For header nginx set (the gateway trusts exactly one proxy hop): its LAST entry
+ * is the address nginx saw. Without that header (a direct call, tests) the socket address.
+ * Auth's own `trust proxy` is not changed, so req.ip elsewhere is unaffected.
+ */
+export function clientIpForRateLimit(req: Request): string | undefined {
+  const xff = req.headers['x-forwarded-for'];
+  const raw = Array.isArray(xff) ? xff.join(',') : xff;
+  if (typeof raw === 'string') {
+    const parts = raw
+      .split(',')
+      .map((p) => p.trim())
+      .filter(Boolean);
+    const last = parts[parts.length - 1];
+    if (last) return last.slice(0, 64);
+  }
+  return req.ip ?? req.socket?.remoteAddress ?? undefined;
+}
+
+/**
+ * T-221 — POST /forgot-password { email } (public).
+ *   200 FORGOT_PASSWORD_ACCEPTED_BODY  always the same, whether or not an email was queued
+ *   400 { error: 'invalid_email' }     missing or badly formed address (format only)
+ *   429 { error: 'rate_limited', retryAfter } + Retry-After  over the email or IP cap (AC4)
+ *   503 { error: 'service_unavailable' }  the rate-limit store failed; nothing looked up
+ * The body is never logged.
+ */
 export async function forgotPassword(
   req: Request,
   res: Response,
   next: NextFunction,
 ): Promise<void> {
   try {
-    const { email } = req.body;
+    res.setHeader('Cache-Control', 'no-store');
+    const email = parseForgotPasswordEmail(req.body);
     if (!email) {
-      res.status(400).json({ status: 'error', message: 'email is required' });
+      res.status(400).json({ error: 'invalid_email' });
       return;
     }
+    const result = await requestPasswordReset(email, clientIpForRateLimit(req));
+    switch (result.kind) {
+      case 'accepted':
+        res.status(200).json(FORGOT_PASSWORD_ACCEPTED_BODY);
+        return;
+      case 'limited':
+        res.setHeader('Retry-After', String(result.retryAfterSeconds));
+        res.status(429).json({
+          error: PASSWORD_RESET_RATE_LIMITED,
+          retryAfter: result.retryAfterSeconds,
+        });
+        return;
+      case 'unavailable':
+        res.status(503).json({ error: 'service_unavailable' });
+        return;
+    }
+  } catch (err) {
+    next(err);
+  }
+}
 
-    await initiatePasswordReset(email);
-    res.status(200).json({
-      status: 'success',
-      message: 'If an account exists with that email, a reset link has been sent.',
-    });
+/**
+ * T-221 — GET /reset-password/:token (public, read-only): { valid } for the page's check on
+ * load. No side effects; the token is never logged (errorHandler masks it in the path).
+ */
+export async function checkResetTokenHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('Referrer-Policy', 'no-referrer');
+    const valid = await isResetTokenLive(req.params.token);
+    res.status(200).json({ valid });
   } catch (err) {
     next(err);
   }
@@ -121,22 +199,40 @@ export async function logout(req: Request, res: Response, next: NextFunction): P
   }
 }
 
+/**
+ * T-221 — POST /reset-password/:token { password } (public: the token is the credential).
+ *   200 { status: 'success' }  password set (sign-up rules), token used, every session deleted
+ *   422 { error: 'weak_password', unmet: PasswordRule[], message }  fails a sign-up rule
+ *   400 { error: 'invalid_or_expired_token' }  malformed, unknown, expired or used token, or an
+ *       inactive account: one answer for all
+ * The password is checked first, so a weak password never uses up the token. The body and the
+ * token are never logged.
+ */
 export async function resetPasswordHandler(
   req: Request,
   res: Response,
   next: NextFunction,
 ): Promise<void> {
   try {
-    const { token } = req.params;
-    const { password } = req.body;
-
-    if (!password || password.length < 8) {
-      res.status(400).json({ status: 'error', message: 'Password must be at least 8 characters' });
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('Referrer-Policy', 'no-referrer');
+    const check = checkResetPassword(req.body);
+    if (!check.ok) {
+      res.status(422).json({
+        status: 'error',
+        statusCode: 422,
+        error: PASSWORD_RESET_WEAK,
+        message: check.message,
+        unmet: check.unmet,
+      });
       return;
     }
-
-    await resetPassword(token, password);
-    res.status(200).json({ status: 'success', message: 'Password has been reset successfully.' });
+    const result = await completePasswordReset(req.params.token, check.password);
+    if (result.kind === 'invalid') {
+      res.status(400).json({ error: PASSWORD_RESET_INVALID_TOKEN });
+      return;
+    }
+    res.status(200).json({ status: 'success' });
   } catch (err) {
     next(err);
   }
