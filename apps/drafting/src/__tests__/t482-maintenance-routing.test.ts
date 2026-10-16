@@ -68,7 +68,7 @@ const TERMS_25 = [
   'माता-पिता',
 ];
 
-function signedText(): string | null {
+function signedText(marker = 'T-482 byte-check points'): string | null {
   const read = (): string => {
     try {
       return readFileSync(join(REPO_ROOT, SIGNED_FILE), 'utf8');
@@ -77,7 +77,7 @@ function signedText(): string | null {
     }
   };
   let text = read();
-  if (!text.includes('T-482 byte-check points')) {
+  if (!text.includes(marker)) {
     try {
       text = execFileSync(
         'git',
@@ -91,7 +91,7 @@ function signedText(): string | null {
       text = '';
     }
   }
-  return text.includes('T-482 byte-check points') ? text : null;
+  return text.includes(marker) ? text : null;
 }
 
 describe('T-482 C: pack content equals the signed text', () => {
@@ -164,13 +164,36 @@ describe('T-482 D: the prompts', () => {
     for (const l of lines) expect(l).not.toContain('match terms:');
   });
 
-  it('the system prompt has the divorce / DV Act / HAMA sentence, and without it is the old prompt', () => {
-    const sentence =
-      '- A catalogue line may end with "match terms": those terms alone are not enough to choose that template when the description also has divorce, Domestic Violence Act (DV Act) or Hindu Adoptions and Maintenance Act (HAMA) words; in that case use confidence "medium" and list it together with those templates in alternatives, so the advocate chooses.\n';
-    expect(MATCH_SYSTEM_PROMPT).toContain(sentence);
-    expect(
-      createHash('sha256').update(MATCH_SYSTEM_PROMPT.replace(sentence, '')).digest('hex'),
-    ).toBe('9b5d2d0f92602a15952bb698b13476e6b79cce6a0968e4c06d92503df1cf83df');
+  const SIGNED_SENTENCE =
+    '- A catalogue line may end with "match terms": those terms alone are not enough to choose that template when the description also has divorce, Domestic Violence Act (DV Act), Hindu Adoptions and Maintenance Act (HAMA), custody or guardianship words; in that case use confidence "medium" and list it together with those templates in alternatives, so the advocate chooses.';
+
+  it('the system prompt has the signed sentence (59d26051) once, and without it is the pre-change prompt', () => {
+    const line = `${SIGNED_SENTENCE}\n`;
+    expect(MATCH_SYSTEM_PROMPT.split(line)).toHaveLength(2);
+    // the old wording ("... (DV Act) or Hindu Adoptions ...") is gone
+    expect(MATCH_SYSTEM_PROMPT).not.toContain('(DV Act) or Hindu');
+    expect(MATCH_SYSTEM_PROMPT).toContain('custody or guardianship words');
+    expect(createHash('sha256').update(MATCH_SYSTEM_PROMPT.replace(line, '')).digest('hex')).toBe(
+      '9b5d2d0f92602a15952bb698b13476e6b79cce6a0968e4c06d92503df1cf83df',
+    );
+  });
+
+  it('the sentence equals the signed text byte for byte (parsed from the T-245 signed file)', () => {
+    const text = signedText('## T-482 intake prompt line');
+    if (text === null) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `T-482 signed-sentence check SKIPPED: signed file not readable (${SIGNED_FILE}).`,
+      );
+      return;
+    }
+    const section = text.split('## T-482 intake prompt line')[1];
+    expect(section).toBeDefined();
+    const signed = /^`(- A catalogue line may end with[^\n]+)`$/m.exec(section.split('\n## ')[0]);
+    expect(signed).not.toBeNull();
+    expect(signed![1]).toBe(SIGNED_SENTENCE);
+    expect(MATCH_SYSTEM_PROMPT).toContain(`${signed![1]}\n`);
+    expect(Buffer.from(signed![1], 'utf8').equals(Buffer.from(SIGNED_SENTENCE, 'utf8'))).toBe(true);
   });
 });
 

@@ -224,13 +224,19 @@ describe('T-482 A: GET /courts/* with template=maintenance_bnss_144', () => {
     expect(ids(await list(`state=goa&type=cjm&template=${MAINT}`))).toEqual(['ga_cjm_panaji']);
   });
 
-  it('every state with a Family Court record offers it; Delhi offers its Family Courts', async () => {
-    const delhi = await list(`state=delhi&type=family_court&template=${MAINT}`);
-    expect(ids(delhi).sort()).toEqual(
-      ALL_ROWS.filter((r) => r.stateId === 'delhi' && r.formattingRulesRef === 'family_court')
-        .map((r) => r.courtId as string)
-        .sort(),
+  it('Family Courts outside Bihar and Jharkhand are not offered as a Family Court (scope is signed for two states only)', async () => {
+    const others = ALL_ROWS.filter(
+      (r) =>
+        r.formattingRulesRef === 'family_court' &&
+        !['bihar', 'jharkhand'].includes(String(r.stateId)),
     );
+    expect(others.length).toBeGreaterThan(0); // Delhi etc. do have Family Court rows in the seed
+    for (const state of new Set(others.map((r) => String(r.stateId)))) {
+      const types = await get(`/courts/types?state=${state}&template=${MAINT}`);
+      expect(types.body.types.map((t: { id: string }) => t.id)).not.toContain('family_court');
+    }
+    // Delhi: its Family Courts stay under the stored type, as in the unscoped list
+    expect(await list(`state=delhi&type=family_court&template=${MAINT}`)).toEqual([]);
   });
 
   it('an inactive Family Court is not offered', async () => {
@@ -239,6 +245,82 @@ describe('T-482 A: GET /courts/* with template=maintenance_bnss_144', () => {
       { $set: { isActive: false } },
     );
     expect(ids(await list(`state=bihar&type=family_court&template=${MAINT}`))).toEqual([]);
+  });
+});
+
+describe('T-482 A2: states outside Bihar and Jharkhand get the previous, unscoped answer (Ajay 656332c9, point 3)', () => {
+  const OTHER_STATES = ['delhi', 'maharashtra', 'uttar_pradesh', 'goa', 'karnataka'];
+
+  it.each(OTHER_STATES)(
+    '%s: /types and /courts equal the request without a template',
+    async (state) => {
+      const scopedTypes = await get(`/courts/types?state=${state}&template=${MAINT}`);
+      const plainTypes = await get(`/courts/types?state=${state}`);
+      expect(scopedTypes.status).toBe(200);
+      expect(scopedTypes.body.types.length).toBeGreaterThan(0);
+      expect(scopedTypes.body.types).toEqual(plainTypes.body.types);
+      const typeIds = scopedTypes.body.types.map((t: { id: string }) => t.id);
+      expect(typeIds).not.toContain('family_court');
+
+      const scoped = await list(`state=${state}&template=${MAINT}`);
+      const plain = await list(`state=${state}`);
+      expect(plain.length).toBeGreaterThan(0);
+      expect(scoped).toEqual(plain); // same records, same order, same fields
+      for (const id of MARKED_IDS) expect(ids(scoped)).not.toContain(id);
+
+      // every offered type returns the same courts as without the template
+      for (const t of typeIds) {
+        expect(await list(`state=${state}&type=${t}&template=${MAINT}`)).toEqual(
+          await list(`state=${state}&type=${t}`),
+        );
+      }
+      // the sort is by name, as the unscoped list
+      expect(scoped.map((c) => c.name)).toEqual([...scoped.map((c) => c.name)].sort());
+    },
+  );
+
+  it('Delhi and Maharashtra keep their Family Courts under the stored type (Tribunal), not family_court', async () => {
+    for (const state of ['delhi', 'maharashtra', 'uttar_pradesh', 'karnataka']) {
+      const types = await get(`/courts/types?state=${state}&template=${MAINT}`);
+      const tribunal = types.body.types.find((t: { id: string }) => t.id === 'tribunal');
+      expect(tribunal).toEqual({ id: 'tribunal', label: 'Tribunal' });
+      const fc = ALL_ROWS.filter(
+        (r) => r.stateId === state && r.formattingRulesRef === 'family_court',
+      ).map((r) => r.courtId as string);
+      expect(fc.length).toBeGreaterThan(0);
+      expect(ids(await list(`state=${state}&type=tribunal&template=${MAINT}`))).toEqual(
+        expect.arrayContaining(fc),
+      );
+    }
+  });
+
+  it('the other states are not narrowed: a JMFC next to a Family Court in the same city stays', async () => {
+    // the same-city exclusion applies in the two signed states only
+    const delhiPlain = ids(await list('state=delhi'));
+    expect(ids(await list(`state=delhi&template=${MAINT}`))).toEqual(delhiPlain);
+  });
+
+  it('/states offers every state, and each state is listed once', async () => {
+    const res = await get(`/courts/states?template=${MAINT}`);
+    const stateIds = res.body.states.map((s: { id: string }) => s.id);
+    expect(new Set(stateIds).size).toBe(stateIds.length);
+    expect(new Set(stateIds)).toEqual(new Set(ALL_ROWS.map((r) => r.stateId as string)));
+    expect(stateIds).toEqual(expect.arrayContaining(OTHER_STATES));
+  });
+
+  it('Bihar and Jharkhand are still scoped (Family Court = Patna / Ranchi only; never the old JMFC seats)', async () => {
+    const bihar = await list(`state=bihar&template=${MAINT}`);
+    expect(bihar.filter((c) => c.courtType === 'tribunal').map((c) => c.courtId)).toEqual([
+      'family_court_patna',
+    ]);
+    expect(ids(bihar)).not.toContain('bihar_jmfc_patna');
+    expect(bihar).toHaveLength(11);
+    const jh = await list(`state=jharkhand&template=${MAINT}`);
+    expect(jh.filter((c) => c.courtType === 'tribunal').map((c) => c.courtId)).toEqual([
+      'family_court_ranchi',
+    ]);
+    expect(ids(jh)).not.toContain('jharkhand_jmfc_ranchi');
+    expect(jh).toHaveLength(10);
   });
 });
 

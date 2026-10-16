@@ -30,16 +30,19 @@ const router = Router();
  *   GET /courts?template=consumer_complaint&level=state&state=maharashtra
  *   GET /courts/states?template=consumer_complaint&level=state
  *
- * maintenance_bnss_144 (T-482, Ajay 16 Oct 2026: a Family Court where one is listed,
- * otherwise JMFC) offers two types per state: `family_court`, a type derived from the
+ * maintenance_bnss_144 (T-482, Ajay 16 Oct 2026: a Family Court where one is verified,
+ * otherwise JMFC) is scoped only in the states Ajay signed (MAINTENANCE_SCOPED_STATES:
+ * Bihar, Jharkhand). There it offers two types: `family_court`, a type derived from the
  * tribunal records whose formattingRulesRef is 'family_court' (there is no family_court
  * courtType in the seed), and `jmfc`. A type with no court in the state is not offered.
+ * Every other state gets the unscoped list and types, exactly as without a template.
  * The derived type exists only inside this scope; every other list is unchanged, and the
  * returned court records keep their stored courtType. Ajay's ruling (T-245 signed file,
  * "T-482: maintenance forum", 9ad6a8f1): a district's Family Court has exclusive
  * jurisdiction, so a JMFC in a district (same stateId and city) that has a Family Court
- * record is not offered. A state where the scope has no court at all falls back to the
- * unscoped list for that state, so maintenance stays possible there.
+ * record is not offered. A state where the scope has no court at all (every state outside
+ * MAINTENANCE_SCOPED_STATES) falls back to the unscoped list for that state, so
+ * maintenance stays possible there (Ajay 656332c9, point 3).
  *
  * T-482: a court record with a `templates` list is listed only when the request's
  * `template` is in that list (the maintenance-only JMFCs). Unscoped lists and every other
@@ -156,17 +159,23 @@ const FAMILY_COURT_RULES_REF = 'family_court';
 
 /**
  * T-482 (Ajay 16 Oct 2026; legal content): an S.144 BNSS maintenance application, before
- * a Family Court where one is listed for the state, otherwise a JMFC. No CJM, District,
- * Sessions, Consumer or other tribunal. Which districts have a verified Family Court is
- * data: a Family Court record added to the courts seed is offered with no code change,
- * and it replaces that district's JMFC in this scope (Sections 7 and 8, Family Courts Act).
+ * a Family Court where one is verified, otherwise a JMFC. No CJM, District, Sessions,
+ * Consumer or other tribunal. Only in MAINTENANCE_SCOPED_STATES: the Family Court records
+ * of other states are not verified, so those states keep the full list (fallback). Inside
+ * those states, which districts have a Family Court is data: a Family Court record added
+ * to the courts seed is offered with no code change, and it replaces that district's JMFC
+ * in this scope (Sections 7 and 8, Family Courts Act).
  */
+// Ajay 656332c9: signed states; extend only with his sign-off (T-501).
+const MAINTENANCE_SCOPED_STATES = ['bihar', 'jharkhand'];
+
 const isFamilyCourt = (court: { courtType: string; formattingRulesRef: string }) =>
   court.courtType === 'tribunal' && court.formattingRulesRef === FAMILY_COURT_RULES_REF;
 const districtKey = (court: { stateId: string; city: string }) => `${court.stateId}/${court.city}`;
 
 const MAINTENANCE_FILTER: TemplateCourtFilter = {
   filter: {
+    stateId: { $in: MAINTENANCE_SCOPED_STATES },
     $or: [
       { courtType: 'tribunal', formattingRulesRef: FAMILY_COURT_RULES_REF },
       { courtType: 'jmfc' },
