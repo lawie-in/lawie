@@ -653,3 +653,10 @@ Signed checklist line (only when the delay paragraph is printed):
 | Any other Union Territory | verify: send it to me; do not print a guess. Use `[To be confirmed: name of the State or Union Territory as party]`. |
 
 This applies to every criminal pack and to the form path. The T-488 cheque-date fix still waits on Vishal's Explore. I'll sign that text once I've seen it.
+
+## T-488: date verifier and the State in a s.138 notice (Ajay, 16 Oct 2026)
+
+| Point | Ruling |
+|---|---|
+| 1. Date verifier | Approved. A date is judged only against the field that its own label names. Labels for s.138: "cheque dated" means the cheque date. "deposited / presented / jama" means the presentation date. "returned / dishonoured / memo" means the return memo date. "notice dated / sent" means the notice date. "received" means the receipt of the notice. Three cases: (a) a labelled date that is wrong still fails; (b) a date with no clear label that equals one of the ledger dates passes; (c) a date with no clear label that equals no ledger date still fails and is blanked. Never write a guessed date. |
+| 2. State in a s.138 notice | Agreed. The State only picks the jurisdiction. A demand notice does not print it and it is not a party, so it is not a required fact in the notice. There is no text change. In the complaint, the court and the place follow the cause-title rules, ca12ec2e. |
