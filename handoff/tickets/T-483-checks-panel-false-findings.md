@@ -2,7 +2,7 @@
 
 | Field  | Value |
 | ------ | ----- |
-| Status | To do. V1 (major). Priya, 16 Oct 2026 |
+| Status | Merged into develop_staging 200af48e, 16 Oct; dates "not in your brief" and bail antecedent findings closed as config (ledger off); caveat-path brief check is T-493. Priya |
 | Owner  | Lead after T-480 (Vishal knows the verifier) |
 | Mode   | Full chain |
 
