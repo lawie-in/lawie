@@ -1921,6 +1921,31 @@ export const OPTION_VALUE_ALIASES: Readonly<
 });
 
 /**
+ * Mandatory-clause ids renamed by Ajay (T-245 file 7d42b105, T-478 rulings):
+ * pack id -> (old clause id -> new clause id). Applied only for that pack.
+ */
+// T-478 alias, remove in the post-v1 cleanup
+export const CLAUSE_ID_ALIASES: Readonly<Record<string, Readonly<Record<string, string>>>> =
+  Object.freeze({
+    certiorari: Object.freeze({
+      jurisdiction_clause_article_226_hc_or_article_32_sc: 'jurisdiction_clause',
+    }),
+  });
+
+/**
+ * Returns the current clause id for `clauseId` in pack `packId`: the new id
+ * when {@link CLAUSE_ID_ALIASES} renames it for that pack, else `clauseId`
+ * unchanged. Own keys only, so `__proto__` or `toString` never resolve.
+ */
+// T-478 alias, remove in the post-v1 cleanup
+export function resolveClauseId(packId: string, clauseId: string): string {
+  const own = (o: object, k: string): boolean => Object.prototype.hasOwnProperty.call(o, k);
+  if (!own(CLAUSE_ID_ALIASES, packId)) return clauseId;
+  const map = CLAUSE_ID_ALIASES[packId];
+  return own(map, clauseId) ? map[clauseId] : clauseId;
+}
+
+/**
  * Maps one stored answer through `map`: a string, each string in an array, or
  * each key of a plain object (`{ option_id: true }`; an existing new key wins
  * over a renamed old one). Anything else is returned unchanged. Never mutates
