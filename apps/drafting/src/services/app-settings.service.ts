@@ -25,7 +25,7 @@ const cache = new Map<string, CacheEntry>();
 
 /**
  * T-453: modules that keep their own cache of a resolved setting (llm-usage's
- * effort and intake_extract cap caches) register here, so an admin write (the key) or a full clear
+ * effort and intake cap caches) register here, so an admin write (the key) or a full clear
  * (null) reaches them too.
  */
 type InvalidationListener = (key: string | null) => void;
@@ -157,6 +157,12 @@ export const APP_SETTING_KEYS = {
    * llm-usage.ts (getIntakeExtractCap), never a failed call.
    */
   CAP_INTAKE_EXTRACT: 'ai.cap.intake_extract',
+  /**
+   * T-453 follow-up (golden run 64) — max_tokens for both intake_reception
+   * calls (pack and guided), a whole number in 500-8000. Optional: missing or
+   * invalid falls back to 4000 in llm-usage.ts (getIntakeReceptionCap).
+   */
+  CAP_INTAKE_RECEPTION: 'ai.cap.intake_reception',
 } as const;
 
 // Per-model USD rates (`ai.rates.<model-slug>`) and the USD→INR conversion
