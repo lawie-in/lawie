@@ -739,7 +739,7 @@ describe('T-240 AC1-3 - every rule file has exactly one catalogue entry', () => 
 
   // T-334 (Ajay, 12 Oct 2026) signed edits to document-rules/_averments/*.json. T-240 does not
   // own that directory, so it is excluded here; every other rule file and the overrides stay guarded.
-  it('document-rules/ is untouched by this ticket (signed _averments/ and _skeletons/ excluded)', () => {
+  it('document-rules/ is untouched by this ticket (signed _averments/, _skeletons/ and the five T-479 packs excluded)', () => {
     const { execFileSync } = jest.requireActual('child_process');
     const out = execFileSync(
       'git',
@@ -751,7 +751,14 @@ describe('T-240 AC1-3 - every rule file has exactly one catalogue entry', () => 
       .filter((l: string) => l.trim() !== '')
       .filter((l: string) => !/document-rules\/_averments\//.test(l))
       // T-374 (Ajay, 13 Oct 2026) signed clause skeletons live in document-rules/_skeletons/.
-      .filter((l: string) => !/document-rules\/_skeletons\//.test(l));
+      .filter((l: string) => !/document-rules\/_skeletons\//.test(l))
+      // T-479 (Ajay, 16 Oct 2026) signed the cause-title edits to these five packs only.
+      .filter(
+        (l: string) =>
+          !/document-rules\/(habeas_corpus|pil|mandamus|quashing_528_bnss|certiorari)\.json$/.test(
+            l,
+          ),
+      );
     expect(touched).toEqual([]);
   });
 });

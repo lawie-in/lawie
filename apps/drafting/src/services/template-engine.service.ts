@@ -718,10 +718,27 @@ export interface PromptPartyDesignations {
 export function promptPartyDesignations(
   rule: CourtRuleData,
   templateId: string,
+  courtState?: string,
 ): PromptPartyDesignations {
   const entries = Object.entries(
     partyDesignationFor(ruleForMatter(rule, templateId), templateId) ?? {},
-  ).filter(([k, v]) => !(k === 'state' && isStateNotApplicable(v)));
+  )
+    .filter(
+      ([k, v]) =>
+        !(k === 'state' && isStateNotApplicable(v)) &&
+        // T-479 (Ajay, 6a047469, point 4): a civil certiorari never takes the
+        // court rule's State line ("Home Department"); its cause title prints
+        // the signed State line, so the model is sent none.
+        !(k === 'state' && templateId === 'certiorari'),
+    )
+    // T-479 (Ajay, f9415fe8, point f): writ_petition_civil's model is sent the
+    // signed State line in place of the court rule's ("Home Department"). With
+    // no State known to the caller, the signed no-State line.
+    .map(([k, v]): [string, string] =>
+      k === 'state' && templateId === 'writ_petition_civil'
+        ? [k, civilWritStateParty(courtState)]
+        : [k, v],
+    );
   return {
     entries,
     needsToBeConfirmedRule: entries.some(([, v]) => v.startsWith('[To be confirmed:')),
@@ -729,8 +746,12 @@ export function promptPartyDesignations(
 }
 
 /** The AI prompt's PARTY DESIGNATIONS lines for one court rule and document type. */
-export function partyDesignationsPromptLines(rule: CourtRuleData, templateId: string): string {
-  const { entries, needsToBeConfirmedRule } = promptPartyDesignations(rule, templateId);
+export function partyDesignationsPromptLines(
+  rule: CourtRuleData,
+  templateId: string,
+  courtState?: string,
+): string {
+  const { entries, needsToBeConfirmedRule } = promptPartyDesignations(rule, templateId, courtState);
   const lines = entries.map(([k, v]) => `- ${k}: "${v}"`);
   if (needsToBeConfirmedRule) lines.push(TO_BE_CONFIRMED_DESIGNATION_RULE);
   return lines.join('\n');
@@ -1933,6 +1954,7 @@ export function buildPlaceholderContext(
       .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
       .join(' ');
   }
+  applyStateFromCourt(config.template_id, ctx, courtData);
 
   // SCRUM-54 B5, T-340: an ISO date in any "*date*" key, or in any field the
   // template declares as type "date" (e.g. minor_dob, custody_since), prints as
@@ -2100,6 +2122,7 @@ export function buildPlaceholderContext(
   // such as {caseNomenclature} reads the same value as {case_nomenclature}.
   applyPlaceholderAliases(ctx);
   applyCourtBlanks(ctx, courtData, nomenclatureAllowed(config.template_id));
+  applyCauseTitlePartyBlanks(config.template_id, ctx, courtData);
 
   // Recursive placeholder pass — resolve {token} references that may exist inside
   // ctx values themselves (e.g. caseNomenclature from courts DB contains "{current_year}"
@@ -2130,6 +2153,10 @@ export function buildPlaceholderContext(
     );
   }
 
+  // T-479: set after the recursive pass, so the format's tokens are filled
+  // only by renderTemplateSection, never from text a user typed.
+  applySupremeCourtCauseTitle(config, ctx, courtData);
+
   return ctx;
 }
 
@@ -2149,6 +2176,12 @@ export const PLACEHOLDER_ALIASES: ReadonlyArray<
   ['applicant', ['applicant_name']],
   // T-395: suspension_of_sentence's verification and cause title name the appellant.
   ['appellant', ['appellant_name']],
+  // T-479 (T-404, Ajay): the cause-title party tokens read the form's name
+  // fields. `respondents_list` is never an alias: it is a field the advocate
+  // types, and an alias name is a key no client value may set (T-300).
+  ['petitioner', ['petitioner_name']],
+  ['respondent', ['respondent_name']],
+  ['complainant', ['complainant_name']],
   ['parentName', ['applicant_parentage', 'applicant_father_name']],
   ['parentRelation', ['parent_relation']],
   ['age', ['applicant_age', 'appellant_age']],
@@ -2157,6 +2190,441 @@ export const PLACEHOLDER_ALIASES: ReadonlyArray<
   ['advocateName', ['advocate_name']],
   ['advocateAddress', ['advocate_address']],
 ];
+
+/** T-479 (Ajay, 16 Oct 2026; T-404 Addendum 2 #2): unanswered respondents in habeas and PIL. */
+export const RESPONDENTS_LIST_BLANK = '[To be confirmed: respondents, with names and addresses]';
+/** T-479 (Ajay, 16 Oct 2026): quashing_528_bnss Respondent No. 1 left empty. */
+export const PROSECUTING_AGENCY_BLANK = '[To be confirmed: prosecuting agency]';
+/** T-479 (Ajay, 16 Oct 2026): mandamus's writ_civil title lines with no form field. */
+export const STATUTE_INVOKED_BLANK = '[To be confirmed: statute or rule imposing the duty]';
+export const GRIEVANCE_SUMMARY_BLANK = '[To be confirmed: grievance in brief]';
+/** T-479 (Ajay, 6a047469, point 3): certiorari's statute line with no form field. */
+export const CERTIORARI_STATUTE_BLANK =
+  '[To be confirmed: statute or rule under which the impugned order was passed]';
+/** T-479 (Ajay, 6a047469, point 4): the State as respondent to an administrative order. */
+const CERTIORARI_STATE_LINE =
+  'State of {state} through [To be confirmed: Secretary of the concerned department], Government of {state}';
+/** T-479 (Ajay, 6a047469, point 5): the same with no State known. Never "Through Public Prosecutor". */
+export const CERTIORARI_NO_STATE_LINE =
+  'State of [To be confirmed: State] through [To be confirmed: Secretary of the concerned department]';
+/** T-479 (Ajay, f9415fe8, point d): the State party of a civil writ in Delhi. Never "State of Delhi". */
+export const CIVIL_WRIT_DELHI_STATE_LINE =
+  'Government of NCT of Delhi through [To be confirmed: Secretary of the concerned department]';
+/** T-488 / T-479 (Ajay, ca12ec2e; f9415fe8 point d): the State party in any other Union Territory. */
+export const UT_PARTY_BLANK = '[To be confirmed: name of the State or Union Territory as party]';
+/** T-479 (Ajay, 7c279a77, point 3): an empty respondent_authority (mandamus, certiorari). */
+export const AUTHORITY_BLANK =
+  '[To be confirmed: authority against whom the writ is sought, with designation and address]';
+/** T-488 / T-479 (Ajay, ca12ec2e): the State party of a criminal pack in Delhi (NCT). */
+export const CRIMINAL_DELHI_STATE_PARTY = 'State (Govt. of NCT of Delhi)';
+
+/**
+ * T-479 (Ajay, 6a047469 points 4-5, f9415fe8 point d): the State as a party
+ * to a civil writ against an administrative order, from the court's State.
+ * Never the court rule's line ("Home Department") or "Through Public Prosecutor".
+ */
+export function civilWritStateParty(state: string | undefined): string {
+  const s = state?.trim() ?? '';
+  if (isUnanswered(s) || s.toLowerCase() === 'india') return CERTIORARI_NO_STATE_LINE;
+  if (isDelhi(s)) return CIVIL_WRIT_DELHI_STATE_LINE;
+  if (isUnionTerritory(s)) return UT_PARTY_BLANK;
+  return CERTIORARI_STATE_LINE.replace(/\{state\}/g, () => s);
+}
+
+/**
+ * T-479: the cause-title party fallbacks, per pack and per token, so no other
+ * pack's output changes. A token with no value, or holding a blank the brief
+ * or ledger path put in (`[To be confirmed: …]` label-derived, `{{MISSING: …}}`),
+ * prints Ajay's signed blank, never the label-derived text.
+ */
+const CAUSE_TITLE_PARTY_BLANKS: Readonly<Record<string, ReadonlyArray<readonly [string, string]>>> =
+  {
+    habeas_corpus: [['respondents_list', RESPONDENTS_LIST_BLANK]],
+    pil: [['respondents_list', RESPONDENTS_LIST_BLANK]],
+    quashing_528_bnss: [['prosecuting_agency', PROSECUTING_AGENCY_BLANK]],
+    mandamus: [
+      ['statute_invoked', STATUTE_INVOKED_BLANK],
+      ['grievance_summary', GRIEVANCE_SUMMARY_BLANK],
+    ],
+    certiorari: [
+      ['statute_invoked', CERTIORARI_STATUTE_BLANK],
+      ['grievance_summary', GRIEVANCE_SUMMARY_BLANK],
+    ],
+  };
+
+/** True for a value that is empty or a `[To be confirmed: …]` / `{{MISSING: …}}` blank. */
+function isUnanswered(value: string | undefined): boolean {
+  const v = value?.trim() ?? '';
+  return v === '' || IS_BLANK.test(v) || LEDGER_BLANK.test(v);
+}
+
+/**
+ * T-404 Addendum 2 #6: one respondent per line, in the order given, numbered
+ * `1.`, `2.`, … Lines with no text are left out. Ajay (T-479): each line is
+ * trimmed, then only a leading `n.` or `n)` is removed; the rest of the line is
+ * kept as typed (one space is put after our number only if the line has none).
+ */
+export function numberRespondents(list: string, start = 1): string {
+  return (
+    list
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line !== '')
+      // A marker is `n.` / `n)` followed by a space or the line end, so a
+      // decimal such as "2.5 Acres" is text, not numbering.
+      .map((line) => line.replace(/^\d+[.)](?=\s|$)/, ''))
+      .map((line, i) => `${i + start}.${/^\s/.test(line) ? '' : ' '}${line}`)
+      .join('\n')
+  );
+}
+
+/** An option answer as its id: lower case, words joined by `_` (as the promoter makes ids). */
+function optionId(value: string | undefined): string {
+  return (value ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+}
+
+/** True when the chosen court is the Supreme Court (courts list, court picker, or the pack's `court` answer). */
+function atSupremeCourt(ctx: PlaceholderContext, courtData?: CourtLookupData): boolean {
+  return (
+    courtData?.courtType === 'supreme_court' ||
+    optionId(ctx.court_type) === 'supreme_court' ||
+    optionId(ctx.court) === 'supreme_court'
+  );
+}
+
+type CertiorariRoute =
+  | 'article_227'
+  | 'article_227_no_high_court'
+  | 'article_226_and_227'
+  | 'article_226_and_227_no_high_court'
+  | 'supreme_court'
+  | 'high_court';
+
+/**
+ * T-479 (Ajay, 6a047469; f9415fe8 points a-b): which certiorari title prints.
+ * The Article 227 choice (a judicial order of a civil court) is High Court
+ * only: with a Supreme Court court it prints the High Court blank heading,
+ * never "AT New Delhi" or a Supreme Court heading. "226 and 227" keeps the
+ * Article 226 title with its own matter line. Otherwise Article 32, or a
+ * Supreme Court court, takes the Supreme Court title; everything else the
+ * High Court one.
+ */
+function certiorariRoute(ctx: PlaceholderContext, courtData?: CourtLookupData): CertiorariRoute {
+  const article = optionId(ctx.article_invoked);
+  if (article === 'article_227_judicial_order_of_a_civil_court') {
+    return atSupremeCourt(ctx, courtData) ? 'article_227_no_high_court' : 'article_227';
+  }
+  // Ajay 00568779: "226 and 227" with a Supreme Court court is treated like (b), never Article 32.
+  if (article === '226_and_227') {
+    return atSupremeCourt(ctx, courtData)
+      ? 'article_226_and_227_no_high_court'
+      : 'article_226_and_227';
+  }
+  if (article === '32' || atSupremeCourt(ctx, courtData)) return 'supreme_court';
+  return 'high_court';
+}
+
+/**
+ * T-479 (Ajay, 6a047469 points 4-5; f9415fe8 points c-d): certiorari's
+ * respondents, numbered 1., 2., ... Against a civil court's judicial order
+ * (Article 227) the State is not a party: the respondents the advocate typed
+ * (the authority, then the additional respondents), else the signed
+ * respondents blank when none are given. Otherwise, in order: the State
+ * (`civilWritStateParty`), the authority whose order is impugned, then the
+ * additional respondents, one per line. An optional additional respondent
+ * left unanswered prints nothing.
+ */
+function certiorariRespondents(ctx: PlaceholderContext, route: CertiorariRoute): string {
+  const authority = isUnanswered(ctx.respondent_authority)
+    ? AUTHORITY_BLANK
+    : (ctx.respondent_authority as string);
+  const additional = isUnanswered(ctx.additional_respondents)
+    ? ''
+    : (ctx.additional_respondents as string);
+  if (route === 'article_227' || route === 'article_227_no_high_court') {
+    // f9415fe8 (c): the signed respondents blank only when none are given.
+    if (isUnanswered(ctx.respondent_authority) && additional === '') return RESPONDENTS_LIST_BLANK;
+    return numberRespondents([authority, additional].join('\n'));
+  }
+  const stateLine = civilWritStateParty(ctx.state);
+  return `1. ${stateLine}\n${numberRespondents([authority, additional].join('\n'), 2)}`;
+}
+
+/**
+ * T-479 (Ajay, 7c279a77, points 2-3): mandamus's respondents, numbered: the
+ * authority as typed (one per line), else the signed authority blank as 1.
+ * No State line is added; the advocate names the State if it is a party.
+ */
+function mandamusRespondents(ctx: PlaceholderContext): string {
+  if (isUnanswered(ctx.respondent_authority)) return `1. ${AUTHORITY_BLANK}`;
+  return numberRespondents(ctx.respondent_authority as string);
+}
+
+function applyCauseTitlePartyBlanks(
+  templateId: string,
+  ctx: PlaceholderContext,
+  courtData?: CourtLookupData,
+): void {
+  for (const [key, blank] of CAUSE_TITLE_PARTY_BLANKS[templateId] ?? []) {
+    if (isUnanswered(ctx[key])) {
+      ctx[key] = blank;
+    } else if (key === 'respondents_list') {
+      ctx[key] = numberRespondents(ctx[key]);
+    }
+  }
+  if (templateId === 'certiorari') {
+    ctx.respondents_list = certiorariRespondents(ctx, certiorariRoute(ctx, courtData));
+  }
+  if (templateId === 'mandamus') ctx.respondents_list = mandamusRespondents(ctx);
+}
+
+/**
+ * T-479: packs whose cause title prints {state} with no `state` question on the
+ * brief and ledger paths. There {state} is the chosen court's State, as the
+ * courts list stores it (its display name, e.g. "Bihar").
+ */
+const STATE_FROM_COURT_PACKS: ReadonlySet<string> = new Set([
+  'fir_quashing',
+  'quashing_528_bnss',
+  'writ_petition_civil',
+  'mandamus',
+  'certiorari',
+]);
+
+/** A State name compared loosely: lower case, "&" as "and", "_" as a space. */
+function normState(state: string | undefined): string {
+  return (state ?? '')
+    .toLowerCase()
+    .replace(/&/g, 'and')
+    .replace(/_/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * T-479 (review round 1; Ajay, 7c279a77): the States whose High Court is
+ * their own and named for them, so a court listed under one of them is in the
+ * matter's State. A court under any other State is left out: common High
+ * Courts and their benches (Gauhati: Assam, Nagaland, Mizoram, Arunachal
+ * Pradesh; Punjab and Haryana: Punjab, Haryana, Chandigarh), and every Union
+ * Territory other than Delhi (Goa, J&K, Ladakh, Puducherry, A&N Islands,
+ * Lakshadweep, DNH and DD). "India" (the Supreme Court) is not on the list.
+ */
+const OWN_HIGH_COURT_STATES: ReadonlySet<string> = new Set([
+  'andhra pradesh',
+  'bihar',
+  'chhattisgarh',
+  'delhi',
+  'gujarat',
+  'himachal pradesh',
+  'jharkhand',
+  'karnataka',
+  'kerala',
+  'madhya pradesh',
+  'maharashtra',
+  'manipur',
+  'meghalaya',
+  'odisha',
+  'rajasthan',
+  'sikkim',
+  'tamil nadu',
+  'telangana',
+  'tripura',
+  'uttar pradesh',
+  'uttarakhand',
+  'west bengal',
+]);
+
+/**
+ * T-479 (Ajay, 7c279a77): High Court benches whose seat is in a different
+ * State or UT from the parent court, although the courts list stores the
+ * parent's State: Panaji (Goa; Bombay High Court, listed as Maharashtra) and
+ * Port Blair (A&N Islands; Calcutta High Court, listed as West Bengal).
+ */
+const OFF_STATE_BENCH_CITIES: ReadonlySet<string> = new Set(['panaji', 'port blair']);
+
+/**
+ * T-479: true only when the chosen court's listed State is both the State the
+ * matter belongs to and the State its High Court is named for. Anything else
+ * keeps the State blank: a wrong State never prints.
+ */
+export function courtStateIsMatterState(courtData: CourtLookupData | undefined): boolean {
+  if (!courtData || courtData.courtType === 'supreme_court') return false;
+  if (!OWN_HIGH_COURT_STATES.has(normState(courtData.state))) return false;
+  const isHighCourt =
+    courtData.courtType === 'high_court' || courtData.courtType === 'high_court_bench';
+  return !(isHighCourt && OFF_STATE_BENCH_CITIES.has(normState(courtData.city)));
+}
+
+/** T-479 (Ajay, 7c279a77): the Punjab and Haryana High Court, listed under Chandigarh. */
+function isPunjabHaryanaHighCourt(courtData: CourtLookupData | undefined): boolean {
+  return courtData?.courtType === 'high_court' && normState(courtData.state) === 'chandigarh';
+}
+
+/** T-479 (Ajay, 7c279a77): its own full name, signed. Never "HIGH COURT OF Chandigarh". */
+export const PUNJAB_HARYANA_HIGH_COURT_NAME = 'HIGH COURT OF PUNJAB AND HARYANA AT CHANDIGARH';
+
+/**
+ * T-479: an unanswered {state} in these packs reads the court's State, only
+ * when `courtStateIsMatterState`. For any other court a {state} that is just
+ * the court's listed State (the court picker's) is taken out, so the blank
+ * prints, never a wrong State.
+ */
+function applyStateFromCourt(
+  templateId: string,
+  ctx: PlaceholderContext,
+  courtData?: CourtLookupData,
+): void {
+  if (!STATE_FROM_COURT_PACKS.has(templateId)) return;
+  if (courtData && !courtStateIsMatterState(courtData)) {
+    if (!isUnanswered(ctx.state) && normState(ctx.state) === normState(courtData.state)) {
+      delete ctx.state;
+    }
+    return;
+  }
+  if (!isUnanswered(ctx.state) || !courtData) return;
+  ctx.state = courtData.state as string;
+}
+
+/** T-479: the State the prompt's civil-writ State line names (same guard as the cause title). */
+function promptCourtState(
+  ctx: PlaceholderContext | undefined,
+  courtData: CourtLookupData | undefined,
+): string | undefined {
+  if (!isUnanswered(ctx?.state)) return ctx?.state;
+  return courtStateIsMatterState(courtData) ? courtData?.state : undefined;
+}
+
+/**
+ * T-479 (Ajay, 0e5f64b7): the cause-title format a Supreme Court petition
+ * uses in place of the pack's High Court one. Server-only (`__` key).
+ */
+export const CAUSE_TITLE_FORMAT_KEY = '__cause_title_format';
+
+/**
+ * T-479: the title route of a pack whose rule file carries more than one
+ * signed title (`causeTitle.supremeCourtFormat`, `causeTitle.article227Format`).
+ * Undefined: the pack prints its own `causeTitle.format`.
+ */
+function causeTitleRoute(
+  templateId: string,
+  ctx: PlaceholderContext,
+  courtData?: CourtLookupData,
+): CertiorariRoute | undefined {
+  if (templateId === 'mandamus') {
+    return atSupremeCourt(ctx, courtData) ? 'supreme_court' : 'high_court';
+  }
+  if (templateId === 'certiorari') return certiorariRoute(ctx, courtData);
+  return undefined;
+}
+
+/** A non-empty string from the rule file's causeTitle block, else undefined. */
+function causeTitleString(config: TemplateConfig, key: string): string | undefined {
+  const causeTitle = (config as { _source?: { causeTitle?: unknown } })._source?.causeTitle;
+  if (causeTitle === null || typeof causeTitle !== 'object') return undefined;
+  const value = (causeTitle as Record<string, unknown>)[key];
+  return typeof value === 'string' && value.trim() !== '' ? value : undefined;
+}
+
+/**
+ * T-479: mandamus and certiorari at the Supreme Court print Ajay's signed
+ * Article 32 title and addressee (0e5f64b7, 2d578206), never the High Court /
+ * Article 226 one. Certiorari's Article 227 choice prints its signed title
+ * (6a047469). The court is the Supreme Court when the chosen court's type says
+ * so (the courts list, or the brief's court picker `court_type`), or the
+ * pack's own `court` answer is the Supreme Court.
+ */
+function applySupremeCourtCauseTitle(
+  config: TemplateConfig,
+  ctx: PlaceholderContext,
+  courtData?: CourtLookupData,
+): void {
+  delete ctx[CAUSE_TITLE_FORMAT_KEY];
+  delete ctx[ADDRESSEE_KEY];
+  delete ctx[STATE_PARTY_KEY];
+  delete ctx[COURT_NAME_KEY];
+  // T-479 (Ajay, 7c279a77): the Punjab and Haryana High Court prints its own
+  // full name, never "HIGH COURT OF Chandigarh"; its State stays blank.
+  if (STATE_FROM_COURT_PACKS.has(config.template_id) && isPunjabHaryanaHighCourt(courtData)) {
+    ctx[COURT_NAME_KEY] = PUNJAB_HARYANA_HIGH_COURT_NAME;
+  }
+  // T-488 / T-479 (Ajay, ca12ec2e; f9415fe8 point d): fir_quashing, a
+  // criminal pack, names the State party per ca12ec2e in Delhi and other UTs.
+  if (config.template_id === 'fir_quashing') {
+    const state = ctx.state?.trim() ?? '';
+    if (state !== '' && isDelhi(state)) ctx[STATE_PARTY_KEY] = CRIMINAL_DELHI_STATE_PARTY;
+    else if (state !== '' && isUnionTerritory(state)) ctx[STATE_PARTY_KEY] = UT_PARTY_BLANK;
+  }
+  const route = causeTitleRoute(config.template_id, ctx, courtData);
+  const formatKey: Partial<Record<CertiorariRoute, string>> = {
+    supreme_court: 'supremeCourtFormat',
+    article_227: 'article227Format',
+    article_227_no_high_court: 'article227NoHighCourtFormat',
+    article_226_and_227: 'article226And227Format',
+    article_226_and_227_no_high_court: 'article226And227NoHighCourtFormat',
+  };
+  const key = route === undefined ? undefined : formatKey[route];
+  const format = key === undefined ? undefined : causeTitleString(config, key);
+  if (format !== undefined) ctx[CAUSE_TITLE_FORMAT_KEY] = format;
+  if (route === 'supreme_court') {
+    const addressee = causeTitleString(config, 'supremeCourtAddressee');
+    if (addressee !== undefined) ctx[ADDRESSEE_KEY] = addressee;
+  }
+}
+
+/**
+ * T-488 / T-479: the State party name that replaces "State of {state}" in a
+ * cause title where ca12ec2e rules it out (Delhi, other UTs). Server-only.
+ */
+export const STATE_PARTY_KEY = '__state_party';
+
+/** T-479 (Ajay, 7c279a77): a court's own full name for "HIGH COURT OF {state} AT {courtPlace}". Server-only. */
+export const COURT_NAME_KEY = '__court_name';
+
+/**
+ * T-479 (Ajay, 2d578206): the addressee a Supreme Court petition is addressed
+ * to, in place of the generic "TO, THE HON'BLE {court_designation}" lines.
+ * Server-only (`__` key).
+ */
+export const ADDRESSEE_KEY = '__addressee';
+
+/** The generic clause's addressee: "TO," then the designation line and an optional city line. */
+const GENERIC_ADDRESSEE =
+  /^TO,[ \t]*\n[^\n]*\{court_designation\}[^\n]*(?:\n[ \t]*\{court_city\}[^\n]*)?/;
+
+/**
+ * T-479: the template a section prints. A Supreme Court mandamus takes the
+ * signed title for its cause title and the signed addressee for its
+ * addressing clause; the rest of that clause is kept. Every other section and
+ * pack prints its own template.
+ */
+function supremeCourtSectionTemplate(section: DocumentSection, ctx: PlaceholderContext): string {
+  const template = section.template as string;
+  if (section.section_id === 'cause_title') {
+    let title = ctx[CAUSE_TITLE_FORMAT_KEY] || template;
+    if (ctx[STATE_PARTY_KEY]) {
+      title = title.replace(/State of \{state\}/g, () => ctx[STATE_PARTY_KEY]);
+    }
+    if (ctx[COURT_NAME_KEY]) {
+      title = title.replace(
+        /HIGH COURT OF \{state\} AT \{courtPlace\}/g,
+        () => ctx[COURT_NAME_KEY],
+      );
+    }
+    return title;
+  }
+  if (section.section_id === 'addressing_clause' && ctx[ADDRESSEE_KEY]) {
+    // Never the generic addressee: with no match, the signed addressee alone.
+    return GENERIC_ADDRESSEE.test(template)
+      ? template.replace(GENERIC_ADDRESSEE, () => ctx[ADDRESSEE_KEY])
+      : ctx[ADDRESSEE_KEY];
+  }
+  return template;
+}
 
 /** Fill each camelCase alias from the first of its sources that has a value. */
 function applyPlaceholderAliases(ctx: PlaceholderContext): void {
@@ -2369,10 +2837,12 @@ export function renderTemplateSection(
   }
 
   const sectionCtx = sectionContext(section, ctx);
+  // T-479: a Supreme Court mandamus uses the signed Article 32 title and addressee.
+  const template = supremeCourtSectionTemplate(section, sectionCtx);
   return {
     section_id: section.section_id,
     type: 'template',
-    content: replacePlaceholders(sectionTemplate(section.template, sectionCtx), sectionCtx),
+    content: replacePlaceholders(sectionTemplate(template, sectionCtx), sectionCtx),
     alignment: section.alignment,
     style: section.style,
   };
@@ -2536,6 +3006,7 @@ RELATED ACTS: ${relatedActs.join(', ')}${courtRule?.localRules?.length ? `\n\nCO
       ? `\n\nPARTY DESIGNATIONS FOR THIS COURT:\n${partyDesignationsPromptLines(
           courtRule,
           config.template_id,
+          promptCourtState(ctx, courtData),
         )}`
       : ''
   }${

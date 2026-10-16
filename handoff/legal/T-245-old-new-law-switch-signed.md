@@ -820,3 +820,94 @@ OK. notice_sent_date is exempt from the future-blank rule in the demand-notice p
 - All 23 signed strings are present byte for byte in the five packs and in template-engine.service.ts. They come from 0e5f64b7, 2d578206, 6a047469, f9415fe8, 00568779, ca12ec2e and 7c279a77. None of "State of Delhi", "HIGH COURT OF Chandigarh", or "Home Department" / "Through Public Prosecutor" in a civil writ appears in the new code paths.
 - The existing default `State of _____ / Through Public Prosecutor` (template-engine :2063) stays for criminal packs only. That is OK. A follow-up may move its "_____" to the signed State blank.
 - Separate, existing issue (not T-479): curative_petition.json :171 names a judgment ("… v. State of Delhi"). Check under T-441 whether that key is model-visible. If it is, remove the judgment name.
+
+## T-496 round 1 (Ajay, 16 Oct 2026)
+
+| Point | Ruling |
+|---|---|
+| 1. Blank wording | Keep today's blanks for v1: "[To be confirmed: date of the cheque]" and "[To be confirmed: date on the cheque]". `[To be confirmed: exact date of {field}]` in 8f0d980a describes the pattern; it does not require new strings. Settling on one of the two cheque forms is a v1.1 tidy-up. |
+| 2. Default-bail timeline | v1. A month and year turned into the 1st of the month is an invented day. It can also show default bail as available, or not available, wrongly under Section 187(3) BNSS. A partial arrest or remand date must give no date and no computation. The timeline then shows `[To be confirmed: exact date of arrest]`, or the same for the remand date. |
+| 3. Calculations | OK. Mahak's T-472 limitation computation must use the same date reader, so a partial date there also gives a blank. |
+
+## T-499 / T-500: bail draft wording after Anushka's re-run (Ajay, 16 Oct 2026)
+
+**T-499.** No change to acbec79f. Every `{{MISSING: …}}` becomes `[To be confirmed: …]` before the user sees the draft. That covers the body, the prayer, the title and the verification. Add a test that no "{{MISSING" reaches any part of the output.
+
+**T-500, grounds.** Each ground the advocate gives becomes its own ground, in the advocate's order. None is added, merged or dropped. Each is written in the third person from the advocate's own words. Lead-in, then one line per ground:
+
+`That the applicant seeks bail on the following grounds, among others, each without prejudice to the other:`
+
+`(a) That {ground 1}.`  `(b) That {ground 2}.` and so on.
+
+A ground about a dependant is argued in this list as well as being stated as a fact.
+
+**T-500, antecedents.**
+
+- The advocate says there are none, or that the applicant was never accused: `That the applicant has no criminal antecedents and has not been accused in any other case.`
+- The advocate lists cases: `That the applicant's criminal antecedents are as follows: {cases as given}.`
+- Not given: `That the applicant [To be confirmed: criminal antecedents of the applicant, if any].`
+
+**T-500, dependants** (only when given; otherwise print no sentence):
+
+`That the applicant's {relation}, aged {age} years, is dependent on the applicant.`
+
+If no age is given, drop ", aged {age} years,". One sentence per dependant. Never repeat the verb.
+
+**T-500, police station.** Strip "Police Station", "P.S.", "PS" and "Thana" from the value, then print `Police Station {name}`, for example "Police Station Kadamkuan". If a district is given, add `, District {district}`. Never print "Police Station … Police Station".
+
+## T-482: maintenance forum and match wording (Ajay, 16 Oct 2026)
+
+**(1) Family Court districts.** Verified for v1: Patna (Bihar) and Ranchi (Jharkhand) only, the seats already in our list. Every other district in Bihar and Jharkhand is **verify**. I will not list a Family Court I have not confirmed from the notification constituting it under Section 3 of the Family Courts Act, 1984, or from the official district court website. Until it is verified, a district has no Family Court entry.
+
+**(2) JMFC.** Where no Family Court has jurisdiction, a maintenance application under Section 144 BNSS (old s.125 CrPC) lies before a Judicial Magistrate of the first class. Offer this court in every Bihar and Jharkhand district that has no verified Family Court:
+
+`Court of the Judicial Magistrate First Class, {district}`
+
+Where a Family Court is verified (Patna, Ranchi), offer only the Family Court, because the Family Court has exclusive jurisdiction there (Section 7 and Section 8, Family Courts Act). Sub-divisional court seats are **verify**. Use the district name only.
+
+**(3) maintenance_bnss_144, description and matching.**
+
+Description: `Application for maintenance under Section 144 of the Bharatiya Nagarik Suraksha Sanhita, 2023 (old Section 125 CrPC) by a wife, child or parent unable to maintain themselves.`
+
+Match terms: maintenance, monthly maintenance, interim maintenance, Section 144 BNSS, Section 125 CrPC, bharan-poshan, bharan poshan, guzara bhatta, guzara, kharcha, kharcha-pani, wife, patni, child, children, bachcha, bachche, parents, mata-pita, maa-baap, भरण-पोषण, गुजारा भत्ता, पत्नी, बच्चे, माता-पिता.
+
+These terms are not enough on their own to pick this pack when divorce, DV Act or HAMA words are also present. In that case, offer this pack together with those packs and let the advocate choose.
+
+## Byte check T-496, fix/t-496-no-invented-day @ 6888082d: approved (Ajay, 16 Oct 2026)
+
+- NAMED_MDY no longer lets the day run into the year, so "June 2026" reads as no date. A missing year gives no date. A two-digit year later than the reference year gives no date. Nothing is invented. Matches 8f0d980a and c585cf80.
+- Timeline: a partial arrest date returns the existing error, and no s.187(3) date is computed. OK for v1, with the date-picker condition already recorded.
+- No printed text changed. It ships before T-469 (78a39810).
+
+## T-489: mandamus statute and grievance fields (Ajay, 16 Oct 2026)
+
+**Fields**
+
+| Key | Label | Help text | Placeholder | Required |
+|---|---|---|---|---|
+| statute_invoked | `Law or rule that places the duty on the authority` | `The Act, rule, scheme or notification under which the authority must act, with the section or rule if known.` | `e.g. Section 12 of the … Act / Rule 5 of the … Rules` | Optional. If it is empty, the T-479 blank prints. |
+| grievance_summary | `What the authority has failed to do` | `One or two lines: the act the authority was bound to do and has not done.` | `e.g. failure to decide the petitioner's application dated … for …` | Optional. If it is empty, the T-479 blank prints. |
+
+**Cause title.** With a value, the lines print as `AND IN THE MATTER OF: {statute_invoked};` and `AND IN THE MATTER OF: {grievance_summary};`. With no value, they print the signed blanks from 2d578206 and 6a047469, unchanged.
+
+**Body (AI-written), one instruction per paragraph, in this order.** Each paragraph uses only facts from the brief. A missing fact is printed as its `[To be confirmed: …]` blank. Do not name any judgment (T-441).
+
+1. Locus standi: `State who the petitioner is and how the authority's failure affects the petitioner directly.`
+2. Legal right: `State the petitioner's legal right to have the act done, as it arises from {statute_invoked}.`
+3. Legal duty: `State that the respondent is a public authority under a legal duty to do the act, and the source of that duty in {statute_invoked}.`
+4. Demand and refusal: `State the date and the manner in which the petitioner asked the respondent to act, and that the respondent has refused or failed to act. If no demand is given, write: That the petitioner made a representation to the respondent on [To be confirmed: date and mode of the demand made to the respondent].`
+5. Inaction: `State how long the act has been pending, using only dates from the brief.`
+6. No other remedy: `State that the petitioner has no other equally efficacious remedy. If the brief names one that was used, say what became of it.`
+
+Prayer (existing): mandamus directing the respondent to do the act named in {grievance_summary} within a time the Court may fix.
+
+**T-489 addendum.** Use (a): remove `statutory_duty` and keep `statute_invoked` with the signed label from 8e85ec44 (optional). Add a read-time alias from statutory_duty to statute_invoked, so old saved answers still fill it. Keep `refusal_or_inaction`. It feeds body paragraphs 4 and 5. `grievance_summary` stays as the one-line cause-title text.
+
+## T-482 byte-check points (Ajay, 16 Oct 2026)
+
+| Point | Ruling |
+|---|---|
+| (1) JMFC records | OK. There are 19 records, marked for maintenance_bnss_144 only. The heading `IN THE COURT OF JUDICIAL MAGISTRATE FIRST CLASS, <CITY>` is signed. "Criminal Case No." is not signed for maintenance, because High Courts and districts style it differently. Use `[To be confirmed: case type and number as styled in this court]`. |
+| (2) Seats that are headquarters towns | Use the district-court style `{District} at {Seat}`. Labels: "Court of the Judicial Magistrate First Class, Saran at Chhapra", "…, Vaishali at Hajipur", "…, Palamu at Daltonganj", "…, West Singhbhum at Chaibasa", "…, East Singhbhum at Jamshedpur". Headings are the same in capitals, for example "…, SARAN AT CHHAPRA". Daltonganj is officially Medininagar, so **verify** which name the Palamu civil court uses before v1.1. "Daltonganj" is OK for v1. |
+| (3) Other States | OK. They fall back to the full court list, with no regression. v1 adds no new Family Court or JMFC records outside Bihar and Jharkhand. |
+| (4) 140-character cut | Not OK as is. T-475 forbids cutting signed text. Replace the description with this shorter signed one, 121 characters, which fits without a cut: `Maintenance application under Section 144 BNSS (old s.125 CrPC) by a wife, child or parent unable to maintain themselves.` The 9ad6a8f1 description is withdrawn. The 140 limit stays as it is for other packs. |
