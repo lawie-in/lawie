@@ -25,3 +25,7 @@ Anushka run 4: the "No" chip on the bail-bonds question could not be selected (w
 ## Files held by others (claim after they merge)
 
 intake-brief.ts (Vishal T-471 field), ai.service.ts (Vishal T-471, Mahak T-472), brief-drafter.ts (Mahak T-475/T-472).
+
+## Added 16 Oct 2026 (Priya, from T-480)
+
+Anushka run 4: for a default bail, the earlier rejection given in the description was not carried into the brief. Vishal's T-480 golden run (ledger on) did not cover it. Check it in this ticket: the rejected earlier application (court, date, outcome) given in the description must reach the brief and the draft, or print a signed blank. Re-test with the ledger on first; if it only fails with the ledger off, note it as config.
