@@ -13,12 +13,17 @@
 
 import { readActList, type RulePackAct } from './rule-pack.service';
 
+/** The prefix a bare section number gets (Ajay f9415fe8). */
+const SECTION_PREFIX = 'S.';
+
 /**
- * Point 1 (Ajay): how one reference is printed. Today: the pack's own text,
- * verbatim ("Order XIX Rule 3", "Article 226", "S.151", "13(1)(i)").
+ * Point 1 (Ajay f9415fe8): how one reference is printed. The pack's own text,
+ * verbatim ("Order XIX Rule 3", "Article 226", "S.151"), except that a ref
+ * starting with a digit is a section and gets "S." ("138" -> "S.138",
+ * "13(1)(i)" -> "S.13(1)(i)").
  */
 function formatRef(number: string): string {
-  return number;
+  return /^\d/.test(number) ? `${SECTION_PREFIX}${number}` : number;
 }
 
 /**
@@ -67,7 +72,47 @@ export function renderRelatedAct(entry: RulePackAct): string {
   return withCondition(text, entry.appliesWhen);
 }
 
-/** `related_acts` for a rule file's raw `relevantActs` (any of the pack shapes). */
-export function renderRelatedActs(raw: unknown): string[] {
-  return readActList(raw).map(renderRelatedAct);
+/**
+ * Ajay b101b4eb: a pack's `applicableWhen` is a key, never model text. Each key
+ * maps to the plain words printed in the "[only when: ...]" marker. A key not
+ * in this table never prints raw (see resolveApplicableWhen).
+ */
+export const APPLICABLE_WHEN_WORDS: Readonly<Record<string, string>> = Object.freeze({
+  dv_dowry: 'the offence arises from domestic violence or a dowry demand',
+});
+
+function isObj(v: unknown): v is Record<string, unknown> {
+  return typeof v === 'object' && v !== null && !Array.isArray(v);
+}
+
+/**
+ * Swaps an entry's `applicableWhen` key for its plain words (as `applies_when`).
+ * Plain-words `applies_when` on the same entry wins, as readActList reads it. A
+ * key missing from APPLICABLE_WHEN_WORDS is dropped (no marker) and reported in
+ * `notes`.
+ */
+function resolveApplicableWhen(item: unknown, where: string, notes: string[]): unknown {
+  if (!isObj(item) || !('applicableWhen' in item)) return item;
+  const { applicableWhen, ...rest } = item;
+  if (typeof rest.applies_when === 'string' && rest.applies_when.trim().length > 0) return rest;
+  const key = typeof applicableWhen === 'string' ? applicableWhen.trim() : '';
+  if (Object.prototype.hasOwnProperty.call(APPLICABLE_WHEN_WORDS, key)) {
+    return { ...rest, applies_when: APPLICABLE_WHEN_WORDS[key] };
+  }
+  notes.push(
+    `${where}: applicableWhen ${JSON.stringify(applicableWhen)} is not in APPLICABLE_WHEN_WORDS, condition dropped`,
+  );
+  return rest;
+}
+
+/**
+ * `related_acts` for a raw list of act entries (any of the pack shapes), one
+ * string per entry, in order. Unknown `applicableWhen` keys go to `notes`.
+ */
+export function renderRelatedActs(raw: unknown, notes: string[] = []): string[] {
+  if (!Array.isArray(raw)) return [];
+  const resolved = raw.map((item, idx) =>
+    resolveApplicableWhen(item, `related acts[${idx}]`, notes),
+  );
+  return readActList(resolved).map(renderRelatedAct);
 }

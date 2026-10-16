@@ -23,10 +23,23 @@ import { join } from 'path';
 import { Response } from 'express';
 
 import { streamGenerateFromTemplate, templateForCharge } from '../services/ai.service';
-import { renderRelatedAct, renderRelatedActs } from '../services/related-acts';
+import {
+  APPLICABLE_WHEN_WORDS,
+  renderRelatedAct,
+  renderRelatedActs,
+} from '../services/related-acts';
 import { readActList } from '../services/rule-pack.service';
-import { buildAISystemPrompt, loadTemplateConfig } from '../services/template-engine.service';
-import { clearTemplateRegistryCache, loadAllDocRules } from '../services/template-promoter';
+import {
+  buildAISystemPrompt,
+  loadTemplateConfig,
+  sanitiseAIBody,
+  stripOnlyWhenMarkers,
+} from '../services/template-engine.service';
+import {
+  clearTemplateRegistryCache,
+  loadAllDocRules,
+  promoteDocRuleToTemplateConfig,
+} from '../services/template-promoter';
 import { publicTemplateConfig } from '../utils/publicTemplateConfig';
 import { SdkStreamParams, sdkAnswer } from './sdkStream';
 
@@ -51,8 +64,26 @@ const RULES_DIR = join(__dirname, '..', 'config', 'document-rules');
 const PACK_FILES = readdirSync(RULES_DIR).filter((f) => f.endsWith('.json'));
 
 type Obj = Record<string, unknown>;
+/** Ajay f9415fe8: a digit-led reference is a section and prints with "S."; the rest is verbatim. */
+const printedRef = (ref: string): string => (/^\d/.test(ref) ? `S.${ref}` : ref);
 const rawPack = (file: string): Obj =>
   JSON.parse(readFileSync(join(RULES_DIR, file), 'utf8')) as Obj;
+
+/** A pack's acts as the promoter reads them: relevantActs, then relatedActs; applicableWhen keys in plain words. */
+const packActs = (file: string) => {
+  const raw = rawPack(file);
+  const list = [
+    ...(Array.isArray(raw.relevantActs) ? raw.relevantActs : []),
+    ...(Array.isArray(raw.relatedActs) ? raw.relatedActs : []),
+  ];
+  return readActList(list).map((a) => ({
+    ...a,
+    appliesWhen:
+      a.appliesWhen !== null && a.appliesWhen in APPLICABLE_WHEN_WORDS
+        ? APPLICABLE_WHEN_WORDS[a.appliesWhen]
+        : a.appliesWhen,
+  }));
+};
 
 // ── A ────────────────────────────────────────────────────────────────────
 describe('T-477 A: renderRelatedActs (unit)', () => {
@@ -71,14 +102,20 @@ describe('T-477 A: renderRelatedActs (unit)', () => {
 
   it.each([
     ['S.151'],
-    ['138'],
-    ['13(1)(i)'],
     ['Order XIX Rule 3'],
     ['Article 226'],
     ['S.126-147 (guarantee)'],
     ['Order XXXIX Rules 1 & 2'],
   ])('reference %j is printed verbatim', (ref) => {
     expect(one({ act: 'Some Act, 2000', sections: [ref] })).toBe(`Some Act, 2000 (${ref})`);
+  });
+
+  it.each([
+    ['138', 'S.138'],
+    ['13(1)(i)', 'S.13(1)(i)'],
+    ['167(2)', 'S.167(2)'],
+  ])('a digit-led reference %j prints as %j (Ajay f9415fe8)', (ref, printed) => {
+    expect(one({ act: 'Some Act, 2000', sections: [ref] })).toBe(`Some Act, 2000 (${printed})`);
   });
 
   it('keeps pack order and drops duplicates', () => {
@@ -101,7 +138,7 @@ describe('T-477 A: renderRelatedActs (unit)', () => {
       ]),
     ).toEqual([
       'Constitution of India (Article 32; Article 226)',
-      'Specific Relief Act, 1963 (38; 39)',
+      'Specific Relief Act, 1963 (S.38; S.39)',
     ]);
     const viaProvisions = renderRelatedActs([{ act: 'P Act', provisions: ['S.2', 'S.5'] }]);
     expect(viaProvisions).toEqual(
@@ -175,7 +212,7 @@ describe('T-477 B: all packs through the real promoter', () => {
     let packsWithRefs = 0;
     for (const file of PACK_FILES) {
       const id = byFile.get(file)!.template_id;
-      const acts = readActList(rawPack(file).relevantActs);
+      const acts = packActs(file);
       const rendered = configs.get(id)!.related_acts;
       expect({ file, n: rendered.length }).toEqual({ file, n: acts.length });
       let anyRef = false;
@@ -195,8 +232,8 @@ describe('T-477 B: all packs through the real promoter', () => {
         const inner = s.slice(a.act.length + 2).replace(/ \[only when: .*\]$/, '');
         expect(inner.endsWith(')')).toBe(true);
         const parts = inner.slice(0, -1).split('; ');
-        // every distinct pack reference is there, verbatim, in pack order
-        const distinct = [...new Set(refs)];
+        // every distinct pack reference is there in pack order: verbatim, or "S." + a digit-led one
+        const distinct = [...new Set(refs.map(printedRef))];
         expect({ file, act: a.act, parts }).toEqual({ file, act: a.act, parts: distinct });
       });
       if (anyRef) packsWithRefs += 1;
@@ -207,7 +244,7 @@ describe('T-477 B: all packs through the real promoter', () => {
   it('the applies_when of a pack entry survives as [only when: ...] and nowhere else', () => {
     for (const file of PACK_FILES) {
       const id = byFile.get(file)!.template_id;
-      const acts = readActList(rawPack(file).relevantActs);
+      const acts = packActs(file);
       const rendered = configs.get(id)!.related_acts;
       acts.forEach((a, i) => {
         if (a.appliesWhen)
@@ -239,7 +276,7 @@ describe('T-477 B: all packs through the real promoter', () => {
     expect(cpc).toMatch(/^Code of Civil Procedure, 1908 \(.*Order XIX Rule 3.*\)$/);
     expect(acts).toEqual([
       'Code of Civil Procedure, 1908 (Order XIX; Order XIX Rule 3)',
-      'Notaries Act, 1952 (8)',
+      'Notaries Act, 1952 (S.8)',
       'Bharatiya Sakshya Adhiniyam (BSA), 2023 (Schedule)',
     ]);
   });
@@ -247,7 +284,7 @@ describe('T-477 B: all packs through the real promoter', () => {
   it('mandamus (name/articles shape) renders its articles', () => {
     expect(configs.get('mandamus')!.related_acts).toEqual([
       'Constitution of India (Article 32; Article 226)',
-      'Specific Relief Act, 1963 (38; 39)',
+      'Specific Relief Act, 1963 (S.38; S.39)',
     ]);
   });
 
@@ -308,7 +345,7 @@ describe('T-477 D: buildAISystemPrompt shows the sections', () => {
     const prompt = buildAISystemPrompt(loadTemplateConfig('affidavit_in_support')!);
     const line = prompt.split('\n').find((l) => l.startsWith('RELATED ACTS: '));
     expect(line).toBe(
-      'RELATED ACTS: Code of Civil Procedure, 1908 (Order XIX; Order XIX Rule 3), Notaries Act, 1952 (8), Bharatiya Sakshya Adhiniyam (BSA), 2023 (Schedule)',
+      'RELATED ACTS: Code of Civil Procedure, 1908 (Order XIX; Order XIX Rule 3), Notaries Act, 1952 (S.8), Bharatiya Sakshya Adhiniyam (BSA), 2023 (Schedule)',
     );
   });
 });
@@ -374,21 +411,31 @@ describe('T-477 E (Ajay): [only when: ...] and related_acts never reach the draf
     expect(written).not.toMatch(/only when/i);
   });
 
-  // The code has no step that strips a marker the model itself echoes
-  // (sanitiseAIBody removes only cause-title and disclaimer paragraphs;
-  // checkDraftCitations only warns). This test states the wish and is expected
-  // to fail until a guard exists; `it.failing` flips red the day one is added.
-  it.failing(
-    'GAP: a marker the model echoes into its answer is removed from the draft',
-    async () => {
-      const { written } = await runTemplate(
-        'loan_agreement',
-        FORM,
-        '1. That the lender, SARFAESI Act 2002 [only when: Lender is Bank/NBFC], lends the sum.',
-      );
-      expect(written).not.toContain('[only when');
-    },
-  );
+  // Arjun: sanitiseAIBody strips a marker the model echoes into its answer.
+  it('a marker the model echoes into its answer is removed from the draft', async () => {
+    const { written } = await runTemplate(
+      'loan_agreement',
+      FORM,
+      '1. That the lender, SARFAESI Act 2002 [only when: Lender is Bank/NBFC], lends the sum.',
+    );
+    // The final document is the template_sections event (the SSE text chunks are the raw stream).
+    const ev = written.split('\n\n').find((e) => e.startsWith('event: template_sections'))!;
+    expect(ev).toBeDefined();
+    expect(ev).not.toContain('only when');
+    expect(ev).toContain('SARFAESI Act 2002, lends the sum.');
+  });
+
+  // Finding, not a wish: the live SSE text chunks are written before sanitiseAIBody runs,
+  // so a streamed echo still reaches the browser until the client swaps in template_sections.
+  it('the raw streamed chunks still carry an echoed marker (sanitise runs after the stream)', async () => {
+    const { written } = await runTemplate(
+      'loan_agreement',
+      FORM,
+      '1. That the lender [only when: Foreign lender] lends.',
+    );
+    const chunks = written.split('\n\n').filter((e) => e.startsWith('data: '));
+    expect(chunks.join('')).toContain('[only when: Foreign lender]');
+  });
 });
 
 // ── F ────────────────────────────────────────────────────────────────────
@@ -398,8 +445,8 @@ describe('T-477 F: default_bail template path carries the CrPC sections', () => 
     applicant_name: 'Deepak Ravidas',
     advocate_name: 'A. Advocate',
   };
-  const CRPC = 'Code of Criminal Procedure, 1973 (167(2))';
-  const BNSS = 'Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023 (187(3); 187; 480)';
+  const CRPC = 'Code of Criminal Procedure, 1973 (S.167(2))';
+  const BNSS = 'Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023 (S.187(3); S.187; S.480)';
 
   it('a CrPC choice: RELATED ACTS is the CrPC entry with 167(2)', async () => {
     const { system } = await runTemplate('default_bail', {
@@ -436,4 +483,175 @@ describe('T-477 G: public template config still excludes related_acts', () => {
       expect(json).not.toContain('S.138; S.141');
     },
   );
+});
+
+// ── H: round 2 ───────────────────────────────────────────────────────────
+describe('T-477 H: applicableWhen keys (Ajay b101b4eb)', () => {
+  it('unit: a known key prints its plain words as the marker', () => {
+    const notes: string[] = [];
+    expect(
+      renderRelatedActs(
+        [{ act: 'X Act, 2005', sections: ['12'], applicableWhen: 'dv_dowry' }],
+        notes,
+      ),
+    ).toEqual([
+      'X Act, 2005 (S.12) [only when: the offence arises from domestic violence or a dowry demand]',
+    ]);
+    expect(notes).toEqual([]);
+  });
+
+  it('unit: an unknown key prints no marker, no raw key, and adds a note', () => {
+    const notes: string[] = [];
+    const out = renderRelatedActs(
+      [{ act: 'X Act, 2005', sections: ['12'], applicableWhen: 'made_up_key' }],
+      notes,
+    );
+    expect(out).toEqual(['X Act, 2005 (S.12)']);
+    expect(out[0]).not.toContain('made_up_key');
+    expect(out[0]).not.toContain('[only when');
+    expect(notes).toHaveLength(1);
+    expect(notes[0]).toContain('made_up_key');
+  });
+
+  it('pack level: every applicableWhen key in any pack is in the table; no rendered string holds a raw snake_case key', () => {
+    const { configs, byFile } = loadAllDocRules();
+    const keys = new Set<string>();
+    for (const file of PACK_FILES) {
+      const raw = rawPack(file);
+      for (const k of ['relevantActs', 'relatedActs']) {
+        const list = raw[k];
+        if (Array.isArray(list))
+          for (const e of list)
+            if (e && typeof e === 'object' && 'applicableWhen' in e)
+              keys.add(String((e as Obj).applicableWhen));
+      }
+    }
+    expect(keys.size).toBeGreaterThan(0);
+    for (const k of keys) expect(Object.keys(APPLICABLE_WHEN_WORDS)).toContain(k);
+    for (const c of configs.values())
+      for (const a of c.related_acts) {
+        for (const k of keys) expect(a).not.toContain(k);
+        expect(a).not.toMatch(/\b[a-z]+_[a-z_]+\b/);
+      }
+    // and no pack added an unknown-key note
+    for (const f of PACK_FILES) {
+      expect(byFile.get(f)!.mismatches.filter((m) => m.includes('APPLICABLE_WHEN_WORDS'))).toEqual(
+        [],
+      );
+    }
+  });
+
+  it('bail_regular: the PWDVA line exactly, rendered after the relevantActs entries', () => {
+    const { configs } = loadAllDocRules();
+    const acts = configs.get('bail_regular')!.related_acts;
+    const pwdva =
+      'Protection of Women from Domestic Violence Act (PWDVA), 2005 (S.12; S.18; S.19; S.20; S.22) [only when: the offence arises from domestic violence or a dowry demand]';
+    expect(acts).toContain(pwdva);
+    expect(acts[acts.length - 1]).toBe(pwdva);
+    expect(acts).toHaveLength(3);
+    expect(acts[0]).toBe(
+      'Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023 (S.478; S.480; S.483; S.484)',
+    );
+    expect(acts[1]).toBe('Bharatiya Nyaya Sanhita (BNS), 2023 (S.85; S.80; S.103(1))');
+  });
+
+  it('promoter: relevantActs then relatedActs, no merging across the keys', () => {
+    const { config } = promoteDocRuleToTemplateConfig(
+      {
+        template_id: 't',
+        category: 'c',
+        relatedActs: [{ act: 'Same Act', sections: ['2'] }],
+        relevantActs: [{ act: 'Same Act', sections: ['1'] }],
+      },
+      't.json',
+    );
+    expect(config.related_acts).toEqual(['Same Act (S.1)', 'Same Act (S.2)']);
+  });
+
+  it('promoter: an unknown applicableWhen key lands in the mismatches report', () => {
+    const { config, mismatches } = promoteDocRuleToTemplateConfig(
+      { template_id: 't', category: 'c', relatedActs: [{ act: 'A', applicableWhen: 'nope_key' }] },
+      't.json',
+    );
+    expect(config.related_acts).toEqual(['A']);
+    expect(mismatches.some((m) => m.includes('nope_key'))).toBe(true);
+  });
+});
+
+describe('T-477 H: S. prefix, pack level (Ajay f9415fe8)', () => {
+  it('every printed ref in every pack starts with a letter, or is "S." + a digit-led ref', () => {
+    const { configs, byFile } = loadAllDocRules();
+    let digitLed = 0;
+    for (const file of PACK_FILES) {
+      const rendered = configs.get(byFile.get(file)!.template_id)!.related_acts;
+      const acts = packActs(file);
+      acts.forEach((a, i) => {
+        const inner = rendered[i].slice(a.act.length).replace(/ \[only when: .*\]$/, '');
+        if (!inner.startsWith(' (')) return;
+        for (const raw of a.sections.map((x) => x.number)) {
+          if (/^[\s\-–—]*$/.test(raw)) continue;
+          if (/^\d/.test(raw)) {
+            digitLed += 1;
+            expect(inner).toContain(`S.${raw}`);
+          } else expect(inner).toContain(raw);
+        }
+        // splitting on '; ' only at top level is not needed: every part-initial char is a letter
+        for (const part of inner.slice(2, -1).split('; ')) {
+          if (/^\d/.test(part)) throw new Error(`${file}: bare digit-led ref ${part}`);
+        }
+      });
+    }
+    expect(digitLed).toBeGreaterThan(50);
+  });
+});
+
+describe('T-477 H: stripOnlyWhenMarkers / sanitiseAIBody (Arjun)', () => {
+  it('mid-sentence marker (and its leading space) is removed', () => {
+    const r = stripOnlyWhenMarkers('That the lender [only when: Lender is Bank/NBFC] shall pay.');
+    expect(r).toEqual({ text: 'That the lender shall pay.', count: 1 });
+  });
+
+  it('a marker on its own line leaves no marker text', () => {
+    const r = stripOnlyWhenMarkers('Line one.\n[only when: Foreign lender]\nLine two.');
+    expect(r.count).toBe(1);
+    expect(r.text).not.toContain('only when');
+    expect(r.text).toContain('Line one.');
+    expect(r.text).toContain('Line two.');
+  });
+
+  it('text with no marker is returned unchanged with count 0', () => {
+    const t = 'That the applicant is innocent. [Authority — add if relied upon]';
+    expect(stripOnlyWhenMarkers(t)).toEqual({ text: t, count: 0 });
+  });
+
+  it('several markers are all removed and counted', () => {
+    const r = stripOnlyWhenMarkers(
+      'A [only when: x] B [only when: y z] C\n[only when: w]\nD [ONLY WHEN: q] E',
+    );
+    expect(r.count).toBe(4);
+    expect(r.text).not.toMatch(/only when/i);
+    expect(r.text).toContain('A B C');
+  });
+
+  it('a marker whose closing bracket is on a later line is NOT stripped', () => {
+    const t = 'Para [only when: Lender is\nBank/NBFC] rest.';
+    expect(stripOnlyWhenMarkers(t)).toEqual({ text: t, count: 0 });
+  });
+
+  it('generic brackets are untouched', () => {
+    const t = '[To be confirmed: date] [Authority — add if relied upon] [only] [when: x]';
+    expect(stripOnlyWhenMarkers(t)).toEqual({ text: t, count: 0 });
+  });
+
+  it('is case-insensitive', () => {
+    expect(stripOnlyWhenMarkers('x [Only When: a] y').count).toBe(1);
+    expect(stripOnlyWhenMarkers('x [only WHEN: a] y').text).toBe('x y');
+  });
+
+  it('sanitiseAIBody removes an echoed marker and keeps the paragraph', () => {
+    const out = sanitiseAIBody(
+      '1. That the lender, SARFAESI Act 2002 [only when: Lender is Bank/NBFC], lends.\n\n2. That it is so.',
+    );
+    expect(out).toBe('1. That the lender, SARFAESI Act 2002, lends.\n\n2. That it is so.');
+  });
 });

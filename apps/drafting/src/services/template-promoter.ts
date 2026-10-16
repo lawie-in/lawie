@@ -64,6 +64,7 @@ interface DocRuleSource {
   prompt_context?: string | Record<string, unknown>;
   promptInstructions?: string[];
   relevantActs?: unknown[];
+  relatedActs?: unknown[];
   filing_checklist?: string[];
   filingChecklist?: string[];
   validation_rules?: string[] | ValidationRules;
@@ -900,9 +901,16 @@ export function promoteDocRuleToTemplateConfig(
         ? rule.filingChecklist
         : [];
 
-  // related_acts — one string per relevantActs entry, carrying the pack's own
-  // section references (T-477; see related-acts.ts).
-  const relatedActs: string[] = renderRelatedActs(rule.relevantActs);
+  // related_acts — one string per relevantActs entry, then per relatedActs
+  // entry (Ajay b101b4eb: both keys, no merging across them), carrying the
+  // pack's own section references (T-477; see related-acts.ts).
+  const relatedActs: string[] = renderRelatedActs(
+    [
+      ...(Array.isArray(rule.relevantActs) ? rule.relevantActs : []),
+      ...(Array.isArray(rule.relatedActs) ? rule.relatedActs : []),
+    ],
+    mismatches,
+  );
 
   const config: PromotedTemplateConfig & {
     creditsCost?: number;

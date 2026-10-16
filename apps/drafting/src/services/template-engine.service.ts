@@ -2374,12 +2374,34 @@ export function renderTemplateSection(
 }
 
 /**
+ * T-477 (Arjun): the "[only when: ...]" marker the RELATED ACTS line carries
+ * for a conditional act. Matches that literal marker shape only, never other
+ * bracketed text, with any spaces or tabs before it on the same line.
+ */
+const ONLY_WHEN_MARKER = /[ \t]*\[only when:[^\]\n]*\]/gi;
+
+/**
+ * T-477: removes every "[only when: ...]" marker the model echoed into a body.
+ * `count` is how many were removed, so a caller can record the count (not the
+ * text).
+ */
+export function stripOnlyWhenMarkers(text: string): { text: string; count: number } {
+  let count = 0;
+  const out = text.replace(ONLY_WHEN_MARKER, () => {
+    count += 1;
+    return '';
+  });
+  return { text: out, count };
+}
+
+/**
  * SCRUM-62: Strip cause-title blocks (A7) and disclaimer text (A6) that AI
  * sometimes injects into the body despite instructions not to.
  * Both are already rendered by template sections — duplicates corrupt the PDF.
  */
 export function sanitiseAIBody(text: string): string {
-  const paras = text.split(/\n\n+/);
+  // T-477: echoed "[only when: ...]" markers go before the paragraph filter.
+  const paras = stripOnlyWhenMarkers(text).text.split(/\n\n+/);
   const cleaned = paras.filter((para) => {
     const t = para.trim();
     if (!t) return false;
