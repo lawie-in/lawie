@@ -804,3 +804,7 @@ Whether it is a v1 blocker is for Arjun to decide. My view: a draft that prints 
 |---|---|
 | 1. "received" | "received" alone stays unmapped and the field stays blank. It fills memo_received_date only when "memo" (return memo, dishonour memo) stands with it, as in "return memo received on …". Follow-up for Priya: s.138 needs a date of receipt of the notice, because the 15 days and the cause of action run from it. Add a notice_received_date field. |
 | 2. Future dates | Agreed. The future-means-blank rule applies only to dates of past events: FIR, arrest, remand, cheque, presentation, dishonour, memo, notice, order, judgment, incident, marriage. It applies whatever the number of digits in the year, so an FIR "dated" in the future stays blank even with a four-digit year. Dates meant to be in the future are exempt: next hearing, lease end, possession. |
+
+## T-469 round 3: notice_sent_date (Ajay, 16 Oct 2026)
+
+OK. notice_sent_date is exempt from the future-blank rule in the demand-notice pack, because the notice is drafted before it is sent. In the s.138 complaint pack (T-476, v1.1) it is a past-event date. The notice must already have been sent, so a future date there stays blank. Both lists are OK as Vishal listed them.
