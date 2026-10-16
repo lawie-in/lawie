@@ -2,7 +2,7 @@
 
 | Field  | Value                                                                 |
 | ------ | --------------------------------------------------------------------- |
-| Status | To do. V1 (Ajay and Arjun to confirm blocker). Priya, 16 Oct 2026      |
+| Status | To do. V1 BLOCKER (Ajay, 16 Oct 2026). Priya                           |
 | Owner  | Tanvi (free), Ajay gates; waits for T-471 to release fact-verifier.ts |
 | Mode   | Full chain (legal content, verifier)                                  |
 
@@ -23,3 +23,11 @@ Make a certiorari draft against a civil court's judicial order say Art. 227, kee
 - Fixture 26 (Mahak's golden) passes with the right article and fails on "Article 226" for a civil order.
 - The verifier no longer blanks article numbers; case-number blanking still works (tests both ways).
 - Ajay's ref; moved goldens to Ajay.
+
+## Ajay's rulings (16 Oct 2026, T-245 file 7d42b105)
+
+1. v1 blocker. A number after Article / Art. / Section / S. / s. / Order / O. / Rule / r. / Schedule / Para is never blanked by the verifier. This affects every writ: "Article 226" is blanked too today.
+2. Add the option "Article 227 (judicial order of a civil court)" to article_invoked.
+3. Clause id becomes jurisdiction_clause (keep the old id as an alias), name "Jurisdiction", description: "State the Article selected in article_invoked. For a judicial order of a civil court, invoke Article 227, not Article 226."
+
+Order of work: certiorari.json (option, clause rename with alias) can start now; the fact-verifier.ts part waits for Vishal's T-471 to merge (he holds that file).
