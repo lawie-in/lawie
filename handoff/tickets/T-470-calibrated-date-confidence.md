@@ -28,3 +28,7 @@ Ajay. It changes which dates reach the ledger, so it changes what appears in a d
 ## Out of scope
 
 The date-label strip (T-469).
+
+## Added 16 Oct 2026 (Arjun's ruling on T-498)
+
+"In custody since" stays asked for v1 (AC5 of T-147b stands), because the extractor's confidence is not calibrated and the brief placing the same date from the same words is the same extractor agreeing with itself. When this ticket calibrates confidence (with Ajay), revisit storing a single-value date as a fact when the extractor reads it at low confidence and the brief placed it from the same words (Tanvi's proposed fix in fact-ledger.service.ts). v1 only pre-fills the ask with the brief's date as a one-tap suggestion.
