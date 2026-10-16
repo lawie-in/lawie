@@ -124,6 +124,12 @@ export function factTypeFor(item: ChecklistItem): FactType {
   if (/(^|_)(police_station|ps_name|thana)(_|$)/.test(name)) return 'police_station';
   if (/(^|_)(fir|case|crime)_?(number|no)$/.test(name)) return 'case_number';
   if (/(^|_)(court)(_|$)/.test(name)) return 'court';
+  // T-471 (Ajay (a), 16 Oct 2026): in the s.138 notice only, respondent_name is
+  // the drawer as named on the cheque: a firm, company or person. Read as text,
+  // so a firm is kept and is not held to the person-name floor. The flag is set
+  // by intake.service for that pack's item alone; every other pack's names,
+  // respondent_name included, stay person names.
+  if (item.drawerAsNamed === true) return 'text';
   if (item.partyName || /(^|_)name$/.test(name)) return 'person_name';
   if (/(^|_)(place|city|village|town)(_|$)/.test(name)) return 'place_name';
   return 'text';

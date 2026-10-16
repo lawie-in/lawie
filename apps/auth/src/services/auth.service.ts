@@ -461,32 +461,5 @@ export async function logoutUser(userId: string, accessToken: string): Promise<v
   await deleteSession(userId, accessHash);
 }
 
-export async function initiatePasswordReset(email: string): Promise<string> {
-  const user = await User.findOne({ email: email.toLowerCase() });
-  if (!user) return 'ok';
-
-  const token = crypto.randomBytes(32).toString('hex');
-  user.passwordResetToken = crypto.createHash('sha256').update(token).digest('hex');
-  user.passwordResetExpires = new Date(Date.now() + 30 * 60 * 1000);
-  await user.save({ validateBeforeSave: false });
-
-  return token;
-}
-
-export async function resetPassword(token: string, newPassword: string): Promise<void> {
-  const hashed = crypto.createHash('sha256').update(token).digest('hex');
-
-  const user = await User.findOne({
-    passwordResetToken: hashed,
-    passwordResetExpires: { $gt: new Date() },
-  }).select('+passwordResetToken +passwordResetExpires');
-
-  if (!user) {
-    throw new AppError(400, 'Password reset token is invalid or has expired');
-  }
-
-  user.password = newPassword;
-  user.passwordResetToken = undefined;
-  user.passwordResetExpires = undefined;
-  await user.save();
-}
+// T-221: password reset moved to password-reset.service.ts (sign-up rules, single use,
+// sessions signed out).

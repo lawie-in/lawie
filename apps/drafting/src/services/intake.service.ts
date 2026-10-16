@@ -88,8 +88,10 @@ import {
 import {
   getAiEffort,
   getIntakeExtractCap,
+  getIntakeReceptionCap,
   getModelRates,
   INTAKE_EXTRACT_CAP_DEFAULT,
+  INTAKE_RECEPTION_CAP_DEFAULT,
   logLlmCall,
   priceUsage,
 } from './llm-usage';
@@ -141,8 +143,12 @@ export const INTAKE_LIMITS = {
   dailyPaid: 150,
   matchMaxTokens: 300,
   fillMaxTokens: 1500,
-  /** T-105: Reception reads up to 40 checklist lines and words up to 10 questions. */
-  receptionMaxTokens: 3000,
+  /**
+   * T-105: Reception reads up to 40 checklist lines and words up to 10 questions.
+   * T-453 follow-up (golden run 64): the default only; the cap in use is
+   * ai.cap.intake_reception (getIntakeReceptionCap, 500-8000, default 4000).
+   */
+  receptionMaxTokens: INTAKE_RECEPTION_CAP_DEFAULT,
   /**
    * T-147b: the extraction pass returns one short span per fact, for up to 40 facts.
    * T-453 follow-up: the default only; the cap in use is ai.cap.intake_extract
@@ -1307,18 +1313,30 @@ function userValues(keep: GivenValue[] | undefined): GivenValue[] {
   }));
 }
 
+/**
+ * The pack's checklist, with the s.138 drawer flagged (T-471, Ajay (a)): only
+ * legal_notice_s138's respondent_name is read as the drawer as named.
+ */
+function checklistFor(pack: RulePack): ChecklistItem[] {
+  const items = buildChecklist(pack);
+  if (pack.id !== 'legal_notice_s138') return items;
+  return items.map((i) => (i.key === 'respondent_name' ? { ...i, drawerAsNamed: true } : i));
+}
+
 async function briefWithPack(
   ctx: BriefContext,
   pack: RulePack,
   req: BriefIntakeRequest,
 ): Promise<BriefIntakeResponse> {
-  const checklist = buildChecklist(pack);
+  const checklist = checklistFor(pack);
+  // T-453 follow-up: the cap is config (ai.cap.intake_reception). Never throws.
+  const maxTokens = await getIntakeReceptionCap();
   const text = await cachedModelCall(
     ctx,
     'intake_reception',
     RECEPTION_PACK_SYSTEM_PROMPT,
     buildReceptionPackUserPrompt(pack.name, checklistLines(checklist), req.description),
-    INTAKE_LIMITS.receptionMaxTokens,
+    maxTokens,
   );
   if (text === null) return { intake_id: ctx.intakeId, outcome: 'unavailable' };
 
@@ -1424,12 +1442,14 @@ async function briefWithNoPack(
   const round = req.round === 2 || req.round === 3 ? req.round : 1;
   const answers = round === 1 ? [] : (req.answers ?? []);
   // Light mode is not used yet (T-127, section 3.1). Strict is always the safe mode.
+  // T-453 follow-up: the cap is config (ai.cap.intake_reception). Never throws.
+  const maxTokens = await getIntakeReceptionCap();
   const text = await cachedModelCall(
     ctx,
     'intake_reception',
     RECEPTION_GUIDED_SYSTEM_PROMPT,
     buildReceptionGuidedUserPrompt(req.description, answers, 'strict', round),
-    INTAKE_LIMITS.receptionMaxTokens,
+    maxTokens,
   );
   if (text === null) return { intake_id: ctx.intakeId, outcome: 'unavailable' };
   const parsed = parseModelJson(text);
@@ -1685,7 +1705,7 @@ export function updateBrief(req: BriefUpdateRequest): Brief | null {
   if (!pack) return null;
   return buildBrief({
     kind: { id: pack.id, name: pack.name, court_document: isCourtDocument(pack.id) },
-    checklist: buildChecklist(pack),
+    checklist: checklistFor(pack),
     values: req.values,
     court: req.court,
     description: req.description,
@@ -1715,7 +1735,7 @@ export async function updateLedger(
   const allowed = new Set((await getEnabledCatalogue(req.userId)).map((c) => c.template_id));
   const pack = allowed.has(req.kind) ? loadRulePack(req.kind) : null;
   if (!pack) throw new LedgerNotFoundError();
-  const checklist = buildChecklist(pack);
+  const checklist = checklistFor(pack);
   const { doc: after, results } = await applyEdits(
     doc,
     checklist,

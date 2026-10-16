@@ -1,0 +1,21 @@
+# T-488: s.138 drafts: the verifier mutates the cheque date, and the State is dropped (golden 07/20 and others)
+
+| Field  | Value                                                       |
+| ------ | ----------------------------------------------------------- |
+| Status | To do. V1 (found in golden real run 69, 16 Oct 2026). Priya |
+| Owner  | Vishal (after T-480), Ajay gates                            |
+| Mode   | Full chain                                                  |
+
+## Source
+
+Vishal, golden real run 69 (10/27 pass, was 8/27): after the T-471 firm fix, fixtures 1b/08/19/21 keep the firm, but their other failures, a cheque-date verifier mutation and the State being dropped, also hit 07 and 20. Not caused by T-471.
+
+## What
+
+Explore the failing cases in run 69: why the verifier changes a cheque date, and where the State goes missing. Fix both; Ajay sees any text or date change.
+
+## Acceptance criteria
+
+- The cheque date is never changed by the verifier (dates correct, as Anushka's run found).
+- The State appears where the brief names it.
+- Golden fixtures 07/08/1b/19/20/21 pass those checks; Ajay's ref in the merge body.
