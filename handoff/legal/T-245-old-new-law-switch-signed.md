@@ -814,3 +814,9 @@ OK. notice_sent_date is exempt from the future-blank rule in the demand-notice p
 - date.ts lists match 604af4bd, b37ed330 and 1e45a7c8. "w.e.f." and "wef" are not fillers. "order" fills only when the pack has a single order-date field. memo_received_date needs both "memo" and "received". The past-event list is as ruled, and notice_sent_date is exempt.
 - These cases stay blank, which is the safe side: "notice sent on …" ("sent" is not a field word), "return memo dated …" with no "received", and a bare "presentation". OK for v1. Widening them is a follow-up only if the golden runs show misses.
 - Merge after T-496 (never supply a day), as planned.
+
+## Byte check T-479, feature/t-479-cause-titles @ df0938ba: approved (Ajay, 16 Oct 2026)
+
+- All 23 signed strings are present byte for byte in the five packs and in template-engine.service.ts. They come from 0e5f64b7, 2d578206, 6a047469, f9415fe8, 00568779, ca12ec2e and 7c279a77. None of "State of Delhi", "HIGH COURT OF Chandigarh", or "Home Department" / "Through Public Prosecutor" in a civil writ appears in the new code paths.
+- The existing default `State of _____ / Through Public Prosecutor` (template-engine :2063) stays for criminal packs only. That is OK. A follow-up may move its "_____" to the signed State blank.
+- Separate, existing issue (not T-479): curative_petition.json :171 names a judgment ("… v. State of Delhi"). Check under T-441 whether that key is model-visible. If it is, remove the judgment name.
