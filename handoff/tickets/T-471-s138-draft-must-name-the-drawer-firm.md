@@ -1,10 +1,10 @@
 # T-471: A s.138 notice or complaint must name the drawer firm
 
-| Field  | Value                                                                           |
-| ------ | ------------------------------------------------------------------------------- |
+| Field  | Value                                                                       |
+| ------ | --------------------------------------------------------------------------- |
 | Status | Merged into develop_staging b39f45a6, 16 Oct; Anushka to test on develop. Priya |
-| Owner  | Vishal (he has the T-453 fixtures and run 64), after T-453 closes               |
-| Mode   | Full chain (legal content; Ajay gates)                                          |
+| Owner  | Vishal (he has the T-453 fixtures and run 64), after T-453 closes           |
+| Mode   | Full chain (legal content; Ajay gates)                                      |
 
 ## Source
 
@@ -34,7 +34,6 @@ Extend the golden-set verifier list with BNSS s.144 (maintenance, old s.125 CrPC
 Cause (Vishal): the firm is lost at intake. respondent_name is typed as a person name (fact-ledger.service.ts), so "Demo Traders ke malik" gets no name and "Gupta Electricals ke proprietor Anil Gupta" falls under the 0.8 floor. No prompt says a firm is a party name. The draft prints the firm when the ledger has it.
 
 Ajay:
-
 - (a) respondent_name reads as "drawer as named (firm, company or person)": OK.
 - (b) The one signed line in the intake prompt, exactly: "A firm or company named as the drawer is the drawer's name. Put the proprietor, partners or directors named with it in their own fields, never in place of the firm."
 - (c) Fixture 08 (firm as drawer, Anil Gupta as drawer_proprietor): OK, with one condition. A sole proprietorship is not a separate person: address the notice to "Anil Gupta, proprietor of Gupta Electricals" and do not plead s.141.

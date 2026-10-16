@@ -1,9 +1,9 @@
 # T-491: Drafter writes "in custody since" with no custody date
 
-| Field  | Value                                                   |
-| ------ | ------------------------------------------------------- |
-| Status | To do. V1.1 (Priya, 16 Oct 2026)                        |
-| Owner  | Lead who is free                                        |
+| Field  | Value |
+| ------ | ----- |
+| Status | To do. V1.1 (Priya, 16 Oct 2026) |
+| Owner  | Lead who is free |
 | Mode   | Small fix or full chain; the lead decides after Explore |
 
 ## Source

@@ -1,10 +1,10 @@
 # T-488: s.138 drafts: the verifier mutates the cheque date, and the State is dropped (golden 07/20 and others)
 
-| Field  | Value                                                       |
-| ------ | ----------------------------------------------------------- |
+| Field  | Value |
+| ------ | ----- |
 | Status | To do. V1 (found in golden real run 69, 16 Oct 2026). Priya |
-| Owner  | Vishal (after T-480), Ajay gates                            |
-| Mode   | Full chain                                                  |
+| Owner  | Vishal (after T-480), Ajay gates |
+| Mode   | Full chain |
 
 ## Source
 

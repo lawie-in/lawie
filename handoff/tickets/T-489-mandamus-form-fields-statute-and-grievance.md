@@ -1,10 +1,10 @@
 # T-489: Mandamus form needs its own fields: the statute that imposes the duty, and the grievance
 
-| Field  | Value                                                           |
-| ------ | --------------------------------------------------------------- |
-| Status | To do. V1.1 (Ajay, 16 Oct 2026). Priya                          |
+| Field  | Value |
+| ------ | ----- |
+| Status | To do. V1.1 (Ajay, 16 Oct 2026). Priya |
 | Owner  | Lead who is free; Ajay writes the labels and the paragraph text |
-| Mode   | Full chain (legal content)                                      |
+| Mode   | Full chain (legal content) |
 
 ## Source
 

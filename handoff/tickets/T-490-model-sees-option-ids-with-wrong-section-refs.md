@@ -1,10 +1,10 @@
 # T-490: The model sees option ids that carry wrong or unverified section references (T-473 follow-ups F1-F3)
 
-| Field  | Value                                                                          |
-| ------ | ------------------------------------------------------------------------------ |
+| Field  | Value |
+| ------ | ----- |
 | Status | To do. Post-v1 unless Ajay says it blocks (Ajay, f1a18422, 16 Oct 2026). Priya |
-| Owner  | Lead who is free after T-473 merges; Ajay re-signs                             |
-| Mode   | Full chain (legal content)                                                     |
+| Owner  | Lead who is free after T-473 merges; Ajay re-signs |
+| Mode   | Full chain (legal content) |
 
 ## Source
 
