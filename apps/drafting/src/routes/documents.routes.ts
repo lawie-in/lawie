@@ -1264,13 +1264,14 @@ router.post(
     // The brief is worked out again here. What the browser says about it is not
     // trusted: for a document with no rule pack, a court signal in the user's
     // words makes it a court document whatever was sent (T-107, section 2).
-    const brief = updateBrief({
+    const briefRequest = {
       kind,
       kindName: parsed.data.kind_name,
       courtDocument: parsed.data.court_document,
       values,
       court: court ?? undefined,
-    });
+    };
+    const brief = updateBrief(briefRequest);
     // T-107, section 3: nothing for the Supreme Court is drafted without a rule pack.
     if (
       guided &&
@@ -1286,11 +1287,17 @@ router.post(
       return;
     }
     // ADR-021 decision D2: a court document is not drafted without the court and the parties.
-    if (!brief.can_confirm) {
+    // T-498: with this generation's ledger, a party name it holds does not block,
+    // as on the brief. Only this check reads it: the brief the Drafter is given
+    // is the one above, unchanged. Without a ledger this is the same brief.
+    const confirmable = ledger
+      ? (updateBrief({ ...briefRequest, ledger: { facts: ledger.facts } }) ?? brief)
+      : brief;
+    if (!confirmable.can_confirm) {
       res.status(400).json({
         error: 'brief_not_confirmed',
-        message: brief.confirm_message,
-        blockers: brief.confirm_blockers,
+        message: confirmable.confirm_message,
+        blockers: confirmable.confirm_blockers,
       });
       return;
     }

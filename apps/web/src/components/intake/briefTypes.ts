@@ -417,6 +417,30 @@ function isDeclinableUndertaking(key: string): boolean {
 }
 
 /**
+ * T-498: the keys the fact ledger holds a fact for. The row shows that fact
+ * (with "Please check" when read from the description), so it is given: not
+ * asked in the rounds and not listed as still unknown. An empty display is not
+ * a fact, and a "No" on an undertaking box (T-251) is not yet given. Kept in
+ * step with `ledgerGivenKeys` in apps/drafting/src/services/intake-brief.ts.
+ * Empty with no ledger, so nothing changes with the ledger off.
+ */
+export function ledgerGivenKeys(ledger: Ledger | null | undefined): Set<string> {
+  const out = new Set<string>();
+  if (!ledger) return out;
+  for (const f of ledger.facts) {
+    if (typeof f.display !== 'string' || f.display.trim() === '') continue;
+    const declined =
+      isDeclinableUndertaking(f.key) &&
+      [f.display, String(f.value)].some((v) => {
+        const w = foldWord(v);
+        return w === 'no' || w === 'false';
+      });
+    if (!declined) out.add(f.key);
+  }
+  return out;
+}
+
+/**
  * T-481: the service places no value for a "No" on an undertaking box (T-251:
  * a "No" is an undertaking not yet given, so its blank shows), and sends no
  * `asked_empty` for it either. Without this the advocate's "No" is dropped and

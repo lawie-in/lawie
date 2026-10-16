@@ -11,9 +11,14 @@
 import { Loader2 } from 'lucide-react';
 import { useState } from 'react';
 
-import type { BriefQuestion, Value } from './briefTypes';
+import { type BriefQuestion, dateInWords, describeValue, type Value } from './briefTypes';
 import { card, h1, label as labelClass, linkButton, primaryButton, small, sub } from './ui';
 import ValueInput from './ValueInput';
+
+/** T-498: a suggestion as the brief shows it: a date in words, a list joined. */
+function suggestionText(q: BriefQuestion, v: Value): string {
+  return q.kind === 'date' && typeof v === 'string' ? dateInWords(v) : describeValue(v);
+}
 
 export default function QuestionsStep({
   documentName,
@@ -25,9 +30,16 @@ export default function QuestionsStep({
   onSubmit,
   onSkip,
   onEditDescription,
+  suggestions = {},
 }: {
   documentName: string | null;
   questions: BriefQuestion[];
+  /**
+   * T-498: by question key, a value the brief read from the description for a
+   * fact the ledger could not read. Shown under the field, marked "Please
+   * check"; it is the advocate's answer only once they tap it.
+   */
+  suggestions?: Record<string, Value>;
   round: number;
   totalRounds: number;
   description: string;
@@ -84,6 +96,17 @@ export default function QuestionsStep({
                 onCommit={(v) => setAnswers((a) => ({ ...a, [q.key]: v }))}
               />
             </div>
+            {suggestions[q.key] !== undefined && answers[q.key] === undefined && (
+              // T-498: one tap puts the value in the field; until then nothing is answered.
+              <button
+                type="button"
+                data-suggestion={q.key}
+                onClick={() => setAnswers((a) => ({ ...a, [q.key]: suggestions[q.key] }))}
+                className="!bg-brand-gold-light !border-brand-gold text-brand-navy focus-visible:ring-brand-teal mt-1.5 rounded-lg border px-3 py-1.5 text-left text-sm focus:outline-none focus-visible:ring-2"
+              >
+                Please check: {suggestionText(q, suggestions[q.key])}
+              </button>
+            )}
           </div>
         ))}
         <p className={small}>
