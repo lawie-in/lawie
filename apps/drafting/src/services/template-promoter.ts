@@ -25,6 +25,7 @@ import { catalogueCategoryFor } from '../config/catalogue';
 import logger from '../config/logger';
 
 import { costForTemplate } from './credits.service';
+import { renderRelatedActs } from './related-acts';
 import type {
   ComputedField,
   DocumentSection,
@@ -899,16 +900,9 @@ export function promoteDocRuleToTemplateConfig(
         ? rule.filingChecklist
         : [];
 
-  // related_acts — collapse CLO's structured shape down to a string list.
-  const relatedActs: string[] = Array.isArray(rule.relevantActs)
-    ? rule.relevantActs
-        .map((a) => {
-          if (typeof a === 'string') return a;
-          if (isPlainObject(a) && typeof a.act === 'string') return a.act;
-          return '';
-        })
-        .filter((s) => s.length > 0)
-    : [];
+  // related_acts — one string per relevantActs entry, carrying the pack's own
+  // section references (T-477; see related-acts.ts).
+  const relatedActs: string[] = renderRelatedActs(rule.relevantActs);
 
   const config: PromotedTemplateConfig & {
     creditsCost?: number;

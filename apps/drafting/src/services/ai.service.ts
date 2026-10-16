@@ -135,6 +135,7 @@ import {
 } from './llm-usage';
 import { postProcess } from './post-processor';
 import { assemblePrompt, PromptInput } from './prompt-assembler';
+import { renderRelatedActs } from './related-acts';
 import { loadSkeleton as loadSignedSkeleton } from './rule-pack.service';
 import type { RulePack } from './rule-pack.service';
 import { convertOldReferencesInText } from './sections.service';
@@ -991,7 +992,7 @@ export async function streamGenerateFromTemplate(
             chargedConfig.template_id,
             law.procedureCode,
             chargedConfig.related_acts,
-            DEFAULT_BAIL_CRPC_ACT.act,
+            renderRelatedActs([DEFAULT_BAIL_CRPC_ACT])[0],
           ),
         }
       : chargedConfig;
