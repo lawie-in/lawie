@@ -112,4 +112,25 @@ describe('T-483 checkPeriods: ages versus periods', () => {
     const found = checkPeriods('Aged 80 years. Again, aged 80 years.', [], briefOf());
     expect(found).toHaveLength(1);
   });
+
+  it.each(['45 years', 'about 45', '45'])(
+    'allows "aged 45 years" when applicant_age is "%s"',
+    (v) => {
+      expect(
+        checkPeriods(
+          'The applicant, aged 45 years, is in custody.',
+          [],
+          briefOf(item('applicant_age', v)),
+        ),
+      ).toEqual([]);
+    },
+  );
+
+  it('warns for "aged 45 years" when applicant_age is null or absent', () => {
+    for (const brief of [briefOf(item('applicant_age', null)), briefOf()]) {
+      const found = checkPeriods('The applicant, aged 45 years, is in custody.', [], brief);
+      expect(found).toHaveLength(1);
+      expect(found[0].message).toBe(ageWarning('45 years'));
+    }
+  });
 });

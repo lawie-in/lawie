@@ -7,7 +7,7 @@
  * `generate-from-brief` route (T-106).
  */
 
-import { blanksInContent } from '@/components/editor/exportUtils';
+import { blanksInContent } from '@/components/editor/blankCount';
 
 export type ValueKind =
   | 'text'

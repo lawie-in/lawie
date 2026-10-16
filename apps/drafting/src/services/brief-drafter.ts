@@ -2390,8 +2390,10 @@ export function checkPeriods(body: string, known: string[], brief: Brief): Valid
   for (const item of brief.items) {
     if (typeof item.value === 'string' && /^\d+$/.test(item.value.trim())) {
       numbers.add(String(Number(item.value.trim())));
-      if (AGE_KEY.test(item.key)) ages.add(String(Number(item.value.trim())));
     }
+    // An age field may hold "45 years" or "about 45": its first figure is the age.
+    const n = String(item.value).match(/\d+/);
+    if (AGE_KEY.test(item.key) && n) ages.add(String(Number(n[0])));
   }
   for (const text of known) for (const age of agesIn(text)) ages.add(age);
   const warnings: ValidationWarning[] = [];
