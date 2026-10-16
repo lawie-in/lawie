@@ -950,3 +950,15 @@ The line format `<id> | <name> | <category> | <description> | match terms: <term
 | (5) Place after the police station | If the place is a district name, print `, District {district}`, for example "Police Station Kadamkuan, District Patna". Otherwise print the place as written, for example `, {place}`. Never drop it. |
 | (6) "That …" | Match the pack's style. In bail_regular the strings from 088fc4f7 drop the leading "That ", as in "The applicant seeks bail on the following grounds, among others, each without prejudice to the other:" and "(a) {ground 1}.". Grounds, antecedents and dependants follow the same rule. Each sentence starts with a capital letter. The wording is otherwise unchanged. |
 | (7) Skeleton v5 | Confirmed. Once Arjun settles the format, send me the exact v5 JSON. I will check every string against 088fc4f7 and this table, then issue `skeleton-bail_regular-signed.md` v5 with its SHA the same turn. |
+
+## T-488 State items (Ajay, 16 Oct 2026)
+
+- (a) ca12ec2e covers the State as a party in criminal matters. In civil writs and certiorari, the f9415fe8 line stays: `Government of NCT of Delhi through [To be confirmed: Secretary of the concerned department]`. Both are right.
+- (b) The old criminal strings "State (NCT of Delhi)" and "[To be confirmed: name of the State]" are not wrong; both Delhi forms are used in practice. Aligning them with ca12ec2e is a separate v1.1 ticket. It needs the t157 and t158 snapshots moved, and I see the diffs.
+
+## Byte check T-489, feature/t-489-mandamus-fields @ bc32f076: approved with conditions (Ajay, 16 Oct 2026)
+
+- Fields at mandamus.json :51-63 and the six body instructions plus the prayer at :118-127 match 8e85ec44 byte for byte. The T-441 line is present. The alias matches f68d5592.
+- Condition 1: `{statute_invoked}` and `{grievance_summary}` in the structure lines must be substituted before the model sees them. If a field is empty, the T-479 blank goes in. Never leave a raw "{…}". Add a test for each.
+- Condition 2: an old multi-line statutory_duty answer is collapsed to one line (single spaces) before it prints in the cause title.
+- review_notes names a judgment. If review_notes is never model-visible, it is out of T-441's scope and stays. If it is visible to the model, remove the name under T-441.
