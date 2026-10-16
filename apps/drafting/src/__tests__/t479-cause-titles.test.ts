@@ -467,19 +467,15 @@ describe.each(paths)('T-479 AC4: mandamus, %s', (_n, render) => {
     );
   });
 
-  it('a hand-typed statute or grievance (if ever given) is not overwritten', () => {
+  it('a typed statute or grievance is not overwritten', () => {
     const r = render('mandamus', {
       ...given,
       statute_invoked: 'Sample Act',
       grievance_summary: 'Sample grievance',
     });
-    // mandamus has no such form field, so the brief path drops them; the form path keeps them.
-    if (render === renderForm) {
-      expect(r.cause_title).toContain('AND IN THE MATTER OF: Sample Act;');
-      expect(r.cause_title).toContain('AND IN THE MATTER OF: Sample grievance;');
-    } else {
-      expect(r.cause_title).toContain(STATUTE_BLANK);
-    }
+    // T-489: mandamus now has both form fields, so every path keeps them.
+    expect(r.cause_title).toContain('AND IN THE MATTER OF: Sample Act;');
+    expect(r.cause_title).toContain('AND IN THE MATTER OF: Sample grievance;');
   });
 });
 
