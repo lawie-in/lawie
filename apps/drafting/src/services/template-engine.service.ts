@@ -1942,8 +1942,10 @@ export function buildPlaceholderContext(
     ctx.courtPlace = notCourtPlaceValue;
   }
 
-  // T-488 (from T-479): a pack that asks "State" as state_of_filing
-  // (certiorari) prints it as {state} when no `state` answer is given.
+  // T-488 (from T-479): any pack with a state_of_filing field (certiorari,
+  // quo_warranto, interim_application) gets it copied to {state} when no
+  // `state` answer is given. quo_warranto and interim_application have no
+  // {state} in their cause title and are not in STATE_FROM_COURT_PACKS.
   const stateOfFiling =
     isUnanswered(ctx.state) && !isUnanswered(ctx.state_of_filing) ? ctx.state_of_filing : undefined;
   if (stateOfFiling !== undefined) ctx.state = stateOfFiling;
