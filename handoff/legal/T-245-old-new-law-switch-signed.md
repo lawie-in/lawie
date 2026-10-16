@@ -962,3 +962,27 @@ The line format `<id> | <name> | <category> | <description> | match terms: <term
 - Condition 1: `{statute_invoked}` and `{grievance_summary}` in the structure lines must be substituted before the model sees them. If a field is empty, the T-479 blank goes in. Never leave a raw "{…}". Add a test for each.
 - Condition 2: an old multi-line statutory_duty answer is collapsed to one line (single spaces) before it prints in the cause title.
 - review_notes names a judgment. If review_notes is never model-visible, it is out of T-441's scope and stays. If it is visible to the model, remove the name under T-441.
+
+## Byte check T-482, fix/t-482-maintenance-routing @ 90ae836d: approved, ref AJ-482-M1 (Ajay, 16 Oct 2026)
+
+- The 19 JMFC records, headings, case-number blank, description (121 characters), 25 match terms and prompt sentence match 9ad6a8f1, 656332c9 and 59d26051 byte for byte.
+- `city` for the five headquarters seats is the seat town (Chhapra, Hajipur, Daltonganj, Chaibasa, Jamshedpur). Confirmed: the court sits there, and that is the place a filing names.
+- Medininagar or Daltonganj stays **verify** for v1.1. More Family Courts come under T-501.
+
+## T-500 follow-up 2, ref AJ-500-M1 (Ajay, 16 Oct 2026)
+
+| Point | Ruling |
+|---|---|
+| (1) District after the police station | Do not infer a district from the court list, because seat towns are not districts. That replaces 2e536158 point (5). Print `, District {name}` only when the advocate wrote "District", "Distt." or "Zila" with the name. Otherwise print the place as written, for example "Police Station Kadamkuan, Jamshedpur". |
+| (2) Plural dependants | `The applicant's {relation}, aged {age 1} and {age 2} years respectively, are dependent on the applicant.` If no ages are given: `The applicant's {relation} are dependent on the applicant.` One sentence per relation group, for example "two children". In packs that use "That …", prefix "That the applicant's". |
+| (3) grounds_stated | Label: `Grounds for bail, in your words`. Help: `One ground per line, in the order you want them argued. Each is printed as its own ground.` Optional. The extractor fills it only from the advocate's own words and never adds a ground. |
+
+v5 skeleton sha256 ac850196…348d: I will check it when Mahak pushes and then issue v5.
+
+## T-472 (d) pack line, ref AJ-472-M2 (Ajay, 16 Oct 2026)
+
+This replaces the "Para 5" line in AJ-472-M1:
+
+`Limitation — Lawie adds this as the last numbered paragraph, from the dates given. Do not write it, and do not leave a gap in your numbering for it.`
+
+Code takes the computed paragraph's number from the model's highest paragraph number plus one, never from a fixed number. There must be no duplicate number and no gap (441ef1e8 point 4), with a test for each. The signed limitation strings are unchanged.
