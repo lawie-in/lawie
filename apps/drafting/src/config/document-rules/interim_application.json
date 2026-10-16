@@ -7,6 +7,7 @@
     "batch": "B8b"
   },
   "template_id": "interim_application",
+  "card_description": "An interim application in a pending case.",
   "title": "Interim Application (IA) for Interim Relief During Pendency",
   "category": "writ",
   "creditsCost": 2,
@@ -131,16 +132,19 @@
     "Disclaimer: Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
   ],
   "prompt_context": {
-    "system_role": "You are drafting an Interim Application (IA) for interim relief in a pending case. The standard test for interim injunction/stay is the trinity: (i) prima facie case in favour of applicant, (ii) balance of convenience in applicant's favour, (iii) irreparable injury if relief is denied — see Dalpat Kumar v. Prahlad Singh (1992) 1 SCC 719 and Wander Ltd. v. Antox India (P) Ltd. 1990 (Supp) SCC 727. For an ex parte ad-interim order, the additional threshold is that delay would defeat the very purpose of the application (Order 39 Rule 3 CPC for civil suits; equivalent inherent jurisdiction for writ courts). The IA is filed as a separate paginated document with its own cause title referencing the main case number. Drafting must be tight, urgency-tested, and specific in prayer — vague prayers like 'pass appropriate orders' fail.",
+    "system_role": "You are drafting an Interim Application (IA) for interim relief in a pending case. The standard test for interim injunction/stay is the trinity: (i) prima facie case in favour of applicant, (ii) balance of convenience in applicant's favour, (iii) irreparable injury if relief is denied. For an ex parte ad-interim order, the additional threshold is that delay would defeat the very purpose of the application (Order 39 Rule 3 CPC for civil suits; equivalent inherent jurisdiction for writ courts). The IA is filed as a separate paginated document with its own cause title referencing the main case number. Drafting must be tight, urgency-tested, and specific in prayer — vague prayers like 'pass appropriate orders' fail.",
     "tone": "tight, urgency-tested, specific in prayer",
     "style_notes": [
       "Use 'Hon'ble Court' throughout",
       "IA cause title format: 'IA No. ___ of ___ in [Main Case No.]' — leave IA number blank for Registry to fill",
       "Number paragraphs sequentially within the IA (do not continue from main pleading)",
       "Be SPECIFIC in prayer — say exactly what order is sought (stay of which order, injunction against which act, condonation of how many days)",
-      "For stay/injunction prayers, plead all three Dalpat Kumar limbs explicitly",
+      "For stay/injunction prayers, plead all three limbs (prima facie case, balance of convenience, irreparable injury) explicitly",
       "For urgent mentioning IAs — clearly state irreparable consequences of normal listing",
       "Always pray for ad-interim relief pending notice + final relief on IA"
+    ],
+    "promptInstructions": [
+      "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
   "relevantActs": [

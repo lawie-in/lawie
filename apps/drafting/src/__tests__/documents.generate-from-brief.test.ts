@@ -36,7 +36,7 @@ import { buildChecklist } from '../services/intake-brief';
 import { loadRulePack } from '../services/rule-pack.service';
 import { readFormInputs } from '../utils/case-details';
 import { decrypt } from '../utils/encryption';
-import { SdkStreamParams, sdkAnswer } from './sdkStream';
+import { SdkStreamParams, sdkAnswer, expectCachedSystem, systemText } from './sdkStream';
 const mockMessagesStream = jest.fn();
 jest.mock('@anthropic-ai/sdk', () =>
   // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -71,6 +71,19 @@ const FIRST_GROUND = buildChecklist(PACK).find((i) => i.key === 'grounds_for_bai
 
 const court = { state: 'bihar', court_type: 'sessions', court: COURT_ID };
 
+/** T-381: what a bail_regular brief draft seals in formInputsEnc (party inputs, court_type, state). */
+const SEALED_FORM_INPUTS = {
+  template_id: 'bail_regular',
+  source: 'brief',
+  applicant_name: 'Ram Kumar',
+  father_name: 'Shri Hari Kumar',
+  applicant_age: '32',
+  address: '123 Main St, Patna',
+  court_type: 'sessions',
+  // T-423 AC1: the Court row's display name, not the picker id.
+  state: 'Bihar',
+};
+
 /** Every required fact of a regular bail application, as the user confirmed it. */
 const VALUES = [
   {
@@ -97,7 +110,7 @@ const VALUES = [
 ];
 
 const BODY = [
-  '1. That the applicant Ram Kumar, son of Shri Hari Kumar, is a law-abiding citizen. He is in custody in FIR No. 124/2026, the grounds are submitted below, he gives an undertaking, and no earlier bail application has been filed.',
+  '1. That the applicant Ram Kumar, son of Shri Hari Kumar, is a law-abiding citizen. He is in custody in FIR No. 124/2026, the grounds are submitted below, he gives an undertaking, and the details of any earlier bail application are as the brief gives them.',
   '2. That FIR No. 124/2026 dated 10.03.2026 was registered at PS Kotwali under Section 318 of BNS.',
   '3. That the applicant is in judicial custody. He was wrongly named in the FIR and falsely implicated due to a family land dispute.',
   '4. That the applicant has deep roots in society and will not flee from justice.',
@@ -126,7 +139,7 @@ function mockModel(...contents: string[]) {
 
 function bodyOf(fetchMock: jest.Mock, n: number) {
   const p = fetchMock.mock.calls[n][0] as SdkStreamParams;
-  return { ...p, messages: [{ role: 'system', content: p.system }, ...p.messages] };
+  return { ...p, messages: [{ role: 'system', content: systemText(p.system) }, ...p.messages] };
 }
 
 /** The last `event: name` payload in an SSE response body. */
@@ -218,7 +231,7 @@ describe('POST /generate-from-brief — a draft that passes', () => {
     ]);
     expect(sections.cause_title).toContain('DISTRICT & SESSIONS JUDGE, PATNA');
     expect(sections.cause_title).toContain('Ram Kumar');
-    expect(sections.prayer).toContain('FIR No. 124/2026 dated 10.03.2026');
+    expect(sections.prayer).toContain('FIR No. 124/2026 dated 10 March 2026');
     expect(sections.body).toBe(BODY);
     expect(sections.verification).toContain('I, Ram Kumar, the Applicant');
     expect(sections.verification).toContain('Verified at Patna');
@@ -227,8 +240,9 @@ describe('POST /generate-from-brief — a draft that passes', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const sent = bodyOf(fetchMock, 0).messages;
     expect(sent[0].content).toBe(DRAFTER_PACK_SYSTEM_PROMPT);
+    expectCachedSystem(bodyOf(fetchMock, 0).system, DRAFTER_PACK_SYSTEM_PROMPT);
     expect(sent[1].content).toContain('"date_of": "Date of FIR"');
-    expect(sent[1].content).toContain('"date": "10.03.2026"');
+    expect(sent[1].content).toContain('"date": "10 March 2026"');
     expect(sent[1].content).toContain('SYSTEM PARTS:\n- cause title');
     expect(sent[1].content).toContain('TARGET: 12');
     expect(sent[1].content).toContain('"court": "DISTRICT & SESSIONS JUDGE, PATNA"');
@@ -249,12 +263,16 @@ describe('POST /generate-from-brief — a draft that passes', () => {
     expect(sections.application_heading).toBe(
       'APPLICATION FOR REGULAR BAIL UNDER SECTION 483 OF THE BHARATIYA NAGARIK SURAKSHA SANHITA, 2023',
     );
-    expect(sections.prayer).toContain('under Section 483 of BNSS, 2023');
+    expect(sections.prayer).toContain(
+      'under Section 483 of the Bharatiya Nagarik Suraksha Sanhita, 2023',
+    );
     expect(sections.prayer).not.toContain('480');
 
     const told = bodyOf(fetchMock, 0).messages[1].content;
     expect(told).toContain(
-      'INSTRUCTIONS:\n- This application is made under Section 483 of the Bharatiya Nagarik Suraksha Sanhita, 2023. Cite only this one provision as the provision under which bail is sought. Do not cite Section 481 or Section 482.',
+      // T-245a part 2: the case-details lines (signed: PROCEDURE CODE, GOVERNING PROVISION) come
+      // first; the FIR of 10 Mar 2026 forces BNSS.
+      'INSTRUCTIONS:\n- PROCEDURE CODE: BNSS and BSA\n- GOVERNING PROVISION: Section 483 of the Bharatiya Nagarik Suraksha Sanhita, 2023\n- This application is made under Section 483 of the Bharatiya Nagarik Suraksha Sanhita, 2023. Cite only this one provision as the provision under which bail is sought. Do not cite Section 481 or Section 482.',
     );
     expect(told).not.toContain('480/481/482');
     expect(told).not.toMatch(/\b481 \(|\b482 \(/);
@@ -287,7 +305,9 @@ describe('POST /generate-from-brief — a draft that passes', () => {
       }>
     ).reduce<Record<string, string>>((all, s) => ({ ...all, [s.section_id]: s.content }), {});
     expect(sections.application_heading).toContain('UNDER SECTION 480 OF THE');
-    expect(sections.prayer).toContain('under Section 480 of BNSS, 2023');
+    expect(sections.prayer).toContain(
+      'under Section 480 of the Bharatiya Nagarik Suraksha Sanhita, 2023',
+    );
     expect(bodyOf(fetchMock, 0).messages[1].content).toContain(
       'This application is made under Section 480 of the Bharatiya Nagarik Suraksha Sanhita, 2023.',
     );
@@ -335,7 +355,8 @@ describe('POST /generate-from-brief — a draft that passes', () => {
     });
     expect(doc!.title).toContain('DISTRICT & SESSIONS JUDGE, PATNA');
     // Case details are not in the unencrypted field. The brief is stored encrypted.
-    expect(readFormInputs(doc!)).toEqual({ template_id: 'bail_regular', source: 'brief' });
+    // T-381: the sealed inputs hold the party inputs, court_type, and state (a State row).
+    expect(readFormInputs(doc!)).toEqual(SEALED_FORM_INPUTS);
     expect(doc!).not.toHaveProperty('formInputs');
     expect(doc!.brief).not.toContain('Ram Kumar');
     const savedBrief = JSON.parse(decrypt(doc!.brief!)) as { kind: string; values: unknown[] };
@@ -407,6 +428,7 @@ describe('POST /generate-from-brief — a mandatory clause is missing', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
     const repair = bodyOf(fetchMock, 1).messages;
     expect(repair[0].content).toBe(DRAFTER_REPAIR_SYSTEM_PROMPT);
+    expectCachedSystem(bodyOf(fetchMock, 1).system, DRAFTER_REPAIR_SYSTEM_PROMPT);
     expect(repair[1].content).toContain('MISSING: no_flight_risk');
     expect(repair[1].content).toContain('<document>\n1. That the applicant Ram Kumar');
 
@@ -524,7 +546,10 @@ describe('POST /generate-from-brief — nothing the brief does not give', () => 
     expect(prayer).toContain('FIR No. [To be confirmed: FIR number]');
     expect(prayer).toContain('dated [To be confirmed: date of FIR]');
     const sent = bodyOf(fetchMock, 0).messages[1].content;
-    expect(sent).toContain('"blank": "[To be confirmed: date of FIR]"');
+    // T-245a (Addendum 1, last row): fir_date is optional, so the Drafter's unknown list names
+    // the FIR number and not the date; the prayer above still carries the date blank.
+    expect(sent).toContain('"blank": "[To be confirmed: FIR number]"');
+    expect(sent).not.toContain('"blank": "[To be confirmed: date of FIR]"');
     expect(sent).not.toContain('124/2026');
   });
 
@@ -557,7 +582,7 @@ describe('POST /generate-from-brief — nothing the brief does not give', () => 
       message: string;
     }>;
     expect(warnings.map((w) => w.message).join(' | ')).toContain(
-      'a date that is not in your brief: 20.04.2026',
+      'a date that is not in your brief: 20 April 2026',
     );
     expect(
       warnings.some((w) => w.type === 'invalid_section' && w.message.includes('Section 309')),
@@ -726,6 +751,7 @@ describe('POST /generate-from-brief — no rule pack', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const sent = bodyOf(fetchMock, 0).messages;
     expect(sent[0].content).toBe(DRAFTER_GUIDED_SYSTEM_PROMPT);
+    expectCachedSystem(bodyOf(fetchMock, 0).system, DRAFTER_GUIDED_SYSTEM_PROMPT);
     expect(sent[1].content.startsWith('MODE: strict\n\nTARGET: 15\n\nLANGUAGE: en\n\nBRIEF:')).toBe(
       true,
     );
@@ -813,7 +839,7 @@ describe('POST /generate-from-brief — no rule pack', () => {
     }>;
     // The date the advocate wrote with slashes is in the draft with dots. That is not a finding.
     expect(warnings.map((w) => w.type).sort()).toEqual(['fact_alteration', 'invalid_section']);
-    expect(warnings.map((w) => w.message).join(' | ')).toContain('30.06.2026');
+    expect(warnings.map((w) => w.message).join(' | ')).toContain('30 June 2026');
     expect(warnings.map((w) => w.message).join(' | ')).toContain('Section 106');
     // The findings are shown. The line under the label stays empty, as for every draft with no rule pack.
     expect(event(res.text, 'done')).toMatchObject({ startingDraft: true, labelReason: null });
@@ -956,7 +982,7 @@ describe('POST /generate-from-brief — T-136 — described', () => {
     expect(doc!.brief).not.toContain(MARKER);
     const savedBrief = JSON.parse(decrypt(doc!.brief!)) as { described?: string };
     expect(savedBrief.described).toBe(DESCRIBED);
-    expect(readFormInputs(doc!)).toEqual({ template_id: 'bail_regular', source: 'brief' });
+    expect(readFormInputs(doc!)).toEqual(SEALED_FORM_INPUTS);
     expect(doc!).not.toHaveProperty('formInputs');
     expect(JSON.stringify({ ...doc, brief: undefined, generatedContent: undefined })).not.toContain(
       MARKER,

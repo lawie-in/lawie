@@ -143,7 +143,7 @@ Applicant
 | proposed_offences | Offences against the person proposed (sections, with Act) | textarea | yes | offences clause |
 | evidence_relied | Evidence recorded: witness, date, what it says | textarea | yes | evidence clause, submission unlock |
 | earlier_applications | Earlier applications to proceed against any person (date, result) | textarea | no | disclosure |
-| advocate_name / advocate_enrolment | Advocate details | text | yes | signature block |
+| advocate_name / advocate_enrollment | Advocate details | text | yes | signature block |
 
 ## _averments
 
@@ -199,3 +199,5 @@ The "Notes" section is the drafter's reasoning, kept for the record; it is not t
 | "Could be tried together with the accused" in prayer (a) | Approved: it describes the relief, it does not quote the section |
 
 Signed: Ajay (CLO), 12 Oct 2026 IST. S = 1 Ink. Any other wording comes back to me.
+
+13 Oct 2026, T-382: the field key `advocate_enrolment` is renamed to `advocate_enrollment`. This changes the key only; the wording and labels are unchanged (Ajay).

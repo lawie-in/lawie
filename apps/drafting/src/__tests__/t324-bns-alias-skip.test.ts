@@ -2,7 +2,7 @@
  * T-324 - an IPC alias on a BNS entry skips the T-295 old-law warning only when the signed
  * T-267 table maps that IPC section to that BNS section (Ajay's condition).
  *
- * SectionMapping rows are seeded from the real ipc-to-bns.json. Expected BNS targets are
+ * T-371: rows are served from the signed ipc-to-bns.json in memory (no seeding). Expected BNS targets are
  * literals from the signed table (379 -> 303(2), 302 -> 103(1), 376 -> 64, 323 -> 115(2),
  * 406 -> 316(2), 420 -> 318(4)), checked against the JSON in the first test.
  */
@@ -12,36 +12,13 @@ import './setupDb';
 import fs from 'fs';
 import path from 'path';
 
-import { SectionMapping } from '../models/SectionMapping.model';
 import { readSectionsCharged } from '../services/bns-offence-resolver';
 import { preflightCheck } from '../services/preflight.service';
 import * as sectionsService from '../services/sections.service';
-import { invalidateCache } from '../services/sections.service';
 
 const TABLE = JSON.parse(
   fs.readFileSync(path.join(__dirname, '..', 'config', 'sections', 'ipc-to-bns.json'), 'utf-8'),
-) as { mappings: Record<string, { new: string; new_title: string; type: string }> };
-
-const SEEDED = ['379', '302', '376', '323', '406', '420'];
-
-async function seed(sections: string[] = SEEDED): Promise<void> {
-  await SectionMapping.insertMany(
-    sections.map((s) => ({
-      oldCode: 'IPC',
-      oldCodeFull: 'Indian Penal Code, 1860',
-      newCode: 'BNS',
-      newCodeFull: 'Bharatiya Nyaya Sanhita, 2023',
-      oldSection: s,
-      newSection: TABLE.mappings[s].new,
-      oldTitle: 'old',
-      newTitle: TABLE.mappings[s].new_title,
-      mappingType: TABLE.mappings[s].type,
-      effectiveDate: new Date('2024-07-01'),
-    })),
-  );
-  // ioredis-mock keeps sections:loaded_at between tests, so force a reload from Mongo.
-  await invalidateCache();
-}
+) as { mappings: Record<string, { new: string | null; new_title: string | null; type: string }> };
 
 const SIGNED = (n: string): string =>
   `IPC ${n} is an old-law section. For an offence committed on or after 1 July 2024, use the section converter to find the BNS section. For an earlier offence, the old section may still apply.`;
@@ -55,6 +32,9 @@ const BASE = {
   fir_number: '091/2024',
   fir_date: '15.06.2024',
   incident_date: '10.06.2024',
+  // T-245a (Ajay, Addendum 1 ruling 7): old_law_section follows the offence date only, so these
+  // IPC cases are restated with an offence on or after 1 July 2024.
+  offence_date: '2025-03-01',
   facts_narrative:
     'The petitioner was falsely implicated in the FIR. At the time of the alleged incident, the petitioner was at his residence in Patna. The victim was injured but received timely medical treatment and is now recovering.',
 };
@@ -134,9 +114,7 @@ describe('T-324 reader: attachedTo on alias entries', () => {
 });
 
 describe('T-324 preflight: the old-law warning on an IPC alias', () => {
-  describe('with the signed table seeded', () => {
-    beforeEach(() => seed());
-
+  describe('with the signed table', () => {
     it('AC1: matching pair "BNS 303 (IPC 379)" -> no old_law_section, verdict pass', async () => {
       const { r, hits } = await run('BNS 303 (IPC 379)');
       expect(hits).not.toContain('old_law_section');
@@ -272,7 +250,6 @@ describe('T-324 preflight: the old-law warning on an IPC alias', () => {
   });
 
   describe('T-270 rider: lookup rejects', () => {
-    beforeEach(() => seed());
     afterEach(() => jest.restoreAllMocks());
 
     it('"BNS 303 (IPC 379)" still gives old_law_section with the IPC 379 signed line when lookupOldToNew rejects', async () => {
@@ -288,14 +265,15 @@ describe('T-324 preflight: the old-law warning on an IPC alias', () => {
     });
   });
 
-  describe('with no table rows', () => {
-    beforeEach(() => invalidateCache());
-
-    it('"BNS 303 (IPC 379)" keeps the warning (never skip on an unknown)', async () => {
-      const { r, hits } = await run('BNS 303 (IPC 379)');
+  // T-371: the table is always loaded, so "no table row" is now an IPC number the table
+  // cannot map: IPC 236 is one of the 4 signed unverified rows (null target).
+  describe('with no usable table row', () => {
+    it('"BNS 303 (IPC 236)" keeps the warning (never skip on an unknown)', async () => {
+      expect(TABLE.mappings['236'].new).toBeNull();
+      const { r, hits } = await run('BNS 303 (IPC 236)');
       expect(r.verdict).toBe('soft');
       expect(hits).toContain('old_law_section');
-      expect(r.questions).toContain(SIGNED('379'));
+      expect(r.questions).toContain(SIGNED('236'));
     });
   });
 });

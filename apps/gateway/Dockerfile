@@ -1,7 +1,9 @@
 # syntax=docker/dockerfile:1
 FROM node:20-alpine AS builder
 WORKDIR /app
+ENV HUSKY=0
 COPY package.json yarn.lock ./
+COPY .husky/install.mjs ./.husky/
 COPY apps/gateway/package.json ./apps/gateway/
 COPY packages/shared/package.json ./packages/shared/
 RUN yarn install --frozen-lockfile
@@ -11,8 +13,10 @@ RUN yarn workspace @lawie/shared build && yarn workspace @lawie/gateway build
 
 FROM node:20-alpine AS production
 WORKDIR /app
+ENV HUSKY=0
 ENV NODE_ENV=production
 COPY package.json yarn.lock ./
+COPY .husky/install.mjs ./.husky/
 COPY apps/gateway/package.json ./apps/gateway/
 COPY packages/shared/package.json ./packages/shared/
 RUN yarn install --frozen-lockfile --production && yarn cache clean

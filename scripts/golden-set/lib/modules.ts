@@ -4,7 +4,8 @@
  * Node's require cache, exactly as the service's own tests swap them.
  *
  * - `@anthropic-ai/sdk`: in `--dry-run`, a stub that answers each call with
- *   the fixture's recorded reply, chosen by the call's system prompt. In
+ *   the fixture's recorded reply, chosen by the call's system prompt; both
+ *   `messages.stream` and (T-373, the D1 Drafter) `messages.parse`. In
  *   `--real`, a pass-through to the real SDK that keeps a copy of the
  *   extraction pass's reply in memory (for `--calibrate`). It is never logged.
  * - `ioredis`: always ioredis-mock. Redis holds only the intake limits and the
@@ -28,33 +29,108 @@ export function requireFromDrafting<T = unknown>(name: string): T {
 
 export type CallPurpose = 'reception' | 'extract' | 'drafter' | 'repair' | 'fact_repair' | 'other';
 
+/** A text block of a system prompt, as the SDK's `TextBlockParam` (T-437 sends cached blocks). */
+interface SystemTextBlock {
+  type: 'text';
+  text: string;
+  cache_control?: unknown;
+}
+
+/** A request's `system`: a plain string, or an array of text blocks. */
+export type SystemParam = string | SystemTextBlock[];
+
 interface StreamParams {
   model: string;
   max_tokens: number;
-  system: string;
+  system: SystemParam;
   messages: Array<{ role: string; content: string }>;
+  /** T-453: the stage's effort; the stub accepts it and ignores it. */
+  output_config?: { effort?: string };
+}
+
+/**
+ * The text of a request's `system`, whichever form it was sent in. T-437:
+ * the D1 call sends its system prompt as cached text blocks, not a string.
+ */
+export function systemText(system: SystemParam): string {
+  return typeof system === 'string' ? system : system.map((b) => b.text).join('');
 }
 
 /** Which pipeline call a request is, read from its system prompt. */
 export function purposeOf(system: string): CallPurpose {
-  const ip = requireFromDrafting<Record<string, string>>(join(DRAFTING_DIR, 'src', 'services', 'intake.prompts'));
-  const dp = requireFromDrafting<Record<string, string>>(join(DRAFTING_DIR, 'src', 'services', 'drafter.prompts'));
+  const ip = requireFromDrafting<Record<string, string>>(
+    join(DRAFTING_DIR, 'src', 'services', 'intake.prompts'),
+  );
+  const dp = requireFromDrafting<Record<string, string>>(
+    join(DRAFTING_DIR, 'src', 'services', 'drafter.prompts'),
+  );
   if (system === ip.EXTRACT_SYSTEM_PROMPT) return 'extract';
   if (system === ip.RECEPTION_PACK_SYSTEM_PROMPT) return 'reception';
-  if (system === dp.DRAFTER_LEDGER_SYSTEM_PROMPT || system === dp.DRAFTER_PACK_SYSTEM_PROMPT) return 'drafter';
-  if (system === dp.DRAFTER_LEDGER_REPAIR_SYSTEM_PROMPT || system === dp.DRAFTER_REPAIR_SYSTEM_PROMPT) return 'repair';
+  if (
+    system === dp.DRAFTER_LEDGER_SYSTEM_PROMPT ||
+    system === dp.DRAFTER_PACK_SYSTEM_PROMPT ||
+    // T-373: the structured call of a pack on a signed skeleton (ADR-025 D1).
+    system === dp.DRAFTER_D1_SYSTEM_PROMPT
+  )
+    return 'drafter';
+  if (
+    system === dp.DRAFTER_LEDGER_REPAIR_SYSTEM_PROMPT ||
+    system === dp.DRAFTER_REPAIR_SYSTEM_PROMPT
+  )
+    return 'repair';
   if (system === dp.DRAFTER_FACT_REPAIR_SYSTEM_PROMPT) return 'fact_repair';
   return 'other';
 }
 
 /** The stream events of one answer, in the shapes the SDK emits. Token counts are estimates. */
 export function stubEvents(text: string, params: StreamParams): unknown[] {
-  const input = Math.ceil((params.system.length + params.messages.map((m) => m.content).join('').length) / 4);
+  const promptChars =
+    systemText(params.system).length + params.messages.map((m) => m.content).join('').length;
+  const input = Math.ceil(promptChars / 4);
   return [
     { type: 'message_start', message: { usage: { input_tokens: input, output_tokens: 0 } } },
     { type: 'content_block_delta', delta: { type: 'text_delta', text } },
-    { type: 'message_delta', usage: { output_tokens: Math.ceil(text.length / 4) } },
+    {
+      type: 'message_delta',
+      delta: { stop_reason: 'end_turn' },
+      usage: { output_tokens: Math.ceil(text.length / 4) },
+    },
   ];
+}
+
+/** The structured-output request of `messages.parse` (T-373), as far as the stub reads it. */
+interface ParseParams extends StreamParams {
+  output_config?: { effort?: string; format?: { parse?: (content: string) => unknown } };
+}
+
+/**
+ * T-373: the answer of a stubbed `messages.parse`, in the shape the SDK
+ * returns. The recorded reply is handed to the request's own output-format
+ * parser, as the SDK does, so a malformed recording reads as the service
+ * would read a malformed answer. Token counts are estimates.
+ */
+export function stubParsedMessage(text: string, params: ParseParams): unknown {
+  const parse = params.output_config?.format?.parse;
+  let parsed: unknown = null;
+  if (parse) parsed = parse(text);
+  else {
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      parsed = null;
+    }
+  }
+  const promptChars =
+    systemText(params.system).length + params.messages.map((m) => m.content).join('').length;
+  const input = Math.ceil(promptChars / 4);
+  return {
+    type: 'message',
+    role: 'assistant',
+    stop_reason: 'end_turn',
+    content: [{ type: 'text', text, parsed_output: parsed }],
+    parsed_output: parsed,
+    usage: { input_tokens: input, output_tokens: Math.ceil(text.length / 4) },
+  };
 }
 
 async function* iterate(items: unknown[]): AsyncGenerator<unknown> {
@@ -76,7 +152,7 @@ export function installModelSeam(mode: 'stub' | 'real'): ModelSeam {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const real = require(sdkPath) as Record<string, unknown> & { default?: unknown };
   const RealAnthropic = (real.default ?? real.Anthropic ?? real) as new (o?: unknown) => {
-    messages: { stream(p: StreamParams): unknown };
+    messages: { stream(p: StreamParams): unknown; parse(p: ParseParams): Promise<unknown> };
   };
   let replies: RecordedReplies | null = null;
   let extracts: string[] = [];
@@ -108,7 +184,7 @@ export function installModelSeam(mode: 'stub' | 'real'): ModelSeam {
         configurable: true,
         value: {
           stream: (params: StreamParams) => {
-            const purpose = purposeOf(params.system);
+            const purpose = purposeOf(systemText(params.system));
             calls.push(purpose);
             if (mode === 'stub') {
               const text = stubText(purpose);
@@ -122,11 +198,19 @@ export function installModelSeam(mode: 'stub' | 'real'): ModelSeam {
               let text = '';
               for await (const ev of upstream) {
                 const e = ev as { type?: string; delta?: { type?: string; text?: string } };
-                if (e.type === 'content_block_delta' && e.delta?.type === 'text_delta') text += e.delta.text ?? '';
+                if (e.type === 'content_block_delta' && e.delta?.type === 'text_delta')
+                  text += e.delta.text ?? '';
                 yield ev;
               }
               extracts.push(text);
             })();
+          },
+          // T-373: the D1 Drafter's structured call (not streamed).
+          parse: async (params: ParseParams) => {
+            const purpose = purposeOf(systemText(params.system));
+            calls.push(purpose);
+            if (mode === 'stub') return stubParsedMessage(stubText(purpose), params);
+            return realMessages.parse(params);
           },
         },
       });

@@ -5,7 +5,10 @@ import { z } from 'zod';
 
 import { env } from '../config/env';
 import { logger } from '../config/logger';
+import { internalSecretMatches } from '../internal-secret';
+import { isLiveSend, templateHasUnfilledFooter } from '../placeholders';
 import { sendEmail } from '../providers';
+import { safeErrorFields, safeMeta, userIdFromData } from '../providers/safe-log';
 import { renderTemplate } from '../templates';
 
 const bodySchema = z.object({
@@ -19,8 +22,7 @@ const bodySchema = z.object({
 });
 
 export async function sendHandler(req: Request, res: Response): Promise<void> {
-  const secret = req.headers[INTERNAL_HEADERS.SECRET] as string | undefined;
-  if (!secret || secret !== env.INTERNAL_SECRET) {
+  if (!internalSecretMatches(req.headers[INTERNAL_HEADERS.SECRET], env.INTERNAL_SECRET)) {
     res.status(401).json({ error: 'Unauthorized' });
     return;
   }
@@ -33,8 +35,21 @@ export async function sendHandler(req: Request, res: Response): Promise<void> {
 
   const { template, to, from, data, cc, bcc, replyTo } = parsed.data;
   const toArray = Array.isArray(to) ? to : [to];
+  const userId = userIdFromData(data);
+  // T-455: `template` is caller-supplied and only checked as a string, so it goes
+  // through safeMeta (ids only, never an `@`) before any log line. Never log
+  // to/cc/bcc/from/replyTo, the subject, the body or a raw error.
+  const idMeta = safeMeta({ template, userId });
+  const logMeta = { ...idMeta, provider: env.EMAIL_PROVIDER };
 
   try {
+    // T-223 review, T-379: no live send while the template's own footer still has
+    // [registered address] or [PIN]. Static check, before rendering, never on user data.
+    if (isLiveSend() && templateHasUnfilledFooter(template)) {
+      logger.error(idMeta, 'Email not sent via /send: unfilled footer placeholders');
+      res.status(422).json({ error: 'unfilled_placeholders' });
+      return;
+    }
     const rendered = await renderTemplate(template, data);
     const result = await sendEmail({
       to: toArray,
@@ -45,15 +60,20 @@ export async function sendHandler(req: Request, res: Response): Promise<void> {
       subject: rendered.subject,
       html: rendered.html,
       text: rendered.text,
+      meta: { template, userId },
     });
 
+    // T-220 AC6, T-455: template id, user id, provider and counts only — never an address.
     logger.info(
-      { template, to: toArray, from, messageId: result.messageId },
+      { ...logMeta, recipientsCount: toArray.length, messageId: result.messageId },
       'Email sent via /send',
     );
     res.status(202).json({ messageId: result.messageId });
   } catch (err) {
-    logger.error({ err, template, to: toArray }, 'Email send failed via /send');
+    logger.error(
+      { ...logMeta, recipientsCount: toArray.length, err: safeErrorFields(err) },
+      'Email send failed via /send',
+    );
     res.status(500).json({ error: 'Failed to send email' });
   }
 }

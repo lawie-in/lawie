@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Ajay (whether it gates prod, wording). Rajesh (prompt design). Lead (auth, web) |
 | Mode   | Full chain (auth and web, legal) |
-| Status | Building: kunal (12 Oct 2026). Ajay words, Rajesh designs. Must ship before the next policy change that affects existing users |
+| Status | Merged into develop_staging (3cbcd78), 12 Oct 2026. Ajay signed. Anushka tests on develop (incl. screen reader and reduced motion) |
 
 T-242 bumps `CURRENT_PRIVACY_VERSION`. Nothing compares a user's stored `privacyVersion` with the current one, so existing users are never asked to accept the new policy.
 
@@ -27,3 +27,9 @@ T-242 bumps `CURRENT_PRIVACY_VERSION`. Nothing compares a user's stored `privacy
 **Claims:** `packages/shared` (two constants + one middleware) and `apps/gateway/src/app.ts`. Vishal currently holds `packages/shared` for T-192, so Priya sequences this after his release, or splits the shared part out.
 
 Addendum (Arjun, 12 Oct 2026), on Kunal's Explore facts: still (a). `TokenPayload` gains `pv`. `POST /api/auth/me/privacy-acceptance` records the acceptance and **returns a new token pair** (rotate like `/refresh`: new session via `createSession`, old access and refresh sessions deleted), so the web needs no separate refresh call and no stale claim survives. `GET /api/auth/me` and the accept route go through auth's `authenticate`; once the T-299 follow-up lands, that includes the live-session check.
+
+Addendum 2 (Arjun, 12 Oct 2026), Kunal's four points:
+1. **No prompt, no block: yes.** `requireCurrentPrivacy` also passes when `getPrivacyVersionSummary(CURRENT)` is undefined (Ajay: no signed summary, no prompt). Test both ways.
+2. **Rollout path: yes.** On `403 privacy_reaccept_required` the web calls `GET /me`; if `needsPrivacyAcceptance` is false it calls `/refresh` and retries the original request **once** (a second 403 shows the prompt, never loops); if true it shows the prompt.
+3. **devBypass: yes**, set `pv = CURRENT_PRIVACY_VERSION`. It only exists when `NODE_ENV === 'development'`; add a test that production `authChain` has no devBypass.
+4. **Types: yes**, `pv?: string` on the gateway `TokenPayload` and drafting's `JwtPayload`; no cast. Priya extends the claim for those two files.

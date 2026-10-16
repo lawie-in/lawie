@@ -9,7 +9,6 @@
 import './setupEnv';
 import './setupDb';
 
-import { SectionMapping } from '../models/SectionMapping.model';
 import { checkBailEligibility } from '../services/bail-check.service';
 import {
   ChargedSection,
@@ -17,7 +16,6 @@ import {
   readSectionsCharged,
 } from '../services/bns-offence-resolver';
 import { preflightCheck } from '../services/preflight.service';
-import { invalidateCache } from '../services/sections.service';
 import {
   buildAIUserPrompt,
   buildPlaceholderContext,
@@ -247,6 +245,9 @@ describe('preflight reads sections_charged with the shared reader', () => {
     fir_number: '091/2024',
     fir_date: '15.06.2024',
     incident_date: '10.06.2024',
+    // T-245a (Ajay, Addendum 1 ruling 7): old_law_section follows the offence date only, so these
+    // IPC cases are restated with an offence on or after 1 July 2024.
+    offence_date: '2025-03-01',
     facts_narrative:
       'The petitioner was falsely implicated in the FIR. At the time of the alleged incident, the petitioner was at his residence in Patna. The victim was injured but received timely medical treatment and is now recovering.',
   };
@@ -321,11 +322,13 @@ describe('preflight reads sections_charged with the shared reader', () => {
       expect(r.questions.join('\n')).not.toContain('Section 323 has no code');
     });
 
-    it('"BNS 303 (IPC 379)" (alias form) with no table row: the warning is kept (soft, IPC 379 line)', async () => {
-      const { r, hits } = await run('BNS 303 (IPC 379)');
+    // T-371: the signed table always maps IPC 379 -> 303(2) now, so the "no row" case is
+    // IPC 236, a signed unverified row with no target.
+    it('"BNS 303 (IPC 236)" (alias form) with no usable table row: the warning is kept (soft, IPC 236 line)', async () => {
+      const { r, hits } = await run('BNS 303 (IPC 236)');
       expect(r.verdict).toBe('soft');
       expect(hits).toContain('old_law_section');
-      expect(r.questions).toContain(SIGNED('IPC', '379', 'BNS'));
+      expect(r.questions).toContain(SIGNED('IPC', '236', 'BNS'));
     });
 
     it('["303","302 IPC"] is soft on IPC 302 (code first)', async () => {
@@ -379,8 +382,6 @@ describe('bail-check: Ajay signed bail titles (BNSS 483 / 480)', () => {
   const T480 =
     'Bail in non-bailable offence (BNSS Section 480), discretionary: apply to the Magistrate; if refused, to the Sessions Court or the High Court under BNSS Section 483';
 
-  afterEach(() => invalidateCache());
-
   it.each([
     ['103', ['103']],
     ["['103','316(2)']", ['103', '316(2)']],
@@ -404,22 +405,8 @@ describe('bail-check: Ajay signed bail titles (BNSS 483 / 480)', () => {
     expect(summary.recommendation).not.toContain('filed under BNSS Section 483');
   });
 
+  // T-371: IPC 420 -> BNS 318(4) comes from the signed ipc-to-bns.json; no seeding.
   it("'420-IPC' -> 318(4) (non-bailable, 7 years) -> 480, exact title", async () => {
-    await SectionMapping.insertMany([
-      {
-        oldCode: 'IPC',
-        oldCodeFull: 'Indian Penal Code, 1860',
-        newCode: 'BNS',
-        newCodeFull: 'Bharatiya Nyaya Sanhita, 2023',
-        oldSection: '420',
-        newSection: '318(4)',
-        oldTitle: 'Cheating',
-        newTitle: 'Cheating',
-        mappingType: 'direct',
-        effectiveDate: new Date('2024-07-01'),
-      },
-    ]);
-    invalidateCache();
     const { sections, summary } = await checkBailEligibility(['420-IPC']);
     expect(sections[0].bnsSection).toBe('318(4)');
     expect(summary.bnssBailSection).toBe('480');
@@ -427,33 +414,24 @@ describe('bail-check: Ajay signed bail titles (BNSS 483 / 480)', () => {
     expect(summary.recommendation).toContain('filed under BNSS Section 480');
   });
 
-  it('\'420-IPC\' with no mapping reads "IPC 420" in the Section line, never "420-IPC"', async () => {
-    const { summary } = await checkBailEligibility(['420-IPC']);
-    expect(summary.undeterminedSections).toEqual(['IPC 420']);
-    expect(summary.recommendation).toContain('Section IPC 420: ');
-    expect(summary.recommendation).not.toContain('420-IPC');
+  // T-371: the signed table always maps IPC 420, so the "no mapping" case uses IPC 236,
+  // one of the 4 signed unverified rows (null target). Intent kept: the Section line
+  // names it "IPC 236", never "236-IPC".
+  it('\'236-IPC\' (unverified row) reads "IPC 236" in the Section line, never "236-IPC"', async () => {
+    const { summary } = await checkBailEligibility(['236-IPC']);
+    expect(summary.undeterminedSections).toEqual(['IPC 236']);
+    expect(summary.recommendation).toContain('Section IPC 236: ');
+    expect(summary.recommendation).not.toContain('236-IPC');
   });
 
-  it('\'420-IPC\' mapped to a non-offence reads "IPC 420" in the left-out line', async () => {
-    await SectionMapping.insertMany([
-      {
-        oldCode: 'IPC',
-        oldCodeFull: 'Indian Penal Code, 1860',
-        newCode: 'BNS',
-        newCodeFull: 'Bharatiya Nyaya Sanhita, 2023',
-        oldSection: '420',
-        newSection: '330(1)',
-        oldTitle: 'Cheating',
-        newTitle: 'Definition',
-        mappingType: 'direct',
-        effectiveDate: new Date('2024-07-01'),
-      },
-    ]);
-    invalidateCache();
-    const { summary } = await checkBailEligibility(['420-IPC', '115-BNS']);
+  // IPC 10 ("man") maps to BNS 2, a definition section with no offence row and no
+  // parent row, so it creates no offence (NOT_AN_OFFENCE, not Not verified).
+  it('\'10-IPC\' mapped to a non-offence reads "IPC 10" in the left-out line', async () => {
+    const { sections, summary } = await checkBailEligibility(['10-IPC', '115-BNS']);
+    expect(sections[0].bnsSection).toBe('2');
     expect(summary.recommendation).toContain(
-      'Section IPC 420 does not create an offence, so it was left out.',
+      'Section IPC 10 does not create an offence, so it was left out.',
     );
-    expect(summary.recommendation).not.toContain('420-IPC');
+    expect(summary.recommendation).not.toContain('10-IPC');
   });
 });

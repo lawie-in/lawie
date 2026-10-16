@@ -1,23 +1,33 @@
 # syntax=docker/dockerfile:1
 FROM node:20-alpine AS builder
 WORKDIR /app
+ENV HUSKY=0
 COPY package.json yarn.lock ./
+COPY .husky/install.mjs ./.husky/
 COPY apps/billing/package.json ./apps/billing/
 COPY packages/shared/package.json ./packages/shared/
+COPY packages/email-client/package.json ./packages/email-client/
 RUN yarn install --frozen-lockfile
 COPY apps/billing/ ./apps/billing/
 COPY packages/shared/ ./packages/shared/
-RUN yarn workspace @lawie/shared build && yarn workspace @lawie/billing build
+COPY packages/email-client/ ./packages/email-client/
+RUN yarn workspace @lawie/shared build \
+ && yarn workspace @lawie/email-client build \
+ && yarn workspace @lawie/billing build
 
 FROM node:20-alpine AS production
 WORKDIR /app
+ENV HUSKY=0
 ENV NODE_ENV=production
 COPY package.json yarn.lock ./
+COPY .husky/install.mjs ./.husky/
 COPY apps/billing/package.json ./apps/billing/
 COPY packages/shared/package.json ./packages/shared/
+COPY packages/email-client/package.json ./packages/email-client/
 RUN yarn install --frozen-lockfile --production && yarn cache clean
 COPY --from=builder /app/apps/billing/dist ./apps/billing/dist
 COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
+COPY --from=builder /app/packages/email-client/dist ./packages/email-client/dist
 WORKDIR /app/apps/billing
 RUN addgroup -S lawie && adduser -S lawie -G lawie
 USER lawie

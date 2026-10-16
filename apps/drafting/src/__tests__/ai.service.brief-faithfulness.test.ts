@@ -28,7 +28,7 @@ import {
   loadCourtRule,
   loadTemplateConfig,
 } from '../services/template-engine.service';
-import { SdkStreamParams, sdkStreamOf } from './sdkStream';
+import { SdkStreamParams, sdkStreamOf, expectCachedSystem } from './sdkStream';
 import { signedFinding } from './t136-signed';
 
 jest.mock('../services/app-settings.service', () => ({
@@ -58,7 +58,7 @@ beforeEach(() => {
 });
 
 interface Call {
-  system: string;
+  system: unknown;
   user: string;
 }
 
@@ -67,7 +67,7 @@ function mockModel(...contents: string[]): { calls: Call[]; fetchMock: jest.Mock
   const calls: Call[] = [];
   mockMessagesStream.mockReset();
   mockMessagesStream.mockImplementation(async (params: SdkStreamParams) => {
-    calls.push({ system: params.system, user: params.messages[0].content });
+    calls.push({ system: params.system as unknown, user: params.messages[0].content });
     const content = contents[calls.length - 1];
     if (content === undefined) throw new Error('no more model answers');
     return sdkStreamOf(content);
@@ -545,7 +545,7 @@ describe('T-136 — regular bail, the facts as given (criteria 6 and 9)', () => 
     );
     // The older check (T-106) reads only the brief: it still flags a date that only the description gives.
     expect(found).toEqual([
-      'The draft has a date that is not in your brief: 22.09.2026. Check it before use.',
+      'The draft has a date that is not in your brief: 22 September 2026. Check it before use.',
     ]);
     expect(bodyOf(r)).toBe(CLEAN_BAIL);
   });
@@ -639,7 +639,7 @@ describe('T-136 — Section 138 notice (criteria 7 and 9)', () => {
     }
     // The older check (T-106) reads only the brief: the memo date is only in the description.
     expect(found).toEqual([
-      'The draft has a date that is not in your brief: 10.08.2026. Check it before use.',
+      'The draft has a date that is not in your brief: 10 August 2026. Check it before use.',
     ]);
   });
 
@@ -692,8 +692,8 @@ describe('T-136 — what the Drafter is given, on both calls (criteria 1, 2, 3)'
   it('the first call carries the signed prompt and the second the signed repair prompt', async () => {
     const r = await repairRun();
     expect(r.calls).toHaveLength(2);
-    expect(r.calls[0].system).toBe(DRAFTER_PACK_SYSTEM_PROMPT);
-    expect(r.calls[1].system).toBe(DRAFTER_REPAIR_SYSTEM_PROMPT);
+    expectCachedSystem(r.calls[0].system, DRAFTER_PACK_SYSTEM_PROMPT);
+    expectCachedSystem(r.calls[1].system, DRAFTER_REPAIR_SYSTEM_PROMPT);
     expect(r.result.repaired).toBe(true);
   });
 

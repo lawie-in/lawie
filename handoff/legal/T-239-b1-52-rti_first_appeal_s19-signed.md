@@ -138,7 +138,7 @@ Verified at {place} on {date}.
 | earlier_proceedings | Earlier appeals and proceedings on this application | textarea | no | disclosure |
 | verifierCapacity | Capacity in the verification | select (Appellant) | yes | verification |
 | place | Place | text | yes | verification |
-| advocate_name / advocate_enrolment | Advocate details (if an advocate files) | text | no | system block |
+| advocate_name / advocate_enrollment | Advocate details (if an advocate files) | text | no | system block |
 
 ## _averments
 
@@ -193,3 +193,5 @@ Reviewed by me after an independent review pass; the corrections are in this fil
 | A practising advocate checks the pack before it goes live | Condition |
 
 Signed: Ajay (CLO), 12 Oct 2026 IST. Any other wording comes back to me.
+
+13 Oct 2026, T-382: the field key `advocate_enrolment` is renamed to `advocate_enrollment`. This changes the key only; the wording and labels are unchanged (Ajay).

@@ -14,7 +14,14 @@
  * unresolved; so is any two-digit year when no reference year is given. The
  * reference year is an argument, not the clock, so the function stays pure.
  */
-import { asText, compareWith, devanagariToArabic, Normalized, Comparison, unresolved } from './common';
+import {
+  asText,
+  compareWith,
+  devanagariToArabic,
+  Normalized,
+  Comparison,
+  unresolved,
+} from './common';
 
 export interface DateOptions {
   /** The four-digit year two-digit years are read against. Required to read `12/3/26`. */
@@ -22,8 +29,18 @@ export interface DateOptions {
 }
 
 export const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
 ] as const;
 
 /** English month names and their usual short forms. Lower case. */
@@ -52,7 +69,10 @@ export function formatIndianDate(year: number, month: number, day: number): stri
   return `${day} ${MONTH_NAMES[month - 1]} ${year}`;
 }
 
-function readYear(raw: string, referenceYear: number | undefined): { ok: true; year: number } | { ok: false; result: Normalized<string> } {
+function readYear(
+  raw: string,
+  referenceYear: number | undefined,
+): { ok: true; year: number } | { ok: false; result: Normalized<string> } {
   if (raw.length === 4) return { ok: true, year: Number(raw) };
   if (raw.length !== 2) {
     return { ok: false, result: unresolved('unrecognised', 'The year is not two or four digits.') };
@@ -61,14 +81,20 @@ function readYear(raw: string, referenceYear: number | undefined): { ok: true; y
   if (ref === undefined || !Number.isInteger(ref) || ref < 1000 || ref > 9999) {
     return {
       ok: false,
-      result: unresolved('two_digit_year_needs_reference', `The year "${raw}" has two digits and there is no reference year to read it against.`),
+      result: unresolved(
+        'two_digit_year_needs_reference',
+        `The year "${raw}" has two digits and there is no reference year to read it against.`,
+      ),
     };
   }
   const year = 2000 + Number(raw);
   if (year > ref) {
     return {
       ok: false,
-      result: unresolved('two_digit_year_ambiguous', `The year "${raw}" could be ${year} or ${year - 100}.`),
+      result: unresolved(
+        'two_digit_year_ambiguous',
+        `The year "${raw}" could be ${year} or ${year - 100}.`,
+      ),
     };
   }
   return { ok: true, year };
@@ -76,9 +102,16 @@ function readYear(raw: string, referenceYear: number | undefined): { ok: true; y
 
 function build(year: number, month: number, day: number): Normalized<string> {
   if (month < 1 || month > 12 || day < 1 || day > daysInMonth(year, month)) {
-    return unresolved('day_month_out_of_range', `Day ${day} of month ${month} in ${year} does not exist.`);
+    return unresolved(
+      'day_month_out_of_range',
+      `Day ${day} of month ${month} in ${year} does not exist.`,
+    );
   }
-  return { ok: true, value: `${pad(year, 4)}-${pad(month, 2)}-${pad(day, 2)}`, display: formatIndianDate(year, month, day) };
+  return {
+    ok: true,
+    value: `${pad(year, 4)}-${pad(month, 2)}-${pad(day, 2)}`,
+    display: formatIndianDate(year, month, day),
+  };
 }
 
 /** D/M/Y with one separator used throughout: `/`, `-` or `.`. */
@@ -91,12 +124,61 @@ const NAMED_DMY = /^(\d{1,2})(?:st|nd|rd|th)?[\s.,/-]*([\p{L}\p{M}]+)\.?[\s.,/-]
 const NAMED_MDY = /^([\p{L}\p{M}]+)\.?\s+(\d{1,2})(?:st|nd|rd|th)?,?\s*(\d{2,4})?$/u;
 
 /**
+ * T-363 AC2: the day of the month as an ordinal word. The same words as
+ * `datesAsWritten` in apps/drafting/src/services/intake-text.ts reads.
+ */
+const ORDINAL_DAYS: Record<string, number> = {
+  first: 1,
+  second: 2,
+  third: 3,
+  fourth: 4,
+  fifth: 5,
+  sixth: 6,
+  seventh: 7,
+  eighth: 8,
+  ninth: 9,
+  tenth: 10,
+  eleventh: 11,
+  twelfth: 12,
+  thirteenth: 13,
+  fourteenth: 14,
+  fifteenth: 15,
+  sixteenth: 16,
+  seventeenth: 17,
+  eighteenth: 18,
+  nineteenth: 19,
+  twentieth: 20,
+  thirtieth: 30,
+};
+/**
+ * `fifteenth September 2026`, `the thirty-first of January 2027`,
+ * `twenty-second Sept, 2026`. Day, month and year as in `NAMED_DMY`.
+ */
+const ORDINAL_DMY = new RegExp(
+  `^(?:the\\s+)?(?:(twenty|thirty)[\\s-]?)?(${Object.keys(ORDINAL_DAYS).join('|')})\\s+(?:of\\s+)?([\\p{L}\\p{M}]+)\\.?[\\s.,/-]*(\\d{2,4})?$`,
+  'iu',
+);
+
+/** "twenty" + "first" is 21; "thirty" + "first" is 31. Null for words that are no day ("thirty-second"). */
+function ordinalDay(tens: string | undefined, unit: string): number | null {
+  const n = ORDINAL_DAYS[unit.toLowerCase()];
+  if (n === undefined) return null;
+  if (tens === undefined) return n;
+  const t = tens.toLowerCase();
+  if (n > 9) return null;
+  if (t === 'twenty') return 20 + n;
+  if (t === 'thirty' && n === 1) return 31;
+  return null;
+}
+
+/**
  * Normalise a date to ISO `YYYY-MM-DD`. Total: junk, impossible dates and
  * anything ambiguous come back as an `unresolved` reason.
  */
 export function normalizeDate(input: unknown, options?: DateOptions | null): Normalized<string> {
   // Null-safe: a null or non-object options argument means no reference year.
-  const referenceYear = typeof options === 'object' && options !== null ? options.referenceYear : undefined;
+  const referenceYear =
+    typeof options === 'object' && options !== null ? options.referenceYear : undefined;
   const t = asText(input);
   if (!t.ok) return t;
   const s = devanagariToArabic(t.text).normalize('NFC').trim().replace(/\s+/g, ' ');
@@ -111,6 +193,23 @@ export function normalizeDate(input: unknown, options?: DateOptions | null): Nor
     return build(y.year, Number(num[3]), Number(num[1]));
   }
 
+  // T-363 AC2: the day in words. Year required; a day that does not exist is unresolved.
+  const ord = ORDINAL_DMY.exec(s);
+  if (ord) {
+    const [, tens, unit, monthRaw, yearRaw] = ord;
+    const month = MONTHS.get(monthRaw.toLowerCase());
+    if (month === undefined)
+      return unresolved('unknown_month', `"${monthRaw}" is not a month name we know.`);
+    const day = ordinalDay(tens, unit);
+    if (day === null) {
+      return unresolved('day_month_out_of_range', 'The day in words is not a day of a month.');
+    }
+    if (yearRaw === undefined) return unresolved('missing_year', 'The date has no year.');
+    const y = readYear(yearRaw, referenceYear);
+    if (!y.ok) return y.result;
+    return build(y.year, month, day);
+  }
+
   const dmy = NAMED_DMY.exec(s);
   const mdy = dmy ? null : NAMED_MDY.exec(s);
   const parts: [string, string, string | undefined] | null = dmy
@@ -121,7 +220,8 @@ export function normalizeDate(input: unknown, options?: DateOptions | null): Nor
   if (parts) {
     const [dayRaw, monthRaw, yearRaw] = parts;
     const month = MONTHS.get(monthRaw.toLowerCase());
-    if (month === undefined) return unresolved('unknown_month', `"${monthRaw}" is not a month name we know.`);
+    if (month === undefined)
+      return unresolved('unknown_month', `"${monthRaw}" is not a month name we know.`);
     if (yearRaw === undefined) return unresolved('missing_year', 'The date has no year.');
     const y = readYear(yearRaw, referenceYear);
     if (!y.ok) return y.result;
@@ -133,5 +233,10 @@ export function normalizeDate(input: unknown, options?: DateOptions | null): Nor
 
 /** Equal when both normalise to the same calendar day. */
 export function compareDates(a: unknown, b: unknown, options?: DateOptions | null): Comparison {
-  return compareWith((x) => normalizeDate(x, options), (v) => v, a, b);
+  return compareWith(
+    (x) => normalizeDate(x, options),
+    (v) => v,
+    a,
+    b,
+  );
 }

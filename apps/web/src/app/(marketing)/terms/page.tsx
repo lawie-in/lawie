@@ -5,6 +5,7 @@ import Link from 'next/link';
 import FloatCta from '@/components/marketing/FloatCta';
 import SiteFooter from '@/components/marketing/SiteFooter';
 import SiteNav from '@/components/marketing/SiteNav';
+import { SupplierContactLine, SupplierTermsSentence } from '@/components/marketing/SupplierDetails';
 
 export const metadata: Metadata = {
   title: 'Lawie — Terms of Service',
@@ -33,7 +34,7 @@ export default function TermsPage() {
         <div className="container">
           <div style={{ marginBottom: '44px' }}>
             <span className="legal-updated">
-              <Calendar strokeWidth={1.5} /> Last updated: 12 October 2026
+              <Calendar strokeWidth={1.5} /> Last updated: 15 October 2026
             </span>
             <p
               style={{
@@ -100,7 +101,10 @@ export default function TermsPage() {
                 <h3>1. Acceptance of Terms</h3>
                 <p>
                   By accessing or using Lawie (&quot;the Service&quot;), you agree to be bound by
-                  these Terms of Service. If you do not agree, you must not use the Service.
+                  these Terms of Service.{' '}
+                  {/* T-436: Ajay 5b (Addenda 1, 7 and 8); hidden when the supplier details are unavailable. */}
+                  <SupplierTermsSentence />
+                  If you do not agree, you must not use the Service.
                 </p>
               </section>
               <section id="description">
@@ -147,11 +151,14 @@ export default function TermsPage() {
                   Paid plans are billed in advance on a monthly or annual basis through our payment
                   processor. Drafts are paid for with Ink. Most documents use 2 Ink; short ones use
                   1. You are charged only after a draft is generated; a failed generation is not
-                  charged. Subscriptions renew automatically until cancelled. You may cancel at any
-                  time from your account settings; cancellation stops future charges and takes
-                  effect at the end of the current billing period. All payments are non-refundable,
-                  as set out in our <Link href="/refunds">Refund Policy</Link>. This does not affect
-                  any right you have under law.
+                  charged. Plan Ink is given for each month of your plan, including on annual plans.
+                  Plan Ink left unused at the end of that month expires and does not carry over.
+                  Top-up Ink you buy separately never expires. Subscriptions renew automatically
+                  until cancelled. You may cancel at any time from your account settings;
+                  cancellation stops future charges and takes effect at the end of the current
+                  billing period. All payments are non-refundable, as set out in our{' '}
+                  <Link href="/refunds">Refund Policy</Link>. This does not affect any right you
+                  have under law.
                 </p>
               </section>
               <section id="ip">
@@ -200,7 +207,7 @@ export default function TermsPage() {
                 <h3>12. Governing Law</h3>
                 <p>
                   These Terms are governed by the laws of India. Any dispute is subject to the
-                  exclusive jurisdiction of the courts at Patna, Bihar. Nothing in this section
+                  exclusive jurisdiction of the courts at Ranchi, Jharkhand. Nothing in this section
                   limits any right you have to approach a Consumer Commission where you live or
                   work.
                 </p>
@@ -215,6 +222,8 @@ export default function TermsPage() {
               </section>
               <section id="contact">
                 <h3>14. Contact</h3>
+                {/* T-436: Ajay 5c (Addendum 1: legal name only); hidden when unavailable. */}
+                <SupplierContactLine />
                 <p>
                   Questions about these Terms can be sent to{' '}
                   <a href="mailto:legal@lawie.in">legal@lawie.in</a>.

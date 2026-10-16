@@ -5,7 +5,7 @@
 | Phase  | 1 — Describe and draft |
 | Owner  | Lead (drafting) |
 | Mode   | Small fix |
-| Status | Building: tanvi, with T-340 (12 Oct 2026) |
+| Status | Merged into develop_staging (0d90ed7), 12 Oct 2026. Anushka tests on develop |
 
 ## Acceptance criteria
 

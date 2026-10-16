@@ -5,7 +5,8 @@ on:
   # GitHub skips only when every changed file matches; a change with code and docs still runs.
   # docs/ is deliberately not ignored: docs/templates holds runtime JSON (template overrides, read by t139).
   push:
-    branches: [develop, develop_staging]
+    # T-439 (Merge slot v2, rule 2): lead branches get CI on push, before they merge.
+    branches: [develop, develop_staging, 'feature/**', 'fix/**']
     paths-ignore:
       - 'handoff/**'
       - '.claude/**'
@@ -16,16 +17,13 @@ on:
       - 'handoff/**'
       - '.claude/**'
       - '**/*.md'
-  # T-147e: the golden set runs nightly against the real model (job golden-set).
-  schedule:
-    - cron: '30 20 * * *' # 02:00 IST
   workflow_dispatch:
 
 concurrency:
-  # T-147e: the nightly run has its own group, so a push to develop or develop_staging cannot cancel a
-  # real golden-set run. Every other run is grouped by github.ref, so each branch (and each PR) cancels
-  # only its own older runs: a push to develop_staging never cancels a develop run, or the reverse.
-  group: ${{ github.workflow }}-${{ github.event_name == 'schedule' && 'schedule' || github.ref }}
+  # Runs are grouped by github.ref, so each branch (and each PR) cancels only its own older runs:
+  # a push to develop_staging never cancels a develop run, or the reverse. The real-model golden set
+  # lives in golden-set.yml with its own group, so nothing here can cancel it (T-376, Arjun 14 Oct).
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 env:
@@ -36,34 +34,48 @@ jobs:
   changes:
     name: Detect changes
     runs-on: ubuntu-latest
-    # The nightly run is the golden set only; every other job needs this one and skips with it.
-    if: github.event_name != 'schedule'
     outputs:
       gateway: ${{ steps.filter.outputs.gateway }}
       auth: ${{ steps.filter.outputs.auth }}
       drafting: ${{ steps.filter.outputs.drafting }}
       billing: ${{ steps.filter.outputs.billing }}
       email-worker: ${{ steps.filter.outputs.email-worker }}
+      web: ${{ steps.filter.outputs.web }}
       shared: ${{ steps.filter.outputs.shared }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
         id: filter
         with:
+          # T-439b: workflow_dispatch and develop/develop_staging pushes diff against their merge-base
+          # with main (in practice, the full matrix); every other ref diffs against its merge-base with
+          # develop_staging. Ignored on pull_request.
+          # cancel-in-progress loses nothing on develop/develop_staging only because those runs test the
+          # full matrix: the newest run covers the cancelled one's changes. Don't narrow their base
+          # without changing cancel-in-progress.
+          base: ${{ (github.event_name == 'workflow_dispatch' || github.ref_name == 'develop' || github.ref_name == 'develop_staging') && 'main' || 'develop_staging' }}
           filters: |
             gateway:
               - 'apps/gateway/**'
+            # T-223: auth imports @lawie/email-client at runtime (resolved from its dist).
             auth:
               - 'apps/auth/**'
+              - 'packages/email-client/**'
             drafting:
               - 'apps/drafting/**'
               - 'scripts/golden-set/**'
+            # T-436: billing imports @lawie/email-client at runtime (resolved from its dist).
             billing:
               - 'apps/billing/**'
+              - 'packages/email-client/**'
             # T-320: email-worker builds against email-client's dist; shared changes come in via the shared filter.
             email-worker:
               - 'apps/email-worker/**'
               - 'packages/email-client/**'
+            # T-369: web transpiles @lawie/shared from source (transpilePackages), so list it here too.
+            web:
+              - 'apps/web/**'
+              - 'packages/shared/**'
             shared:
               - 'packages/shared/**'
               - 'package.json'
@@ -113,6 +125,7 @@ jobs:
           - 6379:6379
     env:
       NODE_ENV: test
+      REDIS_TEST_URL: redis://localhost:6379
       # T-211: one pinned Mongo binary in one absolute dir, shared by the pre-download step and the tests.
       MONGOMS_VERSION: '7.0.24'
       MONGOMS_DOWNLOAD_DIR: /home/runner/.cache/mongodb-binaries
@@ -131,6 +144,8 @@ jobs:
             mongoms-${{ runner.os }}-7.0.24-
       - run: yarn install --frozen-lockfile
       - run: yarn workspace @lawie/shared build
+      # T-223: auth resolves @lawie/email-client from its dist (gitignored), so build it first.
+      - run: yarn workspace @lawie/email-client build
       # T-211: download the binary once, serially, before parallel Jest workers race for it. No-op on a cache hit.
       - name: Pre-download Mongo binary
         run: yarn workspace @lawie/auth node -e "require('mongodb-memory-server').MongoMemoryServer.create().then(s => s.stop()).catch(e => { console.error(e); process.exit(1); })"
@@ -212,6 +227,8 @@ jobs:
             mongoms-${{ runner.os }}-7.0.24-
       - run: yarn install --frozen-lockfile
       - run: yarn workspace @lawie/shared build
+      # T-436: billing resolves @lawie/email-client from its dist (gitignored), so build it first.
+      - run: yarn workspace @lawie/email-client build
       # T-211: download the binary once, serially, before parallel Jest workers race for it. No-op on a cache hit.
       - name: Pre-download Mongo binary
         run: yarn workspace @lawie/billing node -e "require('mongodb-memory-server').MongoMemoryServer.create().then(s => s.stop()).catch(e => { console.error(e); process.exit(1); })"
@@ -223,15 +240,27 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
 
   # ── Test Email worker (T-320) ───────────────────────────────────────────
-  # No Redis or Mongo service: the tests use createApp() (no BullMQ workers) and
-  # src/__tests__/setupEnv.ts sets every env var they read (dry-run provider).
+  # Redis service for the T-220 AC4 retry/replay test (real BullMQ queue, forced provider
+  # error, dry-run provider). No Mongo. src/__tests__/setupEnv.ts sets the other env vars.
   test-email-worker:
     name: Test — Email worker
     runs-on: ubuntu-latest
     needs: [changes]
     if: needs.changes.outputs.email-worker == 'true' || needs.changes.outputs.shared == 'true'
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
     env:
       NODE_ENV: test
+      REDIS_URL: redis://localhost:6379
+      REDIS_TEST_URL: redis://localhost:6379
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -250,78 +279,36 @@ jobs:
           flags: email-worker
           token: ${{ secrets.CODECOV_TOKEN }}
 
-  # ── Golden set (T-147e) ──────────────────────────────────────────────────
-  # Pre-merge gate on PRs that change the Drafter prompt, a rule pack or the
-  # normalizer, and nightly. The dry run (recorded replies, in-memory DB) runs
-  # whenever the job runs. The real run needs two secrets, referenced by name
-  # only; without them it is skipped with a notice and the job stays green.
-  # A real run writes fixture rows (runType "fixture") to the database given
-  # by GOLDEN_SET_MONGODB_URI and costs money: see scripts/golden-set/README.md.
-  golden-set:
-    name: Golden set — Drafting (real model)
+  # ── Web build (T-369) ───────────────────────────────────────────────────
+  # Typecheck, production build, lint and tests for apps/web. Next 16 + React 19 cannot prerender
+  # under a non-production NODE_ENV, so the build step pins NODE_ENV=production itself.
+  web-build:
+    name: Web build
     runs-on: ubuntu-latest
-    if: github.event_name != 'push'
-    timeout-minutes: 45
+    needs: [changes]
+    if: needs.changes.outputs.web == 'true' || needs.changes.outputs.shared == 'true'
     env:
       NODE_ENV: test
     steps:
-      # Nightly runs test develop_staging (what goes into develop next); '' means the event's own ref.
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event_name == 'schedule' && 'develop_staging' || '' }}
-      - uses: dorny/paths-filter@v3
-        id: filter
-        if: github.event_name == 'pull_request'
-        with:
-          filters: |
-            golden:
-              - 'apps/drafting/src/services/drafter.prompts.ts'
-              - 'apps/drafting/src/config/document-rules/**'
-              - 'packages/shared/src/utils/normalize/**'
-              - 'scripts/golden-set/**'
-      - name: Decide whether the golden set runs
-        id: gate
-        # Only whether each secret is set ('true' / 'false'), never its value.
-        env:
-          HAS_KEY: ${{ secrets.GOLDEN_SET_ANTHROPIC_API_KEY != '' }}
-          HAS_URI: ${{ secrets.GOLDEN_SET_MONGODB_URI != '' }}
-        run: |
-          if [ "${{ github.event_name }}" != "pull_request" ] || [ "${{ steps.filter.outputs.golden }}" = "true" ]; then
-            echo "run=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "run=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::Golden set not needed: no change to the Drafter prompt, the rule packs or the normalizer."
-          fi
-          if [ "$HAS_KEY" = "true" ] && [ "$HAS_URI" = "true" ]; then
-            echo "secrets=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "secrets=false" >> "$GITHUB_OUTPUT"
-          fi
       - uses: actions/setup-node@v4
-        if: steps.gate.outputs.run == 'true'
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'yarn'
-      - if: steps.gate.outputs.run == 'true'
-        run: yarn install --frozen-lockfile
-      - if: steps.gate.outputs.run == 'true'
-        run: yarn workspace @lawie/shared build
-      - name: Golden set — dry run (recorded replies, no cost)
-        if: steps.gate.outputs.run == 'true'
-        run: yarn workspace @lawie/drafting golden:set --dry-run
-      - name: Golden set — skipped, secrets not set
-        if: steps.gate.outputs.run == 'true' && steps.gate.outputs.secrets != 'true'
-        run: echo "::notice::Golden set real run skipped — GOLDEN_SET_ANTHROPIC_API_KEY and GOLDEN_SET_MONGODB_URI are not set for this repository (or this PR comes from a fork)."
-      - name: Golden set — real model
-        if: steps.gate.outputs.run == 'true' && steps.gate.outputs.secrets == 'true'
-        # The secrets reach this step only: not install, not the dry run.
+      - run: yarn install --frozen-lockfile
+      - run: yarn workspace @lawie/shared build
+      - name: Typecheck
+        run: yarn workspace @lawie/web tsc --noEmit -p tsconfig.typecheck.json
+      - name: Build
         env:
-          GOLDEN_SET_ANTHROPIC_API_KEY: ${{ secrets.GOLDEN_SET_ANTHROPIC_API_KEY }}
-          GOLDEN_SET_MONGODB_URI: ${{ secrets.GOLDEN_SET_MONGODB_URI }}
-        run: yarn workspace @lawie/drafting golden:set --real --calibrate --out "$RUNNER_TEMP/golden-set"
-      - uses: actions/upload-artifact@v4
-        if: always() && steps.gate.outputs.run == 'true' && steps.gate.outputs.secrets == 'true'
+          NODE_ENV: production
+        run: yarn workspace @lawie/web build
+      # Read-only: the web "lint" script runs eslint --fix, which rewrites files. Same glob, no --fix.
+      - name: Lint
+        run: yarn workspace @lawie/web eslint 'src/**/*.{ts,tsx}'
+      - run: yarn workspace @lawie/web test
+      - uses: codecov/codecov-action@v4
+        if: always()
         with:
-          name: golden-set-results
-          path: ${{ runner.temp }}/golden-set
-          retention-days: 30
+          flags: web
+          token: ${{ secrets.CODECOV_TOKEN }}

@@ -1,6 +1,7 @@
 'use client';
 
-import { Check, ArrowRight, Lightbulb, Minus } from 'lucide-react';
+import { PLANS } from '@lawie/shared';
+import { Check, ArrowRight, Lightbulb } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 
@@ -34,24 +35,46 @@ const pricingFaq = [
   {
     question: 'Is GST included?',
     answer:
-      'The displayed prices are inclusive of applicable taxes. Your payment receipt from Razorpay will show the tax breakup where relevant.',
+      // Ajay, handoff/legal/gst-tax-invoice-signed.md 5a, byte for byte. "and you can download
+      // it from your account" ships because the Invoices card (/dashboard/settings) has the PDF.
+      'Yes. Prices shown include GST. After each payment we email you a GST tax invoice from Lawie, and you can download it from your account.',
   },
   {
     question: 'What is Ink?',
     answer:
-      "Ink is Lawie's credit unit. Most documents use 2 Ink; short documents, such as most notices and affidavits, use 1. You're charged only after a draft is generated; a failed generation is not charged. The Free plan gives you 5 Ink (lifetime). Solo and Pro plans refill Ink every month. You can also buy top-up packs anytime.",
+      "Ink is Lawie's credit unit. Most documents use 2 Ink; short documents, such as most notices and affidavits, use 1. You're charged only after a draft is generated; a failed generation is not charged. You see the Ink cost before you generate a draft. The Free plan gives you 5 Ink on sign-up, once your email is verified (lifetime). Solo and Pro plans give you fresh Ink every month; plan Ink left unused at the end of the month does not carry over. You can also buy top-up packs anytime, and top-up Ink never expires.",
   },
 ];
+
+/** "₹7,990" from 7990 (T-364: prices come from PLANS in @lawie/shared). */
+const inr = (n: number): string => `₹${n.toLocaleString('en-IN')}`;
+
+/** Saving from paying yearly instead of 12 monthly charges. */
+const soloYearlySaving = 12 * PLANS.solo_monthly.priceInr - PLANS.solo_yearly.priceInr;
+const proYearlySaving = 12 * PLANS.pro_monthly.priceInr - PLANS.pro_yearly.priceInr;
+
+/**
+ * T-398: every yearly line is held by Ajay (handoff/legal/T-398-pro-card-signed.md) until the
+ * yearly Ink grant is settled. While true, the Monthly/Yearly toggle and every yearly line
+ * ("or ₹…/year — save 2 months", "₹… saved vs paying monthly") are not rendered.
+ */
+const YEARLY_HELD = true;
 
 export default function PricingPage() {
   const [period, setPeriod] = useState<'monthly' | 'yearly'>('monthly');
 
-  const soloPrice = period === 'monthly' ? '₹799' : '₹7,990';
-  const proPrice = period === 'monthly' ? '₹1,999' : '₹19,990';
+  const soloPrice =
+    period === 'monthly' ? inr(PLANS.solo_monthly.priceInr) : inr(PLANS.solo_yearly.priceInr);
+  const proPrice =
+    period === 'monthly' ? inr(PLANS.pro_monthly.priceInr) : inr(PLANS.pro_yearly.priceInr);
   const soloAlt =
-    period === 'monthly' ? 'or ₹7,990/year — save 2 months' : '₹1,598 saved vs paying monthly';
+    period === 'monthly'
+      ? `or ${inr(PLANS.solo_yearly.priceInr)}/year — save 2 months`
+      : `${inr(soloYearlySaving)} saved vs paying monthly`;
   const proAlt =
-    period === 'monthly' ? 'or ₹19,990/year — save 2 months' : '₹3,998 saved vs paying monthly';
+    period === 'monthly'
+      ? `or ${inr(PLANS.pro_yearly.priceInr)}/year — save 2 months`
+      : `${inr(proYearlySaving)} saved vs paying monthly`;
   const soloPeriodLabel = period === 'monthly' ? '/month' : '/year';
   const proPeriodLabel = period === 'monthly' ? '/month' : '/year';
 
@@ -96,26 +119,30 @@ export default function PricingPage() {
             Pricing
           </span>
           <h1>Simple, transparent pricing.</h1>
-          <p className="sub">Ink credits — start free, buy more when you need it.</p>
+          <p className="sub">
+            Start with 5 free Ink once your email is verified. Buy more when you need it.
+          </p>
         </div>
       </header>
 
       <section className="section bg-white">
         <div className="container">
-          <div className="pricing-toggle-row">
-            <PriceToggle period={period} onChange={setPeriod} />
-          </div>
+          {!YEARLY_HELD && (
+            <div className="pricing-toggle-row">
+              <PriceToggle period={period} onChange={setPeriod} />
+            </div>
+          )}
           <div className="plan-grid">
             {/* FREE */}
             <div className="plan">
               <div className="plan-name">Free</div>
-              <div className="plan-price">
-                ₹0<small>/lifetime</small>
+              <div className="plan-price">₹0</div>
+              <div className="plan-alt">
+                5 Ink on sign-up, once your email is verified (lifetime)
               </div>
-              <div className="plan-alt">5 Ink — forever</div>
               <ul>
                 <li>
-                  <Check strokeWidth={2} /> All templates
+                  <Check strokeWidth={2} /> Every document type on Lawie
                 </li>
                 <li>
                   <Check strokeWidth={2} /> Every line of the draft is yours to change
@@ -126,12 +153,9 @@ export default function PricingPage() {
                 <li>
                   <Check strokeWidth={2} /> PDF / DOCX export
                 </li>
-                <li className="limit">
-                  <Minus strokeWidth={2} /> Lawie watermark on exports
-                </li>
               </ul>
               <Link className="btn btn-ghost btn-block" href="/login">
-                Start Free
+                Start with 5 free Ink
               </Link>
             </div>
             {/* SOLO */}
@@ -141,24 +165,17 @@ export default function PricingPage() {
                 {soloPrice}
                 <small>{soloPeriodLabel}</small>
               </div>
-              <div className="plan-alt">{soloAlt}</div>
+              <div className="plan-alt">{YEARLY_HELD ? null : soloAlt}</div>
               <ul>
                 <li>
-                  <Check strokeWidth={2} /> 50 Ink/month
-                </li>
-                <li className="head">Everything in Free, plus</li>
-                <li>
-                  <Check strokeWidth={2} /> No watermark on exports
+                  <Check strokeWidth={2} /> {PLANS.solo_monthly.inkPerCycle} Ink/month
                 </li>
                 <li>
-                  <Check strokeWidth={2} /> Priority email support
-                </li>
-                <li>
-                  <Check strokeWidth={2} /> Early access to new templates
+                  <Check strokeWidth={2} /> Everything in Free
                 </li>
               </ul>
               <Link className="btn btn-primary btn-block" href="/login">
-                Start Drafting Free <ArrowRight strokeWidth={1.5} />
+                Sign up to choose Solo <ArrowRight strokeWidth={1.5} />
               </Link>
             </div>
             {/* PRO */}
@@ -168,24 +185,23 @@ export default function PricingPage() {
                 {proPrice}
                 <small>{proPeriodLabel}</small>
               </div>
-              <div className="plan-alt">{proAlt}</div>
+              <div className="plan-alt">{YEARLY_HELD ? null : proAlt}</div>
               <ul>
                 <li>
-                  <Check strokeWidth={2} /> 150 Ink/month
-                </li>
-                <li className="head">Everything in Solo, plus</li>
-                <li>
-                  <Check strokeWidth={2} /> No watermark on exports
+                  <Check strokeWidth={2} /> {PLANS.pro_monthly.inkPerCycle} Ink/month
                 </li>
                 <li>
-                  <Check strokeWidth={2} /> Priority email support
+                  <Check strokeWidth={2} /> Everything in Solo
                 </li>
                 <li>
-                  <Check strokeWidth={2} /> Early access to new templates
+                  <Check strokeWidth={2} /> Ink refills every month
+                </li>
+                <li>
+                  <Check strokeWidth={2} /> Top-up packs available anytime
                 </li>
               </ul>
               <Link className="btn btn-ghost btn-block" href="/login">
-                Get Pro <ArrowRight strokeWidth={1.5} />
+                Sign up to choose Pro <ArrowRight strokeWidth={1.5} />
               </Link>
             </div>
           </div>

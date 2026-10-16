@@ -12,7 +12,7 @@ import path from 'path';
 
 import { checkBailEligibility, COURT_LEVEL_DEPENDS } from '../services/bail-check.service';
 import { resolveOffence, resolveTriableBy } from '../services/bns-offence-resolver';
-import { getSectionDetail, invalidateCache } from '../services/sections.service';
+import { getSectionDetail } from '../services/sections.service';
 
 const SERVICES = path.join(__dirname, '..', 'services');
 const CONFIG = path.join(__dirname, '..', 'config');
@@ -25,8 +25,6 @@ const REF = 'Court by which offence abetted is triable';
 
 const court = async (inputs: string[]) => (await checkBailEligibility(inputs)).summary.courtLevel;
 
-afterEach(() => invalidateCache());
-
 describe('T-289 signed files are untouched', () => {
   it('bns-triable-by.json matches the signed SHA-256 (Addendum 1)', () => {
     expect(sha(path.join(CONFIG, 'bns-triable-by.json'))).toBe(
@@ -36,7 +34,7 @@ describe('T-289 signed files are untouched', () => {
 
   it('bns-offences.json is still the signed T-277 file', () => {
     expect(sha(path.join(CONFIG, 'bns-offences.json'))).toBe(
-      '5f0ac29ad09aaed919826275cf22c425766c8dc7196dd089bfd5c8dacecb07de',
+      'bc0c62931faf0a343460d8a8fdb94ea91306c019943ec609aaf71a61a3d43e9c',
     );
   });
 });

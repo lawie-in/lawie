@@ -12,18 +12,16 @@ import { env } from './config/env';
 // eslint-disable-next-line import/order, import/first
 import { logger } from './config/logger';
 // eslint-disable-next-line import/order, import/first
+import { safeErrorFields, toSentrySafeError } from './providers/safe-log';
+// eslint-disable-next-line import/order, import/first
 import { startWorkers, stopWorkers } from './worker';
 // eslint-disable-next-line import/order, import/first
 import { createApp } from './app';
+// eslint-disable-next-line import/order, import/first
+import { initSentry } from './config/sentry';
 
-if (env.SENTRY_DSN) {
-  Sentry.init({
-    dsn: env.SENTRY_DSN,
-    environment: env.NODE_ENV,
-    tracesSampleRate: env.NODE_ENV === 'production' ? 0.2 : 0,
-    serverName: 'email-worker',
-  });
-}
+// T-229: beforeSend and beforeSendTransaction run the shared scrub (config/sentry.ts).
+initSentry(env);
 
 async function bootstrap() {
   startWorkers();
@@ -38,9 +36,11 @@ async function bootstrap() {
 }
 
 bootstrap().catch((err) => {
-  logger.fatal({ err }, 'Email worker failed to boot');
-  Sentry.captureException(err);
-  process.exit(1);
+  // T-353: name/code only in logs, message-free error to Sentry.
+  logger.fatal({ err: safeErrorFields(err) }, 'Email worker failed to boot');
+  Sentry.captureException(toSentrySafeError(err));
+  // Flush so the event is sent before exit (resolves at once without a DSN).
+  void Sentry.flush(2000).finally(() => process.exit(1));
 });
 
 async function shutdown(signal: string) {
@@ -52,11 +52,12 @@ process.on('SIGTERM', () => void shutdown('SIGTERM'));
 process.on('SIGINT', () => void shutdown('SIGINT'));
 
 process.on('unhandledRejection', (reason) => {
-  logger.error({ err: reason }, 'Unhandled rejection');
-  Sentry.captureException(reason);
+  logger.error({ err: safeErrorFields(reason) }, 'Unhandled rejection');
+  Sentry.captureException(toSentrySafeError(reason));
 });
 process.on('uncaughtException', (err) => {
-  logger.fatal({ err }, 'Uncaught exception — exiting');
-  Sentry.captureException(err);
-  process.exit(1);
+  logger.fatal({ err: safeErrorFields(err) }, 'Uncaught exception — exiting');
+  Sentry.captureException(toSentrySafeError(err));
+  // Flush so the event is sent before exit (resolves at once without a DSN).
+  void Sentry.flush(2000).finally(() => process.exit(1));
 });

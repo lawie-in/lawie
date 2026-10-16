@@ -49,8 +49,11 @@ export interface Drafting {
     NOT_FIXTURE_GENERATION: Record<string, unknown>;
   };
   INTERNAL_HEADERS: Record<string, string>;
+  CURRENT_PRIVACY_VERSION: string;
   internalSecret: string;
   parseModelJson: (t: string) => any;
+  /** T-453: tags every llm_call log line with the fixture running now. */
+  setLlmLogFixtureId: (id: string | null) => void;
 }
 
 export function loadDrafting(internalSecret: string): Drafting {
@@ -72,8 +75,10 @@ export function loadDrafting(internalSecret: string): Drafting {
     },
     origin: r<any>('services/run-origin'),
     INTERNAL_HEADERS: requireFromDrafting<any>('@lawie/shared').INTERNAL_HEADERS,
+    CURRENT_PRIVACY_VERSION: requireFromDrafting<any>('@lawie/shared').CURRENT_PRIVACY_VERSION,
     internalSecret,
     parseModelJson: r<any>('services/intake-text').parseModelJson,
+    setLlmLogFixtureId: r<any>('services/llm-usage').setLlmLogFixtureId,
   };
 }
 
@@ -166,6 +171,7 @@ export async function runFixture(
       .set(H.USER_ROLE, 'Advocate')
       .set(H.USER_NAME, '')
       .set(H.USER_EMAIL, '')
+      .set(H.USER_PRIVACY_VERSION, d.CURRENT_PRIVACY_VERSION)
       .buffer(true)
       .parse((res: any, cb: (e: null, b: string) => void) => {
         let s = '';
@@ -184,6 +190,7 @@ export async function runFixture(
   const court = fixture.court ?? undefined;
   let fields: Record<string, string> = {};
 
+  d.setLlmLogFixtureId(fixture.id);
   try {
     await d.redis.flushall();
 
@@ -263,6 +270,14 @@ export async function runFixture(
     ev.documentId = done.data.docId ?? null;
     ev.runId = done.data.runId ?? ev.runId;
     ev.missingClauses = (done.data.missingClauses ?? []).map((m: { id: string }) => m.id);
+    // T-373: the renderer's clause statuses; present only on a D1 draft.
+    if (Array.isArray(done.data.rendered)) {
+      ev.rendered = done.data.rendered.map((r: any) => ({
+        clauseId: typeof r?.clauseId === 'string' ? r.clauseId : '',
+        status: r?.status,
+        ...(typeof r?.reason === 'string' ? { reason: r.reason } : {}),
+      }));
+    }
     ev.banner = Boolean(done.data.factCheck?.banner);
     if (!ev.documentId) throw new Stop('generate: the draft was not saved');
   } catch (e) {
@@ -270,6 +285,8 @@ export async function runFixture(
       e instanceof Stop
         ? e.message
         : `harness: ${e instanceof Error ? e.name : 'error'}: ${e instanceof Error ? e.message.split('\n')[0] : ''}`;
+  } finally {
+    d.setLlmLogFixtureId(null);
   }
 
   ev.calls = seam.takeCalls();

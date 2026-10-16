@@ -132,7 +132,7 @@ Verified at {place} on {date}.
 | alteration_sought | Alteration sought (increase / reduction / other; figure) | textarea | yes | alteration clause, prayer |
 | payment_position | Payment history or arrears, as the applicant gives it | textarea | no | averment unlock |
 | earlier_proceedings | Earlier applications to alter this allowance and other proceedings on the same maintenance (court, number, date, result) | textarea | no | disclosure |
-| advocate_name / advocate_enrolment | Advocate details | text | yes | signature block |
+| advocate_name / advocate_enrollment | Advocate details | text | yes | signature block |
 
 ## _averments
 
@@ -190,3 +190,5 @@ Reviewed by me after an independent review pass; the corrections are in this fil
 | A practising advocate checks the pack before it goes live | Condition |
 
 Signed: Ajay (CLO), 12 Oct 2026 IST. Any other wording comes back to me.
+
+13 Oct 2026, T-382: the field key `advocate_enrolment` is renamed to `advocate_enrollment`. This changes the key only; the wording and labels are unchanged (Ajay).

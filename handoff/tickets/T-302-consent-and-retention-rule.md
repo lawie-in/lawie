@@ -1,14 +1,14 @@
 # T-302 — Consent line and retention rule for uploads
 
-| Field      | Value                                                                                                    |
-| ---------- | -------------------------------------------------------------------------------------------------------- |
-| Phase      | 3 — Matter context                                                                                       |
-| Owner      | Ajay                                                                                                     |
-| Mode       | Legal work, not through the dev lead                                                                     |
-| Status     | Delivered by Ajay on 4 Oct 2026. Policy wording to be read by a practising lawyer before it is published |
-| Depends on | None                                                                                                     |
-| Branch     | None                                                                                                     |
-| Created    | 2026-10-03                                                                                               |
+| Field      | Value                                                                                                                                   |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Phase      | 3 — Matter context                                                                                                                      |
+| Owner      | Ajay                                                                                                                                    |
+| Mode       | Legal work, not through the dev lead                                                                                                    |
+| Status     | Founder 15 Oct 2026: uploads are V1. Delivered by Ajay 4 Oct; policy wording to be read by a practising lawyer before publishing. Priya |
+| Depends on | None                                                                                                                                    |
+| Branch     | None                                                                                                                                    |
+| Created    | 2026-10-03                                                                                                                              |
 
 ## Goal
 

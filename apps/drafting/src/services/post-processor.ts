@@ -15,6 +15,7 @@
  */
 import { DocumentRuleConfig, CourtRuleConfig } from './prompt-assembler';
 import { readFilingChecklist } from './rule-pack.service';
+import { normaliseRelation, RELATION_BLANK, relationLine } from './template-engine.service';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -121,7 +122,7 @@ const COURT_NUMBER_TOKEN =
 function hasCourtNumberToken(part: string): boolean {
   return part
     .split(/[\s\-–]+/)
-    .map((t) => t.replace(/^[(\[]+|[)\].,:;]+$/g, ''))
+    .map((t) => t.replace(/^[([]+|[)\].,:;]+$/g, ''))
     .some((t) => t !== '' && COURT_NUMBER_TOKEN.test(t));
 }
 
@@ -176,14 +177,34 @@ function familyCourtSeatParts(courtName: string | undefined | null): string[] {
  * Dwarka count only when a Delhi name is also typed; otherwise the T-176
  * typed-seat output stands ("IN THE FAMILY COURT AT DWARKA").
  */
-const DELHI_FAMILY_COMPLEXES: ReadonlyArray<{ aliases: RegExp; heading: string; delhiOnly: boolean }> = [
-  { aliases: /^(?:tis|tees)\s+hazari$/i, heading: 'IN THE FAMILY COURT AT TIS HAZARI, DELHI', delhiOnly: true },
-  { aliases: /^(?:karkardooma|kadkadooma)$/i, heading: 'IN THE FAMILY COURT AT KARKARDOOMA, DELHI', delhiOnly: true },
+const DELHI_FAMILY_COMPLEXES: ReadonlyArray<{
+  aliases: RegExp;
+  heading: string;
+  delhiOnly: boolean;
+}> = [
+  {
+    aliases: /^(?:tis|tees)\s+hazari$/i,
+    heading: 'IN THE FAMILY COURT AT TIS HAZARI, DELHI',
+    delhiOnly: true,
+  },
+  {
+    aliases: /^(?:karkardooma|kadkadooma)$/i,
+    heading: 'IN THE FAMILY COURT AT KARKARDOOMA, DELHI',
+    delhiOnly: true,
+  },
   { aliases: /^rohini$/i, heading: 'IN THE FAMILY COURT AT ROHINI, DELHI', delhiOnly: false },
   { aliases: /^saket$/i, heading: 'IN THE FAMILY COURT AT SAKET, NEW DELHI', delhiOnly: false },
   { aliases: /^dwarka$/i, heading: 'IN THE FAMILY COURT AT DWARKA, NEW DELHI', delhiOnly: false },
-  { aliases: /^patiala\s+house$/i, heading: 'IN THE FAMILY COURT AT PATIALA HOUSE, NEW DELHI', delhiOnly: true },
-  { aliases: /^rouse\s+avenue$/i, heading: 'IN THE FAMILY COURT AT ROUSE AVENUE, NEW DELHI', delhiOnly: true },
+  {
+    aliases: /^patiala\s+house$/i,
+    heading: 'IN THE FAMILY COURT AT PATIALA HOUSE, NEW DELHI',
+    delhiOnly: true,
+  },
+  {
+    aliases: /^rouse\s+avenue$/i,
+    heading: 'IN THE FAMILY COURT AT ROUSE AVENUE, NEW DELHI',
+    delhiOnly: true,
+  },
 ];
 
 /**
@@ -264,7 +285,12 @@ function classifyDelhiPart(part: string): DelhiPart | null {
   const complexName = core.replace(/\s+(?:courts?(?:\s+complex)?)$/i, '');
   const complex = DELHI_FAMILY_COMPLEXES.find((c) => c.aliases.test(complexName));
   if (complex) {
-    return { kind: 'complex', heading: complex.heading, delhiOnly: complex.delhiOnly, withDelhi: core !== p };
+    return {
+      kind: 'complex',
+      heading: complex.heading,
+      delhiOnly: complex.delhiOnly,
+      withDelhi: core !== p,
+    };
   }
   return null;
 }
@@ -338,7 +364,10 @@ export function delhiFamilyCourtHeading(courtName: string | undefined | null): s
  * FAMILY_COURT_SEAT_BLANK for `{place}` when no seat can be read. Falls back
  * to the rule's designation if the format has no `{place}`.
  */
-export function familyCourtHeading(courtRule: CourtRuleConfig, courtName: string | undefined): string {
+export function familyCourtHeading(
+  courtRule: CourtRuleConfig,
+  courtName: string | undefined,
+): string {
   const format = courtRule.formattingPreferences?.causeListFormat;
   if (!format || !format.includes('{place}')) return courtRule.designation;
   // T-179: a Delhi name, complex or district prints Ajay's line verbatim.
@@ -493,9 +522,20 @@ export function generateVerificationClause(
   const verification = docRule.verificationTemplate
     .replace(/{applicant}/g, deponentName)
     .replace(
-      /{relation}/g,
-      partyDetails.relation_type ?? partyDetails.relation ?? 'S/o / D/o / W/o',
+      /{appellant}/g,
+      partyDetails.appellant || partyDetails.appellant_name || '[DEPONENT NAME]',
     )
+    // T-393 (Ajay, T-359 AC6): the relation and parent or spouse, or the signed blanks.
+    .replace(
+      /{parentRelation}/g,
+      relationLine(
+        [partyDetails.applicant_relation, partyDetails.relation_type, partyDetails.relation].find(
+          (v) => normaliseRelation(v) !== undefined,
+        ),
+        partyDetails.fatherName || partyDetails.parentName,
+      ),
+    )
+    .replace(/{relation}/g, partyDetails.relation_type ?? partyDetails.relation ?? RELATION_BLANK)
     .replace(/{parentName}/g, parentName)
     .replace(/{age}/g, partyDetails.age || '[AGE]')
     .replace(/{address}/g, partyDetails.address || '[ADDRESS]')

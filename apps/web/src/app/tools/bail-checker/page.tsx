@@ -25,6 +25,8 @@ interface OffenceInfo {
   section: string;
   title: string;
   punishment: string;
+  /** T-361 AC2: the row's signed note from the API, shown under the punishment line as is. */
+  note?: string;
   maxYears: number | null;
   /** null = unknown: never shown as "Non-…" (T-277) */
   bailable: boolean | null;
@@ -34,11 +36,16 @@ interface OffenceInfo {
   bailableNote?: string | null;
   cognizableNote?: string | null;
   compoundableNote?: string | null;
+  /** T-371: Ajay's caveat for a verify-flagged row (6526597); never the raw verify text */
+  caveat?: string;
   chapter: string;
 }
 
-/** Ajay (CLO), T-277: fallback when the API sends no note for an unknown value. */
+/** Ajay (CLO), T-277: fallback for the summary when the API sends no note. */
 const DEPENDS_FIRST_SCHEDULE = 'Depends. Check the First Schedule.';
+/** Ajay (CLO), T-361 Addendum 1: fallback for a null attribute. Same text as the API. */
+const ATTRIBUTE_DEPENDS =
+  'Depends on the sub-section or the offence — see the BNSS First Schedule.';
 /** Ajay (CLO), T-277 Q7. */
 const WITH_COURT_PERMISSION = "Compoundable with the Court's permission";
 
@@ -51,10 +58,14 @@ interface SectionResult {
   found: boolean;
   /**
    * Ajay's signed note from the API, shown as is: "No BNS equivalent. Check the
-   * Gazette", "Not found in the IPC table. Check the Gazette", or "This section
-   * does not create an offence. Check the Gazette." (T-267, T-278)
+   * Gazette", "Not verified — check the Gazette" (T-371), or "This section does not
+   * create an offence. Check the Gazette." (T-267, T-278)
    */
   note?: string;
+  /** T-383: not-found rows only: the section as the API names it ("400", "IPC 236"). */
+  display?: string;
+  /** T-361 AC4: Ajay's signed reminder for a bare number with no code, shown as is. */
+  codeReminder?: string;
 }
 
 interface BailCheckResult {
@@ -62,8 +73,11 @@ interface BailCheckResult {
   summary: {
     overallBailable: boolean | null;
     overallBailableNote?: string | null;
-    mostSeriousSection: string;
+    /** null when no charged section has a known maximum (T-371) */
+    mostSeriousSection: string | null;
     maxPunishment: string;
+    /** "Cannot be determined" when sections resolved but none has a known maximum */
+    mostSeriousNote?: string | null;
     maxYears: number | null;
     bnssBailSection: string | null;
     bnssBailSectionTitle: string;
@@ -260,7 +274,7 @@ export default function BailCheckerPage() {
                     {result.summary.bnssBailSectionTitle}
                   </div>
                 </div>
-                {result.summary.mostSeriousSection && (
+                {result.summary.mostSeriousSection ? (
                   <div className="flex items-start gap-2">
                     <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
                     <div>
@@ -268,6 +282,16 @@ export default function BailCheckerPage() {
                       {result.summary.mostSeriousSection} — {result.summary.maxPunishment}
                     </div>
                   </div>
+                ) : (
+                  result.summary.mostSeriousNote && (
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
+                      <div>
+                        <span className="font-medium">Most serious offence:</span>{' '}
+                        {result.summary.mostSeriousNote}
+                      </div>
+                    </div>
+                  )
                 )}
               </div>
 
@@ -308,7 +332,7 @@ export default function BailCheckerPage() {
                               ? 'Bailable'
                               : s.offence.bailable === false
                                 ? 'Non-Bailable'
-                                : (s.offence.bailableNote ?? DEPENDS_FIRST_SCHEDULE)}
+                                : (s.offence.bailableNote ?? ATTRIBUTE_DEPENDS)}
                           </span>
                         </div>
                         <p className="mb-2 text-sm font-medium text-slate-800">{s.offence.title}</p>
@@ -316,6 +340,10 @@ export default function BailCheckerPage() {
                           <div>
                             <span className="font-medium text-slate-600">Punishment:</span>{' '}
                             {s.offence.punishment}
+                            {/* T-361 AC2: Ajay's signed row note, under the punishment line, as is. */}
+                            {s.offence.note && (
+                              <span className="mt-1 block text-slate-500">{s.offence.note}</span>
+                            )}
                           </div>
                           <div className="flex items-center gap-1">
                             {s.offence.cognizable === true ? (
@@ -329,7 +357,7 @@ export default function BailCheckerPage() {
                               ? 'Cognizable'
                               : s.offence.cognizable === false
                                 ? 'Non-Cognizable'
-                                : (s.offence.cognizableNote ?? DEPENDS_FIRST_SCHEDULE)}
+                                : (s.offence.cognizableNote ?? ATTRIBUTE_DEPENDS)}
                           </div>
                           <div className="flex items-center gap-1">
                             {s.offence.compoundable === true ||
@@ -346,16 +374,31 @@ export default function BailCheckerPage() {
                                 ? (s.offence.compoundableNote ?? WITH_COURT_PERMISSION)
                                 : s.offence.compoundable === false
                                   ? 'Non-Compoundable'
-                                  : (s.offence.compoundableNote ?? DEPENDS_FIRST_SCHEDULE)}
+                                  : (s.offence.compoundableNote ?? ATTRIBUTE_DEPENDS)}
                           </div>
                         </div>
+                        {/* T-371: Ajay's caveat, once per section (6526597) */}
+                        {s.offence.caveat && (
+                          <p className="mt-2 text-xs text-amber-800">{s.offence.caveat}</p>
+                        )}
+                        {/* T-361 AC4: Ajay's reminder for a bare number, from the API as is. */}
+                        {s.codeReminder && (
+                          <p className="mt-2 text-xs text-slate-500">{s.codeReminder}</p>
+                        )}
                       </div>
                     ) : (
-                      <div className="flex items-center gap-2 text-sm text-slate-500">
-                        <AlertTriangle className="h-4 w-4 shrink-0 text-amber-500" />
-                        Section &ldquo;{s.input}&rdquo;
-                        {/* T-278: only the API's signed note; the page adds no text of its own. */}
-                        {s.note && <> — {s.note}</>}
+                      <div>
+                        <div className="flex items-center gap-2 text-sm text-slate-500">
+                          <AlertTriangle className="h-4 w-4 shrink-0 text-amber-500" />
+                          {/* T-383: the API's display form, never the raw token ("400-BNS"). */}
+                          Section {s.display ?? s.input}
+                          {/* T-278: only the API's signed note; the page adds no text of its own. */}
+                          {s.note && <> — {s.note}</>}
+                        </div>
+                        {/* T-361 AC4: Ajay's reminder for a bare number, from the API as is. */}
+                        {s.codeReminder && (
+                          <p className="mt-1 text-xs text-slate-500">{s.codeReminder}</p>
+                        )}
                       </div>
                     )}
                   </div>

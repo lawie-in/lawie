@@ -11,6 +11,7 @@ import { z } from 'zod';
 
 import { authenticate } from '../middleware/authenticate';
 import { LedgerConflictError, LedgerFullError } from '../services/fact-ledger.service';
+import { isTemplateEnabled, TEMPLATE_NOT_FOUND } from '../services/feature-switches';
 import {
   applyAnswers,
   INTAKE_LIMITS,
@@ -98,13 +99,18 @@ const answersSchema = z.object({
 });
 
 // POST /documents/intake/answers — T-102. No model call, no quota, no cost.
-router.post('/intake/answers', authenticate, (req: Request, res: Response): void => {
+router.post('/intake/answers', authenticate, async (req: Request, res: Response): Promise<void> => {
   const parsed = answersSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({
       error: 'Invalid request',
       issues: parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`),
     });
+    return;
+  }
+  // T-375: a template hidden by its feature switch is not found.
+  if (!(await isTemplateEnabled(parsed.data.template_id, req.jwtPayload!.sub))) {
+    res.status(404).json(TEMPLATE_NOT_FOUND);
     return;
   }
   const result = applyAnswers({
@@ -292,6 +298,11 @@ router.post(
     const parsed = briefUpdateSchema.safeParse(req.body);
     if (!parsed.success) {
       invalid(res, parsed.error);
+      return;
+    }
+    // T-375: a kind hidden by its feature switch is not found, before the ledger is touched.
+    if (!(await isTemplateEnabled(parsed.data.kind, req.jwtPayload!.sub))) {
+      res.status(404).json(TEMPLATE_NOT_FOUND);
       return;
     }
     // T-147b: the ledger first, so a ledger that is not this user's changes nothing.

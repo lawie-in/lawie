@@ -57,8 +57,18 @@ import { listRulePackIds, loadRulePack } from '../services/rule-pack.service';
 import { decrypt, encrypt } from '../utils/encryption';
 import { missingAsBlanks as missingAsBlanksUtil } from '../utils/missingAsBlanks';
 import { ReviewToken } from '../models/ReviewToken.model';
-import { SdkStreamParams, sdkAnswer } from './sdkStream';
+import { SdkStreamParams, sdkAnswer, expectCachedSystem, systemText } from './sdkStream';
 
+// T-373: these tests drive the legacy (text-stream) path. The signed skeletons are on by default, so the
+// loader is pinned to null here; every lookup is counted so the last test can show the mock was reached.
+const mockSkeletonLookups: string[] = [];
+jest.mock('../services/rule-pack.service', () => ({
+  ...jest.requireActual('../services/rule-pack.service'),
+  loadSkeleton: (packId: string) => {
+    mockSkeletonLookups.push(packId);
+    return null;
+  },
+}));
 const mockMessagesStream = jest.fn();
 jest.mock('@anthropic-ai/sdk', () =>
   // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -114,7 +124,7 @@ const VALUES = [
 ];
 
 const BODY = [
-  "1. That the applicant Ram Kumar has approached this Hon'ble Court for regular bail. He is in custody in FIR No. 124/2026, the grounds are submitted below, he gives an undertaking, and no earlier bail application has been filed.",
+  "1. That the applicant Ram Kumar has approached this Hon'ble Court for regular bail. He is in custody in FIR No. 124/2026, the grounds are submitted below, he gives an undertaking, and the details of any earlier bail application are as the brief gives them.",
   '2. That FIR No. 124/2026 was registered at PS Kotwali.',
   '3. That the applicant is in judicial custody.',
 ].join('\n\n');
@@ -130,9 +140,9 @@ function mockModel(...contents: string[]) {
   for (const c of contents) mockMessagesStream.mockResolvedValueOnce(sdkAnswer(c, 4000, 800));
   return mockMessagesStream;
 }
-function callOf(n: number): { system: string; user: string } {
+function callOf(n: number): { system: unknown; user: string } {
   const p = mockMessagesStream.mock.calls[n][0] as SdkStreamParams;
-  return { system: p.system, user: p.messages[0].content };
+  return { system: p.system as unknown, user: p.messages[0].content };
 }
 function event(text: string, name: string): Record<string, unknown> | null {
   const blocks = text.split('\n\n').filter((b) => b.startsWith(`event: ${name}\n`));
@@ -283,7 +293,7 @@ describe('AC1: the Drafter call is built from the ledger and the skeleton only',
     expect(res.status).toBe(200);
 
     const { system, user } = callOf(0);
-    expect(system).toBe(DRAFTER_LEDGER_SYSTEM_PROMPT);
+    expectCachedSystem(system, DRAFTER_LEDGER_SYSTEM_PROMPT);
     expect(user).toContain('FACTS:');
     for (const s of [SENT_BRIEF, SENT_DESC, SENT_SPAN, SENT_VALUE]) expect(user).not.toContain(s);
     for (const s of ['"described"', '"raw_span"', '"values"', 'BRIEF:']) {
@@ -342,7 +352,13 @@ describe('AC1: the Drafter call is built from the ledger and the skeleton only',
     mockModel(drafterAnswer());
     await draft(id);
     const f = factsOf(callOf(0).user);
-    expect(f.facts.map((x) => x.key)).toEqual(['applicant_name']);
+    // T-245a part 2: the law switch's computed facts (Addenda 1 and 2) are added per request;
+    // with no choice they are the both-forms blanks. The ledger's own facts are still only the one.
+    expect(f.facts.map((x) => x.key)).toEqual([
+      'applicant_name',
+      'governing_provision',
+      'notice_provision',
+    ]);
     expect(f.facts[0].display).toBe('Only Ledger Name');
   });
 });
@@ -1004,7 +1020,7 @@ describe('switch off', () => {
     expect(without.status).toBe(200);
     expect(withId.status).toBe(200);
     expect(callOf(1)).toEqual(callOf(0));
-    expect(callOf(0).system).toBe(DRAFTER_PACK_SYSTEM_PROMPT);
+    expectCachedSystem(callOf(0).system, DRAFTER_PACK_SYSTEM_PROMPT);
     expect(callOf(0).user).toContain('BRIEF:');
     expect(callOf(0).user).not.toMatch(/AVERMENTS ALLOWED|BANNED ASSERTIONS|FACTS:/);
     const d = await LawieDocument.findById(event(withId.text, 'done')!.docId as string).lean();
@@ -1023,16 +1039,16 @@ describe('switch off', () => {
   it('switch on but no ledger_id: the old path', async () => {
     mockModel(drafterAnswer());
     await draft(undefined);
-    expect(callOf(0).system).toBe(DRAFTER_PACK_SYSTEM_PROMPT);
+    expectCachedSystem(callOf(0).system, DRAFTER_PACK_SYSTEM_PROMPT);
   });
 
-  it('switch on for other users only: this user gets the old path', async () => {
+  it('a user-id list is treated as the default (off): the old path for everyone', async () => {
     await AppSetting.updateOne({ key: 'feature.fact_ledger' }, { value: OTHER_USER_ID });
     _clearAppSettingsCache();
     const id = await ledger(baseFacts());
     mockModel(drafterAnswer());
     expect((await draft(id)).status).toBe(200);
-    expect(callOf(0).system).toBe(DRAFTER_PACK_SYSTEM_PROMPT);
+    expectCachedSystem(callOf(0).system, DRAFTER_PACK_SYSTEM_PROMPT);
   });
 });
 
@@ -1104,7 +1120,7 @@ describe('the repair pass on the ledger path', () => {
     expect(res.status).toBe(200);
     expect(mockMessagesStream).toHaveBeenCalledTimes(2);
     const repair = callOf(1);
-    expect(repair.system).toBe(DRAFTER_LEDGER_REPAIR_SYSTEM_PROMPT);
+    expectCachedSystem(repair.system, DRAFTER_LEDGER_REPAIR_SYSTEM_PROMPT);
     expect(repair.user).toContain('FACTS:');
     expect(repair.user).toContain(`MISSING: ${missingClause}`);
     for (const s of [SENT_BRIEF, SENT_DESC, SENT_SPAN, SENT_VALUE, 'BRIEF:', '"described"']) {
@@ -1411,12 +1427,21 @@ describe('switch off: end to end, generate-from-brief is unchanged', () => {
     await draft(undefined, { described: `d ${SENT_DESC}` });
     await draft(id, { described: `d ${SENT_DESC}` });
     const [a, b] = [callOf(0), callOf(1)];
-    expect(Buffer.from(b.system).equals(Buffer.from(a.system))).toBe(true);
+    expect(Buffer.from(systemText(b.system)).equals(Buffer.from(systemText(a.system)))).toBe(true);
+    expect(JSON.stringify(b.system)).toBe(JSON.stringify(a.system));
     expect(Buffer.from(b.user).equals(Buffer.from(a.user))).toBe(true);
-    expect(a.system).toBe(DRAFTER_PACK_SYSTEM_PROMPT);
+    expectCachedSystem(a.system, DRAFTER_PACK_SYSTEM_PROMPT);
     // The old path reads the brief and the description, as before.
     expect(a.user).toContain(SENT_BRIEF);
     expect(a.user).toContain('BRIEF:');
     expect(a.user).not.toContain('{{MISSING');
+  });
+});
+
+describe('T-373: this suite ran the legacy path', () => {
+  it('the skeleton loader was consulted and returned null, so d1SkeletonFor gave null and the drafts above took the legacy text stream', () => {
+    // If the loader mock were removed, bail packs would take D1 (messages.parse) and this stays 0 or the
+    // tests above fail; either way the mock is not silently load-bearing.
+    expect(mockSkeletonLookups.length).toBeGreaterThan(0);
   });
 });

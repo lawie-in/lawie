@@ -36,6 +36,7 @@ import {
   Value,
 } from './briefTypes';
 import CourtPicker from './CourtPicker';
+import InkCostLine, { inkCostState } from './InkCostLine';
 import {
   card,
   h1,
@@ -60,6 +61,87 @@ import ValueInput from './ValueInput';
 const DESCRIPTION_IS_USED =
   'Your description is used in full, together with this brief. If anything in it is wrong, or should not be in the draft, change the description before you generate.';
 
+/** T-372: the line under Confirm saying what the draft costs (now in InkCostLine, T-388). */
+export { formatInkCost } from './InkCostLine';
+
+/** T-372: id of the Ink cost line, which describes the confirm button. */
+export const INK_COST_ID = 'brief-confirm-ink-cost';
+
+/**
+ * T-363 AC1: the two buttons under T-192's B2 line, exactly as Ajay signed
+ * them (T-363, Addendum 1, item 4). Do not reword.
+ */
+export const DATE_CHECK_CONTINUE = 'Continue with these dates';
+export const DATE_CHECK_CHANGE = 'Change the dates';
+
+/** T-363 AC1: id of the B2 block, which describes the confirm button while it waits. */
+export const DATE_CHECK_ID = 'brief-date-check';
+
+/** T-363 AC1: the s.138 dates B2 is about, in the order they are offered to change. */
+const DATE_CHECK_KEYS = ['memo_received_date', 'notice_sent_date'];
+
+function lastKeySegment(key: string): string {
+  const at = key.lastIndexOf('.');
+  return at < 0 ? key : key.slice(at + 1);
+}
+
+/** T-365: the choices that write no fact, folded as the service folds them (T-190). */
+const NOT_KNOWN_ANSWERS = new Set(['not known', 'not given']);
+
+/** T-365: case, spacing and punctuation folded, as the service's `foldAnswer`. */
+function foldAnswer(v: string): string {
+  return v
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim();
+}
+
+/**
+ * T-365 AC2: the option an item answered "Not known" shows as chosen. The
+ * service sends such an item with no value and `asked_empty`, so without this
+ * its row looks empty and unanswered.
+ */
+export function notKnownOption(item: BriefItem): string | undefined {
+  if (!item.asked_empty || (item.kind !== 'choice' && item.kind !== 'choices')) return undefined;
+  return item.options.find((o) => NOT_KNOWN_ANSWERS.has(foldAnswer(o)));
+}
+
+/**
+ * T-365 AC2: what a row answered with no fact ("Not known", "none") shows, so a
+ * row the advocate answered never looks empty. A choice shows the option that
+ * was chosen; a typed field shows the words given. A date field cannot show
+ * words, so it gives nothing here: `isNotKnownDate` flags it instead and the
+ * row shows a "Not known" chip (T-384). Undefined when the item is not
+ * `asked_empty`.
+ */
+export function askedEmptyValue(item: BriefItem, answer?: Value): Value | undefined {
+  if (!item.asked_empty) return undefined;
+  const said = typeof answer === 'string' ? answer : Array.isArray(answer) ? answer[0] : undefined;
+  if (item.kind === 'choice' || item.kind === 'choices') {
+    const folded = said === undefined ? undefined : foldAnswer(said);
+    // With no matching answer, fall back only when one option alone writes no
+    // fact: with both "Not known" and "Not given" the answer cannot be guessed.
+    const noFact = item.options.filter((o) => NOT_KNOWN_ANSWERS.has(foldAnswer(o)));
+    const option =
+      (folded !== undefined ? item.options.find((o) => foldAnswer(o) === folded) : undefined) ??
+      (noFact.length === 1 ? noFact[0] : undefined);
+    if (option === undefined) return undefined;
+    return item.kind === 'choices' ? [option] : option;
+  }
+  if (item.kind === 'date' || said === undefined || said.trim() === '') return undefined;
+  return said;
+}
+
+/**
+ * T-384: a date row the advocate answered "Not known" (or "Not given"). A date
+ * input cannot show words, so the row shows a "Not known" chip in its place.
+ */
+export function isNotKnownDate(item: BriefItem, answer?: Value): boolean {
+  if (!item.asked_empty || item.kind !== 'date') return false;
+  const said = typeof answer === 'string' ? answer : Array.isArray(answer) ? answer[0] : undefined;
+  return said !== undefined && NOT_KNOWN_ANSWERS.has(foldAnswer(said));
+}
+
 /** Long text and rows of choices take the full width of the card. */
 const WIDE = new Set(['narrative', 'list', 'choice', 'choices']);
 
@@ -74,13 +156,7 @@ type RowStatus =
   | { kind: 'failed'; typed: Value };
 
 /** T-147b, section 3: the advocate's own words, under the field they explain. */
-function Reveal({
-  id,
-  lines,
-}: {
-  id: string;
-  lines: string[];
-}) {
+function Reveal({ id, lines }: { id: string; lines: string[] }) {
   return (
     <div
       id={id}
@@ -110,6 +186,7 @@ function Item({
   needed,
   blocksConfirm,
   onCommit,
+  askedAnswer,
 }: {
   item: BriefItem;
   /** T-147b: the fact ledger, when the service sent one. */
@@ -119,32 +196,48 @@ function Item({
   /** True when Confirm waits for this field while it is empty (T-139): a party's name on a court document. */
   blocksConfirm: boolean;
   onCommit: (value: Value) => void | Promise<EditOutcome | null>;
+  /** T-365 AC2: the advocate's answer, when the service sent this item as `asked_empty`. */
+  askedAnswer?: Value;
 }) {
   const id = fieldId(item.key);
   const entry = ledgerEntryOf(ledger, item.key);
   const onLedger = ledger !== null && entry.type !== undefined;
   const [status, setStatus] = useState<RowStatus | null>(null);
   const [open, setOpen] = useState(false);
+  // T-365 AC2: answered "Not known" or "none", with no fact placed since.
+  const notKnown =
+    isEmptyValue(item.value) && !entry.fact ? askedEmptyValue(item, askedAnswer) : undefined;
+  // T-384: a date answered "Not known" shows a chip, so it is neither blank nor "To be asked".
+  const notKnownDate = isEmptyValue(item.value) && !entry.fact && isNotKnownDate(item, askedAnswer);
 
   // T-147b: the row renders from the ledger. With no fact and nothing outstanding,
   // the brief's own value shows as before.
   const shown: Value | null =
     status && 'typed' in status && status.kind !== 'saving'
       ? status.typed
-      : entry.fact
-        ? fieldValueOf(item, entry.fact)
-        : entry.unresolved
-          ? null
-          : item.value;
+      : notKnown !== undefined
+        ? notKnown
+        : entry.fact
+          ? fieldValueOf(item, entry.fact)
+          : entry.unresolved
+            ? null
+            : item.value;
   const empty = isEmptyValue(shown);
   const heading = item.kind === 'date' && item.meaning ? item.meaning : item.label;
-  const toBeAsked = onLedger && entry.unresolved !== undefined && !entry.fact;
+  const toBeAsked =
+    onLedger &&
+    entry.unresolved !== undefined &&
+    !entry.fact &&
+    notKnown === undefined &&
+    !notKnownDate;
   // A required fact, or one an edited description left unclear (T-150), shows its blank.
-  const showBlank = empty && (item.required || item.reask === true || toBeAsked);
-  const pleaseCheck = onLedger && entry.fact
-    ? entry.fact.source === 'user' || item.note !== undefined
-    : item.please_check;
-  const required = ledger !== null && (item.required || blocksConfirm || entry.fact?.required_in_draft === true);
+  const showBlank = empty && !notKnownDate && (item.required || item.reask === true || toBeAsked);
+  const pleaseCheck =
+    onLedger && entry.fact
+      ? entry.fact.source === 'user' || item.note !== undefined
+      : item.please_check;
+  const required =
+    ledger !== null && (item.required || blocksConfirm || entry.fact?.required_in_draft === true);
   const badRead = status?.kind === 'unreadable';
   // These sit on top of the shared field look, so they are marked important.
   const look =
@@ -180,7 +273,10 @@ function Item({
       ? factLines(entry.fact)
       : null
     : toBeAsked && entry.unresolved
-      ? [spanLine(revealLabel(entry.unresolved.source, false), entry.unresolved.raw_span), entry.unresolved.detail]
+      ? [
+          spanLine(revealLabel(entry.unresolved.source, false), entry.unresolved.raw_span),
+          entry.unresolved.detail,
+        ]
       : null;
   const revealButtonLabel = entry.fact
     ? revealLabel(entry.fact.source, entry.fact.previous_display !== undefined)
@@ -264,6 +360,8 @@ function Item({
           className={look}
           placeholder={showBlank ? 'Not given' : undefined}
           words={entry.type === 'amount'}
+          notKnownDate={notKnownDate}
+          notKnownLabel={heading}
           describedBy={
             [
               required ? `${id}-required` : '',
@@ -410,6 +508,12 @@ export default function BriefStep({
   onEditDescription,
   onCancel,
   onConfirm,
+  confirmDescribedBy,
+  inkCost,
+  inkCostLoading = false,
+  onInkCostRetry,
+  inkCostKind,
+  askedAnswers,
 }: {
   brief: Brief;
   /** T-147b: the fact ledger, when the service sent one. Rows render from it. */
@@ -437,9 +541,28 @@ export default function BriefStep({
   onEditDescription: () => void;
   onCancel: () => void;
   onConfirm: () => void;
+  /** T-343: aria-describedby for the confirm (generate) button, e.g. the privacy P7 box. */
+  confirmDescribedBy?: string;
+  /** T-372: the template's Ink cost, shown under the confirm button when positive. */
+  inkCost?: number;
+  /** T-388: the cost is being fetched. */
+  inkCostLoading?: boolean;
+  /** T-388: fetches the cost again when it could not be worked out. */
+  onInkCostRetry?: () => void;
+  /** T-388: the document kind id, for the Sentry report only (defaults to the brief's kind). */
+  inkCostKind?: string;
+  /** T-365 AC2: the advocate's answers to the items sent as `asked_empty`, by key. */
+  askedAnswers?: Record<string, Value>;
 }) {
   const [dismissed, setDismissed] = useState<string[]>([]);
   const [name, setName] = useState(brief.kind.name);
+  // T-363 AC1: the B2 line the advocate chose to continue with. A changed line
+  // (the dates were edited) asks again.
+  const [datesAcceptedFor, setDatesAcceptedFor] = useState<string | null>(null);
+  const dateCheck = brief.date_check;
+  const datesHeld = dateCheck !== undefined && datesAcceptedFor !== dateCheck.text;
+  const canConfirm = brief.can_confirm && !datesHeld;
+  const dateCheckContinue = useRef<HTMLButtonElement>(null);
   // The service may tidy the name. What it sends back is what is shown.
   useEffect(() => {
     setName(brief.kind.name);
@@ -453,8 +576,19 @@ export default function BriefStep({
   const itemKeys = new Set(brief.items.map((i) => i.key));
   const ledgerFacts = ledger ? renderedLedgerFacts(ledger) : [];
   const otherFacts = ledger ? ledger.facts.filter((f) => !itemKeys.has(f.key)) : [];
-  const outstanding = ledger ? ledger.unresolved.filter((u) => !ledger.facts.some((f) => f.key === u.key)) : [];
+  const outstanding = ledger
+    ? ledger.unresolved.filter((u) => !ledger.facts.some((f) => f.key === u.key))
+    : [];
   const nothingRead = ledger !== null && ledgerFacts.length === 0 && outstanding.length === 0;
+  // T-372 / T-388: the Ink cost slot (loading, "Uses N Ink" or the notice)
+  // always describes the confirm button. Confirm charges, so it waits for a
+  // known cost (Arjun); like its other blockers it stays aria-disabled only.
+  const costKnown = inkCostState(inkCost, inkCostLoading) === 'known';
+  const confirmOff = !canConfirm || !costKnown;
+  const confirmDescribedByIds =
+    [confirmDescribedBy, INK_COST_ID, datesHeld ? DATE_CHECK_ID : undefined]
+      .filter(Boolean)
+      .join(' ') || undefined;
 
   // T-147b, section 9: coming back from the questions opened here, focus the block's
   // heading. When the last item was answered the block is gone, and focus stays put.
@@ -477,8 +611,31 @@ export default function BriefStep({
     el?.focus();
   };
 
+  // T-363 AC1: "Change the dates" goes to the first of the dates B2 is about.
+  const changeDates = () => {
+    const item =
+      DATE_CHECK_KEYS.map((k) => brief.items.find((i) => lastKeySegment(i.key) === k)).find(
+        (i) => i !== undefined,
+      ) ?? brief.items.find((i) => i.kind === 'date');
+    if (item) focusField(item.key);
+  };
+
   const focusFirstBlocker = () => {
+    // T-363 AC1: the court and the parties come first, as before; then the dates.
+    if (brief.can_confirm && datesHeld) {
+      dateCheckContinue.current?.scrollIntoView({ block: 'center' });
+      dateCheckContinue.current?.focus();
+      return;
+    }
     if (courtNeeded) {
+      // T-411: a consumer complaint asks for the Commission level first.
+      const levelGroup = document.querySelector('[aria-labelledby="brief-court-level-label"]');
+      if (levelGroup && !levelGroup.querySelector('[aria-checked="true"]')) {
+        const chip = levelGroup.querySelector<HTMLElement>('[role="radio"][tabindex="0"]');
+        chip?.scrollIntoView({ block: 'center' });
+        chip?.focus();
+        return;
+      }
       const el = ['brief-court-state', 'brief-court-type', 'brief-court-court']
         .map((id) => document.getElementById(id) as HTMLSelectElement | null)
         .find((s) => s && !s.disabled && s.value === '');
@@ -542,8 +699,7 @@ export default function BriefStep({
 
       {nothingRead && (
         <p className="bg-brand-page text-brand-navy mt-4 rounded-lg p-3 text-sm">
-          We did not find any details in your description. Add them below, or edit your
-          description.
+          We did not find any details in your description. Add them below, or edit your description.
         </p>
       )}
 
@@ -596,7 +752,12 @@ export default function BriefStep({
               Court
             </h2>
             <p className={`${small} mb-3`}>You choose this. We never fill it in.</p>
-            <CourtPicker court={brief.court} onChange={onCourt} missing={courtNeeded} />
+            <CourtPicker
+              court={brief.court}
+              onChange={onCourt}
+              missing={courtNeeded}
+              templateId={brief.kind.id ?? undefined}
+            />
           </section>
         )}
 
@@ -628,6 +789,7 @@ export default function BriefStep({
                     }
                     blocksConfirm={brief.kind.court_document && item.party_name && item.required}
                     onCommit={(v) => onValue(item, v)}
+                    askedAnswer={askedAnswers?.[item.key]}
                   />
                 ))}
               </div>
@@ -759,6 +921,30 @@ export default function BriefStep({
         </section>
       )}
 
+      {dateCheck && (
+        <section
+          id={DATE_CHECK_ID}
+          aria-label="Check the dates"
+          className="bg-brand-error-light text-brand-error mt-4 rounded-lg p-3 text-sm"
+        >
+          <p className="font-semibold">{dateCheck.text}</p>
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+            <button
+              ref={dateCheckContinue}
+              type="button"
+              aria-pressed={!datesHeld}
+              onClick={() => setDatesAcceptedFor(dateCheck.text)}
+              className={secondaryButton}
+            >
+              {DATE_CHECK_CONTINUE}
+            </button>
+            <button type="button" onClick={changeDates} className={secondaryButton}>
+              {DATE_CHECK_CHANGE}
+            </button>
+          </div>
+        </section>
+      )}
+
       {!brief.can_confirm && brief.confirm_message && (
         <button
           type="button"
@@ -800,18 +986,31 @@ export default function BriefStep({
             Cancel
           </button>
         </div>
-        <button
-          type="button"
-          onClick={brief.can_confirm ? onConfirm : focusFirstBlocker}
-          aria-disabled={!brief.can_confirm || busy || confirming}
-          disabled={busy || confirming}
-          className={`${primaryButton} ${brief.can_confirm ? '' : 'opacity-40'}`}
-        >
-          {(busy || confirming) && (
-            <Loader2 size={16} className="animate-spin" aria-hidden="true" />
-          )}
-          Confirm brief and continue
-        </button>
+        <div className="flex flex-col items-stretch gap-1 sm:items-end">
+          <button
+            type="button"
+            // T-388: with an unknown cost nothing starts and focus does not move;
+            // the notice in the cost slot says why.
+            onClick={!canConfirm ? focusFirstBlocker : costKnown ? onConfirm : undefined}
+            aria-disabled={confirmOff || busy || confirming}
+            aria-describedby={confirmDescribedByIds}
+            disabled={busy || confirming}
+            className={`${primaryButton} ${confirmOff ? 'opacity-40' : ''}`}
+          >
+            {(busy || confirming) && (
+              <Loader2 size={16} className="animate-spin" aria-hidden="true" />
+            )}
+            Confirm brief and continue
+          </button>
+          <InkCostLine
+            id={INK_COST_ID}
+            cost={inkCost}
+            loading={inkCostLoading}
+            onRetry={onInkCostRetry}
+            kind={inkCostKind ?? brief.kind.id ?? 'unknown'}
+            action="confirm"
+          />
+        </div>
       </div>
     </div>
   );

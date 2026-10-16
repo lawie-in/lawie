@@ -1,13 +1,12 @@
 {
   "template_id": "consumer_complaint",
-  "display_name": "Consumer Complaint (District Commission)",
+  "display_name": "Consumer Complaint",
   "category": "civil",
-  "description": "Consumer complaint under Section 35 of the Consumer Protection Act, 2019 before District Commission",
+  "description": "Consumer complaint under the Consumer Protection Act, 2019, before the District, State or National Consumer Disputes Redressal Commission",
   "icon": "alert-triangle",
   "plan_access": "free",
   "applicable_courts": {
     "court_levels": [
-      "district_court",
       "consumer_commission"
     ],
     "states": [
@@ -51,7 +50,7 @@
           },
           {
             "field_id": "court_name",
-            "label": "Forum Name",
+            "label": "Consumer Commission",
             "type": "dropdown_search",
             "source": "courts_db.courts",
             "filtered_by": [
@@ -259,24 +258,24 @@
         "section_id": "cause_title",
         "type": "template",
         "alignment": "center",
-        "template": "BEFORE THE DISTRICT CONSUMER DISPUTES REDRESSAL COMMISSION\nAT {court_city}\n\nConsumer Complaint No. _____ of {current_year}\n\nIN THE MATTER OF:\n\n{applicant_name}\nS/o / W/o {father_name}\nAge: {applicant_age} years\nR/o {address}\n                                              ... Complainant\n\nVersus\n\n{respondent_name}\n                                              ... Opposite Party"
+        "template": "{court_header}\n\n{case_nomenclature}\n\nIN THE MATTER OF:\n\n{applicant_name}\nS/o / W/o {father_name}\nAge: {applicant_age} years\nR/o {address}\n                                              ... Complainant\n\nVersus\n\n{respondent_name}\n                                              ... Opposite Party"
       },
       {
         "section_id": "complaint_heading",
         "type": "template",
         "alignment": "center",
-        "template": "CONSUMER COMPLAINT UNDER SECTION 35 OF THE CONSUMER PROTECTION ACT, 2019"
+        "template": "{complaint_heading_text}"
       },
       {
         "section_id": "addressing_clause",
         "type": "template",
         "alignment": "left",
-        "template": "TO,\nTHE HONOURABLE PRESIDENT AND MEMBERS,\nDISTRICT CONSUMER DISPUTES REDRESSAL COMMISSION,\n{court_city}\n\nMOST RESPECTFULLY SHOWETH:"
+        "template": "TO,\nTHE HONOURABLE PRESIDENT AND MEMBERS,\n{court_designation},\n{court_city}\n\nMOST RESPECTFULLY SHOWETH:"
       },
       {
         "section_id": "body",
         "type": "ai_generated",
-        "prompt_context": "Generate 8-12 numbered paragraphs for a Consumer Complaint under Section 35 of the Consumer Protection Act, 2019. Structure:\nPara 1: Introduce the complainant — {applicant_name}, S/o {father_name}, aged {applicant_age} years, R/o {address} — as a 'consumer' within the meaning of Section 2(7) CPA 2019. Use these EXACT identity details as provided; do NOT invent or substitute any party name, parentage, age, or address.\nPara 2: Identify the Opposite Party and their business.\nPara 3-6: Narrate the facts chronologically — purchase/service, defect/deficiency, attempts to resolve: {deficiency_details}. Mention Invoice No. {invoice_number}, dated {purchase_date}, amount Rs. {consideration_amount}/- paid via {payment_mode}.\nPara 7: Establish that the Opposite Party's conduct amounts to 'deficiency in service' (Section 2(11)) and/or 'defect' (Section 2(10)) and constitutes an 'unfair trade practice' (Section 2(47)).\nPara 8: Territorial jurisdiction: {territorial_basis}\nPara 9: Pecuniary jurisdiction: {pecuniary_basis}. NOTE: Per CPA (Jurisdiction) Notification dated 21 December 2021, District Commission has jurisdiction where value of goods/services paid as consideration does NOT EXCEED Rs. 50 Lakh. State Commission: above Rs. 50 Lakh up to Rs. 2 Crore. National Commission: above Rs. 2 Crore. Do NOT use the old Section 34(1) limits (Rs. 1 Crore) — those were superseded by this notification.\nPara 10: Limitation: {limitation_basis}\nPara 11: State that the complainant is entitled to refund, compensation for mental agony and harassment (Rs. {compensation_claimed}/-), and litigation costs (Rs. {litigation_cost}/-).\nDo NOT generate the prayer or verification — those are template-handled.",
+        "prompt_context": "Generate 8-12 numbered paragraphs for a Consumer Complaint under the Consumer Protection Act, 2019. Structure:\nPara 1: Introduce the complainant — {applicant_name}, S/o {father_name}, aged {applicant_age} years, R/o {address} — as a 'consumer' within the meaning of Section 2(7) CPA 2019. Use these EXACT identity details as provided; do NOT invent or substitute any party name, parentage, age, or address.\nPara 2: Identify the Opposite Party and their business.\nPara 3-6: Narrate the facts chronologically — purchase/service, defect/deficiency, attempts to resolve: {deficiency_details}. Mention Invoice No. {invoice_number}, dated {purchase_date}, amount Rs. {consideration_amount}/- paid via {payment_mode}.\nPara 7: Establish that the Opposite Party's conduct amounts to 'deficiency in service' (Section 2(11)) and/or 'defect' (Section 2(10)) and constitutes an 'unfair trade practice' (Section 2(47)).\nPara 8: Territorial jurisdiction: {territorial_basis}\nPara 9: Pecuniary jurisdiction: {pecuniary_basis}. NOTE: Per the Consumer Protection (Jurisdiction of the District Commission, the State Commission and the National Commission) Rules, 2021, District Commission has jurisdiction where value of goods/services paid as consideration does NOT EXCEED Rs. 50 Lakh. State Commission: above Rs. 50 Lakh up to Rs. 2 Crore. National Commission: above Rs. 2 Crore. Do NOT use the old Section 34(1) limits (Rs. 1 Crore) — those were superseded by these Rules.\nPara 10: Limitation: {limitation_basis}\nPara 11: State that the complainant is entitled to refund, compensation for mental agony and harassment (Rs. {compensation_claimed}/-), and litigation costs (Rs. {litigation_cost}/-).\nDo NOT generate the prayer or verification — those are template-handled.",
         "numbering": "numeric",
         "min_paragraphs": 8,
         "max_paragraphs": 12
@@ -291,18 +290,18 @@
         "section_id": "verification",
         "type": "template",
         "alignment": "left",
-        "template": "VERIFICATION\n\nI, {applicant_name}, the Complainant herein above named, do hereby verify that the contents of paragraphs 1 to {body_para_count} of the above complaint are true and correct to the best of my knowledge and belief, and nothing material has been concealed therefrom.\n\nVerified at {court_city} on this _____ day of _________, {current_year}.\n\n\n_________________________\n{applicant_name}\n(Complainant)"
+        "template": "VERIFICATION\n\nI, {applicant_name}, the Complainant herein above named, do hereby verify that the contents of paragraphs 1 to {body_para_count} of the above complaint are true and correct to the best of my knowledge and belief, and nothing material has been concealed therefrom.\n\nVerified at {place} on this _____ day of _________, {current_year}.\n\n\n_________________________\n{applicant_name}\n(Complainant)"
       },
       {
         "section_id": "advocate_block",
         "type": "template",
         "alignment": "right",
-        "template": "THROUGH:\n\n_________________________\n{advocate_name}\nAdvocate\nEnrollment No. {enrollment_number}\n\nPlace: {court_city}\nDate: {current_date}"
+        "template": "THROUGH:\n\n_________________________\n{advocate_name}\nAdvocate\nEnrollment No. {enrollment_number}\n\nPlace: {place}\nDate: {current_date}"
       }
     ]
   },
   "related_acts": [
-    "Consumer Protection Act 2019 — Sections 2, 34, 35, 38, 39, 69 (Pecuniary per 21 Dec 2021 Notification: District Commission up to Rs.50 Lakh, State Commission Rs.50L-2Cr, National Commission above Rs.2Cr)",
+    "Consumer Protection Act 2019 — Sections 2, 34, 35, 38, 39, 69 (Pecuniary per the Consumer Protection (Jurisdiction of the District Commission, the State Commission and the National Commission) Rules, 2021: District Commission up to Rs.50 Lakh, State Commission Rs.50L-2Cr, National Commission above Rs.2Cr)",
     "CPC Order VII Rule 1"
   ],
   "special_prayer_additions": [],

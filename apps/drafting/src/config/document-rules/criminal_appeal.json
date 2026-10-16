@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. Time-bar check is jurisdictional."
   },
   "template_id": "criminal_appeal",
+  "card_description": "A criminal appeal under the BNSS against a conviction, acquittal or sentence.",
   "docType": "criminal_appeal",
   "title": "Criminal Appeal under BNSS",
   "displayName": "Criminal Appeal (S.415-419 BNSS)",
@@ -278,20 +279,21 @@
       "Para 8: GROUNDS OF APPEAL — itemised (a, b, c, d…) — each ground a single contention.",
       "Para 9: Errors in appreciation of evidence: (i) PW-1 testimony — contradictions, infirmities, motive to falsely implicate, prior inconsistent statements u/S.180 / S.181 BNSS; (ii) PW-2 etc.; (iii) Documentary evidence — admissibility, authenticity, contents; (iv) Material objects — chain of custody.",
       "Para 10: Errors of law: (a) misapplication of BNS section — ingredients not satisfied; (b) misapplication of BSA provisions — presumptions wrongly drawn; (c) procedural illegalities — non-compliance with S.180 BNSS statements, non-furnishing of chargesheet documents, denial of fair trial.",
-      "Para 11: Witness reliability principles — for accused appeal: Cite K. Ponnuswamy v. State of Tamil Nadu (2001) 6 SCC 674 — proof beyond reasonable doubt mandatory; Cite Sharad Birdhichand Sarda v. State of Maharashtra (1984) 4 SCC 116 — circumstantial evidence — five golden principles.",
-      "Para 12: Burden and standard of proof — for accused: Cite Sujit Biswas v. State of Assam (2013) 12 SCC 406 — distinction between 'may be' and 'must be'.",
-      "Para 13: Benefit of doubt — Cite Hari Charan Kurmi v. State of Bihar AIR 1964 SC 1184 — confessions and benefit of doubt; Manoj v. State of MP (2023) — recent principles.",
-      "Para 14: For State / complainant appeal against acquittal — higher threshold: Cite Chandrappa v. State of Karnataka (2007) 4 SCC 415 — five principles for appellate interference with acquittal; presumption of innocence reinforced; only if view of trial court 'perverse' or 'impossible'. Cite Rajesh Singh v. State of UP (2011) 11 SCC 444. Cite Mallappa v. State of Karnataka (2024) — recent reiteration.",
+      "Para 11: Witness reliability principles — for accused appeal: proof beyond reasonable doubt mandatory; circumstantial evidence — five golden principles.",
+      "Para 12: Burden and standard of proof — for accused: distinction between 'may be' and 'must be'.",
+      "Para 13: Benefit of doubt — confessions and benefit of doubt.",
+      "Para 14: For State / complainant appeal against acquittal — higher threshold: five principles for appellate interference with acquittal; presumption of innocence reinforced; only if view of trial court 'perverse' or 'impossible'.",
       "Para 15: For complainant appeal: S.419(4) BNSS requires leave to appeal — must specifically seek leave at admission.",
-      "Para 16: Sentence-only appeal — Cite Bachan Singh v. State of Punjab (1980) 2 SCC 684 (death sentence — rarest of rare); Machhi Singh v. State of Punjab (1983) 3 SCC 470; for non-capital — Soman v. State of Kerala (2013) 11 SCC 382 (proportionality principles); reformative approach for first offenders; mitigating circumstances.",
+      "Para 16: Sentence-only appeal — death sentence — rarest of rare; for non-capital — proportionality principles; reformative approach for first offenders; mitigating circumstances.",
       "Para 17: Death sentence reference — automatic confirmation by HC under S.407 BNSS (was S.366 CrPC); appellant typically files appeal separately.",
-      "Para 18: Suspension of sentence — file separate application under S.430 BNSS (was S.389 CrPC). Cite Bhagwan Rama Shinde Gosai v. State of Gujarat (1999) 4 SCC 421 — principles for suspension of sentence pending appeal.",
+      "Para 18: Suspension of sentence — file separate application under S.430 BNSS (was S.389 CrPC). Principles for suspension of sentence pending appeal.",
       "Para 19: Bail pending appeal — relate to suspension application.",
       "Documents to enclose: certified copy of judgment, certified copy of sentence order, full trial court record (or appellant's set), index of witnesses, list of exhibits.",
       "Filing process: Where appellant in custody, appeal can be filed through Superintendent of Jail (S.428 BNSS — was S.383 CrPC).",
       "For young / first-time advocates: keep grounds focused — pick 5-8 strongest grounds rather than 30 generic ones.",
       "Affidavit in support is mandatory.",
-      "Append Lawie disclaimer."
+      "Append Lawie disclaimer.",
+      "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
   "relevantActs": [

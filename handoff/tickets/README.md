@@ -9,9 +9,23 @@ Local ticket files, one per ticket. Founder decision on 3 Oct 2026: no Jira or N
 - These files still hold the full detail of each ticket.
 - Founder rule, 8 Oct 2026: Priya owns the Status line in every `T-*.md`. Each time a ticket's state changes (building, PR open, merged, done), Priya updates that line, and only that line, in the branch the ticket lives on. The dev lead commits and pushes.
 
+## Follow-ups and the parked list (Arjun, 14 Oct 2026)
+
+- Only a **must-fix** becomes a new ticket: a user-visible bug, wrong money/Ink/data, a security issue, or something Ajay says is legally wrong.
+- Every other "should" from a reviewer or Ajay either goes into the current ticket (if the lead can take it in the same chain without extending the claim) or becomes one line in `handoff/tickets/parked.md`. Priya owns that file.
+- A reviewer's should-fix never fails a review on its own.
+- Priya and Arjun go through the parked list once a week. Most of it dies there.
+- Close or park: superseded, pre-v1 scope, or unassigned and untouched for 3+ days. Arjun confirms each batch.
+- The number reported to the founder is **open tickets that are v1-scoped and assigned**, not the raw open count.
+
+## What ships when
+
+`handoff/tickets/v1-scope.md` labels every open ticket **V1** (before launch), **V1.1** (soon after) or **later** (enhancements). Priya owns it; Arjun and Ajay confirm; the founder has the last word.
+
 ## Branch flow (founder, 11 Oct 2026)
 
 - Cut every ticket branch from `develop_staging`. Merge finished work back into `develop_staging`.
+- Exception: Drafting v2 tickets (T-458 to T-467) are cut from and merged into `develop_staging_v2`, never `develop_staging`. Only the founder merges `develop_staging_v2` anywhere. They do not start before T-403 (rule: `.claude/docs/multi-lead.md`, "Drafting v2 branch").
 - Nobody on the team opens a PR to `develop` or merges into it. The founder merges `develop_staging` into `develop`, normally at night.
 - `main` is still production. "Merged to develop" in a Status line below, from before 11 Oct, is history; new work reads "Merged to develop_staging".
 

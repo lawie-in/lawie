@@ -2,8 +2,10 @@ import './setupDb';
 import crypto from 'crypto';
 import mongoose from 'mongoose';
 import request from 'supertest';
+import { CURRENT_PRIVACY_VERSION } from '@lawie/shared';
 import { User } from '../models/User.model';
 import { Subscription } from '../models/Subscription.model';
+import { SubscriptionCreateLock } from '../models/SubscriptionCreateLock.model';
 import * as subscriptionService from '../services/subscription.service';
 
 // Mock Razorpay SDK
@@ -12,6 +14,7 @@ jest.mock('../config/razorpay', () => ({
     subscriptions: {
       create: jest.fn(),
       fetch: jest.fn(),
+      cancel: jest.fn(),
     },
   },
 }));
@@ -29,6 +32,8 @@ function internalHeaders(payload: {
   name: string;
   plan?: string;
   role?: string;
+  /** T-343: the gateway sets this from the pv claim; POST /subscribe and /topup/order need the current one. */
+  privacyVersion?: string;
 }) {
   return {
     'x-internal-secret': INTERNAL_SECRET,
@@ -37,7 +42,17 @@ function internalHeaders(payload: {
     'x-user-name': payload.name,
     'x-user-plan': payload.plan ?? 'free',
     'x-user-role': payload.role ?? 'Client',
+    'x-user-privacy-version': payload.privacyVersion ?? CURRENT_PRIVACY_VERSION,
   };
+}
+
+/**
+ * T-223 AC5: POST /subscribe and POST /topup/order need a verified user in the DB for the
+ * x-user-id they send. Seeds one (emailVerified true) and returns its id.
+ */
+async function seedVerifiedUser(email: string): Promise<string> {
+  const user = await User.create({ email, plan: 'free', emailVerified: true });
+  return user._id.toString();
 }
 
 describe('Billing Routes', () => {
@@ -93,7 +108,7 @@ describe('Billing Routes', () => {
     });
 
     it('returns 400 for unknown SKU', async () => {
-      const userId = new mongoose.Types.ObjectId().toString();
+      const userId = await seedVerifiedUser('topup@test.com');
       const headers = internalHeaders({ sub: userId, email: 'topup@test.com', name: 'Test' });
       const res = await request(app).post('/topup/order').set(headers).send({ skuId: 'topup_999' });
       expect(res.status).toBe(400);
@@ -101,7 +116,7 @@ describe('Billing Routes', () => {
     });
 
     it('creates a razorpay order for valid SKU', async () => {
-      const userId = new mongoose.Types.ObjectId().toString();
+      const userId = await seedVerifiedUser('topup@test.com');
       const headers = internalHeaders({ sub: userId, email: 'topup@test.com', name: 'Test' });
 
       // Mock razorpay.orders.create
@@ -118,7 +133,7 @@ describe('Billing Routes', () => {
     });
 
     it('returns 500 when razorpay order creation fails', async () => {
-      const userId = new mongoose.Types.ObjectId().toString();
+      const userId = await seedVerifiedUser('topup@test.com');
       const headers = internalHeaders({ sub: userId, email: 'topup@test.com', name: 'Test' });
 
       (razorpay as any).orders = {
@@ -149,7 +164,7 @@ describe('Billing Routes', () => {
     });
 
     it('creates subscription and returns payment link with valid headers', async () => {
-      const userId = new mongoose.Types.ObjectId().toString();
+      const userId = await seedVerifiedUser('test@example.com');
       const headers = internalHeaders({ sub: userId, email: 'test@example.com', name: 'Test' });
 
       (razorpay.subscriptions.create as jest.Mock).mockResolvedValue({
@@ -165,8 +180,96 @@ describe('Billing Routes', () => {
       expect(res.body.data.shortUrl).toBe('https://rzp.io/route-test');
     });
 
+    it.each(['active', 'pending', 'halted', 'paused'] as const)(
+      'T-444: returns 409 subscription_exists for a %s sub, with the existing sub data',
+      async (status) => {
+        (razorpay.subscriptions.create as jest.Mock).mockClear();
+        const userId = await seedVerifiedUser('live@example.com');
+        const headers = internalHeaders({ sub: userId, email: 'live@example.com', name: 'Live' });
+        const paidThrough = new Date('2027-01-15T10:00:00.000Z');
+        await Subscription.create({
+          userId,
+          razorpaySubscriptionId: 'sub_live_route',
+          status,
+          planId: 'solo_monthly',
+          paidThrough,
+        });
+
+        const res = await request(app).post('/subscribe').set(headers);
+
+        expect(res.status).toBe(409);
+        expect(res.body).toEqual({
+          error: 'subscription_exists',
+          status,
+          planId: 'solo_monthly',
+          paidThrough: paidThrough.toISOString(),
+        });
+        expect(razorpay.subscriptions.create).not.toHaveBeenCalled();
+      },
+    );
+
+    it('T-444: a created sub is reused (200) with its own planId', async () => {
+      const userId = await seedVerifiedUser('created@example.com');
+      const headers = internalHeaders({ sub: userId, email: 'created@example.com', name: 'C' });
+      await Subscription.create({
+        userId,
+        razorpaySubscriptionId: 'sub_created_route',
+        status: 'created',
+        planId: 'solo_monthly',
+      });
+      (razorpay.subscriptions.fetch as jest.Mock).mockResolvedValue({
+        id: 'sub_created_route',
+        short_url: 'https://rzp.io/created-route',
+      });
+
+      const res = await request(app).post('/subscribe').set(headers);
+
+      expect(res.status).toBe(200);
+      expect(res.body.data).toEqual({
+        subscriptionId: 'sub_created_route',
+        shortUrl: 'https://rzp.io/created-route',
+        planId: 'solo_monthly',
+      });
+    });
+
+    it('T-444c: returns 409 subscription_in_progress when the create lock is held, with no Razorpay call', async () => {
+      (razorpay.subscriptions.create as jest.Mock).mockClear();
+      const userId = await seedVerifiedUser('inprogress@example.com');
+      const headers = internalHeaders({ sub: userId, email: 'inprogress@example.com', name: 'I' });
+      await SubscriptionCreateLock.create({ userId });
+
+      const res = await request(app).post('/subscribe').set(headers);
+
+      expect(res.status).toBe(409);
+      expect(res.body).toEqual({ error: 'subscription_in_progress' });
+      expect(razorpay.subscriptions.create).not.toHaveBeenCalled();
+    });
+
+    it('T-444c: returns 503 try_again when the Razorpay cancel of a lapsed sub fails; old sub unchanged', async () => {
+      (razorpay.subscriptions.create as jest.Mock).mockClear();
+      const userId = await seedVerifiedUser('cancelfail@example.com');
+      const headers = internalHeaders({ sub: userId, email: 'cancelfail@example.com', name: 'C' });
+      await Subscription.create({
+        userId,
+        razorpaySubscriptionId: 'sub_lapsed_route',
+        status: 'halted',
+        paidThrough: new Date(Date.now() - 86_400_000),
+      });
+      (razorpay.subscriptions.cancel as jest.Mock).mockRejectedValueOnce(new Error('rzp 500'));
+      (razorpay.subscriptions.fetch as jest.Mock).mockRejectedValueOnce(new Error('rzp 500'));
+
+      const res = await request(app).post('/subscribe').set(headers);
+
+      expect(res.status).toBe(503);
+      expect(res.body).toEqual({ error: 'try_again' });
+      expect(razorpay.subscriptions.create).not.toHaveBeenCalled();
+      const old = await Subscription.findOne({ razorpaySubscriptionId: 'sub_lapsed_route' }).lean();
+      expect(old!.status).toBe('halted');
+      expect(await SubscriptionCreateLock.countDocuments({ userId })).toBe(0);
+    });
+
     it('returns 500 when subscription creation throws', async () => {
-      const userId = new mongoose.Types.ObjectId().toString();
+      const userId = await seedVerifiedUser('test@example.com');
       const headers = internalHeaders({ sub: userId, email: 'test@example.com', name: 'Test' });
       (razorpay.subscriptions.create as jest.Mock).mockRejectedValueOnce(
         new Error('Razorpay down'),
@@ -243,7 +346,7 @@ describe('Billing Routes', () => {
       expect(res.body.error).toBe('Invalid signature');
     });
 
-    it('returns 200 even when async handler rejects', async () => {
+    it('returns 500 when the handler rejects, so Razorpay retries', async () => {
       jest
         .spyOn(subscriptionService, 'handleWebhookEvent')
         .mockRejectedValueOnce(new Error('handler boom'));
@@ -257,10 +360,34 @@ describe('Billing Routes', () => {
         .set('x-razorpay-signature', signature)
         .send(body);
 
+      expect(res.status).toBe(500);
+      expect(res.body).toEqual({ error: 'Internal Server Error' });
+    });
+
+    it('T-444: an unknown subscription event or status returns 200 and changes nothing', async () => {
+      const user = await User.create({ email: 'unknown-ev@test.com', plan: 'free' });
+      await Subscription.create({
+        userId: user._id,
+        razorpaySubscriptionId: 'sub_unknown_ev',
+        status: 'active',
+      });
+      const body = JSON.stringify({
+        event: 'subscription.frobnicated',
+        payload: { subscription: { entity: { id: 'sub_unknown_ev', status: 'frobnicated' } } },
+      });
+      const signature = crypto.createHmac('sha256', WEBHOOK_SECRET).update(body).digest('hex');
+
+      const res = await request(app)
+        .post('/webhook/razorpay')
+        .type('json')
+        .set('x-razorpay-signature', signature)
+        .send(body);
+
       expect(res.status).toBe(200);
       expect(res.body.status).toBe('ok');
-      // give the async catch a tick to execute
-      await new Promise((r) => setTimeout(r, 20));
+      expect(
+        (await Subscription.findOne({ razorpaySubscriptionId: 'sub_unknown_ev' }))!.status,
+      ).toBe('active');
     });
 
     it('returns 200 and processes valid webhook event', async () => {

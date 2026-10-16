@@ -7,6 +7,7 @@
     "notes": "Service Agreement / Independent Contractor / Consulting Agreement. Distinguish from employment via control test (Dharangadhara Chemical Works v. Workmen AIR 1957 SC 264). No employer-employee relation. GST applies on service supply. TDS u/s 194J / 194C on payments."
   },
   "template_id": "service_agreement",
+  "card_description": "An agreement for services by a contractor or service provider.",
   "title": "Service / Independent Contractor Agreement",
   "category": "corporate",
   "creditsCost": 1,
@@ -71,7 +72,7 @@
       "clause_id": "independent_contractor",
       "title": "Independent Contractor Relationship",
       "must_appear": true,
-      "content": "The Service Provider is engaged as an independent contractor and not as an employee, agent, partner, or joint venturer of the Client. No employer-employee relationship is created. The Service Provider is responsible for own income tax, social security, and all statutory dues. Reference: Dharangadhara Chemical Works v. Workmen AIR 1957 SC 264 (control test)."
+      "content": "The Service Provider is engaged as an independent contractor and not as an employee, agent, partner, or joint venturer of the Client. No employer-employee relationship is created. The Service Provider is responsible for own income tax, social security, and all statutory dues."
     },
     { "clause_id": "no_authority", "title": "No Authority to Bind", "must_appear": true },
     {
@@ -159,7 +160,7 @@
     }
   ],
   "prompt_context": {
-    "system_role": "You are drafting an Indian service / independent contractor agreement. Critical: maintain independent contractor framing - no employer-employee features. Apply control test thinking from Dharangadhara Chemical Works.",
+    "system_role": "You are drafting an Indian service / independent contractor agreement. Critical: maintain independent contractor framing - no employer-employee features. Apply control test thinking.",
     "drafting_rules": [
       "Independent contractor clause MUST be prominent. Avoid features that suggest employment (no fixed hours, no leave, no PF/ESI, fees not 'salary').",
       "IP vesting in Client is market standard for work-for-hire.",
@@ -169,10 +170,12 @@
       "Liability cap typical: fees paid in trailing 12 months.",
       "Carve-out from liability cap: confidentiality, IP infringement, indemnification, gross negligence, wilful misconduct.",
       "Avoid 'employee benefits' language entirely.",
-      "Termination for convenience common with 15-30 day notice.",
-      "Reference Dharangadhara Chemical Works v. Workmen for control test if relationship is challenged."
+      "Termination for convenience common with 15-30 day notice."
     ],
-    "tone": "Formal commercial-legal, clear delineation from employment."
+    "tone": "Formal commercial-legal, clear delineation from employment.",
+    "promptInstructions": [
+      "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
+    ]
   },
   "relevantActs": [
     { "act": "Indian Contract Act 1872" },

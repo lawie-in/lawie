@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. Rent control vs TPA distinction is non-negotiable — wrong forum is fatal."
   },
   "template_id": "plaint_eviction",
+  "card_description": "A plaint in a suit to evict a tenant from premises.",
   "docType": "plaint_eviction",
   "title": "Plaint — Suit for Ejectment / Eviction (TPA-based, Non-Rent-Controlled)",
   "displayName": "Plaint for Ejectment (TPA S.106/111)",
@@ -293,7 +294,7 @@
       "Para 6: WHY rent control NOT applicable — premises exempted by rent / area / type / age etc., cite the specific exemption provision of the state act.",
       "Para 7: Ground of eviction — choose appropriate: (a) Termination of month-to-month tenancy by 15-day notice u/s 106 TPA; (b) Expiry of fixed-term lease; (c) Forfeiture u/s 111(g) TPA on breach of express condition (with forfeiture clause); (d) Forfeiture on denial of landlord's title; (e) Determination by efflux of time u/s 111(a).",
       "Para 8: Notice to quit u/s 106 TPA. POST-2003 AMENDMENT: notice is 15 days for all leases (residential/commercial) terminating with end of month of tenancy. For agricultural and manufacturing tenancies, 6 months ending with year of tenancy. Notice must be in writing, signed by landlord/agent, served by registered post or in person. PROVISO: notice no longer rendered invalid merely by procedural defects if substance and intent clear (S.106(3) — 2003 amendment).",
-      "Cite: Aero Traders v. Ravinder Kumar (2014) 9 SCC 153 — notice substantial compliance post-amendment.",
+      "Notice substantial compliance post-amendment.",
       "Para 9: Plead tender / refusal of possession by tenant after notice expiry.",
       "Para 10: Rent arrears (if any) and mesne profits — Order XX R.12 CPC — court may award mesne profits up to delivery of possession.",
       "Para 11: Cause of action — date of expiry of notice / refusal.",
@@ -302,7 +303,8 @@
       "Para 14: Valuation and court fee — state Schedule (typically annual rent or 1.5x annual rent for ejectment).",
       "Para 15: Prayer for: (i) ejectment; (ii) recovery of arrears; (iii) mesne profits; (iv) interest u/s 34; (v) costs.",
       "Where lease is registered, suit can be filed in regular civil court. Where in Small Causes Courts area (Bombay/Calcutta/Madras/Hyderabad), Small Causes Court has exclusive jurisdiction for premises possession suits up to certain valuation.",
-      "Append Lawie disclaimer."
+      "Append Lawie disclaimer.",
+      "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
   "relevantActs": [

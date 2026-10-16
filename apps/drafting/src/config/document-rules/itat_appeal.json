@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. Form 36 schema strictly per ITAT Rules 1963."
   },
   "template_id": "itat_appeal",
+  "card_description": "An appeal before the Income Tax Appellate Tribunal under Section 253 of the Income-tax Act, 1961.",
   "docType": "itat_appeal",
   "title": "Appeal under Section 253 of the Income-tax Act, 1961 before the Income Tax Appellate Tribunal",
   "displayName": "ITAT Appeal (S.253 IT Act)",
@@ -268,10 +269,10 @@
       "   (iii) CIT(A) erred in confirming disallowance under S.40(a)(ia) / S.43B;",
       "   (iv) CIT(A) erred in confirming Transfer Pricing adjustment under S.92CA;",
       "   (v) CIT(A) erred in confirming penalty under S.270A / S.271(1)(c);",
-      "   (vi) CIT(A) erred in confirming reassessment under S.147 / S.148 — Cite GKN Driveshafts (India) Ltd v. ITO (2003) 259 ITR 19 (SC); Ashish Agarwal v. Union of India (2022) — TOLA / S.148A safeguards;",
+      "   (vi) CIT(A) erred in confirming reassessment under S.147 / S.148 — TOLA / S.148A safeguards;",
       "   (vii) CIT(A) erred in not granting credit for TDS / advance tax;",
-      "   (viii) CIT(A) erred in confirming charge of interest under S.234A / 234B / 234C — Cite CIT v. Anjum M.H. Ghaswala (2002) 252 ITR 1 (SC);",
-      "   (ix) Where revision under S.263 — challenge: (a) AO order not 'erroneous' and 'prejudicial to revenue', (b) Pr.CIT did not give adequate hearing — Cite Malabar Industrial Co v. CIT (2000) 243 ITR 83 (SC).",
+      "   (viii) CIT(A) erred in confirming charge of interest under S.234A / 234B / 234C;",
+      "   (ix) Where revision under S.263 — challenge: (a) AO order not 'erroneous' and 'prejudicial to revenue', (b) Pr.CIT did not give adequate hearing.",
       "Para 6: Statement of facts — concise: AO order > S.250 appeal to CIT(A) > impugned order. Append both AO and CIT(A) orders.",
       "Para 7: Liberty to add / alter / amend grounds — standard clause.",
       "Para 8: Court fee per S.253(6):",
@@ -279,14 +280,15 @@
       "   - Total income > ₹1,00,000 but ≤ ₹2,00,000: ₹1,500;",
       "   - Total income > ₹2,00,000: 1% of assessed income subject to maximum ₹10,000;",
       "   - Other matters (penalty etc.): ₹500.",
-      "Para 9: Stay application — if recovery of demand likely, separate stay application under Rule 35A ITAT Rules 1963 + S.254(2A). Stay limited to 365 days unless delay not attributable to assessee — Cite Pepsi Foods Ltd v. ACIT (2021) 6 SCC 480 (Constitution Bench struck down third proviso to S.254(2A)).",
+      "Para 9: Stay application — if recovery of demand likely, separate stay application under Rule 35A ITAT Rules 1963 + S.254(2A). Stay limited to 365 days unless delay not attributable to assessee (the Supreme Court struck down the third proviso to S.254(2A)).",
       "Para 10: Additional evidence — Rule 29 ITAT Rules permits only in limited circumstances: where Tribunal requires it, where AO refused without sufficient cause, where evidence not available despite due diligence.",
       "Para 11: Cross-objections — Form 36A. May be filed by respondent within 30 days of service of notice of appeal. Treated as appeal even if main appeal is later withdrawn.",
       "Para 12: Where transfer pricing — S.144C(13) appeals come post-AO order; S.253(1)(d).",
       "Para 13: Appeal to HC under S.260A within 120 days from receipt of ITAT order — substantial question of law only.",
       "Annexures: (i) copy of CIT(A) order, (ii) copy of AO order, (iii) copy of grounds before CIT(A), (iv) copy of return + computation, (v) other documents referred in grounds. Two complete sets typically + extra copies as per ITAT rules.",
       "Verification: per Form 36 — by appellant if individual; by Karta if HUF; by partner if firm; by principal officer / authorised signatory if company.",
-      "Append Lawie disclaimer."
+      "Append Lawie disclaimer.",
+      "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
   "relevantActs": [
@@ -301,7 +303,7 @@
         { "number": "S.253(5)", "description": "Condonation of delay" },
         { "number": "S.253(6)", "description": "Court fee schedule" },
         { "number": "S.254", "description": "Orders of ITAT" },
-        { "number": "S.254(2A)", "description": "Stay of demand — proviso (Pepsi Foods)" },
+        { "number": "S.254(2A)", "description": "Stay of demand — proviso" },
         { "number": "S.255", "description": "ITAT procedure + bench composition" },
         {
           "number": "S.260A",

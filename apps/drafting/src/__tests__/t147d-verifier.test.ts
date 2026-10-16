@@ -60,8 +60,18 @@ import { DRAFTER_FACT_REPAIR_SYSTEM_PROMPT } from '../services/drafter.prompts';
 import { buildChecklist } from '../services/intake-brief';
 import { loadRulePack } from '../services/rule-pack.service';
 import { decrypt } from '../utils/encryption';
-import { SdkStreamParams, sdkAnswer } from './sdkStream';
+import { SdkStreamParams, sdkAnswer, expectCachedSystem, systemText } from './sdkStream';
 
+// T-373: these tests drive the legacy (text-stream) path. The signed skeletons are on by default, so the
+// loader is pinned to null here; every lookup is counted so the last test can show the mock was reached.
+const mockSkeletonLookups: string[] = [];
+jest.mock('../services/rule-pack.service', () => ({
+  ...jest.requireActual('../services/rule-pack.service'),
+  loadSkeleton: (packId: string) => {
+    mockSkeletonLookups.push(packId);
+    return null;
+  },
+}));
 const mockMessagesStream = jest.fn();
 jest.mock('@anthropic-ai/sdk', () =>
   // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -492,6 +502,22 @@ describe('check 3: mutation / wrong fact', () => {
   it("a date that is nobody's, cued to a fact, is a mutation of that fact, not a nameless unsupported", () => {
     const body = RB_CLEAN.replace('since 13 September 2026', 'since 14 September 2026');
     const vs = verifyDraft(inputOf(RB, body));
+    expect(
+      vs.some(
+        (v) => v.check === 'mutation' && v.ledgerKey === 'custody_since' && v.reason === 'differs',
+      ),
+    ).toBe(true);
+  });
+
+  it.each([
+    ['remand 14 September 2026'],
+    ['custody w.e.f. 14.09.2026'],
+    ['on 14th September, 2026'],
+  ])('T-453: a wrong date still flagged when the span carries a label (%s)', (labelled) => {
+    const body = RB_CLEAN.replace('since 13 September 2026', `since ${labelled}`);
+    expect(body).not.toBe(RB_CLEAN);
+    const vs = verifyDraft(inputOf(RB, body));
+    expect(vs.length).toBeGreaterThan(0);
     expect(
       vs.some(
         (v) => v.check === 'mutation' && v.ledgerKey === 'custody_since' && v.reason === 'differs',
@@ -1389,7 +1415,7 @@ const VALUES = [
 
 // T-200: paragraph 1, where every clause is reported, carries each clause's cue words
 const CUES =
-  ' He is in custody in FIR No. 124/2026, the grounds are submitted below, he gives an undertaking, and no earlier bail application has been filed.';
+  ' He is in custody in FIR No. 124/2026, the grounds are submitted below, he gives an undertaking, and the details of any earlier bail application are as the brief gives them.';
 const CLEAN = [
   `1. That the applicant Ram Kumar has approached this Hon'ble Court for regular bail.${CUES}`,
   '2. That FIR No. 124/2026 was registered at PS Kotwali.',
@@ -1421,9 +1447,9 @@ function mockModel(...contents: string[]) {
   mockMessagesStream.mockReset();
   for (const c of contents) mockMessagesStream.mockResolvedValueOnce(sdkAnswer(c, 4000, 800));
 }
-function callOf(n: number): { system: string; user: string } {
+function callOf(n: number): { system: unknown; user: string } {
   const p = mockMessagesStream.mock.calls[n][0] as SdkStreamParams;
-  return { system: p.system, user: p.messages[0].content };
+  return { system: p.system as unknown, user: p.messages[0].content };
 }
 function event(text: string, name: string): Record<string, any> | null {
   const blocks = text.split('\n\n').filter((b) => b.startsWith(`event: ${name}\n`));
@@ -1582,7 +1608,7 @@ describe('the route: the verifier sits between the Drafter and the advocate', ()
     expect(res.status).toBe(200);
     expect(mockMessagesStream).toHaveBeenCalledTimes(2);
     const { system, user } = callOf(1);
-    expect(system).toBe(DRAFTER_FACT_REPAIR_SYSTEM_PROMPT);
+    expectCachedSystem(system, DRAFTER_FACT_REPAIR_SYSTEM_PROMPT);
     expect(user).toContain('[[P0]]');
     expect(user).not.toContain('[[P1]]');
     expect(user).not.toContain('[[P2]]');
@@ -1716,7 +1742,7 @@ describe('AC8: the existing checks still run', () => {
     const res = await post(id);
     expect(res.status).toBe(200);
     expect(mockMessagesStream).toHaveBeenCalledTimes(2);
-    expect(callOf(1).system).not.toBe(DRAFTER_FACT_REPAIR_SYSTEM_PROMPT);
+    expect(systemText(callOf(1).system)).not.toBe(DRAFTER_FACT_REPAIR_SYSTEM_PROMPT);
     expect(event(res.text, 'done')!.factCheck).toEqual({ banner: null });
   });
 });
@@ -1749,7 +1775,8 @@ describe('switch off: the verifier is not there', () => {
     mockModel(answer(CLEAN), answer(CLEAN));
     await post();
     await post(id);
-    expect(callOf(1).system).toBe(callOf(0).system);
+    expect(callOf(1).system).toEqual(callOf(0).system);
+    expect(JSON.stringify(callOf(1).system)).toBe(JSON.stringify(callOf(0).system));
     expect(callOf(1).user).toBe(callOf(0).user);
   });
 
@@ -1968,5 +1995,13 @@ describe('check 4: undertakings are kept, past averments are stripped (empty led
   it('whole-word start: a word merely ending in "he" ("the cooperated ...") creates no "he ..." match', () => {
     const vs = bannedIn('That the cooperated with the police.');
     expect(vs.filter((v) => /^he\b/i.test(v.draftValue ?? ''))).toEqual([]);
+  });
+});
+
+describe('T-373: this suite ran the legacy path', () => {
+  it('the skeleton loader was consulted and returned null, so d1SkeletonFor gave null and the drafts above took the legacy text stream', () => {
+    // If the loader mock were removed, bail packs would take D1 (messages.parse) and this stays 0 or the
+    // tests above fail; either way the mock is not silently load-bearing.
+    expect(mockSkeletonLookups.length).toBeGreaterThan(0);
   });
 });

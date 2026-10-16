@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. Binding vs non-binding language must be UNAMBIGUOUS. Specifically carve out which clauses bind (typically confidentiality, exclusivity, dispute resolution, governing law)."
   },
   "template_id": "mou",
+  "card_description": "A Memorandum of Understanding recording what the parties intend to agree.",
   "docType": "mou",
   "title": "Memorandum of Understanding (MOU)",
   "displayName": "Memorandum of Understanding",
@@ -183,6 +184,14 @@
         "options": ["bihar", "jharkhand", "uttar_pradesh", "delhi", "other"]
       },
       {
+        "id": "execution_place",
+        "label": "Place of execution",
+        "type": "text",
+        "required": false,
+        "help": "City or town where the document will be signed.",
+        "ask_when_empty": true
+      },
+      {
         "id": "witness_1_name_address",
         "label": "Witness 1 name & address (optional but advised)",
         "type": "textarea",
@@ -338,9 +347,9 @@
       "Draft a MEMORANDUM OF UNDERSTANDING (MOU). An MOU is a PRE-CONTRACTUAL document recording mutual intent and key commercial terms during early-stage negotiations.",
       "TERMINOLOGY:\n   - MOU (Memorandum of Understanding): general pre-contractual; mostly non-binding except carve-outs.\n   - LOI (Letter of Intent): similar to MOU; often unilateral by acquirer / customer.\n   - Term Sheet: very brief; bullet-point commercial terms; almost always non-binding except confidentiality / exclusivity.\n   - Heads of Agreement / Heads of Terms: synonymous with term sheet.\n   - Memorandum of Agreement (MoA): tends to be more binding than MOU; closer to contract.",
       "BINDING vs NON-BINDING — CRITICAL DRAFTING POINT:",
-      "(1) In Indian law (Indian Contract Act 1872, S.10), what constitutes a contract is offer + acceptance + consideration + free consent + capacity + lawful object. If MOU meets these, courts will hold it binding regardless of label. Cite Kollipara Sriramulu v. T. Aswatha Narayana AIR 1968 SC 1028; Trimex International FZE v. Vedanta Aluminium (2010) 3 SCC 1.",
+      "(1) In Indian law (Indian Contract Act 1872, S.10), what constitutes a contract is offer + acceptance + consideration + free consent + capacity + lawful object. If MOU meets these, courts will hold it binding regardless of label.",
       "(2) Therefore, to keep MOU non-binding, language MUST be UNAMBIGUOUS:\n   - 'This MOU is non-binding and is subject to and conditional upon the parties entering into a definitive agreement on terms mutually acceptable to both parties.'\n   - 'No legally binding obligations shall arise from this MOU EXCEPT for the obligations expressly stated to be binding in [specified clauses].'\n   - 'Neither party shall have any liability to the other for failure to enter into a definitive agreement.'",
-      "(3) HOWEVER, courts have held MOUs binding where:\n   - Conduct of parties shows they treated it as binding (Suresh Kumar Wadhwa v. State of MP (2017) 16 SCC 757).\n   - Terms are sufficiently certain and no further substantive negotiation needed.\n   - Performance has commenced (e.g., transfer of money / assets).",
+      "(3) HOWEVER, courts have held MOUs binding where:\n   - Conduct of parties shows they treated it as binding.\n   - Terms are sufficiently certain and no further substantive negotiation needed.\n   - Performance has commenced (e.g., transfer of money / assets).",
       "(4) Common BINDING CARVE-OUTS in non-binding MOU:\n   (a) Confidentiality — protects information exchanged during negotiation.\n   (b) Exclusivity / Standstill — parties don't negotiate with others during MOU period.\n   (c) Costs — each party bears own costs.\n   (d) Governing law.\n   (e) Dispute resolution (relating to enforcement of binding clauses).\n   (f) Term of the MOU itself.\n   (g) Notices.",
       "STRUCTURE:",
       "Para 1: Title 'MEMORANDUM OF UNDERSTANDING'.",
@@ -370,7 +379,8 @@
       "Execution by both parties (authorised signatories with seal for entities).",
       "STAMP DUTY — MOU stamp duty:\n   - Generally low (Rs.100 to Rs.500 fixed) treating as agreement under Article 5 of state stamp schedule.\n   - HOWEVER, if MOU has binding commercial terms equivalent to contract (e.g., binding sale of property, binding investment) — Stamp Authority may scrutinise and demand higher duty.\n   - Where MOU touches on transfer of immovable property and creates rights — may attract registration under S.17 Registration Act read with S.53A TPA (part performance).",
       "Witnesses are OPTIONAL for MOU (no statutory requirement) but recommended for evidentiary value, especially where binding clauses important.",
-      "Append Lawie disclaimer."
+      "Append Lawie disclaimer.",
+      "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
   "relevantActs": [

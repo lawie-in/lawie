@@ -2,7 +2,7 @@
  * T-115a — saved case details (formInputs and the Fact Ledger) are stored
  * encrypted.
  *
- * A: the three generate paths store formInputsEnc and no plain case details.
+ * A: the generate paths (from-template, from-brief; the legacy /generate is 410 since T-443) store formInputsEnc and no plain case details.
  * B: annexures-pack reads a legacy plain doc and a new encrypted doc alike.
  * C: readFormInputs / openVersion on lean and hydrated rows, and every failure.
  * D: ledgers: new rows hold no plain facts; old, new and mixed rows read the same.
@@ -147,7 +147,7 @@ beforeEach(async () => {
   });
 });
 
-// ── A: the three generate paths ─────────────────────────────────────────────
+// ── A: the generate paths ─────────────────────────────────────────────
 
 const TEMPLATE_FORM = {
   fir_number: '124/2026',
@@ -225,7 +225,6 @@ function expectSealedChecklist(row: Record<string, unknown>, fir?: string) {
   expect(row).not.toHaveProperty('filingChecklist');
   expect(typeof row.filingChecklistEnc).toBe('string');
   const items = readFilingChecklist(row as FilingChecklistCarrier);
-  // The legacy route makes an empty checklist; it is still stored sealed.
   if (fir) {
     expect(items.length).toBeGreaterThan(0);
     expect(items.join('\n')).toContain(fir);
@@ -280,31 +279,16 @@ describe('T-115a AC1/AC4 A: a new document holds no plain case details', () => {
       expect(text).not.toContain(secret);
     }
     expectSealedChecklist(row, '555/2026');
-    expect(readRaw(row)).toEqual({ template_id: 'bail_regular', source: 'brief' });
-  });
-
-  it('POST /generate (legacy)', async () => {
-    mockMessagesStream.mockResolvedValue(sdkAnswer('1. The petitioner submits.', 400, 80));
-    const { row } = await rawDocAfter('/generate', {
-      docType: 'petition',
-      courtName: 'Patna High Court',
-      courtType: 'high_court',
-      partyDetails: { petitioner: 'Zorbaxx Legacy Petitioner' },
-      keyFacts: 'Zorbaxx legacy facts: the petitioner was denied a ration card without reason.',
-      reliefPrayer: 'Zorbaxx legacy relief: issue the ration card.',
-    });
-
-    expect(row).not.toHaveProperty('formInputs');
-    expect(typeof row.formInputsEnc).toBe('string');
-    const text = plainText(row);
-    expect(text).not.toContain('Zorbaxx');
-    expect(text).not.toContain('ration card');
-    expectSealedChecklist(row);
-    const back = readRaw(row)!;
-    expect(back).toMatchObject({
-      docType: 'petition',
-      partyDetails: { petitioner: 'Zorbaxx Legacy Petitioner' },
-      keyFacts: expect.stringContaining('Zorbaxx legacy facts'),
+    // T-381: the sealed inputs now hold the pack's party inputs, court_type, and (a State row) state.
+    expect(readRaw(row)).toEqual({
+      template_id: 'bail_regular',
+      source: 'brief',
+      applicant_name: 'Zorbaxx Brief Applicant',
+      father_name: 'Shri Quillon Brief Father',
+      applicant_age: '32',
+      address: '88 Wrenfield Brief Lane, Patna',
+      court_type: 'sessions',
+      state: 'Bihar',
     });
   });
 });
@@ -318,7 +302,8 @@ describe('T-115a AC1 B: annexures-pack reads legacy plain and new encrypted alik
     applicant_name: 'Zorbaxx Annexure Applicant',
   };
 
-  async function packFormData(docFields: Record<string, unknown>): Promise<unknown> {
+  /** Inserts a bail_regular draft row and posts the pack request. */
+  async function postPack(docFields: Record<string, unknown>) {
     mockBuildPack.mockResolvedValue(Buffer.from('%PDF'));
     const now = new Date();
     const ins = await rawDocs().insertOne({
@@ -333,9 +318,13 @@ describe('T-115a AC1 B: annexures-pack reads legacy plain and new encrypted alik
       updatedAt: now,
       ...docFields,
     });
-    const res = await request(app)
+    return request(app)
       .post(`/${String(ins.insertedId)}/annexures-pack`)
       .set(headers());
+  }
+
+  async function packFormData(docFields: Record<string, unknown>): Promise<unknown> {
+    const res = await postPack(docFields);
     expect(res.status).toBe(200);
     expect(mockBuildPack).toHaveBeenCalledTimes(1);
     return (mockBuildPack.mock.calls[0][0] as { formData: unknown }).formData;
@@ -363,8 +352,12 @@ describe('T-115a AC1 B: annexures-pack reads legacy plain and new encrypted alik
     expect(seen[1]).toBe(seen[0]);
   });
 
-  it('a row with neither field reads as empty case details', async () => {
-    expect(await packFormData({})).toEqual({});
+  it('a row with neither field reads as empty case details, so the pack refuses (T-381)', async () => {
+    // Empty details have no client name: 422, and nothing is rendered.
+    const res = await postPack({});
+    expect(res.status).toBe(422);
+    expect(res.body).toEqual({ error: 'party_details_missing', missing: ['client_role'] });
+    expect(mockBuildPack).not.toHaveBeenCalled();
   });
 });
 

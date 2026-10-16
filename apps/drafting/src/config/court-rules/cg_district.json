@@ -24,8 +24,8 @@
     "state": "State of Chhattisgarh through the Principal Secretary, Home Department, Government of Chhattisgarh, Raipur"
   },
   "case_nomenclature": {
-    "regular_bail": "M.Cr.C. (Bail) No. _____ of {year}",
-    "anticipatory_bail": "M.Cr.C. (A.B.) No. _____ of {year}",
+    "regular_bail": "Bail Application No. _____ of {year}",
+    "anticipatory_bail": "Anticipatory Bail Application No. _____ of {year}",
     "sessions_case": "S.T. No. _____ of {year}",
     "calendar_case": "Crl. Case No. _____ of {year}",
     "civil_suit": "Civil Suit No. _____ of {year}",

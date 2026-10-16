@@ -25,8 +25,8 @@
     "state": "Union Territory of Jammu and Kashmir through the Principal Secretary, Home Department, Government of UT of Jammu and Kashmir, Srinagar/Jammu (as applicable)"
   },
   "case_nomenclature": {
-    "regular_bail": "Bail Appl. No. _____ of {year}",
-    "anticipatory_bail": "Anticipatory Bail Appl. No. _____ of {year}",
+    "regular_bail": "Bail Application No. _____ of {year}",
+    "anticipatory_bail": "Anticipatory Bail Application No. _____ of {year}",
     "sessions_case": "Sessions Case No. _____ of {year}",
     "calendar_case": "Criminal Case No. _____ of {year}",
     "civil_suit": "Civil Suit No. _____ of {year}",

@@ -132,7 +132,7 @@ Verified at {place} on {date}.
 | litigation_expenses_claimed | Litigation expenses claimed | text | no | prayer |
 | affidavit_filed | Affidavit of assets, income, expenses and liabilities | select (Filed with this application; Not stated) | yes | affidavit clause |
 | earlier_proceedings | Earlier maintenance orders and other proceedings on this marriage (court, number, date, result) | textarea | no | disclosure |
-| advocate_name / advocate_enrolment | Advocate details | text | yes | signature block |
+| advocate_name / advocate_enrollment | Advocate details | text | yes | signature block |
 
 ## _averments
 
@@ -191,3 +191,5 @@ Reviewed by me after an independent review pass; the corrections are in this fil
 | A practising advocate checks the pack before it goes live | Condition |
 
 Signed: Ajay (CLO), 12 Oct 2026 IST. Any other wording comes back to me.
+
+13 Oct 2026, T-382: the field key `advocate_enrolment` is renamed to `advocate_enrollment`. This changes the key only; the wording and labels are unchanged (Ajay).

@@ -1,5 +1,9 @@
 # CFO Sign-off — credit-skus.ts
 
+> **Note (T-364):** subscription prices, cycles and Ink no longer live in `credit-skus.ts`; they come
+> from `PLANS` in `packages/shared/src/constants/ink.ts`, which `credit-skus.ts` maps into
+> `SUBSCRIPTION_PLANS`. Top-up SKUs still live in `credit-skus.ts`.
+
 **File:** `apps/billing/src/config/credit-skus.ts`
 **Signed off by:** Vikram (CFO)
 **Date:** 2026-05-12

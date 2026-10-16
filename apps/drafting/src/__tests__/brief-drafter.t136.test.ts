@@ -97,6 +97,8 @@ const BAIL_DESCRIBED =
 
 const BAIL_VALUES = [
   { key: 'applicant_name', value: 'Ramesh Mahto' },
+  // T-393: the relation is given, so the cause title prints it (never a default S/o).
+  { key: 'applicant_relation', value: 'Son of (S/o)' },
   { key: 'father_name', value: 'Shri Suresh Mahto' },
   { key: 'applicant_age', value: '34' },
   { key: 'address', value: 'Village Karmatand, PS Saraidhela, Dhanbad' },
@@ -266,7 +268,7 @@ describe('removeRepeatedParts (T-136, part 1 condition 4)', () => {
       BAIL_SYSTEM,
     ],
     ['a party name', 'before', (t) => t.replace('Ramesh Mahto', 'Rakesh Mahto'), BAIL_SYSTEM],
-    ['a date', 'before', (t) => t.replace('01.08.2026', '01.09.2026'), NOTICE_SYSTEM],
+    ['a date', 'before', (t) => t.replace('1 August 2026', '1 September 2026'), NOTICE_SYSTEM],
     ['an amount', 'after', (t) => t.replace(/Rs\. 500000/g, 'Rs. 600000'), NOTICE_SYSTEM],
     ['a section', 'before', (t) => t.replace('SECTION 483', 'SECTION 480'), BAIL_SYSTEM],
     [
@@ -304,6 +306,8 @@ describe('removeRepeatedParts (T-136, part 1 condition 4)', () => {
   });
 
   it('does not remove a block that differs only by a two-letter word or a sign ("S/o" vs "D/o")', () => {
+    // T-393: the fixture gives the relation, so the cause title prints S/o as given.
+    expect(BAIL_SYSTEM.before).toContain('S/o Shri Suresh Mahto');
     const changed = BAIL_SYSTEM.before.replace('S/o ', 'D/o ');
     expect(changed).not.toBe(BAIL_SYSTEM.before);
     const out = removeRepeatedParts(`${changed}\n\n${PARA_TEXT}`, BAIL_SYSTEM);
@@ -314,10 +318,10 @@ describe('removeRepeatedParts (T-136, part 1 condition 4)', () => {
   });
 
   it('does not remove a block that differs only by the word "No"', () => {
-    const changed = BAIL_SYSTEM.before.replace('Case No. ', 'Case ');
+    const changed = BAIL_SYSTEM.before.replace('Bail Application No. ', 'Bail Application ');
     expect(changed).not.toBe(BAIL_SYSTEM.before);
     const out = removeRepeatedParts(`${changed}\n\n${PARA_TEXT}`, BAIL_SYSTEM);
-    expect(out.body).toContain('Criminal Miscellaneous Case _____ of 2026');
+    expect(out.body).toContain('Bail Application _____ of 2026');
   });
 
   it('never removes a numbered paragraph, even one that repeats a system part word for word', () => {
@@ -520,7 +524,7 @@ describe('checkBriefIsUsed (C1, C2, D2)', () => {
       const doc = printed(CLEAN_BAIL.replace('13.09.2026', 'a later date'));
       expect(messagesFor(doc)).toEqual([
         signedFinding('C1', {
-          date: '13.09.2026',
+          date: '13 September 2026',
           'what it is the date of': item?.meaning ?? item?.label ?? '',
         }),
       ]);
@@ -563,7 +567,10 @@ describe('checkBriefIsUsed (C1, C2, D2)', () => {
       );
       const found = messagesFor(doc, null, withArrest);
       expect(found).toContain(
-        signedFinding('C1', { date: '12.09.2026', 'what it is the date of': 'Date of arrest' }),
+        signedFinding('C1', {
+          date: '12 September 2026',
+          'what it is the date of': 'Date of arrest',
+        }),
       );
       expect(found.some((m) => m.includes('13.09.2026'))).toBe(false);
     });
@@ -601,7 +608,9 @@ describe('checkBriefIsUsed (C1, C2, D2)', () => {
       const found = messagesFor(doc, 'In custody since 13th September 2026.');
       expect(found.some((m) => m.startsWith('Your description has a date'))).toBe(false);
       expect(
-        found.some((m) => m.startsWith('Your brief has a date the draft does not use: 13.09.2026')),
+        found.some((m) =>
+          m.startsWith('Your brief has a date the draft does not use: 13 September 2026'),
+        ),
       ).toBe(true);
     });
 

@@ -13,6 +13,7 @@ import app from './app';
 import { connectDatabase } from './config/database';
 import { env } from './config/env';
 import logger from './config/logger';
+import { startInvoiceSweep } from './services/invoice-sweep.service';
 
 async function bootstrap() {
   try {
@@ -21,6 +22,7 @@ async function bootstrap() {
       logger.info(`💳 Billing Service running on http://localhost:${env.PORT}`);
       logger.info(`   Environment: ${env.NODE_ENV}`);
     });
+    startInvoiceSweep(); // T-436: finish GST invoices left in 'issuing', at boot and every 5 min
   } catch (error) {
     logger.error({ error }, 'Failed to start billing service');
     process.exit(1);

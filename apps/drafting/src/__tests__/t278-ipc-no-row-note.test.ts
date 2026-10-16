@@ -1,13 +1,16 @@
 /**
  * T-278 - an auto-detected IPC number with no IPC table row (Ajay, CLO).
- * "999" must come back found:false with the signed NOT_IN_IPC_TABLE note, the same as "999-IPC",
- * and must never be looked up as a BNS section.
+ * "999" must come back found:false with the signed note, the same as "999-IPC", and must
+ * never be looked up as a BNS section.
+ * T-371 (Ajay, T-361 Addendum 1): the note for an IPC section with no table row is now
+ * NOT_VERIFIED, replacing NOT_IN_IPC_TABLE.
  */
 import './setupEnv';
 import fs from 'fs';
 import path from 'path';
 
-import { checkBailEligibility, NOT_IN_IPC_TABLE } from '../services/bail-check.service';
+import { checkBailEligibility } from '../services/bail-check.service';
+import { NOT_VERIFIED } from '../services/bns-offence-resolver';
 import {
   calculateTimeline,
   leftOutOfPeriodNote,
@@ -52,8 +55,8 @@ describe('T-278: auto-detected IPC with no table row', () => {
     expect(sections).toHaveLength(1);
     const s = sections[0];
     expect(s.found).toBe(false);
-    expect(s.note).toBe(NOT_IN_IPC_TABLE);
-    expect(s.note).toBe('Not found in the IPC table. Check the Gazette');
+    expect(s.note).toBe(NOT_VERIFIED);
+    expect(s.note).toBe('Not verified — check the Gazette');
     expect(s.offence).toBeNull();
     expect(s.bnsSection).toBe('');
     expect(s.ipcSection).toBe('999');
@@ -62,8 +65,13 @@ describe('T-278: auto-detected IPC with no table row', () => {
   it('"999" gives the same result as the explicit "999-IPC" (apart from the input text)', async () => {
     const auto = (await checkBailEligibility(['999'])).sections[0];
     const explicit = (await checkBailEligibility(['999-IPC'])).sections[0];
-    expect(explicit.note).toBe(NOT_IN_IPC_TABLE);
-    expect({ ...auto, input: '' }).toEqual({ ...explicit, input: '' });
+    expect(explicit.note).toBe(NOT_VERIFIED);
+    // T-361 AC4: only the bare number carries Ajay's code reminder.
+    expect(auto.codeReminder).toBe(
+      'Add the code before the number, for example BNS 351 or IPC 351.',
+    );
+    expect(explicit.codeReminder).toBeUndefined();
+    expect({ ...auto, codeReminder: undefined, input: '' }).toEqual({ ...explicit, input: '' });
   });
 
   it('"999" is undetermined in the summary, not a bailable/non-bailable verdict', async () => {
@@ -84,7 +92,7 @@ describe('T-278: auto-detected IPC with no table row', () => {
     missingRows.add('302');
     const s = (await checkBailEligibility(['302'])).sections[0];
     expect(s.found).toBe(false);
-    expect(s.note).toBe(NOT_IN_IPC_TABLE);
+    expect(s.note).toBe(NOT_VERIFIED);
     expect(s.offence).toBeNull();
     expect(s.bnsSection).toBe('');
     expect(s.ipcSection).toBe('302');

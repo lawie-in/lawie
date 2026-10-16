@@ -1,3 +1,8 @@
+/**
+ * @deprecated T-371 (ADR-025 D2): no service reads this collection any more. The
+ * section tables are served from the signed files in memory (services/signed-tables.ts).
+ * Kept for the seed script and old tests until it is removed.
+ */
 import mongoose, { Document, Schema } from 'mongoose';
 
 export type MappingType =

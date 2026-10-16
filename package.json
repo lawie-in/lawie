@@ -17,7 +17,7 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,js,json,md,yml}\"",
     "docker:up": "docker compose up --build",
     "docker:down": "docker compose down",
-    "prepare": "husky"
+    "prepare": "node .husky/install.mjs"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.3.0",

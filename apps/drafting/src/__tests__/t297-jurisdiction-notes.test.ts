@@ -11,7 +11,6 @@ import fs from 'fs';
 import path from 'path';
 
 import { checkBailEligibility } from '../services/bail-check.service';
-import { invalidateCache } from '../services/sections.service';
 
 const RULES_DIR = path.join(__dirname, '..', 'config', 'court-rules');
 
@@ -179,8 +178,6 @@ describe('T-297 AC2: signed text applied exactly', () => {
 });
 
 describe('T-297 AC3: BNSS 480/483 bail advice unchanged', () => {
-  afterEach(() => invalidateCache());
-
   it("['103'] (above 7 years) -> BNSS 483", async () => {
     const { summary } = await checkBailEligibility(['103']);
     expect(summary.bnssBailSection).toBe('483');

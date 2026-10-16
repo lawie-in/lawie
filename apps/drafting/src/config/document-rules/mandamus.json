@@ -7,6 +7,7 @@
     "review_notes": "Writ of mandamus under Art 226 (HC) / Art 32 (SC). Strict pre-conditions: existence of public statutory duty, clear legal right in petitioner, demand and refusal, no equally efficacious alternative remedy (subject to exceptions). Mansukhlal Vithaldas Chauhan v. State of Gujarat (1997) 7 SCC 622 is leading authority. Will not issue against private parties, discretionary functions, or to direct legislation."
   },
   "template_id": "mandamus",
+  "card_description": "A writ petition for mandamus directing an authority to perform its legal duty.",
   "title": "Writ Petition for Mandamus (Art. 226/32)",
   "category": "writ",
   "creditsCost": 2,
@@ -79,8 +80,7 @@
     "tone": "Constitutional writ — formal, precise on statutory duty, demand-and-refusal narrative.",
     "must_cite": [
       "Article 226 (HC) or Article 32 (SC) of the Constitution of India",
-      "Specific section of statute imposing public duty on respondent",
-      "Mansukhlal Vithaldas Chauhan v. State of Gujarat (1997) 7 SCC 622 — conditions for mandamus"
+      "Specific section of statute imposing public duty on respondent"
     ],
     "must_avoid": [
       "Seeking mandamus against private body without public function element",
@@ -99,6 +99,9 @@
       "8. Grounds",
       "9. Prayer",
       "10. Verification + affidavit + annexures"
+    ],
+    "promptInstructions": [
+      "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
   "relevantActs": [
@@ -121,7 +124,10 @@
     { "rule": "MUST identify specific statutory provision imposing duty", "severity": "blocker" },
     { "rule": "MUST plead demand and refusal/inaction", "severity": "blocker" },
     { "rule": "MUST address alternative remedy", "severity": "high" },
-    { "rule": "MUST cite Mansukhlal Vithaldas Chauhan or equivalent", "severity": "medium" },
+    {
+      "rule": "Grounds must show a public legal duty, a clear legal right of the petitioner, demand and refusal, and no equally efficacious alternative remedy",
+      "severity": "medium"
+    },
     { "rule": "Respondent MUST be public authority/officer", "severity": "blocker" },
     {
       "rule": "Disclaimer: Lawie is a drafting assistant; advocate is responsible for legal accuracy and filing.",

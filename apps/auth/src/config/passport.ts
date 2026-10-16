@@ -1,7 +1,13 @@
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 
-import { User, CURRENT_PRIVACY_VERSION, CURRENT_TERMS_VERSION } from '../models/User.model';
+import {
+  User,
+  CURRENT_PRIVACY_VERSION,
+  CURRENT_TERMS_VERSION,
+  privacySignupAcceptance,
+  privacySigninAcceptance,
+} from '../models/User.model';
 import { grantSignupBonus } from '../services/credit-bonus.service';
 import { discardOAuthUtm, getVerifiedOAuthState, takeOAuthUtm } from '../services/oauth-state';
 import { applyReferralCode } from '../services/referral.service';
@@ -107,12 +113,31 @@ export function initPassport(): void {
               user.set('passwordResetToken', undefined);
               user.set('passwordResetExpires', undefined);
               if (!user.name && profile.displayName) user.name = profile.displayName;
-              if (!user.termsAcceptedAt) user.set(googleTermsAcceptance());
+              if (!user.termsAcceptedAt) {
+                const acceptance = googleTermsAcceptance();
+                // T-343 (Ajay, round 5): only when the stamp changes privacyVersion, record it as
+                // a 'signin' acceptance with one history row. No row if it was already current.
+                const setsPrivacy = user.privacyVersion !== acceptance.privacyVersion;
+                user.set(acceptance);
+                if (setsPrivacy) {
+                  const signin = privacySigninAcceptance(acceptance.termsAcceptedAt);
+                  user.set(signin.set);
+                  user.set('privacyHistory', [...(user.privacyHistory ?? []), signin.row]);
+                }
+              }
               // Revoke before saving: if the revoke throws, nothing is saved and the next Google
               // sign-in comes through this branch again and retries it. Saving first would make a
               // failed revoke permanent (the googleId match would skip this branch).
               await deleteAllUserSessions(user._id.toString());
               await user.save();
+              // T-223 AC6: the linked googleId now counts as verified (T-351), so the sign-up
+              // bonus an unverified email user did not get is granted here. The
+              // signupBonusGrantedAt guard keeps it to one grant (a no-op if already granted).
+              // Non-blocking, like the new-user grant below: it never fails the OAuth callback.
+              const linkedUserId = user._id.toString();
+              void grantSignupBonus(linkedUserId).catch(() => {
+                logger.warn({ userId: linkedUserId }, 'Signup bonus after Google link failed');
+              });
             } else {
               // 3. Brand-new user — create account.
               // T-242 — sign-up source, taken (read + deleted) from Redis under the verified
@@ -128,6 +153,9 @@ export function initPassport(): void {
                 plan: 'free',
                 docCount: 0,
                 ...googleTermsAcceptance(),
+                // T-343 (Ajay §4) — new account only: privacyAcceptedAt, via 'signup' and the
+                // first history row. Linked and returning accounts are not stamped here.
+                ...privacySignupAcceptance(new Date()),
                 // T-242 — sign-up source from the verified state, on this new-account branch only
                 // (never on link or returning sign-in). Never logged.
                 signupSource: buildSignupSource(signupTags),
@@ -140,11 +168,19 @@ export function initPassport(): void {
           } else if (!user.termsAcceptedAt) {
             // 1b. Returning Google user who signed up before the consent line existed.
             const acceptance = googleTermsAcceptance();
+            // T-343 (Ajay, round 5): same rule as the link path, in the same atomic update.
+            const setsPrivacy = user.privacyVersion !== acceptance.privacyVersion;
+            const signin = privacySigninAcceptance(acceptance.termsAcceptedAt);
             const res = await User.updateOne(
               { _id: user._id, termsAcceptedAt: null },
-              { $set: acceptance },
+              setsPrivacy
+                ? { $set: { ...acceptance, ...signin.set }, $push: { privacyHistory: signin.row } }
+                : { $set: acceptance },
             );
-            if (res.modifiedCount > 0) user.set(acceptance);
+            if (res.modifiedCount > 0) {
+              user.set(acceptance);
+              if (setsPrivacy) user.set(signin.set);
+            }
           }
 
           // T-242 (Arjun (a) 2): an existing account (returning or linked) never gets the tags;

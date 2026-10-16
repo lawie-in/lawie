@@ -13,6 +13,8 @@ import adminAuditRoutes from './routes/admin-audit.routes';
 import adminUsersRoutes from './routes/admin-users.routes';
 import authRoutes from './routes/auth.routes';
 import consentRoutes from './routes/consent.routes';
+import internalUnverifiedNoticeRoutes from './routes/internal-unverified-notice.routes';
+import internalVerifyRoutes from './routes/internal-verify.routes';
 import oauthRoutes from './routes/oauth.routes';
 import referralRoutes from './routes/referral.routes';
 
@@ -45,6 +47,10 @@ app.use('/', oauthRoutes);
 app.use('/', referralRoutes);
 app.use('/', adminUsersRoutes);
 app.use('/', adminAuditRoutes);
+// T-223 — email worker only (INTERNAL_SECRET); the gateway 404s every /internal/ path.
+app.use('/', internalVerifyRoutes);
+// T-358 — email worker only (INTERNAL_SECRET): the unverified-account deletion notice.
+app.use('/', internalUnverifiedNoticeRoutes);
 
 app.use((_req, res) => {
   res.status(404).json({ error: 'Route not found', service: 'auth' });

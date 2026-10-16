@@ -95,12 +95,14 @@ describe('Privacy page §6 v3', () => {
 });
 
 describe('Privacy page §1 bullet', () => {
-  it('is rendered straight after "Plan, Ink balance, payments and referrals." with Ajay\'s words', () => {
+  it("is rendered straight after the payments bullet (T-436 adds the State to it) with Ajay's words", () => {
     const el = renderPage();
     const items = Array.from(el.querySelectorAll('#collect li')).map((li) =>
       (li.textContent ?? '').replace(/\s+/g, ' ').trim(),
     );
-    const i = items.indexOf('Plan, Ink balance, payments and referrals.');
+    const i = items.indexOf(
+      'Plan, Ink balance, payments and referrals, and the State you give us for your tax invoices.',
+    );
     expect(i).toBeGreaterThanOrEqual(0);
     expect(items[i + 1]).toBe(BULLET);
     expect(items.filter((t) => t === BULLET)).toHaveLength(1);
@@ -108,9 +110,10 @@ describe('Privacy page §1 bullet', () => {
 });
 
 describe('Last updated', () => {
-  it('stays 12 October 2026 (Ajay: the version, not the date, changes to 2026-10-12b)', () => {
-    expect(pageSource).toContain("const PRIVACY_LAST_UPDATED = '12 October 2026';");
+  it('is 15 October 2026 (T-358 added the §9 unverified-account line; T-115c changed §3, §5, §7, §9 on 14 October)', () => {
+    expect(pageSource).toContain("const PRIVACY_LAST_UPDATED = '15 October 2026';");
     const el = renderPage();
-    expect(el.textContent).toContain('12 October 2026');
+    expect(el.textContent).toContain('15 October 2026');
+    expect(el.textContent).not.toContain('12 October 2026');
   });
 });

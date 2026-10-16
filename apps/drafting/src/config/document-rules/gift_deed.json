@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. Acceptance during donor's lifetime is non-negotiable. Concessional stamp duty for blood-relative gift varies by state — flag but do NOT hardcode."
   },
   "template_id": "gift_deed",
+  "card_description": "A deed gifting movable or immovable property under the Transfer of Property Act, 1882.",
   "docType": "gift_deed",
   "title": "Gift Deed (Transfer of Property Act, 1882 — S.122-129)",
   "displayName": "Gift Deed",
@@ -156,6 +157,14 @@
         "options": ["bihar", "jharkhand", "uttar_pradesh", "delhi"]
       },
       {
+        "id": "execution_place",
+        "label": "Place of execution",
+        "type": "text",
+        "required": false,
+        "help": "City or town where the document will be signed.",
+        "ask_when_empty": true
+      },
+      {
         "id": "witness_1_name_address",
         "label": "Witness 1 name & address",
         "type": "textarea",
@@ -281,7 +290,7 @@
       "S.127 — Onerous gift: where gift comprises several things some of which are burdensome, donee must accept all or none.",
       "S.128 — Universal donee: donee of donor's whole property is personally liable for donor's debts up to extent of gift.",
       "S.129 — Mohammedan law saving clause.",
-      "DONOR COMPETENCE: Donor must be major (18+), of sound mind, NOT minor, NOT under guardianship, NOT insolvent (S.122 read with S.7 TPA — only competent transferor). For HUF property — Karta can only gift small portions for pious / charitable / specified family purposes (gift of entire ancestral property by Karta is VOID — cite Guramma Bhratar Chanbasappa Deshmukh v. Mallappa Chanbasappa AIR 1964 SC 510). FLAG this if HUF property being gifted.",
+      "DONOR COMPETENCE: Donor must be major (18+), of sound mind, NOT minor, NOT under guardianship, NOT insolvent (S.122 read with S.7 TPA — only competent transferor). For HUF property — Karta can only gift small portions for pious / charitable / specified family purposes (gift of entire ancestral property by Karta is VOID). FLAG this if HUF property being gifted.",
       "MINOR DONEE: A minor CAN accept gift. Acceptance by natural guardian / legal guardian on behalf of minor is valid. Flag for guardian's certificate.",
       "BLOOD-RELATIVE STAMP DUTY CONCESSIONS (state-wise — verify current rates):\n   - Bihar: Standard ~6% / concessional ~5.7% for blood relative + 2% registration.\n   - Jharkhand: Concessional for blood relative (mother, father, spouse, son, daughter, sister, brother) — typically reduced rate; verify Jharkhand Stamp Act amendment.\n   - UP: Rs.5000 fixed for blood relative gift (concessional) + 1% registration fee.\n   - Delhi: 4% (women) / 6% (men) for blood relative; significant concession via Government circulars.\n   DO NOT hardcode — state 'subject to advocate's verification of current stamp duty schedule and applicable circulars'.",
       "INCOME TAX — S.56(2)(x) ITA: gift from relatives (spouse, brother/sister, brother/sister of spouse, brother/sister of parents, lineal ascendant/descendant of self or spouse) is NOT taxable. Gift from non-relative > Rs.50,000 in aggregate per year is taxable in donee's hands.",
@@ -289,7 +298,8 @@
       "Where gift in contemplation of death (Donatio mortis causa) — different regime under S.191 Indian Succession Act 1925; flag and route to a will instead in most cases.",
       "Where gift to charity / religious trust — additional language: irrevocable, vested for trust purposes; advise registration under S.80G Income Tax Act for tax exemption.",
       "Where gift includes property abroad — FEMA compliance flag.",
-      "Append Lawie disclaimer."
+      "Append Lawie disclaimer.",
+      "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
   "relevantActs": [
@@ -355,7 +365,7 @@
       "sections": [
         {
           "number": "S.6",
-          "description": "Coparcener cannot gift away coparcenary interest except for pious / charitable purposes — Guramma case"
+          "description": "Coparcener cannot gift away coparcenary interest except for pious / charitable purposes"
         }
       ]
     },

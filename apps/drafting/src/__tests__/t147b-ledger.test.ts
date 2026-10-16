@@ -157,7 +157,7 @@ describe('T-147b AC1: a separate extraction call, one quota unit', () => {
     expect(res.body.outcome).toBe('brief');
     expect(fetchMock).toHaveBeenCalledTimes(3);
     const extractCall = fetchMock.mock.calls[2][0] as SdkStreamParams;
-    expect(extractCall.max_tokens).toBe(1500);
+    expect(extractCall.max_tokens).toBe(3000);
     expect(extractCall.system).toContain('You copy facts out of what an Indian advocate wrote');
     expect(extractCall.messages[0].content).toContain('compensation_claimed_amount |');
 
@@ -170,6 +170,17 @@ describe('T-147b AC1: a separate extraction call, one quota unit', () => {
     // One request is one unit, however many calls it makes; no follow-up unit either.
     expect(await redis.get(`intake:burst:${USER_ID}`)).toBe('1');
     expect(await redis.get(`intake:followups:${INTAKE_ID}`)).toBeNull();
+  });
+
+  it('T-453: the extraction call uses the resolved ai.cap.intake_extract', async () => {
+    await AppSetting.create({ key: 'ai.cap.intake_extract', value: '4200' });
+    const fetchMock = mockDescribe(extract(FACT_AMOUNT));
+    const res = await describe_();
+    expect(res.status).toBe(200);
+    const extractCall = fetchMock.mock.calls[2][0] as SdkStreamParams;
+    expect(extractCall.max_tokens).toBe(4200);
+    // The other intake calls keep their in-code caps.
+    expect((fetchMock.mock.calls[0][0] as SdkStreamParams).max_tokens).not.toBe(4200);
   });
 
   it('a failed extraction still gives the brief, with an empty ledger', async () => {
@@ -456,7 +467,7 @@ describe('T-147b: the switch off', () => {
     expect(up.body.ledger).toBeUndefined();
   });
 
-  it('a list of user ids turns it on for those users only', async () => {
+  it('a list of user ids is treated as the default (ledger off), not as a per-user switch', async () => {
     await AppSetting.updateOne({ key: 'feature.fact_ledger' }, { value: OTHER_USER_ID });
     _clearAppSettingsCache();
     mockModel(MATCH_MACT, EMPTY_READ);

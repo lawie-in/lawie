@@ -2,10 +2,26 @@
 
 Nothing here blocks the team and I need no approval. Merging to `develop` or `main` is yours and is not listed.
 
+## Anushka run 3 on develop: FAIL (13 Oct 2026)
+
+Report: `handoff/quality/2026-10-13-run-3-develop-FAIL.md`. I've turned the failures into 10 fix tickets, T-359 to T-368, all release gates for main. Ajay signs the legal ones. They go to leads as each one frees up.
+
+**Only you can unblock these before her next run:**
+
+1. Let her download PDF and DOCX (she asked during the run). This blocks 6 entries.
+2. Add an enrollment number to the test profile, or allow her to edit settings (T-311).
+3. Switch the `feature.fact_ledger` setting off for one run, so she can test the "off" half (T-336, T-333, T-190).
+4. HTTPS on develop (T-319).
+5. A separate Chrome profile for her, with a private window and a fresh account (T-209, T-339, T-328). For phone width she can use DevTools device mode at 375 px.
+
+**Test data in your account:** six test drafts with made-up names. Plaint `6acd6b989d9b5710e3805371` has a typed test line. Delete them when you choose.
+
 ## Merged into develop_staging overnight (waiting for Anushka on develop)
+
 T-208, T-209, T-210, T-197, T-189, T-194, T-227, T-248, T-251, T-200, T-252a, T-235 + T-254A; CI-only: T-211, T-249. CI is green on every merge (last: #380, #381).
 
 **What a user can now do (the new ones since last night):**
+
 - Draft bail with the sections and grounds they gave appearing in the draft, and a warning before they export a draft with blanks still to be confirmed (T-189, T-194).
 - See the price before it is charged and be charged exactly that (T-227).
 - Get correct BNSS citations in review petitions, habeas corpus and discharge forms (T-248).
@@ -13,20 +29,47 @@ T-208, T-209, T-210, T-197, T-189, T-194, T-227, T-248, T-251, T-200, T-252a, T-
 - Read a privacy policy that says what is stored, what is encrypted, who receives it and how to ask for erasure; no false security claims; no sample PDFs offered; the converter makes no "validated" claim (T-235, T-254A, T-252a).
 
 ## Where each lead is
+
 - Shashank: T-250 + T-255 (corrected IEA→BSA and CrPC→BNSS tables) chain complete; first in the merge queue. Next: T-267 (IPC→BNS table, Ajay signed).
 - Vishal: T-256 + T-264 (flaky test, golden fixture) chain complete; second in the queue.
 - Mahak: T-233 + T-271 (export file bugs, privacy polish) in review; third in the queue.
 
 ## Decisions I took for you (all logged in tickets)
-Vikram's prices and the two-tranche marketing budget; chatbot design and caps (T-253); CI skips docs-only pushes; converter claim removed; email/password sign-up in this release; T-275 labels for repealed rows; no production reseed until it is merged.
+
+- 13 Oct: Hindi drafts for the five v1 packs stay on today's path, labelled "starting draft", until Ajay signs Hindi wording for the new drafting path (T-386, Arjun's default). English drafts get the new path first.
+  Vikram's prices and the two-tranche marketing budget; chatbot design and caps (T-253); CI skips docs-only pushes; converter claim removed; email/password sign-up in this release; T-275 labels for repealed rows; no production reseed until it is merged.
 
 ## Your to-dos (need your logins)
-1. **`feature.fact_ledger`** app setting, same value as `feature.describe_first`, before Anushka tests T-189 and T-251.
-2. **SES and DNS for T-220** (the "policy changed" email and verification mail).
-3. **The registered address** for the privacy policy and invoices.
+
+0m. ~~GST details for invoices~~ Done 14 Oct: all details with Vikram (for T-436 env config at build time).
+0n. **Before Anushka's next run on develop (Vikram, Arjun, 14 Oct):** in the admin AI config on develop, set `ai.rates.<model-slug>` for every model in ai.drafting_model / ai.preflight_model / ai.intake_model, plus `finance.usd_inr` (Arjun sent you the values). Otherwise every draft logs cost 0.
+0o. **Release note for main (Ajay 13f74fe, 14 Oct):** T-115b (delete a document) should reach main only together with T-115c (close account), because T-115c carries the Privacy §7 update. If you ever release T-115b alone, include Ajay's interim §7 line from his file.
+0k. **Low: set the CODECOV_TOKEN secret (Arjun, 13 Oct).** In the GitHub repo settings, under Secrets and variables → Actions, add CODECOV_TOKEN from codecov.io. Coverage uploads from develop_staging currently fail with "Token required because branch is protected". CI still passes, so it's harmless; we just lose the coverage numbers.
+0j. **Prod Redis must not evict (Arjun, 13 Oct):** in the hosted Redis console (redis.io), set `maxmemory-policy` to `noeviction` on the prod instance, and on develop's too. Most hosted defaults are volatile-lru or allkeys-lru. BullMQ (all email jobs) can corrupt its queue state under any eviction. Arjun can't read the config, so tell him what you find.
+0i. **Possible double top-up grants before T-413 (Arjun, 13 Oct; Vikram decides):** before T-413, a retried top-up webhook could grant Ink twice. To see whether it ever happened, run a read-only count of inkledger rows with reason `topup_purchase` and an empty reference, grouped by user, on prod. Nothing has been sold yet, so this should be zero; it's just a check. Send the result to Vikram. His rule if it isn't zero: it was our bug, so Ink already spent stays spent, unspent duplicate Ink is removed with a ledger row naming the duplicate, and the user is told in one line.
+0h. **A permission prompt in Shashank's session (T-363 fix):** removing `"default": "individual"` from apps/drafting/src/config/document-rules/legal_notice_s138.json:88 was blocked by the permission system. Ajay ruled it out (T-363 fix). It's harmless for now, because the form uses the twin. Approve it in Shashank's session when convenient.
+0g. **(Answered: no subscriptions sold yet, so no backfill is needed.)** T-399 fixes yearly Ink before any sale. Keep the yearly plans off sale until T-399 is on prod: it merged into develop_staging at 4fe03d7, and it reaches prod after Anushka's PASS.
+0f. **Turn the timeline tracker back on (T-375 merged bb8fd47):** on develop (and prod when you release), run `yarn workspace @lawie/drafting seed:setting feature.tool_timeline on` against that environment's Mongo. It shows within about 2 minutes (server and web caches). T-367's fixes are merged and Anushka needs it. Leave `feature.tool_bail_checker` off until T-361 (your 0d approval) merges, and `feature.template_civil_plaint` off for v1.
+0e. **Remove `REDIS_URL` from the lead and dev environment (Arjun, 13 Oct):** the cloud environment the lead sessions run in points `REDIS_URL` at the hosted Redis, and tests used it. Keep it in prod only. Code half: Kunal's T-379 makes tests ignore `REDIS_URL` (they use `REDIS_TEST_URL` or a local redis-server).
+0d. **Approve one prompt in Shashank's session (T-361):** the permission system blocked copying Ajay's re-signed theft rows (303, 303(2); signed e7c0418) into apps/drafting/src/config/bns-offences.json as a "shared resource" change. The block's SHA matches Ajay's. Approve it in Shashank's session. Ajay's pending rows are in handoff/legal/T-361-303-rows-pending-signed.md; Shashank lands them into the signed table and the JSON in one commit. Until then the bail checker still shows the old 1–5 years for 303(2).
+0c. **GitHub branch protection (admin only, Arjun):** on develop_staging, mark "Web build" as a required check (after T-369 merges), and the golden set once T-376 lands: first set the GOLDEN_SET_ANTHROPIC_API_KEY and GOLDEN_SET_MONGODB_URI secrets, then require the "golden-set" check from the new Golden Set workflow (golden-set.yml) on develop_staging (Arjun, 14 Oct).
+0b. **(Not needed if your next develop_staging → develop merge includes T-371, merged ac0eb57; any merge from now on does. It serves sections from the signed files, not Mongo. Arjun, 13 Oct.)** ~~Develop section reseed (T-360, Shashank):~~ develop still serves the old CrPC→BNSS table, which caused Anushka's 358–362 failure. Run a clean build, then `seed:sections --force` (docs/seeding.md §7), then delete the Redis keys sections:forward, sections:reverse and sections:loaded_at. Develop only; production waits as noted below. 0. **New users get describe-first by default (T-356 part 1, merging soon):** on the develop and prod servers, remove `FEATURE_DEFAULT_DESCRIBE_FIRST=off` from the server env file, or set it to `on`. Also set the `feature.describe_first` app setting to `on`, or delete it, if it holds a user-id list. Otherwise the new default is overridden.
+
+1. **`feature.fact_ledger`** stays as you set it until T-356 part 2 (after T-187 + T-188) turns it on by default. For Anushka's next run, switch it off once so she can test the "off" half.
+2. ~~**SES and DNS for T-220**~~ SES production access done 14 Oct (ap-south-1, out of sandbox; Arjun). (the "policy changed" email and verification mail). Once T-223 merges, the develop email worker also needs `AUTH_SERVICE_URL` set (step 7 of the email doc, Arjun).
+3. **The registered address, with PIN code,** for the privacy policy, invoices and the footer of the verification email (T-223; no verification email goes out until it is filled). Going live for email (T-379): fill the footer, then restart the email worker. Until then the worker holds every email in the queue and its /health returns 503.
 4. **Rotate `INTERNAL_SECRET`** after T-229 merges.
 5. **Production section reseed** (your database), only after T-250 + T-255 and T-275 are merged; develop first.
 6. The rest of the list below, when you choose.
+7. **Delete the branch `fix/t-439-probe-billing`** (Kunal's throwaway CI probe; the git proxy won't let him delete it). Cleanup only.
+   **Approve a file deletion in Mahak's session:** Arjun ruled to delete `docker-compose.staging.yml` and `.github/workflows/deploy-staging.yml` (no staging environment; one deploy path). Her developer was refused by the permission system ("Irreversible Local Destruction"). It needs your approval in her session; both files are in git history, so nothing is lost. Until then they stay.
+8. **GitHub branch protection on `develop_staging`** (Arjun's v2 safety addendum): block force pushes, restrict deletions. Settings > Branches; needs your login.
+9. **T-436 GST invoice: set the 7 GST\_\* values on develop (and prod before launch)** (env config only, never in the repo; Arjun has the key names; values from your GST certificate). Billing won't issue invoices without them; payments are recorded and wait until then. Also send a clean signature image for the invoice. Or send the values to Arjun and he sets them.
+10. **T-115c: set DRAFTING_SERVICE_URL and BILLING_SERVICE_URL for auth** on develop (and prod later). They default to localhost, so account erase can't reach drafting and billing without them.
+11. **Registered address for the email footer** (Arjun, from T-358). The auth email footer still has [registered address]/[PIN] placeholders, so the worker sends no legally footed email: no verify emails and no T-358 deletion notices. Send the registered address with the GST values, as env config, never in the repo. Until then the T-358 sweep is inert: no notice means no deletion.
+    **Heads-up before you set it:** once the footer is filled, the email worker stops being held, and every verify email queued since T-379 (one per user) is sent at once, including to people who signed up weeks ago. Arjun and Ajay are deciding whether to drain the held queue first. Ajay decided (8a2b639): purge the held queue, then send each affected user one fresh verify email once the footer is live. Arjun builds the purge and the one-time fresh send; set the address after he says it's ready.
+    Order for prod (Arjun, final, also in T-403): purge dry-run, purge, set the footer env, deploy, check /health is 200, resend-all dry-run, resend-all, set UNVERIFIED_SWEEP_ENABLED=true, deploy auth. Arjun says "ready" explicitly; set the address only then. Develop first, same steps.
+12. **T-437 AC4 (prompt cache proof)** needs one real-model run on develop: a second draft should show cache_read > 0 and a lower costUsd. Leads don't run --real. Either the nightly golden-set job does it once its secrets are set (item 0c), or you generate two drafts on develop and check the admin AI cost panel.
 
 ---
 
@@ -35,31 +78,34 @@ Vikram's prices and the two-tranche marketing budget; chatbot design and caps (T
 Nothing below blocks the team. Each item is for you to do when you choose. Merging to `develop` or `main` is yours and is not listed.
 
 ## Merged into develop_staging overnight
+
 T-227 (shown price = charged price), T-249 (CI skips docs-only pushes), T-248 (three wrong BNSS citations), T-194 (export warns about blanks), T-251 (default-bail fix), T-200 (clause check is honest). Earlier: T-189, T-208, T-209, T-210, T-211, T-197. CI is green on every merge so far.
 
 ## In flight
+
 - T-250 + T-255 (Shashank): corrected IEA→BSA and CrPC→BNSS tables (117 and 103 wrong rows), round 3.
 - T-252a + T-235 + T-254A (Mahak): converter false claim removed, new privacy page, sample links removed.
 - T-256 + T-264 (Vishal): flaky test and stale golden fixture.
 - Next: T-237, T-241, T-245a/b, T-257 to T-260 (batch 1 templates), T-267 (IPC→BNS table), T-253 chatbot build.
 
 ## Founder-only, do when you choose
-1. **Anushka's run setup:** add the app setting `feature.fact_ledger` with the same value as `feature.describe_first` (your user id or the list). Never "on". Needed for T-189 and T-251; default bail isn't offered without it.
+
+1. **(Superseded 13 Oct by T-356 and item 0 above.)** Describe-first is on by default for new users once T-356 part 1 merges; no app setting or env key is needed for it.
 2. **Production reseed of the section tables** after T-250 + T-255 merge (your database). Develop first, 20 sample rows; Arjun confirms only seeded rows exist before `--force`.
 3. **Razorpay dashboard:** confirm the plans charge exactly ₹799, ₹7,990, ₹1,999 and ₹19,990.
 4. **Is the live site publicly reachable today?** The converter page's false claim is being removed; I treat it as live until I know.
 5. **Cash on hand** (to confirm the ₹1,00,000 marketing budget at launch) and **GST status** with a CA (the pricing page says prices include tax).
-6. **Facts only you can confirm:** Atlas region; Redis Cloud region; Sentry region; whether we have a zero-retention agreement with Anthropic; whether to move off Atlas M0 for backups before v1; pm2 log rotation on the server.
+6. **Facts only you can confirm:** ~~Atlas region~~ (done 14 Oct: lawie-dev, M0, AWS Mumbai, Mongo 8.0; Arjun via Atlas); Redis Cloud region; Sentry region; whether we have a zero-retention agreement with Anthropic; whether to move off Atlas M0 for backups before v1; pm2 log rotation on the server.
 7. **Grievance Officer's name** for the privacy policy §11.
 8. **A practising advocate to review each template batch** before it goes live (Ajay's condition).
-9. **Switching the new "describe your matter" flow on for all users** at go-live (`feature.describe_first` / `fact_ledger`), when you choose.
+9. **Describe-first for all users:** done by T-356 part 1 (default on). Fact ledger follows in part 2.
 10. **Chatbot launch steps (later):** two Anthropic keys (chat $25/month, nightly test $5), four settings (`ai.assistant_model`, `ai.rates.claude-haiku-5-5`, `finance.usd_inr=96.5`, `chat.canary`), and `chat.enabled=false` until Anushka passes it.
 11. **Auto-renew and pre-debit consent wording** for recurring payments: Vikram and Arjun first, then you.
 12. **Meera is paused** by you; her marketing drafts (strategy, 22 posts, 3 reels, page copy) are all in `handoff/marketing/`, drafts only.
 
 ## Decisions I made for you (all logged in tickets)
-Vikram's prices; marketing budget cut to at most ₹1,00,000 in two tranches; Solo ₹799 and top-ups final, Pro under review; chatbot design and caps; CI skips docs-only pushes; the section-converter claim removed now.
 
+Vikram's prices; marketing budget cut to at most ₹1,00,000 in two tranches; Solo ₹799 and top-ups final, Pro under review; chatbot design and caps; CI skips docs-only pushes; the section-converter claim removed now.
 
 Note added 12 Oct: do not reseed the production section tables until T-275 (converter label for repealed rows) is merged.
 
@@ -71,7 +117,7 @@ From Arjun's scoping, 12 Oct: T-220 needs one founder session (SES production ac
 
 Arjun's founder tasks, 12 Oct (his session): (a) back up the encryption key OFFLINE before any backfill: losing it loses every draft and there are no database backups; (b) the T-220 session, in this order: SES production-access request first, then the sending identity and DNS, then the IAM keys and the production environment file, then the contact@lawie.in alias; (c) run the encrypt backfill on production (develop first); (d) the Atlas tier and region; (e) cancel paying users' Razorpay plans by hand until a cancel path exists.
 
-From Arjun, 12 Oct: add FEATURE_DEFAULT_DESCRIBE_FIRST=on and FEATURE_DEFAULT_FACT_LEDGER=on to the develop environment file (or set the two AppSettings once in admin). Chatbot (T-253): two Anthropic keys ($25 chat, $5 eval), chat key in the production environment file, eval key as a GitHub secret, seed the AppSettings, flip chat.enabled only after Anushka's PASS.
+(Superseded 13 Oct: T-356 makes describe-first the default; see item 0.) From Arjun, 12 Oct: add FEATURE_DEFAULT_DESCRIBE_FIRST=on and FEATURE_DEFAULT_FACT_LEDGER=on to the develop environment file (or set the two AppSettings once in admin). Chatbot (T-253): two Anthropic keys ($25 chat, $5 eval), chat key in the production environment file, eval key as a GitHub secret, seed the AppSettings, flip chat.enabled only after Anushka's PASS.
 
 T-285 (long repairs drop the stream) needs no founder task: Arjun's fix is a keep-alive in code.
 
@@ -94,3 +140,32 @@ Open the develop web app and confirm it loads on https:// with a padlock and no 
 ## Develop reseed before Anushka tests the converter (Ajay, T-280, 12 Oct)
 
 Run the section seed with --force on develop (seed-sections) after T-280 merges and before Anushka tests the section converter, so the titles shown are Ajay's signed ones. This is the same develop-first reseed as item 5, so one run covers both.
+
+## Overnight note (Priya, 12 Oct 2026)
+
+- T-220 step 1 merged (b958216). Until your SES session, the email worker on develop will refuse to start, with one line naming the missing settings (INTERNAL*SECRET and AWS_SES*\*): the develop server's production environment file is still SMTP-era. Arjun wants this visible failure; the SES session (item 2 above) fixes it. Nothing else depends on the worker yet.
+
+- **Uploads are V1 (founder, 15 Oct): T-302 policy wording is your call.** A practising data-protection lawyer reads Ajay's sections 6 and 7 of the T-302 delivery, or you accept the CLO draft for V1 in writing. Uploads can merge and be tested on develop before that, but cannot ship to main without it. (Arjun, 15 Oct.) ADR-019 decision D4 is closed: Helicone was removed on 9 Oct, every model call is direct.
+
+- **Uploads spike T-303: handwritten pages dropped for now (15 Oct).** The spike runs typed English and Hindi only; handwritten reads are reported untested. (Old ask, now optional:) Ajay writes the made-up English and Hindi text; you (or Anushka) copy it by hand and photograph it. No real FIRs. (Arjun, 15 Oct.)
+
+- **T-229 (Sentry scrub): AC4 and the INTERNAL_SECRET rotation need your login** (Tanvi's Explore, 15 Oct). Details land in the T-229 ticket when she writes it up.
+
+- ~~**Model switch**~~ DONE (founder, 15 Oct 09:15 UTC): rates rows for claude-sonnet-5-5 and claude-haiku-5-5, usd_inr 88 and the three model settings are set on develop. T-453 (Vishal) is unblocked.
+
+- **T-303 spike run needs a key (Arjun, 15 Oct):** add a dev ANTHROPIC_API_KEY with a low spend limit (USD 5) to the cloud environment secrets so Vishal can run it, or run the spike script locally yourself. Nobody on the team holds a key.
+
+## For the founder, no action needed unless the number is wrong (Meera, 15 Oct 2026)
+
+Launch is organic only now. Meera's plan (handoff/marketing/organic-launch-plan.md) assumes you give 8 to 10 hours a week to demos and posts. If that is wrong, tell Meera the real number and she resizes the plan.
+
+## For the founder: two repo secrets for the golden-set run (T-453, Vishal, 15 Oct 2026)
+
+The model-switch check cannot run: the golden-set workflow skips its real run because `GOLDEN_SET_ANTHROPIC_API_KEY` and `GOLDEN_SET_MONGODB_URI` are not set as GitHub repo secrets. Add both (Settings, Secrets and variables, Actions). The URI must point at develop's database so it picks up the new model settings. Use a key with a small spend limit. Do not paste either value in any chat. Tell Priya or Arjun when done and Vishal dispatches the run.
+
+## Done by the founder (reported by Arjun, 15 Oct 2026)
+
+- The two golden-set GitHub repo secrets are added (T-453 unblocked).
+- The GST_* environment values are set on the develop box. The live check of the public supplier endpoint waits until develop_staging is merged into develop (develop is still at 13 Oct). Kunal's invoice work is not blocked.
+
+Correction (Arjun, founder's words, 15 Oct 2026): there is no production server, and nobody touches the test box by hand. Ignore any "pm2 restart" or live supplier-endpoint check above. The only deployed box is a free test server on branch develop, kept on a "coming soon" page on purpose until Anushka's PASS. The GST values reach billing on the founder's next deploy of develop. T-436 and the invoice work wait on nothing server-side; tests are the gate.

@@ -6,7 +6,9 @@ import { useEffect, useState } from 'react';
 
 import { HeaderCreditPill } from '@/components/credits/HeaderCreditPill';
 import Sidebar from '@/components/dashboard/Sidebar';
+import PrivacyUpdatePrompt, { PrivacyAcceptedStatus } from '@/components/PrivacyUpdatePrompt';
 import { SectionFinderPanel } from '@/components/sections/SectionFinderPanel';
+import VerifyEmailPrompt from '@/components/VerifyEmailPrompt';
 import { useAuth } from '@/context/AuthContext';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -24,6 +26,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#F8FAFC]">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-amber-500 border-t-transparent" />
+        {/* T-343: mounted while signed out too, so it clears its once-per-sign-in flag. */}
+        <PrivacyUpdatePrompt />
       </div>
     );
   }
@@ -64,11 +68,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         </div>
 
-        <main className="flex-1 overflow-y-auto p-6 md:p-8">{children}</main>
+        {/* T-223: verify-your-email banner under the top bar (unverified email users only) and
+            the Ink-refusal verify modal. The privacy dialog (below) is modal over both. */}
+        <VerifyEmailPrompt />
+
+        {/* T-343: id and tabIndex so focus can return here when the privacy prompt closes.
+            Not "main": app/layout.tsx already has div#main (T-310). */}
+        <main
+          id="dashboard-main"
+          tabIndex={-1}
+          className="flex-1 overflow-y-auto p-6 focus:outline-none md:p-8"
+        >
+          {children}
+        </main>
       </div>
 
       {/* Section finder — globally mounted, lawyer can pop it open from any page */}
       <SectionFinderPanel />
+
+      {/* T-343: privacy re-acceptance prompt (above every shell layer) and the always-present
+          polite region that announces P9 after an Accept. */}
+      <PrivacyUpdatePrompt />
+      <PrivacyAcceptedStatus />
     </div>
   );
 }

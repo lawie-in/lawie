@@ -10,11 +10,11 @@ Ajay (CLO), 12 Oct 2026 IST. Base read: `origin/develop_staging` after 1aee87c. 
 
 ## Form keys (lead builds; I sign the `form_schema` diff)
 
-| Key | Label | Type | Required | Shown |
-|---|---|---|---|---|
-| `offence_date` | Date of the alleged offence (or of the offence of conviction) | date | no | Group A, B |
-| `fir_date` | Date of FIR, or of the complaint if no FIR | date | no | Group A, C; reuse the key where the pack has it |
-| `procedure_code` | This application is under | select: `BNSS and BSA` / `CrPC and Evidence Act` | yes when shown | Group A, C, only when `fir_date` is before 1 July 2024 or empty |
+| Key              | Label                                                         | Type                                             | Required       | Shown                                                           |
+| ---------------- | ------------------------------------------------------------- | ------------------------------------------------ | -------------- | --------------------------------------------------------------- |
+| `offence_date`   | Date of the alleged offence (or of the offence of conviction) | date                                             | no             | Group A, B                                                      |
+| `fir_date`       | Date of FIR, or of the complaint if no FIR                    | date                                             | no             | Group A, C; reuse the key where the pack has it                 |
+| `procedure_code` | This application is under                                     | select: `BNSS and BSA` / `CrPC and Evidence Act` | yes when shown | Group A, C, only when `fir_date` is before 1 July 2024 or empty |
 
 When `fir_date` is on or after 1 July 2024, `procedure_code` is set to `BNSS and BSA` and not shown.
 
@@ -38,37 +38,37 @@ Every sentence or phrase in the pack that says "never IPC", "NEVER use old IPC s
 
 ### Group A: offence and procedure
 
-| Pack | Provision pair (CrPC → BNSS) | Also |
-|---|---|---|
-| `bail_regular` | Magistrate 437 → 480; Court of Session / High Court 439 → 483 | Entry 0 becomes: `Draft a Regular Bail Application under the provision given as GOVERNING PROVISION in the case details, and cite only that provision as the provision under which bail is sought, in the heading, the opening paragraph and the prayer.` Entry 4 (BNS / "IPC 498A = BNS 85" line) is deleted; S-text replaces it |
-| `bail_before_magistrate` | 437 → 480 | `prompt_context`: delete "(corresponding to Section 437 CrPC)" and "Cite BNS for offences (never IPC), BNSS for procedural provisions." |
-| `bail_anticipatory` | 438 → 482 | Entry 0 becomes: `Draft an Anticipatory Bail Application under the provision given as GOVERNING PROVISION in the case details.` |
-| `interim_bail` | 437 → 480 or 439 → 483, by court | Entry 0 becomes: `Draft an Interim Bail Application in the pending bail proceedings, under the provision given as GOVERNING PROVISION in the case details.` |
-| `bail_cancellation` | Court of Session / High Court 439(2) → 483(3); Magistrate 437(5) → 480 (sub-section **verify**) | |
-| `default_bail` | 167(2) → 187(3) | |
-| `surrender_application` | 437 → 480 | |
-| `suspension_of_sentence` | 389 → 430 | |
-| `criminal_appeal` | 374 → 415; 378 → 419 | |
-| `criminal_revision` | 397 → 438; 401 → 442 | |
-| `discharge_application` | 227 → 250; 239 → 262; 245 → 268 | See citation fix 3 |
-| `fir_quashing`, `quashing_528_bnss` | 482 → 528 | Article 226 unaffected |
-| `writ_petition_criminal` | 154(3) → 173(4); 156(3) → 175(3); 41 → 35 | Article 226 unaffected |
-| `review_petition` (criminal limb only) | 362 → 403 | See citation fix 1 |
-| `habeas_corpus` | 97 → 100; 57 → 58 | See citation fix 2. Articles 32 / 226 unaffected |
+| Pack                                   | Provision pair (CrPC → BNSS)                                                                    | Also                                                                                                                                                                                                                                                                                                                              |
+| -------------------------------------- | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `bail_regular`                         | Magistrate 437 → 480; Court of Session / High Court 439 → 483                                   | Entry 0 becomes: `Draft a Regular Bail Application under the provision given as GOVERNING PROVISION in the case details, and cite only that provision as the provision under which bail is sought, in the heading, the opening paragraph and the prayer.` Entry 4 (BNS / "IPC 498A = BNS 85" line) is deleted; S-text replaces it |
+| `bail_before_magistrate`               | 437 → 480                                                                                       | `prompt_context`: delete "(corresponding to Section 437 CrPC)" and "Cite BNS for offences (never IPC), BNSS for procedural provisions."                                                                                                                                                                                           |
+| `bail_anticipatory`                    | 438 → 482                                                                                       | Entry 0 becomes: `Draft an Anticipatory Bail Application under the provision given as GOVERNING PROVISION in the case details.`                                                                                                                                                                                                   |
+| `interim_bail`                         | 437 → 480 or 439 → 483, by court                                                                | Entry 0 becomes: `Draft an Interim Bail Application in the pending bail proceedings, under the provision given as GOVERNING PROVISION in the case details.`                                                                                                                                                                       |
+| `bail_cancellation`                    | Court of Session / High Court 439(2) → 483(3); Magistrate 437(5) → 480 (sub-section **verify**) |                                                                                                                                                                                                                                                                                                                                   |
+| `default_bail`                         | 167(2) → 187(3)                                                                                 |                                                                                                                                                                                                                                                                                                                                   |
+| `surrender_application`                | 437 → 480                                                                                       |                                                                                                                                                                                                                                                                                                                                   |
+| `suspension_of_sentence`               | 389 → 430                                                                                       |                                                                                                                                                                                                                                                                                                                                   |
+| `criminal_appeal`                      | 374 → 415; 378 → 419                                                                            |                                                                                                                                                                                                                                                                                                                                   |
+| `criminal_revision`                    | 397 → 438; 401 → 442                                                                            |                                                                                                                                                                                                                                                                                                                                   |
+| `discharge_application`                | 227 → 250; 239 → 262; 245 → 268                                                                 | See citation fix 3                                                                                                                                                                                                                                                                                                                |
+| `fir_quashing`, `quashing_528_bnss`    | 482 → 528                                                                                       | Article 226 unaffected                                                                                                                                                                                                                                                                                                            |
+| `writ_petition_criminal`               | 154(3) → 173(4); 156(3) → 175(3); 41 → 35                                                       | Article 226 unaffected                                                                                                                                                                                                                                                                                                            |
+| `review_petition` (criminal limb only) | 362 → 403                                                                                       | See citation fix 1                                                                                                                                                                                                                                                                                                                |
+| `habeas_corpus`                        | 97 → 100; 57 → 58                                                                               | See citation fix 2. Articles 32 / 226 unaffected                                                                                                                                                                                                                                                                                  |
 
 ### Group B: offence only (no procedure key)
 
-| Pack | Date key | Pairs (IPC → BNS) |
-|---|---|---|
-| `legal_notice_defamation` | `offence_date`, labelled "Date of publication" | 499 → 356(1); 500 → 356(2) |
-| `mact_claim` | `offence_date`, labelled "Date of accident" | 304A → 106(1); 279 → 281; 337 → 125(b); 338 → 125(c). The claim itself is under the Motor Vehicles Act, unaffected |
+| Pack                      | Date key                                       | Pairs (IPC → BNS)                                                                                                  |
+| ------------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `legal_notice_defamation` | `offence_date`, labelled "Date of publication" | 499 → 356(1); 500 → 356(2)                                                                                         |
+| `mact_claim`              | `offence_date`, labelled "Date of accident"    | 304A → 106(1); 279 → 281; 337 → 125(b); 338 → 125(c). The claim itself is under the Motor Vehicles Act, unaffected |
 
 ### Group C: procedure only (no offence)
 
-| Pack | Pair | Note |
-|---|---|---|
-| `maintenance_bnss_144` | 125 → 144; 127 → 146 | `fir_date` is labelled "Date the maintenance petition was filed" (for an alteration or execution in an old case); a fresh petition is under BNSS |
-| `divorce_sma` | 125 → 144 (reference only) | P-text only where it mentions maintenance |
+| Pack                   | Pair                       | Note                                                                                                                                             |
+| ---------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `maintenance_bnss_144` | 125 → 144; 127 → 146       | `fir_date` is labelled "Date the maintenance petition was filed" (for an alteration or execution in an old case); a fresh petition is under BNSS |
+| `divorce_sma`          | 125 → 144 (reference only) | P-text only where it mentions maintenance                                                                                                        |
 
 ### Group D: wording only
 
@@ -78,21 +78,382 @@ No change: `synopsis`, `list_of_dates`, `production_of_documents`, `vakalatnama`
 
 ## Citation fixes in the same packs (wrong today)
 
-| # | Pack | Wrong | Exact fix |
-|---|---|---|---|
-| 1 | `review_petition` | "S.413 BNSS" as the criminal review provision (413 is CrPC 372, no appeal unless provided) | Replace every `S.413 BNSS` with `S.403 BNSS` (CrPC 362, court not to alter judgment; corrected from 402 by T-255) |
-| 2 | `habeas_corpus` | "S.97 BNSS" for search of a person wrongfully confined | Replace every `S.97 BNSS` with `S.100 BNSS` |
-| 3 | `discharge_application` | "S.272 BNSS (summons case)": there is no discharge in a summons case; CrPC 245 (warrant case on complaint) is missing | `S.250 BNSS (Sessions) / S.262 BNSS (warrant case before Magistrate) / S.272 BNSS (summons case)` → `S.250 BNSS (Sessions) / S.262 BNSS (warrant case on police report) / S.268 BNSS (warrant case on complaint)`; `(S.250 / S.262 / S.272 BNSS)` → `(S.250 / S.262 / S.268 BNSS)`. Any other `272` in the pack: list it for me, do not change it |
+| #   | Pack                    | Wrong                                                                                                                 | Exact fix                                                                                                                                                                                                                                                                                                                                         |
+| --- | ----------------------- | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | `review_petition`       | "S.413 BNSS" as the criminal review provision (413 is CrPC 372, no appeal unless provided)                            | Replace every `S.413 BNSS` with `S.403 BNSS` (CrPC 362, court not to alter judgment; corrected from 402 by T-255)                                                                                                                                                                                                                                 |
+| 2   | `habeas_corpus`         | "S.97 BNSS" for search of a person wrongfully confined                                                                | Replace every `S.97 BNSS` with `S.100 BNSS`                                                                                                                                                                                                                                                                                                       |
+| 3   | `discharge_application` | "S.272 BNSS (summons case)": there is no discharge in a summons case; CrPC 245 (warrant case on complaint) is missing | `S.250 BNSS (Sessions) / S.262 BNSS (warrant case before Magistrate) / S.272 BNSS (summons case)` → `S.250 BNSS (Sessions) / S.262 BNSS (warrant case on police report) / S.268 BNSS (warrant case on complaint)`; `(S.250 / S.262 / S.272 BNSS)` → `(S.250 / S.262 / S.268 BNSS)`. Any other `272` in the pack: list it for me, do not change it |
 
 ## Conditions
 
-| Item | Mark |
-|---|---|
-| Lead applies the text above word for word | Condition |
-| AC4 tests per Group A and B pack: offence 2023 → IPC cited; 2025 → BNS; no date → blank, no code assumed. Group A and C also: FIR 2023 with `procedure_code` CrPC → CrPC provision in heading and prayer; no choice → both-forms blank | Condition |
-| `config/sections/` maps both ways (AC3) | Condition: the reverse map is generated from the signed tables, never hand-typed |
-| Moved golden snapshots listed for me before merge | Condition |
-| Evidence code follows `procedure_code`. The BSA's own savings section is **verify** and not cited | Acceptable |
-| T-239 batch 1 criminal specs use these keys and texts (AC6) | Approved; I apply them in each spec |
+| Item                                                                                                                                                                                                                                   | Mark                                                                             |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| Lead applies the text above word for word                                                                                                                                                                                              | Condition                                                                        |
+| AC4 tests per Group A and B pack: offence 2023 → IPC cited; 2025 → BNS; no date → blank, no code assumed. Group A and C also: FIR 2023 with `procedure_code` CrPC → CrPC provision in heading and prayer; no choice → both-forms blank | Condition                                                                        |
+| `config/sections/` maps both ways (AC3)                                                                                                                                                                                                | Condition: the reverse map is generated from the signed tables, never hand-typed |
+| Moved golden snapshots listed for me before merge                                                                                                                                                                                      | Condition                                                                        |
+| Evidence code follows `procedure_code`. The BSA's own savings section is **verify** and not cited                                                                                                                                      | Acceptable                                                                       |
+| T-239 batch 1 criminal specs use these keys and texts (AC6)                                                                                                                                                                            | Approved; I apply them in each spec                                              |
 
 Signed: Ajay (CLO), 12 Oct 2026 IST, on the conditions above. Any other wording comes back to me.
+
+## Addendum 1: T-245a build rulings (Vishal, 14 Oct 2026)
+
+`{governing_provision}` renders, byte-exact, as one of:
+
+- BNSS: `Section {n} of the Bharatiya Nagarik Suraksha Sanhita, 2023`
+- CrPC: `Section {n} of the Code of Criminal Procedure, 1973`
+- no choice: `[To be confirmed: Section {crpc} of the CrPC or Section {bnss} of the BNSS]`
+  In an all-caps heading it is upper-cased as a whole.
+
+| #   | Point                                                                       | Ruling                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | Kind     |
+| --- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| 1   | Where the heading's provision goes                                          | **(A) approved**: `(Under {governing_provision})` in each pack's own cause-title format, and in the application heading for bail_regular / bail_anticipatory. No court-rule change.                                                                                                                                                                                                                                                                                                                                                               | —        |
+| 2   | D1 skeletons hard-code BNSS                                                 | Replace each hard-coded `Section N of the Bharatiya Nagarik Suraksha Sanhita, 2023` with `{governing_provision}`: bail_regular :31 (court-keyed 437/439 → 480/483), bail_before_magistrate :53, bail_anticipatory :31, default_bail :11 (167(2) → 187(3)). bail_before_magistrate :211, women's proviso: BNSS `the first proviso to Section 480(1) of the BNSS` (as today); CrPC `the first proviso to Section 437(1) of the CrPC`; no choice `the first proviso to [To be confirmed: Section 437(1) of the CrPC or Section 480(1) of the BNSS]`. | must-fix |
+| 3   | docs/templates twins (bail_regular, bail_anticipatory)                      | Heading `APPLICATION FOR REGULAR BAIL UNDER {GOVERNING_PROVISION}` / `APPLICATION FOR ANTICIPATORY BAIL UNDER {GOVERNING_PROVISION}`; prayer `… under {governing_provision}`, replacing "Section {bail_section} of BNSS, 2023". **Turn auto-convert off** for both: offences print exactly as given (it breaks "never convert"). Descriptions (:5): `Application for regular bail` / `Application for anticipatory bail (apprehension of arrest)`.                                                                                                | must-fix |
+| 4   | Court unknown in two-pair packs (bail_regular, interim_bail)                | Procedure known: `[To be confirmed: Section 480 or Section 483 of the BNSS]` / `[To be confirmed: Section 437 or Section 439 of the CrPC]`. Both unknown: `[To be confirmed: Section 437 or 439 of the CrPC, or Section 480 or 483 of the BNSS]`. bail_cancellation, Magistrate: CrPC `Section 437(5)`, BNSS `Section 480` with no sub-section (verify stands).                                                                                                                                                                                   | must-fix |
+| 5   | Lines my text missed                                                        | bail_before_magistrate entry [0]: delete `(successor to Section 437 CrPC)`. Entry [1]: `under BNSS 480` → `under the provision given as GOVERNING PROVISION in the case details`. bail_cancellation entry [0]: `483(3) BNSS read with 480 BNSS` → `the provision given as GOVERNING PROVISION in the case details`. Form labels `(BNS sections)` → `(as written in the FIR)`.                                                                                                                                                                     | must-fix |
+| 6   | allahabad_hc anticipatory line names "U/S 482 BNSS"                         | Keep it for a BNSS choice. For a CrPC choice or no choice, print the T-426 generic `Anticipatory Bail Application No. _____ of {year}` (the court's old-law form is verify). Moved goldens to me.                                                                                                                                                                                                                                                                                                                                                 | must-fix |
+| 7   | Preflight old_law_section and the intake IPC note fall back to the FIR date | **Offence date only.** With no offence date, no finding and no note: the S-text blank handles it. The FIR date is never a stand-in for the offence date.                                                                                                                                                                                                                                                                                                                                                                                          | must-fix |
+| 8   | procedure_code cannot be shown conditionally                                | Always ask it, with help text `Matters only for a case that began before 1 July 2024. For an FIR on or after that date, Lawie uses the BNSS.` At draft time an FIR date on or after 1 July 2024 forces BNSS whatever was chosen.                                                                                                                                                                                                                                                                                                                  | approved |
+| 9   | "Notice under Section 35 BNSS" (CrPC 41A)                                   | Follows procedure_code: `Section 35 of the BNSS` / `Section 41A of the CrPC`, no sub-section on either side. A form label shown before the choice reads `Notice to appear (Section 35 BNSS / Section 41A CrPC)`.                                                                                                                                                                                                                                                                                                                                  | must-fix |
+| —   | offence_date in every pack; fir_date required?                              | offence_date goes in every Group A and B pack (signed table), optional. fir_date stays optional: an unknown date gives the blank, never a block.                                                                                                                                                                                                                                                                                                                                                                                                  | —        |
+
+Golden entries moved by 2, 3, 4 and 6 come to me before merge.
+
+Signed: Ajay (CLO), 14 Oct 2026 IST. Addendum 1 is my ruling; the "(Vishal, …)" in its heading names who asked.
+
+## Addendum 2: T-245a part 1 build points (Vishal, 14 Oct 2026)
+
+| #   | Point                                                                                                                                                                                                                          | Ruling                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Kind                  |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
+| 1   | 35 BNSS / 41A CrPC wording                                                                                                                                                                                                     | BNSS `Section 35(3) of the BNSS`, kept as today where the text has it. CrPC `Section 41A of the CrPC`. No choice: `[To be confirmed: Section 41A of the CrPC or Section 35(3) of the BNSS]`. Applies to the skeleton clauses, the \_averments s35 entries and the s35 question. The form label from Addendum 1 stays as signed.                                                                                                                                                                                                                         | must-fix              |
+| 2   | bail_cancellation, court unknown                                                                                                                                                                                               | BNSS: `[To be confirmed: Section 480 or Section 483(3) of the BNSS]`. CrPC: `[To be confirmed: Section 437(5) or Section 439(2) of the CrPC]`. Neither: `[To be confirmed: Section 437(5) or 439(2) of the CrPC, or Section 480 or 483(3) of the BNSS]`. No "480(5)" (verify stands).                                                                                                                                                                                                                                                                   | must-fix              |
+| 3   | Twin texts missed                                                                                                                                                                                                              | bail_regular computed bail_section instruction → `{governing_provision}`. Both twins' `under Sections {sections_charged} of BNS, 2023` → `under Section(s) {sections_charged}, as written in the FIR`. Anticipatory `under Section 482 BNSS` → `under {governing_provision}`.                                                                                                                                                                                                                                                                           | must-fix              |
+| 4   | Remaining BNSS citations                                                                                                                                                                                                       | All follow procedure_code. Magistrate entry [0] and prompt_context `480 BNSS / 483 BNSS` → `the provision given as GOVERNING PROVISION in the case details`. Bailable variant: new pair **CrPC 436 → BNSS 478**, through `{governing_provision}`. interim_bail `read with BNSS 480/483` and bail_cancellation `BNSS 483(3) ... read with 480` → `read with the provision given as GOVERNING PROVISION in the case details`. bail_regular `domestic violence (BNS 85/80)` → `cruelty or dowry death`, with no section numbers (S-text governs offences). | must-fix              |
+| 5   | procedure_code required:true but never blocks                                                                                                                                                                                  | Make it **optional**. A required mark that never blocks misleads, and an empty value gives the blank.                                                                                                                                                                                                                                                                                                                                                                                                                                                   | must-fix              |
+| 6   | S/P at [1]/[2], entry 4 deleted                                                                                                                                                                                                | Same result. **Approved.**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | —                     |
+| 7   | default_bail blank in the Addendum 1 form                                                                                                                                                                                      | **Approved.**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | —                     |
+| 8   | Judgment names in prompts: bail_cancellation entry 5 (Dolat Ram; Bhagirathsinh), bail_anticipatory twin (Sushila Aggarwal), interim_bail prompt_context (Lal Kamlendra); also criminal_revision :219 (Krishnan v. Krishnaveni) | Against the signed rule (`Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon].`). The model can misquote or invent a citation. Out of T-245a scope: a **new ticket** (Priya) removes each name and adds that sentence to the pack.                                                                                                                                                                                                                                                             | must-fix (new ticket) |
+
+Moved goldens (part 2) come to me before merge.
+
+## Addendum 3: T-245a part 1 leftovers (Vishal, 14 Oct 2026)
+
+| #   | Point                                               | Ruling                                                                                                                                                                                                                                                                                                    |
+| --- | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Static s35 question                                 | Use `…under Section 35(3) of the BNSS or Section 41A of the CrPC…` (the rest of the question unchanged).                                                                                                                                                                                                  |
+| 2   | bail_before_magistrate DISTINCTION sentence         | Keep it, with each BNSS number followed by its pair: `Section 480 BNSS (Section 437 CrPC)` and `Section 483 BNSS (Section 439 CrPC)`. The P-text still decides what is cited.                                                                                                                             |
+| 3   | bail_regular relatedActs note "BNS 85/80"           | Yes: `When the bail application involves cruelty or dowry death`. No section numbers.                                                                                                                                                                                                                     |
+| 4   | Twin's "Do not cite Section 481 or Section 482"     | Follows the choice. Correct pairs: **CrPC 437A → BNSS 481** (not 436A) and **438 → 482**. CrPC: `Do not cite Section 437A or Section 438 of the CrPC`; no choice: `Do not cite Section 437A or 438 of the CrPC, or Section 481 or 482 of the BNSS`.                                                       |
+| 5   | Bailable variant when the classification is unknown | Not 437/480 by default: unknown → blank, like the court-unknown rule. BNSS `[To be confirmed: Section 478 or Section 480 of the BNSS]`; CrPC `[To be confirmed: Section 436 or Section 437 of the CrPC]`; neither `[To be confirmed: Section 436 or 437 of the CrPC, or Section 478 or 480 of the BNSS]`. |
+| 6   | Label reuse for the notice_provision condition      | Approved.                                                                                                                                                                                                                                                                                                 |
+
+Signed: Ajay (CLO), 14 Oct 2026 IST.
+
+## Addendum 4: T-245a part 2 (Vishal, 15 Oct 2026)
+
+1. default_bail RELATED ACTS. CrPC choice: the CrPC entry **only**, `{act: "Code of Criminal Procedure, 1973", sections: [{number: "167(2)", description: "Procedure when investigation cannot be completed in twenty-four hours"}]}`, with the BNSS entry dropped. BNSS choice: the BNSS entry only, as today. No choice: both entries. **Approved.**
+2. Upper-cased blank in the twins' heading: approved, on one condition: blank detection matches `[To be confirmed:` case-insensitively. A test with the upper-cased heading must be flagged as unfinished exactly as the lower-case blank is. must-fix if the detection misses it.
+
+No golden moved (fixture FIR 2026): noted. The CrPC / no-choice Allahabad test is welcome.
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+## Addendum 5: T-245a hash pins and the FIR-date question (Vishal, 15 Oct 2026)
+
+1. `_averments/bail_regular.json` re-pin to `df163457…a923`: **approved**, on the stated diff only: the s35 averment `no notice under {{notice_provision}} was served on the applicant before arrest`, where `{{notice_provision}}` renders per Addendum 2 #1, plus requires/unlocked_by `notice_provision present`. Any other change in that file is not covered.
+2. t182 bail_regular prompt digest: **approved** to re-record. The instruction changes are exactly the signed ones (deletions; S/P at [1]/[2]; entry 0; entry 4 removed; "cruelty or dowry death").
+3. FIR date at intake: **ask it, never block.** It decides the procedure code, so asking it cuts the blanks. Label as signed (`Date of FIR, or of the complaint if no FIR`), with "Not known" allowed. An unanswered date prints the blank as today.
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+Addendum 5 #3 follow-up (15 Oct 2026). fir_date question, signed byte-exact, replacing the model's wording and the fallback in all six packs:
+`On what date was the FIR registered, or the complaint filed if there is no FIR?`
+
+## Addendum 6: T-245a review wording (Vishal, 15 Oct 2026)
+
+1. bail_cancellation prompt_context: use `Draft an Application for Cancellation of Bail under the provision given as GOVERNING PROVISION in the case details.` (not "read with").
+2. bail_before_magistrate. displayName: `Bail Application before Magistrate (Section 480 BNSS / Section 437 CrPC)`. The \_meta description follows the same pairing. Validation rule: `recommend Section 483 BNSS (Section 439 CrPC) before the Court of Session or High Court`. Fold into T-245a. must-fix (the displayName is shown to users).
+3. Court-rule practice notes ("S.483 BNSS" / "S.482 BNSS"): **parked**. The P-text governs what is cited. A follow-up adds the CrPC pair to each note.
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+## Addendum 7: T-245a review round 2 notes (Vishal, 15 Oct 2026)
+
+1. System rule 1 repeating the S-text and P-text verbatim (replacing "NEVER reference old IPC, CrPC"): **approved**.
+2. The dead `\n(Under {governing_provision})` suffix in the bail_before_magistrate / default_bail caseNomenclature: **remove it in T-245a** (it would print twice if ever wired). No other change to those strings.
+3. Offence-date-only warning scoped to the six packs until T-245b: noted.
+
+## Addendum 8: T-441, judgment names (Vishal, 15 Oct 2026)
+
+S = `Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon].`
+
+**(a) The five strings: approved as proposed** (including #2, bail_cancellation prompt_context :187, which I had missed). S is added once per pack, not once per line.
+
+**(b) T-441 covers the whole of criminal_revision, bail_cancellation, bail_anticipatory (twin) and interim_bail**, by the rules below. Same files as T-245a.
+
+**(c) The rest of the catalogue: one ticket per group, applying these signed rules mechanically.** I byte-check each group's diff; I do not pre-sign every line.
+
+| Rule | Text                                                                                                                                                                                                                                                                                                        |
+| ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1   | In model-visible text (promptInstructions, prompt_context, system_role, clause names and descriptions, relevantActs descriptions, notes), delete each judgment name, its citation and its connector ("per", "in", "as held in", "see", "following", "cite … on"). Keep the legal proposition word for word. |
+| R2   | If a line only says to cite a judgment, delete the line.                                                                                                                                                                                                                                                    |
+| R3   | Add S once per pack, as the last promptInstructions entry.                                                                                                                                                                                                                                                  |
+| R4   | Where a name is used as a label ("Bhajan Lal categories", "Sarla Verma method"), replace it with a plain description proposed in the diff (e.g. "the recognised categories for quashing"). I check each one.                                                                                                |
+| R5   | No new law in any replacement: no new section, case or proposition.                                                                                                                                                                                                                                         |
+| R6   | key_citations, key_precedents and \_meta are not sent to the model: leave them. But change each `_meta.change_protocol` that makes a citation MANDATORY to `Do not name judgments in model-visible text (Ajay, T-441).`                                                                                     |
+| R7   | The \_averments ban lists stay as they are.                                                                                                                                                                                                                                                                 |
+
+**Always V1, whatever the group, signed one by one (send me the list):**
+
+- the 6 user-facing form labels naming cases (curative, fir_quashing, divorce_mutual, dv_act, plaint_recovery, plaint_partition);
+- any judgment inside fixed clause text that prints into the document (e.g. service_agreement);
+- the "Suraj Lamp Disclaimer" clause name (gpa/spa).
+
+Group order: criminal and writs **V1**; civil/family and deeds/agreements **V1.1**, except the always-V1 items above.
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+### Addendum 8: always-V1 items, signed byte-exact (15 Oct 2026)
+
+| File:line                                  | New text                                                                                                                                                   |
+| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| curative_petition.json :72 label           | `Curative ground`                                                                                                                                          |
+| fir_quashing.json :103 label               | `Grounds for quashing invoked (one or more)` (the id stays)                                                                                                |
+| divorce_mutual_consent.json :148 label     | `Whether waiver of the 6-month cooling period is sought`                                                                                                   |
+| dv_act_complaint.json :82 label            | `Additional respondents (in-laws, family members)`                                                                                                         |
+| plaint_recovery.json :202 label            | `Pre-institution mediation completed under Section 12A of the Commercial Courts Act, 2015 (if commercial and no urgent interim relief)`                    |
+| plaint_partition.json :93 label            | `Female coparceners: daughters with an equal share after the Hindu Succession (Amendment) Act, 2005`                                                       |
+| service_agreement.json :75 printed content | Delete the last sentence, ` Reference: Dharangadhara Chemical Works v. Workmen AIR 1957 SC 264 (control test).`. The clause ends at `…all statutory dues.` |
+| gpa.json :239 name                         | `Title disclaimer (if power to sell included)`; the description stays.                                                                                     |
+| spa.json :233 name                         | `Title disclaimer (if power to sell)`; the description stays.                                                                                              |
+
+Any golden that moves (service_agreement especially) comes to me.
+
+### T-441 byte check (feature/t-441-no-judgment-names, diff 7e94b5e9.., 15 Oct 2026)
+
+The five signed strings are applied verbatim; S appears once per pack, last; no case name is left in any model-visible field of the four files (only key_citations, which R6 leaves alone); no golden moved.
+
+criminal_revision R1/R2 calls: **approved as proposed** for :231, :233, :236, :237, :243, :249 and :250 (keep "charge framing principles"). The deletions of :232 and :238 are approved (nothing of law left).
+
+Para 8: `Para 8: Grounds of revision — itemise each ground with relevant precedent.` becomes `Para 8: Grounds of revision — itemise each ground.` "With relevant precedent" invites a citation S forbids. must-fix in T-441.
+
+With Para 8 changed: **T-441 is approved.** Merge-body ref: "Legal: T-441 signed by Ajay, 2ec63fc + this check".
+
+T-441 review note (Vishal, 15 Oct 2026): restore the two propositions, as R1 would:
+
+- interim_bail prompt_context, where the deleted sentence stood: `The court has power to grant interim bail pending disposal of the bail application.`
+- bail_anticipatory twin: `Include reference to: (i) Article 21 of Constitution, (ii) the conditions the court may impose when granting anticipatory bail, (iii) that custodial interrogation is not necessary as applicant is willing to join investigation. ` + S.
+  Fold into T-441 before merge; the rest stays approved.
+  The two strings above, byte-exact:
+- interim_bail: `The court has power to grant interim bail pending disposal of the bail application.`
+- twin: `(ii) the conditions the court may impose when granting anticipatory bail, (iii) that custodial interrogation is not necessary as applicant is willing to join investigation.` followed by S.
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+### T-447 byte check (feature/t-447-criminal-judgment-names, diff e1b13796.., 15 Oct 2026)
+
+Packs: criminal_appeal, curative_petition, fir_quashing, quashing_528_bnss, review_petition, surrender_application, suspension_of_sentence. S appears verbatim once per pack, last. No case name is left in any model-visible field (only key_citations, `_meta`, top-level `description`, form labels and validation_rules; the last two go to T-451, below). No new law (R5 met).
+
+R4 labels: **approved as proposed.**
+
+- fir_quashing: title `citing the recognised categories for quashing`; clause `Recognised Quashing Categories Verbatim`; `Quashing category 5 application` / `Quashing category 7 application`; `The seven categories are illustrative…`; `Para 8: Seven categories verbatim quotation paragraph…`; `(Cat 5 / Cat 1)`, `(Cat 6)`, `(Cat 7)`.
+- quashing_528_bnss: clause and Para 5 `Recognised Quashing Categories Invoked` / `Recognised quashing categories invoked`; `cat 5 squarely applies`.
+- curative_petition: `the recognised curative grounds`; `which curative ground is invoked`.
+
+must-fix in T-447 (quashing_528_bnss), delete two lines:
+
+- `Comprehensive principles on quashing on settlement.` There is no law left, and the two lines above already state it.
+- `Three categories of cases for quashing.` This is unanchored and sits beside the quoted seven categories, so the model may invent a second list.
+
+Questions:
+
+- (a) curative_petition `prompt_context.promptInstructions: [S]`: **OK.** readDraftingInstructions flattens prompt_context, so S comes last. Condition: the T-447 test shows S as the last numbered instruction in curative's assembled prompt.
+- (b) **Keep the CLO line.** R6 amended: each such `_meta.change_protocol` becomes `All edits require CLO sign-off. Do not name judgments in model-visible text (Ajay, T-441).`. This applies to the three in T-447, and to any T-441 pack where the CLO line was dropped.
+- (c) **Yes, add to T-451:**
+  - fir_quashing :103 label becomes `Recognised quashing categories invoked (one or more)`.
+  - curative_petition :72 label becomes `Curative ground`.
+  - curative_petition :196 validation rule becomes `At least one recognised curative ground must be selected`, if validation_rules reach preflight or the model.
+
+With the two deletions, (a)'s test and (b) applied: **T-447 is approved.** Merge-body ref: "Legal: T-447 signed by Ajay, T-245 file, T-447 byte check".
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+### T-451 ids (Priya, 15 Oct 2026)
+
+Both ids reach the model: clause ids go through clauseLines (brief-drafter.ts:299), and form keys through the brief entry (`key`, :280). So R1/R4 apply, and they cannot stay. R4 replacements:
+
+| Where                                                   | Old                             | New                            |
+| ------------------------------------------------------- | ------------------------------- | ------------------------------ |
+| Clause id (fir_quashing, quashing_528_bnss) | `bhajan_lal_paragraph`          | `quashing_categories_paragraph` |
+| Form key (fir_quashing)                                 | `bhajan_lal_categories_invoked` | `quashing_categories_invoked`   |
+
+This is no new law (R5). CLAUSE_CUES, the skeletons and any saved-form or draft mapping follow the rename; how that is done is Arjun's call, not mine. The wording does not change, so no golden should move; any golden that does move comes to me.
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+### T-449 questions (Priya / Kunal, 15 Oct 2026)
+
+1. **Where S goes when a pack has no promptInstructions** (rejoinder_affidavit, restoration_application, interim_application). Do not append it to `system_prompt_addendum` or `system_role`. Field order puts it before tone and key_phrases, so it would not come last. Do the same as curative_petition (T-447 (a)): add `prompt_context.promptInstructions: [S]` as the **last key** of prompt_context. Never add a top-level `promptInstructions` to these packs: prompt-assembler then uses only that list and drops all of prompt_context. Condition: a test shows S as the last numbered instruction for each of the three.
+2. **_meta.** For mact_claim, yes to the reset, but use the amended R6 text that keeps the CLO line: `All edits require CLO sign-off. Do not name judgments in model-visible text (Ajay, T-441).` For plaint_declaration and plaint_partition, **leave** the _meta: it is not model-visible and makes no citation mandatory.
+3. **R4 labels.** I will mark them when Kunal's diff arrives.
+4. **rera_complaint :155 label.** Labels reach the model (item.label), so it goes into T-451, not left as it is. New label: `Any previous Consumer / Civil proceedings on same cause? (the consumer remedy is concurrent)`.
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+### T-449 byte check (feature/t-449-civil-family-no-judgments, 27 packs, 15 Oct 2026)
+
+S appears verbatim once, last, in 24 packs. It is missing from interim_application, rejoinder_affidavit and restoration_application: add it as ruled in T-449 Q1. No case name is left in any added line.
+
+R4 marks:
+
+| # | Proposed | Mark |
+|---|---|---|
+| 1 | mact_claim clause: `Multiplier method, with personal expenses deduction and conventional heads` | Approved with one addition: `Multiplier method, with future prospects, personal expenses deduction and conventional heads` |
+| 2 | mact_claim Para 18: `…largely superseded by multiplier-method computation in S.166 claims` | Approved |
+| 3 | interim_application: `plead all three limbs (prima facie case, balance of convenience, irreparable injury) explicitly` | Approved |
+| 4 | guardianship clause | Reworded: `Details of father and mother — death/unfitness/incapacity/absence; for Hindu minors per S.6 HMGA father is natural guardian and after him mother, with 'after' read as 'in the absence of'; subject to S.4` |
+| 5 | plaint_partition Para 7: `…coparcenary status is conferred retrospectively.` | **Not approved, legally wrong.** The amended S.6 is retroactive, not retrospective. Use: `Para 7: For pre-2005 demises or earlier partitions, plead carefully — the daughter's right under amended S.6 HSA arises by birth and operates retroactively, not retrospectively; a partition by registered deed or court decree before 20.12.2004 is not reopened.` |
+
+The mact_claim R2 deletions (the minor-death and non-earning-member citation lines) are approved: nothing of law is left in them.
+
+must-fix in T-449 (mact_claim :290, an error that was already there): the future-prospects line wrongly splits fixed salary out. It becomes: `   - Future prospects addition: permanent job — 50% if deceased below 40, 30% if 40-50, 15% if 50-60; self-employed or fixed salary — 40% / 25% / 10% for the same age bands.`
+
+With the three S placements, #1, #4, #5 and :290 applied: **T-449 is approved.** Merge-body ref: "Legal: T-449 signed by Ajay, T-245 file, T-449 byte check".
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+### T-449 reviewer round 1 (Priya / Kunal, 15 Oct 2026)
+
+1. plaint_partition clause id `vineeta_sharma_paragraph` becomes `daughter_coparcener_paragraph`. Its cue and skeleton change with it.
+2. ibc_application :150 label becomes `Any pre-existing dispute disclosed by CD (S.9 — dispute raised before the demand notice) — details`. It goes in T-451. The clause name at :226, if still named, becomes `No Pre-existing Dispute (S.9)` in T-449.
+3. dv_act keeps a plain cue, placed where the deleted line stood: `Where maintenance or other monetary relief is sought, file an affidavit of assets and liabilities of both parties.`
+4. condonation: reword to `Rejection of mechanical approach to condonation.` (the count goes; "Fifteen principles" points at nothing).
+5. filing_checklist and validation_rules are shown to the user and not sent to the model (ai.service streams the checklist; the prompt assembler reads neither). They are outside T-441/T-451 and stay as they are, but only as citations I have checked. Priya: send me the list. I verify each one, and any I cannot verify is removed from that list.
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+### T-449 item 5: user-facing citations (Kunal, 15 Oct 2026)
+
+These are not sent to the model. I checked each one:
+
+| # | Where | Mark |
+|---|---|---|
+| 1 | plaint_partition validation_rules.13 (Vineeta Sharma) | Keep: correct |
+| 2 | plaint_recovery validation_rules.11 (Patil Automation) | Reword: as written it states the rule too broadly (it applies only to commercial suits, and urgent interim relief is an exception). New text: `pre_institution_mediation must be true for a commercial suit, unless urgent interim relief is sought (S.12A Commercial Courts Act, 2015; Patil Automation)` |
+| 3 | legal_notice_copyright_infringement validation_rules.1 (Eastern Book Co. v. D.B. Modak) | Keep: correct |
+| 4 | restoration_application validation_rules.parimal_standard (Parimal v. Veena) | Keep: correct |
+| 5 | dv_act_complaint filing_checklist.9 (Rajnesh v. Neha) | Keep: correct |
+| 6 | maintenance_bnss_144 filing_checklist.8 (Rajnesh v. Neha) | Keep: correct |
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+### T-449 round 2 (Priya / Kunal reviewer optionals, 15 Oct 2026)
+
+1. maintenance_bnss_144 "Supreme Court framework requiring affidavits of assets and liabilities": **leave**. The requirement is stated correctly.
+2. itat_appeal Para 9: "Constitution Bench" is wrong (it was a three-judge bench). Reword the parenthesis to `(the Supreme Court struck down the third proviso to S.254(2A))`.
+
+Separate item, not T-449: the Income-tax Act, 2025 has applied since 1 April 2026, so the 1961-Act section numbers in itat_appeal are marked "verify" until I map them. Priya opens the ticket.
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+### T-451 questions (Priya / Kunal, 15 Oct 2026)
+
+1. fir_quashing :103 label: use the earlier string, `Grounds for quashing invoked (one or more)`. This withdraws the T-447 (c) string "Recognised quashing categories invoked (one or more)".
+2. quashing_528_bnss :109-115 option ids: rename them, dropping the `_bhajan_lal_cat_N` suffix. The model sees the suffix, and its numbers also do not match the seven categories quoted in the pack (e.g. "absurd" is category 5, not 3). New ids: `no_offence_disclosed`, `ingredients_not_made_out`, `facts_absurd_inherently_improbable`, `express_legal_bar`, `civil_dispute_criminal_colour`, `mala_fide_personal_vendetta`, `procedural_illegality`. The two compromise ids stay. Mapping saved answers is Arjun's call. Any golden that moves comes to me.
+3. curative_petition validation rule: if Kunal finds that validation_rules reach preflight or the model, use `At least one recognised curative ground must be selected`. If they do not, the rule is user-facing only and its citation is correct, so it stays as it is.
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+### T-451 gpa/spa ids (Priya, 15 Oct 2026)
+
+The model sees both ids, so they are renamed in T-451 with the same read-time alias. This matches the gpa/spa clause names already signed.
+
+| Old | New |
+|---|---|
+| `suraj_lamp_disclaimer` | `title_disclaimer` |
+| `yes_flag_suraj_lamp_warning` | `yes_flag_title_warning` |
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+### T-451 joint_development_agreement id (Priya, 15 Oct 2026)
+
+- joint_development_agreement :246 option `yes_general_gpa_with_suraj_lamp_flag` becomes `yes_general_gpa_with_title_flag`, with the same read-time alias. The :641 validation rule follows the new id.
+- I swept every pack for judgment names in ids. The only carriers left are the ones already ruled for T-451 (fir_quashing, quashing_528_bnss, gpa, spa, and this one). `_averments/bail_regular` `arnesh_kumar_type_citation` is a ban-list id and stays under R7.
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+### T-450 questions (Priya / Shashank, 15 Oct 2026)
+
+1. partition_deed `_meta.change_protocol`: **leave**, as for plaint_partition. It is not model-visible, and what it makes mandatory is the daughters' rights, not a citation.
+2. gpa and sale_deed `_meta.change_protocol`: **leave**. Same reason: the disclaimer stays mandatory. Any model-visible text that names the judgment follows R1/R4 and becomes "title disclaimer".
+3. The six hits are **in scope for T-450**. Exact text:
+
+| Where | New text |
+|---|---|
+| gift_deed :367 description | `Coparcener cannot gift away coparcenary interest except for pious / charitable purposes` |
+| spa :269 | `Para 7: TITLE DISCLAIMER (if SPA authorises sale) — same as GPA: SPA does not itself transfer title; only registered Sale Deed transfers title.` |
+| license_agreement :262 description | `Critical to preserve license vs lease distinction (substance, not form: a lease passes an interest in the property, a licence does not)` |
+| shareholders_agreement :93 note | `Must be mirrored in AOA to bind company` |
+| shareholders_agreement :168 note | `Critical` |
+| shareholders_agreement :178 system_role | Delete ` (V.B. Rangaraj)`. The sentence ends `…mirrorable in AOA.` |
+| aoa :191 | `Reserved matters / affirmative vote provisions are enforceable only if also reflected in AOA.` |
+
+4. joint_development_agreement :497 goes into **T-450**: replace `Suraj Lamp disclaimer` with `title disclaimer`. The rest of the line stays.
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+### T-451 byte check (fix/t-451-judgment-labels at 175c0a4, 15 Oct 2026)
+
+Every label, id and option rename matches the signed strings byte for byte: the curative label; divorce; dv_act; fir_quashing (`quashing_categories_invoked`, `Grounds for quashing invoked (one or more)`, `quashing_categories_paragraph` and its validation rule); quashing_528_bnss (`quashing_categories_paragraph` and the 7 option ids); gpa and spa (`title_disclaimer`, `Title disclaimer (…)`, `yes_flag_title_warning`); jda (`yes_general_gpa_with_title_flag`); ibc; plaint_partition; plaint_recovery; rera; and the service_agreement deletion.
+
+The curative :196 validation rule is unchanged. That is allowed under my ruling: validation_rules are not model-visible, and the citation is correct. The judgment names still on this branch are in key_citations, in `_meta`, in user-facing validation_rules (allowed), or in deed packs that belong to T-450 (gpa :263/:371, sale_deed, partition_deed, jda :497).
+
+**T-451 is approved.** Merge-body ref: "Legal: T-451 signed by Ajay, T-245 file, T-451 byte check 175c0a4".
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+### T-450 byte check (feature/t-450-deeds-no-judgments at e665603, 15 Oct 2026)
+
+The sweep strings from 50dc3c1 are applied verbatim: gift_deed, spa :269, license :262, shareholders ×3, aoa :191, jda :497. The R2 whole-line deletions are approved (lease :445, founders :169, service :174, partition :296, will (e)): nothing of law is left in them. Approved as well: spa :278 dropping "Key precedent:", and gpa :279 keeping "(per state amendments)". S appears once, last, in 18 of the 19 packs.
+
+must-fix in T-450:
+
+1. partition_deed :294 replaces the whole line with: `Daughter is coparcener by birth, irrespective of whether father was alive on 09.09.2005; the amended S.6 HSA operates retroactively, not retrospectively.` This drops "RETROSPECTIVE", as in T-449.
+2. joint_development_agreement: S is missing. Add it once, as the last instruction, per R3.
+3. gpa relevantActs :319 description, which now ends mid-sentence. New text: `Documents of which registration is compulsory — a GPA for sale of immovable property may fall within it`.
+
+With 1-3 applied, **T-450 is approved.** Merge-body ref: "Legal: T-450 signed by Ajay, T-245 file, T-450 byte check e665603 + fixes".
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+### T-448 byte check (fix/t-448-writ-packs-no-judgment-names at 8827785, 15 Oct 2026)
+
+Packs: cat_oa, certiorari, mandamus, pil, quo_warranto, writ_petition_civil, writ_petition_criminal. S appears once, last, in each. No case name is left in model-visible text. R1/R2 are applied correctly. Approved:
+
+- the certiorari Article 227 sentence, which is the correct present position on judicial orders of civil courts;
+- the R4 labels "mandatory PIL disclosure guidelines", "exceptions to the alternative-remedy bar" and "custodial torture guidelines".
+
+must-fix in T-448:
+
+1. **R6.** cat_oa, pil, writ_petition_civil and writ_petition_criminal dropped the CLO line. Use `All edits require CLO sign-off. Do not name judgments in model-visible text (Ajay, T-441).`
+2. **Wrong section (already in the pack before this ticket).** "S.35(7)" is not the arrest-without-warrant conditions. writ_petition_criminal Art. 22 line becomes: `   Art. 22 — Arrest procedures — conditions for arrest without warrant in offences punishable up to 7 years: S.35(1)(b) BNSS [S.41(1)(b) CrPC]; notice of appearance: S.35(3) BNSS [S.41A CrPC].` relevantActs description becomes: `When police may arrest (replaces S.41 CrPC)`.
+3. writ_petition_civil: restore the deleted proposition as `Where action affects livelihood / human dignity — plead Article 21.`
+4. cat_oa Para 15: `Para 15: Where penalty challenged — separate grounds on proportionality and on irrationality and, where applicable, S.11(2) CCS (CCA) Rules.` Proportionality and irrationality are two different tests.
+
+With 1-4 applied: **T-448 is approved.** Merge-body ref: "Legal: T-448 signed by Ajay, T-245 file, T-448 byte check 8827785 + fixes".
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+### Rechecks and T-448 leftovers (15 Oct 2026, evening)
+
+- **T-451 at merge 1c8af6d8:** every signed label, id and option is present and unchanged. Closed.
+- **T-450 at 1167a239:** all three fixes are present (partition_deed :294 retroactive line, S in joint_development_agreement, gpa :319). **T-450 closed.**
+- **T-453 verifier "unsupported" on NI Act / BNSS section references (fixtures 06, 12-14):** a section number is law, not a fact, so it does not belong in the fact ledger. Extend the verifier's reference list with **only** the sections that appear in that pack's signed text or in a signed table (bns-offences, the T-245 pairs, the T-361 rows). A section found in neither stays "unsupported" and its draft comes to me. Do not add a general whitelist.
+- **T-448 leftovers (Mahak):**
+  - habeas_corpus :303 description becomes `Arrest by police — when permissible; conditions for arrest without warrant in offences punishable up to 7 years: S.35(1)(b) BNSS [S.41(1)(b) CrPC]`. This is the same wrong-section fix as T-448 #2, and it removes the judgment name.
+  - mandamus validation rule :127 becomes `{ "rule": "Grounds must show a public legal duty, a clear legal right of the petitioner, demand and refusal, and no equally efficacious alternative remedy", "severity": "medium" }`. A rule that requires citing a judgment contradicts S.
+  - certiorari system_role opening becomes `Certiorari issues to quash an order of an inferior tribunal or quasi-judicial authority on these grounds only:`. This drops "court", in line with the Article 227 sentence. The rest is unchanged.
+
+Signed: Ajay (CLO), 15 Oct 2026 IST.

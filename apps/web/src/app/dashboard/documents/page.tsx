@@ -1,9 +1,14 @@
 'use client';
 
-import { FileText, Plus, Loader2, AlertTriangle, Clock } from 'lucide-react';
+import { FileText, Plus, Loader2, AlertTriangle, Clock, Trash2 } from 'lucide-react';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
+import DeleteDocumentDialog, {
+  DELETE_STATUS_TEXT,
+  takeDeleteOutcome,
+  type DeleteOutcome,
+} from '@/components/documents/DeleteDocumentDialog';
 import { apiFetch } from '@/lib/apiFetch';
 
 interface DocumentSummary {
@@ -14,6 +19,9 @@ interface DocumentSummary {
   status: 'draft' | 'finalised' | 'exported';
   createdAt: string;
 }
+
+// T-115b — how long the "Document deleted." line stays (Rajesh's spec §3).
+const DELETE_STATUS_MS = 6000;
 
 const STATUS_STYLES: Record<string, string> = {
   draft: 'bg-slate-100 text-slate-600',
@@ -26,6 +34,22 @@ export default function MyDocumentsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  // T-115b — delete from the list. The title is shown and used as the button's name only:
+  // never logged, never sent to analytics.
+  const [deleting, setDeleting] = useState<DocumentSummary | null>(null);
+  const [deleteStatus, setDeleteStatus] = useState('');
+  // After a delete: the row whose title link takes focus, or null for the h1.
+  const [focusAfterDelete, setFocusAfterDelete] = useState<{ id: string | null } | null>(null);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const titleLinks = useRef(new Map<string, HTMLAnchorElement>());
+  const statusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showDeleteStatus = useCallback((outcome: DeleteOutcome) => {
+    setDeleteStatus(DELETE_STATUS_TEXT[outcome]);
+    if (statusTimer.current) clearTimeout(statusTimer.current);
+    statusTimer.current = setTimeout(() => setDeleteStatus(''), DELETE_STATUS_MS);
+  }, []);
+
   useEffect(() => {
     apiFetch('/api/documents')
       .then((r) => {
@@ -37,11 +61,62 @@ export default function MyDocumentsPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  // Arriving from the document page after a delete there: the status line, focus on the h1.
+  useEffect(() => {
+    const outcome = takeDeleteOutcome();
+    if (!outcome) return;
+    showDeleteStatus(outcome);
+    headingRef.current?.focus();
+  }, [showDeleteStatus]);
+
+  useEffect(
+    () => () => {
+      if (statusTimer.current) clearTimeout(statusTimer.current);
+    },
+    [],
+  );
+
+  // Move focus once the deleted row has left the list (the opener no longer exists).
+  useEffect(() => {
+    if (!focusAfterDelete) return;
+    const link = focusAfterDelete.id ? titleLinks.current.get(focusAfterDelete.id) : undefined;
+    (link ?? headingRef.current)?.focus();
+    setFocusAfterDelete(null);
+  }, [focusAfterDelete, docs]);
+
+  // A quiet reload after a delete: keeps the current list if it fails.
+  const refreshDocs = useCallback(() => {
+    apiFetch('/api/documents')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data) setDocs(data.documents ?? []);
+      })
+      .catch(() => undefined);
+  }, []);
+
+  const handleDeleted = (outcome: DeleteOutcome) => {
+    const target = deleting;
+    setDeleting(null);
+    if (!target) return;
+    const i = docs.findIndex((d) => d._id === target._id);
+    const next = i >= 0 ? (docs[i + 1] ?? docs[i - 1]) : undefined;
+    setDocs((list) => list.filter((d) => d._id !== target._id));
+    setFocusAfterDelete({ id: next?._id ?? null });
+    showDeleteStatus(outcome);
+    refreshDocs();
+  };
+
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-slate-900">My documents</h1>
+          <h1
+            ref={headingRef}
+            tabIndex={-1}
+            className="text-xl font-bold text-slate-900 focus:outline-none"
+          >
+            My documents
+          </h1>
           <p className="mt-0.5 text-sm text-slate-500">All your drafted documents in one place.</p>
         </div>
         <Link
@@ -52,6 +127,11 @@ export default function MyDocumentsPage() {
           New document
         </Link>
       </div>
+
+      {/* T-115b — after a delete. "Document deleted." only on a finished erase (200 or 404). */}
+      <p role="status" className={deleteStatus ? 'mb-4 text-sm text-slate-700' : 'sr-only'}>
+        {deleteStatus}
+      </p>
 
       {loading && (
         <div className="flex items-center gap-2 py-16 text-slate-400">
@@ -96,6 +176,9 @@ export default function MyDocumentsPage() {
                 <th className="hidden px-4 py-3 text-left text-xs font-medium text-slate-400 md:table-cell">
                   Date
                 </th>
+                <th className="w-px px-2 py-3">
+                  <span className="sr-only">Actions</span>
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
@@ -104,6 +187,10 @@ export default function MyDocumentsPage() {
                   <td className="px-4 py-3">
                     <Link
                       href={`/dashboard/documents/${doc._id}`}
+                      ref={(el) => {
+                        if (el) titleLinks.current.set(doc._id, el);
+                        else titleLinks.current.delete(doc._id);
+                      }}
                       className="block max-w-[220px] truncate text-xs font-medium text-slate-800 group-hover:text-amber-600"
                     >
                       {doc.title}
@@ -136,11 +223,32 @@ export default function MyDocumentsPage() {
                       })}
                     </span>
                   </td>
+                  <td className="px-2 py-1 text-right">
+                    <button
+                      type="button"
+                      onClick={() => setDeleting(doc)}
+                      aria-label={`Delete ${doc.title}`}
+                      className="text-brand-error hover:bg-brand-error-light focus-visible:ring-brand-teal inline-flex h-11 min-w-[44px] items-center justify-center gap-1.5 rounded-lg px-2.5 text-xs font-medium focus:outline-none focus-visible:ring-2"
+                    >
+                      <Trash2 size={16} aria-hidden="true" />
+                      <span className="hidden xl:inline">Delete</span>
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+      )}
+
+      {deleting && (
+        <DeleteDocumentDialog
+          documentId={deleting._id}
+          title={deleting.title}
+          onClose={() => setDeleting(null)}
+          onDeleted={handleDeleted}
+          fallbackFocusRef={headingRef}
+        />
       )}
     </div>
   );

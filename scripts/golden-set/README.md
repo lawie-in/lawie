@@ -11,7 +11,30 @@ Each fixture goes through the service's own routes, in-process. No drafting logi
 The assertions are:
 
 - the verifier's four checks (unsupported, dropped, mutation, banned), read from the run's `FactDiff` rows. By default any finding fails the fixture, including a banned phrase the pipeline stripped before delivery. A fixture can accept a known finding in `expect.allow_violations`.
-- each fixture's own expectations: `not_written`, `absent`, `present`, `exact` (character-exact) and `ledger`.
+- each fixture's own expectations: `not_written`, `absent`, `present`, `exact` (character-exact), `ledger` and, for the four bail packs on a signed skeleton, `rendered`.
+
+### `rendered` (T-373, ADR-025 D1)
+
+The four bail packs (`bail_regular`, `bail_anticipatory`, `default_bail`, `bail_before_magistrate`) draft from a signed clause skeleton in English. Their done event carries `rendered[]`: one `{clauseId, status, reason?}` per printed clause, with `status` one of `ok`, `missing` (printed with a `{{MISSING: label}}` blank) or `fallback` (an own-words clause whose model text failed the check, printed as the advocate's own words). The checks panel reads this list only.
+
+```json
+"rendered": {
+  "no_status": ["fallback"],
+  "status": { "earlier_applications": "ok", "antecedents": "missing" },
+  "not_rendered": ["roots", "cooperated"],
+  "why": "..."
+}
+```
+
+- Setting `rendered` at all also asserts that the draft took the D1 path (`rendered[]` is present) and that every rendered entry has a clauseId.
+- `no_status`: no clause may have these statuses. `status`: these clauses must have exactly this status. `not_rendered`: these clauses must not be printed (a clause for a fact the advocate never gave).
+- On D1 the fact verifier runs read-only. Its findings are written to the fact-diff log tagged `path: d1` and still fail a fixture unless it lists them in `allow_violations`.
+
+### Recorded replies on D1 packs
+
+On a D1 pack the Drafter's reply is the structured answer as JSON text, `{"paragraphs":[{"clauseId","factRefs","text","items":[{"factRef","text"}]}]}`, not prose. The dry-run stub answers `messages.parse` with it and passes it through the request's own output-format parser, as the SDK does, so a malformed recording reads as the service would read a malformed answer. A prose reply on a D1 pack reads as no structured output: the run fails with a model-call error.
+
+Fixtures 22–25 are Anushka's run-3 bail drafts (`handoff/quality/2026-10-13-run-3-develop-FAIL.md`), one per D1 pack, with their facts re-made synthetically. Each has a `clean` variant and a `run3` variant, where the model slips her invented averments into an own-words clause. `--stub run3` must FAIL each of them on `rendered` (a `fallback`). The older bail fixtures 02–05, 09–11 and 15–18 have no recorded replies yet; when they are recorded, their Drafter replies must be structured JSON.
 
 **Fixture status:** every fixture was drafted by dev from Anushka's reports and has not yet been reviewed by Anushka. Each file records this in its `review` field. No fixture asserts prayer, verification or other legal wording, so every `ajay` field is `null`.
 
@@ -23,22 +46,31 @@ yarn workspace @lawie/shared build
 # Free. Recorded replies, in-memory MongoDB, no network. Used by CI and the tester.
 yarn workspace @lawie/drafting golden:set --dry-run
 yarn workspace @lawie/drafting golden:set --dry-run --stub t147   # the T-147 replies: fixture 1a must FAIL
+yarn workspace @lawie/drafting golden:set --dry-run --stub run3   # run-3 invented averments: fixtures 22-25 must FAIL
 
 # THE REAL MODEL AND THE REAL DATABASE. Costs money. Run by the founder or by CI.
 GOLDEN_SET_ANTHROPIC_API_KEY=... GOLDEN_SET_MONGODB_URI=... \
   yarn workspace @lawie/drafting golden:set --real
 ```
 
-| Option                 | Meaning                                                                                                                     |
-| ---------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `--dry-run` / `--real` | One is required. The runner refuses to call the real model without `--real`.                                                |
-| `--only 1a,06`         | Run only these fixture ids (or id prefixes).                                                                                |
-| `--stub <variant>`     | Dry run only. Selects the recorded replies to use (default `clean`). Fixtures with no replies for that variant are skipped. |
-| `--calibrate`          | Also report per-fact-type confidence distributions and suggested floors (AC7).                                              |
-| `--max-fixtures <n>`   | Refuses to start if more fixtures are selected. The default is 20; the hard cap is 40.                                      |
-| `--max-tokens <n>`     | Stops starting new fixtures once the run has used this many tokens. The default is 600000. A capped run exits 1.            |
-| `--out <dir>`          | Where the results JSON goes. The default is `scripts/golden-set/results/`, which is git-ignored.                            |
-| `--verbose`            | Also prints the service's own log lines for each fixture. These are ids and counts only.                                    |
+| Option                 | Meaning                                                                                                                                 |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `--dry-run` / `--real` | One is required. The runner refuses to call the real model without `--real`.                                                            |
+| `--only 1a,06`         | Run only these fixture ids (or id prefixes).                                                                                            |
+| `--stub <variant>`     | Dry run only. Selects the recorded replies to use (default `clean`). Fixtures with no replies for that variant are skipped.             |
+| `--calibrate`          | Also report per-fact-type confidence distributions and suggested floors (AC7).                                                          |
+| `--max-fixtures <n>`   | `--real` only: refuses to start if more fixtures are selected. The default is 30; the hard cap is 40. A dry run never refuses on count. |
+| `--max-tokens <n>`     | Stops starting new fixtures once the run has used this many tokens. The default is 600000. A capped run exits 1.                        |
+| `--out <dir>`          | Where the results JSON goes. The default is `scripts/golden-set/results/`, which is git-ignored.                                        |
+| `--verbose`            | Also prints the service's own log lines for each fixture. These are ids and counts only.                                                |
+
+### Model usage per stage (T-453)
+
+The runner listens in-process to the service's `llm_call` records (stage, call, model, effort, status, token counts, stop reason; ids and counts only). After the fixture lines it prints a block with, per stage, the median and p90 tokens per completed call, the count of each stop reason, and every call that stopped on `max_tokens` (a cap hit). The results JSON gains `llmCalls`: `{ summary, calls }` for each fixture. Use it to see whether a lower effort or a cap is cutting calls off. The golden set runs intake and drafting only; it does not exercise the preflight stage.
+
+### Date confidence (T-453)
+
+After the model-usage block the runner prints a date-confidence table: one row per date read, with the model's confidence and whether the read was right or wrong against the fixture's `expect.ledger` (a read with no expected value is unscored). Below it is a histogram of those reads by confidence bucket (`<0.80`, `0.80`, `0.85`, `0.90`, `0.95`, `1.00`), split into right and wrong. The results JSON gains `dateConfidence`: `{ rows, histogram }`. Use it to see how high the model's confidence runs on wrong dates before changing a confidence floor.
 
 Exit codes: `0` all passed; `1` a fixture failed or the token cap stopped the run; `2` refused (bad flags, missing secrets or over the caps); `3` **fixture isolation breached**; `4` harness error.
 

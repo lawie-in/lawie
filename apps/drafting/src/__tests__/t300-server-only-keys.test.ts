@@ -121,7 +121,7 @@ describe('T-300 AC2: list A keys, a client value changes nothing', () => {
 
   it('enrollment_number: with no profile value, the blank, never the client value', () => {
     const { clean, attacked } = pair(regular, { enrollment_number: FORGED });
-    expect(attacked.enrollment_number).toBe('____________________');
+    expect(attacked.enrollment_number).toBe("[To be confirmed: advocate's enrolment number]");
     expect(attacked).toEqual(clean);
   });
 
@@ -175,9 +175,14 @@ describe('T-300 AC2: list A keys, a client value changes nothing', () => {
     expect(attacked).toEqual(clean);
   });
 
-  it('governing_provision on another pack: unset', () => {
+  it('governing_provision on bail_regular: the law switch value, not the client value', () => {
+    // T-245a part 2: bail_regular reads the switch. No choice and no court here: Addendum 1 #4's
+    // court-unknown both-forms blank.
     const { clean, attacked } = pair(regular, { governing_provision: FORGED });
-    expect(attacked.governing_provision).toBeUndefined();
+    expect(attacked.governing_provision).toBe(
+      '[To be confirmed: Section 437 or 439 of the CrPC, or Section 480 or 483 of the BNSS]',
+    );
+    expect(attacked.governing_provision).not.toBe(FORGED);
     expect(attacked).toEqual(clean);
   });
 
@@ -569,7 +574,7 @@ describe('T-300 advocate name (Ajay: a declared, typed value wins)', () => {
 
   it('declared, empty, no profile: the draft keeps its blank; the annexures print theirs', async () => {
     const ctx = buildPlaceholderContext(defaultBail, form('   '), {});
-    expect(ctx.advocate_name).toBe('____________________');
+    expect(ctx.advocate_name).toBe("[To be confirmed: advocate's name]");
     const html = await annexuresHtml(form('   '));
     expect(html).toContain('[Advocate Name]');
   });
@@ -592,7 +597,7 @@ describe('T-300 advocate name (Ajay: a declared, typed value wins)', () => {
 
   it('not declared, sent by the client, no profile: the client value is not printed', async () => {
     const ctx = buildPlaceholderContext(regular, { ...BASE, advocate_name: FORGED }, {});
-    expect(ctx.advocate_name).toBe('____________________');
+    expect(ctx.advocate_name).toBe("[To be confirmed: advocate's name]");
     const html = await annexuresHtml({
       template_id: 'bail_regular',
       applicant_name: 'Ramesh Kumar',
@@ -640,7 +645,7 @@ describe('T-300/T-311 annexures: a client enrollment number is never read', () =
   it('enrollment_number from the form does not print on a pack that does not declare it', async () => {
     const html = await annexuresHtml(
       {
-        template_id: 'default_bail',
+        template_id: 'mandamus',
         applicant_name: 'Ramesh Kumar',
         enrollment_number: 'BAR/2018/1234',
         advocate_enrollment: 'LEG/77',

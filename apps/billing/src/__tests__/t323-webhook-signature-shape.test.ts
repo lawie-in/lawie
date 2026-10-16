@@ -18,7 +18,7 @@ const MARKER = 'ZZMARKERSECRET';
 const LEVELS = ['trace', 'debug', 'info', 'warn', 'error', 'fatal'] as const;
 const sign = (body: string) =>
   crypto.createHmac('sha256', WEBHOOK_SECRET).update(body).digest('hex');
-// No wall-clock sleeps. flush() drains the event loop a few turns so the post-ack async path has
+// No wall-clock sleeps. flush() drains the event loop a few turns so the handler path has
 // run; waitFor() polls a condition every 5 ms for at most 2 s, then fails with a clear message.
 const flush = async () => {
   for (let i = 0; i < 5; i++) await new Promise((r) => setImmediate(r));
@@ -186,7 +186,8 @@ describe('T-323 billing webhook signature and body shape', () => {
       });
       jest.spyOn(subscriptionService, 'handleWebhookEvent').mockRejectedValue(err);
       const res = await post(body, sign(body));
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(500);
+      expect(res.body).toEqual({ error: 'Internal Server Error' });
       await waitFor(
         () =>
           (logger.error as unknown as jest.SpyInstance).mock.calls.some(
@@ -217,7 +218,8 @@ describe('T-323 billing webhook signature and body shape', () => {
         .spyOn(subscriptionService, 'handleWebhookEvent')
         .mockRejectedValue(`${MARKER} plain string`);
       const res = await post(body, sign(body));
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(500);
+      expect(res.body).toEqual({ error: 'Internal Server Error' });
       await waitFor(
         () =>
           (logger.error as unknown as jest.SpyInstance).mock.calls.some(
@@ -242,7 +244,8 @@ describe('T-323 billing webhook signature and body shape', () => {
     ])('a handler rejecting with %s does not throw inside the catch', async (_n, val) => {
       jest.spyOn(subscriptionService, 'handleWebhookEvent').mockRejectedValue(val);
       const res = await post(body, sign(body));
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(500);
+      expect(res.body).toEqual({ error: 'Internal Server Error' });
       await waitFor(
         () =>
           (logger.error as unknown as jest.SpyInstance).mock.calls.some(

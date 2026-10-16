@@ -21,11 +21,22 @@ export const metadata: Metadata = {
 // T-242: §6 body is Ajay's "§6 v3" and the §1 "How you found us" bullet is his new §1 bullet
 // (handoff/legal/T-242-signup-source-signed.md, SHA-256 of the §6 block plus a final newline:
 // a98bbde316ff1fd6e234beef685124be3cf70a48ca0bc2a8576df14909dc81e8). It replaces the T-310 block.
+// T-115c: §7 paragraph and the §9 bullets are Ajay's, signed in handoff/legal/dpdp-v1-calls-signed.md
+// (e13d474, "T-115c: erase list and Privacy Policy text"); T-115b has merged, so the
+// single-document clause ships. The §5 Atlas row and the Atlas half of the §3 line say
+// "India (Mumbai)" (Ajay's addendum ef06e89 in T-235-privacy-policy-signed.md; Redis unchanged).
+// T-115c review (Ajay b26b017, dpdp-v1-calls-signed.md §7): the §7 Sentry sentence is out until
+// a self-serve close alerts the operator; §9 adds the sent-emails bullet.
+// T-358 (Ajay a84e298, dpdp-v1-calls-signed.md §8 rows 1-2): §9 adds the unverified-account
+// line after "Everything else"; "Last updated" only, CURRENT_PRIVACY_VERSION unchanged.
+// T-436 (Ajay, handoff/legal/gst-tax-invoice-signed.md Addendum 7 (1)): the §1 payments bullet
+// adds the State and §2 adds "issue GST tax invoices,"; the §9 tax-invoice retention is 5d.
 
-// T-310: set to the T-310 merge date at merge. Keep in step with CURRENT_PRIVACY_VERSION in
-// apps/auth/src/models/User.model.ts (the same date as YYYY-MM-DD, plus a letter suffix when the
-// policy changes more than once on one date, e.g. '2026-10-12b' for T-242).
-const PRIVACY_LAST_UPDATED = '12 October 2026';
+// The date the policy text last changed (T-436: its merge date). CURRENT_PRIVACY_VERSION in
+// packages/shared/src/constants/privacy.ts is bumped only when the policy adds data, a purpose
+// or a recipient, with Ajay's sign-off; a change that only moves this date does not bump it
+// (Ajay, GST file Addendum 4). When it does bump, its id is the same date as YYYY-MM-DD.
+const PRIVACY_LAST_UPDATED = '15 October 2026';
 
 // Byte for byte; one string so the hash can be checked.
 const SECTION_6_BODY =
@@ -62,7 +73,7 @@ const providers = [
     provider: 'MongoDB Atlas',
     receives: 'Account data, case details, drafts',
     why: 'Database',
-    where: 'May be outside India',
+    where: 'India (Mumbai)',
   },
   {
     provider: 'Redis Cloud',
@@ -174,7 +185,10 @@ export default function PrivacyPage() {
                     Professional details you choose to give: phone number, Bar Council, enrolment
                     number, state, practice areas and years of practice.
                   </li>
-                  <li>Plan, Ink balance, payments and referrals.</li>
+                  <li>
+                    Plan, Ink balance, payments and referrals, and the State you give us for your
+                    tax invoices.
+                  </li>
                   <li>
                     How you found us: if the link that brought you to Lawie carried campaign tags,
                     the source, medium and campaign named in it, saved with your account when you
@@ -201,8 +215,8 @@ export default function PrivacyPage() {
                 <h3>2. How We Use Information</h3>
                 <p>
                   We use it to create the drafts you ask for, keep you signed in, take payments,
-                  send you service emails, prevent misuse, and fix errors. We use case details only
-                  to produce and show your drafts.
+                  issue GST tax invoices, send you service emails, prevent misuse, and fix errors.
+                  We use case details only to produce and show your drafts.
                 </p>
               </section>
               <section id="storage">
@@ -210,7 +224,8 @@ export default function PrivacyPage() {
                 <ul>
                   <li>
                     Our servers run on Amazon Web Services in Mumbai, India. Our database is MongoDB
-                    Atlas and our session store is Redis Cloud; these may store data outside India.
+                    Atlas, in India (Mumbai). Our session store is Redis Cloud, which may store data
+                    outside India.
                   </li>
                   <li>We protect data with access controls and encrypted connections (HTTPS).</li>
                   <li>
@@ -310,13 +325,13 @@ export default function PrivacyPage() {
                   </li>
                 </ul>
                 <p>
-                  Write to <a href="mailto:privacy@lawie.in">privacy@lawie.in</a> from your account
-                  email. Lawie does not yet have a delete button; we erase on request. Erasure
-                  covers our database and session store, and we remove what we can find of your data
-                  in our error reports (Sentry). We keep payment records and any tax invoice for as
-                  long as tax law requires, without your name or email unless the invoice itself
-                  carries them. Erasure cannot reach data already sent to Helicone (see §5) or
-                  copies you have downloaded.
+                  You can close your account and erase your data from Settings, and delete any
+                  single document from the document itself. You can also write to{' '}
+                  <a href="mailto:privacy@lawie.in">privacy@lawie.in</a> from your account email and
+                  we will do it for you. Backup copies are erased within 7 days. We keep payment
+                  records and tax invoices for as long as tax law requires; an invoice keeps the
+                  name and State printed on it. Erasure cannot reach data already sent to Helicone
+                  (see §5) or copies you have downloaded.
                 </p>
               </section>
               <section id="clients">
@@ -334,17 +349,24 @@ export default function PrivacyPage() {
                   <li>Sign-in sessions: about 24 hours (7 days if you stay signed in).</li>
                   <li>Records of changes to the fact list: 90 days.</li>
                   <li>
-                    Everything else (account, case details, drafts): while your account exists,
-                    until you ask us to erase it.
+                    Everything else (account, case details, drafts): until you close your account or
+                    delete the document. Backup copies are erased within 7 days after that.
+                  </li>
+                  <li>
+                    If you do not verify your email address within 30 days of signing up, we delete
+                    your account and everything in it.
                   </li>
                   <li>
                     Waitlist details: until you ask us to delete them, and in any case no more than
                     18 months after you joined or we last wrote to you, whichever is later.
                   </li>
                   <li>Server logs: until we delete them.</li>
+                  <li>Emails we could not send: up to 30 days.</li>
+                  <li>Emails we have sent: up to 7 days, even after you close your account.</li>
                   <li>
-                    Payment records and tax invoices: for as long as tax law requires (currently up
-                    to six years), even after you ask us to erase your account.
+                    Payment records and tax invoices: for as long as GST law requires (72 months
+                    from the due date of the annual return for the year of the invoice), even after
+                    you close your account.
                   </li>
                 </ul>
               </section>

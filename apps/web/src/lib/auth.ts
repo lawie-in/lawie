@@ -1,5 +1,7 @@
 const ACCESS_TOKEN_KEY = 'lawie_access_token';
 const REFRESH_TOKEN_KEY = 'lawie_refresh_token';
+/** T-343: sessionStorage prefix of the privacy prompt's "shown this sign-in" flags. */
+export const PRIVACY_PROMPT_SHOWN_PREFIX = 'lawie_privacy_prompt_shown:';
 
 export interface AuthUser {
   id: string;
@@ -34,6 +36,15 @@ export function clearTokens(): void {
   if (typeof window === 'undefined') return;
   localStorage.removeItem(ACCESS_TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
+  // T-343: signing out forgets "privacy prompt shown", so the next sign-in prompts again.
+  try {
+    for (let i = sessionStorage.length - 1; i >= 0; i -= 1) {
+      const k = sessionStorage.key(i);
+      if (k?.startsWith(PRIVACY_PROMPT_SHOWN_PREFIX)) sessionStorage.removeItem(k);
+    }
+  } catch {
+    // Storage unavailable: nothing to clear.
+  }
 }
 
 export function getAccessToken(): string | null {
@@ -64,4 +75,34 @@ export function getSessionUser(): AuthUser | null {
 /** True if there is a valid, non-expired access token in storage. */
 export function isAuthenticated(): boolean {
   return getSessionUser() !== null;
+}
+
+/**
+ * T-115c — the analytics consent choice (AnalyticsConsent's CONSENT_STORAGE_KEY). It is about
+ * this browser, not the account (a random id, no name or email), so closing an account keeps it.
+ * Copied here, not imported, so this module stays free of component imports.
+ */
+const KEPT_ON_ACCOUNT_CLOSE = new Set(['lawie.consent.analytics']);
+
+/**
+ * T-115c (Rajesh's spec §4) — after an account is closed, remove everything the app stored in
+ * this browser: the tokens and privacy-prompt flags (clearTokens), then every other Lawie key in
+ * localStorage and sessionStorage (all start with `lawie`: lawie.sectionFinder.*,
+ * lawie_referral_shown, lawie.oauth.verifier, lawie_signup_utm, lawie:document-delete-outcome,
+ * lawie_splash_seen). Only the analytics consent choice stays. Never throws.
+ */
+export function clearAllLocalState(): void {
+  if (typeof window === 'undefined') return;
+  clearTokens();
+  for (const getStore of [() => window.localStorage, () => window.sessionStorage]) {
+    try {
+      const store = getStore();
+      for (let i = store.length - 1; i >= 0; i -= 1) {
+        const k = store.key(i);
+        if (k && k.startsWith('lawie') && !KEPT_ON_ACCOUNT_CLOSE.has(k)) store.removeItem(k);
+      }
+    } catch {
+      // Storage unavailable: nothing to clear.
+    }
+  }
 }

@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. Replication is restricted to dealing with new facts in WS; not re-statement of plaint."
   },
   "template_id": "replication",
+  "card_description": "A replication by the plaintiff to the defendant's written statement.",
   "docType": "replication",
   "title": "Replication / Rejoinder to Written Statement (Order VIII R.9 CPC)",
   "displayName": "Replication (Order VIII R.9 CPC)",
@@ -196,8 +197,8 @@
       "Order VIII R.9 CPC: 'No pleading subsequent to the written statement of a defendant other than by way of defence to set-off or counter-claim shall be presented except by the leave of the Court and upon such terms as the Court thinks fit; but the Court may at any time require a written statement or additional written statement from any of the parties and fix a time of not more than thirty days for presenting the same.'",
       "KEY PRINCIPLE — Replication is NOT a matter of right. It requires LEAVE of court (or court's own direction). Many courts insist on a formal application for leave before accepting replication.",
       "SCOPE — Replication is strictly LIMITED to dealing with new pleas / new facts introduced by defendant in WS. It is NOT an opportunity to: (a) re-state or amplify plaint; (b) introduce new cause of action; (c) expand reliefs; (d) cure defects in plaint (those require amendment under Order VI R.17).",
-      "Cite: Manmohan Singh v. Punjab National Bank (2008) — replication confined to new facts in WS; cannot be vehicle for new pleadings.",
-      "Cite: Anant Construction (P) Ltd v. Ram Niwas (1994) 56 DLT 547 (Del HC) — replication permissible only where WS introduces new facts requiring reply; plaintiff cannot bring in fresh cause of action.",
+      "Replication confined to new facts in WS; cannot be vehicle for new pleadings.",
+      "Replication permissible only where WS introduces new facts requiring reply; plaintiff cannot bring in fresh cause of action.",
       "Para 1: Cause title and suit reference.",
       "Para 2: Recite that replication is filed with leave of this Hon'ble Court granted on [date] on application dated [date] / pursuant to direction of court.",
       "Para 3: Scope statement — 'This replication is confined to dealing with the new facts and pleas raised in the Written Statement dated ____ filed by the Defendant. The Plaintiff reiterates and reaffirms the averments in the Plaint and does not seek to alter, add to or modify the cause of action or the reliefs sought therein.'",
@@ -211,7 +212,8 @@
       "Verification — Order VI R.15.",
       "Affidavit in support — Order VI R.15(4).",
       "Note: in Commercial Courts under CCA 2015, the procedure is somewhat streamlined and statement of truth applies (Order VI R.15A). Replication is still subject to leave under Order VIII R.9.",
-      "Append Lawie disclaimer."
+      "Append Lawie disclaimer.",
+      "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
   "relevantActs": [

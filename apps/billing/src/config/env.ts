@@ -15,8 +15,36 @@ const envSchema = z.object({
 
   FRONTEND_URL: z.string().default('http://localhost:3000'),
 
+  // T-436 (c): the email queue (@lawie/email-client reads process.env.REDIS_URL
+  // itself). Optional: with it unset, invoice emails are not queued (a warning
+  // is logged), `emailQueuedAt` stays null and the invoice sweep retries later.
+  REDIS_URL: z.string().default(''),
+  // T-436 (c): invoice / credit note emails are queued only when this is
+  // "true" (and REDIS_URL is set). Default false until the email-worker can
+  // render billing.taxInvoice / billing.creditNote: while false nothing is
+  // queued, `emailQueuedAt` stays null, and the sweep sends the backlog once
+  // it is switched on. Only the exact string "true" enables it.
+  INVOICE_EMAIL_ENABLED: z
+    .union([z.literal('true'), z.literal('false'), z.literal('')])
+    .default('false')
+    .transform((v) => v === 'true'),
+
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),
   SENTRY_DSN: z.string().default(''),
+
+  // T-436: GST tax invoice seller details, set by the founder per environment.
+  // Never hard-coded. Empty defaults keep billing bootable without them; the
+  // invoice service refuses to issue (and the sweep retries) while any is empty.
+  GST_GSTIN: z.string().default(''),
+  GST_LEGAL_NAME: z.string().default(''),
+  GST_TRADE_NAME: z.string().default(''),
+  GST_ADDRESS: z.string().default(''),
+  GST_STATE_CODE: z.string().default(''),
+  // ISO date (YYYY-MM-DD, read as midnight IST) or ISO date-time: the GST
+  // registration's effective date. Payments before it get no invoice.
+  GST_EFFECTIVE_FROM: z.string().default(''),
+  // Optional path to a scanned signature image for the invoice PDF.
+  GST_SIGNATURE_PATH: z.string().default(''),
 });
 
 export type Env = z.infer<typeof envSchema>;

@@ -54,6 +54,7 @@ import {
   loadTemplateConfig,
   resolveComputedFields,
   TemplateConfig,
+  replacePlaceholders,
 } from '../services/template-engine.service';
 
 function pack(id: string): RulePack {
@@ -186,7 +187,9 @@ describe('what the Drafter is given', () => {
     expect(brief.document).toBe(BAIL.name);
     expect(brief.court).toBe('SESSIONS JUDGE, PATNA');
     expect(brief.parties.map((p) => p.key)).toEqual(['applicant_name', 'father_name']);
-    expect(brief.dates).toEqual([{ key: 'fir_date', date_of: 'Date of FIR', date: '10.03.2026' }]);
+    expect(brief.dates).toEqual([
+      { key: 'fir_date', date_of: 'Date of FIR', date: '10 March 2026' },
+    ]);
     expect(brief.numbers.map((n) => n.key)).toEqual(['fir_number', 'sections_charged']);
     expect(brief.facts.map((f) => f.key)).toEqual(['currently_in_custody', 'facts_narrative']);
   });
@@ -482,8 +485,9 @@ describe('nothing in the body that the brief and the pack do not give', () => {
     expect(w).toEqual([
       {
         type: 'fact_alteration',
-        message: 'The draft has a date that is not in your brief: 20.04.2026. Check it before use.',
-        details: { field: 'date', expected: '20.04.2026' },
+        message:
+          'The draft has a date that is not in your brief: 20 April 2026. Check it before use.',
+        details: { field: 'date', expected: '20 April 2026' },
       },
     ]);
   });
@@ -514,15 +518,39 @@ describe('the provision follows the court (T-135, Ajay 6 Oct 2026)', () => {
         field: 'bail_section',
         value: '483',
         others: ['480'],
+        // T-245a (Addendum 2 #3, Addendum 3 #4): the pack's instruction reads the placeholders;
+        // ai.service fills them from the law switch before the Drafter sees it (next test).
         instruction:
-          'This application is made under Section 483 of the Bharatiya Nagarik Suraksha Sanhita, 2023. Cite only this one provision as the provision under which bail is sought. Do not cite Section 481 or Section 482.',
+          'This application is made under {governing_provision}. Cite only this one provision as the provision under which bail is sought. {do_not_cite}.',
       },
     ]);
   });
 
+  it('with a BNSS choice the instruction, once filled, is Ajay’s old words (Addendum 3 #4: "as it was")', () => {
+    const raw = forCourt('sessions')[0].instruction as string;
+    const ctx = {
+      governing_provision: 'Section 483 of the Bharatiya Nagarik Suraksha Sanhita, 2023',
+      do_not_cite: 'Do not cite Section 481 or Section 482',
+    } as never;
+    expect(replacePlaceholders(raw, ctx)).toBe(
+      'This application is made under Section 483 of the Bharatiya Nagarik Suraksha Sanhita, 2023. Cite only this one provision as the provision under which bail is sought. Do not cite Section 481 or Section 482.',
+    );
+  });
+
+  it('with a CrPC choice the instruction, once filled, names the CrPC section and the CrPC do-not-cite', () => {
+    const raw = forCourt('sessions')[0].instruction as string;
+    const ctx = {
+      governing_provision: 'Section 439 of the Code of Criminal Procedure, 1973',
+      do_not_cite: 'Do not cite Section 437A or Section 438 of the CrPC',
+    } as never;
+    expect(replacePlaceholders(raw, ctx)).toBe(
+      'This application is made under Section 439 of the Code of Criminal Procedure, 1973. Cite only this one provision as the provision under which bail is sought. Do not cite Section 437A or Section 438 of the CrPC.',
+    );
+  });
+
   it('a Magistrate is Section 480', () => {
     expect(forCourt('cjm')[0]).toMatchObject({ value: '480', others: ['483'] });
-    expect(forCourt('jmfc')[0].instruction).toContain('under Section 480 of the Bharatiya');
+    expect(forCourt('jmfc')[0].instruction).toContain('under {governing_provision}');
   });
 
   it('a court that cannot hear it has no provision and no instruction', () => {
@@ -541,7 +569,15 @@ describe('the provision follows the court (T-135, Ajay 6 Oct 2026)', () => {
     const prompt = buildDrafterUserPrompt({
       pack: BAIL,
       brief: drafterBrief(briefWith(VALUES), 'SESSIONS JUDGE, PATNA'),
-      statedInstructions: [forCourt('sessions')[0].instruction as string],
+      statedInstructions: [
+        replacePlaceholders(
+          forCourt('sessions')[0].instruction as string,
+          {
+            governing_provision: 'Section 483 of the Bharatiya Nagarik Suraksha Sanhita, 2023',
+            do_not_cite: 'Do not cite Section 481 or Section 482',
+          } as never,
+        ),
+      ],
       systemParts: PARTS,
       courtRules: [],
       target: 12,
@@ -763,7 +799,7 @@ describe('no rule pack: what the Drafter is given', () => {
     );
     const given = guidedDrafterBrief(b, null);
     expect(given.dates).toEqual([
-      { key: 'date.arrest', date_of: 'Date of arrest', date: '15.03.2026' },
+      { key: 'date.arrest', date_of: 'Date of arrest', date: '15 March 2026' },
     ]);
     expect(given.unknown.map((u) => u.blank)).toContain(
       '[To be confirmed: what happened, in order]',

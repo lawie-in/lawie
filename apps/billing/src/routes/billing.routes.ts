@@ -1,4 +1,7 @@
-import { Router, Request, Response } from 'express';
+import { requireCurrentPrivacy } from '@lawie/shared';
+import * as Sentry from '@sentry/node';
+import { Router, Request, Response, NextFunction } from 'express';
+import mongoose from 'mongoose';
 
 import {
   SUBSCRIPTION_PLANS,
@@ -6,18 +9,68 @@ import {
   findSubscriptionPlan,
   findTopupSku,
 } from '../config/credit-skus';
+import { readSellerConfig } from '../config/gst';
 import logger from '../config/logger';
 import { razorpay } from '../config/razorpay';
 import { authenticate } from '../middleware/authenticate';
 import { CouponCode } from '../models/CouponCode.model';
+import { Invoice } from '../models/Invoice.model';
+import { User } from '../models/User.model';
+import { GrantClaimBusyError } from '../services/ink-ledger.service';
+import { invoicePdfFilename, renderInvoicePdf } from '../services/invoice-pdf.service';
 import {
   createSubscription,
   getSubscriptionStatus,
   handleWebhookEvent,
+  SubscriptionCancelFailedError,
+  SubscriptionExistsError,
+  SubscriptionInProgressError,
   verifyWebhookSignature,
 } from '../services/subscription.service';
 
 const router = Router();
+
+/** T-223 AC5 — error code the web app turns into the verify-your-email prompt at checkout. */
+export const EMAIL_VERIFICATION_REQUIRED = 'email_verification_required';
+
+/**
+ * T-223 AC5 (Arjun, condition 4) — refuses a user-started payment for an email user whose
+ * address is not verified. "Verified" is the T-351 rule (VERIFIED_FOR_BONUS in
+ * apps/auth/src/services/credit-bonus.service.ts): emailVerified true, OR authProvider 'google',
+ * OR a non-empty googleId. Reads the shared users collection only, never writes it.
+ * Fails closed: an unknown user gets the same 403. Mount after authenticate and
+ * requireCurrentPrivacy, only on POST /subscribe and POST /topup/order (never the webhook, so
+ * auto-renewals are untouched). Logs the userId only.
+ */
+export async function requireVerifiedEmail(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  const userId = req.jwtPayload?.sub;
+  if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
+    res.status(403).json({ error: EMAIL_VERIFICATION_REQUIRED });
+    return;
+  }
+  let user;
+  try {
+    user = await User.findById(userId, { emailVerified: 1, authProvider: 1, googleId: 1 }).lean();
+  } catch {
+    logger.error({ userId }, 'Email verification check failed');
+    res.status(503).json({ error: 'Service unavailable' });
+    return;
+  }
+  const verified =
+    !!user &&
+    (user.emailVerified === true ||
+      user.authProvider === 'google' ||
+      (typeof user.googleId === 'string' && user.googleId.length > 0));
+  if (!verified) {
+    res.status(403).json({ error: EMAIL_VERIFICATION_REQUIRED });
+    return;
+  }
+  next();
+}
 
 // ── GET /plans — public catalog for /pricing page ─────────────────────────────
 //
@@ -44,92 +97,133 @@ router.get('/plans', (_req: Request, res: Response) => {
 // ── POST /subscribe — create a Razorpay subscription for a specific plan ─────
 //
 // Body: { planId: 'practice_monthly' | 'practice_yearly' | 'firm_monthly' | 'firm_yearly' }
-router.post('/subscribe', authenticate, async (req: Request, res: Response) => {
-  try {
-    const { sub: userId, email } = req.jwtPayload!;
-    const { planId } = req.body as { planId?: string };
-    const result = await createSubscription(userId, email, planId);
-    res.json({ status: 'success', data: result });
-  } catch (err) {
-    logger.error(
-      { err: err instanceof Error ? err.message : err },
-      'Failed to create subscription',
-    );
-    res.status(500).json({
-      error: err instanceof Error ? err.message : 'Failed to create subscription',
-    });
-  }
-});
+// T-343 — user-started payment: needs the current privacy version (not the webhook).
+// T-223 — and a verified email (or Google account).
+router.post(
+  '/subscribe',
+  authenticate,
+  requireCurrentPrivacy,
+  requireVerifiedEmail,
+  async (req: Request, res: Response) => {
+    try {
+      const { sub: userId, email } = req.jwtPayload!;
+      const { planId } = req.body as { planId?: string };
+      const result = await createSubscription(userId, email, planId);
+      res.json({ status: 'success', data: result });
+    } catch (err) {
+      // T-444 (Arjun ruling 7): a live sub exists; the user fixes or cancels it first.
+      if (err instanceof SubscriptionExistsError) {
+        res.status(409).json({
+          error: 'subscription_exists',
+          status: err.status,
+          planId: err.planId,
+          paidThrough: err.paidThrough,
+        });
+        return;
+      }
+      // T-444c (Arjun ruling 1): another create for this user is in flight.
+      if (err instanceof SubscriptionInProgressError) {
+        res.status(409).json({ error: 'subscription_in_progress' });
+        return;
+      }
+      // T-444c (Arjun ruling 2): the lapsed sub could not be cancelled at
+      // Razorpay; nothing was changed and no new sub was created.
+      if (err instanceof SubscriptionCancelFailedError) {
+        res.status(503).json({ error: 'try_again' });
+        return;
+      }
+      logger.error(
+        { err: err instanceof Error ? err.message : err },
+        'Failed to create subscription',
+      );
+      res.status(500).json({
+        error: err instanceof Error ? err.message : 'Failed to create subscription',
+      });
+    }
+  },
+);
 
 // ── POST /topup/order — create a one-off Razorpay order for a top-up SKU ─────
 //
 // Body: { skuId: 'topup_mini' | 'topup_mid' | 'topup_max' }
 // Response: { orderId, amountInr, ink, razorpayKeyId } so the frontend can
 // hand the orderId to Razorpay Checkout SDK.
-router.post('/topup/order', authenticate, async (req: Request, res: Response) => {
-  const { sub: userId } = req.jwtPayload!;
-  const { skuId, couponCode } = req.body as { skuId?: string; couponCode?: string };
+// T-343 — user-started payment: needs the current privacy version (not the webhook).
+// T-223 — and a verified email (or Google account).
+router.post(
+  '/topup/order',
+  authenticate,
+  requireCurrentPrivacy,
+  requireVerifiedEmail,
+  async (req: Request, res: Response) => {
+    const { sub: userId } = req.jwtPayload!;
+    const { skuId, couponCode } = req.body as { skuId?: string; couponCode?: string };
 
-  const sku = findTopupSku(String(skuId ?? ''));
-  if (!sku) {
-    res.status(400).json({ error: 'Unknown top-up SKU' });
-    return;
-  }
+    const sku = findTopupSku(String(skuId ?? ''));
+    if (!sku) {
+      res.status(400).json({ error: 'Unknown top-up SKU' });
+      return;
+    }
 
-  let finalPriceInr = sku.priceInr;
-  let appliedCouponCode: string | null = null;
+    let finalPriceInr = sku.priceInr;
+    let appliedCouponCode: string | null = null;
 
-  if (couponCode) {
-    const code = couponCode.trim().toUpperCase();
-    const coupon = await CouponCode.findOne({ code, isActive: true }).lean();
-    if (coupon && (!coupon.expiresAt || coupon.expiresAt > new Date())) {
-      if (coupon.maxUses === null || coupon.maxUses === undefined || coupon.uses < coupon.maxUses) {
-        const discountInr =
-          coupon.discountType === 'percent'
-            ? Math.round((sku.priceInr * coupon.discountValue) / 100)
-            : Math.min(coupon.discountValue, sku.priceInr);
-        finalPriceInr = Math.max(1, sku.priceInr - discountInr);
-        appliedCouponCode = code;
+    if (couponCode) {
+      const code = couponCode.trim().toUpperCase();
+      const coupon = await CouponCode.findOne({ code, isActive: true }).lean();
+      if (coupon && (!coupon.expiresAt || coupon.expiresAt > new Date())) {
+        if (
+          coupon.maxUses === null ||
+          coupon.maxUses === undefined ||
+          coupon.uses < coupon.maxUses
+        ) {
+          const discountInr =
+            coupon.discountType === 'percent'
+              ? Math.round((sku.priceInr * coupon.discountValue) / 100)
+              : Math.min(coupon.discountValue, sku.priceInr);
+          finalPriceInr = Math.max(1, sku.priceInr - discountInr);
+          appliedCouponCode = code;
+        }
       }
     }
-  }
 
-  try {
-    const notes: Record<string, string | number> = {
-      sku_id: sku.id,
-      user_id: userId,
-      ink: sku.ink,
-    };
-    if (appliedCouponCode) notes['coupon_code'] = appliedCouponCode;
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const order = await (razorpay.orders.create as any)({
-      amount: finalPriceInr * 100, // paise
-      currency: 'INR',
-      receipt: `topup_${sku.id}_${userId.slice(-8)}_${Date.now().toString().slice(-8)}`,
-      notes,
-    });
-
-    res.json({
-      status: 'success',
-      data: {
-        orderId: order.id,
-        amountInr: finalPriceInr,
-        originalAmountInr: sku.priceInr,
+    try {
+      const notes: Record<string, string | number> = {
+        sku_id: sku.id,
+        user_id: userId,
         ink: sku.ink,
-        skuId: sku.id,
-        couponApplied: appliedCouponCode,
-        razorpayKeyId: process.env.RAZORPAY_KEY_ID,
-      },
-    });
-  } catch (err) {
-    logger.error(
-      { err: err instanceof Error ? err.message : err },
-      'Failed to create top-up order',
-    );
-    res.status(500).json({ error: 'Failed to create top-up order' });
-  }
-});
+      };
+      if (appliedCouponCode) notes['coupon_code'] = appliedCouponCode;
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const order = await (razorpay.orders.create as any)({
+        amount: finalPriceInr * 100, // paise
+        currency: 'INR',
+        receipt: `topup_${sku.id}_${userId.slice(-8)}_${Date.now().toString().slice(-8)}`,
+        notes,
+      });
+
+      res.json({
+        status: 'success',
+        data: {
+          orderId: order.id,
+          amountInr: finalPriceInr,
+          originalAmountInr: sku.priceInr,
+          ink: sku.ink,
+          skuId: sku.id,
+          couponApplied: appliedCouponCode,
+          razorpayKeyId: process.env.RAZORPAY_KEY_ID,
+        },
+      });
+    } catch (err) {
+      logger.error(
+        { err: err instanceof Error ? err.message : err },
+        'Failed to create top-up order',
+      );
+      res.status(500).json({ error: 'Failed to create top-up order' });
+    }
+  },
+);
 
 // ── GET /plan/:id — fetch one plan's details (for paywall modal) ────────────
 router.get('/plan/:id', (req: Request, res: Response) => {
@@ -159,9 +253,113 @@ router.get('/status', authenticate, async (req: Request, res: Response) => {
   }
 });
 
+// ── GET /public/supplier — T-436: GST supplier details for public pages ──────
+//
+// No auth (gateway: /api/billing/public/supplier, public like /plans). Legal
+// name, trade name, GSTIN and State from env. No street address: Ajay's
+// Addendum 1 keeps it off public pages until the E-Commerce Rules question is
+// settled (it stays on the invoice PDF). 503 with an empty body while any of
+// the five seller values (GST_ADDRESS included, which invoices need) is missing.
+router.get('/public/supplier', (_req: Request, res: Response) => {
+  const seller = readSellerConfig();
+  if (!seller) {
+    res.set('Cache-Control', 'no-store');
+    res.status(503).json({});
+    return;
+  }
+  res.set('Cache-Control', 'public, max-age=3600');
+  res.json({
+    legalName: seller.legalName,
+    tradeName: seller.tradeName,
+    gstin: seller.gstin,
+    stateCode: seller.stateCode,
+    stateName: seller.stateName,
+  });
+});
+
+// ── GET /invoices — T-436: the caller's issued invoices and credit notes ─────
+//
+// Newest first. Without the seller block (it is the same on every row and the
+// PDF carries it).
+router.get('/invoices', authenticate, async (req: Request, res: Response) => {
+  const userId = req.jwtPayload!.sub;
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    res.json({ status: 'success', data: [] });
+    return;
+  }
+  try {
+    const rows = await Invoice.find({
+      userId: new mongoose.Types.ObjectId(userId),
+      state: 'issued',
+    })
+      .sort({ issuedAt: -1, _id: -1 })
+      .select('-seller -draft -__v')
+      .lean();
+    res.json({
+      status: 'success',
+      data: rows.map((r) => ({
+        id: String(r._id),
+        number: r.number,
+        kind: r.kind,
+        issuedAt: r.issuedAt,
+        customer: r.customer,
+        placeOfSupply: r.placeOfSupply,
+        lines: r.lines,
+        price: r.price,
+        taxable: r.taxable,
+        cgst: r.cgst,
+        sgst: r.sgst,
+        igst: r.igst,
+        total: r.total,
+        originalInvoiceId: r.originalInvoiceId ? String(r.originalInvoiceId) : null,
+        originalInvoiceNumber: r.originalInvoiceNumber ?? null,
+      })),
+    });
+  } catch (err) {
+    logger.error(
+      { userId, errName: err instanceof Error ? err.name : 'unknown' },
+      'Failed to list invoices',
+    );
+    res.status(500).json({ error: 'Failed to list invoices' });
+  }
+});
+
+// ── GET /invoices/:id/pdf — T-436: one issued invoice as a PDF ───────────────
+//
+// Owner or Admin; anyone else (and any unknown, unissued or malformed id) 404.
+router.get('/invoices/:id/pdf', authenticate, async (req: Request, res: Response) => {
+  const { sub: userId, role } = req.jwtPayload!;
+  const id = req.params.id;
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    res.status(404).json({ error: 'Invoice not found' });
+    return;
+  }
+  try {
+    const inv = await Invoice.findOne({ _id: new mongoose.Types.ObjectId(id), state: 'issued' });
+    if (!inv || (role !== 'Admin' && String(inv.userId) !== userId)) {
+      res.status(404).json({ error: 'Invoice not found' });
+      return;
+    }
+    const pdf = await renderInvoicePdf(inv);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${invoicePdfFilename(inv.number!)}"`,
+      'Cache-Control': 'private, no-store',
+      'Content-Length': String(pdf.length),
+    });
+    res.send(pdf);
+  } catch (err) {
+    logger.error(
+      { invoiceId: id, errName: err instanceof Error ? err.name : 'unknown' },
+      'Failed to render invoice PDF',
+    );
+    res.status(500).json({ error: 'Failed to render invoice' });
+  }
+});
+
 // POST /webhook/razorpay — receive Razorpay webhook events
 // Raw body required for HMAC signature verification — mounted before express.json()
-router.post('/webhook/razorpay', (req: Request, res: Response) => {
+router.post('/webhook/razorpay', async (req: Request, res: Response) => {
   const signature = req.headers['x-razorpay-signature'] as string;
 
   if (!signature) {
@@ -209,17 +407,60 @@ router.post('/webhook/razorpay', (req: Request, res: Response) => {
   }
   const payload = parsed as { event: string; payload: Record<string, unknown> };
 
-  // Acknowledge immediately — process async so Razorpay doesn't retry
-  res.json({ status: 'ok' });
-
-  handleWebhookEvent(payload.event, payload.payload).catch((err: unknown) => {
+  // T-413: ack only after the handler succeeds. A thrown error (e.g. a failed Ink
+  // grant) returns 500 so Razorpay retries; T-399's per-cycle claim, rolled back on a
+  // failed grant, makes that retry grant exactly once. Fixed 500 body, nothing from err.
+  try {
+    await handleWebhookEvent(payload.event, payload.payload);
+  } catch (err: unknown) {
     // T-323: no err.message or stack (a duplicate-key message carries the duplicate value).
     const e = err as { name?: unknown; code?: unknown } | null | undefined;
+    // T-415: another attempt holds a fresh grant claim (normal for the order.paid +
+    // payment.captured pair). 500 so Razorpay retries, but it is not an alert.
+    if (err instanceof GrantClaimBusyError || e?.name === 'GrantClaimBusyError') {
+      logger.warn(
+        { event: payload.event, errorName: e?.name, errorCode: e?.code },
+        'Webhook grant claim pending in another attempt; asking Razorpay to retry',
+      );
+      res.status(500).json({ error: 'Internal Server Error' });
+      return;
+    }
     logger.error(
       { event: payload.event, errorName: e?.name, errorCode: e?.code },
       'Webhook handler error',
     );
-  });
+    // T-413 (Arjun): one Sentry issue per Razorpay event, however many retries. The
+    // event-id header is used only as the fingerprint. Never capture the original err
+    // (its message can carry PII, e.g. E11000 echoes the key); the request (body,
+    // headers, IP) is stripped from the event.
+    const eventIdHeader = req.headers['x-razorpay-event-id'];
+    const errorName = typeof e?.name === 'string' ? e.name : undefined;
+    const errorCode =
+      typeof e?.code === 'string' || typeof e?.code === 'number' ? e.code : undefined;
+    Sentry.withScope((scope) => {
+      scope.setFingerprint([
+        'razorpay-webhook',
+        typeof eventIdHeader === 'string' && eventIdHeader ? eventIdHeader : payload.event,
+      ]);
+      scope.setSDKProcessingMetadata({ normalizedRequest: undefined, ipAddress: undefined });
+      scope.addEventProcessor((event) => {
+        delete event.request;
+        delete event.user;
+        return event;
+      });
+      scope.setTags({ event: payload.event, errorName, errorCode });
+      Sentry.captureException(
+        new Error(
+          `Razorpay webhook handler failed: ${errorName ?? 'unknown'}${
+            errorCode !== undefined ? ` (${errorCode})` : ''
+          }`,
+        ),
+      );
+    });
+    res.status(500).json({ error: 'Internal Server Error' });
+    return;
+  }
+  res.json({ status: 'ok' });
 });
 
 export default router;

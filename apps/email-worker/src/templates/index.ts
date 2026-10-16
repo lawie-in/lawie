@@ -1,8 +1,9 @@
 /**
  * Template registry — maps EmailTemplate id → { subject(data), Body(data) }.
  *
- * Stage A ships only the `auth.welcome` stub so the pipe can be tested
- * end-to-end. Madhuri authors the remaining 8 contents in email-templates.md
+ * Stage A shipped only the `auth.welcome` stub so the pipe could be tested
+ * end-to-end; T-223 adds `auth.verifyEmail` (templates/auth/verifyEmail.tsx).
+ * Madhuri authors the remaining contents in email-templates.md
  * and they get folded into this directory one file each:
  *   templates/auth/welcome.tsx
  *   templates/billing/subscriptionConfirmed.tsx
@@ -22,16 +23,30 @@ import type { EmailTemplate } from '@lawie/email-client';
 import { render } from '@react-email/render';
 import type { ReactElement } from 'react';
 
+import { authUnverifiedDeletionNoticeTemplate } from './auth/unverifiedDeletionNotice';
+import { authVerifyEmailTemplate } from './auth/verifyEmail';
 import { authWelcomeTemplate } from './auth/welcome';
+import { billingCreditNoteTemplate } from './billing/creditNote';
+import { billingTaxInvoiceTemplate } from './billing/taxInvoice';
 
 export interface TemplateDef<Data = Record<string, unknown>> {
   subject: (data: Data) => string;
   Body: (data: Data) => ReactElement;
+  /**
+   * Optional exact plain-text version (T-223: signed copy has a fixed plain-text form).
+   * When absent, the text part is derived from Body by @react-email/render.
+   */
+  text?: (data: Data) => string;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const REGISTRY: Partial<Record<EmailTemplate, TemplateDef<any>>> = {
   'auth.welcome': authWelcomeTemplate,
+  'auth.verifyEmail': authVerifyEmailTemplate,
+  'auth.unverifiedDeletionNotice': authUnverifiedDeletionNoticeTemplate,
+  // T-436 (b/c): Ajay Addendum 5 (invoice); Addendum 7 (4a) and Addendum 9 (credit note).
+  'billing.taxInvoice': billingTaxInvoiceTemplate,
+  'billing.creditNote': billingCreditNoteTemplate,
   // Madhuri's 8 templates land here as they ship.
 };
 
@@ -52,12 +67,20 @@ export async function renderTemplate(
     );
   }
   const element = def.Body(data);
-  const [html, text] = await Promise.all([render(element), render(element, { plainText: true })]);
+  const [html, text] = await Promise.all([
+    render(element),
+    def.text ? Promise.resolve(def.text(data)) : render(element, { plainText: true }),
+  ]);
   return {
     subject: def.subject(data),
     html,
     text,
   };
+}
+
+/** True when the template id has a registered definition. */
+export function isTemplateRegistered(templateId: EmailTemplate): boolean {
+  return REGISTRY[templateId] !== undefined;
 }
 
 export function listTemplates(): EmailTemplate[] {

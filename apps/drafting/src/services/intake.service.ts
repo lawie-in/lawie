@@ -8,12 +8,12 @@
  */
 import crypto from 'crypto';
 
-import { env } from '../config/env';
 import redis from '../config/redis';
 import { Event } from '../models/Event.model';
 import type { IFactLedger } from '../models/FactLedger.model';
 import { LlmAuxCall, LlmAuxPurpose } from '../models/LlmAuxCall.model';
 import { presentDescription } from '../utils/presentDescription';
+import { PublicFormFieldKey, publicFormField } from '../utils/publicTemplateConfig';
 
 import { AppSettingMissingError, APP_SETTING_KEYS, getAppSetting } from './app-settings.service';
 import { AuxCallError, AuxCallUsage, callAuxModel } from './aux-llm';
@@ -36,6 +36,7 @@ import {
   readExtraction,
   referenceYear,
 } from './fact-ledger.service';
+import { DESCRIBE_FIRST_SETTING, hiddenTemplateIds, isSwitchOn } from './feature-switches';
 import {
   Brief,
   BriefCourt,
@@ -84,9 +85,15 @@ import {
   RECEPTION_PACK_SYSTEM_PROMPT,
   ReceptionAnswer,
 } from './intake.prompts';
-import { getModelRates, priceUsage } from './llm-usage';
+import {
+  getAiEffort,
+  getIntakeExtractCap,
+  getModelRates,
+  INTAKE_EXTRACT_CAP_DEFAULT,
+  logLlmCall,
+  priceUsage,
+} from './llm-usage';
 import { loadRulePack, RulePack } from './rule-pack.service';
-import { isFixtureUser } from './run-origin';
 import {
   evaluateShowIf,
   FormField,
@@ -100,14 +107,15 @@ export { datesInText, normalise, parseModelJson } from './intake-text';
 
 // ── Switch (ADR-019 §3.11) ──────────────────────────────────────────────────
 
-export const DESCRIBE_FIRST_SETTING = 'feature.describe_first';
+// T-375: the reader and DESCRIBE_FIRST_SETTING live in feature-switches.ts.
+export { DESCRIBE_FIRST_SETTING };
 
 /**
- * `feature.describe_first`: "on" for everyone, "off" for no one, or a
- * comma-separated list of user ids (the founder's account first, per §3.11).
- * Unset (no AppSetting doc): falls back to FEATURE_DEFAULT_DESCRIBE_FIRST
- * (default off). Never throws: any other problem reading it means off, so the
- * gallery shows.
+ * `feature.describe_first`: the admin setting is "on" (everyone) or "off" (no
+ * one, the kill switch). T-356: the user-id list form is retired. No
+ * AppSetting doc, or any other value (a legacy list, a typo), falls back to
+ * FEATURE_DEFAULT_DESCRIBE_FIRST (default on). Never throws: any other problem
+ * reading it means off, so the gallery shows.
  */
 export async function isDescribeFirstEnabled(userId: string): Promise<boolean> {
   return isSwitchOn(DESCRIBE_FIRST_SETTING, userId);
@@ -115,43 +123,13 @@ export async function isDescribeFirstEnabled(userId: string): Promise<boolean> {
 
 /**
  * T-147b: `feature.fact_ledger`, read the same way as `feature.describe_first`.
- * Unset (no AppSetting doc): falls back to FEATURE_DEFAULT_FACT_LEDGER
- * (default off). Off: the brief works exactly as before, with no extraction
- * call and no ledger. On: the extraction pass runs and the ledger is written.
+ * No AppSetting doc, or a value other than "on"/"off": falls back to
+ * FEATURE_DEFAULT_FACT_LEDGER (default off until T-356 part 2). Off: the brief
+ * works exactly as before, with no extraction call and no ledger. On: the
+ * extraction pass runs and the ledger is written.
  */
 export async function isFactLedgerEnabled(userId: string): Promise<boolean> {
   return isSwitchOn(FACT_LEDGER_SETTING, userId);
-}
-
-async function isSwitchOn(setting: string, userId: string): Promise<boolean> {
-  // T-147e: the golden set runs the describe-first ledger path whatever the
-  // switches say for users. Only the reserved fixture user; see run-origin.ts.
-  if (isFixtureUser(userId)) return true;
-  try {
-    const raw = (await getAppSetting(setting)).trim();
-    if (raw === 'on') return true;
-    if (raw === 'off' || raw === '') return false;
-    return raw
-      .split(',')
-      .map((s) => s.trim())
-      .includes(userId);
-  } catch (err) {
-    // T-283: no AppSetting doc at all → the env default for this switch. Any
-    // other read error (Mongo down, etc.) stays off: fail closed.
-    if (err instanceof AppSettingMissingError) return envDefaultFor(setting);
-    return false;
-  }
-}
-
-/**
- * T-283: the env fallback for a switch whose AppSetting doc is missing. Read
- * from `env` at call time (not captured at import) so tests can replace it.
- * 'on' means on for everyone; env has no user-id list form.
- */
-function envDefaultFor(setting: string): boolean {
-  if (setting === DESCRIBE_FIRST_SETTING) return env.FEATURE_DEFAULT_DESCRIBE_FIRST === 'on';
-  if (setting === FACT_LEDGER_SETTING) return env.FEATURE_DEFAULT_FACT_LEDGER === 'on';
-  return false;
 }
 
 // ── Limits and caps (ADR-019 §3.8, founder D6) ──────────────────────────────
@@ -165,8 +143,12 @@ export const INTAKE_LIMITS = {
   fillMaxTokens: 1500,
   /** T-105: Reception reads up to 40 checklist lines and words up to 10 questions. */
   receptionMaxTokens: 3000,
-  /** T-147b: the extraction pass returns one short span per fact, for up to 40 facts. */
-  extractMaxTokens: 1500,
+  /**
+   * T-147b: the extraction pass returns one short span per fact, for up to 40 facts.
+   * T-453 follow-up: the default only; the cap in use is ai.cap.intake_extract
+   * (getIntakeExtractCap, 500-8000, default 3000).
+   */
+  extractMaxTokens: INTAKE_EXTRACT_CAP_DEFAULT,
   /** T-147b: versions one fact ledger may hold. One `/intake/brief/update` request writes at most one. */
   maxLedgerVersions: 100,
   /** T-105: model-calling requests allowed for one intake after its first (rounds and changes of kind). */
@@ -257,6 +239,17 @@ export function getCatalogue(): CatalogueEntry[] {
       description: presentDescription(t.description),
     }))
     .sort((a, b) => a.template_id.localeCompare(b.template_id));
+}
+
+/**
+ * T-375: the catalogue less every template a feature switch hides (the civil
+ * plaints while `feature.template_civil_plaint` is off), so describe-first
+ * never offers one. The fixture user sees them all (T-356 reader).
+ */
+export async function getEnabledCatalogue(userId: string): Promise<CatalogueEntry[]> {
+  const hidden = await hiddenTemplateIds(userId);
+  const all = getCatalogue();
+  return hidden.size === 0 ? all : all.filter((c) => !hidden.has(c.template_id));
 }
 
 // ── Fields the model may never fill (ADR §3.5, §4.1.2) ───────────────────────
@@ -585,6 +578,21 @@ function questionPriority(f: FormField): number {
   return 1;
 }
 
+/**
+ * T-405: the public field keys an intake question carries besides field_id,
+ * question (the label) and type. A subset of the shared PUBLIC_FORM_FIELD_KEYS
+ * (checked by `satisfies`), and the key order of the JSON it sends.
+ */
+const INTAKE_QUESTION_FIELD_KEYS = [
+  'options',
+  'options_from',
+  'source',
+  'filtered_by',
+  'placeholder',
+  'help',
+  'min_select',
+] as const satisfies readonly (PublicFormFieldKey & keyof IntakeQuestion)[];
+
 export function buildQuestions(config: TemplateConfig, missing: string[]): IntakeQuestion[] {
   const order = new Map(allFields(config).map((f, i) => [f.field_id, i]));
   const byId = new Map(allFields(config).map((f) => [f.field_id, f]));
@@ -597,20 +605,21 @@ export function buildQuestions(config: TemplateConfig, missing: string[]): Intak
         order.get(a.field_id)! - order.get(b.field_id)!,
     )
     .slice(0, QUESTION_LIMITS.perRound)
-    .map((f) => ({
-      field_id: f.field_id,
-      question: f.label,
-      type: f.type,
-      ...(f.options && f.options.length > 0
-        ? { options: f.options.map((o) => ({ id: o.id, label: o.label })) }
-        : {}),
-      ...(f.options_from ? { options_from: f.options_from } : {}),
-      ...(f.source ? { source: f.source } : {}),
-      ...(f.filtered_by ? { filtered_by: f.filtered_by } : {}),
-      ...(f.placeholder ? { placeholder: f.placeholder } : {}),
-      ...(f.help ? { help: f.help } : {}),
-      ...(f.min_select ? { min_select: f.min_select } : {}),
-    }));
+    .map((f) => {
+      // T-405: the value projection (and the options' {id,label} shape) comes
+      // from the shared public-field helper; intake picks which of those keys
+      // it sends, in this order, and only when set (options: non-empty).
+      const pub = publicFormField(f);
+      const question: IntakeQuestion = { field_id: f.field_id, question: f.label, type: f.type };
+      const extra = question as unknown as Record<string, unknown>;
+      for (const key of INTAKE_QUESTION_FIELD_KEYS) {
+        const value = pub[key];
+        if (key === 'options' ? Array.isArray(value) && value.length > 0 : value) {
+          extra[key] = value;
+        }
+      }
+      return question;
+    });
 }
 
 /**
@@ -873,13 +882,31 @@ async function modelCall(
   maxTokens: number,
 ): Promise<string | null> {
   const started = Date.now();
+  // T-453: effort per stage from ai.effort.intake (default medium). Never throws.
+  const effort = await getAiEffort('intake');
+  const log = (status: 'completed' | 'failed', u: AuxCallUsage) =>
+    logLlmCall({
+      stage: 'intake',
+      call: purpose,
+      model: req.model,
+      effort: effort ?? null,
+      status,
+      inputTokens: u.inputTokens,
+      outputTokens: u.outputTokens,
+      cacheReadInputTokens: u.cacheReadInputTokens,
+      cacheCreationInputTokens: u.cacheCreationInputTokens,
+      stopReason: u.stopReason,
+      intakeId: req.intakeId,
+    });
   try {
     const r = await callAuxModel({
       model: req.model,
       system,
       user,
       maxTokens,
+      effort,
     });
+    log('completed', r);
     await recordAuxCall({
       ...req,
       purpose,
@@ -893,6 +920,7 @@ async function modelCall(
       err instanceof AuxCallError
         ? err.usage
         : { inputTokens: 0, outputTokens: 0, usageSource: 'estimated', transport: 'direct' };
+    log('failed', usage);
     await recordAuxCall({
       ...req,
       purpose,
@@ -976,7 +1004,7 @@ export async function runIntake(req: IntakeRequest): Promise<IntakeResponse> {
   }
 
   const ctx = { userId: req.userId, intakeId, model };
-  const catalogue = getCatalogue();
+  const catalogue = await getEnabledCatalogue(req.userId);
   const allowed = new Set(catalogue.map((c) => c.template_id));
 
   // The user picked one of the needs_choice options.
@@ -1133,13 +1161,9 @@ async function extractCall(ctx: BriefContext, user: string): Promise<string | nu
   const cached = await readIntakeCache(cacheParts);
   if (cached !== null) return cached;
   if (!ctx.hasSpent()) return null;
-  const text = await modelCall(
-    ctx,
-    'intake_extract',
-    EXTRACT_SYSTEM_PROMPT,
-    user,
-    INTAKE_LIMITS.extractMaxTokens,
-  );
+  // T-453 follow-up: the cap is config (ai.cap.intake_extract). Never throws.
+  const maxTokens = await getIntakeExtractCap();
+  const text = await modelCall(ctx, 'intake_extract', EXTRACT_SYSTEM_PROMPT, user, maxTokens);
   if (text !== null) await writeIntakeCache(cacheParts, text);
   return text;
 }
@@ -1534,7 +1558,7 @@ export async function runBriefIntake(req: BriefIntakeRequest): Promise<BriefInta
       }
     }
 
-    const catalogue = getCatalogue();
+    const catalogue = await getEnabledCatalogue(req.userId);
     const allowed = new Set(catalogue.map((c) => c.template_id));
 
     // The user picked the kind, or changed it.
@@ -1688,7 +1712,7 @@ export async function updateLedger(
 ): Promise<{ ledger: LedgerView; results: LedgerEditResult[] }> {
   const doc = await loadOwnLedger(req.ledgerId, req.userId);
   if (!doc || doc.documentKind !== req.kind) throw new LedgerNotFoundError();
-  const allowed = new Set(getCatalogue().map((c) => c.template_id));
+  const allowed = new Set((await getEnabledCatalogue(req.userId)).map((c) => c.template_id));
   const pack = allowed.has(req.kind) ? loadRulePack(req.kind) : null;
   if (!pack) throw new LedgerNotFoundError();
   const checklist = buildChecklist(pack);

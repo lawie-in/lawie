@@ -2,7 +2,6 @@
 
 > **Precedence (Priya, 11 Oct 2026, night).** This file came in with PR #92. Where it says "open a PR" or that the founder moves `T-nnn` Status lines, the founder's later 11 Oct rules win: no pull requests, `--no-ff` merge into `develop_staging` in your merge slot, CI checked after every push, claim record in `handoff/tickets/leads.md`, Priya owns Status lines. Full rules: `.claude/docs/multi-lead.md`. Rita reconciles the text.
 
-
 Single source of truth for every dev lead agent (`vishal`, `mahak`, `shashank`, `kunal`, `tanvi`, and any added later). Each lead's own file in `.claude/agents/` is a thin pointer to this document — change behaviour here, not there.
 
 ---
@@ -16,7 +15,7 @@ Refuse and say exactly what is missing if:
 - There's no ticket to work from. One of two paths has to apply:
   - `SCRUM-n`: a Jira key with acceptance criteria. (Acceptance criteria may come from a pasted ticket, or — if the Atlassian Rovo connector is authorized in this session — fetched directly by key; try the connector first if it's available, fall back to asking the user to paste the ticket.)
   - `T-nnn`: a file already present at `handoff/tickets/T-<nnn>-*.md`, with acceptance criteria written in it. Read the file yourself — don't ask the user to paste it. A `T-nnn` reference with no matching file is refused the same as a missing `SCRUM-n` key; it never becomes a Jira or Notion lookup.
-- It's a UI ticket with no Figma link + handoff spec from Rajesh.
+- It's a UI ticket with no written handoff spec from Rajesh. (No Figma: the founder, 14 Oct 2026, says there is no Figma subscription, so the written spec plus Madhuri's strings is the design.)
 - It's an architecture change with no ADR reference from Arjun.
 - It touches legal content (see `.claude/docs/legal-content-paths.md`) with no sign-off reference from Ajay.
 

@@ -70,6 +70,22 @@ describe('enqueueEmail', () => {
     expect(r.queue).toBe(EMAIL_QUEUE_NAMES.high);
   });
 
+  it.each(['billing.taxInvoice', 'billing.creditNote'] as const)(
+    'T-436: %s goes to the high-tier queue with an empty recipient list and the invoice jobId',
+    async (template) => {
+      const r = await enqueueEmail({
+        template,
+        to: [],
+        data: { userId: 'u1', invoiceId: 'i1' },
+        idempotencyKey: 'invoice-i1',
+      });
+      expect(r.queue).toBe(EMAIL_QUEUE_NAMES.high);
+      expect(calls[0].opts.jobId).toBe('invoice-i1');
+      expect(calls[0].opts.attempts).toBe(5);
+      expect((calls[0].data as { to: string[] }).to).toEqual([]);
+    },
+  );
+
   it('honours an explicit priority override', async () => {
     const r = await enqueueEmail({
       template: 'auth.welcome',

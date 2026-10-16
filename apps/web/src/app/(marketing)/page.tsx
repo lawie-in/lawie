@@ -1,3 +1,4 @@
+import { PLANS } from '@lawie/shared';
 import {
   ArrowRight,
   ArrowDown,
@@ -20,7 +21,7 @@ import SiteFooter from '@/components/marketing/SiteFooter';
 import SiteNav from '@/components/marketing/SiteNav';
 
 export const metadata: Metadata = {
-  title: 'Lawie — Legal drafting for Indian advocates',
+  title: 'Lawie — Drafting Assistant for Indian Advocates',
   description:
     'Legal drafting for Indian advocates. Criminal drafts use BNS, BNSS and BSA section numbers.',
 };
@@ -71,9 +72,27 @@ const draftItems: DraftItem[] = [
 ];
 
 const plans = [
-  { name: 'Free', price: '₹0', period: '', ink: '5 Ink, lifetime', highlighted: false },
-  { name: 'Solo', price: '₹799', period: '/month', ink: '50 Ink a month', highlighted: true },
-  { name: 'Pro', price: '₹1,999', period: '/month', ink: '150 Ink a month', highlighted: false },
+  {
+    name: 'Free',
+    price: '₹0',
+    period: '',
+    ink: '5 Ink, lifetime, once email verified',
+    highlighted: false,
+  },
+  {
+    name: 'Solo',
+    price: `₹${PLANS.solo_monthly.priceInr.toLocaleString('en-IN')}`,
+    period: '/month',
+    ink: `${PLANS.solo_monthly.inkPerCycle} Ink a month`,
+    highlighted: true,
+  },
+  {
+    name: 'Pro',
+    price: `₹${PLANS.pro_monthly.priceInr.toLocaleString('en-IN')}`,
+    period: '/month',
+    ink: `${PLANS.pro_monthly.inkPerCycle} Ink a month`,
+    highlighted: false,
+  },
 ];
 
 const homeFaqItems = [
@@ -172,7 +191,8 @@ export default function HomePage() {
               </Link>
             </div>
             <p className="hero-note">
-              <Check strokeWidth={1.5} /> Free tier: 5 Ink (lifetime) · No credit card required
+              <Check strokeWidth={1.5} /> Free tier: 5 Ink (lifetime), once your email is verified ·
+              No credit card required
             </p>
           </div>
           <div className="hero-visual" aria-hidden="true">
@@ -297,7 +317,7 @@ export default function HomePage() {
       <section className="section section--tight bg-cream final-cta">
         <div className="narrow container">
           <h2>Start drafting in the next five minutes.</h2>
-          <p>Free for your first 5 Ink. No card required.</p>
+          <p>Free for your first 5 Ink, once your email is verified. No card required.</p>
           <Link className="btn btn-primary btn-lg" href="/login">
             Start Drafting Free <ArrowRight strokeWidth={1.5} />
           </Link>

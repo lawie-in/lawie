@@ -74,27 +74,44 @@ describe('subscription.service', () => {
       );
     });
 
-    it('returns existing subscription if user already has an active one', async () => {
+    it('T-444: throws SubscriptionExistsError (not a reuse) when the user already has an active one', async () => {
       const userId = new mongoose.Types.ObjectId().toString();
-      const email = 'user@example.com';
+      const paidThrough = new Date('2027-01-15T10:00:00.000Z');
 
-      // Create an existing active subscription
       await Subscription.create({
         userId,
         razorpaySubscriptionId: 'sub_existing',
         status: 'active',
+        planId: 'solo_monthly',
+        paidThrough,
       });
 
+      await expect(createSubscription(userId, 'user@example.com')).rejects.toMatchObject({
+        name: 'SubscriptionExistsError',
+        status: 'active',
+        planId: 'solo_monthly',
+        paidThrough,
+      });
+      expect(mockedRazorpay.subscriptions.create).not.toHaveBeenCalled();
+      expect(mockedRazorpay.subscriptions.fetch).not.toHaveBeenCalled();
+    });
+
+    it('returns the existing short_url if the user has an unfinished (created) checkout', async () => {
+      const userId = new mongoose.Types.ObjectId().toString();
+      await Subscription.create({
+        userId,
+        razorpaySubscriptionId: 'sub_existing',
+        status: 'created',
+      });
       (mockedRazorpay.subscriptions.fetch as jest.Mock).mockResolvedValue({
         id: 'sub_existing',
         short_url: 'https://rzp.io/existing',
       });
 
-      const result = await createSubscription(userId, email);
+      const result = await createSubscription(userId, 'user@example.com');
 
       expect(result.subscriptionId).toBe('sub_existing');
       expect(result.shortUrl).toBe('https://rzp.io/existing');
-      // Should NOT have called create
       expect(mockedRazorpay.subscriptions.create).not.toHaveBeenCalled();
     });
   });
@@ -204,7 +221,7 @@ describe('subscription.service', () => {
       expect(updatedUser!.plan).toBe('pro');
     });
 
-    it('downgrades user to free on subscription.cancelled', async () => {
+    it('keeps the user on the plan on subscription.cancelled (downgrade happens on expired, T-399)', async () => {
       await User.findByIdAndUpdate(userId, { plan: 'pro' });
       await Subscription.create({
         userId,
@@ -218,7 +235,7 @@ describe('subscription.service', () => {
       const updatedUser = await User.findById(userId);
       expect(updatedSub!.status).toBe('cancelled');
       expect(updatedSub!.cancelledAt).toBeDefined();
-      expect(updatedUser!.plan).toBe('free');
+      expect(updatedUser!.plan).toBe('pro'); // T-399: cancel at cycle end, not at once
     });
 
     it('keeps user as pro on cancellation if another active sub exists', async () => {

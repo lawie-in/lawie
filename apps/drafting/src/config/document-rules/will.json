@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. Two witnesses are non-negotiable. For Muslim wills, MUST flag 1/3 rule and need for heir consent for excess. Probate requirement varies by jurisdiction."
   },
   "template_id": "will",
+  "card_description": "A will under the Indian Succession Act, 1925.",
   "docType": "will",
   "title": "Last Will and Testament (Indian Succession Act, 1925, S.59-63)",
   "displayName": "Last Will and Testament",
@@ -181,6 +182,14 @@
         ]
       },
       {
+        "id": "execution_place",
+        "label": "Place of execution",
+        "type": "text",
+        "required": false,
+        "help": "City or town where the document will be signed.",
+        "ask_when_empty": true
+      },
+      {
         "id": "witness_1_name_address",
         "label": "Witness 1 full name & address (must NOT be a beneficiary)",
         "type": "textarea",
@@ -330,10 +339,10 @@
       "S.62 ISA — A will is liable to be revoked or altered by the maker at any time when he is competent to dispose of his property by will. CODICIL is an instrument made in relation to a will, explaining, altering or adding to its dispositions, and is part of the will.",
       "S.63 ISA — EXECUTION OF UNPRIVILEGED WILLS (mandatory for non-soldiers/non-airmen-on-actual-service):\n   (a) The testator shall SIGN or affix his MARK to the will, or it shall be signed by some other person in his presence and by his direction.\n   (b) The signature or mark shall be so placed that it shall appear that it was intended to give effect to the writing as a will.\n   (c) The will shall be ATTESTED BY TWO OR MORE WITNESSES, each of whom has seen the testator sign or affix his mark, OR has received from the testator a personal acknowledgment of his signature; and each of the witnesses shall sign the will in the presence of the testator. It is NOT necessary that more than one witness be present at the same time.",
       "CRITICAL — Section 67 ISA: Where a will gives benefit to a person who attests it, OR to the spouse of an attesting witness, that bequest is VOID (the will itself remains valid). THEREFORE — WITNESSES MUST NOT BE BENEFICIARIES OR SPOUSES OF BENEFICIARIES.",
-      "CRITICAL CASE — H. Venkatachala Iyengar v. B.N. Thimmajamma AIR 1959 SC 443: Standard for proving a will. Apart from due execution, propounder must dispel suspicious circumstances. Suspicious circumstances include: shaky signature, unnatural disposition (disinheriting natural heirs), active role of beneficiary in execution, unsound mind, undue influence. Recently restated in Mahesh Kumar v. Bhagwan Devi (2014) 2 SCC 25, Murthy v. C. Saradambal (2022).",
+      "Standard for proving a will. Apart from due execution, propounder must dispel suspicious circumstances. Suspicious circumstances include: shaky signature, unnatural disposition (disinheriting natural heirs), active role of beneficiary in execution, unsound mind, undue influence.",
       "REGISTRATION OF WILL — OPTIONAL under S.18(e) Registration Act 1908. Recommended for evidentiary safety. Registration is NOT proof of execution; only proves date and that document was presented. Even registered will may be challenged.",
       "PROBATE — S.213 ISA: No right as executor or legatee can be established in any Court of Justice unless probate has been granted (or letters of administration with will annexed). PROBATE IS MANDATORY FOR:\n   (a) Christian / Parsi wills (S.213(1)).\n   (b) Hindu / Buddhist / Sikh / Jain wills made in Bengal, or within local limits of ordinary original civil jurisdiction of HCs of Bombay, Madras, AND wills relating to immovable property situate within those local limits (S.213(2)).\n   Hindu wills made OUTSIDE those metros and relating to property OUTSIDE those metros do NOT require probate.",
-      "MUSLIM WILLS — Mohammedan Personal Law governs (NOT ISA — see S.58 ISA exceptions). Key rules:\n   (a) A Muslim can bequeath ONLY UP TO 1/3 of his net estate (after debts and funeral expenses) to non-heirs.\n   (b) Bequest exceeding 1/3 is invalid to the extent of excess unless heirs consent AFTER testator's death.\n   (c) Bequest to an HEIR is invalid (under Sunni law) without consent of co-heirs after death (Shia law permits bequest to heir within 1/3).\n   (d) Witnesses not strictly required; oral will valid; but written + 2 witnesses strongly advised for evidence.\n   (e) Cite Abdul Hafiz Beg v. Sahebbi (1975) 1 SCC 470.",
+      "MUSLIM WILLS — Mohammedan Personal Law governs (NOT ISA — see S.58 ISA exceptions). Key rules:\n   (a) A Muslim can bequeath ONLY UP TO 1/3 of his net estate (after debts and funeral expenses) to non-heirs.\n   (b) Bequest exceeding 1/3 is invalid to the extent of excess unless heirs consent AFTER testator's death.\n   (c) Bequest to an HEIR is invalid (under Sunni law) without consent of co-heirs after death (Shia law permits bequest to heir within 1/3).\n   (d) Witnesses not strictly required; oral will valid; but written + 2 witnesses strongly advised for evidence.",
       "STRUCTURE OF WILL:",
       "Para 1: Preamble — full identification + capacity declaration.",
       "Para 2: Revocation of prior wills and codicils.",
@@ -354,7 +363,8 @@
       "Schedule A — immovable assets.",
       "Schedule B — movable assets.",
       "ADVISORY notes to include in cover instructions to the advocate:\n   (a) Where testator is aged (>70) or has any illness — obtain a Medical Certificate of Sound Mind dated close to execution date.\n   (b) Video record the execution (testator reading out salient clauses + witnesses signing) — strong evidence to dispel suspicion in case of challenge.\n   (c) Store original safely; advise registration with Sub-Registrar (optional but useful).\n   (d) Tell testator: this will revokes ALL earlier wills — confirm intent.\n   (e) Advise periodic review (life events: marriage, birth, death, divorce, large transactions).",
-      "Append Lawie disclaimer."
+      "Append Lawie disclaimer.",
+      "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
   "relevantActs": [

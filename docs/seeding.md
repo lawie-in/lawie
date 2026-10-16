@@ -2,6 +2,8 @@
 
 Reference for every collection that gets populated from a static source file at the repo level. Run these on first boot of a new database (Atlas cluster, EC2 instance, fresh local Mongo) and again any time you change one of the source files in `apps/drafting/src/config/`.
 
+> **T-371 (ADR-025 D2, 13 Oct 2026): the section tables need no reseed.** The drafting service now serves `config/sections/{ipc-to-bns,crpc-to-bnss,iea-to-bsa}.json`, `config/bns-offences.json` and `config/bns-triable-by.json` from memory, loaded at boot (`apps/drafting/src/services/signed-tables.ts`). It no longer reads the `sectionmappings` collection or the Redis `sections:*` cache. A table change ships with the deploy; check the SHA-256 of each file under `signedTables` in drafting `GET /health`. `seed:sections` and the `SectionMapping` model are deprecated and kept only until the collection is removed. The `seed:sections` rows and section 7 below are history.
+
 The drafting service reads these collections at runtime — if they are empty, the new-document form has nothing to render and `/api/courts/states` returns `[]`. That is exactly the bug we hit on the demo box on 2026-05-11.
 
 ---
@@ -39,9 +41,9 @@ What lives in JSON files in the codebase but is **not** seeded — these are rea
 - `apps/drafting/src/config/court-rules/*.json` — 15 court-specific formatting rule files (fonts, margins, cause-title format)
 - `apps/drafting/src/config/document-rules/*.json` — 5 document-type rule files (bail, S138, etc.)
 - `apps/drafting/src/config/bns-offences.json` and `bns-triable-by.json` — bail-checker reference (bailability is derived from `bns-offences.json` at load time by `services/bns-offence-resolver.ts`)
-- `apps/billing/src/config/credit-skus.ts` — plan tiers + top-up SKUs powering `/api/billing/plans`
+- `apps/billing/src/config/credit-skus.ts` — top-up SKUs powering `/api/billing/plans`. The plan tiers (price, Ink per cycle) are not defined here: `credit-skus.ts` builds them from the `PLANS` const in `packages/shared/src/constants/ink.ts`, which is the one source for plan data. The web pricing page, home cards, PaywallModal and UpgradeSuccessModal read the same const at build time.
 
-If you change any of these, redeploy the drafting (or billing) service — no DB step needed.
+If you change any of these, redeploy the drafting (or billing) service — no DB step needed. A change to `PLANS` also needs `@lawie/shared` rebuilt and the web app rebuilt and redeployed, because web reads it at build time.
 
 ---
 
@@ -82,6 +84,8 @@ sequenceDiagram
   Note over U: Sections free-text field — TODO SCRUM-46<br/>currently has no ?q= search API
 ```
 
+**Template scope on the court endpoints (T-425).** `/courts`, `/courts/types` and `/courts/states` accept `?template=<id>`. For the six bail packs (`bail_regular`, `bail_anticipatory`, `bail_before_magistrate`, `default_bail`, `interim_bail`, `bail_cancellation`) the result is limited to sessions courts, criminal-side `*_district` district courts, `high_court`, `high_court_bench` and, except for `bail_anticipatory`, `cjm`/`jmfc`. Consumer Commissions, NCDRC, Supreme Court, tribunals, `civil_court` and `district_court_generic` are excluded. `state` and `type` narrow further inside that scope. Passing a non-empty `level` together with a bail `template` returns 400 `level is not accepted for template <id>`. `suspension_of_sentence` and all other templates are unfiltered (`consumer_complaint` keeps its own T-411 `level` filter). `/courts/types` labels `high_court_bench` as "High Court Bench". Both web pickers, the brief `CourtPicker` and the classic-form `DynamicFormRenderer`, send `?template=<id>` for these six ids on states, types and courts; the id list in `apps/web/src/components/intake/bailCourts.ts` must match the one in `courts.routes.ts`, so change them together.
+
 The "states dropdown empty" bug means step 5 returned `[]`. The fix is always: run `yarn workspace @lawie/drafting seed:courts` against that DB.
 
 ---
@@ -106,6 +110,13 @@ yarn workspace @lawie/drafting seed:all
 yarn workspace @lawie/drafting seed:setting ai.drafting_model claude-sonnet-4-6
 yarn workspace @lawie/drafting seed:setting ai.preflight_model claude-haiku-4-5-20251001
 ```
+
+Model prices live in `appsettings` as one JSON value per model, key `ai.rates.<model-slug>` (for example `ai.rates.claude-sonnet-4-6`). It holds four numbers, all USD per million tokens: `input_usd_per_mtok`, `output_usd_per_mtok`, `cache_write_usd_per_mtok` and `cache_read_usd_per_mtok`.
+`cache_write_usd_per_mtok` must be the **1-hour** cache-write price, 2× input (for example `6` for Sonnet 4.6 at `3` input), because the drafting calls use only the 1-hour prompt cache (T-437).
+
+Reasoning effort is set per stage by `ai.effort.intake`, `ai.effort.preflight` and `ai.effort.body` (sent as `output_config.effort`). Defaults when unset: `medium`, `low`, `medium`. Nothing needs seeding. To change one, run `seed:setting ai.effort.<stage> <value>`. Each stage's value is cached for 60 seconds, and an invalid value falls back to the default with a warning. No thinking budget is set.
+
+The intake extraction call's `max_tokens` is set by `ai.cap.intake_extract` (a whole number from 500 to 8000; default `3000` when unset, so nothing needs seeding). To change it, run `seed:setting ai.cap.intake_extract <value>`. It is cached for 60 seconds, and an invalid value falls back to the default with a warning.
 
 All four scripts read `MONGO_URI` from `.env.${NODE_ENV ?? 'development'}` at the repo root.
 
@@ -137,16 +148,16 @@ docker exec -i lawie_drafting sh -c \
 
 ## 5. When to re-run each seed
 
-| Source change                                            | Re-run                                                                                                                                                                                                              |
-| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Adding rows to `indian-courts.json`                      | `seed:courts`                                                                                                                                                                                                       |
-| Editing existing court name / formattingRulesRef in JSON | `seed:courts` (upsert overwrites)                                                                                                                                                                                   |
-| Deleting a court from JSON                               | `seed:courts` does **not** delete — handle manually in Mongo                                                                                                                                                        |
-| Adding a new IPC↔BNS row                                 | `seed:sections`                                                                                                                                                                                                     |
-| Changing existing section mapping                        | `seed:sections --force` (deletes all rows, reseeds). Plain `seed:sections` keeps the old row. Check for admin-edited rows first: [section 7](#7-reseeding-sectionmappings-after-the-t-250--t-255-table-corrections) |
-| Adding a starter template                                | `seed:templates`                                                                                                                                                                                                    |
-| Editing an existing template                             | Update the doc in Mongo directly, or delete + reseed                                                                                                                                                                |
-| AI model swap (Anthropic releases new model)             | `seed:setting ai.drafting_model <new-id>`                                                                                                                                                                           |
+| Source change                                            | Re-run                                                                                                         |
+| -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Adding rows to `indian-courts.json`                      | `seed:courts`                                                                                                  |
+| Editing existing court name / formattingRulesRef in JSON | `seed:courts` (upsert overwrites)                                                                              |
+| Deleting a court from JSON                               | `seed:courts` does **not** delete — handle manually in Mongo                                                   |
+| Adding a new IPC↔BNS row                                 | Nothing since T-371: deploy the file; check its SHA-256 in drafting `GET /health`                              |
+| Changing existing section mapping                        | Nothing since T-371: deploy the file; check its SHA-256 in drafting `GET /health`. Ajay signs the change first |
+| Adding a starter template                                | `seed:templates`                                                                                               |
+| Editing an existing template                             | Update the doc in Mongo directly, or delete + reseed                                                           |
+| AI model swap (Anthropic releases new model)             | `seed:setting ai.drafting_model <new-id>`                                                                      |
 
 ---
 
@@ -174,6 +185,8 @@ After a successful seed the new-document form should show the full state dropdow
 ---
 
 ## 7. Reseeding `sectionmappings` after the T-250 / T-255 table corrections
+
+> **Superseded by T-371.** The service no longer reads `sectionmappings`, so this reseed is not needed for the read path. Kept as a record.
 
 **Owner:** Arjun runs the reseed. Ajay (CLO) and Arjun agree the dates through Priya. Production is founder-only.
 

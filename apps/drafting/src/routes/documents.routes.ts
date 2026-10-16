@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 
-import { COURT_TYPES, DOC_TYPES, DocType } from '@lawie/shared';
+import { COURT_TYPES, DOC_TYPES, DocType, requireCurrentPrivacy } from '@lawie/shared';
 import type { LedgerFact, LedgerUnresolvedFact } from '@lawie/shared';
 import { Router, Request, Response, NextFunction } from 'express';
 import mongoose from 'mongoose';
@@ -18,7 +18,6 @@ import { effectiveRunType, Generation, RunType } from '../models/Generation.mode
 import { User } from '../models/User.model';
 import {
   GenerationFailedError,
-  streamGenerateDocument,
   streamGenerateFromBrief,
   streamGenerateGuided,
   streamGenerateFromTemplate,
@@ -28,10 +27,22 @@ import { AvermentLists, loadAvermentLists } from '../services/averments';
 import {
   briefText,
   clampTarget,
+  missingFromRendered,
   STARTING_DRAFT_FOOTER,
   STARTING_DRAFT_LABEL,
 } from '../services/brief-drafter';
 import {
+  applyPartyFields,
+  flattenPartyValues,
+  hasPartyInputs,
+  mapPartyFields,
+  PartyFieldsResult,
+  pickPartyInputs,
+  readStoredBrief,
+  storesState,
+} from '../services/brief-party-fields';
+import {
+  costForTemplate,
   extendInkHold,
   getCreditBalance,
   holdInk,
@@ -41,6 +52,7 @@ import {
   settleInk,
   wasInkSettled,
 } from '../services/credits.service';
+import { eraseDocument } from '../services/document-erase.service';
 import {
   factDiffRunType,
   FactDiffRunType,
@@ -49,14 +61,25 @@ import {
 } from '../services/fact-diff-log';
 import { currentState, loadOwnLedger } from '../services/fact-ledger.service';
 import { FACT_CHECK_DISCLAIMER } from '../services/fact-verifier';
-import { namesSupremeCourt, buildChecklist } from '../services/intake-brief';
+import { bodyField, hiddenTemplateIds, templateGuard } from '../services/feature-switches';
+import { isCourtDocument, namesSupremeCourt, buildChecklist } from '../services/intake-brief';
+import type { BriefItem } from '../services/intake-brief';
 import {
   INTAKE_LIMITS,
   isDescribeFirstEnabled,
   isFactLedgerEnabled,
   updateBrief,
 } from '../services/intake.service';
-import { getModelRates, priceUsage, RateLookup } from '../services/llm-usage';
+import {
+  CacheUsage,
+  cacheCounts,
+  effectiveCacheRates,
+  getModelRates,
+  priceCacheUsage,
+  priceUsage,
+  RateLookup,
+  totalTokens,
+} from '../services/llm-usage';
 import {
   blanksInContent,
   contentToHtml,
@@ -65,7 +88,7 @@ import {
   renderPdf,
 } from '../services/pdf-export.service';
 import { preflightCheck } from '../services/preflight.service';
-import { loadRulePack } from '../services/rule-pack.service';
+import { applyFieldAliases, loadRulePack } from '../services/rule-pack.service';
 import { NOT_FIXTURE, NOT_FIXTURE_GENERATION } from '../services/run-origin';
 import { withS138DateChecks } from '../services/s138-date-checks';
 import {
@@ -73,8 +96,6 @@ import {
   loadCourtRule,
   loadTemplateConfig,
   listTemplateConfigs,
-  resolveEnrollmentNumber,
-  resolveLegacyAdvocate,
   validateFormData,
 } from '../services/template-engine.service';
 import {
@@ -84,7 +105,7 @@ import {
   sealFormInputs,
 } from '../utils/case-details';
 import { decrypt, encrypt } from '../utils/encryption';
-import { presentDescription } from '../utils/presentDescription';
+import { publicTemplateConfig, publicTemplateSummary } from '../utils/publicTemplateConfig';
 
 /**
  * Map template_id → valid DOC_TYPE for DB persistence.
@@ -114,17 +135,15 @@ function validateObjectId(req: Request, _res: Response, next: NextFunction): voi
 const router = Router();
 
 /**
- * T-314: the legacy body's advocateEnrollment under the same check as the
- * advocate name (T-300, `resolveLegacyAdvocate`), but capped at 50: after trim,
- * 1-50 characters (Ajay, 12 Oct 2026; the name stays 1-100) with no `{`, `}`,
- * CR, LF, U+2028 or U+2029. A value that fails is dropped (undefined), so it
- * counts as empty under T-311's order. Never a refusal, and nothing from the
- * value is logged.
+ * T-357 AC3: log a template-config load failure once. Only the message is
+ * logged: template-engine messages hold template ids, never file content,
+ * request body or user content.
  */
-function checkedLegacyEnrollment(bodyValue: string | undefined): string | undefined {
-  const typed = bodyValue?.trim() ?? '';
-  const ok = typed.length >= 1 && typed.length <= 50 && !/[{}\r\n\u2028\u2029]/.test(typed);
-  return ok ? typed : undefined;
+function logTemplateConfigError(err: unknown): void {
+  logger.error(
+    { error: err instanceof Error ? err.message : 'UnknownError' },
+    'T-357: template config could not be loaded',
+  );
 }
 
 /**
@@ -153,13 +172,16 @@ async function profileEnrollmentNumber(userId: string): Promise<string | undefin
  * are still real either way (T-003 §3.6).
  */
 async function priceGeneration(
-  usage: { inputTokens: number; outputTokens: number },
+  usage: { inputTokens: number; outputTokens: number } & CacheUsage,
   aiModel: string | undefined,
-): Promise<{ costUsd: number; rate: RateLookup }> {
-  if (!aiModel) return { costUsd: 0, rate: { costStatus: 'rate_missing', rate: null } };
+): Promise<{ costUsd: number; cacheWriteUsd: number; cacheReadUsd: number; rate: RateLookup }> {
+  const none = { cacheWriteUsd: 0, cacheReadUsd: 0 };
+  if (!aiModel) return { costUsd: 0, ...none, rate: { costStatus: 'rate_missing', rate: null } };
   const rate = await getModelRates(aiModel);
-  const costUsd = rate.costStatus === 'priced' ? priceUsage(usage, rate.rate) : 0;
-  return { costUsd, rate };
+  if (rate.costStatus !== 'priced') return { costUsd: 0, ...none, rate };
+  // T-437: costUsd includes the cache cost; the split is kept for the admin screen.
+  const costUsd = priceUsage(usage, rate.rate, aiModel);
+  return { costUsd, ...priceCacheUsage(usage, rate.rate, aiModel), rate };
 }
 
 export interface RecordGenerationInput {
@@ -170,7 +192,8 @@ export interface RecordGenerationInput {
   documentId?: mongoose.Types.ObjectId;
   aiModel?: string;
   transport?: 'direct';
-  usage: {
+  /** T-437: inputTokens is uncached input; cache counts are the optional CacheUsage fields. */
+  usage: CacheUsage & {
     inputTokens: number;
     outputTokens: number;
     llmCalls: number;
@@ -200,7 +223,11 @@ export interface RecordGenerationInput {
 export async function recordGeneration(
   input: RecordGenerationInput,
 ): Promise<{ duplicate: boolean }> {
-  const { costUsd, rate } = await priceGeneration(input.usage, input.aiModel);
+  const { costUsd, cacheWriteUsd, cacheReadUsd, rate } = await priceGeneration(
+    input.usage,
+    input.aiModel,
+  );
+  const cacheRates = rate.costStatus === 'priced' ? effectiveCacheRates(rate.rate) : undefined;
   try {
     await Generation.create({
       userId: input.userId,
@@ -210,9 +237,11 @@ export async function recordGeneration(
       documentId: input.documentId,
       aiModel: input.aiModel,
       transport: input.transport,
-      tokensUsed: input.usage.inputTokens + input.usage.outputTokens,
+      // T-437: tokensUsed counts every token processed, cache writes and reads included.
+      tokensUsed: totalTokens(input.usage),
       inputTokens: input.usage.inputTokens,
       outputTokens: input.usage.outputTokens,
+      ...cacheCounts(input.usage),
       llmCalls: input.usage.llmCalls,
       usageSource: input.usage.usageSource,
       calls: input.usage.calls,
@@ -226,6 +255,16 @@ export async function recordGeneration(
       costStatus: rate.costStatus,
       rateInputUsdPerMTok: rate.costStatus === 'priced' ? rate.rate.inputUsdPerMTok : undefined,
       rateOutputUsdPerMTok: rate.costStatus === 'priced' ? rate.rate.outputUsdPerMTok : undefined,
+      // T-437: present only when the generation used the cache, so a row without
+      // cache activity is written exactly as before (the schema defaults the costs to 0).
+      ...(cacheWriteUsd > 0 || cacheReadUsd > 0
+        ? {
+            cacheWriteCostUsd: cacheWriteUsd,
+            cacheReadCostUsd: cacheReadUsd,
+            rateCacheWriteUsdPerMTok: cacheRates?.cacheWriteUsdPerMTok,
+            rateCacheReadUsdPerMTok: cacheRates?.cacheReadUsdPerMTok,
+          }
+        : {}),
     });
     return { duplicate: false };
   } catch (dbErr) {
@@ -345,6 +384,9 @@ export interface InkHoldHandle {
  * Safety net: if `run` returns or throws without closing the hold, it is
  * released here.
  */
+/** T-372: the longest `done` waits for the balance read before it goes without it. */
+const DONE_BALANCE_TIMEOUT_MS = 1000;
+
 export async function withInkHold(
   req: Request,
   res: Response,
@@ -384,6 +426,35 @@ export async function withInkHold(
   let clientGone = false;
   /** finish() lost the hold and could not re-take it: no `done` may be sent. */
   let withheld = false;
+  /** T-372: the Ink balance after the settle, for `done`. Unset if the read failed. */
+  let doneBalance: { totalInk: number } | undefined;
+
+  /**
+   * T-372: read the balance once the draft is paid, for the web's balance.
+   * Best effort and capped, so `done` is never held up. Ids only in the log.
+   */
+  const readDoneBalance = async (): Promise<void> => {
+    let timer: NodeJS.Timeout | undefined;
+    try {
+      const balance = await Promise.race([
+        getCreditBalance(userId),
+        new Promise<undefined>((resolve) => {
+          timer = setTimeout(() => resolve(undefined), DONE_BALANCE_TIMEOUT_MS);
+          timer.unref();
+        }),
+      ]);
+      if (balance && typeof balance.totalInk === 'number' && Number.isFinite(balance.totalInk)) {
+        doneBalance = { totalInk: balance.totalInk };
+      }
+    } catch (err) {
+      console.warn(
+        `[drafting] balance read for done failed (runId=${runId}, runSequence=${runSequence}):`,
+        err instanceof Error ? err.name : 'unknown',
+      );
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  };
 
   // Heartbeat. Declared before the timer so the tick can stop itself.
   const heldAt = Date.now();
@@ -482,13 +553,20 @@ export async function withInkHold(
         );
         return;
       }
-      if (settled.settled || settled.reason !== 'no_hold') return;
+      if (settled.settled) {
+        await readDoneBalance();
+        return;
+      }
+      if (settled.reason !== 'no_hold') return;
 
       // The hold is gone. If it was SETTLED (the sweep, e.g. after this
       // request marked it delivered, or from the completed Generation), the
       // draft is paid: re-holding would charge twice.
       try {
-        if (await wasInkSettled(userId, runId, runSequence)) return;
+        if (await wasInkSettled(userId, runId, runSequence)) {
+          await readDoneBalance();
+          return;
+        }
       } catch (err) {
         // Paid or not is unknown, and there is no hold left for the sweep.
         // The draft is delivered (T-288 scopes the withheld path to a run
@@ -513,6 +591,7 @@ export async function withInkHold(
         }
         reheld = again.ok;
         const retried = await settleInk(userId, runId, runSequence, undefined, reference);
+        if (retried.settled) await readDoneBalance();
         if (!retried.settled && retried.reason === 'no_hold') {
           console.error(
             `[drafting] settleInk found no hold after a re-hold (runId=${runId}, runSequence=${runSequence})`,
@@ -542,7 +621,8 @@ export async function withInkHold(
     sendDone(data) {
       if (withheld) return;
       doneWritten = true;
-      res.write(`event: done\ndata: ${JSON.stringify(data)}\n\n`);
+      const payload = doneBalance ? { ...data, balance: doneBalance } : data;
+      res.write(`event: done\ndata: ${JSON.stringify(payload)}\n\n`);
       res.end();
     },
   };
@@ -554,50 +634,6 @@ export async function withInkHold(
     await release();
   }
 }
-
-const generateSchema = z.object({
-  docType: z.enum([
-    'bail_application',
-    'petition',
-    'legal_notice',
-    'affidavit',
-    'vakalatnama',
-    'plaint',
-    'written_statement',
-    'injunction',
-    'reply',
-    'complaint',
-    'rent_agreement',
-  ]),
-  courtName: z.string().min(1).max(200),
-  courtType: z.enum([
-    'district_court',
-    'high_court',
-    'supreme_court',
-    'tribunal',
-    'consumer_forum',
-    'family_court',
-    'sessions',
-    'cjm',
-    'jmfc',
-    'civil_court',
-  ]),
-  partyDetails: z.record(z.string()).default({}),
-  keyFacts: z.string().min(10).max(5000),
-  reliefPrayer: z.string().min(5).max(2000),
-  advocateName: z.string().optional(),
-  advocateEnrollment: z.string().optional(),
-  // Bail-specific fields (CLO fix #1, #2)
-  firNumber: z.string().optional(),
-  firDate: z.string().optional(),
-  policeStation: z.string().optional(),
-  district: z.string().optional(),
-  fatherName: z.string().optional(),
-  // CLO fix #9 — mediation willingness
-  mediationWilling: z.boolean().optional(),
-  // T-003 §3.8 — a retry resends this to keep the same run
-  run_id: z.string().uuid().optional(),
-});
 
 // GET /documents/usage — return this month's generation count + limit for the caller
 router.get('/usage', authenticate, async (req: Request, res: Response): Promise<void> => {
@@ -646,23 +682,51 @@ router.get('/', authenticate, async (req: Request, res: Response): Promise<void>
 router.get(
   '/template-configs',
   authenticate,
-  async (_req: Request, res: Response): Promise<void> => {
-    const configs = listTemplateConfigs();
+  async (req: Request, res: Response): Promise<void> => {
+    let configs: ReturnType<typeof listTemplateConfigs>;
+    try {
+      configs = listTemplateConfigs();
+    } catch (err) {
+      // T-357 AC3: a broken override or catalogue gap throws; answer instead of hanging.
+      logTemplateConfigError(err);
+      res.status(500).json({ error: 'Template config unavailable' });
+      return;
+    }
+    // T-375: a template hidden by its feature switch is not listed (this also covers search).
+    const hidden = await hiddenTemplateIds(req.jwtPayload!.sub);
+    configs = configs.filter((c) => !hidden.has(c.template_id));
+    const guidedCost = costForTemplate(GUIDED_ID);
     res.json({
-      templates: configs.map((config) => ({
-        ...config,
-        description: presentDescription(config.description),
-      })),
+      templates: configs.map((config) => {
+        // T-372: the price the charge uses (single source, T-227); omitted when unpriced.
+        const creditsCost = costForTemplate(config.template_id);
+        // T-385: allowlist projection; description is the signed card line (T-365 AC6), no metadata.
+        return publicTemplateSummary({
+          ...config,
+          ...(creditsCost !== undefined ? { credits_cost: creditsCost } : {}),
+        });
+      }),
+      // T-372: a brief with no rule pack is charged as the guided draft.
+      ...(guidedCost !== undefined ? { guided_credits_cost: guidedCost } : {}),
     });
   },
 );
 
-// GET /documents/template-configs/:id — get full template config (form_schema + document_structure)
+// GET /documents/template-configs/:id — the public template config (T-385 allowlist: form_schema, no document_structure)
 router.get(
   '/template-configs/:id',
   authenticate,
+  templateGuard((req) => req.params.id), // T-375
   async (req: Request, res: Response): Promise<void> => {
-    const config = loadTemplateConfig(req.params.id);
+    let config: ReturnType<typeof loadTemplateConfig>;
+    try {
+      config = loadTemplateConfig(req.params.id);
+    } catch (err) {
+      // T-357 AC3: a broken override or catalogue gap throws; answer instead of hanging.
+      logTemplateConfigError(err);
+      res.status(500).json({ error: 'Template config unavailable' });
+      return;
+    }
     if (!config) {
       res.status(404).json({ error: 'Template config not found' });
       return;
@@ -677,7 +741,9 @@ router.get(
       return;
     }
 
-    res.json({ config: { ...config, description: presentDescription(config.description) } });
+    // T-385: allowlist projection; no _source, document_structure, metadata etc.
+    // description is the signed card line (T-365 AC6).
+    res.json({ config: publicTemplateConfig(config) });
   },
 );
 
@@ -694,40 +760,56 @@ const templateGenerateSchema = z.object({
 // POST /documents/preflight — pre-generation verification layer (SCRUM-69)
 // Runs before /generate to catch input errors cheaply (~50ms rules + ~1.5s Haiku).
 // FAIL-OPEN: if the verifier itself fails, returns { verdict: "pass" } so drafting is never blocked.
-router.post('/preflight', authenticate, async (req: Request, res: Response): Promise<void> => {
-  const { template_id, form_data } = req.body as {
-    template_id?: string;
-    form_data?: Record<string, unknown>;
-  };
+router.post(
+  '/preflight',
+  authenticate,
+  templateGuard(bodyField('template_id')), // T-375
+  async (req: Request, res: Response): Promise<void> => {
+    const { template_id, form_data } = req.body as {
+      template_id?: string;
+      form_data?: Record<string, unknown>;
+    };
 
-  if (!template_id || typeof template_id !== 'string') {
-    res.status(400).json({ error: 'template_id is required' });
-    return;
-  }
-  if (!form_data || typeof form_data !== 'object') {
-    res.status(400).json({ error: 'form_data is required' });
-    return;
-  }
+    if (!template_id || typeof template_id !== 'string') {
+      res.status(400).json({ error: 'template_id is required' });
+      return;
+    }
+    if (!form_data || typeof form_data !== 'object') {
+      res.status(400).json({ error: 'form_data is required' });
+      return;
+    }
 
-  try {
-    const userId = req.jwtPayload?.sub;
-    const result = await preflightCheck(template_id, form_data, userId);
+    // T-451 alias, remove in the post-v1 cleanup
+    const aliasedFormData = applyFieldAliases(form_data, template_id);
 
-    // Strip internal meta before sending to client
-    const { _meta, ...clientResult } = result;
-    void _meta; // suppress unused var warning
+    try {
+      const userId = req.jwtPayload?.sub;
+      const result = await preflightCheck(template_id, aliasedFormData, userId, {
+        advocateName: req.jwtPayload?.name || undefined,
+        enrollmentNumber:
+          userId && template_id === 'vakalatnama'
+            ? await profileEnrollmentNumber(userId)
+            : undefined,
+      });
 
-    res.json(clientResult);
-  } catch {
-    // FAIL-OPEN: verifier error never blocks generation
-    res.json({ verdict: 'pass', questions: [] });
-  }
-});
+      // Strip internal meta before sending to client
+      const { _meta, ...clientResult } = result;
+      void _meta; // suppress unused var warning
+
+      res.json(clientResult);
+    } catch {
+      // FAIL-OPEN: verifier error never blocks generation
+      res.json({ verdict: 'pass', questions: [] });
+    }
+  },
+);
 
 // POST /documents/generate-from-template — config-driven generation (SCRUM-43)
 router.post(
   '/generate-from-template',
   authenticate,
+  requireCurrentPrivacy, // T-343 — new drafts need the current privacy version
+  templateGuard(bodyField('template_id')), // T-375
   enforceCredits, // SCRUM-73 / SCRUM-59 — credit gate; replaces enforceFreeLimit
   spendCapCheck,
   async (req: Request, res: Response): Promise<void> => {
@@ -741,10 +823,20 @@ router.post(
     }
 
     const payload = req.jwtPayload!;
-    const { template_id, form_data, run_id, intake_id } = parsed.data;
+    const { template_id, form_data: postedFormData, run_id, intake_id } = parsed.data;
+    // T-451 alias, remove in the post-v1 cleanup
+    const form_data = applyFieldAliases(postedFormData, template_id);
 
     // Load template config
-    const templateConfig = loadTemplateConfig(template_id);
+    let templateConfig: ReturnType<typeof loadTemplateConfig>;
+    try {
+      templateConfig = loadTemplateConfig(template_id);
+    } catch (err) {
+      // T-357 AC3: a broken override or catalogue gap throws; answer instead of hanging.
+      logTemplateConfigError(err);
+      res.status(500).json({ error: 'Template config unavailable' });
+      return;
+    }
     if (!templateConfig) {
       res.status(404).json({ error: `Template "${template_id}" not found` });
       return;
@@ -1027,6 +1119,23 @@ function kindAsTemplateId(req: Request, _res: Response, next: NextFunction): voi
   next();
 }
 
+/**
+ * T-423: the values the brief accepted, as [{key, value}] for pickPartyInputs.
+ * Only items with a value, not answered "Not known" (asked_empty) and not
+ * waiting for the advocate to confirm (unconfirmed). Never the raw request values.
+ */
+function acceptedBriefValues(items: BriefItem[]): Array<{ key: string; value: string | string[] }> {
+  const out: Array<{ key: string; value: string | string[] }> = [];
+  for (const item of items) {
+    if (item.asked_empty || item.unconfirmed) continue;
+    const v = item.value;
+    if (v === null || v === undefined) continue;
+    if (Array.isArray(v) ? v.length === 0 : v.trim() === '') continue;
+    out.push({ key: item.key, value: v });
+  }
+  return out;
+}
+
 async function describeFirstOnly(req: Request, res: Response, next: NextFunction): Promise<void> {
   if (!(await isDescribeFirstEnabled(req.jwtPayload!.sub))) {
     res.status(404).json({ error: 'not_enabled' });
@@ -1038,7 +1147,9 @@ async function describeFirstOnly(req: Request, res: Response, next: NextFunction
 router.post(
   '/generate-from-brief',
   authenticate,
+  requireCurrentPrivacy, // T-343 — new drafts need the current privacy version
   describeFirstOnly,
+  templateGuard(bodyField('kind')), // T-375
   kindAsTemplateId,
   enforceCredits,
   spendCapCheck,
@@ -1062,7 +1173,15 @@ router.post(
     const recordId = guided ? GUIDED_ID : kind;
 
     const pack = guided ? null : loadRulePack(kind);
-    const templateConfig = pack ? loadTemplateConfig(kind) : null;
+    let templateConfig: ReturnType<typeof loadTemplateConfig>;
+    try {
+      templateConfig = pack ? loadTemplateConfig(kind) : null;
+    } catch (err) {
+      // T-357 AC3: a broken override or catalogue gap throws; answer instead of hanging.
+      logTemplateConfigError(err);
+      res.status(500).json({ error: 'Template config unavailable' });
+      return;
+    }
     if (!guided && (!pack || !templateConfig)) {
       res.status(404).json({ error: 'Document kind not found' });
       return;
@@ -1244,7 +1363,10 @@ router.post(
                 },
                 res,
               )
-            : await streamGenerateGuided(common, res);
+            : await streamGenerateGuided(
+                { ...common, advocateName: payload.name || undefined },
+                res,
+              );
       } catch (genErr) {
         // T-226: a failed run returns its hold, before the response ends.
         await ink.release();
@@ -1311,8 +1433,19 @@ router.post(
             ? courtType
             : undefined,
           courtName: brief.court.court ?? '',
-          // No case details here, but sealed like every other write (T-115a). The brief is encrypted below.
-          formInputsEnc: sealFormInputs({ template_id: recordId, source: 'brief' }),
+          // T-381: the party inputs the annexures pack needs (the pack's own role
+          // fields, by last segment) and the court labels: court_type always,
+          // state only on a State row (Ajay, Addendum 4). Case details, so sealed
+          // like every other write (T-115a). The brief is encrypted below.
+          // T-423: party inputs only from values the brief accepted, and the
+          // State's display name from the Court row (never the picker id).
+          formInputsEnc: sealFormInputs({
+            ...pickPartyInputs(recordId, acceptedBriefValues(brief.items)),
+            ...(brief.court.court_type ? { court_type: brief.court.court_type } : {}),
+            ...(courtData?.state && storesState(recordId) ? { state: courtData.state } : {}),
+            template_id: recordId,
+            source: 'brief',
+          }),
           generatedContent: encrypt(result.fullText),
           sectionsCited: result.sectionsCited,
           filingChecklistEnc: sealFilingChecklist(result.filingChecklist),
@@ -1373,10 +1506,13 @@ router.post(
 
       // T-147d: the fact-diff log and the placeholder rate, for a ledger draft.
       // Its own try: a failure here never stops the draft. Ids only in the log line.
-      if (ledger && pack && result.factCheck && !duplicateAttempt) {
+      // T-373 (Arjun B): on D1 the read-only findings come in factDiff, tagged d1.
+      const factOutcome = result.factCheck ?? result.factDiff?.outcome;
+      if (ledger && pack && factOutcome && !duplicateAttempt) {
         try {
           await writeFactCheckLog({
-            outcome: result.factCheck,
+            outcome: factOutcome,
+            path: result.factDiff?.path ?? 'legacy',
             runId,
             documentId: docId,
             userId: payload.sub,
@@ -1436,7 +1572,11 @@ router.post(
         /** False when the document has no rule pack: the label is always on and no clause was checked. */
         rulePack: !guided,
         mandatoryClausesComplete: guided ? null : result.mandatoryClausesComplete,
-        missingClauses: result.missingClauses.map((m) => ({ id: m.id, title: m.title })),
+        // T-373: on a D1 pack the missing clauses are read off the renderer's rendered[].
+        missingClauses: (result.rendered
+          ? missingFromRendered(result.rendered)
+          : result.missingClauses
+        ).map((m) => ({ id: m.id, title: m.title })),
         repaired: result.repaired,
         startingDraft: result.startingDraft,
         startingDraftLabel: result.startingDraft ? STARTING_DRAFT_LABEL : null,
@@ -1445,218 +1585,28 @@ router.post(
         // T-197: the signed disclaimer goes with every finished draft, banner or not.
         disclaimer: FACT_CHECK_DISCLAIMER,
         // T-147d: what the fact verifier needs the advocate to check. Ledger path only.
-        ...('factCheck' in result && result.factCheck
+        // T-373 (Arjun B): never on D1; the panel there is rendered[] only.
+        ...(!result.rendered && 'factCheck' in result && result.factCheck
           ? { factCheck: { banner: result.factCheck.banner } }
           : {}),
+        // T-373 (ADR-025 renderer rule 5): the clauses the renderer printed, for the
+        // checks panel. Ids, statuses, blank labels and reasons only; D1 packs only.
+        ...(result.rendered ? { rendered: result.rendered } : {}),
       });
     });
   },
 );
 
-// POST /documents/generate — legacy generation (ink-gated)
-router.post(
-  '/generate',
-  authenticate,
-  enforceCredits,
-  spendCapCheck,
-  async (req: Request, res: Response): Promise<void> => {
-    const parsed = generateSchema.safeParse(req.body);
-    if (!parsed.success) {
-      res.status(400).json({
-        error: 'Invalid request',
-        issues: parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`),
-      });
-      return;
-    }
-
-    const payload = req.jwtPayload!;
-    const input = parsed.data;
-
-    // T-300: the body's advocateName is used only if it passes the check in
-    // resolveLegacyAdvocateName; otherwise the profile name. Never a refusal.
-    const advocate = resolveLegacyAdvocate(input.advocateName, { name: payload.name });
-    input.advocateName = advocate.name;
-    // T-311: a typed advocateEnrollment always prints; the profile number fills
-    // an empty one only when the name is the profile's. Never a refusal.
-    // T-314: a typed value that fails checkedLegacyEnrollment is dropped first.
-    input.advocateEnrollment = resolveEnrollmentNumber(
-      checkedLegacyEnrollment(input.advocateEnrollment),
-      await profileEnrollmentNumber(payload.sub),
-      advocate.fromProfile,
-    );
-
-    // Inject bail-specific fields into partyDetails so post-processor can use them (CLO fixes)
-    if (input.fatherName) {
-      input.partyDetails.fatherName = input.fatherName;
-    }
-    if (input.firNumber) {
-      input.partyDetails.firNumber = input.firNumber;
-    }
-
-    // T-003 §3.8 — legacy pipeline has no template_id, so docType is the
-    // equivalent "same kind of request" match key for a retry.
-    const { runId, runSequence, runType } = await resolveRun(
-      payload.sub,
-      { docType: input.docType },
-      input.run_id,
-    );
-    res.setHeader('X-Run-Id', runId);
-    res.setHeader('X-Run-Sequence', String(runSequence));
-    const startedAt = Date.now();
-
-    // T-226: hold the cost before any model call (402/409 refusals as JSON;
-    // no header has been sent yet). Every ending below closes the hold.
-    // The pre-stream 500 body below ("Generation failed"), with its existing
-    // fallback message rather than a database error's text.
-    const holdError = { error: 'Generation failed', message: 'Unknown generation error' };
-    const inkKey = { runId, runSequence };
-    const inkCost = chargedCost(req); // T-227: no default price
-    await withInkHold(req, res, inkKey, inkCost, holdError, async (ink) => {
-      // Stream the AI response via three-layer pipeline
-      let result;
-      try {
-        result = await streamGenerateDocument(
-          { ...input, userId: payload.sub, runId, runSequence, runType },
-          res,
-        );
-      } catch (genErr) {
-        // T-226: a failed run returns its hold, before the response ends.
-        await ink.release();
-        // GenerationFailedError = mid-stream LLM failure. SSE `event: error` was
-        // already emitted and the response is closed. Still record what the
-        // attempt actually used (T-003) — a failed generation isn't free.
-        if (genErr instanceof GenerationFailedError) {
-          await recordGeneration({
-            userId: payload.sub,
-            docType: input.docType,
-            status: 'failed',
-            aiModel: genErr.aiModel,
-            transport: genErr.transport,
-            usage: genErr.usage,
-            paragraphCount: 0,
-            durationMs: Date.now() - startedAt,
-            runId,
-            runSequence,
-            runType,
-          });
-          // Ended only now — after the row exists — so a fast retry's
-          // resolveRun query can never race the write that makes it findable.
-          res.end();
-          return;
-        }
-
-        // No usage data from the pipeline for this kind of failure, but a
-        // runId already exists and was already handed to the client, so it
-        // still gets a failed row (T-003 §3.8).
-        const msg = genErr instanceof Error ? genErr.message : 'Unknown generation error';
-        console.error(
-          `[drafting] legacy generate threw (runId=${runId}, runType=${runType}):`,
-          msg,
-        );
-        await recordGeneration({
-          userId: payload.sub,
-          docType: input.docType,
-          status: 'failed',
-          usage: { inputTokens: 0, outputTokens: 0, llmCalls: 0, usageSource: 'provider' },
-          paragraphCount: 0,
-          durationMs: Date.now() - startedAt,
-          runId,
-          runSequence,
-          runType,
-        });
-        if (!res.headersSent) {
-          res.status(500).json({ error: 'Generation failed', message: msg });
-        } else {
-          res.write(
-            `event: error\ndata: ${JSON.stringify({
-              reason:
-                'The drafting service hit an unexpected error. Please try again — your inputs are saved.',
-              retryable: true,
-              code: 'unknown',
-              runId,
-            })}\n\n`,
-          );
-          res.end();
-        }
-        return;
-      }
-
-      // Save to DB — must not block the done event if DB is unavailable (mirrors
-      // the template route; a DB hiccup shouldn't strand the advocate's draft).
-      let docId: string | null = null;
-      let duplicateAttempt = false;
-      const paragraphCount = estimateBodyParaCount(result.fullText);
-      try {
-        const encryptedContent = encrypt(result.fullText);
-        const title = `${input.docType.replace(/_/g, ' ')} — ${input.courtName}`.slice(0, 300);
-        // Sequential, not Promise.all — Generation.documentId needs the Document's _id.
-        const doc = await LawieDocument.create({
-          userId: payload.sub,
-          title,
-          docType: input.docType,
-          courtType: input.courtType,
-          courtName: input.courtName,
-          formInputsEnc: sealFormInputs(input),
-          generatedContent: encryptedContent,
-          sectionsCited: result.sectionsCited,
-          filingChecklistEnc: sealFilingChecklist(result.filingChecklist),
-          checklistState: result.filingChecklist.map(() => false),
-          status: 'draft',
-          runId,
-          runSequence,
-        });
-        docId = String(doc._id);
-
-        const { duplicate } = await recordGeneration({
-          userId: payload.sub,
-          docType: input.docType,
-          status: 'completed',
-          documentId: doc._id,
-          aiModel: result.aiModel,
-          transport: result.transport,
-          usage: result.usage,
-          paragraphCount,
-          durationMs: Date.now() - startedAt,
-          runId,
-          runSequence,
-          runType,
-        });
-        duplicateAttempt = duplicate;
-
-        if (process.env.NODE_ENV !== 'test') {
-          console.info(
-            `[drafting] Generated doc ${docId} for user ${payload.sub} (runId=${runId}, runSequence=${runSequence}, runType=${runType})`,
-          );
-        }
-      } catch (dbErr) {
-        console.error(
-          `[drafting] DB save failed for legacy generate (runId=${runId}, runType=${runType}):`,
-          dbErr instanceof Error ? dbErr.message : dbErr,
-        );
-      }
-
-      // T-226: close the hold by the charge rule — settled when the draft
-      // reached the user (saved, or the client is still here), else released.
-      // A duplicate attempt releases this request's hold (never charged twice).
-      await ink.finish({
-        saved: docId !== null,
-        duplicate: duplicateAttempt,
-        reference: docId ?? undefined,
-      });
-
-      // Send done event with docId so frontend can redirect to editor
-      ink.sendDone({
-        complete: true,
-        docId,
-        runId,
-        sectionsCited: result.sectionsCited,
-        mandatoryClausesComplete: result.mandatoryClausesComplete,
-        // T-197: the signed disclaimer goes with every finished draft.
-        disclaimer: FACT_CHECK_DISCLAIMER,
-      });
-    });
-  },
-);
+// POST /documents/generate — retired (T-443, Arjun 15 Oct 2026). Nothing in web
+// or the gateway calls it, and its legacy prompt could produce a wrong-law draft.
+// Answers 410 before any auth, privacy, template, Ink or validation step, and
+// does nothing else: no hold, no Generation row, no model call, no document.
+router.post('/generate', (_req: Request, res: Response): void => {
+  res.status(410).json({
+    error: 'Gone',
+    message: 'This endpoint has been retired. Use the document flow in the app.',
+  });
+});
 
 const patchSchema = z.object({
   finalContent: z.string().min(1).max(200_000).optional(),
@@ -1698,6 +1648,26 @@ router.get(
       return;
     }
 
+    // T-381: whether the page offers the annexures pack. A court document (not
+    // one of the not_court_documents) with a client or opposite-party name by
+    // the signed mapping. An unreadable value only hides the card; only the id
+    // and the error name are logged.
+    let courtDocument = false;
+    let hasParty = false;
+    try {
+      const { packId, mapped, briefCourtDocument } = partyMappingOf(doc, readFormInputs(doc) ?? {});
+      courtDocument =
+        packId === GUIDED_ID
+          ? briefCourtDocument === true
+          : packId !== '' && isCourtDocument(packId);
+      hasParty = mapped.clientName !== '' || mapped.counterpartName !== '';
+    } catch (err) {
+      console.error(
+        `[drafting] Get document: could not read the parties of document ${String(doc._id)}:`,
+        err instanceof Error ? err.name : 'UnknownError',
+      );
+    }
+
     res.json({
       _id: doc._id,
       title: doc.title,
@@ -1719,6 +1689,9 @@ router.get(
       startingDraftFooter: doc.startingDraft === true ? STARTING_DRAFT_FOOTER : null,
       // T-197: the signed disclaimer the document page shows on every draft.
       disclaimer: FACT_CHECK_DISCLAIMER,
+      // T-381: the annexures card shows when both are true.
+      courtDocument,
+      hasParty,
       createdAt: doc.createdAt,
       updatedAt: doc.updatedAt,
     });
@@ -1796,6 +1769,57 @@ router.patch(
     }
 
     res.json({ version: doc.version, status: doc.status, updatedAt: doc.updatedAt });
+  },
+);
+
+// DELETE /documents/:id — T-115b: hard delete, owner only (Arjun, T-115 decision 11).
+// Marks and hides the document first, then erases it (services/document-erase.service.ts).
+// 200 only once every step is done; 202 { status: 'pending' } when a step failed (the
+// document is already hidden and the sweep finishes it). Another user's id, an unknown
+// id or a finished erase is 404. Logs ids and the error name only.
+router.delete(
+  '/:id',
+  validateObjectId,
+  authenticate,
+  async (req: Request, res: Response): Promise<void> => {
+    const payload = req.jwtPayload!;
+    const own = { _id: req.params.id, userId: payload.sub };
+    let found: unknown;
+    try {
+      found = await LawieDocument.findOneAndUpdate(
+        { ...own, isDeleted: { $ne: true } },
+        { $set: { isDeleted: true, 'deletion.requestedAt': new Date() } },
+        { new: true, projection: { _id: 1 } },
+      ).lean();
+      // A repeat while an erase is still pending re-runs it.
+      if (!found) {
+        found = await LawieDocument.findOne({ ...own, 'deletion.requestedAt': { $exists: true } })
+          .select('_id')
+          .lean();
+      }
+    } catch (err) {
+      logger.error(
+        {
+          documentId: req.params.id,
+          collection: 'documents',
+          errName: err instanceof Error ? err.name : 'UnknownError',
+        },
+        'Delete document: could not mark the document',
+      );
+      res.status(500).json({ error: 'Could not delete this document' });
+      return;
+    }
+    if (!found) {
+      res.status(404).json({ error: 'Document not found' });
+      return;
+    }
+
+    const result = await eraseDocument(req.params.id);
+    if (!result.done) {
+      res.status(202).json({ status: 'pending' });
+      return;
+    }
+    res.status(200).json({ status: 'deleted' });
   },
 );
 
@@ -1926,6 +1950,33 @@ router.post(
   },
 );
 
+/**
+ * T-381: a document's pack id and its party mapping (brief-party-fields.ts).
+ * The pack id is the brief's rule pack, else the form's template_id. A brief
+ * draft made before T-381 sealed no party inputs, so its encrypted brief is
+ * read instead; a guided brief is read for whether it is a court document.
+ * Throws when the stored brief cannot be decrypted or parsed. Logs nothing.
+ */
+function partyMappingOf(
+  doc: { rulePackId?: string | null; brief?: string | null },
+  formData: Record<string, unknown>,
+): { packId: string; mapped: PartyFieldsResult; briefCourtDocument?: boolean } {
+  const packId =
+    doc.rulePackId || (typeof formData.template_id === 'string' ? formData.template_id.trim() : '');
+  const fromBrief =
+    formData.source === 'brief' && typeof doc.brief === 'string' && doc.brief !== '';
+  const sealed = hasPartyInputs(packId, formData);
+  if (fromBrief && (packId === GUIDED_ID || !sealed)) {
+    const stored = readStoredBrief(decrypt(doc.brief as string));
+    return {
+      packId,
+      mapped: mapPartyFields(packId, sealed ? formData : flattenPartyValues(stored.values)),
+      ...(stored.courtDocument !== undefined ? { briefCourtDocument: stored.courtDocument } : {}),
+    };
+  }
+  return { packId, mapped: mapPartyFields(packId, formData) };
+}
+
 // POST /documents/:id/annexures-pack — SCRUM-65: generate 7 mandatory annexures as a multi-page PDF
 // Court-rule aware: designation, verification language, party labels from court_rules JSON.
 // Returns: application/pdf — single PDF with each annexure on a fresh page.
@@ -1952,10 +2003,14 @@ router.post(
     // Only the id and the error name are logged, never a message or content.
     let bodyParaCount: number;
     let formData: Record<string, unknown>;
+    let party: PartyFieldsResult;
     try {
       const content = doc.finalContent ? decrypt(doc.finalContent) : decrypt(doc.generatedContent);
       bodyParaCount = estimateBodyParaCount(content);
       formData = readFormInputs(doc) ?? {};
+      // T-381: the client and the opposite party by Ajay's signed rule. An
+      // older brief draft is mapped from its encrypted brief.
+      party = partyMappingOf(doc, formData).mapped;
     } catch (err) {
       console.error(
         `[drafting] Annexures pack: could not read document ${String(doc._id)}:`,
@@ -1965,9 +2020,18 @@ router.post(
       return;
     }
 
+    // T-381 (Ajay, Addendum 2): a party name never prints as a blank line. A
+    // missing client or opposite-party name is refused before anything is
+    // rendered, recorded or charged.
+    if (party.missing.length > 0) {
+      res.status(422).json({ error: 'party_details_missing', missing: party.missing });
+      return;
+    }
+    formData = applyPartyFields(formData, party);
+
     // T-156: the chosen court, looked up the same way the draft paths do. The
-    // brief path saves its court id only in doc.courtName (formInputs holds no
-    // case details); the template path saves it in both. No court found means
+    // brief path saves its court id only in doc.courtName (its formInputs hold
+    // only the party inputs and court labels, T-381); the template path saves it in both. No court found means
     // no courtData, and the pack keeps its court-rules designation.
     let courtData: CourtLookupData | undefined;
     const courtId = String(doc.courtName || formData.court_name || '').trim();

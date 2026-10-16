@@ -31,6 +31,16 @@ import { loadRulePack, RulePack, RulePackClause } from '../services/rule-pack.se
 import { loadTemplateConfig } from '../services/template-engine.service';
 import { sdkAnswer } from './sdkStream';
 
+// T-373: these tests drive the legacy (text-stream) path. The signed skeletons are on by default, so the
+// loader is pinned to null here; every lookup is counted so the last test can show the mock was reached.
+const mockSkeletonLookups: string[] = [];
+jest.mock('../services/rule-pack.service', () => ({
+  ...jest.requireActual('../services/rule-pack.service'),
+  loadSkeleton: (packId: string) => {
+    mockSkeletonLookups.push(packId);
+    return null;
+  },
+}));
 const mockMessagesStream = jest.fn();
 jest.mock('@anthropic-ai/sdk', () =>
   // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -329,7 +339,8 @@ const answer = (body: string) => `${body}\n\n${CLAUSES_MARKER}\n${reportOf()}`;
 const P2 = '2. That FIR No. 124/2026 was registered at PS Kotwali.';
 // T-237: the cue sentences of the two cued clauses reported at paragraph 1 (no_flight_risk: the
 // undertaking cue; earlier_applications: EA-standard), so they stay present unless a test is about them
-const CUES = 'He undertakes to join the investigation. No earlier bail application has been filed.';
+const CUES =
+  'He undertakes to join the investigation. Details of any earlier bail application are as the brief gives them.';
 // paragraph 1 holds the uncued clause (apprehension), the two cues and the banned phrase
 const BAD = [
   `1. That the applicant Ram Kumar, son of Shri Hari Kumar, apprehends arrest and will not flee. He is a law-abiding citizen. ${CUES}`,
@@ -668,5 +679,13 @@ describe('Ajay R2b.5: end to end, an uncued clause whose reported paragraph is e
       expect.arrayContaining(['apprehension', 'no_flight_risk', 'earlier_applications']),
     );
     expect(done.mandatoryClausesComplete).toBe(false);
+  });
+});
+
+describe('T-373: this suite ran the legacy path', () => {
+  it('the skeleton loader was consulted and returned null, so d1SkeletonFor gave null and the drafts above took the legacy text stream', () => {
+    // If the loader mock were removed, bail packs would take D1 (messages.parse) and this stays 0 or the
+    // tests above fail; either way the mock is not silently load-bearing.
+    expect(mockSkeletonLookups.length).toBeGreaterThan(0);
   });
 });

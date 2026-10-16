@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. SPA MUST identify the specific transaction with precision — no open-ended powers."
   },
   "template_id": "spa",
+  "card_description": "A Special Power of Attorney for a specific act or transaction.",
   "docType": "spa",
   "title": "Special Power of Attorney (Powers of Attorney Act, 1882)",
   "displayName": "Special Power of Attorney (SPA)",
@@ -228,8 +229,8 @@
       "description": "Signed, witnessed, notarised / registered"
     },
     {
-      "id": "suraj_lamp_disclaimer",
-      "name": "Suraj Lamp Disclaimer (if power to sell)",
+      "id": "title_disclaimer",
+      "name": "Title disclaimer (if power to sell)",
       "required": false,
       "description": "SPA does not transfer title"
     },
@@ -265,16 +266,17 @@
       "    (e) Bank: 'To operate my Bank Account No. [number] at [bank, branch] solely for the purpose of [withdrawing the proceeds of Sale Deed / depositing pension / paying medical bills of specified date], and for no other purpose.'",
       "Para 5: ANCILLARY POWERS — limited to those necessary for the specific transaction (e.g., for sale: appear before SR, sign endorsements, receive consideration, give acknowledgment receipt, hand over original title deeds to buyer, sign mutation application).",
       "Para 6: LIMITATIONS — explicit:\n   (a) Attorney has NO authority beyond the specific transaction described.\n   (b) Attorney cannot transact for himself or family.\n   (c) Attorney cannot waive any rights of Grantor without express written consent.\n   (d) Attorney cannot vary consideration / material terms without Grantor's written approval.\n   (e) Attorney cannot delegate to substitute attorney.\n   (f) Attorney cannot make any WILL on Grantor's behalf.",
-      "Para 7: SURAJ LAMP DISCLAIMER (if SPA authorises sale) — same as GPA: SPA does not itself transfer title; only registered Sale Deed transfers title.",
+      "Para 7: TITLE DISCLAIMER (if SPA authorises sale) — same as GPA: SPA does not itself transfer title; only registered Sale Deed transfers title.",
       "Para 8: AUTO-TERMINATION — SPA shall ipso facto terminate upon completion of the specified transaction OR on [end date], whichever is earlier. Beyond such termination, attorney has no authority.",
       "Para 9: RATIFICATION of lawful acts within scope.",
       "Para 10: INDEMNITY by Attorney.",
       "Para 11: REVOCATION — Grantor reserves right to revoke at any time by written notice; on revocation attorney must immediately cease and return all documents.",
-      "Para 12: STAMP DUTY — typically lower than GPA. State Article 48 schedule:\n   - Generally Rs.100 to Rs.500 for ordinary SPA;\n   - HIGHER where SPA authorises sale of immovable property — some states (Delhi, Haryana per Suraj Lamp directives) levy near-conveyance duty on SPA-for-sale to a non-relative; relative-SPA attracts lower duty.\n   DO NOT hardcode — flag advocate to verify.",
+      "Para 12: STAMP DUTY — typically lower than GPA. State Article 48 schedule:\n   - Generally Rs.100 to Rs.500 for ordinary SPA;\n   - HIGHER where SPA authorises sale of immovable property — some states (Delhi, Haryana) levy near-conveyance duty on SPA-for-sale to a non-relative; relative-SPA attracts lower duty.\n   DO NOT hardcode — flag advocate to verify.",
       "Para 13: AUTHENTICATION — notarisation mandatory; registration recommended for sale-related SPAs (and mandatory in some states); consular attestation / apostille if executed abroad.",
       "Para 14: WITNESSES — two adult witnesses.",
       "Append Lawie disclaimer.",
-      "Key precedent: distinguish SPA's specificity rationale from GPA — courts construe agency narrowly per S.188 ICA (authority co-extensive with business). Suraj Lamp v. State of Haryana (2012) 1 SCC 656 applies equally — sale-SPA does not transfer title."
+      "Distinguish SPA's specificity rationale from GPA — courts construe agency narrowly per S.188 ICA (authority co-extensive with business). Sale-SPA does not transfer title.",
+      "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
   "relevantActs": [

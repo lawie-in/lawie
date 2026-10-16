@@ -3,17 +3,24 @@
  * app, so these modules can be unit-tested with no database and no env.
  */
 
-/** The five packs the averment lists were seeded for (T-147c), plus the rent agreement of fixture 1c. */
+/**
+ * The five packs the averment lists were seeded for (T-147c), plus the
+ * Magistrate bail pack, the fourth pack on a signed skeleton (T-373, ADR-025 D1).
+ * The rent agreement of fixture 1c is not a seeded pack.
+ */
 export const SEEDED_PACKS = [
   'bail_regular',
   'legal_notice_s138',
   'bail_anticipatory',
   'maintenance_bnss_144',
   'default_bail',
+  'bail_before_magistrate',
 ] as const;
 
-export const REVIEW_STATUS =
-  "drafted by dev from Anushka's reports, not yet reviewed by Anushka";
+/** A clause's status as the renderer printed it (draft-renderer.ts `ClauseStatus`). */
+export type RenderedStatus = 'ok' | 'missing' | 'fallback';
+
+export const REVIEW_STATUS = "drafted by dev from Anushka's reports, not yet reviewed by Anushka";
 
 export type VerifierCheck = 'unsupported' | 'dropped' | 'mutation' | 'banned';
 
@@ -61,12 +68,38 @@ export interface FixtureExpectations {
   ledger?: LedgerExpectation[];
   /** Verifier findings that do not fail this fixture. Empty by default: any finding fails. */
   allow_violations?: AllowedViolation[];
+  /** T-373: the renderer's clause statuses (D1 packs only). */
+  rendered?: RenderedExpectation;
+}
+
+/**
+ * T-373 (ADR-025 D1): what the renderer's `rendered[]` must show, for a pack
+ * on a signed skeleton. Setting it also asserts that the draft took the D1
+ * path (the done event carried `rendered`) and that every rendered entry has
+ * a clauseId.
+ */
+export interface RenderedExpectation {
+  /** No rendered clause may have any of these statuses. */
+  no_status?: Array<Exclude<RenderedStatus, 'ok'>>;
+  /** These clauses must be rendered with exactly this status. */
+  status?: Record<string, RenderedStatus>;
+  /** These clauses must not be rendered at all: a clause for a fact the advocate never gave. */
+  not_rendered?: string[];
+  /** Why the fixture asserts it, in plain words. Printed with a failure. */
+  why: string;
 }
 
 /** One model reply per call purpose, for `--dry-run`. */
 export interface RecordedReplies {
   reception: string;
   extract: string;
+  /**
+   * The Drafter's reply. On a pack on a signed skeleton (D1, English) this is
+   * the structured answer as JSON text, `{"paragraphs":[{clauseId, factRefs,
+   * text, items}]}`; the stub hands it to the request's own output-format
+   * parser, as the SDK's `messages.parse` does. Otherwise free prose with the
+   * ===CLAUSES=== trailer.
+   */
   drafter: string;
   /** The clause-repair pass. Absent: the stub returns the drafter reply again. */
   repair?: string;
@@ -115,7 +148,13 @@ export interface FactDiffEvidence {
 }
 
 export interface LedgerEvidence {
-  facts: Array<{ key: string; type: string; display: string; confidence: number; raw_span: string }>;
+  facts: Array<{
+    key: string;
+    type: string;
+    display: string;
+    confidence: number;
+    raw_span: string;
+  }>;
   unresolved: Array<{ key: string; type: string; reason: string; raw_span: string }>;
 }
 
@@ -146,6 +185,8 @@ export interface RunEvidence {
   ledger: LedgerEvidence | null;
   factDiffs: FactDiffEvidence[];
   missingClauses: string[];
+  /** T-373: the done event's `rendered[]`. Absent when the draft did not take the D1 path. */
+  rendered?: Array<{ clauseId: string; status: RenderedStatus; reason?: string }>;
   banner: boolean;
   tokens: TokenUse;
   extraction: ExtractionRead[];
@@ -161,6 +202,7 @@ export type FailureKind =
   | 'present'
   | 'exact'
   | 'ledger'
+  | 'rendered'
   | 'isolation';
 
 export interface Failure {
@@ -191,4 +233,55 @@ export interface FixtureResult {
   /** Verifier findings, initial phase, for the record (including allowed ones). */
   verifierFindings: number;
   missingClauses: string[];
+}
+
+// ── T-453: per-call model usage, from the service's llm_call listener ───────
+
+export type LlmStageName = 'intake' | 'preflight' | 'body';
+
+/** One model call as the service's logLlmCall reported it. Ids and counts only, never text. */
+export interface LlmCallObserved {
+  stage: LlmStageName;
+  /** A code label (intake_extract, preflight, stream, d1, ...). */
+  call: string;
+  model: string;
+  effort: string | null;
+  status: 'completed' | 'failed';
+  input_tokens: number;
+  output_tokens: number;
+  cache_read_input_tokens: number;
+  cache_creation_input_tokens: number;
+  stop_reason: string | null;
+  intake_id?: string;
+  run_id?: string;
+  fixture_id?: string;
+}
+
+export interface Percentiles {
+  median: number;
+  p90: number;
+}
+
+export interface LlmStageStats {
+  calls: number;
+  failed: number;
+  /** Over completed calls only; null when the stage had none. */
+  inputTokens: Percentiles | null;
+  outputTokens: Percentiles | null;
+  /** Count per stop_reason ('none' when the call reported none). */
+  stopReasons: Record<string, number>;
+  maxTokensHits: number;
+}
+
+/** A call that stopped on its max_tokens cap. */
+export interface LlmCapHit {
+  fixtureId: string | null;
+  stage: LlmStageName;
+  call: string;
+  outputTokens: number;
+}
+
+export interface LlmCallSummary {
+  stages: Record<LlmStageName, LlmStageStats>;
+  capHits: LlmCapHit[];
 }

@@ -17,6 +17,16 @@ import { buildChecklist } from '../services/intake-brief';
 import { loadRulePack } from '../services/rule-pack.service';
 import { sdkAnswer } from './sdkStream';
 
+// T-373: these tests drive the legacy (text-stream) path. The signed skeletons are on by default, so the
+// loader is pinned to null here; every lookup is counted so the last test can show the mock was reached.
+const mockSkeletonLookups: string[] = [];
+jest.mock('../services/rule-pack.service', () => ({
+  ...jest.requireActual('../services/rule-pack.service'),
+  loadSkeleton: (packId: string) => {
+    mockSkeletonLookups.push(packId);
+    return null;
+  },
+}));
 const mockMessagesStream = jest.fn();
 jest.mock('@anthropic-ai/sdk', () =>
   // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -76,7 +86,7 @@ const FACTS = [
 // every clause is reported in paragraph 1 (see draft)
 // T-200: paragraph 1 carries the cue words of every clause reported there
 const CUES =
-  ' He is in custody in FIR No. 124/2026, the grounds are submitted below, he gives an undertaking, and no earlier bail application has been filed.';
+  ' He is in custody in FIR No. 124/2026, the grounds are submitted below, he gives an undertaking, and the details of any earlier bail application are as the brief gives them.';
 const BAD = [
   `1. That the applicant Ram Kumar is a law-abiding citizen.${CUES}`,
   '2. That FIR No. 124/2026 was registered at PS Kotwali.',
@@ -109,7 +119,7 @@ const ANTI_VALUES = [
 // T-237: paragraph 1 carries the undertaking and earlier-application cues, so check 1 passes
 // and the only repair that runs is the fact repair (as for the bail_regular CUES above).
 const ANTI_BAD = [
-  'That the applicant Ram Kumar, son of Shri Hari Kumar, apprehends arrest and will not flee. He is a law-abiding citizen. FIR No. 124/2026 is the case. He gives an undertaking, and no earlier bail application has been filed.',
+  'That the applicant Ram Kumar, son of Shri Hari Kumar, apprehends arrest and will not flee. He is a law-abiding citizen. FIR No. 124/2026 is the case. He gives an undertaking, and the details of any earlier bail application are as the brief gives them.',
 ]
   .map((p) => `1. ${p}`)
   .concat('2. That FIR No. 124/2026 was registered at PS Kotwali.')
@@ -202,5 +212,13 @@ describe('T-147e: mandatory clauses re-checked after the fact verifier', () => {
     );
     for (const id of SYSTEM) expect(ids).not.toContain(id);
     expect(done.mandatoryClausesComplete).toBe(false);
+  });
+});
+
+describe('T-373: this suite ran the legacy path', () => {
+  it('the skeleton loader was consulted and returned null, so d1SkeletonFor gave null and the drafts above took the legacy text stream', () => {
+    // If the loader mock were removed, bail packs would take D1 (messages.parse) and this stays 0 or the
+    // tests above fail; either way the mock is not silently load-bearing.
+    expect(mockSkeletonLookups.length).toBeGreaterThan(0);
   });
 });

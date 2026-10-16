@@ -36,6 +36,7 @@ import {
 } from '../config/catalogue';
 import type { CatalogueBatch } from '../config/catalogue';
 import { Template } from '../models/Template.model';
+import * as appSettings from '../services/app-settings.service';
 import * as credits from '../services/credits.service';
 import { resolveDocRule } from '../services/prompt-assembler';
 import { clearConfigCache, loadTemplateConfig } from '../services/template-engine.service';
@@ -441,9 +442,22 @@ function priceOrAliasLiterals(source: string): string[] {
   return why;
 }
 
+// T-375: the plaint switch is off in code, so these tests turn it on for their own describe block.
+function plaintSwitchOn(): void {
+  const real = appSettings.getAppSetting;
+  jest
+    .spyOn(appSettings, 'getAppSetting')
+    .mockImplementation((key: string) =>
+      key === 'feature.template_civil_plaint' ? Promise.resolve('on') : real(key),
+    );
+}
+
 // ── Condition 1: the behaviour value is pinned ───────────────────────────
 
 describe('T-240 cond 1 - behaviour `category` does not change', () => {
+  // T-375: plaintSwitchOn() spies on getAppSetting; do not let it leak past this block.
+  afterEach(() => jest.restoreAllMocks());
+
   const registry = loadAllDocRules();
 
   it('pins 92 literal ids, one per rule file', () => {
@@ -476,6 +490,7 @@ describe('T-240 cond 1 - behaviour `category` does not change', () => {
   });
 
   it('GET /template-configs still returns the behaviour value in `category`', async () => {
+    plaintSwitchOn();
     clearConfigCache();
     const res = await request(app).get('/template-configs').set(headers());
     const byId = new Map(
@@ -722,14 +737,22 @@ describe('T-240 AC1-3 - every rule file has exactly one catalogue entry', () => 
     expect(catalogueCategoryFor('__proto__')).toBeUndefined();
   });
 
-  it('document-rules/ is untouched by this ticket', () => {
+  // T-334 (Ajay, 12 Oct 2026) signed edits to document-rules/_averments/*.json. T-240 does not
+  // own that directory, so it is excluded here; every other rule file and the overrides stay guarded.
+  it('document-rules/ is untouched by this ticket (signed _averments/ and _skeletons/ excluded)', () => {
     const { execFileSync } = jest.requireActual('child_process');
     const out = execFileSync(
       'git',
       ['-C', __dirname, 'status', '--porcelain', '--', RULES_DIR, OVERRIDES_DIR],
       { encoding: 'utf-8' },
     );
-    expect(out.trim()).toBe('');
+    const touched = out
+      .split('\n')
+      .filter((l: string) => l.trim() !== '')
+      .filter((l: string) => !/document-rules\/_averments\//.test(l))
+      // T-374 (Ajay, 13 Oct 2026) signed clause skeletons live in document-rules/_skeletons/.
+      .filter((l: string) => !/document-rules\/_skeletons\//.test(l));
+    expect(touched).toEqual([]);
   });
 });
 
@@ -791,7 +814,11 @@ describe('T-240 catalogue mapping (Ajay, 12 Oct 2026)', () => {
 // ── API and seed ─────────────────────────────────────────────────────────
 
 describe('T-240 API: GET /template-configs', () => {
-  beforeEach(() => clearConfigCache());
+  beforeEach(() => {
+    clearConfigCache();
+    plaintSwitchOn();
+  });
+  afterEach(() => jest.restoreAllMocks());
 
   it('returns catalogueCategory, name and order for all configs, including the 6 overrides', async () => {
     const res = await request(app).get('/template-configs').set(headers());
@@ -927,19 +954,30 @@ describe('T-240 admin analytics: catalogueCategoryName', () => {
       creditsCost: 2,
       isActive: true,
     });
-    const doc = (templateId: string) => ({
-      userId: new Types.ObjectId(),
-      templateId, // a string slug; the schema's ObjectId cast is bypassed on purpose
-      title: 't',
-      docType: 'bail_application',
-      courtType: 'district_court',
-      courtName: 'c',
-      generatedContent: 'x',
-      status: 'draft',
-      isDeleted: false,
-      createdAt: new Date(),
-    });
-    await LawieDocument.collection.insertMany([doc('bail_regular'), doc('old_row')] as never[]);
+    // T-331: real shape. The document's own templateId stays null; the slug is
+    // on the completed Generation that produced it.
+    const { Generation } = await import('../models/Generation.model');
+    const userId = new Types.ObjectId();
+    for (const slug of ['bail_regular', 'old_row']) {
+      const created = await LawieDocument.create({
+        userId,
+        title: 't',
+        docType: 'bail_application',
+        courtType: 'district_court',
+        courtName: 'c',
+        generatedContent: 'x',
+        status: 'draft',
+      });
+      await Generation.create({
+        userId,
+        docType: 'bail_application',
+        tokensUsed: 10,
+        costUsd: 0.1,
+        status: 'completed',
+        templateId: slug,
+        documentId: created._id,
+      });
+    }
 
     const res = await request(app).get('/admin/documents/analytics').set(headers('Admin'));
     expect(res.status).toBe(200);

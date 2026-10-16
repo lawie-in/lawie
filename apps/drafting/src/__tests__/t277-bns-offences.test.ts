@@ -22,9 +22,9 @@ import { createHash } from 'crypto';
 import fs from 'fs';
 import path from 'path';
 
-import { SectionMapping } from '../models/SectionMapping.model';
 import { checkBailEligibility } from '../services/bail-check.service';
 import {
+  ATTRIBUTE_DEPENDS,
   BNS_CLASSIFICATION,
   BNS_OFFENCE_KEYS,
   citationResolves,
@@ -33,7 +33,7 @@ import {
   WITH_COURT_PERMISSION,
 } from '../services/bns-offence-resolver';
 import { preflightCheck } from '../services/preflight.service';
-import { getSectionDetail, invalidateCache } from '../services/sections.service';
+import { getSectionDetail } from '../services/sections.service';
 import {
   buildAISystemPrompt,
   buildAIUserPrompt,
@@ -52,7 +52,7 @@ const CONFIG = path.join(ROOT, 'src', 'config');
 const TABLE_PATH = path.join(CONFIG, 'bns-offences.json');
 const SIGNED_MD = path.join(REPO, 'handoff', 'legal', 'T-277-bns-offences-corrected-signed.md');
 
-const SIGNED_SHA = '5f0ac29ad09aaed919826275cf22c425766c8dc7196dd089bfd5c8dacecb07de';
+const SIGNED_SHA = 'bc0c62931faf0a343460d8a8fdb94ea91306c019943ec609aaf71a61a3d43e9c';
 
 const DEPENDS_187 = 'Depends on the offence. Check BNSS section 187.';
 const R1_NOTE = (n: string): string => `Section ${n}: ${DEPENDS_187}`;
@@ -167,7 +167,7 @@ describe('R2 resolveOffence', () => {
     expect(r.maxYears).toBeNull();
   });
 
-  it.each(['316(1)', '61(2)', '308(1)'])(
+  it.each(['316(1)', '308(1)'])(
     '%s: the parent has variants but none match, so it creates no offence',
     (target) => {
       const r = resolveOffence(target);
@@ -287,8 +287,10 @@ describe('R3 null and non-"yes"/"no" are Depends, never false', () => {
     const o = sections[0].offence;
     expect(o?.bailable).toBeNull();
     expect(o?.cognizable).toBeNull();
-    expect(o?.bailableNote).toBe(DEPENDS_SCHEDULE);
-    expect(o?.cognizableNote).toBe(DEPENDS_SCHEDULE);
+    // T-371 (Ajay, T-361 Addendum 1): ATTRIBUTE_DEPENDS replaces the R3 line on a
+    // null attribute. The summary line (overallBailableNote) keeps the R3 text.
+    expect(o?.bailableNote).toBe(ATTRIBUTE_DEPENDS);
+    expect(o?.cognizableNote).toBe(ATTRIBUTE_DEPENDS);
     expect(summary.overallBailable).toBeNull();
     expect(summary.overallBailableNote).toBe(DEPENDS_SCHEDULE);
     expect(summary.bnssBailSection).toBeNull();
@@ -299,7 +301,7 @@ describe('R3 null and non-"yes"/"no" are Depends, never false', () => {
     const { sections, summary } = await checkBailEligibility(['81']);
     expect(sections[0].offence?.bailable).toBeNull();
     expect(sections[0].offence?.cognizable).toBeNull();
-    expect(sections[0].offence?.bailableNote).toBe(DEPENDS_SCHEDULE);
+    expect(sections[0].offence?.bailableNote).toBe(ATTRIBUTE_DEPENDS);
     expect(summary.overallBailable).toBeNull();
   });
 
@@ -318,8 +320,8 @@ describe('R3 null and non-"yes"/"no" are Depends, never false', () => {
       expect(o?.bailable).toBe(OFFENCES[key].bailable);
       expect(o?.cognizable).toBe(OFFENCES[key].cognizable);
       expect(o?.maxYears).toBe(OFFENCES[key].max_years);
-      if (OFFENCES[key].bailable === null) expect(o?.bailableNote).toBe(DEPENDS_SCHEDULE);
-      if (OFFENCES[key].cognizable === null) expect(o?.cognizableNote).toBe(DEPENDS_SCHEDULE);
+      if (OFFENCES[key].bailable === null) expect(o?.bailableNote).toBe(ATTRIBUTE_DEPENDS);
+      if (OFFENCES[key].cognizable === null) expect(o?.cognizableNote).toBe(ATTRIBUTE_DEPENDS);
     }
   });
 
@@ -343,7 +345,7 @@ describe('R1 default-bail period (timeline)', () => {
     expect(r.defaultBailDate).toBeNull();
     expect(r.maxYears).toBeNull();
     expect(r.periodNote).toBe(DEPENDS_187);
-    expect(r.remandBreakdown.judicialCustody).toBeNull();
+    expect(r).not.toHaveProperty('remandBreakdown');
     return r;
   }
 
@@ -359,10 +361,10 @@ describe('R1 default-bail period (timeline)', () => {
     expect(r.periodNote).toBeNull();
   });
 
-  it('303 (exact key, 5 years) gives 60 days', () => {
+  it('303 (exact key, 3 years since T-361) gives 60 days', () => {
     const r = calculateTimeline({ arrestDate: ARREST, sections: ['303'] });
     expect(r.judicialCustodyDays).toBe(60);
-    expect(r.maxYears).toBe(5);
+    expect(r.maxYears).toBe(3);
     expect(r.periodNote).toBeNull();
   });
 
@@ -431,10 +433,11 @@ describe('R1 default-bail period (timeline)', () => {
     expect(r.sectionNotes['316(1)']).toBe(LEFT_OUT('316(1)'));
   });
 
-  it('police custody (15 days) still applies when there is no period', () => {
+  it('police custody (15 days) still applies, but with no period there is no window date (T-367)', () => {
     const r = expectNoPeriod(['316(2)']);
     expect(r.policeCustodyDays).toBe(15);
-    expect(r.policeCustodyEndDate).toBe('2026-03-16');
+    expect(r.policeCustodyEndDate).toBeNull();
+    expect(r.policeCustodyNote).toBe(DEPENDS_187);
   });
 
   it('every exact key: max_years >= 10 -> 90, otherwise 60, null -> no period', () => {
@@ -699,27 +702,7 @@ describe('R5 citation whitelists', () => {
 // ── Q4: parent row sets the court level only ─────────────────────────────────
 
 describe('Q4 parent row sets the court level only', () => {
-  beforeEach(async () => {
-    await SectionMapping.insertMany([
-      {
-        oldCode: 'IPC',
-        oldCodeFull: 'Indian Penal Code, 1860',
-        newCode: 'BNS',
-        newCodeFull: 'Bharatiya Nyaya Sanhita, 2023',
-        oldSection: '302',
-        newSection: '103(1)',
-        oldTitle: 'Punishment for murder',
-        newTitle: 'Punishment for murder',
-        mappingType: 'direct',
-        effectiveDate: new Date('2024-07-01'),
-      },
-    ]);
-    invalidateCache();
-  });
-
-  afterEach(() => {
-    invalidateCache();
-  });
+  // T-371: IPC 302 -> BNS 103(1) now comes from the signed ipc-to-bns.json; no seeding.
 
   it('302-IPC -> 103(1): court is Court of Session (signed value), maxYears is null (no period)', async () => {
     const { sections, summary } = await checkBailEligibility(['302-IPC']);
@@ -753,23 +736,19 @@ describe('Q4 parent row sets the court level only', () => {
 // ── sections.service: null is not 'no' / 'Magistrate' ───────────────────────
 
 describe('sections.service null handling', () => {
-  afterEach(() => {
-    invalidateCache();
-  });
-
   it('a null compoundable is null with the Depends note, not "no"', async () => {
     expect(OFFENCES['351'].compoundable).toBeNull();
     const d = await getSectionDetail('351', 'BNS');
     expect(d?.compoundable).toBeNull();
-    expect(d?.compoundable_note).toBe(DEPENDS_SCHEDULE);
+    expect(d?.compoundable_note).toBe(ATTRIBUTE_DEPENDS);
   });
 
   it('null bailable and cognizable are null with the Depends note (63)', async () => {
     const d = await getSectionDetail('63', 'BNS');
     expect(d?.bailable).toBeNull();
     expect(d?.cognizable).toBeNull();
-    expect(d?.bailable_note).toBe(DEPENDS_SCHEDULE);
-    expect(d?.cognizable_note).toBe(DEPENDS_SCHEDULE);
+    expect(d?.bailable_note).toBe(ATTRIBUTE_DEPENDS);
+    expect(d?.cognizable_note).toBe(ATTRIBUTE_DEPENDS);
   });
 
   it('a null max_years gives max_years null and triable_by null, not "Magistrate"', async () => {
@@ -810,10 +789,6 @@ describe('sections.service null handling', () => {
 describe('Q7 compoundable with the Court permission', () => {
   const PERMISSION = "Compoundable with the Court's permission";
   const TARGETS = ['82(1)', '117(2)', '125(a)', '125(b)', '316(2)', '316(4)'];
-
-  afterEach(() => {
-    invalidateCache();
-  });
 
   it('the table has exactly these six permission variants and no permission row', () => {
     const found: string[] = [];
@@ -1106,10 +1081,10 @@ describe('pack and fixture lines', () => {
 
   const FIXTURES = path.join(REPO, 'scripts', 'golden-set', 'fixtures');
 
-  it('fixture 15: description says "saza 5 saal tak" (303(2) is 5 years)', () => {
+  it('fixture 15: description says "saza 3 saal tak" (303(2) is 3 years, Ajay T-361)', () => {
     const f = readJson(FIXTURES, '15-default-bail-no-arithmetic.json') as { description: string };
-    expect(f.description).toContain('section 303(2) BNS, saza 5 saal tak.');
-    expect(f.description).not.toContain('saza 3 saal tak');
+    expect(f.description).toContain('section 303(2) BNS, saza 3 saal tak.');
+    expect(f.description).not.toContain('saza 5 saal tak');
   });
 
   it('fixture 18: risk, description and absent.why carry the signed lines', () => {
@@ -1132,8 +1107,8 @@ describe('pack and fixture lines', () => {
     expect(whys.some((w) => w.includes('10-year'))).toBe(false);
   });
 
-  it('fixtures 15 and 18 agree with the table: 303(2) = 5 years, 318(4) = 7 years', () => {
-    expect(OFFENCES['303(2)'].max_years).toBe(5);
+  it('table maxima: 303(2) = 3 years (T-361), 318(4) = 7 years', () => {
+    expect(OFFENCES['303(2)'].max_years).toBe(3);
     expect(OFFENCES['318(4)'].max_years).toBe(7);
   });
 
