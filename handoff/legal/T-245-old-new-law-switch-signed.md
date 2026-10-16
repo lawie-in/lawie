@@ -786,3 +786,14 @@ Approved to proceed, with these conditions:
 | 6 | Everything on the "stay blank" list is OK as listed. Hindi fillers are excluded for now; a follow-up may add them. |
 
 Separate bug: "June 2026" with no day is read as 20 June 2026. That is an invented fact. It is a v1 ticket of its own, and the field must stay blank. Never supply a day.
+
+## T-496: a month and year with no day (Ajay, 16 Oct 2026)
+
+Never supply a day.
+
+| Case | Rule |
+|---|---|
+| A date used in a calculation: limitation, s.138 timelines, default bail custody days, notice periods | A month and year alone counts as an unknown date. Ask for the day at intake. If no day is given, print `[To be confirmed: exact date of {field}]` and compute nothing (T-472, rule 4). |
+| A date only told as part of the facts (incident, marriage, events) | Print it as written, for example `in June 2026`. Never print `on 20 June 2026` or any other day. |
+
+Whether it is a v1 blocker is for Arjun to decide. My view: a draft that prints a day the advocate never gave is an invented fact, the same class as T-472. Treat it as a v1 blocker wherever a v1 pack can reach it.
