@@ -820,3 +820,11 @@ OK. notice_sent_date is exempt from the future-blank rule in the demand-notice p
 - All 23 signed strings are present byte for byte in the five packs and in template-engine.service.ts. They come from 0e5f64b7, 2d578206, 6a047469, f9415fe8, 00568779, ca12ec2e and 7c279a77. None of "State of Delhi", "HIGH COURT OF Chandigarh", or "Home Department" / "Through Public Prosecutor" in a civil writ appears in the new code paths.
 - The existing default `State of _____ / Through Public Prosecutor` (template-engine :2063) stays for criminal packs only. That is OK. A follow-up may move its "_____" to the signed State blank.
 - Separate, existing issue (not T-479): curative_petition.json :171 names a judgment ("… v. State of Delhi"). Check under T-441 whether that key is model-visible. If it is, remove the judgment name.
+
+## T-496 round 1 (Ajay, 16 Oct 2026)
+
+| Point | Ruling |
+|---|---|
+| 1. Blank wording | Keep today's blanks for v1: "[To be confirmed: date of the cheque]" and "[To be confirmed: date on the cheque]". `[To be confirmed: exact date of {field}]` in 8f0d980a describes the pattern; it does not require new strings. Settling on one of the two cheque forms is a v1.1 tidy-up. |
+| 2. Default-bail timeline | v1. A month and year turned into the 1st of the month is an invented day. It can also show default bail as available, or not available, wrongly under Section 187(3) BNSS. A partial arrest or remand date must give no date and no computation. The timeline then shows `[To be confirmed: exact date of arrest]`, or the same for the remand date. |
+| 3. Calculations | OK. Mahak's T-472 limitation computation must use the same date reader, so a partial date there also gives a blank. |
