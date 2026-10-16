@@ -53,12 +53,14 @@ import {
   guidedDateItem,
   hasCourtSignal,
   isCourtDocument,
+  ledgerGivenKeys,
   namesSupremeCourt,
   PROTECTED_QUESTION_KEY,
   QUESTION_LIMITS as BRIEF_QUESTION_LIMITS,
   readGuidedBrief,
   statedDates,
   valuesAfterEditedDescription,
+  withoutLedgerGiven,
   wordedQuestions,
 } from './intake-brief';
 import { readIntakeCache, writeIntakeCache } from './intake-cache';
@@ -1411,14 +1413,19 @@ async function briefWithPack(
           .map((u) => u.key)
       : [],
   );
+  // T-498: a fact the ledger holds shows on its row, so it is given: not asked
+  // as missing and not listed as still unknown, even where Reception placed no
+  // value. With the ledger off this is empty and nothing changes.
+  const ledgerGiven = ledger ? ledgerGivenKeys(ledger.facts) : new Set<string>();
   const config = loadTemplateConfig(pack.id);
   return {
     intake_id: ctx.intakeId,
     outcome: 'brief',
-    brief,
+    brief: withoutLedgerGiven(brief, ledgerGiven),
     questions: buildBriefQuestions(brief, wordedQuestions(parsed), alsoAsk, always, {
       checklist,
       confirm: confirmKeys(brief, checklist, ledger),
+      ledgerGiven,
     }),
     ...(config?.plan_access === 'pro' && req.plan !== 'pro' ? { needs_upgrade: true } : {}),
     ...(ledger ? { ledger } : {}),
@@ -1665,6 +1672,12 @@ export interface BriefUpdateRequest {
   court?: Partial<BriefCourt>;
   /** When sent, the dates in it that are not placed are listed again. It is not stored. */
   description?: string;
+  /**
+   * T-498: the fact ledger just updated (switch on, /intake/brief/update only).
+   * A key it holds a fact for is not still unknown and does not block Confirm.
+   * The draft path does not send it.
+   */
+  ledger?: Pick<LedgerView, 'facts'>;
 }
 
 /**
@@ -1710,6 +1723,7 @@ export function updateBrief(req: BriefUpdateRequest): Brief | null {
     court: req.court,
     description: req.description,
     holdNone: firstApplicationValues(pack.id),
+    ...(req.ledger ? { ledgerGiven: ledgerGivenKeys(req.ledger.facts) } : {}),
   });
 }
 

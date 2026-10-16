@@ -306,8 +306,11 @@ router.post(
       return;
     }
     // T-147b: the ledger first, so a ledger that is not this user's changes nothing.
-    // The brief below is worked out exactly as before; the ledger is not its input.
+    // The brief below is worked out as before from the values sent. T-498: the
+    // updated ledger only takes the facts it holds off "Still unknown" and off
+    // what Confirm waits for.
     let ledgerPart: Record<string, unknown> = {};
+    let ledger: Awaited<ReturnType<typeof updateLedger>>['ledger'] | undefined;
     const userId = req.jwtPayload!.sub;
     if (parsed.data.ledger_id !== undefined && (await isFactLedgerEnabled(userId))) {
       try {
@@ -322,6 +325,7 @@ router.post(
           })),
         });
         ledgerPart = { ledger: out.ledger, ledger_results: out.results };
+        ledger = out.ledger;
       } catch (err) {
         if (err instanceof LedgerNotFoundError) {
           res.status(404).json({ error: 'Ledger not found' });
@@ -350,6 +354,7 @@ router.post(
       values: parsed.data.values,
       court: parsed.data.court ?? undefined,
       description: parsed.data.description,
+      ...(ledger ? { ledger } : {}),
     });
     if (!brief) {
       res.status(404).json({ error: 'Document kind not found' });
