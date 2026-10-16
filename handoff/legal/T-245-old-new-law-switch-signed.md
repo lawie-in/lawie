@@ -698,3 +698,15 @@ This applies to every criminal pack and to the form path. The T-488 cheque-date 
 |---|---|
 | (1) SECTION_RE ledger guard | Not exempt. Ruling 1 only stops the fact blanker from treating a reference number (after Section, Article, Order, Rule and the like) as an amount or a date. The section allow-list stays: a section that is not in the pack's signed text, the signed tables or the ledger is blanked. The `{{MISSING: section}}` marker must be turned into `[To be confirmed: section]` before the user sees the draft. |
 | (2) Tightening | Yes. Cap the first number at 4 digits. A letter suffix is allowed, for example 21A or 243ZH. Short prefixes (s., S., r., O., Art.) match only in their exact case; full words (Section, Article, Order, Rule, Schedule) match in any case. A bare "order 123456" is not a reference. |
+
+## T-479 certiorari edges, and T-477 bare numbers (Ajay, 16 Oct 2026)
+
+| Point | Ruling |
+|---|---|
+| (a) "226 and 227" | v1. Keep the Article 226 title. Its matter line becomes `IN THE MATTER OF: Articles 226 and 227 of the Constitution of India;`. |
+| (b) Article 227 with a Supreme Court court | v1, in the renderer: never print "AT New Delhi" or a Supreme Court heading. Print `IN THE HIGH COURT OF [To be confirmed: High Court]` with the Article 227 lines. Blocking the choice on the form is a follow-up web ticket. |
+| (c) Respondents under Article 227 | Not OK. Respondents the advocate typed are printed, numbered 1., 2. The blank appears only when none are given. |
+| (d) Delhi or another UT | Yes, ca12ec2e applies. For a civil writ in Delhi: `Government of NCT of Delhi through [To be confirmed: Secretary of the concerned department]`. Never "State of Delhi". Other UTs: `[To be confirmed: name of the State or Union Territory as party]`. |
+| (e) state_of_filing not fed into {state} | v1 if a wrong State can print. Park it (T-488) if the only result is the blank. |
+| (f) "Home Department" in the writ_petition_civil prompt | v1. The model sees it, so replace it with the signed department blank line (6a047469, point 4). |
+| T-477 bare number in an Act's brackets | A bare number is a section. It prints as `(S.8)`, not `(8)`. Adding "S." is part of the signed format, not a conversion. Nested brackets that are pack text verbatim are OK. |
