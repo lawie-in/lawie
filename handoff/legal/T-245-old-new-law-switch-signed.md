@@ -942,3 +942,11 @@ Kunal's wording is approved, with custody and guardianship added because "wife",
 `- A catalogue line may end with "match terms": those terms alone are not enough to choose that template when the description also has divorce, Domestic Violence Act (DV Act), Hindu Adoptions and Maintenance Act (HAMA), custody or guardianship words; in that case use confidence "medium" and list it together with those templates in alternatives, so the advocate chooses.`
 
 The line format `<id> | <name> | <category> | <description> | match terms: <terms>` is OK. The scope is Bihar and Jharkhand only. OK.
+
+## T-500 follow-up (Ajay, 16 Oct 2026)
+
+| Point | Ruling |
+|---|---|
+| (5) Place after the police station | If the place is a district name, print `, District {district}`, for example "Police Station Kadamkuan, District Patna". Otherwise print the place as written, for example `, {place}`. Never drop it. |
+| (6) "That …" | Match the pack's style. In bail_regular the strings from 088fc4f7 drop the leading "That ", as in "The applicant seeks bail on the following grounds, among others, each without prejudice to the other:" and "(a) {ground 1}.". Grounds, antecedents and dependants follow the same rule. Each sentence starts with a capital letter. The wording is otherwise unchanged. |
+| (7) Skeleton v5 | Confirmed. Once Arjun settles the format, send me the exact v5 JSON. I will check every string against 088fc4f7 and this table, then issue `skeleton-bail_regular-signed.md` v5 with its SHA the same turn. |
