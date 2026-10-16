@@ -26,3 +26,7 @@ Explore first: which templates go through the promoted path, what an act section
 - It changes citations: with Act names only, any section number the model prints comes from its own memory, not the pack (for example affidavit_in_support citing Order XIX Rule 3 from recall, or the wrong rule). The verifier does not catch it on that path.
 - v1 blocker, small fix: template-promoter.ts ~903 keeps the sections. Render each entry as "<act>, ss. <n1>, <n2>" (the same string shape the NI Act filters at ai.service.ts 1512/1522 match on, so isNiAct keeps working). Promoter test on affidavit_in_support and one NI Act pack. Golden dry run.
 - Mode: full chain with Ajay seeing the moved goldens, because the citations the model sees change in 87 packs (Priya's call; Arjun said small fix).
+
+## Ajay's format rule (16 Oct 2026)
+
+Not everything is "ss.". Print the pack's own reference exactly: "O. XIX r. 3" for CPC Orders, "Art. 226" for Articles, "s. 12(2)" with sub-sections. Never shorten it to the parent section. Keep the NI Act filter string shape working. Ajay reviews the moved goldens and re-checks Anushka's wrong citations against the next run.
