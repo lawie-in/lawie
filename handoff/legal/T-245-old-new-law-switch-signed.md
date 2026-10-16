@@ -878,3 +878,25 @@ These terms are not enough on their own to pick this pack when divorce, DV Act o
 - NAMED_MDY no longer lets the day run into the year, so "June 2026" reads as no date. A missing year gives no date. A two-digit year later than the reference year gives no date. Nothing is invented. Matches 8f0d980a and c585cf80.
 - Timeline: a partial arrest date returns the existing error, and no s.187(3) date is computed. OK for v1, with the date-picker condition already recorded.
 - No printed text changed. It ships before T-469 (78a39810).
+
+## T-489: mandamus statute and grievance fields (Ajay, 16 Oct 2026)
+
+**Fields**
+
+| Key | Label | Help text | Placeholder | Required |
+|---|---|---|---|---|
+| statute_invoked | `Law or rule that places the duty on the authority` | `The Act, rule, scheme or notification under which the authority must act, with the section or rule if known.` | `e.g. Section 12 of the … Act / Rule 5 of the … Rules` | Optional. If it is empty, the T-479 blank prints. |
+| grievance_summary | `What the authority has failed to do` | `One or two lines: the act the authority was bound to do and has not done.` | `e.g. failure to decide the petitioner's application dated … for …` | Optional. If it is empty, the T-479 blank prints. |
+
+**Cause title.** With a value, the lines print as `AND IN THE MATTER OF: {statute_invoked};` and `AND IN THE MATTER OF: {grievance_summary};`. With no value, they print the signed blanks from 2d578206 and 6a047469, unchanged.
+
+**Body (AI-written), one instruction per paragraph, in this order.** Each paragraph uses only facts from the brief. A missing fact is printed as its `[To be confirmed: …]` blank. Do not name any judgment (T-441).
+
+1. Locus standi: `State who the petitioner is and how the authority's failure affects the petitioner directly.`
+2. Legal right: `State the petitioner's legal right to have the act done, as it arises from {statute_invoked}.`
+3. Legal duty: `State that the respondent is a public authority under a legal duty to do the act, and the source of that duty in {statute_invoked}.`
+4. Demand and refusal: `State the date and the manner in which the petitioner asked the respondent to act, and that the respondent has refused or failed to act. If no demand is given, write: That the petitioner made a representation to the respondent on [To be confirmed: date and mode of the demand made to the respondent].`
+5. Inaction: `State how long the act has been pending, using only dates from the brief.`
+6. No other remedy: `State that the petitioner has no other equally efficacious remedy. If the brief names one that was used, say what became of it.`
+
+Prayer (existing): mandamus directing the respondent to do the act named in {grievance_summary} within a time the Court may fix.
