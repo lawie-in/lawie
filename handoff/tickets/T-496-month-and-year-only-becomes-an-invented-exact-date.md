@@ -2,7 +2,7 @@
 
 | Field  | Value |
 | ------ | ----- |
-| Status | To do. Severity for v1 with Ajay and Arjun (Priya, 16 Oct 2026) |
+| Status | To do. V1 BLOCKER (Ajay, ref 604af4bd, 16 Oct 2026). Priya |
 | Owner  | Vishal (owns the date normaliser, T-469), Ajay signs |
 | Mode   | Full chain (legal content: dates in drafts) |
 
@@ -19,3 +19,8 @@ A partial date must stay partial or become a signed blank ("[To be confirmed: da
 - No input with a missing day produces an exact date anywhere (ledger, forms, drafts).
 - Month-only, year-only and month+year are tested.
 - Ajay's ref; the before/after table of every date fixture is read by Ajay.
+
+## Rulings (16 Oct 2026)
+
+- Ajay 604af4bd: a month with no day, e.g. "June 2026", is read today as 20 June 2026, which is an invented fact. It must stay blank. V1 ticket.
+- Reach (Vishal): normalizeDate is called by fact-ledger.service.ts (normalizeForItem, the ledger path, now on for v1), fact-verifier.ts (draft checks) and fact-diff-log.ts (logs only). Forms and the no-ledger brief path do not use it. So a date span from the advocate's description could become a ledger fact "20 June 2026" and print in the draft.
