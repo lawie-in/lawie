@@ -13,6 +13,7 @@ import adminAuditRoutes from './routes/admin-audit.routes';
 import adminUsersRoutes from './routes/admin-users.routes';
 import authRoutes from './routes/auth.routes';
 import consentRoutes from './routes/consent.routes';
+import internalPasswordResetRoutes from './routes/internal-password-reset.routes';
 import internalUnverifiedNoticeRoutes from './routes/internal-unverified-notice.routes';
 import internalVerifyRoutes from './routes/internal-verify.routes';
 import oauthRoutes from './routes/oauth.routes';
@@ -51,6 +52,8 @@ app.use('/', adminAuditRoutes);
 app.use('/', internalVerifyRoutes);
 // T-358 — email worker only (INTERNAL_SECRET): the unverified-account deletion notice.
 app.use('/', internalUnverifiedNoticeRoutes);
+// T-221 — email worker only (INTERNAL_SECRET): mints the password-reset link at send time.
+app.use('/', internalPasswordResetRoutes);
 
 app.use((_req, res) => {
   res.status(404).json({ error: 'Route not found', service: 'auth' });

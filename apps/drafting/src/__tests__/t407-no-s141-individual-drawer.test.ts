@@ -84,6 +84,7 @@ const sectionNumbers = (p: RulePack) =>
 const NO_S141: Array<[string, unknown]> = [
   ['individual', 'individual'],
   ['huf', 'huf'],
+  ['proprietorship', 'proprietorship'],
   ['empty string', ''],
   ['to-be-confirmed placeholder', '[To be confirmed: drawer type]'],
   ['MISSING placeholder', '{{MISSING: Drawer Type}}'],
@@ -99,6 +100,7 @@ describe('T-407 A: s141Applies', () => {
     ['\tpartnership\n', false],
     ['individual', false],
     ['huf', false],
+    ['proprietorship', false],
     ['', false],
     ['   ', false],
     ['[To be confirmed: drawer type]', false],
@@ -432,11 +434,13 @@ describe('T-407 E: advocate-visible labels through formDataFromBrief', () => {
   const config = () => loadTemplateConfig(PACK_ID)!;
 
   it('premise: the twin labels are the ones in use', () => {
+    // T-471 (Ajay): 'proprietorship' is a separate drawer type; it takes no s.141.
     expect(OPTIONS.map((o) => o.id).sort()).toEqual([
       'company',
       'huf',
       'individual',
       'partnership',
+      'proprietorship',
     ]);
   });
 

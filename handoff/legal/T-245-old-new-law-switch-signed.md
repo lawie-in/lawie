@@ -600,3 +600,56 @@ Signed: Ajay (CLO), 16 Oct 2026 IST.
 - Rule 4 in the ledger drafter and its repair prompts (drafter.prompts.ts :165, :200, :243): `Never write that a fact is missing, not given or not stated in the brief, the facts or the instructions; print only its placeholder in the form {{MISSING: …}}.` The signed sentence is used verbatim at :59, :88, :121. Condition: code turns every `{{MISSING: …}}` into `[To be confirmed: …]` before the user sees the draft, and a test shows none survives.
 
 Signed: Ajay (CLO), 16 Oct 2026 IST.
+
+### T-481 bug 2: default bail undertaking (16 Oct 2026)
+
+Default bail under S.187(3) BNSS (old S.167(2) CrPC) is available only where the accused is prepared to furnish bail. So the undertaking is part of the right, but it is never asserted against the user's answer.
+
+- **Yes:** print the pack's existing undertaking sentence, unchanged.
+- **Not answered:** print `That the applicant [To be confirmed: whether the applicant is prepared to furnish bail and bonds as directed by this Hon'ble Court].`
+- **No:** print nothing (the post-check removes any undertaking), and show this in the app, not in the draft: `Default bail under Section 187(3) BNSS is available only if the accused is prepared to furnish bail. Check this before filing.`
+
+promptInstructions[8] becomes conditional on the answer, as above.
+
+Signed: Ajay (CLO), 16 Oct 2026 IST.
+
+## T-479 follow-up: respondent numbering and Supreme Court mandamus title (Ajay, 16 Oct 2026)
+
+| Point | Ruling |
+|---|---|
+| (a) Advocate-typed numbering | OK. Strip only a leading "n." or "n)" at the start of a respondent line before our numbering. Never change the rest of the line. |
+| (b) Mandamus title, court = Supreme Court | A High Court / Article 226 title on a Supreme Court petition is wrong. Use the title below. If it is not built in v1, hide the Supreme Court option in mandamus. Never print the High Court title for it. |
+
+Signed Supreme Court title (one line each):
+
+```
+IN THE SUPREME COURT OF INDIA
+CIVIL ORIGINAL JURISDICTION
+WRIT PETITION (CIVIL) NO. ______ OF ______
+(Under Article 32 of the Constitution of India)
+```
+
+T-473 scope: ref f1a18422 covers the labels in forms, in the intake brief and in the intake extraction prompt, including the three court-type labels.
+
+## T-472 follow-up: copy time, missing copy dates, article wording, numbering (Ajay, 16 Oct 2026)
+
+| Point | Ruling |
+|---|---|
+| (1) End of copy time | Accepted. Under s.12(2), the time excluded runs from the date the certified copy was applied for to the date it was **ready for delivery**. Time taken after it was ready is not excluded. Do **not** fall back to the date it was received: that can overstate the exclusion and show a late petition as in time. If the ready date is not known, the input is unknown: print the rule 4 blank. |
+| (2) No copy dates | Ask whether a certified copy was applied for. Answer "No": compute with nothing excluded. Not answered, or "Yes" with any copy date missing: print the rule 4 blank, and print no day count. |
+| (3) Article wording | Use `Article 131 of the Schedule to the Limitation Act, 1963` (revision: 90 days from the order). The signed checklist line is below. |
+| (4) Numbering | Paragraphs are numbered consecutively in the printed draft. A paragraph that is dropped or swapped must not leave a gap or a repeated number. |
+
+Signed checklist line (only when the delay paragraph is printed):
+
+`Application under Section 5 of the Limitation Act, 1963 for condonation of delay, supported by an affidavit stating the cause of the delay.`
+
+## T-488 / T-479: name of the State as a party (Ajay, 16 Oct 2026)
+
+| Where the case is | Party name printed |
+|---|---|
+| A State | `State of {state}` |
+| Delhi (NCT) | `State (Govt. of NCT of Delhi)`. Never print "State of Delhi". |
+| Any other Union Territory | verify: send it to me; do not print a guess. Use `[To be confirmed: name of the State or Union Territory as party]`. |
+
+This applies to every criminal pack and to the form path. The T-488 cheque-date fix still waits on Vishal's Explore. I'll sign that text once I've seen it.

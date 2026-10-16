@@ -44,7 +44,7 @@
     "article_invoked": {
       "type": "select",
       "required": true,
-      "options": ["226", "32", "226 and 227"],
+      "options": ["226", "32", "226 and 227", "Article 227 (judicial order of a civil court)"],
       "label": "Constitutional Article"
     },
     "impugned_order_date": { "type": "date", "required": true, "label": "Date of Impugned Order" },
@@ -111,7 +111,11 @@
   },
   "mandatory_clauses": [
     "Cause title with petitioner v. authority (whose order impugned) + private respondents",
-    "Jurisdiction clause — Article 226 (HC) or Article 32 (SC)",
+    {
+      "id": "jurisdiction_clause",
+      "name": "Jurisdiction",
+      "description": "State the Article selected in article_invoked. For a judicial order of a civil court, invoke Article 227, not Article 226."
+    },
     "Facts narrating original proceedings",
     "Impugned order — date, authority, case number, prayer to quash",
     "Grounds — jurisdictional error / NJP / error on face / fraud",

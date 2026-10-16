@@ -56,3 +56,5 @@ Vikram (15 Oct): $0.69 for 27 fixtures is about Rs 2.25 a draft, about Rs 1.1-1.
 ## Closed (Vishal, 16 Oct 2026, e88655e4)
 
 Verified: Sonnet 5.5 body / Haiku 5.5 intake+preflight; effort medium/low/medium; caps reception 4000 / extract 3000 (settings); golden run 64 8/27 at $0.69; failures classified for Ajay. Open: T-469 (date labels), T-470 (calibrated confidence), T-471 (drawer firm, prod blocker).
+
+Addendum (Arjun, 16 Oct): run 72 scored 8/29 against run 64's 8/27 on a branch with no behaviour change — the golden pass total moves by ±2 on model variance alone. Rule from here: compare runs per fixture (which fixtures flipped, and why), never by total; a change is "better" or "worse" only when the flipped fixtures are explained. T-480's faults did not reproduce with the ledger on (fixture 27 = Anushka's facts) and closed as config.

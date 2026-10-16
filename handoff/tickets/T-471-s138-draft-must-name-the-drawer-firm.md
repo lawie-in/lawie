@@ -2,7 +2,7 @@
 
 | Field  | Value                                                                       |
 | ------ | --------------------------------------------------------------------------- |
-| Status | To do. V1 BLOCKER for prod (the model switch). Priya, 15 Oct 2026           |
+| Status | Merged into develop_staging b39f45a6, 16 Oct; Anushka to test on develop. Priya |
 | Owner  | Vishal (he has the T-453 fixtures and run 64), after T-453 closes           |
 | Mode   | Full chain (legal content; Ajay gates)                                      |
 

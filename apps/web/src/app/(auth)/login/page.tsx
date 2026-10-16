@@ -14,7 +14,7 @@ import { clearSignupSource, readSignupSource } from '@/lib/signup-source';
 // T-234 — email + password sign-in and sign-up next to Google.
 // Design: Rajesh (handoff/tickets/T-234-…md). Copy: "Final" column of
 // handoff/marketing/copy/login-page-t234.md, signed by Ajay (handoff/legal/T-234-login-copy-signed.md).
-// "Forgot password?" is deliberately not rendered until T-221 ships /forgot-password (AC3).
+// T-221: "Forgot password?" (Sign in mode) links to /forgot-password.
 
 type Mode = 'signin' | 'signup';
 type Field = 'name' | 'email' | 'password';
@@ -766,15 +766,24 @@ function LoginContent() {
                     </div>
 
                     <div>
-                      {/* "Forgot password?" goes in this row (right-aligned, Sign in only, a
-                          <Link href="/forgot-password"> with a 44 px hit area) once T-221 ships.
-                          Not rendered until then (AC3). */}
-                      <label
-                        htmlFor="password"
-                        className="mb-1.5 block text-sm font-medium text-slate-700"
-                      >
-                        Password
-                      </label>
+                      {/* T-221: "Forgot password?" sits in the label row, right-aligned, Sign in
+                          only, with a 44 px hit area. */}
+                      <div className="mb-1.5 flex items-center justify-between">
+                        <label
+                          htmlFor="password"
+                          className="block text-sm font-medium text-slate-700"
+                        >
+                          Password
+                        </label>
+                        {!isSignup && (
+                          <Link
+                            href="/forgot-password"
+                            className="text-lawie-600 hover:text-lawie-700 -my-3 -mr-2 inline-flex min-h-11 min-w-11 items-center justify-end px-2 text-sm font-medium hover:underline"
+                          >
+                            Forgot password?
+                          </Link>
+                        )}
+                      </div>
                       <div className="relative">
                         <input
                           ref={passwordRef}

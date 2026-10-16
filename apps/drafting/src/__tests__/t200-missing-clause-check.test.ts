@@ -406,15 +406,17 @@ describe('T-200: the (pack, clause id) → cue map, ruled by Ajay on 12 Oct 2026
 describe('T-200 AC6: no prompt text changes', () => {
   const sha = (s: string) => createHash('sha256').update(s).digest('hex');
   // T-440: re-pinned with Ajay's signed not-known date line (a9bc957, 4b46053); nothing else moved.
+  // T-471 (Ajay, 722c548a and acbec79f, 16 Oct 2026): re-pinned with his signed rule-4 sentence; removing
+  // that sentence from each prompt gives the previous hash (checked), so nothing else moved. D1 is unchanged.
   it('the Drafter pack prompt and the two repair prompts are as re-pinned in T-440', () => {
     expect(sha(DRAFTER_PACK_SYSTEM_PROMPT)).toBe(
-      '28257542afb486fb1b4fc388c6c8f474cf6070536749d24ef149fa709d41e41e',
+      'bf32e87547753a13f04969f68adafce37a2cd867c1968cc359ae744d11e57e10',
     );
     expect(sha(DRAFTER_REPAIR_SYSTEM_PROMPT)).toBe(
-      '1679478acb0396cc7daf52fd3703d0bac0ba1caaf683f5d03975cbee9a263e07',
+      'f8b43cf15bdc5446e52cc04a77761b2126aea49ad758bc8c136b36f4a9352ab4',
     );
     expect(sha(DRAFTER_LEDGER_REPAIR_SYSTEM_PROMPT)).toBe(
-      'a0075fbbd1c0b56d8e32164739557fdd7f95230abded0d1b00eaadd91cf9d677',
+      'e242d06bf65ecc90e845345bdc6881590c5c27a64fb34ad792e2bfe6c4ac2dd6',
     );
   });
 });
