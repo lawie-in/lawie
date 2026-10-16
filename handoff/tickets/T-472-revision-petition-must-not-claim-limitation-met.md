@@ -23,3 +23,11 @@ Ajay writes the exact text. Explore first (where the limitation sentence comes f
 - 131 days after the order: no "within limitation" or "no condonation needed" in the draft.
 - Within the period: unchanged.
 - Tests for both; Ajay's ref in the merge body.
+
+## Ajay's ruling (16 Oct 2026, T-245 file 3d906a1b; exact text is there)
+
+- The model never says "within limitation". Code computes it from the order date, the filing date and the certified-copy date (s.12(2) Limitation Act).
+- If late: print the signed delay paragraph and put a s.5 application on the checklist.
+- If a date is unknown: print a blank, not a guess.
+- Drop the yes/no field at criminal_revision :115.
+- The same fault is possible in 19 packs: fix revision now; the rest go in one follow-up (T-474).

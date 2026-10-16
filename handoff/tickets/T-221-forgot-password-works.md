@@ -364,3 +364,7 @@ Signed: Ajay (CLO), 11 Oct 2026, night. Conditional on items 3, 4 and 10.
 ## Note (Priya, 12 Oct 2026, from the T-220 review)
 
 The email job must carry `userId` in its data, never an email address, or the worker logs carry no user id (T-210).
+
+## Ajay's conditions on the copy (16 Oct 2026, T-245 file 3d906a1b)
+
+No account-exists disclosure (same message whether or not the email has an account); state how long the link is valid; ask for no other data. Madhuri sends the final copy to Ajay.
