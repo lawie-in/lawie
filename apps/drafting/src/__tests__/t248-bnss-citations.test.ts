@@ -164,9 +164,10 @@ describe('T-248 discharge_application: S.268 BNSS warrant case on a complaint, n
 
   it('the promoted form offers the new option values and not the old ones', () => {
     const fields = promoted(id).form_schema.steps.flatMap((s) => s.fields);
+    // T-473: labels are humanised now; the option ids are the raw values and unchanged.
     const labels = (fid: string): string[] =>
       (fields.find((f) => f.field_id === fid)?.options ?? []).map((o) =>
-        typeof o === 'string' ? o : o.label,
+        typeof o === 'string' ? o : o.id,
       );
     expect(labels('case_type')).toContain(NEW_CASE);
     expect(labels('case_type')).not.toContain(OLD_CASE);

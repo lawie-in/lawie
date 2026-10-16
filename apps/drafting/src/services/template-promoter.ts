@@ -156,6 +156,105 @@ function humaniseId(id: string): string {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+/**
+ * T-473: a bare internal name such as `known_state_custody` or `GWA_1890_secular`
+ * (two or more letter/digit tokens joined by underscores; capitals allowed).
+ */
+const SNAKE_CASE_RE = /^[A-Za-z0-9]+(_[A-Za-z0-9]+)+$/;
+
+export function isSnakeCaseName(text: string): boolean {
+  return SNAKE_CASE_RE.test(text);
+}
+
+/**
+ * T-473 (Ajay's rule): internal words dropped from a humanised option label. Whole
+ * tokens only (`type` goes, `typed` stays). `cat` followed by a pure number token
+ * (`cat_1`) drops both. `category` is not in the list and is kept.
+ */
+export const DROPPED_OPTION_TOKENS: readonly string[] = ['flag', 'warning', 'cat', 'type'];
+
+/** Abbreviations upper-cased when an option is humanised. Casing only, no new text. */
+const OPTION_ACRONYMS: ReadonlySet<string> = new Set([
+  'fir',
+  'bnss',
+  'bns',
+  'ipc',
+  'crpc',
+  'cpc',
+  'mou',
+  'tpa',
+  'slp',
+  'hc',
+  'sc',
+  'rera',
+  'huf',
+  'gpa',
+  'psu',
+  'nbfc',
+  'gst',
+  'emi',
+  'ngo',
+  'icc',
+  'rtgs',
+  'neft',
+  'utr',
+  'cbi',
+  'atm',
+  'aop',
+  'boi',
+  'cit',
+  'drp',
+  'acr',
+  'apar',
+  'ata',
+  'pil',
+  'ni',
+  'ii',
+  'iii',
+  'iv',
+  'vi',
+  'vii',
+  'gwa',
+  'hmga',
+  'uprera',
+  'spa',
+  'ndps',
+]);
+
+function caseOptionToken(token: string): string {
+  // An authored token with capitals (`RERA`, `S126`, `1A`, `IB`) keeps its casing.
+  if (/[A-Z]/.test(token)) return token;
+  if (OPTION_ACRONYMS.has(token)) return token.toUpperCase();
+  // s419 / o11 / r1 (section, order, rule) and 48a: upper-case the letters.
+  if (/^[sor]\d+[a-z]?$/.test(token) || /^\d+[a-z]$/.test(token)) return token.toUpperCase();
+  return token;
+}
+
+/**
+ * T-473: the label shown for an option whose text is a bare snake_case name. Pure.
+ * Text that is not underscore-joined (spaces, punctuation) is returned unchanged.
+ * Snake_case text: drop DROPPED_OPTION_TOKENS, upper-case known abbreviations, sentence
+ * case the rest (`known_state_custody` -> `Known state custody`). If every token would
+ * be dropped, nothing is dropped. Never used for ids.
+ */
+export function humaniseOptionLabel(text: string): string {
+  if (!isSnakeCaseName(text)) return text;
+  const tokens = text.split('_');
+  const kept: string[] = [];
+  for (let i = 0; i < tokens.length; i++) {
+    const t = tokens[i].toLowerCase(); // drop-list check is case-blind
+    if (t === 'cat' && i + 1 < tokens.length && /^\d+$/.test(tokens[i + 1])) {
+      i++; // `cat_1`: drop the number with it
+      continue;
+    }
+    if (DROPPED_OPTION_TOKENS.includes(t)) continue;
+    kept.push(tokens[i]);
+  }
+  const words = (kept.length > 0 ? kept : tokens).map(caseOptionToken);
+  const sentence = words.join(' ');
+  return sentence.charAt(0).toUpperCase() + sentence.slice(1);
+}
+
 function slugifyOption(label: string): string {
   return label
     .toLowerCase()
@@ -171,15 +270,23 @@ function slugifyOption(label: string): string {
  */
 export function normaliseOption(o: unknown, idx: number): FieldOption | null {
   if (typeof o === 'string') {
-    return { id: slugifyOption(o) || `opt_${idx}`, label: o };
+    // T-473: id from the raw text (unchanged); only the label is humanised.
+    return { id: slugifyOption(o) || `opt_${idx}`, label: humaniseOptionLabel(o) };
   }
   if (o && typeof o === 'object') {
     const obj = o as Record<string, unknown>;
-    const label = typeof obj.label === 'string' ? obj.label : String(obj.id ?? `Option ${idx + 1}`);
+    const rawLabel =
+      typeof obj.label === 'string' ? obj.label : String(obj.id ?? `Option ${idx + 1}`);
     const id =
       typeof obj.id === 'string' && obj.id.length > 0
         ? obj.id
-        : slugifyOption(label) || `opt_${idx}`;
+        : slugifyOption(rawLabel) || `opt_${idx}`;
+    // T-473: a missing label (falls back to the id) or a label that is just the
+    // snake_case id gets humanised. An authored human label is kept verbatim.
+    const label =
+      typeof obj.label !== 'string' || obj.label === obj.id
+        ? humaniseOptionLabel(rawLabel)
+        : rawLabel;
     return { id, label };
   }
   return null;
@@ -850,7 +957,10 @@ export function promoteDocRuleToTemplateConfig(
           ? raw.label
           : typeof raw.title === 'string'
             ? raw.title
-            : humaniseId(field_id),
+            : // T-473: honour a human `name` (never a snake_case one) before humaniseId.
+              typeof raw.name === 'string' && raw.name.trim() && !isSnakeCaseName(raw.name)
+              ? raw.name
+              : humaniseId(field_id),
       type: fieldType,
       required,
     };
