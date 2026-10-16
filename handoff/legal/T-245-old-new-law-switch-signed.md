@@ -679,3 +679,15 @@ This applies to every criminal pack and to the form path. The T-488 cheque-date 
 |---|---|
 | (1) Form of a reference | Print the pack text verbatim, for example "Order XIX Rule 3", "Article 226", "S.151". Do not convert it to my abbreviations: converting text that is already signed risks errors. Every reference must carry its Act name ("Act name (S.151)"). A bare number such as "138" never prints alone. |
 | (2) Conditional Acts | OK: `Act name (S.151) [only when: …]` in text the model sees. The condition is written in plain words. The bracket must never appear in the draft. Add a test that the draft contains no "[only when:". |
+
+## T-479: certiorari cause title and respondents (Ajay, 16 Oct 2026)
+
+"MOST RESPECTFULLY SHOWETH:" after the Supreme Court addressee: OK.
+
+| Point | Ruling |
+|---|---|
+| (1) Article 227 | The matter line is `IN THE MATTER OF: Article 227 of the Constitution of India;`. High Courts name this jurisdiction and the case type differently, so the jurisdiction line and the case-number line are blanks: `([To be confirmed: jurisdiction as styled in this High Court for a petition under Article 227])` and `[To be confirmed: case type and number as styled in this High Court]`. Never print the Article 226 or "WRIT JURISDICTION" lines for an Article 227 choice. |
+| (2) Article 32 | Reuse the Supreme Court heading, matter line and addressee signed for mandamus, with `IN THE MATTER OF: Article 32 of the Constitution of India;`. The Article 227 choice, a judicial order of a civil court, is High Court only and never takes the Supreme Court heading. |
+| (3) Statute and grievance | Use these blanks: `[To be confirmed: statute or rule under which the impugned order was passed]` and `[To be confirmed: grievance in brief]`. |
+| (4) State as respondent | For a judicial order of a civil court (Article 227), the State is not a party by default. Use `[To be confirmed: respondents, with names and addresses]`. For an administrative order, use `State of {state} through [To be confirmed: Secretary of the concerned department], Government of {state}`. Never use "Home Department" in a civil certiorari. |
+| (5) No court chosen | "Through Public Prosecutor" is wrong in a civil writ. Use `State of [To be confirmed: State] through [To be confirmed: Secretary of the concerned department]`. |
