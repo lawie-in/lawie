@@ -5,7 +5,7 @@
 | Phase          | 0 — Prep |
 | Owner          | Rajesh (two screens), Madhuri (email and screen copy), Lead (build), Arjun (heads-up: reset link domain), Anushka (verdict) |
 | Mode           | Design first (Rajesh), then build, full chain (auth, web, email-worker, email-client) |
-| Status         | To do. Back from hold (founder, 11 Oct 2026: password sign-up ships in v1). Rajesh's design done; Madhuri's copy needs a final pass with Ajay |
+| Status         | To do. V1 BLOCKER, assigned to Shashank 16 Oct (Anushka run 4: no way to reach reset; /forgot-password and /reset-password are 404). Back from hold (founder, 11 Oct 2026: password sign-up ships in v1). Rajesh's design done; Madhuri's copy needs a final pass with Ajay |
 | Size           | M (1.5 days) |
 | Depends on     | T-220 to send for real (can be built on dry-run). T-225 for the copy rules |
 | Gate           | Before v1 go-live (T-403). A user who forgets the password is locked out |

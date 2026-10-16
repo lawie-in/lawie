@@ -40,3 +40,7 @@ Ajay:
 - s.141: for a partnership or company, address the notice to the firm and to each partner or director the advocate names as in charge. Names come only from the advocate.
 
 Claim (after T-453 closes): fact-ledger.service.ts (factTypeFor), intake.prompts.ts (one line), fact-verifier.ts + ai.service.ts (pack id pass-through), golden fixtures 08/1b/19/21, tests. If the s.138 pack or its notice text needs a change for the sole-proprietor / partner / director wording, stop after Explore and ask Priya for the claim; that is legal content and Ajay byte-checks it.
+
+## Anushka run 4 (16 Oct 2026): what she found
+
+For a company drawer, the director is not made a noticee, and the s.141 paragraph is vague. Fix together with the firm line. Ajay's rule applies (address the firm and each partner or director the advocate names as in charge; names only from the advocate). Ask Ajay for the s.141 paragraph text.
