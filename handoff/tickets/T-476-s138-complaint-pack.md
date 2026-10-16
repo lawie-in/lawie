@@ -18,3 +18,7 @@ A new pack for the s.138 complaint, with the s.141 averments: one paragraph per 
 
 - Ajay writes the pack text; fixtures for individual, proprietorship, partnership, company.
 - Golden set entries for each; Ajay's ref in the merge body.
+
+## Ajay, 16 Oct 2026 (T-245 file b46848f0)
+
+The "Accused No. {n}" sentences belong to the complaint, not the notice. T-471's notice uses his corrected notice wording; the "Accused" form moves into this pack.
