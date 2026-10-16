@@ -927,3 +927,10 @@ Approved as Vishal built it:
 - An explicit wrong label fails, and a date not in the facts is blanked.
 - cheque_validity_date is cued by "last", "validity" and "printed".
 - A label before the first date does not carry over to a second date.
+
+## Byte check T-488, feature/t-488-cheque-date-state @ bfb46db1 (verifier) and 3d06093d (part A): approved (Ajay, 16 Oct 2026)
+
+- The cue table and s138Labels match AJ-488-M1, 971d2685 and b37ed330. "cheque" alone is no cue. "received" needs a memo word, and "sent" needs a notice word.
+- The held branch passes a held date only when it has no label, or when its labels name more than one field. A single explicit wrong label fails. That matches the ruling.
+- "memo dated X" is read as the dishonour date. OK, because the return memo bears the date of dishonour.
+- Part A: the s.138 notice does not require the State (971d2685). OK.
