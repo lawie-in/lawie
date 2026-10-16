@@ -457,3 +457,457 @@ Signed: Ajay (CLO), 15 Oct 2026 IST.
   - certiorari system_role opening becomes `Certiorari issues to quash an order of an inferior tribunal or quasi-judicial authority on these grounds only:`. This drops "court", in line with the Article 227 sentence. The rest is unchanged.
 
 Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+### T-471: s.138 drawer firm (Priya / Vishal, 16 Oct 2026)
+
+(a) **OK.** respondent_name means "drawer as named on the cheque: a firm, company or person".
+
+(b) The signed intake-prompt line, exact text:
+
+`A firm or company named as the drawer is the drawer's name. Put the proprietor, partners or directors named with it in their own fields, never in place of the firm.`
+
+(c) Fixture 08 is **OK** (drawer Gupta Electricals, drawer_proprietor Anil Gupta). Add one condition to the draft check. A sole proprietorship is not a separate person in law, so the notice is addressed to the proprietor "trading as" the firm (`Anil Gupta, proprietor of Gupta Electricals`) and **s.141 is not pleaded** for it (this ties in with the T-452 drawer type).
+
+On naming persons for s.141:
+
+- For a partnership firm or a company, s.141 applies.
+- The notice is addressed to the firm or company.
+- As safe practice, it is also addressed to each partner or director whom the advocate intends to arraign as in charge of and responsible for the business.
+- Those names come from the advocate. The model never adds them.
+
+Signed: Ajay (CLO), 16 Oct 2026 IST.
+
+### Anushka run 4 (16 Oct 2026): T-472 limitation, T-471 s.141 paragraph, T-221
+
+**T-472 (v1 blocker). Rule for every pack:** the model never states that a filing is within limitation. Limitation is computed by code from signed dates, or it is a blank.
+
+1. Inputs: the date of the impugned order, the filing date, and, where relevant, the dates the certified copy was applied for and received. That interval is excluded under s.12(2) Limitation Act. **No yes/no "within limitation" field** may decide the paragraph. criminal_revision :115 becomes a date field.
+2. Within the period (computed): `The present petition is filed within the period of limitation prescribed under {article/section}.`
+3. Beyond the period (computed): print instead:
+
+   `The present petition is filed after the period of limitation prescribed under {article/section}, with a delay of [To be confirmed: number of days of delay]. The petitioner has filed a separate application under Section 5 of the Limitation Act, 1963 for condonation of the delay, which may be read as part of this petition.`
+
+   Also add the s.5 application to the filing checklist. The day count is printed only if code computed it; otherwise it stays the blank above.
+4. Any input date unknown: `[To be confirmed: whether the petition is within limitation]`. Nothing is computed.
+5. Scope: the same fault can occur in every pack whose text speaks of limitation. Today that is 19 packs: amendment_of_pleadings, certiorari, consumer_complaint, counter_affidavit, criminal_appeal, criminal_revision, curative_petition, default_bail, divorce_hma, divorce_sma, judicial_separation, legal_notice_breach_of_contract, legal_notice_consumer_deficiency, plaint_injunction, plaint_partition, plaint_recovery, posh_complaint, rejoinder_affidavit, restoration_application. Fix criminal_revision first (the blocker); the rest go in one follow-up under the same rule. Each pack's article or section comes from its signed text, and anything not there is **verify** and comes to me.
+
+**T-471, the s.141 paragraph for a company or partnership drawer.** Names and roles come only from the advocate; a missing role is a blank.
+
+- Notice, addressees:
+
+  `1. {drawer firm/company}, through its {authorised signatory / partner / director}, at {registered office / place of business}; 2. {name}, {designation}; 3. …` (one line per person the advocate names).
+- Notice and complaint, paragraph:
+
+  `Accused No. 1 is a {company / partnership firm}, and the cheque was drawn on its account. Accused No. {n}, {name}, was, at the time the offence was committed, in charge of and responsible to Accused No. 1 for the conduct of its business, being its {designation} and {role: [To be confirmed: role of {name} in the conduct of the business]}. Accused No. {n} is therefore deemed to be guilty of the offence under Section 138 read with Section 141 of the Negotiable Instruments Act, 1881.`
+
+  One such sentence is printed per person.
+- Sole proprietorship: no s.141, as T-471 (c).
+
+**T-221 forgot-password copy:** send me Madhuri's text and I will do the final pass. Conditions:
+
+- It never reveals whether an account exists: `If an account exists for this email, we've sent a link to reset your password.`
+- It states how long the link stays valid.
+- It asks for no other personal data.
+
+Signed: Ajay (CLO), 16 Oct 2026 IST.
+
+### T-478: certiorari, Article 227 (16 Oct 2026)
+
+1. **v1 blocker: the verifier.** A number directly after `Article`, `Art.`, `Section`, `S.`, `s.`, `Order`, `O.`, `Rule`, `r.`, `Schedule` or `Para` is a legal reference, not a case number. It is never blanked. Blanking "Article 227" also hits every writ that says "Article 226". This fix covers all packs, not only certiorari.
+2. **v1:** certiorari.json `article_invoked` gains the option `Article 227 (judicial order of a civil court)`. The existing options stay.
+3. **v1:** the mandatory clause id becomes `jurisdiction_clause`, with a read-time alias as in T-451. Name: `Jurisdiction`. Description: `State the Article selected in article_invoked. For a judicial order of a civil court, invoke Article 227, not Article 226.` Any golden that moves comes to me.
+
+Signed: Ajay (CLO), 16 Oct 2026 IST.
+
+### T-471 byte check (feature/t-471-drawer-firm at 98ffe7b6, 16 Oct 2026), with a correction to my own text
+
+These match my signed text and are approved:
+
+- the intake line (intake.prompts.ts:271);
+- the proprietorship type ("X, proprietor of Y", no s.141);
+- the addressee line ("through its {capacity}, at its {registered office / principal place of business}");
+- the 3 person slots with "up to 3; add any others in the draft";
+- the `[To be confirmed: …]` blanks.
+
+**Correction (mine).** My 16 Oct paragraph said "Notice and complaint". In a **demand notice** it is wrong for two reasons:
+
+- no one is yet an "Accused";
+- the offence is complete only if payment is not made within 15 days of receipt of the notice, so "at the time the offence was committed … deemed to be guilty" cannot be said yet.
+
+The "Accused No." wording belongs only to the s.138/141 complaint pack (v1.1). In legal_notice_s138 (docs/templates :539, :693, :696, :699) use:
+
+- Opening: `Noticee No. 1 is a {s141_kind}, and the cheque was drawn on its account.`
+- Per person: `Noticee No. {n}, {name}, is in charge of and responsible to Noticee No. 1 for the conduct of its business, being its {designation_text} and {role_text}, and shall be liable under Section 141 of the Negotiable Instruments Act, 1881 if the amount is not paid within 15 days of receipt of this notice.`
+
+The designation and role blanks stay as built. With this change, **T-471 is approved.** Merge-body ref: "Legal: T-471 signed by Ajay, T-245 file, byte check 98ffe7b6 + notice wording correction".
+
+Signed: Ajay (CLO), 16 Oct 2026 IST.
+
+### Anushka run 4 triage (16 Oct 2026): T-485, T-484, T-479, T-482
+
+**T-485 (pack faults).**
+
+1. **Revision title follows the forum** (signed T-429 text):
+   - Sessions Court: `Criminal Revision under Section 438 read with Section 440 BNSS (Section 397 read with Section 399 CrPC)`.
+   - High Court: `Criminal Revision under Section 438 read with Section 442 BNSS (Section 397 read with Section 401 CrPC)`.
+   - Both forums stay selectable.
+   - Add one line: `Where a revision has already been filed before one of these courts, a further revision by the same person is barred (Section 438(3) BNSS / Section 397(3) CrPC).`
+2. **quashing_528_bnss.**
+   - Settlement or compromise must be offered and drafted as a ground. Use the existing `settlement_in_matrimonial_or_commercial_dispute` option, with the pack's signed caution that offences with a public element are not quashed on settlement.
+   - Since the source is not named (T-441), the categories are **set out, not quoted**: no quotation marks and no "verbatim".
+   - Clause name `Recognised Quashing Categories Verbatim` becomes `Recognised Quashing Categories` (this amends T-447). The instruction "quote verbatim" becomes `Set out the applicable categories in plain numbered form, not as a quotation.`
+   - S stays last.
+3. **"Disclaimer slip — Lawie drafting assistance acknowledged":** delete it from **every** filing checklist (amendment_of_pleadings, cat_oa, condonation_of_delay, criminal_appeal, criminal_revision, discharge_application, divorce_hma, divorce_mutual_consent, divorce_sma, dv_act_complaint and any others). Nothing about Lawie is filed in court.
+   - The Lawie disclaimer appears in the app and on the export cover note, **never inside the court document's text**.
+   - "Append Lawie disclaimer" in the prompts becomes a renderer action outside the pleading body.
+4. **"Shri/Smt.":** never print both. If the gender is given, use `Shri` or `Smt.`. If not, print the name with no honorific. Applies to all packs.
+
+**T-484 (caveat, s.148A CPC):** a real pack, v1.1. Until then show "This document type is not available yet"; there is no fallback draft. Required content:
+
+- court and proceeding (instituted or expected);
+- caveator and the expected applicant, with addresses;
+- the order or application expected;
+- caveator's address for service;
+- the s.148A(2) undertaking that notice of the caveat has been or will be served by registered post (acknowledgement due) on the expected applicant;
+- a note that the caveat lapses 90 days after lodging (s.148A(5)).
+
+Checklist: proof of service, the court fee as per State rules, and an affidavit where the High Court's rules require one. The State and High Court rules are **verify**: listed in the pack, not stated as law until I check them.
+
+**T-479 (cause titles):** no new wording. The signed T-404 cause-title fields apply. Mandamus uses the writ_petition_civil cause title. Send me any pack whose title has no signed text.
+
+**T-482 (maintenance forum):**
+
+- A s.144 BNSS application lies before the Family Court where one is established for the area (Family Courts Act s.7). Elsewhere it lies before the Judicial Magistrate First Class.
+- The pack offers `Principal Judge, Family Court, {district}` **only for districts I have confirmed**, otherwise `Court of the Judicial Magistrate First Class, {district}`.
+- The district list for Gaya and the other Bihar and Jharkhand districts is **verify**: I check it against each High Court's notification, and nothing is entered from memory.
+
+Signed: Ajay (CLO), 16 Oct 2026 IST.
+
+### T-471 drafter rule 4 line (Vishal, 16 Oct 2026)
+
+Signed for all drafter and repair prompts, appended to rule 4:
+
+`Never write that a fact is missing, not given or not stated in the brief, the facts or the instructions; print only its blank in the form [To be confirmed: …].`
+
+The pack fallback at legal_notice_s138 :355 is also approved: `bank memo reference number (if not given: [To be confirmed: bank memo reference number])`.
+
+Signed: Ajay (CLO), 16 Oct 2026 IST.
+
+- T-471: a proprietorship with no proprietor named prints `[To be confirmed: name of the proprietor], proprietor of {firm}` (docs/templates/legal_notice_s138 :485). The notice is never addressed to the firm alone. Limiting respondent_name-as-text to the s.138 pack: OK.
+
+Signed: Ajay (CLO), 16 Oct 2026 IST.
+
+- Rule 4 in the ledger drafter and its repair prompts (drafter.prompts.ts :165, :200, :243): `Never write that a fact is missing, not given or not stated in the brief, the facts or the instructions; print only its placeholder in the form {{MISSING: …}}.` The signed sentence is used verbatim at :59, :88, :121. Condition: code turns every `{{MISSING: …}}` into `[To be confirmed: …]` before the user sees the draft, and a test shows none survives.
+
+Signed: Ajay (CLO), 16 Oct 2026 IST.
+
+### T-481 bug 2: default bail undertaking (16 Oct 2026)
+
+Default bail under S.187(3) BNSS (old S.167(2) CrPC) is available only where the accused is prepared to furnish bail. So the undertaking is part of the right, but it is never asserted against the user's answer.
+
+- **Yes:** print the pack's existing undertaking sentence, unchanged.
+- **Not answered:** print `That the applicant [To be confirmed: whether the applicant is prepared to furnish bail and bonds as directed by this Hon'ble Court].`
+- **No:** print nothing (the post-check removes any undertaking), and show this in the app, not in the draft: `Default bail under Section 187(3) BNSS is available only if the accused is prepared to furnish bail. Check this before filing.`
+
+promptInstructions[8] becomes conditional on the answer, as above.
+
+Signed: Ajay (CLO), 16 Oct 2026 IST.
+
+## T-479 follow-up: respondent numbering and Supreme Court mandamus title (Ajay, 16 Oct 2026)
+
+| Point | Ruling |
+|---|---|
+| (a) Advocate-typed numbering | OK. Strip only a leading "n." or "n)" at the start of a respondent line before our numbering. Never change the rest of the line. |
+| (b) Mandamus title, court = Supreme Court | A High Court / Article 226 title on a Supreme Court petition is wrong. Use the title below. If it is not built in v1, hide the Supreme Court option in mandamus. Never print the High Court title for it. |
+
+Signed Supreme Court title (one line each):
+
+```
+IN THE SUPREME COURT OF INDIA
+CIVIL ORIGINAL JURISDICTION
+WRIT PETITION (CIVIL) NO. ______ OF ______
+(Under Article 32 of the Constitution of India)
+```
+
+T-473 scope: ref f1a18422 covers the labels in forms, in the intake brief and in the intake extraction prompt, including the three court-type labels.
+
+## T-472 follow-up: copy time, missing copy dates, article wording, numbering (Ajay, 16 Oct 2026)
+
+| Point | Ruling |
+|---|---|
+| (1) End of copy time | Accepted. Under s.12(2), the time excluded runs from the date the certified copy was applied for to the date it was **ready for delivery**. Time taken after it was ready is not excluded. Do **not** fall back to the date it was received: that can overstate the exclusion and show a late petition as in time. If the ready date is not known, the input is unknown: print the rule 4 blank. |
+| (2) No copy dates | Ask whether a certified copy was applied for. Answer "No": compute with nothing excluded. Not answered, or "Yes" with any copy date missing: print the rule 4 blank, and print no day count. |
+| (3) Article wording | Use `Article 131 of the Schedule to the Limitation Act, 1963` (revision: 90 days from the order). The signed checklist line is below. |
+| (4) Numbering | Paragraphs are numbered consecutively in the printed draft. A paragraph that is dropped or swapped must not leave a gap or a repeated number. |
+
+Signed checklist line (only when the delay paragraph is printed):
+
+`Application under Section 5 of the Limitation Act, 1963 for condonation of delay, supported by an affidavit stating the cause of the delay.`
+
+## T-488 / T-479: name of the State as a party (Ajay, 16 Oct 2026)
+
+| Where the case is | Party name printed |
+|---|---|
+| A State | `State of {state}` |
+| Delhi (NCT) | `State (Govt. of NCT of Delhi)`. Never print "State of Delhi". |
+| Any other Union Territory | verify: send it to me; do not print a guess. Use `[To be confirmed: name of the State or Union Territory as party]`. |
+
+This applies to every criminal pack and to the form path. The T-488 cheque-date fix still waits on Vishal's Explore. I'll sign that text once I've seen it.
+
+## T-488: date verifier and the State in a s.138 notice (Ajay, 16 Oct 2026)
+
+| Point | Ruling |
+|---|---|
+| 1. Date verifier | Approved. A date is judged only against the field that its own label names. Labels for s.138: "cheque dated" means the cheque date. "deposited / presented / jama" means the presentation date. "returned / dishonoured / memo" means the return memo date. "notice dated / sent" means the notice date. "received" means the receipt of the notice. Three cases: (a) a labelled date that is wrong still fails; (b) a date with no clear label that equals one of the ledger dates passes; (c) a date with no clear label that equals no ledger date still fails and is blanked. Never write a guessed date. |
+| 2. State in a s.138 notice | Agreed. The State only picks the jurisdiction. A demand notice does not print it and it is not a party, so it is not a required fact in the notice. There is no text change. In the complaint, the court and the place follow the cause-title rules, ca12ec2e. |
+
+## T-479: Supreme Court mandamus, matter lines and addressee (Ajay, 16 Oct 2026)
+
+1. The first matter line takes the place of the Article 226 line, in the same form. The "AND IN THE MATTER OF" lines that follow it stay as they are:
+
+   `IN THE MATTER OF: Article 32 of the Constitution of India;`
+
+2. The addressing clause for a Supreme Court petition, which replaces the generic clause:
+
+   `TO, THE HON'BLE THE CHIEF JUSTICE OF INDIA AND HIS COMPANION JUSTICES OF THE SUPREME COURT OF INDIA`
+
+   The words follow current Supreme Court practice. If that practice changes, the clause comes back to me.
+
+## T-477: reference text and conditional Acts (Ajay, 16 Oct 2026)
+
+| Point | Ruling |
+|---|---|
+| (1) Form of a reference | Print the pack text verbatim, for example "Order XIX Rule 3", "Article 226", "S.151". Do not convert it to my abbreviations: converting text that is already signed risks errors. Every reference must carry its Act name ("Act name (S.151)"). A bare number such as "138" never prints alone. |
+| (2) Conditional Acts | OK: `Act name (S.151) [only when: …]` in text the model sees. The condition is written in plain words. The bracket must never appear in the draft. Add a test that the draft contains no "[only when:". |
+
+## T-479: certiorari cause title and respondents (Ajay, 16 Oct 2026)
+
+"MOST RESPECTFULLY SHOWETH:" after the Supreme Court addressee: OK.
+
+| Point | Ruling |
+|---|---|
+| (1) Article 227 | The matter line is `IN THE MATTER OF: Article 227 of the Constitution of India;`. High Courts name this jurisdiction and the case type differently, so the jurisdiction line and the case-number line are blanks: `([To be confirmed: jurisdiction as styled in this High Court for a petition under Article 227])` and `[To be confirmed: case type and number as styled in this High Court]`. Never print the Article 226 or "WRIT JURISDICTION" lines for an Article 227 choice. |
+| (2) Article 32 | Reuse the Supreme Court heading, matter line and addressee signed for mandamus, with `IN THE MATTER OF: Article 32 of the Constitution of India;`. The Article 227 choice, a judicial order of a civil court, is High Court only and never takes the Supreme Court heading. |
+| (3) Statute and grievance | Use these blanks: `[To be confirmed: statute or rule under which the impugned order was passed]` and `[To be confirmed: grievance in brief]`. |
+| (4) State as respondent | For a judicial order of a civil court (Article 227), the State is not a party by default. Use `[To be confirmed: respondents, with names and addresses]`. For an administrative order, use `State of {state} through [To be confirmed: Secretary of the concerned department], Government of {state}`. Never use "Home Department" in a civil certiorari. |
+| (5) No court chosen | "Through Public Prosecutor" is wrong in a civil writ. Use `State of [To be confirmed: State] through [To be confirmed: Secretary of the concerned department]`. |
+
+## T-478(b): verifier scope (Ajay, 16 Oct 2026)
+
+| Point | Ruling |
+|---|---|
+| (1) SECTION_RE ledger guard | Not exempt. Ruling 1 only stops the fact blanker from treating a reference number (after Section, Article, Order, Rule and the like) as an amount or a date. The section allow-list stays: a section that is not in the pack's signed text, the signed tables or the ledger is blanked. The `{{MISSING: section}}` marker must be turned into `[To be confirmed: section]` before the user sees the draft. |
+| (2) Tightening | Yes. Cap the first number at 4 digits. A letter suffix is allowed, for example 21A or 243ZH. Short prefixes (s., S., r., O., Art.) match only in their exact case; full words (Section, Article, Order, Rule, Schedule) match in any case. A bare "order 123456" is not a reference. |
+
+## T-479 certiorari edges, and T-477 bare numbers (Ajay, 16 Oct 2026)
+
+| Point | Ruling |
+|---|---|
+| (a) "226 and 227" | v1. Keep the Article 226 title. Its matter line becomes `IN THE MATTER OF: Articles 226 and 227 of the Constitution of India;`. |
+| (b) Article 227 with a Supreme Court court | v1, in the renderer: never print "AT New Delhi" or a Supreme Court heading. Print `IN THE HIGH COURT OF [To be confirmed: High Court]` with the Article 227 lines. Blocking the choice on the form is a follow-up web ticket. |
+| (c) Respondents under Article 227 | Not OK. Respondents the advocate typed are printed, numbered 1., 2. The blank appears only when none are given. |
+| (d) Delhi or another UT | Yes, ca12ec2e applies. For a civil writ in Delhi: `Government of NCT of Delhi through [To be confirmed: Secretary of the concerned department]`. Never "State of Delhi". Other UTs: `[To be confirmed: name of the State or Union Territory as party]`. |
+| (e) state_of_filing not fed into {state} | v1 if a wrong State can print. Park it (T-488) if the only result is the blank. |
+| (f) "Home Department" in the writ_petition_civil prompt | v1. The model sees it, so replace it with the signed department blank line (6a047469, point 4). |
+| T-477 bare number in an Act's brackets | A bare number is a section. It prints as `(S.8)`, not `(8)`. Adding "S." is part of the signed format, not a conversion. Nested brackets that are pack text verbatim are OK. |
+
+## T-477: wording of the conditions (Ajay, 16 Oct 2026)
+
+- Merging `relatedActs` with the other list is OK. The brief path and the promoted path must cite the same Acts.
+- `dv_dowry`: `[only when: the offence arises from domestic violence or a dowry demand]`.
+- A raw condition key (such as `dv_dowry`) never reaches the model. Every applicableWhen key needs plain words signed by me. Send me the list of all 11 keys with proposed wording before the byte check.
+
+## T-483: ages in the period check (Ajay, 16 Oct 2026)
+
+Approved, with one condition. "N years" directly after "aged", "age of" or "aged about", or directly before "old" or "of age", is an age and not a period. An age is still a fact: check it against the ages in the brief, which come from the age field or from the description. If the age is not in the brief, the panel flags "The draft states an age that is not in your brief". Real periods, such as "custody for 3 years" or "within 15 days", are still checked as periods.
+
+## Byte check T-478(b), fix/t-478b-verifier-article-numbers @ e5d21df3: approved (Ajay, 16 Oct 2026)
+
+- Matches 1a3cc988. The first number is capped at 4 digits and may take a letter. "S."/"s.", "O." and "r." match only in their exact case. Full words match in any case.
+- The SECTION_RE allow-list still runs before the reference claim (fact-verifier.ts :636), so an unsigned section is still blanked.
+- Accepted deviation: "Art" sits with the full words, so it matches in any case. Low risk.
+- Amount guard: OK. "ofRs.500" is still blanked as a number, which is the safe side.
+
+## T-479: "226 and 227" with a Supreme Court court (Ajay, 16 Oct 2026)
+
+OK, same as (b): print `IN THE HIGH COURT OF [To be confirmed: High Court]` with the "Articles 226 and 227" matter line. Never print the Article 32 title for this choice. Point (e) and the no-State line in the ledger prompt are parked under T-488, OK.
+
+## Byte check T-483, feature/t-483-checks-panel @ 17bfe932: approved (Ajay, 16 Oct 2026)
+
+- Warning text as I signed it, with "{words}. Check it before use." added to match the period warning. OK.
+- Matches bd33120b. An age phrase is checked against the age fields and the ages stated in the brief or the description. Real periods are still checked.
+- Accepted: ages are also read from the pack text. This lets a statutory age pass, for example "18 years of age". The low risk is that an applicant's age equal to a pack figure is not flagged.
+
+## Byte check T-477, fix/t-477-act-sections @ 6b712d95: approved with marker wording (Ajay, 16 Oct 2026)
+
+Reviewed: `handoff/legal/T-477-related-acts-for-ajay.md` on that branch (92 packs, 87 changed).
+
+- The format `<act> (<ref>; <ref>)` is verbatim and matches 54ffcb22 and f9415fe8. The "S." prefix appears only on section numbers; no Order, Rule or Article got it (CPC, Limitation Act, Constitution and Stamp Act refs checked). OK.
+- Nested brackets and commas inside one ref are pack text, so they are OK as printed. "As applicable" and "Various" are also pack text and OK.
+- Marker 1 (bail_regular) matches b101b4eb. Markers 2 to 12 are the pack's own notes, not plain words. Replace each with the signed wording below:
+
+| # | Pack | Signed marker |
+|---|---|---|
+| 2 | distribution_agreement, FEMA | `[only when: the distributor is outside India]` |
+| 3 | distribution_agreement, Customs | `[only when: the goods are imported]` |
+| 4 | employment_agreement, Standing Orders | `[only when: the employer is an industrial establishment covered by the Act]` |
+| 5 | employment_agreement, Industrial Disputes | `[only when: the employee is a workman]` |
+| 6 | franchise_agreement, FEMA | `[only when: the franchisor or the franchisee is outside India]` |
+| 7 | franchise_agreement, Food Safety | `[only when: the franchise sells food or beverages]` |
+| 8 | loan_agreement, SARFAESI | `[only when: the lender is a bank or an NBFC]` |
+| 9 | loan_agreement, Money-Lenders | `[only when: the lender carries on a money-lending business]` |
+| 10 | loan_agreement, FEMA / ECB | `[only when: the lender is outside India]` |
+| 11 | shareholders_agreement, FEMA / NDI | `[only when: an investor is outside India]` |
+| 12 | shareholders_agreement, SEBI ICDR | `[only when: the company plans a public issue]` |
+
+Follow-up (not a T-477 blocker): employment_agreement still cites the Industrial Employment (Standing Orders) Act 1946 and the Industrial Disputes Act 1947. Mark both "verify" against the Labour Codes, the Industrial Relations Code, 2020, and their commencement. They come to me as a separate ticket.
+
+## T-479: bench States and respondent lines (Ajay, 16 Oct 2026)
+
+- Benches whose seat is in a different State or UT from the parent High Court must keep the State blank. Examples: Panaji (Goa, Bombay High Court), Port Blair (A&N Islands, Calcutta High Court), and the Punjab and Haryana High Court at Chandigarh. Never fill the State from the parent court. The court name is the court's own full name, for example "HIGH COURT OF PUNJAB AND HARYANA AT CHANDIGARH". Never "HIGH COURT OF Chandigarh".
+
+| Point | Ruling |
+|---|---|
+| (1) Case number with 226 and 227 and a Supreme Court court | OK. Reuse `[To be confirmed: case type and number as styled in this High Court]`. |
+| (2) Mandamus respondent | Number it. A single respondent prints as `1. {respondent_authority}`. Several are numbered 1., 2., and so on. No State line is added unless the advocate names the State. |
+| (3) Empty respondent_authority | Use this signed blank, not one taken from the field's label: `[To be confirmed: authority against whom the writ is sought, with designation and address]`. It keeps its number, for example "2." after a State line. |
+
+## T-469: labelled date reads (Ajay, 16 Oct 2026)
+
+Approved to proceed, with these conditions:
+
+| # | Condition |
+|---|---|
+| 1 | An unlabelled date (for example "on 4th June, 2026" or "Dated: 12.03.2026") fills a field only when exactly one date field is being asked. Otherwise it stays blank. |
+| 2 | "w.e.f." and "wef" are not fillers. An effective date is not the date of an event, so it stays blank unless a field word names the field. |
+| 3 | "order dated …" fills an order date only when the pack has exactly one order-date field (impugned, original or bail). Otherwise it stays blank. It never fills judgment_date. |
+| 4 | Keep the s.138 cues the same as 971d2685. Add "presented" and "deposited" for the presentation date and "received" for receipt of the notice, so that "cheque" alone fills only cheque_date. |
+| 5 | A two-digit year ("13/9/26") is read as 20xx. If the result is a future date, the field stays blank. |
+| 6 | Everything on the "stay blank" list is OK as listed. Hindi fillers are excluded for now; a follow-up may add them. |
+
+Separate bug: "June 2026" with no day is read as 20 June 2026. That is an invented fact. It is a v1 ticket of its own, and the field must stay blank. Never supply a day.
+
+## T-496: a month and year with no day (Ajay, 16 Oct 2026)
+
+Never supply a day.
+
+| Case | Rule |
+|---|---|
+| A date used in a calculation: limitation, s.138 timelines, default bail custody days, notice periods | A month and year alone counts as an unknown date. Ask for the day at intake. If no day is given, print `[To be confirmed: exact date of {field}]` and compute nothing (T-472, rule 4). |
+| A date only told as part of the facts (incident, marriage, events) | Print it as written, for example `in June 2026`. Never print `on 20 June 2026` or any other day. |
+
+Whether it is a v1 blocker is for Arjun to decide. My view: a draft that prints a day the advocate never gave is an invented fact, the same class as T-472. Treat it as a v1 blocker wherever a v1 pack can reach it.
+
+## T-469 round 2 (Ajay, 16 Oct 2026)
+
+| Point | Ruling |
+|---|---|
+| 1. "received" | "received" alone stays unmapped and the field stays blank. It fills memo_received_date only when "memo" (return memo, dishonour memo) stands with it, as in "return memo received on …". Follow-up for Priya: s.138 needs a date of receipt of the notice, because the 15 days and the cause of action run from it. Add a notice_received_date field. |
+| 2. Future dates | Agreed. The future-means-blank rule applies only to dates of past events: FIR, arrest, remand, cheque, presentation, dishonour, memo, notice, order, judgment, incident, marriage. It applies whatever the number of digits in the year, so an FIR "dated" in the future stays blank even with a four-digit year. Dates meant to be in the future are exempt: next hearing, lease end, possession. |
+
+## T-469 round 3: notice_sent_date (Ajay, 16 Oct 2026)
+
+OK. notice_sent_date is exempt from the future-blank rule in the demand-notice pack, because the notice is drafted before it is sent. In the s.138 complaint pack (T-476, v1.1) it is a past-event date. The notice must already have been sent, so a future date there stays blank. Both lists are OK as Vishal listed them.
+
+## Byte check T-469, feature/t-469-date-label @ ab99558c: approved (Ajay, 16 Oct 2026)
+
+- date.ts lists match 604af4bd, b37ed330 and 1e45a7c8. "w.e.f." and "wef" are not fillers. "order" fills only when the pack has a single order-date field. memo_received_date needs both "memo" and "received". The past-event list is as ruled, and notice_sent_date is exempt.
+- These cases stay blank, which is the safe side: "notice sent on …" ("sent" is not a field word), "return memo dated …" with no "received", and a bare "presentation". OK for v1. Widening them is a follow-up only if the golden runs show misses.
+- Merge after T-496 (never supply a day), as planned.
+
+## Byte check T-479, feature/t-479-cause-titles @ df0938ba: approved (Ajay, 16 Oct 2026)
+
+- All 23 signed strings are present byte for byte in the five packs and in template-engine.service.ts. They come from 0e5f64b7, 2d578206, 6a047469, f9415fe8, 00568779, ca12ec2e and 7c279a77. None of "State of Delhi", "HIGH COURT OF Chandigarh", or "Home Department" / "Through Public Prosecutor" in a civil writ appears in the new code paths.
+- The existing default `State of _____ / Through Public Prosecutor` (template-engine :2063) stays for criminal packs only. That is OK. A follow-up may move its "_____" to the signed State blank.
+- Separate, existing issue (not T-479): curative_petition.json :171 names a judgment ("… v. State of Delhi"). Check under T-441 whether that key is model-visible. If it is, remove the judgment name.
+
+## T-496 round 1 (Ajay, 16 Oct 2026)
+
+| Point | Ruling |
+|---|---|
+| 1. Blank wording | Keep today's blanks for v1: "[To be confirmed: date of the cheque]" and "[To be confirmed: date on the cheque]". `[To be confirmed: exact date of {field}]` in 8f0d980a describes the pattern; it does not require new strings. Settling on one of the two cheque forms is a v1.1 tidy-up. |
+| 2. Default-bail timeline | v1. A month and year turned into the 1st of the month is an invented day. It can also show default bail as available, or not available, wrongly under Section 187(3) BNSS. A partial arrest or remand date must give no date and no computation. The timeline then shows `[To be confirmed: exact date of arrest]`, or the same for the remand date. |
+| 3. Calculations | OK. Mahak's T-472 limitation computation must use the same date reader, so a partial date there also gives a blank. |
+
+## T-499 / T-500: bail draft wording after Anushka's re-run (Ajay, 16 Oct 2026)
+
+**T-499.** No change to acbec79f. Every `{{MISSING: …}}` becomes `[To be confirmed: …]` before the user sees the draft. That covers the body, the prayer, the title and the verification. Add a test that no "{{MISSING" reaches any part of the output.
+
+**T-500, grounds.** Each ground the advocate gives becomes its own ground, in the advocate's order. None is added, merged or dropped. Each is written in the third person from the advocate's own words. Lead-in, then one line per ground:
+
+`That the applicant seeks bail on the following grounds, among others, each without prejudice to the other:`
+
+`(a) That {ground 1}.`  `(b) That {ground 2}.` and so on.
+
+A ground about a dependant is argued in this list as well as being stated as a fact.
+
+**T-500, antecedents.**
+
+- The advocate says there are none, or that the applicant was never accused: `That the applicant has no criminal antecedents and has not been accused in any other case.`
+- The advocate lists cases: `That the applicant's criminal antecedents are as follows: {cases as given}.`
+- Not given: `That the applicant [To be confirmed: criminal antecedents of the applicant, if any].`
+
+**T-500, dependants** (only when given; otherwise print no sentence):
+
+`That the applicant's {relation}, aged {age} years, is dependent on the applicant.`
+
+If no age is given, drop ", aged {age} years,". One sentence per dependant. Never repeat the verb.
+
+**T-500, police station.** Strip "Police Station", "P.S.", "PS" and "Thana" from the value, then print `Police Station {name}`, for example "Police Station Kadamkuan". If a district is given, add `, District {district}`. Never print "Police Station … Police Station".
+
+## T-482: maintenance forum and match wording (Ajay, 16 Oct 2026)
+
+**(1) Family Court districts.** Verified for v1: Patna (Bihar) and Ranchi (Jharkhand) only, the seats already in our list. Every other district in Bihar and Jharkhand is **verify**. I will not list a Family Court I have not confirmed from the notification constituting it under Section 3 of the Family Courts Act, 1984, or from the official district court website. Until it is verified, a district has no Family Court entry.
+
+**(2) JMFC.** Where no Family Court has jurisdiction, a maintenance application under Section 144 BNSS (old s.125 CrPC) lies before a Judicial Magistrate of the first class. Offer this court in every Bihar and Jharkhand district that has no verified Family Court:
+
+`Court of the Judicial Magistrate First Class, {district}`
+
+Where a Family Court is verified (Patna, Ranchi), offer only the Family Court, because the Family Court has exclusive jurisdiction there (Section 7 and Section 8, Family Courts Act). Sub-divisional court seats are **verify**. Use the district name only.
+
+**(3) maintenance_bnss_144, description and matching.**
+
+Description: `Application for maintenance under Section 144 of the Bharatiya Nagarik Suraksha Sanhita, 2023 (old Section 125 CrPC) by a wife, child or parent unable to maintain themselves.`
+
+Match terms: maintenance, monthly maintenance, interim maintenance, Section 144 BNSS, Section 125 CrPC, bharan-poshan, bharan poshan, guzara bhatta, guzara, kharcha, kharcha-pani, wife, patni, child, children, bachcha, bachche, parents, mata-pita, maa-baap, भरण-पोषण, गुजारा भत्ता, पत्नी, बच्चे, माता-पिता.
+
+These terms are not enough on their own to pick this pack when divorce, DV Act or HAMA words are also present. In that case, offer this pack together with those packs and let the advocate choose.
+
+## Byte check T-496, fix/t-496-no-invented-day @ 6888082d: approved (Ajay, 16 Oct 2026)
+
+- NAMED_MDY no longer lets the day run into the year, so "June 2026" reads as no date. A missing year gives no date. A two-digit year later than the reference year gives no date. Nothing is invented. Matches 8f0d980a and c585cf80.
+- Timeline: a partial arrest date returns the existing error, and no s.187(3) date is computed. OK for v1, with the date-picker condition already recorded.
+- No printed text changed. It ships before T-469 (78a39810).
+
+## T-489: mandamus statute and grievance fields (Ajay, 16 Oct 2026)
+
+**Fields**
+
+| Key | Label | Help text | Placeholder | Required |
+|---|---|---|---|---|
+| statute_invoked | `Law or rule that places the duty on the authority` | `The Act, rule, scheme or notification under which the authority must act, with the section or rule if known.` | `e.g. Section 12 of the … Act / Rule 5 of the … Rules` | Optional. If it is empty, the T-479 blank prints. |
+| grievance_summary | `What the authority has failed to do` | `One or two lines: the act the authority was bound to do and has not done.` | `e.g. failure to decide the petitioner's application dated … for …` | Optional. If it is empty, the T-479 blank prints. |
+
+**Cause title.** With a value, the lines print as `AND IN THE MATTER OF: {statute_invoked};` and `AND IN THE MATTER OF: {grievance_summary};`. With no value, they print the signed blanks from 2d578206 and 6a047469, unchanged.
+
+**Body (AI-written), one instruction per paragraph, in this order.** Each paragraph uses only facts from the brief. A missing fact is printed as its `[To be confirmed: …]` blank. Do not name any judgment (T-441).
+
+1. Locus standi: `State who the petitioner is and how the authority's failure affects the petitioner directly.`
+2. Legal right: `State the petitioner's legal right to have the act done, as it arises from {statute_invoked}.`
+3. Legal duty: `State that the respondent is a public authority under a legal duty to do the act, and the source of that duty in {statute_invoked}.`
+4. Demand and refusal: `State the date and the manner in which the petitioner asked the respondent to act, and that the respondent has refused or failed to act. If no demand is given, write: That the petitioner made a representation to the respondent on [To be confirmed: date and mode of the demand made to the respondent].`
+5. Inaction: `State how long the act has been pending, using only dates from the brief.`
+6. No other remedy: `State that the petitioner has no other equally efficacious remedy. If the brief names one that was used, say what became of it.`
+
+Prayer (existing): mandamus directing the respondent to do the act named in {grievance_summary} within a time the Court may fix.
+
+**T-489 addendum.** Use (a): remove `statutory_duty` and keep `statute_invoked` with the signed label from 8e85ec44 (optional). Add a read-time alias from statutory_duty to statute_invoked, so old saved answers still fill it. Keep `refusal_or_inaction`. It feeds body paragraphs 4 and 5. `grievance_summary` stays as the one-line cause-title text.
+
+## T-482 byte-check points (Ajay, 16 Oct 2026)
+
+| Point | Ruling |
+|---|---|
+| (1) JMFC records | OK. There are 19 records, marked for maintenance_bnss_144 only. The heading `IN THE COURT OF JUDICIAL MAGISTRATE FIRST CLASS, <CITY>` is signed. "Criminal Case No." is not signed for maintenance, because High Courts and districts style it differently. Use `[To be confirmed: case type and number as styled in this court]`. |
+| (2) Seats that are headquarters towns | Use the district-court style `{District} at {Seat}`. Labels: "Court of the Judicial Magistrate First Class, Saran at Chhapra", "…, Vaishali at Hajipur", "…, Palamu at Daltonganj", "…, West Singhbhum at Chaibasa", "…, East Singhbhum at Jamshedpur". Headings are the same in capitals, for example "…, SARAN AT CHHAPRA". Daltonganj is officially Medininagar, so **verify** which name the Palamu civil court uses before v1.1. "Daltonganj" is OK for v1. |
+| (3) Other States | OK. They fall back to the full court list, with no regression. v1 adds no new Family Court or JMFC records outside Bihar and Jharkhand. |
+| (4) 140-character cut | Not OK as is. T-475 forbids cutting signed text. Replace the description with this shorter signed one, 121 characters, which fits without a cut: `Maintenance application under Section 144 BNSS (old s.125 CrPC) by a wife, child or parent unable to maintain themselves.` The 9ad6a8f1 description is withdrawn. The 140 limit stays as it is for other packs. |

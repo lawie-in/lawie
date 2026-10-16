@@ -72,6 +72,12 @@ describe('criterion 1: the two Drafter prompts are part 2, A and A2, character f
   // holds it on the T-404 sign-off (handoff/legal/T-404-cause-title-fields-signed.md).
   const NOT_KNOWN_LINE =
     'A date marked as not known is unknown: copy its blank exactly as given, never state or infer the date, and do not say whether any period, deadline or limitation that depends on it is met or missed.';
+  // T-471 (Ajay, 722c548a, 16 Oct 2026): his signed sentence closes PACK rule 4 and REPAIR
+  // rule 3. Typed from the signed commit, with U+2026.
+  const T471_RULE_4_LINE =
+    'Never write that a fact is missing, not given or not stated in the brief, the facts or the instructions; print only its blank in the form [To be confirmed: \u2026].';
+  const PACK_R4_END = 'Never fill a blank with a guess.\n5. CLAUSES.';
+  const REPAIR_R3_END = 'appear to give it.\n4. A clause that needs an assurance about the future';
   const PACK_R3_END = 'never say that such a period has or has not run unless the BRIEF says so.';
   const REPAIR_R2_END =
     'where they differ from another part of the BRIEF on any point, the other part wins, and only its version is stated.';
@@ -84,12 +90,16 @@ describe('criterion 1: the two Drafter prompts are part 2, A and A2, character f
     expect(DRAFTER_PACK_SYSTEM_PROMPT).toBe(
       replaceOnce(
         replaceOnce(
-          replaceOnce(signedA, OLD_RULE_7, NEW_RULE_7),
-          PACK_R3_END,
-          `${PACK_R3_END} ${NOT_KNOWN_LINE}`,
+          replaceOnce(
+            replaceOnce(signedA, OLD_RULE_7, NEW_RULE_7),
+            PACK_R3_END,
+            `${PACK_R3_END} ${NOT_KNOWN_LINE}`,
+          ),
+          OLD_B,
+          NEW_B,
         ),
-        OLD_B,
-        NEW_B,
+        PACK_R4_END,
+        `Never fill a blank with a guess. ${T471_RULE_4_LINE}\n5. CLAUSES.`,
       ),
     );
   });
@@ -98,12 +108,16 @@ describe('criterion 1: the two Drafter prompts are part 2, A and A2, character f
     expect(DRAFTER_REPAIR_SYSTEM_PROMPT).toBe(
       replaceOnce(
         replaceOnce(
-          replaceOnce(signedA2, OLD_R5_LAST, NEW_R5_LAST),
-          REPAIR_R2_END,
-          `${REPAIR_R2_END} ${NOT_KNOWN_LINE}`,
+          replaceOnce(
+            replaceOnce(signedA2, OLD_R5_LAST, NEW_R5_LAST),
+            REPAIR_R2_END,
+            `${REPAIR_R2_END} ${NOT_KNOWN_LINE}`,
+          ),
+          OLD_B,
+          NEW_B,
         ),
-        OLD_B,
-        NEW_B,
+        REPAIR_R3_END,
+        `appear to give it. ${T471_RULE_4_LINE}\n4. A clause that needs an assurance about the future`,
       ),
     );
   });

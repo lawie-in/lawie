@@ -288,7 +288,7 @@ describe('rule-pack loader', () => {
       expect(pack.groups).toEqual([]);
       expect(pack.facts.map((f) => [f.key, f.required, f.options])).toEqual([
         ['petitioner_name', true, []],
-        ['ground', true, ['non_payment', 'subletting']],
+        ['ground', true, ['Non payment', 'subletting']],
         ['notes', false, []],
       ]);
     });

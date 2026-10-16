@@ -1,0 +1,42 @@
+# T-477: The promoted-template path drops the act sections
+
+| Field  | Value                                                                 |
+| ------ | --------------------------------------------------------------------- |
+| Status | Merged into develop_staging 9e676caa, 16 Oct (Ajay f9415fe8, b101b4eb, 8766fbf1). Release: promoted templates re-sync on the next seed. Anushka to test on develop. Priya |
+| Owner  | Kunal (he holds template-promoter.ts for T-473), Ajay gates            |
+| Mode   | Full chain (legal content path)                                        |
+
+## Source
+
+Mahak, found while fixing T-475 (16 Oct 2026): template-promoter.ts:903-910 drops act sections on the promoted path (reported, parked).
+
+## What
+
+Explore first: which templates go through the promoted path, what an act section carries (the law the draft cites), and whether a promoted draft is missing citations the other path has. Then decide with Ajay and Arjun whether this is a v1 blocker.
+
+## Acceptance criteria (draft)
+
+- Promoted drafts keep the same act sections as the non-promoted path, or Ajay rules which differences are intended.
+- A test pins it. Ajay's ref if any user-visible law text changes.
+- Same file as T-473: do after T-473 merges, to avoid a conflict.
+
+## Arjun's ruling (16 Oct 2026)
+
+- The promoted path is the template-engine path (ai.service.ts ~1012-1021: document_structure sections go to buildAISystemPrompt(promptConfig)). Every form-driven draft of a pack with ai_generated sections takes it. The brief/ledger path (~1683 on) reads pack.relevantActs with sections and is unaffected. So the loss hits exactly the drafts Anushka runs through the forms.
+- It changes citations: with Act names only, any section number the model prints comes from its own memory, not the pack (for example affidavit_in_support citing Order XIX Rule 3 from recall, or the wrong rule). The verifier does not catch it on that path.
+- v1 blocker, small fix: template-promoter.ts ~903 keeps the sections. Render each entry as "<act>, ss. <n1>, <n2>" (the same string shape the NI Act filters at ai.service.ts 1512/1522 match on, so isNiAct keeps working). Promoter test on affidavit_in_support and one NI Act pack. Golden dry run.
+- Mode: full chain with Ajay seeing the moved goldens, because the citations the model sees change in 87 packs (Priya's call; Arjun said small fix).
+
+## Ajay's format rule (16 Oct 2026)
+
+Not everything is "ss.". Print the pack's own reference exactly: "O. XIX r. 3" for CPC Orders, "Art. 226" for Articles, "s. 12(2)" with sub-sections. Never shorten it to the parent section. Keep the NI Act filter string shape working. Ajay reviews the moved goldens and re-checks Anushka's wrong citations against the next run.
+
+## Rulings during the build (16 Oct 2026)
+
+- Ajay 54ffcb22: print the pack text verbatim (no conversion); every reference carries its Act name, a bare "138" never prints alone. "[only when: ...]" for conditional acts is allowed in model-visible text with the condition in plain words; it must never appear in the draft (test). Byte check to Ajay before merge.
+- Ajay f9415fe8: nested brackets are fine when they are pack text verbatim. A bare number inside an Act's brackets is a section and prints "(S.8)", not "(8)"; adding "S." is the format, not a conversion. Ajay checks the 92-pack before/after dump at the byte check.
+- Arjun: shape is one entry per act, "Act, 1908 (S.151; Order XIX Rule 3)", refs joined by "; ", entries by ", "; add a test that isNiAct still matches the NI Act entry in that shape. This supersedes the "<act>, ss." shape above.
+- Arjun: default_bail's CrPC entry is IN (ai.service.ts:994 only, rendered through the same helper). The unused legal_notice_s138 registry config is OUT (T-492).
+- Arjun: the "[only when: ...]" marker is stripped in sanitiseAIBody only (anchored to the literal shape), with the strip count on the run metadata (counts only, no text); tests with the marker mid-sentence, on its own line and absent.
+- New file apps/drafting/src/services/related-acts.ts is added to .claude/docs/legal-content-paths.md (prompt-text file).
+- Open: the PWDVA entry under relatedActs in bail_regular.json (applicableWhen "dv_dowry"): Ajay gives the plain-words condition or rules the difference intended.

@@ -12,15 +12,11 @@
   "expect": {
     "exact": [
       {
-        "any_of": [
-          "Gupta Electricals"
-        ],
+        "any_of": ["Gupta Electricals"],
         "why": "the drawer firm must be named"
       },
       {
-        "any_of": [
-          "Chandni Chowk"
-        ],
+        "any_of": ["Chandni Chowk"],
         "why": "drawee branch"
       }
     ],
@@ -40,17 +36,19 @@
     ],
     "present": [
       {
-        "any_of": [
-          "85,000",
-          "85000"
-        ],
+        "any_of": ["85,000", "85000"],
         "why": "the amount"
       }
     ],
     "ledger": [
       {
         "key": "respondent_name",
-        "why": "read from the description",
+        "why": "T-471 (Ajay (a), (c)): the drawer as named, the firm, not its proprietor",
+        "display": "Gupta Electricals"
+      },
+      {
+        "key": "drawer_proprietor",
+        "why": "T-471 (Ajay (c)): the proprietor named with the firm goes in his own field",
         "display": "Anil Gupta"
       },
       {

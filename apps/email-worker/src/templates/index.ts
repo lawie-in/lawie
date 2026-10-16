@@ -23,6 +23,7 @@ import type { EmailTemplate } from '@lawie/email-client';
 import { render } from '@react-email/render';
 import type { ReactElement } from 'react';
 
+import { authPasswordResetTemplate } from './auth/passwordReset';
 import { authUnverifiedDeletionNoticeTemplate } from './auth/unverifiedDeletionNotice';
 import { authVerifyEmailTemplate } from './auth/verifyEmail';
 import { authWelcomeTemplate } from './auth/welcome';
@@ -43,6 +44,8 @@ export interface TemplateDef<Data = Record<string, unknown>> {
 const REGISTRY: Partial<Record<EmailTemplate, TemplateDef<any>>> = {
   'auth.welcome': authWelcomeTemplate,
   'auth.verifyEmail': authVerifyEmailTemplate,
+  // T-221: variants 'link' (E1) and 'google' (E2); data from auth's password-reset mint.
+  'auth.passwordReset': authPasswordResetTemplate,
   'auth.unverifiedDeletionNotice': authUnverifiedDeletionNoticeTemplate,
   // T-436 (b/c): Ajay Addendum 5 (invoice); Addendum 7 (4a) and Addendum 9 (credit note).
   'billing.taxInvoice': billingTaxInvoiceTemplate,

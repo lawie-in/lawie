@@ -31,3 +31,11 @@ After v1 is live and a week of drafts has passed with no old-name hits. Arjun pi
 
 - T-382's alias is in scope: `advocate_enrolment` → `advocate_enrollment`, in the shared alias map in `rule-pack.service.ts`, applied in `readFormInputs`. It predates the `// T-451 alias` comment; find it by the map.
 - Date: **14 days after the T-403 release to `main`**, on condition that the last 7 of those days show zero old-name hits in saved drafts (one aggregate over `Document.formInputs` for the old names — counts only, no content in messages). A hit pushes the date by a week; look again.
+
+## Added 16 Oct 2026: T-478 clause-id alias
+
+T-478 (Tanvi) renames the certiorari clause id to jurisdiction_clause and keeps the old id as an alias in rule-pack.service.ts, marked "// T-478 alias, remove in the post-v1 cleanup". Remove it in this cleanup on the same date rule (14 days after T-403 release, last 7 days zero old-name hits).
+
+## Added 16 Oct 2026 (Priya)
+
+T-489's read-time alias `statutory_duty` to `statute_invoked` in mandamus.json (Ajay f68d5592) is also removed in this cleanup, with a comment `// T-489 alias, remove in the post-v1 cleanup`.

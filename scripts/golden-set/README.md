@@ -36,7 +36,11 @@ On a D1 pack the Drafter's reply is the structured answer as JSON text, `{"parag
 
 Fixtures 22–25 are Anushka's run-3 bail drafts (`handoff/quality/2026-10-13-run-3-develop-FAIL.md`), one per D1 pack, with their facts re-made synthetically. Each has a `clean` variant and a `run3` variant, where the model slips her invented averments into an own-words clause. `--stub run3` must FAIL each of them on `rendered` (a `fallback`). The older bail fixtures 02–05, 09–11 and 15–18 have no recorded replies yet; when they are recorded, their Drafter replies must be structured JSON.
 
-**Fixture status:** every fixture was drafted by dev from Anushka's reports and has not yet been reviewed by Anushka. Each file records this in its `review` field. No fixture asserts prayer, verification or other legal wording, so every `ajay` field is `null`.
+**Fixture status:** every fixture was drafted by dev from Anushka's reports and has not yet been reviewed by Anushka. Each file records this in its `review` field. Fixtures 1–25 assert no prayer, verification or other legal wording, so their `ajay` field is `null`. Fixture 26 is the first that does: it carries a reason in `ajay` and an `absent`/`present` check on a prayer, and Ajay (CLO) confirmed it on 16 Oct 2026.
+
+Fixture 26 (T-475, `26-certiorari-civil-court-order-art-227`) is Ajay's check on the certiorari pack: when the impugned order is a civil court's judicial order, the draft must not pray for certiorari under Article 226 (the route is Article 227). Variants: `clean`, `art226` (must FAIL) and `art226_explained`.
+
+Fixture 27 (T-480, `27-t480-anushka-regular-bail-patna`) rebuilds Anushka's run-4 regular bail from her reports, with synthetic facts. It checks that the intake does not re-ask facts she gave, that the address, antecedents, dependants, arrest date and "BNSS and BSA" are read, that Section 483 is in the title and prayer, and that no grounds are left blank. Run it with the fact ledger on: her run-4 faults came from the drafting path without a ledger, which is what `feature.fact_ledger` defaults to on develop. Its `ajay` field asserts legal wording (Section 483), so Ajay (CLO) still has to confirm it. Known failing check: "in custody since" with no custody date (also on 1a), tracked as T-491.
 
 ## Commands
 

@@ -49,6 +49,7 @@ import type { LedgerFact, LedgerUnresolvedFact } from '@lawie/shared';
 import { conditionHolds, factEntriesByKey, factsByKey, resolveAverments } from './averments';
 import type { AvermentCondition, AvermentLists, BannedEntry, ResolvedBan } from './averments';
 import { DRAFTER_FACT_REPAIR_SYSTEM_PROMPT } from './drafter.prompts';
+import { loadRulePack } from './rule-pack.service';
 
 // ── Versions recorded with every fact-diff row ──────────────────────────────
 
@@ -161,6 +162,47 @@ export interface VerifierInput {
   skeleton: readonly string[];
   /** The pack's static text (`packTexts`), the source of the generic allowlist. */
   packText: readonly string[];
+  /** The rule-pack id, for the few section references one pack may state (PACK_SECTION_SCOPE). */
+  packId?: string;
+}
+
+/**
+ * T-471 (Ajay, 15 and 16 Oct 2026): section references a pack's own signed
+ * relevantActs hold, accepted for that pack only. No general whitelist. For
+ * each pack: the act (as `normalizeSectionRef` names it) and the sections
+ * Ajay ruled on; every entry of the pack's relevantActs under one of those
+ * sections (144(1) to 144(5), 145) is read from the pack itself.
+ */
+const PACK_SECTION_SCOPE: Readonly<Record<string, { act: string; sections: readonly string[] }>> = {
+  maintenance_bnss_144: { act: 'BNSS', sections: ['144', '145'] },
+};
+
+const packSectionKeyCache = new Map<string, readonly string[]>();
+
+/** The `act|section` keys PACK_SECTION_SCOPE allows for this pack, from its relevantActs. */
+function packSectionKeys(packId: string | undefined): readonly string[] {
+  if (!packId) return [];
+  const scope = PACK_SECTION_SCOPE[packId];
+  if (!scope) return [];
+  const cached = packSectionKeyCache.get(packId);
+  if (cached) return cached;
+  const keys = new Set<string>();
+  for (const act of loadRulePack(packId)?.relevantActs ?? []) {
+    for (const sec of act.sections) {
+      // "144(1) Proviso" -> "144(1)": the section and its sub-sections only.
+      const m = /^\s*(\d+[A-Z]?)((?:\s*\(\s*[0-9a-z]{1,4}\s*\))*)/i.exec(sec.number);
+      if (!m || !scope.sections.includes(m[1].toUpperCase())) continue;
+      // "Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023": the name without its bracket.
+      const actName = act.act.replace(/\s*\([^)]*\)/g, '');
+      const ref = normalizeSectionRef(`Section ${m[1]}${m[2]} of the ${actName}`);
+      if (!ref.ok || ref.value.act !== scope.act) continue;
+      keys.add(`${scope.act}|${m[1].toUpperCase()}`);
+      keys.add(`${ref.value.act}|${ref.value.section}`);
+    }
+  }
+  const list = [...keys];
+  packSectionKeyCache.set(packId, list);
+  return list;
 }
 
 export interface FactCheckOutcome {
@@ -480,7 +522,8 @@ export const RELATIVE_TIME_PATTERNS: readonly RegExp[] = [
 ];
 
 const AMOUNT_RES: readonly RegExp[] = [
-  /(?:Rs\.?|INR|₹|Rupees)\s*\d[\d,]*(?:\.\d{1,2})?(?:\s*(?:lakhs?|lacs?|crores?|thousand))?(?:\s*\/-)?/giu,
+  // T-478: the lookbehind keeps "rs"/"inr" inside a word ("Orders 100") from being an amount.
+  /(?<![\p{L}\p{N}])(?:Rs\.?|INR|₹|Rupees)\s*\d[\d,]*(?:\.\d{1,2})?(?:\s*(?:lakhs?|lacs?|crores?|thousand))?(?:\s*\/-)?/giu,
   /\b\d[\d,]*(?:\.\d+)?\s*(?:lakhs?|lacs?|crores?)\b/giu,
 ];
 
@@ -517,6 +560,36 @@ const COURT_RE = new RegExp(
 
 const PERIOD_RE = /\b(\d{1,3})\s*(days?|weeks?|months?|years?)\b/giu;
 const BARE_NUMBER_RE = /\b\d{3,}\b/g;
+
+/**
+ * T-478 (Ajay's ruling 1, T-245 file 7d42b105): a number directly after
+ * Article / Art. / Section / S. / s. / Order / O. / Rule / r. / Schedule / Para
+ * is a legal reference, never a case number, so it is never blanked. The whole
+ * match (prefix + number) is claimed with no entity before the bare-number
+ * pass, so neither the number nor the prefix word ("Art", "Articles" as
+ * proper nouns) is blanked. For every prefix, the lookbehind blocks a match
+ * that starts after a letter, digit or dot, i.e. inside a word ("Mr. 1234",
+ * "Rs. 500" stay as they are). A number must follow the prefix directly, so
+ * "Order No. 123456" is still a case/order number.
+ * Ajay's policy edges (ref 1a3cc988): the first number is capped at 4 digits
+ * plus an optional letter (21A, 323A), so "Rule 123456" is not protected; a
+ * listed further number ("Articles 226 and 227") is capped at 3 digits, so a
+ * real case number later in the sentence is not swallowed. The full words are
+ * case-insensitive (LEGAL_REF_WORD_RE); the short prefixes are case-exact
+ * (LEGAL_REF_SHORT_RE: "S." / "s.", "O." only, "r." only), and need their dot.
+ * JS has no inline (?i:...), hence two regexes with one number grammar.
+ */
+const LEGAL_REF_FIRST = String.raw`\d{1,4}[A-Za-z]?(?!\d)(?:\s*\(\s*[0-9a-zA-Z]{1,4}\s*\))*`;
+const LEGAL_REF_NUM = String.raw`\d{1,3}[A-Za-z]?(?!\d)(?:\s*\(\s*[0-9a-zA-Z]{1,4}\s*\))*`;
+const LEGAL_REF_NUMS = String.raw`(${LEGAL_REF_FIRST}(?:\s*(?:,|&|\/|\band\b|\bor\b|\bto\b)\s*${LEGAL_REF_NUM})*)`;
+const LEGAL_REF_WORD_RE = new RegExp(
+  String.raw`(?<![\p{L}\p{N}.])(?:Articles?|Art|Sections?|Orders?|Rules?|Schedules?|Paras?)\b\.?\s*${LEGAL_REF_NUMS}`,
+  'giu',
+);
+const LEGAL_REF_SHORT_RE = new RegExp(
+  String.raw`(?<![\p{L}\p{N}.])(?:[Ss]|O|r)\.\s*${LEGAL_REF_NUMS}`,
+  'gu',
+);
 
 /** Every entity in one paragraph, longest kind first, with no overlap. */
 function extractEntities(text: string): Entity[] {
@@ -588,6 +661,12 @@ function extractEntities(text: string): Entity[] {
   }
   for (const m of text.matchAll(PERIOD_RE)) {
     add({ type: 'date', text: m[0], start: m.index!, end: m.index! + m[0].length, period: true });
+  }
+  // T-478: a legal reference (prefix word + number) is claimed with no entity,
+  // so neither the number (bare-number pass) nor the prefix word ("Art",
+  // "Articles": proper-noun pass) is blanked.
+  for (const re of [LEGAL_REF_WORD_RE, LEGAL_REF_SHORT_RE]) {
+    for (const m of text.matchAll(re)) claim(m.index!, m.index! + m[0].length);
   }
   for (const m of text.matchAll(BARE_NUMBER_RE)) {
     add({ type: 'case_no', text: m[0], start: m.index!, end: m.index! + m[0].length });
@@ -672,6 +751,8 @@ interface Sources {
   courtCorpus: Corpus;
   sectionKeys: Set<string>;
   sectionNumbers: Set<string>;
+  /** T-471: the section keys this pack alone may state (PACK_SECTION_SCOPE); empty for every other pack. */
+  packSectionKeys: ReadonlySet<string>;
   /** Cue word stems of each date, amount and station key (facts and unresolved). */
   cues: Array<{ key: string; type: string; stems: Set<string>; unresolved: boolean }>;
   personNames: Array<{ fact: LedgerFact; words: string[] }>;
@@ -754,6 +835,8 @@ function buildSources(input: VerifierInput): Sources {
       if (ref.ok) sectionKeys.add(`${ref.value.act}|${ref.value.section}`);
     }
   }
+  // T-471: the sections this pack's signed text holds, for this pack only.
+  for (const k of packSectionKeys(input.packId)) sectionKeys.add(k);
   // Sections the skeleton states for this draft (the provision follows the court).
   for (const m of skeletonText.matchAll(SECTION_RE)) {
     const s = sectionKeyOf(m[0]);
@@ -795,6 +878,7 @@ function buildSources(input: VerifierInput): Sources {
     ]),
     sectionKeys,
     sectionNumbers,
+    packSectionKeys: new Set(packSectionKeys(input.packId)),
     cues,
     personNames: facts
       .filter((f) => f.type === 'person_name' || f.type === 'place_name')
@@ -950,12 +1034,15 @@ function judgeEntity(src: Sources, text: string, en: Entity): Judged | null {
         (m) => m[0].replace(/\s+/g, '').toUpperCase(),
       );
       if (nums.length > 0 && nums.every((n) => src.sectionNumbers.has(n))) return null;
+      if (packSectionNear(src, text, en)) return null;
       return unsupported(en);
     }
     case 'case_no': {
       const k = normalizeCaseNumber(en.text);
       const key = k.ok ? fold(k.value) : fold(en.text);
       if (src.ledger.hasFolded(key) || src.skeleton.hasFolded(key)) return null;
+      // T-471: "144(2) of the BNSS" in a scoped pack is a section, not a case number.
+      if (packSectionNear(src, text, en)) return null;
       // A year of an act ("Sanhita, 2023") the pack's static text states.
       if (/^(?:18|19|20)\d{2}$/.test(en.text) && src.allow.has(en.text)) return null;
       return unsupported(en);
@@ -981,6 +1068,59 @@ function judgeEntity(src: Sources, text: string, en: Entity): Judged | null {
     default:
       return null;
   }
+}
+
+/**
+ * T-471: for a pack in PACK_SECTION_SCOPE only, a reference the section
+ * or case-number pattern caught in part ("144" of "144(2) of the BNSS",
+ * "s.145" of "BNSS s.145") is read with up to six words after it, or before it, and
+ * passes only when it then names one of that pack's own section keys.
+ */
+function packSectionNear(src: Sources, text: string, en: Entity): boolean {
+  if (src.packSectionKeys.size === 0) return false;
+  const held = (t: string): boolean => {
+    // "Section 144(1) proviso of the BNSS": the pack lists the proviso under 144(1).
+    const n = normalizeSectionRef(t.replace(/\s+proviso\b/gi, '').trim());
+    return n.ok && src.packSectionKeys.has(`${n.value.act}|${n.value.section}`);
+  };
+  // "Sections 144 and 145 of the BNSS": each number, read with the act after the last one.
+  const span =
+    `${en.text}${text.slice(en.end, en.end + 80).split(/[;:\n]|\.(?=\s|$)/)[0] ?? ''}`.replace(
+      /,?\s*(?:18|19|20)\d{2}\b/g,
+      '',
+    );
+  const numRe = /\d+[A-Z]?(?:\s*\(\s*[0-9a-z]{1,4}\s*\))*/gi;
+  const nums = [...span.matchAll(numRe)];
+  if (nums.length > 1) {
+    const last = nums[nums.length - 1];
+    const rest = span
+      .slice((last.index ?? 0) + last[0].length)
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 7);
+    const actOk = (n: string): boolean => {
+      for (let k = rest.length; k >= 1; k--) {
+        if (held(`Section ${n} ${rest.slice(0, k).join(' ')}`)) return true;
+      }
+      return false;
+    };
+    if (nums.every((m) => actOk(m[0]))) return true;
+  }
+  const after = text.slice(en.start, en.end + 80).split(/[;:\n]|\.(?=\s|$)/)[0] ?? '';
+  const afterWords = after.split(/\s+/).slice(0, 7);
+  for (let k = afterWords.length; k >= 1; k--) {
+    if (held(afterWords.slice(0, k).join(' '))) return true;
+  }
+  const before =
+    text
+      .slice(Math.max(0, en.start - 80), en.start)
+      .split(/[;:\n]|\.(?=\s|$)/)
+      .pop() ?? '';
+  const beforeWords = before.trim().split(/\s+/).filter(Boolean);
+  for (let k = 1; k <= Math.min(6, beforeWords.length); k++) {
+    if (held(`${beforeWords.slice(-k).join(' ')} ${en.text}`)) return true;
+  }
+  return false;
 }
 
 function judgeDate(src: Sources, text: string, en: Entity): Judged | null {

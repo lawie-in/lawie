@@ -19,7 +19,7 @@ import { readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 
 import type { AvermentLists } from './averments';
-import { normaliseOption } from './template-promoter';
+import { humaniseOptionLabel, normaliseOption, objectOptionLabel } from './template-promoter';
 
 // ── Output shape ────────────────────────────────────────────────────────────
 
@@ -191,16 +191,20 @@ function slug(text: string): string {
     .slice(0, 60);
 }
 
-/** Option labels from `['A', 'B']` or `[{ label }, { value }, { id }]`. */
+/**
+ * Option labels from `['A', 'B']` or `[{ label }, { value }, { id }]`. T-473: a bare
+ * snake_case text is shown through the promoter's `humaniseOptionLabel`, as the form
+ * shows it; other text is kept as written. Ids (`optionIdsAndCondition`) are unchanged.
+ */
 function optionLabels(v: unknown): string[] {
   if (!Array.isArray(v)) return [];
   const out: string[] = [];
   for (const o of v) {
     if (typeof o === 'string' || typeof o === 'number') {
-      out.push(String(o));
+      out.push(humaniseOptionLabel(String(o)));
     } else if (isObj(o)) {
       const label = firstStr(o.label, o.name, o.value, o.id);
-      if (label !== null) out.push(label);
+      if (label !== null) out.push(objectOptionLabel(o, label));
     }
   }
   return out;
@@ -1919,6 +1923,31 @@ export const OPTION_VALUE_ALIASES: Readonly<
     }),
   }),
 });
+
+/**
+ * Mandatory-clause ids renamed by Ajay (T-245 file 7d42b105, T-478 rulings):
+ * pack id -> (old clause id -> new clause id). Applied only for that pack.
+ */
+// T-478 alias, remove in the post-v1 cleanup
+export const CLAUSE_ID_ALIASES: Readonly<Record<string, Readonly<Record<string, string>>>> =
+  Object.freeze({
+    certiorari: Object.freeze({
+      jurisdiction_clause_article_226_hc_or_article_32_sc: 'jurisdiction_clause',
+    }),
+  });
+
+/**
+ * Returns the current clause id for `clauseId` in pack `packId`: the new id
+ * when {@link CLAUSE_ID_ALIASES} renames it for that pack, else `clauseId`
+ * unchanged. Own keys only, so `__proto__` or `toString` never resolve.
+ */
+// T-478 alias, remove in the post-v1 cleanup
+export function resolveClauseId(packId: string, clauseId: string): string {
+  const own = (o: object, k: string): boolean => Object.prototype.hasOwnProperty.call(o, k);
+  if (!own(CLAUSE_ID_ALIASES, packId)) return clauseId;
+  const map = CLAUSE_ID_ALIASES[packId];
+  return own(map, clauseId) ? map[clauseId] : clauseId;
+}
 
 /**
  * Maps one stored answer through `map`: a string, each string in an array, or

@@ -2,7 +2,7 @@
 
 | Field  | Value                                                                       |
 | ------ | --------------------------------------------------------------------------- |
-| Status | To do. V1 BLOCKER for prod (the model switch). Priya, 15 Oct 2026           |
+| Status | Merged into develop_staging b39f45a6, 16 Oct; Anushka to test on develop. Priya |
 | Owner  | Vishal (he has the T-453 fixtures and run 64), after T-453 closes           |
 | Mode   | Full chain (legal content; Ajay gates)                                      |
 
@@ -28,3 +28,19 @@ Anushka starting her run on develop; but she should see this case, and it must b
 ## Also in this ticket (Ajay, 15 Oct 2026, T-453 run 64)
 
 Extend the golden-set verifier list with BNSS s.144 (maintenance, old s.125 CrPC) and s.145 (procedure, old s.126) for the maintenance_bnss_144 pack only; both are in that pack's own signed text. No general whitelist.
+
+## Cause and Ajay's rulings (15-16 Oct 2026, T-245 file 257d5c48)
+
+Cause (Vishal): the firm is lost at intake. respondent_name is typed as a person name (fact-ledger.service.ts), so "Demo Traders ke malik" gets no name and "Gupta Electricals ke proprietor Anil Gupta" falls under the 0.8 floor. No prompt says a firm is a party name. The draft prints the firm when the ledger has it.
+
+Ajay:
+- (a) respondent_name reads as "drawer as named (firm, company or person)": OK.
+- (b) The one signed line in the intake prompt, exactly: "A firm or company named as the drawer is the drawer's name. Put the proprietor, partners or directors named with it in their own fields, never in place of the firm."
+- (c) Fixture 08 (firm as drawer, Anil Gupta as drawer_proprietor): OK, with one condition. A sole proprietorship is not a separate person: address the notice to "Anil Gupta, proprietor of Gupta Electricals" and do not plead s.141.
+- s.141: for a partnership or company, address the notice to the firm and to each partner or director the advocate names as in charge. Names come only from the advocate.
+
+Claim (after T-453 closes): fact-ledger.service.ts (factTypeFor), intake.prompts.ts (one line), fact-verifier.ts + ai.service.ts (pack id pass-through), golden fixtures 08/1b/19/21, tests. If the s.138 pack or its notice text needs a change for the sole-proprietor / partner / director wording, stop after Explore and ask Priya for the claim; that is legal content and Ajay byte-checks it.
+
+## Anushka run 4 (16 Oct 2026): what she found
+
+For a company drawer, the director is not made a noticee, and the s.141 paragraph is vague. Fix together with the firm line. Ajay's rule applies (address the firm and each partner or director the advocate names as in charge; names only from the advocate). Ask Ajay for the s.141 paragraph text.

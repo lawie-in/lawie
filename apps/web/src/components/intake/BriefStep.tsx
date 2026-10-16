@@ -496,6 +496,7 @@ export default function BriefStep({
   onOutstandingFocused,
   outstandingQuestions = 0,
   busy,
+  updating = false,
   confirming,
   message,
   questionsLeft,
@@ -525,6 +526,11 @@ export default function BriefStep({
   outstandingQuestions?: number;
   /** True while the brief is being worked out again after a change. */
   busy: boolean;
+  /**
+   * T-481: a change on the brief is being worked out again. Confirm shows as
+   * busy but stays pressable: a press is held and acted on when the brief is back.
+   */
+  updating?: boolean;
   confirming: boolean;
   /** A problem to show above the buttons. */
   message: string | null;
@@ -645,6 +651,37 @@ export default function BriefStep({
     }
     const party = brief.items.find((i) => i.party_name && i.required && isEmptyValue(i.value));
     if (party) focusField(party.key);
+  };
+
+  /** What a press of Confirm does, with the brief as it is now. */
+  const pressConfirm = () => {
+    if (!canConfirm) focusFirstBlocker();
+    else if (costKnown) onConfirm();
+    // T-388: with an unknown cost nothing starts and focus does not move.
+  };
+  const pressConfirmRef = useRef(pressConfirm);
+  pressConfirmRef.current = pressConfirm;
+
+  // T-481: a typed field commits on blur, so pressing Confirm just after typing
+  // starts an update between mousedown and mouseup. A natively disabled button
+  // would swallow that click, so Confirm is not disabled for an update: the
+  // press is held and acted on, with the brief the service sent back, once the
+  // update ends. A failed update (its line shows in `message`) drops the press.
+  const [confirmHeld, setConfirmHeld] = useState(false);
+  const pending = busy || updating || confirming;
+  useEffect(() => {
+    if (!confirmHeld || updating) return;
+    setConfirmHeld(false);
+    if (busy || confirming || message !== null) return;
+    pressConfirmRef.current();
+  }, [confirmHeld, updating, busy, confirming, message]);
+  const onConfirmClick = () => {
+    if (busy || confirming) return;
+    if (updating) {
+      setConfirmHeld(true);
+      return;
+    }
+    pressConfirm();
   };
 
   return (
@@ -991,15 +1028,14 @@ export default function BriefStep({
             type="button"
             // T-388: with an unknown cost nothing starts and focus does not move;
             // the notice in the cost slot says why.
-            onClick={!canConfirm ? focusFirstBlocker : costKnown ? onConfirm : undefined}
-            aria-disabled={confirmOff || busy || confirming}
+            onClick={onConfirmClick}
+            aria-disabled={confirmOff || pending}
             aria-describedby={confirmDescribedByIds}
+            // T-481: not while an update runs (see `onConfirmClick`).
             disabled={busy || confirming}
             className={`${primaryButton} ${confirmOff ? 'opacity-40' : ''}`}
           >
-            {(busy || confirming) && (
-              <Loader2 size={16} className="animate-spin" aria-hidden="true" />
-            )}
+            {pending && <Loader2 size={16} className="animate-spin" aria-hidden="true" />}
             Confirm brief and continue
           </button>
           <InkCostLine

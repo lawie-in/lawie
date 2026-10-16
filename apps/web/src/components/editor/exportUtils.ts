@@ -1,6 +1,5 @@
 import {
   blankMarksToTags,
-  blankText,
   draftHeaderText,
   findBlanks,
   markBlanks,
@@ -22,29 +21,15 @@ import {
 import type { IRunOptions } from 'docx';
 import { saveAs } from 'file-saver';
 
-/**
- * T-147c: a draft written from the fact ledger marks a missing fact as
- * `{{MISSING: label}}`. In an export it prints as today's blank,
- * `[To be confirmed: label]`, as the server PDF does. Text substitution only.
- * Any case, as the shared blank marker (Ajay's T-194 follow-up).
- */
-export function missingAsBlanks(text: string): string {
-  return text.replace(/\{\{\s*MISSING\s*:\s*([^}]*?)\s*\}\}/gi, '[To be confirmed: $1]');
-}
+import { missingAsBlanks, normaliseLineEnds } from './blankCount';
+
+// T-483: the blank count lives in ./blankCount (no docx), re-exported for existing callers.
+export { blanksInContent, missingAsBlanks } from './blankCount';
 
 // T-233 review: plain text unless it starts with '<' after leading whitespace,
 // as shared projectContent reads it (blanks.ts). textToHtml is aligned in T-274.
 function isPlainContent(content: string): boolean {
   return !content.trimStart().startsWith('<');
-}
-
-// T-274 review: CRLF/CR line ends become LF on the raw content, before
-// missingAsBlanks and markBlanks, in the count (blanksInContent) and in both
-// exports alike, so a blank whose label spans a line end is found and marked the
-// same as with LF, and the warning's count equals the header's N. In HTML a CR
-// is whitespace the parser already folds into LF, so this changes nothing there.
-function normaliseLineEnds(text: string): string {
-  return text.replace(/\r\n?/g, '\n');
 }
 
 /**
@@ -103,15 +88,6 @@ export const EXPORT_BLANKS_GO_BACK_EVENT = 'lawie:export-blanks-go-back';
 export interface ExportBlanksGoBackDetail {
   /** The first blank of the saved draft, as written in the export. */
   text?: string;
-}
-
-/**
- * The blanks of a saved draft, as the export prints it (after `missingAsBlanks`).
- * T-194: the warning's count and list, the header's N and the highlighting all
- * come from this one call over the same content.
- */
-export function blanksInContent(content: string, find: FindBlanks = findBlanks): Blank[] {
-  return find(blankText(missingAsBlanks(normaliseLineEnds(content))));
 }
 
 /**
