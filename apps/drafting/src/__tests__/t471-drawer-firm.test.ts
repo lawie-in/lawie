@@ -112,16 +112,19 @@ function sections(form: Record<string, unknown>): Record<string, string> {
 }
 const toBlock = (header: string) => /To,\n([\s\S]*?)\n\nFrom,/.exec(header)![1];
 const SIGNED_TAIL =
-  'deemed to be guilty of the offence under Section 138 read with Section 141 of the Negotiable Instruments Act, 1881.';
+  'and shall be liable under Section 141 of the Negotiable Instruments Act, 1881 if the amount is not paid within 15 days of receipt of this notice.';
 function para(n: number, name: string, designation: string, role: string, opening = ''): string {
   return (
-    `${opening}Accused No. ${n}, ${name}, was, at the time the offence was committed, in charge of and ` +
-    `responsible to Accused No. 1 for the conduct of its business, being its ${designation} and ${role}. ` +
-    `Accused No. ${n} is therefore ${SIGNED_TAIL}`
+    `${opening}Noticee No. ${n}, ${name}, is in charge of and responsible to Noticee No. 1 for the ` +
+    `conduct of its business, being its ${designation} and ${role}, ${SIGNED_TAIL}`
   );
 }
-const OPEN_CO = 'Accused No. 1 is a company, and the cheque was drawn on its account. ';
-const OPEN_PF = 'Accused No. 1 is a partnership firm, and the cheque was drawn on its account. ';
+const OPEN_CO = 'Noticee No. 1 is a company, and the cheque was drawn on its account. ';
+const OPEN_PF = 'Noticee No. 1 is a partnership firm, and the cheque was drawn on its account. ';
+const NO_CRIMINAL_WORDING = (text: string) => {
+  expect(text).not.toContain('Accused');
+  expect(text).not.toContain('deemed to be guilty');
+};
 const ROLE_BLANK = (n: string) => `[To be confirmed: role of ${n} in the conduct of the business]`;
 const CAP_BLANK = '[To be confirmed: authorised signatory / partner / director]';
 const OFFICE = '(registered office|principal place of business)';
@@ -157,8 +160,9 @@ describe('T-471 C: proprietorship (Ajay (c))', () => {
     });
     const all = Object.values(s).join('\n');
     expect(all).not.toContain('141');
-    expect(all).not.toContain('Accused No.');
+    expect(all).not.toContain('Noticee No.');
     expect(all).not.toContain('Ravi Sharma');
+    NO_CRIMINAL_WORDING(all);
     expect(s.header).toContain('(Under Section 138 read with Section 142 of');
     expect(s.demand_clause.startsWith('DEMAND\n\nI therefore')).toBe(true);
   });
@@ -183,9 +187,9 @@ describe('T-471 C: company with two named persons (Ajay (d))', () => {
     );
   });
 
-  it('prints "Accused No. 1 is a company" exactly once, in the whole notice', () => {
-    expect(Object.values(s).join('\n').split('Accused No. 1 is a company')).toHaveLength(2);
-    expect(s.demand_clause.startsWith(OPEN_CO + 'Accused No. 2, Ravi Sharma')).toBe(true);
+  it('prints "Noticee No. 1 is a company" exactly once, in the whole notice', () => {
+    expect(Object.values(s).join('\n').split('Noticee No. 1 is a company')).toHaveLength(2);
+    expect(s.demand_clause.startsWith(OPEN_CO + 'Noticee No. 2, Ravi Sharma')).toBe(true);
   });
 
   it('one paragraph per person, byte-exact, with the role blank when no role is given', () => {
@@ -194,7 +198,8 @@ describe('T-471 C: company with two named persons (Ajay (d))', () => {
     expect(
       s.demand_clause.startsWith(`${p1}\n\n${p2}\n\nDEMAND\n\nI therefore call upon you`),
     ).toBe(true);
-    expect(s.demand_clause.split('is therefore deemed to be guilty')).toHaveLength(3);
+    expect(s.demand_clause.split('shall be liable under Section 141')).toHaveLength(3);
+    NO_CRIMINAL_WORDING(Object.values(s).join('\n'));
   });
 
   it('the s.141 paragraphs sit after the body and before DEMAND; the title cites 141', () => {
@@ -203,7 +208,7 @@ describe('T-471 C: company with two named persons (Ajay (d))', () => {
     expect(s.header).toContain(
       '(Under Section 138 read with Sections 141 and 142 of the Negotiable',
     );
-    expect(s.demand_clause.indexOf('Accused No. 2')).toBeLessThan(
+    expect(s.demand_clause.indexOf('Noticee No. 2')).toBeLessThan(
       s.demand_clause.indexOf('DEMAND'),
     );
   });
@@ -224,9 +229,11 @@ describe('T-471 C: partnership, gaps, firm only, blanks', () => {
       drawer_signatory_capacity: 'partner',
     });
     expect(toBlock(s.header)).toMatch(/^1\. Demo Traders, through its partner, at its /);
-    expect(s.demand_clause).toContain(OPEN_PF + 'Accused No. 2, Ravi Sharma');
-    expect(s.demand_clause).not.toContain('Accused No. 1 is a company');
+    expect(s.demand_clause).toContain(OPEN_PF + 'Noticee No. 2, Ravi Sharma');
+    expect(s.demand_clause).not.toContain('Noticee No. 1 is a company');
     expect(s.header).toContain('Sections 141 and 142');
+    NO_CRIMINAL_WORDING(Object.values(s).join('\n'));
+    expect(s.demand_clause).toContain(para(3, 'Sita Rao', 'Director', ROLE_BLANK('Sita Rao')));
   });
 
   it.each([
@@ -248,7 +255,7 @@ describe('T-471 C: partnership, gaps, firm only, blanks', () => {
     expect(to).not.toMatch(/;\s*$/);
     expect(to).not.toContain('4.');
     expect(s.demand_clause).toContain(para(3, 'Mohan Das', 'Director', 'in charge of finance'));
-    expect(s.demand_clause).not.toContain('Accused No. 4');
+    expect(s.demand_clause).not.toContain('Noticee No. 4');
     expect(Object.values(s).join('\n')).not.toMatch(/MISSING|\{|\}/);
   });
 
@@ -260,10 +267,10 @@ describe('T-471 C: partnership, gaps, firm only, blanks', () => {
       s141_person_3_role: 'in charge of finance',
     });
     expect(toBlock(s.header)).toMatch(/;\n2\. Mohan Das, Director$/);
-    expect(s.demand_clause.startsWith(OPEN_CO + 'Accused No. 2, Mohan Das')).toBe(true);
+    expect(s.demand_clause.startsWith(OPEN_CO + 'Noticee No. 2, Mohan Das')).toBe(true);
   });
 
-  it('a firm with no persons: line 1 only, no ";", no Accused paragraph, plain DEMAND', () => {
+  it('a firm with no persons: line 1 only, no ";", no Noticee paragraph, plain DEMAND', () => {
     const s = sections({ respondent_type: 'company', drawer_signatory_capacity: 'director' });
     const to = toBlock(s.header);
     expect(to).toMatch(
@@ -272,7 +279,7 @@ describe('T-471 C: partnership, gaps, firm only, blanks', () => {
       ),
     );
     expect(to).not.toContain(';');
-    expect(s.demand_clause).not.toContain('Accused No.');
+    expect(s.demand_clause).not.toContain('Noticee No.');
     expect(s.demand_clause.startsWith('DEMAND\n\nI therefore')).toBe(true);
   });
 

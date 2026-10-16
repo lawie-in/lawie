@@ -536,7 +536,7 @@
       }
     },
     "s141_opening": {
-      "logic": "'Accused No. 1 is a {s141_kind}, and the cheque was drawn on its account.'"
+      "logic": "'Noticee No. 1 is a {s141_kind}, and the cheque was drawn on its account.'"
     },
     "s141_p1_given": {
       "logic": "label_map[s141_person_1_name]",
@@ -690,13 +690,13 @@
       "logic": "if s141_p2_given === '' then '{s141_p3_lead_unless_2}' else ''"
     },
     "s141_p1_para_if_named": {
-      "logic": "if s141_p1_given === '' then '' else '{s141_opening} Accused No. {s141_p1_no}, {s141_person_1_name}, was, at the time the offence was committed, in charge of and responsible to Accused No. 1 for the conduct of its business, being its {s141_p1_designation_text} and {s141_p1_role_text}. Accused No. {s141_p1_no} is therefore deemed to be guilty of the offence under Section 138 read with Section 141 of the Negotiable Instruments Act, 1881.\n\n'"
+      "logic": "if s141_p1_given === '' then '' else '{s141_opening} Noticee No. {s141_p1_no}, {s141_person_1_name}, is in charge of and responsible to Noticee No. 1 for the conduct of its business, being its {s141_p1_designation_text} and {s141_p1_role_text}, and shall be liable under Section 141 of the Negotiable Instruments Act, 1881 if the amount is not paid within 15 days of receipt of this notice.\n\n'"
     },
     "s141_p2_para_if_named": {
-      "logic": "if s141_p2_given === '' then '' else '{s141_p2_lead}Accused No. {s141_p2_no}, {s141_person_2_name}, was, at the time the offence was committed, in charge of and responsible to Accused No. 1 for the conduct of its business, being its {s141_p2_designation_text} and {s141_p2_role_text}. Accused No. {s141_p2_no} is therefore deemed to be guilty of the offence under Section 138 read with Section 141 of the Negotiable Instruments Act, 1881.\n\n'"
+      "logic": "if s141_p2_given === '' then '' else '{s141_p2_lead}Noticee No. {s141_p2_no}, {s141_person_2_name}, is in charge of and responsible to Noticee No. 1 for the conduct of its business, being its {s141_p2_designation_text} and {s141_p2_role_text}, and shall be liable under Section 141 of the Negotiable Instruments Act, 1881 if the amount is not paid within 15 days of receipt of this notice.\n\n'"
     },
     "s141_p3_para_if_named": {
-      "logic": "if s141_p3_given === '' then '' else '{s141_p3_lead}Accused No. {s141_p3_no}, {s141_person_3_name}, was, at the time the offence was committed, in charge of and responsible to Accused No. 1 for the conduct of its business, being its {s141_p3_designation_text} and {s141_p3_role_text}. Accused No. {s141_p3_no} is therefore deemed to be guilty of the offence under Section 138 read with Section 141 of the Negotiable Instruments Act, 1881.\n\n'"
+      "logic": "if s141_p3_given === '' then '' else '{s141_p3_lead}Noticee No. {s141_p3_no}, {s141_person_3_name}, is in charge of and responsible to Noticee No. 1 for the conduct of its business, being its {s141_p3_designation_text} and {s141_p3_role_text}, and shall be liable under Section 141 of the Negotiable Instruments Act, 1881 if the amount is not paid within 15 days of receipt of this notice.\n\n'"
     },
     "s141_p1_para": {
       "logic": "if s141_on === 'y' then '{s141_p1_para_if_named}' else ''"
