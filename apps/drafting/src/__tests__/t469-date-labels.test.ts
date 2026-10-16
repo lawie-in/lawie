@@ -138,10 +138,10 @@ describe('T-469 fillers only: read only when exactly one date is asked (AC2)', (
     });
   });
 
-  it('"June 2026" alone is unchanged (T-496 base reading, not fixed here)', () => {
+  it('"June 2026" alone is blank (T-496: a date with no day is never exact)', () => {
     expect(read('June 2026', 'fir_date', two('fir_date'), two('fir_date'))).toMatchObject({
-      ok: true,
-      value: '2026-06-20',
+      ok: false,
+      reason: U,
     });
   });
 
