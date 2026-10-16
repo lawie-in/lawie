@@ -7,7 +7,12 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { isBailTemplate, NOT_OFFERED_SUFFIX, SAVED_TYPE_NAMES } from './bailCourts';
+import {
+  isScopedCourtTemplate,
+  MAINTENANCE_TEMPLATE_ID,
+  NOT_OFFERED_SUFFIX,
+  SAVED_TYPE_NAMES,
+} from './bailCourts';
 import type { BriefCourt } from './briefTypes';
 import ConsumerLevelGroup, {
   CONSUMER_COURT_LABEL,
@@ -79,11 +84,24 @@ export default function CourtPicker({
   templateId?: string;
 }) {
   const consumer = templateId === CONSUMER_TEMPLATE_ID;
-  const bail = isBailTemplate(templateId);
+  // T-425 bail packs and T-482 maintenance: template-scoped lists in the generic picker,
+  // and a saved choice the scope no longer offers is kept and marked.
+  const scoped = isScopedCourtTemplate(templateId);
   const [states, setStates] = useState<Option[]>([]);
   const [statesLoaded, setStatesLoaded] = useState(false);
   const [types, setTypes] = useState<Option[]>([]);
   const [typesLoaded, setTypesLoaded] = useState(false);
+  // T-482: a maintenance brief saved before the scope holds a Family Court under the type
+  // `tribunal`. Where the scope offers `family_court` and not `tribunal`, that saved type is
+  // shown and matched as `family_court`. Display only: the brief changes only on a pick.
+  const courtType =
+    templateId === MAINTENANCE_TEMPLATE_ID &&
+    court.court_type === 'tribunal' &&
+    !!court.court?.startsWith('family_court_') &&
+    types.some((t) => t.id === 'family_court') &&
+    !types.some((t) => t.id === 'tribunal')
+      ? 'family_court'
+      : court.court_type;
   const [courts, setCourts] = useState<Option[]>([]);
   const [courtsLoaded, setCourtsLoaded] = useState(false);
   const [saved, setSaved] = useState<SavedCourt | null>(null);
@@ -128,7 +146,7 @@ export default function CourtPicker({
     ? level
       ? `template=${CONSUMER_TEMPLATE_ID}&level=${level}`
       : ''
-    : bail
+    : scoped
       ? `template=${encodeURIComponent(templateId as string)}`
       : '';
 
@@ -196,12 +214,12 @@ export default function CourtPicker({
           ? `/api/courts?${scope}`
           : `/api/courts?${scope}&state=${encodeURIComponent(court.state ?? '')}`;
     } else {
-      if (!court.state || !court.court_type) {
+      if (!court.state || !courtType) {
         setCourts([]);
         setCourtsLoaded(false);
         return;
       }
-      path = `/api/courts?state=${encodeURIComponent(court.state)}&type=${encodeURIComponent(court.court_type)}`;
+      path = `/api/courts?state=${encodeURIComponent(court.state)}&type=${encodeURIComponent(courtType)}`;
       if (scope) path = `${path}&${scope}`;
     }
     let off = false;
@@ -221,12 +239,13 @@ export default function CourtPicker({
     return () => {
       off = true;
     };
-  }, [court.state, court.court_type, attempt, consumer, level, scope]);
+  }, [court.state, courtType, attempt, consumer, level, scope]);
 
-  // T-425 (AC3): a bail brief saved with a court this pack no longer offers keeps it. Ask
-  // for that court by id only to name it in the list; the choice itself is never changed.
+  // T-425 (AC3): a bail (or T-482 maintenance) brief saved with a court this pack no longer
+  // offers keeps it. Ask for that court by id only to name it in the list; the choice
+  // itself is never changed.
   const courtNotOffered =
-    bail && !!court.court && courtsLoaded && !courts.some((c) => c.id === court.court);
+    scoped && !!court.court && courtsLoaded && !courts.some((c) => c.id === court.court);
   useEffect(() => {
     if (!courtNotOffered || !court.court || saved?.id === court.court) return;
     const id = court.court;
@@ -269,14 +288,14 @@ export default function CourtPicker({
       : courts.filter((c) => c.id === court.court || c.name.toLowerCase().includes(q));
   const savedName = saved && saved.id === court.court ? saved : null;
   const keptState =
-    bail && court.state && statesLoaded && !states.some((s) => s.id === court.state)
+    scoped && court.state && statesLoaded && !states.some((s) => s.id === court.state)
       ? { id: court.state, name: `${savedName?.state || court.state}${NOT_OFFERED_SUFFIX}` }
       : null;
   const keptType =
-    bail && court.court_type && typesLoaded && !types.some((t) => t.id === court.court_type)
+    scoped && courtType && typesLoaded && !types.some((t) => t.id === courtType)
       ? {
-          id: court.court_type,
-          name: `${SAVED_TYPE_NAMES[court.court_type] ?? court.court_type}${NOT_OFFERED_SUFFIX}`,
+          id: courtType,
+          name: `${SAVED_TYPE_NAMES[courtType] ?? courtType}${NOT_OFFERED_SUFFIX}`,
         }
       : null;
   const keptCourt =
@@ -437,7 +456,7 @@ export default function CourtPicker({
           </label>
           <select
             id="brief-court-type"
-            value={court.court_type ?? ''}
+            value={courtType ?? ''}
             disabled={!court.state}
             onChange={(e) =>
               onChange({ state: court.state, court_type: e.target.value || null, court: null })
@@ -476,7 +495,7 @@ export default function CourtPicker({
             onChange={(e) =>
               onChange({
                 state: court.state,
-                court_type: court.court_type,
+                court_type: courtType,
                 court: e.target.value || null,
               })
             }

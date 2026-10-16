@@ -27,6 +27,8 @@ interface CourtSeedData {
   formattingRulesRef: string;
   caseNomenclature: string;
   supportedLanguages: string[];
+  /** T-482: listed only for these template ids (see Court.model.ts). */
+  templates?: string[];
 }
 
 interface SeedFile {

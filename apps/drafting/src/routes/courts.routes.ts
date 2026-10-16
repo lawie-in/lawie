@@ -10,7 +10,7 @@ const router = Router();
  *
  * Optional query params, accepted by GET /courts, GET /courts/types and GET /courts/states:
  *   - `template`: a template id. Only templates in TEMPLATE_COURT_FILTER narrow the list
- *     (consumer_complaint, T-411; the six bail packs, T-425).
+ *     (consumer_complaint, T-411; the six bail packs, T-425; maintenance_bnss_144, T-482).
  *     A missing or unknown template (or one sent more than once) means no filter, i.e.
  *     exactly the pre-T-411 result. Templates' `court_levels` are NOT honoured in general:
  *     the packs use a free vocabulary for them ('transactional', 'magistrate', ...).
@@ -30,10 +30,47 @@ const router = Router();
  *   GET /courts?template=consumer_complaint&level=state&state=maharashtra
  *   GET /courts/states?template=consumer_complaint&level=state
  *
+ * maintenance_bnss_144 (T-482, Ajay 16 Oct 2026: a Family Court where one is verified,
+ * otherwise JMFC) is scoped only in the states Ajay signed (MAINTENANCE_SCOPED_STATES:
+ * Bihar, Jharkhand). There it offers two types: `family_court`, a type derived from the
+ * tribunal records whose formattingRulesRef is 'family_court' (there is no family_court
+ * courtType in the seed), and `jmfc`. A type with no court in the state is not offered.
+ * Every other state gets the unscoped list and types, exactly as without a template.
+ * The derived type exists only inside this scope; every other list is unchanged, and the
+ * returned court records keep their stored courtType. Ajay's ruling (T-245 signed file,
+ * "T-482: maintenance forum", 9ad6a8f1): a district's Family Court has exclusive
+ * jurisdiction, so a JMFC in a district (same stateId and city) that has a Family Court
+ * record is not offered. A state where the scope has no court at all (every state outside
+ * MAINTENANCE_SCOPED_STATES) falls back to the unscoped list for that state, so
+ * maintenance stays possible there (Ajay 656332c9, point 3).
+ *
+ * T-482: a court record with a `templates` list is listed only when the request's
+ * `template` is in that list (the maintenance-only JMFCs). Unscoped lists and every other
+ * template never show it. GET /courts/:courtId still finds it by id.
+ *
  * Responses keep today's shapes ({ courts }, { types }, { states }) and today's fields;
  * formattingRulesRef is read for classification and stripped before the response. No
  * court is ever marked as a default: the user always picks (ADR-021 rule 3).
  */
+/** The fields scopedCourts always reads, whatever the caller asked for. */
+interface ScopeRow {
+  designation: string;
+  courtType: string;
+  formattingRulesRef: string;
+  stateId: string;
+  city: string;
+}
+
+/**
+ * T-482: courts carrying a `templates` list are listed only for those template ids; the
+ * rest are listed for every request, as before.
+ */
+function visibleFor(templateId: string | null): Record<string, unknown> {
+  return templateId === null
+    ? { templates: { $exists: false } }
+    : { $or: [{ templates: { $exists: false } }, { templates: templateId }] };
+}
+
 interface TemplateCourtFilter {
   /** Mongo filter ANDed with `isActive: true`. */
   filter: Record<string, unknown>;
@@ -46,6 +83,19 @@ interface TemplateCourtFilter {
    * state + type + court picker). False for consumer_complaint, where the level decides.
    */
   keepsType: boolean;
+  /**
+   * T-482: the type a court is offered under in this scope, when it is not the stored
+   * courtType. GET /courts/types lists these, and GET /courts matches `type` against them.
+   * Absent: the stored courtType, as before.
+   */
+  typeOf?: (court: { courtType: string; formattingRulesRef: string }) => string;
+  /** T-482: drops courts from the scope that depend on other courts in it. */
+  narrow?: <C extends ScopeRow>(courts: C[]) => C[];
+  /**
+   * T-482: true when a state with no court in the scope gets the unscoped list for that
+   * state instead (in GET /states, /types and /courts).
+   */
+  fallbackToAll?: boolean;
   /** The court's level, or null if it has none. */
   levelOf: (court: {
     designation: string;
@@ -103,6 +153,46 @@ function bailFilter(id: (typeof BAIL_TEMPLATE_IDS)[number]): TemplateCourtFilter
   };
 }
 
+/** T-482: the derived type for a Family Court (stored as courtType 'tribunal'). */
+const FAMILY_COURT_TYPE = 'family_court';
+const FAMILY_COURT_RULES_REF = 'family_court';
+
+/**
+ * T-482 (Ajay 16 Oct 2026; legal content): an S.144 BNSS maintenance application, before
+ * a Family Court where one is verified, otherwise a JMFC. No CJM, District, Sessions,
+ * Consumer or other tribunal. Only in MAINTENANCE_SCOPED_STATES: the Family Court records
+ * of other states are not verified, so those states keep the full list (fallback). Inside
+ * those states, which districts have a Family Court is data: a Family Court record added
+ * to the courts seed is offered with no code change, and it replaces that district's JMFC
+ * in this scope (Sections 7 and 8, Family Courts Act).
+ */
+// Ajay 656332c9: signed states; extend only with his sign-off (T-501).
+const MAINTENANCE_SCOPED_STATES = ['bihar', 'jharkhand'];
+
+const isFamilyCourt = (court: { courtType: string; formattingRulesRef: string }) =>
+  court.courtType === 'tribunal' && court.formattingRulesRef === FAMILY_COURT_RULES_REF;
+const districtKey = (court: { stateId: string; city: string }) => `${court.stateId}/${court.city}`;
+
+const MAINTENANCE_FILTER: TemplateCourtFilter = {
+  filter: {
+    stateId: { $in: MAINTENANCE_SCOPED_STATES },
+    $or: [
+      { courtType: 'tribunal', formattingRulesRef: FAMILY_COURT_RULES_REF },
+      { courtType: 'jmfc' },
+    ],
+  },
+  levels: [],
+  stateless: [],
+  keepsType: true,
+  typeOf: (court) => (isFamilyCourt(court) ? FAMILY_COURT_TYPE : court.courtType),
+  narrow: (courts) => {
+    const withFamilyCourt = new Set(courts.filter(isFamilyCourt).map(districtKey));
+    return courts.filter((c) => isFamilyCourt(c) || !withFamilyCourt.has(districtKey(c)));
+  },
+  fallbackToAll: true,
+  levelOf: () => null,
+};
+
 const TEMPLATE_COURT_FILTER: ReadonlyMap<string, TemplateCourtFilter> = new Map([
   ...BAIL_TEMPLATE_IDS.map((id) => [id, bailFilter(id)] as const),
   [
@@ -122,50 +212,79 @@ const TEMPLATE_COURT_FILTER: ReadonlyMap<string, TemplateCourtFilter> = new Map(
         }),
     },
   ],
+  ['maintenance_bnss_144', MAINTENANCE_FILTER],
 ]);
 
 type TemplateScope =
   | { kind: 'none' }
   | { kind: 'error'; message: string }
-  | { kind: 'scoped'; spec: TemplateCourtFilter; level: string | null };
+  | { kind: 'scoped'; spec: TemplateCourtFilter; level: string | null; templateId: string };
 
 function templateScope(req: Request): TemplateScope {
   const { template, level } = req.query;
   if (typeof template !== 'string') return { kind: 'none' };
   const spec = TEMPLATE_COURT_FILTER.get(template);
   if (!spec) return { kind: 'none' };
-  if (level === undefined || level === '') return { kind: 'scoped', spec, level: null };
+  if (level === undefined || level === '') {
+    return { kind: 'scoped', spec, level: null, templateId: template };
+  }
   if (spec.levels.length === 0) {
-    // T-425: the bail packs have no levels, so any `level` is a 400 as for a bad one.
+    // T-425: the bail packs (and T-482 maintenance) have no levels, so any `level` is a 400.
     return { kind: 'error', message: `level is not accepted for template ${template}` };
   }
   if (typeof level !== 'string' || !spec.levels.includes(level)) {
     return { kind: 'error', message: `level must be one of ${spec.levels.join('|')}` };
   }
-  return { kind: 'scoped', spec, level };
+  return { kind: 'scoped', spec, level, templateId: template };
+}
+
+/**
+ * Active courts outside any scope (the pre-T-411 lists), less the courts that carry a
+ * `templates` list without `templateId` in it (T-482).
+ */
+async function unscopedCourts(
+  templateId: string | null,
+  state: unknown,
+  fields: string,
+  type?: unknown,
+) {
+  const filter: Record<string, unknown> = { isActive: true, ...visibleFor(templateId) };
+  if (typeof state === 'string' && state) filter.stateId = state;
+  if (typeof type === 'string' && type) filter.courtType = type;
+  return Court.find(filter).select(fields).sort({ name: 1 }).lean();
 }
 
 /** Active courts in scope, sorted by name, with formattingRulesRef read but not returned. */
 async function scopedCourts(
   spec: TemplateCourtFilter,
+  templateId: string,
   level: string | null,
   state: unknown,
   fields: string,
   type?: unknown,
 ) {
-  const filter: Record<string, unknown> = { isActive: true, ...spec.filter };
+  const filter: Record<string, unknown> = {
+    isActive: true,
+    $and: [spec.filter, visibleFor(templateId)],
+  };
   const stateless = level !== null && spec.stateless.includes(level);
   if (!stateless && typeof state === 'string' && state) {
     filter.stateId = state;
   }
-  if (spec.keepsType && typeof type === 'string' && type) {
-    filter.courtType = type;
+  const byType = spec.keepsType && typeof type === 'string' && type ? type : null;
+  if (byType !== null && !spec.typeOf) {
+    filter.courtType = byType;
   }
   const courts = await Court.find(filter)
-    .select(`${fields} designation courtType formattingRulesRef`)
+    .select(`${fields} designation courtType formattingRulesRef stateId city`)
     .sort({ name: 1 })
     .lean();
-  const wanted = level === null ? courts : courts.filter((c) => spec.levelOf(c) === level);
+  const inScope = spec.narrow ? spec.narrow(courts) : courts;
+  const wanted = inScope.filter(
+    (c) =>
+      (level === null || spec.levelOf(c) === level) &&
+      (byType === null || !spec.typeOf || spec.typeOf(c) === byType),
+  );
   const requested = new Set(fields.split(/\s+/));
   return wanted.map((c) => {
     const out: Record<string, unknown> = {};
@@ -187,10 +306,15 @@ router.get('/states', async (req: Request, res: Response): Promise<void> => {
     res.status(400).json({ error: scope.message });
     return;
   }
+  // T-482: with fallbackToAll every state is offered (in scope, or falling back).
   const courts =
-    scope.kind === 'scoped'
-      ? await scopedCourts(scope.spec, scope.level, undefined, 'state stateId')
-      : await Court.find({ isActive: true }).select('state stateId').lean();
+    scope.kind === 'scoped' && !scope.spec.fallbackToAll
+      ? await scopedCourts(scope.spec, scope.templateId, scope.level, undefined, 'state stateId')
+      : await unscopedCourts(
+          scope.kind === 'scoped' ? scope.templateId : null,
+          undefined,
+          'state stateId',
+        );
 
   const stateMap = new Map<string, string>();
   for (const c of courts) {
@@ -227,12 +351,26 @@ router.get('/types', async (req: Request, res: Response): Promise<void> => {
     return;
   }
 
-  const courts =
+  // T-482: a scope with typeOf lists its derived types (formattingRulesRef is read for
+  // that only; /types never returns court records).
+  let typeOf = scope.kind === 'scoped' ? scope.spec.typeOf : undefined;
+  let courts: Array<{ courtType: string; formattingRulesRef: string }> =
     scope.kind === 'scoped'
-      ? await scopedCourts(scope.spec, scope.level, state, 'courtType')
-      : await Court.find({ stateId: state, isActive: true }).select('courtType').lean();
+      ? await scopedCourts(
+          scope.spec,
+          scope.templateId,
+          scope.level,
+          state,
+          typeOf ? 'courtType formattingRulesRef' : 'courtType',
+        )
+      : await unscopedCourts(null, state, 'courtType');
+  if (scope.kind === 'scoped' && scope.spec.fallbackToAll && courts.length === 0) {
+    // T-482: nothing in scope for this state, so its unscoped types.
+    typeOf = undefined;
+    courts = await unscopedCourts(scope.templateId, state, 'courtType');
+  }
 
-  const typeSet = new Set(courts.map((c) => c.courtType));
+  const typeSet = new Set(courts.map((c) => (typeOf ? typeOf(c) : c.courtType)));
 
   const TYPE_LABELS: Record<string, string> = {
     high_court: 'High Court',
@@ -246,6 +384,8 @@ router.get('/types', async (req: Request, res: Response): Promise<void> => {
     supreme_court: 'Supreme Court',
     tribunal: 'Tribunal',
     consumer_commission: 'Consumer Commission',
+    // T-482: derived inside the maintenance_bnss_144 scope only (no record has this type).
+    family_court: 'Family Court',
   };
 
   const types = Array.from(typeSet)
@@ -273,28 +413,23 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
     res.status(400).json({ error: scope.message });
     return;
   }
+  const { state, type } = req.query;
   if (scope.kind === 'scoped') {
-    const courts = await scopedCourts(
-      scope.spec,
-      scope.level,
-      req.query.state,
-      LIST_FIELDS,
-      req.query.type,
-    );
+    const { spec, templateId, level } = scope;
+    // T-482: a state with nothing in scope gets its unscoped list (same as GET /types).
+    const fallback =
+      spec.fallbackToAll === true &&
+      typeof state === 'string' &&
+      state !== '' &&
+      (await scopedCourts(spec, templateId, level, state, 'courtId')).length === 0;
+    const courts = fallback
+      ? await unscopedCourts(templateId, state, LIST_FIELDS, type)
+      : await scopedCourts(spec, templateId, level, state, LIST_FIELDS, type);
     res.json({ courts });
     return;
   }
 
-  const filter: Record<string, unknown> = { isActive: true };
-
-  if (req.query.state && typeof req.query.state === 'string') {
-    filter.stateId = req.query.state;
-  }
-  if (req.query.type && typeof req.query.type === 'string') {
-    filter.courtType = req.query.type;
-  }
-
-  const courts = await Court.find(filter).select(LIST_FIELDS).sort({ name: 1 }).lean();
+  const courts = await unscopedCourts(null, state, LIST_FIELDS, type);
 
   res.json({ courts });
 });

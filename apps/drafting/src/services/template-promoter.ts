@@ -1171,6 +1171,12 @@ export function promoteDocRuleToTemplateConfig(
 
   // T-365 AC6: set only when the pack has a non-empty signed line.
   if (card_description !== undefined) config.card_description = card_description;
+  // T-482: the signed match terms (strings only), for the intake match prompt.
+  const matchTerms = isPlainObject(rule._meta) ? rule._meta.match_terms : undefined;
+  if (Array.isArray(matchTerms)) {
+    const terms = matchTerms.filter((t): t is string => typeof t === 'string' && t !== '');
+    if (terms.length > 0) config.match_terms = terms;
+  }
 
   // Preserve fields the engine doesn't model yet but downstream consumers (SCRUM-80
   // / SCRUM-81 golden-PDF compare / billing credit math) need to read.
