@@ -716,3 +716,58 @@ This applies to every criminal pack and to the form path. The T-488 cheque-date 
 - Merging `relatedActs` with the other list is OK. The brief path and the promoted path must cite the same Acts.
 - `dv_dowry`: `[only when: the offence arises from domestic violence or a dowry demand]`.
 - A raw condition key (such as `dv_dowry`) never reaches the model. Every applicableWhen key needs plain words signed by me. Send me the list of all 11 keys with proposed wording before the byte check.
+
+## T-483: ages in the period check (Ajay, 16 Oct 2026)
+
+Approved, with one condition. "N years" directly after "aged", "age of" or "aged about", or directly before "old" or "of age", is an age and not a period. An age is still a fact: check it against the ages in the brief, which come from the age field or from the description. If the age is not in the brief, the panel flags "The draft states an age that is not in your brief". Real periods, such as "custody for 3 years" or "within 15 days", are still checked as periods.
+
+## Byte check T-478(b), fix/t-478b-verifier-article-numbers @ e5d21df3: approved (Ajay, 16 Oct 2026)
+
+- Matches 1a3cc988. The first number is capped at 4 digits and may take a letter. "S."/"s.", "O." and "r." match only in their exact case. Full words match in any case.
+- The SECTION_RE allow-list still runs before the reference claim (fact-verifier.ts :636), so an unsigned section is still blanked.
+- Accepted deviation: "Art" sits with the full words, so it matches in any case. Low risk.
+- Amount guard: OK. "ofRs.500" is still blanked as a number, which is the safe side.
+
+## T-479: "226 and 227" with a Supreme Court court (Ajay, 16 Oct 2026)
+
+OK, same as (b): print `IN THE HIGH COURT OF [To be confirmed: High Court]` with the "Articles 226 and 227" matter line. Never print the Article 32 title for this choice. Point (e) and the no-State line in the ledger prompt are parked under T-488, OK.
+
+## Byte check T-483, feature/t-483-checks-panel @ 17bfe932: approved (Ajay, 16 Oct 2026)
+
+- Warning text as I signed it, with "{words}. Check it before use." added to match the period warning. OK.
+- Matches bd33120b. An age phrase is checked against the age fields and the ages stated in the brief or the description. Real periods are still checked.
+- Accepted: ages are also read from the pack text. This lets a statutory age pass, for example "18 years of age". The low risk is that an applicant's age equal to a pack figure is not flagged.
+
+## Byte check T-477, fix/t-477-act-sections @ 6b712d95: approved with marker wording (Ajay, 16 Oct 2026)
+
+Reviewed: `handoff/legal/T-477-related-acts-for-ajay.md` on that branch (92 packs, 87 changed).
+
+- The format `<act> (<ref>; <ref>)` is verbatim and matches 54ffcb22 and f9415fe8. The "S." prefix appears only on section numbers; no Order, Rule or Article got it (CPC, Limitation Act, Constitution and Stamp Act refs checked). OK.
+- Nested brackets and commas inside one ref are pack text, so they are OK as printed. "As applicable" and "Various" are also pack text and OK.
+- Marker 1 (bail_regular) matches b101b4eb. Markers 2 to 12 are the pack's own notes, not plain words. Replace each with the signed wording below:
+
+| # | Pack | Signed marker |
+|---|---|---|
+| 2 | distribution_agreement, FEMA | `[only when: the distributor is outside India]` |
+| 3 | distribution_agreement, Customs | `[only when: the goods are imported]` |
+| 4 | employment_agreement, Standing Orders | `[only when: the employer is an industrial establishment covered by the Act]` |
+| 5 | employment_agreement, Industrial Disputes | `[only when: the employee is a workman]` |
+| 6 | franchise_agreement, FEMA | `[only when: the franchisor or the franchisee is outside India]` |
+| 7 | franchise_agreement, Food Safety | `[only when: the franchise sells food or beverages]` |
+| 8 | loan_agreement, SARFAESI | `[only when: the lender is a bank or an NBFC]` |
+| 9 | loan_agreement, Money-Lenders | `[only when: the lender carries on a money-lending business]` |
+| 10 | loan_agreement, FEMA / ECB | `[only when: the lender is outside India]` |
+| 11 | shareholders_agreement, FEMA / NDI | `[only when: an investor is outside India]` |
+| 12 | shareholders_agreement, SEBI ICDR | `[only when: the company plans a public issue]` |
+
+Follow-up (not a T-477 blocker): employment_agreement still cites the Industrial Employment (Standing Orders) Act 1946 and the Industrial Disputes Act 1947. Mark both "verify" against the Labour Codes, the Industrial Relations Code, 2020, and their commencement. They come to me as a separate ticket.
+
+## T-479: bench States and respondent lines (Ajay, 16 Oct 2026)
+
+- Benches whose seat is in a different State or UT from the parent High Court must keep the State blank. Examples: Panaji (Goa, Bombay High Court), Port Blair (A&N Islands, Calcutta High Court), and the Punjab and Haryana High Court at Chandigarh. Never fill the State from the parent court. The court name is the court's own full name, for example "HIGH COURT OF PUNJAB AND HARYANA AT CHANDIGARH". Never "HIGH COURT OF Chandigarh".
+
+| Point | Ruling |
+|---|---|
+| (1) Case number with 226 and 227 and a Supreme Court court | OK. Reuse `[To be confirmed: case type and number as styled in this High Court]`. |
+| (2) Mandamus respondent | Number it. A single respondent prints as `1. {respondent_authority}`. Several are numbered 1., 2., and so on. No State line is added unless the advocate names the State. |
+| (3) Empty respondent_authority | Use this signed blank, not one taken from the field's label: `[To be confirmed: authority against whom the writ is sought, with designation and address]`. It keeps its number, for example "2." after a State line. |

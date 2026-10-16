@@ -522,7 +522,8 @@ export const RELATIVE_TIME_PATTERNS: readonly RegExp[] = [
 ];
 
 const AMOUNT_RES: readonly RegExp[] = [
-  /(?:Rs\.?|INR|₹|Rupees)\s*\d[\d,]*(?:\.\d{1,2})?(?:\s*(?:lakhs?|lacs?|crores?|thousand))?(?:\s*\/-)?/giu,
+  // T-478: the lookbehind keeps "rs"/"inr" inside a word ("Orders 100") from being an amount.
+  /(?<![\p{L}\p{N}])(?:Rs\.?|INR|₹|Rupees)\s*\d[\d,]*(?:\.\d{1,2})?(?:\s*(?:lakhs?|lacs?|crores?|thousand))?(?:\s*\/-)?/giu,
   /\b\d[\d,]*(?:\.\d+)?\s*(?:lakhs?|lacs?|crores?)\b/giu,
 ];
 
@@ -559,6 +560,36 @@ const COURT_RE = new RegExp(
 
 const PERIOD_RE = /\b(\d{1,3})\s*(days?|weeks?|months?|years?)\b/giu;
 const BARE_NUMBER_RE = /\b\d{3,}\b/g;
+
+/**
+ * T-478 (Ajay's ruling 1, T-245 file 7d42b105): a number directly after
+ * Article / Art. / Section / S. / s. / Order / O. / Rule / r. / Schedule / Para
+ * is a legal reference, never a case number, so it is never blanked. The whole
+ * match (prefix + number) is claimed with no entity before the bare-number
+ * pass, so neither the number nor the prefix word ("Art", "Articles" as
+ * proper nouns) is blanked. For every prefix, the lookbehind blocks a match
+ * that starts after a letter, digit or dot, i.e. inside a word ("Mr. 1234",
+ * "Rs. 500" stay as they are). A number must follow the prefix directly, so
+ * "Order No. 123456" is still a case/order number.
+ * Ajay's policy edges (ref 1a3cc988): the first number is capped at 4 digits
+ * plus an optional letter (21A, 323A), so "Rule 123456" is not protected; a
+ * listed further number ("Articles 226 and 227") is capped at 3 digits, so a
+ * real case number later in the sentence is not swallowed. The full words are
+ * case-insensitive (LEGAL_REF_WORD_RE); the short prefixes are case-exact
+ * (LEGAL_REF_SHORT_RE: "S." / "s.", "O." only, "r." only), and need their dot.
+ * JS has no inline (?i:...), hence two regexes with one number grammar.
+ */
+const LEGAL_REF_FIRST = String.raw`\d{1,4}[A-Za-z]?(?!\d)(?:\s*\(\s*[0-9a-zA-Z]{1,4}\s*\))*`;
+const LEGAL_REF_NUM = String.raw`\d{1,3}[A-Za-z]?(?!\d)(?:\s*\(\s*[0-9a-zA-Z]{1,4}\s*\))*`;
+const LEGAL_REF_NUMS = String.raw`(${LEGAL_REF_FIRST}(?:\s*(?:,|&|\/|\band\b|\bor\b|\bto\b)\s*${LEGAL_REF_NUM})*)`;
+const LEGAL_REF_WORD_RE = new RegExp(
+  String.raw`(?<![\p{L}\p{N}.])(?:Articles?|Art|Sections?|Orders?|Rules?|Schedules?|Paras?)\b\.?\s*${LEGAL_REF_NUMS}`,
+  'giu',
+);
+const LEGAL_REF_SHORT_RE = new RegExp(
+  String.raw`(?<![\p{L}\p{N}.])(?:[Ss]|O|r)\.\s*${LEGAL_REF_NUMS}`,
+  'gu',
+);
 
 /** Every entity in one paragraph, longest kind first, with no overlap. */
 function extractEntities(text: string): Entity[] {
@@ -630,6 +661,12 @@ function extractEntities(text: string): Entity[] {
   }
   for (const m of text.matchAll(PERIOD_RE)) {
     add({ type: 'date', text: m[0], start: m.index!, end: m.index! + m[0].length, period: true });
+  }
+  // T-478: a legal reference (prefix word + number) is claimed with no entity,
+  // so neither the number (bare-number pass) nor the prefix word ("Art",
+  // "Articles": proper-noun pass) is blanked.
+  for (const re of [LEGAL_REF_WORD_RE, LEGAL_REF_SHORT_RE]) {
+    for (const m of text.matchAll(re)) claim(m.index!, m.index! + m[0].length);
   }
   for (const m of text.matchAll(BARE_NUMBER_RE)) {
     add({ type: 'case_no', text: m[0], start: m.index!, end: m.index! + m[0].length });
