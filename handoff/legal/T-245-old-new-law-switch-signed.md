@@ -771,3 +771,18 @@ Follow-up (not a T-477 blocker): employment_agreement still cites the Industrial
 | (1) Case number with 226 and 227 and a Supreme Court court | OK. Reuse `[To be confirmed: case type and number as styled in this High Court]`. |
 | (2) Mandamus respondent | Number it. A single respondent prints as `1. {respondent_authority}`. Several are numbered 1., 2., and so on. No State line is added unless the advocate names the State. |
 | (3) Empty respondent_authority | Use this signed blank, not one taken from the field's label: `[To be confirmed: authority against whom the writ is sought, with designation and address]`. It keeps its number, for example "2." after a State line. |
+
+## T-469: labelled date reads (Ajay, 16 Oct 2026)
+
+Approved to proceed, with these conditions:
+
+| # | Condition |
+|---|---|
+| 1 | An unlabelled date (for example "on 4th June, 2026" or "Dated: 12.03.2026") fills a field only when exactly one date field is being asked. Otherwise it stays blank. |
+| 2 | "w.e.f." and "wef" are not fillers. An effective date is not the date of an event, so it stays blank unless a field word names the field. |
+| 3 | "order dated …" fills an order date only when the pack has exactly one order-date field (impugned, original or bail). Otherwise it stays blank. It never fills judgment_date. |
+| 4 | Keep the s.138 cues the same as 971d2685. Add "presented" and "deposited" for the presentation date and "received" for receipt of the notice, so that "cheque" alone fills only cheque_date. |
+| 5 | A two-digit year ("13/9/26") is read as 20xx. If the result is a future date, the field stays blank. |
+| 6 | Everything on the "stay blank" list is OK as listed. Hindi fillers are excluded for now; a follow-up may add them. |
+
+Separate bug: "June 2026" with no day is read as 20 June 2026. That is an invented fact. It is a v1 ticket of its own, and the field must stay blank. Never supply a day.
