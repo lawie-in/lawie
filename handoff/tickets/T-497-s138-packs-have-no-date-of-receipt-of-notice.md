@@ -27,3 +27,7 @@ V1.1. The only s.138 pack in v1 is the demand notice (legal_notice_s138.json). I
 ## Ajay confirms (b37ed330, 16 Oct 2026)
 
 Arjun's reading is right: the demand notice prints "within fifteen days of receipt of this notice" and needs no receipt date, so v1 is fine. The complaint (T-476) needs the receipt date: the cause of action arises when the 15 days end, and s.142(1)(b) gives one month from then. Compute both only from given dates; otherwise blank. A complaint filed late takes the T-472 pattern: a delay paragraph plus a condonation application under the proviso to s.142(1)(b).
+
+## Arjun (16 Oct 2026) — V1.1
+
+The only s.138 pack in v1 is the demand notice (legal_notice_s138.json), which prints the period relatively ("within fifteen days of receipt of this notice") and computes no date; a notice cannot know its own receipt date. notice_received_date belongs to the s.138 complaint pack, not in v1. Fold with T-476. AC: field + intake question on the complaint pack; the 15-day and one-month (s.142(1)(b)) dates computed only when given, blank otherwise (T-496 rule).

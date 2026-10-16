@@ -23,3 +23,7 @@ Reproduce with her exact text through the real question rounds (not the golden h
 - Her description gives no re-asked fact in rounds 1 and 2 (other than those the description does not state); "Still unknown" lists only truly missing fields.
 - Test that drives the rounds (or the question builder) with her description; golden fixture 27 stays green.
 - First step: read the generation row of document 6ad24921f6dbe58fccc23311 (ledger on/off) before concluding.
+
+## Update 16 Oct 2026, 22:40 IST (Anushka's second re-run, after the update and reseed)
+
+Seven re-asks are now two: "In custody since" (a date) and "Sections Charged in FIR" (a list). The "Still unknown" list is gone. Scope of this ticket is now these two: find why the ledger/extractor facts for those two keys do not mark them as read (key mismatch, date or list type). See handoff/quality/2026-10-16-bail-rerun-2-after-reseed-FAIL.md.
