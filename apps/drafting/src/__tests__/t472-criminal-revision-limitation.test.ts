@@ -17,7 +17,12 @@ import { Response } from 'express';
 import type { LedgerFact } from '@lawie/shared';
 
 import { streamGenerateFromBrief, streamGenerateFromTemplate } from '../services/ai.service';
-import { CLAUSES_MARKER, findMissingClauses, type DrafterOutput } from '../services/brief-drafter';
+import {
+  CLAUSES_MARKER,
+  coveredBySystemPart,
+  findMissingClauses,
+  type DrafterOutput,
+} from '../services/brief-drafter';
 import * as factVerifier from '../services/fact-verifier';
 import { loadAvermentLists } from '../services/averments';
 import { buildBrief, buildChecklist, type GivenValue } from '../services/intake-brief';
@@ -50,13 +55,20 @@ const UNKNOWN = '[To be confirmed: whether the petition is within limitation]';
 const S5_ITEM =
   'Application under Section 5 of the Limitation Act, 1963 for condonation of delay, supported by an affidavit stating the cause of the delay.';
 const STATIC_ITEM = 'Condonation application if filed beyond 90 days';
+// AJ-472-M1 (Ajay): the checklist line when the limitation paragraph is the blank.
+const UNKNOWN_ITEM =
+  'Check limitation from the dates; if the petition is late, file an application under Section 5 of the Limitation Act, 1963.';
+const PROMPT_LINE =
+  'Do not state whether the present petition is within or beyond limitation, or whether condonation of delay is needed; that paragraph is supplied. Grounds about limitation in other proceedings stay as the advocate gave them.';
+const FLAG = (n: number) =>
+  `Check this sentence: it states a limitation position. The limitation paragraph (para ${n}) is computed from your dates.`;
 
 // The case: order 2026-01-01.
 const ORDER = '2026-01-01';
 const LATE = '2026-05-12'; // day 131
 const IN_TIME = '2026-03-15'; // day 73
 
-/** The model's own claim, which must never reach the advocate. */
+/** The model's own claim. Option (d): it stays in the draft, byte for byte, and is flagged. */
 const MODEL_CLAIM =
   'The petition is filed within the period of limitation, no condonation is needed.';
 
@@ -106,10 +118,11 @@ function eventsOf(text: string, name: string): Array<Record<string, any>> {
 
 const count = (hay: string, needle: string) => hay.split(needle).length - 1;
 
-/** Shapes asserted on every run: the model's own claim is never in the delivered draft. */
-function expectNoModelClaim(text: string) {
-  expect(text).not.toMatch(/no condonation is needed/i);
-  expect(text).not.toMatch(/within the period of limitation, no/i);
+/** The limitation warnings the checks panel was sent. */
+function limitationWarnings(sse: string) {
+  return eventsOf(sse, 'warning')
+    .flatMap((e) => e.warnings as Array<Record<string, any>>)
+    .filter((w) => w.type === 'limitation');
 }
 
 beforeEach(() => {
@@ -158,7 +171,38 @@ function factsOf(values: Record<string, string>, source: 'user' | 'asked' = 'use
   );
 }
 
+/**
+ * On the ledger path the real fact verifier (T-147d, a separate layer) masks a
+ * figure or period the ledger does not hold, e.g. "within limitation" in the
+ * model's sentence. `passthrough` lets the verifier through unchanged, so that
+ * only the limitation layer decides what stays.
+ */
 async function runBrief(
+  values: Record<string, string>,
+  opts: { ledger?: boolean; unresolved?: string[]; body?: string; passthrough?: boolean } = {},
+) {
+  if (opts.ledger && opts.passthrough) {
+    const spy = jest.spyOn(factVerifier, 'verifyAndRepair').mockImplementation(async (input) => ({
+      body: input.body,
+      passed: true,
+      repairRan: false,
+      repairFixed: false,
+      initial: [],
+      afterRepair: null,
+      records: [],
+      banner: null,
+      placeholdersAdded: 0,
+    }));
+    try {
+      return await runBriefReal(values, opts);
+    } finally {
+      spy.mockRestore();
+    }
+  }
+  return runBriefReal(values, opts);
+}
+
+async function runBriefReal(
   values: Record<string, string>,
   opts: { ledger?: boolean; unresolved?: string[]; body?: string } = {},
 ) {
@@ -212,16 +256,25 @@ describe.each([
   ['the brief path, no ledger', false],
   ['the brief path, with a ledger', true],
 ])('T-472 %s', (_name, ledger) => {
-  it('131 days after the order: the delay paragraph with "41 days", no model claim, the s.5 item on the checklist', async () => {
-    const r = await runBrief({ ...BASE, ...dates(LATE) }, { ledger });
+  it('131 days after the order: the delay paragraph with "41 days" once, the model sentence kept and flagged, the s.5 item on the checklist', async () => {
+    const r = await runBrief({ ...BASE, ...dates(LATE) }, { ledger, passthrough: true });
     const text = r.out.fullText;
     expect(text).toContain(BEYOND_41);
     expect(count(text, BEYOND_41)).toBe(1);
     expect(text).toContain('with a delay of 41 days.');
-    expectNoModelClaim(text);
+    // option (d): the model's sentence is not edited (the paragraph says late, the warning says check)
+    expect(text).toContain(MODEL_CLAIM);
     expect(text).not.toContain(WITHIN);
-    expect(text).not.toMatch(/within (the period of )?limitation/i);
-    // the neighbours of the replaced sentence are kept
+    expect(text).toContain(`4. ${BEYOND_41}`);
+    const w = limitationWarnings(r.sse);
+    expect(w).toHaveLength(1);
+    expect(w[0]).toMatchObject({
+      type: 'limitation',
+      message: FLAG(4),
+      details: { rule: 'limitation_claim', expected: MODEL_CLAIM },
+    });
+    expect(r.out.limitationFlags).toBe(1);
+    // the neighbours of the sentence are kept
     expect(text).toContain(
       'That the impugned order was passed by the Sessions Court, Patna on 01.01.2026.',
     );
@@ -232,24 +285,32 @@ describe.each([
     expect(eventsOf(r.sse, 'checklist')[0].items).toContain(S5_ITEM);
   });
 
-  it('the model repeating its claim in a second paragraph: one computed paragraph is delivered, no claim', async () => {
+  it('the model repeating its claim in a second paragraph: both stay, one computed paragraph (para 5), a warning each', async () => {
     const body = `${modelBody()}\n\n4. That the petitioner has no delay to explain. No condonation is required.`;
-    const r = await runBrief({ ...BASE, ...dates(LATE) }, { ledger, body });
+    const r = await runBrief({ ...BASE, ...dates(LATE) }, { ledger, body, passthrough: true });
     expect(count(r.out.fullText, BEYOND_41)).toBe(1);
-    expect(r.out.fullText).not.toMatch(/no condonation is required/i);
-    expectNoModelClaim(r.out.fullText);
+    expect(r.out.fullText).toContain(`5. ${BEYOND_41}`);
+    expect(r.out.fullText).toContain('No condonation is required.');
+    expect(r.out.fullText).toContain(MODEL_CLAIM);
+    const w = limitationWarnings(r.sse);
+    expect(w.map((x) => x.details.expected)).toEqual([MODEL_CLAIM, 'No condonation is required.']);
+    for (const x of w) expect(x.message).toBe(FLAG(5));
+    expect(r.out.limitationFlags).toBe(2);
   });
 
-  it('within the period: the signed within sentence, no s.5 item, the rest unchanged', async () => {
-    const r = await runBrief({ ...BASE, ...dates(IN_TIME) }, { ledger });
+  it('within the period: the signed within sentence once, no limitation checklist item, the model text unchanged', async () => {
+    const r = await runBrief({ ...BASE, ...dates(IN_TIME) }, { ledger, passthrough: true });
     const text = r.out.fullText;
     expect(count(text, WITHIN)).toBe(1);
-    expectNoModelClaim(text);
+    expect(text).toContain(`4. ${WITHIN}`);
+    expect(text).toContain(MODEL_CLAIM);
     expect(text).not.toContain('Section 5 of the Limitation Act');
     expect(text).not.toContain('with a delay of');
     expect(text).toContain('That the order is illegal and perverse.');
     expect(checklistOf(r)).not.toContain(S5_ITEM);
+    expect(checklistOf(r)).not.toContain(UNKNOWN_ITEM);
     expect(eventsOf(r.sse, 'checklist')[0].items).not.toContain(S5_ITEM);
+    expect(limitationWarnings(r.sse)).toHaveLength(1);
   });
 
   it('the static "Condonation ... 90 days" item is gone in both cases; the s.5 line is only on the delay path', async () => {
@@ -258,46 +319,58 @@ describe.each([
     expect(checklistOf(ok)).not.toContain(STATIC_ITEM);
     expect(checklistOf(late)).not.toContain(STATIC_ITEM);
     expect(checklistOf(ok)).not.toContain(S5_ITEM);
+    expect(checklistOf(ok)).not.toContain(UNKNOWN_ITEM);
     expect(checklistOf(late)).toEqual([...checklistOf(ok), S5_ITEM]);
     expect(checklistOf(ok)).toContain('Disclaimer slip — Lawie drafting assistance acknowledged');
   });
 
+  // (The R3/R4 sentences with section numbers are pinned on every path in
+  // t472-limitation-grounds-survive; here the fact verifier is the real one, so
+  // sentences with no section number or period are used.)
   it.each([
-    'This petition is filed within limitation, and cognizance was barred under Section 468 CrPC.',
-    'The petition is within limitation as Section 473 CrPC does not apply.',
     'The application is within time.',
-  ])('model claim "%s" in a real run is replaced by the computed text', async (claim) => {
-    const body = `1. That the petitioner is a resident of Patna.\n\n2. ${claim}\n\n3. That the order is illegal.`;
-    const r = await runBrief({ ...BASE, ...dates(LATE) }, { ledger, body });
-    expect(r.out.fullText).toContain(`2. ${BEYOND_41}`);
-    expect(count(r.out.fullText, BEYOND_41)).toBe(1);
-    expect(r.out.fullText).not.toContain(claim);
-  });
+    "The petitioner has approached this Hon'ble Court within the period of limitation.",
+    'This revision against the order taking cognizance is within limitation.',
+  ])(
+    'model claim "%s" in a real run survives byte for byte, is flagged, and the computed paragraph is para 4',
+    async (claim) => {
+      const body = `1. That the petitioner is a resident of Patna.\n\n2. ${claim}\n\n3. That the order is illegal.`;
+      const r = await runBrief({ ...BASE, ...dates(LATE) }, { ledger, body, passthrough: true });
+      expect(r.out.fullText).toContain(`2. ${claim}`);
+      expect(r.out.fullText).toContain(`3. That the order is illegal.`);
+      expect(r.out.fullText).toContain(`4. ${BEYOND_41}`);
+      expect(count(r.out.fullText, BEYOND_41)).toBe(1);
+      const w = limitationWarnings(r.sse);
+      expect(w).toHaveLength(1);
+      expect(w[0].details.expected).toBe(claim);
+      expect(w[0].message).toBe(FLAG(4));
+    },
+  );
 
   it.each([
-    'The cognizance taken is barred by limitation under Section 468 CrPC.',
-    'Section 473 CrPC does not save the prosecution.',
-  ])('plain ground "%s" in a real run stays untouched', async (ground) => {
+    'Cognizance was taken beyond the period of limitation.',
+    'The complaint was filed beyond the period of limitation.',
+  ])('plain ground "%s" in a real run stays untouched and is not flagged', async (ground) => {
     const body = `1. That the petitioner is a resident of Patna.\n\n2. ${ground}\n\n3. That the order is illegal.`;
     const r = await runBrief({ ...BASE, ...dates(LATE) }, { ledger, body });
-    // The ledger path may mask the unverified section number ({{MISSING: section}}); the
-    // sentence itself is kept and the computed paragraph is appended after it.
-    const kept = ground.replace(/(Section 468 CrPC|Section 473 CrPC)\.?$/, '').trim();
-    expect(r.out.fullText).toContain(kept.replace(/^Section 473 CrPC /, ''));
+    expect(r.out.fullText).toContain(`2. ${ground}`);
     expect(r.out.fullText).toContain(`3. That the order is illegal.`);
-    expect(r.out.fullText).toMatch(new RegExp(`4\\. ${BEYOND_41.slice(0, 40)}`));
+    expect(r.out.fullText).toContain(`4. ${BEYOND_41}`);
     expect(count(r.out.fullText, BEYOND_41)).toBe(1);
+    expect(limitationWarnings(r.sse)).toEqual([]);
+    expect(r.out.limitationFlags).toBe(0);
   });
 
   it('unknown filing date: the signed blank, no number, no s.5 item', async () => {
     const r = await runBrief({ ...BASE, ...dates(null) }, { ledger });
     const text = r.out.fullText;
     expect(count(text, UNKNOWN)).toBe(1);
-    expectNoModelClaim(text);
     expect(text).not.toContain(WITHIN);
     expect(text).not.toContain('with a delay of');
     expect(text).not.toMatch(/\d+ days? /);
     expect(checklistOf(r)).not.toContain(S5_ITEM);
+    expect(checklistOf(r)).toContain(UNKNOWN_ITEM);
+    expect(checklistOf(r).filter((i) => i === UNKNOWN_ITEM)).toHaveLength(1);
   });
 
   it('unknown order date: the blank', async () => {
@@ -306,8 +379,9 @@ describe.each([
       { ledger },
     );
     expect(count(r.out.fullText, UNKNOWN)).toBe(1);
-    expectNoModelClaim(r.out.fullText);
     expect(checklistOf(r)).not.toContain(S5_ITEM);
+    expect(checklistOf(r)).toContain(UNKNOWN_ITEM);
+    expect(checklistOf(r).filter((i) => i === UNKNOWN_ITEM)).toHaveLength(1);
   });
 
   it('"Yes", applied but no ready date: the blank, nothing computed', async () => {
@@ -322,6 +396,8 @@ describe.each([
     expect(r.out.fullText).not.toContain('with a delay of');
     expect(r.out.fullText).not.toContain(WITHIN);
     expect(checklistOf(r)).not.toContain(S5_ITEM);
+    expect(checklistOf(r)).toContain(UNKNOWN_ITEM);
+    expect(checklistOf(r).filter((i) => i === UNKNOWN_ITEM)).toHaveLength(1);
   });
 
   it('"Yes", applied and a received date but no ready date: still the blank (no fallback to received)', async () => {
@@ -340,6 +416,8 @@ describe.each([
     expect(r.out.fullText).not.toContain(WITHIN);
     expect(r.out.fullText).not.toContain('with a delay of');
     expect(checklistOf(r)).not.toContain(S5_ITEM);
+    expect(checklistOf(r)).toContain(UNKNOWN_ITEM);
+    expect(checklistOf(r).filter((i) => i === UNKNOWN_ITEM)).toHaveLength(1);
   });
 
   it('"Yes" with neither copy date: the blank', async () => {
@@ -349,6 +427,8 @@ describe.each([
     );
     expect(count(r.out.fullText, UNKNOWN)).toBe(1);
     expect(checklistOf(r)).not.toContain(S5_ITEM);
+    expect(checklistOf(r)).toContain(UNKNOWN_ITEM);
+    expect(checklistOf(r).filter((i) => i === UNKNOWN_ITEM)).toHaveLength(1);
   });
 
   it('the copy question not answered: the blank, even with both copy dates given', async () => {
@@ -363,6 +443,8 @@ describe.each([
     expect(r.out.fullText).not.toContain(WITHIN);
     expect(r.out.fullText).not.toContain('with a delay of');
     expect(checklistOf(r)).not.toContain(S5_ITEM);
+    expect(checklistOf(r)).toContain(UNKNOWN_ITEM);
+    expect(checklistOf(r).filter((i) => i === UNKNOWN_ITEM)).toHaveLength(1);
   });
 
   it('the copy question answered "Not known": the blank, no number', async () => {
@@ -373,6 +455,8 @@ describe.each([
     expect(count(r.out.fullText, UNKNOWN)).toBe(1);
     expect(r.out.fullText).not.toMatch(/\d+ days? /);
     expect(checklistOf(r)).not.toContain(S5_ITEM);
+    expect(checklistOf(r)).toContain(UNKNOWN_ITEM);
+    expect(checklistOf(r).filter((i) => i === UNKNOWN_ITEM)).toHaveLength(1);
   });
 
   it('"No": nothing is excluded, even if copy dates are also given (41 days)', async () => {
@@ -436,10 +520,55 @@ describe.each([
     expect(r.out.fullText).toContain(`3. ${BEYOND_41}`);
   });
 
-  it('the Drafter is told the computed text and nothing else about limitation (LIMITATION line)', async () => {
+  it('the Drafter is given the signed prompt line verbatim, and no longer a "LIMITATION: write ... exactly this text" line', async () => {
     await runBrief({ ...BASE, ...dates(LATE) }, { ledger });
-    const calls = mockMessagesStream.mock.calls.map((c) => JSON.stringify(c[0]));
-    expect(calls.some((c) => c.includes(JSON.stringify(BEYOND_41).slice(1, -1)))).toBe(true);
+    const calls = mockMessagesStream.mock.calls.map((c) => JSON.stringify(c[0])).join('\n');
+    expect(calls).toContain(JSON.stringify(PROMPT_LINE).slice(1, -1));
+    expect(calls).not.toContain('LIMITATION: write the limitation paragraph as exactly this text');
+  });
+
+  it('the clause report need not list limitation_paragraph: the system section covers it (nothing missing, no repair call)', async () => {
+    const pack = loadRulePack(PACK_ID)!;
+    const report = pack.mandatoryClauses
+      .filter((c) => c.id !== 'limitation_paragraph')
+      .map((c) => `${c.id}: 1`)
+      .join('\n');
+    const custom = `${modelBody()}\n\n${CLAUSES_MARKER}\n${report}`;
+    const values = { ...BASE, ...dates(LATE) };
+    const brief = buildBrief({
+      kind: { id: pack.id, name: pack.name, court_document: true },
+      checklist: buildChecklist(pack),
+      values: Object.entries(values).map(([k, v]) => ({
+        key: k,
+        value: v,
+        source: 'user' as const,
+      })),
+    });
+    mockMessagesStream.mockReset().mockImplementation(async () => sdkAnswer(custom, 4000, 800));
+    const out = await streamGenerateFromBrief(
+      {
+        pack,
+        templateConfig: loadTemplateConfig(PACK_ID)!,
+        brief,
+        described: null,
+        language: 'en',
+        targetParagraphs: 10,
+        advocateName: 'Test Advocate',
+        userId: 'u1',
+        runId: 'r1',
+        runSequence: 1,
+        runType: 'initial',
+        loadSkeleton: () => null,
+        ...(ledger
+          ? {
+              ledger: { facts: factsOf(values), unresolved: [], lists: loadAvermentLists(PACK_ID) },
+            }
+          : {}),
+      } as unknown as Parameters<typeof streamGenerateFromBrief>[0],
+      resStub() as unknown as Response,
+    );
+    expect(out.missingClauses.map((m) => m.id)).not.toContain('limitation_paragraph');
+    expect(out.missingClauses).toEqual([]);
   });
 
   it('no limitation_compliance question is in the brief', async () => {
@@ -534,6 +663,8 @@ describe('T-472 B: the ledger carries the computed fact', () => {
     expect(count(r.out.fullText, UNKNOWN)).toBe(1);
     expect(r.out.fullText).not.toContain('with a delay of');
     expect(checklistOf(r)).not.toContain(S5_ITEM);
+    expect(checklistOf(r)).toContain(UNKNOWN_ITEM);
+    expect(checklistOf(r).filter((i) => i === UNKNOWN_ITEM)).toHaveLength(1);
   });
 });
 
@@ -572,6 +703,10 @@ describe('T-472 other packs are unaffected', () => {
     expect(out.fullText).toContain('The application is within limitation.');
     expect(out.fullText).not.toContain('Section 5 of the Limitation Act');
     expect(out.filingChecklist).not.toContain(S5_ITEM);
+    expect(out.filingChecklist).not.toContain(UNKNOWN_ITEM);
+    // no rule, no flags: the field is absent and no limitation warning is raised
+    expect('limitationFlags' in out).toBe(false);
+    expect(out.warnings.filter((w) => w.type === 'limitation')).toEqual([]);
   });
 });
 
@@ -620,11 +755,21 @@ async function runForm(form: Record<string, unknown>, answer: string) {
 const FORM_ANSWER = `1. That the petitioner is a resident of Patna.\n\n2. That the impugned order was passed on 01.01.2026. ${MODEL_CLAIM}\n\n3. That the order is illegal.`;
 
 describe('T-472 C: the template (form) path', () => {
-  it('131 days: the delay paragraph with "41 days", no model claim, s.5 item on the checklist', async () => {
+  it('131 days: the delay paragraph with "41 days" once (para 4), the model sentence kept and flagged, s.5 item on the checklist', async () => {
     const r = await runForm({ filing_date: LATE }, FORM_ANSWER);
     expect(count(r.out.fullText, BEYOND_41)).toBe(1);
-    expectNoModelClaim(r.out.fullText);
-    expect(r.out.fullText).not.toMatch(/within (the period of )?limitation/i);
+    expect(r.out.fullText).toContain(`4. ${BEYOND_41}`);
+    expect(r.out.fullText).toContain(MODEL_CLAIM);
+    expect(r.out.bodyParaCount).toBe(4);
+    expect(r.out.fullText).toMatch(/paragraphs 1 to 4\b/);
+    const w = limitationWarnings(r.sse);
+    expect(w).toHaveLength(1);
+    expect(w[0]).toMatchObject({
+      type: 'limitation',
+      message: FLAG(4),
+      details: { rule: 'limitation_claim', expected: MODEL_CLAIM },
+    });
+    expect(r.out.limitationFlags).toBe(1);
     expect(r.out.filingChecklist).toContain(S5_ITEM);
     expect(eventsOf(r.sse, 'checklist')[0].items).toContain(S5_ITEM);
   });
@@ -632,21 +777,29 @@ describe('T-472 C: the template (form) path', () => {
   it('within the period: the signed within sentence once, no s.5 item', async () => {
     const r = await runForm({ filing_date: IN_TIME }, FORM_ANSWER);
     expect(count(r.out.fullText, WITHIN)).toBe(1);
-    expectNoModelClaim(r.out.fullText);
+    expect(r.out.fullText).toContain(MODEL_CLAIM);
     expect(r.out.fullText).not.toContain('with a delay of');
     expect(r.out.filingChecklist).not.toContain(S5_ITEM);
+    expect(r.out.filingChecklist).not.toContain(UNKNOWN_ITEM);
     expect(r.out.filingChecklist).not.toContain(STATIC_ITEM);
   });
 
   it.each([
     'This petition is filed within limitation, and cognizance was barred under Section 468 CrPC.',
     'The petition is within limitation as Section 473 CrPC does not apply.',
-  ])('form path: model claim "%s" is replaced', async (claim) => {
-    const answer = `1. That the petitioner is a resident of Patna.\n\n2. ${claim}\n\n3. That the order is illegal.`;
-    const r = await runForm({ filing_date: LATE }, answer);
-    expect(r.out.fullText).not.toContain(claim);
-    expect(count(r.out.fullText, BEYOND_41)).toBe(1);
-  });
+  ])(
+    'form path: model claim "%s" survives byte for byte and is flagged (para 4)',
+    async (claim) => {
+      const answer = `1. That the petitioner is a resident of Patna.\n\n2. ${claim}\n\n3. That the order is illegal.`;
+      const r = await runForm({ filing_date: LATE }, answer);
+      expect(r.out.fullText).toContain(`<p style="text-align:left">2. ${claim}</p>`);
+      expect(count(r.out.fullText, BEYOND_41)).toBe(1);
+      expect(r.out.fullText).toContain(`4. ${BEYOND_41}`);
+      const w = limitationWarnings(r.sse);
+      expect(w.map((x) => x.details.expected)).toEqual([claim]);
+      expect(w[0].message).toBe(FLAG(4));
+    },
+  );
 
   it.each([
     'The cognizance taken is barred by limitation under Section 468 CrPC.',
@@ -656,14 +809,17 @@ describe('T-472 C: the template (form) path', () => {
     const r = await runForm({ filing_date: LATE }, answer);
     expect(r.out.fullText).toContain(ground);
     expect(count(r.out.fullText, BEYOND_41)).toBe(1);
+    expect(limitationWarnings(r.sse)).toEqual([]);
+    expect(r.out.limitationFlags).toBe(0);
   });
 
   it('unknown filing date: the blank, no number, no s.5 item', async () => {
     const r = await runForm({}, FORM_ANSWER);
     expect(count(r.out.fullText, UNKNOWN)).toBe(1);
-    expectNoModelClaim(r.out.fullText);
     expect(r.out.fullText).not.toContain('with a delay of');
     expect(r.out.filingChecklist).not.toContain(S5_ITEM);
+    expect(r.out.filingChecklist).toContain(UNKNOWN_ITEM);
+    expect(r.out.filingChecklist.filter((i) => i === UNKNOWN_ITEM)).toHaveLength(1);
   });
 
   it('"Yes" with the copy dates from the form: applied 01-02, ready 02-15 gives within', async () => {
@@ -720,6 +876,8 @@ describe('T-472 C: the template (form) path', () => {
     expect(count(r.out.fullText, UNKNOWN)).toBe(1);
     expect(r.out.fullText).not.toContain(WITHIN);
     expect(r.out.filingChecklist).not.toContain(S5_ITEM);
+    expect(r.out.filingChecklist).toContain(UNKNOWN_ITEM);
+    expect(r.out.filingChecklist.filter((i) => i === UNKNOWN_ITEM)).toHaveLength(1);
   });
 
   it('"Not known": the blank', async () => {
@@ -729,6 +887,8 @@ describe('T-472 C: the template (form) path', () => {
     );
     expect(count(r.out.fullText, UNKNOWN)).toBe(1);
     expect(r.out.filingChecklist).not.toContain(S5_ITEM);
+    expect(r.out.filingChecklist).toContain(UNKNOWN_ITEM);
+    expect(r.out.filingChecklist.filter((i) => i === UNKNOWN_ITEM)).toHaveLength(1);
   });
 
   it('"Yes" without a ready date: the blank', async () => {
@@ -738,6 +898,8 @@ describe('T-472 C: the template (form) path', () => {
     );
     expect(count(r.out.fullText, UNKNOWN)).toBe(1);
     expect(r.out.filingChecklist).not.toContain(S5_ITEM);
+    expect(r.out.filingChecklist).toContain(UNKNOWN_ITEM);
+    expect(r.out.filingChecklist.filter((i) => i === UNKNOWN_ITEM)).toHaveLength(1);
   });
 
   it('"Yes", applied and received only (no ready date): the blank, received is not a fallback', async () => {
@@ -753,9 +915,11 @@ describe('T-472 C: the template (form) path', () => {
     expect(count(r.out.fullText, UNKNOWN)).toBe(1);
     expect(r.out.fullText).not.toContain(WITHIN);
     expect(r.out.filingChecklist).not.toContain(S5_ITEM);
+    expect(r.out.filingChecklist).toContain(UNKNOWN_ITEM);
+    expect(r.out.filingChecklist.filter((i) => i === UNKNOWN_ITEM)).toHaveLength(1);
   });
 
-  it('two AI sections: each is renumbered on its own, the dropped paragraph closes up inside its section only', async () => {
+  it('two AI sections: neither is edited; one computed paragraph; a warning for the claim in the second', async () => {
     const base = loadTemplateConfig(PACK_ID)!;
     const sections = base.document_structure.sections;
     const bodyAt = sections.findIndex((x) => x.type === 'ai_generated');
@@ -769,6 +933,7 @@ describe('T-472 C: the template (form) path', () => {
     mockMessagesStream
       .mockReset()
       .mockImplementation(async () => sdkAnswer(answers[call++] ?? answers[1], 4000, 800));
+    const res = resStub();
     const out = await streamGenerateFromTemplate(
       {
         templateConfig: {
@@ -782,15 +947,22 @@ describe('T-472 C: the template (form) path', () => {
         runSequence: 1,
         runType: 'initial',
       } as unknown as Parameters<typeof streamGenerateFromTemplate>[0],
-      resStub() as unknown as Response,
+      res as unknown as Response,
     );
     expect(call).toBe(2);
-    expect(out.fullText).toContain('2. That the order is illegal.');
-    expect(out.fullText).toContain(`3. ${BEYOND_41}`);
-    expect(out.fullText).toContain('4. That the grounds are made out.');
-    expect(out.fullText).not.toContain('5. That the grounds');
-    expect(out.fullText).not.toMatch(/no condonation is required/i);
+    for (const line of [
+      '2. That the order is illegal.',
+      '3. The petition is within the period of limitation.',
+      '4. No condonation is required.',
+      '5. That the grounds are made out.',
+    ])
+      expect(out.fullText).toContain(line);
     expect(count(out.fullText, BEYOND_41)).toBe(1);
+    const expected = limitationWarnings(res.written()).map((w) => w.details.expected);
+    expect(expected).toEqual([
+      'The petition is within the period of limitation.',
+      'No condonation is required.',
+    ]);
   });
 
   it('a stale limitation_compliance value sent by an old client decides nothing', async () => {
@@ -799,7 +971,9 @@ describe('T-472 C: the template (form) path', () => {
       FORM_ANSWER,
     );
     expect(count(r.out.fullText, BEYOND_41)).toBe(1);
-    expect(r.out.fullText).not.toMatch(/within (the period of )?limitation/i);
+    // the stale value decides nothing; the model's sentence is neither used nor edited
+    expect(r.out.fullText).toContain(MODEL_CLAIM);
+    expect(r.out.fullText).not.toContain(WITHIN);
   });
 
   it('another pack on the form path gets nothing added', async () => {
@@ -829,6 +1003,9 @@ describe('T-472 C: the template (form) path', () => {
     );
     expect(out.fullText).not.toContain('Section 5 of the Limitation Act');
     expect(out.filingChecklist).not.toContain(S5_ITEM);
+    expect(out.filingChecklist).not.toContain(UNKNOWN_ITEM);
+    expect('limitationFlags' in out).toBe(false);
+    expect(out.fullText).toContain('The application is within limitation.');
   });
 });
 
@@ -853,12 +1030,26 @@ describe('T-472 D: criminal_revision.json', () => {
     expect(readFileSync(RULES, 'utf8')).not.toContain('limitation_compliance');
   });
 
-  it('Para 5 line tells the model not to write limitation', () => {
-    const p5 = raw.prompt_context.promptInstructions.filter((l) => l.startsWith('Para 5'));
-    expect(p5).toEqual([
-      'Para 5: Limitation — Lawie prints this paragraph from the dates given; do not write it',
-    ]);
-    expect(raw.prompt_context.promptInstructions.join('\n')).not.toContain('Art. 131');
+  it('AJ-472-M2: the limitation line replaces the Para 5 line, exactly once, with no paragraph number', () => {
+    const lines = raw.prompt_context.promptInstructions;
+    const M2 =
+      'Limitation — Lawie adds this as the last numbered paragraph, from the dates given. Do not write it, and do not leave a gap in your numbering for it.';
+    expect(lines.filter((l) => l === M2)).toHaveLength(1);
+    expect(lines.some((l) => l.startsWith('Para 5'))).toBe(false);
+    expect(lines.filter((l) => /^Limitation —/.test(l))).toEqual([M2]);
+    expect(lines.join('\n')).not.toContain('Art. 131');
+    expect(lines.join('\n')).not.toContain('prints this paragraph');
+    // neighbours unchanged
+    const at = lines.indexOf(M2);
+    expect(lines[at - 1].startsWith('Para 4:')).toBe(true);
+  });
+
+  it('the signed Drafter line is in promptInstructions verbatim, exactly once, right after the limitation line', () => {
+    const lines = raw.prompt_context.promptInstructions;
+    expect(lines.filter((l) => l === PROMPT_LINE)).toHaveLength(1);
+    const at = lines.indexOf(PROMPT_LINE);
+    expect(lines[at - 1].startsWith('Limitation — Lawie adds this')).toBe(true);
+    expect(lines[at + 1].startsWith('Para 6:')).toBe(true);
   });
 
   it('limitation_paragraph description is the new wording', () => {
@@ -950,52 +1141,69 @@ describe('T-472 D: criminal_revision.json', () => {
 
 // ── N: numbering, and the Drafter's clause report ───────────────────────────
 
-describe('T-472 N: numbering after the replacement', () => {
+describe('T-472 N: numbering with the model text left alone', () => {
   describe.each([
     ['the brief path, no ledger', false],
     ['the brief path, with a ledger', true],
   ])('%s', (_name, ledger) => {
-    it('a second claim paragraph is dropped and the paragraphs after it close up (1, 2, 3, 4; no gap, no repeat)', async () => {
-      const body = [
-        '1. That the petitioner Ramesh Kumar is a resident of Patna.',
+    const BODY5 = [
+      '1. That the petitioner Ramesh Kumar is a resident of Patna.',
+      '2. The petition is within the period of limitation.',
+      '3. No condonation is required.',
+      '4. That the order is illegal and perverse.',
+      '5. That the grounds are made out.',
+    ].join('\n\n');
+
+    it('no paragraph is dropped or renumbered; the computed paragraph is the next number (6), bodyParaCount 6, verification "1 to 6"', async () => {
+      const r = await runBrief(
+        { ...BASE, ...dates(LATE) },
+        { ledger, body: BODY5, passthrough: true },
+      );
+      const text = r.out.fullText;
+      for (const line of [
         '2. The petition is within the period of limitation.',
         '3. No condonation is required.',
         '4. That the order is illegal and perverse.',
         '5. That the grounds are made out.',
-      ].join('\n\n');
-      const r = await runBrief({ ...BASE, ...dates(LATE) }, { ledger, body });
-      const text = r.out.fullText;
-      expect(text).toContain(`2. ${BEYOND_41}`);
-      expect(text).toContain('3. That the order is illegal and perverse.');
-      expect(text).toContain('4. That the grounds are made out.');
-      expect(text).not.toContain('5. That the grounds');
-      expect(text).not.toContain('4. That the order is illegal');
-      expect(text).not.toMatch(/no condonation is required/i);
+      ])
+        expect(text).toContain(line);
+      expect(text).toContain(`6. ${BEYOND_41}`);
       expect(count(text, BEYOND_41)).toBe(1);
+      expect(r.out.bodyParaCount).toBe(6);
+      expect(text).toMatch(/paragraphs 1 to 6\b/);
+      // both model statements are flagged, naming para 6
+      const w = limitationWarnings(r.sse);
+      expect(w.map((x) => x.details.expected)).toEqual([
+        'The petition is within the period of limitation.',
+        'No condonation is required.',
+      ]);
+      for (const x of w) expect(x.message).toBe(FLAG(6));
     });
 
-    it('a computed paragraph appended at the end takes the next number', async () => {
+    it('a computed paragraph after a body of 3 takes number 4 and is the last numbered paragraph before the prayer', async () => {
       const body =
         '1. That the petitioner is a resident of Patna.\n\n2. That the order is illegal.\n\n3. Prayer follows.';
       const r = await runBrief({ ...BASE, ...dates(LATE) }, { ledger, body });
       expect(r.out.fullText).toContain(`4. ${BEYOND_41}`);
+      expect(r.out.fullText).not.toMatch(/\b5\. /);
       expect(count(r.out.fullText, BEYOND_41)).toBe(1);
+      expect(r.out.bodyParaCount).toBe(4);
     });
 
-    it("the Drafter's clause report follows the new numbers: a clause reported on a later paragraph is still found (nothing missing)", async () => {
+    it('the unknown blank is numbered too (4), once', async () => {
+      const body =
+        '1. That the petitioner is a resident of Patna.\n\n2. That the order is illegal.\n\n3. Prayer follows.';
+      const r = await runBrief({ ...BASE, ...dates(null) }, { ledger, body });
+      expect(r.out.fullText).toContain(`4. ${UNKNOWN}`);
+      expect(count(r.out.fullText, UNKNOWN)).toBe(1);
+    });
+
+    it("the Drafter's clause report is read on the model's own numbers: a clause reported on paragraph 5 is found (nothing missing)", async () => {
       const pack = loadRulePack(PACK_ID)!;
-      const body = [
-        '1. That the petitioner Ramesh Kumar is a resident of Patna.',
-        '2. The petition is within the period of limitation.',
-        '3. No condonation is required.',
-        '4. That the order is illegal and perverse.',
-        '5. That the grounds are made out.',
-      ].join('\n\n');
-      // grounds_paragraph is reported on paragraph 5, which becomes 4 once paragraph 3 is dropped.
       const report = pack.mandatoryClauses
         .map((c) => `${c.id}: ${c.id === 'grounds_paragraph' ? 5 : 1}`)
         .join('\n');
-      const custom = `${body}\n\n${CLAUSES_MARKER}\n${report}`;
+      const custom = `${BODY5}\n\n${CLAUSES_MARKER}\n${report}`;
       const values = { ...BASE, ...dates(LATE) };
       const given: GivenValue[] = Object.entries(values).map(([k, v]) => ({
         key: k,
@@ -1034,11 +1242,29 @@ describe('T-472 N: numbering after the replacement', () => {
         } as unknown as Parameters<typeof streamGenerateFromBrief>[0],
         resStub() as unknown as Response,
       );
-      expect(out.fullText).toContain('4. That the grounds are made out.');
-      expect(out.missingClauses.map((m) => m.id)).not.toContain('grounds_paragraph');
+      expect(out.fullText).toContain('5. That the grounds are made out.');
       expect(out.missingClauses).toEqual([]);
       expect(out.mandatoryClausesComplete).toBe(true);
     });
+  });
+
+  it('CLAUSE_TO_PART: the limitation_paragraph clause is covered by the limitation_paragraph system part, and by no other part', () => {
+    const pack = loadRulePack(PACK_ID)!;
+    const clause = pack.mandatoryClauses.find((c) => c.id === 'limitation_paragraph')!;
+    expect(clause).toBeDefined();
+    expect(
+      coveredBySystemPart(clause, [
+        { sectionId: 'limitation_paragraph', label: 'limitation paragraph' },
+      ]),
+    ).toBe(true);
+    expect(coveredBySystemPart(clause, [])).toBe(false);
+    expect(coveredBySystemPart(clause, [{ sectionId: 'recitals', label: 'recitals' }])).toBe(false);
+    const grounds = pack.mandatoryClauses.find((c) => c.id === 'grounds_paragraph')!;
+    expect(
+      coveredBySystemPart(grounds, [
+        { sectionId: 'limitation_paragraph', label: 'limitation paragraph' },
+      ]),
+    ).toBe(false);
   });
 
   it('the premise: a clause reported on paragraph 5 of a 4-paragraph body is missing (so the remap is what keeps it found)', () => {

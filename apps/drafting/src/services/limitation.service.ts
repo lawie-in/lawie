@@ -66,6 +66,21 @@ const DELAY_DAYS_BLANK = '[To be confirmed: number of days of delay]';
 export const LIMITATION_S5_CHECKLIST_ITEM =
   'Application under Section 5 of the Limitation Act, 1963 for condonation of delay, supported by an affidavit stating the cause of the delay.';
 
+/**
+ * AJ-472-M1 (Ajay): the filing-checklist line when the limitation paragraph
+ * prints the unknown blank. Within time: no limitation checklist line.
+ */
+export const LIMITATION_UNKNOWN_CHECKLIST_ITEM =
+  'Check limitation from the dates; if the petition is late, file an application under Section 5 of the Limitation Act, 1963.';
+
+/**
+ * Ajay's Drafter line (T-472, option d). It lives in each pack's
+ * `promptInstructions` (criminal_revision.json); kept here so code and tests
+ * can find it.
+ */
+export const LIMITATION_PROMPT_LINE =
+  'Do not state whether the present petition is within or beyond limitation, or whether condonation of delay is needed; that paragraph is supplied. Grounds about limitation in other proceedings stay as the advocate gave them.';
+
 // ── Per-pack rules ──────────────────────────────────────────────────────────
 
 /** The case values a pack's limitation is read from. */
@@ -182,7 +197,7 @@ function unknown(rule: LimitationRule): LimitationResult {
     daysExcluded: null,
     daysOfDelay: null,
     text: LIMITATION_UNKNOWN_TEXT,
-    checklistItems: [],
+    checklistItems: [LIMITATION_UNKNOWN_CHECKLIST_ITEM],
   };
 }
 
@@ -382,20 +397,23 @@ export function withLimitationFact(
   ];
 }
 
-/**
- * The Drafter's case-details line for the limitation paragraph. Plain
- * functional instruction (`verify`): the printed text after it is Ajay's.
- */
-export function limitationInstruction(result: LimitationResult): string {
-  return `LIMITATION: write the limitation paragraph as exactly this text, word for word, and state nothing else about whether this petition is within limitation or needs condonation: ${result.text}`;
+// ── The computed paragraph, a section the system prints ─────────────────────
+
+/** The id of the system section that prints the computed paragraph. */
+export const LIMITATION_SECTION_ID = 'limitation_paragraph';
+
+/** The computed paragraph as it prints, numbered `n`. */
+export function limitationParagraph(result: LimitationResult, n: number): string {
+  return `${n}. ${result.text}`;
 }
 
-// ── Keeping the model's own limitation statements out of the draft ─────────
+// ── Flagging the model's own limitation statements (never edited) ───────────
 //
-// T-472 review: only the model's statements about THIS petition's own
-// limitation are replaced. Limitation as a ground of revision (cognizance
-// barred under s.468 CrPC / s.514 BNSS, delay in lodging the FIR, the limits
-// of the court's powers) is the advocate's case and stays byte for byte.
+// T-472 option d (Arjun): nothing in the model's text is changed for
+// limitation. A sentence the rules below mark only raises a checks-panel
+// warning. Limitation as a ground of revision (cognizance barred under s.468
+// CrPC / s.514 BNSS, delay in lodging the FIR, the limits of the court's
+// powers) is not marked.
 
 /**
  * What may stand between a filing verb and its time phrase: any words, but no
@@ -414,7 +432,7 @@ const BETWEEN = String.raw`(?:(?!${CASE_BELOW_OR_VERB})[^.;])*?`;
 const WITHIN_PHRASE = String.raw`within\s+(?:the\s+)?(?:period of limitation|(?:prescribed |stipulated |statutory )?period|limitation|time|(?:\w+ )?\(?\d+\)? (?:days|months?)|ninety days|three months)\b`;
 
 /**
- * Step 2 (checked first, before step 1), always replaced: "(petition |
+ * Step 2 (checked first, before step 1), always marked: "(petition |
  * revision | application) … is (well / clearly) within (limitation | time |
  * the period | N days)", with or without "filed" (Ajay's byte check). Words
  * may stand between the subject and "is", but no comma, full stop or
@@ -428,7 +446,7 @@ const IS_WITHIN_CLAIM = new RegExp(
 );
 
 /**
- * Step 2, always replaced: the petitioner has approached / moved / preferred /
+ * Step 2, always marked: the petitioner has approached / moved / preferred /
  * filed / presented / instituted (this petition) within limitation or time,
  * or "approached this (Hon'ble) Court … within …". The time phrase must
  * belong to that verb (`BETWEEN`), so "The petitioner has filed the complaint
@@ -455,7 +473,7 @@ const GROUND_ANCHOR =
   /\b(?:sections?|secs?\.?|ss?\.|u\/ss?\.?)\s*(?:46[89]|47[03]|51[3-9])\b|\blimitations? (?:of|on|upon)\b[^.]*\b(?:powers?|jurisdiction)\b/i;
 
 /**
- * Step 2, always replaced: this petition "is / has been / is being filed
+ * Step 2, always marked: this petition "is / has been / is being filed
  * (preferred, presented, instituted, moved)" in time or late, even if the
  * sentence also names the cognizance order or the FIR. Present or present
  * perfect only, and no comma, full stop or semicolon between the subject and
@@ -501,7 +519,7 @@ const SELF_ANCHORED_CUE =
 
 /** True for the model's own statement on whether this petition is in time. */
 export function isPetitionLimitationClaim(sentence: string): boolean {
-  // Ajay's byte check: a claim about this petition is replaced even when the
+  // Ajay's byte check: a claim about this petition is marked even when the
   // same sentence names a ground section (468 / 473 CrPC, 513-519 BNSS).
   if (FILED_CLAIM.test(sentence)) return true;
   if (IS_WITHIN_CLAIM.test(sentence)) return true;
@@ -516,14 +534,10 @@ export function isPetitionLimitationClaim(sentence: string): boolean {
 const ABBREVIATION =
   /(?:^|[\s(])(?:Art|Arts|S|Ss|Sec|Secs|No|Nos|Hon|Mr|Mrs|Ms|Dr|Smt|Shri|Sh|v|vs|Cr|r|O|cl|Cl|para|Para|paras|viz|i\.e|e\.g|etc|St|Govt|Ltd|Pvt|Co)$/;
 
-/** The placeholder's marker character (NUL): it never occurs in a draft. */
-const SENTINEL_MARK = String.fromCharCode(0);
-const SENTINEL = `${SENTINEL_MARK}LIMITATION${SENTINEL_MARK}.`;
+/** A sentence end: `.`, `!` or `?` before a capital, a bracket or a quote. */
+const SENTENCE_END = /[.!?](?=\s+["'“([A-Z])/g;
 
-/** Splits after `.`, `!` or `?` before a capital, a bracket, a quote or the placeholder. */
-const SENTENCE_END = new RegExp(`[.!?](?=\\s+["'“(\\[${SENTINEL_MARK}A-Z])`, 'g');
-
-/** A paragraph's sentences, split after `.`, `!` or `?` before a capital, a bracket or a quote. */
+/** A line's sentences. */
 function sentences(text: string): string[] {
   const out: string[] = [];
   let start = 0;
@@ -540,134 +554,80 @@ function sentences(text: string): string[] {
   return out;
 }
 
-/** A heading line: short, with no full stop or other sentence end (a closing colon is a heading). */
-function isHeading(text: string): boolean {
-  const t = text.trim();
-  return t.split(/\s+/).length <= 8 && !/[.!?;]$/.test(t);
-}
-
-const NUMBER_PREFIX = /^(\s*\d{1,3}\.\s+)/;
-
-/** A numbered paragraph's number at the start of a line. */
-const PARAGRAPH_NUMBER = /^(\s*)(\d{1,3})(\.\s)/gm;
+/** A paragraph number at the start of a line, kept off the sentence that follows. */
+const NUMBER_PREFIX = /^\s*\d{1,3}[.)]\s+/;
 
 /**
- * Ajay's follow-up (4): the numbered paragraphs of one body, numbered
- * consecutively from the body's first number, with no gap and no repeat.
- * Headings and un-numbered text are untouched. `map` takes each old number to
- * its new one (a repeated old number maps to its first occurrence's new one).
+ * The sentences of the model's text that `isPetitionLimitationClaim` marks,
+ * exactly as they stand, in order (one or more bodies; the form path has one
+ * per AI section). Nothing is changed. A copy of the computed paragraph in the
+ * model's text is marked too: the system section already prints it.
  */
-export function renumberParagraphs(body: string): { text: string; map: Map<number, number> } {
-  const map = new Map<number, number>();
-  let next: number | null = null;
-  const text = body.replace(PARAGRAPH_NUMBER, (_m, lead: string, num: string, tail: string) => {
-    const old = Number(num);
-    if (next === null) next = old;
-    const n: number = next;
-    next = n + 1;
-    if (!map.has(old)) map.set(old, n);
-    return `${lead}${n}${tail}`;
-  });
-  return { text, map };
-}
-
-export interface LimitationEnforcement {
-  /** The bodies after the replacement, before renumbering (old numbers, maybe a gap). */
-  edited: string[];
-  /** The bodies as they print: renumbered consecutively. */
-  bodies: string[];
-  /** Per body: old paragraph number -> new one. */
-  renumber: Array<Map<number, number>>;
-}
-
-/**
- * The bodies with the computed text in place of the model's own statements on
- * this petition's limitation (one or more bodies, in document order; the form
- * path has one per AI section). Each exact copy of `text` is kept. Every
- * sentence that `isPetitionLimitationClaim` marks is removed; the first is
- * replaced by `text` when no exact copy is there, so exactly one copy is
- * placed. With no such sentence and no copy, `text` is added as a new last
- * paragraph of the last non-empty body (numbered after the highest paragraph
- * number, if any). A numbered paragraph left with nothing but its number is
- * removed. Then each non-empty body's numbered paragraphs are renumbered
- * consecutively (Ajay's follow-up (4)). Empty bodies are left empty.
- */
-export function enforceLimitationTextDetailed(
-  bodies: readonly string[],
-  text: string,
-): LimitationEnforcement {
-  const identity = (): LimitationEnforcement => ({
-    edited: [...bodies],
-    bodies: [...bodies],
-    renumber: bodies.map(() => new Map<number, number>()),
-  });
-  if (!text) return identity();
-  const hasExact = bodies.some((b) => b.includes(text));
-  let placed = false;
-  const edited = bodies.map((body) => {
-    if (!body.trim()) return body;
-    const guarded = body.split(text).join(SENTINEL);
-    const lines = guarded.split('\n').map((line) => {
-      const prefix = NUMBER_PREFIX.exec(line)?.[1] ?? '';
-      const rest = line.slice(prefix.length);
-      if (!rest.trim() || (isHeading(rest) && !rest.includes(SENTINEL))) return line;
-      let changed = false;
-      const kept: string[] = [];
+export function findLimitationClaims(bodies: readonly string[]): string[] {
+  const out: string[] = [];
+  for (const body of bodies) {
+    for (const line of body.split('\n')) {
+      const rest = line.replace(NUMBER_PREFIX, '');
+      if (!rest.trim()) continue;
       for (const s of sentences(rest)) {
-        if (s.includes(SENTINEL) && s.split(SENTINEL).join('').trim() === '') {
-          kept.push(s);
-        } else if (isPetitionLimitationClaim(s.split(SENTINEL).join(''))) {
-          changed = true;
-          // Any exact copy inside the sentence stays.
-          const copies = s.split(SENTINEL).length - 1;
-          for (let i = 0; i < copies; i++) kept.push(SENTINEL);
-          if (!hasExact && !placed) {
-            kept.push(SENTINEL);
-            placed = true;
-          }
-        } else {
-          kept.push(s);
-        }
+        if (isPetitionLimitationClaim(s)) out.push(s);
       }
-      if (!changed) return line;
-      if (kept.length === 0) return prefix ? null : '';
-      return `${prefix}${kept.join(' ')}`;
-    });
-    return lines
-      .filter((l): l is string => l !== null)
-      .join('\n')
-      .replace(/\n{3,}/g, '\n\n')
-      .split(SENTINEL)
-      .join(text);
-  });
-  if (!hasExact && !placed) {
-    let last = -1;
-    edited.forEach((b, i) => {
-      if (b.trim()) last = i;
-    });
-    if (last >= 0) {
-      const body = edited[last].replace(/\s+$/, '');
-      const numbers = [...body.matchAll(/^\s*(\d{1,3})\.\s/gm)].map((m) => Number(m[1]));
-      const next = numbers.length > 0 ? `${Math.max(...numbers) + 1}. ` : '';
-      edited[last] = `${body}\n\n${next}${text}`;
     }
   }
-  const renumbered = edited.map((b) =>
-    b.trim() ? renumberParagraphs(b) : { text: b, map: new Map<number, number>() },
-  );
-  return {
-    edited,
-    bodies: renumbered.map((r) => r.text),
-    renumber: renumbered.map((r) => r.map),
-  };
+  return out;
 }
 
-/** The bodies as they print (see `enforceLimitationTextDetailed`). */
-export function enforceLimitationTextIn(bodies: readonly string[], text: string): string[] {
-  return enforceLimitationTextDetailed(bodies, text).bodies;
+/** A top-level paragraph number at the start of a line ("8. That"; not "8.1 That"). */
+const TOP_LEVEL_NUMBER = /^\s*(\d{1,3})\.\s/gm;
+
+/**
+ * The highest top-level paragraph number in the model's text, or 0. A
+ * sub-number ("8.1 That …") is not a paragraph and does not count; a skipped
+ * number (1-4, 6-12) does not make the next number collide.
+ */
+export function lastParagraphNumber(body: string): number {
+  let max = 0;
+  for (const m of body.matchAll(TOP_LEVEL_NUMBER)) max = Math.max(max, Number(m[1]));
+  return max;
 }
 
-/** `enforceLimitationTextIn` for one body. */
-export function enforceLimitationText(body: string, text: string): string {
-  return enforceLimitationTextIn([body], text)[0];
+/** A `{{MISSING: …}}` blank, as the fact verifier (T-147d) writes it. */
+const MISSING_BLANK = /\{\{\s*MISSING\s*:[^}]*\}\}/i;
+
+export interface LimitationClaim {
+  /** The sentence as it prints; for a sentence the verifier removed, as the model wrote it. */
+  sentence: string;
+  /** True when the fact verifier blanked or removed (part of) this sentence. */
+  blanked: boolean;
+}
+
+/**
+ * The claims to flag on a draft the fact verifier checked. `before` is the
+ * model's text before the verifier, `after` as it prints. A claim still
+ * printed is flagged as printed; it counts as blanked when it holds a
+ * `{{MISSING: …}}` blank that was not in the text before. A claim in `before`
+ * that no longer prints (the verifier blanked or removed it) is flagged with
+ * the model's own words, blanked. With no verifier, `before` equals `after`.
+ */
+export function findLimitationClaimsChecked(before: string, after: string): LimitationClaim[] {
+  const printed = findLimitationClaims([after]).map((sentence) => ({
+    sentence,
+    blanked: MISSING_BLANK.test(sentence) && !before.includes(sentence),
+  }));
+  const gone =
+    before === after
+      ? []
+      : findLimitationClaims([before])
+          .filter((s) => !after.includes(s))
+          .map((sentence) => ({ sentence, blanked: true }));
+  return [...printed, ...gone];
+}
+
+/** The checks-panel warning for one marked sentence. `{n}` is the computed paragraph's number. */
+export const LIMITATION_FLAG_TEXT =
+  'Check this sentence: it states a limitation position. The limitation paragraph (para {n}) is computed from your dates.';
+
+/** The warning text with the computed paragraph's number filled in. */
+export function limitationFlagMessage(n: number): string {
+  return LIMITATION_FLAG_TEXT.replace('{n}', String(n));
 }

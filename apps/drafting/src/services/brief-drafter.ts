@@ -736,6 +736,9 @@ const CLAUSE_TO_PART: Array<{ clause: RegExp; part: RegExp }> = [
   { clause: /recital/i, part: /^recitals$/ },
   // T-136: the warning of prosecution stands in the demand the system adds.
   { clause: /prosecution[\s_-]*warning/i, part: /^demand_clause$/ },
+  // T-472: the computed limitation paragraph is a section the system prints
+  // (only on a pack whose limitation is computed; no other pack has the part).
+  { clause: /^limitation_paragraph\b/i, part: /^limitation_paragraph$/ },
 ];
 
 /** True when the system did add the part this clause belongs to. */

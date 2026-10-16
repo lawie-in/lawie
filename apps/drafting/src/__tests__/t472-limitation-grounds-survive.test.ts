@@ -1,29 +1,25 @@
 /**
- * T-472 review round 2: the model's claim about THIS petition's limitation is
- * replaced; real grounds of revision that mention limitation, delay, the FIR or
- * cognizance stay byte for byte. Every sentence and expected string is typed by
- * hand (Ajay's texts from handoff/legal/T-245-old-new-law-switch-signed.md,
- * "Anushka run 4", T-472). Nothing is read from the service to build an expectation.
+ * T-472 option (d) (Arjun/Ajay, AJ-472-M1): the model's text is NEVER edited for
+ * limitation. Every earlier R3/R4 sentence, grounds and claims alike, survives
+ * byte for byte on the brief path (no ledger / ledger) and the form path. A
+ * sentence that states this petition's limitation position is only FLAGGED in
+ * the checks panel; the computed paragraph is printed once, as a system section.
+ * Every sentence and expected string is typed by hand.
  *
- * A  service level            B  the brief path (no ledger / ledger)
- * C  the form path            D  mutation check (in-memory)
- * E  the LIMITATION prompt line    F  more shapes a model plausibly writes (replaced / survives)
+ * A  the finder (sentences flagged / not flagged)   B  the real paths
+ * C  the contradiction case                         D  the Drafter prompt
  */
 import './setupEnv';
 
 import type { LedgerFact } from '@lawie/shared';
 import { Response } from 'express';
 
-import {
-  enforceLimitationText,
-  enforceLimitationTextIn,
-  isPetitionLimitationClaim,
-} from '../services/limitation.service';
 import { streamGenerateFromBrief, streamGenerateFromTemplate } from '../services/ai.service';
 import { CLAUSES_MARKER } from '../services/brief-drafter';
 import * as factVerifier from '../services/fact-verifier';
 import { loadAvermentLists } from '../services/averments';
 import { buildBrief, buildChecklist, type GivenValue } from '../services/intake-brief';
+import { findLimitationClaims } from '../services/limitation.service';
 import { loadRulePack } from '../services/rule-pack.service';
 import { loadTemplateConfig } from '../services/template-engine.service';
 import { sdkAnswer } from './sdkStream';
@@ -53,8 +49,43 @@ const ORDER = '2026-01-01';
 const LATE = '2026-05-12'; // day 131
 const IN_TIME = '2026-03-15'; // day 73
 
-/** Real grounds of revision. None of these is a claim about this petition's own limitation. */
-const SURVIVE = [
+const count = (hay: string, needle: string) => hay.split(needle).length - 1;
+
+/** A numbered paragraph as the ledger and form paths deliver it (HTML). */
+const P = (x: string) => `<p style="text-align:left">${x}</p>`;
+
+/** The model's own in-time statements: each must be flagged. Typed by hand. */
+const MUST_FLAG = [
+  'This revision against the order taking cognizance is within limitation.',
+  'The petition is well within time, the cognizance order being dated 5 January 2026.',
+  "The petitioner has approached this Hon'ble Court within the period of limitation.",
+  "The petition is filed before this Hon'ble Court within limitation.",
+  'The application is within time.',
+  'This petition is filed within limitation, and cognizance was barred under Section 468 CrPC.',
+  'The petition is within limitation as Section 473 CrPC does not apply.',
+];
+
+/** Grounds about the case below: never flagged, never altered. */
+const MUST_NOT_FLAG = [
+  'The present petition is filed against the order taking cognizance beyond the period of limitation under Section 468 CrPC.',
+  'The present revision is preferred against the summoning order on a complaint filed beyond the period of limitation.',
+  'The petitioner has filed the complaint within time.',
+];
+
+/**
+ * Limitation in OTHER proceedings (Ajay: stays as the advocate gave it). The
+ * finder may flag these; the tests only require that they survive.
+ */
+const OTHER_PROCEEDINGS = [
+  'The impugned order passed on the application under Section 473 CrPC holding that the complaint is within limitation is perverse.',
+  "The learned Magistrate dismissed the petitioner's application for discharge holding that the charge sheet is within time.",
+  'The petitioner had preferred an appeal before the learned Sessions Judge within the period of limitation which was dismissed on 5 January 2026.',
+  'The petitioner moved an application for discharge within 30 days of framing of charge.',
+  'The present revision is preferred as the prosecution was launched beyond the prescribed period under Section 468 CrPC.',
+];
+
+/** Earlier grounds (round 2/4) that were never claims. */
+const OLDER_GROUNDS = [
   'The cognizance taken is barred by limitation under Section 468 CrPC.',
   'The cognizance is barred under s.514 BNSS.',
   'There is an unexplained delay of 12 days in lodging the FIR.',
@@ -64,160 +95,39 @@ const SURVIVE = [
   'Limitation is not an issue here.',
 ];
 
-/**
- * More real grounds and neutral sentences that survive (Ajay's rulings, 441ef1e8):
- * cognizance / complaint sentences, a trial-court delay, a sentence that names no
- * petition. Service and predicate level.
- */
-const SURVIVE_MORE = [
-  'The complaint was filed beyond the period of limitation under Section 468 CrPC.',
-  'Cognizance was taken beyond the period of limitation.',
-  'In this revision, the complaint was filed beyond time.',
-  'The revision is also against the unexplained delay of the trial court in framing charges.',
-  'The Trial Court delayed the proceedings, which is a ground for this revision.',
-  'Section 473 CrPC does not save the prosecution.',
-  'The cognizance taken is barred by limitation under Section 468 CrPC.',
-];
+/** All of them, in a fixed order: paragraphs 2 to N-1 of the model's draft. */
+const ALL = [...MUST_FLAG, ...MUST_NOT_FLAG, ...OTHER_PROCEEDINGS, ...OLDER_GROUNDS];
 
-/** The model's own claim about this petition. */
-const CLAIM = 'The petition is filed within the period of limitation, no condonation is needed.';
-
-/** Sentences that are the model's own claim and must be replaced. */
-const REPLACED = [
-  'The revision is within 90 days.',
-  'There is no delay in approaching this Court.',
-  'The petition is within the prescribed period.',
-  'No condonation is required.',
-  'This revision is filed in time.',
-  'The petition is not time-barred.',
-  'The petition is filed within the period of limitation, and no condonation is needed.',
-  'The petitioner prays for condonation of delay, if any.',
-  'The same is filed within the period of limitation.',
-  'The same is filed within limitation.',
-  'There is no delay on the part of the petitioner.',
-  'The revision petition is filed within 3 months of the order.',
-  'The petitioner has filed this revision within ninety (90) days.',
-  'The revision petition arising from the FIR is filed within limitation.',
-  'The present revision against the order taking cognizance is filed within the period of limitation.',
-  'Within limitation.',
-  'The application is within time.',
-  'This petition is filed within limitation, and cognizance was barred under Section 468 CrPC.',
-  'The petition is within limitation as Section 473 CrPC does not apply.',
-];
-
-const count = (hay: string, needle: string) => hay.split(needle).length - 1;
-
-/** The draft the model writes: the grounds are numbered paragraphs 3 to 9, the claim is paragraph 2. */
-function modelDraft(): string {
+/** The model's draft: intro, every sentence as its own paragraph, a closing paragraph. */
+function fullDraft(): string {
   return [
     '1. That the petitioner Ramesh Kumar is a resident of Patna.',
-    `2. That the impugned order was passed by the Sessions Court, Patna on 01.01.2026. ${CLAIM}`,
-    ...SURVIVE.map((s, i) => `${i + 3}. ${s}`),
-    '10. That the order is illegal and perverse.',
+    ...ALL.map((s, i) => `${i + 2}. ${s}`),
+    `${ALL.length + 2}. That the order is illegal and perverse.`,
   ].join('\n\n');
 }
+/** Paragraphs in fullDraft, so the computed paragraph is the next number. */
+const FULL_N = ALL.length + 2 + 1;
 
-/** A numbered paragraph as the form path delivers it (HTML). */
-const P = (x: string) => `<p style="text-align:left">${x}</p>`;
+// ── A: the finder ───────────────────────────────────────────────────────────
 
-function expectGroundsIntact(text: string, wrap: (x: string) => string = (x) => x) {
-  SURVIVE.forEach((s, i) => {
-    expect(text).toContain(wrap(`${i + 3}. ${s}`));
-    expect(count(text, s)).toBe(1);
+describe('T-472 A: which sentences are flagged', () => {
+  it.each(MUST_FLAG)('flagged: "%s"', (s) => {
+    expect(findLimitationClaims([`1. That the order is illegal.\n\n2. ${s}`])).toEqual([s]);
   });
-  expect(text).toContain(wrap('1. That the petitioner Ramesh Kumar is a resident of Patna.'));
-  expect(text).toContain(wrap('10. That the order is illegal and perverse.'));
-}
-
-// ── A: service level ────────────────────────────────────────────────────────
-
-describe.each([
-  ['within the period', WITHIN],
-  ['131 days (beyond)', BEYOND_41],
-])('T-472 A service level, %s', (_n, text) => {
-  it.each([...SURVIVE, ...SURVIVE_MORE])(
-    '"%s" stays byte for byte; the computed text is appended once',
-    (sentence) => {
-      const body = `1. That the order is illegal.\n\n2. ${sentence}\n\n3. Prayer.`;
-      expect(enforceLimitationText(body, text)).toBe(`${body}\n\n4. ${text}`);
-    },
-  );
-
-  it('a full draft: every ground stays byte for byte, the claim becomes the computed text, once', () => {
-    const out = enforceLimitationText(modelDraft(), text);
-    expect(out).toBe(
-      [
-        '1. That the petitioner Ramesh Kumar is a resident of Patna.',
-        `2. That the impugned order was passed by the Sessions Court, Patna on 01.01.2026. ${text}`,
-        '3. The cognizance taken is barred by limitation under Section 468 CrPC.',
-        '4. The cognizance is barred under s.514 BNSS.',
-        '5. There is an unexplained delay of 12 days in lodging the FIR.',
-        "6. This is a limitation of the court's revisional powers.",
-        '7. The complaint was filed beyond the period of limitation.',
-        '8. There is a delay of 12 days in filing.',
-        '9. Limitation is not an issue here.',
-        '10. That the order is illegal and perverse.',
-      ].join('\n\n'),
-    );
-    expect(count(out, text)).toBe(1);
+  it.each([...MUST_NOT_FLAG, ...OLDER_GROUNDS])('not flagged: "%s"', (s) => {
+    expect(findLimitationClaims([`1. That the order is illegal.\n\n2. ${s}`])).toEqual([]);
   });
-
-  it('the bodies form (the form path): grounds in one body, claim in another', () => {
-    const out = enforceLimitationTextIn(
-      ['1. Intro.', `2. ${SURVIVE[0]}\n\n3. ${SURVIVE[2]}`, `4. ${CLAIM} Prayer follows.`],
-      text,
-    );
-    expect(out).toEqual([
-      '1. Intro.',
-      `2. ${SURVIVE[0]}\n\n3. ${SURVIVE[2]}`,
-      `4. ${text} Prayer follows.`,
-    ]);
-  });
-
-  it('a cognizance/s.468 ground right next to the claim (same paragraph): the ground survives, the claim is replaced', () => {
-    const ground = 'The cognizance taken is barred by limitation under Section 468 CrPC.';
-    expect(enforceLimitationText(`3. ${ground} The petition is within limitation.`, text)).toBe(
-      `3. ${ground} ${text}`,
-    );
-    expect(enforceLimitationText(`3. The petition is within limitation. ${ground}`, text)).toBe(
-      `3. ${text} ${ground}`,
-    );
-  });
-
-  it('a ground in the paragraph before and after the claim paragraph', () => {
-    const body = `3. ${SURVIVE[0]}\n\n4. The revision is within 90 days.\n\n5. ${SURVIVE[2]}`;
-    expect(enforceLimitationText(body, text)).toBe(
-      `3. ${SURVIVE[0]}\n\n4. ${text}\n\n5. ${SURVIVE[2]}`,
-    );
-  });
-
-  it('idempotent over a draft with grounds', () => {
-    const once = enforceLimitationText(modelDraft(), text);
-    expect(enforceLimitationText(once, text)).toBe(once);
-  });
-
-  it.each(REPLACED)(
-    'claim "%s" is replaced by the computed text; the ground beside it stays',
-    (claim) => {
-      const body = `1. ${SURVIVE[0]}\n\n2. ${claim}\n\n3. That the order is illegal.`;
-      expect(enforceLimitationText(body, text)).toBe(
-        `1. ${SURVIVE[0]}\n\n2. ${text}\n\n3. That the order is illegal.`,
-      );
+  it.each(OTHER_PROCEEDINGS)(
+    'other proceedings, may be flagged but only returned as written: "%s"',
+    (s) => {
+      const found = findLimitationClaims([`2. ${s}`]);
+      expect(found.length === 0 || (found.length === 1 && found[0] === s)).toBe(true);
     },
   );
 });
 
-describe('T-472 A predicate', () => {
-  it.each([...SURVIVE, ...SURVIVE_MORE])('survives: "%s"', (s) =>
-    expect(isPetitionLimitationClaim(s)).toBe(false),
-  );
-  it.each(REPLACED)('claim: "%s"', (s) => expect(isPetitionLimitationClaim(s)).toBe(true));
-  it.each([
-    'Within limitation.',
-    'The revision is filed within time.',
-    'The petition is time-barred.',
-  ])('claim, other shapes: "%s"', (s) => expect(isPetitionLimitationClaim(s)).toBe(true));
-});
+// ── B and C: the real paths ─────────────────────────────────────────────────
 
 // ── B and C: the real paths ─────────────────────────────────────────────────
 
@@ -270,18 +180,29 @@ function factsOf(values: Record<string, string>): LedgerFact[] {
  * ledger does not hold (a real run turns "Section 468 CrPC" into {{MISSING: section}}).
  * Here it is passed through, so that only the limitation layer decides what stays.
  */
-async function runBrief(filing: string, body: string, ledger: boolean) {
-  const spy = jest.spyOn(factVerifier, 'verifyAndRepair').mockImplementation(async (input) => ({
-    body: input.body,
-    passed: true,
-    repairRan: false,
-    repairFixed: false,
-    initial: [],
-    afterRepair: null,
-    records: [],
-    banner: null,
-    placeholdersAdded: 0,
-  }));
+const verifierInputs: Array<Parameters<typeof factVerifier.verifyAndRepair>[0]> = [];
+
+async function runBrief(
+  filing: string,
+  body: string,
+  ledger: boolean,
+  verifierBody: (before: string) => string = (b) => b,
+) {
+  verifierInputs.length = 0;
+  const spy = jest.spyOn(factVerifier, 'verifyAndRepair').mockImplementation(async (input) => {
+    verifierInputs.push(input);
+    return {
+      body: verifierBody(input.body),
+      passed: true,
+      repairRan: false,
+      repairFixed: false,
+      initial: [],
+      afterRepair: null,
+      records: [],
+      banner: null,
+      placeholdersAdded: 0,
+    };
+  });
   try {
     return await runBriefInner(filing, body, ledger);
   } finally {
@@ -310,7 +231,8 @@ async function runBriefInner(filing: string, body: string, ledger: boolean) {
   mockMessagesStream
     .mockReset()
     .mockImplementation(async () => sdkAnswer(answerOf(body), 4000, 800));
-  return streamGenerateFromBrief(
+  const res = resStub();
+  const out = await streamGenerateFromBrief(
     {
       pack,
       templateConfig: loadTemplateConfig(PACK_ID)!,
@@ -328,8 +250,9 @@ async function runBriefInner(filing: string, body: string, ledger: boolean) {
         ? { ledger: { facts: factsOf(values), unresolved: [], lists: loadAvermentLists(PACK_ID) } }
         : {}),
     } as unknown as Parameters<typeof streamGenerateFromBrief>[0],
-    resStub() as unknown as Response,
+    res as unknown as Response,
   );
+  return { ...out, sse: res.written() };
 }
 
 const FORM_BASE: Record<string, unknown> = {
@@ -354,7 +277,8 @@ const FORM_BASE: Record<string, unknown> = {
 async function runForm(filing: string, answer: string) {
   const base = loadTemplateConfig(PACK_ID)!;
   mockMessagesStream.mockReset().mockImplementation(async () => sdkAnswer(answer, 4000, 800));
-  return streamGenerateFromTemplate(
+  const res = resStub();
+  const out = await streamGenerateFromTemplate(
     {
       templateConfig: {
         ...base,
@@ -366,301 +290,315 @@ async function runForm(filing: string, answer: string) {
       runSequence: 1,
       runType: 'initial',
     } as unknown as Parameters<typeof streamGenerateFromTemplate>[0],
-    resStub() as unknown as Response,
+    res as unknown as Response,
   );
+  return { ...out, sse: res.written() };
+}
+
+/** The brief path result (raw), the fact verifier passed through so only the limitation layer decides. */
+async function briefRaw(filing: string, body: string, ledger: boolean) {
+  return runBrief(filing, body, ledger);
+}
+
+async function briefRun(filing: string, body: string, ledger: boolean): Promise<Run> {
+  const out = await runBrief(filing, body, ledger);
+  return out as unknown as Run;
+}
+
+async function formRun(filing: string, body: string): Promise<Run> {
+  return (await runForm(filing, body)) as unknown as Run;
 }
 
 beforeEach(() => mockMessagesStream.mockReset());
 
+type Run = { fullText: string; limitationFlags?: number; bodyParaCount: number; sse: string };
+
+function eventsOf(text: string, name: string): Array<Record<string, any>> {
+  return text
+    .split('\n\n')
+    .filter((b) => b.startsWith(`event: ${name}\n`))
+    .map((b) => JSON.parse(b.split('\ndata: ')[1]));
+}
+
+/** The limitation warnings the advocate's checks panel was sent. */
+const limitationWarningsOf = (sse: string) =>
+  eventsOf(sse, 'warning')
+    .flatMap((e) => e.warnings as Array<Record<string, any>>)
+    .filter((w) => w.type === 'limitation');
+
+const PATHS: Array<
+  [string, (filing: string, body: string) => Promise<Run>, (x: string) => string]
+> = [
+  ['brief, no ledger', (f, b) => briefRun(f, b, false), (x) => x],
+  ['brief, ledger', (f, b) => briefRun(f, b, true), P],
+  ['form', (f, b) => formRun(f, b), P],
+];
+
 describe.each([
   ['within the period', IN_TIME, WITHIN],
   ['131 days (beyond)', LATE, BEYOND_41],
-])('T-472 B/C real paths, %s', (_n, filing, text) => {
-  it.each([
-    ['the brief path, no ledger', false],
-    ['the brief path, with a ledger', true],
-  ])(
-    '%s: every ground survives byte for byte, the claim is gone, the computed text once',
-    async (_p, ledger) => {
-      const out = await runBrief(filing, modelDraft(), ledger);
-      // with a ledger the draft is delivered as HTML paragraphs
-      expectGroundsIntact(out.fullText, ledger ? P : (x) => x);
-      expect(count(out.fullText, text)).toBe(1);
-      expect(out.fullText).not.toMatch(/no condonation is needed/i);
-      expect(out.fullText).not.toContain(CLAIM);
-    },
-  );
-
-  it('the brief path (ledger): a ground beside the claim survives, the claim is replaced', async () => {
-    const body = `1. That the petitioner is a resident of Patna.\n\n2. The cognizance taken is barred by limitation under Section 468 CrPC. The petition is within limitation.\n\n3. That the order is illegal.`;
-    const out = await runBrief(filing, body, true);
-    expect(out.fullText).toContain(
-      P(`2. The cognizance taken is barred by limitation under Section 468 CrPC. ${text}`),
+])('T-472 B real paths, %s', (_n, filing, text) => {
+  describe.each(PATHS)('%s', (_p, run, wrap) => {
+    it.each([...MUST_FLAG, ...MUST_NOT_FLAG, ...OTHER_PROCEEDINGS, ...OLDER_GROUNDS])(
+      'survives byte for byte: "%s"',
+      async (s) => {
+        const out = await run(
+          filing,
+          `1. That the petitioner is a resident of Patna.\n\n2. ${s}\n\n3. That the order is illegal.`,
+        );
+        expect(out.fullText).toContain(wrap(`2. ${s}`));
+        expect(count(out.fullText, s)).toBe(1);
+        // the computed paragraph is the next number, once
+        expect(count(out.fullText, text)).toBe(1);
+        expect(out.fullText).toContain(`4. ${text}`);
+        expect(out.bodyParaCount).toBe(4);
+      },
     );
-    expect(count(out.fullText, text)).toBe(1);
-    expect(out.fullText).not.toContain('The petition is within limitation.');
-  });
 
-  it.each([
-    'The revision is within 90 days.',
-    'No condonation is required.',
-    'This revision is filed in time.',
-    'The present revision against the order taking cognizance is filed within the period of limitation.',
-    'The same is filed within the period of limitation.',
-    'There is no delay on the part of the petitioner.',
-  ])('the brief path: claim "%s" is replaced', async (claim) => {
-    const body = `1. That the petitioner is a resident of Patna.\n\n2. ${claim}\n\n3. That the order is illegal.`;
-    const out = await runBrief(filing, body, true);
-    expect(out.fullText).toContain(`${P(`2. ${text}`)}\n${P('3. That the order is illegal.')}`);
-    expect(count(out.fullText, text)).toBe(1);
-    expect(out.fullText).not.toContain(claim);
-  });
-
-  it('the form path: every ground survives byte for byte, the claim is gone, the computed text once', async () => {
-    const out = await runForm(filing, modelDraft());
-    expectGroundsIntact(out.fullText, P);
-    expect(count(out.fullText, text)).toBe(1);
-    expect(out.fullText).not.toContain(CLAIM);
-  });
-
-  it.each(['The petition is within the prescribed period.', 'The petition is not time-barred.'])(
-    'the form path: claim "%s" is replaced',
-    async (claim) => {
-      const out = await runForm(
-        filing,
-        `1. That the petitioner is a resident of Patna.\n\n2. ${claim}\n\n3. That the order is illegal.`,
+    it('every R3/R4 sentence in one draft: all survive byte for byte, the computed paragraph once, last', async () => {
+      const out = await run(filing, fullDraft());
+      ALL.forEach((s, i) => {
+        expect(out.fullText).toContain(wrap(`${i + 2}. ${s}`));
+        expect(count(out.fullText, s)).toBe(1);
+      });
+      expect(out.fullText).toContain(
+        wrap('1. That the petitioner Ramesh Kumar is a resident of Patna.'),
       );
-      expect(out.fullText).toContain(`${P(`2. ${text}`)}\n${P('3. That the order is illegal.')}`);
+      expect(out.fullText).toContain(
+        wrap(`${ALL.length + 2}. That the order is illegal and perverse.`),
+      );
       expect(count(out.fullText, text)).toBe(1);
-      expect(out.fullText).not.toContain(claim);
-    },
-  );
+      expect(out.fullText).toContain(`${FULL_N}. ${text}`);
+      expect(out.fullText.indexOf(`${FULL_N}. ${text}`)).toBeGreaterThan(
+        out.fullText.indexOf(`${ALL.length + 2}. That the order is illegal and perverse.`),
+      );
+      expect(out.bodyParaCount).toBe(FULL_N);
+      // the verification counts the computed paragraph
+      expect(out.fullText).toMatch(new RegExp(`paragraphs 1 to ${FULL_N}\\b`));
+    });
 
-  it('the form path: the real grounds with no claim at all still get the computed paragraph once', async () => {
-    const out = await runForm(filing, SURVIVE.map((s, i) => `${i + 1}. ${s}`).join('\n\n'));
-    SURVIVE.forEach((s, i) => expect(out.fullText).toContain(P(`${i + 1}. ${s}`)));
-    expect(count(out.fullText, text)).toBe(1);
-    expect(out.fullText).toContain(P(`8. ${text}`));
+    it('flags: every MUST_FLAG sentence has a warning naming the computed paragraph; no ground has one', async () => {
+      const out = await run(filing, fullDraft());
+      const warnings = limitationWarningsOf(out.sse);
+      const expected = warnings.map((w) => w.details.expected as string);
+      for (const s of MUST_FLAG) expect(expected).toContain(s);
+      for (const s of [...MUST_NOT_FLAG, ...OLDER_GROUNDS]) expect(expected).not.toContain(s);
+      // a warning is for a sentence of the model's text, one each
+      for (const e of expected) expect(ALL).toContain(e);
+      expect(new Set(expected).size).toBe(expected.length);
+      const para = `The limitation paragraph (para ${FULL_N}) is computed from your dates.`;
+      for (const w of warnings) {
+        expect(w.type).toBe('limitation');
+        expect(w.details.rule).toBe('limitation_claim');
+        expect(w.message).toBe(`Check this sentence: it states a limitation position. ${para}`);
+      }
+      expect(warnings.length).toBeGreaterThanOrEqual(MUST_FLAG.length);
+      expect(out.limitationFlags).toBe(warnings.length);
+    });
+
+    it('no claim at all: no warning, limitationFlags is 0, the computed paragraph is still printed once', async () => {
+      const out = await run(
+        filing,
+        '1. That the petitioner is a resident of Patna.\n\n2. That the order is illegal.',
+      );
+      expect(limitationWarningsOf(out.sse)).toEqual([]);
+      expect(out.limitationFlags).toBe(0);
+      expect(count(out.fullText, text)).toBe(1);
+      expect(out.fullText).toContain(`3. ${text}`);
+    });
+
+    it('the model copying the computed text word for word: printed as written, FLAGGED once per copy with the signed text, ours still printed', async () => {
+      const first = text.split('. ')[0] + (text.includes('. ') ? '.' : '');
+      const one = await run(
+        filing,
+        `1. That the petitioner is a resident of Patna.\n\n2. ${text}\n\n3. That the order is illegal.`,
+      );
+      expect(one.fullText).toContain(wrap(`2. ${text}`));
+      expect(one.fullText).toContain(`4. ${text}`);
+      expect(count(one.fullText, text)).toBe(2);
+      const w1 = limitationWarningsOf(one.sse);
+      expect(w1.filter((w) => w.details.expected === first)).toHaveLength(1);
+      for (const w of w1) {
+        expect(w.message).toBe(
+          'Check this sentence: it states a limitation position. The limitation paragraph (para 4) is computed from your dates.',
+        );
+      }
+      expect(one.limitationFlags).toBe(w1.length);
+
+      const two = await run(
+        filing,
+        `1. A.\n\n2. ${text}\n\n3. ${text}\n\n4. That the order is illegal.`,
+      );
+      const w2 = limitationWarningsOf(two.sse);
+      expect(w2.filter((w) => w.details.expected === first)).toHaveLength(2);
+      expect(count(two.fullText, text)).toBe(3);
+      expect(two.fullText).toContain(`5. ${text}`);
+      expect(two.limitationFlags).toBe(w2.length);
+    });
   });
 });
 
-// ── D: mutation check ───────────────────────────────────────────────────────
+// ── C: the contradiction case ───────────────────────────────────────────────
 
-describe('T-472 D: a cue that matches any sentence with "limitation" is caught', () => {
-  const broadCue = (s: string) => /limitation/i.test(s);
-  /** A mutant enforce: the broad cue decides which sentences are replaced. */
-  function mutantEnforce(body: string, text: string): string {
-    let placed = false;
-    return body
-      .split('\n\n')
-      .map((para) => {
-        const m = /^(\d+\. )(.*)$/.exec(para)!;
-        const kept = m[2].split(/(?<=\.)\s+/).flatMap((s) => {
-          if (!broadCue(s)) return [s];
-          if (placed) return [];
-          placed = true;
-          return [text];
-        });
-        return `${m[1]}${kept.join(' ')}`;
-      })
-      .join('\n\n');
-  }
+describe('T-472 C: late filing and the model says it is in time', () => {
+  const CLAIM = 'The petition is filed within the period of limitation, no condonation is needed.';
+  const body = `1. That the petitioner is a resident of Patna.\n\n2. That the impugned order was passed on 01.01.2026. ${CLAIM}\n\n3. That the order is illegal.`;
 
-  it('the broad cue flags real grounds that the real predicate leaves alone', () => {
-    const flaggedByMutant = SURVIVE.filter(broadCue);
-    expect(flaggedByMutant).toEqual([
-      'The cognizance taken is barred by limitation under Section 468 CrPC.',
-      "This is a limitation of the court's revisional powers.",
-      'The complaint was filed beyond the period of limitation.',
-      'Limitation is not an issue here.',
-    ]);
-    for (const s of flaggedByMutant) expect(isPetitionLimitationClaim(s)).toBe(false);
+  describe.each(PATHS)('%s', (_p, run, wrap) => {
+    it('the paragraph says late (41 days); the model sentence is still there, byte for byte, with a warning naming para 4', async () => {
+      const out = await run(LATE, body);
+      expect(count(out.fullText, BEYOND_41)).toBe(1);
+      expect(out.fullText).toContain(`4. ${BEYOND_41}`);
+      expect(out.fullText).toContain(
+        wrap(`2. That the impugned order was passed on 01.01.2026. ${CLAIM}`),
+      );
+      const warnings = limitationWarningsOf(out.sse);
+      expect(warnings).toHaveLength(1);
+      expect(warnings[0]).toMatchObject({
+        type: 'limitation',
+        message:
+          'Check this sentence: it states a limitation position. The limitation paragraph (para 4) is computed from your dates.',
+        details: { rule: 'limitation_claim', expected: CLAIM },
+      });
+      expect(out.limitationFlags).toBe(1);
+    });
   });
 
-  it('the mutant deletes grounds from the draft (so the survive tests would fail); the real enforce does not', () => {
-    const mutated = mutantEnforce(modelDraft(), WITHIN);
-    expect(mutated).not.toContain(SURVIVE[0]);
-    expect(mutated).not.toContain(SURVIVE[3]);
-    expect(mutated).not.toContain(SURVIVE[4]);
-    expect(mutated).not.toContain(SURVIVE[6]);
-    const real = enforceLimitationText(modelDraft(), WITHIN);
-    for (const s of SURVIVE) expect(real).toContain(s);
+  it('the brief path: a flagged sentence also makes the draft a starting draft', async () => {
+    const r = await briefRaw(LATE, body, false);
+    expect(r.startingDraft).toBe(true);
   });
 });
 
-// ── E: the LIMITATION prompt line ───────────────────────────────────────────
+// ── D: the Drafter prompt ───────────────────────────────────────────────────
 
-describe('T-472 E: the Drafter prompt line', () => {
+describe('T-472 D: the Drafter prompt', () => {
+  const LINE =
+    'Do not state whether the present petition is within or beyond limitation, or whether condonation of delay is needed; that paragraph is supplied. Grounds about limitation in other proceedings stay as the advocate gave them.';
+  const sent = () => mockMessagesStream.mock.calls.map((c) => JSON.stringify(c[0])).join('\n');
+
   it.each([
-    ['beyond', LATE, BEYOND_41],
-    ['within', IN_TIME, WITHIN],
+    ['no ledger', false],
+    ['ledger', true],
   ])(
-    '%s: the line reads exactly the new wording, then the computed text',
-    async (_n, filing, text) => {
-      await runBrief(filing, modelDraft(), true);
-      const line = `LIMITATION: write the limitation paragraph as exactly this text, word for word, and state nothing else about whether this petition is within limitation or needs condonation: ${text}`;
-      const calls = mockMessagesStream.mock.calls.map((c) => JSON.stringify(c[0]));
-      expect(calls.some((c) => c.includes(JSON.stringify(line).slice(1, -1)))).toBe(true);
+    '%s: the signed line is in the prompt verbatim; the old LIMITATION stated line is gone',
+    async (_n, ledger) => {
+      await briefRun(LATE, fullDraft(), ledger);
+      expect(sent()).toContain(JSON.stringify(LINE).slice(1, -1));
+      expect(sent()).not.toContain(
+        'LIMITATION: write the limitation paragraph as exactly this text',
+      );
     },
   );
-
-  it('the line starts with the LIMITATION label', async () => {
-    await runBrief(LATE, modelDraft(), true);
-    const calls = mockMessagesStream.mock.calls.map((c) => JSON.stringify(c[0])).join('\n');
-    expect(calls).toContain('LIMITATION: write the limitation paragraph as exactly this text');
-  });
 });
 
-// ── F: documented rule behaviour, and known gaps ────────────────────────────
+// ── E: the number of the computed paragraph (AJ-472-M2) ─────────────────────
 
-describe('T-472 F: shapes a model plausibly writes', () => {
-  it.each([
-    'The revision is being filed well within the statutory time.',
-    'No condonation of delay is necessary',
-    'The petition is maintainable on the ground of limitation',
-    'It is submitted that the present revision is within the period prescribed by law.',
-    'The petition has been preferred within the time allowed by law.',
-    'The revision is not hit by limitation.',
-    'The revision is filed within the limitation period.',
-  ])('replaced, as the rule says: "%s"', (s) => {
-    expect(isPetitionLimitationClaim(s)).toBe(true);
+describe.each(PATHS)('T-472 E numbering, %s', (_p, run, wrap) => {
+  const para = (n: number) =>
+    `Check this sentence: it states a limitation position. The limitation paragraph (para ${n}) is computed from your dates.`;
+  const CLAIM = 'The petition is within limitation.';
+
+  it('the model skips a number (1-4, 6-12): ours is 13, no duplicate, no gap added by us', async () => {
+    const nums = [1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12];
+    const body = nums
+      .map((n) => `${n}. ${n === 7 ? CLAIM : `That ground ${n} is made out.`}`)
+      .join('\n\n');
+    const out = await run(LATE, body);
+    expect(out.fullText).toContain(`13. ${BEYOND_41}`);
+    expect(count(out.fullText, BEYOND_41)).toBe(1);
+    expect(out.fullText).not.toContain(`12. ${BEYOND_41}`);
+    expect(out.fullText).not.toContain(`5. ${BEYOND_41}`);
+    expect(out.bodyParaCount).toBe(13);
+    expect(out.fullText).toMatch(/paragraphs 1 to 13\b/);
+    const w = limitationWarningsOf(out.sse);
+    expect(w).toHaveLength(1);
+    expect(w[0].message).toBe(para(13));
+    expect(out.limitationFlags).toBe(1);
+    expect(out.fullText).toContain(wrap(`7. ${CLAIM}`));
   });
 
-  // Replaced by Ajay's follow-up rulings (441ef1e8): a "filed within ..." claim is the
-  // petition's own even when the sentence also names the cognizance order or the FIR.
-  it.each([
-    'The same is filed within the period of limitation.',
-    'The same is filed within limitation.',
-    'There is no delay on the part of the petitioner.',
-    'The revision petition is filed within 3 months of the order.',
-    'The petitioner has filed this revision within ninety (90) days.',
-    'The revision petition arising from the FIR is filed within limitation.',
-    'The present revision against the order taking cognizance is filed within the period of limitation.',
-    'The application is within time.',
-    'This petition is filed within limitation, and cognizance was barred under Section 468 CrPC.',
-    'The petition is within limitation as Section 473 CrPC does not apply.',
-  ])('replaced: "%s"', (s) => {
-    expect(isPetitionLimitationClaim(s)).toBe(true);
-    expect(enforceLimitationText(`1. ${s}`, WITHIN)).toBe(`1. ${WITHIN}`);
-    expect(enforceLimitationText(`1. That the order is illegal.\n\n2. ${s}`, WITHIN)).toBe(
-      `1. That the order is illegal.\n\n2. ${WITHIN}`,
-    );
+  it('sub-numbers (8.1, 8.2) do not inflate the number', async () => {
+    const body = [
+      ...[1, 2, 3, 4, 5, 6, 7].map((n) => `${n}. That ground ${n} is made out.`),
+      '8. That the order is illegal, for these reasons:',
+      '8.1 That the evidence was ignored.',
+      '8.2 That the finding is perverse.',
+    ].join('\n\n');
+    const out = await run(IN_TIME, body);
+    expect(out.fullText).toContain(`9. ${WITHIN}`);
+    expect(out.fullText).not.toContain(`10. ${WITHIN}`);
+    expect(out.bodyParaCount).toBe(9);
+    expect(out.fullText).toMatch(/paragraphs 1 to 9\b/);
   });
 
-  // Survive: a sentence that does not say the petition is in time or late, or a ground
-  // about the case below. The computed paragraph is added after it.
-  it.each([
-    'The revision is also against the unexplained delay of the trial court in framing charges.',
-    'The Trial Court delayed the proceedings, which is a ground for this revision.',
-  ])('survives: "%s"', (s) => {
-    expect(isPetitionLimitationClaim(s)).toBe(false);
-    expect(enforceLimitationText(`1. ${s}`, WITHIN)).toBe(`1. ${s}\n\n2. ${WITHIN}`);
-  });
-
-  it('a Section 468 CrPC ground that also says "filed beyond the period" survives with or without the section named', () => {
-    for (const g of [
-      'The complaint was filed beyond the period of limitation under Section 468 CrPC.',
-      'The complaint was filed beyond the period of limitation.',
-    ]) {
-      expect(isPetitionLimitationClaim(g)).toBe(false);
+  it('the model writes 1..N continuously: ours is N+1, the warning names the printed number', async () => {
+    for (const n of [2, 5, 10]) {
+      const body = Array.from(
+        { length: n },
+        (_x, i) => `${i + 1}. ${i === 0 ? CLAIM : `That ground ${i + 1}.`}`,
+      ).join('\n\n');
+      const out = await run(IN_TIME, body);
+      expect(out.fullText).toContain(`${n + 1}. ${WITHIN}`);
+      expect(count(out.fullText, WITHIN)).toBe(1);
+      expect(out.bodyParaCount).toBe(n + 1);
+      expect(out.fullText).toMatch(new RegExp(`paragraphs 1 to ${n + 1}\\b`));
+      const w = limitationWarningsOf(out.sse);
+      expect(w).toHaveLength(1);
+      expect(w[0].message).toBe(para(n + 1));
     }
   });
 });
 
-// ── G: round 4, the two regex fixes (sentences typed by hand) ───────────────
+// ── F: the ledger path, the Drafter's facts and the verifier ────────────────
 
-const R4_SURVIVE = [
-  'The present petition is filed against the order taking cognizance beyond the period of limitation under Section 468 CrPC.',
-  'The present revision is preferred against the summoning order on a complaint filed beyond the period of limitation.',
-  'The petitioner has filed the complaint within time.',
-  'The cognizance is barred under Section 468 CrPC.',
-  'The cognizance is barred under Section 473 CrPC.',
-  'The cognizance is barred under Section 514 BNSS.',
-  'There is a delay of 12 days in filing.',
-  'Limitation is not an issue here.',
-];
+describe('T-472 F: ledger path', () => {
+  const CLAIM = 'The petition is filed within the period of limitation.';
+  const body = `1. That the petitioner is a resident of Patna.\n\n2. ${CLAIM}\n\n3. That the order is illegal.`;
+  const sent = () => mockMessagesStream.mock.calls.map((c) => JSON.stringify(c[0])).join('\n');
 
-const R4_REPLACED = [
-  'This revision against the order taking cognizance is within limitation.',
-  'The petition is well within time, the cognizance order being dated 5 January 2026.',
-  "The petitioner has approached this Hon'ble Court within the period of limitation.",
-  "The petition is filed before this Hon'ble Court within limitation.",
-  'There is no delay in approaching this Court.',
-  'There is no delay on the part of the petitioner.',
-  'The application is within time.',
-  'This petition is filed within limitation, and cognizance was barred under Section 468 CrPC.',
-  'The petition is within limitation as Section 473 CrPC does not apply.',
-];
-
-describe('T-472 G round 4: service and predicate', () => {
-  it.each(R4_SURVIVE)('survives: "%s"', (s) => {
-    expect(isPetitionLimitationClaim(s)).toBe(false);
-    expect(enforceLimitationText(`1. ${s}`, WITHIN)).toBe(`1. ${s}\n\n2. ${WITHIN}`);
+  it("the Drafter's facts hold no limitation text; the verifier's ledger still holds the fact", async () => {
+    await briefRun(LATE, body, true);
+    // the FACTS block of the user message (the system part AFTER YOUR TEXT prints the paragraph by design)
+    const prompt = sent();
+    const facts = prompt.slice(prompt.indexOf('FACTS:\\n{'), prompt.indexOf('CLAUSES (id'));
+    expect(facts.length).toBeGreaterThan(100);
+    expect(facts).not.toContain('delay of 41 days');
+    expect(facts).not.toContain('\\"key\\": \\"limitation\\"');
+    expect(facts).not.toContain('Worked out by Lawie');
+    expect(verifierInputs).toHaveLength(1);
+    const fact = verifierInputs[0].facts.find((f) => f.key === 'limitation');
+    expect(fact).toBeDefined();
+    expect(fact!.source).toBe('computed');
+    expect(fact!.display).toBe(BEYOND_41);
   });
 
-  it.each(R4_REPLACED)('replaced: "%s"', (s) => {
-    expect(isPetitionLimitationClaim(s)).toBe(true);
-    expect(enforceLimitationText(`1. ${s}`, WITHIN)).toBe(`1. ${WITHIN}`);
-    expect(
-      enforceLimitationText(`1. That the order is illegal.\n\n2. ${s}\n\n3. Prayer.`, WITHIN),
-    ).toBe(`1. That the order is illegal.\n\n2. ${WITHIN}\n\n3. Prayer.`);
-  });
-
-  it('beyond case: the petitioner sentence is replaced, so "within" and "41 days" never appear together', () => {
-    const body =
-      "1. The petitioner has approached this Hon'ble Court within the period of limitation.\n\n2. The cognizance taken is barred by limitation under Section 468 CrPC.";
-    const out = enforceLimitationText(body, BEYOND_41);
-    expect(out).toBe(
-      `1. ${BEYOND_41}\n\n2. The cognizance taken is barred by limitation under Section 468 CrPC.`,
+  it('a model in-time sentence the verifier blanks: a warning with blanked true and the original sentence, signed text', async () => {
+    const out = await runBrief(LATE, body, true, (b) =>
+      b.replace(CLAIM, '{{MISSING: Within limitation}}'),
     );
-    expect(out).not.toMatch(/approached this/);
-    expect(out).toContain('41 days');
-  });
-});
-
-describe.each([
-  ['within the period', IN_TIME, WITHIN],
-  ['131 days (beyond)', LATE, BEYOND_41],
-])('T-472 G round 4: real paths, %s', (_n, filing, text) => {
-  const paths: Array<
-    [string, (b: string) => Promise<{ fullText: string }>, (x: string) => string]
-  > = [
-    ['brief, no ledger', (b) => runBrief(filing, b, false), (x) => x],
-    ['brief, ledger', (b) => runBrief(filing, b, true), P],
-    ['form', (b) => runForm(filing, b), P],
-  ];
-
-  describe.each(paths)('%s', (_p, run, wrap) => {
-    it.each(R4_SURVIVE)('survives untouched: "%s"', async (s) => {
-      const out = await run(
-        `1. That the petitioner is a resident of Patna.\n\n2. ${s}\n\n3. That the order is illegal.`,
-      );
-      expect(out.fullText).toContain(wrap(`2. ${s}`));
-      expect(count(out.fullText, s)).toBe(1);
-      expect(count(out.fullText, text)).toBe(1);
-    });
-
-    it.each(R4_REPLACED)('replaced: "%s"', async (claim) => {
-      const out = await run(
-        `1. That the petitioner is a resident of Patna.\n\n2. ${claim}\n\n3. That the order is illegal.`,
-      );
-      expect(out.fullText).toContain(wrap(`2. ${text}`));
-      expect(out.fullText).not.toContain(claim);
-      expect(count(out.fullText, text)).toBe(1);
-    });
-  });
-
-  if (text === BEYOND_41) {
-    it.each(paths)(
-      '%s: petitioner "within" sentence replaced, no within-and-41-days contradiction',
-      async (_p, run) => {
-        const out = await run(
-          "1. The petitioner has approached this Hon'ble Court within the period of limitation.\n\n2. That the order is illegal.",
-        );
-        expect(out.fullText).toContain('41 days');
-        expect(out.fullText).not.toMatch(/approached this Hon/);
-        expect(out.fullText).not.toMatch(/within the period of limitation(?! prescribed)/);
-      },
+    expect(out.fullText).toContain('{{MISSING: Within limitation}}');
+    expect(out.fullText).not.toContain(CLAIM);
+    const w = limitationWarningsOf(out.sse);
+    expect(w).toHaveLength(1);
+    expect(w[0].details.blanked).toBe(true);
+    expect(w[0].details.expected).toBe(CLAIM);
+    expect(w[0].details.rule).toBe('limitation_claim');
+    expect(w[0].message).toBe(
+      'Check this sentence: it states a limitation position. The limitation paragraph (para 4) is computed from your dates.',
     );
-  }
+    expect(out.limitationFlags).toBe(1);
+    expect(count(out.fullText, BEYOND_41)).toBe(1);
+  });
+
+  it('a model claim that survives is flagged as printed, blanked false or absent, same signed text', async () => {
+    const out = await runBrief(LATE, body, true);
+    const w = limitationWarningsOf(out.sse);
+    expect(w).toHaveLength(1);
+    expect(w[0].details.blanked ?? false).toBe(false);
+    expect(w[0].details.expected).toBe(CLAIM);
+    expect(w[0].message).toBe(
+      'Check this sentence: it states a limitation position. The limitation paragraph (para 4) is computed from your dates.',
+    );
+  });
 });

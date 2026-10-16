@@ -12,7 +12,8 @@
  *
  * A  the day count        B  s.12(2) and the copy question   C  unknown cases
  * D  the signed strings   E  readers        F  the computed fact
- * G  enforceLimitationText(In) and numbering   H  mutation checks
+ * G  the computed paragraph and the flags (option d: the model text is never edited)
+ * H  mutation checks
  */
 import { readFileSync } from 'fs';
 import { join } from 'path';
@@ -22,15 +23,18 @@ import type { LedgerFact } from '@lawie/shared';
 import {
   LIMITATION_RULES,
   computeLimitation,
-  enforceLimitationText,
-  enforceLimitationTextDetailed,
-  enforceLimitationTextIn,
+  LIMITATION_FLAG_TEXT,
+  LIMITATION_PROMPT_LINE,
+  LIMITATION_SECTION_ID,
+  LIMITATION_UNKNOWN_CHECKLIST_ITEM,
+  findLimitationClaims,
   limitationAnswerOf,
   limitationDateOf,
   limitationInputFromLedger,
   limitationInputFromValues,
   limitationRuleFor,
-  renumberParagraphs,
+  limitationFlagMessage,
+  limitationParagraph,
   withLimitationFact,
   type LimitationInput,
   type LimitationRule,
@@ -362,7 +366,10 @@ describe('T-472 C: unknown gives the blank, no number, no checklist item', () =>
     expect(r.daysCounted).toBeNull();
     expect(r.daysExcluded).toBeNull();
     expect(r.daysOfDelay).toBeNull();
-    expect(r.checklistItems).toEqual([]);
+    // AJ-472-M1: the unknown blank carries the "check limitation" checklist line
+    expect(r.checklistItems).toEqual([
+      'Check limitation from the dates; if the petition is late, file an application under Section 5 of the Limitation Act, 1963.',
+    ]);
     expect(withLimitationFact([], r)).toEqual([]);
   });
 
@@ -783,48 +790,11 @@ describe('T-472 F: the one computed fact', () => {
   });
 });
 
-describe('T-472 G: enforceLimitationText', () => {
-  const BODY_CLAIM = [
-    'PETITION',
-    '',
-    '1. That the petitioner is a resident of Patna.',
-    '',
-    '2. That the impugned order was passed on 01.01.2026. The petition is filed within the period of limitation, no condonation is needed.',
-    '',
-    '3. That the order is illegal.',
-  ].join('\n');
-
-  const count = (hay: string, needle: string) => hay.split(needle).length - 1;
-
-  it('the model claim is replaced by the computed sentence, exactly once, neighbours untouched', () => {
-    const out = enforceLimitationText(BODY_CLAIM, BEYOND_41);
-    expect(out).toBe(
-      [
-        'PETITION',
-        '',
-        '1. That the petitioner is a resident of Patna.',
-        '',
-        `2. That the impugned order was passed on 01.01.2026. ${BEYOND_41}`,
-        '',
-        '3. That the order is illegal.',
-      ].join('\n'),
-    );
-    expect(count(out, BEYOND_41)).toBe(1);
-    expect(out).not.toMatch(/no condonation is needed/i);
-    expect(out).not.toMatch(/within the period of limitation,/i);
-  });
-
-  it('the same for the within text', () => {
-    const out = enforceLimitationText(
-      '1. The petition is filed within limitation.\n\n2. That the order is illegal.',
-      WITHIN,
-    );
-    expect(out).toBe(`1. ${WITHIN}\n\n2. That the order is illegal.`);
-  });
-
-  it.each([
+describe('T-472 G: the computed paragraph, the flags (option d: the model text is never edited)', () => {
+  // Typed by hand. The model's own statement that this petition is in time: flagged.
+  const FLAGGED = [
+    'The petition is filed within the period of limitation, no condonation is needed.',
     'The petition is within limitation.',
-    'The petition is barred by time.',
     'The petition is not time-barred.',
     'The petitioner prays for condonation of delay, if any.',
     'The petition has been filed within time.',
@@ -845,12 +815,14 @@ describe('T-472 G: enforceLimitationText', () => {
     'The application is within time.',
     'This petition is filed within limitation, and cognizance was barred under Section 468 CrPC.',
     'The petition is within limitation as Section 473 CrPC does not apply.',
-  ])('model sentence "%s" is replaced', (sentence) => {
-    const out = enforceLimitationText(`1. That the order is illegal.\n\n2. ${sentence}`, BEYOND_41);
-    expect(out).toBe(`1. That the order is illegal.\n\n2. ${BEYOND_41}`);
-  });
+    'This revision against the order taking cognizance is within limitation.',
+    'The petition is well within time, the cognizance order being dated 5 January 2026.',
+    "The petitioner has approached this Hon'ble Court within the period of limitation.",
+    "The petition is filed before this Hon'ble Court within limitation.",
+  ];
 
-  it.each([
+  // Grounds of revision and neutral sentences: never flagged.
+  const NOT_FLAGGED = [
     'There is a delay of 12 days in filing.',
     'Limitation is not an issue here.',
     'Section 473 CrPC does not save the prosecution.',
@@ -860,244 +832,122 @@ describe('T-472 G: enforceLimitationText', () => {
     'In this revision, the complaint was filed beyond time.',
     'The Trial Court delayed the proceedings, which is a ground for this revision.',
     'The revision is also against the unexplained delay of the trial court in framing charges.',
-  ])(
-    'sentence "%s" is not the petition\'s own claim, so it survives byte for byte and the text is appended',
-    (sentence) => {
-      const body = `1. That the order is illegal.\n\n2. ${sentence}`;
-      expect(enforceLimitationText(body, BEYOND_41)).toBe(`${body}\n\n3. ${BEYOND_41}`);
-    },
-  );
+    'The present petition is filed against the order taking cognizance beyond the period of limitation under Section 468 CrPC.',
+    'The present revision is preferred against the summoning order on a complaint filed beyond the period of limitation.',
+    'The petitioner has filed the complaint within time.',
+    'The cognizance is barred under Section 514 BNSS.',
+  ];
 
-  it('a draft with no limitation sentence gets the computed text as a new last numbered paragraph', () => {
-    const body =
-      '1. That the petitioner is a resident of Patna.\n\n2. That the order is illegal.\n';
-    const out = enforceLimitationText(body, BEYOND_41);
-    expect(out).toBe(
-      `1. That the petitioner is a resident of Patna.\n\n2. That the order is illegal.\n\n3. ${BEYOND_41}`,
+  it('the paragraph prints as "<n>. <text>" for each of the three results', () => {
+    expect(
+      limitationParagraph(computeLimitation(rule, input({ filingDate: ok('2026-04-01') })), 4),
+    ).toBe(`4. ${WITHIN}`);
+    expect(limitationParagraph(computeLimitation(rule, input()), 7)).toBe(`7. ${BEYOND_41}`);
+    expect(limitationParagraph(computeLimitation(rule, input({ filingDate: none })), 1)).toBe(
+      `1. ${UNKNOWN}`,
     );
   });
 
-  it('with no numbered paragraphs, the text is added as a plain last paragraph', () => {
-    const out = enforceLimitationText('The order is illegal.', WITHIN);
-    expect(out).toBe(`The order is illegal.\n\n${WITHIN}`);
+  it('the section id and the warning text are the signed ones', () => {
+    expect(LIMITATION_SECTION_ID).toBe('limitation_paragraph');
+    expect(LIMITATION_FLAG_TEXT).toBe(
+      'Check this sentence: it states a limitation position. The limitation paragraph (para {n}) is computed from your dates.',
+    );
+    expect(limitationFlagMessage(4)).toBe(
+      'Check this sentence: it states a limitation position. The limitation paragraph (para 4) is computed from your dates.',
+    );
+    expect(limitationFlagMessage(12)).toContain('(para 12)');
+    expect(limitationFlagMessage(12)).not.toContain('{n}');
   });
 
-  it('an appended paragraph takes the next number after the renumbered ones (no gap: 1, 5 becomes 1, 2, then 3)', () => {
-    const out = enforceLimitationText('1. One.\n\n5. Five.', WITHIN);
-    expect(out).toBe(`1. One.\n\n2. Five.\n\n3. ${WITHIN}`);
-  });
-
-  it("numbering starts from the body's first number, not from 1", () => {
-    expect(enforceLimitationText('4. Four.\n\n9. Nine.', WITHIN)).toBe(
-      `4. Four.\n\n5. Nine.\n\n6. ${WITHIN}`,
+  it('the Drafter prompt line is the signed one, verbatim', () => {
+    expect(LIMITATION_PROMPT_LINE).toBe(
+      'Do not state whether the present petition is within or beyond limitation, or whether condonation of delay is needed; that paragraph is supplied. Grounds about limitation in other proceedings stay as the advocate gave them.',
     );
   });
 
-  it('headings (even "Limitation" and "LIMITATION:") are untouched and the claim under them is replaced', () => {
-    const body = [
-      'LIMITATION',
-      '',
-      '4. The petition is within limitation.',
-      '',
-      'Condonation:',
-      '',
-    ].join('\n');
-    const out = enforceLimitationText(body, WITHIN);
-    expect(out).toBe(['LIMITATION', '', `4. ${WITHIN}`, '', 'Condonation:', ''].join('\n'));
-  });
-
-  it('unrelated paragraphs are untouched, byte for byte', () => {
-    const body =
-      '1. That Mr. Sharma, S/o Late Ram, resides at 12 Art. Road.\n\n2. That the order dated 01.01.2026 is illegal. It is perverse.';
-    const out = enforceLimitationText(body, WITHIN);
-    expect(out.startsWith(body)).toBe(true);
-    expect(out).toBe(`${body}\n\n3. ${WITHIN}`);
-  });
-
-  it('an exact copy of the computed text is kept once and nothing is added', () => {
-    const body = `1. That the order is illegal.\n\n2. ${BEYOND_41}\n\n3. That the court may grant relief.`;
-    expect(enforceLimitationText(body, BEYOND_41)).toBe(body);
-  });
-
-  it('an exact copy plus a model claim elsewhere: the copy stays once, the claim goes', () => {
-    const body = `1. ${WITHIN}\n\n2. That the order is illegal. The petition is not barred by limitation.\n\n3. Prayer.`;
-    const out = enforceLimitationText(body, WITHIN);
-    expect(count(out, WITHIN)).toBe(1);
-    expect(out).toBe(`1. ${WITHIN}\n\n2. That the order is illegal.\n\n3. Prayer.`);
-  });
-
-  it('two model claims: the first is replaced, the second removed', () => {
-    const body =
-      '1. The petition is within limitation.\n\n2. That the order is illegal. No condonation is required.';
-    const out = enforceLimitationText(body, WITHIN);
-    expect(out).toBe(`1. ${WITHIN}\n\n2. That the order is illegal.`);
-    expect(count(out, WITHIN)).toBe(1);
-  });
-
-  it('an emptied numbered paragraph is dropped; the numbers after it close up (no gap)', () => {
-    const body = [
-      '1. The petition is within limitation.',
-      '',
-      '2. No condonation is required.',
-      '',
-      '3. That the order is illegal.',
-    ].join('\n');
-    const out = enforceLimitationText(body, WITHIN);
-    // Paragraph 2 is dropped, paragraph 3 becomes 2.
-    expect(out).toBe(`1. ${WITHIN}\n\n2. That the order is illegal.`);
-  });
-
-  it('numbering: no gaps or repeats after a replacement that drops a paragraph in the middle of a longer draft', () => {
-    const body = [
-      '1. A.',
-      '2. The petition is within limitation.',
-      '3. No condonation is required.',
-      '4. B.',
-      '5. C.',
-    ].join('\n\n');
-    expect(enforceLimitationText(body, WITHIN)).toBe(
-      ['1. A.', `2. ${WITHIN}`, '3. B.', '4. C.'].join('\n\n'),
+  it('the AJ-472-M1 checklist line is verbatim', () => {
+    expect(LIMITATION_UNKNOWN_CHECKLIST_ITEM).toBe(
+      'Check limitation from the dates; if the petition is late, file an application under Section 5 of the Limitation Act, 1963.',
     );
   });
 
-  it('numbering: a repeated number in the model draft is made consecutive', () => {
-    expect(enforceLimitationText('1. One.\n\n1. Again.\n\n3. Three.', WITHIN)).toBe(
-      `1. One.\n\n2. Again.\n\n3. Three.\n\n4. ${WITHIN}`,
+  it('checklist: unknown gives the AJ-472-M1 line only, within gives none, late gives the s.5 line only', () => {
+    const unknownLine =
+      'Check limitation from the dates; if the petition is late, file an application under Section 5 of the Limitation Act, 1963.';
+    expect(computeLimitation(rule, input({ filingDate: none })).checklistItems).toEqual([
+      unknownLine,
+    ]);
+    expect(computeLimitation(rule, input({ copyAppliedFor: none })).checklistItems).toEqual([
+      unknownLine,
+    ]);
+    expect(computeLimitation(rule, input({ filingDate: ok('2026-03-15') })).checklistItems).toEqual(
+      [],
     );
+    expect(computeLimitation(rule, input()).checklistItems).toEqual([S5_ITEM]);
   });
 
-  it('numbering: headings and un-numbered lines are untouched', () => {
-    const body = [
-      'GROUNDS',
-      '',
-      '1. A.',
-      '',
-      '2. The petition is within limitation.',
-      '',
-      'See the annexures filed with this petition.',
-      '',
-      '3. No condonation is required.',
-      '',
-      '4. B.',
-      '',
-      'PRAYER',
-    ].join('\n');
-    expect(enforceLimitationText(body, WITHIN)).toBe(
-      [
-        'GROUNDS',
-        '',
-        '1. A.',
-        '',
-        `2. ${WITHIN}`,
-        '',
-        'See the annexures filed with this petition.',
-        '',
-        '3. B.',
-        '',
-        'PRAYER',
-      ].join('\n'),
-    );
+  it.each(FLAGGED)('flagged, returned exactly as written: "%s"', (sentence) => {
+    const body = `1. That the order is illegal.\n\n2. ${sentence}\n\n3. Prayer follows.`;
+    expect(findLimitationClaims([body])).toEqual([sentence]);
   });
 
-  it('numbering: enforceLimitationTextDetailed gives the old-to-new map (dropping old 3 maps 4 to 3 and 5 to 4)', () => {
-    const body = [
-      '1. A.',
-      '2. The petition is within limitation.',
-      '3. No condonation is required.',
-      '4. B.',
-      '5. C.',
-    ].join('\n\n');
-    const d = enforceLimitationTextDetailed([body], WITHIN);
-    // before renumbering: the old numbers, with the gap
-    expect(d.edited[0]).toBe(['1. A.', `2. ${WITHIN}`, '4. B.', '5. C.'].join('\n\n'));
-    expect(d.bodies[0]).toBe(['1. A.', `2. ${WITHIN}`, '3. B.', '4. C.'].join('\n\n'));
-    expect(d.renumber[0].get(1)).toBe(1);
-    expect(d.renumber[0].get(2)).toBe(2);
-    expect(d.renumber[0].get(3)).toBeUndefined();
-    expect(d.renumber[0].get(4)).toBe(3);
-    expect(d.renumber[0].get(5)).toBe(4);
+  it.each(NOT_FLAGGED)('not flagged: "%s"', (sentence) => {
+    const body = `1. That the order is illegal.\n\n2. ${sentence}\n\n3. Prayer follows.`;
+    expect(findLimitationClaims([body])).toEqual([]);
   });
 
-  it('renumberParagraphs: consecutive from the first number; headings and prose lines untouched', () => {
-    const r = renumberParagraphs('HEADING\n\n3. X.\n\n7. Y.\n\nPlain line.\n\n7. Z.');
-    expect(r.text).toBe('HEADING\n\n3. X.\n\n4. Y.\n\nPlain line.\n\n5. Z.');
-    expect(r.map.get(3)).toBe(3);
-    expect(r.map.get(7)).toBe(4);
-    expect(renumberParagraphs('No numbers here.').text).toBe('No numbers here.');
+  it('a ground and a claim in one paragraph: only the claim is returned, the ground is not', () => {
+    const ground = 'The cognizance taken is barred by limitation under Section 468 CrPC.';
+    expect(findLimitationClaims([`3. ${ground} The petition is within limitation.`])).toEqual([
+      'The petition is within limitation.',
+    ]);
+    expect(findLimitationClaims([`3. The petition is within limitation. ${ground}`])).toEqual([
+      'The petition is within limitation.',
+    ]);
   });
 
-  it('the unknown blank replaces a model claim too', () => {
-    const out = enforceLimitationText('1. The petition is filed within limitation.', UNKNOWN);
-    expect(out).toBe(`1. ${UNKNOWN}`);
+  it('several claims are returned in order; bodies are read in order (the form path has one per AI section)', () => {
+    expect(
+      findLimitationClaims([
+        '1. Intro.\n\n2. The petition is within limitation.\n\n3. Grounds.',
+        '4. No condonation is needed. Prayer follows.',
+      ]),
+    ).toEqual(['The petition is within limitation.', 'No condonation is needed.']);
+  });
+
+  it('the paragraph number is not part of the sentence returned', () => {
+    expect(findLimitationClaims(['12. The application is within time.'])).toEqual([
+      'The application is within time.',
+    ]);
+  });
+
+  it('read-only: the bodies are not changed and the same sentences come back on a second call', () => {
+    const bodies = ['1. A.\n\n2. The petition is within limitation.'];
+    const copy = [...bodies];
+    const first = findLimitationClaims(bodies);
+    expect(bodies).toEqual(copy);
+    expect(findLimitationClaims(bodies)).toEqual(first);
   });
 
   it.each([
-    ['within', WITHIN, BODY_CLAIM],
-    ['beyond', BEYOND_41, BODY_CLAIM],
-    ['unknown', UNKNOWN, BODY_CLAIM],
-    ['within, no claim', WITHIN, '1. One.\n\n2. Two.'],
-    [
-      'beyond, two claims',
-      BEYOND_41,
-      '1. Within limitation.\n\n2. No condonation is required.\n\n3. Three.',
-    ],
-  ])('idempotent: %s', (_n, text, body) => {
-    const once = enforceLimitationText(body, text);
-    expect(enforceLimitationText(once, text)).toBe(once);
-  });
+    ['within', WITHIN],
+    ['beyond', BEYOND_41],
+  ])(
+    'the model copying the computed %s text is flagged like any other limitation sentence',
+    (_n, text) => {
+      const found = findLimitationClaims([`1. A.\n\n2. ${text}\n\n3. B.`]);
+      expect(found.length).toBeGreaterThan(0);
+      expect(found.join(' ')).toContain(text.split('. ')[0]);
+    },
+  );
 
-  it('an empty text or an empty body changes nothing', () => {
-    expect(enforceLimitationText('1. Within limitation.', '')).toBe('1. Within limitation.');
-    expect(enforceLimitationText('', WITHIN)).toBe('');
-    expect(enforceLimitationText('  \n ', WITHIN)).toBe('  \n ');
-  });
-
-  it('the bodies form (one per AI section): the first claim in document order is replaced, later ones go, the rest untouched', () => {
-    const out = enforceLimitationTextIn(
-      [
-        '1. Intro.',
-        '2. Within limitation.\n\n3. Grounds.',
-        '4. No condonation is needed. Prayer follows.',
-      ],
-      WITHIN,
-    );
-    expect(out).toEqual(['1. Intro.', `2. ${WITHIN}\n\n3. Grounds.`, '4. Prayer follows.']);
-  });
-
-  it('the bodies form: each AI section is renumbered on its own (a dropped paragraph closes up inside its section only)', () => {
-    const out = enforceLimitationTextIn(
-      [
-        '1. A.\n\n2. B.',
-        '3. Within limitation.\n\n4. No condonation is required.\n\n5. E.',
-        '6. F.',
-      ],
-      WITHIN,
-    );
-    expect(out).toEqual(['1. A.\n\n2. B.', `3. ${WITHIN}\n\n4. E.`, '6. F.']);
-  });
-
-  it('the bodies form: the Detailed form gives one map per body', () => {
-    const d = enforceLimitationTextDetailed(
-      ['1. A.\n\n2. B.', '3. Within limitation.\n\n4. No condonation is required.\n\n5. E.'],
-      WITHIN,
-    );
-    expect(d.renumber).toHaveLength(2);
-    expect(d.renumber[1].get(5)).toBe(4);
-    expect(d.renumber[0].get(2)).toBe(2);
-  });
-
-  it('the bodies form: no claim anywhere adds the text to the last non-empty body only', () => {
-    const out = enforceLimitationTextIn(['1. One.', '2. Two.', ''], WITHIN);
-    expect(out).toEqual(['1. One.', `2. Two.\n\n3. ${WITHIN}`, '']);
-  });
-
-  it('the bodies form: an exact copy in one body means no claim elsewhere is replaced by a second copy', () => {
-    const out = enforceLimitationTextIn(
-      [`1. ${WITHIN}`, '2. No condonation is needed. Fine.'],
-      WITHIN,
-    );
-    expect(out).toEqual([`1. ${WITHIN}`, '2. Fine.']);
-    expect(out.join('\n').split(WITHIN).length - 1).toBe(1);
+  it('empty or heading-only input gives nothing', () => {
+    expect(findLimitationClaims([])).toEqual([]);
+    expect(findLimitationClaims([''])).toEqual([]);
+    expect(
+      findLimitationClaims(['PRAYER', '', 'It is prayed that the order be set aside.']),
+    ).toEqual([]);
   });
 });
 
@@ -1149,36 +999,31 @@ describe('T-472 H: mutation checks (the tests above must catch these)', () => {
     expect(r.text).not.toContain('41 days');
   });
 
-  it('a mutant that left a gap after a dropped paragraph would print 1, 2, 4: the real one prints 1, 2, 3', () => {
-    const out = enforceLimitationText(
-      '1. A.\n\n2. Within limitation.\n\n3. No condonation is required.\n\n4. B.',
-      WITHIN,
-    );
-    expect(out).not.toContain('\n\n4. B.');
-    expect(out).toContain('\n\n3. B.');
-  });
-
   it('a mutant that guessed on an unknown date would print a number: the real one prints the blank', () => {
     const r = computeLimitation(rule, input({ filingDate: none }));
     expect(r.text).toBe(UNKNOWN);
     expect(r.text).not.toMatch(/\d+ days?/);
   });
 
-  it('a mutant enforce that appends without removing the claim would keep it: the real one removes it', () => {
-    const body =
-      '1. The petition is filed within the period of limitation, no condonation is needed.';
-    const mutant = `${body}\n\n2. ${BEYOND_41}`;
-    expect(mutant).toMatch(/no condonation is needed/);
-    expect(enforceLimitationText(body, BEYOND_41)).not.toMatch(/no condonation is needed/);
+  it('a mutant that flagged every sentence with "limitation" would flag real grounds: the real finder does not', () => {
+    const grounds = [
+      'The cognizance taken is barred by limitation under Section 468 CrPC.',
+      'The complaint was filed beyond the period of limitation.',
+      'Limitation is not an issue here.',
+    ];
+    const mutantFlags = grounds.filter((s) => /limitation/i.test(s));
+    expect(mutantFlags).toHaveLength(3);
+    expect(findLimitationClaims([grounds.map((g, i) => `${i + 1}. ${g}`).join('\n\n')])).toEqual(
+      [],
+    );
   });
 
-  it('a mutant enforce that replaced every claim with the text would print it twice: the real one prints it once', () => {
-    const body = '1. Within limitation.\n\n2. No condonation is required.';
-    const mutant = body
-      .split('\n\n')
-      .map((p) => p.replace(/^(\d+\. ).*$/, `$1${WITHIN}`))
-      .join('\n\n');
-    expect(mutant.split(WITHIN).length - 1).toBe(2);
-    expect(enforceLimitationText(body, WITHIN).split(WITHIN).length - 1).toBe(1);
+  it('a mutant that edited the flagged sentence would change the text: the finder returns it as written', () => {
+    const s = 'The petition is filed within the period of limitation, no condonation is needed.';
+    expect(findLimitationClaims([`1. ${s}`])[0]).toBe(s);
+  });
+
+  it('a copy of the computed text is flagged, not skipped', () => {
+    expect(findLimitationClaims([`1. ${WITHIN}`])).toEqual([WITHIN]);
   });
 });
