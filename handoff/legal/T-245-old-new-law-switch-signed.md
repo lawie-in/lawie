@@ -761,3 +761,13 @@ Reviewed: `handoff/legal/T-477-related-acts-for-ajay.md` on that branch (92 pack
 | 12 | shareholders_agreement, SEBI ICDR | `[only when: the company plans a public issue]` |
 
 Follow-up (not a T-477 blocker): employment_agreement still cites the Industrial Employment (Standing Orders) Act 1946 and the Industrial Disputes Act 1947. Mark both "verify" against the Labour Codes, the Industrial Relations Code, 2020, and their commencement. They come to me as a separate ticket.
+
+## T-479: bench States and respondent lines (Ajay, 16 Oct 2026)
+
+- Benches whose seat is in a different State or UT from the parent High Court must keep the State blank. Examples: Panaji (Goa, Bombay High Court), Port Blair (A&N Islands, Calcutta High Court), and the Punjab and Haryana High Court at Chandigarh. Never fill the State from the parent court. The court name is the court's own full name, for example "HIGH COURT OF PUNJAB AND HARYANA AT CHANDIGARH". Never "HIGH COURT OF Chandigarh".
+
+| Point | Ruling |
+|---|---|
+| (1) Case number with 226 and 227 and a Supreme Court court | OK. Reuse `[To be confirmed: case type and number as styled in this High Court]`. |
+| (2) Mandamus respondent | Number it. A single respondent prints as `1. {respondent_authority}`. Several are numbered 1., 2., and so on. No State line is added unless the advocate names the State. |
+| (3) Empty respondent_authority | Use this signed blank, not one taken from the field's label: `[To be confirmed: authority against whom the writ is sought, with designation and address]`. It keeps its number, for example "2." after a State line. |
