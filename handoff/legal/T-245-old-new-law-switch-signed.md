@@ -612,3 +612,21 @@ Default bail under S.187(3) BNSS (old S.167(2) CrPC) is available only where the
 promptInstructions[8] becomes conditional on the answer, as above.
 
 Signed: Ajay (CLO), 16 Oct 2026 IST.
+
+## T-479 follow-up: respondent numbering and Supreme Court mandamus title (Ajay, 16 Oct 2026)
+
+| Point | Ruling |
+|---|---|
+| (a) Advocate-typed numbering | OK. Strip only a leading "n." or "n)" at the start of a respondent line before our numbering. Never change the rest of the line. |
+| (b) Mandamus title, court = Supreme Court | A High Court / Article 226 title on a Supreme Court petition is wrong. Use the title below. If it is not built in v1, hide the Supreme Court option in mandamus. Never print the High Court title for it. |
+
+Signed Supreme Court title (one line each):
+
+```
+IN THE SUPREME COURT OF INDIA
+CIVIL ORIGINAL JURISDICTION
+WRIT PETITION (CIVIL) NO. ______ OF ______
+(Under Article 32 of the Constitution of India)
+```
+
+T-473 scope: ref f1a18422 covers the labels in forms, in the intake brief and in the intake extraction prompt, including the three court-type labels.
