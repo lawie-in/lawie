@@ -2,7 +2,7 @@
 
 | Field  | Value                                                                 |
 | ------ | --------------------------------------------------------------------- |
-| Status | To do. V1 BLOCKER (Ajay, 16 Oct 2026). Priya                           |
+| Status | Merged into develop_staging: part (a) 190f0069, part (b) 942ab302, 16 Oct. Anushka to test on develop. Priya |
 | Owner  | Tanvi (free), Ajay gates; waits for T-471 to release fact-verifier.ts |
 | Mode   | Full chain (legal content, verifier)                                  |
 

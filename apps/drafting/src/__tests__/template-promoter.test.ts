@@ -282,6 +282,27 @@ describe('template-promoter', () => {
       expect(config.related_acts).toEqual(['Notaries Act, 1952', 'BNS']);
     });
 
+    it('T-477: keeps the pack sections, and the NI Act entry still matches the isNiAct filter regex', () => {
+      const { config } = promoteDocRuleToTemplateConfig(
+        {
+          template_id: 't',
+          category: 'c',
+          relevantActs: [
+            { act: 'Code of Civil Procedure, 1908', sections: ['S.151', 'Order XIX Rule 3'] },
+            { act: 'Negotiable Instruments Act, 1881', sections: ['S.138', 'S.141'] },
+          ],
+        },
+        't.json',
+      );
+      expect(config.related_acts).toEqual([
+        'Code of Civil Procedure, 1908 (S.151; Order XIX Rule 3)',
+        'Negotiable Instruments Act, 1881 (S.138; S.141)',
+      ]);
+      // ai.service.ts isNiAct: /negotiable\s+instruments/i, unanchored
+      const isNiAct = (s: string) => /negotiable\s+instruments/i.test(s);
+      expect(config.related_acts.filter(isNiAct)).toEqual([config.related_acts[1]]);
+    });
+
     it('picks filingChecklist when filing_checklist is absent', () => {
       const { config } = promoteDocRuleToTemplateConfig(
         { template_id: 't', category: 'c', filingChecklist: ['a', 'b'] },

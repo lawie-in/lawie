@@ -84,6 +84,10 @@ export interface IGeneration extends Document {
   runOrigin?: RunOrigin;
   /** ADR-019 §3.7 — the intake that led to this draft, when there was one. */
   intakeId?: string;
+  /** T-480: which drafting path ran. 'on' = written from a fact ledger. Missing on older rows. */
+  ledger?: 'on' | 'off';
+  /** T-477: how many echoed [only when: ...] markers were stripped from the AI body (count only) */
+  onlyWhenStrips?: number;
   /** Per-section breakdown — how much of the cost is the repeated system prompt (feeds T-004). */
   calls?: IGenerationCall[];
 
@@ -182,6 +186,10 @@ const GenerationSchema = new Schema<IGeneration>(
     runType: { type: String, enum: RUN_TYPES, default: undefined },
     runOrigin: { type: String, enum: RUN_ORIGINS, default: 'user' },
     intakeId: { type: String, default: undefined },
+    /** T-480: which drafting path ran. */
+    ledger: { type: String, enum: ['on', 'off'], default: undefined },
+    /** T-477: how many echoed [only when: ...] markers were stripped from the AI body (count only) */
+    onlyWhenStrips: { type: Number, default: undefined },
     calls: { type: [GenerationCallSchema], default: undefined },
   },
   { timestamps: true },
