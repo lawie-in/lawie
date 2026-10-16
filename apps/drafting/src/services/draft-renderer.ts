@@ -50,6 +50,12 @@
  * ledger, whatever the model's items say. An option with no signed sentence,
  * or whose `requires` fails, renders its MISSING form, so no ground the
  * advocate gave is dropped silently and none the advocate did not give can print.
+ *
+ * T-500 (Ajay 088fc4f7 and 2e536158, Arjun's format go): an entry list
+ * (`entry_texts`) prints one signed template per entry of its `from` key, read
+ * by `entry_parse` (`skeleton-entries.ts`), in the ledger's order; a clause's
+ * `missing_text` is its MISSING form as a signed sentence. The police station
+ * fills its slot through the one shared strip (`police-station.ts`).
  */
 import type { LedgerFact } from '@lawie/shared';
 
@@ -70,7 +76,9 @@ import { FactViolation, verifyDraft, VerifierInput } from './fact-verifier';
 import { blankLabel, dateMeaningOf } from './intake-brief';
 import type { Brief, ChecklistItem } from './intake-brief';
 import { dateMatchesInText, datesAsWritten, datesInText, normalise } from './intake-text';
+import { POLICE_STATION_PREFIXES, policeStationName } from './police-station';
 import type { RulePackFact } from './rule-pack.service';
+import { entryParts } from './skeleton-entries';
 
 // ── The model's structured output ───────────────────────────────────────────
 
@@ -235,6 +243,8 @@ export function skeletonTexts(skeleton: Skeleton): string[] {
     for (const v of c.variants ?? []) out.push(v.text);
     for (const i of Object.values(c.items ?? {})) if (i.text) out.push(i.text);
     for (const d of Object.values(c.derived ?? {})) out.push(...Object.values(d.map));
+    for (const t of c.entry_texts ?? []) out.push(t);
+    if (c.missing_text) out.push(c.missing_text);
   }
   return out;
 }
@@ -574,44 +584,12 @@ export function ownWordsAddedWord(text: string, rawSpan: string): boolean {
 }
 
 /**
- * Ajay (T-334 Addendum 2): the prefixes one of which is stripped from the
- * front of a `police_station` value before it fills a slot, because the
- * signed text already says "Police Station {police_station}". Matching data
- * only, never printed. The ledger keeps the advocate's words.
+ * The police-station value as it fills "Police Station {police_station}": the
+ * one shared strip (`police-station.ts`, T-500), so the body, the prayer and
+ * the annexures print the same name. Kept under this name for its callers.
  */
-export const POLICE_STATION_PREFIXES: ReadonlyArray<readonly string[]> = [
-  ['police', 'station'],
-  ['p', 's'],
-  ['ps'],
-  ['thana'],
-];
-
-/**
- * One leading police-station prefix removed (case-insensitive), then trimmed:
- * "PS Kadamkuan", "P.S. Kadamkuan", "Police Station Kadamkuan" and
- * "Thana-Kotwali" lose it; "Psalm Nagar" does not (whole words only).
- */
-export function stripPoliceStationPrefix(value: string): string {
-  const v = value.trim();
-  for (const words of POLICE_STATION_PREFIXES) {
-    let rest = v;
-    let matched = true;
-    for (const w of words) {
-      const m = rest.match(/^(\p{L}+)[\s.:,-]*/u);
-      if (!m || m[1].toLowerCase() !== w) {
-        matched = false;
-        break;
-      }
-      rest = rest.slice(m[0].length);
-    }
-    // A prefix glued to the name ("PSKadamkuan") is not a prefix.
-    if (matched && rest.trim() !== '' && rest.length < v.length) {
-      const consumed = v.slice(0, v.length - rest.length);
-      if (/[\s.:,-]$/.test(consumed)) return rest.trim();
-    }
-  }
-  return v;
-}
+export const stripPoliceStationPrefix = policeStationName;
+export { POLICE_STATION_PREFIXES };
 
 /** A currency amount as the verifier reads one: a marker (₹, Rs, INR) and a figure. */
 const AMOUNT_RE = /(?:₹|\b(?:rs|inr)\b\.?)\s*(\d[\d,]*(?:\.\d+)?)/giu;
@@ -1122,8 +1100,10 @@ export function renderDraft(input: DraftRenderInput): DraftRenderResult {
 
   const missingForm = (c: SkeletonClause, index: number): ClauseOutcome => {
     const label = clauseLabel(c);
+    // T-500: a signed MISSING sentence prints with the blank at its `{missing}`.
+    const blank = missingPlaceholder(label);
     return outcome(c, index, {
-      text: missingPlaceholder(label),
+      text: c.missing_text ? c.missing_text.replace(SLOT_RE, () => blank) : blank,
       status: 'missing',
       missing: [label],
     });
@@ -1311,6 +1291,34 @@ export function renderDraft(input: DraftRenderInput): DraftRenderResult {
     });
   };
 
+  /**
+   * T-500 (entry list): one signed template per entry of `from`, read from the
+   * ledger by the clause's `entry_parse` (`skeleton-entries.ts`), in the
+   * ledger's order; the first template whose placeholders the entry supplies
+   * prints, its first letter a capital (Ajay 2e536158 (6)). With `intro` the
+   * lines are lettered under it; without, they print as one paragraph. Nothing
+   * held: left out, or the MISSING form when required.
+   */
+  const renderEntries = (c: SkeletonClause, index: number): ClauseOutcome | null => {
+    const entries = c.from ? (held.get(c.from) ?? []) : [];
+    const lines: string[] = [];
+    for (const f of entries) {
+      for (const parts of entryParts(c.entry_parse, f.display)) {
+        const template = (c.entry_texts ?? []).find((t) =>
+          [...t.matchAll(SLOT_RE)].every((m) => (parts[m[1]] ?? '').trim() !== ''),
+        );
+        if (!template) continue;
+        const line = template.replace(SLOT_RE, (_m, name: string) => parts[name].trim());
+        lines.push(line.charAt(0).toUpperCase() + line.slice(1));
+      }
+    }
+    if (lines.length === 0) return c.required ? missingForm(c, index) : null;
+    return outcome(c, index, {
+      text: c.intro ? [c.intro, ...lettered(lines)].join('\n') : lines.join(' '),
+      status: 'ok',
+    });
+  };
+
   /** A list with signed sentences per option; an own-words list has none and renders as an advocate clause. */
   const isOptionList = (c: SkeletonClause): boolean =>
     Boolean(c.list && c.from && c.items && Object.keys(c.items).length > 0);
@@ -1333,7 +1341,9 @@ export function renderDraft(input: DraftRenderInput): DraftRenderResult {
     add(
       c.source === 'advocate'
         ? renderAdvocate(c, index, byClause.get(c.id))
-        : renderFixed(c, index),
+        : c.entry_texts
+          ? renderEntries(c, index)
+          : renderFixed(c, index),
     );
   });
   skeleton.clauses.forEach((c, index) => {
@@ -1346,14 +1356,25 @@ export function renderDraft(input: DraftRenderInput): DraftRenderResult {
     if (o) outcomes.push(o);
   });
 
+  // T-500: a clause skipped for another whole clause (`skip_if_rendered: <clauseId>`) is
+  // left out first, so a list it would have printed in place no longer takes its
+  // use_clause target away (the antecedents then print standalone).
+  const usedByAll = new Set(outcomes.flatMap((o) => o.usedClauses));
+  const printedClauses = new Set(
+    outcomes.filter((o) => !usedByAll.has(o.clause.id)).map((o) => o.clause.id),
+  );
+  const live = outcomes.filter((o) => {
+    const ref = o.clause.skip_if_rendered;
+    return !(ref && !ref.includes('.') && printedClauses.has(ref));
+  });
   // A clause a list item printed in place prints once, there (use_clause).
-  const usedInPlace = new Set(outcomes.flatMap((o) => o.usedClauses));
+  const usedInPlace = new Set(live.flatMap((o) => o.usedClauses));
   const printed = new Set<string>(
-    outcomes
+    live
       .filter((o) => !usedInPlace.has(o.clause.id))
       .flatMap((o) => [o.clause.id, ...o.printedItems]),
   );
-  const kept = outcomes
+  const kept = live
     .filter((o) => !usedInPlace.has(o.clause.id))
     .filter((o) => !(o.clause.skip_if_rendered && printed.has(o.clause.skip_if_rendered)))
     .sort((a, b) => a.clause.order - b.clause.order || a.index - b.index);

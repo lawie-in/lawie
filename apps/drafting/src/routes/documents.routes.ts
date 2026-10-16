@@ -1530,7 +1530,7 @@ router.post(
             rulePackVersion: rulePackVersionOf(pack),
             runType: ledger.runType,
             requiredFactCount: buildChecklist(pack).filter((i) => i.required).length,
-            deliveredText: result.fullText,
+            deliveredText: result.markedFullText ?? result.fullText,
           });
         } catch (logErr) {
           console.error(

@@ -19,6 +19,7 @@ import { readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 
 import type { AvermentLists } from './averments';
+import { ENTRY_PARSES, ENTRY_PLACEHOLDERS, type EntryParse } from './skeleton-entries';
 import { humaniseOptionLabel, normaliseOption, objectOptionLabel } from './template-promoter';
 
 // ── Output shape ────────────────────────────────────────────────────────────
@@ -1012,6 +1013,12 @@ export interface SkeletonClause {
   /** `<clauseId>` or `<clauseId>.<itemId>`: skip this clause when that one rendered. */
   skip_if_rendered?: string;
   t327_brief_blank_covers?: boolean;
+  /** T-500: an entry list's signed templates, one printed per entry of `from`. */
+  entry_texts?: string[];
+  /** T-500: how a value of `from` is read into entries (`skeleton-entries.ts`). */
+  entry_parse?: 'enumerated' | 'dependant';
+  /** T-500: the clause's MISSING form as a signed sentence, `{missing}` where the blank goes. */
+  missing_text?: string;
 }
 
 export interface Skeleton {
@@ -1070,6 +1077,9 @@ const SKELETON_CLAUSE_KEYS = new Set([
   'render_if_any_slot',
   'skip_if_rendered',
   't327_brief_blank_covers',
+  'entry_texts',
+  'entry_parse',
+  'missing_text',
 ]);
 const SKELETON_ITEM_KEYS = new Set(['text', 'slots', 'requires', 'missing_label', 'use_clause']);
 const SKELETON_VARIANT_KEYS = new Set(['when', 'text', 'slots']);
@@ -1230,6 +1240,49 @@ function checkCondition(c: unknown, where: string, refs: Set<string>, errors: st
 }
 
 /**
+ * T-500: an entry-list clause. `source: fixed`, `list: true`, a `from` key, no
+ * text, variants or items; `entry_texts` a non-empty list of signed templates
+ * whose placeholders are those its `entry_parse` supplies (`ENTRY_PLACEHOLDERS`).
+ */
+function checkEntryList(c: Obj, where: string, hasOther: boolean, errors: string[]): void {
+  if (c.source !== 'fixed') errors.push(`${where}: entry_texts is only for fixed clauses`);
+  if (c.list !== true) errors.push(`${where}: entry_texts needs list true`);
+  if (typeof c.from !== 'string' || !SLOT_NAME.test(c.from)) {
+    errors.push(`${where}: entry_texts needs from (the ledger key whose entries print)`);
+  }
+  if (hasOther) errors.push(`${where}: has entry_texts and text, variants or items`);
+  let parse: EntryParse | 'none' = 'none';
+  if (c.entry_parse !== undefined) {
+    if (
+      typeof c.entry_parse !== 'string' ||
+      !(ENTRY_PARSES as readonly string[]).includes(c.entry_parse)
+    ) {
+      errors.push(`${where}: entry_parse is not a known reading`);
+    } else {
+      parse = c.entry_parse as EntryParse;
+    }
+  }
+  if (!Array.isArray(c.entry_texts) || c.entry_texts.length === 0) {
+    errors.push(`${where}: entry_texts is not a non-empty array`);
+    return;
+  }
+  const allowed = ENTRY_PLACEHOLDERS[parse];
+  c.entry_texts.forEach((t, i) => {
+    const tw = `${where}.entry_texts[${i}]`;
+    if (!nonEmptyString(t)) {
+      errors.push(`${tw}: not a non-empty string`);
+      return;
+    }
+    const used = placeholders(t, tw, errors);
+    if (used.size === 0) errors.push(`${tw}: has no placeholder`);
+    for (const name of used) {
+      if (!allowed.includes(name))
+        errors.push(`${tw}: placeholder '${name}' is not supplied by the entry`);
+    }
+  });
+}
+
+/**
  * Check a parsed skeleton file. Pure: no disk access. Returns the errors, empty when the
  * skeleton is valid. Messages carry ids only, never the signed wording.
  *
@@ -1359,6 +1412,7 @@ export function validateSkeleton(raw: unknown, pack: RulePack | null, packId?: s
     const hasText = c.text !== undefined;
     const hasVariants = c.variants !== undefined;
     const hasItems = c.items !== undefined;
+    const hasEntries = c.entry_texts !== undefined;
 
     if (hasText && hasVariants) errors.push(`${where}: has both text and variants`);
     if (c.slots !== undefined && !hasText) errors.push(`${where}: has slots but no text`);
@@ -1392,17 +1446,35 @@ export function validateSkeleton(raw: unknown, pack: RulePack | null, packId?: s
       if (hasItems) errors.push(`${where}: advocate clause has items`);
     } else if (c.source === 'fixed') {
       if (c.slot !== undefined) errors.push(`${where}: slot is only for advocate clauses`);
-      if (!hasText && !hasVariants && !hasItems) {
+      if (!hasText && !hasVariants && !hasItems && !hasEntries) {
         errors.push(`${where}: fixed clause has no text, variants or items`);
       }
     }
 
     // List clauses.
-    if (c.list === true && !hasItems && c.source !== 'advocate') {
+    if (c.list === true && !hasItems && !hasEntries && c.source !== 'advocate') {
       errors.push(`${where}: list clause has no items and is not an advocate list`);
     }
     if (hasItems && c.list !== true) errors.push(`${where}: has items but list is not true`);
-    if (c.from !== undefined && !hasItems) errors.push(`${where}: has from but no items`);
+    if (c.from !== undefined && !hasItems && !hasEntries) {
+      errors.push(`${where}: has from but no items`);
+    }
+
+    // T-500: an entry list (signed templates per entry of `from`) and a signed MISSING sentence.
+    if (hasEntries) checkEntryList(c, where, hasText || hasVariants || hasItems, errors);
+    else if (c.entry_parse !== undefined) errors.push(`${where}: entry_parse needs entry_texts`);
+    if (c.missing_text !== undefined) {
+      if (!nonEmptyString(c.missing_text)) {
+        errors.push(`${where}: missing_text is not a non-empty string`);
+      } else {
+        const names = [...c.missing_text.matchAll(PLACEHOLDER)].map((m) => m[1]);
+        if (names.length !== 1 || names[0] !== 'missing') {
+          errors.push(
+            `${where}: missing_text needs exactly one {missing} and no other placeholder`,
+          );
+        }
+      }
+    }
     if (hasItems) {
       if (typeof c.from !== 'string' || !SLOT_NAME.test(c.from)) {
         errors.push(`${where}: items need from (the pack field whose options they follow)`);

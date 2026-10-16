@@ -113,6 +113,16 @@ export interface SkeletonClause {
   skip_if_rendered?: string;
   /** T-327 note on the signed skeleton: the brief's blank covers this clause. Not read by the renderer. */
   t327_brief_blank_covers?: boolean;
+  /**
+   * T-500 (entry list): signed templates printed once per entry of `from`, the
+   * first whose placeholders the entry supplies (`skeleton-entries.ts`). With
+   * `intro` the lines are lettered under it; without, they print as one paragraph.
+   */
+  entry_texts?: string[];
+  /** T-500: how a value of `from` is read into entries: `enumerated` or `dependant`. None: one entry, `{entry}`. */
+  entry_parse?: 'enumerated' | 'dependant';
+  /** T-500: the signed sentence the clause's MISSING form prints, with `{missing}` where the blank goes. */
+  missing_text?: string;
 }
 
 export interface Skeleton {

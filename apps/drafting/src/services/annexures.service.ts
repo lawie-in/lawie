@@ -23,6 +23,7 @@ import { join } from 'path';
 
 import { CaseSide, CLIENT_ROLE_TABLE, ClientRoleRow, storesState } from './brief-party-fields';
 import { renderPdf } from './pdf-export.service';
+import { policeStationName } from './police-station';
 import {
   chosenCourtHeading,
   CourtLookupData,
@@ -180,6 +181,11 @@ function esc(s: string): string {
 
 function safeEsc(v: unknown, fallback = '___________'): string {
   return esc(str(v, fallback));
+}
+
+/** T-500: a police station printed after "PS" goes through the one shared strip (police-station.ts). */
+function stationOf(v: unknown): unknown {
+  return typeof v === 'string' && v.trim() !== '' ? policeStationName(v) : v;
 }
 
 /**
@@ -457,7 +463,7 @@ function annexureSynopsis(formData: Record<string, unknown>, rules: CourtRules):
   const docType = safeEsc(formData.template_id ?? formData.doc_type ?? 'Application');
   const sections = str(formData.sections_charged ?? formData.bns_sections ?? formData.sections, '');
   const firNo = safeEsc(formData.fir_number ?? formData.fir_no ?? formData.complaint_number);
-  const ps = safeEsc(formData.police_station ?? formData.ps_name);
+  const ps = safeEsc(stationOf(formData.police_station ?? formData.ps_name));
   const year = new Date().getFullYear();
 
   const bulletPoints: string[] = [
@@ -493,7 +499,7 @@ function annexureListOfDates(formData: Record<string, unknown>): string {
   );
   const firDate = safeDateEsc(formData.fir_date ?? formData.date_of_fir);
   const firNo = safeEsc(formData.fir_number ?? formData.fir_no ?? formData.complaint_number);
-  const ps = safeEsc(formData.police_station ?? formData.ps_name);
+  const ps = safeEsc(stationOf(formData.police_station ?? formData.ps_name));
   const arrestDate = safeDateEsc(formData.date_of_arrest ?? formData.arrest_date);
   // T-349: "4 April 2026" (T-340's formatter), local date as before.
   const filingDate = formatDraftDate(new Date());

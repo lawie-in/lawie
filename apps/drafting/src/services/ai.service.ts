@@ -133,6 +133,7 @@ import {
   UsageMeter,
   UsageTotals,
 } from './llm-usage';
+import { convertMissingMarkers } from './missing-markers';
 import { postProcess } from './post-processor';
 import { assemblePrompt, PromptInput } from './prompt-assembler';
 import { renderRelatedActs } from './related-acts';
@@ -870,6 +871,22 @@ export interface TemplateGenerateInput {
   runType: RunType;
 }
 
+/**
+ * T-499 (Ajay acbec79f, 088fc4f7): the one place where a draft's parts become
+ * what the user sees. Assembles the parts, then converts every `{{MISSING: …}}`
+ * marker in every part (body, prayer, title, verification) to its
+ * `[To be confirmed: …]` blank in place (`convertMissingMarkers`), so the
+ * streamed `template_sections`, the returned `sections` and `fullText` carry
+ * the same blanks. `markedFullText` is the text before the conversion.
+ */
+function assembleForUser(
+  sections: RenderedSection[],
+): ReturnType<typeof assembleDocument> & { markedFullText: string } {
+  const marked = assembleDocument(sections);
+  if (convertMissingMarkers(sections) === 0) return { ...marked, markedFullText: marked.fullText };
+  return { ...assembleDocument(sections), markedFullText: marked.fullText };
+}
+
 export interface TemplateGenerateResult {
   fullText: string;
   sections: RenderedSection[];
@@ -885,6 +902,12 @@ export interface TemplateGenerateResult {
   bodyParaCount: number;
   /** T-477: echoed [only when: ...] markers stripped from the AI body, summed across sections (count only) */
   onlyWhenStrips?: number;
+  /**
+   * T-499: the document as assembled before its `{{MISSING: …}}` markers became
+   * `[To be confirmed: …]` blanks. For T-147d's placeholder rate only (the
+   * caller's `deliveredText`); never saved, streamed or shown.
+   */
+  markedFullText?: string;
 }
 
 /**
@@ -1092,7 +1115,7 @@ export async function streamGenerateFromTemplate(
     }
 
     // ── Assemble full document ─────────────────────────────────────────────────
-    const { fullText, bodyParaCount } = assembleDocument(renderedSections);
+    const { fullText, bodyParaCount, markedFullText } = assembleForUser(renderedSections);
 
     // Update body_para_count in the context and re-render verification if needed
     ctx.body_para_count = String(bodyParaCount);
@@ -1258,6 +1281,7 @@ export async function streamGenerateFromTemplate(
       transport,
       bodyParaCount,
       onlyWhenStrips,
+      markedFullText,
     };
   } finally {
     stopKeepAlive();
@@ -2154,7 +2178,7 @@ export async function streamGenerateFromBrief(
     // ── The body takes its place among the parts the system wrote ─────────────
     renderedSections[bodyAt] = { ...renderedSections[bodyAt], content: output.body };
 
-    const { fullText, bodyParaCount } = assembleDocument(renderedSections);
+    const { fullText, bodyParaCount, markedFullText } = assembleForUser(renderedSections);
     ctx.body_para_count = String(bodyParaCount);
     /** Each part as it prints: the number of the last paragraph filled in. */
     const printed = renderedSections.map((s) =>
@@ -2321,6 +2345,7 @@ export async function streamGenerateFromBrief(
       startingDraft: needsStartingDraftLabel(missing, allWarnings) || Boolean(factCheck?.banner),
       labelReason: labelReason(missing, allWarnings),
       ...(factCheck ? { factCheck } : {}),
+      markedFullText,
     };
   } finally {
     stopKeepAlive();
@@ -2702,7 +2727,7 @@ async function d1GenerateFromBrief(c: D1Context): Promise<BriefGenerateResult> {
   // ── The body takes its place among the parts the system wrote ─────────────
   const renderedSections = c.renderedSections;
   renderedSections[c.bodyAt] = { ...renderedSections[c.bodyAt], content: body };
-  const { fullText, bodyParaCount } = assembleDocument(renderedSections);
+  const { fullText, bodyParaCount, markedFullText } = assembleForUser(renderedSections);
   c.ctx.body_para_count = String(bodyParaCount);
   const printed = renderedSections.map((s) =>
     s.type === 'template' && s.content.includes('{body_para_count}')
@@ -2759,6 +2784,7 @@ async function d1GenerateFromBrief(c: D1Context): Promise<BriefGenerateResult> {
     // Arjun B: no factCheck on D1; the findings go to the fact-diff log tagged d1.
     factDiff: { outcome: factCheck, path: 'd1' },
     rendered: rendered.rendered,
+    markedFullText,
   };
 }
 
@@ -2856,10 +2882,13 @@ export async function streamGenerateGuided(
     // The whole document is the Drafter's. Only a disclaimer it was told not to write is taken out,
     // and a case citation the advocate did not give (T-148).
     const citations = removeUngivenCitations(withoutDisclaimers(raw), [briefText(brief)]);
-    const fullText = citations.text;
+    // T-499: the one conversion of {{MISSING: …}} markers, as on the other paths.
+    const markedFullText = citations.text;
     const renderedSections: RenderedSection[] = [
-      { section_id: 'body', type: 'ai_generated', content: fullText },
+      { section_id: 'body', type: 'ai_generated', content: markedFullText },
     ];
+    convertMissingMarkers(renderedSections);
+    const fullText = renderedSections[0].content;
     res.write(
       `event: template_sections\ndata: ${JSON.stringify({
         sections: renderedSections.map((s) => ({
@@ -2920,6 +2949,7 @@ export async function streamGenerateGuided(
       bodyParaCount: paragraphNumbers(fullText).size,
       missingClauses: [],
       repaired: false,
+      markedFullText,
       // T-127, section 7.3: with no rule pack the label is always on, with no line under it.
       startingDraft: true,
       labelReason: null,

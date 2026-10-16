@@ -1,6 +1,6 @@
 {
   "pack": "bail_regular",
-  "version": 4,
+  "version": 5,
   "none_values": "first_bail_application.equals (T-334)",
   "antecedents_none_values": [
     "none",
@@ -20,7 +20,20 @@
     "koi criminal record nahi",
     "koi aapradhik record nahi",
     "कोई नहीं",
-    "कोई आपराधिक रिकॉर्ड नहीं"
+    "कोई आपराधिक रिकॉर्ड नहीं",
+    "never been accused in any other case",
+    "has never been accused in any other case",
+    "the applicant has never been accused in any other case",
+    "he has never been accused in any other case",
+    "she has never been accused in any other case",
+    "never accused in any other case",
+    "not been accused in any other case",
+    "has not been accused in any other case",
+    "the applicant has not been accused in any other case",
+    "never been accused",
+    "has never been accused",
+    "the applicant has never been accused",
+    "never accused"
   ],
   "clauses": [
     {
@@ -119,20 +132,21 @@
             "key": "antecedents",
             "in": "antecedents_none_values"
           },
-          "text": "The applicant has no criminal antecedents."
+          "text": "The applicant has no criminal antecedents and has not been accused in any other case."
         },
         {
           "when": {
             "key": "antecedents",
             "present": true
           },
-          "text": "The criminal antecedents of the applicant are: {antecedents}.",
+          "text": "The applicant's criminal antecedents are as follows: {antecedents}.",
           "slots": [
             "antecedents"
           ]
         }
       ],
-      "missing_label": "Criminal antecedents"
+      "missing_label": "criminal antecedents of the applicant, if any",
+      "missing_text": "The applicant {missing}."
     },
     {
       "id": "earlier_applications",
@@ -215,14 +229,29 @@
             "applicant_age"
           ]
         }
-      }
+      },
+      "skip_if_rendered": "grounds_stated"
+    },
+    {
+      "id": "grounds_stated",
+      "order": 72,
+      "required": false,
+      "source": "fixed",
+      "list": true,
+      "intro": "The applicant seeks bail on the following grounds, among others, each without prejudice to the other:",
+      "from": "grounds_stated",
+      "entry_texts": [
+        "{entry}."
+      ],
+      "entry_parse": "enumerated"
     },
     {
       "id": "further_grounds",
       "order": 75,
       "required": false,
       "source": "advocate",
-      "slot": "additional_context"
+      "slot": "additional_context",
+      "skip_if_rendered": "grounds_stated"
     },
     {
       "id": "false_implication_reason",
@@ -337,10 +366,15 @@
       "order": 88,
       "required": false,
       "source": "fixed",
-      "text": "{dependants} depend on the applicant.",
-      "slots": [
-        "dependants"
-      ]
+      "list": true,
+      "from": "dependants",
+      "entry_texts": [
+        "The applicant's {relation}, aged {age} years, is dependent on the applicant.",
+        "The applicant's {relations}, aged {ages} years respectively, are dependent on the applicant.",
+        "The applicant's {relations} are dependent on the applicant.",
+        "The applicant's {relation} is dependent on the applicant."
+      ],
+      "entry_parse": "dependant"
     },
     {
       "id": "roots",

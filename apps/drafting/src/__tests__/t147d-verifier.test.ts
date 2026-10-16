@@ -1586,7 +1586,8 @@ describe('the route: the verifier sits between the Drafter and the advocate', ()
     expect(banner.items).toHaveLength(1);
     expect(banner.disclaimer).toBe(FACT_CHECK_DISCLAIMER);
     const content = await savedContent(res);
-    expect(content).toMatch(/\{\{MISSING: [^}]+\}\}/);
+    expect(content).not.toContain('{{MISSING'); // T-499
+    expect(content).toMatch(/\[To be confirmed: [^\]]+\]/);
     expect(content).toContain('2. That FIR No. 124/2026 was registered at PS Kotwali.');
     // the draft that has a banner is not delivered as a clean one
     expect(event(res.text, 'done')!.startingDraftLabel).not.toBeNull();
@@ -1667,7 +1668,9 @@ describe('the route: the verifier sits between the Drafter and the advocate', ()
     const res = await post(id);
     expect(res.status).toBe(200);
     expect(event(res.text, 'done')!.factCheck.banner.items).toHaveLength(1);
-    expect(await savedContent(res)).toMatch(/\{\{MISSING: /);
+    const savedC = await savedContent(res);
+    expect(savedC).not.toContain('{{MISSING'); // T-499
+    expect(savedC).toMatch(/\[To be confirmed: /);
     expect(JSON.stringify(err.mock.calls)).not.toMatch(/Ram Kumar|upstream down/);
   });
 

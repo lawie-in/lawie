@@ -904,7 +904,8 @@ describe('AC8: the parts the system writes carry only ledger displays or {{MISSI
     expect(text).not.toContain(SENT_PS);
     expect(text).not.toContain(SENT_NAME);
     expect(text).toContain(LEDGER_NAME);
-    expect(text).toMatch(/\{\{MISSING: [^}]+\}\}/);
+    expect(text).not.toContain('{{MISSING'); // T-499: no raw marker reaches the saved document
+    expect(text).toMatch(/\[To be confirmed: [^\]]+\]/);
   });
 
   it('switch off: SYSTEM PARTS, BEFORE and AFTER YOUR TEXT are identical to the call with no ledger_id, and carry the brief values', async () => {

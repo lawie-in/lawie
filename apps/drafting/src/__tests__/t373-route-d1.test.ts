@@ -194,7 +194,7 @@ const PACKS: Array<{
   {
     id: 'bail_regular',
     facts: regularBase,
-    signed: 'The applicant has no criminal antecedents.',
+    signed: 'The applicant has no criminal antecedents and has not been accused in any other case.',
     name: 'Ramesh Kumar',
   },
   {
@@ -261,7 +261,8 @@ describe('bail_before_magistrate: the facts clause with no facts_narrative field
     const r = await generate('bail_before_magistrate', magistrateToday());
     expect(r.status).toBe(200);
     expect(statusOf(r, 'facts')).toBe('missing');
-    expect(r.body).toContain('{{MISSING');
+    expect(r.body).not.toContain('{{MISSING'); // T-499
+    expect(r.body).toContain('[To be confirmed:');
     expect((r.done.missingClauses as Array<{ id: string }>).map((m) => m.id)).toContain('facts');
     // T-365 added the field to the Magistrate pack; the round 3 test pins the real checklist.
   });
@@ -333,14 +334,19 @@ describe('T-359 through the route (Anushka run 3)', () => {
   it('AC1 antecedents is MISSING only when the fact is absent, and prints the signed line when held', async () => {
     const held = await generate('bail_regular', regularBase());
     expect(statusOf(held, 'antecedents')).toBe('ok');
-    expect(held.body).toContain('The applicant has no criminal antecedents.');
+    expect(held.body).toContain(
+      'The applicant has no criminal antecedents and has not been accused in any other case.',
+    );
 
     const absent = await generate(
       'bail_regular',
       regularBase().filter((f) => f.key !== 'antecedents'),
     );
     expect(statusOf(absent, 'antecedents')).toBe('missing');
-    expect(absent.body).toContain('{{MISSING');
+    expect(absent.body).not.toContain('{{MISSING'); // T-499
+    expect(absent.body).toContain(
+      'The applicant [To be confirmed: criminal antecedents of the applicant, if any].',
+    );
     expect(absent.body).not.toContain('no criminal antecedents');
     expect((absent.done.missingClauses as Array<{ id: string }>).map((m) => m.id)).toContain(
       'antecedents',
@@ -379,7 +385,8 @@ describe('T-359 through the route (Anushka run 3)', () => {
     const r = await generate('default_bail', defaultBailBase('No'));
     expect(statusOf(r, 'willingness')).toBe('missing');
     expect(r.body).not.toContain('undertakes to furnish bail bonds');
-    expect(r.body).toContain('{{MISSING');
+    expect(r.body).not.toContain('{{MISSING'); // T-499
+    expect(r.body).toContain('[To be confirmed:');
     expect((r.done.missingClauses as Array<{ id: string }>).map((m) => m.id)).toContain(
       'willingness',
     );

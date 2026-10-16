@@ -314,8 +314,9 @@ describe('round 5: stripPoliceStationPrefix', () => {
     expect(stripPoliceStationPrefix('Police Station')).toBe('Police Station');
     expect(stripPoliceStationPrefix('P.S.')).toBe('P.S.');
   });
-  it('only one prefix is removed', () => {
-    expect(stripPoliceStationPrefix('PS PS Kadamkuan')).toBe('PS Kadamkuan');
+  it('every label is removed (T-500)', () => {
+    // Ajay AJ-500-M1 / T-500: labels are removed as often as they are there, so the name is left alone.
+    expect(stripPoliceStationPrefix('PS PS Kadamkuan')).toBe('Kadamkuan');
   });
   it('the prefix data is the four forms', () => {
     expect(POLICE_STATION_PREFIXES.map((w) => w.join(' '))).toEqual([
