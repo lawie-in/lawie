@@ -2,7 +2,7 @@
 
 | Field  | Value                                                                 |
 | ------ | --------------------------------------------------------------------- |
-| Status | To do. V1 BLOCKER (Arjun, 16 Oct 2026). Priya                           |
+| Status | Merged into develop_staging 9e676caa, 16 Oct (Ajay f9415fe8, b101b4eb, 8766fbf1). Release: promoted templates re-sync on the next seed. Anushka to test on develop. Priya |
 | Owner  | Kunal (he holds template-promoter.ts for T-473), Ajay gates            |
 | Mode   | Full chain (legal content path)                                        |
 
