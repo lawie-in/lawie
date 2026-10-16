@@ -28,3 +28,7 @@ Explore: why the request is not routed to the maintenance_bnss_144 pack, and why
 ## Ajay's ruling (16 Oct 2026)
 
 Offer a Family Court only for districts he has verified; otherwise JMFC. He is checking the Bihar and Jharkhand list and will send it.
+
+## Kunal's Explore (16 Oct 2026)
+
+Two causes. (1) "No ready document": routing is one LLM call (intake_match, intake.prompts.ts) over id | name | category | description; maintenance_bnss_144 is in the catalogue (catalogue/base.ts, active, free) but its description is only "maintenance application u/s 144 BNSS (was CrPC 125)": no maintenance / bharan-poshan / wife / child / parents / Family Court cue, and the prompt is English-only. (2) Court list: the picker is state, court type, court with no district filter; indian-courts.json has no family_court type (Family Courts are 22 tribunal records; Bihar: family_court_patna only; Jharkhand: ranchi only); district_court/cjm/jmfc exist only for Patna and Ranchi; Gaya has only sessions and consumer_commission. Needs from Ajay: verified Bihar/Jharkhand districts with a Family Court (seat name), where JMFC is offered per district, and the description/match wording with the Hindi terms.
