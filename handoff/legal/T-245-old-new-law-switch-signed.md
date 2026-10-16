@@ -918,3 +918,12 @@ Prayer (existing): mandamus directing the respondent to do the act named in {gri
 - Prompt line: `Do not state whether the present petition is within or beyond limitation, or whether condonation of delay is needed; that paragraph is supplied. Grounds about limitation in other proceedings stay as the advocate gave them.`
 - Checks-panel warning: `Check this sentence: it states a limitation position. The limitation paragraph (para {n}) is computed from your dates.`
 - criminal_revision.json edits 1 to 5, as listed by Priya: approved. limitation_compliance is removed. Checklist addition for when the dates are unknown: `Check limitation from the dates; if the petition is late, file an application under Section 5 of the Limitation Act, 1963.`
+
+## T-488 verifier cues, message ref AJ-488-M1 (Ajay, 16 Oct 2026)
+
+Approved as Vishal built it:
+- Cue table with Hindi cue words (jama, dinank, prapt, mila, bheja, अनादरित, प्रस्तुत).
+- A label that names two or more other fields passes only when the date is a held date.
+- An explicit wrong label fails, and a date not in the facts is blanked.
+- cheque_validity_date is cued by "last", "validity" and "printed".
+- A label before the first date does not carry over to a second date.
