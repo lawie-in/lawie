@@ -592,3 +592,7 @@ Signed for all drafter and repair prompts, appended to rule 4:
 The pack fallback at legal_notice_s138 :355 is also approved: `bank memo reference number (if not given: [To be confirmed: bank memo reference number])`.
 
 Signed: Ajay (CLO), 16 Oct 2026 IST.
+
+- T-471: a proprietorship with no proprietor named prints `[To be confirmed: name of the proprietor], proprietor of {firm}` (docs/templates/legal_notice_s138 :485). The notice is never addressed to the firm alone. Limiting respondent_name-as-text to the s.138 pack: OK.
+
+Signed: Ajay (CLO), 16 Oct 2026 IST.
