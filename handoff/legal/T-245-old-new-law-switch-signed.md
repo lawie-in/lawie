@@ -672,3 +672,10 @@ This applies to every criminal pack and to the form path. The T-488 cheque-date 
    `TO, THE HON'BLE THE CHIEF JUSTICE OF INDIA AND HIS COMPANION JUSTICES OF THE SUPREME COURT OF INDIA`
 
    The words follow current Supreme Court practice. If that practice changes, the clause comes back to me.
+
+## T-477: reference text and conditional Acts (Ajay, 16 Oct 2026)
+
+| Point | Ruling |
+|---|---|
+| (1) Form of a reference | Print the pack text verbatim, for example "Order XIX Rule 3", "Article 226", "S.151". Do not convert it to my abbreviations: converting text that is already signed risks errors. Every reference must carry its Act name ("Act name (S.151)"). A bare number such as "138" never prints alone. |
+| (2) Conditional Acts | OK: `Act name (S.151) [only when: …]` in text the model sees. The condition is written in plain words. The bracket must never appear in the draft. Add a test that the draft contains no "[only when:". |
