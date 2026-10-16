@@ -596,3 +596,7 @@ Signed: Ajay (CLO), 16 Oct 2026 IST.
 - T-471: a proprietorship with no proprietor named prints `[To be confirmed: name of the proprietor], proprietor of {firm}` (docs/templates/legal_notice_s138 :485). The notice is never addressed to the firm alone. Limiting respondent_name-as-text to the s.138 pack: OK.
 
 Signed: Ajay (CLO), 16 Oct 2026 IST.
+
+- Rule 4 in the ledger drafter and its repair prompts (drafter.prompts.ts :165, :200, :243): `Never write that a fact is missing, not given or not stated in the brief, the facts or the instructions; print only its placeholder in the form {{MISSING: …}}.` The signed sentence is used verbatim at :59, :88, :121. Condition: code turns every `{{MISSING: …}}` into `[To be confirmed: …]` before the user sees the draft, and a test shows none survives.
+
+Signed: Ajay (CLO), 16 Oct 2026 IST.
