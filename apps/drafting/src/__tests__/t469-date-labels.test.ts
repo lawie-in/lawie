@@ -462,3 +462,69 @@ describe('T-469 normalizeForItem and readExtraction pass the context (AC8)', () 
     });
   });
 });
+
+describe('T-469 round 4: "hearing" alone is not "next hearing"', () => {
+  it.each(['hearing on 4 June 2026', 'hearing 4 June 2026'])(
+    '%p is blank for next_hearing_date',
+    (span) => {
+      expect(
+        read(span, 'next_hearing_date', two('next_hearing_date'), two('next_hearing_date')),
+      ).toMatchObject({ ok: false, reason: U });
+    },
+  );
+
+  it.each(['next 4 June 2026', 'next hearing on 4 June 2026', 'next date 4 June 2026'])(
+    '%p still reads for next_hearing_date',
+    (span) => {
+      expect(
+        read(span, 'next_hearing_date', two('next_hearing_date'), two('next_hearing_date')),
+      ).toMatchObject({ ok: true, value: '2026-06-04' });
+    },
+  );
+});
+
+describe('T-469 round 4: the caller passes the clock (no fake timers)', () => {
+  const NOW = new Date('2026-03-10T06:00:00Z'); // 10 March 2026 in India
+  const ctx = { now: NOW };
+
+  it('normalizeForItem: a past-event date a day after now is blank, a day before reads', () => {
+    const arrest = dateItem('arrest_date');
+    expect(normalizeForItem(arrest, '11/03/2026', REF, ctx)).toMatchObject({ ok: false });
+    expect(normalizeForItem(arrest, '09/03/2026', REF, ctx)).toMatchObject({
+      ok: true,
+      value: '2026-03-09',
+    });
+    expect(normalizeForItem(arrest, '10/03/2026', REF, ctx)).toMatchObject({ ok: true });
+  });
+
+  it('normalizeForItem: now is read as India time', () => {
+    const late = { now: new Date('2026-03-10T19:00:00Z') }; // already 11 March in India
+    expect(normalizeForItem(dateItem('arrest_date'), '11/03/2026', REF, late)).toMatchObject({
+      ok: true,
+      value: '2026-03-11',
+    });
+  });
+
+  it('normalizeForItem: an exempt field after now is read', () => {
+    expect(normalizeForItem(dateItem('next_hearing_date'), '11/03/2026', REF, ctx)).toMatchObject({
+      ok: true,
+      value: '2026-03-11',
+    });
+  });
+
+  it('readExtraction: now is passed through', () => {
+    const items = [dateItem('arrest_date')];
+    const run = (text: string, span: string) =>
+      readExtraction(
+        items,
+        text,
+        { facts: [{ key: 'arrest_date', span, confidence: 0.95 }] },
+        REF,
+        NOW,
+      );
+    expect(run('He was arrested on 11/03/2026.', '11/03/2026').facts).toEqual([]);
+    expect(
+      run('He was arrested on 09/03/2026.', '09/03/2026').facts.map((f) => [f.key, f.value]),
+    ).toEqual([['arrest_date', '2026-03-09']]);
+  });
+});

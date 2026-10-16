@@ -369,6 +369,8 @@ export const ORDER_DATE_FIELDS: readonly string[] = [
  */
 const LABEL_NEEDS_ALL: ReadonlyMap<string, readonly string[]> = new Map([
   ['memo_received_date', ['memo', 'received']],
+  // Reviewer round 4: a bare "hearing" may be a past one; next_hearing_date is future-exempt.
+  ['next_hearing_date', ['next']],
 ]);
 
 /**
