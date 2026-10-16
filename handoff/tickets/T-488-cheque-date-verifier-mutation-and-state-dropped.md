@@ -19,3 +19,7 @@ Explore the failing cases in run 69: why the verifier changes a cheque date, and
 - The cheque date is never changed by the verifier (dates correct, as Anushka's run found).
 - The State appears where the brief names it.
 - Golden fixtures 07/08/1b/19/20/21 pass those checks; Ajay's ref in the merge body.
+
+## Ajay's ruling, State party name (ref ca12ec2e, 16 Oct 2026)
+
+A State prints "State of {state}". Delhi prints "State (Govt. of NCT of Delhi)", never "State of Delhi". Other Union Territories print a blank until Ajay verifies the form. This covers the State point here and Shashank's parked Delhi quashing title.

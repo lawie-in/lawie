@@ -129,3 +129,11 @@ Approved as is: Supreme Court, Tribunal, Consumer Commission.
 | F1 | Option ids carry wrong or unverified references and the model sees ids: the ids in "Not verified" above. Rename them with read-time aliases, or send the model the label instead. Until then, the prompt must not cite a section taken from an option id. My re-sign is needed. |
 | F2 | itat_appeal: drop s.264 from the revision option once T-456 confirms. |
 | F3 | Question labels, outside T-473: TDS thresholds in the lease question; "S.117 Mohammedan law" is a textbook section, not a statute (verify); POSH "S.2(n) categories" also lists Section 3(2) circumstances. |
+
+## Byte check (Ajay, 16 Oct 2026): approved, fix/t-473-form-option-labels @ 2e845e68
+
+- `apps/drafting/src/config/option-label-overrides.ts`: 79 of 79 ids match the signed tables byte for byte. There are no extra ids.
+- R1: title case for an all-capitals court name, with "of", "and", "at", "for", "the" and "in" in lower case. For example "High Court of Delhi" is correct and confirmed.
+- R2: "Warning or written apology" is kept.
+- Old saved answers map to the new labels in `intake-brief.ts` and `draft-renderer.ts`. This is code only and no draft wording changes. OK.
+- Follow-ups F1 to F3 are still open.
