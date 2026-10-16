@@ -186,18 +186,34 @@ export function referenceYear(now: Date): number {
 
 type LedgerValue = LedgerFact['value'];
 
-/** Read one value of a fact type from the advocate's words. Never guesses. */
+/**
+ * Read one value of a fact type from the advocate's words. Never guesses.
+ *
+ * T-469 (Ajay 604af4bd): `dates` is what the caller knows of the other date
+ * fields: `asked`, the date keys read in the same extraction; `pack`, every
+ * date key on the checklist. A date after fillers only, or after "order", is
+ * read only with them (see normalizeDate); without them it stays blank.
+ */
 export function normalizeForItem(
   item: ChecklistItem,
   text: string,
   refYear: number,
+  dates?: { asked?: readonly string[]; pack?: readonly string[] },
 ): Normalized<LedgerValue> {
   const type = factTypeFor(item);
   switch (type) {
     case 'amount':
       return normalizeAmount(text);
     case 'date':
-      return normalizeDate(text, { referenceYear: refYear });
+      return normalizeDate(text, {
+        referenceYear: refYear,
+        fieldKey: item.key,
+        askedDateFields: dates?.asked,
+        packDateFields: dates?.pack,
+        // Today in India, as referenceYear() reads the year: a past-event date
+        // after today stays blank (Ajay b37ed330 point 2).
+        today: new Date(Date.now() + 330 * 60_000).toISOString().slice(0, 10),
+      });
     case 'person_name':
       return normalizePersonName(text);
     case 'place_name':
@@ -376,12 +392,17 @@ export function readExtraction(
     byKey.set(e.key, list);
   }
 
+  // T-469: the date fields this extraction reads, and every date field on the pack.
+  const dates = {
+    asked: [...allowed.values()].filter((i) => factTypeFor(i) === 'date').map((i) => i.key),
+    pack: checklist.filter((i) => factTypeFor(i) === 'date').map((i) => i.key),
+  };
   for (const [key, entries] of byKey) {
     const item = allowed.get(key) as ChecklistItem;
     const type = factTypeFor(item);
     const read = entries.map((en) => ({
       en,
-      n: normalizeForItem(item, type === 'enum' ? (en.option ?? en.span) : en.span, refYear),
+      n: normalizeForItem(item, type === 'enum' ? (en.option ?? en.span) : en.span, refYear, dates),
     }));
     if (isMultiItem(item)) {
       readMultiEntries(item, read, result);
