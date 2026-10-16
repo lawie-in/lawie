@@ -2,7 +2,7 @@
  * T-488 — the verifier judges a date only against the field its own label names
  * (Ajay 971d2685 + b37ed330). Unlabelled date equal to a ledger date passes; an
  * unlabelled date matching no ledger date is blanked; an explicit label with the
- * wrong value fails; an ambiguous sentence passes.
+ * wrong value fails; a two-cue sentence passes if any cued key holds the date.
  *
  * Ledger: the t147d s.138 fixture with dishonour 18 Sep (held), memo received
  * 20 Sep, cheque 1 Sep, presentation 15 Sep.
@@ -160,8 +160,19 @@ describe('T-488 date verifier: a date is judged against its own label', () => {
         'dishonour_date',
       );
     });
-    it('ambiguous "presented and returned unpaid on 1 Sep" passes', () => {
-      passes('1. That the said cheque was presented and returned unpaid on 1 September 2026.');
+    it('"presented and returned unpaid on 1 Sep" (1 Sep is the cheque date) is wrong_fact on the nearest, dishonour_date', () => {
+      failsWith(
+        '1. That the said cheque was presented and returned unpaid on 1 September 2026.',
+        'mutation',
+        'wrong_fact',
+        'dishonour_date',
+      );
+    });
+    it('"presented and dishonoured on 15 Sep" passes (presentation holds 15 Sep)', () => {
+      passes('1. That the said cheque was presented and dishonoured on 15 September 2026.');
+    });
+    it('"presented and returned on 18 Sep" passes (dishonour holds 18 Sep)', () => {
+      passes('1. That the said cheque was presented and returned on 18 September 2026.');
     });
   });
 

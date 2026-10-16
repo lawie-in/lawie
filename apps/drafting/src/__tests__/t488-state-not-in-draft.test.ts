@@ -9,7 +9,6 @@
  * AC-b  s138 ledger fact for state is required_in_draft:false (applyEdit, carryOver); others stay true
  * AC-c  another pack with a required `state` fact is unchanged
  * AC-d  verifyDraft raises no dropped finding for state; a control shows the check would fire
- * AC-e  dateKindOfFact
  *
  * No model call and no database.
  */
@@ -22,12 +21,7 @@ import { loadAvermentLists } from '../services/averments';
 import { packTexts } from '../services/brief-drafter';
 import { applyEdit, carryOver } from '../services/fact-ledger.service';
 import { verifyDraft, type VerifierInput } from '../services/fact-verifier';
-import {
-  buildBrief,
-  buildChecklist,
-  dateKindOfFact,
-  type ChecklistItem,
-} from '../services/intake-brief';
+import { buildBrief, buildChecklist, type ChecklistItem } from '../services/intake-brief';
 import { loadRulePack } from '../services/rule-pack.service';
 
 const S138 = 'legal_notice_s138';
@@ -191,21 +185,5 @@ describe('T-488 AC-d: the verifier raises no dropped finding for state on s138',
     const dropped = verifyDraft(inputWith(facts)).filter((v) => v.check === 'dropped');
     expect(dropped.map((v) => v.ledgerKey)).toContain('respondent_name');
     expect(dropped.map((v) => v.ledgerKey)).not.toContain('state');
-  });
-});
-
-describe('T-488 AC-e: dateKindOfFact', () => {
-  it('cheque_date is the cheque kind', () => {
-    expect(dateKindOfFact('cheque_date')).toBe('cheque');
-  });
-
-  it('presentation_date is the presentation kind', () => {
-    expect(dateKindOfFact('presentation_date')).toBe('cheque_presented');
-  });
-
-  it('a fact with no date kind gives null', () => {
-    expect(dateKindOfFact('state')).toBeNull();
-    expect(dateKindOfFact('no_such_fact')).toBeNull();
-    expect(dateKindOfFact('')).toBeNull();
   });
 });

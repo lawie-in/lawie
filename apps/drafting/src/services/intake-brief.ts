@@ -366,11 +366,6 @@ export function dateKindsIn(words: string, scope?: ReadonlySet<string>): string[
   ).map((k) => k.id);
 }
 
-/** T-488: the kind of date a fact holds (by its bare name, e.g. `cheque_date`), or null when it has none. */
-export function dateKindOfFact(factName: string): string | null {
-  return DATE_KIND_OF_FACT.get(factName)?.id ?? null;
-}
-
 export function dateKindLabel(kindId: string): string | null {
   return DATE_KIND_BY_ID.get(kindId)?.label ?? null;
 }

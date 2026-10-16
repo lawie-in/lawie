@@ -1273,12 +1273,14 @@ function judgeDate(src: Sources, text: string, en: Entity): Judged | null {
   const held = src.dates.get(n.value);
   if (held && held.length > 0) {
     // The date is the ledger's; is it said to be the date of something else?
-    // T-488 (Ajay 971d2685): only a clear label (one key) can say so. A date
-    // with no label, or with labels naming more than one key, passes.
+    // T-488 (Ajay 971d2685): a date is judged only against the keys its own
+    // label names. No label: it passes. A label naming its own key: it passes.
+    // Labels that all name other keys: it is the nearest held one's wrong date.
+    if (cued.length === 0) return null;
     if (cued.some((c) => held.some((f) => f.key === c.key))) return null;
-    if (cued.length !== 1) return null;
-    if (cued[0].unresolved) return mutation(src, en, cued[0].key, 'unresolved');
-    return mutation(src, en, cued[0].key, 'wrong_fact');
+    const heldCue = cued.find((c) => !c.unresolved);
+    if (heldCue) return mutation(src, en, heldCue.key, 'wrong_fact');
+    return mutation(src, en, cued[0].key, 'unresolved');
   }
   if (src.skeleton.has(en.text)) return null;
   const u = cued.find((c) => c.unresolved);
