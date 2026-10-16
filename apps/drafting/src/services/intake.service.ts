@@ -1313,12 +1313,22 @@ function userValues(keep: GivenValue[] | undefined): GivenValue[] {
   }));
 }
 
+/**
+ * The pack's checklist, with the s.138 drawer flagged (T-471, Ajay (a)): only
+ * legal_notice_s138's respondent_name is read as the drawer as named.
+ */
+function checklistFor(pack: RulePack): ChecklistItem[] {
+  const items = buildChecklist(pack);
+  if (pack.id !== 'legal_notice_s138') return items;
+  return items.map((i) => (i.key === 'respondent_name' ? { ...i, drawerAsNamed: true } : i));
+}
+
 async function briefWithPack(
   ctx: BriefContext,
   pack: RulePack,
   req: BriefIntakeRequest,
 ): Promise<BriefIntakeResponse> {
-  const checklist = buildChecklist(pack);
+  const checklist = checklistFor(pack);
   // T-453 follow-up: the cap is config (ai.cap.intake_reception). Never throws.
   const maxTokens = await getIntakeReceptionCap();
   const text = await cachedModelCall(
@@ -1695,7 +1705,7 @@ export function updateBrief(req: BriefUpdateRequest): Brief | null {
   if (!pack) return null;
   return buildBrief({
     kind: { id: pack.id, name: pack.name, court_document: isCourtDocument(pack.id) },
-    checklist: buildChecklist(pack),
+    checklist: checklistFor(pack),
     values: req.values,
     court: req.court,
     description: req.description,
@@ -1725,7 +1735,7 @@ export async function updateLedger(
   const allowed = new Set((await getEnabledCatalogue(req.userId)).map((c) => c.template_id));
   const pack = allowed.has(req.kind) ? loadRulePack(req.kind) : null;
   if (!pack) throw new LedgerNotFoundError();
-  const checklist = buildChecklist(pack);
+  const checklist = checklistFor(pack);
   const { doc: after, results } = await applyEdits(
     doc,
     checklist,
