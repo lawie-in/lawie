@@ -21,6 +21,7 @@ import {
   GenerationRow,
   RateTable,
   Report,
+  SharedAuxRow,
   Stage,
   StageMap,
   StageTotals,
@@ -202,12 +203,14 @@ function draftFromGroup(
     pushUnique(intakeIds, r.intakeId);
     pushUnique(userIds, r.userId);
   }
-  const linkage =
+  const linkage: DraftCost['linkage'] =
     g.generations.length === 0
       ? 'intake-only'
-      : g.intake.length === 0 && intakeIds.length === 0
-        ? 'body-only'
-        : 'exact';
+      : g.intake.length > 0
+        ? 'exact'
+        : intakeIds.length > 0
+          ? 'intake-missing'
+          : 'body-only';
   const totalUsd = stagesTotalUsd(stages);
   return {
     documentIds,
@@ -340,9 +343,59 @@ export interface BuildReportInput {
   userFilter: string | null;
 }
 
+/**
+ * Gives every LlmAuxCall row exactly one window, so no aux row is counted
+ * twice. A row fetched for several windows (overlapping windows, or an intake
+ * in window A whose Generation is in window B and was re-fetched by intakeId)
+ * goes to the first window whose Generation rows name its intakeId, else to
+ * the first window it was fetched for. It is removed from the other windows,
+ * so window A no longer shows it as an intake-only draft.
+ */
+export function assignAuxRows(windows: WindowRows[]): {
+  windows: WindowRows[];
+  shared: SharedAuxRow[];
+} {
+  const seenIn = new Map<string, number[]>();
+  windows.forEach((w, i) => {
+    for (const r of w.aux) {
+      const list = seenIn.get(r.id) ?? [];
+      if (!list.includes(i)) list.push(i);
+      seenIn.set(r.id, list);
+    }
+  });
+  const intakeIdsByWindow = windows.map(
+    (w) => new Set(w.generations.map((g) => g.intakeId).filter((x): x is string => !!x)),
+  );
+  const owner = new Map<string, number>();
+  const shared: SharedAuxRow[] = [];
+  for (const w of windows) {
+    for (const r of w.aux) {
+      if (owner.has(r.id)) continue;
+      const idxs = seenIn.get(r.id)!;
+      const linked = r.intakeId
+        ? idxs.find((i) => intakeIdsByWindow[i].has(r.intakeId as string))
+        : undefined;
+      const chosen = linked ?? idxs[0];
+      owner.set(r.id, chosen);
+      if (idxs.length > 1) {
+        shared.push({
+          id: r.id,
+          windows: idxs.map((i) => windows[i].window.label),
+          countedIn: windows[chosen].window.label,
+        });
+      }
+    }
+  }
+  return {
+    windows: windows.map((w, i) => ({ ...w, aux: w.aux.filter((r) => owner.get(r.id) === i) })),
+    shared,
+  };
+}
+
 export function buildReport(input: BuildReportInput): Report {
   const unpriced = new Set<string>();
-  const windows = input.windows.map((w) => buildWindow(w, input.rates, input.usdInr, unpriced));
+  const assigned = assignAuxRows(input.windows);
+  const windows = assigned.windows.map((w) => buildWindow(w, input.rates, input.usdInr, unpriced));
   const grandTotals = emptyStages();
   for (const w of windows)
     for (const k of STAGES) mergeStage(grandTotals[k], w.totals[k], input.usdInr);
@@ -364,7 +417,14 @@ export function buildReport(input: BuildReportInput): Report {
   }
   if (overlaps.length > 0) {
     notes.push(
-      `Overlapping windows (${overlaps.map(([a, b]) => `${a}/${b}`).join(', ')}): their rows count in each, so the grand total double-counts them.`,
+      `Overlapping windows (${overlaps.map(([a, b]) => `${a}/${b}`).join(', ')}): Generation rows in the overlap count in each, so the grand total double-counts them (intake/preflight rows count once).`,
+    );
+  }
+  if (assigned.shared.length > 0) {
+    notes.push(
+      `Intake/preflight rows fetched for more than one window, each counted once: ${assigned.shared
+        .map((s) => `${s.id} (${s.windows.join('+')} -> ${s.countedIn})`)
+        .join(', ')}.`,
     );
   }
   if (!input.includeFixtures) notes.push("Golden-set rows (origin 'fixture') are left out.");
@@ -377,6 +437,7 @@ export function buildReport(input: BuildReportInput): Report {
     userFilter: input.userFilter,
     windows,
     overlappingWindows: overlaps,
+    sharedAuxRows: assigned.shared,
     grandTotals,
     grandTotalUsd,
     grandTotalInr: grandTotalUsd * input.usdInr,

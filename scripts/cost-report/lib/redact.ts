@@ -14,9 +14,9 @@ function escapeRegExp(s: string): string {
 /** The pieces of a URI worth hiding on their own: user, password, hosts. */
 export function uriSecrets(uri: string): string[] {
   const out: string[] = [];
-  const m = /^mongodb(?:\+srv)?:\/\/(?:([^@/]*)@)?([^/?]*)/i.exec(uri.trim());
+  const m = /^mongodb(\+srv)?:\/\/(?:([^@/]*)@)?([^/?]*)/i.exec(uri.trim());
   if (!m) return out;
-  const [, userinfo, hosts] = m;
+  const [, srv, userinfo, hosts] = m;
   if (userinfo) {
     const [user, pass] = userinfo.split(':');
     for (const p of [user, pass]) {
@@ -35,6 +35,15 @@ export function uriSecrets(uri: string): string[] {
     for (const h of hosts.split(',')) {
       const host = h.replace(/:\d+$/, '');
       if (host) out.push(host);
+      // SRV: the driver resolves the seed name to shard hosts that share its
+      // domain suffix (e.g. cluster0-shard-00-01.<id>.<provider domain>), so
+      // hide everything after the first label too. Only when the suffix
+      // still has a dot, so a bare top-level domain is never redacted.
+      if (srv && host) {
+        const dot = host.indexOf('.');
+        const suffix = dot >= 0 ? host.slice(dot + 1) : '';
+        if (suffix.includes('.')) out.push(suffix);
+      }
     }
   }
   // Very short pieces (e.g. a one-letter user) would mangle ordinary words; the full-URI rules still apply.

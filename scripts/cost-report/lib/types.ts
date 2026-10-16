@@ -103,9 +103,21 @@ export type StageMap = Record<Stage, StageTotals>;
  * - exact: body and intake rows share documentId / runId / intakeId as written by the service;
  * - intake-only: intake rows with no Generation row in the window (no draft was generated);
  * - body-only: Generation rows with no intakeId (no intake ran, or a pre-ADR-019 row);
+ * - intake-missing: Generation rows name an intakeId but no LlmAuxCall row for it was found;
  * Preflight rows carry no intakeId or documentId; `preflight` says how they were placed.
  */
-export type DraftLinkage = 'exact' | 'intake-only' | 'body-only';
+export type DraftLinkage = 'exact' | 'intake-only' | 'body-only' | 'intake-missing';
+
+/**
+ * An LlmAuxCall row fetched for more than one window (overlapping windows, or
+ * an intake in one window whose draft was generated in a later one). It is
+ * counted once, in `countedIn`, and left out of the other windows.
+ */
+export interface SharedAuxRow {
+  id: string;
+  windows: string[];
+  countedIn: string;
+}
 
 /**
  * - none: no preflight rows attached;
@@ -159,8 +171,13 @@ export interface Report {
   includeFixtures: boolean;
   userFilter: string | null;
   windows: WindowReport[];
-  /** Pairs of window labels that overlap: their rows count in both, so the grand total double-counts them. */
+  /**
+   * Pairs of window labels that overlap. Generation rows in the overlap count
+   * in both, so the grand total double-counts them; aux rows count once (sharedAuxRows).
+   */
   overlappingWindows: Array<[string, string]>;
+  /** Aux rows fetched for more than one window; each is counted once (see SharedAuxRow). */
+  sharedAuxRows: SharedAuxRow[];
   grandTotals: StageMap;
   grandTotalUsd: number;
   grandTotalInr: number;

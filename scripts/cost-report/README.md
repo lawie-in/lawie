@@ -50,9 +50,11 @@ These are the fields in `apps/drafting/src/models`:
 How each stage is linked:
 
 - **Body, revisions and intake are linked exactly.** In each window, rows that share any `documentId`, `runId` or `intakeId` count as one draft. Intake rows for a draft generated in the window are fetched by `intakeId` even if the intake started before the window. The `linkage` field shows the result:
-  - `exact`: body rows linked to their intake.
+  - `exact`: body rows linked to intake rows that were found.
+  - `intake-missing`: the body rows name an `intakeId`, but no intake row with that id was found.
   - `body-only`: no intake.
-  - `intake-only`: an intake that produced no Generation row in the window.
+  - `intake-only`: an intake that produced no Generation row in any window.
+- **Each intake or preflight row is counted once.** A row can turn up in more than one window, either because the windows overlap or because the intake ran in one window and its draft was generated in a later one. It is counted in the first window whose Generation rows name its `intakeId`; if no window does, it goes to the first window it appeared in. It is left out of every other window, and the notes list its id and the windows involved.
 - **Preflight is not linked exactly.** A preflight row is attached to a draft only when its user made exactly one draft in the window (`preflight=user+window`). Otherwise it goes under "unattributed preflight" for that user in that window. It still counts in the window total and the grand total.
 - **Ink class is not stored** on any row, so the class column is always empty.
 
@@ -76,7 +78,7 @@ For each draft, the script prints:
 - for each stage (body, intake and preflight): calls, input, output, cache-write and cache-read tokens, models, and cost in USD and INR;
 - the draft total.
 
-After the drafts come the unattributed preflight rows, a total for each window, the grand total and the notes. If windows overlap, rows in the overlap count in each window, and the notes warn that the grand total counts them twice.
+After the drafts come the unattributed preflight rows, a total for each window, the grand total and the notes. If windows overlap, Generation (body) rows in the overlap count in each window, and the notes warn that the grand total counts them twice. Intake and preflight rows are always counted once.
 
 ## Code
 

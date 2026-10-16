@@ -86,3 +86,30 @@ describe('redact', () => {
     );
   });
 });
+
+describe('redact: SRV shard hosts', () => {
+  const srv = (host: string): string =>
+    'mongodb' + '+srv' + '://' + cred('shardu', 'Sh4rdPw') + '@' + host + '/app?retryWrites=true';
+
+  it('redacts shard hostnames that share the seed domain suffix', () => {
+    const uri = srv('cluster0.abcde.mongodb.net');
+    const out = redact('connect ECONNREFUSED cluster0-shard-00-01.abcde.mongodb.net:27017', uri);
+    expect(out).not.toContain('abcde');
+    expect(out).not.toContain('mongodb.net');
+    expect(out).toContain('cluster0-shard-00-01.<redacted>');
+  });
+
+  it('does not redact a bare TLD (suffix without a dot)', () => {
+    const uri = srv('cluster0.example');
+    expect(uriSecrets(uri)).not.toContain('example');
+    const out = redact('see docs at www.example and cluster0.example', uri);
+    expect(out).toContain('www.example');
+    expect(out).not.toContain('cluster0.example');
+  });
+
+  it('does not apply the suffix rule to the plain scheme', () => {
+    const uri =
+      'mongodb' + '://' + cred('plainu', 'Pl4inPw') + '@' + 'db1.abcde.mongodb.net:27017/app';
+    expect(uriSecrets(uri)).not.toContain('abcde.mongodb.net');
+  });
+});
