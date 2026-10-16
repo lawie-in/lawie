@@ -978,3 +978,11 @@ The line format `<id> | <name> | <category> | <description> | match terms: <term
 | (3) grounds_stated | Label: `Grounds for bail, in your words`. Help: `One ground per line, in the order you want them argued. Each is printed as its own ground.` Optional. The extractor fills it only from the advocate's own words and never adds a ground. |
 
 v5 skeleton sha256 ac850196…348d: I will check it when Mahak pushes and then issue v5.
+
+## T-472 (d) pack line, ref AJ-472-M2 (Ajay, 16 Oct 2026)
+
+This replaces the "Para 5" line in AJ-472-M1:
+
+`Limitation — Lawie adds this as the last numbered paragraph, from the dates given. Do not write it, and do not leave a gap in your numbering for it.`
+
+Code takes the computed paragraph's number from the model's highest paragraph number plus one, never from a fixed number. There must be no duplicate number and no gap (441ef1e8 point 4), with a test for each. The signed limitation strings are unchanged.
