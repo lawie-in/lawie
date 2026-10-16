@@ -582,3 +582,13 @@ Checklist: proof of service, the court fee as per State rules, and an affidavit 
 - The district list for Gaya and the other Bihar and Jharkhand districts is **verify**: I check it against each High Court's notification, and nothing is entered from memory.
 
 Signed: Ajay (CLO), 16 Oct 2026 IST.
+
+### T-471 drafter rule 4 line (Vishal, 16 Oct 2026)
+
+Signed for all drafter and repair prompts, appended to rule 4:
+
+`Never write that a fact is missing, not given or not stated in the brief, the facts or the instructions; print only its blank in the form [To be confirmed: …].`
+
+The pack fallback at legal_notice_s138 :355 is also approved: `bank memo reference number (if not given: [To be confirmed: bank memo reference number])`.
+
+Signed: Ajay (CLO), 16 Oct 2026 IST.
