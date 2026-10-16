@@ -2,7 +2,24 @@
  * T-496 (Ajay 604af4bd, 8f0d980a): a partial date (month and year, year only,
  * "mid-June") gives NO date. normalizeDate never supplies a day.
  */
+import './setupEnv';
+import './setupDb';
 import { normalizeDate } from '@lawie/shared';
+import request from 'supertest';
+
+import app from '../app';
+import {
+  _resetToolSwitches,
+  primeToolSwitches,
+  TOOL_TIMELINE_SETTING,
+} from '../services/feature-switches';
+import { getAppSetting } from '../services/app-settings.service';
+import { calculateTimeline } from '../services/timeline.service';
+
+jest.mock('../services/app-settings.service', () => {
+  const actual = jest.requireActual('../services/app-settings.service');
+  return { ...actual, getAppSetting: jest.fn(actual.getAppSetting) };
+});
 
 import { normalizeForItem } from '../services/fact-ledger.service';
 import type { ChecklistItem } from '../services/intake-brief';
@@ -84,5 +101,65 @@ describe('T-496: the ledger path', () => {
       ok: true,
       value: '2026-06-20',
     });
+  });
+});
+
+describe('T-496 part 2: the timeline reads no partial date', () => {
+  const BAD = 'Invalid date format. Use YYYY-MM-DD.';
+
+  // The timeline tool is switched off until its setting reads 'on' (T-375).
+  beforeAll(async () => {
+    (getAppSetting as unknown as jest.Mock).mockImplementation((key: string) =>
+      key === TOOL_TIMELINE_SETTING
+        ? Promise.resolve('on')
+        : jest.requireActual('../services/app-settings.service').getAppSetting(key),
+    );
+    _resetToolSwitches();
+    await primeToolSwitches();
+  });
+  afterAll(() => _resetToolSwitches());
+
+  it.each(['June 2026', '2026-06', '2026'])(
+    'GET /sections/timeline?arrestDate=%s is a 400 with no timeline',
+    async (d) => {
+      const res = await request(app)
+        .get('/sections/timeline')
+        .query({ arrestDate: d, sections: '303' });
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual({ error: BAD });
+    },
+  );
+
+  it('a full ISO date computes as before', async () => {
+    const res = await request(app)
+      .get('/sections/timeline')
+      .query({ arrestDate: '2026-03-01', sections: '303' });
+    expect(res.status).toBe(200);
+    const body = res.body.result ?? res.body;
+    expect(body.arrestDate).toBe('2026-03-01');
+    expect(body.defaultBailDate).toBe('2026-04-30');
+  });
+
+  it('"12 March 2026" reads as 2026-03-12', async () => {
+    const res = await request(app)
+      .get('/sections/timeline')
+      .query({ arrestDate: '12 March 2026', sections: '303' });
+    expect(res.status).toBe(200);
+    expect((res.body.result ?? res.body).arrestDate).toBe('2026-03-12');
+  });
+
+  it('a missing arrestDate keeps its own 400', async () => {
+    const res = await request(app).get('/sections/timeline').query({ sections: '303' });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('Missing "arrestDate" query parameter');
+  });
+
+  it('calculateTimeline throws for "June 2026" and for "2026-06"', () => {
+    expect(() => calculateTimeline({ arrestDate: 'June 2026', sections: ['303'] })).toThrow(
+      'Invalid date: June 2026',
+    );
+    expect(() => calculateTimeline({ arrestDate: '2026-06', sections: ['303'] })).toThrow(
+      /Invalid date/,
+    );
   });
 });
