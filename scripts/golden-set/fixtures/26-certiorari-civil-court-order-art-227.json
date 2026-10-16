@@ -1,0 +1,64 @@
+{
+  "id": "26-certiorari-civil-court-order-art-227",
+  "pack": "certiorari",
+  "title": "Certiorari pack: interlocutory order of a civil court is challenged under Article 227, not an Article 226 certiorari (T-475, Ajay's check)",
+  "risk": "A writ of certiorari under Article 226 does not lie against a judicial order of a civil court; the route is Article 227. The draft must not pray for certiorari under Article 226 on such an order",
+  "source": "handoff/tickets/T-475-act-section-descriptions-cut-at-120-characters.md, section \"Ajay's rulings (16 Oct 2026)\"; system_role of apps/drafting/src/config/document-rules/certiorari.json",
+  "review": "drafted by dev from Anushka's reports, not yet reviewed by Anushka",
+  "ajay": "Asserts legal wording (the Article 226 / 227 route for a civil court's judicial order). Ajay named the check in T-475, and Ajay (CLO) confirmed this fixture on 16 Oct 2026",
+  "language": "bilingual",
+  "description": "Mere client Rakesh Verma, age 52, vyapari, R/o 14 Test Colony, Patna. Civil Judge (Senior Division), Patna ne Title Suit No. 118/2025 (Rakesh Verma vs. Sunil Mehta) mein 4 Sept 2026 ko mera application reject kar diya, jisme maine ex parte order ko set aside karne ki prarthana ki thi. Ye interlocutory judicial order hai. Mujhe summons mili hi nahi thi. Ab High Court mein Article 227 ke tahat petition daalni hai is order ko set aside karne ke liye. Opposite party Sunil Mehta, 9 Sample Road, Patna.",
+  "court": {
+    "state": "Bihar",
+    "court_type": "high_court",
+    "court": "patna_hc"
+  },
+  "expect": {
+    "absent": [
+      {
+        "any_of": [
+          "issue a writ of certiorari under article 226",
+          "issue writ of certiorari under article 226",
+          "issue a writ in the nature of certiorari under article 226",
+          "grant a writ of certiorari under article 226",
+          "certiorari in exercise of its jurisdiction under article 226",
+          "under article 226 of the constitution of india, issue a writ of certiorari",
+          "article 226 of the constitution of india, a writ of certiorari",
+          "article 226 of the constitution of india, writ of certiorari",
+          "article 226 of the constitution, a writ of certiorari"
+        ],
+        "why": "Ajay (T-475): the impugned order is a civil court's judicial order, so the prayer must not be for certiorari under Article 226"
+      }
+    ],
+    "present": [
+      {
+        "any_of": ["article 227"],
+        "why": "Ajay (T-475): the route against a civil court's judicial order is Article 227"
+      }
+    ],
+    "allow_violations": []
+  },
+  "recorded": {
+    "clean": {
+      "reception": "{\"outcome\": \"read\", \"read\": [{\"id\": \"petitioner_name\", \"value\": \"Rakesh Verma\", \"quote\": \"Rakesh Verma\"}, {\"id\": \"respondent_authority\", \"value\": \"Civil Judge (Senior Division), Patna\", \"quote\": \"Civil Judge (Senior Division), Patna\"}, {\"id\": \"impugned_proceeding_no\", \"value\": \"Title Suit No. 118/2025\", \"quote\": \"Title Suit No. 118/2025\"}], \"conflicts\": [], \"questions\": []}",
+      "extract": "{\"facts\": [{\"key\": \"petitioner_name\", \"span\": \"Rakesh Verma\", \"confidence\": 0.97}, {\"key\": \"impugned_order_date\", \"span\": \"4 Sept 2026\", \"confidence\": 0.93}, {\"key\": \"impugned_proceeding_no\", \"span\": \"Title Suit No. 118/2025\", \"confidence\": 0.95}, {\"key\": \"respondent_authority\", \"span\": \"Civil Judge (Senior Division), Patna\", \"confidence\": 0.95}]}",
+      "drafter": "1. That the Petitioner, Rakesh Verma, is the defendant in Title Suit No. 118/2025 pending before the Civil Judge (Senior Division), Patna.\n\n2. That the said Court proceeded ex parte against the Petitioner, who says that summons were never served on him.\n\n3. That by the impugned order dated 4 September 2026 the said Court rejected the application of the Petitioner to set aside the ex parte order. The impugned order is an interlocutory judicial order of a civil court.\n\n4. PRAYER: It is respectfully prayed that this Hon'ble Court may be pleased to invoke its supervisory jurisdiction under Article 227 of the Constitution of India, call for the record of Title Suit No. 118/2025, and set aside the impugned order dated 4 September 2026.\n\n"
+    },
+    "art226": {
+      "reception": "{\"outcome\": \"read\", \"read\": [{\"id\": \"petitioner_name\", \"value\": \"Rakesh Verma\", \"quote\": \"Rakesh Verma\"}, {\"id\": \"respondent_authority\", \"value\": \"Civil Judge (Senior Division), Patna\", \"quote\": \"Civil Judge (Senior Division), Patna\"}, {\"id\": \"impugned_proceeding_no\", \"value\": \"Title Suit No. 118/2025\", \"quote\": \"Title Suit No. 118/2025\"}], \"conflicts\": [], \"questions\": []}",
+      "extract": "{\"facts\": [{\"key\": \"petitioner_name\", \"span\": \"Rakesh Verma\", \"confidence\": 0.97}, {\"key\": \"impugned_order_date\", \"span\": \"4 Sept 2026\", \"confidence\": 0.93}, {\"key\": \"impugned_proceeding_no\", \"span\": \"Title Suit No. 118/2025\", \"confidence\": 0.95}, {\"key\": \"respondent_authority\", \"span\": \"Civil Judge (Senior Division), Patna\", \"confidence\": 0.95}]}",
+      "drafter": "1. That the Petitioner, Rakesh Verma, is the defendant in Title Suit No. 118/2025 pending before the Civil Judge (Senior Division), Patna.\n\n2. That the said Court proceeded ex parte against the Petitioner, who says that summons were never served on him.\n\n3. That by the impugned order dated 4 September 2026 the said Court rejected the application of the Petitioner to set aside the ex parte order. The impugned order is an interlocutory judicial order of a civil court.\n\n4. PRAYER: It is respectfully prayed that this Hon'ble Court may be pleased to issue a writ of certiorari under Article 226 of the Constitution of India, call for the record of Title Suit No. 118/2025, and quash the impugned order dated 4 September 2026.\n\n"
+    },
+    "art226_explained": {
+      "reception": "{\"outcome\": \"read\", \"read\": [{\"id\": \"petitioner_name\", \"value\": \"Rakesh Verma\", \"quote\": \"Rakesh Verma\"}, {\"id\": \"respondent_authority\", \"value\": \"Civil Judge (Senior Division), Patna\", \"quote\": \"Civil Judge (Senior Division), Patna\"}, {\"id\": \"impugned_proceeding_no\", \"value\": \"Title Suit No. 118/2025\", \"quote\": \"Title Suit No. 118/2025\"}], \"conflicts\": [], \"questions\": []}",
+      "extract": "{\"facts\": [{\"key\": \"petitioner_name\", \"span\": \"Rakesh Verma\", \"confidence\": 0.97}, {\"key\": \"impugned_order_date\", \"span\": \"4 Sept 2026\", \"confidence\": 0.93}, {\"key\": \"impugned_proceeding_no\", \"span\": \"Title Suit No. 118/2025\", \"confidence\": 0.95}, {\"key\": \"respondent_authority\", \"span\": \"Civil Judge (Senior Division), Patna\", \"confidence\": 0.95}]}",
+      "drafter": "1. That the Petitioner, Rakesh Verma, is the defendant in Title Suit No. 118/2025 pending before the Civil Judge (Senior Division), Patna.\n\n2. That the said Court proceeded ex parte against the Petitioner, who says that summons were never served on him.\n\n3. That by the impugned order dated 4 September 2026 the said Court rejected the application of the Petitioner to set aside the ex parte order. The impugned order is an interlocutory judicial order of a civil court.\n\n4. That a writ of certiorari under Article 226 of the Constitution of India does not lie against a judicial order of a civil court; the route is Article 227, and this petition is made accordingly.\n\n5. PRAYER: It is respectfully prayed that this Hon'ble Court may be pleased to invoke its supervisory jurisdiction under Article 227 of the Constitution of India, call for the record of Title Suit No. 118/2025, and set aside the impugned order dated 4 September 2026.\n\n"
+    }
+  },
+  "answers": [
+    {
+      "key": "article_invoked",
+      "value": "226 and 227"
+    }
+  ]
+}
