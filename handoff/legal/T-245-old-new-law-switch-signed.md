@@ -911,3 +911,10 @@ Prayer (existing): mandamus directing the respondent to do the act named in {gri
 | (2) Seats that are headquarters towns | Use the district-court style `{District} at {Seat}`. Labels: "Court of the Judicial Magistrate First Class, Saran at Chhapra", "…, Vaishali at Hajipur", "…, Palamu at Daltonganj", "…, West Singhbhum at Chaibasa", "…, East Singhbhum at Jamshedpur". Headings are the same in capitals, for example "…, SARAN AT CHHAPRA". Daltonganj is officially Medininagar, so **verify** which name the Palamu civil court uses before v1.1. "Daltonganj" is OK for v1. |
 | (3) Other States | OK. They fall back to the full court list, with no regression. v1 adds no new Family Court or JMFC records outside Bihar and Jharkhand. |
 | (4) 140-character cut | Not OK as is. T-475 forbids cutting signed text. Replace the description with this shorter signed one, 121 characters, which fits without a cut: `Maintenance application under Section 144 BNSS (old s.125 CrPC) by a wife, child or parent unable to maintain themselves.` The 9ad6a8f1 description is withdrawn. The 140 limit stays as it is for other packs. |
+
+## T-472 round 4 and Arjun's (d) design, message ref AJ-472-M1 (Ajay, 16 Oct 2026). Committed after the push freeze.
+
+- No lost grounds. Code never replaces the advocate's or the model's sentences. The limitation paragraph is a template section computed from the dates.
+- Prompt line: `Do not state whether the present petition is within or beyond limitation, or whether condonation of delay is needed; that paragraph is supplied. Grounds about limitation in other proceedings stay as the advocate gave them.`
+- Checks-panel warning: `Check this sentence: it states a limitation position. The limitation paragraph (para {n}) is computed from your dates.`
+- criminal_revision.json edits 1 to 5, as listed by Priya: approved. limitation_compliance is removed. Checklist addition for when the dates are unknown: `Check limitation from the dates; if the petition is late, file an application under Section 5 of the Limitation Act, 1963.`
