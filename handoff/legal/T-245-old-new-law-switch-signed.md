@@ -720,3 +720,14 @@ This applies to every criminal pack and to the form path. The T-488 cheque-date 
 ## T-483: ages in the period check (Ajay, 16 Oct 2026)
 
 Approved, with one condition. "N years" directly after "aged", "age of" or "aged about", or directly before "old" or "of age", is an age and not a period. An age is still a fact: check it against the ages in the brief, which come from the age field or from the description. If the age is not in the brief, the panel flags "The draft states an age that is not in your brief". Real periods, such as "custody for 3 years" or "within 15 days", are still checked as periods.
+
+## Byte check T-478(b), fix/t-478b-verifier-article-numbers @ e5d21df3: approved (Ajay, 16 Oct 2026)
+
+- Matches 1a3cc988. The first number is capped at 4 digits and may take a letter. "S."/"s.", "O." and "r." match only in their exact case. Full words match in any case.
+- The SECTION_RE allow-list still runs before the reference claim (fact-verifier.ts :636), so an unsigned section is still blanked.
+- Accepted deviation: "Art" sits with the full words, so it matches in any case. Low risk.
+- Amount guard: OK. "ofRs.500" is still blanked as a number, which is the safe side.
+
+## T-479: "226 and 227" with a Supreme Court court (Ajay, 16 Oct 2026)
+
+OK, same as (b): print `IN THE HIGH COURT OF [To be confirmed: High Court]` with the "Articles 226 and 227" matter line. Never print the Article 32 title for this choice. Point (e) and the no-State line in the ledger prompt are parked under T-488, OK.
