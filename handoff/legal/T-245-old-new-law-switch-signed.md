@@ -518,3 +518,115 @@ Signed: Ajay (CLO), 16 Oct 2026 IST.
 3. **v1:** the mandatory clause id becomes `jurisdiction_clause`, with a read-time alias as in T-451. Name: `Jurisdiction`. Description: `State the Article selected in article_invoked. For a judicial order of a civil court, invoke Article 227, not Article 226.` Any golden that moves comes to me.
 
 Signed: Ajay (CLO), 16 Oct 2026 IST.
+
+### T-471 byte check (feature/t-471-drawer-firm at 98ffe7b6, 16 Oct 2026), with a correction to my own text
+
+These match my signed text and are approved:
+
+- the intake line (intake.prompts.ts:271);
+- the proprietorship type ("X, proprietor of Y", no s.141);
+- the addressee line ("through its {capacity}, at its {registered office / principal place of business}");
+- the 3 person slots with "up to 3; add any others in the draft";
+- the `[To be confirmed: …]` blanks.
+
+**Correction (mine).** My 16 Oct paragraph said "Notice and complaint". In a **demand notice** it is wrong for two reasons:
+
+- no one is yet an "Accused";
+- the offence is complete only if payment is not made within 15 days of receipt of the notice, so "at the time the offence was committed … deemed to be guilty" cannot be said yet.
+
+The "Accused No." wording belongs only to the s.138/141 complaint pack (v1.1). In legal_notice_s138 (docs/templates :539, :693, :696, :699) use:
+
+- Opening: `Noticee No. 1 is a {s141_kind}, and the cheque was drawn on its account.`
+- Per person: `Noticee No. {n}, {name}, is in charge of and responsible to Noticee No. 1 for the conduct of its business, being its {designation_text} and {role_text}, and shall be liable under Section 141 of the Negotiable Instruments Act, 1881 if the amount is not paid within 15 days of receipt of this notice.`
+
+The designation and role blanks stay as built. With this change, **T-471 is approved.** Merge-body ref: "Legal: T-471 signed by Ajay, T-245 file, byte check 98ffe7b6 + notice wording correction".
+
+Signed: Ajay (CLO), 16 Oct 2026 IST.
+
+### Anushka run 4 triage (16 Oct 2026): T-485, T-484, T-479, T-482
+
+**T-485 (pack faults).**
+
+1. **Revision title follows the forum** (signed T-429 text):
+   - Sessions Court: `Criminal Revision under Section 438 read with Section 440 BNSS (Section 397 read with Section 399 CrPC)`.
+   - High Court: `Criminal Revision under Section 438 read with Section 442 BNSS (Section 397 read with Section 401 CrPC)`.
+   - Both forums stay selectable.
+   - Add one line: `Where a revision has already been filed before one of these courts, a further revision by the same person is barred (Section 438(3) BNSS / Section 397(3) CrPC).`
+2. **quashing_528_bnss.**
+   - Settlement or compromise must be offered and drafted as a ground. Use the existing `settlement_in_matrimonial_or_commercial_dispute` option, with the pack's signed caution that offences with a public element are not quashed on settlement.
+   - Since the source is not named (T-441), the categories are **set out, not quoted**: no quotation marks and no "verbatim".
+   - Clause name `Recognised Quashing Categories Verbatim` becomes `Recognised Quashing Categories` (this amends T-447). The instruction "quote verbatim" becomes `Set out the applicable categories in plain numbered form, not as a quotation.`
+   - S stays last.
+3. **"Disclaimer slip — Lawie drafting assistance acknowledged":** delete it from **every** filing checklist (amendment_of_pleadings, cat_oa, condonation_of_delay, criminal_appeal, criminal_revision, discharge_application, divorce_hma, divorce_mutual_consent, divorce_sma, dv_act_complaint and any others). Nothing about Lawie is filed in court.
+   - The Lawie disclaimer appears in the app and on the export cover note, **never inside the court document's text**.
+   - "Append Lawie disclaimer" in the prompts becomes a renderer action outside the pleading body.
+4. **"Shri/Smt.":** never print both. If the gender is given, use `Shri` or `Smt.`. If not, print the name with no honorific. Applies to all packs.
+
+**T-484 (caveat, s.148A CPC):** a real pack, v1.1. Until then show "This document type is not available yet"; there is no fallback draft. Required content:
+
+- court and proceeding (instituted or expected);
+- caveator and the expected applicant, with addresses;
+- the order or application expected;
+- caveator's address for service;
+- the s.148A(2) undertaking that notice of the caveat has been or will be served by registered post (acknowledgement due) on the expected applicant;
+- a note that the caveat lapses 90 days after lodging (s.148A(5)).
+
+Checklist: proof of service, the court fee as per State rules, and an affidavit where the High Court's rules require one. The State and High Court rules are **verify**: listed in the pack, not stated as law until I check them.
+
+**T-479 (cause titles):** no new wording. The signed T-404 cause-title fields apply. Mandamus uses the writ_petition_civil cause title. Send me any pack whose title has no signed text.
+
+**T-482 (maintenance forum):**
+
+- A s.144 BNSS application lies before the Family Court where one is established for the area (Family Courts Act s.7). Elsewhere it lies before the Judicial Magistrate First Class.
+- The pack offers `Principal Judge, Family Court, {district}` **only for districts I have confirmed**, otherwise `Court of the Judicial Magistrate First Class, {district}`.
+- The district list for Gaya and the other Bihar and Jharkhand districts is **verify**: I check it against each High Court's notification, and nothing is entered from memory.
+
+Signed: Ajay (CLO), 16 Oct 2026 IST.
+
+### T-471 drafter rule 4 line (Vishal, 16 Oct 2026)
+
+Signed for all drafter and repair prompts, appended to rule 4:
+
+`Never write that a fact is missing, not given or not stated in the brief, the facts or the instructions; print only its blank in the form [To be confirmed: …].`
+
+The pack fallback at legal_notice_s138 :355 is also approved: `bank memo reference number (if not given: [To be confirmed: bank memo reference number])`.
+
+Signed: Ajay (CLO), 16 Oct 2026 IST.
+
+- T-471: a proprietorship with no proprietor named prints `[To be confirmed: name of the proprietor], proprietor of {firm}` (docs/templates/legal_notice_s138 :485). The notice is never addressed to the firm alone. Limiting respondent_name-as-text to the s.138 pack: OK.
+
+Signed: Ajay (CLO), 16 Oct 2026 IST.
+
+- Rule 4 in the ledger drafter and its repair prompts (drafter.prompts.ts :165, :200, :243): `Never write that a fact is missing, not given or not stated in the brief, the facts or the instructions; print only its placeholder in the form {{MISSING: …}}.` The signed sentence is used verbatim at :59, :88, :121. Condition: code turns every `{{MISSING: …}}` into `[To be confirmed: …]` before the user sees the draft, and a test shows none survives.
+
+Signed: Ajay (CLO), 16 Oct 2026 IST.
+
+### T-481 bug 2: default bail undertaking (16 Oct 2026)
+
+Default bail under S.187(3) BNSS (old S.167(2) CrPC) is available only where the accused is prepared to furnish bail. So the undertaking is part of the right, but it is never asserted against the user's answer.
+
+- **Yes:** print the pack's existing undertaking sentence, unchanged.
+- **Not answered:** print `That the applicant [To be confirmed: whether the applicant is prepared to furnish bail and bonds as directed by this Hon'ble Court].`
+- **No:** print nothing (the post-check removes any undertaking), and show this in the app, not in the draft: `Default bail under Section 187(3) BNSS is available only if the accused is prepared to furnish bail. Check this before filing.`
+
+promptInstructions[8] becomes conditional on the answer, as above.
+
+Signed: Ajay (CLO), 16 Oct 2026 IST.
+
+## T-479 follow-up: respondent numbering and Supreme Court mandamus title (Ajay, 16 Oct 2026)
+
+| Point | Ruling |
+|---|---|
+| (a) Advocate-typed numbering | OK. Strip only a leading "n." or "n)" at the start of a respondent line before our numbering. Never change the rest of the line. |
+| (b) Mandamus title, court = Supreme Court | A High Court / Article 226 title on a Supreme Court petition is wrong. Use the title below. If it is not built in v1, hide the Supreme Court option in mandamus. Never print the High Court title for it. |
+
+Signed Supreme Court title (one line each):
+
+```
+IN THE SUPREME COURT OF INDIA
+CIVIL ORIGINAL JURISDICTION
+WRIT PETITION (CIVIL) NO. ______ OF ______
+(Under Article 32 of the Constitution of India)
+```
+
+T-473 scope: ref f1a18422 covers the labels in forms, in the intake brief and in the intake extraction prompt, including the three court-type labels.

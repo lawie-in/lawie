@@ -73,7 +73,7 @@ describe('T-153 (1) the jail is on the brief only for judicial custody', () => {
 });
 
 describe('T-153 (2) Rule B on bail_before_magistrate (AJ-2026-10-08-T153 condition 3)', () => {
-  it('the text is Ajay\'s, word for word', () => {
+  it("the text is Ajay's, word for word", () => {
     expect(REGULAR_BAIL_NOT_IN_CUSTODY_WARNING).toBe(WARNING);
   });
 
@@ -264,7 +264,11 @@ describe('T-153 Ajay conditions on the diff', () => {
 
     // Ids come from the code's own `normaliseOption`, never re-derived here.
     // An option with no derivable id (null) is reported, so the check fails.
+    // T-471: the engine supports && chains (template-engine.service.ts, SCRUM-79), and s.138's s.141 slots
+    // use one, so each clause is checked on its own.
     function problems(expr: string, fields: Obj[]): Obj[] {
+      const clauses = expr.split('&&').map((c) => c.trim());
+      if (clauses.length > 1) return clauses.flatMap((c) => problems(c, fields));
       const m = expr.match(/^(\w+)\s*(?:!==?|===?)\s*(\w+)$/);
       if (!m) return [{ expr, parsed: false }];
       const [, field, value] = m;
@@ -277,14 +281,17 @@ describe('T-153 Ajay conditions on the diff', () => {
       return ids.includes(value) ? [] : [{ expr, ids, valueNotAnOption: value }];
     }
 
-    it.each(files)('%s: each condition names a field in the same pack, and a choice is compared with an option id', (f) => {
-      const fields: Obj[] = [];
-      const conds: Obj[] = [];
-      walk(JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')), fields, conds);
-      for (const c of conds) {
-        expect(problems(String(c.show_if ?? c.depends_on), fields)).toEqual([]);
-      }
-    });
+    it.each(files)(
+      '%s: each condition names a field in the same pack, and a choice is compared with an option id',
+      (f) => {
+        const fields: Obj[] = [];
+        const conds: Obj[] = [];
+        walk(JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')), fields, conds);
+        for (const c of conds) {
+          expect(problems(String(c.show_if ?? c.depends_on), fields)).toEqual([]);
+        }
+      },
+    );
 
     it('the sweep passes for good ids and fails when an option has no derivable id', () => {
       const good = [{ name: 'status', options: [{ id: 'yes', label: 'Yes' }, 'No way'] }];

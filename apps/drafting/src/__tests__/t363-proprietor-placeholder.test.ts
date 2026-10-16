@@ -53,7 +53,9 @@ const BASE: Record<string, string> = {
   respondent_address: '5 Lajpat Nagar, Delhi',
   advocate_name: 'A. Advocate',
   advocate_address: 'Chamber 3, Tis Hazari',
-  respondent_type: 'partnership',
+  // T-471: the drawer is an individual here, so the To block is the plain "X, proprietor of Y" form;
+  // a company/partnership drawer gets the numbered s.141 block (t471-drawer-firm.test.ts).
+  respondent_type: 'individual',
   cheque_number: '123456',
   cheque_date: '2026-05-01',
   cheque_amount: '3,00,000',
@@ -77,6 +79,7 @@ function user(key: string, value: string): GivenValue {
 // buildBrief accepts a choice only by the pack's option label, not by id.
 const TYPE_LABEL: Record<string, string> = {
   individual: 'Individual',
+  proprietorship: 'Proprietorship firm',
   company: 'Company / LLP',
   partnership: 'Partnership Firm',
   huf: 'HUF',
@@ -235,9 +238,7 @@ describe.each(paths)('T-363 proprietor placeholder: %s', (_name, render) => {
 
   it('AC3: a given drawer proprietor prints as before', () => {
     const { header } = render({ [DRAWER_KEY]: 'Mohan Lal' });
-    expect(header).toContain(
-      'To,\nMohan Lal,\nProprietor,\nDemo Traders,\n5 Lajpat Nagar, Delhi\n',
-    );
+    expect(header).toContain('To,\nMohan Lal, proprietor of Demo Traders\n5 Lajpat Nagar, Delhi\n');
     expect(withoutDateBlank(header)).not.toMatch(/To be confirmed|MISSING/);
   });
 
@@ -251,7 +252,7 @@ describe.each(paths)('T-363 proprietor placeholder: %s', (_name, render) => {
 
   it('AC3: both given', () => {
     const { header, subject } = render({ [DRAWER_KEY]: 'Mohan Lal', [PAYEE_KEY]: 'Ravi Kumar' });
-    expect(header).toContain('To,\nMohan Lal,\nProprietor,\nDemo Traders,\n');
+    expect(header).toContain('To,\nMohan Lal, proprietor of Demo Traders\n');
     expect(subject).toContain('through its proprietor Ravi Kumar,');
   });
 });
@@ -272,7 +273,7 @@ describe('T-363 proprietor placeholder: the form path', () => {
   it('AC3: the field given', () => {
     const r = renderForm({ ...BASE, [DRAWER_KEY]: 'Mohan Lal', [PAYEE_KEY]: 'Ravi Kumar' });
     expect(r.header).toContain(
-      'To,\nMohan Lal,\nProprietor,\nDemo Traders,\n5 Lajpat Nagar, Delhi\n',
+      'To,\nMohan Lal, proprietor of Demo Traders\n5 Lajpat Nagar, Delhi\n',
     );
     expect(r.subject).toContain('Suresh Gupta, through its proprietor Ravi Kumar, I hereby serve');
   });
@@ -311,7 +312,8 @@ describe('T-363 proprietor placeholder: pin to the twin', () => {
 
   it('AC4: the then/else outputs are unchanged', () => {
     expect(logic('drawer_addressee_unless_form_blank')).toBe(
-      "if drawer_proprietor === '' then '{addressee_name}' else '{drawer_proprietor},\nProprietor,\n{addressee_name},'",
+      // T-471 (Ajay, c5887591): the blank branch prints the proprietorship blank, not the firm alone.
+      "if drawer_proprietor === '' then '{drawer_without_proprietor}' else '{drawer_proprietor}, proprietor of {addressee_name}'",
     );
     expect(logic('payee_client_unless_form_blank')).toBe(
       "if payee_proprietor === '' then '{notice_client_name}' else '{notice_client_name}, through its proprietor {payee_proprietor}'",

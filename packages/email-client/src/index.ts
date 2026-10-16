@@ -14,7 +14,7 @@
  *     uses the jobId for dedupe.
  *
  * One queue per priority tier (per ADR latency budgets):
- *   email:high → verifyEmail, passwordReset, paymentReceipt, paymentFailed
+ *   email:high → verifyEmail, passwordReset (T-221), paymentReceipt, paymentFailed
  *   email:low  → digest, draftComplete, monthlyInvoice, lowCredit, referral,
  *                advocatePackInvite, welcome, unverifiedDeletionNotice (T-358)
  */
@@ -26,11 +26,11 @@ import Redis from 'ioredis';
 // ── Template registry (compile-time literal union) ──────────────────────────
 //
 // Email and password sign-up shipped after the 2026-05-17 Google-only decision, so
-// T-223 (12 Oct 2026) adds auth.verifyEmail back. auth.passwordReset is still not
-// on this list (T-223 leaves password reset out of scope).
+// T-223 (12 Oct 2026) adds auth.verifyEmail back. T-221 adds auth.passwordReset.
 export type EmailTemplate =
   | 'auth.welcome'
   | 'auth.verifyEmail'
+  | 'auth.passwordReset'
   | 'auth.unverifiedDeletionNotice'
   | 'billing.subscriptionConfirmed'
   | 'billing.paymentFailed'
@@ -54,6 +54,8 @@ const QUEUE_BY_TIER = {
 const TIER_BY_TEMPLATE: Record<EmailTemplate, 'high' | 'low'> = {
   'auth.welcome': 'low',
   'auth.verifyEmail': 'high',
+  // T-221: the user is waiting on the forgot-password screen.
+  'auth.passwordReset': 'high',
   // T-358: deletion is held until this is sent, so it is not latency-critical.
   'auth.unverifiedDeletionNotice': 'low',
   'billing.subscriptionConfirmed': 'high',
@@ -71,7 +73,10 @@ const TIER_BY_TEMPLATE: Record<EmailTemplate, 'high' | 'low'> = {
 // ── Public API ──────────────────────────────────────────────────────────────
 
 /** Templates whose job carries a userId only; the worker asks auth for the address. */
-export type UserIdOnlyTemplate = 'auth.verifyEmail' | 'auth.unverifiedDeletionNotice';
+export type UserIdOnlyTemplate =
+  | 'auth.verifyEmail'
+  | 'auth.passwordReset'
+  | 'auth.unverifiedDeletionNotice';
 
 /** Every template except the userId-only ones: the producer knows and sends the address. */
 export interface EnqueueAddressedEmailInput {
@@ -144,9 +149,23 @@ export interface EnqueueUnverifiedNoticeInput {
   priority?: 'high' | 'low';
 }
 
+/**
+ * T-221 (Priya, T-220 note): the password-reset email carries the userId only. No address, no
+ * token, no link: the worker asks auth (/internal/password-reset/mint) at send time, which
+ * mints a fresh reset token (or, for a Google-only account, says so) and returns the address.
+ * No idempotencyKey: auth rate-limits forgot-password requests before enqueueEmail is called,
+ * and each mint replaces the previous token, so only the newest link works.
+ */
+export interface EnqueuePasswordResetInput {
+  template: 'auth.passwordReset';
+  userId: string;
+  priority?: 'high' | 'low';
+}
+
 export type EnqueueEmailInput =
   | EnqueueAddressedEmailInput
   | EnqueueVerifyEmailInput
+  | EnqueuePasswordResetInput
   | EnqueueUnverifiedNoticeInput;
 
 export interface EnqueueEmailResult {
@@ -214,6 +233,19 @@ export async function enqueueEmail(input: EnqueueEmailInput): Promise<EnqueueEma
     if (pending) return first;
     await queue.removeDeduplicationKey(deduplicationId);
     return addVerifyJob();
+  }
+
+  if (input.template === 'auth.passwordReset') {
+    // T-221: no recipient, token or link in the job; the worker resolves them through auth.
+    const resetJobData = {
+      template: input.template,
+      to: [] as string[],
+      cc: [] as string[],
+      bcc: [] as string[],
+      data: { userId: input.userId },
+    };
+    const resetJob = await queue.add(jobName, resetJobData, opts);
+    return { jobId: String(resetJob.id ?? jobName), queue: queueName, deduped: false };
   }
 
   if (input.template === 'auth.unverifiedDeletionNotice') {

@@ -68,6 +68,8 @@ export interface ChecklistItem {
   question?: string;
   /** T-190: an optional fact the pack asks for when it is empty, after every required fact. */
   askWhenEmpty?: boolean;
+  /** T-471: the s.138 drawer as named on the cheque (firm, company or person): read as text, not a person name. */
+  drawerAsNamed?: boolean;
 }
 
 export type ValueSource = 'description' | 'user';

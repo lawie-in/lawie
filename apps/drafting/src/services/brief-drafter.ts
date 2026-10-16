@@ -304,10 +304,15 @@ export function clauseLines(pack: RulePack): string[] {
     });
 }
 
+// T-475: signed act-section descriptions must reach the Drafter whole (longest today is 304 chars).
+export const ACT_DESCRIPTION_MAX = 1000;
+
 export function actLines(pack: RulePack): string[] {
   return pack.relevantActs.map((a) => {
     const sections = a.sections
-      .map((s) => (s.description ? `${s.number} (${oneLine(s.description, 120)})` : s.number))
+      .map((s) =>
+        s.description ? `${s.number} (${oneLine(s.description, ACT_DESCRIPTION_MAX)})` : s.number,
+      )
       .join('; ');
     const when = a.appliesWhen ? ` [only when: ${oneLine(a.appliesWhen, 120)}]` : '';
     return sections ? `${a.act}: ${sections}${when}` : `${a.act}${when}`;
