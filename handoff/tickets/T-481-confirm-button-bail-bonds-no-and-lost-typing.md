@@ -1,9 +1,9 @@
 # T-481: Three form bugs: Confirm does nothing on first click, "No" on bail bonds cannot be selected, early typing is wiped
 
-| Field  | Value                           |
-| ------ | ------------------------------- |
-| Status | To do. V1. Priya, 16 Oct 2026   |
-| Owner  | Tanvi (after T-478), web lead   |
+| Field  | Value |
+| ------ | ----- |
+| Status | To do. V1. Priya, 16 Oct 2026 |
+| Owner  | Tanvi (after T-478), web lead |
 | Mode   | Full chain (web, no legal text) |
 
 ## Source
@@ -24,6 +24,7 @@ Reproduce each, fix the cause, add a test for each. Check that the "No" answer r
 
 - Confirm works on the first click after an edit; "No" selects and removes the bond undertaking; early typing is kept.
 - Web tests for each; no legal text changes.
+
 
 ## Ajay's ruling on bug 2 (16 Oct 2026, T-245 file 5bc76d1a)
 

@@ -1,10 +1,10 @@
 # T-477: The promoted-template path drops the act sections
 
-| Field  | Value                                                       |
-| ------ | ----------------------------------------------------------- |
-| Status | To do. V1 BLOCKER (Arjun, 16 Oct 2026). Priya               |
-| Owner  | Kunal (he holds template-promoter.ts for T-473), Ajay gates |
-| Mode   | Full chain (legal content path)                             |
+| Field  | Value                                                                 |
+| ------ | --------------------------------------------------------------------- |
+| Status | To do. V1 BLOCKER (Arjun, 16 Oct 2026). Priya                           |
+| Owner  | Kunal (he holds template-promoter.ts for T-473), Ajay gates            |
+| Mode   | Full chain (legal content path)                                        |
 
 ## Source
 

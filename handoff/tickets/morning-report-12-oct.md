@@ -166,7 +166,7 @@ The model-switch check cannot run: the golden-set workflow skips its real run be
 ## Done by the founder (reported by Arjun, 15 Oct 2026)
 
 - The two golden-set GitHub repo secrets are added (T-453 unblocked).
-- The GST\_\* environment values are set on the develop box. The live check of the public supplier endpoint waits until develop_staging is merged into develop (develop is still at 13 Oct). Kunal's invoice work is not blocked.
+- The GST_* environment values are set on the develop box. The live check of the public supplier endpoint waits until develop_staging is merged into develop (develop is still at 13 Oct). Kunal's invoice work is not blocked.
 
 Correction (Arjun, founder's words, 15 Oct 2026): there is no production server, and nobody touches the test box by hand. Ignore any "pm2 restart" or live supplier-endpoint check above. The only deployed box is a free test server on branch develop, kept on a "coming soon" page on purpose until Anushka's PASS. The GST values reach billing on the founder's next deploy of develop. T-436 and the invoice work wait on nothing server-side; tests are the gate.
 

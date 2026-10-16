@@ -1,10 +1,10 @@
 # T-476: A s.138 / s.141 complaint pack (the court document, after the notice)
 
-| Field  | Value                                                     |
-| ------ | --------------------------------------------------------- |
-| Status | To do. V1.1 (not v1). Priya, 16 Oct 2026                  |
-| Owner  | Lead (build), Ajay (writes and byte-checks the pack text) |
-| Mode   | Full chain (legal content, new pack)                      |
+| Field  | Value                                                              |
+| ------ | ------------------------------------------------------------------ |
+| Status | To do. V1.1 (not v1). Priya, 16 Oct 2026                            |
+| Owner  | Lead (build), Ajay (writes and byte-checks the pack text)          |
+| Mode   | Full chain (legal content, new pack)                                |
 
 ## Source
 

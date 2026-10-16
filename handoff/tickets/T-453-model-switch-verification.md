@@ -1,10 +1,10 @@
 # T-453: Model switch verification (drafting body Sonnet 5.5, intake and preflight Haiku 5.5)
 
-| Field  | Value                                                                                                                                               |
-| ------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Field  | Value |
+| ------ | ----- |
 | Status | To do. V1 (go-live prerequisite). Vishal, after T-441, before T-303 if the founder has set the models by then, else T-303 first. Priya, 15 Oct 2026 |
-| Owner  | Vishal (build), Ajay (rules every diff), Arjun, Vikram                                                                                              |
-| Mode   | Verification run, small fix only if (4) needs it                                                                                                    |
+| Owner  | Vishal (build), Ajay (rules every diff), Arjun, Vikram |
+| Mode   | Verification run, small fix only if (4) needs it |
 
 ## Source
 
@@ -41,7 +41,6 @@ Addendum (Vikram, 15 Oct): with the judge and repair calls, M is borderline (≈
 Sonnet 5.5 body / Haiku 5.5 intake verified; effort low/medium/medium; golden 8/27 at $0.69 (first real run: 8/27 at $1.00). Medians/p90 tokens out per call: intake 1564/2347, body 574/1750.
 
 The 19 non-passing cases, by bucket:
-
 - Content (Ajay): 1a, 04 (date not in ledger); 1b, 08, 19, 21 (s.138 drawer firm dropped, now T-471, a prod blocker); 07, 08 (fact changed, blanked); 1c, 17, 18, 25 (given fact missing); 12, 13, 14 (BNSS s.144/145 flagged and a banned phrase, repaired; Ajay allowed s.144/145 for maintenance_bnss_144 only); 23 (clause).
 - Truncation: 22 (reception cap, small fix in progress).
 - Unrecognised: 15 (labels, T-469); 13 ("10,000 mahina").

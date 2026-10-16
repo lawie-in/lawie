@@ -38,7 +38,7 @@ The bail drafts are clearly better than on 13 Oct. No facts were invented in any
   - The mandamus labels are plain.
 - **Earlier drafts still open: PASS.** The 13 Oct regular bail opens with its text unchanged and a new "Create annexures" button. Regenerating an old draft from its saved answers was not tested.
 - **Habeas, "S.35(1)(b) BNSS [S.41(1)(b) CrPC]": FAIL.** Checked myself. Para 9(b) reads only "the conditions on arrest by the police under S.35 BNSS"; there is no sub-clause and no CrPC reference.
-  - The cause title is blank on both sides ("**\_** … Petitioner VERSUS **\_** … Respondents"), although the names were given.
+  - The cause title is blank on both sides ("_____ … Petitioner VERSUS _____ … Respondents"), although the names were given.
   - The heading and para 13 cite "Article 226 / Article 32" in a High Court petition.
   - "Shri/Smt." and "his/her" are left in.
 - **Mandamus, conditions in plain words: PASS.** Locus standi, statutory duty, legal right, demand, inaction and alternative remedy each have a plain paragraph. But there is no cause title at all, and the title reads "ART. 226/32".
@@ -59,7 +59,6 @@ The bail drafts are clearly better than on 13 Oct. No facts were invented in any
 ### 2. Dates: PASS
 
 No wrong or swapped date in any of the 11 drafts, including deliberately confusable pairs:
-
 - 12.10.2026 / 10.12.2025
 - 02/11/2025 / 11/02/2026
 - 07.08.2019 / 08.07.2026
@@ -70,7 +69,6 @@ No wrong or swapped date in any of the 11 drafts, including deliberately confusa
 Dates not given came out as "[To be confirmed: …]" blanks (date of FIR, first remand, date of application).
 
 Minor:
-
 - Mandamus copied "5/6/25" exactly as typed, without flagging it as ambiguous.
 - The revision kept "20/10/26" in raw form.
 - The checks panel still falsely says given dates are "not in your brief" (10 December 2025, 30 June 2024, 7 August 2019, 2 March 2025).
@@ -78,7 +76,6 @@ Minor:
 ### 3. Model: draft bodies better, intake worse
 
 **Regular bail, same facts as 13 Oct (mine): better body, worse intake.**
-
 - **Better:**
   - The invented ground "already undergone prolonged custody" is gone.
   - All three of my grounds now appear, including the civil-dispute ground that was dropped on 13 Oct.
@@ -93,13 +90,11 @@ Minor:
 - **Unchanged:** the duplicate "318(4)" is still not removed, and there are false checks ("2 March 2025 not in your brief", "72 years" flagged as a period).
 
 **Anticipatory bail (helper, Gaya): better.**
-
 - No roots, no "no history of fleeing", and "business dispute" is gone. It is correctly called a boundary dispute.
 - The earlier-applications part is a correct blank, and the undertakings are correctly worded.
 - 2 of its 4 check findings are still false (antecedents, brief facts).
 
 **Default bail (helper, Ranchi): better, but one bug.**
-
 - The invented "not convicted / roots" text is gone, and the checks are clean.
 - The bond undertaking still prints: "11. That the applicant undertakes to furnish bail bonds…". The "No" button on the bail-bonds question cannot be selected, in the questions or on the brief (tried 3 times).
 - The earlier rejection given in the description was not carried into the brief.
@@ -136,7 +131,6 @@ Minor:
 ### Founder's extra request: a matter with no template
 
 **Caveat under s.148A CPC, Civil Judge (Senior Division), Patna: FAIL.**
-
 - It does not refuse: it falls back to a generic brief ("No Lawie rules for this one") and asks sensible, specific questions.
 - But:
   - The section I named is lost. The title reads "Caveat under Section A CPC", and the body "CAVEAT UNDER [Section — verify before filing]".
@@ -150,7 +144,6 @@ Minor:
 - Good: dates are correct, there are no invented facts, and the facts are pleaded in order.
 
 **Maintenance under S.144 BNSS, Gaya (helper): FAIL.**
-
 - "Wife ke liye maintenance … Bihar … Gaya" got "We could not find a ready document for this. That happens with less common requests." This is one of the commonest filings.
 - After naming "Section 144 BNSS before Family Court, Gaya", the court list has no Family Court, and District, JMFC and CJM each offer only Patna. Abandoned, with no Ink spent.
 
@@ -168,19 +161,19 @@ Minor:
 
 Times are IST on Fri 16 Oct 2026. The first two helpers had no clock, so their rows give the order of drafts only. No draft had an AI revision step; only a manual editor exists, so revisions are 0 throughout. Ink was shared across parallel tabs.
 
-| #   | Flow                                       | Start             | Finish            | Revisions | Ink before → after | Note                             |
-| --- | ------------------------------------------ | ----------------- | ----------------- | --------- | ------------------ | -------------------------------- |
-| 1   | Legal notice s.138 NI Act (company drawer) | time not recorded | time not recorded | 0         | 50 → 49            | "Uses 1 Ink"                     |
-| 2   | Habeas corpus, Patna HC                    | ≈ first           | ≈ +4 min          | 0         | 50 → 47            | overlaps #1                      |
-| 3   | Criminal revision, Sessions Prayagraj      | not recorded      | not recorded      | 0         | 47 → 45            |                                  |
-| 4   | Writ of mandamus, Allahabad HC Lucknow     | ≈ +5 min          | ≈ +9 min          | 0         | 47 → 43            | overlaps #3                      |
-| 5   | Maintenance S.144 BNSS, Gaya               | not recorded      | not recorded      | 0         | 43 → 43            | abandoned at court choice, 0 Ink |
-| 6   | Writ of certiorari, Jharkhand HC           | ≈ +10 min         | ≈ +18 min         | 0         | 43 → 41            |                                  |
-| 7   | FIR quashing S.528 BNSS, Delhi HC          | ≈ +19 min         | ≈ +23 min         | 0         | 41 → 39            |                                  |
-| 8   | Anticipatory bail, Gaya                    | 14:16:52          | 14:20:44          | 0         | 39 → 35            | overlaps #9                      |
-| 9   | Regular bail, Patna                        | 14:17:19          | 14:20:17          | 0         | 39 → 35            | overlaps #8; "Uses 2 Ink"        |
-| 10  | Caveat s.148A CPC, Patna (no template)     | 14:20:43          | 14:23:43          | 0         | 35 → 31            | overlaps #11; "Uses 2 Ink"       |
-| 11  | Default bail, CJM Ranchi                   | 14:20:44          | 14:24:15          | 0         | 35 → 31            | overlaps #10                     |
+| # | Flow | Start | Finish | Revisions | Ink before → after | Note |
+|---|---|---|---|---|---|---|
+| 1 | Legal notice s.138 NI Act (company drawer) | time not recorded | time not recorded | 0 | 50 → 49 | "Uses 1 Ink" |
+| 2 | Habeas corpus, Patna HC | ≈ first | ≈ +4 min | 0 | 50 → 47 | overlaps #1 |
+| 3 | Criminal revision, Sessions Prayagraj | not recorded | not recorded | 0 | 47 → 45 | |
+| 4 | Writ of mandamus, Allahabad HC Lucknow | ≈ +5 min | ≈ +9 min | 0 | 47 → 43 | overlaps #3 |
+| 5 | Maintenance S.144 BNSS, Gaya | not recorded | not recorded | 0 | 43 → 43 | abandoned at court choice, 0 Ink |
+| 6 | Writ of certiorari, Jharkhand HC | ≈ +10 min | ≈ +18 min | 0 | 43 → 41 | |
+| 7 | FIR quashing S.528 BNSS, Delhi HC | ≈ +19 min | ≈ +23 min | 0 | 41 → 39 | |
+| 8 | Anticipatory bail, Gaya | 14:16:52 | 14:20:44 | 0 | 39 → 35 | overlaps #9 |
+| 9 | Regular bail, Patna | 14:17:19 | 14:20:17 | 0 | 39 → 35 | overlaps #8; "Uses 2 Ink" |
+| 10 | Caveat s.148A CPC, Patna (no template) | 14:20:43 | 14:23:43 | 0 | 35 → 31 | overlaps #11; "Uses 2 Ink" |
+| 11 | Default bail, CJM Ranchi | 14:20:44 | 14:24:15 | 0 | 35 → 31 | overlaps #10 |
 
 Eleven drafts generated and one abandoned. Ink went from 50 to 31, a total of 19. That is consistent with 1 for the s.138 notice and 2 for each of the other nine.
 
@@ -202,7 +195,6 @@ Eleven new drafts dated 16 Oct 2026, all with made-up names and facts. Nothing w
 All of these are under `/Users/apple/.claude/projects/-Users-apple-files-Repos-lawie/ec443205-4785-4e89-8c9d-61a82b4420ae/`.
 
 `Quality: FAIL — Anushka, Fri 16 Oct 2026, 14:25 IST.` Main reasons:
-
 - The revision draft claims a time-barred petition is within limitation.
 - The promised habeas and certiorari fixes are not in the drafts.
 - Raw labels remain in the forms.

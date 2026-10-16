@@ -1,10 +1,10 @@
 # T-485: Quashing and revision pack faults found in run 4
 
-| Field  | Value                                              |
-| ------ | -------------------------------------------------- |
+| Field  | Value |
+| ------ | ----- |
 | Status | To do. V1 (Ajay to prioritise). Priya, 16 Oct 2026 |
-| Owner  | Mahak after T-472, Ajay writes the text            |
-| Mode   | Full chain (legal content)                         |
+| Owner  | Mahak after T-472, Ajay writes the text |
+| Mode   | Full chain (legal content) |
 
 ## Source
 
@@ -21,6 +21,7 @@ Anushka quality run 4 on develop, 16 Oct 2026 (handoff/quality/2026-10-16-run-4-
 ## What
 
 Ajay rules each; Mahak fixes in one ticket. Explore first.
+
 
 ## Ajay's rulings (16 Oct 2026, T-245 file 560c0e1e; exact text is there)
 

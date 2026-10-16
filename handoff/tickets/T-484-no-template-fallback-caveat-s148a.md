@@ -1,10 +1,10 @@
 # T-484: The no-template fallback loses the section, the advocate details and the party
 
-| Field  | Value                                                        |
-| ------ | ------------------------------------------------------------ |
+| Field  | Value |
+| ------ | ----- |
 | Status | To do. V1.1 (decide with Ajay and Arjun). Priya, 16 Oct 2026 |
-| Owner  | Lead (assign later), Ajay gates                              |
-| Mode   | Full chain                                                   |
+| Owner  | Lead (assign later), Ajay gates |
+| Mode   | Full chain |
 
 ## Source
 
@@ -17,6 +17,7 @@ The fallback does not refuse and asks sensible questions, but: title reads "Cave
 ## What
 
 Keep the section the user names, carry advocate details, never put the court as a party, and prompt for the s.148A(2) service line. Ajay decides whether a caveat should be a real pack (likely, v1.1) or the fallback must do this right.
+
 
 ## Ajay's ruling (16 Oct 2026, T-245 file 560c0e1e)
 

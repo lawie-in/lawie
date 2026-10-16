@@ -1,10 +1,10 @@
 # T-486: In default bail, "No" on the bail-bonds question must remove the undertaking
 
-| Field  | Value                                                                                                          |
-| ------ | -------------------------------------------------------------------------------------------------------------- |
-| Status | To do. V1 (split from T-481 on 16 Oct 2026). Priya                                                             |
+| Field  | Value |
+| ------ | ----- |
+| Status | To do. V1 (split from T-481 on 16 Oct 2026). Priya |
 | Owner  | Lead who is free once T-471, T-472 and T-475 have landed (files held by Vishal and Mahak); Ajay signs the text |
-| Mode   | Full chain (legal content)                                                                                     |
+| Mode   | Full chain (legal content) |
 
 ## Source
 
@@ -14,7 +14,7 @@ Anushka run 4: the "No" chip on the bail-bonds question could not be selected (w
 
 1. intake-brief.ts buildBrief marks a declined "No" as asked_empty (today it drops "No" as null, so No equals not answered) and carries the in-app note.
 2. A conditional instruction in ai.service.ts statedInstructions plus a post-check after the citation pass (needs brief-drafter.ts).
-3. default_bail.json instruction 9 and the \_skeletons file: a `when` on the willingness clause, a re-signed skeleton markdown and new SHA pins. The t251 and t373 tests flip.
+3. default_bail.json instruction 9 and the _skeletons file: a `when` on the willingness clause, a re-signed skeleton markdown and new SHA pins. The t251 and t373 tests flip.
 4. The web side shows the in-app note.
 
 ## Acceptance criteria

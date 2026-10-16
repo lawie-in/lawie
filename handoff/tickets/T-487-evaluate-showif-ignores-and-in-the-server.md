@@ -1,10 +1,10 @@
 # T-487: The server's showIf ignores "&&", so optional s.141 fields sit empty on the brief
 
-| Field  | Value                                                          |
-| ------ | -------------------------------------------------------------- |
-| Status | To do. V1.1 (found in T-471 review, 16 Oct 2026). Priya        |
+| Field  | Value |
+| ------ | ----- |
+| Status | To do. V1.1 (found in T-471 review, 16 Oct 2026). Priya |
 | Owner  | Lead who is free; Ajay not needed unless a field label changes |
-| Mode   | Small fix (drafting only, no legal text)                       |
+| Mode   | Small fix (drafting only, no legal text) |
 
 ## Source
 

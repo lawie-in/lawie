@@ -1,10 +1,10 @@
 # T-457: post-v1 cleanup: remove the T-451 and T-382 read-time aliases
 
-| Field  | Value                                                |
-| ------ | ---------------------------------------------------- |
+| Field  | Value |
+| ------ | ----- |
 | Status | Parked for after v1. Not started. Priya, 15 Oct 2026 |
-| Owner  | Lead (build), Arjun (rules)                          |
-| Mode   | Small fix                                            |
+| Owner  | Lead (build), Arjun (rules) |
+| Mode   | Small fix |
 
 ## Source
 

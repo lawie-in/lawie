@@ -1,10 +1,10 @@
 # T-480: Intake re-asks facts already given, and no longer reads address, antecedents or dependants
 
-| Field  | Value                                 |
-| ------ | ------------------------------------- |
+| Field  | Value |
+| ------ | ----- |
 | Status | To do. V1 (major). Priya, 16 Oct 2026 |
-| Owner  | Vishal (intake owner), after T-471    |
-| Mode   | Full chain                            |
+| Owner  | Vishal (intake owner), after T-471 |
+| Mode   | Full chain |
 
 ## Source
 
@@ -26,3 +26,4 @@ The model switch (Haiku 5.5 intake) and effort low/medium. Her build may predate
 
 - Same description and choices as her 13 Oct regular bail: no re-asks of facts given; address, antecedents and dependants read; chosen law shows in title, para 2 and prayer; no contradictory paragraphs.
 - Golden set: no regression against run 64; Ajay sees diffs.
+

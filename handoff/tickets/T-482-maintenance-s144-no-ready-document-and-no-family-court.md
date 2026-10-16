@@ -1,10 +1,10 @@
 # T-482: Maintenance under S.144 BNSS: "no ready document" and no Family Court in the list
 
-| Field  | Value                                                                       |
-| ------ | --------------------------------------------------------------------------- |
+| Field  | Value |
+| ------ | ----- |
 | Status | To do. V1 (maintenance is one of the commonest filings). Priya, 16 Oct 2026 |
-| Owner  | Kunal (after T-477), Ajay gates                                             |
-| Mode   | Full chain                                                                  |
+| Owner  | Kunal (after T-477), Ajay gates |
+| Mode   | Full chain |
 
 ## Source
 
@@ -23,6 +23,7 @@ Explore: why the request is not routed to the maintenance_bnss_144 pack, and why
 - Natural requests ("maintenance", "bharan-poshan", S.144 BNSS) reach the pack.
 - A Family Court is offered where one exists; the court list for Gaya is right (Ajay confirms the court data).
 - Tests and a golden for the routing.
+
 
 ## Ajay's ruling (16 Oct 2026)
 
