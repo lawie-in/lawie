@@ -388,6 +388,71 @@ export function askedEmptyAnswers(brief: Brief, values: GivenValue[]): Record<st
   return out;
 }
 
+function foldWord(v: string): string {
+  return v
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim();
+}
+
+/** T-481: a one-choice item whose options are exactly Yes and No. */
+function isYesNoChoice(item: BriefItem): boolean {
+  if (item.kind !== 'choice' || item.options.length !== 2) return false;
+  const folded = new Set(item.options.map(foldWord));
+  return folded.has('yes') && folded.has('no');
+}
+
+/**
+ * T-481: the undertaking boxes whose "No" the service drops (T-251). Kept in
+ * step with `UNDERTAKINGS` in apps/drafting/src/services/intake-brief.ts (~1289),
+ * where `buildBrief` skips a declined undertaking. Matched on the key's last segment.
+ */
+const DECLINED_UNDERTAKING_KEYS: ReadonlySet<string> = new Set(['willingness_to_furnish_bond']);
+
+function isDeclinableUndertaking(key: string): boolean {
+  const at = key.lastIndexOf('.');
+  return DECLINED_UNDERTAKING_KEYS.has(at < 0 ? key : key.slice(at + 1));
+}
+
+/**
+ * T-481: the service places no value for a "No" on an undertaking box (T-251:
+ * a "No" is an undertaking not yet given, so its blank shows), and sends no
+ * `asked_empty` for it either. Without this the advocate's "No" is dropped and
+ * the row looks unanswered, so "No" cannot be chosen. An undertaking Yes/No
+ * item the service left empty (and does not re-ask), that the advocate
+ * answered "No" themselves, is marked
+ * `asked_empty` here, so the T-365 path keeps the "No" (and sends it with the
+ * draft), shows it as chosen, and does not ask it again. A value the service
+ * placed is never changed.
+ */
+export function withDeclinedAnswers(brief: Brief, previous: GivenValue[]): Brief {
+  let changed = false;
+  const items = brief.items.map((item) => {
+    // A server re-ask (T-150) is never hidden.
+    if (
+      item.asked_empty ||
+      item.reask ||
+      !isEmptyValue(item.value) ||
+      !isDeclinableUndertaking(item.key) ||
+      !isYesNoChoice(item)
+    ) {
+      return item;
+    }
+    const given = previous.find((v) => v.key === item.key);
+    if (
+      !given ||
+      given.source !== 'user' ||
+      typeof given.value !== 'string' ||
+      foldWord(given.value) !== 'no'
+    ) {
+      return item;
+    }
+    changed = true;
+    return { ...item, asked_empty: true };
+  });
+  return changed ? { ...brief, items } : brief;
+}
+
 /** Set, replace or clear one value the user typed. The new value carries no "Please check" mark. */
 export function withValue(
   values: GivenValue[],

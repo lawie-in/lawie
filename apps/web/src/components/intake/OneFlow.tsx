@@ -38,6 +38,7 @@ import {
   RenderedClause,
   Value,
   valuesAfter,
+  withDeclinedAnswers,
   withValue,
 } from './briefTypes';
 import BrowseTypesStep from './BrowseTypesStep';
@@ -223,7 +224,9 @@ export default function OneFlow({
 
   /** Take the service's brief as the truth, and keep what it could not place. */
   const adopt = useCallback(
-    (next: Brief) => {
+    (served: Brief) => {
+      // T-481: an advocate's "No" the service does not place (an undertaking) stays answered.
+      const next = withDeclinedAnswers(served, valuesRef.current);
       valuesRef.current = valuesAfter(next, valuesRef.current);
       courtRef.current = next.court;
       setAskedAnswers(askedEmptyAnswers(next, valuesRef.current));
@@ -1031,7 +1034,9 @@ export default function OneFlow({
           ledger={ledger}
           focusOutstanding={focusOutstanding}
           onOutstandingFocused={clearFocusOutstanding}
-          busy={busy || updating}
+          busy={busy}
+          // T-481: Confirm stays pressable while a change is worked out again.
+          updating={updating}
           confirming={false}
           message={briefMessage}
           questionsLeft={nextQuestions.length}

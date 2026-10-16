@@ -653,3 +653,87 @@ Signed checklist line (only when the delay paragraph is printed):
 | Any other Union Territory | verify: send it to me; do not print a guess. Use `[To be confirmed: name of the State or Union Territory as party]`. |
 
 This applies to every criminal pack and to the form path. The T-488 cheque-date fix still waits on Vishal's Explore. I'll sign that text once I've seen it.
+
+## T-488: date verifier and the State in a s.138 notice (Ajay, 16 Oct 2026)
+
+| Point | Ruling |
+|---|---|
+| 1. Date verifier | Approved. A date is judged only against the field that its own label names. Labels for s.138: "cheque dated" means the cheque date. "deposited / presented / jama" means the presentation date. "returned / dishonoured / memo" means the return memo date. "notice dated / sent" means the notice date. "received" means the receipt of the notice. Three cases: (a) a labelled date that is wrong still fails; (b) a date with no clear label that equals one of the ledger dates passes; (c) a date with no clear label that equals no ledger date still fails and is blanked. Never write a guessed date. |
+| 2. State in a s.138 notice | Agreed. The State only picks the jurisdiction. A demand notice does not print it and it is not a party, so it is not a required fact in the notice. There is no text change. In the complaint, the court and the place follow the cause-title rules, ca12ec2e. |
+
+## T-479: Supreme Court mandamus, matter lines and addressee (Ajay, 16 Oct 2026)
+
+1. The first matter line takes the place of the Article 226 line, in the same form. The "AND IN THE MATTER OF" lines that follow it stay as they are:
+
+   `IN THE MATTER OF: Article 32 of the Constitution of India;`
+
+2. The addressing clause for a Supreme Court petition, which replaces the generic clause:
+
+   `TO, THE HON'BLE THE CHIEF JUSTICE OF INDIA AND HIS COMPANION JUSTICES OF THE SUPREME COURT OF INDIA`
+
+   The words follow current Supreme Court practice. If that practice changes, the clause comes back to me.
+
+## T-477: reference text and conditional Acts (Ajay, 16 Oct 2026)
+
+| Point | Ruling |
+|---|---|
+| (1) Form of a reference | Print the pack text verbatim, for example "Order XIX Rule 3", "Article 226", "S.151". Do not convert it to my abbreviations: converting text that is already signed risks errors. Every reference must carry its Act name ("Act name (S.151)"). A bare number such as "138" never prints alone. |
+| (2) Conditional Acts | OK: `Act name (S.151) [only when: …]` in text the model sees. The condition is written in plain words. The bracket must never appear in the draft. Add a test that the draft contains no "[only when:". |
+
+## T-479: certiorari cause title and respondents (Ajay, 16 Oct 2026)
+
+"MOST RESPECTFULLY SHOWETH:" after the Supreme Court addressee: OK.
+
+| Point | Ruling |
+|---|---|
+| (1) Article 227 | The matter line is `IN THE MATTER OF: Article 227 of the Constitution of India;`. High Courts name this jurisdiction and the case type differently, so the jurisdiction line and the case-number line are blanks: `([To be confirmed: jurisdiction as styled in this High Court for a petition under Article 227])` and `[To be confirmed: case type and number as styled in this High Court]`. Never print the Article 226 or "WRIT JURISDICTION" lines for an Article 227 choice. |
+| (2) Article 32 | Reuse the Supreme Court heading, matter line and addressee signed for mandamus, with `IN THE MATTER OF: Article 32 of the Constitution of India;`. The Article 227 choice, a judicial order of a civil court, is High Court only and never takes the Supreme Court heading. |
+| (3) Statute and grievance | Use these blanks: `[To be confirmed: statute or rule under which the impugned order was passed]` and `[To be confirmed: grievance in brief]`. |
+| (4) State as respondent | For a judicial order of a civil court (Article 227), the State is not a party by default. Use `[To be confirmed: respondents, with names and addresses]`. For an administrative order, use `State of {state} through [To be confirmed: Secretary of the concerned department], Government of {state}`. Never use "Home Department" in a civil certiorari. |
+| (5) No court chosen | "Through Public Prosecutor" is wrong in a civil writ. Use `State of [To be confirmed: State] through [To be confirmed: Secretary of the concerned department]`. |
+
+## T-478(b): verifier scope (Ajay, 16 Oct 2026)
+
+| Point | Ruling |
+|---|---|
+| (1) SECTION_RE ledger guard | Not exempt. Ruling 1 only stops the fact blanker from treating a reference number (after Section, Article, Order, Rule and the like) as an amount or a date. The section allow-list stays: a section that is not in the pack's signed text, the signed tables or the ledger is blanked. The `{{MISSING: section}}` marker must be turned into `[To be confirmed: section]` before the user sees the draft. |
+| (2) Tightening | Yes. Cap the first number at 4 digits. A letter suffix is allowed, for example 21A or 243ZH. Short prefixes (s., S., r., O., Art.) match only in their exact case; full words (Section, Article, Order, Rule, Schedule) match in any case. A bare "order 123456" is not a reference. |
+
+## T-479 certiorari edges, and T-477 bare numbers (Ajay, 16 Oct 2026)
+
+| Point | Ruling |
+|---|---|
+| (a) "226 and 227" | v1. Keep the Article 226 title. Its matter line becomes `IN THE MATTER OF: Articles 226 and 227 of the Constitution of India;`. |
+| (b) Article 227 with a Supreme Court court | v1, in the renderer: never print "AT New Delhi" or a Supreme Court heading. Print `IN THE HIGH COURT OF [To be confirmed: High Court]` with the Article 227 lines. Blocking the choice on the form is a follow-up web ticket. |
+| (c) Respondents under Article 227 | Not OK. Respondents the advocate typed are printed, numbered 1., 2. The blank appears only when none are given. |
+| (d) Delhi or another UT | Yes, ca12ec2e applies. For a civil writ in Delhi: `Government of NCT of Delhi through [To be confirmed: Secretary of the concerned department]`. Never "State of Delhi". Other UTs: `[To be confirmed: name of the State or Union Territory as party]`. |
+| (e) state_of_filing not fed into {state} | v1 if a wrong State can print. Park it (T-488) if the only result is the blank. |
+| (f) "Home Department" in the writ_petition_civil prompt | v1. The model sees it, so replace it with the signed department blank line (6a047469, point 4). |
+| T-477 bare number in an Act's brackets | A bare number is a section. It prints as `(S.8)`, not `(8)`. Adding "S." is part of the signed format, not a conversion. Nested brackets that are pack text verbatim are OK. |
+
+## T-477: wording of the conditions (Ajay, 16 Oct 2026)
+
+- Merging `relatedActs` with the other list is OK. The brief path and the promoted path must cite the same Acts.
+- `dv_dowry`: `[only when: the offence arises from domestic violence or a dowry demand]`.
+- A raw condition key (such as `dv_dowry`) never reaches the model. Every applicableWhen key needs plain words signed by me. Send me the list of all 11 keys with proposed wording before the byte check.
+
+## T-483: ages in the period check (Ajay, 16 Oct 2026)
+
+Approved, with one condition. "N years" directly after "aged", "age of" or "aged about", or directly before "old" or "of age", is an age and not a period. An age is still a fact: check it against the ages in the brief, which come from the age field or from the description. If the age is not in the brief, the panel flags "The draft states an age that is not in your brief". Real periods, such as "custody for 3 years" or "within 15 days", are still checked as periods.
+
+## Byte check T-478(b), fix/t-478b-verifier-article-numbers @ e5d21df3: approved (Ajay, 16 Oct 2026)
+
+- Matches 1a3cc988. The first number is capped at 4 digits and may take a letter. "S."/"s.", "O." and "r." match only in their exact case. Full words match in any case.
+- The SECTION_RE allow-list still runs before the reference claim (fact-verifier.ts :636), so an unsigned section is still blanked.
+- Accepted deviation: "Art" sits with the full words, so it matches in any case. Low risk.
+- Amount guard: OK. "ofRs.500" is still blanked as a number, which is the safe side.
+
+## T-479: "226 and 227" with a Supreme Court court (Ajay, 16 Oct 2026)
+
+OK, same as (b): print `IN THE HIGH COURT OF [To be confirmed: High Court]` with the "Articles 226 and 227" matter line. Never print the Article 32 title for this choice. Point (e) and the no-State line in the ledger prompt are parked under T-488, OK.
+
+## Byte check T-483, feature/t-483-checks-panel @ 17bfe932: approved (Ajay, 16 Oct 2026)
+
+- Warning text as I signed it, with "{words}. Check it before use." added to match the period warning. OK.
+- Matches bd33120b. An age phrase is checked against the age fields and the ages stated in the brief or the description. Real periods are still checked.
+- Accepted: ages are also read from the pack text. This lets a statutory age pass, for example "18 years of age". The low risk is that an applicant's age equal to a pack figure is not flagged.

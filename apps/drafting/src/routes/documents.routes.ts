@@ -208,6 +208,8 @@ export interface RecordGenerationInput {
   runType: RunType;
   /** ADR-019 §3.7 */
   intakeId?: string;
+  /** T-480: which drafting path ran (on = written from a fact ledger). */
+  ledger?: 'on' | 'off';
 }
 
 /**
@@ -251,6 +253,7 @@ export async function recordGeneration(
       runSequence: input.runSequence,
       runType: input.runType,
       intakeId: input.intakeId,
+      ledger: input.ledger,
       costUsd,
       costStatus: rate.costStatus,
       rateInputUsdPerMTok: rate.costStatus === 'priced' ? rate.rate.inputUsdPerMTok : undefined,
@@ -1397,6 +1400,7 @@ router.post(
           runId,
           runSequence,
           runType,
+          ledger: ledger ? 'on' : 'off',
         });
         if (failed) {
           // The error event was already sent. End only now, after the row exists.
@@ -1489,6 +1493,7 @@ router.post(
           runId,
           runSequence,
           runType,
+          ledger: ledger ? 'on' : 'off',
         });
         duplicateAttempt = duplicate;
 
@@ -1578,6 +1583,8 @@ router.post(
           : result.missingClauses
         ).map((m) => ({ id: m.id, title: m.title })),
         repaired: result.repaired,
+        // T-480: which drafting path ran (on = written from a fact ledger).
+        ledger: ledger ? 'on' : 'off',
         startingDraft: result.startingDraft,
         startingDraftLabel: result.startingDraft ? STARTING_DRAFT_LABEL : null,
         labelReason: result.labelReason,
