@@ -633,3 +633,16 @@ WRIT PETITION (CIVIL) NO. ______ OF ______
 ```
 
 T-473 scope: ref f1a18422 covers the labels in forms, in the intake brief and in the intake extraction prompt, including the three court-type labels.
+
+## T-472 follow-up: copy time, missing copy dates, article wording, numbering (Ajay, 16 Oct 2026)
+
+| Point | Ruling |
+|---|---|
+| (1) End of copy time | Accepted. Under s.12(2), the time excluded runs from the date the certified copy was applied for to the date it was **ready for delivery**. Time taken after it was ready is not excluded. Do **not** fall back to the date it was received: that can overstate the exclusion and show a late petition as in time. If the ready date is not known, the input is unknown: print the rule 4 blank. |
+| (2) No copy dates | Ask whether a certified copy was applied for. Answer "No": compute with nothing excluded. Not answered, or "Yes" with any copy date missing: print the rule 4 blank, and print no day count. |
+| (3) Article wording | Use `Article 131 of the Schedule to the Limitation Act, 1963` (revision: 90 days from the order). The signed checklist line is below. |
+| (4) Numbering | Paragraphs are numbered consecutively in the printed draft. A paragraph that is dropped or swapped must not leave a gap or a repeated number. |
+
+Signed checklist line (only when the delay paragraph is printed):
+
+`Application under Section 5 of the Limitation Act, 1963 for condonation of delay, supported by an affidavit stating the cause of the delay.`
