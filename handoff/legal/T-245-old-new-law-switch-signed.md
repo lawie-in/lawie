@@ -900,3 +900,5 @@ These terms are not enough on their own to pick this pack when divorce, DV Act o
 6. No other remedy: `State that the petitioner has no other equally efficacious remedy. If the brief names one that was used, say what became of it.`
 
 Prayer (existing): mandamus directing the respondent to do the act named in {grievance_summary} within a time the Court may fix.
+
+**T-489 addendum.** Use (a): remove `statutory_duty` and keep `statute_invoked` with the signed label from 8e85ec44 (optional). Add a read-time alias from statutory_duty to statute_invoked, so old saved answers still fill it. Keep `refusal_or_inaction`. It feeds body paragraphs 4 and 5. `grievance_summary` stays as the one-line cause-title text.
