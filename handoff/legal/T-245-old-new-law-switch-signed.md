@@ -731,3 +731,9 @@ Approved, with one condition. "N years" directly after "aged", "age of" or "aged
 ## T-479: "226 and 227" with a Supreme Court court (Ajay, 16 Oct 2026)
 
 OK, same as (b): print `IN THE HIGH COURT OF [To be confirmed: High Court]` with the "Articles 226 and 227" matter line. Never print the Article 32 title for this choice. Point (e) and the no-State line in the ledger prompt are parked under T-488, OK.
+
+## Byte check T-483, feature/t-483-checks-panel @ 17bfe932: approved (Ajay, 16 Oct 2026)
+
+- Warning text as I signed it, with "{words}. Check it before use." added to match the period warning. OK.
+- Matches bd33120b. An age phrase is checked against the age fields and the ages stated in the brief or the description. Real periods are still checked.
+- Accepted: ages are also read from the pack text. This lets a statutory age pass, for example "18 years of age". The low risk is that an applicant's age equal to a pack figure is not flagged.
