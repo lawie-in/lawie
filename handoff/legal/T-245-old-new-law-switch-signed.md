@@ -872,3 +872,9 @@ Description: `Application for maintenance under Section 144 of the Bharatiya Nag
 Match terms: maintenance, monthly maintenance, interim maintenance, Section 144 BNSS, Section 125 CrPC, bharan-poshan, bharan poshan, guzara bhatta, guzara, kharcha, kharcha-pani, wife, patni, child, children, bachcha, bachche, parents, mata-pita, maa-baap, भरण-पोषण, गुजारा भत्ता, पत्नी, बच्चे, माता-पिता.
 
 These terms are not enough on their own to pick this pack when divorce, DV Act or HAMA words are also present. In that case, offer this pack together with those packs and let the advocate choose.
+
+## Byte check T-496, fix/t-496-no-invented-day @ 6888082d: approved (Ajay, 16 Oct 2026)
+
+- NAMED_MDY no longer lets the day run into the year, so "June 2026" reads as no date. A missing year gives no date. A two-digit year later than the reference year gives no date. Nothing is invented. Matches 8f0d980a and c585cf80.
+- Timeline: a partial arrest date returns the existing error, and no s.187(3) date is computed. OK for v1, with the date-picker condition already recorded.
+- No printed text changed. It ships before T-469 (78a39810).
