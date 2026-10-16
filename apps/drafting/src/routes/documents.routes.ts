@@ -210,6 +210,8 @@ export interface RecordGenerationInput {
   intakeId?: string;
   /** T-480: which drafting path ran (on = written from a fact ledger). */
   ledger?: 'on' | 'off';
+  /** T-477: how many echoed [only when: ...] markers were stripped from the AI body (count only) */
+  onlyWhenStrips?: number;
 }
 
 /**
@@ -254,6 +256,7 @@ export async function recordGeneration(
       runType: input.runType,
       intakeId: input.intakeId,
       ledger: input.ledger,
+      onlyWhenStrips: input.onlyWhenStrips,
       costUsd,
       costStatus: rate.costStatus,
       rateInputUsdPerMTok: rate.costStatus === 'priced' ? rate.rate.inputUsdPerMTok : undefined,
@@ -1006,6 +1009,7 @@ router.post(
           runId,
           runSequence,
           runType,
+          onlyWhenStrips: result.onlyWhenStrips,
         });
         duplicateAttempt = duplicate;
 

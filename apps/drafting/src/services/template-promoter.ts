@@ -26,6 +26,7 @@ import logger from '../config/logger';
 import { OPTION_LABEL_OVERRIDES } from '../config/option-label-overrides';
 
 import { costForTemplate } from './credits.service';
+import { renderRelatedActs } from './related-acts';
 import type {
   ComputedField,
   DocumentSection,
@@ -64,6 +65,7 @@ interface DocRuleSource {
   prompt_context?: string | Record<string, unknown>;
   promptInstructions?: string[];
   relevantActs?: unknown[];
+  relatedActs?: unknown[];
   filing_checklist?: string[];
   filingChecklist?: string[];
   validation_rules?: string[] | ValidationRules;
@@ -1123,16 +1125,16 @@ export function promoteDocRuleToTemplateConfig(
         ? rule.filingChecklist
         : [];
 
-  // related_acts — collapse CLO's structured shape down to a string list.
-  const relatedActs: string[] = Array.isArray(rule.relevantActs)
-    ? rule.relevantActs
-        .map((a) => {
-          if (typeof a === 'string') return a;
-          if (isPlainObject(a) && typeof a.act === 'string') return a.act;
-          return '';
-        })
-        .filter((s) => s.length > 0)
-    : [];
+  // related_acts — one string per relevantActs entry, then per relatedActs
+  // entry (Ajay b101b4eb: both keys, no merging across them), carrying the
+  // pack's own section references (T-477; see related-acts.ts).
+  const relatedActs: string[] = renderRelatedActs(
+    [
+      ...(Array.isArray(rule.relevantActs) ? rule.relevantActs : []),
+      ...(Array.isArray(rule.relatedActs) ? rule.relatedActs : []),
+    ],
+    mismatches,
+  );
 
   const config: PromotedTemplateConfig & {
     creditsCost?: number;
