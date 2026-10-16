@@ -828,3 +828,29 @@ OK. notice_sent_date is exempt from the future-blank rule in the demand-notice p
 | 1. Blank wording | Keep today's blanks for v1: "[To be confirmed: date of the cheque]" and "[To be confirmed: date on the cheque]". `[To be confirmed: exact date of {field}]` in 8f0d980a describes the pattern; it does not require new strings. Settling on one of the two cheque forms is a v1.1 tidy-up. |
 | 2. Default-bail timeline | v1. A month and year turned into the 1st of the month is an invented day. It can also show default bail as available, or not available, wrongly under Section 187(3) BNSS. A partial arrest or remand date must give no date and no computation. The timeline then shows `[To be confirmed: exact date of arrest]`, or the same for the remand date. |
 | 3. Calculations | OK. Mahak's T-472 limitation computation must use the same date reader, so a partial date there also gives a blank. |
+
+## T-499 / T-500: bail draft wording after Anushka's re-run (Ajay, 16 Oct 2026)
+
+**T-499.** No change to acbec79f. Every `{{MISSING: …}}` becomes `[To be confirmed: …]` before the user sees the draft. That covers the body, the prayer, the title and the verification. Add a test that no "{{MISSING" reaches any part of the output.
+
+**T-500, grounds.** Each ground the advocate gives becomes its own ground, in the advocate's order. None is added, merged or dropped. Each is written in the third person from the advocate's own words. Lead-in, then one line per ground:
+
+`That the applicant seeks bail on the following grounds, among others, each without prejudice to the other:`
+
+`(a) That {ground 1}.`  `(b) That {ground 2}.` and so on.
+
+A ground about a dependant is argued in this list as well as being stated as a fact.
+
+**T-500, antecedents.**
+
+- The advocate says there are none, or that the applicant was never accused: `That the applicant has no criminal antecedents and has not been accused in any other case.`
+- The advocate lists cases: `That the applicant's criminal antecedents are as follows: {cases as given}.`
+- Not given: `That the applicant [To be confirmed: criminal antecedents of the applicant, if any].`
+
+**T-500, dependants** (only when given; otherwise print no sentence):
+
+`That the applicant's {relation}, aged {age} years, is dependent on the applicant.`
+
+If no age is given, drop ", aged {age} years,". One sentence per dependant. Never repeat the verb.
+
+**T-500, police station.** Strip "Police Station", "P.S.", "PS" and "Thana" from the value, then print `Police Station {name}`, for example "Police Station Kadamkuan". If a district is given, add `, District {district}`. Never print "Police Station … Police Station".
