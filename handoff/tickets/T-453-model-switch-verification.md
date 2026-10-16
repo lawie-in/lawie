@@ -35,3 +35,20 @@ Addendum (Vikram, 15 Oct): with the judge and repair calls, M is borderline (≈
 - Date confidence: the 0.9 floor is the model's self-report, uncalibrated. Run 64: all three 0.85 reads were correct, zero wrong-valued reads, four correct dates held back by the floor. Floor stays; the table is the input to a post-v1 calibration ticket (code-computed confidence, Ajay).
 - Date label strip: failed review twice (meaning changes); split out as T-469 with Ajay's field-naming rule.
 - Close T-453 on run 64 + the reception-cap fix. Deliverable = the report: non-passing fixtures bucketed (content diff for Ajay / truncation / unrecognised / confidence floor), per-stage token medians for Vikram, confidence table.
+
+## Result (Vishal, run 64, 15 Oct 2026; Priya wrote it in)
+
+Sonnet 5.5 body / Haiku 5.5 intake verified; effort low/medium/medium; golden 8/27 at $0.69 (first real run: 8/27 at $1.00). Medians/p90 tokens out per call: intake 1564/2347, body 574/1750.
+
+The 19 non-passing cases, by bucket:
+- Content (Ajay): 1a, 04 (date not in ledger); 1b, 08, 19, 21 (s.138 drawer firm dropped, now T-471, a prod blocker); 07, 08 (fact changed, blanked); 1c, 17, 18, 25 (given fact missing); 12, 13, 14 (BNSS s.144/145 flagged and a banned phrase, repaired; Ajay allowed s.144/145 for maintenance_bnss_144 only); 23 (clause).
+- Truncation: 22 (reception cap, small fix in progress).
+- Unrecognised: 15 (labels, T-469); 13 ("10,000 mahina").
+- Confidence floor: 05, 07, 17, 18 (T-470).
+- Schema: period_expiry_date in 15-17.
+
+Confidence table: 0.85 reads 3/3 right, zero wrong-valued reads, 4 correct dates held back by the 0.9 floor.
+
+Ajay (15 Oct): everything in run 64 acceptable except the drawer firm (T-471). Open after this ticket: reception cap, T-469, T-470, T-471.
+
+Vikram (15 Oct): $0.69 for 27 fixtures is about Rs 2.25 a draft, about Rs 1.1-1.3 per Ink; well under his Rs 2.60 working figure and the Rs 3.70 line. No price change; he keeps Rs 2.60 until real drafts confirm it. Ask for the record: tag cost per class (S/M) separately once the class table lands, so the monthly Rs 3.70 review has per-class p90s.

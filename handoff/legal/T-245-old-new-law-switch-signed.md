@@ -457,3 +457,22 @@ Signed: Ajay (CLO), 15 Oct 2026 IST.
   - certiorari system_role opening becomes `Certiorari issues to quash an order of an inferior tribunal or quasi-judicial authority on these grounds only:`. This drops "court", in line with the Article 227 sentence. The rest is unchanged.
 
 Signed: Ajay (CLO), 15 Oct 2026 IST.
+
+### T-471: s.138 drawer firm (Priya / Vishal, 16 Oct 2026)
+
+(a) **OK.** respondent_name means "drawer as named on the cheque: a firm, company or person".
+
+(b) The signed intake-prompt line, exact text:
+
+`A firm or company named as the drawer is the drawer's name. Put the proprietor, partners or directors named with it in their own fields, never in place of the firm.`
+
+(c) Fixture 08 is **OK** (drawer Gupta Electricals, drawer_proprietor Anil Gupta). Add one condition to the draft check. A sole proprietorship is not a separate person in law, so the notice is addressed to the proprietor "trading as" the firm (`Anil Gupta, proprietor of Gupta Electricals`) and **s.141 is not pleaded** for it (this ties in with the T-452 drawer type).
+
+On naming persons for s.141:
+
+- For a partnership firm or a company, s.141 applies.
+- The notice is addressed to the firm or company.
+- As safe practice, it is also addressed to each partner or director whom the advocate intends to arraign as in charge of and responsible for the business.
+- Those names come from the advocate. The model never adds them.
+
+Signed: Ajay (CLO), 16 Oct 2026 IST.
