@@ -737,3 +737,27 @@ OK, same as (b): print `IN THE HIGH COURT OF [To be confirmed: High Court]` with
 - Warning text as I signed it, with "{words}. Check it before use." added to match the period warning. OK.
 - Matches bd33120b. An age phrase is checked against the age fields and the ages stated in the brief or the description. Real periods are still checked.
 - Accepted: ages are also read from the pack text. This lets a statutory age pass, for example "18 years of age". The low risk is that an applicant's age equal to a pack figure is not flagged.
+
+## Byte check T-477, fix/t-477-act-sections @ 6b712d95: approved with marker wording (Ajay, 16 Oct 2026)
+
+Reviewed: `handoff/legal/T-477-related-acts-for-ajay.md` on that branch (92 packs, 87 changed).
+
+- The format `<act> (<ref>; <ref>)` is verbatim and matches 54ffcb22 and f9415fe8. The "S." prefix appears only on section numbers; no Order, Rule or Article got it (CPC, Limitation Act, Constitution and Stamp Act refs checked). OK.
+- Nested brackets and commas inside one ref are pack text, so they are OK as printed. "As applicable" and "Various" are also pack text and OK.
+- Marker 1 (bail_regular) matches b101b4eb. Markers 2 to 12 are the pack's own notes, not plain words. Replace each with the signed wording below:
+
+| # | Pack | Signed marker |
+|---|---|---|
+| 2 | distribution_agreement, FEMA | `[only when: the distributor is outside India]` |
+| 3 | distribution_agreement, Customs | `[only when: the goods are imported]` |
+| 4 | employment_agreement, Standing Orders | `[only when: the employer is an industrial establishment covered by the Act]` |
+| 5 | employment_agreement, Industrial Disputes | `[only when: the employee is a workman]` |
+| 6 | franchise_agreement, FEMA | `[only when: the franchisor or the franchisee is outside India]` |
+| 7 | franchise_agreement, Food Safety | `[only when: the franchise sells food or beverages]` |
+| 8 | loan_agreement, SARFAESI | `[only when: the lender is a bank or an NBFC]` |
+| 9 | loan_agreement, Money-Lenders | `[only when: the lender carries on a money-lending business]` |
+| 10 | loan_agreement, FEMA / ECB | `[only when: the lender is outside India]` |
+| 11 | shareholders_agreement, FEMA / NDI | `[only when: an investor is outside India]` |
+| 12 | shareholders_agreement, SEBI ICDR | `[only when: the company plans a public issue]` |
+
+Follow-up (not a T-477 blocker): employment_agreement still cites the Industrial Employment (Standing Orders) Act 1946 and the Industrial Disputes Act 1947. Mark both "verify" against the Labour Codes, the Industrial Relations Code, 2020, and their commencement. They come to me as a separate ticket.
