@@ -28,8 +28,10 @@ import {
 import { buildBrief, buildChecklist, type Brief, type GivenValue } from '../services/intake-brief';
 import { loadRulePack } from '../services/rule-pack.service';
 import {
+  buildAISystemPrompt,
   buildPlaceholderContext,
   clearConfigCache,
+  courtStateIsMatterState,
   loadCourtRule,
   loadTemplateConfig,
   numberRespondents,
@@ -212,7 +214,7 @@ const SCENARIOS: Array<{
   {
     id: 'mandamus',
     values: { petitioner_name: 'Sample Petitioner', respondent_authority: 'Sample Authority' },
-    expectTitle: ['Sample Petitioner ... Petitioner\nVERSUS\nSample Authority ... Respondents'],
+    expectTitle: ['Sample Petitioner ... Petitioner\nVERSUS\n1. Sample Authority ... Respondents'],
     partyLines: /Petitioner[\s\S]*Respondents/,
   },
 ];
@@ -461,7 +463,7 @@ describe.each(paths)('T-479 AC4: mandamus, %s', (_n, render) => {
     expect(m).toContain('(EXTRAORDINARY CIVIL / WRIT JURISDICTION)');
     expect(m).toContain('IN THE MATTER OF: Article 226 of the Constitution of India;');
     expect(m).toContain(
-      'Sample Petitioner ... Petitioner\nVERSUS\nSample Authority ... Respondents',
+      'Sample Petitioner ... Petitioner\nVERSUS\n1. Sample Authority ... Respondents',
     );
   });
 
@@ -1044,3 +1046,364 @@ describe('T-479 AC5: the aliases and fallbacks touch nothing else', () => {
     expect(leaks).toEqual([]);
   });
 });
+
+// ── Review round 1: bench States and the respondent lines (Ajay 7c279a77) ───────────────────
+// Signed in handoff/legal/T-245-old-new-law-switch-signed.md, "T-479: bench States and respondent
+// lines". Typed here byte for byte.
+const PH_NAME = 'HIGH COURT OF PUNJAB AND HARYANA AT CHANDIGARH';
+const AUTHORITY_BLANK_SIGNED =
+  '[To be confirmed: authority against whom the writ is sought, with designation and address]';
+const WRONG_STATES =
+  /Maharashtra|West Bengal|Nagaland|Mizoram|Arunachal|Assam|Chandigarh|Punjab|Haryana|Kashmir|Ladakh|Goa\b|Andaman/;
+
+interface CourtEntryT {
+  courtId: string;
+  designation: string;
+  city: string;
+  caseNomenclature: string;
+  formattingRulesRef: string;
+  courtType?: string;
+  state?: string;
+}
+function indexCourts(node: unknown, out: Map<string, CourtEntryT>): void {
+  if (Array.isArray(node)) node.forEach((n) => indexCourts(n, out));
+  else if (node && typeof node === 'object') {
+    const o = node as Record<string, unknown>;
+    if (typeof o.courtId === 'string' && typeof o.designation === 'string')
+      out.set(o.courtId, o as unknown as CourtEntryT);
+    Object.values(o).forEach((v) => indexCourts(v, out));
+  }
+}
+const COURTS = new Map<string, CourtEntryT>();
+indexCourts(
+  JSON.parse(readFileSync(join(__dirname, '../config/courts/indian-courts.json'), 'utf8')),
+  COURTS,
+);
+function courtDataFor(courtId: string) {
+  const e = COURTS.get(courtId);
+  if (!e) throw new Error(`court ${courtId} not in indian-courts.json`);
+  return {
+    designation: e.designation,
+    city: e.city,
+    caseNomenclature: e.caseNomenclature,
+    formattingRulesRef: e.formattingRulesRef,
+    courtType: e.courtType,
+    state: e.state,
+    courtRule: loadCourtRule(e.formattingRulesRef) ?? undefined,
+  };
+}
+
+/** Both paths with the chosen court's real courts-list entry handed to the engine. */
+const withCourt = (
+  path: 'form' | 'brief',
+  id: string,
+  values: Values,
+  courtId: string,
+): Rendered => {
+  clearConfigCache();
+  const config = loadTemplateConfig(id)!;
+  const cd = courtDataFor(courtId);
+  const form =
+    path === 'form'
+      ? { ...values }
+      : formDataFromBrief(
+          briefFor(id, values, {
+            state: cd.state,
+            court_type: cd.courtType,
+            court: cd.designation,
+          }),
+          config,
+          'en',
+        );
+  const ctx = buildPlaceholderContext(config, form, { advocateName: 'Adv. A' }, cd as never);
+  const out: Record<string, string> = {};
+  for (const s of config.document_structure.sections) {
+    if (s.type === 'template' && s.template)
+      out[s.section_id] = renderTemplateSection(s, ctx).content;
+  }
+  return {
+    cause_title: out.cause_title ?? '',
+    heading: out.petition_heading ?? '',
+    all: Object.values(out).join('\n'),
+  };
+};
+
+const PATHS2: Array<'form' | 'brief'> = ['form', 'brief'];
+const OFF_STATE: Array<[string, string, string]> = [
+  ['bombay_hc_panaji_bench', 'Panaji', 'Maharashtra'],
+  ['calcutta_hc_port_blair_circuit', 'Port Blair', 'West Bengal'],
+  ['gauhati_hc_kohima_bench', 'Kohima', 'Nagaland'],
+  ['gauhati_hc_aizawl_bench', 'Aizawl', 'Mizoram'],
+  ['gauhati_hc_itanagar_bench', 'Itanagar', 'Arunachal Pradesh'],
+  ['gauhati_hc_guwahati', 'Guwahati', 'Assam'],
+  ['jk_ladakh_hc_srinagar', 'Srinagar', 'Jammu & Kashmir'],
+  ['jk_ladakh_hc_jammu_wing', 'Jammu', 'Jammu & Kashmir'],
+];
+
+describe.each(PATHS2)(
+  'T-479 7c279a77: benches outside the parent State keep the blank, %s',
+  (path) => {
+    const people = { petitioner_name: 'Sample Petitioner', police_station: 'Sample' };
+    const packs: Array<[string, Values]> = [
+      ['fir_quashing', people],
+      [
+        'mandamus',
+        { petitioner_name: 'Sample Petitioner', respondent_authority: 'Sample Authority' },
+      ],
+      [
+        'writ_petition_civil',
+        { petitioner_name: 'Sample Petitioner', respondents_list: 'Sample Authority' },
+      ],
+      ['certiorari', { ...certNames, article_invoked: '226' }],
+    ];
+
+    describe.each(OFF_STATE)('%s', (courtId, city, listed) => {
+      it.each(packs)('%s: the heading prints "OF _____", never the listed State', (id, v) => {
+        const r = withCourt(path, id, v, courtId);
+        expect(listed).toMatch(WRONG_STATES);
+        expect(r.cause_title).toContain(`IN THE HON'BLE HIGH COURT OF _____ AT ${city}`);
+        expect(r.cause_title).not.toMatch(WRONG_STATES);
+      });
+
+      it('fir_quashing: the State party line is the blank, with no wrong State', () => {
+        const r = withCourt(path, 'fir_quashing', people, courtId);
+        expect(r.cause_title).toContain('1. State of _____, through Station House Officer');
+        expect(r.all).not.toContain(`State of ${listed}`);
+      });
+
+      it('certiorari 226: the State party line is the To-be-confirmed State', () => {
+        const r = withCourt(path, 'certiorari', { ...certNames, article_invoked: '226' }, courtId);
+        expect(r.cause_title).toContain(
+          `1. State of [To be confirmed: State] through ${SECRETARY}`,
+        );
+        expect(r.cause_title).not.toContain(`State of ${listed}`);
+        expect(r.cause_title).not.toMatch(WRONG_STATES);
+      });
+    });
+
+    // `state` is not a brief checklist item, so only the form path can carry a typed State.
+    it('a State the advocate typed still wins at a bench (form path only)', () => {
+      if (path !== 'form') return;
+      const r = withCourt(
+        path,
+        'fir_quashing',
+        { ...people, state: 'Goa' },
+        'bombay_hc_panaji_bench',
+      );
+      expect(r.cause_title).toContain('HIGH COURT OF Goa AT Panaji');
+      expect(r.cause_title).toContain('1. State of Goa, through Station House Officer');
+      expect(r.cause_title).not.toContain('Maharashtra');
+    });
+  },
+);
+
+describe.each(PATHS2)('T-479 7c279a77: Punjab and Haryana High Court, %s', (path) => {
+  const packs: Array<[string, Values]> = [
+    ['fir_quashing', { petitioner_name: 'Sample Petitioner', police_station: 'Sample' }],
+    [
+      'mandamus',
+      { petitioner_name: 'Sample Petitioner', respondent_authority: 'Sample Authority' },
+    ],
+    [
+      'writ_petition_civil',
+      { petitioner_name: 'Sample Petitioner', respondents_list: 'Sample Authority' },
+    ],
+    ['certiorari', { ...certNames, article_invoked: '226' }],
+  ];
+  it.each(packs)(
+    '%s: the heading is the signed full name, never "HIGH COURT OF Chandigarh"',
+    (id, v) => {
+      const r = withCourt(path, id, v, 'punjab_haryana_hc_chandigarh');
+      expect(r.cause_title).toContain(`IN THE HON'BLE ${PH_NAME}`);
+      expect(r.cause_title).not.toMatch(/HIGH COURT OF Chandigarh/i);
+      expect(r.cause_title).not.toMatch(/HIGH COURT OF _____/);
+    },
+  );
+  it('the State party stays blank (fir_quashing, certiorari)', () => {
+    const f = withCourt(path, 'fir_quashing', packs[0][1], 'punjab_haryana_hc_chandigarh');
+    expect(f.cause_title).not.toMatch(/State of (Chandigarh|Punjab|Haryana)/);
+    const c = withCourt(path, 'certiorari', packs[3][1], 'punjab_haryana_hc_chandigarh');
+    expect(c.cause_title).not.toMatch(/State of (Chandigarh|Punjab|Haryana)/);
+  });
+});
+
+describe.each(PATHS2)('T-479 7c279a77: Patna and Delhi still fill, %s', (path) => {
+  it('Patna: the State fills the heading and the State party', () => {
+    const f = withCourt(
+      path,
+      'fir_quashing',
+      { petitioner_name: 'Sample Petitioner', police_station: 'Sample' },
+      'patna_hc',
+    );
+    expect(f.cause_title).toContain("IN THE HON'BLE HIGH COURT OF Bihar AT Patna");
+    expect(f.cause_title).toContain('1. State of Bihar, through Station House Officer');
+    const c = withCourt(path, 'certiorari', { ...certNames, article_invoked: '226' }, 'patna_hc');
+    expect(c.cause_title).toContain(`1. State of Bihar through ${SECRETARY}, Government of Bihar`);
+  });
+  it('Delhi High Court is not skipped: heading names Delhi and the NCT lines print', () => {
+    const f = withCourt(
+      path,
+      'fir_quashing',
+      { petitioner_name: 'Sample Petitioner', police_station: 'Sample' },
+      'delhi_hc',
+    );
+    expect(f.cause_title).toContain("IN THE HON'BLE HIGH COURT OF Delhi AT");
+    expect(f.cause_title).toContain(`1. ${DELHI_CRIMINAL}, through Station House Officer`);
+    expect(f.cause_title).not.toContain('State of Delhi');
+    const c = withCourt(path, 'certiorari', { ...certNames, article_invoked: '226' }, 'delhi_hc');
+    expect(c.cause_title).toContain(`1. ${DELHI_CIVIL}`);
+    expect(c.cause_title).not.toContain('State of Delhi');
+  });
+});
+
+describe('T-479 7c279a77: writ_civil prompt State line follows the same guard', () => {
+  const prompt = (courtId: string, state?: string) => {
+    const cd = courtDataFor(courtId);
+    clearConfigCache();
+    const config = loadTemplateConfig('writ_petition_civil')!;
+    const ctx = buildPlaceholderContext(
+      config,
+      { petitioner_name: 'Sample Petitioner', ...(state ? { state } : {}) },
+      {},
+      cd as never,
+    );
+    return buildAISystemPrompt(config, cd.courtRule ?? null, cd as never, ctx);
+  };
+  const stateLine = (p: string) => (p.match(/^- state: .*$/m) ?? [''])[0];
+
+  it.each(OFF_STATE)('%s: the prompt never names %s as the State party', (courtId, _c, listed) => {
+    const p = prompt(courtId);
+    expect(p).toContain('PARTY DESIGNATIONS FOR THIS COURT');
+    expect(stateLine(p)).not.toContain(listed);
+    expect(stateLine(p)).not.toMatch(WRONG_STATES);
+  });
+  it('Punjab and Haryana: no Chandigarh, Punjab or Haryana State line', () => {
+    expect(stateLine(prompt('punjab_haryana_hc_chandigarh'))).not.toMatch(
+      /Chandigarh|Punjab|Haryana/,
+    );
+  });
+  it('Patna still fills Bihar; Delhi still gets the NCT line', () => {
+    expect(stateLine(prompt('patna_hc'))).toContain(`State of Bihar through ${SECRETARY}`);
+    expect(stateLine(prompt('delhi_hc'))).toContain(DELHI_CIVIL);
+  });
+});
+
+describe('T-479 7c279a77: courtStateIsMatterState', () => {
+  const cd = (id: string) => courtDataFor(id);
+  it.each([
+    'bombay_hc_panaji_bench',
+    'calcutta_hc_port_blair_circuit',
+    'punjab_haryana_hc_chandigarh',
+    'jk_ladakh_hc_srinagar',
+    'jk_ladakh_hc_jammu_wing',
+    'gauhati_hc_guwahati',
+    'gauhati_hc_kohima_bench',
+    'gauhati_hc_aizawl_bench',
+    'gauhati_hc_itanagar_bench',
+  ])('%s -> false', (id) => {
+    expect(courtStateIsMatterState(cd(id) as never)).toBe(false);
+  });
+  it.each(['patna_hc', 'delhi_hc'])('%s -> true', (id) => {
+    expect(courtStateIsMatterState(cd(id) as never)).toBe(true);
+  });
+  it('no court, and the Supreme Court -> false', () => {
+    expect(courtStateIsMatterState(undefined)).toBe(false);
+    expect(
+      courtStateIsMatterState({ ...cd('patna_hc'), courtType: 'supreme_court' } as never),
+    ).toBe(false);
+  });
+});
+
+describe.each(paths)('T-479 7c279a77: mandamus respondents numbered, %s', (_n, render) => {
+  const p = { petitioner_name: 'Sample Petitioner' };
+  it('one respondent prints "1. {respondent_authority}"', () => {
+    const r = render('mandamus', { ...p, respondent_authority: 'Sample Authority, Sample Office' });
+    expect(r.cause_title).toContain('VERSUS\n1. Sample Authority, Sample Office ... Respondents');
+  });
+  it('two lines print 1. and 2.', () => {
+    const r = render('mandamus', {
+      ...p,
+      respondent_authority: 'First Authority\nSecond Authority',
+    });
+    expect(r.cause_title).toContain(
+      'VERSUS\n1. First Authority\n2. Second Authority ... Respondents',
+    );
+  });
+  it('no State line is added', () => {
+    const r = render('mandamus', { ...p, respondent_authority: 'Sample Authority' }, [], {
+      state: 'Bihar',
+      court_type: 'high_court',
+      court: 'Patna High Court',
+    });
+    expect(partyBlock(r.cause_title)).not.toMatch(/State of|Government of/);
+  });
+  it('unanswered: "1." and the signed authority blank, exactly', () => {
+    const r = render('mandamus', p, ['respondent_authority']);
+    expect(r.cause_title).toContain(`VERSUS\n1. ${AUTHORITY_BLANK_SIGNED} ... Respondents`);
+    expect(r.cause_title).not.toMatch(/MISSING/);
+  });
+  it('the label-derived blank is replaced by the signed one (form path)', () => {
+    const g = generatedBlanks('mandamus', 'respondent_authority');
+    expect(g.brief).not.toBe(AUTHORITY_BLANK_SIGNED);
+    for (const v of ['', '  ', g.brief, g.ledger]) {
+      const r = renderForm('mandamus', { ...p, respondent_authority: v });
+      expect(r.cause_title).toContain(`VERSUS\n1. ${AUTHORITY_BLANK_SIGNED} ... Respondents`);
+      expect(r.cause_title).not.toContain(g.brief);
+      expect(r.cause_title).not.toContain(g.ledger);
+    }
+  });
+  it('Supreme Court mandamus numbers the respondent too', () => {
+    const r = atSC(_n, render, 'mandamus', { ...p, respondent_authority: 'Sample Authority' });
+    expect(r.cause_title).toContain('VERSUS\n1. Sample Authority ... Respondents');
+  });
+});
+
+describe.each(paths.slice(1))(
+  'T-479 7c279a77: certiorari authority blank keeps its number, %s',
+  (_n, render) => {
+    const bihar2 = hc('Bihar', 'Patna');
+    const noAuth = { petitioner_name: 'Sample Petitioner', additional_respondents: 'Sample Party' };
+    it('Article 226: State line 1., the authority blank 2., the additional respondent 3.', () => {
+      const r = render(
+        'certiorari',
+        { ...noAuth, article_invoked: '226' },
+        ['respondent_authority'],
+        bihar2,
+      );
+      expect(r.cause_title).toContain(
+        `1. State of Bihar through ${SECRETARY}, Government of Bihar\n2. ${AUTHORITY_BLANK_SIGNED}\n3. Sample Party`,
+      );
+    });
+    it('Article 226 with no additional respondent: the authority blank is still "2."', () => {
+      const r = render(
+        'certiorari',
+        { petitioner_name: 'Sample Petitioner', article_invoked: '226' },
+        ['respondent_authority', 'additional_respondents'],
+        bihar2,
+      );
+      expect(r.cause_title).toContain(`\n2. ${AUTHORITY_BLANK_SIGNED} ... Respondents`);
+    });
+    it('Article 227 with additional respondents: "1." blank, "2." the party', () => {
+      const r = render(
+        'certiorari',
+        { ...noAuth, article_invoked: A227 },
+        ['respondent_authority'],
+        bihar2,
+      );
+      expect(r.cause_title).toContain(
+        `VERSUS\n1. ${AUTHORITY_BLANK_SIGNED}\n2. Sample Party ... Respondents`,
+      );
+      expect(r.cause_title).not.toMatch(/State of|Government of/);
+    });
+    it('Article 227 with nothing given: the signed respondents blank, no authority blank', () => {
+      const r = render(
+        'certiorari',
+        { petitioner_name: 'Sample Petitioner', article_invoked: A227 },
+        ['respondent_authority', 'additional_respondents'],
+        bihar2,
+      );
+      expect(r.cause_title).toContain(`VERSUS\n${RESPONDENTS_BLANK} ... Respondents`);
+      expect(r.cause_title).not.toContain(AUTHORITY_BLANK_SIGNED);
+    });
+  },
+);
