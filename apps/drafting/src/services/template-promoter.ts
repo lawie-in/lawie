@@ -312,22 +312,30 @@ const TITLE_CASE_RES: ReadonlyArray<readonly [RegExp, string]> = TITLE_CASE_NAME
     [new RegExp(`(?<![A-Za-z])${name.replace(/ /g, '\\s+')}(?![A-Za-z])`, 'gi'), name] as const,
 );
 
-const COURT_NAME_RE = /(?<![A-Za-z])court(?![A-Za-z])/i;
+/** An all-capitals label that starts with a listed court name (`HIGH COURT OF ...`). */
+const LEADING_COURT_RE = new RegExp(
+  `^(${TITLE_CASE_NAMES.filter((n) => n.endsWith(' Court'))
+    .map((n) => n.replace(/ /g, '\\s+'))
+    .join('|')})(?![A-Za-z])`,
+  'i',
+);
 const SMALL_WORDS: ReadonlySet<string> = new Set(['of', 'and', 'at', 'for', 'the', 'in']);
 
 /**
  * T-473 R1: the label with every listed state, UT and court name in canonical case.
- * An all-capitals court name (`HIGH COURT OF PATNA`) is title-cased as a whole
- * (`High Court of Patna`), so no half-capitalised name is shown. Pure.
+ * An all-capitals label that starts with a listed court name (`HIGH COURT OF PATNA`)
+ * is title-cased as a whole (`High Court of Patna`), so no half-capitalised name is
+ * shown; known abbreviations (OPTION_ACRONYMS) in it stay upper case. Pure.
  */
 export function applyTitleCaseRule(label: string): string {
   let out = label;
-  if (/[A-Z]/.test(out) && !/[a-z]/.test(out) && COURT_NAME_RE.test(out)) {
-    out = out
-      .toLowerCase()
-      .replace(/[a-z]+/g, (w, at: number) =>
-        at > 0 && SMALL_WORDS.has(w) ? w : w.charAt(0).toUpperCase() + w.slice(1),
-      );
+  if (/[A-Z]/.test(out) && !/[a-z]/.test(out) && LEADING_COURT_RE.test(out)) {
+    out = out.replace(/[A-Z]+/g, (w, at: number) => {
+      const lw = w.toLowerCase();
+      if (OPTION_ACRONYMS.has(lw)) return w;
+      if (at > 0 && SMALL_WORDS.has(lw)) return lw;
+      return w.charAt(0) + lw.slice(1);
+    });
   }
   for (const [re, name] of TITLE_CASE_RES) out = out.replace(re, name);
   return out;

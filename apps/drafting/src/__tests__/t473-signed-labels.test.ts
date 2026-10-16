@@ -313,6 +313,16 @@ describe('T-473 R1: state and court names in title case', () => {
     );
   });
 
+  it('the all-capitals rule applies only to a label that starts with a listed court name', () => {
+    expect(applyTitleCaseRule('NCLT COURT')).toBe('NCLT COURT');
+    expect(applyTitleCaseRule('HIGH COURT OF RERA')).toBe('High Court of RERA');
+    expect(applyTitleCaseRule('SUPREME COURT')).toBe('Supreme Court');
+    for (const city of ['DELHI', 'PATNA', 'JHARKHAND', 'ALLAHABAD']) {
+      const want = `High Court of ${city.charAt(0)}${city.slice(1).toLowerCase()}`;
+      expect(applyTitleCaseRule(`HIGH COURT OF ${city}`)).toBe(want);
+    }
+  });
+
   it('leaves everything else alone', () => {
     for (const t of [
       'Held by the bench',
