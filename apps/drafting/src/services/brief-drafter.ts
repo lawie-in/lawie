@@ -32,7 +32,11 @@ import type { Brief, BriefItem, ChecklistItem } from './intake-brief';
 import { datesAsWritten, datesInText, normalise } from './intake-text';
 import { applyFieldAliases } from './rule-pack.service';
 import type { RulePack, RulePackClause } from './rule-pack.service';
-import { formatIsoDraftDate } from './template-engine.service';
+import {
+  formatIsoDraftDate,
+  GRIEVANCE_SUMMARY_BLANK,
+  STATUTE_INVOKED_BLANK,
+} from './template-engine.service';
 import type { RenderedSection, TemplateConfig } from './template-engine.service';
 import { extractSectionReferences, ValidationWarning } from './validator';
 
@@ -351,6 +355,26 @@ function commonBlocks(input: DrafterPromptInput): string[] {
 
 /** The rule pack's skeleton and the system's parts: everything but the facts. */
 function skeletonBlocks(input: Omit<DrafterPromptInput, 'brief'>): string[] {
+  // T-489 (Ajay 53132fb2): mandamus's {statute_invoked} / {grievance_summary}, one line, else the T-479 blank.
+  const { brief, facts } = input as Partial<DrafterPromptInput & LedgerDrafterPromptInput>;
+  const fill = (key: string, blank: string): string => {
+    const b = brief ? [...brief.parties, ...brief.facts, ...brief.numbers, ...brief.asked_for] : [];
+    const vals = [
+      ...b.filter((e) => e.key === key).flatMap((e) => e.value),
+      ...(facts?.facts ?? []).filter((f) => f.key === key).map((f) => f.display),
+    ];
+    return vals.join(' ').replace(/\s+/g, ' ').trim() || blank;
+  };
+  const instructions =
+    input.pack.id !== 'mandamus'
+      ? input.pack.draftingInstructions
+      : input.pack.draftingInstructions.map((i) =>
+          i
+            .replace(/\{statute_invoked\}/g, () => fill('statute_invoked', STATUTE_INVOKED_BLANK))
+            .replace(/\{grievance_summary\}/g, () =>
+              fill('grievance_summary', GRIEVANCE_SUMMARY_BLANK),
+            ),
+        );
   return [
     block(
       'CLAUSES (id | title | what it must cover | fixed wording, if any)',
@@ -358,9 +382,7 @@ function skeletonBlocks(input: Omit<DrafterPromptInput, 'brief'>): string[] {
     ),
     block(
       'INSTRUCTIONS',
-      [...(input.statedInstructions ?? []), ...input.pack.draftingInstructions].map(
-        (i) => `- ${i}`,
-      ),
+      [...(input.statedInstructions ?? []), ...instructions].map((i) => `- ${i}`),
     ),
     block(
       'ACTS',

@@ -2369,6 +2369,9 @@ function applyCauseTitlePartyBlanks(
       ctx[key] = blank;
     } else if (key === 'respondents_list') {
       ctx[key] = numberRespondents(ctx[key]);
+    } else if (templateId === 'mandamus') {
+      // T-489 (Ajay 53132fb2): a multi-line answer prints on one title line.
+      ctx[key] = String(ctx[key]).replace(/\s+/g, ' ').trim();
     }
   }
   if (templateId === 'certiorari') {

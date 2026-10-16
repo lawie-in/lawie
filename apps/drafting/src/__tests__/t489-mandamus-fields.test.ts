@@ -17,15 +17,27 @@ import { join } from 'path';
 
 import type { LedgerFact } from '@lawie/shared';
 
-import { formDataFromBrief, ledgerSkeletonBrief } from '../services/brief-drafter';
+import {
+  buildDrafterUserPrompt,
+  buildLedgerDrafterUserPrompt,
+  buildLedgerRepairUserPrompt,
+  buildRepairUserPrompt,
+  formDataFromBrief,
+  ledgerSkeletonBrief,
+  type DrafterBrief,
+  type DrafterPromptInput,
+  type LedgerDrafterPromptInput,
+} from '../services/brief-drafter';
 import { buildBrief, buildChecklist, type Brief, type GivenValue } from '../services/intake-brief';
 import { applyFieldAliases, FIELD_ALIASES, loadRulePack } from '../services/rule-pack.service';
 import {
   buildAIUserPrompt,
   buildPlaceholderContext,
   clearConfigCache,
+  GRIEVANCE_SUMMARY_BLANK,
   loadTemplateConfig,
   renderTemplateSection,
+  STATUTE_INVOKED_BLANK,
 } from '../services/template-engine.service';
 
 const STATUTE_BLANK = '[To be confirmed: statute or rule imposing the duty]';
@@ -312,5 +324,285 @@ describe('T-489 AC4: statutory_duty -> statute_invoked', () => {
         }
       }
     });
+  });
+});
+
+// ── Ajay 53132fb2 condition 1: the prompt builders substitute before the model sees the line ─
+
+describe('T-489 condition 1: brief and ledger prompt builders', () => {
+  type Token = 'statute_invoked' | 'grievance_summary';
+  const TOKENS: Array<[Token, string]> = [
+    ['statute_invoked', STATUTE_INVOKED_BLANK],
+    ['grievance_summary', GRIEVANCE_SUMMARY_BLANK],
+  ];
+
+  it('the T-479 constants are the signed blanks', () => {
+    expect(STATUTE_INVOKED_BLANK).toBe(STATUTE_BLANK);
+    expect(GRIEVANCE_SUMMARY_BLANK).toBe(GRIEVANCE_BLANK);
+  });
+
+  const emptyBrief = (
+    section: 'parties' | 'facts' | 'numbers' | 'asked_for',
+    entries: Array<{ key: string; what: string; value: string | string[] }>,
+  ): DrafterBrief => ({
+    document: 'Mandamus',
+    court: null,
+    parties: [],
+    facts: [],
+    dates: [],
+    numbers: [],
+    asked_for: [],
+    other: [],
+    unknown: [],
+    described: null,
+    [section]: entries,
+  });
+  const common = () => ({
+    pack: loadRulePack('mandamus')!,
+    systemParts: [],
+    courtRules: [],
+    target: 10,
+    language: 'en',
+  });
+  const briefInput = (
+    entries: Array<{ key: string; what: string; value: string | string[] }>,
+    section: 'parties' | 'facts' | 'numbers' | 'asked_for' = 'facts',
+  ): DrafterPromptInput => ({ ...common(), brief: emptyBrief(section, entries) });
+  const ledgerInput = (
+    facts: Array<{ key: string; label: string; display: string }>,
+  ): LedgerDrafterPromptInput => ({
+    ...common(),
+    facts: {
+      court: null,
+      facts: facts.map((f) => ({ ...f, type: 'text' })),
+      missing: [],
+    },
+    averments: { allowed: [], banned: [] },
+  });
+
+  const FILLED: Record<Token, string> = {
+    statute_invoked: 'Section 12 of the Sample Act',
+    grievance_summary: 'failure to decide the application',
+  };
+  const MULTI: Record<Token, string> = {
+    statute_invoked: 'Section 12 of the Sample Act\n  Rule 5 of the Sample Rules\r\n',
+    grievance_summary: 'failure to decide\n\nthe application ',
+  };
+  const MULTI_ONE: Record<Token, string> = {
+    statute_invoked: 'Section 12 of the Sample Act Rule 5 of the Sample Rules',
+    grievance_summary: 'failure to decide the application',
+  };
+
+  // [name, build(values) -> prompt]. Values are given as brief entries or ledger facts.
+  const builders: Array<[string, (v: Partial<Record<Token, string>>) => string]> = [
+    ['buildDrafterUserPrompt', (v) => buildDrafterUserPrompt(briefInput(toBrief(v)))],
+    [
+      'buildRepairUserPrompt',
+      (v) => buildRepairUserPrompt(briefInput(toBrief(v)), 'doc text', ['m1']),
+    ],
+    ['buildLedgerDrafterUserPrompt', (v) => buildLedgerDrafterUserPrompt(ledgerInput(toLedger(v)))],
+    [
+      'buildLedgerRepairUserPrompt',
+      (v) => buildLedgerRepairUserPrompt(ledgerInput(toLedger(v)), 'doc text', ['m1']),
+    ],
+  ];
+  function toBrief(v: Partial<Record<Token, string>>) {
+    return Object.entries(v).map(([key, value]) => ({ key, what: key, value: value as string }));
+  }
+  function toLedger(v: Partial<Record<Token, string>>) {
+    return Object.entries(v).map(([key, display]) => ({
+      key,
+      label: key,
+      display: display as string,
+    }));
+  }
+  /** The INSTRUCTIONS block of a prompt, the lines the model reads as instructions. */
+  const instructionsOf = (prompt: string) =>
+    prompt.split('INSTRUCTIONS:\n')[1].split('\n\nACTS:')[0].split('\n');
+
+  describe.each(builders)('%s', (_name, build) => {
+    describe.each(TOKENS)('%s', (token, blank) => {
+      const line = instructionsOf;
+
+      it('filled: the value is on one line and no raw token or braces remain', () => {
+        const prompt = build({ [token]: FILLED[token] });
+        const ins = line(prompt).join('\n');
+        expect(ins).toContain(FILLED[token]);
+        expect(prompt).not.toContain(`{${token}}`);
+        expect(prompt).not.toMatch(/\{statute_invoked\}|\{grievance_summary\}/);
+        expect(ins).not.toMatch(/[{}]/);
+        // the other token was not given, so it prints its own signed blank
+        expect(ins).toContain(token === 'statute_invoked' ? GRIEVANCE_BLANK : STATUTE_BLANK);
+      });
+
+      it('filled with a multi-line answer: collapsed to one line', () => {
+        const ins = instructionsOf(build({ [token]: MULTI[token] }));
+        // every instruction is still a single "- " line: no continuation line leaked out
+        expect(ins.every((l) => l.startsWith('- '))).toBe(true);
+        expect(ins.join('\n')).toContain(MULTI_ONE[token]);
+      });
+
+      it('empty: the exact T-479 blank, no raw braces', () => {
+        const prompt = build({});
+        const ins = instructionsOf(prompt).join('\n');
+        expect(ins).toContain(blank);
+        expect(prompt).not.toMatch(/\{statute_invoked\}|\{grievance_summary\}/);
+        expect(ins).not.toMatch(/[{}]/);
+      });
+
+      it('empty values (only spaces) also give the blank', () => {
+        const ins = instructionsOf(build({ [token]: '   \n  ' })).join('\n');
+        expect(ins).toContain(blank);
+      });
+    });
+
+    it('the instruction text reads as signed with both values in place', () => {
+      const ins = instructionsOf(build({ ...FILLED })).join('\n');
+      expect(ins).toContain(
+        "- Structure: 5. Legal right: State the petitioner's legal right to have the act done, as it arises from Section 12 of the Sample Act.",
+      );
+      expect(ins).toContain(
+        '- Structure: 6. Legal duty: State that the respondent is a public authority under a legal duty to do the act, and the source of that duty in Section 12 of the Sample Act.',
+      );
+    });
+  });
+
+  it('brief path: the value is read from parties, facts, numbers and asked_for alike', () => {
+    for (const section of ['parties', 'facts', 'numbers', 'asked_for'] as const) {
+      const prompt = buildDrafterUserPrompt(
+        briefInput(toBrief({ statute_invoked: FILLED.statute_invoked }), section),
+      );
+      expect({
+        section,
+        ok: instructionsOf(prompt).join('\n').includes(FILLED.statute_invoked),
+      }).toEqual({ section, ok: true });
+    }
+  });
+
+  it('brief path: a list value is joined on one line', () => {
+    const prompt = buildDrafterUserPrompt(
+      briefInput([{ key: 'statute_invoked', what: 'x', value: ['Section 12', 'Rule 5'] }]),
+    );
+    expect(instructionsOf(prompt).join('\n')).toContain('arises from Section 12 Rule 5.');
+  });
+
+  describe('another pack is not touched', () => {
+    const base = loadRulePack('lease_deed')!;
+    const pack = {
+      ...base,
+      draftingInstructions: [
+        'Identification: I, {deponent_name}, aged {age}.',
+        'Cites {statute_invoked} and {grievance_summary} untouched.',
+      ],
+    };
+    const bInput = { ...briefInput([]), pack };
+    const lInput = { ...ledgerInput([]), pack };
+
+    it.each([
+      ['buildDrafterUserPrompt', () => buildDrafterUserPrompt(bInput)],
+      ['buildRepairUserPrompt', () => buildRepairUserPrompt(bInput, 'd', ['m'])],
+      ['buildLedgerDrafterUserPrompt', () => buildLedgerDrafterUserPrompt(lInput)],
+      ['buildLedgerRepairUserPrompt', () => buildLedgerRepairUserPrompt(lInput, 'd', ['m'])],
+    ])('%s: a raw {token} in a non-mandamus instruction is sent unchanged', (_n, run) => {
+      const ins = instructionsOf(run()).join('\n');
+      expect(ins).toContain('- Identification: I, {deponent_name}, aged {age}.');
+      expect(ins).toContain('- Cites {statute_invoked} and {grievance_summary} untouched.');
+      expect(ins).not.toContain(STATUTE_BLANK);
+      expect(ins).not.toContain(GRIEVANCE_BLANK);
+    });
+
+    it('the real lease_deed pack prompt is identical to its own instructions, byte for byte', () => {
+      const ins = instructionsOf(buildDrafterUserPrompt({ ...briefInput([]), pack: base }));
+      expect(ins.join('\n')).toBe(base.draftingInstructions.map((i) => `- ${i}`).join('\n'));
+    });
+  });
+});
+
+// ── Ajay 53132fb2 condition 1: the form path ────────────────────────────────────────────────
+
+describe('T-489 condition 1: form path (buildAIUserPrompt)', () => {
+  const body = (form: Record<string, unknown>) => {
+    clearConfigCache();
+    const config = loadTemplateConfig('mandamus')!;
+    const ctx = buildPlaceholderContext(config, form, { advocateName: 'Adv. A' });
+    const s = config.document_structure.sections.find((x) => x.type === 'ai_generated')!;
+    return buildAIUserPrompt(s, ctx);
+  };
+
+  it('filled: both values on one line each, no raw token', () => {
+    const p = body({
+      ...BASE,
+      statute_invoked: 'Section 12 of the Sample Act',
+      grievance_summary: 'failure to decide the application',
+    });
+    expect(p).toContain('as it arises from Section 12 of the Sample Act.');
+    expect(p).toContain('named in failure to decide the application within a time');
+    expect(p).not.toMatch(/\{statute_invoked\}|\{grievance_summary\}/);
+  });
+
+  it.each([
+    ['absent', {}],
+    ['empty string', { statute_invoked: '', grievance_summary: '' }],
+  ])('empty (%s): the exact T-479 blanks, no raw braces', (_n, extra) => {
+    const p = body({ ...BASE, ...extra });
+    expect(p).toContain(`as it arises from ${STATUTE_INVOKED_BLANK}.`);
+    expect(p).toContain(`named in ${GRIEVANCE_SUMMARY_BLANK} within a time`);
+    expect(p).not.toMatch(/\{statute_invoked\}|\{grievance_summary\}/);
+  });
+});
+
+// ── Ajay 53132fb2 condition 2: the cause title is one line per matter ───────────────────────
+
+describe('T-489 condition 2: multi-line answers in the cause title', () => {
+  it('an old multi-line statutory_duty answer (via the alias) prints on one line', () => {
+    const form = applyFieldAliases(
+      { ...BASE, statutory_duty: 'Section 12 of X Act\nRule 5' },
+      'mandamus',
+    );
+    const t = causeTitle(form);
+    expect(t).toContain('AND IN THE MATTER OF: Section 12 of X Act Rule 5;');
+    expect(t).not.toMatch(/Section 12 of X Act\s*\n\s*Rule 5/);
+  });
+
+  it('a multi-line grievance prints on one line, with blank lines and edges trimmed', () => {
+    const t = causeTitle({ ...BASE, grievance_summary: '  line one\r\n\n  line two \n' });
+    expect(t).toContain('AND IN THE MATTER OF: line one line two;');
+  });
+
+  it('the brief and ledger paths collapse the same way', () => {
+    const v = { ...BASE, statute_invoked: 'A\nB', grievance_summary: 'C\nD' };
+    for (const render of [viaBrief, viaLedger]) {
+      const t = render(v);
+      expect(t).toContain('AND IN THE MATTER OF: A B;');
+      expect(t).toContain('AND IN THE MATTER OF: C D;');
+    }
+  });
+
+  it('single-line answers are unchanged', () => {
+    const t = causeTitle({
+      ...BASE,
+      statute_invoked: 'Section 12 of the Sample Act',
+      grievance_summary: 'failure to decide the application',
+    });
+    expect(t).toContain('AND IN THE MATTER OF: Section 12 of the Sample Act;');
+    expect(t).toContain('AND IN THE MATTER OF: failure to decide the application;');
+  });
+
+  it('another pack is not collapsed: habeas_corpus respondents_list keeps its numbered lines', () => {
+    clearConfigCache();
+    const config = loadTemplateConfig('habeas_corpus')!;
+    const ctx = buildPlaceholderContext(
+      config,
+      {
+        petitioner: 'Sample Petitioner',
+        detenu_name: 'Sample Detenu',
+        respondents_list: 'The Collector\nThe Superintendent of Police',
+      },
+      { advocateName: 'Adv. A' },
+    );
+    const s = config.document_structure.sections.find((x) => x.section_id === 'cause_title')!;
+    const out = renderTemplateSection(s, ctx).content;
+    expect(out).toContain('1. The Collector\n2. The Superintendent of Police');
+    expect(out).not.toContain('The Collector The Superintendent');
   });
 });
