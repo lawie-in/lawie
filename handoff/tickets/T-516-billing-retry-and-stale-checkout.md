@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release                  |
 | Owner  | Arjun (design), a billing lead (build)  |
 | Mode   | Full chain (billing service, billing)   |
-| Status | In build: Shashank (17 Oct 2026). Priya |
+| Status | Merged into develop_staging 928cd933 (17 Oct 2026); sandbox check pending (founder or Vikram, Razorpay test mode). Follow-ups: T-518. Priya |
 | Source | T-509 known gaps                        |
 
 ## Problem
