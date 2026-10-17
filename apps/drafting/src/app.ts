@@ -11,6 +11,7 @@ import adminUsersRoutes from './routes/admin-users.routes';
 import appSettingsRoutes from './routes/app-settings.routes';
 import courtsRoutes from './routes/courts.routes';
 import creditsRoutes from './routes/credits.routes';
+import dashboardRoutes from './routes/dashboard.routes';
 import documentsRoutes from './routes/documents.routes';
 import intakeRoutes from './routes/intake.routes';
 import internalRoutes from './routes/internal.routes';
@@ -63,6 +64,7 @@ app.use('/users', usersRoutes);
 app.use('/', internalRoutes);
 app.use('/', appSettingsRoutes);
 app.use('/', creditsRoutes);
+app.use('/', dashboardRoutes); // T-506 — GET /dashboard/summary
 app.use('/', adminOverviewRoutes);
 app.use('/', adminUsersRoutes);
 app.use('/', adminDocumentsRoutes);
