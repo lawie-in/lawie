@@ -8,6 +8,14 @@ import SettingsPage from '../page';
 (globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 let mockPlan = 'free';
+// T-509: GET /api/billing/status (T-508) decides the current plan, not the JWT plan.
+let mockStatus: Record<string, unknown> = {
+  tier: 'free',
+  state: 'lapsed',
+  status: null,
+  renewsAt: null,
+  cancelAtCycleEnd: false,
+};
 jest.mock('@/context/AuthContext', () => ({
   useAuth: () => ({
     user: { id: 'u1', name: 'A', email: 'a@example.com', plan: mockPlan },
@@ -50,19 +58,32 @@ async function mount() {
   });
 }
 
-const upgradeButton = () =>
-  Array.from(container.querySelectorAll('button')).find((b) =>
-    /Upgrade|Loading plan/.test(b.textContent ?? ''),
-  ) as HTMLButtonElement | undefined;
+const buttonByText = (t: string) =>
+  Array.from(container.querySelectorAll('button')).find((b) => b.textContent?.trim() === t) as
+    | HTMLButtonElement
+    | undefined;
+const upgradeButton = () => buttonByText('Choose Pro');
 
 beforeEach(() => {
   jest.clearAllMocks();
   mockPlan = 'free';
+  mockStatus = {
+    tier: 'free',
+    state: 'lapsed',
+    status: null,
+    renewsAt: null,
+    cancelAtCycleEnd: false,
+  };
   // T-436: the user already has a State saved (GET /api/auth/me), so Subscribe is not blocked.
   mockApiFetch.mockImplementation(async (path: string) => ({
     ok: true,
     status: 200,
-    json: async () => (path === '/api/auth/me' ? { data: { gstStateCode: '07' } } : CATALOGUE),
+    json: async () => {
+      if (path === '/api/auth/me') return { data: { gstStateCode: '07' } };
+      if (path === '/api/billing/status') return { data: mockStatus };
+      if (path === '/api/credits/balance') return { totalInk: 5, planTier: 'free' };
+      return CATALOGUE;
+    },
   }));
   mockPrivacyFetch.mockResolvedValue({
     ok: true,
@@ -85,11 +106,15 @@ describe('T-370 settings page upgrade', () => {
     expect(mockApiFetch).toHaveBeenCalledWith('/api/billing/plans');
   });
 
-  it('labels the button from the catalogue Pro plan: ₹1,999 and 150 Ink, no ₹799 or Unlimited', async () => {
+  it('shows Choose Solo and Choose Pro with both catalogue prices and Ink, no Unlimited', async () => {
     await mount();
-    expect(upgradeButton()?.textContent).toBe('Upgrade to Pro — ₹1,999/month');
-    expect(container.textContent).toContain('150 Ink/month');
-    expect(container.textContent).not.toContain('799');
+    expect(buttonByText('Choose Solo')).toBeDefined();
+    expect(upgradeButton()).toBeDefined();
+    expect(container.textContent).toContain('₹799 a month');
+    expect(container.textContent).toContain('₹1,999 a month');
+    expect(container.textContent).toContain('50 Ink a month');
+    expect(container.textContent).toContain('150 Ink a month');
+    expect(container.textContent).not.toContain('Upgrade to Pro — ₹1,999/month');
     expect(container.textContent).not.toMatch(/unlimited/i);
   });
 
@@ -104,17 +129,21 @@ describe('T-370 settings page upgrade', () => {
     expect(JSON.parse(init.body)).toEqual({ planId: 'pro_monthly' });
   });
 
-  it('shows no upgrade block, and no "Unlimited", for a Pro user', async () => {
+  it('a Pro user (status pro, active) gets no Choose buttons and a Current plan label', async () => {
     mockPlan = 'pro';
+    mockStatus = {
+      tier: 'pro',
+      state: 'active',
+      status: 'active',
+      renewsAt: '2026-11-14T00:00:00.000Z',
+      cancelAtCycleEnd: false,
+    };
     await mount();
-    // T-436: the Invoices card fetches /api/billing/invoices for every user, Pro included. The
-    // plan catalogue is still not fetched for Pro, and nothing else is, except /me for the
-    // State picker in the Plan card.
-    const paths = mockApiFetch.mock.calls.map((c) => c[0]);
-    expect(paths).not.toContain('/api/billing/plans');
-    expect(paths.filter((p) => p !== '/api/billing/invoices' && p !== '/api/auth/me')).toEqual([]);
-    expect(upgradeButton()).toBeUndefined();
-    expect(container.textContent).toContain('Pro plan');
+    expect(buttonByText('Choose Pro')).toBeUndefined();
+    expect(buttonByText('Choose Solo')).toBeUndefined();
+    expect(container.textContent).toContain('Current plan');
+    expect(container.textContent).toContain('Renews on 14 Nov 2026');
     expect(container.textContent).not.toMatch(/unlimited/i);
+    expect(container.textContent).not.toContain('Manage on Razorpay');
   });
 });

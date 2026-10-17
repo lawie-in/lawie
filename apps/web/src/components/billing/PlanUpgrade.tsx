@@ -4,6 +4,7 @@ import { Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { GstStatePicker } from '@/components/billing/GstStatePicker';
+import { PLAN_COPY } from '@/components/billing/planCopy';
 import {
   PrivacyBlockedNotice,
   isPrivacyBlocked,
@@ -21,6 +22,8 @@ import { fetchPlans, type PlanCycle, type PlanTier, type SubscriptionPlan } from
 /**
  * T-370: the settings "Upgrade" block. The label (name, price, Ink) comes from billing's
  * GET /plans and the subscribe call sends that plan's id, so the plan shown is the plan bought.
+ * T-509: Settings now uses PlanPanel (Free, Solo, Pro, status and Cancel); this single-plan
+ * block is no longer mounted there.
  */
 export type PlanUpgradeProps = ({ planId?: string } | { tier: PlanTier; cycle: PlanCycle }) & {
   /**
@@ -47,9 +50,8 @@ function planPrice(plan: SubscriptionPlan): string {
   return `₹${plan.priceInr.toLocaleString('en-IN')}/${per}`;
 }
 
-function planInk(plan: SubscriptionPlan): string {
-  return `${plan.inkPerCycle} Ink/month`;
-}
+/** T-509: copy §5 generic failure. Server text never reaches the user. */
+const SUBSCRIBE_FAILED = PLAN_COPY.genericFailure;
 
 /** T-436: the block with its own State picker (no `gst` from the parent). */
 function PlanUpgradeWithPicker(props: PlanUpgradeProps) {
@@ -112,19 +114,19 @@ function PlanUpgradeBlock(
       });
       if (isPrivacyBlocked(res)) return; // T-343: prompt or P7 box shown; finally resets
       if (await isEmailVerificationRequired(res)) return; // T-223: the card shows instead
-      const data = await res.json();
       if (!res.ok) {
-        setSubscribeError(data.error ?? 'Failed to start subscription. Please try again.');
+        setSubscribeError(SUBSCRIBE_FAILED);
         return;
       }
-      const shortUrl = data.data?.shortUrl;
-      if (shortUrl) {
+      const data = (await res.json().catch(() => null)) as { data?: { shortUrl?: unknown } } | null;
+      const shortUrl = data?.data?.shortUrl;
+      if (typeof shortUrl === 'string' && shortUrl) {
         window.location.href = shortUrl;
       } else {
-        setSubscribeError('No payment link returned. Please contact support.');
+        setSubscribeError(SUBSCRIBE_FAILED);
       }
     } catch {
-      setSubscribeError('Network error. Please try again.');
+      setSubscribeError(SUBSCRIBE_FAILED);
     } finally {
       setSubscribing(false);
     }
@@ -141,7 +143,11 @@ function PlanUpgradeBlock(
 
   return (
     <>
-      {subscribeError && <p className="mt-3 text-xs text-red-600">{subscribeError}</p>}
+      {subscribeError && (
+        <p role="alert" className="mt-3 text-xs text-red-600">
+          {subscribeError}
+        </p>
+      )}
       <div className="mt-3">
         <PrivacyBlockedNotice actionKey="subscribe" />
       </div>
@@ -160,14 +166,6 @@ function PlanUpgradeBlock(
           {(!plan || subscribing) && <Loader2 size={12} className="animate-spin" />}
           {plan ? `Upgrade to ${planName(plan)} — ${planPrice(plan)}` : 'Loading plan…'}
         </button>
-      )}
-      {plan && (
-        <ul className="mt-4 space-y-1.5 text-xs text-slate-500">
-          <li>✓ {planInk(plan)}</li>
-          <li>✓ All document types (bail, notice, agreements, complaints)</li>
-          <li>✓ BNS / IPC section auto-fill</li>
-          <li>✓ Priority support</li>
-        </ul>
       )}
     </>
   );
