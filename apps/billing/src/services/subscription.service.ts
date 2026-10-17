@@ -397,19 +397,156 @@ async function createSubscriptionLocked(
   };
 }
 
-export async function getSubscriptionStatus(userId: string): Promise<{
+/** T-508: the status card's view of a subscription. */
+export type SubscriptionState = 'active' | 'past_due' | 'lapsed';
+
+export interface SubscriptionStatusPayload {
   plan: string;
   status: string | null;
   currentPeriodEnd: Date | null;
-}> {
-  const user = await User.findById(userId).select('plan');
-  const sub = await Subscription.findOne({ userId }).sort({ createdAt: -1 });
+  tier: 'free' | 'solo' | 'pro';
+  renewsAt: Date | null;
+  state: SubscriptionState;
+  cancelAtCycleEnd: boolean;
+}
 
+/**
+ * T-508: pure mapping of a sub to the status card's state, with `now` passed in.
+ * The paid-through date is paidThrough, else currentPeriodEnd, else over;
+ * for pending it is paidThrough only (as in stillPaidFilter).
+ * - active: status active, or cancelled/completed still inside the paid period.
+ * - past_due: pending/halted/paused still inside the paid period.
+ * - lapsed: anything else (expired, past the paid period, an unfinished
+ *   created/authenticated checkout, or no sub).
+ */
+export function subscriptionState(
+  sub: {
+    status?: string | null;
+    paidThrough?: Date | null;
+    currentPeriodEnd?: Date | null;
+  } | null,
+  now: Date,
+): SubscriptionState {
+  if (!sub?.status) return 'lapsed';
+  if (sub.status === 'active') return 'active';
+  // Same rule as stillPaidFilter: pending counts on paidThrough only; the
+  // other statuses fall back to currentPeriodEnd when paidThrough is absent.
+  const end =
+    sub.status === 'pending'
+      ? (sub.paidThrough ?? null)
+      : (sub.paidThrough ?? sub.currentPeriodEnd ?? null);
+  const stillPaid = end !== null && end.getTime() >= now.getTime();
+  if (!stillPaid) return 'lapsed';
+  if (sub.status === 'cancelled' || sub.status === 'completed') return 'active';
+  if (sub.status === 'pending' || sub.status === 'halted' || sub.status === 'paused') {
+    return 'past_due';
+  }
+  return 'lapsed';
+}
+
+export async function getSubscriptionStatus(userId: string): Promise<SubscriptionStatusPayload> {
+  const user = await User.findById(userId).select('plan');
+  // T-508: the newest sub that is live or still paid, so a newer unfinished
+  // checkout (or a newer expired row) never hides the sub the user is paying
+  // on. With none, the newest sub of any status, as before.
+  const now = new Date();
+  const sub =
+    (await Subscription.findOne({
+      userId,
+      $or: [{ status: { $in: LIVE_STATUSES } }, ...stillPaidFilter(now)],
+    }).sort({ createdAt: -1 })) ?? (await Subscription.findOne({ userId }).sort({ createdAt: -1 }));
+
+  const plan = sub?.planId ? findSubscriptionPlan(sub.planId) : undefined;
   return {
     plan: user?.plan ?? 'free',
     status: sub?.status ?? null,
     currentPeriodEnd: sub?.currentPeriodEnd ?? null,
+    tier: plan?.tier ?? 'free',
+    renewsAt: sub?.paidThrough ?? sub?.currentPeriodEnd ?? null,
+    state: subscriptionState(sub, now),
+    cancelAtCycleEnd: sub?.cancelAtCycleEnd === true,
   };
+}
+
+/**
+ * T-508: the user has no live subscription to cancel. The route answers 409
+ * `no_live_subscription`.
+ */
+export class NoLiveSubscriptionError extends Error {
+  constructor() {
+    super('no_live_subscription');
+    this.name = 'NoLiveSubscriptionError';
+  }
+}
+
+/**
+ * T-508: cancel the user's newest live sub at the end of the current cycle.
+ * T-399 rule: always cancel_at_cycle_end (true), never an immediate cancel.
+ * Ink, the plan and the yearly drip are not touched: they run to paidThrough
+ * and the subscription.cancelled / expired webhooks do the rest. The local
+ * status is unchanged; only cancelAtCycleEnd is recorded.
+ *
+ * Idempotent: a sub already marked cancelAtCycleEnd returns the same payload
+ * without calling Razorpay. If the Razorpay cancel throws, the sub is fetched;
+ * a Razorpay status of cancelled/completed/expired counts as success (same
+ * pattern as cancelLapsedAtRazorpay); anything else throws
+ * SubscriptionCancelFailedError and nothing is written.
+ */
+export async function cancelSubscriptionAtCycleEnd(
+  userId: string,
+): Promise<SubscriptionStatusPayload> {
+  const live = await Subscription.findOne({
+    userId,
+    status: { $in: LIVE_STATUSES },
+  }).sort({ createdAt: -1 });
+  if (!live) throw new NoLiveSubscriptionError();
+
+  if (live.cancelAtCycleEnd === true) {
+    return getSubscriptionStatus(userId);
+  }
+
+  const razorpaySubscriptionId = live.razorpaySubscriptionId;
+  try {
+    await withRazorpayTimeout(
+      'cancel',
+      razorpay.subscriptions.cancel(razorpaySubscriptionId, true),
+    );
+  } catch (cancelErr) {
+    let rzpStatus: unknown;
+    try {
+      const rzpSub = (await withRazorpayTimeout(
+        'fetch',
+        razorpay.subscriptions.fetch(razorpaySubscriptionId),
+      )) as unknown as Record<string, unknown>;
+      rzpStatus = rzpSub.status;
+    } catch {
+      rzpStatus = undefined;
+    }
+    if (!(typeof rzpStatus === 'string' && RAZORPAY_ENDED_STATUSES.includes(rzpStatus))) {
+      logger.error(
+        {
+          userId,
+          subscriptionId: razorpaySubscriptionId,
+          rzpStatus: typeof rzpStatus === 'string' ? rzpStatus : null,
+          errName: cancelErr instanceof Error ? cancelErr.name : typeof cancelErr,
+        },
+        'billing.cancel.razorpay_failed',
+      );
+      throw new SubscriptionCancelFailedError();
+    }
+  }
+
+  await Subscription.updateOne({ _id: live._id }, { $set: { cancelAtCycleEnd: true } });
+  // Arjun: exactly one ops line on a real cancel; ids and paidThrough only.
+  logger.info(
+    {
+      userId,
+      subscriptionId: razorpaySubscriptionId,
+      paidThrough: live.paidThrough ?? live.currentPeriodEnd ?? null,
+    },
+    'billing.cancel.scheduled',
+  );
+  return getSubscriptionStatus(userId);
 }
 
 const HEX_RE = /^[0-9a-fA-F]+$/;
