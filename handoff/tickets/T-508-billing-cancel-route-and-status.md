@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Arjun, Vikram (design or review), a lead (build) |
 | Mode   | Full chain |
-| Status | To do. V1 (Priya, 17 Oct 2026). Unassigned until Priya claims a lead |
+| Status | Merged into develop_staging e885d8f7, CI green (run 819), 17 Oct. Follow-ups in T-513. Priya |
 | Files  | apps/billing (routes, subscription.service.ts, test) |
 | Source | V1 UI checklist, Arjun's code scan (17 Oct 2026) |
 
