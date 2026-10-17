@@ -16,13 +16,15 @@ Conventions: `{braces}` are variables filled by code. `[HI]` means a Hindi (Deva
 | # | For | Decision |
 | --- | --- | --- |
 | 1 | Ajay, Meera | Spec says the main button is "Start a free draft". T-398 says "free" appears only with "5 Ink". I used "Start with 5 free Ink" everywhere. Confirm, or approve "Start a free draft". |
-| 2 | Ajay | T-398 says "Pro appears on the pricing page only". The brief asks for Pro in the landing prices block and the plan chooser. I included Pro in both. Approve, or I remove it from the landing page. [CHECK] |
-| 3 | Ajay | Spec footer says "Case diary and reminders: coming". That names features. I used one line: "More for your practice is coming." |
+| 2 | Done | Pro removed from the landing prices block (1.6); "See all plans" link added. Pro stays in the in-app plan chooser (4.1), which T-398 does not cover. [CHECK] |
+| 3 | Done | No "coming" line anywhere (Meera, v1 review). Footer has the disclaimer and links only. |
 | 4 | Ajay | Privacy and vendor lines (sections 1.6, 1.7, 6) say what is sent to whom. Vendor names and countries in the examples are my assumption (Anthropic, USA; Razorpay, India). Ajay owns the vendor list. [CHECK] |
 | 5 | Ajay | "Your drafts are safe" (500 page) and "Your documents are still here" (AI down) are safety statements. Alternatives are given. [CHECK] |
 | 6 | Priya | Switching plans: spec says cancel at cycle end, then buy. My text tells the user that plainly (section 4.4). Confirm this is the real flow. |
 | 7 | Priya | Default court field: I say it fills the court name in new drafts. Confirm that is what the product does. |
 | 8 | Priya | I removed the old FAQ line "Most documents use 2 Ink, short documents 1" (brief says no draft counts). The cost is shown before generating. Confirm the app shows it. |
+| 10 | Ajay | Sign-up "account exists" message replaced by a neutral line (2.4). [AJAY TO RULE] |
+| 11 | Ajay | "Keep Ink cost before generate" and "failed generation is not charged" claims are tagged [AJAY TO SIGN, T-388 AC4] wherever they appear. |
 | 9 | Ajay | Hindi wording for the disclaimer and trust block needs a legal read, not only a language read. |
 
 ---
@@ -70,7 +72,10 @@ Primary button (pick one):
 - 3 EN: `Start drafting` (14 chars)
 - 3 HI: `ड्राफ़्ट बनाना शुरू कीजिए` (25 chars)
 
-Small line under the button:
+Small lines under the button (sign-up asks for no card: the sign-up offer modal in apps/web says "No card needed to sign up" and the home page says "No card required"):
+
+- EN: `No card needed.`
+- HI: `कार्ड की ज़रूरत नहीं।`
 
 - EN: `Verify your email to receive your 5 Ink.` (40 chars)
 - HI: `5 Ink पाने के लिए अपना ईमेल सत्यापित कीजिए।` (43 chars)
@@ -97,7 +102,7 @@ Section title: `How it works` / HI `यह कैसे काम करता �
 | --- | --- | --- |
 | 1 EN | `Describe` | `Tell Lawie about the matter in your own words. If something is missing, it asks a few short questions.` |
 | 1 HI | `बताइए` | `अपने शब्दों में मामला बताइए। कुछ कम हो तो Lawie कुछ छोटे सवाल पूछता है।` |
-| 2 EN | `Draft` | `Lawie writes a first draft of the document you chose. You see the Ink cost before it starts.` |
+| 2 EN | `Draft` | `Lawie writes a first draft of the document you chose. You see the Ink cost before it starts.` [AJAY TO SIGN, T-388 AC4] |
 | 2 HI | `ड्राफ़्ट` | `आपके चुने हुए दस्तावेज़ का पहला ड्राफ़्ट Lawie लिखता है। शुरू होने से पहले आपको Ink की लागत दिख जाती है।` |
 | 3 EN | `Review` | `Read every paragraph and edit what you need. A checks panel lists items for you to review. Finalise when you are satisfied.` |
 | 3 HI | `जाँचिए` | `हर अनुच्छेद पढ़िए और जो बदलना हो बदलिए। जाँच पैनल उन बातों की सूची देता है जिन्हें आपको देखना है। संतुष्ट हों तभी अंतिम कीजिए।` |
@@ -108,20 +113,20 @@ CTA after the steps: same button as 1.3 (repeat).
 
 - Section title EN: `Documents you can draft`
 - Section title HI: `जो दस्तावेज़ आप बना सकते हैं`
-- Line EN: `Bail applications, legal notices, writ petitions, maintenance petitions, plaints, written statements, affidavits, replies and more.` (131 chars)
-- Line HI: `जमानत आवेदन, कानूनी नोटिस, रिट याचिका, भरण-पोषण याचिका, वाद-पत्र, लिखित कथन, शपथ-पत्र, जवाब और भी बहुत कुछ।` (107 chars)
-- Shelf labels (spines): Bail application, Legal notice, Written statement, Plaint, Affidavit, Reply
-- Shelf labels HI: जमानत आवेदन, कानूनी नोटिस, लिखित कथन, वाद-पत्र, शपथ-पत्र, जवाब
+- Line EN: `Bail applications, legal notices, writ petitions, maintenance petitions, plaints, written statements, affidavits and more.` (131 chars)
+- Line HI: `जमानत आवेदन, कानूनी नोटिस, रिट याचिका, भरण-पोषण याचिका, वाद-पत्र, लिखित कथन, शपथ-पत्र और भी बहुत कुछ।` (107 chars)
+- Shelf labels (spines): Bail application, Legal notice, Written statement, Plaint, Affidavit
+- Shelf labels HI: जमानत आवेदन, कानूनी नोटिस, लिखित कथन, वाद-पत्र, शपथ-पत्र
 
-[CHECK] Every document named must be live in the product. Priya to confirm the list, especially writ petition and maintenance petition (the spine list in the spec does not include them).
+Checked against apps/drafting/src/config/document-rules: rule files exist for bail, legal notice, writ petition, maintenance (BNSS 144), plaint, written statement and affidavit, so those stay. "Reply" has no template (only a non-template price), so it is dropped. [CHECK] I read the rule files, not the live picker. Priya to confirm all are enabled in the picker.
 
 ### 1.6 Ink and prices
 
 Section title EN: `Ink and prices` / HI: `Ink और कीमतें`
 
-Intro EN: `Ink is what a draft costs. You see the cost before you generate. A failed generation is not charged.` (100 chars)
+Intro EN: `Ink is what a draft costs. You see the cost before you generate. A failed generation is not charged.` [AJAY TO SIGN, T-388 AC4] (100 chars)
 
-Intro HI: `Ink वह इकाई है जिसमें ड्राफ़्ट की लागत गिनी जाती है। ड्राफ़्ट बनाने से पहले लागत दिखती है। जो ड्राफ़्ट पूरा नहीं बनता, उसका Ink नहीं कटता।` (138 chars)
+Intro HI: `Ink वह इकाई है जिसमें ड्राफ़्ट की लागत गिनी जाती है। ड्राफ़्ट बनाने से पहले लागत दिखती है। जो ड्राफ़्ट पूरा नहीं बनता, उसका Ink नहीं कटता।` [AJAY TO SIGN, T-388 AC4] (138 chars)
 
 Plan cards:
 
@@ -139,12 +144,7 @@ Plan cards:
 - Includes: `50 Ink a month`; `Everything in Free`; `Ink refills every month`
 - Button: `Sign up to choose Solo`
 
-**Pro** [CHECK: see decision 2]
-
-- Price line: `₹1,999 a month`
-- Ink line: `150 Ink a month`
-- Includes (Ajay's four bullets, T-398): `150 Ink a month`; `Everything in Solo`; `Ink refills every month`; `Top-up packs available anytime`
-- Button: `Sign up to choose Pro`
+Link under the cards: `See all plans` / HI `सभी प्लान देखिए` (goes to /pricing). Pro is not shown on the landing page.
 
 Notes under the cards:
 
@@ -159,7 +159,6 @@ Top-up line:
 Hindi plan strings (for the Hindi toggle):
 
 - `₹799 प्रति माह` / `50 Ink प्रति माह`
-- `₹1,999 प्रति माह` / `150 Ink प्रति माह`
 - Free ink line: `साइन-अप पर 5 Ink, ईमेल सत्यापित होने के बाद (जीवनभर के लिए)`
 
 No yearly text anywhere. No toggle. No "save 2 months".
@@ -200,7 +199,7 @@ Paragraph 3, privacy:
 
 **Q1 EN: `What is Ink?`**
 
-A: `Ink is Lawie's credit unit. You see the Ink cost before you generate a draft, and you are charged only after the draft is generated. A failed generation is not charged. The Free plan gives you 5 Ink on sign-up, once your email is verified (lifetime). Solo and Pro give you fresh Ink every month. Plan Ink left unused at the end of the month does not carry over. Top-up packs can be bought anytime, and top-up Ink never expires.`
+A: `Ink is Lawie's credit unit. You see the Ink cost before you generate a draft [AJAY TO SIGN, T-388 AC4], and you are charged only after the draft is generated. A failed generation is not charged [AJAY TO SIGN, T-388 AC4]. The Free plan gives you 5 Ink on sign-up, once your email is verified (lifetime). Paid plans give you fresh Ink every month. Plan Ink left unused at the end of the month does not carry over. Top-up packs can be bought anytime, and top-up Ink never expires.`
 
 [CHECK] Based on the signed pricing FAQ; I removed "Most documents use 2 Ink; short documents, such as most notices and affidavits, use 1" (decision 8).
 
@@ -210,11 +209,11 @@ A: `You are. Lawie is a drafting assistant. The advocate is responsible for lega
 
 **Q3 EN: `What if a draft fails to generate?`**
 
-A: `A failed generation is not charged. You will see a message and can try again. Your description stays where you typed it.` [CHECK: confirm "description stays" is true in the build]
+A: `A failed generation is not charged [AJAY TO SIGN, T-388 AC4]. You will see a message and can try again. Your description stays where you typed it.` [CHECK: confirm "description stays" is true in the build]
 
 **Q4 EN: `Which documents can I draft?`**
 
-A: `Bail applications, legal notices, writ petitions, maintenance petitions, plaints, written statements, affidavits and replies, with more added over time. You choose the document, or describe your matter and Lawie suggests one.` [CHECK: "more added over time" is a feature promise. Priya to confirm, or delete that clause. "Suggests one" depends on the describe-first flow, screen 04.]
+A: `Bail applications, legal notices, writ petitions, maintenance petitions, plaints, written statements, affidavits.`
 
 **Q5 EN: `What happens to what I type?`**
 
@@ -244,8 +243,6 @@ FAQ Hindi: not requested. English only in v1. If the Hindi toggle swaps "every s
 - Disclaimer HI: `Lawie एक ड्राफ़्टिंग सहायक है। कानूनी सटीकता और फ़ाइलिंग की ज़िम्मेदारी अधिवक्ता की है।` (87 chars)
 - Links: Privacy, Terms, Refunds, Grievance Officer
 - Links HI: गोपनीयता, शर्तें, रिफ़ंड, शिकायत अधिकारी
-- Coming line EN: `More for your practice is coming.`
-- Coming line HI: `आपकी प्रैक्टिस के लिए और भी आ रहा है।`
 
 ---
 
@@ -294,7 +291,7 @@ FAQ Hindi: not requested. English only in v1. If the Hindi toggle swaps "every s
 | Email not verified | `Verify your email to sign in. We can send the link again.` + button `Resend email` |
 | Network | `Could not reach Lawie. Check your connection and try again.` + button `Retry` |
 | Server error banner | `Could not sign you in. Try again.` + `Retry` |
-| Email already used | `An account with this email already exists. Sign in instead.` [CHECK: this confirms an email is registered. Ajay to decide if acceptable.] |
+| Email already used (sign-up) | `Check your email to continue, or sign in if you already have an account.` Same message whether or not an account exists. [AJAY TO RULE] |
 | Weak password | `Use at least 8 characters.` [CHECK: real rule] |
 | Email format | `Enter a valid email address.` |
 | Consent not ticked | `Please accept the Privacy Policy and Terms to continue.` |
@@ -324,7 +321,7 @@ FAQ Hindi: not requested. English only in v1. If the Hindi toggle swaps "every s
 
 | Case | Copy |
 | --- | --- |
-| Low | `{n} Ink left. You see the cost before every draft.` Buttons: `Top up` (primary), `See plans` (ghost) |
+| Low | `{n} Ink left. You see the cost before every draft.` [AJAY TO SIGN, T-388 AC4] Buttons: `Top up` (primary), `See plans` (ghost) |
 | Zero, on a plan | `You have no Ink left. It refills on {date}, or you can top up now.` |
 | Zero, Free | `You have used your 5 Ink. Top up or choose a plan to keep drafting.` |
 | Dismiss | `Not now` |
@@ -449,7 +446,7 @@ Hindi cancel dialog (key moment):
 | Still working (after 8 s) | | `Still working…` | |
 | Top-up plans failed | | `Could not load top-up plans.` | `Retry` |
 | Generic failure | | `Something did not work. Try again.` | `Retry` |
-| Draft did not finish | | `The draft did not finish. You were not charged.` | `Try again` |
+| Draft did not finish | | `The draft did not finish. You were not charged.` [AJAY TO SIGN, T-388 AC4] | `Try again` |
 | Export failed (toast) | | `Could not export. Try again.` | `Retry` |
 | Describe failed | | `Could not read your description. Try again.` Text kept. | `Retry` |
 | Empty documents list | `No documents yet` | `Your drafts will appear here.` | `Start a draft` |
@@ -524,7 +521,29 @@ Examples [CHECK: vendor names and countries are mine to confirm with Ajay's vend
 - `Consent history`, `Withdraw consent`
 - `Ask to access, correct or erase your data`
 - `Grievance Officer: {name}, {email}. We reply within {days} days.` [CHECK: Ajay supplies the response time]
-- Account: `Change password`, `Active sessions`, `Sign out`, `Close account`
+- Account: `Change password`, `Active sessions`, `Sign out`. Close-account and delete-document strings: section 6.7.
+
+### 6.7 Delete document and close account (verbatim from handoff/marketing/copy/dpdp-ui-strings-t115.md, Ajay-signed where marked there)
+
+Use that file as the source. Not reworded here. Strings in it that the file marks "Ajay, signed" or "Needs Ajay" keep those marks. Flag from that file: both dialog bodies end with the signed line `Backup copies are erased within 7 days.`
+
+Delete a document (T-115b):
+
+- Title: `Delete this document?`
+- Body: `This deletes the document and everything in it, including its drafts and annexures. You cannot undo this. Ink used on it is not refunded.` + `Backup copies are erased within 7 days.`
+- Buttons: `Delete document` / `Cancel`; list button `Delete`; aria-label `Delete {title}`; working `Deleting...`; screen reader `Deleting the document.`; success `Document deleted.`
+- Error: `We could not delete this document. Try again.`
+
+Close account (T-115c):
+
+- Heading and button: `Close account`; description: `Close your Lawie account. You will be asked to confirm first.`
+- Title: `Close your account and erase your data?`
+- Body: `This erases your account, your profile and every document you have created on Lawie. Any unused Ink and any active plan end now and are not refunded. We keep payment and invoice records for as long as tax law requires. You cannot undo this.` + `Backup copies are erased within 7 days.`
+- Buttons: `Close account and erase` / `Cancel`
+- Password: label `Your password`; help `Enter your password to confirm it is you.`; Google-only: `Type your email address` / `Type the email address you sign in with, to confirm it is you.`
+- Working: `Closing...` / `Closing your account. Please wait.`
+- Errors: `That password is not right. Nothing was changed.`; `That email address does not match. Nothing was changed.`; `Cancel your plan first.` + `Go to Plan` (fallback `Write to contact@lawie.in to cancel.`); `We could not close your account. Try again.`; old Google session add `Sign in again, then try once more.`; mid-erase `We couldn't finish closing your account. Some of your data may not be erased yet. Please try again, or write to us at {support email} and we will finish it.`
+- /account-closed page: `Your account is closed` / `You have been signed out.` / `Thank you for using Lawie.` / `Go to the home page`
 
 ---
 
