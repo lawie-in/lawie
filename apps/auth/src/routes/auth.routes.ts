@@ -14,6 +14,10 @@ import {
   verifyEmailHandler,
   resendVerifyEmailHandler,
   closeAccountHandler,
+  changePasswordHandler,
+  listSessionsHandler,
+  deleteSessionHandler,
+  privacyHistoryHandler,
 } from '../controllers/auth.controller';
 import { authenticate, authenticateAllowRevoked } from '../middleware/authenticate';
 
@@ -30,11 +34,19 @@ router.get('/reset-password/:token', checkResetTokenHandler);
 router.post('/reset-password/:token', resetPasswordHandler);
 // T-343 — privacy re-acceptance. Both need a live session (authenticate, not AllowRevoked).
 router.get('/me', authenticate, getMe);
-// T-436 — set the GST State for tax invoices. Live session required. The privacy check
-// (Ajay, GST file Addendum 7 (2)) is in setGstStateCode, read from the user record, not
+// T-436 / T-507 — set the GST State and the profile fields. Live session required. The privacy
+// check (Ajay, GST file Addendum 7 (2)) is in updateProfile, read from the user record, not
 // requireCurrentPrivacy: auth gets no gateway pv header to read.
 router.patch('/me', authenticate, updateMeHandler);
 router.post('/me/privacy-acceptance', authenticate, acceptPrivacyHandler);
+// T-507 — account settings. Live session required. /me/password: per-user failed-attempt limit
+// (password-change-rate-limit.ts), and per IP as /login is:
+// by the gateway's publicRateLimiter on the whole /api/auth proxy (auth has no limiter of its
+// own). No route segment is named "internal" (the gateway blocks it).
+router.post('/me/password', authenticate, changePasswordHandler);
+router.get('/me/sessions', authenticate, listSessionsHandler);
+router.delete('/me/sessions/:id', authenticate, deleteSessionHandler);
+router.get('/me/privacy-history', authenticate, privacyHistoryHandler);
 // T-115c — close the account and erase it. Live session required. Rate limited with /login:
 // both are reached only through the gateway's /api/auth proxy and its publicRateLimiter
 // (per IP); auth has no limiter of its own.

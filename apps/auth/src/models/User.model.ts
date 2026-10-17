@@ -110,6 +110,12 @@ export interface IUser extends Document {
    */
   gstStateCode?: string;
   practiceAreas: string[];
+  /**
+   * T-507 — ids of the courts the user practises in (/^[a-z0-9_]{2,80}$/, at most 20, no
+   * duplicates) and the one they pick by default, which must be one of them. Set by PATCH /me.
+   */
+  courtsPractisedIn: string[];
+  defaultCourt?: string;
   yearsOfExperience?: number;
 
   role: UserRole;
@@ -234,6 +240,15 @@ const UserSchema = new Schema<IUser>(
     practiceAreas: {
       type: [String],
       default: [],
+    },
+    // T-507 — validated in validateUpdateMe; no default for defaultCourt (absent = none chosen).
+    courtsPractisedIn: {
+      type: [String],
+      default: [],
+    },
+    defaultCourt: {
+      type: String,
+      trim: true,
     },
     yearsOfExperience: {
       type: Number,
