@@ -2,7 +2,7 @@
 
 | Field  | Value |
 | ------ | ----- |
-| Status | To do. V1 BLOCKER (Ajay, ref 604af4bd, 16 Oct 2026). Priya |
+| Status | Merged into develop_staging 7236c1d7, 16 Oct (Ajay 604af4bd, 8f0d980a, c585cf80; byte check 470b51e6). A partial date gives no date; the default-bail timeline computes nothing from it. CI on 7236c1d7 pending. Priya |
 | Owner | Vishal (same chain as T-469, second commit with its own tests), Ajay signs |
 | Mode   | Full chain (legal content: dates in drafts) |
 

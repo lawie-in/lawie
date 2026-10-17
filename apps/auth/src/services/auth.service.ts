@@ -19,13 +19,25 @@ import {
   CURRENT_PRIVACY_VERSION,
   CURRENT_TERMS_VERSION,
   privacySignupAcceptance,
+  PrivacyAcceptedVia,
 } from '../models/User.model';
-import { buildSignupSource, UtmTags } from '../validators/auth.validator';
+import { buildSignupSource, UpdateMeInput, UtmTags } from '../validators/auth.validator';
 
 import { tryGrantDailyLoginBonus, grantSignupBonus } from './credit-bonus.service';
 import { generateTokenPair, verifyRefreshToken } from './jwt.service';
+import {
+  releasePasswordChangeAttempt,
+  reservePasswordChangeAttempt,
+  resetPasswordChangeFailures,
+} from './password-change-rate-limit';
 import { applyReferralCode } from './referral.service';
-import { createSession, deleteSession, hashToken, SessionMeta } from './session.service';
+import {
+  createSession,
+  deleteOtherUserSessions,
+  deleteSession,
+  hashToken,
+  SessionMeta,
+} from './session.service';
 import { requestVerifyEmail } from './verify-email.service';
 
 // T-299 (Arjun ruling 2): login must not reveal whether an account exists, by status or by
@@ -274,25 +286,53 @@ export function privacyStatusFor(user: Pick<IUser, 'privacyVersion'>): PrivacySt
   };
 }
 
-/** GET /me: the T-343 privacy state plus the T-223 verification state. */
-export type MeStatus = PrivacyStatus & {
-  /** T-223: the address has been verified through the emailed link. */
-  emailVerified: boolean;
-  /** T-223: a Google account or a linked googleId (counts as verified, T-351). */
-  hasGoogle: boolean;
-  /**
-   * T-115c: the account has a password, so closing it asks for the password; without one
-   * (Google-only) it asks the user to type their email. Read from +password, not authProvider.
-   */
-  hasPassword: boolean;
-  /** T-436: the GST State/UT code for tax invoices (2-digit string), or null when not given. */
-  gstStateCode: string | null;
-};
+/**
+ * T-507 — the profile fields GET /me reports, under their API names (barCouncil is stored as
+ * User.barCouncilId, barCouncilState as User.state). A value never given is null; a list is [].
+ * barCouncilState is returned as stored: records from before T-507 may hold free text there.
+ */
+export interface MeProfile {
+  name: string | null;
+  phone: string | null;
+  enrollmentNumber: string | null;
+  barCouncil: string | null;
+  barCouncilState: string | null;
+  practiceAreas: string[];
+  yearsOfExperience: number | null;
+  courtsPractisedIn: string[];
+  defaultCourt: string | null;
+}
+
+/** GET /me: the T-343 privacy state plus the T-223 verification state and the T-507 profile. */
+export type MeStatus = PrivacyStatus &
+  MeProfile & {
+    /** T-223: the address has been verified through the emailed link. */
+    emailVerified: boolean;
+    /** T-223: a Google account or a linked googleId (counts as verified, T-351). */
+    hasGoogle: boolean;
+    /**
+     * T-115c: the account has a password, so closing it asks for the password; without one
+     * (Google-only) it asks the user to type their email. Read from +password, not authProvider.
+     */
+    hasPassword: boolean;
+    /** T-436: the GST State/UT code for tax invoices (2-digit string), or null when not given. */
+    gstStateCode: string | null;
+  };
+
+function stringOrNull(v: unknown): string | null {
+  return typeof v === 'string' && v.length > 0 ? v : null;
+}
+
+function stringList(v: unknown): string[] {
+  return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
+}
 
 export async function getPrivacyStatus(userId: string): Promise<MeStatus> {
   // googleId is select:false on the schema, so it is asked for explicitly (+googleId).
   const user = await User.findById(userId).select(
-    'privacyVersion isActive emailVerified authProvider gstStateCode +googleId +password',
+    'privacyVersion isActive emailVerified authProvider gstStateCode +googleId +password ' +
+      'name phone enrollmentNumber barCouncilId state practiceAreas yearsOfExperience ' +
+      'courtsPractisedIn defaultCourt',
   );
   if (!user || !user.isActive) {
     throw new AppError(401, 'User not found or inactive');
@@ -306,23 +346,48 @@ export async function getPrivacyStatus(userId: string): Promise<MeStatus> {
     hasGoogle,
     hasPassword: typeof user.password === 'string' && user.password.length > 0,
     gstStateCode: typeof user.gstStateCode === 'string' ? user.gstStateCode : null,
+    name: stringOrNull(user.name),
+    phone: stringOrNull(user.phone),
+    enrollmentNumber: stringOrNull(user.enrollmentNumber),
+    barCouncil: stringOrNull(user.barCouncilId),
+    barCouncilState: stringOrNull(user.state),
+    practiceAreas: stringList(user.practiceAreas),
+    yearsOfExperience: typeof user.yearsOfExperience === 'number' ? user.yearsOfExperience : null,
+    courtsPractisedIn: stringList(user.courtsPractisedIn),
+    defaultCourt: stringOrNull(user.defaultCourt),
   };
 }
 
-/** T-436 — the PATCH /me outcome; the controller maps each kind to a status. */
-export type SetGstStateOutcome =
-  | { kind: 'saved'; gstStateCode: string }
+/** T-507 — what a saved PATCH /me echoes: exactly the keys sent, as stored (null = cleared). */
+export type UpdateMeEcho = {
+  [K in keyof UpdateMeInput]?: Exclude<UpdateMeInput[K], undefined>;
+};
+
+/** T-436 / T-507 — the PATCH /me outcome; the controller maps each kind to a status. */
+export type UpdateProfileOutcome =
+  | { kind: 'saved'; data: UpdateMeEcho }
   | { kind: 'privacy_reaccept_required' }
+  /** T-507: defaultCourt would not be one of the (stored or sent) courtsPractisedIn. 422. */
+  | { kind: 'default_court_not_in_courts' }
   | { kind: 'not_found' };
 
 /** T-436 — the 403 body for a PATCH /me refused for privacy (the T-343 shape the web knows). */
-export const SET_GST_STATE_PRIVACY_BODY = { error: PRIVACY_REACCEPT_REQUIRED } as const;
+export const UPDATE_ME_PRIVACY_BODY = { error: PRIVACY_REACCEPT_REQUIRED } as const;
+/** T-436 name, kept for existing imports. */
+export const SET_GST_STATE_PRIVACY_BODY = UPDATE_ME_PRIVACY_BODY;
+
+/** T-507 — API name -> User field. Fields not listed keep their name. */
+const STORED_FIELD: Partial<Record<keyof UpdateMeInput, keyof IUser>> = {
+  barCouncil: 'barCouncilId',
+  barCouncilState: 'state',
+};
 
 /**
- * T-436 — PATCH /me { gstStateCode } (already validated against GST_STATES).
+ * T-436 / T-507 — PATCH /me (already validated by validateUpdateMe): one update of every field
+ * sent. `null` unsets an optional field; anything else is $set under the stored name.
  *
- * Consent order (Ajay, GST file Addendum 7 (2), must-fix): the State is new personal data under
- * the bumped privacy version, so it is stored only for a user whose stored privacyVersion is
+ * Consent order (Ajay, GST file Addendum 7 (2), must-fix): the fields are personal data under the
+ * bumped privacy version, so they are stored only for a user whose stored privacyVersion is
  * CURRENT_PRIVACY_VERSION. The check reads the user record, not the token's `pv` claim (auth is
  * the source of truth for acceptance, and a stale token cannot slip through), and is part of the
  * update filter itself, so there is no gap between the check and the write.
@@ -330,13 +395,47 @@ export const SET_GST_STATE_PRIVACY_BODY = { error: PRIVACY_REACCEPT_REQUIRED } a
  * As requireCurrentPrivacy (Arjun, T-343 Addendum 2.1): when the current version has no signed
  * summary no prompt can show, so the version is not required.
  *
+ * T-507 defaultCourt rule, also in the filter (atomic): defaultCourt sent without
+ * courtsPractisedIn must be in the STORED list; courtsPractisedIn sent without defaultCourt must
+ * still contain the STORED defaultCourt (or there is none). Otherwise nothing is written and the
+ * answer is 'default_court_not_in_courts' (422). Both sent: checked by the validator.
+ *
  * An account being closed (erasure present) or inactive is 'not_found' (401, as GET /me).
- * Never logs the State.
+ * Never logs a field value.
  */
-export async function setGstStateCode(
+export async function updateProfile(
   userId: string,
-  gstStateCode: string,
-): Promise<SetGstStateOutcome> {
+  input: UpdateMeInput,
+): Promise<UpdateProfileOutcome> {
+  const $set: Record<string, unknown> = {};
+  const $unset: Record<string, 1> = {};
+  const data: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(input) as [keyof UpdateMeInput, unknown][]) {
+    if (value === undefined) continue;
+    const stored = STORED_FIELD[key] ?? key;
+    if (value === null) $unset[stored] = 1;
+    else $set[stored] = value;
+    data[key] = value;
+  }
+
+  let courtFilter: Record<string, unknown> = {};
+  if (typeof input.defaultCourt === 'string' && input.courtsPractisedIn === undefined) {
+    courtFilter = { courtsPractisedIn: input.defaultCourt };
+  } else if (input.courtsPractisedIn !== undefined && input.defaultCourt === undefined) {
+    courtFilter = {
+      $or: [
+        { defaultCourt: { $exists: false } },
+        { defaultCourt: null },
+        { defaultCourt: { $in: input.courtsPractisedIn } },
+      ],
+    };
+  }
+  const courtChecked = Object.keys(courtFilter).length > 0;
+
+  const update: Record<string, unknown> = {};
+  if (Object.keys($set).length > 0) update['$set'] = $set;
+  if (Object.keys($unset).length > 0) update['$unset'] = $unset;
+
   const privacyGated = getPrivacyVersionSummary(CURRENT_PRIVACY_VERSION) !== undefined;
   const result = await User.updateOne(
     {
@@ -344,16 +443,132 @@ export async function setGstStateCode(
       isActive: true,
       erasure: { $exists: false },
       ...(privacyGated ? { privacyVersion: CURRENT_PRIVACY_VERSION } : {}),
+      ...courtFilter,
     },
-    { $set: { gstStateCode } },
+    update,
     { runValidators: true },
   );
-  if (result.matchedCount === 1) return { kind: 'saved', gstStateCode };
+  if (result.matchedCount === 1) return { kind: 'saved', data: data as UpdateMeEcho };
 
   // Nothing matched: say why, without writing anything.
   const user = await User.findById(userId).select('isActive erasure privacyVersion').lean();
   if (!user || !user.isActive || user.erasure) return { kind: 'not_found' };
-  return { kind: 'privacy_reaccept_required' };
+  if (privacyGated && user.privacyVersion !== CURRENT_PRIVACY_VERSION) {
+    return { kind: 'privacy_reaccept_required' };
+  }
+  return courtChecked
+    ? { kind: 'default_court_not_in_courts' }
+    : { kind: 'privacy_reaccept_required' };
+}
+
+/** T-507 — the POST /me/password outcome; the controller maps each kind to a status. */
+export type ChangePasswordOutcome =
+  | { kind: 'changed'; revokedSessions: number }
+  /** No password on the record (Google-only): 409 no_password. */
+  | { kind: 'no_password' }
+  /** currentPassword does not match (or it changed meanwhile): 403 wrong_password. */
+  | { kind: 'wrong_password' }
+  /** Over 5 failed attempts in 15 min (password-change-rate-limit.ts): 429 + Retry-After. */
+  | { kind: 'limited'; retryAfterSeconds: number }
+  /** The limiter store (Redis) failed: 503, fail closed, nothing looked up or changed. */
+  | { kind: 'unavailable' }
+  | { kind: 'not_found' };
+
+/** Same cost as the User pre-save hook and the T-221 reset. */
+const PASSWORD_BCRYPT_COST = 12;
+
+/**
+ * T-507 — POST /me/password. `newPassword` has already passed the sign-up rules. Requires the
+ * current password (bcrypt compare). The write is conditional on the hash just compared, so two
+ * concurrent changes cannot both succeed. Any outstanding reset link is cleared. Then every OTHER
+ * session is signed out; the caller's (`accessToken`) is kept. One log line, ids and a count only.
+ */
+export async function changePassword(
+  userId: string,
+  accessToken: string,
+  currentPassword: string,
+  newPassword: string,
+): Promise<ChangePasswordOutcome> {
+  const redis = (await import('../config/redis')).default;
+
+  // Arjun's ruling: per-user limit on FAILED attempts, checked before any lookup or compare.
+  // Redis down: fail closed (503), nothing looked up or changed.
+  try {
+    const reservation = await reservePasswordChangeAttempt(redis, userId);
+    if (!reservation.allowed) {
+      logger.info(
+        { userId, retryAfterSeconds: reservation.retryAfterSeconds },
+        'Password change refused: rate limit',
+      );
+      return { kind: 'limited', retryAfterSeconds: reservation.retryAfterSeconds };
+    }
+  } catch (err) {
+    logger.warn(
+      { userId, errKind: errorKindOf(err) },
+      'Password change refused: rate-limit store unavailable',
+    );
+    return { kind: 'unavailable' };
+  }
+
+  const outcome = await checkAndSetPassword(userId, currentPassword, newPassword);
+
+  // Settle the reserved attempt: a wrong password keeps it (a failure); a change clears the
+  // count; anything else gives it back. A settle failure never undoes the outcome.
+  try {
+    if (outcome.kind === 'changed') await resetPasswordChangeFailures(redis, userId);
+    else if (outcome.kind !== 'wrong_password') await releasePasswordChangeAttempt(redis, userId);
+  } catch (err) {
+    logger.warn({ userId, errKind: errorKindOf(err) }, 'Password change: rate-limit settle failed');
+  }
+  if (outcome.kind !== 'changed') return outcome;
+
+  const revokedSessions = await deleteOtherUserSessions(userId, hashToken(accessToken));
+  logger.info({ userId, event: 'password_changed', revokedSessions }, 'Password changed');
+  return { kind: 'changed', revokedSessions };
+}
+
+/** Error class only, for logs (never the message: it may carry a value). */
+function errorKindOf(err: unknown): string {
+  return err instanceof Error ? err.name : typeof err;
+}
+
+/** The compare and the conditional write of changePassword; no sessions, no limiter. */
+async function checkAndSetPassword(
+  userId: string,
+  currentPassword: string,
+  newPassword: string,
+): Promise<{ kind: 'changed' } | { kind: 'no_password' | 'wrong_password' | 'not_found' }> {
+  const user = await User.findById(userId).select('+password isActive erasure');
+  if (!user || !user.isActive || user.erasure) return { kind: 'not_found' };
+  const oldHash = user.password;
+  if (typeof oldHash !== 'string' || oldHash.length === 0) return { kind: 'no_password' };
+  if (!(await bcrypt.compare(currentPassword, oldHash))) return { kind: 'wrong_password' };
+
+  const newHash = await bcrypt.hash(newPassword, PASSWORD_BCRYPT_COST);
+  const result = await User.updateOne(
+    { _id: userId, isActive: true, erasure: { $exists: false }, password: oldHash },
+    {
+      $set: { password: newHash },
+      $unset: { passwordResetToken: 1, passwordResetExpires: 1 },
+    },
+  );
+  return result.matchedCount === 1 ? { kind: 'changed' } : { kind: 'wrong_password' };
+}
+
+/** T-507 — one row of GET /me/privacy-history. */
+export interface PrivacyHistoryRow {
+  version: string;
+  acceptedAt: Date;
+  via: PrivacyAcceptedVia;
+}
+
+/** T-507 — GET /me/privacy-history: User.privacyHistory, newest first. null: 401 (as GET /me). */
+export async function getPrivacyHistory(userId: string): Promise<PrivacyHistoryRow[] | null> {
+  const user = await User.findById(userId).select('isActive erasure privacyHistory').lean();
+  if (!user || !user.isActive || user.erasure) return null;
+  return (user.privacyHistory ?? [])
+    .map((r) => ({ version: r.version, acceptedAt: r.acceptedAt, via: r.via }))
+    .sort((a, b) => new Date(b.acceptedAt).getTime() - new Date(a.acceptedAt).getTime());
 }
 
 /**

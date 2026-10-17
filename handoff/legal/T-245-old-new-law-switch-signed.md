@@ -878,3 +878,111 @@ These terms are not enough on their own to pick this pack when divorce, DV Act o
 - NAMED_MDY no longer lets the day run into the year, so "June 2026" reads as no date. A missing year gives no date. A two-digit year later than the reference year gives no date. Nothing is invented. Matches 8f0d980a and c585cf80.
 - Timeline: a partial arrest date returns the existing error, and no s.187(3) date is computed. OK for v1, with the date-picker condition already recorded.
 - No printed text changed. It ships before T-469 (78a39810).
+
+## T-489: mandamus statute and grievance fields (Ajay, 16 Oct 2026)
+
+**Fields**
+
+| Key | Label | Help text | Placeholder | Required |
+|---|---|---|---|---|
+| statute_invoked | `Law or rule that places the duty on the authority` | `The Act, rule, scheme or notification under which the authority must act, with the section or rule if known.` | `e.g. Section 12 of the … Act / Rule 5 of the … Rules` | Optional. If it is empty, the T-479 blank prints. |
+| grievance_summary | `What the authority has failed to do` | `One or two lines: the act the authority was bound to do and has not done.` | `e.g. failure to decide the petitioner's application dated … for …` | Optional. If it is empty, the T-479 blank prints. |
+
+**Cause title.** With a value, the lines print as `AND IN THE MATTER OF: {statute_invoked};` and `AND IN THE MATTER OF: {grievance_summary};`. With no value, they print the signed blanks from 2d578206 and 6a047469, unchanged.
+
+**Body (AI-written), one instruction per paragraph, in this order.** Each paragraph uses only facts from the brief. A missing fact is printed as its `[To be confirmed: …]` blank. Do not name any judgment (T-441).
+
+1. Locus standi: `State who the petitioner is and how the authority's failure affects the petitioner directly.`
+2. Legal right: `State the petitioner's legal right to have the act done, as it arises from {statute_invoked}.`
+3. Legal duty: `State that the respondent is a public authority under a legal duty to do the act, and the source of that duty in {statute_invoked}.`
+4. Demand and refusal: `State the date and the manner in which the petitioner asked the respondent to act, and that the respondent has refused or failed to act. If no demand is given, write: That the petitioner made a representation to the respondent on [To be confirmed: date and mode of the demand made to the respondent].`
+5. Inaction: `State how long the act has been pending, using only dates from the brief.`
+6. No other remedy: `State that the petitioner has no other equally efficacious remedy. If the brief names one that was used, say what became of it.`
+
+Prayer (existing): mandamus directing the respondent to do the act named in {grievance_summary} within a time the Court may fix.
+
+**T-489 addendum.** Use (a): remove `statutory_duty` and keep `statute_invoked` with the signed label from 8e85ec44 (optional). Add a read-time alias from statutory_duty to statute_invoked, so old saved answers still fill it. Keep `refusal_or_inaction`. It feeds body paragraphs 4 and 5. `grievance_summary` stays as the one-line cause-title text.
+
+## T-482 byte-check points (Ajay, 16 Oct 2026)
+
+| Point | Ruling |
+|---|---|
+| (1) JMFC records | OK. There are 19 records, marked for maintenance_bnss_144 only. The heading `IN THE COURT OF JUDICIAL MAGISTRATE FIRST CLASS, <CITY>` is signed. "Criminal Case No." is not signed for maintenance, because High Courts and districts style it differently. Use `[To be confirmed: case type and number as styled in this court]`. |
+| (2) Seats that are headquarters towns | Use the district-court style `{District} at {Seat}`. Labels: "Court of the Judicial Magistrate First Class, Saran at Chhapra", "…, Vaishali at Hajipur", "…, Palamu at Daltonganj", "…, West Singhbhum at Chaibasa", "…, East Singhbhum at Jamshedpur". Headings are the same in capitals, for example "…, SARAN AT CHHAPRA". Daltonganj is officially Medininagar, so **verify** which name the Palamu civil court uses before v1.1. "Daltonganj" is OK for v1. |
+| (3) Other States | OK. They fall back to the full court list, with no regression. v1 adds no new Family Court or JMFC records outside Bihar and Jharkhand. |
+| (4) 140-character cut | Not OK as is. T-475 forbids cutting signed text. Replace the description with this shorter signed one, 121 characters, which fits without a cut: `Maintenance application under Section 144 BNSS (old s.125 CrPC) by a wife, child or parent unable to maintain themselves.` The 9ad6a8f1 description is withdrawn. The 140 limit stays as it is for other packs. |
+
+## T-472 round 4 and Arjun's (d) design, message ref AJ-472-M1 (Ajay, 16 Oct 2026). Committed after the push freeze.
+
+- No lost grounds. Code never replaces the advocate's or the model's sentences. The limitation paragraph is a template section computed from the dates.
+- Prompt line: `Do not state whether the present petition is within or beyond limitation, or whether condonation of delay is needed; that paragraph is supplied. Grounds about limitation in other proceedings stay as the advocate gave them.`
+- Checks-panel warning: `Check this sentence: it states a limitation position. The limitation paragraph (para {n}) is computed from your dates.`
+- criminal_revision.json edits 1 to 5, as listed by Priya: approved. limitation_compliance is removed. Checklist addition for when the dates are unknown: `Check limitation from the dates; if the petition is late, file an application under Section 5 of the Limitation Act, 1963.`
+
+## T-488 verifier cues, message ref AJ-488-M1 (Ajay, 16 Oct 2026)
+
+Approved as Vishal built it:
+- Cue table with Hindi cue words (jama, dinank, prapt, mila, bheja, अनादरित, प्रस्तुत).
+- A label that names two or more other fields passes only when the date is a held date.
+- An explicit wrong label fails, and a date not in the facts is blanked.
+- cheque_validity_date is cued by "last", "validity" and "printed".
+- A label before the first date does not carry over to a second date.
+
+## Byte check T-488, feature/t-488-cheque-date-state @ bfb46db1 (verifier) and 3d06093d (part A): approved (Ajay, 16 Oct 2026)
+
+- The cue table and s138Labels match AJ-488-M1, 971d2685 and b37ed330. "cheque" alone is no cue. "received" needs a memo word, and "sent" needs a notice word.
+- The held branch passes a held date only when it has no label, or when its labels name more than one field. A single explicit wrong label fails. That matches the ruling.
+- "memo dated X" is read as the dishonour date. OK, because the return memo bears the date of dishonour.
+- Part A: the s.138 notice does not require the State (971d2685). OK.
+
+## T-482 intake prompt line (Ajay, 16 Oct 2026)
+
+Kunal's wording is approved, with custody and guardianship added because "wife", "child" and "parents" are generic. Signed text:
+
+`- A catalogue line may end with "match terms": those terms alone are not enough to choose that template when the description also has divorce, Domestic Violence Act (DV Act), Hindu Adoptions and Maintenance Act (HAMA), custody or guardianship words; in that case use confidence "medium" and list it together with those templates in alternatives, so the advocate chooses.`
+
+The line format `<id> | <name> | <category> | <description> | match terms: <terms>` is OK. The scope is Bihar and Jharkhand only. OK.
+
+## T-500 follow-up (Ajay, 16 Oct 2026)
+
+| Point | Ruling |
+|---|---|
+| (5) Place after the police station | If the place is a district name, print `, District {district}`, for example "Police Station Kadamkuan, District Patna". Otherwise print the place as written, for example `, {place}`. Never drop it. |
+| (6) "That …" | Match the pack's style. In bail_regular the strings from 088fc4f7 drop the leading "That ", as in "The applicant seeks bail on the following grounds, among others, each without prejudice to the other:" and "(a) {ground 1}.". Grounds, antecedents and dependants follow the same rule. Each sentence starts with a capital letter. The wording is otherwise unchanged. |
+| (7) Skeleton v5 | Confirmed. Once Arjun settles the format, send me the exact v5 JSON. I will check every string against 088fc4f7 and this table, then issue `skeleton-bail_regular-signed.md` v5 with its SHA the same turn. |
+
+## T-488 State items (Ajay, 16 Oct 2026)
+
+- (a) ca12ec2e covers the State as a party in criminal matters. In civil writs and certiorari, the f9415fe8 line stays: `Government of NCT of Delhi through [To be confirmed: Secretary of the concerned department]`. Both are right.
+- (b) The old criminal strings "State (NCT of Delhi)" and "[To be confirmed: name of the State]" are not wrong; both Delhi forms are used in practice. Aligning them with ca12ec2e is a separate v1.1 ticket. It needs the t157 and t158 snapshots moved, and I see the diffs.
+
+## Byte check T-489, feature/t-489-mandamus-fields @ bc32f076: approved with conditions (Ajay, 16 Oct 2026)
+
+- Fields at mandamus.json :51-63 and the six body instructions plus the prayer at :118-127 match 8e85ec44 byte for byte. The T-441 line is present. The alias matches f68d5592.
+- Condition 1: `{statute_invoked}` and `{grievance_summary}` in the structure lines must be substituted before the model sees them. If a field is empty, the T-479 blank goes in. Never leave a raw "{…}". Add a test for each.
+- Condition 2: an old multi-line statutory_duty answer is collapsed to one line (single spaces) before it prints in the cause title.
+- review_notes names a judgment. If review_notes is never model-visible, it is out of T-441's scope and stays. If it is visible to the model, remove the name under T-441.
+
+## Byte check T-482, fix/t-482-maintenance-routing @ 90ae836d: approved, ref AJ-482-M1 (Ajay, 16 Oct 2026)
+
+- The 19 JMFC records, headings, case-number blank, description (121 characters), 25 match terms and prompt sentence match 9ad6a8f1, 656332c9 and 59d26051 byte for byte.
+- `city` for the five headquarters seats is the seat town (Chhapra, Hajipur, Daltonganj, Chaibasa, Jamshedpur). Confirmed: the court sits there, and that is the place a filing names.
+- Medininagar or Daltonganj stays **verify** for v1.1. More Family Courts come under T-501.
+
+## T-500 follow-up 2, ref AJ-500-M1 (Ajay, 16 Oct 2026)
+
+| Point | Ruling |
+|---|---|
+| (1) District after the police station | Do not infer a district from the court list, because seat towns are not districts. That replaces 2e536158 point (5). Print `, District {name}` only when the advocate wrote "District", "Distt." or "Zila" with the name. Otherwise print the place as written, for example "Police Station Kadamkuan, Jamshedpur". |
+| (2) Plural dependants | `The applicant's {relation}, aged {age 1} and {age 2} years respectively, are dependent on the applicant.` If no ages are given: `The applicant's {relation} are dependent on the applicant.` One sentence per relation group, for example "two children". In packs that use "That …", prefix "That the applicant's". |
+| (3) grounds_stated | Label: `Grounds for bail, in your words`. Help: `One ground per line, in the order you want them argued. Each is printed as its own ground.` Optional. The extractor fills it only from the advocate's own words and never adds a ground. |
+
+v5 skeleton sha256 ac850196…348d: I will check it when Mahak pushes and then issue v5.
+
+## T-472 (d) pack line, ref AJ-472-M2 (Ajay, 16 Oct 2026)
+
+This replaces the "Para 5" line in AJ-472-M1:
+
+`Limitation — Lawie adds this as the last numbered paragraph, from the dates given. Do not write it, and do not leave a gap in your numbering for it.`
+
+Code takes the computed paragraph's number from the model's highest paragraph number plus one, never from a fixed number. There must be no duplicate number and no gap (441ef1e8 point 4), with a test for each. The signed limitation strings are unchanged.

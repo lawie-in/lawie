@@ -19,9 +19,11 @@ import { User } from '../models/User.model';
 import { GrantClaimBusyError } from '../services/ink-ledger.service';
 import { invoicePdfFilename, renderInvoicePdf } from '../services/invoice-pdf.service';
 import {
+  cancelSubscriptionAtCycleEnd,
   createSubscription,
   getSubscriptionStatus,
   handleWebhookEvent,
+  NoLiveSubscriptionError,
   SubscriptionCancelFailedError,
   SubscriptionExistsError,
   SubscriptionInProgressError,
@@ -142,6 +144,32 @@ router.post(
     }
   },
 );
+
+// ── POST /cancel — T-508: cancel the live subscription at the end of the cycle ─
+//
+// Idempotent: a second call returns the same body, with no Razorpay call.
+// Ink and the plan are untouched (they run to paidThrough, T-399).
+router.post('/cancel', authenticate, requireCurrentPrivacy, async (req: Request, res: Response) => {
+  const { sub: userId } = req.jwtPayload!;
+  try {
+    const result = await cancelSubscriptionAtCycleEnd(userId);
+    res.json({ status: 'success', data: result });
+  } catch (err) {
+    if (err instanceof NoLiveSubscriptionError) {
+      res.status(409).json({ error: 'no_live_subscription' });
+      return;
+    }
+    if (err instanceof SubscriptionCancelFailedError) {
+      res.status(503).json({ error: 'try_again' });
+      return;
+    }
+    logger.error(
+      { userId, errName: err instanceof Error ? err.name : 'unknown' },
+      'Failed to cancel subscription',
+    );
+    res.status(500).json({ error: 'Failed to cancel subscription' });
+  }
+});
 
 // ── POST /topup/order — create a one-off Razorpay order for a top-up SKU ─────
 //

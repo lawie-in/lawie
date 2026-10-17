@@ -101,6 +101,36 @@ function maskLogArgs(this: pino.Logger, args: unknown[], method: pino.LogFn): vo
   (method as (...a: unknown[]) => void).apply(this, masked);
 }
 
+/**
+ * T-507 — the profile name. Not `*.name`: pino's wildcard would also censor `err.name` /
+ * `error.name` (the error class, e.g. "MongoServerError"), which we keep for debugging, and its
+ * censor function cannot tell the two apart (the wildcard segment is passed as null). So the
+ * top-level key plus every object one of our call sites (or a future one) could carry a user or
+ * profile in, by name. Add a container here before logging a new object that may hold a name.
+ */
+const NAME_CONTAINERS = [
+  'user',
+  'profile',
+  'body',
+  'data',
+  'payload',
+  'input',
+  'update',
+  'userInfo',
+  'session',
+  'sessionData',
+  'jwtPayload',
+  'tokenPayload',
+  'meta',
+  'patch',
+  'fields',
+];
+export const NAME_REDACT_PATHS = [
+  'name',
+  'req.body.name',
+  ...NAME_CONTAINERS.map((c) => `${c}.name`),
+];
+
 export const loggerOptions: pino.LoggerOptions = {
   level: env.LOG_LEVEL,
   timestamp: pino.stdTimeFunctions.isoTime,
@@ -124,6 +154,18 @@ export const loggerOptions: pino.LoggerOptions = {
       'loginUrl',
       'passwordResetToken',
       'passwordResetExpires',
+      // T-507: profile fields (API and stored names), the change-password body, session details.
+      // The name is in NAME_REDACT_PATHS (explicit, so err.name stays visible).
+      ...NAME_REDACT_PATHS,
+      'enrollmentNumber',
+      'barCouncilId',
+      'barCouncil',
+      'state',
+      'barCouncilState',
+      'currentPassword',
+      'newPassword',
+      'userAgent',
+      'ipAddress',
       '*.email',
       '*.password',
       '*.phone',
@@ -136,6 +178,15 @@ export const loggerOptions: pino.LoggerOptions = {
       '*.loginUrl',
       '*.passwordResetToken',
       '*.passwordResetExpires',
+      '*.enrollmentNumber',
+      '*.barCouncilId',
+      '*.barCouncil',
+      '*.state',
+      '*.barCouncilState',
+      '*.currentPassword',
+      '*.newPassword',
+      '*.userAgent',
+      '*.ipAddress',
     ],
     censor: REDACT_CENSOR,
   },

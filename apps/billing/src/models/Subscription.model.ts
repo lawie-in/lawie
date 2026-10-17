@@ -65,6 +65,10 @@ export interface ISubscription extends Document {
   grantClaimToken?: string;
 
   cancelledAt?: Date;
+  // T-508: the user asked to cancel at the end of the current cycle (Razorpay
+  // cancel_at_cycle_end). Status is unchanged until the cancelled webhook.
+  // Absent on older documents; the schema default reads them as false.
+  cancelAtCycleEnd?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -134,6 +138,7 @@ const SubscriptionSchema = new Schema<ISubscription>(
     grantClaimToken: String,
 
     cancelledAt: Date,
+    cancelAtCycleEnd: { type: Boolean, default: false },
   },
   { timestamps: true },
 );

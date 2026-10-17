@@ -1,5 +1,7 @@
 import './setupDb';
 import crypto from 'crypto';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import mongoose from 'mongoose';
 import { Subscription } from '../models/Subscription.model';
 import { User } from '../models/User.model';
@@ -65,6 +67,47 @@ describe('subscription.service', () => {
       expect(savedSub).not.toBeNull();
       expect(savedSub!.razorpaySubscriptionId).toBe('sub_test123');
       expect(savedSub!.status).toBe('created');
+    });
+
+    describe('T-505: total_count on the subscriptions.create payload', () => {
+      it.each([
+        ['solo_monthly', 1200],
+        ['pro_monthly', 1200],
+        ['solo_yearly', 100],
+        ['pro_yearly', 100],
+      ])(
+        'sends total_count for %s = %i, with callback_url and notes intact',
+        async (planId, count) => {
+          const userId = new mongoose.Types.ObjectId().toString();
+          const email = 'user@example.com';
+          (mockedRazorpay.subscriptions.create as jest.Mock).mockResolvedValue({
+            id: `sub_${planId}`,
+            short_url: 'https://rzp.io/test',
+          });
+
+          await createSubscription(userId, email, planId);
+
+          expect(mockedRazorpay.subscriptions.create).toHaveBeenCalledTimes(1);
+          const payload = (mockedRazorpay.subscriptions.create as jest.Mock).mock.calls[0][0];
+          expect(payload.total_count).toBe(count);
+          expect(payload.customer_notify).toBe(1);
+          expect(payload.callback_url).toMatch(/\/dashboard\/payment\/success$/);
+          expect(payload.notes).toEqual(expect.objectContaining({ userId, email, planId }));
+        },
+      );
+
+      it('keeps the TEMPORARY comment in the source so it can be found and removed later', () => {
+        const src = readFileSync(join(__dirname, '../services/subscription.service.ts'), 'utf8');
+        expect(src).toContain(
+          '// TEMPORARY: perpetual subscriptions (no total_count, per SCRUM-102) are not enabled on',
+        );
+        expect(src).toContain(
+          "// the Razorpay account yet (ticket raised). Until then, use Razorpay's max count, which",
+        );
+        expect(src).toContain(
+          '// is 100 years either way. Remove once Razorpay enables perpetual subscriptions.',
+        );
+      });
     });
 
     it('throws for an unrecognised plan id', async () => {

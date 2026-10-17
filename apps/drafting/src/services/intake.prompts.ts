@@ -13,6 +13,10 @@
  *
  * T-147b adds EXTRACT_SYSTEM_PROMPT and buildExtractUserPrompt at the end of
  * this file, in Ajay's wording (10 Oct 2026). The prompts above are unchanged.
+ *
+ * T-482 adds the match-terms rule to MATCH_SYSTEM_PROMPT and the "match terms" column to
+ * buildMatchUserPrompt, from Ajay's T-482 section (16 Oct 2026, 9ad6a8f1; the rule line as
+ * signed in 59d26051).
  */
 import type { FormField } from './template-engine.service';
 
@@ -21,6 +25,8 @@ export interface CatalogueEntry {
   display_name: string;
   category: string;
   description: string;
+  /** T-482 (Ajay, 16 Oct 2026): the pack's signed match terms, if any. */
+  match_terms?: string[];
 }
 
 export const MATCH_SYSTEM_PROMPT = `You sort requests for an Indian legal drafting service.
@@ -32,6 +38,7 @@ Rules:
 - confidence "medium": two or three templates could fit and the description does not settle which. List them in alternatives, best first.
 - confidence "low": no template in the catalogue fits the document they need, but it is a legal drafting request. Set template_id to null.
 - Bail: a person who has already been arrested or is in custody needs regular bail. A person who has not been arrested and expects to be arrested needs anticipatory bail. Never choose an anticipatory bail template when the description says the person has been arrested or is in custody. Never choose a regular bail template when the description says the person has not been arrested. If the description does not say which, use confidence "medium" and list both.
+- A catalogue line may end with "match terms": those terms alone are not enough to choose that template when the description also has divorce, Domestic Violence Act (DV Act), Hindu Adoptions and Maintenance Act (HAMA), custody or guardianship words; in that case use confidence "medium" and list it together with those templates in alternatives, so the advocate chooses.
 - is_legal_drafting false: the request is not for a legal document at all (for example general questions, chat, or unrelated tasks). Set template_id to null.
 - is_court_document true when the document would be filed in or addressed to a court or tribunal, or the description mentions a court, an FIR, a case number, bail, a petition, an appeal, a suit or a writ.
 - category: one word guess such as criminal, civil, family, property, consumer, corporate, labour, notice, affidavit, agreement, other.
@@ -41,7 +48,12 @@ Reply with JSON only, no other text, in exactly this shape:
 
 export function buildMatchUserPrompt(description: string, catalogue: CatalogueEntry[]): string {
   const lines = catalogue.map(
-    (t) => `${t.template_id} | ${t.display_name} | ${t.category} | ${oneLine(t.description, 140)}`,
+    (t) =>
+      `${t.template_id} | ${t.display_name} | ${t.category} | ${oneLine(t.description, 140)}` +
+      // T-482: Ajay's match terms, after the description so no other line changes.
+      (t.match_terms && t.match_terms.length > 0
+        ? ` | match terms: ${t.match_terms.join(', ')}`
+        : ''),
   );
   return `Catalogue (template_id | name | category | description):
 ${lines.join('\n')}

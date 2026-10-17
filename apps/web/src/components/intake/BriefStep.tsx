@@ -29,6 +29,7 @@ import {
   Ledger,
   LedgerFact,
   ledgerEntryOf,
+  ledgerGivenKeys,
   PART_ORDER,
   PART_TITLES,
   renderedLedgerFacts,
@@ -567,15 +568,32 @@ export default function BriefStep({
   const [datesAcceptedFor, setDatesAcceptedFor] = useState<string | null>(null);
   const dateCheck = brief.date_check;
   const datesHeld = dateCheck !== undefined && datesAcceptedFor !== dateCheck.text;
-  const canConfirm = brief.can_confirm && !datesHeld;
+  // T-498: a party name the ledger holds shows on its row, so it does not block
+  // Confirm. The service already leaves it out when it had the ledger; this
+  // keeps the screen in step when it did not. With no ledger nothing changes.
+  const ledgerGiven = ledgerGivenKeys(ledger);
+  const partyMissing = (i: BriefItem): boolean =>
+    i.party_name && i.required && isEmptyValue(i.value) && !ledgerGiven.has(i.key);
+  const partiesNeeded =
+    brief.confirm_blockers.includes('parties') && brief.items.some(partyMissing);
+  const courtNeeded = brief.confirm_blockers.includes('court');
+  // Only the parties the ledger holds are lifted; any other "no" stays.
+  const partiesLifted = brief.confirm_blockers.includes('parties') && !partiesNeeded;
+  const briefCanConfirm = brief.can_confirm || (partiesLifted && !courtNeeded);
+  // The service's line, unless only the court is left of what it named (Ajay's
+  // signed wording, T-127 section 7.2, as in apps/drafting intake-brief.ts).
+  const confirmLine = briefCanConfirm
+    ? null
+    : partiesLifted
+      ? 'Choose the court to continue.'
+      : brief.confirm_message;
+  const canConfirm = briefCanConfirm && !datesHeld;
   const dateCheckContinue = useRef<HTMLButtonElement>(null);
   // The service may tidy the name. What it sends back is what is shown.
   useEffect(() => {
     setName(brief.kind.name);
   }, [brief.kind.name]);
   const noRules = brief.kind.id === null;
-  const partiesNeeded = brief.confirm_blockers.includes('parties');
-  const courtNeeded = brief.confirm_blockers.includes('court');
   const anyChecked = brief.items.some((i) => i.please_check);
   // T-147b: what the screen shows from the ledger. Every fact renders: on its
   // row, or under "Other things you gave" when the document has no row for it.
@@ -586,6 +604,9 @@ export default function BriefStep({
     ? ledger.unresolved.filter((u) => !ledger.facts.some((f) => f.key === u.key))
     : [];
   const nothingRead = ledger !== null && ledgerFacts.length === 0 && outstanding.length === 0;
+  // T-498: a fact the ledger holds shows on its row, so it is not still unknown.
+  // With no ledger the list is the brief's own, as before.
+  const stillUnknown = brief.still_unknown.filter((u) => !ledgerGiven.has(u.key));
   // T-372 / T-388: the Ink cost slot (loading, "Uses N Ink" or the notice)
   // always describes the confirm button. Confirm charges, so it waits for a
   // known cost (Arjun); like its other blockers it stays aria-disabled only.
@@ -628,7 +649,7 @@ export default function BriefStep({
 
   const focusFirstBlocker = () => {
     // T-363 AC1: the court and the parties come first, as before; then the dates.
-    if (brief.can_confirm && datesHeld) {
+    if (briefCanConfirm && datesHeld) {
       dateCheckContinue.current?.scrollIntoView({ block: 'center' });
       dateCheckContinue.current?.focus();
       return;
@@ -649,7 +670,7 @@ export default function BriefStep({
       el?.focus();
       return;
     }
-    const party = brief.items.find((i) => i.party_name && i.required && isEmptyValue(i.value));
+    const party = brief.items.find(partyMissing);
     if (party) focusField(party.key);
   };
 
@@ -821,9 +842,7 @@ export default function BriefStep({
                     key={item.key}
                     item={item}
                     ledger={ledger}
-                    needed={
-                      partiesNeeded && item.party_name && item.required && isEmptyValue(item.value)
-                    }
+                    needed={partiesNeeded && partyMissing(item)}
                     blocksConfirm={brief.kind.court_document && item.party_name && item.required}
                     onCommit={(v) => onValue(item, v)}
                     askedAnswer={askedAnswers?.[item.key]}
@@ -916,7 +935,7 @@ export default function BriefStep({
         )}
       </div>
 
-      {brief.still_unknown.length > 0 && (
+      {stillUnknown.length > 0 && (
         <section
           aria-labelledby="brief-unknown"
           className="border-brand-line bg-brand-page mt-4 rounded-xl border p-4 sm:p-5"
@@ -925,7 +944,7 @@ export default function BriefStep({
             Still unknown. These will be blanks in the draft.
           </h2>
           <ul className="mt-3 space-y-2">
-            {brief.still_unknown.map((u) => {
+            {stillUnknown.map((u) => {
               const field = brief.items.find((i) => i.key === u.key);
               const hasField = field !== undefined;
               return (
@@ -982,13 +1001,13 @@ export default function BriefStep({
         </section>
       )}
 
-      {!brief.can_confirm && brief.confirm_message && (
+      {confirmLine && (
         <button
           type="button"
           onClick={focusFirstBlocker}
           className="bg-brand-error-light text-brand-error focus-visible:ring-brand-teal mt-4 block w-full rounded-lg p-3 text-left text-sm font-semibold focus:outline-none focus-visible:ring-2"
         >
-          {brief.confirm_message}
+          {confirmLine}
         </button>
       )}
       {message && (

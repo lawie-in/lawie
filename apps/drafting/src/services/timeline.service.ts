@@ -11,6 +11,8 @@
  * T-367 (Ajay, signed 51175aa): the date of the first remand is day 1 (ED v. Kapil
  * Wadhawan). Last day = day 1 + 59 / + 89; default bail from day 1 + 60 / + 90.
  */
+import { normalizeDate } from '@lawie/shared';
+
 import {
   DEPENDS_BNSS_187,
   OLD_LAW_LINE,
@@ -175,13 +177,18 @@ export function chargesheetLine(lastDay: Date, defaultBailFrom: Date): string {
   return `Last day for the charge sheet: ${formatLegalDate(lastDay)}. If none is filed by then, default bail is available from ${formatLegalDate(defaultBailFrom)}.`;
 }
 
+/**
+ * T-496 (Ajay c585cf80, point 2): read the date with the shared reader, so a
+ * partial date ("June 2026", "2026-06") gives no date and nothing is computed;
+ * a day is never supplied. ISO from the date picker reads as before (UTC midnight).
+ */
 function parseDate(input: string | Date): Date {
   if (input instanceof Date) return input;
-  const d = new Date(input);
-  if (isNaN(d.getTime())) {
+  const n = normalizeDate(input);
+  if (!n.ok) {
     throw new Error(`Invalid date: ${input}`);
   }
-  return d;
+  return new Date(`${n.value}T00:00:00Z`);
 }
 
 /** Ajay (CLO), T-277 Q6: a non-offence is left out of the period, and the result says so. */

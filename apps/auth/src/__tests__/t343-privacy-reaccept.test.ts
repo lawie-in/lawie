@@ -81,6 +81,16 @@ describe('T-343 AC1/AC3 — GET /me for older, current and missing versions', ()
         hasPassword: true,
         // T-436: the GST State for tax invoices, null until the user gives one.
         gstStateCode: null,
+        // T-507: the profile fields, null / [] until given.
+        name: 'T343 Person',
+        phone: null,
+        enrollmentNumber: null,
+        barCouncil: null,
+        barCouncilState: null,
+        practiceAreas: [],
+        yearsOfExperience: null,
+        courtsPractisedIn: [],
+        defaultCourt: null,
       },
     });
     expect(res.headers['cache-control']).toBe('no-store');
@@ -99,6 +109,16 @@ describe('T-343 AC1/AC3 — GET /me for older, current and missing versions', ()
       hasGoogle: false,
       hasPassword: true,
       gstStateCode: null,
+      // T-507: the profile fields.
+      name: 'T343 Person',
+      phone: null,
+      enrollmentNumber: null,
+      barCouncil: null,
+      barCouncilState: null,
+      practiceAreas: [],
+      yearsOfExperience: null,
+      courtsPractisedIn: [],
+      defaultCourt: null,
     });
     expect(res.body.data).not.toHaveProperty('summary');
   });

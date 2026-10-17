@@ -294,7 +294,19 @@ describe('authenticateAllowRevoked is confined to /logout', () => {
     // T-223: POST /verify-email/resend also needs a live session (the public /verify-email does not).
     // T-115c: DELETE /me (close account) also needs a live session.
     // T-436: PATCH /me (set the GST State) also needs a live session.
-    expect(plain).toEqual(['/me', '/me', '/me', '/me/privacy-acceptance', '/verify-email/resend']);
+    // T-507: POST /me/password, GET /me/sessions, DELETE /me/sessions/:id and GET
+    // /me/privacy-history also need a live session.
+    expect(plain).toEqual([
+      '/me',
+      '/me',
+      '/me',
+      '/me/password',
+      '/me/privacy-acceptance',
+      '/me/privacy-history',
+      '/me/sessions',
+      '/me/sessions/:id',
+      '/verify-email/resend',
+    ]);
   });
 
   it('every other router that guards routes uses the session-checking authenticate', () => {
