@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Arjun (design or review), a lead (build) |
 | Mode   | Full chain |
-| Status | To do. V1 (Priya, 17 Oct 2026). Unassigned until Priya claims a lead |
+| Status | Merged into develop_staging 6cd9143f, 17 Oct (branch CI run 820 green; merge CI running). Follow-ups in T-515. Release: redeploy auth, no seed, no migration. Priya |
 | Files  | apps/auth (validator, controller, test); gateway allowlist if needed |
 | Source | V1 UI checklist, Arjun's code scan (17 Oct 2026) |
 
