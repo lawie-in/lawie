@@ -12,6 +12,7 @@ jest.mock('../config/razorpay', () => ({
     subscriptions: {
       create: jest.fn(),
       fetch: jest.fn(),
+      cancel: jest.fn(),
     },
   },
 }));
@@ -139,12 +140,13 @@ describe('subscription.service', () => {
       expect(mockedRazorpay.subscriptions.fetch).not.toHaveBeenCalled();
     });
 
-    it('returns the existing short_url if the user has an unfinished (created) checkout', async () => {
+    it('returns the existing short_url if the user has an unfinished (created) checkout for the same plan', async () => {
       const userId = new mongoose.Types.ObjectId().toString();
       await Subscription.create({
         userId,
         razorpaySubscriptionId: 'sub_existing',
         status: 'created',
+        planId: 'solo_monthly',
       });
       (mockedRazorpay.subscriptions.fetch as jest.Mock).mockResolvedValue({
         id: 'sub_existing',
@@ -156,6 +158,45 @@ describe('subscription.service', () => {
       expect(result.subscriptionId).toBe('sub_existing');
       expect(result.shortUrl).toBe('https://rzp.io/existing');
       expect(mockedRazorpay.subscriptions.create).not.toHaveBeenCalled();
+      expect(mockedRazorpay.subscriptions.cancel).not.toHaveBeenCalled();
+    });
+
+    // T-516 (Arjun): a checkout whose plan cannot be resolved (no stored planId,
+    // no notes or plan_id from Razorpay) is treated as different: cancel, then create.
+    it('cancels then creates when the unfinished checkout has an unknown plan (never planId "")', async () => {
+      const userId = new mongoose.Types.ObjectId().toString();
+      await Subscription.create({
+        userId,
+        razorpaySubscriptionId: 'sub_existing',
+        status: 'created',
+      });
+      (mockedRazorpay.subscriptions.fetch as jest.Mock).mockResolvedValue({
+        id: 'sub_existing',
+        short_url: 'https://rzp.io/existing',
+      });
+      (mockedRazorpay.subscriptions.cancel as jest.Mock).mockResolvedValue({});
+      (mockedRazorpay.subscriptions.create as jest.Mock).mockResolvedValue({
+        id: 'sub_replacement',
+        short_url: 'https://rzp.io/replacement',
+      });
+
+      const result = await createSubscription(userId, 'user@example.com');
+
+      expect(mockedRazorpay.subscriptions.cancel).toHaveBeenCalledWith('sub_existing', false);
+      expect(mockedRazorpay.subscriptions.create).toHaveBeenCalledTimes(1);
+      const cancelOrder = (mockedRazorpay.subscriptions.cancel as jest.Mock).mock
+        .invocationCallOrder[0];
+      const createOrder = (mockedRazorpay.subscriptions.create as jest.Mock).mock
+        .invocationCallOrder[0];
+      expect(cancelOrder).toBeLessThan(createOrder);
+      expect(result).toEqual({
+        subscriptionId: 'sub_replacement',
+        shortUrl: 'https://rzp.io/replacement',
+        planId: 'solo_monthly',
+      });
+      expect((await Subscription.findOne({ razorpaySubscriptionId: 'sub_existing' }))!.status).toBe(
+        'cancelled',
+      );
     });
   });
 

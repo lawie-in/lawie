@@ -120,6 +120,9 @@ router.post(
           status: err.status,
           planId: err.planId,
           paidThrough: err.paidThrough,
+          // T-516 (Arjun): past_due only; the live Razorpay link or null.
+          // Absent for any other state, so that body is unchanged.
+          ...(err.shortUrl !== undefined ? { shortUrl: err.shortUrl } : {}),
         });
         return;
       }
@@ -130,6 +133,7 @@ router.post(
       }
       // T-444c (Arjun ruling 2): the lapsed sub could not be cancelled at
       // Razorpay; nothing was changed and no new sub was created.
+      // T-516: same for a stale checkout for a different plan.
       if (err instanceof SubscriptionCancelFailedError) {
         res.status(503).json({ error: 'try_again' });
         return;

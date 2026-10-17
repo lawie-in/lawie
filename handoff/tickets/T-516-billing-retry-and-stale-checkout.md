@@ -1,12 +1,12 @@
 # T-516: Retry a failed payment, and stop choosing Pro landing on a Solo checkout
 
-| Field  | Value |
-| ------ | ----- |
-| Phase  | 4 — Polish and release |
-| Owner  | Arjun (design), a billing lead (build) |
-| Mode   | Full chain (billing service, billing) |
+| Field  | Value                                   |
+| ------ | --------------------------------------- |
+| Phase  | 4 — Polish and release                  |
+| Owner  | Arjun (design), a billing lead (build)  |
+| Mode   | Full chain (billing service, billing)   |
 | Status | In build: Shashank (17 Oct 2026). Priya |
-| Source | T-509 known gaps |
+| Source | T-509 known gaps                        |
 
 ## Problem
 
@@ -23,4 +23,42 @@
 6. Web: once AC1 ships, a small follow-up adds the Retry button to the payment-failed banner (separate web ticket; not part of this one).
 
 ## Out of scope
+
 Proration, plan switching rules (cancel at cycle end, then buy), refunds.
+
+## Sandbox check
+
+**NOT RUN — no sandbox access in the dev crew. Founder/Vikram action in Razorpay test mode. Release to prod waits on both answers being recorded here.**
+
+### Check (i): does a halted/pending sub's short_url still let the user retry payment?
+
+1. In Razorpay test mode, create a subscription for a test plan and authenticate it with a test card that fails recurring charges. Alternatively, use the dashboard to move a test subscription to `halted` or `pending`.
+2. Open that subscription's `short_url` in a browser.
+3. Try to pay with a working test card.
+4. Record: did the page allow payment, and did the subscription return to `active`?
+
+What each outcome means for the code:
+
+- YES (payment allowed, sub back to active): the 409 `shortUrl` is useful as built. Nothing to change.
+- NO (page refuses payment, or the sub stays halted/pending): billing still behaves as designed, but it returns a link that will not help. The follow-up web ticket must not show Retry when payment cannot proceed. Arjun's ruling says `shortUrl` stays null and the web copy covers it. If the answer is NO, that needs a small code change to suppress the link for those states.
+
+Result:
+Date:
+By:
+
+### Check (ii): does `subscriptions.cancel(id, false)` succeed on `created` and `authenticated` subs?
+
+1. In test mode, create a subscription through the API and do not pay it (status `created`).
+2. Call `cancel(id, false)` (via the API or the dashboard).
+3. Record the response and the final status of the subscription.
+4. Repeat with a subscription that has been authenticated (status `authenticated`).
+
+What each outcome means for the code:
+
+- Both succeed: the stale-checkout path works as built.
+- `created` is rejected: billing returns 503 `try_again` to a user switching plans from a fresh checkout, every time. Per Arjun, this maps to the 503 path and needs a dashboard note plus a follow-up fix.
+- `authenticated` is rejected: same effect for that state. Record the exact error text.
+
+Result:
+Date:
+By:
