@@ -132,8 +132,9 @@ describe('T-436 PATCH /me', () => {
   });
 
   it.each([
-    ['an unknown extra field', { gstStateCode: '07', name: 'Mallory' }],
-    ['only another field', { name: 'Mallory' }],
+    // T-507: name is now a valid field, so an unknown one stands in here.
+    ['an unknown extra field', { gstStateCode: '07', nickname: 'Mallory' }],
+    ['only an unknown field', { nickname: 'Mallory' }],
     ['a role field', { gstStateCode: '07', role: 'admin' }],
     ['an empty body', {}],
     ['a bad code', { gstStateCode: '99' }],
