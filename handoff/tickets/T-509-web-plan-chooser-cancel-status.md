@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Rajesh (design), Ajay (copy) (design or review), a lead (build) |
 | Mode   | Full chain |
-| Status | To do. V1 (Priya, 17 Oct 2026). Unassigned until Priya claims a lead |
+| Status | Merged into develop_staging 500a2a65 (17 Oct 2026). Follow-ups: T-516 (billing retry), Retry button web follow-up. Priya |
 | Files  | apps/web (settings page, PlanUpgrade, new components) after Rajesh's design |
 | Source | V1 UI checklist, Arjun's code scan (17 Oct 2026) |
 
