@@ -1,7 +1,7 @@
 'use client';
 
 import { CheckCircle2, Loader2, Tag, Zap, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { GstStatePicker } from '@/components/billing/GstStatePicker';
 import {
@@ -66,15 +66,51 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
   } | null>(null);
   const [couponError, setCouponError] = useState('');
 
-  useEffect(() => {
-    (async () => {
+  // T-510: the plans list has its own state, separate from the order `error` below. A failed
+  // or non-OK request, or an empty list, shows the failed line with Retry (copy T-511 §4.6/§5),
+  // never a forever spinner.
+  const [plansStatus, setPlansStatus] = useState<'loading' | 'error' | 'ok'>('loading');
+  const mountedRef = useRef(true);
+
+  const loadPlans = useCallback(async () => {
+    setPlansStatus('loading');
+    try {
       const res = await apiFetch('/api/billing/plans');
-      if (res.ok) {
-        const body = await res.json();
-        setSkus(body.topups ?? []);
+      if (!res?.ok) throw new Error('plans request failed');
+      const body = (await res.json()) as { topups?: unknown };
+      if (!Array.isArray(body?.topups) || body.topups.length === 0) {
+        throw new Error('plans body has no topups');
       }
-    })();
+      if (!mountedRef.current) return;
+      setSkus(body.topups as TopupSku[]);
+      setPlansStatus('ok');
+    } catch {
+      if (mountedRef.current) setPlansStatus('error');
+    }
   }, []);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    void loadPlans();
+    return () => {
+      mountedRef.current = false;
+    };
+  }, [loadPlans]);
+
+  // T-510: Retry unmounts while the list reloads, so focus would fall to <body>. Once the
+  // reload settles, put focus back on Retry (failed again) or on the first pack (loaded).
+  const retryRef = useRef<HTMLButtonElement>(null);
+  const firstSkuRef = useRef<HTMLButtonElement>(null);
+  const refocusAfterRetry = useRef(false);
+  const handleRetryPlans = () => {
+    refocusAfterRetry.current = true;
+    void loadPlans();
+  };
+  useEffect(() => {
+    if (!refocusAfterRetry.current || plansStatus === 'loading') return;
+    refocusAfterRetry.current = false;
+    (plansStatus === 'error' ? retryRef.current : firstSkuRef.current)?.focus();
+  }, [plansStatus]);
 
   const selected = skus.find((s) => s.id === selectedId);
 
@@ -208,15 +244,35 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
 
         {/* SKU list */}
         <div className="space-y-2 px-6 py-5">
-          {skus.length === 0 && (
-            <div className="flex items-center justify-center gap-2 py-6 text-sm text-slate-400">
+          {plansStatus === 'loading' && (
+            <div
+              role="status"
+              className="flex items-center justify-center gap-2 py-6 text-sm text-slate-400"
+            >
               <Loader2 size={14} className="animate-spin" />
               Loading packs…
             </div>
           )}
-          {skus.map((sku) => (
+          {plansStatus === 'error' && (
+            <div
+              role="alert"
+              className="border-brand-error bg-brand-error-light flex items-center justify-between gap-3 rounded-xl border px-4 py-3"
+            >
+              <p className="text-brand-error text-sm">Could not load top-up plans.</p>
+              <button
+                type="button"
+                ref={retryRef}
+                onClick={handleRetryPlans}
+                className="border-brand-error text-brand-error focus-visible:ring-brand-teal inline-flex min-h-[44px] items-center rounded-lg border bg-white px-4 text-sm font-medium focus:outline-none focus-visible:ring-2"
+              >
+                Retry
+              </button>
+            </div>
+          )}
+          {skus.map((sku, i) => (
             <button
               key={sku.id}
+              ref={i === 0 ? firstSkuRef : undefined}
               type="button"
               onClick={() => {
                 setSelectedId(sku.id);
