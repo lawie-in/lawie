@@ -198,11 +198,14 @@ describe('Billing Routes', () => {
         const res = await request(app).post('/subscribe').set(headers);
 
         expect(res.status).toBe(409);
+        // T-516: past_due states (pending/halted/paused, still paid) also carry
+        // shortUrl (null here: the fetch mock returns nothing); active has no key.
         expect(res.body).toEqual({
           error: 'subscription_exists',
           status,
           planId: 'solo_monthly',
           paidThrough: paidThrough.toISOString(),
+          ...(status === 'active' ? {} : { shortUrl: null }),
         });
         expect(razorpay.subscriptions.create).not.toHaveBeenCalled();
       },

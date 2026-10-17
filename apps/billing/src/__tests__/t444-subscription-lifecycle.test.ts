@@ -736,8 +736,11 @@ describe('T-444 AC6: createSubscription reuse rules', () => {
     },
   );
 
+  // T-516 (Priya approved rewriting the old assertion, which pinned the bug of
+  // handing back another plan's checkout): the same plan is reused; a different
+  // plan cancels the stale checkout and creates one for the plan asked for.
   it.each(['created', 'authenticated'] as const)(
-    'a %s sub is reused with its existing short_url and planId, not the requested one',
+    'a %s sub for the same plan is reused with its existing short_url and planId',
     async (status) => {
       const userId = new mongoose.Types.ObjectId().toString();
       await Subscription.create({
@@ -751,7 +754,7 @@ describe('T-444 AC6: createSubscription reuse rules', () => {
         short_url: 'https://rzp.io/checkout',
       });
 
-      const r = await createSubscription(userId, 'a@example.com', 'solo_yearly');
+      const r = await createSubscription(userId, 'a@example.com', 'solo_monthly');
 
       expect(r).toEqual({
         subscriptionId: 'sub_checkout',
@@ -759,10 +762,35 @@ describe('T-444 AC6: createSubscription reuse rules', () => {
         planId: 'solo_monthly',
       });
       expect(razorpay.subscriptions.create).not.toHaveBeenCalled();
+      expect(razorpay.subscriptions.cancel).not.toHaveBeenCalled();
     },
   );
 
-  it('a legacy created sub with no stored planId reports the plan from the Razorpay notes', async () => {
+  it.each(['created', 'authenticated'] as const)(
+    'a %s sub for a different plan is cancelled and replaced by one for the requested plan',
+    async (status) => {
+      const userId = new mongoose.Types.ObjectId().toString();
+      await Subscription.create({
+        userId,
+        razorpaySubscriptionId: 'sub_checkout',
+        status,
+        planId: 'solo_monthly',
+      });
+      mockNewSub();
+
+      const r = await createSubscription(userId, 'a@example.com', 'solo_yearly');
+
+      expect(r).toEqual({
+        subscriptionId: 'sub_new',
+        shortUrl: 'https://rzp.io/new',
+        planId: 'solo_yearly',
+      });
+      expect(razorpay.subscriptions.cancel).toHaveBeenCalledWith('sub_checkout', false);
+      expect((await getSub('sub_checkout'))!.status).toBe('cancelled');
+    },
+  );
+
+  it('a legacy created sub with no stored planId uses the plan from the Razorpay notes (same plan: reused)', async () => {
     const userId = new mongoose.Types.ObjectId().toString();
     await Subscription.create({
       userId,
@@ -774,8 +802,29 @@ describe('T-444 AC6: createSubscription reuse rules', () => {
       short_url: 'https://rzp.io/legacy',
       notes: { planId: 'solo_monthly' },
     });
-    const r = await createSubscription(userId, 'a@example.com', 'solo_yearly');
+    const r = await createSubscription(userId, 'a@example.com', 'solo_monthly');
     expect(r.planId).toBe('solo_monthly');
+    expect(r.shortUrl).toBe('https://rzp.io/legacy');
+    expect(razorpay.subscriptions.create).not.toHaveBeenCalled();
+  });
+
+  it('a legacy created sub whose notes name another plan is cancelled and replaced', async () => {
+    const userId = new mongoose.Types.ObjectId().toString();
+    await Subscription.create({
+      userId,
+      razorpaySubscriptionId: 'sub_legacy',
+      status: 'created',
+    });
+    (razorpay.subscriptions.fetch as jest.Mock).mockResolvedValue({
+      id: 'sub_legacy',
+      short_url: 'https://rzp.io/legacy',
+      notes: { planId: 'solo_monthly' },
+    });
+    mockNewSub();
+    const r = await createSubscription(userId, 'a@example.com', 'solo_yearly');
+    expect(razorpay.subscriptions.cancel).toHaveBeenCalledWith('sub_legacy', false);
+    expect(r.subscriptionId).toBe('sub_new');
+    expect(r.planId).toBe('solo_yearly');
   });
 
   it('a new subscription stores the requested planId', async () => {
@@ -1384,7 +1433,9 @@ describe('T-444c: create lock and Razorpay cancel of a lapsed sub', () => {
         name: 'SubscriptionExistsError',
       });
       expect(cancelMock()).not.toHaveBeenCalled();
-      expect(fetchMock()).not.toHaveBeenCalled();
+      // T-516: a still-paid halted/paused/pending sub is past_due, so the 409
+      // fetches its link (a read); nothing is cancelled or created.
+      expect(createMock()).not.toHaveBeenCalled();
       expect((await getSub('sub_paid'))!.status).toBe(status);
     },
   );

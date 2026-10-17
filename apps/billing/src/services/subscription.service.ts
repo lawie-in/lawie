@@ -67,17 +67,25 @@ export class SubscriptionExistsError extends Error {
   readonly status: SubscriptionStatus;
   readonly planId: string | null;
   readonly paidThrough: Date | null;
+  /**
+   * T-516 (Arjun): set only when the existing sub is past_due: the live
+   * Razorpay payment link, or null if it could not be fetched. Left undefined
+   * for any other state, and the route then sends no shortUrl key.
+   */
+  readonly shortUrl?: string | null;
 
   constructor(existing: {
     status: SubscriptionStatus;
     planId: string | null;
     paidThrough: Date | null;
+    shortUrl?: string | null;
   }) {
     super('subscription_exists');
     this.name = 'SubscriptionExistsError';
     this.status = existing.status;
     this.planId = existing.planId;
     this.paidThrough = existing.paidThrough;
+    if (existing.shortUrl !== undefined) this.shortUrl = existing.shortUrl;
   }
 }
 
@@ -124,10 +132,20 @@ export class RazorpayTimeoutError extends Error {
   }
 }
 
-function withRazorpayTimeout<T>(op: string, call: Promise<T>): Promise<T> {
+/**
+ * T-516 (Arjun): bound on the live fetch of a past_due sub's payment link for
+ * the 409 body. Short, because a failure only drops the link (null).
+ */
+export const PAST_DUE_LINK_TIMEOUT_MS = 2_000;
+
+function withRazorpayTimeout<T>(
+  op: string,
+  call: Promise<T>,
+  timeoutMs: number = RAZORPAY_CALL_TIMEOUT_MS,
+): Promise<T> {
   let timer: NodeJS.Timeout | undefined;
   const timeout = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => reject(new RazorpayTimeoutError(op)), RAZORPAY_CALL_TIMEOUT_MS);
+    timer = setTimeout(() => reject(new RazorpayTimeoutError(op)), timeoutMs);
   });
   return Promise.race([call, timeout]).finally(() => clearTimeout(timer));
 }
@@ -162,15 +180,42 @@ async function cancelLapsedAtRazorpay(
   userId: string,
   razorpaySubscriptionId: string,
 ): Promise<void> {
+  return cancelNowAtRazorpay(userId, razorpaySubscriptionId, {
+    cancelled: 'Lapsed subscription cancelled at Razorpay on resubscribe',
+    alreadyEnded: 'Lapsed subscription already ended at Razorpay on resubscribe',
+    failed: 'Razorpay cancel of lapsed subscription failed; not resubscribing',
+  });
+}
+
+/**
+ * T-516 (Arjun): cancel an unfinished checkout for a different plan before a
+ * new sub is created for the plan asked for. Same semantics as the lapsed
+ * cancel (T-444c): a throw is followed by a fetch, an already-ended Razorpay
+ * status counts as success, anything else throws SubscriptionCancelFailedError.
+ */
+async function cancelStaleCheckoutAtRazorpay(
+  userId: string,
+  razorpaySubscriptionId: string,
+): Promise<void> {
+  return cancelNowAtRazorpay(userId, razorpaySubscriptionId, {
+    cancelled: 'Stale checkout cancelled at Razorpay for a different plan',
+    alreadyEnded: 'Stale checkout already ended at Razorpay for a different plan',
+    failed: 'Razorpay cancel of stale checkout failed; not creating new subscription',
+  });
+}
+
+/** T-444c / T-516: the shared immediate cancel (cancel_at_cycle_end false). */
+async function cancelNowAtRazorpay(
+  userId: string,
+  razorpaySubscriptionId: string,
+  messages: { cancelled: string; alreadyEnded: string; failed: string },
+): Promise<void> {
   try {
     await withRazorpayTimeout(
       'cancel',
       razorpay.subscriptions.cancel(razorpaySubscriptionId, false),
     );
-    logger.info(
-      { userId, subscriptionId: razorpaySubscriptionId },
-      'Lapsed subscription cancelled at Razorpay on resubscribe',
-    );
+    logger.info({ userId, subscriptionId: razorpaySubscriptionId }, messages.cancelled);
     return;
   } catch (cancelErr) {
     let rzpStatus: unknown;
@@ -186,7 +231,7 @@ async function cancelLapsedAtRazorpay(
     if (typeof rzpStatus === 'string' && RAZORPAY_ENDED_STATUSES.includes(rzpStatus)) {
       logger.info(
         { userId, subscriptionId: razorpaySubscriptionId, rzpStatus },
-        'Lapsed subscription already ended at Razorpay on resubscribe',
+        messages.alreadyEnded,
       );
       return;
     }
@@ -197,10 +242,34 @@ async function cancelLapsedAtRazorpay(
         rzpStatus: typeof rzpStatus === 'string' ? rzpStatus : null,
         errName: cancelErr instanceof Error ? cancelErr.name : typeof cancelErr,
       },
-      'Razorpay cancel of lapsed subscription failed; not resubscribing',
+      messages.failed,
     );
     throw new SubscriptionCancelFailedError();
   }
+}
+
+/**
+ * T-516 (Arjun): the live payment link of a past_due sub, fetched from Razorpay
+ * each time (never cached, never stored). Any failure (timeout, throw, no
+ * short_url) gives null and one ops log line with the subscription id only.
+ */
+async function fetchPastDueShortUrl(razorpaySubscriptionId: string): Promise<string | null> {
+  try {
+    const rzpSub = (await withRazorpayTimeout(
+      'fetch',
+      razorpay.subscriptions.fetch(razorpaySubscriptionId),
+      PAST_DUE_LINK_TIMEOUT_MS,
+    )) as unknown as Record<string, unknown> | null | undefined;
+    const shortUrl = rzpSub?.short_url;
+    if (typeof shortUrl === 'string' && shortUrl.length > 0) return shortUrl;
+  } catch {
+    // Falls through to the single log line below.
+  }
+  logger.warn(
+    { subscriptionId: razorpaySubscriptionId },
+    'billing.subscription.past_due_link_unavailable',
+  );
+  return null;
 }
 
 /**
@@ -268,11 +337,23 @@ async function createSubscriptionLocked(
       userId,
       status: { $in: LIVE_STATUSES },
     }).sort({ createdAt: -1 });
-  const refuse = (s: NonNullable<Awaited<ReturnType<typeof findLive>>>): never => {
-    throw new SubscriptionExistsError({
+  // T-516 (Arjun): a past_due sub's 409 also carries its live payment link
+  // (or null). Any other state keeps the body as before (no shortUrl key).
+  // Ownership: the sub was looked up by the authenticated userId.
+  const existsError = async (
+    s: NonNullable<Awaited<ReturnType<typeof findLive>>>,
+  ): Promise<SubscriptionExistsError> => {
+    const fields = {
       status: s.status,
       planId: s.planId ?? null,
       paidThrough: s.paidThrough ?? s.currentPeriodEnd ?? null,
+    };
+    if (subscriptionState(s, new Date()) !== 'past_due') {
+      return new SubscriptionExistsError(fields);
+    }
+    return new SubscriptionExistsError({
+      ...fields,
+      shortUrl: await fetchPastDueShortUrl(s.razorpaySubscriptionId),
     });
   };
   const live = await findLive();
@@ -283,7 +364,7 @@ async function createSubscriptionLocked(
     // negation of stillPaidFilter) and a new sub is created. The user's plan
     // and Ink are left to the lazy expiry. The write itself decides lapsed, so
     // the 409 and the lazy expiry share one definition.
-    if (!(LAPSABLE_STATUSES as string[]).includes(live.status)) refuse(live);
+    if (!(LAPSABLE_STATUSES as string[]).includes(live.status)) throw await existsError(live);
     // T-444c (Arjun ruling 2): cancel at Razorpay before the local expire, and
     // only once the sub reads as lapsed (same filter as the write), so a sub
     // still paid is never cancelled. A failed cancel throws before any write.
@@ -303,7 +384,7 @@ async function createSubscriptionLocked(
       const afterCancel = await Subscription.findById(live._id);
       if (afterCancel?.status === 'active') {
         reportCancelledPaidSub(live.razorpaySubscriptionId);
-        refuse(afterCancel);
+        throw await existsError(afterCancel);
       }
     }
     const expired = await Subscription.updateOne(lapsedFilter, {
@@ -323,33 +404,77 @@ async function createSubscriptionLocked(
         if (cancelledAtRazorpay && reread._id.equals(live._id) && reread.status === 'active') {
           reportCancelledPaidSub(live.razorpaySubscriptionId);
         }
-        refuse(reread);
+        throw await existsError(reread);
       }
     }
   }
 
-  // Checkout not finished: hand back the existing sub's link and its own plan,
-  // never the requested one.
+  // Checkout not finished. T-516 (Arjun): for the same plan, hand back the
+  // existing sub's link (no duplicate sub). For a different plan, cancel the
+  // stale checkout at Razorpay, mark it cancelled locally, then create a new
+  // sub for the plan asked for. Never subscriptions.update(plan_id).
   const existing = await Subscription.findOne({
     userId,
     status: { $in: CHECKOUT_STATUSES },
   }).sort({ createdAt: -1 });
   if (existing) {
-    const rzpSub = (await razorpay.subscriptions.fetch(
-      existing.razorpaySubscriptionId,
-    )) as unknown as Record<string, unknown>;
-    const rzpNotes = rzpSub.notes as Record<string, unknown> | undefined;
-    const rzpPlanId = typeof rzpSub.plan_id === 'string' ? rzpSub.plan_id : undefined;
-    const existingPlanId =
-      existing.planId ??
-      (typeof rzpNotes?.planId === 'string' ? rzpNotes.planId : undefined) ??
-      (rzpPlanId ? findPlanByRazorpayId(rzpPlanId)?.id : undefined) ??
-      '';
-    return {
-      subscriptionId: existing.razorpaySubscriptionId,
-      shortUrl: (rzpSub.short_url as string) ?? '',
-      planId: existingPlanId,
-    };
+    // A stored planId decides without a Razorpay call; older rows without one
+    // fall back to the Razorpay notes / plan_id, as before.
+    let rzpSub: Record<string, unknown> | undefined;
+    let existingPlanId = existing.planId ?? undefined;
+    if (!existingPlanId) {
+      rzpSub = (await withRazorpayTimeout(
+        'fetch',
+        razorpay.subscriptions.fetch(existing.razorpaySubscriptionId),
+      )) as unknown as Record<string, unknown>;
+      const rzpNotes = rzpSub.notes as Record<string, unknown> | undefined;
+      const rzpPlanId = typeof rzpSub.plan_id === 'string' ? rzpSub.plan_id : undefined;
+      existingPlanId =
+        (typeof rzpNotes?.planId === 'string' ? rzpNotes.planId : undefined) ??
+        (rzpPlanId ? findPlanByRazorpayId(rzpPlanId)?.id : undefined);
+    }
+
+    if (existingPlanId === planSku.id) {
+      rzpSub ??= (await withRazorpayTimeout(
+        'fetch',
+        razorpay.subscriptions.fetch(existing.razorpaySubscriptionId),
+      )) as unknown as Record<string, unknown>;
+      return {
+        subscriptionId: existing.razorpaySubscriptionId,
+        shortUrl: (rzpSub.short_url as string) ?? '',
+        planId: existingPlanId,
+      };
+    }
+
+    // Different (or unknown) plan: a failed cancel throws (503 try_again)
+    // before any local write or create.
+    await cancelStaleCheckoutAtRazorpay(userId, existing.razorpaySubscriptionId);
+    const staleCancelled = await Subscription.updateOne(
+      { _id: existing._id, status: { $in: CHECKOUT_STATUSES } },
+      { $set: { status: 'cancelled', cancelledAt: new Date() } },
+    );
+    if (staleCancelled.matchedCount > 0) {
+      logger.info(
+        {
+          userId,
+          subscriptionId: existing.razorpaySubscriptionId,
+          stalePlanId: existingPlanId ?? null,
+          planId: planSku.id,
+        },
+        'Stale checkout cancelled locally; creating subscription for requested plan',
+      );
+    } else {
+      // The checkout changed under us (a webhook landed). If it, or any sub,
+      // is now live, no new sub is created (AC4); a checkout that turned
+      // active was paid and is now cancelled at Razorpay: report it.
+      const reread = await findLive();
+      if (reread) {
+        if (reread._id.equals(existing._id) && reread.status === 'active') {
+          reportCancelledPaidSub(existing.razorpaySubscriptionId);
+        }
+        throw await existsError(reread);
+      }
+    }
   }
 
   // T-444c: bounded; a timeout throws (500), and no local row is written.
