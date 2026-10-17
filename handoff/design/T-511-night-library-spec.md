@@ -16,7 +16,7 @@ Every string in this spec is placeholder copy until Meera and Madhuri write it a
 
 A chambers library after hours. Deep green walls, brass and oxblood, one reading lamp. The advocate's documents are books on a shelf. Drafting happens on a lit folio: the description is typed, ink drains from the well while Lawie works, the pen writes the draft in, and a brass seal lands when the advocate finalises.
 
-Daylight is the same room with the curtains open, not an inverted palette. Both themes ship. **Default: follow the system theme; a Night/Daylight toggle sits in the top bar and in Settings.** (Pending Priya's confirmation; dark forced is the alternative.)
+Daylight is the same room with the curtains open, not an inverted palette. Both themes ship. **Default: follow the system theme; a Night / Daylight / System toggle sits in the top bar and in Settings, and the choice is remembered** (localStorage, and on the user record once T-507 lands). Dark is never forced (Priya, 17 Oct 2026). Daylight is a full design at AA contrast, and the landing page is checked in both themes before Anushka's pass.
 
 ## 2. Tokens, one source of truth
 
@@ -74,7 +74,8 @@ Hindi: `lang="hi"` on the root switches nothing in CSS (Mukta carries both scrip
 | --- | --- | --- | --- |
 | hover lift | 150ms | ease | none |
 | focus halo | 150ms | ease | instant |
-| lamp follow | 120ms | linear, pointer only, desktop only | static pool at 70% 20% |
+| lamp follow | 120ms | linear; only when `(pointer: fine)` and width ≥ 900 | static pool at 70% 20% |
+| dust motes | 12–20s drift loop, 6–10 motes, opacity ≤ .25 | linear; `(pointer: fine)` and width ≥ 900 only; CSS or a 1 KB canvas | none |
 | ink drain | 2.6s | linear, matches the generate request | static at 60% |
 | pen writing | 12-14ms per character, 220ms between paragraphs; 9ms on mobile | linear | draft appears whole |
 | brass seal | 550ms | cubic-bezier(.2,.9,.3,1.2), scale 2.2 to 1, rotate -20 to -8 | fade 150ms |
@@ -82,7 +83,7 @@ Hindi: `lang="hi"` on the root switches nothing in CSS (Mukta carries both scrip
 | skeleton pulse | 1.4s | ease-in-out loop | static |
 | toast in/out | 200ms | ease | fade |
 
-Mobile cap (`max-width: 640px`): no lamp follow, no spine hover, no pen cursor, typing speed 9ms, seal and flip durations halved. `prefers-reduced-motion: reduce` disables all of the above and shows end states. All effects are CSS or a small canvas; no motion library.
+Mobile cap (`max-width: 640px` or no fine pointer): no lamp follow, no dust motes, no spine hover, no pen cursor; the lamp pool stays fixed at the top, the inkwell gauge, the spine slide-in and the seal stay. Typing speed 9ms, seal and flip durations halved. `prefers-reduced-motion: reduce` disables all of the above and shows end states. Every loop (ink drain, typing, motes, skeleton pulse) pauses on `visibilitychange` when the tab is hidden and resumes on return. All effects are CSS or a small canvas; no motion library.
 
 ### 2.5 Focus and keyboard
 
