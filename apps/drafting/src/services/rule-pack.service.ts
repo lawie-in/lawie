@@ -1879,6 +1879,8 @@ export const FIELD_ALIASES: Readonly<Record<string, string>> = Object.freeze({
   advocate_enrolment: 'advocate_enrollment',
   // T-451 alias, remove in the post-v1 cleanup
   bhajan_lal_categories_invoked: 'quashing_categories_invoked',
+  // T-489 alias, remove in the post-v1 cleanup
+  statutory_duty: 'statute_invoked',
 });
 
 /**
@@ -1887,7 +1889,11 @@ export const FIELD_ALIASES: Readonly<Record<string, string>> = Object.freeze({
  * 2026, T-451). `advocate_enrolment` is not listed: T-382 keeps the old key.
  */
 // T-451 alias, remove in the post-v1 cleanup
-const REPLACED_FIELD_ALIAS_KEYS: ReadonlySet<string> = new Set(['bhajan_lal_categories_invoked']);
+const REPLACED_FIELD_ALIAS_KEYS: ReadonlySet<string> = new Set([
+  'bhajan_lal_categories_invoked',
+  // T-489 alias, remove in the post-v1 cleanup
+  'statutory_duty',
+]);
 
 /**
  * Stored option ids renamed by Ajay (T-245 file, T-451 answers, db89fdde):
