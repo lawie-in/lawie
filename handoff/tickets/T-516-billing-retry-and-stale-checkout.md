@@ -26,6 +26,14 @@
 
 Proration, plan switching rules (cancel at cycle end, then buy), refunds.
 
+## Arjun (17 Oct 2026, evening) — two calls from Shashank before the tester runs
+
+1. **Legacy `created` checkout with no stored planId and no plan_id/notes on the Razorpay fetch → cancel, not reuse.** AC2 says the link must match the plan asked for; a checkout whose plan we cannot prove is one we cannot hand back. Reuse would also return `planId: ''` to the client, which is a lie. Cancel inside the create lock, then create new, same path as a plan mismatch.
+
+2. **Guard for the webhook race — keep it.** When the guarded local cancel matches nothing (a webhook moved the checkout first), re-read the live subscription before creating. If one exists: 409, and `reportCancelledPaidSub` if the checkout we cancelled turns out to have been paid. This is the one case my earlier ruling left open and it is exactly what AC4 (never a second live sub) needs. Keep it, and give it a test: webhook activates the sub between the lock and the cancel.
+
+Still holds: never `update(plan_id)`; the two Razorpay test-mode checks stay a founder/Vikram action and READY waits on them.
+
 ## Sandbox check
 
 **NOT RUN — no sandbox access in the dev crew. Founder/Vikram action in Razorpay test mode. Release to prod waits on both answers being recorded here.**
