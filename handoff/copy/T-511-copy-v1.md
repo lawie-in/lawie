@@ -23,8 +23,8 @@ Conventions: `{braces}` are variables filled by code. `[HI]` means a Hindi (Deva
 | 6 | Priya | Switching plans: spec says cancel at cycle end, then buy. My text tells the user that plainly (section 4.4). Confirm this is the real flow. |
 | 7 | Priya | Default court field: I say it fills the court name in new drafts. Confirm that is what the product does. |
 | 8 | Priya | I removed the old FAQ line "Most documents use 2 Ink, short documents 1" (brief says no draft counts). The cost is shown before generating. Confirm the app shows it. |
-| 10 | Ajay | Sign-up "account exists" message replaced by a neutral line (2.4). [AJAY TO RULE] |
-| 11 | Ajay | "Keep Ink cost before generate" and "failed generation is not charged" claims are tagged [AJAY TO SIGN, T-388 AC4] wherever they appear. |
+| 10 | Done | Sign-up with an existing email shows the same screen as a new sign-up; the page never says an account exists (AJ-511-M3, signed). |
+| 11 | Arjun | AJ-511-M1 and M2 are signed by Ajay on conditions only Arjun can confirm: shown cost = charged cost (T-388 AC4 live), and no Ink debited for a failed generation. Tagged [PENDING ARJUN]. If M1's condition fails, strike the line. |
 | 9 | Ajay | Hindi wording for the disclaimer and trust block needs a legal read, not only a language read. |
 
 ---
@@ -102,7 +102,7 @@ Section title: `How it works` / HI `यह कैसे काम करता �
 | --- | --- | --- |
 | 1 EN | `Describe` | `Tell Lawie about the matter in your own words. If something is missing, it asks a few short questions.` |
 | 1 HI | `बताइए` | `अपने शब्दों में मामला बताइए। कुछ कम हो तो Lawie कुछ छोटे सवाल पूछता है।` |
-| 2 EN | `Draft` | `Lawie writes a first draft of the document you chose. You see the Ink cost before it starts.` [AJAY TO SIGN, T-388 AC4] |
+| 2 EN | `Draft` | `Lawie writes a first draft of the document you chose. You see the Ink cost before you generate.` [PENDING ARJUN, AJ-511-M1: signed if T-388 AC4 is live and shown cost = charged cost] |
 | 2 HI | `ड्राफ़्ट` | `आपके चुने हुए दस्तावेज़ का पहला ड्राफ़्ट Lawie लिखता है। शुरू होने से पहले आपको Ink की लागत दिख जाती है।` |
 | 3 EN | `Review` | `Read every paragraph and edit what you need. A checks panel lists items for you to review. Finalise when you are satisfied.` |
 | 3 HI | `जाँचिए` | `हर अनुच्छेद पढ़िए और जो बदलना हो बदलिए। जाँच पैनल उन बातों की सूची देता है जिन्हें आपको देखना है। संतुष्ट हों तभी अंतिम कीजिए।` |
@@ -124,9 +124,9 @@ Checked against apps/drafting/src/config/document-rules: rule files exist for ba
 
 Section title EN: `Ink and prices` / HI: `Ink और कीमतें`
 
-Intro EN: `Ink is what a draft costs. You see the cost before you generate. A failed generation is not charged.` [AJAY TO SIGN, T-388 AC4] (100 chars)
+Intro EN: `Ink is what a draft costs. You see the Ink cost before you generate. If a draft fails to generate, no Ink is used.` [PENDING ARJUN, AJ-511-M1: signed if T-388 AC4 is live and shown cost = charged cost] [PENDING ARJUN, AJ-511-M2: signed wording; billing never debits a failed generation] (100 chars)
 
-Intro HI: `Ink वह इकाई है जिसमें ड्राफ़्ट की लागत गिनी जाती है। ड्राफ़्ट बनाने से पहले लागत दिखती है। जो ड्राफ़्ट पूरा नहीं बनता, उसका Ink नहीं कटता।` [AJAY TO SIGN, T-388 AC4] (138 chars)
+Intro HI: `Ink वह इकाई है जिसमें ड्राफ़्ट की लागत गिनी जाती है। ड्राफ़्ट बनाने से पहले आपको Ink की लागत दिखती है। अगर ड्राफ़्ट नहीं बन पाता, तो कोई Ink उपयोग नहीं होता।` [PENDING ARJUN, AJ-511-M1: signed if T-388 AC4 is live and shown cost = charged cost] [PENDING ARJUN, AJ-511-M2: signed wording; billing never debits a failed generation] [HI wording mine; Ajay to read] (138 chars)
 
 Plan cards:
 
@@ -199,7 +199,7 @@ Paragraph 3, privacy:
 
 **Q1 EN: `What is Ink?`**
 
-A: `Ink is Lawie's credit unit. You see the Ink cost before you generate a draft [AJAY TO SIGN, T-388 AC4], and you are charged only after the draft is generated. A failed generation is not charged [AJAY TO SIGN, T-388 AC4]. The Free plan gives you 5 Ink on sign-up, once your email is verified (lifetime). Paid plans give you fresh Ink every month. Plan Ink left unused at the end of the month does not carry over. Top-up packs can be bought anytime, and top-up Ink never expires.`
+A: `Ink is Lawie's credit unit. You see the Ink cost before you generate. [PENDING ARJUN, AJ-511-M1: signed if T-388 AC4 is live and shown cost = charged cost] If a draft fails to generate, no Ink is used. [PENDING ARJUN, AJ-511-M2: signed wording; billing never debits a failed generation] The Free plan gives you 5 Ink on sign-up, once your email is verified (lifetime). Paid plans give you fresh Ink every month. Plan Ink left unused at the end of the month does not carry over. Top-up packs can be bought anytime, and top-up Ink never expires.`
 
 [CHECK] Based on the signed pricing FAQ; I removed "Most documents use 2 Ink; short documents, such as most notices and affidavits, use 1" (decision 8).
 
@@ -209,7 +209,7 @@ A: `You are. Lawie is a drafting assistant. The advocate is responsible for lega
 
 **Q3 EN: `What if a draft fails to generate?`**
 
-A: `A failed generation is not charged [AJAY TO SIGN, T-388 AC4]. You will see a message and can try again. Your description stays where you typed it.` [CHECK: confirm "description stays" is true in the build]
+A: `If a draft fails to generate, no Ink is used. [PENDING ARJUN, AJ-511-M2: signed wording; billing never debits a failed generation] You will see a message and can try again. Your description stays where you typed it.` [CHECK: confirm "description stays" is true in the build]
 
 **Q4 EN: `Which documents can I draft?`**
 
@@ -276,11 +276,11 @@ FAQ Hindi: not requested. English only in v1. If the Hindi toggle swaps "every s
 ### 2.3 Verify-email screen
 
 - Heading EN: `Check your email`
-- Body EN: `We sent a link to {email}. Open it to verify your account. Your 5 Ink are added once you verify.`
+- Body EN: `We've sent a link to {email}. Open it to continue.` (AJ-511-M3, same for new and existing emails)
 - Button: `Resend email` (after sending: `Email sent. Check your inbox and spam folder.`)
 - Link: `Wrong address? Change email`
 - Heading HI: `अपना ईमेल देखिए`
-- Body HI: `हमने {email} पर एक लिंक भेजा है। खाता सत्यापित करने के लिए उसे खोलिए। सत्यापन के बाद आपके 5 Ink जुड़ जाएँगे।`
+- Body HI: `हमने {email} पर एक लिंक भेजा है। आगे बढ़ने के लिए उसे खोलिए।` [HI wording mine; Ajay to read]
 - Button HI: `ईमेल दोबारा भेजिए`
 
 ### 2.4 Error messages
@@ -291,11 +291,18 @@ FAQ Hindi: not requested. English only in v1. If the Hindi toggle swaps "every s
 | Email not verified | `Verify your email to sign in. We can send the link again.` + button `Resend email` |
 | Network | `Could not reach Lawie. Check your connection and try again.` + button `Retry` |
 | Server error banner | `Could not sign you in. Try again.` + `Retry` |
-| Email already used (sign-up) | `Check your email to continue, or sign in if you already have an account.` Same message whether or not an account exists. [AJAY TO RULE] |
+| Email already used (sign-up) | See 2.5 (same screen for new and existing emails). |
 | Weak password | `Use at least 8 characters.` [CHECK: real rule] |
 | Email format | `Enter a valid email address.` |
 | Consent not ticked | `Please accept the Privacy Policy and Terms to continue.` |
 | Resend too soon | `Please wait a minute before asking for another email.` [CHECK: real limit] |
+
+### 2.5 Sign-up with an existing email (AJ-511-M3, signed by Ajay)
+
+- Screen: the same "Check your email" screen as a new sign-up (2.3), with the line `We've sent a link to {email}. Open it to continue.`
+- The page never says an account exists. No error, no hint, same timing.
+- Email to the existing account (Ajay's wording, neutral rule as T-221, 423b0551): `Someone tried to create a Lawie account with this email. If it was you, sign in or reset your password. If not, you can ignore this email.`
+- Update 2.3: use `We've sent a link to {email}. Open it to continue.` as the body for both cases. The 5 Ink sentence stays only for a new account, so it is dropped from the shared screen: `Your 5 Ink are added once you verify.` moves to the verify-success page.
 
 ---
 
@@ -321,7 +328,7 @@ FAQ Hindi: not requested. English only in v1. If the Hindi toggle swaps "every s
 
 | Case | Copy |
 | --- | --- |
-| Low | `{n} Ink left. You see the cost before every draft.` [AJAY TO SIGN, T-388 AC4] Buttons: `Top up` (primary), `See plans` (ghost) |
+| Low | `{n} Ink left. You see the Ink cost before you generate.` [PENDING ARJUN, AJ-511-M1: signed if T-388 AC4 is live and shown cost = charged cost] Buttons: `Top up` (primary), `See plans` (ghost) |
 | Zero, on a plan | `You have no Ink left. It refills on {date}, or you can top up now.` |
 | Zero, Free | `You have used your 5 Ink. Top up or choose a plan to keep drafting.` |
 | Dismiss | `Not now` |
@@ -446,7 +453,7 @@ Hindi cancel dialog (key moment):
 | Still working (after 8 s) | | `Still working…` | |
 | Top-up plans failed | | `Could not load top-up plans.` | `Retry` |
 | Generic failure | | `Something did not work. Try again.` | `Retry` |
-| Draft did not finish | | `The draft did not finish. You were not charged.` [AJAY TO SIGN, T-388 AC4] | `Try again` |
+| Draft did not finish | | `The draft did not finish. If a draft fails to generate, no Ink is used.` [PENDING ARJUN, AJ-511-M2: signed wording; billing never debits a failed generation] | `Try again` |
 | Export failed (toast) | | `Could not export. Try again.` | `Retry` |
 | Describe failed | | `Could not read your description. Try again.` Text kept. | `Retry` |
 | Empty documents list | `No documents yet` | `Your drafts will appear here.` | `Start a draft` |
