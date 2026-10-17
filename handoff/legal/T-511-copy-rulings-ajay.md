@@ -27,3 +27,5 @@ The final file still comes to me for sign-off.
 | AJ-511-M16 | Other [CHECK] items (Free gating, export on Free, description stays, password rule, resend limit, email change, plan switch, default court) | These are product facts, not legal. Each line ships only if Priya confirms it is true in the build. "Do not write verified next to enrollment" is agreed. |
 | AJ-511-M17 | Demo text | The scripted bail demo must use placeholders and no sections. I see the final text before launch. Fix the custody-days mismatch from the previews. |
 | AJ-511-M18 | Landing claims overall, and the Hindi lines given | Signed, subject to M4 to M17. No accuracy, speed or "AI lawyer" claims were found. The Hindi FAQ comes to me after translation. |
+
+| AJ-511-M19 | Madhuri's Hindi lines: 1.6 intro, 1.4 step 2 and the Low banner | Signed as written, under the same M1 and M2 (Arjun) conditions. |
