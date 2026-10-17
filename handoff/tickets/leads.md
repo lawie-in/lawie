@@ -4,14 +4,14 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 ## Live claims (Priya, 16 Oct 2026; read this first, the long table below is history)
 
-All older rows below are spent unless this section says otherwise. One ticket per lead. Slot: no one holds it now (17 Oct 2026, 17:45).
+All older rows below are spent unless this section says otherwise. One ticket per lead. Slot: no one holds it now (17 Oct 2026, 22:25). All leads parked for the week (usage limit).
 
 | Lead     | Ticket                        | Branch                               | Files held (no other row may touch them)                                                                                                                                                        | State |
 | -------- | ----------------------------- | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
 | vishal   | free (T-509 merged 500a2a65, row spent) | - | - |
 | mahak    | T-475, then T-472, then T-474 | fix/t-475-*                           | T-475: apps/drafting/src/services/brief-drafter.ts (actLines), new test, goldens. T-472: document-rules/criminal_revision.json, new limitation.service.ts, the computed-facts service and its ai.service.ts call site only, verifier ledger entry, form renderer if needed, tests. T-474: the other packs' limitation lines | T-475 in build |
-| kunal    | T-506 (17 Oct 2026) | feature/t-506-dashboard-summary | apps/drafting: new dashboard summary route and service files, one route-registration line, model index lines for {userId, createdAt} if missing, new tests. Nothing else. |
-| shashank | T-516 (17 Oct 2026; T-489 merged a39c2f6d, row spent) | fix/t-516-billing-retry-stale-checkout | apps/billing only: the subscribe route and subscription service/model files it uses, billing tests. No apps/web, no packages/shared, no root config. |
+| kunal    | free (T-506 merged 9a83207d, row spent) | - | - |
+| shashank | free (T-516 merged 928cd933, row spent) | - | - |
 | tanvi    | free (T-511a merged, row spent) | - | - |
 
 Overlap note: ai.service.ts is shared by vishal (T-471, pass-through hunk) and mahak (T-472, computed-facts call site). Different hunks; whoever merges second merges the other in. packages/shared is free (nobody holds it).

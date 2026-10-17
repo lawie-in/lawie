@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Arjun (design or review), a lead (build) |
 | Mode   | Full chain |
-| Status | To do. V1 (Priya, 17 Oct 2026). Unassigned until Priya claims a lead |
+| Status | Merged into develop_staging 9a83207d (17 Oct 2026). Follow-up: T-519 (inkledger index) must merge before main. Priya |
 | Files  | apps/drafting (new route + service + test) |
 | Source | V1 UI checklist, Arjun's code scan (17 Oct 2026) |
 
