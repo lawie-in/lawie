@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Web lead (design or review), a lead (build) |
 | Mode   | Full chain |
-| Status | To do. V1 (Priya, 17 Oct 2026). Unassigned until Priya claims a lead |
+| Status | Merged into develop_staging eaaad92d, CI run 815 green, 17 Oct. Follow-ups: typing overwritten by an in-flight save goes into T-509; profile saves show the generic error until T-507 lands. Priya |
 | Files  | apps/web (app-level error/loading/not-found, TopUpModal, settings profile card) |
 | Source | V1 UI checklist, Arjun's code scan (17 Oct 2026) |
 
