@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Vishal (build), Arjun (billing sign-off), Vikram (heads-up) |
 | Mode   | Full chain (billing service) |
-| Status | To do. V1 blocker for taking payment (founder, 17 Oct 2026). Priya |
+| Status | Merged into develop_staging 9175f500, CI green (run 813), 17 Oct. Anushka to test on develop. Priya |
 | Source | Founder, testing Razorpay locally: Razorpay rejects a subscription with no total_count (perpetual subscriptions are not enabled on the account; ticket raised with Razorpay) |
 
 ## Problem
