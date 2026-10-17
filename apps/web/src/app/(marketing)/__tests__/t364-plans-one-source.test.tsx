@@ -5,7 +5,7 @@ import { PLANS } from '@lawie/shared';
 import { act, type ReactElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 
-import { PlanUpgrade } from '@/components/billing/PlanUpgrade';
+import { PlanChooser } from '@/components/billing/PlanChooser';
 import { PaywallModal } from '@/components/credits/PaywallModal';
 import { UpgradeSuccessModal } from '@/components/credits/UpgradeSuccessModal';
 import { formatPlanInk, formatPlanPrice, type SubscriptionPlan } from '@/lib/plans';
@@ -188,11 +188,24 @@ describe('T-364 Settings plan list equals the pricing page (the /plans cross-che
     container = document.createElement('div');
     document.body.appendChild(container);
     root = createRoot(container);
-    const settingsText = await renderAsync(<PlanUpgrade planId={id} />);
-    expect(settingsText).toContain(
-      `Upgrade to ${served.tier === 'pro' ? 'Pro' : 'Solo'} — ${formatPlanPrice(served)}`,
+    // T-509: the Settings plan chooser lists monthly plans only (yearly hidden, T-399), in the
+    // same price and Ink as the pricing page, from the same /plans payload.
+    const settingsText = await renderAsync(
+      <PlanChooser
+        plans={IDS.map(servedPlan).filter((p) => p.cycle === 'monthly')}
+        current="free"
+        switchDate=""
+        pendingPlanId={null}
+        onChoose={() => {}}
+        onSwitch={() => {}}
+      />,
     );
-    expect(settingsText).toContain(formatPlanInk(served));
+    if (served.cycle === 'yearly') {
+      expect(settingsText).not.toContain(inr(served.priceInr));
+    } else {
+      expect(settingsText).toContain(`${inr(served.priceInr)} a month`);
+      expect(settingsText).toContain(`${served.inkPerCycle} Ink a month`);
+    }
     expect(settingsText).not.toMatch(/unlimited/i);
     expect(settingsText).not.toContain('₹799 Unlimited');
   });

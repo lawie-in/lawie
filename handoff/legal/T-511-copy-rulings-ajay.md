@@ -29,3 +29,11 @@ The final file still comes to me for sign-off.
 | AJ-511-M18 | Landing claims overall, and the Hindi lines given | Signed, subject to M4 to M17. No accuracy, speed or "AI lawyer" claims were found. The Hindi FAQ comes to me after translation. |
 
 | AJ-511-M19 | Madhuri's Hindi lines: 1.6 intro, 1.4 step 2 and the Low banner | Signed as written, under the same M1 and M2 (Arjun) conditions. |
+
+## T-509 Settings plan chooser (Ajay, 17 Oct 2026)
+
+| Ref | Item | Ruling |
+|---|---|---|
+| AJ-509-M1 | t433 "carry over" allowlist | Add exactly two strings: `Plan Ink does not carry over.` and `Plan Ink does not carry over after that.`. Nothing broader. The Resend-email feedback reuses the signed VERIFY_STRINGS (sent, already, limitWait, networkError). |
+| AJ-509-M2 | past_due banner without a retry action | Until billing ships retry, show: `Your last payment did not go through. For help, write to {support email}.` When retry ships, go back to the §4.5 line with a "Retry payment" button. |
+| AJ-509-M3 | "Redirecting you to the dashboard…" on success and on timeout | OK, as a neutral status line. |
