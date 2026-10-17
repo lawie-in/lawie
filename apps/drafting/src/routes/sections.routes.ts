@@ -1,3 +1,4 @@
+import { normalizeDate } from '@lawie/shared';
 import { Router, Request, Response } from 'express';
 
 import { checkBailEligibility, readBailInputs } from '../services/bail-check.service';
@@ -299,9 +300,9 @@ router.get('/timeline', async (req: Request, res: Response): Promise<void> => {
     return;
   }
 
-  // Validate date format
-  const dateObj = new Date(arrestDate);
-  if (isNaN(dateObj.getTime())) {
+  // Validate date format. T-496: the shared reader, so a partial date
+  // ("June 2026", "2026-06") is no date and nothing is computed.
+  if (!normalizeDate(arrestDate).ok) {
     res.status(400).json({ error: 'Invalid date format. Use YYYY-MM-DD.' });
     return;
   }

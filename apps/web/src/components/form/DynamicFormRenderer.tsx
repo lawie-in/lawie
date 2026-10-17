@@ -15,7 +15,7 @@
 import { ChevronLeft, ChevronRight, IndianRupee, Paperclip, Search, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { isBailTemplate, NOT_OFFERED_SUFFIX, SAVED_TYPE_NAMES } from '../intake/bailCourts';
+import { isScopedCourtTemplate, NOT_OFFERED_SUFFIX, SAVED_TYPE_NAMES } from '../intake/bailCourts';
 import ConsumerLevelGroup, {
   CONSUMER_COURT_LABEL,
   CONSUMER_COURT_TYPE,
@@ -972,7 +972,7 @@ export function useCourtsData(formData: Record<string, unknown>, scope?: CourtsS
   const courtType = String(formData.court_type ?? '');
   const courtId = scope?.courtFieldId ? String(formData[scope.courtFieldId] ?? '') : '';
   const consumer = scope?.templateId === CONSUMER_TEMPLATE_ID;
-  const bail = isBailTemplate(scope?.templateId);
+  const bail = isScopedCourtTemplate(scope?.templateId);
   const level = consumer ? (scope?.level ?? null) : null;
   const query =
     consumer && level
@@ -1486,8 +1486,8 @@ export default function DynamicFormRenderer({
   });
 
   // Courts data from API — cascading dropdowns (SCRUM-50)
-  // T-425: the bail packs ask for their lists with template=<id> and keep a saved court.
-  const bail = isBailTemplate(config.template_id);
+  // T-425/T-482: bail and maintenance ask with template=<id> and keep a saved court.
+  const bail = isScopedCourtTemplate(config.template_id);
   const courtsData = useCourtsData(
     formData,
     consumer

@@ -33,6 +33,7 @@ import {
   KindSummary,
   Ledger,
   LedgerEditResult,
+  ledgerGivenKeys,
   NO_RULE_PACK,
   readFactCheckBanner,
   RenderedClause,
@@ -93,6 +94,30 @@ function outstandingKeys(ledger: Ledger | null | undefined): Set<string> {
 }
 
 /**
+ * T-498: a question asked only because the ledger could not read the fact
+ * (T-147b), whose brief item holds a value read from the description, gets
+ * that value as a suggestion. It is not an answer until the advocate taps it,
+ * so nothing reaches the brief or the ledger before then. Confirm questions
+ * (T-190 AC8) keep their own path.
+ */
+function suggestedAnswers(
+  questions: BriefQuestion[],
+  brief: Brief,
+  ledger: Ledger | null | undefined,
+): Record<string, Value> {
+  const outstanding = outstandingKeys(ledger);
+  const out: Record<string, Value> = {};
+  for (const q of questions) {
+    if (q.confirm || !outstanding.has(q.key)) continue;
+    const item = brief.items.find((i) => i.key === q.key);
+    if (item && item.source === 'description' && item.value !== null && !isEmptyValue(item.value)) {
+      out[q.key] = item.value;
+    }
+  }
+  return out;
+}
+
+/**
  * T-190 (AC8): a confirm question stays open until the advocate answers it: a
  * value they gave on the brief or the questions, an answer the ledger holds, or
  * a "Not known".
@@ -107,6 +132,8 @@ function confirmOpen(key: string, brief: Brief, ledger: Ledger | null | undefine
  * The questions of a round whose facts are still not given. With a ledger, a
  * key it could not read stays open even when the brief holds a value for it.
  * T-190: a fact answered "Not known" is not open; a confirm question is.
+ * T-498: a fact the ledger holds is given (its row shows it, with "Please
+ * check"), so it is not open as missing; a server re-ask (T-150) still is.
  */
 function openQuestions(
   questions: BriefQuestion[],
@@ -115,8 +142,13 @@ function openQuestions(
   round?: 1 | 2,
 ) {
   if (!brief) return [];
+  const given = ledgerGivenKeys(ledger);
   const open = new Set(
-    brief.items.filter((i) => isEmptyValue(i.value) && !i.asked_empty).map((i) => i.key),
+    brief.items
+      .filter(
+        (i) => isEmptyValue(i.value) && !i.asked_empty && (i.reask === true || !given.has(i.key)),
+      )
+      .map((i) => i.key),
   );
   for (const key of outstandingKeys(ledger)) open.add(key);
   for (const q of questions) if (q.confirm && confirmOpen(q.key, brief, ledger)) open.add(q.key);
@@ -1014,6 +1046,7 @@ export default function OneFlow({
           onSubmit={(given) => void answerQuestions(given)}
           onSkip={() => setPhase('brief')}
           onEditDescription={editDescription}
+          suggestions={suggestedAnswers(roundQuestions, brief, ledger)}
         />
       );
     }
