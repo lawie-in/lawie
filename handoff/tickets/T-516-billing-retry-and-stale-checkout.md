@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Arjun (design), a billing lead (build) |
 | Mode   | Full chain (billing service, billing) |
-| Status | To do. V1 candidate (Vishal's T-509 report, 17 Oct 2026). Priya |
+| Status | In build: Shashank (17 Oct 2026). Priya |
 | Source | T-509 known gaps |
 
 ## Problem

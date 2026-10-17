@@ -4,15 +4,15 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 ## Live claims (Priya, 16 Oct 2026; read this first, the long table below is history)
 
-All older rows below are spent unless this section says otherwise. One ticket per lead. Slot: no one holds it now.
+All older rows below are spent unless this section says otherwise. One ticket per lead. Slot: no one holds it now (17 Oct 2026, 17:45).
 
 | Lead     | Ticket                        | Branch                               | Files held (no other row may touch them)                                                                                                                                                        | State |
 | -------- | ----------------------------- | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
-| vishal   | T-509 (17 Oct 2026; T-508 merged, row spent) | feature/t-509-plan-chooser-cancel-status | apps/web: dashboard/settings/page.tsx (plan card, status, cancel; the typing-overwritten-by-save fix in the profile card too), components/billing/PlanUpgrade.tsx and new plan chooser, status card and cancel dialog components, tests. Uses the T-511a components (merged 3b17908b). Extension 17 Oct: apps/web/src/app/dashboard/payment/success/page.tsx (pending-Ink state, plan-neutral welcome line, drop the raw /api/auth/refresh). No billing or auth change. |
+| vishal   | free (T-509 merged 500a2a65, row spent) | - | - |
 | mahak    | T-475, then T-472, then T-474 | fix/t-475-*                           | T-475: apps/drafting/src/services/brief-drafter.ts (actLines), new test, goldens. T-472: document-rules/criminal_revision.json, new limitation.service.ts, the computed-facts service and its ai.service.ts call site only, verifier ledger entry, form renderer if needed, tests. T-474: the other packs' limitation lines | T-475 in build |
 | kunal    | T-506 (17 Oct 2026) | feature/t-506-dashboard-summary | apps/drafting: new dashboard summary route and service files, one route-registration line, model index lines for {userId, createdAt} if missing, new tests. Nothing else. |
-| shashank | T-489 finish (17 Oct 2026; T-507 merged 6cd9143f, row spent) | feature/t-489-mandamus-fields | The files already in T-489 scope only: apps/drafting template-engine.service.ts (mandamus cause-title fallback, T-479), brief-drafter.ts skeletonBlocks (mandamus only), the T-489 rule-pack and form fields, their tests. Mahak parked T-472 holds hunks in the same files on her own branch: whoever merges second merges the other in. |
-| tanvi    | free (T-511a merged 3b17908b, row spent; holds the slot for CI until released) | - | - |
+| shashank | T-516 (17 Oct 2026; T-489 merged a39c2f6d, row spent) | fix/t-516-billing-retry-stale-checkout | apps/billing only: the subscribe route and subscription service/model files it uses, billing tests. No apps/web, no packages/shared, no root config. |
+| tanvi    | free (T-511a merged, row spent) | - | - |
 
 Overlap note: ai.service.ts is shared by vishal (T-471, pass-through hunk) and mahak (T-472, computed-facts call site). Different hunks; whoever merges second merges the other in. packages/shared is free (nobody holds it).
 
