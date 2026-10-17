@@ -91,6 +91,9 @@ export default function SettingsPage() {
   });
   const [profileStatus, setProfileStatus] = useState<ProfileStatus>({ kind: 'idle' });
   const profileTouched = useRef<Set<keyof ProfileFields>>(new Set());
+  // The latest rendered field values, so a finished save can see text typed while it ran.
+  const profileLatest = useRef<ProfileFields>(profile);
+  profileLatest.current = profile;
   const profileMounted = useRef(true);
   const userId = user?.id ?? null;
   const sessionName = user?.name ?? '';
@@ -173,6 +176,12 @@ export default function SettingsPage() {
         setProfileStatus({ kind: 'failed', message: PROFILE_SAVE_FAILED });
         return;
       }
+      // Typed during the save: some field no longer matches what was sent (or, for a field not
+      // sent, its saved value). Then "Profile saved." would be untrue for what is on screen.
+      const latest = profileLatest.current;
+      const typedDuringSave = PROFILE_KEYS.some(
+        (key) => latest[key].trim() !== (changes[key] ?? profileSaved[key].trim()),
+      );
       setProfileSaved((prev) => ({ ...prev, ...changes }));
       // Only settle a field to its trimmed saved value if it still holds what was sent: text
       // typed while the PATCH was in flight is kept (T-510 follow-up).
@@ -184,7 +193,7 @@ export default function SettingsPage() {
         }
         return next;
       });
-      setProfileStatus({ kind: 'saved' });
+      setProfileStatus({ kind: typedDuringSave ? 'idle' : 'saved' });
     } catch {
       if (profileMounted.current) {
         setProfileStatus({ kind: 'failed', message: PROFILE_SAVE_FAILED });

@@ -25,6 +25,9 @@ export function useSubscribe(gst: GstStateController) {
   const [gate, setGate] = useState<SubscribeGate>(null);
   const mounted = useRef(true);
   const inFlight = useRef(false);
+  // Set once the browser is sent to Razorpay: the buttons stay disabled while the page leaves,
+  // so a second press cannot start another subscribe for the other plan.
+  const redirecting = useRef(false);
 
   useEffect(() => {
     mounted.current = true;
@@ -35,7 +38,7 @@ export function useSubscribe(gst: GstStateController) {
 
   const subscribe = useCallback(
     async (planId: string) => {
-      if (inFlight.current) return;
+      if (inFlight.current || redirecting.current) return;
       inFlight.current = true;
       setPendingPlanId(planId);
       setFailedPlanId(null);
@@ -66,6 +69,7 @@ export function useSubscribe(gst: GstStateController) {
         const shortUrl = body?.data?.shortUrl;
         if (typeof shortUrl === 'string' && shortUrl) {
           setGate(null);
+          redirecting.current = true;
           window.location.href = shortUrl;
           return;
         }
@@ -73,8 +77,10 @@ export function useSubscribe(gst: GstStateController) {
       } catch {
         if (mounted.current) setFailedPlanId(planId);
       } finally {
-        inFlight.current = false;
-        if (mounted.current) setPendingPlanId(null);
+        if (!redirecting.current) {
+          inFlight.current = false;
+          if (mounted.current) setPendingPlanId(null);
+        }
       }
     },
     [gst],

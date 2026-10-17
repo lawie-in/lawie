@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { CancelPlanDialog } from '@/components/billing/CancelPlanDialog';
 import { PlanChooser, PlanChooserSkeleton } from '@/components/billing/PlanChooser';
-import { PLAN_COPY, planDate } from '@/components/billing/planCopy';
+import { PLAN_COPY, SUPPORT_EMAIL, planDate } from '@/components/billing/planCopy';
 import {
   PENDING_POLL_LIMIT_MS,
   PENDING_POLL_MS,
@@ -56,6 +56,20 @@ function retryAfterMinutes(res: Response, body: { retryAfter?: unknown } | null)
   const fromHeader = Number(res.headers?.get?.('Retry-After'));
   const secs = Number.isFinite(fromBody) && fromBody > 0 ? fromBody : fromHeader;
   return Number.isFinite(secs) && secs > 0 ? Math.max(1, Math.ceil(secs / 60)) : 0;
+}
+
+/** AJ-509-M2 banner text, with {support email} as a mailto link. */
+function PaymentFailedMessage() {
+  const [before, after] = PLAN_COPY.paymentFailedHelp(SUPPORT_EMAIL).split(SUPPORT_EMAIL);
+  return (
+    <>
+      {before}
+      <a href={`mailto:${SUPPORT_EMAIL}`} className="nl-focus underline underline-offset-4">
+        {SUPPORT_EMAIL}
+      </a>
+      {after}
+    </>
+  );
 }
 
 export interface PlanPanelProps {
@@ -279,10 +293,9 @@ export function PlanPanel({ gst, gstSlot }: PlanPanelProps) {
         ) : null}
       </div>
 
-      {/* Priya: no action on this banner; billing has no way to retry a past_due payment yet. */}
-      {paymentFailed ? (
-        <Banner kind="payment-failed" message={PLAN_COPY.paymentFailedBanner} />
-      ) : null}
+      {/* AJ-509-M2: no action on this banner; billing has no way to retry a past_due payment yet.
+          The address is a mailto link, as elsewhere in the dashboard. */}
+      {paymentFailed ? <Banner kind="payment-failed" message={<PaymentFailedMessage />} /> : null}
 
       {showVerify ? (
         <Banner

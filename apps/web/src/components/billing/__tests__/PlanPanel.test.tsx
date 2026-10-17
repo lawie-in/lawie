@@ -170,21 +170,30 @@ describe('T-509 AC1 plan chooser in Settings', () => {
     expect(find('Choose Solo')).toBeUndefined();
   });
 
-  it('Choose Solo sends solo_monthly; Choose Pro sends pro_monthly; success goes to the shortUrl', async () => {
-    mockPrivacyFetch.mockResolvedValue(reply(200, { data: { shortUrl: 'https://rzp.io/s' } }));
-    await mount();
-    await click(find('Choose Solo'));
-    const [key, path, init] = mockPrivacyFetch.mock.calls[0];
-    expect(key).toBe('subscribe');
-    expect(path).toBe('/api/billing/subscribe');
-    expect(JSON.parse(init.body)).toEqual({ planId: 'solo_monthly' });
-    expect(hrefSet).toHaveBeenCalledWith('https://rzp.io/s');
-
-    mockPrivacyFetch.mockResolvedValue(reply(200, { data: { shortUrl: 'https://rzp.io/p' } }));
-    await click(find('Choose Pro'));
-    expect(JSON.parse(mockPrivacyFetch.mock.calls[1][2].body)).toEqual({ planId: 'pro_monthly' });
-    expect(hrefSet).toHaveBeenLastCalledWith('https://rzp.io/p');
-  });
+  it.each([
+    ['Choose Solo', 'solo_monthly', 'Choose Pro'],
+    ['Choose Pro', 'pro_monthly', 'Choose Solo'],
+  ])(
+    '%s sends %s and goes to the shortUrl; afterwards the buttons stay disabled and a second click sends nothing',
+    async (label, planId, other) => {
+      mockPrivacyFetch.mockResolvedValue(reply(200, { data: { shortUrl: 'https://rzp.io/x' } }));
+      await mount();
+      await click(find(label));
+      expect(mockPrivacyFetch).toHaveBeenCalledTimes(1);
+      const [key, path, init] = mockPrivacyFetch.mock.calls[0];
+      expect(key).toBe('subscribe');
+      expect(path).toBe('/api/billing/subscribe');
+      expect(JSON.parse(init.body)).toEqual({ planId });
+      expect(hrefSet).toHaveBeenCalledWith('https://rzp.io/x');
+      // Redirecting: both Choose buttons stay disabled, and clicking again sends no second call.
+      expect(find(other)!.disabled).toBe(true);
+      expect(find(label)!.disabled).toBe(true);
+      await click(find(other));
+      await click(find(label));
+      expect(mockPrivacyFetch).toHaveBeenCalledTimes(1);
+      expect(hrefSet).toHaveBeenCalledTimes(1);
+    },
+  );
 
   it('no State saved (ensureReady false): no subscribe call', async () => {
     (gst as { ensureReady: jest.Mock }).ensureReady.mockResolvedValue(false);
@@ -281,9 +290,14 @@ describe('T-509 AC2 subscribed user: status card and switch note', () => {
     expect(text()).toContain('Payment failed');
     const banner = container.querySelector('[data-kind="payment-failed"]')!;
     expect(banner).not.toBeNull();
+    // AJ-509-M2: signed text with the support address as a mailto link.
     expect(banner.textContent).toBe(
-      'Your last payment did not go through. Update your payment details to keep your plan.',
+      'Your last payment did not go through. For help, write to support@lawie.in.',
     );
+    const link = banner.querySelector('a')!;
+    expect(link.getAttribute('href')).toBe('mailto:support@lawie.in');
+    expect(link.textContent).toBe('support@lawie.in');
+    expect(text()).not.toContain('Update your payment details');
     // Priya: no Retry payment button and no banner action.
     expect(banner.querySelector('button')).toBeNull();
     expect(find('Retry payment')).toBeUndefined();
@@ -315,6 +329,12 @@ describe('T-509 AC2 cancel flow', () => {
     expect(find('Keep my plan', dialog()!)).toBeDefined();
     expect(find('Cancel plan', dialog()!)).toBeDefined();
     expect(mockPrivacyFetch).not.toHaveBeenCalled();
+  });
+
+  it('the Cancel plan link is the md size (44px target), not sm', async () => {
+    statusBody = { data: SOLO };
+    await mount();
+    expect(find('Cancel plan')!.getAttribute('data-size')).toBe('md');
   });
 
   it('Keep my plan closes the dialog and makes no cancel call', async () => {
@@ -531,8 +551,18 @@ describe('T-509 AC5 no dead buttons', () => {
     mockPrivacyFetch.mockResolvedValue(reply(200, { data: { shortUrl: 'https://rzp.io/x' } }));
     await mount();
     expect(allButtons().map((b) => b.textContent?.trim())).toEqual(['Choose Solo', 'Choose Pro']);
-    for (const b of allButtons()) await click(b);
+    // A fresh mount per button: after a redirect the buttons stay disabled on purpose.
+    for (const label of ['Choose Solo', 'Choose Pro']) {
+      act(() => root.unmount());
+      root = createRoot(container);
+      await mount();
+      await click(find(label));
+    }
     expect(mockPrivacyFetch).toHaveBeenCalledTimes(2);
+    expect(mockPrivacyFetch.mock.calls.map((c) => JSON.parse(c[2].body).planId)).toEqual([
+      'solo_monthly',
+      'pro_monthly',
+    ]);
   });
 
   it('live Solo: every button does something (Cancel plan opens the dialog, Upgrade to Pro shows the note)', async () => {

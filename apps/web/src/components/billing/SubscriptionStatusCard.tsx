@@ -60,7 +60,7 @@ export function SubscriptionStatusCard({
       ) : null}
       {live && !ending && date ? (
         <div>
-          <Button variant="ghost" size="sm" onClick={onCancel}>
+          <Button variant="ghost" onClick={onCancel}>
             {PLAN_COPY.cancelLink}
           </Button>
         </div>

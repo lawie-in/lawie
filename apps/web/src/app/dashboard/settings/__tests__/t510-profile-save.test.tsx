@@ -344,7 +344,7 @@ describe('T-510 follow-up: text typed during an in-flight save survives the succ
     return () => release(reply(200, {}));
   }
 
-  it('a field edited after Save was pressed keeps the newer text; the saved line still shows', async () => {
+  it('a field edited after Save was pressed keeps the newer text, and no "Profile saved." shows (status idle)', async () => {
     await mount();
     await type('profile-name', 'Sent Name');
     const succeed = holdSave();
@@ -356,6 +356,19 @@ describe('T-510 follow-up: text typed during an in-flight save survives the succ
     await flush();
     expect(sentBody()).toEqual({ name: 'Sent Name' });
     expect(input('profile-name').value).toBe('Sent Name plus more');
+    expect(text()).not.toContain('Profile saved.');
+  });
+
+  it('no typing during the save: "Profile saved." shows', async () => {
+    await mount();
+    await type('profile-name', 'Sent Name');
+    const succeed = holdSave();
+    await act(async () => {
+      saveBtn().click();
+    });
+    await act(async () => succeed());
+    await flush();
+    expect(input('profile-name').value).toBe('Sent Name');
     expect(text()).toContain('Profile saved.');
   });
 

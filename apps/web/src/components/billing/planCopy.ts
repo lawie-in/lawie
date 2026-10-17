@@ -7,6 +7,12 @@
 import { formatInvoiceDate } from '@/components/billing/InvoicesCard';
 import type { PlanTier, SubscriptionPlan } from '@/lib/plans';
 
+/**
+ * {support email} in AJ-509-M2: the in-app support address, as the dashboard already uses it
+ * (components/dashboard/Sidebar.tsx "Get help", credits/GenerationFailedModal.tsx).
+ */
+export const SUPPORT_EMAIL = 'support@lawie.in';
+
 export const PLAN_COPY = {
   // §4.1 plan cards
   freeName: 'Free',
@@ -45,8 +51,10 @@ export const PLAN_COPY = {
   switchNote: (date: string) =>
     `To change plans, cancel your current plan and choose the new one after ${date}.`,
   // §4.5 banners and gates
-  paymentFailedBanner:
-    'Your last payment did not go through. Update your payment details to keep your plan.',
+  // AJ-509-M2 (3af1ac4a): until billing ships a payment retry, the past_due banner has no action
+  // and points to support. When retry ships, go back to the §4.5 line with "Retry payment".
+  paymentFailedHelp: (supportEmail: string) =>
+    `Your last payment did not go through. For help, write to ${supportEmail}.`,
   verifyGate: 'Verify your email to subscribe.',
   verifyAction: 'Resend email',
   privacyGate: 'Please review and accept the updated Privacy Policy to continue.',
