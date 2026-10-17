@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import ConfirmCloseAccountDialog from '@/components/account/ConfirmCloseAccountDialog';
 import { GST_STATE_NAG_STRINGS, GstStatePicker } from '@/components/billing/GstStatePicker';
 import { InvoicesCard, type InvoiceRow } from '@/components/billing/InvoicesCard';
-import { PlanUpgrade } from '@/components/billing/PlanUpgrade';
+import { PlanPanel } from '@/components/billing/PlanPanel';
 import { secondaryButton } from '@/components/intake/ui';
 import {
   PrivacyBlockedNotice,
@@ -15,15 +15,9 @@ import {
   usePrivacyDescribedBy,
 } from '@/components/PrivacyUpdatePrompt';
 import { useAuth } from '@/context/AuthContext';
-import { useCredits } from '@/hooks/useCredits';
 import { useGstState } from '@/hooks/useGstState';
 import { apiFetch } from '@/lib/apiFetch';
 
-/**
- * T-372 (ADR-025 D3): Ink is the only entitlement shown. The line is left out
- * while the balance is loading or unknown, never showing the empty default's 0.
- * Its own component, so the balance is fetched only where the line can show.
- */
 /** T-115c — secondaryButton in the error colour (Rajesh's spec §1); no new colours. */
 const closeButtonClass = secondaryButton.replace(
   'border-brand-navy text-brand-navy',
@@ -68,12 +62,6 @@ async function fetchProfile(): Promise<Partial<ProfileFields> | null> {
   } catch {
     return null;
   }
-}
-
-function InkBalanceLine() {
-  const { balance, loaded } = useCredits();
-  if (!loaded || !Number.isFinite(balance.totalInk)) return null;
-  return <p className="mt-1 text-sm text-slate-600">{`You have ${balance.totalInk} Ink`}</p>;
 }
 
 export default function SettingsPage() {
@@ -186,7 +174,16 @@ export default function SettingsPage() {
         return;
       }
       setProfileSaved((prev) => ({ ...prev, ...changes }));
-      setProfile((prev) => ({ ...prev, ...changes }));
+      // Only settle a field to its trimmed saved value if it still holds what was sent: text
+      // typed while the PATCH was in flight is kept (T-510 follow-up).
+      setProfile((prev) => {
+        const next = { ...prev };
+        for (const key of PROFILE_KEYS) {
+          const sent = changes[key];
+          if (sent !== undefined && prev[key].trim() === sent) next[key] = sent;
+        }
+        return next;
+      });
       setProfileStatus({ kind: 'saved' });
     } catch {
       if (profileMounted.current) {
@@ -206,8 +203,6 @@ export default function SettingsPage() {
     el.scrollIntoView({ block: 'center', behavior: 'smooth' });
     el.focus({ preventScroll: true });
   }
-
-  const isPro = user.plan === 'pro';
 
   function handleSignOut() {
     logout();
@@ -320,59 +315,36 @@ export default function SettingsPage() {
         </form>
       </div>
 
-      {/* Plan */}
-      <div
-        className={`mt-4 rounded-xl border p-6 shadow-sm ${
-          isPro ? 'border-[#86EFAC] bg-[#F0FDF4]' : 'border-[#FDE68A] bg-[#FFF7ED]'
-        }`}
+      {/* Plan (T-509): status, plan cards and Cancel. The plan comes from billing, not the JWT. */}
+      <section
+        aria-labelledby="plan-heading"
+        className="mt-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
       >
-        <div className="flex items-start justify-between">
-          <div>
-            <h2 className="text-sm font-semibold text-slate-700">Plan</h2>
-            {isPro ? (
-              <>
-                <p className="mt-1 text-sm text-slate-700">Pro plan</p>
-                <p className="text-xs text-slate-400">Next billing cycle — managed via Razorpay</p>
-              </>
-            ) : (
-              <InkBalanceLine />
-            )}
-          </div>
-          {isPro && (
-            <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
-              Active
-            </span>
-          )}
-        </div>
-
-        {/* T-436 (Madhuri C): the nag, then the State picker, above Upgrade. */}
-        {showStateNag && (
-          <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-slate-700">
-            <p>{GST_STATE_NAG_STRINGS.nag}</p>
-            <button
-              type="button"
-              onClick={focusStatePicker}
-              className="min-h-[44px] rounded-lg border border-slate-300 px-3 text-xs font-medium text-slate-700 transition-colors hover:bg-white"
-            >
-              {GST_STATE_NAG_STRINGS.action}
-            </button>
-          </div>
-        )}
-        <GstStatePicker gst={gst} id={SETTINGS_GST_SELECT_ID} className="mt-4 max-w-xs" />
-
-        {!isPro && <PlanUpgrade gst={gst} />}
-
-        {isPro && (
-          <div className="mt-4 flex gap-2">
-            <button className="rounded-lg border border-red-300 px-3 py-1.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-50">
-              Cancel subscription
-            </button>
-            <button className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50">
-              Manage on Razorpay
-            </button>
-          </div>
-        )}
-      </div>
+        <h2 id="plan-heading" className="text-sm font-semibold text-slate-700">
+          Plan
+        </h2>
+        <PlanPanel
+          gst={gst}
+          gstSlot={
+            <div>
+              {/* T-436 (Madhuri C): the nag, then the State picker, above the plan cards. */}
+              {showStateNag && (
+                <div className="flex flex-wrap items-center gap-3 text-sm text-slate-700">
+                  <p>{GST_STATE_NAG_STRINGS.nag}</p>
+                  <button
+                    type="button"
+                    onClick={focusStatePicker}
+                    className="min-h-[44px] rounded-lg border border-slate-300 px-3 text-xs font-medium text-slate-700 transition-colors hover:bg-white"
+                  >
+                    {GST_STATE_NAG_STRINGS.action}
+                  </button>
+                </div>
+              )}
+              <GstStatePicker gst={gst} id={SETTINGS_GST_SELECT_ID} className="mt-4 max-w-xs" />
+            </div>
+          }
+        />
+      </section>
 
       {/* T-436 — Invoices (Rajesh's spec, as settled by Arjun): after Plan, before Close account. */}
       <InvoicesCard onRowsLoaded={onInvoicesLoaded} />

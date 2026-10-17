@@ -113,7 +113,7 @@ describe('T-370 PlanUpgrade label', () => {
   it('shows the Pro name, price and Ink from the catalogue, never Solo or Unlimited', async () => {
     await mount();
     expect(button()?.textContent).toBe('Upgrade to Pro — ₹1,999/month');
-    expect(container.textContent).toContain('150 Ink/month');
+    // T-509: the tick list (with its Ink line) was dropped; the Ink now shows on the plan cards.
     expect(container.textContent).not.toContain('799');
     expect(container.textContent).not.toMatch(/(^|\D)50 Ink/);
     expect(container.textContent).not.toMatch(/unlimited/i);
@@ -129,7 +129,6 @@ describe('T-370 PlanUpgrade label', () => {
     });
     await mount();
     expect(button()?.textContent).toBe('Upgrade to Pro — ₹2,499/month');
-    expect(container.textContent).toContain('200 Ink/month');
     expect(container.textContent).not.toContain('1,999');
   });
 
@@ -200,12 +199,14 @@ describe('T-370 PlanUpgrade subscribe call', () => {
     expect(hrefSet).toHaveBeenCalledWith(url);
   });
 
-  it('shows the server error and does not redirect on a non-2xx reply', async () => {
+  it('shows the generic failure, never the server text, and does not redirect on a non-2xx reply', async () => {
     mockPrivacyFetch.mockResolvedValue(reply(400, { error: 'Unknown plan id' }));
     await mount();
     await act(async () => button()?.click());
     await flush();
-    expect(container.textContent).toContain('Unknown plan id');
+    expect(container.textContent).toContain('Something did not work. Try again.');
+    expect(container.textContent).not.toContain('Unknown plan id');
+    expect(hrefSet).not.toHaveBeenCalled();
     expect(button()?.disabled).toBe(false);
   });
 
@@ -214,7 +215,8 @@ describe('T-370 PlanUpgrade subscribe call', () => {
     await mount();
     await act(async () => button()?.click());
     await flush();
-    expect(container.textContent).toContain('No payment link returned. Please contact support.');
+    expect(container.textContent).toContain('Something did not work. Try again.');
+    expect(container.textContent).not.toContain('No payment link');
   });
 
   it('shows a network error when the call throws', async () => {
@@ -222,7 +224,8 @@ describe('T-370 PlanUpgrade subscribe call', () => {
     await mount();
     await act(async () => button()?.click());
     await flush();
-    expect(container.textContent).toContain('Network error. Please try again.');
+    expect(container.textContent).toContain('Something did not work. Try again.');
+    expect(container.textContent).not.toContain('Network error');
   });
 
   it('does nothing further when the privacy gate blocked the call (T-343)', async () => {

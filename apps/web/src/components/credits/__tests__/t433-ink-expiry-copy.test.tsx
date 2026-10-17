@@ -51,6 +51,9 @@ const FAQ_EXPIRY =
 const SIGNED_NEGATIVE_LINES = [
   'plan Ink left unused at the end of the month does not carry over',
   'Plan Ink left unused at the end of that month expires and does not carry over.',
+  // AJ-509-M1 (Ajay): exactly these two plan-chooser / cancel-dialog lines, nothing broader.
+  'Plan Ink does not carry over.',
+  'Plan Ink does not carry over after that.',
 ];
 
 const FORBIDDEN = /rolls?[\s-]?over|carr(?:y|ies)[\s-]?over|carry-forward/gi;
@@ -153,7 +156,7 @@ describe('T-433 whole-web rule (apps/web/src, non-test sources)', () => {
     expect(offenders).toEqual([]);
   });
 
-  it('the signed negative lines appear only in terms and pricing pages', () => {
+  it('the signed negative lines appear only in terms, pricing and the plan copy (AJ-509-M1)', () => {
     const where: string[] = [];
     for (const file of sourceFiles(SRC)) {
       const text = norm(fs.readFileSync(file, 'utf8'));
@@ -162,6 +165,7 @@ describe('T-433 whole-web rule (apps/web/src, non-test sources)', () => {
     expect(where.sort()).toEqual([
       path.join('app', '(marketing)', 'pricing', 'page.tsx'),
       path.join('app', '(marketing)', 'terms', 'page.tsx'),
+      path.join('components', 'billing', 'planCopy.ts'),
     ]);
   });
 });
