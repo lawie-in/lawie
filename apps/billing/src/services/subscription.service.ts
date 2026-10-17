@@ -361,7 +361,10 @@ async function createSubscriptionLocked(
       (razorpay.subscriptions.create as any)({
         plan_id: razorpayPlanId,
         customer_notify: 1,
-        // No total_count — subscriptions auto-renew until cancelled (per SCRUM-102)
+        // TEMPORARY: perpetual subscriptions (no total_count, per SCRUM-102) are not enabled on
+        // the Razorpay account yet (ticket raised). Until then, use Razorpay's max count, which
+        // is 100 years either way. Remove once Razorpay enables perpetual subscriptions.
+        total_count: planSku.cycle === 'yearly' ? 100 : 1200,
         callback_url: `${env.FRONTEND_URL}/dashboard/payment/success`,
         notes: { userId, email, planId: planSku.id, tier: planSku.tier, cycle: planSku.cycle },
       }),
