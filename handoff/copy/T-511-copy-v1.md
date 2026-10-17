@@ -16,15 +16,15 @@ Conventions: `{braces}` are variables filled by code. `[HI]` means a Hindi (Deva
 | # | For | Decision |
 | --- | --- | --- |
 | 1 | Ajay, Meera | Spec says the main button is "Start a free draft". T-398 says "free" appears only with "5 Ink". I used "Start with 5 free Ink" everywhere. Confirm, or approve "Start a free draft". |
-| 2 | Done | Pro removed from the landing prices block (1.6); "See all plans" link added. Pro stays in the in-app plan chooser (4.1), which T-398 does not cover. [CHECK] |
+| 2 | Done | Pro removed from the landing prices block (1.6); "See all plans" link added. Pro stays in the in-app plan chooser (4.1), which T-398 does not cover. |
 | 3 | Done | No "coming" line anywhere (Meera, v1 review). Footer has the disclaimer and links only. |
 | 4 | Ajay | Privacy and vendor lines (sections 1.6, 1.7, 6) say what is sent to whom. Vendor names and countries in the examples are my assumption (Anthropic, USA; Razorpay, India). Ajay owns the vendor list. [CHECK] |
-| 5 | Ajay | "Your drafts are safe" (500 page) and "Your documents are still here" (AI down) are safety statements. Alternatives are given. [CHECK] |
+| 5 | Done | "Your drafts are safe" struck (AJ-511-M9). AI-down line amended (AJ-511-M10). |
 | 6 | Priya | Switching plans: spec says cancel at cycle end, then buy. My text tells the user that plainly (section 4.4). Confirm this is the real flow. |
 | 7 | Priya | Default court field: I say it fills the court name in new drafts. Confirm that is what the product does. |
 | 8 | Priya | I removed the old FAQ line "Most documents use 2 Ink, short documents 1" (brief says no draft counts). The cost is shown before generating. Confirm the app shows it. |
 | 10 | Done | Sign-up with an existing email shows the same screen as a new sign-up; the page never says an account exists (AJ-511-M3, signed). |
-| 11 | Arjun | AJ-511-M1 and M2 are signed by Ajay on conditions only Arjun can confirm: shown cost = charged cost (T-388 AC4 live), and no Ink debited for a failed generation. Tagged [PENDING ARJUN]. If M1's condition fails, strike the line. |
+| 11 | Arjun | AJ-511-M1 and M2 are signed by Ajay on conditions only Arjun can confirm: shown cost = charged cost (T-388 AC4 live), and no Ink debited for a failed generation. Arjun confirmed from the code on 17 Oct that both lines are true. If M1's condition fails, strike the line. |
 | 9 | Ajay | Hindi wording for the disclaimer and trust block needs a legal read, not only a language read. |
 
 ---
@@ -92,7 +92,7 @@ Demo prompt text (typed in the demo):
 - EN: `A bail application for a client arrested on Tuesday. First offence. Lives with family in the district.`
 - HI: `मंगलवार को गिरफ़्तार मुवक्किल के लिए जमानत आवेदन। पहला मामला है। परिवार के साथ ज़िले में रहता है।`
 
-The draft the demo writes must be dummy text with placeholders (`{Court}`, `{Case no.}`, `{Name}`), no section numbers, no case names. [CHECK] Ajay to see the final demo text before launch.
+The draft the demo writes must be dummy text with placeholders (`{Court}`, `{Case no.}`, `{Name}`), no section numbers, no case names. Ajay sees the final demo text before launch (AJ-511-M17). Open: he asks to fix a custody-days mismatch "from the previews"; that text is not in this file, so I cannot apply it.
 
 ### 1.4 Three steps
 
@@ -102,8 +102,8 @@ Section title: `How it works` / HI `यह कैसे काम करता �
 | --- | --- | --- |
 | 1 EN | `Describe` | `Tell Lawie about the matter in your own words. If something is missing, it asks a few short questions.` |
 | 1 HI | `बताइए` | `अपने शब्दों में मामला बताइए। कुछ कम हो तो Lawie कुछ छोटे सवाल पूछता है।` |
-| 2 EN | `Draft` | `Lawie writes a first draft of the document you chose. You see the Ink cost before you generate.` [PENDING ARJUN, AJ-511-M1: signed if T-388 AC4 is live and shown cost = charged cost] |
-| 2 HI | `ड्राफ़्ट` | `आपके चुने हुए दस्तावेज़ का पहला ड्राफ़्ट Lawie लिखता है। शुरू होने से पहले आपको Ink की लागत दिख जाती है।` |
+| 2 EN | `Draft` | `Lawie writes a first draft of the document you chose. You see the Ink cost before you generate.` [Ajay AJ-511-M1/M4, signed; confirmed Arjun 17 Oct] |
+| 2 HI | `ड्राफ़्ट` | `आपके चुने हुए दस्तावेज़ का पहला ड्राफ़्ट Lawie लिखता है। शुरू होने से पहले आपको Ink की लागत दिख जाती है।` [signed, AJ-511-M19] |
 | 3 EN | `Review` | `Read every paragraph and edit what you need. A checks panel lists items for you to review. Finalise when you are satisfied.` |
 | 3 HI | `जाँचिए` | `हर अनुच्छेद पढ़िए और जो बदलना हो बदलिए। जाँच पैनल उन बातों की सूची देता है जिन्हें आपको देखना है। संतुष्ट हों तभी अंतिम कीजिए।` |
 
@@ -118,23 +118,23 @@ CTA after the steps: same button as 1.3 (repeat).
 - Shelf labels (spines): Bail application, Legal notice, Written statement, Plaint, Affidavit
 - Shelf labels HI: जमानत आवेदन, कानूनी नोटिस, लिखित कथन, वाद-पत्र, शपथ-पत्र
 
-Checked against apps/drafting/src/config/document-rules: rule files exist for bail, legal notice, writ petition, maintenance (BNSS 144), plaint, written statement and affidavit, so those stay. "Reply" has no template (only a non-template price), so it is dropped. [CHECK] I read the rule files, not the live picker. Priya to confirm all are enabled in the picker.
+Checked against apps/drafting/src/config/document-rules: rule files exist for bail, legal notice, writ petition, maintenance (BNSS 144), plaint, written statement and affidavit, so those stay. "Reply" has no template (only a non-template price), so it is dropped. I read the rule files, not the live picker; the web lead confirms against the picker before launch (Priya's decision 5).
 
 ### 1.6 Ink and prices
 
 Section title EN: `Ink and prices` / HI: `Ink और कीमतें`
 
-Intro EN: `Ink is what a draft costs. You see the Ink cost before you generate. If a draft fails to generate, no Ink is used.` [PENDING ARJUN, AJ-511-M1: signed if T-388 AC4 is live and shown cost = charged cost] [PENDING ARJUN, AJ-511-M2: signed wording; billing never debits a failed generation] (100 chars)
+Intro EN: `Ink is what a draft costs. You see the Ink cost before you generate. If a draft fails to generate, no Ink is used.` [Ajay AJ-511-M1/M4, signed; confirmed Arjun 17 Oct] [Ajay AJ-511-M2/M5, signed; confirmed Arjun 17 Oct] (100 chars)
 
-Intro HI: `Ink वह इकाई है जिसमें ड्राफ़्ट की लागत गिनी जाती है। ड्राफ़्ट बनाने से पहले आपको Ink की लागत दिखती है। अगर ड्राफ़्ट नहीं बन पाता, तो कोई Ink उपयोग नहीं होता।` [PENDING ARJUN, AJ-511-M1: signed if T-388 AC4 is live and shown cost = charged cost] [PENDING ARJUN, AJ-511-M2: signed wording; billing never debits a failed generation] [HI wording mine; Ajay to read] (138 chars)
+Intro HI: `Ink वह इकाई है जिसमें ड्राफ़्ट की लागत गिनी जाती है। ड्राफ़्ट बनाने से पहले लागत दिखती है। जो ड्राफ़्ट पूरा नहीं बनता, उसका Ink नहीं कटता।` [Ajay AJ-511-M1/M4, signed; confirmed Arjun 17 Oct] [Ajay AJ-511-M2/M5, signed; confirmed Arjun 17 Oct] (signed, AJ-511-M5 and AJ-511-M19) (138 chars)
 
 Plan cards:
 
 **Free**
 
 - Price line: `₹0`
-- Ink line: `5 Ink on sign-up, once your email is verified (lifetime)`
-- Includes: `Every document type on Lawie` [CHECK: only if Free is not gated by type]; `Every line of the draft is yours to change`; `PDF / DOCX export` [CHECK: confirm export is live on Free]
+- Ink line: `5 Ink on sign-up, once your email is verified (one time)`
+- Includes: `Every document type on Lawie` [only if Free is not gated by type; ships only if true in the build, AJ-511-M16]; `Every line of the draft is yours to change`; `PDF / DOCX export` [ships only if export is live on Free, AJ-511-M16]
 - Button: `Start with 5 free Ink`
 
 **Solo**
@@ -153,13 +153,13 @@ Notes under the cards:
 
 Top-up line:
 
-- EN: `Need more? Top-up packs: ₹65 for 3 Ink, ₹199 for 10 Ink, ₹499 for 28 Ink. Top-up Ink never expires.`
-- HI: `और चाहिए? टॉप-अप पैक: 3 Ink ₹65 में, 10 Ink ₹199 में, 28 Ink ₹499 में। टॉप-अप Ink कभी समाप्त नहीं होता।`
+- EN: `Need more? Top-up packs: ₹65 for 3 Ink, ₹199 for 10 Ink, ₹499 for 28 Ink. Top-up Ink does not expire while your account is open.`
+- HI: `और चाहिए? टॉप-अप पैक: 3 Ink ₹65 में, 10 Ink ₹199 में, 28 Ink ₹499 में। खाता चालू रहने तक टॉप-अप Ink समाप्त नहीं होता।`
 
 Hindi plan strings (for the Hindi toggle):
 
 - `₹799 प्रति माह` / `50 Ink प्रति माह`
-- Free ink line: `साइन-अप पर 5 Ink, ईमेल सत्यापित होने के बाद (जीवनभर के लिए)`
+- Free ink line: `साइन-अप पर 5 Ink, ईमेल सत्यापित होने के बाद (एक बार)`
 
 No yearly text anywhere. No toggle. No "save 2 months".
 
@@ -183,7 +183,7 @@ Paragraph 2, checks panel:
 - EN: `After a draft is written, a panel lists items for you to review. Each item takes you to its paragraph. The panel helps you look. It does not replace your reading.`
 - HI: `ड्राफ़्ट बनने के बाद एक पैनल उन बातों की सूची देता है जिन्हें आपको देखना है। हर बात आपको उसके अनुच्छेद तक ले जाती है। पैनल देखने में मदद करता है। आपके पढ़ने की जगह नहीं लेता।`
 
-[CHECK] Ajay: confirm "lists items for you to review" matches what the panel does.
+(AJ-511-M15, signed: matches the panel.)
 
 Paragraph 3, privacy:
 
@@ -193,15 +193,15 @@ Paragraph 3, privacy:
 - HI: `ड्राफ़्ट लिखने के लिए आपका बताया हुआ विवरण एक AI सेवा को भेजा जाता है। हम क्या एकत्र करते हैं, क्यों, और किसे भेजते हैं, यह जानने के लिए गोपनीयता नीति पढ़िए। शिकायत या अपने डेटा से जुड़े अनुरोध के लिए शिकायत अधिकारी को {grievance email} पर लिखिए।`
 - Link: `Privacy Policy` / `गोपनीयता नीति`
 
-[CHECK] The whole paragraph. Grievance email and response time come from Ajay. I make no claim of "secure", "encrypted" or "never shared".
+(AJ-511-M13, signed. Grievance email and response time: AJ-511-M12.) I make no claim of "secure", "encrypted" or "never shared".
 
 ### 1.8 FAQ (6 questions, accordion, one open)
 
 **Q1 EN: `What is Ink?`**
 
-A: `Ink is Lawie's credit unit. You see the Ink cost before you generate. [PENDING ARJUN, AJ-511-M1: signed if T-388 AC4 is live and shown cost = charged cost] If a draft fails to generate, no Ink is used. [PENDING ARJUN, AJ-511-M2: signed wording; billing never debits a failed generation] The Free plan gives you 5 Ink on sign-up, once your email is verified (lifetime). Paid plans give you fresh Ink every month. Plan Ink left unused at the end of the month does not carry over. Top-up packs can be bought anytime, and top-up Ink never expires.`
+A: `Ink is Lawie's credit unit. You see the Ink cost before you generate. [Ajay AJ-511-M1/M4, signed; confirmed Arjun 17 Oct] If a draft fails to generate, no Ink is used. [Ajay AJ-511-M2/M5, signed; confirmed Arjun 17 Oct] The Free plan gives you 5 Ink on sign-up, once your email is verified (one time). Paid plans give you fresh Ink every month. Plan Ink left unused at the end of the month does not carry over. Top-up packs can be bought anytime, and top-up Ink does not expire while your account is open.`
 
-[CHECK] Based on the signed pricing FAQ; I removed "Most documents use 2 Ink; short documents, such as most notices and affidavits, use 1" (decision 8).
+Based on the signed pricing FAQ (AJ-511-M4/M18); I removed "Most documents use 2 Ink; short documents, such as most notices and affidavits, use 1" (decision 8).
 
 **Q2 EN: `Who is responsible for the draft?`**
 
@@ -209,7 +209,7 @@ A: `You are. Lawie is a drafting assistant. The advocate is responsible for lega
 
 **Q3 EN: `What if a draft fails to generate?`**
 
-A: `If a draft fails to generate, no Ink is used. [PENDING ARJUN, AJ-511-M2: signed wording; billing never debits a failed generation] You will see a message and can try again. Your description stays where you typed it.` [CHECK: confirm "description stays" is true in the build]
+A: `If a draft fails to generate, no Ink is used. [Ajay AJ-511-M2/M5, signed; confirmed Arjun 17 Oct] You will see a message and can try again. Your description stays where you typed it.` [ships only if true in the build, AJ-511-M16]
 
 **Q4 EN: `Which documents can I draft?`**
 
@@ -217,7 +217,7 @@ A: `Bail applications, legal notices, writ petitions, maintenance petitions, pla
 
 **Q5 EN: `What happens to what I type?`**
 
-A: `To write a draft, your description is sent to an AI service. The Privacy Policy lists what we collect, why, and who receives it. You can ask to access, correct or erase your data from Settings, or write to our Grievance Officer.` [CHECK: Settings actions listed in spec screen 07; Ajay to confirm they are live.]
+A: `To write a draft, your description is sent to an AI service. The Privacy Policy lists what we collect, why, and who receives it. You can ask to access, correct or erase your data from Settings, or write to our Grievance Officer.` (AJ-511-M13, signed. Keep "from Settings" only if access, correct and erase are live; otherwise: `write to our Grievance Officer` only. Ships only if true in the build, AJ-511-M16.)
 
 **Q6 EN: `Can I cancel anytime?`**
 
@@ -225,7 +225,7 @@ A: `Yes. Cancel from your account settings. Cancelling stops future charges and 
 
 (Q6 follows the signed pricing FAQ. The "stays until then" line comes from the brief.)
 
-FAQ Hindi: not requested. English only in v1. If the Hindi toggle swaps "every string" (spec), I will translate after Ajay signs the English.
+FAQ Hindi: not yet written. When translated it goes back to Ajay (AJ-511-M17/M18) before it ships.
 
 ### 1.9 Final call to action
 
@@ -265,9 +265,9 @@ FAQ Hindi: not requested. English only in v1. If the Hindi toggle swaps "every s
 | --- | --- | --- |
 | Name | `Full name` | `As you want it on your documents` |
 | Email | `Email` | `you@example.com` |
-| Password | `Password` | Help: `At least 8 characters` [CHECK: use the real rule] |
+| Password | `Password` | Help: `At least 8 characters` [ships only if true in the build, AJ-511-M16] |
 | Show or hide | `Show` / `Hide` | aria-label: `Show password` / `Hide password` |
-| Consent | `I have read the Privacy Policy (version {version}, {date}) and the Terms.` | Both are links. [CHECK] Ajay: wording and version stamp. |
+| Consent | `I have read and agree to the Terms and the Privacy Policy (version {version}, {date}).` | Both are links. Box unticked by default. Version and date stored with the consent. (AJ-511-M11, signed) |
 | Link | `Forgot password?` | |
 | Button, create | `Create account` | |
 | Button, sign in | `Sign in` | |
@@ -292,10 +292,10 @@ FAQ Hindi: not requested. English only in v1. If the Hindi toggle swaps "every s
 | Network | `Could not reach Lawie. Check your connection and try again.` + button `Retry` |
 | Server error banner | `Could not sign you in. Try again.` + `Retry` |
 | Email already used (sign-up) | See 2.5 (same screen for new and existing emails). |
-| Weak password | `Use at least 8 characters.` [CHECK: real rule] |
+| Weak password | `Use at least 8 characters.` [ships only if true in the build, AJ-511-M16] |
 | Email format | `Enter a valid email address.` |
 | Consent not ticked | `Please accept the Privacy Policy and Terms to continue.` |
-| Resend too soon | `Please wait a minute before asking for another email.` [CHECK: real limit] |
+| Resend too soon | `Please wait a minute before asking for another email.` [ships only if true in the build, AJ-511-M16] |
 
 ### 2.5 Sign-up with an existing email (AJ-511-M3, signed by Ajay)
 
@@ -328,14 +328,14 @@ FAQ Hindi: not requested. English only in v1. If the Hindi toggle swaps "every s
 
 | Case | Copy |
 | --- | --- |
-| Low | `{n} Ink left. You see the Ink cost before you generate.` [PENDING ARJUN, AJ-511-M1: signed if T-388 AC4 is live and shown cost = charged cost] Buttons: `Top up` (primary), `See plans` (ghost) |
+| Low | `{n} Ink left. You see the Ink cost before you generate.` [Ajay AJ-511-M1/M4, signed; confirmed Arjun 17 Oct] Buttons: `Top up` (primary), `See plans` (ghost) |
 | Zero, on a plan | `You have no Ink left. It refills on {date}, or you can top up now.` |
 | Zero, Free | `You have used your 5 Ink. Top up or choose a plan to keep drafting.` |
 | Dismiss | `Not now` |
 
 Hindi (key moment):
 
-- Low: `{n} Ink बचा है। हर ड्राफ़्ट से पहले आपको लागत दिखती है।`
+- Low: `{n} Ink बचा है। हर ड्राफ़्ट से पहले आपको लागत दिखती है।` [signed, AJ-511-M19]
 - Zero, plan: `आपका Ink समाप्त हो गया है। {date} को यह फिर भर जाएगा, या आप अभी टॉप-अप कर सकते हैं।`
 
 ### 3.4 Section labels (the eight items)
@@ -375,13 +375,13 @@ No time-saved line or tile. Tiles still loading show a skeleton, never a zero (s
 
 | Plan | Name | Price | Ink | Notes |
 | --- | --- | --- | --- | --- |
-| Free | `Free` | `₹0` | `5 Ink on sign-up, once your email is verified (lifetime)` | |
+| Free | `Free` | `₹0` | `5 Ink on sign-up, once your email is verified (one time)` | |
 | Solo | `Solo` | `₹799 a month` | `50 Ink a month` | Highlighted if current |
 | Pro | `Pro` | `₹1,999 a month` | `150 Ink a month` | |
 
-Under the cards: `Prices include GST. Plan Ink does not carry over. Top-up Ink never expires.`
+Under the cards: `Prices include GST. Plan Ink does not carry over. Top-up Ink does not expire while your account is open.`
 
-Hindi (key): `कीमतों में GST शामिल है। प्लान का बचा हुआ Ink आगे नहीं जुड़ता। टॉप-अप Ink कभी समाप्त नहीं होता।`
+Hindi (key): `कीमतों में GST शामिल है। प्लान का बचा हुआ Ink आगे नहीं जुड़ता। खाता चालू रहने तक टॉप-अप Ink समाप्त नहीं होता।`
 
 ### 4.2 Labels and buttons
 
@@ -414,7 +414,7 @@ Hindi (key): `कीमतों में GST शामिल है। प्�
 - Ghost button: `Keep my plan`
 - After cancel (toast): `Your plan will end on {date}.`
 - Cancel error: `Could not cancel your plan. Try again.` + `Retry`
-- Switch note (decision 6): `To change plans, cancel your current plan and choose the new one after {date}.` [CHECK: Priya to confirm the flow]
+- Switch note (decision 6): `To change plans, cancel your current plan and choose the new one after {date}.` [Priya confirmed: cancel at cycle end, then buy; ships only if true in the build, AJ-511-M16]
 
 Hindi cancel dialog (key moment):
 
@@ -435,7 +435,7 @@ Hindi cancel dialog (key moment):
 
 - Title: `Top up Ink`
 - Packs: `3 Ink, ₹65` / `10 Ink, ₹199` / `28 Ink, ₹499`
-- Note: `Prices include GST. Top-up Ink never expires.`
+- Note: `Prices include GST. Top-up Ink does not expire while your account is open.`
 - Buy button: `Buy`
 - Loading: skeleton (no copy)
 - Error: `Could not load top-up plans.` + `Retry`
@@ -447,13 +447,13 @@ Hindi cancel dialog (key moment):
 | State | Heading | Body | Action |
 | --- | --- | --- | --- |
 | 404 | `This page is not on the shelf` | `Check the address, or go back to your dashboard.` | `Back to dashboard` |
-| 500 | `Something went wrong on our side` | `Please try again.` Option A: `Your drafts are safe.` [CHECK] | `Retry`, `Back to dashboard` |
+| 500 | `Something went wrong on our side` | `Please try again.` No extra line (AJ-511-M9: "Your drafts are safe" struck). | `Retry`, `Back to dashboard` |
 | Offline banner | | `You are offline. Reconnect to keep working.` | |
-| AI down banner | | `Drafting is paused for now. Please try again shortly.` Option A: add `Your documents are still here.` [CHECK] | `Retry` |
+| AI down banner | | `Drafting is paused for now. Please try again shortly. Your saved documents are still in your account.` (AJ-511-M10; keep the last sentence only if true in the build, AJ-511-M16) | `Retry` |
 | Still working (after 8 s) | | `Still working…` | |
 | Top-up plans failed | | `Could not load top-up plans.` | `Retry` |
 | Generic failure | | `Something did not work. Try again.` | `Retry` |
-| Draft did not finish | | `The draft did not finish. If a draft fails to generate, no Ink is used.` [PENDING ARJUN, AJ-511-M2: signed wording; billing never debits a failed generation] | `Try again` |
+| Draft did not finish | | `The draft did not finish. No Ink was used.` [Ajay AJ-511-M2/M5, signed; confirmed Arjun 17 Oct] | `Try again` |
 | Export failed (toast) | | `Could not export. Try again.` | `Retry` |
 | Describe failed | | `Could not read your description. Try again.` Text kept. | `Retry` |
 | Empty documents list | `No documents yet` | `Your drafts will appear here.` | `Start a draft` |
@@ -479,18 +479,18 @@ HI: `प्रोफ़ाइल`, `प्लान`, `निजता`, `खा
 | Field | Label | Help |
 | --- | --- | --- |
 | Name | `Name` | |
-| Email | `Email` | `To change your email, contact support.` [CHECK: real behaviour] |
-| Phone | `Phone` | `Optional` [CHECK] |
+| Email | `Email` | `To change your email, contact support.` [ships only if true in the build, AJ-511-M16] |
+| Phone | `Phone` | `Optional` [ships only if true in the build, AJ-511-M16] |
 | Enrollment number | `Enrollment number` | `As on your Bar Council enrollment certificate` |
 | Bar council | `Bar council` | |
 | State | `State` | |
 | Practice areas | `Practice areas` | `Choose all that apply` |
 | Years of experience | `Years of experience` | |
 | Courts practised in | `Courts practised in` | `Add the courts where you appear` |
-| Default court | `Default court` | `Used to fill the court name in new drafts.` [CHECK: decision 7] |
+| Default court | `Default court` | `Pre-fills the court on every new draft. You can change it for each draft.` [Priya's decision 4; ships only if true in the build, AJ-511-M16] |
 | Save | `Save changes` | |
 
-Lawie does not check enrollment numbers; do not write "verified" next to the field. [CHECK]
+Lawie does not check enrollment numbers; do not write "verified" next to the field (agreed, AJ-511-M16).
 
 ### 6.3 Toasts and errors
 
@@ -516,7 +516,7 @@ Template (Ajay, exact): `This sends {what} to {vendor} in {country} to {purpose}
 
 HI template: `इससे {what} {country} में {vendor} को भेजा जाता है, ताकि {purpose}।`
 
-Examples [CHECK: vendor names and countries are mine to confirm with Ajay's vendor list]
+Examples (AJ-511-M14: OK as examples; the live list comes from Ajay's vendor register before launch)
 
 - `This sends your description of the matter to Anthropic in the United States to write the draft.`
 - `This sends your name, email and payment details to Razorpay in India to take payment.`
@@ -527,7 +527,7 @@ Examples [CHECK: vendor names and countries are mine to confirm with Ajay's vend
 - `Privacy notice version {version}, {date}`
 - `Consent history`, `Withdraw consent`
 - `Ask to access, correct or erase your data`
-- `Grievance Officer: {name}, {email}. We reply within {days} days.` [CHECK: Ajay supplies the response time]
+- `Grievance Officer: {name}, {email}. We acknowledge within 24 hours and resolve within 15 days.` (AJ-511-M12, signed per IT Rules 2021, r.3(2); Ajay to verify against the DPDP Rules timelines)
 - Account: `Change password`, `Active sessions`, `Sign out`. Close-account and delete-document strings: section 6.7.
 
 ### 6.7 Delete document and close account (verbatim from handoff/marketing/copy/dpdp-ui-strings-t115.md, Ajay-signed where marked there)
@@ -571,5 +571,5 @@ Ready for next task.
 4. **Default court:** pre-fills the court on every new draft; the advocate can change it per draft.
 5. **Document types:** list only the types that appear in the app's template picker today. The web lead confirms the list against the picker before launch.
 6. **Vendor names and countries:** placeholders until Arjun and Ajay name the real vendors; keep the {vendor} and {country} tokens.
-7. **"Drafts are safe" and "documents still here" lines:** keep them only if Arjun confirms the app really saves them; otherwise delete.
+7. **"Drafts are safe" and "documents still here" lines:** superseded. "Your drafts are safe" is struck (AJ-511-M9). Other product-fact lines ship only if true in the build (AJ-511-M16).
 8. The FAQ sentence about "2 Ink / 1 Ink" stays removed.
