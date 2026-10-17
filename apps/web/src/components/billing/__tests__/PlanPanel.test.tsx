@@ -537,6 +537,81 @@ describe('T-509 AC4 subscribe gates and failures', () => {
   });
 });
 
+describe('T-509 Back from Razorpay (bfcache) and a failing redirect', () => {
+  const pageshow = (persisted: boolean) => {
+    const e = new Event('pageshow');
+    Object.defineProperty(e, 'persisted', { value: persisted });
+    act(() => {
+      window.dispatchEvent(e);
+    });
+  };
+  const chooseDisabled = () => [find('Choose Solo')!.disabled, find('Choose Pro')!.disabled];
+
+  async function redirected() {
+    mockPrivacyFetch.mockResolvedValue(reply(200, { data: { shortUrl: 'https://rzp.io/x' } }));
+    await mount();
+    await click(find('Choose Solo'));
+    expect(chooseDisabled()).toEqual([true, true]);
+  }
+
+  it('pageshow with persisted=true re-enables the buttons, and a new Choose sends a new /subscribe', async () => {
+    await redirected();
+    pageshow(true);
+    await flush();
+    expect(chooseDisabled()).toEqual([false, false]);
+    await click(find('Choose Pro'));
+    expect(mockPrivacyFetch).toHaveBeenCalledTimes(2);
+    expect(JSON.parse(mockPrivacyFetch.mock.calls[1][2].body)).toEqual({ planId: 'pro_monthly' });
+  });
+
+  it('pageshow with persisted=false leaves them disabled and sends nothing', async () => {
+    await redirected();
+    pageshow(false);
+    await flush();
+    expect(chooseDisabled()).toEqual([true, true]);
+    await click(find('Choose Pro'));
+    expect(mockPrivacyFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('if setting window.location.href throws: generic failure, buttons enabled (not stuck)', async () => {
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: {
+        set href(_v: string) {
+          throw new Error('blocked');
+        },
+      },
+    });
+    mockPrivacyFetch.mockResolvedValue(reply(200, { data: { shortUrl: 'https://rzp.io/x' } }));
+    await mount();
+    await click(find('Choose Solo'));
+    expect(text()).toContain(GENERIC);
+    expect(chooseDisabled()).toEqual([false, false]);
+    // And a retry is possible: a second press sends a second call.
+    await click(find('Choose Pro'));
+    expect(mockPrivacyFetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('the pageshow listener is removed on unmount: no state update afterwards', async () => {
+    const add = jest.spyOn(window, 'addEventListener');
+    const remove = jest.spyOn(window, 'removeEventListener');
+    const errors = jest.spyOn(console, 'error').mockImplementation(() => {});
+    await redirected();
+    const added = add.mock.calls.filter((c) => c[0] === 'pageshow');
+    expect(added).toHaveLength(1);
+    act(() => root.unmount());
+    const removed = remove.mock.calls.filter((c) => c[0] === 'pageshow');
+    expect(removed).toHaveLength(1);
+    expect(removed[0][1]).toBe(added[0][1]);
+    pageshow(true);
+    expect(errors).not.toHaveBeenCalled();
+    root = createRoot(container);
+    add.mockRestore();
+    remove.mockRestore();
+    errors.mockRestore();
+  });
+});
+
 describe('T-509 AC5 no dead buttons', () => {
   it('no "Manage on Razorpay", no "Cancel subscription" anywhere', async () => {
     for (const body of [FREE, SOLO]) {

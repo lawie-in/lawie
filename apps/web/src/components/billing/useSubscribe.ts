@@ -31,8 +31,18 @@ export function useSubscribe(gst: GstStateController) {
 
   useEffect(() => {
     mounted.current = true;
+    // Back from Razorpay: a page restored from the back/forward cache keeps the "redirecting"
+    // state, so reset it or the Choose buttons stay disabled.
+    const onPageShow = (event: PageTransitionEvent) => {
+      if (!event.persisted) return;
+      redirecting.current = false;
+      inFlight.current = false;
+      if (mounted.current) setPendingPlanId(null);
+    };
+    window.addEventListener('pageshow', onPageShow);
     return () => {
       mounted.current = false;
+      window.removeEventListener('pageshow', onPageShow);
     };
   }, []);
 
@@ -69,8 +79,9 @@ export function useSubscribe(gst: GstStateController) {
         const shortUrl = body?.data?.shortUrl;
         if (typeof shortUrl === 'string' && shortUrl) {
           setGate(null);
-          redirecting.current = true;
           window.location.href = shortUrl;
+          // After the assignment: if it throws, catch and finally reset as usual.
+          redirecting.current = true;
           return;
         }
         if (mounted.current) setFailedPlanId(planId);
