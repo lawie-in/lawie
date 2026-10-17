@@ -20,7 +20,13 @@ export {
   type SkeletonProps,
   type StateAction,
 } from './States';
-export { Inkwell, INKWELL_REDUCED_LEVEL, clampLevel, type InkwellProps } from './Inkwell';
+export {
+  Inkwell,
+  INKWELL_REDUCED_LEVEL,
+  INKWELL_DRAIN_END_OFFSET,
+  clampLevel,
+  type InkwellProps,
+} from './Inkwell';
 export { Seal, type SealProps, type SealState } from './Seal';
 export {
   ToastProvider,

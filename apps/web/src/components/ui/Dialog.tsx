@@ -63,7 +63,7 @@ export function Dialog({
             // Bottom sheet at <= 640px.
             'rounded-t-nl-md inset-x-0 bottom-0 max-h-[90vh] overflow-y-auto',
             // Dialog above 640px.
-            'min-[641px]:rounded-nl-md min-[641px]:inset-x-auto min-[641px]:bottom-auto min-[641px]:left-1/2 min-[641px]:top-1/2 min-[641px]:w-[min(480px,calc(100vw-32px))] min-[641px]:-translate-x-1/2 min-[641px]:-translate-y-1/2',
+            'min-[641px]:rounded-nl-md min-[641px]:inset-x-auto min-[641px]:bottom-auto min-[641px]:left-1/2 min-[641px]:top-1/2 min-[641px]:w-[min(440px,calc(100vw-32px))] min-[641px]:-translate-x-1/2 min-[641px]:-translate-y-1/2',
             'focus:outline-none',
             className,
           )}

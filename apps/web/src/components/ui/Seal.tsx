@@ -55,10 +55,9 @@ export function Seal({ state, text, label, onStamped, className }: SealProps) {
           textAnchor="middle"
           dominantBaseline="central"
           fill="var(--on-brass)"
+          // Mukta (font-nl-body) 13px / 500, no letter-spacing (spec).
           className="font-nl-body"
-          fontSize="13"
-          fontWeight="500"
-          letterSpacing="1.5"
+          style={{ fontSize: 13, fontWeight: 500, letterSpacing: 0 }}
         >
           {text}
         </text>

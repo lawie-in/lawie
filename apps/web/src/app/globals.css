@@ -268,9 +268,11 @@ html[data-theme='night'] .nl {
     background-color: var(--bg-wood);
     animation: nl-skeleton-pulse 1.4s ease-in-out infinite;
   }
+  /* Ink drain (spec 2.4): once, 2.6s linear, then HOLDS near empty until the request ends
+     (the component drops the class). Paused while the tab is hidden; none when reduced. */
   .nl-ink-draining {
     transform-box: fill-box;
-    animation: nl-ink-drain 2.6s linear infinite;
+    animation: nl-ink-drain 2.6s linear 1 forwards;
   }
   .nl-seal-stamping {
     transform-box: fill-box;
@@ -337,13 +339,14 @@ html[data-theme='night'] .nl {
     opacity: 0.55;
   }
 }
-/* The level rect drains from its current offset (set inline as --nl-ink-from) to empty. */
+/* The level rect drains from its current offset (set inline as --nl-ink-from) to near empty
+   (--nl-ink-to, default 92%: a thin line of ink stays visible) and holds there (fill forwards). */
 @keyframes nl-ink-drain {
   from {
     transform: translateY(var(--nl-ink-from, 0%));
   }
   to {
-    transform: translateY(100%);
+    transform: translateY(var(--nl-ink-to, 92%));
   }
 }
 @keyframes nl-seal-stamp {
