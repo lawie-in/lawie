@@ -192,9 +192,9 @@ describe('break-ui: field limits and long error text (round-2 fixes)', () => {
 });
 
 describe('break-ui: 320px structure, rapid clicks, odd states', () => {
-  it('the card is capped (max-w-md, w-full) and the page clips horizontal overflow', async () => {
+  it('the card is capped (max-w-[440px], w-full) and the page clips horizontal overflow', async () => {
     await mount('mode=signup');
-    const card = q('#auth-panel')!.closest('.max-w-md') as HTMLElement;
+    const card = q('#auth-panel')!.closest('.max-w-\\[440px\\]') as HTMLElement;
     expect(card.className).toContain('w-full');
     expect(card.className).toContain('overflow-hidden');
     expect(q('.nl-root')!.className).toMatch(/min-h-\[100svh\]/);

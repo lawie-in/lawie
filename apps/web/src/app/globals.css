@@ -109,6 +109,9 @@ html[data-theme='daylight'] .nl {
   /* T-524: muted, brass and ok re-signed by Rajesh (DESIGN.md Colors) to clear WCAG AA. */
   --muted: #5c685f;
   --line: #d9d1be;
+  /* T-525 (Rajesh, WCAG 1.4.11): boundary of anything the user operates (inputs, ghost buttons,
+     checkbox, toggle frames, tab underline at rest). --line stays for cards and dividers. */
+  --line-control: #8a8476;
   --brass: #866619;
   --brass-dark: #6e5415;
   --brass-light: #f6ebcf;
@@ -155,6 +158,7 @@ html[data-theme='night'] .nl {
   --text-soft: #cbc2ac;
   --muted: #8e9a8e;
   --line: #2a3c35;
+  --line-control: #6b7c74;
   --brass: #c9a24a;
   --brass-dark: #e6c877;
   --brass-light: #2b2614;

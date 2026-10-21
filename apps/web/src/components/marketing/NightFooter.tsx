@@ -8,6 +8,8 @@
 // - Cookie settings (T-310 S9) is kept: it is how a visitor reopens the analytics choice. Pass
 //   showCookieSettings={false} where analytics never loads (e.g. /login, not in
 //   ANALYTICS_ALLOWED_PATHS), so the button is never dead.
+// - T-528 (Rajesh, Priya): on the page's one Wall ground, ruled off by the 1px Line hairline above
+//   it. Wood is the shelf edge, skeletons and dividers only, never a band.
 
 import Link from 'next/link';
 
@@ -26,7 +28,7 @@ export function NightFooter({
 }) {
   const copy = footerCopy(lang);
   return (
-    <footer className="nl border-nl-line bg-nl-wood px-nl-4 py-nl-8 text-nl-soft min-[900px]:px-nl-8 border-t">
+    <footer className="nl border-nl-line px-nl-4 py-nl-8 text-nl-soft min-[900px]:px-nl-8 border-t">
       <div className="gap-nl-4 mx-auto flex max-w-[1180px] flex-col">
         <LawieMark />
         <p className="nl-body-sm max-w-[60ch]">{copy.disclaimer}</p>

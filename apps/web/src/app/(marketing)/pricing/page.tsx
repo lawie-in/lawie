@@ -50,6 +50,9 @@ const PRICING_COPY = {
 };
 
 const SECTION = 'px-nl-4 py-nl-12 min-[900px]:px-nl-8 min-[900px]:py-nl-16';
+/** T-528 (Rajesh): one Wall ground; the next section opens with the 1px Line hairline (Wood is
+ *  for the shelf edge, skeletons and dividers, never a section band). */
+const RULED = 'border-t border-nl-line';
 
 export default function PricingPage() {
   const cards = planCards('en');
@@ -63,7 +66,9 @@ export default function PricingPage() {
               {PRICING_COPY.title}
             </h1>
             <p className="nl-body text-nl-soft mt-nl-3 max-w-[65ch]">{PRICES_INTRO.en}</p>
-            <div className="mt-nl-8 gap-nl-4 grid grid-cols-1 min-[640px]:grid-cols-2 min-[900px]:grid-cols-3">
+            {/* T-528: three columns from 1024px. At 900 a column is too narrow for "₹1,999 a month" in
+                Tiro 34px, and the Pro price wrapped out of line with the other two. */}
+            <div className="mt-nl-8 gap-nl-4 grid grid-cols-1 min-[640px]:grid-cols-2 min-[1024px]:grid-cols-3">
               <NightPlanCard
                 testId="free"
                 name={cards.free.name}
@@ -103,7 +108,7 @@ export default function PricingPage() {
           </div>
         </section>
 
-        <section className={`${SECTION} bg-nl-wood`} aria-labelledby="pricing-faq-heading">
+        <section className={`${SECTION} ${RULED}`} aria-labelledby="pricing-faq-heading">
           <div className="mx-auto w-full max-w-[1180px]">
             <h2 id="pricing-faq-heading" className="nl-h1 text-nl-text">
               {PRICING_COPY.faqTitle}

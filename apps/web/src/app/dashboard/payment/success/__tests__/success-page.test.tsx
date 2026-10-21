@@ -206,3 +206,54 @@ describe('T-509 payment success page', () => {
     root = createRoot(container);
   });
 });
+
+// T-525: restyle-specific structure. Text nodes and behaviour are asserted above; this pins the
+// folio card, spinner, check disc and the single status region.
+describe('T-525 payment success page restyle', () => {
+  const statuses = () => container.querySelectorAll('[role="status"]');
+
+  it('pending: a decorative spinner, exactly one role=status carrying the pending line, no button or link', async () => {
+    creditsTier = 'free';
+    await mount();
+    expect(statuses()).toHaveLength(1);
+    expect(statuses()[0].textContent).toBe(PENDING);
+    expect(container.querySelector('.animate-spin, [class*="animate-spin"]')).not.toBeNull();
+    expect(
+      container.querySelector(
+        '[aria-hidden="true"] svg, svg[aria-hidden="true"], [aria-hidden="true"]',
+      ),
+    ).not.toBeNull();
+    expect(container.querySelector('button, a')).toBeNull();
+    expect(container.querySelector('svg[viewBox="0 0 64 64"]')).toBeNull();
+  });
+
+  it('landed: the spinner is gone, one check/seal mark (aria-hidden), one role=status with the welcome', async () => {
+    await mount();
+    expect(statuses()).toHaveLength(1);
+    expect(statuses()[0].textContent).toBe('Welcome to Lawie Solo!');
+    expect(container.querySelector('[class*="animate-spin"]')).toBeNull();
+    const mark = container.querySelector('svg[viewBox="0 0 64 64"]') as SVGElement;
+    expect(mark).not.toBeNull();
+    expect(mark.getAttribute('aria-hidden')).toBe('true');
+    expect(container.textContent).toContain('Redirecting you to the dashboard…');
+  });
+
+  it('is a single 440px-max centred card with a 60svh minimum and no second primary action', async () => {
+    await mount();
+    const outer = container.firstElementChild as HTMLElement;
+    expect(outer.className).toContain('min-h-[60svh]');
+    expect(outer.children).toHaveLength(1);
+    expect((outer.firstElementChild as HTMLElement).className).toContain('max-w-[440px]');
+    expect(container.querySelectorAll('button, a')).toHaveLength(0);
+  });
+
+  it('timeout: pending line plus the redirect line, still one status region', async () => {
+    creditsTier = 'free';
+    await mount();
+    await advanceBySteps(121_000);
+    await advance(1600);
+    expect(statuses()).toHaveLength(1);
+    expect(text()).toContain('Redirecting you to the dashboard…');
+    expect(mockReplace).toHaveBeenCalledWith('/dashboard');
+  });
+});

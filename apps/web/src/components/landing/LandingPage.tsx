@@ -10,6 +10,9 @@
 // - Hindi headings use nl-h2 or larger (20px and up, AC5).
 // - Motion: Lamp and DustMotes from components/ui (fine pointer, >= 900px, not reduced, paused
 //   on a hidden tab); the demo has its own gates (DemoFolio).
+// - T-528 (Rajesh): one Wall ground; every section after the hero opens with the 1px Line
+//   hairline (Wood is the shelf edge, never a section band). Anchor jumps clear the sticky top
+//   bar through NightTopBar's scroll-padding-top (no per-section scroll margin).
 
 import Link from 'next/link';
 import { useState } from 'react';
@@ -26,6 +29,13 @@ import { DustMotes, Lamp } from '@/components/ui';
 import { cn } from '@/lib/cn';
 
 const SECTION = 'px-nl-4 py-nl-12 min-[900px]:px-nl-8 min-[900px]:py-nl-16';
+/** T-528: sections after the hero are separated by the Line hairline, on the Wall ground. */
+const RULED = 'border-t border-nl-line';
+/** T-528 (Rajesh): the three steps carry a brass roman numeral; typographic, not copy. */
+const STEP_NUMERALS = ['i', 'ii', 'iii'] as const;
+/** T-528: a spine band in Brass Mark; CanvasText under forced colours (as the dashboard Spine). */
+const SPINE_BAND =
+  'absolute inset-x-0 h-1 bg-[var(--brass-mark)] forced-colors:[background-color:CanvasText] forced-colors:[forced-color-adjust:none]';
 const INNER = 'mx-auto w-full max-w-[1180px]';
 
 function PrimaryCta({ label, className }: { label: string; className?: string }) {
@@ -94,18 +104,26 @@ export function LandingPage({ initialLang = 'en' }: { initialLang?: Lang }) {
         {/* THREE STEPS */}
         <section
           id={SECTION_IDS.how}
-          className={cn(SECTION, 'bg-nl-wood')}
+          className={cn(SECTION, RULED)}
           aria-labelledby="steps-heading"
         >
           <div className={INNER}>
             <h2 id="steps-heading" className="nl-h1 text-nl-text">
               {copy.steps.title}
             </h2>
-            <ol className="mt-nl-8 gap-nl-4 grid list-none grid-cols-1 p-0 min-[640px]:grid-cols-3">
-              {/* Order is carried by the <ol>; no decorative 01 / 02 / 03 (craft floor). */}
-              {copy.steps.items.map((step) => (
-                <li key={step.title} className="border-nl-line bg-nl-card p-nl-6 border">
-                  <h3 className={cn(h3, 'text-nl-text')}>{step.title}</h3>
+            {/* T-528: plain text columns, no cards. The <ol> carries the order for assistive tech,
+                so the brass numeral is aria-hidden (it would otherwise be read twice). */}
+            <ol className="mt-nl-8 gap-nl-8 grid list-none grid-cols-1 p-0 min-[640px]:grid-cols-3">
+              {copy.steps.items.map((step, i) => (
+                <li key={step.title} className="min-w-0">
+                  <span
+                    aria-hidden="true"
+                    data-step-numeral=""
+                    className="nl-h2 text-nl-brass-dark block"
+                  >
+                    {STEP_NUMERALS[i] ?? ''}
+                  </span>
+                  <h3 className={cn(h3, 'text-nl-text mt-nl-2')}>{step.title}</h3>
                   <p className="nl-body text-nl-soft mt-nl-2">{step.body}</p>
                 </li>
               ))}
@@ -117,32 +135,39 @@ export function LandingPage({ initialLang = 'en' }: { initialLang?: Lang }) {
         </section>
 
         {/* DOCUMENT SPINES */}
-        <section id={SECTION_IDS.documents} className={SECTION} aria-labelledby="docs-heading">
+        <section
+          id={SECTION_IDS.documents}
+          className={cn(SECTION, RULED)}
+          aria-labelledby="docs-heading"
+        >
           <div className={INNER}>
             <h2 id="docs-heading" className="nl-h1 text-nl-text">
               {copy.documents.title}
             </h2>
             <p className="nl-body text-nl-soft mt-nl-3 max-w-[65ch]">{copy.documents.line}</p>
-            {/* The shelf scrolls sideways inside itself at 360; the page does not. */}
+            {/* The shelf scrolls sideways inside itself at 360; the page does not. T-528: the scroll
+                is contained (a hard swipe at the end does not chain into back navigation) and
+                snaps to a spine. */}
             <ul
               tabIndex={0}
               aria-label={copy.documents.title}
-              className="nl-focus mt-nl-8 border-nl-line bg-nl-wood px-nl-3 pt-nl-8 flex list-none items-end gap-[6px] overflow-x-auto border-b-[10px] pb-0"
+              className="nl-focus mt-nl-8 border-nl-line bg-nl-wood px-nl-3 pt-nl-8 scroll-px-nl-3 flex snap-x snap-mandatory list-none items-end gap-[6px] overflow-x-auto overscroll-x-contain border-b-[10px] pb-0"
             >
               {copy.documents.spines.map((label, i) => (
                 <li
                   key={label}
                   title={label}
                   className={cn(
-                    'bg-nl-ox relative flex w-[52px] shrink-0 items-center justify-center text-white',
+                    'bg-nl-ox relative flex w-[52px] shrink-0 snap-start items-center justify-center text-white',
+                    'forced-colors:border-2 forced-colors:border-solid',
                     'transition-transform duration-[250ms] ease-[ease] motion-reduce:transition-none',
                     'motion-safe:[@media(hover:hover)_and_(pointer:fine)_and_(min-width:641px)]:hover:-translate-y-[14px]',
-                    'motion-safe:[@media(pointer:fine)_and_(min-width:641px)]:focus-within:-translate-y-[14px]',
                   )}
                   style={{ height: [196, 210, 184, 202, 190][i % 5] }}
                 >
-                  <span aria-hidden="true" className="bg-nl-brass absolute inset-x-0 top-3 h-1" />
-                  <span aria-hidden="true" className="bg-nl-brass absolute inset-x-0 top-5 h-1" />
+                  {/* T-528: Brass Mark (5.0:1 on Oxblood by day), as the dashboard Spine. */}
+                  <span aria-hidden="true" className={cn(SPINE_BAND, 'top-3')} />
+                  <span aria-hidden="true" className={cn(SPINE_BAND, 'top-5')} />
                   <span className="font-nl-display py-nl-8 whitespace-nowrap text-[15px] leading-5 [writing-mode:vertical-rl]">
                     {label}
                   </span>
@@ -155,7 +180,7 @@ export function LandingPage({ initialLang = 'en' }: { initialLang?: Lang }) {
         {/* INK AND PRICES (Free and Solo only; Pro is on /pricing, Priya decision 2) */}
         <section
           id={SECTION_IDS.prices}
-          className={cn(SECTION, 'bg-nl-wood')}
+          className={cn(SECTION, RULED)}
           aria-labelledby="prices-heading"
         >
           <div className={INNER}>
@@ -201,7 +226,7 @@ export function LandingPage({ initialLang = 'en' }: { initialLang?: Lang }) {
         </section>
 
         {/* TRUST */}
-        <section className={SECTION} aria-labelledby="trust-heading">
+        <section className={cn(SECTION, RULED)} aria-labelledby="trust-heading">
           <div className={INNER}>
             <h2 id="trust-heading" className="nl-h1 text-nl-text">
               {copy.trust.title}
@@ -242,11 +267,7 @@ export function LandingPage({ initialLang = 'en' }: { initialLang?: Lang }) {
         </section>
 
         {/* FAQ */}
-        <section
-          id={SECTION_IDS.faq}
-          className={cn(SECTION, 'bg-nl-wood')}
-          aria-labelledby="faq-heading"
-        >
+        <section id={SECTION_IDS.faq} className={cn(SECTION, RULED)} aria-labelledby="faq-heading">
           <div className={INNER}>
             <h2 id="faq-heading" lang={enOnly} className="nl-h1 text-nl-text">
               {copy.faq.title}
@@ -260,7 +281,7 @@ export function LandingPage({ initialLang = 'en' }: { initialLang?: Lang }) {
         </section>
 
         {/* FINAL CALL TO ACTION */}
-        <section className={SECTION} aria-labelledby="final-heading">
+        <section className={cn(SECTION, RULED)} aria-labelledby="final-heading">
           <div className={cn(INNER, 'text-center')}>
             <h2 id="final-heading" className="nl-h1 text-nl-text">
               {copy.final.heading}

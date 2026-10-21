@@ -115,16 +115,16 @@ describe('landing: structure (AC1)', () => {
 describe('landing: claims (AC2)', () => {
   it('one call to action: every primary button goes to /login?mode=signup; the top bar one is ghost', () => {
     mount(<LandingPage />);
-    const primaries = qa('a').filter((a) => a.className.includes('bg-nl-brass'));
+    // Exact class token: the ghost hover adds hover:bg-nl-brass-light (T-528), not a primary.
+    const isPrimary = (a: Element) => a.classList.contains('bg-nl-brass');
+    const primaries = qa('a').filter(isPrimary);
     expect(primaries.length).toBeGreaterThanOrEqual(1);
     for (const a of primaries) {
       expect(a.getAttribute('href')).toBe(SIGNUP_HREF);
       expect(a.textContent).toBe('Start with 5 free Ink');
     }
     // Never two primaries in the hero view.
-    expect(qa('a', q('header')!).filter((a) => a.className.includes('bg-nl-brass'))).toHaveLength(
-      0,
-    );
+    expect(qa('a', q('header')!).filter(isPrimary)).toHaveLength(0);
     expect(SIGNUP_HREF).toBe('/login?mode=signup');
     const signIn = qa('header a').find((a) => a.textContent === 'Sign in');
     expect(signIn?.getAttribute('href')).toBe('/login?mode=signin');

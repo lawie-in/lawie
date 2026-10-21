@@ -1,19 +1,12 @@
 'use client';
 
-import {
-  Scale,
-  Megaphone,
-  Home,
-  AlignLeft,
-  FileText,
-  ShieldCheck,
-  Loader2,
-  AlertTriangle,
-  Plus,
-} from 'lucide-react';
+import { Scale, Megaphone, Home, AlignLeft, FileText, ShieldCheck, Plus } from 'lucide-react';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
+import { TEMPLATES_LOAD_FAILED } from '@/components/documents/copy';
+import NightScope from '@/components/intake/NightScope';
+import { EmptyState, ErrorState, Skeleton } from '@/components/ui';
 import { apiFetch } from '@/lib/apiFetch';
 import { groupByCatalogueCategory } from '@/lib/catalogueGroups';
 
@@ -72,45 +65,50 @@ export default function TemplatesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
+  // T-521: the first load, and Retry after a failed one.
+  const load = useCallback(() => {
+    setLoading(true);
+    setError('');
     apiFetch('/api/documents/template-configs')
       .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
       .then((data) => setTemplates(data.templates ?? []))
-      .catch(() => setError('Failed to load templates. Please refresh.'))
+      .catch(() => setError(TEMPLATES_LOAD_FAILED))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const grouped = groupByCatalogueCategory(templates, templateCategory);
 
   return (
-    <div>
-      <div className="mb-6 flex items-center justify-between">
+    <NightScope>
+      <div className="mb-nl-6 gap-nl-3 flex flex-wrap items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-slate-900">Templates</h1>
-          <p className="mt-0.5 text-sm text-slate-500">
+          <h1 className="nl-h1 text-nl-text">Templates</h1>
+          <p className="nl-body-sm text-nl-soft mt-nl-1">
             Browse all available document templates. Click any to start drafting.
           </p>
         </div>
         <Link
           href="/dashboard/new"
-          className="flex items-center gap-1.5 rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-700"
+          className="nl-focus gap-nl-2 rounded-nl-md px-nl-4 border-nl-line text-nl-brass-dark inline-flex h-11 items-center border text-[15px] font-medium"
         >
-          <Plus size={13} />
+          <Plus size={14} aria-hidden="true" />
           New document
         </Link>
       </div>
 
       {loading && (
-        <div className="flex items-center gap-2 py-16 text-slate-400">
-          <Loader2 size={16} className="animate-spin" />
-          <span className="text-sm">Loading templates…</span>
+        <div className="border-nl-line bg-nl-card p-nl-4 border">
+          <Skeleton lines={6} />
         </div>
       )}
 
       {error && (
-        <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-4">
-          <AlertTriangle size={15} className="mt-0.5 flex-shrink-0 text-red-500" />
-          <p className="text-sm text-red-700">{error}</p>
+        <div className="border-nl-line bg-nl-card p-nl-4 border">
+          <ErrorState message={error} onRetry={load} />
         </div>
       )}
 
@@ -121,9 +119,7 @@ export default function TemplatesPage() {
 
             return (
               <div key={id}>
-                <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
-                  {name}
-                </h2>
+                <h2 className="nl-label text-nl-muted mb-nl-3">{name}</h2>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {items.map((t) => {
                     const Icon = ICON_MAP[t.icon] ?? FileText;
@@ -132,23 +128,19 @@ export default function TemplatesPage() {
                         key={t.template_id}
                         // T-365 AC5: open the one flow with this document already chosen.
                         href={`/dashboard/new?kind=${encodeURIComponent(t.template_id)}`}
-                        className={`group rounded-xl border border-t-[3px] border-slate-200 bg-white p-4 shadow-sm transition-all hover:shadow-md ${colors.border}`}
+                        className={`nl-focus border-nl-line bg-nl-card p-nl-4 group block border border-t-[3px] ${colors.border}`}
                       >
                         <div className="flex items-start justify-between">
                           <Icon size={18} className={colors.color} />
                           {t.plan_access === 'pro' && (
-                            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                            <span className="bg-nl-brass-light text-nl-brass-dark rounded-full px-2 py-0.5 text-[10px] font-semibold">
                               PRO
                             </span>
                           )}
                         </div>
-                        <p className="mt-2 text-sm font-semibold text-slate-800">
-                          {t.display_name}
-                        </p>
+                        <p className="nl-body text-nl-text mt-nl-2 font-medium">{t.display_name}</p>
                         {t.description && (
-                          <p className="mt-0.5 text-xs leading-relaxed text-slate-400">
-                            {t.description}
-                          </p>
+                          <p className="nl-body-sm text-nl-soft mt-0.5">{t.description}</p>
                         )}
                         <div className="mt-3 flex items-center justify-between">
                           <span
@@ -156,7 +148,7 @@ export default function TemplatesPage() {
                           >
                             {name}
                           </span>
-                          <span className="text-xs font-medium text-amber-600 opacity-0 transition-opacity group-hover:opacity-100">
+                          <span className="nl-body-sm text-nl-brass-dark font-medium">
                             Use template →
                           </span>
                         </div>
@@ -169,13 +161,12 @@ export default function TemplatesPage() {
           })}
 
           {templates.length === 0 && (
-            <div className="rounded-xl border border-slate-200 bg-white p-12 text-center">
-              <FileText size={28} className="mx-auto text-slate-300" />
-              <p className="mt-3 text-sm text-slate-500">No templates available yet.</p>
+            <div className="border-nl-line bg-nl-card p-nl-6 border">
+              <EmptyState message="No templates available yet." />
             </div>
           )}
         </div>
       )}
-    </div>
+    </NightScope>
   );
 }

@@ -9,13 +9,22 @@ import Sidebar from '@/components/dashboard/Sidebar';
 import PrivacyUpdatePrompt, { PrivacyAcceptedStatus } from '@/components/PrivacyUpdatePrompt';
 import { SectionFinderPanel } from '@/components/sections/SectionFinderPanel';
 import { DashboardTopBar } from '@/components/shell/DashboardTopBar';
+import {
+  isNightLibraryPath,
+  needsNightLibraryContainer,
+} from '@/components/shell/nightLibraryPaths';
 import { OfflineBanner } from '@/components/shell/OfflineBanner';
 import { Spinner } from '@/components/ui';
 import VerifyEmailPrompt from '@/components/VerifyEmailPrompt';
 import { useAuth } from '@/context/AuthContext';
 
-/** T-520: only the dashboard home uses the Night Library shell; every other route keeps the legacy one. */
-const NIGHT_LIBRARY_PATH = '/dashboard';
+/**
+ * T-525: the content container for Night Library pages that do not bring their own (settings,
+ * payment). Same column as the dashboard page: 1180px max, 16px gutters at 360, 24px from 641px,
+ * 32px from 900px (spec 5).
+ */
+const NIGHT_PAGE_CONTAINER =
+  'mx-auto flex w-full max-w-[1180px] flex-col px-nl-4 py-nl-6 min-[641px]:px-nl-6 min-[900px]:px-nl-8';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
@@ -29,7 +38,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [user, isLoading, router]);
 
-  const nightLibrary = pathname === NIGHT_LIBRARY_PATH;
+  // T-520/T-525: the Night Library routes (components/shell/nightLibraryPaths.ts); every other
+  // route keeps the legacy shell until it is restyled.
+  const nightLibrary = isNightLibraryPath(pathname);
+  const nightContainer = needsNightLibraryContainer(pathname);
 
   if (nightLibrary) {
     if (isLoading || !user) {
@@ -53,7 +65,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* T-343: id and tabIndex so focus can return here when the privacy prompt closes. */}
         <main id="dashboard-main" tabIndex={-1} className="min-w-0 flex-1 focus:outline-none">
-          {children}
+          {/* T-525: /dashboard has its own container; the other Night routes get this one. */}
+          {nightContainer ? <div className={NIGHT_PAGE_CONTAINER}>{children}</div> : children}
         </main>
 
         {/* Section finder: globally mounted; it owns Ctrl/Cmd+K, opened from the account menu. */}

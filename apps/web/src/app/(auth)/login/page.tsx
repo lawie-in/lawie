@@ -10,6 +10,11 @@ import ReferralOfferModal from './ReferralOfferModal';
 import { NightFooter } from '@/components/marketing/NightFooter';
 import { NightTopBar } from '@/components/marketing/NightTopBar';
 import { AUTH_COPY, CONSENT_COPY } from '@/components/marketing/nl-copy';
+import {
+  CONTROL_LINE,
+  NL_GHOST_HOVER,
+  NL_PRIMARY_BUTTON_HOVER,
+} from '@/components/marketing/nl-link';
 import { Lamp, Spinner } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/cn';
@@ -170,18 +175,18 @@ function validateField(field: Field, value: string): string | undefined {
 }
 
 // Underline input on the folio (spec 3 Input; DESIGN.md Inputs / Shapes): bottom border only,
-// 1px Line, 2px brass on focus (the extra pixel comes out of the bottom padding, so the field does
-// not grow), Rust on error. Name, email and password use it.
+// 1px Control Line at rest (T-528), 2px brass on focus (the extra pixel comes out of the bottom
+// padding, so the field does not grow), Rust on error. Name, email and password use it.
 const inputBase =
   'nl-focus nl-body block min-h-[48px] w-full rounded-none border-0 border-b bg-transparent px-0 py-nl-2 text-nl-text placeholder:text-nl-muted focus:border-b-2 focus:pb-[7px] disabled:cursor-not-allowed disabled:opacity-50';
 
 function inputClass(invalid: boolean) {
-  return `${inputBase} ${invalid ? 'border-nl-err' : 'border-nl-line focus:border-nl-brass'}`;
+  return `${inputBase} ${invalid ? 'border-nl-err' : `${CONTROL_LINE} focus:border-nl-brass`}`;
 }
 
-// Boxed input (1px Line, radius md): only the referral code, which sits in its own wood box.
-const boxedInputClass =
-  'nl-focus nl-body block min-h-[48px] w-full rounded-nl-md border border-nl-line bg-nl-card px-nl-3 py-nl-2 text-nl-text placeholder:text-nl-muted focus:border-b-2 focus:border-nl-brass disabled:cursor-not-allowed disabled:opacity-50';
+// Boxed input (1px Control Line, radius md): only the referral code. T-528: its group is ruled
+// off with Line hairlines on the folio ground (no Wood panel, no box inside the folio's border).
+const boxedInputClass = `nl-focus nl-body block min-h-[48px] w-full rounded-nl-md border ${CONTROL_LINE} bg-nl-card px-nl-3 py-nl-2 text-nl-text placeholder:text-nl-muted focus:border-b-2 focus:border-nl-brass disabled:cursor-not-allowed disabled:opacity-50`;
 
 // Field labels: DESIGN.md Label style (nl-label: 500, 12px, 0.12em, uppercase) in Brass Text.
 const LABEL = 'nl-label mb-nl-1 block text-nl-brass-dark';
@@ -604,7 +609,7 @@ function LoginContent() {
 
       <main className="px-nl-4 py-nl-4 min-[640px]:py-nl-8 min-[900px]:py-nl-12 flex flex-1 flex-col items-center">
         {/* The folio holds the form; the lamp pool sits on it (spec 02). */}
-        <div className="border-nl-line border-t-nl-brass bg-nl-card shadow-nl-card relative w-full max-w-md overflow-hidden border border-t">
+        <div className="border-nl-line border-t-nl-brass bg-nl-card shadow-nl-card relative w-full max-w-[440px] overflow-hidden border border-t">
           <Lamp />
           <div className="p-nl-6 min-[900px]:p-nl-10 relative">
             {referralNotice ? (
@@ -619,7 +624,10 @@ function LoginContent() {
                 <button
                   type="button"
                   onClick={() => router.replace('/dashboard')}
-                  className="nl-focus rounded-nl-md bg-nl-brass text-nl-on-brass mt-nl-5 h-11 w-full font-medium"
+                  className={cn(
+                    'nl-focus rounded-nl-md bg-nl-brass text-nl-on-brass mt-nl-5 h-11 w-full touch-manipulation font-medium',
+                    NL_PRIMARY_BUTTON_HOVER,
+                  )}
                 >
                   {AUTH_COPY.continue}
                 </button>
@@ -630,7 +638,7 @@ function LoginContent() {
                 <div
                   role="tablist"
                   aria-label={AUTH_COPY.tablistLabel}
-                  className="border-nl-line grid grid-cols-2 border-b"
+                  className={cn(CONTROL_LINE, 'grid grid-cols-2 border-b')}
                 >
                   {tabs.map(([m, label]) => {
                     const selected = mode === m;
@@ -671,7 +679,7 @@ function LoginContent() {
 
                   {/* Referral code — SCRUM-71, Create account only (Priya decision 2) */}
                   {isSignup && (
-                    <div className="mt-nl-5 border-nl-line bg-nl-wood p-nl-4 border">
+                    <div className="mt-nl-5 border-nl-line py-nl-4 border-y">
                       <div className="mb-nl-3 gap-nl-2 flex items-center">
                         <Gift size={14} className="text-nl-brass-dark" aria-hidden="true" />
                         <label
@@ -714,7 +722,11 @@ function LoginContent() {
                           type="button"
                           onClick={() => void handleApply()}
                           disabled={!referralCode.trim() || validating || submitting}
-                          className="nl-focus rounded-nl-md border-nl-line px-nl-4 text-nl-brass-dark min-h-[48px] shrink-0 border font-medium disabled:opacity-50"
+                          className={cn(
+                            'nl-focus rounded-nl-md px-nl-4 text-nl-brass-dark min-h-[48px] shrink-0 border font-medium disabled:opacity-50',
+                            CONTROL_LINE,
+                            NL_GHOST_HOVER,
+                          )}
                         >
                           {validating ? 'Checking…' : 'Apply'}
                         </button>
@@ -753,7 +765,12 @@ function LoginContent() {
                     onClick={() => void handleGoogleLogin()}
                     type="button"
                     disabled={submitting}
-                    className="nl-focus rounded-nl-md border-nl-line bg-nl-card mt-nl-5 gap-nl-3 px-nl-4 text-nl-text [@media(hover:hover)_and_(pointer:fine)]:hover:shadow-nl-halo flex min-h-[48px] w-full touch-manipulation items-center justify-center border font-medium disabled:opacity-50"
+                    className={cn(
+                      'nl-focus rounded-nl-md bg-nl-card mt-nl-5 gap-nl-3 px-nl-4 text-nl-text flex min-h-[48px] w-full touch-manipulation items-center justify-center border font-medium disabled:opacity-50',
+                      // T-528 (Rajesh): a non-primary hover (Brass border, Brass Soft ground), no halo.
+                      CONTROL_LINE,
+                      NL_GHOST_HOVER,
+                    )}
                   >
                     <GoogleIcon />
                     {AUTH_COPY.google}
@@ -928,20 +945,43 @@ function LoginContent() {
                     {isSignup && (
                       <div>
                         <div className="gap-nl-3 flex items-start">
-                          <input
-                            ref={consentRef}
-                            id="consent"
-                            type="checkbox"
-                            checked={consent}
-                            disabled={submitting}
-                            onChange={(e) => {
-                              setConsent(e.target.checked);
-                              if (e.target.checked) setConsentError(undefined);
-                            }}
-                            aria-invalid={consentError ? true : undefined}
-                            aria-describedby={consentError ? 'consent-error' : undefined}
-                            className="nl-focus accent-nl-brass mt-[3px] h-5 w-5 shrink-0"
-                          />
+                          {/* T-528 (Rajesh): the box takes the Control Line at rest, so it is drawn
+                              (appearance-none); a native box's border cannot be coloured. Checked:
+                              Brass fill, On Brass tick. Forced colours get the native control. */}
+                          <span className="relative mt-[3px] inline-flex h-5 w-5 shrink-0">
+                            <input
+                              ref={consentRef}
+                              id="consent"
+                              type="checkbox"
+                              checked={consent}
+                              disabled={submitting}
+                              onChange={(e) => {
+                                setConsent(e.target.checked);
+                                if (e.target.checked) setConsentError(undefined);
+                              }}
+                              aria-invalid={consentError ? true : undefined}
+                              aria-describedby={consentError ? 'consent-error' : undefined}
+                              className={cn(
+                                'nl-focus rounded-nl-sm bg-nl-card checked:border-nl-brass checked:bg-nl-brass peer m-0 block h-5 w-5 cursor-pointer appearance-none border disabled:cursor-not-allowed disabled:opacity-50 forced-colors:appearance-auto',
+                                CONTROL_LINE,
+                              )}
+                            />
+                            <svg
+                              aria-hidden="true"
+                              focusable="false"
+                              viewBox="0 0 20 20"
+                              className="text-nl-on-brass pointer-events-none absolute inset-0 hidden h-5 w-5 peer-checked:block forced-colors:hidden"
+                            >
+                              <path
+                                d="M5 10.5l3 3 7-7"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          </span>
                           <label htmlFor="consent" className="nl-body-sm text-nl-soft">
                             {CONSENT_COPY.before}
                             <Link
@@ -1062,7 +1102,11 @@ function LoginContent() {
                         type="submit"
                         disabled={submitting}
                         aria-busy={submitting || undefined}
-                        className="nl-focus rounded-nl-md bg-nl-brass text-nl-on-brass gap-nl-2 [@media(hover:hover)_and_(pointer:fine)]:enabled:hover:shadow-nl-halo flex h-11 w-full touch-manipulation items-center justify-center text-[15px] font-medium disabled:cursor-wait disabled:opacity-80"
+                        className={cn(
+                          'nl-focus rounded-nl-md bg-nl-brass text-nl-on-brass gap-nl-2 flex h-11 w-full touch-manipulation items-center justify-center text-[15px] font-medium disabled:cursor-wait disabled:opacity-80',
+                          // T-528: DESIGN.md primary hover, halo plus 1px lift (gated, enabled only).
+                          NL_PRIMARY_BUTTON_HOVER,
+                        )}
                       >
                         {submitting && <Spinner />}
                         {submitting

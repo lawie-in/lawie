@@ -10,7 +10,7 @@
 //   plays only on Replay.
 // - Tab hidden: the loop pauses where it is and resumes on return.
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import type { Lang } from '@/components/marketing/nl-copy';
 import { landingCopy } from '@/components/marketing/nl-copy';
@@ -45,15 +45,39 @@ export function isSlowConnection(): boolean {
 type Phase = 'idle' | 'typing' | 'lines' | 'done';
 
 /**
+ * T-528: the prompt split into user-perceived characters (grapheme clusters) in the page language,
+ * so a Hindi consonant and its matra or virama are typed as one step and never split. Falls back
+ * to code points (Array.from) where Intl.Segmenter is unavailable.
+ */
+export function splitGraphemes(text: string, lang: string): string[] {
+  const Segmenter = (
+    Intl as typeof Intl & {
+      Segmenter?: new (
+        locale: string,
+        options: { granularity: 'grapheme' },
+      ) => { segment(input: string): Iterable<{ segment: string }> };
+    }
+  ).Segmenter;
+  if (typeof Segmenter !== 'function') return Array.from(text);
+  return Array.from(
+    new Segmenter(lang, { granularity: 'grapheme' }).segment(text),
+    (s) => s.segment,
+  );
+}
+
+/**
  * No flash before autoplay: the server render carries data-demo-initial. While it is set and
  * motion is allowed (the only case that autoplays), the prompt and the placeholder lines are
  * hidden, so first paint does not show the end state and then wipe it. The mount effect drops
  * the attribute when play() starts or when it decides not to play (reduced motion, Data Saver,
  * 2G/3G), which shows the end state. Under reduced motion the rule never applies. Without
  * JavaScript the <noscript> override shows the end state.
+ * T-528: if hydration stalls, a CSS-only reveal shows the end state after 2.5s anyway (a 0s
+ * animation that holds visibility:visible). Once the effect has run the attribute is gone, so the
+ * reveal never fires on a page that hydrated.
  */
 const INITIAL_CSS =
-  '@media (prefers-reduced-motion: no-preference){[data-demo-initial] .demo-hide{visibility:hidden}}';
+  '@media (prefers-reduced-motion: no-preference){[data-demo-initial] .demo-hide{visibility:hidden;animation:demo-reveal 0s 2.5s forwards}}@keyframes demo-reveal{to{visibility:visible}}';
 const NOSCRIPT_CSS = '[data-demo-initial] .demo-hide{visibility:visible}';
 
 export function DemoFolio({ lang }: { lang: Lang }) {
@@ -61,7 +85,8 @@ export function DemoFolio({ lang }: { lang: Lang }) {
   const reduced = usePrefersReducedMotion();
   const visible = usePageVisible();
   const mobile = useMobileCap();
-  const total = Array.from(copy.prompt).length;
+  const promptChars = useMemo(() => splitGraphemes(copy.prompt, lang), [copy.prompt, lang]);
+  const total = promptChars.length;
 
   // Server render and first paint: the end state (no flash of an empty folio without JS).
   const [phase, setPhase] = useState<Phase>('done');
@@ -131,7 +156,6 @@ export function DemoFolio({ lang }: { lang: Lang }) {
     return undefined;
   }, [phase, chars, lines, total, visible, reduced, mobile]);
 
-  const promptChars = Array.from(copy.prompt);
   const shown = promptChars.slice(0, chars).join('');
   // The untyped remainder stays in the paragraph, invisible, so the folio keeps its final height
   // while typing (no layout shift under the hero on mobile).

@@ -38,10 +38,10 @@ const ERR = 'Could not load top-up plans.';
 let plansReply: () => Promise<unknown>;
 let container: HTMLDivElement;
 let root: Root;
-const text = () => container.textContent ?? '';
-const alertEl = () => container.querySelector('[role="alert"]');
+const text = () => document.body.textContent ?? '';
+const alertEl = () => document.body.querySelector('[role="alert"]');
 const retryBtn = () =>
-  Array.from(container.querySelectorAll('button')).find((b) => b.textContent === 'Retry');
+  Array.from(document.body.querySelectorAll('button')).find((b) => b.textContent === 'Retry');
 const planCalls = () => mockApiFetch.mock.calls.filter((c) => c[0] === '/api/billing/plans');
 
 async function flush() {
@@ -74,15 +74,19 @@ afterEach(() => {
 describe('T-510 top-up modal: plans failure', () => {
   it('shows the packs and no error or spinner when plans load', async () => {
     await mount();
-    expect(text()).toContain('Mini — 10 Ink');
+    expect(text()).toContain('10 Ink, ₹99');
     expect(alertEl()).toBeNull();
     expect(text()).not.toContain('Loading packs');
   });
 
-  it('shows a spinner while the request is pending', async () => {
+  it('shows a skeleton while the request is pending', async () => {
     plansReply = () => new Promise(() => {});
     await mount();
-    expect(text()).toContain('Loading packs');
+    // T-535: skeleton, no visible copy; only the visually hidden "Loading" status label.
+    const status = document.body.querySelector('[role="status"]')!;
+    expect(status.textContent).toBe('Loading');
+    expect(status.querySelector('.sr-only')!.textContent).toBe('Loading');
+    expect(text()).not.toContain('Loading packs');
     expect(alertEl()).toBeNull();
   });
 
@@ -105,7 +109,7 @@ describe('T-510 top-up modal: plans failure', () => {
     expect(alertEl()!.textContent).toContain(ERR);
     expect(retryBtn()).toBeDefined();
     expect(text()).not.toContain('Loading packs');
-    expect(container.querySelector('[role="status"]')).toBeNull();
+    expect(document.body.querySelector('[role="status"]')).toBeNull();
   });
 
   it('Retry refetches /api/billing/plans and then shows the packs without the error', async () => {
@@ -116,18 +120,18 @@ describe('T-510 top-up modal: plans failure', () => {
     await act(async () => retryBtn()!.click());
     await flush();
     expect(planCalls()).toHaveLength(2);
-    expect(text()).toContain('Mid — 30 Ink');
+    expect(text()).toContain('30 Ink, ₹249');
     expect(alertEl()).toBeNull();
     expect(retryBtn()).toBeUndefined();
   });
 
-  it('Retry that fails again shows the error again; the spinner shows during the retry', async () => {
+  it('Retry that fails again shows the error again; the skeleton shows during the retry', async () => {
     plansReply = async () => reply(500);
     await mount();
     let release!: () => void;
     plansReply = () => new Promise((r) => (release = () => r(reply(500))));
     await act(async () => retryBtn()!.click());
-    expect(text()).toContain('Loading packs');
+    expect(document.body.querySelector('[role="status"]')!.textContent).toBe('Loading');
     expect(alertEl()).toBeNull();
     await act(async () => release());
     await flush();
@@ -135,11 +139,11 @@ describe('T-510 top-up modal: plans failure', () => {
     expect(text()).not.toContain('Loading packs');
   });
 
-  it('Pay stays disabled while plans have failed', async () => {
+  it('Buy stays disabled while plans have failed', async () => {
     plansReply = async () => reply(500);
     await mount();
-    const pay = Array.from(container.querySelectorAll('button')).find((b) =>
-      /Pay with Razorpay/.test(b.textContent ?? ''),
+    const pay = Array.from(document.body.querySelectorAll('button')).find(
+      (b) => b.textContent === 'Buy',
     ) as HTMLButtonElement;
     expect(pay.disabled).toBe(true);
   });
@@ -159,8 +163,8 @@ describe('T-510 top-up modal: plans failure', () => {
     plansReply = async () => reply(200, PLANS);
     await act(async () => retryBtn()!.click());
     await flush();
-    const first = Array.from(container.querySelectorAll('button')).find((b) =>
-      /Mini — 10 Ink/.test(b.textContent ?? ''),
+    const first = Array.from(document.body.querySelectorAll('button')).find((b) =>
+      /10 Ink, ₹99/.test(b.textContent ?? ''),
     );
     expect(first).toBeDefined();
     expect(document.activeElement).toBe(first);

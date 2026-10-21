@@ -144,7 +144,7 @@ describe('Document page: Delete document (T-115b)', () => {
     await confirm();
     expect(push).not.toHaveBeenCalled();
     expect(dialog()!.querySelector('[role="alert"]')!.textContent).toBe(
-      "We couldn't finish deleting this document. Please try again. If this keeps happening, write to us at privacy@lawie.in.",
+      "We couldn't finish deleting this document. Please try again. If this keeps happening, write to us at contact@lawie.in.",
     );
     expect(takeDeleteOutcome()).toBeNull();
     // retry
