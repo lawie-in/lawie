@@ -65,7 +65,7 @@ The free tier's 750 instance-hours cover one t3.micro only; the dev box uses the
 
 Not now: Kubernetes, Secrets Manager rotation, ElastiCache, multi-AZ. Revisit when there is paying load.
 
-**Decision needed from the founder:** (a) go now with Parameter Store, ₹≈7,900/month at the recommended size (Vikram verifies), or (b) go now at the ₹1,600 minimum with the M0 risk accepted in writing, or (c) wait. On (a) or (b) Priya posts T-528 (pipeline) and T-529 (secrets loader) and Kunal writes the console steps.
+**Decision needed from the founder:** (a) go now with Parameter Store, ₹≈7,900/month at the recommended size (Vikram verifies), or (b) go now at the ₹1,600 minimum with the M0 risk accepted in writing, or (c) wait. On (a) or (b) Priya posts T-533 (pipeline) and T-534 (secrets loader) and Kunal writes the console steps.
 
 ## Vikram's corrections (21 Oct 2026) — these supersede the table above
 
@@ -82,7 +82,7 @@ Checked against list prices, not live; the founder reads Atlas off the cluster b
 - Parameter Store over Secrets Manager: agreed.
 - **No M0 for prod** — no backups, and it holds client drafts; one loss event costs more than a year of M10. But M10 with zero paying users is the wrong spend. **Middle: Atlas Flex** (the paid shared tier that replaced M2/M5): ≈ $8 base capped at $30, 5 GB, daily backups ≈ ₹700–2,600. Move to M10 near the 5 GB/ops limit or past ~10 Solo subs/month. Arjun confirms Flex exists in ap-south-1 and that its snapshot/restore satisfies T-403's rollback rule.
 - **Launch line with Flex: t3.medium + Flex + IPv4/EBS/ECR ≈ ₹3,600–5,600/month.** Vikram's recommendation given no spare cash.
-- **Timing: build now, buy late.** Post T-528/T-529 now; launch the prod box and database a few days before T-403, not at ticket start — an idle month is ≈ ₹3,000.
+- **Timing: build now, buy late.** Post T-533/T-534 now; launch the prod box and database a few days before T-403, not at ticket start — an idle month is ≈ ₹3,000.
 - Free-tier end: the dev box then adds ≈ ₹700 + ₹310 IPv4.
 
 **Arjun on the Flex rollback question:** Flex takes daily snapshots with point-in-time restore absent; restore is to a new cluster, then the connection string changes — acceptable for T-403's "rollback written and tried" if the tried rollback is *application* rollback (retag image) plus a *data* restore drill done once from a Flex snapshot, with the restore time written down. If Flex is not offered in ap-south-1 on the day, M10 is the only honest choice; the founder sees that in the cluster builder.
@@ -95,13 +95,13 @@ Full ruling: `handoff/legal/AJ-prod-db-backup-ruling.md` (08718769). Summary: **
 
 ## Decision (ready for the founder)
 
-Engineering, finance and legal agree: **build now, buy late; t3.medium + Atlas Flex + Parameter Store; ≈ ₹3,600–5,600/month before GST**, bought a few days before the T-403 release. On the founder's "go": Priya posts T-528 (pipeline: build → ECR → SSM deploy → rollback) and T-529 (secrets loader, `packages/shared`); the privacy §3 line and Ajay's conditions (a)–(e) go into T-403's acceptance criteria; Kunal writes the console steps (ECR, OIDC role, instance role, `/lawie/prod/*` parameters, Flex cluster with 7-day retention in Mumbai).
+Engineering, finance and legal agree: **build now, buy late; t3.medium + Atlas Flex + Parameter Store; ≈ ₹3,600–5,600/month before GST**, bought a few days before the T-403 release. On the founder's "go": Priya posts T-533 (pipeline: build → ECR → SSM deploy → rollback) and T-534 (secrets loader, `packages/shared`); the privacy §3 line and Ajay's conditions (a)–(e) go into T-403's acceptance criteria; Kunal writes the console steps (ECR, OIDC role, instance role, `/lawie/prod/*` parameters, Flex cluster with 7-day retention in Mumbai).
 
 ## Founder decision (21 Oct 2026): build now, buy later, with a switch
 
 "It must have a switch to enable and disable the pipeline — continue doing the same until we have a finished product and really decide to start the pipeline."
 
-### The switch (Arjun's design for T-528)
+### The switch (Arjun's design for T-533)
 
 Two GitHub **repository variables** (Settings → Secrets and variables → Actions → Variables; the founder flips them, no code change, no redeploy):
 
@@ -115,11 +115,11 @@ Rules:
 - Deploy requires build on: `PIPELINE_DEPLOY_ENABLED=true` with build off does nothing and prints why.
 - A third guard, independent of the variables: the deploy job targets a GitHub **environment** `production` with a required reviewer — the founder. Even with both switches on, the first deploy to a box waits for his click. He can remove the reviewer later when he trusts the pipeline.
 - `workflow_dispatch` stays for a manual run with inputs `action: build|deploy|rollback` and `sha`; it respects the same two variables.
-- Nothing in the workflow references `.env*` files; secrets come from Parameter Store on the box (T-529) and OIDC in Actions. No AWS access key is stored in GitHub.
-- The dev box is untouched by T-528 and T-529. It keeps `git pull` + pm2 until the founder flips a separate `PIPELINE_DEV_ENABLED` — a later ticket, not now.
+- Nothing in the workflow references `.env*` files; secrets come from Parameter Store on the box (T-534) and OIDC in Actions. No AWS access key is stored in GitHub.
+- The dev box is untouched by T-533 and T-534. It keeps `git pull` + pm2 until the founder flips a separate `PIPELINE_DEV_ENABLED` — a later ticket, not now.
 
 ### Tickets
-- **T-528 — pipeline** (root config + CI; one lead): workflow, `docker-compose.prod.yml`, SSM deploy + health wait + rollback, the two switches and the environment gate, `docs/DEPLOY.md` written (it is empty today). AC: with both variables absent a push to `main` is a skipped run; with build on and deploy off, images land in ECR and nothing else happens; rollback tried against the demo compose locally.
-- **T-529 — secrets loader** (`packages/shared`; one lead): `loadSecrets()` reads `/lawie/<env>/<service>` JSON from Parameter Store by instance role when `SECRETS_BACKEND=ssm`, else the environment as today; one call at each of the six boot sites; stubbed-client tests; `SECRETS_BACKEND` absent = today's behaviour, so nothing changes until the prod box exists.
+- **T-533 — pipeline** (root config + CI; one lead): workflow, `docker-compose.prod.yml`, SSM deploy + health wait + rollback, the two switches and the environment gate, `docs/DEPLOY.md` written (it is empty today). AC: with both variables absent a push to `main` is a skipped run; with build on and deploy off, images land in ECR and nothing else happens; rollback tried against the demo compose locally.
+- **T-534 — secrets loader** (`packages/shared`; one lead): `loadSecrets()` reads `/lawie/<env>/<service>` JSON from Parameter Store by instance role when `SECRETS_BACKEND=ssm`, else the environment as today; one call at each of the six boot sites; stubbed-client tests; `SECRETS_BACKEND` absent = today's behaviour, so nothing changes until the prod box exists.
 - **Kunal — console steps**, written now, executed when the founder says "buy": ECR repositories with a 5-tag lifecycle policy, GitHub OIDC provider + role, instance role (ECR pull + `ssm:GetParameter` on `/lawie/prod/*`), the parameters, `production` environment with the founder as reviewer, the two variables (left absent), t3.medium with Docker, Atlas Flex in ap-south-1 with 7-day retention. The founder enters every secret value himself.
 - **T-532** (Priya): privacy §3 ships with the Flex cluster.
