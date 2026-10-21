@@ -54,13 +54,14 @@ export function Dialog({
       }}
     >
       <RadixDialog.Portal>
-        <RadixDialog.Overlay className="nl fixed inset-0 z-50 bg-black/50" />
+        {/* T-531 (Rajesh round 2): popovers and dialogs share z-[60], above the consent sheet (55). */}
+        <RadixDialog.Overlay className="nl fixed inset-0 z-[60] bg-black/50" />
         <RadixDialog.Content
           data-variant={variant}
           // Without a description, tell Radix there is none (no missing-description warning).
           {...(description ? {} : { 'aria-describedby': undefined })}
           className={cn(
-            'nl nl-root gap-nl-4 border-nl-line bg-nl-card p-nl-6 text-nl-text shadow-nl-card fixed z-50 flex flex-col border',
+            'nl nl-root gap-nl-4 border-nl-line bg-nl-card p-nl-6 text-nl-text shadow-nl-card fixed z-[60] flex flex-col border',
             // Bottom sheet at <= 640px. T-531 (DESIGN.md Shapes): the 12px top radius; the content
             // clears the home indicator and the side insets (viewport-fit=cover). dvh tracks the
             // visible area as the browser chrome shows and hides.

@@ -5,6 +5,7 @@
 // T-531 (Rajesh, DESIGN.md Navigation): one 64px row at every width. Below 720px the row is the
 // mark, the Ink chip (signed in) or `phoneAction` (signed out, "Start free"), then the menu: the
 // theme toggle and `mobileMenuExtras` (language toggle, nav links, Sign in) fold into TopBarMenu.
+// `menuBelow` moves that fold point: the marketing bar keeps its menu up to 1119px (round 2).
 // The header clears the top and side safe-area insets (`viewport-fit=cover`, app/layout.tsx).
 // `sticky` pins it and keeps `--nl-bar-h` on <html> at its live height (ResizeObserver), which
 // app/globals.css turns into scroll-padding-top so focus and anchor jumps land below the bar.
@@ -15,7 +16,7 @@ import Link from 'next/link';
 import { useLayoutEffect, useRef } from 'react';
 
 import { ThemeToggle } from './ThemeToggle';
-import { TopBarMenu } from './TopBarMenu';
+import { TopBarMenu, type TopBarMenuHideFrom } from './TopBarMenu';
 
 import { TOP_BAR_COPY } from '@/components/marketing/nl-copy';
 import { cn } from '@/lib/cn';
@@ -32,6 +33,12 @@ const NAV_FROM = {
 } as const;
 
 export type TopBarNavFrom = keyof typeof NAV_FROM;
+
+/** TopBar's own desktop theme toggle shows where the menu does not (`menuBelow`). */
+const DESKTOP_TOGGLE_FROM = {
+  720: 'hidden min-[720px]:block',
+  1120: 'hidden min-[1120px]:block',
+} as const;
 
 export interface TopBarProps {
   variant: TopBarVariant;
@@ -59,6 +66,11 @@ export interface TopBarProps {
   mobileMenuExtras?: React.ReactNode;
   /** Accessible name of the phone menu button. Defaults to the signed "Menu". */
   mobileMenuLabel?: string;
+  /**
+   * Width (px) below which the menu shows (and from which TopBar's own theme toggle shows).
+   * Default 720. The marketing bar passes 1120 (Rajesh, T-531 round 2).
+   */
+  menuBelow?: TopBarMenuHideFrom;
   /** Pin the bar (`position: sticky`) and publish its live height as `--nl-bar-h`. */
   sticky?: boolean;
   className?: string;
@@ -122,6 +134,7 @@ export function TopBar({
   showThemeToggle = true,
   mobileMenuExtras,
   mobileMenuLabel = TOP_BAR_COPY.en.menu,
+  menuBelow = 720,
   sticky = false,
   className,
 }: TopBarProps) {
@@ -155,7 +168,7 @@ export function TopBar({
             <div className="flex items-center">{inkChip}</div>
           ) : null}
           {showThemeToggle ? (
-            <div className="hidden min-[720px]:block">
+            <div className={DESKTOP_TOGGLE_FROM[menuBelow]}>
               <ThemeToggle hideLegend />
             </div>
           ) : null}
@@ -168,7 +181,7 @@ export function TopBar({
             <div className="flex items-center min-[720px]:hidden">{phoneAction}</div>
           ) : null}
           {hasPhoneMenu ? (
-            <TopBarMenu label={mobileMenuLabel}>
+            <TopBarMenu label={mobileMenuLabel} hideFrom={menuBelow}>
               {showThemeToggle ? <ThemeToggle /> : null}
               {mobileMenuExtras}
             </TopBarMenu>

@@ -108,6 +108,7 @@ function AccountMenu() {
         </button>
       </Popover.Trigger>
       <Popover.Portal>
+        {/* T-531 (Rajesh round 2): popovers and dialogs share z-[60], above the consent sheet. */}
         <Popover.Content
           align="end"
           sideOffset={8}
@@ -119,7 +120,7 @@ function AccountMenu() {
               openingFinderRef.current = false;
             }
           }}
-          className="nl nl-root rounded-nl-md border-nl-line bg-nl-card p-nl-2 shadow-nl-card gap-nl-1 z-50 flex max-h-[var(--radix-popover-content-available-height)] w-[min(320px,calc(100vw-32px))] flex-col overflow-y-auto border"
+          className="nl nl-root rounded-nl-md border-nl-line bg-nl-card p-nl-2 shadow-nl-card gap-nl-1 z-[60] flex max-h-[var(--radix-popover-content-available-height)] w-[min(320px,calc(100vw-32px))] flex-col overflow-y-auto border"
         >
           <p id={emailId} className="nl-body-sm text-nl-muted px-nl-3 py-nl-2 m-0 break-all">
             {user.email}

@@ -10,7 +10,13 @@ export {
   type TopBarProps,
   type TopBarVariant,
 } from './TopBar';
-export { TopBarMenu, TOP_BAR_ROW_QUERY, type TopBarMenuProps } from './TopBarMenu';
+export {
+  TopBarMenu,
+  TOP_BAR_ROW_QUERY,
+  TOP_BAR_MENU_HIDE,
+  type TopBarMenuHideFrom,
+  type TopBarMenuProps,
+} from './TopBarMenu';
 export {
   CommandBar,
   COMMAND_BAR_COPY,

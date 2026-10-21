@@ -9,7 +9,9 @@
 // T-531 (Rajesh, DESIGN.md Navigation): one 64px row at every width, so it is sticky at every
 // width (shell TopBar `sticky`, which also clears the safe-area insets). Below 720px the row is
 // the mark, "Start free" and the menu; the nav links, the language and theme toggles and Sign in
-// fold into the menu. The landing passes ctaVariant="ghost", so the hero's primary stays the only
+// fold into the menu. Round 2 (Rajesh): from 720 to 1119 the row is the mark, Sign in, the full
+// call to action and the menu, which holds the nav and the two toggles (not Sign in or the call
+// to action). From 1120 the nav and the toggles are in the row and there is no menu. The landing passes ctaVariant="ghost", so the hero's primary stays the only
 // one in view. shell TopBar measures the bar live into `--nl-bar-h`; the <style> carries the
 // pre-hydration fallback.
 
@@ -137,11 +139,15 @@ export function NightTopBar({
         nav={navLinks}
         navLabel={top.navLabel}
         navFrom={1120}
+        menuBelow={1120}
         showThemeToggle={false}
         actions={
           <>
-            {lang_}
-            <ThemeToggle hideLegend legend={theme.legend} labels={theme.labels} />
+            {/* From 1120 only; from 720 to 1119 the toggles are in the menu (Rajesh round 2). */}
+            <div className="gap-nl-3 hidden items-center min-[1120px]:flex">
+              {lang_}
+              <ThemeToggle hideLegend legend={theme.legend} labels={theme.labels} />
+            </div>
             {showActions ? (
               <>
                 {signIn}
@@ -177,7 +183,8 @@ export function NightTopBar({
             {/* A block wrapper, so the toggle keeps its own width in the menu's flex column. */}
             {lang_ ? <div>{lang_}</div> : null}
             <ThemeToggle legend={theme.legend} labels={theme.labels} />
-            {showActions ? signIn : null}
+            {/* Below 720 only: from 720 Sign in is in the row, so the menu does not repeat it. */}
+            {showActions ? <div className="min-[720px]:hidden">{signIn}</div> : null}
           </>
         }
       />
