@@ -283,6 +283,12 @@ export interface DraftResult {
    * Present only for a D1 pack; the checks panel is then built from this list.
    */
   rendered?: RenderedClause[];
+  /**
+   * T-521: the Ink this draft used, as the client knew it when the draft started
+   * (the template-configs price; T-388: the cost shown is the cost charged).
+   * Absent when it was not known; the chip is then not shown.
+   */
+  inkUsed?: number;
 }
 
 /** T-373: one clause the D1 renderer printed, with its status. */

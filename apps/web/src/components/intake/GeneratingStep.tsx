@@ -4,28 +4,37 @@
  * 05 Generating (T-005), for a draft from a confirmed brief. Two steps, and a
  * third only when the service reports that it is adding a part that was
  * missing (T-126, D2). A failed run shows why, with a way back to the brief.
+ *
+ * T-521 (Night Library, spec 04/05): the folio with the inkwell drain and a
+ * skeleton ("Still working…" after 8s). What a failure says about Ink is
+ * decided in `generationFailure.ts` (Arjun ruling 4): the signed "The draft did
+ * not finish. No Ink was used." only for a server error event that is not
+ * `insufficient_ink`.
  */
 import { AlertTriangle, Check } from 'lucide-react';
 
+import { generationFailureCopy, type GenerationError } from './generationFailure';
 import InkCostLine, { inkCostState } from './InkCostLine';
-import { card, linkButton, primaryButton } from './ui';
+import { actions, folio, linkButton, page } from './nlUi';
+
+import { Button, Inkwell, Skeleton } from '@/components/ui';
 
 /** T-388: id of the Ink cost line under "Try again". */
 export const RETRY_INK_COST_ID = 'generating-retry-ink-cost';
 
 function Step({ state, children }: { state: 'done' | 'now'; children: React.ReactNode }) {
   return (
-    <li className="flex items-center gap-3">
+    <li className="gap-nl-3 flex items-center">
       {state === 'done' ? (
-        <span className="bg-brand-teal flex h-6 w-6 flex-none items-center justify-center rounded-full text-white">
+        <span className="bg-nl-ok-light text-nl-ok flex h-6 w-6 flex-none items-center justify-center rounded-full">
           <Check size={14} aria-hidden="true" />
         </span>
       ) : (
-        <span className="border-brand-gold bg-brand-gold-light flex h-6 w-6 flex-none items-center justify-center rounded-full border-2">
-          <span className="bg-brand-gold h-2 w-2 rounded-full" />
+        <span className="border-nl-brass bg-nl-brass-light flex h-6 w-6 flex-none items-center justify-center rounded-full border-2">
+          <span className="bg-nl-brass h-2 w-2 rounded-full" />
         </span>
       )}
-      <span className={state === 'now' ? 'font-semibold' : ''}>
+      <span className={state === 'now' ? 'font-medium' : ''}>
         {children}
         <span className="sr-only">{state === 'done' ? ' (done)' : ' (in progress)'}</span>
       </span>
@@ -46,7 +55,7 @@ export default function GeneratingStep({
 }: {
   documentName: string;
   repairing: boolean;
-  error: { reason: string; retryable: boolean } | null;
+  error: GenerationError | null;
   onRetry: () => void;
   onBackToBrief: () => void;
   /** T-388: what "Try again" charges, from the same price as Confirm. */
@@ -61,38 +70,34 @@ export default function GeneratingStep({
   if (error) {
     // T-388 (Arjun): "Try again" charges, so it waits for a known cost.
     const retryBlocked = inkCostState(inkCost, inkCostLoading) !== 'known';
+    const copy = generationFailureCopy(error);
     return (
-      <div className="mx-auto w-full max-w-[720px]">
+      <div className={page}>
         {/* T-388: the alert is the message only, so it does not wrap the Ink cost line's own alert. */}
-        <div className={`${card} flex flex-col gap-4`}>
-          <div className="flex items-start gap-3" role="alert">
-            <AlertTriangle size={20} className="text-brand-error mt-0.5 flex-none" aria-hidden />
-            <div>
-              <h1 className="font-heading text-brand-navy text-xl font-semibold">
-                The draft was not written
-              </h1>
-              <p className="text-brand-navy mt-1 text-sm">{error.reason}</p>
-              <p className="text-brand-muted mt-1 text-sm">
-                You have not been charged. Your brief is kept.
-              </p>
+        <div className={`${folio} gap-nl-4 flex flex-col`} data-no-ink-claim={copy.noInkClaim}>
+          <div className="gap-nl-3 flex items-start" role="alert">
+            <AlertTriangle size={20} className="text-nl-err mt-1 flex-none" aria-hidden />
+            <div className="min-w-0">
+              <h1 className="nl-h3 text-nl-text break-words">{copy.headline}</h1>
+              {copy.detail && (
+                <p className="nl-body-sm text-nl-soft mt-nl-1 break-words">{copy.detail}</p>
+              )}
             </div>
           </div>
-          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className={actions}>
             <button type="button" onClick={onBackToBrief} className={linkButton}>
               Back to the brief
             </button>
             {error.retryable && (
-              <div className="flex flex-col items-stretch gap-1 sm:items-end">
-                <button
-                  type="button"
+              <div className="gap-nl-1 flex flex-col items-stretch min-[640px]:items-end">
+                <Button
                   onClick={retryBlocked ? undefined : onRetry}
                   disabled={retryBlocked}
                   aria-disabled={retryBlocked ? 'true' : undefined}
                   aria-describedby={RETRY_INK_COST_ID}
-                  className={primaryButton}
                 >
                   Try again
-                </button>
+                </Button>
                 <InkCostLine
                   id={RETRY_INK_COST_ID}
                   cost={inkCost}
@@ -110,24 +115,22 @@ export default function GeneratingStep({
   }
 
   return (
-    <div className="mx-auto w-full max-w-[720px]">
-      <div className={`${card} flex flex-col items-center gap-6 sm:!p-10`} aria-live="polite">
-        <div className="text-center">
-          <h1 className="font-heading text-brand-navy text-2xl font-semibold sm:text-[28px]">
-            Drafting your {documentName}
-          </h1>
-          <p className="text-brand-muted mt-2">
+    <div className={page}>
+      <div className={`${folio} gap-nl-6 flex flex-col items-center`} aria-live="polite">
+        {/* The ink drain runs for the request; static at 60% under reduced motion. */}
+        <Inkwell balance={100} draining />
+        <div className="w-full min-w-0 text-center">
+          <h1 className="nl-h2 text-nl-text break-words">Drafting your {documentName}</h1>
+          <p className="nl-body text-nl-soft mt-nl-2">
             This can take a little while. Please keep this tab open.
           </p>
         </div>
-        <div className="h-2 w-full overflow-hidden rounded bg-slate-200" aria-hidden="true">
-          <div className="bg-brand-teal h-full w-1/3 animate-pulse rounded motion-reduce:animate-none" />
-        </div>
-        <ul className="text-brand-navy w-full space-y-3.5">
+        <ul className="nl-body text-nl-text w-full space-y-3.5">
           <Step state="done">Read your confirmed brief</Step>
           <Step state={repairing ? 'done' : 'now'}>Writing the draft</Step>
           {repairing && <Step state="now">Adding a part that was missing</Step>}
         </ul>
+        <Skeleton lines={3} className="w-full" />
       </div>
     </div>
   );

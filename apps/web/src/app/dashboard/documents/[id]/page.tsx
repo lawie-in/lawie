@@ -20,6 +20,7 @@ import DeleteDocumentDialog, {
   type DeleteOutcome,
 } from '@/components/documents/DeleteDocumentDialog';
 import AnnexuresCard, { annexuresCardVisible } from '@/components/editor/AnnexuresCard';
+import { EDITOR_COPY } from '@/components/editor/copy';
 import DocumentEditor from '@/components/editor/DocumentEditor';
 import ExportBlanksDialog from '@/components/editor/ExportBlanksDialog';
 import {
@@ -32,7 +33,10 @@ import {
   type Blank,
   type ExportBlanksGoBackDetail,
 } from '@/components/editor/exportUtils';
+import { EXPORT_HASH } from '@/components/intake/draftActions';
+import NightScope from '@/components/intake/NightScope';
 import { secondaryButton } from '@/components/intake/ui';
+import { Button, ErrorState, Skeleton } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
 import { getAccessToken } from '@/lib/auth';
 
@@ -109,10 +113,25 @@ export default function DocumentEditorPage() {
 
   const isFree = user?.plan !== 'pro';
 
+  // T-521: Retry on a failed load fetches again.
+  const [loadKey, setLoadKey] = useState(0);
+  const retryLoad = () => {
+    setError('');
+    setLoading(true);
+    setLoadKey((k) => k + 1);
+  };
+
   // Fetch document
   useEffect(() => {
     const token = getAccessToken();
-    if (!token || !id) return;
+    if (!id) return;
+    if (!token) {
+      // T-521: no token, no fetch. Show the load error with Retry instead of a skeleton
+      // that never ends (Retry sets loading again and lands here).
+      setError('Failed to load');
+      setLoading(false);
+      return;
+    }
 
     fetch(`${API_URL}/api/documents/${id}`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -128,7 +147,17 @@ export default function DocumentEditorPage() {
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [id, loadKey]);
+
+  // T-521: Export on the draft-ready view opens this page with #export; focus the export
+  // buttons so the advocate picks a format here, where export runs as it always has.
+  const docLoaded = doc !== null;
+  useEffect(() => {
+    if (!docLoaded || typeof window === 'undefined' || window.location.hash !== EXPORT_HASH) return;
+    const btn = exportButtonRefs.current.pdf;
+    btn?.focus();
+    btn?.scrollIntoView?.({ block: 'center' });
+  }, [docLoaded]);
 
   // Auto-save with 2-second debounce. T-194: resolves true once the server has
   // the text, false if it could not be saved (the status then shows "Save failed").
@@ -401,33 +430,39 @@ export default function DocumentEditorPage() {
 
   // Loading state
   if (loading) {
+    // T-521 (spec 05): the folio skeleton; "Still working…" after 8s.
     return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <Loader2 size={24} className="animate-spin text-amber-500" />
-      </div>
+      <NightScope>
+        <div className="border-nl-line bg-nl-card shadow-nl-card p-nl-6 mx-auto max-w-[720px] border">
+          <Skeleton lines={8} />
+        </div>
+      </NightScope>
     );
   }
 
-  // Error state
+  // Error state. T-521: a failed load offers Retry; "Document not found" (404) does not.
   if (error || !doc) {
+    const notFound = !error || error === 'Document not found';
     return (
-      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3">
-        <AlertTriangle size={32} className="text-red-400" />
-        <p className="text-sm text-slate-600">{error || 'Document not found'}</p>
-        <button
-          onClick={() => router.push('/dashboard')}
-          className="mt-2 rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-700"
-        >
-          Back to dashboard
-        </button>
-      </div>
+      <NightScope>
+        <div className="gap-nl-4 mx-auto flex min-h-[60vh] max-w-[720px] flex-col items-start justify-center">
+          <ErrorState
+            message={notFound ? 'Document not found' : EDITOR_COPY.loadFailed}
+            onRetry={notFound ? undefined : retryLoad}
+          />
+          <Button variant="ghost" onClick={() => router.push('/dashboard')}>
+            Back to dashboard
+          </Button>
+        </div>
+      </NightScope>
     );
   }
 
   return (
     // T-138: below md the page is one column that scrolls as one page. The fixed height, the
     // squeezing and the editor's own scroll start at md, where the layout is as it was.
-    <div className="flex flex-col gap-4 lg:h-[calc(100vh-4rem)] lg:flex-row">
+    // T-521: on the Night Library ground (NightScope).
+    <NightScope className="flex flex-col gap-4 lg:h-[calc(100vh-4rem)] lg:flex-row">
       {/* Left: Editor */}
       <div className="flex flex-col gap-3 lg:flex-1 lg:overflow-hidden">
         {/* Header — the title, then the buttons under it below md */}
@@ -524,24 +559,26 @@ export default function DocumentEditorPage() {
 
         {/* T-233 — a failed export, with a retry in the same format */}
         {exportError && (
+          // T-521: signed copy row 457. Kept as a banner, not a toast: the T-233 focus
+          // handling (Retry and dismiss return focus to the export button) stays as it is.
           <div
             role="alert"
-            className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2"
+            className="border-nl-err bg-nl-err-light px-nl-3 py-nl-2 gap-nl-2 flex items-center border"
           >
-            <AlertTriangle size={13} className="flex-shrink-0 text-red-500" />
-            <p className="flex-1 text-xs text-red-700">
-              Export failed. Please try again.{' '}
+            <AlertTriangle size={14} className="text-nl-err flex-shrink-0" aria-hidden="true" />
+            <p className="nl-body-sm text-nl-err flex-1">
+              {EDITOR_COPY.exportFailed}{' '}
               <button
                 onClick={handleExportRetry}
                 aria-disabled={exporting !== null}
-                className="font-semibold underline aria-disabled:cursor-default aria-disabled:opacity-40"
+                className="nl-focus inline-flex min-h-[44px] items-center font-medium underline underline-offset-4 aria-disabled:cursor-default aria-disabled:opacity-40"
               >
-                Try again
+                {EDITOR_COPY.retry}
               </button>
             </p>
             <button
               onClick={handleExportErrorDismiss}
-              className="rounded p-0.5 text-red-400 hover:bg-red-100 hover:text-red-600"
+              className="nl-focus text-nl-err inline-flex h-11 w-11 items-center justify-center"
               aria-label="Dismiss export error"
               title="Dismiss"
             >
@@ -722,6 +759,6 @@ export default function DocumentEditorPage() {
           onDeleted={handleDeleted}
         />
       )}
-    </div>
+    </NightScope>
   );
 }

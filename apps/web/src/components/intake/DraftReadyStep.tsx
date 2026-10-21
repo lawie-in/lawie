@@ -4,11 +4,21 @@
  * Draft ready (T-126): D1 with rules and no label, D2 with rules and the
  * label, D3 with no rule pack. The label, the line under it and every finding
  * are printed as the service sent them. The label cannot be dismissed.
+ *
+ * T-521 (Night Library, spec 05): the folio with the "N Ink used" chip,
+ * Finalise (primary), Open in editor and Export. The draft text is not fetched
+ * here (today's layout is kept). Export opens the editor's export as it is.
+ * No "Checks: N items" chip: there is no signed or existing wording for it
+ * (Priya's ruling: leave it out). No Regenerate (cut by Priya).
  */
 import { Check } from 'lucide-react';
+import { useState } from 'react';
 
 import type { DraftResult } from './briefTypes';
-import { card, linkButton, primaryButton, tagTeal } from './ui';
+import { finaliseDocument } from './draftActions';
+import { actions, folio, linkButton, page } from './nlUi';
+
+import { Button, Chip, ErrorState, InkChip } from '@/components/ui';
 
 /**
  * T-136. Ajay's text (CLO, 7 Oct 2026, part 1, C5), word for word, in place of
@@ -17,15 +27,30 @@ import { card, linkButton, primaryButton, tagTeal } from './ui';
 const NO_MISMATCH_FOUND =
   'These checks found no mismatch between the draft and your brief (dates, names, numbers, sections and parts). They can miss things, and they do not check the law. Read every line before use.';
 
+/** T-521: functional labels with no signed string (listed for Ajay's review). */
+export const DRAFT_READY_COPY = {
+  finalise: 'Finalise',
+  export: 'Export',
+  exportAfterFinalise: 'Export PDF / Word',
+  /** "{n} Ink used" (spec 05 chip "1 Ink used"). */
+  inkUsed: 'Ink used',
+  /** Copy row 455, signed: the generic failure, used when Finalise fails. */
+  finaliseFailed: 'Something did not work. Try again.',
+} as const;
+
 export default function DraftReadyStep({
   result,
   onOpenEditor,
   onStartAnother,
+  onExport,
 }: {
   result: DraftResult;
   onOpenEditor: () => void;
   onStartAnother: () => void;
+  /** T-521: opens the editor's export. Without it, Export opens the editor. */
+  onExport?: () => void;
 }) {
+  const [finalise, setFinalise] = useState<'idle' | 'saving' | 'done' | 'failed'>('idle');
   const factCheck = result.factCheck ?? null;
   // T-197: the signed disclaimer shows on every draft, once. With the banner it is the
   // banner's last line; without it, a neutral note in the same slot. The text is the
@@ -47,93 +72,119 @@ export default function DraftReadyStep({
   const nothingFound =
     missingParts.length === 0 && result.findings.length === 0 && factCheck === null;
 
+  const docId = result.docId;
+  const finalised = finalise === 'done';
+  const runFinalise = async () => {
+    if (!docId || finalise === 'saving' || finalised) return;
+    setFinalise('saving');
+    try {
+      await finaliseDocument(docId);
+      setFinalise('done');
+    } catch {
+      setFinalise('failed');
+    }
+  };
+
   return (
-    <div className="mx-auto w-full max-w-[720px] space-y-4">
-      <div className="bg-brand-teal-light flex items-center gap-3 rounded-xl p-4">
-        <span className="bg-brand-teal flex h-8 w-8 flex-none items-center justify-center rounded-full text-white">
+    <div className={`${page} space-y-nl-4`}>
+      <div className={`${folio} gap-nl-3 flex items-start`}>
+        <span className="bg-nl-ok-light text-nl-ok flex h-8 w-8 flex-none items-center justify-center rounded-full">
           <Check size={18} aria-hidden="true" />
         </span>
-        <div>
-          <h1 className="font-heading text-brand-navy text-xl font-semibold sm:text-2xl">
-            Your draft is ready
-          </h1>
-          <p className="text-brand-muted text-sm">
+        <div className="min-w-0 flex-1">
+          <h1 className="nl-h2 text-nl-text">Your draft is ready</h1>
+          {/* T-521: a guided document's name is typed by the advocate and can be one long word. */}
+          <p className="nl-body-sm text-nl-soft break-words">
             {result.name}. Read it through and edit before you use it.
           </p>
+          {(typeof result.inkUsed === 'number' || finalised) && (
+            <div className="mt-nl-3 gap-nl-2 flex flex-wrap items-center">
+              {typeof result.inkUsed === 'number' && (
+                <InkChip balance={result.inkUsed} data-testid="ink-used-chip">
+                  <span>
+                    <span className="tabular-nums">{result.inkUsed}</span>{' '}
+                    {DRAFT_READY_COPY.inkUsed}
+                  </span>
+                </InkChip>
+              )}
+              {finalised && (
+                // The status word as the documents list and the editor show it.
+                <Chip variant="ok" className="capitalize" data-testid="finalised-chip">
+                  finalised
+                </Chip>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
       {result.startingDraft && result.startingDraftLabel && (
-        <div
-          role="note"
-          className="border-brand-gold bg-brand-gold-light rounded-lg border px-3.5 py-2.5"
-        >
-          <p className="text-brand-gold-dark text-sm font-semibold">{result.startingDraftLabel}</p>
+        <div role="note" className="border-nl-warn bg-nl-warn-light px-nl-4 py-nl-3 border">
+          <p className="nl-body-sm text-nl-warn break-words font-medium">
+            {result.startingDraftLabel}
+          </p>
           {result.labelReason && (
-            <p className="text-brand-gold-dark mt-1 text-sm">{result.labelReason}</p>
+            <p className="nl-body-sm text-nl-warn mt-nl-1 break-words">{result.labelReason}</p>
           )}
         </div>
       )}
 
-      <section aria-labelledby="ready-checks" className={card}>
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 id="ready-checks" className="font-heading text-brand-navy text-lg font-semibold">
+      <section aria-labelledby="ready-checks" className={folio}>
+        <div className="gap-nl-2 flex flex-wrap items-center justify-between">
+          <h2 id="ready-checks" className="nl-h3 text-nl-text">
             Checks run for you
           </h2>
-          <span className={tagTeal}>No charge</span>
+          <Chip variant="ok">No charge</Chip>
         </div>
         {factCheck && (
           <div
             role="note"
             aria-labelledby="ready-fact-check"
-            className="border-brand-gold bg-brand-gold-light mt-3 rounded-lg border px-3.5 py-2.5"
+            className="border-nl-warn bg-nl-warn-light mt-nl-3 px-nl-4 py-nl-3 border"
           >
             {/* T-147d: the wording is the service's; Priya, Madhuri and Rajesh to word and design it. */}
-            <p id="ready-fact-check" className="text-brand-gold-dark text-sm font-semibold">
+            <p id="ready-fact-check" className="nl-body-sm text-nl-warn break-words font-medium">
               {factCheck.text}
             </p>
-            <ul className="mt-2 space-y-1.5">
+            <ul className="mt-nl-2 space-y-1.5">
               {factCheck.items.map((item, i) => (
-                <li key={i} className="text-brand-gold-dark flex items-start gap-2.5 text-sm">
-                  <span className="bg-brand-gold mt-1.5 h-2 w-2 flex-none rounded-full" />
-                  <span>
-                    <strong className="font-semibold">{item.label}:</strong> {item.note}
+                <li key={i} className="nl-body-sm text-nl-warn flex items-start gap-2.5">
+                  <span className="bg-nl-warn mt-2 h-2 w-2 flex-none rounded-full" />
+                  <span className="min-w-0 break-words">
+                    <strong className="font-medium">{item.label}:</strong> {item.note}
                   </span>
                 </li>
               ))}
             </ul>
-            <p className="text-brand-gold-dark mt-2 text-sm">{factCheck.disclaimer}</p>
+            <p className="nl-body-sm text-nl-warn mt-nl-2 break-words">{factCheck.disclaimer}</p>
           </div>
         )}
         {!factCheck && disclaimer && (
-          <div
-            role="note"
-            className="border-brand-line bg-brand-page mt-3 rounded-lg border px-3.5 py-2.5"
-          >
-            <p className="text-brand-navy text-sm">{disclaimer}</p>
+          <div role="note" className="border-nl-line bg-nl-wood mt-nl-3 px-nl-4 py-nl-3 border">
+            <p className="nl-body-sm text-nl-text break-words">{disclaimer}</p>
           </div>
         )}
         {nothingFound ? (
-          <p className="text-brand-navy mt-3 flex items-start gap-2.5 text-sm">
-            <span className="bg-brand-teal flex h-6 w-6 flex-none items-center justify-center rounded-full text-white">
+          <p className="nl-body-sm text-nl-text mt-nl-3 flex items-start gap-2.5">
+            <span className="bg-nl-ok-light text-nl-ok flex h-6 w-6 flex-none items-center justify-center rounded-full">
               <Check size={14} aria-hidden="true" />
             </span>
             <span>{NO_MISMATCH_FOUND}</span>
           </p>
         ) : (
-          <ul className="mt-3 space-y-2.5">
+          <ul className="mt-nl-3 space-y-2.5">
             {missingParts.map((c) => (
-              <li key={c.id} className="text-brand-navy flex items-start gap-2.5 text-sm">
-                <span className="bg-brand-error mt-1.5 h-2 w-2 flex-none rounded-full" />
-                <span>
-                  <strong className="font-semibold">Missing part.</strong> {c.title}
+              <li key={c.id} className="nl-body-sm text-nl-text flex items-start gap-2.5">
+                <span className="bg-nl-err mt-2 h-2 w-2 flex-none rounded-full" />
+                <span className="min-w-0 break-words">
+                  <strong className="font-medium">Missing part.</strong> {c.title}
                 </span>
               </li>
             ))}
             {result.findings.map((f, i) => (
-              <li key={i} className="text-brand-navy flex items-start gap-2.5 text-sm">
-                <span className="bg-brand-gold mt-1.5 h-2 w-2 flex-none rounded-full" />
-                <span>{f.message}</span>
+              <li key={i} className="nl-body-sm text-nl-text flex items-start gap-2.5">
+                <span className="bg-nl-warn mt-2 h-2 w-2 flex-none rounded-full" />
+                <span className="min-w-0 break-words">{f.message}</span>
               </li>
             ))}
           </ul>
@@ -141,29 +192,44 @@ export default function DraftReadyStep({
       </section>
 
       {result.blanks > 0 && (
-        <p className="bg-brand-page text-brand-muted rounded-lg p-3 text-sm">
-          <strong className="text-brand-navy font-semibold">
+        <p className="border-nl-line bg-nl-wood nl-body-sm text-nl-soft p-nl-3 border">
+          <strong className="text-nl-text font-medium">
             {result.blanks} {result.blanks === 1 ? 'blank' : 'blanks'} to fill
           </strong>{' '}
           before use. They are marked in the draft in square brackets, like this:{' '}
-          <span className="text-brand-gold-dark font-mono text-xs">[To be confirmed: …]</span>
+          <span className="text-nl-brass-dark font-mono text-xs">[To be confirmed: …]</span>
         </p>
       )}
 
-      {result.docId === null && (
-        <p role="alert" className="bg-brand-error-light text-brand-error rounded-lg p-3 text-sm">
+      {docId === null && (
+        <p role="alert" className="bg-nl-err-light nl-body-sm text-nl-err p-nl-3">
           The draft was written but could not be saved, so it cannot be opened. Please start again.
         </p>
       )}
 
-      <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
+      {finalise === 'failed' && (
+        <ErrorState message={DRAFT_READY_COPY.finaliseFailed} onRetry={() => void runFinalise()} />
+      )}
+
+      <div className={`${actions} pt-nl-2`}>
         <button type="button" onClick={onStartAnother} className={linkButton}>
           Start another document
         </button>
-        {result.docId !== null && (
-          <button type="button" onClick={onOpenEditor} className={primaryButton}>
-            Open in editor
-          </button>
+        {docId !== null && (
+          <div className="gap-nl-3 flex flex-col-reverse min-[640px]:flex-row min-[640px]:items-center">
+            <Button variant="ghost" onClick={onOpenEditor}>
+              Open in editor
+            </Button>
+            {/* One primary per screen: Finalise until the draft is finalised, then Export. */}
+            <Button variant={finalised ? 'primary' : 'ghost'} onClick={onExport ?? onOpenEditor}>
+              {finalised ? DRAFT_READY_COPY.exportAfterFinalise : DRAFT_READY_COPY.export}
+            </Button>
+            {!finalised && (
+              <Button loading={finalise === 'saving'} onClick={() => void runFinalise()}>
+                {DRAFT_READY_COPY.finalise}
+              </Button>
+            )}
+          </div>
         )}
       </div>
     </div>

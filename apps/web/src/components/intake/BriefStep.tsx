@@ -38,6 +38,7 @@ import {
 } from './briefTypes';
 import CourtPicker from './CourtPicker';
 import InkCostLine, { inkCostState } from './InkCostLine';
+import * as nl from './nlUi';
 import {
   card,
   h1,
@@ -53,6 +54,8 @@ import {
   tagPlain,
 } from './ui';
 import ValueInput from './ValueInput';
+
+import { ErrorState, Skeleton } from '@/components/ui';
 
 /**
  * T-136. Ajay's line (CLO, 7 Oct 2026, part 2, condition 2), word for word. The
@@ -435,54 +438,60 @@ function OtherFact({ fact }: { fact: LedgerFact }) {
 const BRIEF_SUB =
   'This is what we will write from. Change anything that is wrong. Nothing is drafted until you confirm.';
 
+/** T-521: signed, copy row 458 ("Describe failed"); action `Retry`. */
+export const DESCRIBE_FAILED = 'Could not read your description. Try again.';
+
 /**
- * T-147b, section 6: the brief while it is read the first time. Static grey
- * boxes, no shimmer, no Confirm.
+ * T-147b, section 6: the brief while it is read the first time. No Confirm.
+ * T-521 (spec 04): the folio with a skeleton; "Still working…" after 8s.
  */
 export function BriefLoading() {
   return (
-    <div className="mx-auto w-full max-w-[720px]">
-      <h1 className={h1}>Check your brief</h1>
-      <p className={sub}>{BRIEF_SUB}</p>
-      <div className={`${card} mt-6 space-y-5`} aria-hidden="true">
-        {[0, 1, 2].map((i) => (
-          <div key={i}>
-            <div className="h-[14px] w-1/3 rounded bg-slate-100" />
-            <div className="mt-1.5 h-12 w-full rounded-lg bg-slate-100" />
-          </div>
-        ))}
+    <div className={nl.page}>
+      <h1 className={nl.h1}>Check your brief</h1>
+      <p className={nl.sub}>{BRIEF_SUB}</p>
+      <div className={`${nl.folio} mt-nl-6 space-y-nl-5`}>
+        <p className={nl.small} aria-live="polite">
+          Reading your description…
+        </p>
+        <Skeleton lines={6} />
       </div>
-      <p className={`${small} mt-4 flex items-center gap-2`} aria-live="polite">
-        <Loader2 size={16} className="animate-spin" aria-hidden="true" />
-        Reading your description…
-      </p>
     </div>
   );
 }
 
-/** T-147b, section 6: the brief could not be loaded. "Edit my description" stays. */
+/**
+ * T-147b, section 6: the brief could not be loaded. "Edit my description" stays.
+ * T-521 (spec 04): the signed describe error with Retry, and the advocate's text
+ * shown as kept.
+ */
 export function BriefLoadError({
   onRetry,
   onEditDescription,
+  description,
 }: {
   onRetry: () => void;
   onEditDescription: () => void;
+  /** The description as typed. It is kept; Retry sends it again. */
+  description?: string;
 }) {
   return (
-    <div className="mx-auto w-full max-w-[720px]">
-      <h1 className={h1}>Check your brief</h1>
-      <p className={sub}>{BRIEF_SUB}</p>
-      <div
-        role="alert"
-        className="bg-brand-error-light text-brand-error mt-6 flex flex-col gap-3 rounded-lg p-3 text-sm sm:flex-row sm:items-center sm:justify-between"
-      >
-        <p>We could not load your brief.</p>
-        <button type="button" onClick={onRetry} className={secondaryButton}>
-          Try again
-        </button>
+    <div className={nl.page}>
+      <h1 className={nl.h1}>Check your brief</h1>
+      <p className={nl.sub}>{BRIEF_SUB}</p>
+      <div className={`${nl.folio} mt-nl-6 space-y-nl-4`}>
+        <ErrorState message={DESCRIBE_FAILED} onRetry={onRetry} />
+        {description ? (
+          <figure>
+            <figcaption className={nl.label}>Your description</figcaption>
+            <blockquote className="nl-body text-nl-text mt-nl-2 whitespace-pre-wrap break-words">
+              {description}
+            </blockquote>
+          </figure>
+        ) : null}
       </div>
-      <div className="mt-6">
-        <button type="button" onClick={onEditDescription} className={linkButton}>
+      <div className="mt-nl-6">
+        <button type="button" onClick={onEditDescription} className={nl.linkButton}>
           Edit my description
         </button>
       </div>
