@@ -12,7 +12,7 @@
 If `subscriptions.create` times out, the outcome at Razorpay is unknown. T-526 only alerts. A retry can create a second live subscription.
 
 ## Acceptance criteria
-1. Before `subscriptions.create`, look up the customer's subscriptions at Razorpay (customer id / `notes.userId`). If a live one exists with no local row, adopt it: write the row and return it instead of creating again.
+1. Before `subscriptions.create`, look up the customer's subscriptions at Razorpay by `notes.userId` (Razorpay has no customer id until authorisation). If a live one exists with no local row, adopt it: write the row and return it instead of creating again.
 2. The adopt path is tested with a mock; in no timing can two live subscriptions exist for one user.
 3. Logs carry ids only, never payloads or names.
 4. A timed-out create can leave an orphan `created` subscription at Razorpay (no payment link, no double charge) when a retry follows after the 409 window (about 5 to 65 s): reconcile or cancel the orphan.
@@ -32,3 +32,5 @@ Explore facts accepted: billing never creates a Razorpay customer (customer_id i
 (b) — list on every subscribe — rejected: a Razorpay call per subscribe, other users' notes downloaded, no time anchor.
 
 **AC5 key guard:** in the `env.ts` zod schema via a pure `checkRazorpayKeyMode(nodeEnv, keyId)`, so every entry point refuses to boot. Rules: a `rzp_live_` key outside `NODE_ENV=production` is always refused. A `rzp_test_` key under `production` is refused unless `RAZORPAY_ALLOW_TEST_KEYS=true` is set explicitly — that flag exists for the demo compose only, which runs `NODE_ENV=production` with test keys; set it there, one line in `docker-compose.demo.yml` (root file: Priya extends Shashank's claim to that one file for this ticket). The flag is logged at warn on boot. Never set it in a real production environment; it goes on the pre-`main` checklist as "must be absent".
+
+7. `docker-compose.demo.yml` gets `RAZORPAY_ALLOW_TEST_KEYS=true` (the demo runs NODE_ENV=production with test keys). Founder's pre-main checklist: that flag must be ABSENT in the real production environment.
