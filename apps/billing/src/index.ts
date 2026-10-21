@@ -12,12 +12,14 @@ import './config/sentry';
 import app from './app';
 import { connectDatabase } from './config/database';
 import { env } from './config/env';
+import { ensureInkLedgerIndexes } from './config/ink-ledger-indexes';
 import logger from './config/logger';
 import { startInvoiceSweep } from './services/invoice-sweep.service';
 
 async function bootstrap() {
   try {
     await connectDatabase();
+    await ensureInkLedgerIndexes(); // T-519: never throws; logs and continues on failure
     app.listen(env.PORT, () => {
       logger.info(`💳 Billing Service running on http://localhost:${env.PORT}`);
       logger.info(`   Environment: ${env.NODE_ENV}`);
