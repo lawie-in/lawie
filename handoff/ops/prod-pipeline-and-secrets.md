@@ -137,3 +137,38 @@ Ruling, three layers, each enough on its own:
 The dev box: when T-533's pipeline is later turned on for `develop`, the box runs images, not a checkout, and the files leave its disk. Until then they stay there, unserved; acceptable, noted.
 
 T-403's AC line "`develop` is merged to `main`" is amended to "`main` is cut from `develop` by the release workflow".
+
+## Founder (21 Oct 2026): "I want autoscaling and load balancing on AWS"
+
+### What it costs (ap-south-1 list prices, Vikram verifies)
+
+| Piece | Why | ₹/month |
+|---|---|---|
+| Application Load Balancer | one public entry, TLS, health-checked targets, zero-downtime deploys | ≈ $17 fixed + LCU (small at our traffic) ≈ **1,500–1,800** |
+| Compute, option A: **EC2 Auto Scaling Group** (launch template runs the same compose image set) | min 1 × t3.medium, scales to 3 on CPU | 2,800 at min; up to 8,400 under load |
+| Compute, option B: **ECS Fargate** | six tasks at 0.25 vCPU / 0.5 GB, scaling on CPU | ≈ $60–75 at the floor ≈ **5,200–6,400**, no instance to patch |
+| ElastiCache Redis t4g.micro | mandatory the moment there are two instances: rate limits, Ink-hold locks, create locks, SSE run state must be shared, not per-box | ≈ **1,000** |
+| NAT Gateway | avoidable: public subnets + security groups | 0 (≈ 3,500 if private subnets) |
+| Second public IPv4 (ALB uses its own) | | ≈ 310 |
+
+**Delta over the single-box plan: ≈ ₹3,000–4,000/month at idle (ALB + Redis + IP), rising with load.** Fargate instead of EC2 adds ≈ ₹2,500–3,600 more at the floor.
+
+### What it needs in the code first (prerequisites, regardless of A or B)
+
+1. **Single-runner sweeps.** `account-erase`, `unverified-sweep`, `invoice-sweep` and T-527's reconcile sweep run on `setInterval` inside each process. With two instances they run twice. Each needs a lock (Redis `SET NX PX`, or a Mongo lease document), ~1 lead-day for all four.
+2. **No in-memory state that matters across requests.** Audit: no local-disk writes found (good); Ink holds and create locks are in Mongo (good); the auth rate limits must be confirmed Redis-backed, not per-process.
+3. **SSE is fine behind an ALB** (idle timeout raised to ≥ 120 s, the heartbeat already exists), no stickiness needed because a run lives on one connection.
+4. **Health endpoints** exist on every service; the ALB target group uses them.
+5. **Images, not checkouts** — T-533 delivers this. Autoscaling is impossible without it.
+
+### Ruling
+
+**Design for it now, buy it later — same rule as the pipeline.** Reasons:
+- A pilot of up to a few hundred advocates fits one t3.medium; the bottleneck is Anthropic latency, not our CPU. Scaling *out* does nothing for draft time.
+- The real value of an ALB + two instances is **availability and zero-downtime deploys**, not scale. That is worth ₹3–4k/month once there are paying users who notice a 30-second restart — not before.
+- The prerequisites (1–2) are cheap and make the single box more robust anyway: **they go into T-534's sibling, T-537 (single-runner sweeps + rate-limit audit)** now.
+- Option **A (EC2 ASG)** when the time comes, not Fargate: same images, same compose, ~₹3k cheaper at the floor, and the team already operates EC2. Revisit Fargate if patching the instance becomes a burden.
+
+**Triggers to buy:** first paying cohort live, or any month with >60 % average CPU on the box, or the first deploy that a user complains about. Then: ALB + ASG min 1 max 3, ElastiCache, ~2 lead-days plus Kunal's console steps. Vikram prices the exact month.
+
+Not now: multi-AZ database (Flex is single-region, fine), CDN (Next.js static assets are small; add CloudFront only if latency outside Mumbai becomes a complaint), WAF (revisit with public launch).
