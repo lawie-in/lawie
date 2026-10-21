@@ -32,19 +32,19 @@ Figma variables are the source. The web lead exports them to CSS custom properti
 | bg/card | `--bg-card` | #182A24 | #FBF8F0 | folio, cards, inputs |
 | text/primary | `--text` | #EFE7D4 | #1C2A25 | body and headings |
 | text/soft | `--text-soft` | #CBC2AC | #3D4C46 | secondary text |
-| text/muted | `--muted` | #8E9A8E | #6D7A73 | labels, captions (min 14px) |
+| text/muted | `--muted` | #8E9A8E | #5C685F | labels, captions (min 14px) |
 | border/line | `--line` | #2A3C35 | #D9D1BE | hairlines, inputs |
-| brass/fill | `--brass` | #C9A24A | #9C7A2B | primary button fill, seal, lamp dot, focus ring |
+| brass/fill | `--brass` | #C9A24A | #866619 | primary button fill, seal, lamp dot, focus ring |
 | brass/text | `--brass-dark` | #E6C877 | #6E5415 | eyebrows, links, ghost button text |
 | brass/soft | `--brass-light` | #2B2614 | #F6EBCF | chip fills, hover halo |
 | on-brass | `--on-brass` | #15241F | #FFFFFF | text on brass fill |
 | ox/fill, ox/hi | `--ox`, `--ox-hi` | #7A2A2A, #A94545 | #8E2F2F, #B85050 | book spines, destructive confirm |
-| ok/text, ok/soft | `--ok`, `--ok-light` | #7FCFA8, #143327 | #1E7F5F, #DDF2E8 | success chips, finalised |
+| ok/text, ok/soft | `--ok`, `--ok-light` | #7FCFA8, #143327 | #1B7658, #DDF2E8 | success chips, finalised |
 | error/text, error/soft | `--err`, `--err-light` | #F2A196, #3B1A17 | #B3261E, #FCE9E7 | errors, failed payment |
 | warn/text, warn/soft | `--warn`, `--warn-light` | #F1D08A, #3A2E12 | #7A5300, #FBEFD2 | open checks, low Ink |
 | lamp | `--lamp` | rgba(255,214,140,.22) | rgba(255,200,90,.16) | the lamp pool, radial gradient only |
 
-Contrast (WCAG AA, body text 4.5:1): text/primary on bg/card is 12.9:1 night, 13.6:1 day; text/soft 9.6:1 / 9.2:1; text/muted 4.6:1 / 4.6:1 (so muted is never below 14px); brass/text on bg/card 8.6:1 / 5.9:1; on-brass on brass/fill 7.9:1 (night) and 4.6:1 (day, white on #9C7A2B). Brass fill is never small text; brass/text is the text variant. Ok, error and warn text tokens are chosen to clear 4.5:1 on their soft fills and on bg/card.
+Contrast (WCAG AA, 4.5:1, computed 21 Oct 2026 after Tanvi's audit): text/primary on bg/card 12.2:1 night, 14.1:1 day; text/soft 8.5:1 / 8.5:1; text/muted 5.1:1 / 5.5:1 on card and 5.5:1 / 4.5:1 on wood (never below 12px); brass/text on bg/card 9.2:1 / 6.7:1; on-brass on brass/fill 6.7:1 night, 5.4:1 day; ok, error and warn text on their soft fills 7.4 / 7.7 / 9.0 night and 4.8 / 5.6 / 6.0 day. Brass fill is never small text; brass/text is the text variant. Earlier values (#9C7A2B, #6D7A73, #1E7F5F) failed AA by day and are withdrawn.
 
 ### 2.2 Spacing and radius (collection `Spacing`)
 

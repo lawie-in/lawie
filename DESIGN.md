@@ -26,15 +26,15 @@ colors:
   day-card: "#fbf8f0"
   day-text: "#1c2a25"
   day-text-soft: "#3d4c46"
-  day-muted: "#6d7a73"
+  day-muted: "#5c685f"
   day-line: "#d9d1be"
-  day-brass: "#9c7a2b"
+  day-brass: "#866619"
   day-brass-text: "#6e5415"
   day-brass-soft: "#f6ebcf"
   day-on-brass: "#ffffff"
   day-oxblood: "#8e2f2f"
   day-oxblood-high: "#b85050"
-  day-moss: "#1e7f5f"
+  day-moss: "#1b7658"
   day-moss-soft: "#ddf2e8"
   day-rust: "#b3261e"
   day-rust-soft: "#fce9e7"
@@ -171,7 +171,7 @@ components:
 
 # Design System: Lawie
 
-Owner: Rajesh (design). Signed 21 Oct 2026. Source of record for the T-511 system; the long-form screen spec is `handoff/design/T-511-night-library-spec.md`, the Figma file is https://www.figma.com/design/Tg2yQ7xE5faLfBgeAQf1Uu, and the live tokens are `apps/web/src/app/globals.css` (`.nl`). Where these disagree, this file wins and I fix the others. Frontmatter colours are the Night values; the `day-*` keys are the Daylight values of the same tokens. In code they are one set of CSS variables switched by `html[data-theme]`.
+Owner: Rajesh (design). Signed 21 Oct 2026; Daylight brass, muted and moss re-signed 21 Oct 2026 after Tanvi's contrast audit (T-524). Every text pair in both themes clears WCAG AA 4.5:1, including On Brass on Brass (5.4:1 day) and each status text on its soft fill. Source of record for the T-511 system; the long-form screen spec is `handoff/design/T-511-night-library-spec.md`, the Figma file is https://www.figma.com/design/Tg2yQ7xE5faLfBgeAQf1Uu, and the live tokens are `apps/web/src/app/globals.css` (`.nl`). Where these disagree, this file wins and I fix the others. Frontmatter colours are the Night values; the `day-*` keys are the Daylight values of the same tokens. In code they are one set of CSS variables switched by `html[data-theme]`.
 
 ## Overview
 
@@ -195,7 +195,7 @@ The system is paper-and-ink, not glass-and-gradient. Surfaces are flat, square-c
 Warm darks with a single brass accent; Daylight keeps the hues and lifts the lightness.
 
 ### Primary
-- **Brass** (#c9a24a night / #9c7a2b day): the one action colour. Primary button fill, the seal, the lamp dot, the focus ring, the ink in the well. On any screen it should cover under ten percent of the pixels.
+- **Brass** (#c9a24a night / #866619 day): the one action colour. Primary button fill, the seal, the lamp dot, the focus ring, the ink in the well. On any screen it should cover under ten percent of the pixels.
 - **Brass Text** (#e6c877 / #6e5415): the text form of brass. Eyebrows, links, ghost-button labels, chip text. This exists because brass fill fails contrast as small text.
 - **Brass Soft** (#2b2614 / #f6ebcf): chip fills, the hover halo, the selected row in the command bar list.
 - **On Brass** (#15241f / #ffffff): text on a brass fill.
@@ -209,17 +209,17 @@ Warm darks with a single brass accent; Daylight keeps the hues and lifts the lig
 - **Card** (#182a24 / #fbf8f0): the folio, cards, inputs, dialogs, popovers.
 - **Text** (#efe7d4 / #1c2a25): body and headings. 12.9:1 on Card at night, 13.6:1 by day.
 - **Text Soft** (#cbc2ac / #3d4c46): secondary text, descriptions. 9.6:1 / 9.2:1.
-- **Muted** (#8e9a8e / #6d7a73): labels, captions, placeholders. 4.6:1 both ways, so never below 12px and never as body text.
+- **Muted** (#8e9a8e / #5c685f): labels, captions, placeholders. 5.1:1 night on Card, 5.5:1 day on Card, 4.5:1 day on Wood; never below 12px and never as body text.
 - **Line** (#2a3c35 / #d9d1be): the hairline on every card, input and divider.
 
 ### Status
-- **Moss** (#7fcfa8 / #1e7f5f) on **Moss Soft** (#143327 / #ddf2e8): success, finalised, Ink used.
+- **Moss** (#7fcfa8 / #1b7658) on **Moss Soft** (#143327 / #ddf2e8): success, finalised, Ink used.
 - **Amber** (#f1d08a / #7a5300) on **Amber Soft** (#3a2e12 / #fbefd2): open checks, low Ink, gates (verify email, privacy).
 - **Rust** (#f2a196 / #b3261e) on **Rust Soft** (#3b1a17 / #fce9e7): errors, failed payment, offline.
 - **Lamp** (rgba(255,214,140,.22) / rgba(255,200,90,.16)): the radial pool of light on the folio and hero. A gradient only, never a fill.
 
 ### Named Rules
-**The Brass Is Not Text Rule.** Brass fill (#c9a24a / #9c7a2b) is never used for text under 20px. Brass Text is the text form; the two are different tokens on purpose.
+**The Brass Is Not Text Rule.** Brass fill (#c9a24a / #866619) is never used for text under 20px. Brass Text is the text form; the two are different tokens on purpose.
 
 **The One Primary Rule.** One brass-filled button per screen. Everything else is ghost or a link.
 

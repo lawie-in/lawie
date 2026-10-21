@@ -4,13 +4,13 @@
   "title": "Design System: Lawie",
   "extensions": {
     "colorMeta": {
-      "brass": { "role": "primary", "displayName": "Brass", "canonical": "#c9a24a", "daylight": "#9c7a2b" },
+      "brass": { "role": "primary", "displayName": "Brass", "canonical": "#c9a24a", "daylight": "#866619" },
       "brass-text": { "role": "primary", "displayName": "Brass Text", "canonical": "#e6c877", "daylight": "#6e5415" },
       "oxblood": { "role": "secondary", "displayName": "Oxblood", "canonical": "#7a2a2a", "daylight": "#8e2f2f" },
       "wall": { "role": "neutral", "displayName": "Wall", "canonical": "#0e1a17", "daylight": "#f3efe4" },
       "card": { "role": "neutral", "displayName": "Card", "canonical": "#182a24", "daylight": "#fbf8f0" },
       "text": { "role": "neutral", "displayName": "Text", "canonical": "#efe7d4", "daylight": "#1c2a25" },
-      "muted": { "role": "neutral", "displayName": "Muted", "canonical": "#8e9a8e", "daylight": "#6d7a73" },
+      "muted": { "role": "neutral", "displayName": "Muted", "canonical": "#8e9a8e", "daylight": "#5c685f" },
       "line": { "role": "neutral", "displayName": "Line", "canonical": "#2a3c35", "daylight": "#d9d1be" }
     },
     "typographyMeta": {
