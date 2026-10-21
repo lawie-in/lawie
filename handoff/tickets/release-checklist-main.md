@@ -13,3 +13,16 @@ T-519 (done), T-522 (neutral sign-up, unverified login, Google consent), T-527 (
 - Atlas Flex cluster with 7-day retention in Mumbai; one timed restore drill.
 - Fix by hand any user with more than one live subscription before T-536's index lands.
 - Anushka tests on develop and gives her PASS.
+
+## Before Anushka tests on develop (founder's three gating items, per Arjun, 21 Oct 2026)
+1. The `fact_ledger` flag.
+2. Redeploy develop (drafting first, then `yarn workspace @lawie/drafting seed:courts`; then auth, billing, web).
+3. The SES key switch.
+
+## Also on the main list (Arjun)
+- Live Razorpay keys, live plan ids, a live-mode webhook with a fresh secret; `RAZORPAY_KEY_GUARD=strict` present and `RAZORPAY_ALLOW_TEST_KEYS` absent.
+- Ajay's Flex conditions (a) to (e), including the T-532 privacy section 3 text and the timed restore drill.
+- Parameter Store entries under `/lawie/prod/*`; main-guard green before any image build.
+
+## Sequencing for the next session
+T-533 after the web merges; T-534 then T-537 (one lead in `packages/shared`); T-536 then T-542 (billing, T-527's optional findings are in T-542); T-538 and T-539 after the v1 batch; Ajay byte checks pending: T-541 Terms, T-539 detail string, T-472, T-489, T-521 label list, Hindi FAQ and demo text.
