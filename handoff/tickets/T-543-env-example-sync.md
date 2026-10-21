@@ -1,6 +1,6 @@
 # T-543 — Bring `.env.example` up to date and keep it the single list of variable names
 
-- **Status:** Building (Vishal, branch fix/t-543-env-example, 21 Oct 2026)
+- **Status:** Merged into develop_staging f1272c2c (CI 878 green), 21 Oct 2026. Follow-ups: T-546, T-547.
 - **Owner:** Vishal (build). Priya assigns. Arjun reviews any secret-handling comment.
 - **Mode:** Small fix. No product code changes, so no UI, no legal content.
 - **Files held:** `.env.example`, `apps/web/Dockerfile`, `docker-compose.demo.yml`, `docker-compose.staging.yml`, `docker-compose.yml` (extended 21 Oct 2026, see "Build-time web variables"). Anything else: ask Priya first.

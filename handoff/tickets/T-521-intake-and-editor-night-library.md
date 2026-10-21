@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Rajesh (spec sections 04 and 05), a web lead (build) |
 | Mode   | Full chain (web) |
-| Status | In build: Kunal (21 Oct 2026), PARKED at f9fdf2b2 after two failed reviews (merge hygiene); next: 3 should-fixes, label list to Ajay, Rajesh review, READY. Priya |
+| Status | Merged into develop_staging 276b7139 (CI 880 green), 21 Oct 2026. Follow-ups: T-544, T-545. Priya |
 | Source | T-511 part B; spec `handoff/design/T-511-night-library-spec.md` sections 04 and 05 |
 
 ## Scope
