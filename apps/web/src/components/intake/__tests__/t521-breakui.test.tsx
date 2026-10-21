@@ -97,7 +97,7 @@ describe('break-ui: DraftReadyStep', () => {
     expect(chain).toMatch(/break-words|\[overflow-wrap:anywhere\]|break-all/);
   });
 
-  it('zero Ink: "0 Ink used"; unknown Ink: no chip; both keep Finalise', () => {
+  it('zero Ink and unknown Ink: no chip; both keep Finalise', () => {
     const a = mount(
       <DraftReadyStep
         result={{ ...base, name: 'Bail', inkUsed: 0 }}
@@ -105,7 +105,7 @@ describe('break-ui: DraftReadyStep', () => {
         onStartAnother={jest.fn()}
       />,
     );
-    expect(a.container.textContent).toContain('0 Ink used');
+    expect(a.container.textContent).not.toContain('Ink used');
     expect(btnText(a.container)).toContain('Finalise');
     const b = mount(
       <DraftReadyStep

@@ -78,9 +78,10 @@ describe('DraftReadyStep Ink chip', () => {
     expect(chip).not.toBeNull();
     expect(chip.textContent?.replace(/\s+/g, ' ').trim()).toContain('3 Ink used');
   });
-  it('shows "0 Ink used" for a zero cost (a number, not unknown)', async () => {
+  it('shows no chip for a zero cost: "0 Ink used" never appears (Ajay AJ-521)', async () => {
     await mount({ inkUsed: 0 });
-    expect(text()).toContain('0 Ink used');
+    expect(container.querySelector('[data-testid="ink-used-chip"]')).toBeNull();
+    expect(text()).not.toContain('Ink used');
   });
   it('is hidden when inkUsed is unknown', async () => {
     await mount({});

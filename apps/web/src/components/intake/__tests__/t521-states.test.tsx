@@ -45,9 +45,12 @@ describe('BriefLoading', () => {
     );
   });
 
-  it('wraps the reading line in a polite live region', () => {
+  it('announces the reading line through the sr-only status', () => {
     const { container } = mount(<BriefLoading />);
-    expect(q('[aria-live="polite"]', container)!.textContent).toBe('Reading your description…');
+    // The visible line is hidden from screen readers; the sr-only status carries the text.
+    const live = q('p.sr-only[role="status"]', container)!;
+    expect(live.textContent).toBe('Reading your description…');
+    expect(live.closest('[aria-hidden="true"]')).toBeNull();
   });
 });
 
@@ -97,7 +100,7 @@ describe('GeneratingStep (T-521)', () => {
 
   it('shows the Inkwell drain, three steps when repairing, and a skeleton', () => {
     stubMatchMedia({});
-    const { container } = run({ repairing: true });
+    const { container } = run({ repairing: true, inkLevel: 40 });
     expect(container.textContent).toContain('Drafting your Bail application');
     expect(qa('li', container)).toHaveLength(3);
     expect(q('svg[data-draining]', container)).not.toBeNull();
@@ -113,7 +116,7 @@ describe('GeneratingStep (T-521)', () => {
 
   it('reduced motion: the Inkwell is static at 60% and not draining', () => {
     stubMatchMedia({ [REDUCED_MOTION_QUERY]: true });
-    const { container } = run();
+    const { container } = run({ inkLevel: 40 });
     const svg = q('svg', container)!;
     expect(svg.hasAttribute('data-draining')).toBe(false);
     expect(svg.getAttribute('data-level')).toBe('60');
@@ -122,7 +125,7 @@ describe('GeneratingStep (T-521)', () => {
 
   it('motion allowed: the ink layer carries the draining class', () => {
     stubMatchMedia({ [REDUCED_MOTION_QUERY]: false });
-    const { container } = run();
+    const { container } = run({ inkLevel: 40 });
     expect(q('.nl-ink-draining', container)).not.toBeNull();
   });
 
