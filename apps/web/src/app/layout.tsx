@@ -1,8 +1,13 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Inter, Lora, Mukta, Tiro_Devanagari_Hindi } from 'next/font/google';
 
 import AnalyticsConsent from '@/components/AnalyticsConsent';
-import { THEME_INIT_SCRIPT } from '@/components/shell/theme';
+import {
+  DARK_SCHEME_QUERY,
+  LIGHT_SCHEME_QUERY,
+  THEME_COLOR,
+  THEME_INIT_SCRIPT,
+} from '@/components/shell/theme';
 import { ThemeProvider } from '@/components/shell/ThemeProvider';
 import { AuthProvider } from '@/context/AuthContext';
 import { SignupSourceCapture } from '@/lib/signup-source';
@@ -31,7 +36,7 @@ const tiro = Tiro_Devanagari_Hindi({
 });
 
 export const metadata: Metadata = {
-  title: 'Lawie — Drafting Assistant for Indian Advocates',
+  title: 'Lawie: drafting assistant for advocates in India',
   description:
     'Stop Googling legal formats. Lawie is a drafting assistant for Indian advocates. Draft bail applications, legal notices, and more, then review before you file.',
   keywords: [
@@ -47,6 +52,19 @@ export const metadata: Metadata = {
     icon: '/app-icon.svg',
     apple: '/apple-touch-icon.png',
   },
+};
+
+/**
+ * T-524: two `<meta name="theme-color">` tags, one per colour scheme, for first paint (Wall,
+ * DESIGN.md Colors). ThemeProvider then keeps one unscoped meta on the resolved theme, so a
+ * pinned Night or Daylight wins over the system scheme. Next merges this with its default
+ * width/initial-scale viewport.
+ */
+export const viewport: Viewport = {
+  themeColor: [
+    { media: DARK_SCHEME_QUERY, color: THEME_COLOR.night },
+    { media: LIGHT_SCHEME_QUERY, color: THEME_COLOR.daylight },
+  ],
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

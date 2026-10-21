@@ -1,15 +1,18 @@
 'use client';
 
 // T-511 part A: Button (spec 3). primary (brass fill, on-brass text), ghost (brass/text, 1px
-// border/line), destructive (ox/fill, white). md 44px, sm 36px (its hit area is padded to 44px).
+// Control Line), destructive (ox/fill, white). md 44px, sm 36px (its hit area is padded to 44px).
 // Hover lifts 1px with a 4px brass/soft halo; focus ring 2px brass offset 3px; disabled .5;
 // loading swaps the label for a spinner and holds the width. Never two primaries on one screen.
+// T-535 (Rajesh): ghost-danger (Rust text + 1px Rust border, transparent; hover Rust Soft, no
+// lift, no halo) for the triggers of destructive flows (Close account, Cancel plan). The filled
+// Oxblood destructive stays inside confirm dialogs only.
 
 import { forwardRef } from 'react';
 
 import { cn } from '@/lib/cn';
 
-export type ButtonVariant = 'primary' | 'ghost' | 'destructive';
+export type ButtonVariant = 'primary' | 'ghost' | 'destructive' | 'ghost-danger';
 export type ButtonSize = 'md' | 'sm';
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -21,8 +24,24 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 
 const VARIANT: Record<ButtonVariant, string> = {
   primary: 'bg-nl-brass text-nl-on-brass border border-transparent',
-  ghost: 'bg-transparent text-nl-brass-dark border border-nl-line',
+  // T-525: ghost border at rest is Control Line (3:1, WCAG 1.4.11).
+  ghost: 'bg-transparent text-nl-brass-dark border border-[color:var(--line-control)]',
   destructive: 'bg-nl-ox text-white border border-transparent',
+  // T-535: hover only where a real pointer hovers (no sticky hover on touch). Forced colours:
+  // the system ButtonText/ButtonBorder keep the border visible; the focus ring is .nl-focus.
+  'ghost-danger': cn(
+    'bg-transparent text-[color:var(--err)] border border-[color:var(--err)]',
+    '[@media(hover:hover)_and_(pointer:fine)]:enabled:hover:bg-[color:var(--err-light)]',
+    'forced-colors:border-[color:ButtonBorder] forced-colors:text-[color:ButtonText]',
+  ),
+};
+
+/** Variants that lift 1px with the halo on hover (ghost-danger does not, T-535). */
+const LIFTS: Record<ButtonVariant, boolean> = {
+  primary: true,
+  ghost: true,
+  destructive: true,
+  'ghost-danger': false,
 };
 
 const SIZE: Record<ButtonSize, string> = {
@@ -57,8 +76,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       className={cn(
         'nl nl-focus gap-nl-2 rounded-nl-md relative inline-flex select-none items-center justify-center whitespace-nowrap',
         'font-nl-body text-[15px] font-medium leading-5',
-        'enabled:hover:shadow-nl-halo enabled:hover:-translate-y-px',
-        'motion-reduce:enabled:hover:translate-y-0',
+        LIFTS[variant] && [
+          'enabled:hover:shadow-nl-halo enabled:hover:-translate-y-px',
+          'motion-reduce:enabled:hover:translate-y-0',
+        ],
         'disabled:cursor-not-allowed disabled:opacity-50',
         loading && 'disabled:cursor-progress',
         VARIANT[variant],

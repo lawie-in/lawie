@@ -275,6 +275,192 @@ describe('CommandBar hotkey', () => {
   });
 });
 
+describe('CommandBar hotkeyExclusive (T-524)', () => {
+  it('defaults to false: the listener is bubble-phase and a window bubble listener still sees Ctrl+K', () => {
+    const add = jest.spyOn(window, 'addEventListener');
+    const seen = jest.fn();
+    window.addEventListener('keydown', seen);
+    setup();
+    const mine = add.mock.calls.filter((c) => c[0] === 'keydown' && c[1] !== seen);
+    expect(mine.length).toBeGreaterThan(0);
+    for (const c of mine) expect((c[2] as { capture?: boolean } | undefined)?.capture).toBeFalsy();
+    press(window, { key: 'k', ctrlKey: true });
+    window.removeEventListener('keydown', seen);
+    add.mockRestore();
+    expect(seen).toHaveBeenCalledTimes(1);
+    expect(document.activeElement).toBe(input());
+  });
+
+  it('exclusive: focuses, prevents, and stops other window listeners', () => {
+    const seen = jest.fn();
+    window.addEventListener('keydown', seen);
+    setup({ hotkeyExclusive: true });
+    const ev = press(window, { key: 'k', ctrlKey: true });
+    window.removeEventListener('keydown', seen);
+    expect(ev.defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(input());
+    expect(seen).not.toHaveBeenCalled();
+  });
+
+  it('exclusive: plain K (no Ctrl/Meta) is ignored and still propagates', () => {
+    const seen = jest.fn();
+    window.addEventListener('keydown', seen);
+    setup({ hotkeyExclusive: true });
+    const ev = press(window, { key: 'k' });
+    window.removeEventListener('keydown', seen);
+    expect(ev.defaultPrevented).toBe(false);
+    expect(seen).toHaveBeenCalledTimes(1);
+    expect(document.activeElement).not.toBe(input());
+  });
+
+  it('exclusive: Ctrl/Meta+Shift/Alt+K are prevented and stopped but do NOT focus the bar', () => {
+    const seen = jest.fn();
+    window.addEventListener('keydown', seen);
+    setup({ hotkeyExclusive: true });
+    for (const init of [
+      { key: 'k', ctrlKey: true, shiftKey: true },
+      { key: 'K', ctrlKey: true, shiftKey: true },
+      { key: 'k', ctrlKey: true, altKey: true },
+      { key: 'k', metaKey: true, shiftKey: true },
+      { key: 'k', metaKey: true, altKey: true },
+      { key: 'k', ctrlKey: true, shiftKey: true, altKey: true },
+    ]) {
+      expect(press(window, init).defaultPrevented).toBe(true);
+      expect(document.activeElement).not.toBe(input());
+    }
+    window.removeEventListener('keydown', seen);
+    expect(seen).not.toHaveBeenCalled();
+  });
+
+  it('exclusive: Meta+K focuses, prevents and stops', () => {
+    const seen = jest.fn();
+    window.addEventListener('keydown', seen);
+    setup({ hotkeyExclusive: true });
+    const ev = press(window, { key: 'K', metaKey: true });
+    window.removeEventListener('keydown', seen);
+    expect(ev.defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(input());
+    expect(seen).not.toHaveBeenCalled();
+  });
+
+  it('exclusive: other keys with Ctrl are untouched', () => {
+    const seen = jest.fn();
+    window.addEventListener('keydown', seen);
+    setup({ hotkeyExclusive: true });
+    const ev = press(window, { key: 'j', ctrlKey: true });
+    window.removeEventListener('keydown', seen);
+    expect(ev.defaultPrevented).toBe(false);
+    expect(seen).toHaveBeenCalledTimes(1);
+  });
+
+  it('non-exclusive: Shift/Alt variants are ignored and nothing is prevented', () => {
+    const seen = jest.fn();
+    window.addEventListener('keydown', seen);
+    setup();
+    for (const init of [
+      { key: 'k', ctrlKey: true, shiftKey: true },
+      { key: 'k', ctrlKey: true, altKey: true },
+    ]) {
+      expect(press(window, init).defaultPrevented).toBe(false);
+    }
+    window.removeEventListener('keydown', seen);
+    expect(seen).toHaveBeenCalledTimes(2);
+    expect(document.activeElement).not.toBe(input());
+  });
+
+  it.each([
+    ['exclusive', true],
+    ['non-exclusive', false],
+  ])('%s: a key press during IME composition is ignored entirely', (_n, hotkeyExclusive) => {
+    const seen = jest.fn();
+    window.addEventListener('keydown', seen);
+    setup({ hotkeyExclusive });
+    const ev = press(window, { key: 'k', ctrlKey: true, isComposing: true });
+    window.removeEventListener('keydown', seen);
+    expect(ev.defaultPrevented).toBe(false);
+    expect(seen).toHaveBeenCalledTimes(1);
+    expect(document.activeElement).not.toBe(input());
+  });
+
+  it('hotkeySuspended (exclusive): handler is a no-op and Ctrl+K reaches a bubble listener', () => {
+    const seen = jest.fn();
+    window.addEventListener('keydown', seen);
+    setup({ hotkeyExclusive: true, hotkeySuspended: true });
+    const ev = press(window, { key: 'k', ctrlKey: true });
+    const shifted = press(window, { key: 'k', ctrlKey: true, shiftKey: true });
+    window.removeEventListener('keydown', seen);
+    expect(ev.defaultPrevented).toBe(false);
+    expect(shifted.defaultPrevented).toBe(false);
+    expect(seen).toHaveBeenCalledTimes(2);
+    expect(document.activeElement).not.toBe(input());
+  });
+
+  it('hotkeySuspended registers no capture keydown listener', () => {
+    const add = jest.spyOn(window, 'addEventListener');
+    setup({ hotkeyExclusive: true, hotkeySuspended: true });
+    const keydown = add.mock.calls.filter((c) => c[0] === 'keydown');
+    add.mockRestore();
+    expect(keydown).toHaveLength(0);
+  });
+
+  it('toggling hotkeySuspended at runtime removes and re-adds the listener', () => {
+    const seen = jest.fn();
+    window.addEventListener('keydown', seen);
+    const onSelect = jest.fn();
+    const onSubmit = jest.fn();
+    const el = (suspended: boolean) => (
+      <CommandBar
+        items={ITEMS}
+        onSelect={onSelect}
+        onSubmit={onSubmit}
+        hotkeyExclusive
+        hotkeySuspended={suspended}
+      />
+    );
+    const { rerender } = mount(el(false));
+    expect(press(window, { key: 'k', ctrlKey: true }).defaultPrevented).toBe(true);
+    expect(seen).not.toHaveBeenCalled();
+    act(() => input().blur());
+
+    rerender(el(true));
+    expect(press(window, { key: 'k', ctrlKey: true }).defaultPrevented).toBe(false);
+    expect(seen).toHaveBeenCalledTimes(1);
+
+    rerender(el(false));
+    const back = press(window, { key: 'k', ctrlKey: true });
+    window.removeEventListener('keydown', seen);
+    expect(back.defaultPrevented).toBe(true);
+    expect(seen).toHaveBeenCalledTimes(1);
+    expect(document.activeElement).toBe(input());
+  });
+
+  it('hotkeySuspended has no effect without hotkeyExclusive (bar still takes Ctrl+K)', () => {
+    setup({ hotkeySuspended: true });
+    const ev = press(window, { key: 'k', ctrlKey: true });
+    expect(ev.defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(input());
+  });
+
+  it('exclusive with hotkey={false} registers nothing and swallows nothing', () => {
+    const seen = jest.fn();
+    window.addEventListener('keydown', seen);
+    setup({ hotkey: false, hotkeyExclusive: true });
+    const ev = press(window, { key: 'k', ctrlKey: true });
+    window.removeEventListener('keydown', seen);
+    expect(ev.defaultPrevented).toBe(false);
+    expect(seen).toHaveBeenCalledTimes(1);
+  });
+
+  it('exclusive with disabled registers nothing', () => {
+    const seen = jest.fn();
+    window.addEventListener('keydown', seen);
+    setup({ hotkeyExclusive: true, disabled: true });
+    press(window, { key: 'k', ctrlKey: true });
+    window.removeEventListener('keydown', seen);
+    expect(seen).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('defaultCommandFilter', () => {
   it('returns everything for an empty query', () => {
     expect(defaultCommandFilter(ITEMS, '  ')).toEqual(ITEMS);

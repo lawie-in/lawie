@@ -9,9 +9,11 @@ colors:
   text-soft: "#cbc2ac"
   muted: "#8e9a8e"
   line: "#2a3c35"
+  line-control: "#6b7c74"
   brass: "#c9a24a"
   brass-text: "#e6c877"
   brass-soft: "#2b2614"
+  brass-mark: "#c9a24a"
   on-brass: "#15241f"
   oxblood: "#7a2a2a"
   oxblood-high: "#a94545"
@@ -26,15 +28,17 @@ colors:
   day-card: "#fbf8f0"
   day-text: "#1c2a25"
   day-text-soft: "#3d4c46"
-  day-muted: "#6d7a73"
+  day-muted: "#5c685f"
   day-line: "#d9d1be"
-  day-brass: "#9c7a2b"
+  day-line-control: "#8a8476"
+  day-brass: "#866619"
   day-brass-text: "#6e5415"
   day-brass-soft: "#f6ebcf"
+  day-brass-mark: "#e6c877"
   day-on-brass: "#ffffff"
   day-oxblood: "#8e2f2f"
   day-oxblood-high: "#b85050"
-  day-moss: "#1e7f5f"
+  day-moss: "#1b7658"
   day-moss-soft: "#ddf2e8"
   day-rust: "#b3261e"
   day-rust-soft: "#fce9e7"
@@ -171,7 +175,7 @@ components:
 
 # Design System: Lawie
 
-Owner: Rajesh (design). Signed 21 Oct 2026. Source of record for the T-511 system; the long-form screen spec is `handoff/design/T-511-night-library-spec.md`, the Figma file is https://www.figma.com/design/Tg2yQ7xE5faLfBgeAQf1Uu, and the live tokens are `apps/web/src/app/globals.css` (`.nl`). Where these disagree, this file wins and I fix the others. Frontmatter colours are the Night values; the `day-*` keys are the Daylight values of the same tokens. In code they are one set of CSS variables switched by `html[data-theme]`.
+Owner: Rajesh (design). Signed 21 Oct 2026; Daylight brass, muted and moss re-signed 21 Oct 2026 after Tanvi's contrast audit (T-524). Every text pair in both themes clears WCAG AA 4.5:1, including On Brass on Brass (5.4:1 day) and each status text on its soft fill. Source of record for the T-511 system; the long-form screen spec is `handoff/design/T-511-night-library-spec.md`, the Figma file is https://www.figma.com/design/Tg2yQ7xE5faLfBgeAQf1Uu, and the live tokens are `apps/web/src/app/globals.css` (`.nl`). Where these disagree, this file wins and I fix the others. Frontmatter colours are the Night values; the `day-*` keys are the Daylight values of the same tokens. In code they are one set of CSS variables switched by `html[data-theme]`.
 
 ## Overview
 
@@ -195,31 +199,34 @@ The system is paper-and-ink, not glass-and-gradient. Surfaces are flat, square-c
 Warm darks with a single brass accent; Daylight keeps the hues and lifts the lightness.
 
 ### Primary
-- **Brass** (#c9a24a night / #9c7a2b day): the one action colour. Primary button fill, the seal, the lamp dot, the focus ring, the ink in the well. On any screen it should cover under ten percent of the pixels.
+- **Brass** (#c9a24a night / #866619 day): the one action colour. Primary button fill, the seal, the lamp dot, the focus ring, the ink in the well. On any screen it should cover under ten percent of the pixels.
 - **Brass Text** (#e6c877 / #6e5415): the text form of brass. Eyebrows, links, ghost-button labels, chip text. This exists because brass fill fails contrast as small text.
 - **Brass Soft** (#2b2614 / #f6ebcf): chip fills, the hover halo, the selected row in the command bar list.
 - **On Brass** (#15241f / #ffffff): text on a brass fill.
+- **Brass Mark** (#c9a24a / #e6c877): the spine bands and the seal mark on an oxblood spine, and any other brass mark drawn on a dark fill. Same as Brass at night; by day it stays light so it clears 3:1 on Oxblood (5.0:1). Never used on Wall or Card. The inner ring of a seal mark on a spine is the spine's own fill (Oxblood), not On Brass, so it stays visible in both themes; only the 100px seal on the folio uses the On Brass ring.
 
 ### Secondary
 - **Oxblood** (#7a2a2a / #8e2f2f) and **Oxblood High** (#a94545 / #b85050): book spines on the shelf and the destructive confirm button. Never a status colour.
 
 ### Neutral
 - **Wall** (#0e1a17 / #f3efe4): the page ground.
-- **Wood** (#15241f / #e9e2d1): the shelf edge, skeleton blocks, dividers that need a surface.
+- **Wood** (#15241f / #e9e2d1): the shelf edge, skeleton blocks, dividers that need a surface, keyboard hints. Text on Wood is Text, Soft or Brass Text; Muted on Wood at 14px or larger only (4.5:1 by day); never a status colour on Wood.
 - **Card** (#182a24 / #fbf8f0): the folio, cards, inputs, dialogs, popovers.
 - **Text** (#efe7d4 / #1c2a25): body and headings. 12.9:1 on Card at night, 13.6:1 by day.
 - **Text Soft** (#cbc2ac / #3d4c46): secondary text, descriptions. 9.6:1 / 9.2:1.
-- **Muted** (#8e9a8e / #6d7a73): labels, captions, placeholders. 4.6:1 both ways, so never below 12px and never as body text.
-- **Line** (#2a3c35 / #d9d1be): the hairline on every card, input and divider.
+- **Muted** (#8e9a8e / #5c685f): labels, captions, placeholders. 5.1:1 night on Card, 5.5:1 day on Card, 4.5:1 day on Wood; never below 12px and never as body text.
+- **Line** (#2a3c35 / #d9d1be): the hairline on cards, the folio, dividers, the shelf and FAQ rules. Decorative; 1.3:1 to 1.5:1 on Card, so never the only boundary of a control.
+- **Control Line** (#6b7c74 / #8a8476): the boundary of anything the user operates: input underlines and boxed borders at rest, ghost and Google button borders, checkboxes, the toggle frames, the tab underline at rest. 3.4:1 / 3.5:1 on Card and 4.0:1 / 3.2:1 on Wall, so it clears WCAG 1.4.11. Focus (Brass 2px) and error (Rust) borders replace it in those states.
 
 ### Status
-- **Moss** (#7fcfa8 / #1e7f5f) on **Moss Soft** (#143327 / #ddf2e8): success, finalised, Ink used.
+- **Moss** (#7fcfa8 / #1b7658) on **Moss Soft** (#143327 / #ddf2e8): success, finalised, Ink used.
 - **Amber** (#f1d08a / #7a5300) on **Amber Soft** (#3a2e12 / #fbefd2): open checks, low Ink, gates (verify email, privacy).
 - **Rust** (#f2a196 / #b3261e) on **Rust Soft** (#3b1a17 / #fce9e7): errors, failed payment, offline.
 - **Lamp** (rgba(255,214,140,.22) / rgba(255,200,90,.16)): the radial pool of light on the folio and hero. A gradient only, never a fill.
+- **Selection** (#332a14 / #f3e9c8): `::selection` background, text colour unchanged. Text 11.5:1 / 12.3:1, Muted 4.8:1 / 4.8:1, Brass Text 8.7:1 / 5.9:1. The caret is Brass (`caret-color`). The browser chrome (`<meta name="theme-color">`) is Wall for the resolved theme, #0e1a17 night and #f3efe4 day, and follows the toggle.
 
 ### Named Rules
-**The Brass Is Not Text Rule.** Brass fill (#c9a24a / #9c7a2b) is never used for text under 20px. Brass Text is the text form; the two are different tokens on purpose.
+**The Brass Is Not Text Rule.** Brass fill (#c9a24a / #866619) is never used for text under 20px. Brass Text is the text form; the two are different tokens on purpose.
 
 **The One Primary Rule.** One brass-filled button per screen. Everything else is ghost or a link.
 
@@ -235,7 +242,7 @@ Warm darks with a single brass accent; Daylight keeps the hues and lifts the lig
 ### Hierarchy
 - **Display** (400, clamp(48px, 5.3vw, 68px), 52px to 72px): the landing hero only.
 - **Headline** (400, 32px, 38px): page titles ("Your shelf", "Settings").
-- **Title** (400, 24px, 30px): section titles, dialog titles, KPI numbers (40px on the dashboard, same face).
+- **Title** (400, 24px, 30px): section titles, dialog titles. Two larger uses of the same face: KPI numbers at 40px/44px on the dashboard, and the plan price at 34px/40px on a plan card. Both may exceed the page title; the number is what the reader came for.
 - **Subtitle** (Mukta 500, 18px, 26px): card titles and anything that is a heading under 20px.
 - **Body** (400, 16px, 26px): the default. Running text stays at or under 65 characters a line.
 - **Body Small** (400, 14px, 22px): secondary lines, captions, help text, chips with words.
@@ -249,7 +256,7 @@ Warm darks with a single brass accent; Daylight keeps the hues and lifts the lig
 
 ## Layout
 
-A single reading column that widens into a desk. At 360px everything is one column with a 16px gutter; at 640px and above dialogs stop being bottom sheets; at 900px the dashboard KPI grid goes from two columns to four and the editor gains its right-hand checks rail (320px); at 1280px the content sits in a 1180px column with 48px side padding. The hero is two columns from 900px (copy left, folio right) and one column below, folio directly under the headline.
+A single reading column that widens into a desk. At 360px everything is one column with a 16px gutter; at 640px and above dialogs stop being bottom sheets; at 900px the dashboard KPI grid goes from two columns to four and the editor gains its right-hand checks rail (320px); at 1280px the content sits in a 1180px column with 48px side padding. The hero is two columns from 900px (copy left, folio right) and one column below, folio directly under the headline. Full-width sections (three steps, prices, trust, FAQ, the final call) fill the column with equal tracks; the document-type shelf and the dashboard shelf hug their spines, left-aligned, with the wood edge running the full column width. The space to the right of a shelf is intended.
 
 Spacing uses the 4px scale (4, 8, 12, 16, 20, 24, 32, 40, 48, 64). Cards pad 16px; the folio pads 24px on phones and 40px on desktop; sections sit 44px to 72px apart. Touch targets are 44px minimum, including the 36px small button, whose hit area is padded out to 44px.
 
@@ -271,7 +278,7 @@ Flat at rest, with two exceptions. Every surface is Card on Wall with a 1px Line
 
 ## Shapes
 
-Square paper, round seals. Cards, the folio, inputs, banners and dialogs have no radius or 4px at most; the 2px step is for keyboard hints and small tags. Chips, the Ink dot and the seal are fully round. Borders are 1px Line on every container; a 1px brass hairline rules the top of the folio and the command bar. Underline inputs on the folio (border-bottom only, 2px brass on focus); boxed inputs in Settings forms (1px Line, 4px radius). Bottom sheets at 360px take a 12px top radius and a 40px drag handle; that is the only large radius in the system.
+Square paper, round seals. Cards, the folio, inputs, banners and dialogs have no radius or 4px at most; the 2px step is for keyboard hints and small tags. Chips, the Ink dot and the seal are fully round. Borders are 1px Line on every container; a 1px brass hairline rules the top of the folio and the command bar. Controls take the stronger Control Line: underline inputs on the folio (border-bottom only, 2px brass on focus); boxed inputs in Settings forms (1px Control Line, 4px radius). Bottom sheets at 360px take a 12px top radius and a 40px drag handle; that is the only large radius in the system.
 
 Focus is a 2px brass outline offset 3px, on every interactive element, in both themes.
 
@@ -281,9 +288,10 @@ Focus is a 2px brass outline offset 3px, on every interactive element, in both t
 Quiet until pressed; the brass one is the only loud thing on the page.
 - **Shape:** gently squared (4px radius), 44px tall, 20px side padding; small variant 36px tall, 16px padding, hit area padded to 44px.
 - **Primary:** Brass fill, On Brass label, Mukta 500 15px.
-- **Ghost:** transparent, Brass Text label, 1px Line border.
-- **Destructive:** Oxblood fill, white label; sits last in a dialog, after the ghost safe action.
-- **Hover / Focus:** hover lifts 1px with the 4px Brass Soft halo, 150ms ease; focus is the system ring. Disabled is opacity .5. Loading swaps the label for a spinner and holds the width.
+- **Ghost:** transparent, Brass Text label, 1px Control Line border.
+- **Destructive:** Oxblood fill, white label; sits last in a dialog, after the ghost safe action. Only inside a confirm dialog.
+- **Ghost, danger:** transparent, Rust text and 1px Rust border, hover background Rust Soft, no lift. The one danger cue outside a dialog: Close account, Cancel plan in Settings. It opens the dialog; it never performs the action itself.
+- **Hover / Focus:** primary hover lifts 1px with the 4px Brass Soft halo, 150ms ease. Ghost (and any ghost-styled link or the Google button) does not lift: its border goes Line to Brass and its background to Brass Soft, 150ms. Destructive does not lift or glow. Focus is the system ring on all three. Disabled is opacity .5. Loading swaps the label for a spinner and holds the width.
 
 ### Chips
 - **Style:** pill, 12px Mukta 500, 4px by 10px padding. Neutral is Text Soft on a Line border; brass, moss, amber and rust tones use the status pair. The Ink chip carries a brass dot before the number.
@@ -298,21 +306,27 @@ Quiet until pressed; the brass one is the only loud thing on the page.
 - **States:** loading shows Wood skeleton blocks with a 1.4s pulse; empty is one sentence and one action; error is a Rust border, one sentence and Retry. A loading card never renders a zero.
 
 ### Inputs / Fields
-- **Style:** on the folio, underline only (1px Line); in Settings, boxed (1px Line, 4px radius, Card fill). Label above in Label style, Brass Text.
+- **Style:** on the folio, underline only (1px Control Line); in Settings, boxed (1px Control Line, 4px radius, Card fill). Label above in Label style, Brass Text.
 - **Focus:** bottom border becomes 2px brass; the system ring applies on keyboard focus.
 - **Error / Disabled:** Rust border and a one-line message naming the fix, linked by aria-describedby; disabled is opacity .5.
 
 ### Navigation (Top bar)
-- 64px, Wall fill, 1px Line bottom. The Lawie mark is Tiro 26px with a brass lamp dot and a soft glow. Signed-in: Ink chip, theme toggle, avatar menu. Below 720px the nav and the theme toggle fold into the menu; the Ink chip stays visible. Sticky, respects the top safe-area inset.
+- 64px, Wall fill, 1px Line bottom. The Lawie mark is Tiro 26px with a brass lamp dot and a soft glow. Signed-in: Ink chip, theme toggle, avatar menu. Below 720px the nav, the theme toggle and the language toggle fold into the menu, so the bar stays one 64px row; the Ink chip (or the signed-out Start free button) stays visible. Signed-out marketing bar: the four section links show from 1120px (below that a label would wrap inside the 64px bar); from 720 to 1119 the row is mark, language and theme toggles, Sign in and the CTA; if that is still tight in Hindi, the toggles move into the menu before anything is dropped. A nav landmark is rendered only when it holds links. Sticky at every width once it is one row; never pin a bar taller than 64px on a phone. Respects the top safe-area inset (`viewport-fit=cover`).
+
+### Section finder
+A right-hand panel on the editor. From 1280px a closed 44px peek rail sits on the right edge (Card fill, Control Line border); from 900 to 1279 it opens as an overlay from the menu or its shortcut; below 900 it is a bottom sheet. Control Line on its inputs and tabs; the tip box is Brass Soft.
+
+### Draft progress
+The honest bar (spec `handoff/design/T-539-draft-progress-spec.md`). Inkwell, stage name in Mukta 500, pct in Tiro 24 tabular, a 6px Wood track with a Brass fill whose width is the server's `pct`, stage dots on a 1px Line rail (done Brass, current Brass with a Brass Soft ring, upcoming Control Line ring), the eta or the server detail in Muted, a ghost Cancel. Nothing on it moves on a timer. Connection lost: Warn label and a static 45° Brass-on-Brass-Soft stripe in the fill. Error: Rust fill and label. Done: full bar, then the Seal.
 
 ### Command bar (signature)
 The question at the top of the desk: "What do you need to draft?" in Title type, an underline input with a Ctrl K hint and the one primary button. A Radix Popover with our own listbox opens below: quick chips while empty, matching templates and the advocate's own drafts while typing, one line when nothing matches. Ctrl K and Cmd K focus it from anywhere; Escape closes.
 
 ### Folio, Inkwell, Seal, Spine (signature)
 - **Folio:** the lit sheet of paper. Card fill, card shadow, brass hairline on top, Draft type inside.
-- **Inkwell:** a 52 by 64 SVG; the level rect is the Ink balance. While a draft generates it drains once over 2.6s to an 8% line and holds; static at 60% under reduced motion.
+- **Inkwell:** a 52 by 64 SVG; the level rect is the Ink balance. While a draft generates it drains from the balance to the balance minus the draft's cost in step with the server's `pct` (400ms ease-out per change); static under reduced motion. The 2.6s timed drain exists only on the landing demo, which has no server.
 - **Seal:** 100px brass disc, On Brass Tiro lettering, resting at -8°. Stamps in from scale 2.2 and -20° over 550ms with the seal drop shadow; a 150ms fade under reduced motion. A 26px mark of it sits on finalised spines.
-- **Spine:** 52px wide, 184 to 210px tall, Tiro 15px label set vertically, two brass bands for a draft with open checks, the seal mark for a finalised document. Hover or focus pulls it out 14px over 250ms on desktop only.
+- **Spine:** 52px wide, 184 to 210px tall, Tiro 15px label set vertically, two Brass Mark bands for a draft with open checks, the Brass Mark seal for a finalised document. Hover or focus pulls it out 14px over 250ms on desktop only.
 
 ### Dialog and Toast
 - **Dialog:** 440px centred on desktop; full-width bottom sheet at 640px and below. Title in Title type, body in Body Soft, safe action ghost first, confirm last. First focus lands on the safe action.

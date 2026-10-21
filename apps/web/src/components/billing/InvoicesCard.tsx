@@ -18,6 +18,7 @@
 import { Download } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { Button, Card, Chip, loopPlayState, usePageVisible } from '@/components/ui';
 import { apiFetch } from '@/lib/apiFetch';
 import { downloadBlob } from '@/lib/download';
 
@@ -128,12 +129,12 @@ export function parseInvoices(body: unknown): InvoiceRow[] | null {
 
 type LoadState = { kind: 'loading' } | { kind: 'error' } | { kind: 'loaded'; rows: InvoiceRow[] };
 
-/** Same link style as the spec §4: underlined text, 44 px target. */
+/**
+ * Same link style as the spec §4: underlined text, 44 px target. T-525: Brass Text, the one link
+ * colour (DESIGN.md Don'ts).
+ */
 const pdfButtonClass =
-  'inline-flex min-h-[44px] min-w-[44px] items-center justify-center gap-1 px-2 text-xs font-medium text-slate-600 underline hover:text-slate-900';
-
-const smallButtonClass =
-  'min-h-[44px] rounded-lg border border-slate-300 px-3 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50';
+  'nl-focus nl-body-sm inline-flex min-h-[44px] min-w-[44px] touch-manipulation select-none items-center justify-center gap-nl-1 px-nl-2 font-medium text-nl-brass-dark underline underline-offset-4';
 
 export interface InvoicesCardProps {
   /** T-436 (b): called with the rows each time they load (the settings State nag reads them). */
@@ -147,6 +148,8 @@ export function InvoicesCard({ onRowsLoaded }: InvoicesCardProps = {}) {
   /** The row whose last PDF download failed (its inline alert shows), or null. */
   const [pdfFailedId, setPdfFailedId] = useState<string | null>(null);
   const downloading = useRef(new Set<string>());
+  // T-525: the skeleton pulse pauses while the tab is hidden (spec 2.4).
+  const pageVisible = usePageVisible();
 
   const load = useCallback(async () => {
     setState({ kind: 'loading' });
@@ -210,23 +213,24 @@ export function InvoicesCard({ onRowsLoaded }: InvoicesCardProps = {}) {
   };
 
   return (
-    <section
-      aria-labelledby="invoices-heading"
-      className="mt-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
-    >
-      <h2 id="invoices-heading" className="text-sm font-semibold text-slate-700">
+    <Card aria-labelledby="invoices-heading">
+      <h2 id="invoices-heading" className="nl-h3 text-nl-text">
         {INVOICES_STRINGS.heading}
       </h2>
 
       {state.kind === 'loading' && (
-        <div className="mt-3">
+        <div className="mt-nl-3">
           <p role="status" className="sr-only">
             {INVOICES_STRINGS.loading}
           </p>
-          <ul aria-hidden="true" className="divide-y divide-slate-200">
+          {/* Wood skeleton rows (DESIGN.md Cards: loading); static under reduced motion. */}
+          <ul aria-hidden="true" className="divide-nl-line divide-y">
             {[0, 1, 2].map((i) => (
-              <li key={i} className="py-3">
-                <div className="h-4 w-full rounded bg-slate-100" />
+              <li key={i} className="py-nl-3">
+                <div
+                  className="nl-skeleton h-nl-4 rounded-nl-sm w-full"
+                  style={loopPlayState(pageVisible)}
+                />
               </li>
             ))}
           </ul>
@@ -234,23 +238,23 @@ export function InvoicesCard({ onRowsLoaded }: InvoicesCardProps = {}) {
       )}
 
       {state.kind === 'error' && (
-        <div className="mt-3 flex flex-wrap items-center gap-3">
-          <p role="alert" className="text-sm text-slate-600">
+        <div className="mt-nl-3 gap-nl-3 flex flex-wrap items-center">
+          <p role="alert" className="nl-body text-nl-err">
             {INVOICES_STRINGS.error}
           </p>
-          <button type="button" onClick={() => void load()} className={smallButtonClass}>
+          <Button variant="ghost" onClick={() => void load()}>
             {INVOICES_STRINGS.retry}
-          </button>
+          </Button>
         </div>
       )}
 
       {state.kind === 'loaded' && rows.length === 0 && (
-        <p className="mt-3 text-sm text-slate-600">{INVOICES_STRINGS.empty}</p>
+        <p className="nl-body mt-nl-3 text-nl-soft">{INVOICES_STRINGS.empty}</p>
       )}
 
       {state.kind === 'loaded' && rows.length > 0 && (
         <>
-          <ul aria-label={LIST_LABEL} className="mt-3 divide-y divide-slate-200">
+          <ul aria-label={LIST_LABEL} className="mt-nl-3 divide-nl-line divide-y">
             {shown.map((row) => {
               const isCreditNote = row.kind === 'credit_note';
               return (
@@ -258,27 +262,23 @@ export function InvoicesCard({ onRowsLoaded }: InvoicesCardProps = {}) {
                 // grid; 1280 px: one line, date first, by `order`.
                 <li
                   key={row.id}
-                  className="grid grid-cols-[1fr_auto] items-center gap-x-3 py-3 sm:flex sm:flex-wrap sm:gap-x-4"
+                  className="gap-x-nl-3 py-nl-3 sm:gap-x-nl-4 grid grid-cols-[1fr_auto] items-center sm:flex sm:flex-wrap"
                 >
-                  <span className="flex flex-wrap items-center gap-2 break-all text-sm text-slate-800 sm:order-2 sm:flex-1">
+                  <span className="nl-body-sm gap-nl-2 text-nl-text flex flex-wrap items-center break-all tabular-nums sm:order-2 sm:flex-1">
                     {row.number}
-                    {isCreditNote && (
-                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
-                        {INVOICES_STRINGS.creditNote}
-                      </span>
-                    )}
+                    {isCreditNote && <Chip variant="neutral">{INVOICES_STRINGS.creditNote}</Chip>}
                     {isCreditNote && row.originalInvoiceNumber && (
-                      <span className="basis-full text-xs text-slate-500">
+                      <span className="nl-body-sm text-nl-muted basis-full">
                         {INVOICES_STRINGS.againstInvoice(row.originalInvoiceNumber)}
                       </span>
                     )}
                   </span>
-                  <span className="text-right text-sm text-slate-800 sm:order-3">
+                  <span className="nl-body-sm text-nl-text text-right tabular-nums sm:order-3">
                     {formatInvoiceAmount(row.total)}
                   </span>
                   <time
                     dateTime={row.issuedAt}
-                    className="text-xs text-slate-500 sm:order-1 sm:w-32"
+                    className="nl-body-sm text-nl-muted tabular-nums sm:order-1 sm:w-32"
                   >
                     {formatInvoiceDate(row.issuedAt)}
                   </time>
@@ -293,14 +293,14 @@ export function InvoicesCard({ onRowsLoaded }: InvoicesCardProps = {}) {
                       }
                       className={pdfButtonClass}
                     >
-                      <Download aria-hidden="true" className="h-3.5 w-3.5" strokeWidth={1.5} />
+                      <Download aria-hidden="true" className="h-4 w-4" strokeWidth={1.5} />
                       {INVOICES_STRINGS.pdf}
                     </button>
                   </span>
                   {pdfFailedId === row.id && (
                     <p
                       role="alert"
-                      className="text-brand-error col-span-2 mt-1 text-xs sm:order-5 sm:basis-full"
+                      className="nl-body-sm mt-nl-1 text-nl-err col-span-2 sm:order-5 sm:basis-full"
                     >
                       {INVOICES_STRINGS.pdfFailed}
                     </p>
@@ -311,20 +311,15 @@ export function InvoicesCard({ onRowsLoaded }: InvoicesCardProps = {}) {
           </ul>
           {hidden > 0 && (
             // Stays rendered once expanded so focus is not dropped (spec §5).
-            <button
-              type="button"
-              aria-expanded={expanded}
-              onClick={showMore}
-              className={`${smallButtonClass} mt-3`}
-            >
+            <Button variant="ghost" aria-expanded={expanded} onClick={showMore} className="mt-nl-3">
               {INVOICES_STRINGS.showMore}
-            </button>
+            </Button>
           )}
           <p role="status" aria-live="polite" className="sr-only">
             {announce}
           </p>
         </>
       )}
-    </section>
+    </Card>
   );
 }

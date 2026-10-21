@@ -7,8 +7,13 @@
  * GET /api/documents, tiles 3, 4, 6 and 7 from the T-506 summary, tile 5 from the T-508 status.
  * Loading: skeleton tiles and three skeleton spines, "Still working…" after 8s. Error: one line
  * with Retry, tiles keep their last values. No time-saved tile.
+ *
+ * T-524: "Still working…" sits right after the command bar and error slot, so it is on screen at
+ * 360px. Retry keeps the error line mounted until every source settles, so keyboard focus stays
+ * on Retry; if the error then goes away, focus moves to the page title. A blank name drops the
+ * greeting line (no invented wording); a long one wraps.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { TopUpModal } from '@/components/credits/TopUpModal';
 import { DashboardCommandBar } from '@/components/dashboard/DashboardCommandBar';
@@ -23,6 +28,7 @@ import {
 import { ErrorState, STILL_WORKING_AFTER_MS } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
 import { useCredits } from '@/hooks/useCredits';
+import { cn } from '@/lib/cn';
 
 /** Copy 3.1 date line `{weekday}, {date}`, India time. */
 function dateLine(now: Date): string {
@@ -59,22 +65,51 @@ export default function DashboardPage() {
   const plan = usePlanStatus();
   const [nudgeDismissed, setNudgeDismissed] = useState(false);
   const [topUpOpen, setTopUpOpen] = useState(false);
+  // T-524: true from a Retry press until every source has settled (see the effect below).
+  const [retrying, setRetrying] = useState(false);
+  const [inkRetryPending, setInkRetryPending] = useState(false);
+  const mounted = useRef(true);
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const errorRef = useRef<HTMLDivElement>(null);
+  /** Keyboard focus was inside the error line (Retry) when it last had focus. */
+  const focusInError = useRef(false);
   // Client only: the layout renders this page after auth has loaded, so no server/client mismatch.
   const [today, setToday] = useState<string | null>(null);
 
   useEffect(() => {
     setToday(dateLine(new Date()));
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
   }, []);
 
   const reloadDocs = docs.reload;
   const reloadSummary = summary.reload;
   const reloadPlan = plan.reload;
   const retry = useCallback(() => {
+    // Each reload sets its status to 'loading' in this same batch, so the settle effect below
+    // cannot see "nothing loading" before the requests have started.
+    setRetrying(true);
+    setInkRetryPending(true);
     reloadDocs();
     reloadSummary();
     reloadPlan();
-    refreshInk().catch(() => undefined);
+    Promise.resolve(refreshInk())
+      .catch(() => undefined)
+      .finally(() => {
+        if (mounted.current) setInkRetryPending(false);
+      });
   }, [reloadDocs, reloadSummary, reloadPlan, refreshInk]);
+
+  const retrySettled =
+    docs.status !== 'loading' &&
+    summary.status !== 'loading' &&
+    plan.status !== 'loading' &&
+    !inkRetryPending;
+  useEffect(() => {
+    if (retrying && retrySettled) setRetrying(false);
+  }, [retrying, retrySettled]);
 
   // Any source that failed with nothing to show: documents, summary, Ink balance, or plan.
   const failed =
@@ -86,6 +121,16 @@ export default function DashboardPage() {
     (docs.data === null && docs.status === 'loading') ||
     (summary.data === null && summary.status === 'loading');
   const slow = useSlow(firstLoad, STILL_WORKING_AFTER_MS);
+  const showError = failed || retrying;
+
+  // The error line went away (the retry worked) while it held focus: put focus on the page title,
+  // not on <body>.
+  useEffect(() => {
+    if (showError || !focusInError.current) return;
+    focusInError.current = false;
+    const active = typeof document === 'undefined' ? null : document.activeElement;
+    if (!active || active === document.body) titleRef.current?.focus();
+  }, [showError]);
 
   const ink = useMemo(
     () => ({
@@ -100,24 +145,55 @@ export default function DashboardPage() {
   );
 
   if (!user) return null;
+  const name = typeof user.name === 'string' ? user.name.trim() : '';
 
   return (
     <div className="gap-nl-6 px-nl-4 py-nl-6 min-[900px]:px-nl-8 mx-auto flex w-full max-w-[1180px] flex-col">
-      <header className="gap-nl-1 flex flex-col">
-        <p className="nl-body text-nl-soft m-0">{DASHBOARD_COPY.greeting(user.name)}</p>
-        <h1 className="nl-h1 text-nl-text m-0">{DASHBOARD_COPY.title}</h1>
+      <header className="gap-nl-1 flex min-w-0 flex-col">
+        {/* No name: leave the greeting out rather than show "Hello," or invent a fallback. */}
+        {name ? (
+          <p className="nl-body text-nl-soft m-0 min-w-0 break-words">
+            {DASHBOARD_COPY.greeting(name)}
+          </p>
+        ) : null}
+        <h1 ref={titleRef} tabIndex={-1} className="nl-h1 text-nl-text m-0 focus:outline-none">
+          {DASHBOARD_COPY.title}
+        </h1>
         {today ? <p className="nl-body-sm text-nl-muted m-0">{today}</p> : null}
       </header>
 
-      <DashboardCommandBar />
+      {/* T-524: no Ctrl/Cmd+K focus jump behind the top-up modal (it has no focus trap). */}
+      <DashboardCommandBar hotkeySuspended={topUpOpen} />
 
-      {failed ? (
-        <ErrorState
-          message={DASHBOARD_COPY.error}
-          onRetry={retry}
-          retryLabel={DASHBOARD_COPY.retry}
-        />
+      {showError ? (
+        <div
+          ref={errorRef}
+          onFocus={() => {
+            focusInError.current = true;
+          }}
+          onBlur={(e) => {
+            const next = e.relatedTarget as Node | null;
+            if (next && errorRef.current?.contains(next)) return;
+            // Focus moved somewhere real; a blur with no target (the line unmounting, or the
+            // window losing focus) keeps the flag so the effect above can restore focus.
+            if (next) focusInError.current = false;
+          }}
+        >
+          <ErrorState
+            message={DASHBOARD_COPY.error}
+            onRetry={retry}
+            retryLabel={DASHBOARD_COPY.retry}
+          />
+        </div>
       ) : null}
+
+      {/* One live region for the whole page, filled after 8s of first loading (spec 08). T-524:
+          here, under the command bar, so it is on screen at 360px instead of below the shelf.
+          Visually hidden while empty (still in the accessibility tree, so the later text is
+          announced) so it adds no gap. */}
+      <p role="status" className={cn('nl-body-sm text-nl-muted m-0', !slow && 'sr-only')}>
+        {slow ? DASHBOARD_COPY.stillWorking : null}
+      </p>
 
       <ShelfKpis
         ink={ink}
@@ -129,11 +205,6 @@ export default function DashboardPage() {
       />
 
       <Shelf docs={docs.data} status={docs.status} />
-
-      {/* One live region for the whole page, filled after 8s of first loading (spec 08). */}
-      <p role="status" className="nl-body-sm text-nl-muted m-0">
-        {slow ? DASHBOARD_COPY.stillWorking : null}
-      </p>
 
       {topUpOpen ? <TopUpModal onClose={() => setTopUpOpen(false)} /> : null}
     </div>

@@ -17,3 +17,5 @@
 3. `web-e2e` runs on push to `develop_staging`; CI installs with `--with-deps chromium`; cloud sessions use `/opt/pw-browsers`, never `playwright install`.
 4. `npx impeccable@<pinned> detect apps/web/src --json` runs as a non-blocking report for two weeks, then blocking.
 5. Root config and CI files are held by this lead alone while the ticket is open.
+
+6. The dashboard screenshot matrix (Arjun, from the T-520 pass) is covered: 768 px and the 720 top-bar collapse, the app error page, the root loading folio, zero-Ink messages, past_due and ends-at tiles, forced colours, and 200% text.

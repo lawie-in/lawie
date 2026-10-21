@@ -44,6 +44,10 @@ Not in the repo today. Ruling:
 - A separate CI job, `web-e2e`, required on `develop_staging`. Also runs `npx impeccable@<pinned> detect apps/web/src --json` as a non-blocking report for the first two weeks, then blocking.
 - The crew's `run` skill and the taste `inspect.mjs` use the same Chromium.
 
+## Lessons recorded
+
+- **21 Oct 2026, T-520:** a reviewer scored a11y 3/4 by trusting the spec's contrast claims; a fresh reviewer computed from hex and found 4.01:1 and 3.90:1 against AA's 4.5:1. Rule: the reviewer computes every text/background contrast pair the ticket touches from the hex values in the code and prints the ratios in its report. A figure quoted from a spec, a comment or a design file is not evidence. `mobile-native` and `break-ui` are not optional on a web ticket: a reviewer that could not load them says so, and the lead runs a second reviewer that does.
+
 ## What this does not do
 
 It does not replace Anushka. A green critique, a green audit and a green Playwright run mean the screen is built the way it was designed; whether an advocate can use it is still her `PASS`.

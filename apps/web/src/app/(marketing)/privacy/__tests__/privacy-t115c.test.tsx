@@ -24,7 +24,12 @@ const S7_SIGNED_E13D474 =
   'You can close your account and erase your data from Settings, and delete any single document from the document itself. You can also write to privacy@lawie.in from your account email and we will do it for you. ' +
   SENTRY_SENTENCE +
   'Backup copies are erased within 7 days. We keep payment records and tax invoices for as long as tax law requires; an invoice keeps the name and State printed on it. Erasure cannot reach data already sent to Helicone (see §5) or copies you have downloaded.';
-const S7 = S7_SIGNED_E13D474.replace(SENTRY_SENTENCE, '');
+// AJ-517-M15 (Ajay): the page now says contact@lawie.in where e13d474 signed privacy@lawie.in.
+// The signed file keeps the original; only the address differs.
+const S7 = S7_SIGNED_E13D474.replace(SENTRY_SENTENCE, '').replace(
+  'privacy@lawie.in',
+  'contact@lawie.in',
+);
 const S9_EVERYTHING =
   'Everything else (account, case details, drafts): until you close your account or delete the document. Backup copies are erased within 7 days after that.';
 const S9_EMAILS = 'Emails we could not send: up to 30 days.';
@@ -68,7 +73,7 @@ describe('Privacy page, T-115c', () => {
     expect(paras()).toContain(S7);
     const link = Array.from(container.querySelectorAll('a')).find(
       (a) =>
-        a.getAttribute('href') === 'mailto:privacy@lawie.in' &&
+        a.getAttribute('href') === 'mailto:contact@lawie.in' &&
         norm(a.parentElement!.textContent).startsWith('You can close'),
     );
     expect(link).toBeDefined();
@@ -134,7 +139,7 @@ describe('Privacy page, T-115c', () => {
     expect(allText()).not.toContain('May be outside India Database');
   });
 
-  it('"Last updated" is 15 October 2026 (T-358 moved it from 14 October; the T-115c edits stand)', () => {
-    expect(allText()).toContain('15 October 2026');
+  it('"Last updated" is 21 October 2026 (T-358 moved it from 14 October; the T-115c edits stand)', () => {
+    expect(allText()).toContain('21 October 2026');
   });
 });

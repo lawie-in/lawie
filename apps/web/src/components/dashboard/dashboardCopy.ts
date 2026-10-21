@@ -22,7 +22,7 @@ export const DASHBOARD_COPY = {
   notNow: 'Not now',
   // 3.4 Section labels (the eight items)
   inkBalance: 'Ink balance',
-  inkValue: (n: number) => `${n} Ink`,
+  inkValue: (n: number | string) => `${n} Ink`,
   recentDocuments: 'Recent documents',
   viewAll: 'View all',
   draftsThisMonth: 'Drafts this month',
@@ -38,7 +38,7 @@ export const DASHBOARD_COPY = {
   planRenews: (plan: string, date: string) => `${plan}, renews on ${date}`,
   freePlanNoRenewal: 'Free plan, no renewal',
   inkUsedThisMonth: 'Ink used this month',
-  inkUsedValue: (used: number) => `${used} Ink`,
+  inkUsedValue: (used: number | string) => `${used} Ink`,
   draftsByType: 'Drafts by type',
   draftsByTypeEmpty: 'No drafts yet',
   // 3.6 Tile states

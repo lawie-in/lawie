@@ -2,7 +2,7 @@
  * T-358 (Ajay a84e298 and 08a0d09 §8 rows 1-2, handoff/legal/dpdp-v1-calls-signed.md):
  *  - §9 gets the 14 Oct line, byte for byte, straight after the "Everything else" bullet, once;
  *    the 12 Oct wording ("deleted 30 days after sign-up") does not appear;
- *  - "Last updated" moves to 15 October 2026;
+ *  - "Last updated" moved to 15 October 2026 here, and to 21 October 2026 by T-517 (AJ-517-M19);
  *  - CURRENT_PRIVACY_VERSION is NOT bumped by T-358 itself (no re-accept prompt); T-436 bumps it
  *    to '2026-10-15' (Ajay, GST file Addendum 4) and the pin below follows.
  */
@@ -94,10 +94,11 @@ describe('Privacy page §9, T-358', () => {
 });
 
 describe('Last updated and the version', () => {
-  it('"Last updated" is 15 October 2026', () => {
+  it('"Last updated" is 21 October 2026 (T-517 AJ-517-M19 moved it from 15 October; no version bump)', () => {
     const text = norm(container.textContent);
-    expect(text).toContain('15 October 2026');
+    expect(text).toContain('21 October 2026');
     expect(text).not.toContain('14 October 2026');
+    expect(text).not.toContain('15 October 2026');
   });
 
   it('CURRENT_PRIVACY_VERSION is 2026-10-15, set in shared (T-436 bump, Ajay Addendum 4)', () => {

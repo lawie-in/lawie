@@ -32,14 +32,19 @@ export function lowInkMessage(balance: number, tier: LowInkNudgeProps['tier'], r
 
 export function LowInkNudge({ balance, tier, renewsOn, onTopUp, onDismiss }: LowInkNudgeProps) {
   return (
+    // T-524 (Arjun): a quieter status. It keeps role=status so it is named and findable, but
+    // aria-live="off" stops screen readers announcing it every time the dashboard loads; the
+    // Ink tile is in the reading order, so it is still discovered where it sits.
     <div
       role="status"
+      aria-live="off"
       data-low-ink=""
       className="nl rounded-nl-md bg-nl-warn-light p-nl-3 text-nl-warn mt-nl-3 gap-nl-3 flex flex-col"
     >
       <p className="nl-body-sm m-0 font-medium">{lowInkMessage(balance, tier, renewsOn)}</p>
       <div className="gap-nl-2 flex flex-wrap items-center">
-        <Button size="sm" onClick={onTopUp}>
+        {/* T-524 (Rajesh): ghost here; the command bar's Draft is the one primary on the page. */}
+        <Button size="sm" variant="ghost" onClick={onTopUp}>
           {DASHBOARD_COPY.topUp}
         </Button>
         <Link
