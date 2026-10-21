@@ -15,6 +15,7 @@
 4. **Legacy headers**: side safe-area padding.
 5. **Menu inset alignment** nit in the phone menu.
 6. **Hindi menu labels** for Documents, Prices, FAQ and Sign in are unsigned: Madhuri drafts, Ajay signs; build after.
+7. Older browsers: `overflow-x: clip` (Safari under 16) and `90dvh` (iOS under 15.4) need fallbacks, or Arjun accepts the risk in writing.
 
 ## Acceptance criteria
 Each item done with tests, checked at 360 / 768 / 1280 in both themes; Rajesh signs; Ajay signs 1 and 6.
