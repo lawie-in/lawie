@@ -7,6 +7,16 @@ module.exports = {
     path.resolve(__dirname, './src/components/**/*.{js,ts,jsx,tsx,mdx}'),
     path.resolve(__dirname, './src/app/**/*.{js,ts,jsx,tsx,mdx}'),
     path.resolve(__dirname, '../../packages/shared/src/**/*.{js,ts,jsx,tsx}'),
+    // Never scan tests. A test can hold a class that is not a real candidate (an arbitrary min-
+    // breakpoint built with template-literal interpolation), and one such candidate makes Tailwind
+    // warn about mixed units and drop every arbitrary min-/max- breakpoint (T-528 regression).
+    // Absolute like the globs above, so the negation holds from any cwd. Guarded by
+    // __tests__/tailwind-content.test.ts.
+    ...['./src', '../../packages/shared/src'].flatMap((dir) => [
+      `!${path.resolve(__dirname, dir, '**/__tests__/**')}`,
+      `!${path.resolve(__dirname, dir, '**/__mocks__/**')}`,
+      `!${path.resolve(__dirname, dir, '**/*.{test,spec}.{js,ts,jsx,tsx,mdx}')}`,
+    ]),
   ],
   darkMode: 'class',
   theme: {
