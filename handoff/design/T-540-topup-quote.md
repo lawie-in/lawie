@@ -18,3 +18,23 @@ Root cause: two copies of the pricing rule. `coupon.routes.ts` (validate) and `b
 7. **Tests:** quote table (percent/fixed/100 %/expired/used-up/wrong plan/per-user limit); order 409s for `coupon_invalid` and `price_changed`; validate and order return byte-identical amounts for every row of the table.
 
 Files: new `topup-quote.service.ts` + test, `coupon.routes.ts`, `billing.routes.ts`, coupon admin validation. Billing only. Blocking before `main`.
+
+## Vikram (21 Oct 2026): ₹0 total, ruling
+
+**Option (a), the free-grant path, with no tax invoice.** Not (b): showing ₹1 under a "100% off" coupon is a price claim Ajay would have to defend. It also turns a giveaway into a ₹1 taxable sale with its own invoice and gateway fee.
+
+Why (GST):
+- **Partial coupon (finalPaise ≥ 100):** a normal sale. The discount is given at the time of supply and shown on the invoice, so it is excluded from taxable value (CGST Act s.15(3)(a)). The T-436 invoice shows list price, a coupon discount line, taxable value, then CGST + SGST or IGST on the net. Prices are GST-inclusive, so tax is backed out of `finalPaise`, not out of the list price.
+- **100% coupon (finalPaise = 0):** there is no consideration, so it is not a supply (s.7(1)(a)). Schedule I does not apply: the buyer is not a related or distinct person. No GST is due and **no tax invoice is issued**. A ₹0 "tax invoice" for a non-supply would be wrong and would sit in GSTR-1 for no reason.
+- Input tax credit stays: a promotional grant is in the course of business. Revisit if coupon Ink ever passes 5% of all Ink issued in a month.
+
+Build rules (additions to point 5a):
+1. `finalPaise === 0` → no Razorpay order. Grant top-up Ink with `provider: 'coupon'`, ledger key `coupon:<couponId>:<userId>:<n>`, and write `CouponUsage`. Billing history shows "Coupon, ₹0" and no invoice link.
+2. **Count the use at grant, atomically.** Point 6's accepted overshoot holds only where money was taken. A free grant must check and increment `uses` / per-user usage in one compare-and-set; a lost race returns `409 coupon_invalid`, with no grant.
+3. **A 100% coupon must carry limits.** Admin creation rejects a coupon that can reach 100% unless both `maxUses` and `maxUsesPerUser` are set and non-zero. This bounds the giveaway.
+4. **Sub-₹1 remainder:** if `0 < finalPaise < 100` (e.g. 99% off ₹65 = 65 paise), Razorpay refuses the order. Reduce the discount so `finalPaise = 100` (₹1) and show ₹1. Display still equals charge.
+5. Log each free grant at info level with coupon code, SKU and list value in paise (no PII). I need the monthly total of list value given away for the marketing-spend line.
+
+v2 note (not T-540): with Ink v2 lots (ADR-026), coupon Ink should be its own lot with an expiry, for example 90 days, so free Ink is not a liability with no end date. Ajay words it then.
+
+Vikram, CFO
