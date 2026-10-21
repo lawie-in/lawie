@@ -20,6 +20,7 @@ import {
   RAZORPAY_CALL_TIMEOUT_MS,
   createSubscription,
   handleWebhookEvent,
+  SubscriptionInProgressError,
 } from '../services/subscription.service';
 
 jest.mock('../config/razorpay', () => ({
@@ -494,18 +495,19 @@ describe('T-516 AC3: same plan reuses the unfinished checkout', () => {
     expect(cancelMock).not.toHaveBeenCalled();
   });
 
-  it('the reuse fetch is bounded by a timeout: a hung fetch rejects, no create, no cancel, lock released', async () => {
+  it('the reuse fetch is bounded by a timeout: a hung fetch is SubscriptionCancelFailedError (503), no create, no cancel, lock released', async () => {
     collapseRazorpayTimeouts();
     const u = await seedUser();
     await addSub(u.userId, sid('hungreuse'), { status: 'created', planId: 'solo_monthly' });
     fetchMock.mockReturnValue(new Promise(() => undefined));
 
     await expect(createSubscription(u.userId, u.email, 'solo_monthly')).rejects.toMatchObject({
-      name: 'RazorpayTimeoutError',
+      name: 'SubscriptionCancelFailedError',
     });
 
     expect(createMock).not.toHaveBeenCalled();
     expect(cancelMock).not.toHaveBeenCalled();
+    expect((await getSub(sid('hungreuse')))!.status).toBe('created');
     expect(await lockCount(u.userId)).toBe(0);
   });
 });
@@ -626,15 +628,48 @@ describe('T-516 AC4: no new sub while a live one exists', () => {
     });
   });
 
-  it('two concurrent requests for different plans never both create a sub', async () => {
+  // T-518 AC1/AC2 (Arjun ruling 2): exactly one create, exactly one success, and
+  // the other request is refused with SubscriptionInProgressError. Fails if both
+  // requests fail (zero successes) or both succeed.
+  it('two concurrent requests for different plans: exactly one create, one success, the other SubscriptionInProgressError', async () => {
     const u = await seedUser();
-    mockNewSub();
-    const results = await Promise.allSettled([
-      createSubscription(u.userId, u.email, 'solo_monthly'),
-      createSubscription(u.userId, u.email, 'solo_yearly'),
+    await addSub(u.userId, sid('conc-stale'), { status: 'created', planId: 'pro_monthly' });
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    // A slow Razorpay create: the winner holds the lock until the loser is done.
+    createMock.mockImplementation(async () => {
+      await gate;
+      return { id: sid('conc-new'), short_url: url('conc-new') };
+    });
+
+    const settled: Array<PromiseSettledResult<unknown>> = [];
+    const track = (p: Promise<unknown>) =>
+      p.then(
+        (value) => settled.push({ status: 'fulfilled', value }),
+        (reason) => settled.push({ status: 'rejected', reason }),
+      );
+    const both = Promise.all([
+      track(createSubscription(u.userId, u.email, 'solo_monthly')),
+      track(createSubscription(u.userId, u.email, 'solo_yearly')),
     ]);
-    expect(createMock.mock.calls.length).toBeLessThanOrEqual(1);
-    expect(results.filter((r) => r.status === 'fulfilled').length).toBeLessThanOrEqual(1);
+    // Wait until the loser has been refused (the winner is parked on the gate).
+    const deadline = Date.now() + 5_000;
+    while (settled.length === 0 && Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, 5));
+    }
+    release();
+    await both;
+
+    const fulfilled = settled.filter((r) => r.status === 'fulfilled');
+    const rejected = settled.filter((r): r is PromiseRejectedResult => r.status === 'rejected');
+    expect(createMock).toHaveBeenCalledTimes(1);
+    expect(fulfilled).toHaveLength(1);
+    expect(rejected).toHaveLength(1);
+    expect(rejected[0].reason).toBeInstanceOf(SubscriptionInProgressError);
+    expect(rejected[0].reason).toMatchObject({ name: 'SubscriptionInProgressError' });
+    expect(await lockCount(u.userId)).toBe(0);
   });
 });
 
