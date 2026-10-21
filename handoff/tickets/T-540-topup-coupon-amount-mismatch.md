@@ -23,3 +23,11 @@ The footer total comes from `/plans` or `validate-coupon`; the charge comes from
 
 ## Web side (done in T-535)
 A guard in TopUpModal: if `order.amountInr` differs from the displayed total, Checkout does not open and the user sees the signed "Something did not work. Try again."
+
+## Arjun's design (21 Oct 2026; full text in `handoff/design/T-540-topup-quote.md`)
+- One `quoteTopup()` service used by both `validate-coupon` and `/topup/order` (today two copies with different floors and checks).
+- Integer paise throughout; identical checks in both, including `applicablePlans` and `maxUsesPerUser`.
+- The order route answers 409 `coupon_invalid` instead of silently dropping a coupon, and 409 `price_changed` if the web's expected amount differs.
+- ₹0 quotes are blocked with 409 until Vikram rules: (a) a free-grant path with no Razorpay order, or (b) cap every coupon at price minus ₹1.
+- Tests as listed in the design doc. Billing only; blocking before main.
+- Web (after this lands): the TopUpModal guard from T-535 also handles the two 409s with the signed "Something did not work. Try again."
