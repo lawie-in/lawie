@@ -316,12 +316,15 @@ Quiet until pressed; the brass one is the only loud thing on the page.
 ### Section finder
 A right-hand panel on the editor. From 1280px a closed 44px peek rail sits on the right edge (Card fill, Control Line border); from 900 to 1279 it opens as an overlay from the menu or its shortcut; below 900 it is a bottom sheet. Control Line on its inputs and tabs; the tip box is Brass Soft.
 
+### Draft progress
+The honest bar (spec `handoff/design/T-539-draft-progress-spec.md`). Inkwell, stage name in Mukta 500, pct in Tiro 24 tabular, a 6px Wood track with a Brass fill whose width is the server's `pct`, stage dots on a 1px Line rail (done Brass, current Brass with a Brass Soft ring, upcoming Control Line ring), the eta or the server detail in Muted, a ghost Cancel. Nothing on it moves on a timer. Connection lost: Warn label and a static 45° Brass-on-Brass-Soft stripe in the fill. Error: Rust fill and label. Done: full bar, then the Seal.
+
 ### Command bar (signature)
 The question at the top of the desk: "What do you need to draft?" in Title type, an underline input with a Ctrl K hint and the one primary button. A Radix Popover with our own listbox opens below: quick chips while empty, matching templates and the advocate's own drafts while typing, one line when nothing matches. Ctrl K and Cmd K focus it from anywhere; Escape closes.
 
 ### Folio, Inkwell, Seal, Spine (signature)
 - **Folio:** the lit sheet of paper. Card fill, card shadow, brass hairline on top, Draft type inside.
-- **Inkwell:** a 52 by 64 SVG; the level rect is the Ink balance. While a draft generates it drains once over 2.6s to an 8% line and holds; static at 60% under reduced motion.
+- **Inkwell:** a 52 by 64 SVG; the level rect is the Ink balance. While a draft generates it drains from the balance to the balance minus the draft's cost in step with the server's `pct` (400ms ease-out per change); static under reduced motion. The 2.6s timed drain exists only on the landing demo, which has no server.
 - **Seal:** 100px brass disc, On Brass Tiro lettering, resting at -8°. Stamps in from scale 2.2 and -20° over 550ms with the seal drop shadow; a 150ms fade under reduced motion. A 26px mark of it sits on finalised spines.
 - **Spine:** 52px wide, 184 to 210px tall, Tiro 15px label set vertically, two Brass Mark bands for a draft with open checks, the Brass Mark seal for a finalised document. Hover or focus pulls it out 14px over 250ms on desktop only.
 
