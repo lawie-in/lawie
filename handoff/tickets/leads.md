@@ -4,15 +4,15 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 ## Live claims (Priya, 16 Oct 2026; read this first, the long table below is history)
 
-All older rows below are spent unless this section says otherwise. One ticket per lead. Slot: Vishal next (T-528), then Kunal (T-521).
+All older rows below are spent unless this section says otherwise. One ticket per lead. Slot: no one holds it (end of session 21 Oct 2026).
 
 | Lead     | Ticket                        | Branch                               | Files held (no other row may touch them)                                                                                                                                                        | State |
 | -------- | ----------------------------- | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
-| vishal   | T-528 (21 Oct 2026; T-517 merged c5863ad2, row spent) | fix/t-528-landing-auth-design | apps/web: components/landing/**, app/(marketing)/page.tsx, app/(marketing)/pricing/**, app/(auth)/**, components/marketing/** (nl-copy, NightTopBar, NightPlanCard, nl-link.ts, NightFooter only), tests. |
+| vishal   | free (T-528 merged 53234e1e, row spent) | - | - |
 | mahak    | T-475, then T-472, then T-474 | fix/t-475-*                           | T-475: apps/drafting/src/services/brief-drafter.ts (actLines), new test, goldens. T-472: document-rules/criminal_revision.json, new limitation.service.ts, the computed-facts service and its ai.service.ts call site only, verifier ledger entry, form renderer if needed, tests. T-474: the other packs' limitation lines | T-475 in build |
-| kunal    | T-521 (21 Oct 2026) | feature/t-521-intake-editor | apps/web: app/dashboard/new/**, app/dashboard/documents/**, app/dashboard/templates/**, components/intake/**, components/editor/**, components/draft/**, components/documents/**, tests. Not the shell, dashboard or settings. |
-| shashank | T-527 (21 Oct 2026; T-526 merged c27d2874, row spent) | fix/t-527-reconcile-before-create | apps/billing only: subscription.service.ts, the Razorpay client, config/env.ts (key-mode guard), new models/SubscriptionReconcile.model.ts, new services/subscription-reconcile-sweep.service.ts, one start line in src/index.ts, billing tests. docker-compose.demo.yml (root; one line RAZORPAY_ALLOW_TEST_KEYS=true, granted 21 Oct 2026, held by Shashank alone for T-527). |
-| tanvi    | T-535 (21 Oct 2026; T-525 merged fe5e5078, row spent) | fix/t-535-topup-signed-copy-danger-cue | apps/web: components/credits/**, components/billing/** (cancel plan), app/dashboard/settings/page.tsx (Close account control), the paywall component, components/ui/Button.tsx (the "ghost, danger" variant only; hover rules for other variants are T-531), tests. |
+| kunal    | T-521 PARKED at f9fdf2b2 (21 Oct 2026); resume next session | feature/t-521-intake-editor | Same files as before: apps/web: app/dashboard/new/**, documents/**, templates/**, components/intake/**, editor/**, draft/**, documents/**, tests. |
+| shashank | T-527 (not ready; branch fix/t-527-reconcile-before-create) | fix/t-527-reconcile-before-create | Unchanged. |
+| tanvi    | free (T-535 merged 896da2e0, row spent) | - | - |
 
 Overlap note: ai.service.ts is shared by vishal (T-471, pass-through hunk) and mahak (T-472, computed-facts call site). Different hunks; whoever merges second merges the other in. packages/shared is free (nobody holds it).
 

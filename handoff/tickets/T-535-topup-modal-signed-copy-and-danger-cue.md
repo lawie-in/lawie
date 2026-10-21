@@ -5,7 +5,7 @@
 | Phase  | 4 — Release |
 | Owner  | Ajay (AJ-525-M4), Rajesh (danger cue), Tanvi (build) |
 | Mode   | Small fix (web); MUST land before main |
-| Status | In build: Tanvi (21 Oct 2026). MUST land before main. Priya |
+| Status | Merged into develop_staging 896da2e0 (21 Oct 2026); Ajay byte check approved. Follow-ups: T-540, T-541. Priya |
 | Source | Ajay on T-525 (78e67a74); Rajesh's T-525 review |
 
 ## Acceptance criteria
