@@ -44,6 +44,18 @@ export function isSlowConnection(): boolean {
 
 type Phase = 'idle' | 'typing' | 'lines' | 'done';
 
+/**
+ * No flash before autoplay: the server render carries data-demo-initial. While it is set and
+ * motion is allowed (the only case that autoplays), the prompt and the placeholder lines are
+ * hidden, so first paint does not show the end state and then wipe it. The mount effect drops
+ * the attribute when play() starts or when it decides not to play (reduced motion, Data Saver,
+ * 2G/3G), which shows the end state. Under reduced motion the rule never applies. Without
+ * JavaScript the <noscript> override shows the end state.
+ */
+const INITIAL_CSS =
+  '@media (prefers-reduced-motion: no-preference){[data-demo-initial] .demo-hide{visibility:hidden}}';
+const NOSCRIPT_CSS = '[data-demo-initial] .demo-hide{visibility:visible}';
+
 export function DemoFolio({ lang }: { lang: Lang }) {
   const copy = landingCopy(lang).demo;
   const reduced = usePrefersReducedMotion();
@@ -55,6 +67,8 @@ export function DemoFolio({ lang }: { lang: Lang }) {
   const [phase, setPhase] = useState<Phase>('done');
   const [chars, setChars] = useState(total);
   const [lines, setLines] = useState(DEMO_LINE_WIDTHS.length);
+  // True only until the mount effect has decided whether to play (see INITIAL_CSS).
+  const [initial, setInitial] = useState(true);
 
   const play = () => {
     setChars(0);
@@ -75,6 +89,7 @@ export function DemoFolio({ lang }: { lang: Lang }) {
       typeof window !== 'undefined' &&
       typeof window.matchMedia === 'function' &&
       window.matchMedia(REDUCED_MOTION_QUERY).matches;
+    setInitial(false);
     if (reducedNow || reduced || isSlowConnection()) return;
     play();
     // Only on mount; reduced-motion changes are handled below.
@@ -116,26 +131,50 @@ export function DemoFolio({ lang }: { lang: Lang }) {
     return undefined;
   }, [phase, chars, lines, total, visible, reduced, mobile]);
 
-  const shown = Array.from(copy.prompt).slice(0, chars).join('');
+  const promptChars = Array.from(copy.prompt);
+  const shown = promptChars.slice(0, chars).join('');
+  // The untyped remainder stays in the paragraph, invisible, so the folio keeps its final height
+  // while typing (no layout shift under the hero on mobile).
+  const rest = promptChars.slice(chars).join('');
 
   return (
     <figure
-      className="nl border-nl-line border-t-nl-brass bg-nl-card p-nl-6 shadow-nl-card relative m-0 overflow-hidden border border-t"
+      className="nl border-nl-line border-t-nl-brass bg-nl-card p-nl-6 min-[900px]:p-nl-10 shadow-nl-card relative m-0 overflow-hidden border border-t"
       data-demo-phase={phase}
+      data-demo-initial={initial ? '' : undefined}
     >
+      <style>{INITIAL_CSS}</style>
+      <noscript>
+        <style>{NOSCRIPT_CSS}</style>
+      </noscript>
       <div aria-hidden="true" className="nl-lamp-pool pointer-events-none absolute inset-0" />
       <div className="relative">
-        {/* The full prompt for assistive tech; the typed copy is decorative. */}
+        {/* The full prompt once for assistive tech; the typed copy is decorative. */}
         <p className="sr-only">{copy.prompt}</p>
-        <p aria-hidden="true" className="nl-body text-nl-text min-h-[78px] break-words">
-          {shown}
+        <p aria-hidden="true" className="demo-hide nl-body text-nl-text break-words">
+          <span data-demo-typed="">{shown}</span>
           {phase === 'typing' ? (
-            <span className="bg-nl-brass ml-px inline-block h-[1.1em] w-px align-text-bottom" />
+            // Zero-width anchor, so the caret never moves the text after it. A 1px caret at the
+            // writing point: brass on a fine-pointer desktop, text colour under the mobile cap
+            // (Rajesh, 21 Oct). There is no nib / pen cursor in this build.
+            <span className="relative">
+              <span
+                className={cn(
+                  'absolute bottom-[0.15em] left-0 h-[1.1em] w-px',
+                  mobile ? 'bg-nl-text' : 'bg-nl-brass',
+                )}
+              />
+            </span>
+          ) : null}
+          {rest ? (
+            <span className="invisible" data-demo-rest="">
+              {rest}
+            </span>
           ) : null}
         </p>
         <div
           aria-hidden="true"
-          className="border-nl-line mt-nl-4 gap-nl-3 pt-nl-4 flex flex-col border-t"
+          className="demo-hide border-nl-line mt-nl-4 gap-nl-3 pt-nl-4 flex flex-col border-t"
         >
           {DEMO_LINE_WIDTHS.map((w, i) => (
             <span
@@ -151,7 +190,7 @@ export function DemoFolio({ lang }: { lang: Lang }) {
           <button
             type="button"
             onClick={() => (reduced ? end() : play())}
-            className="nl-focus nl-body-sm rounded-nl-md border-nl-line px-nl-4 text-nl-brass-dark inline-flex min-h-[44px] items-center border font-medium"
+            className="nl-focus nl-body-sm rounded-nl-md border-nl-line px-nl-4 text-nl-brass-dark inline-flex min-h-[44px] touch-manipulation items-center border font-medium"
           >
             {copy.replay}
           </button>

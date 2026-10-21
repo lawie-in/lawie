@@ -52,7 +52,7 @@ describe('DemoFolio round 3', () => {
     const raf = jest.spyOn(window, 'requestAnimationFrame');
     mount(<DemoFolio lang="en" />);
     expect(q('figure')!.getAttribute('data-demo-phase')).toBe('done');
-    expect(q('p[aria-hidden="true"]')!.textContent).toBe(landingCopy('en').demo.prompt);
+    expect(q('[data-demo-typed]')!.textContent).toBe(landingCopy('en').demo.prompt);
     expect(jest.getTimerCount()).toBe(0);
     act(() => void jest.advanceTimersByTime(10_000));
     expect(q('figure')!.getAttribute('data-demo-phase')).toBe('done');
@@ -99,10 +99,12 @@ describe('DemoFolio round 3', () => {
     jest.clearAllTimers();
     Object.defineProperty(navigator, 'connection', { configurable: true, value: undefined });
     const container = document.createElement('div');
-    container.innerHTML = html;
+    // The pre-render's effects already lifted the guard; the server markup still carries it.
+    container.innerHTML = html.replace('<figure ', '<figure data-demo-initial="" ');
     document.body.appendChild(container);
     stubMatchMedia({ [REDUCED_MOTION_QUERY]: true });
     const st = jest.spyOn(window, 'setTimeout');
+    jest.spyOn(console, 'error').mockImplementation(() => undefined); // jsdom style re-serialisation
     let root!: ReturnType<typeof hydrateRoot>;
     act(() => {
       root = hydrateRoot(container, <DemoFolio lang="en" />);

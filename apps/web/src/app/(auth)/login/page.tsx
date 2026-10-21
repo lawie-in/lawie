@@ -173,7 +173,7 @@ function validateField(field: Field, value: string): string | undefined {
 // 1px Line, 2px brass on focus (the extra pixel comes out of the bottom padding, so the field does
 // not grow), Rust on error. Name, email and password use it.
 const inputBase =
-  'nl-focus nl-body block min-h-[48px] w-full rounded-none border-0 border-b bg-transparent px-0 py-nl-2 text-nl-text placeholder:text-nl-muted focus:border-b-2 focus:pb-[7px] focus:outline-none disabled:cursor-not-allowed disabled:opacity-50';
+  'nl-focus nl-body block min-h-[48px] w-full rounded-none border-0 border-b bg-transparent px-0 py-nl-2 text-nl-text placeholder:text-nl-muted focus:border-b-2 focus:pb-[7px] disabled:cursor-not-allowed disabled:opacity-50';
 
 function inputClass(invalid: boolean) {
   return `${inputBase} ${invalid ? 'border-nl-err' : 'border-nl-line focus:border-nl-brass'}`;
@@ -181,7 +181,7 @@ function inputClass(invalid: boolean) {
 
 // Boxed input (1px Line, radius md): only the referral code, which sits in its own wood box.
 const boxedInputClass =
-  'nl-focus nl-body block min-h-[48px] w-full rounded-nl-md border border-nl-line bg-nl-card px-nl-3 py-nl-2 text-nl-text placeholder:text-nl-muted focus:border-b-2 focus:border-nl-brass focus:outline-none disabled:cursor-not-allowed disabled:opacity-50';
+  'nl-focus nl-body block min-h-[48px] w-full rounded-nl-md border border-nl-line bg-nl-card px-nl-3 py-nl-2 text-nl-text placeholder:text-nl-muted focus:border-b-2 focus:border-nl-brass disabled:cursor-not-allowed disabled:opacity-50';
 
 // Field labels: DESIGN.md Label style (nl-label: 500, 12px, 0.12em, uppercase) in Brass Text.
 const LABEL = 'nl-label mb-nl-1 block text-nl-brass-dark';
@@ -606,7 +606,7 @@ function LoginContent() {
         {/* The folio holds the form; the lamp pool sits on it (spec 02). */}
         <div className="border-nl-line border-t-nl-brass bg-nl-card shadow-nl-card relative w-full max-w-md overflow-hidden border border-t">
           <Lamp />
-          <div className="p-nl-5 min-[640px]:p-nl-8 relative">
+          <div className="p-nl-6 min-[900px]:p-nl-10 relative">
             {referralNotice ? (
               <div role="status">
                 <p className="gap-nl-2 nl-body text-nl-text flex items-start">
@@ -649,7 +649,7 @@ function LoginContent() {
                         onClick={() => switchMode(m)}
                         onKeyDown={onTabKeyDown}
                         className={cn(
-                          'nl-focus nl-body -mb-px min-h-[44px] border-b-2 font-medium',
+                          'nl-focus nl-body -mb-px min-h-[44px] touch-manipulation border-b-2 font-medium',
                           selected
                             ? 'border-nl-brass text-nl-text'
                             : 'text-nl-soft [@media(hover:hover)_and_(pointer:fine)]:hover:text-nl-text border-transparent',

@@ -178,3 +178,39 @@ describe('break-ui on the underline fields', () => {
     expect(qa('[lang="hi"]')).toHaveLength(0);
   });
 });
+
+describe('final pass: focus ring, touch, padding', () => {
+  it.each([
+    ['mode=signup', ['#name', '#email', '#password']],
+    ['mode=signup&ref=ABCD1234', ['#referral-code']],
+    ['mode=signin', ['#email', '#password']],
+  ])('%s: inputs keep nl-focus and no longer suppress the outline', async (m, ids) => {
+    await mount(m);
+    for (const id of ids) {
+      const c = cls(id);
+      expect(c).toContain('nl-focus');
+      expect(c).not.toContain('focus:outline-none');
+      expect(c.some((x) => /outline-none|outline-0/.test(x))).toBe(false);
+    }
+  });
+
+  it('the Create account and Sign in tab buttons have touch-manipulation', async () => {
+    await mount('mode=signup');
+    const tabs = qa('[role="tab"]');
+    expect(tabs).toHaveLength(2);
+    for (const t of tabs) expect(t.className).toContain('touch-manipulation');
+  });
+
+  it('the folio inner padding is p-nl-6, then p-nl-10 from 900px; the old p-nl-5 / p-nl-8 are gone', async () => {
+    await mount('mode=signup');
+    const folio = q('#auth-panel')!.closest('.max-w-md') as HTMLElement;
+    const inner = Array.from(folio.children).find((c) =>
+      c.className.includes('min-[900px]:p-nl-10'),
+    ) as HTMLElement;
+    expect(inner).toBeDefined();
+    const c = inner.className.split(/\s+/);
+    expect(c).toContain('p-nl-6');
+    expect(c).not.toContain('p-nl-5');
+    expect(c).not.toContain('min-[640px]:p-nl-8');
+  });
+});

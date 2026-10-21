@@ -18,7 +18,7 @@ import { MOBILE_CAP_QUERY, REDUCED_MOTION_QUERY } from '@/components/ui/motion';
 const PROMPT = landingCopy('en').demo.prompt;
 const PROMPT_HI = landingCopy('hi').demo.prompt;
 
-const typed = () => q('p[aria-hidden="true"]')!.textContent ?? '';
+const typed = () => q('[data-demo-typed]')!.textContent ?? '';
 const phase = () => q('figure')!.getAttribute('data-demo-phase');
 const visibleLines = () => qa('[data-demo-line]').filter((e) => !e.className.includes('invisible'));
 const tick = (ms: number) => act(() => void jest.advanceTimersByTime(ms));
