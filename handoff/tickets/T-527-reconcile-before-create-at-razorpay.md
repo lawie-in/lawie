@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Arjun (design), a billing lead (build) |
 | Mode   | Full chain (billing) |
-| Status | WIP pushed fix/t-527-reconcile-before-create @ 0df28bae (NOT for merge). Remaining: tester (13 key-mode tests to the new rule table, strict and boot-error tests), fresh reviewer on round-4 delta, doc-writer, merge origin, branch CI, slot. Optional findings are in T-542. BLOCKING before main. Priya |
+| Status | Merged into develop_staging 9172597f (CI 883 green), 21 Oct 2026. Prod must set RAZORPAY_KEY_GUARD=strict and must not set RAZORPAY_ALLOW_TEST_KEYS. Optional findings in T-542. Priya |
 | Source | Arjun; T-518 and T-526 reviews |
 
 ## Problem
