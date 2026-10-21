@@ -9,6 +9,7 @@
 | Tickets  | T-511 (redesign), T-509 (plan chooser, cancel, status), T-510 (error states, dead buttons) |
 | Date     | 2026-10-17 |
 | Supersedes | T-005 section 3 (tokens). T-005 flow, screens and rules still apply; this spec reskins them. |
+| Tokens of record | `DESIGN.md` at the repo root (Rajesh, 21 Oct 2026). Where this spec and DESIGN.md disagree on a token, type size, shape or motion value, DESIGN.md wins. This spec keeps the per-screen states and behaviour. |
 
 Every string in this spec is placeholder copy until Meera and Madhuri write it and Ajay signs. Claims are workflow only. Nothing in the UI says "court-ready", "accurate", "never miss", gives a time saved, a draft count, "unlimited", a ranking or a testimonial about results. CRM features are "coming", never sold.
 
