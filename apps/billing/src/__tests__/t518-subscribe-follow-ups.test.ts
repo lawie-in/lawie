@@ -485,10 +485,6 @@ describe('T-518 ruling 5: isRazorpayNotFound', () => {
       '"does not exist" in any case',
       rzpError(400, 'BAD_REQUEST_ERROR', 'Subscription DOES NOT EXIST'),
     ],
-    [
-      'no statusCode but BAD_REQUEST_ERROR "does not exist"',
-      rzpError(undefined, 'BAD_REQUEST_ERROR', 'it does not exist'),
-    ],
   ])('%s -> true', (_n, err) => {
     expect(isRazorpayNotFound(err)).toBe(true);
   });
@@ -515,6 +511,10 @@ describe('T-518 ruling 5: isRazorpayNotFound', () => {
     [
       '400 with a non-string description',
       rzpError(400, 'BAD_REQUEST_ERROR', 5 as unknown as string),
+    ],
+    [
+      'T-526 item 5: no statusCode but BAD_REQUEST_ERROR "does not exist"',
+      rzpError(undefined, 'BAD_REQUEST_ERROR', 'it does not exist'),
     ],
     ['a bare Error', new Error('does not exist')],
     [

@@ -25,6 +25,7 @@ import {
   handleWebhookEvent,
   NoLiveSubscriptionError,
   SubscriptionCancelFailedError,
+  SubscriptionCreateUnknownOutcomeError,
   SubscriptionExistsError,
   SubscriptionInProgressError,
   verifyWebhookSignature,
@@ -138,13 +139,23 @@ router.post(
         res.status(503).json({ error: 'try_again' });
         return;
       }
+      // T-526 (Arjun, item 1a): the create timed out; its outcome at Razorpay
+      // is unknown. Fixed body, never err.message.
+      if (err instanceof SubscriptionCreateUnknownOutcomeError) {
+        res.status(503).json({ error: 'try_again' });
+        return;
+      }
+      // T-526 (Arjun, item 1c): fixed body and the error class only, never
+      // err.message (a provider or internal message), as on /cancel. An
+      // unknown planId also lands here (500; a 400 is a recorded follow-up).
       logger.error(
-        { err: err instanceof Error ? err.message : err },
+        {
+          userId: req.jwtPayload?.sub,
+          errName: err instanceof Error ? err.name : 'unknown',
+        },
         'Failed to create subscription',
       );
-      res.status(500).json({
-        error: err instanceof Error ? err.message : 'Failed to create subscription',
-      });
+      res.status(500).json({ error: 'Failed to create subscription' });
     }
   },
 );
