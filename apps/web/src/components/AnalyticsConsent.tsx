@@ -491,12 +491,15 @@ export default function AnalyticsConsent() {
         // Container: a landmark, not a dialog (D1). No backdrop, no focus trap.
         // Design (Rajesh, 46370d6): capped at max(40vh, 8rem) at every width. The card is a flex column: the text region
         // scrolls inside it and the button row stays outside the scroll, always visible.
+        // T-531 (Rajesh): below 640px a bottom sheet, flush with the bottom edge, with the sheet's
+        // 12px top radius (DESIGN.md Shapes) and its content clear of the home indicator and the
+        // side insets (viewport-fit=cover). From 640px the bottom-left card is unchanged.
         <section
           ref={cardRef}
           aria-labelledby="consent-title"
           aria-describedby="consent-desc"
           onKeyDown={onKeyDown}
-          className="border-brand-line text-brand-navy fixed inset-x-3 bottom-[max(12px,env(safe-area-inset-bottom))] z-[55] flex max-h-[max(40vh,8rem)] flex-col rounded-xl border bg-white p-4 shadow-[0_12px_32px_rgba(13,31,60,0.14)] sm:inset-x-auto sm:bottom-6 sm:left-6 sm:w-[400px] sm:p-5"
+          className="border-brand-line text-brand-navy fixed inset-x-0 bottom-0 z-[55] flex max-h-[max(40vh,8rem)] flex-col rounded-t-[12px] border-t bg-white p-4 pb-[calc(16px+env(safe-area-inset-bottom,0px))] pl-[max(16px,env(safe-area-inset-left,0px))] pr-[max(16px,env(safe-area-inset-right,0px))] shadow-[0_12px_32px_rgba(13,31,60,0.14)] sm:inset-x-auto sm:bottom-6 sm:left-6 sm:w-[400px] sm:rounded-xl sm:border sm:p-5"
         >
           {/* -m-1 p-1: room for the link's focus ring inside the scroll clip; layout unchanged. */}
           <div className="-m-1 min-h-0 flex-1 overflow-y-auto p-1">

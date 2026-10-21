@@ -2,7 +2,15 @@
 export * from './theme';
 export { ThemeProvider, useTheme, type ThemeContextValue } from './ThemeProvider';
 export { ThemeToggle, THEME_TOGGLE_COPY, type ThemeToggleProps } from './ThemeToggle';
-export { TopBar, LawieMark, type TopBarProps, type TopBarVariant } from './TopBar';
+export {
+  TopBar,
+  LawieMark,
+  NL_BAR_HEIGHT_VAR,
+  type TopBarNavFrom,
+  type TopBarProps,
+  type TopBarVariant,
+} from './TopBar';
+export { TopBarMenu, TOP_BAR_ROW_QUERY, type TopBarMenuProps } from './TopBarMenu';
 export {
   CommandBar,
   COMMAND_BAR_COPY,

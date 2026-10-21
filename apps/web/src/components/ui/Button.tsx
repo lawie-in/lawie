@@ -2,13 +2,19 @@
 
 // T-511 part A: Button (spec 3). primary (brass fill, on-brass text), ghost (brass/text, 1px
 // Control Line), destructive (ox/fill, white). md 44px, sm 36px (its hit area is padded to 44px).
-// Hover lifts 1px with a 4px brass/soft halo; focus ring 2px brass offset 3px; disabled .5;
-// loading swaps the label for a spinner and holds the width. Never two primaries on one screen.
+// Focus ring 2px brass offset 3px; disabled .5; loading swaps the label for a spinner and holds
+// the width. Never two primaries on one screen.
 // T-535 (Rajesh): ghost-danger (Rust text + 1px Rust border, transparent; hover Rust Soft, no
 // lift, no halo) for the triggers of destructive flows (Close account, Cancel plan). The filled
 // Oxblood destructive stays inside confirm dialogs only.
+// T-531 (Rajesh, DESIGN.md Buttons): hover per variant, from ui/hover.ts (shared with nl-link).
+// Only primary lifts 1px with the 4px Brass Soft halo. Ghost: border to Brass, ground to Brass
+// Soft, 150ms, no lift, no halo. Destructive does not lift or glow. Every hover is gated to a
+// hover-capable fine pointer and to an enabled button.
 
 import { forwardRef } from 'react';
+
+import { NL_GHOST_HOVER, NL_PRIMARY_BUTTON_HOVER } from './hover';
 
 import { cn } from '@/lib/cn';
 
@@ -23,9 +29,10 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 }
 
 const VARIANT: Record<ButtonVariant, string> = {
-  primary: 'bg-nl-brass text-nl-on-brass border border-transparent',
+  primary: 'bg-nl-brass text-nl-on-brass border border-transparent ' + NL_PRIMARY_BUTTON_HOVER,
   // T-525: ghost border at rest is Control Line (3:1, WCAG 1.4.11).
-  ghost: 'bg-transparent text-nl-brass-dark border border-[color:var(--line-control)]',
+  ghost:
+    'bg-transparent text-nl-brass-dark border border-[color:var(--line-control)] ' + NL_GHOST_HOVER,
   destructive: 'bg-nl-ox text-white border border-transparent',
   // T-535: hover only where a real pointer hovers (no sticky hover on touch). Forced colours:
   // the system ButtonText/ButtonBorder keep the border visible; the focus ring is .nl-focus.
@@ -34,14 +41,6 @@ const VARIANT: Record<ButtonVariant, string> = {
     '[@media(hover:hover)_and_(pointer:fine)]:enabled:hover:bg-[color:var(--err-light)]',
     'forced-colors:border-[color:ButtonBorder] forced-colors:text-[color:ButtonText]',
   ),
-};
-
-/** Variants that lift 1px with the halo on hover (ghost-danger does not, T-535). */
-const LIFTS: Record<ButtonVariant, boolean> = {
-  primary: true,
-  ghost: true,
-  destructive: true,
-  'ghost-danger': false,
 };
 
 const SIZE: Record<ButtonSize, string> = {
@@ -74,12 +73,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       data-size={size}
       data-loading={loading || undefined}
       className={cn(
-        'nl nl-focus gap-nl-2 rounded-nl-md relative inline-flex select-none items-center justify-center whitespace-nowrap',
+        'nl nl-focus gap-nl-2 rounded-nl-md relative inline-flex touch-manipulation select-none items-center justify-center whitespace-nowrap',
         'font-nl-body text-[15px] font-medium leading-5',
-        LIFTS[variant] && [
-          'enabled:hover:shadow-nl-halo enabled:hover:-translate-y-px',
-          'motion-reduce:enabled:hover:translate-y-0',
-        ],
         'disabled:cursor-not-allowed disabled:opacity-50',
         loading && 'disabled:cursor-progress',
         VARIANT[variant],

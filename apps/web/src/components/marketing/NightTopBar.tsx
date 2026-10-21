@@ -4,18 +4,25 @@
 // signed out; copy §1.2). Built on TopBar from components/shell. The old SiteNav stays on the
 // other marketing pages. The theme toggle is passed in (not TopBar's own) so it can carry the
 // Hindi labels (§6.4).
-// T-528 (Rajesh, DESIGN.md Navigation): sticky from 720px, on its own Wall ground, clear of the
-// top safe-area inset. Below 720px shell TopBar adds its mobile row (language, theme, Sign in),
-// which makes the bar 177-181px tall at 390/360; pinned, that is a fifth of a phone screen, so
-// the bar scrolls away there. The landing passes ctaVariant="ghost", so the hero's primary stays
-// the only one in view.
 // T-528 review (WCAG 2.2 2.4.11, focus not obscured): while the bar is mounted, a scoped <style>
-// sets scroll-padding-top on <html> to the bar height from 720px, so keyboard focus and anchor
-// jumps both land below it.
+// sets scroll-padding-top on <html>, so keyboard focus and anchor jumps both land below it.
+// T-531 (Rajesh, DESIGN.md Navigation): one 64px row at every width, so it is sticky at every
+// width (shell TopBar `sticky`, which also clears the safe-area insets). Below 720px the row is
+// the mark, "Start free" and the menu; the nav links, the language and theme toggles and Sign in
+// fold into the menu. The landing passes ctaVariant="ghost", so the hero's primary stays the only
+// one in view. shell TopBar measures the bar live into `--nl-bar-h`; the <style> carries the
+// pre-hydration fallback.
 
 import Link from 'next/link';
 
-import { landingCopy, SIGNIN_HREF, SIGNUP_HREF, themeCopy, type Lang } from './nl-copy';
+import {
+  landingCopy,
+  SIGNIN_HREF,
+  SIGNUP_HREF,
+  themeCopy,
+  TOP_BAR_COPY,
+  type Lang,
+} from './nl-copy';
 import { NL_TEXT_LINK, nlLinkButton } from './nl-link';
 
 import { ThemeToggle, TopBar } from '@/components/shell';
@@ -35,33 +42,32 @@ export interface NightTopBarProps {
   ctaVariant?: 'primary' | 'ghost';
 }
 
-/** Sticky wrapper classes, passed to shell TopBar (which already paints Wall and the Line rule). */
-const STICKY =
-  'min-[720px]:sticky min-[720px]:top-0 min-[720px]:z-30 pt-[env(safe-area-inset-top,0px)]';
+/**
+ * The sticky bar's height in px (the 64px row plus its 1px rule) at every width since T-531, the
+ * fallback for `--nl-bar-h` until shell TopBar has measured the live height (first paint, before
+ * hydration). T-531 renamed `wrapped` (the old 720-1119 margin) to `fallback`; the bar no longer
+ * has a second row or a wrapped height.
+ */
+export const NL_STICKY_BAR_HEIGHT = { fallback: 65 } as const;
 
 /**
- * The sticky bar's height in px (row plus its 1px rule), measured 21 Oct 2026 in Chromium on the
- * landing (EN and HI), pricing and login. With the nav links from 1120px only (Rajesh), the bar is
- * 65px at every width from 720 up. On the English landing at 720-739, Sign in (already 8px side
- * padding) and the call to action break onto two lines inside the 64px row without growing it.
- * `wrapped` (720-1119) keeps a 7px margin for a row that grows (shell's row is min-h-[64px]).
- * The one source for the scroll padding below.
+ * Scoped to the pages that mount the bar: the <style> leaves the DOM with it. No media gate: the
+ * bar is sticky at every width. The live `--nl-bar-h` already includes the top safe-area inset
+ * (the header pads it); the fallback adds it.
  */
-export const NL_STICKY_BAR_HEIGHT = { wrapped: 72, row: 65 } as const;
-
-/** Scoped to the pages that mount the bar: the <style> leaves the DOM with it. */
-export const NL_STICKY_BAR_CSS =
-  `@media (min-width:720px){html{scroll-padding-top:calc(${NL_STICKY_BAR_HEIGHT.wrapped}px + env(safe-area-inset-top,0px))}}` +
-  `@media (min-width:1120px){html{scroll-padding-top:calc(${NL_STICKY_BAR_HEIGHT.row}px + env(safe-area-inset-top,0px))}}`;
+export const NL_STICKY_BAR_CSS = `html{scroll-padding-top:var(--nl-bar-h,calc(${NL_STICKY_BAR_HEIGHT.fallback}px + env(safe-area-inset-top,0px)))}`;
 
 // T-528 (Priya, Rajesh): the nav links show from 1120px only. Below that shell TopBar's single row
 // could not hold the links, the toggles, Sign in and the call to action, and clipped the last
-// two (720-1023), or broke the nav labels onto two lines (1024-1119). `hidden` is display:none,
-// so below 1120 the links are out of the tab order and the
-// accessibility tree (CSS only, no width check, so no hydration mismatch). Below 720 shell
-// TopBar hides the whole nav anyway.
+// two (720-1023), or broke the nav labels onto two lines (1024-1119). T-531: shell TopBar renders
+// the whole <nav> from 1120 (`navFrom`), so from 720 to 1119 there is no empty landmark; below
+// 720 the same links are in the menu.
 const NAV_LINK =
-  'nl-focus nl-body-sm rounded-nl-sm px-nl-3 text-nl-soft [@media(hover:hover)_and_(pointer:fine)]:hover:text-nl-text hidden min-[1120px]:inline-flex min-h-[44px] items-center font-medium no-underline touch-manipulation';
+  'nl-focus nl-body-sm rounded-nl-sm px-nl-3 text-nl-soft [@media(hover:hover)_and_(pointer:fine)]:hover:text-nl-text inline-flex min-h-[44px] items-center font-medium no-underline touch-manipulation';
+
+/** A link row inside the phone menu: full width, 44px. */
+const MENU_LINK =
+  'nl-focus nl-body rounded-nl-sm px-nl-3 text-nl-text [@media(hover:hover)_and_(pointer:fine)]:hover:bg-nl-brass-light flex min-h-[44px] w-full items-center no-underline touch-manipulation';
 
 export function LanguageToggle({ lang, onChange }: { lang: Lang; onChange: (l: Lang) => void }) {
   const copy = landingCopy(lang).language;
@@ -95,26 +101,23 @@ export function NightTopBar({
   ctaVariant = 'primary',
 }: NightTopBarProps) {
   const copy = landingCopy(lang);
+  const top = TOP_BAR_COPY[lang];
   const theme = themeCopy(lang);
-  const toggle = <ThemeToggle hideLegend legend={theme.legend} labels={theme.labels} />;
   const lang_ = onLangChange ? <LanguageToggle lang={lang} onChange={onLangChange} /> : null;
 
-  const navLinks = showNav ? (
-    <>
-      <Link className={NAV_LINK} href={`${anchorBase}#how-it-works`}>
-        {copy.nav.how}
-      </Link>
-      <Link className={NAV_LINK} href={`${anchorBase}#documents`}>
-        {copy.nav.documents}
-      </Link>
-      <Link className={NAV_LINK} href={anchorBase ? '/pricing' : '#prices'}>
-        {copy.nav.prices}
-      </Link>
-      <Link className={NAV_LINK} href={`${anchorBase}#faq`}>
-        {copy.nav.faq}
-      </Link>
-    </>
-  ) : null;
+  const links = [
+    { href: `${anchorBase}#how-it-works`, label: copy.nav.how },
+    { href: `${anchorBase}#documents`, label: copy.nav.documents },
+    { href: anchorBase ? '/pricing' : '#prices', label: copy.nav.prices },
+    { href: `${anchorBase}#faq`, label: copy.nav.faq },
+  ];
+  const navLinks = showNav
+    ? links.map((l) => (
+        <Link key={l.href} className={NAV_LINK} href={l.href}>
+          {l.label}
+        </Link>
+      ))
+    : null;
 
   const signIn = (
     <Link className={cn(NL_TEXT_LINK, 'px-nl-2 font-medium')} href={SIGNIN_HREF}>
@@ -128,15 +131,17 @@ export function NightTopBar({
     <div data-nl-sticky-bar="" className="contents">
       <style>{NL_STICKY_BAR_CSS}</style>
       <TopBar
-        className={STICKY}
+        sticky
         variant="signed-out"
         brand="Lawie"
         nav={navLinks}
+        navLabel={top.navLabel}
+        navFrom={1120}
         showThemeToggle={false}
         actions={
           <>
             {lang_}
-            {toggle}
+            <ThemeToggle hideLegend legend={theme.legend} labels={theme.labels} />
             {showActions ? (
               <>
                 {signIn}
@@ -147,11 +152,31 @@ export function NightTopBar({
             ) : null}
           </>
         }
-        mobileMenuLabel={copy.nav.mobileMenu}
+        phoneAction={
+          showActions ? (
+            <Link className={nlLinkButton(ctaVariant)} href={SIGNUP_HREF}>
+              {top.cta}
+            </Link>
+          ) : null
+        }
+        mobileMenuLabel={top.menu}
         mobileMenuExtras={
           <>
-            {lang_}
-            {toggle}
+            {showNav ? (
+              <nav
+                aria-label={top.navLabel}
+                className="border-nl-line pb-nl-2 flex flex-col border-b"
+              >
+                {links.map((l) => (
+                  <Link key={l.href} className={MENU_LINK} href={l.href}>
+                    {l.label}
+                  </Link>
+                ))}
+              </nav>
+            ) : null}
+            {/* A block wrapper, so the toggle keeps its own width in the menu's flex column. */}
+            {lang_ ? <div>{lang_}</div> : null}
+            <ThemeToggle legend={theme.legend} labels={theme.labels} />
             {showActions ? signIn : null}
           </>
         }

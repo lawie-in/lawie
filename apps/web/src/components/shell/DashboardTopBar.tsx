@@ -18,6 +18,7 @@ import { useId, useRef, useState } from 'react';
 import { ThemeToggle } from './ThemeToggle';
 import { TopBar } from './TopBar';
 
+import { DASHBOARD_NAV_LABEL } from '@/components/marketing/nl-copy';
 import { SECTION_FINDER_OPEN_EVENT } from '@/components/sections/SectionFinderPanel';
 import { InkChip } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
@@ -52,7 +53,7 @@ function initials(name: string): string {
 const NAV_LINK =
   'nl-focus nl-body-sm rounded-nl-md px-nl-3 inline-flex min-h-[44px] items-center font-medium no-underline';
 const MENU_ITEM =
-  'nl-focus nl-body rounded-nl-sm px-nl-3 text-nl-text hover:bg-nl-brass-light flex min-h-[44px] w-full items-center text-left no-underline';
+  'nl-focus nl-body rounded-nl-sm px-nl-3 text-nl-text [@media(hover:hover)_and_(pointer:fine)]:hover:bg-nl-brass-light flex min-h-[44px] w-full items-center text-left no-underline';
 
 function NavLinks({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
   return (
@@ -67,7 +68,10 @@ function NavLinks({ pathname, onNavigate }: { pathname: string; onNavigate?: () 
             onClick={onNavigate}
             className={cn(
               onNavigate ? MENU_ITEM : NAV_LINK,
-              !onNavigate && (active ? 'text-nl-brass-dark' : 'text-nl-soft hover:text-nl-text'),
+              !onNavigate &&
+                (active
+                  ? 'text-nl-brass-dark'
+                  : 'text-nl-soft [@media(hover:hover)_and_(pointer:fine)]:hover:text-nl-text'),
               onNavigate && active && 'text-nl-brass-dark',
             )}
           >
@@ -166,6 +170,8 @@ export function DashboardTopBar() {
       homeHref="/dashboard"
       showThemeToggle={false}
       nav={<NavLinks pathname={pathname} />}
+      // T-531: named (Ajay-signed); TopBar renders it from 720px, where its links show.
+      navLabel={DASHBOARD_NAV_LABEL.en}
       inkChip={inkKnown ? <InkChip balance={balance.totalInk} /> : undefined}
       menu={<AccountMenu />}
     />

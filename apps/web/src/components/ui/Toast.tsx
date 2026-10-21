@@ -168,6 +168,9 @@ export function ToastProvider({ children, closeLabel, viewportLabel }: ToastProv
         <RadixToast.Viewport
           className={cn(
             'nl gap-nl-2 p-nl-4 fixed inset-x-0 bottom-0 z-[100] m-0 flex list-none flex-col outline-none',
+            // T-531: clear of the home indicator and the side insets (viewport-fit=cover).
+            'pb-[calc(var(--space-4)+env(safe-area-inset-bottom,0px))]',
+            'pl-[max(var(--space-4),env(safe-area-inset-left,0px))] pr-[max(var(--space-4),env(safe-area-inset-right,0px))]',
             'min-[641px]:left-auto min-[641px]:w-[420px] min-[641px]:max-w-[100vw]',
           )}
         />

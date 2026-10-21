@@ -1,7 +1,8 @@
 'use client';
 
 // T-511 part A: confirm / destructive Dialog on @radix-ui/react-dialog (spec 3). A centred
-// dialog on desktop, a bottom sheet at <= 640px (T-005 rule; spec 5). Cancel is ghost, confirm is
+// dialog on desktop, a bottom sheet at <= 640px (T-005 rule; spec 5; T-531: 12px top radius and
+// safe-area padding). Cancel is ghost, confirm is
 // primary or destructive (ox fill). All copy from props.
 
 import * as RadixDialog from '@radix-ui/react-dialog';
@@ -60,10 +61,14 @@ export function Dialog({
           {...(description ? {} : { 'aria-describedby': undefined })}
           className={cn(
             'nl nl-root gap-nl-4 border-nl-line bg-nl-card p-nl-6 text-nl-text shadow-nl-card fixed z-50 flex flex-col border',
-            // Bottom sheet at <= 640px.
-            'rounded-t-nl-md inset-x-0 bottom-0 max-h-[90vh] overflow-y-auto',
+            // Bottom sheet at <= 640px. T-531 (DESIGN.md Shapes): the 12px top radius; the content
+            // clears the home indicator and the side insets (viewport-fit=cover). dvh tracks the
+            // visible area as the browser chrome shows and hides.
+            'inset-x-0 bottom-0 max-h-[90dvh] overflow-y-auto overscroll-contain rounded-t-[12px]',
+            'pb-[calc(var(--space-6)+env(safe-area-inset-bottom,0px))]',
+            'pl-[max(var(--space-6),env(safe-area-inset-left,0px))] pr-[max(var(--space-6),env(safe-area-inset-right,0px))]',
             // Dialog above 640px.
-            'min-[641px]:rounded-nl-md min-[641px]:inset-x-auto min-[641px]:bottom-auto min-[641px]:left-1/2 min-[641px]:top-1/2 min-[641px]:w-[min(440px,calc(100vw-32px))] min-[641px]:-translate-x-1/2 min-[641px]:-translate-y-1/2',
+            'min-[641px]:p-nl-6 min-[641px]:rounded-nl-md min-[641px]:inset-x-auto min-[641px]:bottom-auto min-[641px]:left-1/2 min-[641px]:top-1/2 min-[641px]:w-[min(440px,calc(100vw-32px))] min-[641px]:-translate-x-1/2 min-[641px]:-translate-y-1/2',
             'focus:outline-none',
             className,
           )}
