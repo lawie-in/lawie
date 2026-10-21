@@ -70,8 +70,8 @@ export default function ContactPage() {
               <p style={{ fontSize: '15px', color: 'var(--text-2)' }}>
                 Data, deletion, and DPDP requests.
               </p>
-              <a className="link-arrow" href="mailto:privacy@lawie.in">
-                privacy@lawie.in <ArrowRight strokeWidth={1.5} />
+              <a className="link-arrow" href="mailto:contact@lawie.in">
+                contact@lawie.in <ArrowRight strokeWidth={1.5} />
               </a>
             </article>
             <article className="card route">

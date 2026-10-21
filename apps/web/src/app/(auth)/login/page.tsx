@@ -1,20 +1,29 @@
 'use client';
 
-import { AlertTriangle, CheckCircle2, Circle, Eye, EyeOff, Gift, Loader2 } from 'lucide-react';
-import Image from 'next/image';
+import { AlertTriangle, CheckCircle2, Circle, Gift } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 
 import ReferralOfferModal from './ReferralOfferModal';
 
+import { NightFooter } from '@/components/marketing/NightFooter';
+import { NightTopBar } from '@/components/marketing/NightTopBar';
+import { AUTH_COPY, CONSENT_COPY } from '@/components/marketing/nl-copy';
+import { Lamp, Spinner } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
+import { cn } from '@/lib/cn';
 import { clearSignupSource, readSignupSource } from '@/lib/signup-source';
 
 // T-234 — email + password sign-in and sign-up next to Google.
 // Design: Rajesh (handoff/tickets/T-234-…md). Copy: "Final" column of
 // handoff/marketing/copy/login-page-t234.md, signed by Ajay (handoff/legal/T-234-login-copy-signed.md).
 // T-221: "Forgot password?" (Sign in mode) links to /forgot-password.
+// T-517: Night Library reskin (spec 02; copy §2.1, §2.2, §2.4 and AJ-517-M1..M4, M9; strings in
+// components/marketing/nl-copy.ts). Tabs: Create account first, then Sign in. Behaviour kept:
+// PKCE Google start, referral box, signup-source tags, field validation, 409 handling, ?mode= /
+// ?ref= / ?error=, the error summary (role=alert, focused). New: the consent checkbox on Create
+// account (AJ-517-M3), which gates Create account and Google; network vs server errors with Retry.
 
 type Mode = 'signin' | 'signup';
 type Field = 'name' | 'email' | 'password';
@@ -27,7 +36,8 @@ type ServerError =
   | { kind: 'message'; message: string } // 403 (any other text)
   | { kind: 'accountDeactivated' } // T-299: 403 with the deactivated text, or ?error=account_deactivated
   | { kind: 'oauthFailed' } // T-299: ?error=oauth_failed or ?error=invalid_code
-  | { kind: 'network' } // 429, 5xx, network
+  | { kind: 'network' } // fetch failed (no response), or the Google start could not store state
+  | { kind: 'server' } // 429, 5xx and any other unexpected status (T-517: split from network)
   | { kind: 'signInIncomplete' } // T-319: ?error=sign_in_incomplete from /auth/callback
   | { kind: 'insecureContext' }; // T-319: no crypto.subtle / getRandomValues (not https)
 
@@ -35,14 +45,13 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // Mirrors apps/auth/src/validators/auth.validator.ts registerSchema.password exactly:
 // .min(8) · /[A-Z]/ · /[a-z]/ · /\d/. Change both together.
+// AJ-517-M4: the existing signed checklist stays (it states the real rule).
 const PASSWORD_RULES: { label: string; test: (p: string) => boolean }[] = [
-  { label: 'At least 8 characters', test: (p) => p.length >= 8 },
-  { label: 'One capital letter (A–Z)', test: (p) => /[A-Z]/.test(p) },
-  { label: 'One small letter (a–z)', test: (p) => /[a-z]/.test(p) },
-  { label: 'One number (0–9)', test: (p) => /\d/.test(p) },
+  { label: AUTH_COPY.passwordRules.length, test: (p) => p.length >= 8 },
+  { label: AUTH_COPY.passwordRules.upper, test: (p) => /[A-Z]/.test(p) },
+  { label: AUTH_COPY.passwordRules.lower, test: (p) => /[a-z]/.test(p) },
+  { label: AUTH_COPY.passwordRules.digit, test: (p) => /\d/.test(p) },
 ];
-
-const NETWORK_MESSAGE = 'Couldn’t reach Lawie. Check your connection and try again.';
 // Ajay Addendum 1: a code that showed R5/R6 (applied) and was no longer valid at sign-up.
 const REFERRAL_NOT_APPLIED_MESSAGE =
   'Your referral code was no longer valid, so no bonus Ink was added.';
@@ -152,20 +161,33 @@ function fieldForMessage(msg: string): Field | null {
 }
 
 function validateField(field: Field, value: string): string | undefined {
-  if (field === 'name') return value.trim() ? undefined : 'Enter your full name.';
+  if (field === 'name') return value.trim() ? undefined : AUTH_COPY.errName;
   if (field === 'email') {
-    if (!value.trim()) return 'Enter your email.';
-    return EMAIL_RE.test(value.trim()) ? undefined : 'Enter a valid email, like name@gmail.com';
+    if (!value.trim()) return AUTH_COPY.errEmailEmpty;
+    return EMAIL_RE.test(value.trim()) ? undefined : AUTH_COPY.errEmailFormat;
   }
-  return value ? undefined : 'Enter your password.';
+  return value ? undefined : AUTH_COPY.errPassword;
 }
 
+// Underline input on the folio (spec 3 Input; DESIGN.md Inputs / Shapes): bottom border only,
+// 1px Line, 2px brass on focus (the extra pixel comes out of the bottom padding, so the field does
+// not grow), Rust on error. Name, email and password use it.
 const inputBase =
-  'h-12 w-full rounded-xl border bg-white px-4 text-base text-slate-900 transition focus:outline-none focus:ring-2 focus:ring-lawie-600';
+  'nl-focus nl-body block min-h-[48px] w-full rounded-none border-0 border-b bg-transparent px-0 py-nl-2 text-nl-text placeholder:text-nl-muted focus:border-b-2 focus:pb-[7px] disabled:cursor-not-allowed disabled:opacity-50';
 
 function inputClass(invalid: boolean) {
-  return `${inputBase} ${invalid ? 'border-red-700' : 'border-slate-500'}`;
+  return `${inputBase} ${invalid ? 'border-nl-err' : 'border-nl-line focus:border-nl-brass'}`;
 }
+
+// Boxed input (1px Line, radius md): only the referral code, which sits in its own wood box.
+const boxedInputClass =
+  'nl-focus nl-body block min-h-[48px] w-full rounded-nl-md border border-nl-line bg-nl-card px-nl-3 py-nl-2 text-nl-text placeholder:text-nl-muted focus:border-b-2 focus:border-nl-brass disabled:cursor-not-allowed disabled:opacity-50';
+
+// Field labels: DESIGN.md Label style (nl-label: 500, 12px, 0.12em, uppercase) in Brass Text.
+const LABEL = 'nl-label mb-nl-1 block text-nl-brass-dark';
+const FIELD_ERROR = 'nl-body-sm mt-nl-1 text-nl-err';
+const TEXT_LINK =
+  'nl-focus rounded-nl-sm font-medium text-nl-brass-dark underline underline-offset-4';
 
 function GoogleIcon() {
   return (
@@ -231,6 +253,12 @@ function LoginContent() {
   );
   const [submitting, setSubmitting] = useState(false);
   const [referralNotice, setReferralNotice] = useState<string | null>(null);
+  // T-517 (AJ-511-M11, AJ-517-M3): consent on Create account. Unticked by default; gates Create
+  // account and Google on that tab. Not sent: the server stamps the version.
+  const [consent, setConsent] = useState(false);
+  const [consentError, setConsentError] = useState<string | undefined>(undefined);
+  // What Retry repeats after a network or server error.
+  const lastAttempt = useRef<'email' | 'google'>('email');
 
   // Referral code — SCRUM-71 (Create account only)
   const [referralCode, setReferralCode] = useState(() => refParam ?? '');
@@ -245,6 +273,7 @@ function LoginContent() {
   const nameRef = useRef<HTMLInputElement>(null);
   const emailRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
+  const consentRef = useRef<HTMLInputElement>(null);
   const summaryRef = useRef<HTMLDivElement>(null);
   const applyRef = useRef<HTMLButtonElement>(null);
   const tabRefs = useRef<Record<Mode, HTMLButtonElement | null>>({ signin: null, signup: null });
@@ -270,6 +299,7 @@ function LoginContent() {
     setFieldErrors({});
     setServerInvalid(new Set());
     setServerError(null);
+    setConsentError(undefined);
     if (!moveFocus) return;
     const { name: n, email: em } = fieldsRef.current;
     const target = mode === 'signup' && !n.trim() ? nameRef : !em.trim() ? emailRef : passwordRef;
@@ -296,8 +326,9 @@ function LoginContent() {
   const onTabKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
     if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
     e.preventDefault();
+    // T-517: Create account is the first tab, Sign in the last.
     const next: Mode =
-      e.key === 'Home' ? 'signin' : e.key === 'End' ? 'signup' : isSignup ? 'signin' : 'signup';
+      e.key === 'Home' ? 'signup' : e.key === 'End' ? 'signin' : isSignup ? 'signin' : 'signup';
     tabRefs.current[next]?.focus();
     switchMode(next);
   };
@@ -348,7 +379,19 @@ function LoginContent() {
     return code;
   };
 
+  // T-517 (AJ-517-M3): Create account and Google on that tab wait for the consent box.
+  const consentMissing = (): boolean => {
+    if (!isSignup || consent) return false;
+    setConsentError(CONSENT_COPY.required);
+    return true;
+  };
+
   const handleGoogleLogin = async () => {
+    lastAttempt.current = 'google';
+    if (consentMissing()) {
+      consentRef.current?.focus();
+      return;
+    }
     // T-319: no verifier, no redirect. No crypto (non-secure origin): the https line. Any other
     // failure (sessionStorage): the existing network-style error.
     const result = await createOAuthChallenge();
@@ -400,9 +443,14 @@ function LoginContent() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    void submitEmail();
+  };
+
+  const submitEmail = async () => {
     if (submitting) return;
+    lastAttempt.current = 'email';
 
     const fields: Field[] = isSignup ? ['name', 'email', 'password'] : ['email', 'password'];
     const errs: FieldErrors = {};
@@ -411,10 +459,15 @@ function LoginContent() {
       if (msg) errs[f] = msg;
     }
     setFieldErrors(errs);
+    const noConsent = consentMissing();
     const firstInvalid = fields.find((f) => errs[f]);
     if (firstInvalid) {
       const refs = { name: nameRef, email: emailRef, password: passwordRef };
       refs[firstInvalid].current?.focus();
+      return;
+    }
+    if (noConsent) {
+      consentRef.current?.focus();
       return;
     }
 
@@ -505,8 +558,15 @@ function LoginContent() {
     } else if (res.status === 403 && message) {
       setServerError({ kind: 'message', message });
     } else {
-      setServerError({ kind: 'network' });
+      // T-517 (§2.4): 429, 5xx and anything unexpected get the server banner with Retry.
+      setServerError({ kind: 'server' });
     }
+  };
+
+  const retry = () => {
+    setServerError(null);
+    if (lastAttempt.current === 'google') void handleGoogleLogin();
+    else void submitEmail();
   };
 
   // Pressing a mode-switch link must not blur the focused field: the blur would show its
@@ -523,8 +583,13 @@ function LoginContent() {
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
+  const tabs: readonly (readonly [Mode, string])[] = [
+    ['signup', AUTH_COPY.tabs.signup],
+    ['signin', AUTH_COPY.tabs.signin],
+  ];
+
   return (
-    <>
+    <div className="nl nl-root flex min-h-[100svh] flex-col overflow-x-clip">
       {showOfferModal && showReferralApplied && isSignup && (
         <ReferralOfferModal
           code={referralCode.trim().toUpperCase()}
@@ -535,27 +600,18 @@ function LoginContent() {
         />
       )}
 
-      <main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 via-white to-blue-50 px-4 pb-6 pt-4 sm:py-12">
-        {/* Logo */}
-        <Link href="/" className="mb-6 sm:mb-8">
-          <Image
-            src="/assets/lawie-lockup.png"
-            alt="Lawie"
-            width={210}
-            height={48}
-            className="h-12 w-auto sm:h-14"
-            priority
-          />
-        </Link>
+      <NightTopBar showActions={false} />
 
-        {/* Card */}
-        <div className="w-full max-w-md overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-xl shadow-slate-200/60">
-          <div className="p-5 sm:p-8">
+      <main className="px-nl-4 py-nl-4 min-[640px]:py-nl-8 min-[900px]:py-nl-12 flex flex-1 flex-col items-center">
+        {/* The folio holds the form; the lamp pool sits on it (spec 02). */}
+        <div className="border-nl-line border-t-nl-brass bg-nl-card shadow-nl-card relative w-full max-w-md overflow-hidden border border-t">
+          <Lamp />
+          <div className="p-nl-6 min-[900px]:p-nl-10 relative">
             {referralNotice ? (
               <div role="status">
-                <p className="flex items-start gap-2 text-base text-slate-900">
+                <p className="gap-nl-2 nl-body text-nl-text flex items-start">
                   <AlertTriangle
-                    className="mt-0.5 h-5 w-5 shrink-0 text-amber-700"
+                    className="text-nl-warn mt-1 h-5 w-5 shrink-0"
                     aria-hidden="true"
                   />
                   <span>{referralNotice}</span>
@@ -563,34 +619,20 @@ function LoginContent() {
                 <button
                   type="button"
                   onClick={() => router.replace('/dashboard')}
-                  className="bg-lawie-600 hover:bg-lawie-700 mt-5 h-12 w-full rounded-xl text-base font-semibold text-white"
+                  className="nl-focus rounded-nl-md bg-nl-brass text-nl-on-brass mt-nl-5 h-11 w-full font-medium"
                 >
-                  Continue
+                  {AUTH_COPY.continue}
                 </button>
               </div>
             ) : (
               <>
-                <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">
-                  {isSignup ? 'Create your Lawie account' : 'Sign in to Lawie'}
-                </h1>
-                <p className="mt-1 text-sm text-slate-600">
-                  {isSignup
-                    ? 'Set up your account and start your first draft.'
-                    : 'Welcome back. Sign in to continue drafting.'}
-                </p>
-
-                {/* Mode switch */}
+                {/* Mode switch: hand-rolled ARIA tablist (T-234), Create account first (T-517). */}
                 <div
                   role="tablist"
-                  aria-label="Sign in or create account"
-                  className="mt-4 grid grid-cols-2 rounded-xl bg-slate-100 p-1 sm:mt-5"
+                  aria-label={AUTH_COPY.tablistLabel}
+                  className="border-nl-line grid grid-cols-2 border-b"
                 >
-                  {(
-                    [
-                      ['signin', 'Sign in'],
-                      ['signup', 'Create account'],
-                    ] as const
-                  ).map(([m, label]) => {
+                  {tabs.map(([m, label]) => {
                     const selected = mode === m;
                     return (
                       <button
@@ -606,11 +648,12 @@ function LoginContent() {
                         tabIndex={selected ? 0 : -1}
                         onClick={() => switchMode(m)}
                         onKeyDown={onTabKeyDown}
-                        className={`h-11 rounded-lg text-sm font-semibold transition ${
+                        className={cn(
+                          'nl-focus nl-body -mb-px min-h-[44px] touch-manipulation border-b-2 font-medium',
                           selected
-                            ? 'bg-white text-slate-900 shadow-sm'
-                            : 'text-slate-600 hover:text-slate-900'
-                        }`}
+                            ? 'border-nl-brass text-nl-text'
+                            : 'text-nl-soft [@media(hover:hover)_and_(pointer:fine)]:hover:text-nl-text border-transparent',
+                        )}
                       >
                         {label}
                       </button>
@@ -619,19 +662,26 @@ function LoginContent() {
                 </div>
 
                 <div id="auth-panel" role="tabpanel" aria-labelledby={`tab-${mode}`}>
+                  <h1 className="nl-h1 mt-nl-6 text-nl-text">
+                    {isSignup ? AUTH_COPY.heading.signup : AUTH_COPY.heading.signin}
+                  </h1>
+                  <p className="nl-body-sm mt-nl-1 text-nl-soft">
+                    {isSignup ? AUTH_COPY.subline.signup : AUTH_COPY.subline.signin}
+                  </p>
+
                   {/* Referral code — SCRUM-71, Create account only (Priya decision 2) */}
                   {isSignup && (
-                    <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                      <div className="mb-3 flex items-center gap-2">
-                        <Gift size={14} className="text-amber-600" aria-hidden="true" />
+                    <div className="mt-nl-5 border-nl-line bg-nl-wood p-nl-4 border">
+                      <div className="mb-nl-3 gap-nl-2 flex items-center">
+                        <Gift size={14} className="text-nl-brass-dark" aria-hidden="true" />
                         <label
                           htmlFor="referral-code"
-                          className="text-sm font-semibold text-slate-800"
+                          className="nl-body-sm text-nl-text font-medium"
                         >
                           Have a referral code?
                         </label>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="gap-nl-2 flex">
                         <input
                           id="referral-code"
                           type="text"
@@ -650,17 +700,21 @@ function LoginContent() {
                           }}
                           maxLength={16}
                           autoComplete="off"
+                          disabled={submitting}
                           aria-describedby={
                             referralValid !== null ? 'referral-feedback' : undefined
                           }
-                          className="focus:ring-lawie-600 h-12 min-w-0 flex-1 rounded-lg border border-slate-500 bg-white px-3 font-mono text-base uppercase tracking-widest text-slate-900 placeholder:font-sans placeholder:normal-case placeholder:tracking-normal placeholder:text-slate-500 focus:outline-none focus:ring-2"
+                          className={cn(
+                            boxedInputClass,
+                            'placeholder:font-nl-body min-w-0 flex-1 font-mono uppercase tracking-widest placeholder:normal-case placeholder:tracking-normal',
+                          )}
                         />
                         <button
                           ref={applyRef}
                           type="button"
                           onClick={() => void handleApply()}
-                          disabled={!referralCode.trim() || validating}
-                          className="h-12 shrink-0 rounded-lg bg-slate-900 px-4 text-base font-semibold text-white hover:bg-slate-700 active:scale-[0.98] disabled:opacity-40"
+                          disabled={!referralCode.trim() || validating || submitting}
+                          className="nl-focus rounded-nl-md border-nl-line px-nl-4 text-nl-brass-dark min-h-[48px] shrink-0 border font-medium disabled:opacity-50"
                         >
                           {validating ? 'Checking…' : 'Apply'}
                         </button>
@@ -670,9 +724,9 @@ function LoginContent() {
                       {showReferralApplied && (
                         <p
                           id="referral-feedback"
-                          className="mt-2 flex items-start gap-1.5 text-sm text-green-700"
+                          className="nl-body-sm mt-nl-2 gap-nl-1 text-nl-ok flex items-start"
                         >
-                          <CheckCircle2 size={14} className="mt-0.5 shrink-0" aria-hidden="true" />
+                          <CheckCircle2 size={14} className="mt-1 shrink-0" aria-hidden="true" />
                           <span>
                             {referralBonusInk > 0
                               ? `Code applied${referralLabel ? ` — ${referralLabel}` : ''}. ${referralBonusInk} Ink will be added when you create your account.`
@@ -683,9 +737,9 @@ function LoginContent() {
                       {showReferralInvalid && (
                         <p
                           id="referral-feedback"
-                          className="mt-2 flex items-start gap-1.5 text-sm text-red-700"
+                          className="nl-body-sm mt-nl-2 gap-nl-1 text-nl-err flex items-start"
                         >
-                          <AlertTriangle size={14} className="mt-0.5 shrink-0" aria-hidden="true" />
+                          <AlertTriangle size={14} className="mt-1 shrink-0" aria-hidden="true" />
                           <span>
                             This code isn&apos;t valid or has expired. Check it and try again.
                           </span>
@@ -694,45 +748,68 @@ function LoginContent() {
                     </div>
                   )}
 
-                  {/* Google OAuth */}
+                  {/* Google OAuth (gated by the consent box on Create account, AJ-517-M3) */}
                   <button
                     onClick={() => void handleGoogleLogin()}
                     type="button"
-                    className="mt-4 flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-slate-500 bg-white px-4 text-base font-medium text-slate-700 shadow-sm transition-all hover:bg-slate-50 active:scale-[0.98] sm:mt-5"
+                    disabled={submitting}
+                    className="nl-focus rounded-nl-md border-nl-line bg-nl-card mt-nl-5 gap-nl-3 px-nl-4 text-nl-text [@media(hover:hover)_and_(pointer:fine)]:hover:shadow-nl-halo flex min-h-[48px] w-full touch-manipulation items-center justify-center border font-medium disabled:opacity-50"
                   >
                     <GoogleIcon />
-                    Continue with Google
+                    {AUTH_COPY.google}
                   </button>
+                  {/* Sign in tab only, beside the Google button (AJ-517-M18): the T-234 consent
+                      line (Ajay, 11 Oct 2026), word for word, with its Terms and Privacy links. A
+                      Google sign-in from this tab can still create an account and has no
+                      checkbox. */}
+                  {!isSignup && (
+                    <p className="nl-body-sm mt-nl-3 text-nl-soft">
+                      {AUTH_COPY.byContinuing.before}
+                      <Link href="/terms" target="_blank" rel="noopener" className={TEXT_LINK}>
+                        {AUTH_COPY.byContinuing.terms}
+                      </Link>
+                      {AUTH_COPY.byContinuing.middle}
+                      <Link href="/privacy" target="_blank" rel="noopener" className={TEXT_LINK}>
+                        {AUTH_COPY.byContinuing.privacy}
+                      </Link>
+                      {AUTH_COPY.byContinuing.after}
+                    </p>
+                  )}
 
-                  <div className="my-4 flex items-center gap-3 sm:my-5">
-                    <div className="h-px flex-1 bg-slate-200" />
-                    <span className="text-sm text-slate-600">or with email</span>
-                    <div className="h-px flex-1 bg-slate-200" />
+                  <div className="my-nl-5 gap-nl-3 flex items-center">
+                    <div className="bg-nl-line h-px flex-1" />
+                    <span className="nl-body-sm text-nl-soft">{AUTH_COPY.orEmail}</span>
+                    <div className="bg-nl-line h-px flex-1" />
                   </div>
 
-                  <form onSubmit={handleSubmit} noValidate className="space-y-4">
+                  <form onSubmit={handleSubmit} noValidate className="gap-nl-4 flex flex-col">
                     {isSignup && (
                       <div>
-                        <label
-                          htmlFor="name"
-                          className="mb-1.5 block text-sm font-medium text-slate-700"
-                        >
-                          Full name
+                        <label htmlFor="name" className={LABEL}>
+                          {AUTH_COPY.nameLabel}
                         </label>
                         <input
                           ref={nameRef}
                           id="name"
                           type="text"
                           autoComplete="name"
+                          maxLength={100}
                           value={name}
+                          disabled={submitting}
                           onChange={(e) => onChangeField('name', e.target.value)}
                           onBlur={() => onBlurField('name')}
                           aria-invalid={isInvalid('name') || undefined}
-                          aria-describedby={describedBy(fieldErrors.name && 'name-error')}
+                          aria-describedby={describedBy(
+                            'name-help',
+                            fieldErrors.name && 'name-error',
+                          )}
                           className={inputClass(isInvalid('name'))}
                         />
+                        <p id="name-help" className="nl-body-sm mt-nl-1 text-nl-soft">
+                          {AUTH_COPY.nameHelp}
+                        </p>
                         {fieldErrors.name && (
-                          <p id="name-error" className="mt-1.5 text-sm text-red-700">
+                          <p id="name-error" className={FIELD_ERROR}>
                             {fieldErrors.name}
                           </p>
                         )}
@@ -740,18 +817,18 @@ function LoginContent() {
                     )}
 
                     <div>
-                      <label
-                        htmlFor="email"
-                        className="mb-1.5 block text-sm font-medium text-slate-700"
-                      >
-                        Email
+                      <label htmlFor="email" className={LABEL}>
+                        {AUTH_COPY.emailLabel}
                       </label>
                       <input
                         ref={emailRef}
                         id="email"
                         type="email"
                         autoComplete="email"
+                        maxLength={254}
+                        placeholder={AUTH_COPY.emailPlaceholder}
                         value={email}
+                        disabled={submitting}
                         onChange={(e) => onChangeField('email', e.target.value)}
                         onBlur={() => onBlurField('email')}
                         aria-invalid={isInvalid('email') || undefined}
@@ -759,7 +836,7 @@ function LoginContent() {
                         className={inputClass(isInvalid('email'))}
                       />
                       {fieldErrors.email && (
-                        <p id="email-error" className="mt-1.5 text-sm text-red-700">
+                        <p id="email-error" className={FIELD_ERROR}>
                           {fieldErrors.email}
                         </p>
                       )}
@@ -768,19 +845,16 @@ function LoginContent() {
                     <div>
                       {/* T-221: "Forgot password?" sits in the label row, right-aligned, Sign in
                           only, with a 44 px hit area. */}
-                      <div className="mb-1.5 flex items-center justify-between">
-                        <label
-                          htmlFor="password"
-                          className="block text-sm font-medium text-slate-700"
-                        >
-                          Password
+                      <div className="mb-nl-1 flex items-center justify-between">
+                        <label htmlFor="password" className="nl-label text-nl-brass-dark block">
+                          {AUTH_COPY.passwordLabel}
                         </label>
                         {!isSignup && (
                           <Link
                             href="/forgot-password"
-                            className="text-lawie-600 hover:text-lawie-700 -my-3 -mr-2 inline-flex min-h-11 min-w-11 items-center justify-end px-2 text-sm font-medium hover:underline"
+                            className="nl-focus nl-body-sm rounded-nl-sm text-nl-brass-dark -my-3 -mr-2 inline-flex min-h-11 min-w-11 items-center justify-end px-2 font-medium underline-offset-4 [@media(hover:hover)_and_(pointer:fine)]:hover:underline"
                           >
-                            Forgot password?
+                            {AUTH_COPY.forgot}
                           </Link>
                         )}
                       </div>
@@ -791,6 +865,7 @@ function LoginContent() {
                           type={showPassword ? 'text' : 'password'}
                           autoComplete={isSignup ? 'new-password' : 'current-password'}
                           value={password}
+                          disabled={submitting}
                           onChange={(e) => onChangeField('password', e.target.value)}
                           onBlur={() => onBlurField('password')}
                           aria-invalid={isInvalid('password') || undefined}
@@ -798,49 +873,47 @@ function LoginContent() {
                             fieldErrors.password && 'password-error',
                             isSignup && 'password-rules',
                           )}
-                          className={`${inputClass(isInvalid('password'))} pr-12`}
+                          className={`${inputClass(isInvalid('password'))} pr-[72px]`}
                         />
                         <button
                           type="button"
                           onClick={() => setShowPassword((p) => !p)}
-                          aria-label={showPassword ? 'Hide password' : 'Show password'}
-                          className="absolute right-0 top-0 flex h-12 w-12 items-center justify-center rounded-r-xl text-slate-600 transition-colors hover:text-slate-900"
+                          aria-label={showPassword ? AUTH_COPY.hideAria : AUTH_COPY.showAria}
+                          className="nl-focus nl-body-sm rounded-nl-md px-nl-3 text-nl-brass-dark absolute right-0 top-0 flex h-12 min-w-[44px] items-center justify-center font-medium"
                         >
-                          {showPassword ? (
-                            <EyeOff className="h-5 w-5" aria-hidden="true" />
-                          ) : (
-                            <Eye className="h-5 w-5" aria-hidden="true" />
-                          )}
+                          {showPassword ? AUTH_COPY.hide : AUTH_COPY.show}
                         </button>
                       </div>
                       {fieldErrors.password && (
-                        <p id="password-error" className="mt-1.5 text-sm text-red-700">
+                        <p id="password-error" className={FIELD_ERROR}>
                           {fieldErrors.password}
                         </p>
                       )}
                       {isSignup && (
-                        <div id="password-rules" className="mt-2 text-sm text-slate-600">
-                          <p>Your password needs:</p>
-                          <ul className="mt-1 space-y-1">
+                        <div id="password-rules" className="nl-body-sm mt-nl-2 text-nl-soft">
+                          <p>{AUTH_COPY.passwordNeeds}</p>
+                          <ul className="mt-nl-1 gap-nl-1 flex list-none flex-col p-0">
                             {PASSWORD_RULES.map((rule) => {
                               const met = rule.test(password);
                               return (
-                                <li key={rule.label} className="flex items-center gap-2">
+                                <li key={rule.label} className="gap-nl-2 flex items-center">
                                   {met ? (
                                     <CheckCircle2
-                                      className="h-4 w-4 shrink-0 text-slate-900"
+                                      className="text-nl-ok h-4 w-4 shrink-0"
                                       aria-hidden="true"
                                     />
                                   ) : (
                                     <Circle
-                                      className="h-4 w-4 shrink-0 text-slate-500"
+                                      className="text-nl-soft h-4 w-4 shrink-0"
                                       aria-hidden="true"
                                     />
                                   )}
-                                  <span className={met ? 'text-slate-900' : undefined}>
+                                  <span className={met ? 'text-nl-text' : undefined}>
                                     {rule.label}
                                   </span>
-                                  <span className="sr-only">{met ? '(done)' : '(not yet)'}</span>
+                                  <span className="sr-only">
+                                    {met ? AUTH_COPY.ruleDone : AUTH_COPY.ruleNotYet}
+                                  </span>
                                 </li>
                               );
                             })}
@@ -849,21 +922,71 @@ function LoginContent() {
                       )}
                     </div>
 
+                    {/* Consent, Create account only (AJ-511-M11, AJ-517-M3, worded by AJ-517-M16):
+                        unticked by default, the Terms version and the Privacy Policy version, no
+                        date. Gates Create account and Google. */}
+                    {isSignup && (
+                      <div>
+                        <div className="gap-nl-3 flex items-start">
+                          <input
+                            ref={consentRef}
+                            id="consent"
+                            type="checkbox"
+                            checked={consent}
+                            disabled={submitting}
+                            onChange={(e) => {
+                              setConsent(e.target.checked);
+                              if (e.target.checked) setConsentError(undefined);
+                            }}
+                            aria-invalid={consentError ? true : undefined}
+                            aria-describedby={consentError ? 'consent-error' : undefined}
+                            className="nl-focus accent-nl-brass mt-[3px] h-5 w-5 shrink-0"
+                          />
+                          <label htmlFor="consent" className="nl-body-sm text-nl-soft">
+                            {CONSENT_COPY.before}
+                            <Link
+                              href="/terms"
+                              target="_blank"
+                              rel="noopener"
+                              className={TEXT_LINK}
+                            >
+                              {CONSENT_COPY.terms}
+                            </Link>
+                            {CONSENT_COPY.middle}
+                            <Link
+                              href="/privacy"
+                              target="_blank"
+                              rel="noopener"
+                              className={TEXT_LINK}
+                            >
+                              {CONSENT_COPY.privacy}
+                            </Link>
+                            {CONSENT_COPY.after}
+                          </label>
+                        </div>
+                        {consentError && (
+                          <p id="consent-error" className={FIELD_ERROR}>
+                            {consentError}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
                     {/* Error summary — directly above submit */}
                     {serverError && (
                       <div
                         ref={summaryRef}
                         role="alert"
                         tabIndex={-1}
-                        className="flex items-start gap-2.5 rounded-xl bg-red-50 p-4 text-sm text-red-700 focus:outline-none focus:ring-2 focus:ring-red-700"
+                        className="nl-focus bg-nl-err-light p-nl-4 nl-body-sm text-nl-err gap-nl-2 flex items-start"
                       >
-                        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-                        <div>
+                        <AlertTriangle className="mt-1 h-4 w-4 shrink-0" aria-hidden="true" />
+                        <div className="min-w-0 flex-1 [overflow-wrap:anywhere]">
                           {serverError.kind === 'list' &&
                             (serverError.items.length > 1 ? (
                               <>
-                                <p className="font-semibold">Please check the following:</p>
-                                <ul className="mt-1 list-disc space-y-0.5 pl-5">
+                                <p className="font-medium">{AUTH_COPY.checkFollowing}</p>
+                                <ul className="mt-nl-1 list-disc pl-5">
                                   {serverError.items.map((m) => (
                                     <li key={m}>{m}</li>
                                   ))}
@@ -882,18 +1005,16 @@ function LoginContent() {
                                 onClick={() => {
                                   focusFieldOnSwitch.current = true;
                                 }}
-                                className="font-semibold underline hover:text-red-900"
+                                className="font-medium underline underline-offset-4"
                               >
-                                Sign in instead
+                                {AUTH_COPY.signInInstead}
                               </Link>
                             </p>
                           )}
                           {serverError.kind === 'unauthorized' && (
                             <>
-                              <p>Email or password is incorrect.</p>
-                              <p className="mt-1">
-                                Signed up with Google? Use Continue with Google above.
-                              </p>
+                              <p>{AUTH_COPY.wrongPassword}</p>
+                              <p className="mt-nl-1">{AUTH_COPY.googleHint}</p>
                             </>
                           )}
                           {serverError.kind === 'message' && <p>{serverError.message}</p>}
@@ -902,7 +1023,7 @@ function LoginContent() {
                               {DEACTIVATED_LEAD}{' '}
                               <Link
                                 href={CONTACT_HREF}
-                                className="font-semibold underline hover:text-red-900"
+                                className="font-medium underline underline-offset-4"
                               >
                                 {DEACTIVATED_LINK_TEXT}
                               </Link>
@@ -910,7 +1031,22 @@ function LoginContent() {
                             </p>
                           )}
                           {serverError.kind === 'oauthFailed' && <p>{OAUTH_FAILED_MESSAGE}</p>}
-                          {serverError.kind === 'network' && <p>{NETWORK_MESSAGE}</p>}
+                          {(serverError.kind === 'network' || serverError.kind === 'server') && (
+                            <div className="gap-x-nl-3 flex flex-wrap items-center">
+                              <p>
+                                {serverError.kind === 'network'
+                                  ? AUTH_COPY.network
+                                  : AUTH_COPY.serverError}
+                              </p>
+                              <button
+                                type="button"
+                                onClick={retry}
+                                className="nl-focus rounded-nl-md inline-flex min-h-[44px] items-center font-medium underline underline-offset-4"
+                              >
+                                {AUTH_COPY.retry}
+                              </button>
+                            </div>
+                          )}
                           {serverError.kind === 'insecureContext' && (
                             <p>{GOOGLE_NEEDS_HTTPS_MESSAGE}</p>
                           )}
@@ -926,48 +1062,20 @@ function LoginContent() {
                         type="submit"
                         disabled={submitting}
                         aria-busy={submitting || undefined}
-                        className="bg-lawie-600 shadow-lawie-600/25 hover:bg-lawie-700 flex h-12 w-full items-center justify-center gap-2 rounded-xl text-base font-semibold text-white shadow-lg transition-all active:scale-[0.98] disabled:cursor-wait disabled:opacity-80"
+                        className="nl-focus rounded-nl-md bg-nl-brass text-nl-on-brass gap-nl-2 [@media(hover:hover)_and_(pointer:fine)]:enabled:hover:shadow-nl-halo flex h-11 w-full touch-manipulation items-center justify-center text-[15px] font-medium disabled:cursor-wait disabled:opacity-80"
                       >
-                        {submitting && (
-                          <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
-                        )}
+                        {submitting && <Spinner />}
                         {submitting
-                          ? isSignup
-                            ? 'Creating your account…'
-                            : 'Signing in…'
+                          ? AUTH_COPY.loading
                           : isSignup
-                            ? 'Create account'
-                            : 'Sign in'}
+                            ? AUTH_COPY.submit.signup
+                            : AUTH_COPY.submit.signin}
                       </button>
-
-                      {/* Consent line — Ajay, 11 Oct 2026. Word for word; no edits without his
-                          sign-off. Directly under submit, both modes, covers Google too. No checkbox. */}
-                      <p className="mt-3 text-sm text-slate-600">
-                        By continuing, you agree to Lawie&apos;s{' '}
-                        <Link
-                          href="/terms"
-                          target="_blank"
-                          rel="noopener"
-                          className="underline hover:text-slate-900"
-                        >
-                          Terms of Service
-                        </Link>{' '}
-                        and confirm you have read our{' '}
-                        <Link
-                          href="/privacy"
-                          target="_blank"
-                          rel="noopener"
-                          className="underline hover:text-slate-900"
-                        >
-                          Privacy Policy
-                        </Link>
-                        .
-                      </p>
                     </div>
                   </form>
 
-                  <p className="mt-5 text-center text-sm text-slate-600">
-                    {isSignup ? 'Already have an account? ' : 'New to Lawie? '}
+                  <p className="nl-body-sm mt-nl-5 text-nl-soft text-center">
+                    {isSignup ? AUTH_COPY.haveAccount : AUTH_COPY.newToLawie}
                     <Link
                       href={isSignup ? SIGNIN_HREF : SIGNUP_HREF}
                       scroll={false}
@@ -975,9 +1083,9 @@ function LoginContent() {
                       onClick={() => {
                         focusFieldOnSwitch.current = true;
                       }}
-                      className="text-lawie-700 inline-block py-3 font-semibold hover:underline"
+                      className={cn(TEXT_LINK, 'inline-block py-3')}
                     >
-                      {isSignup ? 'Sign in' : 'Create an account'}
+                      {isSignup ? AUTH_COPY.switchToSignin : AUTH_COPY.switchToSignup}
                     </Link>
                   </p>
                 </div>
@@ -985,27 +1093,18 @@ function LoginContent() {
             )}
           </div>
         </div>
-
-        <p className="mt-6 max-w-sm text-center text-xs text-slate-600 sm:mt-8">
-          Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
-          <br />
-          <Link href="/terms" className="underline hover:text-slate-900">
-            Terms
-          </Link>{' '}
-          ·{' '}
-          <Link href="/privacy" className="underline hover:text-slate-900">
-            Privacy
-          </Link>
-        </p>
       </main>
-    </>
+
+      {/* /login is not in ANALYTICS_ALLOWED_PATHS, so Cookie settings would do nothing here. */}
+      <NightFooter showCookieSettings={false} />
+    </div>
   );
 }
 
 // useSearchParams in a client page needs a Suspense boundary for `next build`.
 export default function LoginPage() {
   return (
-    <Suspense fallback={<main className="min-h-screen bg-slate-50" />}>
+    <Suspense fallback={<main className="nl nl-root min-h-[100svh]" />}>
       <LoginContent />
     </Suspense>
   );

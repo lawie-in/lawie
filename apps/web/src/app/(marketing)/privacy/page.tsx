@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 
 import CookieSettingsButton from '@/components/CookieSettingsButton';
 import FloatCta from '@/components/marketing/FloatCta';
+import { grievanceLine, grievanceOfficerName } from '@/components/marketing/nl-copy';
 import SiteFooter from '@/components/marketing/SiteFooter';
 import SiteNav from '@/components/marketing/SiteNav';
 
@@ -31,12 +32,16 @@ export const metadata: Metadata = {
 // line after "Everything else"; "Last updated" only, CURRENT_PRIVACY_VERSION unchanged.
 // T-436 (Ajay, handoff/legal/gst-tax-invoice-signed.md Addendum 7 (1)): the §1 payments bullet
 // adds the State and §2 adds "issue GST tax invoices,"; the §9 tax-invoice retention is 5d.
+// T-517 (Ajay, T-511-copy-rulings-ajay.md): §11 is one contact line to contact@lawie.in, plus the
+// Grievance Officer line only when NEXT_PUBLIC_GRIEVANCE_OFFICER_NAME is set (AJ-517-M14, M11);
+// §7 "Your Rights" names contact@lawie.in instead of privacy@lawie.in (AJ-517-M15). "Last updated"
+// moves to 21 October 2026; CURRENT_PRIVACY_VERSION unchanged (AJ-517-M19).
 
 // The date the policy text last changed (T-436: its merge date). CURRENT_PRIVACY_VERSION in
 // packages/shared/src/constants/privacy.ts is bumped only when the policy adds data, a purpose
 // or a recipient, with Ajay's sign-off; a change that only moves this date does not bump it
 // (Ajay, GST file Addendum 4). When it does bump, its id is the same date as YYYY-MM-DD.
-const PRIVACY_LAST_UPDATED = '15 October 2026';
+const PRIVACY_LAST_UPDATED = '21 October 2026';
 
 // Byte for byte; one string so the hash can be checked.
 const SECTION_6_BODY =
@@ -123,6 +128,8 @@ const headCellStyle = {
 };
 
 export default function PrivacyPage() {
+  const officerName = grievanceOfficerName();
+  const grievance = grievanceLine(officerName);
   return (
     <>
       <SiteNav />
@@ -327,7 +334,7 @@ export default function PrivacyPage() {
                 <p>
                   You can close your account and erase your data from Settings, and delete any
                   single document from the document itself. You can also write to{' '}
-                  <a href="mailto:privacy@lawie.in">privacy@lawie.in</a> from your account email and
+                  <a href="mailto:contact@lawie.in">contact@lawie.in</a> from your account email and
                   we will do it for you. Backup copies are erased within 7 days. We keep payment
                   records and tax invoices for as long as tax law requires; an invoice keeps the
                   name and State printed on it. Erasure cannot reach data already sent to Helicone
@@ -379,11 +386,19 @@ export default function PrivacyPage() {
               </section>
               <section id="contact">
                 <h3>11. Contact and Grievances</h3>
+                {/* T-517 (AJ-517-M14): one contact line, then the AJ-517-M11 officer line only
+                    when NEXT_PUBLIC_GRIEVANCE_OFFICER_NAME is set (no fallback sentence here). */}
                 <p>
-                  Privacy questions, rights requests and grievances:{' '}
-                  <a href="mailto:privacy@lawie.in">privacy@lawie.in</a>. General support:{' '}
+                  For privacy questions, rights requests, grievances and general support, write to{' '}
                   <a href="mailto:contact@lawie.in">contact@lawie.in</a>.
                 </p>
+                {officerName ? (
+                  <p>
+                    {grievance.before}
+                    <a href={`mailto:${grievance.email}`}>{grievance.email}</a>
+                    {grievance.after}
+                  </p>
+                ) : null}
               </section>
             </div>
           </div>

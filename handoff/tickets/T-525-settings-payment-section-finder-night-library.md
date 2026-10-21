@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Rajesh (spec sections 06, 07), a web lead (build) |
 | Mode   | Full chain (web) |
-| Status | To do. V1 (21 Oct 2026). Priya |
+| Status | In build: Tanvi (21 Oct 2026). Priya |
 | Source | Rajesh's T-520 review point (d); Tanvi's SectionFinderPanel finding |
 
 ## Problem

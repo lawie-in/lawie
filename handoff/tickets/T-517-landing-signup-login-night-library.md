@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Rajesh (design), Meera/Madhuri (copy), Ajay (signs claims), a web lead (build) |
 | Mode   | Full chain (web, legal copy) |
-| Status | In build: Vishal (21 Oct 2026), landing, pricing and login/sign-up only. Priya |
+| Status | READY dcbd8a92, Ajay byte check AJ-517-BC approved, Rajesh reviewed (must-fix in T-528). Merge queue: next. Priya |
 | Source | Founder, 17 Oct 2026 ("whole UI including the landing page") |
 
 ## Scope
@@ -21,3 +21,6 @@ Landing page, pricing page, sign-up, login, in the Night Library theme (T-511a c
 
 ## Out of scope
 Backend changes, new pricing, CRM claims (not sold until shipped).
+
+## Browser check (Vishal, 21 Oct 2026)
+CDP/headless at 1280 and 390: before hydration, typing, done, reduced motion. Demo folio 319px and CTA 912px stable, no flash. Taste inspect run at 1280, 390 and 360. No real-phone check done.

@@ -8,6 +8,7 @@ import path from 'path';
 import { act, type ReactElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 
+import { LandingPage } from '../../landing/LandingPage';
 import PricingPage from '../../../app/(marketing)/pricing/page';
 import TermsPage from '../../../app/(marketing)/terms/page';
 import { UpgradeSuccessModal } from '../UpgradeSuccessModal';
@@ -54,6 +55,9 @@ const SIGNED_NEGATIVE_LINES = [
   // AJ-509-M1 (Ajay): exactly these two plan-chooser / cancel-dialog lines, nothing broader.
   'Plan Ink does not carry over.',
   'Plan Ink does not carry over after that.',
+  // AJ-517-M12 (Ajay, 7106f573): the landing's §1.6 note and FAQ Q1 sentence, exactly these.
+  'Plan Ink does not carry over to the next month.',
+  'Plan Ink left unused at the end of the month does not carry over.',
 ];
 
 const FORBIDDEN = /rolls?[\s-]?over|carr(?:y|ies)[\s-]?over|carry-forward/gi;
@@ -112,20 +116,33 @@ describe('T-433 Terms §6', () => {
   });
 });
 
-describe('T-433 Pricing FAQ "What is Ink?"', () => {
-  it('has the cost line straight after "a failed generation is not charged."', () => {
+// AJ-517-M5: the pricing "What is Ink?" FAQ is gone. The pricing page now carries the signed
+// failed-draft line (AJ-511-M2) and the top-up line (AJ-511-M8) instead.
+describe('T-433 Pricing page (T-517)', () => {
+  it('has the failed-draft line (AJ-511-M2) and the top-up expiry line (AJ-511-M8)', () => {
     const text = norm(render(<PricingPage />));
-    expect(text).toContain(`a failed generation is not charged. ${FAQ_COST_LINE}`);
+    expect(text).toContain('If a draft fails to generate, no Ink is used.');
+    expect(text).toContain('Top-up Ink does not expire while your account is open.');
   });
 
-  it('has the signed expiry sentence and drops the old refill line', () => {
+  it('drops the old FAQ refill / expiry sentences', () => {
     const text = norm(render(<PricingPage />));
-    expect(text).toContain(FAQ_EXPIRY);
+    expect(text).not.toContain(FAQ_EXPIRY);
+    expect(text).not.toContain(FAQ_COST_LINE);
     expect(text).not.toContain('Solo and Pro plans refill Ink every month');
   });
 
   it('has no unsigned rollover / carry wording', () => {
     const text = norm(render(<PricingPage />));
+    expect(withoutSignedLines(text)).not.toMatch(FORBIDDEN);
+  });
+});
+
+describe('T-433 landing (AJ-517-M12)', () => {
+  it('shows the two M12 lines and no other rollover / carry wording', () => {
+    const text = norm(render(<LandingPage />));
+    expect(text).toContain('Plan Ink does not carry over to the next month.');
+    expect(text).toContain('Plan Ink left unused at the end of the month does not carry over.');
     expect(withoutSignedLines(text)).not.toMatch(FORBIDDEN);
   });
 });
@@ -156,7 +173,7 @@ describe('T-433 whole-web rule (apps/web/src, non-test sources)', () => {
     expect(offenders).toEqual([]);
   });
 
-  it('the signed negative lines appear only in terms, pricing and the plan copy (AJ-509-M1)', () => {
+  it('the signed negative lines appear only in terms, pricing, the plan copy and the landing copy (AJ-509-M1, AJ-517-M12)', () => {
     const where: string[] = [];
     for (const file of sourceFiles(SRC)) {
       const text = norm(fs.readFileSync(file, 'utf8'));
@@ -166,6 +183,8 @@ describe('T-433 whole-web rule (apps/web/src, non-test sources)', () => {
       path.join('app', '(marketing)', 'pricing', 'page.tsx'),
       path.join('app', '(marketing)', 'terms', 'page.tsx'),
       path.join('components', 'billing', 'planCopy.ts'),
+      // AJ-517-M12: the landing's §1.6 note and FAQ Q1 live in nl-copy.ts, nowhere else.
+      path.join('components', 'marketing', 'nl-copy.ts'),
     ]);
   });
 });
