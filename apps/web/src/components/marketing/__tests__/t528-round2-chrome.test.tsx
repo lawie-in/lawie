@@ -1,6 +1,6 @@
 /**
  * T-528 round 2: the footer sits on the Wall (no Wood), CONTROL_LINE keeps its fallback, the sticky
- * bar's scroll padding is built from NL_STICKY_BAR_HEIGHT, and the nav links show from 1024px only.
+ * bar's scroll padding is built from NL_STICKY_BAR_HEIGHT, and the nav links show from 1120px only (Rajesh's ruling).
  * break-ui: Hindi (the tallest wrapped bar) keeps the style and the marker. jsdom has no layout, so
  * the breakpoint behaviour is asserted through the classes and the CSS text.
  */
@@ -20,6 +20,13 @@ beforeEach(() => {
   });
 });
 afterEach(() => cleanupMounted());
+
+// One source for the nav breakpoint: the last media rule of the bar's CSS. The pinned value is
+// Rajesh's ruling (1120px, relayed by Priya); the class and the rule must both follow it.
+const NAV_BP = Number(/min-width:(\d+)px[^@]*$/.exec(NL_STICKY_BAR_CSS)![1]);
+const NAV_ON = `min-[${NAV_BP}px]:inline-flex`;
+const navLinks = () =>
+  qa('a').filter((a) => cls(a).some((c) => /^min-\[\d+px\]:inline-flex$/.test(c)));
 
 describe('NightFooter ground', () => {
   it('has no bg-nl-wood and keeps border-t border-nl-line', () => {
@@ -59,16 +66,17 @@ describe('CONTROL_LINE', () => {
 describe('NL_STICKY_BAR_CSS', () => {
   const calc = (px: number) => `calc(${px}px + env(safe-area-inset-top,0px))`;
 
-  it('has a media rule from 720px and one from 1024px, built from NL_STICKY_BAR_HEIGHT', () => {
+  it('has a media rule from 720px and one from 1120px, built from NL_STICKY_BAR_HEIGHT', () => {
     expect(NL_STICKY_BAR_CSS).toContain(
       `@media (min-width:720px){html{scroll-padding-top:${calc(NL_STICKY_BAR_HEIGHT.wrapped)}}}`,
     );
     expect(NL_STICKY_BAR_CSS).toContain(
-      `@media (min-width:1024px){html{scroll-padding-top:${calc(NL_STICKY_BAR_HEIGHT.row)}}}`,
+      `@media (min-width:${NAV_BP}px){html{scroll-padding-top:${calc(NL_STICKY_BAR_HEIGHT.row)}}}`,
     );
     expect(NL_STICKY_BAR_CSS.match(/@media/g)).toHaveLength(2);
-    // The 1024 rule comes last so it wins the cascade.
-    expect(NL_STICKY_BAR_CSS.indexOf('min-width:1024px')).toBeGreaterThan(
+    expect(NAV_BP).toBe(1120);
+    // The nav-breakpoint rule comes last so it wins the cascade.
+    expect(NL_STICKY_BAR_CSS.indexOf(`min-width:${NAV_BP}px`)).toBeGreaterThan(
       NL_STICKY_BAR_CSS.indexOf('min-width:720px'),
     );
   });
@@ -100,40 +108,59 @@ describe('NL_STICKY_BAR_CSS', () => {
   });
 });
 
-describe('NightTopBar nav links from 1024px', () => {
+describe('NightTopBar nav links from 1120px', () => {
   const NAV_TEXT = /how|document|price|faq|कैसे|दस्तावेज़|कीमत|प्रश्न/i;
 
-  it('en: every nav link is display:none below 1024 (hidden) and inline-flex from 1024', () => {
+  it('en: every nav link is display:none below 1120 (hidden) and inline-flex from 1120', () => {
     mount(<NightTopBar lang="en" showNav onLangChange={() => undefined} />);
     const links = qa('nav a, header a[href^="#"], header a[href="/pricing"]').filter((a) =>
       cls(a).includes('nl-body-sm'),
     );
     expect(links.length).toBeGreaterThanOrEqual(4);
     for (const a of links) {
-      expect(cls(a)).toEqual(expect.arrayContaining(['hidden', 'min-[1024px]:inline-flex']));
+      expect(cls(a)).toEqual(expect.arrayContaining(['hidden', NAV_ON]));
       expect(cls(a)).not.toContain('inline-flex');
       expect(a.textContent).toMatch(NAV_TEXT);
     }
   });
 
-  it('the links are in the DOM (so they exist from 1024) and point at the four anchors', () => {
+  it('the links are in the DOM (so they exist from 1120) and point at the four anchors', () => {
     mount(<NightTopBar lang="en" showNav onLangChange={() => undefined} />);
-    const hrefs = qa('a')
-      .filter((a) => cls(a).includes('min-[1024px]:inline-flex'))
-      .map((a) => a.getAttribute('href'));
+    const hrefs = navLinks().map((a) => a.getAttribute('href'));
     expect(hrefs).toEqual(['#how-it-works', '#documents', '#prices', '#faq']);
   });
 
   it('Hindi: the same classes on the Hindi labels', () => {
     mount(<NightTopBar lang="hi" showNav onLangChange={() => undefined} />);
-    const links = qa('a').filter((a) => cls(a).includes('min-[1024px]:inline-flex'));
+    const links = navLinks();
     expect(links).toHaveLength(4);
     for (const a of links) expect(cls(a)).toContain('hidden');
   });
 
+  it('at 1024 and 1023 the class does not enable the nav (only the 1120 variant, never 1024)', () => {
+    mount(<NightTopBar lang="en" showNav onLangChange={() => undefined} />);
+    const links = navLinks();
+    expect(links).toHaveLength(4);
+    for (const a of links) {
+      expect(cls(a)).not.toContain('min-[1024px]:inline-flex');
+      expect(cls(a).filter((c) => /^min-\[\d+px\]:/.test(c))).toEqual([NAV_ON]);
+      expect(cls(a)).not.toContain('inline-flex');
+    }
+    expect(NAV_BP).toBeGreaterThan(1024);
+  });
+
+  it('break-ui, Hindi labels between 1120 and 1280: links stay single-row targets (min-h 44, no fixed width or clipping)', () => {
+    mount(<NightTopBar lang="hi" showNav onLangChange={() => undefined} />);
+    for (const a of navLinks()) {
+      expect(a.textContent!.trim().length).toBeGreaterThan(0);
+      expect(cls(a)).toContain('min-h-[44px]');
+      expect(a.className).not.toMatch(/(?<![-\w])(w|h)-\[|truncate|overflow-|line-clamp/);
+    }
+  });
+
   it('showNav off renders no nav links at all', () => {
     mount(<NightTopBar lang="en" onLangChange={() => undefined} />);
-    expect(qa('a').filter((a) => cls(a).includes('min-[1024px]:inline-flex'))).toHaveLength(0);
+    expect(navLinks()).toHaveLength(0);
   });
 
   it('the bar stays sticky from 720px, independent of the nav change', () => {

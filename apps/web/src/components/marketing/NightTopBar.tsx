@@ -41,25 +41,27 @@ const STICKY =
 
 /**
  * The sticky bar's height in px (row plus its 1px rule), measured 21 Oct 2026 in Chromium on the
- * landing (EN and HI), pricing and login. With the nav links from 1024px only, the bar is 65px
- * at every width from 720 up; a label may break onto two lines inside the 64px row (EN landing
- * 720-739, both languages 1024-1119) without growing it. `wrapped` (720-1023) keeps a 7px margin
- * for a row that grows (shell's row is min-h-[64px]). The one source for the scroll padding.
+ * landing (EN and HI), pricing and login. With the nav links from 1120px only (Rajesh), the bar is
+ * 65px at every width from 720 up. On the English landing at 720-739, Sign in (already 8px side
+ * padding) and the call to action break onto two lines inside the 64px row without growing it.
+ * `wrapped` (720-1119) keeps a 7px margin for a row that grows (shell's row is min-h-[64px]).
+ * The one source for the scroll padding below.
  */
 export const NL_STICKY_BAR_HEIGHT = { wrapped: 72, row: 65 } as const;
 
 /** Scoped to the pages that mount the bar: the <style> leaves the DOM with it. */
 export const NL_STICKY_BAR_CSS =
   `@media (min-width:720px){html{scroll-padding-top:calc(${NL_STICKY_BAR_HEIGHT.wrapped}px + env(safe-area-inset-top,0px))}}` +
-  `@media (min-width:1024px){html{scroll-padding-top:calc(${NL_STICKY_BAR_HEIGHT.row}px + env(safe-area-inset-top,0px))}}`;
+  `@media (min-width:1120px){html{scroll-padding-top:calc(${NL_STICKY_BAR_HEIGHT.row}px + env(safe-area-inset-top,0px))}}`;
 
-// T-528 (Priya): the nav links show from 1024px only. From 720 to 1023 shell TopBar's single row
+// T-528 (Priya, Rajesh): the nav links show from 1120px only. Below that shell TopBar's single row
 // could not hold the links, the toggles, Sign in and the call to action, and clipped the last
-// two. `hidden` is display:none, so below 1024 the links are out of the tab order and the
+// two (720-1023), or broke the nav labels onto two lines (1024-1119). `hidden` is display:none,
+// so below 1120 the links are out of the tab order and the
 // accessibility tree (CSS only, no width check, so no hydration mismatch). Below 720 shell
 // TopBar hides the whole nav anyway.
 const NAV_LINK =
-  'nl-focus nl-body-sm rounded-nl-sm px-nl-3 text-nl-soft [@media(hover:hover)_and_(pointer:fine)]:hover:text-nl-text hidden min-[1024px]:inline-flex min-h-[44px] items-center font-medium no-underline touch-manipulation';
+  'nl-focus nl-body-sm rounded-nl-sm px-nl-3 text-nl-soft [@media(hover:hover)_and_(pointer:fine)]:hover:text-nl-text hidden min-[1120px]:inline-flex min-h-[44px] items-center font-medium no-underline touch-manipulation';
 
 export function LanguageToggle({ lang, onChange }: { lang: Lang; onChange: (l: Lang) => void }) {
   const copy = landingCopy(lang).language;
