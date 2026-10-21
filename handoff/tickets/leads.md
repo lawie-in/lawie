@@ -4,15 +4,15 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 ## Live claims (Priya, 16 Oct 2026; read this first, the long table below is history)
 
-All older rows below are spent unless this section says otherwise. One ticket per lead. Slot: no one holds it now (17 Oct 2026, 22:25). All leads parked for the week (usage limit).
+All older rows below are spent unless this section says otherwise. One ticket per lead. Slot: no one holds it now (21 Oct 2026). Shared and held by no lead: apps/web/src/components/ui/**, tailwind config, globals.css, packages/shared. Need a change there? Ask Priya.
 
 | Lead     | Ticket                        | Branch                               | Files held (no other row may touch them)                                                                                                                                                        | State |
 | -------- | ----------------------------- | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
-| vishal   | free (T-509 merged 500a2a65, row spent) | - | - |
+| vishal   | T-517 (21 Oct 2026) | feature/t-517-landing-auth | apps/web: app/(marketing)/page.tsx, app/(marketing)/pricing/**, app/(auth)/**, components/landing/**, components/marketing/**, components/auth/**, tests for these. Not the dashboard, shell, intake or editor. |
 | mahak    | T-475, then T-472, then T-474 | fix/t-475-*                           | T-475: apps/drafting/src/services/brief-drafter.ts (actLines), new test, goldens. T-472: document-rules/criminal_revision.json, new limitation.service.ts, the computed-facts service and its ai.service.ts call site only, verifier ledger entry, form renderer if needed, tests. T-474: the other packs' limitation lines | T-475 in build |
-| kunal    | free (T-506 merged 9a83207d, row spent) | - | - |
-| shashank | free (T-516 merged 928cd933, row spent) | - | - |
-| tanvi    | free (T-511a merged, row spent) | - | - |
+| kunal    | T-521 (21 Oct 2026) | feature/t-521-intake-editor | apps/web: app/dashboard/new/**, app/dashboard/documents/**, app/dashboard/templates/**, components/intake/**, components/editor/**, components/draft/**, components/documents/**, tests. Not the shell, dashboard or settings. |
+| shashank | T-519 then T-518 (21 Oct 2026) | feature/t-519-inkledger-index | apps/billing only: startup/index code and tests; T-518 files after T-519 merges. |
+| tanvi    | T-520 (21 Oct 2026) | feature/t-520-dashboard-shell | apps/web: app/dashboard/page.tsx, app/dashboard/layout.tsx, components/dashboard/**, components/shell/**, app/not-found and error pages, tests. Not documents, new, settings or payment. |
 
 Overlap note: ai.service.ts is shared by vishal (T-471, pass-through hunk) and mahak (T-472, computed-facts call site). Different hunks; whoever merges second merges the other in. packages/shared is free (nobody holds it).
 

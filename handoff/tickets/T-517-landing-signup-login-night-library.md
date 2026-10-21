@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Rajesh (design), Meera/Madhuri (copy), Ajay (signs claims), a web lead (build) |
 | Mode   | Full chain (web, legal copy) |
-| Status | To do. Waiting for Rajesh's landing, sign-up and login designs. Priya |
+| Status | In build: Vishal (21 Oct 2026), landing, pricing and login/sign-up only. Priya |
 | Source | Founder, 17 Oct 2026 ("whole UI including the landing page") |
 
 ## Scope
