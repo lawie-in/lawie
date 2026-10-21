@@ -239,7 +239,7 @@ Warm darks with a single brass accent; Daylight keeps the hues and lifts the lig
 ### Hierarchy
 - **Display** (400, clamp(48px, 5.3vw, 68px), 52px to 72px): the landing hero only.
 - **Headline** (400, 32px, 38px): page titles ("Your shelf", "Settings").
-- **Title** (400, 24px, 30px): section titles, dialog titles, KPI numbers (40px on the dashboard, same face).
+- **Title** (400, 24px, 30px): section titles, dialog titles. Two larger uses of the same face: KPI numbers at 40px/44px on the dashboard, and the plan price at 34px/40px on a plan card. Both may exceed the page title; the number is what the reader came for.
 - **Subtitle** (Mukta 500, 18px, 26px): card titles and anything that is a heading under 20px.
 - **Body** (400, 16px, 26px): the default. Running text stays at or under 65 characters a line.
 - **Body Small** (400, 14px, 22px): secondary lines, captions, help text, chips with words.
@@ -287,7 +287,7 @@ Quiet until pressed; the brass one is the only loud thing on the page.
 - **Primary:** Brass fill, On Brass label, Mukta 500 15px.
 - **Ghost:** transparent, Brass Text label, 1px Line border.
 - **Destructive:** Oxblood fill, white label; sits last in a dialog, after the ghost safe action.
-- **Hover / Focus:** hover lifts 1px with the 4px Brass Soft halo, 150ms ease; focus is the system ring. Disabled is opacity .5. Loading swaps the label for a spinner and holds the width.
+- **Hover / Focus:** primary hover lifts 1px with the 4px Brass Soft halo, 150ms ease. Ghost (and any ghost-styled link or the Google button) does not lift: its border goes Line to Brass and its background to Brass Soft, 150ms. Destructive does not lift or glow. Focus is the system ring on all three. Disabled is opacity .5. Loading swaps the label for a spinner and holds the width.
 
 ### Chips
 - **Style:** pill, 12px Mukta 500, 4px by 10px padding. Neutral is Text Soft on a Line border; brass, moss, amber and rust tones use the status pair. The Ink chip carries a brass dot before the number.
@@ -307,7 +307,7 @@ Quiet until pressed; the brass one is the only loud thing on the page.
 - **Error / Disabled:** Rust border and a one-line message naming the fix, linked by aria-describedby; disabled is opacity .5.
 
 ### Navigation (Top bar)
-- 64px, Wall fill, 1px Line bottom. The Lawie mark is Tiro 26px with a brass lamp dot and a soft glow. Signed-in: Ink chip, theme toggle, avatar menu. Below 720px the nav and the theme toggle fold into the menu; the Ink chip stays visible. Sticky, respects the top safe-area inset.
+- 64px, Wall fill, 1px Line bottom. The Lawie mark is Tiro 26px with a brass lamp dot and a soft glow. Signed-in: Ink chip, theme toggle, avatar menu. Below 720px the nav, the theme toggle and the language toggle fold into the menu, so the bar stays one 64px row; the Ink chip (or the signed-out Start free button) stays visible. Sticky at every width once it is one row; never pin a bar taller than 64px on a phone. Respects the top safe-area inset (`viewport-fit=cover`).
 
 ### Command bar (signature)
 The question at the top of the desk: "What do you need to draft?" in Title type, an underline input with a Ctrl K hint and the one primary button. A Radix Popover with our own listbox opens below: quick chips while empty, matching templates and the advocate's own drafts while typing, one line when nothing matches. Ctrl K and Cmd K focus it from anywhere; Escape closes.
