@@ -38,8 +38,11 @@ function Tile({
   children?: React.ReactNode;
 }) {
   const id = useId();
+  // T-524 (Arjun): a labelled group, not a <section>: six region landmarks crowded the page's
+  // landmark list. The label stays a heading, so heading navigation still finds each tile.
   return (
-    <section
+    <div
+      role="group"
       aria-labelledby={id}
       className={cn('nl border-nl-line bg-nl-card p-nl-4 min-w-0 border', className)}
     >
@@ -47,7 +50,7 @@ function Tile({
         {label}
       </h2>
       {children}
-    </section>
+    </div>
   );
 }
 
@@ -56,12 +59,34 @@ function TileSkeleton() {
   return <Skeleton lines={1} slowText="" className="pt-nl-2" />;
 }
 
+/**
+ * T-524 (DESIGN.md Typography): a KPI number is Tiro 40px (2.5rem) on a 44px (2.75rem) line (Title face, dashboard
+ * size), tabular. `small` is for the tiles whose value is a sentence, not a number (draft and
+ * finalised, plan and renewal): Subtitle (Mukta 500 18px), as a heading under 20px. min-w-0 and
+ * break-words let a long value (12,345 Ink in a 2-column tile at 360px) wrap inside the tile
+ * instead of widening it.
+ */
 function Value({ children, small = false }: { children: React.ReactNode; small?: boolean }) {
   return (
-    <p className={cn('text-nl-text m-0 break-words tabular-nums', small ? 'nl-h3' : 'nl-h2')}>
+    <p
+      className={cn(
+        'text-nl-text m-0 min-w-0 break-words tabular-nums',
+        small ? 'nl-h3' : 'font-nl-display text-[2.5rem] font-normal leading-[2.75rem]',
+      )}
+    >
       {children}
     </p>
   );
+}
+
+/**
+ * T-524: KPI numbers in Indian grouping (1234567 -> "12,34,567"); Ink can be a half (12.5), so
+ * at most one decimal. A non-finite value is printed as it is (it never reaches here in
+ * practice: the tiles only render real numbers).
+ */
+const KPI_NUMBER = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 1 });
+export function formatKpi(n: number): string {
+  return Number.isFinite(n) ? KPI_NUMBER.format(n) : String(n);
 }
 
 /** Bar fill in percent, clamped to 0-100. */
@@ -72,8 +97,16 @@ function pct(value: number, max: number): number {
 
 function Bar({ percent }: { percent: number }) {
   return (
-    <span aria-hidden="true" className="bg-nl-wood block h-2 w-full overflow-hidden">
-      <span className="bg-nl-brass block h-full" style={{ width: `${percent}%` }} />
+    // T-524 forced colours: the track gets a CanvasText border and the fill is drawn in
+    // CanvasText (forced-color-adjust: none on the leaf only), so the meter stays readable.
+    <span
+      aria-hidden="true"
+      className="bg-nl-wood block h-2 w-full overflow-hidden forced-colors:border forced-colors:[border-color:CanvasText]"
+    >
+      <span
+        className="bg-nl-brass block h-full forced-colors:[background-color:CanvasText] forced-colors:[forced-color-adjust:none]"
+        style={{ width: `${percent}%` }}
+      />
     </span>
   );
 }
@@ -165,7 +198,7 @@ export function ShelfKpis({
           <>
             <div className="gap-nl-4 flex items-center">
               <Inkwell balance={pct(ink.totalInk, inkReference)} className="shrink-0" />
-              <Value>{DASHBOARD_COPY.inkValue(ink.totalInk)}</Value>
+              <Value>{DASHBOARD_COPY.inkValue(formatKpi(ink.totalInk))}</Value>
             </div>
             {showNudge ? (
               <LowInkNudge
@@ -190,7 +223,11 @@ export function ShelfKpis({
 
       {/* 3 Drafts this month */}
       <Tile label={DASHBOARD_COPY.draftsThisMonth}>
-        {s ? <Value>{s.draftsThisMonth}</Value> : summaryPending ? <TileSkeleton /> : null}
+        {s ? (
+          <Value>{formatKpi(s.draftsThisMonth)}</Value>
+        ) : summaryPending ? (
+          <TileSkeleton />
+        ) : null}
       </Tile>
 
       {/* 4 Draft and finalised: an exported document is a finalised one. */}
@@ -220,7 +257,7 @@ export function ShelfKpis({
       <Tile label={DASHBOARD_COPY.inkUsedThisMonth}>
         {s ? (
           <>
-            <Value>{DASHBOARD_COPY.inkUsedValue(s.inkUsedThisMonth)}</Value>
+            <Value>{DASHBOARD_COPY.inkUsedValue(formatKpi(s.inkUsedThisMonth))}</Value>
             {ink.loaded && ink.monthlyAllotment > 0 ? (
               <div className="mt-nl-3">
                 <Bar percent={pct(s.inkUsedThisMonth, ink.monthlyAllotment)} />

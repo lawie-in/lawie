@@ -262,35 +262,130 @@ describe('DashboardCommandBar routing', () => {
   });
 });
 
-describe('DashboardCommandBar hotkey', () => {
-  it('shows no Ctrl K hint (hotkey is off)', () => {
+describe('DashboardCommandBar hotkey (T-524: the bar owns Ctrl/Cmd+K on /dashboard)', () => {
+  it('shows the Ctrl K hint and the screen-reader hint, linked to the input', () => {
     const { container } = mount(<DashboardCommandBar />);
-    expect(container.textContent).not.toMatch(/Ctrl K|⌘ K/);
-    expect(input().getAttribute('aria-describedby')).toBeNull();
+    expect(container.textContent).toMatch(/Ctrl K|⌘ K/);
+    const id = input().getAttribute('aria-describedby');
+    expect(id).toBeTruthy();
+    expect(document.getElementById(id!)!.className).toContain('sr-only');
+    // visible hint only at >= 641px; the SR hint is always there
+    const kbd = q('kbd', container) as HTMLElement;
+    expect(kbd.className).toContain('hidden');
+    expect(kbd.className).toContain('min-[641px]:inline-block');
+    expect(kbd.getAttribute('aria-hidden')).toBe('true');
   });
 
-  it('Ctrl+K does not focus it and is not swallowed; the section finder keeps its own handler', async () => {
+  it('Ctrl+K and Cmd+K focus the bar and are prevented', () => {
+    mount(<DashboardCommandBar />);
+    const a = press(window, { key: 'k', ctrlKey: true });
+    expect(a.defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(input());
+    act(() => input().blur());
+    const b = press(window, { key: 'K', metaKey: true });
+    expect(b.defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(input());
+  });
+
+  it('a bubble-phase window listener (the section finder) never sees the shortcut', () => {
+    const finder = jest.fn();
+    window.addEventListener('keydown', finder);
+    try {
+      mount(<DashboardCommandBar />);
+      press(window, { key: 'k', ctrlKey: true });
+      press(window, { key: 'k', metaKey: true });
+      press(document.body, { key: 'k', ctrlKey: true });
+      expect(finder).not.toHaveBeenCalled();
+      // other keys still reach it; Ctrl+Shift+K no longer does (swallowed, T-524 round 2)
+      press(window, { key: 'a' });
+      press(window, { key: 'k', ctrlKey: true, shiftKey: true });
+      press(window, { key: 'k' });
+      expect(finder).toHaveBeenCalledTimes(2);
+    } finally {
+      window.removeEventListener('keydown', finder);
+    }
+  });
+
+  it('with the real SectionFinderPanel mounted, Ctrl+K focuses the bar and the finder stays shut', async () => {
+    const toggled = jest.fn();
+    window.addEventListener('keydown', toggled);
     mount(
       <>
         <DashboardCommandBar />
         <SectionFinderPanel />
       </>,
     );
-    expect(document.activeElement).not.toBe(input());
+    window.removeEventListener('keydown', toggled);
     const ev = press(window, { key: 'k', ctrlKey: true });
     await flush();
-    expect(document.activeElement).not.toBe(input());
-    expect(input().getAttribute('aria-expanded')).toBe('false');
-    // the finder's handler ran (it prevents default and toggles the panel)
+    expect(document.activeElement).toBe(input());
     expect(ev.defaultPrevented).toBe(true);
+    // the finder renders a dialog when it opens; it must not exist
+    expect(q('[role=dialog]')).toBeNull();
   });
 
-  it('on its own, Ctrl+K and Cmd+K do nothing to the bar', () => {
+  it('exactly one keydown listener is added for the hotkey, in the capture phase, and removed on unmount', () => {
+    const add = jest.spyOn(window, 'addEventListener');
+    const remove = jest.spyOn(window, 'removeEventListener');
+    const m = mount(<DashboardCommandBar />);
+    const added = add.mock.calls.filter((c) => c[0] === 'keydown');
+    expect(added).toHaveLength(1);
+    expect(added[0][2]).toEqual({ capture: true });
+    m.unmount();
+    const removed = remove.mock.calls.filter((c) => c[0] === 'keydown');
+    expect(
+      removed.some((c) => c[1] === added[0][1] && (c[2] as { capture: boolean }).capture),
+    ).toBe(true);
+    // after unmount the finder gets the key again
+    const finder = jest.fn();
+    window.addEventListener('keydown', finder);
+    press(window, { key: 'k', ctrlKey: true });
+    window.removeEventListener('keydown', finder);
+    expect(finder).toHaveBeenCalledTimes(1);
+  });
+
+  it('hotkeySuspended passes through: no keydown listener, and the finder gets Ctrl+K again; toggling restores it', () => {
+    const finder = jest.fn();
+    window.addEventListener('keydown', finder);
+    try {
+      const add = jest.spyOn(window, 'addEventListener');
+      const m = mount(<DashboardCommandBar hotkeySuspended />);
+      expect(add.mock.calls.filter((c) => c[0] === 'keydown')).toHaveLength(0);
+      add.mockRestore();
+      const ev = press(window, { key: 'k', ctrlKey: true });
+      expect(ev.defaultPrevented).toBe(false);
+      expect(finder).toHaveBeenCalledTimes(1);
+      expect(document.activeElement).not.toBe(input());
+      m.rerender(<DashboardCommandBar hotkeySuspended={false} />);
+      const back = press(window, { key: 'k', ctrlKey: true });
+      expect(back.defaultPrevented).toBe(true);
+      expect(document.activeElement).toBe(input());
+      expect(finder).toHaveBeenCalledTimes(1);
+    } finally {
+      window.removeEventListener('keydown', finder);
+    }
+  });
+
+  it('Ctrl+Shift+K / Ctrl+Alt+K are swallowed (the finder would otherwise toggle) but do not focus the bar', () => {
+    const finder = jest.fn();
+    window.addEventListener('keydown', finder);
+    try {
+      mount(<DashboardCommandBar />);
+      expect(press(window, { key: 'k', ctrlKey: true, shiftKey: true }).defaultPrevented).toBe(
+        true,
+      );
+      expect(press(window, { key: 'k', metaKey: true, altKey: true }).defaultPrevented).toBe(true);
+      expect(finder).not.toHaveBeenCalled();
+      expect(document.activeElement).not.toBe(input());
+    } finally {
+      window.removeEventListener('keydown', finder);
+    }
+  });
+
+  it('a double Ctrl+K keeps focus on the bar (no toggle-off)', () => {
     mount(<DashboardCommandBar />);
-    const a = press(window, { key: 'k', ctrlKey: true });
-    const b = press(window, { key: 'k', metaKey: true });
-    expect(document.activeElement).not.toBe(input());
-    expect(a.defaultPrevented).toBe(false);
-    expect(b.defaultPrevented).toBe(false);
+    press(window, { key: 'k', ctrlKey: true });
+    press(window, { key: 'k', ctrlKey: true });
+    expect(document.activeElement).toBe(input());
   });
 });

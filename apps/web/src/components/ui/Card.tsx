@@ -59,7 +59,8 @@ export function Card({
     <Tag
       data-variant={variant}
       data-state={state}
-      aria-busy={state === 'loading' || undefined}
+      // T-524: no aria-busy here. The loading Card holds a Skeleton whose "Still working…"
+      // status must not sit inside a busy ancestor (the Skeleton marks its own bars busy).
       className={cn(
         'nl rounded-nl-none border-nl-line bg-nl-card text-nl-text border',
         VARIANT[variant],
