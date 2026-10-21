@@ -24,8 +24,11 @@ const WRONG = 'That email and password do not match. Try again, or reset your pa
 const NETWORK = 'Could not reach Lawie. Check your connection and try again.';
 const SERVER = 'Could not sign you in. Try again.';
 const CONSENT_REQUIRED = 'Please accept the Privacy Policy and Terms to continue.';
+// AJ-517-M16 (Ajay, f74ee365): both versions, no date.
 const CONSENT_LABEL =
-  'I have read and agree to the Terms and the Privacy Policy (version 2026-10-15, 15 Oct 2026).';
+  'I have read and agree to the Terms (version 2026-10-15) and the Privacy Policy (version 2026-10-15).';
+const BY_CONTINUING =
+  "By continuing, you agree to Lawie's Terms of Service and confirm you have read our Privacy Policy.";
 
 let root: Root | null = null;
 let host: HTMLElement | null = null;
@@ -178,15 +181,44 @@ describe('consent (AJ-517-M3)', () => {
     expect(box.checked).toBe(false);
     expect(norm(q('label[for="consent"]')!.textContent)).toBe(CONSENT_LABEL);
     expect(CURRENT_PRIVACY_VERSION).toBe('2026-10-15');
+    expect(norm(q('label[for="consent"]')!.textContent)).not.toMatch(/\d{1,2} Oct/);
     const links = Array.from(q('label[for="consent"]')!.querySelectorAll('a'));
     expect(links.map((a) => a.getAttribute('href'))).toEqual(['/terms', '/privacy']);
   });
 
-  it('Sign in has no consent box but keeps the "By continuing" line', async () => {
+  it('Sign in has no consent box; the "By continuing" line sits in the tabpanel just below Google, outside the form (AJ-517-M18)', async () => {
     await mount('mode=signin');
     expect(q('#consent')).toBeNull();
-    expect(norm(q('form')!.textContent)).toContain(
-      "By continuing, you agree to Lawie's Terms of Service",
+    const panel = q('[role="tabpanel"]')!;
+    expect(norm(panel.textContent)).toContain(BY_CONTINUING);
+    expect(norm(q('form')!.textContent)).not.toContain('By continuing');
+    const line = qa('p, div, small, span').find(
+      (e) => norm(e.textContent) === BY_CONTINUING,
+    ) as HTMLElement;
+    expect(line).toBeDefined();
+    expect(q('form')!.contains(line)).toBe(false);
+    expect(panel.contains(line)).toBe(true);
+    // Directly below Continue with Google: Google precedes the line, the form follows it.
+    const order = (a: Node, b: Node) =>
+      Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(order(googleButton(), line)).toBe(true);
+    expect(order(line, q('form')!)).toBe(true);
+    const links = Array.from(line.querySelectorAll('a'));
+    expect(links.map((a) => [norm(a.textContent), a.getAttribute('href')])).toEqual([
+      ['Terms of Service', '/terms'],
+      ['Privacy Policy', '/privacy'],
+    ]);
+  });
+
+  it('Create account does not show the "By continuing" line (it has the consent box)', async () => {
+    await mount('mode=signup');
+    expect(norm(q('[role="tabpanel"]')!.textContent)).not.toContain('By continuing');
+  });
+
+  it('the auth page footer has no Cookie settings button (analytics never loads here)', async () => {
+    await mount('mode=signin');
+    expect(qa('footer button').some((b) => /cookie settings/i.test(b.textContent ?? ''))).toBe(
+      false,
     );
   });
 
@@ -392,13 +424,11 @@ describe('errors (§2.4)', () => {
 
   it('a non-JSON 500 body still gets the banner', async () => {
     setFetch(
-      jest
-        .fn()
-        .mockResolvedValue({
-          ok: false,
-          status: 500,
-          json: async () => Promise.reject(new Error('x')),
-        }),
+      jest.fn().mockResolvedValue({
+        ok: false,
+        status: 500,
+        json: async () => Promise.reject(new Error('x')),
+      }),
     );
     await mount('mode=signin');
     await fillSignin();

@@ -80,4 +80,20 @@ describe('NightFooter grievance line', () => {
     );
     expect(qa('button', f)).toHaveLength(1);
   });
+
+  it('showCookieSettings defaults to true; false removes the button and keeps the links and grievance line', () => {
+    mount(<NightFooter showCookieSettings />);
+    expect(norm(q('footer button')!.textContent)).toBe('Cookie settings');
+    cleanupMounted();
+    mount(<NightFooter showCookieSettings={false} />);
+    const f = q('footer')!;
+    expect(qa('button', f)).toHaveLength(0);
+    expect(norm(f.textContent)).not.toContain('Cookie settings');
+    expect(qa('a', f).map((a) => a.getAttribute('href'))).toEqual(
+      expect.arrayContaining(['/privacy', '/terms', '/refunds', 'mailto:contact@lawie.in']),
+    );
+    cleanupMounted();
+    mount(<NightFooter lang="hi" showCookieSettings={false} />);
+    expect(qa('footer button')).toHaveLength(0);
+  });
 });

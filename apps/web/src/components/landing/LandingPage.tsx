@@ -27,7 +27,6 @@ import { cn } from '@/lib/cn';
 
 const SECTION = 'px-nl-4 py-nl-12 min-[900px]:px-nl-8 min-[900px]:py-nl-16';
 const INNER = 'mx-auto w-full max-w-[1180px]';
-const INNER_NARROW = 'mx-auto w-full max-w-[800px]';
 
 function PrimaryCta({ label, className }: { label: string; className?: string }) {
   return (
@@ -50,18 +49,21 @@ export function LandingPage({ initialLang = 'en' }: { initialLang?: Lang }) {
   const enOnly = hi ? 'en' : undefined;
 
   return (
-    <div lang={lang} className="nl nl-root min-h-screen overflow-x-clip" data-lang={lang}>
+    <div lang={lang} className="nl nl-root min-h-[100svh] overflow-x-clip" data-lang={lang}>
       <NightTopBar lang={lang} onLangChange={setLang} showNav ctaVariant="ghost" />
 
       <main>
         {/* HERO + DEMO */}
-        <section className={cn(SECTION, 'relative isolate')} aria-labelledby="hero-heading">
+        <section
+          className={cn(SECTION, 'pt-nl-6 min-[900px]:pt-nl-16 relative isolate')}
+          aria-labelledby="hero-heading"
+        >
           <Lamp className="-z-10" />
           <DustMotes className="-z-10" />
           <div
             className={cn(
               INNER,
-              'gap-nl-8 grid grid-cols-1 min-[900px]:grid-cols-[1.1fr_1fr] min-[900px]:items-start',
+              'gap-nl-8 grid grid-cols-1 min-[900px]:grid-cols-[1.35fr_1fr] min-[900px]:items-start',
             )}
           >
             <h1
@@ -81,7 +83,7 @@ export function LandingPage({ initialLang = 'en' }: { initialLang?: Lang }) {
                   {copy.hero.secondary}
                 </Link>
               </div>
-              <div className="nl-body-sm text-nl-muted">
+              <div className="nl-body-sm text-nl-soft">
                 <p>{copy.hero.noCard}</p>
                 <p>{copy.hero.verify}</p>
               </div>
@@ -100,12 +102,10 @@ export function LandingPage({ initialLang = 'en' }: { initialLang?: Lang }) {
               {copy.steps.title}
             </h2>
             <ol className="mt-nl-8 gap-nl-4 grid list-none grid-cols-1 p-0 min-[640px]:grid-cols-3">
-              {copy.steps.items.map((step, i) => (
+              {/* Order is carried by the <ol>; no decorative 01 / 02 / 03 (craft floor). */}
+              {copy.steps.items.map((step) => (
                 <li key={step.title} className="border-nl-line bg-nl-card p-nl-6 border">
-                  <span aria-hidden="true" className="nl-label text-nl-brass-dark tabular-nums">
-                    {String(i + 1).padStart(2, '0')}
-                  </span>
-                  <h3 className={cn(h3, 'mt-nl-2 text-nl-text')}>{step.title}</h3>
+                  <h3 className={cn(h3, 'text-nl-text')}>{step.title}</h3>
                   <p className="nl-body text-nl-soft mt-nl-2">{step.body}</p>
                 </li>
               ))}
@@ -136,7 +136,7 @@ export function LandingPage({ initialLang = 'en' }: { initialLang?: Lang }) {
                   className={cn(
                     'bg-nl-ox relative flex w-[52px] shrink-0 items-center justify-center text-white',
                     'transition-transform duration-[250ms] ease-[ease] motion-reduce:transition-none',
-                    'motion-safe:[@media(pointer:fine)_and_(min-width:641px)]:hover:-translate-y-[14px]',
+                    'motion-safe:[@media(hover:hover)_and_(pointer:fine)_and_(min-width:641px)]:hover:-translate-y-[14px]',
                   )}
                   style={{ height: [196, 210, 184, 202, 190][i % 5] }}
                 >
@@ -162,7 +162,7 @@ export function LandingPage({ initialLang = 'en' }: { initialLang?: Lang }) {
               {copy.prices.title}
             </h2>
             <p className="nl-body text-nl-soft mt-nl-3 max-w-[65ch]">{copy.prices.intro}</p>
-            <div className="mt-nl-8 gap-nl-4 grid grid-cols-1 min-[640px]:grid-cols-2 min-[900px]:max-w-[800px]">
+            <div className="mt-nl-8 gap-nl-4 grid grid-cols-1 min-[640px]:grid-cols-2">
               <NightPlanCard
                 testId="free"
                 name={copy.prices.cards.free.name}
@@ -189,7 +189,7 @@ export function LandingPage({ initialLang = 'en' }: { initialLang?: Lang }) {
                 {copy.prices.seeAll}
               </Link>
             </p>
-            <div className="nl-body-sm text-nl-muted mt-nl-2 max-w-[65ch]">
+            <div className="nl-body-sm text-nl-soft mt-nl-2 max-w-[65ch]">
               <p>{copy.prices.note}</p>
               <p className="mt-nl-1">{copy.prices.topUp}</p>
             </div>
@@ -246,7 +246,7 @@ export function LandingPage({ initialLang = 'en' }: { initialLang?: Lang }) {
           className={cn(SECTION, 'bg-nl-wood')}
           aria-labelledby="faq-heading"
         >
-          <div className={INNER_NARROW}>
+          <div className={INNER}>
             <h2 id="faq-heading" lang={enOnly} className="nl-h1 text-nl-text">
               {copy.faq.title}
             </h2>
@@ -260,7 +260,7 @@ export function LandingPage({ initialLang = 'en' }: { initialLang?: Lang }) {
 
         {/* FINAL CALL TO ACTION */}
         <section className={SECTION} aria-labelledby="final-heading">
-          <div className={cn(INNER_NARROW, 'text-center')}>
+          <div className={cn(INNER, 'text-center')}>
             <h2 id="final-heading" className="nl-h1 text-nl-text">
               {copy.final.heading}
             </h2>

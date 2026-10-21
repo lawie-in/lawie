@@ -28,7 +28,7 @@ export interface NightTopBarProps {
 }
 
 const NAV_LINK =
-  'nl-focus nl-body-sm rounded-nl-sm px-nl-3 text-nl-soft hover:text-nl-text inline-flex min-h-[44px] items-center font-medium no-underline';
+  'nl-focus nl-body-sm rounded-nl-sm px-nl-3 text-nl-soft [@media(hover:hover)_and_(pointer:fine)]:hover:text-nl-text inline-flex min-h-[44px] items-center font-medium no-underline touch-manipulation';
 
 export function LanguageToggle({ lang, onChange }: { lang: Lang; onChange: (l: Lang) => void }) {
   const copy = landingCopy(lang).language;
@@ -42,7 +42,7 @@ export function LanguageToggle({ lang, onChange }: { lang: Lang; onChange: (l: L
           aria-pressed={lang === l}
           onClick={() => onChange(l)}
           className={cn(
-            'nl-focus nl-body-sm rounded-nl-sm px-nl-3 text-nl-soft inline-flex min-h-[44px] min-w-[44px] items-center justify-center font-medium',
+            'nl-focus nl-body-sm rounded-nl-sm px-nl-3 text-nl-soft inline-flex min-h-[44px] min-w-[44px] touch-manipulation items-center justify-center font-medium',
             lang === l && 'bg-nl-brass-light text-nl-brass-dark',
           )}
         >
@@ -115,7 +115,6 @@ export function NightTopBar({
           {lang_}
           {toggle}
           {showActions ? signIn : null}
-          {navLinks ? <div className="flex w-full flex-wrap">{navLinks}</div> : null}
         </>
       }
     />

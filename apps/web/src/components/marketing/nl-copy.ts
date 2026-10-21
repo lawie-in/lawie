@@ -362,19 +362,11 @@ export function themeCopy(lang: Lang) {
 
 // ── Sign-up and login (§2.1, §2.2, §2.4; AJ-517-M1..M4, M9) ───────────────────
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
 /**
- * `15 Oct 2026` from a privacy version id like '2026-10-15' (or '2026-10-12b'). Display only:
- * the id stays an opaque string everywhere else. Empty when the id has no date prefix.
+ * The Terms version the auth service stores at sign-up. Must equal CURRENT_TERMS_VERSION in
+ * apps/auth/src/models/User.model.ts (a test pins the two); change both together.
  */
-export function privacyVersionDate(version: string): string {
-  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(version);
-  if (!m) return '';
-  const month = MONTHS[Number(m[2]) - 1];
-  if (!month) return '';
-  return `${Number(m[3])} ${month} ${m[1]}`;
-}
+export const TERMS_VERSION = '2026-10-15';
 
 export const AUTH_COPY = {
   // §2.1. Tab order per Priya: Create account first, then Sign in.
@@ -443,20 +435,20 @@ export const AUTH_COPY = {
 };
 
 /**
- * Consent on Create account (AJ-511-M11, AJ-517-M3). The web has no Terms version source (the
- * Terms version CURRENT_TERMS_VERSION lives only in apps/auth), so the M11 line is used with the
- * Privacy Policy version and date only. Unticked by default; it gates Create account and Google.
- * The register body is unchanged: the server stamps the version.
+ * Consent on Create account (AJ-511-M11, AJ-517-M3, worded by AJ-517-M16, Ajay f74ee365):
+ * `I have read and agree to the Terms (version {terms}) and the Privacy Policy (version {privacy}).`
+ * No date. {terms} = TERMS_VERSION, {privacy} = CURRENT_PRIVACY_VERSION (both pinned by tests).
+ * Unticked by default; it gates Create account and Google. The register body is unchanged: the
+ * server stamps both versions. No version bump (AJ-517-M19).
  */
 export const CONSENT_COPY = {
+  termsVersion: TERMS_VERSION,
   version: CURRENT_PRIVACY_VERSION,
-  date: privacyVersionDate(CURRENT_PRIVACY_VERSION),
-  // "I have read and agree to the Terms and the Privacy Policy (version {version}, {date})."
   before: 'I have read and agree to the ',
   terms: 'Terms',
-  middle: ' and the ',
+  middle: ` (version ${TERMS_VERSION}) and the `,
   privacy: 'Privacy Policy',
-  after: ` (version ${CURRENT_PRIVACY_VERSION}, ${privacyVersionDate(CURRENT_PRIVACY_VERSION)}).`,
+  after: ` (version ${CURRENT_PRIVACY_VERSION}).`,
   // AJ-517-M3, signed.
   required: 'Please accept the Privacy Policy and Terms to continue.',
 };

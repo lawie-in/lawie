@@ -36,6 +36,13 @@ afterEach(() => {
 const section = (id: string) => q(`section[aria-labelledby="${id}"]`) as HTMLElement;
 const pageText = () => norm(document.body.textContent);
 
+describe('landing: footer cookie settings', () => {
+  it('the landing footer keeps the Cookie settings button (analytics loads here)', () => {
+    mount(<LandingPage />);
+    expect(norm(q('footer button')!.textContent)).toBe('Cookie settings');
+  });
+});
+
 describe('landing: structure (AC1)', () => {
   it('has the sections in spec order, each with its signed heading', () => {
     mount(<LandingPage />);

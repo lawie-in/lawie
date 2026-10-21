@@ -6,8 +6,8 @@ import { cn } from '@/lib/cn';
 
 const BASE =
   'nl nl-focus gap-nl-2 rounded-nl-md relative inline-flex select-none items-center justify-center ' +
-  'font-nl-body text-[15px] font-medium leading-5 no-underline h-11 min-w-[44px] px-nl-5 ' +
-  'hover:shadow-nl-halo hover:-translate-y-px motion-reduce:hover:translate-y-0 text-center';
+  'font-nl-body text-[15px] font-medium leading-5 no-underline min-h-[44px] py-nl-2 min-w-[44px] px-nl-5 ' +
+  '[@media(hover:hover)_and_(pointer:fine)]:hover:shadow-nl-halo [@media(hover:hover)_and_(pointer:fine)]:hover:-translate-y-px motion-reduce:[@media(hover:hover)_and_(pointer:fine)]:hover:translate-y-0 text-center touch-manipulation';
 
 export function nlLinkButton(variant: 'primary' | 'ghost', className?: string): string {
   return cn(

@@ -25,6 +25,13 @@ afterEach(() => cleanupMounted());
 const plan = (id: string) => q(`[data-plan="${id}"]`) as HTMLElement;
 const text = () => norm(document.body.textContent);
 
+describe('pricing footer', () => {
+  it('keeps the Cookie settings button', () => {
+    mount(<PricingPage />);
+    expect(norm(q('footer button')!.textContent)).toBe('Cookie settings');
+  });
+});
+
 describe('pricing page (T-517)', () => {
   it('shows Free, Solo and Pro cards in that order, with one h1', () => {
     mount(<PricingPage />);

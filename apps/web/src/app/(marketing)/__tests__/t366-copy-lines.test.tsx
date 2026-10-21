@@ -157,6 +157,10 @@ describe('T-366 every 5-Ink sign-up promise says verified (AC5)', () => {
   });
 });
 
+// Plan-name contexts for a capital "Free": the card title, "Everything in Free", "the Free plan".
+const PLAN_NAME_FREE =
+  /(Free₹0|Free, p|Free pl|Everything in Free|Free\s?Start|Free\s?\u20B9|The Free)/;
+
 describe('T-398 / T-517 pricing page copy (Ajay conditions 1-4)', () => {
   const planCard = (id: string) => container.querySelector(`[data-plan="${id}"]`) as HTMLElement;
 
@@ -190,6 +194,25 @@ describe('T-398 / T-517 pricing page copy (Ajay conditions 1-4)', () => {
     expect(lower.length).toBeGreaterThanOrEqual(1);
     for (const m of lower) {
       expect(text.slice(m.index! - 2, m.index! + 8)).toBe('5 free Ink');
+    }
+  });
+
+  it('T-398: every capital "Free" on pricing is the plan name (card title, "Everything in Free", plan-name contexts)', () => {
+    const text = norm(render(<PricingPage />));
+    const caps = Array.from(text.matchAll(/free/gi)).filter((m) => m[0] !== 'free');
+    expect(caps.length).toBeGreaterThanOrEqual(2); // the card title and "Everything in Free"
+    for (const m of caps) {
+      const around = text.slice(Math.max(0, m.index! - 14), m.index! + 8);
+      expect(around).toMatch(PLAN_NAME_FREE);
+    }
+  });
+
+  it('T-398: every capital "Free" on the home page is the plan name too', () => {
+    const text = norm(render(<HomePage />));
+    const caps = Array.from(text.matchAll(/free/gi)).filter((m) => m[0] !== 'free');
+    for (const m of caps) {
+      const around = text.slice(Math.max(0, m.index! - 14), m.index! + 8);
+      expect(around).toMatch(PLAN_NAME_FREE);
     }
   });
 

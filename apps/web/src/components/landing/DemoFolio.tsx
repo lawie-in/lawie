@@ -136,7 +136,7 @@ export function DemoFolio({ lang }: { lang: Lang }) {
           ))}
         </div>
         <figcaption className="mt-nl-4 gap-nl-3 flex flex-wrap items-center justify-between">
-          <span className="nl-body-sm text-nl-muted">{copy.caption}</span>
+          <span className="nl-body-sm text-nl-soft">{copy.caption}</span>
           <button
             type="button"
             onClick={() => (reduced ? end() : play())}

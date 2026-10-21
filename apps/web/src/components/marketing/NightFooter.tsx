@@ -5,7 +5,9 @@
 // - Grievance: the AJ-517-M11 line (with the officer's name only when
 //   NEXT_PUBLIC_GRIEVANCE_OFFICER_NAME is set), not a "Grievance Officer" link (AJ-517-M8).
 // - "Case diary and reminders: coming" (spec): not in the signed copy (§0 decision 3, no "coming").
-// - Cookie settings (T-310 S9) is kept: it is how a visitor reopens the analytics choice.
+// - Cookie settings (T-310 S9) is kept: it is how a visitor reopens the analytics choice. Pass
+//   showCookieSettings={false} where analytics never loads (e.g. /login, not in
+//   ANALYTICS_ALLOWED_PATHS), so the button is never dead.
 
 import Link from 'next/link';
 
@@ -15,7 +17,13 @@ import { NL_TEXT_LINK } from './nl-link';
 import { CONSENT_STRINGS, openConsentSettings } from '@/components/AnalyticsConsent';
 import { LawieMark } from '@/components/shell';
 
-export function NightFooter({ lang = 'en' }: { lang?: Lang }) {
+export function NightFooter({
+  lang = 'en',
+  showCookieSettings = true,
+}: {
+  lang?: Lang;
+  showCookieSettings?: boolean;
+}) {
   const copy = footerCopy(lang);
   return (
     <footer className="nl border-nl-line bg-nl-wood px-nl-4 py-nl-8 text-nl-soft min-[900px]:px-nl-8 border-t">
@@ -48,16 +56,18 @@ export function NightFooter({ lang = 'en' }: { lang?: Lang }) {
               {copy.links.refunds}
             </Link>
           </li>
-          <li lang="en">
-            <button
-              type="button"
-              aria-haspopup="true"
-              className={`${NL_TEXT_LINK} border-0 bg-transparent p-0`}
-              onClick={(e) => openConsentSettings(e.currentTarget)}
-            >
-              {CONSENT_STRINGS.S9}
-            </button>
-          </li>
+          {showCookieSettings ? (
+            <li lang="en">
+              <button
+                type="button"
+                aria-haspopup="true"
+                className={`${NL_TEXT_LINK} border-0 bg-transparent p-0`}
+                onClick={(e) => openConsentSettings(e.currentTarget)}
+              >
+                {CONSENT_STRINGS.S9}
+              </button>
+            </li>
+          ) : null}
         </ul>
       </div>
     </footer>

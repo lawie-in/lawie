@@ -40,7 +40,7 @@ export function NightPlanCard({
       className="nl border-nl-line bg-nl-card p-nl-6 shadow-nl-card flex min-w-0 flex-col border"
     >
       <h3 className={cn(largeHeading ? 'nl-h2' : 'nl-h3', 'text-nl-text')}>{name}</h3>
-      {subline ? <p className="nl-body-sm text-nl-muted">{subline}</p> : null}
+      {subline ? <p className="nl-body-sm text-nl-soft">{subline}</p> : null}
       <p className="nl-h2 mt-nl-3 text-nl-text tabular-nums">{price}</p>
       <p className="nl-body text-nl-soft mt-nl-1">{ink}</p>
       <ul className="mt-nl-4 gap-nl-2 nl-body text-nl-soft flex list-none flex-col p-0">

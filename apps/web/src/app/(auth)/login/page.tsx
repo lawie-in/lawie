@@ -582,7 +582,7 @@ function LoginContent() {
   ];
 
   return (
-    <div className="nl nl-root flex min-h-screen flex-col overflow-x-clip">
+    <div className="nl nl-root flex min-h-[100svh] flex-col overflow-x-clip">
       {showOfferModal && showReferralApplied && isSignup && (
         <ReferralOfferModal
           code={referralCode.trim().toUpperCase()}
@@ -595,7 +595,7 @@ function LoginContent() {
 
       <NightTopBar showActions={false} />
 
-      <main className="px-nl-4 py-nl-8 min-[900px]:py-nl-12 flex flex-1 flex-col items-center">
+      <main className="px-nl-4 py-nl-4 min-[640px]:py-nl-8 min-[900px]:py-nl-12 flex flex-1 flex-col items-center">
         {/* The folio holds the form; the lamp pool sits on it (spec 02). */}
         <div className="border-nl-line bg-nl-card shadow-nl-card relative w-full max-w-md overflow-hidden border">
           <Lamp />
@@ -645,7 +645,7 @@ function LoginContent() {
                           'nl-focus nl-body -mb-px min-h-[44px] border-b-2 font-medium',
                           selected
                             ? 'border-nl-brass text-nl-text'
-                            : 'text-nl-soft hover:text-nl-text border-transparent',
+                            : 'text-nl-soft [@media(hover:hover)_and_(pointer:fine)]:hover:text-nl-text border-transparent',
                         )}
                       >
                         {label}
@@ -699,7 +699,7 @@ function LoginContent() {
                           }
                           className={cn(
                             inputClass(false),
-                            'min-w-0 flex-1 font-mono uppercase tracking-widest placeholder:font-sans placeholder:normal-case placeholder:tracking-normal',
+                            'placeholder:font-nl-body min-w-0 flex-1 font-mono uppercase tracking-widest placeholder:normal-case placeholder:tracking-normal',
                           )}
                         />
                         <button
@@ -746,15 +746,32 @@ function LoginContent() {
                     onClick={() => void handleGoogleLogin()}
                     type="button"
                     disabled={submitting}
-                    className="nl-focus rounded-nl-md border-nl-line bg-nl-card mt-nl-5 gap-nl-3 px-nl-4 text-nl-text hover:shadow-nl-halo flex min-h-[48px] w-full items-center justify-center border font-medium disabled:opacity-50"
+                    className="nl-focus rounded-nl-md border-nl-line bg-nl-card mt-nl-5 gap-nl-3 px-nl-4 text-nl-text [@media(hover:hover)_and_(pointer:fine)]:hover:shadow-nl-halo flex min-h-[48px] w-full touch-manipulation items-center justify-center border font-medium disabled:opacity-50"
                   >
                     <GoogleIcon />
                     {AUTH_COPY.google}
                   </button>
+                  {/* Sign in tab only, beside the Google button (AJ-517-M18): the T-234 consent
+                      line (Ajay, 11 Oct 2026), word for word, with its Terms and Privacy links. A
+                      Google sign-in from this tab can still create an account and has no
+                      checkbox. */}
+                  {!isSignup && (
+                    <p className="nl-body-sm mt-nl-3 text-nl-soft">
+                      {AUTH_COPY.byContinuing.before}
+                      <Link href="/terms" target="_blank" rel="noopener" className={TEXT_LINK}>
+                        {AUTH_COPY.byContinuing.terms}
+                      </Link>
+                      {AUTH_COPY.byContinuing.middle}
+                      <Link href="/privacy" target="_blank" rel="noopener" className={TEXT_LINK}>
+                        {AUTH_COPY.byContinuing.privacy}
+                      </Link>
+                      {AUTH_COPY.byContinuing.after}
+                    </p>
+                  )}
 
                   <div className="my-nl-5 gap-nl-3 flex items-center">
                     <div className="bg-nl-line h-px flex-1" />
-                    <span className="nl-body-sm text-nl-muted">{AUTH_COPY.orEmail}</span>
+                    <span className="nl-body-sm text-nl-soft">{AUTH_COPY.orEmail}</span>
                     <div className="bg-nl-line h-px flex-1" />
                   </div>
 
@@ -769,6 +786,7 @@ function LoginContent() {
                           id="name"
                           type="text"
                           autoComplete="name"
+                          maxLength={100}
                           value={name}
                           disabled={submitting}
                           onChange={(e) => onChangeField('name', e.target.value)}
@@ -780,7 +798,7 @@ function LoginContent() {
                           )}
                           className={inputClass(isInvalid('name'))}
                         />
-                        <p id="name-help" className="nl-body-sm mt-nl-1 text-nl-muted">
+                        <p id="name-help" className="nl-body-sm mt-nl-1 text-nl-soft">
                           {AUTH_COPY.nameHelp}
                         </p>
                         {fieldErrors.name && (
@@ -800,6 +818,7 @@ function LoginContent() {
                         id="email"
                         type="email"
                         autoComplete="email"
+                        maxLength={254}
                         placeholder={AUTH_COPY.emailPlaceholder}
                         value={email}
                         disabled={submitting}
@@ -829,7 +848,7 @@ function LoginContent() {
                         {!isSignup && (
                           <Link
                             href="/forgot-password"
-                            className="nl-focus nl-body-sm rounded-nl-sm text-nl-brass-dark -my-3 -mr-2 inline-flex min-h-11 min-w-11 items-center justify-end px-2 font-medium underline-offset-4 hover:underline"
+                            className="nl-focus nl-body-sm rounded-nl-sm text-nl-brass-dark -my-3 -mr-2 inline-flex min-h-11 min-w-11 items-center justify-end px-2 font-medium underline-offset-4 [@media(hover:hover)_and_(pointer:fine)]:hover:underline"
                           >
                             {AUTH_COPY.forgot}
                           </Link>
@@ -881,7 +900,7 @@ function LoginContent() {
                                     />
                                   ) : (
                                     <Circle
-                                      className="text-nl-muted h-4 w-4 shrink-0"
+                                      className="text-nl-soft h-4 w-4 shrink-0"
                                       aria-hidden="true"
                                     />
                                   )}
@@ -957,7 +976,7 @@ function LoginContent() {
                         className="nl-focus bg-nl-err-light p-nl-4 nl-body-sm text-nl-err gap-nl-2 flex items-start"
                       >
                         <AlertTriangle className="mt-1 h-4 w-4 shrink-0" aria-hidden="true" />
-                        <div className="min-w-0 flex-1">
+                        <div className="min-w-0 flex-1 [overflow-wrap:anywhere]">
                           {serverError.kind === 'list' &&
                             (serverError.items.length > 1 ? (
                               <>
@@ -1038,7 +1057,7 @@ function LoginContent() {
                         type="submit"
                         disabled={submitting}
                         aria-busy={submitting || undefined}
-                        className="nl-focus rounded-nl-md bg-nl-brass text-nl-on-brass gap-nl-2 enabled:hover:shadow-nl-halo flex h-11 w-full items-center justify-center text-[15px] font-medium disabled:cursor-wait disabled:opacity-80"
+                        className="nl-focus rounded-nl-md bg-nl-brass text-nl-on-brass gap-nl-2 [@media(hover:hover)_and_(pointer:fine)]:enabled:hover:shadow-nl-halo flex h-11 w-full touch-manipulation items-center justify-center text-[15px] font-medium disabled:cursor-wait disabled:opacity-80"
                       >
                         {submitting && <Spinner />}
                         {submitting
@@ -1047,28 +1066,6 @@ function LoginContent() {
                             ? AUTH_COPY.submit.signup
                             : AUTH_COPY.submit.signin}
                       </button>
-
-                      {/* Sign in tab only: the T-234 consent line (Ajay, 11 Oct 2026), word for
-                          word. A Google sign-in from this tab can still create an account and
-                          has no checkbox, so the line stays here. */}
-                      {!isSignup && (
-                        <p className="nl-body-sm mt-nl-3 text-nl-muted">
-                          {AUTH_COPY.byContinuing.before}
-                          <Link href="/terms" target="_blank" rel="noopener" className={TEXT_LINK}>
-                            {AUTH_COPY.byContinuing.terms}
-                          </Link>
-                          {AUTH_COPY.byContinuing.middle}
-                          <Link
-                            href="/privacy"
-                            target="_blank"
-                            rel="noopener"
-                            className={TEXT_LINK}
-                          >
-                            {AUTH_COPY.byContinuing.privacy}
-                          </Link>
-                          {AUTH_COPY.byContinuing.after}
-                        </p>
-                      )}
                     </div>
                   </form>
 
@@ -1093,7 +1090,8 @@ function LoginContent() {
         </div>
       </main>
 
-      <NightFooter />
+      {/* /login is not in ANALYTICS_ALLOWED_PATHS, so Cookie settings would do nothing here. */}
+      <NightFooter showCookieSettings={false} />
     </div>
   );
 }
@@ -1101,7 +1099,7 @@ function LoginContent() {
 // useSearchParams in a client page needs a Suspense boundary for `next build`.
 export default function LoginPage() {
   return (
-    <Suspense fallback={<main className="nl nl-root min-h-screen" />}>
+    <Suspense fallback={<main className="nl nl-root min-h-[100svh]" />}>
       <LoginContent />
     </Suspense>
   );

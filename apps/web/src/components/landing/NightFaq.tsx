@@ -4,6 +4,7 @@
 // load; opening another closes it. Disclosure buttons with aria-expanded / aria-controls, inside
 // headings. No height animation (nothing to stop under reduced motion).
 
+import { Plus } from 'lucide-react';
 import { useId, useState } from 'react';
 
 import type { FaqItem } from '@/components/marketing/nl-copy';
@@ -27,18 +28,17 @@ export function NightFaq({ items, lang }: { items: FaqItem[]; lang?: string }) {
                 aria-expanded={isOpen}
                 aria-controls={panelId}
                 onClick={() => setOpen(isOpen ? null : i)}
-                className="nl-focus gap-nl-4 py-nl-4 text-nl-text flex min-h-[44px] w-full items-center justify-between border-0 bg-transparent text-left"
+                className="nl-focus gap-nl-4 py-nl-4 text-nl-text flex min-h-[44px] w-full touch-manipulation items-center justify-between border-0 bg-transparent text-left"
               >
                 <span>{item.q}</span>
-                <span
+                <Plus
                   aria-hidden="true"
+                  strokeWidth={1.5}
                   className={cn(
-                    'text-nl-brass-dark shrink-0 text-2xl leading-none transition-transform duration-150 motion-reduce:transition-none',
+                    'text-nl-brass-dark h-5 w-5 shrink-0 transition-transform duration-150 ease-out motion-reduce:transition-none',
                     isOpen && 'rotate-45',
                   )}
-                >
-                  +
-                </span>
+                />
               </button>
             </h3>
             <div

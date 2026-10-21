@@ -54,7 +54,7 @@ const SECTION = 'px-nl-4 py-nl-12 min-[900px]:px-nl-8 min-[900px]:py-nl-16';
 export default function PricingPage() {
   const cards = planCards('en');
   return (
-    <div lang="en" className="nl nl-root min-h-screen overflow-x-clip">
+    <div lang="en" className="nl nl-root min-h-[100svh] overflow-x-clip">
       <NightTopBar showNav anchorBase="/" />
       <main>
         <section className={SECTION} aria-labelledby="pricing-heading">
@@ -93,7 +93,7 @@ export default function PricingPage() {
                 href={SIGNUP_HREF}
               />
             </div>
-            <p className="nl-body-sm text-nl-muted mt-nl-4 max-w-[65ch]">
+            <p className="nl-body-sm text-nl-soft mt-nl-4 max-w-[65ch]">
               {PRICING_COPY.underCards}
             </p>
             <p className="nl-body text-nl-soft mt-nl-6 max-w-[65ch]">{TOP_UP_LINE.en}</p>
@@ -101,7 +101,7 @@ export default function PricingPage() {
         </section>
 
         <section className={`${SECTION} bg-nl-wood`} aria-labelledby="pricing-faq-heading">
-          <div className="mx-auto w-full max-w-[800px]">
+          <div className="mx-auto w-full max-w-[1180px]">
             <h2 id="pricing-faq-heading" className="nl-h1 text-nl-text">
               {PRICING_COPY.faqTitle}
             </h2>
