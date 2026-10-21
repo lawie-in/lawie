@@ -1,6 +1,6 @@
 /**
  * T-517 round 3: DemoFolio hairline and hydration-safe reduced motion, shelf (edge, spine label,
- * focus-within), plan card shadow and heading level, primary-only hover halo.
+ * focus-within removed in T-528), plan card shadow and heading level, primary-only hover halo.
  */
 import { act } from 'react';
 import { createRoot, hydrateRoot } from 'react-dom/client';
@@ -9,7 +9,7 @@ import { DemoFolio } from '../DemoFolio';
 import { LandingPage } from '../LandingPage';
 
 import { NightPlanCard } from '@/components/marketing/NightPlanCard';
-import { nlLinkButton } from '@/components/marketing/nl-link';
+import { CONTROL_LINE, nlLinkButton } from '@/components/marketing/nl-link';
 import { landingCopy } from '@/components/marketing/nl-copy';
 import {
   cleanupMounted,
@@ -199,18 +199,23 @@ describe('nl-link hover (primary only)', () => {
     const c = nlLinkButton('ghost', 'mt-nl-6 w-full');
     expect(c).not.toContain('shadow-nl-halo');
     expect(c).not.toContain('translate');
-    expect(c).not.toMatch(/hover:/);
-    expect(c).toContain('border-nl-line');
+    // T-528: ghost has a colour-only hover (border Brass, ground Brass Soft); nothing else.
+    expect(c).not.toMatch(/hover:(shadow|[^ ]*translate)/);
+    expect(c).toContain(CONTROL_LINE);
   });
 
   it('a caller className does not reintroduce hover on ghost; the shared base has none', () => {
-    expect(nlLinkButton('ghost')).not.toMatch(/hover:/);
+    const hovers = nlLinkButton('ghost')
+      .split(/\s+/)
+      .filter((x) => x.includes('hover:'));
+    expect(hovers.length).toBeGreaterThan(0);
+    for (const h of hovers) expect(h).toMatch(/hover:(border-nl-brass|bg-nl-brass-light)$/);
     expect(nlLinkButton('primary')).toContain('bg-nl-brass');
   });
 });
 
 describe('landing shelf round 3', () => {
-  it('shelf edge is 10px, spine label is Tiro 15px, spines also lift on focus-within', () => {
+  it('shelf edge is 10px, spine label is Tiro 15px, spines lift on hover only (the focus-within class was dead and is gone)', () => {
     mount(<LandingPage />);
     const shelf = q('ul[aria-label]')!.parentElement!.querySelector('ul.bg-nl-wood') as HTMLElement;
     expect(shelf).not.toBeNull();
@@ -221,9 +226,7 @@ describe('landing shelf round 3', () => {
     expect(spines.length).toBeGreaterThan(0);
     for (const li of spines) {
       const c = classes(li);
-      expect(c).toContain(
-        'motion-safe:[@media(pointer:fine)_and_(min-width:641px)]:focus-within:-translate-y-[14px]',
-      );
+      expect(c).not.toContain('focus-within');
       expect(c).toContain(
         'motion-safe:[@media(hover:hover)_and_(pointer:fine)_and_(min-width:641px)]:hover:-translate-y-[14px]',
       );

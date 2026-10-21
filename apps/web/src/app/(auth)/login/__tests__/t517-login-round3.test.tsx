@@ -9,6 +9,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 
 import LoginPage from '../page';
 
+import { CONTROL_LINE } from '@/components/marketing/nl-link';
+
 jest.mock('@/context/AuthContext', () => ({ useAuth: () => ({ login: jest.fn() }) }));
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -62,7 +64,7 @@ afterEach(() => {
 describe('folio: top hairline (round 3, MUST b)', () => {
   it.each(['mode=signup', 'mode=signin'])('%s: the folio has a 1px brass top border', async (m) => {
     await mount(m);
-    const folio = q('#auth-panel')!.closest('.max-w-md') as HTMLElement;
+    const folio = q('#auth-panel')!.closest('.max-w-\\[440px\\]') as HTMLElement;
     const c = folio.className.split(/\s+/);
     expect(c).toContain('border-t-nl-brass');
     expect(c).toContain('border'); // 1px on all sides
@@ -78,7 +80,8 @@ describe('folio: underline inputs (round 3, MUST a)', () => {
     const c = cls(id);
     expect(c).toEqual(expect.arrayContaining(['border-0', 'border-b', 'rounded-none', 'px-0']));
     expect(c).toContain('bg-transparent');
-    expect(c).toContain('border-nl-line');
+    expect(c).toContain(CONTROL_LINE);
+    expect(c).not.toContain('border-nl-line');
     expect(c).toContain('focus:border-nl-brass');
     expect(c).toContain('focus:border-b-2');
     expect(c).toContain('focus:pb-[7px]'); // the extra pixel comes out of the padding
@@ -97,7 +100,7 @@ describe('folio: underline inputs (round 3, MUST a)', () => {
   it('the referral input stays boxed', async () => {
     await mount('mode=signup&ref=ABCD1234');
     const c = cls('#referral-code');
-    expect(c).toEqual(expect.arrayContaining(['rounded-nl-md', 'border', 'border-nl-line']));
+    expect(c).toEqual(expect.arrayContaining(['rounded-nl-md', 'border', CONTROL_LINE]));
     expect(c).toContain('bg-nl-card');
     expect(c).not.toContain('border-b');
     expect(c).not.toContain('rounded-none');
@@ -109,7 +112,7 @@ describe('folio: underline inputs (round 3, MUST a)', () => {
     for (const id of ['#name', '#email', '#password']) {
       const c = cls(id);
       expect(c).toContain('border-nl-err');
-      expect(c).not.toContain('border-nl-line');
+      expect(c).not.toContain(CONTROL_LINE);
       expect(c).not.toContain('focus:border-nl-brass');
       expect(c).toContain('border-b');
       expect(q(id)!.getAttribute('aria-invalid')).toBe('true');
@@ -122,7 +125,7 @@ describe('folio: underline inputs (round 3, MUST a)', () => {
     expect(cls('#email')).toContain('border-nl-err');
     await act(async () => setInput(q<HTMLInputElement>('#email')!, 'a@example.com'));
     await submit();
-    expect(cls('#email')).toContain('border-nl-line');
+    expect(cls('#email')).toContain(CONTROL_LINE);
     expect(cls('#email')).not.toContain('border-nl-err');
   });
 });
@@ -164,9 +167,9 @@ describe('break-ui on the underline fields', () => {
     }
   });
 
-  it('narrow container: folio is w-full max-w-md and clips; the page clips horizontal overflow', async () => {
+  it('narrow container: folio is w-full max-w-[440px] and clips; the page clips horizontal overflow', async () => {
     await mount('mode=signup');
-    const folio = q('#auth-panel')!.closest('.max-w-md') as HTMLElement;
+    const folio = q('#auth-panel')!.closest('.max-w-\\[440px\\]') as HTMLElement;
     expect(folio.className).toContain('w-full');
     expect(folio.className).toContain('overflow-hidden');
     expect(q('.nl-root')!.className).toContain('overflow-x-clip');
@@ -203,7 +206,7 @@ describe('final pass: focus ring, touch, padding', () => {
 
   it('the folio inner padding is p-nl-6, then p-nl-10 from 900px; the old p-nl-5 / p-nl-8 are gone', async () => {
     await mount('mode=signup');
-    const folio = q('#auth-panel')!.closest('.max-w-md') as HTMLElement;
+    const folio = q('#auth-panel')!.closest('.max-w-\\[440px\\]') as HTMLElement;
     const inner = Array.from(folio.children).find((c) =>
       c.className.includes('min-[900px]:p-nl-10'),
     ) as HTMLElement;
