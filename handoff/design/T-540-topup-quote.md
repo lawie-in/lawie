@@ -38,3 +38,7 @@ Build rules (additions to point 5a):
 v2 note (not T-540): with Ink v2 lots (ADR-026), coupon Ink should be its own lot with an expiry, for example 90 days, so free Ink is not a liability with no end date. Ajay words it then.
 
 Vikram, CFO
+
+## Arjun (21 Oct 2026) — after Vikram's ruling
+
+(a) free-grant path stands; design point 5 is resolved. One precision on Vikram's rule 3: the rounding to ₹1 for `0 < finalPaise < 100` happens **inside `quoteTopup()`**, so validate shows ₹1 and order charges ₹1 — the displayed total and the charge stay byte-identical, which is the whole ticket. Rules 1, 2 and 4 are AC. The v2 note (coupon Ink as its own expiring lot) goes to the Ink v2 ledger design, not this ticket.
