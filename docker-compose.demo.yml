@@ -13,6 +13,7 @@ services:
       dockerfile: apps/web/Dockerfile
       args:
         NEXT_PUBLIC_API_URL: https://demo.lawie.in
+        NEXT_PUBLIC_GRIEVANCE_OFFICER_NAME: ${NEXT_PUBLIC_GRIEVANCE_OFFICER_NAME:-}
     container_name: lawie_web
     restart: unless-stopped
     env_file: .env.demo
