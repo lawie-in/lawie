@@ -10,3 +10,8 @@
 
 ## Acceptance criteria
 Fix or record as accepted (Arjun) each of the five optional findings listed in the last section of `handoff/tickets/T-527-reconcile-before-create-at-razorpay.md`. Billing tests green, Razorpay mocked.
+
+## Added from T-527's delta review (21 Oct 2026)
+- `RAZORPAY_KEY_GUARD` fails open on a typo; validate with `z.enum` (T-533 loader).
+- Remove the unused `razorpayKeyModeWarning` export.
+- `.env.example` wording omits the ALLOW warn case.
