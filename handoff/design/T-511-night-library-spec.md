@@ -38,6 +38,7 @@ Figma variables are the source. The web lead exports them to CSS custom properti
 | brass/text | `--brass-dark` | #E6C877 | #6E5415 | eyebrows, links, ghost button text |
 | brass/soft | `--brass-light` | #2B2614 | #F6EBCF | chip fills, hover halo |
 | on-brass | `--on-brass` | #15241F | #FFFFFF | text on brass fill |
+| brass/mark | `--brass-mark` | #C9A24A | #E6C877 | spine bands and the seal mark on an oxblood spine (3:1 non-text by day) |
 | ox/fill, ox/hi | `--ox`, `--ox-hi` | #7A2A2A, #A94545 | #8E2F2F, #B85050 | book spines, destructive confirm |
 | ok/text, ok/soft | `--ok`, `--ok-light` | #7FCFA8, #143327 | #1B7658, #DDF2E8 | success chips, finalised |
 | error/text, error/soft | `--err`, `--err-light` | #F2A196, #3B1A17 | #B3261E, #FCE9E7 | errors, failed payment |
