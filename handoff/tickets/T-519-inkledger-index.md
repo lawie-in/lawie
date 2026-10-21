@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Arjun (ruled 17 Oct 2026), a billing lead (build) |
 | Mode   | Full chain (billing) |
-| Status | In build: Shashank (21 Oct 2026). Priya |
+| Status | Merged into develop_staging 3ce4b8d1 (21 Oct 2026). Redeploy billing; index builds on first boot. Priya |
 | Source | T-506 review; Arjun's ruling |
 
 ## Problem
