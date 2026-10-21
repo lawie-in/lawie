@@ -12,6 +12,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import LoginPage from '../page';
 
 import {
+  CONTROL_LINE,
   NL_GHOST_HOVER,
   NL_PRIMARY_BUTTON_HOVER,
   nlLinkButton,
@@ -157,10 +158,12 @@ describe('T-528 non-primary hover: ghost and Google, no lift, no halo', () => {
   const GHOST = NL_GHOST_HOVER.split(' ').filter(Boolean);
   const gated = '[@media(hover:hover)_and_(pointer:fine)]';
 
-  it('NL_GHOST_HOVER: border to Brass, ground to Brass Soft, gated, no transition under reduced motion, no lift or halo', () => {
+  it('NL_GHOST_HOVER: border to Brass, ground to Brass Soft, gated, colour fade kept under reduced motion, no lift or halo', () => {
     expect(NL_GHOST_HOVER).toContain(`${gated}:[&:not(:disabled)]:hover:border-nl-brass`);
     expect(NL_GHOST_HOVER).toContain(`${gated}:[&:not(:disabled)]:hover:bg-nl-brass-light`);
-    expect(GHOST).toContain('motion-reduce:transition-none');
+    expect(GHOST).not.toContain('motion-reduce:transition-none');
+    expect(GHOST).toContain('duration-150');
+    expect(GHOST).toContain('ease-[ease]');
     expect(NL_GHOST_HOVER).toMatch(/transition-property:[^\]]*border-color[^\]]*background-color/);
     expect(NL_GHOST_HOVER).not.toMatch(/translate|shadow-nl-halo/);
   });
@@ -169,7 +172,7 @@ describe('T-528 non-primary hover: ghost and Google, no lift, no halo', () => {
     const ghost = nlLinkButton('ghost');
     for (const c of GHOST) expect(ghost.split(/\s+/)).toContain(c);
     expect(ghost).not.toMatch(/translate|shadow-nl-halo/);
-    expect(ghost).toContain('border-nl-line');
+    expect(ghost).toContain(CONTROL_LINE);
     const primary = nlLinkButton('primary');
     expect(primary).toContain(`${gated}:hover:shadow-nl-halo`);
     expect(primary).toContain(`${gated}:hover:-translate-y-px`);
@@ -181,7 +184,7 @@ describe('T-528 non-primary hover: ghost and Google, no lift, no halo', () => {
     await mount('mode=signin');
     const google = qa('button').find((b) => /google/i.test(b.textContent ?? ''))!;
     expect(cls(google)).toEqual(expect.arrayContaining(GHOST));
-    expect(cls(google)).toContain('border-nl-line');
+    expect(cls(google)).toContain(CONTROL_LINE);
     expect(google.className).not.toMatch(/translate|shadow-nl-halo/);
   });
 

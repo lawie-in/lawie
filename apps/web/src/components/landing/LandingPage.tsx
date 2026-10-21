@@ -11,8 +11,8 @@
 // - Motion: Lamp and DustMotes from components/ui (fine pointer, >= 900px, not reduced, paused
 //   on a hidden tab); the demo has its own gates (DemoFolio).
 // - T-528 (Rajesh): one Wall ground; every section after the hero opens with the 1px Line
-//   hairline (Wood is the shelf edge, never a section band). Anchored sections carry a scroll
-//   margin so the sticky top bar never covers their heading.
+//   hairline (Wood is the shelf edge, never a section band). Anchor jumps clear the sticky top
+//   bar through NightTopBar's scroll-padding-top (no per-section scroll margin).
 
 import Link from 'next/link';
 import { useState } from 'react';
@@ -22,7 +22,7 @@ import { NightFaq } from './NightFaq';
 
 import { NightFooter } from '@/components/marketing/NightFooter';
 import { NightPlanCard } from '@/components/marketing/NightPlanCard';
-import { NightTopBar, STICKY_ANCHOR_OFFSET } from '@/components/marketing/NightTopBar';
+import { NightTopBar } from '@/components/marketing/NightTopBar';
 import { landingCopy, SECTION_IDS, SIGNUP_HREF, type Lang } from '@/components/marketing/nl-copy';
 import { NL_TEXT_LINK, nlLinkButton } from '@/components/marketing/nl-link';
 import { DustMotes, Lamp } from '@/components/ui';
@@ -31,8 +31,6 @@ import { cn } from '@/lib/cn';
 const SECTION = 'px-nl-4 py-nl-12 min-[900px]:px-nl-8 min-[900px]:py-nl-16';
 /** T-528: sections after the hero are separated by the Line hairline, on the Wall ground. */
 const RULED = 'border-t border-nl-line';
-/** T-528: anchor targets clear the sticky top bar. */
-const ANCHOR = STICKY_ANCHOR_OFFSET;
 /** T-528 (Rajesh): the three steps carry a brass roman numeral; typographic, not copy. */
 const STEP_NUMERALS = ['i', 'ii', 'iii'] as const;
 /** T-528: a spine band in Brass Mark; CanvasText under forced colours (as the dashboard Spine). */
@@ -106,7 +104,7 @@ export function LandingPage({ initialLang = 'en' }: { initialLang?: Lang }) {
         {/* THREE STEPS */}
         <section
           id={SECTION_IDS.how}
-          className={cn(SECTION, RULED, ANCHOR)}
+          className={cn(SECTION, RULED)}
           aria-labelledby="steps-heading"
         >
           <div className={INNER}>
@@ -139,7 +137,7 @@ export function LandingPage({ initialLang = 'en' }: { initialLang?: Lang }) {
         {/* DOCUMENT SPINES */}
         <section
           id={SECTION_IDS.documents}
-          className={cn(SECTION, RULED, ANCHOR)}
+          className={cn(SECTION, RULED)}
           aria-labelledby="docs-heading"
         >
           <div className={INNER}>
@@ -182,7 +180,7 @@ export function LandingPage({ initialLang = 'en' }: { initialLang?: Lang }) {
         {/* INK AND PRICES (Free and Solo only; Pro is on /pricing, Priya decision 2) */}
         <section
           id={SECTION_IDS.prices}
-          className={cn(SECTION, RULED, ANCHOR)}
+          className={cn(SECTION, RULED)}
           aria-labelledby="prices-heading"
         >
           <div className={INNER}>
@@ -269,11 +267,7 @@ export function LandingPage({ initialLang = 'en' }: { initialLang?: Lang }) {
         </section>
 
         {/* FAQ */}
-        <section
-          id={SECTION_IDS.faq}
-          className={cn(SECTION, RULED, ANCHOR)}
-          aria-labelledby="faq-heading"
-        >
+        <section id={SECTION_IDS.faq} className={cn(SECTION, RULED)} aria-labelledby="faq-heading">
           <div className={INNER}>
             <h2 id="faq-heading" lang={enOnly} className="nl-h1 text-nl-text">
               {copy.faq.title}

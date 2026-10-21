@@ -9,7 +9,7 @@ import { DemoFolio } from '../DemoFolio';
 import { LandingPage } from '../LandingPage';
 
 import { NightPlanCard } from '@/components/marketing/NightPlanCard';
-import { nlLinkButton } from '@/components/marketing/nl-link';
+import { CONTROL_LINE, nlLinkButton } from '@/components/marketing/nl-link';
 import { landingCopy } from '@/components/marketing/nl-copy';
 import {
   cleanupMounted,
@@ -201,7 +201,7 @@ describe('nl-link hover (primary only)', () => {
     expect(c).not.toContain('translate');
     // T-528: ghost has a colour-only hover (border Brass, ground Brass Soft); nothing else.
     expect(c).not.toMatch(/hover:(shadow|[^ ]*translate)/);
-    expect(c).toContain('border-nl-line');
+    expect(c).toContain(CONTROL_LINE);
   });
 
   it('a caller className does not reintroduce hover on ghost; the shared base has none', () => {

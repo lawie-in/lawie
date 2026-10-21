@@ -9,7 +9,11 @@ import { PLANS } from '@lawie/shared';
 
 import { LandingPage } from '../LandingPage';
 
-import { NightTopBar, STICKY_ANCHOR_OFFSET } from '@/components/marketing/NightTopBar';
+import {
+  NightTopBar,
+  NL_STICKY_BAR_CSS,
+  NL_STICKY_BAR_HEIGHT,
+} from '@/components/marketing/NightTopBar';
 import { SECTION_IDS } from '@/components/marketing/nl-copy';
 import { cleanupMounted, click, mount, q, qa } from '@/components/ui/__tests__/nl-test-utils';
 
@@ -118,19 +122,20 @@ describe('T-528 item 5: sticky top bar and anchor offsets', () => {
     expect(c).not.toContain('sticky');
   });
 
-  it('the four anchored sections carry STICKY_ANCHOR_OFFSET; unanchored sections do not', () => {
-    expect(STICKY_ANCHOR_OFFSET).toBe('min-[720px]:scroll-mt-[65px]');
+  it('no section carries a scroll-mt class; the bar supplies scroll-padding-top instead', () => {
     mount(<LandingPage />);
-    for (const id of [
-      SECTION_IDS.how,
-      SECTION_IDS.documents,
-      SECTION_IDS.prices,
-      SECTION_IDS.faq,
-    ]) {
-      expect(cls(q('#' + id))).toContain(STICKY_ANCHOR_OFFSET);
-    }
-    const anchored = sections().filter((s) => cls(s).includes(STICKY_ANCHOR_OFFSET));
-    expect(anchored).toHaveLength(4);
+    expect(sections().length).toBeGreaterThanOrEqual(6);
+    for (const s of sections()) expect(s.className).not.toMatch(/scroll-mt/);
+    const marker = q('[data-nl-sticky-bar]')!;
+    expect(marker).not.toBeNull();
+    expect(cls(marker)).toContain('contents');
+    const style = q('style', marker)!;
+    expect(style.textContent).toContain('scroll-padding-top');
+    expect(style.textContent).toBe(NL_STICKY_BAR_CSS);
+    expect(NL_STICKY_BAR_HEIGHT).toEqual({ wrapped: 72, row: 65 });
+    expect(NL_STICKY_BAR_HEIGHT.wrapped).toBeGreaterThanOrEqual(NL_STICKY_BAR_HEIGHT.row);
+    expect(style.textContent).toContain(`${NL_STICKY_BAR_HEIGHT.wrapped}px`);
+    expect(style.textContent).toContain(`${NL_STICKY_BAR_HEIGHT.row}px`);
   });
 });
 
