@@ -127,7 +127,7 @@ export function LandingPage({ initialLang = 'en' }: { initialLang?: Lang }) {
             <ul
               tabIndex={0}
               aria-label={copy.documents.title}
-              className="nl-focus mt-nl-8 border-nl-line bg-nl-wood px-nl-3 pt-nl-8 flex list-none items-end gap-[6px] overflow-x-auto border-b-4 pb-0"
+              className="nl-focus mt-nl-8 border-nl-line bg-nl-wood px-nl-3 pt-nl-8 flex list-none items-end gap-[6px] overflow-x-auto border-b-[10px] pb-0"
             >
               {copy.documents.spines.map((label, i) => (
                 <li
@@ -137,12 +137,13 @@ export function LandingPage({ initialLang = 'en' }: { initialLang?: Lang }) {
                     'bg-nl-ox relative flex w-[52px] shrink-0 items-center justify-center text-white',
                     'transition-transform duration-[250ms] ease-[ease] motion-reduce:transition-none',
                     'motion-safe:[@media(hover:hover)_and_(pointer:fine)_and_(min-width:641px)]:hover:-translate-y-[14px]',
+                    'motion-safe:[@media(pointer:fine)_and_(min-width:641px)]:focus-within:-translate-y-[14px]',
                   )}
                   style={{ height: [196, 210, 184, 202, 190][i % 5] }}
                 >
                   <span aria-hidden="true" className="bg-nl-brass absolute inset-x-0 top-3 h-1" />
                   <span aria-hidden="true" className="bg-nl-brass absolute inset-x-0 top-5 h-1" />
-                  <span className="nl-body-sm py-nl-8 whitespace-nowrap font-medium [writing-mode:vertical-rl]">
+                  <span className="font-nl-display py-nl-8 whitespace-nowrap text-[15px] leading-5 [writing-mode:vertical-rl]">
                     {label}
                   </span>
                 </li>

@@ -72,6 +72,7 @@ export default function PricingPage() {
                 includes={cards.free.includes}
                 button={cards.free.button}
                 href={SIGNUP_HREF}
+                headingLevel="h2"
               />
               <NightPlanCard
                 testId="solo"
@@ -81,6 +82,7 @@ export default function PricingPage() {
                 includes={cards.solo.includes}
                 button={cards.solo.button}
                 href={SIGNUP_HREF}
+                headingLevel="h2"
               />
               <NightPlanCard
                 testId="pro"
@@ -91,6 +93,7 @@ export default function PricingPage() {
                 includes={PRICING_COPY.pro.includes}
                 button={PRICING_COPY.pro.button}
                 href={SIGNUP_HREF}
+                headingLevel="h2"
               />
             </div>
             <p className="nl-body-sm text-nl-soft mt-nl-4 max-w-[65ch]">

@@ -21,6 +21,9 @@ export interface NightPlanCardProps {
   largeHeading?: boolean;
   /** data-plan value (free, solo, pro). */
   testId?: string;
+  /** Heading level for the plan name: h3 under a section h2 (landing), h2 under the page h1
+   *  (pricing), so no level is skipped. */
+  headingLevel?: 'h2' | 'h3';
 }
 
 export function NightPlanCard({
@@ -33,13 +36,15 @@ export function NightPlanCard({
   href,
   largeHeading = false,
   testId,
+  headingLevel = 'h3',
 }: NightPlanCardProps) {
+  const Heading = headingLevel;
   return (
     <article
       data-plan={testId}
-      className="nl border-nl-line bg-nl-card p-nl-6 shadow-nl-card flex min-w-0 flex-col border"
+      className="nl border-nl-line bg-nl-card p-nl-6 flex min-w-0 flex-col border"
     >
-      <h3 className={cn(largeHeading ? 'nl-h2' : 'nl-h3', 'text-nl-text')}>{name}</h3>
+      <Heading className={cn(largeHeading ? 'nl-h2' : 'nl-h3', 'text-nl-text')}>{name}</Heading>
       {subline ? <p className="nl-body-sm text-nl-soft">{subline}</p> : null}
       <p className="nl-h2 mt-nl-3 text-nl-text tabular-nums">{price}</p>
       <p className="nl-body text-nl-soft mt-nl-1">{ink}</p>

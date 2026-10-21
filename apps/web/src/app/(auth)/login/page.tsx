@@ -169,15 +169,22 @@ function validateField(field: Field, value: string): string | undefined {
   return value ? undefined : AUTH_COPY.errPassword;
 }
 
-// Boxed input (spec 3 Input): 1px border/line, radius md, focus bottom border brass 2px.
+// Underline input on the folio (spec 3 Input; DESIGN.md Inputs / Shapes): bottom border only,
+// 1px Line, 2px brass on focus (the extra pixel comes out of the bottom padding, so the field does
+// not grow), Rust on error. Name, email and password use it.
 const inputBase =
-  'nl-focus nl-body block min-h-[48px] w-full rounded-nl-md border bg-nl-card px-nl-3 py-nl-2 text-nl-text placeholder:text-nl-muted focus:border-b-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50';
+  'nl-focus nl-body block min-h-[48px] w-full rounded-none border-0 border-b bg-transparent px-0 py-nl-2 text-nl-text placeholder:text-nl-muted focus:border-b-2 focus:pb-[7px] focus:outline-none disabled:cursor-not-allowed disabled:opacity-50';
 
 function inputClass(invalid: boolean) {
   return `${inputBase} ${invalid ? 'border-nl-err' : 'border-nl-line focus:border-nl-brass'}`;
 }
 
-const LABEL = 'nl-body-sm mb-nl-1 block font-medium text-nl-soft';
+// Boxed input (1px Line, radius md): only the referral code, which sits in its own wood box.
+const boxedInputClass =
+  'nl-focus nl-body block min-h-[48px] w-full rounded-nl-md border border-nl-line bg-nl-card px-nl-3 py-nl-2 text-nl-text placeholder:text-nl-muted focus:border-b-2 focus:border-nl-brass focus:outline-none disabled:cursor-not-allowed disabled:opacity-50';
+
+// Field labels: DESIGN.md Label style (nl-label: 500, 12px, 0.12em, uppercase) in Brass Text.
+const LABEL = 'nl-label mb-nl-1 block text-nl-brass-dark';
 const FIELD_ERROR = 'nl-body-sm mt-nl-1 text-nl-err';
 const TEXT_LINK =
   'nl-focus rounded-nl-sm font-medium text-nl-brass-dark underline underline-offset-4';
@@ -597,7 +604,7 @@ function LoginContent() {
 
       <main className="px-nl-4 py-nl-4 min-[640px]:py-nl-8 min-[900px]:py-nl-12 flex flex-1 flex-col items-center">
         {/* The folio holds the form; the lamp pool sits on it (spec 02). */}
-        <div className="border-nl-line bg-nl-card shadow-nl-card relative w-full max-w-md overflow-hidden border">
+        <div className="border-nl-line border-t-nl-brass bg-nl-card shadow-nl-card relative w-full max-w-md overflow-hidden border border-t">
           <Lamp />
           <div className="p-nl-5 min-[640px]:p-nl-8 relative">
             {referralNotice ? (
@@ -698,7 +705,7 @@ function LoginContent() {
                             referralValid !== null ? 'referral-feedback' : undefined
                           }
                           className={cn(
-                            inputClass(false),
+                            boxedInputClass,
                             'placeholder:font-nl-body min-w-0 flex-1 font-mono uppercase tracking-widest placeholder:normal-case placeholder:tracking-normal',
                           )}
                         />
@@ -839,10 +846,7 @@ function LoginContent() {
                       {/* T-221: "Forgot password?" sits in the label row, right-aligned, Sign in
                           only, with a 44 px hit area. */}
                       <div className="mb-nl-1 flex items-center justify-between">
-                        <label
-                          htmlFor="password"
-                          className="nl-body-sm text-nl-soft block font-medium"
-                        >
+                        <label htmlFor="password" className="nl-label text-nl-brass-dark block">
                           {AUTH_COPY.passwordLabel}
                         </label>
                         {!isSignup && (
@@ -918,8 +922,9 @@ function LoginContent() {
                       )}
                     </div>
 
-                    {/* Consent, Create account only (AJ-511-M11, AJ-517-M3): unticked by default,
-                        version and date of the Privacy Policy. Gates Create account and Google. */}
+                    {/* Consent, Create account only (AJ-511-M11, AJ-517-M3, worded by AJ-517-M16):
+                        unticked by default, the Terms version and the Privacy Policy version, no
+                        date. Gates Create account and Google. */}
                     {isSignup && (
                       <div>
                         <div className="gap-nl-3 flex items-start">

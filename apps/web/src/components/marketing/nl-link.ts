@@ -7,13 +7,18 @@ import { cn } from '@/lib/cn';
 const BASE =
   'nl nl-focus gap-nl-2 rounded-nl-md relative inline-flex select-none items-center justify-center ' +
   'font-nl-body text-[15px] font-medium leading-5 no-underline min-h-[44px] py-nl-2 min-w-[44px] px-nl-5 ' +
-  '[@media(hover:hover)_and_(pointer:fine)]:hover:shadow-nl-halo [@media(hover:hover)_and_(pointer:fine)]:hover:-translate-y-px motion-reduce:[@media(hover:hover)_and_(pointer:fine)]:hover:translate-y-0 text-center touch-manipulation';
+  'text-center touch-manipulation';
+
+// DESIGN.md Elevation: hover on a primary adds the 4px Brass Soft halo and a 1px lift; nothing
+// else lifts. Gated to a hover-capable fine pointer; no lift under reduced motion.
+const PRIMARY_HOVER =
+  '[@media(hover:hover)_and_(pointer:fine)]:hover:shadow-nl-halo [@media(hover:hover)_and_(pointer:fine)]:hover:-translate-y-px motion-reduce:[@media(hover:hover)_and_(pointer:fine)]:hover:translate-y-0';
 
 export function nlLinkButton(variant: 'primary' | 'ghost', className?: string): string {
   return cn(
     BASE,
     variant === 'primary'
-      ? 'bg-nl-brass text-nl-on-brass border border-transparent'
+      ? cn('bg-nl-brass text-nl-on-brass border border-transparent', PRIMARY_HOVER)
       : 'bg-transparent text-nl-brass-dark border border-nl-line',
     className,
   );

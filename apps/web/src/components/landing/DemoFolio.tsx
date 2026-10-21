@@ -14,7 +14,12 @@ import { useEffect, useRef, useState } from 'react';
 
 import type { Lang } from '@/components/marketing/nl-copy';
 import { landingCopy } from '@/components/marketing/nl-copy';
-import { useMobileCap, usePageVisible, usePrefersReducedMotion } from '@/components/ui';
+import {
+  REDUCED_MOTION_QUERY,
+  useMobileCap,
+  usePageVisible,
+  usePrefersReducedMotion,
+} from '@/components/ui';
 import { cn } from '@/lib/cn';
 
 /** Placeholder line widths for the empty folio (no text). */
@@ -64,7 +69,13 @@ export function DemoFolio({ lang }: { lang: Lang }) {
 
   // On load: play, unless reduced motion or a slow connection (then stay at the end state).
   useEffect(() => {
-    if (reduced || isSlowConnection()) return;
+    // Read the media query directly: during hydration the hook still returns its server value
+    // (false), so play() must not trust it here.
+    const reducedNow =
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia(REDUCED_MOTION_QUERY).matches;
+    if (reducedNow || reduced || isSlowConnection()) return;
     play();
     // Only on mount; reduced-motion changes are handled below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -109,7 +120,7 @@ export function DemoFolio({ lang }: { lang: Lang }) {
 
   return (
     <figure
-      className="nl border-nl-line bg-nl-card p-nl-6 shadow-nl-card relative m-0 overflow-hidden border"
+      className="nl border-nl-line border-t-nl-brass bg-nl-card p-nl-6 shadow-nl-card relative m-0 overflow-hidden border border-t"
       data-demo-phase={phase}
     >
       <div aria-hidden="true" className="nl-lamp-pool pointer-events-none absolute inset-0" />
