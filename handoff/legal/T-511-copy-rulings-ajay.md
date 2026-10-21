@@ -61,3 +61,8 @@ The final file still comes to me for sign-off.
   `Grievance Officer: {name}. Email: contact@lawie.in. We acknowledge every complaint within 24 hours and resolve it within 15 days.`
 
 - Until a name is supplied, the line is not published and the launch blocker stays open. The email may appear alone only as `For complaints, write to contact@lawie.in.`. That does not satisfy the rule.
+
+| Ref | Point | Ruling |
+|---|---|---|
+| AJ-517-M12 | t433 allowlist | Add exactly two more signed strings, with the HI of the first: `Plan Ink does not carry over to the next month.` and `Plan Ink left unused at the end of the month does not carry over.`. Nothing broader. |
+| AJ-517-M13 | §1.7 with no officer name configured | Use the M11 fallback `For complaints, write to contact@lawie.in.`. Once a name is configured, use the M11 line. The FAQ cuts under M16 are OK. The consent line with the Privacy version only is OK, because it is the M11 wording when the Terms have no version. |
