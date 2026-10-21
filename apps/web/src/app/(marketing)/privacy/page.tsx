@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 
 import CookieSettingsButton from '@/components/CookieSettingsButton';
 import FloatCta from '@/components/marketing/FloatCta';
+import { grievanceLine, grievanceOfficerName } from '@/components/marketing/nl-copy';
 import SiteFooter from '@/components/marketing/SiteFooter';
 import SiteNav from '@/components/marketing/SiteNav';
 
@@ -123,6 +124,8 @@ const headCellStyle = {
 };
 
 export default function PrivacyPage() {
+  const officerName = grievanceOfficerName();
+  const grievance = grievanceLine(officerName);
   return (
     <>
       <SiteNav />
@@ -327,7 +330,7 @@ export default function PrivacyPage() {
                 <p>
                   You can close your account and erase your data from Settings, and delete any
                   single document from the document itself. You can also write to{' '}
-                  <a href="mailto:privacy@lawie.in">privacy@lawie.in</a> from your account email and
+                  <a href="mailto:contact@lawie.in">contact@lawie.in</a> from your account email and
                   we will do it for you. Backup copies are erased within 7 days. We keep payment
                   records and tax invoices for as long as tax law requires; an invoice keeps the
                   name and State printed on it. Erasure cannot reach data already sent to Helicone
@@ -379,11 +382,19 @@ export default function PrivacyPage() {
               </section>
               <section id="contact">
                 <h3>11. Contact and Grievances</h3>
+                {/* T-517 (AJ-517-M14): one contact line, then the AJ-517-M11 officer line only
+                    when NEXT_PUBLIC_GRIEVANCE_OFFICER_NAME is set (no fallback sentence here). */}
                 <p>
-                  Privacy questions, rights requests and grievances:{' '}
-                  <a href="mailto:privacy@lawie.in">privacy@lawie.in</a>. General support:{' '}
+                  For privacy questions, rights requests, grievances and general support, write to{' '}
                   <a href="mailto:contact@lawie.in">contact@lawie.in</a>.
                 </p>
+                {officerName ? (
+                  <p>
+                    {grievance.before}
+                    <a href={`mailto:${grievance.email}`}>{grievance.email}</a>
+                    {grievance.after}
+                  </p>
+                ) : null}
               </section>
             </div>
           </div>

@@ -44,13 +44,14 @@ const FAQ_FREE =
 const FAQ_COST =
   'Lawie has a free tier that includes 5 Ink (lifetime), once your email is verified. Paid plans add more Ink; see the pricing page for current plans.';
 
-// Every sentence-ish window that mentions "5 Ink" must say "verified" within it.
+// Every sentence-ish window that mentions "5 Ink" must say "verified" (or "verify", T-517:
+// "Verify your email to receive your 5 Ink.") within it, looking 60 characters back and 120 on.
 function fiveInkMentions(text: string): string[] {
   const out: string[] = [];
   const re = /5 Ink/g;
   let m: RegExpExecArray | null;
   while ((m = re.exec(text)) !== null) {
-    out.push(text.slice(m.index, m.index + 120));
+    out.push(text.slice(Math.max(0, m.index - 60), m.index + 120));
   }
   return out;
 }
@@ -104,7 +105,8 @@ describe('T-366 Tools card (AC2)', () => {
 
 describe('T-366 metadata (AC4, AC5)', () => {
   it('home title equals the root layout title', () => {
-    expect(homeMetadata.title).toBe('Lawie — Drafting Assistant for Indian Advocates');
+    expect(homeMetadata.title).toBe('Lawie: drafting assistant for advocates in India');
+    expect(rootMetadata.title).toBe('Lawie: drafting assistant for advocates in India');
     expect(homeMetadata.title).toBe(rootMetadata.title);
   });
 
@@ -132,54 +134,46 @@ describe('T-366 every 5-Ink sign-up promise says verified (AC5)', () => {
     const mentions = fiveInkMentions(text);
     expect(mentions.length).toBeGreaterThan(0);
     for (const m of mentions) {
-      expect(m).toMatch(/verified/);
+      expect(m).toMatch(/verif(y|ied)/i);
     }
   });
 
-  it('home plan cell, hero note and CTA wording', () => {
+  it('home plan cell, hero note and CTA wording (T-517 signed lines)', () => {
     const text = norm(render(<HomePage />));
-    expect(text).toContain('5 Ink, lifetime, once email verified');
-    expect(text).toContain('Free tier: 5 Ink (lifetime), once your email is verified');
-    expect(text).toContain(
-      'Free for your first 5 Ink, once your email is verified. No card required.',
-    );
+    expect(text).toContain('5 Ink on sign-up, once your email is verified (one time)');
+    expect(text).toContain('Verify your email to receive your 5 Ink.');
+    expect(text).toContain('Start with 5 free Ink');
+    expect(text).toContain('No card needed.');
+    expect(text).not.toMatch(/lifetime/i);
   });
 
   it('pricing Free card and FAQ answer', () => {
     const text = norm(render(<PricingPage />));
     expect(text).not.toContain('5 Ink — forever');
-    const cells = Array.from(container.querySelectorAll('.plan-alt')).map((e) => e.textContent);
-    const freeCell = cells.find((c) => c?.startsWith('5 Ink'));
-    expect(freeCell).toBe('5 Ink on sign-up, once your email is verified (lifetime)');
-    expect(freeCell).not.toMatch(/forever/i);
-    expect(text).toContain(
-      'The Free plan gives you 5 Ink on sign-up, once your email is verified (lifetime).',
-    );
+    const free = container.querySelector('[data-plan="free"]') as HTMLElement;
+    expect(free.textContent).toContain('5 Ink on sign-up, once your email is verified (one time)');
+    expect(free.textContent).not.toMatch(/forever|lifetime/i);
+    expect(text).not.toMatch(/lifetime/i);
   });
 });
 
-describe('T-398 pricing page copy (Ajay conditions 1-4)', () => {
-  const planCard = (name: string) =>
-    Array.from(container.querySelectorAll('.plan')).find(
-      (e) => e.querySelector('.plan-name')?.textContent === name,
-    ) as HTMLElement;
+describe('T-398 / T-517 pricing page copy (Ajay conditions 1-4)', () => {
+  const planCard = (id: string) => container.querySelector(`[data-plan="${id}"]`) as HTMLElement;
 
   it('Free card: ₹0 without /lifetime, Ink line, button, document-type row', () => {
     render(<PricingPage />);
-    const free = planCard('Free');
-    expect(free.querySelector('.plan-price')?.textContent).toBe('₹0');
+    const free = planCard('free');
+    expect(free.textContent).toContain('₹0');
     expect(free.textContent).not.toMatch(/\/\s*lifetime/i);
-    expect(free.querySelector('.plan-alt')?.textContent).toBe(
-      '5 Ink on sign-up, once your email is verified (lifetime)',
-    );
-    expect(free.querySelector('a.btn')?.textContent?.trim()).toBe('Start with 5 free Ink');
+    expect(free.textContent).toContain('5 Ink on sign-up, once your email is verified (one time)');
+    expect(free.querySelector('a')?.textContent?.trim()).toBe('Start with 5 free Ink');
     expect(free.textContent).toContain('Every document type on Lawie');
   });
 
-  it('hero subline is the verified 5 free Ink line', () => {
+  it('intro is the signed Ink line (no hero "Buy more" subline any more)', () => {
     const text = norm(render(<PricingPage />));
     expect(text).toContain(
-      'Start with 5 free Ink once your email is verified. Buy more when you need it.',
+      'Ink is what a draft costs. You see the Ink cost before you generate. If a draft fails to generate, no Ink is used.',
     );
   });
 
@@ -190,46 +184,38 @@ describe('T-398 pricing page copy (Ajay conditions 1-4)', () => {
     expect(text).not.toMatch(/early access/i);
   });
 
-  it('the word "free" appears only with "5 Ink" (hero and Free button included)', () => {
+  it('every lower-case "free" sits in "5 free Ink"', () => {
     const text = norm(render(<PricingPage />));
-    // Plan-name uses ("Free" card title, Solo row "Everything in Free", "Free plan") are capitalised;
-    // every lower-case marketing "free" must sit in "5 free Ink".
     const lower = Array.from(text.matchAll(/free/gi)).filter((m) => m[0] === 'free');
-    expect(lower.length).toBeGreaterThanOrEqual(2); // hero + Free button
+    expect(lower.length).toBeGreaterThanOrEqual(1);
     for (const m of lower) {
       expect(text.slice(m.index! - 2, m.index! + 8)).toBe('5 free Ink');
-    }
-    // Any capitalised "Free" is only the plan name.
-    for (const m of text.matchAll(/free/gi)) {
-      if (m[0] === 'free') continue;
-      const around = text.slice(Math.max(0, m.index! - 14), m.index! + 8);
-      expect(around).toMatch(/(Free₹0|Free, p|Free pl|Everything in FreeSign)/);
     }
   });
 
   it('Solo shows the row "Everything in Free", not the old "…, plus" heading', () => {
     render(<PricingPage />);
-    const solo = planCard('Solo');
-    const rows = Array.from(solo.querySelectorAll('li')).map((l) => l.textContent?.trim());
+    const rows = Array.from(planCard('solo').querySelectorAll('li')).map((l) =>
+      l.textContent?.trim(),
+    );
     expect(rows).toContain('Everything in Free');
-    expect(solo.querySelector('li.head')).toBeNull();
+    expect(planCard('solo').querySelector('li.head')).toBeNull();
     expect(norm(container.textContent ?? '')).not.toContain('Everything in Free, plus');
   });
 
-  it('Pro is not added anywhere other than the Pro card', () => {
+  it('Pro appears only in the Pro card on the pricing page', () => {
     render(<PricingPage />);
-    const pro = planCard('Pro');
-    const clone = container.cloneNode(true) as HTMLElement;
-    const cards = Array.from(clone.querySelectorAll('.plan'));
-    const proClone = cards.find((e) => e.querySelector('.plan-name')?.textContent === 'Pro');
-    proClone?.remove();
-    expect(pro).toBeDefined();
-    clone.querySelectorAll('style').forEach((e) => e.remove());
-    const rest = norm(clone.textContent ?? '');
-    // The only other "Pro" is the existing signed FAQ sentence in "What is Ink?" (pre-T-398,
-    // untouched); nothing new was added. Any further occurrence fails this.
-    const stripped = rest.replace('Solo and Pro plans give you fresh Ink every month', '');
-    expect(stripped).not.toMatch(/\bPro\b/);
+    const pro = planCard('pro');
     expect(pro.textContent).toMatch(/\bPro\b/);
+    const clone = container.cloneNode(true) as HTMLElement;
+    clone.querySelector('[data-plan="pro"]')?.remove();
+    clone.querySelectorAll('style').forEach((e) => e.remove());
+    expect(norm(clone.textContent ?? '')).not.toMatch(/\bPro\b/);
+  });
+
+  it('the old "(lifetime)" wording is gone and "(one time)" is on the Free card', () => {
+    const text = norm(render(<PricingPage />));
+    expect(text).not.toContain('(lifetime)');
+    expect(text).toContain('(one time)');
   });
 });

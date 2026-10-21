@@ -31,7 +31,7 @@ const tiro = Tiro_Devanagari_Hindi({
 });
 
 export const metadata: Metadata = {
-  title: 'Lawie — Drafting Assistant for Indian Advocates',
+  title: 'Lawie: drafting assistant for advocates in India',
   description:
     'Stop Googling legal formats. Lawie is a drafting assistant for Indian advocates. Draft bail applications, legal notices, and more, then review before you file.',
   keywords: [

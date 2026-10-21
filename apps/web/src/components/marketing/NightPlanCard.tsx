@@ -1,0 +1,62 @@
+// T-517: a plan card (spec 3 Card, plain) for the landing and the pricing page. Text comes from
+// nl-copy (§1.6) or the T-398 Pro card strings; the button is always ghost, because the section's
+// single primary call to action sits under the cards (never two primaries in one view).
+
+import Link from 'next/link';
+
+import { nlLinkButton } from './nl-link';
+
+import { cn } from '@/lib/cn';
+
+export interface NightPlanCardProps {
+  name: string;
+  /** T-398 Pro subline (`More Ink each month`). */
+  subline?: string;
+  price: string;
+  ink: string;
+  includes: string[];
+  button: string;
+  href: string;
+  /** Hindi page: card titles at 20px or more (AC5). */
+  largeHeading?: boolean;
+  /** data-plan value (free, solo, pro). */
+  testId?: string;
+}
+
+export function NightPlanCard({
+  name,
+  subline,
+  price,
+  ink,
+  includes,
+  button,
+  href,
+  largeHeading = false,
+  testId,
+}: NightPlanCardProps) {
+  return (
+    <article
+      data-plan={testId}
+      className="nl border-nl-line bg-nl-card p-nl-6 shadow-nl-card flex min-w-0 flex-col border"
+    >
+      <h3 className={cn(largeHeading ? 'nl-h2' : 'nl-h3', 'text-nl-text')}>{name}</h3>
+      {subline ? <p className="nl-body-sm text-nl-muted">{subline}</p> : null}
+      <p className="nl-h2 mt-nl-3 text-nl-text tabular-nums">{price}</p>
+      <p className="nl-body text-nl-soft mt-nl-1">{ink}</p>
+      <ul className="mt-nl-4 gap-nl-2 nl-body text-nl-soft flex list-none flex-col p-0">
+        {includes.map((line) => (
+          <li key={line} className="gap-nl-2 flex items-start">
+            <span
+              aria-hidden="true"
+              className="bg-nl-brass mt-[10px] h-1.5 w-1.5 shrink-0 rounded-full"
+            />
+            <span>{line}</span>
+          </li>
+        ))}
+      </ul>
+      <Link className={nlLinkButton('ghost', 'mt-nl-6 w-full whitespace-normal')} href={href}>
+        {button}
+      </Link>
+    </article>
+  );
+}
