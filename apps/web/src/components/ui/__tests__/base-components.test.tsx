@@ -289,13 +289,15 @@ describe('Card', () => {
     expect(v.textContent).toBe('32');
   });
 
-  it('loading shows a skeleton, is aria-busy and hides children', () => {
+  it('loading shows a skeleton and hides children; no aria-busy on the card (T-524)', () => {
     const { container } = mount(
       <Card state="loading">
         <span>real content</span>
       </Card>,
     );
-    expect(q('section', container)!.getAttribute('aria-busy')).toBe('true');
+    expect(q('section', container)!.hasAttribute('aria-busy')).toBe(false);
+    expect(container.querySelectorAll('[aria-busy]')).toHaveLength(1);
+    expect(q('[aria-busy]', container)!.getAttribute('aria-hidden')).toBe('true');
     expect(qa('.nl-skeleton', container).length).toBeGreaterThan(0);
     expect(container.textContent).not.toContain('real content');
   });

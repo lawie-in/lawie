@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Rajesh (review), a web lead (build) |
 | Mode   | Small fix (web); developer loads mobile-native, tester runs break-ui |
-| Status | To do, MUST-FIX before main (Arjun, 21 Oct 2026): Daylight tokens fail WCAG AA. Tanvi next. Priya |
+| Status | Merged into develop_staging beca26e9 (21 Oct 2026); CI 854 green. Priya |
 | Source | Rajesh against DESIGN.md |
 
 ## Acceptance criteria

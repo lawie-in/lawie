@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Arjun (design), a billing lead (build) |
 | Mode   | Full chain (billing) |
-| Status | In build: Shashank (21 Oct 2026). Priya |
+| Status | Merged into develop_staging 610dfe13 (21 Oct 2026). Follow-ups: T-526. Priya |
 
 ## Items (in order)
 1. The 60 s create-lock TTL can be exceeded when Razorpay is badly degraded (4 x 15 s calls), so a second subscription is possible. Raise the TTL or add a deadline check. Only item that can double-charge.

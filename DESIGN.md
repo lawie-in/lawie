@@ -12,6 +12,7 @@ colors:
   brass: "#c9a24a"
   brass-text: "#e6c877"
   brass-soft: "#2b2614"
+  brass-mark: "#c9a24a"
   on-brass: "#15241f"
   oxblood: "#7a2a2a"
   oxblood-high: "#a94545"
@@ -31,6 +32,7 @@ colors:
   day-brass: "#866619"
   day-brass-text: "#6e5415"
   day-brass-soft: "#f6ebcf"
+  day-brass-mark: "#e6c877"
   day-on-brass: "#ffffff"
   day-oxblood: "#8e2f2f"
   day-oxblood-high: "#b85050"
@@ -199,6 +201,7 @@ Warm darks with a single brass accent; Daylight keeps the hues and lifts the lig
 - **Brass Text** (#e6c877 / #6e5415): the text form of brass. Eyebrows, links, ghost-button labels, chip text. This exists because brass fill fails contrast as small text.
 - **Brass Soft** (#2b2614 / #f6ebcf): chip fills, the hover halo, the selected row in the command bar list.
 - **On Brass** (#15241f / #ffffff): text on a brass fill.
+- **Brass Mark** (#c9a24a / #e6c877): the spine bands and the seal mark on an oxblood spine, and any other brass mark drawn on a dark fill. Same as Brass at night; by day it stays light so it clears 3:1 on Oxblood (5.0:1). Never used on Wall or Card. The inner ring of a seal mark on a spine is the spine's own fill (Oxblood), not On Brass, so it stays visible in both themes; only the 100px seal on the folio uses the On Brass ring.
 
 ### Secondary
 - **Oxblood** (#7a2a2a / #8e2f2f) and **Oxblood High** (#a94545 / #b85050): book spines on the shelf and the destructive confirm button. Never a status colour.
@@ -217,7 +220,7 @@ Warm darks with a single brass accent; Daylight keeps the hues and lifts the lig
 - **Amber** (#f1d08a / #7a5300) on **Amber Soft** (#3a2e12 / #fbefd2): open checks, low Ink, gates (verify email, privacy).
 - **Rust** (#f2a196 / #b3261e) on **Rust Soft** (#3b1a17 / #fce9e7): errors, failed payment, offline.
 - **Lamp** (rgba(255,214,140,.22) / rgba(255,200,90,.16)): the radial pool of light on the folio and hero. A gradient only, never a fill.
-- **Selection** (#4a3d1e / #ead9a8): `::selection` background, text colour unchanged (8.4:1 night, 10.6:1 day). The caret is Brass (`caret-color`). The browser chrome (`<meta name="theme-color">`) is Wall for the resolved theme, #0e1a17 night and #f3efe4 day, and follows the toggle.
+- **Selection** (#332a14 / #f3e9c8): `::selection` background, text colour unchanged. Text 11.5:1 / 12.3:1, Muted 4.8:1 / 4.8:1, Brass Text 8.7:1 / 5.9:1. The caret is Brass (`caret-color`). The browser chrome (`<meta name="theme-color">`) is Wall for the resolved theme, #0e1a17 night and #f3efe4 day, and follows the toggle.
 
 ### Named Rules
 **The Brass Is Not Text Rule.** Brass fill (#c9a24a / #866619) is never used for text under 20px. Brass Text is the text form; the two are different tokens on purpose.
@@ -313,7 +316,7 @@ The question at the top of the desk: "What do you need to draft?" in Title type,
 - **Folio:** the lit sheet of paper. Card fill, card shadow, brass hairline on top, Draft type inside.
 - **Inkwell:** a 52 by 64 SVG; the level rect is the Ink balance. While a draft generates it drains once over 2.6s to an 8% line and holds; static at 60% under reduced motion.
 - **Seal:** 100px brass disc, On Brass Tiro lettering, resting at -8°. Stamps in from scale 2.2 and -20° over 550ms with the seal drop shadow; a 150ms fade under reduced motion. A 26px mark of it sits on finalised spines.
-- **Spine:** 52px wide, 184 to 210px tall, Tiro 15px label set vertically, two brass bands for a draft with open checks, the seal mark for a finalised document. Hover or focus pulls it out 14px over 250ms on desktop only.
+- **Spine:** 52px wide, 184 to 210px tall, Tiro 15px label set vertically, two Brass Mark bands for a draft with open checks, the Brass Mark seal for a finalised document. Hover or focus pulls it out 14px over 250ms on desktop only.
 
 ### Dialog and Toast
 - **Dialog:** 440px centred on desktop; full-width bottom sheet at 640px and below. Title in Title type, body in Body Soft, safe action ghost first, confirm last. First focus lands on the safe action.
