@@ -8,8 +8,11 @@
  * id is listed, otherwise a plain describe). Quick chips map to the template ids that exist; the
  * chips with no single template go to /dashboard/new with no kind.
  *
- * Draft (Priya, T-520): /dashboard/new?q=<text>, the trimmed text capped at 500 characters;
- * blank text goes to plain /dashboard/new. /dashboard/new does not read `q` yet.
+ * Draft (Priya, T-520; privacy: no matter text in URLs): the description is written to
+ * sessionStorage under DRAFT_PREFILL_KEY (trimmed, max 500 code points, well formed) and the bar
+ * goes to plain /dashboard/new. The describe step (Kunal, intake) reads and then clears the key.
+ * Blank text writes nothing and removes any stale key. Every storage access is guarded, so
+ * private mode or a full quota never stops the navigation.
  */
 import { useRouter } from 'next/navigation';
 import { useCallback } from 'react';
@@ -28,37 +31,49 @@ export function commandHref(item: CommandBarItem): string {
   return COMMAND_CHIP_HREF[item.id] ?? '/dashboard/new';
 }
 
-/** Longest description carried in `?q=`. */
-export const COMMAND_QUERY_MAX = 500;
+/** sessionStorage key for the Draft description; read and cleared by the describe step. */
+export const DRAFT_PREFILL_KEY = 'lawie:draft-prefill';
+
+/** Longest description carried to /dashboard/new, in code points. */
+export const DRAFT_PREFILL_MAX = 500;
 
 /**
- * Draft target: `/dashboard/new?q=<text>` (trimmed, max 500 code points, so a surrogate pair is
- * never split), or `/dashboard/new` if blank. A lone surrogate typed into the input would make
- * encodeURIComponent throw; then the text is made well formed (String.prototype.toWellFormed,
- * where available) and encoded again, falling back to plain /dashboard/new.
+ * The description to carry: trimmed, cut to 500 code points (a surrogate pair is never split),
+ * and well formed (a lone surrogate becomes U+FFFD). '' when blank.
  */
-export function submitHref(text: string): string {
-  const q = Array.from(text.trim()).slice(0, COMMAND_QUERY_MAX).join('');
-  if (!q) return '/dashboard/new';
+export function draftPrefill(text: string): string {
+  return Array.from(text.trim())
+    .slice(0, DRAFT_PREFILL_MAX)
+    .map((ch) => {
+      const c = ch.charCodeAt(0);
+      return ch.length === 1 && c >= 0xd800 && c <= 0xdfff ? '�' : ch;
+    })
+    .join('');
+}
+
+/** Writes (or, for blank text, removes) the prefill key. Never throws. */
+export function storeDraftPrefill(text: string): void {
+  const value = draftPrefill(text);
   try {
-    return `/dashboard/new?q=${encodeURIComponent(q)}`;
+    const storage = typeof window === 'undefined' ? null : window.sessionStorage;
+    if (!storage) return;
+    if (value) storage.setItem(DRAFT_PREFILL_KEY, value);
+    else storage.removeItem(DRAFT_PREFILL_KEY);
   } catch {
-    const wellFormed = (q as string & { toWellFormed?: () => string }).toWellFormed?.();
-    if (wellFormed) {
-      try {
-        return `/dashboard/new?q=${encodeURIComponent(wellFormed)}`;
-      } catch {
-        // fall through
-      }
-    }
-    return '/dashboard/new';
+    // Private mode, quota or a blocked storage: go on without the prefill.
   }
 }
 
 export function DashboardCommandBar({ className }: { className?: string }) {
   const router = useRouter();
   const onSelect = useCallback((item: CommandBarItem) => router.push(commandHref(item)), [router]);
-  const onSubmit = useCallback((text: string) => router.push(submitHref(text)), [router]);
+  const onSubmit = useCallback(
+    (text: string) => {
+      storeDraftPrefill(text);
+      router.push('/dashboard/new');
+    },
+    [router],
+  );
   return (
     <CommandBar
       hotkey={false}

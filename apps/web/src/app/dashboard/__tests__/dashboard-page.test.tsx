@@ -23,6 +23,7 @@ import {
   q,
   qa,
   stubMatchMedia,
+  typeInto,
 } from '@/components/ui/__tests__/nl-test-utils';
 
 const mockApiFetch = jest.fn();
@@ -60,9 +61,11 @@ beforeEach(() => {
   jest.clearAllMocks();
   stubMatchMedia();
   (useRouter as jest.Mock).mockReturnValue({ push });
+  window.sessionStorage.clear();
 });
 afterEach(() => {
   cleanupMounted();
+  window.sessionStorage.clear();
   jest.useRealTimers();
 });
 
@@ -300,5 +303,16 @@ describe('low-Ink nudge wiring', () => {
     });
     expect(tileText(container, 'Ink balance')).toContain('1 Ink');
     expect(container.querySelector('[data-low-ink]')).not.toBeNull();
+  });
+});
+
+describe('command bar Draft wiring', () => {
+  it('typing and pressing Draft stores the prefill key and pushes plain /dashboard/new', async () => {
+    const { container } = await mountPage(mockApiFetch, healthy());
+    typeInto(q('[role=combobox]', container) as HTMLInputElement, '  bail for Asha  ');
+    click(q('button[type=submit]', container));
+    expect(push).toHaveBeenCalledTimes(1);
+    expect(push).toHaveBeenCalledWith('/dashboard/new');
+    expect(window.sessionStorage.getItem('lawie:draft-prefill')).toBe('bail for Asha');
   });
 });

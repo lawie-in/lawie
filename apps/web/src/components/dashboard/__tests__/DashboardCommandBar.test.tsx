@@ -4,9 +4,11 @@ import { useRouter } from 'next/navigation';
 
 import {
   COMMAND_CHIP_HREF,
-  COMMAND_QUERY_MAX,
   DashboardCommandBar,
-  submitHref,
+  DRAFT_PREFILL_KEY,
+  DRAFT_PREFILL_MAX,
+  draftPrefill,
+  storeDraftPrefill,
 } from '../DashboardCommandBar';
 
 import { flush } from './dash-test-utils';
@@ -32,85 +34,122 @@ beforeEach(() => {
   stubMatchMedia();
   mockApiFetch.mockResolvedValue({ ok: true, status: 200, json: async () => ({}) });
   (useRouter as jest.Mock).mockReturnValue({ push });
+  window.sessionStorage.clear();
 });
-afterEach(cleanupMounted);
+afterEach(() => {
+  cleanupMounted();
+  jest.restoreAllMocks();
+  window.sessionStorage.clear();
+});
 
 const input = () => q('[role=combobox]') as HTMLInputElement;
 const option = (label: string) => qa('[role=option]').find((o) => o.textContent === label)!;
 
-describe('submitHref', () => {
-  it('blank or whitespace goes to plain /dashboard/new', () => {
-    expect(submitHref('')).toBe('/dashboard/new');
-    expect(submitHref('   \n\t ')).toBe('/dashboard/new');
+describe('draftPrefill', () => {
+  it('blank or whitespace gives an empty string', () => {
+    expect(draftPrefill('')).toBe('');
+    expect(draftPrefill('   \n\t ')).toBe('');
   });
 
-  it('trims and encodes spaces', () => {
-    expect(submitHref('  bail for Asha  ')).toBe('/dashboard/new?q=bail%20for%20Asha');
+  it('trims and keeps inner spaces', () => {
+    expect(draftPrefill('  bail for Asha  ')).toBe('bail for Asha');
   });
 
-  it('encodes ampersand, hash, equals, question mark and slash so the query cannot be broken out of', () => {
-    const href = submitHref('a&b=c#d?e/f');
-    expect(href).toBe('/dashboard/new?q=a%26b%3Dc%23d%3Fe%2Ff');
-    expect(new URL(href, 'http://x').searchParams.get('q')).toBe('a&b=c#d?e/f');
+  it('keeps & # = ? / and % raw (nothing is encoded, it is not a URL)', () => {
+    expect(draftPrefill('a&b=c#d?e/f 100%')).toBe('a&b=c#d?e/f 100%');
   });
 
-  it('encodes unicode and round-trips it', () => {
+  it('keeps unicode as-is', () => {
     const text = 'जमानत आवेदन — ₹5,000 “quoted”';
-    const href = submitHref(text);
-    expect(href).not.toMatch(/[^\x20-\x7e]/);
-    expect(new URL(href, 'http://x').searchParams.get('q')).toBe(text);
+    expect(draftPrefill(text)).toBe(text);
   });
 
-  it('cuts to 500 characters after trimming and before encoding', () => {
-    expect(COMMAND_QUERY_MAX).toBe(500);
-    const long = `  ${'a'.repeat(600)}  `;
-    const got = new URL(submitHref(long), 'http://x').searchParams.get('q')!;
-    expect(got).toBe('a'.repeat(500));
+  it('cuts to 500 code points after trimming', () => {
+    expect(DRAFT_PREFILL_MAX).toBe(500);
+    expect(draftPrefill(`  ${'a'.repeat(600)}  `)).toBe('a'.repeat(500));
     // leading spaces are trimmed first, so they do not eat into the 500
-    expect(submitHref(` ${'b'.repeat(500)}`)).toBe(`/dashboard/new?q=${'b'.repeat(500)}`);
-    // cut happens before encoding, so the cap counts characters, not %-escapes
+    expect(draftPrefill(` ${'b'.repeat(500)}`)).toBe('b'.repeat(500));
+    expect(draftPrefill('c'.repeat(499))).toBe('c'.repeat(499));
     const mid = `w${' '.repeat(10)}${'z'.repeat(600)}`;
-    const cut = new URL(submitHref(mid), 'http://x').searchParams.get('q')!;
+    const cut = draftPrefill(mid);
     expect(cut).toHaveLength(500);
     expect(cut.startsWith('w          z')).toBe(true);
   });
 });
 
-describe('submitHref: astral characters and lone surrogates', () => {
-  it('500 emoji never throw; the cut keeps every pair whole', () => {
-    const href = submitHref('😀'.repeat(600));
-    const got = new URL(href, 'http://x').searchParams.get('q')!;
+describe('draftPrefill: astral characters and lone surrogates', () => {
+  it('600 emoji give exactly 500 code points and no split pair', () => {
+    const got = draftPrefill('😀'.repeat(600));
     expect(Array.from(got)).toHaveLength(500);
     expect(got).toBe('😀'.repeat(500));
-    expect(() => decodeURIComponent(href.split('q=')[1])).not.toThrow();
+    expect(got).toHaveLength(1000);
   });
 
   it('a pair that straddles unit 500 is not split', () => {
-    const got = new URL(submitHref(`${'a'.repeat(499)}😀tail`), 'http://x').searchParams.get('q')!;
-    expect(got).toBe(`${'a'.repeat(499)}😀`);
+    expect(draftPrefill(`${'a'.repeat(499)}😀tail`)).toBe(`${'a'.repeat(499)}😀`);
   });
 
-  it('a lone surrogate never throws and yields a valid /dashboard/new href', () => {
-    for (const text of ['\ud800', 'abc\udc00def', `${'x'.repeat(10)}\ud83d`]) {
-      let href = '';
+  it('a lone surrogate becomes U+FFFD, never throws, and the result is well formed', () => {
+    const cases: Array<[string, string]> = [
+      ['\ud800', '�'],
+      ['abc\udc00def', 'abc�def'],
+      [`${'x'.repeat(10)}\ud83d`, `${'x'.repeat(10)}�`],
+      ['\ude00\ud83d', '��'],
+    ];
+    for (const [text, want] of cases) {
+      let got = '';
       expect(() => {
-        href = submitHref(text);
+        got = draftPrefill(text);
       }).not.toThrow();
-      expect(href.startsWith('/dashboard/new')).toBe(true);
-      expect(() => decodeURIComponent(href.split('q=')[1] ?? '')).not.toThrow();
+      expect(got).toBe(want);
+      expect(() => encodeURIComponent(got)).not.toThrow();
     }
   });
 
-  it('typing a lone surrogate and pressing Draft does not throw', () => {
-    mount(<DashboardCommandBar />);
-    typeInto(input(), 'bail \ud800 for Asha');
-    expect(() => click(q('button[type=submit]'))).not.toThrow();
-    expect(push).toHaveBeenCalledTimes(1);
-    expect((push.mock.calls[0][0] as string).startsWith('/dashboard/new')).toBe(true);
+  it('a lone surrogate inside the cut window is replaced; one past it is dropped', () => {
+    expect(draftPrefill(`${'a'.repeat(499)}\ud800z`)).toBe(`${'a'.repeat(499)}�`);
+    expect(draftPrefill(`${'a'.repeat(500)}\ud800`)).toBe('a'.repeat(500));
+  });
+});
+
+describe('storeDraftPrefill', () => {
+  it('writes the sanitised text under the key', () => {
+    expect(DRAFT_PREFILL_KEY).toBe('lawie:draft-prefill');
+    storeDraftPrefill('  bail & #1 \ud800 ');
+    expect(window.sessionStorage.getItem(DRAFT_PREFILL_KEY)).toBe('bail & #1 �');
   });
 
-  it('blank still goes to /dashboard/new', () => {
-    expect(submitHref('  \n ')).toBe('/dashboard/new');
+  it('blank text removes a stale key and writes nothing', () => {
+    window.sessionStorage.setItem(DRAFT_PREFILL_KEY, 'stale');
+    const set = jest.spyOn(Storage.prototype, 'setItem');
+    storeDraftPrefill('  \n ');
+    expect(set).not.toHaveBeenCalled();
+    expect(window.sessionStorage.getItem(DRAFT_PREFILL_KEY)).toBeNull();
+  });
+
+  it('a new value replaces the old one', () => {
+    storeDraftPrefill('first');
+    storeDraftPrefill('second');
+    expect(window.sessionStorage.getItem(DRAFT_PREFILL_KEY)).toBe('second');
+  });
+
+  it('never throws when setItem or removeItem throw', () => {
+    jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('QuotaExceededError');
+    });
+    jest.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => {
+      throw new Error('SecurityError');
+    });
+    expect(() => storeDraftPrefill('text')).not.toThrow();
+    expect(() => storeDraftPrefill('')).not.toThrow();
+  });
+
+  it('never throws when the sessionStorage getter throws', () => {
+    jest.spyOn(window, 'sessionStorage', 'get').mockImplementation(() => {
+      throw new Error('SecurityError');
+    });
+    expect(() => storeDraftPrefill('text')).not.toThrow();
+    expect(() => storeDraftPrefill('')).not.toThrow();
   });
 });
 
@@ -139,18 +178,80 @@ describe('DashboardCommandBar routing', () => {
     ]);
   });
 
-  it('Draft with text pushes /dashboard/new?q=<text>', () => {
+  it('Draft with text stores the sanitised text and pushes plain /dashboard/new', () => {
     mount(<DashboardCommandBar />);
     typeInto(input(), '  bail for a client & family ');
     click(q('button[type=submit]'));
     expect(push).toHaveBeenCalledTimes(1);
-    expect(push).toHaveBeenCalledWith('/dashboard/new?q=bail%20for%20a%20client%20%26%20family');
+    expect(push).toHaveBeenCalledWith('/dashboard/new');
+    expect(push.mock.calls[0][0]).not.toContain('?');
+    expect(window.sessionStorage.getItem(DRAFT_PREFILL_KEY)).toBe('bail for a client & family');
+  });
+
+  it('the pushed URL never contains the typed text', () => {
+    mount(<DashboardCommandBar />);
+    typeInto(input(), 'Asha');
+    click(q('button[type=submit]'));
+    const url = push.mock.calls[0][0] as string;
+    expect(url).toBe('/dashboard/new');
+    expect(url).not.toMatch(/Asha|%/);
+  });
+
+  it('typing a lone surrogate and pressing Draft stores U+FFFD and navigates', () => {
+    mount(<DashboardCommandBar />);
+    typeInto(input(), 'bail \ud800 for Asha');
+    expect(() => click(q('button[type=submit]'))).not.toThrow();
+    expect(push).toHaveBeenCalledWith('/dashboard/new');
+    expect(window.sessionStorage.getItem(DRAFT_PREFILL_KEY)).toBe('bail � for Asha');
+  });
+
+  it('Draft still navigates when setItem throws', () => {
+    jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('QuotaExceededError');
+    });
+    mount(<DashboardCommandBar />);
+    typeInto(input(), 'bail');
+    click(q('button[type=submit]'));
+    expect(push).toHaveBeenCalledTimes(1);
+    expect(push).toHaveBeenCalledWith('/dashboard/new');
+  });
+
+  it('Draft still navigates when the sessionStorage getter throws', () => {
+    jest.spyOn(window, 'sessionStorage', 'get').mockImplementation(() => {
+      throw new Error('SecurityError');
+    });
+    mount(<DashboardCommandBar />);
+    typeInto(input(), 'bail');
+    click(q('button[type=submit]'));
+    expect(push).toHaveBeenCalledTimes(1);
+    expect(push).toHaveBeenCalledWith('/dashboard/new');
+  });
+
+  it('chips do not touch the prefill key', () => {
+    window.sessionStorage.setItem(DRAFT_PREFILL_KEY, 'kept');
+    const set = jest.spyOn(Storage.prototype, 'setItem');
+    const remove = jest.spyOn(Storage.prototype, 'removeItem');
+    mount(<DashboardCommandBar />);
+    act(() => input().focus());
+    click(option('Bail application'));
+    expect(push).toHaveBeenCalledWith('/dashboard/new?kind=bail_regular');
+    expect(set).not.toHaveBeenCalled();
+    expect(remove).not.toHaveBeenCalled();
+    expect(window.sessionStorage.getItem(DRAFT_PREFILL_KEY)).toBe('kept');
   });
 
   it('Draft with no text pushes nothing (it focuses the input instead)', () => {
     mount(<DashboardCommandBar />);
     click(q('button[type=submit]'));
     expect(push).not.toHaveBeenCalled();
+  });
+
+  it('blank Draft never reaches onSubmit (CommandBar guards it), so it neither navigates nor touches the key', () => {
+    window.sessionStorage.setItem(DRAFT_PREFILL_KEY, 'stale');
+    mount(<DashboardCommandBar />);
+    click(q('button[type=submit]'));
+    expect(push).not.toHaveBeenCalled();
+    expect(window.sessionStorage.getItem(DRAFT_PREFILL_KEY)).toBe('stale');
   });
 
   it('a typed template name picks the template, not the free text', () => {
