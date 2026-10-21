@@ -201,7 +201,7 @@ Warm darks with a single brass accent; Daylight keeps the hues and lifts the lig
 - **Brass Text** (#e6c877 / #6e5415): the text form of brass. Eyebrows, links, ghost-button labels, chip text. This exists because brass fill fails contrast as small text.
 - **Brass Soft** (#2b2614 / #f6ebcf): chip fills, the hover halo, the selected row in the command bar list.
 - **On Brass** (#15241f / #ffffff): text on a brass fill.
-- **Brass Mark** (#c9a24a / #e6c877): the spine bands and the seal mark on an oxblood spine, and any other brass mark drawn on a dark fill. Same as Brass at night; by day it stays light so it clears 3:1 on Oxblood (5.0:1). Never used on Wall or Card.
+- **Brass Mark** (#c9a24a / #e6c877): the spine bands and the seal mark on an oxblood spine, and any other brass mark drawn on a dark fill. Same as Brass at night; by day it stays light so it clears 3:1 on Oxblood (5.0:1). Never used on Wall or Card. The inner ring of a seal mark on a spine is the spine's own fill (Oxblood), not On Brass, so it stays visible in both themes; only the 100px seal on the folio uses the On Brass ring.
 
 ### Secondary
 - **Oxblood** (#7a2a2a / #8e2f2f) and **Oxblood High** (#a94545 / #b85050): book spines on the shelf and the destructive confirm button. Never a status colour.
