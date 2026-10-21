@@ -388,7 +388,7 @@ export default function SettingsPage() {
             onClick={handleSignOut}
             className="nl-focus nl-body text-nl-brass-dark inline-flex min-h-[44px] touch-manipulation select-none items-center underline underline-offset-4"
           >
-            Sign out of Lawie
+            Sign out
           </button>
         </div>
       </SettingsTabPanel>

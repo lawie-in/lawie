@@ -335,9 +335,9 @@ describe('Account', () => {
     expect(document.activeElement).toBe(trigger);
   });
 
-  it('Sign out of Lawie logs out and redirects (a double click is not a crash)', async () => {
+  it('Sign out logs out and redirects (a double click is not a crash)', async () => {
     await page('#account');
-    const out = byText('Sign out of Lawie');
+    const out = byText('Sign out');
     click(out);
     click(out);
     expect(mockLogout).toHaveBeenCalled();
@@ -347,7 +347,7 @@ describe('Account', () => {
   it('Sign out is a link-like button after the Close account card', async () => {
     await page('#account');
     const close = document.getElementById('close-account-heading') as HTMLElement;
-    expect(close.compareDocumentPosition(byText('Sign out of Lawie'))).toBe(
+    expect(close.compareDocumentPosition(byText('Sign out'))).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING,
     );
   });
