@@ -88,3 +88,11 @@ Checked against list prices, not live; the founder reads Atlas off the cluster b
 **Arjun on the Flex rollback question:** Flex takes daily snapshots with point-in-time restore absent; restore is to a new cluster, then the connection string changes — acceptable for T-403's "rollback written and tried" if the tried rollback is *application* rollback (retag image) plus a *data* restore drill done once from a Flex snapshot, with the restore time written down. If Flex is not offered in ap-south-1 on the day, M10 is the only honest choice; the founder sees that in the cluster builder.
 
 **Open for Ajay:** M0 (no backup) vs Flex (daily backup) for client drafts under DPDP — asked 21 Oct. Founder decides after.
+
+## Ajay (21 Oct 2026) — ruling on the prod database
+
+Full ruling: `handoff/legal/AJ-prod-db-backup-ruling.md` (08718769). Summary: **M0: no, once anyone pays. Flex: OK for the pilot** on five conditions — (a) privacy policy §3 "We do not currently keep backups" is replaced with Ajay's signed line in the same release; (b) snapshot retention 7 days or less, matching the erasure promise; (c) snapshots stay in Mumbai; (d) a restore drill is timed; (e) any loss event escalated to Ajay the same day. M10 point-in-time restore is not legally required yet.
+
+## Decision (ready for the founder)
+
+Engineering, finance and legal agree: **build now, buy late; t3.medium + Atlas Flex + Parameter Store; ≈ ₹3,600–5,600/month before GST**, bought a few days before the T-403 release. On the founder's "go": Priya posts T-528 (pipeline: build → ECR → SSM deploy → rollback) and T-529 (secrets loader, `packages/shared`); the privacy §3 line and Ajay's conditions (a)–(e) go into T-403's acceptance criteria; Kunal writes the console steps (ECR, OIDC role, instance role, `/lawie/prod/*` parameters, Flex cluster with 7-day retention in Mumbai).
