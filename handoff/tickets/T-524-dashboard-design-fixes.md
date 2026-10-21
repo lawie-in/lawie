@@ -19,4 +19,4 @@
 8. Tests updated; 360px still has no horizontal scroll; Rajesh re-checks.
 
 ## Files
-apps/web: components/dashboard/** only.
+apps/web: components/dashboard/**, app/dashboard/page.tsx, components/shell/** (command bar hotkey, ThemeProvider, OfflineBanner), app/layout.tsx (theme-color meta only), app/globals.css (tokens, selection, caret, forced-colors).
