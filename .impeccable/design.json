@@ -4,36 +4,138 @@
   "title": "Design System: Lawie",
   "extensions": {
     "colorMeta": {
-      "brass": { "role": "primary", "displayName": "Brass", "canonical": "#c9a24a", "daylight": "#866619" },
-      "brass-text": { "role": "primary", "displayName": "Brass Text", "canonical": "#e6c877", "daylight": "#6e5415" },
-      "oxblood": { "role": "secondary", "displayName": "Oxblood", "canonical": "#7a2a2a", "daylight": "#8e2f2f" },
-      "wall": { "role": "neutral", "displayName": "Wall", "canonical": "#0e1a17", "daylight": "#f3efe4" },
-      "card": { "role": "neutral", "displayName": "Card", "canonical": "#182a24", "daylight": "#fbf8f0" },
-      "text": { "role": "neutral", "displayName": "Text", "canonical": "#efe7d4", "daylight": "#1c2a25" },
-      "muted": { "role": "neutral", "displayName": "Muted", "canonical": "#8e9a8e", "daylight": "#5c685f" },
-      "line": { "role": "neutral", "displayName": "Line", "canonical": "#2a3c35", "daylight": "#d9d1be" },
-      "selection": { "role": "neutral", "displayName": "Selection", "canonical": "#4a3d1e", "daylight": "#ead9a8" }
+      "brass": {
+        "role": "primary",
+        "displayName": "Brass",
+        "canonical": "#c9a24a",
+        "daylight": "#866619"
+      },
+      "brass-text": {
+        "role": "primary",
+        "displayName": "Brass Text",
+        "canonical": "#e6c877",
+        "daylight": "#6e5415"
+      },
+      "oxblood": {
+        "role": "secondary",
+        "displayName": "Oxblood",
+        "canonical": "#7a2a2a",
+        "daylight": "#8e2f2f"
+      },
+      "wall": {
+        "role": "neutral",
+        "displayName": "Wall",
+        "canonical": "#0e1a17",
+        "daylight": "#f3efe4"
+      },
+      "card": {
+        "role": "neutral",
+        "displayName": "Card",
+        "canonical": "#182a24",
+        "daylight": "#fbf8f0"
+      },
+      "text": {
+        "role": "neutral",
+        "displayName": "Text",
+        "canonical": "#efe7d4",
+        "daylight": "#1c2a25"
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Muted",
+        "canonical": "#8e9a8e",
+        "daylight": "#5c685f"
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Line",
+        "canonical": "#2a3c35",
+        "daylight": "#d9d1be"
+      },
+      "selection": {
+        "role": "neutral",
+        "displayName": "Selection",
+        "canonical": "#332a14",
+        "daylight": "#f3e9c8"
+      },
+      "brass-mark": {
+        "role": "primary",
+        "displayName": "Brass Mark",
+        "canonical": "#c9a24a",
+        "daylight": "#e6c877"
+      }
     },
     "typographyMeta": {
       "display": { "displayName": "Display", "purpose": "Landing hero only." },
-      "draft": { "displayName": "Draft", "purpose": "The draft on the folio and in the editor; 65ch max, tabular numerals." }
+      "draft": {
+        "displayName": "Draft",
+        "purpose": "The draft on the folio and in the editor; 65ch max, tabular numerals."
+      }
     },
     "shadows": [
-      { "name": "card-night", "value": "0 20px 50px -24px rgba(0,0,0,0.9)", "purpose": "The folio, the command bar, toasts, popovers. Night." },
-      { "name": "card-day", "value": "0 20px 50px -28px rgba(28,42,37,0.45)", "purpose": "The same, Daylight." },
-      { "name": "halo", "value": "0 0 0 4px var(--brass-light)", "purpose": "Primary button hover." },
-      { "name": "seal-drop", "value": "0 6px 10px rgba(0,0,0,0.4)", "purpose": "The brass seal only." }
+      {
+        "name": "card-night",
+        "value": "0 20px 50px -24px rgba(0,0,0,0.9)",
+        "purpose": "The folio, the command bar, toasts, popovers. Night."
+      },
+      {
+        "name": "card-day",
+        "value": "0 20px 50px -28px rgba(28,42,37,0.45)",
+        "purpose": "The same, Daylight."
+      },
+      {
+        "name": "halo",
+        "value": "0 0 0 4px var(--brass-light)",
+        "purpose": "Primary button hover."
+      },
+      {
+        "name": "seal-drop",
+        "value": "0 6px 10px rgba(0,0,0,0.4)",
+        "purpose": "The brass seal only."
+      }
     ],
     "motion": [
       { "name": "hover-lift", "value": "150ms ease", "purpose": "Button hover lift and halo." },
-      { "name": "lamp-follow", "value": "120ms linear", "purpose": "Lamp pool follows the pointer; fine pointer and >= 900px only." },
-      { "name": "ink-drain", "value": "2600ms linear, once, holds at 8% ink", "purpose": "While a draft generates. Static at 60% under reduced motion." },
-      { "name": "pen-writing", "value": "12-14ms per character, 220ms between paragraphs, 9ms on phones", "purpose": "The draft types in. Appears whole under reduced motion." },
-      { "name": "seal-stamp", "value": "550ms cubic-bezier(0.2, 0.9, 0.3, 1.2), scale 2.2 to 1, rotate -20deg to -8deg", "purpose": "Finalise. 275ms on phones; 150ms fade under reduced motion." },
-      { "name": "spine-pull", "value": "250ms ease, translateY(-14px)", "purpose": "Hover or focus on a spine, desktop only." },
-      { "name": "skeleton-pulse", "value": "1400ms ease-in-out infinite", "purpose": "Loading. Static under reduced motion; paused when the tab is hidden." },
-      { "name": "toast", "value": "200ms ease", "purpose": "In and out. Fade under reduced motion." },
-      { "name": "dust-motes", "value": "12-20s linear infinite, opacity <= 0.25", "purpose": "Ambient. Fine pointer and >= 900px only; paused when hidden." }
+      {
+        "name": "lamp-follow",
+        "value": "120ms linear",
+        "purpose": "Lamp pool follows the pointer; fine pointer and >= 900px only."
+      },
+      {
+        "name": "ink-drain",
+        "value": "2600ms linear, once, holds at 8% ink",
+        "purpose": "While a draft generates. Static at 60% under reduced motion."
+      },
+      {
+        "name": "pen-writing",
+        "value": "12-14ms per character, 220ms between paragraphs, 9ms on phones",
+        "purpose": "The draft types in. Appears whole under reduced motion."
+      },
+      {
+        "name": "seal-stamp",
+        "value": "550ms cubic-bezier(0.2, 0.9, 0.3, 1.2), scale 2.2 to 1, rotate -20deg to -8deg",
+        "purpose": "Finalise. 275ms on phones; 150ms fade under reduced motion."
+      },
+      {
+        "name": "spine-pull",
+        "value": "250ms ease, translateY(-14px)",
+        "purpose": "Hover or focus on a spine, desktop only."
+      },
+      {
+        "name": "skeleton-pulse",
+        "value": "1400ms ease-in-out infinite",
+        "purpose": "Loading. Static under reduced motion; paused when the tab is hidden."
+      },
+      {
+        "name": "toast",
+        "value": "200ms ease",
+        "purpose": "In and out. Fade under reduced motion."
+      },
+      {
+        "name": "dust-motes",
+        "value": "12-20s linear infinite, opacity <= 0.25",
+        "purpose": "Ambient. Fine pointer and >= 900px only; paused when hidden."
+      }
     ],
     "breakpoints": [
       { "name": "phone", "value": "360px" },
@@ -112,13 +214,41 @@
       "Mobile first at 360px; every effect degrades to a still image on phones, under reduced motion, and when the tab is hidden."
     ],
     "rules": [
-      { "name": "The Brass Is Not Text Rule", "body": "Brass fill is never used for text under 20px. Brass Text is the text form; the two are different tokens on purpose.", "section": "colors" },
-      { "name": "The One Primary Rule", "body": "One brass-filled button per screen. Everything else is ghost or a link.", "section": "colors" },
-      { "name": "The Status Pair Rule", "body": "A status colour is always used as its text token on its soft token, or as its text token on Card. Never as a fill behind white text.", "section": "colors" },
-      { "name": "The Twenty Pixel Rule", "body": "Headings at 20px and above are Tiro; below 20px they are Mukta 500. There is no third face and no third weight.", "section": "typography" },
-      { "name": "The Tabular Rule", "body": "Every number that can sit in a column is set with tabular numerals.", "section": "typography" },
-      { "name": "The One Shadow Rule", "body": "There is one card shadow and it belongs to the object the advocate is working on. Two shadowed things on one screen is one too many.", "section": "elevation" },
-      { "name": "The No Nested Card Rule", "body": "Cards do not sit inside cards. Inside the folio, structure is spacing and hairlines.", "section": "elevation" }
+      {
+        "name": "The Brass Is Not Text Rule",
+        "body": "Brass fill is never used for text under 20px. Brass Text is the text form; the two are different tokens on purpose.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Primary Rule",
+        "body": "One brass-filled button per screen. Everything else is ghost or a link.",
+        "section": "colors"
+      },
+      {
+        "name": "The Status Pair Rule",
+        "body": "A status colour is always used as its text token on its soft token, or as its text token on Card. Never as a fill behind white text.",
+        "section": "colors"
+      },
+      {
+        "name": "The Twenty Pixel Rule",
+        "body": "Headings at 20px and above are Tiro; below 20px they are Mukta 500. There is no third face and no third weight.",
+        "section": "typography"
+      },
+      {
+        "name": "The Tabular Rule",
+        "body": "Every number that can sit in a column is set with tabular numerals.",
+        "section": "typography"
+      },
+      {
+        "name": "The One Shadow Rule",
+        "body": "There is one card shadow and it belongs to the object the advocate is working on. Two shadowed things on one screen is one too many.",
+        "section": "elevation"
+      },
+      {
+        "name": "The No Nested Card Rule",
+        "body": "Cards do not sit inside cards. Inside the folio, structure is spacing and hairlines.",
+        "section": "elevation"
+      }
     ],
     "dos": [
       "Do set every number with tabular numerals and keep Ink as a number plus the word Ink (never a draft count).",
