@@ -3,7 +3,7 @@
 - **Status:** Building (Vishal, branch fix/t-543-env-example, 21 Oct 2026)
 - **Owner:** Vishal (build). Priya assigns. Arjun reviews any secret-handling comment.
 - **Mode:** Small fix. No product code changes, so no UI, no legal content.
-- **Files held:** `.env.example` only. If a service's own compose file or README must change to match, ask Priya first.
+- **Files held:** `.env.example`, `apps/web/Dockerfile`, `docker-compose.demo.yml`, `docker-compose.staging.yml`, `docker-compose.yml` (extended 21 Oct 2026, see "Build-time web variables"). Anything else: ask Priya first.
 
 ## Why
 
@@ -33,6 +33,10 @@ Founder, 21 Oct 2026: he sets every environment value himself, so he must know e
 3. The `NEXT_PUBLIC_*` variables are marked as build-time.
 4. A short list at the end of your READY: variables added, variables removed, and any you were unsure about.
 5. Each service still boots from the file's placeholders in dev (`yarn` dev start or compose) as it did before, or you say which cannot.
+
+## Build-time web variables (added 21 Oct 2026)
+
+Web is built in Docker. `apps/web/Dockerfile` passes only `NEXT_PUBLIC_API_URL` as a build ARG, so a `NEXT_PUBLIC_GRIEVANCE_OFFICER_NAME` set in `.env.demo` is not seen by `next build`, and the footer would keep the fallback. Fix: add the ARG/ENV to the Dockerfile and pass it in the `build.args` of every compose file that builds web, read from the compose project `.env` with an empty default (`${NEXT_PUBLIC_GRIEVANCE_OFFICER_NAME:-}`). Note in `.env.example` that every `NEXT_PUBLIC_*` variable needs this ARG plus a web rebuild (`docker compose ... up -d --build web`). Check every other `NEXT_PUBLIC_*` the code reads for the same gap. The tester proves it with a build that shows the name in the rendered footer, using a dummy name.
 
 ## Out of scope
 
