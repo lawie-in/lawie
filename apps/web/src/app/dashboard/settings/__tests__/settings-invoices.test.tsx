@@ -66,10 +66,10 @@ async function mount() {
 }
 
 describe('T-436 settings page: Invoices card', () => {
-  it('cards are in order Profile, Plan, Invoices, Close account, then Sign out', async () => {
+  it('cards are in order Profile, Plan, Invoices, Close account (with Sign out), Appearance', async () => {
     await mount();
     const headings = Array.from(container.querySelectorAll('h2')).map((h) => h.textContent);
-    expect(headings).toEqual(['Profile', 'Plan', 'Invoices', 'Close account']);
+    expect(headings).toEqual(['Profile', 'Plan', 'Invoices', 'Close account', 'Appearance']);
     const text = container.textContent ?? '';
     expect(text.lastIndexOf('Close account')).toBeLessThan(text.indexOf('Sign out of Lawie'));
   });

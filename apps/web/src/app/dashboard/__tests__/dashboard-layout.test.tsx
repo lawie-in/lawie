@@ -143,10 +143,11 @@ describe('/dashboard: the Night Library shell', () => {
 });
 
 describe.each([
-  '/dashboard/settings',
   '/dashboard/documents',
   '/dashboard/new',
   '/dashboard/documents/abc',
+  '/dashboard/templates',
+  '/dashboard/settings-x',
 ])('%s: the legacy shell, unchanged', (path) => {
   it('has the sidebar, credit pill, mobile menu button and no nl-root or Night Library bar', () => {
     const { container } = page(path);
@@ -177,6 +178,44 @@ describe.each([
     expect(q('.nl-root', container)).toBeNull();
     expect(tid('privacy-prompt')).not.toBeNull();
     expect(replace).toHaveBeenCalledWith('/login');
+  });
+});
+
+describe.each(['/dashboard/settings', '/dashboard/settings/', '/dashboard/payment/success'])(
+  '%s: the Night Library shell with the shared container',
+  (path) => {
+    it('renders nl-root, the Night top bar and no legacy chrome', () => {
+      const { container } = page(path);
+      expect(q('.nl.nl-root', container)).not.toBeNull();
+      expect(q('header[data-variant=signed-in]', container)).not.toBeNull();
+      expect(tid('legacy-sidebar')).toBeNull();
+      expect(tid('legacy-credit-pill')).toBeNull();
+      expect(q('button[aria-label="Open menu"]', container)).toBeNull();
+      expect(q('main#dashboard-main', container)?.getAttribute('tabindex')).toBe('-1');
+      expect(tid('section-finder')).not.toBeNull();
+      expect(tid('privacy-prompt')).not.toBeNull();
+    });
+
+    it('wraps the page in exactly one max-w-[1180px] container', () => {
+      const { container } = page(path);
+      const wrappers = qa('[class*="max-w-[1180px]"]', container);
+      expect(wrappers).toHaveLength(1);
+      expect(wrappers[0].contains(tid('child'))).toBe(true);
+      expect(wrappers[0].className).toContain('mx-auto');
+    });
+
+    it('signed out: redirects to /login without the page', () => {
+      page(path, { user: null });
+      expect(tid('child')).toBeNull();
+      expect(replace).toHaveBeenCalledWith('/login');
+    });
+  },
+);
+
+describe('/dashboard brings its own container (not padded twice)', () => {
+  it('has no layout wrapper around the page', () => {
+    const { container } = page('/dashboard');
+    expect(qa('[class*="max-w-[1180px]"]', container)).toHaveLength(0);
   });
 });
 

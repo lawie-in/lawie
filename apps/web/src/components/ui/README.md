@@ -1,6 +1,6 @@
 # Night Library foundation (T-511 part A)
 
-Base components, tokens and theme plumbing for the Night Library redesign. **Mounted only on the exact path `/dashboard` so far (T-520)**, through `DashboardTopBar` and `DashboardCommandBar` (imported by path, not from the shell index); all other screens, including `/dashboard/*`, keep the legacy shell. Later parts switch more screens over.
+Base components, tokens and theme plumbing for the Night Library redesign. **Mounted on `/dashboard` (T-520) and, since T-525, `/dashboard/settings` and `/dashboard/payment`**; the allowlist is `components/shell/nightLibraryPaths.ts` (`NIGHT_LIBRARY_PATHS`). `DashboardTopBar` and `DashboardCommandBar` are imported by path, not from the shell index. All other screens (`/dashboard/new`, documents, templates) keep the legacy shell until T-521 adds them to the allowlist.
 
 Related code: `components/ui/` (this folder), `components/shell/`, `lib/cn.ts`, `app/globals.css`, `tailwind.config.js`, `app/layout.tsx`.
 
@@ -12,7 +12,7 @@ Tokens are CSS variables scoped to the opt-in class `.nl`, not `:root`. A subtre
 - `nl-root`: page ground (background and text), in `@layer components`, so Tailwind utilities on the same element still win (`nl-root bg-nl-card`).
 - Daylight is the default. `html[data-theme='night'] .nl` switches to Night. There is never a `dark` class.
 - Tailwind keys are namespaced `nl-*` (`bg-nl-card`, `text-nl-text`, `border-nl-line`, `p-nl-4`, `rounded-nl-md`, `font-nl-body`, `font-nl-display`). Brass fill is never small text; use `text-nl-brass-dark` for brass text.
-- Token names (`--bg-wall`, `--bg-wood`, `--bg-card`, `--text`, `--text-soft`, `--muted`, `--line`, `--brass`, `--brass-dark`, `--brass-light`, `--brass-mark` (spine bands and seal mark on oxblood only, not text), `--on-brass`, `--ox`, `--ox-hi`, `--ok`, `--err`, `--warn` and `*-light`, `--lamp`, `--space-*`, `--radius-*`, `--hairline`) are defined in `app/globals.css`.
+- Token names (`--bg-wall`, `--bg-wood`, `--bg-card`, `--text`, `--text-soft`, `--muted`, `--line`, `--line-control` (borders of fields and buttons at rest, at least 3:1 on Card and Wall; Daylight on Wood is 2.88:1, known; hover rules are T-531), `--brass`, `--brass-dark`, `--brass-light`, `--brass-mark` (spine bands and seal mark on oxblood only, not text), `--on-brass`, `--ox`, `--ox-hi`, `--ok`, `--err`, `--warn` and `*-light`, `--lamp`, `--space-*`, `--radius-*`, `--hairline`) are defined in `app/globals.css`.
 - Class names are merged with `lib/cn.ts` (clsx only, no tailwind-merge).
 
 ## Theme
@@ -25,7 +25,7 @@ Tokens are CSS variables scoped to the opt-in class `.nl`, not `:root`. A subtre
 
 - `ui/`: Button (and Spinner), Input, Textarea, Chip, InkChip, Card, Skeleton, EmptyState, ErrorState, Inkwell, Seal, ToastProvider and useToast, Banner, Dialog, Lamp, DustMotes. Import from `components/ui`.
 - `shell/`: TopBar, LawieMark, CommandBar, ThemeProvider, ThemeToggle.
-- CommandBar uses Radix Popover (no cmdk). It binds Ctrl/Cmd+K by default via its `hotkey` prop, and `components/sections/SectionFinderPanel.tsx` binds the same shortcut. With `hotkeyExclusive` (used on `/dashboard`) CommandBar takes the key in a window capture-phase listener: every Ctrl/Meta+K variant is prevented and stopped so the section finder never sees it, and a plain press focuses the bar (IME composition is ignored). Set `hotkeySuspended` while a modal is open (the top-up modal does); the key then reaches the section finder again. Pass `hotkey={false}` only to turn the shortcut off entirely.
+- CommandBar uses Radix Popover (no cmdk). It binds Ctrl/Cmd+K by default via its `hotkey` prop, and `components/sections/SectionFinderPanel.tsx` binds the same shortcut. With `hotkeyExclusive` (used on `/dashboard`) CommandBar takes the key in a window capture-phase listener: every Ctrl/Meta+K variant is prevented and stopped so the section finder never sees it, and a plain press focuses the bar (IME composition is ignored). Set `hotkeySuspended` while a modal is open (the top-up modal does); the key then reaches the section finder again. The section finder is a dialog below 768px (inert page, scroll lock) and a rail only at 1280px and up; it ignores Escape and Ctrl/Cmd+K/F11 while another dialog is open. The top-up modal is a Radix Dialog (focus trap, bottom sheet at 640px and below, hides while Razorpay Checkout is open). Pass `hotkey={false}` only to turn the shortcut off entirely.
 
 ## Motion gates
 
@@ -47,4 +47,4 @@ Mukta and Tiro Devanagari Hindi, loaded with `next/font` in `app/layout.tsx` wit
 - Do not put `aria-busy` on an ancestor of a status region (it can suppress the "Still working" announcement); T-524 removed it from `States` and `Card`.
 - Button spinner does not pause on a hidden tab.
 - `yarn.lock` is stale relative to the workspaces; a plain `yarn add` rewrites about 1800 lines. This change hand-trimmed it to +21 lines (integrity hash checked against the registry). Do the same, or fix the lockfile separately.
-- No browser or visual check has been done. One is needed before Anushka tests.
+- Real-Chromium checks at 360/768/1280 were done for T-525 screens. No Safari, Firefox or touch-device check yet.

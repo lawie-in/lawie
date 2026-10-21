@@ -2,30 +2,37 @@
 
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 
 import ConfirmCloseAccountDialog from '@/components/account/ConfirmCloseAccountDialog';
 import { GST_STATE_NAG_STRINGS, GstStatePicker } from '@/components/billing/GstStatePicker';
 import { InvoicesCard, type InvoiceRow } from '@/components/billing/InvoicesCard';
 import { PlanPanel } from '@/components/billing/PlanPanel';
-import { secondaryButton } from '@/components/intake/ui';
 import {
   PrivacyBlockedNotice,
   isPrivacyBlocked,
   privacyFetch,
   usePrivacyDescribedBy,
 } from '@/components/PrivacyUpdatePrompt';
+import {
+  SettingsTabList,
+  SettingsTabPanel,
+  useSettingsTab,
+} from '@/components/settings/SettingsTabs';
+import { THEME_TOGGLE_COPY, ThemeToggle } from '@/components/shell/ThemeToggle';
+import { Button, Card, Input, usePrefersReducedMotion } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
 import { useGstState } from '@/hooks/useGstState';
 import { apiFetch } from '@/lib/apiFetch';
 
-/** T-115c — secondaryButton in the error colour (Rajesh's spec §1); no new colours. */
-const closeButtonClass = secondaryButton.replace(
-  'border-brand-navy text-brand-navy',
-  'border-brand-error text-brand-error',
-);
-
 /** The settings Plan block's State select (the nag focuses it). */
 const SETTINGS_GST_SELECT_ID = 'settings-gst-state';
+
+/** T-525: the page h1 names the tablist. */
+const SETTINGS_HEADING_ID = 'settings-heading';
+
+/** Card titles (DESIGN.md: Subtitle, Mukta 500 18px, for headings under 20px). */
+const CARD_HEADING = 'nl-h3 text-nl-text';
 
 /**
  * T-510 — the Profile card's editable fields. Names agreed with T-507 AC1 (PATCH /api/auth/me).
@@ -69,8 +76,24 @@ export default function SettingsPage() {
   const router = useRouter();
   const [closeOpen, setCloseOpen] = useState(false);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  // T-525: Profile, Plan, Account, Appearance; every panel stays mounted (hidden when inactive).
+  const [tab, selectTab] = useSettingsTab();
+  const reducedMotion = usePrefersReducedMotion();
   // T-436 (b): the State picker sits in the Plan block (spec §2: saved on change).
   const gst = useGstState('gst-state-settings');
+
+  // T-525: a blocked Pay moves focus to the State select (GstStatePicker's focusTick effect). That
+  // select lives in the Plan panel; if another tab is showing, show Plan and focus it again once
+  // the panel is no longer hidden (a hidden element cannot take focus).
+  const tabRef = useRef(tab);
+  tabRef.current = tab;
+  const { focusTick, selectRef } = gst;
+  useEffect(() => {
+    if (focusTick === 0 || tabRef.current === 'plan') return undefined;
+    selectTab('plan');
+    const raf = window.requestAnimationFrame(() => selectRef.current?.focus());
+    return () => window.cancelAnimationFrame(raf);
+  }, [focusTick, selectRef, selectTab]);
   // T-436 (Arjun, 14 Oct): any invoice issued with our State as the fallback.
   const [hasFallbackInvoice, setHasFallbackInvoice] = useState(false);
   const onInvoicesLoaded = useCallback((rows: InvoiceRow[]) => {
@@ -207,9 +230,11 @@ export default function SettingsPage() {
   const showStateNag = gst.loaded && gst.savedCode === null && hasFallbackInvoice;
 
   function focusStatePicker() {
+    // T-525: the select is in the Plan panel; make sure it is showing before focusing it.
+    if (tab !== 'plan') flushSync(() => selectTab('plan'));
     const el = gst.selectRef.current;
     if (!el) return;
-    el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    el.scrollIntoView({ block: 'center', behavior: reducedMotion ? 'auto' : 'smooth' });
     el.focus({ preventScroll: true });
   }
 
@@ -219,179 +244,171 @@ export default function SettingsPage() {
   }
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold text-slate-900">Settings</h1>
+    <div className="nl min-w-0">
+      <h1 id={SETTINGS_HEADING_ID} className="nl-h1 text-nl-text">
+        Settings
+      </h1>
 
-      {/* Profile */}
-      <div className="mt-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-sm font-semibold text-slate-700">Profile</h2>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            void handleProfileSave();
-          }}
-        >
-          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div>
-              <label htmlFor="profile-name" className="block text-xs font-medium text-slate-500">
-                Name
-              </label>
-              <input
+      <div className="mt-nl-4">
+        <SettingsTabList active={tab} onSelect={selectTab} labelledBy={SETTINGS_HEADING_ID} />
+      </div>
+
+      {/* Profile (T-510). Behaviour unchanged; boxed inputs (DESIGN.md Inputs: Settings forms). */}
+      <SettingsTabPanel id="profile" active={tab}>
+        <Card aria-labelledby="profile-heading">
+          <h2 id="profile-heading" className={CARD_HEADING}>
+            Profile
+          </h2>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              void handleProfileSave();
+            }}
+          >
+            {/* 360 first: one column; two from 640px. Inputs are 16px (no iOS focus zoom). */}
+            <div className="mt-nl-4 gap-nl-4 grid grid-cols-1 min-[640px]:grid-cols-2">
+              <Input
                 id="profile-name"
+                label="Name"
                 type="text"
                 autoComplete="name"
                 value={profile.name}
                 onChange={(e) => onProfileChange('name', e.target.value)}
-                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-100"
               />
-            </div>
-            <div>
-              <label htmlFor="profile-email" className="block text-xs font-medium text-slate-500">
-                Email
-              </label>
-              <input
+              <Input
                 id="profile-email"
+                label="Email"
                 type="email"
                 defaultValue={user.email}
                 disabled
-                className="mt-1 w-full cursor-not-allowed rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-400"
               />
-            </div>
-            <div>
-              <label
-                htmlFor="profile-bar-council"
-                className="block text-xs font-medium text-slate-500"
-              >
-                Bar council
-              </label>
-              <input
+              <Input
                 id="profile-bar-council"
+                label="Bar council"
                 type="text"
                 placeholder="Your State Bar Council"
                 value={profile.barCouncil}
                 onChange={(e) => onProfileChange('barCouncil', e.target.value)}
-                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-100"
               />
-            </div>
-            <div>
-              <label
-                htmlFor="profile-enrollment-number"
-                className="block text-xs font-medium text-slate-500"
-              >
-                Enrollment number
-              </label>
-              <input
+              <Input
                 id="profile-enrollment-number"
+                label="Enrollment number"
+                help="As on your Bar Council enrollment certificate"
                 type="text"
                 placeholder="e.g. D/123/2018"
-                aria-describedby="profile-enrollment-number-help"
                 value={profile.enrollmentNumber}
                 onChange={(e) => onProfileChange('enrollmentNumber', e.target.value)}
-                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-100"
               />
-              <p id="profile-enrollment-number-help" className="mt-1 text-xs text-slate-500">
-                As on your Bar Council enrollment certificate
-              </p>
             </div>
-          </div>
-          {/* T-343: P7 box above the Save button (only after a privacy block). */}
-          <div className="mt-5">
-            <PrivacyBlockedNotice actionKey={PROFILE_ACTION_KEY} />
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              type="submit"
-              disabled={profileStatus.kind === 'saving'}
-              aria-describedby={[
-                profileStatus.kind === 'failed' ? 'profile-save-error' : 'profile-save-status',
-                profilePrivacyDescribedBy,
-              ]
-                .filter(Boolean)
-                .join(' ')}
-              className="rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Save changes
-            </button>
-            <p id="profile-save-status" role="status" className="text-brand-teal-dark text-xs">
-              {profileStatus.kind === 'saved' ? PROFILE_SAVED : ''}
-            </p>
-            {profileStatus.kind === 'failed' && (
-              <p id="profile-save-error" role="alert" className="text-brand-error text-xs">
-                {profileStatus.message}
+            {/* T-343: P7 box above the Save button (only after a privacy block). */}
+            <div className="mt-nl-5">
+              <PrivacyBlockedNotice actionKey={PROFILE_ACTION_KEY} />
+            </div>
+            <div className="gap-nl-3 flex flex-wrap items-center">
+              {/* The panel's one primary (DESIGN.md: The One Primary Rule). */}
+              <Button
+                type="submit"
+                loading={profileStatus.kind === 'saving'}
+                aria-describedby={[
+                  profileStatus.kind === 'failed' ? 'profile-save-error' : 'profile-save-status',
+                  profilePrivacyDescribedBy,
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+              >
+                Save changes
+              </Button>
+              <p id="profile-save-status" role="status" className="nl-body-sm text-nl-ok">
+                {profileStatus.kind === 'saved' ? PROFILE_SAVED : ''}
               </p>
-            )}
-          </div>
-        </form>
-      </div>
-
-      {/* Plan (T-509): status, plan cards and Cancel. The plan comes from billing, not the JWT. */}
-      <section
-        aria-labelledby="plan-heading"
-        className="mt-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
-      >
-        <h2 id="plan-heading" className="text-sm font-semibold text-slate-700">
-          Plan
-        </h2>
-        <PlanPanel
-          gst={gst}
-          gstSlot={
-            <div>
-              {/* T-436 (Madhuri C): the nag, then the State picker, above the plan cards. */}
-              {showStateNag && (
-                <div className="flex flex-wrap items-center gap-3 text-sm text-slate-700">
-                  <p>{GST_STATE_NAG_STRINGS.nag}</p>
-                  <button
-                    type="button"
-                    onClick={focusStatePicker}
-                    className="min-h-[44px] rounded-lg border border-slate-300 px-3 text-xs font-medium text-slate-700 transition-colors hover:bg-white"
-                  >
-                    {GST_STATE_NAG_STRINGS.action}
-                  </button>
-                </div>
+              {profileStatus.kind === 'failed' && (
+                <p id="profile-save-error" role="alert" className="nl-body-sm text-nl-err">
+                  {profileStatus.message}
+                </p>
               )}
-              <GstStatePicker gst={gst} id={SETTINGS_GST_SELECT_ID} className="mt-4 max-w-xs" />
             </div>
-          }
-        />
-      </section>
+          </form>
+        </Card>
+      </SettingsTabPanel>
 
-      {/* T-436 — Invoices (Rajesh's spec, as settled by Arjun): after Plan, before Close account. */}
-      <InvoicesCard onRowsLoaded={onInvoicesLoaded} />
+      {/* Plan (T-509): status, plan cards and Cancel, then Invoices (T-436). Not a Card: PlanPanel
+          brings its own cards and cards do not nest (DESIGN.md). */}
+      <SettingsTabPanel id="plan" active={tab}>
+        <section aria-labelledby="plan-heading">
+          <h2 id="plan-heading" className={CARD_HEADING}>
+            Plan
+          </h2>
+          <PlanPanel
+            gst={gst}
+            gstSlot={
+              <div className="gap-nl-4 flex flex-col">
+                {/* T-436 (Madhuri C): the nag, then the State picker, above the plan cards. */}
+                {showStateNag && (
+                  <div className="gap-nl-3 flex flex-wrap items-center">
+                    <p className="nl-body text-nl-text">{GST_STATE_NAG_STRINGS.nag}</p>
+                    <Button variant="ghost" onClick={focusStatePicker}>
+                      {GST_STATE_NAG_STRINGS.action}
+                    </Button>
+                  </div>
+                )}
+                <GstStatePicker gst={gst} id={SETTINGS_GST_SELECT_ID} className="max-w-xs" />
+              </div>
+            }
+          />
+        </section>
 
-      {/* T-115c — Close account (Rajesh's spec §1): below Plan, above Sign out, apart from both
-          so it is not hit by mistake. Strings: Madhuri, dpdp-ui-strings-t115.md B. */}
-      <section
-        aria-labelledby="close-account-heading"
-        className="mt-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
-      >
-        <h2 id="close-account-heading" className="text-sm font-semibold text-slate-700">
-          Close account
-        </h2>
-        <p className="mt-1 text-sm text-slate-600">
-          Close your Lawie account. You will be asked to confirm first.
-        </p>
-        <button
-          ref={closeButtonRef}
-          type="button"
-          onClick={() => setCloseOpen(true)}
-          className={`${closeButtonClass} mt-4 w-full sm:w-auto`}
-        >
-          Close account
-        </button>
-      </section>
+        {/* T-436 — Invoices (Rajesh's spec, as settled by Arjun): after Plan. */}
+        <InvoicesCard onRowsLoaded={onInvoicesLoaded} />
+      </SettingsTabPanel>
+
+      {/* Account: T-115c Close account (Rajesh's spec §1: apart from Sign out so it is not hit by
+          mistake; strings: Madhuri, dpdp-ui-strings-t115.md B), then Sign out. */}
+      <SettingsTabPanel id="account" active={tab}>
+        <Card aria-labelledby="close-account-heading">
+          <h2 id="close-account-heading" className={CARD_HEADING}>
+            Close account
+          </h2>
+          <p className="nl-body-sm mt-nl-1 text-nl-soft">
+            Close your Lawie account. You will be asked to confirm first.
+          </p>
+          {/* Ghost, not a fill: one primary per screen; the destructive fill is the dialog's. */}
+          <Button
+            ref={closeButtonRef}
+            variant="ghost"
+            onClick={() => setCloseOpen(true)}
+            className="mt-nl-4 w-full min-[640px]:w-auto"
+          >
+            Close account
+          </Button>
+        </Card>
+
+        <div className="border-nl-line pt-nl-6 mt-nl-4 border-t">
+          <button
+            type="button"
+            onClick={handleSignOut}
+            className="nl-focus nl-body text-nl-brass-dark inline-flex min-h-[44px] touch-manipulation select-none items-center underline underline-offset-4"
+          >
+            Sign out of Lawie
+          </button>
+        </div>
+      </SettingsTabPanel>
+
+      {/* Appearance: Night / Daylight / System (copy §6.4); ThemeProvider persists the choice. */}
+      <SettingsTabPanel id="appearance" active={tab}>
+        <Card aria-labelledby="appearance-heading">
+          <h2 id="appearance-heading" className={CARD_HEADING}>
+            Appearance
+          </h2>
+          <ThemeToggle className="mt-nl-4" help={THEME_TOGGLE_COPY.help} />
+        </Card>
+      </SettingsTabPanel>
+
       {closeOpen && (
         <ConfirmCloseAccountDialog
           onClose={() => setCloseOpen(false)}
           fallbackFocusRef={closeButtonRef}
         />
       )}
-
-      {/* Sign out */}
-      <div className="mt-8 border-t border-slate-200 pt-6">
-        <button onClick={handleSignOut} className="text-xs text-slate-400 hover:text-slate-600">
-          Sign out of Lawie
-        </button>
-      </div>
     </div>
   );
 }

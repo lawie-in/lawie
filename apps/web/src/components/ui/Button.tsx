@@ -1,7 +1,7 @@
 'use client';
 
 // T-511 part A: Button (spec 3). primary (brass fill, on-brass text), ghost (brass/text, 1px
-// border/line), destructive (ox/fill, white). md 44px, sm 36px (its hit area is padded to 44px).
+// Control Line), destructive (ox/fill, white). md 44px, sm 36px (its hit area is padded to 44px).
 // Hover lifts 1px with a 4px brass/soft halo; focus ring 2px brass offset 3px; disabled .5;
 // loading swaps the label for a spinner and holds the width. Never two primaries on one screen.
 
@@ -21,7 +21,8 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 
 const VARIANT: Record<ButtonVariant, string> = {
   primary: 'bg-nl-brass text-nl-on-brass border border-transparent',
-  ghost: 'bg-transparent text-nl-brass-dark border border-nl-line',
+  // T-525: ghost border at rest is Control Line (3:1, WCAG 1.4.11).
+  ghost: 'bg-transparent text-nl-brass-dark border border-[color:var(--line-control)]',
   destructive: 'bg-nl-ox text-white border border-transparent',
 };
 
