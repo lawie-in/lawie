@@ -60,3 +60,5 @@ data: { "stage": "<enum>", "pct": 0-100, "eta_s"?: n, "round"?: n, "detail"?: "<
 - Unknown `stage` values must be tolerated by the web (render as "Working…"), so v2's compiler can add `plan`/`retrieve` without a web release.
 
 T-538's AC is amended accordingly (Priya folds this in).
+
+Correction after reading Rajesh's §11 in full: **`label` stays**, English only, as the server's fallback name for a stage the web has no string for (and for logs); the web never shows it when it has its own string. And **`pct` is monotonic within a run**: the server never sends a lower value than the last; a repair round holds `pct` and advances `round`. Both are T-538 AC.
