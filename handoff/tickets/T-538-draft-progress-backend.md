@@ -17,3 +17,11 @@
 6. `POST /documents/runs/:runId/cancel`; the pipeline checks a cancel flag between stages; Ink is released by the existing `finish()` rule.
 7. Tests: stage order per fixture, resume after a cut at every stage, cancel between stages releases Ink.
 8. No new dependency. No WebSocket.
+
+## Amendments (Arjun, 21 Oct 2026; recorded in `handoff/design/draft-progress.md`, last section)
+9. The web owns stage names in both languages. The server sends a closed `stage` enum (queued|intake|preflight|draft|verify|repair|render|done, versioned in packages/shared), `pct`, optional `eta_s`, `round` on repair only, and optional `detail` as plain run-specific advocate text (never a stage name, never legal advice; any detail template naming a provision is listed and Ajay-reviewed once).
+10. `label` stays on the stage event, English only, as the fallback name when the web has no string for a stage and for logs; the web never shows it when it has its own string.
+11. `pct` is monotonic within a run: the server never sends a lower value; a repair round holds `pct` and advances `round`.
+12. The run-state route returns `{ stage, pct, round?, cost: { ink, settled }, startedAt, updatedAt }`.
+13. The web tolerates unknown stage values (shows "Working...") so v2 can add plan and retrieve without a web release.
+14. `packages/shared` holds the stage enum (one lead at a time; coordinate with T-534).
