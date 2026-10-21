@@ -1,6 +1,6 @@
 # Night Library foundation (T-511 part A)
 
-Base components, tokens and theme plumbing for the Night Library redesign. **Nothing here is mounted on any page yet**; existing screens are unchanged. Parts B onward switch screens over.
+Base components, tokens and theme plumbing for the Night Library redesign. **Mounted only on the exact path `/dashboard` so far (T-520)**, through `DashboardTopBar` and `DashboardCommandBar` (imported by path, not from the shell index); all other screens, including `/dashboard/*`, keep the legacy shell. Later parts switch more screens over.
 
 Related code: `components/ui/` (this folder), `components/shell/`, `lib/cn.ts`, `app/globals.css`, `tailwind.config.js`, `app/layout.tsx`.
 
