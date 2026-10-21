@@ -65,9 +65,16 @@ The final file still comes to me for sign-off.
 | Ref | Point | Ruling |
 |---|---|---|
 | AJ-517-M12 | t433 allowlist | Add exactly two more signed strings, with the HI of the first: `Plan Ink does not carry over to the next month.` and `Plan Ink left unused at the end of the month does not carry over.`. Nothing broader. |
-| AJ-517-M13 | §1.7 with no officer name configured | Use the M11 fallback `For complaints, write to contact@lawie.in.`. Once a name is configured, use the M11 line. The FAQ cuts under M16 are OK. The consent line with the Privacy version only is OK, because it is the M11 wording when the Terms have no version. |
+| AJ-517-M13 | §1.7 with no officer name configured | Use the M11 fallback `For complaints, write to contact@lawie.in.`. Once a name is configured, use the M11 line. The FAQ cuts under M16 are OK. The consent line with the Privacy version only is OK, because it is the M11 wording when the Terms have no version. **Superseded by AJ-517-M16:** the Terms do have a version. |
 
 | Ref | Point | Ruling |
 |---|---|---|
 | AJ-517-M14 | Privacy page §11 | Signed rewording: `For privacy questions, rights requests, grievances and general support, write to contact@lawie.in.` Then the M11 Grievance Officer line once a name is configured. With no name, print nothing more, because the first line already gives the address. |
-| AJ-517-M15 | Privacy page §10 | Change privacy@lawie.in to contact@lawie.in, so there is one address across the site. Priya extends the claim to that line. No page may name privacy@lawie.in unless that mailbox exists and is monitored. |
+| AJ-517-M15 | Privacy page §7 "Your Rights" (corrected from §10 by AJ-517-M17) | Change privacy@lawie.in to contact@lawie.in, so there is one address across the site. Priya extends the claim to that line. No page may name privacy@lawie.in unless that mailbox exists and is monitored. |
+
+| Ref | Point | Ruling |
+|---|---|---|
+| AJ-517-M16 | Sign-up consent line (the Terms have their own version) | Signed: `I have read and agree to the Terms (version {terms version}) and the Privacy Policy (version {privacy version}).` Each version is read from its constant (Terms from the auth service, Privacy from shared), and a test pins each one. Drop the date, because the version already is a date. The box stays unticked by default. |
+| AJ-517-M17 | M15 reference | Correction: the privacy@ address is in §7 "Your Rights", not §10 (§10 is Children). The ruling is unchanged. |
+| AJ-517-M18 | Google sign-in from the Sign in tab can create an account without the box | v1 OK, on three conditions. (a) The T-234 "By continuing…" line stays visible beside the Google button, with links to both documents. (b) The stored record keeps `acceptedVia: 'google'`, so it never reads as a ticked box. (c) T-522 detects a new account created on this path and asks for consent with the M16 box at its next sign-in, recorded as its own acceptance. This is not signed past v1. |
+| AJ-517-M19 | Privacy "Last updated" | OK: the date moves to the merge date and the version is not bumped. The §7 and §11 changes alter only the contact address, not processing, so no one is asked to accept again. |
