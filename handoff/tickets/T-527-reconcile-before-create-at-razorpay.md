@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Arjun (design), a billing lead (build) |
 | Mode   | Full chain (billing) |
-| Status | To do, after T-526. Not blocking the v1 batch; BLOCKING before main (Arjun, 21 Oct 2026). Priya |
+| Status | In build: Shashank (21 Oct 2026). BLOCKING before main. Priya |
 | Source | Arjun; T-518 and T-526 reviews |
 
 ## Problem
