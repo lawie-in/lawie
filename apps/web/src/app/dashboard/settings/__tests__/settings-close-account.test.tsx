@@ -83,4 +83,11 @@ describe('Settings: Close account', () => {
     const del = (apiFetch as jest.Mock).mock.calls.filter(([, i]) => i?.method === 'DELETE');
     expect(del).toHaveLength(0);
   });
+
+  it('T-535: the trigger is the ghost-danger variant; the confirm dialog does not reuse it', async () => {
+    expect(openBtn().getAttribute('data-variant')).toBe('ghost-danger');
+    expect(openBtn().className).toContain('text-[color:var(--err)]');
+    await click(openBtn());
+    expect(dialog()!.querySelector('[data-variant="ghost-danger"]')).toBeNull();
+  });
 });

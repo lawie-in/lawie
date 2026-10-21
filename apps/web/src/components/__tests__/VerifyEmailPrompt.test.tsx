@@ -511,7 +511,7 @@ describe('T-223 AC4 — trigger 3: checkout', () => {
     },
   };
   const ORDER = '/api/billing/topup/order';
-  const PAY = 'Pay with Razorpay';
+  const PAY = 'Buy';
 
   async function mountTopUp() {
     const { TopUpModal } = require('../credits/TopUpModal');

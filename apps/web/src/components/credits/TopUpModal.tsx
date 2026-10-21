@@ -11,7 +11,7 @@ import {
   privacyFetch,
   usePrivacyDescribedBy,
 } from '@/components/PrivacyUpdatePrompt';
-import { Button, Chip, Spinner } from '@/components/ui';
+import { Button, Skeleton } from '@/components/ui';
 import {
   VerifyEmailCard,
   isEmailVerificationRequired,
@@ -26,8 +26,6 @@ interface TopupSku {
   id: string;
   ink: number;
   priceInr: number;
-  badge?: 'POPULAR' | 'BEST_VALUE';
-  pricePerInkInr: number;
 }
 
 declare global {
@@ -163,6 +161,9 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
   }, [plansStatus]);
 
   const selected = skus.find((s) => s.id === selectedId);
+  // T-535: the one total the user sees after "You'll pay". The footer renders it and
+  // handlePurchase checks the server's order amount against it, so the two cannot drift.
+  const displayedTotal = selected ? (coupon ? coupon.finalPriceInr : selected.priceInr) : 0;
 
   const handleApplyCoupon = async () => {
     if (!couponInput.trim()) return;
@@ -216,12 +217,31 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
         setSubmitting(false);
         return;
       }
-      const order = (await orderRes.json()).data as {
-        orderId: string;
-        amountInr: number;
-        ink: number;
-        razorpayKeyId: string;
-      };
+      const order = (await orderRes.json()).data as
+        | {
+            orderId: string;
+            amountInr: number;
+            ink: number;
+            razorpayKeyId: string;
+          }
+        | undefined;
+
+      // T-535: never open Checkout for an amount other than the one shown after "You'll pay"
+      // (e.g. a 100% coupon shows ₹0 but the server charges ₹1, or the coupon was dropped
+      // server-side; backend fix is T-540). Generic failure copy, T-511 §5. The dialog stays
+      // open and Buy stays usable for a retry.
+      const amountInr = order?.amountInr;
+      if (
+        !order ||
+        typeof amountInr !== 'number' ||
+        !Number.isFinite(amountInr) ||
+        !Number.isFinite(displayedTotal) ||
+        amountInr !== displayedTotal
+      ) {
+        setError('Something did not work. Try again.');
+        setSubmitting(false);
+        return;
+      }
 
       const ok = await loadRazorpayScript();
       if (!ok || !window.Razorpay) {
@@ -261,12 +281,6 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
       setError('Network error');
       setSubmitting(false);
     }
-  };
-
-  const SKU_NAMES: Record<string, string> = {
-    topup_mini: 'Mini',
-    topup_mid: 'Mid',
-    topup_max: 'Max',
   };
 
   return (
@@ -318,13 +332,13 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
           <header className="px-nl-6 pt-nl-4 min-[641px]:pt-nl-6">
             <div className="gap-nl-3 flex items-start justify-between">
               <div className="min-w-0">
-                <p className="nl-label text-nl-brass-dark m-0">Top up Ink</p>
+                {/* T-535: signed copy §4.6 (T-511 copy v1). */}
                 <RadixDialog.Title
                   ref={titleRef}
                   tabIndex={-1}
-                  className="nl-h2 text-nl-text mt-nl-1 focus:outline-none"
+                  className="nl-h2 text-nl-text focus:outline-none"
                 >
-                  Buy Ink for your bench
+                  Top up Ink
                 </RadixDialog.Title>
               </div>
               {/* "Close": functional label, no signed string yet (T-525 report). */}
@@ -339,20 +353,18 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
               </RadixDialog.Close>
             </div>
             <p className="nl-body-sm text-nl-soft mt-nl-2 mb-0">
-              Top-up Ink <strong className="text-nl-text font-medium">never expires</strong> and
-              stacks with your subscription.
+              Prices include GST. Top-up Ink does not expire while your account is open.
             </p>
           </header>
 
           {/* SKU list */}
           <div className="space-y-nl-2 px-nl-6 py-nl-4">
             {plansStatus === 'loading' && (
-              <div
-                role="status"
-                className="gap-nl-2 py-nl-6 nl-body-sm text-nl-muted flex items-center justify-center"
-              >
-                <Spinner />
-                Loading packs…
+              // T-535: a skeleton with no visible copy (§4.6). The visually hidden "Loading" is the
+              // functional status label approved earlier; the bars are aria-hidden.
+              <div role="status">
+                <span className="sr-only">Loading</span>
+                <Skeleton lines={3} slowText="" className="py-nl-2" />
               </div>
             )}
             {plansStatus === 'error' && (
@@ -397,23 +409,11 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
                   >
                     {isSelected ? <span className="bg-nl-brass h-2 w-2 rounded-full" /> : null}
                   </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="gap-nl-2 flex flex-wrap items-center">
-                      <span className="nl-body text-nl-text font-medium">
-                        {SKU_NAMES[sku.id] ?? sku.id} —{' '}
-                        <span className="tabular-nums">{sku.ink}</span> Ink
-                      </span>
-                      {sku.badge && (
-                        <Chip variant="brass">
-                          {sku.badge === 'BEST_VALUE' ? 'Best value' : 'Popular'}
-                        </Chip>
-                      )}
-                    </div>
-                    <p className="nl-body-sm text-nl-soft m-0 tabular-nums">
-                      ₹{sku.pricePerInkInr.toFixed(2)} per Ink · never expires
-                    </p>
-                  </div>
-                  <span className="nl-h3 text-nl-text shrink-0 tabular-nums">₹{sku.priceInr}</span>
+                  {/* T-535: the pack label is §4.6 ("3 Ink, ₹65") from the fetched plan; no
+                      "Popular"/"Best value" chip (unsupported claim, t252 M1). */}
+                  <span className="nl-body text-nl-text min-w-0 flex-1 font-medium tabular-nums">
+                    {`${sku.ink} Ink, ₹${sku.priceInr}`}
+                  </span>
                 </button>
               );
             })}
@@ -498,8 +498,7 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
               {coupon && selected ? (
                 <div className="gap-nl-2 flex items-baseline">
                   <p className="nl-h2 text-nl-text m-0 tabular-nums">
-                    ₹{coupon.finalPriceInr}{' '}
-                    <span className="nl-body-sm text-nl-soft">incl. GST</span>
+                    ₹{displayedTotal} <span className="nl-body-sm text-nl-soft">incl. GST</span>
                   </p>
                   <p className="nl-body-sm text-nl-muted m-0 tabular-nums line-through">
                     ₹{selected.priceInr}
@@ -507,8 +506,7 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
                 </div>
               ) : (
                 <p className="nl-h2 text-nl-text m-0 tabular-nums">
-                  ₹{selected?.priceInr ?? 0}{' '}
-                  <span className="nl-body-sm text-nl-soft">incl. GST</span>
+                  ₹{displayedTotal} <span className="nl-body-sm text-nl-soft">incl. GST</span>
                 </p>
               )}
             </div>
@@ -521,7 +519,7 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
                 disabled={!selected}
                 loading={submitting}
               >
-                Pay with Razorpay
+                Buy
               </Button>
             )}
           </footer>

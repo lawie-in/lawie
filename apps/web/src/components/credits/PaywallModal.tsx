@@ -100,7 +100,9 @@ export function PaywallModal({ documentLabel, cost, balance, onClose }: PaywallM
                 One-time
               </span>
               <p className="mt-2 text-sm font-semibold text-slate-900">Top up Ink</p>
-              <p className="text-xs text-slate-500">Mini · Mid · Max — never expires</p>
+              <p className="text-xs text-slate-500">
+                Top-up Ink does not expire while your account is open.
+              </p>
               <span className="mt-3 inline-flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700">
                 Buy top-up
               </span>
@@ -112,12 +114,10 @@ export function PaywallModal({ documentLabel, cost, balance, onClose }: PaywallM
               onClick={onClose}
               className="rounded-xl border-2 border-amber-400 bg-amber-50/40 p-4 text-left transition hover:bg-amber-50"
             >
+              {/* T-535: the "Best value" chip is removed (an unsupported claim, t252 M1). */}
               <div className="flex items-center justify-between">
                 <span className="rounded-full bg-amber-200 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-900">
                   Monthly
-                </span>
-                <span className="rounded-full bg-slate-900 px-2 py-0.5 text-[10px] font-semibold text-white">
-                  Best value
                 </span>
               </div>
               <p className="mt-2 text-sm font-semibold text-slate-900">Upgrade to Solo</p>

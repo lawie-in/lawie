@@ -371,10 +371,11 @@ export default function SettingsPage() {
           <p className="nl-body-sm mt-nl-1 text-nl-soft">
             Close your Lawie account. You will be asked to confirm first.
           </p>
-          {/* Ghost, not a fill: one primary per screen; the destructive fill is the dialog's. */}
+          {/* T-535: ghost danger, not a fill: one primary per screen; the destructive fill is the
+              dialog's. */}
           <Button
             ref={closeButtonRef}
-            variant="ghost"
+            variant="ghost-danger"
             onClick={() => setCloseOpen(true)}
             className="mt-nl-4 w-full min-[640px]:w-auto"
           >

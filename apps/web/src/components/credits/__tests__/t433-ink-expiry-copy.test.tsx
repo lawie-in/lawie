@@ -40,7 +40,9 @@ function render(el: ReactElement) {
 const norm = (s: string) => s.replace(/\s+/g, ' ');
 
 // Signed strings, byte-exact.
-const MODAL_PLAN_LINE = 'Plan Ink resets each month; top-up Ink never expires';
+// T-535 (Ajay): the modal line is the no-period form of the signed top-up sentence.
+const MODAL_PLAN_LINE =
+  'Plan Ink resets each month; top-up Ink does not expire while your account is open';
 const TERMS_SENTENCES =
   'Plan Ink is given for each month of your plan, including on annual plans. Plan Ink left unused at the end of that month expires and does not carry over. Top-up Ink you buy separately never expires.';
 const TERMS_ANCHOR = 'a failed generation is not charged. ';

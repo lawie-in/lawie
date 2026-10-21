@@ -52,8 +52,8 @@ const rzpCtor = jest.fn();
 
 const select = () => document.body.querySelector('select') as HTMLSelectElement;
 const payBtn = () =>
-  Array.from(document.body.querySelectorAll('button')).find((b) =>
-    /Pay with Razorpay/.test(b.textContent ?? ''),
+  Array.from(document.body.querySelectorAll('button')).find(
+    (b) => b.textContent === 'Buy',
   ) as HTMLButtonElement;
 const callsTo = (p: string) => mockPrivacyFetch.mock.calls.filter((c) => c[1] === p);
 
