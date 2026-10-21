@@ -29,7 +29,8 @@
     "motion": [
       { "name": "hover-lift", "value": "150ms ease", "purpose": "Button hover lift and halo." },
       { "name": "lamp-follow", "value": "120ms linear", "purpose": "Lamp pool follows the pointer; fine pointer and >= 900px only." },
-      { "name": "ink-drain", "value": "2600ms linear, once, holds at 8% ink", "purpose": "While a draft generates. Static at 60% under reduced motion." },
+      { "name": "ink-drain", "value": "follows the server pct, 400ms ease-out per change", "purpose": "While a draft generates; the landing demo alone uses a 2600ms timed drain. Static under reduced motion." },
+      { "name": "progress-bar", "value": "width 400ms ease-out on each server pct; done collapse 600ms", "purpose": "The draft progress bar; never a timer." },
       { "name": "pen-writing", "value": "12-14ms per character, 220ms between paragraphs, 9ms on phones", "purpose": "The draft types in. Appears whole under reduced motion." },
       { "name": "seal-stamp", "value": "550ms cubic-bezier(0.2, 0.9, 0.3, 1.2), scale 2.2 to 1, rotate -20deg to -8deg", "purpose": "Finalise. 275ms on phones; 150ms fade under reduced motion." },
       { "name": "spine-pull", "value": "250ms ease, translateY(-14px)", "purpose": "Hover or focus on a spine, desktop only." },
