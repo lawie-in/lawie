@@ -12,4 +12,6 @@
 2. Gateway: pin `jwt.verify` to `algorithms: ['HS256']`.
 3. Per-IP rate limit on `POST /consent` (there is none today).
 
+4. E2E never writes to a real consent log: stub the endpoint or tag test traffic (Ajay, 21 Oct 2026). On prod, consent rows are only marked invalid with a reason, never deleted.
+
 Acceptance: tests for each; the T-523 smoke fails if it tries a non-local request.
