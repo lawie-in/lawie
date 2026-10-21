@@ -15,6 +15,7 @@ import { env } from './config/env';
 import { ensureInkLedgerIndexes } from './config/ink-ledger-indexes';
 import logger from './config/logger';
 import { startInvoiceSweep } from './services/invoice-sweep.service';
+import { startReconcileSweep } from './services/subscription-reconcile-sweep.service';
 
 async function bootstrap() {
   try {
@@ -25,6 +26,7 @@ async function bootstrap() {
       logger.info(`   Environment: ${env.NODE_ENV}`);
     });
     startInvoiceSweep(); // T-436: finish GST invoices left in 'issuing', at boot and every 5 min
+    startReconcileSweep(); // T-527: adopt or cancel subs a timed-out create left at Razorpay
   } catch (error) {
     logger.error({ error }, 'Failed to start billing service');
     process.exit(1);

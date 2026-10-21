@@ -24,7 +24,9 @@ afterEach(() => cleanupMounted());
 // One source for the nav breakpoint: the last media rule of the bar's CSS. The pinned value is
 // Rajesh's ruling (1120px, relayed by Priya); the class and the rule must both follow it.
 const NAV_BP = Number(/min-width:(\d+)px[^@]*$/.exec(NL_STICKY_BAR_CSS)![1]);
-const NAV_ON = `min-[${NAV_BP}px]:inline-flex`;
+// A fixed string, never a template literal: an interpolated arbitrary min- breakpoint in any scanned
+// file is a bad Tailwind candidate that drops every arbitrary breakpoint. The test below pins it to NAV_BP.
+const NAV_ON = 'min-[1120px]:inline-flex';
 const navLinks = () =>
   qa('a').filter((a) => cls(a).some((c) => /^min-\[\d+px\]:inline-flex$/.test(c)));
 
@@ -75,6 +77,7 @@ describe('NL_STICKY_BAR_CSS', () => {
     );
     expect(NL_STICKY_BAR_CSS.match(/@media/g)).toHaveLength(2);
     expect(NAV_BP).toBe(1120);
+    expect(Number(/^min-\[(\d+)px\]:inline-flex$/.exec(NAV_ON)![1])).toBe(NAV_BP);
     // The nav-breakpoint rule comes last so it wins the cascade.
     expect(NL_STICKY_BAR_CSS.indexOf(`min-width:${NAV_BP}px`)).toBeGreaterThan(
       NL_STICKY_BAR_CSS.indexOf('min-width:720px'),
