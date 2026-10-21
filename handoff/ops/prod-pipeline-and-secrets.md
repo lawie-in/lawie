@@ -1,0 +1,68 @@
+# Production pipeline and secrets: cost and timing
+
+Founder, 21 Oct 2026: "whenever I merge to main it should trigger the docker deployment… the live server picks it and restarts with the latest… also time to move to Amazon Secrets Manager. Cost analysis, and now or after phase 2?" Arjun's analysis. Prices are AWS list prices for ap-south-1 (Mumbai), on-demand, October 2026, from memory, at ₹85/$ — Vikram verifies before anything is bought.
+
+## Where we are
+
+- One box: `lawie-demo`, t3.micro, free tier, runs `develop` from a git checkout under pm2, `.env.production` on disk shared by all apps, nginx in front. No production exists.
+- Dockerfiles exist for all six apps (multi-stage, node:20-alpine, non-root, health checks; drafting carries Chromium for PDFs). `docker-compose.yml`, `.staging.yml`, `.demo.yml` exist. Both deploy workflows are placeholders; `docs/DEPLOY.md` is empty.
+- T-403 already requires: production is a fresh environment, all-new secrets, nothing reused from today's box, rollback written and tried.
+
+## What "the pipeline" is, concretely
+
+No Kubernetes. EKS costs $73/month for the control plane before a single node, and we have six small services on one machine. "Restart the pod" becomes `docker compose up -d`, which recreates only the containers whose image changed. Same effect, no cluster.
+
+1. **Build** (GitHub Actions, on push to `main`): build the six images with layer cache, tag `sha-<commit>` and `main`, push to **ECR** in ap-south-1. Authentication by **OIDC** (GitHub's identity federated to one IAM role scoped to `ecr:*` on our repositories) — no AWS access key stored in GitHub.
+2. **Deploy** (same workflow, after build): **SSM Run Command** to the prod instance: `docker compose pull && docker compose up -d --remove-orphans`, then wait for the compose health checks. No SSH key, no port 22 open to GitHub. The instance needs an instance role with `ecr:GetAuthorizationToken` + pull, and `ssm:GetParameter` on `/lawie/prod/*`.
+3. **Rollback**: `main` is retagged to the previous `sha-*` by a `workflow_dispatch` input, deploy step reruns. Tried once before the first release (T-403 already demands this).
+4. **develop stays as it is** (git pull + pm2) until prod is proven; then the same pipeline runs for `develop` → the develop box with a `develop` tag, and pm2 goes.
+
+## Secrets
+
+Two AWS options, same code either way (one loader in `packages/shared`: at boot, read one JSON document per service by the instance role; in dev and tests, read the environment as today).
+
+| | SSM Parameter Store (standard, SecureString) | Secrets Manager |
+|---|---|---|
+| Price | **₹0**. Standard parameters, default KMS key, standard API throughput: free. | **$0.40 per secret per month** + $0.05 per 10k calls. Seven secrets (six services + webhook) ≈ **$2.80 ≈ ₹240/month**; calls negligible (read at boot). |
+| Size limit | 4 KB standard (8 KB advanced, $0.05/param) | 64 KB |
+| Rotation | None built in | Built in — but needs a Lambda per secret and a provider that supports it. Anthropic, Razorpay and the JWT secrets do not rotate programmatically; Atlas could. We would not use it. |
+| Cross-account / replication | No | Yes — we have one account. |
+| IAM, audit, encryption at rest, no file on disk | Same | Same |
+
+**Ruling: Parameter Store now.** It gives the thing the founder actually wants — no `.env.production` on any disk, secrets injected by role, audited by CloudTrail, scoped per environment — for ₹0. Secrets Manager adds rotation and replication we cannot use yet. The loader is written so switching is one config line (`SECRETS_BACKEND=ssm|secretsmanager`) if that changes. Secrets are still created by the founder in the console; no AI session ever holds them.
+
+## Monthly cost of a production environment (the part nobody asked about but matters more)
+
+| Line | Choice | ₹/month |
+|---|---|---|
+| Prod compute | t3.small (2 vCPU, 2 GB) ≈ $16.4 — tight for six Node containers + nginx + Chromium; **t3.medium (4 GB) ≈ $33** recommended | **1,400 – 2,800** |
+| Image registry | ECR, ~5 GB kept (last 5 tags, lifecycle policy), $0.10/GB; pulls in-region free | ~45 |
+| CI minutes | GitHub Free: 2,000 min/month private. Six images with cache ≈ 15–25 min per `main` merge; 10 merges ≈ 250 min on top of today's CI. Overage $0.008/min if ever | 0 (today) |
+| Secrets | Parameter Store | 0 |
+| Secrets (if Secrets Manager) | 7 secrets | 240 |
+| Database | T-403 says new credentials; a free M0 Atlas cluster is not for production (no backups, 512 MB). **M10 ≈ $57** | **~4,900** |
+| Redis | A Redis container on the same box: ₹0. ElastiCache t4g.micro ≈ $12 | 0 – 1,000 |
+| Elastic IP, 20 GB EBS | EIP free while attached; EBS gp3 ≈ $1.6 | ~140 |
+| **Total** | t3.medium + ECR + Param Store + M10 + on-box Redis | **≈ ₹7,900 ($93)** |
+| Minimum | t3.small + M0 kept for a closed pilot only (Vikram/Ajay to accept the no-backup risk) | ≈ ₹1,600 |
+
+The free tier's 750 instance-hours cover one t3.micro only; the dev box uses them. A second box is paid from day one, whenever it starts. Also check when the account's 12-month free tier ends — the dev box becomes ≈ ₹700/month then.
+
+## Effort
+
+- Pipeline: ~2 lead-days (workflow, compose file for prod, SSM deploy, rollback, docs). Root config and CI files: one lead, one ticket.
+- Secrets loader: ~1 lead-day (`packages/shared`, six boot sites, tests with a stubbed client). One ticket, `packages/shared` claim.
+- Founder console work (~1 hour, with Kunal's step-by-step as for SES): ECR repositories, OIDC provider + role for GitHub, instance role, the `/lawie/prod/*` parameters, one t3.medium with Docker, the Atlas M10.
+
+## Now or after phase 2?
+
+**Now — before the first production release, which is before phase 0 of v2 even starts** (D9: phase 0 begins after T-403). Reasons:
+
+1. Production does not exist yet. A box born from an image and a role never needs migrating; a box born from `git pull` and an env file has to be rebuilt later while users are on it. The cheapest time to containerise prod is before there is a prod.
+2. T-403 already demands a fresh environment, all-new secrets, nothing on disk reused, a rollback tried. The pipeline and the loader *are* that work; doing T-403 by hand and then automating it is paying twice.
+3. The risk is the opposite of what it looks like: the manual path (copy env file, `git pull`, `pm2 restart`) is what produced the over-privileged bot user and a 157-day-old key. Automation removes the hands.
+4. It does not touch product code or Anushka's batch. One lead, two tickets, in parallel with the v1 polish tickets.
+
+Not now: Kubernetes, Secrets Manager rotation, ElastiCache, multi-AZ. Revisit when there is paying load.
+
+**Decision needed from the founder:** (a) go now with Parameter Store, ₹≈7,900/month at the recommended size (Vikram verifies), or (b) go now at the ₹1,600 minimum with the M0 risk accepted in writing, or (c) wait. On (a) or (b) Priya posts T-528 (pipeline) and T-529 (secrets loader) and Kunal writes the console steps.
