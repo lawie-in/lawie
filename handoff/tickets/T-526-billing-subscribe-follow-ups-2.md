@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Arjun (design for item 2), a billing lead (build) |
 | Mode   | Full chain (billing) |
-| Status | To do. V1.1 (Shashank's T-518 report, 21 Oct 2026). Priya |
+| Status | In build: Shashank (21 Oct 2026). Priya |
 
 ## Items (in order)
 1. A `subscriptions.create` timeout returns 500 and the 500 body leaks `err.message` (billing.routes.ts). The body must be a fixed, safe message; the detail goes to the log only.
