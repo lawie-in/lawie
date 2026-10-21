@@ -324,7 +324,7 @@ The question at the top of the desk: "What do you need to draft?" in Title type,
 
 ### Folio, Inkwell, Seal, Spine (signature)
 - **Folio:** the lit sheet of paper. Card fill, card shadow, brass hairline on top, Draft type inside.
-- **Inkwell:** a 52 by 64 SVG; the level rect is the Ink balance. While a draft generates it drains from the balance to the balance minus the draft's cost in step with the server's `pct` (400ms ease-out per change); static under reduced motion. The 2.6s timed drain exists only on the landing demo, which has no server.
+- **Inkwell:** a 52 by 64 SVG; the level rect is the Ink balance. While a draft generates it drains from the balance to the balance minus the draft's cost in step with the server's `pct` (400ms ease-out per change); under reduced motion it shows the real level, static, never a fixed placeholder level. The 2.6s timed drain exists only on the landing demo, which has no server.
 - **Seal:** 100px brass disc, On Brass Tiro lettering, resting at -8°. Stamps in from scale 2.2 and -20° over 550ms with the seal drop shadow; a 150ms fade under reduced motion. A 26px mark of it sits on finalised spines.
 - **Spine:** 52px wide, 184 to 210px tall, Tiro 15px label set vertically, two Brass Mark bands for a draft with open checks, the Brass Mark seal for a finalised document. Hover or focus pulls it out 14px over 250ms on desktop only.
 
