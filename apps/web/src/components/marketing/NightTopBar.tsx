@@ -3,7 +3,12 @@
 // T-517: the Night Library top bar for the landing, pricing and auth pages (spec 3 "Top bar",
 // signed out; copy §1.2). Built on TopBar from components/shell. The old SiteNav stays on the
 // other marketing pages. The theme toggle is passed in (not TopBar's own) so it can carry the
-// Hindi labels (§6.4). Not sticky: the hero's primary button must be the only primary in view.
+// Hindi labels (§6.4).
+// T-528 (Rajesh, DESIGN.md Navigation): sticky from 720px, on its own Wall ground, clear of the
+// top safe-area inset. Below 720px shell TopBar adds its mobile row (language, theme, Sign in),
+// which makes the bar 177-181px tall at 390/360; pinned, that is a fifth of a phone screen, so
+// the bar scrolls away there. The landing passes ctaVariant="ghost", so the hero's primary stays
+// the only one in view. Pages with in-page anchors give the targets STICKY_ANCHOR_OFFSET.
 
 import Link from 'next/link';
 
@@ -26,6 +31,17 @@ export interface NightTopBarProps {
   /** The top bar's call to action variant. Ghost when a primary sits in the same view (hero). */
   ctaVariant?: 'primary' | 'ghost';
 }
+
+/** Sticky wrapper classes, passed to shell TopBar (which already paints Wall and the Line rule). */
+const STICKY =
+  'min-[720px]:sticky min-[720px]:top-0 min-[720px]:z-30 pt-[env(safe-area-inset-top,0px)]';
+
+/**
+ * scroll-margin-top for in-page anchor targets under the sticky bar: its 64px row plus the 1px
+ * rule, so the section's hairline sits under the bar's and the section's own top padding gives
+ * the air. None below 720px, where the bar is not sticky.
+ */
+export const STICKY_ANCHOR_OFFSET = 'min-[720px]:scroll-mt-[65px]';
 
 const NAV_LINK =
   'nl-focus nl-body-sm rounded-nl-sm px-nl-3 text-nl-soft [@media(hover:hover)_and_(pointer:fine)]:hover:text-nl-text inline-flex min-h-[44px] items-center font-medium no-underline touch-manipulation';
@@ -91,6 +107,7 @@ export function NightTopBar({
 
   return (
     <TopBar
+      className={STICKY}
       variant="signed-out"
       brand="Lawie"
       nav={navLinks}

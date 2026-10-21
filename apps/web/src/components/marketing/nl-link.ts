@@ -14,12 +14,31 @@ const BASE =
 const PRIMARY_HOVER =
   '[@media(hover:hover)_and_(pointer:fine)]:hover:shadow-nl-halo [@media(hover:hover)_and_(pointer:fine)]:hover:-translate-y-px motion-reduce:[@media(hover:hover)_and_(pointer:fine)]:hover:translate-y-0';
 
+/**
+ * T-528: the same primary hover for a real <button> (login submit, Continue): `enabled:` so a
+ * disabled or busy button neither halos nor lifts. Matches components/ui/Button. Never on a
+ * non-primary.
+ */
+export const NL_PRIMARY_BUTTON_HOVER =
+  '[@media(hover:hover)_and_(pointer:fine)]:enabled:hover:shadow-nl-halo [@media(hover:hover)_and_(pointer:fine)]:enabled:hover:-translate-y-px motion-reduce:[@media(hover:hover)_and_(pointer:fine)]:enabled:hover:translate-y-0';
+
+/**
+ * T-528 (Rajesh): hover for a non-primary (ghost link, the login Google button). Border Line ->
+ * Brass, ground -> Brass Soft (`nl-brass-light`), 150ms ease via `.nl-focus` (duration and easing);
+ * the transition list adds border and background colour to .nl-focus's own properties. No lift,
+ * no halo: those stay primary-only. Gated to a hover-capable fine pointer; `:not(:disabled)`, so a
+ * disabled button does not react (an <a> always matches). No transition under reduced motion.
+ */
+export const NL_GHOST_HOVER =
+  '[transition-property:outline-color,box-shadow,transform,border-color,background-color] motion-reduce:transition-none ' +
+  '[@media(hover:hover)_and_(pointer:fine)]:[&:not(:disabled)]:hover:border-nl-brass [@media(hover:hover)_and_(pointer:fine)]:[&:not(:disabled)]:hover:bg-nl-brass-light';
+
 export function nlLinkButton(variant: 'primary' | 'ghost', className?: string): string {
   return cn(
     BASE,
     variant === 'primary'
       ? cn('bg-nl-brass text-nl-on-brass border border-transparent', PRIMARY_HOVER)
-      : 'bg-transparent text-nl-brass-dark border border-nl-line',
+      : cn('bg-transparent text-nl-brass-dark border border-nl-line', NL_GHOST_HOVER),
     className,
   );
 }

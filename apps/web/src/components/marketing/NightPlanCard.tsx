@@ -46,7 +46,14 @@ export function NightPlanCard({
     >
       <Heading className={cn(largeHeading ? 'nl-h2' : 'nl-h3', 'text-nl-text')}>{name}</Heading>
       {subline ? <p className="nl-body-sm text-nl-soft">{subline}</p> : null}
-      <p className="nl-h2 mt-nl-3 text-nl-text tabular-nums">{price}</p>
+      {/* T-528 (Rajesh): the price leads the card, Tiro 34/40. DESIGN.md has no 34/40 token
+          (Headline is 32/38), so the size is set here. Tabular numerals (The Tabular Rule). */}
+      <p
+        data-plan-price=""
+        className="font-nl-display mt-nl-3 text-nl-text text-[34px] font-normal tabular-nums leading-[40px] [text-wrap:balance]"
+      >
+        {price}
+      </p>
       <p className="nl-body text-nl-soft mt-nl-1">{ink}</p>
       <ul className="mt-nl-4 gap-nl-2 nl-body text-nl-soft flex list-none flex-col p-0">
         {includes.map((line) => (

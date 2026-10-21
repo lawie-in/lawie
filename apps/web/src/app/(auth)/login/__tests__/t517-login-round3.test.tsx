@@ -62,7 +62,7 @@ afterEach(() => {
 describe('folio: top hairline (round 3, MUST b)', () => {
   it.each(['mode=signup', 'mode=signin'])('%s: the folio has a 1px brass top border', async (m) => {
     await mount(m);
-    const folio = q('#auth-panel')!.closest('.max-w-md') as HTMLElement;
+    const folio = q('#auth-panel')!.closest('.max-w-\\[440px\\]') as HTMLElement;
     const c = folio.className.split(/\s+/);
     expect(c).toContain('border-t-nl-brass');
     expect(c).toContain('border'); // 1px on all sides
@@ -164,9 +164,9 @@ describe('break-ui on the underline fields', () => {
     }
   });
 
-  it('narrow container: folio is w-full max-w-md and clips; the page clips horizontal overflow', async () => {
+  it('narrow container: folio is w-full max-w-[440px] and clips; the page clips horizontal overflow', async () => {
     await mount('mode=signup');
-    const folio = q('#auth-panel')!.closest('.max-w-md') as HTMLElement;
+    const folio = q('#auth-panel')!.closest('.max-w-\\[440px\\]') as HTMLElement;
     expect(folio.className).toContain('w-full');
     expect(folio.className).toContain('overflow-hidden');
     expect(q('.nl-root')!.className).toContain('overflow-x-clip');
@@ -203,7 +203,7 @@ describe('final pass: focus ring, touch, padding', () => {
 
   it('the folio inner padding is p-nl-6, then p-nl-10 from 900px; the old p-nl-5 / p-nl-8 are gone', async () => {
     await mount('mode=signup');
-    const folio = q('#auth-panel')!.closest('.max-w-md') as HTMLElement;
+    const folio = q('#auth-panel')!.closest('.max-w-\\[440px\\]') as HTMLElement;
     const inner = Array.from(folio.children).find((c) =>
       c.className.includes('min-[900px]:p-nl-10'),
     ) as HTMLElement;

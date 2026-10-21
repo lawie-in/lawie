@@ -10,6 +10,7 @@ import ReferralOfferModal from './ReferralOfferModal';
 import { NightFooter } from '@/components/marketing/NightFooter';
 import { NightTopBar } from '@/components/marketing/NightTopBar';
 import { AUTH_COPY, CONSENT_COPY } from '@/components/marketing/nl-copy';
+import { NL_GHOST_HOVER, NL_PRIMARY_BUTTON_HOVER } from '@/components/marketing/nl-link';
 import { Lamp, Spinner } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/cn';
@@ -604,7 +605,7 @@ function LoginContent() {
 
       <main className="px-nl-4 py-nl-4 min-[640px]:py-nl-8 min-[900px]:py-nl-12 flex flex-1 flex-col items-center">
         {/* The folio holds the form; the lamp pool sits on it (spec 02). */}
-        <div className="border-nl-line border-t-nl-brass bg-nl-card shadow-nl-card relative w-full max-w-md overflow-hidden border border-t">
+        <div className="border-nl-line border-t-nl-brass bg-nl-card shadow-nl-card relative w-full max-w-[440px] overflow-hidden border border-t">
           <Lamp />
           <div className="p-nl-6 min-[900px]:p-nl-10 relative">
             {referralNotice ? (
@@ -619,7 +620,10 @@ function LoginContent() {
                 <button
                   type="button"
                   onClick={() => router.replace('/dashboard')}
-                  className="nl-focus rounded-nl-md bg-nl-brass text-nl-on-brass mt-nl-5 h-11 w-full font-medium"
+                  className={cn(
+                    'nl-focus rounded-nl-md bg-nl-brass text-nl-on-brass mt-nl-5 h-11 w-full touch-manipulation font-medium',
+                    NL_PRIMARY_BUTTON_HOVER,
+                  )}
                 >
                   {AUTH_COPY.continue}
                 </button>
@@ -753,7 +757,11 @@ function LoginContent() {
                     onClick={() => void handleGoogleLogin()}
                     type="button"
                     disabled={submitting}
-                    className="nl-focus rounded-nl-md border-nl-line bg-nl-card mt-nl-5 gap-nl-3 px-nl-4 text-nl-text [@media(hover:hover)_and_(pointer:fine)]:hover:shadow-nl-halo flex min-h-[48px] w-full touch-manipulation items-center justify-center border font-medium disabled:opacity-50"
+                    className={cn(
+                      'nl-focus rounded-nl-md border-nl-line bg-nl-card mt-nl-5 gap-nl-3 px-nl-4 text-nl-text flex min-h-[48px] w-full touch-manipulation items-center justify-center border font-medium disabled:opacity-50',
+                      // T-528 (Rajesh): a non-primary hover (Brass border, Brass Soft ground), no halo.
+                      NL_GHOST_HOVER,
+                    )}
                   >
                     <GoogleIcon />
                     {AUTH_COPY.google}
@@ -1062,7 +1070,11 @@ function LoginContent() {
                         type="submit"
                         disabled={submitting}
                         aria-busy={submitting || undefined}
-                        className="nl-focus rounded-nl-md bg-nl-brass text-nl-on-brass gap-nl-2 [@media(hover:hover)_and_(pointer:fine)]:enabled:hover:shadow-nl-halo flex h-11 w-full touch-manipulation items-center justify-center text-[15px] font-medium disabled:cursor-wait disabled:opacity-80"
+                        className={cn(
+                          'nl-focus rounded-nl-md bg-nl-brass text-nl-on-brass gap-nl-2 flex h-11 w-full touch-manipulation items-center justify-center text-[15px] font-medium disabled:cursor-wait disabled:opacity-80',
+                          // T-528: DESIGN.md primary hover, halo plus 1px lift (gated, enabled only).
+                          NL_PRIMARY_BUTTON_HOVER,
+                        )}
                       >
                         {submitting && <Spinner />}
                         {submitting
