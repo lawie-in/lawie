@@ -109,6 +109,15 @@ export default function DescribeStep({
             {message?.retry ? 'Try again' : 'Continue'}
           </Button>
         </div>
+        {/* The Button's spinner replaces its label while submitting; this line says what is
+            happening. The live region is always rendered (never display:none) and filled
+            later, so screen readers announce the text when it appears. */}
+        <p
+          className={`nl-body-sm text-nl-muted text-right ${submitting ? 'mt-nl-2' : ''}`}
+          role="status"
+        >
+          {submitting ? 'Reading your description…' : null}
+        </p>
       </form>
 
       <p className="nl-body-sm text-nl-soft mt-nl-4 text-center">

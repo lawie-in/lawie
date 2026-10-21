@@ -116,7 +116,9 @@ export default function GeneratingStep({
 
   return (
     <div className={page}>
-      <div className={`${folio} gap-nl-6 flex flex-col items-center`} aria-live="polite">
+      {/* One live region for the steps only: the Skeleton below has its own role="status"
+          ("Still working…"), and nesting it in another live region could announce twice. */}
+      <div className={`${folio} gap-nl-6 flex flex-col items-center`}>
         {/* The ink drain runs for the request; static at 60% under reduced motion. */}
         <Inkwell balance={100} draining />
         <div className="w-full min-w-0 text-center">
@@ -125,7 +127,7 @@ export default function GeneratingStep({
             This can take a little while. Please keep this tab open.
           </p>
         </div>
-        <ul className="nl-body text-nl-text w-full space-y-3.5">
+        <ul className="nl-body text-nl-text w-full space-y-3.5" aria-live="polite">
           <Step state="done">Read your confirmed brief</Step>
           <Step state={repairing ? 'done' : 'now'}>Writing the draft</Step>
           {repairing && <Step state="now">Adding a part that was missing</Step>}

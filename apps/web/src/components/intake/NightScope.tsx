@@ -1,9 +1,9 @@
 /**
  * T-521: opts a page or flow into the Night Library tokens (`nl`) and page ground
- * (`nl-root`). Tokens apply only under an ancestor with `nl`, and the dashboard
- * layout does not have it yet.
+ * (`nl-root`). Tokens apply only under an ancestor with `nl`. app/dashboard/layout.tsx
+ * applies `nl nl-root` only on /dashboard itself, not on the routes that use this.
  *
- * Remove once T-520 puts nl nl-root on the dashboard layout.
+ * Remove once T-520's layout puts nl nl-root on ALL dashboard routes.
  */
 import { cn } from '@/lib/cn';
 
