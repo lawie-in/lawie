@@ -42,3 +42,21 @@ Decision: **stay on SSE; add stage events, ids and resume.** Revisit WebSockets 
 - Ticket B (web, after Rajesh's design): progress component, reconnect, run-state on refresh.
 - Phase: after the v1 batch; before the first paying cohort (it is what makes a 60-second draft feel alive). v2's compiler pipeline (plan → retrieve → draft → verify → repair → render, ADR-026) emits the same `stage` events — the design is shared, so build it once.
 - No new dependency. No WebSocket. No Socket.IO.
+
+## Arjun (21 Oct 2026) — contract amendment after Rajesh's spec (T-539 §11)
+
+Confirmed, with one hard line. The **web owns stage names** (both languages, signed once by Rajesh/Madhuri, Ajay where a name touches law). The **server owns the machine contract**:
+
+```
+event: stage
+id: <runId>:<seq>
+data: { "stage": "<enum>", "pct": 0-100, "eta_s"?: n, "round"?: n, "detail"?: "<advocate-facing text>" }
+```
+
+- `stage` is a closed enum (`queued|intake|preflight|draft|verify|repair|render|done`), versioned in `packages/shared`; the web maps it to its names. The server sends **no `label`** — struck from §1 above.
+- `detail` is optional, plain, specific to this run ("checked 4 of 9 citations", "Patna District Court rules read"); never a stage name, never a sentence that advises on law. Any `detail` template that names a provision or court rule is listed in the ticket and Ajay-reviewed once.
+- `round` on `repair` only (1 or 2).
+- `GET /documents/runs/:runId` returns `{ stage, pct, round?, cost: { ink: <chargedCost or held cost>, settled: boolean }, startedAt, updatedAt }` — `cost` is the Ink figure the user will see on `done`, with `settled` saying whether it is final.
+- Unknown `stage` values must be tolerated by the web (render as "Working…"), so v2's compiler can add `plan`/`retrieve` without a web release.
+
+T-538's AC is amended accordingly (Priya folds this in).
