@@ -123,3 +123,17 @@ Rules:
 - **T-534 — secrets loader** (`packages/shared`; one lead): `loadSecrets()` reads `/lawie/<env>/<service>` JSON from Parameter Store by instance role when `SECRETS_BACKEND=ssm`, else the environment as today; one call at each of the six boot sites; stubbed-client tests; `SECRETS_BACKEND` absent = today's behaviour, so nothing changes until the prod box exists.
 - **Kunal — console steps**, written now, executed when the founder says "buy": ECR repositories with a 5-tag lifecycle policy, GitHub OIDC provider + role, instance role (ECR pull + `ssm:GetParameter` on `/lawie/prod/*`), the parameters, `production` environment with the founder as reviewer, the two variables (left absent), t3.medium with Docker, Atlas Flex in ap-south-1 with 7-day retention. The founder enters every secret value himself.
 - **T-532** (Priya): privacy §3 ships with the Flex cluster.
+
+## Founder rule (21 Oct 2026): no handoff docs in production, not even on `main`
+
+Audit today: `.dockerignore` excludes `docs/` (except `docs/templates`), `scripts/`, `team-warroom/` and env files — but **not** `handoff/`, `.claude/`, `CLAUDE.md` or `.github/`. Five service Dockerfiles copy only their own app and `packages/*`, so they are clean; **`apps/web/Dockerfile` does `COPY . .`**, so the web image would carry every handoff ticket, the claim record and the agent prompts today. The dev box is a git checkout, so the files are on its disk too (nginx does not serve them, but they are there).
+
+Ruling, three layers, each enough on its own:
+
+1. **Images (T-533, first commit):** add to `.dockerignore`: `handoff/`, `.claude/`, `CLAUDE.md`, `.github/`, `**/*.md` (then re-allow nothing — no Markdown is read at runtime; `docs/templates` is JSON). Change `apps/web/Dockerfile` from `COPY . .` to the explicit copies the other five use (`apps/web/`, `packages/shared/`, root `package.json`/`yarn.lock`). AC: `docker build` of each image followed by `docker run --rm <image> sh -c 'ls /app'` shows no `handoff`, `.claude`, `CLAUDE.md`; a test in the T-533 workflow greps the image filesystem for `handoff/` and fails the build if found.
+2. **`main` (T-403 and T-533):** `main` is not a merge of `develop`; it is a **release snapshot**. A `release-to-main.yml` workflow (`workflow_dispatch`, `production` environment, founder as reviewer, input `version`) checks out `develop`, removes `handoff/`, `.claude/`, `CLAUDE.md`, `.github/copilot-instructions.md`, commits the tree onto `main` as `release: v<version> from develop@<sha>`, tags it, pushes. No one merges into `main` by hand. The commit message carries the `develop` SHA, so the source is always traceable. Hotfixes still flow `develop_staging → develop → release`, never to `main` directly (branch rule unchanged).
+3. **Guard on `main` (T-533):** a `main-guard` job in CI, on every push to `main`: fails if `handoff/`, `.claude/` or `CLAUDE.md` exist in the tree. Branch protection on `main` requires it. If the founder ever merges by hand, the guard goes red before the pipeline builds — the deploy job also depends on it.
+
+The dev box: when T-533's pipeline is later turned on for `develop`, the box runs images, not a checkout, and the files leave its disk. Until then they stay there, unserved; acceptable, noted.
+
+T-403's AC line "`develop` is merged to `main`" is amended to "`main` is cut from `develop` by the release workflow".
