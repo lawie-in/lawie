@@ -36,14 +36,15 @@ const spineLink = (c: ParentNode) => q('a', c) as HTMLAnchorElement;
 describe('Spine', () => {
   beforeEach(() => stubMatchMedia());
 
-  it('links to the document and carries title and status in the title attribute', () => {
+  it('links to the document; the accessible name is the title and status, with no tooltip', () => {
     const { container } = mount(
       <ul>
         <Spine doc={doc()} index={0} />
       </ul>,
     );
     expect(spineLink(container).getAttribute('href')).toBe('/dashboard/documents/abc123');
-    expect(spineLink(container).getAttribute('title')).toBe('State v. Rao (draft)');
+    expect(spineLink(container).getAttribute('aria-label')).toBe('State v. Rao (draft)');
+    expect(spineLink(container).hasAttribute('title')).toBe(false);
   });
 
   it('encodes an odd id in the link', () => {
@@ -55,28 +56,34 @@ describe('Spine', () => {
     expect(spineLink(container).getAttribute('href')).toBe('/dashboard/documents/a%2Fb%20c');
   });
 
-  it('draft: two brass bands, no seal dot, status word in the label', () => {
+  it('draft: two bands, no seal mark, status word in the label', () => {
     const { container } = mount(
       <ul>
         <Spine doc={doc()} index={0} />
       </ul>,
     );
     expect(spineLink(container).dataset.status).toBe('draft');
-    expect(qa('.h-1.bg-nl-brass', container)).toHaveLength(2);
+    expect(qa('span[aria-hidden=true] > span.h-1', container)).toHaveLength(2);
+    expect(q('svg', container)).toBeNull();
     expect(q('.rounded-full', container)).toBeNull();
     expect(container.textContent).toContain('draft');
   });
 
-  it('finalised: a seal dot, no bands', () => {
+  it('finalised: the 26px seal mark (svg), no bands, no dot', () => {
     const { container } = mount(
       <ul>
         <Spine doc={doc({ status: 'finalised' })} index={1} />
       </ul>,
     );
     expect(spineLink(container).dataset.status).toBe('finalised');
-    expect(qa('.h-1.bg-nl-brass', container)).toHaveLength(0);
-    expect(q('.rounded-full', container)).not.toBeNull();
-    expect(spineLink(container).getAttribute('title')).toBe('State v. Rao (finalised)');
+    expect(qa('span.h-1', container)).toHaveLength(0);
+    expect(q('.rounded-full', container)).toBeNull();
+    const seal = q('svg', container)!;
+    expect(seal.getAttribute('aria-hidden')).toBe('true');
+    expect(seal.getAttribute('viewBox')).toBe('0 0 26 26');
+    expect(seal.getAttribute('class')).toContain('h-[1.625rem]');
+    expect(seal.getAttribute('class')).toContain('w-[1.625rem]');
+    expect(spineLink(container).getAttribute('aria-label')).toBe('State v. Rao (finalised)');
   });
 
   it('exported is shown as finalised', () => {
@@ -92,13 +99,14 @@ describe('Spine', () => {
     expect(container.textContent).not.toMatch(/exported/i);
   });
 
-  it('an untitled document still gets a title attribute with just the status', () => {
+  it('an untitled document is named by just the status', () => {
     const { container } = mount(
       <ul>
         <Spine doc={doc({ title: '   ' })} index={0} />
       </ul>,
     );
-    expect(spineLink(container).getAttribute('title')).toBe('draft');
+    expect(spineLink(container).getAttribute('aria-label')).toBe('draft');
+    expect(spineLink(container).hasAttribute('title')).toBe(false);
   });
 
   it('pulls out on hover only with motion allowed and not on the mobile cap', () => {
@@ -107,7 +115,7 @@ describe('Spine', () => {
         <Spine doc={doc()} index={0} />
       </ul>,
     );
-    expect(spineLink(allowed.container).className).toContain('hover:-translate-y-[14px]');
+    expect(spineLink(allowed.container).className).toContain('group-hover:-translate-y-[14px]');
     cleanupMounted();
 
     stubMatchMedia({ '(prefers-reduced-motion: reduce)': true });

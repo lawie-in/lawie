@@ -10,8 +10,9 @@
 // or, with none highlighted, submits the text (Draft); Escape closes.
 //
 // HOTKEY CONFLICT: components/sections/SectionFinderPanel.tsx also binds Ctrl/Cmd+K on window
-// (it toggles the section finder). If both are mounted on one page, both handlers fire. Mount the
-// command bar with hotkey={false} on pages that show the section finder until that is resolved.
+// (it toggles the section finder). If both are mounted on one page, both handlers fire. Either
+// mount the command bar with hotkey={false}, or (T-524, /dashboard) pass hotkeyExclusive so the
+// bar takes the key in the capture phase and the finder's bubble-phase listener never runs.
 
 import * as Popover from '@radix-ui/react-popover';
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
@@ -83,6 +84,18 @@ export interface CommandBarProps {
   maxResults?: number;
   /** Ctrl/Cmd+K focuses this bar while mounted. Default true. */
   hotkey?: boolean;
+  /**
+   * T-524: the bar owns Ctrl/Cmd+K outright. The listener runs in the window capture phase and
+   * stops the event there, so a window keydown listener elsewhere on the page (the section
+   * finder) never sees the shortcut. Default false; only the /dashboard command bar sets it.
+   */
+  hotkeyExclusive?: boolean;
+  /**
+   * T-524: with `hotkeyExclusive`, turns the shortcut off while an overlay the bar does not know
+   * about is open (e.g. the top-up modal), so Ctrl/Cmd+K never moves focus behind it. Default
+   * false.
+   */
+  hotkeySuspended?: boolean;
   /** Draft button spinner. */
   submitting?: boolean;
   disabled?: boolean;
@@ -106,6 +119,8 @@ export function CommandBar({
   filter = defaultCommandFilter,
   maxResults = 8,
   hotkey = true,
+  hotkeyExclusive = false,
+  hotkeySuspended = false,
   submitting = false,
   disabled = false,
   defaultValue = '',
@@ -158,18 +173,33 @@ export function CommandBar({
     setOpen(true);
   }, []);
 
-  // Ctrl+K / Cmd+K, registered only while mounted and enabled.
+  // Ctrl+K / Cmd+K, registered only while mounted and enabled (and, when exclusive, not
+  // suspended: while suspended there is no listener at all).
   useEffect(() => {
     if (!hotkey || disabled || typeof window === 'undefined') return undefined;
+    if (hotkeyExclusive && hotkeySuspended) return undefined;
     const onKeyDown = (e: KeyboardEvent) => {
+      // An IME is composing: the key belongs to the composition.
+      if (e.isComposing) return;
       if (typeof e.key !== 'string' || e.key.toLowerCase() !== 'k') return;
-      if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey) return;
+      if (!(e.ctrlKey || e.metaKey)) return;
+      const plain = !e.altKey && !e.shiftKey;
+      if (hotkeyExclusive) {
+        // Exclusive: every Ctrl/Cmd+K variant stops here, because the section finder's handler
+        // matches Ctrl/Cmd+K without checking Shift or Alt. Only the plain combination focuses.
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        if (plain) focusInput();
+        return;
+      }
+      if (!plain) return;
       e.preventDefault();
       focusInput();
     };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [hotkey, disabled, focusInput]);
+    const options = { capture: hotkeyExclusive };
+    window.addEventListener('keydown', onKeyDown, options);
+    return () => window.removeEventListener('keydown', onKeyDown, options);
+  }, [hotkey, hotkeyExclusive, hotkeySuspended, disabled, focusInput]);
 
   // Keep the highlighted option in range when the list changes.
   useEffect(() => {

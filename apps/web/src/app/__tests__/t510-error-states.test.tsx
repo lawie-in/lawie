@@ -78,11 +78,15 @@ describe('T-510 not-found.tsx', () => {
 });
 
 describe('T-510 loading.tsx', () => {
-  it('shows a labelled busy status and "Still working…" only after 8 seconds', async () => {
+  it('shows a named status ("Loading", no aria-busy anywhere above it) and "Still working…" only after 8 seconds', async () => {
     jest.useFakeTimers();
     await act(async () => root.render(<Loading />));
     const status = container.querySelector('[role="status"]')!;
-    expect(status.getAttribute('aria-busy')).toBe('true');
+    expect(status.textContent).toContain('Loading');
+    expect(status.querySelector('.sr-only')!.textContent).toBe('Loading');
+    // T-524: no busy ancestor of a live region (it makes screen readers hold announcements back)
+    expect(status.closest('[aria-busy]')).toBeNull();
+    expect(container.querySelector('[aria-busy]')).toBeNull();
     expect(text()).not.toContain('Still working');
     await act(async () => {
       jest.advanceTimersByTime(7999);

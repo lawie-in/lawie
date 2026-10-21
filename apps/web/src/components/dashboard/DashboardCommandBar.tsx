@@ -1,8 +1,12 @@
 'use client';
 
 /**
- * T-520 item 8: the command bar on the dashboard. `hotkey={false}` because the section finder
- * (mounted by the dashboard layout) owns Ctrl/Cmd+K.
+ * T-520 item 8: the command bar on the dashboard. T-524 (Rajesh, 21 Oct): on /dashboard the
+ * command bar owns Ctrl/Cmd+K and shows the signed hint. The section finder stays mounted by the
+ * dashboard layout (the account menu opens it through its window event) and still registers its
+ * own window keydown listener, which this change cannot edit; `hotkeyExclusive` takes the key in
+ * the capture phase and stops it, so on /dashboard only the command bar reacts. On every other
+ * route this bar is not mounted and the section finder keeps the key.
  *
  * /dashboard/new reads only `?kind=<template_id>` (T-365 AC5; it presets the document when the
  * id is listed, otherwise a plain describe). Quick chips map to the template ids that exist; the
@@ -64,7 +68,14 @@ export function storeDraftPrefill(text: string): void {
   }
 }
 
-export function DashboardCommandBar({ className }: { className?: string }) {
+export function DashboardCommandBar({
+  className,
+  hotkeySuspended = false,
+}: {
+  className?: string;
+  /** T-524: true while an overlay without a focus trap is open (the page's top-up modal). */
+  hotkeySuspended?: boolean;
+}) {
   const router = useRouter();
   const onSelect = useCallback((item: CommandBarItem) => router.push(commandHref(item)), [router]);
   const onSubmit = useCallback(
@@ -76,7 +87,8 @@ export function DashboardCommandBar({ className }: { className?: string }) {
   );
   return (
     <CommandBar
-      hotkey={false}
+      hotkeyExclusive
+      hotkeySuspended={hotkeySuspended}
       items={DEFAULT_QUICK_CHIPS}
       quickChips={DEFAULT_QUICK_CHIPS}
       onSelect={onSelect}

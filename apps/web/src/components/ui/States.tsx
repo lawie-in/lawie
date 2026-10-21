@@ -44,8 +44,10 @@ export function Skeleton({
   }, [slowText, slowAfterMs]);
 
   return (
-    <div className={cn('nl', className)} aria-busy="true">
-      <div className="gap-nl-2 flex flex-col" aria-hidden="true">
+    // T-524: aria-busy sits on the visual bars only, never on an ancestor of the "Still working…"
+    // status below; a busy ancestor makes screen readers hold the announcement back.
+    <div className={cn('nl', className)}>
+      <div className="gap-nl-2 flex flex-col" aria-hidden="true" aria-busy="true">
         {Array.from({ length: Math.max(1, lines) }, (_, i) => (
           <div
             key={i}
