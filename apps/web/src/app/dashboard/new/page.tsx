@@ -42,6 +42,7 @@ import { PaywallModal } from '@/components/credits/PaywallModal';
 import PipelineStatus, { PipelineState } from '@/components/draft/PipelineStatus';
 import DynamicFormRenderer, { type FormSnapshot } from '@/components/form/DynamicFormRenderer';
 import { NOT_STARTED_LINE, inkCostState } from '@/components/intake/InkCostLine';
+import { inkLevelFrom } from '@/components/intake/inkLevel';
 import OneFlow from '@/components/intake/OneFlow';
 import {
   PrivacyBlockedNotice,
@@ -52,6 +53,7 @@ import {
 } from '@/components/PrivacyUpdatePrompt';
 import { openVerifyInsteadOfPaywall } from '@/components/VerifyEmailPrompt';
 import { useAuth } from '@/context/AuthContext';
+import { useCredits } from '@/hooks/useCredits';
 import { apiFetch } from '@/lib/apiFetch';
 
 // ── Types ───────────────────────────────────────────────────────────────────
@@ -142,6 +144,13 @@ function NewDocumentContent() {
   const router = useRouter();
   // T-365 AC5: "Use template →" in the library links here with ?kind=<template_id>.
   const initialKind = useSearchParams().get('kind') ?? undefined;
+  // T-521 (Rajesh): the generating inkwell shows the real Ink level, as the dashboard does.
+  const { balance: inkBalance, loaded: inkLoaded } = useCredits();
+  const inkLevel = inkLevelFrom({
+    loaded: inkLoaded,
+    totalInk: inkBalance.totalInk,
+    monthlyAllotment: inkBalance.inkSubMonthlyAllotment,
+  });
   const { user } = useAuth();
   const privacyDescribedBy = usePrivacyDescribedBy('generate'); // T-343
 
@@ -620,6 +629,7 @@ function NewDocumentContent() {
         inkCostLoading={inkCostLoading}
         onInkCostRetry={retryInkCost}
         initialKind={initialKind}
+        inkLevel={inkLevel}
       />
     );
   }

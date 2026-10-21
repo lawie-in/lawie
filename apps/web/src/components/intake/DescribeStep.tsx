@@ -7,12 +7,22 @@
  *
  * T-125: when the advocate came from "Browse document types", the document is
  * already set and its name is the heading (T-126, G1).
+ *
+ * T-521 (Night Library, spec 04): the textarea on the folio, underline style,
+ * with the signed placeholder (copy file, command bar). The text is held by
+ * OneFlow, so it is kept on every error.
  */
-import { Loader2 } from 'lucide-react';
 import { useId } from 'react';
+
+import { folio, h1, linkButton, page, sub } from './nlUi';
+
+import { Button, Textarea } from '@/components/ui';
 
 export const DESCRIPTION_MIN = 20;
 export const DESCRIPTION_MAX = 4000;
+
+/** Signed: handoff/copy/T-511-copy-v1.md (dashboard command bar placeholder; spec 04 empty state). */
+export const DESCRIBE_PLACEHOLDER = 'A bail application for a client arrested on Tuesday…';
 
 export default function DescribeStep({
   value,
@@ -39,45 +49,43 @@ export default function DescribeStep({
   const canContinue = !tooShort && length <= DESCRIPTION_MAX && !submitting;
 
   return (
-    <div className="mx-auto w-full max-w-[720px]">
-      <h1 className="font-heading text-brand-navy text-[26px] font-semibold leading-8 sm:text-[34px] sm:leading-[42px]">
-        {documentName ?? 'What do you need to draft?'}
-      </h1>
-      <p className="text-brand-muted mt-2 text-base">
+    <div className={page}>
+      <h1 className={`${h1} break-words`}>{documentName ?? 'What do you need to draft?'}</h1>
+      <p className={sub}>
         {documentName
           ? 'Describe the matter in your own words. We then ask for the details this document needs.'
           : 'Describe the matter in your own words. We will suggest a document and ask for the details it needs.'}
       </p>
 
       <form
-        className="border-brand-line mt-6 rounded-xl border bg-white p-4 sm:p-6"
+        className={`${folio} mt-nl-6`}
         onSubmit={(e) => {
           e.preventDefault();
           if (canContinue) onSubmit();
         }}
       >
-        <label htmlFor={id} className="text-brand-navy text-sm font-medium">
-          Your matter
-        </label>
-        <textarea
+        <Textarea
           id={id}
+          label="Your matter"
+          appearance="underline"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           maxLength={DESCRIPTION_MAX}
-          placeholder="For example: My client was arrested on 15 March in FIR 124/2026 under section 103 BNS and is in judicial custody. We need to apply for regular bail."
+          placeholder={DESCRIBE_PLACEHOLDER}
           aria-describedby={`${id}-hint`}
-          className="border-brand-line text-brand-navy placeholder:text-brand-muted/70 focus:border-brand-teal focus:ring-brand-teal mt-2 block min-h-[150px] w-full resize-y rounded-lg border bg-white p-3 text-base leading-6 outline-none focus:ring-2 sm:min-h-[190px]"
+          rows={6}
+          className="min-h-[150px] min-[640px]:min-h-[190px]"
         />
         <div
           id={`${id}-hint`}
-          className="text-brand-muted mt-2 flex flex-wrap items-center justify-between gap-2 text-xs"
+          className="nl-body-sm text-nl-muted mt-nl-2 gap-nl-2 flex flex-wrap items-center justify-between"
         >
           <span>
             {tooShort && length > 0
               ? `A little more, please: at least ${DESCRIPTION_MIN} characters.`
               : 'Names, dates, amounts and the court, if there is one, all help. You can add anything later.'}
           </span>
-          <span aria-live="polite">
+          <span aria-live="polite" className="tabular-nums">
             {length} / {DESCRIPTION_MAX}
           </span>
         </div>
@@ -85,31 +93,36 @@ export default function DescribeStep({
         {message && (
           <div
             role="alert"
-            className="border-brand-error/30 bg-brand-error-light text-brand-error mt-4 rounded-lg border p-3 text-sm"
+            className="border-nl-err bg-nl-err-light nl-body-sm text-nl-err mt-nl-4 p-nl-3 border"
           >
             {message.text}
           </div>
         )}
 
-        <div className="mt-5 flex justify-end">
-          <button
+        <div className="mt-nl-5 flex justify-end">
+          <Button
             type="submit"
             disabled={!canContinue}
-            className="bg-brand-navy focus-visible:ring-brand-teal inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-lg px-6 text-base font-medium text-white transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
+            loading={submitting}
+            className="w-full min-[640px]:w-auto"
           >
-            {submitting && <Loader2 size={16} className="animate-spin" aria-hidden="true" />}
-            {submitting ? 'Reading your description…' : message?.retry ? 'Try again' : 'Continue'}
-          </button>
+            {message?.retry ? 'Try again' : 'Continue'}
+          </Button>
         </div>
+        {/* The Button's spinner replaces its label while submitting; this line says what is
+            happening. The live region is always rendered (never display:none) and filled
+            later, so screen readers announce the text when it appears. */}
+        <p
+          className={`nl-body-sm text-nl-muted text-right ${submitting ? 'mt-nl-2' : ''}`}
+          role="status"
+        >
+          {submitting ? 'Reading your description…' : null}
+        </p>
       </form>
 
-      <p className="text-brand-muted mt-4 text-center text-sm">
+      <p className="nl-body-sm text-nl-soft mt-nl-4 text-center">
         {documentName ? 'Not this document?' : 'Know the document you need?'}{' '}
-        <button
-          type="button"
-          onClick={onBrowse}
-          className="text-brand-teal-dark focus-visible:ring-brand-teal min-h-[44px] underline underline-offset-2 focus:outline-none focus-visible:ring-2"
-        >
+        <button type="button" onClick={onBrowse} className={linkButton}>
           Browse document types
         </button>
       </p>

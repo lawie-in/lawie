@@ -46,9 +46,13 @@ import BrowseTypesStep from './BrowseTypesStep';
 import ChangeDocumentDialog from './ChangeDocumentDialog';
 import DescribeStep from './DescribeStep';
 import DocumentChoiceStep, { NONE_OF_THESE } from './DocumentChoiceStep';
+import { EXPORT_HASH } from './draftActions';
 import DraftReadyStep from './DraftReadyStep';
 import GeneratingStep from './GeneratingStep';
+import type { GenerationError } from './generationFailure';
+import { takeDraftPrefill } from './initialQuery';
 import { NOT_STARTED_LINE, inkCostState } from './InkCostLine';
+import NightScope from './NightScope';
 import NoMatchStep from './NoMatchStep';
 import QuestionsStep from './QuestionsStep';
 
@@ -173,14 +177,7 @@ function inkCostOf(
 /** T-388 (Meera, final): a 402 that carries neither a cost nor a line of its own (now in InkCostLine). */
 export { NOT_STARTED_LINE };
 
-export default function OneFlow({
-  kinds,
-  loadingKinds,
-  guidedInkCost,
-  inkCostLoading = false,
-  onInkCostRetry,
-  initialKind,
-}: {
+export interface OneFlowProps {
   kinds: KindSummary[];
   loadingKinds: boolean;
   /** T-372: the Ink cost of a draft with no rule pack (the guided draft). */
@@ -191,7 +188,28 @@ export default function OneFlow({
   onInkCostRetry?: () => void;
   /** T-365 AC5: a template_id from `?kind=` (the templates library); preset once if listed. */
   initialKind?: string;
-}) {
+  /** T-521 (Rajesh): the Ink level for the generating inkwell (inkLevel.ts); null if unknown. */
+  inkLevel?: number | null;
+}
+
+/** T-521: the flow on the Night Library folio. The steps and their state are unchanged. */
+export default function OneFlow(props: OneFlowProps) {
+  return (
+    <NightScope className="min-[640px]:py-nl-4">
+      <OneFlowSteps {...props} />
+    </NightScope>
+  );
+}
+
+function OneFlowSteps({
+  kinds,
+  loadingKinds,
+  guidedInkCost,
+  inkCostLoading = false,
+  onInkCostRetry,
+  initialKind,
+  inkLevel = null,
+}: OneFlowProps) {
   const router = useRouter();
   const privacyDescribedBy = usePrivacyDescribedBy('generate'); // T-343
   const [phase, setPhase] = useState<Phase>('describe');
@@ -227,7 +245,7 @@ export default function OneFlow({
   const fromOutstanding = useRef(false);
 
   const [repairing, setRepairing] = useState(false);
-  const [genError, setGenError] = useState<{ reason: string; retryable: boolean } | null>(null);
+  const [genError, setGenError] = useState<GenerationError | null>(null);
   const [result, setResult] = useState<DraftResult | null>(null);
   const [paywall, setPaywall] = useState<{ cost: number; balance: number } | null>(null);
 
@@ -726,11 +744,16 @@ export default function OneFlow({
           setGenError({
             reason: data.message ?? 'The draft could not be started. Please try again.',
             retryable: res.status >= 500,
+            source: 'start',
           });
           return;
         }
         if (!res.body) {
-          setGenError({ reason: 'The drafting service sent nothing back.', retryable: true });
+          setGenError({
+            reason: 'The drafting service sent nothing back.',
+            retryable: true,
+            source: 'start',
+          });
           return;
         }
 
@@ -769,6 +792,9 @@ export default function OneFlow({
                     ? payload.reason
                     : 'The drafting service returned an error.',
                 retryable: payload.retryable !== false,
+                // T-521 (Arjun ruling 4): the code decides what is said about Ink.
+                source: 'error_event',
+                ...(typeof payload.code === 'string' ? { code: payload.code } : {}),
               });
               return;
             }
@@ -789,6 +815,7 @@ export default function OneFlow({
           setGenError({
             reason: 'The connection was lost before the draft was finished.',
             retryable: true,
+            source: 'dropped',
           });
           return;
         }
@@ -847,10 +874,16 @@ export default function OneFlow({
           disclaimer:
             typeof done.disclaimer === 'string' ? done.disclaimer : (factCheck?.disclaimer ?? null),
           ...(rendered ? { rendered } : {}),
+          // T-521: the cost checked as known before the draft started (T-388).
+          ...(typeof cost === 'number' ? { inkUsed: cost } : {}),
         });
         setPhase('ready');
       } catch {
-        setGenError({ reason: 'Lost the connection to the drafting service.', retryable: true });
+        setGenError({
+          reason: 'Lost the connection to the drafting service.',
+          retryable: true,
+          source: 'dropped',
+        });
       }
     },
     [description, reset, update, kinds, guidedInkCost, inkCostLoading],
@@ -918,6 +951,24 @@ export default function OneFlow({
     window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
   }, [initialKind, kinds, loadingKinds, phase, busy, description]);
 
+  // T-521 (Priya): text another screen left in sessionStorage prefills the describe
+  // textarea, once. Read in an effect (client only) behind a ref: StrictMode runs effects
+  // twice, and the second read would find the key already removed. The ref survives that
+  // re-run, so the first read's value is the one kept. Never submitted; never logged; not
+  // applied over anything the advocate has already typed.
+  // On the chip path (`?kind=` preset) the key is still read and cleared at once, so a
+  // stale prefill can never show later, but it is not applied to the textarea.
+  const prefillRead = useRef(false);
+  useEffect(() => {
+    if (prefillRead.current) return;
+    prefillRead.current = true;
+    const text = takeDraftPrefill();
+    if (!text || initialKind) return;
+    setDescription((typed) => (typed.trim() === '' ? text : typed));
+    // Mount only: `initialKind` is read as it was when the flow opened.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   if (reading === 'loading') return <BriefLoading />;
   if (reading === 'failed') {
     return (
@@ -926,6 +977,7 @@ export default function OneFlow({
           if (lastReadBody.current) void readBrief(lastReadBody.current, 'describe');
         }}
         onEditDescription={editDescription}
+        description={description}
       />
     );
   }
@@ -1001,6 +1053,10 @@ export default function OneFlow({
         onOpenEditor={() => {
           if (result.docId) router.push(`/dashboard/documents/${result.docId}`);
         }}
+        // T-521: Export uses the editor's export as it is; the editor focuses its export buttons.
+        onExport={() => {
+          if (result.docId) router.push(`/dashboard/documents/${result.docId}${EXPORT_HASH}`);
+        }}
         onStartAnother={startAnother}
       />
     );
@@ -1018,6 +1074,7 @@ export default function OneFlow({
         inkCostLoading={inkCostLoading}
         onInkCostRetry={onInkCostRetry}
         kind={briefKind}
+        inkLevel={inkLevel}
         documentName={brief?.kind.name ?? 'document'}
         repairing={repairing}
         error={genError}
