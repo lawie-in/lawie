@@ -10,7 +10,7 @@ All older rows below are spent unless this section says otherwise. One ticket pe
 | -------- | ----------------------------- | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
 | vishal   | T-543 (`.env.example` sync) | fix/t-543-env-example | `.env.example`, `apps/web/Dockerfile`, `docker-compose.demo.yml`, `docker-compose.staging.yml`, `docker-compose.yml` | building |
 | mahak    | T-475, then T-472, then T-474 | fix/t-475-*                           | T-475: apps/drafting/src/services/brief-drafter.ts (actLines), new test, goldens. T-472: document-rules/criminal_revision.json, new limitation.service.ts, the computed-facts service and its ai.service.ts call site only, verifier ledger entry, form renderer if needed, tests. T-474: the other packs' limitation lines | T-475 in build |
-| kunal    | T-521 PARKED at f9fdf2b2 (21 Oct 2026); resume next session | feature/t-521-intake-editor | Same files as before: apps/web: app/dashboard/new/**, documents/**, templates/**, components/intake/**, editor/**, draft/**, documents/**, tests. |
+| kunal    | T-521 RESUMED 21 Oct 2026 (night); max two leads running (kunal, vishal) | feature/t-521-intake-editor | Same files as before: apps/web: app/dashboard/new/**, documents/**, templates/**, components/intake/**, editor/**, draft/**, documents/**, tests. |
 | shashank | T-527 (not ready; branch fix/t-527-reconcile-before-create) | fix/t-527-reconcile-before-create | Unchanged. |
 | tanvi    | free (T-535 merged 896da2e0, row spent) | - | - |
 
