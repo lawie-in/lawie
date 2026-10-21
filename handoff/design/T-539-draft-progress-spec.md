@@ -4,12 +4,12 @@
 | --- | --- |
 | Author | Rajesh (designer), 21 Oct 2026 |
 | Source | Arjun's ruling `handoff/design/draft-progress.md` (SSE stage events, resume, run state, cancel); founder, 21 Oct |
-| Approvers | Arjun (events and fields), Madhuri and Meera (copy), Ajay (any label that names law) |
+| Approvers | Arjun (events and fields), Madhuri and Meera (copy: `handoff/copy/T-539-progress-copy-v1.md`), Ajay (any label that names law) |
 | Tokens | `DESIGN.md`; this spec adds one component (Draft progress) and changes one motion rule (ink drain) |
 | Surface | Operate (`impeccable` operate mode). Screens: 05 Generating, the editor during a regenerate, the documents list, the dashboard shelf |
 | Feeds | T-539 (web), ticket A in Arjun's note (drafting) |
 
-Every string here is placeholder until Madhuri writes it and Ajay signs; stage names below do not name law, so they need Madhuri only. Server `label` and `detail` strings that name a court, a rule or a section are Ajay's.
+Strings here follow Madhuri's T-539 copy v1; where this spec and the copy file differ, the copy file wins once signed. Server `label` and `detail` strings that name a court, a rule or a section are Ajay's. **Ink rule (Arjun, T-521):** a dropped connection can still end charged, so no screen in this spec claims Ink is not charged except the server error case in section 7. Hindi uses ड्राफ़्ट, as T-511 does.
 
 ## 1. The idea
 
@@ -45,14 +45,15 @@ Web owns the stage names in both languages so Madhuri can sign them once and Hin
 
 | `stage` | English name (placeholder) | Hindi (placeholder) | Notes |
 | --- | --- | --- | --- |
-| queued | In line | कतार में | eta shown if known |
-| intake | Reading your facts | आपके तथ्य पढ़ रहा है | |
-| preflight | Checking what is needed | ज़रूरी बातें जाँच रहा है | |
-| draft | Writing the draft | मसौदा लिख रहा है | tokens stream below; `pct` advances by section |
-| verify | Checking the draft | मसौदा जाँच रहा है | ticks: "checked N of M" |
-| repair | Fixing what the check found, round N of 2 | जाँच में मिली बातें सुधार रहा है, N/2 | one dot per round |
-| render | Laying out the document | दस्तावेज़ सजा रहा है | |
-| done | Draft ready | मसौदा तैयार | then the Seal (section 7) |
+| queued | In line | कतार में | eta shown if known; line "Your draft is waiting its turn." |
+| intake | Reading facts | तथ्य पढ़ना | |
+| preflight | Checking inputs | ज़रूरी बातें जाँचना | |
+| draft | Writing | ड्राफ़्ट लिखना | tokens stream below; `pct` advances by section |
+| verify | Checking the draft | ड्राफ़्ट जाँचना | ticks from the server `detail` |
+| repair | Fixing, round {n} of 2 | सुधार, चरण {n}/2 | one dot per round |
+| render | Laying out | दस्तावेज़ सजाना | |
+| done | Draft ready | ड्राफ़्ट तैयार | then the Seal (section 7) |
+| unknown | Working… | काम जारी है… | fallback when the web has no name for a stage |
 
 `pct` is honest: the server computes it from stages reached and sections written. The web never interpolates between values.
 
@@ -70,23 +71,23 @@ A stream that ends without a server event (`done` or `error`) is "connection los
 - Label becomes "Connection lost. Reconnecting…" in Warn text; the stage dots keep their state; `pct` stays.
 - The bar fill switches to a 45° stripe (Brass on Brass Soft, 8px period, static) so a frozen bar is not mistaken for a stuck one. No animation.
 - The inkwell stops where it is.
-- After 30 s still disconnected: detail line "Still trying. Your Ink is not charged until the draft finishes." and a ghost "Retry now" beside Cancel.
+- After 30 s still disconnected: detail line "Still trying to reconnect." and a ghost "Retry now" beside Cancel. No claim about Ink: the server may still finish and charge.
 - On resume: the replayed events restore the label and `pct`; the stripe returns to the solid fill with the 400ms transition.
-- After 2 min: the error state (section 7) with "Could not reach Lawie. Your Ink is not charged." and Try again / Back.
+- After 2 min: the error state (section 7) with "Could not reach Lawie." and the hint "Check your documents list before you try again.", then Try again / Back. Still no Ink line: the stream ended without a server event.
 
 ## 6. Cancel
 
-"Cancel draft" opens a dialog (DESIGN.md Dialog; bottom sheet at 360): title "Stop this draft?", body "Nothing is charged. You can start again from your details.", safe action "Keep going" (ghost, first focus), confirm "Stop draft" (destructive fill). On confirm: `POST …/cancel`, label "Stopping…", then the surface closes and the flow returns to Review details (03) with everything kept. Cancel is disabled (not hidden) between the `render` and `done` events, with the detail line "Almost done, finishing the document."
+"Cancel draft" opens a dialog (DESIGN.md Dialog; bottom sheet at 360): title "Stop this draft?", body "You can start again from your details.", safe action "Keep going" (ghost, first focus), confirm "Stop draft" (destructive fill). The body makes no claim about Ink; after a cancel the neutral line "Check your documents list to see where this draft stands." may follow on the Review details screen. On confirm: `POST …/cancel`, label "Stopping…", then the surface closes and the flow returns to Review details (03) with everything kept. Cancel is disabled (not hidden) between the `render` and `done` events, with the detail line "Almost done, finishing the document."
 
 ## 7. End states
 
 - **Done**: `pct` 100, bar full, label "Draft ready", every dot Brass. 600 ms later the progress block collapses to the "1 Ink used" chip and the Seal stamps (DESIGN.md Seal motion); the draft text is already on the folio. Reduced motion: no collapse animation, Seal fades 150 ms.
-- **Error** (server `error`): bar fill Rust, label from the server in Rust text (Ajay-signed set), detail "You were not charged.", buttons Try again (primary) and Back (ghost). The stage dots stay so the advocate can see where it stopped.
+- **Error** (server `error`): bar fill Rust, label from the server in Rust text (Ajay-signed set), buttons Try again (primary) and Back (ghost). The detail line is "No Ink was used." only when the error code is not `insufficient_ink` (the one case where it is true); for `insufficient_ink` the server's own text shows alone; for every other end (dropped stream, cancel, refresh) the neutral "Check your documents list to see where this draft stands." The stage dots stay so the advocate can see where it stopped.
 - **Refreshed page** (`GET /documents/runs/:runId`): the same block mounts in an "attached" state: label and `pct` from the run state, stripe fill and the detail "Reconnecting to the draft…" until the stream replays, then live. If the run is already done, the page shows Draft ready directly.
 
 ## 8. Elsewhere in the app
 
-- **Documents list** row: a Brass chip "Verifying… 70 %" (tabular) in place of the status, from the run-state route, refreshed with the list.
+- **Documents list** row: a Brass chip "{short stage}… {pct} %" (Reading, Checking, Writing, Fixing, Laying out; "Verifying… 70 %" for verify), tabular, in place of the status, from the run-state route, refreshed with the list.
 - **Dashboard shelf**: a drafting document is a spine with the two bands and the status label "drafting"; its accessible name carries the stage and pct ("Bail application, checking the draft, 70 percent"). No bar on a spine.
 - **Editor, regenerate**: the same block replaces the chips row under the draft; the old draft dims to opacity .5 until `done`, then the new text replaces it and the Seal stamps.
 
