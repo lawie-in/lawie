@@ -198,12 +198,12 @@ export default function MyDocumentsPage() {
                     </Link>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="text-xs capitalize text-slate-500">
+                    <span className="text-nl-soft text-xs capitalize">
                       {doc.docType.replace(/_/g, ' ')}
                     </span>
                   </td>
                   <td className="hidden px-4 py-3 sm:table-cell">
-                    <span className="max-w-[160px] truncate text-xs text-slate-400">
+                    <span className="text-nl-muted max-w-[160px] truncate text-xs">
                       {doc.courtName || '—'}
                     </span>
                   </td>
@@ -213,7 +213,7 @@ export default function MyDocumentsPage() {
                     </Chip>
                   </td>
                   <td className="hidden px-4 py-3 md:table-cell">
-                    <span className="flex items-center gap-1 text-xs text-slate-400">
+                    <span className="text-nl-muted flex items-center gap-1 text-xs">
                       <Clock size={11} />
                       {new Date(doc.createdAt).toLocaleDateString('en-IN', {
                         day: '2-digit',

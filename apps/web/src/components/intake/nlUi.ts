@@ -14,7 +14,7 @@ export const sub = 'nl-body text-nl-soft mt-nl-2';
 
 /** The folio: the sheet each step sits on (spec 04). */
 export const folio =
-  'border-nl-line bg-nl-card text-nl-text shadow-nl-card border p-nl-4 min-[640px]:p-nl-6';
+  'border-nl-line border-t-nl-brass bg-nl-card text-nl-text shadow-nl-card border p-nl-6 min-[900px]:p-nl-10';
 
 /** A plain card (spec 3). */
 export const card = 'border-nl-line bg-nl-card text-nl-text border p-nl-4';
@@ -31,7 +31,7 @@ export const linkButton =
 
 /** Boxed input (spec 3, review details). */
 export const input =
-  'nl-focus nl-body border-nl-line bg-nl-card text-nl-text placeholder:text-nl-muted rounded-nl-md block min-h-[44px] w-full border px-nl-3 py-nl-2 focus:border-nl-brass focus:outline-none';
+  'nl-focus nl-body border-[color:var(--line-control)] bg-nl-card text-nl-text placeholder:text-nl-muted rounded-nl-md block min-h-[44px] w-full border px-nl-3 py-nl-2 focus:border-nl-brass focus:outline-none';
 
 /** Button row: stacked at 360 (primary on top), one row from 640. */
 export const actions =
@@ -39,8 +39,8 @@ export const actions =
 
 /** A select-like option card (radio, document type). */
 export const optionCard = (on: boolean) =>
-  `nl-focus border-nl-line bg-nl-card text-nl-text flex min-h-[56px] cursor-pointer items-start gap-nl-3 border p-nl-4 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--brass)] ${
-    on ? 'border-nl-brass' : ''
+  `nl-focus bg-nl-card text-nl-text flex min-h-[56px] cursor-pointer items-start gap-nl-3 border p-nl-4 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--brass)] ${
+    on ? 'border-nl-brass' : 'border-[color:var(--line-control)]'
   }`;
 
 /** A filter chip that toggles (category filters). */

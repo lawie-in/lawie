@@ -446,13 +446,23 @@ export const DESCRIBE_FAILED = 'Could not read your description. Try again.';
  * T-521 (spec 04): the folio with a skeleton; "Still working…" after 8s.
  */
 export function BriefLoading() {
+  // T-521 (WCAG 4.1.3): a live region mounted with its text already in it is often not
+  // announced. The status is mounted empty and filled after the first paint; the visible
+  // line is the same text, hidden from screen readers so it is not read twice.
+  const [announce, setAnnounce] = useState(false);
+  useEffect(() => {
+    setAnnounce(true);
+  }, []);
   return (
     <div className={nl.page}>
       <h1 className={nl.h1}>Check your brief</h1>
       <p className={nl.sub}>{BRIEF_SUB}</p>
       <div className={`${nl.folio} mt-nl-6 space-y-nl-5`}>
-        <p className={nl.small} aria-live="polite">
+        <p className={nl.small} aria-hidden="true">
           Reading your description…
+        </p>
+        <p className="sr-only" role="status">
+          {announce ? 'Reading your description…' : null}
         </p>
         <Skeleton lines={6} />
       </div>

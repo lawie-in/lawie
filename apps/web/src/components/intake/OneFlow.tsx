@@ -188,6 +188,8 @@ export interface OneFlowProps {
   onInkCostRetry?: () => void;
   /** T-365 AC5: a template_id from `?kind=` (the templates library); preset once if listed. */
   initialKind?: string;
+  /** T-521 (Rajesh): the Ink level for the generating inkwell (inkLevel.ts); null if unknown. */
+  inkLevel?: number | null;
 }
 
 /** T-521: the flow on the Night Library folio. The steps and their state are unchanged. */
@@ -206,6 +208,7 @@ function OneFlowSteps({
   inkCostLoading = false,
   onInkCostRetry,
   initialKind,
+  inkLevel = null,
 }: OneFlowProps) {
   const router = useRouter();
   const privacyDescribedBy = usePrivacyDescribedBy('generate'); // T-343
@@ -1071,6 +1074,7 @@ function OneFlowSteps({
         inkCostLoading={inkCostLoading}
         onInkCostRetry={onInkCostRetry}
         kind={briefKind}
+        inkLevel={inkLevel}
         documentName={brief?.kind.name ?? 'document'}
         repairing={repairing}
         error={genError}

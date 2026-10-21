@@ -35,6 +35,7 @@ import {
 } from '@/components/editor/exportUtils';
 import { EXPORT_HASH } from '@/components/intake/draftActions';
 import NightScope from '@/components/intake/NightScope';
+import { folio } from '@/components/intake/nlUi';
 import { secondaryButton } from '@/components/intake/ui';
 import { Button, ErrorState, Skeleton } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
@@ -433,7 +434,7 @@ export default function DocumentEditorPage() {
     // T-521 (spec 05): the folio skeleton; "Still working…" after 8s.
     return (
       <NightScope>
-        <div className="border-nl-line bg-nl-card shadow-nl-card p-nl-6 mx-auto max-w-[720px] border">
+        <div className={`${folio} mx-auto max-w-[720px]`}>
           <Skeleton lines={8} />
         </div>
       </NightScope>

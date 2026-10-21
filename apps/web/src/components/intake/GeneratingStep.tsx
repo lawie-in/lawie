@@ -52,6 +52,7 @@ export default function GeneratingStep({
   inkCostLoading = false,
   onInkCostRetry,
   kind = 'unknown',
+  inkLevel = null,
 }: {
   documentName: string;
   repairing: boolean;
@@ -66,6 +67,11 @@ export default function GeneratingStep({
   onInkCostRetry?: () => void;
   /** T-388: the document kind id, for the Sentry report only. */
   kind?: string;
+  /**
+   * T-521 (Rajesh): the advocate's Ink level, 0-100 (inkLevel.ts). Null while the
+   * balance is unknown: no inkwell then, never a made-up level.
+   */
+  inkLevel?: number | null;
 }) {
   if (error) {
     // T-388 (Arjun): "Try again" charges, so it waits for a known cost.
@@ -119,8 +125,9 @@ export default function GeneratingStep({
       {/* One live region for the steps only: the Skeleton below has its own role="status"
           ("Still working…"), and nesting it in another live region could announce twice. */}
       <div className={`${folio} gap-nl-6 flex flex-col items-center`}>
-        {/* The ink drain runs for the request; static at 60% under reduced motion. */}
-        <Inkwell balance={100} draining />
+        {/* The ink drain runs from the real level for the request; static at 60% under
+            reduced motion. Not shown while the balance is unknown. */}
+        {typeof inkLevel === 'number' && <Inkwell balance={inkLevel} draining />}
         <div className="w-full min-w-0 text-center">
           <h1 className="nl-h2 text-nl-text break-words">Drafting your {documentName}</h1>
           <p className="nl-body text-nl-soft mt-nl-2">

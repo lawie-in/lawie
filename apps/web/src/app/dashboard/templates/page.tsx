@@ -133,7 +133,7 @@ export default function TemplatesPage() {
                         <div className="flex items-start justify-between">
                           <Icon size={18} className={colors.color} />
                           {t.plan_access === 'pro' && (
-                            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                            <span className="bg-nl-brass-light text-nl-brass-dark rounded-full px-2 py-0.5 text-[10px] font-semibold">
                               PRO
                             </span>
                           )}

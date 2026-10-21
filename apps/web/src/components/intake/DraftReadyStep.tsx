@@ -12,13 +12,13 @@
  * (Priya's ruling: leave it out). No Regenerate (cut by Priya).
  */
 import { Check } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import type { DraftResult } from './briefTypes';
 import { finaliseDocument } from './draftActions';
 import { actions, folio, linkButton, page } from './nlUi';
 
-import { Button, Chip, ErrorState, InkChip } from '@/components/ui';
+import { Button, Chip, ErrorState, InkChip, Spinner } from '@/components/ui';
 
 /**
  * T-136. Ajay's text (CLO, 7 Oct 2026, part 1, C5), word for word, in place of
@@ -74,8 +74,23 @@ export default function DraftReadyStep({
 
   const docId = result.docId;
   const finalised = finalise === 'done';
+  const saving = finalise === 'saving';
+  // Ajay (AJ-521-M1 to M8): the chip shows the real debit only, never "0 Ink used". Unknown,
+  // zero or not a finite number: no chip. A failed draft never reaches this screen.
+  const inkUsed =
+    typeof result.inkUsed === 'number' && Number.isFinite(result.inkUsed) && result.inkUsed > 0
+      ? result.inkUsed
+      : null;
+  // T-521 (a11y, WCAG 2.4.3): focus never falls to <body>. Finalise stays focusable while it
+  // saves (aria-disabled, not disabled); on success it unmounts and focus moves to Export,
+  // which becomes the primary "Export PDF / Word". On failure focus stays on Finalise.
+  const finaliseRef = useRef<HTMLButtonElement>(null);
+  const exportRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (finalised) exportRef.current?.focus();
+  }, [finalised]);
   const runFinalise = async () => {
-    if (!docId || finalise === 'saving' || finalised) return;
+    if (!docId || saving || finalised) return;
     setFinalise('saving');
     try {
       await finaliseDocument(docId);
@@ -83,6 +98,11 @@ export default function DraftReadyStep({
     } catch {
       setFinalise('failed');
     }
+  };
+  /** Retry in the error unmounts with the error, so focus goes to Finalise first. */
+  const retryFinalise = () => {
+    finaliseRef.current?.focus();
+    void runFinalise();
   };
 
   return (
@@ -97,24 +117,30 @@ export default function DraftReadyStep({
           <p className="nl-body-sm text-nl-soft break-words">
             {result.name}. Read it through and edit before you use it.
           </p>
-          {(typeof result.inkUsed === 'number' || finalised) && (
-            <div className="mt-nl-3 gap-nl-2 flex flex-wrap items-center">
-              {typeof result.inkUsed === 'number' && (
-                <InkChip balance={result.inkUsed} data-testid="ink-used-chip">
-                  <span>
-                    <span className="tabular-nums">{result.inkUsed}</span>{' '}
-                    {DRAFT_READY_COPY.inkUsed}
-                  </span>
-                </InkChip>
-              )}
+          <div
+            className={`gap-nl-2 flex flex-wrap items-center ${
+              inkUsed !== null || finalised ? 'mt-nl-3' : ''
+            }`}
+          >
+            {inkUsed !== null && (
+              <InkChip balance={inkUsed} data-testid="ink-used-chip">
+                <span>
+                  <span className="tabular-nums">{inkUsed}</span> {DRAFT_READY_COPY.inkUsed}
+                </span>
+              </InkChip>
+            )}
+            {/* WCAG 4.1.3: always mounted and empty at first, so "finalised" is announced
+                when the chip appears. */}
+            <span role="status">
               {finalised && (
-                // The status word as the documents list and the editor show it.
+                // The status word as the documents list and the editor show it: the advocate's
+                // own mark (Ajay); it never says Lawie checked the draft.
                 <Chip variant="ok" className="capitalize" data-testid="finalised-chip">
                   finalised
                 </Chip>
               )}
-            </div>
-          )}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -208,7 +234,7 @@ export default function DraftReadyStep({
       )}
 
       {finalise === 'failed' && (
-        <ErrorState message={DRAFT_READY_COPY.finaliseFailed} onRetry={() => void runFinalise()} />
+        <ErrorState message={DRAFT_READY_COPY.finaliseFailed} onRetry={retryFinalise} />
       )}
 
       <div className={`${actions} pt-nl-2`}>
@@ -221,11 +247,24 @@ export default function DraftReadyStep({
               Open in editor
             </Button>
             {/* One primary per screen: Finalise until the draft is finalised, then Export. */}
-            <Button variant={finalised ? 'primary' : 'ghost'} onClick={onExport ?? onOpenEditor}>
+            <Button
+              ref={exportRef}
+              variant={finalised ? 'primary' : 'ghost'}
+              onClick={onExport ?? onOpenEditor}
+            >
               {finalised ? DRAFT_READY_COPY.exportAfterFinalise : DRAFT_READY_COPY.export}
             </Button>
             {!finalised && (
-              <Button loading={finalise === 'saving'} onClick={() => void runFinalise()}>
+              // Not `loading`: that sets native disabled, which drops focus to <body>.
+              <Button
+                ref={finaliseRef}
+                aria-disabled={saving || undefined}
+                aria-busy={saving || undefined}
+                data-loading={saving || undefined}
+                className={saving ? 'cursor-progress opacity-50' : undefined}
+                onClick={() => void runFinalise()}
+              >
+                {saving && <Spinner />}
                 {DRAFT_READY_COPY.finalise}
               </Button>
             )}
