@@ -106,15 +106,18 @@ html[data-theme='daylight'] .nl {
   --bg-card: #fbf8f0;
   --text: #1c2a25;
   --text-soft: #3d4c46;
-  --muted: #6d7a73;
+  /* T-524: muted, brass and ok re-signed by Rajesh (DESIGN.md Colors) to clear WCAG AA. */
+  --muted: #5c685f;
   --line: #d9d1be;
-  --brass: #9c7a2b;
+  --brass: #866619;
   --brass-dark: #6e5415;
   --brass-light: #f6ebcf;
+  /* T-524 (Rajesh): spine bands and seal mark on oxblood only; never on Wall or Card. */
+  --brass-mark: #e6c877;
   --on-brass: #ffffff;
   --ox: #8e2f2f;
   --ox-hi: #b85050;
-  --ok: #1e7f5f;
+  --ok: #1b7658;
   --ok-light: #ddf2e8;
   --err: #b3261e;
   --err-light: #fce9e7;
@@ -155,6 +158,7 @@ html[data-theme='night'] .nl {
   --brass: #c9a24a;
   --brass-dark: #e6c877;
   --brass-light: #2b2614;
+  --brass-mark: #c9a24a;
   --on-brass: #15241f;
   --ox: #7a2a2a;
   --ox-hi: #a94545;
@@ -304,6 +308,29 @@ html[data-theme='night'] .nl {
   @media (max-width: 640px), not all and (pointer: fine) {
     .nl-seal-stamping {
       animation-duration: 275ms;
+    }
+  }
+
+  /* T-524 browser surfaces (DESIGN.md Colors, Selection): selection background per theme, text
+     colour unchanged; the caret is Brass. Scoped to `.nl`, so legacy pages keep the defaults.
+     Literal hex in ::selection: var() resolution inside highlight pseudos differs by browser. */
+  .nl {
+    caret-color: var(--brass);
+  }
+  .nl::selection,
+  .nl ::selection {
+    background-color: #f3e9c8;
+  }
+  html[data-theme='night'] .nl::selection,
+  html[data-theme='night'] .nl ::selection {
+    background-color: #332a14;
+  }
+
+  /* T-524 forced colours (Windows High Contrast): backgrounds become Canvas, so a skeleton block
+     would vanish. A CanvasText border keeps its shape visible. */
+  @media (forced-colors: active) {
+    .nl-skeleton {
+      border: 1px solid CanvasText;
     }
   }
 
