@@ -61,7 +61,7 @@ Every PR body ends with one quality line (`.claude/docs/quality-gate.md`): `Qual
 
 No stack or architecture change without Arjun's ADR. No scope change without Priya. No UI change without Rajesh's design. No Anthropic API call added without rate-limit and cost guards. No PII or document content in third-party logs. If a crew report reveals the ticket drifting into one of these, stop the chain and raise it with the founder rather than letting `doc-writer` paper over it.
 
-- **Env vars go in the handoff and in READY.** If your ticket adds, renames or removes an environment variable, list it (name, service, secret or public, required or optional) in the handoff packet and in your READY message. Never put a value in the repo. Priya records it in `handoff/ops/env-variables.md` and tells the founder before deploy (founder, 21 Oct 2026).
+- **Env vars go in the handoff and in READY.** If your ticket adds, renames or removes an environment variable, list it (name, service, secret or public, required or optional) in the handoff packet and in your READY message. Update `.env.example` (names, placeholders, a comment each) in the same branch. Never put a value in the repo. Priya tells the founder before deploy (founder, 21 Oct 2026).
 
 ## 8. Local ticket status
 
