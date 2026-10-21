@@ -13,4 +13,6 @@
 2. `ui/Button` hover per variant: lift and halo are primary-only. Ghost and the Google button get a non-lift hover: border from Line to Brass, background to Brass Soft, 150ms, no lift, no halo.
 3. `viewport-fit=cover` on the root viewport, with safe-area paddings on the top bar, bottom sheets and toasts.
 4. The cookie banner sits at the bottom with the sheet's 12px top radius and never covers the first heading (check pricing at 360).
-5. Tests; Chromium check at 360, 768 and 1280 in both themes; Rajesh reviews.
+5. Measure the sticky bar height live (a ResizeObserver setting `--nl-bar-h`) and rename `NL_STICKY_BAR_HEIGHT.wrapped`; `html{scroll-behavior:smooth}` in globals.css gets a reduced-motion opt-out.
+6. The shell TopBar renders its nav landmark only when it has links (no empty unnamed `<nav>` from 720 to 1023).
+7. Tests; Chromium check at 360, 768 and 1280 in both themes; Rajesh reviews.

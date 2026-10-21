@@ -239,7 +239,8 @@ Frontend deploys to Vercel separately.
 
 | Branch      | Purpose                            |
 | ----------- | ---------------------------------- |
-| `main`      | Production — protected             |
+| `main`      | Production — protected. Nobody merges into it, ever: a release workflow (`release-to-main.yml`, founder approves) cuts a snapshot of `develop` with the handoff and agent files removed (founder rule, 21 Oct 2026) |
+| `develop_staging` | Where leads merge finished tickets (`--no-ff`); only the founder merges it into `develop` |
 | `develop`   | Integration — auto-deploys staging |
 | `feature/*` | Feature branches                   |
 | `hotfix/*`  | Production hotfixes                |

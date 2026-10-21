@@ -18,5 +18,11 @@
 7. Rollback tried against the demo compose locally; evidence in the ticket.
 8. The dev box is untouched.
 
+## Added by founder rule, 21 Oct 2026 (Arjun): no handoff docs in production, not even on main
+9. First commit of the ticket: `.dockerignore` gains `handoff/`, `.claude/`, `CLAUDE.md`, `.github/`, `**/*.md`; `apps/web/Dockerfile` switches from `COPY . .` to explicit copies like the other five. A workflow test greps each built image for `handoff/` and fails if found.
+10. `release-to-main.yml`: `workflow_dispatch`, `production` environment (founder reviews), input `version`; checks out `develop`, removes `handoff/`, `.claude/`, `CLAUDE.md`, `.github/copilot-instructions.md`, commits "release: v<version> from develop@<sha>" onto `main`, tags, pushes. `main` is a snapshot, never a hand merge.
+11. A `main-guard` CI job on every push to `main` fails if any of those paths exist; branch protection on `main` requires it; deploy depends on it.
+12. T-403's "develop is merged to main" is amended (addendum in that ticket). Nobody merges into `main`, ever: the workflow cuts it.
+
 ## Files (held by one lead alone)
-.github/workflows/deploy-production.yml, docker-compose.prod.yml, docs/DEPLOY.md, Dockerfiles only if a missing one blocks the build.
+.github/workflows/deploy-production.yml, docker-compose.prod.yml, docs/DEPLOY.md, apps/web/Dockerfile and .dockerignore (item 9), .github/workflows/release-to-main.yml and the main-guard job, Dockerfiles only if a missing one blocks the build.
