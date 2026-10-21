@@ -1,23 +1,25 @@
-// T-370 — the dashboard's Upgrade link and Pro subtitle/banner take the plan name, price and
-// Ink from billing's catalogue (GET /plans), never from constants.
-import { act } from 'react';
-import { createRoot, type Root } from 'react-dom/client';
+// T-370 (plan label rules), carried over to the Night Library shelf (T-520): the plan and its
+// renewal come from billing's status (T-508), never from constants; prices and "unlimited" never
+// appear; an unknown plan is left out, not guessed.
+import { useRouter } from 'next/navigation';
 
-import DashboardPage from '../page';
+import { balanceBody, healthy, mountPage, notOk, ok, PATHS, statusBody } from './page-test-setup';
 
-(globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+import {
+  NEVER,
+  RENEWS_ISO,
+  RENEWS_TEXT,
+  tile,
+  tileText,
+} from '@/components/dashboard/__tests__/dash-test-utils';
+import { cleanupMounted, stubMatchMedia } from '@/components/ui/__tests__/nl-test-utils';
 
-let mockPlan = 'free';
+const mockApiFetch = jest.fn();
+jest.mock('@/lib/apiFetch', () => ({ apiFetch: (...a: unknown[]) => mockApiFetch(...a) }));
 jest.mock('@/context/AuthContext', () => ({
-  useAuth: () => ({ user: { id: 'u1', name: 'Asha Rao', email: 'a@example.com', plan: mockPlan } }),
+  useAuth: () => ({ user: { id: 'u1', name: 'Asha Rao', email: 'a@example.com', plan: 'pro' } }),
 }));
-// A free user with documents used, so the populated branch (with the Upgrade link) renders.
-jest.mock('@/hooks/useUsage', () => ({
-  useUsage: () => ({
-    data: { used: 2, limit: 3, remaining: 1 },
-    loading: false,
-  }),
-}));
+jest.mock('@/components/credits/TopUpModal', () => ({ TopUpModal: () => null }));
 jest.mock('next/link', () => ({
   __esModule: true,
   default: ({ href, children, ...rest }: { href: string; children: React.ReactNode }) => (
@@ -27,126 +29,126 @@ jest.mock('next/link', () => ({
   ),
 }));
 
-const mockApiFetch = jest.fn();
-jest.mock('@/lib/apiFetch', () => ({ apiFetch: (...a: unknown[]) => mockApiFetch(...a) }));
-
-const CATALOGUE = {
-  subscriptions: [
-    { id: 'solo_monthly', tier: 'solo', cycle: 'monthly', priceInr: 799, inkPerCycle: 50 },
-    { id: 'pro_monthly', tier: 'pro', cycle: 'monthly', priceInr: 1999, inkPerCycle: 150 },
-  ],
-  topups: [],
-};
-
-const ok = (body: unknown) => ({ ok: true, status: 200, json: async () => body });
-function route(plans: () => Promise<unknown>) {
-  mockApiFetch.mockImplementation((path: string) =>
-    path === '/api/billing/plans' ? plans() : Promise.resolve(ok({ documents: [] })),
-  );
-}
-
-let container: HTMLDivElement;
-let root: Root;
-
-async function mount() {
-  await act(async () => {
-    root.render(<DashboardPage />);
-  });
-  await act(async () => {
-    for (let i = 0; i < 10; i += 1) await Promise.resolve();
-  });
-}
-
-const upgradeLink = () =>
-  container.querySelector('a[href="/dashboard/settings"]') as HTMLAnchorElement | null;
-
 beforeEach(() => {
   jest.clearAllMocks();
-  mockPlan = 'free';
-  route(async () => ok(CATALOGUE));
-  container = document.createElement('div');
-  document.body.appendChild(container);
-  root = createRoot(container);
+  stubMatchMedia();
+  (useRouter as jest.Mock).mockReturnValue({ push: jest.fn() });
 });
+afterEach(cleanupMounted);
 
-afterEach(() => {
-  act(() => root.unmount());
-  container.remove();
-});
+const planTile = (c: HTMLElement) => tileText(c, 'Plan and renewal');
+const withStatus = (body: unknown) => healthy({ [PATHS.status]: async () => ok(body) });
 
-describe('T-370 dashboard: free user Upgrade link', () => {
-  it('shows the catalogue Pro price, never ₹799 or Unlimited', async () => {
-    await mount();
-    expect(upgradeLink()?.textContent).toBe('Upgrade to Pro — ₹1,999/mo');
-    expect(container.textContent).not.toContain('799');
+describe('T-370 plan tile: Free user', () => {
+  it('reads "Free plan, no renewal"; no price, no upgrade price, no unlimited', async () => {
+    const { container } = await mountPage(mockApiFetch, withStatus(statusBody()));
+    expect(planTile(container)).toBe('Plan and renewalFree plan, no renewal');
+    expect(container.textContent).not.toContain('₹');
     expect(container.textContent).not.toMatch(/unlimited/i);
+    expect(container.textContent).not.toMatch(/Upgrade to Pro/);
   });
 
-  it('follows the catalogue when the Pro price changes', async () => {
-    route(async () =>
-      ok({
-        subscriptions: [
-          { id: 'pro_monthly', tier: 'pro', cycle: 'monthly', priceInr: 2499, inkPerCycle: 200 },
-        ],
-        topups: [],
+  it('a user whose subscription lapsed reads as Free, whatever the auth plan says', async () => {
+    const { container } = await mountPage(
+      mockApiFetch,
+      withStatus(statusBody({ tier: 'pro', state: 'lapsed', status: 'expired' })),
+    );
+    expect(planTile(container)).toContain('Free plan, no renewal');
+  });
+});
+
+describe('T-370 plan tile: paid user', () => {
+  it('Pro: "Pro, renews on {date}" from the status; no Ink figure invented, no unlimited', async () => {
+    const { container } = await mountPage(
+      mockApiFetch,
+      withStatus(statusBody({ tier: 'pro', status: 'active', renewsAt: RENEWS_ISO })),
+    );
+    expect(planTile(container)).toBe(`Plan and renewalPro, renews on ${RENEWS_TEXT}`);
+    expect(container.textContent).not.toMatch(/unlimited/i);
+    expect(container.textContent).not.toContain('₹');
+    expect(container.textContent).not.toMatch(/150 Ink|Ink\/month|Ink a month/);
+  });
+
+  it('Solo: "Solo, renews on {date}"', async () => {
+    const { container } = await mountPage(
+      mockApiFetch,
+      withStatus(statusBody({ tier: 'solo', status: 'active', renewsAt: RENEWS_ISO })),
+    );
+    expect(planTile(container)).toContain(`Solo, renews on ${RENEWS_TEXT}`);
+  });
+
+  it('the renewal date follows the status, not a constant', async () => {
+    const { container } = await mountPage(
+      mockApiFetch,
+      withStatus(
+        statusBody({ tier: 'pro', status: 'active', renewsAt: '2027-01-02T10:00:00.000Z' }),
+      ),
+    );
+    expect(planTile(container)).toContain('renews on 2 Jan 2027');
+    expect(planTile(container)).not.toContain(RENEWS_TEXT);
+  });
+
+  it('cancelAtCycleEnd: plan name and "Ends on {date}", no renewal', async () => {
+    const { container } = await mountPage(
+      mockApiFetch,
+      withStatus(
+        statusBody({ tier: 'pro', status: 'active', renewsAt: RENEWS_ISO, cancelAtCycleEnd: true }),
+      ),
+    );
+    expect(planTile(container)).toContain('Pro');
+    expect(planTile(container)).toContain(`Ends on ${RENEWS_TEXT}`);
+    expect(planTile(container)).not.toContain('renews on');
+  });
+
+  it('past_due: still the plan, with the "Payment failed" chip', async () => {
+    const { container } = await mountPage(
+      mockApiFetch,
+      withStatus(
+        statusBody({ tier: 'solo', status: 'halted', state: 'past_due', renewsAt: RENEWS_ISO }),
+      ),
+    );
+    expect(planTile(container)).toContain('Solo');
+    expect(planTile(container)).toContain('Payment failed');
+  });
+
+  it('Ink balance and plan are independent: a Pro balance does not show a plan tile for Free', async () => {
+    const { container } = await mountPage(
+      mockApiFetch,
+      healthy({
+        [PATHS.balance]: async () => ok(balanceBody(150, 150)),
+        [PATHS.status]: async () =>
+          ok(statusBody({ tier: 'pro', status: 'active', renewsAt: RENEWS_ISO })),
       }),
     );
-    await mount();
-    expect(upgradeLink()?.textContent).toBe('Upgrade to Pro — ₹2,499/mo');
-  });
-
-  it('is neutral, with no price, while the catalogue is loading', async () => {
-    route(() => new Promise(() => {}));
-    await mount();
-    expect(upgradeLink()?.textContent).toBe('Upgrade to Pro');
-    expect(container.textContent).not.toContain('₹');
-  });
-
-  it('is neutral, with no price, when the catalogue fetch fails', async () => {
-    route(() => Promise.reject(new Error('offline')));
-    await mount();
-    expect(upgradeLink()?.textContent).toBe('Upgrade to Pro');
-    expect(container.textContent).not.toContain('₹');
-  });
-
-  it('is neutral when the catalogue has no pro_monthly', async () => {
-    route(async () => ok({ subscriptions: [CATALOGUE.subscriptions[0]], topups: [] }));
-    await mount();
-    expect(upgradeLink()?.textContent).toBe('Upgrade to Pro');
-    expect(container.textContent).not.toContain('₹');
+    expect(tileText(container, 'Ink balance')).toContain('150 Ink');
+    expect(planTile(container)).toContain('Pro, renews on');
   });
 });
 
-describe('T-372 dashboard: documents counter hidden', () => {
-  it('shows no "documents used" text or usage count to a free user', async () => {
-    await mount();
-    expect(upgradeLink()).not.toBeNull(); // the populated free branch did render
-    expect(container.textContent).not.toMatch(/documents used/i);
-    expect(container.textContent).not.toMatch(/\d+ of \d+ documents/i);
-  });
-});
-
-describe('T-370 dashboard: Pro user subtitle and banner', () => {
-  beforeEach(() => {
-    mockPlan = 'pro';
-  });
-
-  it('shows 150 Ink from the catalogue and no "unlimited"', async () => {
-    await mount();
-    expect(container.textContent).toContain('Your Pro plan includes 150 Ink/month');
-    expect(container.textContent).toContain('Pro plan — 150 Ink/month');
-    expect(container.textContent).not.toMatch(/unlimited/i);
-    expect(upgradeLink()).toBeNull();
-  });
-
-  it('gives the neutral text, with no Ink figure, when the fetch fails', async () => {
-    route(() => Promise.reject(new Error('offline')));
-    await mount();
-    expect(container.textContent).toContain('Your Pro plan is active');
-    expect(container.textContent).not.toContain('includes');
-    expect(container.textContent).not.toMatch(/\d+ Ink/);
+describe('T-370 plan tile: unknown plan', () => {
+  it('shows a skeleton and no plan name while the status is loading', async () => {
+    const { container } = await mountPage(mockApiFetch, healthy({ [PATHS.status]: NEVER }));
+    expect(planTile(container)).toBe('Plan and renewal');
+    expect(tile(container, 'Plan and renewal')!.querySelector('.nl-skeleton')).not.toBeNull();
     expect(container.textContent).not.toContain('₹');
-    expect(container.textContent).not.toMatch(/unlimited/i);
-    expect(container.textContent).toContain('Pro plan');
+  });
+
+  it.each([
+    ['a non-OK reply', async () => notOk(500)],
+    ['a network error', () => Promise.reject(new Error('offline'))],
+    ['a body without the envelope', async () => ok({ tier: 'pro', state: 'active' })],
+    ['an unknown tier', async () => ok(statusBody({ tier: 'platinum' as never }))],
+  ])('shows only the label after %s: no guessed plan, no price', async (_n, reply) => {
+    const { container } = await mountPage(mockApiFetch, healthy({ [PATHS.status]: reply }));
+    expect(planTile(container)).toBe('Plan and renewal');
+    expect(tile(container, 'Plan and renewal')!.querySelector('.nl-skeleton')).toBeNull();
+    expect(container.textContent).not.toMatch(/Pro|Solo|Free plan|₹|unlimited/);
+    // no plan data after a failed status: the page says so with the signed error line, while
+    // the tile itself keeps only its label and the other tiles still show
+    expect(container.textContent).toContain(
+      'Could not load your shelf. Your connection looks slow.',
+    );
+    expect(container.textContent).toContain('Retry');
+    expect(tileText(container, 'Drafts this month')).toBe('Drafts this month7');
   });
 });
