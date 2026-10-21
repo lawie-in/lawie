@@ -4,7 +4,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 ## Live claims (Priya, 16 Oct 2026; read this first, the long table below is history)
 
-All older rows below are spent unless this section says otherwise. One ticket per lead. Slot: no one holds it now (21 Oct 2026). Shared and held by no lead: apps/web/src/components/ui/**, tailwind config, globals.css, packages/shared. Need a change there? Ask Priya.
+All older rows below are spent unless this section says otherwise. One ticket per lead. Slot: Vishal next (T-517), then Kunal (T-521).
 
 | Lead     | Ticket                        | Branch                               | Files held (no other row may touch them)                                                                                                                                                        | State |
 | -------- | ----------------------------- | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
@@ -12,7 +12,7 @@ All older rows below are spent unless this section says otherwise. One ticket pe
 | mahak    | T-475, then T-472, then T-474 | fix/t-475-*                           | T-475: apps/drafting/src/services/brief-drafter.ts (actLines), new test, goldens. T-472: document-rules/criminal_revision.json, new limitation.service.ts, the computed-facts service and its ai.service.ts call site only, verifier ledger entry, form renderer if needed, tests. T-474: the other packs' limitation lines | T-475 in build |
 | kunal    | T-521 (21 Oct 2026) | feature/t-521-intake-editor | apps/web: app/dashboard/new/**, app/dashboard/documents/**, app/dashboard/templates/**, components/intake/**, components/editor/**, components/draft/**, components/documents/**, tests. Not the shell, dashboard or settings. |
 | shashank | T-526 (21 Oct 2026; T-518 merged 610dfe13, row spent) | fix/t-526-billing-subscribe-follow-ups-2 | apps/billing only: billing.routes.ts, subscription.service.ts, billing tests. |
-| tanvi    | T-524 (21 Oct 2026; T-520 merged 748a5264, row spent) | fix/t-524-dashboard-polish | apps/web: components/dashboard/**, app/dashboard/page.tsx, components/shell/** (command bar hotkey, ThemeProvider, OfflineBanner), app/layout.tsx (theme-color meta only), app/globals.css (tokens, selection, caret, forced-colors), tests. globals.css and the root layout are held by Tanvi alone while T-524 is open. |
+| tanvi    | T-525 (21 Oct 2026; T-524 merged beca26e9, row spent) | feature/t-525-settings-payment-night-library | apps/web: app/dashboard/settings/**, app/dashboard/payment/**, app/dashboard/templates/** only if Kunal is not in it (ask me), app/dashboard/layout.tsx, components/billing/**, components/sections/**, components/dashboard/Sidebar.tsx, components/credits/** (TopUpModal dialog role and focus trap), hooks/useCredits (unhandled rejection), tests. Not intake or editor (T-521), not landing or auth (T-517/T-528). |
 
 Overlap note: ai.service.ts is shared by vishal (T-471, pass-through hunk) and mahak (T-472, computed-facts call site). Different hunks; whoever merges second merges the other in. packages/shared is free (nobody holds it).
 
