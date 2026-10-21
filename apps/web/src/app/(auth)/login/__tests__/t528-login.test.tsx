@@ -188,6 +188,23 @@ describe('T-528 non-primary hover: ghost and Google, no lift, no halo', () => {
     expect(google.className).not.toMatch(/translate|shadow-nl-halo/);
   });
 
+  it('the referral Apply button carries the ghost hover, no lift or halo, and is disabled with an empty code', async () => {
+    await mount('mode=signup');
+    const apply = qa('button').find((b) => b.textContent === 'Apply') as HTMLButtonElement;
+    expect(apply).toBeDefined();
+    expect(cls(apply)).toEqual(expect.arrayContaining(GHOST));
+    expect(cls(apply)).toContain(CONTROL_LINE);
+    expect(apply.className).not.toMatch(/translate|shadow-nl-halo/);
+    // The hover is gated on :not(:disabled), and Apply is disabled with no code, so it cannot react.
+    expect(NL_GHOST_HOVER).toContain(`${gated}:[&:not(:disabled)]:hover:border-nl-brass`);
+    expect(apply.disabled).toBe(true);
+    const input = q<HTMLInputElement>('#referral-code')!;
+    await act(async () => setInput(input, 'ABCD1234'));
+    expect(apply.disabled).toBe(false);
+    await act(async () => setInput(input, '   '));
+    expect(apply.disabled).toBe(true);
+  });
+
   it('the submit button still has the halo and lift and no ghost border hover', async () => {
     await mount('mode=signin');
     const submit = q('button[type="submit"]')!;

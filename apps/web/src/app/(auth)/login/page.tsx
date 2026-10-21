@@ -725,6 +725,7 @@ function LoginContent() {
                           className={cn(
                             'nl-focus rounded-nl-md px-nl-4 text-nl-brass-dark min-h-[48px] shrink-0 border font-medium disabled:opacity-50',
                             CONTROL_LINE,
+                            NL_GHOST_HOVER,
                           )}
                         >
                           {validating ? 'Checking…' : 'Apply'}
