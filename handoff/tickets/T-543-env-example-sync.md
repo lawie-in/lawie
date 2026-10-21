@@ -1,6 +1,6 @@
 # T-543 — Bring `.env.example` up to date and keep it the single list of variable names
 
-- **Status:** Ready for Vishal (21 Oct 2026)
+- **Status:** Building (Vishal, branch fix/t-543-env-example, 21 Oct 2026)
 - **Owner:** Vishal (build). Priya assigns. Arjun reviews any secret-handling comment.
 - **Mode:** Small fix. No product code changes, so no UI, no legal content.
 - **Files held:** `.env.example` only. If a service's own compose file or README must change to match, ask Priya first.
