@@ -66,3 +66,25 @@ The free tier's 750 instance-hours cover one t3.micro only; the dev box uses the
 Not now: Kubernetes, Secrets Manager rotation, ElastiCache, multi-AZ. Revisit when there is paying load.
 
 **Decision needed from the founder:** (a) go now with Parameter Store, ₹≈7,900/month at the recommended size (Vikram verifies), or (b) go now at the ₹1,600 minimum with the M0 risk accepted in writing, or (c) wait. On (a) or (b) Priya posts T-528 (pipeline) and T-529 (secrets loader) and Kunal writes the console steps.
+
+## Vikram's corrections (21 Oct 2026) — these supersede the table above
+
+Checked against list prices, not live; the founder reads Atlas off the cluster builder before buying.
+
+- **Public IPv4 is charged** since Feb 2024: $0.005/h ≈ $3.65 ≈ ₹310/month per address, Elastic IPs included. The free tier covers one; the dev box uses it.
+- EBS gp3 Mumbai ≈ $0.091/GB → 20 GB ≈ ₹155.
+- **Atlas M10 in AWS Mumbai ≈ $60–66** (₹5,100–5,600) before backup storage and transfer.
+- Add a 3–4 % FX/card buffer; AWS India bills 18 % GST, Atlas is GST under reverse charge — both input credit, cash out first.
+
+**Corrected totals, before GST:** recommended (t3.medium + M10 + on-box Redis + Parameter Store) ≈ $100 ≈ **₹8,500–8,900**; minimum (t3.small + M0) ≈ **₹1,900**.
+
+**Finance calls (Vikram):**
+- Parameter Store over Secrets Manager: agreed.
+- **No M0 for prod** — no backups, and it holds client drafts; one loss event costs more than a year of M10. But M10 with zero paying users is the wrong spend. **Middle: Atlas Flex** (the paid shared tier that replaced M2/M5): ≈ $8 base capped at $30, 5 GB, daily backups ≈ ₹700–2,600. Move to M10 near the 5 GB/ops limit or past ~10 Solo subs/month. Arjun confirms Flex exists in ap-south-1 and that its snapshot/restore satisfies T-403's rollback rule.
+- **Launch line with Flex: t3.medium + Flex + IPv4/EBS/ECR ≈ ₹3,600–5,600/month.** Vikram's recommendation given no spare cash.
+- **Timing: build now, buy late.** Post T-528/T-529 now; launch the prod box and database a few days before T-403, not at ticket start — an idle month is ≈ ₹3,000.
+- Free-tier end: the dev box then adds ≈ ₹700 + ₹310 IPv4.
+
+**Arjun on the Flex rollback question:** Flex takes daily snapshots with point-in-time restore absent; restore is to a new cluster, then the connection string changes — acceptable for T-403's "rollback written and tried" if the tried rollback is *application* rollback (retag image) plus a *data* restore drill done once from a Flex snapshot, with the restore time written down. If Flex is not offered in ap-south-1 on the day, M10 is the only honest choice; the founder sees that in the cluster builder.
+
+**Open for Ajay:** M0 (no backup) vs Flex (daily backup) for client drafts under DPDP — asked 21 Oct. Founder decides after.
