@@ -30,9 +30,15 @@ export async function ensureInkLedgerIndexes(): Promise<void> {
       );
     logger.info({ index: INK_LEDGER_USER_CREATED_NAME }, 'ink-ledger: index ensured');
   } catch (err) {
-    // Error class only: no driver message, no PII.
+    // Error class and driver code only: no driver message, no PII.
+    // T-518 (Arjun): codeName only when a string, code only when a number.
+    const { codeName, code } = (err ?? {}) as { codeName?: unknown; code?: unknown };
     logger.error(
-      { errName: err instanceof Error ? err.name : 'unknown' },
+      {
+        errName: err instanceof Error ? err.name : 'unknown',
+        ...(typeof codeName === 'string' ? { codeName } : {}),
+        ...(typeof code === 'number' ? { code } : {}),
+      },
       'ink-ledger: index create failed; continuing',
     );
   }
