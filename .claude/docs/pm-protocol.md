@@ -52,6 +52,7 @@ The board is shared by link, so anyone on the team — not only the four session
 - **Comment rather than rewrite.** A ticket's thread (the `comments` collection, one document per
   ticket) is where a scope change is explained. Changing `goal` or `title` without a comment saying
   why leaves the lead guessing what moved.
+- **Keep the list of environment variable names** (founder, 21 Oct 2026). `handoff/ops/env-variables.md` holds names only, never values. Any ticket that adds, renames or removes a variable lists it before the build; you add the row when it merges and tell the founder "new variable to set before deploying: NAME". He sets the values himself.
 
 ## 2a. Follow-ups and the parked list (Arjun, 14 Oct 2026)
 
