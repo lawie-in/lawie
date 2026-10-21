@@ -1,19 +1,26 @@
 'use client';
 
 import { Menu } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 import { HeaderCreditPill } from '@/components/credits/HeaderCreditPill';
 import Sidebar from '@/components/dashboard/Sidebar';
 import PrivacyUpdatePrompt, { PrivacyAcceptedStatus } from '@/components/PrivacyUpdatePrompt';
 import { SectionFinderPanel } from '@/components/sections/SectionFinderPanel';
+import { DashboardTopBar } from '@/components/shell/DashboardTopBar';
+import { OfflineBanner } from '@/components/shell/OfflineBanner';
+import { Spinner } from '@/components/ui';
 import VerifyEmailPrompt from '@/components/VerifyEmailPrompt';
 import { useAuth } from '@/context/AuthContext';
+
+/** T-520: only the dashboard home uses the Night Library shell; every other route keeps the legacy one. */
+const NIGHT_LIBRARY_PATH = '/dashboard';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
@@ -21,6 +28,42 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       router.replace('/login');
     }
   }, [user, isLoading, router]);
+
+  const nightLibrary = pathname === NIGHT_LIBRARY_PATH;
+
+  if (nightLibrary) {
+    if (isLoading || !user) {
+      return (
+        <div className="nl nl-root text-nl-brass-dark flex min-h-screen items-center justify-center">
+          <Spinner className="h-8 w-8" />
+          {/* T-343: mounted while signed out too, so it clears its once-per-sign-in flag. */}
+          <PrivacyUpdatePrompt />
+        </div>
+      );
+    }
+
+    return (
+      <div className="nl nl-root flex min-h-screen flex-col overflow-x-hidden">
+        {/* T-520: signed-in top bar; the theme toggle is in its menu (one header row). */}
+        <DashboardTopBar />
+        <OfflineBanner />
+
+        {/* T-223: verify-your-email banner under the top bar and the Ink-refusal verify modal. */}
+        <VerifyEmailPrompt />
+
+        {/* T-343: id and tabIndex so focus can return here when the privacy prompt closes. */}
+        <main id="dashboard-main" tabIndex={-1} className="min-w-0 flex-1 focus:outline-none">
+          {children}
+        </main>
+
+        {/* Section finder: globally mounted; it owns Ctrl/Cmd+K, opened from the account menu. */}
+        <SectionFinderPanel />
+
+        <PrivacyUpdatePrompt />
+        <PrivacyAcceptedStatus />
+      </div>
+    );
+  }
 
   if (isLoading || !user) {
     return (

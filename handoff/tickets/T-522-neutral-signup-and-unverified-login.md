@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Arjun (design), Ajay (copy), an auth lead (build) |
 | Mode   | Full chain (auth, web) |
-| Status | To do. V1 candidate (Vishal's T-517 report, 21 Oct 2026). Priya |
+| Status | To do. V1.1, due before any release after v1 (Vishal's T-517 report, 21 Oct 2026). Priya |
 | Source | Ajay AJ-511-M3; T-517 findings |
 
 ## Problem
@@ -16,3 +16,4 @@ Signed copy (M3) wants the same "Check your email" screen for a new and an exist
 2. Auth and web are changed to match the ruling; the signed copy and the behaviour agree (Ajay checks).
 3. The web password hint states the real server rule.
 4. Tests for new and existing email, unverified login and the password rule.
+5. AJ-517-M18: a new account created through Google from the Sign in tab is detected and asked for consent with the M16 box at its next sign-in, recorded as its own acceptance. v1 ships without this on Ajay's conditions (the T-234 "By continuing" line stays beside the Google button with links to both documents, and the stored record keeps `acceptedVia: 'google'`); his sign-off does not extend past v1, so this ships before any release after v1.
