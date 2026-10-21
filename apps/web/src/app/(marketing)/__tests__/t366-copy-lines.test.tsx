@@ -188,12 +188,29 @@ describe('T-398 / T-517 pricing page copy (Ajay conditions 1-4)', () => {
     expect(text).not.toMatch(/early access/i);
   });
 
-  it('every lower-case "free" sits in "5 free Ink"', () => {
+  // The one widening of this rule (T-531): Ajay signed the phone top bar's short call to action,
+  // `Start free` (AJ-531-M1, ruling 83587fe5, handoff/legal/T-511-copy-rulings-ajay.md). It is
+  // true because creating an account costs nothing. His conditions stay: the page it opens keeps
+  // the signed Free plan terms, and `Free forever` is never allowed. So the only lower-case
+  // "free" allowed besides "5 free Ink" is the link text `Start free` in the header, byte for byte.
+  const AJ_531_M1_CTA = 'Start free';
+
+  it('every lower-case "free" sits in "5 free Ink", or is the Ajay-signed "Start free" link', () => {
     const text = norm(render(<PricingPage />));
-    const lower = Array.from(text.matchAll(/free/gi)).filter((m) => m[0] === 'free');
+    // Exactly the signed header link (one phone call to action), nothing longer or looser.
+    const signed = Array.from(container.querySelectorAll('header a')).filter(
+      (a) => a.textContent === AJ_531_M1_CTA,
+    );
+    expect(signed).toHaveLength(1);
+    expect(signed[0].getAttribute('href')).toBe('/login?mode=signup');
+    // Every "Start free" in the page text is that link, and it is never extended ("Start free forever").
+    expect(text.split(AJ_531_M1_CTA).length - 1).toBe(signed.length);
+    expect(text).not.toMatch(/free forever/i);
+    const rest = text.split(AJ_531_M1_CTA).join('\u0000');
+    const lower = Array.from(rest.matchAll(/free/gi)).filter((m) => m[0] === 'free');
     expect(lower.length).toBeGreaterThanOrEqual(1);
     for (const m of lower) {
-      expect(text.slice(m.index! - 2, m.index! + 8)).toBe('5 free Ink');
+      expect(rest.slice(m.index! - 2, m.index! + 8)).toBe('5 free Ink');
     }
   });
 

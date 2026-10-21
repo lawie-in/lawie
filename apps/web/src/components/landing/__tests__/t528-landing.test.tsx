@@ -108,18 +108,13 @@ describe('T-528 item 4: steps are plain columns with brass roman numerals', () =
 });
 
 describe('T-528 item 5: sticky top bar and anchor offsets', () => {
-  it('the bar is sticky from 720px, above content, clear of the safe-area inset', () => {
+  it('T-531: the bar is sticky at every width, above content, clear of the safe-area inset', () => {
     mount(<NightTopBar lang="en" onLangChange={() => undefined} />);
     const c = cls(q('header'));
     expect(c).toEqual(
-      expect.arrayContaining([
-        'min-[720px]:sticky',
-        'min-[720px]:top-0',
-        'min-[720px]:z-30',
-        'pt-[env(safe-area-inset-top,0px)]',
-      ]),
+      expect.arrayContaining(['sticky', 'top-0', 'z-30', 'pt-[env(safe-area-inset-top,0px)]']),
     );
-    expect(c).not.toContain('sticky');
+    expect(c.some((x) => x.startsWith('min-[720px]:sticky'))).toBe(false);
   });
 
   it('no section carries a scroll-mt class; the bar supplies scroll-padding-top instead', () => {
@@ -132,10 +127,10 @@ describe('T-528 item 5: sticky top bar and anchor offsets', () => {
     const style = q('style', marker)!;
     expect(style.textContent).toContain('scroll-padding-top');
     expect(style.textContent).toBe(NL_STICKY_BAR_CSS);
-    expect(NL_STICKY_BAR_HEIGHT).toEqual({ wrapped: 72, row: 65 });
-    expect(NL_STICKY_BAR_HEIGHT.wrapped).toBeGreaterThanOrEqual(NL_STICKY_BAR_HEIGHT.row);
-    expect(style.textContent).toContain(`${NL_STICKY_BAR_HEIGHT.wrapped}px`);
-    expect(style.textContent).toContain(`${NL_STICKY_BAR_HEIGHT.row}px`);
+    // T-531: one 64px row plus its 1px rule at every width; `wrapped` became `fallback`.
+    expect(NL_STICKY_BAR_HEIGHT).toEqual({ fallback: 65 });
+    expect(style.textContent).toContain(`${NL_STICKY_BAR_HEIGHT.fallback}px`);
+    expect(style.textContent).toContain('var(--nl-bar-h,');
   });
 });
 

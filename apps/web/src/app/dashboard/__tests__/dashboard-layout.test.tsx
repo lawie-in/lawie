@@ -115,7 +115,10 @@ describe('/dashboard: the Night Library shell', () => {
   it('does not scroll sideways at 360px: the shell clips horizontal overflow and shrinks', () => {
     const { container } = page('/dashboard');
     const root = q('.nl-root', container) as HTMLElement;
-    expect(root.className).toContain('overflow-x-hidden');
+    // T-531: `clip`, not `hidden`. `hidden` makes the shell a scroll container, so the sticky top
+    // bar could not pin to the viewport.
+    expect(root.className.split(/\s+/)).toContain('overflow-x-clip');
+    expect(root.className).not.toContain('overflow-x-hidden');
     expect((q('main', container) as HTMLElement).className).toContain('min-w-0');
   });
 

@@ -166,6 +166,8 @@ export function DashboardTopBar() {
   const inkKnown = loaded && Number.isFinite(balance.totalInk);
   return (
     <TopBar
+      // T-531: pinned at every width (one 64px row); publishes --nl-bar-h for scroll padding.
+      sticky
       variant="signed-in"
       homeHref="/dashboard"
       showThemeToggle={false}

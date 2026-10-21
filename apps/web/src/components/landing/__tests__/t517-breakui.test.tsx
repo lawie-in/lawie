@@ -179,13 +179,14 @@ describe('break-ui: missing env, narrow container, repeated clicks', () => {
     const grid = q('[data-plan="free"]')!.parentElement!;
     expect(grid.className).toContain('grid-cols-1');
     expect(grid.className).toContain('min-[640px]:grid-cols-2');
-    // Mobile top bar carries no nav links (round 2): only the bar's own controls.
-    expect(q('[data-topbar-mobile-menu]')).not.toBeNull();
-    expect(
-      qa('a', q('[data-topbar-mobile-menu]')!).some((a) =>
-        /^#|\/#/.test(a.getAttribute('href') ?? ''),
-      ),
-    ).toBe(false);
+    // T-531: there is no second mobile row. The nav links are in the phone menu by design, in a
+    // landmark named "Main"; the bar itself carries none of them below 1120px.
+    expect(q('[data-topbar-mobile-menu]')).toBeNull();
+    expect(qa('header nav a').length).toBe(4);
+    expect(q('header nav')!.className.split(/\s+/)).toContain('hidden');
+    click(q('[data-topbar-menu-trigger]'));
+    const menuLinks = qa('[data-topbar-menu] nav[aria-label="Main"] a');
+    expect(menuLinks).toHaveLength(4);
   });
 
   it('round-2 polish: no decorative 01/02/03 labels; FAQ marker is an svg, not a "+" glyph', () => {

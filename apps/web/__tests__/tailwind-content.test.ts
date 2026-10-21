@@ -77,8 +77,8 @@ describe('Tailwind build (real config + globals.css)', () => {
     expect(arbitrarySelectors(real, px).length).toBeGreaterThan(0);
   });
 
-  it('has the nav-link class from 1120px', () => {
-    expect(real.media['(min-width: 1120px)']).toContain('.min-\\[1120px\\]\\:inline-flex');
+  it('has the nav landmark gate (flex) from 1120px', () => {
+    expect(real.media['(min-width: 1120px)']).toContain('.min-\\[1120px\\]\\:flex');
   });
 
   it('control: one interpolated min- candidate brings the warning and drops the rules', () => {
