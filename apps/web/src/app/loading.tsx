@@ -13,6 +13,8 @@ import { loopPlayState, usePageVisible } from '@/components/ui/motion';
 const STILL_WORKING_AFTER_MS = 8000;
 
 const LOADING_STRINGS = {
+  /** T-524: functional label for screen readers only (Priya); not shown on screen. */
+  loading: 'Loading',
   stillWorking: 'Still working…',
 } as const;
 
@@ -29,7 +31,10 @@ export default function Loading() {
 
   return (
     <main className="nl nl-root px-nl-4 py-nl-10 flex min-h-screen items-center justify-center">
-      <div role="status" aria-busy="true" className="gap-nl-3 flex w-full max-w-[480px] flex-col">
+      <div role="status" className="gap-nl-3 flex w-full max-w-[480px] flex-col">
+        {/* T-524: the status region was silent (its skeleton is aria-hidden); it now has a name.
+            No aria-busy on this region: a busy live region holds back its announcements. */}
+        <span className="sr-only">{LOADING_STRINGS.loading}</span>
         <div
           className="border-nl-line bg-nl-card p-nl-6 gap-nl-3 min-[900px]:p-nl-10 flex flex-col border"
           aria-hidden="true"

@@ -7,6 +7,17 @@ export type ResolvedTheme = 'night' | 'daylight';
 export const THEME_STORAGE_KEY = 'lawie-theme';
 export const DEFAULT_THEME_PREFERENCE: ThemePreference = 'system';
 export const DARK_SCHEME_QUERY = '(prefers-color-scheme: dark)';
+export const LIGHT_SCHEME_QUERY = '(prefers-color-scheme: light)';
+
+/**
+ * T-524: browser chrome colour (`<meta name="theme-color">`) is Wall for the resolved theme
+ * (DESIGN.md Colors, Selection). The root layout emits one meta per colour scheme for first
+ * paint; ThemeProvider keeps a single unscoped meta in step with the toggle.
+ */
+export const THEME_COLOR: Record<ResolvedTheme, string> = {
+  night: '#0E1A17',
+  daylight: '#F3EFE4',
+};
 
 export function isThemePreference(value: unknown): value is ThemePreference {
   return value === 'night' || value === 'daylight' || value === 'system';

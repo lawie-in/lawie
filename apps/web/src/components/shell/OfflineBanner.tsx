@@ -45,11 +45,15 @@ export function OfflineBanner({ className }: { className?: string }) {
       data-kind="offline"
       data-tone="warn"
       className={cn(
-        'nl border-nl-line bg-nl-warn-light px-nl-4 py-nl-2 text-nl-warn flex min-h-[44px] w-full items-center border-b',
+        'nl border-nl-line bg-nl-warn-light py-nl-2 text-nl-warn flex min-h-[44px] w-full items-center border-b',
         className,
       )}
     >
-      <p className="nl-body-sm m-0 min-w-0 flex-1 font-medium">{OFFLINE_BANNER_COPY}</p>
+      {/* T-524: the fill runs full width; the text sits in the page's content column (the same
+          max width and gutters as app/dashboard/page.tsx), so it lines up with the greeting. */}
+      <div className="px-nl-4 min-[900px]:px-nl-8 mx-auto w-full min-w-0 max-w-[1180px]">
+        <p className="nl-body-sm m-0 min-w-0 break-words font-medium">{OFFLINE_BANNER_COPY}</p>
+      </div>
     </div>
   );
 }

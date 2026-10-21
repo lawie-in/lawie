@@ -10,6 +10,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import {
   DARK_SCHEME_QUERY,
   DEFAULT_THEME_PREFERENCE,
+  THEME_COLOR,
   THEME_STORAGE_KEY,
   isThemePreference,
   type ResolvedTheme,
@@ -60,6 +61,42 @@ function readPreferenceFromDom(): ThemePreference | null {
   return isThemePreference(value) ? value : null;
 }
 
+/**
+ * T-524: one unscoped `<meta name="theme-color">` set to Wall for the resolved theme. It goes
+ * before the layout's media-scoped metas, because the browser uses the first matching one in
+ * document order; without that, a pinned Daylight on a dark system would keep the Night bar.
+ * Never throws (SSR-safe: only called from an effect).
+ */
+function syncThemeColorMeta(resolved: ResolvedTheme): void {
+  try {
+    if (typeof document === 'undefined' || !document.head) return;
+    const head = document.head;
+    const metas = Array.from(head.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]'));
+    const unscoped = metas.filter((m) => !m.hasAttribute('media'));
+    let meta = unscoped[0] ?? null;
+    // Exactly one unscoped meta.
+    for (const extra of unscoped.slice(1)) extra.remove();
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.setAttribute('name', 'theme-color');
+    }
+    const firstScoped = metas.find((m) => m.hasAttribute('media') && m.parentNode === head);
+    const alreadyFirst =
+      meta.parentNode === head &&
+      Boolean(
+        firstScoped && meta.compareDocumentPosition(firstScoped) & Node.DOCUMENT_POSITION_FOLLOWING,
+      );
+    if (firstScoped && !alreadyFirst) {
+      head.insertBefore(meta, firstScoped);
+    } else if (!meta.parentNode) {
+      head.appendChild(meta);
+    }
+    meta.setAttribute('content', THEME_COLOR[resolved]);
+  } catch {
+    /* a locked-down or unusual document: keep the layout's media-scoped metas */
+  }
+}
+
 export function ThemeProvider({
   children,
   defaultPreference = DEFAULT_THEME_PREFERENCE,
@@ -104,6 +141,7 @@ export function ThemeProvider({
     const root = document.documentElement;
     root.setAttribute('data-theme', resolved);
     root.setAttribute('data-theme-pref', preference);
+    syncThemeColorMeta(resolved);
   }, [ready, resolved, preference]);
 
   const setPreference = useCallback((next: ThemePreference) => {

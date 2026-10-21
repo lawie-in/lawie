@@ -102,9 +102,9 @@ export function docsBody(n: number, status: 'draft' | 'finalised' | 'exported' =
 /** The visible text of one tile, found by its label. */
 export function tileText(container: ParentNode, label: string): string {
   const h = Array.from(container.querySelectorAll('h2')).find((e) => e.textContent === label);
-  return h?.closest('section')?.textContent ?? '';
+  return h?.closest('[role="group"]')?.textContent ?? '';
 }
 export function tile(container: ParentNode, label: string): HTMLElement | null {
   const h = Array.from(container.querySelectorAll('h2')).find((e) => e.textContent === label);
-  return (h?.closest('section') as HTMLElement | null) ?? null;
+  return (h?.closest('[role="group"]') as HTMLElement | null) ?? null;
 }
