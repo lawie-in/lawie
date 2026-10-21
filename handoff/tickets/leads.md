@@ -8,7 +8,7 @@ All older rows below are spent unless this section says otherwise. One ticket pe
 
 | Lead     | Ticket                        | Branch                               | Files held (no other row may touch them)                                                                                                                                                        | State |
 | -------- | ----------------------------- | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
-| vishal   | free (T-543 merged f1272c2c, row spent) | - | - |
+| vishal   | T-531 (mobile shell, button hover) | fix/t-531-mobile-shell | apps/web: components/ui, components/shell, app/layout.tsx, globals.css, their tests (shared UI files, no other lead) | assigned 21 Oct 2026 |
 | mahak    | T-475, then T-472, then T-474 | fix/t-475-*                           | T-475: apps/drafting/src/services/brief-drafter.ts (actLines), new test, goldens. T-472: document-rules/criminal_revision.json, new limitation.service.ts, the computed-facts service and its ai.service.ts call site only, verifier ledger entry, form renderer if needed, tests. T-474: the other packs' limitation lines | T-475 in build |
 | kunal    | free (T-521 merged 276b7139, row spent) | feature/t-521-intake-editor | Same files as before: apps/web: app/dashboard/new/**, documents/**, templates/**, components/intake/**, editor/**, draft/**, documents/**, tests. |
 | shashank | T-527 (not ready; branch fix/t-527-reconcile-before-create) | fix/t-527-reconcile-before-create | Unchanged. |

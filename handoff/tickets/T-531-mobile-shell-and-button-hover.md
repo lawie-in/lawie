@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Rajesh (rulings 21 Oct 2026), a web lead (build) |
 | Mode   | Full chain (web, shared files) |
-| Status | To do. Shared files (components/ui, components/shell, app/layout.tsx, globals.css): one lead at a time. Priya |
+| Status | In build: Vishal (21 Oct 2026). Shared files (components/ui, components/shell, app/layout.tsx, globals.css): one lead at a time. Priya |
 | Source | Rajesh's T-528 calls; Vishal's out-of-scope notes |
 
 ## Acceptance criteria
