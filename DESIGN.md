@@ -217,6 +217,7 @@ Warm darks with a single brass accent; Daylight keeps the hues and lifts the lig
 - **Amber** (#f1d08a / #7a5300) on **Amber Soft** (#3a2e12 / #fbefd2): open checks, low Ink, gates (verify email, privacy).
 - **Rust** (#f2a196 / #b3261e) on **Rust Soft** (#3b1a17 / #fce9e7): errors, failed payment, offline.
 - **Lamp** (rgba(255,214,140,.22) / rgba(255,200,90,.16)): the radial pool of light on the folio and hero. A gradient only, never a fill.
+- **Selection** (#4a3d1e / #ead9a8): `::selection` background, text colour unchanged (8.4:1 night, 10.6:1 day). The caret is Brass (`caret-color`). The browser chrome (`<meta name="theme-color">`) is Wall for the resolved theme, #0e1a17 night and #f3efe4 day, and follows the toggle.
 
 ### Named Rules
 **The Brass Is Not Text Rule.** Brass fill (#c9a24a / #866619) is never used for text under 20px. Brass Text is the text form; the two are different tokens on purpose.
@@ -249,7 +250,7 @@ Warm darks with a single brass accent; Daylight keeps the hues and lifts the lig
 
 ## Layout
 
-A single reading column that widens into a desk. At 360px everything is one column with a 16px gutter; at 640px and above dialogs stop being bottom sheets; at 900px the dashboard KPI grid goes from two columns to four and the editor gains its right-hand checks rail (320px); at 1280px the content sits in a 1180px column with 48px side padding. The hero is two columns from 900px (copy left, folio right) and one column below, folio directly under the headline.
+A single reading column that widens into a desk. At 360px everything is one column with a 16px gutter; at 640px and above dialogs stop being bottom sheets; at 900px the dashboard KPI grid goes from two columns to four and the editor gains its right-hand checks rail (320px); at 1280px the content sits in a 1180px column with 48px side padding. The hero is two columns from 900px (copy left, folio right) and one column below, folio directly under the headline. Full-width sections (three steps, prices, trust, FAQ, the final call) fill the column with equal tracks; the document-type shelf and the dashboard shelf hug their spines, left-aligned, with the wood edge running the full column width. The space to the right of a shelf is intended.
 
 Spacing uses the 4px scale (4, 8, 12, 16, 20, 24, 32, 40, 48, 64). Cards pad 16px; the folio pads 24px on phones and 40px on desktop; sections sit 44px to 72px apart. Touch targets are 44px minimum, including the 36px small button, whose hit area is padded out to 44px.
 
