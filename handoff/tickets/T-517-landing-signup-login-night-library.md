@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Rajesh (design), Meera/Madhuri (copy), Ajay (signs claims), a web lead (build) |
 | Mode   | Full chain (web, legal copy) |
-| Status | READY dcbd8a92, Ajay byte check AJ-517-BC approved, Rajesh reviewed (must-fix in T-528). Merge queue: next. Priya |
+| Status | Merged into develop_staging c5863ad2 (21 Oct 2026); CI 857 green. Follow-up: T-528. Priya |
 | Source | Founder, 17 Oct 2026 ("whole UI including the landing page") |
 
 ## Scope

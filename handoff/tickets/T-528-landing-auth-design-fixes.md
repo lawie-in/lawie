@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Rajesh (review), Vishal (build) |
 | Mode   | Small fix (web) |
-| Status | To do, after T-517 merges. MUST-FIX before Anushka tests (Daylight contrast). Priya |
+| Status | In build: Vishal (21 Oct 2026). Must-fix before Anushka tests (Daylight contrast). Priya |
 | Source | Rajesh's review of dcbd8a92 against DESIGN.md; Vishal's leftover should-fixes |
 
 ## Must-fix
