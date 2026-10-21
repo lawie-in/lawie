@@ -11,7 +11,7 @@ import {
   privacyFetch,
   usePrivacyDescribedBy,
 } from '@/components/PrivacyUpdatePrompt';
-import { Button, Chip, Spinner } from '@/components/ui';
+import { Button, Skeleton } from '@/components/ui';
 import {
   VerifyEmailCard,
   isEmailVerificationRequired,
@@ -26,8 +26,6 @@ interface TopupSku {
   id: string;
   ink: number;
   priceInr: number;
-  badge?: 'POPULAR' | 'BEST_VALUE';
-  pricePerInkInr: number;
 }
 
 declare global {
@@ -263,12 +261,6 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
     }
   };
 
-  const SKU_NAMES: Record<string, string> = {
-    topup_mini: 'Mini',
-    topup_mid: 'Mid',
-    topup_max: 'Max',
-  };
-
   return (
     <RadixDialog.Root
       open={!checkoutOpen}
@@ -318,13 +310,13 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
           <header className="px-nl-6 pt-nl-4 min-[641px]:pt-nl-6">
             <div className="gap-nl-3 flex items-start justify-between">
               <div className="min-w-0">
-                <p className="nl-label text-nl-brass-dark m-0">Top up Ink</p>
+                {/* T-535: signed copy §4.6 (T-511 copy v1). */}
                 <RadixDialog.Title
                   ref={titleRef}
                   tabIndex={-1}
-                  className="nl-h2 text-nl-text mt-nl-1 focus:outline-none"
+                  className="nl-h2 text-nl-text focus:outline-none"
                 >
-                  Buy Ink for your bench
+                  Top up Ink
                 </RadixDialog.Title>
               </div>
               {/* "Close": functional label, no signed string yet (T-525 report). */}
@@ -339,20 +331,18 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
               </RadixDialog.Close>
             </div>
             <p className="nl-body-sm text-nl-soft mt-nl-2 mb-0">
-              Top-up Ink <strong className="text-nl-text font-medium">never expires</strong> and
-              stacks with your subscription.
+              Prices include GST. Top-up Ink does not expire while your account is open.
             </p>
           </header>
 
           {/* SKU list */}
           <div className="space-y-nl-2 px-nl-6 py-nl-4">
             {plansStatus === 'loading' && (
-              <div
-                role="status"
-                className="gap-nl-2 py-nl-6 nl-body-sm text-nl-muted flex items-center justify-center"
-              >
-                <Spinner />
-                Loading packs…
+              // T-535: a skeleton with no visible copy (§4.6). The visually hidden "Loading" is the
+              // functional status label approved earlier; the bars are aria-hidden.
+              <div role="status">
+                <span className="sr-only">Loading</span>
+                <Skeleton lines={3} slowText="" className="py-nl-2" />
               </div>
             )}
             {plansStatus === 'error' && (
@@ -397,23 +387,11 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
                   >
                     {isSelected ? <span className="bg-nl-brass h-2 w-2 rounded-full" /> : null}
                   </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="gap-nl-2 flex flex-wrap items-center">
-                      <span className="nl-body text-nl-text font-medium">
-                        {SKU_NAMES[sku.id] ?? sku.id} —{' '}
-                        <span className="tabular-nums">{sku.ink}</span> Ink
-                      </span>
-                      {sku.badge && (
-                        <Chip variant="brass">
-                          {sku.badge === 'BEST_VALUE' ? 'Best value' : 'Popular'}
-                        </Chip>
-                      )}
-                    </div>
-                    <p className="nl-body-sm text-nl-soft m-0 tabular-nums">
-                      ₹{sku.pricePerInkInr.toFixed(2)} per Ink · never expires
-                    </p>
-                  </div>
-                  <span className="nl-h3 text-nl-text shrink-0 tabular-nums">₹{sku.priceInr}</span>
+                  {/* T-535: the pack label is §4.6 ("3 Ink, ₹65") from the fetched plan; no
+                      "Popular"/"Best value" chip (unsupported claim, t252 M1). */}
+                  <span className="nl-body text-nl-text min-w-0 flex-1 font-medium tabular-nums">
+                    {`${sku.ink} Ink, ₹${sku.priceInr}`}
+                  </span>
                 </button>
               );
             })}
@@ -521,7 +499,7 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
                 disabled={!selected}
                 loading={submitting}
               >
-                Pay with Razorpay
+                Buy
               </Button>
             )}
           </footer>

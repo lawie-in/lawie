@@ -92,4 +92,12 @@ describe('T-509 SubscriptionStatusCard', () => {
     expect(planDate('2026-01-05T00:00:00.000Z')).toBe('5 Jan 2026');
     expect(planDate(null)).toBe('');
   });
+
+  it('T-535: Cancel plan is the ghost-danger variant (Rust text and border, no lift)', () => {
+    const b = cancelBtn(card({}).container)!;
+    expect(b.getAttribute('data-variant')).toBe('ghost-danger');
+    expect(b.className).toContain('text-[color:var(--err)]');
+    expect(b.className).toContain('border-[color:var(--err)]');
+    expect(b.className).not.toMatch(/translate-y/);
+  });
 });

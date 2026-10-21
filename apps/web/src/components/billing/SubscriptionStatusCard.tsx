@@ -60,7 +60,8 @@ export function SubscriptionStatusCard({
       ) : null}
       {live && !ending && date ? (
         <div>
-          <Button variant="ghost" onClick={onCancel}>
+          {/* T-535: ghost danger; the filled destructive stays in CancelPlanDialog. */}
+          <Button variant="ghost-danger" onClick={onCancel}>
             {PLAN_COPY.cancelLink}
           </Button>
         </div>

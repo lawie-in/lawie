@@ -119,12 +119,13 @@ describe('T-525 top-up dialog: semantics', () => {
 
   it('keeps the signed strings', async () => {
     await mount();
-    expect(button('Pay with Razorpay')).toBeDefined();
+    expect(button('Buy')).toBeDefined();
     plansReply = () => new Promise(() => {});
     act(() => root.unmount());
     root = createRoot(container);
     await mount();
-    expect(document.body.textContent).toContain('Loading packs…');
+    expect(document.body.textContent).not.toContain('Loading packs');
+    expect(document.body.querySelector('[role="status"]')?.textContent).toBe('Loading');
   });
 
   it('packs are buttons with aria-pressed; the Mid pack starts pressed', async () => {
@@ -133,7 +134,7 @@ describe('T-525 top-up dialog: semantics', () => {
     expect(packs).toHaveLength(2);
     expect(packs.filter((p) => p.getAttribute('aria-pressed') === 'true')).toHaveLength(1);
     expect(packs.find((p) => p.getAttribute('aria-pressed') === 'true')?.textContent).toContain(
-      'Mid',
+      '30 Ink, ₹249',
     );
     act(() => (packs[0] as HTMLElement).click());
     expect(packs[0].getAttribute('aria-pressed')).toBe('true');
@@ -201,7 +202,7 @@ describe('T-525 top-up dialog: focus', () => {
 
 describe('T-525 top-up dialog: Razorpay Checkout', () => {
   async function pay() {
-    await act(async () => (button('Pay with Razorpay') as HTMLElement).click());
+    await act(async () => (button('Buy') as HTMLElement).click());
     await flush();
   }
 
@@ -216,7 +217,7 @@ describe('T-525 top-up dialog: Razorpay Checkout', () => {
     });
     await flush();
     expect(dialogEl()).not.toBeNull();
-    const payBtn = button('Pay with Razorpay') as HTMLButtonElement;
+    const payBtn = button('Buy') as HTMLButtonElement;
     expect(payBtn.disabled).toBe(false);
     expect(document.activeElement).toBe(payBtn);
   });
@@ -287,7 +288,7 @@ describe('T-525 top-up dialog: focus return to the opener', () => {
     expect(document.activeElement).not.toBe(opener);
   }
   const pay = async () => {
-    await act(async () => (button('Pay with Razorpay') as HTMLElement).click());
+    await act(async () => (button('Buy') as HTMLElement).click());
     await flush();
   };
   beforeEach(() => {
@@ -409,7 +410,7 @@ describe('T-525 top-up dialog: focus return to the opener', () => {
     await flush();
     await settle();
     expect(focusOpener).not.toHaveBeenCalled();
-    expect(document.activeElement).toBe(button('Pay with Razorpay'));
+    expect(document.activeElement).toBe(button('Buy'));
   });
 
   it('falls back to #dashboard-main when the opener was removed', async () => {
@@ -458,7 +459,7 @@ describe('T-525 top-up dialog: focus return to the opener', () => {
     });
     await flush();
     await settle();
-    expect(document.activeElement).toBe(button('Pay with Razorpay'));
+    expect(document.activeElement).toBe(button('Buy'));
   });
 
   it('the opener stays the original element across the Checkout hide and reopen', async () => {
