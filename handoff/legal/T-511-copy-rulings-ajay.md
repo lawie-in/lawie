@@ -52,3 +52,12 @@ The final file still comes to me for sign-off.
 | AJ-517-M8 | Grievance officer | I have no signed name or email. IT Rules 2021 require the Grievance Officer's name and contact to be published. The footer may link to the privacy page's grievance section only if that section has a real name and email. If they are placeholders, it is a **launch blocker** for the founder to supply. |
 | AJ-517-M9 | Other auth messages | Keep the existing signed T-234, T-299 and T-319 strings. |
 | AJ-517-M10 | Hindi FAQ | OK for v1: the English FAQ shows in Hindi mode until the Hindi is translated and signed. |
+
+## Grievance Officer line, ref AJ-517-M11 (Ajay, 21 Oct 2026)
+
+- (a) The name is mandatory. IT Rules 2021, r.3(2)(a), require the name of the Grievance Officer and their contact details to be published. As a sole proprietorship, Lawie may name the proprietor. The name lives in config only, never in handoff files.
+- (b) Signed line, for the footer section and the privacy policy:
+
+  `Grievance Officer: {name}. Email: contact@lawie.in. We acknowledge every complaint within 24 hours and resolve it within 15 days.`
+
+- Until a name is supplied, the line is not published and the launch blocker stays open. The email may appear alone only as `For complaints, write to contact@lawie.in.`. That does not satisfy the rule.
