@@ -2,6 +2,7 @@ import crypto from 'crypto';
 
 import { addOneMonth } from '@lawie/shared';
 import * as Sentry from '@sentry/node';
+import mongoose, { type HydratedDocument } from 'mongoose';
 
 import { findPlanByRazorpayId, findSubscriptionPlan, findTopupSku } from '../config/credit-skus';
 import { env } from '../config/env';
@@ -10,11 +11,13 @@ import { razorpay } from '../config/razorpay';
 import { CouponCode } from '../models/CouponCode.model';
 import { CouponUsage } from '../models/CouponUsage.model';
 import {
+  type ISubscription,
   isSubscriptionStatus,
   Subscription,
   type SubscriptionStatus,
 } from '../models/Subscription.model';
 import { SubscriptionCreateLock } from '../models/SubscriptionCreateLock.model';
+import { SubscriptionReconcile } from '../models/SubscriptionReconcile.model';
 import { User } from '../models/User.model';
 
 import {
@@ -162,12 +165,33 @@ export class RazorpayTimeoutError extends Error {
  * or may not exist at Razorpay. The route answers 503 `try_again`, and
  * createSubscription keeps the per-user create lock (its TTL expires it), so a
  * retry inside that window gets 409 subscription_in_progress rather than a
- * second sub. A late create surfaces through reportUnknownSub on its webhook.
+ * second sub.
+ *
+ * T-527 (Arjun): the real signal of a timed-out create is reportCreateTimeout
+ * (error log + Sentry, user id only), not a webhook: a sub that went through
+ * but stays 'created' (no checkout) fires no webhook at all, so
+ * reportUnknownSub never sees it. The timeout also writes a
+ * SubscriptionReconcile marker; the next subscribe and the reconcile sweep scan
+ * Razorpay for that user and adopt or cancel what the create left behind
+ * (reconcileRazorpaySubscriptions).
  */
 export class SubscriptionCreateUnknownOutcomeError extends Error {
   constructor() {
     super('subscription_create_unknown_outcome');
     this.name = 'SubscriptionCreateUnknownOutcomeError';
+  }
+}
+
+/**
+ * T-527 round 3 (Arjun, option (a)): a webhook for an unknown sub could not
+ * take the user's SubscriptionCreateLock (a subscribe or another adopt holds
+ * it). Thrown out of handleWebhookEvent so the route answers 500 and Razorpay
+ * retries the event once the lock is free.
+ */
+export class SubscriptionAdoptBusyError extends Error {
+  constructor() {
+    super('subscription_adopt_busy');
+    this.name = 'SubscriptionAdoptBusyError';
   }
 }
 
@@ -426,6 +450,606 @@ async function fetchPastDueShortUrl(razorpaySubscriptionId: string): Promise<str
   return null;
 }
 
+// ─── T-527: reconcile before create (Arjun design (a), 21 Oct 2026) ─────────
+
+/** T-527: Razorpay list page size (the SDK's maximum `count`). */
+export const RECONCILE_PAGE_SIZE = 100;
+/** T-527: pages read per scan; a full last page means the scan is incomplete. */
+export const RECONCILE_MAX_PAGES = 3;
+/** T-527: the scan starts this many seconds before the marker's lockCreatedAt. */
+export const RECONCILE_WINDOW_SLACK_S = 300;
+
+/** T-527: the fields of a Razorpay subscription the reconcile reads. */
+interface RazorpaySubItem {
+  id: string;
+  status: string;
+  userId: string;
+  planId: string | undefined;
+  shortUrl: string;
+  createdAt: number;
+}
+
+/** T-527: what reconcileRazorpaySubscriptions found and did. */
+export type ReconcileOutcome =
+  | { kind: 'none' }
+  | { kind: 'adopted_checkout'; subscriptionId: string; shortUrl: string; planId: string }
+  | { kind: 'live'; row: HydratedDocument<ISubscription> };
+
+function errNameOf(err: unknown): string {
+  return err instanceof Error ? err.name : typeof err;
+}
+
+function isDuplicateKey(err: unknown): boolean {
+  return (err as { code?: unknown } | null)?.code === 11000;
+}
+
+/**
+ * T-527 (Arjun, design 1): upsert the user's reconcile marker after a create
+ * timeout. One marker per user (unique userId); the earliest lockCreatedAt is
+ * kept. A failure is logged (ids only) and swallowed: the caller still answers
+ * 503 try_again.
+ */
+async function writeReconcileMarker(
+  userId: string,
+  lockCreatedAt: Date,
+  planId: string,
+): Promise<void> {
+  const upsert = () =>
+    SubscriptionReconcile.updateOne(
+      { userId },
+      { $min: { lockCreatedAt }, $setOnInsert: { planId, createdAt: new Date() } },
+      { upsert: true },
+    );
+  try {
+    // The unique index must exist before the upsert can keep one per user.
+    await SubscriptionReconcile.init();
+    try {
+      await upsert();
+    } catch (err) {
+      // Two upserts raced on the insert; the second one now matches and updates.
+      if (!isDuplicateKey(err)) throw err;
+      await upsert();
+    }
+    logger.warn({ userId, planId }, 'billing.subscription.reconcile_marker_written');
+  } catch (err) {
+    logger.error(
+      { userId, planId, errName: errNameOf(err) },
+      'billing.subscription.reconcile_marker_write_failed',
+    );
+  }
+}
+
+/**
+ * T-527: no Razorpay call is started past CREATE_LOCK_BUDGET_MS since the
+ * per-user lock was taken (same budget as the create), so the scan and its
+ * cancels stay inside the lock's TTL as far as one bounded call allows.
+ */
+function checkReconcileBudget(userId: string, lockedAt: number): void {
+  const elapsedMs = Date.now() - lockedAt;
+  if (elapsedMs > CREATE_LOCK_BUDGET_MS) {
+    logger.warn({ userId, elapsedMs }, 'billing.subscription.reconcile_budget_exceeded');
+    throw new SubscriptionCancelFailedError();
+  }
+}
+
+/**
+ * T-527 (Arjun, design 2): list Razorpay subscriptions created from
+ * lockCreatedAt − 300 s to now and keep the ones whose notes.userId is this
+ * user (Razorpay has no notes filter). At most RECONCILE_MAX_PAGES pages of
+ * RECONCILE_PAGE_SIZE, each bounded by withRazorpayTimeout('list'). Throws
+ * SubscriptionCancelFailedError on a list failure or timeout, and when the
+ * last allowed page is full (the scan would be incomplete). Notes are only
+ * compared, never logged.
+ */
+async function scanRazorpayForUser(
+  userId: string,
+  lockCreatedAt: Date,
+  lockedAt: number,
+): Promise<RazorpaySubItem[]> {
+  const from = Math.floor(lockCreatedAt.getTime() / 1000) - RECONCILE_WINDOW_SLACK_S;
+  const to = Math.floor(Date.now() / 1000);
+  const matched: RazorpaySubItem[] = [];
+  for (let page = 0; page < RECONCILE_MAX_PAGES; page += 1) {
+    checkReconcileBudget(userId, lockedAt);
+    let items: unknown[];
+    try {
+      const res = (await withRazorpayTimeout(
+        'list',
+        razorpay.subscriptions.all({
+          from,
+          to,
+          count: RECONCILE_PAGE_SIZE,
+          skip: page * RECONCILE_PAGE_SIZE,
+        }),
+      )) as unknown as { items?: unknown } | null | undefined;
+      if (!Array.isArray(res?.items)) {
+        // T-527 round 2: a null body or no items array is not an empty page.
+        // The scan cannot be called complete: 503, the marker is kept.
+        logger.error({ userId, page }, 'billing.subscription.reconcile_list_malformed');
+        throw new SubscriptionCancelFailedError();
+      }
+      items = res.items;
+    } catch (err) {
+      if (err instanceof SubscriptionCancelFailedError) throw err;
+      logger.error(
+        { userId, page, errName: errNameOf(err) },
+        'billing.subscription.reconcile_list_failed',
+      );
+      throw new SubscriptionCancelFailedError();
+    }
+    for (const raw of items) {
+      if (!raw || typeof raw !== 'object') continue;
+      const item = raw as Record<string, unknown>;
+      const notes = item.notes as Record<string, unknown> | null | undefined;
+      if (!notes || typeof notes !== 'object' || notes.userId !== userId) continue;
+      if (typeof item.id !== 'string' || typeof item.status !== 'string') continue;
+      matched.push({
+        id: item.id,
+        status: item.status,
+        userId,
+        planId: typeof notes.planId === 'string' ? notes.planId : undefined,
+        shortUrl: typeof item.short_url === 'string' ? item.short_url : '',
+        createdAt: typeof item.created_at === 'number' ? item.created_at : 0,
+      });
+    }
+    if (items.length < RECONCILE_PAGE_SIZE) return matched;
+  }
+  logger.error(
+    { userId, pages: RECONCILE_MAX_PAGES },
+    'billing.subscription.reconcile_scan_capped',
+  );
+  throw new SubscriptionCancelFailedError();
+}
+
+/**
+ * T-527 (Arjun, design 3): a live Razorpay sub had no local row and was
+ * adopted. One error log and a Sentry warning, ids and status only.
+ */
+function reportAdoptedLiveSub(
+  userId: string,
+  razorpaySubscriptionId: string,
+  status: string,
+): void {
+  logger.error(
+    { userId, subscriptionId: razorpaySubscriptionId, status },
+    'billing.subscription.reconcile_adopted_live',
+  );
+  Sentry.withScope((scope) => {
+    scope.setTag('userId', userId);
+    scope.setTag('razorpaySubscriptionId', razorpaySubscriptionId);
+    scope.setExtra('status', status);
+    Sentry.captureMessage('billing.subscription.reconcile_adopted_live', 'warning');
+  });
+}
+
+/**
+ * T-527: write the local row for a Razorpay sub, as the normal create path
+ * does (userId, razorpaySubscriptionId, status, planId), with Razorpay's
+ * status. E11000 (a webhook wrote it meanwhile): the row is re-read and
+ * returned as the existing local row.
+ */
+async function adoptRazorpaySub(
+  userId: string,
+  item: RazorpaySubItem,
+): Promise<HydratedDocument<ISubscription>> {
+  const planSku = item.planId ? findSubscriptionPlan(item.planId) : undefined;
+  try {
+    const row = await Subscription.create({
+      userId,
+      razorpaySubscriptionId: item.id,
+      status: item.status,
+      ...(planSku ? { planId: planSku.id } : {}),
+    });
+    logger.info(
+      { userId, subscriptionId: item.id, status: item.status, planId: planSku?.id ?? null },
+      'billing.subscription.reconcile_adopted',
+    );
+    return row;
+  } catch (err) {
+    if (!isDuplicateKey(err)) throw err;
+    const reread = await Subscription.findOne({ razorpaySubscriptionId: item.id });
+    if (!reread) throw err;
+    logger.info(
+      { userId, subscriptionId: item.id, status: reread.status },
+      'billing.subscription.reconcile_adopt_raced',
+    );
+    return reread;
+  }
+}
+
+/**
+ * T-527 round 3 (Arjun): Razorpay lists this sub as live but the local row is
+ * still a checkout (its webhook not yet applied). One guarded update from the
+ * checkout statuses to Razorpay's status, then the row is re-read. A row that
+ * moved meanwhile is left as the webhook wrote it. Ids and status only.
+ */
+async function syncLocalToLive(
+  userId: string,
+  local: HydratedDocument<ISubscription>,
+  rzpStatus: SubscriptionStatus,
+): Promise<HydratedDocument<ISubscription>> {
+  if (!CHECKOUT_STATUSES.includes(local.status)) return local;
+  const synced = await Subscription.updateOne(
+    { _id: local._id, status: { $in: CHECKOUT_STATUSES } },
+    { $set: { status: rzpStatus } },
+  );
+  logger.warn(
+    {
+      userId,
+      subscriptionId: local.razorpaySubscriptionId,
+      priorStatus: local.status,
+      status: rzpStatus,
+      updated: synced.modifiedCount > 0,
+    },
+    'billing.subscription.reconcile_local_row_synced_live',
+  );
+  return (await Subscription.findById(local._id)) ?? local;
+}
+
+/**
+ * T-527 (Arjun design (a), 21 Oct 2026): the one reconcile used by both the
+ * subscribe path (createSubscriptionLocked, requestedPlanId set) and the
+ * reconcile sweep (requestedPlanId unset). The caller holds the user's
+ * SubscriptionCreateLock, taken at `lockedAt`.
+ *
+ * With no marker for the user: { kind: 'none' }, no Razorpay call. Otherwise
+ * the user's Razorpay subs are scanned (scanRazorpayForUser). A sub whose
+ * local row belongs to another user is skipped (logged, ids only). On
+ * subscribe, a sub whose local row is this user's is handled by the row's
+ * status (live: 409; checkout: reused when on the requested plan, else
+ * cancelled at Razorpay and locally); the sweep leaves such subs alone.
+ * A sub live at Razorpay is live whatever its local row says (round 3).
+ * Every matching sub with no local row is handled:
+ * - active / pending / halted / paused: adopted as a row with its status and
+ *   reported (reportAdoptedLiveSub). Then { kind: 'live', row } (newest).
+ * - created / authenticated: when requestedPlanId is set, no live sub was
+ *   found and notes.planId is the requested plan, the newest such sub is
+ *   adopted and returned ({ kind: 'adopted_checkout' }). Every other one is
+ *   cancelled now at Razorpay (cancel(id, false)). With a live sub present no
+ *   checkout is adopted, so a second live sub cannot follow from it.
+ * - terminal statuses: ignored.
+ * The marker is deleted only after a complete scan and successful handling;
+ * a list failure, timeout, page cap, cancel failure or DB error throws
+ * (SubscriptionCancelFailedError for Razorpay failures: 503 try_again) and
+ * keeps it. Logs ids, status and counts only.
+ */
+export async function reconcileRazorpaySubscriptions(
+  userId: string,
+  opts: { requestedPlanId?: string; lockedAt: number },
+): Promise<ReconcileOutcome> {
+  const marker = await SubscriptionReconcile.findOne({ userId }).lean();
+  if (!marker) return { kind: 'none' };
+
+  const items = await scanRazorpayForUser(userId, marker.lockCreatedAt, opts.lockedAt);
+  // Newest first, so "adopt the newest" is the first match.
+  items.sort((a, b) => b.createdAt - a.createdAt);
+  const subscribe = opts.requestedPlanId !== undefined;
+
+  const liveRows: HydratedDocument<ISubscription>[] = [];
+  // Unfinished checkouts of this user, newest first; `row` is set when the sub
+  // already has a local row.
+  const checkouts: { item: RazorpaySubItem; row?: HydratedDocument<ISubscription> }[] = [];
+  for (const item of items) {
+    if (!isSubscriptionStatus(item.status)) continue;
+    const isLive = LIVE_STATUSES.includes(item.status);
+    const isCheckout = CHECKOUT_STATUSES.includes(item.status);
+    if (!isLive && !isCheckout) continue;
+    const local = await Subscription.findOne({ razorpaySubscriptionId: item.id });
+    if (local) {
+      if (!local.userId.equals(userId)) {
+        logger.warn(
+          { userId, subscriptionId: item.id },
+          'billing.subscription.reconcile_row_of_other_user',
+        );
+        continue;
+      }
+      // The sweep leaves subs that have a local row to the local rules.
+      if (!subscribe) continue;
+      // T-527 round 2: on subscribe, a row written after the local checks of
+      // createSubscriptionLocked (e.g. a webhook adopt during the scan) is
+      // never skipped.
+      // A terminal local row is ignored (billing or a webhook ended it).
+      if (!LIVE_STATUSES.includes(local.status) && !CHECKOUT_STATUSES.includes(local.status)) {
+        continue;
+      }
+      // T-527 round 3 (Arjun): classified by the RAZORPAY status. Live there
+      // means paid: the live result (409), never a cancel or a payment link,
+      // whatever the local row says; the local row is brought up to date.
+      // A local live row is live too (paid after the list was read).
+      if (isLive) {
+        liveRows.push(await syncLocalToLive(userId, local, item.status));
+      } else if (LIVE_STATUSES.includes(local.status)) {
+        liveRows.push(local);
+      } else {
+        checkouts.push({ item, row: local });
+      }
+      continue;
+    }
+    if (isCheckout) {
+      checkouts.push({ item });
+      continue;
+    }
+    const row = await adoptRazorpaySub(userId, item);
+    if (row.userId.equals(userId) && LIVE_STATUSES.includes(row.status)) liveRows.push(row);
+    reportAdoptedLiveSub(userId, item.id, item.status);
+  }
+
+  const planOf = (c: (typeof checkouts)[number]) => c.row?.planId ?? c.item.planId;
+  const adoptTarget =
+    liveRows.length === 0 && subscribe
+      ? checkouts.find((c) => planOf(c) === opts.requestedPlanId)
+      : undefined;
+
+  let cancelled = 0;
+  for (const c of checkouts) {
+    if (c === adoptTarget) continue;
+    checkReconcileBudget(userId, opts.lockedAt);
+    await cancelNowAtRazorpay(userId, c.item.id, {
+      cancelled: 'Orphan subscription cancelled at Razorpay on reconcile',
+      alreadyEnded: 'Orphan subscription already ended at Razorpay on reconcile',
+      notFound: 'Orphan subscription not found at Razorpay on reconcile; treated as ended',
+      failed: 'Razorpay cancel of orphan subscription failed on reconcile; marker kept',
+    });
+    cancelled += 1;
+    if (!c.row) continue;
+    // A local row: the same guarded local cancel as a stale checkout. If it
+    // turned live meanwhile it answers 409 (reported if it was paid).
+    const localCancel = await Subscription.updateOne(
+      { _id: c.row._id, status: { $in: CHECKOUT_STATUSES } },
+      { $set: { status: 'cancelled', cancelledAt: new Date() } },
+    );
+    if (localCancel.matchedCount === 0) {
+      const reread = await Subscription.findById(c.row._id);
+      if (reread && LIVE_STATUSES.includes(reread.status)) {
+        if (reread.status === 'active') reportCancelledPaidSub(c.item.id);
+        liveRows.push(reread);
+      }
+    }
+  }
+
+  let adopted: ReconcileOutcome | undefined;
+  if (adoptTarget) {
+    // An existing local row is reused as is; otherwise the row is written now.
+    const row = adoptTarget.row ?? (await adoptRazorpaySub(userId, adoptTarget.item));
+    if (row.userId.equals(userId)) {
+      if (LIVE_STATUSES.includes(row.status)) {
+        // Paid meanwhile (a webhook wrote it live): answered like a live sub.
+        liveRows.push(row);
+      } else if (CHECKOUT_STATUSES.includes(row.status)) {
+        adopted = {
+          kind: 'adopted_checkout',
+          subscriptionId: row.razorpaySubscriptionId,
+          shortUrl: adoptTarget.item.shortUrl,
+          planId: row.planId ?? opts.requestedPlanId ?? adoptTarget.item.planId ?? '',
+        };
+      }
+    }
+  }
+
+  // Complete scan, everything handled: the marker has done its job. Deleted by
+  // _id and the lockCreatedAt read, so an earlier timeout written meanwhile
+  // ($min) is not lost. A failed delete is logged; the next scan finds only
+  // rows that now exist locally.
+  try {
+    await SubscriptionReconcile.deleteOne({
+      _id: marker._id,
+      lockCreatedAt: marker.lockCreatedAt,
+    });
+  } catch (err) {
+    logger.error(
+      { userId, errName: errNameOf(err) },
+      'billing.subscription.reconcile_marker_delete_failed',
+    );
+  }
+
+  logger.info(
+    {
+      userId,
+      matched: items.length,
+      adoptedLive: liveRows.length,
+      adoptedCheckout: adopted ? 1 : 0,
+      cancelled,
+    },
+    'billing.subscription.reconcile_done',
+  );
+
+  if (liveRows.length > 0) return { kind: 'live', row: liveRows[0] };
+  return adopted ?? { kind: 'none' };
+}
+
+/** T-527: a 24-hex-char ObjectId string (not any 12-byte string). */
+function isObjectIdString(value: unknown): value is string {
+  return (
+    typeof value === 'string' &&
+    /^[0-9a-f]{24}$/i.test(value) &&
+    mongoose.Types.ObjectId.isValid(value)
+  );
+}
+
+/**
+ * T-527 (Arjun, design 4): a subscription.* webhook for a sub with no local
+ * row. When notes.userId is a valid ObjectId of an existing user (round 2)
+ * and that user has no other live
+ * or checkout row, the row is upserted (keyed by razorpaySubscriptionId,
+ * userId from notes, planId from notes.planId when it is a known plan, status
+ * 'created' so the normal event handling then moves it exactly as it would a
+ * row written by createSubscription). Otherwise null (report only). Notes are
+ * never logged; ids only.
+ */
+async function adoptUnknownSubFromWebhook(
+  subId: string,
+  subPayload: Record<string, unknown> | undefined,
+): Promise<HydratedDocument<ISubscription> | null> {
+  const notes = subPayload?.notes as Record<string, unknown> | null | undefined;
+  const notesUserId = notes && typeof notes === 'object' ? notes.userId : undefined;
+  if (!isObjectIdString(notesUserId)) return null;
+  // T-527 round 2: only a user that exists gets a row; otherwise report only.
+  if (!(await User.exists({ _id: notesUserId }))) {
+    logger.warn({ subId, userId: notesUserId }, 'billing.webhook.unknown_subscription_no_user');
+    return null;
+  }
+  // T-527 round 3 (Arjun, G1-G3 option (a)): the adopt runs under the same
+  // per-user SubscriptionCreateLock as createSubscription, so it cannot
+  // interleave with a subscribe (or another adopt) for this user. Held:
+  // SubscriptionAdoptBusyError, the route answers 500 and Razorpay retries;
+  // the adopt is idempotent on the sub id and lands after the create.
+  await SubscriptionCreateLock.init();
+  let lockId: unknown;
+  try {
+    const lock = await SubscriptionCreateLock.create({
+      userId: notesUserId,
+      createdAt: new Date(),
+    });
+    lockId = lock._id;
+  } catch (err) {
+    if (!isDuplicateKey(err)) throw err;
+    logger.warn({ subId, userId: notesUserId }, 'billing.webhook.unknown_subscription_lock_busy');
+    throw new SubscriptionAdoptBusyError();
+  }
+  try {
+    return await adoptUnknownSubLocked(subId, notesUserId, notes);
+  } finally {
+    try {
+      await SubscriptionCreateLock.deleteOne({ _id: lockId });
+    } catch (releaseErr) {
+      // The TTL index removes it within ~2 min.
+      logger.error(
+        { subId, userId: notesUserId, errName: errNameOf(releaseErr) },
+        'billing.webhook.adopt_lock_release_failed',
+      );
+    }
+  }
+}
+
+async function adoptUnknownSubLocked(
+  subId: string,
+  notesUserId: string,
+  notes: Record<string, unknown> | null | undefined,
+): Promise<HydratedDocument<ISubscription> | null> {
+  const other = await Subscription.exists({
+    userId: notesUserId,
+    status: { $in: [...LIVE_STATUSES, ...CHECKOUT_STATUSES] },
+  });
+  if (other) {
+    logger.warn({ subId, userId: notesUserId }, 'billing.webhook.unknown_subscription_not_adopted');
+    return null;
+  }
+  const planSku =
+    typeof notes?.planId === 'string' ? findSubscriptionPlan(notes.planId) : undefined;
+  let row: HydratedDocument<ISubscription> | null;
+  try {
+    row = await Subscription.findOneAndUpdate(
+      { razorpaySubscriptionId: subId },
+      {
+        $setOnInsert: {
+          userId: notesUserId,
+          status: 'created',
+          ...(planSku ? { planId: planSku.id } : {}),
+        },
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true },
+    );
+  } catch (err) {
+    if (!isDuplicateKey(err)) throw err;
+    row = await Subscription.findOne({ razorpaySubscriptionId: subId });
+  }
+  if (row) {
+    logger.warn(
+      { subId, userId: notesUserId, planId: planSku?.id ?? null },
+      'billing.webhook.unknown_subscription_adopted',
+    );
+  }
+  return row;
+}
+
+/**
+ * T-527 round 3 (Arjun): a reported failure to cancel the duplicate sub the
+ * post-create check found. One error log and a Sentry warning, ids only.
+ */
+function reportDuplicateCancelFailed(
+  userId: string,
+  newSubscriptionId: string,
+  existingSubscriptionId: string,
+): void {
+  logger.error(
+    { userId, subscriptionId: newSubscriptionId, existingSubscriptionId },
+    'billing.subscription.post_create_duplicate_cancel_failed',
+  );
+  Sentry.withScope((scope) => {
+    scope.setTag('userId', userId);
+    scope.setTag('razorpaySubscriptionId', newSubscriptionId);
+    scope.setExtra('existingSubscriptionId', existingSubscriptionId);
+    Sentry.captureMessage('billing.subscription.post_create_duplicate_cancel_failed', 'warning');
+  });
+}
+
+/**
+ * T-527 round 3 (Arjun, option (a)): the post-create check found an earlier
+ * non-terminal row for this user. The new sub is cancelled now at Razorpay
+ * (cancel(id, false)) and, once that succeeds, its row is marked cancelled
+ * (guarded on 'created'). A failed cancel is reported and the new row is left
+ * as is (still uncancelled at Razorpay, so the row stays truthful); the
+ * existing row is still the answer. A checkout answers with its link, as the
+ * reuse path does (fetched; a failed fetch falls back to the 409); anything
+ * else is the 409 via existsError.
+ */
+async function resolvePostCreateDuplicate(
+  userId: string,
+  newRow: HydratedDocument<ISubscription>,
+  existing: HydratedDocument<ISubscription>,
+  requestedPlanId: string,
+  existsError: (s: HydratedDocument<ISubscription>) => Promise<SubscriptionExistsError>,
+): Promise<{ subscriptionId: string; shortUrl: string; planId: string }> {
+  logger.warn(
+    {
+      userId,
+      subscriptionId: newRow.razorpaySubscriptionId,
+      existingSubscriptionId: existing.razorpaySubscriptionId,
+      existingStatus: existing.status,
+    },
+    'billing.subscription.post_create_duplicate',
+  );
+  let cancelled = false;
+  try {
+    await cancelNowAtRazorpay(userId, newRow.razorpaySubscriptionId, {
+      cancelled: 'Duplicate subscription cancelled at Razorpay after create',
+      alreadyEnded: 'Duplicate subscription already ended at Razorpay after create',
+      notFound: 'Duplicate subscription not found at Razorpay after create; treated as ended',
+      failed: 'Razorpay cancel of duplicate subscription failed after create',
+    });
+    cancelled = true;
+  } catch {
+    reportDuplicateCancelFailed(
+      userId,
+      newRow.razorpaySubscriptionId,
+      existing.razorpaySubscriptionId,
+    );
+  }
+  if (cancelled) {
+    await Subscription.updateOne(
+      { _id: newRow._id, status: 'created' },
+      { $set: { status: 'cancelled', cancelledAt: new Date() } },
+    );
+  }
+  const current = (await Subscription.findById(existing._id)) ?? existing;
+  if (CHECKOUT_STATUSES.includes(current.status)) {
+    let rzpSub: Record<string, unknown> | null = null;
+    try {
+      rzpSub = await fetchCheckoutForCreate(current.razorpaySubscriptionId);
+    } catch {
+      rzpSub = null;
+    }
+    if (rzpSub) {
+      return {
+        subscriptionId: current.razorpaySubscriptionId,
+        shortUrl: (rzpSub.short_url as string) ?? '',
+        planId: current.planId ?? requestedPlanId,
+      };
+    }
+  }
+  throw await existsError(current);
+}
+
 /**
  * T-444c (Arjun ruling 1): one createSubscription per user at a time. The lock
  * is one insert into SubscriptionCreateLock (unique userId); E11000 means
@@ -528,139 +1152,185 @@ async function createSubscriptionLocked(
       shortUrl: await fetchPastDueShortUrl(s.razorpaySubscriptionId),
     });
   };
-  const live = await findLive();
-  if (live) {
-    // T-444b (Arjun): a halted/paused/pending sub that is no longer paid, by
-    // the same stillPaidFilter the lazy expiry uses, no longer blocks. It is
-    // written expired locally (one guarded terminal write whose filter is the
-    // negation of stillPaidFilter) and a new sub is created. The user's plan
-    // and Ink are left to the lazy expiry. The write itself decides lapsed, so
-    // the 409 and the lazy expiry share one definition.
-    if (!(LAPSABLE_STATUSES as string[]).includes(live.status)) throw await existsError(live);
-    // T-444c (Arjun ruling 2): cancel at Razorpay before the local expire, and
-    // only once the sub reads as lapsed (same filter as the write), so a sub
-    // still paid is never cancelled. A failed cancel throws before any write.
-    const now = new Date();
-    const lapsedFilter = {
-      _id: live._id,
-      status: { $in: LAPSABLE_STATUSES, $ne: 'expired' },
-      $nor: stillPaidFilter(now),
-    };
-    let cancelledAtRazorpay = false;
-    if (await Subscription.exists(lapsedFilter)) {
-      await cancelLapsedAtRazorpay(userId, live.razorpaySubscriptionId);
-      cancelledAtRazorpay = true;
-      // T-444c (Arjun): a retry charge may have landed between the lapsed
-      // check and the cancel. If the sub is now active, it was paid and is now
-      // cancelled: report it and answer 409; no local expire, no create.
-      const afterCancel = await Subscription.findById(live._id);
-      if (afterCancel?.status === 'active') {
-        reportCancelledPaidSub(live.razorpaySubscriptionId);
-        throw await existsError(afterCancel);
-      }
-    }
-    const expired = await Subscription.updateOne(lapsedFilter, {
-      $set: { status: 'expired' },
-    });
-    if (expired.matchedCount > 0) {
-      logger.info(
-        { userId, subscriptionId: live.razorpaySubscriptionId, priorStatus: live.status },
-        'Lapsed subscription expired locally on resubscribe',
-      );
-    } else {
-      // Still paid, or a race (the sub changed under us). Re-read and apply
-      // the normal rules (live blocks with 409; else fall through to reuse).
-      const reread = await findLive();
-      if (reread) {
-        // T-444c: same report if the sub we just cancelled turned active.
-        if (cancelledAtRazorpay && reread._id.equals(live._id) && reread.status === 'active') {
+  // T-527 round 2: the local live / checkout rules, run once before the
+  // reconcile and once more when the reconcile adopted nothing and a row for
+  // this user landed meanwhile. A result is a reused checkout;
+  // undefined means nothing local stops a create.
+  const runLocalChecks = async (): Promise<
+    { subscriptionId: string; shortUrl: string; planId: string } | undefined
+  > => {
+    const live = await findLive();
+    if (live) {
+      // T-444b (Arjun): a halted/paused/pending sub that is no longer paid, by
+      // the same stillPaidFilter the lazy expiry uses, no longer blocks. It is
+      // written expired locally (one guarded terminal write whose filter is the
+      // negation of stillPaidFilter) and a new sub is created. The user's plan
+      // and Ink are left to the lazy expiry. The write itself decides lapsed, so
+      // the 409 and the lazy expiry share one definition.
+      if (!(LAPSABLE_STATUSES as string[]).includes(live.status)) throw await existsError(live);
+      // T-444c (Arjun ruling 2): cancel at Razorpay before the local expire, and
+      // only once the sub reads as lapsed (same filter as the write), so a sub
+      // still paid is never cancelled. A failed cancel throws before any write.
+      const now = new Date();
+      const lapsedFilter = {
+        _id: live._id,
+        status: { $in: LAPSABLE_STATUSES, $ne: 'expired' },
+        $nor: stillPaidFilter(now),
+      };
+      let cancelledAtRazorpay = false;
+      if (await Subscription.exists(lapsedFilter)) {
+        await cancelLapsedAtRazorpay(userId, live.razorpaySubscriptionId);
+        cancelledAtRazorpay = true;
+        // T-444c (Arjun): a retry charge may have landed between the lapsed
+        // check and the cancel. If the sub is now active, it was paid and is now
+        // cancelled: report it and answer 409; no local expire, no create.
+        const afterCancel = await Subscription.findById(live._id);
+        if (afterCancel?.status === 'active') {
           reportCancelledPaidSub(live.razorpaySubscriptionId);
+          throw await existsError(afterCancel);
         }
-        throw await existsError(reread);
       }
-    }
-  }
-
-  // Checkout not finished. T-516 (Arjun): for the same plan, hand back the
-  // existing sub's link (no duplicate sub). For a different plan, cancel the
-  // stale checkout at Razorpay, mark it cancelled locally, then create a new
-  // sub for the plan asked for. Never subscriptions.update(plan_id).
-  const existing = await Subscription.findOne({
-    userId,
-    status: { $in: CHECKOUT_STATUSES },
-  }).sort({ createdAt: -1 });
-  if (existing) {
-    // A stored planId decides without a Razorpay call; older rows without one
-    // fall back to the Razorpay notes / plan_id, as before.
-    // T-518 (Arjun): either fetch below never 500s. A timeout or any other
-    // error is 503 try_again; an id Razorpay says does not exist is cancelled
-    // locally by the same guarded write as a stale checkout, then a new sub is
-    // created.
-    let rzpSub: Record<string, unknown> | undefined;
-    let missingAtRazorpay = false;
-    let existingPlanId = existing.planId ?? undefined;
-    if (!existingPlanId) {
-      const fetched = await fetchCheckoutForCreate(existing.razorpaySubscriptionId);
-      if (fetched === null) {
-        missingAtRazorpay = true;
+      const expired = await Subscription.updateOne(lapsedFilter, {
+        $set: { status: 'expired' },
+      });
+      if (expired.matchedCount > 0) {
+        logger.info(
+          { userId, subscriptionId: live.razorpaySubscriptionId, priorStatus: live.status },
+          'Lapsed subscription expired locally on resubscribe',
+        );
       } else {
-        rzpSub = fetched;
-        const rzpNotes = rzpSub.notes as Record<string, unknown> | undefined;
-        const rzpPlanId = typeof rzpSub.plan_id === 'string' ? rzpSub.plan_id : undefined;
-        existingPlanId =
-          (typeof rzpNotes?.planId === 'string' ? rzpNotes.planId : undefined) ??
-          (rzpPlanId ? findPlanByRazorpayId(rzpPlanId)?.id : undefined);
-      }
-    }
-
-    if (!missingAtRazorpay && existingPlanId === planSku.id) {
-      if (!rzpSub) {
-        const fetched = await fetchCheckoutForCreate(existing.razorpaySubscriptionId);
-        if (fetched === null) missingAtRazorpay = true;
-        else rzpSub = fetched;
-      }
-      if (rzpSub) {
-        return {
-          subscriptionId: existing.razorpaySubscriptionId,
-          shortUrl: (rzpSub.short_url as string) ?? '',
-          planId: existingPlanId,
-        };
-      }
-    }
-
-    // Different (or unknown) plan: a failed cancel throws (503 try_again)
-    // before any local write or create. Not at Razorpay at all: nothing to
-    // cancel there.
-    if (!missingAtRazorpay) {
-      await cancelStaleCheckoutAtRazorpay(userId, existing.razorpaySubscriptionId);
-    }
-    const staleCancelled = await Subscription.updateOne(
-      { _id: existing._id, status: { $in: CHECKOUT_STATUSES } },
-      { $set: { status: 'cancelled', cancelledAt: new Date() } },
-    );
-    if (staleCancelled.matchedCount > 0) {
-      logger.info(
-        {
-          userId,
-          subscriptionId: existing.razorpaySubscriptionId,
-          stalePlanId: existingPlanId ?? null,
-          planId: planSku.id,
-        },
-        'Stale checkout cancelled locally; creating subscription for requested plan',
-      );
-    } else {
-      // The checkout changed under us (a webhook landed). If it, or any sub,
-      // is now live, no new sub is created (AC4); a checkout that turned
-      // active was paid and is now cancelled at Razorpay: report it.
-      const reread = await findLive();
-      if (reread) {
-        // Not reported when Razorpay had no such sub: nothing was cancelled.
-        if (!missingAtRazorpay && reread._id.equals(existing._id) && reread.status === 'active') {
-          reportCancelledPaidSub(existing.razorpaySubscriptionId);
+        // Still paid, or a race (the sub changed under us). Re-read and apply
+        // the normal rules (live blocks with 409; else fall through to reuse).
+        const reread = await findLive();
+        if (reread) {
+          // T-444c: same report if the sub we just cancelled turned active.
+          if (cancelledAtRazorpay && reread._id.equals(live._id) && reread.status === 'active') {
+            reportCancelledPaidSub(live.razorpaySubscriptionId);
+          }
+          throw await existsError(reread);
         }
-        throw await existsError(reread);
       }
     }
+
+    // Checkout not finished. T-516 (Arjun): for the same plan, hand back the
+    // existing sub's link (no duplicate sub). For a different plan, cancel the
+    // stale checkout at Razorpay, mark it cancelled locally, then create a new
+    // sub for the plan asked for. Never subscriptions.update(plan_id).
+    const existing = await Subscription.findOne({
+      userId,
+      status: { $in: CHECKOUT_STATUSES },
+    }).sort({ createdAt: -1 });
+    if (existing) {
+      // A stored planId decides without a Razorpay call; older rows without one
+      // fall back to the Razorpay notes / plan_id, as before.
+      // T-518 (Arjun): either fetch below never 500s. A timeout or any other
+      // error is 503 try_again; an id Razorpay says does not exist is cancelled
+      // locally by the same guarded write as a stale checkout, then a new sub is
+      // created.
+      let rzpSub: Record<string, unknown> | undefined;
+      let missingAtRazorpay = false;
+      let existingPlanId = existing.planId ?? undefined;
+      if (!existingPlanId) {
+        const fetched = await fetchCheckoutForCreate(existing.razorpaySubscriptionId);
+        if (fetched === null) {
+          missingAtRazorpay = true;
+        } else {
+          rzpSub = fetched;
+          const rzpNotes = rzpSub.notes as Record<string, unknown> | undefined;
+          const rzpPlanId = typeof rzpSub.plan_id === 'string' ? rzpSub.plan_id : undefined;
+          existingPlanId =
+            (typeof rzpNotes?.planId === 'string' ? rzpNotes.planId : undefined) ??
+            (rzpPlanId ? findPlanByRazorpayId(rzpPlanId)?.id : undefined);
+        }
+      }
+
+      if (!missingAtRazorpay && existingPlanId === planSku.id) {
+        if (!rzpSub) {
+          const fetched = await fetchCheckoutForCreate(existing.razorpaySubscriptionId);
+          if (fetched === null) missingAtRazorpay = true;
+          else rzpSub = fetched;
+        }
+        if (rzpSub) {
+          return {
+            subscriptionId: existing.razorpaySubscriptionId,
+            shortUrl: (rzpSub.short_url as string) ?? '',
+            planId: existingPlanId,
+          };
+        }
+      }
+
+      // Different (or unknown) plan: a failed cancel throws (503 try_again)
+      // before any local write or create. Not at Razorpay at all: nothing to
+      // cancel there.
+      if (!missingAtRazorpay) {
+        await cancelStaleCheckoutAtRazorpay(userId, existing.razorpaySubscriptionId);
+      }
+      const staleCancelled = await Subscription.updateOne(
+        { _id: existing._id, status: { $in: CHECKOUT_STATUSES } },
+        { $set: { status: 'cancelled', cancelledAt: new Date() } },
+      );
+      if (staleCancelled.matchedCount > 0) {
+        logger.info(
+          {
+            userId,
+            subscriptionId: existing.razorpaySubscriptionId,
+            stalePlanId: existingPlanId ?? null,
+            planId: planSku.id,
+          },
+          'Stale checkout cancelled locally; creating subscription for requested plan',
+        );
+      } else {
+        // The checkout changed under us (a webhook landed). If it, or any sub,
+        // is now live, no new sub is created (AC4); a checkout that turned
+        // active was paid and is now cancelled at Razorpay: report it.
+        const reread = await findLive();
+        if (reread) {
+          // Not reported when Razorpay had no such sub: nothing was cancelled.
+          if (!missingAtRazorpay && reread._id.equals(existing._id) && reread.status === 'active') {
+            reportCancelledPaidSub(existing.razorpaySubscriptionId);
+          }
+          throw await existsError(reread);
+        }
+      }
+    }
+    return undefined;
+  };
+  // Rows created from here on landed after the first local checks (belt below).
+  const localChecksAt = new Date();
+  const localResult = await runLocalChecks();
+  if (localResult) return localResult;
+
+  // T-527 (Arjun, design 2): a create for this user timed out earlier (marker),
+  // so a sub may exist at Razorpay with no local row. Scan for it before any
+  // new create: a same-plan checkout is adopted and returned, a live sub is
+  // adopted and answered 409 like the live check above. A list failure,
+  // timeout, page cap or handling error is 503 try_again and keeps the marker.
+  // The scan's time counts against the budget checked just below.
+  const reconciled = await reconcileRazorpaySubscriptions(userId, {
+    requestedPlanId: planSku.id,
+    lockedAt,
+  });
+  if (reconciled.kind === 'adopted_checkout') {
+    return {
+      subscriptionId: reconciled.subscriptionId,
+      shortUrl: reconciled.shortUrl,
+      planId: reconciled.planId,
+    };
+  }
+  if (reconciled.kind === 'live') throw await existsError(reconciled.row);
+  // T-527 round 2 (belt): nothing was adopted. If a live or checkout row for
+  // this user was written after the first local checks began (e.g. a webhook
+  // adopt during the scan), the same local rules run again before any create.
+  // Only a new row triggers this, so rows the first pass already handled (an
+  // older checkout T-516 leaves alone) are not handled twice.
+  const landedMeanwhile = await Subscription.exists({
+    userId,
+    status: { $in: [...LIVE_STATUSES, ...CHECKOUT_STATUSES] },
+    createdAt: { $gte: localChecksAt },
+  });
+  if (landedMeanwhile) {
+    const afterReconcile = await runLocalChecks();
+    if (afterReconcile) return afterReconcile;
   }
 
   // T-518 (Arjun): every path reaches the create through here. Past the
@@ -695,13 +1365,17 @@ async function createSubscriptionLocked(
   } catch (err) {
     if (err instanceof RazorpayTimeoutError) {
       reportCreateTimeout(userId);
+      // T-527 (Arjun, design 1): a durable marker so the next subscribe and the
+      // sweep reconcile what this create may have left at Razorpay. Never
+      // changes the response (still 503).
+      await writeReconcileMarker(userId, new Date(lockedAt), planSku.id);
       throw new SubscriptionCreateUnknownOutcomeError();
     }
     throw err;
   }
   /* eslint-enable @typescript-eslint/no-explicit-any */
 
-  await Subscription.create({
+  const newRow = await Subscription.create({
     userId,
     razorpaySubscriptionId: sub.id,
     status: 'created',
@@ -713,6 +1387,22 @@ async function createSubscriptionLocked(
     { userId, subscriptionId: sub.id, planId: planSku.id },
     'Razorpay subscription created',
   );
+
+  // T-527 round 3 (Arjun, G1-G3 option (a), belt): another non-terminal row
+  // for this user may have been written while this call held the lock (e.g.
+  // a webhook adopt that got past it). The earlier createdAt wins: the new
+  // sub is cancelled and the existing row answered. Only rows created since
+  // the lock was taken count: older rows were already ruled on by the local
+  // checks (an older checkout T-516 leaves alone is not a duplicate).
+  const earlier = await Subscription.findOne({
+    userId,
+    _id: { $ne: newRow._id },
+    status: { $nin: TERMINAL_STATUSES },
+    createdAt: { $gte: new Date(lockedAt), $lte: newRow.createdAt },
+  }).sort({ createdAt: 1 });
+  if (earlier) {
+    return resolvePostCreateDuplicate(userId, newRow, earlier, planSku.id, existsError);
+  }
 
   return {
     subscriptionId: sub.id,
@@ -1042,16 +1732,21 @@ export async function handleWebhookEvent(
 
   if (!subId) return;
 
-  const sub = await Subscription.findOne({ razorpaySubscriptionId: subId });
+  let sub = await Subscription.findOne({ razorpaySubscriptionId: subId });
   if (!sub) {
     // T-526 (Arjun, item 1e): a subscription.* event with no local row is
     // reported, never silently dropped. The response stays a 200 as before.
-    if (event.startsWith('subscription.')) {
-      reportUnknownSub(subId, event);
-    } else {
+    if (!event.startsWith('subscription.')) {
       logger.warn({ subId, event }, 'Webhook received for unknown subscription');
+      return;
     }
-    return;
+    reportUnknownSub(subId, event);
+    // T-527 (Arjun, design 4): adopt it when notes.userId is a user with no
+    // other live/checkout row, then handle the event as for any known sub.
+    // Otherwise the report above is all that happens.
+    const adopted = await adoptUnknownSubFromWebhook(subId, subPayload);
+    if (!adopted) return;
+    sub = adopted;
   }
 
   switch (event) {

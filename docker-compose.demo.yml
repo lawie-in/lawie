@@ -141,6 +141,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 4003
+      RAZORPAY_ALLOW_TEST_KEYS: 'true'
     networks:
       - lawie_demo
     healthcheck:

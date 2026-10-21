@@ -1,6 +1,61 @@
 import { z } from 'zod';
 
-const envSchema = z.object({
+/**
+ * T-527 (AC5, Arjun; round 4 ruling): which Razorpay key modes may boot in
+ * which NODE_ENV. Pure, so it can be tested without a process exit. Messages
+ * name the rule, never the key value.
+ * - rzp_live_ outside production: always refused.
+ * - rzp_live_ in production, or any key outside production (tests and dev may
+ *   use dummy keys): ok.
+ * - rzp_test_, or neither prefix, in production:
+ *   - allowTestKeys (RAZORPAY_ALLOW_TEST_KEYS=true, e.g. the demo stack): ok,
+ *     level 'warn' (logged at boot, no Sentry);
+ *   - else strictGuard (RAZORPAY_KEY_GUARD=strict): refused;
+ *   - else (the default; develop runs NODE_ENV=production with test keys): ok,
+ *     level 'error' (one error log and one Sentry event at boot).
+ */
+export type RazorpayKeyMode =
+  | { ok: true; warn?: undefined }
+  // `warn`: the round-1 field, kept as an alias of `message` when level is
+  // 'warn' (undefined otherwise) so existing callers still compile.
+  | { ok: true; level: 'warn' | 'error'; message: string; warn?: string }
+  | { ok: false; reason: string };
+
+export function checkRazorpayKeyMode(
+  nodeEnv: string,
+  keyId: string,
+  allowTestKeys: boolean,
+  strictGuard = false,
+): RazorpayKeyMode {
+  const production = nodeEnv === 'production';
+  if (keyId.startsWith('rzp_live_')) {
+    if (production) return { ok: true };
+    return { ok: false, reason: 'a live Razorpay key (rzp_live_) is refused outside production' };
+  }
+  if (!production) return { ok: true };
+  const kind = keyId.startsWith('rzp_test_')
+    ? 'a test Razorpay key (rzp_test_)'
+    : 'a Razorpay key with neither rzp_live_ nor rzp_test_ prefix';
+  if (allowTestKeys) {
+    const message = `${kind} in production, allowed by RAZORPAY_ALLOW_TEST_KEYS=true`;
+    return { ok: true, level: 'warn', message, warn: message };
+  }
+  if (strictGuard) {
+    return {
+      ok: false,
+      reason:
+        `${kind} is refused in production (RAZORPAY_KEY_GUARD=strict)` +
+        ' unless RAZORPAY_ALLOW_TEST_KEYS=true',
+    };
+  }
+  return {
+    ok: true,
+    level: 'error',
+    message: `${kind} in production; booting anyway (set RAZORPAY_KEY_GUARD=strict to refuse)`,
+  };
+}
+
+const envObject = z.object({
   NODE_ENV: z.enum(['development', 'test', 'staging', 'production']).default('development'),
   PORT: z.coerce.number().int().positive().default(4003),
 
@@ -45,6 +100,28 @@ const envSchema = z.object({
   GST_EFFECTIVE_FROM: z.string().default(''),
   // Optional path to a scanned signature image for the invoice PDF.
   GST_SIGNATURE_PATH: z.string().default(''),
+
+  // T-527 (AC5): explicit opt-in to boot production with an rzp_test_ key
+  // (see checkRazorpayKeyMode). Only the exact string "true" counts.
+  RAZORPAY_ALLOW_TEST_KEYS: z.string().optional(),
+  // T-527 round 4 (Arjun): "strict" makes a non-live key in production refuse
+  // to boot (unless RAZORPAY_ALLOW_TEST_KEYS=true); unset or any other value
+  // only logs an error and a Sentry event. Only the exact string "strict" counts.
+  RAZORPAY_KEY_GUARD: z.string().optional(),
+});
+
+// T-527 (AC5): a refused key mode fails the parse, so it goes through loadEnv's
+// exit(1) like any other invalid env.
+const envSchema = envObject.superRefine((v, ctx) => {
+  const mode = checkRazorpayKeyMode(
+    v.NODE_ENV,
+    v.RAZORPAY_KEY_ID,
+    v.RAZORPAY_ALLOW_TEST_KEYS === 'true',
+    v.RAZORPAY_KEY_GUARD === 'strict',
+  );
+  if (!mode.ok) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['RAZORPAY_KEY_ID'], message: mode.reason });
+  }
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -62,3 +139,24 @@ function loadEnv(): Env {
 }
 
 export const env = loadEnv();
+
+/**
+ * T-527 (AC5, round 4): the boot notice for a key mode that boots but is not
+ * clean (level 'warn' or 'error', see checkRazorpayKeyMode); undefined when
+ * there is nothing to say. Logged (and, for 'error', sent to Sentry) by
+ * config/razorpay.ts.
+ */
+export const razorpayKeyModeNotice: { level: 'warn' | 'error'; message: string } | undefined =
+  (() => {
+    const mode = checkRazorpayKeyMode(
+      env.NODE_ENV,
+      env.RAZORPAY_KEY_ID,
+      env.RAZORPAY_ALLOW_TEST_KEYS === 'true',
+      env.RAZORPAY_KEY_GUARD === 'strict',
+    );
+    return mode.ok && 'level' in mode ? { level: mode.level, message: mode.message } : undefined;
+  })();
+
+/** T-527 (AC5): the notice's message when its level is 'warn' (test keys allowed). */
+export const razorpayKeyModeWarning: string | undefined =
+  razorpayKeyModeNotice?.level === 'warn' ? razorpayKeyModeNotice.message : undefined;
