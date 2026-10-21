@@ -12,7 +12,8 @@
       "text": { "role": "neutral", "displayName": "Text", "canonical": "#efe7d4", "daylight": "#1c2a25" },
       "muted": { "role": "neutral", "displayName": "Muted", "canonical": "#8e9a8e", "daylight": "#5c685f" },
       "line": { "role": "neutral", "displayName": "Line", "canonical": "#2a3c35", "daylight": "#d9d1be" },
-      "selection": { "role": "neutral", "displayName": "Selection", "canonical": "#4a3d1e", "daylight": "#ead9a8" }
+      "selection": { "role": "neutral", "displayName": "Selection", "canonical": "#332a14", "daylight": "#f3e9c8" },
+      "brass-mark": { "role": "primary", "displayName": "Brass Mark", "canonical": "#c9a24a", "daylight": "#e6c877" }
     },
     "typographyMeta": {
       "display": { "displayName": "Display", "purpose": "Landing hero only." },
