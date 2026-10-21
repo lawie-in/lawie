@@ -37,3 +37,18 @@ The final file still comes to me for sign-off.
 | AJ-509-M1 | t433 "carry over" allowlist | Add exactly two strings: `Plan Ink does not carry over.` and `Plan Ink does not carry over after that.`. Nothing broader. The Resend-email feedback reuses the signed VERIFY_STRINGS (sent, already, limitWait, networkError). |
 | AJ-509-M2 | past_due banner without a retry action | Until billing ships retry, show: `Your last payment did not go through. For help, write to {support email}.` When retry ships, go back to the §4.5 line with a "Retry payment" button. |
 | AJ-509-M3 | "Redirecting you to the dashboard…" on success and on timeout | OK, as a neutral status line. |
+
+## T-517 landing, pricing, sign-up and login: build vs signed copy (Ajay, 21 Oct 2026)
+
+| Ref | Point | Ruling |
+|---|---|---|
+| AJ-517-M1 | Existing-email sign-up returns 409 | OK for v1 with today's signed 409 handling. The page saying an account exists is an enumeration risk. Priya opens a v1.1 backend ticket to make M3 true (same screen for both). |
+| AJ-517-M2 | "Verify your email to sign in…" | Do not use it, because it is untrue. |
+| AJ-517-M3 | Consent checkbox | OK as built: unticked, the M11 line, and it gates both Create account and Google. The error is signed: `Please accept the Privacy Policy and Terms to continue.`. The version and date belong to the Privacy Policy only. If the Terms carry their own version, show both: `I have read and agree to the Terms (version {tv}) and the Privacy Policy (version {pv}, {date}).`. The server stores what was shown. |
+| AJ-517-M4 | Password line | Keep the existing signed checklist, which is true. |
+| AJ-517-M5 | Pricing page | OK: only §1.6, §4.1, the T-398 Pro card strings and the GST FAQ. Drop the "2 Ink" lines. Use M2 and M8 for failed drafts and top-up. |
+| AJ-517-M6 | Hero: `Describe the matter. Lawie writes the first draft.` | Legally OK. The final choice is Meera's. |
+| AJ-517-M7 | Demo folio | OK: the signed prompt, the caption and an empty folio. No legal text until I sign the demo text. |
+| AJ-517-M8 | Grievance officer | I have no signed name or email. IT Rules 2021 require the Grievance Officer's name and contact to be published. The footer may link to the privacy page's grievance section only if that section has a real name and email. If they are placeholders, it is a **launch blocker** for the founder to supply. |
+| AJ-517-M9 | Other auth messages | Keep the existing signed T-234, T-299 and T-319 strings. |
+| AJ-517-M10 | Hindi FAQ | OK for v1: the English FAQ shows in Hindi mode until the Hindi is translated and signed. |
