@@ -31,3 +31,8 @@ A guard in TopUpModal: if `order.amountInr` differs from the displayed total, Ch
 - ₹0 quotes are blocked with 409 until Vikram rules: (a) a free-grant path with no Razorpay order, or (b) cap every coupon at price minus ₹1.
 - Tests as listed in the design doc. Billing only; blocking before main.
 - Web (after this lands): the TopUpModal guard from T-535 also handles the two 409s with the signed "Something did not work. Try again."
+
+## Vikram's ruling (21 Oct 2026; both sections in `handoff/design/T-540-topup-quote.md`)
+- The ₹0 rule is (a): a free-grant path with no Razorpay order. A 100% coupon grants the Ink directly and shows "Coupon, ₹0" in billing history, with no tax invoice. A partial coupon gets the normal T-436 invoice with a discount line.
+- Build rules: the coupon usage count is atomic at the grant; `maxUses` and `maxUsesPerUser` are mandatory for any coupon that can reach 100%; a final amount between 0 and 100 paise (exclusive) rounds to ₹1 inside the quote function; the list value is logged without personal data.
+- The 409 for a ₹0 quote is replaced by this free-grant path.
