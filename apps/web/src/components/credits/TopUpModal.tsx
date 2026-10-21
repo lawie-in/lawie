@@ -161,6 +161,9 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
   }, [plansStatus]);
 
   const selected = skus.find((s) => s.id === selectedId);
+  // T-535: the one total the user sees after "You'll pay". The footer renders it and
+  // handlePurchase checks the server's order amount against it, so the two cannot drift.
+  const displayedTotal = selected ? (coupon ? coupon.finalPriceInr : selected.priceInr) : 0;
 
   const handleApplyCoupon = async () => {
     if (!couponInput.trim()) return;
@@ -214,12 +217,31 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
         setSubmitting(false);
         return;
       }
-      const order = (await orderRes.json()).data as {
-        orderId: string;
-        amountInr: number;
-        ink: number;
-        razorpayKeyId: string;
-      };
+      const order = (await orderRes.json()).data as
+        | {
+            orderId: string;
+            amountInr: number;
+            ink: number;
+            razorpayKeyId: string;
+          }
+        | undefined;
+
+      // T-535: never open Checkout for an amount other than the one shown after "You'll pay"
+      // (e.g. a 100% coupon shows ₹0 but the server charges ₹1, or the coupon was dropped
+      // server-side; backend fix is T-540). Generic failure copy, T-511 §5. The dialog stays
+      // open and Buy stays usable for a retry.
+      const amountInr = order?.amountInr;
+      if (
+        !order ||
+        typeof amountInr !== 'number' ||
+        !Number.isFinite(amountInr) ||
+        !Number.isFinite(displayedTotal) ||
+        amountInr !== displayedTotal
+      ) {
+        setError('Something did not work. Try again.');
+        setSubmitting(false);
+        return;
+      }
 
       const ok = await loadRazorpayScript();
       if (!ok || !window.Razorpay) {
@@ -476,8 +498,7 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
               {coupon && selected ? (
                 <div className="gap-nl-2 flex items-baseline">
                   <p className="nl-h2 text-nl-text m-0 tabular-nums">
-                    ₹{coupon.finalPriceInr}{' '}
-                    <span className="nl-body-sm text-nl-soft">incl. GST</span>
+                    ₹{displayedTotal} <span className="nl-body-sm text-nl-soft">incl. GST</span>
                   </p>
                   <p className="nl-body-sm text-nl-muted m-0 tabular-nums line-through">
                     ₹{selected.priceInr}
@@ -485,8 +506,7 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
                 </div>
               ) : (
                 <p className="nl-h2 text-nl-text m-0 tabular-nums">
-                  ₹{selected?.priceInr ?? 0}{' '}
-                  <span className="nl-body-sm text-nl-soft">incl. GST</span>
+                  ₹{displayedTotal} <span className="nl-body-sm text-nl-soft">incl. GST</span>
                 </p>
               )}
             </div>

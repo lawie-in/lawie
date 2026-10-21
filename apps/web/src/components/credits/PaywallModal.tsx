@@ -100,7 +100,9 @@ export function PaywallModal({ documentLabel, cost, balance, onClose }: PaywallM
                 One-time
               </span>
               <p className="mt-2 text-sm font-semibold text-slate-900">Top up Ink</p>
-              <p className="text-xs text-slate-500">Mini · Mid · Max — never expires</p>
+              <p className="text-xs text-slate-500">
+                Top-up Ink does not expire while your account is open.
+              </p>
               <span className="mt-3 inline-flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700">
                 Buy top-up
               </span>
