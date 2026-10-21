@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Rajesh (review), Vishal (build) |
 | Mode   | Small fix (web) |
-| Status | In build: Vishal (21 Oct 2026). Must-fix before Anushka tests (Daylight contrast). Priya |
+| Status | Merged into develop_staging 53234e1e (21 Oct 2026); waiting on Anushka's check on develop. Priya |
 | Source | Rajesh's review of dcbd8a92 against DESIGN.md; Vishal's leftover should-fixes |
 
 ## Must-fix
