@@ -210,7 +210,7 @@ Warm darks with a single brass accent; Daylight keeps the hues and lifts the lig
 
 ### Neutral
 - **Wall** (#0e1a17 / #f3efe4): the page ground.
-- **Wood** (#15241f / #e9e2d1): the shelf edge, skeleton blocks, dividers that need a surface.
+- **Wood** (#15241f / #e9e2d1): the shelf edge, skeleton blocks, dividers that need a surface, keyboard hints. Text on Wood is Text, Soft or Brass Text; Muted on Wood at 14px or larger only (4.5:1 by day); never a status colour on Wood.
 - **Card** (#182a24 / #fbf8f0): the folio, cards, inputs, dialogs, popovers.
 - **Text** (#efe7d4 / #1c2a25): body and headings. 12.9:1 on Card at night, 13.6:1 by day.
 - **Text Soft** (#cbc2ac / #3d4c46): secondary text, descriptions. 9.6:1 / 9.2:1.
@@ -289,7 +289,8 @@ Quiet until pressed; the brass one is the only loud thing on the page.
 - **Shape:** gently squared (4px radius), 44px tall, 20px side padding; small variant 36px tall, 16px padding, hit area padded to 44px.
 - **Primary:** Brass fill, On Brass label, Mukta 500 15px.
 - **Ghost:** transparent, Brass Text label, 1px Control Line border.
-- **Destructive:** Oxblood fill, white label; sits last in a dialog, after the ghost safe action.
+- **Destructive:** Oxblood fill, white label; sits last in a dialog, after the ghost safe action. Only inside a confirm dialog.
+- **Ghost, danger:** transparent, Rust text and 1px Rust border, hover background Rust Soft, no lift. The one danger cue outside a dialog: Close account, Cancel plan in Settings. It opens the dialog; it never performs the action itself.
 - **Hover / Focus:** primary hover lifts 1px with the 4px Brass Soft halo, 150ms ease. Ghost (and any ghost-styled link or the Google button) does not lift: its border goes Line to Brass and its background to Brass Soft, 150ms. Destructive does not lift or glow. Focus is the system ring on all three. Disabled is opacity .5. Loading swaps the label for a spinner and holds the width.
 
 ### Chips
@@ -311,6 +312,9 @@ Quiet until pressed; the brass one is the only loud thing on the page.
 
 ### Navigation (Top bar)
 - 64px, Wall fill, 1px Line bottom. The Lawie mark is Tiro 26px with a brass lamp dot and a soft glow. Signed-in: Ink chip, theme toggle, avatar menu. Below 720px the nav, the theme toggle and the language toggle fold into the menu, so the bar stays one 64px row; the Ink chip (or the signed-out Start free button) stays visible. Signed-out marketing bar: the four section links show from 1024px; from 720 to 1023 the row is mark, language and theme toggles, Sign in and the CTA; if that is still tight in Hindi, the toggles move into the menu before anything is dropped. Sticky at every width once it is one row; never pin a bar taller than 64px on a phone. Respects the top safe-area inset (`viewport-fit=cover`).
+
+### Section finder
+A right-hand panel on the editor. From 1280px a closed 44px peek rail sits on the right edge (Card fill, Control Line border); from 900 to 1279 it opens as an overlay from the menu or its shortcut; below 900 it is a bottom sheet. Control Line on its inputs and tabs; the tip box is Brass Soft.
 
 ### Command bar (signature)
 The question at the top of the desk: "What do you need to draft?" in Title type, an underline input with a Ctrl K hint and the one primary button. A Radix Popover with our own listbox opens below: quick chips while empty, matching templates and the advocate's own drafts while typing, one line when nothing matches. Ctrl K and Cmd K focus it from anywhere; Escape closes.
