@@ -53,7 +53,8 @@ export function ThemeToggle({
       <legend className={cn('nl-label mb-nl-2 text-nl-brass-dark p-0', hideLegend && 'sr-only')}>
         {legend}
       </legend>
-      <div className="rounded-nl-md border-nl-line bg-nl-card inline-flex border p-px">
+      {/* T-525: the frame is a control boundary, so Control Line (3:1, WCAG 1.4.11). */}
+      <div className="rounded-nl-md bg-nl-card inline-flex border border-[color:var(--line-control)] p-px">
         {ORDER.map((option) => (
           <label key={option} className="relative inline-flex cursor-pointer">
             <input
@@ -70,6 +71,10 @@ export function ThemeToggle({
                 'transition-colors duration-150 ease-[ease] motion-reduce:transition-none',
                 'peer-checked:bg-nl-brass-light peer-checked:text-nl-brass-dark',
                 'peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-[3px] peer-focus-visible:outline-[color:var(--brass)]',
+                // T-525: forced colours drop the fill, so the checked option takes the system
+                // selection pair, opted out of the repaint on this span only; its focus ring
+                // uses CanvasText so it stays visible.
+                'forced-colors:peer-checked:bg-[color:Highlight] forced-colors:peer-checked:text-[color:HighlightText] forced-colors:peer-checked:[forced-color-adjust:none] forced-colors:peer-checked:peer-focus-visible:outline-[color:CanvasText]',
               )}
             >
               {text[option]}

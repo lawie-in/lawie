@@ -621,8 +621,9 @@ describe('T-223 AC4 — trigger 3: checkout', () => {
     expect(byText(PAY)).toBeDefined();
     // Privacy handled it: the dialog (or the P7 box) is back.
     const privacyShown =
-      dialog()?.querySelector('h2')?.textContent === 'We have updated our Privacy Policy' ||
-      document.body.textContent?.includes('Accept the updated Privacy Policy to continue.');
+      Array.from(document.querySelectorAll('[role="dialog"]')).some(
+        (d) => d.querySelector('h2')?.textContent === 'We have updated our Privacy Policy',
+      ) || document.body.textContent?.includes('Accept the updated Privacy Policy to continue.');
     expect(privacyShown).toBe(true);
   });
 
