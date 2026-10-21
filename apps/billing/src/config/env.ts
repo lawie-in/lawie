@@ -15,10 +15,8 @@ import { z } from 'zod';
  *     level 'error' (one error log and one Sentry event at boot).
  */
 export type RazorpayKeyMode =
-  | { ok: true; warn?: undefined }
-  // `warn`: the round-1 field, kept as an alias of `message` when level is
-  // 'warn' (undefined otherwise) so existing callers still compile.
-  | { ok: true; level: 'warn' | 'error'; message: string; warn?: string }
+  | { ok: true }
+  | { ok: true; level: 'warn' | 'error'; message: string }
   | { ok: false; reason: string };
 
 export function checkRazorpayKeyMode(
@@ -38,7 +36,7 @@ export function checkRazorpayKeyMode(
     : 'a Razorpay key with neither rzp_live_ nor rzp_test_ prefix';
   if (allowTestKeys) {
     const message = `${kind} in production, allowed by RAZORPAY_ALLOW_TEST_KEYS=true`;
-    return { ok: true, level: 'warn', message, warn: message };
+    return { ok: true, level: 'warn', message };
   }
   if (strictGuard) {
     return {

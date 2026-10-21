@@ -1,10 +1,12 @@
 /**
- * T-527 AC5: startup guard for the Razorpay key mode (Arjun).
- *  - rzp_live_ outside production: refused.
- *  - rzp_test_ in production: refused unless RAZORPAY_ALLOW_TEST_KEYS is exactly
- *    "true" (demo only); then it boots with one warn.
- *  - a key with neither prefix: refused in production, allowed elsewhere.
- * Messages name the rule, never the key.
+ * T-527 AC5 (round 4 ruling, Arjun): startup guard for the Razorpay key mode.
+ *  - rzp_live_ outside production: always refused.
+ *  - rzp_live_ in production, or any key outside production: ok.
+ *  - rzp_test_ / unprefixed key in production:
+ *      RAZORPAY_ALLOW_TEST_KEYS === 'true' -> ok, one warn, no Sentry;
+ *      else RAZORPAY_KEY_GUARD === 'strict' -> refused;
+ *      else -> ok, one error log + one Sentry event, boot continues.
+ * Messages name the rule and key kind, never the key value.
  *
  * Keys are built at runtime so gitleaks sees no secret-looking literals.
  */
@@ -15,60 +17,94 @@ import type * as EnvModule from '../config/env';
 
 const LIVE = ['rzp', 'live', ''].join('_');
 const TEST = ['rzp', 'test', ''].join('_');
-const key = (kind: 'live' | 'test' | 'other', tail = 'AbCdEf123456') =>
-  kind === 'live' ? LIVE + tail : kind === 'test' ? TEST + tail : 'plain_' + tail;
+const TAIL = 'AbCdEf123456';
+const key = (kind: 'live' | 'test' | 'other') =>
+  kind === 'live' ? LIVE + TAIL : kind === 'test' ? TEST + TAIL : 'plain_' + TAIL;
 
 const NODE_ENVS = ['production', 'development', 'test', 'staging'] as const;
 const KINDS = ['live', 'test', 'other'] as const;
-const FLAGS: Array<string | undefined> = [undefined, 'true', 'TRUE', '1'];
+const ALLOWS: Array<string | undefined> = [undefined, 'true', 'TRUE', '1', ''];
+const GUARDS: Array<string | undefined> = [undefined, 'strict', 'STRICT', 'x'];
 
-/** The expected verdict, written out from the rule (not from the code). */
-function expectedOk(nodeEnv: string, kind: string, flag: string | undefined): boolean {
+type Expected = 'ok' | 'warn' | 'error' | 'refuse';
+
+/** The expected verdict, written out from the rule table (not from the code). */
+function expected(
+  nodeEnv: string,
+  kind: string,
+  allow: string | undefined,
+  guard: string | undefined,
+): Expected {
   const prod = nodeEnv === 'production';
-  if (kind === 'live') return prod;
-  if (kind === 'test') return !prod || flag === 'true';
-  return !prod;
+  if (kind === 'live') return prod ? 'ok' : 'refuse';
+  if (!prod) return 'ok';
+  if (allow === 'true') return 'warn';
+  if (guard === 'strict') return 'refuse';
+  return 'error';
 }
+
+const matrix = NODE_ENVS.flatMap((n) =>
+  KINDS.flatMap((k) => ALLOWS.flatMap((a) => GUARDS.map((g) => [n, k, a, g] as const))),
+);
+const show = (v: string | undefined) => (v === undefined ? 'unset' : JSON.stringify(v));
 
 describe('T-527 AC5: checkRazorpayKeyMode (pure)', () => {
   const { checkRazorpayKeyMode } = jest.requireActual<typeof EnvModule>('../config/env');
 
-  const cases = NODE_ENVS.flatMap((n) =>
-    KINDS.flatMap((k) => [true, false].map((allow) => [n, k, allow] as const)),
+  it.each(matrix.map(([n, k, a, g]) => [n, k, show(a), show(g), a, g] as const))(
+    '%s + %s key + ALLOW %s + GUARD %s',
+    (nodeEnv, kind, _a, _g, allow, guard) => {
+      const k = key(kind);
+      const res = checkRazorpayKeyMode(nodeEnv, k, allow === 'true', guard === 'strict');
+      const want = expected(nodeEnv, kind, allow, guard);
+
+      if (want === 'ok') expect(res).toEqual({ ok: true });
+      else if (want === 'refuse') expect(res).toEqual({ ok: false, reason: expect.any(String) });
+      else expect(res).toEqual({ ok: true, level: want, message: expect.any(String) });
+
+      // No compat alias and nothing carrying the key value.
+      expect(res).not.toHaveProperty('warn');
+      const printed = JSON.stringify(res);
+      expect(printed).not.toContain(k);
+      expect(printed).not.toContain(TAIL);
+      const text = 'reason' in res ? res.reason : 'message' in res ? res.message : '';
+      if (want !== 'ok') expect(text.length).toBeGreaterThan(0);
+    },
   );
 
-  it.each(cases)('%s + %s key + allowTestKeys=%s', (nodeEnv, kind, allow) => {
-    const k = key(kind);
-    const res = checkRazorpayKeyMode(nodeEnv, k, allow);
-
-    expect(res.ok).toBe(expectedOk(nodeEnv, kind, allow ? 'true' : undefined));
-    // Nothing in the verdict carries the key.
-    expect(JSON.stringify(res)).not.toContain(k);
-    expect(JSON.stringify(res)).not.toContain('AbCdEf123456');
-    if (!res.ok) expect(res.reason.length).toBeGreaterThan(0);
-  });
-
-  it('warns only for a test key in production allowed by the flag', () => {
-    const warnCases = cases.filter(([n, k, a]) => {
-      const r = checkRazorpayKeyMode(n, key(k), a);
-      return r.ok && r.warn !== undefined;
+  it('strictGuard defaults to false (production + test key boots with level error)', () => {
+    expect(checkRazorpayKeyMode('production', key('test'), false)).toEqual({
+      ok: true,
+      level: 'error',
+      message: expect.any(String),
     });
-    expect(warnCases).toEqual([['production', 'test', true]]);
   });
 
-  it('the flag never lets a live key into a non-production env', () => {
-    for (const n of ['development', 'test', 'staging']) {
-      expect(checkRazorpayKeyMode(n, key('live'), true).ok).toBe(false);
-    }
-  });
-
-  it('the flag never lets an unprefixed key into production', () => {
-    expect(checkRazorpayKeyMode('production', key('other'), true).ok).toBe(false);
+  it('messages name the rule and the key kind', () => {
+    const msg = (r: unknown) =>
+      String(
+        (r as { message?: string; reason?: string }).message ?? (r as { reason?: string }).reason,
+      );
+    expect(msg(checkRazorpayKeyMode('production', key('test'), true))).toContain('rzp_test_');
+    expect(msg(checkRazorpayKeyMode('production', key('test'), true))).toContain(
+      'RAZORPAY_ALLOW_TEST_KEYS',
+    );
+    expect(msg(checkRazorpayKeyMode('production', key('other'), false, true))).toContain(
+      'RAZORPAY_KEY_GUARD',
+    );
+    expect(msg(checkRazorpayKeyMode('development', key('live'), true, false))).toContain(
+      'rzp_live_',
+    );
   });
 });
 
-describe('T-527 AC5: loadEnv refuses a bad key mode (superRefine -> exit)', () => {
-  const ENV_KEYS = ['NODE_ENV', 'RAZORPAY_KEY_ID', 'RAZORPAY_ALLOW_TEST_KEYS'];
+describe('T-527 AC5: loadEnv (superRefine -> exit)', () => {
+  const ENV_KEYS = [
+    'NODE_ENV',
+    'RAZORPAY_KEY_ID',
+    'RAZORPAY_ALLOW_TEST_KEYS',
+    'RAZORPAY_KEY_GUARD',
+  ];
   const saved: Record<string, string | undefined> = {};
   let exitSpy: jest.SpyInstance;
   let consoleErr: jest.SpyInstance;
@@ -88,11 +124,18 @@ describe('T-527 AC5: loadEnv refuses a bad key mode (superRefine -> exit)', () =
     jest.restoreAllMocks();
   });
 
-  function load(nodeEnv: string, keyId: string, flag: string | undefined) {
+  function load(
+    nodeEnv: string,
+    keyId: string,
+    allow: string | undefined,
+    guard: string | undefined,
+  ) {
     process.env.NODE_ENV = nodeEnv;
     process.env.RAZORPAY_KEY_ID = keyId;
-    if (flag === undefined) delete process.env.RAZORPAY_ALLOW_TEST_KEYS;
-    else process.env.RAZORPAY_ALLOW_TEST_KEYS = flag;
+    if (allow === undefined) delete process.env.RAZORPAY_ALLOW_TEST_KEYS;
+    else process.env.RAZORPAY_ALLOW_TEST_KEYS = allow;
+    if (guard === undefined) delete process.env.RAZORPAY_KEY_GUARD;
+    else process.env.RAZORPAY_KEY_GUARD = guard;
     let mod: typeof EnvModule | undefined;
     let threw: unknown;
     jest.isolateModules(() => {
@@ -105,48 +148,57 @@ describe('T-527 AC5: loadEnv refuses a bad key mode (superRefine -> exit)', () =
     return { mod, threw };
   }
 
-  const matrix = NODE_ENVS.flatMap((n) =>
-    KINDS.flatMap((k) => FLAGS.map((f) => [n, k, f] as const)),
+  it.each(matrix.map(([n, k, a, g]) => [n, k, show(a), show(g), a, g] as const))(
+    '%s + %s key + ALLOW %s + GUARD %s',
+    (nodeEnv, kind, _a, _g, allow, guard) => {
+      const k = key(kind);
+      const { mod, threw } = load(nodeEnv, k, allow, guard);
+      const want = expected(nodeEnv, kind, allow, guard);
+
+      if (want === 'refuse') {
+        expect(exitSpy).toHaveBeenCalledTimes(1);
+        expect(exitSpy).toHaveBeenCalledWith(1);
+        expect(String(threw)).toBe('Error: exit:1');
+        const printed = JSON.stringify(consoleErr.mock.calls);
+        expect(printed).toContain('RAZORPAY_KEY_ID');
+        expect(printed).not.toContain(k);
+        expect(printed).not.toContain(TAIL);
+      } else {
+        expect(threw).toBeUndefined();
+        expect(exitSpy).not.toHaveBeenCalled();
+        expect(mod!.env.NODE_ENV).toBe(nodeEnv);
+        const notice = mod!.razorpayKeyModeNotice;
+        if (want === 'ok') {
+          expect(notice).toBeUndefined();
+        } else {
+          expect(notice).toEqual({ level: want, message: expect.any(String) });
+          expect(notice!.message).not.toContain(k);
+          expect(notice!.message).not.toContain(TAIL);
+        }
+        expect(mod!.razorpayKeyModeWarning).toBe(want === 'warn' ? notice!.message : undefined);
+      }
+    },
   );
 
-  it.each(matrix)('%s + %s key + RAZORPAY_ALLOW_TEST_KEYS=%s', (nodeEnv, kind, flag) => {
-    const k = key(kind);
-    const { mod, threw } = load(nodeEnv, k, flag);
-
-    if (expectedOk(nodeEnv, kind, flag)) {
-      expect(threw).toBeUndefined();
-      expect(exitSpy).not.toHaveBeenCalled();
-      expect(mod!.env.NODE_ENV).toBe(nodeEnv);
-    } else {
-      expect(exitSpy).toHaveBeenCalledWith(1);
-      expect(String(threw)).toBe('Error: exit:1');
-      const printed = JSON.stringify(consoleErr.mock.calls);
-      expect(printed).toContain('RAZORPAY_KEY_ID');
-      // The printed message names the rule, never the key.
-      expect(printed).not.toContain(k);
-      expect(printed).not.toContain('AbCdEf123456');
+  it('only the exact strings opt in: ALLOW "true", GUARD "strict"', () => {
+    expect(load('production', key('test'), 'true', 'strict').threw).toBeUndefined();
+    for (const bad of ['TRUE', '1', '']) {
+      expect(load('production', key('test'), bad, 'strict').threw).toBeDefined();
+      expect(load('production', key('test'), bad, undefined).threw).toBeUndefined();
     }
-  });
-
-  it('only the exact string "true" opts in: "TRUE" and "1" are refused', () => {
-    expect(load('production', key('test'), 'true').threw).toBeUndefined();
-    expect(load('production', key('test'), 'TRUE').threw).toBeDefined();
-    expect(load('production', key('test'), '1').threw).toBeDefined();
-    expect(load('production', key('test'), '').threw).toBeDefined();
-  });
-
-  it('exports a warning only for a test key in production allowed by the flag', () => {
-    expect(load('production', key('test'), 'true').mod!.razorpayKeyModeWarning).toEqual(
-      expect.any(String),
-    );
-    expect(load('production', key('live'), undefined).mod!.razorpayKeyModeWarning).toBeUndefined();
-    expect(load('test', key('test'), 'true').mod!.razorpayKeyModeWarning).toBeUndefined();
-    expect(load('development', key('test'), undefined).mod!.razorpayKeyModeWarning).toBeUndefined();
+    for (const bad of ['STRICT', 'x', '']) {
+      expect(load('production', key('test'), undefined, bad).threw).toBeUndefined();
+    }
   });
 });
 
-describe('T-527 AC5: the boot warn in config/razorpay.ts', () => {
-  const ENV_KEYS = ['NODE_ENV', 'RAZORPAY_KEY_ID', 'RAZORPAY_ALLOW_TEST_KEYS'];
+describe('T-527 AC5: the boot notice in config/razorpay.ts', () => {
+  const ENV_KEYS = [
+    'NODE_ENV',
+    'RAZORPAY_KEY_ID',
+    'RAZORPAY_ALLOW_TEST_KEYS',
+    'RAZORPAY_KEY_GUARD',
+  ];
   const saved: Record<string, string | undefined> = {};
   beforeEach(() => {
     for (const k of ENV_KEYS) saved[k] = process.env[k];
@@ -157,41 +209,120 @@ describe('T-527 AC5: the boot warn in config/razorpay.ts', () => {
       else process.env[k] = saved[k];
     }
     jest.dontMock('../config/logger');
+    jest.dontMock('@sentry/node');
     jest.restoreAllMocks();
   });
 
-  function boot(nodeEnv: string, keyId: string, flag: string | undefined) {
+  function boot(
+    nodeEnv: string,
+    keyId: string,
+    allow: string | undefined,
+    guard: string | undefined,
+  ) {
     process.env.NODE_ENV = nodeEnv;
     process.env.RAZORPAY_KEY_ID = keyId;
-    if (flag === undefined) delete process.env.RAZORPAY_ALLOW_TEST_KEYS;
-    else process.env.RAZORPAY_ALLOW_TEST_KEYS = flag;
-    const log = { warn: jest.fn(), info: jest.fn(), error: jest.fn() };
+    if (allow === undefined) delete process.env.RAZORPAY_ALLOW_TEST_KEYS;
+    else process.env.RAZORPAY_ALLOW_TEST_KEYS = allow;
+    if (guard === undefined) delete process.env.RAZORPAY_KEY_GUARD;
+    else process.env.RAZORPAY_KEY_GUARD = guard;
+    const log = { warn: jest.fn(), info: jest.fn(), error: jest.fn(), debug: jest.fn() };
+    const tags: Array<[string, unknown]> = [];
+    const scope = { setTag: jest.fn((k: string, v: unknown) => tags.push([k, v])) };
+    const sentry = {
+      captureMessage: jest.fn(),
+      captureException: jest.fn(),
+      withScope: jest.fn((cb: (s: typeof scope) => void) => cb(scope)),
+    };
     jest.isolateModules(() => {
       jest.doMock('../config/logger', () => ({ __esModule: true, default: log }));
+      jest.doMock('@sentry/node', () => ({ __esModule: true, ...sentry }));
       jest.requireActual('../config/razorpay');
     });
-    return log;
+    return { log, sentry, tags };
   }
 
-  it('test key in production with the flag: exactly one warn, no key in it', () => {
-    const k = key('test');
-    const log = boot('production', k, 'true');
+  const MARKER = 'razorpay_test_keys_in_production';
+  const anyCall = (...mocks: jest.Mock[]) => JSON.stringify(mocks.map((m) => m.mock.calls));
 
-    expect(log.warn).toHaveBeenCalledTimes(1);
-    expect(JSON.stringify(log.warn.mock.calls)).not.toContain(k);
-    expect(JSON.stringify(log.warn.mock.calls)).not.toContain('AbCdEf123456');
+  it('error level (production, test key, default): one error log, one Sentry event, marker tag only', () => {
+    const k = key('test');
+    const { log, sentry, tags } = boot('production', k, undefined, undefined);
+
+    expect(log.error).toHaveBeenCalledTimes(1);
+    expect(log.warn).not.toHaveBeenCalled();
+    expect(sentry.captureMessage).toHaveBeenCalledTimes(1);
+    expect(sentry.captureMessage).toHaveBeenCalledWith(
+      'billing.razorpay.test_keys_in_production',
+      'error',
+    );
+    expect(sentry.captureException).not.toHaveBeenCalled();
+    expect(tags).toEqual([['marker', MARKER]]);
+    expect(
+      anyCall(log.error, log.warn, log.info, sentry.captureMessage, sentry.withScope, scope(tags)),
+    ).not.toContain(TAIL);
   });
 
-  it.each([
-    ['production', 'live', undefined],
-    ['development', 'test', undefined],
-    ['test', 'test', 'true'],
-    ['staging', 'other', undefined],
-  ] as const)('no warn for %s + %s key + flag %s', (nodeEnv, kind, flag) => {
-    const log = boot(nodeEnv, key(kind), flag);
-    expect(log.warn).not.toHaveBeenCalled();
+  it('error level also for an unprefixed key and for GUARD values other than "strict"', () => {
+    for (const [kind, guard] of [
+      ['other', undefined],
+      ['test', 'STRICT'],
+      ['test', 'x'],
+      ['test', ''],
+    ] as const) {
+      const { log, sentry } = boot('production', key(kind), undefined, guard);
+      expect(log.error).toHaveBeenCalledTimes(1);
+      expect(sentry.captureMessage).toHaveBeenCalledTimes(1);
+    }
+  });
+
+  it('warn level (ALLOW=true): one warn, no error log, no Sentry', () => {
+    for (const guard of [undefined, 'strict']) {
+      const k = key('test');
+      const { log, sentry, tags } = boot('production', k, 'true', guard);
+      expect(log.warn).toHaveBeenCalledTimes(1);
+      expect(log.error).not.toHaveBeenCalled();
+      expect(sentry.captureMessage).not.toHaveBeenCalled();
+      expect(sentry.withScope).not.toHaveBeenCalled();
+      expect(tags).toEqual([]);
+      expect(anyCall(log.warn)).not.toContain(TAIL);
+    }
+  });
+
+  it('ok rows: no log and no Sentry', () => {
+    for (const [n, kind, a, g] of matrix) {
+      if (expected(n, kind, a, g) !== 'ok') continue;
+      const { log, sentry } = boot(n, key(kind), a, g);
+      expect(log.warn).not.toHaveBeenCalled();
+      expect(log.error).not.toHaveBeenCalled();
+      expect(sentry.captureMessage).not.toHaveBeenCalled();
+      expect(sentry.withScope).not.toHaveBeenCalled();
+    }
+  });
+
+  it('canary: across the whole matrix the key value never reaches a log or Sentry call', () => {
+    for (const [n, kind, a, g] of matrix) {
+      if (expected(n, kind, a, g) === 'refuse') continue;
+      const k = key(kind);
+      const { log, sentry, tags } = boot(n, k, a, g);
+      const all = anyCall(
+        log.warn,
+        log.error,
+        log.info,
+        log.debug,
+        sentry.captureMessage,
+        sentry.captureException,
+        sentry.withScope,
+      );
+      expect(all).not.toContain(k);
+      expect(all).not.toContain(TAIL);
+      expect(JSON.stringify(tags)).not.toContain(TAIL);
+    }
   });
 });
+
+function scope(tags: Array<[string, unknown]>): jest.Mock {
+  return { mock: { calls: tags } } as unknown as jest.Mock;
+}
 
 describe('T-527 AC5: docker-compose.demo.yml', () => {
   const file = path.resolve(__dirname, '../../../../docker-compose.demo.yml');
@@ -217,7 +348,7 @@ describe('T-527 AC5: docker-compose.demo.yml', () => {
 
   it('billing sets RAZORPAY_ALLOW_TEST_KEYS "true"; no other service does', () => {
     expect(Object.keys(blocks)).toContain('billing');
-    expect(blocks.billing).toMatch(/^\s+RAZORPAY_ALLOW_TEST_KEYS: "true"\s*$/m);
+    expect(blocks.billing).toMatch(/^\s+RAZORPAY_ALLOW_TEST_KEYS:\s*(["']?)true\1\s*$/m);
     for (const [name, body] of Object.entries(blocks)) {
       if (name !== 'billing') expect(body).not.toContain('RAZORPAY_ALLOW_TEST_KEYS');
     }
