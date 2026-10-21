@@ -1,7 +1,8 @@
 'use client';
 
-import { CheckCircle2, Loader2, Tag, Zap, X } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import * as RadixDialog from '@radix-ui/react-dialog';
+import { CheckCircle2, Tag, X } from 'lucide-react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { GstStatePicker } from '@/components/billing/GstStatePicker';
 import {
@@ -10,6 +11,7 @@ import {
   privacyFetch,
   usePrivacyDescribedBy,
 } from '@/components/PrivacyUpdatePrompt';
+import { Button, Chip, Spinner } from '@/components/ui';
 import {
   VerifyEmailCard,
   isEmailVerificationRequired,
@@ -18,6 +20,7 @@ import {
 import { notifyCreditsChanged } from '@/hooks/useCredits';
 import { useGstState } from '@/hooks/useGstState';
 import { apiFetch } from '@/lib/apiFetch';
+import { cn } from '@/lib/cn';
 
 interface TopupSku {
   id: string;
@@ -45,6 +48,13 @@ function loadRazorpayScript(): Promise<boolean> {
   });
 }
 
+/**
+ * T-525: the top-up dialog on the Radix Dialog primitives (components/ui/Dialog.tsx is the
+ * confirm/destructive wrapper with a fixed footer, so this builds on the primitives directly).
+ * Night Library tokens; a 440px dialog above 640px and a bottom sheet at 640px and below (spec 5).
+ * Radix gives role=dialog, the focus trap, Escape, overlay click and focus return; aria-modal is
+ * set here because Radix 1.1 does not. Callers mount it while open and pass onClose, as before.
+ */
 export function TopUpModal({ onClose }: { onClose: () => void }) {
   const [skus, setSkus] = useState<TopupSku[]>([]);
   const [selectedId, setSelectedId] = useState<string>('topup_mid');
@@ -101,6 +111,46 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
   // reload settles, put focus back on Retry (failed again) or on the first pack (loaded).
   const retryRef = useRef<HTMLButtonElement>(null);
   const firstSkuRef = useRef<HTMLButtonElement>(null);
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const payRef = useRef<HTMLButtonElement>(null);
+  // T-525: while Razorpay Checkout is up the dialog steps aside (open=false). A modal Radix
+  // dialog makes the rest of the page inert (pointer-events and a focus trap), which would
+  // include Razorpay's own iframe. Every state lives here, so dismissing Checkout brings the
+  // dialog back as it was, with focus on Pay.
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const focusPayOnOpen = useRef(false);
+  /** True while the dialog is closed for Checkout: its close must not move focus. */
+  const closingForCheckout = useRef(false);
+  // T-525: the element that opened the dialog, captured once at mount (before Radix moves focus
+  // in). There is no Radix Trigger, so Radix would return focus to nothing. A reopen after
+  // Checkout keeps this original opener.
+  const openerRef = useRef<Element | null>(null);
+  useLayoutEffect(() => {
+    // StrictMode runs this twice; the second run would capture the dialog title.
+    if (openerRef.current === null) openerRef.current = document.activeElement;
+  }, []);
+  /** Mirrors checkoutOpen for the unmount cleanup below. */
+  const checkoutOpenRef = useRef(false);
+  /** Focus is returned once per dialog life (onCloseAutoFocus, Checkout success, unmount). */
+  const focusRestored = useRef(false);
+  const restoreFocus = useCallback(() => {
+    if (focusRestored.current) return;
+    focusRestored.current = true;
+    const opener = openerRef.current;
+    if (opener instanceof HTMLElement && opener.isConnected && opener !== document.body) {
+      opener.focus();
+    } else {
+      document.getElementById('dashboard-main')?.focus();
+    }
+  }, []);
+  // T-525: unmounted while hidden for Checkout (the Radix Content is already closed, so
+  // onCloseAutoFocus does not run): return focus here instead.
+  useEffect(
+    () => () => {
+      if (checkoutOpenRef.current) restoreFocus();
+    },
+    [restoreFocus],
+  );
   const refocusAfterRetry = useRef(false);
   const handleRetryPlans = () => {
     refocusAfterRetry.current = true;
@@ -189,11 +239,24 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
         theme: { color: '#0f172a' },
         handler: () => {
           notifyCreditsChanged();
+          // T-525: the dialog is hidden for Checkout, so Radix will not return focus.
+          restoreFocus();
           onClose();
         },
-        modal: { ondismiss: () => setSubmitting(false) },
+        modal: {
+          ondismiss: () => {
+            setSubmitting(false);
+            focusPayOnOpen.current = true;
+            checkoutOpenRef.current = false;
+            setCheckoutOpen(false);
+          },
+        },
       });
       rzp.open();
+      // After open(): if it throws, the catch below runs and the dialog stays up.
+      closingForCheckout.current = true;
+      checkoutOpenRef.current = true;
+      setCheckoutOpen(true);
     } catch {
       setError('Network error');
       setSubmitting(false);
@@ -207,232 +270,274 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 p-4"
-      onClick={onClose}
+    <RadixDialog.Root
+      open={!checkoutOpen}
+      onOpenChange={(next) => {
+        if (!next) onClose();
+      }}
     >
-      <div
-        className="w-full max-w-lg rounded-2xl bg-white shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header band */}
-        <header className="relative overflow-hidden rounded-t-2xl bg-amber-50 px-6 py-5">
-          <div className="flex items-start justify-between">
-            <div className="flex items-start gap-3">
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-500 text-white">
-                <Zap size={15} />
-              </span>
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-700">
-                  Top up Ink
-                </p>
-                <h2 className="mt-0.5 text-lg font-bold text-slate-900">Buy Ink for your bench</h2>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-full p-1 text-slate-400 hover:bg-white hover:text-slate-700"
-            >
-              <X size={16} />
-            </button>
-          </div>
-          <p className="mt-2 text-xs text-slate-500">
-            Top-up Ink <strong>never expires</strong> and stacks with your subscription.
-          </p>
-        </header>
-
-        {/* SKU list */}
-        <div className="space-y-2 px-6 py-5">
-          {plansStatus === 'loading' && (
-            <div
-              role="status"
-              className="flex items-center justify-center gap-2 py-6 text-sm text-slate-400"
-            >
-              <Loader2 size={14} className="animate-spin" />
-              Loading packs…
-            </div>
+      <RadixDialog.Portal>
+        <RadixDialog.Overlay className="nl fixed inset-0 z-50 bg-black/50" />
+        <RadixDialog.Content
+          aria-modal="true"
+          // The note under the title is not a description of the whole dialog; no Radix warning.
+          aria-describedby={undefined}
+          // T-510: never land on Retry or a pack by default (a first-load failure must not move
+          // focus to Retry). Focus the title, so the dialog is announced by name; Tab then goes
+          // to Close and on. After Razorpay is dismissed, focus goes back to Pay.
+          onOpenAutoFocus={(e) => {
+            e.preventDefault();
+            const pay = focusPayOnOpen.current ? payRef.current : null;
+            focusPayOnOpen.current = false;
+            (pay ?? titleRef.current)?.focus();
+          }}
+          // T-525: focus goes back to the opener on close or unmount (Escape, Close, overlay,
+          // success); if it is gone, to #dashboard-main. Not when hiding for Checkout.
+          onCloseAutoFocus={(e) => {
+            e.preventDefault();
+            if (closingForCheckout.current) {
+              closingForCheckout.current = false;
+              return;
+            }
+            restoreFocus();
+          }}
+          className={cn(
+            'nl nl-root border-nl-line bg-nl-card text-nl-text shadow-nl-card fixed z-50 flex flex-col border',
+            'overflow-y-auto overscroll-contain focus:outline-none',
+            // Bottom sheet at <= 640px: 12px top radius, drag handle, safe-area padding (spec 5).
+            'inset-x-0 bottom-0 max-h-[90dvh] rounded-t-[12px] pb-[env(safe-area-inset-bottom,0px)]',
+            // Dialog above 640px: 440px, centred, 4px radius.
+            'min-[641px]:rounded-nl-md min-[641px]:inset-x-auto min-[641px]:bottom-auto min-[641px]:left-1/2 min-[641px]:top-1/2 min-[641px]:max-h-[calc(100dvh-64px)] min-[641px]:w-[min(440px,calc(100vw-32px))] min-[641px]:-translate-x-1/2 min-[641px]:-translate-y-1/2 min-[641px]:pb-0',
           )}
-          {plansStatus === 'error' && (
-            <div
-              role="alert"
-              className="border-brand-error bg-brand-error-light flex items-center justify-between gap-3 rounded-xl border px-4 py-3"
-            >
-              <p className="text-brand-error text-sm">Could not load top-up plans.</p>
-              <button
-                type="button"
-                ref={retryRef}
-                onClick={handleRetryPlans}
-                className="border-brand-error text-brand-error focus-visible:ring-brand-teal inline-flex min-h-[44px] items-center rounded-lg border bg-white px-4 text-sm font-medium focus:outline-none focus-visible:ring-2"
-              >
-                Retry
-              </button>
-            </div>
-          )}
-          {skus.map((sku, i) => (
-            <button
-              key={sku.id}
-              ref={i === 0 ? firstSkuRef : undefined}
-              type="button"
-              onClick={() => {
-                setSelectedId(sku.id);
-                setCoupon(null);
-                setCouponError('');
-              }}
-              className={`flex w-full items-center gap-4 rounded-xl border p-4 text-left transition ${
-                selectedId === sku.id
-                  ? 'border-amber-400 bg-amber-50/50 ring-2 ring-amber-300/40'
-                  : 'border-slate-200 hover:bg-slate-50'
-              }`}
-            >
-              <input
-                type="radio"
-                readOnly
-                checked={selectedId === sku.id}
-                className="h-4 w-4 accent-amber-500"
-              />
-              <span
-                className={`flex h-10 w-10 items-center justify-center rounded-full ${
-                  selectedId === sku.id ? 'bg-amber-200' : 'bg-slate-100'
-                }`}
-              >
-                <Zap size={16} className="text-amber-600" />
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold text-slate-900">
-                    {SKU_NAMES[sku.id] ?? sku.id} — {sku.ink} Ink
-                  </span>
-                  {sku.badge && (
-                    <span
-                      className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase ${
-                        sku.badge === 'POPULAR'
-                          ? 'bg-blue-100 text-blue-700'
-                          : 'bg-amber-200 text-amber-900'
-                      }`}
-                    >
-                      {sku.badge === 'BEST_VALUE' ? 'Best value' : 'Popular'}
-                    </span>
-                  )}
-                </div>
-                <p className="mt-0.5 text-xs text-slate-500">
-                  ₹{sku.pricePerInkInr.toFixed(2)} per Ink · never expires
-                </p>
-              </div>
-              <span className="font-mono text-lg font-bold text-slate-900">₹{sku.priceInr}</span>
-            </button>
-          ))}
-        </div>
+        >
+          <div
+            aria-hidden="true"
+            className="bg-nl-line mt-nl-2 mx-auto h-1 w-10 shrink-0 rounded-full min-[641px]:hidden"
+          />
 
-        {/* Coupon input */}
-        <div className="border-t border-slate-100 px-6 pb-4 pt-3">
-          {coupon ? (
-            <div className="flex items-center justify-between rounded-lg border border-green-200 bg-green-50 px-3 py-2">
-              <div className="flex items-center gap-2 text-sm text-green-800">
-                <CheckCircle2 size={14} className="text-green-500" />
-                <span className="font-semibold">{coupon.code}</span>
-                <span className="text-green-600">− ₹{coupon.discountInr}</span>
+          <header className="px-nl-6 pt-nl-4 min-[641px]:pt-nl-6">
+            <div className="gap-nl-3 flex items-start justify-between">
+              <div className="min-w-0">
+                <p className="nl-label text-nl-brass-dark m-0">Top up Ink</p>
+                <RadixDialog.Title
+                  ref={titleRef}
+                  tabIndex={-1}
+                  className="nl-h2 text-nl-text mt-nl-1 focus:outline-none"
+                >
+                  Buy Ink for your bench
+                </RadixDialog.Title>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setCoupon(null);
-                  setCouponInput('');
-                }}
-                className="text-green-600 hover:text-green-800"
-              >
-                <X size={14} />
-              </button>
+              {/* "Close": functional label, no signed string yet (T-525 report). */}
+              <RadixDialog.Close asChild>
+                <button
+                  type="button"
+                  aria-label="Close"
+                  className="nl-focus rounded-nl-md text-nl-soft hover:bg-nl-brass-light hover:text-nl-text -mr-nl-2 -mt-nl-1 inline-flex h-11 w-11 shrink-0 select-none items-center justify-center"
+                >
+                  <X size={20} aria-hidden="true" />
+                </button>
+              </RadixDialog.Close>
             </div>
-          ) : (
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <Tag
-                  size={12}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-                />
-                <input
-                  type="text"
-                  value={couponInput}
-                  onChange={(e) => {
-                    setCouponInput(e.target.value.toUpperCase());
+            <p className="nl-body-sm text-nl-soft mt-nl-2 mb-0">
+              Top-up Ink <strong className="text-nl-text font-medium">never expires</strong> and
+              stacks with your subscription.
+            </p>
+          </header>
+
+          {/* SKU list */}
+          <div className="space-y-nl-2 px-nl-6 py-nl-4">
+            {plansStatus === 'loading' && (
+              <div
+                role="status"
+                className="gap-nl-2 py-nl-6 nl-body-sm text-nl-muted flex items-center justify-center"
+              >
+                <Spinner />
+                Loading packs…
+              </div>
+            )}
+            {plansStatus === 'error' && (
+              <div
+                role="alert"
+                className="gap-nl-3 border-nl-err px-nl-4 py-nl-3 flex items-center justify-between border"
+              >
+                <p className="nl-body-sm text-nl-err m-0">Could not load top-up plans.</p>
+                <Button ref={retryRef} variant="ghost" onClick={handleRetryPlans}>
+                  Retry
+                </Button>
+              </div>
+            )}
+            {skus.map((sku, i) => {
+              const isSelected = selectedId === sku.id;
+              return (
+                <button
+                  key={sku.id}
+                  ref={i === 0 ? firstSkuRef : undefined}
+                  type="button"
+                  aria-pressed={isSelected}
+                  onClick={() => {
+                    setSelectedId(sku.id);
+                    setCoupon(null);
                     setCouponError('');
                   }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') void handleApplyCoupon();
-                  }}
-                  placeholder="Coupon code (optional)"
-                  maxLength={20}
-                  className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-8 pr-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400"
-                />
-              </div>
-              <button
-                type="button"
-                onClick={() => void handleApplyCoupon()}
-                disabled={couponValidating || !couponInput.trim()}
-                className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-              >
-                {couponValidating ? <Loader2 size={12} className="animate-spin" /> : 'Apply'}
-              </button>
-            </div>
-          )}
-          {couponError && <p className="mt-1.5 text-xs text-red-600">{couponError}</p>}
-        </div>
-
-        {/* T-436: State picker below the coupon, above Pay (spec §2); tab order coupon, State, Pay. */}
-        {!needsVerification && (
-          <div className="px-6 pb-4">
-            <GstStatePicker gst={gst} className="w-full" />
+                  className={cn(
+                    'nl-focus gap-nl-3 rounded-nl-md p-nl-4 flex min-h-[44px] w-full select-none items-center border text-left',
+                    isSelected
+                      ? 'border-nl-brass bg-nl-brass-light'
+                      : // T-525: unselected pack boundary is Control Line (WCAG 1.4.11).
+                        'hover:bg-nl-brass-light border-[color:var(--line-control)]',
+                  )}
+                >
+                  {/* Selection mark (decorative; the state is aria-pressed). */}
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      'inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border',
+                      isSelected ? 'border-nl-brass' : 'border-nl-muted',
+                    )}
+                  >
+                    {isSelected ? <span className="bg-nl-brass h-2 w-2 rounded-full" /> : null}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="gap-nl-2 flex flex-wrap items-center">
+                      <span className="nl-body text-nl-text font-medium">
+                        {SKU_NAMES[sku.id] ?? sku.id} —{' '}
+                        <span className="tabular-nums">{sku.ink}</span> Ink
+                      </span>
+                      {sku.badge && (
+                        <Chip variant="brass">
+                          {sku.badge === 'BEST_VALUE' ? 'Best value' : 'Popular'}
+                        </Chip>
+                      )}
+                    </div>
+                    <p className="nl-body-sm text-nl-soft m-0 tabular-nums">
+                      ₹{sku.pricePerInkInr.toFixed(2)} per Ink · never expires
+                    </p>
+                  </div>
+                  <span className="nl-h3 text-nl-text shrink-0 tabular-nums">₹{sku.priceInr}</span>
+                </button>
+              );
+            })}
           </div>
-        )}
-        {/* T-343: P7 box above the pay button (only after a privacy block). */}
-        <div className="px-6">
-          <PrivacyBlockedNotice actionKey="topup" />
-        </div>
-        {/* Footer: total + CTA */}
-        <footer className="flex items-center justify-between rounded-b-2xl border-t border-slate-100 bg-slate-50 px-6 py-4">
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-              You&apos;ll pay
-            </p>
-            {coupon && selected ? (
-              <div className="flex items-baseline gap-2">
-                <p className="font-mono text-2xl font-bold text-slate-900">
-                  ₹{coupon.finalPriceInr}{' '}
-                  <span className="text-xs font-normal text-slate-500">incl. GST</span>
-                </p>
-                <p className="font-mono text-sm text-slate-400 line-through">
-                  ₹{selected.priceInr}
-                </p>
+
+          {/* Coupon input */}
+          <div className="border-nl-line px-nl-6 pb-nl-4 pt-nl-4 border-t">
+            {coupon ? (
+              <div className="bg-nl-ok-light px-nl-3 flex min-h-[44px] items-center justify-between">
+                <div className="gap-nl-2 nl-body-sm text-nl-ok flex items-center">
+                  <CheckCircle2 size={16} aria-hidden="true" />
+                  <span className="font-medium">{coupon.code}</span>
+                  <span className="tabular-nums">− ₹{coupon.discountInr}</span>
+                </div>
+                {/* "Remove coupon": functional label approved by Priya (T-525). */}
+                <button
+                  type="button"
+                  aria-label="Remove coupon"
+                  onClick={() => {
+                    setCoupon(null);
+                    setCouponInput('');
+                  }}
+                  className="nl-focus rounded-nl-md text-nl-ok -mr-nl-3 inline-flex h-11 w-11 select-none items-center justify-center"
+                >
+                  <X size={16} aria-hidden="true" />
+                </button>
               </div>
             ) : (
-              <p className="font-mono text-2xl font-bold text-slate-900">
-                ₹{selected?.priceInr ?? 0}{' '}
-                <span className="text-xs font-normal text-slate-500">incl. GST</span>
-              </p>
+              <div className="gap-nl-2 flex">
+                <div className="relative min-w-0 flex-1">
+                  <Tag
+                    size={16}
+                    aria-hidden="true"
+                    className="text-nl-muted absolute left-3 top-1/2 -translate-y-1/2"
+                  />
+                  <input
+                    type="text"
+                    value={couponInput}
+                    onChange={(e) => {
+                      setCouponInput(e.target.value.toUpperCase());
+                      setCouponError('');
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') void handleApplyCoupon();
+                    }}
+                    placeholder="Coupon code (optional)"
+                    maxLength={20}
+                    autoCapitalize="characters"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    enterKeyHint="done"
+                    className="nl-focus rounded-nl-md bg-nl-card text-nl-text placeholder:text-nl-muted py-nl-2 pr-nl-3 focus:border-nl-brass h-11 w-full border border-[color:var(--line-control)] pl-9 text-[16px] leading-6"
+                  />
+                </div>
+                <Button
+                  variant="ghost"
+                  onClick={() => void handleApplyCoupon()}
+                  disabled={couponValidating || !couponInput.trim()}
+                  loading={couponValidating}
+                >
+                  Apply
+                </Button>
+              </div>
             )}
+            {couponError && <p className="nl-body-sm text-nl-err mt-nl-2 mb-0">{couponError}</p>}
           </div>
+
+          {/* T-436: State picker below the coupon, above Pay (spec §2); tab order coupon, State, Pay. */}
           {!needsVerification && (
-            <button
-              type="button"
-              onClick={handlePurchase}
-              aria-describedby={privacyDescribedBy}
-              disabled={!selected || submitting}
-              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
-            >
-              {submitting ? <Loader2 size={14} className="animate-spin" /> : null}
-              Pay with Razorpay
-            </button>
+            <div className="px-nl-6 pb-nl-4">
+              <GstStatePicker gst={gst} className="w-full" />
+            </div>
           )}
-        </footer>
-        {/* T-223: in place of the pay step; the pack and total stay visible above. */}
-        {needsVerification && (
-          <div className="px-6 pb-4 pt-2">
-            <VerifyEmailCard />
+          {/* T-343: P7 box above the pay button (only after a privacy block). */}
+          <div className="px-nl-6">
+            <PrivacyBlockedNotice actionKey="topup" />
           </div>
-        )}
-        {error && <p className="px-6 pb-4 text-xs text-red-600">{error}</p>}
-      </div>
-    </div>
+          {/* Footer: total + the one primary button in the dialog. */}
+          <footer className="gap-nl-4 border-nl-line px-nl-6 py-nl-4 flex flex-wrap items-center justify-between border-t">
+            <div>
+              <p className="nl-label text-nl-muted m-0">You&apos;ll pay</p>
+              {coupon && selected ? (
+                <div className="gap-nl-2 flex items-baseline">
+                  <p className="nl-h2 text-nl-text m-0 tabular-nums">
+                    ₹{coupon.finalPriceInr}{' '}
+                    <span className="nl-body-sm text-nl-soft">incl. GST</span>
+                  </p>
+                  <p className="nl-body-sm text-nl-muted m-0 tabular-nums line-through">
+                    ₹{selected.priceInr}
+                  </p>
+                </div>
+              ) : (
+                <p className="nl-h2 text-nl-text m-0 tabular-nums">
+                  ₹{selected?.priceInr ?? 0}{' '}
+                  <span className="nl-body-sm text-nl-soft">incl. GST</span>
+                </p>
+              )}
+            </div>
+            {!needsVerification && (
+              <Button
+                ref={payRef}
+                variant="primary"
+                onClick={handlePurchase}
+                aria-describedby={privacyDescribedBy}
+                disabled={!selected}
+                loading={submitting}
+              >
+                Pay with Razorpay
+              </Button>
+            )}
+          </footer>
+          {/* T-223: in place of the pay step; the pack and total stay visible above. */}
+          {needsVerification && (
+            <div className="px-nl-6 pb-nl-4 pt-nl-2">
+              <VerifyEmailCard />
+            </div>
+          )}
+          {error && (
+            <p role="alert" className="nl-body-sm text-nl-err px-nl-6 pb-nl-4 m-0">
+              {error}
+            </p>
+          )}
+        </RadixDialog.Content>
+      </RadixDialog.Portal>
+    </RadixDialog.Root>
   );
 }

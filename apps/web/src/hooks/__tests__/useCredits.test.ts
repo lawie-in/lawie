@@ -14,6 +14,7 @@ const serverBalance = { totalInk: 10, planTier: 'free' };
 let latest: {
   balance: CreditBalance;
   loaded: boolean;
+  loading: boolean;
   refresh: () => Promise<void>;
 } | null = null;
 let container: HTMLDivElement;
@@ -164,5 +165,77 @@ describe('useCredits creditsChanged', () => {
     });
     await flush();
     expect(balanceCalls()).toBe(2);
+  });
+});
+
+// T-525: a network error or a bad body never rejects (the focus and event listeners call
+// refresh() with `void`, so a rejection would be unhandled).
+describe('useCredits failures never reject', () => {
+  const unhandled: unknown[] = [];
+  const onUnhandled = (r: unknown) => unhandled.push(r);
+  beforeEach(() => {
+    unhandled.length = 0;
+    process.on('unhandledRejection', onUnhandled);
+  });
+  afterEach(() => {
+    process.off('unhandledRejection', onUnhandled);
+  });
+
+  async function remountWith(impl: () => Promise<unknown>) {
+    act(() => root.unmount());
+    latest = null;
+    mockApiFetch.mockImplementation(impl);
+    root = createRoot(container);
+    await act(async () => {
+      root.render(createElement(Probe));
+    });
+    await flush();
+  }
+
+  it('a rejecting fetch on mount leaves loaded false, balance empty and loading false', async () => {
+    await remountWith(() => Promise.reject(new TypeError('Failed to fetch')));
+    expect(latest?.loaded).toBe(false);
+    expect(latest?.balance.totalInk).toBe(0);
+    expect(latest?.loading).toBe(false);
+  });
+
+  it('bad JSON on mount does not reject and leaves loaded false', async () => {
+    await remountWith(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => {
+        throw new SyntaxError('Unexpected token <');
+      },
+    }));
+    expect(latest?.loaded).toBe(false);
+    expect(latest?.loading).toBe(false);
+  });
+
+  it('refresh() resolves (never rejects) when the network fails', async () => {
+    mockApiFetch.mockRejectedValue(new TypeError('offline'));
+    await expect(latest!.refresh()).resolves.toBeUndefined();
+  });
+
+  it('a failed refresh keeps the previous balance and loaded', async () => {
+    expect(latest?.balance.totalInk).toBe(10);
+    mockApiFetch.mockRejectedValue(new TypeError('offline'));
+    await act(async () => {
+      await latest!.refresh();
+    });
+    expect(latest?.balance.totalInk).toBe(10);
+    expect(latest?.loaded).toBe(true);
+    expect(latest?.loading).toBe(false);
+  });
+
+  it('focus and a detail-less creditsChanged with a failing network raise nothing unhandled', async () => {
+    mockApiFetch.mockRejectedValue(new TypeError('offline'));
+    await act(async () => {
+      window.dispatchEvent(new Event('focus'));
+      window.dispatchEvent(new CustomEvent('creditsChanged'));
+    });
+    await flush();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(unhandled).toEqual([]);
+    expect(latest?.balance.totalInk).toBe(10);
   });
 });

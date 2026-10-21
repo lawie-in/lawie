@@ -15,7 +15,6 @@ jest.mock('@/context/AuthContext', () => ({
 jest.mock('@/hooks/useCredits', () => ({
   useCredits: () => ({ balance: { totalInk: 3 }, loaded: true }),
 }));
-jest.mock('@/components/billing/PlanUpgrade', () => ({ PlanUpgrade: () => null }));
 (globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 let container: HTMLDivElement;

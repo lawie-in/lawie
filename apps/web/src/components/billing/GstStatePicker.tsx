@@ -14,9 +14,9 @@
 import { GST_STATES } from '@lawie/shared';
 import { useEffect, useId } from 'react';
 
-import { input, label as labelClass, small } from '@/components/intake/ui';
 import { PrivacyBlockedNotice } from '@/components/PrivacyUpdatePrompt';
 import type { GstStateController } from '@/hooks/useGstState';
+import { cn } from '@/lib/cn';
 
 /** Madhuri, t436-ui-strings.md section A. Word for word. */
 export const GST_STATE_STRINGS = {
@@ -35,6 +35,19 @@ export const GST_STATE_NAG_STRINGS = {
   nag: 'Your State is not set.',
   action: 'Set your State',
 } as const;
+
+/**
+ * T-525: Night Library field look, same as the boxed ui Input (DESIGN.md Inputs: Settings forms):
+ * label in Body Small Text Soft, 44px control, 16px text (no iOS focus zoom), 1px Control Line border,
+ * 4px radius, Card fill; focus is a 2px Brass bottom border; error is a Rust border; disabled .5.
+ * The control stays a native <select> (keyboard, screen readers and the phone picker for free).
+ */
+const LABEL_CLASS = 'nl-body-sm font-medium text-nl-soft';
+const SELECT_CLASS =
+  'nl-focus nl-body block w-full min-h-[44px] rounded-nl-md border bg-nl-card px-nl-3 py-nl-2 text-nl-text ' +
+  'focus:border-b-2 focus:pb-[7px] focus:outline-none focus-visible:outline-none ' +
+  'disabled:cursor-not-allowed disabled:opacity-50';
+const NOTE_CLASS = 'nl-body-sm text-nl-muted';
 
 /** Spec §3: options A-Z by State name. */
 const OPTIONS = [...GST_STATES].sort((a, b) => a.name.localeCompare(b.name, 'en'));
@@ -72,8 +85,8 @@ export function GstStatePicker({ gst, id, className = '' }: GstStatePickerProps)
         : '';
 
   return (
-    <div className={`flex flex-col gap-1 ${className}`}>
-      <label htmlFor={selectId} className={labelClass}>
+    <div className={cn('nl gap-nl-1 flex flex-col', className)}>
+      <label htmlFor={selectId} className={LABEL_CLASS}>
         {GST_STATE_STRINGS.label}
       </label>
       <select
@@ -86,7 +99,10 @@ export function GstStatePicker({ gst, id, className = '' }: GstStatePickerProps)
         aria-required="true"
         aria-invalid={error ? 'true' : undefined}
         aria-describedby={error ? `${helpId} ${errorId}` : helpId}
-        className={`${input} disabled:opacity-60 ${error ? 'border-brand-error' : ''}`}
+        className={cn(
+          SELECT_CLASS,
+          error ? 'border-nl-err' : 'focus:border-nl-brass border-[color:var(--line-control)]',
+        )}
       >
         <option value="" disabled>
           {GST_STATE_STRINGS.placeholder}
@@ -97,16 +113,16 @@ export function GstStatePicker({ gst, id, className = '' }: GstStatePickerProps)
           </option>
         ))}
       </select>
-      <p id={helpId} className={small}>
+      <p id={helpId} className={NOTE_CLASS}>
         {GST_STATE_STRINGS.help}
       </p>
       {error && (
-        <p id={errorId} role="alert" className="text-brand-error text-[13px]">
+        <p id={errorId} role="alert" className="nl-body-sm text-nl-err">
           {error}
         </p>
       )}
       {/* Spec §6: always in the DOM. */}
-      <p aria-live="polite" className={`${small} min-h-[1em]`}>
+      <p aria-live="polite" className={cn(NOTE_CLASS, 'min-h-[1em]')}>
         {live}
       </p>
       <PrivacyBlockedNotice actionKey={gst.actionKey} />

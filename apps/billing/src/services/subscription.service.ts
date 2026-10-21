@@ -49,9 +49,9 @@ const PAID_THROUGH_STATUSES: SubscriptionStatus[] = ['cancelled', 'halted', 'pau
 /** T-444: terminal statuses; a charge never moves a sub out of them. */
 const TERMINAL_STATUSES: SubscriptionStatus[] = ['cancelled', 'completed', 'expired'];
 /**
- * T-518: the terminal statuses billing writes itself (stale-checkout and
- * lapsed cancels, expiry). A new paid cycle on one is reported. completed is
- * Razorpay's own end of term and is not.
+ * T-518 / T-526 (Arjun): terminal statuses after which a new paid cycle is
+ * unexpected, whether billing or Razorpay wrote them. A new paid cycle on one
+ * is reported. completed is Razorpay's natural end of term and is excluded.
  */
 const BILLING_TERMINAL_STATUSES: SubscriptionStatus[] = ['cancelled', 'expired'];
 /**
@@ -158,6 +158,20 @@ export class RazorpayTimeoutError extends Error {
 }
 
 /**
+ * T-526 (Arjun, item 1): razorpay.subscriptions.create timed out, so a sub may
+ * or may not exist at Razorpay. The route answers 503 `try_again`, and
+ * createSubscription keeps the per-user create lock (its TTL expires it), so a
+ * retry inside that window gets 409 subscription_in_progress rather than a
+ * second sub. A late create surfaces through reportUnknownSub on its webhook.
+ */
+export class SubscriptionCreateUnknownOutcomeError extends Error {
+  constructor() {
+    super('subscription_create_unknown_outcome');
+    this.name = 'SubscriptionCreateUnknownOutcomeError';
+  }
+}
+
+/**
  * T-516 (Arjun): bound on the live fetch of a past_due sub's payment link for
  * the 409 body. Short, because a failure only drops the link (null).
  */
@@ -193,6 +207,37 @@ function reportCancelledPaidSub(razorpaySubscriptionId: string): void {
 }
 
 /**
+ * T-526 (Arjun, item 1a): the create timed out, so its outcome at Razorpay is
+ * unknown. One error log and a Sentry warning, the user id only.
+ */
+function reportCreateTimeout(userId: string): void {
+  logger.error(
+    { userId, marker: 'create_timeout_unknown_outcome' },
+    'billing.subscription.create_timeout_unknown_outcome',
+  );
+  Sentry.withScope((scope) => {
+    scope.setTag('userId', userId);
+    scope.setTag('marker', 'create_timeout_unknown_outcome');
+    Sentry.captureMessage('billing.subscription.create_timeout_unknown_outcome', 'warning');
+  });
+}
+
+/**
+ * T-526 (Arjun, item 1e): a subscription.* webhook for a Razorpay sub id with
+ * no local Subscription row (e.g. a create that timed out but went through).
+ * Never a silent drop: one error log and a Sentry warning, the subscription
+ * id and event name only, no PII. The webhook's response is unchanged.
+ */
+function reportUnknownSub(razorpaySubscriptionId: string, event: string): void {
+  logger.error({ subId: razorpaySubscriptionId, event }, 'billing.webhook.unknown_subscription');
+  Sentry.withScope((scope) => {
+    scope.setTag('razorpaySubscriptionId', razorpaySubscriptionId);
+    scope.setExtra('event', event);
+    Sentry.captureMessage('billing.webhook.unknown_subscription', 'warning');
+  });
+}
+
+/**
  * T-444c (Arjun ruling 2): cancel a lapsed sub at Razorpay now
  * (cancel_at_cycle_end false), so a Razorpay retry cannot charge it after the
  * user resubscribes. If the cancel throws, the sub is fetched: a Razorpay
@@ -208,6 +253,7 @@ async function cancelLapsedAtRazorpay(
   return cancelNowAtRazorpay(userId, razorpaySubscriptionId, {
     cancelled: 'Lapsed subscription cancelled at Razorpay on resubscribe',
     alreadyEnded: 'Lapsed subscription already ended at Razorpay on resubscribe',
+    notFound: 'Lapsed subscription not found at Razorpay on resubscribe; treated as ended',
     failed: 'Razorpay cancel of lapsed subscription failed; not resubscribing',
   });
 }
@@ -225,6 +271,7 @@ async function cancelStaleCheckoutAtRazorpay(
   return cancelNowAtRazorpay(userId, razorpaySubscriptionId, {
     cancelled: 'Stale checkout cancelled at Razorpay for a different plan',
     alreadyEnded: 'Stale checkout already ended at Razorpay for a different plan',
+    notFound: 'Stale checkout not found at Razorpay for a different plan; treated as ended',
     failed: 'Razorpay cancel of stale checkout failed; not creating new subscription',
   });
 }
@@ -234,13 +281,16 @@ async function cancelStaleCheckoutAtRazorpay(
  * narrowly on the SDK's error shape ({ statusCode, error: { code, description } }):
  * HTTP 404, or a BAD_REQUEST_ERROR whose description says the id does not
  * exist. An auth failure (401/403) never counts as not-found.
+ *
+ * T-526 (Arjun, item 5): the description match needs statusCode === 400
+ * exactly; an error with no statusCode is not not-found.
  */
 export function isRazorpayNotFound(err: unknown): boolean {
   if (!err || typeof err !== 'object') return false;
   const statusCode = (err as { statusCode?: unknown }).statusCode;
   if (statusCode === 401 || statusCode === 403) return false;
   if (statusCode === 404) return true;
-  if (statusCode !== undefined && statusCode !== 400) return false;
+  if (statusCode !== 400) return false;
   const body = (err as { error?: unknown }).error;
   if (!body || typeof body !== 'object') return false;
   const { code, description } = body as { code?: unknown; description?: unknown };
@@ -290,11 +340,19 @@ async function fetchCheckoutForCreate(
   }
 }
 
-/** T-444c / T-516: the shared immediate cancel (cancel_at_cycle_end false). */
+/**
+ * T-444c / T-516: the shared immediate cancel (cancel_at_cycle_end false).
+ *
+ * T-526 (Arjun, item 2): Razorpay saying the id does not exist
+ * (isRazorpayNotFound), on the cancel or on the follow-up fetch, counts as
+ * already ended: one warn, ids only, and return, so the caller does its
+ * guarded local write and creates. A timeout, auth failure (401/403) or 5xx is
+ * never not-found and still throws SubscriptionCancelFailedError.
+ */
 async function cancelNowAtRazorpay(
   userId: string,
   razorpaySubscriptionId: string,
-  messages: { cancelled: string; alreadyEnded: string; failed: string },
+  messages: { cancelled: string; alreadyEnded: string; notFound: string; failed: string },
 ): Promise<void> {
   try {
     await withRazorpayTimeout(
@@ -304,15 +362,25 @@ async function cancelNowAtRazorpay(
     logger.info({ userId, subscriptionId: razorpaySubscriptionId }, messages.cancelled);
     return;
   } catch (cancelErr) {
+    if (isRazorpayNotFound(cancelErr)) {
+      logger.warn({ userId, subscriptionId: razorpaySubscriptionId }, messages.notFound);
+      return;
+    }
     let rzpStatus: unknown;
+    let fetchErr: unknown;
     try {
       const rzpSub = (await withRazorpayTimeout(
         'fetch',
         razorpay.subscriptions.fetch(razorpaySubscriptionId),
       )) as unknown as Record<string, unknown>;
       rzpStatus = rzpSub.status;
-    } catch {
+    } catch (err) {
+      fetchErr = err;
       rzpStatus = undefined;
+    }
+    if (fetchErr !== undefined && isRazorpayNotFound(fetchErr)) {
+      logger.warn({ userId, subscriptionId: razorpaySubscriptionId }, messages.notFound);
+      return;
     }
     if (typeof rzpStatus === 'string' && RAZORPAY_ENDED_STATUSES.includes(rzpStatus)) {
       logger.info(
@@ -363,6 +431,10 @@ async function fetchPastDueShortUrl(razorpaySubscriptionId: string): Promise<str
  * is one insert into SubscriptionCreateLock (unique userId); E11000 means
  * another call holds it. The row is deleted in a finally, by its own _id, so a
  * call whose lock already timed out never deletes a newer caller's lock.
+ *
+ * T-526 (Arjun, item 1b): the one exception is a create timeout
+ * (SubscriptionCreateUnknownOutcomeError). The lock is kept and its TTL
+ * expires it, so no second sub can be created while the first may exist.
  */
 export async function createSubscription(
   userId: string,
@@ -380,26 +452,35 @@ export async function createSubscription(
   // CREATE_LOCK_BUDGET_MS from here.
   let lockedAt: number;
   try {
-    const lock = await SubscriptionCreateLock.create({ userId, createdAt: new Date() });
+    // T-526 (Arjun, item 3): the budget clock is the lock's own createdAt.
+    const createdAt = new Date();
+    const lock = await SubscriptionCreateLock.create({ userId, createdAt });
     lockId = lock._id;
-    lockedAt = Date.now();
+    lockedAt = createdAt.getTime();
   } catch (err) {
     if ((err as { code?: unknown } | null)?.code === 11000) {
       throw new SubscriptionInProgressError();
     }
     throw err;
   }
+  // T-526: set only when the create timed out; every other path releases.
+  let keepLock = false;
   try {
     return await createSubscriptionLocked(userId, email, lockedAt, planId);
+  } catch (err) {
+    if (err instanceof SubscriptionCreateUnknownOutcomeError) keepLock = true;
+    throw err;
   } finally {
-    try {
-      await SubscriptionCreateLock.deleteOne({ _id: lockId });
-    } catch (releaseErr) {
-      // The TTL index removes it within ~2 min; the result stands.
-      logger.error(
-        { userId, errName: releaseErr instanceof Error ? releaseErr.name : typeof releaseErr },
-        'Failed to release subscription create lock',
-      );
+    if (!keepLock) {
+      try {
+        await SubscriptionCreateLock.deleteOne({ _id: lockId });
+      } catch (releaseErr) {
+        // The TTL index removes it within ~2 min; the result stands.
+        logger.error(
+          { userId, errName: releaseErr instanceof Error ? releaseErr.name : typeof releaseErr },
+          'Failed to release subscription create lock',
+        );
+      }
     }
   }
 }
@@ -592,7 +673,9 @@ async function createSubscriptionLocked(
     throw new SubscriptionCancelFailedError();
   }
 
-  // T-444c: bounded; a timeout throws (500), and no local row is written.
+  // T-444c: bounded; no local row is written on a timeout. T-526 (Arjun): a
+  // timeout is an unknown outcome at Razorpay: reported, 503 try_again, and
+  // the create lock is kept until its TTL (see createSubscription).
   /* eslint-disable @typescript-eslint/no-explicit-any */
   let sub: any;
   try {
@@ -611,7 +694,8 @@ async function createSubscriptionLocked(
     );
   } catch (err) {
     if (err instanceof RazorpayTimeoutError) {
-      logger.warn({ userId }, 'billing.subscription.create_timeout');
+      reportCreateTimeout(userId);
+      throw new SubscriptionCreateUnknownOutcomeError();
     }
     throw err;
   }
@@ -960,7 +1044,13 @@ export async function handleWebhookEvent(
 
   const sub = await Subscription.findOne({ razorpaySubscriptionId: subId });
   if (!sub) {
-    logger.warn({ subId, event }, 'Webhook received for unknown subscription');
+    // T-526 (Arjun, item 1e): a subscription.* event with no local row is
+    // reported, never silently dropped. The response stays a 200 as before.
+    if (event.startsWith('subscription.')) {
+      reportUnknownSub(subId, event);
+    } else {
+      logger.warn({ subId, event }, 'Webhook received for unknown subscription');
+    }
     return;
   }
 

@@ -38,10 +38,10 @@ const ERR = 'Could not load top-up plans.';
 let plansReply: () => Promise<unknown>;
 let container: HTMLDivElement;
 let root: Root;
-const text = () => container.textContent ?? '';
-const alertEl = () => container.querySelector('[role="alert"]');
+const text = () => document.body.textContent ?? '';
+const alertEl = () => document.body.querySelector('[role="alert"]');
 const retryBtn = () =>
-  Array.from(container.querySelectorAll('button')).find((b) => b.textContent === 'Retry');
+  Array.from(document.body.querySelectorAll('button')).find((b) => b.textContent === 'Retry');
 const planCalls = () => mockApiFetch.mock.calls.filter((c) => c[0] === '/api/billing/plans');
 
 async function flush() {
@@ -105,7 +105,7 @@ describe('T-510 top-up modal: plans failure', () => {
     expect(alertEl()!.textContent).toContain(ERR);
     expect(retryBtn()).toBeDefined();
     expect(text()).not.toContain('Loading packs');
-    expect(container.querySelector('[role="status"]')).toBeNull();
+    expect(document.body.querySelector('[role="status"]')).toBeNull();
   });
 
   it('Retry refetches /api/billing/plans and then shows the packs without the error', async () => {
@@ -138,7 +138,7 @@ describe('T-510 top-up modal: plans failure', () => {
   it('Pay stays disabled while plans have failed', async () => {
     plansReply = async () => reply(500);
     await mount();
-    const pay = Array.from(container.querySelectorAll('button')).find((b) =>
+    const pay = Array.from(document.body.querySelectorAll('button')).find((b) =>
       /Pay with Razorpay/.test(b.textContent ?? ''),
     ) as HTMLButtonElement;
     expect(pay.disabled).toBe(true);
@@ -159,7 +159,7 @@ describe('T-510 top-up modal: plans failure', () => {
     plansReply = async () => reply(200, PLANS);
     await act(async () => retryBtn()!.click());
     await flush();
-    const first = Array.from(container.querySelectorAll('button')).find((b) =>
+    const first = Array.from(document.body.querySelectorAll('button')).find((b) =>
       /Mini — 10 Ink/.test(b.textContent ?? ''),
     );
     expect(first).toBeDefined();

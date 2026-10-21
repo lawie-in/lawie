@@ -1523,7 +1523,7 @@ describe('T-444c: create lock and Razorpay cancel of a lapsed sub', () => {
       expect(await lockCount(userId)).toBe(0);
     });
 
-    it('a create that never resolves throws, leaves no local row, releases the lock', async () => {
+    it('a create that never resolves throws the unknown-outcome error, leaves no local row, KEEPS the lock (T-526)', async () => {
       const userId = newUserId();
       createMock().mockReturnValue(new Promise(() => undefined));
 
@@ -1534,9 +1534,10 @@ describe('T-444c: create lock and Razorpay cancel of a lapsed sub', () => {
       await waitFor15s();
       fire15s();
 
-      expect(await settled).toBe('RazorpayTimeoutError');
+      expect(await settled).toBe('SubscriptionCreateUnknownOutcomeError');
       expect(await Subscription.countDocuments({ userId })).toBe(0);
-      expect(await lockCount(userId)).toBe(0);
+      // T-526 (Arjun): the lock stays; its TTL expires it.
+      expect(await lockCount(userId)).toBe(1);
     });
   });
 

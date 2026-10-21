@@ -34,6 +34,7 @@ Figma variables are the source. The web lead exports them to CSS custom properti
 | text/soft | `--text-soft` | #CBC2AC | #3D4C46 | secondary text |
 | text/muted | `--muted` | #8E9A8E | #5C685F | labels, captions (min 14px) |
 | border/line | `--line` | #2A3C35 | #D9D1BE | hairlines, inputs |
+| border/control | `--line-control` | #6B7C74 | #8A8476 | input and ghost-button borders at rest (WCAG 1.4.11, 3:1 on card and wall) |
 | brass/fill | `--brass` | #C9A24A | #866619 | primary button fill, seal, lamp dot, focus ring |
 | brass/text | `--brass-dark` | #E6C877 | #6E5415 | eyebrows, links, ghost button text |
 | brass/soft | `--brass-light` | #2B2614 | #F6EBCF | chip fills, hover halo |

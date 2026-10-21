@@ -70,6 +70,10 @@ export function useCredits(): {
         setBalance(data);
         setLoaded(true);
       }
+    } catch {
+      // T-525: a network error or a bad body never rejects (focus and event listeners call
+      // this with `void`). `loaded` stays as it was and the previous balance is kept; a
+      // failed fetch never invents a 0.
     } finally {
       setLoading(false);
     }

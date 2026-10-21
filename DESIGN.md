@@ -9,6 +9,7 @@ colors:
   text-soft: "#cbc2ac"
   muted: "#8e9a8e"
   line: "#2a3c35"
+  line-control: "#6b7c74"
   brass: "#c9a24a"
   brass-text: "#e6c877"
   brass-soft: "#2b2614"
@@ -29,6 +30,7 @@ colors:
   day-text-soft: "#3d4c46"
   day-muted: "#5c685f"
   day-line: "#d9d1be"
+  day-line-control: "#8a8476"
   day-brass: "#866619"
   day-brass-text: "#6e5415"
   day-brass-soft: "#f6ebcf"
@@ -208,12 +210,13 @@ Warm darks with a single brass accent; Daylight keeps the hues and lifts the lig
 
 ### Neutral
 - **Wall** (#0e1a17 / #f3efe4): the page ground.
-- **Wood** (#15241f / #e9e2d1): the shelf edge, skeleton blocks, dividers that need a surface.
+- **Wood** (#15241f / #e9e2d1): the shelf edge, skeleton blocks, dividers that need a surface, keyboard hints. Text on Wood is Text, Soft or Brass Text; Muted on Wood at 14px or larger only (4.5:1 by day); never a status colour on Wood.
 - **Card** (#182a24 / #fbf8f0): the folio, cards, inputs, dialogs, popovers.
 - **Text** (#efe7d4 / #1c2a25): body and headings. 12.9:1 on Card at night, 13.6:1 by day.
 - **Text Soft** (#cbc2ac / #3d4c46): secondary text, descriptions. 9.6:1 / 9.2:1.
 - **Muted** (#8e9a8e / #5c685f): labels, captions, placeholders. 5.1:1 night on Card, 5.5:1 day on Card, 4.5:1 day on Wood; never below 12px and never as body text.
-- **Line** (#2a3c35 / #d9d1be): the hairline on every card, input and divider.
+- **Line** (#2a3c35 / #d9d1be): the hairline on cards, the folio, dividers, the shelf and FAQ rules. Decorative; 1.3:1 to 1.5:1 on Card, so never the only boundary of a control.
+- **Control Line** (#6b7c74 / #8a8476): the boundary of anything the user operates: input underlines and boxed borders at rest, ghost and Google button borders, checkboxes, the toggle frames, the tab underline at rest. 3.4:1 / 3.5:1 on Card and 4.0:1 / 3.2:1 on Wall, so it clears WCAG 1.4.11. Focus (Brass 2px) and error (Rust) borders replace it in those states.
 
 ### Status
 - **Moss** (#7fcfa8 / #1b7658) on **Moss Soft** (#143327 / #ddf2e8): success, finalised, Ink used.
@@ -239,7 +242,7 @@ Warm darks with a single brass accent; Daylight keeps the hues and lifts the lig
 ### Hierarchy
 - **Display** (400, clamp(48px, 5.3vw, 68px), 52px to 72px): the landing hero only.
 - **Headline** (400, 32px, 38px): page titles ("Your shelf", "Settings").
-- **Title** (400, 24px, 30px): section titles, dialog titles, KPI numbers (40px on the dashboard, same face).
+- **Title** (400, 24px, 30px): section titles, dialog titles. Two larger uses of the same face: KPI numbers at 40px/44px on the dashboard, and the plan price at 34px/40px on a plan card. Both may exceed the page title; the number is what the reader came for.
 - **Subtitle** (Mukta 500, 18px, 26px): card titles and anything that is a heading under 20px.
 - **Body** (400, 16px, 26px): the default. Running text stays at or under 65 characters a line.
 - **Body Small** (400, 14px, 22px): secondary lines, captions, help text, chips with words.
@@ -275,7 +278,7 @@ Flat at rest, with two exceptions. Every surface is Card on Wall with a 1px Line
 
 ## Shapes
 
-Square paper, round seals. Cards, the folio, inputs, banners and dialogs have no radius or 4px at most; the 2px step is for keyboard hints and small tags. Chips, the Ink dot and the seal are fully round. Borders are 1px Line on every container; a 1px brass hairline rules the top of the folio and the command bar. Underline inputs on the folio (border-bottom only, 2px brass on focus); boxed inputs in Settings forms (1px Line, 4px radius). Bottom sheets at 360px take a 12px top radius and a 40px drag handle; that is the only large radius in the system.
+Square paper, round seals. Cards, the folio, inputs, banners and dialogs have no radius or 4px at most; the 2px step is for keyboard hints and small tags. Chips, the Ink dot and the seal are fully round. Borders are 1px Line on every container; a 1px brass hairline rules the top of the folio and the command bar. Controls take the stronger Control Line: underline inputs on the folio (border-bottom only, 2px brass on focus); boxed inputs in Settings forms (1px Control Line, 4px radius). Bottom sheets at 360px take a 12px top radius and a 40px drag handle; that is the only large radius in the system.
 
 Focus is a 2px brass outline offset 3px, on every interactive element, in both themes.
 
@@ -285,9 +288,10 @@ Focus is a 2px brass outline offset 3px, on every interactive element, in both t
 Quiet until pressed; the brass one is the only loud thing on the page.
 - **Shape:** gently squared (4px radius), 44px tall, 20px side padding; small variant 36px tall, 16px padding, hit area padded to 44px.
 - **Primary:** Brass fill, On Brass label, Mukta 500 15px.
-- **Ghost:** transparent, Brass Text label, 1px Line border.
-- **Destructive:** Oxblood fill, white label; sits last in a dialog, after the ghost safe action.
-- **Hover / Focus:** hover lifts 1px with the 4px Brass Soft halo, 150ms ease; focus is the system ring. Disabled is opacity .5. Loading swaps the label for a spinner and holds the width.
+- **Ghost:** transparent, Brass Text label, 1px Control Line border.
+- **Destructive:** Oxblood fill, white label; sits last in a dialog, after the ghost safe action. Only inside a confirm dialog.
+- **Ghost, danger:** transparent, Rust text and 1px Rust border, hover background Rust Soft, no lift. The one danger cue outside a dialog: Close account, Cancel plan in Settings. It opens the dialog; it never performs the action itself.
+- **Hover / Focus:** primary hover lifts 1px with the 4px Brass Soft halo, 150ms ease. Ghost (and any ghost-styled link or the Google button) does not lift: its border goes Line to Brass and its background to Brass Soft, 150ms. Destructive does not lift or glow. Focus is the system ring on all three. Disabled is opacity .5. Loading swaps the label for a spinner and holds the width.
 
 ### Chips
 - **Style:** pill, 12px Mukta 500, 4px by 10px padding. Neutral is Text Soft on a Line border; brass, moss, amber and rust tones use the status pair. The Ink chip carries a brass dot before the number.
@@ -302,12 +306,15 @@ Quiet until pressed; the brass one is the only loud thing on the page.
 - **States:** loading shows Wood skeleton blocks with a 1.4s pulse; empty is one sentence and one action; error is a Rust border, one sentence and Retry. A loading card never renders a zero.
 
 ### Inputs / Fields
-- **Style:** on the folio, underline only (1px Line); in Settings, boxed (1px Line, 4px radius, Card fill). Label above in Label style, Brass Text.
+- **Style:** on the folio, underline only (1px Control Line); in Settings, boxed (1px Control Line, 4px radius, Card fill). Label above in Label style, Brass Text.
 - **Focus:** bottom border becomes 2px brass; the system ring applies on keyboard focus.
 - **Error / Disabled:** Rust border and a one-line message naming the fix, linked by aria-describedby; disabled is opacity .5.
 
 ### Navigation (Top bar)
-- 64px, Wall fill, 1px Line bottom. The Lawie mark is Tiro 26px with a brass lamp dot and a soft glow. Signed-in: Ink chip, theme toggle, avatar menu. Below 720px the nav and the theme toggle fold into the menu; the Ink chip stays visible. Sticky, respects the top safe-area inset.
+- 64px, Wall fill, 1px Line bottom. The Lawie mark is Tiro 26px with a brass lamp dot and a soft glow. Signed-in: Ink chip, theme toggle, avatar menu. Below 720px the nav, the theme toggle and the language toggle fold into the menu, so the bar stays one 64px row; the Ink chip (or the signed-out Start free button) stays visible. Signed-out marketing bar: the four section links show from 1120px (below that a label would wrap inside the 64px bar); from 720 to 1119 the row is mark, language and theme toggles, Sign in and the CTA; if that is still tight in Hindi, the toggles move into the menu before anything is dropped. A nav landmark is rendered only when it holds links. Sticky at every width once it is one row; never pin a bar taller than 64px on a phone. Respects the top safe-area inset (`viewport-fit=cover`).
+
+### Section finder
+A right-hand panel on the editor. From 1280px a closed 44px peek rail sits on the right edge (Card fill, Control Line border); from 900 to 1279 it opens as an overlay from the menu or its shortcut; below 900 it is a bottom sheet. Control Line on its inputs and tabs; the tip box is Brass Soft.
 
 ### Command bar (signature)
 The question at the top of the desk: "What do you need to draft?" in Title type, an underline input with a Ctrl K hint and the one primary button. A Radix Popover with our own listbox opens below: quick chips while empty, matching templates and the advocate's own drafts while typing, one line when nothing matches. Ctrl K and Cmd K focus it from anywhere; Escape closes.

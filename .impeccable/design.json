@@ -12,6 +12,7 @@
       "text": { "role": "neutral", "displayName": "Text", "canonical": "#efe7d4", "daylight": "#1c2a25" },
       "muted": { "role": "neutral", "displayName": "Muted", "canonical": "#8e9a8e", "daylight": "#5c685f" },
       "line": { "role": "neutral", "displayName": "Line", "canonical": "#2a3c35", "daylight": "#d9d1be" },
+      "line-control": { "role": "neutral", "displayName": "Control Line", "canonical": "#6b7c74", "daylight": "#8a8476" },
       "selection": { "role": "neutral", "displayName": "Selection", "canonical": "#332a14", "daylight": "#f3e9c8" },
       "brass-mark": { "role": "primary", "displayName": "Brass Mark", "canonical": "#c9a24a", "daylight": "#e6c877" }
     },
@@ -59,7 +60,7 @@
       "refersTo": "button-ghost",
       "description": "Every secondary action.",
       "html": "<button class=\"ds-btn-ghost\">See how it works</button>",
-      "css": ".ds-btn-ghost { background: transparent; color: var(--brass-dark, #e6c877); font-family: Mukta, system-ui, sans-serif; font-size: 15px; font-weight: 500; line-height: 20px; height: 44px; padding: 0 20px; border: 1px solid var(--line, #2a3c35); border-radius: 4px; cursor: pointer; } .ds-btn-ghost:hover { border-color: var(--brass, #c9a24a); } .ds-btn-ghost:focus-visible { outline: 2px solid var(--brass, #c9a24a); outline-offset: 3px; }"
+      "css": ".ds-btn-ghost { background: transparent; color: var(--brass-dark, #e6c877); font-family: Mukta, system-ui, sans-serif; font-size: 15px; font-weight: 500; line-height: 20px; height: 44px; padding: 0 20px; border: 1px solid var(--line-control, #6b7c74); border-radius: 4px; cursor: pointer; } .ds-btn-ghost:hover { border-color: var(--brass, #c9a24a); } .ds-btn-ghost:focus-visible { outline: 2px solid var(--brass, #c9a24a); outline-offset: 3px; }"
     },
     {
       "name": "Ink Chip",
@@ -75,7 +76,7 @@
       "refersTo": "input",
       "description": "Underline input on the folio.",
       "html": "<label class=\"ds-field\"><span class=\"ds-field-label\">Email</span><input class=\"ds-input\" placeholder=\"you@chambers.in\"></label>",
-      "css": ".ds-field { display: flex; flex-direction: column; gap: 6px; } .ds-field-label { font-family: Mukta, system-ui, sans-serif; font-size: 12px; font-weight: 500; line-height: 16px; letter-spacing: .12em; text-transform: uppercase; color: var(--brass-dark, #e6c877); } .ds-input { font-family: Mukta, system-ui, sans-serif; font-size: 16px; line-height: 24px; color: var(--text, #efe7d4); background: transparent; border: 0; border-bottom: 1px solid var(--line, #2a3c35); padding: 10px 0; min-height: 44px; } .ds-input::placeholder { color: var(--muted, #8e9a8e); } .ds-input:focus { outline: none; border-bottom: 2px solid var(--brass, #c9a24a); padding-bottom: 9px; } .ds-input:focus-visible { outline: 2px solid var(--brass, #c9a24a); outline-offset: 3px; }"
+      "css": ".ds-field { display: flex; flex-direction: column; gap: 6px; } .ds-field-label { font-family: Mukta, system-ui, sans-serif; font-size: 12px; font-weight: 500; line-height: 16px; letter-spacing: .12em; text-transform: uppercase; color: var(--brass-dark, #e6c877); } .ds-input { font-family: Mukta, system-ui, sans-serif; font-size: 16px; line-height: 24px; color: var(--text, #efe7d4); background: transparent; border: 0; border-bottom: 1px solid var(--line-control, #6b7c74); padding: 10px 0; min-height: 44px; } .ds-input::placeholder { color: var(--muted, #8e9a8e); } .ds-input:focus { outline: none; border-bottom: 2px solid var(--brass, #c9a24a); padding-bottom: 9px; } .ds-input:focus-visible { outline: 2px solid var(--brass, #c9a24a); outline-offset: 3px; }"
     },
     {
       "name": "Card",

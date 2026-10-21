@@ -1,7 +1,7 @@
 'use client';
 
 // T-511 part A: Input and Textarea (spec 3). Underline style on the folio, boxed style (1px
-// border/line, radius md) in Settings forms. States: default, focus (bottom border brass/fill
+// Control Line, radius md) in Settings forms. States: default, focus (bottom border brass/fill
 // 2px), error (error/text border + message, aria-invalid, aria-describedby), disabled.
 
 import { forwardRef, useId } from 'react';
@@ -30,7 +30,8 @@ function controlClasses(appearance: FieldAppearance, invalid: boolean): string {
     appearance === 'underline'
       ? 'rounded-none border-0 border-b bg-transparent px-0 py-nl-2 focus:border-b-2 focus:pb-[7px]'
       : 'rounded-nl-md border bg-nl-card px-nl-3 py-nl-2 focus:border-b-2 focus:pb-[7px]',
-    invalid ? 'border-nl-err' : 'border-nl-line focus:border-nl-brass',
+    // T-525: rest boundary is Control Line (3:1, WCAG 1.4.11); focus and error unchanged.
+    invalid ? 'border-nl-err' : 'border-[color:var(--line-control)] focus:border-nl-brass',
     'focus:outline-none focus-visible:outline-none',
   );
 }
