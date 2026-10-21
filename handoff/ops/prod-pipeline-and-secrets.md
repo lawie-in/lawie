@@ -172,3 +172,15 @@ T-403's AC line "`develop` is merged to `main`" is amended to "`main` is cut fro
 **Triggers to buy:** first paying cohort live, or any month with >60 % average CPU on the box, or the first deploy that a user complains about. Then: ALB + ASG min 1 max 3, ElastiCache, ~2 lead-days plus Kunal's console steps. Vikram prices the exact month.
 
 Not now: multi-AZ database (Flex is single-region, fine), CDN (Next.js static assets are small; add CloudFront only if latency outside Mumbai becomes a complaint), WAF (revisit with public launch).
+
+### Vikram's corrections on autoscaling (21 Oct 2026) — supersede the table above
+
+- **ALB holds 2 public IPv4s** (one per AZ, minimum two AZs): 2 × ₹310 ≈ **₹620**, not ₹310.
+- **ALB LCU:** budget ~1 LCU-hour all month ≈ $6 → ALB total ≈ $23 ≈ **₹2,000**.
+- **Shared cache: ElastiCache Valkey** cache.t4g.micro ≈ $9–10 ≈ **₹800** (≈20 % under Redis OSS; ioredis speaks to it unchanged).
+- **Fargate hidden cost:** each task in a public subnet holds its own IPv4 → six tasks ≈ +₹1,900, or NAT ≈ ₹3,500. Strengthens the EC2 ASG choice.
+- **Min 1 gives scaling and zero-downtime deploys** (instance refresh, 100 % healthy minimum), **not availability**: a dead box means minutes of downtime while the ASG replaces it. Real availability = min 2 across 2 AZs ≈ +₹3,100/month — founder's call, at the trigger.
+
+**Delta over the single box, before GST:** min 1 idle ≈ ₹3,000 (Vikram models ₹3,500); min 2 ≈ ₹6,600.
+
+**Finance rulings:** design now, buy on triggers — agreed. Added trigger: **50 paying subs** (≈ 5 subs' net pays for it). Whichever of the four triggers comes first. Model v8: Parameter Store ₹0; prod box ₹3,250 with IP and disk; +₹3,500 step at 50 paying subs; launch fixed infra ≈ ₹18,000/month without the Claude plan.
