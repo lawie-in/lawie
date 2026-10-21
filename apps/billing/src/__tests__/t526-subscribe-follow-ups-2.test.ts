@@ -39,6 +39,7 @@ jest.mock('../config/razorpay', () => ({
   razorpay: {
     subscriptions: {
       create: jest.fn(),
+      all: jest.fn(),
       fetch: jest.fn(),
       cancel: jest.fn(),
       update: jest.fn(),
@@ -64,6 +65,7 @@ const WEBHOOK_SECRET = process.env.RAZORPAY_WEBHOOK_SECRET!;
 const createMock = razorpay.subscriptions.create as jest.Mock;
 const fetchMock = razorpay.subscriptions.fetch as jest.Mock;
 const cancelMock = razorpay.subscriptions.cancel as jest.Mock;
+const allMock = razorpay.subscriptions.all as jest.Mock;
 
 const DAY = 86_400_000;
 const past = () => new Date(Date.now() - 10 * DAY);
@@ -170,6 +172,7 @@ beforeEach(() => {
   mockSetExtra.mockClear();
   createMock.mockReset();
   fetchMock.mockReset();
+  allMock.mockReset();
   cancelMock.mockReset().mockResolvedValue({});
   warnSpy = jest.spyOn(logger, 'warn').mockImplementation(() => logger);
   errorSpy = jest.spyOn(logger, 'error').mockImplementation(() => logger);
@@ -404,6 +407,8 @@ describe('T-526 item 1: create timeout -> 503, lock kept, reported', () => {
 
     // Stand in for the TTL monitor.
     await SubscriptionCreateLock.deleteMany({ userId: u.userId });
+    // T-527: the timeout left a reconcile marker, so the retry scans Razorpay first.
+    allMock.mockResolvedValue({ items: [] });
     mockNewSub();
     const res = await subscribe(u);
 

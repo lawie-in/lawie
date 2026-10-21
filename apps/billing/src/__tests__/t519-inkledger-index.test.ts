@@ -210,6 +210,9 @@ describe('T-519 startup wiring (src/index.ts)', () => {
       jest.doMock('../config/logger', () => ({ __esModule: true, default: log }));
       jest.doMock('../config/ink-ledger-indexes', () => ({ ensureInkLedgerIndexes: ensure }));
       jest.doMock('../services/invoice-sweep.service', () => ({ startInvoiceSweep }));
+      jest.doMock('../services/subscription-reconcile-sweep.service', () => ({
+        startReconcileSweep: jest.fn(),
+      }));
       jest.requireActual('../index');
     });
 
@@ -251,6 +254,9 @@ describe('T-519 startup wiring (src/index.ts)', () => {
       jest.doMock('../config/env', () => ({ env: { PORT: 0, NODE_ENV: 'test' } }));
       jest.doMock('../config/logger', () => ({ __esModule: true, default: log }));
       jest.doMock('../services/invoice-sweep.service', () => ({ startInvoiceSweep }));
+      jest.doMock('../services/subscription-reconcile-sweep.service', () => ({
+        startReconcileSweep: jest.fn(),
+      }));
       // ink-ledger-indexes stays real; share the outer mongoose so the stubbed db is seen.
       jest.doMock('mongoose', () => outerMongoose);
       jest.requireActual('../index');
