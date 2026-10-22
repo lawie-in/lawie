@@ -146,21 +146,23 @@ describe('T-555 PainSolution is deleted (AJ-555-M3)', () => {
 });
 
 describe('T-555 old sentence is gone from user-facing source', () => {
-  // terms page carries the same sentence; follow-up ticket for Ajay's signed text and a Terms version decision (lead, 22 Oct)
-  // terms/page.tsx: see T-557 Part C (Ajay's text and the Terms version call)
   const TERMS_PAGE = join(WEB_SRC, 'app/(marketing)/terms/page.tsx');
-  const hasOldEnding = (f: string) =>
-    stripComments(readFileSync(f, 'utf8')).replace(/\s+/g, ' ').includes('BSA section numbers.');
 
-  it('no apps/web/src source file outside tests and comments ends the sentence at "BSA section numbers." (except the terms page)', () => {
+  it('no apps/web/src source file outside tests and comments ends the sentence at "BSA section numbers."', () => {
     const files = sourceFiles(WEB_SRC, false);
     expect(files).toContain(TERMS_PAGE);
-    const hits = files.filter((f) => f !== TERMS_PAGE && hasOldEnding(f));
+    const hits = files.filter((f) =>
+      stripComments(readFileSync(f, 'utf8')).replace(/\s+/g, ' ').includes('BSA section numbers.'),
+    );
     expect(hits).toEqual([]);
   });
 
-  it('the terms page exception is still needed (remove it when the terms page is fixed)', () => {
-    expect(hasOldEnding(TERMS_PAGE)).toBe(true);
+  // T-557 AJ-557-M1 (Ajay), inline: handoff/ is stripped from the main snapshot.
+  it('the terms page carries AJ-557-M1 followed by the unchanged sentence', () => {
+    const text = stripComments(readFileSync(TERMS_PAGE, 'utf8')).replace(/\s+/g, ' ');
+    expect(text).toContain(
+      'Criminal drafts use BNS, BNSS and BSA section numbers, or IPC, CrPC and the Evidence Act where the old law applies. The Service does not provide legal advice or representation.',
+    );
   });
 
   it('the JSX footer line break does not hide an old ending', () => {

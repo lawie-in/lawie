@@ -382,7 +382,7 @@
     "appellate_forum must match offence severity and forum hierarchy",
     "judgment_date must be valid date in past",
     "TIME-BAR CHECK: 30 days (Mag to Sessions); 60 days (Sessions to HC for conviction); 90 days (State against acquittal); 60 days (complainant against acquittal with leave). If exceeded, condonation needed.",
-    "offences_convicted must use BNS sections (warn if IPC sections detected)",
+    "offences_convicted uses the code in force on the date of the offence: BNS for an offence on or after 1 July 2024, IPC for an offence before that date (warn only where the sections do not match the offence date).",
     "grounds_of_appeal must not be empty",
     "errors_in_appreciation must not be empty",
     "legal_errors must not be empty",
