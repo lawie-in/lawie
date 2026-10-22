@@ -43,9 +43,9 @@ function render(el: ReactElement) {
 const norm = (s: string) => s.replace(/\s+/g, ' ');
 
 const FAQ_FREE =
-  '5 Ink on sign-up, once your email is verified (lifetime). Every document type on Lawie, PDF and DOCX export. Criminal drafts use BNS, BNSS and BSA section numbers.';
+  '5 Ink on sign-up, once your email is verified (one time). Every document type on Lawie, PDF and DOCX export. Criminal drafts use BNS, BNSS and BSA section numbers, or IPC, CrPC and the Evidence Act where the old law applies.';
 const FAQ_COST =
-  'Lawie has a free tier that includes 5 Ink (lifetime), once your email is verified. Paid plans add more Ink; see the pricing page for current plans.';
+  'Lawie has a free tier that includes 5 Ink (one time), once your email is verified. Paid plans add more Ink; see the pricing page for current plans.';
 
 // Every sentence-ish window that mentions "5 Ink" must say "verified" (or "verify", T-517:
 // "Verify your email to receive your 5 Ink.") within it, looking 60 characters back and 120 on.
