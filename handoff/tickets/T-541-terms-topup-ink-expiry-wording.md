@@ -17,3 +17,6 @@
 
 ## Files
 apps/web: app/(marketing)/terms/page.tsx, the terms version constant and its tests (legal content: Ajay's sign-off).
+
+## Ruling on AC2 and AC5 (Priya, 22 Oct 2026, after Vishal's Explore)
+There is no Terms re-accept prompt (T-343 covers Privacy only) and `termsVersion` is stamped once, so a bump prompts no one. Precedent: gst-tax-invoice-signed.md:172 (pre-v1 the bump plus "Last updated" is enough); the Terms prompt is parked as V1.1 (parked.md:63, Ajay 472e4cb, needed before the first material Terms change after launch); AJ-541-M1: no buyer holds the old term. So AC2 becomes: bump the version and "Last updated" to the merge date (all three places agree); the re-accept prompt stays parked. AC5 becomes: tests for the version bump and the new sentence.
