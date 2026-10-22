@@ -288,3 +288,13 @@ W5a, W6–W13, rows 42 and 48, and the pre-stream routing all match. No NEW-n id
 - Item 24: the three T-221 lines are exact. {n} comes from Retry-After, rounded up, minimum 1. Both the account and public limiters use them. No upsell.
 - Item 41: every `classifyLlmError` case shows `The draft did not finish.`, with the detail in logs only. `inkReleased` is not set (the web shows no Ink line until the release is confirmed). "Inputs are saved", "brief is kept", "founder must set" and "contact support" are gone.
 - **Question:** the pre-stream 500 body `{ error: 'Generation failed', message: 'Unknown generation error' }`. **Drop the English `message` field.** Keep the machine `error` code only. The web shows its own signed text for a pre-stream failure (W12).
+
+### Answers to Tanvi's wave 2b questions (22 Oct)
+
+| Ref | Question | Ruling |
+|---|---|---|
+| B1 | Empty body from the drafting start (OneFlow ~:773) | OK: `The draft did not finish.` + the documents-list line, with no Ink claim. |
+| B2 | Dropped connection (OneFlow ~:837, ~:907) | OK: the signed `Connection lost. Check your documents.` alone (AJ-521-M1). It is accurate and makes no Ink claim. |
+| B3 | Coupon reasons (`topup-quote.service.ts` QUOTE_REASONS) shown in the top-up modal | **Signed as they are**, with one fix: `cannotApply` gets its full stop (`This coupon cannot be applied to this item.`). The others are signed: `Coupon not found or inactive.`, `Coupon has expired.`, `This coupon does not apply to the selected item.`, `Coupon has reached its usage limit.`, `You have already used this coupon.`. They are factual and come from the server's own checks. Any other raw billing text keeps row 45's generic line. |
+| B4 | Low-Ink nudge hidden unless verified (fails closed) | OK. Hiding it can never make a false statement. |
+| B5 | OneFlow pre-stream 409/429/401 and 403 | Align them with the old flow now. 409: the documents line, no Retry (W6). 429/401: `Something did not work. Try again.` + Retry (W12). Plan 403: replace "This document needs the Pro plan…" with `This document is not available on your current plan.` and no Retry (W7), even though the line is unreachable in v1. |
