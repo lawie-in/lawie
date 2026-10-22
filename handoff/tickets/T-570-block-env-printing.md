@@ -19,3 +19,6 @@ A tester subagent ran `export -n` and printed the shell environment into its tra
 
 ## Files (Priya claims when a lead takes it)
 `.claude/settings.json` (hook entry), new hook script under `.claude/`, `CLAUDE.md` (one line), scan script and test. Root config: one lead at a time. Not before a lead is free.
+
+## Added 22 Oct 2026 (Shashank)
+The standard test command in docs uses `env -u REDIS_URL -u SENTRY_DSN yarn ...`. Shared form from now on: `(unset REDIS_URL SENTRY_DSN; yarn workspace @lawie/<ws> test)` (subshell unset, prints nothing). Acceptance criterion 5: update every doc that mentions `env -u` (CLAUDE.md and .claude/docs) to this form; the hook must not block the subshell form.
