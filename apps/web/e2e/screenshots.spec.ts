@@ -148,22 +148,7 @@ for (const theme of THEMES) {
       });
       await page.goto('/dashboard/documents');
       await expect(page.getByRole('link', { name: 'Regular bail application' })).toBeVisible();
-      // DEFECT T-571 (reported, not fixed here): /dashboard/documents scrolls sideways at 390 px
-      // (scrollWidth 473) and 768 px (888). Pinned directly, not with test.fail, so the network
-      // guard's teardown check still fails this test on any leak or unmocked call.
-      testInfo.annotations.push({
-        type: 'defect',
-        description: 'T-571 documents list sideways scroll',
-      });
-      if (testInfo.project.name === 'desktop-1280') {
-        await noSideways(page);
-      } else {
-        const { scrollWidth, inner } = await pageOverflow(page);
-        expect(
-          scrollWidth,
-          'DEFECT T-571: documents list overflows below 1280 px; if this fails the defect is fixed: switch to noSideways',
-        ).toBeGreaterThan(inner);
-      }
+      await noSideways(page);
       await saveShot(page, testInfo, theme, 'documents');
     });
 

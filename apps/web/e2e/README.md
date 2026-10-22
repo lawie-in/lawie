@@ -44,4 +44,4 @@ finder lists. Sign-in uses an unsigned fake JWT. Razorpay is never contacted: th
 ## Known gaps
 
 Sign-up spec is `fixme` until T-522 merges. The root loading folio shot is `fixme` (not reachable without a src change).
-`/dashboard/documents` overflows sideways below 1280 px (pinned with a direct `scrollWidth > innerWidth` check on mobile-390/tablet-768, DEFECT T-571; switch to noSideways once fixed).
+(The documents-list sideways scroll, T-571, is fixed and now guarded by `noSideways` on every project.)

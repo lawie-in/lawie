@@ -168,7 +168,7 @@ export default function MyDocumentsPage() {
       )}
 
       {!loading && !error && docs.length > 0 && (
-        <div className="border-nl-line bg-nl-card overflow-x-auto border">
+        <div className="border-nl-line bg-nl-card relative overflow-x-auto border">
           <table className="nl-body-sm w-full">
             <thead>
               <tr className="border-nl-line border-b">
