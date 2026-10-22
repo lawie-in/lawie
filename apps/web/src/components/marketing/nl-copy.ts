@@ -384,7 +384,7 @@ export const DASHBOARD_NAV_LABEL: Record<Lang, string> = {
  * The Terms version the auth service stores at sign-up. Must equal CURRENT_TERMS_VERSION in
  * apps/auth/src/models/User.model.ts (a test pins the two); change both together.
  */
-export const TERMS_VERSION = '2026-10-15';
+export const TERMS_VERSION = '2026-10-22';
 
 export const AUTH_COPY = {
   // §2.1. Tab order per Priya: Create account first, then Sign in.

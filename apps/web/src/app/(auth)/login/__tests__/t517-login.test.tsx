@@ -26,7 +26,7 @@ const SERVER = 'Could not sign you in. Try again.';
 const CONSENT_REQUIRED = 'Please accept the Privacy Policy and Terms to continue.';
 // AJ-517-M16 (Ajay, f74ee365): both versions, no date.
 const CONSENT_LABEL =
-  'I have read and agree to the Terms (version 2026-10-15) and the Privacy Policy (version 2026-10-15).';
+  'I have read and agree to the Terms (version 2026-10-22) and the Privacy Policy (version 2026-10-15).';
 const BY_CONTINUING =
   "By continuing, you agree to Lawie's Terms of Service and confirm you have read our Privacy Policy.";
 

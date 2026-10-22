@@ -75,10 +75,10 @@ describe('T-436 privacy page: §1 and §2 State lines (Ajay Addendum 7 (1))', ()
 });
 
 describe('T-436 terms page: Last updated (Addendum 7 (3a))', () => {
-  it('is 15 October 2026, the T-436 merge date, and the version file agrees', () => {
-    expect(norm(render(<TermsPage />).textContent)).toContain('Last updated: 15 October 2026');
+  it('is 22 October 2026 (T-541, moved on from the T-436 date 15 October), and the version file agrees', () => {
+    expect(norm(render(<TermsPage />).textContent)).toContain('Last updated: 22 October 2026');
     const user = fs.readFileSync(path.join(REPO, 'apps/auth/src/models/User.model.ts'), 'utf8');
-    expect(user).toContain("export const CURRENT_TERMS_VERSION = '2026-10-15';");
+    expect(user).toContain("export const CURRENT_TERMS_VERSION = '2026-10-22';");
   });
 });
 
