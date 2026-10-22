@@ -253,3 +253,159 @@ describe('T-549 consent card: 320px worst case (break-ui, class level in jsdom)'
     for (const b of buttons()) expect(b.className.split(/\s+/)).toContain('w-full');
   });
 });
+
+describe('T-549 consent card: hook for the Daylight pin', () => {
+  it('the section carries data-consent-card (the globals.css pin keys off it)', () => {
+    expect(section().hasAttribute('data-consent-card')).toBe(true);
+  });
+});
+
+// Ajay's three conditions (relayed by Priya), each enforced here.
+describe('T-549 consent card: Ajay condition (a), one constant for both buttons', () => {
+  const src = readFileSync(join(__dirname, '..', 'AnalyticsConsent.tsx'), 'utf8');
+  const tags = [...src.matchAll(/<Button\b([\s\S]*?)>\s*\{CONSENT_STRINGS/g)].map((m) => m[1]);
+
+  it('source has exactly two <Button elements', () => {
+    expect(tags).toHaveLength(2);
+  });
+
+  it('both use the same variant={identifier}, not a string literal', () => {
+    const variants = tags.map((t) => /variant=\{([A-Za-z_]\w*)\}/.exec(t)?.[1]);
+    expect(variants[0]).toBeDefined();
+    expect(variants[1]).toBe(variants[0]);
+    expect(src).toMatch(new RegExp(`const ${variants[0]}\\b[^=]*=\\s*'ghost'`));
+    expect(src.match(new RegExp(`\\b${variants[0]}\\b`, 'g'))!.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('both use the same className={identifier}, defined once as a string constant', () => {
+    const names = tags.map((t) => /className=\{([A-Za-z_]\w*)\}/.exec(t)?.[1]);
+    expect(names[0]).toBeDefined();
+    expect(names[1]).toBe(names[0]);
+    expect(src.match(new RegExp(`const ${names[0]}\\s*=`, 'g'))).toHaveLength(1);
+  });
+
+  it('no per-button variant, className or style literal in either tag', () => {
+    for (const t of tags) {
+      expect(t).not.toMatch(/variant="/);
+      expect(t).not.toMatch(/className="/);
+      expect(t).not.toMatch(/className=\{[`'"]/);
+      expect(t).not.toMatch(/style=/);
+    }
+  });
+
+  it('rendered classes and computed styles are identical', () => {
+    const [a, b] = buttons();
+    expect(a.className).toBe(b.className);
+    const sa = window.getComputedStyle(a);
+    const sb = window.getComputedStyle(b);
+    for (const p of Array.from(sa)) expect(sb.getPropertyValue(p)).toBe(sa.getPropertyValue(p));
+    expect(a.getAttribute('style')).toBe(b.getAttribute('style'));
+  });
+});
+
+describe('T-549 consent card: Ajay condition (b), nothing pre-selected or focused', () => {
+  const src = readFileSync(join(__dirname, '..', 'AnalyticsConsent.tsx'), 'utf8');
+
+  it('after mount, document.activeElement is neither button', () => {
+    const [a, b] = buttons();
+    expect(document.activeElement).not.toBe(a);
+    expect(document.activeElement).not.toBe(b);
+    expect(container.contains(document.activeElement) && document.activeElement?.tagName).not.toBe(
+      'BUTTON',
+    );
+  });
+
+  it('neither button has autofocus, aria-pressed, aria-checked or data-state', () => {
+    for (const bt of buttons()) {
+      expect(bt.hasAttribute('autofocus')).toBe(false);
+      for (const attr of ['aria-pressed', 'aria-checked', 'data-state', 'aria-selected']) {
+        expect(bt.hasAttribute(attr)).toBe(false);
+      }
+      expect(bt.querySelector('[data-state],[aria-pressed],[aria-checked]')).toBeNull();
+    }
+  });
+
+  it('source never autofocuses and never sets a pressed, checked or state attribute', () => {
+    expect(src).not.toMatch(/autoFocus/i);
+    expect(src).not.toMatch(/aria-pressed|aria-checked|aria-selected|data-state/);
+  });
+});
+
+describe('T-549 consent card: Ajay condition (c), same order and size in every theme', () => {
+  const signature = () =>
+    buttons().map((b) => ({ text: b.textContent, cls: b.className, parent: b.parentElement }));
+
+  /** Move the mounted card into a wrapper (e.g. `.mk`) without remounting React. */
+  function wrapIn(wrapperClass: string) {
+    const wrap = document.createElement('div');
+    wrap.className = wrapperClass;
+    container.parentElement!.insertBefore(wrap, container);
+    wrap.appendChild(container);
+    return wrap;
+  }
+
+  afterEach(() => {
+    document.documentElement.removeAttribute('data-theme');
+  });
+
+  const sizeClasses = (cls: string) =>
+    cls
+      .split(/\s+/)
+      .filter((c) => /(^|:)(h|w|min-w|min-h|px|py|p|text)-/.test(c) && !/^text-nl-/.test(c))
+      .sort();
+
+  let baseline: Array<{ text: string | null; size: string[] }>;
+  beforeEach(() => {
+    baseline = signature().map((s) => ({ text: s.text, size: sizeClasses(s.cls) }));
+  });
+
+  const cases: Array<[string, () => void]> = [
+    ['html[data-theme=night]', () => document.documentElement.setAttribute('data-theme', 'night')],
+    [
+      'html[data-theme=daylight]',
+      () => document.documentElement.setAttribute('data-theme', 'daylight'),
+    ],
+    ['inside a .mk wrapper (Daylight on cream)', () => wrapIn('mk')],
+    [
+      'inside .mk under Night',
+      () => {
+        document.documentElement.setAttribute('data-theme', 'night');
+        wrapIn('mk');
+      },
+    ],
+  ];
+
+  it('baseline: Decline first, h-11, w-full, same min width on both', () => {
+    expect(baseline.map((b) => b.text)).toEqual(['Decline', 'Accept']);
+    expect(baseline[0].size).toEqual(baseline[1].size);
+    expect(baseline[0].size).toEqual(
+      expect.arrayContaining(['h-11', 'w-full', 'sm:min-w-[120px]']),
+    );
+  });
+
+  it.each(cases)('%s: Decline first, identical classes, identical size classes', (_n, apply) => {
+    apply();
+    const now = signature();
+    expect(now.map((s) => s.text)).toEqual(['Decline', 'Accept']);
+    expect(now[0].cls).toBe(now[1].cls);
+    expect(now.map((s) => sizeClasses(s.cls))).toEqual(baseline.map((b) => b.size));
+    for (const s of now) expect(s.cls.split(/\s+/).some((c) => /^sm:h-/.test(c))).toBe(false);
+    // the card still carries its own token scope, whatever wraps it
+    expect(section().className.split(/\s+/)).toContain('nl');
+    expect(section().hasAttribute('data-consent-card')).toBe(true);
+    // computed styles stay identical
+    const [a, b] = buttons();
+    const sa = window.getComputedStyle(a);
+    const sb = window.getComputedStyle(b);
+    for (const p of Array.from(sa)) expect(sb.getPropertyValue(p)).toBe(sa.getPropertyValue(p));
+    expect(document.activeElement).not.toBe(a);
+    expect(document.activeElement).not.toBe(b);
+  });
+
+  it('no theme-conditional variant (dark:, night:, [data-theme]) is on either button or the row', () => {
+    for (const b of buttons()) {
+      expect(b.className).not.toMatch(/dark:|night:|daylight:|data-\[theme|\.mk/);
+      expect(b.parentElement!.className).not.toMatch(/dark:|night:|daylight:|data-\[theme|\.mk/);
+    }
+  });
+});

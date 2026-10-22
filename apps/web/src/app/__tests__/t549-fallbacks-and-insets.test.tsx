@@ -81,7 +81,7 @@ describe('T-549 dvh fallback triple (iOS < 15.4)', () => {
 });
 
 describe('T-549 safe-area classes on the legacy shell', () => {
-  it('Sidebar aside clears the left and top insets and keeps the 200px column', () => {
+  it('Sidebar aside clears the left inset only (no top inset) and keeps the 200px column', () => {
     const src = read('components/dashboard/Sidebar.tsx');
     const m = /<aside className="([^"]+)"/.exec(src);
     expect(m).not.toBeNull();
@@ -89,11 +89,13 @@ describe('T-549 safe-area classes on the legacy shell', () => {
     expect(c).toEqual(
       expect.arrayContaining([
         'pl-[env(safe-area-inset-left,0px)]',
-        'pt-[env(safe-area-inset-top,0px)]',
         'w-[calc(200px+env(safe-area-inset-left,0px))]',
       ]),
     );
     expect(c).not.toContain('w-[200px]');
+    expect(c.some((x) => x.startsWith('pt-[env('))).toBe(false);
+    expect(m![1]).not.toContain('pt-[env(');
+    expect(m![1]).not.toContain('safe-area-inset-top');
   });
 
   it('dashboard layout top bar clears the side insets; md and up drop the left one', () => {
