@@ -42,6 +42,22 @@
   /* T-531: a sticky shell TopBar publishes its live height as --nl-bar-h (ResizeObserver), so
      focus and anchor jumps land below it. Layered, so NightTopBar's scoped fallback <style> wins. */
   html { scroll-padding-top: var(--nl-bar-h, 0px); }
+
+  /* T-549 (Rajesh T-531 F1): Wall ground on the canvas, so overscroll and rubber-banding never
+     show the white body on a Night page. Scoped to pages whose #main holds a Night root; portals
+     (dialogs, menus) sit outside #main and do not count, so legacy pages keep their own ground.
+     Literal hex, equal to THEME_COLOR (shell/theme.ts) and --bg-wall; no tokens on html.
+     Without :has (Safari < 15.4, Firefox < 121) the canvas stays white, as before. */
+  html:has(#main .nl-root) { background-color: #f3efe4; }
+  html[data-theme='night']:has(#main .nl-root) { background-color: #0e1a17; }
+  html:has(#main .nl-root) body { background-color: transparent; }
+
+  /* T-549: overflow-x: clip fallback (Safari < 16 drops `clip`, so the page wrappers overflow).
+     On html only: html overflow goes to the viewport, which already scrolls, so sticky bars keep
+     sticking. Never on body or on the wrappers: either becomes the scroll container. */
+  @supports not (overflow: clip) {
+    html { overflow-x: hidden; }
+  }
 }
 
 /* TipTap editor styles */
@@ -177,6 +193,54 @@ html[data-theme='night'] .nl {
   --warn-light: #3a2e12;
   --lamp: rgba(255, 214, 140, 0.22);
   --shadow-card: 0 20px 50px -24px rgba(0, 0, 0, 0.9);
+}
+/* T-549 (Rajesh M1): the consent card on legacy .mk pages (no theme toggle there) is always
+   Daylight, whatever the stored theme. Night pages keep following the theme.
+   SOURCE: these values are a copy of the Daylight block above (`.nl, html[data-theme='daylight']
+   .nl`); change both together (t549 tests compare them). Not merged into that block on purpose:
+   an engine without :has() (Safari < 15.4, Firefox < 121) drops a whole rule whose selector list
+   contains :has(), which would take every Daylight token with it. Specificity (0,3,1) beats the
+   Night block's (0,2,1); the second selector covers the card's .nl children (each Button). */
+html:has(.mk) [data-consent-card].nl,
+html:has(.mk) [data-consent-card] .nl {
+  --bg-wall: #f3efe4;
+  --bg-wood: #e9e2d1;
+  --bg-card: #fbf8f0;
+  --text: #1c2a25;
+  --text-soft: #3d4c46;
+  --muted: #5c685f;
+  --line: #d9d1be;
+  --line-control: #8a8476;
+  --brass: #866619;
+  --brass-dark: #6e5415;
+  --brass-light: #f6ebcf;
+  --brass-mark: #e6c877;
+  --on-brass: #ffffff;
+  --ox: #8e2f2f;
+  --ox-hi: #b85050;
+  --ok: #1b7658;
+  --ok-light: #ddf2e8;
+  --err: #b3261e;
+  --err-light: #fce9e7;
+  --warn: #7a5300;
+  --warn-light: #fbefd2;
+  --lamp: rgba(255, 200, 90, 0.16);
+  --shadow-card: 0 20px 50px -28px rgba(28, 42, 37, 0.45);
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --radius-none: 0px;
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-pill: 999px;
+  --hairline: 1px;
 }
 
 /* Everything below that sets a property (not just a custom property) is in @layer components,
@@ -331,6 +395,18 @@ html[data-theme='night'] .nl {
   html[data-theme='night'] .nl::selection,
   html[data-theme='night'] .nl ::selection {
     background-color: #332a14;
+  }
+  /* T-549 (Rajesh M1): the consent card on .mk pages is pinned to Daylight (token block above). */
+  html:has(.mk) [data-consent-card].nl ::selection,
+  html:has(.mk) [data-consent-card] .nl::selection {
+    background-color: #f3e9c8;
+  }
+
+  /* T-549 (Rajesh M1): marketing.css's `:where(html:has(.mk)) h2` adds letter-spacing and
+     balance; the consent title keeps nl-h2's own setting. (0,1,1) beats the :where (0,0,1). */
+  [data-consent-card] h2 {
+    letter-spacing: normal;
+    text-wrap: wrap;
   }
 
   /* T-524 forced colours (Windows High Contrast): backgrounds become Canvas, so a skeleton block

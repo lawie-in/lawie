@@ -110,7 +110,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Content area */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Top bar — mobile menu button + credit pill (visible on all sizes) */}
-        <div className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3">
+        <div className="flex items-center justify-between border-b border-slate-200 bg-white py-3 pl-[max(16px,env(safe-area-inset-left,0px))] pr-[max(16px,env(safe-area-inset-right,0px))] md:pl-4">
           <button
             onClick={() => setSidebarOpen(true)}
             aria-label="Open menu"

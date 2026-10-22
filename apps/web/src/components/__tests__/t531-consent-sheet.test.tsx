@@ -65,17 +65,18 @@ describe('consent banner phone sheet (AC4)', () => {
     expect(cls()).toContain('max-h-[max(40vh,8rem)]');
   });
 
-  it('from 640px the card is the unchanged bottom-left 400px one', () => {
+  it('from 640px the card is the bottom-left 400px one, now with the 4px Card radius (T-549)', () => {
     expect(cls()).toEqual(
       expect.arrayContaining([
         'sm:inset-x-auto',
         'sm:bottom-6',
         'sm:left-6',
         'sm:w-[400px]',
-        'sm:rounded-xl',
+        'sm:rounded-nl-md',
         'sm:border',
         'sm:p-5',
       ]),
     );
+    expect(cls()).not.toContain('sm:rounded-xl');
   });
 });

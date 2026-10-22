@@ -38,6 +38,13 @@ export {
   type ToastProviderProps,
 } from './Toast';
 export { Banner, BANNER_TONE, type BannerKind, type BannerProps, type BannerTone } from './Banner';
-export { Dialog, type DialogProps, type DialogVariant } from './Dialog';
+export {
+  Dialog,
+  DIALOG_OVERLAY_CLASS,
+  DIALOG_SHEET_CLASS,
+  DIALOG_TALL_CAP_CLASS,
+  type DialogProps,
+  type DialogVariant,
+} from './Dialog';
 export { Lamp, DustMotes, type DustMotesProps } from './Lamp';
 export * from './motion';

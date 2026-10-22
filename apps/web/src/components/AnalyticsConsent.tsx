@@ -9,6 +9,9 @@ import {
   sanitizePageLocation,
 } from './analytics/analytics-routes';
 
+import { Button, type ButtonVariant } from '@/components/ui/Button';
+import { cn } from '@/lib/cn';
+
 // T-310: Google Analytics loads only after the visitor accepts (DPDP). No answer or Decline: no
 // gtag.js and no _ga cookie. Replaces T-306's GoogleAnalytics component as the only GA loader.
 // Mechanism: Arjun (handoff/tickets/T-310-analytics-consent-before-ga.md). Look and behaviour:
@@ -299,12 +302,16 @@ export const SPLASH_END_EVENT = 'lawie:splash-end';
 // ── Component ────────────────────────────────────────────────────────────────────────────────
 
 // D2: one class string for both buttons. Do not add a variant.
-const choiceBtn =
-  'inline-flex h-11 items-center justify-center rounded-lg border-2 border-brand-navy bg-white ' +
-  'px-4 text-[15px] font-semibold text-brand-navy ' +
-  'hover:bg-brand-page active:bg-brand-line ' +
-  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal focus-visible:ring-offset-2 ' +
-  'sm:h-10 sm:min-w-[120px] [@media(pointer:coarse)]:sm:h-11';
+// T-549 (Rajesh T-531 F1): both are the same ghost Button (Brass Text label, 1px Control Line,
+// transparent, no fill), 44px at every width. Neither is weighted (Ajay, T-310 D1-D6).
+const CHOICE_VARIANT: ButtonVariant = 'ghost';
+const choiceBtn = 'w-full sm:min-w-[120px]';
+
+// T-549 (F1): Night tokens. `nl` scopes the tokens to the card itself (it sits outside #main and
+// any .nl ancestor); they follow html[data-theme] on every route. Not nl-root: no Wall paint.
+const CARD_SURFACE = 'nl font-nl-body bg-nl-card border-nl-line text-nl-text shadow-nl-card';
+// Desktop card radius: DESIGN.md Shapes (cards 0 or 4px). The phone sheet keeps its 12px top.
+const CARD_DESKTOP_RADIUS = 'sm:rounded-nl-md';
 
 type CardMode = 'closed' | 'first' | 'reopen';
 
@@ -496,34 +503,44 @@ export default function AnalyticsConsent() {
         // side insets (viewport-fit=cover). From 640px the bottom-left card is unchanged.
         <section
           ref={cardRef}
+          // T-549 (Rajesh M1): hook for the Daylight pin on legacy .mk pages (globals.css).
+          data-consent-card=""
           aria-labelledby="consent-title"
           aria-describedby="consent-desc"
           onKeyDown={onKeyDown}
-          className="border-brand-line text-brand-navy fixed inset-x-0 bottom-0 z-[55] flex max-h-[max(40vh,8rem)] flex-col rounded-t-[12px] border-t bg-white p-4 pb-[calc(16px+env(safe-area-inset-bottom,0px))] pl-[max(16px,env(safe-area-inset-left,0px))] pr-[max(16px,env(safe-area-inset-right,0px))] shadow-[0_12px_32px_rgba(13,31,60,0.14)] sm:inset-x-auto sm:bottom-6 sm:left-6 sm:w-[400px] sm:rounded-xl sm:border sm:p-5"
+          className={cn(
+            CARD_SURFACE,
+            'fixed inset-x-0 bottom-0 z-[55] flex max-h-[max(40vh,8rem)] flex-col rounded-t-[12px] border-t p-4',
+            'pb-[calc(16px+env(safe-area-inset-bottom,0px))] pl-[max(16px,env(safe-area-inset-left,0px))] pr-[max(16px,env(safe-area-inset-right,0px))]',
+            'sm:inset-x-auto sm:bottom-6 sm:left-6 sm:w-[400px] sm:border sm:p-5',
+            CARD_DESKTOP_RADIUS,
+          )}
         >
-          {/* -m-1 p-1: room for the link's focus ring inside the scroll clip; layout unchanged. */}
-          <div className="-m-1 min-h-0 flex-1 overflow-y-auto p-1">
+          {/* -m-1.5 p-1.5: room for the link's nl-focus ring (3px offset + 2px) inside the scroll
+              clip; layout unchanged. */}
+          <div className="-m-1.5 min-h-0 flex-1 overflow-y-auto p-1.5">
             <h2
               id="consent-title"
               ref={titleRef}
               tabIndex={-1}
-              className="font-heading text-base font-semibold leading-snug focus:outline-none"
+              className="nl-h2 text-nl-text focus:outline-none"
             >
               {CONSENT_STRINGS.S1}
             </h2>
 
-            <p id="consent-desc" className="text-brand-muted mt-1.5 text-sm leading-relaxed">
+            <p id="consent-desc" className="text-nl-soft nl-body-sm mt-1.5">
               {CONSENT_STRINGS.S2}{' '}
               <a
                 href="/privacy#browser-storage"
-                className="text-brand-navy hover:text-brand-teal-dark focus-visible:ring-brand-teal rounded-sm font-medium underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                // Inline in the sentence: not NL_TEXT_LINK, whose 44px min-height breaks the line.
+                className="nl-focus rounded-nl-sm text-nl-brass-dark font-medium underline underline-offset-2"
               >
                 {CONSENT_STRINGS.S3}
               </a>
             </p>
 
             {mode === 'reopen' && record && (
-              <p className="text-brand-navy mt-2 text-sm">
+              <p className="text-nl-text nl-body-sm mt-2">
                 {record.choice === 'granted'
                   ? CONSENT_STRINGS.S4_GRANTED
                   : CONSENT_STRINGS.S4_DENIED}
@@ -533,12 +550,16 @@ export default function AnalyticsConsent() {
 
           {/* D3: Decline, then Accept. Outside the scroll region, so always visible. */}
           <div className="mt-3 grid shrink-0 grid-cols-2 gap-2 sm:mt-4">
-            <button type="button" onClick={() => decide('denied')} className={choiceBtn}>
+            <Button variant={CHOICE_VARIANT} onClick={() => decide('denied')} className={choiceBtn}>
               {CONSENT_STRINGS.S5}
-            </button>
-            <button type="button" onClick={() => decide('granted')} className={choiceBtn}>
+            </Button>
+            <Button
+              variant={CHOICE_VARIANT}
+              onClick={() => decide('granted')}
+              className={choiceBtn}
+            >
               {CONSENT_STRINGS.S6}
-            </button>
+            </Button>
           </div>
         </section>
       )}

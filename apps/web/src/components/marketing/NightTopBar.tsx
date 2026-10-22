@@ -126,6 +126,13 @@ export function NightTopBar({
       {copy.nav.signIn}
     </Link>
   );
+  // T-549 (Rajesh T-531 F4): in the menu, Sign in shares the nav links' 12px inner inset
+  // (MENU_LINK's px-nl-3), so the menu has one text edge. The row keeps px-nl-2.
+  const menuSignIn = (
+    <Link className={cn(NL_TEXT_LINK, 'px-nl-3 font-medium')} href={SIGNIN_HREF}>
+      {copy.nav.signIn}
+    </Link>
+  );
 
   return (
     // `contents`: the wrapper draws no box, so the header's sticky containing block is still the
@@ -184,7 +191,7 @@ export function NightTopBar({
             {lang_ ? <div>{lang_}</div> : null}
             <ThemeToggle legend={theme.legend} labels={theme.labels} />
             {/* Below 720 only: from 720 Sign in is in the row, so the menu does not repeat it. */}
-            {showActions ? <div className="min-[720px]:hidden">{signIn}</div> : null}
+            {showActions ? <div className="min-[720px]:hidden">{menuSignIn}</div> : null}
           </>
         }
       />
