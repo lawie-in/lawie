@@ -1104,3 +1104,133 @@ describe('T-542 AC10: reconcile answers `live` with a CHECKOUT row', () => {
     expect(createMock).not.toHaveBeenCalled();
   });
 });
+
+// ─── ruling (a): a paid orphan reported-not-adopted answers 409 ──────────────
+describe('T-542 (a): paidOrphanNotAdopted on the live outcome', () => {
+  type Flagged = { kind: string; paidOrphanNotAdopted?: true };
+
+  beforeEach(async () => {
+    await ensureSubscriptionIndexes();
+  });
+
+  describe.each([
+    ['same plan', SOLO],
+    ['different plan', PRO],
+  ])('live orphan refused because of the user checkout row (%s)', (_l, blockerPlan) => {
+    it('outcome is flagged; /subscribe answers 409, no link fetch, no cancel, no create', async () => {
+      const u = await seedUser();
+      await plantMarker(u.userId);
+      allMock.mockResolvedValue({ items: [rzpItem(u.userId, sid('paid-o'), 'active', SOLO)] });
+      createLosesTo(u, sid('co-blk'), 'created', blockerPlan);
+
+      const res = await subscribe(u, SOLO);
+
+      expect(res.status).toBe(409);
+      expect(res.body.error).toBe('subscription_exists');
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(cancelMock).not.toHaveBeenCalled();
+      expect(createMock).not.toHaveBeenCalled();
+      expect(callsFor(errorSpy, NOT_ADOPTED)).toHaveLength(1);
+      expect(await getSub(sid('paid-o'))).toBeNull();
+      expect(await lockCount(u.userId)).toBe(0);
+    });
+
+    it('service level: kind live with paidOrphanNotAdopted true', async () => {
+      const u = await seedUser();
+      await plantMarker(u.userId);
+      allMock.mockResolvedValue({ items: [rzpItem(u.userId, sid('paid-o2'), 'active', SOLO)] });
+      createLosesTo(u, sid('co-blk2'), 'created', blockerPlan);
+
+      const out = (await recon(u, SOLO)) as Flagged;
+
+      expect(out.kind).toBe('live');
+      expect(out.paidOrphanNotAdopted).toBe(true);
+    });
+  });
+
+  it('target refused, then fetched live at the ~:918 check: flagged; 409 through /subscribe', async () => {
+    const u = await seedUser();
+    await plantMarker(u.userId);
+    allMock.mockResolvedValue({ items: [rzpItem(u.userId, sid('tgt-a'), 'created', SOLO)] });
+    fetchMock.mockResolvedValueOnce({ status: 'created' }).mockResolvedValue({ status: 'active' });
+    createLosesTo(u, sid('co-blk3'), 'created');
+
+    const res = await subscribe(u, SOLO);
+
+    expect(res.status).toBe(409);
+    expect(res.body.error).toBe('subscription_exists');
+    expect(fetchMock).toHaveBeenCalledTimes(2); // pre-adopt + ~:918; no link fetch
+    expect(cancelMock).not.toHaveBeenCalled();
+    expect(createMock).not.toHaveBeenCalled();
+    expect(callsFor(errorSpy, NOT_ADOPTED)).toHaveLength(1);
+  });
+
+  it('an extra live orphan is reported and the outcome is flagged', async () => {
+    const u = await seedUser();
+    await plantMarker(u.userId);
+    const now = Math.floor(Date.now() / 1000);
+    allMock.mockResolvedValue({
+      items: [
+        rzpItem(u.userId, sid('x-new'), 'active', SOLO, now + 50),
+        rzpItem(u.userId, sid('x-old'), 'halted', SOLO, now + 10),
+      ],
+    });
+
+    const out = (await recon(u, SOLO)) as Flagged;
+
+    expect(out.kind).toBe('live');
+    expect(out.paidOrphanNotAdopted).toBe(true);
+    expect(callsFor(errorSpy, NOT_ADOPTED)).toHaveLength(1);
+    expect(cancelMock).not.toHaveBeenCalled();
+  });
+
+  it('plain checkout conflict (target refused, still a checkout): no flag; same plan reuses the link (AC10)', async () => {
+    const u = await seedUser();
+    await plantMarker(u.userId);
+    allMock.mockResolvedValue({ items: [rzpItem(u.userId, sid('tgt-p'), 'created', SOLO)] });
+    createLosesTo(u, sid('co-blk4'), 'created');
+
+    const out = (await recon(u, SOLO)) as Flagged;
+    expect(out.kind).toBe('live');
+    expect(out).not.toHaveProperty('paidOrphanNotAdopted');
+    expect(callsFor(errorSpy, NOT_ADOPTED)).toHaveLength(0);
+  });
+
+  it('plain checkout conflict, different-plan blocker: no 409, the blocker is cancelled and a new sub is created', async () => {
+    const u = await seedUser();
+    await plantMarker(u.userId);
+    allMock.mockResolvedValue({ items: [rzpItem(u.userId, sid('tgt-q'), 'created', PRO)] });
+    createMock.mockResolvedValue({ id: sid('fresh-q'), short_url: url('fresh-q') });
+    createLosesTo(u, sid('co-blk5'), 'created', SOLO);
+
+    const res = await subscribe(u, PRO);
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.subscriptionId).toBe(sid('fresh-q'));
+    expect(cancelMock).toHaveBeenCalledWith(sid('co-blk5'), false);
+    expect(createMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('D: a superseded target does not set the flag', async () => {
+    const u = await seedUser();
+    await plantMarker(u.userId);
+    const now = Math.floor(Date.now() / 1000);
+    allMock.mockResolvedValue({
+      items: [
+        rzpItem(u.userId, sid('d-target'), 'created', SOLO, now + 50),
+        rzpItem(u.userId, sid('d-late'), 'created', PRO, now + 10),
+      ],
+    });
+    fetchMock.mockImplementation(async (id: string) =>
+      id === sid('d-late') ? { status: 'active' } : { status: 'created' },
+    );
+
+    const out = await recon(u, SOLO);
+
+    expect(out.kind).toBe('live');
+    expect(out).not.toHaveProperty('paidOrphanNotAdopted');
+    expect(
+      callsFor(errorSpy, 'billing.subscription.reconcile_adopt_target_superseded'),
+    ).toHaveLength(1);
+  });
+});

@@ -532,7 +532,16 @@ interface RazorpaySubItem {
 export type ReconcileOutcome =
   | { kind: 'none' }
   | { kind: 'adopted_checkout'; subscriptionId: string; shortUrl: string; planId: string }
-  | { kind: 'live'; row: HydratedDocument<ISubscription> };
+  | {
+      kind: 'live';
+      row: HydratedDocument<ISubscription>;
+      /**
+       * T-558 (Arjun, ruling (a)): set (true) only when a paid Razorpay sub
+       * was reported reconcile_live_orphan_not_adopted. The subscribe path
+       * then answers 409 even when `row` is a checkout. Absent otherwise.
+       */
+      paidOrphanNotAdopted?: true;
+    };
 
 function errNameOf(err: unknown): string {
   return err instanceof Error ? err.name : typeof err;
@@ -1068,6 +1077,8 @@ export async function reconcileRazorpaySubscriptions(
   // and Sentry, ids only), never adopted and never cancelled here.
   const [newestOrphan, ...extraOrphans] = liveOrphans;
   let orphanAnswerId: string | null = null;
+  // T-558 (Arjun, ruling (a)): a paid sub was left unadopted (reported).
+  let paidOrphanNotAdopted = false;
   if (newestOrphan) {
     const row = await adoptRazorpaySub(userId, newestOrphan);
     orphanAnswerId = row.razorpaySubscriptionId;
@@ -1083,6 +1094,7 @@ export async function reconcileRazorpaySubscriptions(
         newestOrphan.id,
         row.razorpaySubscriptionId,
       );
+      paidOrphanNotAdopted = true;
       liveRows.push(row);
     }
   }
@@ -1093,6 +1105,7 @@ export async function reconcileRazorpaySubscriptions(
       extra.id,
       orphanAnswerId,
     );
+    paidOrphanNotAdopted = true;
   }
 
   // T-542 (Arjun): the adopt target was chosen while no live orphan was known;
@@ -1134,6 +1147,7 @@ export async function reconcileRazorpaySubscriptions(
           adoptTarget.item.id,
           row.razorpaySubscriptionId,
         );
+        paidOrphanNotAdopted = true;
       } else {
         checkReconcileBudget(userId, opts.lockedAt);
         await cancelNowAtRazorpay(userId, adoptTarget.item.id, {
@@ -1195,7 +1209,11 @@ export async function reconcileRazorpaySubscriptions(
     'billing.subscription.reconcile_done',
   );
 
-  if (liveRows.length > 0) return { kind: 'live', row: liveRows[0] };
+  if (liveRows.length > 0) {
+    return paidOrphanNotAdopted
+      ? { kind: 'live', row: liveRows[0], paidOrphanNotAdopted: true }
+      : { kind: 'live', row: liveRows[0] };
+  }
   return adopted ?? { kind: 'none' };
 }
 
@@ -1713,7 +1731,10 @@ async function createSubscriptionLocked(
     // when it is a checkout (the live index refused an adopt). That is not a
     // live sub: the local rules run again (same-plan reuse with its link,
     // different-plan cancel then create). A live row is still the 409.
-    if (!CHECKOUT_STATUSES.includes(reconciled.row.status)) {
+    // T-558 (Arjun, ruling (a)): not when a paid sub was left unadopted at
+    // Razorpay (reported): then the 409 on that row, never a link or a new
+    // sub the user could pay again.
+    if (reconciled.paidOrphanNotAdopted || !CHECKOUT_STATUSES.includes(reconciled.row.status)) {
       throw await existsError(reconciled.row);
     }
     const afterCheckoutConflict = await runLocalChecks();
