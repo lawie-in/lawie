@@ -28,3 +28,6 @@
 ## Acceptance criteria
 
 Each item done or moved with a reason; tests for 1, 2 and 5; Rajesh signs the restyled screens.
+
+## Added 22 Oct 2026 (Rajesh)
+15. Legacy cleanup: any legacy z-50 overlay still alive after the shell rebuild (credits modals, `DeleteDocumentDialog`) moves to z-[60], because the CommandBar now sits above them. Goes with the legacy-cleanup ticket, not T-544's build.
