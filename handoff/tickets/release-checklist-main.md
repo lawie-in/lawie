@@ -72,3 +72,6 @@ Repeat on production before main (there are no production subscriptions yet, so 
 2. Branch protection on `main`: only the workflow bot may push.
 3. Add the founder as the required reviewer on the `production` environment. Do NOT restrict that environment to `main`: the deploy workflow runs from `develop` (the default branch) and checks out a main sha, so a main-only rule would block every deploy. Set it to "no branch restriction" (or "protected branches only", with `develop` protected) and rely on the required reviewer (Arjun correction, 22 Oct 2026). `golden-set.yml`'s schedule, if any, will run from `develop`.
 4. AC7 (rollback drill) runs as a dispatchable job on a GitHub-hosted runner, not in the sandbox.
+
+## Security note, 22 Oct 2026 (founder decides)
+A tester subagent in Vishal's T-522 run printed the cloud session's environment (`export -n`), secrets included, into its own transcript. Nothing reached the repo, a commit, a push or a third party (Vishal's report). Vishal raised it with Arjun and the founder. Rotating the environment's secrets (including the test sign-up secret) is recommended; the call is the founder's and Arjun's. Rule for every crew prompt: never run `env`, `printenv`, `export` (any form) or `set`; to check a variable, test only whether it is set, never print it.
