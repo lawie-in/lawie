@@ -227,7 +227,7 @@ describe('new page: the cost shown equals the template credits_cost', () => {
     expect(generateCalls()).toHaveLength(0);
     expect(container.querySelector('#soft-warn-ink-cost')?.textContent).toBe('Uses 4 Ink');
     expect(container.querySelector('#soft-warn-skip-ink-cost')?.textContent).toBe('Uses 4 Ink');
-    await act(async () => buttonWith('Looks correct')?.click());
+    await act(async () => buttonWith('Generate anyway')?.click());
     await flush();
     expect(generateCalls()).toHaveLength(1);
   });

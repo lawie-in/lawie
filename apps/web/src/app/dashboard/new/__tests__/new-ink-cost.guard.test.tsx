@@ -192,14 +192,12 @@ describe('new page: the runGeneration guard (AC3)', () => {
     await act(async () => probe('probe-proceed').click());
     await flush();
     expect(generateCalls()).toHaveLength(0);
-    // the card body is Meera's line, exactly; the cost notice shows once, in the cost line
-    const bodies = Array.from(container.querySelectorAll('div')).filter(
-      (el) => el.children.length === 0 && el.textContent === NOT_STARTED_LINE,
-    );
-    expect(bodies).toHaveLength(1);
-    expect(bodies[0].closest('#generation-failed-retry-ink-cost')).toBeNull();
+    // T-565 row 41 / T6: the card shows the signed text only. The server/guard reason
+    // (here NOT_STARTED_LINE) is not rendered; the cost notice shows once, in the cost line.
     const count = (t: string) => (container.textContent ?? '').split(t).length - 1;
-    expect(count(NOT_STARTED_LINE)).toBe(1);
+    expect(count(NOT_STARTED_LINE)).toBe(0);
+    expect(count('The draft did not finish.')).toBeGreaterThanOrEqual(1);
+    expect(count('Check your documents list to see where this draft stands.')).toBe(1);
     expect(count(INK_COST_UNKNOWN)).toBe(1);
     const failedLine = container.querySelector('#generation-failed-retry-ink-cost');
     expect(failedLine?.textContent).toBe(INK_COST_UNKNOWN);
