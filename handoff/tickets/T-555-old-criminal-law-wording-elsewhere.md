@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Ajay (signed text for each place), a lead (build) |
 | Mode   | Small fix (web, legal content) |
-| Status | To do. Waiting on Ajay's call on each place. Priya, 22 Oct 2026 |
+| Status | Ready to build, signed text in (Ajay 9c4ad07e, AJ-555-M1 to M4). Next after T-554. Priya, 22 Oct 2026 |
 | Source | Vishal's T-554 report |
 
 ## Places that still say criminal drafts use only BNS, BNSS and BSA
@@ -21,3 +21,10 @@ AJ-541-M3 ruled only on FAQ line 53. Ajay signs the text for each (same old-law 
 
 ## Acceptance criteria
 Each place carries Ajay's signed text byte for byte, with a pin test; README passes prettier; Ajay byte-checks at READY.
+
+## Ajay's rulings (22 Oct 2026, 9c4ad07e, AJ-555-M1 to M4)
+- Footer (`SiteFooter.tsx:15`) and layout meta (`(marketing)/layout.tsx:33`): "Legal drafting for Indian advocates. Criminal drafts use BNS, BNSS and BSA section numbers, or IPC, CrPC and the Evidence Act where the old law applies."
+- About meta (`about/page.tsx:12`): the same sentence, keeping the opening "Why we built Lawie: a drafting assistant for Indian advocates."
+- `components/landing/PainSolution.tsx` is never imported: delete it (it carries "5 minutes", "correct" and "no guesswork" claims). Check nothing imports it, including tests.
+- `PipelineStatus` line ~251: "Citing BNS / BNSS sections…" becomes "Citing sections…".
+- None of these has Hindi.
