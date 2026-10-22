@@ -7,9 +7,8 @@
  *
  * T-521 (Night Library, spec 04/05): the folio with the inkwell drain and a
  * skeleton ("Still working…" after 8s). What a failure says about Ink is
- * decided in `generationFailure.ts` (Arjun ruling 4): the signed "The draft did
- * not finish. No Ink was used." only for a server error event that is not
- * `insufficient_ink`.
+ * decided in `generationFailure.ts` (Arjun ruling 4; T-567 item 41): "No Ink
+ * was used." only when a server error event confirms the hold was released.
  */
 import { AlertTriangle, Check } from 'lucide-react';
 
@@ -21,6 +20,12 @@ import { Button, Inkwell, Skeleton } from '@/components/ui';
 
 /** T-388: id of the Ink cost line under "Try again". */
 export const RETRY_INK_COST_ID = 'generating-retry-ink-cost';
+
+/**
+ * T-565 W12/W14 (Ajay): under "Try again" while it is off because the Ink cost is unknown.
+ * No link, no alert role, no Sentry report.
+ */
+export const COST_UNKNOWN_REASON = 'You can generate once the Ink cost is shown.';
 
 function Step({ state, children }: { state: 'done' | 'now'; children: React.ReactNode }) {
   return (
@@ -75,7 +80,9 @@ export default function GeneratingStep({
 }) {
   if (error) {
     // T-388 (Arjun): "Try again" charges, so it waits for a known cost.
-    const retryBlocked = inkCostState(inkCost, inkCostLoading) !== 'known';
+    const costState = inkCostState(inkCost, inkCostLoading);
+    const retryBlocked = costState !== 'known';
+    const costUnknown = costState === 'unknown';
     const copy = generationFailureCopy(error);
     return (
       <div className={page}>
@@ -85,6 +92,9 @@ export default function GeneratingStep({
             <AlertTriangle size={20} className="text-nl-err mt-1 flex-none" aria-hidden />
             <div className="min-w-0">
               <h1 className="nl-h3 text-nl-text break-words">{copy.headline}</h1>
+              {copy.statusLine && (
+                <p className="nl-body-sm text-nl-soft mt-nl-1 break-words">{copy.statusLine}</p>
+              )}
               {copy.detail && (
                 <p className="nl-body-sm text-nl-soft mt-nl-1 break-words">{copy.detail}</p>
               )}
@@ -104,14 +114,23 @@ export default function GeneratingStep({
                 >
                   Try again
                 </Button>
-                <InkCostLine
-                  id={RETRY_INK_COST_ID}
-                  cost={inkCost}
-                  loading={inkCostLoading}
-                  onRetry={onInkCostRetry}
-                  kind={kind}
-                  action="retry"
-                />
+                {/* T-565 W14 (Ajay): no unknown-cost notice or "Check the cost again" link on
+                    this card; while the cost is unknown the button stays off (T-388) and the
+                    signed reason line says why. Loading and known keep the cost line. */}
+                {costUnknown ? (
+                  <p id={RETRY_INK_COST_ID} className="nl-body-sm text-nl-soft m-0">
+                    {COST_UNKNOWN_REASON}
+                  </p>
+                ) : (
+                  <InkCostLine
+                    id={RETRY_INK_COST_ID}
+                    cost={inkCost}
+                    loading={inkCostLoading}
+                    onRetry={onInkCostRetry}
+                    kind={kind}
+                    action="retry"
+                  />
+                )}
               </div>
             )}
           </div>
@@ -129,7 +148,7 @@ export default function GeneratingStep({
             advocate's real level shows, static. Not shown while the balance is unknown. */}
         {typeof inkLevel === 'number' && <Inkwell balance={inkLevel} draining />}
         <div className="w-full min-w-0 text-center">
-          <h1 className="nl-h2 text-nl-text break-words">Drafting your {documentName}</h1>
+          <h1 className="nl-h2 text-nl-text break-words">Writing your {documentName}…</h1>
           <p className="nl-body text-nl-soft mt-nl-2">
             This can take a little while. Please keep this tab open.
           </p>

@@ -79,3 +79,7 @@ Vishal: unhold the tester and the web step. Build copy from Ajay's **S1–S8 onl
 ## Arjun (22 Oct 2026) — golden-set fixture user and the verified fence
 
 **(a).** `requireVerifiedEmail` exempts `isFixtureUser(userId)` before the DB read, exactly as `enforceCredits`, `feature-switches` and the credits fixture branches already do — same gateway-signed trust, same single helper, no new exemption surface. T-147e stands: the fixture user never gets a `users` row. Add the test that a non-fixture user with no row still gets 403, and one that the fixture user passes the fence without a DB read.
+
+## Arjun (22 Oct 2026, after the reviewer's PASS) — referral slot taken by unverified accounts
+
+**(c) now, (a) as the follow-up — merge T-522.** Referral codes are low-stakes pre-v1 and the hole needs a neutral sign-up abuser spending effort for a code slot. The follow-up does (a) properly: count `uses` **at grant time (verify)** with an atomic conditional update (`findOneAndUpdate({ code, uses: { $lt: maxUses } }, { $inc: { uses: 1 } })`), so a burst of verifications cannot exceed the cap — the "slightly over" concern disappears; the sign-up check becomes a soft pre-check only; a grant failure after the atomic increment reverses it in the catch. Same principle as Vikram's T-540 rule 1 (count at grant, not at intent). Priya posts it as the T-522 follow-up, not blocking the v1 batch.

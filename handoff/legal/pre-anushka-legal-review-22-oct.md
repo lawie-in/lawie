@@ -231,3 +231,51 @@ Items 29, 31, 32, 34, 35, 36, 37, 38, 39, 43 (T1, T3, T6), 44, 47 and 50 match b
 | Step 5 of 5 — ready | Signed as is. |
 
 With these, the old flow is fully signed. `describe_first` may still stay ON for Anushka. That choice is Priya's, not a legal requirement.
+| 63a | legal_notice_defamation.json:198, keep "If criminal route" | Yes, keep the condition. The whole line becomes: `If the criminal route is taken, cite BNS Section 356 for defamation on or after 1 July 2024, and IPC Sections 499 and 500 for defamation before that date.` |
+| 65g | mandamus.json:159 `Disclaimer: Lawie is a drafting assistant; advocate is responsible…` | Delete it, as with item 65. Priya extends the claim to that line. It is the only change to mandamus.json (T-489's signed lines are untouched). |
+
+### Answers to Tanvi's wave 2a questions (22 Oct)
+
+| Ref | Question | Ruling |
+|---|---|---|
+| W5a | Hidden NEW entries leave an empty lookup | **This refines W5.** Show the entry under section-converter Addendum 2: old box `No equivalent in the {OldCode}`, new section and title shown normally, copy `{NewCode} {n}` only. Never show or copy the `NEW-n` id. |
+| W6 | 409 "draft already in progress" | Hide Retry. Show `Check your documents list to see where this draft stands.` (signed). |
+| W7 | Plan-gate 403 | Hide Retry. Signed: `This document is not available on your current plan.` |
+| W8 | Not-started card, "Check the cost again" | Cut the notice (unsigned). Keep `Try again`, because nothing was charged. |
+| W9 | GeneratingStep.tsx:132 "Drafting your {documentName}" | `Writing your {documentName}…` |
+| W10 | "The draft could not start." twice on the hard-block card | Drop the step label, as proposed. |
+| W11 | Addendum 2 details (Tanvi) | Insert into a draft keeps the normal `§{n} {NewCode}`, and Addendum 2 governs Copy only. The search row stays as it is (the detail box carries `No equivalent in the {OldCode}`). New-provision rows show no `Mapped` badge. W8 extended: cut the unknown-cost notice and `Check the cost again` on every card (not-started, SoftWarn, request-failed). |
+| W12 | Pre-stream 401, 402 without data, 429, no body and read errors; greyed button with no reason | Generic `Something did not work. Try again.` + `Retry`: OK, because nothing started or was charged. The disabled button stays (AJ-511-M1: cost before generate). Signed reason line: `You can generate once the Ink cost is shown.` English only for now; Rajesh decides placement. |
+| W13 | CONNECTION_LOST; one status line; OneFlow fallback reasons | `Connection lost. Check your documents.` is signed (AJ-521-M1). A failed draft shows one status line, either `No Ink was used.` (only if inkReleased) or the documents line, never both. OneFlow :753, :791-793, :816, :886 show no reason (''), under `The draft did not finish.` + the 41b line. :745 (pre-start) uses `The draft could not start.` |
+
+### Answers to Shashank's batch 2 questions (T-566, 22 Oct)
+
+| Ref | Question | Ruling |
+|---|---|---|
+| S1 | Item 54 scope | The 14 criminal-category packs, **plus writ_petition_criminal**. maintenance_bnss_144, mact_claim, legal_notice_defamation and affidavit_identity get no item 54 line: their own lines (69, 57, 63, 62) govern. |
+| S2 | Whitelist heading and the "does not exist" sentence | Keep both. They speak only of BNS numbers. |
+| S3 | affidavit_identity "False statements in affidavits attract BNS Section 227 … same as IPC 191/192." | **Delete it** (item 62: no penal provision in the affidavit). |
+| S4 | discharge :250 (Nitya Dharmananda) | **Delete the whole line** (R2). The proposition cannot stand without the case, and rewriting it would add law (R5). |
+| S5 | Leftover topic fragments | Keep a fragment only if it is a complete proposition (e.g. "preventive detention requires strict compliance", "Article 136 not regular appeal"). Delete bare topic labels ("meaning of 'sufficient ground'.", "substantial question of law definition."). I check each one in the diff. |
+| S6 | habeas (f) tail | Delete the tail. The item reads `(f) Missing person with state action suspected.` |
+| S7 | slp change_protocol | Not intended. Signed: `Format STRICTLY per Supreme Court Rules 2013. All edits require CLO sign-off. Do not name judgments in model-visible text (Ajay, T-441).` |
+| S8 | "Suraj Lamp disclaimer" labels | Replace the label with `title clause` (e.g. "…— title clause must be inserted"). This is the deed's own clause that a GPA does not transfer title, not Lawie's disclaimer. |
+| S9 | Sample brand, invoice and addresses | `CoolDrink` becomes `SampleDrink`, the invoice `RKS/0042` becomes `SMP/0042`, and every street address becomes `Sample Road, Patna`. |
+| S10 | discharge checklist and gpa `_meta` | Checklist: `Court orders / judgments relied on`. gpa `_meta.change_protocol`: `The title clause must appear prominently…`, with the rest unchanged. |
+| S11 | Validator warning blocked by the missing offence date | Separate ticket after Mahak's merge, for the date scoping. **Now:** change the warning text to the signed `Check the code: Section {x} BNS replaced Section {y} IPC for an offence on or after 1 July 2024.` It is true whatever the offence date, so it may fire unscoped until then. "Use Section X BNS instead" must go now. |
+| S11a | Arjun's choice for the interim validator warning: suppress, or a neutral line | **Neutral line, not suppression.** It replaces my S11 interim text and is signed: `This draft cites Section {x} IPC. Confirm the offence date: BNS applies to offences on or after 1 July 2024, IPC to offences before that date.` Show it on any IPC citation, whatever the date, until the date-scoped follow-up lands. Then it gives way to the scoped item 54d warning. |
+
+### Byte check T-565 wave 2a, fix/t-565-legal-app-web @ 88c4aa8f: approved (Ajay, 22 Oct 2026)
+
+W5a, W6–W13, rows 42 and 48, and the pre-stream routing all match. No NEW-n id renders (the regexes and comments remain). The "Drafting could not finish" heading is gone (a comment only remains). `Cannot generate`, `Drafting your` and `No charge` are gone. **W14:** in the pre-generate cost line (`InkCostLine.tsx`), `We could not work out the Ink cost for this. Try again in a moment.` + button `Check the cost again` are **signed** there. They are a true, functional retry that serves AJ-511-M1. **On the GeneratingStep failure card, cut the notice**: W8 holds there, and the W12 line under the disabled button is enough. The OneFlow W13 lines follow after Vishal's merge.
+| W15 | Re-check at 91f7b777; the disabled button is a dead end if the cost never loads | **Approved at 91f7b777.** Only GeneratingStep changed, per W14. Dead end: the signed button `Check the cost again` (W14) **may** be reused, as a button only, on the GeneratingStep and PipelineStatus failure cards beside the W12 reason line, so the user can re-fetch the cost. No notice text is added. Whether to add it is Rajesh's or Priya's call. Legally either way is fine. |
+
+### Answers to Shashank's batch 3 flags (T-566 @ f5d340f5, 22 Oct)
+
+| Ref | Question | Ruling |
+|---|---|---|
+| S5a | Keeps and deletes | OK, except habeas line 1: delete the repeated "'habeas corpus is the great writ of liberty.'", because the sentence before it already says it. The other keeps and all four deletions stand. |
+| S8a | "title clause paragraph" | Drop "paragraph": `— title clause must be inserted` (gpa, spa). jda `— title clause required` is OK. |
+| S9a | Remaining sample places | Ranchi rent-agreement addresses become `Sample Road, Ranchi` (keep the state right). `Village Barh, Dist. Patna, Bihar – 803213` becomes `Sample Village, Dist. Patna, Bihar`. Bank branch becomes `Sample Branch, Patna`. In the s.138 sample, give the respondent `Sample Lane, Patna` so the two parties do not share an address. |
+| S11b | CrPC and IEA validator lines | Signed. CrPC: `This draft cites Section {x} CrPC. Confirm the date: BNSS applies to proceedings from 1 July 2024; CrPC continues for matters pending before that date.` IEA: `This draft cites Section {x} of the Evidence Act. Confirm the date: BSA applies from 1 July 2024; check whether the Evidence Act still governs this matter.` (The pending-matter savings under the BSA: verify, so the line does not state them.) Both replace the old "Use Section X … instead" and "Please verify" texts. |
+| S12 | gpa and spa `_meta.description` naming Suraj Lamp | Leave them. `_meta` is not sent to the model (R6), and only `change_protocol` was in scope. |

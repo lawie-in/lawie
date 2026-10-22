@@ -16,3 +16,6 @@ Only two `NEXT_PUBLIC_*` variables exist in `apps/web` (`NEXT_PUBLIC_API_URL`, `
 2. A CI step that builds web and greps the built client bundle (`.next/static`) for the values of known secret variables from a dummy env and for secret-shaped strings (gitleaks over the build output).
 3. A gitleaks full-history scan of the repository (not only staged changes); the report lists findings by commit and path with no values; anything real is rotated by the founder.
 4. A line in the leads' protocol: a variable the browser needs is `NEXT_PUBLIC_` and public; everything else is read only by backend services. Name any new `NEXT_PUBLIC_` variable in the handoff and READY.
+
+## Added 22 Oct 2026 (Kunal, T-523)
+`next build` run in a cloud shell that exports NEXT_PUBLIC_API_URL=https://api.lawie.in prerenders /tools, which calls GET /api/sections/features server-side (lib/features.ts) and may reach the hosted API (public, unauthenticated, no user data). Add an AC: outside CI, `next build` fails fast when NEXT_PUBLIC_API_URL is not a local host. Until then every crew build sets NEXT_PUBLIC_API_URL=http://localhost:4000 explicitly.

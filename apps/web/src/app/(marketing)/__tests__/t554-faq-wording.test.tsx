@@ -65,10 +65,14 @@ describe('T-554 FAQ criminal drafts sentence (AC2, AC3)', () => {
     );
   });
 
-  it('renders the signed sentence exactly once, code point for code point', () => {
+  it('renders the signed sentence in exactly two answers (free tier, T-564 item 7), code point for code point', () => {
     const signed = signedSentence();
     const text = renderFaq();
-    expect(countOccurrences(text, signed)).toBe(1);
+    expect(countOccurrences(text, signed)).toBe(2);
+    const answers = Array.from(container.querySelectorAll('*')).filter(
+      (el) => el.children.length === 0 && (el.textContent ?? '').includes(signed),
+    );
+    expect(answers.length).toBe(2);
 
     const start = text.indexOf(signed);
     const rendered = text.slice(start, start + signed.length);

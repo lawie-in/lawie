@@ -35,9 +35,9 @@ export default function FloatCta() {
     <Link
       className={visible ? 'float-cta is-visible' : 'float-cta'}
       href="/login"
-      aria-label="Try Lawie free"
+      aria-label="Start free"
     >
-      Try Lawie free <ArrowRight strokeWidth={1.5} />
+      Start free <ArrowRight strokeWidth={1.5} />
     </Link>
   );
 }

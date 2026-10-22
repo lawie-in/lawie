@@ -183,7 +183,7 @@ export default function DraftReadyStep({
           <h2 id="ready-checks" className="nl-h3 text-nl-text">
             Checks run for you
           </h2>
-          <Chip variant="ok">No charge</Chip>
+          <Chip variant="ok">Included</Chip>
         </div>
         {factCheck && (
           <div
@@ -252,7 +252,8 @@ export default function DraftReadyStep({
 
       {docId === null && (
         <p role="alert" className="bg-nl-err-light nl-body-sm text-nl-err p-nl-3">
-          The draft was written but could not be saved, so it cannot be opened. Please start again.
+          The draft was written but could not be saved. Check your documents list before you start
+          again.
         </p>
       )}
 
