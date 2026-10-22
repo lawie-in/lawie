@@ -238,6 +238,10 @@ describe.each(PATHS)('T-388 AC2 - shown equals charged: $name', (p) => {
     const res = await request(app).post(p.url).set(headers()).send(p.body());
     expect(res.status).toBe(200);
     expect(res.text).toContain('event: done');
+    // T-545: the done event reports the settled Ink: the same number as held, charged and shown
+    const doneBlock = res.text.split('\n\n').find((b) => b.startsWith('event: done\n')) ?? '';
+    const done = JSON.parse(doneBlock.split('\ndata: ')[1]) as Record<string, unknown>;
+    expect(done.inkDebited).toBe(expected);
 
     // held
     expect(holdSpy).toHaveBeenCalledTimes(1);

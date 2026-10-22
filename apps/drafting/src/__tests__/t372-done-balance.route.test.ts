@@ -133,6 +133,10 @@ describe('POST /generate-from-brief done balance', () => {
     const cost = costForTemplate('bail_regular') as number;
     expect(after).toBe(before - cost);
     expect(done?.balance).toEqual({ totalInk: after });
+    // T-545: the Ink actually settled, flat on done (not under cost), equal to the charge
+    expect(done?.inkDebited).toBe(cost);
+    expect(done?.inkDebited).toBe(before - after);
+    expect(done).not.toHaveProperty('cost');
     // the existing done fields are still there
     expect(typeof done?.docId).toBe('string');
     expect(done?.rulePack).toBe(true);

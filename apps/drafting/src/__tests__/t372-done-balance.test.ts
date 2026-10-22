@@ -96,7 +96,7 @@ describe('done carries balance.totalInk after a confirmed settle', () => {
     const res = makeRes();
     await drive(res, normalRun);
     const done = doneOf(res);
-    expect(done).toEqual({ ...DONE, balance: { totalInk: 8 } });
+    expect(done).toEqual({ ...DONE, inkDebited: COST, balance: { totalInk: 8 } });
     expect((await getCreditBalance(USER_ID)).totalInk).toBe(8);
     expect(res.end).toHaveBeenCalledTimes(1);
   });
@@ -163,7 +163,7 @@ describe('done without a balance', () => {
       .mockRejectedValue(new Error('secret-driver-text test@test.com Test Advocate 8'));
     const res = makeRes();
     await drive(res, normalRun);
-    expect(doneOf(res)).toEqual(DONE);
+    expect(doneOf(res)).toEqual({ ...DONE, inkDebited: COST });
     const warn = text(logs.warn);
     expect(warn).toContain('balance read for done failed');
     expect(warn).toContain('runId=run-1');
@@ -181,7 +181,7 @@ describe('done without a balance', () => {
     const took = Date.now() - started;
     expect(took).toBeGreaterThanOrEqual(900);
     expect(took).toBeLessThan(2500);
-    expect(doneOf(res)).toEqual(DONE);
+    expect(doneOf(res)).toEqual({ ...DONE, inkDebited: COST });
   });
 
   it.each([NaN, Infinity, -Infinity, '8', null, undefined])(
@@ -190,7 +190,7 @@ describe('done without a balance', () => {
       jest.spyOn(credits, 'getCreditBalance').mockResolvedValue({ totalInk } as never);
       const res = makeRes();
       await drive(res, normalRun);
-      expect(doneOf(res)).toEqual(DONE);
+      expect(doneOf(res)).toEqual({ ...DONE, inkDebited: COST });
     },
   );
 
@@ -198,7 +198,7 @@ describe('done without a balance', () => {
     jest.spyOn(credits, 'getCreditBalance').mockResolvedValue(undefined as never);
     const res = makeRes();
     await drive(res, normalRun);
-    expect(doneOf(res)).toEqual(DONE);
+    expect(doneOf(res)).toEqual({ ...DONE, inkDebited: COST });
   });
 
   it('failed settle: no balance and no balance read', async () => {
