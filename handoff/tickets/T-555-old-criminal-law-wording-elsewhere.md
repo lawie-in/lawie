@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Ajay (signed text for each place), a lead (build) |
 | Mode   | Small fix (web, legal content) |
-| Status | Ready to build, signed text in (Ajay 9c4ad07e, AJ-555-M1 to M4). Next after T-554. Priya, 22 Oct 2026 |
+| Status | Merged into develop_staging ef7fa227 (CI 902 green), 22 Oct 2026; waiting on Anushka's check on develop. Follow-up: T-557. Priya |
 | Source | Vishal's T-554 report |
 
 ## Places that still say criminal drafts use only BNS, BNSS and BSA
