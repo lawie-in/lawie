@@ -269,3 +269,13 @@ With these, the old flow is fully signed. `describe_first` may still stay ON for
 
 W5a, W6–W13, rows 42 and 48, and the pre-stream routing all match. No NEW-n id renders (the regexes and comments remain). The "Drafting could not finish" heading is gone (a comment only remains). `Cannot generate`, `Drafting your` and `No charge` are gone. **W14:** in the pre-generate cost line (`InkCostLine.tsx`), `We could not work out the Ink cost for this. Try again in a moment.` + button `Check the cost again` are **signed** there. They are a true, functional retry that serves AJ-511-M1. **On the GeneratingStep failure card, cut the notice**: W8 holds there, and the W12 line under the disabled button is enough. The OneFlow W13 lines follow after Vishal's merge.
 | W15 | Re-check at 91f7b777; the disabled button is a dead end if the cost never loads | **Approved at 91f7b777.** Only GeneratingStep changed, per W14. Dead end: the signed button `Check the cost again` (W14) **may** be reused, as a button only, on the GeneratingStep and PipelineStatus failure cards beside the W12 reason line, so the user can re-fetch the cost. No notice text is added. Whether to add it is Rajesh's or Priya's call. Legally either way is fine. |
+
+### Answers to Shashank's batch 3 flags (T-566 @ f5d340f5, 22 Oct)
+
+| Ref | Question | Ruling |
+|---|---|---|
+| S5a | Keeps and deletes | OK, except habeas line 1: delete the repeated "'habeas corpus is the great writ of liberty.'", because the sentence before it already says it. The other keeps and all four deletions stand. |
+| S8a | "title clause paragraph" | Drop "paragraph": `— title clause must be inserted` (gpa, spa). jda `— title clause required` is OK. |
+| S9a | Remaining sample places | Ranchi rent-agreement addresses become `Sample Road, Ranchi` (keep the state right). `Village Barh, Dist. Patna, Bihar – 803213` becomes `Sample Village, Dist. Patna, Bihar`. Bank branch becomes `Sample Branch, Patna`. In the s.138 sample, give the respondent `Sample Lane, Patna` so the two parties do not share an address. |
+| S11b | CrPC and IEA validator lines | Signed. CrPC: `This draft cites Section {x} CrPC. Confirm the date: BNSS applies to proceedings from 1 July 2024; CrPC continues for matters pending before that date.` IEA: `This draft cites Section {x} of the Evidence Act. Confirm the date: BSA applies from 1 July 2024; check whether the Evidence Act still governs this matter.` (The pending-matter savings under the BSA: verify, so the line does not state them.) Both replace the old "Use Section X … instead" and "Please verify" texts. |
+| S12 | gpa and spa `_meta.description` naming Suraj Lamp | Leave them. `_meta` is not sent to the model (R6), and only `change_protocol` was in scope. |
