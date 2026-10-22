@@ -43,3 +43,6 @@ Ajay's conditions for that cleanup (21 Oct 2026): (a) count first; the filter ma
 T-540 adds the AppSettings key `feature.coupon_free_grant` (default OFF). Turn it on only after T-553 (TopUpModal granted and 409 states) has shipped. Follow-ups after T-540: T-551 (invoice discount line), T-552 ("Coupon, ₹0" history row), T-553.
 
 T-540: switch `feature.coupon_free_grant` stays OFF until T-553 AND T-556 item 1 have shipped. While off, a 100% coupon shows "cannot apply".
+
+## Tests read handoff/ (22 Oct 2026, Vishal's T-555 reviewer)
+Several web tests read `handoff/legal/*` at test time (for example the byte-for-byte comparisons with signed strings). The main release snapshot strips `handoff/`, so CI on main would fail those tests together. Decide before the first cut of main: run tests only on develop, or copy the signed strings into a committed fixture the tests read, or skip those tests when `handoff/` is absent. Arjun (release-to-main.yml, T-403).
