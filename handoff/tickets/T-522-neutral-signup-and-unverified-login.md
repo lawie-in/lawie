@@ -31,3 +31,13 @@ Signed copy (M3) wants the same "Check your email" screen for a new and an exist
 **(3) Password hint: state the real rule, and keep the rule.** "At least 8 characters, with an upper-case letter, a lower-case letter and a digit." The hint and the server validator come from one shared constant in `packages/shared` so they cannot drift. Changing the rule itself (length over composition, per OWASP) is a separate ticket, after v1.
 
 Scope: auth (sign-up, verify-and-login token, resend), gateway/drafting (`requireVerifiedEmail` on generate), web (neutral screen, verify bar, hint from the shared constant). Touches legal copy (Ajay's AJ-511-M3 text is the screen copy; AJ-517-M18 is the item) — Ajay sign-off reference on the ticket. Full chain. Anushka's run covers both flows.
+
+## Arjun's detailed rulings (22 Oct 2026, relayed by Vishal; Arjun's full text is in Vishal's report)
+1. Tokens get a kind, `signin` or `verify`. Sign-up and resend links are `signin`: 30 min, single use, they sign the user in. The T-358 notice link is verify-only, 7 days. A missing kind counts as `verify`. The token is used up only by a POST. **Ship gate: no merge while the verify mail says "24 hours"** (Ajay re-signs the verify mail). ADR-001 (email-link sign-in) by Arjun; it does not block the build.
+2. Referral Ink is deferred to verify; `grantReferralInk` is fenced. `referralApplied` leaves the register response. `GET /me` gets `referralStatus`; the dashboard shows the notice once (wording: Ajay).
+3. Sign-up throttle in auth (Redis, T-221 pattern): IP 20/h then 429; email hash 5/h then 429; the M5 mail at most one per hour per address, silent; store failure then 503.
+4. Neutral answer: 202 `{status:'check_email'}` with no-store, after 422 validation first. Existing address: dummy bcrypt, 500 ms floor. E11000 counts as the existing-address outcome.
+5. New public `POST /verify-email/resend-by-email`, always the neutral 202. Verified or Google addresses get nothing. The expired page offers Sign in only.
+6. Drafting fence on every route that calls a model: generate x2, preflight, intake, intake/brief, intake/brief/update. It sits before `templateGuard` and `enforceCredits`. The pure `isVerified` check lives in `packages/shared`. Billing switches to it later, after Shashank's T-542/T-558.
+7. `GET /me` gets `signupInkGranted` and `referralStatus`.
+8. Billing: no change.
