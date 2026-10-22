@@ -117,17 +117,35 @@ describe('T-563 not applied: neutral 202, no test account, identical to a normal
     expect(warnSpy.mock.calls.filter((c) => c[1] === 'test_signup_rejected')).toHaveLength(0);
   });
 
-  it('from the 6th rejection from one IP: 429 with Retry-After', async () => {
+  it('from the 6th wrong secret from one IP: no 429; ordinary 202, identical to a baseline, warn still logged', async () => {
     const bad = { 'bypass-test': 'true', 'bypass-password': 'lts_' + 'z'.repeat(40) };
+    const base = await reg('base6@example.com', 'TEST_x', {}, {}, '203.0.113.77');
     for (let i = 1; i <= 5; i++) {
       const r = await reg(`rej${i}@example.com`, 'TEST_x', bad);
       expect(r.status).toBe(202);
     }
+    warnSpy.mockClear();
     const sixth = await reg('rej6@example.com', 'TEST_x', bad);
-    expect(sixth.status).toBe(429);
-    expect(sixth.headers['retry-after']).toBeDefined();
-    expect(sixth.body.error).toBe('rate_limited');
+    expect(sixth.status).toBe(202);
+    expect(sixth.text).toBe(base.text);
+    expect(sixth.headers['retry-after']).toBeUndefined();
+    expect(warnSpy.mock.calls.filter((c) => c[1] === 'test_signup_rejected')).toHaveLength(1);
     await noTestAccounts();
+  });
+
+  it('after 5 rejections from an IP, even the RIGHT secret is an ordinary 202 and no test account', async () => {
+    const bad = { 'bypass-test': 'true', 'bypass-password': 'lts_' + 'z'.repeat(40) };
+    for (let i = 1; i <= 5; i++) await reg(`pre${i}@example.com`, 'TEST_x', bad);
+    const res = await reg('TEST_right@example.com', 'TEST_right', GOOD);
+    expect(res.status).toBe(202);
+    expect(res.body).toEqual(NEUTRAL_BODY);
+    await noTestAccounts();
+    expect((await rawUsers().findOne({ email: 'test_right@example.com' }))?.emailVerified).toBe(
+      false,
+    );
+    // A different IP is unaffected.
+    const other = await reg('TEST_other2@example.com', 'TEST_other', GOOD, {}, '203.0.113.88');
+    expect(other.status).toBe(201);
   });
 });
 
@@ -268,6 +286,7 @@ describe('T-563 rate-limit store failure (service level)', () => {
   const payload = { email: 'TEST_s@example.com', password: PASSWORD, name: 'TEST_store' };
   const req = (headers: Hdrs) => ({ headers, ip: IP, meta: { ip: IP, userAgent: 'jest' } });
   const broken = {
+    get: jest.fn().mockResolvedValue(null),
     incr: jest.fn().mockRejectedValue(new Error('down')),
     pttl: jest.fn(),
     pexpire: jest.fn(),

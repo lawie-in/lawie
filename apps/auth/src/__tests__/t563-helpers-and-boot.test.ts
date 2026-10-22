@@ -26,6 +26,8 @@ describe('isProductionBox', () => {
     [{ RAZORPAY_KEY_GUARD: ' STRICT ' }, true],
     [{ SECRETS_ENV: 'prod' }, true],
     [{ SECRETS_ENV: 'Prod' }, true],
+    [{ SECRETS_ENV: 'production' }, true],
+    [{ SECRETS_ENV: ' Production ' }, true],
     [{ RAZORPAY_KEY_ID: 'rzp_live_abc' }, true],
     [{ RAZORPAY_KEY_ID: 'RZP_LIVE_abc' }, true],
     [{}, false],
@@ -85,6 +87,8 @@ describe('testSignupBypassBootRefusal (pure)', () => {
   const prodMarkers: Array<[string, Record<string, string>]> = [
     ['RAZORPAY_KEY_GUARD=strict', { RAZORPAY_KEY_GUARD: 'strict' }],
     ['SECRETS_ENV=prod', { SECRETS_ENV: 'prod' }],
+    ['SECRETS_ENV=production', { SECRETS_ENV: 'production' }],
+    ['SECRETS_ENV= Production ', { SECRETS_ENV: ' Production ' }],
     ['an rzp_live_ key', { RAZORPAY_KEY_ID: 'rzp_live_' + 'x'.repeat(10) }],
   ];
 
