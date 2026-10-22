@@ -2,7 +2,7 @@
 
 | Field  | Value                                                                   |
 | ------ | ----------------------------------------------------------------------- |
-| Status | To do. V1 (Anushka run 4 FAIL, 16 Oct 2026). Priya                       |
+| Status | Merged into develop_staging adbf485 (earlier; Status line was stale, set 22 Oct 2026). waiting on Anushka's check on develop. Priya |
 | Owner  | Mahak (found it), Ajay (signs the cap; goldens may move)                 |
 | Mode   | Full chain (legal content path)                                          |
 
