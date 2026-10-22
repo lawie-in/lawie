@@ -56,3 +56,6 @@ Where we differed, **Ajay's stricter line wins**; this section supersedes mine a
 2. **Retention:** test accounts are erased **within 7 days** of creation by the erase sweep (not 30), and the delete script's default is `--older-than 1d`; Anushka's run ends with the founder running `test-accounts:delete --apply`. Develop only.
 3. **Consent:** recorded with `acceptedVia: 'test'`, never counted as real consent, excluded from the consent export; synthetic facts only in any test draft; the 30 Ink carries no user-facing wording (ledger reason `test_grant` only).
 Everything else in my section stands. Both rulings now agree; Vishal may build after T-522.
+
+## Ajay
+Ruling: `handoff/legal/T-563-test-accounts-ruling-ajay.md` — CONFIRMED with conditions. Ajay's later note also allows `@test.lawie.in` (if it has no MX) and 30 days with synthetic facts only; **we keep the stricter reconciled version above** (reserved test domains only, 7-day erase), which satisfies both. Real data found in a test account → same-day erase.
