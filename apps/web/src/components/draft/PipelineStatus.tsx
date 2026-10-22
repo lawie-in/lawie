@@ -51,7 +51,10 @@ export interface PipelineStatusProps {
   onEditForm?: () => void;
   /** Called when advocate clicks "Open in editor" in ready */
   onOpenEditor?: () => void;
-  /** Generation-failed reason (from server `event: error` SSE) */
+  /**
+   * Generation-failed reason (from server `event: error` SSE). T-565 (row 41, T6): not shown;
+   * the card shows the signed text only.
+   */
   generationError?: string;
   /** Whether the failure is retryable — controls "Try again" button visibility */
   generationRetryable?: boolean;
@@ -92,7 +95,14 @@ function blockedStyle(blocked: boolean): React.CSSProperties {
 
 // ── Progress bar ──────────────────────────────────────────────────────────────
 
-const STEP_LABELS = ['Inputs received', 'Verifying', 'Drafting', 'Validating', 'Ready'];
+// T-565 item 43 + T3 (Ajay): Verifying is `Checking inputs`, Validating is `Checking the draft`.
+const STEP_LABELS = [
+  'Inputs received',
+  'Checking inputs',
+  'Drafting',
+  'Checking the draft',
+  'Ready',
+];
 
 function ProgressBar({ state }: { state: PipelineState }) {
   // Segment fill colour per state per step (0-indexed)
@@ -234,65 +244,25 @@ function ElapsedTimer({ running }: { running: boolean }) {
   );
 }
 
-// ── Rotating status messages (drafting state) ───────────────────────────────
+// ── Drafting status line ────────────────────────────────────────────────────
 //
-// Real bail-draft generation observed at ~45-75s. Cycle through legal-drafting
-// status phrases so the advocate sees progress instead of a single static line.
-// Phrases roughly map to pipeline phases (form → court rules → AI body → cite-
-// check → prayer/verification → polish). After the last phrase fires, hold on
-// it indefinitely rather than looping — looping feels stuck.
+// T-565 item 43 (Ajay): the timed rotating lines are replaced by one signed line.
 
-const DRAFTING_MESSAGES = [
-  'Reading the form…',
-  'Loading court rules…',
-  'Thinking through the facts…',
-  'Synthesizing the grounds…',
-  'Drafting numbered paragraphs…',
-  'Citing sections…',
-  'Composing the prayer clause…',
-  'Building the verification block…',
-  'Cross-checking dates and parties…',
-  'Final polish — almost there…',
-];
+const DRAFTING_LINE = 'Writing the draft…';
 
-function RotatingStatus({ running }: { running: boolean }) {
-  const [idx, setIdx] = useState(0);
-  const ref = useRef<ReturnType<typeof setInterval> | null>(null);
+/**
+ * T-565 T1 (Ajay): the old form flow's own line when the stream sent no warning event.
+ * (NO_MISMATCH_FOUND is not true here: this flow has no brief.)
+ */
+const NO_WARNINGS_LINE = 'The drafting checks flagged nothing. Read the draft before you use it.';
 
-  useEffect(() => {
-    if (!running) {
-      setIdx(0);
-      return;
-    }
-    // Advance every 6 seconds. 10 messages × 6s = 60s — sized for a ~1-minute draft.
-    // After the last index, the interval keeps firing but setIdx is a no-op.
-    ref.current = setInterval(() => {
-      setIdx((i) => (i < DRAFTING_MESSAGES.length - 1 ? i + 1 : i));
-    }, 6000);
-    return () => {
-      if (ref.current) clearInterval(ref.current);
-    };
-  }, [running]);
-
-  return (
-    <div
-      key={idx}
-      style={{
-        fontSize: '12px',
-        color: '#5f5e5a',
-        animation: 'lawie-fade-in 0.4s ease-out',
-      }}
-    >
-      {DRAFTING_MESSAGES[idx]}
-      <style>{`
-        @keyframes lawie-fade-in {
-          from { opacity: 0; transform: translateY(2px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
-    </div>
-  );
-}
+/**
+ * T-565 T6 + 41b (Ajay): the failure text. This flow cannot confirm that the hold was released,
+ * so there is no "No Ink was used." line; the neutral line is shown instead. The server's own
+ * reason is not shown (row 41: it goes to logs only).
+ */
+const DRAFT_DID_NOT_FINISH = 'The draft did not finish.';
+const CHECK_DOCUMENTS_LIST = 'Check your documents list to see where this draft stands.';
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
 
@@ -369,10 +339,7 @@ function VerifyingCard({ state }: { state: PipelineState }) {
         </div>
         <div className="flex-1">
           <div style={{ fontSize: '14px', fontWeight: 500, marginBottom: 2 }}>
-            Verifying your inputs…
-          </div>
-          <div style={{ fontSize: '12px', color: '#5f5e5a' }}>
-            Cross-checking sections, dates, and jurisdiction. Takes about 2 seconds.
+            Checking your inputs…
           </div>
         </div>
       </div>
@@ -429,7 +396,7 @@ function SoftWarnCard({
         </div>
         <div className="flex-1">
           <div style={{ fontSize: '14px', fontWeight: 500, color: '#412402', marginBottom: 4 }}>
-            Ek baat dhyan mein aayi — confirm kar lein?
+            Please check this before you generate.
           </div>
           <div style={{ fontSize: '13px', color: '#633806', lineHeight: 1.55 }}>{questionText}</div>
           {questions.length > 1 && (
@@ -466,7 +433,7 @@ function SoftWarnCard({
               ...blockedStyle(blocked),
             }}
           >
-            Looks correct — generate anyway
+            Generate anyway
           </button>
           <InkCostLine
             id={SOFT_WARN_INK_COST_ID}
@@ -490,7 +457,7 @@ function SoftWarnCard({
             cursor: 'pointer',
           }}
         >
-          Let me fix this — edit form
+          Edit the form
         </button>
       </div>
 
@@ -514,7 +481,7 @@ function SoftWarnCard({
               ...blockedStyle(blocked),
             }}
           >
-            Skip and generate anyway
+            Generate anyway
           </button>
           {/* T-432: only in the known state; blocked, the notice above is the one line. */}
           {!blocked && (
@@ -529,7 +496,7 @@ function SoftWarnCard({
             />
           )}
         </div>
-        <span style={{ fontSize: '11px', color: '#633806' }}>Verifier paused — pick one</span>
+        <span style={{ fontSize: '11px', color: '#633806' }}>Please choose one.</span>
       </div>
     </div>
   );
@@ -564,10 +531,7 @@ function DraftingCard({ templateName, state }: { templateName?: string; state: P
           <div style={{ fontSize: '14px', fontWeight: 500, marginBottom: 2 }}>
             Drafting your {templateName ?? 'document'}…
           </div>
-          <RotatingStatus running={state === 'drafting'} />
-          <div style={{ fontSize: '11px', color: '#9a9893', marginTop: 2 }}>
-            Usually around a minute. You can leave this open.
-          </div>
+          <div style={{ fontSize: '12px', color: '#5f5e5a' }}>{DRAFTING_LINE}</div>
         </div>
         <ElapsedTimer running={state === 'drafting'} />
       </div>
@@ -589,9 +553,11 @@ function ReadyCard({
   onOpenEditor?: () => void;
 }) {
   const citedLabel = sectionsCited && sectionsCited.length > 0 ? sectionsCited.join(', ') : 'none';
+  // T-565 T1: with no warnings the signed old-flow line shows (it ends in its own full stop, so
+  // none is added after it).
   const warnLabel = warningCount
-    ? `${warningCount} warning${warningCount > 1 ? 's' : ''}`
-    : 'No warnings';
+    ? `${warningCount} warning${warningCount > 1 ? 's' : ''}.`
+    : NO_WARNINGS_LINE;
 
   return (
     <div
@@ -623,7 +589,7 @@ function ReadyCard({
           </div>
           <div style={{ fontSize: '12px', color: '#0F6E56' }}>
             {paragraphCount ? `${paragraphCount} paragraphs. ` : ''}
-            Sections: {citedLabel}. {warnLabel}.
+            Sections: {citedLabel}. {warnLabel}
           </div>
         </div>
       </div>
@@ -710,13 +676,11 @@ function HardBlockCard({
 }
 
 function GenerationFailedCard({
-  generationError,
   generationRetryable,
   onRetry,
   onEditForm,
   cost,
 }: {
-  generationError?: string;
   generationRetryable?: boolean;
   onRetry?: () => void;
   onEditForm?: () => void;
@@ -752,7 +716,8 @@ function GenerationFailedCard({
             Drafting could not finish
           </div>
           <div style={{ fontSize: '13px', color: '#791F1F', lineHeight: 1.55, marginBottom: 10 }}>
-            {generationError ?? 'The AI service returned an error mid-draft. Please try again.'}
+            <p style={{ margin: 0 }}>{DRAFT_DID_NOT_FINISH}</p>
+            <p style={{ margin: 0 }}>{CHECK_DOCUMENTS_LIST}</p>
           </div>
           {/* T-432: start-aligned, so "Edit form" does not stretch to the retry column's height. */}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-start' }}>
@@ -804,9 +769,6 @@ function GenerationFailedCard({
               Edit form
             </button>
           </div>
-          <div style={{ fontSize: '11px', color: '#9a6d6d', marginTop: 8 }}>
-            Your inputs are saved — re-trying does not lose anything.
-          </div>
         </div>
       </div>
     </div>
@@ -826,7 +788,6 @@ export default function PipelineStatus({
   onProceedAnyway,
   onEditForm,
   onOpenEditor,
-  generationError,
   generationRetryable,
   onRetry,
   inkCost,
@@ -837,15 +798,15 @@ export default function PipelineStatus({
   const cost: InkCostProps = { inkCost, inkCostLoading, onInkCostRetry, templateId };
   const stepLabel =
     state === 'verifying'
-      ? 'Step 2 of 5 — verifying inputs'
+      ? 'Step 2 of 5 — checking inputs'
       : state === 'soft_warn'
         ? 'Step 2 of 5 — verifier flagged something'
         : state === 'hard_block'
-          ? 'Error — verifier hard-blocked'
+          ? 'The draft could not start.'
           : state === 'generation_failed'
-            ? 'Error — drafting could not finish'
+            ? 'The draft did not finish.'
             : state === 'drafting'
-              ? 'Step 3 of 5 — drafting (streaming)'
+              ? 'Step 3 of 5 — writing the draft'
               : 'Step 5 of 5 — ready';
 
   return (
@@ -890,7 +851,6 @@ export default function PipelineStatus({
 
       {state === 'generation_failed' && (
         <GenerationFailedCard
-          generationError={generationError}
           generationRetryable={generationRetryable}
           onRetry={onRetry}
           onEditForm={onEditForm}
