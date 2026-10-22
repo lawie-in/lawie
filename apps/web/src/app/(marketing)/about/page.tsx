@@ -46,15 +46,8 @@ export default function AboutPage() {
           <div className="about-block prose">
             <h2>The problem we saw</h2>
             <p>
-              India changed its criminal law. The IPC, CrPC, and Evidence Act gave way to the BNS,
-              BNSS, and BSA — and overnight, every format an advocate had relied on was citing the
-              wrong sections.
-            </p>
-            <p>
-              For a young advocate in a district court, that is not an academic problem. A bail
-              format pulled from an old blog still cites Section 437 CrPC. The registry sends it
-              back. The hearing is tomorrow. The work that should go into the argument goes into
-              re-checking section numbers and re-typing the cause title instead.
+              India&apos;s new criminal codes, the BNS, BNSS and BSA, came into force on 1 July
+              2024. Older matters still run under the IPC, CrPC and Evidence Act.
             </p>
             <p>
               We kept seeing the same pattern: capable advocates losing hours to formatting and
@@ -71,16 +64,15 @@ export default function AboutPage() {
             <h2>What Lawie does today</h2>
             <ul className="cap-list">
               <li>
-                <Check strokeWidth={2} /> Generates bail applications, legal notices, rent
-                agreements, consumer complaints, and more from a structured form.
+                <Check strokeWidth={2} /> Writes a first draft from what you describe.
               </li>
               <li>
-                <Check strokeWidth={2} /> Maps IPC, CrPC, and IEA references to their current BNS,
-                BNSS, and BSA equivalents.
+                <Check strokeWidth={2} /> Criminal drafts use BNS, BNSS and BSA section numbers, or
+                IPC, CrPC and the Evidence Act where the old law applies.
               </li>
               <li>
-                <Check strokeWidth={2} /> Formats the cause title, prayer, verification, and
-                advocate block for your selected court.
+                <Check strokeWidth={2} /> Lays out the cause title, prayer, verification and
+                advocate block in the draft.
               </li>
               <li>
                 <Check strokeWidth={2} /> Exports the draft as PDF or DOCX.
@@ -93,16 +85,10 @@ export default function AboutPage() {
       <section className="section bg-white">
         <div className="container">
           <div className="about-block prose">
-            <h2>Built on the current law</h2>
+            <h2>Section numbers</h2>
             <p>
-              Section mappings are built from the published IPC→BNS, CrPC→BNSS, and IEA→BSA
-              section-wise comparison tables. Check every section before you file.
-            </p>
-            <p>
-              The court-formatting rules — how a cause title reads for a District Court versus a
-              High Court, which clauses are mandatory, where the verification sits — are encoded per
-              state and court level. It is detailed, unglamorous work, and we are still adding it
-              court by court.
+              Criminal drafts use BNS, BNSS and BSA section numbers, or IPC, CrPC and the Evidence
+              Act where the old law applies. Check every section before you file.
             </p>
           </div>
         </div>
@@ -113,9 +99,8 @@ export default function AboutPage() {
           <div className="about-block prose">
             <h2>Where we&apos;re headed</h2>
             <p>
-              More states and court levels, more document types, and support for drafting in Hindi
-              alongside English. The goal stays the same: get an advocate from a blank page to a
-              first draft in minutes, on the current law, for the specific court in front of them.
+              More document types, and Hindi drafting: coming soon. The goal stays the same: get an
+              advocate from a blank page to a first draft to review, edit and download.
             </p>
           </div>
         </div>
@@ -128,7 +113,7 @@ export default function AboutPage() {
             Free for your first 5 Ink, once your email is verified. No card required.
           </p>
           <Link className="btn btn-primary btn-lg" href="/login">
-            Start Drafting Free <ArrowRight strokeWidth={1.5} />
+            Start free <ArrowRight strokeWidth={1.5} />
           </Link>
         </div>
       </section>
