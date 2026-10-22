@@ -12,7 +12,7 @@ import app from '../app';
 import logger from '../config/logger';
 import redis from '../config/redis';
 import { AppSetting } from '../models/AppSetting.model';
-import { User } from '../models/User.model';
+import { createVerifiedUser } from './verifiedUser';
 import { _clearAppSettingsCache } from '../services/app-settings.service';
 import * as preflight from '../services/preflight.service';
 import { _resetToolSwitches } from '../services/feature-switches';
@@ -55,7 +55,7 @@ beforeEach(async () => {
   _resetToolSwitches();
   engine.clearConfigCache();
   await redis.flushall();
-  await User.create({
+  await createVerifiedUser({
     _id: USER_ID,
     plan: 'free',
     planTier: 'free',

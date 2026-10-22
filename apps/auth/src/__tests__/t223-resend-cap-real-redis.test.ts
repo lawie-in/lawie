@@ -2,7 +2,7 @@
  * T-223 AC3 / Arjun condition 4 against a REAL loopback Redis, picked by t223-real-redis-env.ts:
  * REDIS_TEST_URL if set (loopback, must answer PING and accept a write, else it throws), otherwise
  * a private redis-server with persistence off, otherwise it throws. REDIS_URL is never read.
- * 1 verify mail per user per 60 s and 5 per 24 h, through the real resend route. No ioredis-mock,
+ * 1 verify mail per user per 2 min (T-522) and 5 per 24 h, through the real resend route. No ioredis-mock,
  * so SET NX / PTTL / INCR / PEXPIRE behave as in production. Keys are per-user, removed afterwards,
  * and flushall is never called. The test FAILS (does not skip) when Redis is not reachable.
  */
@@ -59,21 +59,21 @@ async function newUser(n: string) {
 const resend = (t: string) => supertest(app).post('/verify-email/resend').set(bearer(t));
 
 describe('T-223 resend cap against real Redis', () => {
-  it('1 per 60 s: the second call is 429 with a retryAfter that matches the real key TTL', async () => {
+  it('1 per 2 min: the second call is 429 with a retryAfter that matches the real key TTL', async () => {
     const { id, token } = await newUser('min');
     expect((await resend(token)).status).toBe(202);
 
     const pttl = await redis.pttl(`auth:verify-email:min:${id}`);
-    expect(pttl).toBeGreaterThan(55_000);
-    expect(pttl).toBeLessThanOrEqual(60_000);
+    expect(pttl).toBeGreaterThan(115_000);
+    expect(pttl).toBeLessThanOrEqual(120_000);
     const dayTtl = await redis.pttl(`auth:verify-email:day:${id}`);
     expect(dayTtl).toBeGreaterThan(24 * 3600 * 1000 - 10_000);
     expect(await redis.get(`auth:verify-email:day:${id}`)).toBe('1');
 
     const res = await resend(token);
     expect(res.status).toBe(429);
-    expect(res.body.retryAfter).toBeGreaterThan(0);
-    expect(res.body.retryAfter).toBeLessThanOrEqual(60);
+    expect(res.body.retryAfter).toBeGreaterThan(60);
+    expect(res.body.retryAfter).toBeLessThanOrEqual(120);
     expect(Number(res.headers['retry-after'])).toBe(res.body.retryAfter);
     expect(enqueueMock).toHaveBeenCalledTimes(1);
     // a refused call does not count against the day cap

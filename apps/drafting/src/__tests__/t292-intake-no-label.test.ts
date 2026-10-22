@@ -10,6 +10,7 @@ import { createHash } from 'crypto';
 import request from 'supertest';
 
 import app from '../app';
+import { seedVerifiedUsers } from './verifiedUser';
 import redis from '../config/redis';
 import { AppSetting } from '../models/AppSetting.model';
 import { Event } from '../models/Event.model';
@@ -146,3 +147,5 @@ describe('T-292 intake path: stored event for a reply without a label', () => {
     expect(ev!.metadata).toMatchObject({ category: 'civil', isCourtDocument: false });
   });
 });
+
+seedVerifiedUsers('507f1f77bcf86cd799439072');

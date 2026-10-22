@@ -3,14 +3,14 @@
  *  AC1  mint stores a sha256 hash and a 24 h expiry only; a second mint replaces the first
  *  AC2  verify: valid -> emailVerified + one sign-up bonus; replay, expired, forged, non-hex ->
  *       no change; concurrent double verify -> one bonus
- *  AC3  resend cap 1/60 s and 5/24 h, refusals before the cap, Redis error fails closed
+ *  AC3  resend cap 1/2 min (T-522) and 5/24 h, refusals before the cap, Redis error fails closed
  *
  * Real Mongo (memory server), ioredis-mock for the cap, email-client stubbed at the boundary.
  */
 
 import './setupEnv';
 
-jest.mock('ioredis', () => require('ioredis-mock'));
+jest.mock('ioredis', () => jest.requireActual('ioredis-mock'));
 
 jest.mock('@lawie/email-client', () => ({
   enqueueEmail: jest.fn(),
@@ -110,7 +110,11 @@ describe('T-223 AC1 mintVerifyLink', () => {
 
     expect(await verifyEmailToken(a.token)).toEqual({ kind: 'expired_or_invalid' });
     expect((await raw(u._id)).emailVerified).not.toBe(true);
-    expect(await verifyEmailToken(b.token)).toEqual({ kind: 'verified', userId: String(u._id) });
+    expect(await verifyEmailToken(b.token)).toEqual({
+      kind: 'verified',
+      userId: String(u._id),
+      linkKind: 'verify',
+    });
   });
 
   it.each([
@@ -141,7 +145,11 @@ describe('T-223 AC2 verifyEmailToken', () => {
     const { token } = await mintFor(u._id);
     expect(await bonusRows(u._id)).toBe(0); // T-351: nothing before verification
 
-    expect(await verifyEmailToken(token)).toEqual({ kind: 'verified', userId: String(u._id) });
+    expect(await verifyEmailToken(token)).toEqual({
+      kind: 'verified',
+      userId: String(u._id),
+      linkKind: 'verify',
+    });
 
     const doc = await raw(u._id);
     expect(doc.emailVerified).toBe(true);
@@ -256,6 +264,7 @@ describe('T-223 AC2 verifyEmailToken', () => {
     expect(await verifyEmailToken(token)).toEqual({
       kind: 'already_verified',
       userId: String(u._id),
+      linkKind: 'verify',
     });
     const doc = await raw(u._id);
     expect(doc.emailVerifyTokenHash).toBeUndefined();
@@ -290,26 +299,27 @@ describe('T-223 AC3 requestVerifyEmail (resend cap)', () => {
     expect(JSON.stringify(enqueueMock.mock.calls)).not.toContain('@');
   });
 
-  it('a second request inside 60 s is limited with retryAfter in 1..60 and nothing is enqueued', async () => {
+  it('a second request inside 2 min is limited with retryAfter in 61..120 and nothing is enqueued', async () => {
     const u = await mk();
     await requestVerifyEmail(String(u._id));
     const r = await requestVerifyEmail(String(u._id));
     expect(r.kind).toBe('limited');
     if (r.kind !== 'limited') throw new Error('unreachable');
-    expect(r.retryAfterSeconds).toBeGreaterThan(0);
-    expect(r.retryAfterSeconds).toBeLessThanOrEqual(60);
+    expect(r.retryAfterSeconds).toBeGreaterThan(60);
+    expect(r.retryAfterSeconds).toBeLessThanOrEqual(120);
     expect(Number.isInteger(r.retryAfterSeconds)).toBe(true);
     expect(enqueueMock).toHaveBeenCalledTimes(1);
   });
 
-  it('the minute key has a 60 s TTL and the day key a 24 h TTL', async () => {
+  it('the minute key has a 2 min TTL (T-522) and the day key a 24 h TTL', async () => {
     const u = await mk();
     await requestVerifyEmail(String(u._id));
     const mttl = await redis.pttl(minKey(u._id));
     expect(mttl).toBeGreaterThan(0);
-    expect(mttl).toBeLessThanOrEqual(60_000);
+    expect(mttl).toBeGreaterThan(60_000);
+    expect(mttl).toBeLessThanOrEqual(120_000);
     const dttl = await redis.pttl(dayKey(u._id));
-    expect(dttl).toBeGreaterThan(60_000);
+    expect(dttl).toBeGreaterThan(120_000);
     expect(dttl).toBeLessThanOrEqual(24 * 60 * 60 * 1000);
     expect(await redis.get(dayKey(u._id))).toBe('1');
   });

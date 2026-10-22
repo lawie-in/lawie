@@ -23,6 +23,7 @@ import { Court } from '../models/Court.model';
 import { LawieDocument } from '../models/Document.model';
 import { Generation } from '../models/Generation.model';
 import { User } from '../models/User.model';
+import { createVerifiedUser, seedVerifiedUsers } from './verifiedUser';
 import { _clearAppSettingsCache } from '../services/app-settings.service';
 import * as aiService from '../services/ai.service';
 import { CLAUSES_MARKER } from '../services/brief-drafter';
@@ -308,7 +309,7 @@ beforeEach(async () => {
     city: 'Patna',
     formattingRulesRef: 'bihar_district',
   });
-  await User.create({
+  await createVerifiedUser({
     _id: USER_ID,
     plan: 'free',
     planTier: 'free',
@@ -811,3 +812,5 @@ describe.each(PATHS)('T-226 — $name', (p) => {
     });
   });
 });
+
+seedVerifiedUsers('507f1f77bcf86cd7994392c1');

@@ -10,7 +10,7 @@
 
 import './setupEnv';
 
-jest.mock('ioredis', () => require('ioredis-mock'));
+jest.mock('ioredis', () => jest.requireActual('ioredis-mock'));
 
 import './setupDb';
 
@@ -76,6 +76,9 @@ describe('T-343 AC1/AC3 — GET /me for older, current and missing versions', ()
         summary: SUMMARY,
         // T-223: /me also reports the verification state (seeded as an unverified email user).
         emailVerified: false,
+        // T-522: /me also reports the sign-up Ink and referral state.
+        signupInkGranted: false,
+        referralStatus: null,
         hasGoogle: false,
         // T-115c: the close-account dialog asks for a password only when there is one.
         hasPassword: true,
@@ -106,6 +109,8 @@ describe('T-343 AC1/AC3 — GET /me for older, current and missing versions', ()
       currentPrivacyVersion: CURRENT_PRIVACY_VERSION,
       needsPrivacyAcceptance: false,
       emailVerified: false,
+      signupInkGranted: false,
+      referralStatus: null,
       hasGoogle: false,
       hasPassword: true,
       gstStateCode: null,
@@ -426,8 +431,9 @@ describe('T-343 AC2 — POST /me/privacy-acceptance', () => {
     const reg = await supertest(app)
       .post('/register')
       .send({ email: 'cur-acc@example.com', password: PASSWORD, name: 'Cur' });
-    expect(reg.status).toBe(201);
-    const res = await accept(reg.body.data.accessToken);
+    expect(reg.status).toBe(202);
+    const { accessToken: curToken } = await loginAs('cur-acc@example.com');
+    const res = await accept(curToken);
     expect(res.status).toBe(200);
     const u = await User.findOne({ email: 'cur-acc@example.com' }).lean();
     expect(u?.privacyHistory).toHaveLength(1);
@@ -498,8 +504,9 @@ describe('T-343 — sign-up records the acceptance and shows no prompt', () => {
       .post('/register')
       .set('User-Agent', AGENT)
       .send({ email: 'signup@example.com', password: PASSWORD, name: 'Sign Up' });
-    expect(res.status).toBe(201);
-    const { accessToken, refreshToken } = res.body.data as Tokens;
+    expect(res.status).toBe(202);
+    // T-522: sign-up gives no tokens; the first login after it carries the current version.
+    const { accessToken, refreshToken } = await loginAs('signup@example.com');
     expect(verifyAccessToken(accessToken).pv).toBe(CURRENT_PRIVACY_VERSION);
     expect(verifyRefreshToken(refreshToken).pv).toBe(CURRENT_PRIVACY_VERSION);
 

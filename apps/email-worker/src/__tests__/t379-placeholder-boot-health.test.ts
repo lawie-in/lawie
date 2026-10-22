@@ -27,7 +27,11 @@ import {
   resetSink,
   withEnv,
 } from './helpers/t220-capture';
-import { INVOICE_SENTINEL_FIELDS, renderReal } from './helpers/t223-real-render';
+import {
+  INVOICE_SENTINEL_FIELDS,
+  SIGNUP_ATTEMPT_SENTINEL_FIELDS,
+  renderReal,
+} from './helpers/t223-real-render';
 
 jest.mock('../config/logger', () =>
   jest.requireActual('./helpers/t220-capture').makeCapturingLogger(),
@@ -151,6 +155,8 @@ describe('tripwire: every registered template vs TEMPLATE_FOOTERS', () => {
     url: 'https://app.lawie.in/x',
     // billing.taxInvoice / billing.creditNote (T-436 b/c) refuse to render without these.
     ...INVOICE_SENTINEL_FIELDS,
+    // auth.signupAttempt (T-522) refuses to render without its two page links.
+    ...SIGNUP_ATTEMPT_SENTINEL_FIELDS,
   };
 
   // T-221: auth.passwordReset refuses data without its own variant, so the sweep feeds it the data

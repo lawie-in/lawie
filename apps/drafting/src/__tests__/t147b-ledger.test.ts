@@ -20,7 +20,7 @@ import { AppSetting } from '../models/AppSetting.model';
 import { Court } from '../models/Court.model';
 import { FactLedgerModel } from '../models/FactLedger.model';
 import { LlmAuxCall } from '../models/LlmAuxCall.model';
-import { User } from '../models/User.model';
+import { createVerifiedUser, seedVerifiedUsers } from './verifiedUser';
 import { _clearAppSettingsCache } from '../services/app-settings.service';
 import { Brief, buildBrief, buildChecklist, buildQuestions } from '../services/intake-brief';
 import { openVersion } from '../services/fact-ledger.service';
@@ -531,7 +531,7 @@ describe('T-147b AC9: the Drafter input is unchanged', () => {
       formattingRulesRef: 'bihar_district',
     });
     await AppSetting.create({ key: 'ai.drafting_model', value: 'claude-sonnet-4-5-20250929' });
-    await User.create({
+    await createVerifiedUser({
       _id: USER_ID,
       plan: 'free',
       planTier: 'free',
@@ -996,3 +996,5 @@ describe('T-147b round 2: an unreadable value typed into an empty field', () => 
     expect(factOf(up.body.ledger, 'victim_name')).toBeUndefined();
   });
 });
+
+seedVerifiedUsers('507f1f77bcf86cd799439081', '507f1f77bcf86cd799439082');

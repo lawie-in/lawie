@@ -30,7 +30,7 @@ import app from '../app';
 import { AppSetting } from '../models/AppSetting.model';
 import { Court } from '../models/Court.model';
 import { FactLedgerModel } from '../models/FactLedger.model';
-import { User } from '../models/User.model';
+import { createVerifiedUser } from './verifiedUser';
 import { _clearAppSettingsCache } from '../services/app-settings.service';
 import { AVERMENTS_DIR, loadAvermentLists, resolveAverments } from '../services/averments';
 import { CLAUSES_MARKER, packTexts } from '../services/brief-drafter';
@@ -1035,7 +1035,7 @@ describe("T-192 AC3/AC4 route: the Drafter's FACTS carry the computed result onl
       city: 'Patna',
       formattingRulesRef: 'bihar_district',
     });
-    await User.create({
+    await createVerifiedUser({
       _id: USER_ID,
       plan: 'free',
       planTier: 'free',

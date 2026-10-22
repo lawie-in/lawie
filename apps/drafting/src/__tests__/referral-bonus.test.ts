@@ -13,6 +13,7 @@ import './setupDb';
 import supertest from 'supertest';
 
 import app from '../app';
+import { seedVerifiedUsers } from './verifiedUser';
 import { BonusCredit } from '../models/BonusCredit.model';
 // Generation import was used by the legacy "falls to monthly limit" test that
 // the SCRUM-73 rewrite replaced — kept here as a comment so the symbol is
@@ -152,3 +153,5 @@ describe('enforceFreeLimit — bonus deduction', () => {
     expect(res.body.balance.total).toBe(0);
   });
 });
+
+seedVerifiedUsers('507f1f77bcf86cd799439011');

@@ -26,7 +26,7 @@ import { Court } from '../models/Court.model';
 import { LawieDocument } from '../models/Document.model';
 import { FactLedgerModel } from '../models/FactLedger.model';
 import { Generation } from '../models/Generation.model';
-import { User } from '../models/User.model';
+import { createVerifiedUser } from './verifiedUser';
 import { _clearAppSettingsCache } from '../services/app-settings.service';
 import * as averments from '../services/averments';
 import {
@@ -270,7 +270,7 @@ beforeEach(async () => {
     formattingRulesRef: 'bihar_district',
   });
   for (const id of [USER_ID, OTHER_USER_ID]) {
-    await User.create({
+    await createVerifiedUser({
       _id: id,
       plan: 'free',
       planTier: 'free',

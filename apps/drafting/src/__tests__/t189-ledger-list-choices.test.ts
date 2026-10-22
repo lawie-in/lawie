@@ -23,7 +23,7 @@ import { AppSetting } from '../models/AppSetting.model';
 import { Court } from '../models/Court.model';
 import { LawieDocument } from '../models/Document.model';
 import { FactLedgerModel } from '../models/FactLedger.model';
-import { User } from '../models/User.model';
+import { createVerifiedUser } from './verifiedUser';
 import { _clearAppSettingsCache } from '../services/app-settings.service';
 import {
   AvermentCondition,
@@ -1535,7 +1535,7 @@ describe('T-189 AC5 and AC6: bail_regular, from the description to the Drafter i
       city: 'Patna',
       formattingRulesRef: 'bihar_district',
     });
-    await User.create({
+    await createVerifiedUser({
       _id: USER_ID,
       plan: 'free',
       planTier: 'free',

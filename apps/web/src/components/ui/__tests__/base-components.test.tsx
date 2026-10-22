@@ -366,6 +366,42 @@ describe('Banner', () => {
     expect(onClick).toHaveBeenCalledTimes(1);
   });
 
+  it('T-522 action.disabled: aria-disabled (never the disabled attribute), a press does nothing', () => {
+    const onClick = jest.fn();
+    const { container } = mount(
+      <Banner
+        kind="verify-email"
+        message="m"
+        action={{ label: 'Resend', onClick, disabled: true }}
+      />,
+    );
+    const btn = q('button', container) as HTMLButtonElement;
+    expect(btn.getAttribute('aria-disabled')).toBe('true');
+    expect(btn.hasAttribute('disabled')).toBe(false);
+    expect(btn.className).toContain('cursor-not-allowed');
+    expect(btn.className).toContain('opacity-40');
+    click(btn);
+    expect(onClick).not.toHaveBeenCalled();
+  });
+
+  it('T-522 action.busy: aria-busy, and not set otherwise', () => {
+    const busy = mount(
+      <Banner
+        kind="verify-email"
+        message="m"
+        action={{ label: 'Resend', onClick: jest.fn(), busy: true }}
+      />,
+    );
+    expect(q('button', busy.container)!.getAttribute('aria-busy')).toBe('true');
+    const idle = mount(
+      <Banner kind="verify-email" message="m" action={{ label: 'Resend', onClick: jest.fn() }} />,
+    );
+    const btn = q('button', idle.container)!;
+    expect(btn.getAttribute('aria-busy')).toBeNull();
+    expect(btn.getAttribute('aria-disabled')).toBeNull();
+    expect(btn.className).not.toContain('cursor-not-allowed');
+  });
+
   it('dismiss button needs dismissible + onDismiss + label', () => {
     const onDismiss = jest.fn();
     const ok = mount(

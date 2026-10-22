@@ -29,7 +29,7 @@ import { FactLedgerModel } from '../models/FactLedger.model';
 import { Generation } from '../models/Generation.model';
 import { LlmAuxCall } from '../models/LlmAuxCall.model';
 import { PlaceholderRate } from '../models/PlaceholderRate.model';
-import { User } from '../models/User.model';
+import { createVerifiedUser } from './verifiedUser';
 import { _clearAppSettingsCache } from '../services/app-settings.service';
 import { loadAvermentLists } from '../services/averments';
 import { CLAUSES_MARKER, packTexts } from '../services/brief-drafter';
@@ -1533,7 +1533,7 @@ beforeEach(async () => {
     city: 'Patna',
     formattingRulesRef: 'bihar_district',
   });
-  await User.create({
+  await createVerifiedUser({
     _id: USER_ID,
     plan: 'free',
     planTier: 'free',

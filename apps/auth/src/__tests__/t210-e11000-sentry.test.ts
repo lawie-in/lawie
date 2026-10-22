@@ -6,7 +6,7 @@
 
 import './setupEnv';
 
-jest.mock('ioredis', () => require('ioredis-mock'));
+jest.mock('ioredis', () => jest.requireActual('ioredis-mock'));
 
 // passport.ts only registers the Google strategy when env.GOOGLE_CLIENT_ID/SECRET are set, and CI
 // has neither. Supply them here (real env kept for everything else) so the shell does not matter.
@@ -107,46 +107,47 @@ function expectScrubbed(event: Sentry.ErrorEvent) {
   expect(out.exception?.values?.[0].value).toContain('E11000');
 }
 
-describe('T-210 Arjun 4 - register E11000 (through POST /register)', () => {
-  it('log line and Sentry event hold no email; code and keyPattern remain', async () => {
+describe('T-210 Arjun 4 / T-522 - register E11000 (through POST /register)', () => {
+  it('T-522: a lost create race is the existing-address outcome: 202, no Sentry event, no error log with the email', async () => {
     await User.init();
     await User.create({ email: EMAIL, name: 'First', password: PASSWORD });
 
-    // Make the service's duplicate pre-check miss so User.create hits the unique index.
-    jest.spyOn(User, 'findOne').mockResolvedValueOnce(null as never);
-    const logSpy = jest.spyOn(logger, 'error').mockImplementation((() => undefined) as never);
-    const captured: Array<Error & { keyValue?: unknown }> = [];
-    (Sentry.captureException as jest.Mock).mockImplementation((e: unknown) => {
-      captured.push(e as Error);
-      return 'id';
-    });
+    // Make the service's pre-check miss once, so User.create hits the unique index (E11000).
+    jest.spyOn(User, 'findOne').mockReturnValueOnce({ lean: () => Promise.resolve(null) } as never);
+    const errSpy = jest.spyOn(logger, 'error').mockImplementation((() => undefined) as never);
+    const allSpies = [
+      jest.spyOn(logger, 'warn').mockImplementation((() => undefined) as never),
+      jest.spyOn(logger, 'info').mockImplementation((() => undefined) as never),
+    ];
 
     const res = await supertest(app)
       .post('/register')
       .send({ email: EMAIL, password: PASSWORD, name: 'Second' });
-    const calls = logSpy.mock.calls.slice();
+    const logged = JSON.stringify([errSpy, ...allSpies].map((sp) => sp.mock.calls));
     jest.restoreAllMocks();
-    (Sentry.captureException as jest.Mock).mockReset();
 
-    expect(res.status).toBe(500);
+    expect(res.status).toBe(202);
+    expect(res.body).toEqual({ status: 'success', data: { status: 'check_email' } });
     expect(JSON.stringify(res.body)).not.toContain(EMAIL);
-    expect(captured).toHaveLength(1);
-    const err = captured[0];
+    expect(Sentry.captureException).not.toHaveBeenCalled();
+    expect(errSpy.mock.calls.find((c) => c[1] === 'Request failed')).toBeUndefined();
+    expect(logged).not.toContain(EMAIL);
+  });
+
+  it('the Sentry scrubber still masks a REAL duplicate-key error from the email index', async () => {
+    await User.init();
+    await User.create({ email: EMAIL, name: 'First', password: PASSWORD });
+    let err: (Error & { keyValue?: unknown }) | undefined;
+    try {
+      await User.create({ email: EMAIL, name: 'Second', password: PASSWORD });
+    } catch (e) {
+      err = e as Error & { keyValue?: unknown };
+    }
+    expect(err).toBeDefined();
     // the leak is real upstream
-    expect(err.message).toContain(EMAIL);
-    expect(JSON.stringify(err.keyValue)).toContain(EMAIL);
-
-    const handlerCall = calls.find((c) => c[1] === 'Request failed');
-    expect(handlerCall).toBeDefined();
-    const { text, line } = render(handlerCall as unknown[]);
-    expect(text).not.toContain(EMAIL);
-    expect(text).not.toContain(PASSWORD);
-    expect(line.err.code).toBe(11000);
-    expect(line.err.keyPattern).toEqual({ email: 1 });
-    expect(line.err.keyValue).toBeUndefined();
-    expect(line.msg).toBe('Request failed');
-
-    expectScrubbed(sentryEventFor(err));
+    expect(err!.message).toContain(EMAIL);
+    expect(JSON.stringify(err!.keyValue)).toContain(EMAIL);
+    expectScrubbed(sentryEventFor(err!));
   });
 });
 
