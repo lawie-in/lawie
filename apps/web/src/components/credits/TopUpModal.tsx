@@ -11,7 +11,13 @@ import {
   privacyFetch,
   usePrivacyDescribedBy,
 } from '@/components/PrivacyUpdatePrompt';
-import { Button, Skeleton } from '@/components/ui';
+import {
+  Button,
+  DIALOG_OVERLAY_CLASS,
+  DIALOG_SHEET_CLASS,
+  DIALOG_TALL_CAP_CLASS,
+  Skeleton,
+} from '@/components/ui';
 import {
   VerifyEmailCard,
   isEmailVerificationRequired,
@@ -291,7 +297,8 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
       }}
     >
       <RadixDialog.Portal>
-        <RadixDialog.Overlay className="nl fixed inset-0 z-50 bg-black/50" />
+        {/* T-549 (Rajesh T-531 F7): the Dialog sheet pattern, on the shared z-[60] layer. */}
+        <RadixDialog.Overlay className={DIALOG_OVERLAY_CLASS} />
         <RadixDialog.Content
           aria-modal="true"
           // The note under the title is not a description of the whole dialog; no Radix warning.
@@ -316,20 +323,16 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
             restoreFocus();
           }}
           className={cn(
-            'nl nl-root border-nl-line bg-nl-card text-nl-text shadow-nl-card fixed z-50 flex flex-col border',
-            'overflow-y-auto overscroll-contain focus:outline-none',
-            // Bottom sheet at <= 640px: 12px top radius, drag handle, safe-area padding (spec 5).
-            'inset-x-0 bottom-0 max-h-[90dvh] rounded-t-[12px] pb-[env(safe-area-inset-bottom,0px)]',
-            // Dialog above 640px: 440px, centred, 4px radius.
-            'min-[641px]:rounded-nl-md min-[641px]:inset-x-auto min-[641px]:bottom-auto min-[641px]:left-1/2 min-[641px]:top-1/2 min-[641px]:max-h-[calc(100dvh-64px)] min-[641px]:w-[min(440px,calc(100vw-32px))] min-[641px]:-translate-x-1/2 min-[641px]:-translate-y-1/2 min-[641px]:pb-0',
+            DIALOG_SHEET_CLASS,
+            DIALOG_TALL_CAP_CLASS,
+            // Sheet at <= 640px: clear the home indicator and the side insets (viewport-fit=cover).
+            // The insets sit on the surface, so each section keeps its px-nl-6 and the border-t
+            // dividers stay full width. Reset above 640px.
+            'pb-[env(safe-area-inset-bottom,0px)] pl-[env(safe-area-inset-left,0px)] pr-[env(safe-area-inset-right,0px)]',
+            'min-[641px]:pb-0 min-[641px]:pl-0 min-[641px]:pr-0',
           )}
         >
-          <div
-            aria-hidden="true"
-            className="bg-nl-line mt-nl-2 mx-auto h-1 w-10 shrink-0 rounded-full min-[641px]:hidden"
-          />
-
-          <header className="px-nl-6 pt-nl-4 min-[641px]:pt-nl-6">
+          <header className="px-nl-6 pt-nl-6">
             <div className="gap-nl-3 flex items-start justify-between">
               <div className="min-w-0">
                 {/* T-535: signed copy §4.6 (T-511 copy v1). */}

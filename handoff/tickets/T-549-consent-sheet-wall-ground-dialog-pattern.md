@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (build), Rajesh reviews, Ajay for any wording |
 | Mode   | Full chain (web, shared UI files: one lead at a time) |
-| Status | To do. Consent sheet item MUST land before T-403 (Rajesh, T-531 review F1). Priya, 21 Oct 2026 |
+| Status | Merged into develop_staging 245e85dc (CI 907 green), 22 Oct 2026, except item 6 (Hindi menu labels, waits for Madhuri and Ajay); waiting on Anushka's check on develop. Priya |
 | Source | Rajesh's T-531 review; Vishal's report |
 
 ## Items
@@ -26,3 +26,6 @@ Each item done with tests, checked at 360 / 768 / 1280 in both themes; Rajesh si
 - Headers of `/tools/*` and `review/[token]` (own headers, centred content, low risk).
 - Rajesh narrows the One Shadow Rule in DESIGN.md: fixed overlays get their own shadow level.
 - Rulings: on legacy `.mk` pages the consent card is always Daylight (M1, before T-403); 4px desktop radius, 44px buttons, Card shadow approved.
+
+## Arjun's acceptance of older-browser risk (22 Oct 2026)
+Residual risk on Safari before 16 accepted for the pilot and for main. Safari 16 shipped in Sept 2022; its share among Indian advocates on iOS is well under 1 %, and the failure is cosmetic (page behind a dialog may scroll, a sticky bar may unstick), not data loss. No device check required before main. Supported-browser line for the help page and Anushka's run: Chrome/Edge 110+, Safari 16+, Firefox 110+, Android Chrome current. Revisit only if a pilot user reports it.

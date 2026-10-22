@@ -44,8 +44,16 @@ describe('--line-control token', () => {
     expect(tok(night, '--line-control')).toBe('#6b7c74');
   });
 
-  it('is defined exactly twice in the file, never on :root / html alone, never in a layer', () => {
-    expect(css.match(/--line-control\s*:/g)).toHaveLength(2);
+  it('is defined three times (Daylight, Night, the T-549 consent-card pin), never on :root / html alone, never in a layer', () => {
+    expect(css.match(/--line-control\s*:/g)).toHaveLength(3);
+    // the third is the Daylight pin for the consent card on .mk pages, with the Daylight value
+    const pin = block(css, 'html:has(.mk) [data-consent-card].nl,');
+    expect(tok(pin, '--line-control')).toBe(tok(daylight, '--line-control'));
+    const all = [...css.matchAll(/--line-control\s*:/g)].map((m) => m.index!);
+    const pinAt = css.indexOf('html:has(.mk) [data-consent-card].nl,');
+    expect(pinAt).toBeGreaterThan(css.indexOf("html[data-theme='night'] .nl {"));
+    expect(all[2]).toBeGreaterThan(pinAt);
+    expect(all[2]).toBeLessThan(pinAt + pin.length + 200);
     expect(css).not.toMatch(/(^|\n)\s*(:root|html)\s*\{[^}]*--line-control/);
     const layer = block(css, '@layer components');
     expect(layer).not.toMatch(/--line-control\s*:/);
@@ -129,7 +137,12 @@ describe('controls use the control line at rest', () => {
     expect(s).toMatch(
       /placeholder="Coupon code \(optional\)"[\s\S]*?className="[^"]*h-11 w-full border border-\[color:var\(--line-control\)\]/,
     );
-    expect(s).toMatch(/'nl nl-root border-nl-line bg-nl-card[^']*fixed z-50/);
+    // T-549: the dialog shell moved to DIALOG_SHEET_CLASS in ui/Dialog.tsx (z-[60]); TopUpModal
+    // imports it and keeps the --line border (not the Control Line).
+    expect(s).toContain('DIALOG_SHEET_CLASS');
+    expect(read('components/ui/Dialog.tsx')).toMatch(
+      /'nl nl-root border-nl-line bg-nl-card[^']*fixed z-\[60\]/,
+    );
     expect(s).toContain('border-nl-line px-nl-6 pb-nl-4 pt-nl-4 border-t');
     expect(s).toMatch(/<footer className="[^"]*border-nl-line[^"]*border-t"/);
     // the selected pack keeps the brass border
