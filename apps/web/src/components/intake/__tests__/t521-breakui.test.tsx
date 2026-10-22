@@ -90,11 +90,12 @@ describe('break-ui: DraftReadyStep', () => {
     const { container } = mount(
       <DraftReadyStep result={base} onOpenEditor={jest.fn()} onStartAnother={jest.fn()} />,
     );
-    const p = Array.from(container.querySelectorAll('p')).find((e) =>
-      (e.textContent ?? '').includes(LONG_NAME),
-    )!;
-    const chain = `${p.className} ${p.parentElement!.className}`;
-    expect(chain).toMatch(/break-words|\[overflow-wrap:anywhere\]|break-all/);
+    // T-544: the name is the page's h1.
+    const h1 = q('h1', container)!;
+    expect(h1.textContent).toContain(LONG_NAME);
+    expect(h1.className).toContain('break-words');
+    expect(h1.className).toContain('min-w-0');
+    expect(h1.parentElement!.className).toContain('min-w-0');
   });
 
   it('zero Ink and unknown Ink: no chip; both keep Finalise', () => {
@@ -165,6 +166,34 @@ describe('break-ui: failure card', () => {
       />,
     );
 
+  it('GeneratingStep: inkReleased true shows `No Ink was used.` under the headline, not the documents-list line', () => {
+    const { container } = card({
+      reason: 'Stopped.',
+      retryable: true,
+      source: 'error_event',
+      code: 'drafter_failed',
+      inkReleased: true,
+    });
+    const t = container.textContent ?? '';
+    expect(t).toContain('The draft did not finish.');
+    expect(t).toContain('No Ink was used.');
+    expect(t).not.toContain('Check your documents list');
+    expect(t.indexOf('No Ink was used.')).toBeGreaterThan(t.indexOf('The draft did not finish.'));
+    expect(container.querySelector('[data-no-ink-claim="true"]')).not.toBeNull();
+  });
+
+  it('GeneratingStep: an empty reason shows the headline and status line only', () => {
+    const { container } = card({
+      reason: '',
+      retryable: true,
+      source: 'error_event',
+      inkReleased: false,
+    });
+    const t = container.textContent ?? '';
+    expect(t).toContain('The draft did not finish.');
+    expect(t).toContain('Check your documents list');
+  });
+
   it('error event after a long partial draft: the signed line, a very long reason, both actions visible', () => {
     const { container } = card({
       reason: LONG_REASON,
@@ -172,7 +201,9 @@ describe('break-ui: failure card', () => {
       source: 'error_event',
       code: 'drafter_failed',
     });
-    expect(container.textContent).toContain('The draft did not finish. No Ink was used.');
+    expect(container.textContent).toContain('The draft did not finish.');
+    expect(container.textContent).toContain('Check your documents list');
+    expect(container.textContent).not.toContain('No Ink was used');
     expect(container.textContent).toContain(LONG_REASON);
     expect(btnText(container)).toEqual(expect.arrayContaining(['Back to the brief', 'Try again']));
     expect(q('.min-w-0', container)).not.toBeNull();
@@ -308,7 +339,7 @@ describe('break-ui: wrapping of long user and service text (round 4)', () => {
     expect(qa('input[type="radio"]', container)).toHaveLength(3); // two choices + "none of these"
   });
 
-  it('GeneratingStep: "Drafting your ..." title, failure headline and detail all wrap', () => {
+  it('GeneratingStep: "Writing your ..." title, failure headline and detail all wrap', () => {
     const run = (error: Parameters<typeof GeneratingStep>[0]['error']) =>
       mount(
         <GeneratingStep

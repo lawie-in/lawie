@@ -8,8 +8,8 @@ import { formatInvoiceDate } from '@/components/billing/InvoicesCard';
 import type { PlanTier, SubscriptionPlan } from '@/lib/plans';
 
 /**
- * {support email} in AJ-509-M2: the in-app support address, as the dashboard already uses it
- * (components/dashboard/Sidebar.tsx "Get help", credits/GenerationFailedModal.tsx).
+ * {support email} in AJ-509-M2: the in-app support address. (T-565: Sidebar "Get help" now uses
+ * contact@lawie.in per AJ-517-M15; credits/GenerationFailedModal.tsx was deleted.)
  */
 export const SUPPORT_EMAIL = 'support@lawie.in';
 
@@ -55,8 +55,6 @@ export const PLAN_COPY = {
   // and points to support. When retry ships, go back to the §4.5 line with "Retry payment".
   paymentFailedHelp: (supportEmail: string) =>
     `Your last payment did not go through. For help, write to ${supportEmail}.`,
-  verifyGate: 'Verify your email to subscribe.',
-  verifyAction: 'Resend email',
   privacyGate: 'Please review and accept the updated Privacy Policy to continue.',
   privacyAction: 'Review and accept',
   // §5 generic failure

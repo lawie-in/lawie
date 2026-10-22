@@ -87,6 +87,10 @@ const setFetch = (f: jest.Mock) => {
   return f;
 };
 const OK_BODY = { data: { accessToken: 'a', refreshToken: 'r', user: {} } };
+// T-522 (Arjun ruling 1): Create account answers 202 { status: 'success', data: { status: 'check_email' } }.
+const NEUTRAL_BODY = { status: 'success', data: { status: 'check_email' } };
+// AJ-511-M3 via AJ-522-M2 (handoff/legal/T-511-copy-rulings-ajay.md).
+const CHECK_BODY = "We've sent a link to new.person@example.com. Open it to continue.";
 
 function stubCrypto() {
   if (typeof globalThis.TextEncoder === 'undefined') {
@@ -291,8 +295,8 @@ describe('consent (AJ-517-M3)', () => {
 });
 
 describe('email sign-up and sign-in (AC4)', () => {
-  it('ticked: register is called with the unchanged body (no consent field), then login and /dashboard', async () => {
-    const f = setFetch(respond(201, OK_BODY));
+  it('ticked: register is called with the unchanged body (no consent field), then the Check your email screen; no login, no redirect', async () => {
+    const f = setFetch(respond(202, NEUTRAL_BODY));
     await mount('mode=signup');
     await fillSignup();
     await tickConsent();
@@ -306,8 +310,10 @@ describe('email sign-up and sign-in (AC4)', () => {
       email: 'new.person@example.com',
       password: 'Passw0rdOk',
     });
-    expect(mockLogin).toHaveBeenCalledWith('a', 'r');
-    expect(replace).toHaveBeenCalledWith('/dashboard');
+    expect(mockLogin).not.toHaveBeenCalled();
+    expect(replace).not.toHaveBeenCalled();
+    expect(q('h1')!.textContent).toBe('Check your email');
+    expect(document.body.textContent).toContain(CHECK_BODY);
   });
 
   it('Sign in posts email and password to /api/auth/login', async () => {
@@ -436,15 +442,16 @@ describe('errors (§2.4)', () => {
     expect(alertText()).toContain(SERVER);
   });
 
-  it('409 on Create account: the server text plus "Sign in instead" (AJ-517-M1, unchanged handling)', async () => {
+  it('T-522: there is no 409 branch on Create account: no "account exists" text, no "Sign in instead"', async () => {
     setFetch(respond(409, { message: 'An account with this email already exists' }));
     await mount('mode=signup');
     await fillSignup();
     await tickConsent();
     await submit();
-    expect(alertText()).toContain('An account with this email already exists');
-    const link = byText('a', 'Sign in instead')!;
-    expect(link.getAttribute('href')).toBe('/login?mode=signin');
+    expect(document.body.textContent).not.toContain('An account with this email already exists');
+    expect(byText('a', 'Sign in instead')).toBeUndefined();
+    expect(document.body.textContent).not.toContain('Check your email');
+    expect(mockLogin).not.toHaveBeenCalled();
   });
 
   it('422: the messages are listed and the field is marked invalid', async () => {
@@ -506,10 +513,11 @@ describe('loading', () => {
     }
     expect(googleButton().disabled).toBe(true);
     await act(async () => {
-      resolve({ ok: true, status: 201, json: async () => OK_BODY });
+      resolve({ ok: true, status: 202, json: async () => NEUTRAL_BODY });
     });
     await flush();
-    expect(replace).toHaveBeenCalledWith('/dashboard');
+    expect(q('h1')!.textContent).toBe('Check your email');
+    expect(replace).not.toHaveBeenCalled();
   });
 
   it('a double submit while pending sends one request', async () => {

@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Arjun (design), Ajay (copy), an auth lead (build) |
 | Mode   | Full chain (auth, web) |
-| Status | In build: Vishal (22 Oct 2026). Rulings: Arjun (design) and Ajay AJ-522-M1 to M7 (copy, fence confirmed). Mode: full chain (auth, gateway/drafting, billing refusals last, email-worker, shared, web). Priya |
+| Status | Merged into develop_staging 2d06feea (Vishal, 22 Oct 2026; branch CI 950 green; merge CI pending). Neutral sign-up (same "check your email" for all), 30-minute single-use sign-in link, login allowed before verification, drafting/buying/free Ink fenced until verified; referral Ink on verification; FAQ document list and refund wording updated. Follow-ups: T-569 (referral slots at verify), T-559 (mail footer), signed Hindi not yet wired (before main). Priya |
 | Source | Ajay AJ-511-M3; T-517 findings |
 
 ## Problem
@@ -75,3 +75,11 @@ Open points:
 - **(c)** Yes — a `signin` link for an already-verified, active account still signs the user in. It is single-use, 30 minutes, sent only to that address, the same trust as reset-by-email. Not for an erased, locked or Google-only account (those get the neutral expired page with Sign in).
 
 Vishal: unhold the tester and the web step. Build copy from Ajay's **S1–S8 only**.
+
+## Arjun (22 Oct 2026) — golden-set fixture user and the verified fence
+
+**(a).** `requireVerifiedEmail` exempts `isFixtureUser(userId)` before the DB read, exactly as `enforceCredits`, `feature-switches` and the credits fixture branches already do — same gateway-signed trust, same single helper, no new exemption surface. T-147e stands: the fixture user never gets a `users` row. Add the test that a non-fixture user with no row still gets 403, and one that the fixture user passes the fence without a DB read.
+
+## Arjun (22 Oct 2026, after the reviewer's PASS) — referral slot taken by unverified accounts
+
+**(c) now, (a) as the follow-up — merge T-522.** Referral codes are low-stakes pre-v1 and the hole needs a neutral sign-up abuser spending effort for a code slot. The follow-up does (a) properly: count `uses` **at grant time (verify)** with an atomic conditional update (`findOneAndUpdate({ code, uses: { $lt: maxUses } }, { $inc: { uses: 1 } })`), so a burst of verifications cannot exceed the cap — the "slightly over" concern disappears; the sign-up check becomes a soft pre-check only; a grant failure after the atomic increment reverses it in the catch. Same principle as Vikram's T-540 rule 1 (count at grant, not at intent). Priya posts it as the T-522 follow-up, not blocking the v1 batch.

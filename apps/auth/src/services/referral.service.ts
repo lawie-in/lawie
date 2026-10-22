@@ -12,7 +12,7 @@ import mongoose from 'mongoose';
 
 import logger from '../config/logger';
 import { IReferralCode, ReferralCode } from '../models/ReferralCode.model';
-import { User } from '../models/User.model';
+import { User, type ReferralStatus } from '../models/User.model';
 
 import { grantReferralInk, referralInkLanded } from './credit-bonus.service';
 
@@ -115,9 +115,43 @@ export type ReferralApplyResult = 'applied' | 'invalid' | 'already_applied';
  * `{ referredVia: null }` matches both null and a missing field; `$exists: false` alone would
  * never match a Mongoose-created user.
  */
+export interface ApplyReferralOptions {
+  /**
+   * T-522 (Arjun ruling 2): record the referral (claim and use slot) but grant no Ink now. Used
+   * by password sign-up, where the account is unverified; grantDeferredReferralInk grants it when
+   * the address is verified. Google sign-up (already verified) does not set this.
+   */
+  deferInk?: boolean;
+}
+
+/** T-522: store the outcome GET /me reports as referralStatus. Never throws. */
+async function recordReferralStatus(userId: string, status: ReferralStatus): Promise<void> {
+  try {
+    await User.updateOne(
+      { _id: new mongoose.Types.ObjectId(userId) },
+      { $set: { referralStatus: status } },
+    );
+  } catch {
+    logger.warn({ userId }, 'Referral status not recorded');
+  }
+}
+
 export async function applyReferralCode(
   userId: string,
   code: string,
+  opts: ApplyReferralOptions = {},
+): Promise<ReferralApplyResult> {
+  const outcome = await claimReferralCode(userId, code, opts);
+  // T-522: 'already_applied' leaves the stored status as it was (another call recorded it).
+  if (outcome === 'applied') await recordReferralStatus(userId, 'applied');
+  if (outcome === 'invalid') await recordReferralStatus(userId, 'not_applied');
+  return outcome;
+}
+
+async function claimReferralCode(
+  userId: string,
+  code: string,
+  opts: ApplyReferralOptions,
 ): Promise<ReferralApplyResult> {
   const rc = await validateReferralCode(code);
   if (!rc) return 'invalid';
@@ -164,6 +198,9 @@ export async function applyReferralCode(
     return 'invalid';
   }
 
+  // T-522: password sign-up records the referral now and grants the Ink on verification.
+  if (opts.deferInk) return 'applied';
+
   // Grant Ink into inkTopup + set freeTierBonusGrant for legacy middleware.
   // 0 means this call credited nothing (no DB connection, user not found, already granted).
   // On 0 or a throw, ask whether the Ink is on the user (T-299): a throw can come after the $inc
@@ -204,6 +241,95 @@ export async function applyReferralCode(
   void signalDraftingBonus(userId, (rc.bonusInk ?? 5) * 5);
 
   return 'applied';
+}
+
+/**
+ * T-522 (Arjun (b)) — the grant-time re-check: the same conditions as validateReferralCode
+ * (active, not expired, not exhausted), except that this user's own use slot, taken at sign-up,
+ * is already in `uses`: exhausted here means uses > maxUses, so the user holding the last slot of
+ * a capped code is not refused for it.
+ */
+function referralCodeHonourableAtGrant(rc: {
+  isActive?: boolean;
+  expiresAt?: Date | null;
+  maxUses?: number | null;
+  uses?: number;
+}): boolean {
+  if (rc.isActive !== true) return false;
+  if (rc.expiresAt && rc.expiresAt < new Date()) return false;
+  if (rc.maxUses !== null && rc.maxUses !== undefined && (rc.uses ?? 0) > rc.maxUses) return false;
+  return true;
+}
+
+/** T-522 — gives back the sign-up slot and releases the claim of a lapsed deferred referral. */
+async function releaseDeferredReferral(
+  userId: string,
+  codeId: mongoose.Types.ObjectId,
+): Promise<void> {
+  try {
+    const released = await User.updateOne(
+      { _id: new mongoose.Types.ObjectId(userId), referredVia: codeId },
+      { $set: { referredVia: null } },
+    );
+    if (released.modifiedCount > 0) {
+      await ReferralCode.updateOne({ _id: codeId, uses: { $gt: 0 } }, { $inc: { uses: -1 } });
+    }
+  } catch {
+    logger.error({ userId, referralCodeId: String(codeId) }, 'Deferred referral release failed');
+  }
+}
+
+/**
+ * T-522 (Arjun ruling 2): grants the referral Ink recorded at a password sign-up, once the
+ * address is verified. Called by verifyEmailToken right after grantSignupBonus. No-op when the
+ * user has no recorded referral or already has the Ink. grantReferralInk is fenced on
+ * VERIFIED_FOR_BONUS and idempotent, so a repeat or early call credits nothing. The code is
+ * re-checked here (Arjun (b)); a lapsed or exhausted code grants nothing and is recorded as
+ * 'not_applied'. Called by verifyEmailToken and by the Google link path. Never throws; logs ids
+ * only.
+ */
+export async function grantDeferredReferralInk(userId: string): Promise<void> {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(userId)) return;
+    const user = await User.findById(userId, { referredVia: 1 }).lean();
+    const referredVia = user?.referredVia;
+    if (!user || !referredVia) return;
+    const rc = await ReferralCode.findById(referredVia).lean();
+    if (!rc) {
+      logger.warn({ userId }, 'Deferred referral Ink not granted: code not found');
+      await recordReferralStatus(userId, 'not_applied');
+      return;
+    }
+    // Already credited (a repeat call): nothing to re-check, nothing to change.
+    if (await referralInkLanded(userId, rc.code)) return;
+    // T-522 (Arjun (b), confirmed 22 Oct 2026): re-check the code now, never grant on its
+    // sign-up-time validity alone. Lapsed (disabled or expired) or exhausted: no grant, the slot
+    // and the claim are given back, and referralStatus becomes 'not_applied'.
+    if (!referralCodeHonourableAtGrant(rc)) {
+      await releaseDeferredReferral(userId, rc._id);
+      await recordReferralStatus(userId, 'not_applied');
+      logger.info(
+        { userId, referralCodeId: String(rc._id) },
+        'Deferred referral Ink not granted: code lapsed or exhausted at verification',
+      );
+      return;
+    }
+    const bonusInk = rc.bonusInk ?? 5;
+    const granted = await grantReferralInk(userId, bonusInk, rc.code);
+    if (granted > 0) {
+      void signalDraftingBonus(userId, bonusInk * 5);
+      logger.info({ userId, referralCodeId: String(rc._id) }, 'Deferred referral Ink granted');
+      return;
+    }
+    if (!(await referralInkLanded(userId, rc.code))) {
+      logger.warn(
+        { userId, referralCodeId: String(rc._id) },
+        'Deferred referral Ink credited nothing',
+      );
+    }
+  } catch {
+    logger.error({ userId }, 'Deferred referral Ink grant failed');
+  }
 }
 
 async function signalDraftingBonus(userId: string, bonus: number): Promise<void> {

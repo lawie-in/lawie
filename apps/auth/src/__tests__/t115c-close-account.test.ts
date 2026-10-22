@@ -12,7 +12,7 @@
 
 import './setupEnv';
 
-jest.mock('ioredis', () => require('ioredis-mock'));
+jest.mock('ioredis', () => jest.requireActual('ioredis-mock'));
 
 import './setupDb';
 
@@ -382,20 +382,20 @@ describe('authAt on sessions', () => {
     expect(Date.now() - Date.parse(s!.authAt!)).toBeLessThan(10_000);
   });
 
-  it('register sets authAt on the session', async () => {
+  it('the first login after a (neutral) register sets authAt on the session', async () => {
     const res = await supertest(app).post('/register').send({
       email: 'fresh.signup@example.com',
       password: PASSWORD,
       name: 'Fresh Signup',
       termsAccepted: true,
     });
-    if (res.status !== 201 && res.status !== 200) {
+    if (res.status !== 202) {
       // Registration payload shape is the existing contract; fail loudly with the reason.
       throw new Error(`register answered ${res.status}: ${JSON.stringify(res.body)}`);
     }
+    // T-522: register gives no session. The first sign-in (login) sets authAt.
     const u = await User.findOne({ email: 'fresh.signup@example.com' }).lean();
-    const d = res.body.data as { tokens?: { accessToken: string }; accessToken?: string };
-    const token = (d.tokens?.accessToken ?? d.accessToken)!;
+    const token = (await login('fresh.signup@example.com')).accessToken;
     const s = await validateSession(String(u!._id), hashToken(token));
     expect(Date.now() - Date.parse(s!.authAt!)).toBeLessThan(10_000);
   });

@@ -42,7 +42,7 @@ describe('GeneratingStep inkwell level', () => {
     const { container } = run(v === undefined ? {} : { inkLevel: v });
     expect(q('svg[data-level]', container)).toBeNull();
     expect(container.innerHTML).not.toContain('data-level="100"');
-    expect(container.textContent).toContain('Drafting your Bail application');
+    expect(container.textContent).toContain('Writing your Bail application…');
     expect(q('[aria-busy="true"]', container)).not.toBeNull();
   });
 
@@ -60,11 +60,11 @@ describe('GeneratingStep inkwell level', () => {
     expect(q('svg[data-level]', container)!.getAttribute('data-level')).toBe('0');
   });
 
-  it('reduced motion: static at 60, not draining, even with a real level', () => {
+  it('reduced motion (T-544): static at the real level (40), not draining', () => {
     stubMatchMedia({ [REDUCED_MOTION_QUERY]: true });
     const { container } = run({ inkLevel: 40 });
     const svg = q('svg[data-level]', container)!;
-    expect(svg.getAttribute('data-level')).toBe('60');
+    expect(svg.getAttribute('data-level')).toBe('40');
     expect(svg.hasAttribute('data-draining')).toBe(false);
   });
 

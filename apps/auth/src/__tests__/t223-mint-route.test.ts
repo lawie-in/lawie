@@ -6,7 +6,7 @@
 
 import './setupEnv';
 
-jest.mock('ioredis', () => require('ioredis-mock'));
+jest.mock('ioredis', () => jest.requireActual('ioredis-mock'));
 jest.mock('@lawie/email-client', () => ({ enqueueEmail: jest.fn() }));
 
 import './setupDb';
@@ -169,12 +169,13 @@ describe('T-223 mint route: 409 not eligible, nothing minted', () => {
 });
 
 describe('T-223 mint route: 200', () => {
-  it('returns {email, name, link} with no-store, and the link verifies the account', async () => {
+  it('returns {email, name, link, signupInkGranted} with no-store, and the link verifies the account', async () => {
     const u = await mk();
     const res = await post({ userId: String(u._id) });
     expect(res.status).toBe(200);
     expect(res.headers['cache-control']).toBe('no-store');
-    expect(Object.keys(res.body).sort()).toEqual(['email', 'link', 'name']);
+    expect(Object.keys(res.body).sort()).toEqual(['email', 'link', 'name', 'signupInkGranted']);
+    expect(res.body.signupInkGranted).toBe(false);
     expect(res.body.email).toBe(u.email);
     expect(res.body.name).toBe('Route Person');
     expect(res.body.link).toMatch(/^http:\/\/localhost:3000\/verify-email\?token=[a-f0-9]{64}$/);

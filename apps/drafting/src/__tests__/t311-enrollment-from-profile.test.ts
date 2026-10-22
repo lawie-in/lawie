@@ -28,6 +28,7 @@ import app from '../app';
 import logger from '../config/logger';
 import { AppSetting } from '../models/AppSetting.model';
 import { User } from '../models/User.model';
+import { createVerifiedUser } from './verifiedUser';
 import { _clearAppSettingsCache } from '../services/app-settings.service';
 import * as aiService from '../services/ai.service';
 import { buildAnnexuresPack } from '../services/annexures.service';
@@ -407,7 +408,7 @@ describe('T-311 routes', () => {
       value: JSON.stringify({ input_usd_per_mtok: 3, output_usd_per_mtok: 15 }),
     });
     for (const _id of [USER_ID, OTHER_ID]) {
-      await User.create({
+      await createVerifiedUser({
         _id,
         plan: 'free',
         planTier: 'free',
@@ -513,7 +514,7 @@ describe('T-311 routes', () => {
 
 describe('T-311 User.enrollmentNumber is read-only in drafting', () => {
   it('immutable: a change through the model is silently ignored; the stored value stays', async () => {
-    const user = await User.create({
+    const user = await createVerifiedUser({
       plan: 'free',
       planTier: 'free',
       enrollmentNumber: 'A/1/2000',
@@ -526,7 +527,7 @@ describe('T-311 User.enrollmentNumber is read-only in drafting', () => {
     expect((await User.findById(user._id).lean())?.enrollmentNumber).toBe('A/1/2000');
   });
   it('no default: a user created without one has none stored', async () => {
-    const user = await User.create({ plan: 'free', planTier: 'free' });
+    const user = await createVerifiedUser({ plan: 'free', planTier: 'free' });
     const raw = await User.collection.findOne({ _id: user._id });
     expect(raw).not.toHaveProperty('enrollmentNumber');
   });

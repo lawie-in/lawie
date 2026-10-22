@@ -18,7 +18,7 @@ import type { DraftResult } from './briefTypes';
 import { finaliseDocument } from './draftActions';
 import { actions, folio, linkButton, page } from './nlUi';
 
-import { Button, Chip, ErrorState, InkChip, Spinner } from '@/components/ui';
+import { Button, Chip, ErrorState, InkChip, Spinner, formatInk } from '@/components/ui';
 
 /**
  * T-136. Ajay's text (CLO, 7 Oct 2026, part 1, C5), word for word, in place of
@@ -37,6 +37,18 @@ export const DRAFT_READY_COPY = {
   /** Copy row 455, signed: the generic failure, used when Finalise fails. */
   finaliseFailed: 'Something did not work. Try again.',
 } as const;
+
+/**
+ * T-544: true when focus is on Finalise (or inside it), or nowhere (null or <body>, as after
+ * the Retry error unmounts). The Retry ErrorState is not mounted while Finalise saves (Retry
+ * moves focus to Finalise first), so focus on it cannot outlive the save.
+ */
+function focusStillOnFinalise(finaliseButton: HTMLElement | null): boolean {
+  if (typeof document === 'undefined') return false;
+  const active = document.activeElement;
+  if (active === null || active === document.body) return true;
+  return finaliseButton !== null && finaliseButton.contains(active);
+}
 
 export default function DraftReadyStep({
   result,
@@ -84,16 +96,24 @@ export default function DraftReadyStep({
   // T-521 (a11y, WCAG 2.4.3): focus never falls to <body>. Finalise stays focusable while it
   // saves (aria-disabled, not disabled); on success it unmounts and focus moves to Export,
   // which becomes the primary "Export PDF / Word". On failure focus stays on Finalise.
+  // T-544: focus moves to Export only if it was still on Finalise (or had already fallen to
+  // <body>) when the save succeeded; if the advocate tabbed elsewhere while it saved, it stays
+  // there. Decided before setFinalise('done') unmounts Finalise, read by the effect.
   const finaliseRef = useRef<HTMLButtonElement>(null);
   const exportRef = useRef<HTMLButtonElement>(null);
+  const moveFocusRef = useRef(false);
   useEffect(() => {
-    if (finalised) exportRef.current?.focus();
+    if (finalised && moveFocusRef.current) {
+      moveFocusRef.current = false;
+      exportRef.current?.focus();
+    }
   }, [finalised]);
   const runFinalise = async () => {
     if (!docId || saving || finalised) return;
     setFinalise('saving');
     try {
       await finaliseDocument(docId);
+      moveFocusRef.current = focusStillOnFinalise(finaliseRef.current);
       setFinalise('done');
     } catch {
       setFinalise('failed');
@@ -112,10 +132,11 @@ export default function DraftReadyStep({
           <Check size={18} aria-hidden="true" />
         </span>
         <div className="min-w-0 flex-1">
-          <h1 className="nl-h2 text-nl-text">Your draft is ready</h1>
-          {/* T-521: a guided document's name is typed by the advocate and can be one long word. */}
-          <p className="nl-body-sm text-nl-soft break-words">
-            {result.name}. Read it through and edit before you use it.
+          {/* T-544 (Rajesh): the page title is the document's name, in Headline (nl-h1). T-521: a
+              guided document's name is typed by the advocate and can be one long word. */}
+          <h1 className="nl-h1 text-nl-text min-w-0 break-words">{result.name}</h1>
+          <p className="nl-body-sm text-nl-soft mt-nl-1">
+            Your draft is ready. Read it through and edit before you use it.
           </p>
           <div
             className={`gap-nl-2 flex flex-wrap items-center ${
@@ -125,7 +146,9 @@ export default function DraftReadyStep({
             {inkUsed !== null && (
               <InkChip balance={inkUsed} data-testid="ink-used-chip">
                 <span>
-                  <span className="tabular-nums">{inkUsed}</span> {DRAFT_READY_COPY.inkUsed}
+                  {/* T-544: en-IN grouping, as the Ink pill (InkChip). */}
+                  <span className="tabular-nums">{formatInk(inkUsed)}</span>{' '}
+                  {DRAFT_READY_COPY.inkUsed}
                 </span>
               </InkChip>
             )}
@@ -160,7 +183,7 @@ export default function DraftReadyStep({
           <h2 id="ready-checks" className="nl-h3 text-nl-text">
             Checks run for you
           </h2>
-          <Chip variant="ok">No charge</Chip>
+          <Chip variant="ok">Included</Chip>
         </div>
         {factCheck && (
           <div
@@ -229,7 +252,8 @@ export default function DraftReadyStep({
 
       {docId === null && (
         <p role="alert" className="bg-nl-err-light nl-body-sm text-nl-err p-nl-3">
-          The draft was written but could not be saved, so it cannot be opened. Please start again.
+          The draft was written but could not be saved. Check your documents list before you start
+          again.
         </p>
       )}
 

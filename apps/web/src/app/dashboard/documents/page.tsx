@@ -168,7 +168,7 @@ export default function MyDocumentsPage() {
       )}
 
       {!loading && !error && docs.length > 0 && (
-        <div className="border-nl-line bg-nl-card overflow-x-auto border">
+        <div className="border-nl-line bg-nl-card relative overflow-x-auto border">
           <table className="nl-body-sm w-full">
             <thead>
               <tr className="border-nl-line border-b">
@@ -192,6 +192,10 @@ export default function MyDocumentsPage() {
                         if (el) titleLinks.current.set(doc._id, el);
                         else titleLinks.current.delete(doc._id);
                       }}
+                      // T-544: the 220px cut is CSS only, so the accessible name is already the full
+                      // title. `title` is a mouse courtesy (a tooltip with the full title), not the
+                      // accessibility fix; no aria-label, so the name stays the visible text.
+                      title={doc.title}
                       className="nl-focus text-nl-text group-hover:text-nl-brass-dark block max-w-[220px] truncate font-medium"
                     >
                       {doc.title}

@@ -101,7 +101,8 @@ describe('GeneratingStep (T-521)', () => {
   it('shows the Inkwell drain, three steps when repairing, and a skeleton', () => {
     stubMatchMedia({});
     const { container } = run({ repairing: true, inkLevel: 40 });
-    expect(container.textContent).toContain('Drafting your Bail application');
+    expect(container.textContent).toContain('Writing your Bail application…');
+    expect(container.textContent).not.toContain('Drafting your');
     expect(qa('li', container)).toHaveLength(3);
     expect(q('svg[data-draining]', container)).not.toBeNull();
     expect(q('[aria-busy="true"]', container)).not.toBeNull();
@@ -114,12 +115,12 @@ describe('GeneratingStep (T-521)', () => {
     expect(qa('li', container)).toHaveLength(2);
   });
 
-  it('reduced motion: the Inkwell is static at 60% and not draining', () => {
+  it('reduced motion: T-544: the Inkwell is static at the real level (40%) and not draining', () => {
     stubMatchMedia({ [REDUCED_MOTION_QUERY]: true });
     const { container } = run({ inkLevel: 40 });
     const svg = q('svg', container)!;
     expect(svg.hasAttribute('data-draining')).toBe(false);
-    expect(svg.getAttribute('data-level')).toBe('60');
+    expect(svg.getAttribute('data-level')).toBe('40');
     expect(q('.nl-ink-draining', container)).toBeNull();
   });
 

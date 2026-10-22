@@ -5,7 +5,7 @@
 | Phase  | 4 — Release |
 | Owner  | Arjun (design), a billing lead (build) |
 | Mode   | Small fix (billing); after T-536; NOT blocking main |
-| Status | To do. Priya |
+| Status | Merged into develop_staging e74af926 (CI 925 green), 22 Oct 2026; waiting on Anushka's check on develop. Follow-ups: T-560. RAZORPAY_KEY_GUARD accepts only 'strict' or empty and RAZORPAY_ALLOW_TEST_KEYS only 'true' or empty: any other value makes billing refuse to boot. Priya
 | Source | The five optional findings in T-527's last section (Arjun, 21 Oct 2026) |
 
 ## Acceptance criteria

@@ -77,13 +77,13 @@ describe('T-436 Terms 5b / 5c', () => {
     expect(text(sec('acceptance'))).toContain(S5B_FULL);
   });
 
-  it('5c: legal name only, above the contact email, in section 14; no GSTIN/State/address there', async () => {
+  it('5c: legal name only, above the contact email (contact@, T-564 item 10), in section 14; no GSTIN/State/address there', async () => {
     mockFetch.mockResolvedValue(res(FULL));
     await mount();
     const contact = sec('contact');
     const ps = Array.from(contact.querySelectorAll('p'));
     expect(ps[0].textContent).toBe('Asha Verma');
-    expect(ps[1].textContent).toContain('legal@lawie.in');
+    expect(ps[1].textContent).toBe('Questions about these Terms can be sent to contact@lawie.in.');
     expect(text(contact)).not.toContain('GSTIN');
     expect(text(contact)).not.toContain('Jharkhand');
   });

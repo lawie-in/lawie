@@ -10,6 +10,7 @@ import './setupDb';
 import mongoose from 'mongoose';
 
 import { User } from '../models/User.model';
+import { createVerifiedUser } from './verifiedUser';
 import { getCreditBalance, holdInk } from '../services/credits.service';
 import { GOLDEN_SET_USER_ID } from '../services/run-origin';
 
@@ -34,7 +35,7 @@ const rows = (userId: mongoose.Types.ObjectId | string) =>
 
 /** A yearly user one drip behind: nextAt two days ago, paid through next year. */
 async function seedBehind(id = OID) {
-  await User.create({
+  await createVerifiedUser({
     _id: id,
     plan: 'pro',
     planTier: 'solo',
@@ -112,7 +113,7 @@ describe('T-399: drip on read (drafting)', () => {
   });
 
   it('a throwing settle does not block getCreditBalance or holdInk, and logs the class only', async () => {
-    await User.create({ _id: USER_ID, plan: 'free', inkSub: 0, inkTopup: 20 });
+    await createVerifiedUser({ _id: USER_ID, plan: 'free', inkSub: 0, inkTopup: 20 });
     const err = jest.spyOn(console, 'error').mockImplementation(() => undefined);
     class Boom extends Error {
       constructor() {

@@ -22,11 +22,8 @@ jest.mock('@/components/PrivacyUpdatePrompt', () => ({
   usePrivacyDescribedBy: () => undefined,
   onPrivacyAccepted: () => () => {},
 }));
-let mockNeedsVerification = false;
 jest.mock('@/components/VerifyEmailPrompt', () => ({
-  VerifyEmailCard: () => <div data-testid="verify-card" />,
-  isEmailVerificationRequired: async () => false,
-  useNeedsEmailVerification: () => mockNeedsVerification,
+  openVerifyIfDraftRefused: async () => false,
 }));
 
 const reply = (status: number, body: unknown = {}) => ({
@@ -84,7 +81,6 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockUserId = `u-${Math.random()}`;
   blocked = new WeakSet();
-  mockNeedsVerification = false;
   savedState = null;
   mockApiFetch.mockImplementation(async (path: string) =>
     path === '/api/auth/me'
@@ -171,10 +167,14 @@ describe('T-436 top-up modal: State before Pay', () => {
     expect(payBtn().disabled).toBe(false);
   });
 
-  it('an unverified user sees the verify card and no State picker', async () => {
-    mockNeedsVerification = true;
+  it('T-522: there is no verify card; the State picker and Buy always show', async () => {
     await mount();
-    expect(document.body.querySelector('[data-testid="verify-card"]')).not.toBeNull();
-    expect(select()).toBeNull();
+    expect(document.body.querySelector('[data-testid="verify-card"]')).toBeNull();
+    expect(
+      document.body.querySelector('section[aria-labelledby="verify-checkout-title"]'),
+    ).toBeNull();
+    expect(select()).not.toBeNull();
+    expect(payBtn()).toBeDefined();
+    expect(payBtn().disabled).toBe(false);
   });
 });

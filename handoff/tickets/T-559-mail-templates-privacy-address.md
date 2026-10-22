@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Ajay (signed address), a lead (build) |
 | Mode   | Small fix (email-worker, legal content) |
-| Status | Ready to build; signed (Ajay AJ-559-M1, 22 Oct 2026). Not blocking. Priya |
+| Status | Ready to build, MUST before Anushka (Ajay: the verify mail footer still says privacy@). Signed AJ-559-M1, 22 Oct 2026. Vishal next after T-522 CI. Priya |
 | Source | Raised in the unsigned T-522 relay (22 Oct 2026); the privacy@ concern itself comes from AJ-517-M15 (real Ajay). Ajay confirms the sweep before it is built. |
 
 Every mail template prints `privacy@lawie.in`. AJ-517-M15 forbids that address unless the mailbox exists and is monitored; the signed address is `contact@lawie.in`. Sweep all templates and shared placeholders, replace with Ajay's signed address, add a test that fails on the old address. Ajay byte-checks.

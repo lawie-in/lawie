@@ -27,15 +27,8 @@ import {
   usePrivacyDescribedBy,
 } from '@/components/PrivacyUpdatePrompt';
 import { Banner, Card, ErrorState, InkChip } from '@/components/ui';
-import {
-  VERIFY_STRINGS,
-  maskEmail,
-  useNeedsEmailVerification,
-} from '@/components/VerifyEmailPrompt';
-import { useAuth } from '@/context/AuthContext';
 import { useCredits } from '@/hooks/useCredits';
 import type { GstStateController } from '@/hooks/useGstState';
-import { apiFetch } from '@/lib/apiFetch';
 import { fetchPlans, type SubscriptionPlan } from '@/lib/plans';
 
 /** T-343 action key for the cancel call (its own P7 box). */
@@ -48,14 +41,6 @@ function showsStatusCard(s: SubscriptionStatus | null): s is SubscriptionStatus 
   if (!s || s.tier === 'free' || !s.status) return false;
   if (isLive(s)) return true;
   return s.state === 'lapsed' && s.status !== 'created' && s.status !== 'authenticated';
-}
-
-/** Whole minutes left from a 429's retryAfter (body seconds, else the header), or 0. */
-function retryAfterMinutes(res: Response, body: { retryAfter?: unknown } | null): number {
-  const fromBody = Number(body?.retryAfter);
-  const fromHeader = Number(res.headers?.get?.('Retry-After'));
-  const secs = Number.isFinite(fromBody) && fromBody > 0 ? fromBody : fromHeader;
-  return Number.isFinite(secs) && secs > 0 ? Math.max(1, Math.ceil(secs / 60)) : 0;
 }
 
 /** AJ-509-M2 banner text, with {support email} as a mailto link. */
@@ -86,9 +71,7 @@ export interface PlanPanelProps {
  * GET /status); the JWT plan is never used (it does not know Solo).
  */
 export function PlanPanel({ gst, gstSlot }: PlanPanelProps) {
-  const { user } = useAuth();
   const { balance, loaded, refresh } = useCredits();
-  const needsVerification = useNeedsEmailVerification();
   const { subscribe, pendingPlanId, failedPlanId, gate, clearGate } = useSubscribe(gst);
   const chooseDescribedBy = usePrivacyDescribedBy(SUBSCRIBE_ACTION_KEY);
 
@@ -104,10 +87,6 @@ export function PlanPanel({ gst, gstSlot }: PlanPanelProps) {
   const [cancelFailed, setCancelFailed] = useState(false);
   const [cancelBlocked, setCancelBlocked] = useState(false);
   const [cancelledDate, setCancelledDate] = useState<string | null>(null);
-
-  const [resending, setResending] = useState(false);
-  const [resendNote, setResendNote] = useState<{ text: string; error: boolean } | null>(null);
-  const [verifiedNow, setVerifiedNow] = useState(false);
 
   useEffect(() => {
     mounted.current = true;
@@ -230,38 +209,6 @@ export function PlanPanel({ gst, gstSlot }: PlanPanelProps) {
     }
   }
 
-  // ── Verify-email gate: Resend ──────────────────────────────────────────────────────────────
-  async function resendEmail() {
-    if (resending) return;
-    setResending(true);
-    setResendNote(null);
-    const masked = maskEmail(user?.email);
-    try {
-      const res = await apiFetch('/api/auth/verify-email/resend', { method: 'POST' });
-      if (!mounted.current) return;
-      if (res.ok || res.status === 202) {
-        setResendNote({ text: VERIFY_STRINGS.sent(masked), error: false });
-      } else if (res.status === 409) {
-        setVerifiedNow(true);
-        clearGate();
-        setResendNote({ text: VERIFY_STRINGS.already, error: false });
-      } else if (res.status === 429) {
-        const body = (await res.json().catch(() => null)) as { retryAfter?: unknown } | null;
-        const minutes = retryAfterMinutes(res, body);
-        setResendNote({
-          text: minutes > 0 ? VERIFY_STRINGS.limitWait(minutes) : VERIFY_STRINGS.networkError,
-          error: true,
-        });
-      } else {
-        setResendNote({ text: VERIFY_STRINGS.networkError, error: true });
-      }
-    } catch {
-      if (mounted.current) setResendNote({ text: VERIFY_STRINGS.networkError, error: true });
-    } finally {
-      if (mounted.current) setResending(false);
-    }
-  }
-
   // ── Privacy gate: Review and accept ────────────────────────────────────────────────────────
   const privacyKey =
     gate === 'privacy' ? SUBSCRIBE_ACTION_KEY : cancelBlocked ? CANCEL_ACTION_KEY : null;
@@ -279,7 +226,6 @@ export function PlanPanel({ gst, gstSlot }: PlanPanelProps) {
   const renewsDate = planDate(status?.renewsAt);
   const statusCard = showsStatusCard(status);
   const paymentFailed = statusCard && status.state === 'past_due';
-  const showVerify = !verifiedNow && (needsVerification || gate === 'verify');
 
   return (
     <div className="nl gap-nl-4 mt-nl-2 flex flex-col">
@@ -297,22 +243,9 @@ export function PlanPanel({ gst, gstSlot }: PlanPanelProps) {
           The address is a mailto link, as elsewhere in the dashboard. */}
       {paymentFailed ? <Banner kind="payment-failed" message={<PaymentFailedMessage />} /> : null}
 
-      {showVerify ? (
-        <Banner
-          kind="verify-email"
-          message={PLAN_COPY.verifyGate}
-          action={{ label: PLAN_COPY.verifyAction, onClick: () => void resendEmail() }}
-        />
-      ) : null}
-      {resendNote ? (
-        <p
-          className={resendNote.error ? 'nl-body-sm text-nl-err' : 'nl-body-sm text-nl-ok'}
-          role={resendNote.error ? 'alert' : 'status'}
-        >
-          {resendNote.text}
-        </p>
-      ) : null}
-
+      {/* T-522 (Rajesh): no verify banner here. The dashboard's M3 verify bar is the one
+          persistent sign, and a subscribe refused with 403 email_verification_required opens
+          the AJ-522-M6 Subscribe dialog (useSubscribe); Choose stays enabled. */}
       {privacyKey ? (
         <Banner
           kind="privacy-reaccept"

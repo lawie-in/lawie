@@ -19,6 +19,7 @@ import mongoose from 'mongoose';
 
 import { Generation } from '../models/Generation.model';
 import { User } from '../models/User.model';
+import { createVerifiedUser } from './verifiedUser';
 import { insufficientInkBody } from '../middleware/enforceCredits';
 import * as credits from '../services/credits.service';
 import {
@@ -132,7 +133,7 @@ const hasEvent = (res: FakeRes, name: string) =>
   res.writes.some((w) => w.startsWith(`event: ${name}\n`));
 
 async function seed(inkTopup: number) {
-  await User.create({
+  await createVerifiedUser({
     _id: USER_ID,
     plan: 'free',
     planTier: 'free',

@@ -35,6 +35,7 @@ jest.mock('@/components/credits/PaywallModal', () => ({
   },
 }));
 jest.mock('@/components/VerifyEmailPrompt', () => ({
+  openVerifyIfDraftRefused: async () => false,
   openVerifyInsteadOfPaywall: async () => false,
 }));
 

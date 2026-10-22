@@ -2,7 +2,7 @@
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 
-import GeneratingStep, { RETRY_INK_COST_ID } from '../GeneratingStep';
+import GeneratingStep, { COST_UNKNOWN_REASON, RETRY_INK_COST_ID } from '../GeneratingStep';
 import { INK_COST_LOADING, INK_COST_RECHECK, INK_COST_UNKNOWN } from '../InkCostLine';
 
 (globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -64,31 +64,39 @@ describe('GeneratingStep Try again Ink cost', () => {
     expect(onRetry).toHaveBeenCalledTimes(1);
   });
 
-  it('unknown: disabled, aria-disabled, alert notice, clicking does not retry, Sentry once with retry tag', () => {
+  it('unknown (T-565 W14): disabled, aria-disabled, the reason line (no alert), described by it, click does not retry, no Sentry', () => {
     mount({ inkCost: undefined });
     const btn = tryAgain();
     expect(btn.disabled).toBe(true);
     expect(btn.getAttribute('aria-disabled')).toBe('true');
-    const alert = container.querySelector(`#${RETRY_INK_COST_ID}`) as HTMLElement;
-    expect(alert.getAttribute('role')).toBe('alert');
-    expect(alert.textContent).toBe(INK_COST_UNKNOWN);
+    expect(btn.getAttribute('aria-describedby')).toBe(RETRY_INK_COST_ID);
+    const line = container.querySelector(`#${RETRY_INK_COST_ID}`) as HTMLElement;
+    expect(line).not.toBeNull();
+    expect(line.textContent).toBe(COST_UNKNOWN_REASON);
+    expect(COST_UNKNOWN_REASON).toBe('You can generate once the Ink cost is shown.');
+    expect(line.hasAttribute('role')).toBe(false);
+    expect(container.textContent).not.toContain(INK_COST_UNKNOWN);
     act(() => btn.click());
     expect(onRetry).not.toHaveBeenCalled();
-    expect(mockCapture).toHaveBeenCalledTimes(1);
-    expect(mockCapture).toHaveBeenCalledWith('Ink cost unknown', {
-      level: 'warning',
-      tags: { kind: 'bail', action: 'retry' },
-    });
+    expect(mockCapture).not.toHaveBeenCalled();
   });
 
-  it('unknown: the cost-line "Check the cost again" link fetches the cost again, not the charge', () => {
+  it('unknown: no "Check the cost again" link, and nothing fetches the cost', () => {
     mount({ inkCost: undefined });
-    const costRetry = Array.from(container.querySelectorAll('button')).find(
-      (b) => b.textContent === INK_COST_RECHECK && !b.hasAttribute('aria-describedby'),
-    ) as HTMLButtonElement;
-    act(() => costRetry.click());
-    expect(onInkCostRetry).toHaveBeenCalledTimes(1);
+    expect(
+      Array.from(container.querySelectorAll('button')).filter(
+        (b) => b.textContent === INK_COST_RECHECK,
+      ),
+    ).toHaveLength(0);
+    expect(onInkCostRetry).not.toHaveBeenCalled();
     expect(onRetry).not.toHaveBeenCalled();
+  });
+
+  it('the reason line is not shown while loading or once known', () => {
+    mount({ inkCost: undefined, inkCostLoading: true });
+    expect(container.textContent).not.toContain(COST_UNKNOWN_REASON);
+    mount({ inkCost: 4 });
+    expect(container.textContent).not.toContain(COST_UNKNOWN_REASON);
   });
 
   it('loading: status line, disabled, no charge on click, no Sentry', () => {

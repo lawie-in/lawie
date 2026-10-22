@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   title: 'Lawie — Free Legal Tools for Indian Advocates',
   description:
     // T-375: names no tool, so a tool hidden by its switch is never mentioned.
-    'Free legal tools. Built around the new Indian criminal codes.',
+    'Free legal tools for Indian advocates.',
 };
 
 export default async function ToolsPage() {
@@ -121,7 +121,7 @@ export default async function ToolsPage() {
                 <h3>BNSS Investigation Timeline</h3>
                 <p>
                   Enter the FIR date and sections to see custody limits, chargesheet deadlines, and
-                  default bail eligibility dates under BNSS.
+                  default bail eligibility dates under BNSS for an arrest on or after 1 July 2024.
                 </p>
                 <div className="tool-viz" aria-hidden="true">
                   <div className="viz-line">
@@ -150,7 +150,7 @@ export default async function ToolsPage() {
           <div className="tools-cta">
             <div>
               <h3>Need more than tools? Try Lawie&apos;s full drafter.</h3>
-              <p>Generate full drafts — not just section lookups.</p>
+              <p>Generate a first draft to review and edit.</p>
             </div>
             <Link className="btn btn-primary btn-lg" href="/pricing">
               See Pricing <ArrowRight strokeWidth={1.5} />

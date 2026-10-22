@@ -16,6 +16,7 @@ import type { NextFunction, Request, Response } from 'express';
 import request from 'supertest';
 
 import app from '../app';
+import { seedVerifiedUsers } from './verifiedUser';
 import { env } from '../config/env';
 import logger from '../config/logger';
 import redis from '../config/redis';
@@ -917,3 +918,5 @@ describe('intake routes: a hidden template is 404', () => {
     });
   });
 });
+
+seedVerifiedUsers('507f1f77bcf86cd799439375');

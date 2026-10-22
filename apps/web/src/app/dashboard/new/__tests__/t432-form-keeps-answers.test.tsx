@@ -1,5 +1,5 @@
 // T-432: the template form keeps every answer, the current step and the consumer Commission level
-// when the advocate is sent back to it (privacy block, 402 paywall, verify-email bounce, "Edit form"),
+// when the advocate is sent back to it (privacy block, 402 paywall, verify-email bounce, "Edit the form"),
 // and drops them on a template change, on Cancel. Nothing typed goes to browser storage.
 //
 // The real DynamicFormRenderer and the real PipelineStatus run here; only the prompts, the modal,
@@ -30,6 +30,7 @@ jest.mock('@/components/credits/PaywallModal', () => ({
 // Switchable prompts.
 let mockVerifyInstead = false;
 jest.mock('@/components/VerifyEmailPrompt', () => ({
+  openVerifyIfDraftRefused: async () => false,
   openVerifyInsteadOfPaywall: async () => mockVerifyInstead,
 }));
 let mockPrecheckBlocks = false;
@@ -270,31 +271,32 @@ describe('T-432 AC1/AC2: every return path keeps answers and step', () => {
     await expectAnswersKept();
   });
 
-  it('"Let me fix this — edit form" (soft warn): answers and step kept', async () => {
+  it('"Edit the form" (soft warn): answers and step kept', async () => {
     verdict = { verdict: 'soft', questions: ['Check the dates'] };
     await open('Alpha notice');
     await fillThreeSteps();
     await click('Generate document');
-    await click('Let me fix this — edit form');
+    await click('Edit the form');
     await expectAnswersKept();
   });
 
-  it('"Edit form" (hard block): answers and step kept', async () => {
+  it('"Edit the form" (hard block): answers and step kept', async () => {
     verdict = { verdict: 'hard', hardBlockReason: 'Cannot be used' };
     await open('Alpha notice');
     await fillThreeSteps();
     await click('Generate document');
     expect(text()).toContain('Cannot be used');
-    await click('Edit form');
+    await click('Edit the form');
     await expectAnswersKept();
   });
 
-  it('"Edit form" (generation failed): answers and step kept', async () => {
+  it('"Edit the form" (generation failed): answers and step kept', async () => {
     await open('Alpha notice');
     await fillThreeSteps();
     await click('Generate document'); // privacyFetch -> 500 -> generation_failed
-    expect(text()).toContain('Model down');
-    await click('Edit form');
+    expect(text()).toContain('Something did not work. Try again.'); // T-565 W3: a 500 pre-stream; the server reason is not shown
+    expect(text()).not.toContain('Model down');
+    await click('Edit the form');
     await expectAnswersKept();
   });
 
@@ -303,10 +305,10 @@ describe('T-432 AC1/AC2: every return path keeps answers and step', () => {
     await open('Alpha notice');
     await fillThreeSteps();
     await click('Generate document');
-    await click('Let me fix this — edit form');
+    await click('Edit the form');
     await type('three, edited');
     await click('Generate document');
-    await click('Let me fix this — edit form');
+    await click('Edit the form');
     expect(text()).toContain('Field 3');
     expect(field().value).toBe('three, edited');
     await click('Back');
@@ -323,7 +325,7 @@ describe('T-432 AC1/AC2: every return path keeps answers and step', () => {
     // jump straight to the last step with the answer on step 3 empty, then return
     await click('Next');
     await click('Generate document');
-    await click('Let me fix this — edit form');
+    await click('Edit the form');
     expect(text()).toContain('Field 3');
     expect(field().value).toBe('');
     await click('Back');
@@ -372,7 +374,7 @@ describe('T-432 AC3: answers are cleared when they should be', () => {
     await open('Alpha notice');
     await fillThreeSteps();
     await click('Generate document');
-    await click('Let me fix this — edit form');
+    await click('Edit the form');
     await click('Choose a different template');
     await click('Alpha notice');
     expect(text()).toContain('Field 1');
@@ -431,7 +433,7 @@ describe('T-432 AC3: nothing typed goes to browser storage', () => {
     await open('Alpha notice');
     await fillThreeSteps();
     await click('Generate document');
-    await click('Let me fix this — edit form');
+    await click('Edit the form');
     await click('Back');
     mockPrivacyFetch.mockResolvedValue(reply(402, { cost: 3, balance: { total: 1 } }));
     verdict = { verdict: 'pass' };

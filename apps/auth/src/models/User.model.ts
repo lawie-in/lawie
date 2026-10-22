@@ -16,6 +16,10 @@ import mongoose, { Document, Schema, Types } from 'mongoose';
 export const CURRENT_TERMS_VERSION = '2026-10-22';
 export { CURRENT_PRIVACY_VERSION };
 export type TermsAcceptedVia = 'password' | 'google';
+/** T-522 (Arjun ruling 1): what a verify link does. A missing kind is treated as 'verify'. */
+export type EmailVerifyKind = 'signin' | 'verify';
+/** T-522 (Arjun ruling 2): the stored outcome of a sign-up referral code. */
+export type ReferralStatus = 'applied' | 'not_applied';
 /**
  * T-343 (Ajay §4) — how the current privacyVersion was accepted. 'signin' (Ajay, round 5): the
  * T-234 Google consent stamp on a linked or returning account set privacyVersion at sign-in.
@@ -167,6 +171,14 @@ export interface IUser extends Document {
   // 24 h expiry. Set by mintVerifyLink, cleared on use. Never selected by default.
   emailVerifyTokenHash?: string;
   emailVerifyExpires?: Date;
+  // T-522 (Arjun ruling 1) — what the live link does: 'signin' (sign-up and resend links, 30 min,
+  // verifies and signs in) or 'verify' (the T-358 notice, 7 days, verifies only). Written and
+  // cleared together with the hash and expiry. Missing or unknown means 'verify'.
+  emailVerifyKind?: EmailVerifyKind;
+  // T-522 (Arjun ruling 2) — the outcome of a referral code sent at sign-up: 'applied' (recorded;
+  // the Ink follows verification) or 'not_applied' (the code was no longer valid). Absent: no
+  // code was sent, or the outcome is not known. GET /me reports it as referralStatus.
+  referralStatus?: ReferralStatus;
   // T-115c — present only once closing the account has started (the account is locked).
   erasure?: IErasure;
   // T-358 (Ajay 8a2b639 / 9e42eea) — the clock. When the FIRST email carrying a verify link
@@ -348,6 +360,14 @@ const UserSchema = new Schema<IUser>(
       type: Date,
       select: false,
     },
+    // T-522 — no default: absent means 'verify' (links minted before T-522 stay verify-only).
+    emailVerifyKind: {
+      type: String,
+      enum: ['signin', 'verify'],
+      select: false,
+    },
+    // T-522 — no default: absent means no referral code was sent (or the outcome is unknown).
+    referralStatus: { type: String, enum: ['applied', 'not_applied'] },
     // T-115c — no default: absent means the account is not being closed.
     erasure: { type: ErasureSchema },
     // T-358 — no defaults: absent means no verify-link email / no warning notice has gone out.

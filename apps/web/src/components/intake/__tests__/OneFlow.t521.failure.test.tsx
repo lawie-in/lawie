@@ -21,6 +21,7 @@ jest.mock('next/navigation', () => ({
 }));
 jest.mock('@/components/credits/PaywallModal', () => ({ PaywallModal: () => null }));
 jest.mock('@/components/VerifyEmailPrompt', () => ({
+  openVerifyIfDraftRefused: async () => false,
   openVerifyInsteadOfPaywall: async () => false,
 }));
 const mockApiFetch = jest.fn();
@@ -34,7 +35,10 @@ jest.mock('@/components/PrivacyUpdatePrompt', () => ({
   usePrivacyDescribedBy: () => undefined,
 }));
 
-const SIGNED = 'The draft did not finish. No Ink was used.';
+// T-567 item 41: OneFlow does not read `inkReleased` from the stream yet (held by T-522), so an
+// error event shows the headline and the documents-list line, never `No Ink was used.`
+const SIGNED = 'The draft did not finish.';
+const DOCS_LINE = 'Check your documents list to see where this draft stands.';
 const LOST = 'Connection lost. Check your documents.';
 const TYPED = 'My client was arrested under a FIR and needs regular bail please.';
 
@@ -154,9 +158,12 @@ describe('OneFlow generation failure wording (T-521 AC3)', () => {
       ]),
     );
     expect(text()).toContain(SIGNED);
+    expect(text()).toContain(DOCS_LINE);
     expect(text()).toContain('The drafter stopped.');
+    expect(text()).not.toContain('No Ink was used');
     expect(text()).not.toContain(LOST);
-    expect(container.querySelector('[data-no-ink-claim="true"]')).not.toBeNull();
+    expect(container.querySelector('[data-no-ink-claim="true"]')).toBeNull();
+    expect(container.querySelector('[data-no-ink-claim="false"]')).not.toBeNull();
     expect(container.querySelector('[role="alert"]')).not.toBeNull();
   });
 
@@ -164,6 +171,8 @@ describe('OneFlow generation failure wording (T-521 AC3)', () => {
     await toBrief();
     await confirmWith(sse([ev('error', { reason: 'Stopped.' })]));
     expect(text()).toContain(SIGNED);
+    expect(text()).toContain(DOCS_LINE);
+    expect(text()).not.toContain('No Ink was used');
   });
 
   it('server error event after streamed text still gives the signed line (no done)', async () => {
