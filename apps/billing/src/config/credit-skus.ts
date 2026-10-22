@@ -64,14 +64,14 @@ export interface TopupSku {
   id: 'topup_mini' | 'topup_mid' | 'topup_max';
   ink: number; // Ink display units (×2 to get ledger units)
   priceInr: number;
-  badge?: 'POPULAR' | 'BEST_VALUE';
   pricePerInkInr: number;
 }
 
+// T-567 item 52 (AJ-535-M3): no badges; they were never rendered.
 export const TOPUP_SKUS: TopupSku[] = [
   { id: 'topup_mini', ink: 3, priceInr: 65, pricePerInkInr: 21.7 },
-  { id: 'topup_mid', ink: 10, priceInr: 199, badge: 'POPULAR', pricePerInkInr: 19.9 },
-  { id: 'topup_max', ink: 28, priceInr: 499, badge: 'BEST_VALUE', pricePerInkInr: 17.8 },
+  { id: 'topup_mid', ink: 10, priceInr: 199, pricePerInkInr: 19.9 },
+  { id: 'topup_max', ink: 28, priceInr: 499, pricePerInkInr: 17.8 },
 ];
 
 export function findSubscriptionPlan(id: string): SubscriptionPlanSku | undefined {

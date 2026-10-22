@@ -337,15 +337,40 @@ export async function* streamLLM(
 
 // ── AI error classification ────────────────────────────────────────────────
 //
-// Surfaces a user-readable reason + a retryable flag for every kind of failure
-// the LLM stream can produce (Anthropic 429/5xx, network/socket drop, etc).
-// Classification is by the SDK error's HTTP status, then by message text.
-// The route handler emits
-// this via `event: error` SSE; the frontend renders it in the
-// generation_failed pipeline state.
+// Labels every kind of failure the LLM stream can produce (Anthropic 429/5xx,
+// network/socket drop, etc) with a code and a retryable flag. Classification is
+// by the SDK error's HTTP status, then by message text. The stream emits it via
+// `event: error` SSE; the frontend renders it in the generation_failed state.
+//
+// T-567 item 41 (Ajay, AJ-539-M2): every server failure before `done` shows the
+// advocate only `The draft did not finish.`. The server's own English detail
+// goes to logs only. The classifier never decides the Ink line (41b).
+
+/** AJ-539-M2: the only user-facing text for a server failure before `done`. */
+export const DRAFT_DID_NOT_FINISH = 'The draft did not finish.';
+
+/**
+ * The SSE `event: error` payload. `reason` is user-facing: signed text only,
+ * or ''. `inkReleased` (Arjun, T-567): true only once releaseInk has returned
+ * success for this run; absent or false means not confirmed. No emitter sets
+ * it today, so the web shows no "No Ink was used." line.
+ */
+export interface SseErrorEvent {
+  section?: string;
+  reason: string;
+  retryable: boolean;
+  code: string;
+  runId?: string;
+  inkReleased?: boolean;
+}
+
+/** Writes one SSE `event: error`. The caller ends the response. */
+export function writeSseError(res: Response, event: SseErrorEvent): void {
+  res.write(`event: error\ndata: ${JSON.stringify(event)}\n\n`);
+}
 
 interface ClassifiedLlmError {
-  /** Stable code for telemetry / future translation */
+  /** Stable code for telemetry and the web's own strings */
   code:
     | 'rate_limited'
     | 'provider_unavailable'
@@ -353,8 +378,10 @@ interface ClassifiedLlmError {
     | 'invalid_request'
     | 'network'
     | 'unknown';
-  /** One-line copy shown directly to the advocate */
+  /** Shown to the advocate: always DRAFT_DID_NOT_FINISH (AJ-539-M2). */
   userMessage: string;
+  /** The server's own detail, for logs only. Never sent to the client. */
+  logMessage: string;
   /** Whether re-clicking "Try again" is likely to succeed */
   retryable: boolean;
 }
@@ -382,49 +409,51 @@ function isProviderConnectionError(err: unknown): boolean {
 }
 
 function classifyLlmError(err: unknown): ClassifiedLlmError {
-  // App-setting missing — model not configured in DB. Surface the exact key
-  // so the founder knows what to set in /admin/ai-config.
+  // App-setting missing — model not configured in DB. The key goes to the log
+  // only (41a): the advocate sees no internal configuration.
   if (err instanceof AppSettingMissingError) {
     return {
       code: 'auth',
-      userMessage: `AI model is not configured. The founder must set "${err.key}" in /admin/ai-config before drafts can be generated.`,
+      userMessage: DRAFT_DID_NOT_FINISH,
+      logMessage: `AI model is not configured: app setting "${err.key}" is missing (set it in /admin/ai-config).`,
       retryable: false,
     };
   }
 
   const RATE_LIMITED: ClassifiedLlmError = {
     code: 'rate_limited',
-    userMessage:
-      'The AI service is currently rate-limited. Please wait a few seconds and try again.',
+    userMessage: DRAFT_DID_NOT_FINISH,
+    logMessage: 'The AI provider rate-limited the request.',
     retryable: true,
   };
   const PROVIDER_UNAVAILABLE: ClassifiedLlmError = {
     code: 'provider_unavailable',
-    userMessage:
-      'The AI service is temporarily unavailable. Please try again in a moment — your inputs are saved.',
+    userMessage: DRAFT_DID_NOT_FINISH,
+    logMessage: 'The AI provider is temporarily unavailable.',
     retryable: true,
   };
   const AUTH: ClassifiedLlmError = {
     code: 'auth',
-    userMessage:
-      'The drafting service could not authenticate with the AI provider. Please contact support — this is a server-side configuration issue.',
+    userMessage: DRAFT_DID_NOT_FINISH,
+    logMessage: 'The drafting service could not authenticate with the AI provider (configuration).',
     retryable: false,
   };
   const INVALID_REQUEST: ClassifiedLlmError = {
     code: 'invalid_request',
-    userMessage:
-      'The AI rejected the prompt for this draft. Try shortening the facts narrative, then generate again.',
+    userMessage: DRAFT_DID_NOT_FINISH,
+    logMessage: 'The AI provider rejected the request as invalid.',
     retryable: false,
   };
   const NETWORK: ClassifiedLlmError = {
     code: 'network',
-    userMessage: 'Network error reaching the AI service. Check your connection and try again.',
+    userMessage: DRAFT_DID_NOT_FINISH,
+    logMessage: 'Network error reaching the AI provider.',
     retryable: true,
   };
   const UNKNOWN: ClassifiedLlmError = {
     code: 'unknown',
-    userMessage:
-      'The AI service returned an unexpected error. Please try again. If this keeps happening, contact support.',
+    userMessage: DRAFT_DID_NOT_FINISH,
+    logMessage: 'The AI provider returned an unexpected error.',
     retryable: true,
   };
 
@@ -766,23 +795,22 @@ export async function streamGenerateDocument(
       const classified = classifyLlmError(llmErr);
       if (process.env.NODE_ENV !== 'test') {
         console.error(
-          `[drafting] LLM stream failed (legacy generate, runId=${input.runId}, runSequence=${input.runSequence}, runType=${input.runType}):`,
+          `[drafting] LLM stream failed (legacy generate, runId=${input.runId}, runSequence=${input.runSequence}, runType=${input.runType}, code=${classified.code}): ${classified.logMessage}`,
           llmErr instanceof Error ? llmErr.message : llmErr,
         );
       }
-      res.write(
-        `event: error\ndata: ${JSON.stringify({
-          reason: classified.userMessage,
-          retryable: classified.retryable,
-          code: classified.code,
-          runId: input.runId,
-        })}\n\n`,
-      );
+      // T-567 item 41: signed text only; no inkReleased (the hold is not yet released).
+      writeSseError(res, {
+        reason: classified.userMessage,
+        retryable: classified.retryable,
+        code: classified.code,
+        runId: input.runId,
+      });
       // Not res.end() here — the route ends the response only after the
       // failed Generation row is persisted, so a fast retry's resolveRun
       // query is guaranteed to find this attempt rather than racing it.
       throw new GenerationFailedError(
-        classified.userMessage,
+        classified.logMessage,
         classified.code,
         meter.totals(),
         draft.model,
@@ -1054,24 +1082,23 @@ export async function streamGenerateFromTemplate(
           const classified = classifyLlmError(llmErr);
           if (process.env.NODE_ENV !== 'test') {
             console.error(
-              `[drafting] LLM stream failed (section ${section.section_id}, runId=${input.runId}, runSequence=${input.runSequence}, runType=${input.runType}):`,
+              `[drafting] LLM stream failed (section ${section.section_id}, runId=${input.runId}, runSequence=${input.runSequence}, runType=${input.runType}, code=${classified.code}): ${classified.logMessage}`,
               llmErr instanceof Error ? llmErr.message : llmErr,
             );
           }
-          res.write(
-            `event: error\ndata: ${JSON.stringify({
-              section: section.section_id,
-              reason: classified.userMessage,
-              retryable: classified.retryable,
-              code: classified.code,
-              runId: input.runId,
-            })}\n\n`,
-          );
+          // T-567 item 41: signed text only; no inkReleased (the hold is not yet released).
+          writeSseError(res, {
+            section: section.section_id,
+            reason: classified.userMessage,
+            retryable: classified.retryable,
+            code: classified.code,
+            runId: input.runId,
+          });
           // Not res.end() here — the route ends the response only after the
           // failed Generation row is persisted, so a fast retry's resolveRun
           // query is guaranteed to find this attempt rather than racing it.
           throw new GenerationFailedError(
-            classified.userMessage,
+            classified.logMessage,
             classified.code,
             meter.totals(),
             aiModel,
@@ -1923,22 +1950,21 @@ export async function streamGenerateFromBrief(
       const classified = classifyLlmError(llmErr);
       if (process.env.NODE_ENV !== 'test') {
         console.error(
-          `[drafting] Drafter stream failed (kind=${pack.id}, runId=${input.runId}, runSequence=${input.runSequence}, runType=${input.runType}):`,
+          `[drafting] Drafter stream failed (kind=${pack.id}, runId=${input.runId}, runSequence=${input.runSequence}, runType=${input.runType}, code=${classified.code}): ${classified.logMessage}`,
           llmErr instanceof Error ? llmErr.name : 'unknown',
         );
       }
-      res.write(
-        `event: error\ndata: ${JSON.stringify({
-          section: 'body',
-          reason: classified.userMessage,
-          retryable: classified.retryable,
-          code: classified.code,
-          runId: input.runId,
-        })}\n\n`,
-      );
+      // T-567 item 41: signed text only; no inkReleased (the hold is not yet released).
+      writeSseError(res, {
+        section: 'body',
+        reason: classified.userMessage,
+        retryable: classified.retryable,
+        code: classified.code,
+        runId: input.runId,
+      });
       // The route ends the response after the failed Generation row is saved.
       throw new GenerationFailedError(
-        classified.userMessage,
+        classified.logMessage,
         classified.code,
         meter.totals(),
         aiModel,
@@ -2586,23 +2612,22 @@ async function d1GenerateFromBrief(c: D1Context): Promise<BriefGenerateResult> {
     const classified = classifyLlmError(err);
     if (process.env.NODE_ENV !== 'test') {
       console.error(
-        `[drafting] Drafter structured call failed (kind=${pack.id}, runId=${input.runId}, runSequence=${input.runSequence}, runType=${input.runType}):`,
+        `[drafting] Drafter structured call failed (kind=${pack.id}, runId=${input.runId}, runSequence=${input.runSequence}, runType=${input.runType}, code=${classified.code}): ${classified.logMessage}`,
         err instanceof Error ? err.name : 'unknown',
       );
     }
-    res.write(
-      `event: error\ndata: ${JSON.stringify({
-        section: 'body',
-        reason: classified.userMessage,
-        retryable: classified.retryable,
-        code: classified.code,
-        runId: input.runId,
-      })}\n\n`,
-    );
+    // T-567 item 41: signed text only; no inkReleased (the hold is not yet released).
+    writeSseError(res, {
+      section: 'body',
+      reason: classified.userMessage,
+      retryable: classified.retryable,
+      code: classified.code,
+      runId: input.runId,
+    });
     const { aiModel, transport } = c.callInfo();
     // The route ends the response after the failed Generation row is saved.
     return new GenerationFailedError(
-      classified.userMessage,
+      classified.logMessage,
       classified.code,
       c.meter.totals(),
       aiModel,
@@ -2830,22 +2855,21 @@ export async function streamGenerateGuided(
       const classified = classifyLlmError(llmErr);
       if (process.env.NODE_ENV !== 'test') {
         console.error(
-          `[drafting] Drafter stream failed (kind=none, runId=${input.runId}, runSequence=${input.runSequence}, runType=${input.runType}):`,
+          `[drafting] Drafter stream failed (kind=none, runId=${input.runId}, runSequence=${input.runSequence}, runType=${input.runType}, code=${classified.code}): ${classified.logMessage}`,
           llmErr instanceof Error ? llmErr.name : 'unknown',
         );
       }
-      res.write(
-        `event: error\ndata: ${JSON.stringify({
-          section: 'body',
-          reason: classified.userMessage,
-          retryable: classified.retryable,
-          code: classified.code,
-          runId: input.runId,
-        })}\n\n`,
-      );
+      // T-567 item 41: signed text only; no inkReleased (the hold is not yet released).
+      writeSseError(res, {
+        section: 'body',
+        reason: classified.userMessage,
+        retryable: classified.retryable,
+        code: classified.code,
+        runId: input.runId,
+      });
       // The route ends the response after the failed Generation row is saved.
       throw new GenerationFailedError(
-        classified.userMessage,
+        classified.logMessage,
         classified.code,
         meter.totals(),
         aiModel,

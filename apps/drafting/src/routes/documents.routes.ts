@@ -975,13 +975,15 @@ router.post(
           runSequence,
           runType,
         });
+        // T-567 item 41 (Arjun, Ajay): the detail above goes to the log only.
         if (!res.headersSent) {
-          res.status(500).json({ error: 'Generation failed', message: msg });
+          // The route's generic 500 body (holdError), never the raw message.
+          res.status(500).json(holdError);
         } else {
+          // AJ-539-M2 text (DRAFT_DID_NOT_FINISH); no inkReleased (release() cannot confirm it).
           res.write(
             `event: error\ndata: ${JSON.stringify({
-              reason:
-                'The drafting service hit an unexpected error. Please try again — your inputs are saved.',
+              reason: 'The draft did not finish.',
               retryable: true,
               code: 'unknown',
               runId,
@@ -1446,10 +1448,11 @@ router.post(
         } else if (!res.headersSent) {
           res.status(500).json({ error: 'Generation failed' });
         } else {
+          // T-567 item 41: AJ-539-M2 text (DRAFT_DID_NOT_FINISH); the error name is
+          // logged above. No inkReleased (release() cannot confirm it).
           res.write(
             `event: error\ndata: ${JSON.stringify({
-              reason:
-                'The drafting service hit an unexpected error. Please try again — your brief is kept.',
+              reason: 'The draft did not finish.',
               retryable: true,
               code: 'unknown',
               runId,

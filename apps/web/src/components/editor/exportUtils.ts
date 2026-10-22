@@ -154,6 +154,14 @@ function stampHeader(pdf: JsPdfPages, text: string, margin: [number, number, num
 }
 
 /**
+ * T-567 item 30 (Ajay, signed): the footer of every PDF and Word export. A
+ * starting draft carries its own signed footer instead, so there is exactly
+ * one (T-321).
+ */
+export const EXPORT_DISCLAIMER_FOOTER =
+  'First draft generated with AI. Check it against the applicable law before filing. Lawie does not provide legal advice.';
+
+/**
  * `startingDraftFooter` is the footer of a starting draft (T-107, section 4),
  * as the service sent it with the document. The user cannot remove it.
  *
@@ -229,7 +237,7 @@ export async function exportPdf(
     </style>
     <div class="lawie-pdf-root">
       ${html}
-      ${startingDraftFooter ? `<div class="disclaimer">${escapeHtml(startingDraftFooter)}</div>` : `<div class="disclaimer">First draft generated with AI. Check it against the applicable law before filing. Lawie does not provide legal advice.</div>`}
+      <div class="disclaimer">${escapeHtml(startingDraftFooter || EXPORT_DISCLAIMER_FOOTER)}</div>
     </div>
   `;
 
@@ -384,7 +392,8 @@ function draftHeader(count: number): Header {
  * Uses the `docx` package (client-side generation).
  *
  * A starting draft carries its footer on every page (T-107, section 4). The
- * text comes from the service with the document.
+ * text comes from the service with the document. Any other draft carries
+ * EXPORT_DISCLAIMER_FOOTER, the same footer as the PDF (T-567 item 30).
  *
  * T-194: each blank is bold and highlighted yellow; a draft with blanks
  * carries the "DRAFT — N items to be confirmed" header. A draft with none is
@@ -421,22 +430,23 @@ export async function exportDocx(
           },
         },
         ...(blanks.length > 0 ? { headers: { default: draftHeader(blanks.length) } } : {}),
-        ...(startingDraftFooter
-          ? {
-              footers: {
-                default: new Footer({
-                  children: [
-                    new Paragraph({
-                      alignment: AlignmentType.CENTER,
-                      children: [
-                        new TextRun({ text: startingDraftFooter, size: 16, color: '666666' }),
-                      ],
-                    }),
-                  ],
-                }),
-              },
-            }
-          : {}),
+        // T-567 item 30: every Word export carries one footer, as the PDF does.
+        footers: {
+          default: new Footer({
+            children: [
+              new Paragraph({
+                alignment: AlignmentType.CENTER,
+                children: [
+                  new TextRun({
+                    text: startingDraftFooter || EXPORT_DISCLAIMER_FOOTER,
+                    size: 16,
+                    color: '666666',
+                  }),
+                ],
+              }),
+            ],
+          }),
+        },
         children: paragraphs,
       },
     ],
