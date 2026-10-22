@@ -5,7 +5,7 @@ import { PLANS } from '@lawie/shared';
 
 import { LandingPage } from '../LandingPage';
 
-import { FAQ_EN, landingCopy, SIGNUP_HREF } from '@/components/marketing/nl-copy';
+import { FAQ_EN, landingCopy, SIGNUP_HREF, TOP_BAR_COPY } from '@/components/marketing/nl-copy';
 import { cleanupMounted, click, mount, q, qa } from '@/components/ui/__tests__/nl-test-utils';
 
 const EN = landingCopy('en');
@@ -96,6 +96,8 @@ describe('landing: structure (AC1)', () => {
     };
     walk(EN);
     walk(FAQ_EN);
+    // T-531: the phone bar's signed short call to action ("Start free", Ajay AJ-531-M1).
+    walk(TOP_BAR_COPY.en.cta);
     const joined = Array.from(pool).join('\n');
     const strays: string[] = [];
     const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
@@ -325,10 +327,13 @@ describe('landing: document spines', () => {
 });
 
 describe('landing: theme toggle (AC3)', () => {
-  it('has the Night / Daylight / System toggle in the top bar and the mobile row', () => {
+  it('has the Night / Daylight / System toggle in the top bar and, once opened, in the phone menu', () => {
     mount(<LandingPage />);
-    const groups = qa('header fieldset');
-    expect(groups.length).toBeGreaterThanOrEqual(2);
+    // Closed: the bar's own toggle only (the menu content mounts when it opens, in a portal).
+    expect(qa('header fieldset')).toHaveLength(1);
+    click(q('[data-topbar-menu-trigger]'));
+    const groups = [...qa('header fieldset'), ...qa('[data-topbar-menu] fieldset')];
+    expect(groups).toHaveLength(2);
     for (const g of groups) {
       expect(qa('input[type="radio"]', g).map((r) => (r as HTMLInputElement).value)).toEqual([
         'night',
@@ -339,7 +344,8 @@ describe('landing: theme toggle (AC3)', () => {
       expect(norm(g.textContent)).toContain('Daylight');
       expect(norm(g.textContent)).toContain('System');
     }
-    expect(q('[data-topbar-mobile-menu] fieldset')).not.toBeNull();
+    expect(q('[data-topbar-menu] fieldset')).not.toBeNull();
+    expect(q('[data-topbar-mobile-menu]')).toBeNull();
   });
 });
 

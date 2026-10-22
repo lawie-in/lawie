@@ -39,6 +39,9 @@
   * { @apply border-border; }
   body { @apply bg-background text-foreground; }
   html { scroll-behavior: smooth; }
+  /* T-531: a sticky shell TopBar publishes its live height as --nl-bar-h (ResizeObserver), so
+     focus and anchor jumps land below it. Layered, so NightTopBar's scoped fallback <style> wins. */
+  html { scroll-padding-top: var(--nl-bar-h, 0px); }
 }
 
 /* TipTap editor styles */
@@ -340,6 +343,10 @@ html[data-theme='night'] .nl {
 
   /* prefers-reduced-motion: no animation, end states shown. */
   @media (prefers-reduced-motion: reduce) {
+    /* T-531: no smooth scrolling (html, layer base); anchor jumps are instant. */
+    html {
+      scroll-behavior: auto;
+    }
     .nl-focus {
       transition: none;
     }

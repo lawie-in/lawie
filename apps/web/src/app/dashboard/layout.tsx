@@ -55,7 +55,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
 
     return (
-      <div className="nl nl-root flex min-h-screen flex-col overflow-x-hidden">
+      <div className="nl nl-root flex min-h-screen flex-col overflow-x-clip">
         {/* T-520: signed-in top bar; the theme toggle is in its menu (one header row). */}
         <DashboardTopBar />
         <OfflineBanner />

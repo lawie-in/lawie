@@ -526,14 +526,22 @@ describe('loading', () => {
 });
 
 describe('theme toggle and chrome (AC3)', () => {
-  it('has the theme toggle in the top bar and the mobile row; no sign-in actions in the bar', async () => {
+  it('has the theme toggle in the top bar and in the phone menu; no sign-in actions in the bar', async () => {
     await mount('mode=signin');
-    expect(qa('header fieldset').length).toBeGreaterThanOrEqual(2);
-    expect(q('[data-topbar-mobile-menu] fieldset')).not.toBeNull();
-    expect(
-      qa('header fieldset input[type="radio"]').map((r) => (r as HTMLInputElement).value),
-    ).toEqual(['night', 'daylight', 'system', 'night', 'daylight', 'system']);
+    const values = (root: ParentNode) =>
+      Array.from(root.querySelectorAll('fieldset input[type="radio"]')).map(
+        (r) => (r as HTMLInputElement).value,
+      );
+    expect(qa('header fieldset')).toHaveLength(1);
+    expect(values(q('header')!)).toEqual(['night', 'daylight', 'system']);
+    expect(q('[data-topbar-mobile-menu]')).toBeNull();
+    await act(async () => void q<HTMLButtonElement>('[data-topbar-menu-trigger]')!.click());
+    expect(qa('[data-topbar-menu] fieldset')).toHaveLength(1);
+    expect(values(q('[data-topbar-menu]')!)).toEqual(['night', 'daylight', 'system']);
+    // The form is the action on the auth pages: no call to action in the bar or the menu.
     expect(qa('header a').map((a) => a.textContent)).not.toContain('Start with 5 free Ink');
+    expect(qa('header a').map((a) => a.textContent)).not.toContain('Start free');
+    expect(qa('[data-topbar-menu] a')).toHaveLength(0);
   });
 
   it('has the Night Library footer with the grievance line', async () => {

@@ -360,6 +360,24 @@ export function themeCopy(lang: Lang) {
     : { legend: 'Theme', labels: { night: 'Night', daylight: 'Daylight', system: 'System' } };
 }
 
+// ── Top bar (T-531; Ajay-signed 83587fe5, handoff/legal/T-511-copy-rulings-ajay.md) ────────
+
+/**
+ * T-531 top bar strings. `cta`: the signed-out phone call to action in the one 64px row (never
+ * "Free forever"). `menu`: the small-screen menu button's accessible name; the open state is
+ * `aria-expanded` only, never the name. `navLabel`: the marketing nav landmark.
+ */
+export const TOP_BAR_COPY: Record<Lang, { cta: string; menu: string; navLabel: string }> = {
+  en: { cta: 'Start free', menu: 'Menu', navLabel: 'Main' },
+  hi: { cta: 'मुफ़्त शुरू कीजिए', menu: 'मेनू', navLabel: 'मुख्य' },
+};
+
+/** T-531: the dashboard nav landmark's name (Ajay-signed 83587fe5). */
+export const DASHBOARD_NAV_LABEL: Record<Lang, string> = {
+  en: 'Dashboard',
+  hi: 'डैशबोर्ड',
+};
+
 // ── Sign-up and login (§2.1, §2.2, §2.4; AJ-517-M1..M4, M9) ───────────────────
 
 /**

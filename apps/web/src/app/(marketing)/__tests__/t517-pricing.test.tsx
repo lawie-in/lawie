@@ -1,6 +1,7 @@
 // T-517 AC1-AC3: the Night Library pricing page: Free / Solo / Pro from PLANS, no yearly, the
 // signed intro, top-up and GST lines (AJ-511-M2, M7, M8; AJ-517-M5), the theme toggle.
 import { PLANS } from '@lawie/shared';
+import { act } from 'react';
 
 import { PRICES_INTRO, TOP_UP_LINE } from '@/components/marketing/nl-copy';
 import { cleanupMounted, mount, q, qa } from '@/components/ui/__tests__/nl-test-utils';
@@ -97,9 +98,10 @@ describe('pricing page (T-517)', () => {
 
   it('carries the GST FAQ byte for byte and only that FAQ; the old FAQs are gone', () => {
     mount(<PricingPage />);
-    expect(qa('button[aria-expanded]').map((b) => norm(b.textContent).replace(/\+$/, ''))).toEqual([
-      'Is GST included?',
-    ]);
+    // Scoped to main: the top bar's menu button also carries aria-expanded (T-531).
+    expect(
+      qa('main button[aria-expanded]').map((b) => norm(b.textContent).replace(/\+$/, '')),
+    ).toEqual(['Is GST included?']);
     const panel = q('[role="region"]') as HTMLElement;
     expect(panel.textContent).toBe(GST_FAQ);
     expect(panel.hidden).toBe(false);
@@ -113,13 +115,16 @@ describe('pricing page (T-517)', () => {
     expect(text()).toContain('Prices include GST.');
   });
 
-  it('has the theme toggle in the top bar and the mobile row', () => {
+  it('has the theme toggle in the top bar and, once the phone menu is opened, inside it', () => {
     mount(<PricingPage />);
-    expect(qa('header fieldset').length).toBeGreaterThanOrEqual(2);
-    expect(q('[data-topbar-mobile-menu] fieldset')).not.toBeNull();
-    expect(
-      qa('header fieldset input[type="radio"]').map((r) => (r as HTMLInputElement).value),
-    ).toEqual(['night', 'daylight', 'system', 'night', 'daylight', 'system']);
+    const values = (root: ParentNode) =>
+      qa('fieldset input[type="radio"]', root).map((r) => (r as HTMLInputElement).value);
+    expect(qa('header fieldset')).toHaveLength(1);
+    expect(values(q('header')!)).toEqual(['night', 'daylight', 'system']);
+    expect(q('[data-topbar-mobile-menu]')).toBeNull();
+    act(() => (q('[data-topbar-menu-trigger]') as HTMLElement).click());
+    expect(qa('[data-topbar-menu] fieldset')).toHaveLength(1);
+    expect(values(q('[data-topbar-menu]')!)).toEqual(['night', 'daylight', 'system']);
   });
 
   it('has the footer with the grievance line, and no old SiteNav/SiteFooter', () => {

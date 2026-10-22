@@ -78,18 +78,21 @@ describe('Inkwell drain end offset (--nl-ink-to)', () => {
 });
 
 describe('TopBar theme toggle responsive wrappers', () => {
-  it('desktop wrapper is hidden min-[720px]:block; mobile row is min-[720px]:hidden', () => {
+  // T-531: there is no mobile row. The bar's toggle is shown from 720px; below it the toggle
+  // lives in the phone menu, whose trigger is hidden from 720px.
+  it('bar toggle wrapper is hidden min-[720px]:block; the menu trigger is min-[720px]:hidden', () => {
     stubMatchMedia();
     const { container } = mount(
       <ThemeProvider>
         <TopBar variant="signed-in" />
       </ThemeProvider>,
     );
-    const mobile = q('[data-topbar-mobile-menu]', container)!;
-    expect((mobile.getAttribute('class') ?? '').split(/\s+/)).toContain('min-[720px]:hidden');
-    const desktopFs = qa('fieldset', container).find((f) => !mobile.contains(f))!;
-    const wrapper = desktopFs.parentElement!;
-    const classes = (wrapper.getAttribute('class') ?? '').split(/\s+/);
+    expect(q('[data-topbar-mobile-menu]', container)).toBeNull();
+    const trigger = q('[data-topbar-menu-trigger]', container)!;
+    expect((trigger.getAttribute('class') ?? '').split(/\s+/)).toContain('min-[720px]:hidden');
+    const barFs = qa('fieldset', container);
+    expect(barFs).toHaveLength(1);
+    const classes = (barFs[0].parentElement!.getAttribute('class') ?? '').split(/\s+/);
     expect(classes).toContain('hidden');
     expect(classes).toContain('min-[720px]:block');
   });

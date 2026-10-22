@@ -59,8 +59,12 @@ export const metadata: Metadata = {
  * DESIGN.md Colors). ThemeProvider then keeps one unscoped meta on the resolved theme, so a
  * pinned Night or Daylight wins over the system scheme. Next merges this with its default
  * width/initial-scale viewport.
+ * T-531 (DESIGN.md Navigation): `viewport-fit=cover`, so the page paints under the notch and
+ * `env(safe-area-inset-*)` is non-zero; the top bar, bottom sheets, toasts and the consent sheet
+ * pad themselves clear of it.
  */
 export const viewport: Viewport = {
+  viewportFit: 'cover',
   themeColor: [
     { media: DARK_SCHEME_QUERY, color: THEME_COLOR.night },
     { media: LIGHT_SCHEME_QUERY, color: THEME_COLOR.daylight },

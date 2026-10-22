@@ -153,17 +153,22 @@ describe('Dialog width', () => {
   });
 });
 
-// ---------------------------------------------------------------- (e) TopBar mobile row
-describe('TopBar mobile menu row', () => {
-  const MOBILE = '[data-topbar-mobile-menu]';
+// ---------------------------------------------------------------- (e) TopBar phone menu
+// T-531: the second mobile row is gone. Below 720px the theme toggle (and the extras) live in
+// TopBarMenu, a popover that mounts its content only while open.
+describe('TopBar phone menu (T-531, replaces the mobile menu row)', () => {
+  const TRIGGER = '[data-topbar-menu-trigger]';
+  const MENU = '[data-topbar-menu]';
 
   function Probe() {
     const t = useTheme();
     return <output data-testid="probe">{t.preference}</output>;
   }
 
+  const openMenu = () => click(q(TRIGGER));
+
   it.each(['signed-in', 'signed-out'] as const)(
-    '%s: row exists with a theme toggle and renders mobileMenuExtras',
+    '%s: the menu holds a theme toggle and renders mobileMenuExtras once opened',
     (variant) => {
       stubMatchMedia();
       const { container } = mount(
@@ -171,49 +176,69 @@ describe('TopBar mobile menu row', () => {
           <TopBar variant={variant} mobileMenuExtras={<a href="/extra">Extra</a>} />
         </ThemeProvider>,
       );
-      const row = q(MOBILE, container)!;
-      expect(row).not.toBeNull();
-      expect(row.getAttribute('class')).toContain('min-[720px]:hidden');
-      expect(q('fieldset', row)).not.toBeNull();
-      expect(qa('input[type=radio]', row)).toHaveLength(3);
-      expect(q('a[href="/extra"]', row)!.textContent).toBe('Extra');
-      expect(q('header', container)!.getAttribute('class')).toContain('flex-col');
+      // Closed: nothing of the menu is in the DOM, and there is no second row.
+      expect(q('[data-topbar-mobile-menu]', container)).toBeNull();
+      expect(q(MENU)).toBeNull();
+      expect(q('a[href="/extra"]')).toBeNull();
+      expect(q(TRIGGER)!.getAttribute('class')).toContain('min-[720px]:hidden');
+      openMenu();
+      const menu = q(MENU)!;
+      expect(menu).not.toBeNull();
+      expect(qa('fieldset', menu)).toHaveLength(1);
+      expect(qa('input[type=radio]', menu)).toHaveLength(3);
+      expect(q('a[href="/extra"]', menu)!.textContent).toBe('Extra');
     },
   );
 
-  it('the desktop row keeps its own toggle, so two toggles exist', () => {
+  it('the bar keeps its own toggle, so a second one exists only while the menu is open', () => {
     stubMatchMedia();
     const { container } = mount(
       <ThemeProvider>
         <TopBar variant="signed-in" />
       </ThemeProvider>,
     );
-    expect(qa('fieldset', container)).toHaveLength(2);
-    expect(qa(`${MOBILE} fieldset`, container)).toHaveLength(1);
+    expect(qa('fieldset', container)).toHaveLength(1);
+    expect(qa('fieldset')).toHaveLength(1);
+    openMenu();
+    expect(qa('fieldset')).toHaveLength(2);
+    expect(qa(`${MENU} fieldset`)).toHaveLength(1);
   });
 
-  it('mobileMenuLabel makes the row a labelled group; absent otherwise', () => {
+  it('the bar is one row: a single 64px flex row inside the header at every width', () => {
+    stubMatchMedia();
+    const { container } = mount(
+      <ThemeProvider>
+        <TopBar variant="signed-in" />
+      </ThemeProvider>,
+    );
+    const header = q('header', container)!;
+    expect(header.children).toHaveLength(1);
+    expect((header.firstElementChild!.getAttribute('class') ?? '').split(/\s+/)).toContain(
+      'min-h-[64px]',
+    );
+  });
+
+  it('mobileMenuLabel names the menu button and the menu; it defaults to the signed "Menu"', () => {
     stubMatchMedia();
     const labelled = mount(
       <ThemeProvider>
         <TopBar variant="signed-in" mobileMenuLabel="Menu options" />
       </ThemeProvider>,
     );
-    const row = q(MOBILE, labelled.container)!;
-    expect(row.getAttribute('role')).toBe('group');
-    expect(row.getAttribute('aria-label')).toBe('Menu options');
+    expect(q(TRIGGER, labelled.container)!.getAttribute('aria-label')).toBe('Menu options');
+    openMenu();
+    expect(q(MENU)!.getAttribute('aria-label')).toBe('Menu options');
+    cleanupMounted();
 
     const plain = mount(
       <ThemeProvider>
         <TopBar variant="signed-in" />
       </ThemeProvider>,
     );
-    const plainRow = q(MOBILE, plain.container)!;
-    expect(plainRow.getAttribute('role')).toBeNull();
-    expect(plainRow.getAttribute('aria-label')).toBeNull();
+    expect(q(TRIGGER, plain.container)!.getAttribute('aria-label')).toBe('Menu');
   });
 
-  it('showThemeToggle={false} renders no toggle anywhere', () => {
+  it('showThemeToggle={false} renders no toggle anywhere, and no menu without extras', () => {
     stubMatchMedia();
     const { container } = mount(
       <ThemeProvider>
@@ -222,11 +247,12 @@ describe('TopBar mobile menu row', () => {
     );
     expect(q('fieldset', container)).toBeNull();
     expect(q('input[type=radio]', container)).toBeNull();
+    expect(q(TRIGGER)).toBeNull();
   });
 
-  it('showThemeToggle={false} with extras keeps the row for the extras only', () => {
+  it('showThemeToggle={false} with extras keeps the menu for the extras only', () => {
     stubMatchMedia();
-    const { container } = mount(
+    mount(
       <ThemeProvider>
         <TopBar
           variant="signed-out"
@@ -235,13 +261,13 @@ describe('TopBar mobile menu row', () => {
         />
       </ThemeProvider>,
     );
-    const row = q(MOBILE, container)!;
-    expect(row).not.toBeNull();
-    expect(q('fieldset', container)).toBeNull();
-    expect(q('a[href="/e"]', row)).not.toBeNull();
+    expect(q(TRIGGER)).not.toBeNull();
+    openMenu();
+    expect(q('fieldset')).toBeNull();
+    expect(q(`${MENU} a[href="/e"]`)).not.toBeNull();
   });
 
-  it('choosing a theme from the mobile toggle changes the theme', () => {
+  it('choosing a theme from the menu toggle changes the theme', () => {
     stubMatchMedia();
     const { container } = mount(
       <ThemeProvider>
@@ -250,31 +276,33 @@ describe('TopBar mobile menu row', () => {
       </ThemeProvider>,
     );
     expect(q('[data-testid=probe]', container)!.textContent).toBe('system');
-    click(q(`${MOBILE} input[value=night]`, container));
+    openMenu();
+    click(q(`${MENU} input[value=night]`));
     expect(q('[data-testid=probe]', container)!.textContent).toBe('night');
     expect(document.documentElement.getAttribute('data-theme')).toBe('night');
-    // The desktop toggle reflects the same preference.
-    const desktopNight = qa('input[value=night]', container).find(
-      (i) => !q(MOBILE, container)!.contains(i),
+    // The bar's own toggle reflects the same preference.
+    const barNight = qa('input[value=night]').find(
+      (i) => !q(MENU)!.contains(i),
     ) as HTMLInputElement;
-    expect(desktopNight.checked).toBe(true);
+    expect(barNight.checked).toBe(true);
   });
 
-  it('radio names are unique across the two toggle instances', () => {
+  it('radio names are unique across the two toggle instances while the menu is open', () => {
     stubMatchMedia();
-    const { container } = mount(
+    mount(
       <ThemeProvider>
         <TopBar variant="signed-in" />
       </ThemeProvider>,
     );
-    const radios = qa('input[type=radio]', container) as HTMLInputElement[];
+    openMenu();
+    const radios = qa('input[type=radio]') as HTMLInputElement[];
     expect(radios).toHaveLength(6);
     const names = new Set(radios.map((r) => r.name));
     expect(names.size).toBe(2);
     for (const n of names) expect(n).toBeTruthy();
-    const mobileNames = new Set(
-      (qa(`${MOBILE} input[type=radio]`, container) as HTMLInputElement[]).map((r) => r.name),
+    const menuNames = new Set(
+      (qa(`${MENU} input[type=radio]`) as HTMLInputElement[]).map((r) => r.name),
     );
-    expect(mobileNames.size).toBe(1);
+    expect(menuNames.size).toBe(1);
   });
 });

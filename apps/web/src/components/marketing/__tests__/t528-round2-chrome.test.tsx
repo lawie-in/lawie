@@ -1,8 +1,10 @@
 /**
  * T-528 round 2: the footer sits on the Wall (no Wood), CONTROL_LINE keeps its fallback, the sticky
- * bar's scroll padding is built from NL_STICKY_BAR_HEIGHT, and the nav links show from 1120px only (Rajesh's ruling).
- * break-ui: Hindi (the tallest wrapped bar) keeps the style and the marker. jsdom has no layout, so
- * the breakpoint behaviour is asserted through the classes and the CSS text.
+ * bar's scroll padding is built from NL_STICKY_BAR_HEIGHT, and the nav shows from 1120px only (Rajesh's ruling).
+ * T-531: one sticky 64px row at every width, so the scroll padding is a single unconditional rule
+ * (`--nl-bar-h`, with the 65px fallback), and the 1120 gate sits on the <nav> landmark, not on each link.
+ * break-ui: Hindi keeps the style and the marker. jsdom has no layout, so the breakpoint behaviour
+ * is asserted through the classes and the CSS text.
  */
 import { NightFooter } from '../NightFooter';
 import { NightTopBar, NL_STICKY_BAR_CSS, NL_STICKY_BAR_HEIGHT } from '../NightTopBar';
@@ -21,14 +23,12 @@ beforeEach(() => {
 });
 afterEach(() => cleanupMounted());
 
-// One source for the nav breakpoint: the last media rule of the bar's CSS. The pinned value is
-// Rajesh's ruling (1120px, relayed by Priya); the class and the rule must both follow it.
-const NAV_BP = Number(/min-width:(\d+)px[^@]*$/.exec(NL_STICKY_BAR_CSS)![1]);
-// A fixed string, never a template literal: an interpolated arbitrary min- breakpoint in any scanned
-// file is a bad Tailwind candidate that drops every arbitrary breakpoint. The test below pins it to NAV_BP.
-const NAV_ON = 'min-[1120px]:inline-flex';
-const navLinks = () =>
-  qa('a').filter((a) => cls(a).some((c) => /^min-\[\d+px\]:inline-flex$/.test(c)));
+// The pinned nav breakpoint is Rajesh's ruling (1120px, relayed by Priya). A fixed string, never a
+// template literal: an interpolated arbitrary min- breakpoint in any scanned file is a bad Tailwind
+// candidate that drops every arbitrary breakpoint (see __tests__/tailwind-content.test.ts).
+const NAV_BP = 1120;
+const NAV_ON = 'min-[1120px]:flex';
+const navLinks = () => qa('header nav a');
 
 describe('NightFooter ground', () => {
   it('has no bg-nl-wood and keeps border-t border-nl-line', () => {
@@ -66,29 +66,19 @@ describe('CONTROL_LINE', () => {
 });
 
 describe('NL_STICKY_BAR_CSS', () => {
-  const calc = (px: number) => `calc(${px}px + env(safe-area-inset-top,0px))`;
-
-  it('has a media rule from 720px and one from 1120px, built from NL_STICKY_BAR_HEIGHT', () => {
-    expect(NL_STICKY_BAR_CSS).toContain(
-      `@media (min-width:720px){html{scroll-padding-top:${calc(NL_STICKY_BAR_HEIGHT.wrapped)}}}`,
+  it('is one unconditional rule: scroll-padding-top from --nl-bar-h, falling back to NL_STICKY_BAR_HEIGHT.fallback plus the safe-area inset', () => {
+    expect(NL_STICKY_BAR_HEIGHT).toEqual({ fallback: 65 });
+    expect(NL_STICKY_BAR_CSS).toBe(
+      `html{scroll-padding-top:var(--nl-bar-h,calc(${NL_STICKY_BAR_HEIGHT.fallback}px + env(safe-area-inset-top,0px)))}`,
     );
-    expect(NL_STICKY_BAR_CSS).toContain(
-      `@media (min-width:${NAV_BP}px){html{scroll-padding-top:${calc(NL_STICKY_BAR_HEIGHT.row)}}}`,
-    );
-    expect(NL_STICKY_BAR_CSS.match(/@media/g)).toHaveLength(2);
-    expect(NAV_BP).toBe(1120);
-    expect(Number(/^min-\[(\d+)px\]:inline-flex$/.exec(NAV_ON)![1])).toBe(NAV_BP);
-    // The nav-breakpoint rule comes last so it wins the cascade.
-    expect(NL_STICKY_BAR_CSS.indexOf(`min-width:${NAV_BP}px`)).toBeGreaterThan(
-      NL_STICKY_BAR_CSS.indexOf('min-width:720px'),
-    );
+    expect(NL_STICKY_BAR_CSS).not.toContain('@media');
   });
 
-  it('the wrapped (720-1023) padding is never smaller than the one-row padding', () => {
-    expect(NL_STICKY_BAR_HEIGHT.wrapped).toBeGreaterThanOrEqual(NL_STICKY_BAR_HEIGHT.row);
+  it('T-531: NL_STICKY_BAR_HEIGHT.wrapped and .row are gone (renamed to fallback)', () => {
+    expect(Object.keys(NL_STICKY_BAR_HEIGHT)).toEqual(['fallback']);
   });
 
-  it('is rendered inside the data-nl-sticky-bar marker, once, with no padding below 720px', () => {
+  it('is rendered inside the data-nl-sticky-bar marker, once', () => {
     mount(<NightTopBar lang="en" onLangChange={() => undefined} />);
     const marker = q('[data-nl-sticky-bar]')!;
     expect(cls(marker)).toContain('contents');
@@ -96,10 +86,6 @@ describe('NL_STICKY_BAR_CSS', () => {
     expect(styles).toHaveLength(1);
     expect(styles[0].textContent).toBe(NL_STICKY_BAR_CSS);
     expect(marker.querySelector('header')).not.toBeNull();
-    // Every scroll-padding-top declaration sits inside a min-width media rule.
-    expect(NL_STICKY_BAR_CSS.replace(/@media \(min-width:\d+px\)\{[^{}]*\{[^{}]*\}\}/g, '')).toBe(
-      '',
-    );
   });
 
   it('Hindi: the marker and style are still there; the style leaves the DOM with the bar', () => {
@@ -111,18 +97,20 @@ describe('NL_STICKY_BAR_CSS', () => {
   });
 });
 
-describe('NightTopBar nav links from 1120px', () => {
+describe('NightTopBar nav from 1120px', () => {
   const NAV_TEXT = /how|document|price|faq|कैसे|दस्तावेज़|कीमत|प्रश्न/i;
 
-  it('en: every nav link is display:none below 1120 (hidden) and inline-flex from 1120', () => {
+  it('en: the <nav> is display:none below 1120 (hidden) and flex from 1120; the links are plain inline-flex', () => {
     mount(<NightTopBar lang="en" showNav onLangChange={() => undefined} />);
-    const links = qa('nav a, header a[href^="#"], header a[href="/pricing"]').filter((a) =>
-      cls(a).includes('nl-body-sm'),
-    );
+    const navs = qa('header nav');
+    expect(navs).toHaveLength(1);
+    expect(cls(navs[0])).toEqual(expect.arrayContaining(['hidden', NAV_ON]));
+    expect(cls(navs[0])).not.toContain('flex');
+    const links = qa('a', navs[0]);
     expect(links.length).toBeGreaterThanOrEqual(4);
     for (const a of links) {
-      expect(cls(a)).toEqual(expect.arrayContaining(['hidden', NAV_ON]));
-      expect(cls(a)).not.toContain('inline-flex');
+      expect(cls(a)).toContain('inline-flex');
+      expect(cls(a).some((c) => /^min-\[\d+px\]:/.test(c))).toBe(false);
       expect(a.textContent).toMatch(NAV_TEXT);
     }
   });
@@ -133,22 +121,22 @@ describe('NightTopBar nav links from 1120px', () => {
     expect(hrefs).toEqual(['#how-it-works', '#documents', '#prices', '#faq']);
   });
 
-  it('Hindi: the same classes on the Hindi labels', () => {
+  it('Hindi: the same gate on the Hindi labels', () => {
     mount(<NightTopBar lang="hi" showNav onLangChange={() => undefined} />);
-    const links = navLinks();
-    expect(links).toHaveLength(4);
-    for (const a of links) expect(cls(a)).toContain('hidden');
+    expect(cls(q('header nav'))).toEqual(expect.arrayContaining(['hidden', NAV_ON]));
+    expect(navLinks()).toHaveLength(4);
   });
 
-  it('at 1024 and 1023 the class does not enable the nav (only the 1120 variant, never 1024)', () => {
+  it('only the 1120 variant gates the nav (never 720 or 1024), so 720-1119 shows no landmark', () => {
     mount(<NightTopBar lang="en" showNav onLangChange={() => undefined} />);
-    const links = navLinks();
-    expect(links).toHaveLength(4);
-    for (const a of links) {
-      expect(cls(a)).not.toContain('min-[1024px]:inline-flex');
-      expect(cls(a).filter((c) => /^min-\[\d+px\]:/.test(c))).toEqual([NAV_ON]);
-      expect(cls(a)).not.toContain('inline-flex');
-    }
+    const c = cls(q('header nav'));
+    expect(c.filter((x) => /^min-\[\d+px\]:/.test(x))).toEqual([
+      NAV_ON,
+      'min-[1120px]:items-center',
+      'min-[1120px]:gap-nl-1',
+    ]);
+    expect(c).not.toContain('min-[1024px]:flex');
+    expect(c).not.toContain('min-[720px]:flex');
     expect(NAV_BP).toBeGreaterThan(1024);
   });
 
@@ -161,13 +149,15 @@ describe('NightTopBar nav links from 1120px', () => {
     }
   });
 
-  it('showNav off renders no nav links at all', () => {
+  it('showNav off renders no nav landmark and no nav links in the bar', () => {
     mount(<NightTopBar lang="en" onLangChange={() => undefined} />);
+    expect(qa('header nav')).toHaveLength(0);
     expect(navLinks()).toHaveLength(0);
   });
 
-  it('the bar stays sticky from 720px, independent of the nav change', () => {
+  it('the bar is sticky at every width (T-531), not from 720px', () => {
     mount(<NightTopBar lang="en" showNav onLangChange={() => undefined} />);
-    expect(cls(q('header'))).toContain('min-[720px]:sticky');
+    expect(cls(q('header'))).toEqual(expect.arrayContaining(['sticky', 'top-0', 'z-30']));
+    expect(cls(q('header')).some((c) => c.includes(':sticky'))).toBe(false);
   });
 });
