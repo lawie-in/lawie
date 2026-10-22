@@ -90,11 +90,12 @@ describe('break-ui: DraftReadyStep', () => {
     const { container } = mount(
       <DraftReadyStep result={base} onOpenEditor={jest.fn()} onStartAnother={jest.fn()} />,
     );
-    const p = Array.from(container.querySelectorAll('p')).find((e) =>
-      (e.textContent ?? '').includes(LONG_NAME),
-    )!;
-    const chain = `${p.className} ${p.parentElement!.className}`;
-    expect(chain).toMatch(/break-words|\[overflow-wrap:anywhere\]|break-all/);
+    // T-544: the name is the page's h1.
+    const h1 = q('h1', container)!;
+    expect(h1.textContent).toContain(LONG_NAME);
+    expect(h1.className).toContain('break-words');
+    expect(h1.className).toContain('min-w-0');
+    expect(h1.parentElement!.className).toContain('min-w-0');
   });
 
   it('zero Ink and unknown Ink: no chip; both keep Finalise', () => {

@@ -114,12 +114,12 @@ describe('GeneratingStep (T-521)', () => {
     expect(qa('li', container)).toHaveLength(2);
   });
 
-  it('reduced motion: the Inkwell is static at 60% and not draining', () => {
+  it('reduced motion: T-544: the Inkwell is static at the real level (40%) and not draining', () => {
     stubMatchMedia({ [REDUCED_MOTION_QUERY]: true });
     const { container } = run({ inkLevel: 40 });
     const svg = q('svg', container)!;
     expect(svg.hasAttribute('data-draining')).toBe(false);
-    expect(svg.getAttribute('data-level')).toBe('60');
+    expect(svg.getAttribute('data-level')).toBe('40');
     expect(q('.nl-ink-draining', container)).toBeNull();
   });
 
