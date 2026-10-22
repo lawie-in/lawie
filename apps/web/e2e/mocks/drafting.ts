@@ -38,7 +38,9 @@ export const emptyDashboardSummary = (): DashboardSummary =>
 // ── GET /api/documents ({ documents }) ───────────────────────────────────────────────────────
 
 export interface DocumentRow extends ShelfDocument {
-  documentType: string;
+  /** The documents list page reads `docType` and `courtName` (app/dashboard/documents/page.tsx). */
+  docType: string;
+  courtName: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -48,7 +50,8 @@ export function documentRow(overrides: Partial<DocumentRow> = {}): DocumentRow {
     _id: 'doc_e2e_0001',
     title: 'Legal notice: recovery of dues',
     status: 'draft',
-    documentType: 'legal_notice',
+    docType: 'legal_notice',
+    courtName: '',
     createdAt: '2026-10-20T05:30:00.000Z',
     updatedAt: '2026-10-20T05:30:00.000Z',
     ...overrides,
@@ -66,7 +69,8 @@ export function defaultDocuments(): DocumentRow[] {
       _id: 'doc_e2e_0002',
       title: 'Regular bail application',
       status: 'finalised',
-      documentType: 'bail_application',
+      docType: 'bail_application',
+      courtName: 'Sessions Court, Pune',
     }),
     documentRow({
       _id: 'doc_e2e_0003',

@@ -34,6 +34,9 @@ export function shellMocks(opts: ShellOptions = {}): ApiMocks {
     'GET /api/billing/invoices': json(invoices()),
     'GET /api/drafting/dashboard/summary': json(dashboardSummary()),
     'GET /api/documents': json(documents(opts.documents)),
+    // The section finder (mounted by the dashboard layout) hydrates these once.
+    'GET /api/users/me/bookmarks/sections': json({ bookmarks: [] }),
+    'GET /api/users/me/recent/sections': json({ recent: [] }),
   };
 }
 
