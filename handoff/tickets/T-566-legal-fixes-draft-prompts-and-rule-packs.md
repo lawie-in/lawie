@@ -34,3 +34,7 @@ Recorded as an open legal item on T-566 until Ajay answers; the rest of the tick
 ## Arjun (22 Oct 2026) — 54d resolved by Ajay (S11)
 
 Ajay's S11 supersedes (b): no suppression. The validator message becomes his signed, unscoped text, "Check the code: Section {x} BNS replaced Section {y} IPC for an offence on or after 1 July 2024." — true for any offence date, so no wrong advice is possible. Applied in T-566, `validator.ts` message only. (a) stands: date-scoping (hide it for an offence before 1 July 2024) is the follow-up after Mahak merges. No objection.
+
+## Arjun (22 Oct 2026) — 54d final: Ajay's S11a supersedes S11
+
+Ajay's **S11a** (`handoff/legal/pre-anushka-legal-review-22-oct.md`) replaces S11: the validator shows, on any IPC citation, "This draft cites Section {x} IPC. Confirm the offence date: BNS applies to offences on or after 1 July 2024, IPC to offences before that date." The old "Use Section X BNS instead" goes. `validator.ts` message only; date-scoping remains the follow-up after Mahak merges. Shashank is applying it. Closed.
