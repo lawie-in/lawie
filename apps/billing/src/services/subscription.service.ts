@@ -541,6 +541,18 @@ export type ReconcileOutcome =
        * then answers 409 even when `row` is a checkout. Absent otherwise.
        */
       paidOrphanNotAdopted?: true;
+    }
+  /**
+   * T-542 (Arjun, defensive): a paid Razorpay sub was left unadopted and the
+   * user has no non-terminal row to answer with. The subscribe path answers
+   * 409 subscription_exists from the orphan's Razorpay status and plan (ids
+   * and status only); never a create.
+   */
+  | {
+      kind: 'paid_orphan_unadopted';
+      subscriptionId: string;
+      status: SubscriptionStatus;
+      planId: string | null;
     };
 
 function errNameOf(err: unknown): string {
@@ -740,6 +752,9 @@ function reportLiveConflict(
   userId: string,
   subscriptionId: string,
   existingSubscriptionId: string | null,
+  // T-542 (Arjun): one Sentry issue per Razorpay sub id (fingerprint
+  // [marker, subscriptionId]) instead of one per marker.
+  opts: { fingerprintBySubId?: boolean } = {},
 ): void {
   logger.error({ userId, subscriptionId, existingSubscriptionId }, marker);
   Sentry.withScope((scope) => {
@@ -747,6 +762,7 @@ function reportLiveConflict(
     scope.setTag('userId', userId);
     scope.setTag('razorpaySubscriptionId', subscriptionId);
     scope.setExtra('existingSubscriptionId', existingSubscriptionId);
+    if (opts.fingerprintBySubId) scope.setFingerprint([marker, subscriptionId]);
     Sentry.captureMessage(marker, 'error');
   });
 }
@@ -901,7 +917,8 @@ function isLiveRazorpayStatus(status: unknown): status is SubscriptionStatus {
  *   cancelled now at Razorpay (cancel(id, false)). With a live sub present no
  *   checkout is adopted, so a second live sub cannot follow from it.
  * - terminal statuses: ignored.
- * The marker is deleted only after a complete scan and successful handling;
+ * The marker is deleted only after a complete scan and successful handling
+ * (T-542: and never while a paid orphan is left unadopted);
  * a list failure, timeout, page cap, cancel failure or DB error throws
  * (SubscriptionCancelFailedError for Razorpay failures: 503 try_again) and
  * keeps it. Logs ids, status and counts only.
@@ -1079,6 +1096,47 @@ export async function reconcileRazorpaySubscriptions(
   let orphanAnswerId: string | null = null;
   // T-558 (Arjun, ruling (a)): a paid sub was left unadopted (reported).
   let paidOrphanNotAdopted = false;
+  // T-542 (Arjun): paid orphans left unadopted on this scan (ids only), the
+  // first one's status / plan for the defensive 409, and the noise control:
+  // an orphan already in the marker's reportedOrphanIds is logged at warn
+  // only; a new one gets the error log and a Sentry error fingerprinted by
+  // its sub id, and is added to reportedOrphanIds below.
+  const notAdoptedIds: string[] = [];
+  let firstNotAdopted:
+    | { subscriptionId: string; status: SubscriptionStatus; planId: string | null }
+    | undefined;
+  const alreadyReported = new Set(marker.reportedOrphanIds ?? []);
+  const newlyReported: string[] = [];
+  const reportPaidOrphanNotAdopted = (
+    subscriptionId: string,
+    status: SubscriptionStatus,
+    notesPlanId: string | undefined,
+    existingSubscriptionId: string | null,
+  ): void => {
+    paidOrphanNotAdopted = true;
+    notAdoptedIds.push(subscriptionId);
+    firstNotAdopted ??= {
+      subscriptionId,
+      status,
+      planId: (notesPlanId ? findSubscriptionPlan(notesPlanId)?.id : undefined) ?? null,
+    };
+    if (alreadyReported.has(subscriptionId)) {
+      logger.warn(
+        { userId, subscriptionId, existingSubscriptionId, alreadyReported: true },
+        'billing.subscription.reconcile_live_orphan_not_adopted',
+      );
+      return;
+    }
+    reportLiveConflict(
+      'billing.subscription.reconcile_live_orphan_not_adopted',
+      userId,
+      subscriptionId,
+      existingSubscriptionId,
+      { fingerprintBySubId: true },
+    );
+    alreadyReported.add(subscriptionId);
+    newlyReported.push(subscriptionId);
+  };
   if (newestOrphan) {
     const row = await adoptRazorpaySub(userId, newestOrphan);
     orphanAnswerId = row.razorpaySubscriptionId;
@@ -1088,24 +1146,22 @@ export async function reconcileRazorpaySubscriptions(
     } else {
       // The live index refused it: the user's existing non-terminal row is
       // the answer (no create follows); the paid orphan is left for ops.
-      reportLiveConflict(
-        'billing.subscription.reconcile_live_orphan_not_adopted',
-        userId,
+      reportPaidOrphanNotAdopted(
         newestOrphan.id,
+        newestOrphan.status as SubscriptionStatus,
+        newestOrphan.planId,
         row.razorpaySubscriptionId,
       );
-      paidOrphanNotAdopted = true;
       liveRows.push(row);
     }
   }
   for (const extra of extraOrphans) {
-    reportLiveConflict(
-      'billing.subscription.reconcile_live_orphan_not_adopted',
-      userId,
+    reportPaidOrphanNotAdopted(
       extra.id,
+      extra.status as SubscriptionStatus,
+      extra.planId,
       orphanAnswerId,
     );
-    paidOrphanNotAdopted = true;
   }
 
   // T-542 (Arjun): the adopt target was chosen while no live orphan was known;
@@ -1114,13 +1170,32 @@ export async function reconcileRazorpaySubscriptions(
   // decision); it is reported for ops, ids only.
   // (Decided above, before the pre-adopt fetch; reported here, once the
   // answering orphan id is known.)
+  // Noise control as for the not-adopted report: once per marker (ids in
+  // reportedSupersededIds), Sentry fingerprinted by the target's sub id;
+  // afterwards a warn only.
+  const newlySuperseded: string[] = [];
   if (supersededTarget) {
-    reportLiveConflict(
-      'billing.subscription.reconcile_adopt_target_superseded',
-      userId,
-      supersededTarget.item.id,
-      orphanAnswerId,
-    );
+    const targetId = supersededTarget.item.id;
+    if ((marker.reportedSupersededIds ?? []).includes(targetId)) {
+      logger.warn(
+        {
+          userId,
+          subscriptionId: targetId,
+          existingSubscriptionId: orphanAnswerId,
+          alreadyReported: true,
+        },
+        'billing.subscription.reconcile_adopt_target_superseded',
+      );
+    } else {
+      reportLiveConflict(
+        'billing.subscription.reconcile_adopt_target_superseded',
+        userId,
+        targetId,
+        orphanAnswerId,
+        { fingerprintBySubId: true },
+      );
+      newlySuperseded.push(targetId);
+    }
   }
 
   let adopted: ReconcileOutcome | undefined;
@@ -1141,13 +1216,12 @@ export async function reconcileRazorpaySubscriptions(
       if (fetched.notFound) {
         // T-542 (Arjun): not at Razorpay: already ended, nothing to cancel.
       } else if (isLiveRazorpayStatus(fetched.status)) {
-        reportLiveConflict(
-          'billing.subscription.reconcile_live_orphan_not_adopted',
-          userId,
+        reportPaidOrphanNotAdopted(
           adoptTarget.item.id,
+          fetched.status,
+          adoptTarget.item.planId,
           row.razorpaySubscriptionId,
         );
-        paidOrphanNotAdopted = true;
       } else {
         checkReconcileBudget(userId, opts.lockedAt);
         await cancelNowAtRazorpay(userId, adoptTarget.item.id, {
@@ -1182,20 +1256,53 @@ export async function reconcileRazorpaySubscriptions(
   // seconds) is within this scan's `to`, so a later timeout written meanwhile
   // ($max) past the window keeps the marker. Legacy markers without
   // lastLockCreatedAt fall back to lockCreatedAt, which the scan covered.
-  try {
-    await SubscriptionReconcile.deleteOne({
-      _id: marker._id,
-      lockCreatedAt: marker.lockCreatedAt,
-      $or: [
-        { lastLockCreatedAt: { $lt: new Date((scanTo + 1) * 1000) } },
-        { lastLockCreatedAt: null },
-      ],
-    });
-  } catch (err) {
-    logger.error(
-      { userId, errName: errNameOf(err) },
-      'billing.subscription.reconcile_marker_delete_failed',
+  // T-542 (Arjun, must-fix): a paid sub left unadopted keeps the marker, so
+  // later subscribes re-scan and adopt it (once the blocker is gone) or
+  // answer 409 again; newly reported orphan ids are recorded on it.
+  if (paidOrphanNotAdopted) {
+    logger.warn(
+      { userId, subscriptionIds: notAdoptedIds },
+      'billing.subscription.reconcile_marker_kept_paid_orphan',
     );
+    // T-542 (Arjun): paidOrphanPendingAt makes the next subscribe reconcile
+    // before its local checks; written in the same update as the ids.
+    const addToSet = {
+      ...(newlyReported.length > 0 ? { reportedOrphanIds: { $each: newlyReported } } : {}),
+      ...(newlySuperseded.length > 0 ? { reportedSupersededIds: { $each: newlySuperseded } } : {}),
+    };
+    try {
+      await SubscriptionReconcile.updateOne(
+        { _id: marker._id },
+        {
+          $min: { paidOrphanPendingAt: new Date() },
+          ...(Object.keys(addToSet).length > 0 ? { $addToSet: addToSet } : {}),
+        },
+      );
+    } catch (err) {
+      // The answer is still 409. Lost: the noise control (the next scan
+      // reports again) and the pending flag (the next subscribe runs its
+      // local checks first, as for an ordinary marker).
+      logger.error(
+        { userId, errName: errNameOf(err) },
+        'billing.subscription.reconcile_reported_orphans_write_failed',
+      );
+    }
+  } else {
+    try {
+      await SubscriptionReconcile.deleteOne({
+        _id: marker._id,
+        lockCreatedAt: marker.lockCreatedAt,
+        $or: [
+          { lastLockCreatedAt: { $lt: new Date((scanTo + 1) * 1000) } },
+          { lastLockCreatedAt: null },
+        ],
+      });
+    } catch (err) {
+      logger.error(
+        { userId, errName: errNameOf(err) },
+        'billing.subscription.reconcile_marker_delete_failed',
+      );
+    }
   }
 
   logger.info(
@@ -1213,6 +1320,23 @@ export async function reconcileRazorpaySubscriptions(
     return paidOrphanNotAdopted
       ? { kind: 'live', row: liveRows[0], paidOrphanNotAdopted: true }
       : { kind: 'live', row: liveRows[0] };
+  }
+  // T-542 (Arjun, defensive): a paid orphan was left unadopted but no answer
+  // row was collected. Never 'none' / an adopted checkout (either could lead
+  // to a create or a link): the user's non-terminal row answers 409 if there
+  // is one, else the orphan's own Razorpay status and plan do.
+  if (paidOrphanNotAdopted && firstNotAdopted) {
+    const existing = await findNonTerminalRow(userId);
+    logger.warn(
+      {
+        userId,
+        subscriptionId: firstNotAdopted.subscriptionId,
+        existingSubscriptionId: existing?.razorpaySubscriptionId ?? null,
+      },
+      'billing.subscription.reconcile_paid_orphan_no_answer_row',
+    );
+    if (existing) return { kind: 'live', row: existing, paidOrphanNotAdopted: true };
+    return { kind: 'paid_orphan_unadopted', ...firstNotAdopted };
   }
   return adopted ?? { kind: 'none' };
 }
@@ -1704,10 +1828,22 @@ async function createSubscriptionLocked(
     }
     return undefined;
   };
+  // T-542 (Arjun): a marker kept for a paid orphan left unadopted
+  // (paidOrphanPendingAt) runs the reconcile FIRST: the local checks would
+  // otherwise hand back the blocking checkout's link (same plan) or cancel it
+  // (different plan) before the reconcile could answer 409 or adopt the paid
+  // sub. Ordinary markers (create timeout only) keep the order below (T-527).
+  const paidOrphanPending =
+    (await SubscriptionReconcile.exists({ userId, paidOrphanPendingAt: { $ne: null } })) !== null;
+  if (paidOrphanPending) {
+    logger.info({ userId }, 'billing.subscription.reconcile_first_paid_orphan_pending');
+  }
   // Rows created from here on landed after the first local checks (belt below).
   const localChecksAt = new Date();
-  const localResult = await runLocalChecks();
-  if (localResult) return localResult;
+  if (!paidOrphanPending) {
+    const localResult = await runLocalChecks();
+    if (localResult) return localResult;
+  }
 
   // T-527 (Arjun, design 2): a create for this user timed out earlier (marker),
   // so a sub may exist at Razorpay with no local row. Scan for it before any
@@ -1740,6 +1876,16 @@ async function createSubscriptionLocked(
     const afterCheckoutConflict = await runLocalChecks();
     if (afterCheckoutConflict) return afterCheckoutConflict;
   }
+  // T-542 (Arjun, defensive): a paid orphan is unadopted and the user has no
+  // row: 409 subscription_exists from the orphan's Razorpay status and plan
+  // (paidThrough unknown: null). Never a create.
+  if (reconciled.kind === 'paid_orphan_unadopted') {
+    throw new SubscriptionExistsError({
+      status: reconciled.status,
+      planId: reconciled.planId,
+      paidThrough: null,
+    });
+  }
   // T-527 round 2 (belt): nothing was adopted. If a live or checkout row for
   // this user was written after the first local checks began (e.g. a webhook
   // adopt during the scan), the same local rules run again before any create.
@@ -1750,7 +1896,10 @@ async function createSubscriptionLocked(
     status: { $in: [...LIVE_STATUSES, ...CHECKOUT_STATUSES] },
     createdAt: { $gte: localChecksAt },
   });
-  if (landedMeanwhile) {
+  // T-542 (Arjun): when the reconcile ran first (paid orphan pending), it
+  // reached here only after a clean scan (a kept paid orphan answers 409
+  // above), so the local checks it skipped run now, in full, before any create.
+  if (landedMeanwhile || paidOrphanPending) {
     const afterReconcile = await runLocalChecks();
     if (afterReconcile) return afterReconcile;
   }

@@ -9,6 +9,9 @@
  *  AC9  create: insert failures write the reconcile marker then rethrow.
  *  AC10 reconcile "live" with a CHECKOUT row re-runs the local checks.
  *  D    adopt target superseded by a late-live orphan.
+ *  (Arjun, 22 Oct) a paid orphan left unadopted keeps the marker: two
+ *       subscribes both 409; defensive 409; Sentry fingerprint by sub id and
+ *       once-per-marker reporting (reportedOrphanIds / reportedSupersededIds).
  *
  * Mongo is the in-memory server (setupDb); Razorpay is mocked. Ids and canaries
  * are built at runtime so gitleaks sees no secret-looking literals.
@@ -38,6 +41,7 @@ import {
   SubscriptionCancelFailedError,
   reconcileRazorpaySubscriptions,
 } from '../services/subscription.service';
+import { runReconcileSweep } from '../services/subscription-reconcile-sweep.service';
 
 jest.mock('../config/razorpay', () => ({
   razorpay: {
@@ -54,11 +58,17 @@ jest.mock('../config/razorpay', () => ({
 const mockCaptureMessage = jest.fn();
 const mockSetTag = jest.fn();
 const mockSetExtra = jest.fn();
+const mockSetFingerprint = jest.fn();
 jest.mock('@sentry/node', () => ({
   ...jest.requireActual('@sentry/node'),
   captureMessage: (...a: unknown[]) => mockCaptureMessage(...a),
   withScope: (cb: (scope: unknown) => void) =>
-    cb({ setTag: mockSetTag, setExtra: mockSetExtra, setTags: jest.fn() }),
+    cb({
+      setTag: mockSetTag,
+      setExtra: mockSetExtra,
+      setFingerprint: mockSetFingerprint,
+      setTags: jest.fn(),
+    }),
 }));
 
 import { razorpay } from '../config/razorpay';
@@ -205,6 +215,7 @@ beforeEach(async () => {
   mockCaptureMessage.mockReset();
   mockSetTag.mockReset();
   mockSetExtra.mockReset();
+  mockSetFingerprint.mockReset();
   createMock.mockReset();
   allMock.mockReset();
   fetchMock.mockReset().mockResolvedValue({ status: 'created', short_url: url('fetched') });
@@ -1232,5 +1243,849 @@ describe('T-542 (a): paidOrphanNotAdopted on the live outcome', () => {
     expect(
       callsFor(errorSpy, 'billing.subscription.reconcile_adopt_target_superseded'),
     ).toHaveLength(1);
+  });
+});
+
+// ─── Arjun's ruling (22 Oct): a paid orphan left unadopted keeps the marker ──
+describe('T-542 (Arjun): the marker is kept while a paid orphan is left unadopted', () => {
+  const SUPERSEDED = 'billing.subscription.reconcile_adopt_target_superseded';
+  const KEPT = 'billing.subscription.reconcile_marker_kept_paid_orphan';
+  const NO_ANSWER = 'billing.subscription.reconcile_paid_orphan_no_answer_row';
+  const WRITE_FAILED = 'billing.subscription.reconcile_reported_orphans_write_failed';
+
+  type Out = {
+    kind: string;
+    paidOrphanNotAdopted?: true;
+    row?: { razorpaySubscriptionId: string };
+    subscriptionId?: string;
+    status?: string;
+    planId?: string | null;
+  };
+  const sentryFor = (m: string) => mockCaptureMessage.mock.calls.filter((c) => c[0] === m);
+  const clearObserved = () => {
+    warnSpy.mockClear();
+    errorSpy.mockClear();
+    infoSpy.mockClear();
+    mockCaptureMessage.mockClear();
+    mockSetFingerprint.mockClear();
+  };
+  const oldMarker = (userId: string) =>
+    SubscriptionReconcile.create({
+      userId,
+      lockCreatedAt: new Date(Date.now() - 3_600_000),
+      planId: SOLO,
+      createdAt: new Date(Date.now() - 3_600_000),
+    });
+  /**
+   * The next Subscription.create (the reconcile's adopt) "succeeds" with a row
+   * that is not live, so the adopted orphan is not an answer. `seed` can write
+   * a user row first (a row that landed meanwhile).
+   */
+  function adoptYieldsNonLiveRow(
+    u: U,
+    orphanId: string,
+    seed?: { id: string; status: string; planId?: string },
+  ) {
+    return jest.spyOn(Subscription, 'create').mockImplementationOnce((async () => {
+      if (seed) await seedRow(u.userId, seed.id, seed.status, seed.planId ?? SOLO);
+      return {
+        razorpaySubscriptionId: orphanId,
+        userId: new mongoose.Types.ObjectId(u.userId),
+        status: 'cancelled',
+      };
+    }) as never);
+  }
+
+  beforeEach(async () => {
+    await ensureSubscriptionIndexes();
+  });
+
+  // ── mandatory: two subscribes in a row ──
+  describe.each([
+    ['same plan as the checkout', SOLO],
+    ['different plan from the checkout', PRO],
+  ])(
+    'two /subscribe in a row, paid orphan refused by the user checkout row (%s)',
+    (_l, blockerPlan) => {
+      it('409 then 409: no link fetch, no cancel, no create, marker still present, checkout row unchanged', async () => {
+        const u = await seedUser();
+        await plantMarker(u.userId);
+        allMock.mockResolvedValue({ items: [rzpItem(u.userId, sid('tw-paid'), 'active', SOLO)] });
+        createLosesTo(u, sid('tw-co'), 'created', blockerPlan);
+
+        const first = await subscribe(u, SOLO);
+        expect(first.status).toBe(409);
+        expect(first.body.error).toBe('subscription_exists');
+        expect(await markerCount(u.userId)).toBe(1);
+
+        const second = await subscribe(u, SOLO);
+        expect(second.status).toBe(409);
+        expect(second.body.error).toBe('subscription_exists');
+
+        expect(fetchMock).not.toHaveBeenCalled();
+        expect(cancelMock).not.toHaveBeenCalled();
+        expect(createMock).not.toHaveBeenCalled();
+        expect(await markerCount(u.userId)).toBe(1);
+        const rows = await rowsOf(u.userId);
+        expect(rows).toHaveLength(1);
+        expect(rows[0].razorpaySubscriptionId).toBe(sid('tw-co'));
+        expect(rows[0].status).toBe('created');
+        expect(rows[0].planId).toBe(blockerPlan);
+        expect(await getSub(sid('tw-paid'))).toBeNull();
+        expect(await lockCount(u.userId)).toBe(0);
+      });
+    },
+  );
+
+  it('the kept marker: one warn with ids only, and the plain no-orphan case still deletes it', async () => {
+    const u = await seedUser();
+    await plantMarker(u.userId);
+    allMock.mockResolvedValue({ items: [rzpItem(u.userId, sid('kp-paid'), 'active', SOLO)] });
+    createLosesTo(u, sid('kp-co'), 'created');
+
+    const out = (await recon(u, SOLO)) as Out;
+
+    expect(out.paidOrphanNotAdopted).toBe(true);
+    expect(await markerCount(u.userId)).toBe(1);
+    const kept = callsFor(warnSpy, KEPT);
+    expect(kept).toHaveLength(1);
+    expect(kept[0][0]).toEqual({ userId: u.userId, subscriptionIds: [sid('kp-paid')] });
+    expect(observed()).not.toContain('leak-canary');
+  });
+
+  // ── noise control: once per marker ──
+  describe('reported once per marker', () => {
+    it('first scan: error + Sentry fingerprinted by sub id, id recorded; second scan: warn only (alreadyReported)', async () => {
+      const u = await seedUser();
+      await plantMarker(u.userId);
+      allMock.mockResolvedValue({ items: [rzpItem(u.userId, sid('nr-paid'), 'active', SOLO)] });
+      createLosesTo(u, sid('nr-co'), 'created');
+
+      await recon(u, SOLO);
+
+      expect(callsFor(errorSpy, NOT_ADOPTED)).toHaveLength(1);
+      expect(sentryFor(NOT_ADOPTED)).toHaveLength(1);
+      expect(mockSetFingerprint).toHaveBeenCalledTimes(1);
+      expect(mockSetFingerprint).toHaveBeenCalledWith([NOT_ADOPTED, sid('nr-paid')]);
+      const m1 = await markerOf(u.userId);
+      expect(m1!.reportedOrphanIds).toEqual([sid('nr-paid')]);
+
+      clearObserved();
+      const out2 = (await recon(u, SOLO)) as Out;
+
+      expect(out2.kind).toBe('live');
+      expect(out2.paidOrphanNotAdopted).toBe(true);
+      expect(callsFor(errorSpy, NOT_ADOPTED)).toHaveLength(0);
+      expect(sentryFor(NOT_ADOPTED)).toHaveLength(0);
+      expect(mockSetFingerprint).not.toHaveBeenCalled();
+      const warned = callsFor(warnSpy, NOT_ADOPTED);
+      expect(warned).toHaveLength(1);
+      expect(warned[0][0]).toEqual({
+        userId: u.userId,
+        subscriptionId: sid('nr-paid'),
+        existingSubscriptionId: sid('nr-co'),
+        alreadyReported: true,
+      });
+      const m2 = await markerOf(u.userId);
+      expect(m2!.reportedOrphanIds).toEqual([sid('nr-paid')]);
+      expect(await markerCount(u.userId)).toBe(1);
+    });
+
+    it('a new orphan appearing on the second scan is still reported at error level (the old one is warn only)', async () => {
+      const u = await seedUser();
+      await plantMarker(u.userId);
+      const now = Math.floor(Date.now() / 1000);
+      allMock.mockResolvedValue({
+        items: [rzpItem(u.userId, sid('nw-old'), 'active', SOLO, now + 10)],
+      });
+      createLosesTo(u, sid('nw-co'), 'created');
+      await recon(u, SOLO);
+      clearObserved();
+
+      allMock.mockResolvedValue({
+        items: [
+          rzpItem(u.userId, sid('nw-old'), 'active', SOLO, now + 10),
+          rzpItem(u.userId, sid('nw-new'), 'active', SOLO, now + 60),
+        ],
+      });
+      await recon(u, SOLO);
+
+      const errs = callsFor(errorSpy, NOT_ADOPTED);
+      expect(errs).toHaveLength(1);
+      expect(errs[0][0]).toMatchObject({ subscriptionId: sid('nw-new') });
+      expect(sentryFor(NOT_ADOPTED)).toHaveLength(1);
+      expect(mockSetFingerprint).toHaveBeenCalledTimes(1);
+      expect(mockSetFingerprint).toHaveBeenCalledWith([NOT_ADOPTED, sid('nw-new')]);
+      const warned = callsFor(warnSpy, NOT_ADOPTED);
+      expect(warned).toHaveLength(1);
+      expect(warned[0][0]).toMatchObject({ subscriptionId: sid('nw-old'), alreadyReported: true });
+      const m = await markerOf(u.userId);
+      expect([...m!.reportedOrphanIds!].sort()).toEqual([sid('nw-new'), sid('nw-old')].sort());
+    });
+
+    it('an id already on the marker is warn only even on the first scan of this process (the marker is the memory)', async () => {
+      const u = await seedUser();
+      await plantMarker(u.userId);
+      await SubscriptionReconcile.updateOne(
+        { userId: u.userId },
+        { $set: { reportedOrphanIds: [sid('pre-paid')] } },
+      );
+      allMock.mockResolvedValue({ items: [rzpItem(u.userId, sid('pre-paid'), 'active', SOLO)] });
+      createLosesTo(u, sid('pre-co'), 'created');
+
+      await recon(u, SOLO);
+
+      expect(callsFor(errorSpy, NOT_ADOPTED)).toHaveLength(0);
+      expect(sentryFor(NOT_ADOPTED)).toHaveLength(0);
+      expect(callsFor(warnSpy, NOT_ADOPTED)).toHaveLength(1);
+    });
+
+    it('a failed $addToSet write is logged (no PII), the result is still the 409, the next scan reports again', async () => {
+      const u = await seedUser();
+      await plantMarker(u.userId);
+      allMock.mockResolvedValue({ items: [rzpItem(u.userId, sid('wf-paid'), 'active', SOLO)] });
+      createLosesTo(u, sid('wf-co'), 'created');
+      const upd = jest
+        .spyOn(SubscriptionReconcile, 'updateOne')
+        .mockRejectedValueOnce(new Error(canary('wf')));
+
+      const res = await subscribe(u, SOLO);
+
+      expect(res.status).toBe(409);
+      expect(res.body.error).toBe('subscription_exists');
+      expect(upd).toHaveBeenCalled();
+      const failed = callsFor(errorSpy, WRITE_FAILED);
+      expect(failed).toHaveLength(1);
+      expect(failed[0][0]).toEqual({ userId: u.userId, errName: 'Error' });
+      expect(observed()).not.toContain('leak-canary');
+      expect(await markerCount(u.userId)).toBe(1);
+      expect((await markerOf(u.userId))!.reportedOrphanIds).toBeUndefined();
+      expect(createMock).not.toHaveBeenCalled();
+
+      clearObserved();
+      upd.mockRestore();
+      const out2 = (await recon(u, SOLO)) as Out;
+      expect(out2.paidOrphanNotAdopted).toBe(true);
+      expect(callsFor(errorSpy, NOT_ADOPTED)).toHaveLength(1);
+      expect((await markerOf(u.userId))!.reportedOrphanIds).toEqual([sid('wf-paid')]);
+    });
+  });
+
+  // ── fingerprint at all three report sites ──
+  describe('Sentry fingerprint [marker, subscriptionId] at each not-adopted site', () => {
+    it('newest orphan refused by the live index', async () => {
+      const u = await seedUser();
+      await plantMarker(u.userId);
+      allMock.mockResolvedValue({ items: [rzpItem(u.userId, sid('fp-new'), 'active', SOLO)] });
+      createLosesTo(u, sid('fp-blk'), 'active');
+
+      await recon(u, SOLO);
+
+      expect(mockSetFingerprint).toHaveBeenCalledTimes(1);
+      expect(mockSetFingerprint).toHaveBeenCalledWith([NOT_ADOPTED, sid('fp-new')]);
+      expect(mockCaptureMessage).toHaveBeenCalledWith(NOT_ADOPTED, 'error');
+    });
+
+    it('extra live orphan (the newest is adopted)', async () => {
+      const u = await seedUser();
+      await plantMarker(u.userId);
+      const now = Math.floor(Date.now() / 1000);
+      allMock.mockResolvedValue({
+        items: [
+          rzpItem(u.userId, sid('fp-x-new'), 'active', SOLO, now + 50),
+          rzpItem(u.userId, sid('fp-x-old'), 'halted', SOLO, now + 10),
+        ],
+      });
+
+      await recon(u, SOLO);
+
+      expect(mockSetFingerprint).toHaveBeenCalledTimes(1);
+      expect(mockSetFingerprint).toHaveBeenCalledWith([NOT_ADOPTED, sid('fp-x-old')]);
+      expect((await markerOf(u.userId))!.reportedOrphanIds).toEqual([sid('fp-x-old')]);
+    });
+
+    it('adopt target refused, then fetched live', async () => {
+      const u = await seedUser();
+      await plantMarker(u.userId);
+      allMock.mockResolvedValue({ items: [rzpItem(u.userId, sid('fp-tgt'), 'created', SOLO)] });
+      fetchMock
+        .mockResolvedValueOnce({ status: 'created' })
+        .mockResolvedValue({ status: 'active' });
+      createLosesTo(u, sid('fp-tgt-blk'), 'created');
+
+      await recon(u, SOLO);
+
+      expect(mockSetFingerprint).toHaveBeenCalledTimes(1);
+      expect(mockSetFingerprint).toHaveBeenCalledWith([NOT_ADOPTED, sid('fp-tgt')]);
+      expect((await markerOf(u.userId))!.reportedOrphanIds).toEqual([sid('fp-tgt')]);
+    });
+
+    it('other live-conflict reports (adopted live) carry no fingerprint', async () => {
+      const u = await seedUser();
+      await plantMarker(u.userId);
+      allMock.mockResolvedValue({ items: [rzpItem(u.userId, sid('fp-ad'), 'active', SOLO)] });
+
+      await recon(u, SOLO);
+
+      expect(callsFor(errorSpy, 'billing.subscription.reconcile_adopted_live')).toHaveLength(1);
+      expect(mockSetFingerprint).not.toHaveBeenCalled();
+    });
+  });
+
+  // ── defensive 409 ──
+  describe('defensive 409: flag set, no answer row collected', () => {
+    it('the user has a non-terminal row: { live, paidOrphanNotAdopted } on that row', async () => {
+      const u = await seedUser();
+      await plantMarker(u.userId);
+      await seedRow(u.userId, sid('df-row'), 'created', PRO);
+      const now = Math.floor(Date.now() / 1000);
+      allMock.mockResolvedValue({
+        items: [
+          rzpItem(u.userId, sid('df-new'), 'active', SOLO, now + 50),
+          rzpItem(u.userId, sid('df-old'), 'halted', SOLO, now + 10),
+        ],
+      });
+      adoptYieldsNonLiveRow(u, sid('df-new'));
+
+      const out = (await recon(u, SOLO)) as Out;
+
+      expect(out.kind).toBe('live');
+      expect(out.paidOrphanNotAdopted).toBe(true);
+      expect(out.row!.razorpaySubscriptionId).toBe(sid('df-row'));
+      const logged = callsFor(warnSpy, NO_ANSWER);
+      expect(logged).toHaveLength(1);
+      expect(logged[0][0]).toEqual({
+        userId: u.userId,
+        subscriptionId: sid('df-old'),
+        existingSubscriptionId: sid('df-row'),
+      });
+      expect(await markerCount(u.userId)).toBe(1);
+      expect(cancelMock).not.toHaveBeenCalled();
+    });
+
+    it('a row landed during the reconcile: /subscribe answers 409, no create, no link fetch', async () => {
+      const u = await seedUser();
+      await plantMarker(u.userId);
+      const now = Math.floor(Date.now() / 1000);
+      allMock.mockResolvedValue({
+        items: [
+          rzpItem(u.userId, sid('dr-new'), 'active', SOLO, now + 50),
+          rzpItem(u.userId, sid('dr-old'), 'halted', SOLO, now + 10),
+        ],
+      });
+      adoptYieldsNonLiveRow(u, sid('dr-new'), { id: sid('dr-row'), status: 'created' });
+
+      const res = await subscribe(u, SOLO);
+
+      expect(res.status).toBe(409);
+      expect(res.body.error).toBe('subscription_exists');
+      expect(createMock).not.toHaveBeenCalled();
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(cancelMock).not.toHaveBeenCalled();
+      expect(await markerCount(u.userId)).toBe(1);
+    });
+
+    it('no such row: { paid_orphan_unadopted } with the orphan status and its notes plan', async () => {
+      const u = await seedUser();
+      await plantMarker(u.userId);
+      const now = Math.floor(Date.now() / 1000);
+      allMock.mockResolvedValue({
+        items: [
+          rzpItem(u.userId, sid('nr2-new'), 'active', SOLO, now + 50),
+          rzpItem(u.userId, sid('nr2-old'), 'halted', PRO, now + 10),
+        ],
+      });
+      adoptYieldsNonLiveRow(u, sid('nr2-new'));
+
+      const out = (await recon(u, SOLO)) as Out;
+
+      expect(out).toEqual({
+        kind: 'paid_orphan_unadopted',
+        subscriptionId: sid('nr2-old'),
+        status: 'halted',
+        planId: PRO,
+      });
+      const logged = callsFor(warnSpy, NO_ANSWER);
+      expect(logged).toHaveLength(1);
+      expect(logged[0][0]).toEqual({
+        userId: u.userId,
+        subscriptionId: sid('nr2-old'),
+        existingSubscriptionId: null,
+      });
+      expect(await markerCount(u.userId)).toBe(1);
+      expect(cancelMock).not.toHaveBeenCalled();
+      expect(createMock).not.toHaveBeenCalled();
+    });
+
+    it('no such row through /subscribe: normal subscription_exists 409, status = orphan Razorpay status, planId from notes, paidThrough null, no create', async () => {
+      const u = await seedUser();
+      await plantMarker(u.userId);
+      const now = Math.floor(Date.now() / 1000);
+      allMock.mockResolvedValue({
+        items: [
+          rzpItem(u.userId, sid('nb-new'), 'active', SOLO, now + 50),
+          rzpItem(u.userId, sid('nb-old'), 'halted', PRO, now + 10),
+        ],
+      });
+      adoptYieldsNonLiveRow(u, sid('nb-new'));
+
+      const res = await subscribe(u, SOLO);
+
+      expect(res.status).toBe(409);
+      expect(res.body).toEqual({
+        error: 'subscription_exists',
+        status: 'halted',
+        planId: PRO,
+        paidThrough: null,
+      });
+      expect(createMock).not.toHaveBeenCalled();
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(cancelMock).not.toHaveBeenCalled();
+      expect(await rowsOf(u.userId)).toHaveLength(0);
+      expect(await markerCount(u.userId)).toBe(1);
+      expect(await lockCount(u.userId)).toBe(0);
+    });
+
+    it('no such row, orphan plan unknown: planId null in the 409 body', async () => {
+      const u = await seedUser();
+      await plantMarker(u.userId);
+      const now = Math.floor(Date.now() / 1000);
+      allMock.mockResolvedValue({
+        items: [
+          rzpItem(u.userId, sid('nu-new'), 'active', SOLO, now + 50),
+          rzpItem(u.userId, sid('nu-old'), 'pending', 'no_such_plan', now + 10),
+        ],
+      });
+      adoptYieldsNonLiveRow(u, sid('nu-new'));
+
+      const res = await subscribe(u, SOLO);
+
+      expect(res.status).toBe(409);
+      expect(res.body).toEqual({
+        error: 'subscription_exists',
+        status: 'pending',
+        planId: null,
+        paidThrough: null,
+      });
+      expect(createMock).not.toHaveBeenCalled();
+    });
+  });
+
+  // ── sweep ──
+  describe('sweep path', () => {
+    it('an unadopted paid orphan keeps the marker (counted as live, nothing created or cancelled)', async () => {
+      const u = await seedUser();
+      await oldMarker(u.userId);
+      await seedRow(u.userId, sid('sw-co'), 'created', PRO);
+      allMock.mockResolvedValue({ items: [rzpItem(u.userId, sid('sw-paid'), 'active', SOLO)] });
+
+      const counts = await runReconcileSweep();
+
+      expect(counts).toMatchObject({ found: 1, reconciled: 1, adoptedLive: 1, failed: 0 });
+      expect(await markerCount(u.userId)).toBe(1);
+      expect(callsFor(errorSpy, NOT_ADOPTED)).toHaveLength(1);
+      expect(mockSetFingerprint).toHaveBeenCalledWith([NOT_ADOPTED, sid('sw-paid')]);
+      expect((await markerOf(u.userId))!.reportedOrphanIds).toEqual([sid('sw-paid')]);
+      expect(cancelMock).not.toHaveBeenCalled();
+      expect(createMock).not.toHaveBeenCalled();
+
+      // The next sweep: same marker, warn only.
+      clearObserved();
+      const again = await runReconcileSweep();
+      expect(again).toMatchObject({ found: 1, reconciled: 1, failed: 0 });
+      expect(await markerCount(u.userId)).toBe(1);
+      expect(callsFor(errorSpy, NOT_ADOPTED)).toHaveLength(0);
+      expect(sentryFor(NOT_ADOPTED)).toHaveLength(0);
+    });
+
+    it('paid_orphan_unadopted counts under neither adoptedLive nor failed, and keeps the marker', async () => {
+      const u = await seedUser();
+      await oldMarker(u.userId);
+      const now = Math.floor(Date.now() / 1000);
+      allMock.mockResolvedValue({
+        items: [
+          rzpItem(u.userId, sid('sn-new'), 'active', SOLO, now + 50),
+          rzpItem(u.userId, sid('sn-old'), 'halted', SOLO, now + 10),
+        ],
+      });
+      adoptYieldsNonLiveRow(u, sid('sn-new'));
+
+      const counts = await runReconcileSweep();
+
+      expect(counts).toMatchObject({ found: 1, reconciled: 1, adoptedLive: 0, failed: 0 });
+      expect(await markerCount(u.userId)).toBe(1);
+    });
+  });
+
+  // ── D: superseded target ──
+  describe('reconcile_adopt_target_superseded: once per marker, fingerprinted by target id', () => {
+    /** target (same plan, still a checkout) superseded by d-late which turns out live. */
+    function supersededScenario(u: U, tag: string) {
+      const now = Math.floor(Date.now() / 1000);
+      allMock.mockResolvedValue({
+        items: [
+          rzpItem(u.userId, sid(`${tag}-target`), 'created', SOLO, now + 50),
+          rzpItem(u.userId, sid(`${tag}-late`), 'created', PRO, now + 10),
+        ],
+      });
+      fetchMock.mockImplementation(async (id: string) =>
+        id === sid(`${tag}-late`) ? { status: 'active' } : { status: 'created' },
+      );
+    }
+
+    it('first scan: error + Sentry fingerprinted by target id, id recorded on the kept marker; second scan: warn only', async () => {
+      const u = await seedUser();
+      await plantMarker(u.userId);
+      supersededScenario(u, 'sp');
+      createLosesTo(u, sid('sp-blk'), 'created'); // the late orphan's adopt is refused: marker kept
+
+      await recon(u, SOLO);
+
+      const first = callsFor(errorSpy, SUPERSEDED);
+      expect(first).toHaveLength(1);
+      expect(first[0][0]).toEqual({
+        userId: u.userId,
+        subscriptionId: sid('sp-target'),
+        existingSubscriptionId: sid('sp-blk'),
+      });
+      expect(sentryFor(SUPERSEDED)).toHaveLength(1);
+      expect(mockSetFingerprint).toHaveBeenCalledWith([SUPERSEDED, sid('sp-target')]);
+      const m1 = await markerOf(u.userId);
+      expect(m1).not.toBeNull();
+      expect(m1!.reportedSupersededIds).toEqual([sid('sp-target')]);
+      expect(m1!.reportedOrphanIds).toEqual([sid('sp-late')]);
+
+      clearObserved();
+      await recon(u, SOLO);
+
+      expect(callsFor(errorSpy, SUPERSEDED)).toHaveLength(0);
+      expect(sentryFor(SUPERSEDED)).toHaveLength(0);
+      expect(mockSetFingerprint).not.toHaveBeenCalledWith([SUPERSEDED, expect.anything()]);
+      const warned = callsFor(warnSpy, SUPERSEDED);
+      expect(warned).toHaveLength(1);
+      expect(warned[0][0]).toEqual({
+        userId: u.userId,
+        subscriptionId: sid('sp-target'),
+        existingSubscriptionId: sid('sp-blk'),
+        alreadyReported: true,
+      });
+      expect(cancelMock).not.toHaveBeenCalled();
+      expect(await getSub(sid('sp-target'))).toBeNull();
+    });
+
+    it('the two id lists are separate: a target id in reportedSupersededIds does not silence a later not-adopted report for it', async () => {
+      const u = await seedUser();
+      await plantMarker(u.userId);
+      await SubscriptionReconcile.updateOne(
+        { userId: u.userId },
+        { $set: { reportedSupersededIds: [sid('sep-x')] } },
+      );
+      // The same sub is now paid and refused by the index.
+      allMock.mockResolvedValue({ items: [rzpItem(u.userId, sid('sep-x'), 'active', SOLO)] });
+      createLosesTo(u, sid('sep-blk'), 'created');
+
+      await recon(u, SOLO);
+
+      expect(callsFor(errorSpy, NOT_ADOPTED)).toHaveLength(1);
+      expect(sentryFor(NOT_ADOPTED)).toHaveLength(1);
+      expect(mockSetFingerprint).toHaveBeenCalledWith([NOT_ADOPTED, sid('sep-x')]);
+      const m = await markerOf(u.userId);
+      expect(m!.reportedOrphanIds).toEqual([sid('sep-x')]);
+      expect(m!.reportedSupersededIds).toEqual([sid('sep-x')]);
+    });
+
+    it('the marker is deleted (no paid orphan left unadopted): superseded is reported once and nothing is recorded', async () => {
+      const u = await seedUser();
+      await plantMarker(u.userId);
+      supersededScenario(u, 'sd');
+
+      const out = await recon(u, SOLO);
+
+      expect(out.kind).toBe('live');
+      expect(callsFor(errorSpy, SUPERSEDED)).toHaveLength(1);
+      expect(mockSetFingerprint).toHaveBeenCalledWith([SUPERSEDED, sid('sd-target')]);
+      expect(await markerCount(u.userId)).toBe(0);
+    });
+  });
+
+  // ── regression: no paid orphan -> marker deleted as before ──
+  describe('regression: with no paid orphan left unadopted the marker is deleted as before', () => {
+    it('a cleanly adopted live orphan deletes the marker; no kept-marker warn, no fingerprint', async () => {
+      const u = await seedUser();
+      await plantMarker(u.userId);
+      allMock.mockResolvedValue({ items: [rzpItem(u.userId, sid('rg-ok'), 'active', SOLO)] });
+
+      const out = (await recon(u, SOLO)) as Out;
+
+      expect(out.kind).toBe('live');
+      expect(out).not.toHaveProperty('paidOrphanNotAdopted');
+      expect(await markerCount(u.userId)).toBe(0);
+      expect(callsFor(warnSpy, KEPT)).toHaveLength(0);
+      expect(mockSetFingerprint).not.toHaveBeenCalled();
+    });
+
+    it('nothing at Razorpay: marker deleted', async () => {
+      const u = await seedUser();
+      await plantMarker(u.userId);
+      allMock.mockResolvedValue({ items: [] });
+
+      const out = await recon(u, SOLO);
+
+      expect(out.kind).toBe('none');
+      expect(await markerCount(u.userId)).toBe(0);
+    });
+
+    it('the lastLockCreatedAt bound still applies: a later timeout past `to` keeps the marker after a clean adopt', async () => {
+      const u = await seedUser();
+      const lock = new Date(Date.now() - 3 * 86_400_000);
+      const m = await plantMarker(u.userId, { lockCreatedAt: lock, lastLockCreatedAt: lock });
+      allMock.mockImplementation(async () => {
+        await SubscriptionReconcile.updateOne(
+          { _id: m._id },
+          { $max: { lastLockCreatedAt: new Date(Date.now()) } },
+        );
+        return { items: [rzpItem(u.userId, sid('rg-lb'), 'active', SOLO)] };
+      });
+
+      const out = await recon(u, SOLO);
+
+      expect(out.kind).toBe('live');
+      expect(await markerCount(u.userId)).toBe(1);
+      expect((await markerOf(u.userId))!.lockCreatedAt.getTime()).toBe(lock.getTime());
+      expect(callsFor(warnSpy, KEPT)).toHaveLength(0);
+    });
+
+    it('a failed delete is still logged and does not throw', async () => {
+      const u = await seedUser();
+      await plantMarker(u.userId);
+      allMock.mockResolvedValue({ items: [] });
+      jest
+        .spyOn(SubscriptionReconcile, 'deleteOne')
+        .mockRejectedValueOnce(new Error(canary('del')));
+
+      const out = await recon(u, SOLO);
+
+      expect(out.kind).toBe('none');
+      expect(
+        callsFor(errorSpy, 'billing.subscription.reconcile_marker_delete_failed'),
+      ).toHaveLength(1);
+      expect(observed()).not.toContain('leak-canary');
+    });
+  });
+});
+
+// ─── Arjun's ruling (22 Oct, round 6): paidOrphanPendingAt -> reconcile first ─
+describe('T-542 (Arjun): a marker kept for a paid orphan makes the next subscribe reconcile first', () => {
+  const FIRST = 'billing.subscription.reconcile_first_paid_orphan_pending';
+  const WRITE_FAILED = 'billing.subscription.reconcile_reported_orphans_write_failed';
+
+  beforeEach(async () => {
+    await ensureSubscriptionIndexes();
+  });
+
+  const setPending = (userId: string) =>
+    SubscriptionReconcile.updateOne({ userId }, { $set: { paidOrphanPendingAt: new Date() } });
+
+  it('(1) a kept marker has paidOrphanPendingAt; a second kept scan does not move it ($min)', async () => {
+    const u = await seedUser();
+    await plantMarker(u.userId);
+    expect((await markerOf(u.userId))!.paidOrphanPendingAt).toBeUndefined();
+    allMock.mockResolvedValue({ items: [rzpItem(u.userId, sid('pd-paid'), 'active', SOLO)] });
+    createLosesTo(u, sid('pd-co'), 'created');
+
+    const before = Date.now();
+    await recon(u, SOLO);
+
+    const first = (await markerOf(u.userId))!.paidOrphanPendingAt;
+    expect(first).toBeInstanceOf(Date);
+    expect(first!.getTime()).toBeGreaterThanOrEqual(before - 1_000);
+
+    await new Promise((r) => setTimeout(r, 25));
+    await recon(u, SOLO);
+
+    expect((await markerOf(u.userId))!.paidOrphanPendingAt!.getTime()).toBe(first!.getTime());
+    expect(await markerCount(u.userId)).toBe(1);
+  });
+
+  it('(1b) the flag is written even when every orphan id was already reported (no $addToSet)', async () => {
+    const u = await seedUser();
+    await plantMarker(u.userId);
+    await SubscriptionReconcile.updateOne(
+      { userId: u.userId },
+      { $set: { reportedOrphanIds: [sid('pe-paid')] } },
+    );
+    allMock.mockResolvedValue({ items: [rzpItem(u.userId, sid('pe-paid'), 'active', SOLO)] });
+    createLosesTo(u, sid('pe-co'), 'created');
+
+    await recon(u, SOLO);
+
+    expect((await markerOf(u.userId))!.paidOrphanPendingAt).toBeInstanceOf(Date);
+  });
+
+  it('(2) an ordinary create-timeout marker has no flag and keeps local-checks-first: same-plan checkout reused, no Razorpay list', async () => {
+    const u = await seedUser();
+    await plantMarker(u.userId);
+    await seedRow(u.userId, sid('or-co'), 'created', SOLO);
+    allMock.mockResolvedValue({ items: [] });
+    fetchMock.mockResolvedValue({ status: 'created', short_url: url('or-link') });
+
+    const res = await subscribe(u, SOLO);
+
+    expect(res.status).toBe(200);
+    expect(res.body.data).toMatchObject({ subscriptionId: sid('or-co'), shortUrl: url('or-link') });
+    expect(allMock).not.toHaveBeenCalled();
+    expect(createMock).not.toHaveBeenCalled();
+    expect(callsFor(infoSpy, FIRST)).toHaveLength(0);
+    const m = await markerOf(u.userId);
+    expect(m).not.toBeNull();
+    expect(m!.paidOrphanPendingAt).toBeUndefined();
+  });
+
+  it('the reconcile-first order is logged with the user id only', async () => {
+    const u = await seedUser();
+    await plantMarker(u.userId);
+    await setPending(u.userId);
+    allMock.mockResolvedValue({ items: [] });
+    createMock.mockResolvedValue({ id: sid('lg-new'), short_url: url('lg-new') });
+
+    const res = await subscribe(u, SOLO);
+
+    expect(res.status).toBe(200);
+    const logged = callsFor(infoSpy, FIRST);
+    expect(logged).toHaveLength(1);
+    expect(logged[0][0]).toEqual({ userId: u.userId });
+    expect(allMock).toHaveBeenCalled();
+  });
+
+  it('(3) pending marker, checkout C listed at Razorpay: C cancelled with no fetch first, P adopted, 409, marker (and flag) deleted', async () => {
+    const u = await seedUser();
+    await plantMarker(u.userId);
+    await setPending(u.userId);
+    const now = Math.floor(Date.now() / 1000);
+    await seedRow(u.userId, sid('p3-c'), 'created', SOLO);
+    allMock.mockResolvedValue({
+      items: [
+        rzpItem(u.userId, sid('p3-c'), 'created', SOLO, now + 10),
+        rzpItem(u.userId, sid('p3-p'), 'active', SOLO, now + 50),
+      ],
+    });
+
+    const res = await subscribe(u, SOLO);
+
+    expect(res.status).toBe(409);
+    expect(res.body.error).toBe('subscription_exists');
+    expect(cancelMock).toHaveBeenCalledTimes(1);
+    expect(cancelMock).toHaveBeenCalledWith(sid('p3-c'), false);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(createMock).not.toHaveBeenCalled();
+    expect((await getSub(sid('p3-c')))!.status).toBe('cancelled');
+    expect((await getSub(sid('p3-p')))!.status).toBe('active');
+    expect(await markerCount(u.userId)).toBe(0);
+  });
+
+  it('pending marker, C not in the scan list: nothing done to C, 409 on the flag, marker kept', async () => {
+    const u = await seedUser();
+    await plantMarker(u.userId);
+    await setPending(u.userId);
+    await seedRow(u.userId, sid('p3b-c'), 'created', SOLO);
+    allMock.mockResolvedValue({ items: [rzpItem(u.userId, sid('p3b-p'), 'active', SOLO)] });
+
+    const res = await subscribe(u, SOLO);
+
+    expect(res.status).toBe(409);
+    expect(cancelMock).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(createMock).not.toHaveBeenCalled();
+    expect((await getSub(sid('p3b-c')))!.status).toBe('created');
+    expect(await markerCount(u.userId)).toBe(1);
+  });
+
+  describe('(4) pending marker, orphan gone (clean scan): the skipped local checks run after the reconcile', () => {
+    it('a live local row: 409, no create', async () => {
+      const u = await seedUser();
+      await plantMarker(u.userId);
+      await setPending(u.userId);
+      await seedRow(u.userId, sid('p4-live'), 'active', SOLO);
+      allMock.mockResolvedValue({ items: [] });
+
+      const res = await subscribe(u, SOLO);
+
+      expect(res.status).toBe(409);
+      expect(res.body.error).toBe('subscription_exists');
+      expect(allMock).toHaveBeenCalled();
+      expect(createMock).not.toHaveBeenCalled();
+      expect(cancelMock).not.toHaveBeenCalled();
+    });
+
+    it('a same-plan checkout: its link, no create', async () => {
+      const u = await seedUser();
+      await plantMarker(u.userId);
+      await setPending(u.userId);
+      await seedRow(u.userId, sid('p4-co'), 'created', SOLO);
+      allMock.mockResolvedValue({ items: [] });
+      fetchMock.mockResolvedValue({ status: 'created', short_url: url('p4-link') });
+
+      const res = await subscribe(u, SOLO);
+
+      expect(res.status).toBe(200);
+      expect(res.body.data).toMatchObject({
+        subscriptionId: sid('p4-co'),
+        shortUrl: url('p4-link'),
+      });
+      expect(allMock).toHaveBeenCalled();
+      expect(createMock).not.toHaveBeenCalled();
+      expect(await markerCount(u.userId)).toBe(0);
+    });
+
+    it('a different-plan checkout: cancelled by the local checks, then the new sub is created', async () => {
+      const u = await seedUser();
+      await plantMarker(u.userId);
+      await setPending(u.userId);
+      await seedRow(u.userId, sid('p4-old'), 'created', SOLO);
+      allMock.mockResolvedValue({ items: [] });
+      createMock.mockResolvedValue({ id: sid('p4-new'), short_url: url('p4-new') });
+
+      const res = await subscribe(u, PRO);
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.subscriptionId).toBe(sid('p4-new'));
+      expect(cancelMock).toHaveBeenCalledWith(sid('p4-old'), false);
+      expect(createMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('no rows at all: reconcile then create, as for an ordinary marker', async () => {
+      const u = await seedUser();
+      await plantMarker(u.userId);
+      await setPending(u.userId);
+      allMock.mockResolvedValue({ items: [] });
+      createMock.mockResolvedValue({ id: sid('p4-fresh'), short_url: url('p4-fresh') });
+
+      const res = await subscribe(u, SOLO);
+
+      expect(res.status).toBe(200);
+      expect(createMock).toHaveBeenCalledTimes(1);
+      expect(await markerCount(u.userId)).toBe(0);
+    });
+  });
+
+  it('(5) the kept-marker write fails: still 409, error logged (no PII), flag absent', async () => {
+    const u = await seedUser();
+    await plantMarker(u.userId);
+    allMock.mockResolvedValue({ items: [rzpItem(u.userId, sid('p5-paid'), 'active', SOLO)] });
+    createLosesTo(u, sid('p5-co'), 'created');
+    jest.spyOn(SubscriptionReconcile, 'updateOne').mockRejectedValue(new Error(canary('p5')));
+
+    const res = await subscribe(u, SOLO);
+
+    expect(res.status).toBe(409);
+    expect(res.body.error).toBe('subscription_exists');
+    const failed = callsFor(errorSpy, WRITE_FAILED);
+    expect(failed).toHaveLength(1);
+    expect(failed[0][0]).toEqual({ userId: u.userId, errName: 'Error' });
+    expect(observed()).not.toContain('leak-canary');
+    expect(createMock).not.toHaveBeenCalled();
+    const m = await markerOf(u.userId);
+    expect(m).not.toBeNull();
+    expect(m!.paidOrphanPendingAt).toBeUndefined();
   });
 });

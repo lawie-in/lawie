@@ -56,11 +56,17 @@ jest.mock('../config/razorpay', () => ({
 const mockCaptureMessage = jest.fn();
 const mockSetTag = jest.fn();
 const mockSetExtra = jest.fn();
+const mockSetFingerprint = jest.fn();
 jest.mock('@sentry/node', () => ({
   ...jest.requireActual('@sentry/node'),
   captureMessage: (...a: unknown[]) => mockCaptureMessage(...a),
   withScope: (cb: (scope: unknown) => void) =>
-    cb({ setTag: mockSetTag, setExtra: mockSetExtra, setTags: jest.fn() }),
+    cb({
+      setTag: mockSetTag,
+      setExtra: mockSetExtra,
+      setFingerprint: mockSetFingerprint,
+      setTags: jest.fn(),
+    }),
 }));
 
 import { razorpay } from '../config/razorpay';
@@ -172,6 +178,7 @@ beforeEach(async () => {
   mockCaptureMessage.mockReset();
   mockSetTag.mockReset();
   mockSetExtra.mockReset();
+  mockSetFingerprint.mockReset();
   createMock.mockReset();
   allMock.mockReset();
   fetchMock.mockReset().mockResolvedValue({ status: 'created', short_url: url('fetched') });
@@ -572,7 +579,7 @@ describe('T-536 AC3: boot wiring (src/index.ts)', () => {
     const log = { info: jest.fn(), warn: jest.fn(), error: jest.fn(), fatal: jest.fn() };
     const sentry = { captureException: jest.fn() };
     const sentryWithScope = (cb: (s: unknown) => void) =>
-      cb({ setTag: mockSetTag, setExtra: mockSetExtra });
+      cb({ setTag: mockSetTag, setExtra: mockSetExtra, setFingerprint: mockSetFingerprint });
     jest.isolateModules(() => {
       jest.doMock('../config/sentry', () => ({}));
       jest.doMock('@sentry/node', () => ({
@@ -965,7 +972,8 @@ describe('T-536 2B: reconcile, live index built', () => {
     const adopted = callsFor(errorSpy, 'billing.subscription.reconcile_adopted_live');
     expect(adopted).toHaveLength(1);
     expect(adopted[0][0]).toMatchObject({ subscriptionId: sid('newer') });
-    expect(await SubscriptionReconcile.countDocuments({ userId: u.userId })).toBe(0);
+    // T-542 (Arjun): a paid orphan left unadopted keeps the marker.
+    expect(await SubscriptionReconcile.countDocuments({ userId: u.userId })).toBe(1);
   });
 
   it('three live orphans: one adopted, two reported, none cancelled', async () => {
@@ -1036,7 +1044,8 @@ describe('T-536 2B: reconcile, live index built', () => {
     });
     expect(callsFor(errorSpy, 'billing.subscription.reconcile_adopted_live')).toHaveLength(0);
     expect(cancelMock).not.toHaveBeenCalled();
-    expect(await SubscriptionReconcile.countDocuments({ userId: u.userId })).toBe(0);
+    // T-542 (Arjun): a paid orphan left unadopted keeps the marker.
+    expect(await SubscriptionReconcile.countDocuments({ userId: u.userId })).toBe(1);
   });
 
   it('the checkout adopt is refused by the index: the orphan checkout is cancelled at Razorpay and the existing live row answers', async () => {
