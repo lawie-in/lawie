@@ -68,7 +68,7 @@ Repeat on production before main (there are no production subscriptions yet, so 
 - Flags for Anushka's run: `feature.describe_first` ON, `tool_bail_checker` OFF.
 
 ## T-533 founder steps (Arjun's calls, 22 Oct 2026; before T-533 merges and before the first release)
-1. **Change the repository's default branch from `main` to `develop`** (GitHub: Settings, Branches, Default branch). Arjun's design keeps no `.github/` on `main`: the guard and deploy workflows live on the default branch only, and the release workflow pushes the snapshot to `main` with `GITHUB_TOKEN`, then dispatches the deploy by ref. Checked 22 Oct 2026: the default branch today is `main`. Side effect to expect: new pull requests default to `develop`; scheduled workflows run from `develop`.
+1. **Change the repository's default branch from `main` to `develop`** (GitHub: Settings, General, Default branch). This is a PREREQUISITE for T-533 merging, not only for the first release; no history changes, existing clones are unaffected (Arjun, 22 Oct 2026). Arjun's design keeps no `.github/` on `main`: the guard and deploy workflows live on the default branch only, and the release workflow pushes the snapshot to `main` with `GITHUB_TOKEN`, then dispatches the deploy by ref. Checked 22 Oct 2026: the default branch today is `main`. Scheduled workflows run from `develop` after the switch.
 2. Branch protection on `main`: only the workflow bot may push.
 3. Add the founder as the required reviewer on the `production` environment (restrict that environment to `main`).
 4. AC7 (rollback drill) runs as a dispatchable job on a GitHub-hosted runner, not in the sandbox.
