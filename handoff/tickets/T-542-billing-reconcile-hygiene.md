@@ -57,3 +57,7 @@ FYI accepted: per-process busy count; the over-budget path's 2 s link fetch (57 
 Noise control, in the same change: the orphan report is Sentry-fingerprinted by orphan sub id, and the sweep reports a given orphan **once** (`reportedOrphanIds` on the marker, ids only), then logs at warn on later runs. The 24-hour stale-marker Sentry still fires; that is the right escalation for a paid, unadopted subscription.
 
 Same developer → fresh tester → fresh reviewer. Round 2 of 2: a second fail comes to me.
+
+## Arjun (22 Oct 2026, tester red on the two-subscribes test) — reconcile before local checks when a paid orphan is pending
+
+**Approved as proposed.** `paidOrphanPendingAt` on the marker, written with the kept-marker update; `createSubscriptionLocked` checks it before `runLocalChecks` and, when set, runs the reconcile first — adopt once the blocker is gone, else 409 again; no link reuse, no checkout cancel while set; cleared with the marker on a clean reconcile. Ordinary create-timeout markers keep the current order, so T-527's same-plan reuse is unchanged. The "always reconcile first" alternative is rejected for the reason given. The two-subscribes test stays mandatory and now covers both plans. Same developer → this tester → fresh reviewer (round 2 of 2). Good catch by the test, which is the point of writing it.
