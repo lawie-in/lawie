@@ -5,7 +5,7 @@
 | Phase  | 4 — Release |
 | Owner  | Arjun (design), Vikram (money rule for a 100% coupon), a billing lead (build) |
 | Mode   | Full chain (billing); MUST land before main |
-| Status | READY bfdd9c3f (branch CI 897 green), 22 Oct 2026; merge slot with Shashank. Follow-ups: T-551, T-552, T-553, T-556. Priya |
+| Status | Merged into develop_staging 264a9d6e (CI 899 green), 22 Oct 2026; waiting on Anushka's check on develop. Switch feature.coupon_free_grant stays OFF. Follow-ups: T-551, T-552, T-553, T-556. Priya |
 
 ## Problem
 The footer total comes from `/plans` or `validate-coupon`; the charge comes from the `/topup/order` response; nothing compares them.
