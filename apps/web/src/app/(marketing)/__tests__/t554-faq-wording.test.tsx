@@ -77,8 +77,8 @@ describe('T-554 FAQ criminal drafts sentence (AC2, AC3)', () => {
 
   it('no longer ends the sentence at "section numbers."', () => {
     const text = renderFaq();
-    expect(text).not.toContain('BSA section numbers. ');
-    expect(text).not.toMatch(/BSA section numbers\.$/);
+    // textContent joins an answer straight onto the next question, so no trailing space to rely on.
+    expect(text).not.toContain('BSA section numbers.');
   });
 });
 
