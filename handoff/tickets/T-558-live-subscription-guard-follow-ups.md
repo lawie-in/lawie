@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Arjun (design), a billing lead (build) |
 | Mode   | Small fix (billing) |
-| Status | To do. Not a main blocker. Priya, 22 Oct 2026 |
+| Status | Merged with T-542 into develop_staging e74af926 (CI 925 green), 22 Oct 2026. Follow-ups: T-560. Priya
 | Source | Shashank's T-536 report |
 
 1. In the create retry, if the second insert also fails there is no marker and no local row. Wrap it and write the marker (unlikely race).
