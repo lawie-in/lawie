@@ -42,7 +42,7 @@ describe('GeneratingStep inkwell level', () => {
     const { container } = run(v === undefined ? {} : { inkLevel: v });
     expect(q('svg[data-level]', container)).toBeNull();
     expect(container.innerHTML).not.toContain('data-level="100"');
-    expect(container.textContent).toContain('Drafting your Bail application');
+    expect(container.textContent).toContain('Writing your Bail application…');
     expect(q('[aria-busy="true"]', container)).not.toBeNull();
   });
 
