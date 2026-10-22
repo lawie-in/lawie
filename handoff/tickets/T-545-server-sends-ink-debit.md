@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release                                   |
 | Owner  | Arjun (design), a drafting lead (build), Ajay checks     |
 | Mode   | Full chain (drafting, web)                               |
-| Status | To do. BEFORE MAIN (Ajay, AJ-521-BC, 21 Oct 2026). Priya |
+| Status | Merged into develop_staging 7bcd4d53 (CI 916 green), 22 Oct 2026; waiting on Anushka's check on develop. The done event carries inkDebited (the Ink actually settled) and the web chip uses only that. Premise note: today the debit always equals the quote; they differ only on settle failure (field omitted), the sweep path, and after T-202. Follow-ups: T-544 item 14; a test that the template flow still reaches the ready card when done carries inkDebited (T-539/T-544). Priya |
 | Source | T-521 report; Ajay                                       |
 
 ## Problem
