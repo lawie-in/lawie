@@ -115,7 +115,8 @@ describe('T-366 metadata (AC4, AC5)', () => {
 
   it('marketing layout description is exact', () => {
     expect(marketingMetadata.description).toBe(
-      'Legal drafting for Indian advocates. Criminal drafts use BNS, BNSS and BSA section numbers.',
+      // AJ-555-M1 (T-555) replaced the BNS-only sentence.
+      'Legal drafting for Indian advocates. Criminal drafts use BNS, BNSS and BSA section numbers, or IPC, CrPC and the Evidence Act where the old law applies.',
     );
   });
 
