@@ -211,8 +211,12 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
       if (isPrivacyBlocked(orderRes)) return setSubmitting(false); // T-343
       // T-522 (Rajesh §3, AJ-522-M6): billing refused an unverified email user. The M6 Top-up
       // dialog opens over this one at the moment of the action (no redirect); Buy stays enabled
-      // and the pack, coupon and State are kept.
-      if (await openVerifyIfDraftRefused(orderRes, 'topup')) return setSubmitting(false);
+      // and the pack, coupon and State are kept. M6's portal mounts now, after this dialog's, so
+      // at the same z-[60] it stacks above. Closing it returns focus to Buy (Buy is loading, so
+      // it is passed explicitly rather than read from document.activeElement).
+      if (await openVerifyIfDraftRefused(orderRes, 'topup', payRef.current)) {
+        return setSubmitting(false);
+      }
       if (!orderRes.ok) {
         const body = await orderRes.json();
         setError(body.error ?? 'Order creation failed');

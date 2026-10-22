@@ -39,20 +39,12 @@ import { getAccessToken } from '@/lib/auth';
 import { cn } from '@/lib/cn';
 
 // ── Madhuri's strings, signed by Ajay (T-223). Changes only with his sign-off. ─────────────────
-// T-522: the T-223 bar and modal bodies (`banner`, `modalBody`) are gone: AJ-522-M3 and M6
-// (VERIFY_COPY) replace them. The checkout card lines (`checkoutTitle`, `checkoutBody`) are gone
-// too: the M6 Top-up refusal replaces the card. The surfaces in this file use AJ-522-M4 and S6 for
-// the resend lines and AJ-522-S5 for the landing. `title` is the landing's failure title; `sent`,
-// `limitWait`, `already` and `networkError` stay for the Settings verify banner in
-// components/billing/PlanPanel.tsx (proactive, not a refusal, so M6 does not cover it).
+// T-522: only `title` (the landing's failure title) is left. AJ-522-M3 and M6 (VERIFY_COPY)
+// replace the bar and modal bodies; the M6 Top-up refusal replaces the checkout card; the Settings
+// verify banner and its resend lines are gone (Rajesh, 22 Oct). The surfaces in this file use
+// AJ-522-M4 and S6 for the resend lines and AJ-522-S5 for the landing.
 export const VERIFY_STRINGS = {
   title: 'Verify your email',
-  resend: 'Resend email',
-  sent: (masked: string) => `Email sent to ${masked}. Check your inbox and your spam folder.`,
-  limitWait: (minutes: number) =>
-    minutes <= 1 ? 'Try again in 1 minute.' : `Try again in ${minutes} minutes.`,
-  already: 'Your email is already verified.',
-  networkError: "Couldn't send the email. Check your connection and try again.",
 } as const;
 
 /** The action a 403 email_verification_required refused (Rajesh §3; AJ-522-M6). */
@@ -111,6 +103,8 @@ interface VerifyState {
   modalOpen: boolean;
   /** Which M6 refusal the dialog shows. */
   refusal: RefusalAction;
+  /** Where focus goes when the dialog closes (the control that made the refused call). */
+  returnFocusTo: HTMLElement | null;
   resend: ResendPhase;
   /** ms epoch when the resend limit ends (from the server's retryAfter). */
   limitUntil: number;
@@ -126,6 +120,7 @@ const initial: VerifyState = {
   requiredByServer: false,
   modalOpen: false,
   refusal: 'draft',
+  returnFocusTo: null,
   resend: 'idle',
   limitUntil: 0,
   origin: null,
@@ -240,10 +235,16 @@ async function refreshVerifyStatus(): Promise<VerifyStatus | null> {
  * leaves its buttons enabled. `action`: 'draft' (generate, preflight, intake; the default),
  * 'topup' (the top-up dialog's Buy) or 'subscribe' (the plan chooser's Choose). Any other
  * response: false, and the response body is untouched (read from a clone).
+ *
+ * `returnFocusTo` (Rajesh, 22 Oct): the control focus goes back to when the dialog closes (Not
+ * now, Escape, the scrim, or a resend 409). Pass it when the control may lose focus during the
+ * call (a Button showing its loading state). Without it, the element focused when the dialog opens
+ * is used; if that is gone or is <body>, focus goes to #dashboard-main.
  */
 export async function openVerifyIfDraftRefused(
   res: Response,
   action: RefusalAction = 'draft',
+  returnFocusTo?: HTMLElement | null,
 ): Promise<boolean> {
   if (res.status !== 403) return false;
   try {
@@ -252,8 +253,32 @@ export async function openVerifyIfDraftRefused(
   } catch {
     return false;
   }
-  setState({ requiredByServer: true, emailVerified: false, modalOpen: true, refusal: action });
+  setState({
+    requiredByServer: true,
+    emailVerified: false,
+    modalOpen: true,
+    refusal: action,
+    returnFocusTo: returnFocusTo ?? focusedElement(),
+  });
   return true;
+}
+
+/** The focused element, or null when it is <body> or nothing (SSR-safe). */
+function focusedElement(): HTMLElement | null {
+  if (typeof document === 'undefined') return null;
+  const el = document.activeElement;
+  return el instanceof HTMLElement && el !== document.body ? el : null;
+}
+
+/** Closing the refusal dialog: focus back to the caller's control, else #dashboard-main. */
+function restoreRefusalFocus(): void {
+  const target = state.returnFocusTo;
+  setState({ returnFocusTo: null });
+  if (target && target.isConnected) {
+    target.focus();
+    return;
+  }
+  document.getElementById('dashboard-main')?.focus();
 }
 
 /**
@@ -266,13 +291,13 @@ export async function openVerifyIfDraftRefused(
 export async function openVerifyInsteadOfPaywall(): Promise<boolean> {
   const status = await refreshVerifyStatus();
   if (!status || status.emailVerified || status.hasGoogle) return false;
-  setState({ modalOpen: true, refusal: 'draft' });
+  setState({ modalOpen: true, refusal: 'draft', returnFocusTo: focusedElement() });
   return true;
 }
 
 /**
  * True when a response is a 403 email_verification_required; it also marks verification as
- * required (useNeedsEmailVerification becomes true). Opens no dialog: billing callers use
+ * required (the verify bar shows). Opens no dialog: billing callers use
  * `openVerifyIfDraftRefused(res, 'topup' | 'subscribe')` since T-522.
  */
 export async function isEmailVerificationRequired(res: Response): Promise<boolean> {
@@ -285,12 +310,6 @@ export async function isEmailVerificationRequired(res: Response): Promise<boolea
   }
   setState({ requiredByServer: true, emailVerified: false });
   return true;
-}
-
-/** True while the signed-in user is an unverified email user (or the server said so). */
-export function useNeedsEmailVerification(): boolean {
-  const s = useVerifyState();
-  return needsVerification(s);
 }
 
 function retryAfterMs(res: Response, body: { retryAfter?: unknown } | null): number {
@@ -445,6 +464,12 @@ function RefusalDialog({
       cancelLabel={VERIFY_COPY.notNow}
       confirmLoading={s.resend === 'loading' && s.origin === 'modal'}
       onConfirm={() => void resend('modal')}
+      // Rajesh (22 Oct): no Radix Trigger, so Radix would drop focus on <body>. Return it to the
+      // refused control (Buy in the top-up dialog, Choose, Generate), else #dashboard-main.
+      onCloseAutoFocus={(e) => {
+        e.preventDefault();
+        restoreRefusalFocus();
+      }}
     >
       <p
         role="status"

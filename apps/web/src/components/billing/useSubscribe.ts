@@ -55,6 +55,9 @@ export function useSubscribe(gst: GstStateController) {
     async (planId: string) => {
       if (inFlight.current || redirecting.current) return;
       inFlight.current = true;
+      // The pressed Choose button, read before it shows its loading state: the M6 dialog returns
+      // focus here when it closes (Rajesh, 22 Oct).
+      const chooser = document.activeElement instanceof HTMLElement ? document.activeElement : null;
       setPendingPlanId(planId);
       setFailedPlanId(null);
       try {
@@ -70,7 +73,7 @@ export function useSubscribe(gst: GstStateController) {
           setGate('privacy');
           return;
         }
-        if (await openVerifyIfDraftRefused(res, 'subscribe')) return;
+        if (await openVerifyIfDraftRefused(res, 'subscribe', chooser)) return;
         if (!res.ok) {
           setFailedPlanId(planId);
           return;
