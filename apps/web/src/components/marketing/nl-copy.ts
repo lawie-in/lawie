@@ -507,12 +507,12 @@ export const CONSENT_COPY = {
  */
 export const VERIFY_COPY = {
   /**
-   * AJ-522-M3. For an account that has had its sign-up Ink, the row drops "and receive your 5
-   * sign-up Ink" and nothing else.
+   * AJ-522-M3, and for an account that has had its sign-up Ink the re-signed AJ-522-S11 line
+   * (it replaces M3's drop rule).
    */
   bar: (masked: string, signupInkGranted: boolean): string =>
     signupInkGranted
-      ? `Verify your email to start drafting, buy Ink. We sent a link to ${masked}.`
+      ? `Verify your email to start drafting and buy Ink. We sent a link to ${masked}.`
       : `Verify your email to start drafting, buy Ink and receive your 5 sign-up Ink. We sent a link to ${masked}.`,
   /** AJ-522-M3 button (also M6 and S5). */
   resend: 'Resend email',
@@ -533,8 +533,9 @@ export const VERIFY_COPY = {
   notNow: 'Not now',
   /** AJ-522-S3 (T-234 Addendum 3): once, after verification, only for not_applied. */
   referralNotApplied: 'Your referral code was not valid, so no bonus Ink was added.',
-  /** AJ-522-S5 landing states. */
+  /** AJ-522-S5 landing states; the verifying title is AJ-522-S12. */
   landing: {
+    verifying: 'Verifying your email…',
     verifiedTitle: 'Email verified',
     verifiedSignedIn: 'Your email is verified. You can continue.',
     goToShelf: 'Go to your shelf',

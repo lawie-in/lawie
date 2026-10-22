@@ -453,12 +453,11 @@ function VerifyEmailBar({ masked }: { masked: string }) {
       message={message}
       action={{
         label: s.resend === 'error' ? VERIFY_COPY.retry : VERIFY_COPY.resend,
-        onClick: () => {
-          // While a send runs or a wait window is open the press does nothing new; the wait line
-          // stays on the bar.
-          if (state.resend === 'loading') return;
-          void resend('banner');
-        },
+        // aria-disabled (Rajesh §2) while a send runs or a wait window is open; the wait line
+        // stays on the bar and is read out.
+        disabled: s.resend === 'loading' || isLimited(s),
+        busy: s.resend === 'loading',
+        onClick: () => void resend('banner'),
       }}
     />
   );
@@ -743,7 +742,7 @@ export function VerifyEmailLanding() {
   const verified = result === 'signedIn' || result === 'verifiedSignedOut';
   const title =
     result === null
-      ? VERIFY_STRINGS.title
+      ? L.verifying
       : verified
         ? L.verifiedTitle
         : result === 'expired'
