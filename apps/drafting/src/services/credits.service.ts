@@ -460,6 +460,15 @@ interface UserInkFields {
   inkSettled?: Array<{ runId: string; runSequence: number; settledAt: Date }>;
 }
 
+/**
+ * T-545: storage units (×2) to Ink, the unit the user sees (1 Ink = 2 units,
+ * so .5 Ink is possible). The one place a settled amount is converted for the
+ * SSE `done` event's `inkDebited`; routes never divide by 2 themselves.
+ */
+export function inkFromUnits(units: number): number {
+  return units / 2;
+}
+
 /** How many settled-hold keys a user keeps (newest last). */
 export const INK_SETTLED_KEEP = 50;
 const inkUsers = () => User.collection as unknown as mongoose.mongo.Collection<UserInkFields>;
@@ -683,6 +692,11 @@ export async function releaseInk(
  * the buckets in the same write as the $pull. The kept part is taken from the
  * split in spend order, so the refund comes back to the last buckets taken.
  * Today `actualUnits` is always the hold.
+ *
+ * T-545: `units` is the storage units this settle kept, set whenever Ink was
+ * kept (including `ledger_failed`, where the Ink stays kept). It is absent for
+ * `fixture_run` (nothing was ever charged) and `no_hold`. It can be 0 only if
+ * a real settle kept 0 units.
  */
 export async function settleInk(
   userId: string,
@@ -690,7 +704,11 @@ export async function settleInk(
   runSequence: number,
   actualUnits?: number,
   reference?: string,
-): Promise<{ settled: boolean; reason?: 'fixture_run' | 'no_hold' | 'ledger_failed' }> {
+): Promise<{
+  settled: boolean;
+  reason?: 'fixture_run' | 'no_hold' | 'ledger_failed';
+  units?: number;
+}> {
   if (isFixtureUser(userId)) return { settled: true, reason: 'fixture_run' };
   if (!mongoose.Types.ObjectId.isValid(userId)) return { settled: false, reason: 'no_hold' };
   const oid = new mongoose.Types.ObjectId(userId);
@@ -781,7 +799,7 @@ export async function settleInk(
   if (keptTopup > 0) {
     rows.push({ sourceBucket: 'topup', delta: -keptTopup, balanceAfter: totalAfter });
   }
-  if (rows.length === 0) return { settled: true };
+  if (rows.length === 0) return { settled: true, units: charged };
 
   // 4. Only the winner of the pull gets here.
   try {
@@ -822,9 +840,9 @@ export async function settleInk(
     console.error(
       `[drafting] settleInk: inkledger write failed after the hold was settled; rows lost (userId=${userId}, runId=${runId}, runSequence=${runSequence}, units=${charged})`,
     );
-    return { settled: true, reason: 'ledger_failed' };
+    return { settled: true, reason: 'ledger_failed', units: charged };
   }
-  return { settled: true };
+  return { settled: true, units: charged };
 }
 
 /**
@@ -833,6 +851,11 @@ export async function settleInk(
  * that is gone and not here was released. Used by withInkHold before a
  * re-hold, so a hold the sweep (or a concurrent settle) settled is never
  * charged a second time.
+ *
+ * T-545: the `inkSettled` record holds only the key and `settledAt`, not the
+ * kept units, so this cannot report how much was kept. withInkHold sends the
+ * held cost for a sweep-paid run, which holds while the sweep settles with no
+ * `actualUnits` (it keeps the full hold).
  */
 export async function wasInkSettled(
   userId: string,

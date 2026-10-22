@@ -5,7 +5,7 @@
 | Phase  | 4 — Release                                                               |
 | Owner  | Arjun (design: detail in T-527's round-2 section), a billing lead (build) |
 | Mode   | Full chain (billing; touches Subscription.model.ts, so its own claim)     |
-| Status | To do, after T-527. BLOCKING before main, not the v1 batch. Priya         |
+| Status | Merged into develop_staging d8650817 (CI 914 green), 22 Oct 2026. Founder runs check:live-sub-duplicates on develop before deploying billing (steps in release-checklist-main.md). Follow-ups: T-558. Priya |
 | Source | Arjun, 21 Oct 2026                                                        |
 
 ## Acceptance criteria

@@ -25,3 +25,6 @@
 12. The run-state route returns `{ stage, pct, round?, cost: { ink, settled }, startedAt, updatedAt }`.
 13. The web tolerates unknown stage values (shows "Working...") so v2 can add plan and retrieve without a web release.
 14. `packages/shared` holds the stage enum (one lead at a time; coordinate with T-534).
+
+## Carried from T-545 (Arjun, 22 Oct 2026)
+When `cost.settled` is true, `cost.ink` must equal `inkDebited`, produced by the same helper in `credits.service.ts` (`design/draft-progress.md:59` to be updated by Arjun or Rajesh). `inkDebited` is flat on the `done` event (merged in T-545, 7bcd4d53).

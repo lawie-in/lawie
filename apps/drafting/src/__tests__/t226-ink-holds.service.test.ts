@@ -271,7 +271,7 @@ describe('settleInk (AC1, AC7, AC8)', () => {
     await seed({ inkSub: 2, inkAnnualCarry: 5, inkTopup: 10 });
     await holdInk({ userId: USER_ID, costCredits: 5, runId: 'set', runSequence: 1 }); // 2/5/3
     const r = await settleInk(USER_ID, 'set', 1, undefined, 'Bail (doc-1)');
-    expect(r).toEqual({ settled: true });
+    expect(r).toMatchObject({ settled: true, units: 10 });
 
     const rows = await generateRows('set');
     expect(rows.map((x) => [x.sourceBucket, x.delta])).toEqual([
@@ -321,7 +321,7 @@ describe('settleInk (AC1, AC7, AC8)', () => {
     expect((await rawUser()).inkTopup).toBe(10);
 
     const r = await settleInk(USER_ID, 'act', 1, 4); // keep 4 of 10
-    expect(r).toEqual({ settled: true });
+    expect(r).toMatchObject({ settled: true, units: 4 });
     const u = await rawUser();
     expect(u.inkTopup).toBe(16); // 10 left + 6 refunded
     expect(u.inkHolds).toEqual([]);
@@ -364,7 +364,7 @@ describe('settleInk (AC1, AC7, AC8)', () => {
       .mockRejectedValueOnce(new Error('ledger down'));
 
     const r = await settleInk(USER_ID, 'lf', 1);
-    expect(r).toEqual({ settled: true, reason: 'ledger_failed' });
+    expect(r).toMatchObject({ settled: true, reason: 'ledger_failed', units: 4 });
 
     const logged = errSpy.mock.calls.flat().join(' ');
     expect(errSpy).toHaveBeenCalledTimes(1);
@@ -413,7 +413,7 @@ describe('settleInk races and faults (Arjun 12 Oct ruling: only the pull winner 
     expect(results.filter((r) => !r.settled)).toEqual(
       Array(4).fill({ settled: false, reason: 'no_hold' }),
     );
-    expect(results.find((r) => r.settled)).toEqual({ settled: true });
+    expect(results.find((r) => r.settled)).toMatchObject({ settled: true, units: 6 });
 
     const rows = await generateRows('race');
     expect(rows.map((r) => r.sourceBucket).sort()).toEqual(['annual_carry', 'sub', 'topup']);
@@ -446,7 +446,11 @@ describe('settleInk races and faults (Arjun 12 Oct ruling: only the pull winner 
     jest
       .spyOn(mongoose.mongo.Collection.prototype, 'bulkWrite')
       .mockRejectedValueOnce(new Error('ledger down'));
-    expect(await settleInk(USER_ID, 'df', 1)).toEqual({ settled: true, reason: 'ledger_failed' });
+    expect(await settleInk(USER_ID, 'df', 1)).toMatchObject({
+      settled: true,
+      reason: 'ledger_failed',
+      units: 4,
+    });
     jest.restoreAllMocks();
 
     // The hold is gone right after the settle, before any sweep runs.
@@ -733,7 +737,7 @@ describe('AC9: a billing renewal while a hold is open', () => {
     expect(after.inkSub).toBe(600);
 
     // The hold still closes normally afterwards.
-    expect(await settleInk(USER_ID, 'ren', 1)).toEqual({ settled: true });
+    expect(await settleInk(USER_ID, 'ren', 1)).toMatchObject({ settled: true, units: 6 });
     expect((await rawUser()).inkHolds).toEqual([]);
   });
 

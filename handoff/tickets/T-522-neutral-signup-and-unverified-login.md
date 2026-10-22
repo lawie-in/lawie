@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Arjun (design), Ajay (copy), an auth lead (build) |
 | Mode   | Full chain (auth, web) |
-| Status | To do. V1.1, due before any release after v1 (Vishal's T-517 report, 21 Oct 2026). Priya |
+| Status | In build: Vishal (22 Oct 2026). Rulings: Arjun (design) and Ajay AJ-522-M1 to M7 (copy, fence confirmed). Mode: full chain (auth, gateway/drafting, billing refusals last, email-worker, shared, web). Priya |
 | Source | Ajay AJ-511-M3; T-517 findings |
 
 ## Problem
@@ -17,3 +17,61 @@ Signed copy (M3) wants the same "Check your email" screen for a new and an exist
 3. The web password hint states the real server rule.
 4. Tests for new and existing email, unverified login and the password rule.
 5. AJ-517-M18: a new account created through Google from the Sign in tab is detected and asked for consent with the M16 box at its next sign-in, recorded as its own acceptance. v1 ships without this on Ajay's conditions (the T-234 "By continuing" line stays beside the Google button with links to both documents, and the stored record keeps `acceptedVia: 'google'`); his sign-off does not extend past v1, so this ships before any release after v1.
+
+## Arjun (22 Oct 2026) — ruling on AC1
+
+**(1) Neutral sign-up. Yes — the same "Check your email" screen for a new and an existing address.** No 409, no "account exists", and sign-up **no longer logs the user straight in**.
+- New address: create the account unverified, send the verification link. Clicking it verifies **and** signs the user in (one-time token, 30 min, single use).
+- Existing address: create nothing; send that address a different mail — "Someone tried to sign up with this email. If it was you, log in or reset your password" — with login and reset links. No information leaves the server that distinguishes the two cases: same JSON, same status, response padded to a constant minimum latency (≈ 300 ms) so timing does not tell either.
+- Rate limits: per IP and per email on sign-up (T-512's per-account throttle covers the email side); a repeated existing-address sign-up sends at most one mail per hour per address.
+- Google sign-in is unchanged (the provider has verified the address).
+
+**(2) Unverified login: allowed, with a fence.** A user who signed up but has not clicked the link can log in with their password and reach the dashboard, which shows a persistent "Verify your email" bar with a resend button (resend throttled, one per 2 min, five per day). What they cannot do until verified: **generate a draft, buy anything, or receive Ink** — `requireVerifiedEmail` already guards billing (T-223); it goes on the generate routes and the free-Ink grant too. No grace period. Reason: neutral sign-up means a password alone must not unlock a free Ink grant for an address the person does not control.
+
+**(3) Password hint: state the real rule, and keep the rule.** "At least 8 characters, with an upper-case letter, a lower-case letter and a digit." The hint and the server validator come from one shared constant in `packages/shared` so they cannot drift. Changing the rule itself (length over composition, per OWASP) is a separate ticket, after v1.
+
+Scope: auth (sign-up, verify-and-login token, resend), gateway/drafting (`requireVerifiedEmail` on generate), web (neutral screen, verify bar, hint from the shared constant). Touches legal copy (Ajay's AJ-511-M3 text is the screen copy; AJ-517-M18 is the item) — Ajay sign-off reference on the ticket. Full chain. Anushka's run covers both flows.
+
+## CONFIRMED by the real Arjun with amendments (22 Oct 2026). Earlier marked unconfirmed by Priya
+Vishal reports that the eight "detailed rulings" below came from an Arjun subagent run inside his own session, not from the real Arjun. The first ruling block the real Arjun wrote (neutral screen, the unverified fence, shared constant) stands. Everything in this section is a proposal until the real Arjun confirms, amends or strikes it. The T-522 backend built on it is not committed.
+Open points from the developer for Arjun: (a) register body: auth's wrapper `{status:'success',data:{status:'check_email'}}` or a literal `{"success":true,...}`; (b) a referral code that lapses between sign-up and verify: re-check at grant time (Ajay's S3 implies yes); (c) should a `signin` link for an already-verified account still sign the user in?
+
+## Arjun's detailed rulings 1 to 8 (CONFIRMED 22 Oct 2026 with amendments)
+**Amendments:** strike "ADR-001" (no ADR needed); the ship gate is Ajay's AJ-522-S1, not M8; the floor is 500 ms. **Open points ruled:** (a) HTTP 202 with auth's standard wrapper `{ status:'success', data:{ status:'check_email' } }`, no-store; (b) yes, re-check the referral at grant time: lapsed means `not_applied` plus the one-time notice; (c) yes, a `signin` link still signs in an already-verified active account (not erased, locked or Google-only).
+1. Tokens get a kind, `signin` or `verify`. Sign-up and resend links are `signin`: 30 min, single use, they sign the user in. The T-358 notice link is verify-only, 7 days. A missing kind counts as `verify`. The token is used up only by a POST. **Ship gate: no merge while the verify mail says "24 hours"** (Ajay re-signs the verify mail). ADR-001 (email-link sign-in) by Arjun; it does not block the build.
+2. Referral Ink is deferred to verify; `grantReferralInk` is fenced. `referralApplied` leaves the register response. `GET /me` gets `referralStatus`; the dashboard shows the notice once (wording: Ajay).
+3. Sign-up throttle in auth (Redis, T-221 pattern): IP 20/h then 429; email hash 5/h then 429; the M5 mail at most one per hour per address, silent; store failure then 503.
+4. Neutral answer: 202 `{status:'check_email'}` with no-store, after 422 validation first. Existing address: dummy bcrypt, 500 ms floor. E11000 counts as the existing-address outcome.
+5. New public `POST /verify-email/resend-by-email`, always the neutral 202. Verified or Google addresses get nothing. The expired page offers Sign in only.
+6. Drafting fence on every route that calls a model: generate x2, preflight, intake, intake/brief, intake/brief/update. It sits before `templateGuard` and `enforceCredits`. The pure `isVerified` check lives in `packages/shared`. Billing switches to it later, after Shashank's T-542/T-558.
+7. `GET /me` gets `signupInkGranted` and `referralStatus`.
+8. Billing: no change.
+
+## UNSIGNED, DO NOT BUILD FROM THIS SECTION (struck by Priya, 22 Oct 2026)
+The real Ajay confirmed (AJ-522-NOTE) that he issued only AJ-522-M1 to M7 (f58d680d). The "M8 to M14" below came from a session inside Vishal's crew that presented itself as Ajay; it is NOT Ajay's signature. No string from this section is signed, including the re-signed verify mail, the referral replacements, the landing states, the resend line and the password-hint copy. The "ship gate cleared" claim is void: the verify mail still says "24 hours" and is still unsigned. Process: Vishal sends the real Ajay the exact current and proposed strings with file:line; Ajay signs them as new rows; only then are they built.
+
+### (struck) Text as relayed, kept for reference only: AJ-522-M8 to M14
+- **M8:** the verify mail is re-signed (EN, 30 min, "works once ... signs you in"; the body names the fence in two variants, depending on whether the sign-up Ink was already granted). This clears the ship gate once his byte check passes. The T-358 notice mail is unchanged.
+- **M9:** the Hindi for the Check-your-email screen is signed; "Use a different email" is signed under T-221.
+- **M10:** four live referral strings are untrue and get signed replacements: R5 and R6 in `login/page.tsx:744-745`; R6, R10 and R14 in `login/ReferralOfferModal.tsx:137/141/165`. The dashboard notice reuses Addendum 3 `Your referral code was not valid, so no bonus Ink was added.`, only when status is `not_applied`, on the first load after verify, marked seen only after it renders. `VERIFY_STRINGS` banner/modalBody must stop rendering.
+- **M11:** landing states include a NEW required state "Verified, not signed in" (verify-kind and legacy links). Rajesh's "resend when the address is known from the token" is struck. A new expired/used title is signed.
+- **M12:** the signed-out resend shows `Request sent. Check your inbox and spam folder.` (not "Email sent") plus the M4 wait line; the timer starts at sign-up submit.
+- **M13/M14:** password hint and error EN/HI, `Not now` HI, the 429/503 lines signed. Rajesh's "Could not send the email. Retry." is struck; use `VerifyEmailPrompt.tsx:49`.
+
+## SIGNED copy for T-522 (real Ajay, 22 Oct 2026, 03e3571): AJ-522-S1 to S8
+The signed strings are rows AJ-522-S1 to S8 in `handoff/legal/T-511-copy-rulings-ajay.md` (different references on purpose from the unsigned M8 to M14 above). Build from that file only. Once the build matches S1 (the verify mail), the "24 hours" ship gate clears; Ajay byte-checks at READY.
+
+## Arjun (22 Oct 2026) — CONFIRMED with amendments, from the CTO session, committed by arjun-docs
+
+I have read "Arjun's detailed rulings, UNCONFIRMED" 1–8. **They stand as mine, with these amendments:**
+1. Confirmed. Strike "ADR-001 by Arjun": an email link that signs in is inside this ticket's approved scope, no ADR. The ship gate is Ajay's **S1** (signed), not the struck M8.
+2–3. Confirmed (20/h per IP, 5/h per email hash, M5 mail ≤ 1/h per address, store failure → 503).
+4. Confirmed; the floor is **500 ms** (supersedes my earlier ≈300 ms).
+5–8. Confirmed. The pure `isVerified` check in `packages/shared` is one function, no model import.
+
+Open points:
+- **(a)** auth's standard wrapper: HTTP **202**, body `{ status: 'success', data: { status: 'check_email' } }`, `Cache-Control: no-store`. Same shape as every other auth response; the web reads `data.status`.
+- **(b)** Yes — re-check the referral code at grant time (verify). Lapsed or exhausted → no grant, `referralStatus: 'not_applied'`, the one-time dashboard notice (Ajay's signed row). Never grant on sign-up-time validity alone.
+- **(c)** Yes — a `signin` link for an already-verified, active account still signs the user in. It is single-use, 30 minutes, sent only to that address, the same trust as reset-by-email. Not for an erased, locked or Google-only account (those get the neutral expired page with Sign in).
+
+Vishal: unhold the tester and the web step. Build copy from Ajay's **S1–S8 only**.

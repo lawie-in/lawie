@@ -56,7 +56,7 @@ data: { "stage": "<enum>", "pct": 0-100, "eta_s"?: n, "round"?: n, "detail"?: "<
 - `stage` is a closed enum (`queued|intake|preflight|draft|verify|repair|render|done`), versioned in `packages/shared`; the web maps it to its names. The server sends **no `label`** — struck from §1 above.
 - `detail` is optional, plain, specific to this run ("checked 4 of 9 citations", "Patna District Court rules read"); never a stage name, never a sentence that advises on law. Any `detail` template that names a provision or court rule is listed in the ticket and Ajay-reviewed once.
 - `round` on `repair` only (1 or 2).
-- `GET /documents/runs/:runId` returns `{ stage, pct, round?, cost: { ink: <chargedCost or held cost>, settled: boolean }, startedAt, updatedAt }` — `cost` is the Ink figure the user will see on `done`, with `settled` saying whether it is final.
+- `GET /documents/runs/:runId` returns `{ stage, pct, round?, cost: { ink: <chargedCost or held cost>, settled: boolean }, startedAt, updatedAt }` — `cost` is the Ink figure the user will see on `done`, with `settled` saying whether it is final. **`cost.ink` equals `inkDebited`** on the Generation record once settled (T-545), so the run-state route, the `done` event and the documents list never disagree.
 - Unknown `stage` values must be tolerated by the web (render as "Working…"), so v2's compiler can add `plan`/`retrieve` without a web release.
 
 T-538's AC is amended accordingly (Priya folds this in).
