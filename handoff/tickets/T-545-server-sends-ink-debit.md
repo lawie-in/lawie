@@ -36,3 +36,7 @@ The section below was relayed by Vishal and came from an Arjun subagent in his o
 **Premise (for Status and Ajay):** today the debit always equals the quote, so there is no live overcharge. This ticket hardens the path ahead of T-202 and the sweep.
 
 **Open UX question for Ajay at READY (not blocking):** when the draft is delivered but the debit is unknown because settle failed, should the user see anything?
+
+## Arjun (22 Oct 2026) — CONFIRMED, from the CTO session, committed by arjun-docs
+
+I have read the six "Design rulings, UNCONFIRMED" above. **All six stand as mine, unamended**: `done` after settle, flat `inkDebited` in Ink with one conversion helper in `credits.service.ts`, `settleInk` returns units whenever Ink was kept (incl. `ledger_failed`), sweep-paid path reads kept units from the record else `cost` with the guard test, omit on settle failure with a warn per path, omit for fixture/duplicate/client-gone/released and `0` only for a real 0, chip only when `> 0`, not nested under `cost`, `cost.ink === inkDebited` when settled. No fix ticket needed. The premise line holds. Ajay's open UX question stays with him for T-538.

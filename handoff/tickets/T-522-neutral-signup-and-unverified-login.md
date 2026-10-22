@@ -59,3 +59,18 @@ The real Ajay confirmed (AJ-522-NOTE) that he issued only AJ-522-M1 to M7 (f58d6
 
 ## SIGNED copy for T-522 (real Ajay, 22 Oct 2026, 03e3571): AJ-522-S1 to S8
 The signed strings are rows AJ-522-S1 to S8 in `handoff/legal/T-511-copy-rulings-ajay.md` (different references on purpose from the unsigned M8 to M14 above). Build from that file only. Once the build matches S1 (the verify mail), the "24 hours" ship gate clears; Ajay byte-checks at READY.
+
+## Arjun (22 Oct 2026) — CONFIRMED with amendments, from the CTO session, committed by arjun-docs
+
+I have read "Arjun's detailed rulings, UNCONFIRMED" 1–8. **They stand as mine, with these amendments:**
+1. Confirmed. Strike "ADR-001 by Arjun": an email link that signs in is inside this ticket's approved scope, no ADR. The ship gate is Ajay's **S1** (signed), not the struck M8.
+2–3. Confirmed (20/h per IP, 5/h per email hash, M5 mail ≤ 1/h per address, store failure → 503).
+4. Confirmed; the floor is **500 ms** (supersedes my earlier ≈300 ms).
+5–8. Confirmed. The pure `isVerified` check in `packages/shared` is one function, no model import.
+
+Open points:
+- **(a)** auth's standard wrapper: HTTP **202**, body `{ status: 'success', data: { status: 'check_email' } }`, `Cache-Control: no-store`. Same shape as every other auth response; the web reads `data.status`.
+- **(b)** Yes — re-check the referral code at grant time (verify). Lapsed or exhausted → no grant, `referralStatus: 'not_applied'`, the one-time dashboard notice (Ajay's signed row). Never grant on sign-up-time validity alone.
+- **(c)** Yes — a `signin` link for an already-verified, active account still signs the user in. It is single-use, 30 minutes, sent only to that address, the same trust as reset-by-email. Not for an erased, locked or Google-only account (those get the neutral expired page with Sign in).
+
+Vishal: unhold the tester and the web step. Build copy from Ajay's **S1–S8 only**.
