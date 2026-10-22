@@ -36,6 +36,8 @@ router.get(
   async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const rows = await User.aggregate<{ _id: string | null; count: number }>([
+        // T-563: test accounts are never counted.
+        { $match: { isTestAccount: { $ne: true } } },
         { $group: { _id: { $ifNull: ['$signupSource.utmSource', null] }, count: { $sum: 1 } } },
         { $sort: { count: -1, _id: 1 } },
       ]);

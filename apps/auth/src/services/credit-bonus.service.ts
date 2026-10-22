@@ -65,6 +65,8 @@ export async function tryGrantDailyLoginBonus(userId: string): Promise<number> {
           ],
         },
         VERIFIED_FOR_BONUS,
+        // T-563 (Arjun default 4): a test account never gets the daily login bonus.
+        { isTestAccount: { $ne: true } },
       ],
     },
     {
@@ -309,5 +311,60 @@ async function writeLedgerRow(row: {
       '[auth] credit-bonus ledger insert failed:',
       err instanceof Error ? err.message : err,
     );
+  }
+}
+
+/** T-563 — 30 Ink, stored at 2 units per Ink. */
+export const TEST_GRANT_INK_UNITS = 60;
+/** T-563 (AJ-563-M5) — internal ledger reason only; never shown to a user. */
+export const TEST_GRANT_REASON = 'test_grant';
+
+/**
+ * T-563 (Arjun, default 5) — the test account's one Ink grant: +60 units (30 Ink) into
+ * inkTopup and one inkledger row with reason 'test_grant'. Not the sign-up grant: no
+ * creditledger row, no drafting grant-bonus signal, no referral. Once only: the atomic guard is
+ * signupBonusGrantedAt (also set here, so the dashboard reads right and grantSignupBonus never
+ * runs for this account), and only an isTestAccount user matches. Returns true when this call
+ * granted. Non-fatal: never throws.
+ */
+export async function grantTestInk(userId: string): Promise<boolean> {
+  if (!mongoose.Types.ObjectId.isValid(userId)) return false;
+  const conn = mongoose.connection;
+  if (!conn.db) return false;
+  const _id = new mongoose.Types.ObjectId(userId);
+  try {
+    const granted = await conn.db.collection('users').findOneAndUpdate(
+      {
+        _id,
+        isTestAccount: true,
+        $or: [{ signupBonusGrantedAt: { $exists: false } }, { signupBonusGrantedAt: null }],
+      },
+      [
+        {
+          $set: {
+            inkTopup: { $add: [{ $ifNull: ['$inkTopup', 0] }, TEST_GRANT_INK_UNITS] },
+            inkSub: { $ifNull: ['$inkSub', 0] },
+            inkAnnualCarry: { $ifNull: ['$inkAnnualCarry', 0] },
+            inkSubMonthlyAllotment: { $ifNull: ['$inkSubMonthlyAllotment', 0] },
+            signupBonusGrantedAt: '$$NOW',
+          },
+        },
+      ],
+      { returnDocument: 'after' },
+    );
+    if (!granted) return false;
+    await conn.db.collection('inkledger').insertOne({
+      userId: _id,
+      delta: TEST_GRANT_INK_UNITS,
+      reason: TEST_GRANT_REASON,
+      sourceBucket: 'topup',
+      balanceAfter: granted['inkTopup'],
+      createdAt: new Date(),
+    });
+    return true;
+  } catch (err) {
+    const errKind = err instanceof Error ? err.constructor.name : 'UnknownError';
+    logger.warn({ userId, errKind }, 'Test account Ink grant failed');
+    return false;
   }
 }

@@ -25,6 +25,7 @@ import mongoose from 'mongoose';
 import { env } from '../config/env';
 import { User } from '../models/User.model';
 import { buildLoginUrl } from '../services/password-reset.service';
+import { isTestAccountUser } from '../services/test-signup-bypass.service';
 import { mintVerifyLink, normaliseLinkKind } from '../services/verify-email.service';
 
 /** `${FRONTEND_URL}/forgot-password`: the M5 mail's reset link (a page, never a token). */
@@ -57,6 +58,11 @@ router.post(
       return;
     }
     try {
+      // T-563 (Arjun default 6): a test account is never mailed.
+      if (await isTestAccountUser(userId)) {
+        res.status(409).json({ error: 'not_eligible' });
+        return;
+      }
       const result = await mintVerifyLink(userId, { linkKind: normaliseLinkKind(body?.kind) });
       if (result.kind === 'not_eligible') {
         res.status(409).json({ error: 'not_eligible' });
@@ -107,8 +113,14 @@ router.post(
         res.status(404).json({ error: 'not_found' });
         return;
       }
-      const user = await User.findById(userId, { email: 1, isActive: 1, erasure: 1 }).lean();
-      if (!user || user.isActive === false || user.erasure) {
+      const user = await User.findById(userId, {
+        email: 1,
+        isActive: 1,
+        erasure: 1,
+        isTestAccount: 1,
+      }).lean();
+      // T-563 (Arjun default 6): a test account is never mailed (404: the worker skips it).
+      if (!user || user.isActive === false || user.erasure || user.isTestAccount === true) {
         res.status(404).json({ error: 'not_found' });
         return;
       }

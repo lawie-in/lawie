@@ -224,8 +224,10 @@ export async function registerUser(
 /**
  * T-522 — what loginUser does once the password is proved, shared so that a 'signin' verify
  * link signs in exactly the same way: token pair, session with authAt, then the daily bonus.
+ * T-563: exported so the test sign-up bypass signs in the same way (the daily bonus itself
+ * skips test accounts).
  */
-async function startSignedInSession(
+export async function startSignedInSession(
   user: IUser,
   meta: SessionMeta,
 ): Promise<{ accessToken: string; refreshToken: string }> {
