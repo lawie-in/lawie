@@ -26,6 +26,8 @@ export function healthy(over: Handlers = {}): Handlers {
     [PATHS.documents]: async () => ok(docsBody(3)),
     [PATHS.balance]: async () => ok(balanceBody(12)),
     [PATHS.status]: async () => ok(statusBody()),
+    // a verified account, so the low-Ink nudge (T-565 item 33) can show
+    [PATHS.me]: async () => ok({ data: { emailVerified: true } }),
     ...over,
   };
 }

@@ -11,7 +11,7 @@ import { formatKpi, ShelfKpis, type ShelfKpisProps } from '../ShelfKpis';
 import { Spine, spineName } from '../Spine';
 import type { ShelfDocument } from '../useDashboardData';
 
-import { parsedSummary, statusBody, tile, tileText } from './dash-test-utils';
+import { flush, parsedSummary, statusBody, tile, tileText } from './dash-test-utils';
 
 import {
   cleanupMounted,
@@ -31,9 +31,18 @@ jest.mock('next/link', () => ({
   ),
 }));
 
+const mockApiFetch = jest.fn();
+jest.mock('@/lib/apiFetch', () => ({ apiFetch: (...a: unknown[]) => mockApiFetch(...a) }));
+
 const push = jest.fn();
 beforeEach(() => {
   jest.clearAllMocks();
+  // /api/auth/me: a verified account, so the low-Ink nudge (T-565 item 33) can show.
+  mockApiFetch.mockResolvedValue({
+    ok: true,
+    status: 200,
+    json: async () => ({ data: { emailVerified: true } }),
+  });
   stubMatchMedia();
   (useRouter as jest.Mock).mockReturnValue({ push });
 });
@@ -278,16 +287,18 @@ describe('LowInkNudge (T-524)', () => {
       />,
     );
 
-  it('is a role=status that is not announced (aria-live=off)', () => {
+  it('is a role=status that is not announced (aria-live=off)', async () => {
     const { container } = nudge();
+    await flush();
     const s = q('[role=status]', container)!;
     expect(s.getAttribute('aria-live')).toBe('off');
     expect(s.hasAttribute('aria-atomic')).toBe(false);
   });
 
-  it('Top up is ghost (not the primary variant) and calls onTopUp; a double click calls it twice', () => {
+  it('Top up is ghost (not the primary variant) and calls onTopUp; a double click calls it twice', async () => {
     const onTopUp = jest.fn();
     const { container } = nudge({ onTopUp });
+    await flush();
     const b = qa('button', container).find((x) => x.textContent === DASHBOARD_COPY.topUp)!;
     expect(b.getAttribute('data-variant')).toBe('ghost');
     click(b);
@@ -517,12 +528,13 @@ describe('ShelfKpis (T-524)', () => {
     expect(cls(label)).toEqual(expect.arrayContaining(['min-w-0', 'truncate']));
   });
 
-  it('the low-Ink nudge appears under the Ink value with a ghost Top up and aria-live off', () => {
+  it('the low-Ink nudge appears under the Ink value with a ghost Top up and aria-live off', async () => {
     const { container } = mount(
       <ShelfKpis
         {...props({ ink: { loaded: true, loading: false, totalInk: 1, monthlyAllotment: 0 } })}
       />,
     );
+    await flush();
     const n = q('[data-low-ink]', tile(container, 'Ink balance')!)!;
     expect(n.getAttribute('aria-live')).toBe('off');
     expect(n.getAttribute('role')).toBe('status');

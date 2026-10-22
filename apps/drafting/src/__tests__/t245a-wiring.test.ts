@@ -299,11 +299,16 @@ describe('buildAISystemPrompt rule 1', () => {
     expect(prompt).not.toContain(OLD_RULE);
   });
 
-  it('another template (rent_agreement) keeps the old rule and has neither text', () => {
+  it('another template (rent_agreement) has no law line at all and neither text (T-566 54b)', () => {
+    // T-566 ruling 54b (Ajay, 22 Oct): civil packs get no code line; the old
+    // "NEVER reference old IPC..." rule is gone and the item 54 line is for
+    // criminal-category packs only.
     const prompt = buildAISystemPrompt(loadTemplateConfig('rent_agreement')!);
-    expect(prompt).toContain(OLD_RULE);
+    expect(prompt).not.toContain(OLD_RULE);
+    expect(prompt).not.toContain('Use BNS section numbers for an offence committed on or after');
     expect(prompt).not.toContain(S_TEXT);
     expect(prompt).not.toContain(P_TEXT);
+    expect(prompt).toContain('1. Format with numbered paragraphs (1, 2, 3...) for the body.');
   });
 });
 

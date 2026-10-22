@@ -239,12 +239,6 @@
       "name": "Two Witnesses",
       "required": true,
       "description": "Mandatory"
-    },
-    {
-      "id": "lawie_disclaimer",
-      "name": "Lawie Drafting Assistant Disclaimer",
-      "required": true,
-      "description": "Standard Lawie disclaimer"
     }
   ],
   "prayerTemplate": "",
@@ -274,7 +268,6 @@
       "Para 12: STAMP DUTY — typically lower than GPA. State Article 48 schedule:\n   - Generally Rs.100 to Rs.500 for ordinary SPA;\n   - HIGHER where SPA authorises sale of immovable property — some states (Delhi, Haryana) levy near-conveyance duty on SPA-for-sale to a non-relative; relative-SPA attracts lower duty.\n   DO NOT hardcode — flag advocate to verify.",
       "Para 13: AUTHENTICATION — notarisation mandatory; registration recommended for sale-related SPAs (and mandatory in some states); consular attestation / apostille if executed abroad.",
       "Para 14: WITNESSES — two adult witnesses.",
-      "Append Lawie disclaimer.",
       "Distinguish SPA's specificity rationale from GPA — courts construe agency narrowly per S.188 ICA (authority co-extensive with business). Sale-SPA does not transfer title.",
       "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
@@ -331,19 +324,18 @@
     "Attorney's ID / Address proof — PAN + Aadhaar / Passport",
     "Two passport-size photographs of grantor + attorney",
     "Two adult witnesses with own ID proofs",
-    "NOTARISATION standard; REGISTRATION required where SPA authorises sale of immovable property per state directives (post-Suraj Lamp)",
+    "NOTARISATION standard; REGISTRATION required where SPA authorises sale of immovable property per state directives",
     "Where executed abroad: Indian Consulate attestation OR Apostille (Hague countries); authentication under S.18 Registration Act within 3 months of arrival",
     "Where Grantor is company: Board Resolution + MOA extract",
     "Specific transaction documents (e.g., draft sale deed, agreement to sell, case papers) referenced and attached if circumstances permit",
-    "Lawie disclaimer included",
-    "Where SPA includes power to sell — Suraj Lamp disclaimer (sale only by registered sale deed) prominently inserted"
+    "Where SPA includes power to sell — title clause (sale only by registered sale deed) prominently inserted"
   ],
   "validation_rules": [
     "grantor_age >= 18 and attorney_age >= 18",
     "transaction_description must be at least 100 characters — enforces specificity",
     "property_or_subject_id must not be empty",
     "counterparty_name must not be empty (unless transaction is sole-grantor act like own court representation — then counterparty can be 'N/A — case-specific')",
-    "if specific_transaction_type contains 'sale' — Suraj Lamp disclaimer paragraph must be inserted",
+    "if specific_transaction_type contains 'sale' — title clause must be inserted",
     "duration_or_completion_event must be specified",
     "stamp_duty_paid > 0",
     "if state == 'executed_abroad' — registration_or_notarisation must be consulate or apostille",

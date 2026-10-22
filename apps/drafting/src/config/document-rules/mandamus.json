@@ -154,10 +154,6 @@
       "rule": "Grounds must show a public legal duty, a clear legal right of the petitioner, demand and refusal, and no equally efficacious alternative remedy",
       "severity": "medium"
     },
-    { "rule": "Respondent MUST be public authority/officer", "severity": "blocker" },
-    {
-      "rule": "Disclaimer: Lawie is a drafting assistant; advocate is responsible for legal accuracy and filing.",
-      "severity": "blocker"
-    }
+    { "rule": "Respondent MUST be public authority/officer", "severity": "blocker" }
   ]
 }

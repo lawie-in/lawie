@@ -302,6 +302,7 @@ describe('low-Ink nudge wiring', () => {
       window.dispatchEvent(new CustomEvent('creditsChanged', { detail: { totalInk: 1 } }));
     });
     expect(tileText(container, 'Ink balance')).toContain('1 Ink');
+    await flush(); // the nudge mounts now and confirms the account is verified via /me
     expect(container.querySelector('[data-low-ink]')).not.toBeNull();
   });
 });

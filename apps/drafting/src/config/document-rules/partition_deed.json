@@ -276,12 +276,6 @@
       "name": "Two Witnesses",
       "required": true,
       "description": "Mandatory"
-    },
-    {
-      "id": "lawie_disclaimer",
-      "name": "Lawie Drafting Assistant Disclaimer",
-      "required": true,
-      "description": "Standard Lawie disclaimer"
     }
   ],
   "prayerTemplate": "",
@@ -316,7 +310,6 @@
       "Para 17: GOVERNING LAW — Hindu Succession Act, 1956 as amended.",
       "Schedules I-IV (property) + Schedules A, B, C... (allotments) appended.",
       "Two witnesses' attestation.",
-      "Append Lawie disclaimer.",
       "Note on FAMILY ARRANGEMENT vs PARTITION DEED: A FAMILY ARRANGEMENT is a wider concept including settlement of disputes; courts treat genuine family arrangements indulgently. Where dispute being settled in addition to partition — consider family settlement deed (may have lower stamp duty in some states).",
       "Note on ORAL PARTITION + MEMORANDUM: Oral partition followed by a memorandum of partition (recording what already happened) may avoid registration / lower stamp duty — but courts scrutinise such memoranda; risk of being held a partition deed in substance.",
       "Note on INCOME TAX — partition of HUF: complete partition extinguishes HUF (or partial — partial recognised pre-1980, post-1980 partial partitions of registered HUF not recognised by IT Dept under S.171 ITA). Where HUF is taxable entity — Form for recording partition with Income Tax Officer mandatory.",
@@ -413,8 +406,7 @@
     "Registration at Sub-Registrar within 4 months of execution (S.23 Registration Act)",
     "Post-registration: mutation applications in each sharer's name in revenue / municipal records",
     "Update bank accounts / FDs / demat / shares as per allotment",
-    "Where partition under-allots a coparcener — flag potential gift tax / capital gains consequence",
-    "Lawie disclaimer included"
+    "Where partition under-allots a coparcener — flag potential gift tax / capital gains consequence"
   ],
   "validation_rules": [
     "common_ancestor must be specified",

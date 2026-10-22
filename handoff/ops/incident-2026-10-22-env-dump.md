@@ -34,3 +34,14 @@ Remove every product secret from the agent environment config. Keep only what se
 1. **Hook:** a `PreToolUse` hook in `.claude/settings.json` that blocks Bash commands matching `\b(env|printenv|export -p|export -n|set)\b` with no arguments, `declare -x`, `cat /proc/*/environ`, `node -p process.env`, and `python -c ... os.environ` — the same way the `.env`-filename hook works today. Root config, one lead.
 2. **Crew packets:** "never print the environment" joins the crew protocol in `CLAUDE.md` (Priya edits the line).
 3. **CI secret scan** already runs gitleaks on commit; add a check that no tool-result file under `handoff/` or `.claude/` contains a value matching the known secret shapes (`rzp_`, `AKIA`, `mongodb+srv://…:…@`, `lts_`).
+
+## Addendum (Arjun, 22 Oct 2026 11:50 UTC) — severity raised to HIGH
+
+Checked prefixes only (no values) in the CTO session's container, which gets the same environment config as every agent session: **`RAZORPAY_KEY_ID` starts with `rzp_live_`** and **`AWS_ACCESS_KEY_ID` starts with `AKIA`** (a long-term IAM user key). `RAZORPAY_KEY_GUARD` and `SECRETS_ENV` are unset; `TEST_SIGNUP_BYPASS=true` is already set.
+
+So the environment injects a **live Razorpay key pair** into every agent session, and that pair's secret is in the dumped transcript. A live key secret can create real orders, capture and refund real money. Two consequences:
+
+1. **Rotate the live Razorpay key pair first, today** (Razorpay dashboard → live mode → regenerate), before anything else on the rotation list. Then the AWS key.
+2. **Check what the develop box runs.** The team has assumed the box uses test-mode keys (T-516, T-526 rulings). If the box's env was the source of this environment config, the box may be running **live** keys — every Anushka purchase would be real money, and the T-526 "environments are separated by Razorpay mode" ruling would be false today. Founder: `grep -c rzp_live_` on the box's env file (prints a count, not a value). If live: switch the box to test keys and test plan ids, re-register the test-mode webhook, restart.
+
+T-563's boot guard found this by refusing to start auth in a session with a live key and the bypass flag set — the guard did its job on day one.

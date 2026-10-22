@@ -817,12 +817,13 @@ describe('T-522 — M6 Top-up and Subscribe refusals (AJ-522-M6, Rajesh §3)', (
     expect(code).toMatch(/onCloseAutoFocus=\{onCloseAutoFocus\}/);
   });
 
-  it('a top-up 403 with any other code does not open M6 and shows the server error line', async () => {
+  it('a top-up 403 with any other code does not open M6 and shows the generic line, not the code (T-565 item 45)', async () => {
     handlers[ORDER] = { status: 403, body: { error: 'something_else' } };
     await h.mount(await topUpEls());
     await h.click(byText(BUY) as Element);
     expect(m6()).toBeUndefined();
-    expect(document.body.textContent).toContain('something_else');
+    expect(document.body.textContent).toContain('Something did not work. Try again.');
+    expect(document.body.textContent).not.toContain('something_else');
     expect((byText(BUY) as HTMLButtonElement).disabled).toBe(false);
   });
 

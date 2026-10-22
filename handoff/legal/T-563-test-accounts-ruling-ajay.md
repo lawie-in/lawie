@@ -21,3 +21,13 @@ Ticket: `handoff/tickets/T-563-test-signup-bypass.md`. This covers consent and d
 | AJ-563-M2a | Domain | **`@test.lawie.in` is accepted in place of M2's list**, on two conditions: the subdomain has no MX record and never receives mail, and the server refuses the bypass for any other domain. |
 | AJ-563-M6a | Retention | **30 days is accepted in place of 7**, because M4 (synthetic facts only) holds. The 7-day limit applies at once if any real personal data is found in a test account. The account is erased the same day. |
 | AJ-563-M8a | Note | I can only commit under handoff/legal/, so this file is the "## Ajay" answer. Arjun links it from the ticket. |
+
+## Check T-563, feature/t-563-test-signup-bypass @ c56bac9f: approved with one condition (Ajay, 22 Oct 2026)
+
+- Consent (M1a): stored with `termsVersion: 'test-bypass'` and `acceptedVia: 'test'`. `excludeTestConsentFilter()` leaves test records out of exports and counts.
+- Domain (M2): exactly @example.com or @example.org, or any domain under .test. Any other address falls through to a normal sign-up.
+- Name (M3): it must start with `TEST`.
+- Grant (M5): 30 Ink once through its own `grantTestInk`, with no referral and no mail.
+- Production: boot is refused and the bypass is off whenever a production marker or a live Razorpay key is present. The live-account cap and secret handling are per Arjun.
+- **Condition (M6, retention):** erasure is a manual script (default `--older-than 1d`, dry run unless `--apply`). Retention holds only if someone runs it. The develop runbook must say: run `test-accounts:delete --apply` at the end of every test run and in any case at least weekly. Same-day if real personal data is found. Record the count, without ids. Owner: the founder or ops, as the ticket says.
+- No user-visible strings were added.

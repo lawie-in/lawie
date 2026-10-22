@@ -54,7 +54,8 @@ const button = (name: string) =>
     | HTMLButtonElement
     | undefined;
 const dialog = () => document.body.querySelector('[role="dialog"]');
-const alertText = () => document.body.querySelector('[role="alert"]')?.textContent;
+// T-565 item 45: the alert box holds the line (a <p>) and a Retry button.
+const alertText = () => document.body.querySelector('[role="alert"] p')?.textContent;
 async function flush() {
   await act(async () => {
     for (let i = 0; i < 25; i += 1) await Promise.resolve();

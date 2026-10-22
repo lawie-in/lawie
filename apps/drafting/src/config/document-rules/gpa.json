@@ -4,7 +4,7 @@
     "owner": "Ajay (CLO)",
     "validated_by": "Ajay (CLO) — Batch 6 transactional deeds pass 2026-05-12",
     "last_updated": "2026-05-12",
-    "change_protocol": "All edits require CLO sign-off. Suraj Lamp warning must appear prominently when GPA includes power to sell. Authentication / notarisation / registration requirements differ for property powers vs general powers."
+    "change_protocol": "All edits require CLO sign-off. The title clause must appear prominently when GPA includes power to sell. Authentication / notarisation / registration requirements differ for property powers vs general powers."
   },
   "template_id": "gpa",
   "card_description": "A General Power of Attorney letting a person act generally for the grantor.",
@@ -245,12 +245,6 @@
       "name": "Two Witnesses",
       "required": true,
       "description": "Two adult attesting witnesses"
-    },
-    {
-      "id": "lawie_disclaimer",
-      "name": "Lawie Drafting Assistant Disclaimer",
-      "required": true,
-      "description": "Standard Lawie disclaimer"
     }
   ],
   "prayerTemplate": "",
@@ -279,7 +273,6 @@
       "Para 13: AUTHENTICATION:\n   (a) Notarisation — minimum requirement under Notaries Act, 1952.\n   (b) Registration under S.17(1) Registration Act — NOT mandatory for ordinary GPA, BUT mandatory for GPA executed by NRIs OR for GPAs that include power to sell immovable property (per state amendments). Several states (Delhi, Haryana, UP) have circulars requiring registration for property GPAs.\n   (c) GPA executed abroad — must be (i) attested by Indian Consulate / Embassy OR (ii) apostilled (if grantor in Hague Apostille Convention country) AND (iii) authenticated under S.18 Registration Act within 3 months of arrival in India.",
       "Para 14: WITNESSES — two adult attesting witnesses (mandatory under Notaries Act / Registration Act).",
       "Para 15: Where Grantor is a company — Board Resolution authorising execution annexed; signed by Authorised Signatory.",
-      "Append Lawie disclaimer.",
       "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
@@ -368,14 +361,13 @@
     "Where GPA authorises operation of bank accounts: bank-specific mandate forms in addition (banks accept GPA but follow KYC)",
     "Where GPA authorises court representation: vakalatnama in advocate's favour to be filed separately when needed",
     "Photographs of Grantor and Attorney affixed and signed across",
-    "Lawie disclaimer included",
-    "WARNING — Suraj Lamp v. State of Haryana (2012) 1 SCC 656: GPA does NOT transfer title to immovable property. Any sale must be by registered Sale Deed."
+    "WARNING — GPA does NOT transfer title to immovable property. Any sale must be by registered Sale Deed."
   ],
   "validation_rules": [
     "grantor_age >= 18",
     "attorney_age >= 18",
     "powers_scope must contain at least 1 enumerated power",
-    "if includes_power_to_sell == 'yes_flag_title_warning' — Suraj Lamp disclaimer paragraph must be inserted",
+    "if includes_power_to_sell == 'yes_flag_title_warning' — title clause must be inserted",
     "if registration_or_notarisation == 'registered_under_S17_Registration_Act' — stamp duty must reflect registration schedule",
     "if state == 'executed_abroad' — registration_or_notarisation must be 'consulate_attested_if_grantor_abroad' or 'apostilled_if_grantor_in_apostille_country'",
     "duration field must be specified",

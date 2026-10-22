@@ -56,14 +56,14 @@ export const VERIFY_EMAIL_STRINGS = {
     'This link works once, expires in 30 minutes and signs you in, so do not forward it. If it no longer works, sign in and ask for a new one.',
   fallback: "If the button doesn't work, copy this link into your browser:",
   notYou:
-    "Didn't create a Lawie account? Ignore this email: without this link, nothing is verified. To have the account removed, write to privacy@lawie.in.",
+    "Didn't create a Lawie account? Ignore this email: without this link, nothing is verified. To have the account removed, write to contact@lawie.in.",
   help: 'Need help? Write to contact@lawie.in.',
   disclaimer:
     'Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.',
   signOff: 'Team Lawie',
   footer1: 'Lawie (Sole Proprietorship), Ranchi, Jharkhand',
   footer2: 'You are receiving this because this address was used to create a Lawie account.',
-  footer3: 'Help: contact@lawie.in · Data and privacy requests: privacy@lawie.in',
+  footer3: 'Help, data and privacy requests: contact@lawie.in',
   footer4: 'Privacy Policy: https://lawie.in/privacy · Terms: https://lawie.in/terms',
 } as const;
 

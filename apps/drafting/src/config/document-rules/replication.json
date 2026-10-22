@@ -181,12 +181,6 @@
       "name": "Affidavit in support — Order VI R.15(4)",
       "required": true,
       "description": "Mandatory"
-    },
-    {
-      "id": "disclaimer",
-      "name": "Advocate Responsibility Disclaimer",
-      "required": true,
-      "description": "Standard Lawie disclaimer"
     }
   ],
   "prayerTemplate": "PRAYER\n\nIn the light of the matters stated in the above Replication, the Plaintiff most respectfully prays that this Hon'ble Court may graciously be pleased to:\n\na) Reject the Written Statement and the preliminary objections raised by the Defendant as being untenable in law and on facts;\n\nb) Reject the counter-claim filed by the Defendant, if any, with exemplary costs;\n\nc) Decree the suit in terms of the prayer clause of the Plaint dated ____;\n\nd) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the Plaintiff shall ever pray.",
@@ -212,7 +206,6 @@
       "Verification — Order VI R.15.",
       "Affidavit in support — Order VI R.15(4).",
       "Note: in Commercial Courts under CCA 2015, the procedure is somewhat streamlined and statement of truth applies (Order VI R.15A). Replication is still subject to leave under Order VIII R.9.",
-      "Append Lawie disclaimer.",
       "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
