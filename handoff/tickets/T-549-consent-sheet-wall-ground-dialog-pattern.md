@@ -19,3 +19,10 @@
 
 ## Acceptance criteria
 Each item done with tests, checked at 360 / 768 / 1280 in both themes; Rajesh signs; Ajay signs 1 and 6.
+
+## Follow-ups from the T-549 review (Rajesh, 22 Oct 2026; separate ticket after T-549)
+- `.float-cta` has no bottom safe-area inset.
+- `PrivacyUpdatePrompt` has no side insets.
+- Headers of `/tools/*` and `review/[token]` (own headers, centred content, low risk).
+- Rajesh narrows the One Shadow Rule in DESIGN.md: fixed overlays get their own shadow level.
+- Rulings: on legacy `.mk` pages the consent card is always Daylight (M1, before T-403); 4px desktop radius, 44px buttons, Card shadow approved.
