@@ -206,7 +206,7 @@ Warm darks with a single brass accent; Daylight keeps the hues and lifts the lig
 - **Brass Mark** (#c9a24a / #e6c877): the spine bands and the seal mark on an oxblood spine, and any other brass mark drawn on a dark fill. Same as Brass at night; by day it stays light so it clears 3:1 on Oxblood (5.0:1). Never used on Wall or Card. The inner ring of a seal mark on a spine is the spine's own fill (Oxblood), not On Brass, so it stays visible in both themes; only the 100px seal on the folio uses the On Brass ring.
 
 ### Secondary
-- **Oxblood** (#7a2a2a / #8e2f2f) and **Oxblood High** (#a94545 / #b85050): book spines on the shelf and the destructive confirm button. Never a status colour.
+- **Oxblood** (#7a2a2a / #8e2f2f) and **Oxblood High** (#a94545 / #b85050): book spines on the shelf and the destructive confirm button. A white label clears AA on both by day (Oxblood 8.1:1, Oxblood High 4.9:1, T-544). Never a status colour.
 
 ### Neutral
 - **Wall** (#0e1a17 / #f3efe4): the page ground.
