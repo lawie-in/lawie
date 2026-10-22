@@ -79,11 +79,18 @@ const S1 = {
     'This link works once, expires in 30 minutes and signs you in, so do not forward it. If it no longer works, sign in and ask for a new one.',
 } as const;
 
+// T-559 (AJ-559-M1), byte for byte from handoff/legal/T-511-copy-rulings-ajay.md. The T-223
+// signed file still holds the old privacy@ not-you line; M1(2) supersedes that one row.
+const M1_NOT_YOU =
+  "Didn't create a Lawie account? Ignore this email: without this link, nothing is verified. To have the account removed, write to contact@lawie.in.";
+const M1_FOOTER3 = 'Help, data and privacy requests: contact@lawie.in';
+
 let signed: Record<string, string>;
 let out: ReturnType<typeof runRender>;
 
 beforeAll(() => {
   signed = signedStrings();
+  signed['Not-you line (line 64)'] = M1_NOT_YOU;
   out = runRender({ name: NAME, verifyUrl: URL_ });
 }, 90_000);
 
@@ -157,6 +164,15 @@ describe('T-223 verify-email template: signed strings', () => {
     ];
     for (const s of expected) expect(out.text).toContain(s);
     expect(out.text).toContain(URL_);
+  });
+
+  it('AJ-559-M1: not-you line and footer3 use contact@lawie.in, never privacy@', () => {
+    const text = visible(out.html);
+    for (const part of [text, out.text]) {
+      expect(part).toContain(M1_NOT_YOU);
+      expect(part).toContain(M1_FOOTER3);
+      expect(part).not.toContain('privacy@');
+    }
   });
 
   it('AJ-522-S1: no "24 hours" anywhere (ship gate), and the 30-minute lines are there', () => {

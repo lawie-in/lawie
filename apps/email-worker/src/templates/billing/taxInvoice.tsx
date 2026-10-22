@@ -57,7 +57,7 @@ export const TAX_INVOICE_STRINGS = {
   signOff: 'Team Lawie',
   footer1: 'Lawie (Sole Proprietorship), Ranchi, Jharkhand',
   footer2: 'You are receiving this because a payment was made on your Lawie account.',
-  footer3: 'Help: contact@lawie.in · Data and privacy requests: privacy@lawie.in',
+  footer3: 'Help, data and privacy requests: contact@lawie.in',
   footer4: 'Privacy Policy: https://lawie.in/privacy · Terms: https://lawie.in/terms',
 } as const;
 

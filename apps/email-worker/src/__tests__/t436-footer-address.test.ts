@@ -68,9 +68,7 @@ describe('auth.verifyEmail footer (Ajay, byte-exact)', () => {
     expect(VERIFY_EMAIL_STRINGS.footer2).toBe(
       'You are receiving this because this address was used to create a Lawie account.',
     );
-    expect(VERIFY_EMAIL_STRINGS.footer3).toBe(
-      'Help: contact@lawie.in · Data and privacy requests: privacy@lawie.in',
-    );
+    expect(VERIFY_EMAIL_STRINGS.footer3).toBe('Help, data and privacy requests: contact@lawie.in');
     expect(VERIFY_EMAIL_STRINGS.footer4).toBe(
       'Privacy Policy: https://lawie.in/privacy · Terms: https://lawie.in/terms',
     );

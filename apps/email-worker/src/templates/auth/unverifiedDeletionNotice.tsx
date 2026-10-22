@@ -61,7 +61,7 @@ export const UNVERIFIED_DELETION_NOTICE_STRINGS = {
   button: 'Verify email address',
   footer1: 'Lawie (Sole Proprietorship), Ranchi, Jharkhand',
   footer2: 'You are receiving this because this email address was used to sign up for Lawie.',
-  footer3: 'Help: contact@lawie.in · Data and privacy requests: privacy@lawie.in',
+  footer3: 'Help, data and privacy requests: contact@lawie.in',
   footer4: 'Privacy Policy: https://lawie.in/privacy · Terms: https://lawie.in/terms',
 } as const;
 
@@ -76,11 +76,11 @@ export const UNVERIFIED_DELETION_NOTICE_B_STRINGS = {
   greeting: 'Hello {name},',
   greetingNoName: 'Hello,',
   /** `{date}` is replaced with the formatted deletion date. */
-  body: 'This Lawie account was deactivated and its email address was never verified. We will delete the account and everything in it on {date}. If you want to keep it, write to privacy@lawie.in from this email address before then.',
+  body: 'This Lawie account was deactivated and its email address was never verified. We will delete the account and everything in it on {date}. If you want to keep it, write to contact@lawie.in from this email address before then.',
   /** The same as A. */
   footer1: 'Lawie (Sole Proprietorship), Ranchi, Jharkhand',
   footer2: 'You are receiving this because this email address was used to sign up for Lawie.',
-  footer3: 'Help: contact@lawie.in · Data and privacy requests: privacy@lawie.in',
+  footer3: 'Help, data and privacy requests: contact@lawie.in',
   footer4: 'Privacy Policy: https://lawie.in/privacy · Terms: https://lawie.in/terms',
 } as const;
 

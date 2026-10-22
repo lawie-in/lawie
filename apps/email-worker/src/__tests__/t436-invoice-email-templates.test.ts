@@ -65,7 +65,7 @@ const esc = (s: string) =>
 const FOOTER = [
   'Lawie (Sole Proprietorship), Ranchi, Jharkhand',
   'You are receiving this because a payment was made on your Lawie account.',
-  'Help: contact@lawie.in · Data and privacy requests: privacy@lawie.in',
+  'Help, data and privacy requests: contact@lawie.in',
   'Privacy Policy: https://lawie.in/privacy · Terms: https://lawie.in/terms',
 ];
 const CN_FOOTER = [
@@ -252,7 +252,7 @@ describe('strings vs the signed sources', () => {
       'Download invoice (PDF): {downloadUrl}',
       'Need help? Write to contact@lawie.in.',
       'Team Lawie',
-      FOOTER[2],
+      // FOOTER[2] is left out: AJ-559-M1 replaced it, and the Madhuri copy file predates that.
       FOOTER[3],
     ]) {
       expect(COPY).toContain(s);
