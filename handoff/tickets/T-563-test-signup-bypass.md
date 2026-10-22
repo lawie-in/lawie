@@ -73,3 +73,11 @@ Ruling: `handoff/legal/T-563-test-accounts-ruling-ajay.md` — CONFIRMED with co
 ## Arjun (22 Oct 2026) — erase without cancel for now
 
 Billing has no service-to-service cancel, so **(c)**: the sweep and the delete script erase a test account regardless of an active test-mode plan, no cancel, sub id logged; later webhooks land on a missing user and go to the existing unknown-user handling. Safe because the boot guard makes a live key impossible on a bypass box. (a) is rejected — never forge gateway identity on a public route. **(b)** — `POST /internal/cancel-subscription { userId, immediate: true }` behind `INTERNAL_SECRET` in billing — is the follow-up after Shashank's merge, and the erase path then calls it first.
+
+## Arjun (22 Oct 2026) — AC3 security sign-off at 2f368751
+
+**Signed off, with one change before merge:** the rate limit on wrong-secret attempts must not answer 429 — it answers the same neutral 202 and silently does nothing (the `warn` log still fires). On a back door, "the bypass is on" is still a tell, and hiding it costs two lines. Plus the `SECRETS_ENV=production` fix already in progress. Then a tester rerun on the diff, merge in the slot.
+
+Reviewer's confirmations accepted as the security record: byte-identical normal path on wrong/missing/empty secret or flag off; SHA-256 + `timingSafeEqual`; boot refusal on all markers, casing/whitespace-robust; register only; server-side domain and TEST rules; no secrets, emails or headers in logs; no mail/referral/daily bonus; 30 Ink once; consent marked; sweep and script can never select a real, Admin or golden-set account; gitleaks rule in place.
+
+Follow-ups (Priya): (a) billing exclusions; (b) IP hash → HMAC with a server key; (c) bundle guard also checks the T-543 `NEXT_PUBLIC` name list; (d) billing internal immediate-cancel route (already requested).
