@@ -24,7 +24,7 @@ export const NO_INK_USED = 'No Ink was used.';
 /** Signed (Ajay 41b): when the release is not confirmed. */
 export const CHECK_DOCUMENTS_LIST = 'Check your documents list to see where this draft stands.';
 
-/** T-521 amendment (Arjun ruling 4): a dropped run. Plain wording; Ajay to review. */
+/** T-521 amendment (Arjun ruling 4): a dropped run. Signed: Ajay AJ-521-M1 (W13). */
 export const CONNECTION_LOST = 'Connection lost. Check your documents.';
 
 /** The SSE error code the server sends when the Ink hold was lost and could not be re-taken. */

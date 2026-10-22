@@ -219,9 +219,14 @@ function NewDocumentContent() {
   // never written to browser storage. Dropped on a template change, on
   // Cancel, and once a draft is written.
   const formSnapshot = useRef<(FormSnapshot & { templateId: string }) | null>(null);
+  // T-565 W8: set by "Try again" on the not-started card (the cost is unknown): draft once the
+  // cost is known. Cleared by every path that leaves that card or drops the answers, so a cost
+  // that resolves later can never start (and charge) a draft the advocate has walked away from.
+  const [retryWhenCostKnown, setRetryWhenCostKnown] = useState(false);
   const clearFormAnswers = useCallback(() => {
     formSnapshot.current = null;
     pendingFormData.current = null;
+    setRetryWhenCostKnown(false);
   }, []);
 
   // ── Search + filter pipeline ──────────────────────────────────────────────
@@ -367,8 +372,12 @@ function NewDocumentContent() {
       setGenerationRetryable(true);
       setGenerationFailure('stream');
 
-      // Priya: set once the first stream data arrives. A failure before that means no draft
-      // started (request-failed card); after it, the draft did not finish (stream card).
+      // Priya: set once the first stream data arrives. A failure before that shows the
+      // request-failed card (`Retry`); after it, the stream card (the draft did not finish).
+      // Once the 200 headers are in, the server may already hold Ink even before the first
+      // chunk. That is safe: X-Run-Id is read before the body, and Retry resends that run_id,
+      // so the server continues the same run or answers 409 (the in_progress card). Retry must
+      // therefore NOT become a fresh run: never clear lastRunId on this path.
       let streamDataSeen = false;
       try {
         const res = await privacyFetch('generate', '/api/documents/generate-from-template', {
@@ -427,28 +436,18 @@ function NewDocumentContent() {
           //     line, no Retry.
           //   403 from the plan gate → `This document is not available on your current plan.`,
           //     no Retry.
-          //   Any other 400/403, a 401 (the fetch helper has already tried its token refresh), a
-          //     402 with no paywall data, a 404, a 429 and a 5xx → `Something did not work. Try
-          //     again.` + Retry: no draft started (Priya).
+          //   Every other non-OK status (any 3xx/4xx/5xx, including a 401 after the fetch
+          //     helper's token refresh and a 402 with no paywall data) → `Something did not
+          //     work. Try again.` + Retry: the start was refused, so no draft started (Priya).
           if (res.status === 409) {
             setGenerationFailure('in_progress');
             setGenerationRetryable(false);
           } else if (res.status === 403 && isPlanGate(errorBody)) {
             setGenerationFailure('plan_required');
             setGenerationRetryable(false);
-          } else if (
-            res.status === 400 ||
-            res.status === 401 ||
-            res.status === 402 ||
-            res.status === 403 ||
-            res.status === 404 ||
-            res.status === 429 ||
-            res.status >= 500
-          ) {
+          } else {
             setGenerationFailure('request_failed');
             setGenerationRetryable(true);
-          } else {
-            setGenerationRetryable(res.status !== 402);
           }
           setPipelineState('generation_failed');
           return;
@@ -554,7 +553,9 @@ function NewDocumentContent() {
         const reason =
           err instanceof Error ? err.message : 'Lost connection to the drafting service.';
         setGenerationError(reason);
-        // Priya: a request or read that failed before any stream data started no draft.
+        // Priya: a request or read that failed before any stream data → request-failed card.
+        // Ink may already be held (headers in, no chunk yet); Retry resends lastRunId, so it
+        // continues the same run or gets a 409. Do not clear lastRunId here.
         if (!streamDataSeen) setGenerationFailure('request_failed');
         setGenerationRetryable(true);
         setPipelineState('generation_failed');
@@ -566,7 +567,6 @@ function NewDocumentContent() {
   // ── Retry handler (generation_failed card) ────────────────────────────────
   // T-565 W8 (Ajay): on the not-started card (the cost is unknown) "Try again" fetches the
   // cost again and drafts once it is known; the unknown-cost notice is not on that card.
-  const [retryWhenCostKnown, setRetryWhenCostKnown] = useState(false);
   const handleRetry = useCallback(async () => {
     if (!pendingFormData.current) return;
     if (!templateInkCostKnown) {
@@ -578,12 +578,30 @@ function NewDocumentContent() {
   }, [runGeneration, templateInkCostKnown, retryInkCost]);
   useEffect(() => {
     if (!retryWhenCostKnown || inkCostLoading) return;
+    // Cleared before anything else, so this fires at most once per click.
     setRetryWhenCostKnown(false);
+    // Only from the not-started card the advocate is still looking at; anywhere else (the
+    // form, another card) nothing is sent.
+    if (
+      phase !== 'generating' ||
+      pipelineState !== 'generation_failed' ||
+      generationFailure !== 'not_started'
+    ) {
+      return;
+    }
     // Still unknown: the not-started card stays, with its "Try again".
     if (templateInkCostKnown && pendingFormData.current) {
       void runGeneration(pendingFormData.current);
     }
-  }, [retryWhenCostKnown, inkCostLoading, templateInkCostKnown, runGeneration]);
+  }, [
+    retryWhenCostKnown,
+    inkCostLoading,
+    templateInkCostKnown,
+    runGeneration,
+    phase,
+    pipelineState,
+    generationFailure,
+  ]);
 
   // ── Submit form → preflight first ────────────────────────────────────────
   const handleSubmit = useCallback(
@@ -600,6 +618,7 @@ function NewDocumentContent() {
       // new run instead of continuing a failed one.
       lastRunId.current = undefined;
       pendingFormData.current = formData;
+      setRetryWhenCostKnown(false); // T-565 W8: a new run drops any pending not-started retry.
       setPhase('generating');
       setPipelineState('verifying');
       setPreflightQuestions([]);
@@ -662,6 +681,9 @@ function NewDocumentContent() {
   // ── Edit form (go back from soft-warn or hard-block) ─────────────────────
   // T-432: the form is shown again from formSnapshot, so nothing is lost.
   const handleEditForm = useCallback(() => {
+    // T-565 W8: a pending "Try again" from the not-started card is dropped, so nothing drafts
+    // (or holds Ink) while the advocate is on the form.
+    setRetryWhenCostKnown(false);
     setPhase('form');
   }, []);
 

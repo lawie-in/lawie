@@ -27,10 +27,21 @@ jest.mock('@/components/intake/OneFlow', () => ({
 }));
 jest.mock('@/components/form/DynamicFormRenderer', () => ({
   __esModule: true,
-  default: ({ onSubmit }: { onSubmit: (d: Record<string, unknown>) => void }) => (
-    <button type="button" data-testid="submit-form" onClick={() => onSubmit({ client: 'A' })}>
-      Generate document
-    </button>
+  default: ({
+    onSubmit,
+    onCancel,
+  }: {
+    onSubmit: (d: Record<string, unknown>) => void;
+    onCancel?: () => void;
+  }) => (
+    <div>
+      <button type="button" data-testid="submit-form" onClick={() => onSubmit({ client: 'A' })}>
+        Generate document
+      </button>
+      <button type="button" data-testid="cancel-form" onClick={() => onCancel?.()}>
+        cancel probe
+      </button>
+    </div>
   ),
 }));
 // The real PipelineStatus, plus two probe buttons that reach callbacks its own (blocked) buttons
@@ -287,5 +298,110 @@ describe('new page: the runGeneration guard (AC3)', () => {
       'Uses 3 Ink',
     );
     expect(tryAgain()!.disabled).toBe(false);
+  });
+});
+
+// ── Round 4: "Try again" on the not-started card sets a pending draft that must never fire
+// away from that card (it holds Ink).
+describe('new page: a pending Try again never drafts off the not-started card', () => {
+  const lists = () => [
+    { templates: [tpl(3)] },
+    { templates: [tpl(undefined)] },
+    { templates: [tpl(3)] },
+  ];
+  const releaseGate = async (open: () => void) => {
+    await act(async () => open());
+    await flush();
+  };
+  const holdCostFetch = () => {
+    let open!: () => void;
+    gate = new Promise<void>((r) => {
+      open = r;
+    });
+    return open;
+  };
+  const clickText = async (label: string) => {
+    await act(async () => buttonWith(label)!.click());
+    await flush();
+  };
+  const onForm = () => container.querySelector('[data-testid="submit-form"]') !== null;
+
+  it('Try again, then Edit the form, then the cost resolves: no POST; a later fresh submit makes exactly one', async () => {
+    configLists = lists();
+    await reachNotStartedCard();
+    const open = holdCostFetch();
+    await act(async () => tryAgain()!.click());
+    await flush();
+    await clickText('Edit the form');
+    expect(onForm()).toBe(true);
+    await releaseGate(open);
+    expect(generateCalls()).toHaveLength(0);
+    expect(onForm()).toBe(true);
+    // a later fresh submit is one POST
+    verdict = { verdict: 'pass' };
+    await submit();
+    expect(generateCalls()).toHaveLength(1);
+  });
+
+  it('Try again, Edit the form, Cancel, then the cost resolves: no POST', async () => {
+    configLists = lists();
+    await reachNotStartedCard();
+    const open = holdCostFetch();
+    await act(async () => tryAgain()!.click());
+    await flush();
+    await clickText('Edit the form');
+    await act(async () => probe('cancel-form').click());
+    await flush();
+    await releaseGate(open);
+    expect(generateCalls()).toHaveLength(0);
+  });
+
+  it('Try again, Edit the form, a different template, then the cost resolves: no POST', async () => {
+    configLists = lists();
+    await reachNotStartedCard();
+    const open = holdCostFetch();
+    await act(async () => tryAgain()!.click());
+    await flush();
+    await clickText('Edit the form');
+    await clickText('Choose a different template');
+    await releaseGate(open);
+    expect(generateCalls()).toHaveLength(0);
+    expect(onForm()).toBe(false);
+  });
+
+  it('the cost resolving while still on the card: exactly one POST, and a second cost refresh does not POST again', async () => {
+    configLists = lists();
+    await reachNotStartedCard();
+    const open = holdCostFetch();
+    await act(async () => tryAgain()!.click());
+    await flush();
+    expect(generateCalls()).toHaveLength(0);
+    await releaseGate(open);
+    expect(generateCalls()).toHaveLength(1);
+    // the 500 reply leaves a failure card; refreshing the cost again must not draft
+    gate = null;
+    await act(async () => probe('probe-refetch').click());
+    await flush();
+    await act(async () => probe('probe-refetch').click());
+    await flush();
+    expect(generateCalls()).toHaveLength(1);
+  });
+
+  it("a fresh submit after the cost resolved makes no extra POST: soft-warn card first, then the user's own click is the one POST", async () => {
+    configLists = lists();
+    await reachNotStartedCard();
+    const open = holdCostFetch();
+    await act(async () => tryAgain()!.click());
+    await flush();
+    await clickText('Edit the form');
+    // (a submit is held while the cost is still loading, so the cost resolves first)
+    await releaseGate(open);
+    expect(generateCalls()).toHaveLength(0);
+    verdict = { verdict: 'soft', questions: ['Check the dates'] };
+    await submit();
+    expect(buttonWith('Generate anyway')).toBeDefined();
+    expect(generateCalls()).toHaveLength(0);
+    await clickText('Generate anyway');
+    expect(generateCalls()).toHaveLength(1);
   });
 });

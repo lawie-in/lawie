@@ -352,14 +352,24 @@ describe('T-565 W3: gates unchanged', () => {
     expect(labels()).toContain('Generate document');
   });
 
-  it('a 422 (any other 4xx) still falls to the stream card with Try again', async () => {
-    mockPrivacyFetch.mockResolvedValue(reply(422, { error: RAW }));
+  it.each([405, 408, 410, 413, 415, 422])(
+    'a %s (any other non-OK status): the generic line + Retry, not the stream card',
+    async (status) => {
+      mockPrivacyFetch.mockResolvedValue(reply(status, { error: RAW }));
+      await submitOneStepForm();
+      expect(count(LINE)).toBe(1);
+      expect(text()).not.toContain('The draft did not finish.');
+      expect(text()).not.toContain(RAW);
+      expect(labels()).toContain('Retry');
+      expect(labels()).not.toContain('Try again');
+    },
+  );
+
+  it('a 3xx non-OK reply: the generic line + Retry', async () => {
+    mockPrivacyFetch.mockResolvedValue(reply(302, {}));
     await submitOneStepForm();
-    expect(text()).toContain('The draft did not finish.');
-    expect(text()).not.toContain(LINE);
-    expect(labels()).toContain('Try again');
-    expect(labels()).not.toContain('Retry');
-    expect(text()).not.toContain(RAW);
+    expect(count(LINE)).toBe(1);
+    expect(labels()).toContain('Retry');
   });
 });
 
