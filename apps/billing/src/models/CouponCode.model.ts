@@ -21,7 +21,18 @@ const CouponCodeSchema = new Schema<ICouponCode>(
     code: { type: String, required: true, unique: true, uppercase: true, trim: true },
     label: { type: String, required: true, trim: true },
     discountType: { type: String, enum: ['percent', 'fixed'], required: true },
-    discountValue: { type: Number, required: true, min: 1 },
+    discountValue: {
+      type: Number,
+      required: true,
+      min: 1,
+      // T-540: a fixed discount is whole rupees, so the quote's paise stay integers.
+      validate: {
+        validator: function (this: { discountType?: string }, v: number): boolean {
+          return this.discountType !== 'fixed' || Number.isInteger(v);
+        },
+        message: 'A fixed discountValue must be a whole number of rupees',
+      },
+    },
     applicablePlans: { type: [String], default: [] },
     maxUses: { type: Number, default: null },
     maxUsesPerUser: { type: Number, default: 1, min: 1 },
