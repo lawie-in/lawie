@@ -168,7 +168,7 @@
     "For private respondent: full name, parentage, address as in FIR / complaint.",
     "Below party blocks, add a 'Counsel for the Petitioner' block: name, Bar Council of [state] enrolment number, chamber address, email, phone.",
     "Bottom right: 'Filed by:' with signature line, name, enrolment number, and date.",
-    "NEVER include any IPC reference — if any law is cited, use BNS / BNSS / BSA.",
+    "Do not cite any statute in the memo of parties.",
     "Do NOT include affidavit / prayer / verification — those belong in the main petition.",
     "Do NOT include any marketing language about the advocate (BCI Rule 36)."
   ],

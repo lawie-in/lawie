@@ -180,7 +180,7 @@
     "Include the court-fee stamp note: 'Affixed with court fee stamps of ₹{court_fee_stamp_value}'.",
     "Standard ending: 'In witness whereof, I have signed this vakalatnama at {place} on this {date}.'",
     "Provide signature blocks for client (with attestation if required) and advocate (acceptance).",
-    "Do NOT include any IPC / CrPC / IEA references — use BNS / BNSS / BSA where citing substantive law.",
+    "Do not cite any section of substantive law in the vakalatnama.",
     "Do NOT include advertising-style claims about advocate qualifications beyond enrolment — BCI Rule 36."
   ],
   "relevantActs": [

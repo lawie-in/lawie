@@ -269,12 +269,6 @@
       "name": "Two Witnesses",
       "required": true,
       "description": "Mandatory under S.123 TPA — attestation by 2 witnesses"
-    },
-    {
-      "id": "lawie_disclaimer",
-      "name": "Lawie Drafting Assistant Disclaimer",
-      "required": true,
-      "description": "Standard Lawie disclaimer"
     }
   ],
   "prayerTemplate": "",
@@ -294,11 +288,10 @@
       "MINOR DONEE: A minor CAN accept gift. Acceptance by natural guardian / legal guardian on behalf of minor is valid. Flag for guardian's certificate.",
       "BLOOD-RELATIVE STAMP DUTY CONCESSIONS (state-wise — verify current rates):\n   - Bihar: Standard ~6% / concessional ~5.7% for blood relative + 2% registration.\n   - Jharkhand: Concessional for blood relative (mother, father, spouse, son, daughter, sister, brother) — typically reduced rate; verify Jharkhand Stamp Act amendment.\n   - UP: Rs.5000 fixed for blood relative gift (concessional) + 1% registration fee.\n   - Delhi: 4% (women) / 6% (men) for blood relative; significant concession via Government circulars.\n   DO NOT hardcode — state 'subject to advocate's verification of current stamp duty schedule and applicable circulars'.",
       "INCOME TAX — S.56(2)(x) ITA: gift from relatives (spouse, brother/sister, brother/sister of spouse, brother/sister of parents, lineal ascendant/descendant of self or spouse) is NOT taxable. Gift from non-relative > Rs.50,000 in aggregate per year is taxable in donee's hands.",
-      "Structure: (1) Title 'GIFT DEED'. (2) Recital of relationship. (3) Recital of donor's title — chain of ownership. (4) Recital of motive — natural love and affection. (5) Operative gift clause. (6) Delivery of possession clause. (7) Acceptance clause (donee signs as accepting donee). (8) Free-from-encumbrances warranty. (9) Revocation clause (if applicable; otherwise state 'irrevocable absolute gift'). (10) Mutation authorisation. (11) Stamp duty clause. (12) Schedule A. (13) Witness attestation (TWO witnesses — mandatory per S.123). (14) Lawie disclaimer.",
+      "Structure: (1) Title 'GIFT DEED'. (2) Recital of relationship. (3) Recital of donor's title — chain of ownership. (4) Recital of motive — natural love and affection. (5) Operative gift clause. (6) Delivery of possession clause. (7) Acceptance clause (donee signs as accepting donee). (8) Free-from-encumbrances warranty. (9) Revocation clause (if applicable; otherwise state 'irrevocable absolute gift'). (10) Mutation authorisation. (11) Stamp duty clause. (12) Schedule A. (13) Witness attestation (TWO witnesses — mandatory per S.123).",
       "Where gift in contemplation of death (Donatio mortis causa) — different regime under S.191 Indian Succession Act 1925; flag and route to a will instead in most cases.",
       "Where gift to charity / religious trust — additional language: irrevocable, vested for trust purposes; advise registration under S.80G Income Tax Act for tax exemption.",
       "Where gift includes property abroad — FEMA compliance flag.",
-      "Append Lawie disclaimer.",
       "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
@@ -397,8 +390,7 @@
     "Post-registration: apply for mutation in donee's name in revenue / municipal records",
     "Update electricity / water / society records",
     "Where Mohammedan parties — verify hiba requirements under Mohammedan law (declaration + acceptance + delivery); registration optional but recommended",
-    "Where gift to trust / charity — registration under S.80G ITA for tax benefit",
-    "Lawie disclaimer included"
+    "Where gift to trust / charity — registration under S.80G ITA for tax benefit"
   ],
   "validation_rules": [
     "donor_age must be >= 18",

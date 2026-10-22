@@ -2,7 +2,8 @@
 //  - server `error` event, code != insufficient_ink: the signed line.
 //  - server `error` event, insufficient_ink: the reason only.
 //  - stream ends without `done`, or fetch throws: no Ink claim, "Connection lost. Check your documents."
-//  - start failure (non-OK, empty body): the reason only.
+//  - start failure (non-OK): T-565 B5, never the server's reason; the generic line (see
+//    OneFlow.t565.start-refusal.test.tsx for the full routing). Empty body: the heading + 41b line.
 // And the ?q= prefill (initialDescription): prefills, never submits, ?kind= still works.
 import { TextDecoder as NodeTextDecoder, TextEncoder as NodeTextEncoder } from 'util';
 
@@ -35,8 +36,8 @@ jest.mock('@/components/PrivacyUpdatePrompt', () => ({
   usePrivacyDescribedBy: () => undefined,
 }));
 
-// T-567 item 41: OneFlow does not read `inkReleased` from the stream yet (held by T-522), so an
-// error event shows the headline and the documents-list line, never `No Ink was used.`
+// T-567 item 41: an error event without `inkReleased: true` shows the headline and the
+// documents-list line, never `No Ink was used.` (the true case is in OneFlow.t565.start-refusal).
 const SIGNED = 'The draft did not finish.';
 const DOCS_LINE = 'Check your documents list to see where this draft stands.';
 const LOST = 'Connection lost. Check your documents.';
@@ -150,7 +151,7 @@ afterEach(() => {
 });
 
 describe('OneFlow generation failure wording (T-521 AC3)', () => {
-  it('server error event with an unknown code: the signed line, and the server reason', async () => {
+  it('server error event with an unknown code: the signed line, and NOT the server reason', async () => {
     await toBrief();
     await confirmWith(
       sse([
@@ -159,7 +160,7 @@ describe('OneFlow generation failure wording (T-521 AC3)', () => {
     );
     expect(text()).toContain(SIGNED);
     expect(text()).toContain(DOCS_LINE);
-    expect(text()).toContain('The drafter stopped.');
+    expect(text()).not.toContain('The drafter stopped.');
     expect(text()).not.toContain('No Ink was used');
     expect(text()).not.toContain(LOST);
     expect(container.querySelector('[data-no-ink-claim="true"]')).toBeNull();
@@ -248,29 +249,35 @@ describe('OneFlow generation failure wording (T-521 AC3)', () => {
     expect(text()).not.toContain('No Ink was used');
   });
 
-  it('start refused (non-OK): the server reason only, no claim, no Connection lost', async () => {
+  it('start refused (non-OK): T-565 B5, the generic line, never the server reason, no claim, no Connection lost', async () => {
     await toBrief();
     await confirmWith(refused(500, { message: 'The service is busy right now.' }));
-    expect(text()).toContain('The service is busy right now.');
+    expect(text()).toContain('Something did not work. Try again.');
+    expect(text()).not.toContain('The service is busy right now.');
     expect(text()).not.toContain('No Ink was used');
     expect(text()).not.toContain(LOST);
     expect(container.querySelector('[data-no-ink-claim="false"]')).not.toBeNull();
   });
 
-  it('start refused with no message: the existing plain error, no claim', async () => {
+  it('start refused with no message: the same generic line, no claim', async () => {
     await toBrief();
     await confirmWith(refused(500, {}));
-    expect(text()).toContain('The draft could not be started. Please try again.');
+    expect(text()).toContain('Something did not work. Try again.');
+    expect(text()).not.toContain('The draft could not be started');
     expect(text()).not.toContain('No Ink was used');
     expect(text()).not.toContain(LOST);
   });
 
-  it('empty body: the plain error, no claim', async () => {
+  it('empty body (T-565 W13): the heading and the documents-list line, no reason, no Ink claim', async () => {
     await toBrief();
     await confirmWith({ ok: true, status: 200, headers: { get: () => null }, body: null });
-    expect(text()).toContain('The drafting service sent nothing back.');
+    expect(text()).toContain(SIGNED);
+    expect(text()).toContain(DOCS_LINE);
+    expect(text()).not.toContain('The drafting service sent nothing back');
     expect(text()).not.toContain('No Ink was used');
     expect(text()).not.toContain(LOST);
+    expect(container.querySelector('[data-no-ink-claim="false"]')).not.toBeNull();
+    expect(buttonWith('Try again')).toBeDefined();
   });
 
   it.each([
@@ -313,7 +320,7 @@ describe('OneFlow failure after a very long partial stream (break-ui)', () => {
       sse([...chunks(), ev('error', { reason: 'Stopped late.', code: 'drafter_failed' })]),
     );
     expect(text()).toContain(SIGNED);
-    expect(text()).toContain('Stopped late.');
+    expect(text()).not.toContain('Stopped late.');
     expect(text()).not.toContain('Paragraph 5');
     expect(sentDescribed(0)).toBe(TYPED);
     expect(buttonWith('Try again')).toBeDefined();

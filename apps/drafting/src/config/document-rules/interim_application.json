@@ -128,8 +128,7 @@
     "Prayer clause — interim relief + ad-interim relief during notice period",
     "Affidavit by applicant in support of IA",
     "Vakalatnama (if not already on record)",
-    "Service of IA on opposite parties (if not ex parte)",
-    "Disclaimer: Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
+    "Service of IA on opposite parties (if not ex parte)"
   ],
   "prompt_context": {
     "system_role": "You are drafting an Interim Application (IA) for interim relief in a pending case. The standard test for interim injunction/stay is the trinity: (i) prima facie case in favour of applicant, (ii) balance of convenience in applicant's favour, (iii) irreparable injury if relief is denied. For an ex parte ad-interim order, the additional threshold is that delay would defeat the very purpose of the application (Order 39 Rule 3 CPC for civil suits; equivalent inherent jurisdiction for writ courts). The IA is filed as a separate paginated document with its own cause title referencing the main case number. Drafting must be tight, urgency-tested, and specific in prayer — vague prayers like 'pass appropriate orders' fail.",

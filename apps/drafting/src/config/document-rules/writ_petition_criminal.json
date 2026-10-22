@@ -209,12 +209,6 @@
       "name": "Affidavit in support",
       "required": true,
       "description": "Mandatory"
-    },
-    {
-      "id": "disclaimer",
-      "name": "Advocate Responsibility Disclaimer",
-      "required": true,
-      "description": "Standard Lawie disclaimer"
     }
   ],
   "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, the Petitioner most respectfully prays that this Hon'ble Court may graciously be pleased to:\n\na) Issue an appropriate writ, order or direction, more particularly a writ in the nature of mandamus, directing the Respondents to {primary_direction};\n\nb) Issue a writ directing constitution of an independent SIT / transfer of investigation to CBI in respect of {incident_brief};\n\nc) Direct the Respondents to pay compensation of Rs. {compensation_amount} for the violation of fundamental rights of the Petitioner / victim;\n\nd) Direct disciplinary action against the erring officials, namely {officials_named};\n\ne) Pending hearing and final disposal of this petition, grant such interim protection / direction as this Hon'ble Court may deem fit;\n\nf) Award costs of this petition; and\n\ng) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the Petitioner shall ever pray.",
@@ -241,7 +235,6 @@
       "Para 16: Interim relief — production of victim / protection / direction to register FIR.",
       "Prayer — specify writs, compensation amount, disciplinary direction, and CBI/SIT transfer where sought.",
       "Affidavit in support mandatory. Where filed by next friend, affidavit must explain authority.",
-      "Append Lawie disclaimer.",
       "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },

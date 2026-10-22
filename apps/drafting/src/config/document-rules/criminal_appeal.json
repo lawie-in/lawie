@@ -254,12 +254,6 @@
       "name": "Affidavit in support",
       "required": true,
       "description": "Affidavit accompanying appeal"
-    },
-    {
-      "id": "disclaimer",
-      "name": "Advocate Responsibility Disclaimer",
-      "required": true,
-      "description": "Standard Lawie disclaimer"
     }
   ],
   "prayerTemplate": "PRAYER\n\nIn the light of the facts, circumstances, and grounds stated above, the Appellant most respectfully prays that this Hon'ble Court may graciously be pleased to:\n\na) Admit this appeal under Section {applicable_section} of the Bharatiya Nagarik Suraksha Sanhita, 2023;\n\nb) Call for the records of the case from the trial Court at {trial_court};\n\nc) Set aside / modify the impugned judgment and order of conviction / acquittal / sentence dated {judgment_date} passed by the Court of {trial_court} in {trial_case_number};\n\nd) Acquit the Appellant of the charges under {offences_convicted} (where conviction is challenged);\n\ne) Or, in the alternative, reduce / modify the sentence imposed (where only sentence is challenged);\n\nf) Pending hearing and final disposal of this appeal, suspend the operation of the sentence under Section 430 BNSS and release the Appellant on bail on such terms as this Hon'ble Court may deem fit (separate application filed);\n\ng) Where leave is required under Section 419(4) BNSS, grant such leave to file this appeal;\n\nh) Award costs of this appeal;\n\ni) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the Appellant shall ever pray.",
@@ -292,7 +286,6 @@
       "Filing process: Where appellant in custody, appeal can be filed through Superintendent of Jail (S.428 BNSS — was S.383 CrPC).",
       "For young / first-time advocates: keep grounds focused — pick 5-8 strongest grounds rather than 30 generic ones.",
       "Affidavit in support is mandatory.",
-      "Append Lawie disclaimer.",
       "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
@@ -337,7 +330,7 @@
       "sections": [
         {
           "number": "Various",
-          "description": "Substantive offence sections — use BNS numbers (not IPC)"
+          "description": "Substantive offence sections: BNS for an offence on or after 1 July 2024, IPC for an offence before that date."
         }
       ]
     },

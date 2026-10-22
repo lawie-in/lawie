@@ -326,7 +326,7 @@ describe('T-540 computeTopupQuote: the free-grant switch (a 0 quote)', () => {
   it('switch off: a 0 quote is refused with the fixed reason', () => {
     expect(quote('topup_mid', free, { freeGrantEnabled: false })).toEqual({
       ok: false,
-      reason: 'This coupon cannot be applied to this item',
+      reason: 'This coupon cannot be applied to this item.',
     });
   });
 

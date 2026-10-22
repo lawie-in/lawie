@@ -44,6 +44,9 @@ import PipelineStatus, {
   PipelineState,
 } from '@/components/draft/PipelineStatus';
 import DynamicFormRenderer, { type FormSnapshot } from '@/components/form/DynamicFormRenderer';
+// T-565 W7: the plan gate's 403 test (shared with OneFlow); the server's text is never shown.
+import { isPlanGate } from '@/components/intake/generationFailure';
+import { takeDraftPrefill } from '@/components/intake/initialQuery';
 import { NOT_STARTED_LINE, inkCostState } from '@/components/intake/InkCostLine';
 import { inkLevelFrom } from '@/components/intake/inkLevel';
 import OneFlow from '@/components/intake/OneFlow';
@@ -107,18 +110,6 @@ const CATEGORY_PALETTE: { color: string; border: string }[] = [
 
 function categoryColors(order: number): { color: string; border: string } {
   return CATEGORY_PALETTE[(Math.max(order, 1) - 1) % CATEGORY_PALETTE.length];
-}
-
-/**
- * T-565 W7: the generate route's plan gate answers 403 `{ error: 'This template requires a Pro
- * plan' }` (documents.routes.ts) and may carry an `upgradeUrl`. The text is only matched here,
- * never shown.
- */
-function isPlanGate(body: unknown): boolean {
-  if (!body || typeof body !== 'object') return false;
-  const b = body as { error?: unknown; upgradeUrl?: unknown };
-  if (typeof b.upgradeUrl === 'string') return true;
-  return typeof b.error === 'string' && /requires an? .*plan/i.test(b.error);
 }
 
 // ── Category filter chip ────────────────────────────────────────────────────
@@ -343,6 +334,9 @@ function NewDocumentContent() {
       .catch(() => ({ enabled: false }))
       .then((d: { enabled?: boolean }) => {
         if (cancelled) return;
+        // T-565 item 40: the form flow has no describe step, so the command bar's matter text
+        // is read once and dropped here (OneFlow reads and clears it itself when it is on).
+        if (d.enabled !== true) takeDraftPrefill();
         setPhase((p) => (p === 'loading' ? (d.enabled === true ? 'one_flow' : 'select') : p));
       });
     return () => {

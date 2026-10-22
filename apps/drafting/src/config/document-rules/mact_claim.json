@@ -258,12 +258,6 @@
       "name": "Affidavit in support",
       "required": true,
       "description": "Mandatory"
-    },
-    {
-      "id": "disclaimer",
-      "name": "Advocate Responsibility Disclaimer",
-      "required": true,
-      "description": "Standard Lawie disclaimer"
     }
   ],
   "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, the Claimant(s) most respectfully pray(s) that this Hon'ble Tribunal may graciously be pleased to:\n\na) Award just compensation in the sum of Rs. {compensation_claimed_amount}/- (Rupees ________ only) jointly and severally against the Respondents in favour of the Claimant(s);\n\nb) Award interest at the rate of 9% per annum on the awarded compensation from the date of filing of the claim petition till the date of realization;\n\nc) Award costs of this petition;\n\nd) Pass any other order(s) as this Hon'ble Tribunal may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the Claimant(s) shall ever pray.",
@@ -277,7 +271,7 @@
       "Para 1: Parties — Claimant(s), Driver (R-1), Owner (R-2), Insurer (R-3). Where pillion / passenger of offending vehicle, may need to add additional respondents.",
       "Para 2: Jurisdiction — invoke S.166(2) ground.",
       "Para 3-5: Accident details — date, time, place, manner. Particulars of rashness/negligence (high speed, wrong side, signal jumping, drunk driving, overloading, inadequate brakes).",
-      "Para 6: FIR details — number, date, PS, BNS sections (S.281 BNS rash driving — was IPC 279; S.106(1) BNS causing death by negligence — was IPC 304A; S.125 BNS act endangering life or personal safety of others (was IPC 336); S.125(a) BNS where hurt is caused (was IPC 337); S.125(b) BNS where grievous hurt is caused (was IPC 338)). Annex certified copy.",
+      "Para 6: FIR details — number, date, PS, and the sections as registered in the FIR (BNS for an offence on or after 1 July 2024, IPC for an offence before that date). Annex certified copy.",
       "Para 7: Driver details and license status. Lack of valid license relevant to insurer's defence under S.149 (now S.149 read with current law) — but Pay & Recover principle of insurer applies.",
       "Para 8: Owner details and policy details.",
       "Para 9: Insurance — verify policy was valid on date of accident; third-party insurance is mandatory under S.146 MV Act.",
@@ -297,7 +291,6 @@
       "Para 18: Reference to S.163A (structured formula — though largely superseded by multiplier-method computation in S.166 claims).",
       "Annexures: FIR copy, MLC, post-mortem, hospital records, disability certificate, age proof, income proof, legal heir certificate, identity proof of claimants, RC of vehicle, DL of driver, insurance policy.",
       "Affidavit in support mandatory.",
-      "Append Lawie disclaimer.",
       "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },

@@ -265,7 +265,7 @@ describe('T-540 AC2/AC3: a refused coupon is refused the same way by both routes
     {
       name: 'free (100%) while the switch is off',
       over: { discountValue: 100, maxUses: 5, maxUsesPerUser: 1 },
-      reason: 'This coupon cannot be applied to this item',
+      reason: 'This coupon cannot be applied to this item.',
     },
   ];
 

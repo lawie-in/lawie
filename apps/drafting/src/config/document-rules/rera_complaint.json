@@ -260,12 +260,6 @@
       "name": "Affidavit in support",
       "required": true,
       "description": "Mandatory per state RERA Rules"
-    },
-    {
-      "id": "disclaimer",
-      "name": "Advocate Responsibility Disclaimer",
-      "required": true,
-      "description": "Standard Lawie disclaimer"
     }
   ],
   "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, the Complainant(s) most respectfully pray(s) that this Hon'ble Authority may graciously be pleased to:\n\na) Direct the Respondent-Promoter to {primary_relief — handover possession / refund consideration with interest / complete promised amenities};\n\nb) Direct the Respondent-Promoter to pay interest at the prescribed rate (SBI MCLR + 2%) from {commencement_date} till the date of actual possession / refund as the case may be, under Section 18(1) of the Real Estate (Regulation and Development) Act, 2016;\n\nc) Direct the Respondent-Promoter to pay compensation of Rs. {compensation_claimed}/- under Section 18(3) of the Act for the mental harassment and financial loss suffered by the Complainant(s);\n\nd) Direct the Respondent-Promoter to comply with the terms of the Agreement for Sale and the provisions of the Act;\n\ne) Impose penalty upon the Respondent-Promoter under Sections 59-64 of the Act for the violations specified above;\n\nf) Award costs of the present complaint;\n\ng) Pass any other order(s) as this Hon'ble Authority may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the Complainant(s) shall ever pray.",
@@ -303,7 +297,6 @@
       "Para 16: Penalty — S.60-72 — penal provisions; complaint can pray for action.",
       "Form fields: typically (i) project name, (ii) RERA registration, (iii) allotment details, (iv) date of agreement, (v) date of possession promised, (vi) date of payment made, (vii) reliefs sought, (viii) consent for online proceedings.",
       "Affidavit in support — mandatory.",
-      "Append Lawie disclaimer.",
       "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },

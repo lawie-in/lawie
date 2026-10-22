@@ -325,12 +325,6 @@
       "name": "Space for Registration Endorsement",
       "required": true,
       "description": "Sub-Registrar's endorsement"
-    },
-    {
-      "id": "lawie_disclaimer",
-      "name": "Lawie Drafting Assistant Disclaimer",
-      "required": true,
-      "description": "Standard Lawie disclaimer — advocate is responsible for legal accuracy and execution"
     }
   ],
   "prayerTemplate": "",
@@ -359,7 +353,6 @@
       "Where vendor / purchaser is a company — board resolution annexed; signed by authorised signatory.",
       "Where minor coparcener interest exists — court permission under Hindu Minority and Guardianship Act, 1956 OR Guardians and Wards Act, 1890 required; flag this prominently.",
       "Where property is ancestral coparcenary — daughters' coparcenary rights post HSA 2005 amendment (daughters are coparceners by birth even if father died before 2005); advise all coparceners must be parties or grant NOC.",
-      "Append Lawie disclaimer: 'This sale deed is a drafting assistant output. The executing advocate is responsible for legal accuracy, due diligence on title, stamp duty correctness, registration formalities, and statutory compliance. Lawie is not legal counsel to either party.'",
       "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
@@ -502,8 +495,7 @@
     "Update property tax record in purchaser's name",
     "Where agricultural land in Jharkhand tribal area — Deputy Commissioner's permission under CNT/SPT Act ANNEXED",
     "Where minor's interest involved — court permission order ANNEXED",
-    "Where company is party — Board Resolution + Memorandum of Association ANNEXED",
-    "Lawie disclaimer prominently included"
+    "Where company is party — Board Resolution + Memorandum of Association ANNEXED"
   ],
   "validation_rules": [
     "consideration_amount must be > 0",

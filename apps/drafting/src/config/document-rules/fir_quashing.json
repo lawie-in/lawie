@@ -69,7 +69,7 @@
       { "id": "state", "label": "State", "type": "text", "required": true },
       {
         "id": "offences_alleged",
-        "label": "BNS / Special Act sections invoked (use BNS, NOT IPC)",
+        "label": "Sections invoked in the FIR (BNS, IPC or Special Act, as registered)",
         "type": "textarea",
         "required": true
       },
@@ -249,12 +249,6 @@
       "name": "Affidavit in support",
       "required": true,
       "description": "Affidavit accompanying petition"
-    },
-    {
-      "id": "disclaimer",
-      "name": "Advocate Responsibility Disclaimer",
-      "required": true,
-      "description": "Standard Lawie disclaimer"
     }
   ],
   "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, the Petitioner most respectfully prays that this Hon'ble Court, in exercise of its inherent jurisdiction under Section 528 of the Bharatiya Nagarik Suraksha Sanhita, 2023, and / or under Articles 226 and 227 of the Constitution of India, may graciously be pleased to:\n\na) Quash and set aside FIR No. {fir_number} dated {fir_date} registered at Police Station {police_station}, District {district}, State of {state}, for offences alleged under {offences_alleged}, and all proceedings / investigation arising therefrom;\n\nb) Pending hearing and final disposal of this petition, stay the further investigation by the Respondent No.1 in respect of the said FIR;\n\nc) Pending hearing and final disposal of this petition, restrain the Respondent No.1 from arresting / taking any coercive steps against the Petitioner in connection with the said FIR;\n\nd) Pending hearing and final disposal of this petition, restrain the Respondent No.1 from filing chargesheet / final report in the said FIR without prior leave of this Hon'ble Court;\n\ne) Award costs of this petition;\n\nf) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the Petitioner shall ever pray.",
@@ -293,7 +287,6 @@
       "Para 18: Where multiple accused: distinct grounds for each accused — applicant cannot piggyback on co-accused's case.",
       "VERY IMPORTANT — court examines FIR on its FACE; defence material not considered at quashing stage except documents of unimpeachable character (court orders, statutory documents that disprove allegations). Therefore, FRAME ARGUMENTS within FIR's four corners + such unimpeachable material.",
       "Affidavit in support is mandatory.",
-      "Append Lawie disclaimer.",
       "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },

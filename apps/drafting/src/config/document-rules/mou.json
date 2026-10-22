@@ -332,12 +332,6 @@
       "name": "Execution",
       "required": true,
       "description": "Signed by both parties / authorised signatories"
-    },
-    {
-      "id": "lawie_disclaimer",
-      "name": "Lawie Drafting Assistant Disclaimer",
-      "required": true,
-      "description": "Standard Lawie disclaimer"
     }
   ],
   "prayerTemplate": "",
@@ -379,7 +373,6 @@
       "Execution by both parties (authorised signatories with seal for entities).",
       "STAMP DUTY — MOU stamp duty:\n   - Generally low (Rs.100 to Rs.500 fixed) treating as agreement under Article 5 of state stamp schedule.\n   - HOWEVER, if MOU has binding commercial terms equivalent to contract (e.g., binding sale of property, binding investment) — Stamp Authority may scrutinise and demand higher duty.\n   - Where MOU touches on transfer of immovable property and creates rights — may attract registration under S.17 Registration Act read with S.53A TPA (part performance).",
       "Witnesses are OPTIONAL for MOU (no statutory requirement) but recommended for evidentiary value, especially where binding clauses important.",
-      "Append Lawie disclaimer.",
       "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
@@ -461,8 +454,7 @@
     "Where MOU has equity / share aspects of listed company — SEBI / stock exchange disclosure considerations",
     "Internal approvals: Board / Investment Committee for material MOU; document approval trail",
     "Confidentiality undertakings from advisors before sharing MOU contents",
-    "Maintain executed counterparts safely",
-    "Lawie disclaimer included"
+    "Maintain executed counterparts safely"
   ],
   "validation_rules": [
     "subject_matter must not be empty",

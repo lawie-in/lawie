@@ -464,7 +464,10 @@ describe('T-267 AC2: every pack line pairing a BNS number with an IPC section ci
 
   it('scans a non-trivial number of files and finds the pairs', () => {
     expect(packFiles.length).toBeGreaterThan(100);
-    expect(pairs.length).toBeGreaterThanOrEqual(40);
+    // T-566 (Ajay items 57, 63a, 67, 62/S3): pack lines that paired a BNS number with an
+    // IPC section were rewritten or deleted (mact_claim para 6, the quashing "Common:" list
+    // per R5, the affidavit_identity prose, legal_notice_defamation). 36 pairs remain.
+    expect(pairs.length).toBeGreaterThanOrEqual(36);
   });
 
   it('every IPC section named in a pair exists in the table', () => {
@@ -478,16 +481,13 @@ describe('T-267 AC2: every pack line pairing a BNS number with an IPC section ci
     expect(wrong).toEqual([]);
   });
 
-  it('the affidavit_identity prose "same as IPC 191/192" follows BNS 227/228', () => {
+  it('the table maps IPC 191/192/193 to BNS 227/228/229; the affidavit_identity "same as IPC 191/192" prose is gone (T-566 S3)', () => {
     expect(table.mappings['191'].new).toBe('227');
     expect(table.mappings['192'].new).toBe('228');
     expect(table.mappings['193'].new).toBe('229');
-    expect(
-      packHas(
-        'affidavit_identity',
-        'BNS Section 227 (giving false evidence) / BNS Section 228 (fabricating false evidence) — same as IPC 191/192.',
-      ),
-    ).toBe(true);
+    // T-566 ruling S3 (Ajay, 22 Oct): the sentence was deleted with item 62 (no penal
+    // provision in the affidavit), so there is no prose pair left to check.
+    expect(packHas('affidavit_identity', 'same as IPC 191/192')).toBe(false);
   });
 });
 
@@ -498,7 +498,9 @@ describe("T-267 ruling D: Ajay's signed pack strings are present, the wrong ones
     expect(
       hasEntry('discharge_application', 'S.80', 'Dowry death (was IPC 304B) — strict ingredients'),
     ).toBe(true);
-    expect(packHas('quashing_528_bnss', 'S.80 (dowry death — was IPC 304B)')).toBe(true);
+    // T-566 item 67 / R5: the quashing "Common: S.85 ... S.80 (dowry death ...)" list was
+    // dropped with the whole description, so quashing_528_bnss no longer carries a 304B pair.
+    expect(packHas('quashing_528_bnss', 'dowry death')).toBe(false);
   });
 
   it.each(['fir_quashing', 'discharge_application', 'quashing_528_bnss'])(
@@ -535,30 +537,28 @@ describe("T-267 ruling D: Ajay's signed pack strings are present, the wrong ones
         'Cheating (was IPC 420) — deception requirement',
       ),
     ).toBe(true);
-    expect(packHas('quashing_528_bnss', 'S.103(1) (murder — was IPC 302)')).toBe(true);
+    // T-566 item 67 / R5: the quashing "Common:" sub-section list is gone; the
+    // description is Ajay's date-scoped text only.
+    expect(packHas('quashing_528_bnss', 'S.103(1) (murder — was IPC 302)')).toBe(false);
     expect(packHas('quashing_528_bnss', 'S.115(2) (voluntarily causing hurt — was IPC 323)')).toBe(
-      true,
+      false,
     );
-    expect(packHas('quashing_528_bnss', 'S.318(4) (cheating — was IPC 420)')).toBe(true);
+    expect(packHas('quashing_528_bnss', 'S.318(4) (cheating — was IPC 420)')).toBe(false);
     expect(hasEntry('bail_regular', '103(1)', 'Murder (replaces IPC 302)')).toBe(true);
     expect(hasEntry('mact_claim', 'S.106(1)', 'Causing death by negligence (was IPC 304A)')).toBe(
       true,
     );
   });
 
-  it('affidavit_identity: 191->227, 192->228, 193->229, the L178 text, three entries', () => {
+  it('affidavit_identity: 191->227, 192->228, 193->229, the T-566 item 62 text, three entries', () => {
     const name = 'affidavit_identity';
-    expect(
-      packHas(
-        name,
-        'False statements in affidavits attract BNS Section 227 (giving false evidence) / BNS Section 228 (fabricating false evidence) — same as IPC 191/192.',
-      ),
-    ).toBe(true);
-    expect(
-      packStrings(name).includes(
-        'Do NOT include any IPC reference — if citing penalty for false affidavit, use BNS Section 229 (false evidence is defined in Section 227).',
-      ),
-    ).toBe(true);
+    // T-566 S3: "False statements in affidavits attract BNS Section 227 ..." deleted.
+    expect(packHas(name, 'False statements in affidavits attract')).toBe(false);
+    // T-566 item 62: the :186 line is now Ajay's signed text.
+    expect(packStrings(name).includes('Do not cite any penal provision in the affidavit.')).toBe(
+      true,
+    );
+    expect(packHas(name, 'Do NOT include any IPC reference')).toBe(false);
     expect(hasEntry(name, '227', 'Giving false evidence (successor to IPC 191)')).toBe(true);
     expect(hasEntry(name, '228', 'Fabricating false evidence (successor to IPC 192)')).toBe(true);
     expect(hasEntry(name, '229', 'Punishment for false evidence (successor to IPC 193)')).toBe(
@@ -584,13 +584,14 @@ describe("T-267 ruling D: Ajay's signed pack strings are present, the wrong ones
     expect(objects(readPack('affidavit_identity')).some((o) => o.number === '230')).toBe(false);
   });
 
-  it('mact_claim: 125 / 125(a) / 125(b) and the signed para-6 text', () => {
+  it('mact_claim: 125 / 125(a) / 125(b) and the T-566 item 57 para-6 text', () => {
+    // T-566 item 57 (Ajay): the para-6 line no longer pairs BNS numbers with IPC ones.
     expect(
-      packHas(
-        'mact_claim',
-        'S.106(1) BNS causing death by negligence — was IPC 304A; S.125 BNS act endangering life or personal safety of others (was IPC 336); S.125(a) BNS where hurt is caused (was IPC 337); S.125(b) BNS where grievous hurt is caused (was IPC 338)',
+      packStrings('mact_claim').includes(
+        'Para 6: FIR details — number, date, PS, and the sections as registered in the FIR (BNS for an offence on or after 1 July 2024, IPC for an offence before that date). Annex certified copy.',
       ),
     ).toBe(true);
+    expect(packHas('mact_claim', 'S.281 BNS rash driving')).toBe(false);
     expect(
       hasEntry(
         'mact_claim',
@@ -632,11 +633,13 @@ describe("T-267 ruling D: Ajay's signed pack strings are present, the wrong ones
     expect(hasEntry(name, '356(2)', 'Defamation — punishment (replaces IPC Section 500)')).toBe(
       true,
     );
+    // T-566 item 63 / ruling 63a: the whole line is Ajay's date-scoped text.
     expect(
       packStrings(name).includes(
-        'If criminal route, cite BNS Section 356(1) for the offence and 356(2) for the punishment (not IPC 499/500 — IPC stands repealed for offences committed after 1 July 2024).',
+        'If the criminal route is taken, cite BNS Section 356 for defamation on or after 1 July 2024, and IPC Sections 499 and 500 for defamation before that date.',
       ),
     ).toBe(true);
+    expect(packHas(name, 'IPC stands repealed')).toBe(false);
     expect(objects(readPack(name)).some((o) => o.number === '356')).toBe(false);
   });
 });

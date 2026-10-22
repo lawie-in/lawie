@@ -136,7 +136,7 @@ describe('T-540 free grant: switch off (the default)', () => {
     expect(res.status).toBe(409);
     expect(res.body).toEqual({
       error: 'coupon_invalid',
-      reason: 'This coupon cannot be applied to this item',
+      reason: 'This coupon cannot be applied to this item.',
     });
     expect(await inkOf(userId)).toBe(0);
     expect(await ledger().countDocuments({})).toBe(0);

@@ -139,7 +139,7 @@
     "length_check": "WARN if synopsis_content fields combined exceed approximately 800 words (likely exceeds 2 pages).",
     "issues_framed_as_questions": "WARN if issues_for_determination does not contain 'Whether' or '?'.",
     "mandatory_sections_present": "ERROR if any of: issues_for_determination, brief_facts, points_of_law, reliefs_sought is empty.",
-    "sanhita_citations": "INFO — if criminal matter, ensure points_of_law cite BNS/BNSS/BSA (post 2024) not IPC/CrPC/IEA.",
+    "sanhita_citations": "INFO — check that each section cited matches the code in force on the date of the offence (BNS on or after 1 July 2024, IPC before).",
     "court_rules_compliance": "INFO — final formatting (font, spacing, paper size) must comply with destination court's rules."
   }
 }
