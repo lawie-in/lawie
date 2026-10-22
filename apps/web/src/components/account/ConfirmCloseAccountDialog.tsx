@@ -205,7 +205,7 @@ export default function ConfirmCloseAccountDialog({
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={bodyId}
-        className="max-h-[90dvh] w-full max-w-sm overflow-y-auto rounded-xl bg-white p-6 shadow-2xl sm:max-w-md"
+        className="max-h-[90dvh] max-h-[90vh] w-full max-w-sm overflow-y-auto rounded-xl bg-white p-6 shadow-2xl supports-[height:100dvh]:max-h-[90dvh] sm:max-w-md"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 id={titleId} className="font-heading text-brand-navy text-xl font-semibold">

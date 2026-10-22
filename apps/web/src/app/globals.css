@@ -42,6 +42,22 @@
   /* T-531: a sticky shell TopBar publishes its live height as --nl-bar-h (ResizeObserver), so
      focus and anchor jumps land below it. Layered, so NightTopBar's scoped fallback <style> wins. */
   html { scroll-padding-top: var(--nl-bar-h, 0px); }
+
+  /* T-549 (Rajesh T-531 F1): Wall ground on the canvas, so overscroll and rubber-banding never
+     show the white body on a Night page. Scoped to pages whose #main holds a Night root; portals
+     (dialogs, menus) sit outside #main and do not count, so legacy pages keep their own ground.
+     Literal hex, equal to THEME_COLOR (shell/theme.ts) and --bg-wall; no tokens on html.
+     Without :has (Safari < 15.4, Firefox < 121) the canvas stays white, as before. */
+  html:has(#main .nl-root) { background-color: #f3efe4; }
+  html[data-theme='night']:has(#main .nl-root) { background-color: #0e1a17; color-scheme: dark; }
+  html:has(#main .nl-root) body { background-color: transparent; }
+
+  /* T-549: overflow-x: clip fallback (Safari < 16 drops `clip`, so the page wrappers overflow).
+     On html only: html overflow goes to the viewport, which already scrolls, so sticky bars keep
+     sticking. Never on body or on the wrappers: either becomes the scroll container. */
+  @supports not (overflow: clip) {
+    html { overflow-x: hidden; }
+  }
 }
 
 /* TipTap editor styles */
