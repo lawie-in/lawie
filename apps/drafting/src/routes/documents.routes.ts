@@ -901,9 +901,9 @@ router.post(
 
     // T-226: hold the cost before any model call (402/409 refusals as JSON;
     // no header has been sent yet). Every ending below closes the hold.
-    // The pre-stream 500 body below ("Generation failed"), with its existing
-    // fallback message rather than a database error's text.
-    const holdError = { error: 'Generation failed', message: 'Unknown generation error' };
+    // The pre-stream 500 body below: the error code only (Ajay, T-567), never a
+    // message; the detail goes to the log.
+    const holdError = { error: 'Generation failed' };
     const inkKey = { runId, runSequence };
     const inkCost = chargedCost(req); // T-227: no default price
     await withInkHold(req, res, inkKey, inkCost, holdError, async (ink) => {
@@ -977,8 +977,8 @@ router.post(
         });
         // T-567 item 41 (Arjun, Ajay): the detail above goes to the log only.
         if (!res.headersSent) {
-          // The route's generic 500 body (holdError), never the raw message.
-          res.status(500).json(holdError);
+          // The error code only (Ajay, T-567): no message, never the raw one.
+          res.status(500).json({ error: 'Generation failed' });
         } else {
           // AJ-539-M2 text (DRAFT_DID_NOT_FINISH); no inkReleased (release() cannot confirm it).
           res.write(

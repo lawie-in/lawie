@@ -277,13 +277,8 @@ describe.each(PATHS)('T-567 item 41 - $name', (p) => {
       expect(e.inkReleased).not.toBe(true);
     }
     expect(res.status).toBe(500);
-    {
-      expect(res.body).toEqual(
-        p.url === '/generate-from-brief'
-          ? { error: 'Generation failed' }
-          : { error: 'Generation failed', message: 'Unknown generation error' },
-      );
-    }
+    expect(res.body).toEqual({ error: 'Generation failed' });
+    expect(res.text).not.toContain('message');
     if (p.url === '/generate-from-template') {
       // The form path logs the raw message (server side only).
       expect(errSpy.mock.calls.flat().map(String).join(' ')).toContain('secret-driver-text');

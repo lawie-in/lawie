@@ -699,10 +699,8 @@ describe.each(PATHS)('T-226 — $name', (p) => {
   // ── Review should-fix 1: a throw from holdInk / getCreditBalance ─────────
   describe("the hold step itself throws (answered with the route's own 500, no hang)", () => {
     // The route's existing pre-stream body, per route.
-    const expectedBody =
-      p.url === '/generate-from-brief'
-        ? { error: 'Generation failed' }
-        : { error: 'Generation failed', message: 'Unknown generation error' };
+    // T-567 item 41 (Ajay): no English message on either route.
+    const expectedBody = { error: 'Generation failed' };
     const PII = ['test@test.com', 'Test Advocate', 'Ram Kumar', 'secret-driver-text'];
 
     function captureLogs() {
