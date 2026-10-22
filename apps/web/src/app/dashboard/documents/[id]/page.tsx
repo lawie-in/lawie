@@ -4,7 +4,6 @@ import {
   ArrowLeft,
   CheckCircle2,
   AlertTriangle,
-  Download,
   FileText,
   File,
   Loader2,
@@ -222,24 +221,16 @@ export default function DocumentEditorPage() {
     };
   }, []);
 
-  // Initialise checklist from API response (real filing checklist from template config)
+  // Initialise checklist from API response (real filing checklist from template config).
+  // T-565 item 39 (Ajay): a template with no checklist shows no checklist — no fallback list.
   useEffect(() => {
-    if (doc && checklist.length === 0) {
-      const items =
-        doc.filingChecklist.length > 0
-          ? doc.filingChecklist.map((text, i) => ({
-              text,
-              checked: doc.checklistState[i] ?? false,
-            }))
-          : [
-              { text: 'Verify all section references', checked: false },
-              { text: 'Review cause title formatting', checked: false },
-              { text: 'Confirm party details are correct', checked: false },
-              { text: 'Check verification clause details', checked: false },
-              { text: 'Attach supporting documents', checked: false },
-              { text: 'Print on legal-size paper', checked: false },
-            ];
-      setChecklist(items);
+    if (doc && checklist.length === 0 && doc.filingChecklist.length > 0) {
+      setChecklist(
+        doc.filingChecklist.map((text, i) => ({
+          text,
+          checked: doc.checklistState[i] ?? false,
+        })),
+      );
     }
   }, [doc, checklist.length]);
 
@@ -605,23 +596,6 @@ export default function DocumentEditorPage() {
             className="border-brand-line bg-brand-page rounded-lg border px-3.5 py-2.5"
           >
             <p className="text-brand-navy text-sm">{doc.disclaimer}</p>
-          </div>
-        )}
-
-        {/* Watermark notice for free tier */}
-        {isFree && (
-          <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
-            <Download size={13} className="flex-shrink-0 text-amber-500" />
-            <p className="text-xs text-amber-700">
-              Free tier exports include a watermark.{' '}
-              <button
-                onClick={() => router.push('/dashboard/settings')}
-                className="font-semibold underline"
-              >
-                Upgrade to Pro
-              </button>{' '}
-              for clean exports.
-            </p>
           </div>
         )}
 

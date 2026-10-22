@@ -986,3 +986,12 @@ This replaces the "Para 5" line in AJ-472-M1:
 `Limitation — Lawie adds this as the last numbered paragraph, from the dates given. Do not write it, and do not leave a gap in your numbering for it.`
 
 Code takes the computed paragraph's number from the model's highest paragraph number plus one, never from a fixed number. There must be no duplicate number and no gap (441ef1e8 point 4), with a test for each. The signed limitation strings are unchanged.
+
+## Byte check T-472, fix/t-472-limitation-computed @ 345dd8b7: approved with one condition (Ajay, 22 Oct 2026)
+
+- `limitation.service.ts`: the within, delay and unknown strings, `Article 131 of the Schedule to the Limitation Act, 1963`, the s.5 checklist line, the AJ-472-M1 unknown-date checklist line, the checks warning and the prompt line all match 482-ff, 441ef1e8, a266160b and e79c5e2d byte for byte. The day count prints only when code computed it; otherwise the blank stays.
+- Computation: 90 days. The s.12(2) exclusion runs from the date the copy was applied for to the date it was **ready** (no fallback to the date received). The copy question unanswered, or "Yes" with a date missing, gives the unknown blank. Impossible orders of dates give unknown. Dates use the T-496 reader. An exclusion is given only when the copy was applied for within the period, which is the conservative reading and accepted.
+- criminal_revision.json: the AJ-472-M2 pack line and the prompt line are present. `limitation_compliance` is removed and the date fields are added. The numbering is the model's highest + 1.
+- **Condition (before merge):** renumber the pack guide lines after the removed "Para 5" (now "Para 6:" to "Para 12:") down by one, to "Para 5:" to "Para 11:", with every other word unchanged. As they stand, the labels invite the model to skip 5, which breaks the no-gap rule (441ef1e8 point 4). This renumbering is signed here. Add a test that the pack's Para labels run with no gap.
+
+**T-472 condition met (Ajay, 22 Oct 2026):** at b4d2697a (branch tip 44407fd5) only the numbers changed. The renumbered lines are identical to the old ones, number aside, across all 10 lines. They now run Para 1 to Para 14 with no gap, the AJ-472-M2 line is unnumbered, and the no-gap test is added. **T-472 is approved at 44407fd5.** The old paragraph numbers quoted in this file (around line 240, "Para 8") and in the T-427–T-430 file (around line 74, "Para 6") are history, and the pack's current numbering governs.

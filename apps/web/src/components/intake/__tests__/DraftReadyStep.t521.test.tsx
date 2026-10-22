@@ -10,7 +10,15 @@ import { EXPORT_HASH, finaliseDocument } from '../draftActions';
 (globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 const mockGetToken = jest.fn();
-jest.mock('@/lib/auth', () => ({ getAccessToken: () => mockGetToken() }));
+const mockGetRefresh = jest.fn();
+const mockSaveTokens = jest.fn();
+const mockClearTokens = jest.fn();
+jest.mock('@/lib/auth', () => ({
+  getAccessToken: () => mockGetToken(),
+  getRefreshToken: () => mockGetRefresh(),
+  saveTokens: (...a: unknown[]) => mockSaveTokens(...a),
+  clearTokens: () => mockClearTokens(),
+}));
 
 const base: DraftResult = {
   docId: 'doc42',
@@ -82,6 +90,28 @@ describe('DraftReadyStep Ink chip', () => {
     await mount({ inkUsed: 0 });
     expect(container.querySelector('[data-testid="ink-used-chip"]')).toBeNull();
     expect(text()).not.toContain('Ink used');
+  });
+  it('T-544: groups the number en-IN: 99999 -> "99,999 Ink used", 100000 -> "1,00,000"', async () => {
+    await mount({ inkUsed: 99999 });
+    const chip = container.querySelector('[data-testid="ink-used-chip"]')!;
+    expect(chip.textContent?.replace(/\s+/g, ' ').trim()).toContain('99,999 Ink used');
+    await mount({ inkUsed: 100000 });
+    expect(container.querySelector('[data-testid="ink-used-chip"]')!.textContent).toContain(
+      '1,00,000',
+    );
+    expect(
+      container.querySelector('[data-testid="ink-used-chip"] .tabular-nums')!.textContent,
+    ).toBe('1,00,000');
+  });
+  it('T-544: small numbers are unchanged (5, 32)', async () => {
+    await mount({ inkUsed: 5 });
+    expect(container.querySelector('[data-testid="ink-used-chip"]')!.textContent).toContain(
+      '5 Ink used',
+    );
+    await mount({ inkUsed: 32 });
+    expect(container.querySelector('[data-testid="ink-used-chip"]')!.textContent).toContain(
+      '32 Ink used',
+    );
   });
   it('is hidden when inkUsed is unknown', async () => {
     await mount({});
@@ -189,12 +219,62 @@ describe('DraftReadyStep actions', () => {
     expect(btn('Retry')).toBeDefined();
   });
 
-  it('Finalise with no token fails without sending a request', async () => {
+  it('T-544: with no token Finalise still goes through apiFetch (no local guard), without a Bearer', async () => {
     mockGetToken.mockReturnValue(null);
     await mount();
     await click(btn('Finalise'));
-    expect(fetchMock).not.toHaveBeenCalled();
-    expect(text()).toContain('Something did not work. Try again.');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toMatch(/\/api\/documents\/doc42$/);
+    expect(init.headers.Authorization).toBeUndefined();
+    expect(container.querySelector('[data-testid="finalised-chip"]')).not.toBeNull();
+  });
+
+  it('T-544: a 401 refreshes once, retries with the new token, and Finalise succeeds', async () => {
+    mockGetRefresh.mockReturnValue('refreshword');
+    fetchMock
+      .mockResolvedValueOnce({ ok: false, status: 401, json: async () => ({}) })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ data: { accessToken: 'newword', refreshToken: 'newrefresh' } }),
+      })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({}) });
+    await mount({ inkUsed: 2 });
+    await click(btn('Finalise'));
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock.mock.calls[1][0]).toMatch(/\/api\/auth\/refresh$/);
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body)).toEqual({ refreshToken: 'refreshword' });
+    const retry = fetchMock.mock.calls[2];
+    expect(retry[0]).toMatch(/\/api\/documents\/doc42$/);
+    expect(retry[1].method).toBe('PATCH');
+    expect(retry[1].headers.Authorization).toBe('Bearer newword');
+    expect(JSON.parse(retry[1].body)).toEqual({ status: 'finalised' });
+    expect(mockSaveTokens).toHaveBeenCalledWith('newword', 'newrefresh');
+    expect(container.querySelector('[data-testid="finalised-chip"]')).not.toBeNull();
+    expect(text()).not.toContain('Something did not work');
+  });
+
+  it('T-544: a failed refresh clears the session, goes to /login, and shows no error banner', async () => {
+    const replace = jest.fn();
+    const original = window.location;
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { ...original, replace },
+    });
+    try {
+      mockGetRefresh.mockReturnValue(null);
+      fetchMock.mockResolvedValue({ ok: false, status: 401, json: async () => ({}) });
+      await mount();
+      await click(btn('Finalise'));
+      expect(mockClearTokens).toHaveBeenCalledTimes(1);
+      expect(replace).toHaveBeenCalledWith('/login');
+      // apiFetch never resolves, so neither the chip nor the error shows
+      expect(container.querySelector('[data-testid="finalised-chip"]')).toBeNull();
+      expect(text()).not.toContain('Something did not work');
+    } finally {
+      Object.defineProperty(window, 'location', { configurable: true, value: original });
+    }
   });
 
   it('Export calls onExport; without it, it opens the editor', async () => {
@@ -230,5 +310,108 @@ describe('finaliseDocument and EXPORT_HASH', () => {
   it('throws when the response is not OK', async () => {
     fetchMock.mockResolvedValueOnce({ ok: false, status: 403 });
     await expect(finaliseDocument('d1')).rejects.toThrow();
+  });
+  it('T-544: sends PATCH {status: finalised} as JSON to the documents path', async () => {
+    await finaliseDocument('d9');
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toMatch(/\/api\/documents\/d9$/);
+    expect(init.method).toBe('PATCH');
+    expect(init.headers['Content-Type']).toBe('application/json');
+    expect(JSON.parse(init.body)).toEqual({ status: 'finalised' });
+  });
+  it('T-544: a network error rejects', async () => {
+    fetchMock.mockRejectedValueOnce(new Error('network'));
+    await expect(finaliseDocument('d1')).rejects.toThrow('network');
+  });
+  it('T-544: a 500 rejects', async () => {
+    fetchMock.mockResolvedValueOnce({ ok: false, status: 500 });
+    await expect(finaliseDocument('d1')).rejects.toThrow();
+  });
+});
+
+describe('T-544 title (item 3)', () => {
+  it('has exactly one h1, the document name, in the nl-h1 style, with the ready line below', async () => {
+    await mount({ name: 'Bail application' });
+    const h1s = container.querySelectorAll('h1');
+    expect(h1s).toHaveLength(1);
+    expect(h1s[0].textContent).toBe('Bail application');
+    expect(h1s[0].className).toContain('nl-h1');
+    expect(text()).toContain('Your draft is ready.');
+    expect(text()).toContain('Read it through and edit before you use it.');
+  });
+  it('a long unbroken name (a real 80-char file-number style) can wrap: min-w-0 break-words', async () => {
+    const name = `Criminal-Misc-Petition-No-${'1234567890'.repeat(6)}-of-2026`;
+    await mount({ name });
+    const h1 = container.querySelector('h1')!;
+    expect(h1.textContent).toBe(name);
+    expect(h1.className).toContain('break-words');
+    expect(h1.className).toContain('min-w-0');
+    // its parent can shrink too, or min-w-0 on the h1 would do nothing
+    expect(h1.parentElement!.className).toContain('min-w-0');
+  });
+  it('a one-letter name and non-Latin text render as given', async () => {
+    await mount({ name: 'क' });
+    expect(container.querySelector('h1')!.textContent).toBe('क');
+  });
+});
+
+describe('T-544 focus after Finalise (item 2)', () => {
+  const deferred = () => {
+    let release: (v: unknown) => void = () => undefined;
+    fetchMock.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          release = resolve;
+        }),
+    );
+    return () => act(async () => release({ ok: true, status: 200, json: async () => ({}) }));
+  };
+  it('focus still on Finalise: moves to the Export button on success', async () => {
+    const done = deferred();
+    await mount();
+    await click(btn('Finalise'));
+    btn('Finalise')!.focus();
+    await done();
+    await flush();
+    expect(document.activeElement).toBe(btn('Export PDF / Word'));
+  });
+  it('focus fell to body: moves to the Export button on success', async () => {
+    const done = deferred();
+    await mount();
+    await click(btn('Finalise'));
+    (document.activeElement as HTMLElement | null)?.blur();
+    expect(document.activeElement).toBe(document.body);
+    await done();
+    await flush();
+    expect(document.activeElement).toBe(btn('Export PDF / Word'));
+  });
+  it('focus moved to Open in editor while saving: it is NOT stolen', async () => {
+    const done = deferred();
+    await mount();
+    await click(btn('Finalise'));
+    btn('Open in editor')!.focus();
+    expect(document.activeElement).toBe(btn('Open in editor'));
+    await done();
+    await flush();
+    expect(container.querySelector('[data-testid="finalised-chip"]')).not.toBeNull();
+    expect(document.activeElement).toBe(btn('Open in editor'));
+    expect(document.activeElement).not.toBe(btn('Export PDF / Word'));
+  });
+  it('focus moved to Start another document while saving: it is NOT stolen', async () => {
+    const done = deferred();
+    await mount();
+    await click(btn('Finalise'));
+    btn('Start another document')!.focus();
+    await done();
+    await flush();
+    expect(document.activeElement).toBe(btn('Start another document'));
+  });
+  it('failure path: Retry puts focus on Finalise, and a later success moves it to Export', async () => {
+    fetchMock.mockResolvedValueOnce({ ok: false, status: 500, json: async () => ({}) });
+    await mount();
+    await click(btn('Finalise'));
+    await click(btn('Retry'));
+    expect(container.querySelector('[data-testid="finalised-chip"]')).not.toBeNull();
+    expect(document.activeElement).toBe(btn('Export PDF / Word'));
   });
 });

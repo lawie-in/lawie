@@ -2,6 +2,7 @@
 // the account is open and ends at closure (T-541).
 // Pins Ajay's signed strings (handoff/legal/T-433-ink-expiry-wording-signed.md, 925bc30, and
 // Addendum 2 of T-238-pricing-page-lines-signed.md, 74fe979) word for word, and his rule:
+// (T-565 item 50: the upgrade-success modal and its tests are gone.)
 // no web string contains "rolls over", "roll over" or "carry over" except the signed negative lines.
 import fs from 'fs';
 import path from 'path';
@@ -12,7 +13,6 @@ import { createRoot, type Root } from 'react-dom/client';
 import { LandingPage } from '../../landing/LandingPage';
 import PricingPage from '../../../app/(marketing)/pricing/page';
 import TermsPage from '../../../app/(marketing)/terms/page';
-import { UpgradeSuccessModal } from '../UpgradeSuccessModal';
 
 jest.mock('@/components/marketing/SiteNav', () => ({ __esModule: true, default: () => null }));
 jest.mock('@/components/marketing/SiteFooter', () => ({ __esModule: true, default: () => null }));
@@ -41,12 +41,10 @@ function render(el: ReactElement) {
 const norm = (s: string) => s.replace(/\s+/g, ' ');
 
 // Signed strings, byte-exact.
-// T-535 (Ajay): the modal line is the no-period form of the signed top-up sentence.
-const MODAL_PLAN_LINE =
-  'Plan Ink resets each month; top-up Ink does not expire while your account is open';
 const TERMS_SENTENCES =
   'Plan Ink is given for each month of your plan, including on annual plans. Plan Ink left unused at the end of that month expires and does not carry over. Top-up Ink you buy separately does not expire while your account is open. It ends when your account is closed.';
-const TERMS_ANCHOR = 'a failed generation is not charged. ';
+// T-564 item 9 (Ajay 22 Oct): the signed failed-generation line.
+const TERMS_ANCHOR = 'If a draft fails to generate, no Ink is used. ';
 const FAQ_COST_LINE = 'You see the Ink cost before you generate a draft.';
 const FAQ_EXPIRY =
   'Solo and Pro plans give you fresh Ink every month; plan Ink left unused at the end of the month does not carry over. You can also buy top-up packs anytime, and top-up Ink never expires.';
@@ -69,41 +67,8 @@ function withoutSignedLines(text: string): string {
   return SIGNED_NEGATIVE_LINES.reduce((acc, line) => acc.split(line).join(''), text);
 }
 
-function modal(planLabel: string, ink: number) {
-  return (
-    <UpgradeSuccessModal
-      planLabel={planLabel}
-      inkPerCycle={ink}
-      renewsOn="14 Nov 2026"
-      onClose={() => undefined}
-    />
-  );
-}
-
-describe('T-433 UpgradeSuccessModal', () => {
-  it('Solo shows the signed lines and no rollover promise', () => {
-    const text = norm(render(modal('Solo', 50)));
-    expect(text).toContain('50 Ink a month');
-    expect(text).toContain(MODAL_PLAN_LINE);
-    expect(text).not.toContain('reset each billing cycle');
-    expect(text).not.toMatch(FORBIDDEN);
-  });
-
-  it('Pro shows the signed lines and no rollover promise', () => {
-    const text = norm(render(modal('Pro', 150)));
-    expect(text).toContain('150 Ink a month');
-    expect(text).toContain(MODAL_PLAN_LINE);
-    expect(text).not.toContain('reset each billing cycle');
-    expect(text).not.toMatch(FORBIDDEN);
-  });
-
-  it('the modal says nothing about 2x cap on yearly', () => {
-    expect(norm(render(modal('Solo', 50)))).not.toMatch(/2×|2x cap|up to 2/i);
-  });
-});
-
 describe('T-433 Terms §6', () => {
-  it('has the signed expiry sentences, straight after the failed-generation line', () => {
+  it('has the signed expiry sentences, straight after the signed failed-generation line', () => {
     const text = norm(render(<TermsPage />));
     expect(text).toContain(TERMS_ANCHOR + TERMS_SENTENCES);
   });

@@ -7,7 +7,6 @@ import { createRoot, type Root } from 'react-dom/client';
 
 import { PlanChooser } from '@/components/billing/PlanChooser';
 import { PaywallModal } from '@/components/credits/PaywallModal';
-import { UpgradeSuccessModal } from '@/components/credits/UpgradeSuccessModal';
 import { type SubscriptionPlan } from '@/lib/plans';
 
 import HomePage from '../page';
@@ -232,22 +231,6 @@ describe('T-364 home, paywall, upgrade-success', () => {
     );
     expect(text).toContain('50 Ink / mo · ₹799');
     expect(text).not.toMatch(/unlimited/i);
-  });
-
-  it('UpgradeSuccessModal shows the Ink for each tier from PLANS', () => {
-    const solo = render(
-      <UpgradeSuccessModal planLabel="Solo" inkPerCycle={50} renewsOn="1 Nov" onClose={() => {}} />,
-    );
-    expect(solo).toContain(`${PLANS.solo_monthly.inkPerCycle} Ink a month`);
-    expect(solo).not.toMatch(/unlimited/i);
-    act(() => root.unmount());
-    root = createRoot(container);
-    const pro = render(
-      <UpgradeSuccessModal planLabel="Pro" inkPerCycle={150} renewsOn="1 Nov" onClose={() => {}} />,
-    );
-    expect(pro).toContain(`${PLANS.pro_monthly.inkPerCycle} Ink a month`);
-    expect(pro).toContain('150 Ink a month');
-    expect(pro).not.toMatch(/unlimited/i);
   });
 
   it('no page says "Unlimited"', () => {

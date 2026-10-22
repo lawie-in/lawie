@@ -1,6 +1,12 @@
 // T-521 (Arjun ruling 4): what a failed generation may say about Ink, and the sessionStorage prefill reader.
 // Pure units. The OneFlow-level paths are in OneFlow.t521.failure.test.tsx.
-import { CONNECTION_LOST, DRAFT_DID_NOT_FINISH, generationFailureCopy } from '../generationFailure';
+import {
+  CHECK_DOCUMENTS_LIST,
+  CONNECTION_LOST,
+  DRAFT_DID_NOT_FINISH,
+  generationFailureCopy,
+  NO_INK_USED,
+} from '../generationFailure';
 import {
   DRAFT_PREFILL_KEY,
   INITIAL_PREFILL_MAX,
@@ -8,42 +14,90 @@ import {
   takeDraftPrefill,
 } from '../initialQuery';
 
-describe('generationFailureCopy (T-521)', () => {
+describe('generationFailureCopy (T-521, T-567 item 41)', () => {
   it('signed strings are exactly the ruled ones', () => {
-    expect(DRAFT_DID_NOT_FINISH).toBe('The draft did not finish. No Ink was used.');
+    expect(DRAFT_DID_NOT_FINISH).toBe('The draft did not finish.');
+    expect(NO_INK_USED).toBe('No Ink was used.');
+    expect(CHECK_DOCUMENTS_LIST).toBe('Check your documents list to see where this draft stands.');
     expect(CONNECTION_LOST).toBe('Connection lost. Check your documents.');
   });
 
-  it('error event with an unknown code: the signed line, with the server reason under it', () => {
+  it('error event, inkReleased true: headline, `No Ink was used.`, the reason, a claim', () => {
     expect(
       generationFailureCopy({
         reason: 'Reason from server',
         retryable: true,
         source: 'error_event',
         code: 'drafter_failed',
+        inkReleased: true,
       }),
     ).toEqual({
       headline: DRAFT_DID_NOT_FINISH,
+      statusLine: NO_INK_USED,
       detail: 'Reason from server',
       noInkClaim: true,
     });
   });
 
+  it.each([
+    ['false', { inkReleased: false }],
+    ['absent', {}],
+  ])('error event, inkReleased %s: the documents-list line, no Ink claim', (_n, extra) => {
+    const c = generationFailureCopy({
+      reason: 'Reason from server',
+      retryable: true,
+      source: 'error_event',
+      code: 'drafter_failed',
+      ...extra,
+    });
+    expect(c).toEqual({
+      headline: DRAFT_DID_NOT_FINISH,
+      statusLine: CHECK_DOCUMENTS_LIST,
+      detail: 'Reason from server',
+      noInkClaim: false,
+    });
+    expect(JSON.stringify(c)).not.toContain('No Ink was used');
+  });
+
   it('error event with no code at all still counts as a server error event', () => {
     const c = generationFailureCopy({ reason: 'x', retryable: true, source: 'error_event' });
     expect(c.headline).toBe(DRAFT_DID_NOT_FINISH);
-    expect(c.noInkClaim).toBe(true);
+    expect(c.statusLine).toBe(CHECK_DOCUMENTS_LIST);
+    expect(c.noInkClaim).toBe(false);
   });
 
-  it('error event insufficient_ink: the reason only, no signed line, no claim', () => {
+  it('an empty reason is hidden (detail null), for both status lines', () => {
+    for (const inkReleased of [true, false, undefined]) {
+      const c = generationFailureCopy({
+        reason: '',
+        retryable: true,
+        source: 'error_event',
+        inkReleased,
+      });
+      expect(c.detail).toBeNull();
+      expect(c.headline).toBe(DRAFT_DID_NOT_FINISH);
+    }
+  });
+
+  it('inkReleased is ignored for insufficient_ink, a drop and a start failure', () => {
+    for (const source of ['dropped', 'start'] as const) {
+      const c = generationFailureCopy({ reason: 'r', retryable: true, source, inkReleased: true });
+      expect(c.noInkClaim).toBe(false);
+      expect(c.statusLine).toBeNull();
+    }
+  });
+
+  it('error event insufficient_ink: the reason only, no status line, no claim (unchanged)', () => {
     const c = generationFailureCopy({
       reason: 'You need more Ink for this draft.',
       retryable: false,
       source: 'error_event',
       code: 'insufficient_ink',
+      inkReleased: true,
     });
     expect(c).toEqual({
       headline: 'You need more Ink for this draft.',
+      statusLine: null,
       detail: null,
       noInkClaim: false,
     });
@@ -81,7 +135,12 @@ describe('generationFailureCopy (T-521)', () => {
     ['no source', { reason: 'The drafting service sent nothing back.' }],
   ])('start failure (%s): the reason only, no claim', (_n, e) => {
     const c = generationFailureCopy({ retryable: true, ...e });
-    expect(c).toEqual({ headline: e.reason, detail: null, noInkClaim: false });
+    expect(c).toEqual({
+      headline: e.reason,
+      statusLine: null,
+      detail: null,
+      noInkClaim: false,
+    });
   });
 });
 

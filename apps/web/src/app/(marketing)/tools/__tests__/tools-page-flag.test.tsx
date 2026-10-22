@@ -104,9 +104,8 @@ describe('Tools page', () => {
   });
 
   it('has the description that names no tool', () => {
-    expect(metadata.description).toBe(
-      'Free legal tools. Built around the new Indian criminal codes.',
-    );
+    // T-564 item 1 (Ajay 22 Oct): signed description.
+    expect(metadata.description).toBe('Free legal tools for Indian advocates.');
     expect(String(metadata.description)).not.toMatch(/bail|timeline|converter/i);
   });
 });

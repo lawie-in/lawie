@@ -9,12 +9,13 @@
 // Oxblood destructive stays inside confirm dialogs only.
 // T-531 (Rajesh, DESIGN.md Buttons): hover per variant, from ui/hover.ts (shared with nl-link).
 // Only primary lifts 1px with the 4px Brass Soft halo. Ghost: border to Brass, ground to Brass
-// Soft, 150ms, no lift, no halo. Destructive does not lift or glow. Every hover is gated to a
-// hover-capable fine pointer and to an enabled button.
+// Soft, 150ms, no lift, no halo. Destructive (T-544, Rajesh T-531 F2): ground Oxblood to Oxblood
+// High, 150ms; it does not lift or glow. Every hover is gated to a hover-capable fine pointer and
+// to an enabled button.
 
 import { forwardRef } from 'react';
 
-import { NL_GHOST_HOVER, NL_PRIMARY_BUTTON_HOVER } from './hover';
+import { NL_DESTRUCTIVE_HOVER, NL_GHOST_HOVER, NL_PRIMARY_BUTTON_HOVER } from './hover';
 
 import { cn } from '@/lib/cn';
 
@@ -33,7 +34,7 @@ const VARIANT: Record<ButtonVariant, string> = {
   // T-525: ghost border at rest is Control Line (3:1, WCAG 1.4.11).
   ghost:
     'bg-transparent text-nl-brass-dark border border-[color:var(--line-control)] ' + NL_GHOST_HOVER,
-  destructive: 'bg-nl-ox text-white border border-transparent',
+  destructive: 'bg-nl-ox text-white border border-transparent ' + NL_DESTRUCTIVE_HOVER,
   // T-535: hover only where a real pointer hovers (no sticky hover on touch). Forced colours:
   // the system ButtonText/ButtonBorder keep the border visible; the focus ring is .nl-focus.
   'ghost-danger': cn(
