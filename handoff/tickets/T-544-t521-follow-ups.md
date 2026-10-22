@@ -22,6 +22,7 @@
 11. Thousands separator on the Ink chip (99,999, not 99999); Rajesh rules the format.
 12. Destructive hover goes from Oxblood to Oxblood High (Rajesh, T-531 F2).
 13. Rajesh's T-531 nits: N1 theme fieldset 48 to 44px; N2 same Control Line border on the language and theme toggles; N3 CommandBar to z-[60]. Rajesh to note in DESIGN.md that blocking prompts (VerifyEmailModal 55/56) sit below Dialog (60).
+14. The template flow (`dashboard/new`) shows no Ink chip and never refreshes the Ink pill (found by Vishal, T-545). Needs Ajay for any new chip placement.
 
 ## Acceptance criteria
 Each item done or moved with a reason; tests for 1, 2 and 5; Rajesh signs the restyled screens.
