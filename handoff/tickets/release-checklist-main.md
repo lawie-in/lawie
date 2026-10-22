@@ -33,3 +33,8 @@ T-533 after the web merges; T-534 then T-537 (one lead in `packages/shared`); T-
 - T-527 merged: prod sets `RAZORPAY_KEY_GUARD=strict`, never `RAZORPAY_ALLOW_TEST_KEYS`.
 - T-545 (server sends real Ink debit) must merge before main (Ajay, AJ-521-BC).
 - New variable to set before deploy: `NEXT_PUBLIC_GRIEVANCE_OFFICER_NAME` (build-time; rebuild web).
+
+## Founder action (low severity, noise only), 21 Oct 2026
+Stray test traffic reached the develop box (api.lawie.in) from T-531 browser checks, 22:40 to 23:55 UTC. Arjun's note: `handoff/ops/incident-2026-10-21-stray-e2e-traffic.md`. Recommended: in mongosh, count then delete consent records created in that window whose user-agent contains HeadlessChrome; note the count. Nothing authenticated was served.
+
+Ajay's conditions for that cleanup (21 Oct 2026): (a) count first; the filter matches only the window + HeadlessChrome (about 60 rows) so no real tester row (Anushka, founder) is caught; (b) record the count and the filter in the incident note, without ids; (c) from now on e2e never writes to a real consent log (stub it or tag test traffic). On prod, consent rows are never deleted, only marked invalid with a reason.

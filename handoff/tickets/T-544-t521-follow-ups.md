@@ -19,6 +19,8 @@
 8. Seal on DraftReady when AJ-511-M17 signs the text (keep the slot).
 9. Regenerate, and the "Checks: N items" chip wording: both need Ajay wording first.
 10. A real-browser and screen-reader pass (T-521 was tested in jsdom only). Fold into T-523.
+11. Thousands separator on the Ink chip (99,999, not 99999); Rajesh rules the format.
+12. Destructive hover goes from Oxblood to Oxblood High (Rajesh, T-531 F2).
 
 ## Acceptance criteria
 Each item done or moved with a reason; tests for 1, 2 and 5; Rajesh signs the restyled screens.
