@@ -388,7 +388,7 @@ function OneFlowSteps({
             const asked = data.questions ?? [];
             setQuestions(asked);
             if (data.needs_upgrade) {
-              setBriefMessage('This document needs the Pro plan. You can upgrade from Settings.');
+              setBriefMessage('This document is not available on your current plan.');
             }
             const first = openQuestions(asked, data.brief, data.ledger, 1);
             // A new reading starts the count of rounds again: a new description
