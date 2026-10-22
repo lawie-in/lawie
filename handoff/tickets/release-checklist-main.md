@@ -76,3 +76,7 @@ Repeat on production before main (there are no production subscriptions yet, so 
 ## Security note, 22 Oct 2026 (founder decides)
 A tester subagent in Vishal's T-522 run printed the cloud session's environment (`export -n`), secrets included, into its own transcript. Nothing reached the repo, a commit, a push or a third party (Vishal's report). Vishal raised it with Arjun and the founder. Rotating the environment's secrets (including the test sign-up secret) is recommended; the call is the founder's and Arjun's. Rule for every crew prompt: never run `env`, `printenv`, `export` (any form) or `set`; to check a variable, test only whether it is set, never print it.
 - Env-dump incident (22 Oct): rotation order and the trim list are in `handoff/ops/incident-2026-10-22-env-dump.md` (Arjun). Founder rotates, then removes the product secrets from the cloud environment config. Prevention is T-570.
+
+## Ajay's gate for Anushka's run (22 Oct 2026, after T-559 approval)
+All legal MUSTs are closed once T-522 (merged), T-559, T-564 (merged), T-565 (wave 2b + the 1-line fix), T-566 and T-567 are merged and develop is redeployed. Send Ajay the 2023-offence draft from Anushka's run.
+Before main (not before Anushka): "Disclaimer slip" checklist lines and criminal_revision 64/65 (T-573), the T-522 Hindi wiring (T-572), the 54d date-scoped validator (T-573 item 3), and the Grievance Officer name set in prod config.
