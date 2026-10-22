@@ -3,19 +3,24 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { isPrivacyBlocked, privacyFetch } from '@/components/PrivacyUpdatePrompt';
-import { isEmailVerificationRequired } from '@/components/VerifyEmailPrompt';
+import { openVerifyIfDraftRefused } from '@/components/VerifyEmailPrompt';
 import type { GstStateController } from '@/hooks/useGstState';
 
 /** T-343 action key for the subscribe call (its P7 box and aria-describedby). */
 export const SUBSCRIBE_ACTION_KEY = 'subscribe';
 
-/** Why a subscribe call stopped before payment: a gate the user can fix. */
-export type SubscribeGate = 'verify' | 'privacy' | null;
+/**
+ * Why a subscribe call stopped before payment: a gate the user can fix. The verify-email refusal
+ * is not a gate since T-522: it opens the AJ-522-M6 Subscribe dialog instead.
+ */
+export type SubscribeGate = 'privacy' | null;
 
 /**
  * T-509: starts a subscription for a plan id. The State is checked first (T-436), then
- * POST /api/billing/subscribe; on success the browser goes to Razorpay's page. The verify-email
- * and privacy gates come back as `gate`; every other refusal (409 subscription_exists /
+ * POST /api/billing/subscribe; on success the browser goes to Razorpay's page. The privacy gate
+ * comes back as `gate`. A 403 email_verification_required opens the AJ-522-M6 Subscribe dialog at
+ * the moment of the action (T-522, Rajesh §3; no redirect, Choose stays enabled). Every other
+ * refusal (409 subscription_exists /
  * subscription_in_progress, 503 try_again, 500, a missing link, the network) is `failedPlanId`,
  * shown as the generic failure. Server text never reaches the user.
  */
@@ -65,10 +70,7 @@ export function useSubscribe(gst: GstStateController) {
           setGate('privacy');
           return;
         }
-        if (await isEmailVerificationRequired(res)) {
-          if (mounted.current) setGate('verify');
-          return;
-        }
+        if (await openVerifyIfDraftRefused(res, 'subscribe')) return;
         if (!res.ok) {
           setFailedPlanId(planId);
           return;

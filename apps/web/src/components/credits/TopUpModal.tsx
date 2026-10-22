@@ -18,11 +18,7 @@ import {
   DIALOG_TALL_CAP_CLASS,
   Skeleton,
 } from '@/components/ui';
-import {
-  VerifyEmailCard,
-  isEmailVerificationRequired,
-  useNeedsEmailVerification,
-} from '@/components/VerifyEmailPrompt';
+import { openVerifyIfDraftRefused } from '@/components/VerifyEmailPrompt';
 import { notifyCreditsChanged } from '@/hooks/useCredits';
 import { useGstState } from '@/hooks/useGstState';
 import { apiFetch } from '@/lib/apiFetch';
@@ -65,8 +61,6 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const privacyDescribedBy = usePrivacyDescribedBy('topup');
-  // T-223 trigger 3: unverified email user -> the verify card replaces the pay button.
-  const needsVerification = useNeedsEmailVerification();
   // T-436: the State for the tax invoice. Asks /me itself: the modal opens from anywhere.
   const gst = useGstState('gst-state-topup');
 
@@ -215,8 +209,10 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
         }),
       });
       if (isPrivacyBlocked(orderRes)) return setSubmitting(false); // T-343
-      // T-223: billing refused an unverified email user; the card now shows instead of Pay.
-      if (await isEmailVerificationRequired(orderRes)) return setSubmitting(false);
+      // T-522 (Rajesh §3, AJ-522-M6): billing refused an unverified email user. The M6 Top-up
+      // dialog opens over this one at the moment of the action (no redirect); Buy stays enabled
+      // and the pack, coupon and State are kept.
+      if (await openVerifyIfDraftRefused(orderRes, 'topup')) return setSubmitting(false);
       if (!orderRes.ok) {
         const body = await orderRes.json();
         setError(body.error ?? 'Order creation failed');
@@ -485,11 +481,9 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
           </div>
 
           {/* T-436: State picker below the coupon, above Pay (spec §2); tab order coupon, State, Pay. */}
-          {!needsVerification && (
-            <div className="px-nl-6 pb-nl-4">
-              <GstStatePicker gst={gst} className="w-full" />
-            </div>
-          )}
+          <div className="px-nl-6 pb-nl-4">
+            <GstStatePicker gst={gst} className="w-full" />
+          </div>
           {/* T-343: P7 box above the pay button (only after a privacy block). */}
           <div className="px-nl-6">
             <PrivacyBlockedNotice actionKey="topup" />
@@ -513,25 +507,17 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
                 </p>
               )}
             </div>
-            {!needsVerification && (
-              <Button
-                ref={payRef}
-                variant="primary"
-                onClick={handlePurchase}
-                aria-describedby={privacyDescribedBy}
-                disabled={!selected}
-                loading={submitting}
-              >
-                Buy
-              </Button>
-            )}
+            <Button
+              ref={payRef}
+              variant="primary"
+              onClick={handlePurchase}
+              aria-describedby={privacyDescribedBy}
+              disabled={!selected}
+              loading={submitting}
+            >
+              Buy
+            </Button>
           </footer>
-          {/* T-223: in place of the pay step; the pack and total stay visible above. */}
-          {needsVerification && (
-            <div className="px-nl-6 pb-nl-4 pt-nl-2">
-              <VerifyEmailCard />
-            </div>
-          )}
           {error && (
             <p role="alert" className="nl-body-sm text-nl-err px-nl-6 pb-nl-4 m-0">
               {error}

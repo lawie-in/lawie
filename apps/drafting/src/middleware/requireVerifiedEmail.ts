@@ -9,6 +9,11 @@
  *   403 { error: 'email_verification_required' }  unverified, unknown or malformed user
  *   503 { error: 'Service unavailable' }           the read failed (fail closed)
  * Logs the userId only.
+ *
+ * T-522 (Arjun, 22 Oct 2026, golden-set fixture ruling (a)): the T-147e fixture user passes
+ * before any DB read, with the same gateway-signed trust and the same single helper as
+ * enforceCredits, feature-switches and credits.service. T-147e stands: it has no users row.
+ * A non-fixture user with no row still gets the 403.
  */
 import { EMAIL_VERIFICATION_REQUIRED, isVerified } from '@lawie/shared';
 import type { NextFunction, Request, Response } from 'express';
@@ -16,6 +21,7 @@ import mongoose from 'mongoose';
 
 import logger from '../config/logger';
 import { User } from '../models/User.model';
+import { isFixtureUser } from '../services/run-origin';
 
 export async function requireVerifiedEmail(
   req: Request,
@@ -23,6 +29,10 @@ export async function requireVerifiedEmail(
   next: NextFunction,
 ): Promise<void> {
   const userId = req.jwtPayload?.sub;
+  if (isFixtureUser(userId)) {
+    next();
+    return;
+  }
   if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
     res.status(403).json({ error: EMAIL_VERIFICATION_REQUIRED });
     return;

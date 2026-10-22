@@ -8,15 +8,14 @@
  * One shared core (masked address, signed-in resend, status) in these places:
  *  1. The verify bar (ui/Banner, not dismissible) on every dashboard page for a signed-in,
  *     unverified email user (default export, mounted once in app/dashboard/layout.tsx, which also
- *     mounts the draft refusal dialog).
- *  2. The draft refusal dialog (AJ-522-M6, ui/Dialog), opened at the moment of the action, never
- *     a redirect: callers do `if (await openVerifyIfDraftRefused(res)) return;` on a 403
- *     email_verification_required from generate, preflight or intake. The T-223 Ink-refusal path
- *     (`openVerifyInsteadOfPaywall`, on a 402) opens the same dialog.
- *  3. Inline card at checkout in place of the pay button (`<VerifyEmailCard />` where
- *     `useNeedsEmailVerification()` is true; a billing 403 email_verification_required turns it on
- *     through `isEmailVerificationRequired(res)`).
- *  4. The one-time "code not applied" notice on the dashboard (AJ-522-S3).
+ *     mounts the refusal dialog).
+ *  2. The refusal dialog (AJ-522-M6, ui/Dialog), opened at the moment of the action, never a
+ *     redirect: callers do `if (await openVerifyIfDraftRefused(res, action)) return;` on a 403
+ *     email_verification_required. Draft: generate, preflight or intake (drafting). Top-up: the
+ *     top-up dialog's Buy (billing POST /topup/order). Subscribe: the plan chooser's Choose
+ *     (billing POST /subscribe). The T-223 Ink-refusal path (`openVerifyInsteadOfPaywall`, on a
+ *     402) opens the Draft dialog. Since T-522 the M6 dialog replaces the T-223 checkout card.
+ *  3. The one-time "code not applied" notice on the dashboard (AJ-522-S3).
  *  Landing: `<VerifyEmailLanding />` (app/verify-email/page.tsx), the five S5 states.
  *
  * The state comes from GET /api/auth/me (`emailVerified`, `hasGoogle`, `signupInkGranted`,
@@ -28,11 +27,10 @@
  * The address is shown masked only (first character, ***, domain). Nothing here logs the
  * address or the token. The token goes in the POST body, never in a path.
  */
-import { AlertCircle, AlertTriangle, CheckCircle2, Clock, Loader2, Mail } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 
-import { card, primaryButton } from '@/components/intake/ui';
 import { VERIFY_COPY } from '@/components/marketing/nl-copy';
 import { Banner, Button, Dialog, Skeleton } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
@@ -42,9 +40,11 @@ import { cn } from '@/lib/cn';
 
 // ── Madhuri's strings, signed by Ajay (T-223). Changes only with his sign-off. ─────────────────
 // T-522: the T-223 bar and modal bodies (`banner`, `modalBody`) are gone: AJ-522-M3 and M6
-// (VERIFY_COPY) replace them. The surfaces in this file use AJ-522-M4 and S6 for the resend lines
-// and AJ-522-S5 for the landing. The other T-223 lines stay for components/billing/PlanPanel.tsx
-// until its T-522 step (after Shashank's billing merge).
+// (VERIFY_COPY) replace them. The checkout card lines (`checkoutTitle`, `checkoutBody`) are gone
+// too: the M6 Top-up refusal replaces the card. The surfaces in this file use AJ-522-M4 and S6 for
+// the resend lines and AJ-522-S5 for the landing. `title` is the landing's failure title; `sent`,
+// `limitWait`, `already` and `networkError` stay for the Settings verify banner in
+// components/billing/PlanPanel.tsx (proactive, not a refusal, so M6 does not cover it).
 export const VERIFY_STRINGS = {
   title: 'Verify your email',
   resend: 'Resend email',
@@ -53,10 +53,22 @@ export const VERIFY_STRINGS = {
     minutes <= 1 ? 'Try again in 1 minute.' : `Try again in ${minutes} minutes.`,
   already: 'Your email is already verified.',
   networkError: "Couldn't send the email. Check your connection and try again.",
-  checkoutTitle: 'Verify your email before you buy',
-  checkoutBody: (masked: string) =>
-    `We sent a link to ${masked}. Verify your email, then come back to buy Ink.`,
 } as const;
+
+/** The action a 403 email_verification_required refused (Rajesh §3; AJ-522-M6). */
+export type RefusalAction = 'draft' | 'topup' | 'subscribe';
+
+// AJ-522-M6 Top-up and Subscribe bodies (Ajay, signed; Subscribe is copy v1 row 430). The title is
+// M6's shared `Verify your email to continue` (VERIFY_COPY.draftTitle); the Draft body is
+// VERIFY_COPY.draftBody. Changes only with Ajay's sign-off.
+const M6_TOPUP_BODY = 'Verify your email to buy Ink.';
+const M6_SUBSCRIBE_BODY = 'Verify your email to subscribe.';
+
+function refusalBody(action: RefusalAction, masked: string): string {
+  if (action === 'topup') return M6_TOPUP_BODY;
+  if (action === 'subscribe') return M6_SUBSCRIBE_BODY;
+  return VERIFY_COPY.draftBody(masked);
+}
 
 /** Billing and drafting 403 body code (T-223; drafting since T-522). */
 export const EMAIL_VERIFICATION_REQUIRED = 'email_verification_required';
@@ -82,7 +94,7 @@ export function maskEmail(email: string | null | undefined): string {
 
 /** ready = a wait window just ended (S6 line). */
 type ResendPhase = 'idle' | 'loading' | 'sent' | 'limited' | 'ready' | 'error';
-type Place = 'banner' | 'modal' | 'checkout' | 'landing';
+type Place = 'banner' | 'modal' | 'landing';
 type ReferralStatus = 'applied' | 'not_applied' | null;
 
 interface VerifyState {
@@ -95,8 +107,10 @@ interface VerifyState {
   referralStatus: ReferralStatus;
   /** A 403 email_verification_required said verification is required, whatever /me said. */
   requiredByServer: boolean;
-  /** The draft refusal dialog (AJ-522-M6). */
+  /** The refusal dialog (AJ-522-M6). */
   modalOpen: boolean;
+  /** Which M6 refusal the dialog shows. */
+  refusal: RefusalAction;
   resend: ResendPhase;
   /** ms epoch when the resend limit ends (from the server's retryAfter). */
   limitUntil: number;
@@ -111,6 +125,7 @@ const initial: VerifyState = {
   referralStatus: null,
   requiredByServer: false,
   modalOpen: false,
+  refusal: 'draft',
   resend: 'idle',
   limitUntil: 0,
   origin: null,
@@ -220,12 +235,16 @@ async function refreshVerifyStatus(): Promise<VerifyStatus | null> {
 }
 
 /**
- * T-522 (Rajesh §3): a draft action (generate, preflight, intake) answered 403
- * email_verification_required opens the M6 Draft dialog and returns true; the caller keeps the
- * advocate where they were (no redirect) and leaves its buttons enabled. Any other response:
- * false, and the response body is untouched (read from a clone).
+ * T-522 (Rajesh §3): an action answered 403 email_verification_required opens the M6 dialog for
+ * that action and returns true; the caller keeps the advocate where they were (no redirect) and
+ * leaves its buttons enabled. `action`: 'draft' (generate, preflight, intake; the default),
+ * 'topup' (the top-up dialog's Buy) or 'subscribe' (the plan chooser's Choose). Any other
+ * response: false, and the response body is untouched (read from a clone).
  */
-export async function openVerifyIfDraftRefused(res: Response): Promise<boolean> {
+export async function openVerifyIfDraftRefused(
+  res: Response,
+  action: RefusalAction = 'draft',
+): Promise<boolean> {
   if (res.status !== 403) return false;
   try {
     const body = (await res.clone().json()) as { error?: unknown } | null;
@@ -233,7 +252,7 @@ export async function openVerifyIfDraftRefused(res: Response): Promise<boolean> 
   } catch {
     return false;
   }
-  setState({ requiredByServer: true, emailVerified: false, modalOpen: true });
+  setState({ requiredByServer: true, emailVerified: false, modalOpen: true, refusal: action });
   return true;
 }
 
@@ -247,13 +266,14 @@ export async function openVerifyIfDraftRefused(res: Response): Promise<boolean> 
 export async function openVerifyInsteadOfPaywall(): Promise<boolean> {
   const status = await refreshVerifyStatus();
   if (!status || status.emailVerified || status.hasGoogle) return false;
-  setState({ modalOpen: true });
+  setState({ modalOpen: true, refusal: 'draft' });
   return true;
 }
 
 /**
- * Trigger 3: true when a checkout response is billing's 403 email_verification_required. It
- * also turns the inline card on (useNeedsEmailVerification becomes true).
+ * True when a response is a 403 email_verification_required; it also marks verification as
+ * required (useNeedsEmailVerification becomes true). Opens no dialog: billing callers use
+ * `openVerifyIfDraftRefused(res, 'topup' | 'subscribe')` since T-522.
  */
 export async function isEmailVerificationRequired(res: Response): Promise<boolean> {
   if (res.status !== 403) return false;
@@ -267,7 +287,7 @@ export async function isEmailVerificationRequired(res: Response): Promise<boolea
   return true;
 }
 
-/** True while the signed-in user must verify before paying (render the card, not the pay button). */
+/** True while the signed-in user is an unverified email user (or the server said so). */
 export function useNeedsEmailVerification(): boolean {
   const s = useVerifyState();
   return needsVerification(s);
@@ -337,74 +357,7 @@ function statusLine(phase: ResendPhase): string {
   }
 }
 
-// ── Shared core (checkout card and landing) ──────────────────────────────────────────────────
-
-const STATUS_ROW = 'flex items-start gap-2 rounded-lg px-3 py-2 text-sm leading-5';
-const ROW_TONE: Record<'ok' | 'wait' | 'err', string> = {
-  ok: 'bg-brand-teal-light text-brand-teal-dark',
-  wait: 'bg-brand-gold-light text-brand-gold-dark',
-  err: 'bg-brand-error-light text-brand-error',
-};
-
-function toneOf(phase: ResendPhase): 'ok' | 'wait' | 'err' {
-  if (phase === 'error') return 'err';
-  if (phase === 'limited') return 'wait';
-  return 'ok';
-}
-
-function StatusIcon({ phase }: { phase: ResendPhase }) {
-  if (phase === 'error') {
-    return <AlertCircle size={16} aria-hidden="true" className="mt-0.5 shrink-0" />;
-  }
-  if (phase === 'limited') {
-    return <Clock size={16} aria-hidden="true" className="mt-0.5 shrink-0" />;
-  }
-  return <CheckCircle2 size={16} aria-hidden="true" className="mt-0.5 shrink-0" />;
-}
-
-/** The legacy-shell resend core: the checkout card (T-223 Place 3). */
-function VerifyCoreControls({ place }: { place: Place }) {
-  const s = useVerifyState();
-  const loading = s.resend === 'loading';
-  const disabled = loading || isLimited(s);
-  const line = statusLine(s.resend);
-  const statusId = `verify-status-${place}`;
-
-  return (
-    <div className="flex flex-col gap-2">
-      <button
-        type="button"
-        className={cn(
-          primaryButton,
-          'w-full sm:w-auto',
-          disabled && 'cursor-not-allowed opacity-40',
-        )}
-        aria-disabled={disabled || undefined}
-        aria-busy={loading || undefined}
-        aria-describedby={statusId}
-        onClick={() => {
-          if (!disabled) void resend(place);
-        }}
-      >
-        {loading && (
-          <Loader2 size={16} aria-hidden="true" className="shrink-0 motion-safe:animate-spin" />
-        )}
-        {VERIFY_COPY.resend}
-      </button>
-      {/* Icons plus text: colour is never the only signal. One polite region, always present. */}
-      <div id={statusId} role="status" aria-live="polite" aria-atomic="true">
-        {line ? (
-          <p className={cn(STATUS_ROW, ROW_TONE[toneOf(s.resend)])}>
-            <StatusIcon phase={s.resend} />
-            {line}
-          </p>
-        ) : null}
-      </div>
-    </div>
-  );
-}
-
-// ── 1. Verify bar + 2. Draft refusal dialog (default export, mounted in dashboard/layout.tsx) ─
+// ── 1. Verify bar + 2. Refusal dialog (default export, mounted in dashboard/layout.tsx) ──────
 
 export default function VerifyEmailPrompt() {
   const { user, isLoading } = useAuth();
@@ -429,7 +382,7 @@ export default function VerifyEmailPrompt() {
   return (
     <>
       {needsVerification(s) && <VerifyEmailBar masked={masked} />}
-      <DraftRefusalDialog masked={masked} open={s.modalOpen} />
+      <RefusalDialog masked={masked} open={s.modalOpen} action={s.refusal} />
     </>
   );
 }
@@ -464,11 +417,20 @@ function VerifyEmailBar({ masked }: { masked: string }) {
 }
 
 /**
- * AJ-522-M6 Draft refusal (Rajesh §3): ui/Dialog, `Resend email` primary, `Not now` ghost with
- * first focus (it comes first in the Dialog's DOM order). Escape and the scrim close. The resend
+ * AJ-522-M6 refusal (Rajesh §3), Draft, Top-up or Subscribe: ui/Dialog, the shared M6 title and
+ * the action's body, `Resend email` primary, `Not now` ghost with first focus (it comes first in
+ * the Dialog's DOM order). Both buttons stay enabled. Escape and the scrim close. The resend
  * status line sits in the dialog body.
  */
-function DraftRefusalDialog({ masked, open }: { masked: string; open: boolean }) {
+function RefusalDialog({
+  masked,
+  open,
+  action,
+}: {
+  masked: string;
+  open: boolean;
+  action: RefusalAction;
+}) {
   const s = useVerifyState();
   const line = s.origin === 'modal' ? statusLine(s.resend) : '';
   return (
@@ -478,7 +440,7 @@ function DraftRefusalDialog({ masked, open }: { masked: string; open: boolean })
         if (!o) setState({ modalOpen: false });
       }}
       title={VERIFY_COPY.draftTitle}
-      description={VERIFY_COPY.draftBody(masked)}
+      description={refusalBody(action, masked)}
       confirmLabel={VERIFY_COPY.resend}
       cancelLabel={VERIFY_COPY.notNow}
       confirmLoading={s.resend === 'loading' && s.origin === 'modal'}
@@ -502,30 +464,7 @@ function DraftRefusalDialog({ masked, open }: { masked: string; open: boolean })
   );
 }
 
-// ── 3. Inline card at checkout ───────────────────────────────────────────────────────────────
-
-export function VerifyEmailCard() {
-  const { user } = useAuth();
-  const masked = maskEmail(user?.email);
-  return (
-    <section
-      role="region"
-      aria-labelledby="verify-checkout-title"
-      className={cn(card, 'text-brand-navy flex flex-col gap-3')}
-    >
-      <div className="flex items-start gap-3">
-        <Mail size={24} aria-hidden="true" className="text-brand-navy shrink-0" />
-        <h2 id="verify-checkout-title" className="text-base font-semibold leading-6">
-          {VERIFY_STRINGS.checkoutTitle}
-        </h2>
-      </div>
-      <p className="text-sm leading-6">{VERIFY_STRINGS.checkoutBody(masked)}</p>
-      <VerifyCoreControls place="checkout" />
-    </section>
-  );
-}
-
-// ── 4. One-time "code not applied" notice (AJ-522-S3) ────────────────────────────────────────
+// ── 3. One-time "code not applied" notice (AJ-522-S3) ────────────────────────────────────────
 
 const REFERRAL_NOTICE_SEEN_PREFIX = 'lawie.referralNotice.seen:';
 

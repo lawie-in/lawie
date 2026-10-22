@@ -137,7 +137,7 @@ export const FAQ_EN: FaqItem[] = [
   },
   {
     q: 'Which documents can I draft?',
-    a: 'Bail applications, legal notices, writ petitions, maintenance petitions, plaints, written statements, affidavits.',
+    a: 'Bail applications, legal notices, writ petitions, maintenance petitions, written statements, affidavits.',
   },
   {
     q: 'What happens to what I type?',
@@ -145,7 +145,7 @@ export const FAQ_EN: FaqItem[] = [
   },
   {
     q: 'Can I cancel anytime?',
-    a: 'Yes. Cancel from your account settings. Cancelling stops future charges and takes effect at the end of your current billing period. Ink you already have stays until then. Subscriptions are billed in advance and are not refunded; see the Refund Policy.',
+    a: 'Yes. Cancel from your account settings. Cancelling stops future charges and takes effect at the end of your current billing period. Ink you already have stays until then. Top-up Ink stays. Subscriptions are billed in advance and are non-refundable except as set out in the Refund Policy.',
   },
 ];
 

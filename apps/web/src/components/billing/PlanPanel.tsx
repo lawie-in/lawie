@@ -243,7 +243,6 @@ export function PlanPanel({ gst, gstSlot }: PlanPanelProps) {
         setResendNote({ text: VERIFY_STRINGS.sent(masked), error: false });
       } else if (res.status === 409) {
         setVerifiedNow(true);
-        clearGate();
         setResendNote({ text: VERIFY_STRINGS.already, error: false });
       } else if (res.status === 429) {
         const body = (await res.json().catch(() => null)) as { retryAfter?: unknown } | null;
@@ -279,7 +278,9 @@ export function PlanPanel({ gst, gstSlot }: PlanPanelProps) {
   const renewsDate = planDate(status?.renewsAt);
   const statusCard = showsStatusCard(status);
   const paymentFailed = statusCard && status.state === 'past_due';
-  const showVerify = !verifiedNow && (needsVerification || gate === 'verify');
+  // T-522: the subscribe refusal is the AJ-522-M6 dialog (useSubscribe), not this banner. The
+  // banner stays as the Settings notice for an unverified email user (T-509 §06 copy).
+  const showVerify = !verifiedNow && needsVerification;
 
   return (
     <div className="nl gap-nl-4 mt-nl-2 flex flex-col">
