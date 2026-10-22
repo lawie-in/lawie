@@ -658,8 +658,12 @@ describe('T-472 G: a claim the verifier edits only partly is flagged once', () =
   });
 
   it('paragraph counts differ (verifier adds a paragraph) and date blanked: still one', async () => {
-    const out = await runBrief(LATE, body, true, (b) =>
-      `${b.replace('dated 12.03.2025', 'dated {{MISSING: date of order}}')}\n\n4. That the prayer is just.`,
+    const out = await runBrief(
+      LATE,
+      body,
+      true,
+      (b) =>
+        `${b.replace('dated 12.03.2025', 'dated {{MISSING: date of order}}')}\n\n4. That the prayer is just.`,
     );
     const w = limitationWarningsOf(out.sse);
     expect(w).toHaveLength(1);
@@ -702,7 +706,7 @@ describe('T-472 G: a claim the verifier edits only partly is flagged once', () =
 
 // ── H: a body numbered "1) ... 7)" (AJ-472-M2) ──────────────────────────────
 
-describe.each(PATHS)('T-472 H numbering with ")" , %s', (_p, run, wrap) => {
+describe.each(PATHS)('T-472 H numbering with ")" , %s', (_p, run) => {
   const CLAIM = 'The petition is within limitation.';
   const para8 =
     'Check this sentence: it states a limitation position. The limitation paragraph (para 8) is computed from your dates.';
