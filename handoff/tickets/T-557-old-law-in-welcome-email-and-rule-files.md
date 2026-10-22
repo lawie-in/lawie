@@ -17,6 +17,8 @@ Five document rule files say "must use BNS (warn if IPC)": discharge, mact, fir_
 ## Part C: Terms page (found by Vishal's T-555 sweep test)
 `apps/web/src/app/(marketing)/terms/page.tsx:114-115`: "Criminal drafts use BNS, BNSS and BSA section numbers. The Service does not provide legal advice…". Needs Ajay's signed text and his call on a Terms version bump (if reworded on the same day as T-541's 2026-10-22 bump it may reuse that version; otherwise bump version and "Last updated" in all three places, and note the pre-launch re-accept rule). T-555's sweep test has one named exception for this file; remove the exception here.
 
+**Ajay's ruling for Part C (17ed169b):** lines 114-115 become "Criminal drafts use BNS, BNSS and BSA section numbers, or IPC, CrPC and the Evidence Act where the old law applies." The next sentence is unchanged. No version bump: reuse 2026-10-22 (a correcting description, no prod acceptance exists). Once a Terms version is live in prod, every reword bumps. T-557 must remove the named exception in T-555's sweep test.
+
 ## Acceptance criteria
 1. Both parts carry Ajay's text byte for byte; tests prove it.
 2. Part B: golden / court-rules snapshots are regenerated only where they move (`.claude/docs/golden-snapshots.md`); the diff goes to Ajay.
