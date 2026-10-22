@@ -19,6 +19,7 @@ export * from './constants/password';
 export * from './utils/validators';
 export * from './utils/verified';
 export * from './utils/normalize';
+export * from './utils/test-signup';
 export * from './blanks';
 
 // Billing

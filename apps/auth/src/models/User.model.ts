@@ -15,7 +15,8 @@ import mongoose, { Document, Schema, Types } from 'mongoose';
 // Versions are opaque strings: compare them for equality only, never parse them as dates.
 export const CURRENT_TERMS_VERSION = '2026-10-22';
 export { CURRENT_PRIVACY_VERSION };
-export type TermsAcceptedVia = 'password' | 'google';
+/** T-563 (AJ-563-M1a): 'test' marks a test account's consent record; never real consent. */
+export type TermsAcceptedVia = 'password' | 'google' | 'test';
 /** T-522 (Arjun ruling 1): what a verify link does. A missing kind is treated as 'verify'. */
 export type EmailVerifyKind = 'signin' | 'verify';
 /** T-522 (Arjun ruling 2): the stored outcome of a sign-up referral code. */
@@ -147,6 +148,9 @@ export interface IUser extends Document {
   planRenewsAt?: Date;
   lastLoginBonusAt?: Date; // Used by daily-login-bonus dedupe
   signupBonusGrantedAt?: Date; // Idempotency guard for signup bonus (SCRUM-100)
+
+  // T-563 — set only by the develop-only test sign-up bypass. Immutable, default false.
+  isTestAccount: boolean;
 
   // T-234 — proof of Terms acceptance. Server-set only; never overwritten once set.
   termsAcceptedAt?: Date;
@@ -328,12 +332,15 @@ const UserSchema = new Schema<IUser>(
     planRenewsAt: { type: Date, default: null },
     lastLoginBonusAt: { type: Date, default: null },
     signupBonusGrantedAt: { type: Date, default: null },
+    // T-563 (Arjun) — true only for an account made by the test sign-up bypass. Set at create,
+    // never changed. Excluded from user counts, referral and the consent export.
+    isTestAccount: { type: Boolean, default: false, immutable: true },
 
     // T-234 — Terms acceptance. No defaults: an empty value means "not accepted yet".
     termsAcceptedAt: { type: Date },
     termsVersion: { type: String, trim: true },
     privacyVersion: { type: String, trim: true },
-    acceptedVia: { type: String, enum: ['password', 'google'] },
+    acceptedVia: { type: String, enum: ['password', 'google', 'test'] },
 
     // T-343 — no defaults: absent means no acceptance recorded under T-343 rules yet.
     privacyAcceptedAt: { type: Date },
@@ -398,6 +405,12 @@ UserSchema.index({ createdAt: -1 });
 UserSchema.index({ emailVerifyTokenHash: 1 }, { sparse: true });
 // T-115c — the erase sweep finds unfinished erases by this. Sparse: only accounts being closed.
 UserSchema.index({ 'erasure.requestedAt': 1 }, { sparse: true });
+// T-563 — the test-account sweep, cap and scripts find test accounts by age. Partial: only
+// test accounts are indexed.
+UserSchema.index(
+  { isTestAccount: 1, createdAt: 1 },
+  { partialFilterExpression: { isTestAccount: true } },
+);
 
 // -- Pre-save: bcrypt password hashing --
 UserSchema.pre('save', async function (next) {

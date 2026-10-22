@@ -17,6 +17,7 @@ import { INTERNAL_HEADERS } from '@lawie/shared';
 import { Router, type NextFunction, type Request, type Response } from 'express';
 
 import { mintPasswordReset } from '../services/password-reset.service';
+import { isTestAccountUser } from '../services/test-signup-bypass.service';
 
 import { internalSecretMatches } from './internal-verify.routes';
 
@@ -36,6 +37,12 @@ router.post(
       return;
     }
     try {
+      // T-563 (Arjun default 6): a test account is never mailed. 404 is this route's existing
+      // not-eligible answer, the one the email worker skips on (a 409 would be retried).
+      if (await isTestAccountUser(userId)) {
+        res.status(404).json({ error: 'not_found' });
+        return;
+      }
       const result = await mintPasswordReset(userId);
       switch (result.kind) {
         case 'link':

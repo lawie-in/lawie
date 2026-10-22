@@ -5,7 +5,7 @@
 | Phase  | 4 — Release (needed before Anushka's browser run and live agent smoke) |
 | Owner  | Arjun (design and security review), Ajay (consent and data), a lead (build; Vishal, after T-522 merges: same auth files) |
 | Mode   | Full chain (auth, gateway, shared, web test tooling) |
-| Status | To do. Founder order 22 Oct 2026. Design first (Arjun). Priya |
+| Status | Merged into develop_staging e83782fe (Vishal, 22 Oct 2026; merge CI pending). Fenced test sign-up bypass for develop (off by default, refused on prod boxes); TEST accounts on reserved domains get 30 Ink, no mail, erased within 7 days. Follow-ups T-574/575/576. Founder steps in release-checklist-main.md. Priya |
 | Source | Founder: agents need to test without signing up through email |
 
 ## What the founder asked

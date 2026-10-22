@@ -5,7 +5,7 @@
 | Phase  | 4 — Release (MUST items block Anushka's browser run) |
 | Owner  | Lead (build, drafting), Arjun for prompt design, Ajay byte-checks |
 | Mode   | Full chain (drafting, legal content; read .claude/docs/golden-snapshots.md first) |
-| Status | To do. Shashank (pauses T-534). MUST before Anushka. Priya, 22 Oct 2026 |
+| Status | Merged into develop_staging ee7dea1f (Shashank, 22 Oct 2026; CI 974/975 green). Follow-ups in T-573 (parked). One golden-set real-model run still to do after the drafting merges. Priya |
 | Source | Ajay's pre-Anushka legal review: `handoff/legal/pre-anushka-legal-review-22-oct.md` (22 Oct 2026, b871e0f7) |
 
 ## Items
