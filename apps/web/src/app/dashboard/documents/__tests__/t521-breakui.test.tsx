@@ -59,6 +59,8 @@ describe('break-ui: My documents', () => {
     expect(links[0].className).toContain('max-w-[220px]');
     // the table scrolls sideways instead of pushing the page wider
     expect(container.querySelector('table')!.parentElement!.className).toContain('overflow-x-auto');
+    // T-571: sr-only header must be contained (the wrapper is its containing block)
+    expect(container.querySelector('table')!.parentElement!.className).toContain('relative');
     expect(
       Array.from(container.querySelectorAll('a')).some((a) => a.textContent === 'New document'),
     ).toBe(true);
