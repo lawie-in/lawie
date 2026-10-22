@@ -80,3 +80,4 @@ A tester subagent in Vishal's T-522 run printed the cloud session's environment 
 ## Ajay's gate for Anushka's run (22 Oct 2026, after T-559 approval)
 All legal MUSTs are closed once T-522 (merged), T-559, T-564 (merged), T-565 (wave 2b + the 1-line fix), T-566 and T-567 are merged and develop is redeployed. Send Ajay the 2023-offence draft from Anushka's run.
 Before main (not before Anushka): "Disclaimer slip" checklist lines and criminal_revision 64/65 (T-573), the T-522 Hindi wiring (T-572), the 54d date-scoped validator (T-573 item 3), and the Grievance Officer name set in prod config.
+- T-563 (Vishal): `TEST_SIGNUP_BYPASS` and `TEST_SIGNUP_BYPASS_SECRET` must be ABSENT on prod. Auth refuses to boot if either is set on a production box (RAZORPAY_KEY_GUARD=strict, SECRETS_ENV=prod, or an rzp_live_ key). Before Anushka's run ends, the founder runs `yarn workspace @lawie/auth test-accounts:delete --apply` and records the count.
