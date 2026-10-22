@@ -2,6 +2,12 @@ const ACCESS_TOKEN_KEY = 'lawie_access_token';
 const REFRESH_TOKEN_KEY = 'lawie_refresh_token';
 /** T-343: sessionStorage prefix of the privacy prompt's "shown this sign-in" flags. */
 export const PRIVACY_PROMPT_SHOWN_PREFIX = 'lawie_privacy_prompt_shown:';
+/**
+ * T-565 item 40: the dashboard command bar's matter text (DRAFT_PREFILL_KEY in
+ * components/dashboard/DashboardCommandBar.tsx and components/intake/initialQuery.ts). Copied
+ * here, not imported, so this module stays free of component imports.
+ */
+const DRAFT_PREFILL_KEY = 'lawie:draft-prefill';
 
 export interface AuthUser {
   id: string;
@@ -37,7 +43,10 @@ export function clearTokens(): void {
   localStorage.removeItem(ACCESS_TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
   // T-343: signing out forgets "privacy prompt shown", so the next sign-in prompts again.
+  // T-565 item 40: it also drops any matter text left for the describe step. Every sign-out
+  // comes here: AuthContext logout, and apiFetch's forced sign-out when the refresh fails.
   try {
+    sessionStorage.removeItem(DRAFT_PREFILL_KEY);
     for (let i = sessionStorage.length - 1; i >= 0; i -= 1) {
       const k = sessionStorage.key(i);
       if (k?.startsWith(PRIVACY_PROMPT_SHOWN_PREFIX)) sessionStorage.removeItem(k);

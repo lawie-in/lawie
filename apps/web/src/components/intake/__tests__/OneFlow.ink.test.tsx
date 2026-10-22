@@ -245,6 +245,8 @@ describe('OneFlow SSE done event and the Ink balance', () => {
     await toBrief(2);
     await confirm(sse([ev('warning', { warnings: [] })]));
     expect(mockNotify).not.toHaveBeenCalled();
-    expect(container.textContent).toContain('connection was lost');
+    // T-565 W13: the signed line alone; the old prose reason is gone.
+    expect(container.textContent).toContain('Connection lost. Check your documents.');
+    expect(container.textContent).not.toContain('connection was lost');
   });
 });

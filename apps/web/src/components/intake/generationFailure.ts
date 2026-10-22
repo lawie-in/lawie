@@ -27,6 +27,39 @@ export const CHECK_DOCUMENTS_LIST = 'Check your documents list to see where this
 /** T-521 amendment (Arjun ruling 4): a dropped run. Signed: Ajay AJ-521-M1 (W13). */
 export const CONNECTION_LOST = 'Connection lost. Check your documents.';
 
+/**
+ * T-565 W3/W12 (Ajay): a pre-stream failure that is not a gate (429, 401 after the refresh, other
+ * 400/403/5xx). Shown with the retry control; nothing started, so nothing was charged.
+ */
+export const SOMETHING_DID_NOT_WORK = 'Something did not work. Try again.';
+
+/** T-565 W7 (Ajay): the plan gate's 403. No retry. */
+export const NOT_ON_CURRENT_PLAN = 'This document is not available on your current plan.';
+
+/**
+ * T-565 W7: a 403 body from the plan gate (`upgradeUrl`, or an error such as "requires a Pro
+ * plan"). Pure; shared by the form flow and the one flow.
+ */
+export function isPlanGate(body: unknown): boolean {
+  if (!body || typeof body !== 'object') return false;
+  const b = body as { error?: unknown; upgradeUrl?: unknown };
+  if (typeof b.upgradeUrl === 'string') return true;
+  return typeof b.error === 'string' && /requires an? .*plan/i.test(b.error);
+}
+
+/**
+ * T-565 B5: the card for a refused start (non-OK before any stream), the same routing as the
+ * form flow (app/dashboard/new/page.tsx). Never the server's reason. 409 (a draft for this run
+ * is already in progress: a retry would take a second Ink hold) and the plan gate get no retry.
+ */
+export function refusedStartError(status: number, body: unknown): GenerationError {
+  if (status === 409) return { reason: CHECK_DOCUMENTS_LIST, retryable: false, source: 'start' };
+  if (status === 403 && isPlanGate(body)) {
+    return { reason: NOT_ON_CURRENT_PLAN, retryable: false, source: 'start' };
+  }
+  return { reason: SOMETHING_DID_NOT_WORK, retryable: true, source: 'start' };
+}
+
 /** The SSE error code the server sends when the Ink hold was lost and could not be re-taken. */
 export const INSUFFICIENT_INK_CODE = 'insufficient_ink';
 

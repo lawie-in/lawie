@@ -3,6 +3,7 @@
  * "shown this sign-in" flags, and only those.
  */
 import { PRIVACY_PROMPT_SHOWN_PREFIX, clearTokens } from '../auth';
+import { DRAFT_PREFILL_KEY } from '@/components/intake/initialQuery';
 
 beforeEach(() => {
   sessionStorage.clear();
@@ -51,5 +52,33 @@ describe('clearTokens (T-343)', () => {
     expect(() => clearTokens()).not.toThrow();
     expect(localStorage.getItem('lawie_access_token')).toBeNull();
     expect(localStorage.getItem('lawie_refresh_token')).toBeNull();
+  });
+});
+
+describe('clearTokens (T-565 item 40): the command bar matter text does not outlive the sign-in', () => {
+  it('removes lawie:draft-prefill from sessionStorage and leaves other keys alone', () => {
+    sessionStorage.setItem('lawie:draft-prefill', 'bail for Asha Rao, FIR 12/2026');
+    sessionStorage.setItem('other_key', 'keep');
+    clearTokens();
+    expect(sessionStorage.getItem('lawie:draft-prefill')).toBeNull();
+    expect(sessionStorage.getItem('other_key')).toBe('keep');
+  });
+
+  it('does not touch a localStorage key of the same name', () => {
+    localStorage.setItem('lawie:draft-prefill', 'x');
+    clearTokens();
+    expect(localStorage.getItem('lawie:draft-prefill')).toBe('x');
+  });
+
+  it('uses the same key the command bar writes and the describe step reads', () => {
+    expect(DRAFT_PREFILL_KEY).toBe('lawie:draft-prefill');
+  });
+
+  it('still clears the tokens when sessionStorage.removeItem throws', () => {
+    localStorage.setItem('lawie_access_token', 'a');
+    jest.spyOn(Storage.prototype, 'removeItem').mockImplementation(function (this: Storage) {
+      if (this === sessionStorage) throw new Error('blocked');
+    });
+    expect(() => clearTokens()).not.toThrow();
   });
 });

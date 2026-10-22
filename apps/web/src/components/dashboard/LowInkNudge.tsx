@@ -5,12 +5,21 @@
  * a paid plan with a known renewal date: "It refills on {date}…". Zero on Free: "You have used
  * your 5 Ink…". Zero on a plan with no date known falls back to the Low line. Top up opens the
  * existing TopUpModal (owned by the caller); See plans goes to Settings; Not now hides it.
+ *
+ * T-565 item 33 (Ajay, pre-Anushka review): never shown to an unverified user. They never got the
+ * 5 Ink ("You have used your 5 Ink" would be untrue), and the T-522 verify bar covers them. The
+ * nudge asks GET /api/auth/me itself (as VerifyEmailPrompt and useGstState do) and shows only once
+ * the account is confirmed verified (emailVerified, or a Google account). While /me is loading, or
+ * when it fails or lacks the fields, nothing shows (fail closed: the line must not reach an
+ * unverified user).
  */
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
 import { DASHBOARD_COPY } from './dashboardCopy';
 
 import { Button } from '@/components/ui';
+import { apiFetch } from '@/lib/apiFetch';
 
 export interface LowInkNudgeProps {
   balance: number;
@@ -30,7 +39,38 @@ export function lowInkMessage(balance: number, tier: LowInkNudgeProps['tier'], r
   return DASHBOARD_COPY.lowInk(balance);
 }
 
+/** True from /me's fields only when the account is verified (email verified, or Google). */
+export function isVerifiedAccount(data: unknown): boolean {
+  if (!data || typeof data !== 'object') return false;
+  const d = data as { emailVerified?: unknown; hasGoogle?: unknown };
+  return d.emailVerified === true || d.hasGoogle === true;
+}
+
+/** T-565 item 33: GET /api/auth/me once per mount; false until it confirms a verified account. */
+export function useVerifiedAccount(): boolean {
+  const [verified, setVerified] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await apiFetch('/api/auth/me', { cache: 'no-store' });
+        if (!res.ok) return;
+        const body = (await res.json()) as { data?: unknown } | null;
+        if (!cancelled) setVerified(isVerifiedAccount(body?.data));
+      } catch {
+        // /me unavailable: stay hidden.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  return verified;
+}
+
 export function LowInkNudge({ balance, tier, renewsOn, onTopUp, onDismiss }: LowInkNudgeProps) {
+  const verified = useVerifiedAccount();
+  if (!verified) return null;
   return (
     // T-524 (Arjun): a quieter status. It keeps role=status so it is named and findable, but
     // aria-live="off" stops screen readers announcing it every time the dashboard loads; the
