@@ -5,7 +5,7 @@
 | Phase  | 4 — Release (needed before Anushka's browser run and live agent smoke) |
 | Owner  | Arjun (design and security review), Ajay (consent and data), a lead (build; Vishal, after T-522 merges: same auth files) |
 | Mode   | Full chain (auth, gateway, shared, web test tooling) |
-| Status | To do. Founder order 22 Oct 2026. Design first (Arjun). Priya |
+| Status | Merged into develop_staging e83782fe (Vishal, 22 Oct 2026; merge CI pending). Fenced test sign-up bypass for develop (off by default, refused on prod boxes); TEST accounts on reserved domains get 30 Ink, no mail, erased within 7 days. Follow-ups T-574/575/576. Founder steps in release-checklist-main.md. Priya |
 | Source | Founder: agents need to test without signing up through email |
 
 ## What the founder asked
@@ -59,3 +59,25 @@ Everything else in my section stands. Both rulings now agree; Vishal may build a
 
 ## Ajay
 Ruling: `handoff/legal/T-563-test-accounts-ruling-ajay.md` — CONFIRMED with conditions. Ajay's later note also allows `@test.lawie.in` (if it has no MX) and 30 days with synthetic facts only; **we keep the stricter reconciled version above** (reserved test domains only, 7-day erase), which satisfies both. Real data found in a test account → same-day erase.
+
+## Arjun (22 Oct 2026) — eight Explore points (Vishal): defaults OK
+
+1. Consent marker = `termsAcceptance { acceptedVia: 'test', version: 'test-bypass' }`; `privacyVersion = CURRENT` so `requireCurrentPrivacy` passes. 2. Pure `isProductionBox({ RAZORPAY_KEY_GUARD, SECRETS_ENV, RAZORPAY_KEY_ID })` in `packages/shared`; auth's `env.ts` superRefine refuses boot; billing adopts later. 3. Check `SECRETS_ENV` now, forward-compatible with T-534. 4. No daily login bonus for `isTestAccount`: 30 Ink once, nothing else. 5. 30 Ink = 60 units: `inkTopup +60`, inkledger row `test_grant`, `signupBonusGrantedAt` set, no creditledger row, no drafting grant signal. 6. Email skip in auth's internal mint/prepare routes (`not_eligible` for `isTestAccount`). 7. Shared `TEST_CONSENT_VERSION` + filter helper + test; the export itself does not exist yet. 8. Billing exclusions (live-key purchase guard, invoices, revenue views) → follow-up after Shashank's merge; the boot refusal already makes a live key impossible on a bypass box.
+
+## Arjun (22 Oct 2026, after build 5bbd1d50)
+
+2. **Sweep and delete script erase a test account even with an active test-mode plan.** Order: cancel the subscription at Razorpay through the existing guarded cancel path (`cancel(id,false)`, strict not-found = ended), then erase. Test-mode money is not money; AJ-563-M6's 7-day limit is absolute. If the cancel fails, log ids and erase anyway — a dangling test-mode sub at Razorpay is harmless and the 24-hour unknown-sub report would surface it.
+3. `invalid_test_name` (400) on a bypass with a non-`TEST` name: OK. It is reachable only with the right secret, so it reveals nothing to anyone else; no user-facing string needed.
+1. The production-marker finding in the agent environment is handled in `handoff/ops/incident-2026-10-22-env-dump.md` (addendum).
+
+## Arjun (22 Oct 2026) — erase without cancel for now
+
+Billing has no service-to-service cancel, so **(c)**: the sweep and the delete script erase a test account regardless of an active test-mode plan, no cancel, sub id logged; later webhooks land on a missing user and go to the existing unknown-user handling. Safe because the boot guard makes a live key impossible on a bypass box. (a) is rejected — never forge gateway identity on a public route. **(b)** — `POST /internal/cancel-subscription { userId, immediate: true }` behind `INTERNAL_SECRET` in billing — is the follow-up after Shashank's merge, and the erase path then calls it first.
+
+## Arjun (22 Oct 2026) — AC3 security sign-off at 2f368751
+
+**Signed off, with one change before merge:** the rate limit on wrong-secret attempts must not answer 429 — it answers the same neutral 202 and silently does nothing (the `warn` log still fires). On a back door, "the bypass is on" is still a tell, and hiding it costs two lines. Plus the `SECRETS_ENV=production` fix already in progress. Then a tester rerun on the diff, merge in the slot.
+
+Reviewer's confirmations accepted as the security record: byte-identical normal path on wrong/missing/empty secret or flag off; SHA-256 + `timingSafeEqual`; boot refusal on all markers, casing/whitespace-robust; register only; server-side domain and TEST rules; no secrets, emails or headers in logs; no mail/referral/daily bonus; 30 Ink once; consent marked; sweep and script can never select a real, Admin or golden-set account; gitleaks rule in place.
+
+Follow-ups (Priya): (a) billing exclusions; (b) IP hash → HMAC with a server key; (c) bundle guard also checks the T-543 `NEXT_PUBLIC` name list; (d) billing internal immediate-cancel route (already requested).

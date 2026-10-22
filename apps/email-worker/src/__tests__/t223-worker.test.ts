@@ -106,6 +106,7 @@ describe('T-223 worker: 200 from the mint seam', () => {
     expect(renderTemplate).toHaveBeenCalledWith('auth.verifyEmail', {
       name: LEAK_NAME,
       verifyUrl: LINK,
+      signupInkGranted: false,
       userId: USER_ID,
     });
     expect(send).toHaveBeenCalledTimes(1);
@@ -146,6 +147,7 @@ describe('T-223 worker: 200 from the mint seam', () => {
     expect(renderTemplate).toHaveBeenCalledWith('auth.verifyEmail', {
       name: 'From Auth',
       verifyUrl: LINK,
+      signupInkGranted: false,
       userId: USER_ID,
     });
   });
@@ -302,14 +304,15 @@ describe('T-223 worker: mintVerifyLinkViaAuth (stubbed fetch)', () => {
   it('POSTs {userId} to AUTH_SERVICE_URL/internal/verify-email/mint with the internal secret and a timeout', async () => {
     reply(200, { email: 'a@b.co', name: 'N', link: LINK });
     const r = await mintVerifyLinkViaAuth(USER_ID);
-    expect(r).toEqual({ email: 'a@b.co', name: 'N', link: LINK });
+    expect(r).toEqual({ email: 'a@b.co', name: 'N', link: LINK, signupInkGranted: false });
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe('http://localhost:4001/internal/verify-email/mint');
     expect(init.method).toBe('POST');
     expect(init.headers['x-internal-secret']).toBe(process.env.INTERNAL_SECRET);
     expect(init.headers['content-type']).toBe('application/json');
-    expect(JSON.parse(init.body)).toEqual({ userId: USER_ID });
+    // T-522: the verify mail asks for a 'signin' link (the route's default is 'verify').
+    expect(JSON.parse(init.body)).toEqual({ userId: USER_ID, kind: 'signin' });
     expect(init.signal).toBeInstanceOf(AbortSignal);
   });
 
@@ -349,7 +352,12 @@ describe('T-223 worker: mintVerifyLinkViaAuth (stubbed fetch)', () => {
 
   it('a missing name becomes an empty string', async () => {
     reply(200, { email: 'a@b.co', link: LINK });
-    expect(await mintVerifyLinkViaAuth(USER_ID)).toEqual({ email: 'a@b.co', name: '', link: LINK });
+    expect(await mintVerifyLinkViaAuth(USER_ID)).toEqual({
+      email: 'a@b.co',
+      name: '',
+      link: LINK,
+      signupInkGranted: false,
+    });
   });
 
   it('through the processor: a network error whose text names the URL leaves no URL in logs, Sentry or the thrown error', async () => {

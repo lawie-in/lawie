@@ -1,3 +1,5 @@
+import { DRAFT_PREFILL_KEY } from './draftPrefill';
+
 const ACCESS_TOKEN_KEY = 'lawie_access_token';
 const REFRESH_TOKEN_KEY = 'lawie_refresh_token';
 /** T-343: sessionStorage prefix of the privacy prompt's "shown this sign-in" flags. */
@@ -26,8 +28,31 @@ function isExpired(token: string): boolean {
   return Date.now() / 1000 > payload.exp;
 }
 
+/** The `sub` of a token, expired or not; null when there is none or it cannot be read. */
+function tokenSubject(token: string | null): string | null {
+  if (!token) return null;
+  const sub = parseJwt(token)?.sub;
+  return typeof sub === 'string' ? sub : null;
+}
+
+/** T-565 item 40: drop the command bar's matter text from this tab. Never throws. */
+function clearDraftPrefill(): void {
+  try {
+    sessionStorage.removeItem(DRAFT_PREFILL_KEY);
+  } catch {
+    // Storage unavailable: nothing to clear.
+  }
+}
+
 export function saveTokens(accessToken: string, refreshToken: string): void {
   if (typeof window === 'undefined') return;
+  // T-565 item 40 (review): sessionStorage is per tab, so a tab that was open when another tab
+  // signed out can still hold the last user's matter text. A new session (no stored token
+  // before, or a different user) drops it. A token refresh or re-issue for the same user keeps
+  // it, so text on its way to the describe step is not lost mid-navigation.
+  const before = tokenSubject(localStorage.getItem(ACCESS_TOKEN_KEY));
+  const after = tokenSubject(accessToken);
+  if (before === null || before !== after) clearDraftPrefill();
   localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
   localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
 }
@@ -37,6 +62,9 @@ export function clearTokens(): void {
   localStorage.removeItem(ACCESS_TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
   // T-343: signing out forgets "privacy prompt shown", so the next sign-in prompts again.
+  // T-565 item 40: it also drops any matter text left for the describe step. Every sign-out
+  // comes here: AuthContext logout, and apiFetch's forced sign-out when the refresh fails.
+  clearDraftPrefill();
   try {
     for (let i = sessionStorage.length - 1; i >= 0; i -= 1) {
       const k = sessionStorage.key(i);

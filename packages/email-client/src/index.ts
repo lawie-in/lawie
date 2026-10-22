@@ -14,7 +14,8 @@
  *     uses the jobId for dedupe.
  *
  * One queue per priority tier (per ADR latency budgets):
- *   email:high → verifyEmail, passwordReset (T-221), paymentReceipt, paymentFailed
+ *   email:high → verifyEmail, passwordReset (T-221), signupAttempt (T-522), paymentReceipt,
+ *                paymentFailed
  *   email:low  → digest, draftComplete, monthlyInvoice, lowCredit, referral,
  *                advocatePackInvite, welcome, unverifiedDeletionNotice (T-358)
  */
@@ -32,6 +33,7 @@ export type EmailTemplate =
   | 'auth.verifyEmail'
   | 'auth.passwordReset'
   | 'auth.unverifiedDeletionNotice'
+  | 'auth.signupAttempt'
   | 'billing.subscriptionConfirmed'
   | 'billing.paymentFailed'
   | 'billing.monthlyInvoice'
@@ -58,6 +60,8 @@ const TIER_BY_TEMPLATE: Record<EmailTemplate, 'high' | 'low'> = {
   'auth.passwordReset': 'high',
   // T-358: deletion is held until this is sent, so it is not latency-critical.
   'auth.unverifiedDeletionNotice': 'low',
+  // T-522: the existing-address mail on a sign-up attempt; the owner may be on the sign-up screen.
+  'auth.signupAttempt': 'high',
   'billing.subscriptionConfirmed': 'high',
   'billing.paymentFailed': 'high',
   'billing.monthlyInvoice': 'low',
@@ -76,7 +80,8 @@ const TIER_BY_TEMPLATE: Record<EmailTemplate, 'high' | 'low'> = {
 export type UserIdOnlyTemplate =
   | 'auth.verifyEmail'
   | 'auth.passwordReset'
-  | 'auth.unverifiedDeletionNotice';
+  | 'auth.unverifiedDeletionNotice'
+  | 'auth.signupAttempt';
 
 /** Every template except the userId-only ones: the producer knows and sends the address. */
 export interface EnqueueAddressedEmailInput {
@@ -162,11 +167,24 @@ export interface EnqueuePasswordResetInput {
   priority?: 'high' | 'low';
 }
 
+/**
+ * T-522 (AJ-522-M5): the "Someone tried to create a Lawie account" mail to an existing address
+ * carries the userId only (T-223 condition 1: no address in Redis). The worker asks auth
+ * (/internal/signup-attempt/prepare) for the address and the sign-in and reset page links. No
+ * idempotencyKey: auth sends at most one per address per hour (SET NX) before enqueueEmail.
+ */
+export interface EnqueueSignupAttemptInput {
+  template: 'auth.signupAttempt';
+  userId: string;
+  priority?: 'high' | 'low';
+}
+
 export type EnqueueEmailInput =
   | EnqueueAddressedEmailInput
   | EnqueueVerifyEmailInput
   | EnqueuePasswordResetInput
-  | EnqueueUnverifiedNoticeInput;
+  | EnqueueUnverifiedNoticeInput
+  | EnqueueSignupAttemptInput;
 
 export interface EnqueueEmailResult {
   jobId: string;
@@ -246,6 +264,19 @@ export async function enqueueEmail(input: EnqueueEmailInput): Promise<EnqueueEma
     };
     const resetJob = await queue.add(jobName, resetJobData, opts);
     return { jobId: String(resetJob.id ?? jobName), queue: queueName, deduped: false };
+  }
+
+  if (input.template === 'auth.signupAttempt') {
+    // T-522: no recipient in the job; the worker resolves it through auth at send time.
+    const attemptJobData = {
+      template: input.template,
+      to: [] as string[],
+      cc: [] as string[],
+      bcc: [] as string[],
+      data: { userId: input.userId },
+    };
+    const attemptJob = await queue.add(jobName, attemptJobData, opts);
+    return { jobId: String(attemptJob.id ?? jobName), queue: queueName, deduped: false };
   }
 
   if (input.template === 'auth.unverifiedDeletionNotice') {

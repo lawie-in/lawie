@@ -15,6 +15,7 @@ import express from 'express';
 import request from 'supertest';
 
 import app from '../app';
+import { seedVerifiedUsers } from './verifiedUser';
 import logger from '../config/logger';
 import redis from '../config/redis';
 import { CreditLedger } from '../models/CreditLedger.model';
@@ -242,3 +243,5 @@ describe('the assertions can fail (stand-in for the old route)', () => {
     await expect(expectNothingHappened(res)).rejects.toThrow();
   });
 });
+
+seedVerifiedUsers('507f1f77bcf86cd799439443');

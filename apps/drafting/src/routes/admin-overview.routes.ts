@@ -19,6 +19,9 @@ import { User } from '../models/User.model';
 import { getAppSetting, AppSettingMissingError } from '../services/app-settings.service';
 import { NOT_FIXTURE } from '../services/run-origin';
 
+/** T-563 — test accounts (develop-only bypass) are left out of every user count and feed. */
+const NOT_TEST_ACCOUNT = { isTestAccount: { $ne: true } };
+
 const router = Router();
 
 function requireAdmin(req: Request, res: Response, next: () => void): void {
@@ -61,8 +64,8 @@ router.get(
       churnedThisMonth,
       inkCirculationAgg,
     ] = await Promise.all([
-      User.countDocuments({}),
-      User.countDocuments({ createdAt: { $gte: startOfThisWeek } }),
+      User.countDocuments({ ...NOT_TEST_ACCOUNT }),
+      User.countDocuments({ createdAt: { $gte: startOfThisWeek }, ...NOT_TEST_ACCOUNT }),
       LawieDocument.countDocuments({ isDeleted: { $ne: true }, ...NOT_FIXTURE }),
       LawieDocument.countDocuments({
         createdAt: { $gte: startOfThisWeek },
@@ -80,11 +83,15 @@ router.get(
         isActive: true,
         expiresAt: { $lt: new Date(Date.now() - 72 * 3600 * 1000) },
       }),
-      User.countDocuments({ planTier: { $in: ['practice', 'firm', 'solo', 'pro'] } }),
-      User.countDocuments({}),
+      User.countDocuments({
+        planTier: { $in: ['practice', 'firm', 'solo', 'pro'] },
+        ...NOT_TEST_ACCOUNT,
+      }),
+      User.countDocuments({ ...NOT_TEST_ACCOUNT }),
       User.countDocuments({
         planTier: { $in: ['practice', 'firm', 'solo', 'pro'] },
         updatedAt: { $gte: startOfThisMonth },
+        ...NOT_TEST_ACCOUNT,
       }),
       // Sum of plan_renewal + topup_purchase amountInr from ledger this month
       CreditLedger.aggregate([
@@ -96,7 +103,7 @@ router.get(
         },
         { $group: { _id: null, total: { $sum: { $ifNull: ['$metadata.amountInr', 0] } } } },
       ]),
-      User.countDocuments({ createdAt: { $gte: startOfThisMonth } }),
+      User.countDocuments({ createdAt: { $gte: startOfThisMonth }, ...NOT_TEST_ACCOUNT }),
       // Approximation — users whose planTier dropped back to 'free' this month
       Promise.resolve(0),
       // Total ink units in circulation across all buckets (ledger units, not display units)
@@ -104,6 +111,7 @@ router.get(
         ? mongoose.connection.db
             .collection('users')
             .aggregate([
+              { $match: NOT_TEST_ACCOUNT },
               {
                 $group: {
                   _id: null,
@@ -170,7 +178,7 @@ router.get(
     // redemptions (CreditLedger source=signup_bonus). Cap to 30 most recent overall.
     const [recentSignups, recentDrafts, recentReviews, recentRedemptions, recentTopups] =
       await Promise.all([
-        User.find({ createdAt: { $gte: since } })
+        User.find({ createdAt: { $gte: since }, ...NOT_TEST_ACCOUNT })
           .select('name email createdAt referredVia')
           .sort({ createdAt: -1 })
           .limit(15)

@@ -5,7 +5,7 @@
 | Phase  | 4 — Release (MUST items block Anushka's browser run) |
 | Owner  | Lead (build, web), Ajay byte-checks |
 | Mode   | Full chain (web, legal content) |
-| Status | To do. Tanvi. MUST before Anushka. Start with files nobody else holds; the rest after Kunal's T-544 and Vishal's T-522 merge. Priya, 22 Oct 2026 |
+| Status | In progress (Tanvi). Wave 1 merged 90337d84 (CI 936 green); wave 2a merged 2e0c63b7 (22 Oct). Left: OneFlow W13 lines, inkReleased, wave 2b (items 33, 40, 45, 46) after Vishal's T-522 merges. MUST before Anushka. Priya |
 | Source | Ajay's pre-Anushka legal review: `handoff/legal/pre-anushka-legal-review-22-oct.md` (22 Oct 2026, b871e0f7) |
 
 ## Items

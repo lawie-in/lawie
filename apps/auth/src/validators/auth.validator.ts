@@ -1,4 +1,13 @@
-import { RegisterPayload, LoginPayload, isGstStateCode } from '@lawie/shared';
+import {
+  RegisterPayload,
+  LoginPayload,
+  isGstStateCode,
+  PASSWORD_MIN_LENGTH,
+  PASSWORD_UPPERCASE_RE,
+  PASSWORD_LOWERCASE_RE,
+  PASSWORD_DIGIT_RE,
+  type PasswordRuleId,
+} from '@lawie/shared';
 import { z, ZodError } from 'zod';
 
 import { AppError } from '../middleware/errorHandler';
@@ -77,6 +86,15 @@ const utmField = z.unknown().transform(sanitizeUtmValue);
  * The four sign-up password rules. T-221: shared by sign-up and password reset, so a reset can
  * never set a weaker password than sign-up allows (T-208 follow-up 3). Same messages as before.
  */
+/**
+ * T-522 (AJ-522-S7, scope AJ-522-S10, Ajay 22 Oct 2026): the one user-facing weak-password line,
+ * for every path that uses passwordSchema. It must state the real rule (constants/password.ts in
+ * @lawie/shared). The PASSWORD_MESSAGES below are no longer shown to users: they only mark which
+ * rule failed, so RULE_BY_MESSAGE can turn it into an `unmet` code.
+ */
+export const PASSWORD_WEAK_MESSAGE =
+  'Use at least 8 characters, with an upper-case letter, a lower-case letter and a digit.';
+
 const PASSWORD_MESSAGES = {
   required: 'Password is required',
   min_length: 'Password must be at least 8 characters',
@@ -85,15 +103,17 @@ const PASSWORD_MESSAGES = {
   number: 'Must contain at least one number',
 } as const;
 
+// T-522 (Arjun 3): the rule comes from @lawie/shared (constants/password.ts), the same constant
+// the web hint reads, so the two cannot drift.
 export const passwordSchema = z
   .string({ required_error: PASSWORD_MESSAGES.required })
-  .min(8, PASSWORD_MESSAGES.min_length)
-  .regex(/[A-Z]/, PASSWORD_MESSAGES.uppercase)
-  .regex(/[a-z]/, PASSWORD_MESSAGES.lowercase)
-  .regex(/\d/, PASSWORD_MESSAGES.number);
+  .min(PASSWORD_MIN_LENGTH, PASSWORD_MESSAGES.min_length)
+  .regex(PASSWORD_UPPERCASE_RE, PASSWORD_MESSAGES.uppercase)
+  .regex(PASSWORD_LOWERCASE_RE, PASSWORD_MESSAGES.lowercase)
+  .regex(PASSWORD_DIGIT_RE, PASSWORD_MESSAGES.number);
 
 /** T-221: the rule ids the reset page maps to its own checklist lines (never the raw text). */
-export type PasswordRule = 'min_length' | 'uppercase' | 'lowercase' | 'number';
+export type PasswordRule = PasswordRuleId;
 const RULE_BY_MESSAGE: Record<string, PasswordRule> = {
   [PASSWORD_MESSAGES.min_length]: 'min_length',
   [PASSWORD_MESSAGES.uppercase]: 'uppercase',
@@ -128,8 +148,20 @@ const loginSchema = z.object({
 // T-208: validation failures are operational AppErrors, so errorHandler answers
 // 422 with the message(s) and does not report them to Sentry.
 function validationError(error: ZodError): AppError {
-  const messages = error.errors.map((e) => e.message).join('; ');
-  return new AppError(422, messages);
+  // T-522 (AJ-522-S10): a failed password rule (sign-up, reset, change: passwordSchema) shows the
+  // one signed S7 line, once, however many rules failed. The per-rule detail stays as codes
+  // (`unmet` on reset and change); every other message is unchanged.
+  let weakShown = false;
+  const parts: string[] = [];
+  for (const e of error.errors) {
+    if (RULE_BY_MESSAGE[e.message] !== undefined) {
+      if (!weakShown) parts.push(PASSWORD_WEAK_MESSAGE);
+      weakShown = true;
+    } else {
+      parts.push(e.message);
+    }
+  }
+  return new AppError(422, parts.join('; '));
 }
 
 export type RegisterInput = RegisterPayload & { referralCode?: string } & UtmTags;

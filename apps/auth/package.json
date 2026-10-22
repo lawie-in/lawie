@@ -11,6 +11,8 @@
     "test:watch": "jest --watch",
     "lint": "eslint 'src/**/*.ts' --fix",
     "erase-user": "ts-node --transpile-only src/scripts/erase-user.ts",
+    "test-accounts:list": "ts-node --transpile-only src/scripts/test-accounts.ts list",
+    "test-accounts:delete": "ts-node --transpile-only src/scripts/test-accounts.ts delete",
     "verify:resend-all": "ts-node --transpile-only scripts/verify-resend-all.ts"
   },
   "dependencies": {

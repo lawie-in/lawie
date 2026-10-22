@@ -252,12 +252,6 @@
       "name": "Two Witnesses",
       "required": true,
       "description": "Mandatory"
-    },
-    {
-      "id": "lawie_disclaimer",
-      "name": "Lawie Drafting Assistant Disclaimer",
-      "required": true,
-      "description": "Standard Lawie disclaimer"
     }
   ],
   "prayerTemplate": "",
@@ -281,7 +275,6 @@
       "Para 11: Stamp duty + registration — borne by [specified party, usually Releasee].",
       "Para 12: Schedule A — property description + share description.",
       "Para 13: Witnesses (2 adults).",
-      "Append Lawie disclaimer.",
       "Release operates by way of enlargement of existing co-sharer's right, not as fresh transfer.",
       "Family settlements (which often include releases) are indulgently treated by courts; bona fide settlements upheld even if technically defective.",
       "Income tax: where release is treated as gift between relatives (S.56(2)(x) ITA definition of relative) — no tax in releasee's hands; if among non-relatives and value > Rs.50,000, taxable. Where release is treated as sale — capital gains for releasor.",
@@ -366,8 +359,7 @@
     "Where releasee is unrelated — flag higher stamp duty + gift tax / capital gains implications",
     "Where release of mortgage — appropriate reconveyance template",
     "Registration within 4 months of execution (S.23 Registration Act)",
-    "Post-registration: mutation in releasee's name only (releasor's name removed)",
-    "Lawie disclaimer included"
+    "Post-registration: mutation in releasee's name only (releasor's name removed)"
   ],
   "validation_rules": [
     "releasor_age >= 18 (otherwise flag minor + need court permission)",

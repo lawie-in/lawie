@@ -40,6 +40,7 @@ jest.mock('@/components/PrivacyUpdatePrompt', () => ({
   PrivacyAcceptedStatus: () => <div data-testid="privacy-status" />,
 }));
 jest.mock('@/components/VerifyEmailPrompt', () => ({
+  openVerifyIfDraftRefused: async () => false,
   __esModule: true,
   default: () => <div data-testid="verify-prompt" />,
 }));

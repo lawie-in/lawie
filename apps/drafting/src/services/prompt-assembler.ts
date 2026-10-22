@@ -16,6 +16,7 @@ import {
   readMandatoryClauses,
 } from './rule-pack.service';
 import { convertOldReferencesInText } from './sections.service';
+import { getsOffenceDateLawRule, OFFENCE_DATE_LAW_RULE } from './template-engine.service';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -376,20 +377,27 @@ export function resolveCourtRule(courtType: string, courtName: string): CourtRul
 
 /**
  * Build the base system prompt that applies to all document types.
+ * T-566 (Ajay, rulings 54a/54b, S1 and 66): rule 1 is Ajay's item 54 line, given
+ * only when the document rule's `category` is a criminal category or its
+ * docType is writ_petition_criminal (the test buildAISystemPrompt uses); for
+ * any other document, or no document rule, there is no law line and the rules
+ * after it move up. The old "today's date" rule is deleted (ruling 66).
  */
-function buildBasePrompt(): string {
-  return `You are a senior Indian advocate with 20+ years of practice, drafting a court-ready legal document.
+function buildBasePrompt(category?: string | null, docType?: string | null): string {
+  const rules = [
+    ...(getsOffenceDateLawRule(docType, category) ? [OFFENCE_DATE_LAW_RULE] : []),
+    'Format with numbered paragraphs (1, 2, 3...) for the body.',
+    'Use formal, respectful legal language appropriate for Indian courts.',
+    'Use placeholders [DATE] and [PLACE] where specific dates/places are not provided.',
+    'Do NOT include any commentary, explanations, or notes outside the document itself.',
+    'Do NOT generate the Verification clause, Advocate signature block, or Disclaimer — these are added programmatically by the system.',
+    'Focus on generating LEGAL CONTENT only. Formatting is handled separately.',
+    "NEVER alter, embellish, or contradict the user's stated facts. Reproduce FIR numbers, dates, names, and amounts EXACTLY as provided. If a fact seems incomplete, use the value as given — do not invent details.",
+  ];
+  return `You are a senior Indian advocate with 20+ years of practice, drafting a legal document for an advocate to review and file.
 
 CRITICAL RULES:
-1. Use ONLY Bharatiya Nyaya Sanhita (BNS) 2023, Bharatiya Nagarik Suraksha Sanhita (BNSS) 2023, and Bharatiya Sakshya Adhiniyam (BSA) 2023 section numbers where applicable. NEVER reference old IPC, CrPC, or IEA section numbers.
-2. Format with numbered paragraphs (1, 2, 3...) for the body.
-3. Use formal, respectful legal language appropriate for Indian courts.
-4. Use placeholders [DATE] and [PLACE] where specific dates/places are not provided.
-5. Do NOT include any commentary, explanations, or notes outside the document itself.
-6. Do NOT generate the Verification clause, Advocate signature block, or Disclaimer — these are added programmatically by the system.
-7. Focus on generating LEGAL CONTENT only. Formatting is handled separately.
-8. NEVER alter, embellish, or contradict the user's stated facts. Reproduce FIR numbers, dates, names, and amounts EXACTLY as provided. If a fact seems incomplete, use the value as given — do not invent details.
-9. Use today's date format (DD/MM/YYYY) where a current date is needed. Do NOT hardcode any specific year.`;
+${rules.map((rule, i) => `${i + 1}. ${rule}`).join('\n')}`;
 }
 
 /**
@@ -555,7 +563,7 @@ export async function assemblePrompt(input: PromptInput): Promise<AssembledPromp
   const convertedInput = { ...input, keyFacts: convertedFacts, reliefPrayer: convertedRelief };
 
   // Build system prompt from modular pieces
-  const systemParts: string[] = [buildBasePrompt()];
+  const systemParts: string[] = [buildBasePrompt(docRule?.category, docRule?.docType)];
 
   if (docRule) {
     systemParts.push(buildDocTypeSection(docRule));

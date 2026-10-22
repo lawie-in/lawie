@@ -14,6 +14,7 @@ import app from '../app';
 import { AppSetting } from '../models/AppSetting.model';
 import { Generation } from '../models/Generation.model';
 import { User } from '../models/User.model';
+import { createVerifiedUser } from './verifiedUser';
 import { recordGeneration } from '../routes/documents.routes';
 import { _clearAppSettingsCache } from '../services/app-settings.service';
 import { sdkAnswer } from './sdkStream';
@@ -45,7 +46,7 @@ function internalHeaders() {
 
 beforeEach(async () => {
   _clearAppSettingsCache();
-  await User.create({
+  await createVerifiedUser({
     _id: USER_ID,
     plan: 'free',
     planTier: 'free',

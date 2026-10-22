@@ -8,7 +8,7 @@
 
 import './setupEnv';
 
-jest.mock('ioredis', () => require('ioredis-mock'));
+jest.mock('ioredis', () => jest.requireActual('ioredis-mock'));
 
 import './setupDb';
 
@@ -93,7 +93,7 @@ describe('T-209 AC1 — unique jti', () => {
 });
 
 describe('T-209 AC2 — register then login in the same second', () => {
-  it('both succeed (2xx) with different tokens and two sessions', async () => {
+  it('register is 202 with no session; two same-second logins give different tokens and two sessions', async () => {
     freezeClock();
     const email = 't209-reg-login@example.com';
     const reg = await supertest(app)
@@ -101,10 +101,13 @@ describe('T-209 AC2 — register then login in the same second', () => {
       .send({ email, password: PASSWORD, name: 'T' });
     const login = await supertest(app).post('/login').send({ email, password: PASSWORD });
 
-    expect(reg.status).toBe(201);
+    // T-522: register no longer signs in, so the two same-second sessions are two logins.
+    expect(reg.status).toBe(202);
     expect(login.status).toBe(200);
-    expect(reg.body.data.accessToken).not.toBe(login.body.data.accessToken);
-    expect(reg.body.data.refreshToken).not.toBe(login.body.data.refreshToken);
+    const login2 = await supertest(app).post('/login').send({ email, password: PASSWORD });
+    expect(login2.status).toBe(200);
+    expect(login2.body.data.accessToken).not.toBe(login.body.data.accessToken);
+    expect(login2.body.data.refreshToken).not.toBe(login.body.data.refreshToken);
 
     const user = await User.findOne({ email });
     expect(await Session.countDocuments({ userId: user!._id })).toBe(2);

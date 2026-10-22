@@ -25,7 +25,8 @@ export interface ValidationWarning {
     | 'missing_clause'
     | 'fact_alteration'
     | 'coherence_mismatch'
-    | 'case_citation';
+    | 'case_citation'
+    | 'limitation';
   message: string;
   details?: {
     section?: string;
@@ -38,6 +39,8 @@ export interface ValidationWarning {
     rule?: string;
     /** SCRUM-67 — human-readable ground label (e.g. "False implication") */
     ground?: string;
+    /** T-472 — the fact verifier blanked or removed (part of) the flagged sentence. */
+    blanked?: boolean;
   };
 }
 
@@ -393,8 +396,34 @@ export function validateSectionReferences(
 }
 
 /**
+ * T-566 ruling S11a (Ajay, 22 Oct): the warning on any IPC citation, whatever
+ * the offence date, until the date-scoped item 54d follow-up lands. {x} is the
+ * IPC section as cited. Byte for byte; legal content, do not edit without Ajay.
+ */
+function ipcCitationWarning(section: string): string {
+  return `This draft cites Section ${section} IPC. Confirm the offence date: BNS applies to offences on or after 1 July 2024, IPC to offences before that date.`;
+}
+
+/**
+ * T-566 rulings S11a and S11b (Ajay, 22 Oct): the warning for an old-law
+ * citation, by code, whatever the date. {x} is the section as cited. Byte for
+ * byte; legal content, do not edit without Ajay. OLD_LAW_PATTERN only finds
+ * IPC, CrPC and IEA, so the null case is not reached.
+ */
+function oldLawCitationWarning(code: string, section: string): string | null {
+  if (code === 'IPC') return ipcCitationWarning(section);
+  if (code === 'CrPC')
+    return `This draft cites Section ${section} CrPC. Confirm the date: BNSS applies to proceedings from 1 July 2024; CrPC continues for matters pending before that date.`;
+  if (code === 'IEA')
+    return `This draft cites Section ${section} of the Evidence Act. Confirm the date: BSA applies from 1 July 2024; check whether the Evidence Act still governs this matter.`;
+  return null;
+}
+
+/**
  * Detect old IPC/CrPC/IEA references and suggest BNS/BNSS/BSA equivalents.
  * Uses the SCRUM-27 section mapping database for accurate suggestions.
+ * T-566 S11a/S11b: every reference gets oldLawCitationWarning for its code, in
+ * both branches; the old "Use Section … instead" and "Please verify" texts are gone.
  */
 export async function detectOldLawReferences(text: string): Promise<ValidationWarning[]> {
   const refs = extractOldLawReferences(text);
@@ -419,10 +448,12 @@ export async function detectOldLawReferences(text: string): Promise<ValidationWa
   );
 
   for (const { ref, result } of lookups) {
+    const message = oldLawCitationWarning(ref.code, ref.section);
+    if (message === null) continue;
     if (result && result.new_section) {
       warnings.push({
         type: 'old_law_reference',
-        message: `Old law reference detected: Section ${ref.section} ${ref.code}. Use Section ${result.new_section} ${result.new_code} (${result.new_code_full}) instead.`,
+        message,
         details: {
           section: ref.section,
           code: ref.code,
@@ -432,7 +463,7 @@ export async function detectOldLawReferences(text: string): Promise<ValidationWa
     } else {
       warnings.push({
         type: 'old_law_reference',
-        message: `Old law reference detected: Section ${ref.section} ${ref.code}. Please verify and use the corresponding BNS/BNSS/BSA section.`,
+        message,
         details: { section: ref.section, code: ref.code },
       });
     }

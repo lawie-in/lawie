@@ -25,7 +25,7 @@ const BUTTON = 'Verify email address';
 const FOOTER = [
   'Lawie (Sole Proprietorship), Ranchi, Jharkhand',
   'You are receiving this because this email address was used to sign up for Lawie.',
-  'Help: contact@lawie.in · Data and privacy requests: privacy@lawie.in',
+  'Help, data and privacy requests: contact@lawie.in',
   'Privacy Policy: https://lawie.in/privacy · Terms: https://lawie.in/terms',
 ];
 
@@ -210,7 +210,7 @@ describe('footer (variant A)', () => {
 const B_SUBJECT = 'Your deactivated Lawie account will be deleted';
 const B_PREHEADER = 'We will delete it on 21 October 2026 unless you write to us before then.';
 const B_BODY =
-  'This Lawie account was deactivated and its email address was never verified. We will delete the account and everything in it on 21 October 2026. If you want to keep it, write to privacy@lawie.in from this email address before then.';
+  'This Lawie account was deactivated and its email address was never verified. We will delete the account and everything in it on 21 October 2026. If you want to keep it, write to contact@lawie.in from this email address before then.';
 
 describe('variant B', () => {
   let b: Out;
@@ -224,7 +224,12 @@ describe('variant B', () => {
     const md = fs.readFileSync(path.join(SIGNED, 'dpdp-v1-calls-signed.md'), 'utf8');
     expect(md).toContain('Subject: `' + B_SUBJECT + '`');
     expect(md).toContain('Preheader: `' + B_PREHEADER.replace(DATE, '{date}') + '`');
-    expect(md).toContain('Body: `' + B_BODY.replace(DATE, '{date}') + '`');
+    // AJ-559-M1 swapped the address in this body; the older signed file still has privacy@.
+    expect(md).toContain(
+      'Body: `' +
+        B_BODY.replace(DATE, '{date}').replace('contact@lawie.in', 'privacy@lawie.in') +
+        '`',
+    );
   });
 
   it('subject is the signed B subject, with no name, address or date', () => {

@@ -140,23 +140,24 @@ describe('T-565 item 43: checking inputs', () => {
 });
 
 describe('T-565 item 43 + T6: soft warning card', () => {
-  it('has the signed heading, `Edit the form`, `Please choose one.` and two `Generate anyway` buttons', () => {
+  it('has the signed heading, `Edit the form`, `Please choose one.` and one `Generate anyway` button', () => {
     const text = show('soft_warn');
     expect(text).toContain('Please check this before you generate.');
     expect(text).toContain('Please choose one.');
     expect(text).toContain('Check the dates'); // the question is still shown
     const l = labels();
-    expect(l.filter((x) => x === 'Generate anyway')).toHaveLength(2);
+    expect(l.filter((x) => x === 'Generate anyway')).toHaveLength(1);
     expect(l.filter((x) => x === 'Edit the form')).toHaveLength(1);
   });
 
-  it('both `Generate anyway` buttons proceed, and `Edit the form` returns to the form', () => {
+  it('the `Generate anyway` button proceeds, and `Edit the form` returns to the form', () => {
     show('soft_warn');
     const gen = Array.from(container.querySelectorAll('button')).filter(
       (b) => b.textContent === 'Generate anyway',
     );
-    gen.forEach((b) => act(() => b.click()));
-    expect(handlers.onProceedAnyway).toHaveBeenCalledTimes(2);
+    expect(gen).toHaveLength(1);
+    act(() => gen[0].click());
+    expect(handlers.onProceedAnyway).toHaveBeenCalledTimes(1);
     act(() =>
       Array.from(container.querySelectorAll('button'))
         .find((b) => b.textContent === 'Edit the form')!
@@ -169,7 +170,7 @@ describe('T-565 item 43 + T6: soft warning card', () => {
 describe('T-565 item 43: writing the draft', () => {
   it('one static line `Writing the draft…`, step line `Step 3 of 5 — writing the draft`', () => {
     const text = show('drafting', { templateName: 'Bail application' });
-    expect(text).toContain('Drafting your Bail application…');
+    expect(text).toContain('Writing your Bail application…');
     expect(divs()).toContain('Writing the draft…');
     expect(text).toContain('Step 3 of 5 — writing the draft');
   });
@@ -217,9 +218,9 @@ describe('T-565 item 43 + T6 + row 41: hard block and failed draft', () => {
     expect(text).not.toContain('verifier hard-blocked');
   });
 
-  it('failed: signed step line, `The draft did not finish.` and the documents-list line', () => {
+  it('failed: `The draft did not finish.` once and the documents-list line', () => {
     const text = show('generation_failed', { generationError: 'Model down: 503 upstream' });
-    expect(text).toContain('The draft did not finish.');
+    expect(text.split('The draft did not finish.').length).toBe(2);
     expect(divs()).toContain('The draft did not finish.');
     expect(divs()).toContain('Check your documents list to see where this draft stands.');
     expect(text).not.toContain('Your inputs are saved');
@@ -235,7 +236,7 @@ describe('T-565 item 43 + T6 + row 41: hard block and failed draft', () => {
     expect(without).toContain('Check your documents list to see where this draft stands.');
   });
 
-  it('failed: Try again still retries and Edit form still returns to the form', () => {
+  it('failed: Try again still retries and Edit the form still returns to the form', () => {
     show('generation_failed');
     act(() =>
       Array.from(container.querySelectorAll('button'))
@@ -245,7 +246,7 @@ describe('T-565 item 43 + T6 + row 41: hard block and failed draft', () => {
     expect(handlers.onRetry).toHaveBeenCalledTimes(1);
     act(() =>
       Array.from(container.querySelectorAll('button'))
-        .find((b) => b.textContent === 'Edit form')!
+        .find((b) => b.textContent === 'Edit the form')!
         .click(),
     );
     expect(handlers.onEditForm).toHaveBeenCalledTimes(1);

@@ -10,6 +10,7 @@ import logger from '../config/logger';
 import { authenticate } from '../middleware/authenticate';
 import { chargedCost, enforceCredits, insufficientInkBody } from '../middleware/enforceCredits';
 import { FREE_TIER_MONTHLY_LIMIT } from '../middleware/enforceFreeLimit';
+import { requireVerifiedEmail } from '../middleware/requireVerifiedEmail';
 import { spendCapCheck } from '../middleware/spendCap';
 import { Court } from '../models/Court.model';
 import { LawieDocument } from '../models/Document.model';
@@ -796,6 +797,7 @@ const templateGenerateSchema = z.object({
 router.post(
   '/preflight',
   authenticate,
+  requireVerifiedEmail, // T-522 — no model call for an unverified email account
   templateGuard(bodyField('template_id')), // T-375
   async (req: Request, res: Response): Promise<void> => {
     const { template_id, form_data } = req.body as {
@@ -842,6 +844,7 @@ router.post(
   '/generate-from-template',
   authenticate,
   requireCurrentPrivacy, // T-343 — new drafts need the current privacy version
+  requireVerifiedEmail, // T-522 — before templateGuard and enforceCredits (403 before 402)
   templateGuard(bodyField('template_id')), // T-375
   enforceCredits, // SCRUM-73 / SCRUM-59 — credit gate; replaces enforceFreeLimit
   spendCapCheck,
@@ -1184,6 +1187,7 @@ router.post(
   '/generate-from-brief',
   authenticate,
   requireCurrentPrivacy, // T-343 — new drafts need the current privacy version
+  requireVerifiedEmail, // T-522 — before templateGuard and enforceCredits (403 before 402)
   describeFirstOnly,
   templateGuard(bodyField('kind')), // T-375
   kindAsTemplateId,

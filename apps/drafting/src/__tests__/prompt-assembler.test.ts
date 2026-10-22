@@ -102,10 +102,44 @@ describe('Layer 1 — Prompt Assembler', () => {
   });
 
   describe('buildBasePrompt', () => {
-    it('includes BNS/BNSS instruction', () => {
-      const prompt = _testing.buildBasePrompt();
-      expect(prompt).toContain('Bharatiya Nyaya Sanhita');
-      expect(prompt).toContain('NEVER reference old IPC');
+    // T-566 items 54/55/66 (Ajay, 22 Oct): the signed item 54 line, exactly as in the review file.
+    const ITEM_54 =
+      'Use BNS section numbers for an offence committed on or after 1 July 2024, and IPC section numbers for an offence committed before that date. For procedure and evidence, use BNSS and BSA, except in a matter that was pending before 1 July 2024, where CrPC and the Evidence Act continue to apply. If the date of the offence is not given, write [To be confirmed: section and code].';
+
+    it('gives the item 54 line as rule 1 for a criminal category', () => {
+      for (const category of ['criminal', 'criminal_bail', 'criminal_petition']) {
+        const prompt = _testing.buildBasePrompt(category, 'fir_quashing');
+        expect(prompt).toContain(`1. ${ITEM_54}`);
+        expect(prompt).toContain('2. Format with numbered paragraphs (1, 2, 3...) for the body.');
+        expect(prompt).not.toContain('NEVER reference old IPC');
+      }
+    });
+
+    it('gives the item 54 line for writ_petition_criminal (ruling S1) whatever the category', () => {
+      const prompt = _testing.buildBasePrompt('writ', 'writ_petition_criminal');
+      expect(prompt).toContain(`1. ${ITEM_54}`);
+    });
+
+    it('gives no law line with no document rule or a civil one (ruling 54b); rules move up', () => {
+      for (const prompt of [
+        _testing.buildBasePrompt(),
+        _testing.buildBasePrompt('civil', 'rent_agreement'),
+        _testing.buildBasePrompt('writ', 'writ_petition_civil'),
+      ]) {
+        expect(prompt).not.toContain('Use BNS section numbers for an offence committed');
+        expect(prompt).not.toContain('Bharatiya Nyaya Sanhita');
+        expect(prompt).not.toContain('NEVER reference old IPC');
+        expect(prompt).toContain('1. Format with numbered paragraphs (1, 2, 3...) for the body.');
+      }
+    });
+
+    it('has deleted rule 9 ("Use today\'s date format") and the court-ready persona (rulings 66, 55)', () => {
+      const prompt = _testing.buildBasePrompt('criminal', 'fir_quashing');
+      expect(prompt).not.toContain("Use today's date format");
+      expect(prompt).not.toContain('court-ready');
+      expect(prompt).toContain(
+        'You are a senior Indian advocate with 20+ years of practice, drafting a legal document for an advocate to review and file.',
+      );
     });
 
     it('instructs AI not to generate verification clause', () => {

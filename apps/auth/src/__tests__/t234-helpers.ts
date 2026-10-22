@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 
 import { ReferralCode } from '../models/ReferralCode.model';
 import { grantSignupBonus } from '../services/credit-bonus.service';
+import { mintVerifyLink, verifyEmailToken } from '../services/verify-email.service';
 
 /** Poll until `fn` returns truthy (the signup seed is fired with `void`, so it lands later). */
 export async function waitFor<T>(fn: () => Promise<T | null | undefined | false>, ms = 5000) {
@@ -58,4 +59,23 @@ export async function verifyAndSeed(userId: unknown) {
   );
   await grantSignupBonus(String(userId));
   await waitForSeed(userId);
+}
+
+/**
+ * T-522: verify the address the real way - mint a link, POST-equivalent verifyEmailToken - so the
+ * sign-up bonus AND the deferred referral Ink are granted by the production code path.
+ */
+export async function verifyViaLink(userId: unknown, linkKind: 'signin' | 'verify' = 'verify') {
+  const minted = await mintVerifyLink(String(userId), { linkKind });
+  if (minted.kind !== 'minted') throw new Error(`expected minted, got ${minted.kind}`);
+  const token = new URL(minted.link).searchParams.get('token') as string;
+  return verifyEmailToken(token);
+}
+
+/** T-522: sign-up records a referral in the background; wait until it has been decided. */
+export async function waitForReferralDecision(userId: unknown) {
+  return waitFor(async () => {
+    const u = await rawUsers().findOne({ _id: userId as mongoose.Types.ObjectId });
+    return u && u['referralStatus'] ? u : null;
+  });
 }

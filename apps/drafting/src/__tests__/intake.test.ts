@@ -18,6 +18,7 @@ import { Event } from '../models/Event.model';
 import { Generation } from '../models/Generation.model';
 import { LlmAuxCall } from '../models/LlmAuxCall.model';
 import { User } from '../models/User.model';
+import { createVerifiedUser, seedVerifiedUsers } from './verifiedUser';
 import { _clearAppSettingsCache } from '../services/app-settings.service';
 import { datesInText, decideMatch, INTAKE_LIMITS } from '../services/intake.service';
 import { SdkStreamParams, sdkAnswer } from './sdkStream';
@@ -185,7 +186,7 @@ describe('POST /intake — match and fill', () => {
   });
 
   it('intake spends no Ink', async () => {
-    await User.create({
+    await createVerifiedUser({
       _id: USER_ID,
       plan: 'free',
       planTier: 'free',
@@ -618,7 +619,7 @@ describe('POST /intake — rate limits (hard block)', () => {
 
 describe('generate-from-template — intake_id is stored on the Generation row', () => {
   it('carries intake_id through', async () => {
-    await User.create({
+    await createVerifiedUser({
       _id: USER_ID,
       plan: 'free',
       planTier: 'free',
@@ -683,3 +684,5 @@ describe('pure helpers', () => {
     expect(decideMatch(null, allowed).kind).toBe('no_match');
   });
 });
+
+seedVerifiedUsers('507f1f77bcf86cd799439071');

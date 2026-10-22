@@ -16,6 +16,7 @@ import './setupDb';
 import request from 'supertest';
 
 import app from '../app';
+import { seedVerifiedUsers } from './verifiedUser';
 import { TEMPLATE_CATALOGUE } from '../config/catalogue';
 import logger from '../config/logger';
 import redis from '../config/redis';
@@ -607,3 +608,5 @@ describe('T-375 Arjun: the fixture user generates a plaint with the switch off, 
     expect(await Generation.countDocuments({ userId: USER_ID })).toBe(0);
   });
 });
+
+seedVerifiedUsers('507f1f77bcf86cd799439376');

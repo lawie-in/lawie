@@ -1,8 +1,8 @@
 /**
  * T-520: dashboard ("Your shelf") strings. Every string is signed copy, byte for byte, from
- * handoff/copy/T-511-copy-v1.md sections 3 and 5, except draftAndFinalisedOrExportedValue (Priya's
- * T-520 ruling, awaiting Ajay; see its comment). Nothing else is invented; where the copy has no
- * string, the element is left out (see the T-520 report).
+ * handoff/copy/T-511-copy-v1.md sections 3 and 5, except draftAndFinalisedOrExportedValue (signed
+ * as AJ-520-M1; see its comment). Nothing else is invented; where the copy has no string, the
+ * element is left out (see the T-520 report).
  */
 export const DASHBOARD_COPY = {
   // 3.1 Greeting and date
@@ -28,9 +28,9 @@ export const DASHBOARD_COPY = {
   draftsThisMonth: 'Drafts this month',
   draftAndFinalised: 'Draft and finalised',
   /**
-   * NOT IN THE SIGNED COPY FILE. Priya's T-520 ruling with Ajay's AJ-520-M1 intent replaces copy
-   * 3.4's `{a} draft, {b} finalised` so the count is true: b = finalised + exported documents, and
-   * "(all time)" because the T-506 statusCounts are all-time, not this month.
+   * Signed: AJ-520-M1 (handoff/legal/T-511-copy-rulings-ajay.md; pre-Anushka review item 46,
+   * T-565). It replaces copy 3.4's `{a} draft, {b} finalised` so the count is true: b = finalised
+   * + exported documents, and "(all time)" because the T-506 statusCounts are all-time.
    */
   draftAndFinalisedOrExportedValue: (a: number, b: number) =>
     `${a} draft, ${b} finalised or exported (all time)`,

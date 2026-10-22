@@ -36,7 +36,6 @@ jest.mock('@/components/PrivacyUpdatePrompt', () => ({
 }));
 jest.mock('@/components/VerifyEmailPrompt', () => ({
   ...jest.requireActual('@/components/VerifyEmailPrompt'),
-  isEmailVerificationRequired: async () => false,
   useNeedsEmailVerification: () => false,
 }));
 

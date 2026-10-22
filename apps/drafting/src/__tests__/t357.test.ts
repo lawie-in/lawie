@@ -24,7 +24,7 @@ jest.mock('fs', () => {
 import app from '../app';
 import logger from '../config/logger';
 import { AppSetting } from '../models/AppSetting.model';
-import { User } from '../models/User.model';
+import { createVerifiedUser } from './verifiedUser';
 import { _clearAppSettingsCache } from '../services/app-settings.service';
 import * as engine from '../services/template-engine.service';
 import { clearTemplateRegistryCache } from '../services/template-promoter';
@@ -193,7 +193,7 @@ describe('T-357 AC3: a template config throw is a 500, not a hang', () => {
   beforeEach(async () => {
     _clearAppSettingsCache();
     await AppSetting.create({ key: 'feature.describe_first', value: 'on' });
-    await User.create({
+    await createVerifiedUser({
       _id: USER_ID,
       plan: 'free',
       planTier: 'free',

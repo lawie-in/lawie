@@ -13,6 +13,7 @@ import {
   acceptPrivacyHandler,
   verifyEmailHandler,
   resendVerifyEmailHandler,
+  resendVerifyByEmailHandler,
   closeAccountHandler,
   changePasswordHandler,
   listSessionsHandler,
@@ -23,6 +24,8 @@ import { authenticate, authenticateAllowRevoked } from '../middleware/authentica
 
 const router = Router();
 
+// T-522 — neutral sign-up: 422 first, then the IP and email buckets (signup-rate-limit.ts), then
+// one padded 202 for a new and an existing address. No session.
 router.post('/register', register);
 router.post('/login', login);
 router.post('/refresh', refresh);
@@ -55,5 +58,8 @@ router.delete('/me', authenticate, closeAccountHandler);
 // live session (authenticate, like /me); the resend cap is enforced in requestVerifyEmail.
 router.post('/verify-email', verifyEmailHandler);
 router.post('/verify-email/resend', authenticate, resendVerifyEmailHandler);
+// T-522 (Arjun 5) — public, signed-out resend from the "Check your email" screen. Shares the
+// sign-up IP and email buckets (signup-rate-limit.ts); always the neutral 202, padded.
+router.post('/verify-email/resend-by-email', resendVerifyByEmailHandler);
 
 export default router;

@@ -84,7 +84,7 @@
       },
       {
         "id": "offences_alleged",
-        "label": "BNS / Special Act sections invoked (NOT IPC)",
+        "label": "Sections invoked in the FIR (BNS, IPC or Special Act, as registered)",
         "type": "textarea",
         "required": true
       },
@@ -228,12 +228,6 @@
       "name": "Affidavit in support",
       "required": true,
       "description": "Affidavit accompanying petition"
-    },
-    {
-      "id": "disclaimer",
-      "name": "Advocate Responsibility Disclaimer",
-      "required": true,
-      "description": "Standard Lawie disclaimer"
     }
   ],
   "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, the Petitioner most respectfully prays that this Hon'ble Court, in exercise of its inherent jurisdiction under Section 528 of the Bharatiya Nagarik Suraksha Sanhita, 2023, may graciously be pleased to:\n\na) Quash and set aside FIR No. {fir_number} dated {fir_date} registered at Police Station {police_station}, District {district}, State of {state}, for offences under {offences_alleged} of the Bharatiya Nyaya Sanhita, 2023 / {special_acts}, and all consequential proceedings arising therefrom including the chargesheet / cognizance order / pending proceedings in Case No. {case_number_below} pending before the Hon'ble Court of {court_taking_cognizance};\n\nb) Pending hearing and final disposal of this petition, stay further proceedings in the said case before the Court below;\n\nc) Pending hearing and final disposal of this petition, restrain the Respondents from arresting the Petitioner in connection with the said FIR;\n\nd) Award costs of this petition;\n\ne) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the Petitioner shall ever pray.",
@@ -267,7 +261,6 @@
       "Where pure money recovery / cheque dishonour / civil contract disputes given S.318 BNS (cheating) colour — cat 5 squarely applies.",
       "Where multiple FIRs on same incident: second FIR on same incident not permissible.",
       "Affidavit in support is mandatory.",
-      "Append Lawie disclaimer.",
       "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
@@ -309,7 +302,7 @@
       "sections": [
         {
           "number": "Various",
-          "description": "Substantive offence sections — use BNS numbers, not IPC. Common: S.85 (cruelty by husband — was IPC 498A); S.80 (dowry death — was IPC 304B); S.103(1) (murder — was IPC 302); S.115(2) (voluntarily causing hurt — was IPC 323); S.318(4) (cheating — was IPC 420); S.351 (criminal intimidation — was IPC 506)"
+          "description": "Substantive offence sections: BNS for an offence on or after 1 July 2024, IPC for an offence before that date."
         }
       ]
     },

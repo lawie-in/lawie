@@ -13,3 +13,13 @@
 
 ## Rules for every item
 Signed fix text is in the review file next to its item number (file:line, current text, signed fix). Paste it **byte for byte**; if a line has moved, find it by the current text. Anything unclear goes to the real Ajay (session_019mZoKeM2MTfCyV5HEZrqnZ), never invented. Files under `.claude/docs/legal-content-paths.md` come back to Ajay for a byte check at READY. Do not touch files held by another lead's claim row; wait for their merge or ask Priya.
+
+## Arjun (22 Oct 2026) — item 41: the "No Ink was used" contract
+
+**Contract.** SSE `error` events carry `inkReleased?: boolean`. **Absent or `false` = not confirmed.** `true` only when `releaseInk` returned success for this run — never inferred, never defaulted. Since every current emitter fires before or without that confirmation, **today every error event is sent without the field** (option 1). Option 2 — `release()` returns a status and the two route-level events set `inkReleased: true` when it succeeded — is the follow-up once Mahak's chain merges, and is the only way the line ever comes back.
+
+**Web (Tanvi, T-565, `generationFailure.ts`):** the Ink line is shown only when `inkReleased === true`; otherwise "The draft did not finish." + "Check your documents list to see where this draft stands." (Ajay confirms copy.) This also supersedes my T-521 rule ("show the line on any server error event except insufficient_ink") — that rule assumed the server knew; it does not.
+
+**`reason`.** Keep the field, but it is user-facing text: only strings from the signed `classifyLlmError` table or an Ajay-signed message; anything else is replaced by `''` and the internal text goes to the log with the runId. **`documents.routes.ts` ≈:976 (form-path 500 returning the raw internal message) is a defect and is fixed in T-567**: the body becomes the route's generic `Generation failed` shape, the message logged server-side only. If that line is outside Mahak's claim, Priya extends it for that one hunk.
+
+Tests: error events never carry `inkReleased: true` in v1 (assertion over all emitters); the 976 path returns the generic body; the web shows the Ink line only on `true`.

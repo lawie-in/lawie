@@ -244,3 +244,70 @@ With these, the old flow is fully signed. `describe_first` may still stay ON for
 | W8 | Not-started card, "Check the cost again" | Cut the notice (unsigned). Keep `Try again`, because nothing was charged. |
 | W9 | GeneratingStep.tsx:132 "Drafting your {documentName}" | `Writing your {documentName}…` |
 | W10 | "The draft could not start." twice on the hard-block card | Drop the step label, as proposed. |
+| W11 | Addendum 2 details (Tanvi) | Insert into a draft keeps the normal `§{n} {NewCode}`, and Addendum 2 governs Copy only. The search row stays as it is (the detail box carries `No equivalent in the {OldCode}`). New-provision rows show no `Mapped` badge. W8 extended: cut the unknown-cost notice and `Check the cost again` on every card (not-started, SoftWarn, request-failed). |
+| W12 | Pre-stream 401, 402 without data, 429, no body and read errors; greyed button with no reason | Generic `Something did not work. Try again.` + `Retry`: OK, because nothing started or was charged. The disabled button stays (AJ-511-M1: cost before generate). Signed reason line: `You can generate once the Ink cost is shown.` English only for now; Rajesh decides placement. |
+| W13 | CONNECTION_LOST; one status line; OneFlow fallback reasons | `Connection lost. Check your documents.` is signed (AJ-521-M1). A failed draft shows one status line, either `No Ink was used.` (only if inkReleased) or the documents line, never both. OneFlow :753, :791-793, :816, :886 show no reason (''), under `The draft did not finish.` + the 41b line. :745 (pre-start) uses `The draft could not start.` |
+
+### Answers to Shashank's batch 2 questions (T-566, 22 Oct)
+
+| Ref | Question | Ruling |
+|---|---|---|
+| S1 | Item 54 scope | The 14 criminal-category packs, **plus writ_petition_criminal**. maintenance_bnss_144, mact_claim, legal_notice_defamation and affidavit_identity get no item 54 line: their own lines (69, 57, 63, 62) govern. |
+| S2 | Whitelist heading and the "does not exist" sentence | Keep both. They speak only of BNS numbers. |
+| S3 | affidavit_identity "False statements in affidavits attract BNS Section 227 … same as IPC 191/192." | **Delete it** (item 62: no penal provision in the affidavit). |
+| S4 | discharge :250 (Nitya Dharmananda) | **Delete the whole line** (R2). The proposition cannot stand without the case, and rewriting it would add law (R5). |
+| S5 | Leftover topic fragments | Keep a fragment only if it is a complete proposition (e.g. "preventive detention requires strict compliance", "Article 136 not regular appeal"). Delete bare topic labels ("meaning of 'sufficient ground'.", "substantial question of law definition."). I check each one in the diff. |
+| S6 | habeas (f) tail | Delete the tail. The item reads `(f) Missing person with state action suspected.` |
+| S7 | slp change_protocol | Not intended. Signed: `Format STRICTLY per Supreme Court Rules 2013. All edits require CLO sign-off. Do not name judgments in model-visible text (Ajay, T-441).` |
+| S8 | "Suraj Lamp disclaimer" labels | Replace the label with `title clause` (e.g. "…— title clause must be inserted"). This is the deed's own clause that a GPA does not transfer title, not Lawie's disclaimer. |
+| S9 | Sample brand, invoice and addresses | `CoolDrink` becomes `SampleDrink`, the invoice `RKS/0042` becomes `SMP/0042`, and every street address becomes `Sample Road, Patna`. |
+| S10 | discharge checklist and gpa `_meta` | Checklist: `Court orders / judgments relied on`. gpa `_meta.change_protocol`: `The title clause must appear prominently…`, with the rest unchanged. |
+| S11 | Validator warning blocked by the missing offence date | Separate ticket after Mahak's merge, for the date scoping. **Now:** change the warning text to the signed `Check the code: Section {x} BNS replaced Section {y} IPC for an offence on or after 1 July 2024.` It is true whatever the offence date, so it may fire unscoped until then. "Use Section X BNS instead" must go now. |
+| S11a | Arjun's choice for the interim validator warning: suppress, or a neutral line | **Neutral line, not suppression.** It replaces my S11 interim text and is signed: `This draft cites Section {x} IPC. Confirm the offence date: BNS applies to offences on or after 1 July 2024, IPC to offences before that date.` Show it on any IPC citation, whatever the date, until the date-scoped follow-up lands. Then it gives way to the scoped item 54d warning. |
+
+### Byte check T-565 wave 2a, fix/t-565-legal-app-web @ 88c4aa8f: approved (Ajay, 22 Oct 2026)
+
+W5a, W6–W13, rows 42 and 48, and the pre-stream routing all match. No NEW-n id renders (the regexes and comments remain). The "Drafting could not finish" heading is gone (a comment only remains). `Cannot generate`, `Drafting your` and `No charge` are gone. **W14:** in the pre-generate cost line (`InkCostLine.tsx`), `We could not work out the Ink cost for this. Try again in a moment.` + button `Check the cost again` are **signed** there. They are a true, functional retry that serves AJ-511-M1. **On the GeneratingStep failure card, cut the notice**: W8 holds there, and the W12 line under the disabled button is enough. The OneFlow W13 lines follow after Vishal's merge.
+| W15 | Re-check at 91f7b777; the disabled button is a dead end if the cost never loads | **Approved at 91f7b777.** Only GeneratingStep changed, per W14. Dead end: the signed button `Check the cost again` (W14) **may** be reused, as a button only, on the GeneratingStep and PipelineStatus failure cards beside the W12 reason line, so the user can re-fetch the cost. No notice text is added. Whether to add it is Rajesh's or Priya's call. Legally either way is fine. |
+
+### Answers to Shashank's batch 3 flags (T-566 @ f5d340f5, 22 Oct)
+
+| Ref | Question | Ruling |
+|---|---|---|
+| S5a | Keeps and deletes | OK, except habeas line 1: delete the repeated "'habeas corpus is the great writ of liberty.'", because the sentence before it already says it. The other keeps and all four deletions stand. |
+| S8a | "title clause paragraph" | Drop "paragraph": `— title clause must be inserted` (gpa, spa). jda `— title clause required` is OK. |
+| S9a | Remaining sample places | Ranchi rent-agreement addresses become `Sample Road, Ranchi` (keep the state right). `Village Barh, Dist. Patna, Bihar – 803213` becomes `Sample Village, Dist. Patna, Bihar`. Bank branch becomes `Sample Branch, Patna`. In the s.138 sample, give the respondent `Sample Lane, Patna` so the two parties do not share an address. |
+| S11b | CrPC and IEA validator lines | Signed. CrPC: `This draft cites Section {x} CrPC. Confirm the date: BNSS applies to proceedings from 1 July 2024; CrPC continues for matters pending before that date.` IEA: `This draft cites Section {x} of the Evidence Act. Confirm the date: BSA applies from 1 July 2024; check whether the Evidence Act still governs this matter.` (The pending-matter savings under the BSA: verify, so the line does not state them.) Both replace the old "Use Section X … instead" and "Please verify" texts. |
+| S12 | gpa and spa `_meta.description` naming Suraj Lamp | Leave them. `_meta` is not sent to the model (R6), and only `change_protocol` was in scope. |
+
+## Byte check T-567, fix/t-567-legal-server-export @ 4189ce3e: approved (Ajay, 22 Oct 2026)
+
+- Item 23: `/cancel` no longer has `requireCurrentPrivacy`.
+- Item 52: SKU badges are removed.
+- Item 30: Word and PDF exports use `EXPORT_DISCLAIMER_FOOTER`, exact to row 30, or the starting-draft footer instead. Exactly one footer.
+- Item 24: the three T-221 lines are exact. {n} comes from Retry-After, rounded up, minimum 1. Both the account and public limiters use them. No upsell.
+- Item 41: every `classifyLlmError` case shows `The draft did not finish.`, with the detail in logs only. `inkReleased` is not set (the web shows no Ink line until the release is confirmed). "Inputs are saved", "brief is kept", "founder must set" and "contact support" are gone.
+- **Question:** the pre-stream 500 body `{ error: 'Generation failed', message: 'Unknown generation error' }`. **Drop the English `message` field.** Keep the machine `error` code only. The web shows its own signed text for a pre-stream failure (W12).
+
+### Answers to Tanvi's wave 2b questions (22 Oct)
+
+| Ref | Question | Ruling |
+|---|---|---|
+| B1 | Empty body from the drafting start (OneFlow ~:773) | OK: `The draft did not finish.` + the documents-list line, with no Ink claim. |
+| B2 | Dropped connection (OneFlow ~:837, ~:907) | OK: the signed `Connection lost. Check your documents.` alone (AJ-521-M1). It is accurate and makes no Ink claim. |
+| B3 | Coupon reasons (`topup-quote.service.ts` QUOTE_REASONS) shown in the top-up modal | **Signed as they are**, with one fix: `cannotApply` gets its full stop (`This coupon cannot be applied to this item.`). The others are signed: `Coupon not found or inactive.`, `Coupon has expired.`, `This coupon does not apply to the selected item.`, `Coupon has reached its usage limit.`, `You have already used this coupon.`. They are factual and come from the server's own checks. Any other raw billing text keeps row 45's generic line. |
+| B4 | Low-Ink nudge hidden unless verified (fails closed) | OK. Hiding it can never make a false statement. |
+| B5 | OneFlow pre-stream 409/429/401 and 403 | Align them with the old flow now. 409: the documents line, no Retry (W6). 429/401: `Something did not work. Try again.` + Retry (W12). Plan 403: replace "This document needs the Pro plan…" with `This document is not available on your current plan.` and no Retry (W7), even though the line is unreachable in v1. |
+- **T-567 follow-up at 4c8bddda: approved.** Both the pre-stream 500 (:981) and the hold-step `holdError` (:906) now return `{ error: 'Generation failed' }` only. No other change since 4189ce3e. T-567 is approved at 4c8bddda.
+
+## Byte check T-566, fix/t-566-legal-draft-text @ 18f7112c (base d92ad2e0): approved (Ajay, 22 Oct 2026)
+
+Scripted check of the signed strings (items 54, 55, 56, 58–63, 64 S line in 67 places, S11a/S11b validator lines, both filter phrases, S7 slp, S8 "title clause"): all present. No barred text remains in model-visible files: "NEVER reference old IPC", "court-ready legal document", "(never IPC)", "NOT IPC", "Cite <case>", "Use today's date format" and the sample personal names are all gone. Remaining hits are acceptable: `criminal_revision.json` (excluded, follow-up after T-472, which **must** apply items 64/65 there); key_citations lists in habeas, slp, discharge and plaint_declaration, and `_meta` descriptions (R6, not sent to the model); and the signed maintenance lines. **Answers:** (1) "Disclaimer slip — Lawie drafting assistance acknowledged" in ~36 filing checklists: **delete in a follow-up before main** (it tells the advocate to file a Lawie slip; same reason as 65b). Not blocking this merge. (2) The lower-case "any" in habeas: leave it. (3) Shared "Sample Road, Ranchi" in the rent sample: leave it for now. The script is never run, and each regenerated sample PDF comes to me before it is served, when it gets fixed.
+
+### Byte check T-565 wave 2b @ 1649d28a: approved with one fix (Ajay, 22 Oct 2026)
+
+TopUp errors, the coupon reasons (with the full stop), OneFlow's error routing (B1, B2, B5; insufficient_ink is the only server reason shown), the fail-closed low-Ink nudge, and the prefill cleared on sign-out, on sign-in and on read all match. The "Network error" hits are admin pages only, which is OK. **Fix (one line, no re-check):** `OneFlow.tsx:391` still says "This document needs the Pro plan. You can upgrade from Settings." Change it to `This document is not available on your current plan.` (B5/W7). **Button:** `Try again` on the OneFlow card is signed; it is the same meaning as `Retry`. **Multi-tab prefill gap:** accepted for v1 (one browser, same device). Store the prefill with the owner's user id in v1.1.
+
+## Byte check T-559, fix/t-559-privacy-address @ 828bcaf2: approved (Ajay, 22 Oct 2026)
+
+The footer3 line `Help, data and privacy requests: contact@lawie.in` is exact in verifyEmail, unverifiedDeletionNotice (both variants), passwordReset and taxInvoice. creditNote inherits it. Both body lines are exact. `privacy@` remains only in two code comments, and a test now fails on privacy@ in source or in any rendered mail. **Superseded:** any privacy@lawie.in in earlier signed handoff files (T-223-verify-email-signed.md, dpdp-v1-calls-signed.md, the copy files) is replaced by contact@lawie.in under AJ-517-M15 and AJ-559-M1. Those files stay as history.

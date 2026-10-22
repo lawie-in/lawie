@@ -29,6 +29,7 @@ jest.mock('next/link', () => ({
 }));
 jest.mock('@/components/credits/PaywallModal', () => ({ PaywallModal: () => null }));
 jest.mock('@/components/VerifyEmailPrompt', () => ({
+  openVerifyIfDraftRefused: async () => false,
   openVerifyInsteadOfPaywall: async () => false,
 }));
 
@@ -237,13 +238,17 @@ describe('OneFlow SSE done event and the Ink balance', () => {
     await toBrief(2);
     await confirm(sse([ev('error', { reason: 'Boom', retryable: true })]));
     expect(mockNotify).not.toHaveBeenCalled();
-    expect(container.textContent).toContain('Boom');
+    // review round 2: an error event's reason is never shown (only insufficient_ink's).
+    expect(container.textContent).toContain('The draft did not finish.');
+    expect(container.textContent).not.toContain('Boom');
   });
 
   it('does not call it when the stream is lost before done', async () => {
     await toBrief(2);
     await confirm(sse([ev('warning', { warnings: [] })]));
     expect(mockNotify).not.toHaveBeenCalled();
-    expect(container.textContent).toContain('connection was lost');
+    // T-565 W13: the signed line alone; the old prose reason is gone.
+    expect(container.textContent).toContain('Connection lost. Check your documents.');
+    expect(container.textContent).not.toContain('connection was lost');
   });
 });

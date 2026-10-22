@@ -36,6 +36,7 @@ jest.mock('@/components/credits/PaywallModal', () => ({
   },
 }));
 jest.mock('@/components/VerifyEmailPrompt', () => ({
+  openVerifyIfDraftRefused: async () => false,
   openVerifyInsteadOfPaywall: async () => false,
 }));
 
@@ -179,17 +180,23 @@ describe('OneFlow 402 without a finite cost (T-388, was `cost ?? 1`)', () => {
     ['a null cost', { cost: null }],
     ['a zero cost', { cost: 0 }],
     ['a string cost', { cost: 'lots' }],
-  ])('does not open the paywall with %s, and shows the service message', async (_n, extra) => {
-    await toBrief(2);
-    mockPrivacyFetch.mockResolvedValue(
-      jsonRes(402, { message: 'Not enough Ink for this.', balance: { totalInk: 0 }, ...extra }),
-    );
-    await act(async () => buttonWith('Confirm brief and continue')?.click());
-    await flush();
-    expect(mockPaywall).not.toHaveBeenCalled();
-    expect(container.querySelector('[data-testid="paywall"]')).toBeNull();
-    expect(container.textContent).toContain('Not enough Ink for this.');
-  });
+  ])(
+    'does not open the paywall with %s, and shows the generic line with Try again, never the service message',
+    async (_n, extra) => {
+      await toBrief(2);
+      mockPrivacyFetch.mockResolvedValue(
+        jsonRes(402, { message: 'Not enough Ink for this.', balance: { totalInk: 0 }, ...extra }),
+      );
+      await act(async () => buttonWith('Confirm brief and continue')?.click());
+      await flush();
+      expect(mockPaywall).not.toHaveBeenCalled();
+      expect(container.querySelector('[data-testid="paywall"]')).toBeNull();
+      // review round 2 (2): refusedStartError(402), no server text, nothing on the brief.
+      expect(container.textContent).toContain('Something did not work. Try again.');
+      expect(container.textContent).not.toContain('Not enough Ink for this.');
+      expect(buttonWith('Try again')).toBeDefined();
+    },
+  );
 
   it('opens the paywall with the server cost and balance when the cost is a finite number above 0', async () => {
     await toBrief(2);
@@ -210,7 +217,8 @@ describe('OneFlow Ink cost under Confirm and under Try again is the same number'
     await toBrief(2);
     expect(costLines().map((p) => p.textContent)).toEqual(['Uses 2 Ink']);
     await confirm(failedStream());
-    expect(container.textContent).toContain('Boom');
+    expect(container.textContent).toContain('The draft did not finish.');
+    expect(container.textContent).not.toContain('Boom');
     expect(costLines().map((p) => p.textContent)).toEqual(['Uses 2 Ink']);
     const retry = container.querySelector('button[aria-describedby="generating-retry-ink-cost"]');
     expect((retry as HTMLButtonElement).disabled).toBe(false);
@@ -241,7 +249,7 @@ describe('OneFlow Ink cost under Confirm and under Try again is the same number'
 });
 
 describe('OneFlow Try again when the cost cannot be known', () => {
-  it('unknown cost on the failed screen: Try again is disabled, notice shown, nothing is sent', async () => {
+  it('unknown cost on the failed screen: Try again is disabled behind the reason line, no notice, nothing is sent', async () => {
     await toBrief(2);
     await confirm(failedStream());
     // The list is refetched and now carries no cost for this kind.
@@ -256,15 +264,16 @@ describe('OneFlow Try again when the cost cannot be known', () => {
     expect(retry.disabled).toBe(true);
     expect(retry.getAttribute('aria-disabled')).toBe('true');
     expect(container.querySelector('#generating-retry-ink-cost')?.textContent).toBe(
-      INK_COST_UNKNOWN,
+      'You can generate once the Ink cost is shown.',
     );
+    expect(container.textContent).not.toContain(INK_COST_UNKNOWN);
     mockPrivacyFetch.mockClear();
     await act(async () => retry.click());
     await flush();
     expect(mockPrivacyFetch).not.toHaveBeenCalled();
   });
 
-  it('the notice "Check the cost again" link asks the page to fetch the cost again', async () => {
+  it('no "Check the cost again" link on the failed screen; nothing asks the page for the cost', async () => {
     await toBrief(2);
     await confirm(failedStream());
     await act(async () => {
@@ -272,11 +281,12 @@ describe('OneFlow Try again when the cost cannot be known', () => {
         <OneFlow kinds={kinds(undefined)} loadingKinds={false} onInkCostRetry={onInkCostRetry} />,
       );
     });
-    const costRetry = Array.from(container.querySelectorAll('button')).find(
-      (b) => b.textContent === INK_COST_RECHECK && !b.hasAttribute('aria-describedby'),
-    ) as HTMLButtonElement;
-    await act(async () => costRetry.click());
-    expect(onInkCostRetry).toHaveBeenCalledTimes(1);
+    expect(
+      Array.from(container.querySelectorAll('button')).filter(
+        (b) => b.textContent === INK_COST_RECHECK,
+      ),
+    ).toHaveLength(0);
+    expect(onInkCostRetry).not.toHaveBeenCalled();
   });
 
   it('loading: Try again is disabled behind a status line', async () => {

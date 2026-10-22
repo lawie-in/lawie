@@ -758,6 +758,9 @@ const CLAUSE_TO_PART: Array<{ clause: RegExp; part: RegExp }> = [
   { clause: /recital/i, part: /^recitals$/ },
   // T-136: the warning of prosecution stands in the demand the system adds.
   { clause: /prosecution[\s_-]*warning/i, part: /^demand_clause$/ },
+  // T-472: the computed limitation paragraph is a section the system prints
+  // (only on a pack whose limitation is computed; no other pack has the part).
+  { clause: /^limitation_paragraph\b/i, part: /^limitation_paragraph$/ },
 ];
 
 /** True when the system did add the part this clause belongs to. */
@@ -2645,18 +2648,27 @@ export function withoutDisclaimers(text: string): string {
       if (/^(?:DISCLAIMER|NOTE)\s*:/i.test(t)) return false;
       if (/AI[\s-]assisted draft/i.test(t)) return false;
       if (/Lawie does not provide legal advice/i.test(t)) return false;
+      // T-566 (item 65, Ajay's review 22 Oct; ruling 65e): safety net for the
+      // old pack disclaimers.
+      if (/Lawie is a drafting assistant/i.test(t)) return false;
+      if (/Lawie is not legal counsel/i.test(t)) return false;
       return true;
     })
     .join('\n\n')
     .trim();
 }
 
-/** A line that is the disclaimer the system adds itself (SCRUM-62). */
+/**
+ * A line that is the disclaimer the system adds itself (SCRUM-62), or the old
+ * pack disclaimer (T-566 ruling 65e).
+ */
 function isDisclaimer(text: string): boolean {
   return (
     /AI[\s-]assisted draft/i.test(text) ||
     /^DISCLAIMER\s*:/i.test(text) ||
-    /Lawie does not provide legal advice/i.test(text)
+    /Lawie does not provide legal advice/i.test(text) ||
+    /Lawie is a drafting assistant/i.test(text) ||
+    /Lawie is not legal counsel/i.test(text)
   );
 }
 

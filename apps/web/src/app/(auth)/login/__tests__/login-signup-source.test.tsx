@@ -118,8 +118,9 @@ describe('Create account request (email)', () => {
     );
     const fetchMock = jest.fn().mockResolvedValue({
       ok: true,
-      status: 201,
-      json: async () => ({ data: { accessToken: 'a', refreshToken: 'r', user: {} } }),
+      status: 202,
+      headers: { get: () => null },
+      json: async () => ({ status: 'success', data: { status: 'check_email' } }),
     });
     global.fetch = fetchMock as unknown as typeof fetch;
     await mount('mode=signup&ref=abc12');
@@ -149,6 +150,11 @@ describe('Create account request (email)', () => {
       utmCampaign: 'launch',
       referralCode: 'ABC12',
     });
+    // T-522 (Arjun ruling 1): any 202 is the neutral "Check your email" screen (AJ-522-M2).
+    expect(document.body.textContent).toContain('Check your email');
+    expect(document.body.textContent).toContain(
+      "We've sent a link to new.person@example.com. Open it to continue.",
+    );
     expect(window.sessionStorage.getItem(SIGNUP_SOURCE_STORAGE_KEY)).toBeNull();
     expect(window.sessionStorage.getItem('lawie_referral_code')).toBeNull();
     expect(window.localStorage.getItem('lawie_referral_code')).toBeNull();

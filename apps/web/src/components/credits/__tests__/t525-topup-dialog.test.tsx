@@ -19,8 +19,8 @@ jest.mock('@/components/PrivacyUpdatePrompt', () => ({
   onPrivacyAccepted: () => () => {},
 }));
 jest.mock('@/components/VerifyEmailPrompt', () => ({
+  openVerifyIfDraftRefused: async () => false,
   VerifyEmailCard: () => null,
-  isEmailVerificationRequired: async () => false,
   useNeedsEmailVerification: () => false,
 }));
 
@@ -240,12 +240,14 @@ describe('T-525 top-up dialog: Razorpay Checkout', () => {
     await mount();
     await pay();
     expect(dialogEl()).not.toBeNull();
-    expect(document.body.textContent).toContain('Network error');
+    // T-565 item 45: the signed generic line with Retry, never the raw "Network error".
+    expect(document.body.textContent).not.toContain('Network error');
     const alert = Array.from(document.body.querySelectorAll('[role="alert"]')).find((n) =>
-      n.textContent?.includes('Network error'),
+      n.textContent?.includes('Something did not work. Try again.'),
     );
     expect(alert).toBeDefined();
-    expect(alert?.tagName).toBe('P');
+    expect(alert?.querySelector('p')?.textContent).toBe('Something did not work. Try again.');
+    expect(alert?.querySelector('button')?.textContent).toBe('Retry');
   });
 
   it('the order is for the selected pack (Mid by default)', async () => {

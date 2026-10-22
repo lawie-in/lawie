@@ -26,6 +26,7 @@ import {
   useShelfDocuments,
 } from '@/components/dashboard/useDashboardData';
 import { ErrorState, STILL_WORKING_AFTER_MS } from '@/components/ui';
+import { ReferralNotAppliedNotice } from '@/components/VerifyEmailPrompt';
 import { useAuth } from '@/context/AuthContext';
 import { useCredits } from '@/hooks/useCredits';
 import { cn } from '@/lib/cn';
@@ -161,6 +162,9 @@ export default function DashboardPage() {
         </h1>
         {today ? <p className="nl-body-sm text-nl-muted m-0">{today}</p> : null}
       </header>
+
+      {/* T-522 (AJ-522-S3): the one-time "code not applied" line, after verification only. */}
+      <ReferralNotAppliedNotice />
 
       {/* T-524: no Ctrl/Cmd+K focus jump behind the top-up modal (it has no focus trap). */}
       <DashboardCommandBar hotkeySuspended={topUpOpen} />

@@ -73,3 +73,5 @@ Design read of the web diff, with the decisions above folded into the sections t
 5. Verify bar above `OfflineBanner`: yes, as section 2 asks.
 
 Design verdict: READY once item 1 is in. Tests are the tester's; nothing here depends on them.
+
+Addendum, 22 Oct (2b817262): the Settings/Plan panel's own "Verify your email to subscribe" banner is removed; the M3 bar is the one persistent banner and it is already on that page. Subscribe stays enabled and the M6 dialog answers the 403. The header `Top up` button opens the top-up dialog as before; the M6 refusal comes at `Buy` inside it, stacked above the top-up dialog, and `Not now` returns focus to `Buy`. Opening M6 from the header button itself is not in v1.

@@ -4,7 +4,10 @@
  * one-flow describe step reads it once, removes it and prefills the textarea.
  * It is never submitted on its own, and the value is never logged.
  */
-export const DRAFT_PREFILL_KEY = 'lawie:draft-prefill';
+import { DRAFT_PREFILL_KEY } from '@/lib/draftPrefill';
+
+// Re-exported for existing imports; the one definition is in lib/draftPrefill.ts.
+export { DRAFT_PREFILL_KEY };
 
 export const INITIAL_PREFILL_MAX = 500;
 

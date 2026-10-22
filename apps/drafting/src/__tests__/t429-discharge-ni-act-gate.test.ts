@@ -157,6 +157,11 @@ describe('T-429 A: niS138Charged', () => {
   });
 });
 
+// T-566 (Ajay items 64/R1, ruling 64d): the case name "S.M.S. Pharmaceuticals" was removed from
+// the model-visible Para 10 line, which now reads as the bare proposition. The Para 10 NI Act
+// text is identified by its own wording; the gate is asserted on it exactly as before.
+const PARA10_MARKER = "director must be 'in charge of and responsible to' company";
+
 // ── B ────────────────────────────────────────────────────────────────────
 describe('T-429 B: packForCharge on the real discharge pack', () => {
   it('premise: the real pack has one NI Act entry (S.138, S.141) and one Para 10 NI line', () => {
@@ -164,7 +169,7 @@ describe('T-429 B: packForCharge on the real discharge pack', () => {
     expect(niActs(p)).toHaveLength(1);
     expect(niActs(p)[0].sections.map((s) => s.number)).toEqual(['S.138', 'S.141']);
     expect(para10(p)).toHaveLength(1);
-    expect(para10(p)[0]).toContain('S.M.S. Pharmaceuticals');
+    expect(para10(p)[0]).toContain(PARA10_MARKER);
   });
 
   const NO_CHARGE: Array<[string, unknown]> = [
@@ -327,11 +332,11 @@ describe('T-429 C: the prompt renderers with the gated pack', () => {
     });
 
     it.each([BNS_ONLY, '', '[To be confirmed: x]', '{{MISSING: x}}'])(
-      'charge %j: no NI Act, no S.M.S. Pharmaceuticals, no Para 10 text, other content kept',
+      'charge %j: no NI Act, no Para 10 text, other content kept',
       (charge) => {
         const text = render(packForCharge(dischargePack(), { offences_charged: charge }));
         expect(text).not.toContain('Negotiable Instruments');
-        expect(text).not.toContain('S.M.S. Pharmaceuticals');
+        expect(text).not.toContain(PARA10_MARKER);
         expect(text).not.toContain('Neeta Bhalla');
         expect(text).not.toContain('NI Act');
         expect(text).toContain('Bharatiya Nagarik Suraksha Sanhita');
@@ -353,8 +358,8 @@ describe('T-429 C: the prompt renderers with the gated pack', () => {
     const off = buildDrafterUserPrompt(
       drafterInput(packForCharge(dischargePack(), { offences_charged: BNS_ONLY })),
     );
-    expect(on).toContain('S.M.S. Pharmaceuticals');
-    expect(off).not.toContain('S.M.S. Pharmaceuticals');
+    expect(on).toContain(PARA10_MARKER);
+    expect(off).not.toContain(PARA10_MARKER);
   });
 });
 
@@ -453,14 +458,14 @@ describe('T-429 D: end to end with a stubbed model', () => {
       const text = await briefPromptsFor(c);
       expect(mockMessagesStream).toHaveBeenCalled();
       expect(text).not.toContain('Negotiable Instruments');
-      expect(text).not.toContain('S.M.S. Pharmaceuticals');
+      expect(text).not.toContain(PARA10_MARKER);
     });
 
     it.each([BNS_ONLY, undefined])('ledger path, charge %j: no NI Act', async (c) => {
       const text = await briefPromptsFor(c, true);
       expect(mockMessagesStream).toHaveBeenCalled();
       expect(text).not.toContain('Negotiable Instruments');
-      expect(text).not.toContain('S.M.S. Pharmaceuticals');
+      expect(text).not.toContain(PARA10_MARKER);
     });
 
     it.each(['S.138 NI Act', S138_CHARGE])('charge %j: the prompt has the NI Act', async (c) => {
@@ -480,7 +485,7 @@ describe('T-429 D: end to end with a stubbed model', () => {
         const text = await templatePromptsFor(c);
         expect(mockMessagesStream).toHaveBeenCalled();
         expect(text).not.toContain('Negotiable Instruments');
-        expect(text).not.toContain('S.M.S. Pharmaceuticals');
+        expect(text).not.toContain(PARA10_MARKER);
       },
     );
 
@@ -488,7 +493,7 @@ describe('T-429 D: end to end with a stubbed model', () => {
       const text = await templatePromptsFor(c);
       expect(mockMessagesStream).toHaveBeenCalled();
       expect(text).toContain('Negotiable Instruments');
-      expect(text).toContain('S.M.S. Pharmaceuticals');
+      expect(text).toContain(PARA10_MARKER);
     });
 
     it('the registry config is not changed by a gated run', async () => {
@@ -605,8 +610,8 @@ const REV_INSTR_DRAFT =
   "Draft a Criminal Revision Petition under S.438 BNSS (calling for records; was S.397 CrPC) read with S.440 BNSS (Sessions Judge's powers of revision; was S.399 CrPC) or S.442 BNSS (High Court's powers of revision; was S.401 CrPC).";
 const REV_INSTR_BNSS =
   "BNSS provisions: S.438 — the High Court or a Sessions Judge may call for and examine the record; S.440 — Sessions Judge's powers of revision; S.441 — powers of an Additional Sessions Judge; S.442 — High Court's powers of revision; S.443 — High Court's power to withdraw or transfer revision cases.";
-const REV_INSTR_PARA6 =
-  'Para 6: Whether appeal lay — where an appeal lies and none was brought, no revision at the instance of the party who could have appealed (S.442 BNSS; was S.401(4) CrPC); revision is residual.';
+const REV_INSTR_PARA5 =
+  'Para 5: Whether appeal lay — where an appeal lies and none was brought, no revision at the instance of the party who could have appealed (S.442 BNSS; was S.401(4) CrPC); revision is residual.';
 const REV_INSTR_FORUM =
   'Choice of forum: Where the impugned order is by a Magistrate — revision lies to the Sessions Judge (S.438 read with S.440 BNSS) or to the High Court (S.438 read with S.442 BNSS), not both (S.438(3) BNSS). Where the impugned order is by a Sessions Court — revision lies to the High Court. Strategic — Sessions revision may be quicker; the High Court also has inherent powers (S.528 BNSS).';
 
@@ -637,7 +642,7 @@ describe('T-429 F: criminal_revision signed strings (c55d390)', () => {
   it.each([
     ['Draft a Criminal Revision Petition', REV_INSTR_DRAFT],
     ['BNSS provisions', REV_INSTR_BNSS],
-    ['Para 6', REV_INSTR_PARA6],
+    ['Para 5', REV_INSTR_PARA5],
     ['Choice of forum', REV_INSTR_FORUM],
   ])('instruction "%s" is the signed text, once', (_n, text) => {
     expect(raw().prompt_context.promptInstructions.filter((l) => l === text)).toHaveLength(1);
@@ -649,7 +654,7 @@ describe('T-429 F: criminal_revision signed strings (c55d390)', () => {
 
   it('the loaded pack carries the same four instructions', () => {
     const loaded = loadRulePack('criminal_revision') as RulePack;
-    for (const t of [REV_INSTR_DRAFT, REV_INSTR_BNSS, REV_INSTR_PARA6, REV_INSTR_FORUM]) {
+    for (const t of [REV_INSTR_DRAFT, REV_INSTR_BNSS, REV_INSTR_PARA5, REV_INSTR_FORUM]) {
       expect(loaded.draftingInstructions).toContain(t);
     }
   });

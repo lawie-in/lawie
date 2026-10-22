@@ -9,7 +9,11 @@ import { listTemplates } from '../templates';
 import { VERIFY_EMAIL_STRINGS } from '../templates/auth/verifyEmail';
 import { templateHasUnfilledFooter, anyTemplateUnfilled } from '../placeholders';
 
-import { INVOICE_SENTINEL_FIELDS, renderReal } from './helpers/t223-real-render';
+import {
+  INVOICE_SENTINEL_FIELDS,
+  SIGNUP_ATTEMPT_SENTINEL_FIELDS,
+  renderReal,
+} from './helpers/t223-real-render';
 
 const SIGNED_FOOTER = 'Lawie (Sole Proprietorship), Ranchi, Jharkhand';
 const USER_ID = '64b7f0c2a1b2c3d4e5f60718';
@@ -25,6 +29,8 @@ const SENTINEL = {
   deletionDate: '21 October 2026',
   // billing.taxInvoice / billing.creditNote (T-436 b/c) refuse to render without these.
   ...INVOICE_SENTINEL_FIELDS,
+  // auth.signupAttempt (T-522) refuses to render without its two page links.
+  ...SIGNUP_ATTEMPT_SENTINEL_FIELDS,
 };
 
 // T-221: auth.passwordReset refuses data without its own variant, so the sweep feeds it the data
@@ -62,9 +68,7 @@ describe('auth.verifyEmail footer (Ajay, byte-exact)', () => {
     expect(VERIFY_EMAIL_STRINGS.footer2).toBe(
       'You are receiving this because this address was used to create a Lawie account.',
     );
-    expect(VERIFY_EMAIL_STRINGS.footer3).toBe(
-      'Help: contact@lawie.in · Data and privacy requests: privacy@lawie.in',
-    );
+    expect(VERIFY_EMAIL_STRINGS.footer3).toBe('Help, data and privacy requests: contact@lawie.in');
     expect(VERIFY_EMAIL_STRINGS.footer4).toBe(
       'Privacy Policy: https://lawie.in/privacy · Terms: https://lawie.in/terms',
     );
