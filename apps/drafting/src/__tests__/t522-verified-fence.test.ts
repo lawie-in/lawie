@@ -17,6 +17,7 @@ import request from 'supertest';
 import app from '../app';
 import { LawieDocument } from '../models/Document.model';
 import { User } from '../models/User.model';
+import { GOLDEN_SET_USER_ID } from '../services/run-origin';
 import { encrypt } from '../utils/encryption';
 import { createVerifiedUser } from './verifiedUser';
 
@@ -289,4 +290,31 @@ describe('T-522 requireVerifiedEmail — routes that stay open to an unverified 
       expect(res.body.error).not.toBe(FENCE);
     },
   );
+});
+
+describe('T-522 requireVerifiedEmail — golden-set fixture user (Arjun ruling (a), T-147e)', () => {
+  // Empty bodies: the request stops at validation or a guard after the fence, so no model is called.
+  it.each(FENCED)('POST %s passes the fence with no User.findById call', async (path) => {
+    const findById = jest.spyOn(User, 'findById');
+    const res = await request(app)
+      .post(path)
+      .set(headers({ 'x-user-id': GOLDEN_SET_USER_ID }))
+      .send({});
+    expect(res.status).not.toBe(403);
+    expect(res.status).not.toBe(503);
+    expect(res.body.error).not.toBe(FENCE);
+    expect(findById).not.toHaveBeenCalled();
+  });
+
+  it('the fixture user has no users row (T-147e stands)', async () => {
+    expect(await User.countDocuments({ _id: GOLDEN_SET_USER_ID })).toBe(0);
+  });
+
+  it.each(FENCED)('POST %s -> 403 for a non-fixture user with no row', async (path, body) => {
+    const findById = jest.spyOn(User, 'findById');
+    const res = await request(app).post(path).set(headers()).send(body);
+    expect(res.status).toBe(403);
+    expect(res.body).toEqual({ error: FENCE });
+    expect(findById).toHaveBeenCalled();
+  });
 });

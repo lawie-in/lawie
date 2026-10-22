@@ -2,7 +2,7 @@
 // Makes this file a module so its top-level names do not clash with other test files under tsc.
 export {};
 // T-223 AC4, reworked for T-522 — the verify bar (not dismissible), the draft refusal dialog
-// (M6), the checkout card, the S3 referral notice. Landing states: app/verify-email/__tests__.
+// (M6, Draft, Top-up and Subscribe), the S3 referral notice. Landing states: app/verify-email/__tests__.
 // Mounted with react-dom/client. The component keeps module-level state, so every test loads a
 // fresh copy (jest.resetModules, then dynamic imports; no require).
 import * as fs from 'fs';
@@ -26,8 +26,8 @@ const S = {
   modalBody: 'Verify your email to start drafting. We sent a link to a***@example.com.', // AJ-522-M6
   notNow: 'Not now', // AJ-522-S14
   referral: 'Your referral code was not valid, so no bonus Ink was added.', // AJ-522-S3
-  checkoutTitle: 'Verify your email before you buy',
-  checkoutBody: 'We sent a link to a***@example.com. Verify your email, then come back to buy Ink.',
+  topupBody: 'Verify your email to buy Ink.', // AJ-522-M6 Top-up
+  subscribeBody: 'Verify your email to subscribe.', // AJ-522-M6 Subscribe
   // The T-223 lines that AJ-522-M3 and M6 replaced: they must never render again.
   oldBanner:
     'Verify your email. You need it to receive your 5 sign-up Ink and to buy Ink. We sent a link to a***@example.com.',
@@ -640,7 +640,7 @@ describe('T-522 — the S3 referral notice (AJ-522-S3)', () => {
   });
 });
 
-describe('T-223 trigger 3 (kept) — checkout', () => {
+describe('T-522 — M6 Top-up and Subscribe refusals (AJ-522-M6, Rajesh §3)', () => {
   const PLANS = {
     body: {
       topups: [
@@ -650,88 +650,234 @@ describe('T-223 trigger 3 (kept) — checkout', () => {
     },
   };
   const ORDER = '/api/billing/topup/order';
-  const PAY = 'Buy';
+  const SUBSCRIBE = '/api/billing/subscribe';
+  const BUY = 'Buy';
+  const FENCE_403 = { status: 403, body: { error: 'email_verification_required' } };
 
-  async function topUpEls(withPrompt: boolean) {
+  async function topUpEls() {
     const { TopUpModal } = await import('../credits/TopUpModal');
-    const Privacy = (await import('../PrivacyUpdatePrompt')).default;
     const R = h.React;
     return R.createElement(
       'div',
       null,
       R.createElement('main', { id: 'dashboard-main', tabIndex: -1 }),
-      withPrompt ? R.createElement(h.mod.default) : R.createElement(Privacy),
+      R.createElement(h.mod.default),
       R.createElement(TopUpModal, { onClose: jest.fn() }),
     );
   }
-  const card = () =>
-    document.querySelector('section[aria-labelledby="verify-checkout-title"]') as HTMLElement;
+  async function subscribeEls() {
+    const { useSubscribe } = await import('../billing/useSubscribe');
+    const R = h.React;
+    function Plans(): any {
+      const gst = { ensureReady: async () => true } as any;
+      const sub = useSubscribe(gst);
+      return R.createElement(
+        'div',
+        null,
+        R.createElement(
+          'button',
+          {
+            id: 'choose',
+            disabled: sub.pendingPlanId !== null,
+            onClick: () => sub.subscribe('solo_monthly'),
+          },
+          'Choose',
+        ),
+        sub.failedPlanId ? R.createElement('p', { id: 'failed' }, 'FAILED') : null,
+      );
+    }
+    return R.createElement(
+      'div',
+      null,
+      R.createElement('main', { id: 'dashboard-main', tabIndex: -1 }),
+      R.createElement(h.mod.default),
+      R.createElement(Plans),
+    );
+  }
+  // The M6 dialog by its title, so a stacked top-up dialog is never mistaken for it.
+  const m6 = () =>
+    Array.from(document.querySelectorAll('[role="dialog"]')).find(
+      (d) => d.querySelector('h2')?.textContent === S.modalTitle,
+    ) as HTMLElement | undefined;
+  const select = () => document.body.querySelector('select') as HTMLSelectElement;
 
   beforeEach(() => {
     handlers['/api/billing/plans'] = PLANS;
+    handlers[ME] = { body: { data: { needsPrivacyAcceptance: false, gstStateCode: '07' } } };
   });
 
-  it('billing 403 email_verification_required replaces Pay with the card; the total stays', async () => {
-    handlers[ME] = { body: { data: { needsPrivacyAcceptance: false, gstStateCode: '07' } } };
-    handlers[ORDER] = { status: 403, body: { error: 'email_verification_required' } };
-    await h.mount(await topUpEls(false));
-    expect(byText(PAY)).toBeDefined();
-    await h.click(byText(PAY) as Element);
-    expect(byText(PAY)).toBeUndefined();
-    expect(card()).not.toBeNull();
-    expect(card().querySelector('h2')?.textContent).toBe(S.checkoutTitle);
-    expect(card().querySelector('p')?.textContent).toBe(S.checkoutBody);
-    expect(byText(S.resend, card())).toBeDefined();
-    expect(document.body.textContent).toContain('₹249');
+  it('a top-up 403 email_verification_required opens M6 with the Top-up body; Buy stays enabled; pack, coupon and State are kept', async () => {
+    handlers['/api/billing/validate-coupon/SAVE10?skuId=topup_mini'] = {
+      body: { valid: true, code: 'SAVE10', discountInr: 10, finalPriceInr: 89 },
+    };
+    handlers[ORDER] = FENCE_403;
+    await h.mount(await topUpEls());
+    const pack = Array.from(document.querySelectorAll('button[aria-pressed]')).find((b) =>
+      (b.textContent ?? '').includes('₹99'),
+    ) as HTMLElement;
+    await h.click(pack);
+    const input = document.querySelector('input[type="text"]') as HTMLInputElement;
+    await h.act(async () => {
+      const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
+      set?.call(input, 'SAVE10');
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await h.click(byText('Apply') as Element);
+    expect(document.body.textContent).toContain('SAVE10');
+    expect(select().value).toBe('07');
+
+    await h.click(byText(BUY) as Element);
+    const d = m6() as HTMLElement;
+    expect(d).toBeDefined();
+    expect(d.querySelector('h2')?.textContent).toBe(S.modalTitle);
+    expect(d.textContent).toContain(S.topupBody);
+    expect(d.textContent).not.toContain(S.subscribeBody);
+    expect(byText(S.resend, d)).toBeDefined();
+    expect(byText(S.notNow, d)).toBeDefined();
     expect(document.body.textContent).not.toContain('email_verification_required');
-    expect(document.body.textContent).not.toContain(FULL_EMAIL);
+    // Buy stays enabled and the choices survive.
+    expect((byText(BUY) as HTMLButtonElement).disabled).toBe(false);
+    expect(byText(BUY)?.hasAttribute('disabled')).toBe(false);
+    expect(select().value).toBe('07');
+    expect(document.body.textContent).toContain('SAVE10');
+    expect(
+      Array.from(document.querySelectorAll('button[aria-pressed="true"]')).map(
+        (b) => b.textContent,
+      ),
+    ).toEqual([expect.stringContaining('₹99')]);
+    expect(document.body.textContent).toContain('₹89');
+    expect(mockRouterPush).not.toHaveBeenCalled();
+    expect(mockRouterReplace).not.toHaveBeenCalled();
   });
 
-  it('the checkout card resend uses the M4 sent line', async () => {
-    handlers[ME] = ME_UNVERIFIED;
-    handlers[RESEND] = { status: 202, body: {} };
-    await h.mount(await topUpEls(true));
-    expect(card()).not.toBeNull();
-    await h.click(byText(S.resend, card()) as Element);
-    expect(card().querySelector('[role="status"]')?.textContent).toBe(S.sent);
+  it('the top-up M6: Not now gets first focus', async () => {
+    handlers[ORDER] = FENCE_403;
+    await h.mount(await topUpEls());
+    await h.click(byText(BUY) as Element);
+    const d = m6() as HTMLElement;
+    expect(d).toBeDefined();
+    expect(document.activeElement).toBe(byText(S.notNow, d));
   });
 
-  it('the checkout card resend: 429 shows the M4 wait line and aria-disabled, never disabled', async () => {
-    handlers[ME] = ME_UNVERIFIED;
-    handlers[RESEND] = { status: 429, body: { retryAfter: 90 } };
-    await h.mount(await topUpEls(true));
-    await h.click(byText(S.resend, card()) as Element);
-    expect(card().querySelector('[role="status"]')?.textContent).toBe(S.wait);
-    const btn = byText(S.resend, card()) as HTMLButtonElement;
-    expect(btn.getAttribute('aria-disabled')).toBe('true');
-    expect(btn.hasAttribute('disabled')).toBe(false);
-    await h.click(btn);
-    expect(resendPosts()).toHaveLength(1);
+  it('the top-up M6 closes with Not now and Buy can be pressed again', async () => {
+    handlers[ORDER] = FENCE_403;
+    await h.mount(await topUpEls());
+    await h.click(byText(BUY) as Element);
+    await h.click(byText(S.notNow, m6() as HTMLElement) as Element);
+    expect(m6()).toBeUndefined();
+    await h.click(byText(BUY) as Element);
+    expect(m6()).toBeDefined();
+    expect(calls.filter((c) => c.path === ORDER)).toHaveLength(2);
   });
 
-  it('the checkout card resend: a failure shows the S8 line', async () => {
-    handlers[ME] = ME_UNVERIFIED;
-    handlers[RESEND] = { status: 500, body: {} };
-    await h.mount(await topUpEls(true));
-    await h.click(byText(S.resend, card()) as Element);
-    expect(card().querySelector('[role="status"]')?.textContent).toBe(S.failed);
+  it.each([
+    ['Not now', 'click'],
+    ['Escape', 'esc'],
+  ])('top-up M6 closed with %s returns focus to Buy', async (_l, how) => {
+    handlers[ORDER] = FENCE_403;
+    await h.mount(await topUpEls());
+    await h.click(byText(BUY) as Element);
+    expect(m6()).toBeDefined();
+    if (how === 'click') await h.click(byText(S.notNow, m6() as HTMLElement) as Element);
+    else await h.esc();
+    expect(m6()).toBeUndefined();
+    expect(document.activeElement).toBe(byText(BUY));
   });
 
-  it('a verified user keeps the Pay button and sees no card', async () => {
-    handlers[ME] = me(true, false);
-    await h.mount(await topUpEls(true));
-    expect(byText(PAY)).toBeDefined();
-    expect(card()).toBeNull();
+  it.each([
+    ['Not now', 'click'],
+    ['Escape', 'esc'],
+  ])('subscribe M6 closed with %s returns focus to the pressed Choose', async (_l, how) => {
+    handlers[SUBSCRIBE] = FENCE_403;
+    await h.mount(await subscribeEls());
+    const choose = document.getElementById('choose') as HTMLButtonElement;
+    choose.focus();
+    await h.click(choose);
+    expect(m6()).toBeDefined();
+    if (how === 'click') await h.click(byText(S.notNow, m6() as HTMLElement) as Element);
+    else await h.esc();
+    expect(m6()).toBeUndefined();
+    expect(document.activeElement).toBe(document.getElementById('choose'));
   });
 
-  it('a 403 with a different error code is not treated as verification', async () => {
-    handlers[ME] = { body: { data: { needsPrivacyAcceptance: false, gstStateCode: '07' } } };
+  it('the M6 dialog node comes after the top-up dialog node, so it stacks above it', async () => {
+    handlers[ORDER] = FENCE_403;
+    await h.mount(await topUpEls());
+    await h.click(byText(BUY) as Element);
+    const dialogs = Array.from(document.querySelectorAll('[role="dialog"]'));
+    expect(dialogs.length).toBeGreaterThanOrEqual(2);
+    const top = dialogs.find((d) => d !== m6()) as HTMLElement;
+    const order = top.compareDocumentPosition(m6() as HTMLElement);
+    expect(order & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('ui/Dialog passes onCloseAutoFocus through to the Radix content', () => {
+    const code = fs.readFileSync(path.join(__dirname, '..', 'ui', 'Dialog.tsx'), 'utf8');
+    expect(code).toContain('onCloseAutoFocus');
+    expect(code).toMatch(/onCloseAutoFocus=\{onCloseAutoFocus\}/);
+  });
+
+  it('a top-up 403 with any other code does not open M6 and shows the server error line', async () => {
     handlers[ORDER] = { status: 403, body: { error: 'something_else' } };
-    await h.mount(await topUpEls(false));
-    await h.click(byText(PAY) as Element);
-    expect(byText(PAY)).toBeDefined();
-    expect(card()).toBeNull();
+    await h.mount(await topUpEls());
+    await h.click(byText(BUY) as Element);
+    expect(m6()).toBeUndefined();
     expect(document.body.textContent).toContain('something_else');
+    expect((byText(BUY) as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it('a top-up 403 privacy_reaccept_required does not open M6', async () => {
+    handlers[ORDER] = { status: 403, body: { error: 'privacy_reaccept_required' } };
+    await h.mount(await topUpEls());
+    await h.click(byText(BUY) as Element);
+    expect(m6()).toBeUndefined();
+  });
+
+  it('a subscribe 403 email_verification_required opens M6 with the Subscribe body; Choose stays enabled; no redirect', async () => {
+    handlers[SUBSCRIBE] = FENCE_403;
+    await h.mount(await subscribeEls());
+    await h.click(document.getElementById('choose') as Element);
+    const d = m6() as HTMLElement;
+    expect(d).toBeDefined();
+    expect(d.querySelector('h2')?.textContent).toBe(S.modalTitle);
+    expect(d.textContent).toContain(S.subscribeBody);
+    expect(d.textContent).not.toContain(S.topupBody);
+    expect(byText(S.resend, d)).toBeDefined();
+    expect(byText(S.notNow, d)).toBeDefined();
+    const choose = document.getElementById('choose') as HTMLButtonElement;
+    expect(choose.disabled).toBe(false);
+    expect(document.getElementById('failed')).toBeNull();
+    expect(document.body.textContent).not.toContain('email_verification_required');
+    expect(mockRouterPush).not.toHaveBeenCalled();
+    expect(mockRouterReplace).not.toHaveBeenCalled();
+    expect(window.location.pathname).not.toMatch(/login|verify-email/);
+  });
+
+  it('the subscribe M6: Not now gets first focus', async () => {
+    handlers[SUBSCRIBE] = FENCE_403;
+    await h.mount(await subscribeEls());
+    await h.click(document.getElementById('choose') as Element);
+    const d = m6() as HTMLElement;
+    expect(d).toBeDefined();
+    expect(document.activeElement).toBe(byText(S.notNow, d));
+  });
+
+  it('a subscribe 403 with any other code does not open M6; it is the generic failure', async () => {
+    handlers[SUBSCRIBE] = { status: 403, body: { error: 'something_else' } };
+    await h.mount(await subscribeEls());
+    await h.click(document.getElementById('choose') as Element);
+    expect(m6()).toBeUndefined();
+    expect(document.getElementById('failed')).not.toBeNull();
+  });
+
+  it('the M6 Top-up and Subscribe resend share the M4 sent line', async () => {
+    handlers[SUBSCRIBE] = FENCE_403;
+    handlers[RESEND] = { status: 202, body: {} };
+    await h.mount(await subscribeEls());
+    await h.click(document.getElementById('choose') as Element);
+    await h.click(byText(S.resend, m6() as HTMLElement) as Element);
+    expect(resendPosts()).toHaveLength(1);
+    expect((m6() as HTMLElement).querySelector('[role="status"]')?.textContent).toBe(S.sent);
   });
 
   it('isEmailVerificationRequired is true only for 403 plus the exact code', async () => {
@@ -750,6 +896,15 @@ describe('T-223 trigger 3 (kept) — checkout', () => {
       ),
     ).toBe(false);
     expect(await isEmailVerificationRequired(fakeResponse(200, {}))).toBe(false);
+  });
+
+  it('the checkout card and its two strings are gone from VerifyEmailPrompt', () => {
+    const code = fs.readFileSync(path.join(__dirname, '..', 'VerifyEmailPrompt.tsx'), 'utf8');
+    expect(code).not.toContain('VerifyEmailCard');
+    expect(code).not.toContain('before you buy');
+    expect(code).not.toContain('come back to buy');
+    expect(Object.keys(h.mod.VERIFY_STRINGS)).not.toContain('checkoutTitle');
+    expect(Object.keys(h.mod.VERIFY_STRINGS)).not.toContain('checkoutBody');
   });
 });
 
@@ -781,13 +936,11 @@ describe('T-522 — logging and wiring', () => {
     expect(src('app/dashboard/page.tsx')).toContain('<ReferralNotAppliedNotice />');
   });
 
-  it('settings: checks the verification 403 for the upgrade call and renders the card', () => {
-    expect(src('components/billing/useSubscribe.ts')).toContain(
-      'await isEmailVerificationRequired(res)',
-    );
-    const panel = src('components/billing/PlanPanel.tsx');
-    expect(panel).toContain("gate === 'verify'");
-    expect(panel).toContain('kind="verify-email"');
+  it('settings: a subscribe 403 opens the M6 Subscribe dialog; the old verify gate and banner are gone', () => {
+    const hook = src('components/billing/useSubscribe.ts');
+    expect(hook).toContain("openVerifyIfDraftRefused(res, 'subscribe'");
+    expect(hook).not.toContain("'verify'");
+    expect(src('components/billing/PlanPanel.tsx')).not.toContain("gate === 'verify'");
   });
 
   it('no console.* in the new source, and no token placed in a path', () => {
