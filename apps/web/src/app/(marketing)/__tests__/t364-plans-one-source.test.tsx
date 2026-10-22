@@ -36,7 +36,6 @@ jest.mock('@/context/AuthContext', () => ({ useAuth: () => ({ user: null }) }));
 jest.mock('@/components/VerifyEmailPrompt', () => ({
   openVerifyIfDraftRefused: async () => false,
   VerifyEmailCard: () => null,
-  isEmailVerificationRequired: async () => false,
   useNeedsEmailVerification: () => false,
 }));
 jest.mock('@/components/credits/TopUpModal', () => ({ TopUpModal: () => null }));

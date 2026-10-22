@@ -24,7 +24,6 @@ jest.mock('@/components/PrivacyUpdatePrompt', () => ({
 }));
 jest.mock('@/components/VerifyEmailPrompt', () => ({
   openVerifyIfDraftRefused: async () => false,
-  isEmailVerificationRequired: async () => false,
 }));
 
 const reply = (status: number, body: unknown = {}) => ({

@@ -33,6 +33,7 @@ import logger from '../config/logger';
 import redis from '../config/redis';
 import { Session } from '../models/Session.model';
 import { User } from '../models/User.model';
+import { applyReferralCode } from '../services/referral.service';
 import {
   SIGNIN_LINK_TTL_MS,
   VERIFY_LINK_TTL_MS,
@@ -41,7 +42,7 @@ import {
   verifyEmailToken,
 } from '../services/verify-email.service';
 
-import { rawUsers } from './t234-helpers';
+import { makeCode, rawUsers } from './t234-helpers';
 
 const enqueueMock = enqueueEmail as unknown as jest.Mock;
 const PASSWORD = 'Passw0rdOk';
@@ -484,5 +485,60 @@ describe('T-522 internal mint route: kind and signupInkGranted', () => {
     await rawUsers().updateOne({ _id: u._id }, { $set: { signupBonusGrantedAt: new Date() } });
     const after = await mintRoute({ userId: String(u._id), kind: 'signin' });
     expect(after.body.signupInkGranted).toBe(true);
+  });
+});
+
+describe('T-522 review: an account being erased is not verified, not burned, no Ink', () => {
+  const ERASURE = () => ({ requestedAt: new Date(), stage: 'locked' });
+
+  it.each([['signin' as const], ['verify' as const]])(
+    'a %s link for an erasing account: expired_or_invalid, nothing verified, token kept, no sign-up or referral Ink',
+    async (kind) => {
+      await makeCode({ code: 'ERASE001', bonusInk: 3 });
+      const u = await mk();
+      expect(await applyReferralCode(String(u._id), 'ERASE001', { deferInk: true })).toBe(
+        'applied',
+      );
+      const token = await mint(u._id, kind);
+      await rawUsers().updateOne({ _id: u._id }, { $set: { erasure: ERASURE() } });
+      const before = await raw(u._id);
+
+      expect(await verifyEmailToken(token)).toEqual({ kind: 'expired_or_invalid' });
+      const res = await verify({ token });
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual({ error: 'verify_link_invalid' });
+      expect(await sessions(u._id)).toBe(0);
+
+      await new Promise((r) => setTimeout(r, 100));
+      const after = await raw(u._id);
+      expect(after.emailVerified).not.toBe(true);
+      expect(after.emailVerifyTokenHash).toBe(hashVerifyToken(token));
+      expect(after.emailVerifyExpires).toEqual(before.emailVerifyExpires);
+      expect(after.emailVerifyKind).toBe(kind);
+      expect(after.signupBonusGrantedAt ?? null).toBeNull();
+      expect(after.referralInkGrantedAt ?? null).toBeNull();
+      expect(after.inkTopup).toBe(before.inkTopup);
+    },
+  );
+
+  it('mintVerifyLink is refused for an erasing account and writes nothing', async () => {
+    const u = await mk();
+    await rawUsers().updateOne({ _id: u._id }, { $set: { erasure: ERASURE() } });
+    expect(await mintVerifyLink(String(u._id), { linkKind: 'signin' })).toEqual({
+      kind: 'not_eligible',
+    });
+    expect((await raw(u._id)).emailVerifyTokenHash ?? null).toBeNull();
+  });
+
+  it('the internal mint route answers 409 not_eligible for an erasing account', async () => {
+    const u = await mk();
+    await rawUsers().updateOne({ _id: u._id }, { $set: { erasure: ERASURE() } });
+    const res = await supertest(app)
+      .post('/internal/verify-email/mint')
+      .set('x-internal-secret', SECRET)
+      .send({ userId: String(u._id), kind: 'signin' });
+    expect(res.status).toBe(409);
+    expect(res.body).toEqual({ error: 'not_eligible' });
+    expect((await raw(u._id)).emailVerifyTokenHash ?? null).toBeNull();
   });
 });

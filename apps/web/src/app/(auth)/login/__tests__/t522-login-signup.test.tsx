@@ -188,6 +188,26 @@ describe('Resend email (resend-by-email) and the 2-minute client timer (M4, S6)'
     expect(resendCalls()).toHaveLength(0);
   });
 
+  it('Resend email is aria-disabled (never the disabled attribute) during the wait, and not after it', async () => {
+    jest.useFakeTimers();
+    await signUpToCheckEmail();
+    const btn = byText('button', 'Resend email')!;
+    expect(btn.getAttribute('aria-disabled')).toBe('true');
+    expect(btn.hasAttribute('disabled')).toBe(false);
+
+    await act(async () => void jest.advanceTimersByTime(60_000));
+    await click(btn);
+    expect(status()).toBe(WAIT);
+    expect(resendCalls()).toHaveLength(0);
+    expect(btn.getAttribute('aria-disabled')).toBe('true');
+    expect(btn.hasAttribute('disabled')).toBe(false);
+
+    await act(async () => void jest.advanceTimersByTime(61_000));
+    const after = byText('button', 'Resend email')!;
+    expect(after.hasAttribute('aria-disabled')).toBe(false);
+    expect(after.hasAttribute('disabled')).toBe(false);
+  });
+
   it('when the 2 minutes from submit end, the wait line becomes the S6 end-of-wait line', async () => {
     jest.useFakeTimers();
     await signUpToCheckEmail();

@@ -880,24 +880,6 @@ describe('T-522 — M6 Top-up and Subscribe refusals (AJ-522-M6, Rajesh §3)', (
     expect((m6() as HTMLElement).querySelector('[role="status"]')?.textContent).toBe(S.sent);
   });
 
-  it('isEmailVerificationRequired is true only for 403 plus the exact code', async () => {
-    const { isEmailVerificationRequired } = h.mod;
-    expect(
-      await isEmailVerificationRequired(
-        fakeResponse(403, { error: 'email_verification_required' }),
-      ),
-    ).toBe(true);
-    expect(
-      await isEmailVerificationRequired(fakeResponse(403, { error: 'privacy_reaccept_required' })),
-    ).toBe(false);
-    expect(
-      await isEmailVerificationRequired(
-        fakeResponse(402, { error: 'email_verification_required' }),
-      ),
-    ).toBe(false);
-    expect(await isEmailVerificationRequired(fakeResponse(200, {}))).toBe(false);
-  });
-
   it('the checkout card and its two strings are gone from VerifyEmailPrompt', () => {
     const code = fs.readFileSync(path.join(__dirname, '..', 'VerifyEmailPrompt.tsx'), 'utf8');
     expect(code).not.toContain('VerifyEmailCard');

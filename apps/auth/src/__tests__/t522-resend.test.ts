@@ -102,6 +102,30 @@ describe('T-522 signed-in resend: 1 per 2 min, 5 per day', () => {
   });
 });
 
+describe('T-522 review: signed-in resend for an inactive or erasing account', () => {
+  const resend = (t: string) =>
+    supertest(app)
+      .post('/verify-email/resend')
+      .set({ Authorization: `Bearer ${t}` });
+
+  it.each([
+    ['inactive', { isActive: false }],
+    ['erasing', { erasure: { requestedAt: new Date(), stage: 'locked' } }],
+  ])('%s: 404, nothing queued, and the cap is not used', async (_name, change) => {
+    const u = await mk();
+    const login = await supertest(app).post('/login').send({ email: u.email, password: PASSWORD });
+    const t = login.body.data.accessToken as string;
+    await rawUsers().updateOne({ _id: u._id }, { $set: change });
+
+    const keysBefore = (await redis.keys('auth:verify-email*')).sort();
+    for (let i = 0; i < 3; i += 1) {
+      expect((await resend(t)).status).toBe(404);
+    }
+    expect(enqueueMock).not.toHaveBeenCalled();
+    expect((await redis.keys('auth:verify-email*')).sort()).toEqual(keysBefore);
+  });
+});
+
 describe('T-522 resend-by-email: always the neutral 202', () => {
   it('unknown, unverified, verified and Google addresses get the identical status, body and headers', async () => {
     await mk({ email: 'unverified@example.com' });
