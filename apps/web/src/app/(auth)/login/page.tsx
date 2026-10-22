@@ -1,5 +1,12 @@
 'use client';
 
+import {
+  PASSWORD_DIGIT_RE,
+  PASSWORD_LOWERCASE_RE,
+  PASSWORD_MIN_LENGTH,
+  PASSWORD_UPPERCASE_RE,
+  meetsPasswordRule,
+} from '@lawie/shared';
 import { AlertTriangle, CheckCircle2, Circle, Gift } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -7,6 +14,7 @@ import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 
 import ReferralOfferModal from './ReferralOfferModal';
 
+import { limitMessage } from '@/components/auth/ForgotPasswordForm';
 import { NightFooter } from '@/components/marketing/NightFooter';
 import { NightTopBar } from '@/components/marketing/NightTopBar';
 import { AUTH_COPY, CONSENT_COPY } from '@/components/marketing/nl-copy';
@@ -16,6 +24,7 @@ import {
   NL_PRIMARY_BUTTON_HOVER,
 } from '@/components/marketing/nl-link';
 import { Lamp, Spinner } from '@/components/ui';
+import { CheckDisc } from '@/components/VerifyEmailPrompt';
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/cn';
 import { clearSignupSource, readSignupSource } from '@/lib/signup-source';
@@ -26,9 +35,14 @@ import { clearSignupSource, readSignupSource } from '@/lib/signup-source';
 // T-221: "Forgot password?" (Sign in mode) links to /forgot-password.
 // T-517: Night Library reskin (spec 02; copy §2.1, §2.2, §2.4 and AJ-517-M1..M4, M9; strings in
 // components/marketing/nl-copy.ts). Tabs: Create account first, then Sign in. Behaviour kept:
-// PKCE Google start, referral box, signup-source tags, field validation, 409 handling, ?mode= /
-// ?ref= / ?error=, the error summary (role=alert, focused). New: the consent checkbox on Create
-// account (AJ-517-M3), which gates Create account and Google; network vs server errors with Retry.
+// PKCE Google start, referral box, signup-source tags, field validation, ?mode= / ?ref= / ?error=,
+// the error summary (role=alert, focused). New: the consent checkbox on Create account
+// (AJ-517-M3), which gates Create account and Google; network vs server errors with Retry.
+// T-522 (Arjun; Rajesh's design note §1 and §5; Ajay AJ-522-M2, M4, S2, S4, S6, S7, S8): Create
+// account never signs in. Any 202 shows the same "Check your email" screen, for a new and an
+// existing address alike: no tokens, no 409 branch, no referralApplied. Its Resend email goes to
+// the public resend-by-email; a client 2-minute timer from submit gives the M4 wait line. A 429
+// is T-221 forgot.limit with {n} from Retry-After; a 503 is the S8 line with Retry.
 
 type Mode = 'signin' | 'signup';
 type Field = 'name' | 'email' | 'password';
@@ -36,7 +50,8 @@ type FieldErrors = Partial<Record<Field, string>>;
 
 type ServerError =
   | { kind: 'list'; items: string[] } // 422
-  | { kind: 'conflict'; message: string } // 409
+  | { kind: 'limited'; minutes: number | null } // T-522: Create account 429 (T-221 forgot.limit)
+  | { kind: 'unavailable' } // T-522: Create account 503 (AJ-522-S8), with Retry
   | { kind: 'unauthorized' } // 401
   | { kind: 'message'; message: string } // 403 (any other text)
   | { kind: 'accountDeactivated' } // T-299: 403 with the deactivated text, or ?error=account_deactivated
@@ -48,20 +63,29 @@ type ServerError =
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// Mirrors apps/auth/src/validators/auth.validator.ts registerSchema.password exactly:
-// .min(8) · /[A-Z]/ · /[a-z]/ · /\d/. Change both together.
-// AJ-517-M4: the existing signed checklist stays (it states the real rule).
+// T-522 (Arjun ruling 3, AJ-522-S7): the rule comes from @lawie/shared's password constant, the
+// one the auth validator uses, so the signed T-234 checklist (AJ-517-M4) cannot drift from it.
 const PASSWORD_RULES: { label: string; test: (p: string) => boolean }[] = [
-  { label: AUTH_COPY.passwordRules.length, test: (p) => p.length >= 8 },
-  { label: AUTH_COPY.passwordRules.upper, test: (p) => /[A-Z]/.test(p) },
-  { label: AUTH_COPY.passwordRules.lower, test: (p) => /[a-z]/.test(p) },
-  { label: AUTH_COPY.passwordRules.digit, test: (p) => /\d/.test(p) },
+  { label: AUTH_COPY.passwordRules.length, test: (p) => p.length >= PASSWORD_MIN_LENGTH },
+  { label: AUTH_COPY.passwordRules.upper, test: (p) => PASSWORD_UPPERCASE_RE.test(p) },
+  { label: AUTH_COPY.passwordRules.lower, test: (p) => PASSWORD_LOWERCASE_RE.test(p) },
+  { label: AUTH_COPY.passwordRules.digit, test: (p) => PASSWORD_DIGIT_RE.test(p) },
 ];
-// Ajay Addendum 1: a code that showed R5/R6 (applied) and was no longer valid at sign-up.
-const REFERRAL_NOT_APPLIED_MESSAGE =
-  'Your referral code was no longer valid, so no bonus Ink was added.';
-// Ajay Addendum 3: a code typed but never applied (R5/R6 never shown) and invalid at sign-up.
-const REFERRAL_NOT_VALID_MESSAGE = 'Your referral code was not valid, so no bonus Ink was added.';
+
+// T-522: the Check your email screen's client wait (the resend limit is one per 2 minutes). It
+// starts at the Create account submit; the M4 wait line is generic because this timer is not
+// the server's limit (AJ-522-S6).
+const CHECK_EMAIL_WAIT_MS = 2 * 60_000;
+
+type ResendState = 'idle' | 'sending' | 'sent' | 'wait' | 'ready' | 'error';
+
+/** AJ-522-S8: minutes from the Retry-After header only (T-221 forgot.limit and its variants). */
+function retryAfterMinutes(res: Response): number | null {
+  const seconds = Number(res.headers.get('Retry-After'));
+  if (!Number.isFinite(seconds) || seconds <= 0) return null;
+  return Math.max(1, Math.ceil(seconds / 60));
+}
+
 // Tab-scoped marker read once by /auth/callback to pick between the two lines above after a
 // Google sign-up: '1' = R5/R6 showed for the code sent, '0' = never applied. Wording only; the
 // server never sees it and it grants nothing.
@@ -158,20 +182,24 @@ async function createOAuthChallenge(): Promise<OAuthChallengeResult> {
 
 // Which field a T-208 422 message belongs to (cheap prefix match, per design).
 // "Invalid email format" is the API's email-format message, so it maps to Email too.
+// T-522 (AJ-522-S10): the server's one weak-password line starts "Use at least".
 function fieldForMessage(msg: string): Field | null {
   if (/^(email|invalid email)/i.test(msg)) return 'email';
-  if (/^(password|must contain)/i.test(msg)) return 'password';
+  if (/^(password|must contain|use at least)/i.test(msg)) return 'password';
   if (/^name/i.test(msg)) return 'name';
   return null;
 }
 
-function validateField(field: Field, value: string): string | undefined {
+function validateField(field: Field, value: string, signup: boolean): string | undefined {
   if (field === 'name') return value.trim() ? undefined : AUTH_COPY.errName;
   if (field === 'email') {
     if (!value.trim()) return AUTH_COPY.errEmailEmpty;
     return EMAIL_RE.test(value.trim()) ? undefined : AUTH_COPY.errEmailFormat;
   }
-  return value ? undefined : AUTH_COPY.errPassword;
+  if (!value) return AUTH_COPY.errPassword;
+  // T-522 (AJ-522-S7): Create account only; Sign in never judges an existing password.
+  if (signup && !meetsPasswordRule(value)) return AUTH_COPY.passwordWeak;
+  return undefined;
 }
 
 // Underline input on the folio (spec 3 Input; DESIGN.md Inputs / Shapes): bottom border only,
@@ -181,12 +209,15 @@ const inputBase =
   'nl-focus nl-body block min-h-[48px] w-full rounded-none border-0 border-b bg-transparent px-0 py-nl-2 text-nl-text placeholder:text-nl-muted focus:border-b-2 focus:pb-[7px] disabled:cursor-not-allowed disabled:opacity-50';
 
 function inputClass(invalid: boolean) {
-  return `${inputBase} ${invalid ? 'border-nl-err' : `${CONTROL_LINE} focus:border-nl-brass`}`;
+  return cn(inputBase, invalid ? 'border-nl-err' : [CONTROL_LINE, 'focus:border-nl-brass']);
 }
 
 // Boxed input (1px Control Line, radius md): only the referral code. T-528: its group is ruled
 // off with Line hairlines on the folio ground (no Wood panel, no box inside the folio's border).
-const boxedInputClass = `nl-focus nl-body block min-h-[48px] w-full rounded-nl-md border ${CONTROL_LINE} bg-nl-card px-nl-3 py-nl-2 text-nl-text placeholder:text-nl-muted focus:border-b-2 focus:border-nl-brass disabled:cursor-not-allowed disabled:opacity-50`;
+const boxedInputClass = cn(
+  'nl-focus nl-body rounded-nl-md bg-nl-card px-nl-3 py-nl-2 text-nl-text placeholder:text-nl-muted focus:border-nl-brass block min-h-[48px] w-full border focus:border-b-2 disabled:cursor-not-allowed disabled:opacity-50',
+  CONTROL_LINE,
+);
 
 // Field labels: DESIGN.md Label style (nl-label: 500, 12px, 0.12em, uppercase) in Brass Text.
 const LABEL = 'nl-label mb-nl-1 block text-nl-brass-dark';
@@ -257,7 +288,13 @@ function LoginContent() {
     serverErrorFromQuery(searchParams.get('error')),
   );
   const [submitting, setSubmitting] = useState(false);
-  const [referralNotice, setReferralNotice] = useState<string | null>(null);
+  // T-522: the Check your email screen after a 202, with the address as typed (not masked).
+  const [checkEmail, setCheckEmail] = useState<{ email: string } | null>(null);
+  const [resendState, setResendState] = useState<ResendState>('idle');
+  /** ms epoch when the client wait ends (2 minutes from the submit, then from each resend). */
+  const waitUntil = useRef(0);
+  const waitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const checkTitleRef = useRef<HTMLHeadingElement>(null);
   // T-517 (AJ-511-M11, AJ-517-M3): consent on Create account. Unticked by default; gates Create
   // account and Google on that tab. Not sent: the server stamps the version.
   const [consent, setConsent] = useState(false);
@@ -272,8 +309,6 @@ function LoginContent() {
   const [referralBonusInk, setReferralBonusInk] = useState(0);
   const [validating, setValidating] = useState(false);
   const [showOfferModal, setShowOfferModal] = useState(false);
-  // Ajay condition 2: an existing account (409) never sees R5/R6; show R7 until the email changes.
-  const [referralExistingAccount, setReferralExistingAccount] = useState(false);
 
   const nameRef = useRef<HTMLInputElement>(null);
   const emailRef = useRef<HTMLInputElement>(null);
@@ -305,6 +340,11 @@ function LoginContent() {
     setServerInvalid(new Set());
     setServerError(null);
     setConsentError(undefined);
+    // T-522: a mode change (Back, a switch link) leaves the Check your email screen.
+    if (waitTimer.current !== null) clearTimeout(waitTimer.current);
+    waitTimer.current = null;
+    setCheckEmail(null);
+    setResendState('idle');
     if (!moveFocus) return;
     const { name: n, email: em } = fieldsRef.current;
     const target = mode === 'signup' && !n.trim() ? nameRef : !em.trim() ? emailRef : passwordRef;
@@ -319,6 +359,83 @@ function LoginContent() {
   useEffect(() => {
     if (serverError) summaryRef.current?.focus();
   }, [serverError]);
+
+  // ── T-522: Check your email ─────────────────────────────────────────────────
+
+  const clearWaitTimer = () => {
+    if (waitTimer.current !== null) clearTimeout(waitTimer.current);
+    waitTimer.current = null;
+  };
+
+  // The end of the client wait: a showing wait (or sent) line becomes the S6 end-of-wait line.
+  const scheduleWaitEnd = () => {
+    clearWaitTimer();
+    waitTimer.current = setTimeout(
+      () => {
+        waitTimer.current = null;
+        setResendState((p) => (p === 'wait' || p === 'sent' ? 'ready' : p));
+      },
+      Math.max(0, waitUntil.current - Date.now()),
+    );
+  };
+
+  const leaveCheckEmail = () => {
+    clearWaitTimer();
+    setCheckEmail(null);
+    setResendState('idle');
+  };
+
+  useEffect(
+    () => () => {
+      if (waitTimer.current !== null) clearTimeout(waitTimer.current);
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (checkEmail) checkTitleRef.current?.focus();
+  }, [checkEmail]);
+
+  const resendByEmail = async () => {
+    if (!checkEmail || resendState === 'sending') return;
+    if (Date.now() < waitUntil.current) {
+      setResendState('wait');
+      return;
+    }
+    setResendState('sending');
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/auth/verify-email/resend-by-email`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: checkEmail.email }),
+          cache: 'no-store',
+        },
+      );
+      if (res.status === 202 || res.ok) {
+        // Neutral (S6): the server may have sent nothing; the line never repeats the address.
+        waitUntil.current = Date.now() + CHECK_EMAIL_WAIT_MS;
+        setResendState('sent');
+        scheduleWaitEnd();
+      } else if (res.status === 429) {
+        const minutes = retryAfterMinutes(res);
+        waitUntil.current = Date.now() + (minutes ? minutes * 60_000 : CHECK_EMAIL_WAIT_MS);
+        setResendState('wait');
+        scheduleWaitEnd();
+      } else {
+        setResendState('error');
+      }
+    } catch {
+      setResendState('error');
+    }
+  };
+
+  // Rajesh §1: back to the form with the address kept and focused.
+  const differentEmail = () => {
+    leaveCheckEmail();
+    requestAnimationFrame(() => emailRef.current?.focus());
+  };
 
   const switchMode = useCallback(
     (next: Mode) => {
@@ -433,18 +550,16 @@ function LoginContent() {
 
   const onBlurField = (f: Field) => {
     if (switchingFocus.current) return;
-    setFieldErrors((prev) => ({ ...prev, [f]: validateField(f, fieldValue(f)) }));
+    setFieldErrors((prev) => ({ ...prev, [f]: validateField(f, fieldValue(f), isSignup) }));
   };
 
   // Once a field shows an error, re-check it as the user types so the error clears when fixed.
   const onChangeField = (f: Field, value: string) => {
     if (f === 'name') setName(value);
-    else if (f === 'email') {
-      setEmail(value);
-      setReferralExistingAccount(false);
-    } else setPassword(value);
+    else if (f === 'email') setEmail(value);
+    else setPassword(value);
     if (fieldErrors[f]) {
-      setFieldErrors((prev) => ({ ...prev, [f]: validateField(f, value) }));
+      setFieldErrors((prev) => ({ ...prev, [f]: validateField(f, value, isSignup) }));
     }
   };
 
@@ -460,7 +575,7 @@ function LoginContent() {
     const fields: Field[] = isSignup ? ['name', 'email', 'password'] : ['email', 'password'];
     const errs: FieldErrors = {};
     for (const f of fields) {
-      const msg = validateField(f, fieldValue(f));
+      const msg = validateField(f, fieldValue(f), isSignup);
       if (msg) errs[f] = msg;
     }
     setFieldErrors(errs);
@@ -491,6 +606,9 @@ function LoginContent() {
         }
       : { email: email.trim(), password };
 
+    // T-522: the Check your email wait starts at the submit.
+    const submittedAt = Date.now();
+    const typedEmail = email.trim();
     let res: Response;
     try {
       res = await fetch(
@@ -507,9 +625,22 @@ function LoginContent() {
       return;
     }
 
+    // T-522: Create account. Any 202 is the same Check your email screen, whatever the body says
+    // (new or existing address alike). Nothing in the body is read, no session is started.
+    if (isSignup && res.status === 202) {
+      // T-242: the server has the tags now; the browser keeps them no longer.
+      clearSignupSource();
+      setSubmitting(false);
+      waitUntil.current = submittedAt + CHECK_EMAIL_WAIT_MS;
+      setResendState('idle');
+      setCheckEmail({ email: typedEmail });
+      scheduleWaitEnd();
+      return;
+    }
+
     let json: {
       message?: unknown;
-      data?: { accessToken?: string; refreshToken?: string; referralApplied?: boolean };
+      data?: { accessToken?: string; refreshToken?: string };
     } = {};
     try {
       json = await res.json();
@@ -517,21 +648,11 @@ function LoginContent() {
       // Non-JSON body (proxy error page etc.) — handled by status below.
     }
 
+    // Sign in only: tokens from /login.
     const accessToken = json.data?.accessToken;
     const refreshToken = json.data?.refreshToken;
-    if (res.ok && accessToken && refreshToken) {
+    if (!isSignup && res.ok && accessToken && refreshToken) {
       login(accessToken, refreshToken);
-      // T-242: the account now holds the tags; the browser keeps them no longer.
-      if (isSignup) clearSignupSource();
-      // The code sent was not valid at account creation. The account exists; tell the user once
-      // before going on. Addendum 1 line if R5/R6 showed for it, Addendum 3 line if never applied.
-      if (isSignup && json.data?.referralApplied === false) {
-        setSubmitting(false);
-        setReferralNotice(
-          referralValid === true ? REFERRAL_NOT_APPLIED_MESSAGE : REFERRAL_NOT_VALID_MESSAGE,
-        );
-        return;
-      }
       router.replace('/dashboard');
       return;
     }
@@ -551,9 +672,11 @@ function LoginContent() {
       }
       setServerInvalid(marked);
       setServerError({ kind: 'list', items });
-    } else if (res.status === 409 && message) {
-      if (isSignup) setReferralExistingAccount(true);
-      setServerError({ kind: 'conflict', message });
+    } else if (isSignup && res.status === 429) {
+      // AJ-522-S8: T-221 forgot.limit and its variants, {n} from Retry-After only.
+      setServerError({ kind: 'limited', minutes: retryAfterMinutes(res) });
+    } else if (isSignup && res.status === 503) {
+      setServerError({ kind: 'unavailable' });
     } else if (res.status === 401) {
       setPassword('');
       setServerError({ kind: 'unauthorized' });
@@ -582,9 +705,8 @@ function LoginContent() {
   const describedBy = (...ids: (string | false | undefined)[]) =>
     ids.filter(Boolean).join(' ') || undefined;
 
-  const showReferralInvalid =
-    referralValid === false || (referralValid === true && referralExistingAccount);
-  const showReferralApplied = referralValid === true && !referralExistingAccount;
+  const showReferralInvalid = referralValid === false;
+  const showReferralApplied = referralValid === true;
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
@@ -612,25 +734,79 @@ function LoginContent() {
         <div className="border-nl-line border-t-nl-brass bg-nl-card shadow-nl-card relative w-full max-w-[440px] overflow-hidden border border-t">
           <Lamp />
           <div className="p-nl-6 min-[900px]:p-nl-10 relative">
-            {referralNotice ? (
-              <div role="status">
-                <p className="gap-nl-2 nl-body text-nl-text flex items-start">
-                  <AlertTriangle
-                    className="text-nl-warn mt-1 h-5 w-5 shrink-0"
-                    aria-hidden="true"
-                  />
-                  <span>{referralNotice}</span>
+            {checkEmail ? (
+              // T-522 (Rajesh §1): one screen for a new and an existing address, byte for byte.
+              <div>
+                <CheckDisc />
+                <h1
+                  ref={checkTitleRef}
+                  tabIndex={-1}
+                  className="nl-h1 mt-nl-5 text-nl-text focus:outline-none"
+                >
+                  {AUTH_COPY.checkEmail.title}
+                </h1>
+                <p className="nl-body mt-nl-2 text-nl-soft [overflow-wrap:anywhere]">
+                  {AUTH_COPY.checkEmail.body.replace('{email}', checkEmail.email)}
                 </p>
-                <button
-                  type="button"
-                  onClick={() => router.replace('/dashboard')}
+                <div className="mt-nl-5 gap-x-nl-5 gap-y-nl-1 flex flex-wrap items-center">
+                  <button
+                    type="button"
+                    onClick={() => void resendByEmail()}
+                    aria-busy={resendState === 'sending' || undefined}
+                    aria-describedby="check-email-status"
+                    className={cn(TEXT_LINK, 'inline-flex min-h-[44px] items-center')}
+                  >
+                    {AUTH_COPY.checkEmail.resend}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={differentEmail}
+                    className={cn(TEXT_LINK, 'inline-flex min-h-[44px] items-center')}
+                  >
+                    {AUTH_COPY.checkEmail.differentEmail}
+                  </button>
+                </div>
+                {/* M4 / S6 lines: Ok for sent and the end of the wait, Warn for the wait. */}
+                <p
+                  id="check-email-status"
+                  role="status"
                   className={cn(
-                    'nl-focus rounded-nl-md bg-nl-brass text-nl-on-brass mt-nl-5 h-11 w-full touch-manipulation font-medium',
-                    NL_PRIMARY_BUTTON_HOVER,
+                    'nl-body-sm mt-nl-2',
+                    resendState === 'wait' ? 'text-nl-warn' : 'text-nl-ok',
+                    !(
+                      resendState === 'sent' ||
+                      resendState === 'wait' ||
+                      resendState === 'ready'
+                    ) && 'sr-only',
                   )}
                 >
-                  {AUTH_COPY.continue}
-                </button>
+                  {resendState === 'sent'
+                    ? AUTH_COPY.checkEmail.sent
+                    : resendState === 'wait'
+                      ? AUTH_COPY.checkEmail.wait
+                      : resendState === 'ready'
+                        ? AUTH_COPY.checkEmail.ready
+                        : null}
+                </p>
+                {/* Resend failure: the Retry banner pattern inside the folio, under the links. */}
+                {resendState === 'error' ? (
+                  <div
+                    role="alert"
+                    className="bg-nl-err-light p-nl-4 nl-body-sm text-nl-err gap-nl-2 mt-nl-3 flex items-start"
+                  >
+                    <AlertTriangle className="mt-1 h-4 w-4 shrink-0" aria-hidden="true" />
+                    <div className="gap-x-nl-3 flex min-w-0 flex-1 flex-wrap items-center">
+                      <p>{AUTH_COPY.unavailable}</p>
+                      <button
+                        type="button"
+                        onClick={() => void resendByEmail()}
+                        className="nl-focus rounded-nl-md inline-flex min-h-[44px] items-center font-medium underline underline-offset-4"
+                      >
+                        {AUTH_COPY.retry}
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
               </div>
             ) : (
               <>
@@ -698,7 +874,6 @@ function LoginContent() {
                           onChange={(e) => {
                             setReferralCode(e.target.value.toUpperCase());
                             setReferralValid(null);
-                            setReferralExistingAccount(false);
                           }}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') {
@@ -739,10 +914,11 @@ function LoginContent() {
                           className="nl-body-sm mt-nl-2 gap-nl-1 text-nl-ok flex items-start"
                         >
                           <CheckCircle2 size={14} className="mt-1 shrink-0" aria-hidden="true" />
+                          {/* T-522: R5 / R6 per AJ-522-S2 (Ink only on verification). */}
                           <span>
                             {referralBonusInk > 0
-                              ? `Code applied${referralLabel ? ` — ${referralLabel}` : ''}. ${referralBonusInk} Ink will be added when you create your account.`
-                              : 'Code applied. Bonus Ink will be added when you create your account.'}
+                              ? AUTH_COPY.referralApplied(referralBonusInk, referralLabel)
+                              : AUTH_COPY.referralAppliedNoCount}
                           </span>
                         </p>
                       )}
@@ -890,7 +1066,7 @@ function LoginContent() {
                             fieldErrors.password && 'password-error',
                             isSignup && 'password-rules',
                           )}
-                          className={`${inputClass(isInvalid('password'))} pr-[72px]`}
+                          className={cn(inputClass(isInvalid('password')), 'pr-[72px]')}
                         />
                         <button
                           type="button"
@@ -1035,21 +1211,8 @@ function LoginContent() {
                             ) : (
                               <p>{serverError.items[0]}</p>
                             ))}
-                          {serverError.kind === 'conflict' && (
-                            <p>
-                              {serverError.message}{' '}
-                              <Link
-                                href={SIGNIN_HREF}
-                                scroll={false}
-                                onMouseDown={keepFieldFocus}
-                                onClick={() => {
-                                  focusFieldOnSwitch.current = true;
-                                }}
-                                className="font-medium underline underline-offset-4"
-                              >
-                                {AUTH_COPY.signInInstead}
-                              </Link>
-                            </p>
+                          {serverError.kind === 'limited' && (
+                            <p>{limitMessage(serverError.minutes)}</p>
                           )}
                           {serverError.kind === 'unauthorized' && (
                             <>
@@ -1071,12 +1234,16 @@ function LoginContent() {
                             </p>
                           )}
                           {serverError.kind === 'oauthFailed' && <p>{OAUTH_FAILED_MESSAGE}</p>}
-                          {(serverError.kind === 'network' || serverError.kind === 'server') && (
+                          {(serverError.kind === 'network' ||
+                            serverError.kind === 'server' ||
+                            serverError.kind === 'unavailable') && (
                             <div className="gap-x-nl-3 flex flex-wrap items-center">
                               <p>
                                 {serverError.kind === 'network'
                                   ? AUTH_COPY.network
-                                  : AUTH_COPY.serverError}
+                                  : serverError.kind === 'unavailable'
+                                    ? AUTH_COPY.unavailable
+                                    : AUTH_COPY.serverError}
                               </p>
                               <button
                                 type="button"

@@ -1,77 +1,74 @@
 'use client';
 
 /**
- * T-223 AC4 — "verify your email" prompt (Rajesh's spec, handoff/marketing/verify-prompt-spec-t223.md;
- * Madhuri's strings, handoff/marketing/copy/verify-email-t223.md part B, as signed by Ajay in
- * handoff/legal/T-223-verify-email-signed.md, which wins where they differ).
+ * T-223 AC4, reworked by T-522 — the "verify your email" surfaces (Rajesh's T-522 design note,
+ * handoff/design/T-522-neutral-signup-verify-design.md; copy: Ajay AJ-522-M3, M4, M6, S3, S5, S6,
+ * S8 in components/marketing/nl-copy.ts VERIFY_COPY, and the T-223 strings below).
  *
- * One shared core (masked address, resend, status) in three places, plus the link landing page:
- *  1. Banner on every dashboard page for a signed-in, unverified email user (default export,
- *     mounted once in app/dashboard/layout.tsx, which also mounts the modal).
- *  2. Modal when a draft is refused for lack of Ink (402) and the user is unverified:
- *     callers do `if (await openVerifyInsteadOfPaywall()) return;` before opening the paywall.
+ * One shared core (masked address, signed-in resend, status) in these places:
+ *  1. The verify bar (ui/Banner, not dismissible) on every dashboard page for a signed-in,
+ *     unverified email user (default export, mounted once in app/dashboard/layout.tsx, which also
+ *     mounts the draft refusal dialog).
+ *  2. The draft refusal dialog (AJ-522-M6, ui/Dialog), opened at the moment of the action, never
+ *     a redirect: callers do `if (await openVerifyIfDraftRefused(res)) return;` on a 403
+ *     email_verification_required from generate, preflight or intake. The T-223 Ink-refusal path
+ *     (`openVerifyInsteadOfPaywall`, on a 402) opens the same dialog.
  *  3. Inline card at checkout in place of the pay button (`<VerifyEmailCard />` where
  *     `useNeedsEmailVerification()` is true; a billing 403 email_verification_required turns it on
  *     through `isEmailVerificationRequired(res)`).
- *  Landing: `<VerifyEmailLanding />` (app/verify-email/page.tsx).
+ *  4. The one-time "code not applied" notice on the dashboard (AJ-522-S3).
+ *  Landing: `<VerifyEmailLanding />` (app/verify-email/page.tsx), the five S5 states.
  *
- * The state comes from GET /api/auth/me (`emailVerified`, `hasGoogle`, T-223 phase 2). Google
- * users never see a prompt. When /me fails or lacks the fields, nothing shows (fail open); the
- * server's 403 at checkout stays the guard. Privacy first: privacy 403s are handled by
- * privacyFetch before any of this runs, and the privacy dialog is modal over the banner.
+ * The state comes from GET /api/auth/me (`emailVerified`, `hasGoogle`, `signupInkGranted`,
+ * `referralStatus`). Google users never see a prompt. When /me fails or lacks the fields, nothing
+ * shows (fail open); the server's 403 stays the guard. Privacy first: privacy 403s are handled by
+ * privacyFetch before any of this runs, and the privacy dialog is modal over the bar.
+ * Never fenced here (AJ-522-M1 a): Settings, Privacy, export, delete account, withdraw consent.
  *
  * The address is shown masked only (first character, ***, domain). Nothing here logs the
  * address or the token. The token goes in the POST body, never in a path.
  */
-import * as Dialog from '@radix-ui/react-dialog';
-import { AlertCircle, CheckCircle2, Clock, Loader2, Mail, X } from 'lucide-react';
-import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { AlertCircle, AlertTriangle, CheckCircle2, Clock, Loader2, Mail } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 
 import { card, primaryButton } from '@/components/intake/ui';
+import { VERIFY_COPY } from '@/components/marketing/nl-copy';
+import { Banner, Button, Dialog, Skeleton } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
 import { apiFetch } from '@/lib/apiFetch';
 import { getAccessToken } from '@/lib/auth';
+import { cn } from '@/lib/cn';
 
-// ── Madhuri's strings, signed by Ajay. Changes only with his sign-off. ─────────────────────────
+// ── Madhuri's strings, signed by Ajay (T-223). Changes only with his sign-off. ─────────────────
+// T-522: the T-223 bar and modal bodies (`banner`, `modalBody`) are gone: AJ-522-M3 and M6
+// (VERIFY_COPY) replace them. The surfaces in this file use AJ-522-M4 and S6 for the resend lines
+// and AJ-522-S5 for the landing. The other T-223 lines stay for components/billing/PlanPanel.tsx
+// until its T-522 step (after Shashank's billing merge).
 export const VERIFY_STRINGS = {
   title: 'Verify your email',
-  body: (masked: string) =>
-    `We sent a verification link to ${masked}. Open it to verify your email.`,
   resend: 'Resend email',
   sent: (masked: string) => `Email sent to ${masked}. Check your inbox and your spam folder.`,
   limitWait: (minutes: number) =>
     minutes <= 1 ? 'Try again in 1 minute.' : `Try again in ${minutes} minutes.`,
-  expired: 'This link has expired. Send a new one.',
   already: 'Your email is already verified.',
-  verified: 'Your email is verified. You can continue.',
   networkError: "Couldn't send the email. Check your connection and try again.",
-  banner: (masked: string) =>
-    `Verify your email. You need it to receive your 5 sign-up Ink and to buy Ink. We sent a link to ${masked}.`,
-  modalTitle: 'Verify your email to continue',
-  modalBody: (masked: string) =>
-    `Verify your email to receive your 5 sign-up Ink. We sent a link to ${masked}.`,
   checkoutTitle: 'Verify your email before you buy',
-  // "Additions for Ajay" (13 Oct): Meera approved, Ajay checking in parallel.
-  limitReady: 'You can resend the email now.',
-  landingError: "We couldn't verify your email just now. Please try again.",
-  landingErrorRetry: 'Try again',
-  landingExpiredSignedOut: 'This link has expired. Sign in to send a new one.',
-  landingExpiredSignedOutCta: 'Sign in',
   checkoutBody: (masked: string) =>
     `We sent a link to ${masked}. Verify your email, then come back to buy Ink.`,
 } as const;
 
-/** Close / dismiss label. Not in Madhuri's file (UI chrome, same as ReferralOfferModal). */
-const CLOSE_LABEL = 'Close';
-
-/** Billing 403 body code at checkout (T-223 phase 1, apps/billing billing.routes.ts). */
+/** Billing and drafting 403 body code (T-223; drafting since T-522). */
 export const EMAIL_VERIFICATION_REQUIRED = 'email_verification_required';
 /** Resend 429 code: VERIFY_RESEND_LIMITED in apps/auth/src/services/verify-email.service.ts. */
 export const VERIFY_RESEND_LIMITED = 'verify_email_rate_limited';
 /** POST /verify-email 400 code for an expired, used or forged link (phase-2 contract). */
 export const VERIFY_LINK_INVALID = 'verify_link_invalid';
+
+/** The signed-in resend limit (auth verify-rate-limit.ts, Arjun T-522): one per 2 minutes. */
+export const RESEND_INTERVAL_MS = 2 * 60_000;
+/** How long the sent and end-of-wait lines stay before the bar goes back to its M3 line. */
+export const STATUS_LINE_MS = 6_000;
 
 /** a***@example.com: first character, ***, domain. Never the full address. */
 export function maskEmail(email: string | null | undefined): string {
@@ -81,32 +78,39 @@ export function maskEmail(email: string | null | undefined): string {
   return `${email[0]}***${email.slice(at)}`;
 }
 
-// ── Store (module level, so plain functions can open the modal) ──────────────────────────────
+// ── Store (module level, so plain functions can open the dialog) ─────────────────────────────
 
-type ResendPhase = 'idle' | 'loading' | 'sent' | 'limited' | 'error' | 'already';
+/** ready = a wait window just ended (S6 line). */
+type ResendPhase = 'idle' | 'loading' | 'sent' | 'limited' | 'ready' | 'error';
 type Place = 'banner' | 'modal' | 'checkout' | 'landing';
+type ReferralStatus = 'applied' | 'not_applied' | null;
 
 interface VerifyState {
   /** From /me: null = unknown (fail open, nothing shows). */
   emailVerified: boolean | null;
   hasGoogle: boolean | null;
-  /** A billing 403 said verification is required, whatever /me said. */
+  /** From /me: the sign-up Ink was granted (M3 drops its Ink clause). */
+  signupInkGranted: boolean;
+  /** From /me: the outcome of a referral code sent at sign-up. */
+  referralStatus: ReferralStatus;
+  /** A 403 email_verification_required said verification is required, whatever /me said. */
   requiredByServer: boolean;
+  /** The draft refusal dialog (AJ-522-M6). */
   modalOpen: boolean;
-  bannerDismissed: boolean;
   resend: ResendPhase;
   /** ms epoch when the resend limit ends (from the server's retryAfter). */
   limitUntil: number;
-  /** The core whose resend made the current status: only it announces. */
+  /** The core whose resend made the current status. */
   origin: Place | null;
 }
 
 const initial: VerifyState = {
   emailVerified: null,
   hasGoogle: null,
+  signupInkGranted: false,
+  referralStatus: null,
   requiredByServer: false,
   modalOpen: false,
-  bannerDismissed: false,
   resend: 'idle',
   limitUntil: 0,
   origin: null,
@@ -114,11 +118,35 @@ const initial: VerifyState = {
 
 let state: VerifyState = initial;
 const listeners = new Set<() => void>();
-let returnFocusTo: HTMLElement | null = null;
+/** One timer for the phase that ends on its own (sent, limited, ready). */
+let phaseTimer: ReturnType<typeof setTimeout> | null = null;
 
 function setState(patch: Partial<VerifyState>): void {
   state = { ...state, ...patch };
   listeners.forEach((l) => l());
+}
+
+function clearPhaseTimer(): void {
+  if (phaseTimer !== null) clearTimeout(phaseTimer);
+  phaseTimer = null;
+}
+
+/** Resets the store (sign-out, a new user). */
+function resetState(): void {
+  clearPhaseTimer();
+  setState({ ...initial });
+}
+
+/** After `ms`, if the resend is still in `phase`, move it to `next`. */
+function endPhaseAfter(phase: ResendPhase, ms: number, next: ResendPhase): void {
+  clearPhaseTimer();
+  phaseTimer = setTimeout(() => {
+    phaseTimer = null;
+    if (state.resend !== phase) return;
+    setState({ resend: next });
+    // The end-of-wait line goes back to the M3 line after a moment, like the sent line.
+    if (next === 'ready') endPhaseAfter('ready', STATUS_LINE_MS, 'idle');
+  }, ms);
 }
 
 function subscribe(l: () => void): () => void {
@@ -140,11 +168,17 @@ function needsVerification(s: VerifyState): boolean {
   return s.emailVerified === false && s.hasGoogle === false;
 }
 
+function isVerifiedState(s: VerifyState): boolean {
+  return s.emailVerified === true || s.hasGoogle === true;
+}
+
 // ── Server calls ─────────────────────────────────────────────────────────────────────────────
 
 interface VerifyStatus {
   emailVerified: boolean;
   hasGoogle: boolean;
+  signupInkGranted: boolean;
+  referralStatus: ReferralStatus;
 }
 
 /** GET /api/auth/me. Null on any error, or when the T-223 fields are missing (fail open). */
@@ -157,7 +191,15 @@ async function fetchVerifyStatus(): Promise<VerifyStatus | null> {
     if (!data || typeof data.emailVerified !== 'boolean' || typeof data.hasGoogle !== 'boolean') {
       return null;
     }
-    return { emailVerified: data.emailVerified, hasGoogle: data.hasGoogle };
+    return {
+      emailVerified: data.emailVerified,
+      hasGoogle: data.hasGoogle,
+      signupInkGranted: data.signupInkGranted === true,
+      referralStatus:
+        data.referralStatus === 'applied' || data.referralStatus === 'not_applied'
+          ? data.referralStatus
+          : null,
+    };
   } catch {
     return null;
   }
@@ -169,27 +211,42 @@ async function refreshVerifyStatus(): Promise<VerifyStatus | null> {
     setState({
       emailVerified: status.emailVerified,
       hasGoogle: status.hasGoogle,
+      signupInkGranted: status.signupInkGranted,
+      referralStatus: status.referralStatus,
       requiredByServer: status.emailVerified || status.hasGoogle ? false : state.requiredByServer,
     });
   }
   return status;
 }
 
-function currentTrigger(): HTMLElement | null {
-  const active = typeof document !== 'undefined' ? document.activeElement : null;
-  return active instanceof HTMLElement && active !== document.body ? active : null;
+/**
+ * T-522 (Rajesh §3): a draft action (generate, preflight, intake) answered 403
+ * email_verification_required opens the M6 Draft dialog and returns true; the caller keeps the
+ * advocate where they were (no redirect) and leaves its buttons enabled. Any other response:
+ * false, and the response body is untouched (read from a clone).
+ */
+export async function openVerifyIfDraftRefused(res: Response): Promise<boolean> {
+  if (res.status !== 403) return false;
+  try {
+    const body = (await res.clone().json()) as { error?: unknown } | null;
+    if (body?.error !== EMAIL_VERIFICATION_REQUIRED) return false;
+  } catch {
+    return false;
+  }
+  setState({ requiredByServer: true, emailVerified: false, modalOpen: true });
+  return true;
 }
 
 /**
- * Trigger 2 (Priya): the draft was refused for lack of Ink (402). Asks /me; for an unverified
- * email user (no Google) it opens the verify modal and returns true, so the caller skips the
- * paywall. Verified, Google, or /me unavailable: returns false and the paywall shows as before.
+ * T-223 trigger 2: the draft was refused for lack of Ink (402). Asks /me; for an unverified
+ * email user (no Google) it opens the draft refusal dialog (AJ-522-M6) and returns true, so the
+ * caller skips the paywall. Verified, Google, or /me unavailable: returns false and the paywall
+ * shows as before. Since T-522 the drafting fence answers 403 before any 402, so this is a
+ * fallback.
  */
 export async function openVerifyInsteadOfPaywall(): Promise<boolean> {
-  const trigger = currentTrigger();
   const status = await refreshVerifyStatus();
   if (!status || status.emailVerified || status.hasGoogle) return false;
-  returnFocusTo = trigger;
   setState({ modalOpen: true });
   return true;
 }
@@ -224,26 +281,38 @@ function retryAfterMs(res: Response, body: { retryAfter?: unknown } | null): num
   return 0;
 }
 
+function isLimited(s: VerifyState): boolean {
+  return s.resend === 'limited' && Date.now() < s.limitUntil;
+}
+
+/** The signed-in resend (POST /api/auth/verify-email/resend). */
 async function resend(origin: Place): Promise<void> {
   if (state.resend === 'loading') return;
-  if (state.resend === 'limited' && Date.now() < state.limitUntil) return;
+  if (isLimited(state)) {
+    // Still in the wait: the wait line stays; nothing is sent.
+    setState({ origin });
+    return;
+  }
+  clearPhaseTimer();
   setState({ resend: 'loading', origin });
   try {
     const res = await apiFetch('/api/auth/verify-email/resend', { method: 'POST' });
     if (res.status === 202 || res.ok) {
       setState({ resend: 'sent' });
+      endPhaseAfter('sent', STATUS_LINE_MS, 'idle');
       return;
     }
     if (res.status === 429) {
       const body = (await res.json().catch(() => null)) as { retryAfter?: unknown } | null;
-      const wait = retryAfterMs(res, body);
-      // No wait from the server: say nothing we cannot back up; let the user try again.
-      if (wait <= 0) return setState({ resend: 'error' });
+      // The 2-minute or the daily limit. No wait from the server: hold the 2-minute window.
+      const wait = retryAfterMs(res, body) || RESEND_INTERVAL_MS;
       setState({ resend: 'limited', limitUntil: Date.now() + wait });
+      endPhaseAfter('limited', wait, 'ready');
       return;
     }
     if (res.status === 409) {
-      setState({ resend: 'already', emailVerified: true, requiredByServer: false });
+      // Already verified: the bar and the dialog go away.
+      setState({ resend: 'idle', emailVerified: true, requiredByServer: false, modalOpen: false });
       return;
     }
     setState({ resend: 'error' });
@@ -252,141 +321,90 @@ async function resend(origin: Place): Promise<void> {
   }
 }
 
-// ── Shared core ──────────────────────────────────────────────────────────────────────────────
-
-const statusRow = 'flex items-start gap-2 rounded-lg px-3 py-2 text-sm leading-5';
-const okRow = `${statusRow} bg-brand-teal-light text-brand-teal-dark`;
-const waitRow = `${statusRow} bg-brand-gold-light text-brand-gold-dark`;
-const errRow = `${statusRow} bg-brand-error-light text-brand-error`;
-
-/** Re-renders every second while a limit is running; announces only start and minute text. */
-function useLimitMinutes(limitUntil: number, active: boolean): number {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    if (!active) return;
-    const id = window.setInterval(() => {
-      const t = Date.now();
-      setNow(t);
-      if (t >= limitUntil) {
-        window.clearInterval(id);
-        if (state.resend === 'limited') setState({ resend: 'idle' });
-      }
-    }, 1000);
-    return () => window.clearInterval(id);
-  }, [active, limitUntil]);
-  return Math.max(0, Math.ceil((limitUntil - now) / 60_000));
+/** The status line for a resend phase (AJ-522-M4, S6, S8); '' when there is none. */
+function statusLine(phase: ResendPhase): string {
+  switch (phase) {
+    case 'sent':
+      return VERIFY_COPY.sent;
+    case 'limited':
+      return VERIFY_COPY.wait;
+    case 'ready':
+      return VERIFY_COPY.ready;
+    case 'error':
+      return VERIFY_COPY.failed;
+    default:
+      return '';
+  }
 }
 
-interface CoreProps {
-  place: Place;
-  masked: string;
-  /** Only the landing page shows "expired". */
-  expired?: boolean;
-  /** Id for the reason line (aria-describedby target in the modal). */
-  describedById?: string;
+// ── Shared core (checkout card and landing) ──────────────────────────────────────────────────
+
+const STATUS_ROW = 'flex items-start gap-2 rounded-lg px-3 py-2 text-sm leading-5';
+const ROW_TONE: Record<'ok' | 'wait' | 'err', string> = {
+  ok: 'bg-brand-teal-light text-brand-teal-dark',
+  wait: 'bg-brand-gold-light text-brand-gold-dark',
+  err: 'bg-brand-error-light text-brand-error',
+};
+
+function toneOf(phase: ResendPhase): 'ok' | 'wait' | 'err' {
+  if (phase === 'error') return 'err';
+  if (phase === 'limited') return 'wait';
+  return 'ok';
 }
 
-function VerifyCoreControls({ place, masked, expired }: CoreProps) {
+function StatusIcon({ phase }: { phase: ResendPhase }) {
+  if (phase === 'error') {
+    return <AlertCircle size={16} aria-hidden="true" className="mt-0.5 shrink-0" />;
+  }
+  if (phase === 'limited') {
+    return <Clock size={16} aria-hidden="true" className="mt-0.5 shrink-0" />;
+  }
+  return <CheckCircle2 size={16} aria-hidden="true" className="mt-0.5 shrink-0" />;
+}
+
+/** The legacy-shell resend core: the checkout card (T-223 Place 3). */
+function VerifyCoreControls({ place }: { place: Place }) {
   const s = useVerifyState();
-  const limited = s.resend === 'limited' && s.limitUntil > Date.now();
-  const minutes = useLimitMinutes(s.limitUntil, s.resend === 'limited');
-  // Live-region and alert text, set once per state change (never every second).
-  const [announced, setAnnounced] = useState('');
-  const [alerted, setAlerted] = useState('');
-  const mine = s.origin === place;
-  const statusId = `verify-status-${place}`;
-  /** Previous resend phase, to catch the end of a limit (limited -> idle). */
-  const prevResend = useRef<ResendPhase>(s.resend);
-
-  useEffect(() => {
-    const limitEnded = prevResend.current === 'limited' && s.resend === 'idle';
-    prevResend.current = s.resend;
-    let polite = '';
-    let alert = '';
-    // verify.limit_ready: once, when the wait ends and the button is back.
-    if (mine && limitEnded) polite = VERIFY_STRINGS.limitReady;
-    else if (mine && s.resend === 'sent') polite = VERIFY_STRINGS.sent(masked);
-    else if (mine && s.resend === 'already') polite = VERIFY_STRINGS.already;
-    else if (mine && s.resend === 'error') alert = VERIFY_STRINGS.networkError;
-    else if (mine && s.resend === 'limited') {
-      // Once, when the limit starts (spec §4); limit_ready says when it ends.
-      alert = VERIFY_STRINGS.limitWait(
-        Math.max(1, Math.ceil((state.limitUntil - Date.now()) / 60_000)),
-      );
-    } else if (expired && s.resend === 'idle' && !limitEnded) alert = VERIFY_STRINGS.expired;
-    setAnnounced(polite);
-    setAlerted(alert);
-  }, [mine, s.resend, masked, expired]);
-
   const loading = s.resend === 'loading';
-  const disabled = loading || limited || s.resend === 'already';
-  const showResend = s.resend !== 'already';
+  const disabled = loading || isLimited(s);
+  const line = statusLine(s.resend);
+  const statusId = `verify-status-${place}`;
 
   return (
     <div className="flex flex-col gap-2">
-      {showResend && (
-        <button
-          type="button"
-          className={`${primaryButton} w-full sm:w-auto ${disabled ? 'cursor-not-allowed opacity-40' : ''}`}
-          aria-disabled={disabled || undefined}
-          aria-busy={loading || undefined}
-          aria-describedby={statusId}
-          onClick={() => {
-            if (!disabled) void resend(place);
-          }}
-        >
-          {loading && (
-            <Loader2 size={16} aria-hidden="true" className="shrink-0 motion-safe:animate-spin" />
-          )}
-          {VERIFY_STRINGS.resend}
-        </button>
-      )}
-      <div id={statusId} className="flex flex-col gap-2">
-        {/* Visible status rows. Icons plus text: colour is never the only signal. */}
-        {s.resend === 'sent' && (
-          <p className={okRow} aria-hidden={mine ? 'true' : undefined}>
-            <CheckCircle2 size={16} aria-hidden="true" className="mt-0.5 shrink-0" />
-            {VERIFY_STRINGS.sent(masked)}
-          </p>
+      <button
+        type="button"
+        className={cn(
+          primaryButton,
+          'w-full sm:w-auto',
+          disabled && 'cursor-not-allowed opacity-40',
         )}
-        {s.resend === 'already' && (
-          <p className={okRow} aria-hidden={mine ? 'true' : undefined}>
-            <CheckCircle2 size={16} aria-hidden="true" className="mt-0.5 shrink-0" />
-            {VERIFY_STRINGS.already}
-          </p>
+        aria-disabled={disabled || undefined}
+        aria-busy={loading || undefined}
+        aria-describedby={statusId}
+        onClick={() => {
+          if (!disabled) void resend(place);
+        }}
+      >
+        {loading && (
+          <Loader2 size={16} aria-hidden="true" className="shrink-0 motion-safe:animate-spin" />
         )}
-        {limited && (
-          <p className={waitRow}>
-            <Clock size={16} aria-hidden="true" className="mt-0.5 shrink-0" />
-            {/* Visual only; the alert below says it once when the limit starts. */}
-            <span aria-hidden="true">{VERIFY_STRINGS.limitWait(minutes)}</span>
+        {VERIFY_COPY.resend}
+      </button>
+      {/* Icons plus text: colour is never the only signal. One polite region, always present. */}
+      <div id={statusId} role="status" aria-live="polite" aria-atomic="true">
+        {line ? (
+          <p className={cn(STATUS_ROW, ROW_TONE[toneOf(s.resend)])}>
+            <StatusIcon phase={s.resend} />
+            {line}
           </p>
-        )}
-        {expired && s.resend === 'idle' && (
-          <p className={errRow} aria-hidden="true">
-            <AlertCircle size={16} aria-hidden="true" className="mt-0.5 shrink-0" />
-            {VERIFY_STRINGS.expired}
-          </p>
-        )}
-        {s.resend === 'error' && (
-          <p className={errRow} aria-hidden={mine ? 'true' : undefined}>
-            <AlertCircle size={16} aria-hidden="true" className="mt-0.5 shrink-0" />
-            {VERIFY_STRINGS.networkError}
-          </p>
-        )}
-      </div>
-      {/* One polite region and one alert node per core, always in the DOM. */}
-      <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
-        {announced}
-      </div>
-      <div role="alert" className="sr-only">
-        {alerted}
+        ) : null}
       </div>
     </div>
   );
 }
 
-// ── 1. Banner + 2. Modal (default export, mounted once in dashboard/layout.tsx) ──────────────
+// ── 1. Verify bar + 2. Draft refusal dialog (default export, mounted in dashboard/layout.tsx) ─
 
 export default function VerifyEmailPrompt() {
   const { user, isLoading } = useAuth();
@@ -395,13 +413,13 @@ export default function VerifyEmailPrompt() {
 
   // Signed out: forget everything (the next user starts fresh).
   useEffect(() => {
-    if (!isLoading && !userId) setState({ ...initial });
+    if (!isLoading && !userId) resetState();
   }, [isLoading, userId]);
 
   // On sign-in / each dashboard load: ask the server.
   useEffect(() => {
     if (!userId) return;
-    setState({ ...initial });
+    resetState();
     void refreshVerifyStatus();
   }, [userId]);
 
@@ -410,99 +428,78 @@ export default function VerifyEmailPrompt() {
 
   return (
     <>
-      {needsVerification(s) && !s.bannerDismissed && !s.modalOpen && (
-        <VerifyEmailBanner masked={masked} />
-      )}
-      <VerifyEmailModal masked={masked} open={s.modalOpen} />
+      {needsVerification(s) && <VerifyEmailBar masked={masked} />}
+      <DraftRefusalDialog masked={masked} open={s.modalOpen} />
     </>
   );
 }
 
-function VerifyEmailBanner({ masked }: { masked: string }) {
+/**
+ * Rajesh §2: ui/Banner kind verify-email (warn, role=status), full width under the top bar, not
+ * dismissible. The text line swaps for the resend states; the bar does not grow a second row.
+ */
+function VerifyEmailBar({ masked }: { masked: string }) {
+  const s = useVerifyState();
+  const line = statusLine(s.resend);
+  const message =
+    s.resend === 'error' ? (
+      <span className="text-nl-err">{line}</span>
+    ) : (
+      line || VERIFY_COPY.bar(masked, s.signupInkGranted)
+    );
   return (
-    <div
-      role="region"
-      aria-label={VERIFY_STRINGS.title}
-      className="border-brand-line bg-brand-gold-light text-brand-navy border-b px-4 py-3"
-    >
-      <div className="relative mx-auto flex max-w-[720px] flex-col gap-3 pr-11 sm:flex-row sm:items-start sm:gap-4">
-        <div className="flex flex-1 items-start gap-3">
-          <Mail size={24} aria-hidden="true" className="text-brand-navy shrink-0" />
-          <p className="text-sm leading-6">{VERIFY_STRINGS.banner(masked)}</p>
-        </div>
-        <div className="sm:shrink-0">
-          <VerifyCoreControls place="banner" masked={masked} />
-        </div>
-        <button
-          type="button"
-          aria-label={CLOSE_LABEL}
-          onClick={() => setState({ bannerDismissed: true })}
-          className="text-brand-navy focus-visible:ring-brand-teal absolute right-0 top-0 inline-flex h-11 w-11 items-center justify-center rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-        >
-          <X size={18} aria-hidden="true" />
-        </button>
-      </div>
-    </div>
+    <Banner
+      kind="verify-email"
+      message={message}
+      action={{
+        label: s.resend === 'error' ? VERIFY_COPY.retry : VERIFY_COPY.resend,
+        onClick: () => {
+          // While a send runs or a wait window is open the press does nothing new; the wait line
+          // stays on the bar.
+          if (state.resend === 'loading') return;
+          void resend('banner');
+        },
+      }}
+    />
   );
 }
 
-function VerifyEmailModal({ masked, open }: { masked: string; open: boolean }) {
-  const titleRef = useRef<HTMLHeadingElement>(null);
-  const close = useCallback(() => setState({ modalOpen: false }), []);
+/**
+ * AJ-522-M6 Draft refusal (Rajesh §3): ui/Dialog, `Resend email` primary, `Not now` ghost with
+ * first focus (it comes first in the Dialog's DOM order). Escape and the scrim close. The resend
+ * status line sits in the dialog body.
+ */
+function DraftRefusalDialog({ masked, open }: { masked: string; open: boolean }) {
+  const s = useVerifyState();
+  const line = s.origin === 'modal' ? statusLine(s.resend) : '';
   return (
-    <Dialog.Root
+    <Dialog
       open={open}
       onOpenChange={(o) => {
-        if (!o) close();
+        if (!o) setState({ modalOpen: false });
       }}
+      title={VERIFY_COPY.draftTitle}
+      description={VERIFY_COPY.draftBody(masked)}
+      confirmLabel={VERIFY_COPY.resend}
+      cancelLabel={VERIFY_COPY.notNow}
+      confirmLoading={s.resend === 'loading' && s.origin === 'modal'}
+      onConfirm={() => void resend('modal')}
     >
-      <Dialog.Portal>
-        <Dialog.Overlay className="bg-brand-navy/55 fixed inset-0 z-[55]" />
-        <Dialog.Content
-          aria-describedby="verify-modal-reason"
-          onOpenAutoFocus={(e) => {
-            e.preventDefault();
-            titleRef.current?.focus();
-          }}
-          onCloseAutoFocus={(e) => {
-            e.preventDefault();
-            const target =
-              returnFocusTo && returnFocusTo.isConnected
-                ? returnFocusTo
-                : (document.getElementById('dashboard-main') ?? document.querySelector('main'));
-            returnFocusTo = null;
-            target?.focus();
-          }}
-          className="fixed left-1/2 top-1/2 z-[56] flex max-h-[90vh] w-[calc(100%-32px)] max-w-[480px] -translate-x-1/2 -translate-y-1/2 flex-col gap-4 overflow-y-auto rounded-2xl bg-white p-5 sm:p-7"
-        >
-          <div className="flex items-start gap-3 pr-10">
-            <Mail size={24} aria-hidden="true" className="text-brand-navy shrink-0" />
-            <Dialog.Title asChild>
-              <h2
-                ref={titleRef}
-                tabIndex={-1}
-                className="font-heading text-brand-navy text-xl font-semibold leading-7 focus:outline-none"
-              >
-                {VERIFY_STRINGS.modalTitle}
-              </h2>
-            </Dialog.Title>
-          </div>
-          <p id="verify-modal-reason" className="text-brand-navy text-[15px] leading-6">
-            {VERIFY_STRINGS.modalBody(masked)}
-          </p>
-          <VerifyCoreControls place="modal" masked={masked} />
-          <Dialog.Close asChild>
-            <button
-              type="button"
-              aria-label={CLOSE_LABEL}
-              className="text-brand-navy focus-visible:ring-brand-teal absolute right-3 top-3 inline-flex h-11 w-11 items-center justify-center rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-            >
-              <X size={18} aria-hidden="true" />
-            </button>
-          </Dialog.Close>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+      <p
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className={cn(
+          'nl-body-sm m-0',
+          s.resend === 'error' && 'text-nl-err',
+          s.resend === 'limited' && 'text-nl-warn',
+          (s.resend === 'sent' || s.resend === 'ready') && 'text-nl-ok',
+          !line && 'sr-only',
+        )}
+      >
+        {line}
+      </p>
+    </Dialog>
   );
 }
 
@@ -515,7 +512,7 @@ export function VerifyEmailCard() {
     <section
       role="region"
       aria-labelledby="verify-checkout-title"
-      className={`${card} text-brand-navy flex flex-col gap-3`}
+      className={cn(card, 'text-brand-navy flex flex-col gap-3')}
     >
       <div className="flex items-start gap-3">
         <Mail size={24} aria-hidden="true" className="text-brand-navy shrink-0" />
@@ -524,47 +521,164 @@ export function VerifyEmailCard() {
         </h2>
       </div>
       <p className="text-sm leading-6">{VERIFY_STRINGS.checkoutBody(masked)}</p>
-      <VerifyCoreControls place="checkout" masked={masked} />
+      <VerifyCoreControls place="checkout" />
     </section>
   );
 }
 
-// ── Landing page core (app/verify-email/page.tsx) ────────────────────────────────────────────
+// ── 4. One-time "code not applied" notice (AJ-522-S3) ────────────────────────────────────────
 
-type LandingResult = 'verified' | 'already' | 'expired' | 'error';
+const REFERRAL_NOTICE_SEEN_PREFIX = 'lawie.referralNotice.seen:';
+
+function referralNoticeSeen(userId: string): boolean {
+  try {
+    return localStorage.getItem(REFERRAL_NOTICE_SEEN_PREFIX + userId) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function markReferralNoticeSeen(userId: string): void {
+  try {
+    localStorage.setItem(REFERRAL_NOTICE_SEEN_PREFIX + userId, '1');
+  } catch {
+    // Storage unavailable: the notice shows again next time, which is never a silent drop.
+  }
+}
+
+/**
+ * AJ-522-S3 (placement per Addendum 1): on a dashboard load after verification, only when
+ * GET /me says referralStatus === 'not_applied', once. It is marked seen only after it has
+ * rendered (the effect runs after the commit), so a user who never loads the dashboard still
+ * sees it on the next load. It stays for the rest of this visit.
+ */
+export function ReferralNotAppliedNotice() {
+  const { user } = useAuth();
+  const s = useVerifyState();
+  const userId = user?.id ?? null;
+  const eligible = Boolean(userId) && isVerifiedState(s) && s.referralStatus === 'not_applied';
+  const [shownFor, setShownFor] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (eligible && userId && shownFor !== userId && !referralNoticeSeen(userId)) {
+      setShownFor(userId);
+    }
+  }, [eligible, userId, shownFor]);
+
+  const shown = shownFor !== null && shownFor === userId;
+
+  useEffect(() => {
+    if (shown && userId) markReferralNoticeSeen(userId);
+  }, [shown, userId]);
+
+  if (!shown) return null;
+  return (
+    <p role="status" className="gap-nl-2 nl-body text-nl-text m-0 flex items-start">
+      <AlertTriangle className="text-nl-warn mt-1 h-5 w-5 shrink-0" aria-hidden="true" />
+      <span>{VERIFY_COPY.referralNotApplied}</span>
+    </p>
+  );
+}
+
+// ── Brass check disc (the T-525 payment mark, drawn here; decorative) ────────────────────────
+
+/**
+ * The 64px brass disc with the On Brass check. `stamp`: the Seal motion (550ms; a 150ms fade
+ * under reduced motion, globals.css). Otherwise the end state with a 150ms fade in.
+ */
+export function CheckDisc({ stamp = false }: { stamp?: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 64 64"
+      width="64"
+      height="64"
+      aria-hidden="true"
+      className={cn(
+        'shrink-0 overflow-visible',
+        !stamp && 'motion-safe:animate-[nl-fade-in_150ms_ease_both]',
+      )}
+    >
+      <g className={stamp ? 'nl-seal-stamping' : 'nl-seal-stamped'}>
+        <circle cx="32" cy="32" r="30" fill="var(--brass)" />
+        <circle
+          cx="32"
+          cy="32"
+          r="25"
+          fill="none"
+          stroke="var(--on-brass)"
+          strokeOpacity="0.6"
+          strokeWidth="1.5"
+        />
+        <path
+          d="M21 33l7 7 15-16"
+          fill="none"
+          stroke="var(--on-brass)"
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </g>
+    </svg>
+  );
+}
+
+// ── Landing page core (app/verify-email/page.tsx), Rajesh §4 / AJ-522-S5 ─────────────────────
+
+const SIGNIN_HREF = '/login?mode=signin';
+
+/** null = verifying. */
+type LandingResult = 'signedIn' | 'verifiedSignedOut' | 'expired' | 'error';
+
+interface SubmitOutcome {
+  kind: 'verified' | 'expired' | 'error';
+  /** Present when the link was a sign-in link (the server opened a session). */
+  tokens?: { accessToken: string; refreshToken: string };
+}
 
 /** One POST per token per page load: React dev double-effects must not spend the link twice. */
-const submitted = new Map<string, Promise<LandingResult>>();
+const submitted = new Map<string, Promise<SubmitOutcome>>();
 
-async function submitToken(token: string): Promise<LandingResult> {
+async function submitToken(token: string): Promise<SubmitOutcome> {
   try {
     // Public route: the token is the credential. apiFetch adds the Bearer header if signed in.
     const res = await apiFetch('/api/auth/verify-email', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token }),
+      referrerPolicy: 'no-referrer',
     });
     const body = (await res.json().catch(() => null)) as {
       status?: unknown;
-      error?: unknown;
+      accessToken?: unknown;
+      refreshToken?: unknown;
     } | null;
-    if (res.ok && body?.status === 'verified') return 'verified';
-    if (res.ok && body?.status === 'already_verified') return 'already';
-    if (res.status === 400) return 'expired';
-    return 'error';
+    if (res.ok && (body?.status === 'verified' || body?.status === 'already_verified')) {
+      const { accessToken, refreshToken } = body;
+      if (typeof accessToken === 'string' && typeof refreshToken === 'string') {
+        return { kind: 'verified', tokens: { accessToken, refreshToken } };
+      }
+      return { kind: 'verified' };
+    }
+    if (res.status === 400) return { kind: 'expired' };
+    return { kind: 'error' };
   } catch {
-    return 'error';
+    return { kind: 'error' };
   }
 }
 
 export function VerifyEmailLanding() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, login } = useAuth();
+  const router = useRouter();
   const params = useSearchParams();
   const [result, setResult] = useState<LandingResult | null>(null);
   const [token] = useState(() => params.get('token'));
   /** Bumped by "Try again" after a server or network failure: submits the token again. */
   const [attempt, setAttempt] = useState(0);
   const titleRef = useRef<HTMLHeadingElement>(null);
+  // The session as it was when this attempt started (the link's own sign-in changes `user`,
+  // which must not re-run the flow).
+  const userRef = useRef(user);
+  userRef.current = user;
 
   // Take the token out of the address bar and history straight away (nothing else reads it).
   useEffect(() => {
@@ -577,11 +691,12 @@ export function VerifyEmailLanding() {
     if (isLoading) return;
     let cancelled = false;
     void (async () => {
-      // Signed in and already verified (or Google): say so without spending the link.
-      if (user && getAccessToken()) {
+      const signedIn = Boolean(userRef.current && getAccessToken());
+      // Already verified and already signed in: skip the page without spending the link.
+      if (signedIn) {
         const status = await refreshVerifyStatus();
         if (status && (status.emailVerified || status.hasGoogle)) {
-          if (!cancelled) setResult('already');
+          if (!cancelled) router.replace('/dashboard');
           return;
         }
       }
@@ -594,16 +709,27 @@ export function VerifyEmailLanding() {
         p = submitToken(token);
         submitted.set(token, p);
       }
-      const r = await p;
-      if (r === 'verified' || r === 'already') {
+      const outcome = await p;
+      if (outcome.kind === 'verified') {
+        // A sign-in link: the existing AuthContext login path stores the session.
+        if (outcome.tokens) login(outcome.tokens.accessToken, outcome.tokens.refreshToken);
         setState({ emailVerified: true, requiredByServer: false });
+        if (!cancelled) {
+          setResult(outcome.tokens || signedIn ? 'signedIn' : 'verifiedSignedOut');
+        }
+        return;
       }
-      if (!cancelled) setResult(r);
+      if (!cancelled) setResult(outcome.kind);
     })();
     return () => {
       cancelled = true;
     };
-  }, [isLoading, user, token, attempt]);
+  }, [isLoading, token, attempt, login, router]);
+
+  // Each new state moves focus to its title, so it is read first.
+  useEffect(() => {
+    if (result !== null) titleRef.current?.focus();
+  }, [result]);
 
   const retry = useCallback(() => {
     if (token) submitted.delete(token);
@@ -613,74 +739,118 @@ export function VerifyEmailLanding() {
     titleRef.current?.focus();
   }, [token]);
 
-  const masked = maskEmail(user?.email);
-  const done = result === 'verified' || result === 'already';
+  const L = VERIFY_COPY.landing;
+  const verified = result === 'signedIn' || result === 'verifiedSignedOut';
+  const title =
+    result === null
+      ? VERIFY_STRINGS.title
+      : verified
+        ? L.verifiedTitle
+        : result === 'expired'
+          ? L.expiredTitle
+          : VERIFY_STRINGS.title;
 
   return (
-    <main className="bg-brand-page flex min-h-screen items-center justify-center px-4 py-10">
+    <main className="nl nl-root px-nl-4 py-nl-8 flex min-h-[100svh] flex-col items-center justify-center">
       <section
-        role="region"
         aria-labelledby="verify-landing-title"
-        aria-busy={result === null || undefined}
-        className={`${card} text-brand-navy flex w-full max-w-[480px] flex-col gap-4`}
+        className="border-nl-line border-t-nl-brass bg-nl-card shadow-nl-card relative w-full max-w-[440px] overflow-hidden border border-t"
       >
-        <div className="flex items-start gap-3">
-          <Mail size={24} aria-hidden="true" className="text-brand-navy shrink-0" />
+        <div className="p-nl-6 gap-nl-4 min-[900px]:p-nl-10 relative flex flex-col">
+          {verified ? <CheckDisc stamp /> : null}
           <h1
             ref={titleRef}
             tabIndex={-1}
             id="verify-landing-title"
-            className="font-heading text-xl font-semibold leading-7 focus:outline-none"
+            className={cn(
+              'nl-h1 m-0 focus:outline-none',
+              result === 'expired' ? 'text-nl-err' : 'text-nl-text',
+            )}
           >
-            {VERIFY_STRINGS.title}
+            {title}
           </h1>
-        </div>
-        {result === null && (
-          <Loader2
-            size={24}
-            aria-hidden="true"
-            className="text-brand-muted motion-safe:animate-spin"
-          />
-        )}
-        {done && (
-          <p className={okRow}>
-            <CheckCircle2 size={16} aria-hidden="true" className="mt-0.5 shrink-0" />
-            {result === 'verified' ? VERIFY_STRINGS.verified : VERIFY_STRINGS.already}
-          </p>
-        )}
-        {/* Expired, used, forged (one state, T-223 AC2). Signed in: resend in place. Signed out:
-            resending needs sign-in, so the button goes to the login page. */}
-        {result === 'expired' &&
-          (user ? (
-            <VerifyCoreControls place="landing" masked={masked} expired />
-          ) : (
-            <div className="flex flex-col gap-2">
-              <p className={errRow} role="alert">
-                <AlertCircle size={16} aria-hidden="true" className="mt-0.5 shrink-0" />
-                {VERIFY_STRINGS.landingExpiredSignedOut}
+
+          {/* Verifying: a one-line skeleton, "Still working…" after 8 s (ui/Skeleton). */}
+          {result === null ? <Skeleton lines={1} /> : null}
+
+          {verified ? (
+            <>
+              <p role="status" className="nl-body text-nl-soft m-0">
+                {result === 'signedIn' ? L.verifiedSignedIn : L.verifiedSignedOut}
               </p>
-              <Link href="/login" className={`${primaryButton} w-full sm:w-auto`}>
-                {VERIFY_STRINGS.landingExpiredSignedOutCta}
-              </Link>
-            </div>
-          ))}
-        {/* Server (5xx) or network failure: not an expired link. Retry submits the token again. */}
-        {result === 'error' && (
-          <div className="flex flex-col gap-2">
-            <p className={errRow} role="alert">
-              <AlertCircle size={16} aria-hidden="true" className="mt-0.5 shrink-0" />
-              {VERIFY_STRINGS.landingError}
-            </p>
-            <button type="button" className={`${primaryButton} w-full sm:w-auto`} onClick={retry}>
-              {VERIFY_STRINGS.landingErrorRetry}
-            </button>
-          </div>
-        )}
-        {/* Done: the polite announcement of the result. */}
-        <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
-          {done ? (result === 'verified' ? VERIFY_STRINGS.verified : VERIFY_STRINGS.already) : ''}
+              <Button
+                className="w-full"
+                onClick={() => router.push(result === 'signedIn' ? '/dashboard' : SIGNIN_HREF)}
+              >
+                {result === 'signedIn' ? L.goToShelf : L.signIn}
+              </Button>
+            </>
+          ) : null}
+
+          {/* Expired, used or forged (AJ-522-M1 b): signs no one in. Resend only for a session
+              that already exists (S5), so nothing reveals whether an account exists. */}
+          {result === 'expired' ? (
+            <>
+              <p className="nl-body text-nl-soft m-0">{L.expiredLine}</p>
+              <Button className="w-full" onClick={() => router.push(SIGNIN_HREF)}>
+                {L.signIn}
+              </Button>
+              {user ? <LandingResend /> : null}
+            </>
+          ) : null}
+
+          {/* Server (5xx) or network failure: not an expired link. Try again submits it again. */}
+          {result === 'error' ? (
+            <>
+              <p role="alert" className="nl-body text-nl-err m-0">
+                {L.failed}
+              </p>
+              <Button className="w-full" onClick={retry}>
+                {L.tryAgain}
+              </Button>
+            </>
+          ) : null}
         </div>
       </section>
     </main>
+  );
+}
+
+/** The signed-in resend on the expired state (a ghost under the primary Sign in). */
+function LandingResend() {
+  const s = useVerifyState();
+  const line = s.origin === 'landing' ? statusLine(s.resend) : '';
+  const loading = s.resend === 'loading';
+  const limited = isLimited(s);
+  return (
+    <div className="gap-nl-2 flex flex-col">
+      <Button
+        variant="ghost"
+        className="w-full"
+        loading={loading}
+        aria-disabled={limited || undefined}
+        aria-describedby="verify-status-landing"
+        onClick={() => {
+          if (!limited) void resend('landing');
+        }}
+      >
+        {VERIFY_COPY.resend}
+      </Button>
+      <p
+        id="verify-status-landing"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className={cn(
+          'nl-body-sm m-0',
+          s.resend === 'error' && 'text-nl-err',
+          s.resend === 'limited' && 'text-nl-warn',
+          (s.resend === 'sent' || s.resend === 'ready') && 'text-nl-ok',
+          !line && 'sr-only',
+        )}
+      >
+        {line}
+      </p>
+    </div>
   );
 }

@@ -55,6 +55,13 @@ export interface IUserDrafting extends Document {
    * only reads it (by the JWT `sub`, when a draft is built) and never writes it.
    */
   readonly enrollmentNumber?: string;
+  /**
+   * T-522: read-only here (auth writes them), for the requireVerifiedEmail fence (shared
+   * isVerified rule). No defaults, so drafting never writes them.
+   */
+  readonly emailVerified?: boolean;
+  readonly authProvider?: string;
+  readonly googleId?: string;
   /** ObjectId reference — typed permissively for cross-service shape */
   referredVia?: unknown;
   createdAt?: Date;
@@ -119,6 +126,10 @@ const UserSchema = new Schema<IUserDrafting>(
     // T-311: read-only here (auth writes it). `immutable` refuses a change from
     // drafting on an existing user document; no default, so nothing is written.
     enrollmentNumber: { type: String, immutable: true },
+    // T-522: read-only here (auth writes them); no defaults, immutable from drafting.
+    emailVerified: { type: Boolean, immutable: true },
+    authProvider: { type: String, immutable: true },
+    googleId: { type: String, immutable: true },
   },
   {
     timestamps: true,

@@ -3,7 +3,13 @@
  * register / resend / verify handlers only need thin wiring.
  *
  * Flow:
- *  1. Sign-up or resend calls requestVerifyEmail(userId): resend cap (1/60 s, 5/24 h, Redis),
+ * T-522 (Arjun ruling 1, 22 Oct 2026): every link has a kind. 'signin' (the sign-up link and both
+ * resends): 30 minutes, single use, and POST /verify-email also signs the user in. 'verify' (the
+ * T-358 notice): verifies only. A missing or unknown kind is 'verify', which is also the mint
+ * route's default; the worker asks for 'signin' for the verify mail. Kind, hash and expiry are
+ * written in one atomic step and cleared together. Only the POST uses a token up.
+ *
+ *  1. Sign-up or resend calls requestVerifyEmail(userId): resend cap (1/2 min, 5/24 h, Redis),
  *     then enqueue { template: 'auth.verifyEmail', userId } through @lawie/email-client. The job
  *     carries the userId only. The email client keeps at most one pending verify job per user
  *     (T-390): a resend while the user's job is still waiting (e.g. held by the worker, T-379) or
@@ -22,6 +28,7 @@
 import crypto from 'crypto';
 
 import { enqueueEmail } from '@lawie/email-client';
+import { isVerified } from '@lawie/shared';
 import type Redis from 'ioredis';
 import mongoose from 'mongoose';
 
@@ -31,10 +38,26 @@ import redisClient from '../config/redis';
 import { User } from '../models/User.model';
 
 import { grantSignupBonus } from './credit-bonus.service';
+import { grantDeferredReferralInk } from './referral.service';
 import { consumeVerifyEmailQuota } from './verify-rate-limit';
 
-/** Link lifetime: 24 hours (signed copy: "expires in 24 hours"). */
+/**
+ * Default lifetime of a 'verify'-kind link minted without its own ttlMs (T-223's 24 hours). The
+ * T-358 notice passes its own 7 days. The verify MAIL no longer uses this: it asks for a
+ * 'signin' link (SIGNIN_LINK_TTL_MS).
+ */
 export const VERIFY_LINK_TTL_MS = 24 * 60 * 60 * 1000;
+
+/** T-522 (Arjun ruling 1; AJ-522-M1(b), M8 "expires in 30 minutes"): a 'signin' link's lifetime. */
+export const SIGNIN_LINK_TTL_MS = 30 * 60 * 1000;
+
+/** T-522: what a link does. Anything other than 'signin' is treated as 'verify'. */
+export type VerifyLinkKind = 'signin' | 'verify';
+
+/** T-522: a stored or requested kind, normalised. Missing or unknown means 'verify'. */
+export function normaliseLinkKind(kind: unknown): VerifyLinkKind {
+  return kind === 'signin' ? 'signin' : 'verify';
+}
 
 /** Fixed message for a resend over the cap (Arjun, condition 4). The web app adds the wait. */
 export const VERIFY_RESEND_LIMIT_MESSAGE =
@@ -78,7 +101,14 @@ export const NOT_YET_VERIFIED = {
 // ── Mint (internal route, called by the email worker) ───────────────────────
 
 export type MintVerifyLinkResult =
-  | { kind: 'minted'; email: string; name: string; link: string }
+  | {
+      kind: 'minted';
+      email: string;
+      name: string;
+      link: string;
+      /** T-522 (AJ-522-M8): the sign-up Ink was already granted (signupBonusGrantedAt set). */
+      signupInkGranted: boolean;
+    }
   /** Already verified, a Google account, or deactivated: 409, nothing minted. */
   | { kind: 'not_eligible' }
   /** No such user (or not an ObjectId): 404, nothing minted. */
@@ -93,9 +123,12 @@ export interface MintVerifyLinkOptions {
   eligibility?: Record<string, unknown>;
   /**
    * T-358 (Arjun 23:32, Ajay §9): link lifetime. Defaults to VERIFY_LINK_TTL_MS (24 h, T-223);
-   * the deletion notice passes 7 days to match its promise.
+   * the deletion notice passes 7 days to match its promise. Ignored for a 'signin' link, which
+   * always lasts SIGNIN_LINK_TTL_MS (T-522).
    */
   ttlMs?: number;
+  /** T-522: 'signin' or 'verify' (the default: a missing kind is never a sign-in link). */
+  linkKind?: VerifyLinkKind;
 }
 
 /**
@@ -111,16 +144,21 @@ export async function mintVerifyLink(
   const _id = new mongoose.Types.ObjectId(userId);
   const eligibility = opts.eligibility ?? { isActive: { $ne: false } };
 
+  const linkKind = normaliseLinkKind(opts.linkKind);
+  const ttlMs = linkKind === 'signin' ? SIGNIN_LINK_TTL_MS : (opts.ttlMs ?? VERIFY_LINK_TTL_MS);
+
   const token = crypto.randomBytes(32).toString('hex');
+  // T-522: kind, hash and expiry in the same atomic write; the newest link (and its kind) wins.
   const updated = await User.findOneAndUpdate(
     { _id, $and: [eligibility, NOT_YET_VERIFIED] },
     {
       $set: {
         emailVerifyTokenHash: hashVerifyToken(token),
-        emailVerifyExpires: new Date(Date.now() + (opts.ttlMs ?? VERIFY_LINK_TTL_MS)),
+        emailVerifyExpires: new Date(Date.now() + ttlMs),
+        emailVerifyKind: linkKind,
       },
     },
-    { new: true, projection: { email: 1, name: 1 } },
+    { new: true, projection: { email: 1, name: 1, signupBonusGrantedAt: 1 } },
   ).lean();
 
   if (!updated) {
@@ -130,20 +168,23 @@ export async function mintVerifyLink(
     return { kind };
   }
 
-  logger.info({ userId }, 'Verify link minted');
+  logger.info({ userId, linkKind }, 'Verify link minted');
   return {
     kind: 'minted',
     email: updated.email,
     name: typeof updated.name === 'string' ? updated.name : '',
     link: buildVerifyLink(token),
+    signupInkGranted:
+      updated.signupBonusGrantedAt !== null && updated.signupBonusGrantedAt !== undefined,
   };
 }
 
 // ── Verify (public POST /verify-email, phase 2) ─────────────────────────────
 
 export type VerifyEmailTokenResult =
-  | { kind: 'verified'; userId: string }
-  | { kind: 'already_verified'; userId: string }
+  /** linkKind (T-522): 'signin' means the caller signs the user in; 'verify' means it does not. */
+  | { kind: 'verified'; userId: string; linkKind: VerifyLinkKind }
+  | { kind: 'already_verified'; userId: string; linkKind: VerifyLinkKind }
   | { kind: 'expired_or_invalid' };
 
 /**
@@ -169,29 +210,38 @@ export async function verifyEmailToken(token: unknown): Promise<VerifyEmailToken
     emailVerifyExpires: { $gt: new Date() },
     isActive: { $ne: false },
   };
-  const clearLink = { $unset: { emailVerifyTokenHash: 1, emailVerifyExpires: 1 } };
+  // T-522: the kind is cleared with the hash and expiry, in the same write (single use).
+  const clearLink = {
+    $unset: { emailVerifyTokenHash: 1, emailVerifyExpires: 1, emailVerifyKind: 1 },
+  };
 
+  // new: false, so the returned document still carries the kind the link had before the clear.
   const verified = await User.findOneAndUpdate(
     { ...live, emailVerified: { $ne: true } },
     { $set: { emailVerified: true }, ...clearLink },
-    { new: true, projection: { _id: 1 } },
+    { new: false, projection: { _id: 1, emailVerifyKind: 1 } },
   ).lean();
 
   if (verified) {
     const userId = verified._id.toString();
+    const linkKind = normaliseLinkKind(verified.emailVerifyKind);
     await grantSignupBonus(userId);
-    logger.info({ userId }, 'Email verified');
-    return { kind: 'verified', userId };
+    // T-522 (Arjun ruling 2): the referral Ink recorded at sign-up is granted now, after the
+    // sign-up bonus. grantReferralInk is fenced and idempotent; this never throws.
+    await grantDeferredReferralInk(userId);
+    logger.info({ userId, linkKind }, 'Email verified');
+    return { kind: 'verified', userId, linkKind };
   }
 
   const already = await User.findOneAndUpdate({ ...live, emailVerified: true }, clearLink, {
-    new: true,
-    projection: { _id: 1 },
+    new: false,
+    projection: { _id: 1, emailVerifyKind: 1 },
   }).lean();
   if (already) {
     const userId = already._id.toString();
-    logger.info({ userId }, 'Verify link used on an already verified account');
-    return { kind: 'already_verified', userId };
+    const linkKind = normaliseLinkKind(already.emailVerifyKind);
+    logger.info({ userId, linkKind }, 'Verify link used on an already verified account');
+    return { kind: 'already_verified', userId, linkKind };
   }
 
   return { kind: 'expired_or_invalid' };
@@ -201,7 +251,7 @@ export async function verifyEmailToken(token: unknown): Promise<VerifyEmailToken
 
 export type RequestVerifyEmailResult =
   | { kind: 'queued' }
-  /** Over 1/60 s or 5/24 h. Nothing sent. Respond 429 with retryAfterSeconds. */
+  /** Over 1/2 min or 5/24 h. Nothing sent. Respond 429 with retryAfterSeconds. */
   | { kind: 'limited'; retryAfterSeconds: number }
   /** Verified email, or a Google account: nothing to send. */
   | { kind: 'already_verified' }
@@ -226,12 +276,8 @@ export async function requestVerifyEmail(
 
   const user = await User.findById(_id, { emailVerified: 1, authProvider: 1, googleId: 1 }).lean();
   if (!user) return { kind: 'not_found' };
-  // Same rule as NOT_YET_VERIFIED / VERIFIED_FOR_BONUS (T-351).
-  const verified =
-    user.emailVerified === true ||
-    user.authProvider === 'google' ||
-    (typeof user.googleId === 'string' && user.googleId.length > 0);
-  if (verified) return { kind: 'already_verified' };
+  // Same rule as NOT_YET_VERIFIED / VERIFIED_FOR_BONUS (T-351); T-522: the shared check.
+  if (isVerified(user)) return { kind: 'already_verified' };
 
   let quota;
   try {

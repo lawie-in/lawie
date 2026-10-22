@@ -51,7 +51,10 @@ import {
   privacyPrecheck,
   usePrivacyDescribedBy,
 } from '@/components/PrivacyUpdatePrompt';
-import { openVerifyInsteadOfPaywall } from '@/components/VerifyEmailPrompt';
+import {
+  openVerifyIfDraftRefused,
+  openVerifyInsteadOfPaywall,
+} from '@/components/VerifyEmailPrompt';
 import { useAuth } from '@/context/AuthContext';
 import { useCredits } from '@/hooks/useCredits';
 import { apiFetch } from '@/lib/apiFetch';
@@ -368,6 +371,13 @@ function NewDocumentContent() {
         const runIdHeader = res.headers.get('X-Run-Id');
         if (runIdHeader) lastRunId.current = runIdHeader;
 
+        // T-522 (AJ-522-M6): an unverified email account. The Draft dialog opens now, over the
+        // form with the answers kept; no redirect, and the Generate button stays enabled.
+        if (await openVerifyIfDraftRefused(res)) {
+          setPhase('form');
+          return;
+        }
+
         if (!res.ok) {
           let reason = 'Generation could not start.';
           let paywallInfo: { cost: number; balance: number } | null = null;
@@ -547,6 +557,12 @@ function NewDocumentContent() {
             form_data: formData,
           }),
         });
+
+        // T-522 (AJ-522-M6): the preflight is fenced too. Same dialog, back on the form.
+        if (await openVerifyIfDraftRefused(res)) {
+          setPhase('form');
+          return;
+        }
 
         // Fail-open: if preflight itself errors, proceed to generation
         if (!res.ok) {
