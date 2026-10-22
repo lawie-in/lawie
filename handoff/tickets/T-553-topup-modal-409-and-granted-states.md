@@ -9,3 +9,5 @@
 | Source | T-540; Arjun and Vikram, 22 Oct 2026 |
 
 Web TopUpModal handles the quote's 409s and the granted state (full-coupon grant). Must land before the flag `feature.coupon_free_grant` is switched on. Strings to Ajay; Rajesh reviews; builds on T-535's guard.
+
+Web scope from Shashank's T-540 report: TopUpModal 409 copy, the granted state, send `expectedAmountPaise`, and use `amountPaise` from the quote.
