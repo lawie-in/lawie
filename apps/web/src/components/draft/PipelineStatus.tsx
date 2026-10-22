@@ -8,7 +8,7 @@
  *   soft_warn  → amber,  triangle icon,  questions + 2 actions
  *   drafting   → purple, file icon,      elapsed-seconds counter, 3-segment shimmer
  *   ready      → green,  checkmark,      all 5 bars green, Open / Export CTA
- *   hard_block → red,    error icon,     block reason, Edit form CTA
+ *   hard_block → red,    error icon,     block reason, Edit the form CTA
  *
  * Design reference: /docs/designs/draft-pipeline-status-bar-2026-05-06.html
  *
@@ -31,6 +31,9 @@ export type PipelineState =
   | 'hard_block'
   | 'generation_failed';
 
+/** T-565 W1/W3: what the generation-failed card says (see `generationFailure`). */
+export type GenerationFailure = 'not_started' | 'request_failed' | 'stream';
+
 export interface PipelineStatusProps {
   state: PipelineState;
   /** Questions from preflight soft-warn (shown in amber card) */
@@ -47,7 +50,7 @@ export interface PipelineStatusProps {
   warningCount?: number;
   /** Called when advocate clicks "Generate anyway" in soft-warn */
   onProceedAnyway?: () => void;
-  /** Called when advocate clicks "Edit form" in soft-warn or hard-block */
+  /** Called when advocate clicks "Edit the form" in soft-warn, hard-block or generation-failed */
   onEditForm?: () => void;
   /** Called when advocate clicks "Open in editor" in ready */
   onOpenEditor?: () => void;
@@ -58,6 +61,15 @@ export interface PipelineStatusProps {
   generationError?: string;
   /** Whether the failure is retryable — controls "Try again" button visibility */
   generationRetryable?: boolean;
+  /**
+   * T-565 W1/W3 (Ajay): which failure the generation-failed card shows. Default `stream`.
+   *   - `not_started`: nothing was sent (the Ink cost is unknown). `The draft could not start.`
+   *     alone: no documents-list line and no Ink line.
+   *   - `request_failed`: a pre-stream 400/403/409 that is not the privacy or verify gate.
+   *     `Something did not work. Try again.` + `Retry`. Never the raw reason.
+   *   - `stream`: the draft started and did not finish.
+   */
+  generationFailure?: GenerationFailure;
   /** Called when advocate clicks "Try again" in the generation-failed card */
   onRetry?: () => void;
   /** T-388: what a draft of this template charges (template-configs `credits_cost`). */
@@ -72,6 +84,10 @@ export interface PipelineStatusProps {
 
 /** T-388: ids of the Ink cost lines under the buttons that charge. */
 export const SOFT_WARN_INK_COST_ID = 'soft-warn-ink-cost';
+/**
+ * T-565 W2: the second "Generate anyway" and its cost line are gone, so nothing renders this
+ * id now. Kept exported only so existing tests still compile; the tester retires it.
+ */
 export const SOFT_WARN_SKIP_INK_COST_ID = 'soft-warn-skip-ink-cost';
 export const FAILED_RETRY_INK_COST_ID = 'generation-failed-retry-ink-cost';
 
@@ -264,6 +280,13 @@ const NO_WARNINGS_LINE = 'The drafting checks flagged nothing. Read the draft be
 const DRAFT_DID_NOT_FINISH = 'The draft did not finish.';
 const CHECK_DOCUMENTS_LIST = 'Check your documents list to see where this draft stands.';
 
+/** T-565 W1 (Ajay): nothing was sent. Shown alone. Same signed text as the hard-block card. */
+const DRAFT_COULD_NOT_START = 'The draft could not start.';
+
+/** T-565 W3 (Ajay): a pre-stream 400/403/409 that is not a gate, with its `Retry` button. */
+const SOMETHING_DID_NOT_WORK = 'Something did not work. Try again.';
+const RETRY_LABEL = 'Retry';
+
 // ── Icons ─────────────────────────────────────────────────────────────────────
 
 function VerifyingIcon() {
@@ -364,10 +387,7 @@ function SoftWarnCard({
 }) {
   const blocked = costBlocked(cost);
   const proceed = blocked ? undefined : onProceedAnyway;
-  // T-432: while the cost is loading or unknown the card shows one cost line
-  // (under the first button) and both charging buttons point at it. Once the
-  // cost is known each button keeps its own "Uses N Ink" line.
-  const skipDescribedBy = blocked ? SOFT_WARN_INK_COST_ID : SOFT_WARN_SKIP_INK_COST_ID;
+  // T-432: the card shows one cost line, under its one charging button (T-565 W2).
   const questionText = questions[0] ?? 'Please review the flagged inputs before generating.';
 
   return (
@@ -461,41 +481,8 @@ function SoftWarnCard({
         </button>
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 pl-10">
-        <div className="flex flex-col items-start gap-1">
-          <button
-            type="button"
-            onClick={proceed}
-            disabled={blocked}
-            aria-disabled={blocked ? 'true' : undefined}
-            aria-describedby={skipDescribedBy}
-            style={{
-              whiteSpace: 'nowrap',
-              fontSize: '12px',
-              color: '#633806',
-              background: 'none',
-              border: 'none',
-              padding: 0,
-              cursor: 'pointer',
-              borderBottom: '0.5px solid #633806',
-              ...blockedStyle(blocked),
-            }}
-          >
-            Generate anyway
-          </button>
-          {/* T-432: only in the known state; blocked, the notice above is the one line. */}
-          {!blocked && (
-            <InkCostLine
-              id={SOFT_WARN_SKIP_INK_COST_ID}
-              cost={cost.inkCost}
-              loading={cost.inkCostLoading ?? false}
-              onRetry={cost.onInkCostRetry}
-              kind={cost.templateId ?? 'unknown'}
-              action="soft_warn"
-              report={false}
-            />
-          )}
-        </div>
+      {/* T-565 W2 (Ajay): one "Generate anyway" only; the second, link-style one is gone. */}
+      <div className="mt-3 pl-10">
         <span style={{ fontSize: '11px', color: '#633806' }}>Please choose one.</span>
       </div>
     </div>
@@ -529,7 +516,7 @@ function DraftingCard({ templateName, state }: { templateName?: string; state: P
         </div>
         <div className="flex-1">
           <div style={{ fontSize: '14px', fontWeight: 500, marginBottom: 2 }}>
-            Drafting your {templateName ?? 'document'}…
+            Writing your {templateName ?? 'document'}…
           </div>
           <div style={{ fontSize: '12px', color: '#5f5e5a' }}>{DRAFTING_LINE}</div>
         </div>
@@ -648,7 +635,7 @@ function HardBlockCard({
         </div>
         <div className="flex-1">
           <div style={{ fontSize: '14px', fontWeight: 500, color: '#501313', marginBottom: 4 }}>
-            Cannot generate this draft
+            {DRAFT_COULD_NOT_START}
           </div>
           <div style={{ fontSize: '13px', color: '#791F1F', lineHeight: 1.55, marginBottom: 8 }}>
             {hardBlockReason ??
@@ -667,7 +654,7 @@ function HardBlockCard({
               cursor: 'pointer',
             }}
           >
-            Edit form
+            Edit the form
           </button>
         </div>
       </div>
@@ -677,16 +664,26 @@ function HardBlockCard({
 
 function GenerationFailedCard({
   generationRetryable,
+  generationFailure = 'stream',
   onRetry,
   onEditForm,
   cost,
 }: {
   generationRetryable?: boolean;
+  generationFailure?: GenerationFailure;
   onRetry?: () => void;
   onEditForm?: () => void;
   cost: InkCostProps;
 }) {
   const blocked = costBlocked(cost);
+  // T-565 W1/W3 (Ajay): the signed lines for each kind of failure.
+  const lines =
+    generationFailure === 'not_started'
+      ? [DRAFT_COULD_NOT_START]
+      : generationFailure === 'request_failed'
+        ? [SOMETHING_DID_NOT_WORK]
+        : [DRAFT_DID_NOT_FINISH, CHECK_DOCUMENTS_LIST];
+  const retryLabel = generationFailure === 'request_failed' ? RETRY_LABEL : 'Try again';
   return (
     <div
       style={{
@@ -712,14 +709,16 @@ function GenerationFailedCard({
           <ErrorIcon />
         </div>
         <div className="flex-1">
-          <div style={{ fontSize: '14px', fontWeight: 500, color: '#501313', marginBottom: 4 }}>
-            Drafting could not finish
-          </div>
+          {/* T-565 (Ajay): the "Drafting could not finish" heading is deleted; the signed
+              failure line shows once, here (the step label above is not shown for this state). */}
           <div style={{ fontSize: '13px', color: '#791F1F', lineHeight: 1.55, marginBottom: 10 }}>
-            <p style={{ margin: 0 }}>{DRAFT_DID_NOT_FINISH}</p>
-            <p style={{ margin: 0 }}>{CHECK_DOCUMENTS_LIST}</p>
+            {lines.map((line) => (
+              <p key={line} style={{ margin: 0 }}>
+                {line}
+              </p>
+            ))}
           </div>
-          {/* T-432: start-aligned, so "Edit form" does not stretch to the retry column's height. */}
+          {/* T-432: start-aligned, so "Edit the form" does not stretch to the retry column's height. */}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-start' }}>
             {generationRetryable !== false && onRetry && (
               <div className="flex flex-col items-stretch gap-1">
@@ -741,7 +740,7 @@ function GenerationFailedCard({
                     ...blockedStyle(blocked),
                   }}
                 >
-                  Try again
+                  {retryLabel}
                 </button>
                 <InkCostLine
                   id={FAILED_RETRY_INK_COST_ID}
@@ -766,7 +765,7 @@ function GenerationFailedCard({
                 cursor: 'pointer',
               }}
             >
-              Edit form
+              Edit the form
             </button>
           </div>
         </div>
@@ -789,6 +788,7 @@ export default function PipelineStatus({
   onEditForm,
   onOpenEditor,
   generationRetryable,
+  generationFailure,
   onRetry,
   inkCost,
   inkCostLoading,
@@ -796,31 +796,35 @@ export default function PipelineStatus({
   templateId,
 }: PipelineStatusProps) {
   const cost: InkCostProps = { inkCost, inkCostLoading, onInkCostRetry, templateId };
+  // T-565 (Ajay): on a failed run the card carries the one signed failure line, so there is
+  // no step label (`The draft did not finish.` shows once only; W1/W3 cards say otherwise).
   const stepLabel =
     state === 'verifying'
       ? 'Step 2 of 5 — checking inputs'
       : state === 'soft_warn'
-        ? 'Step 2 of 5 — verifier flagged something'
+        ? 'Step 2 of 5 — please check your inputs'
         : state === 'hard_block'
           ? 'The draft could not start.'
           : state === 'generation_failed'
-            ? 'The draft did not finish.'
+            ? null
             : state === 'drafting'
               ? 'Step 3 of 5 — writing the draft'
               : 'Step 5 of 5 — ready';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <span
-        style={{
-          fontSize: '11px',
-          color: 'rgba(0,0,0,0.38)',
-          letterSpacing: '0.04em',
-          textTransform: 'uppercase',
-        }}
-      >
-        {stepLabel}
-      </span>
+      {stepLabel !== null && (
+        <span
+          style={{
+            fontSize: '11px',
+            color: 'rgba(0,0,0,0.38)',
+            letterSpacing: '0.04em',
+            textTransform: 'uppercase',
+          }}
+        >
+          {stepLabel}
+        </span>
+      )}
 
       {state === 'verifying' && <VerifyingCard state={state} />}
 
@@ -852,6 +856,7 @@ export default function PipelineStatus({
       {state === 'generation_failed' && (
         <GenerationFailedCard
           generationRetryable={generationRetryable}
+          generationFailure={generationFailure}
           onRetry={onRetry}
           onEditForm={onEditForm}
           cost={cost}

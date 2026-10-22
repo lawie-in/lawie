@@ -39,7 +39,10 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { PaywallModal } from '@/components/credits/PaywallModal';
-import PipelineStatus, { PipelineState } from '@/components/draft/PipelineStatus';
+import PipelineStatus, {
+  type GenerationFailure,
+  PipelineState,
+} from '@/components/draft/PipelineStatus';
 import DynamicFormRenderer, { type FormSnapshot } from '@/components/form/DynamicFormRenderer';
 import { NOT_STARTED_LINE, inkCostState } from '@/components/intake/InkCostLine';
 import { inkLevelFrom } from '@/components/intake/inkLevel';
@@ -184,6 +187,8 @@ function NewDocumentContent() {
   // Generation error (AI service failed mid-stream — surfaces in PipelineStatus)
   const [generationError, setGenerationError] = useState<string | undefined>(undefined);
   const [generationRetryable, setGenerationRetryable] = useState<boolean>(true);
+  // T-565 W1/W3: which signed failure the card shows (not started / request failed / stream).
+  const [generationFailure, setGenerationFailure] = useState<GenerationFailure>('stream');
   // Paywall (SCRUM-73 — opens when enforceCredits returns 402)
   const [showPaywall, setShowPaywall] = useState(false);
   const [paywallCost, setPaywallCost] = useState(0);
@@ -340,6 +345,8 @@ function NewDocumentContent() {
         // under its "Try again", so it is not repeated (and cannot go stale) here.
         setGenerationError(NOT_STARTED_LINE);
         setGenerationRetryable(true);
+        // T-565 W1: nothing was sent; the card says `The draft could not start.` alone.
+        setGenerationFailure('not_started');
         setPipelineState('generation_failed');
         return;
       }
@@ -348,6 +355,7 @@ function NewDocumentContent() {
       setError('');
       setGenerationError(undefined);
       setGenerationRetryable(true);
+      setGenerationFailure('stream');
 
       try {
         const res = await privacyFetch('generate', '/api/documents/generate-from-template', {
@@ -397,7 +405,15 @@ function NewDocumentContent() {
             return;
           }
           setGenerationError(reason);
-          setGenerationRetryable(res.status !== 402 && res.status !== 403);
+          // T-565 W3 (Ajay): the privacy gate's 403 returned above (its T-343 prompt shows on the
+          // form) and an unverified user's 402 opened the verify modal. Every other 400/403/409
+          // shows `Something did not work. Try again.` with a Retry button, never the reason.
+          if (res.status === 400 || res.status === 403 || res.status === 409) {
+            setGenerationFailure('request_failed');
+            setGenerationRetryable(true);
+          } else {
+            setGenerationRetryable(res.status !== 402);
+          }
           setPipelineState('generation_failed');
           return;
         }
@@ -657,6 +673,7 @@ function NewDocumentContent() {
           onOpenEditor={handleOpenEditor}
           generationError={generationError}
           generationRetryable={generationRetryable}
+          generationFailure={generationFailure}
           onRetry={handleRetry}
           inkCost={templateInkCost}
           inkCostLoading={inkCostLoading}

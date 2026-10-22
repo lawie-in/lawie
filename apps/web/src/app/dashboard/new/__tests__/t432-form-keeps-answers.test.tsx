@@ -1,5 +1,5 @@
 // T-432: the template form keeps every answer, the current step and the consumer Commission level
-// when the advocate is sent back to it (privacy block, 402 paywall, verify-email bounce, "Edit form"),
+// when the advocate is sent back to it (privacy block, 402 paywall, verify-email bounce, "Edit the form"),
 // and drops them on a template change, on Cancel. Nothing typed goes to browser storage.
 //
 // The real DynamicFormRenderer and the real PipelineStatus run here; only the prompts, the modal,
@@ -279,23 +279,23 @@ describe('T-432 AC1/AC2: every return path keeps answers and step', () => {
     await expectAnswersKept();
   });
 
-  it('"Edit form" (hard block): answers and step kept', async () => {
+  it('"Edit the form" (hard block): answers and step kept', async () => {
     verdict = { verdict: 'hard', hardBlockReason: 'Cannot be used' };
     await open('Alpha notice');
     await fillThreeSteps();
     await click('Generate document');
     expect(text()).toContain('Cannot be used');
-    await click('Edit form');
+    await click('Edit the form');
     await expectAnswersKept();
   });
 
-  it('"Edit form" (generation failed): answers and step kept', async () => {
+  it('"Edit the form" (generation failed): answers and step kept', async () => {
     await open('Alpha notice');
     await fillThreeSteps();
     await click('Generate document'); // privacyFetch -> 500 -> generation_failed
     expect(text()).toContain('The draft did not finish.'); // T-565: the server reason is not shown
     expect(text()).not.toContain('Model down');
-    await click('Edit form');
+    await click('Edit the form');
     await expectAnswersKept();
   });
 

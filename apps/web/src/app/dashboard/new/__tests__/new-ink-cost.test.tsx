@@ -218,7 +218,7 @@ describe('new page: the cost shown equals the template credits_cost', () => {
     );
   });
 
-  it('soft-warn buttons show credits_cost; clicking one POSTs once', async () => {
+  it('soft-warn button shows credits_cost once; clicking it POSTs once', async () => {
     configLists = [{ templates: [tpl(4)] }];
     verdict = { verdict: 'soft', questions: ['Check the dates'] };
     route();
@@ -226,7 +226,12 @@ describe('new page: the cost shown equals the template credits_cost', () => {
     await submit();
     expect(generateCalls()).toHaveLength(0);
     expect(container.querySelector('#soft-warn-ink-cost')?.textContent).toBe('Uses 4 Ink');
-    expect(container.querySelector('#soft-warn-skip-ink-cost')?.textContent).toBe('Uses 4 Ink');
+    expect(container.querySelector('#soft-warn-skip-ink-cost')).toBeNull();
+    expect(
+      Array.from(container.querySelectorAll('button')).filter(
+        (b) => b.textContent === 'Generate anyway',
+      ),
+    ).toHaveLength(1);
     await act(async () => buttonWith('Generate anyway')?.click());
     await flush();
     expect(generateCalls()).toHaveLength(1);

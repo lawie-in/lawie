@@ -192,12 +192,13 @@ describe('new page: the runGeneration guard (AC3)', () => {
     await act(async () => probe('probe-proceed').click());
     await flush();
     expect(generateCalls()).toHaveLength(0);
-    // T-565 row 41 / T6: the card shows the signed text only. The server/guard reason
-    // (here NOT_STARTED_LINE) is not rendered; the cost notice shows once, in the cost line.
+    // T-565 W1: not started, nothing sent: the card says `The draft could not start.` alone. The
+    // guard reason (here NOT_STARTED_LINE) is not rendered; the cost notice shows once, in the cost line.
     const count = (t: string) => (container.textContent ?? '').split(t).length - 1;
     expect(count(NOT_STARTED_LINE)).toBe(0);
-    expect(count('The draft did not finish.')).toBeGreaterThanOrEqual(1);
-    expect(count('Check your documents list to see where this draft stands.')).toBe(1);
+    expect(count('The draft could not start.')).toBe(1);
+    expect(count('The draft did not finish.')).toBe(0);
+    expect(count('Check your documents list')).toBe(0);
     expect(count(INK_COST_UNKNOWN)).toBe(1);
     const failedLine = container.querySelector('#generation-failed-retry-ink-cost');
     expect(failedLine?.textContent).toBe(INK_COST_UNKNOWN);

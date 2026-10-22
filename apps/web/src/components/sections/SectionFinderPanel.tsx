@@ -229,6 +229,33 @@ function fmtRelative(iso: string): string {
   return new Date(iso).toLocaleDateString();
 }
 
+/**
+ * T-565 W5 (Ajay, 22 Oct; T-326): a new provision with no old equivalent carries a synthetic
+ * old-side id (`NEW-1`, `NEW-2`, …). A synthetic id is never shown as a section number, and
+ * until signed text exists such entries are hidden from the finder altogether.
+ */
+function isPlaceholderSection(section: string | null | undefined): boolean {
+  return typeof section === 'string' && /^NEW-/i.test(section.trim());
+}
+
+/** T-565 W5: a search match the finder must not show. */
+function isHiddenMatch(m: SearchMatch): boolean {
+  return (
+    m.is_new_provision === true ||
+    isPlaceholderSection(m.section) ||
+    isPlaceholderSection(m.mapped_to?.section)
+  );
+}
+
+/** T-565 W5: a loaded detail the finder must not show. */
+function isHiddenDetail(d: SectionDetail): boolean {
+  return (
+    isPlaceholderSection(d.section) ||
+    isPlaceholderSection(d.mapping?.old_section) ||
+    isPlaceholderSection(d.mapping?.new_section)
+  );
+}
+
 function citationText(detail: { code: string; section: string }): string {
   // Mirrors the design's "§303(2) BNS" format.
   return `§${detail.section} ${detail.code}`;
@@ -630,8 +657,19 @@ function FinderBody({
     () => new Set(bookmarks.map((b) => `${b.code}:${b.section}`)),
     [bookmarks],
   );
+  // T-565 W5: an entry saved earlier with a synthetic NEW-n id is not shown in Recent or Bookmarks.
+  const visibleRecent = useMemo(
+    () => recent.filter((r) => !isPlaceholderSection(r.section)),
+    [recent],
+  );
+  const visibleBookmarks = useMemo(
+    () => bookmarks.filter((b) => !isPlaceholderSection(b.section)),
+    [bookmarks],
+  );
 
   const loadDetail = useCallback(async (code: string, section: string) => {
+    // T-565 W5: a synthetic NEW-n id is never looked up, shown or logged to Recent.
+    if (isPlaceholderSection(section)) return;
     setDetailLoading(true);
     setActiveDetail({
       // Show a placeholder shell immediately so DetailCard mounts with the
@@ -663,6 +701,11 @@ function FinderBody({
         return;
       }
       const detail = (await res.json()) as SectionDetail;
+      // T-565 W5: a new provision whose old side is a NEW-n id is hidden (not shown at all).
+      if (isHiddenDetail(detail)) {
+        setActiveDetail(null);
+        return;
+      }
       setActiveDetail(detail);
       // Log to recent (server + local).
       await apiFetch('/api/users/me/recent/sections', {
@@ -801,7 +844,11 @@ function FinderBody({
             active={tab === t}
             onClick={() => setTab(t)}
             badge={
-              t === 'recent' ? recent.length : t === 'bookmarks' ? bookmarks.length : undefined
+              t === 'recent'
+                ? visibleRecent.length
+                : t === 'bookmarks'
+                  ? visibleBookmarks.length
+                  : undefined
             }
           >
             {TAB_LABELS[t]}
@@ -823,7 +870,7 @@ function FinderBody({
             detailLoading={detailLoading}
             onLoadDetail={loadDetail}
             onClearDetail={() => setActiveDetail(null)}
-            recent={recent}
+            recent={visibleRecent}
             bookmarkSet={bookmarkSet}
             onToggleBookmark={toggleBookmark}
             insertEnabled={insertEnabled}
@@ -832,7 +879,7 @@ function FinderBody({
         )}
         {tab === 'recent' && (
           <RecentTab
-            recent={recent}
+            recent={visibleRecent}
             bookmarkSet={bookmarkSet}
             onSelect={(r) => {
               setTab('lookup');
@@ -843,7 +890,7 @@ function FinderBody({
         )}
         {tab === 'bookmarks' && (
           <BookmarksTab
-            bookmarks={bookmarks}
+            bookmarks={visibleBookmarks}
             onSelect={(b) => {
               setTab('lookup');
               loadDetail(b.code, b.section);
@@ -930,7 +977,8 @@ function LookupTab({
         const res = await fetch(`${API_URL}/api/sections/search?${params}&limit=10`);
         if (!res.ok) return;
         const data = await res.json();
-        const results = (data.results ?? []) as SearchMatch[];
+        // T-565 W5: entries with a synthetic NEW-n id are never shown.
+        const results = ((data.results ?? []) as SearchMatch[]).filter((m) => !isHiddenMatch(m));
         typeaheadCache.set(term, results);
         if (!cancelled) setMatches(results);
       } finally {
@@ -1275,6 +1323,7 @@ function DetailCard({
   const [bareOpen, setBareOpen] = useState(true);
 
   const citation = citationText(detail);
+  const related = detail.related.filter((r) => !isPlaceholderSection(r.section));
 
   if (loading) {
     return (
@@ -1449,11 +1498,12 @@ function DetailCard({
       )}
 
       {/* Related sections */}
-      {detail.related.length > 0 && (
+      {/* T-565 W5: no related entry with a synthetic NEW-n id. */}
+      {related.length > 0 && (
         <div>
           <p className="nl-label text-nl-muted mb-nl-1 mt-0">Related sections</p>
           <ul className="space-y-nl-1 m-0 list-none p-0">
-            {detail.related.map((r) => (
+            {related.map((r) => (
               <li key={`${r.code}:${r.section}`}>
                 <div className="border-nl-line px-nl-3 py-nl-2 nl-body-sm flex items-center justify-between border-b">
                   <span className="gap-nl-2 flex items-center">
