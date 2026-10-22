@@ -233,3 +233,14 @@ Items 29, 31, 32, 34, 35, 36, 37, 38, 39, 43 (T1, T3, T6), 44, 47 and 50 match b
 With these, the old flow is fully signed. `describe_first` may still stay ON for Anushka. That choice is Priya's, not a legal requirement.
 | 63a | legal_notice_defamation.json:198, keep "If criminal route" | Yes, keep the condition. The whole line becomes: `If the criminal route is taken, cite BNS Section 356 for defamation on or after 1 July 2024, and IPC Sections 499 and 500 for defamation before that date.` |
 | 65g | mandamus.json:159 `Disclaimer: Lawie is a drafting assistant; advocate is responsible…` | Delete it, as with item 65. Priya extends the claim to that line. It is the only change to mandamus.json (T-489's signed lines are untouched). |
+
+### Answers to Tanvi's wave 2a questions (22 Oct)
+
+| Ref | Question | Ruling |
+|---|---|---|
+| W5a | Hidden NEW entries leave an empty lookup | **This refines W5.** Show the entry under section-converter Addendum 2: old box `No equivalent in the {OldCode}`, new section and title shown normally, copy `{NewCode} {n}` only. Never show or copy the `NEW-n` id. |
+| W6 | 409 "draft already in progress" | Hide Retry. Show `Check your documents list to see where this draft stands.` (signed). |
+| W7 | Plan-gate 403 | Hide Retry. Signed: `This document is not available on your current plan.` |
+| W8 | Not-started card, "Check the cost again" | Cut the notice (unsigned). Keep `Try again`, because nothing was charged. |
+| W9 | GeneratingStep.tsx:132 "Drafting your {documentName}" | `Writing your {documentName}…` |
+| W10 | "The draft could not start." twice on the hard-block card | Drop the step label, as proposed. |
