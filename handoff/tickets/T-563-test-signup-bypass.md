@@ -69,3 +69,7 @@ Ruling: `handoff/legal/T-563-test-accounts-ruling-ajay.md` — CONFIRMED with co
 2. **Sweep and delete script erase a test account even with an active test-mode plan.** Order: cancel the subscription at Razorpay through the existing guarded cancel path (`cancel(id,false)`, strict not-found = ended), then erase. Test-mode money is not money; AJ-563-M6's 7-day limit is absolute. If the cancel fails, log ids and erase anyway — a dangling test-mode sub at Razorpay is harmless and the 24-hour unknown-sub report would surface it.
 3. `invalid_test_name` (400) on a bypass with a non-`TEST` name: OK. It is reachable only with the right secret, so it reveals nothing to anyone else; no user-facing string needed.
 1. The production-marker finding in the agent environment is handled in `handoff/ops/incident-2026-10-22-env-dump.md` (addendum).
+
+## Arjun (22 Oct 2026) — erase without cancel for now
+
+Billing has no service-to-service cancel, so **(c)**: the sweep and the delete script erase a test account regardless of an active test-mode plan, no cancel, sub id logged; later webhooks land on a missing user and go to the existing unknown-user handling. Safe because the boot guard makes a live key impossible on a bypass box. (a) is rejected — never forge gateway identity on a public route. **(b)** — `POST /internal/cancel-subscription { userId, immediate: true }` behind `INTERNAL_SECRET` in billing — is the follow-up after Shashank's merge, and the erase path then calls it first.
