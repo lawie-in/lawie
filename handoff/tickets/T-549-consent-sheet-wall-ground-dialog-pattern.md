@@ -26,3 +26,6 @@ Each item done with tests, checked at 360 / 768 / 1280 in both themes; Rajesh si
 - Headers of `/tools/*` and `review/[token]` (own headers, centred content, low risk).
 - Rajesh narrows the One Shadow Rule in DESIGN.md: fixed overlays get their own shadow level.
 - Rulings: on legacy `.mk` pages the consent card is always Daylight (M1, before T-403); 4px desktop radius, 44px buttons, Card shadow approved.
+
+## Arjun's acceptance of older-browser risk (22 Oct 2026)
+Residual risk on Safari before 16 accepted for the pilot and for main. Safari 16 shipped in Sept 2022; its share among Indian advocates on iOS is well under 1 %, and the failure is cosmetic (page behind a dialog may scroll, a sticky bar may unstick), not data loss. No device check required before main. Supported-browser line for the help page and Anushka's run: Chrome/Edge 110+, Safari 16+, Firefox 110+, Android Chrome current. Revisit only if a pilot user reports it.
