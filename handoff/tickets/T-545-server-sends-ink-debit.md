@@ -19,7 +19,10 @@ The "{n} Ink used" chip shows the quoted cost (T-388) because the SSE `done` eve
 3. Tests for a settled run, a released run and an old client ignoring the field.
 4. Ajay confirms the wording at READY.
 
-## Design rulings (Arjun, 22 Oct 2026, relayed by Vishal)
+## UNCONFIRMED by the real Arjun (marked by Priya, 22 Oct 2026)
+The section below was relayed by Vishal and came from an Arjun subagent in his own session. T-545 is already merged (7bcd4d53). The real Arjun confirms, amends or strikes it; any amendment becomes a fix ticket. Ajay's sign-off (AJ-545-BC, AJ-545-M1) is real and unaffected: it is about the copy.
+
+## Design rulings, UNCONFIRMED (22 Oct 2026, relayed by Vishal from a subagent)
 
 1. **Timing:** `done` stays after settle. No follow-up event.
 2. **Field:** `inkDebited: number`, flat on `done`, in Ink (.5 allowed). Units are converted to Ink once, in one helper in `credits.service.ts`.
