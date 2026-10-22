@@ -166,3 +166,30 @@ MUST: 0.1, 0.2, 1–14, 23, 29–43, 54–65 (43 items, counting 0.1 and 0.2). S
 | T5 | `Prices include GST.` on its own line under the price | OK. |
 | T6 | Other PipelineStatus strings | Signed: "Skip and generate anyway" → `Generate anyway`. "Let me fix this — edit form" → `Edit the form`. "Error — drafting could not finish" → `The draft did not finish.` "Step 3 of 5 — drafting (streaming)" → `Step 3 of 5 — writing the draft`. "The AI service returned an error mid-draft. Please try again." → `The draft did not finish.` with the Ink line per 41b. Any other PipelineStatus string not listed in row 43 or here: keep the old flow off for Anushka (`describe_first` ON) and send the list to me before main. |
 | T7 | Finder card shows "Mapped" for every type | `Mapped` only for a direct one-to-one mapping. Merged and split types use their signed T-296 badges. Repealed and unverified types show **no** status badge until I sign one. |
+
+## Answers to T-566 questions (Shashank, 22 Oct)
+
+| Ref | Question | Ruling |
+|---|---|---|
+| 54a | Does item 54 replace both sentences? | Yes. The item 54 text replaces both. |
+| 54b | Civil form packs (rent_agreement, nda, mou…) | Send the item 54 line **only to packs in a criminal category**. Civil packs get no code line at all. |
+| 54c | BNS whitelist line | Keep the list. Replace the lead-in with: `When you cite a BNS section, cite only one from this verified First Schedule list:` Keep the sub-section sentence after it unchanged. As written now, it reads as "cite only BNS". |
+| 54d | Validator "Use Section X BNS instead" | In scope if validator.ts is in your claim; otherwise Priya tickets it. New warning: `Check the code: Section {x} BNS replaced Section {y} IPC for an offence on or after 1 July 2024.` Show it only when the offence date is on or after 1 July 2024 or not given. Never show it for an earlier offence. |
+| 62 | `affidavit_identity.json:173` | `Do not cite any penal provision in the affidavit.` (same as :186) |
+| 64a | Whole line or proposition only | Per R1: delete the judgment name, its citation and its connector, and **keep the proposition word for word**. Per R2: a line that only says to cite goes whole. Add S once, last. |
+| 64b | discharge :244 and :248 | Yes, include them under R1. |
+| 64c | habeas_corpus and slp `_meta.change_protocol` | Edit them per R6 as amended: `All edits require CLO sign-off. Do not name judgments in model-visible text (Ajay, T-441).` |
+| 64d | Discharge Para 10 and the T-429 gate | Confirmed: proposition only (R1), and the gate keeps working. I byte-check the wording at READY. |
+| 65a | gift_deed `(14) Lawie disclaimer.` | Delete that item only. |
+| 65b | filing_checklist "Lawie disclaimer included" (12 deed packs) | Delete it. The disclaimer is in the footer, not the deed. |
+| 65c | sale_deed.json:362 own disclaimer sentence | Delete it. Add a second filter phrase, `Lawie is not legal counsel`. |
+| 65d | Unread `disclaimer` / `advocate_disclaimer` keys | Leave them. Add a test that the loader never sends them to the model. |
+| 65e | brief-drafter `isDisclaimer`/`withoutDisclaimerText` | Yes. Add both phrases to all three filters. |
+| 65f | criminal_revision after T-472 | Noted. |
+| 66 | prompt-assembler.ts kept | OK: apply items 54 and 55. **Delete** rule 9 ("Use today's date format…"); it conflicts with the signed date rule. |
+| 67 | quashing_528 :312 whole description | Replace the whole description with the item 67 text. Drop the "Common: S.85 … was IPC 498A … S.351" list (R5). |
+| 68 | list_of_dates.json:94 addendum (7) | `(7) For each section cited, use the code in force on the date of the offence: BNS for an offence on or after 1 July 2024, IPC for an offence before that date. For procedure, use BNSS, except in a matter pending before 1 July 2024, where CrPC continues to apply.` |
+| 69 | maintenance_bnss_144 `_meta.change_protocol` | Keep the CLO sentence and replace the second with: `Use Section 144 BNSS for a petition filed on or after 1 July 2024; refer to Section 125 CrPC only for an earlier order or a proceeding pending before that date.` |
+| 71 | seed-sample-pdfs mapping | Every person's name becomes `Sample Person {n}`, with Sh./Smt. kept as in the source and n in order of first appearance across the script. That includes Meena Devi, Priya Sharma, Dinesh Agarwal, Ankit Verma, Rahul Kumar and Manoj Tiwari. Each advocate becomes `Adv. Sample Advocate`. The chamber becomes `Chamber No. 0, Sample Bar Association Building, Patna`. The enrolment becomes `SAMPLE/000/0000`. Firms become `M/s Sample Beverages Pvt. Ltd.` and `M/s Sample Store, Patna`. PANs become `AAAAA0000A`, `AAAAA0001A` in order. Update the PARTY ROLES line to match. Each regenerated PDF comes to me before it is served. |
+| 72 | gpa :372 and related lines (gpa:378, spa:334/339/346, joint_development_agreement:642) | R1 for all of them: keep the proposition ("GPA does not transfer title…") and drop the name, citation and connector. |
+| 55 | post-processor.ts:620 comment | No objection. Fix it. |
