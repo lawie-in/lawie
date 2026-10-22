@@ -25,7 +25,8 @@ export interface ValidationWarning {
     | 'missing_clause'
     | 'fact_alteration'
     | 'coherence_mismatch'
-    | 'case_citation';
+    | 'case_citation'
+    | 'limitation';
   message: string;
   details?: {
     section?: string;
@@ -38,6 +39,8 @@ export interface ValidationWarning {
     rule?: string;
     /** SCRUM-67 — human-readable ground label (e.g. "False implication") */
     ground?: string;
+    /** T-472 — the fact verifier blanked or removed (part of) the flagged sentence. */
+    blanked?: boolean;
   };
 }
 

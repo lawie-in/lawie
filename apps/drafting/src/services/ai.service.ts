@@ -119,6 +119,22 @@ import {
   type LawSwitchResult,
 } from './law-switch';
 import {
+  computeLimitation,
+  findLimitationClaims,
+  findLimitationClaimsChecked,
+  lastParagraphNumber,
+  LIMITATION_FACT_KEY,
+  LIMITATION_SECTION_ID,
+  type LimitationClaim,
+  limitationFlagMessage,
+  limitationInputFromLedger,
+  limitationInputFromValues,
+  limitationParagraph,
+  limitationRuleFor,
+  type LimitationResult,
+  withLimitationFact,
+} from './limitation.service';
+import {
   CacheUsage,
   cacheCounts,
   CallUsage,
@@ -883,6 +899,12 @@ export interface TemplateGenerateResult {
   transport?: 'direct';
   /** Paragraph count of the final draft, from assembleDocument */
   bodyParaCount: number;
+  /**
+   * T-472: how many of the model's sentences state a limitation position
+   * (each is a checks-panel warning; the text is never changed). Present only
+   * on a pack whose limitation is computed.
+   */
+  limitationFlags?: number;
   /** T-477: echoed [only when: ...] markers stripped from the AI body, summed across sections (count only) */
   onlyWhenStrips?: number;
 }
@@ -1091,8 +1113,22 @@ export async function streamGenerateFromTemplate(
       }
     }
 
+    // ── T-472 (Ajay, Arjun option d): the computed limitation paragraph ─────────
+    // A system section right after the model's text, numbered after its last
+    // paragraph. The model's text is never changed.
+    const limitation = limitationForValues(templateConfig.template_id, convertedFormData);
+    const limitationAt =
+      limitation !== null ? insertLimitationSection(renderedSections, limitation) : -1;
+    const limitationNumber =
+      limitation !== null && limitationAt >= 0
+        ? numberLimitationSection(renderedSections, limitationAt, limitation)
+        : null;
+
     // ── Assemble full document ─────────────────────────────────────────────────
-    const { fullText, bodyParaCount } = assembleDocument(renderedSections);
+    const assembled = assembleDocument(renderedSections);
+    const { fullText } = assembled;
+    // T-472: the computed paragraph is the draft's last numbered paragraph.
+    const bodyParaCount = limitationNumber ?? assembled.bodyParaCount;
 
     // Update body_para_count in the context and re-render verification if needed
     ctx.body_para_count = String(bodyParaCount);
@@ -1128,9 +1164,13 @@ export async function streamGenerateFromTemplate(
     );
 
     // ── Filing checklist from config ───────────────────────────────────────────
-    const filingChecklist = templateConfig.filing_checklist.map((item) =>
-      item.replace(/\{(\w+)\}/g, (_m, key: string) => ctx[key] ?? '_____'),
-    );
+    const filingChecklist = [
+      ...templateConfig.filing_checklist.map((item) =>
+        item.replace(/\{(\w+)\}/g, (_m, key: string) => ctx[key] ?? '_____'),
+      ),
+      // T-472: the signed s.5 line when late, AJ-472-M1 line when unknown, none when in time.
+      ...(limitation?.checklistItems ?? []),
+    ];
 
     if (filingChecklist.length > 0) {
       res.write(`event: checklist\ndata: ${JSON.stringify({ items: filingChecklist })}\n\n`);
@@ -1242,6 +1282,19 @@ export async function streamGenerateFromTemplate(
       }
     }
 
+    // T-472: the model's own limitation statements, flagged only.
+    const limitationWarnings =
+      limitation !== null && limitationNumber !== null
+        ? limitationClaimWarnings(
+            findLimitationClaims(aiSections.map((s) => s.content)).map((sentence) => ({
+              sentence,
+              blanked: false,
+            })),
+            limitationNumber,
+          )
+        : [];
+    allWarnings.push(...limitationWarnings);
+
     if (allWarnings.length > 0) {
       res.write(`event: warning\ndata: ${JSON.stringify({ warnings: allWarnings })}\n\n`);
     }
@@ -1257,6 +1310,7 @@ export async function streamGenerateFromTemplate(
       aiModel,
       transport,
       bodyParaCount,
+      ...(limitation !== null ? { limitationFlags: limitationWarnings.length } : {}),
       onlyWhenStrips,
     };
   } finally {
@@ -1655,6 +1709,113 @@ function lawSwitchSlotTexts(facts: readonly LedgerFact[]): string[] {
     .map((f) => f.display as string);
 }
 
+// ── T-472: limitation, computed by code (Ajay, T-245 file, Anushka run 4) ───
+
+/** The limitation for a form-path case (values keyed by field id), or null for a pack without a rule. */
+function limitationForValues(
+  templateId: string,
+  values: Readonly<Record<string, unknown>>,
+): LimitationResult | null {
+  const rule = limitationRuleFor(templateId);
+  return rule === null ? null : computeLimitation(rule, limitationInputFromValues(rule, values));
+}
+
+/**
+ * The limitation for the brief path. With a ledger, from its `user`/`asked`
+ * facts only (an unresolved date is unknown; a computed fact is never an
+ * input). Without one, from the brief's items. Null for a pack without a rule.
+ */
+function limitationForBrief(input: BriefGenerateInput): LimitationResult | null {
+  const rule = limitationRuleFor(input.templateConfig.template_id);
+  if (rule === null) return null;
+  if (input.ledger) {
+    return computeLimitation(
+      rule,
+      limitationInputFromLedger(
+        rule,
+        input.ledger.facts,
+        (input.ledger.unresolved ?? []).map((u) => u.key),
+      ),
+    );
+  }
+  const values: Record<string, unknown> = {};
+  for (const item of input.brief.items) {
+    if (typeof item.value === 'string') values[lastKeySegment(item.key)] = item.value;
+  }
+  return computeLimitation(rule, limitationInputFromValues(rule, values));
+}
+
+/**
+ * T-472 (Arjun, option d): the computed paragraph is a system section, not
+ * model text. It goes right after the first AI section (the body), before the
+ * prayer, unnumbered until the body is known (`numberLimitationSection`).
+ * Returns its index, or -1 when there is no AI section to follow.
+ */
+function insertLimitationSection(
+  sections: RenderedSection[],
+  limitation: LimitationResult,
+): number {
+  const body = sections.findIndex((s) => s.type === 'ai_generated');
+  if (body < 0) return -1;
+  sections.splice(body + 1, 0, {
+    section_id: LIMITATION_SECTION_ID,
+    type: 'template',
+    content: limitation.text,
+    alignment: sections[body].alignment ?? 'left',
+  });
+  return body + 1;
+}
+
+/**
+ * Numbers the computed section one after the model's highest top-level
+ * paragraph number (AJ-472-M2: never a fixed number; "8.1" sub-numbers do not
+ * count, and a number the model skipped cannot make it collide) and fills
+ * `{body_para_count}` in the other system sections with that number, so the
+ * verification's "1 to N" covers it. Returns the number. Nothing in the
+ * model's text changes.
+ * T-474: a pack with two or more AI sections (form path) reads the first one
+ * only, as assembleDocument does; a D1 skeleton pack never gets this section.
+ */
+function numberLimitationSection(
+  sections: RenderedSection[],
+  at: number,
+  limitation: LimitationResult,
+): number {
+  const body = sections.find((s) => s.type === 'ai_generated');
+  const n = lastParagraphNumber(body?.content ?? '') + 1;
+  sections[at] = { ...sections[at], content: limitationParagraph(limitation, n) };
+  for (let i = 0; i < sections.length; i++) {
+    const s = sections[i];
+    if (s.type === 'template' && s.content.includes('{body_para_count}')) {
+      sections[i] = { ...s, content: s.content.replace(/\{body_para_count\}/g, String(n)) };
+    }
+  }
+  return n;
+}
+
+/**
+ * T-472 (Arjun, option d): a checks-panel warning for each of the model's
+ * sentences that states a limitation position, the signed text verbatim. The
+ * sentence is never changed. `blanked` (the fact verifier blanked or removed
+ * it) goes in details only; `expected` is the sentence as it prints, or the
+ * model's own words when it no longer prints.
+ */
+function limitationClaimWarnings(
+  claims: readonly LimitationClaim[],
+  n: number,
+): ValidationWarning[] {
+  return claims.map(({ sentence, blanked }) => ({
+    type: 'limitation',
+    message: limitationFlagMessage(n),
+    details: {
+      rule: 'limitation_claim',
+      field: LIMITATION_SECTION_ID,
+      expected: sentence,
+      ...(blanked ? { blanked: true } : {}),
+    },
+  }));
+}
+
 export async function streamGenerateFromBrief(
   rawInput: BriefGenerateInput,
   res: Response,
@@ -1664,13 +1825,27 @@ export async function streamGenerateFromBrief(
   // derived facts (governing_provision, women_proviso, notice_provision) are
   // added per request and never stored, as the s.138 computed facts are.
   const law = lawSwitchForBrief(rawInput);
-  const input: BriefGenerateInput =
+  const lawInput: BriefGenerateInput =
     law !== null && rawInput.ledger
       ? {
           ...rawInput,
           ledger: { ...rawInput.ledger, facts: withLawSwitchFacts(rawInput.ledger.facts, law) },
         }
       : rawInput;
+  // T-472: limitation, computed by code from the case's dates (never stored).
+  // With a ledger, its one computed fact goes in the same way, so the Drafter's
+  // facts and the fact verifier's ledger carry it.
+  const limitation = limitationForBrief(lawInput);
+  const input: BriefGenerateInput =
+    limitation !== null && lawInput.ledger
+      ? {
+          ...lawInput,
+          ledger: {
+            ...lawInput.ledger,
+            facts: withLimitationFact(lawInput.ledger.facts, limitation),
+          },
+        }
+      : lawInput;
   const { pack: loadedPack, templateConfig, courtData } = input;
   // T-147c: with the ledger, everything the system writes and every check reads
   // the ledger's displays; without it, the brief exactly as before.
@@ -1776,10 +1951,22 @@ export async function streamGenerateFromBrief(
       bodyAt = renderedSections.length;
       renderedSections.push({ section_id: 'body', type: 'ai_generated', content: '' });
     }
+    // T-472 (Arjun, option d): the computed limitation paragraph is a system
+    // section after the body, so the Drafter is shown it as text that follows
+    // its own, and the limitation clause counts as a system part. Never on D1.
+    const limitationAt =
+      limitation !== null && !d1SkeletonFor(input)
+        ? insertLimitationSection(renderedSections, limitation)
+        : -1;
     const systemText = systemTextAround(renderedSections);
 
     // ── What the Drafter is given ─────────────────────────────────────────────
-    const parts = systemParts(templateConfig);
+    const parts = [
+      ...systemParts(templateConfig),
+      ...(limitationAt >= 0
+        ? [{ sectionId: LIMITATION_SECTION_ID, label: LIMITATION_SECTION_ID.replace(/_/g, ' ') }]
+        : []),
+    ];
     // T-410 (Ajay 2a8b722): a consumer_complaint reads the consumer rule, as the system prompt does.
     const courtRule = drafterPromptCourtRule(templateConfig.template_id, courtData);
     // The provision that follows the court chosen (T-135).
@@ -1828,7 +2015,12 @@ export async function streamGenerateFromBrief(
           target: promptInput.target,
           language: promptInput.language,
           facts: ledgerDrafterFacts(
-            input.ledger.facts,
+            // T-472: the computed limitation fact is not a FACT for the Drafter:
+            // the system section prints it, and a copy would print it twice.
+            // The verifier's ledger (input.ledger.facts) keeps it.
+            input.ledger.facts.filter(
+              (f) => !(f.source === 'computed' && f.key === LIMITATION_FACT_KEY),
+            ),
             buildChecklist(pack),
             ctx.court_designation || courtData?.designation || null,
             brief.kind.court_document,
@@ -2037,6 +2229,9 @@ export async function streamGenerateFromBrief(
       }
       missing = afterRemoval;
     }
+    // T-472: the body before the fact verifier, so a limitation claim it
+    // blanks or removes is still flagged (with `blanked` in details).
+    const bodyBeforeFactCheck = output.body;
 
     // ── The fact verifier (T-147d): the ledger path only ──────────────────────
     // Every ledger draft is checked against the ledger in code. On failure one
@@ -2153,8 +2348,16 @@ export async function streamGenerateFromBrief(
 
     // ── The body takes its place among the parts the system wrote ─────────────
     renderedSections[bodyAt] = { ...renderedSections[bodyAt], content: output.body };
+    // T-472: the computed paragraph takes the number after the model's last one.
+    const limitationNumber =
+      limitation !== null && limitationAt >= 0
+        ? numberLimitationSection(renderedSections, limitationAt, limitation)
+        : null;
 
-    const { fullText, bodyParaCount } = assembleDocument(renderedSections);
+    const assembled = assembleDocument(renderedSections);
+    const { fullText } = assembled;
+    // T-472: the computed paragraph is the draft's last numbered paragraph.
+    const bodyParaCount = limitationNumber ?? assembled.bodyParaCount;
     ctx.body_para_count = String(bodyParaCount);
     /** Each part as it prints: the number of the last paragraph filled in. */
     const printed = renderedSections.map((s) =>
@@ -2179,9 +2382,13 @@ export async function streamGenerateFromBrief(
       templateConfig.filing_checklist.length > 0
         ? templateConfig.filing_checklist
         : pack.filingChecklist;
-    const filingChecklist = checklistSource.map((item) =>
-      item.replace(/\{(\w+)\}/g, (_m, key: string) => ctx[key] ?? '_____'),
-    );
+    const filingChecklist = [
+      ...checklistSource.map((item) =>
+        item.replace(/\{(\w+)\}/g, (_m, key: string) => ctx[key] ?? '_____'),
+      ),
+      // T-472: the signed s.5 line when late, AJ-472-M1 line when unknown, none when in time.
+      ...(limitation?.checklistItems ?? []),
+    ];
     if (filingChecklist.length > 0) {
       res.write(`event: checklist\ndata: ${JSON.stringify({ items: filingChecklist })}\n\n`);
     }
@@ -2278,6 +2485,16 @@ export async function streamGenerateFromBrief(
     // A case citation the advocate did not give was removed (T-148):
     allWarnings.push(...citationWarnings(citations.removed));
 
+    // T-472: the model's own limitation statements, flagged only.
+    const limitationWarnings =
+      limitation !== null && limitationNumber !== null
+        ? limitationClaimWarnings(
+            findLimitationClaimsChecked(bodyBeforeFactCheck, body),
+            limitationNumber,
+          )
+        : [];
+    allWarnings.push(...limitationWarnings);
+
     // Every mandatory clause of the pack (ADR-021, rule 1).
     // T-236 (Ajay, 15 Oct 2026): a clause lost in a citation removal keeps the
     // same message, which names the clause, with Ajay's closing sentences.
@@ -2315,6 +2532,7 @@ export async function streamGenerateFromBrief(
       aiModel,
       transport,
       bodyParaCount,
+      ...(limitation !== null ? { limitationFlags: limitationWarnings.length } : {}),
       missingClauses: missing,
       repaired,
       // T-147d: a draft the fact verifier had to change is never delivered as clean.

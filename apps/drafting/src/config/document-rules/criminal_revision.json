@@ -112,10 +112,28 @@
         "required": true
       },
       {
-        "id": "limitation_compliance",
-        "label": "Within limitation (90 days from impugned order — Art. 131 Limitation Act)",
-        "type": "text",
+        "id": "filing_date",
+        "label": "Date of filing of the revision petition (actual or proposed)",
+        "type": "date",
         "required": true
+      },
+      {
+        "id": "certified_copy_applied_for",
+        "label": "Was a certified copy of the impugned order applied for?",
+        "type": "boolean",
+        "required": true
+      },
+      {
+        "id": "certified_copy_applied",
+        "label": "Date certified copy of the impugned order was applied for",
+        "type": "date",
+        "required": false
+      },
+      {
+        "id": "certified_copy_ready",
+        "label": "Date certified copy was ready for delivery",
+        "type": "date",
+        "required": false
       },
       {
         "id": "documents_relied_on",
@@ -182,7 +200,7 @@
       "id": "limitation_paragraph",
       "name": "Limitation",
       "required": true,
-      "description": "Within 90 days / explanation for delay"
+      "description": "Limitation (printed by Lawie from the dates given)"
     },
     {
       "id": "no_appeal_paragraph",
@@ -239,17 +257,18 @@
       "Para 2: Impugned order details — court, date, parties, case number.",
       "Para 3: Brief factual background — proceedings below.",
       "Para 4: Nature of impugned order — confirm it is NOT interlocutory.",
-      "Para 5: Limitation — Art. 131 Limitation Act — 90 days from date of order/sentence (in case of conviction, from receipt of certified copy). If delayed, file companion S.5 Limitation Act application.",
-      "Para 6: Whether appeal lay — where an appeal lies and none was brought, no revision at the instance of the party who could have appealed (S.442 BNSS; was S.401(4) CrPC); revision is residual.",
-      "Para 7: Whether earlier revision was filed — bar under S.438(3) BNSS — only one revision (to either HC or Sessions, not both).",
-      "Para 8: Grounds of revision — itemise each ground.",
-      "Para 9: Specific errors — paragraph-by-paragraph of impugned order with reasoning.",
-      "Para 10: Where lower court took cognizance / framed charge: cognizance / summoning orders, judicial mind required.",
-      "Para 11: Where Magistrate erred in framing charges: charge framing principles.",
-      "Para 12: Where lower court misapplied BNS / Special Act ingredients — section-by-section analysis.",
-      "Para 13: Where there is procedural irregularity prejudicing fair trial.",
-      "Para 14: Interim stay sought — typically of further proceedings in trial court.",
-      "Para 15: Documents relied on — certified copies of impugned order, chargesheet, witness statements, lower court order sheet.",
+      "Limitation — Lawie adds this as the last numbered paragraph, from the dates given. Do not write it, and do not leave a gap in your numbering for it.",
+      "Do not state whether the present petition is within or beyond limitation, or whether condonation of delay is needed; that paragraph is supplied. Grounds about limitation in other proceedings stay as the advocate gave them.",
+      "Para 5: Whether appeal lay — where an appeal lies and none was brought, no revision at the instance of the party who could have appealed (S.442 BNSS; was S.401(4) CrPC); revision is residual.",
+      "Para 6: Whether earlier revision was filed — bar under S.438(3) BNSS — only one revision (to either HC or Sessions, not both).",
+      "Para 7: Grounds of revision — itemise each ground.",
+      "Para 8: Specific errors — paragraph-by-paragraph of impugned order with reasoning.",
+      "Para 9: Where lower court took cognizance / framed charge: cognizance / summoning orders, judicial mind required.",
+      "Para 10: Where Magistrate erred in framing charges: charge framing principles.",
+      "Para 11: Where lower court misapplied BNS / Special Act ingredients — section-by-section analysis.",
+      "Para 12: Where there is procedural irregularity prejudicing fair trial.",
+      "Para 13: Interim stay sought — typically of further proceedings in trial court.",
+      "Para 14: Documents relied on — certified copies of impugned order, chargesheet, witness statements, lower court order sheet.",
       "Note: In revision, evidence cannot be re-appreciated as appellate court would. Findings of fact stand unless perverse.",
       "Choice of forum: Where the impugned order is by a Magistrate — revision lies to the Sessions Judge (S.438 read with S.440 BNSS) or to the High Court (S.438 read with S.442 BNSS), not both (S.438(3) BNSS). Where the impugned order is by a Sessions Court — revision lies to the High Court. Strategic — Sessions revision may be quicker; the High Court also has inherent powers (S.528 BNSS).",
       "Affidavit in support is mandatory.",
@@ -304,18 +323,16 @@
     "Relevant chargesheet documents / lower court evidence",
     "Court fee per state Schedule",
     "Index, synopsis, list of dates",
-    "Condonation application if filed beyond 90 days",
     "Disclaimer slip — Lawie drafting assistance acknowledged"
   ],
   "validation_rules": [
     "revisional_forum must be specified",
     "impugned_order_date must be valid date in past",
-    "TIME-BAR CHECK: revision must be filed within 90 days of impugned_order_date else condonation needed",
+    "TIME-BAR CHECK: Lawie computes limitation from the dates given (impugned_order_date, filing_date, certified copy dates)",
     "impugned_order_nature must not be 'interlocutory_no_revision'",
     "grounds_of_revision must not be empty",
     "specific_errors must not be empty",
     "no_appeal_available must not be empty",
-    "limitation_compliance must not be empty",
     "advocate_enrollment must match Bar Council format"
   ],
   "key_citations": [
