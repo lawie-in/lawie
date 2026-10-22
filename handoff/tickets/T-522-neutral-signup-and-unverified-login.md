@@ -41,3 +41,11 @@ Scope: auth (sign-up, verify-and-login token, resend), gateway/drafting (`requir
 6. Drafting fence on every route that calls a model: generate x2, preflight, intake, intake/brief, intake/brief/update. It sits before `templateGuard` and `enforceCredits`. The pure `isVerified` check lives in `packages/shared`. Billing switches to it later, after Shashank's T-542/T-558.
 7. `GET /me` gets `signupInkGranted` and `referralStatus`.
 8. Billing: no change.
+
+## Ajay's copy rulings AJ-522-M8 to M14 (22 Oct 2026, relayed by Vishal; the full text is in the T-511 rulings file)
+- **M8:** the verify mail is re-signed (EN, 30 min, "works once ... signs you in"; the body names the fence in two variants, depending on whether the sign-up Ink was already granted). This clears the ship gate once his byte check passes. The T-358 notice mail is unchanged.
+- **M9:** the Hindi for the Check-your-email screen is signed; "Use a different email" is signed under T-221.
+- **M10:** four live referral strings are untrue and get signed replacements: R5 and R6 in `login/page.tsx:744-745`; R6, R10 and R14 in `login/ReferralOfferModal.tsx:137/141/165`. The dashboard notice reuses Addendum 3 `Your referral code was not valid, so no bonus Ink was added.`, only when status is `not_applied`, on the first load after verify, marked seen only after it renders. `VERIFY_STRINGS` banner/modalBody must stop rendering.
+- **M11:** landing states include a NEW required state "Verified, not signed in" (verify-kind and legacy links). Rajesh's "resend when the address is known from the token" is struck. A new expired/used title is signed.
+- **M12:** the signed-out resend shows `Request sent. Check your inbox and spam folder.` (not "Email sent") plus the M4 wait line; the timer starts at sign-up submit.
+- **M13/M14:** password hint and error EN/HI, `Not now` HI, the 429/503 lines signed. Rajesh's "Could not send the email. Retry." is struck; use `VerifyEmailPrompt.tsx:49`.
