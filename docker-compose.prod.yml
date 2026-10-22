@@ -3,6 +3,11 @@
 # Images come from ECR, built by .github/workflows/deploy-production.yml and tagged sha-<commit>.
 # scripts/deploy-prod.sh sets TAG to the sha-* tag it is deploying; `main` is only the fallback.
 #
+# The box does NOT read this file from git: the console steps copy it to the deploy dir
+# (/opt/lawie/docker-compose.prod.yml). Any change here must be re-copied to the box before
+# the next deploy (docs/DEPLOY.md, "When docker-compose.prod.yml or deploy-prod.sh changes").
+# The rollback-drill job in deploy-production.yml runs this same file with stand-in images.
+#
 # No env file of any kind. Secrets are read at boot by each service from SSM Parameter Store
 # (/lawie/prod/<service>) through the instance role (T-534 loader; SECRETS_BACKEND=ssm).
 # Only non-secret wiring is set here. Until T-534 ships, the services will not find their
@@ -35,7 +40,7 @@ x-secrets-env: &secrets-env
 services:
   # ── Redis (on-box; queues, rate limits, locks) ─────────────────────────────
   redis:
-    image: redis:7-alpine
+    image: redis:7.4-alpine
     restart: unless-stopped
     command: ['redis-server', '--appendonly', 'yes', '--maxmemory-policy', 'noeviction']
     volumes:
@@ -75,6 +80,8 @@ services:
       <<: *secrets-env
       PORT: 4001
       DRAFTING_SERVICE_URL: http://drafting:4002
+      # The referral service (apps/auth/src/services/referral.service.ts) reads this name.
+      DRAFTING_INTERNAL_URL: http://drafting:4002
       BILLING_SERVICE_URL: http://billing:4003
     ports:
       - '127.0.0.1:4001:4001'

@@ -37,7 +37,8 @@
     "marked": "^9.1.6",
     "prettier": "^3.2.5",
     "prettier-plugin-tailwindcss": "^0.6.5",
-    "puppeteer": "^24.43.0"
+    "puppeteer": "^24.43.0",
+    "yaml": "^2.7.0"
   },
   "engines": {
     "node": ">=20.0.0",

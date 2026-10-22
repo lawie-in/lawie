@@ -1,19 +1,28 @@
-# T-533 / T-403 (founder rule, 21 Oct 2026): `main` is a release snapshot of `develop`, never a merge.
+# T-533 / T-403 (founder rule, 21 Oct 2026; Arjun, 22 Oct 2026): `main` is a release snapshot of
+# `develop`, never a merge, and carries no handoff/, .claude/, CLAUDE.md and no .github/ at all.
 #
-# Run by hand (Actions -> Release to main -> Run workflow, input `version`). The `production`
-# environment makes the founder approve before anything happens. The job:
-#   1. checks out develop (full history) and takes its tree,
-#   2. drops handoff/, .claude/, CLAUDE.md and .github/copilot-instructions.md (the rest of .github/ stays),
-#   3. commits that tree on top of main as "release: v<version> from develop@<sha>" (no force push;
-#      the first release on an empty main works too),
-#   4. tags v<version> and pushes main and the tag atomically with GITHUB_TOKEN,
-#   5. dispatches main-guard.yml and deploy-production.yml (action=deploy), because a push made with
-#      GITHUB_TOKEN does not start push-triggered workflows. The deploy run still obeys the two
-#      PIPELINE_* switches.
+# Lives on the default branch `develop` and must be run from it (Actions -> Release to main ->
+# Run workflow, branch develop, input `version`). Three jobs:
+#   1. cut         checks out develop, replaces main's tree with develop's tree minus handoff/,
+#                  .claude/, CLAUDE.md and .github/, commits "release: v<version> from
+#                  develop@<sha>" on top of main (first release on an empty main works too), tags
+#                  it, and hands the commit to the next jobs as a git bundle. Pushes nothing.
+#   2. main-guard  checks the exact tree that is about to become main: fails if handoff/,
+#                  .claude/, CLAUDE.md or .github/ exist in it, or if a file the deploy needs is
+#                  missing. This replaces the old push-triggered main-guard.yml.
+#   3. release     `production` environment (the founder approves), pushes main and the tag
+#                  atomically with GITHUB_TOKEN (fast-forward only, never forced), then
+#                  dispatches deploy-production.yml (action=deploy, sha=<new main>) on the default
+#                  branch, because workflow_dispatch runs the workflow file from the ref it is
+#                  dispatched on and main has no workflows. The deploy run still obeys the two
+#                  PIPELINE_* switches.
 #
-# FOUNDER STEP: branch protection (or the ruleset) on `main` must let this workflow push to main
-# (allow GitHub Actions / the workflow actor to bypass, or to push). Without it step 4 is rejected.
-# See docs/DEPLOY.md.
+# Because main carries no .github/, a release never changes a workflow file on main, so the
+# GITHUB_TOKEN push is not refused for lacking the `workflows` permission.
+#
+# FOUNDER STEPS (docs/DEPLOY.md): default branch is `develop`; branch protection on `main` lets
+# only the GitHub Actions bot push, no force push; `production` environment with the founder as
+# required reviewer.
 
 name: Release to main
 
@@ -30,21 +39,34 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: write
-  actions: write
+  contents: read
 
 jobs:
-  release:
-    name: Cut main from develop
+  cut:
+    name: Cut the release commit from develop
     runs-on: ubuntu-latest
-    environment: production
+    permissions:
+      contents: read
+    outputs:
+      tag: ${{ steps.cut.outputs.tag }}
+      main_sha: ${{ steps.cut.outputs.main_sha }}
+      dev_sha: ${{ steps.cut.outputs.dev_sha }}
     steps:
-      - name: Validate version
+      - name: Validate version and the branch this runs from
         env:
           VERSION: ${{ inputs.version }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
           if ! printf '%s' "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'; then
             echo "::error::version must look like 1.2.3 or 1.2.3-rc.1 (no leading v), got '$VERSION'."
+            exit 1
+          fi
+          if [ "$DEFAULT_BRANCH" != "develop" ]; then
+            echo "::error::the default branch is '$DEFAULT_BRANCH'; it must be 'develop' (founder step in docs/DEPLOY.md)."
+            exit 1
+          fi
+          if [ "$GITHUB_REF" != "refs/heads/develop" ]; then
+            echo "::error::run this workflow from develop, not $GITHUB_REF."
             exit 1
           fi
 
@@ -53,7 +75,7 @@ jobs:
           ref: develop
           fetch-depth: 0
 
-      - name: Build the release commit on main
+      - name: Build the release commit on main (not pushed)
         id: cut
         env:
           VERSION: ${{ inputs.version }}
@@ -71,22 +93,17 @@ jobs:
 
           if git rev-parse -q --verify refs/remotes/origin/main >/dev/null; then
             git checkout -q -B main origin/main
+            range="origin/main..main"
           else
             echo "main does not exist yet: first release."
             git checkout -q --orphan main
+            range="main"
           fi
 
           # Replace main's tree with develop's tree, then drop the paths that never go to main.
           git read-tree --reset -u "$dev_sha"
-          git rm -r -q --cached --ignore-unmatch -- handoff .claude CLAUDE.md .github/copilot-instructions.md
-          rm -rf handoff .claude CLAUDE.md .github/copilot-instructions.md
-
-          for p in handoff .claude CLAUDE.md .github/copilot-instructions.md; do
-            if [ -e "$p" ] || [ -n "$(git ls-files -- "$p")" ]; then
-              echo "::error::$p is still in the release tree."
-              exit 1
-            fi
-          done
+          git rm -r -q --cached --ignore-unmatch -- handoff .claude CLAUDE.md .github
+          rm -rf handoff .claude CLAUDE.md .github
 
           if git rev-parse -q --verify HEAD >/dev/null && git diff --cached --quiet HEAD; then
             echo "::notice::Tree is identical to main; recording an empty release commit."
@@ -94,30 +111,115 @@ jobs:
           git commit -q --allow-empty -m "release: $tag from develop@$dev_sha"
           git tag -a "$tag" -m "release: $tag from develop@$dev_sha"
 
+          git bundle create "$RUNNER_TEMP/release.bundle" "$range" "refs/tags/$tag"
+
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           echo "main_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           echo "dev_sha=$dev_sha" >> "$GITHUB_OUTPUT"
 
-      - name: Push main and tag (no force)
-        env:
-          TAG: ${{ steps.cut.outputs.tag }}
-        run: git push --atomic origin refs/heads/main "refs/tags/$TAG"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-bundle
+          path: ${{ runner.temp }}/release.bundle
+          retention-days: 1
+          if-no-files-found: error
 
-      - name: Start main-guard and the production pipeline
+  # The guard runs on the exact commit (and tree) that release pushes to main.
+  main-guard:
+    name: main-guard
+    needs: [cut]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: develop
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-bundle
+          path: ${{ runner.temp }}
+
+      - name: Load the release commit
+        env:
+          TAG: ${{ needs.cut.outputs.tag }}
+          MAIN_SHA: ${{ needs.cut.outputs.main_sha }}
+        run: |
+          set -euo pipefail
+          git fetch -q "$RUNNER_TEMP/release.bundle" "refs/tags/$TAG:refs/tags/$TAG"
+          [ "$(git rev-parse "refs/tags/$TAG^{commit}")" = "$MAIN_SHA" ] || { echo "::error::bundle does not hold $MAIN_SHA"; exit 1; }
+          git checkout -q --detach "$MAIN_SHA"
+
+      - name: Fail if handoff content or .github is in the tree about to become main
+        env:
+          MAIN_SHA: ${{ needs.cut.outputs.main_sha }}
+        run: |
+          found=0
+          for p in handoff .claude CLAUDE.md .github; do
+            if [ -e "$p" ] || [ -n "$(git ls-tree --name-only "$MAIN_SHA" -- "$p")" ]; then
+              echo "::error::$p exists in the release tree. main must not carry it."
+              found=1
+            fi
+          done
+          if [ "$found" -ne 0 ]; then exit 1; fi
+          echo "main-guard: clean"
+
+      - name: Fail if a file the pipeline needs is missing from the release tree
+        run: |
+          missing=0
+          for f in .dockerignore docker-compose.prod.yml scripts/deploy-prod.sh scripts/check-image-no-handoff.sh \
+            apps/gateway/Dockerfile apps/auth/Dockerfile apps/drafting/Dockerfile apps/billing/Dockerfile \
+            apps/email-worker/Dockerfile apps/web/Dockerfile; do
+            if [ ! -f "$f" ]; then echo "::error::$f is missing from the release tree."; missing=1; fi
+          done
+          if [ "$missing" -ne 0 ]; then exit 1; fi
+
+  release:
+    name: Push main and start the pipeline
+    needs: [cut, main-guard]
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: write
+      actions: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: develop
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-bundle
+          path: ${{ runner.temp }}
+
+      - name: Push main and tag (atomic, never forced)
+        env:
+          TAG: ${{ needs.cut.outputs.tag }}
+          MAIN_SHA: ${{ needs.cut.outputs.main_sha }}
+        run: |
+          set -euo pipefail
+          git fetch -q "$RUNNER_TEMP/release.bundle" "refs/tags/$TAG:refs/tags/$TAG"
+          [ "$(git rev-parse "refs/tags/$TAG^{commit}")" = "$MAIN_SHA" ] || { echo "::error::bundle does not hold $MAIN_SHA"; exit 1; }
+          git push --atomic origin "$MAIN_SHA:refs/heads/main" "refs/tags/$TAG"
+
+      - name: Start the production pipeline for the new main
         env:
           GH_TOKEN: ${{ github.token }}
-          MAIN_SHA: ${{ steps.cut.outputs.main_sha }}
-        run: |
-          gh workflow run main-guard.yml --ref main
-          gh workflow run deploy-production.yml --ref main -f action=deploy -f sha="$MAIN_SHA"
+          GH_REPO: ${{ github.repository }}
+          MAIN_SHA: ${{ needs.cut.outputs.main_sha }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: gh workflow run deploy-production.yml --ref "$DEFAULT_BRANCH" -f action=deploy -f sha="$MAIN_SHA"
 
       - name: Summary
         env:
-          TAG: ${{ steps.cut.outputs.tag }}
-          MAIN_SHA: ${{ steps.cut.outputs.main_sha }}
-          DEV_SHA: ${{ steps.cut.outputs.dev_sha }}
+          TAG: ${{ needs.cut.outputs.tag }}
+          MAIN_SHA: ${{ needs.cut.outputs.main_sha }}
+          DEV_SHA: ${{ needs.cut.outputs.dev_sha }}
         run: |
           {
-            echo "Released $TAG: main@$MAIN_SHA from develop@$DEV_SHA."
-            echo "Deploy dispatched (action=deploy); it runs only if PIPELINE_BUILD_ENABLED and PIPELINE_DEPLOY_ENABLED are 'true'."
+            echo "Released $TAG: main@$MAIN_SHA from develop@$DEV_SHA (no handoff/, .claude/, CLAUDE.md, .github/)."
+            echo "Deploy dispatched (action=deploy, sha=$MAIN_SHA); it runs only if PIPELINE_BUILD_ENABLED and PIPELINE_DEPLOY_ENABLED are 'true'."
           } >> "$GITHUB_STEP_SUMMARY"

@@ -33,14 +33,23 @@ scan='find / \( -path /proc -o -path /sys -o -path /dev -o -name node_modules \)
   \( -name handoff -o -name .claude -o -name CLAUDE.md -o -name copilot-instructions.md \) -print \
   2>/dev/null; echo '"$sentinel"
 
+# stdout carries the scan result only. stderr (e.g. a Docker platform-mismatch warning) is kept
+# apart and shown only in the exit-3 diagnostic: it is never counted as an offender.
+errfile="$(mktemp)"
+trap 'rm -f "$errfile"' EXIT
+
 set +e
-output="$($DOCKER run --rm --network none --user 0 --entrypoint sh "$image" -c "$scan" 2>&1)"
+output="$($DOCKER run --rm --network none --user 0 --entrypoint sh "$image" -c "$scan" 2>"$errfile")"
 rc=$?
 set -e
 
 if [[ $rc -ne 0 ]] || ! grep -qx "$sentinel" <<<"$output"; then
   echo "check-image-no-handoff: could not scan $image (docker exit $rc):" >&2
   printf '%s\n' "$output" >&2
+  if [[ -s "$errfile" ]]; then
+    echo "check-image-no-handoff: docker stderr:" >&2
+    cat "$errfile" >&2
+  fi
   exit 3
 fi
 

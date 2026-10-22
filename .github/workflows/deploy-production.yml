@@ -1,15 +1,24 @@
 # T-533: production pipeline with an on/off switch. Full description: docs/DEPLOY.md.
 #
+# Started ONLY by workflow_dispatch: by release-to-main.yml after it cuts `main`, or by hand.
+# Nothing is triggered by a push to `main` (only the release workflow pushes there, and `main`
+# carries no .github/ at all). workflow_dispatch runs THIS file from the ref it is dispatched on,
+# which is the default branch `develop`; the jobs check out the given `main` sha and build that.
+#
 # Two repository variables, both absent by default (Settings -> Secrets and variables -> Actions
 # -> Variables). Nothing else turns the pipeline on.
 #   PIPELINE_BUILD_ENABLED  == 'true'  build the six images, scan them, push to ECR as sha-<commit>,
 #                                      then move the `main` tag.
-#   PIPELINE_DEPLOY_ENABLED == 'true'  after a green build, deploy to the prod box by SSM Run Command
-#                                      (health wait, automatic rollback). Needs build on as well.
+#   PIPELINE_DEPLOY_ENABLED == 'true'  deploy to the prod box by SSM Run Command (health wait,
+#                                      automatic rollback). Needs build on as well.
 #
-# Both absent: a push to main runs no job at all (one skipped run).
-# Deploy on, build off: only the `explain` job runs and says why nothing happened.
+# Both absent: for build/deploy/rollback only the `explain` job runs and says why nothing happened.
+# Deploy on, build off: only `explain` runs.
 # Deploy and rollback jobs use the `production` environment (founder is required reviewer).
+#
+# action=rollback-drill (AC7) is independent of both variables: no AWS, no repository variables,
+# no environment. It runs scripts/deploy-prod.sh in remote mode against the real
+# docker-compose.prod.yml on the runner's Docker, with stand-in images in a local registry.
 #
 # AWS access is OIDC only (vars.AWS_ROLE_ARN). No AWS keys are stored in GitHub and no env file
 # is read or written anywhere; the box reads its secrets from SSM Parameter Store (T-534).
@@ -21,40 +30,33 @@
 name: Deploy — Production
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
     inputs:
       action:
-        description: 'build = build and push only; deploy = build then deploy; rollback = point main at an existing sha-* image and deploy it'
+        description: 'build = build and push only; deploy = build then deploy; rollback = point main at an existing sha-* image and deploy it; rollback-drill = AC7 drill on the runner (no AWS)'
         type: choice
-        options: [build, deploy, rollback]
+        options: [build, deploy, rollback, rollback-drill]
         default: build
       sha:
-        description: 'Full 40-char commit sha on main. build/deploy: default is the head of main. rollback: required.'
+        description: 'Full 40-char commit sha on main. build/deploy: default is the head of main. rollback: required. rollback-drill: ignored.'
         type: string
         required: false
 
 concurrency:
-  group: deploy-production
+  group: ${{ inputs.action == 'rollback-drill' && format('rollback-drill-{0}', github.ref) || 'deploy-production' }}
   cancel-in-progress: false
 
 permissions:
   contents: read
 
-env:
-  AWS_REGION: ${{ vars.AWS_REGION || 'ap-south-1' }}
-  ECR_REGISTRY: ${{ vars.ECR_REGISTRY }}
-
 jobs:
-  # ── Says why nothing ran. Never runs on a push with both variables absent. ──
+  # ── Says why nothing (or not everything) ran ───────────────────────────────
   explain:
     name: Pipeline switch is off
     if: >-
-      (vars.PIPELINE_BUILD_ENABLED != 'true' &&
-        (vars.PIPELINE_DEPLOY_ENABLED == 'true' || github.event_name == 'workflow_dispatch')) ||
-      (github.event_name == 'workflow_dispatch' && inputs.action != 'build' &&
-        vars.PIPELINE_DEPLOY_ENABLED != 'true')
+      inputs.action != 'rollback-drill' &&
+      (vars.PIPELINE_BUILD_ENABLED != 'true' ||
+        (inputs.action != 'build' && vars.PIPELINE_DEPLOY_ENABLED != 'true'))
     runs-on: ubuntu-latest
     permissions: {}
     steps:
@@ -70,62 +72,68 @@ jobs:
             else
               msg="PIPELINE_BUILD_ENABLED is '${BUILD:-absent}'. The pipeline is off: nothing was built or deployed."
             fi
+          elif [ "$ACTION" = "deploy" ]; then
+            msg="action=deploy with PIPELINE_DEPLOY_ENABLED '${DEPLOY:-absent}': built and retagged main; not deployed (if the build and promote jobs pass)."
           else
             msg="action=$ACTION needs PIPELINE_DEPLOY_ENABLED='true' (it is '${DEPLOY:-absent}'). Nothing was deployed or retagged."
           fi
           echo "::warning::$msg"
           echo "$msg" >> "$GITHUB_STEP_SUMMARY"
 
-  # ── Cheap first job: refuses to build anything that carries handoff content ──
+  # ── Cheap first job: refuses to build anything that is not a clean `main` ──
   main-guard-check:
     name: main-guard check
-    if: vars.PIPELINE_BUILD_ENABLED == 'true'
+    if: vars.PIPELINE_BUILD_ENABLED == 'true' && inputs.action != 'rollback-drill'
     runs-on: ubuntu-latest
     outputs:
       sha: ${{ steps.target.outputs.sha }}
     steps:
-      - name: Resolve target commit
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Resolve target commit (must be on main)
         id: target
         env:
-          EVENT: ${{ github.event_name }}
           ACTION: ${{ inputs.action }}
           INPUT_SHA: ${{ inputs.sha }}
-          HEAD_SHA: ${{ github.sha }}
         run: |
           sha="${INPUT_SHA#sha-}"
-          if [ "$EVENT" = "workflow_dispatch" ] && [ "$ACTION" = "rollback" ] && [ -z "$sha" ]; then
+          if [ "$ACTION" = "rollback" ] && [ -z "$sha" ]; then
             echo "::error::action=rollback needs the sha input (full 40-char commit of a past release)."
             exit 1
           fi
-          sha="${sha:-$HEAD_SHA}"
+          sha="${sha:-$(git rev-parse origin/main)}"
           if ! printf '%s' "$sha" | grep -Eq '^[0-9a-f]{40}$'; then
             echo "::error::sha must be a full 40-character lower-case commit sha, got '$sha'."
             exit 1
           fi
-          echo "sha=$sha" >> "$GITHUB_OUTPUT"
-
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ steps.target.outputs.sha }}
-          fetch-depth: 0
-
-      - name: Target must be on main
-        env:
-          SHA: ${{ steps.target.outputs.sha }}
-        run: |
-          if ! git merge-base --is-ancestor "$SHA" origin/main; then
-            echo "::error::$SHA is not on main. Only main (cut by release-to-main.yml) is built or deployed."
+          if ! git merge-base --is-ancestor "$sha" origin/main; then
+            echo "::error::$sha is not on main. Only main (cut by release-to-main.yml) is built or deployed."
             exit 1
           fi
+          git checkout -q --detach "$sha"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
-      - name: Fail if handoff content is in the tree
+      - name: Fail if handoff content or .github is in the tree
         run: |
           found=0
-          for p in handoff .claude CLAUDE.md .github/copilot-instructions.md; do
-            if [ -e "$p" ]; then echo "::error::$p exists in the tree."; found=1; fi
+          for p in handoff .claude CLAUDE.md .github; do
+            if [ -e "$p" ]; then echo "::error::$p exists in the tree. main is cut by release-to-main.yml and must not carry it."; found=1; fi
           done
           if [ "$found" -ne 0 ]; then exit 1; fi
           echo "main-guard-check: clean"
+
+      - name: Fail if a file the pipeline needs is missing from the tree
+        run: |
+          missing=0
+          for f in .dockerignore docker-compose.prod.yml scripts/deploy-prod.sh scripts/check-image-no-handoff.sh \
+            apps/gateway/Dockerfile apps/auth/Dockerfile apps/drafting/Dockerfile apps/billing/Dockerfile \
+            apps/email-worker/Dockerfile apps/web/Dockerfile; do
+            if [ ! -f "$f" ]; then echo "::error::$f is missing from the main tree."; missing=1; fi
+          done
+          if [ "$missing" -ne 0 ]; then exit 1; fi
 
   # ── Build, scan, push sha-<commit> ──────────────────────────────────────────
   build:
@@ -133,7 +141,7 @@ jobs:
     needs: [main-guard-check]
     if: >-
       vars.PIPELINE_BUILD_ENABLED == 'true' &&
-      (github.event_name == 'push' || inputs.action == 'build' || inputs.action == 'deploy')
+      (inputs.action == 'build' || inputs.action == 'deploy')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -143,6 +151,8 @@ jobs:
       matrix:
         svc: [gateway, auth, drafting, billing, email-worker, web]
     env:
+      AWS_REGION: ${{ vars.AWS_REGION || 'ap-south-1' }}
+      ECR_REGISTRY: ${{ vars.ECR_REGISTRY }}
       IMAGE: ${{ vars.ECR_REGISTRY }}/lawie-prod-${{ matrix.svc }}:sha-${{ needs.main-guard-check.outputs.sha }}
     steps:
       - uses: actions/checkout@v4
@@ -209,11 +219,13 @@ jobs:
     needs: [main-guard-check, build]
     if: >-
       vars.PIPELINE_BUILD_ENABLED == 'true' &&
-      (github.event_name == 'push' || inputs.action == 'build' || inputs.action == 'deploy')
+      (inputs.action == 'build' || inputs.action == 'deploy')
     runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION || 'ap-south-1' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -236,12 +248,15 @@ jobs:
     needs: [main-guard-check, build, promote]
     if: >-
       vars.PIPELINE_BUILD_ENABLED == 'true' && vars.PIPELINE_DEPLOY_ENABLED == 'true' &&
-      (github.event_name == 'push' || inputs.action == 'deploy')
+      inputs.action == 'deploy'
     runs-on: ubuntu-latest
     environment: production
     permissions:
       contents: read
       id-token: write
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION || 'ap-south-1' }}
+      ECR_REGISTRY: ${{ vars.ECR_REGISTRY }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -267,12 +282,15 @@ jobs:
     needs: [main-guard-check]
     if: >-
       vars.PIPELINE_BUILD_ENABLED == 'true' && vars.PIPELINE_DEPLOY_ENABLED == 'true' &&
-      github.event_name == 'workflow_dispatch' && inputs.action == 'rollback'
+      inputs.action == 'rollback'
     runs-on: ubuntu-latest
     environment: production
     permissions:
       contents: read
       id-token: write
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION || 'ap-south-1' }}
+      ECR_REGISTRY: ${{ vars.ECR_REGISTRY }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -296,3 +314,121 @@ jobs:
           PROD_INSTANCE_TAG: ${{ vars.PROD_INSTANCE_TAG }}
           PROD_DEPLOY_DIR: ${{ vars.PROD_DEPLOY_DIR || '/opt/lawie' }}
         run: bash scripts/deploy-prod.sh ssm "$SHA"
+
+  # ── AC7: rollback drill on the hosted runner's Docker (no AWS, no vars) ─────
+  # Real docker-compose.prod.yml + real scripts/deploy-prod.sh (remote mode, SKIP_ECR_LOGIN=1),
+  # images pulled from a throwaway local registry. Stand-in images: busybox httpd serving every
+  # app port; tag A answers /health and / with 200, tag B answers 404 (its health check fails).
+  # Expected: deploy A -> exit 0; deploy B -> B unhealthy, script rolls back to A -> exit 1;
+  # afterwards every app container runs tag A and is healthy, and current_tag is A.
+  rollback-drill:
+    name: Rollback drill (AC7, stand-in images)
+    if: inputs.action == 'rollback-drill'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 30
+    env:
+      SHA_A: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      SHA_B: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+      APPS: gateway auth drafting billing email-worker web
+      ECR_REGISTRY: localhost:5000
+      AWS_REGION: ap-south-1
+      SKIP_ECR_LOGIN: '1'
+      COMPOSE_PROJECT_NAME: lawie-drill
+      HEALTH_TIMEOUT: '360'
+      HEALTH_INTERVAL: '5'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Start a throwaway local registry
+        run: |
+          docker run -d --name lawie-drill-registry -p 127.0.0.1:5000:5000 registry:2.8.3
+          for i in $(seq 1 30); do
+            curl -fsS http://localhost:5000/v2/ >/dev/null && exit 0
+            sleep 1
+          done
+          echo "::error::local registry did not start"
+          exit 1
+
+      - name: Build and push the stand-in images (tag A healthy, tag B unhealthy)
+        run: |
+          set -euo pipefail
+          ctx="$RUNNER_TEMP/drill-image"
+          mkdir -p "$ctx"
+          cat > "$ctx/Dockerfile" <<'DOCKERFILE'
+          FROM busybox:1.36.1
+          ARG HEALTHY=1
+          RUN mkdir -p /www && if [ "$HEALTHY" = "1" ]; then echo ok > /www/health; echo ok > /www/index.html; fi
+          CMD ["sh", "-c", "for p in 3000 4000 4001 4002 4003; do httpd -p $p -h /www; done; exec httpd -f -p 9100 -h /www"]
+          DOCKERFILE
+          docker build -q -t lawie-drill:A --build-arg HEALTHY=1 "$ctx"
+          docker build -q -t lawie-drill:B --build-arg HEALTHY=0 "$ctx"
+          for svc in $APPS; do
+            docker tag lawie-drill:A "$ECR_REGISTRY/lawie-prod-$svc:sha-$SHA_A"
+            docker tag lawie-drill:B "$ECR_REGISTRY/lawie-prod-$svc:sha-$SHA_B"
+            docker push -q "$ECR_REGISTRY/lawie-prod-$svc:sha-$SHA_A"
+            docker push -q "$ECR_REGISTRY/lawie-prod-$svc:sha-$SHA_B"
+          done
+
+      - name: Drill — deploy A, deploy B, expect automatic rollback to A
+        run: |
+          set +e
+          export COMPOSE_FILE="$GITHUB_WORKSPACE/docker-compose.prod.yml"
+          export STATE_DIR="$RUNNER_TEMP/lawie-drill-state"
+          report="$RUNNER_TEMP/drill-report.md"
+          fail=0
+          check() { # check <description> <expected> <actual>
+            if [ "$2" = "$3" ]; then r=PASS; else r=FAIL; fail=1; fi
+            echo "| $1 | \`$2\` | \`$3\` | $r |" >> "$report"
+          }
+          {
+            echo "## AC7 rollback drill"
+            echo
+            echo "Stand-in images (busybox httpd), not the real Lawie images: tag A serves 200 on /health and /, tag B serves 404."
+            echo "Real \`docker-compose.prod.yml\` and \`scripts/deploy-prod.sh remote\` (SKIP_ECR_LOGIN=1, ECR_REGISTRY=localhost:5000, a local registry)."
+            echo
+            echo "| Check | Expected | Actual | Result |"
+            echo "| --- | --- | --- | --- |"
+          } > "$report"
+
+          bash scripts/deploy-prod.sh remote "$SHA_A"
+          check "deploy tag A (healthy): exit code" 0 "$?"
+
+          bash scripts/deploy-prod.sh remote "$SHA_B"
+          check "deploy tag B (unhealthy): exit code (1 = rolled back, old tag healthy)" 1 "$?"
+
+          check "state current_tag after the drill" "sha-$SHA_A" "$(head -n1 "$STATE_DIR/current_tag" 2>/dev/null)"
+          for svc in $APPS; do
+            cid="$(docker compose -f "$COMPOSE_FILE" ps -q "$svc" | head -n1)"
+            img="$(docker inspect -f '{{.Config.Image}}' "$cid" 2>/dev/null)"
+            health="$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}' "$cid" 2>/dev/null)"
+            check "$svc running image" "$ECR_REGISTRY/lawie-prod-$svc:sha-$SHA_A" "$img"
+            check "$svc health" healthy "$health"
+          done
+          cid="$(docker compose -f "$COMPOSE_FILE" ps -q redis | head -n1)"
+          check "redis health" healthy "$(docker inspect -f '{{.State.Health.Status}}' "$cid" 2>/dev/null)"
+
+          echo >> "$report"
+          if [ "$fail" -eq 0 ]; then
+            echo "**PASS**: tag B failed its health check, deploy-prod.sh rolled back to tag A (exit 1), and every service runs tag A and is healthy." >> "$report"
+          else
+            echo "**FAIL**: see the rows marked FAIL and the job log." >> "$report"
+          fi
+          cat "$report" >> "$GITHUB_STEP_SUMMARY"
+          cat "$report"
+          exit "$fail"
+
+      - name: Drill did not complete
+        if: failure()
+        run: |
+          if [ ! -s "$RUNNER_TEMP/drill-report.md" ]; then
+            echo "**FAIL**: the AC7 rollback drill did not reach its checks (see the job log)." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          docker compose -f "$GITHUB_WORKSPACE/docker-compose.prod.yml" logs --tail 30 || true
+
+      - name: Clean up
+        if: always()
+        run: |
+          docker compose -f "$GITHUB_WORKSPACE/docker-compose.prod.yml" down -v --remove-orphans || true
+          docker rm -f lawie-drill-registry || true

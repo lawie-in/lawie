@@ -6,9 +6,12 @@
 #                                 with TAG=sha-<sha>, wait for every service to be healthy. On
 #                                 failure, redeploy the previous sha-* tag (from STATE_DIR) and wait
 #                                 again. Records current/previous tag in STATE_DIR on success.
-#   deploy-prod.sh ssm <sha>      IN GITHUB ACTIONS. Ships docker-compose.prod.yml and this script to
-#                                 the prod box with SSM Run Command (AWS-RunShellScript, no SSH) and
-#                                 runs `remote` there. Waits for the command and returns its code.
+#   deploy-prod.sh ssm <sha>      IN GITHUB ACTIONS. Sends ONE short line by SSM Run Command
+#                                 (AWS-RunShellScript, no SSH) that runs
+#                                 `<PROD_DEPLOY_DIR>/deploy.sh remote sha-<sha>` on the prod box. The
+#                                 console steps put a copy of this script there as deploy.sh and
+#                                 docker-compose.prod.yml next to it (docs/DEPLOY.md). Nothing else is
+#                                 shipped. Waits for the command and returns its code.
 #   deploy-prod.sh retag <sha>    IN GITHUB ACTIONS. Points the `main` tag of all six ECR repos at
 #                                 sha-<sha>. Checks all six images exist before changing any.
 #
@@ -30,8 +33,9 @@
 #           "redis gateway auth drafting billing email-worker web"), HEALTH_TIMEOUT seconds
 #           (default 300), HEALTH_INTERVAL seconds (default 5), SKIP_ECR_LOGIN=1 for local runs.
 #   ssm:    ECR_REGISTRY, AWS_REGION, PROD_INSTANCE_ID or PROD_INSTANCE_TAG (EC2 Name tag),
-#           PROD_DEPLOY_DIR (default /opt/lawie), SSM_TIMEOUT seconds (default 900),
-#           SSM_POLL_INTERVAL seconds (default 10), REPO_ROOT (default: this script's repo).
+#           PROD_DEPLOY_DIR (default /opt/lawie; holds deploy.sh, docker-compose.prod.yml and
+#           state/), SSM_TIMEOUT seconds (default 1800, also the SSM executionTimeout),
+#           SSM_POLL_INTERVAL seconds (default 10).
 #   retag:  AWS_REGION, APP_SERVICES (default the six apps), REPO_PREFIX (default lawie-prod-).
 
 set -euo pipefail
@@ -189,12 +193,16 @@ remote_main() {
 # ── ssm (in Actions) ────────────────────────────────────────────────────────
 
 ssm_main() {
-  local tag deploy_dir targets payload params cmd_id
+  local tag deploy_dir targets line params cmd_id ssm_timeout
   tag="$(normalize_tag "${1:-}")" || exit 2
   deploy_dir="${PROD_DEPLOY_DIR:-/opt/lawie}"
-  local repo_root="${REPO_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+  ssm_timeout="${SSM_TIMEOUT:-1800}"
 
   # Values go into a hand-built JSON string and a remote shell, so allow only safe characters.
+  if [[ ! "$ssm_timeout" =~ ^[0-9]+$ ]]; then
+    log "SSM_TIMEOUT must be a whole number of seconds"
+    exit 2
+  fi
   if [[ ! "${ECR_REGISTRY:-}" =~ ^[A-Za-z0-9._:/-]+$ ]]; then
     log "ECR_REGISTRY is missing or has unexpected characters"
     exit 2
@@ -218,26 +226,10 @@ ssm_main() {
     exit 2
   fi
 
-  payload="$(tar -C "$repo_root" -czf - docker-compose.prod.yml scripts/deploy-prod.sh | base64 | tr -d '\n')"
-  if ((${#payload} > ${SSM_MAX_PAYLOAD:-20000})); then
-    log "deploy payload is ${#payload} bytes, over SSM_MAX_PAYLOAD"
-    exit 2
-  fi
-
-  # AWS-RunShellScript runs the lines with /bin/sh, so keep them POSIX; the real work is in bash.
-  local -a lines=(
-    "set -eu"
-    "mkdir -p $deploy_dir/release $deploy_dir/state"
-    "cd $deploy_dir/release"
-    "echo $payload | base64 -d | tar -xzf -"
-    "export COMPOSE_PROJECT_NAME=lawie-prod ECR_REGISTRY=$ECR_REGISTRY AWS_REGION=$AWS_REGION COMPOSE_FILE=$deploy_dir/release/docker-compose.prod.yml STATE_DIR=$deploy_dir/state"
-    "exec bash scripts/deploy-prod.sh remote $tag"
-  )
-  local joined="" l
-  for l in "${lines[@]}"; do
-    joined="${joined:+$joined,}\"$l\""
-  done
-  params="{\"commands\":[$joined],\"executionTimeout\":[\"${SSM_TIMEOUT:-900}\"]}"
+  # One short POSIX line (AWS-RunShellScript uses /bin/sh). deploy.sh and docker-compose.prod.yml
+  # are already on the box (console steps, docs/DEPLOY.md); the real work is in bash there.
+  line="cd $deploy_dir && COMPOSE_PROJECT_NAME=lawie-prod ECR_REGISTRY=$ECR_REGISTRY AWS_REGION=$AWS_REGION COMPOSE_FILE=$deploy_dir/docker-compose.prod.yml STATE_DIR=$deploy_dir/state bash $deploy_dir/deploy.sh remote $tag"
+  params="{\"commands\":[\"$line\"],\"executionTimeout\":[\"$ssm_timeout\"]}"
 
   log "sending SSM deploy of $tag to $targets"
   # shellcheck disable=SC2086
@@ -250,7 +242,7 @@ ssm_main() {
     --query 'Command.CommandId' --output text)" || { log "send-command failed"; exit 4; }
   log "SSM command id: $cmd_id"
 
-  local deadline=$(($(date +%s) + ${SSM_TIMEOUT:-900} + 120))
+  local deadline=$(($(date +%s) + ssm_timeout + 120))
   local status="" count=""
   while :; do
     # shellcheck disable=SC2086
@@ -289,6 +281,7 @@ ssm_main() {
     1) log "deploy of $tag failed; the box rolled back to its previous tag" ; exit 1 ;;
     3) log "deploy of $tag failed and the box could not roll back" ; exit 3 ;;
     2) log "deploy script reported a usage/config error on the box" ; exit 2 ;;
+    127) log "$deploy_dir/deploy.sh was not found on the box (console steps, docs/DEPLOY.md)" ; exit 4 ;;
     *) log "SSM command ended $status (response code '${code}')" ; exit 4 ;;
   esac
 }
