@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Ajay (signed text, AJ-556-M1 to M4 in 02999009), a lead (build), Arjun for the drafting part |
 | Mode   | Full chain (email-worker; drafting document rules, legal content) |
-| Status | To do. Ready to build, signed text exists. Priya, 22 Oct 2026 |
+| Status | Merged into develop_staging 3669dd83 (CI 910 green), 22 Oct 2026; waiting on Anushka's check on develop. Note AJ-557-M3: the next ticket touching prompt-assembler or template-engine carries the signed persona line. Priya |
 | Source | Vishal's T-555 report; Ajay 02999009 |
 
 ## Part A: welcome email
