@@ -29,6 +29,7 @@ import {
   Ledger,
   LedgerFact,
   ledgerEntryOf,
+  ledgerGivenKeys,
   PART_ORDER,
   PART_TITLES,
   renderedLedgerFacts,
@@ -37,6 +38,7 @@ import {
 } from './briefTypes';
 import CourtPicker from './CourtPicker';
 import InkCostLine, { inkCostState } from './InkCostLine';
+import * as nl from './nlUi';
 import {
   card,
   h1,
@@ -52,6 +54,8 @@ import {
   tagPlain,
 } from './ui';
 import ValueInput from './ValueInput';
+
+import { ErrorState, Skeleton } from '@/components/ui';
 
 /**
  * T-136. Ajay's line (CLO, 7 Oct 2026, part 2, condition 2), word for word. The
@@ -434,54 +438,70 @@ function OtherFact({ fact }: { fact: LedgerFact }) {
 const BRIEF_SUB =
   'This is what we will write from. Change anything that is wrong. Nothing is drafted until you confirm.';
 
+/** T-521: signed, copy row 458 ("Describe failed"); action `Retry`. */
+export const DESCRIBE_FAILED = 'Could not read your description. Try again.';
+
 /**
- * T-147b, section 6: the brief while it is read the first time. Static grey
- * boxes, no shimmer, no Confirm.
+ * T-147b, section 6: the brief while it is read the first time. No Confirm.
+ * T-521 (spec 04): the folio with a skeleton; "Still working…" after 8s.
  */
 export function BriefLoading() {
+  // T-521 (WCAG 4.1.3): a live region mounted with its text already in it is often not
+  // announced. The status is mounted empty and filled after the first paint; the visible
+  // line is the same text, hidden from screen readers so it is not read twice.
+  const [announce, setAnnounce] = useState(false);
+  useEffect(() => {
+    setAnnounce(true);
+  }, []);
   return (
-    <div className="mx-auto w-full max-w-[720px]">
-      <h1 className={h1}>Check your brief</h1>
-      <p className={sub}>{BRIEF_SUB}</p>
-      <div className={`${card} mt-6 space-y-5`} aria-hidden="true">
-        {[0, 1, 2].map((i) => (
-          <div key={i}>
-            <div className="h-[14px] w-1/3 rounded bg-slate-100" />
-            <div className="mt-1.5 h-12 w-full rounded-lg bg-slate-100" />
-          </div>
-        ))}
+    <div className={nl.page}>
+      <h1 className={nl.h1}>Check your brief</h1>
+      <p className={nl.sub}>{BRIEF_SUB}</p>
+      <div className={`${nl.folio} mt-nl-6 space-y-nl-5`}>
+        <p className={nl.small} aria-hidden="true">
+          Reading your description…
+        </p>
+        <p className="sr-only" role="status">
+          {announce ? 'Reading your description…' : null}
+        </p>
+        <Skeleton lines={6} />
       </div>
-      <p className={`${small} mt-4 flex items-center gap-2`} aria-live="polite">
-        <Loader2 size={16} className="animate-spin" aria-hidden="true" />
-        Reading your description…
-      </p>
     </div>
   );
 }
 
-/** T-147b, section 6: the brief could not be loaded. "Edit my description" stays. */
+/**
+ * T-147b, section 6: the brief could not be loaded. "Edit my description" stays.
+ * T-521 (spec 04): the signed describe error with Retry, and the advocate's text
+ * shown as kept.
+ */
 export function BriefLoadError({
   onRetry,
   onEditDescription,
+  description,
 }: {
   onRetry: () => void;
   onEditDescription: () => void;
+  /** The description as typed. It is kept; Retry sends it again. */
+  description?: string;
 }) {
   return (
-    <div className="mx-auto w-full max-w-[720px]">
-      <h1 className={h1}>Check your brief</h1>
-      <p className={sub}>{BRIEF_SUB}</p>
-      <div
-        role="alert"
-        className="bg-brand-error-light text-brand-error mt-6 flex flex-col gap-3 rounded-lg p-3 text-sm sm:flex-row sm:items-center sm:justify-between"
-      >
-        <p>We could not load your brief.</p>
-        <button type="button" onClick={onRetry} className={secondaryButton}>
-          Try again
-        </button>
+    <div className={nl.page}>
+      <h1 className={nl.h1}>Check your brief</h1>
+      <p className={nl.sub}>{BRIEF_SUB}</p>
+      <div className={`${nl.folio} mt-nl-6 space-y-nl-4`}>
+        <ErrorState message={DESCRIBE_FAILED} onRetry={onRetry} />
+        {description ? (
+          <figure>
+            <figcaption className={nl.label}>Your description</figcaption>
+            <blockquote className="nl-body text-nl-text mt-nl-2 whitespace-pre-wrap break-words">
+              {description}
+            </blockquote>
+          </figure>
+        ) : null}
       </div>
-      <div className="mt-6">
-        <button type="button" onClick={onEditDescription} className={linkButton}>
+      <div className="mt-nl-6">
+        <button type="button" onClick={onEditDescription} className={nl.linkButton}>
           Edit my description
         </button>
       </div>
@@ -496,6 +516,7 @@ export default function BriefStep({
   onOutstandingFocused,
   outstandingQuestions = 0,
   busy,
+  updating = false,
   confirming,
   message,
   questionsLeft,
@@ -525,6 +546,11 @@ export default function BriefStep({
   outstandingQuestions?: number;
   /** True while the brief is being worked out again after a change. */
   busy: boolean;
+  /**
+   * T-481: a change on the brief is being worked out again. Confirm shows as
+   * busy but stays pressable: a press is held and acted on when the brief is back.
+   */
+  updating?: boolean;
   confirming: boolean;
   /** A problem to show above the buttons. */
   message: string | null;
@@ -561,15 +587,32 @@ export default function BriefStep({
   const [datesAcceptedFor, setDatesAcceptedFor] = useState<string | null>(null);
   const dateCheck = brief.date_check;
   const datesHeld = dateCheck !== undefined && datesAcceptedFor !== dateCheck.text;
-  const canConfirm = brief.can_confirm && !datesHeld;
+  // T-498: a party name the ledger holds shows on its row, so it does not block
+  // Confirm. The service already leaves it out when it had the ledger; this
+  // keeps the screen in step when it did not. With no ledger nothing changes.
+  const ledgerGiven = ledgerGivenKeys(ledger);
+  const partyMissing = (i: BriefItem): boolean =>
+    i.party_name && i.required && isEmptyValue(i.value) && !ledgerGiven.has(i.key);
+  const partiesNeeded =
+    brief.confirm_blockers.includes('parties') && brief.items.some(partyMissing);
+  const courtNeeded = brief.confirm_blockers.includes('court');
+  // Only the parties the ledger holds are lifted; any other "no" stays.
+  const partiesLifted = brief.confirm_blockers.includes('parties') && !partiesNeeded;
+  const briefCanConfirm = brief.can_confirm || (partiesLifted && !courtNeeded);
+  // The service's line, unless only the court is left of what it named (Ajay's
+  // signed wording, T-127 section 7.2, as in apps/drafting intake-brief.ts).
+  const confirmLine = briefCanConfirm
+    ? null
+    : partiesLifted
+      ? 'Choose the court to continue.'
+      : brief.confirm_message;
+  const canConfirm = briefCanConfirm && !datesHeld;
   const dateCheckContinue = useRef<HTMLButtonElement>(null);
   // The service may tidy the name. What it sends back is what is shown.
   useEffect(() => {
     setName(brief.kind.name);
   }, [brief.kind.name]);
   const noRules = brief.kind.id === null;
-  const partiesNeeded = brief.confirm_blockers.includes('parties');
-  const courtNeeded = brief.confirm_blockers.includes('court');
   const anyChecked = brief.items.some((i) => i.please_check);
   // T-147b: what the screen shows from the ledger. Every fact renders: on its
   // row, or under "Other things you gave" when the document has no row for it.
@@ -580,6 +623,9 @@ export default function BriefStep({
     ? ledger.unresolved.filter((u) => !ledger.facts.some((f) => f.key === u.key))
     : [];
   const nothingRead = ledger !== null && ledgerFacts.length === 0 && outstanding.length === 0;
+  // T-498: a fact the ledger holds shows on its row, so it is not still unknown.
+  // With no ledger the list is the brief's own, as before.
+  const stillUnknown = brief.still_unknown.filter((u) => !ledgerGiven.has(u.key));
   // T-372 / T-388: the Ink cost slot (loading, "Uses N Ink" or the notice)
   // always describes the confirm button. Confirm charges, so it waits for a
   // known cost (Arjun); like its other blockers it stays aria-disabled only.
@@ -622,7 +668,7 @@ export default function BriefStep({
 
   const focusFirstBlocker = () => {
     // T-363 AC1: the court and the parties come first, as before; then the dates.
-    if (brief.can_confirm && datesHeld) {
+    if (briefCanConfirm && datesHeld) {
       dateCheckContinue.current?.scrollIntoView({ block: 'center' });
       dateCheckContinue.current?.focus();
       return;
@@ -643,8 +689,39 @@ export default function BriefStep({
       el?.focus();
       return;
     }
-    const party = brief.items.find((i) => i.party_name && i.required && isEmptyValue(i.value));
+    const party = brief.items.find(partyMissing);
     if (party) focusField(party.key);
+  };
+
+  /** What a press of Confirm does, with the brief as it is now. */
+  const pressConfirm = () => {
+    if (!canConfirm) focusFirstBlocker();
+    else if (costKnown) onConfirm();
+    // T-388: with an unknown cost nothing starts and focus does not move.
+  };
+  const pressConfirmRef = useRef(pressConfirm);
+  pressConfirmRef.current = pressConfirm;
+
+  // T-481: a typed field commits on blur, so pressing Confirm just after typing
+  // starts an update between mousedown and mouseup. A natively disabled button
+  // would swallow that click, so Confirm is not disabled for an update: the
+  // press is held and acted on, with the brief the service sent back, once the
+  // update ends. A failed update (its line shows in `message`) drops the press.
+  const [confirmHeld, setConfirmHeld] = useState(false);
+  const pending = busy || updating || confirming;
+  useEffect(() => {
+    if (!confirmHeld || updating) return;
+    setConfirmHeld(false);
+    if (busy || confirming || message !== null) return;
+    pressConfirmRef.current();
+  }, [confirmHeld, updating, busy, confirming, message]);
+  const onConfirmClick = () => {
+    if (busy || confirming) return;
+    if (updating) {
+      setConfirmHeld(true);
+      return;
+    }
+    pressConfirm();
   };
 
   return (
@@ -784,9 +861,7 @@ export default function BriefStep({
                     key={item.key}
                     item={item}
                     ledger={ledger}
-                    needed={
-                      partiesNeeded && item.party_name && item.required && isEmptyValue(item.value)
-                    }
+                    needed={partiesNeeded && partyMissing(item)}
                     blocksConfirm={brief.kind.court_document && item.party_name && item.required}
                     onCommit={(v) => onValue(item, v)}
                     askedAnswer={askedAnswers?.[item.key]}
@@ -879,7 +954,7 @@ export default function BriefStep({
         )}
       </div>
 
-      {brief.still_unknown.length > 0 && (
+      {stillUnknown.length > 0 && (
         <section
           aria-labelledby="brief-unknown"
           className="border-brand-line bg-brand-page mt-4 rounded-xl border p-4 sm:p-5"
@@ -888,7 +963,7 @@ export default function BriefStep({
             Still unknown. These will be blanks in the draft.
           </h2>
           <ul className="mt-3 space-y-2">
-            {brief.still_unknown.map((u) => {
+            {stillUnknown.map((u) => {
               const field = brief.items.find((i) => i.key === u.key);
               const hasField = field !== undefined;
               return (
@@ -945,13 +1020,13 @@ export default function BriefStep({
         </section>
       )}
 
-      {!brief.can_confirm && brief.confirm_message && (
+      {confirmLine && (
         <button
           type="button"
           onClick={focusFirstBlocker}
           className="bg-brand-error-light text-brand-error focus-visible:ring-brand-teal mt-4 block w-full rounded-lg p-3 text-left text-sm font-semibold focus:outline-none focus-visible:ring-2"
         >
-          {brief.confirm_message}
+          {confirmLine}
         </button>
       )}
       {message && (
@@ -991,15 +1066,14 @@ export default function BriefStep({
             type="button"
             // T-388: with an unknown cost nothing starts and focus does not move;
             // the notice in the cost slot says why.
-            onClick={!canConfirm ? focusFirstBlocker : costKnown ? onConfirm : undefined}
-            aria-disabled={confirmOff || busy || confirming}
+            onClick={onConfirmClick}
+            aria-disabled={confirmOff || pending}
             aria-describedby={confirmDescribedByIds}
+            // T-481: not while an update runs (see `onConfirmClick`).
             disabled={busy || confirming}
             className={`${primaryButton} ${confirmOff ? 'opacity-40' : ''}`}
           >
-            {(busy || confirming) && (
-              <Loader2 size={16} className="animate-spin" aria-hidden="true" />
-            )}
+            {pending && <Loader2 size={16} className="animate-spin" aria-hidden="true" />}
             Confirm brief and continue
           </button>
           <InkCostLine

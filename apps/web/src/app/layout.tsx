@@ -1,7 +1,14 @@
-import type { Metadata } from 'next';
-import { Inter, Lora } from 'next/font/google';
+import type { Metadata, Viewport } from 'next';
+import { Inter, Lora, Mukta, Tiro_Devanagari_Hindi } from 'next/font/google';
 
 import AnalyticsConsent from '@/components/AnalyticsConsent';
+import {
+  DARK_SCHEME_QUERY,
+  LIGHT_SCHEME_QUERY,
+  THEME_COLOR,
+  THEME_INIT_SCRIPT,
+} from '@/components/shell/theme';
+import { ThemeProvider } from '@/components/shell/ThemeProvider';
 import { AuthProvider } from '@/context/AuthContext';
 import { SignupSourceCapture } from '@/lib/signup-source';
 import './globals.css';
@@ -9,9 +16,27 @@ import './globals.css';
 const inter = Inter({ subsets: ['latin'] });
 // T-005 brand headings (describe-first screens). Exposed as a CSS variable, used via `font-heading`.
 const lora = Lora({ subsets: ['latin'], weight: ['600'], variable: '--font-lora' });
+// T-511 Night Library type (spec 2.3, Arjun 17 Oct). CSS variables only, used via `font-nl-body`
+// and `font-nl-display` and the `nl-*` type classes; the body font stays Inter until pages move.
+// preload is off so existing pages do not download the new fonts; a font file loads only when a
+// Night Library element uses it.
+const mukta = Mukta({
+  subsets: ['latin', 'devanagari'],
+  weight: ['400', '500'],
+  display: 'swap',
+  variable: '--font-mukta',
+  preload: false,
+});
+const tiro = Tiro_Devanagari_Hindi({
+  subsets: ['latin', 'devanagari'],
+  weight: '400',
+  display: 'swap',
+  variable: '--font-tiro',
+  preload: false,
+});
 
 export const metadata: Metadata = {
-  title: 'Lawie — Drafting Assistant for Indian Advocates',
+  title: 'Lawie: drafting assistant for advocates in India',
   description:
     'Stop Googling legal formats. Lawie is a drafting assistant for Indian advocates. Draft bail applications, legal notices, and more, then review before you file.',
   keywords: [
@@ -29,10 +54,32 @@ export const metadata: Metadata = {
   },
 };
 
+/**
+ * T-524: two `<meta name="theme-color">` tags, one per colour scheme, for first paint (Wall,
+ * DESIGN.md Colors). ThemeProvider then keeps one unscoped meta on the resolved theme, so a
+ * pinned Night or Daylight wins over the system scheme. Next merges this with its default
+ * width/initial-scale viewport.
+ * T-531 (DESIGN.md Navigation): `viewport-fit=cover`, so the page paints under the notch and
+ * `env(safe-area-inset-*)` is non-zero; the top bar, bottom sheets, toasts and the consent sheet
+ * pad themselves clear of it.
+ */
+export const viewport: Viewport = {
+  viewportFit: 'cover',
+  themeColor: [
+    { media: DARK_SCHEME_QUERY, color: THEME_COLOR.night },
+    { media: LIGHT_SCHEME_QUERY, color: THEME_COLOR.daylight },
+  ],
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} ${lora.variable}`}>
+      <head>
+        {/* T-511: sets data-theme / data-theme-pref on <html> before first paint (no flash). Only
+            Night Library (`.nl`) styles read it; existing pages are unaffected. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
+      <body className={`${inter.className} ${lora.variable} ${mukta.variable} ${tiro.variable}`}>
         {/* T-242: keeps utm_source/medium/campaign of the landing link in sessionStorage until
             sign-up. Renders nothing; first party only (Ajay, T-242 signed). */}
         <SignupSourceCapture />
@@ -43,7 +90,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             login and review pages render their own <main>. tabindex is set only at focus time
             (AnalyticsConsent's returnFocus), so the whole app is not a focusable region. */}
         <div id="main" className="focus:outline-none">
-          <AuthProvider>{children}</AuthProvider>
+          <ThemeProvider>
+            <AuthProvider>{children}</AuthProvider>
+          </ThemeProvider>
         </div>
       </body>
     </html>

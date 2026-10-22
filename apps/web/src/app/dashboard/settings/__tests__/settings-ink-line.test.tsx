@@ -33,6 +33,20 @@ const ok = (body: unknown) => ({ ok: true, status: 200, json: async () => body }
 function route(balance: () => Promise<unknown>) {
   mockApiFetch.mockImplementation((path: string) => {
     if (path === '/api/credits/balance') return balance();
+    // T-509: billing's status (free user: never subscribed).
+    if (path === '/api/billing/status') {
+      return Promise.resolve(
+        ok({
+          data: {
+            tier: 'free',
+            state: 'lapsed',
+            status: null,
+            renewsAt: null,
+            cancelAtCycleEnd: false,
+          },
+        }),
+      );
+    }
     return Promise.resolve(
       ok({
         subscriptions: [
@@ -96,11 +110,11 @@ describe('T-372 settings: Ink line', () => {
     expect(text()).not.toMatch(/remaining/i);
   });
 
-  it('shows no Ink balance line to a Pro user and fetches no balance', async () => {
+  it('shows the Ink line to a Pro user too, and fetches the balance (T-509, reverses T-372)', async () => {
     mockPlan = 'pro';
     await mount();
-    expect(text()).not.toContain('You have');
-    expect(balanceCalls()).toBe(0);
+    expect(text()).toContain('You have 9 Ink');
+    expect(balanceCalls()).toBeGreaterThan(0);
     expect(text()).not.toMatch(/documents used/i);
   });
 });

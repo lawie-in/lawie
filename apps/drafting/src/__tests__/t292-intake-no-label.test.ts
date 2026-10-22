@@ -41,7 +41,10 @@ const headers = () => ({
 // SHA-256 of MATCH_SYSTEM_PROMPT as applied for T-292 (base minus the label
 // rule line and the `"label": string, ` key). Any further edit changes it and
 // needs Ajay's sign-off, then a new hash here.
-const PROMPT_SHA256 = '9b5d2d0f92602a15952bb698b13476e6b79cce6a0968e4c06d92503df1cf83df';
+// T-482 (Ajay 9ad6a8f1, wording signed in 59d26051): the "match terms" rule line was added; the
+// hash below is of the prompt with it. The earlier hash (9b5d2d0f...) is still the prompt minus
+// that one line (t482-maintenance-routing test).
+const PROMPT_SHA256 = '3b8abbf3ee79a9d04a7cabc6eca61bd367875b1a04f5cba0baab4975aae40fc9';
 
 describe('T-292 match prompt: no label', () => {
   it('contains no "label" anywhere, as a rule or a JSON key', () => {

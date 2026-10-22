@@ -602,3 +602,136 @@ describe('T-472 F: ledger path', () => {
     );
   });
 });
+
+// ── G: one warning per model claim sentence, partial verifier edits (AJ-472-M1) ──
+
+describe('T-472 G: a claim the verifier edits only partly is flagged once', () => {
+  const CLAIM =
+    'The present revision petition is filed within 90 days from the impugned order dated 12.03.2025.';
+  const body = `1. That the petitioner is a resident of Patna.\n\n2. ${CLAIM}\n\n3. That the order is illegal.`;
+  const SIGNED =
+    'Check this sentence: it states a limitation position. The limitation paragraph (para 4) is computed from your dates.';
+  const BLANKED_CLAIM =
+    'The present revision petition is filed within 90 days from the impugned order dated {{MISSING: date of order}}.';
+
+  it('only the date blanked: exactly one warning, limitationFlags 1, blanked true', async () => {
+    const out = await runBrief(LATE, body, true, (b) =>
+      b.replace('dated 12.03.2025', 'dated {{MISSING: date of order}}'),
+    );
+    expect(out.fullText).toContain(BLANKED_CLAIM);
+    const w = limitationWarningsOf(out.sse);
+    expect(w).toHaveLength(1);
+    expect(w[0].details.blanked).toBe(true);
+    expect(w[0].details.rule).toBe('limitation_claim');
+    expect(w[0].message).toBe(SIGNED);
+    expect(out.limitationFlags).toBe(1);
+  });
+
+  it('only the date repaired (no blank): one warning, blanked false or absent', async () => {
+    const out = await runBrief(LATE, body, true, (b) =>
+      b.replace('dated 12.03.2025', 'dated 01.01.2026'),
+    );
+    expect(out.fullText).toContain('impugned order dated 01.01.2026.');
+    const w = limitationWarningsOf(out.sse);
+    expect(w).toHaveLength(1);
+    expect(w[0].details.blanked ?? false).toBe(false);
+    expect(w[0].message).toBe(SIGNED);
+    expect(out.limitationFlags).toBe(1);
+  });
+
+  it('the claim removed outright: one warning in the model words, blanked true', async () => {
+    const out = await runBrief(LATE, body, true, (b) => b.replace(`2. ${CLAIM}\n\n`, ''));
+    expect(out.fullText).not.toContain(CLAIM);
+    const w = limitationWarningsOf(out.sse);
+    expect(w).toHaveLength(1);
+    expect(w[0].details.blanked).toBe(true);
+    expect(w[0].details.expected).toBe(CLAIM);
+    expect(out.limitationFlags).toBe(1);
+  });
+
+  it('the whole paragraph emptied (counts equal): one warning, blanked true', async () => {
+    const out = await runBrief(LATE, body, true, (b) => b.replace(`2. ${CLAIM}`, '2. '));
+    const w = limitationWarningsOf(out.sse);
+    expect(w).toHaveLength(1);
+    expect(w[0].details.blanked).toBe(true);
+    expect(out.limitationFlags).toBe(1);
+  });
+
+  it('paragraph counts differ (verifier adds a paragraph) and date blanked: still one', async () => {
+    const out = await runBrief(LATE, body, true, (b) =>
+      `${b.replace('dated 12.03.2025', 'dated {{MISSING: date of order}}')}\n\n4. That the prayer is just.`,
+    );
+    const w = limitationWarningsOf(out.sse);
+    expect(w).toHaveLength(1);
+    expect(w[0].details.blanked).toBe(true);
+    expect(out.limitationFlags).toBe(1);
+  });
+
+  it('unchanged claim: one warning, not blanked', async () => {
+    const out = await runBrief(LATE, body, true);
+    const w = limitationWarningsOf(out.sse);
+    expect(w).toHaveLength(1);
+    expect(w[0].details.blanked ?? false).toBe(false);
+    expect(out.limitationFlags).toBe(1);
+  });
+
+  it('two distinct claims in two paragraphs, one partly blanked: two warnings', async () => {
+    const two = `1. That the petitioner is a resident of Patna.\n\n2. ${CLAIM}\n\n3. The petition is within limitation.\n\n4. That the order is illegal.`;
+    const out = await runBrief(LATE, two, true, (b) =>
+      b.replace('dated 12.03.2025', 'dated {{MISSING: date of order}}'),
+    );
+    const w = limitationWarningsOf(out.sse);
+    expect(w).toHaveLength(2);
+    expect(w.filter((x) => x.details.blanked === true)).toHaveLength(1);
+    expect(out.limitationFlags).toBe(2);
+    expect(w[0].message).toContain('(para 5)');
+  });
+
+  it('the citation strip removes a citation from the claim sentence: one warning', async () => {
+    const cited = `1. That the petitioner is a resident of Patna.\n\n2. ${CLAIM.slice(0, -1)}, as held in Arnesh Kumar v. State of Bihar (2014) 8 SCC 273.\n\n3. That the order is illegal.`;
+    for (const ledger of [false, true]) {
+      const out = await runBrief(LATE, cited, ledger);
+      expect(out.fullText).not.toContain('(2014) 8 SCC 273');
+      const w = limitationWarningsOf(out.sse);
+      expect(w).toHaveLength(1);
+      expect(w[0].details.blanked ?? false).toBe(false);
+      expect(out.limitationFlags).toBe(1);
+    }
+  });
+});
+
+// ── H: a body numbered "1) ... 7)" (AJ-472-M2) ──────────────────────────────
+
+describe.each(PATHS)('T-472 H numbering with ")" , %s', (_p, run, wrap) => {
+  const CLAIM = 'The petition is within limitation.';
+  const para8 =
+    'Check this sentence: it states a limitation position. The limitation paragraph (para 8) is computed from your dates.';
+
+  it('"1) ... 7)": ours is "8.", bodyParaCount 8, warning para 8', async () => {
+    const body = [1, 2, 3, 4, 5, 6, 7]
+      .map((n) => `${n}) ${n === 3 ? CLAIM : `That ground ${n} is made out.`}`)
+      .join('\n\n');
+    const out = await run(IN_TIME, body);
+    expect(out.fullText).toContain(`8. ${WITHIN}`);
+    expect(out.fullText).not.toContain(`7. ${WITHIN}`);
+    expect(out.fullText).not.toContain(`9. ${WITHIN}`);
+    expect(count(out.fullText, WITHIN)).toBe(1);
+    expect(out.bodyParaCount).toBe(8);
+    expect(out.fullText).toMatch(/paragraphs 1 to 8\b/);
+    const w = limitationWarningsOf(out.sse);
+    expect(w).toHaveLength(1);
+    expect(w[0].message).toBe(para8);
+    expect(out.limitationFlags).toBe(1);
+  });
+
+  it('mixed "8.1/8.2" lines after "7)" do not count', async () => {
+    const body = [
+      ...[1, 2, 3, 4, 5, 6, 7].map((n) => `${n}) That ground ${n} is made out.`),
+      '8.1 That the evidence was ignored.',
+      '8.2 That the finding is perverse.',
+    ].join('\n\n');
+    const out = await run(IN_TIME, body);
+    expect(out.fullText).toContain(`8. ${WITHIN}`);
+    expect(out.bodyParaCount).toBe(8);
+  });
+});

@@ -577,8 +577,12 @@ export function findLimitationClaims(bodies: readonly string[]): string[] {
   return out;
 }
 
-/** A top-level paragraph number at the start of a line ("8. That"; not "8.1 That"). */
-const TOP_LEVEL_NUMBER = /^\s*(\d{1,3})\.\s/gm;
+/**
+ * A top-level paragraph number at the start of a line: "8. That" or "8) That"
+ * (as NUMBER_PREFIX reads them); not "8.1 That". The computed paragraph itself
+ * still prints as "N.".
+ */
+const TOP_LEVEL_NUMBER = /^\s*(\d{1,3})[.)]\s/gm;
 
 /**
  * The highest top-level paragraph number in the model's text, or 0. A
@@ -601,26 +605,53 @@ export interface LimitationClaim {
   blanked: boolean;
 }
 
+/** Paragraphs: blocks separated by a blank line (as the fact verifier splits them). */
+function paragraphsOf(text: string): string[] {
+  return text.split(/\n[ \t]*\n/);
+}
+
+/**
+ * One paragraph's claims, as printed, matched to the model's own. A printed
+ * claim that was in `before` is unchanged (not blanked). A printed claim that
+ * was not (the verifier or the citation strip changed the sentence) stands for
+ * one claim of `before` that no longer prints, in order: one sentence, one
+ * warning; it is blanked when a `{{MISSING: …}}` blank entered it. A claim of
+ * `before` left without a printed counterpart (removed outright) is flagged
+ * with the model's own words, blanked.
+ */
+function matchParagraph(before: string, after: string): LimitationClaim[] {
+  const printed = findLimitationClaims([after]);
+  const gone = findLimitationClaims([before]).filter((s) => !after.includes(s));
+  const out: LimitationClaim[] = [];
+  let changed = 0;
+  for (const sentence of printed) {
+    if (before.includes(sentence)) {
+      out.push({ sentence, blanked: false });
+    } else {
+      changed++;
+      out.push({ sentence, blanked: MISSING_BLANK.test(sentence) });
+    }
+  }
+  for (const sentence of gone.slice(changed)) out.push({ sentence, blanked: true });
+  return out;
+}
+
 /**
  * The claims to flag on a draft the fact verifier checked. `before` is the
- * model's text before the verifier, `after` as it prints. A claim still
- * printed is flagged as printed; it counts as blanked when it holds a
- * `{{MISSING: …}}` blank that was not in the text before. A claim in `before`
- * that no longer prints (the verifier blanked or removed it) is flagged with
- * the model's own words, blanked. With no verifier, `before` equals `after`.
+ * model's text before the verifier, `after` as it prints (after the verifier
+ * and the citation strip). Each of the model's claim sentences gives exactly
+ * one claim: matched paragraph by paragraph (`matchParagraph`) when both texts
+ * have the same number of paragraphs, else across the whole text. With no
+ * verifier, `before` equals `after` and every printed claim is unchanged.
  */
 export function findLimitationClaimsChecked(before: string, after: string): LimitationClaim[] {
-  const printed = findLimitationClaims([after]).map((sentence) => ({
-    sentence,
-    blanked: MISSING_BLANK.test(sentence) && !before.includes(sentence),
-  }));
-  const gone =
-    before === after
-      ? []
-      : findLimitationClaims([before])
-          .filter((s) => !after.includes(s))
-          .map((sentence) => ({ sentence, blanked: true }));
-  return [...printed, ...gone];
+  if (before === after) {
+    return findLimitationClaims([after]).map((sentence) => ({ sentence, blanked: false }));
+  }
+  const was = paragraphsOf(before);
+  const now = paragraphsOf(after);
+  if (was.length !== now.length) return matchParagraph(before, after);
+  return now.flatMap((p, i) => matchParagraph(was[i], p));
 }
 
 /** The checks-panel warning for one marked sentence. `{n}` is the computed paragraph's number. */

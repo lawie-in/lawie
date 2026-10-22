@@ -186,9 +186,9 @@ describe('T-436 Terms 5b / 5c', () => {
     expect(sec('contact').querySelectorAll('p')[0].textContent).toBe('Asha Verma');
   });
 
-  it('"Last updated" is 15 October 2026 (Ajay Addendum 7 (3a), the T-436 merge date)', async () => {
+  it('"Last updated" is 22 October 2026 (T-541; was the T-436 merge date, 15 October)', async () => {
     mockFetch.mockResolvedValue(res(FULL));
     await mount();
-    expect(text(container)).toContain('Last updated: 15 October 2026');
+    expect(text(container)).toContain('Last updated: 22 October 2026');
   });
 });

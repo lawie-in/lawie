@@ -51,6 +51,7 @@ The founder releases to `main` (T-403), and only after Anushka's `PASS`; no lead
 - `.claude/docs/multi-lead.md` — five dev leads in parallel: claim record, file overlap rules, merge queue, worktrees.
 - `.claude/docs/quality-gate.md` — the quality gate: what Anushka is sent, what counts as a pass, and what happens when she cannot reach the app.
 - `.claude/docs/dev-lead-protocol.md` — the whole job of a dev lead, shared by `vishal`, `mahak`, `shashank`, `kunal` and `tanvi`. Section 9 is the board. Where it differs from `multi-lead.md` (no PRs, claim record, merge queue), `multi-lead.md` wins.
+- `.claude/docs/ui-quality.md` — the vendored design skills (`impeccable`, `design-taste-frontend`, the emilkowalski set), their order of authority under Rajesh's design, the crew protocol for UI tickets, and the Playwright plan.
 - `.claude/docs/pm-protocol.md` — Priya's job: the backlog, posting tickets, and what she does not do.
 
 ## Stale, do not trust

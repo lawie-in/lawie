@@ -248,7 +248,7 @@ const DRAFTING_MESSAGES = [
   'Thinking through the facts…',
   'Synthesizing the grounds…',
   'Drafting numbered paragraphs…',
-  'Citing BNS / BNSS sections…',
+  'Citing sections…',
   'Composing the prayer clause…',
   'Building the verification block…',
   'Cross-checking dates and parties…',

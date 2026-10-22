@@ -33,20 +33,26 @@ import {
   KindSummary,
   Ledger,
   LedgerEditResult,
+  ledgerGivenKeys,
   NO_RULE_PACK,
   readFactCheckBanner,
   RenderedClause,
   Value,
   valuesAfter,
+  withDeclinedAnswers,
   withValue,
 } from './briefTypes';
 import BrowseTypesStep from './BrowseTypesStep';
 import ChangeDocumentDialog from './ChangeDocumentDialog';
 import DescribeStep from './DescribeStep';
 import DocumentChoiceStep, { NONE_OF_THESE } from './DocumentChoiceStep';
+import { EXPORT_HASH } from './draftActions';
 import DraftReadyStep from './DraftReadyStep';
 import GeneratingStep from './GeneratingStep';
+import type { GenerationError } from './generationFailure';
+import { takeDraftPrefill } from './initialQuery';
 import { NOT_STARTED_LINE, inkCostState } from './InkCostLine';
+import NightScope from './NightScope';
 import NoMatchStep from './NoMatchStep';
 import QuestionsStep from './QuestionsStep';
 
@@ -92,6 +98,30 @@ function outstandingKeys(ledger: Ledger | null | undefined): Set<string> {
 }
 
 /**
+ * T-498: a question asked only because the ledger could not read the fact
+ * (T-147b), whose brief item holds a value read from the description, gets
+ * that value as a suggestion. It is not an answer until the advocate taps it,
+ * so nothing reaches the brief or the ledger before then. Confirm questions
+ * (T-190 AC8) keep their own path.
+ */
+function suggestedAnswers(
+  questions: BriefQuestion[],
+  brief: Brief,
+  ledger: Ledger | null | undefined,
+): Record<string, Value> {
+  const outstanding = outstandingKeys(ledger);
+  const out: Record<string, Value> = {};
+  for (const q of questions) {
+    if (q.confirm || !outstanding.has(q.key)) continue;
+    const item = brief.items.find((i) => i.key === q.key);
+    if (item && item.source === 'description' && item.value !== null && !isEmptyValue(item.value)) {
+      out[q.key] = item.value;
+    }
+  }
+  return out;
+}
+
+/**
  * T-190 (AC8): a confirm question stays open until the advocate answers it: a
  * value they gave on the brief or the questions, an answer the ledger holds, or
  * a "Not known".
@@ -106,6 +136,8 @@ function confirmOpen(key: string, brief: Brief, ledger: Ledger | null | undefine
  * The questions of a round whose facts are still not given. With a ledger, a
  * key it could not read stays open even when the brief holds a value for it.
  * T-190: a fact answered "Not known" is not open; a confirm question is.
+ * T-498: a fact the ledger holds is given (its row shows it, with "Please
+ * check"), so it is not open as missing; a server re-ask (T-150) still is.
  */
 function openQuestions(
   questions: BriefQuestion[],
@@ -114,8 +146,13 @@ function openQuestions(
   round?: 1 | 2,
 ) {
   if (!brief) return [];
+  const given = ledgerGivenKeys(ledger);
   const open = new Set(
-    brief.items.filter((i) => isEmptyValue(i.value) && !i.asked_empty).map((i) => i.key),
+    brief.items
+      .filter(
+        (i) => isEmptyValue(i.value) && !i.asked_empty && (i.reask === true || !given.has(i.key)),
+      )
+      .map((i) => i.key),
   );
   for (const key of outstandingKeys(ledger)) open.add(key);
   for (const q of questions) if (q.confirm && confirmOpen(q.key, brief, ledger)) open.add(q.key);
@@ -140,14 +177,7 @@ function inkCostOf(
 /** T-388 (Meera, final): a 402 that carries neither a cost nor a line of its own (now in InkCostLine). */
 export { NOT_STARTED_LINE };
 
-export default function OneFlow({
-  kinds,
-  loadingKinds,
-  guidedInkCost,
-  inkCostLoading = false,
-  onInkCostRetry,
-  initialKind,
-}: {
+export interface OneFlowProps {
   kinds: KindSummary[];
   loadingKinds: boolean;
   /** T-372: the Ink cost of a draft with no rule pack (the guided draft). */
@@ -158,7 +188,28 @@ export default function OneFlow({
   onInkCostRetry?: () => void;
   /** T-365 AC5: a template_id from `?kind=` (the templates library); preset once if listed. */
   initialKind?: string;
-}) {
+  /** T-521 (Rajesh): the Ink level for the generating inkwell (inkLevel.ts); null if unknown. */
+  inkLevel?: number | null;
+}
+
+/** T-521: the flow on the Night Library folio. The steps and their state are unchanged. */
+export default function OneFlow(props: OneFlowProps) {
+  return (
+    <NightScope className="min-[640px]:py-nl-4">
+      <OneFlowSteps {...props} />
+    </NightScope>
+  );
+}
+
+function OneFlowSteps({
+  kinds,
+  loadingKinds,
+  guidedInkCost,
+  inkCostLoading = false,
+  onInkCostRetry,
+  initialKind,
+  inkLevel = null,
+}: OneFlowProps) {
   const router = useRouter();
   const privacyDescribedBy = usePrivacyDescribedBy('generate'); // T-343
   const [phase, setPhase] = useState<Phase>('describe');
@@ -194,7 +245,7 @@ export default function OneFlow({
   const fromOutstanding = useRef(false);
 
   const [repairing, setRepairing] = useState(false);
-  const [genError, setGenError] = useState<{ reason: string; retryable: boolean } | null>(null);
+  const [genError, setGenError] = useState<GenerationError | null>(null);
   const [result, setResult] = useState<DraftResult | null>(null);
   const [paywall, setPaywall] = useState<{ cost: number; balance: number } | null>(null);
 
@@ -223,7 +274,9 @@ export default function OneFlow({
 
   /** Take the service's brief as the truth, and keep what it could not place. */
   const adopt = useCallback(
-    (next: Brief) => {
+    (served: Brief) => {
+      // T-481: an advocate's "No" the service does not place (an undertaking) stays answered.
+      const next = withDeclinedAnswers(served, valuesRef.current);
       valuesRef.current = valuesAfter(next, valuesRef.current);
       courtRef.current = next.court;
       setAskedAnswers(askedEmptyAnswers(next, valuesRef.current));
@@ -691,11 +744,16 @@ export default function OneFlow({
           setGenError({
             reason: data.message ?? 'The draft could not be started. Please try again.',
             retryable: res.status >= 500,
+            source: 'start',
           });
           return;
         }
         if (!res.body) {
-          setGenError({ reason: 'The drafting service sent nothing back.', retryable: true });
+          setGenError({
+            reason: 'The drafting service sent nothing back.',
+            retryable: true,
+            source: 'start',
+          });
           return;
         }
 
@@ -734,6 +792,9 @@ export default function OneFlow({
                     ? payload.reason
                     : 'The drafting service returned an error.',
                 retryable: payload.retryable !== false,
+                // T-521 (Arjun ruling 4): the code decides what is said about Ink.
+                source: 'error_event',
+                ...(typeof payload.code === 'string' ? { code: payload.code } : {}),
               });
               return;
             }
@@ -754,6 +815,7 @@ export default function OneFlow({
           setGenError({
             reason: 'The connection was lost before the draft was finished.',
             retryable: true,
+            source: 'dropped',
           });
           return;
         }
@@ -812,10 +874,19 @@ export default function OneFlow({
           disclaimer:
             typeof done.disclaimer === 'string' ? done.disclaimer : (factCheck?.disclaimer ?? null),
           ...(rendered ? { rendered } : {}),
+          // T-545: the Ink the server says it settled, and nothing else (never the quote).
+          // Absent (no settle), 0 or not a number: no chip.
+          ...(typeof done.inkDebited === 'number' && done.inkDebited > 0
+            ? { inkUsed: done.inkDebited }
+            : {}),
         });
         setPhase('ready');
       } catch {
-        setGenError({ reason: 'Lost the connection to the drafting service.', retryable: true });
+        setGenError({
+          reason: 'Lost the connection to the drafting service.',
+          retryable: true,
+          source: 'dropped',
+        });
       }
     },
     [description, reset, update, kinds, guidedInkCost, inkCostLoading],
@@ -883,6 +954,24 @@ export default function OneFlow({
     window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
   }, [initialKind, kinds, loadingKinds, phase, busy, description]);
 
+  // T-521 (Priya): text another screen left in sessionStorage prefills the describe
+  // textarea, once. Read in an effect (client only) behind a ref: StrictMode runs effects
+  // twice, and the second read would find the key already removed. The ref survives that
+  // re-run, so the first read's value is the one kept. Never submitted; never logged; not
+  // applied over anything the advocate has already typed.
+  // On the chip path (`?kind=` preset) the key is still read and cleared at once, so a
+  // stale prefill can never show later, but it is not applied to the textarea.
+  const prefillRead = useRef(false);
+  useEffect(() => {
+    if (prefillRead.current) return;
+    prefillRead.current = true;
+    const text = takeDraftPrefill();
+    if (!text || initialKind) return;
+    setDescription((typed) => (typed.trim() === '' ? text : typed));
+    // Mount only: `initialKind` is read as it was when the flow opened.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   if (reading === 'loading') return <BriefLoading />;
   if (reading === 'failed') {
     return (
@@ -891,6 +980,7 @@ export default function OneFlow({
           if (lastReadBody.current) void readBrief(lastReadBody.current, 'describe');
         }}
         onEditDescription={editDescription}
+        description={description}
       />
     );
   }
@@ -966,6 +1056,10 @@ export default function OneFlow({
         onOpenEditor={() => {
           if (result.docId) router.push(`/dashboard/documents/${result.docId}`);
         }}
+        // T-521: Export uses the editor's export as it is; the editor focuses its export buttons.
+        onExport={() => {
+          if (result.docId) router.push(`/dashboard/documents/${result.docId}${EXPORT_HASH}`);
+        }}
         onStartAnother={startAnother}
       />
     );
@@ -983,6 +1077,7 @@ export default function OneFlow({
         inkCostLoading={inkCostLoading}
         onInkCostRetry={onInkCostRetry}
         kind={briefKind}
+        inkLevel={inkLevel}
         documentName={brief?.kind.name ?? 'document'}
         repairing={repairing}
         error={genError}
@@ -1011,6 +1106,7 @@ export default function OneFlow({
           onSubmit={(given) => void answerQuestions(given)}
           onSkip={() => setPhase('brief')}
           onEditDescription={editDescription}
+          suggestions={suggestedAnswers(roundQuestions, brief, ledger)}
         />
       );
     }
@@ -1031,7 +1127,9 @@ export default function OneFlow({
           ledger={ledger}
           focusOutstanding={focusOutstanding}
           onOutstandingFocused={clearFocusOutstanding}
-          busy={busy || updating}
+          busy={busy}
+          // T-481: Confirm stays pressable while a change is worked out again.
+          updating={updating}
           confirming={false}
           message={briefMessage}
           questionsLeft={nextQuestions.length}

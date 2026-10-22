@@ -19,7 +19,7 @@ import { readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 
 import type { AvermentLists } from './averments';
-import { normaliseOption } from './template-promoter';
+import { humaniseOptionLabel, normaliseOption, objectOptionLabel } from './template-promoter';
 
 // ── Output shape ────────────────────────────────────────────────────────────
 
@@ -191,16 +191,20 @@ function slug(text: string): string {
     .slice(0, 60);
 }
 
-/** Option labels from `['A', 'B']` or `[{ label }, { value }, { id }]`. */
+/**
+ * Option labels from `['A', 'B']` or `[{ label }, { value }, { id }]`. T-473: a bare
+ * snake_case text is shown through the promoter's `humaniseOptionLabel`, as the form
+ * shows it; other text is kept as written. Ids (`optionIdsAndCondition`) are unchanged.
+ */
 function optionLabels(v: unknown): string[] {
   if (!Array.isArray(v)) return [];
   const out: string[] = [];
   for (const o of v) {
     if (typeof o === 'string' || typeof o === 'number') {
-      out.push(String(o));
+      out.push(humaniseOptionLabel(String(o)));
     } else if (isObj(o)) {
       const label = firstStr(o.label, o.name, o.value, o.id);
-      if (label !== null) out.push(label);
+      if (label !== null) out.push(objectOptionLabel(o, label));
     }
   }
   return out;
@@ -1875,6 +1879,8 @@ export const FIELD_ALIASES: Readonly<Record<string, string>> = Object.freeze({
   advocate_enrolment: 'advocate_enrollment',
   // T-451 alias, remove in the post-v1 cleanup
   bhajan_lal_categories_invoked: 'quashing_categories_invoked',
+  // T-489 alias, remove in the post-v1 cleanup
+  statutory_duty: 'statute_invoked',
 });
 
 /**
@@ -1883,7 +1889,11 @@ export const FIELD_ALIASES: Readonly<Record<string, string>> = Object.freeze({
  * 2026, T-451). `advocate_enrolment` is not listed: T-382 keeps the old key.
  */
 // T-451 alias, remove in the post-v1 cleanup
-const REPLACED_FIELD_ALIAS_KEYS: ReadonlySet<string> = new Set(['bhajan_lal_categories_invoked']);
+const REPLACED_FIELD_ALIAS_KEYS: ReadonlySet<string> = new Set([
+  'bhajan_lal_categories_invoked',
+  // T-489 alias, remove in the post-v1 cleanup
+  'statutory_duty',
+]);
 
 /**
  * Stored option ids renamed by Ajay (T-245 file, T-451 answers, db89fdde):

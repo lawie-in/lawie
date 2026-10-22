@@ -203,7 +203,7 @@ Order for the T-403 release: purge dry run, `purge --yes` (covers both templates
 
 ### GST tax invoices and credit notes: state of supply and email (T-436 b/c)
 
-Each captured payment gets a GST tax invoice, and each refund a credit note. The place of supply is the user's State, stored as `User.gstStateCode`. `GET /api/auth/me` returns it. `PATCH /api/auth/me` sets it only after the user has accepted the current privacy version (`CURRENT_PRIVACY_VERSION` in `@lawie/shared`; `CURRENT_TERMS_VERSION` in auth; both `2026-10-15`). The web app asks for the State on upgrade, top-up and Settings, and Settings has an Invoices card with PDF download (`GET /api/billing/invoices`, `/invoices/:id/pdf`). Refunds are capped atomically per invoice (`RefundCap`).
+Each captured payment gets a GST tax invoice, and each refund a credit note. The place of supply is the user's State, stored as `User.gstStateCode`. `GET /api/auth/me` returns it. `PATCH /api/auth/me` sets it only after the user has accepted the current privacy version (`CURRENT_PRIVACY_VERSION` in `@lawie/shared` is `2026-10-15`; `CURRENT_TERMS_VERSION` in auth is `2026-10-22`). The web app asks for the State on upgrade, top-up and Settings, and Settings has an Invoices card with PDF download (`GET /api/billing/invoices`, `/invoices/:id/pdf`). Refunds are capped atomically per invoice (`RefundCap`).
 
 Invoice and credit-note emails go through the `billing.taxInvoice` and `billing.creditNote` templates. The job carries only the invoice id. The email-worker fetches the content from billing at send time (`GET /internal/invoices/:id/email-view`, header `x-internal-secret`; 410 if the user has been erased) and does not log it.
 
@@ -237,12 +237,13 @@ Frontend deploys to Vercel separately.
 
 ## Branch Strategy
 
-| Branch      | Purpose                            |
-| ----------- | ---------------------------------- |
-| `main`      | Production — protected             |
-| `develop`   | Integration — auto-deploys staging |
-| `feature/*` | Feature branches                   |
-| `hotfix/*`  | Production hotfixes                |
+| Branch            | Purpose                                                                                                                                                                                                             |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `main`            | Production — protected. Nobody merges into it, ever: a release workflow (`release-to-main.yml`, founder approves) cuts a snapshot of `develop` with the handoff and agent files removed (founder rule, 21 Oct 2026) |
+| `develop_staging` | Where leads merge finished tickets (`--no-ff`); only the founder merges it into `develop`                                                                                                                           |
+| `develop`         | Integration — auto-deploys staging                                                                                                                                                                                  |
+| `feature/*`       | Feature branches                                                                                                                                                                                                    |
+| `hotfix/*`        | Production hotfixes                                                                                                                                                                                                 |
 
 ---
 

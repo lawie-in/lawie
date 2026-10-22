@@ -113,7 +113,9 @@ describe('T-370 billing: POST /subscribe honours planId', () => {
       .send({ planId: 'unlimited_999' });
 
     expect(res.status).toBe(500);
-    expect(res.body.error).toContain('Unknown plan id');
+    // T-526 (Arjun): the 500 body is fixed; the thrown message never reaches it.
+    expect(res.body).toEqual({ error: 'Failed to create subscription' });
+    expect(JSON.stringify(res.body)).not.toContain('Unknown plan id');
     expect(create).not.toHaveBeenCalled();
   });
 });

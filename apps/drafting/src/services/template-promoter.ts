@@ -23,8 +23,10 @@ import { join } from 'path';
 
 import { catalogueCategoryFor } from '../config/catalogue';
 import logger from '../config/logger';
+import { OPTION_LABEL_OVERRIDES } from '../config/option-label-overrides';
 
 import { costForTemplate } from './credits.service';
+import { renderRelatedActs } from './related-acts';
 import type {
   ComputedField,
   DocumentSection,
@@ -63,6 +65,7 @@ interface DocRuleSource {
   prompt_context?: string | Record<string, unknown>;
   promptInstructions?: string[];
   relevantActs?: unknown[];
+  relatedActs?: unknown[];
   filing_checklist?: string[];
   filingChecklist?: string[];
   validation_rules?: string[] | ValidationRules;
@@ -156,6 +159,208 @@ function humaniseId(id: string): string {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+/**
+ * T-473: a bare internal name such as `known_state_custody` or `GWA_1890_secular`
+ * (two or more letter/digit tokens joined by underscores; capitals allowed).
+ */
+const SNAKE_CASE_RE = /^[A-Za-z0-9]+(_[A-Za-z0-9]+)+$/;
+
+export function isSnakeCaseName(text: string): boolean {
+  return SNAKE_CASE_RE.test(text);
+}
+
+/**
+ * T-473 (Ajay's rule): internal words dropped from a humanised option label. Whole
+ * tokens only (`type` goes, `typed` stays). `cat` followed by a pure number token
+ * (`cat_1`) drops both. `category` is not in the list and is kept.
+ */
+export const DROPPED_OPTION_TOKENS: readonly string[] = ['flag', 'warning', 'cat', 'type'];
+
+/** Abbreviations upper-cased when an option is humanised. Casing only, no new text. */
+const OPTION_ACRONYMS: ReadonlySet<string> = new Set([
+  'fir',
+  'bnss',
+  'bns',
+  'ipc',
+  'crpc',
+  'cpc',
+  'mou',
+  'tpa',
+  'slp',
+  'hc',
+  'sc',
+  'rera',
+  'huf',
+  'gpa',
+  'psu',
+  'nbfc',
+  'gst',
+  'emi',
+  'ngo',
+  'icc',
+  'rtgs',
+  'neft',
+  'utr',
+  'cbi',
+  'atm',
+  'aop',
+  'boi',
+  'cit',
+  'drp',
+  'acr',
+  'apar',
+  'ata',
+  'pil',
+  'ni',
+  'ii',
+  'iii',
+  'iv',
+  'vi',
+  'vii',
+  'gwa',
+  'hmga',
+  'uprera',
+  'spa',
+  'ndps',
+]);
+
+function caseOptionToken(token: string): string {
+  // An authored token with capitals (`RERA`, `S126`, `1A`, `IB`) keeps its casing.
+  if (/[A-Z]/.test(token)) return token;
+  if (OPTION_ACRONYMS.has(token)) return token.toUpperCase();
+  // s419 / o11 / r1 (section, order, rule) and 48a: upper-case the letters.
+  if (/^[sor]\d+[a-z]?$/.test(token) || /^\d+[a-z]$/.test(token)) return token.toUpperCase();
+  return token;
+}
+
+/**
+ * T-473: the label shown for an option's text. Pure; never used for ids.
+ * 1. Ajay's signed label for the text (any case) wins, verbatim (OPTION_LABEL_OVERRIDES).
+ * 2. Snake_case text: drop DROPPED_OPTION_TOKENS, upper-case known abbreviations, sentence
+ *    case the rest (`known_state_custody` -> `Known state custody`). If every token would
+ *    be dropped, nothing is dropped. Other text (spaces, punctuation) is kept as written.
+ * 3. R1: state and court names in title case (`applyTitleCaseRule`).
+ */
+export function humaniseOptionLabel(text: string): string {
+  const signed = signedOptionLabel(text);
+  if (signed !== undefined) return signed;
+  return applyTitleCaseRule(isSnakeCaseName(text) ? humaniseSnake(text) : text);
+}
+
+/** T-473: Ajay's signed label for an option id or raw text (any case), if any. */
+export function signedOptionLabel(text: string): string | undefined {
+  const key = text.toLowerCase();
+  return Object.prototype.hasOwnProperty.call(OPTION_LABEL_OVERRIDES, key)
+    ? OPTION_LABEL_OVERRIDES[key]
+    : undefined;
+}
+
+/**
+ * T-473 R1 (Ajay): state, union territory and court names in canonical title case,
+ * whole words, case-insensitive. For labels only, never ids.
+ */
+const TITLE_CASE_NAMES: readonly string[] = [
+  // States
+  'Andhra Pradesh',
+  'Arunachal Pradesh',
+  'Assam',
+  'Bihar',
+  'Chhattisgarh',
+  'Goa',
+  'Gujarat',
+  'Haryana',
+  'Himachal Pradesh',
+  'Jharkhand',
+  'Karnataka',
+  'Kerala',
+  'Madhya Pradesh',
+  'Maharashtra',
+  'Manipur',
+  'Meghalaya',
+  'Mizoram',
+  'Nagaland',
+  'Odisha',
+  'Punjab',
+  'Rajasthan',
+  'Sikkim',
+  'Tamil Nadu',
+  'Telangana',
+  'Tripura',
+  'Uttar Pradesh',
+  'Uttarakhand',
+  'West Bengal',
+  // Union territories
+  'Andaman and Nicobar Islands',
+  'Chandigarh',
+  'Dadra and Nagar Haveli and Daman and Diu',
+  'Delhi',
+  'Jammu and Kashmir',
+  'Ladakh',
+  'Lakshadweep',
+  'Puducherry',
+  // Courts
+  'Supreme Court',
+  'High Court',
+  'District Court',
+  'Sessions Court',
+  'Family Court',
+  'Civil Court',
+  'Commercial Court',
+  'Labour Court',
+];
+
+const TITLE_CASE_RES: ReadonlyArray<readonly [RegExp, string]> = TITLE_CASE_NAMES.map(
+  (name) =>
+    [new RegExp(`(?<![A-Za-z])${name.replace(/ /g, '\\s+')}(?![A-Za-z])`, 'gi'), name] as const,
+);
+
+/** An all-capitals label that starts with a listed court name (`HIGH COURT OF ...`). */
+const LEADING_COURT_RE = new RegExp(
+  `^(${TITLE_CASE_NAMES.filter((n) => n.endsWith(' Court'))
+    .map((n) => n.replace(/ /g, '\\s+'))
+    .join('|')})(?![A-Za-z])`,
+  'i',
+);
+const SMALL_WORDS: ReadonlySet<string> = new Set(['of', 'and', 'at', 'for', 'the', 'in']);
+
+/**
+ * T-473 R1: the label with every listed state, UT and court name in canonical case.
+ * An all-capitals label that starts with a listed court name (`HIGH COURT OF PATNA`)
+ * is title-cased as a whole (`High Court of Patna`), so no half-capitalised name is
+ * shown; known abbreviations (OPTION_ACRONYMS) in it stay upper case. Pure.
+ */
+export function applyTitleCaseRule(label: string): string {
+  let out = label;
+  if (/[A-Z]/.test(out) && !/[a-z]/.test(out) && LEADING_COURT_RE.test(out)) {
+    out = out.replace(/[A-Z]+/g, (w, at: number) => {
+      const lw = w.toLowerCase();
+      if (OPTION_ACRONYMS.has(lw)) return w;
+      if (at > 0 && SMALL_WORDS.has(lw)) return lw;
+      return w.charAt(0) + lw.slice(1);
+    });
+  }
+  for (const [re, name] of TITLE_CASE_RES) out = out.replace(re, name);
+  return out;
+}
+
+/** T-473: the snake_case humaniser (drop list, abbreviations, sentence case). */
+function humaniseSnake(text: string): string {
+  const tokens = text.split('_');
+  const kept: string[] = [];
+  for (let i = 0; i < tokens.length; i++) {
+    const t = tokens[i].toLowerCase(); // drop-list check is case-blind
+    if (t === 'cat' && i + 1 < tokens.length && /^\d+$/.test(tokens[i + 1])) {
+      i++; // `cat_1`: drop the number with it
+      continue;
+    }
+    if (DROPPED_OPTION_TOKENS.includes(t)) continue;
+    kept.push(tokens[i]);
+  }
+  const words = (kept.length > 0 ? kept : tokens).map(caseOptionToken);
+  const sentence = words.join(' ');
+  return sentence.charAt(0).toUpperCase() + sentence.slice(1);
+}
+
 function slugifyOption(label: string): string {
   return label
     .toLowerCase()
@@ -171,18 +376,36 @@ function slugifyOption(label: string): string {
  */
 export function normaliseOption(o: unknown, idx: number): FieldOption | null {
   if (typeof o === 'string') {
-    return { id: slugifyOption(o) || `opt_${idx}`, label: o };
+    // T-473: id from the raw text (unchanged); only the label is humanised.
+    return { id: slugifyOption(o) || `opt_${idx}`, label: humaniseOptionLabel(o) };
   }
   if (o && typeof o === 'object') {
     const obj = o as Record<string, unknown>;
-    const label = typeof obj.label === 'string' ? obj.label : String(obj.id ?? `Option ${idx + 1}`);
+    const rawLabel =
+      typeof obj.label === 'string' ? obj.label : String(obj.id ?? `Option ${idx + 1}`);
     const id =
       typeof obj.id === 'string' && obj.id.length > 0
         ? obj.id
-        : slugifyOption(label) || `opt_${idx}`;
-    return { id, label };
+        : slugifyOption(rawLabel) || `opt_${idx}`;
+    return { id, label: objectOptionLabel(obj, rawLabel) };
   }
   return null;
+}
+
+/**
+ * T-473: the shown label of an object option, given the text it falls back to.
+ * Ajay's signed label for the option's id or text wins. Otherwise a missing label, or
+ * a label equal to the id, is humanised; an authored label is kept as written apart
+ * from R1 (state and court names in title case). Shared with `rule-pack.service` so
+ * the form and brief agree.
+ */
+export function objectOptionLabel(obj: Record<string, unknown>, text: string): string {
+  const signed =
+    (typeof obj.id === 'string' ? signedOptionLabel(obj.id) : undefined) ?? signedOptionLabel(text);
+  if (signed !== undefined) return signed;
+  return typeof obj.label !== 'string' || obj.label === obj.id
+    ? humaniseOptionLabel(text)
+    : applyTitleCaseRule(text);
 }
 
 function normaliseOptions(
@@ -850,7 +1073,10 @@ export function promoteDocRuleToTemplateConfig(
           ? raw.label
           : typeof raw.title === 'string'
             ? raw.title
-            : humaniseId(field_id),
+            : // T-473: honour a human `name` (never a snake_case one) before humaniseId.
+              typeof raw.name === 'string' && raw.name.trim() && !isSnakeCaseName(raw.name)
+              ? raw.name
+              : humaniseId(field_id),
       type: fieldType,
       required,
     };
@@ -899,16 +1125,16 @@ export function promoteDocRuleToTemplateConfig(
         ? rule.filingChecklist
         : [];
 
-  // related_acts — collapse CLO's structured shape down to a string list.
-  const relatedActs: string[] = Array.isArray(rule.relevantActs)
-    ? rule.relevantActs
-        .map((a) => {
-          if (typeof a === 'string') return a;
-          if (isPlainObject(a) && typeof a.act === 'string') return a.act;
-          return '';
-        })
-        .filter((s) => s.length > 0)
-    : [];
+  // related_acts — one string per relevantActs entry, then per relatedActs
+  // entry (Ajay b101b4eb: both keys, no merging across them), carrying the
+  // pack's own section references (T-477; see related-acts.ts).
+  const relatedActs: string[] = renderRelatedActs(
+    [
+      ...(Array.isArray(rule.relevantActs) ? rule.relevantActs : []),
+      ...(Array.isArray(rule.relatedActs) ? rule.relatedActs : []),
+    ],
+    mismatches,
+  );
 
   const config: PromotedTemplateConfig & {
     creditsCost?: number;
@@ -945,6 +1171,12 @@ export function promoteDocRuleToTemplateConfig(
 
   // T-365 AC6: set only when the pack has a non-empty signed line.
   if (card_description !== undefined) config.card_description = card_description;
+  // T-482: the signed match terms (strings only), for the intake match prompt.
+  const matchTerms = isPlainObject(rule._meta) ? rule._meta.match_terms : undefined;
+  if (Array.isArray(matchTerms)) {
+    const terms = matchTerms.filter((t): t is string => typeof t === 'string' && t !== '');
+    if (terms.length > 0) config.match_terms = terms;
+  }
 
   // Preserve fields the engine doesn't model yet but downstream consumers (SCRUM-80
   // / SCRUM-81 golden-PDF compare / billing credit math) need to read.

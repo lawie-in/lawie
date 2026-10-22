@@ -122,8 +122,9 @@ describe('T-425 bail packs: GET /courts?template=<pack>', () => {
     });
 
     it('matches the allow-list exactly on the shipped data', () => {
+      // T-482: rows carrying `templates` (the maintenance-only JMFCs) are hidden from the bail packs.
       const allowed = ALL_ROWS.filter(
-        (r) => superior(r) || (pack !== 'bail_anticipatory' && magistrate(r)),
+        (r) => !r.templates && (superior(r) || (pack !== 'bail_anticipatory' && magistrate(r))),
       ).map((r) => r.courtId as string);
       expect(ids(body).sort()).toEqual(allowed.sort());
     });

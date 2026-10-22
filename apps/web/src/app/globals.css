@@ -39,6 +39,25 @@
   * { @apply border-border; }
   body { @apply bg-background text-foreground; }
   html { scroll-behavior: smooth; }
+  /* T-531: a sticky shell TopBar publishes its live height as --nl-bar-h (ResizeObserver), so
+     focus and anchor jumps land below it. Layered, so NightTopBar's scoped fallback <style> wins. */
+  html { scroll-padding-top: var(--nl-bar-h, 0px); }
+
+  /* T-549 (Rajesh T-531 F1): Wall ground on the canvas, so overscroll and rubber-banding never
+     show the white body on a Night page. Scoped to pages whose #main holds a Night root; portals
+     (dialogs, menus) sit outside #main and do not count, so legacy pages keep their own ground.
+     Literal hex, equal to THEME_COLOR (shell/theme.ts) and --bg-wall; no tokens on html.
+     Without :has (Safari < 15.4, Firefox < 121) the canvas stays white, as before. */
+  html:has(#main .nl-root) { background-color: #f3efe4; }
+  html[data-theme='night']:has(#main .nl-root) { background-color: #0e1a17; }
+  html:has(#main .nl-root) body { background-color: transparent; }
+
+  /* T-549: overflow-x: clip fallback (Safari < 16 drops `clip`, so the page wrappers overflow).
+     On html only: html overflow goes to the viewport, which already scrolls, so sticky bars keep
+     sticking. Never on body or on the wrappers: either becomes the scroll container. */
+  @supports not (overflow: clip) {
+    html { overflow-x: hidden; }
+  }
 }
 
 /* TipTap editor styles */
@@ -83,4 +102,421 @@
   background-color: #fde68a; /* amber-200 — stronger flash than hover */
   border-color: #fbbf24; /* amber-400 */
   transition: background-color 1.5s ease-out 0.5s;
+}
+
+/* ============================================================================================
+   T-511 part A: Night Library tokens (handoff/design/T-511-night-library-spec.md, sections 2-3).
+   One source of truth for the redesign. Names follow the spec exactly.
+
+   SCOPE: the spec names collide with variables existing pages already read (`--muted` is the
+   legacy shadcn HSL var behind `bg-muted`; (marketing)/marketing.css sets `--text` and `--warn`
+   on :root). So the tokens are defined on the opt-in `.nl` class, never on html or :root, and
+   existing pages render exactly as before. Every Night Library component puts `nl` on its root
+   (and on portalled content), so it works anywhere. `html[data-theme]` (set by ThemeProvider and
+   the pre-hydration script in app/layout.tsx) picks the mode; no data-theme means Daylight.
+   Move these to :root when the legacy shadcn, brand and lawie sets are deleted (spec 2).
+   ============================================================================================ */
+
+.nl,
+html[data-theme='daylight'] .nl {
+  /* Colour, Daylight (spec 2.1) */
+  --bg-wall: #f3efe4;
+  --bg-wood: #e9e2d1;
+  --bg-card: #fbf8f0;
+  --text: #1c2a25;
+  --text-soft: #3d4c46;
+  /* T-524: muted, brass and ok re-signed by Rajesh (DESIGN.md Colors) to clear WCAG AA. */
+  --muted: #5c685f;
+  --line: #d9d1be;
+  /* T-525 (Rajesh, WCAG 1.4.11): boundary of anything the user operates (inputs, ghost buttons,
+     checkbox, toggle frames, tab underline at rest). --line stays for cards and dividers. */
+  --line-control: #8a8476;
+  --brass: #866619;
+  --brass-dark: #6e5415;
+  --brass-light: #f6ebcf;
+  /* T-524 (Rajesh): spine bands and seal mark on oxblood only; never on Wall or Card. */
+  --brass-mark: #e6c877;
+  --on-brass: #ffffff;
+  --ox: #8e2f2f;
+  --ox-hi: #b85050;
+  --ok: #1b7658;
+  --ok-light: #ddf2e8;
+  --err: #b3261e;
+  --err-light: #fce9e7;
+  --warn: #7a5300;
+  --warn-light: #fbefd2;
+  --lamp: rgba(255, 200, 90, 0.16);
+  --shadow-card: 0 20px 50px -28px rgba(28, 42, 37, 0.45);
+
+  /* Spacing (spec 2.2: space/1..16 = 4..64; the step is the px value / 4) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* Radius and lines (spec 2.2) */
+  --radius-none: 0px;
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-pill: 999px;
+  --hairline: 1px;
+}
+
+html[data-theme='night'] .nl {
+  /* Colour, Night (spec 2.1) */
+  --bg-wall: #0e1a17;
+  --bg-wood: #15241f;
+  --bg-card: #182a24;
+  --text: #efe7d4;
+  --text-soft: #cbc2ac;
+  --muted: #8e9a8e;
+  --line: #2a3c35;
+  --line-control: #6b7c74;
+  --brass: #c9a24a;
+  --brass-dark: #e6c877;
+  --brass-light: #2b2614;
+  --brass-mark: #c9a24a;
+  --on-brass: #15241f;
+  --ox: #7a2a2a;
+  --ox-hi: #a94545;
+  --ok: #7fcfa8;
+  --ok-light: #143327;
+  --err: #f2a196;
+  --err-light: #3b1a17;
+  --warn: #f1d08a;
+  --warn-light: #3a2e12;
+  --lamp: rgba(255, 214, 140, 0.22);
+  --shadow-card: 0 20px 50px -24px rgba(0, 0, 0, 0.9);
+}
+/* T-549 (Rajesh M1): the consent card on legacy .mk pages (no theme toggle there) is always
+   Daylight, whatever the stored theme. Night pages keep following the theme.
+   SOURCE: these values are a copy of the Daylight block above (`.nl, html[data-theme='daylight']
+   .nl`); change both together (t549 tests compare them). Not merged into that block on purpose:
+   an engine without :has() (Safari < 15.4, Firefox < 121) drops a whole rule whose selector list
+   contains :has(), which would take every Daylight token with it. Specificity (0,3,1) beats the
+   Night block's (0,2,1); the second selector covers the card's .nl children (each Button). */
+html:has(.mk) [data-consent-card].nl,
+html:has(.mk) [data-consent-card] .nl {
+  --bg-wall: #f3efe4;
+  --bg-wood: #e9e2d1;
+  --bg-card: #fbf8f0;
+  --text: #1c2a25;
+  --text-soft: #3d4c46;
+  --muted: #5c685f;
+  --line: #d9d1be;
+  --line-control: #8a8476;
+  --brass: #866619;
+  --brass-dark: #6e5415;
+  --brass-light: #f6ebcf;
+  --brass-mark: #e6c877;
+  --on-brass: #ffffff;
+  --ox: #8e2f2f;
+  --ox-hi: #b85050;
+  --ok: #1b7658;
+  --ok-light: #ddf2e8;
+  --err: #b3261e;
+  --err-light: #fce9e7;
+  --warn: #7a5300;
+  --warn-light: #fbefd2;
+  --lamp: rgba(255, 200, 90, 0.16);
+  --shadow-card: 0 20px 50px -28px rgba(28, 42, 37, 0.45);
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --radius-none: 0px;
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-pill: 999px;
+  --hairline: 1px;
+}
+
+/* Everything below that sets a property (not just a custom property) is in @layer components,
+   so Tailwind utilities on the same element (e.g. `nl-root bg-nl-card`) always win. Only the
+   variable-only `.nl` token blocks above and the @keyframes are unlayered. */
+@layer components {
+  /* Page ground for a redesigned page or subtree (opt-in). */
+  .nl-root {
+    background-color: var(--bg-wall);
+    color: var(--text);
+    font-family: theme('fontFamily.nl-body');
+    font-weight: 400;
+    font-size: 16px;
+    line-height: 26px;
+    color-scheme: light;
+  }
+  html[data-theme='night'] .nl-root {
+    color-scheme: dark;
+  }
+
+  /* Type (spec 2.3). Headings 20px and above use Tiro; below 20px, Mukta 500. */
+  .nl-display {
+    font-family: theme('fontFamily.nl-display');
+    font-weight: 400;
+    font-size: 48px;
+    line-height: 52px;
+    letter-spacing: 0;
+  }
+  @media (min-width: 900px) {
+    .nl-display {
+      font-size: 68px;
+      line-height: 72px;
+    }
+  }
+  .nl-h1 {
+    font-family: theme('fontFamily.nl-display');
+    font-weight: 400;
+    font-size: 32px;
+    line-height: 38px;
+  }
+  .nl-h2 {
+    font-family: theme('fontFamily.nl-display');
+    font-weight: 400;
+    font-size: 24px;
+    line-height: 30px;
+  }
+  .nl-h3 {
+    font-family: theme('fontFamily.nl-body');
+    font-weight: 500;
+    font-size: 18px;
+    line-height: 26px;
+  }
+  .nl-body {
+    font-family: theme('fontFamily.nl-body');
+    font-weight: 400;
+    font-size: 16px;
+    line-height: 26px;
+  }
+  .nl-body-sm {
+    font-family: theme('fontFamily.nl-body');
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 22px;
+  }
+  .nl-label {
+    font-family: theme('fontFamily.nl-body');
+    font-weight: 500;
+    font-size: 12px;
+    line-height: 16px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .nl-draft {
+    font-family: theme('fontFamily.nl-body');
+    font-weight: 400;
+    font-size: 16px;
+    line-height: 28px;
+    max-width: 65ch;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Focus ring (spec 2.5): 2px brass/fill, offset 3px, on every interactive element. */
+  .nl-focus {
+    transition-property: outline-color, box-shadow, transform;
+    transition-duration: 150ms;
+    transition-timing-function: ease;
+  }
+  .nl-focus:focus-visible {
+    outline: 2px solid var(--brass);
+    outline-offset: 3px;
+  }
+
+  /* Lamp pool (spec 2.1 lamp: radial gradient only). Static at 70% 20%. */
+  .nl-lamp-pool {
+    background-image: radial-gradient(circle at 70% 20%, var(--lamp), transparent 60%);
+  }
+
+  /* Loops and one-shots (spec 2.4). */
+  .nl-skeleton {
+    background-color: var(--bg-wood);
+    animation: nl-skeleton-pulse 1.4s ease-in-out infinite;
+  }
+  /* Ink drain (spec 2.4): once, 2.6s linear, then HOLDS near empty until the request ends
+     (the component drops the class). Paused while the tab is hidden; none when reduced. */
+  .nl-ink-draining {
+    transform-box: fill-box;
+    animation: nl-ink-drain 2.6s linear 1 forwards;
+  }
+  .nl-seal-stamping {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: nl-seal-stamp 550ms cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+  }
+  .nl-seal-stamped {
+    transform-box: fill-box;
+    transform-origin: center;
+    transform: rotate(-8deg);
+  }
+  .nl-toast[data-state='open'] {
+    animation: nl-toast-in 200ms ease both;
+  }
+  .nl-toast[data-state='closed'] {
+    animation: nl-toast-out 200ms ease both;
+  }
+  .nl-mote {
+    position: absolute;
+    width: 3px;
+    height: 3px;
+    border-radius: 999px;
+    background-color: var(--brass-dark);
+    opacity: 0.2;
+    animation: nl-mote-drift var(--nl-mote-duration, 16s) linear infinite;
+  }
+
+  /* Mobile cap (spec 2.4): seal durations halved at <= 640px or without a fine pointer. */
+  @media (max-width: 640px), not all and (pointer: fine) {
+    .nl-seal-stamping {
+      animation-duration: 275ms;
+    }
+  }
+
+  /* T-524 browser surfaces (DESIGN.md Colors, Selection): selection background per theme, text
+     colour unchanged; the caret is Brass. Scoped to `.nl`, so legacy pages keep the defaults.
+     Literal hex in ::selection: var() resolution inside highlight pseudos differs by browser. */
+  .nl {
+    caret-color: var(--brass);
+  }
+  .nl::selection,
+  .nl ::selection {
+    background-color: #f3e9c8;
+  }
+  html[data-theme='night'] .nl::selection,
+  html[data-theme='night'] .nl ::selection {
+    background-color: #332a14;
+  }
+  /* T-549 (Rajesh M1): the consent card on .mk pages is pinned to Daylight (token block above). */
+  html:has(.mk) [data-consent-card].nl ::selection,
+  html:has(.mk) [data-consent-card] .nl::selection {
+    background-color: #f3e9c8;
+  }
+
+  /* T-549 (Rajesh M1): marketing.css's `:where(html:has(.mk)) h2` adds letter-spacing and
+     balance; the consent title keeps nl-h2's own setting. (0,1,1) beats the :where (0,0,1). */
+  [data-consent-card] h2 {
+    letter-spacing: normal;
+    text-wrap: wrap;
+  }
+
+  /* T-524 forced colours (Windows High Contrast): backgrounds become Canvas, so a skeleton block
+     would vanish. A CanvasText border keeps its shape visible. */
+  @media (forced-colors: active) {
+    .nl-skeleton {
+      border: 1px solid CanvasText;
+    }
+  }
+
+  /* prefers-reduced-motion: no animation, end states shown. */
+  @media (prefers-reduced-motion: reduce) {
+    /* T-531: no smooth scrolling (html, layer base); anchor jumps are instant. */
+    html {
+      scroll-behavior: auto;
+    }
+    .nl-focus {
+      transition: none;
+    }
+    .nl-skeleton,
+    .nl-ink-draining,
+    .nl-mote {
+      animation: none;
+    }
+    .nl-seal-stamping {
+      transform: rotate(-8deg);
+      animation: nl-fade-in 150ms ease both;
+    }
+    .nl-toast[data-state='open'] {
+      animation: nl-fade-in 200ms ease both;
+    }
+    .nl-toast[data-state='closed'] {
+      animation: nl-fade-out 200ms ease both;
+    }
+  }
+}
+
+@keyframes nl-skeleton-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+/* The level rect drains from its current offset (set inline as --nl-ink-from) to near empty
+   (--nl-ink-to, default 92%: a thin line of ink stays visible) and holds there (fill forwards). */
+@keyframes nl-ink-drain {
+  from {
+    transform: translateY(var(--nl-ink-from, 0%));
+  }
+  to {
+    transform: translateY(var(--nl-ink-to, 92%));
+  }
+}
+@keyframes nl-seal-stamp {
+  from {
+    opacity: 0;
+    transform: scale(2.2) rotate(-20deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(-8deg);
+  }
+}
+@keyframes nl-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes nl-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@keyframes nl-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes nl-toast-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+@keyframes nl-mote-drift {
+  0% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(18px, -26px);
+  }
+  100% {
+    transform: translate(0, 0);
+  }
 }

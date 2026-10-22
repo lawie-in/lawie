@@ -2,7 +2,7 @@
 
 | Field  | Value |
 | ------ | ----- |
-| Status | To do. V1 (major). Priya, 16 Oct 2026 |
+| Status | Merged into develop_staging 0cf9d4e4, 16 Oct (Ajay 0e5f64b7, 2d578206, 6a047469, f9415fe8, 00568779, ca12ec2e, 7c279a77). Release: redeploy drafting, no seed. Anushka to test on develop. Priya |
 | Owner  | Shashank (after T-221), Ajay gates wording |
 | Mode   | Full chain (legal content path) |
 

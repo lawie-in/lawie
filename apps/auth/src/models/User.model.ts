@@ -9,10 +9,11 @@ import mongoose, { Document, Schema, Types } from 'mongoose';
 // T-299: terms '2026-10-12' matches /terms "Last updated: 12 October 2026" (T-268, f6566b4).
 // T-436 (Ajay, GST file Addendum 7 (3a)): '2026-10-15', the T-436 merge date, matches /terms
 // "Last updated: 15 October 2026": the contracting party (5b/5c) and the courts (Ranchi) change.
+// T-541 top-up Ink expiry narrowed (AJ-535-M5): '2026-10-22', matches "Last updated: 22 October".
 // T-343: CURRENT_PRIVACY_VERSION now lives in @lawie/shared (constants/privacy.ts, with its
 // history and the per-version signed summaries); re-exported here so existing imports still work.
 // Versions are opaque strings: compare them for equality only, never parse them as dates.
-export const CURRENT_TERMS_VERSION = '2026-10-15';
+export const CURRENT_TERMS_VERSION = '2026-10-22';
 export { CURRENT_PRIVACY_VERSION };
 export type TermsAcceptedVia = 'password' | 'google';
 /**
@@ -110,6 +111,12 @@ export interface IUser extends Document {
    */
   gstStateCode?: string;
   practiceAreas: string[];
+  /**
+   * T-507 — ids of the courts the user practises in (/^[a-z0-9_]{2,80}$/, at most 20, no
+   * duplicates) and the one they pick by default, which must be one of them. Set by PATCH /me.
+   */
+  courtsPractisedIn: string[];
+  defaultCourt?: string;
   yearsOfExperience?: number;
 
   role: UserRole;
@@ -234,6 +241,15 @@ const UserSchema = new Schema<IUser>(
     practiceAreas: {
       type: [String],
       default: [],
+    },
+    // T-507 — validated in validateUpdateMe; no default for defaultCourt (absent = none chosen).
+    courtsPractisedIn: {
+      type: [String],
+      default: [],
+    },
+    defaultCourt: {
+      type: String,
+      trim: true,
     },
     yearsOfExperience: {
       type: Number,

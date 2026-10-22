@@ -511,7 +511,7 @@ describe('T-223 AC4 — trigger 3: checkout', () => {
     },
   };
   const ORDER = '/api/billing/topup/order';
-  const PAY = 'Pay with Razorpay';
+  const PAY = 'Buy';
 
   async function mountTopUp() {
     const { TopUpModal } = require('../credits/TopUpModal');
@@ -621,8 +621,9 @@ describe('T-223 AC4 — trigger 3: checkout', () => {
     expect(byText(PAY)).toBeDefined();
     // Privacy handled it: the dialog (or the P7 box) is back.
     const privacyShown =
-      dialog()?.querySelector('h2')?.textContent === 'We have updated our Privacy Policy' ||
-      document.body.textContent?.includes('Accept the updated Privacy Policy to continue.');
+      Array.from(document.querySelectorAll('[role="dialog"]')).some(
+        (d) => d.querySelector('h2')?.textContent === 'We have updated our Privacy Policy',
+      ) || document.body.textContent?.includes('Accept the updated Privacy Policy to continue.');
     expect(privacyShown).toBe(true);
   });
 
@@ -695,11 +696,15 @@ describe('T-223 AC4 — callers are wired (OneFlow and new/page are too large to
   });
 
   it('settings: checks the verification 403 for the upgrade call and renders the card', () => {
-    // T-370: the upgrade block moved from settings/page.tsx into <PlanUpgrade />.
-    const code = src('components/billing/PlanUpgrade.tsx');
-    expect(code).toContain('await isEmailVerificationRequired(res)');
-    expect(code).toContain('<VerifyEmailCard />');
-    expect(src('app/dashboard/settings/page.tsx')).toContain('<PlanUpgrade gst={gst} />');
+    // T-509: the checkout path is components/billing/useSubscribe.ts (the 403 check), and
+    // PlanPanel shows the verify gate; settings/page.tsx mounts PlanPanel.
+    expect(src('components/billing/useSubscribe.ts')).toContain(
+      'await isEmailVerificationRequired(res)',
+    );
+    const panel = src('components/billing/PlanPanel.tsx');
+    expect(panel).toContain("gate === 'verify'");
+    expect(panel).toContain('kind="verify-email"');
+    expect(src('app/dashboard/settings/page.tsx')).toContain('<PlanPanel');
   });
 
   it('the dashboard layout mounts the banner', () => {

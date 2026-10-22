@@ -8,7 +8,22 @@
   },
   "template_id": "mandamus",
   "card_description": "A writ petition for mandamus directing an authority to perform its legal duty.",
+  "docType": "mandamus",
   "title": "Writ Petition for Mandamus (Art. 226/32)",
+  "displayName": "Writ Petition for Mandamus",
+  "causeTitle": {
+    "format": "IN THE HON'BLE HIGH COURT OF {state} AT {courtPlace}\n(EXTRAORDINARY CIVIL / WRIT JURISDICTION)\n\n{caseNomenclature}\n\nIN THE MATTER OF: Article 226 of the Constitution of India;\nAND IN THE MATTER OF: {statute_invoked};\nAND IN THE MATTER OF: {grievance_summary};\nAND IN THE MATTER OF:\n\n{petitioner} ... Petitioner\nVERSUS\n{respondents_list} ... Respondents",
+    "supremeCourtFormat": "IN THE SUPREME COURT OF INDIA\nCIVIL ORIGINAL JURISDICTION\nWRIT PETITION (CIVIL) NO. ______ OF ______\n(Under Article 32 of the Constitution of India)\n\nIN THE MATTER OF: Article 32 of the Constitution of India;\nAND IN THE MATTER OF: {statute_invoked};\nAND IN THE MATTER OF: {grievance_summary};\nAND IN THE MATTER OF:\n\n{petitioner} ... Petitioner\nVERSUS\n{respondents_list} ... Respondents",
+    "supremeCourtAddressee": "TO, THE HON'BLE THE CHIEF JUSTICE OF INDIA AND HIS COMPANION JUSTICES OF THE SUPREME COURT OF INDIA",
+    "partyDesignations": [
+      { "role": "petitioner", "label": "Petitioner" },
+      {
+        "role": "respondents",
+        "label": "Respondents (Union / State / authority + private respondents where applicable)"
+      }
+    ],
+    "caseNomenclature": "W.P. (C) No. _____ of [YEAR]"
+  },
   "category": "writ",
   "creditsCost": 2,
   "court_levels": ["HIGH_COURT", "SUPREME_COURT"],
@@ -33,11 +48,19 @@
       "required": true,
       "help": "Designation, e.g., Secretary, Department of X, Govt. of Y"
     },
-    "statutory_duty": {
-      "type": "textarea",
-      "label": "Statutory Duty Sought to be Enforced",
-      "required": true,
-      "help": "Cite exact provision of statute imposing the duty"
+    "statute_invoked": {
+      "type": "string",
+      "label": "Law or rule that places the duty on the authority",
+      "required": false,
+      "help": "The Act, rule, scheme or notification under which the authority must act, with the section or rule if known.",
+      "placeholder": "e.g. Section 12 of the … Act / Rule 5 of the … Rules"
+    },
+    "grievance_summary": {
+      "type": "string",
+      "label": "What the authority has failed to do",
+      "required": false,
+      "help": "One or two lines: the act the authority was bound to do and has not done.",
+      "placeholder": "e.g. failure to decide the petitioner's application dated … for …"
     },
     "legal_right": {
       "type": "textarea",
@@ -92,13 +115,16 @@
       "1. Cause title",
       "2. Parties",
       "3. Synopsis",
-      "4. Statutory duty — provision verbatim",
-      "5. Legal right of petitioner",
-      "6. Demand and refusal/inaction",
-      "7. Alternative remedy — why unavailable/inadequate",
-      "8. Grounds",
-      "9. Prayer",
-      "10. Verification + affidavit + annexures"
+      "Each paragraph uses only facts from the brief. A missing fact is printed as its [To be confirmed: …] blank.",
+      "4. Locus standi: State who the petitioner is and how the authority's failure affects the petitioner directly.",
+      "5. Legal right: State the petitioner's legal right to have the act done, as it arises from {statute_invoked}.",
+      "6. Legal duty: State that the respondent is a public authority under a legal duty to do the act, and the source of that duty in {statute_invoked}.",
+      "7. Demand and refusal: State the date and the manner in which the petitioner asked the respondent to act, and that the respondent has refused or failed to act. If no demand is given, write: That the petitioner made a representation to the respondent on [To be confirmed: date and mode of the demand made to the respondent].",
+      "8. Inaction: State how long the act has been pending, using only dates from the brief.",
+      "9. No other remedy: State that the petitioner has no other equally efficacious remedy. If the brief names one that was used, say what became of it.",
+      "10. Grounds",
+      "11. Prayer: mandamus directing the respondent to do the act named in {grievance_summary} within a time the Court may fix.",
+      "12. Verification + affidavit + annexures"
     ],
     "promptInstructions": [
       "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."

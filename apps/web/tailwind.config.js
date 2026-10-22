@@ -7,6 +7,16 @@ module.exports = {
     path.resolve(__dirname, './src/components/**/*.{js,ts,jsx,tsx,mdx}'),
     path.resolve(__dirname, './src/app/**/*.{js,ts,jsx,tsx,mdx}'),
     path.resolve(__dirname, '../../packages/shared/src/**/*.{js,ts,jsx,tsx}'),
+    // Never scan tests. A test can hold a class that is not a real candidate (an arbitrary min-
+    // breakpoint built with template-literal interpolation), and one such candidate makes Tailwind
+    // warn about mixed units and drop every arbitrary min-/max- breakpoint (T-528 regression).
+    // Absolute like the globs above, so the negation holds from any cwd. Guarded by
+    // __tests__/tailwind-content.test.ts.
+    ...['./src', '../../packages/shared/src'].flatMap((dir) => [
+      `!${path.resolve(__dirname, dir, '**/__tests__/**')}`,
+      `!${path.resolve(__dirname, dir, '**/__mocks__/**')}`,
+      `!${path.resolve(__dirname, dir, '**/*.{test,spec}.{js,ts,jsx,tsx,mdx}')}`,
+    ]),
   ],
   darkMode: 'class',
   theme: {
@@ -57,10 +67,78 @@ module.exports = {
           700: '#1d4ed8',
           900: '#1e3a5f',
         },
+        // T-511 Night Library colours: `bg-nl-card`, `text-nl-text`, `border-nl-line`, ...
+        // Brass fill is never small text; use `text-nl-brass-dark` for brass text (spec 2.1).
+        nl: {
+          wall: 'var(--bg-wall)',
+          wood: 'var(--bg-wood)',
+          card: 'var(--bg-card)',
+          text: 'var(--text)',
+          soft: 'var(--text-soft)',
+          muted: 'var(--muted)',
+          line: 'var(--line)',
+          brass: 'var(--brass)',
+          'brass-dark': 'var(--brass-dark)',
+          'brass-light': 'var(--brass-light)',
+          'on-brass': 'var(--on-brass)',
+          ox: 'var(--ox)',
+          'ox-hi': 'var(--ox-hi)',
+          ok: 'var(--ok)',
+          'ok-light': 'var(--ok-light)',
+          err: 'var(--err)',
+          'err-light': 'var(--err-light)',
+          warn: 'var(--warn)',
+          'warn-light': 'var(--warn-light)',
+        },
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
         heading: ['var(--font-lora)', 'Georgia', 'serif'],
+        // T-511 Night Library type (spec 2.3). Mukta for body and headings below 20px, Tiro
+        // Devanagari Hindi for headings 20px and above. Variables come from app/layout.tsx.
+        'nl-body': [
+          'var(--font-mukta)',
+          'Nirmala UI',
+          'Kohinoor Devanagari',
+          'Noto Sans Devanagari',
+          'system-ui',
+          'sans-serif',
+        ],
+        'nl-display': [
+          'var(--font-tiro)',
+          'Nirmala UI',
+          'Kohinoor Devanagari',
+          'Noto Sans Devanagari',
+          'system-ui',
+          'serif',
+        ],
+      },
+      // T-511 Night Library tokens (spec 2.1, 2.2). Namespaced `nl-*` so nothing collides with
+      // the legacy shadcn, brand and lawie keys above. Values live in app/globals.css on `.nl`.
+      spacing: {
+        'nl-1': 'var(--space-1)',
+        'nl-2': 'var(--space-2)',
+        'nl-3': 'var(--space-3)',
+        'nl-4': 'var(--space-4)',
+        'nl-5': 'var(--space-5)',
+        'nl-6': 'var(--space-6)',
+        'nl-8': 'var(--space-8)',
+        'nl-10': 'var(--space-10)',
+        'nl-12': 'var(--space-12)',
+        'nl-16': 'var(--space-16)',
+      },
+      borderRadius: {
+        'nl-none': 'var(--radius-none)',
+        'nl-sm': 'var(--radius-sm)',
+        'nl-md': 'var(--radius-md)',
+        'nl-pill': 'var(--radius-pill)',
+      },
+      boxShadow: {
+        'nl-card': 'var(--shadow-card)',
+        'nl-halo': '0 0 0 4px var(--brass-light)',
+      },
+      backgroundImage: {
+        'nl-lamp': 'radial-gradient(circle at 70% 20%, var(--lamp), transparent 60%)',
       },
     },
   },

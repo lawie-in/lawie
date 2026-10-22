@@ -319,7 +319,7 @@
   ],
   "validation_rules": [
     "applicable_section must match case_type (s_250 with sessions; s_262 with warrant magistrate; s_268 with warrant magistrate on complaint)",
-    "offences_charged must use BNS sections (warn if IPC sections detected)",
+    "offences_charged uses the code in force on the date of the offence: BNS for an offence on or after 1 July 2024, IPC for an offence before that date (warn only where the sections do not match the offence date).",
     "chargesheet_date must be valid date in past",
     "stage_of_case must be pre-charge (charges not yet framed)",
     "grounds_for_discharge must not be empty",

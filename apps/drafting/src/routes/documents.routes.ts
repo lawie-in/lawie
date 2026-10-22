@@ -46,6 +46,7 @@ import {
   extendInkHold,
   getCreditBalance,
   holdInk,
+  inkFromUnits,
   INK_HOLD_HEARTBEAT_MS,
   INK_HOLD_MAX_HEARTBEAT_MS,
   releaseInk,
@@ -208,6 +209,10 @@ export interface RecordGenerationInput {
   runType: RunType;
   /** ADR-019 §3.7 */
   intakeId?: string;
+  /** T-480: which drafting path ran (on = written from a fact ledger). */
+  ledger?: 'on' | 'off';
+  /** T-477: how many echoed [only when: ...] markers were stripped from the AI body (count only) */
+  onlyWhenStrips?: number;
 }
 
 /**
@@ -251,6 +256,8 @@ export async function recordGeneration(
       runSequence: input.runSequence,
       runType: input.runType,
       intakeId: input.intakeId,
+      ledger: input.ledger,
+      onlyWhenStrips: input.onlyWhenStrips,
       costUsd,
       costStatus: rate.costStatus,
       rateInputUsdPerMTok: rate.costStatus === 'priced' ? rate.rate.inputUsdPerMTok : undefined,
@@ -349,7 +356,8 @@ export interface InkHoldHandle {
   finish(outcome: { saved: boolean; duplicate: boolean; reference?: string }): Promise<void>;
   /**
    * Write the SSE `done` event and end the response. Sends nothing when
-   * finish() withheld the draft (lost hold, re-hold refused).
+   * finish() withheld the draft (lost hold, re-hold refused). Adds
+   * `inkDebited` (T-545) when finish() knows what was settled.
    */
   sendDone(data: Record<string, unknown>): void;
 }
@@ -428,6 +436,15 @@ export async function withInkHold(
   let withheld = false;
   /** T-372: the Ink balance after the settle, for `done`. Unset if the read failed. */
   let doneBalance: { totalInk: number } | undefined;
+  /**
+   * T-545: the Ink this run's settle kept, for `done`. Unset when there was
+   * no settle we can vouch for (fixture, duplicate, released, settle unknown).
+   */
+  let doneInkDebited: number | undefined;
+  /** T-545: the draft is delivered but its debit is unknown. Ids only. */
+  const warnDebitUnknown = (path: string): void => {
+    console.warn(`[drafting] ink_debit_unknown (runId=${runId}, path=${path})`);
+  };
 
   /**
    * T-372: read the balance once the draft is paid, for the web's balance.
@@ -551,9 +568,12 @@ export async function withInkHold(
           `[drafting] settleInk failed (runId=${runId}, runSequence=${runSequence}); left for the sweep:`,
           err instanceof Error ? err.name : 'unknown',
         );
+        warnDebitUnknown('settle_threw');
         return;
       }
       if (settled.settled) {
+        // `units` is absent for a fixture run: no field on `done`.
+        if (typeof settled.units === 'number') doneInkDebited = inkFromUnits(settled.units);
         await readDoneBalance();
         return;
       }
@@ -564,6 +584,9 @@ export async function withInkHold(
       // draft is paid: re-holding would charge twice.
       try {
         if (await wasInkSettled(userId, runId, runSequence)) {
+          // T-545: the settled record has no units. The sweep settles with no
+          // actualUnits, so it kept the full hold: the held cost (already Ink).
+          doneInkDebited = cost;
           await readDoneBalance();
           return;
         }
@@ -575,6 +598,7 @@ export async function withInkHold(
           `[drafting] lost ink hold: could not check whether it was settled; draft delivered (runId=${runId}, runSequence=${runSequence}):`,
           err instanceof Error ? err.name : 'unknown',
         );
+        warnDebitUnknown('was_settled_threw');
         return;
       }
 
@@ -591,11 +615,15 @@ export async function withInkHold(
         }
         reheld = again.ok;
         const retried = await settleInk(userId, runId, runSequence, undefined, reference);
-        if (retried.settled) await readDoneBalance();
+        if (retried.settled) {
+          if (typeof retried.units === 'number') doneInkDebited = inkFromUnits(retried.units);
+          await readDoneBalance();
+        }
         if (!retried.settled && retried.reason === 'no_hold') {
           console.error(
             `[drafting] settleInk found no hold after a re-hold (runId=${runId}, runSequence=${runSequence})`,
           );
+          warnDebitUnknown('rehold_no_hold');
         }
       } catch (err) {
         console.error(
@@ -618,10 +646,15 @@ export async function withInkHold(
         await withholdDraft();
       }
     },
+    // T-545 contract: `inkDebited` is Ink (units / 2, so .5 is possible), not units.
+    // Absent means no settle we can vouch for (fixture, duplicate, released, unknown).
+    // 0 means a real settle that kept 0 units; the web never shows a 0 chip.
     sendDone(data) {
       if (withheld) return;
       doneWritten = true;
-      const payload = doneBalance ? { ...data, balance: doneBalance } : data;
+      const payload: Record<string, unknown> = { ...data };
+      if (doneInkDebited !== undefined) payload.inkDebited = doneInkDebited;
+      if (doneBalance) payload.balance = doneBalance;
       res.write(`event: done\ndata: ${JSON.stringify(payload)}\n\n`);
       res.end();
     },
@@ -1003,6 +1036,7 @@ router.post(
           runId,
           runSequence,
           runType,
+          onlyWhenStrips: result.onlyWhenStrips,
         });
         duplicateAttempt = duplicate;
 
@@ -1257,13 +1291,14 @@ router.post(
     // The brief is worked out again here. What the browser says about it is not
     // trusted: for a document with no rule pack, a court signal in the user's
     // words makes it a court document whatever was sent (T-107, section 2).
-    const brief = updateBrief({
+    const briefRequest = {
       kind,
       kindName: parsed.data.kind_name,
       courtDocument: parsed.data.court_document,
       values,
       court: court ?? undefined,
-    });
+    };
+    const brief = updateBrief(briefRequest);
     // T-107, section 3: nothing for the Supreme Court is drafted without a rule pack.
     if (
       guided &&
@@ -1279,11 +1314,17 @@ router.post(
       return;
     }
     // ADR-021 decision D2: a court document is not drafted without the court and the parties.
-    if (!brief.can_confirm) {
+    // T-498: with this generation's ledger, a party name it holds does not block,
+    // as on the brief. Only this check reads it: the brief the Drafter is given
+    // is the one above, unchanged. Without a ledger this is the same brief.
+    const confirmable = ledger
+      ? (updateBrief({ ...briefRequest, ledger: { facts: ledger.facts } }) ?? brief)
+      : brief;
+    if (!confirmable.can_confirm) {
       res.status(400).json({
         error: 'brief_not_confirmed',
-        message: brief.confirm_message,
-        blockers: brief.confirm_blockers,
+        message: confirmable.confirm_message,
+        blockers: confirmable.confirm_blockers,
       });
       return;
     }
@@ -1397,6 +1438,7 @@ router.post(
           runId,
           runSequence,
           runType,
+          ledger: ledger ? 'on' : 'off',
         });
         if (failed) {
           // The error event was already sent. End only now, after the row exists.
@@ -1489,6 +1531,7 @@ router.post(
           runId,
           runSequence,
           runType,
+          ledger: ledger ? 'on' : 'off',
         });
         duplicateAttempt = duplicate;
 
@@ -1578,6 +1621,8 @@ router.post(
           : result.missingClauses
         ).map((m) => ({ id: m.id, title: m.title })),
         repaired: result.repaired,
+        // T-480: which drafting path ran (on = written from a fact ledger).
+        ledger: ledger ? 'on' : 'off',
         startingDraft: result.startingDraft,
         startingDraftLabel: result.startingDraft ? STARTING_DRAFT_LABEL : null,
         labelReason: result.labelReason,

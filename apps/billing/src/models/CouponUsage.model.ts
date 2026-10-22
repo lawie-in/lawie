@@ -17,7 +17,10 @@ const CouponUsageSchema = new Schema<ICouponUsage>(
   { timestamps: false },
 );
 
-// Enforce per-user per-coupon limit at the DB layer when maxUsesPerUser === 1
+// Lookup index for the per-user count (not unique: maxUsesPerUser can be > 1).
+// T-540: a free grant's per-user limit is race-free through its ledger claim
+// row (`_id` coupon:<couponId>:<userId>:<n> in inkledger); its usage row
+// carries that key as orderId.
 CouponUsageSchema.index({ couponId: 1, userId: 1 });
 
 export const CouponUsage = mongoose.model<ICouponUsage>('CouponUsage', CouponUsageSchema);

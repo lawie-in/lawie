@@ -377,7 +377,7 @@
     "accident_place must not be empty",
     "offending_vehicle_number must not be empty",
     "fir_number, fir_date, police_station must not be empty",
-    "sections_charged must use BNS sections (warn if IPC 279/304A/337/338 detected)",
+    "sections_charged uses the code in force on the date of the offence: BNS for an offence on or after 1 July 2024, IPC for an offence before that date (warn only where the sections do not match the offence date).",
     "claimants_list must not be empty",
     "compensation_claimed_amount must be > 0",
     "compensation_heads must list at least one head",

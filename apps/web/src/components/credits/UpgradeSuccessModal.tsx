@@ -13,13 +13,13 @@ interface UpgradeSuccessModalProps {
 const FEATURES: Record<string, string[]> = {
   solo: [
     `${PLANS.solo_monthly.inkPerCycle} Ink a month`,
-    'Plan Ink resets each month; top-up Ink never expires',
+    'Plan Ink resets each month; top-up Ink does not expire while your account is open',
     'All document templates unlocked',
     'PDF + DOCX export',
   ],
   pro: [
     `${PLANS.pro_monthly.inkPerCycle} Ink a month`,
-    'Plan Ink resets each month; top-up Ink never expires',
+    'Plan Ink resets each month; top-up Ink does not expire while your account is open',
     'All document templates unlocked',
     'Priority support',
     'PDF + DOCX export',

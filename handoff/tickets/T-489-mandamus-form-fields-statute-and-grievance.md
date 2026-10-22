@@ -2,7 +2,7 @@
 
 | Field  | Value |
 | ------ | ----- |
-| Status | To do. V1.1 (Ajay, 16 Oct 2026). Priya |
+| Status | Merged into develop_staging a39c2f6d (17 Oct 2026). Priya |
 | Owner  | Lead who is free; Ajay writes the labels and the paragraph text |
 | Mode   | Full chain (legal content) |
 

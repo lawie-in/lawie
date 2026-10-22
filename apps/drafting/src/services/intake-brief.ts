@@ -31,6 +31,7 @@ import { isLawSwitchPack } from './law-switch';
 import type { RulePack, RulePackFact } from './rule-pack.service';
 import { s138BriefDateCheck } from './s138-date-checks';
 import { evaluateShowIf } from './template-engine.service';
+import { humaniseOptionLabel } from './template-promoter';
 
 // ── Shapes ──────────────────────────────────────────────────────────────────
 
@@ -713,7 +714,12 @@ function wholeIn(normQuote: string, value: string): boolean {
 
 function matchOption(options: string[], value: string): string | null {
   const nv = normalise(value);
-  return options.find((o) => normalise(o) === nv) ?? null;
+  // T-473: a value saved before labels were humanised holds the raw pack text
+  // (`yes_flag_title_warning`); the same helper turns it into today's label.
+  const nh = normalise(humaniseOptionLabel(value));
+  return (
+    options.find((o) => normalise(o) === nv) ?? options.find((o) => normalise(o) === nh) ?? null
+  );
 }
 
 function isIsoDate(v: string): boolean {
@@ -1270,6 +1276,12 @@ export interface BuildBriefInput {
    * Such a value read from the description is marked `unconfirmed`.
    */
   holdNone?: readonly string[];
+  /**
+   * T-498: keys the fact ledger holds (`ledgerGivenKeys`), with the ledger on.
+   * They are not listed as still unknown and a party name among them does not
+   * block Confirm. Items and values are not changed.
+   */
+  ledgerGiven?: ReadonlySet<string>;
 }
 
 function clean(s: unknown): string | null {
@@ -1295,6 +1307,46 @@ function isDeclinedUndertaking(given: GivenValue): boolean {
   if (!UNDERTAKINGS.has(lastSegment(given.key))) return false;
   const v = normalise(String(given.value));
   return v === 'no' || v === 'false';
+}
+
+/**
+ * T-498: the keys the fact ledger holds a fact for (ledger on). The brief's row
+ * shows such a fact (with "Please check" when it was read from the
+ * description), so it counts as given: it is not asked in the question rounds
+ * and not listed as still unknown, even where Reception placed no value for it.
+ * An entry with an empty display is not a fact, and a "No" on an undertaking
+ * box (T-251) is an undertaking not yet given. Kept in step with
+ * `ledgerGivenKeys` in apps/web/src/components/intake/briefTypes.ts.
+ */
+export function ledgerGivenKeys(
+  facts: ReadonlyArray<{ key: string; display: string; value: unknown }>,
+): Set<string> {
+  const out = new Set<string>();
+  for (const f of facts) {
+    if (typeof f.display !== 'string' || f.display.trim() === '') continue;
+    const declined = [f.display, String(f.value)].some((value) =>
+      isDeclinedUndertaking({ key: f.key, value, source: 'description' }),
+    );
+    if (!declined) out.add(f.key);
+  }
+  return out;
+}
+
+/**
+ * T-498: a brief already built, with the facts the ledger holds taken off
+ * "Still unknown" and off what Confirm waits for, as `buildBrief` does with
+ * `ledgerGiven`. Items and values do not change; with no given keys the brief
+ * is returned as it is.
+ */
+export function withoutLedgerGiven(brief: Brief, given: ReadonlySet<string>): Brief {
+  if (given.size === 0) return brief;
+  const confirm = confirmState(brief.kind.court_document, brief.court, brief.items, given);
+  return {
+    ...brief,
+    still_unknown: brief.still_unknown.filter((u) => !given.has(u.key)),
+    ...confirm,
+    can_confirm: confirm.confirm_blockers.length === 0,
+  };
 }
 
 /** "Applicant Name" -> "applicant". The party as it reads after "the name of the". */
@@ -1504,8 +1556,10 @@ export function buildBrief(input: BuildBriefInput): Brief {
     court: clean(input.court?.court),
   };
 
+  // T-498: a fact the ledger holds is not unknown (with the ledger on).
+  const given = input.ledgerGiven ?? new Set<string>();
   const still_unknown = items
-    .filter((i) => i.required && isEmpty(i.value))
+    .filter((i) => i.required && isEmpty(i.value) && !given.has(i.key))
     .map((i) => ({ key: i.key, label: i.label, placeholder: i.placeholder }));
   (input.extraUnknowns ?? []).forEach((text, idx) => {
     const label = clean(text);
@@ -1514,22 +1568,12 @@ export function buildBrief(input: BuildBriefInput): Brief {
     }
   });
 
-  const blockers: Brief['confirm_blockers'] = [];
-  let confirm_message: string | null = null;
-  if (input.kind.court_document) {
-    const courtChosen = court.state !== null && court.court_type !== null && court.court !== null;
-    const missingParties = items.filter((i) => i.party_name && i.required && isEmpty(i.value));
-    if (!courtChosen) blockers.push('court');
-    if (missingParties.length > 0) blockers.push('parties');
-    // The wording is Ajay's (T-127, section 7.2).
-    if (!courtChosen && missingParties.length > 0) {
-      confirm_message = 'Choose the court and add the parties to continue.';
-    } else if (!courtChosen) {
-      confirm_message = 'Choose the court to continue.';
-    } else if (missingParties.length > 0) {
-      confirm_message = `Add the name of the ${partyLabel(missingParties[0].label)} to continue.`;
-    }
-  }
+  const { confirm_blockers: blockers, confirm_message } = confirmState(
+    input.kind.court_document,
+    court,
+    items,
+    given,
+  );
 
   const placedDates = new Set(
     items
@@ -1562,6 +1606,38 @@ export function buildBrief(input: BuildBriefInput): Brief {
     confirm_message,
     ...(dateCheck ? { date_check: dateCheck } : {}),
   };
+}
+
+/**
+ * What Confirm waits for on a court document: the court, and each required
+ * party's name. T-498: a party name the ledger holds (`given`) shows on its row,
+ * so it does not block Confirm.
+ */
+function confirmState(
+  courtDocument: boolean,
+  court: BriefCourt,
+  items: ReadonlyArray<BriefItem>,
+  given: ReadonlySet<string>,
+): Pick<Brief, 'confirm_blockers' | 'confirm_message'> {
+  const blockers: Brief['confirm_blockers'] = [];
+  let confirm_message: string | null = null;
+  if (courtDocument) {
+    const courtChosen = court.state !== null && court.court_type !== null && court.court !== null;
+    const missingParties = items.filter(
+      (i) => i.party_name && i.required && isEmpty(i.value) && !given.has(i.key),
+    );
+    if (!courtChosen) blockers.push('court');
+    if (missingParties.length > 0) blockers.push('parties');
+    // The wording is Ajay's (T-127, section 7.2).
+    if (!courtChosen && missingParties.length > 0) {
+      confirm_message = 'Choose the court and add the parties to continue.';
+    } else if (!courtChosen) {
+      confirm_message = 'Choose the court to continue.';
+    } else if (missingParties.length > 0) {
+      confirm_message = `Add the name of the ${partyLabel(missingParties[0].label)} to continue.`;
+    }
+  }
+  return { confirm_blockers: blockers, confirm_message };
 }
 
 // ── An edited description (T-150, Rule A) ───────────────────────────────────
@@ -1755,6 +1831,13 @@ export interface PackQuestionInput {
   checklist?: readonly ChecklistItem[];
   /** Facts asked to confirm a value the brief already shows (T-190 AC8). */
   confirm?: ReadonlySet<string>;
+  /**
+   * T-498: facts the fact ledger holds (`ledgerGivenKeys`). They are given, so
+   * they are not asked as missing even when Reception placed no value. A fact
+   * in `alsoAsk`, `alwaysAsk` or `confirm` is still asked. Without it, nothing
+   * changes.
+   */
+  ledgerGiven?: ReadonlySet<string>;
 }
 
 /** T-190: the pack's optional questions rank after every part of the required ones. */
@@ -1795,8 +1878,12 @@ export function buildQuestions(
   const cap = QUESTION_LIMITS.perRound * QUESTION_LIMITS.rounds;
   const packItems = new Map((pack.checklist ?? []).map((i) => [i.key, i]));
   const confirm = pack.confirm ?? new Set<string>();
+  const ledgerGiven = pack.ledgerGiven ?? new Set<string>();
+  // T-498: a fact the ledger holds counts as given, unless T-150 asks it again.
+  const notGiven = (item: BriefItem): boolean =>
+    isEmpty(item.value) && !(ledgerGiven.has(item.key) && !alsoAsk.has(item.key));
   const askWhenEmpty = (item: BriefItem): boolean =>
-    packItems.get(item.key)?.askWhenEmpty === true && isEmpty(item.value) && !item.asked_empty;
+    packItems.get(item.key)?.askWhenEmpty === true && notGiven(item) && !item.asked_empty;
   const confirming = (item: BriefItem): boolean =>
     confirm.has(item.key) && packItems.get(item.key)?.askWhenEmpty === true;
   // T-190 AC8: earlier bail applications, asked straight after the party names.
@@ -1809,7 +1896,7 @@ export function buildQuestions(
     .filter(
       ({ item }) =>
         alwaysAsk.has(item.key) ||
-        ((item.required || alsoAsk.has(item.key)) && isEmpty(item.value)) ||
+        ((item.required || alsoAsk.has(item.key)) && notGiven(item)) ||
         askWhenEmpty(item) ||
         confirming(item),
     )

@@ -28,6 +28,8 @@ import {
   LIMITATION_SECTION_ID,
   LIMITATION_UNKNOWN_CHECKLIST_ITEM,
   findLimitationClaims,
+  findLimitationClaimsChecked,
+  lastParagraphNumber,
   limitationAnswerOf,
   limitationDateOf,
   limitationInputFromLedger,
@@ -1025,5 +1027,105 @@ describe('T-472 H: mutation checks (the tests above must catch these)', () => {
 
   it('a copy of the computed text is flagged, not skipped', () => {
     expect(findLimitationClaims([`1. ${WITHIN}`])).toEqual([WITHIN]);
+  });
+});
+
+// ── I: findLimitationClaimsChecked, one warning per model claim sentence (AJ-472-M1) ──
+
+describe('T-472 I: claims checked against the fact verifier', () => {
+  const CLAIM =
+    'The present revision petition is filed within 90 days from the impugned order dated 12.03.2025.';
+  const OTHER = 'The petition is within limitation.';
+  const before = `1. That the petitioner is a resident of Patna.\n\n2. ${CLAIM}\n\n3. That the order is illegal.`;
+  const swap = (to: string) => before.replace(CLAIM, to);
+
+  it('unchanged: one claim, not blanked', () => {
+    expect(findLimitationClaimsChecked(before, before)).toEqual([
+      { sentence: CLAIM, blanked: false },
+    ]);
+  });
+
+  it('only the date blanked: exactly one claim, blanked true, as printed', () => {
+    const printed =
+      'The present revision petition is filed within 90 days from the impugned order dated {{MISSING: date of order}}.';
+    const out = findLimitationClaimsChecked(before, swap(printed));
+    expect(out).toEqual([{ sentence: printed, blanked: true }]);
+  });
+
+  it('only the date repaired (reworded, no blank): one claim, blanked false', () => {
+    const printed =
+      'The present revision petition is filed within 90 days from the impugned order dated 01.01.2026.';
+    const out = findLimitationClaimsChecked(before, swap(printed));
+    expect(out).toEqual([{ sentence: printed, blanked: false }]);
+  });
+
+  it('the citation strip removes a citation from the claim: one claim, blanked false', () => {
+    const cited = `${CLAIM.slice(0, -1)}, as held in Arnesh Kumar v. State of Bihar (2014) 8 SCC 273.`;
+    const stripped = CLAIM;
+    const b = swap(cited);
+    expect(findLimitationClaimsChecked(b, swap(stripped))).toEqual([
+      { sentence: stripped, blanked: false },
+    ]);
+  });
+
+  it('the claim removed outright: one claim in the model words, blanked true', () => {
+    const after = '1. That the petitioner is a resident of Patna.\n\n2. That the order is illegal.';
+    const out = findLimitationClaimsChecked(before, after);
+    expect(out).toEqual([{ sentence: CLAIM, blanked: true }]);
+  });
+
+  it('the whole paragraph removed (paragraph counts differ): one claim, blanked true', () => {
+    const after = '1. That the petitioner is a resident of Patna.\n\n3. That the order is illegal.';
+    expect(findLimitationClaimsChecked(before, after)).toEqual([
+      { sentence: CLAIM, blanked: true },
+    ]);
+  });
+
+  it('paragraph counts differ and the claim is partly blanked: still one claim', () => {
+    const printed =
+      'The present revision petition is filed within 90 days from the impugned order dated {{MISSING: date of order}}.';
+    const after = `${swap(printed)}\n\n4. That the prayer is just.`;
+    expect(findLimitationClaimsChecked(before, after)).toEqual([
+      { sentence: printed, blanked: true },
+    ]);
+  });
+
+  it('two distinct claims in two paragraphs, one partly blanked: two claims', () => {
+    const b = `1. ${CLAIM}\n\n2. ${OTHER}`;
+    const printed =
+      'The present revision petition is filed within 90 days from the impugned order dated {{MISSING: date of order}}.';
+    const out = findLimitationClaimsChecked(b, `1. ${printed}\n\n2. ${OTHER}`);
+    expect(out).toEqual([
+      { sentence: printed, blanked: true },
+      { sentence: OTHER, blanked: false },
+    ]);
+  });
+
+  it('two distinct claims, paragraph counts differ, one removed: two claims', () => {
+    const b = `1. ${CLAIM}\n\n2. ${OTHER}`;
+    const out = findLimitationClaimsChecked(b, `1. ${OTHER}`);
+    expect(out).toHaveLength(2);
+    expect(out).toContainEqual({ sentence: OTHER, blanked: false });
+    expect(out).toContainEqual({ sentence: CLAIM, blanked: true });
+  });
+
+  it('no claim in the model text: none', () => {
+    const b = '1. That the order is illegal.';
+    expect(findLimitationClaimsChecked(b, '1. That the order is {{MISSING: x}}.')).toEqual([]);
+  });
+});
+
+describe('T-472 I: top-level paragraph number (AJ-472-M2)', () => {
+  it('"1) ... 7)" gives 7', () => {
+    const body = [1, 2, 3, 4, 5, 6, 7].map((n) => `${n}) That ground ${n}.`).join('\n\n');
+    expect(lastParagraphNumber(body)).toBe(7);
+  });
+  it('"1. ... 7." gives 7', () => {
+    const body = [1, 2, 3, 4, 5, 6, 7].map((n) => `${n}. That ground ${n}.`).join('\n\n');
+    expect(lastParagraphNumber(body)).toBe(7);
+  });
+  it('8.1 and 8.2 do not count; empty gives 0', () => {
+    expect(lastParagraphNumber('7. That a.\n8.1 That b.\n8.2 That c.')).toBe(7);
+    expect(lastParagraphNumber('')).toBe(0);
   });
 });

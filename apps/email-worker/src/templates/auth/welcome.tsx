@@ -48,9 +48,10 @@ export const authWelcomeTemplate: TemplateDef<WelcomeData> = {
           <Container style={{ maxWidth: 600, margin: '0 auto', padding: '32px 24px' }}>
             <Heading style={{ color: '#0D1F3C', fontSize: 24 }}>Welcome, {name}.</Heading>
             <Text style={{ color: '#0D1F3C', fontSize: 14, lineHeight: '22px' }}>
-              You can now draft court-ready documents — bail applications, legal notices, rent
-              agreements, and more — formatted to your court&apos;s rules, with the right BNS / BNSS
-              sections, in under five minutes per document.
+              You can now describe your matter and get a first draft of a bail application, notice,
+              writ or maintenance petition to review and edit before you file. Criminal drafts use
+              BNS, BNSS and BSA section numbers, or IPC, CrPC and the Evidence Act where the old law
+              applies.
             </Text>
             <Section style={{ marginTop: 24 }}>
               <Link

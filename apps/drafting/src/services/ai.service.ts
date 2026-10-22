@@ -151,6 +151,7 @@ import {
 } from './llm-usage';
 import { postProcess } from './post-processor';
 import { assemblePrompt, PromptInput } from './prompt-assembler';
+import { renderRelatedActs } from './related-acts';
 import { loadSkeleton as loadSignedSkeleton } from './rule-pack.service';
 import type { RulePack } from './rule-pack.service';
 import { convertOldReferencesInText } from './sections.service';
@@ -170,6 +171,7 @@ import {
   loadCourtRule,
   detectLeakedPlaceholders,
   sanitiseAIBody,
+  stripOnlyWhenMarkers,
   promptPartyDesignations,
   TO_BE_CONFIRMED_DESIGNATION_RULE,
   CourtRuleData,
@@ -903,6 +905,8 @@ export interface TemplateGenerateResult {
    * on a pack whose limitation is computed.
    */
   limitationFlags?: number;
+  /** T-477: echoed [only when: ...] markers stripped from the AI body, summed across sections (count only) */
+  onlyWhenStrips?: number;
 }
 
 /**
@@ -1013,7 +1017,7 @@ export async function streamGenerateFromTemplate(
             chargedConfig.template_id,
             law.procedureCode,
             chargedConfig.related_acts,
-            DEFAULT_BAIL_CRPC_ACT.act,
+            renderRelatedActs([DEFAULT_BAIL_CRPC_ACT])[0],
           ),
         }
       : chargedConfig;
@@ -1030,6 +1034,7 @@ export async function streamGenerateFromTemplate(
     const meter = new UsageMeter();
     let aiModel: string | undefined;
     let transport: 'direct' | undefined;
+    let onlyWhenStrips = 0;
 
     for (const section of promptConfig.document_structure.sections) {
       if (section.type === 'template') {
@@ -1096,6 +1101,8 @@ export async function streamGenerateFromTemplate(
           );
         }
 
+        // T-477: count the echoed [only when: ...] markers sanitiseAIBody strips.
+        onlyWhenStrips += stripOnlyWhenMarkers(aiText).count;
         // SCRUM-62: strip duplicate cause-title (A7) and disclaimer (A6) injected by AI
         renderedSections.push({
           section_id: section.section_id,
@@ -1304,6 +1311,7 @@ export async function streamGenerateFromTemplate(
       transport,
       bodyParaCount,
       ...(limitation !== null ? { limitationFlags: limitationWarnings.length } : {}),
+      onlyWhenStrips,
     };
   } finally {
     stopKeepAlive();

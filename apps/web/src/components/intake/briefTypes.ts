@@ -7,6 +7,8 @@
  * `generate-from-brief` route (T-106).
  */
 
+import { blanksInContent } from '../editor/blankCount';
+
 export type ValueKind =
   | 'text'
   | 'narrative'
@@ -281,6 +283,13 @@ export interface DraftResult {
    * Present only for a D1 pack; the checks panel is then built from this list.
    */
   rendered?: RenderedClause[];
+  /**
+   * T-545: the Ink actually debited for this draft, from the `done` event's
+   * `inkDebited` (in Ink, so .5 is possible). Never the quoted cost. Set only
+   * when the server sent a number above 0; absent otherwise, and the chip is
+   * then not shown.
+   */
+  inkUsed?: number;
 }
 
 /** T-373: one clause the D1 renderer printed, with its status. */
@@ -388,6 +397,95 @@ export function askedEmptyAnswers(brief: Brief, values: GivenValue[]): Record<st
   return out;
 }
 
+function foldWord(v: string): string {
+  return v
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim();
+}
+
+/** T-481: a one-choice item whose options are exactly Yes and No. */
+function isYesNoChoice(item: BriefItem): boolean {
+  if (item.kind !== 'choice' || item.options.length !== 2) return false;
+  const folded = new Set(item.options.map(foldWord));
+  return folded.has('yes') && folded.has('no');
+}
+
+/**
+ * T-481: the undertaking boxes whose "No" the service drops (T-251). Kept in
+ * step with `UNDERTAKINGS` in apps/drafting/src/services/intake-brief.ts (~1289),
+ * where `buildBrief` skips a declined undertaking. Matched on the key's last segment.
+ */
+const DECLINED_UNDERTAKING_KEYS: ReadonlySet<string> = new Set(['willingness_to_furnish_bond']);
+
+function isDeclinableUndertaking(key: string): boolean {
+  const at = key.lastIndexOf('.');
+  return DECLINED_UNDERTAKING_KEYS.has(at < 0 ? key : key.slice(at + 1));
+}
+
+/**
+ * T-498: the keys the fact ledger holds a fact for. The row shows that fact
+ * (with "Please check" when read from the description), so it is given: not
+ * asked in the rounds and not listed as still unknown. An empty display is not
+ * a fact, and a "No" on an undertaking box (T-251) is not yet given. Kept in
+ * step with `ledgerGivenKeys` in apps/drafting/src/services/intake-brief.ts.
+ * Empty with no ledger, so nothing changes with the ledger off.
+ */
+export function ledgerGivenKeys(ledger: Ledger | null | undefined): Set<string> {
+  const out = new Set<string>();
+  if (!ledger) return out;
+  for (const f of ledger.facts) {
+    if (typeof f.display !== 'string' || f.display.trim() === '') continue;
+    const declined =
+      isDeclinableUndertaking(f.key) &&
+      [f.display, String(f.value)].some((v) => {
+        const w = foldWord(v);
+        return w === 'no' || w === 'false';
+      });
+    if (!declined) out.add(f.key);
+  }
+  return out;
+}
+
+/**
+ * T-481: the service places no value for a "No" on an undertaking box (T-251:
+ * a "No" is an undertaking not yet given, so its blank shows), and sends no
+ * `asked_empty` for it either. Without this the advocate's "No" is dropped and
+ * the row looks unanswered, so "No" cannot be chosen. An undertaking Yes/No
+ * item the service left empty (and does not re-ask), that the advocate
+ * answered "No" themselves, is marked
+ * `asked_empty` here, so the T-365 path keeps the "No" (and sends it with the
+ * draft), shows it as chosen, and does not ask it again. A value the service
+ * placed is never changed.
+ */
+export function withDeclinedAnswers(brief: Brief, previous: GivenValue[]): Brief {
+  let changed = false;
+  const items = brief.items.map((item) => {
+    // A server re-ask (T-150) is never hidden.
+    if (
+      item.asked_empty ||
+      item.reask ||
+      !isEmptyValue(item.value) ||
+      !isDeclinableUndertaking(item.key) ||
+      !isYesNoChoice(item)
+    ) {
+      return item;
+    }
+    const given = previous.find((v) => v.key === item.key);
+    if (
+      !given ||
+      given.source !== 'user' ||
+      typeof given.value !== 'string' ||
+      foldWord(given.value) !== 'no'
+    ) {
+      return item;
+    }
+    changed = true;
+    return { ...item, asked_empty: true };
+  });
+  return changed ? { ...brief, items } : brief;
+}
+
 /** Set, replace or clear one value the user typed. The new value carries no "Please check" mark. */
 export function withValue(
   values: GivenValue[],
@@ -422,30 +520,17 @@ export function dateInWords(iso: string): string {
   return month ? `${Number(m[3])} ${month} ${m[1]}` : iso;
 }
 
-/** T-147c: `{{MISSING: label}}` is the blank of a draft written from the fact ledger. */
-const BLANK =
-  /\[To be confirmed: [^\]]*\]|\[Section — verify before filing\]|\[Authority — add if relied upon\]|\{\{\s*MISSING\s*:\s*[^}]*?\s*\}\}/gi;
-
-/** A run of underscores left for the user, such as "Case No. _____". */
-const UNDERSCORE_BLANK = /_{3,}/g;
-
-/** A line of underscores only: the line a signature goes on, not a blank. */
-const SIGNATURE_LINE = /^[ \t]*_{3,}[ \t]*$/gm;
-
-/** The verification's signing date, "___ day of __________, 20___": one blank. */
-const SIGNING_DATE_BLANK = /_{3,} day of _{3,}, 20_{3,}/g;
-
 /**
- * How many visible blanks the draft carries (T-107, section 4). T-146: a run of
- * three or more underscores inside a line (a case number, a date) is a blank too.
- * The signing date's three underscore runs count as one blank.
+ * How many visible blanks the draft carries (T-107, section 4). T-483: the same
+ * count the editor's export warning, the export header and the server PDF show
+ * for this content: Ajay's signed set in @lawie/shared (findBlanks), read through
+ * the export's own helper (missingAsBlanks first, then blankText). So the
+ * signing date of the verification ("on this ___ day of ___") and the cause
+ * title's "No. ___ of" are not counted, as the export does not count them, and
+ * every blank counts as the export dialog counts it (repeats included).
  */
 export function countBlanks(text: string): number {
-  const marked = (text.match(BLANK) ?? []).length;
-  const rest = text.replace(SIGNATURE_LINE, '');
-  const signingDates = (rest.match(SIGNING_DATE_BLANK) ?? []).length;
-  const underscores = (rest.replace(SIGNING_DATE_BLANK, ' ').match(UNDERSCORE_BLANK) ?? []).length;
-  return marked + signingDates + underscores;
+  return blanksInContent(text).length;
 }
 
 /** The words after "[To be confirmed: " in a blank, for showing it. */

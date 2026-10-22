@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 
+import { AppError } from '../middleware/errorHandler';
 import { closeAccount } from '../services/account-erase.service';
 import {
   registerUser,
@@ -8,14 +9,17 @@ import {
   logoutUser,
   getPrivacyStatus,
   acceptPrivacy,
-  setGstStateCode,
-  SET_GST_STATE_PRIVACY_BODY,
+  changePassword,
+  getPrivacyHistory,
+  updateProfile,
+  UPDATE_ME_PRIVACY_BODY,
 } from '../services/auth.service';
 import {
   completePasswordReset,
   isResetTokenLive,
   requestPasswordReset,
 } from '../services/password-reset.service';
+import { deleteUserSessionById, hashToken, listActiveSessions } from '../services/session.service';
 import {
   VERIFY_RESEND_LIMITED,
   VERIFY_RESEND_LIMIT_MESSAGE,
@@ -28,6 +32,8 @@ import {
   validateUpdateMe,
   parseForgotPasswordEmail,
   checkResetPassword,
+  checkChangePassword,
+  DEFAULT_COURT_NOT_IN_COURTS,
 } from '../validators/auth.validator';
 
 export async function register(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -320,9 +326,13 @@ export async function getMe(req: Request, res: Response, next: NextFunction): Pr
 }
 
 /**
- * T-436 — PATCH /me { gstStateCode }: the GST State/UT for the user's tax invoices.
- *   200 { status: 'success', data: { gstStateCode } }  saved
- *   422 any other field, a missing field, or a code not in GST_STATES (validateUpdateMe)
+ * T-436 / T-507 — PATCH /me: any of gstStateCode, name, phone, enrollmentNumber, barCouncil,
+ * barCouncilState, practiceAreas, yearsOfExperience, courtsPractisedIn, defaultCourt (rules in
+ * validateUpdateMe; null clears an optional field).
+ *   200 { status: 'success', data: { <exactly the keys sent, as stored> } }  saved; so a body of
+ *       only { gstStateCode } still answers { data: { gstStateCode } }
+ *   422 an unknown or read-only field (email included), an empty body, a bad value, or a
+ *       defaultCourt that is not one of courtsPractisedIn (sent or stored); nothing stored
  *   403 { error: 'privacy_reaccept_required' }  the current privacy version is not accepted
  *       (Ajay, GST file Addendum 7 (2)); nothing stored. The T-343 shape, so the web's
  *       privacyFetch shows the re-accept prompt.
@@ -336,19 +346,164 @@ export async function updateMeHandler(
 ): Promise<void> {
   try {
     res.setHeader('Cache-Control', 'no-store');
-    const { gstStateCode } = validateUpdateMe(req.body);
-    const outcome = await setGstStateCode(req.jwtPayload!.sub, gstStateCode);
+    const input = validateUpdateMe(req.body);
+    const outcome = await updateProfile(req.jwtPayload!.sub, input);
     switch (outcome.kind) {
       case 'saved':
-        res.status(200).json({ status: 'success', data: { gstStateCode: outcome.gstStateCode } });
+        res.status(200).json({ status: 'success', data: outcome.data });
         return;
       case 'privacy_reaccept_required':
-        res.status(403).json(SET_GST_STATE_PRIVACY_BODY);
+        res.status(403).json(UPDATE_ME_PRIVACY_BODY);
+        return;
+      case 'default_court_not_in_courts':
+        throw new AppError(422, DEFAULT_COURT_NOT_IN_COURTS);
+      case 'not_found':
+        res.status(401).json({ status: 'error', message: 'User not found or inactive' });
+        return;
+    }
+  } catch (err) {
+    next(err);
+  }
+}
+
+/** T-507 — the caller's access token (authenticate already verified the Bearer header). */
+function bearerToken(req: Request): string {
+  return req.headers.authorization!.split(' ')[1];
+}
+
+/**
+ * T-507 — POST /me/password { currentPassword, newPassword } (signed in).
+ *   200 { status: 'success', data: { revokedSessions } }  changed; every OTHER session signed
+ *       out, the caller's kept
+ *   422 { status, statusCode: 422, error: 'weak_password', message, unmet }  newPassword fails a
+ *       sign-up rule (the T-221 reset shape)
+ *   422 (AppError shape) currentPassword missing
+ *   403 { error: 'wrong_password' }  currentPassword does not match
+ *   409 { error: 'no_password' }  the account has no password (Google-only)
+ *   429 { error: 'rate_limited', retryAfter } + Retry-After  5 wrong current passwords in 15 min
+ *       for this user (password-change-rate-limit.ts; the T-221 reset body)
+ *   503 { error: 'service_unavailable' }  the limiter store failed; nothing looked up or changed
+ *   401 user not found, inactive or being closed (as GET /me)
+ * Rate limits: per user (above), and per IP as /login is, by the gateway's publicRateLimiter on
+ * the whole /api/auth proxy. The body is never logged.
+ */
+export async function changePasswordHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    res.setHeader('Cache-Control', 'no-store');
+    const check = checkChangePassword(req.body);
+    if (!check.ok) {
+      if (check.kind === 'invalid') throw new AppError(422, check.message);
+      res.status(422).json({
+        status: 'error',
+        statusCode: 422,
+        error: PASSWORD_RESET_WEAK,
+        message: check.message,
+        unmet: check.unmet,
+      });
+      return;
+    }
+    const outcome = await changePassword(
+      req.jwtPayload!.sub,
+      bearerToken(req),
+      check.currentPassword,
+      check.newPassword,
+    );
+    switch (outcome.kind) {
+      case 'changed':
+        res
+          .status(200)
+          .json({ status: 'success', data: { revokedSessions: outcome.revokedSessions } });
+        return;
+      case 'wrong_password':
+        res.status(403).json({ error: 'wrong_password' });
+        return;
+      case 'no_password':
+        res.status(409).json({ error: 'no_password' });
+        return;
+      case 'limited':
+        res.setHeader('Retry-After', String(outcome.retryAfterSeconds));
+        res.status(429).json({
+          error: PASSWORD_RESET_RATE_LIMITED,
+          retryAfter: outcome.retryAfterSeconds,
+        });
+        return;
+      case 'unavailable':
+        res.status(503).json({ error: 'service_unavailable' });
         return;
       case 'not_found':
         res.status(401).json({ status: 'error', message: 'User not found or inactive' });
         return;
     }
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * T-507 — GET /me/sessions (signed in).
+ *   200 { status: 'success', data: { sessions: [{ id, userAgent, createdAt, current }] } }
+ *       newest first; only live sessions (see listActiveSessions). No IP, no hashes.
+ */
+export async function listSessionsHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    res.setHeader('Cache-Control', 'no-store');
+    const sessions = await listActiveSessions(req.jwtPayload!.sub, hashToken(bearerToken(req)));
+    res.status(200).json({ status: 'success', data: { sessions } });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * T-507 — DELETE /me/sessions/:id (signed in): sign that session out.
+ *   200 { status: 'success' }  signed out (the caller's own session too, if that is the id)
+ *   404 { error: 'not_found' }  not a session of this user (or not an id at all)
+ */
+export async function deleteSessionHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    res.setHeader('Cache-Control', 'no-store');
+    const deleted = await deleteUserSessionById(req.jwtPayload!.sub, req.params.id);
+    if (!deleted) {
+      res.status(404).json({ error: 'not_found' });
+      return;
+    }
+    res.status(200).json({ status: 'success' });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * T-507 — GET /me/privacy-history (signed in).
+ *   200 { status: 'success', data: { privacyHistory: [{ version, acceptedAt, via }] } }  newest
+ *       first; [] when none recorded
+ *   401 user not found, inactive or being closed (as GET /me)
+ */
+export async function privacyHistoryHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    res.setHeader('Cache-Control', 'no-store');
+    const privacyHistory = await getPrivacyHistory(req.jwtPayload!.sub);
+    if (privacyHistory === null) {
+      res.status(401).json({ status: 'error', message: 'User not found or inactive' });
+      return;
+    }
+    res.status(200).json({ status: 'success', data: { privacyHistory } });
   } catch (err) {
     next(err);
   }
