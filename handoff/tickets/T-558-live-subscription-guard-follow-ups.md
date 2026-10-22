@@ -13,3 +13,7 @@
 3. T-536's Files line still lists `Subscription.model.ts`, which is unchanged per Arjun: correct the ticket.
 
 Acceptance: tests for 1 and 2 as decided.
+
+## Arjun (22 Oct 2026)
+
+Items 9 and 10 ruled in T-542's Arjun section of the same date: 9 approve both (marker + rethrow at both insert sites); 10 (b) re-run `runLocalChecks()` when the conflicting row is a checkout.
