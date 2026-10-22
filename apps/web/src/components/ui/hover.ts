@@ -6,6 +6,7 @@
 //   reduced motion. Nothing else lifts or halos.
 // - Ghost (and the Google button, and any ghost-styled link): border Line -> Brass, ground ->
 //   Brass Soft, 150ms. No lift, no halo.
+// - Destructive (T-544, Rajesh T-531 F2): ground Oxblood -> Oxblood High, 150ms. No lift, no halo.
 
 /**
  * Primary hover for a link (`<a>` has no :disabled). T-517: matches the Button primary hover.
@@ -38,3 +39,13 @@ export const CONTROL_LINE = 'border-[color:var(--line-control,var(--line))]';
 export const NL_GHOST_HOVER =
   '[transition-property:outline-color,box-shadow,transform,border-color,background-color] duration-150 ease-[ease] ' +
   '[@media(hover:hover)_and_(pointer:fine)]:[&:not(:disabled)]:hover:border-nl-brass [@media(hover:hover)_and_(pointer:fine)]:[&:not(:disabled)]:hover:bg-nl-brass-light';
+
+/**
+ * T-544 (Rajesh, T-531 F2): hover for the filled destructive ui/Button. Ground Oxblood -> Oxblood
+ * High (`nl-ox-hi`), 150ms ease; the transition list adds background colour to `.nl-focus`'s own
+ * properties (so the focus ring keeps its transition). `enabled:`, so a disabled or busy button
+ * does not react. The colour fade stays under reduced motion (it moves nothing). No lift, no halo.
+ */
+export const NL_DESTRUCTIVE_HOVER =
+  '[transition-property:outline-color,box-shadow,transform,background-color] duration-150 ease-[ease] ' +
+  '[@media(hover:hover)_and_(pointer:fine)]:enabled:hover:bg-nl-ox-hi';
