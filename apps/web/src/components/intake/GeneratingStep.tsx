@@ -125,8 +125,8 @@ export default function GeneratingStep({
       {/* One live region for the steps only: the Skeleton below has its own role="status"
           ("Still working…"), and nesting it in another live region could announce twice. */}
       <div className={`${folio} gap-nl-6 flex flex-col items-center`}>
-        {/* The ink drain runs from the real level for the request; static at 60% under
-            reduced motion. Not shown while the balance is unknown. */}
+        {/* The ink drain runs from the real level for the request; under reduced motion the
+            advocate's real level shows, static. Not shown while the balance is unknown. */}
         {typeof inkLevel === 'number' && <Inkwell balance={inkLevel} draining />}
         <div className="w-full min-w-0 text-center">
           <h1 className="nl-h2 text-nl-text break-words">Drafting your {documentName}</h1>

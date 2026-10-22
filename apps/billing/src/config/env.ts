@@ -101,11 +101,14 @@ const envObject = z.object({
 
   // T-527 (AC5): explicit opt-in to boot production with an rzp_test_ key
   // (see checkRazorpayKeyMode). Only the exact string "true" counts.
-  RAZORPAY_ALLOW_TEST_KEYS: z.string().optional(),
+  // T-558 (Arjun): unset, empty or "true"; any other value fails loadEnv
+  // (refuses to boot in every NODE_ENV).
+  RAZORPAY_ALLOW_TEST_KEYS: z.enum(['true', '']).optional(),
   // T-527 round 4 (Arjun): "strict" makes a non-live key in production refuse
-  // to boot (unless RAZORPAY_ALLOW_TEST_KEYS=true); unset or any other value
-  // only logs an error and a Sentry event. Only the exact string "strict" counts.
-  RAZORPAY_KEY_GUARD: z.string().optional(),
+  // to boot (unless RAZORPAY_ALLOW_TEST_KEYS=true); unset or empty only logs an
+  // error and a Sentry event. T-558 (Arjun): any other value fails loadEnv
+  // (refuses to boot in every NODE_ENV).
+  RAZORPAY_KEY_GUARD: z.enum(['strict', '']).optional(),
 
   // T-540: fallback for the AppSettings key `feature.coupon_free_grant`, used
   // only when the key is missing (the database value always wins; a DB error is
@@ -159,7 +162,3 @@ export const razorpayKeyModeNotice: { level: 'warn' | 'error'; message: string }
     );
     return mode.ok && 'level' in mode ? { level: mode.level, message: mode.message } : undefined;
   })();
-
-/** T-527 (AC5): the notice's message when its level is 'warn' (test keys allowed). */
-export const razorpayKeyModeWarning: string | undefined =
-  razorpayKeyModeNotice?.level === 'warn' ? razorpayKeyModeNotice.message : undefined;

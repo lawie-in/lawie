@@ -3,7 +3,7 @@
 // T-511 part A: Inkwell gauge (spec 3, 2.4). SVG 52x64, balance 0-100 (%), the level rect clipped
 // to the well, brass/fill at .85, outlines brass/fill 1.5px. `draining` runs the 2.6s linear ink
 // drain once and holds near empty until the generate request ends (set draining={false}); paused
-// while the tab is hidden. Reduced motion: static at 60%.
+// while the tab is hidden. Reduced motion: no drain; the gauge shows the real level, static (T-544).
 
 import { useId } from 'react';
 
@@ -20,9 +20,6 @@ export interface InkwellProps {
   label?: string;
   className?: string;
 }
-
-/** Spec 2.4: the reduced-motion end state of the drain. */
-export const INKWELL_REDUCED_LEVEL = 60;
 
 /** Where the drain holds: translateY offset in % of the well (92 = about 8% ink left). */
 export const INKWELL_DRAIN_END_OFFSET = 92;
@@ -42,7 +39,7 @@ export function Inkwell({ balance, draining = false, label, className }: Inkwell
   const visible = usePageVisible();
 
   const animating = draining && !reduced;
-  const level = draining && reduced ? INKWELL_REDUCED_LEVEL : clampLevel(balance);
+  const level = clampLevel(balance);
   const offset = `${100 - level}%`;
   // The drain ends at 92% offset (about 8% ink left), but never above the starting level: a low
   // balance (under 8%) holds still instead of the ink rising.

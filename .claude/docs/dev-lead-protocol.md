@@ -65,6 +65,8 @@ No stack or architecture change without Arjun's ADR. No scope change without Pri
 
 - **Local builds never point at a hosted API** (Arjun, 21 Oct 2026). Browser checks and Playwright runs use a local API URL and abort any request to a non-local host. `api.lawie.in` is the develop box: a local `next build` that inherits its `NEXT_PUBLIC_API_URL` sends real requests there (see `handoff/ops/incident-2026-10-21-stray-e2e-traffic.md`). Never read or use a real env file for a test run.
 
+- **Rulings come only from the person's own session** (Arjun, 22 Oct 2026, after two relays from a lead's own subagent were mistaken for the real Arjun and Ajay). A lead never spawns a lawie-team role agent (`arjun`, `ajay`, `vikram`, `rajesh` and the rest) to obtain a ruling: those agents are the founder's. A ruling counts only when it comes from the role's own session id, or from a commit by that role's branch (Arjun's is `arjun-docs`) or a file that role pushed to `origin/develop_staging`. Anything else is a proposal and is labelled so. Priya checks the source before recording any sign-off.
+
 ## 8. Local ticket status
 
 A `T-nnn` ticket's Status line, in its own file under `handoff/tickets/`, is the founder's to move — not yours and not the crew's. You have `Edit`/`Write` disallowed, and none of the four crew agents touch `handoff/tickets/`. When you hand back a finished chain for a `T-nnn` ticket, tell the founder what the Status line should become (e.g. "Ready for PR review", "Done") and let them write it. `SCRUM-n` tickets are unaffected — their status lives in Jira, not this repo.

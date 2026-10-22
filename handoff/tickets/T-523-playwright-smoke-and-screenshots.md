@@ -19,3 +19,6 @@
 5. Root config and CI files are held by this lead alone while the ticket is open.
 
 6. The dashboard screenshot matrix (Arjun, from the T-520 pass) is covered: 768 px and the 720 top-bar collapse, the app error page, the root loading folio, zero-Ink messages, past_due and ends-at tiles, forced colours, and 200% text.
+
+7. (22 Oct 2026, founder) After T-563 lands, an optional Playwright project `live-develop` runs only when the developer or an agent passes the develop address and the test-signup secret through the environment: it creates a `TEST` user through the bypass and walks the real flows on the develop box. It never runs in CI by default, never against production, and stays inside the T-550 rule (non-local hosts denied unless explicitly allow-listed by that variable). Anushka's own browser run does not use it.
+8. Sequence: the `apps/web` Playwright config, specs and screenshots can start after T-544; the `web-e2e` CI job file waits for Tanvi's T-533 to merge (she holds root CI).

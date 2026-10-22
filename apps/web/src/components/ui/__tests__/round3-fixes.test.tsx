@@ -108,12 +108,12 @@ describe('Inkwell outlines and drain variables', () => {
     expect(q('svg', m.container)!.getAttribute('data-draining')).toBeNull();
   });
 
-  it('reduced motion: static 60% level, no class, outlines unchanged', () => {
+  it('reduced motion (T-544): static real level, no class, outlines unchanged', () => {
     stubMatchMedia({ [REDUCED]: true });
     const { container } = mount(<Inkwell balance={95} draining />);
     const level = q('g rect', container) as SVGRectElement;
-    expect(q('svg', container)!.getAttribute('data-level')).toBe('60');
-    expect(level.style.transform).toBe('translateY(40%)');
+    expect(q('svg', container)!.getAttribute('data-level')).toBe('95');
+    expect(level.style.transform).toBe('translateY(5%)');
     expect(level.getAttribute('class') ?? '').not.toContain('nl-ink-draining');
     expect(qa('rect[stroke="var(--brass)"]', container)).toHaveLength(3);
   });
