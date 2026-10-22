@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (build), Rajesh reviews, Ajay for any wording |
 | Mode   | Full chain (web, shared UI files: one lead at a time) |
-| Status | To do. Consent sheet item MUST land before T-403 (Rajesh, T-531 review F1). Priya, 21 Oct 2026 |
+| Status | Merged into develop_staging 245e85dc (CI 907 green), 22 Oct 2026, except item 6 (Hindi menu labels, waits for Madhuri and Ajay); waiting on Anushka's check on develop. Priya |
 | Source | Rajesh's T-531 review; Vishal's report |
 
 ## Items
