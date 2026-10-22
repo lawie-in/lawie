@@ -106,6 +106,11 @@ const envObject = z.object({
   // to boot (unless RAZORPAY_ALLOW_TEST_KEYS=true); unset or any other value
   // only logs an error and a Sentry event. Only the exact string "strict" counts.
   RAZORPAY_KEY_GUARD: z.string().optional(),
+
+  // T-540: fallback for the AppSettings key `feature.coupon_free_grant`, used
+  // only when the key is missing (the database value always wins; a DB error is
+  // always off). Default off; only the exact string "true" turns it on.
+  FEATURE_DEFAULT_COUPON_FREE_GRANT: z.string().optional(),
 });
 
 // T-527 (AC5): a refused key mode fails the parse, so it goes through loadEnv's

@@ -1641,10 +1641,20 @@ export async function handleWebhookEvent(
         '';
       // T-413: grantTopupInk claims the order before granting; it returns 0 when
       // the order was already granted (a retry or the sibling event).
+      // T-540: the ledger records what was CHARGED (a coupon lowers it), not the
+      // list price. Razorpay amounts are paise: the payment's amount, else the
+      // order's amount_paid / amount; the list price only if neither carries one.
+      const paiseOf = (v: unknown): number | null =>
+        typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : null;
+      const chargedPaise =
+        paiseOf(paymentEntity?.amount) ??
+        paiseOf(orderEntity?.amount_paid) ??
+        paiseOf(orderEntity?.amount) ??
+        sku.priceInr * 100;
       const granted = await grantTopupInk({
         userId: notes.user_id,
         inkUnits: sku.ink * 2, // 1 Ink = 2 ledger units
-        amountInr: sku.priceInr,
+        amountInr: chargedPaise / 100,
         razorpayOrderId,
         razorpayPaymentId: paymentEntity?.id as string | undefined,
         topupSkuId: sku.id,
@@ -1659,6 +1669,19 @@ export async function handleWebhookEvent(
             { $inc: { uses: 1 } },
             { new: true },
           );
+          // T-540 (design point 6): a race for the last use between order and
+          // capture is accepted where money was taken; log the overshoot. No PII.
+          if (
+            coupon &&
+            coupon.maxUses !== null &&
+            coupon.maxUses !== undefined &&
+            coupon.uses > coupon.maxUses
+          ) {
+            logger.warn(
+              { couponCode: notes.coupon_code, uses: coupon.uses, maxUses: coupon.maxUses },
+              'Coupon uses went past maxUses on a paid top-up',
+            );
+          }
           if (coupon) {
             await CouponUsage.create({
               couponId: coupon._id,
