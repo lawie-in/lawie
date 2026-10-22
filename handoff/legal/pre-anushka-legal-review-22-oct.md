@@ -198,3 +198,49 @@ MUST: 0.1, 0.2, 1–14, 23, 29–43, 54–65 (43 items, counting 0.1 and 0.2). S
 ## Byte check T-564, fix/t-564-legal-pages @ cb014014: approved (Ajay, 22 Oct 2026)
 
 Items 1–12 and 14–20, 22 and A1–A9 match this file byte for byte (26 strings checked by script; the Terms A4 sentence is exact once the Refund Policy link markup is joined). The deleted files are gone. None of the barred phrases remain (legal@, "within 24 hours", "no queues", "Most documents use", "mappings reliable", "in minutes", "Start Drafting Free", "built around", "Maps IPC", "Formats the cause", "full drafts"). The Terms keep version 2026-10-22 and "Last updated: 22 October 2026", as ruled. **Open:** item 21, `nl-copy.ts:140` (drop "plaints, ") and `nl-copy.ts:148` (A4) go with T-522 and **must land before Anushka**: until then the landing FAQ's "not refunded" contradicts the new Refund Policy. Item 13: the flag stays OFF.
+
+## Byte check T-565 wave 1, fix/t-565-legal-app-web @ 1021aed9: approved (Ajay, 22 Oct 2026)
+
+Items 29, 31, 32, 34, 35, 36, 37, 38, 39, 43 (T1, T3, T6), 44, 47 and 50 match byte for byte. None of the removed strings remain (watermark, the daily bonus offer, "reviewed by our legal team", "Auto-detects", "Mapped · in force", "Old · pre-2024", the legal-size checklist, "Verifying your inputs", "Your inputs are saved", "Usually around a minute", the Hinglish line, "No warnings", "Ink insufficient", "Adv. {name}"). support@ remains only in the AJ-509-M2 line (item 53). The Sidebar shows the §4.1 plan name only once the balance has loaded. Item 49: noted as unreachable in v1, so nothing ships.
+
+### Answers to Tanvi's wave 1 questions
+
+| Ref | Question | Ruling |
+|---|---|---|
+| W1 | Ink cost unknown, failed card says "Check your documents list…" with no draft | Show `The draft could not start.` alone. No documents-list line and no Ink line. |
+| W2 | Two "Generate anyway" buttons | Keep one and drop the second. |
+| W3 | Pre-stream 403/400/409 | 403 from the verify or privacy gate: show that gate's signed message (AJ-522-M6 refusal, or the T-343 prompt). Other 400/409/403: `Something did not work. Try again.` + `Retry`. Never a raw reason. |
+| W4 | `partial` and `repealed_no_equivalent` show no badge | Correct until I sign those badges (T7). |
+| W5 | Synthetic ids like §NEW-n in the finder (T-326) | **Follow-up ticket, MUST before main.** Never show a synthetic id as a section number. Hide such entries until signed text exists. |
+
+### Remaining old-flow strings (PipelineStatus), signed
+
+| Current | Signed |
+|---|---|
+| Step 2 of 5 — verifier flagged something | `Step 2 of 5 — please check your inputs` |
+| Drafting could not finish (heading over the failed card) | **Delete** the heading. The signed `The draft did not finish.` shows once only. |
+| Please review the flagged inputs before generating. | Signed as is. |
+| A required field is missing or contains an error. Please review the form. | Signed as is. |
+| Cannot generate this draft | `The draft could not start.` |
+| Edit form | `Edit the form` |
+| Drafting your {templateName}… | `Writing your {templateName}…` |
+| Draft ready | Signed as is. |
+| {n} paragraphs. Sections: … | Signed as is, if {n} and the list are counted from the draft. |
+| Open in editor / Try again | Signed as is. |
+| Step labels Inputs received / Drafting / Ready | Signed as is. |
+| Step 5 of 5 — ready | Signed as is. |
+
+With these, the old flow is fully signed. `describe_first` may still stay ON for Anushka. That choice is Priya's, not a legal requirement.
+| 63a | legal_notice_defamation.json:198, keep "If criminal route" | Yes, keep the condition. The whole line becomes: `If the criminal route is taken, cite BNS Section 356 for defamation on or after 1 July 2024, and IPC Sections 499 and 500 for defamation before that date.` |
+| 65g | mandamus.json:159 `Disclaimer: Lawie is a drafting assistant; advocate is responsible…` | Delete it, as with item 65. Priya extends the claim to that line. It is the only change to mandamus.json (T-489's signed lines are untouched). |
+
+### Answers to Tanvi's wave 2a questions (22 Oct)
+
+| Ref | Question | Ruling |
+|---|---|---|
+| W5a | Hidden NEW entries leave an empty lookup | **This refines W5.** Show the entry under section-converter Addendum 2: old box `No equivalent in the {OldCode}`, new section and title shown normally, copy `{NewCode} {n}` only. Never show or copy the `NEW-n` id. |
+| W6 | 409 "draft already in progress" | Hide Retry. Show `Check your documents list to see where this draft stands.` (signed). |
+| W7 | Plan-gate 403 | Hide Retry. Signed: `This document is not available on your current plan.` |
+| W8 | Not-started card, "Check the cost again" | Cut the notice (unsigned). Keep `Try again`, because nothing was charged. |
+| W9 | GeneratingStep.tsx:132 "Drafting your {documentName}" | `Writing your {documentName}…` |
+| W10 | "The draft could not start." twice on the hard-block card | Drop the step label, as proposed. |
