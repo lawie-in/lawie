@@ -5,7 +5,6 @@ import {
   DustMotes,
   FINE_POINTER_DESKTOP_QUERY,
   Inkwell,
-  INKWELL_REDUCED_LEVEL,
   Lamp,
   MOBILE_CAP_QUERY,
   REDUCED_MOTION_QUERY,
@@ -182,14 +181,53 @@ describe('Inkwell', () => {
     expect(rect(m.container).style.animationPlayState).toBe('running');
   });
 
-  it('reduced motion: draining shows a static 60% level and no animation', () => {
+  it('T-544 reduced motion: draining shows the real level, static, and no animation', () => {
     stubMatchMedia({ [REDUCED_MOTION_QUERY]: true });
-    expect(INKWELL_REDUCED_LEVEL).toBe(60);
     const m = mount(<Inkwell balance={95} draining />);
     const svg = q('svg', m.container)!;
-    expect(svg.getAttribute('data-level')).toBe('60');
+    expect(svg.getAttribute('data-level')).toBe('95');
     expect(svg.getAttribute('data-draining')).toBeNull();
     expect(rect(m.container).getAttribute('class') ?? '').not.toContain('nl-ink-draining');
+  });
+
+  it('T-544 reduced motion with balance 40 and draining: data-level 40, not draining, no animation class', () => {
+    stubMatchMedia({ [REDUCED_MOTION_QUERY]: true });
+    const m = mount(<Inkwell balance={40} draining />);
+    const svg = q('svg', m.container)!;
+    expect(svg.getAttribute('data-level')).toBe('40');
+    expect(svg.hasAttribute('data-draining')).toBe(false);
+    expect(rect(m.container).getAttribute('class') ?? '').not.toContain('nl-ink-draining');
+    expect(rect(m.container).style.animationPlayState).toBe('');
+    expect(rect(m.container).style.transform).toBe('translateY(60%)');
+  });
+
+  it('T-544 reduced motion clamps out-of-range balances (150 -> 100, -5 -> 0)', () => {
+    stubMatchMedia({ [REDUCED_MOTION_QUERY]: true });
+    expect(
+      q('svg', mount(<Inkwell balance={150} draining />).container)!.getAttribute('data-level'),
+    ).toBe('100');
+    expect(
+      q('svg', mount(<Inkwell balance={-5} draining />).container)!.getAttribute('data-level'),
+    ).toBe('0');
+  });
+
+  it('T-544 a non-draining Inkwell (as in ShelfKpis) shows the same real level with or without reduced motion', () => {
+    for (const reduced of [true, false]) {
+      stubMatchMedia({ [REDUCED_MOTION_QUERY]: reduced });
+      const m = mount(<Inkwell balance={40} />);
+      const svg = q('svg', m.container)!;
+      expect(svg.getAttribute('data-level')).toBe('40');
+      expect(svg.hasAttribute('data-draining')).toBe(false);
+      expect(rect(m.container).getAttribute('class') ?? '').not.toContain('nl-ink-draining');
+    }
+  });
+
+  it('T-544 motion allowed and draining: unchanged (class and data-draining)', () => {
+    stubMatchMedia({ [REDUCED_MOTION_QUERY]: false });
+    const m = mount(<Inkwell balance={40} draining />);
+    expect(q('svg', m.container)!.getAttribute('data-draining')).toBe('true');
+    expect(q('svg', m.container)!.getAttribute('data-level')).toBe('40');
+    expect(rect(m.container).getAttribute('class')).toContain('nl-ink-draining');
   });
 
   it('reduced motion without draining still shows the real balance', () => {

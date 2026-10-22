@@ -74,7 +74,7 @@ const MENU_LINK =
 export function LanguageToggle({ lang, onChange }: { lang: Lang; onChange: (l: Lang) => void }) {
   const copy = landingCopy(lang).language;
   return (
-    <div className="rounded-nl-md border-nl-line bg-nl-card inline-flex border p-px">
+    <div className="rounded-nl-md bg-nl-card inline-flex border border-[color:var(--line-control)] p-px">
       {(['en', 'hi'] as const).map((l) => (
         <button
           key={l}
