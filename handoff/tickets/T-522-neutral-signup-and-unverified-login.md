@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Arjun (design), Ajay (copy), an auth lead (build) |
 | Mode   | Full chain (auth, web) |
-| Status | To do. V1.1, due before any release after v1 (Vishal's T-517 report, 21 Oct 2026). Priya |
+| Status | In build: Vishal (22 Oct 2026). Rulings: Arjun (design) and Ajay AJ-522-M1 to M7 (copy, fence confirmed). Mode: full chain (auth, gateway/drafting, billing refusals last, email-worker, shared, web). Priya |
 | Source | Ajay AJ-511-M3; T-517 findings |
 
 ## Problem
