@@ -79,7 +79,7 @@ Hindi: `lang="hi"` on the root switches nothing in CSS (Mukta carries both scrip
 | focus halo | 150ms | ease | instant |
 | lamp follow | 120ms | linear; only when `(pointer: fine)` and width ≥ 900 | static pool at 70% 20% |
 | dust motes | 12–20s drift loop, 6–10 motes, opacity ≤ .25 | linear; `(pointer: fine)` and width ≥ 900 only; CSS or a 1 KB canvas | none |
-| ink drain | 2.6s | linear, matches the generate request | static at 60% |
+| ink drain | 2.6s | linear, matches the generate request | no drain; the gauge shows the real level, static (T-521/T-544) |
 | pen writing | 12-14ms per character, 220ms between paragraphs; 9ms on mobile | linear | draft appears whole |
 | brass seal | 550ms | cubic-bezier(.2,.9,.3,1.2), scale 2.2 to 1, rotate -20 to -8 | fade 150ms |
 | spine pull | 250ms | ease, translateY -14px | none |

@@ -336,6 +336,7 @@ The question at the top of the desk: "What do you need to draft?" in Title type,
 
 ### Do:
 - **Do** set every number with tabular numerals and keep Ink as a number plus the word Ink (never a draft count).
+- **Do** keep 150ms colour fades (hover ground, border, focus ring) under reduced motion. Reduced motion removes movement (lift, drain, pulse, scroll), not colour (T-544).
 - **Do** build both themes from the same token names; a component that reads one literal colour is a bug.
 - **Do** keep the lamp follow and the dust motes behind `(pointer: fine) and (min-width: 900px)`, and pause every loop on `visibilitychange`.
 - **Do** give every screen its loading, empty and error state before it ships, with Retry on every error.
