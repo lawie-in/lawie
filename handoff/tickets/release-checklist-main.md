@@ -86,3 +86,4 @@ Before main (not before Anushka): "Disclaimer slip" checklist lines and criminal
 1. Rotate the LIVE Razorpay key pair first, today (the agent environment carried an rzp_live_ pair; the live secret is in a dumped transcript). Then rotate the long-term AWS IAM key.
 2. Check the develop box: it may be running LIVE Razorpay keys if its env came from this config (Arjun's T-526 ruling assumed test keys). Count-only check: `grep -c rzp_live_` on the box's env file, never print values. If live: switch to test keys + test plan ids + test webhook, restart, before Anushka's run.
 3. Hold Anushka's billing/purchase checks until you confirm (2).
+- T-563 runbook (Ajay's condition, 22 Oct 2026): test-account erasure is a manual script. Run `yarn workspace @lawie/auth test-accounts:delete --apply` at the end of EVERY test run and at least weekly (same day if real data turns up), and record the count each time. Owner: founder/ops.
