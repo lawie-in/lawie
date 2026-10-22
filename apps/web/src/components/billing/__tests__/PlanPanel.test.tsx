@@ -3,6 +3,7 @@
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 
+import VerifyEmailPrompt from '../../VerifyEmailPrompt';
 import { PlanPanel } from '../PlanPanel';
 
 (globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -37,10 +38,9 @@ jest.mock('@/components/PrivacyUpdatePrompt', () => ({
   usePrivacyDescribedBy: () => undefined,
   onPrivacyAccepted: () => () => {},
 }));
-const mockIsVerifyRequired = jest.fn();
 jest.mock('@/components/VerifyEmailPrompt', () => ({
+  __esModule: true,
   ...jest.requireActual('@/components/VerifyEmailPrompt'),
-  isEmailVerificationRequired: (res: unknown) => mockIsVerifyRequired(res),
   useNeedsEmailVerification: () => false,
 }));
 
@@ -69,12 +69,16 @@ const SOLO = {
 };
 const GENERIC = 'Something did not work. Try again.';
 
-const reply = (status: number, body: unknown = {}, headers: Record<string, string> = {}) => ({
-  ok: status >= 200 && status < 300,
-  status,
-  headers: { get: (k: string) => headers[k] ?? null },
-  json: async () => body,
-});
+const reply = (status: number, body: unknown = {}, headers: Record<string, string> = {}) => {
+  const make = (): Record<string, unknown> => ({
+    ok: status >= 200 && status < 300,
+    status,
+    headers: { get: (k: string) => headers[k] ?? null },
+    json: async () => body,
+    clone: () => make(),
+  });
+  return make();
+};
 
 let statusBody: unknown;
 let statusCalls: number;
@@ -103,6 +107,19 @@ async function click(el: HTMLElement | undefined) {
   await act(async () => el!.click());
   await flush();
 }
+async function mountWithPrompt() {
+  await act(async () => {
+    root.render(
+      <>
+        <div data-testid="plan-wrap">
+          <PlanPanel gst={gst} />
+        </div>
+        <VerifyEmailPrompt />
+      </>,
+    );
+  });
+  await flush();
+}
 async function mount() {
   await act(async () => {
     root.render(<PlanPanel gst={gst} />);
@@ -117,7 +134,6 @@ beforeEach(() => {
   statusCalls = 0;
   (gst as { ensureReady: jest.Mock }).ensureReady.mockResolvedValue(true);
   mockFetchPlans.mockResolvedValue(CATALOGUE);
-  mockIsVerifyRequired.mockResolvedValue(false);
   mockPrecheck.mockResolvedValue(false);
   mockApiFetch.mockImplementation(async (path: string) => {
     if (path === '/api/billing/status') {
@@ -422,42 +438,37 @@ describe('T-509 AC2 cancel flow', () => {
 });
 
 describe('T-509 AC4 subscribe gates and failures', () => {
-  it('403 email_verification_required: verify banner with Resend email, not "Order creation failed"', async () => {
+  it('403 email_verification_required opens the M6 Subscribe dialog: Choose stays enabled, no redirect, no banner', async () => {
     mockPrivacyFetch.mockResolvedValue(reply(403, { error: 'email_verification_required' }));
-    mockIsVerifyRequired.mockResolvedValue(true);
-    await mount();
+    await mountWithPrompt();
     await click(find('Choose Solo'));
-    const banner = container.querySelector('[data-kind="verify-email"]')!;
-    expect(banner.textContent).toContain('Verify your email to subscribe.');
-    expect(find('Resend email')).toBeDefined();
+    const d = dialog() as HTMLElement;
+    expect(d).not.toBeNull();
+    // AJ-522-M6 shared title and Subscribe body (T-511-copy-rulings-ajay.md)
+    expect(d.textContent).toContain('Verify your email to continue');
+    expect(d.textContent).toContain('Verify your email to subscribe.');
+    expect(find('Resend email', d)).toBeDefined();
+    expect(find('Not now', d)).toBeDefined();
+    expect(find('Choose Solo')?.hasAttribute('disabled')).toBe(false);
+    expect(find('Choose Pro')?.hasAttribute('disabled')).toBe(false);
+    // The M3 dashboard bar is mounted beside the panel; the panel itself shows no banner.
+    expect(
+      container.querySelector('[data-testid="plan-wrap"] [data-kind="verify-email"]'),
+    ).toBeNull();
     expect(text()).not.toContain('Order creation failed');
     expect(text()).not.toContain('email_verification_required');
     expect(text()).not.toContain(GENERIC);
     expect(hrefSet).not.toHaveBeenCalled();
+    await click(find('Not now', d));
   });
 
-  it('Resend email calls the resend endpoint and shows the signed sent line with the masked address', async () => {
-    mockPrivacyFetch.mockResolvedValue(reply(403, {}));
-    mockIsVerifyRequired.mockResolvedValue(true);
-    await mount();
+  it('a 403 with any other code does not open the M6 dialog and shows the generic failure', async () => {
+    mockPrivacyFetch.mockResolvedValue(reply(403, { error: 'something_else' }));
+    await mountWithPrompt();
     await click(find('Choose Solo'));
-    await click(find('Resend email'));
-    expect(mockApiFetch).toHaveBeenCalledWith('/api/auth/verify-email/resend', { method: 'POST' });
-    expect(text()).toContain('Check your inbox and your spam folder.');
-  });
-
-  it('Resend email 409 (already verified): the banner goes away', async () => {
-    mockPrivacyFetch.mockResolvedValue(reply(403, {}));
-    mockIsVerifyRequired.mockResolvedValue(true);
-    const base = mockApiFetch.getMockImplementation()!;
-    mockApiFetch.mockImplementation(async (path: string, init?: unknown) =>
-      path === '/api/auth/verify-email/resend' ? reply(409, {}) : base(path, init),
-    );
-    await mount();
-    await click(find('Choose Solo'));
-    await click(find('Resend email'));
-    expect(container.querySelector('[data-kind="verify-email"]')).toBeNull();
-    expect(text()).toContain('Your email is already verified.');
+    expect(dialog()).toBeNull();
+    expect(text()).toContain(GENERIC);
+    expect(hrefSet).not.toHaveBeenCalled();
   });
 
   it('privacy block on subscribe: privacy banner with Review and accept, not "Order creation failed"', async () => {

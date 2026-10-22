@@ -115,13 +115,12 @@ describe('T-528 login', () => {
     expect(google.className).not.toContain('translate-y');
   });
 
-  it('the referral Continue button carries every primary-hover class', async () => {
+  it('T-522: a 202 from Create account with a referral code shows Check your email; the old referral Continue button is gone', async () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
-      status: 201,
-      json: async () => ({
-        data: { accessToken: 'a', refreshToken: 'r', referralApplied: false, user: {} },
-      }),
+      status: 202,
+      headers: { get: () => null },
+      json: async () => ({ status: 'success', data: { status: 'check_email' } }),
     }) as unknown as typeof fetch;
     await mount('mode=signup&ref=abc12');
     const form = q<HTMLFormElement>('form')!;
@@ -138,10 +137,8 @@ describe('T-528 login', () => {
       form.requestSubmit();
     });
     await flush();
-    const cont = qa('button').find((b) => b.textContent === 'Continue');
-    expect(cont).toBeDefined();
-    expect(cls(cont!)).toEqual(expect.arrayContaining(HOVER));
-    expect(cls(cont!)).toContain('touch-manipulation');
+    expect(qa('button').find((b) => b.textContent === 'Continue')).toBeUndefined();
+    expect(q('h1')!.textContent).toBe('Check your email');
   });
 
   it('source: the Google button line has no shadow-nl-halo', () => {

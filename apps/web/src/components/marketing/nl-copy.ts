@@ -137,7 +137,7 @@ export const FAQ_EN: FaqItem[] = [
   },
   {
     q: 'Which documents can I draft?',
-    a: 'Bail applications, legal notices, writ petitions, maintenance petitions, plaints, written statements, affidavits.',
+    a: 'Bail applications, legal notices, writ petitions, maintenance petitions, written statements, affidavits.',
   },
   {
     q: 'What happens to what I type?',
@@ -145,7 +145,7 @@ export const FAQ_EN: FaqItem[] = [
   },
   {
     q: 'Can I cancel anytime?',
-    a: 'Yes. Cancel from your account settings. Cancelling stops future charges and takes effect at the end of your current billing period. Ink you already have stays until then. Subscriptions are billed in advance and are not refunded; see the Refund Policy.',
+    a: 'Yes. Cancel from your account settings. Cancelling stops future charges and takes effect at the end of your current billing period. Ink you already have stays until then. Top-up Ink stays. Subscriptions are billed in advance and are non-refundable except as set out in the Refund Policy.',
   },
 ];
 
@@ -450,6 +450,33 @@ export const AUTH_COPY = {
     privacy: 'Privacy Policy',
     after: '.',
   },
+  // ── T-522: neutral sign-up (Ajay AJ-522-M2, S2, S4, S6, S7, S8; handoff/legal/
+  // T-511-copy-rulings-ajay.md, 03e3571). Built from those rows byte for byte.
+  // "Check your email" after Create account: the same screen for a new and an existing address.
+  // {email} is the address as typed (not masked). Heading: §2.3 (HI signed in S4). Body: AJ-511-M3
+  // via AJ-522-M2. Resend and the sent / wait / end-of-wait lines: AJ-522-M3 (button), S6 and M4
+  // (the generic wait line; the client timer is not the server limit). Link: S4.
+  checkEmail: {
+    title: 'Check your email',
+    body: "We've sent a link to {email}. Open it to continue.",
+    resend: 'Resend email',
+    sent: 'Request sent. Check your inbox and spam folder.',
+    wait: 'Please wait before asking for another email.',
+    ready: 'You can resend the email now.',
+    differentEmail: 'Use a different email',
+  },
+  // AJ-522-S7 (scope S10): the one weak-password line, beside the T-234 checklist above.
+  passwordWeak:
+    'Use at least 8 characters, with an upper-case letter, a lower-case letter and a digit.',
+  // AJ-522-S8: sign-up 503 (and a failed resend on the Check your email screen), with `retry`.
+  // A sign-up 429 reuses T-221 forgot.limit (ForgotPasswordForm limitMessage).
+  unavailable: 'Something did not work. Try again.',
+  // AJ-522-S2: R5 (with {n} from the server and the optional " — {label}") and R6. Referral Ink
+  // lands only on verification, for new accounts only.
+  referralApplied: (bonusInk: number, label: string): string =>
+    `Code applied${label ? ` — ${label}` : ''}. ${bonusInk} Ink will be added when you verify your email. New accounts only.`,
+  referralAppliedNoCount:
+    'Code applied. Bonus Ink will be added when you verify your email. New accounts only.',
 };
 
 /**
@@ -470,3 +497,54 @@ export const CONSENT_COPY = {
   // AJ-517-M3, signed.
   required: 'Please accept the Privacy Policy and Terms to continue.',
 };
+
+// ── T-522: verify bar, draft refusal, post-verify landing, referral notice ─────────────────────
+
+/**
+ * Ajay AJ-522-M3, M4, M6, S3, S5, S6, S8 (handoff/legal/T-511-copy-rulings-ajay.md), byte for
+ * byte. {masked} is maskEmail() in components/VerifyEmailPrompt.tsx. English only on these
+ * surfaces today; the signed Hindi stays in the rulings file until the dashboard has a language.
+ */
+export const VERIFY_COPY = {
+  /**
+   * AJ-522-M3, and for an account that has had its sign-up Ink the re-signed AJ-522-S11 line
+   * (it replaces M3's drop rule).
+   */
+  bar: (masked: string, signupInkGranted: boolean): string =>
+    signupInkGranted
+      ? `Verify your email to start drafting and buy Ink. We sent a link to ${masked}.`
+      : `Verify your email to start drafting, buy Ink and receive your 5 sign-up Ink. We sent a link to ${masked}.`,
+  /** AJ-522-M3 button (also M6 and S5). */
+  resend: 'Resend email',
+  /** AJ-522-M4, signed in. */
+  sent: 'Email sent. Check your inbox and spam folder.',
+  /** AJ-522-M4: the 2-minute limit is not one minute, so the generic line. */
+  wait: 'Please wait before asking for another email.',
+  /** AJ-522-S6: the end of a wait window. */
+  ready: 'You can resend the email now.',
+  /** AJ-522-S8: verify-bar failure, with `retry`. */
+  failed: "Couldn't send the email. Check your connection and try again.",
+  retry: 'Retry',
+  /** AJ-522-M6 draft refusal (title T-223, signed). */
+  draftTitle: 'Verify your email to continue',
+  draftBody: (masked: string): string =>
+    `Verify your email to start drafting. We sent a link to ${masked}.`,
+  /** §3 Dismiss (copy v1), HI signed in AJ-522-S8. */
+  notNow: 'Not now',
+  /** AJ-522-S3 (T-234 Addendum 3): once, after verification, only for not_applied. */
+  referralNotApplied: 'Your referral code was not valid, so no bonus Ink was added.',
+  /** AJ-522-S5 landing states; the verifying title is AJ-522-S12. */
+  landing: {
+    verifying: 'Verifying your email…',
+    verifiedTitle: 'Email verified',
+    verifiedSignedIn: 'Your email is verified. You can continue.',
+    goToShelf: 'Go to your shelf',
+    verifiedSignedOut: 'Your email is verified. Sign in to continue.',
+    signIn: 'Sign in',
+    expiredTitle: 'This link has expired or was already used.',
+    expiredLine:
+      'Sign in to continue. If your email is not verified yet, you can ask for a new link.',
+    failed: "We couldn't verify your email just now. Please try again.",
+    tryAgain: 'Try again',
+  },
+} as const;

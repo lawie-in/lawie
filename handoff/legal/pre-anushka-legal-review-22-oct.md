@@ -264,3 +264,38 @@ With these, the old flow is fully signed. `describe_first` may still stay ON for
 | S10 | discharge checklist and gpa `_meta` | Checklist: `Court orders / judgments relied on`. gpa `_meta.change_protocol`: `The title clause must appear prominently…`, with the rest unchanged. |
 | S11 | Validator warning blocked by the missing offence date | Separate ticket after Mahak's merge, for the date scoping. **Now:** change the warning text to the signed `Check the code: Section {x} BNS replaced Section {y} IPC for an offence on or after 1 July 2024.` It is true whatever the offence date, so it may fire unscoped until then. "Use Section X BNS instead" must go now. |
 | S11a | Arjun's choice for the interim validator warning: suppress, or a neutral line | **Neutral line, not suppression.** It replaces my S11 interim text and is signed: `This draft cites Section {x} IPC. Confirm the offence date: BNS applies to offences on or after 1 July 2024, IPC to offences before that date.` Show it on any IPC citation, whatever the date, until the date-scoped follow-up lands. Then it gives way to the scoped item 54d warning. |
+
+### Byte check T-565 wave 2a, fix/t-565-legal-app-web @ 88c4aa8f: approved (Ajay, 22 Oct 2026)
+
+W5a, W6–W13, rows 42 and 48, and the pre-stream routing all match. No NEW-n id renders (the regexes and comments remain). The "Drafting could not finish" heading is gone (a comment only remains). `Cannot generate`, `Drafting your` and `No charge` are gone. **W14:** in the pre-generate cost line (`InkCostLine.tsx`), `We could not work out the Ink cost for this. Try again in a moment.` + button `Check the cost again` are **signed** there. They are a true, functional retry that serves AJ-511-M1. **On the GeneratingStep failure card, cut the notice**: W8 holds there, and the W12 line under the disabled button is enough. The OneFlow W13 lines follow after Vishal's merge.
+| W15 | Re-check at 91f7b777; the disabled button is a dead end if the cost never loads | **Approved at 91f7b777.** Only GeneratingStep changed, per W14. Dead end: the signed button `Check the cost again` (W14) **may** be reused, as a button only, on the GeneratingStep and PipelineStatus failure cards beside the W12 reason line, so the user can re-fetch the cost. No notice text is added. Whether to add it is Rajesh's or Priya's call. Legally either way is fine. |
+
+### Answers to Shashank's batch 3 flags (T-566 @ f5d340f5, 22 Oct)
+
+| Ref | Question | Ruling |
+|---|---|---|
+| S5a | Keeps and deletes | OK, except habeas line 1: delete the repeated "'habeas corpus is the great writ of liberty.'", because the sentence before it already says it. The other keeps and all four deletions stand. |
+| S8a | "title clause paragraph" | Drop "paragraph": `— title clause must be inserted` (gpa, spa). jda `— title clause required` is OK. |
+| S9a | Remaining sample places | Ranchi rent-agreement addresses become `Sample Road, Ranchi` (keep the state right). `Village Barh, Dist. Patna, Bihar – 803213` becomes `Sample Village, Dist. Patna, Bihar`. Bank branch becomes `Sample Branch, Patna`. In the s.138 sample, give the respondent `Sample Lane, Patna` so the two parties do not share an address. |
+| S11b | CrPC and IEA validator lines | Signed. CrPC: `This draft cites Section {x} CrPC. Confirm the date: BNSS applies to proceedings from 1 July 2024; CrPC continues for matters pending before that date.` IEA: `This draft cites Section {x} of the Evidence Act. Confirm the date: BSA applies from 1 July 2024; check whether the Evidence Act still governs this matter.` (The pending-matter savings under the BSA: verify, so the line does not state them.) Both replace the old "Use Section X … instead" and "Please verify" texts. |
+| S12 | gpa and spa `_meta.description` naming Suraj Lamp | Leave them. `_meta` is not sent to the model (R6), and only `change_protocol` was in scope. |
+
+## Byte check T-567, fix/t-567-legal-server-export @ 4189ce3e: approved (Ajay, 22 Oct 2026)
+
+- Item 23: `/cancel` no longer has `requireCurrentPrivacy`.
+- Item 52: SKU badges are removed.
+- Item 30: Word and PDF exports use `EXPORT_DISCLAIMER_FOOTER`, exact to row 30, or the starting-draft footer instead. Exactly one footer.
+- Item 24: the three T-221 lines are exact. {n} comes from Retry-After, rounded up, minimum 1. Both the account and public limiters use them. No upsell.
+- Item 41: every `classifyLlmError` case shows `The draft did not finish.`, with the detail in logs only. `inkReleased` is not set (the web shows no Ink line until the release is confirmed). "Inputs are saved", "brief is kept", "founder must set" and "contact support" are gone.
+- **Question:** the pre-stream 500 body `{ error: 'Generation failed', message: 'Unknown generation error' }`. **Drop the English `message` field.** Keep the machine `error` code only. The web shows its own signed text for a pre-stream failure (W12).
+
+### Answers to Tanvi's wave 2b questions (22 Oct)
+
+| Ref | Question | Ruling |
+|---|---|---|
+| B1 | Empty body from the drafting start (OneFlow ~:773) | OK: `The draft did not finish.` + the documents-list line, with no Ink claim. |
+| B2 | Dropped connection (OneFlow ~:837, ~:907) | OK: the signed `Connection lost. Check your documents.` alone (AJ-521-M1). It is accurate and makes no Ink claim. |
+| B3 | Coupon reasons (`topup-quote.service.ts` QUOTE_REASONS) shown in the top-up modal | **Signed as they are**, with one fix: `cannotApply` gets its full stop (`This coupon cannot be applied to this item.`). The others are signed: `Coupon not found or inactive.`, `Coupon has expired.`, `This coupon does not apply to the selected item.`, `Coupon has reached its usage limit.`, `You have already used this coupon.`. They are factual and come from the server's own checks. Any other raw billing text keeps row 45's generic line. |
+| B4 | Low-Ink nudge hidden unless verified (fails closed) | OK. Hiding it can never make a false statement. |
+| B5 | OneFlow pre-stream 409/429/401 and 403 | Align them with the old flow now. 409: the documents line, no Retry (W6). 429/401: `Something did not work. Try again.` + Retry (W12). Plan 403: replace "This document needs the Pro plan…" with `This document is not available on your current plan.` and no Retry (W7), even though the line is unreachable in v1. |
+- **T-567 follow-up at 4c8bddda: approved.** Both the pre-stream 500 (:981) and the hold-step `holdError` (:906) now return `{ error: 'Generation failed' }` only. No other change since 4189ce3e. T-567 is approved at 4c8bddda.

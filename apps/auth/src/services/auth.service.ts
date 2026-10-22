@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 
+import { enqueueEmail } from '@lawie/email-client';
 import {
   RegisterPayload,
   LoginPayload,
@@ -7,10 +8,13 @@ import {
   sessionKey,
   getPrivacyVersionSummary,
   PRIVACY_REACCEPT_REQUIRED,
+  isVerified,
 } from '@lawie/shared';
 import bcrypt from 'bcryptjs';
+import type Redis from 'ioredis';
 
 import logger from '../config/logger';
+import redisClient from '../config/redis';
 import { AppError } from '../middleware/errorHandler';
 import { Session } from '../models/Session.model';
 import {
@@ -23,7 +27,7 @@ import {
 } from '../models/User.model';
 import { buildSignupSource, UpdateMeInput, UtmTags } from '../validators/auth.validator';
 
-import { tryGrantDailyLoginBonus, grantSignupBonus } from './credit-bonus.service';
+import { tryGrantDailyLoginBonus } from './credit-bonus.service';
 import { generateTokenPair, verifyRefreshToken } from './jwt.service';
 import {
   releasePasswordChangeAttempt,
@@ -38,6 +42,7 @@ import {
   hashToken,
   SessionMeta,
 } from './session.service';
+import { claimSignupAttemptMail, consumeSignupQuota } from './signup-rate-limit';
 import { requestVerifyEmail } from './verify-email.service';
 
 // T-299 (Arjun ruling 2): login must not reveal whether an account exists, by status or by
@@ -50,52 +55,145 @@ const DEACTIVATED_MESSAGE = 'Your account has been deactivated. Contact support.
 const INVALID_REFRESH_MESSAGE = 'Invalid or expired refresh token';
 export const DUMMY_PASSWORD_HASH = bcrypt.hashSync(crypto.randomBytes(32).toString('hex'), 12);
 
+/**
+ * T-522 (Arjun rulings 3 and 4, 22 Oct 2026) — the neutral sign-up outcome. 'accepted' is the
+ * same for a new and an existing address; the controller answers it with one fixed 202 body.
+ */
+export type RegisterOutcome =
+  | { kind: 'accepted' }
+  /** Over the IP or email bucket (counted before any lookup). 429 + Retry-After. */
+  | { kind: 'limited'; retryAfterSeconds: number }
+  /** The rate-limit store failed: nothing was looked up. 503. */
+  | { kind: 'unavailable' };
+
+export interface RegisterDeps {
+  redis: Redis;
+  enqueue: typeof enqueueEmail;
+}
+
+const defaultRegisterDeps = (): RegisterDeps => ({ redis: redisClient, enqueue: enqueueEmail });
+
+/** Error class name only (never the message, which can echo values), for logs. */
+function errorKind(err: unknown): string {
+  const kind = err instanceof Error ? err.constructor?.name : undefined;
+  return typeof kind === 'string' && kind ? kind : 'Error';
+}
+
+/** T-522 (Arjun 4): a duplicate-key error on the email index is the existing-address outcome. */
+export function isDuplicateEmailError(err: unknown): boolean {
+  const e = err as { code?: unknown; keyPattern?: unknown; keyValue?: unknown } | null;
+  if (!e || e.code !== 11000) return false;
+  const pattern = e.keyPattern as Record<string, unknown> | undefined;
+  const value = e.keyValue as Record<string, unknown> | undefined;
+  return Boolean(
+    (pattern && Object.prototype.hasOwnProperty.call(pattern, 'email')) ||
+    (value && Object.prototype.hasOwnProperty.call(value, 'email')),
+  );
+}
+
+/**
+ * T-522 — the existing-address path (AJ-522-M5): at most one "Someone tried to create a Lawie
+ * account" mail per address per hour (SET NX key), userId only in the job (T-223 condition 1).
+ * Silent when the key is already set or the store fails. Never throws; logs the userId only.
+ */
+async function sendSignupAttemptMail(
+  email: string,
+  userId: string,
+  deps: RegisterDeps,
+): Promise<void> {
+  const claimed = await claimSignupAttemptMail(deps.redis, email);
+  if (!claimed) {
+    logger.info({ userId }, 'Sign-up attempt mail not sent: one already sent this hour');
+    return;
+  }
+  void Promise.resolve()
+    .then(() => deps.enqueue({ template: 'auth.signupAttempt', userId }))
+    .catch((err: unknown) => {
+      logger.error({ userId, errKind: errorKind(err) }, 'Sign-up attempt mail enqueue failed');
+    });
+}
+
+/**
+ * T-522 — neutral sign-up. The payload must already be validated (422 first, in the controller,
+ * before any lookup). Then, in this order:
+ *  1. The IP and email-hash buckets are counted (before the lookup), 429 / 503 as T-221.
+ *  2. New address: the account is created unverified; the verify mail is queued (the worker
+ *     mints a 30-minute 'signin' link at send time); no tokens, no session. A referral code is
+ *     recorded with no Ink (granted on verification).
+ *  3. Existing address (or E11000 on email, a concurrent create): nothing is created; the same
+ *     bcrypt cost-12 hash is run on the submitted password, and the M5 mail is sent at most once
+ *     an hour.
+ * Both paths answer 'accepted'. The controller pads the response to the floor.
+ */
 export async function registerUser(
   payload: RegisterPayload & { referralCode?: string } & UtmTags,
-  meta: SessionMeta = {},
-): Promise<{
-  user: IUser;
-  tokens: { accessToken: string; refreshToken: string };
-  referralApplied?: boolean;
-}> {
-  const existing = await User.findOne({ email: payload.email.toLowerCase() });
+  ip: string | undefined,
+  overrides: Partial<RegisterDeps> = {},
+): Promise<RegisterOutcome> {
+  const deps = { ...defaultRegisterDeps(), ...overrides };
+  const email = payload.email.toLowerCase();
+
+  let quota;
+  try {
+    quota = await consumeSignupQuota(deps.redis, email, ip);
+  } catch (err) {
+    logger.warn({ errKind: errorKind(err) }, 'Sign-up refused: rate-limit store unavailable');
+    return { kind: 'unavailable' };
+  }
+  if (!quota.allowed) {
+    logger.info({ retryAfterSeconds: quota.retryAfterSeconds }, 'Sign-up refused: rate limit');
+    return { kind: 'limited', retryAfterSeconds: quota.retryAfterSeconds };
+  }
+
+  const existing = await User.findOne({ email }, { _id: 1 }).lean();
   if (existing) {
-    throw new AppError(409, 'An account with this email already exists');
+    // Same operation as the new path's pre-save hash (bcrypt, cost 12), not a compare.
+    await bcrypt.hash(payload.password, 12);
+    await sendSignupAttemptMail(email, existing._id.toString(), deps);
+    return { kind: 'accepted' };
   }
 
   const acceptedAt = new Date();
-  const user = await User.create({
-    email: payload.email,
-    password: payload.password,
-    name: payload.name,
-    // Always 'Lawyer', the same as Google sign-up (T-298, Arjun 12 Oct 2026).
-    // Never read a role from the request (T-196): Admin is the only gate on admin
-    // routes and bypasses enforceFreeLimit. The schema default stays 'Client' on purpose.
-    role: 'Lawyer',
-    // T-234 — the sign-up form shows the Terms line under the submit button.
-    // Server time and server version only; nothing here comes from the request.
-    termsAcceptedAt: acceptedAt,
-    termsVersion: CURRENT_TERMS_VERSION,
-    acceptedVia: 'password',
-    // T-343 (Ajay §4) — privacyVersion, privacyAcceptedAt, via 'signup' and the first history
-    // row. Sign-up never shows the re-acceptance prompt.
-    ...privacySignupAcceptance(acceptedAt),
-    // T-242 — campaign tags, only on account creation, with the server time. Sanitized again
-    // here so a caller that skips the validator can't store a raw value. Never logged.
-    signupSource: buildSignupSource({
-      utmSource: payload.utmSource,
-      utmMedium: payload.utmMedium,
-      utmCampaign: payload.utmCampaign,
-    }),
-  });
+  let user: IUser;
+  try {
+    user = await User.create({
+      email: payload.email,
+      password: payload.password,
+      name: payload.name,
+      // Always 'Lawyer', the same as Google sign-up (T-298, Arjun 12 Oct 2026).
+      // Never read a role from the request (T-196): Admin is the only gate on admin
+      // routes and bypasses enforceFreeLimit. The schema default stays 'Client' on purpose.
+      role: 'Lawyer',
+      // T-234 — the sign-up form shows the Terms line under the submit button.
+      // Server time and server version only; nothing here comes from the request.
+      termsAcceptedAt: acceptedAt,
+      termsVersion: CURRENT_TERMS_VERSION,
+      acceptedVia: 'password',
+      // T-343 (Ajay §4) — privacyVersion, privacyAcceptedAt, via 'signup' and the first history
+      // row. Sign-up never shows the re-acceptance prompt.
+      ...privacySignupAcceptance(acceptedAt),
+      // T-242 — campaign tags, only on account creation, with the server time. Sanitized again
+      // here so a caller that skips the validator can't store a raw value. Never logged.
+      signupSource: buildSignupSource({
+        utmSource: payload.utmSource,
+        utmMedium: payload.utmMedium,
+        utmCampaign: payload.utmCampaign,
+      }),
+    });
+  } catch (err) {
+    // T-522 (Arjun 4): a concurrent sign-up for the same address won the create. That is the
+    // existing-address outcome, not an error: no Sentry. Any other E11000 still throws.
+    if (!isDuplicateEmailError(err)) throw err;
+    const raced = await User.findOne({ email }, { _id: 1 }).lean();
+    if (raced) await sendSignupAttemptMail(email, raced._id.toString(), deps);
+    return { kind: 'accepted' };
+  }
 
-  // Signup bonus — non-blocking, never fails registration
-  void grantSignupBonus(user._id.toString());
-
-  // T-223 AC1 — queue the verify email (userId only; the resend cap applies). Fire-and-forget:
-  // it never fails or slows registration. 'limited' or 'unavailable' just means the user resends
-  // from the prompt. Logs the outcome kind and userId only.
   const newUserId = user._id.toString();
+  // No sign-up bonus here (T-351: none until verified); verifyEmailToken grants it.
+
+  // T-223 AC1 / T-522 — queue the verify mail (userId only; the resend cap applies; the worker
+  // mints a 'signin' link). Fire-and-forget: it never fails or slows registration.
   void requestVerifyEmail(newUserId)
     .then((outcome) => {
       logger.info(
@@ -107,24 +205,30 @@ export async function registerUser(
       logger.warn({ userId: newUserId }, 'Verify email request failed at sign-up');
     });
 
-  // Referral (T-234 / Ajay Addendum 1: no silent drop). Awaited so the response can
-  // tell the page whether the code was applied, but it never fails registration.
-  // applyReferralCode grants at most once per user (T-298 d).
-  // referralApplied: true = applied, false = code no longer valid, undefined = no code
-  // sent or an unexpected error (we cannot honestly say either way).
-  let referralApplied: boolean | undefined;
+  // T-522 (Arjun 2): record the referral code with no Ink (deferInk); the Ink follows
+  // verification. The outcome goes to GET /me as referralStatus, never into this response.
+  // Not awaited, so the response does not wait on it; it never fails registration.
   if (payload.referralCode) {
-    try {
-      const outcome = await applyReferralCode(user._id.toString(), payload.referralCode);
-      referralApplied = outcome === 'applied' ? true : outcome === 'invalid' ? false : undefined;
-    } catch (err) {
+    const code = payload.referralCode;
+    void applyReferralCode(newUserId, code, { deferInk: true }).catch((err: unknown) => {
       logger.warn(
-        { userId: user._id.toString(), err: err instanceof Error ? err.message : String(err) },
+        { userId: newUserId, errKind: errorKind(err) },
         'Referral code apply failed at registration',
       );
-    }
+    });
   }
 
+  return { kind: 'accepted' };
+}
+
+/**
+ * T-522 — what loginUser does once the password is proved, shared so that a 'signin' verify
+ * link signs in exactly the same way: token pair, session with authAt, then the daily bonus.
+ */
+async function startSignedInSession(
+  user: IUser,
+  meta: SessionMeta,
+): Promise<{ accessToken: string; refreshToken: string }> {
   const tokens = generateTokenPair({
     sub: user._id.toString(),
     email: user.email,
@@ -139,11 +243,77 @@ export async function registerUser(
     tokens.accessToken,
     tokens.refreshToken,
     { plan: user.plan, email: user.email, role: user.role, name: user.name },
-    // T-115c — the sign-up form just took the password.
+    // T-115c — the credential (password, or the single-use emailed link) was just proved.
     { ...meta, authAt: new Date().toISOString() },
   );
 
-  return { user, tokens, referralApplied };
+  // SCRUM-73 — daily login bonus, non-blocking on the login hot path.
+  void tryGrantDailyLoginBonus(user._id.toString());
+
+  return tokens;
+}
+
+/**
+ * T-522 (Arjun 1, open point (c) confirmed 22 Oct 2026) — signs in the user whose 'signin' link
+ * POST /verify-email just used, whether it verified the account now or the account was already
+ * verified. Null, and no session, for an account that is gone, deactivated, being closed
+ * (erasure: locked, T-115c) or Google-only (no password, e.g. linked to Google since the link
+ * was sent): the caller answers 400 verify_link_invalid.
+ */
+export async function signInFromVerifyLink(
+  userId: string,
+  meta: SessionMeta = {},
+): Promise<{ user: IUser; tokens: { accessToken: string; refreshToken: string } } | null> {
+  const user = await User.findById(userId).select('+password');
+  if (!user || !user.isActive || user.erasure) return null;
+  if (typeof user.password !== 'string' || user.password.length === 0) return null;
+  const tokens = await startSignedInSession(user, meta);
+  return { user, tokens };
+}
+
+/**
+ * T-522 (Arjun 5) — public POST /verify-email/resend-by-email. Shares the sign-up IP and email
+ * buckets (429 / 503, counted before the lookup). Otherwise always 'accepted': an unknown,
+ * verified, Google or password-less address gets nothing; an unverified password account gets
+ * a 'signin' link, under the per-user cap (1 per 2 min, 5 per day), and when that cap is hit
+ * nothing is sent and the answer is the same.
+ */
+export async function resendVerifyByEmail(
+  email: string,
+  ip: string | undefined,
+  overrides: Partial<RegisterDeps> = {},
+): Promise<RegisterOutcome> {
+  const deps = { ...defaultRegisterDeps(), ...overrides };
+  let quota;
+  try {
+    quota = await consumeSignupQuota(deps.redis, email, ip);
+  } catch (err) {
+    logger.warn({ errKind: errorKind(err) }, 'Signed-out resend refused: store unavailable');
+    return { kind: 'unavailable' };
+  }
+  if (!quota.allowed) {
+    logger.info(
+      { retryAfterSeconds: quota.retryAfterSeconds },
+      'Signed-out resend refused: rate limit',
+    );
+    return { kind: 'limited', retryAfterSeconds: quota.retryAfterSeconds };
+  }
+
+  const user = await User.findOne({ email: email.toLowerCase() })
+    .select('emailVerified authProvider isActive erasure +googleId +password')
+    .lean();
+  if (!user || user.isActive === false || user.erasure) return { kind: 'accepted' };
+  if (isVerified(user)) return { kind: 'accepted' };
+  if (typeof user.password !== 'string' || user.password.length === 0) return { kind: 'accepted' };
+
+  const userId = user._id.toString();
+  try {
+    const outcome = await requestVerifyEmail(userId, deps.redis);
+    logger.info({ userId, outcome: outcome.kind }, 'Signed-out verify resend');
+  } catch (err) {
+    logger.warn({ userId, errKind: errorKind(err) }, 'Signed-out verify resend failed');
+  }
+  return { kind: 'accepted' };
 }
 
 export async function loginUser(
@@ -171,26 +341,8 @@ export async function loginUser(
     throw new AppError(403, DEACTIVATED_MESSAGE);
   }
 
-  const tokens = generateTokenPair({
-    sub: user._id.toString(),
-    email: user.email,
-    name: user.name,
-    role: user.role,
-    plan: user.plan,
-    pv: user.privacyVersion,
-  });
-
-  await createSession(
-    user._id.toString(),
-    tokens.accessToken,
-    tokens.refreshToken,
-    { plan: user.plan, email: user.email, role: user.role, name: user.name },
-    // T-115c — the password was just proved.
-    { ...meta, authAt: new Date().toISOString() },
-  );
-
-  // SCRUM-73 — daily login bonus, non-blocking on the login hot path.
-  void tryGrantDailyLoginBonus(user._id.toString());
+  // T-522: token pair, session with authAt (the password was just proved), daily bonus.
+  const tokens = await startSignedInSession(user, meta);
 
   return { user, tokens };
 }
@@ -317,6 +469,10 @@ export type MeStatus = PrivacyStatus &
     hasPassword: boolean;
     /** T-436: the GST State/UT code for tax invoices (2-digit string), or null when not given. */
     gstStateCode: string | null;
+    /** T-522 (Arjun 7): the sign-up Ink has been granted (signupBonusGrantedAt is set). */
+    signupInkGranted: boolean;
+    /** T-522 (Arjun 2): a sign-up referral code's outcome; null when none was sent or unknown. */
+    referralStatus: 'applied' | 'not_applied' | null;
   };
 
 function stringOrNull(v: unknown): string | null {
@@ -331,6 +487,7 @@ export async function getPrivacyStatus(userId: string): Promise<MeStatus> {
   // googleId is select:false on the schema, so it is asked for explicitly (+googleId).
   const user = await User.findById(userId).select(
     'privacyVersion isActive emailVerified authProvider gstStateCode +googleId +password ' +
+      'signupBonusGrantedAt referralStatus ' +
       'name phone enrollmentNumber barCouncilId state practiceAreas yearsOfExperience ' +
       'courtsPractisedIn defaultCourt',
   );
@@ -346,6 +503,11 @@ export async function getPrivacyStatus(userId: string): Promise<MeStatus> {
     hasGoogle,
     hasPassword: typeof user.password === 'string' && user.password.length > 0,
     gstStateCode: typeof user.gstStateCode === 'string' ? user.gstStateCode : null,
+    signupInkGranted: user.signupBonusGrantedAt !== null && user.signupBonusGrantedAt !== undefined,
+    referralStatus:
+      user.referralStatus === 'applied' || user.referralStatus === 'not_applied'
+        ? user.referralStatus
+        : null,
     name: stringOrNull(user.name),
     phone: stringOrNull(user.phone),
     enrollmentNumber: stringOrNull(user.enrollmentNumber),

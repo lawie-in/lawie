@@ -10,6 +10,7 @@ import { Request, Response, Router } from 'express';
 import { z } from 'zod';
 
 import { authenticate } from '../middleware/authenticate';
+import { requireVerifiedEmail } from '../middleware/requireVerifiedEmail';
 import { LedgerConflictError, LedgerFullError } from '../services/fact-ledger.service';
 import { isTemplateEnabled, TEMPLATE_NOT_FOUND } from '../services/feature-switches';
 import {
@@ -51,44 +52,49 @@ router.get('/intake/enabled', authenticate, async (req: Request, res: Response):
   res.json({ enabled: await isDescribeFirstEnabled(req.jwtPayload!.sub) });
 });
 
-router.post('/intake', authenticate, async (req: Request, res: Response): Promise<void> => {
-  const parsed = intakeSchema.safeParse(req.body);
-  if (!parsed.success) {
-    // Messages come from the schema only, never from the submitted text.
-    res.status(400).json({
-      error: 'Invalid request',
-      issues: parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`),
-    });
-    return;
-  }
-  const payload = req.jwtPayload!;
-  try {
-    const result = await runIntake({
-      userId: payload.sub,
-      plan: payload.plan,
-      description: parsed.data.description,
-      language: parsed.data.language,
-      templateId: parsed.data.template_id,
-      intakeId: parsed.data.intake_id,
-    });
-    res.json(result);
-  } catch (err) {
-    if (err instanceof IntakeLimitError) {
-      res.setHeader('Retry-After', String(err.retryAfterSeconds));
-      res.status(429).json({
-        error: 'intake_limit',
-        message:
-          err.scope === 'daily'
-            ? "You have used today's quota for describing. Browse templates still works."
-            : 'You have described several matters in a short time. Please wait a few minutes. Browse templates still works.',
-        retry_after_seconds: err.retryAfterSeconds,
+router.post(
+  '/intake',
+  authenticate,
+  requireVerifiedEmail,
+  async (req: Request, res: Response): Promise<void> => {
+    const parsed = intakeSchema.safeParse(req.body);
+    if (!parsed.success) {
+      // Messages come from the schema only, never from the submitted text.
+      res.status(400).json({
+        error: 'Invalid request',
+        issues: parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`),
       });
       return;
     }
-    console.error('[intake] unexpected error:', err instanceof Error ? err.name : 'unknown');
-    res.json({ outcome: 'unavailable' });
-  }
-});
+    const payload = req.jwtPayload!;
+    try {
+      const result = await runIntake({
+        userId: payload.sub,
+        plan: payload.plan,
+        description: parsed.data.description,
+        language: parsed.data.language,
+        templateId: parsed.data.template_id,
+        intakeId: parsed.data.intake_id,
+      });
+      res.json(result);
+    } catch (err) {
+      if (err instanceof IntakeLimitError) {
+        res.setHeader('Retry-After', String(err.retryAfterSeconds));
+        res.status(429).json({
+          error: 'intake_limit',
+          message:
+            err.scope === 'daily'
+              ? "You have used today's quota for describing. Browse templates still works."
+              : 'You have described several matters in a short time. Please wait a few minutes. Browse templates still works.',
+          retry_after_seconds: err.retryAfterSeconds,
+        });
+        return;
+      }
+      console.error('[intake] unexpected error:', err instanceof Error ? err.name : 'unknown');
+      res.json({ outcome: 'unavailable' });
+    }
+  },
+);
 
 const answersSchema = z.object({
   intake_id: z.string().uuid(),
@@ -199,53 +205,58 @@ function invalid(res: Response, error: z.ZodError): void {
   });
 }
 
-router.post('/intake/brief', authenticate, async (req: Request, res: Response): Promise<void> => {
-  const payload = req.jwtPayload!;
-  if (!(await isDescribeFirstEnabled(payload.sub))) {
-    res.status(404).json({ error: 'not_enabled' });
-    return;
-  }
-  const parsed = briefSchema.safeParse(req.body);
-  if (!parsed.success) {
-    invalid(res, parsed.error);
-    return;
-  }
-  try {
-    const result = await runBriefIntake({
-      userId: payload.sub,
-      plan: payload.plan,
-      description: parsed.data.description,
-      language: parsed.data.language,
-      kind: parsed.data.kind,
-      intakeId: parsed.data.intake_id,
-      keep: parsed.data.keep,
-      court: parsed.data.court ?? undefined,
-      round: parsed.data.round,
-      answers: parsed.data.answers,
-      ledgerId: parsed.data.ledger_id,
-    });
-    res.json(result);
-  } catch (err) {
-    if (err instanceof LedgerNotFoundError) {
-      res.status(404).json({ error: 'Ledger not found' });
+router.post(
+  '/intake/brief',
+  authenticate,
+  requireVerifiedEmail,
+  async (req: Request, res: Response): Promise<void> => {
+    const payload = req.jwtPayload!;
+    if (!(await isDescribeFirstEnabled(payload.sub))) {
+      res.status(404).json({ error: 'not_enabled' });
       return;
     }
-    if (err instanceof IntakeLimitError) {
-      res.setHeader('Retry-After', String(err.retryAfterSeconds));
-      res.status(429).json({
-        error: 'intake_limit',
-        message:
-          err.scope === 'daily'
-            ? "You have used today's quota for describing. Browse document types still works."
-            : 'You have described several matters in a short time. Please wait a few minutes.',
-        retry_after_seconds: err.retryAfterSeconds,
+    const parsed = briefSchema.safeParse(req.body);
+    if (!parsed.success) {
+      invalid(res, parsed.error);
+      return;
+    }
+    try {
+      const result = await runBriefIntake({
+        userId: payload.sub,
+        plan: payload.plan,
+        description: parsed.data.description,
+        language: parsed.data.language,
+        kind: parsed.data.kind,
+        intakeId: parsed.data.intake_id,
+        keep: parsed.data.keep,
+        court: parsed.data.court ?? undefined,
+        round: parsed.data.round,
+        answers: parsed.data.answers,
+        ledgerId: parsed.data.ledger_id,
       });
-      return;
+      res.json(result);
+    } catch (err) {
+      if (err instanceof LedgerNotFoundError) {
+        res.status(404).json({ error: 'Ledger not found' });
+        return;
+      }
+      if (err instanceof IntakeLimitError) {
+        res.setHeader('Retry-After', String(err.retryAfterSeconds));
+        res.status(429).json({
+          error: 'intake_limit',
+          message:
+            err.scope === 'daily'
+              ? "You have used today's quota for describing. Browse document types still works."
+              : 'You have described several matters in a short time. Please wait a few minutes.',
+          retry_after_seconds: err.retryAfterSeconds,
+        });
+        return;
+      }
+      console.error('[intake] unexpected error:', err instanceof Error ? err.name : 'unknown');
+      res.json({ outcome: 'unavailable' });
     }
-    console.error('[intake] unexpected error:', err instanceof Error ? err.name : 'unknown');
-    res.json({ outcome: 'unavailable' });
-  }
-});
+  },
+);
 
 /** T-189: the most one list or several-choices edit may carry. */
 const LIST_EDIT_LIMITS = { entries: 30, entryMax: 500, totalMax: 3000 } as const;
@@ -290,6 +301,7 @@ const briefUpdateSchema = z.object({
 router.post(
   '/intake/brief/update',
   authenticate,
+  requireVerifiedEmail, // T-522 — no model call for an unverified email account
   async (req: Request, res: Response): Promise<void> => {
     if (!(await isDescribeFirstEnabled(req.jwtPayload!.sub))) {
       res.status(404).json({ error: 'not_enabled' });

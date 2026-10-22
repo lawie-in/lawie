@@ -52,6 +52,8 @@ export interface DialogProps {
   /** Inline error under the body (e.g. "Could not cancel your plan. Try again."). */
   error?: React.ReactNode;
   className?: string;
+  /** Radix onCloseAutoFocus: a caller that has no Radix Trigger returns focus itself. */
+  onCloseAutoFocus?: (event: Event) => void;
 }
 
 export function Dialog({
@@ -67,6 +69,7 @@ export function Dialog({
   confirmLoading = false,
   error,
   className,
+  onCloseAutoFocus,
 }: DialogProps) {
   return (
     <RadixDialog.Root
@@ -81,6 +84,7 @@ export function Dialog({
         <RadixDialog.Overlay className={DIALOG_OVERLAY_CLASS} />
         <RadixDialog.Content
           data-variant={variant}
+          onCloseAutoFocus={onCloseAutoFocus}
           // Without a description, tell Radix there is none (no missing-description warning).
           {...(description ? {} : { 'aria-describedby': undefined })}
           className={cn(

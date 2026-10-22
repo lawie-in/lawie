@@ -64,7 +64,10 @@ import {
   privacyPrecheck,
   usePrivacyDescribedBy,
 } from '@/components/PrivacyUpdatePrompt';
-import { openVerifyInsteadOfPaywall } from '@/components/VerifyEmailPrompt';
+import {
+  openVerifyIfDraftRefused,
+  openVerifyInsteadOfPaywall,
+} from '@/components/VerifyEmailPrompt';
 import { notifyCreditsChanged } from '@/hooks/useCredits';
 import { apiFetch } from '@/lib/apiFetch';
 
@@ -348,6 +351,9 @@ function OneFlowSteps({
           ...JSON_POST,
           body: JSON.stringify(body),
         });
+        // T-522 (AJ-522-M6): an unverified email account. The Draft dialog opens at the moment of
+        // the action; the advocate stays on the same step, with what they typed, and no message.
+        if (await openVerifyIfDraftRefused(res)) return;
         if (res.status === 429) {
           const data = (await res.json().catch(() => ({}))) as { message?: string };
           fail(
@@ -527,6 +533,8 @@ function OneFlowSteps({
             ...(onLedger ? { ledger_id: onLedger.ledger_id, ledger_edits: edits } : {}),
           }),
         });
+        // T-522 (AJ-522-M6): same dialog; the change stays on screen, no "could not check" line.
+        if (await openVerifyIfDraftRefused(res)) return null;
         if (!res.ok) throw new Error('update failed');
         const data = (await res.json()) as {
           brief: Brief;
@@ -698,6 +706,13 @@ function OneFlowSteps({
         if (isPrivacyBlocked(res)) return setPhase('brief');
         const header = res.headers.get('X-Run-Id');
         if (header) runId.current = header;
+
+        // T-522 (AJ-522-M6): back on the brief with the Draft dialog over it, never a redirect.
+        // Checked before the 403 "Pro plan" branch below. The Generate button stays enabled.
+        if (await openVerifyIfDraftRefused(res)) {
+          setPhase('brief');
+          return;
+        }
 
         if (!res.ok) {
           const data = (await res.json().catch(() => ({}))) as {

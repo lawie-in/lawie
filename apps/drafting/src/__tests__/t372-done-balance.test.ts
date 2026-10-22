@@ -7,7 +7,7 @@ import './setupDb';
 import { EventEmitter } from 'events';
 import type { Request, Response } from 'express';
 
-import { User } from '../models/User.model';
+import { createVerifiedUser } from './verifiedUser';
 import { type InkHoldHandle, withInkHold } from '../routes/documents.routes';
 import * as credits from '../services/credits.service';
 import { getCreditBalance, releaseInk } from '../services/credits.service';
@@ -78,7 +78,7 @@ function captureLogs() {
 const text = (s: jest.SpyInstance) => s.mock.calls.flat().map(String).join(' ');
 
 beforeEach(async () => {
-  await User.create({
+  await createVerifiedUser({
     _id: USER_ID,
     plan: 'free',
     planTier: 'free',

@@ -17,6 +17,7 @@ import { join } from 'path';
 import type { Request, Response } from 'express';
 
 import { User } from '../models/User.model';
+import { createVerifiedUser } from './verifiedUser';
 import { type InkHoldHandle, withInkHold } from '../routes/documents.routes';
 import * as credits from '../services/credits.service';
 import {
@@ -109,7 +110,7 @@ function expectNoDebit(res: FakeRes) {
 }
 
 beforeEach(async () => {
-  await User.create({
+  await createVerifiedUser({
     _id: USER_ID,
     plan: 'free',
     planTier: 'free',

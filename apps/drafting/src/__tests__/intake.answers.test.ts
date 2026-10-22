@@ -10,6 +10,7 @@ import './setupDb';
 import request from 'supertest';
 
 import app from '../app';
+import { seedVerifiedUsers } from './verifiedUser';
 import { AppSetting } from '../models/AppSetting.model';
 import { _clearAppSettingsCache } from '../services/app-settings.service';
 import { buildQuestions, QUESTION_LIMITS } from '../services/intake.service';
@@ -221,3 +222,5 @@ describe('GET /intake/enabled (ADR-019 §3.11)', () => {
     expect((await get()).body.enabled).toBe(true);
   });
 });
+
+seedVerifiedUsers('507f1f77bcf86cd799439061');

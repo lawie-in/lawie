@@ -10,6 +10,8 @@ import ResetPasswordForm, { RESET_STRINGS } from '../ResetPasswordForm';
 import { jsonResponse, mountEl, submit, text, type as typeInto, unmountEl } from './t221-helpers';
 
 const TOKEN = 'ab12'.repeat(16);
+// AJ-522-S7 (scope S10), copied from handoff/legal/T-511-copy-rulings-ajay.md.
+const S7 = 'Use at least 8 characters, with an upper-case letter, a lower-case letter and a digit.';
 const fetchMock = jest.fn();
 const pw = () => document.getElementById('new-password') as HTMLInputElement;
 const items = () => Array.from(document.querySelectorAll('#password-rules li'));
@@ -97,20 +99,38 @@ describe('rule checklist (same four rules as sign-up)', () => {
   });
 
   it.each([
-    ['too short', 'Ab1', RESET_STRINGS.errShort],
-    ['no uppercase', 'abcdefg1', RESET_STRINGS.errUpper],
-    ['no lowercase', 'ABCDEFG1', RESET_STRINGS.errLower],
-    ['no digit', 'Abcdefgh', RESET_STRINGS.errNumber],
+    ['too short', 'Ab1'],
+    ['no uppercase', 'abcdefg1'],
+    ['no lowercase', 'ABCDEFG1'],
+    ['no digit', 'Abcdefgh'],
   ])(
-    '%s: submit is blocked client side with its own line, no request for the save',
-    async (_l, p, msg) => {
+    '%s: submit is blocked client side with the one S7 line, no request for the save',
+    async (_l, p) => {
       await mountWith(TOKEN);
       await typeInto(pw(), p);
       await submit();
-      expect(text()).toContain(msg);
+      expect(text()).toContain(S7);
+      expect(RESET_STRINGS.errWeak).toBe(S7);
       expect(fetchMock).toHaveBeenCalledTimes(1); // the load check only
     },
   );
+
+  it('the S7 error is not shown before a submit attempt, and the checklist stays beside it', async () => {
+    await mountWith(TOKEN);
+    await typeInto(pw(), 'abc');
+    expect(text()).not.toContain(S7);
+    await submit();
+    expect(text()).toContain(S7);
+    expect(items()).toHaveLength(4);
+  });
+
+  it('the checklist rules and the S7 line follow the shared constant (8, A-Z, a-z, digit)', async () => {
+    await mountWith(TOKEN);
+    await typeInto(pw(), 'Abcdef1');
+    expect(itemFor(RESET_STRINGS.ruleMinLength).textContent).toContain(RESET_STRINGS.ruleUnmet);
+    await typeInto(pw(), 'Abcdefg1');
+    expect(itemFor(RESET_STRINGS.ruleMinLength).textContent).toContain(RESET_STRINGS.ruleMet);
+  });
 
   it('the show/hide button toggles the field type', async () => {
     await mountWith(TOKEN);
@@ -141,7 +161,7 @@ describe('save', () => {
     expect(text()).not.toContain('Brand1New');
   });
 
-  it('server 422 with unmet rule ids: maps to the rule line, not the raw server text, and stays on the form', async () => {
+  it('server 422 with unmet rule ids: shows the one S7 line, not the raw server text, and stays on the form', async () => {
     await mountWith(TOKEN);
     // Client thinks it is fine; the server disagrees on one rule.
     fetchMock.mockResolvedValueOnce(
@@ -153,7 +173,7 @@ describe('save', () => {
     );
     await typeInto(pw(), 'Abcdefg1');
     await submit();
-    expect(text()).toContain(RESET_STRINGS.errNumber);
+    expect(text()).toContain(S7);
     expect(text()).not.toContain('Must contain at least one number');
     expect(itemFor(RESET_STRINGS.ruleNumber).textContent).toContain(RESET_STRINGS.ruleUnmet);
     expect(itemFor(RESET_STRINGS.ruleMinLength).textContent).toContain(RESET_STRINGS.ruleMet);
@@ -161,12 +181,15 @@ describe('save', () => {
     expect(text()).not.toContain(RESET_STRINGS.doneTitle);
   });
 
-  it('server 422 with several rules or no ids: the "everything in the list" line', async () => {
+  it('server 422 with several rules or no ids: the same one S7 line', async () => {
     await mountWith(TOKEN);
     fetchMock.mockResolvedValueOnce(jsonResponse(422, { error: 'weak_password' }));
     await typeInto(pw(), 'Abcdefg1');
     await submit();
-    expect(text()).toContain(RESET_STRINGS.errSeveral);
+    expect(text()).toContain(S7);
+    expect(items().every((li) => (li.textContent ?? '').includes(RESET_STRINGS.ruleUnmet))).toBe(
+      true,
+    );
   });
 
   it('server 400 (used or expired meanwhile) goes to R5', async () => {

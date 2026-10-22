@@ -5,7 +5,7 @@
 
 import './setupEnv';
 
-jest.mock('ioredis', () => require('ioredis-mock'));
+jest.mock('ioredis', () => jest.requireActual('ioredis-mock'));
 
 import './setupDb';
 
@@ -37,7 +37,7 @@ describe('T-234 AC7 — password register records Terms acceptance', () => {
   it('sets termsAcceptedAt (server time), termsVersion and acceptedVia=password', async () => {
     const before = Date.now();
     const res = await reg('terms@example.com');
-    expect(res.status).toBe(201);
+    expect(res.status).toBe(202);
     const u = await User.findOne({ email: 'terms@example.com' }).lean();
     expect(u!.termsAcceptedAt).toBeInstanceOf(Date);
     expect(u!.termsAcceptedAt!.getTime()).toBeGreaterThanOrEqual(before - 1000);
@@ -55,7 +55,7 @@ describe('T-234 AC7 — password register records Terms acceptance', () => {
       privacyVersion: '1999-01-01',
       acceptedVia: 'google',
     });
-    expect(res.status).toBe(201);
+    expect(res.status).toBe(202);
     const u = await User.findOne({ email: 'spoof@example.com' }).lean();
     expect(u!.termsAcceptedAt!.getFullYear()).toBeGreaterThanOrEqual(2026);
     expect(u!.termsVersion).toBe('2026-10-22');
@@ -64,7 +64,7 @@ describe('T-234 AC7 — password register records Terms acceptance', () => {
     await verifyAndSeed(u!._id);
   });
 
-  it('a duplicate-email register (409) does not touch the existing acceptance', async () => {
+  it('a duplicate-email register (neutral 202) does not touch the existing acceptance', async () => {
     await reg('dupterms@example.com');
     const first = await User.findOne({ email: 'dupterms@example.com' }).lean();
     const res = await reg('dupterms@example.com', {
@@ -72,7 +72,7 @@ describe('T-234 AC7 — password register records Terms acceptance', () => {
       privacyVersion: 'x',
       acceptedVia: 'google',
     });
-    expect(res.status).toBe(409);
+    expect(res.status).toBe(202);
     const after = await User.findOne({ email: 'dupterms@example.com' }).lean();
     expect(after!.termsAcceptedAt).toEqual(first!.termsAcceptedAt);
     expect(after!.termsVersion).toBe('2026-10-22');

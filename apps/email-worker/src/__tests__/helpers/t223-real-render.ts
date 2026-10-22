@@ -48,6 +48,12 @@ export const INVOICE_SENTINEL_FIELDS = {
   downloadUrl: 'https://app.lawie.in/invoices',
 };
 
+/** T-522: the merge fields auth.signupAttempt refuses to render without (plain pages, no token). */
+export const SIGNUP_ATTEMPT_SENTINEL_FIELDS = {
+  signInUrl: 'https://app.lawie.in/login',
+  resetUrl: 'https://app.lawie.in/forgot-password',
+};
+
 export type RealOutcome =
   | { ok: true; subject: string; html: string; text: string }
   | { ok: false; name: string; message: string };

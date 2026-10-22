@@ -21,6 +21,7 @@ import { LawieDocument } from '../models/Document.model';
 import { Event } from '../models/Event.model';
 import { Generation } from '../models/Generation.model';
 import { User } from '../models/User.model';
+import { createVerifiedUser } from './verifiedUser';
 import { _clearAppSettingsCache } from '../services/app-settings.service';
 import {
   CLAUSES_MARKER,
@@ -154,7 +155,7 @@ function post(body: Record<string, unknown>, userId = USER_ID) {
 }
 
 async function seedUser(userId: string, inkTopup = 2000) {
-  await User.create({
+  await createVerifiedUser({
     _id: userId,
     plan: 'free',
     planTier: 'free',

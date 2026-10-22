@@ -11,6 +11,7 @@ import './setupDb';
 import request from 'supertest';
 
 import app from '../app';
+import { seedVerifiedUsers } from './verifiedUser';
 import redis from '../config/redis';
 import { AppSetting } from '../models/AppSetting.model';
 import { _clearAppSettingsCache } from '../services/app-settings.service';
@@ -573,3 +574,5 @@ describe('Review round 1 fixes: cleared facts and the question cap', () => {
     expect(buildQuestions(b, new Map()).map((q) => q.key)).not.toContain(OPTIONAL.key);
   });
 });
+
+seedVerifiedUsers('507f1f77bcf86cd799439081', '507f1f77bcf86cd799439082');

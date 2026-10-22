@@ -8,7 +8,7 @@
 
 import './setupEnv';
 
-jest.mock('ioredis', () => require('ioredis-mock'));
+jest.mock('ioredis', () => jest.requireActual('ioredis-mock'));
 
 import './setupDb';
 
@@ -18,6 +18,7 @@ import supertest from 'supertest';
 
 import app from '../app';
 import logger from '../config/logger';
+import redis from '../config/redis';
 import { scrubEvent } from '../config/sentry';
 import { CURRENT_PRIVACY_VERSION, User } from '../models/User.model';
 import { signAccessToken, signRefreshToken } from '../services/jwt.service';
@@ -51,6 +52,11 @@ async function tokenFor(userId: string, role: 'Admin' | 'Lawyer') {
   });
   return { Authorization: `Bearer ${accessToken}` };
 }
+
+// T-522: many sign-ups from one test IP; reset the per-IP sign-up bucket for every test.
+beforeEach(async () => {
+  await redis.flushall();
+});
 
 describe('sanitizeUtmValue (Ajay condition 2)', () => {
   it('keeps a normal value, trimmed', () => {
@@ -86,7 +92,7 @@ describe('sanitizeUtmValue (Ajay condition 2)', () => {
 });
 
 describe('POST /register stores signupSource', () => {
-  it('stores the three tags and recordedAt, returns 201', async () => {
+  it('stores the three tags and recordedAt, returns 202', async () => {
     const before = Date.now();
     const e = email();
     const res = await supertest(app).post('/register').send({
@@ -97,7 +103,7 @@ describe('POST /register stores signupSource', () => {
       utmMedium: 'email',
       utmCampaign: 'launch',
     });
-    expect(res.status).toBe(201);
+    expect(res.status).toBe(202);
     const u = await User.findOne({ email: e }).lean();
     expect(u!.signupSource).toMatchObject({
       utmSource: 'newsletter',
@@ -127,7 +133,7 @@ describe('POST /register stores signupSource', () => {
     const res = await supertest(app)
       .post('/register')
       .send({ email: e, password: PASSWORD, name: 'T', utmCampaign: 'c'.repeat(300) });
-    expect(res.status).toBe(201);
+    expect(res.status).toBe(202);
     const u = await User.findOne({ email: e }).lean();
     expect(u!.signupSource!.utmCampaign).toBe('c'.repeat(100));
   });
@@ -144,7 +150,7 @@ describe('POST /register stores signupSource', () => {
     const res = await supertest(app)
       .post('/register')
       .send({ email: e, password: PASSWORD, name: 'T', utmSource: bad, utmMedium: 'ok' });
-    expect(res.status).toBe(201);
+    expect(res.status).toBe(202);
     const u = await User.findOne({ email: e }).lean();
     expect(u!.signupSource).toMatchObject({ utmMedium: 'ok' });
     expect(u!.signupSource).not.toHaveProperty('utmSource');
@@ -160,7 +166,7 @@ describe('POST /register stores signupSource', () => {
       utmMedium: 7,
       utmCampaign: '99999999',
     });
-    expect(res.status).toBe(201);
+    expect(res.status).toBe(202);
     const raw = await User.collection.findOne({ email: e });
     expect(raw).not.toHaveProperty('signupSource');
   });
@@ -170,7 +176,7 @@ describe('POST /register stores signupSource', () => {
     const res = await supertest(app)
       .post('/register')
       .send({ email: e, password: PASSWORD, name: 'T' });
-    expect(res.status).toBe(201);
+    expect(res.status).toBe(202);
     const raw = await User.collection.findOne({ email: e });
     expect(raw).not.toHaveProperty('signupSource');
   });

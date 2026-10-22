@@ -14,6 +14,7 @@ import './setupDb';
 import request from 'supertest';
 
 import app from '../app';
+import { seedVerifiedUsers } from './verifiedUser';
 import redis from '../config/redis';
 import { AppSetting } from '../models/AppSetting.model';
 import { Event } from '../models/Event.model';
@@ -829,3 +830,5 @@ describe('POST /intake/brief/update — no model call', () => {
     expect((await update({ kind: 'bail_regular', values: [{ key: 'x' }] })).status).toBe(400);
   });
 });
+
+seedVerifiedUsers('507f1f77bcf86cd799439081', '507f1f77bcf86cd799439082');

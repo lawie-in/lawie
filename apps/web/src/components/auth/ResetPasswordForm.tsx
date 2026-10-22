@@ -11,6 +11,13 @@
  * (handoff/legal/T-221-forgot-password-signed.md); every user-facing string is in RESET_STRINGS.
  * The token is read from the URL and only ever sent to the API; it is never rendered.
  */
+import {
+  PASSWORD_DIGIT_RE,
+  PASSWORD_LOWERCASE_RE,
+  PASSWORD_MIN_LENGTH,
+  PASSWORD_UPPERCASE_RE,
+  type PasswordRuleId,
+} from '@lawie/shared';
 import { AlertTriangle, CheckCircle2, Circle, Eye, EyeOff, Loader2, XCircle } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -28,11 +35,9 @@ export const RESET_STRINGS = {
   ruleNumber: 'One number (0-9)',
   ruleMet: '(done)',
   ruleUnmet: '(not yet)',
-  errShort: 'Use at least 8 characters to continue.',
-  errUpper: 'Add a capital letter to continue.',
-  errLower: 'Add a small letter to continue.',
-  errNumber: 'Add a number to continue.',
-  errSeveral: 'Your password needs everything in the list below.',
+  // T-522 (AJ-522-S7, scope AJ-522-S10): one weak-password line for any unmet rule. It replaces
+  // the T-221 per-rule lines, which are no longer shown.
+  errWeak: 'Use at least 8 characters, with an upper-case letter, a lower-case letter and a digit.',
   cta: 'Save new password',
   ctaLoading: 'Saving...',
   network: "We couldn't reach Lawie. Check your connection and try again.",
@@ -51,20 +56,17 @@ const S = RESET_STRINGS;
 const REQUEST_TIMEOUT_MS = 15_000;
 const TOKEN_RE = /^[a-f0-9]{64}$/;
 
-/** Mirrors passwordSchema in apps/auth/src/validators/auth.validator.ts. Change both together. */
-type RuleId = 'min_length' | 'uppercase' | 'lowercase' | 'number';
-const RULES: { id: RuleId; label: string; error: string; test: (p: string) => boolean }[] = [
-  { id: 'min_length', label: S.ruleMinLength, error: S.errShort, test: (p) => p.length >= 8 },
-  { id: 'uppercase', label: S.ruleUppercase, error: S.errUpper, test: (p) => /[A-Z]/.test(p) },
-  { id: 'lowercase', label: S.ruleLowercase, error: S.errLower, test: (p) => /[a-z]/.test(p) },
-  { id: 'number', label: S.ruleNumber, error: S.errNumber, test: (p) => /\d/.test(p) },
+/**
+ * T-522 (Arjun ruling 3): the rule comes from @lawie/shared's password constant, the same one the
+ * auth validator uses, so the checklist cannot drift from the server.
+ */
+type RuleId = PasswordRuleId;
+const RULES: { id: RuleId; label: string; test: (p: string) => boolean }[] = [
+  { id: 'min_length', label: S.ruleMinLength, test: (p) => p.length >= PASSWORD_MIN_LENGTH },
+  { id: 'uppercase', label: S.ruleUppercase, test: (p) => PASSWORD_UPPERCASE_RE.test(p) },
+  { id: 'lowercase', label: S.ruleLowercase, test: (p) => PASSWORD_LOWERCASE_RE.test(p) },
+  { id: 'number', label: S.ruleNumber, test: (p) => PASSWORD_DIGIT_RE.test(p) },
 ];
-
-/** One unmet rule: its own line. Two or more: the "everything in the list" line. */
-function weakMessage(unmet: RuleId[]): string {
-  if (unmet.length === 1) return RULES.find((r) => r.id === unmet[0])?.error ?? S.errSeveral;
-  return S.errSeveral;
-}
 
 type Phase = 'checking' | 'form' | 'saving' | 'done' | 'dead';
 
@@ -304,7 +306,7 @@ export default function ResetPasswordForm() {
                     </div>
                     {showWeak && (
                       <p id="new-password-error" className="mt-1.5 text-sm text-red-700">
-                        {weakMessage(unmet)}
+                        {S.errWeak}
                       </p>
                     )}
                     <ul id="password-rules" className="mt-2 space-y-1 text-sm">

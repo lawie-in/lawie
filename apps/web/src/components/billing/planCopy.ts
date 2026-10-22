@@ -55,8 +55,6 @@ export const PLAN_COPY = {
   // and points to support. When retry ships, go back to the §4.5 line with "Retry payment".
   paymentFailedHelp: (supportEmail: string) =>
     `Your last payment did not go through. For help, write to ${supportEmail}.`,
-  verifyGate: 'Verify your email to subscribe.',
-  verifyAction: 'Resend email',
   privacyGate: 'Please review and accept the updated Privacy Policy to continue.',
   privacyAction: 'Review and accept',
   // §5 generic failure

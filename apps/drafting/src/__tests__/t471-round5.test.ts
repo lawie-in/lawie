@@ -23,7 +23,7 @@ import { AppSetting } from '../models/AppSetting.model';
 import { Court } from '../models/Court.model';
 import { LawieDocument } from '../models/Document.model';
 import { ReviewToken } from '../models/ReviewToken.model';
-import { User } from '../models/User.model';
+import { createVerifiedUser } from './verifiedUser';
 import { _clearAppSettingsCache } from '../services/app-settings.service';
 import {
   DRAFTER_FACT_REPAIR_SYSTEM_PROMPT,
@@ -107,7 +107,7 @@ describe('T-471 a: respondent_name typing is the s.138 pack only (Priya)', () =>
       city: 'Patna',
       formattingRulesRef: 'bihar_district',
     });
-    await User.create({
+    await createVerifiedUser({
       _id: USER_ID,
       plan: 'free',
       planTier: 'free',

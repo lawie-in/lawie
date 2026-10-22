@@ -108,6 +108,8 @@ export async function tryGrantDailyLoginBonus(userId: string): Promise<number> {
  * The marker sits on the user document, not in inkledger, because the ledger insert is a second
  * write that can fail on its own (swallowed below) after the $inc has landed.
  */
+// T-522: fenced on VERIFIED_FOR_BONUS. An unverified user matches nothing and is credited 0;
+// password sign-up therefore records the code only and verifyEmailToken grants on verification.
 export async function grantReferralInk(
   userId: string,
   bonusInk: number,
@@ -123,7 +125,13 @@ export async function grantReferralInk(
 
   const updated = await conn.db.collection('users').findOneAndUpdate(
     // T-299 (Arjun): no match means already granted (or no such user); credit nothing.
-    { _id: new mongoose.Types.ObjectId(userId), referralInkGrantedAt: { $exists: false } },
+    // T-522 (Arjun ruling 2): and only for a Google or verified-email user, in the same atomic
+    // filter, so no caller can grant referral Ink to an unverified address.
+    {
+      _id: new mongoose.Types.ObjectId(userId),
+      referralInkGrantedAt: { $exists: false },
+      ...VERIFIED_FOR_BONUS,
+    },
     {
       $inc: { inkTopup: inkUnits },
       $set: {

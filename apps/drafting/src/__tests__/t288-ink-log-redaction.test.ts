@@ -12,6 +12,7 @@ import mongoose from 'mongoose';
 
 import { Generation } from '../models/Generation.model';
 import { User } from '../models/User.model';
+import { createVerifiedUser } from './verifiedUser';
 import {
   holdInk,
   releaseExpiredHolds,
@@ -41,7 +42,7 @@ function expectNoMessage(out: string) {
 }
 
 async function seed() {
-  await User.create({
+  await createVerifiedUser({
     _id: USER_ID,
     plan: 'free',
     planTier: 'free',

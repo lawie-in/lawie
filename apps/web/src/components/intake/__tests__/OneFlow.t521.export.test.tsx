@@ -17,6 +17,7 @@ jest.mock('next/navigation', () => ({ useRouter: () => ({ push, replace: jest.fn
 jest.mock('@/hooks/useCredits', () => ({ notifyCreditsChanged: jest.fn() }));
 jest.mock('@/components/credits/PaywallModal', () => ({ PaywallModal: () => null }));
 jest.mock('@/components/VerifyEmailPrompt', () => ({
+  openVerifyIfDraftRefused: async () => false,
   openVerifyInsteadOfPaywall: async () => false,
 }));
 const mockApiFetch = jest.fn();

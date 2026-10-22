@@ -6,7 +6,7 @@
 
 import './setupEnv';
 
-jest.mock('ioredis', () => require('ioredis-mock'));
+jest.mock('ioredis', () => jest.requireActual('ioredis-mock'));
 
 import './setupDb';
 
@@ -17,9 +17,9 @@ import logger from '../config/logger';
 import { ReferralCode } from '../models/ReferralCode.model';
 import { User } from '../models/User.model';
 import * as bonus from '../services/credit-bonus.service';
-import { applyReferralCode } from '../services/referral.service';
+import { applyReferralCode, grantDeferredReferralInk } from '../services/referral.service';
 
-import { ledger, makeCode, rawUsers, verifyAndSeed } from './t234-helpers';
+import { ledger, makeCode, rawUsers, verifyAndSeed, waitForReferralDecision } from './t234-helpers';
 
 const PASSWORD = 'Passw0rdOk';
 const BONUS = 3;
@@ -32,7 +32,8 @@ beforeEach(() => {
 });
 afterEach(() => jest.restoreAllMocks());
 
-const mkUser = (email: string) => User.create({ email, name: 'Secret Name', password: PASSWORD });
+const mkUser = (email: string) =>
+  User.create({ email, name: 'Secret Name', password: PASSWORD, emailVerified: true });
 
 type Mode = 'returns 0' | 'throws';
 const failGrant = (mode: Mode) => {
@@ -74,7 +75,7 @@ describe.each<Mode>(['returns 0', 'throws'])('grantReferralInk %s', (mode) => {
     }
   });
 
-  it('register: 201 referralApplied false, only the seed Ink, uses unchanged', async () => {
+  it('register (T-522, deferred): 202, no referralApplied, a failed grant at verification leaves only the seed Ink and no referral row', async () => {
     await makeCode({ code: 'RBACK3', bonusInk: BONUS });
     failGrant(mode);
     const res = await supertest(app)
@@ -85,16 +86,18 @@ describe.each<Mode>(['returns 0', 'throws'])('grantReferralInk %s', (mode) => {
         name: 'Ref Person',
         referralCode: 'RBACK3',
       });
-    expect(res.status).toBe(201);
-    expect(res.body.data.referralApplied).toBe(false);
+    expect(res.status).toBe(202);
+    expect(res.body).toEqual({ status: 'success', data: { status: 'check_email' } });
+    expect(JSON.stringify(res.body)).not.toContain('referralApplied');
 
     const u = await User.findOne({ email: `rb3-${mode.replace(' ', '')}@example.com` }).lean();
+    await waitForReferralDecision(u!._id);
     await verifyAndSeed(u!._id);
+    await bonus.grantSignupBonus(String(u!._id));
+    await grantDeferredReferralInk(String(u!._id));
     expect((await rawUsers().findOne({ _id: u!._id }))!.inkTopup).toBe(10);
     expect(await ledger().countDocuments({ userId: u!._id })).toBe(1);
     expect(await ledger().countDocuments({ userId: u!._id, reason: 'referral_bonus' })).toBe(0);
-    expect(u!.referredVia ?? null).toBeNull();
-    expect((await ReferralCode.findOne({ code: 'RBACK3' }).lean())!.uses).toBe(0);
   });
 
   it('the code is reusable afterwards (slot freed): a later user with a working grant gets it', async () => {

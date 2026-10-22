@@ -3,9 +3,10 @@
  * say about Ink. Pure, so the three cases can be pinned without a stream.
  *
  * - An SSE `error` event whose code is not `insufficient_ink`: the server ended
- *   the run itself, before `done`, and released the hold. Only here does the
- *   screen say "The draft did not finish. No Ink was used." (copy row 456,
- *   Ajay AJ-511-M2/M5).
+ *   the run itself, before `done`. "The draft did not finish." (copy row 456,
+ *   Ajay AJ-511-M2/M5). T-567 item 41 (Ajay 41b): "No Ink was used." follows
+ *   only when the event says the hold was released (`inkReleased: true`);
+ *   otherwise no Ink line, and the neutral documents-list line instead.
  * - An SSE `error` event with code `insufficient_ink`: the server's reason, and
  *   no extra line.
  * - The stream ended without `done`, or the connection dropped or threw: a
@@ -14,10 +15,16 @@
  *   the existing plain error, and no claim.
  */
 
-/** Signed: handoff/copy/T-511-copy-v1.md row 456. */
-export const DRAFT_DID_NOT_FINISH = 'The draft did not finish. No Ink was used.';
+/** Signed: handoff/copy/T-511-copy-v1.md row 456 (first sentence). */
+export const DRAFT_DID_NOT_FINISH = 'The draft did not finish.';
 
-/** T-521 amendment (Arjun ruling 4): a dropped run. Plain wording; Ajay to review. */
+/** Signed: row 456 (second sentence). Only when the server confirms the hold was released. */
+export const NO_INK_USED = 'No Ink was used.';
+
+/** Signed (Ajay 41b): when the release is not confirmed. */
+export const CHECK_DOCUMENTS_LIST = 'Check your documents list to see where this draft stands.';
+
+/** T-521 amendment (Arjun ruling 4): a dropped run. Signed: Ajay AJ-521-M1 (W13). */
 export const CONNECTION_LOST = 'Connection lost. Check your documents.';
 
 /** The SSE error code the server sends when the Ink hold was lost and could not be re-taken. */
@@ -40,12 +47,19 @@ export interface GenerationError {
   source?: GenerationFailureSource;
   /** The SSE error event's `code`, when it sent one. */
   code?: string;
+  /**
+   * T-567 item 41: the SSE error event's `inkReleased`. Only `true` means the route released
+   * the hold before sending the event; absent or false means it is not confirmed.
+   */
+  inkReleased?: boolean;
 }
 
 export interface GenerationFailureCopy {
   /** The heading of the failure card. */
   headline: string;
-  /** A second line under the heading, or null. */
+  /** The Ink line or the documents-list line under the heading, or null. */
+  statusLine: string | null;
+  /** The server's reason under that, or null when it is empty. */
   detail: string | null;
   /** True only when the signed "No Ink was used" line is shown. */
   noInkClaim: boolean;
@@ -54,11 +68,22 @@ export interface GenerationFailureCopy {
 export function generationFailureCopy(error: GenerationError): GenerationFailureCopy {
   const source = error.source ?? 'start';
   if (source === 'error_event' && error.code !== INSUFFICIENT_INK_CODE) {
-    return { headline: DRAFT_DID_NOT_FINISH, detail: error.reason || null, noInkClaim: true };
+    const released = error.inkReleased === true;
+    return {
+      headline: DRAFT_DID_NOT_FINISH,
+      statusLine: released ? NO_INK_USED : CHECK_DOCUMENTS_LIST,
+      detail: error.reason || null,
+      noInkClaim: released,
+    };
   }
   if (source === 'dropped') {
-    return { headline: CONNECTION_LOST, detail: error.reason || null, noInkClaim: false };
+    return {
+      headline: CONNECTION_LOST,
+      statusLine: null,
+      detail: error.reason || null,
+      noInkClaim: false,
+    };
   }
   // insufficient_ink, a refused start, an empty body: the reason only.
-  return { headline: error.reason, detail: null, noInkClaim: false };
+  return { headline: error.reason, statusLine: null, detail: null, noInkClaim: false };
 }

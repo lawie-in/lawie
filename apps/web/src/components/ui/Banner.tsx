@@ -21,7 +21,12 @@ export interface BannerProps {
   message: React.ReactNode;
   /** Overrides the kind's default tone. */
   tone?: BannerTone;
-  action?: { label: string; onClick: () => void };
+  /**
+   * T-522 (Rajesh §2): `disabled` renders aria-disabled, not the disabled attribute, so the
+   * button keeps focus and a status line beside it is still read out; a press does nothing.
+   * `busy` sets aria-busy (a send in progress).
+   */
+  action?: { label: string; onClick: () => void; disabled?: boolean; busy?: boolean };
   /** Shows a close button. Needs `onDismiss` and `dismissLabel`. */
   dismissible?: boolean;
   onDismiss?: () => void;
@@ -62,8 +67,15 @@ export function Banner({
       {action ? (
         <button
           type="button"
-          onClick={action.onClick}
-          className="nl-focus nl-body-sm rounded-nl-md px-nl-3 inline-flex min-h-[44px] items-center font-medium underline underline-offset-4"
+          onClick={() => {
+            if (!action.disabled) action.onClick();
+          }}
+          aria-disabled={action.disabled || undefined}
+          aria-busy={action.busy || undefined}
+          className={cn(
+            'nl-focus nl-body-sm rounded-nl-md px-nl-3 inline-flex min-h-[44px] items-center font-medium underline underline-offset-4',
+            action.disabled && 'cursor-not-allowed opacity-40',
+          )}
         >
           {action.label}
         </button>

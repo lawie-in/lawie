@@ -33,8 +33,8 @@ jest.mock('@/components/PrivacyUpdatePrompt', () => ({
 // T-436: PlanUpgrade renders a State picker, which reads the signed-in user (none here).
 jest.mock('@/context/AuthContext', () => ({ useAuth: () => ({ user: null }) }));
 jest.mock('@/components/VerifyEmailPrompt', () => ({
+  openVerifyIfDraftRefused: async () => false,
   VerifyEmailCard: () => null,
-  isEmailVerificationRequired: async () => false,
   useNeedsEmailVerification: () => false,
 }));
 jest.mock('@/components/credits/TopUpModal', () => ({ TopUpModal: () => null }));

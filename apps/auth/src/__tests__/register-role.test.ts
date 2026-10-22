@@ -1,6 +1,8 @@
 /**
  * T-196 — Registration can never grant Admin.
  *
+ * T-522: sign-up is neutral (202, no tokens), so the role is read from the stored user and from
+ * the tokens of a later login.
  * AC1 (updated by T-298, Arjun 12 Oct 2026: password sign-up is 'Lawyer', same as Google):
  * POST /register always creates role 'Lawyer', whatever `role` the body carries.
  * AC3: existing Admin accounts keep their role through login and refresh.
@@ -9,23 +11,32 @@
 
 import './setupEnv';
 
-jest.mock('ioredis', () => require('ioredis-mock'));
+jest.mock('ioredis', () => jest.requireActual('ioredis-mock'));
+
+jest.mock('@lawie/email-client', () => ({ enqueueEmail: jest.fn().mockResolvedValue({}) }));
 
 import './setupDb';
 
 import supertest from 'supertest';
 
 import app from '../app';
+import redis from '../config/redis';
 import { User } from '../models/User.model';
 import { verifyAccessToken, verifyRefreshToken } from '../services/jwt.service';
 import { registerUser } from '../services/auth.service';
 import { validateRegister } from '../validators/auth.validator';
 
 const PASSWORD = 'Passw0rdOk';
+const NEUTRAL_BODY = { status: 'success', data: { status: 'check_email' } };
 
 function body(email: string, extra: Record<string, unknown> = {}) {
   return { email, password: PASSWORD, name: 'Test Person', ...extra };
 }
+
+// T-522: many sign-ups from one test IP; reset the per-IP sign-up bucket for every test.
+beforeEach(async () => {
+  await redis.flushall();
+});
 
 describe('T-196 AC1 — POST /register ignores any client-sent role', () => {
   const roleValues: Array<[string, unknown]> = [
@@ -41,23 +52,30 @@ describe('T-196 AC1 — POST /register ignores any client-sent role', () => {
     ['empty string', ''],
   ];
 
-  it.each(roleValues)('role=%s -> 201, stored and returned Lawyer', async (_label, role) => {
-    const email = `r-${Math.random().toString(36).slice(2)}@example.com`;
-    const res = await supertest(app).post('/register').send(body(email, { role }));
+  it.each(roleValues)(
+    'role=%s -> 202, stored Lawyer, and a login returns Lawyer',
+    async (_label, role) => {
+      const email = `r-${Math.random().toString(36).slice(2)}@example.com`;
+      const res = await supertest(app).post('/register').send(body(email, { role }));
 
-    expect(res.status).toBe(201);
-    expect(res.body.data.user.role).toBe('Lawyer');
-    expect(verifyAccessToken(res.body.data.accessToken).role).toBe('Lawyer');
-    expect(verifyRefreshToken(res.body.data.refreshToken).role).toBe('Lawyer');
+      expect(res.status).toBe(202);
+      expect(res.body).toEqual(NEUTRAL_BODY);
 
-    const stored = await User.findOne({ email }).lean();
-    expect(stored!.role).toBe('Lawyer');
-  });
+      const stored = await User.findOne({ email }).lean();
+      expect(stored!.role).toBe('Lawyer');
+
+      const login = await supertest(app).post('/login').send({ email, password: PASSWORD });
+      expect(login.status).toBe(200);
+      expect(login.body.data.user.role).toBe('Lawyer');
+      expect(verifyAccessToken(login.body.data.accessToken).role).toBe('Lawyer');
+      expect(verifyRefreshToken(login.body.data.refreshToken).role).toBe('Lawyer');
+    },
+  );
 
   it('no role in body -> Lawyer', async () => {
     const res = await supertest(app).post('/register').send(body('norole@example.com'));
-    expect(res.status).toBe(201);
-    expect(res.body.data.user.role).toBe('Lawyer');
+    expect(res.status).toBe(202);
+    expect((await User.findOne({ email: 'norole@example.com' }).lean())!.role).toBe('Lawyer');
   });
 
   it('other privilege-like fields do not leak into the user either', async () => {
@@ -66,7 +84,7 @@ describe('T-196 AC1 — POST /register ignores any client-sent role', () => {
       .send(
         body('extras@example.com', { role: 'Admin', isActive: false, plan: 'pro', isAdmin: true }),
       );
-    expect(res.status).toBe(201);
+    expect(res.status).toBe(202);
     const stored = await User.findOne({ email: 'extras@example.com' }).lean();
     expect(stored!.role).toBe('Lawyer');
     expect((stored as Record<string, unknown>).isAdmin).toBeUndefined();
@@ -76,9 +94,8 @@ describe('T-196 AC1 — POST /register ignores any client-sent role', () => {
     const smuggled = { ...body('svc@example.com'), role: 'Admin' } as unknown as Parameters<
       typeof registerUser
     >[0];
-    const { user, tokens } = await registerUser(smuggled);
-    expect(user.role).toBe('Lawyer');
-    expect(verifyAccessToken(tokens.accessToken).role).toBe('Lawyer');
+    const outcome = await registerUser(smuggled, undefined);
+    expect(outcome).toEqual({ kind: 'accepted' });
     expect((await User.findOne({ email: 'svc@example.com' }).lean())!.role).toBe('Lawyer');
   });
 
@@ -94,7 +111,7 @@ describe('T-196 regression — normal register still works', () => {
       .post('/register')
       .send({ email: 'weak@example.com', password: 'short', name: 'X', role: 'Admin' });
     // NOTE: errorHandler currently turns validator errors into 500 (pre-existing, reported).
-    expect(res.status).not.toBe(201);
+    expect(res.status).not.toBe(202);
     expect(res.status).toBeGreaterThanOrEqual(400);
     expect(await User.findOne({ email: 'weak@example.com' })).toBeNull();
   });
@@ -102,7 +119,7 @@ describe('T-196 regression — normal register still works', () => {
   it('rejects an invalid email', async () => {
     const res = await supertest(app).post('/register').send(body('not-an-email'));
     expect(res.status).toBeGreaterThanOrEqual(400);
-    expect(res.status).not.toBe(201);
+    expect(res.status).not.toBe(202);
   });
 
   it('rejects a missing name', async () => {
@@ -110,15 +127,16 @@ describe('T-196 regression — normal register still works', () => {
       .post('/register')
       .send({ email: 'noname@example.com', password: PASSWORD });
     expect(res.status).toBeGreaterThanOrEqual(400);
-    expect(res.status).not.toBe(201);
+    expect(res.status).not.toBe(202);
   });
 
-  it('duplicate email still returns 409, and a role cannot upgrade the existing account', async () => {
+  it('duplicate email is the neutral 202 (T-522, no 409), and a role cannot upgrade the existing account', async () => {
     await supertest(app).post('/register').send(body('dup@example.com'));
     const res = await supertest(app)
       .post('/register')
       .send(body('dup@example.com', { role: 'Admin' }));
-    expect(res.status).toBe(409);
+    expect(res.status).toBe(202);
+    expect(res.body).toEqual(NEUTRAL_BODY);
     expect((await User.findOne({ email: 'dup@example.com' }).lean())!.role).toBe('Lawyer');
   });
 
@@ -131,14 +149,14 @@ describe('T-196 regression — normal register still works', () => {
     const res = await supertest(app)
       .post('/register')
       .send(body('refroute@example.com', { referralCode: 'NOSUCH', role: 'Admin' }));
-    expect(res.status).toBe(201);
-    expect(res.body.data.user.role).toBe('Lawyer');
+    expect(res.status).toBe(202);
+    expect((await User.findOne({ email: 'refroute@example.com' }).lean())!.role).toBe('Lawyer');
   });
 
   it('email is lowercased and password is not returned', async () => {
     const res = await supertest(app).post('/register').send(body('MiXed@Example.com'));
-    expect(res.status).toBe(201);
-    expect(res.body.data.user.email).toBe('mixed@example.com');
+    expect(res.status).toBe(202);
+    expect(await User.findOne({ email: 'mixed@example.com' })).not.toBeNull();
     expect(JSON.stringify(res.body)).not.toContain(PASSWORD);
   });
 });
@@ -188,7 +206,7 @@ describe('T-196 AC3 — existing Admin keeps Admin through login and refresh', (
     const res = await supertest(app)
       .post('/register')
       .send(body('founder3@example.com', { role: 'Client' }));
-    expect(res.status).toBe(409);
+    expect(res.status).toBe(202);
     expect((await User.findOne({ email: 'founder3@example.com' }).lean())!.role).toBe('Admin');
   });
 });
