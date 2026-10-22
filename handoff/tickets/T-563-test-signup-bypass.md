@@ -48,3 +48,11 @@ A deliberate back door gets a deliberate cage. Priya's fences 1–9 stand; the p
 **Tests:** boot refusal matrix; header without secret → neutral 202 and no account; wrong secret → same, plus the warn and the 429 after five; right secret → 201, `isTestAccount`, 30 Ink, verified, no mail enqueued; name/email rules; cap; delete script dry-run creates no writes.
 
 Mode: full chain, Vishal after T-522. Ajay sign-off reference for the consent line before READY.
+
+## Arjun (22 Oct 2026) — reconciled with Ajay's ruling (`handoff/legal/T-563-test-accounts-ruling-ajay.md`)
+
+Where we differed, **Ajay's stricter line wins**; this section supersedes mine above on these three points.
+1. **Email domain:** the bypass applies only to **reserved test domains** — `@example.com`, `@example.org`, or any address under the `.test` TLD (e.g. `TEST_anushka@lawie.test`). Any other address, including `@test.lawie.in`, is an ordinary sign-up with no bypass. `.test` never resolves and `example.*` has no mail, so no verified account can ever sit in a real inbox. The email-worker skip for `isTestAccount` stays as belt and braces.
+2. **Retention:** test accounts are erased **within 7 days** of creation by the erase sweep (not 30), and the delete script's default is `--older-than 1d`; Anushka's run ends with the founder running `test-accounts:delete --apply`. Develop only.
+3. **Consent:** recorded with `acceptedVia: 'test'`, never counted as real consent, excluded from the consent export; synthetic facts only in any test draft; the 30 Ink carries no user-facing wording (ledger reason `test_grant` only).
+Everything else in my section stands. Both rulings now agree; Vishal may build after T-522.
