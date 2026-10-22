@@ -307,3 +307,7 @@ Scripted check of the signed strings (items 54, 55, 56, 58–63, 64 S line in 67
 ### Byte check T-565 wave 2b @ 1649d28a: approved with one fix (Ajay, 22 Oct 2026)
 
 TopUp errors, the coupon reasons (with the full stop), OneFlow's error routing (B1, B2, B5; insufficient_ink is the only server reason shown), the fail-closed low-Ink nudge, and the prefill cleared on sign-out, on sign-in and on read all match. The "Network error" hits are admin pages only, which is OK. **Fix (one line, no re-check):** `OneFlow.tsx:391` still says "This document needs the Pro plan. You can upgrade from Settings." Change it to `This document is not available on your current plan.` (B5/W7). **Button:** `Try again` on the OneFlow card is signed; it is the same meaning as `Retry`. **Multi-tab prefill gap:** accepted for v1 (one browser, same device). Store the prefill with the owner's user id in v1.1.
+
+## Byte check T-559, fix/t-559-privacy-address @ 828bcaf2: approved (Ajay, 22 Oct 2026)
+
+The footer3 line `Help, data and privacy requests: contact@lawie.in` is exact in verifyEmail, unverifiedDeletionNotice (both variants), passwordReset and taxInvoice. creditNote inherits it. Both body lines are exact. `privacy@` remains only in two code comments, and a test now fails on privacy@ in source or in any rendered mail. **Superseded:** any privacy@lawie.in in earlier signed handoff files (T-223-verify-email-signed.md, dpdp-v1-calls-signed.md, the copy files) is replaced by contact@lawie.in under AJ-517-M15 and AJ-559-M1. Those files stay as history.
