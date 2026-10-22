@@ -46,3 +46,12 @@ T-540: switch `feature.coupon_free_grant` stays OFF until T-553 AND T-556 item 1
 
 ## Tests read handoff/ (22 Oct 2026, Vishal's T-555 reviewer)
 Several web tests read `handoff/legal/*` at test time (for example the byte-for-byte comparisons with signed strings). The main release snapshot strips `handoff/`, so CI on main would fail those tests together. Decide before the first cut of main: run tests only on develop, or copy the signed strings into a committed fixture the tests read, or skip those tests when `handoff/` is absent. Arjun (release-to-main.yml, T-403).
+
+## Founder steps for T-536 (run on develop BEFORE deploying billing with T-536; 22 Oct 2026)
+1. In one shell, point at develop: `export MONGO_URI=<develop URI>` (do not paste it anywhere), or leave it unset and set `NODE_ENV` so the script loads `.env.<NODE_ENV>`.
+2. From the repo root: `yarn workspace @lawie/billing check:live-sub-duplicates` (read-only, no arguments).
+3. Check the redacted target printed is develop. `db.version()` must be 6.0 or higher, or do not deploy.
+4. Exit 0 = clean, deploy. 1 = duplicates found (ids, status, createdAt only, no PII) or the check failed. 2 = connect or usage problem.
+5. If there are duplicates: for each user pick the real row and set the other to a terminal status by hand. Re-run until exit 0. The script never writes.
+6. After deploy the index builds at boot. If duplicates remain, billing logs "live index create failed" plus a Sentry error and still starts, with the guard off. Fix the duplicates and restart billing.
+Repeat on production before main (there are no production subscriptions yet, so the check should be clean).
