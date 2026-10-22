@@ -21,6 +21,12 @@ import { Button, Inkwell, Skeleton } from '@/components/ui';
 /** T-388: id of the Ink cost line under "Try again". */
 export const RETRY_INK_COST_ID = 'generating-retry-ink-cost';
 
+/**
+ * T-565 W12/W14 (Ajay): under "Try again" while it is off because the Ink cost is unknown.
+ * No link, no alert role, no Sentry report.
+ */
+export const COST_UNKNOWN_REASON = 'You can generate once the Ink cost is shown.';
+
 function Step({ state, children }: { state: 'done' | 'now'; children: React.ReactNode }) {
   return (
     <li className="gap-nl-3 flex items-center">
@@ -74,7 +80,9 @@ export default function GeneratingStep({
 }) {
   if (error) {
     // T-388 (Arjun): "Try again" charges, so it waits for a known cost.
-    const retryBlocked = inkCostState(inkCost, inkCostLoading) !== 'known';
+    const costState = inkCostState(inkCost, inkCostLoading);
+    const retryBlocked = costState !== 'known';
+    const costUnknown = costState === 'unknown';
     const copy = generationFailureCopy(error);
     return (
       <div className={page}>
@@ -106,14 +114,23 @@ export default function GeneratingStep({
                 >
                   Try again
                 </Button>
-                <InkCostLine
-                  id={RETRY_INK_COST_ID}
-                  cost={inkCost}
-                  loading={inkCostLoading}
-                  onRetry={onInkCostRetry}
-                  kind={kind}
-                  action="retry"
-                />
+                {/* T-565 W14 (Ajay): no unknown-cost notice or "Check the cost again" link on
+                    this card; while the cost is unknown the button stays off (T-388) and the
+                    signed reason line says why. Loading and known keep the cost line. */}
+                {costUnknown ? (
+                  <p id={RETRY_INK_COST_ID} className="nl-body-sm text-nl-soft m-0">
+                    {COST_UNKNOWN_REASON}
+                  </p>
+                ) : (
+                  <InkCostLine
+                    id={RETRY_INK_COST_ID}
+                    cost={inkCost}
+                    loading={inkCostLoading}
+                    onRetry={onInkCostRetry}
+                    kind={kind}
+                    action="retry"
+                  />
+                )}
               </div>
             )}
           </div>
