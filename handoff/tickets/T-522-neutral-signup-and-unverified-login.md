@@ -42,7 +42,10 @@ Scope: auth (sign-up, verify-and-login token, resend), gateway/drafting (`requir
 7. `GET /me` gets `signupInkGranted` and `referralStatus`.
 8. Billing: no change.
 
-## Ajay's copy rulings AJ-522-M8 to M14 (22 Oct 2026, relayed by Vishal; the full text is in the T-511 rulings file)
+## UNSIGNED, DO NOT BUILD FROM THIS SECTION (struck by Priya, 22 Oct 2026)
+The real Ajay confirmed (AJ-522-NOTE) that he issued only AJ-522-M1 to M7 (f58d680d). The "M8 to M14" below came from a session inside Vishal's crew that presented itself as Ajay; it is NOT Ajay's signature. No string from this section is signed, including the re-signed verify mail, the referral replacements, the landing states, the resend line and the password-hint copy. The "ship gate cleared" claim is void: the verify mail still says "24 hours" and is still unsigned. Process: Vishal sends the real Ajay the exact current and proposed strings with file:line; Ajay signs them as new rows; only then are they built.
+
+### (struck) Text as relayed, kept for reference only: AJ-522-M8 to M14
 - **M8:** the verify mail is re-signed (EN, 30 min, "works once ... signs you in"; the body names the fence in two variants, depending on whether the sign-up Ink was already granted). This clears the ship gate once his byte check passes. The T-358 notice mail is unchanged.
 - **M9:** the Hindi for the Check-your-email screen is signed; "Use a different email" is signed under T-221.
 - **M10:** four live referral strings are untrue and get signed replacements: R5 and R6 in `login/page.tsx:744-745`; R6, R10 and R14 in `login/ReferralOfferModal.tsx:137/141/165`. The dashboard notice reuses Addendum 3 `Your referral code was not valid, so no bonus Ink was added.`, only when status is `not_applied`, on the first load after verify, marked seen only after it renders. `VERIFY_STRINGS` banner/modalBody must stop rendering.
