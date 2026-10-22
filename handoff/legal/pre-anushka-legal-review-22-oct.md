@@ -244,3 +244,4 @@ With these, the old flow is fully signed. `describe_first` may still stay ON for
 | W8 | Not-started card, "Check the cost again" | Cut the notice (unsigned). Keep `Try again`, because nothing was charged. |
 | W9 | GeneratingStep.tsx:132 "Drafting your {documentName}" | `Writing your {documentName}…` |
 | W10 | "The draft could not start." twice on the hard-block card | Drop the step label, as proposed. |
+| W11 | Addendum 2 details (Tanvi) | Insert into a draft keeps the normal `§{n} {NewCode}`, and Addendum 2 governs Copy only. The search row stays as it is (the detail box carries `No equivalent in the {OldCode}`). New-provision rows show no `Mapped` badge. W8 extended: cut the unknown-cost notice and `Check the cost again` on every card (not-started, SoftWarn, request-failed). |
