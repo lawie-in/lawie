@@ -20,7 +20,7 @@ export function isProductionBox(markers: ProductionBoxMarkers): boolean {
   const norm = (v: string | undefined): string => (v ?? '').trim().toLowerCase();
   return (
     norm(markers.RAZORPAY_KEY_GUARD) === 'strict' ||
-    norm(markers.SECRETS_ENV) === 'prod' ||
+    ['prod', 'production'].includes(norm(markers.SECRETS_ENV)) ||
     norm(markers.RAZORPAY_KEY_ID).startsWith('rzp_live_')
   );
 }
