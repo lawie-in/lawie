@@ -142,11 +142,11 @@ No credentials or personal data may reach Sentry from any service. One scrub doe
 
 Lawie uses per-environment dotenv files. Secrets never live in git.
 
-| Environment | File               | Source                                            |
-| ----------- | ------------------ | ------------------------------------------------- |
-| Development | `.env.development` | Committed (safe defaults for Docker)              |
-| Demo        | `.env.demo`        | Created on EC2 manually (see docs/demo-deploy.md) |
-| Production  | `.env.production`  | Written by CI/CD from AWS Secrets Manager         |
+| Environment | File               | Source                                                                                                                        |
+| ----------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| Development | `.env.development` | Committed (safe defaults for Docker)                                                                                          |
+| Demo        | `.env.demo`        | Created on EC2 manually (see docs/demo-deploy.md)                                                                             |
+| Production  | none (no file)     | SSM Parameter Store at boot via instance role (T-534); CI uses OIDC, no stored AWS keys. See [docs/DEPLOY.md](docs/DEPLOY.md) |
 
 All variable names are declared in `.env.example`. Each service validates its env vars at boot via Zod — misconfiguration fails fast with a clear error message.
 

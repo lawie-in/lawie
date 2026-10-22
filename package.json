@@ -12,6 +12,7 @@
     "dev:backend": "concurrently \"yarn workspace @lawie/gateway dev\" \"yarn workspace @lawie/auth dev\" \"yarn workspace @lawie/drafting dev\" \"yarn workspace @lawie/billing dev\" \"yarn workspace @lawie/email-worker dev\"",
     "build": "yarn workspaces run build",
     "test": "yarn workspaces run test",
+    "test:scripts": "jest -c scripts/jest.config.js",
     "lint": "yarn workspaces run lint",
     "format": "prettier --write \"**/*.{ts,tsx,js,json,md,yml}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,json,md,yml}\"",

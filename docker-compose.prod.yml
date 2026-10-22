@@ -1,0 +1,162 @@
+# Production compose (T-533). One EC2 box (t3.medium), ap-south-1.
+#
+# Images come from ECR, built by .github/workflows/deploy-production.yml and tagged sha-<commit>.
+# scripts/deploy-prod.sh sets TAG to the sha-* tag it is deploying; `main` is only the fallback.
+#
+# No env file of any kind. Secrets are read at boot by each service from SSM Parameter Store
+# (/lawie/prod/<service>) through the instance role (T-534 loader; SECRETS_BACKEND=ssm).
+# Only non-secret wiring is set here. Until T-534 ships, the services will not find their
+# secrets and will fail boot: do not turn the deploy switch on before then.
+#
+# MongoDB is external (Atlas). Redis runs on the box, no published port.
+# App ports are published on 127.0.0.1 only, for the host nginx (TLS) in front.
+# See docs/DEPLOY.md.
+
+x-app: &app
+  restart: unless-stopped
+  depends_on:
+    redis:
+      condition: service_healthy
+  networks:
+    - lawie_prod
+  logging:
+    driver: json-file
+    options:
+      max-size: '10m'
+      max-file: '3'
+
+x-secrets-env: &secrets-env
+  NODE_ENV: production
+  SECRETS_BACKEND: ssm
+  SECRETS_ENV: prod
+  AWS_REGION: ${AWS_REGION:-ap-south-1}
+  REDIS_URL: redis://redis:6379
+
+services:
+  # ── Redis (on-box; queues, rate limits, locks) ─────────────────────────────
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ['redis-server', '--appendonly', 'yes', '--maxmemory-policy', 'noeviction']
+    volumes:
+      - redis-data:/data
+    networks:
+      - lawie_prod
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Gateway ────────────────────────────────────────────────────────────────
+  gateway:
+    <<: *app
+    image: ${ECR_REGISTRY:?ECR_REGISTRY must be set}/lawie-prod-gateway:${TAG:-main}
+    environment:
+      <<: *secrets-env
+      PORT: 4000
+      AUTH_SERVICE_URL: http://auth:4001
+      DRAFTING_SERVICE_URL: http://drafting:4002
+      BILLING_SERVICE_URL: http://billing:4003
+    ports:
+      - '127.0.0.1:4000:4000'
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:4000/health']
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+
+  # ── Auth ───────────────────────────────────────────────────────────────────
+  auth:
+    <<: *app
+    image: ${ECR_REGISTRY:?ECR_REGISTRY must be set}/lawie-prod-auth:${TAG:-main}
+    environment:
+      <<: *secrets-env
+      PORT: 4001
+      DRAFTING_SERVICE_URL: http://drafting:4002
+      BILLING_SERVICE_URL: http://billing:4003
+    ports:
+      - '127.0.0.1:4001:4001'
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:4001/health']
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+
+  # ── Drafting (carries Chromium for PDFs) ───────────────────────────────────
+  drafting:
+    <<: *app
+    image: ${ECR_REGISTRY:?ECR_REGISTRY must be set}/lawie-prod-drafting:${TAG:-main}
+    environment:
+      <<: *secrets-env
+      PORT: 4002
+    ports:
+      - '127.0.0.1:4002:4002'
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:4002/health']
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+
+  # ── Billing ────────────────────────────────────────────────────────────────
+  billing:
+    <<: *app
+    image: ${ECR_REGISTRY:?ECR_REGISTRY must be set}/lawie-prod-billing:${TAG:-main}
+    environment:
+      <<: *secrets-env
+      PORT: 4003
+    ports:
+      - '127.0.0.1:4003:4003'
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:4003/health']
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+
+  # ── Email worker (no public route; health on 9100) ─────────────────────────
+  email-worker:
+    <<: *app
+    image: ${ECR_REGISTRY:?ECR_REGISTRY must be set}/lawie-prod-email-worker:${TAG:-main}
+    environment:
+      <<: *secrets-env
+      PORT: 9100
+      AUTH_SERVICE_URL: http://auth:4001
+      BILLING_SERVICE_URL: http://billing:4003
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:9100/health']
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+
+  # ── Web (Next.js; NEXT_PUBLIC_* are baked in at build time) ────────────────
+  web:
+    <<: *app
+    image: ${ECR_REGISTRY:?ECR_REGISTRY must be set}/lawie-prod-web:${TAG:-main}
+    depends_on:
+      gateway:
+        condition: service_started
+    environment:
+      NODE_ENV: production
+      HOSTNAME: 0.0.0.0
+      PORT: 3000
+    ports:
+      - '127.0.0.1:3000:3000'
+    healthcheck:
+      # 127.0.0.1, not localhost: alpine resolves localhost to ::1 and Next.js binds IPv4 only.
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:3000']
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+
+volumes:
+  redis-data:
+
+networks:
+  lawie_prod:
+    driver: bridge

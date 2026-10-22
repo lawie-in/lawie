@@ -1,21 +1,298 @@
-# Automated deployment is disabled.
-# Deployment is manual — see docs/DEPLOY.md for steps.
+# T-533: production pipeline with an on/off switch. Full description: docs/DEPLOY.md.
 #
-# To re-enable: restore the 'on: push: branches: [main]' trigger
-# and the build/push/deploy steps.
+# Two repository variables, both absent by default (Settings -> Secrets and variables -> Actions
+# -> Variables). Nothing else turns the pipeline on.
+#   PIPELINE_BUILD_ENABLED  == 'true'  build the six images, scan them, push to ECR as sha-<commit>,
+#                                      then move the `main` tag.
+#   PIPELINE_DEPLOY_ENABLED == 'true'  after a green build, deploy to the prod box by SSM Run Command
+#                                      (health wait, automatic rollback). Needs build on as well.
+#
+# Both absent: a push to main runs no job at all (one skipped run).
+# Deploy on, build off: only the `explain` job runs and says why nothing happened.
+# Deploy and rollback jobs use the `production` environment (founder is required reviewer).
+#
+# AWS access is OIDC only (vars.AWS_ROLE_ARN). No AWS keys are stored in GitHub and no env file
+# is read or written anywhere; the box reads its secrets from SSM Parameter Store (T-534).
+#
+# Other repository variables used: AWS_REGION (default ap-south-1), ECR_REGISTRY,
+# PROD_INSTANCE_ID or PROD_INSTANCE_TAG, PROD_DEPLOY_DIR (default /opt/lawie),
+# PROD_NEXT_PUBLIC_API_URL, PROD_NEXT_PUBLIC_GRIEVANCE_OFFICER_NAME.
 
 name: Deploy — Production
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
-      reason:
-        description: 'Reason (this workflow is a placeholder — deploy manually)'
+      action:
+        description: 'build = build and push only; deploy = build then deploy; rollback = point main at an existing sha-* image and deploy it'
+        type: choice
+        options: [build, deploy, rollback]
+        default: build
+      sha:
+        description: 'Full 40-char commit sha on main. build/deploy: default is the head of main. rollback: required.'
+        type: string
         required: false
 
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION || 'ap-south-1' }}
+  ECR_REGISTRY: ${{ vars.ECR_REGISTRY }}
+
 jobs:
-  noop:
-    name: No-op (manual deploy only)
+  # ── Says why nothing ran. Never runs on a push with both variables absent. ──
+  explain:
+    name: Pipeline switch is off
+    if: >-
+      (vars.PIPELINE_BUILD_ENABLED != 'true' &&
+        (vars.PIPELINE_DEPLOY_ENABLED == 'true' || github.event_name == 'workflow_dispatch')) ||
+      (github.event_name == 'workflow_dispatch' && inputs.action != 'build' &&
+        vars.PIPELINE_DEPLOY_ENABLED != 'true')
     runs-on: ubuntu-latest
+    permissions: {}
     steps:
-      - run: echo "Automated deployment is disabled. Deploy manually."
+      - name: Explain
+        env:
+          BUILD: ${{ vars.PIPELINE_BUILD_ENABLED }}
+          DEPLOY: ${{ vars.PIPELINE_DEPLOY_ENABLED }}
+          ACTION: ${{ inputs.action }}
+        run: |
+          if [ "$BUILD" != "true" ]; then
+            if [ "$DEPLOY" = "true" ]; then
+              msg="PIPELINE_DEPLOY_ENABLED is 'true' but PIPELINE_BUILD_ENABLED is '${BUILD:-absent}'. Deploy requires build on, so nothing was built or deployed."
+            else
+              msg="PIPELINE_BUILD_ENABLED is '${BUILD:-absent}'. The pipeline is off: nothing was built or deployed."
+            fi
+          else
+            msg="action=$ACTION needs PIPELINE_DEPLOY_ENABLED='true' (it is '${DEPLOY:-absent}'). Nothing was deployed or retagged."
+          fi
+          echo "::warning::$msg"
+          echo "$msg" >> "$GITHUB_STEP_SUMMARY"
+
+  # ── Cheap first job: refuses to build anything that carries handoff content ──
+  main-guard-check:
+    name: main-guard check
+    if: vars.PIPELINE_BUILD_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.target.outputs.sha }}
+    steps:
+      - name: Resolve target commit
+        id: target
+        env:
+          EVENT: ${{ github.event_name }}
+          ACTION: ${{ inputs.action }}
+          INPUT_SHA: ${{ inputs.sha }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          sha="${INPUT_SHA#sha-}"
+          if [ "$EVENT" = "workflow_dispatch" ] && [ "$ACTION" = "rollback" ] && [ -z "$sha" ]; then
+            echo "::error::action=rollback needs the sha input (full 40-char commit of a past release)."
+            exit 1
+          fi
+          sha="${sha:-$HEAD_SHA}"
+          if ! printf '%s' "$sha" | grep -Eq '^[0-9a-f]{40}$'; then
+            echo "::error::sha must be a full 40-character lower-case commit sha, got '$sha'."
+            exit 1
+          fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.target.outputs.sha }}
+          fetch-depth: 0
+
+      - name: Target must be on main
+        env:
+          SHA: ${{ steps.target.outputs.sha }}
+        run: |
+          if ! git merge-base --is-ancestor "$SHA" origin/main; then
+            echo "::error::$SHA is not on main. Only main (cut by release-to-main.yml) is built or deployed."
+            exit 1
+          fi
+
+      - name: Fail if handoff content is in the tree
+        run: |
+          found=0
+          for p in handoff .claude CLAUDE.md .github/copilot-instructions.md; do
+            if [ -e "$p" ]; then echo "::error::$p exists in the tree."; found=1; fi
+          done
+          if [ "$found" -ne 0 ]; then exit 1; fi
+          echo "main-guard-check: clean"
+
+  # ── Build, scan, push sha-<commit> ──────────────────────────────────────────
+  build:
+    name: Build ${{ matrix.svc }}
+    needs: [main-guard-check]
+    if: >-
+      vars.PIPELINE_BUILD_ENABLED == 'true' &&
+      (github.event_name == 'push' || inputs.action == 'build' || inputs.action == 'deploy')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    strategy:
+      fail-fast: true
+      matrix:
+        svc: [gateway, auth, drafting, billing, email-worker, web]
+    env:
+      IMAGE: ${{ vars.ECR_REGISTRY }}/lawie-prod-${{ matrix.svc }}:sha-${{ needs.main-guard-check.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.main-guard-check.outputs.sha }}
+
+      - name: Check configuration
+        env:
+          ROLE: ${{ vars.AWS_ROLE_ARN }}
+        run: |
+          [ -n "$ROLE" ] || { echo "::error::vars.AWS_ROLE_ARN is not set."; exit 1; }
+          [ -n "$ECR_REGISTRY" ] || { echo "::error::vars.ECR_REGISTRY is not set."; exit 1; }
+
+      - name: Build args
+        id: args
+        env:
+          SVC: ${{ matrix.svc }}
+          API_URL: ${{ vars.PROD_NEXT_PUBLIC_API_URL }}
+          GRIEVANCE: ${{ vars.PROD_NEXT_PUBLIC_GRIEVANCE_OFFICER_NAME }}
+        run: |
+          if [ "$SVC" != "web" ]; then echo "args=" >> "$GITHUB_OUTPUT"; exit 0; fi
+          [ -n "$API_URL" ] || { echo "::error::vars.PROD_NEXT_PUBLIC_API_URL is not set; web bakes it in at build time."; exit 1; }
+          [ -n "$GRIEVANCE" ] || echo "::warning::vars.PROD_NEXT_PUBLIC_GRIEVANCE_OFFICER_NAME is empty."
+          {
+            echo 'args<<__ARGS__'
+            echo "NEXT_PUBLIC_API_URL=$API_URL"
+            echo "NEXT_PUBLIC_GRIEVANCE_OFFICER_NAME=$GRIEVANCE"
+            echo '__ARGS__'
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          role-session-name: lawie-prod-build-${{ github.run_id }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: aws-actions/amazon-ecr-login@v2
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build image (not pushed yet)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/${{ matrix.svc }}/Dockerfile
+          build-args: ${{ steps.args.outputs.args }}
+          tags: ${{ env.IMAGE }}
+          load: true
+          push: false
+          provenance: false
+          sbom: false
+          cache-from: type=gha,scope=prod-${{ matrix.svc }}
+          cache-to: type=gha,mode=max,scope=prod-${{ matrix.svc }}
+
+      - name: Scan image for handoff content (fails the build if found)
+        run: bash scripts/check-image-no-handoff.sh "$IMAGE"
+
+      - name: Push sha tag
+        run: docker push "$IMAGE"
+
+  # ── Move `main` to the new sha only after all six are pushed ───────────────
+  promote:
+    name: Tag main
+    needs: [main-guard-check, build]
+    if: >-
+      vars.PIPELINE_BUILD_ENABLED == 'true' &&
+      (github.event_name == 'push' || inputs.action == 'build' || inputs.action == 'deploy')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.main-guard-check.outputs.sha }}
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          role-session-name: lawie-prod-promote-${{ github.run_id }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Point main at the new sha
+        env:
+          SHA: ${{ needs.main-guard-check.outputs.sha }}
+        run: bash scripts/deploy-prod.sh retag "$SHA"
+
+  # ── Deploy by SSM Run Command, health wait, rollback on failure ─────────────
+  deploy:
+    name: Deploy to production
+    needs: [main-guard-check, build, promote]
+    if: >-
+      vars.PIPELINE_BUILD_ENABLED == 'true' && vars.PIPELINE_DEPLOY_ENABLED == 'true' &&
+      (github.event_name == 'push' || inputs.action == 'deploy')
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.main-guard-check.outputs.sha }}
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          role-session-name: lawie-prod-deploy-${{ github.run_id }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: SSM deploy (health wait, rollback on failure)
+        env:
+          SHA: ${{ needs.main-guard-check.outputs.sha }}
+          PROD_INSTANCE_ID: ${{ vars.PROD_INSTANCE_ID }}
+          PROD_INSTANCE_TAG: ${{ vars.PROD_INSTANCE_TAG }}
+          PROD_DEPLOY_DIR: ${{ vars.PROD_DEPLOY_DIR || '/opt/lawie' }}
+        run: bash scripts/deploy-prod.sh ssm "$SHA"
+
+  # ── Manual rollback: workflow_dispatch action=rollback sha=<past release> ──
+  rollback:
+    name: Roll back production
+    needs: [main-guard-check]
+    if: >-
+      vars.PIPELINE_BUILD_ENABLED == 'true' && vars.PIPELINE_DEPLOY_ENABLED == 'true' &&
+      github.event_name == 'workflow_dispatch' && inputs.action == 'rollback'
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.main-guard-check.outputs.sha }}
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          role-session-name: lawie-prod-rollback-${{ github.run_id }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Point main at the rollback sha (all six images must exist)
+        env:
+          SHA: ${{ needs.main-guard-check.outputs.sha }}
+        run: bash scripts/deploy-prod.sh retag "$SHA"
+
+      - name: SSM deploy the rollback sha
+        env:
+          SHA: ${{ needs.main-guard-check.outputs.sha }}
+          PROD_INSTANCE_ID: ${{ vars.PROD_INSTANCE_ID }}
+          PROD_INSTANCE_TAG: ${{ vars.PROD_INSTANCE_TAG }}
+          PROD_DEPLOY_DIR: ${{ vars.PROD_DEPLOY_DIR || '/opt/lawie' }}
+        run: bash scripts/deploy-prod.sh ssm "$SHA"

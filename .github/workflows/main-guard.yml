@@ -1,0 +1,37 @@
+# T-533 (founder rule, 21 Oct 2026): `main` is a release snapshot and never carries handoff docs.
+# This job fails if any of the paths below exist on `main`. Branch protection on `main` requires
+# the `main-guard` check (founder sets that in GitHub; see docs/DEPLOY.md).
+# No paths-ignore on purpose: every push to main is checked.
+# release-to-main.yml also dispatches this workflow after it pushes, because a push made with
+# GITHUB_TOKEN does not start push-triggered workflows.
+
+name: Main guard
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  main-guard:
+    name: main-guard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fail if handoff content is on main
+        run: |
+          found=0
+          for p in handoff .claude CLAUDE.md .github/copilot-instructions.md; do
+            if [ -e "$p" ]; then
+              echo "::error::$p exists on main. main is cut by release-to-main.yml and must not carry it."
+              found=1
+            fi
+          done
+          if [ "$found" -ne 0 ]; then exit 1; fi
+          echo "main-guard: clean"
