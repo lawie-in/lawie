@@ -25,6 +25,11 @@ import {
 } from '../services/password-reset.service';
 import { deleteUserSessionById, hashToken, listActiveSessions } from '../services/session.service';
 import {
+  TEST_ACCOUNTS_CAP_ERROR,
+  TEST_SIGNUP_BAD_NAME_ERROR,
+  tryTestSignupBypass,
+} from '../services/test-signup-bypass.service';
+import {
   VERIFY_RESEND_LIMITED,
   VERIFY_RESEND_LIMIT_MESSAGE,
   requestVerifyEmail,
@@ -78,13 +83,52 @@ async function sendNeutralOutcome(
  *   429  { error: 'rate_limited', retryAfter } + Retry-After  over the IP or email bucket
  *   503  { error: 'service_unavailable' }  the rate-limit store failed; nothing looked up
  * The body is never logged.
+ *
+ * T-563 (Arjun) — the develop-only test sign-up bypass runs here, after validation and before
+ * the neutral path. When it does not apply (off, no `bypass-test: true`, wrong or missing
+ * secret, non-reserved email) the request falls through unchanged. When it applies:
+ *   201  login's success body (user + tokens) and a session
+ *   400  { error: 'invalid_test_name' }  right secret, name not starting with TEST
+ *   409  { error: 'test_accounts_cap' }   the live test-account cap is reached
+ *   429 / 503  as the neutral path
  */
 export async function register(req: Request, res: Response, next: NextFunction): Promise<void> {
   const startedAt = Date.now();
   try {
     res.setHeader('Cache-Control', 'no-store');
     const parsed = validateRegister(req.body);
-    const outcome = await registerUser(parsed, clientIpForRateLimit(req));
+    const ip = clientIpForRateLimit(req);
+    const test = await tryTestSignupBypass(parsed, {
+      headers: req.headers,
+      ip,
+      meta: { ip: req.ip, userAgent: req.headers['user-agent'] },
+    });
+    switch (test.kind) {
+      case 'created': {
+        const { user, tokens } = test;
+        res.status(201).json({
+          status: 'success',
+          data: {
+            user: { id: user._id, email: user.email, name: user.name, role: user.role },
+            ...tokens,
+          },
+        });
+        return;
+      }
+      case 'bad_name':
+        res.status(400).json({ error: TEST_SIGNUP_BAD_NAME_ERROR });
+        return;
+      case 'cap':
+        res.status(409).json({ error: TEST_ACCOUNTS_CAP_ERROR });
+        return;
+      case 'limited':
+      case 'unavailable':
+        await sendNeutralOutcome(res, test, startedAt, 'register');
+        return;
+      case 'not_applied':
+        break;
+    }
+    const outcome = await registerUser(parsed, ip);
     await sendNeutralOutcome(res, outcome, startedAt, 'register');
   } catch (err) {
     next(err);

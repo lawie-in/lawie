@@ -26,6 +26,7 @@
 import { INTERNAL_HEADERS } from '@lawie/shared';
 import { Router, type NextFunction, type Request, type Response } from 'express';
 
+import { isTestAccountUser } from '../services/test-signup-bypass.service';
 import {
   MAIL_OUTCOMES,
   prepareUnverifiedNotice,
@@ -53,6 +54,11 @@ router.post(
       return;
     }
     try {
+      // T-563 (Arjun default 6): a test account is never mailed.
+      if (await isTestAccountUser(userId)) {
+        res.status(409).json({ error: 'not_eligible' });
+        return;
+      }
       const result = await prepareUnverifiedNotice(userId);
       if (result.kind === 'not_eligible') {
         res.status(409).json({ error: 'not_eligible' });

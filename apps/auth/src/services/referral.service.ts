@@ -158,7 +158,8 @@ async function claimReferralCode(
 
   // Exactly-once claim (T-298 d): only the winner grants Ink and bumps uses.
   const claimed = await User.findOneAndUpdate(
-    { _id: new mongoose.Types.ObjectId(userId), referredVia: null },
+    // T-563 (Arjun): no referral in or out for a test account.
+    { _id: new mongoose.Types.ObjectId(userId), referredVia: null, isTestAccount: { $ne: true } },
     { $set: { referredVia: rc._id } },
     { new: true },
   ).lean();
