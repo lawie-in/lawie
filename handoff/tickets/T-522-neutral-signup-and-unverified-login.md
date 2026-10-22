@@ -52,3 +52,6 @@ The real Ajay confirmed (AJ-522-NOTE) that he issued only AJ-522-M1 to M7 (f58d6
 - **M11:** landing states include a NEW required state "Verified, not signed in" (verify-kind and legacy links). Rajesh's "resend when the address is known from the token" is struck. A new expired/used title is signed.
 - **M12:** the signed-out resend shows `Request sent. Check your inbox and spam folder.` (not "Email sent") plus the M4 wait line; the timer starts at sign-up submit.
 - **M13/M14:** password hint and error EN/HI, `Not now` HI, the 429/503 lines signed. Rajesh's "Could not send the email. Retry." is struck; use `VerifyEmailPrompt.tsx:49`.
+
+## SIGNED copy for T-522 (real Ajay, 22 Oct 2026, 03e3571): AJ-522-S1 to S8
+The signed strings are rows AJ-522-S1 to S8 in `handoff/legal/T-511-copy-rulings-ajay.md` (different references on purpose from the unsigned M8 to M14 above). Build from that file only. Once the build matches S1 (the verify mail), the "24 hours" ship gate clears; Ajay byte-checks at READY.
