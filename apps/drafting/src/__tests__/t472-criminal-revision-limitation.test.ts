@@ -1030,12 +1030,12 @@ describe('T-472 D: criminal_revision.json', () => {
     expect(readFileSync(RULES, 'utf8')).not.toContain('limitation_compliance');
   });
 
-  it('AJ-472-M2: the limitation line replaces the Para 5 line, exactly once, with no paragraph number', () => {
+  it('AJ-472-M2: the limitation line is exactly once, with no paragraph number, and is not a Para line', () => {
     const lines = raw.prompt_context.promptInstructions;
     const M2 =
       'Limitation — Lawie adds this as the last numbered paragraph, from the dates given. Do not write it, and do not leave a gap in your numbering for it.';
     expect(lines.filter((l) => l === M2)).toHaveLength(1);
-    expect(lines.some((l) => l.startsWith('Para 5'))).toBe(false);
+    expect(M2.startsWith('Para')).toBe(false);
     expect(lines.filter((l) => /^Limitation —/.test(l))).toEqual([M2]);
     expect(lines.join('\n')).not.toContain('Art. 131');
     expect(lines.join('\n')).not.toContain('prints this paragraph');
@@ -1049,7 +1049,27 @@ describe('T-472 D: criminal_revision.json', () => {
     expect(lines.filter((l) => l === PROMPT_LINE)).toHaveLength(1);
     const at = lines.indexOf(PROMPT_LINE);
     expect(lines[at - 1].startsWith('Limitation — Lawie adds this')).toBe(true);
-    expect(lines[at + 1].startsWith('Para 6:')).toBe(true);
+    expect(lines[at + 1].startsWith('Para 5:')).toBe(true);
+  });
+
+  it('the Para N guide lines are consecutive from Para 1 to Para 14, no gap, no repeat, none beyond', () => {
+    const lines = raw.prompt_context.promptInstructions;
+    const nums = lines
+      .map((l) => /^Para (\d+):/.exec(l))
+      .filter((m): m is RegExpExecArray => m !== null)
+      .map((m) => Number(m[1]));
+    expect(nums).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
+    expect(lines.some((l) => l.startsWith('Para 15:'))).toBe(false);
+    const M2 = lines.find((l) => /^Limitation — Lawie adds this/.test(l))!;
+    const at = lines.indexOf(M2);
+    expect(lines[at - 1].startsWith('Para 4:')).toBe(true);
+    expect(
+      lines
+        .slice(at + 1)
+        .find((l) => l.startsWith('Para '))!
+        .startsWith('Para 5:'),
+    ).toBe(true);
+    expect(/\d/.test(M2)).toBe(false);
   });
 
   it('limitation_paragraph description is the new wording', () => {

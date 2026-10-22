@@ -187,11 +187,11 @@ describe('T-441: pinned wording (R1 keeps the proposition word for word)', () =>
     'Bar of second revision under S.397(3) CrPC (now S.438(3) BNSS — bar to apply to both HC and Sessions in same case); HC can still exercise inherent jurisdiction.',
     'Revisional court has limited scope; cannot re-appreciate evidence like appellate court.',
     'Perversity threshold for interference with factual findings in revision.',
-    // Ajay approved the criminal_revision lines as built (8d740cc) and the Para 8 must-fix.
+    // Ajay approved the criminal_revision lines as built (8d740cc) and the Grounds-of-revision must-fix (Para 7).
     'Para 4: Nature of impugned order — confirm it is NOT interlocutory.',
-    'Para 8: Grounds of revision — itemise each ground.',
-    'Para 10: Where lower court took cognizance / framed charge: cognizance / summoning orders, judicial mind required.',
-    'Para 11: Where Magistrate erred in framing charges: charge framing principles.',
+    'Para 7: Grounds of revision — itemise each ground.',
+    'Para 9: Where lower court took cognizance / framed charge: cognizance / summoning orders, judicial mind required.',
+    'Para 10: Where Magistrate erred in framing charges: charge framing principles.',
   ];
 
   it.each(REVISION_PINNED)(
@@ -213,7 +213,7 @@ describe('T-441: criminal_revision Para 8 asks for no precedent', () => {
   });
   it('the old Para 8 wording is gone', () => {
     expect(instructionsOf('criminal_revision')).not.toContain(
-      'Para 8: Grounds of revision — itemise each ground with relevant precedent.',
+      'Para 7: Grounds of revision — itemise each ground with relevant precedent.',
     );
   });
 });
