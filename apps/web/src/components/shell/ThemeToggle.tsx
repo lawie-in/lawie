@@ -2,7 +2,8 @@
 
 // T-511 part A: Night / Daylight / System control (spec 1, 2.5; copy handoff/copy/T-511-copy-v1.md
 // 6.4). Native radio inputs in a fieldset, so arrow keys, Tab and screen readers behave as a
-// radiogroup without custom key handling. Every option is a 44px target.
+// radiogroup without custom key handling. A 44px frame (40px options + 2px padding + 2px border);
+// each option keeps a 44px-high hit area through a height-only ::before pseudo-element.
 
 import { useId } from 'react';
 
