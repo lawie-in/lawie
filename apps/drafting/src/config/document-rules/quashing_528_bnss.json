@@ -249,7 +249,7 @@
       "Quashing on compromise — distinction between compoundable and non-compoundable offences; HC's wider power under inherent jurisdiction; categories of cases where settlement valid even in non-compoundable offences (e.g., matrimonial, family, commercial, civil flavor offences).",
       "Categories of offences which cannot be quashed even on settlement (heinous, public interest).",
       "Para 1: Description of parties.",
-      "Para 2: FIR details — number, date, PS, district, sections invoked. Note: must use BNS / BNSS / BSA section numbers, not IPC / CrPC / IEA, for offences registered after 1 July 2024. Pre-1 July 2024 FIRs continue under old code.",
+      "Para 2: FIR details — number, date, PS, district, and the sections as registered in the FIR (BNS for an offence on or after 1 July 2024, IPC for an offence before that date; any other Act as named in the FIR).",
       "Para 3: Factual matrix — what genuinely happened, from petitioner's perspective.",
       "Para 4: Section-by-section ingredient analysis — for each BNS section invoked, list ingredients and demonstrate which ingredient is missing. CRITICAL paragraph.",
       "Para 5: Recognised quashing categories invoked — state which of the 7 categories applies and quote the relevant category VERBATIM.",
@@ -346,7 +346,7 @@
   "validation_rules": [
     "petitioner_name must not be empty",
     "fir_details must not be empty",
-    "offences_alleged must use BNS sections (warn if IPC sections detected)",
+    "offences_alleged uses the code in force on the date of the offence: BNS for an offence on or after 1 July 2024, IPC for an offence before that date (warn only where the sections do not match the offence date).",
     "grounds_for_quashing must have at least one category selected",
     "factual_matrix must not be empty",
     "specific_ingredients_analysis must not be empty",
