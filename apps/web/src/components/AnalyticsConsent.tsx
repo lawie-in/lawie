@@ -503,6 +503,8 @@ export default function AnalyticsConsent() {
         // side insets (viewport-fit=cover). From 640px the bottom-left card is unchanged.
         <section
           ref={cardRef}
+          // T-549 (Rajesh M1): hook for the Daylight pin on legacy .mk pages (globals.css).
+          data-consent-card=""
           aria-labelledby="consent-title"
           aria-describedby="consent-desc"
           onKeyDown={onKeyDown}

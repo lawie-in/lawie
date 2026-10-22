@@ -61,10 +61,10 @@ export default function Sidebar() {
   }, [menuOpen]);
 
   return (
-    // T-549 (Rajesh T-531 F6): viewport-fit=cover is global, so the sidebar clears the left and
-    // top safe-area insets (landscape notch, standalone status bar). The width grows by the left
-    // inset so the 200px nav column itself is unchanged.
-    <aside className="flex h-full w-[calc(200px+env(safe-area-inset-left,0px))] flex-shrink-0 flex-col bg-[#0F172A] pl-[env(safe-area-inset-left,0px)] pt-[env(safe-area-inset-top,0px)]">
+    // T-549 (Rajesh T-531 F6): viewport-fit=cover is global, so the sidebar clears the left
+    // safe-area inset (landscape notch). The width grows by the inset so the 200px nav column
+    // itself is unchanged.
+    <aside className="flex h-full w-[calc(200px+env(safe-area-inset-left,0px))] flex-shrink-0 flex-col bg-[#0F172A] pl-[env(safe-area-inset-left,0px)]">
       {/* Logo */}
       <Link href="/dashboard" className="flex items-center gap-2.5 px-4 py-5">
         <img src="/app-icon.svg" alt="Lawie" className="h-7 w-7 rounded-md" />
