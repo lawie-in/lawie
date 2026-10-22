@@ -26,3 +26,13 @@
 
 ## Files (held by one lead alone)
 .github/workflows/deploy-production.yml, docker-compose.prod.yml, docs/DEPLOY.md, apps/web/Dockerfile and .dockerignore (item 9), .github/workflows/release-to-main.yml and the main-guard job, Dockerfiles only if a missing one blocks the build.
+
+## Arjun (22 Oct 2026) — five design calls after Explore (Tanvi)
+
+All five defaults stand:
+1. `main-guard.yml` on push to `main`, separate from `ci.yml`; `deploy-production.yml` re-checks the same paths as its first job and the deploy depends on it; the check name goes in `docs/DEPLOY.md` for the founder's branch-protection step.
+2. `docker-compose.prod.yml`: `${ECR_REGISTRY}/lawie-prod-<svc>:${TAG}`, six services + Redis on-box (no published port, `appendonly yes`), Mongo external, **no `env_file`**; config via `environment:`, secrets via T-534's loader (`SECRETS_BACKEND=ssm`, `SECRETS_ENV=prod` set here). `restart: unless-stopped` and the Dockerfile health checks on every service.
+3. `release-to-main.yml` ends by dispatching `deploy-production` with `action=deploy` through the API using `GITHUB_TOKEN` (`permissions: actions: write`); no PAT. Branch protection must allow the workflow to push to `main` — founder's step, in DEPLOY.md.
+4. Each release is a new commit on `main` with the tree replaced; never a force push.
+5. Fix the stale README line (Parameter Store, not Secrets Manager).
+AC7 rollback: if full builds do not fit the runner, two small tagged stand-in images are acceptable, stated in the report.
