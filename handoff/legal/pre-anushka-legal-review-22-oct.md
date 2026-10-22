@@ -279,3 +279,12 @@ W5a, W6–W13, rows 42 and 48, and the pre-stream routing all match. No NEW-n id
 | S9a | Remaining sample places | Ranchi rent-agreement addresses become `Sample Road, Ranchi` (keep the state right). `Village Barh, Dist. Patna, Bihar – 803213` becomes `Sample Village, Dist. Patna, Bihar`. Bank branch becomes `Sample Branch, Patna`. In the s.138 sample, give the respondent `Sample Lane, Patna` so the two parties do not share an address. |
 | S11b | CrPC and IEA validator lines | Signed. CrPC: `This draft cites Section {x} CrPC. Confirm the date: BNSS applies to proceedings from 1 July 2024; CrPC continues for matters pending before that date.` IEA: `This draft cites Section {x} of the Evidence Act. Confirm the date: BSA applies from 1 July 2024; check whether the Evidence Act still governs this matter.` (The pending-matter savings under the BSA: verify, so the line does not state them.) Both replace the old "Use Section X … instead" and "Please verify" texts. |
 | S12 | gpa and spa `_meta.description` naming Suraj Lamp | Leave them. `_meta` is not sent to the model (R6), and only `change_protocol` was in scope. |
+
+## Byte check T-567, fix/t-567-legal-server-export @ 4189ce3e: approved (Ajay, 22 Oct 2026)
+
+- Item 23: `/cancel` no longer has `requireCurrentPrivacy`.
+- Item 52: SKU badges are removed.
+- Item 30: Word and PDF exports use `EXPORT_DISCLAIMER_FOOTER`, exact to row 30, or the starting-draft footer instead. Exactly one footer.
+- Item 24: the three T-221 lines are exact. {n} comes from Retry-After, rounded up, minimum 1. Both the account and public limiters use them. No upsell.
+- Item 41: every `classifyLlmError` case shows `The draft did not finish.`, with the detail in logs only. `inkReleased` is not set (the web shows no Ink line until the release is confirmed). "Inputs are saved", "brief is kept", "founder must set" and "contact support" are gone.
+- **Question:** the pre-stream 500 body `{ error: 'Generation failed', message: 'Unknown generation error' }`. **Drop the English `message` field.** Keep the machine `error` code only. The web shows its own signed text for a pre-stream failure (W12).
