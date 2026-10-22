@@ -262,12 +262,6 @@
       "name": "Form Compliance",
       "required": true,
       "description": "Form 1 (S.7) / Form 5 (S.9) / Form 6 (S.10) of CIRP Regulations"
-    },
-    {
-      "id": "disclaimer",
-      "name": "Advocate Responsibility Disclaimer",
-      "required": true,
-      "description": "Standard Lawie disclaimer"
     }
   ],
   "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, the Applicant most respectfully prays that this Hon'ble Tribunal may graciously be pleased to:\n\na) Admit the present application under Section {section_invoked} of the Insolvency and Bankruptcy Code, 2016, and initiate the Corporate Insolvency Resolution Process against the Corporate Debtor {corporate_debtor_name};\n\nb) Appoint Shri/Smt. {irp_proposed} (IBBI Registration No. {irp_ibbi_number}) as the Interim Resolution Professional;\n\nc) Declare moratorium in terms of Section 14 of the Code with all consequences specified therein;\n\nd) Direct the IRP to make a public announcement of the initiation of CIRP and call for submission of claims as per Section 15 of the Code;\n\ne) Pass any other order(s) as this Hon'ble Tribunal may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the Applicant shall ever pray.",
@@ -313,7 +307,6 @@
       "   - S.9 Form 5: Part I-IV (similar) + Part V (invoice / demand notice / dispute particulars).",
       "   - S.10 Form 6: financial information, special resolution, audited financials.",
       "Verification + affidavit per Form Part on solemn affirmation.",
-      "Append Lawie disclaimer.",
       "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },

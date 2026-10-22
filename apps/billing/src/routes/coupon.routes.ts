@@ -7,15 +7,31 @@
  *   PATCH  /admin/coupons/:code        Edit label / expiresAt / razorpayOfferId
  *   PATCH  /admin/coupons/:code/disable Deactivate
  *
- * Public (no auth — called from checkout):
- *   GET    /validate-coupon/:code?skuId=   Validate + compute discount
+ * Public, optional auth (called from checkout):
+ *   GET    /validate-coupon/:code?skuId=   Validate + quote (T-540: quoteTopup)
  */
+import { INTERNAL_HEADERS } from '@lawie/shared';
 import { Router, Request, Response } from 'express';
+import mongoose from 'mongoose';
 
-import { TOPUP_SKUS, SUBSCRIPTION_PLANS } from '../config/credit-skus';
+import { env } from '../config/env';
 import { authenticate } from '../middleware/authenticate';
 import { CouponCode } from '../models/CouponCode.model';
-import { CouponUsage } from '../models/CouponUsage.model';
+import {
+  QUOTE_REASONS,
+  couponCanReachFree,
+  normaliseCouponCode,
+  paiseToInr,
+  quoteTopup,
+} from '../services/topup-quote.service';
+import { internalSecretMatches } from '../utils/internal-secret';
+
+/** A positive whole number, or null when the field was not given as one. */
+function positiveInt(v: unknown): number | null {
+  if (v === null || v === undefined || v === '') return null;
+  const n = Number(v);
+  return Number.isInteger(n) && n > 0 ? n : null;
+}
 
 const router = Router();
 
@@ -69,6 +85,22 @@ router.post(
     if (discountType === 'percent' && value > 100) {
       res.status(400).json({ error: 'percent discount cannot exceed 100' });
       return;
+    }
+    // T-540: fixed discounts are whole rupees, so quotes stay in integer paise.
+    if (discountType === 'fixed' && !Number.isInteger(value)) {
+      res.status(400).json({ error: 'fixed discountValue must be a whole number of rupees' });
+      return;
+    }
+    // T-540 (Vikram rule 3): a coupon that can make a top-up free must carry
+    // both limits, given explicitly and non-zero (no maxUsesPerUser default).
+    if (couponCanReachFree(discountType, value)) {
+      if (positiveInt(maxUses) === null || positiveInt(maxUsesPerUser) === null) {
+        res.status(400).json({
+          error:
+            'A coupon that can make an item free needs maxUses and maxUsesPerUser, both whole numbers above 0',
+        });
+        return;
+      }
     }
 
     const finalCode =
@@ -164,66 +196,39 @@ router.patch(
 );
 
 // ── GET /validate-coupon/:code ────────────────────────────────────────────────
-// Public — no auth. Called from checkout before creating Razorpay order.
+// Called from checkout before creating the Razorpay order. T-540: the price
+// comes from quoteTopup(), the same function /topup/order charges with, so the
+// footer total equals the charge. Optional auth: a request the gateway signed
+// with a user id gets the maxUsesPerUser check for that user; any other request
+// is anonymous and answered with perUserChecked: false. The old userId query
+// param is ignored (anyone could pass any id).
+
+/** The gateway-verified user id, or null (anonymous). Never rejects the request. */
+function optionalUserId(req: Request): string | null {
+  if (!internalSecretMatches(req.headers[INTERNAL_HEADERS.SECRET], env.INTERNAL_SECRET)) {
+    return null;
+  }
+  const id = req.headers[INTERNAL_HEADERS.USER_ID];
+  return typeof id === 'string' && mongoose.Types.ObjectId.isValid(id) ? id : null;
+}
 
 router.get('/validate-coupon/:code', async (req: Request, res: Response): Promise<void> => {
-  const code = (req.params['code'] ?? '').toUpperCase();
+  const code = normaliseCouponCode(req.params['code'] ?? '');
   const skuId = String(req.query['skuId'] ?? '');
-  const userId = String(req.query['userId'] ?? '');
+  const userId = optionalUserId(req);
 
-  const coupon = await CouponCode.findOne({ code }).lean();
-  if (!coupon || !coupon.isActive) {
-    res.json({ valid: false, reason: 'Coupon not found or inactive.' });
+  const quote = await quoteTopup({ skuId, couponCode: code, userId, now: new Date() });
+  if (!quote.ok) {
+    res.json({ valid: false, reason: quote.reason });
     return;
   }
-  if (coupon.expiresAt && coupon.expiresAt < new Date()) {
-    res.json({ valid: false, reason: 'Coupon has expired.' });
-    return;
-  }
-  if (coupon.maxUses !== null && coupon.maxUses !== undefined && coupon.uses >= coupon.maxUses) {
-    res.json({ valid: false, reason: 'Coupon has reached its usage limit.' });
+  if (!quote.coupon) {
+    // Unreachable for a non-empty code; kept so the response shape never lies.
+    res.json({ valid: false, reason: QUOTE_REASONS.notFound });
     return;
   }
 
-  // Per-user limit check (only if userId provided)
-  if (userId && coupon.maxUsesPerUser) {
-    const userUses = await CouponUsage.countDocuments({
-      couponId: coupon._id,
-      userId,
-    });
-    if (userUses >= coupon.maxUsesPerUser) {
-      res.json({ valid: false, reason: 'You have already used this coupon.' });
-      return;
-    }
-  }
-
-  // Resolve original price from skuId
-  const topupSku = TOPUP_SKUS.find((s) => s.id === skuId);
-  const subPlan = SUBSCRIPTION_PLANS.find((p) => p.id === skuId);
-  const originalPriceInr = topupSku?.priceInr ?? subPlan?.priceInr ?? null;
-
-  // Plan applicability
-  if (coupon.applicablePlans.length > 0 && skuId) {
-    const applies =
-      coupon.applicablePlans.includes(skuId) || coupon.applicablePlans.includes('all');
-    if (!applies) {
-      res.json({ valid: false, reason: 'This coupon does not apply to the selected item.' });
-      return;
-    }
-  }
-
-  let discountInr = 0;
-  if (originalPriceInr !== null && originalPriceInr !== undefined) {
-    discountInr =
-      coupon.discountType === 'percent'
-        ? Math.round((originalPriceInr * coupon.discountValue) / 100)
-        : Math.min(coupon.discountValue, originalPriceInr);
-  }
-  const finalPriceInr =
-    originalPriceInr !== null && originalPriceInr !== undefined
-      ? Math.max(0, originalPriceInr - discountInr)
-      : null;
-
+  const { coupon, originalPaise, discountPaise, finalPaise } = quote;
   res.json({
     valid: true,
     code: coupon.code,
@@ -231,9 +236,15 @@ router.get('/validate-coupon/:code', async (req: Request, res: Response): Promis
     discountType: coupon.discountType,
     discountValue: coupon.discountValue,
     razorpayOfferId: coupon.razorpayOfferId,
-    originalPriceInr,
-    discountInr,
-    finalPriceInr,
+    originalPriceInr: originalPaise === null ? null : paiseToInr(originalPaise),
+    discountInr: paiseToInr(discountPaise),
+    finalPriceInr: finalPaise === null ? null : paiseToInr(finalPaise),
+    originalPaise,
+    discountPaise,
+    finalPaise,
+    // Same name as /topup/order's data.amountPaise, so the web compares like for like.
+    amountPaise: finalPaise,
+    perUserChecked: quote.perUserChecked,
   });
 });
 

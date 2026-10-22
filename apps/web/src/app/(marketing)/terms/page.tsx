@@ -34,7 +34,7 @@ export default function TermsPage() {
         <div className="container">
           <div style={{ marginBottom: '44px' }}>
             <span className="legal-updated">
-              <Calendar strokeWidth={1.5} /> Last updated: 15 October 2026
+              <Calendar strokeWidth={1.5} /> Last updated: 22 October 2026
             </span>
             <p
               style={{
@@ -112,8 +112,8 @@ export default function TermsPage() {
                 <p>
                   Lawie is a drafting assistant for advocates. It creates first drafts of legal
                   documents for the advocate to review, edit and download. Criminal drafts use BNS,
-                  BNSS and BSA section numbers. The Service does not provide legal advice or
-                  representation.
+                  BNSS and BSA section numbers, or IPC, CrPC and the Evidence Act where the old law
+                  applies. The Service does not provide legal advice or representation.
                 </p>
               </section>
               <section id="disclaimer">
@@ -149,16 +149,16 @@ export default function TermsPage() {
                 <h3>6. Subscription &amp; Billing</h3>
                 <p>
                   Paid plans are billed in advance on a monthly or annual basis through our payment
-                  processor. Drafts are paid for with Ink. Most documents use 2 Ink; short ones use
-                  1. You are charged only after a draft is generated; a failed generation is not
-                  charged. Plan Ink is given for each month of your plan, including on annual plans.
-                  Plan Ink left unused at the end of that month expires and does not carry over.
-                  Top-up Ink you buy separately never expires. Subscriptions renew automatically
-                  until cancelled. You may cancel at any time from your account settings;
-                  cancellation stops future charges and takes effect at the end of the current
-                  billing period. All payments are non-refundable, as set out in our{' '}
-                  <Link href="/refunds">Refund Policy</Link>. This does not affect any right you
-                  have under law.
+                  processor. Drafts are paid for with Ink. You see the Ink cost of a draft before
+                  you generate it. If a draft fails to generate, no Ink is used. Plan Ink is given
+                  for each month of your plan, including on annual plans. Plan Ink left unused at
+                  the end of that month expires and does not carry over. Top-up Ink you buy
+                  separately does not expire while your account is open. It ends when your account
+                  is closed. Subscriptions renew automatically until cancelled. You may cancel at
+                  any time from your account settings; cancellation stops future charges and takes
+                  effect at the end of the current billing period. All payments are non-refundable,
+                  except as set out in our <Link href="/refunds">Refund Policy</Link>. This does not
+                  affect any right you have under law.
                 </p>
               </section>
               <section id="ip">
@@ -226,7 +226,7 @@ export default function TermsPage() {
                 <SupplierContactLine />
                 <p>
                   Questions about these Terms can be sent to{' '}
-                  <a href="mailto:legal@lawie.in">legal@lawie.in</a>.
+                  <a href="mailto:contact@lawie.in">contact@lawie.in</a>.
                 </p>
               </section>
             </div>

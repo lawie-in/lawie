@@ -283,6 +283,13 @@ export interface DraftResult {
    * Present only for a D1 pack; the checks panel is then built from this list.
    */
   rendered?: RenderedClause[];
+  /**
+   * T-545: the Ink actually debited for this draft, from the `done` event's
+   * `inkDebited` (in Ink, so .5 is possible). Never the quoted cost. Set only
+   * when the server sent a number above 0; absent otherwise, and the chip is
+   * then not shown.
+   */
+  inkUsed?: number;
 }
 
 /** T-373: one clause the D1 renderer printed, with its status. */

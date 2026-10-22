@@ -134,11 +134,11 @@ export default function ReferralOfferModal({
               />
               {bonusInk > 0 ? (
                 <span>
-                  <strong>{bonusInk} Ink</strong> added to your account when you sign up
+                  <strong>{bonusInk} Ink</strong> added to your account once you verify your email
                 </span>
               ) : (
-                // Same fallback as the inline line (R6): never show "0 Ink".
-                <span>Bonus Ink will be added when you create your account.</span>
+                // Same fallback as the inline line (R6): never show "0 Ink". T-522: AJ-522-S2.
+                <span>Bonus Ink will be added when you verify your email. New accounts only.</span>
               )}
             </li>
             <li className="flex items-start gap-2.5 text-sm text-slate-700">
@@ -162,7 +162,7 @@ export default function ReferralOfferModal({
             Claim offer
           </button>
           <p className="mt-2 text-center text-xs text-slate-600">
-            Your bonus is added when you create your account.
+            Your bonus is added once you verify your email.
           </p>
         </div>
       </div>

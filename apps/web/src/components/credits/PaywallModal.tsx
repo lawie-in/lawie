@@ -1,7 +1,7 @@
 'use client';
 
 import { PLANS } from '@lawie/shared';
-import { ShieldAlert, ArrowRight, Calendar, X } from 'lucide-react';
+import { ShieldAlert, ArrowRight, X } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 
@@ -53,10 +53,11 @@ export function PaywallModal({ documentLabel, cost, balance, onClose }: PaywallM
               </span>
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-red-200">
-                  Ink insufficient
+                  Insufficient Ink
                 </p>
+                {/* T-565 item 44 (AJ-539-M9), signed text. */}
                 <h2 className="mt-0.5 text-lg font-bold text-white">
-                  You need {cost} Ink to draft this document.
+                  {`This draft costs ${cost} Ink — you have ${balance}.`}
                 </h2>
               </div>
             </div>
@@ -100,7 +101,9 @@ export function PaywallModal({ documentLabel, cost, balance, onClose }: PaywallM
                 One-time
               </span>
               <p className="mt-2 text-sm font-semibold text-slate-900">Top up Ink</p>
-              <p className="text-xs text-slate-500">Mini · Mid · Max — never expires</p>
+              <p className="text-xs text-slate-500">
+                Top-up Ink does not expire while your account is open.
+              </p>
               <span className="mt-3 inline-flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700">
                 Buy top-up
               </span>
@@ -112,33 +115,22 @@ export function PaywallModal({ documentLabel, cost, balance, onClose }: PaywallM
               onClick={onClose}
               className="rounded-xl border-2 border-amber-400 bg-amber-50/40 p-4 text-left transition hover:bg-amber-50"
             >
+              {/* T-535: the "Best value" chip is removed (an unsupported claim, t252 M1). */}
               <div className="flex items-center justify-between">
                 <span className="rounded-full bg-amber-200 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-900">
                   Monthly
-                </span>
-                <span className="rounded-full bg-slate-900 px-2 py-0.5 text-[10px] font-semibold text-white">
-                  Best value
                 </span>
               </div>
               <p className="mt-2 text-sm font-semibold text-slate-900">Upgrade to Solo</p>
               <p className="text-xs text-slate-500">
                 {`${PLANS.solo_monthly.inkPerCycle} Ink / mo · ₹${PLANS.solo_monthly.priceInr.toLocaleString('en-IN')}`}
               </p>
+              {/* T-565 item 32: signed, beside the price. */}
+              <p className="text-xs text-slate-500">Prices include GST.</p>
               <span className="mt-3 inline-flex items-center gap-1 rounded-lg bg-amber-400 px-3 py-1.5 text-xs font-semibold text-slate-900 hover:bg-amber-500">
                 Upgrade <ArrowRight size={11} />
               </span>
             </Link>
-          </div>
-        </section>
-
-        {/* Earn nudge strip */}
-        <section className="border-t border-slate-100 bg-blue-50 px-6 py-3">
-          <div className="flex items-center gap-2 text-xs text-slate-700">
-            <Calendar size={12} className="text-blue-500" />
-            <p>
-              <strong>Or wait:</strong> log in tomorrow for free Ink — daily login bonus resets at
-              midnight.
-            </p>
           </div>
         </section>
 

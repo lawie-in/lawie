@@ -17,6 +17,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { SECTION_FINDER_OPEN_EVENT } from '@/components/sections/SectionFinderPanel';
 import { useAuth } from '@/context/AuthContext';
+import { useCredits, type CreditBalance } from '@/hooks/useCredits';
 
 type NavItem =
   | { href: string; label: string; icon: typeof LayoutGrid; action?: undefined }
@@ -31,6 +32,13 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/dashboard/settings', label: 'Settings', icon: Settings },
 ];
 
+/** T-565 item 34 (Ajay): the §4.1 plan names. */
+const PLAN_NAMES: Record<CreditBalance['planTier'], string> = {
+  free: 'Free',
+  solo: 'Solo',
+  pro: 'Pro',
+};
+
 function getInitials(name: string): string {
   return name
     .split(' ')
@@ -43,7 +51,11 @@ function getInitials(name: string): string {
 export default function Sidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
-  const isPro = user?.plan === 'pro';
+  // T-565 item 34: the tier comes from the credits balance (`user.plan` is 'pro' for Solo too).
+  // Until the balance has loaded no plan is shown, so a paid user never sees "Free plan".
+  const { balance, loaded } = useCredits();
+  const planName = loaded ? PLAN_NAMES[balance.planTier] : undefined;
+  const isPaid = loaded && balance.planTier !== 'free';
 
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -61,7 +73,10 @@ export default function Sidebar() {
   }, [menuOpen]);
 
   return (
-    <aside className="flex h-full w-[200px] flex-shrink-0 flex-col bg-[#0F172A]">
+    // T-549 (Rajesh T-531 F6): viewport-fit=cover is global, so the sidebar clears the left
+    // safe-area inset (landscape notch). The width grows by the inset so the 200px nav column
+    // itself is unchanged.
+    <aside className="flex h-full w-[calc(200px+env(safe-area-inset-left,0px))] flex-shrink-0 flex-col bg-[#0F172A] pl-[env(safe-area-inset-left,0px)]">
       {/* Logo */}
       <Link href="/dashboard" className="flex items-center gap-2.5 px-4 py-5">
         <img src="/app-icon.svg" alt="Lawie" className="h-7 w-7 rounded-md" />
@@ -126,7 +141,7 @@ export default function Sidebar() {
                   Settings
                 </Link>
                 <a
-                  href="mailto:support@lawie.in"
+                  href="mailto:contact@lawie.in"
                   onClick={() => setMenuOpen(false)}
                   className="flex w-full items-center gap-3 px-4 py-2.5 text-[13px] text-slate-300 hover:bg-white/5 hover:text-white"
                 >
@@ -160,16 +175,18 @@ export default function Sidebar() {
           >
             <div
               className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white ring-2 ${
-                isPro ? 'bg-slate-600 ring-green-500' : 'bg-slate-600 ring-amber-500'
+                isPaid ? 'bg-slate-600 ring-green-500' : 'bg-slate-600 ring-amber-500'
               }`}
             >
               {getInitials(user.name)}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-[12px] font-medium text-white">Adv. {user.name}</p>
-              <p className={`text-[11px] ${isPro ? 'text-green-400' : 'text-slate-400'}`}>
-                {isPro ? 'Pro plan' : 'Free plan'}
-              </p>
+              <p className="truncate text-[12px] font-medium text-white">{user.name}</p>
+              {planName && (
+                <p className={`text-[11px] ${isPaid ? 'text-green-400' : 'text-slate-400'}`}>
+                  {`${planName} plan`}
+                </p>
+              )}
             </div>
             <ChevronUp
               size={14}

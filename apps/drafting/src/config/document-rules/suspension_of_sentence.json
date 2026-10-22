@@ -185,7 +185,7 @@
     "Principles for suspension of sentence.",
     "Reference convict's antecedents, social roots, family responsibilities.",
     "Include willingness to furnish bond.",
-    "Use BNS section numbers for offences of conviction (never IPC).",
+    "Cite the sections of conviction as they stand in the judgment.",
     "Do NOT generate the verification clause or advocate signature block — those are added programmatically.",
     "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
   ],

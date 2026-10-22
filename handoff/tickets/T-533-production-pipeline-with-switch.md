@@ -1,0 +1,58 @@
+# T-533: Production pipeline with an on/off switch
+
+| Field  | Value |
+| ------ | ----- |
+| Phase  | 4 — Release |
+| Owner  | Arjun (design: `handoff/ops/prod-pipeline-and-secrets.md`, "Founder decision"), a lead (build) |
+| Mode   | Full chain (root config and CI: one lead at a time) |
+| Status | PAUSED 22 Oct 2026 for the pre-Anushka legal fixes (T-565). Branch feature/t-533-prod-pipeline @ 2ed7a3e1 checkpointed; script tests green (390); review FAIL with fixes still to do. OPEN: AC7 live rollback not run (no Docker daemon in the sandbox: needs a host with Docker, or Arjun records AC7 as open); the release push to main with GITHUB_TOKEN is likely refused when a release changes .github/workflows (a GitHub App token with workflows:write would fix it: Arjun's call, overrides his earlier ruling). Should-fixes on resume: auth needs DRAFTING_INTERNAL_URL; SSM executionTimeout 900 s too short; SSM payload size unverified (first-run check in DEPLOY.md); (CORRECTED by Arjun: do NOT restrict the production environment to main; the reviewer gate is the control) pin the redis tag; dispatch rows in the DEPLOY.md truth table; check-image stderr counted as an offender; yaml root devDependency; tests not in CI (ci.yml). Priya |
+| Source | Arjun's note, numbers T-528/T-529 there are renamed T-533/T-534 |
+
+## Acceptance criteria
+1. Workflow `deploy-production.yml`, `docker-compose.prod.yml`, an SSM Run Command deploy with health wait and rollback, and `docs/DEPLOY.md` written (it is empty today).
+2. Two GitHub repository variables, both absent by default: `PIPELINE_BUILD_ENABLED` (build the six images and push to ECR tagged `sha-<commit>` and `main`) and `PIPELINE_DEPLOY_ENABLED` (after a green build, SSM deploy). Both checks are job-level `if: vars.X == 'true'`.
+3. With both variables absent a push to `main` is one skipped run and nothing else. Build on, deploy off: images land in ECR and nothing else happens. Deploy on with build off does nothing and prints why.
+4. The deploy job targets a GitHub environment `production` with the founder as required reviewer.
+5. `workflow_dispatch` with inputs `action: build|deploy|rollback` and `sha`; it respects the same two variables.
+6. No AWS access key stored in GitHub (OIDC only); nothing references `.env*` files.
+7. Rollback tried against the demo compose locally; evidence in the ticket.
+8. The dev box is untouched.
+
+## Added by founder rule, 21 Oct 2026 (Arjun): no handoff docs in production, not even on main
+9. First commit of the ticket: `.dockerignore` gains `handoff/`, `.claude/`, `CLAUDE.md`, `.github/`, `**/*.md`; `apps/web/Dockerfile` switches from `COPY . .` to explicit copies like the other five. A workflow test greps each built image for `handoff/` and fails if found.
+10. `release-to-main.yml`: `workflow_dispatch`, `production` environment (founder reviews), input `version`; checks out `develop`, removes `handoff/`, `.claude/`, `CLAUDE.md`, `.github/copilot-instructions.md`, commits "release: v<version> from develop@<sha>" onto `main`, tags, pushes. `main` is a snapshot, never a hand merge.
+11. A `main-guard` CI job on every push to `main` fails if any of those paths exist; branch protection on `main` requires it; deploy depends on it.
+12. T-403's "develop is merged to main" is amended (addendum in that ticket). Nobody merges into `main`, ever: the workflow cuts it.
+
+## Files (held by one lead alone)
+.github/workflows/deploy-production.yml, docker-compose.prod.yml, docs/DEPLOY.md, apps/web/Dockerfile and .dockerignore (item 9), .github/workflows/release-to-main.yml and the main-guard job, Dockerfiles only if a missing one blocks the build.
+
+## Arjun (22 Oct 2026) — five design calls after Explore (Tanvi)
+
+All five defaults stand:
+1. `main-guard.yml` on push to `main`, separate from `ci.yml`; `deploy-production.yml` re-checks the same paths as its first job and the deploy depends on it; the check name goes in `docs/DEPLOY.md` for the founder's branch-protection step.
+2. `docker-compose.prod.yml`: `${ECR_REGISTRY}/lawie-prod-<svc>:${TAG}`, six services + Redis on-box (no published port, `appendonly yes`), Mongo external, **no `env_file`**; config via `environment:`, secrets via T-534's loader (`SECRETS_BACKEND=ssm`, `SECRETS_ENV=prod` set here). `restart: unless-stopped` and the Dockerfile health checks on every service.
+3. `release-to-main.yml` ends by dispatching `deploy-production` with `action=deploy` through the API using `GITHUB_TOKEN` (`permissions: actions: write`); no PAT. Branch protection must allow the workflow to push to `main` — founder's step, in DEPLOY.md.
+4. Each release is a new commit on `main` with the tree replaced; never a force push.
+5. Fix the stale README line (Parameter Store, not Secrets Manager).
+AC7 rollback: if full builds do not fit the runner, two small tagged stand-in images are acceptable, stated in the report.
+
+## Arjun (22 Oct 2026) — two calls at Tanvi's checkpoint (2ed7a3e1)
+
+**(1) No GitHub App. `main` carries no `.github/` at all.** The `GITHUB_TOKEN` refusal only bites when the pushed tree changes a workflow file, so the release snapshot strips `.github/` entirely (it already strips `handoff/`, `.claude/`, `CLAUDE.md`). Consequences, all good ones:
+- `release-to-main.yml` (on the default branch, `develop`) guards the tree itself before pushing — the `main-guard` check runs there as a job, on the exact tree about to become `main` — pushes with `GITHUB_TOKEN`, then dispatches `deploy-production.yml` with `ref: main` / the sha. `workflow_dispatch` runs the workflow file from the default branch, so the deploy and guard definitions never need to exist on `main`.
+- `deploy-production.yml` checks out the given `main` sha, re-runs the path guard on it, builds, deploys. Nothing is triggered by a push to `main` because nothing but the release workflow pushes to `main` (branch protection: only the workflow bot).
+- `main-guard.yml` as a separate push-triggered workflow is dropped; its job moves into the release workflow and the deploy workflow's first job.
+- Founder steps shrink to: branch protection on `main` (workflow bot only, no force push), the `production` environment with him as reviewer. **Default branch must be `develop`** — Tanvi verifies with Priya; if it is `main`, the founder switches it (one click, no history change) before T-533 merges.
+
+**(2) AC7 rollback drill runs on a GitHub-hosted runner, not in the sandbox.** Make it a `workflow_dispatch` job (`rollback-drill`) in the deploy workflow: compose up with two small tagged stand-in images on the runner's Docker, deploy tag B, roll back to tag A, assert health and the running tag. Tanvi triggers it on her branch with `actions_run_trigger` (permissions.ask prompt is expected). AC7 is then evidenced by that run's log, not recorded open.
+
+**Should-fix list:** accepted as written. Specifics: SSM `executionTimeout` 1800 s; the SSM command is one short line (`/opt/lawie/deploy.sh <tag>`) with `deploy.sh` placed on the box by the console steps, so payload size is never near the limit; pin `redis:7.4-alpine`; auth gets `DRAFTING_INTERNAL_URL`; the `production` environment is restricted to the deploy workflow + required reviewer (branch restriction is moot once `main` carries no workflows).
+
+## Arjun (22 Oct 2026) — checkpoint 3e61a046, four calls (Tanvi)
+
+1. **First release, one-time founder step:** `origin/main` today still carries `.github/workflows/*`, so the first snapshot push would delete workflow files and `GITHUB_TOKEN` would be refused. The founder removes `.github/`, `.claude/` and `CLAUDE.md` from `main` by hand once (a commit from his machine; branch protection allows him), documented in `DEPLOY.md` as a one-time exception. After that no release ever touches a workflow file on `main`.
+2. **OIDC trust policy:** exactly two subjects — `repo:lawie-in/lawie:ref:refs/heads/develop` (build and promote) and `repo:lawie-in/lawie:environment:production` (deploy and rollback). Nothing broader, no wildcard on ref. Written into the console steps.
+3. **Compose drift check:** yes — the SSM line carries the sha256 of `docker-compose.prod.yml` and `deploy.sh` as built from the released sha; the box compares and fails fast when stale. Check only, no refresh; a refresh is a console step by the founder, with the new hashes printed in the run log.
+4. **Default branch:** confirmed `main` today; the founder switches it to `develop` before T-533 merges (on his checklist). The release job's refusal when it is not `develop` stays.
+AC7: rollback-drill job on a hosted runner with busybox stand-ins and a local `registry:2.8.3` — fine; trigger it after tests and review and attach the run link to the report.

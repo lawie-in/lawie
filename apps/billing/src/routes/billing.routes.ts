@@ -13,20 +13,32 @@ import { readSellerConfig } from '../config/gst';
 import logger from '../config/logger';
 import { razorpay } from '../config/razorpay';
 import { authenticate } from '../middleware/authenticate';
-import { CouponCode } from '../models/CouponCode.model';
 import { Invoice } from '../models/Invoice.model';
 import { User } from '../models/User.model';
-import { GrantClaimBusyError } from '../services/ink-ledger.service';
+import { GrantClaimBusyError, grantCouponInk } from '../services/ink-ledger.service';
 import { invoicePdfFilename, renderInvoicePdf } from '../services/invoice-pdf.service';
 import {
+  cancelSubscriptionAtCycleEnd,
   createSubscription,
   getSubscriptionStatus,
   handleWebhookEvent,
+  NoLiveSubscriptionError,
+  recordWebhookAdoptBusy,
+  SubscriptionAdoptBusyError,
   SubscriptionCancelFailedError,
+  SubscriptionCreateUnknownOutcomeError,
   SubscriptionExistsError,
   SubscriptionInProgressError,
   verifyWebhookSignature,
 } from '../services/subscription.service';
+import {
+  QUOTE_REASONS,
+  normaliseCouponCode,
+  paiseToInr,
+  quoteTopup,
+  quoteView,
+  type TopupQuote,
+} from '../services/topup-quote.service';
 
 const router = Router();
 
@@ -118,6 +130,9 @@ router.post(
           status: err.status,
           planId: err.planId,
           paidThrough: err.paidThrough,
+          // T-516 (Arjun): past_due only; the live Razorpay link or null.
+          // Absent for any other state, so that body is unchanged.
+          ...(err.shortUrl !== undefined ? { shortUrl: err.shortUrl } : {}),
         });
         return;
       }
@@ -128,26 +143,70 @@ router.post(
       }
       // T-444c (Arjun ruling 2): the lapsed sub could not be cancelled at
       // Razorpay; nothing was changed and no new sub was created.
+      // T-516: same for a stale checkout for a different plan.
       if (err instanceof SubscriptionCancelFailedError) {
         res.status(503).json({ error: 'try_again' });
         return;
       }
+      // T-526 (Arjun, item 1a): the create timed out; its outcome at Razorpay
+      // is unknown. Fixed body, never err.message.
+      if (err instanceof SubscriptionCreateUnknownOutcomeError) {
+        res.status(503).json({ error: 'try_again' });
+        return;
+      }
+      // T-526 (Arjun, item 1c): fixed body and the error class only, never
+      // err.message (a provider or internal message), as on /cancel. An
+      // unknown planId also lands here (500; a 400 is a recorded follow-up).
       logger.error(
-        { err: err instanceof Error ? err.message : err },
+        {
+          userId: req.jwtPayload?.sub,
+          errName: err instanceof Error ? err.name : 'unknown',
+        },
         'Failed to create subscription',
       );
-      res.status(500).json({
-        error: err instanceof Error ? err.message : 'Failed to create subscription',
-      });
+      res.status(500).json({ error: 'Failed to create subscription' });
     }
   },
 );
 
+// ── POST /cancel — T-508: cancel the live subscription at the end of the cycle ─
+//
+// Idempotent: a second call returns the same body, with no Razorpay call.
+// Ink and the plan are untouched (they run to paidThrough, T-399).
+router.post('/cancel', authenticate, requireCurrentPrivacy, async (req: Request, res: Response) => {
+  const { sub: userId } = req.jwtPayload!;
+  try {
+    const result = await cancelSubscriptionAtCycleEnd(userId);
+    res.json({ status: 'success', data: result });
+  } catch (err) {
+    if (err instanceof NoLiveSubscriptionError) {
+      res.status(409).json({ error: 'no_live_subscription' });
+      return;
+    }
+    if (err instanceof SubscriptionCancelFailedError) {
+      res.status(503).json({ error: 'try_again' });
+      return;
+    }
+    logger.error(
+      { userId, errName: err instanceof Error ? err.name : 'unknown' },
+      'Failed to cancel subscription',
+    );
+    res.status(500).json({ error: 'Failed to cancel subscription' });
+  }
+});
+
 // ── POST /topup/order — create a one-off Razorpay order for a top-up SKU ─────
 //
-// Body: { skuId: 'topup_mini' | 'topup_mid' | 'topup_max' }
-// Response: { orderId, amountInr, ink, razorpayKeyId } so the frontend can
-// hand the orderId to Razorpay Checkout SDK.
+// Body: { skuId, couponCode?, expectedAmountPaise? }
+// T-540: the amount comes from quoteTopup(), the same function validate-coupon
+// shows the footer total with, in integer paise. Responses:
+// - 200 { status: 'success', data: { orderId, amountInr, amountPaise, finalPaise, originalAmountInr,
+//   ink, skuId, couponApplied, razorpayKeyId } }: hand orderId to Razorpay Checkout;
+// - 200 { status: 'granted', grant: { ink, couponCode, ledgerKey } }: a ₹0 quote (100%
+//   coupon) with feature.coupon_free_grant on; Ink granted, no Razorpay order, no data;
+// - 409 { error: 'coupon_invalid', reason }: the coupon given no longer applies
+//   (never silently dropped), or a free grant lost a race; nothing created;
+// - 409 { error: 'price_changed', quote }: expectedAmountPaise differs from the quote.
 // T-343 — user-started payment: needs the current privacy version (not the webhook).
 // T-223 — and a verified email (or Google account).
 router.post(
@@ -157,35 +216,117 @@ router.post(
   requireVerifiedEmail,
   async (req: Request, res: Response) => {
     const { sub: userId } = req.jwtPayload!;
-    const { skuId, couponCode } = req.body as { skuId?: string; couponCode?: string };
+    const { skuId, couponCode, expectedAmountPaise } = req.body as {
+      skuId?: string;
+      couponCode?: unknown;
+      expectedAmountPaise?: unknown;
+    };
 
     const sku = findTopupSku(String(skuId ?? ''));
     if (!sku) {
       res.status(400).json({ error: 'Unknown top-up SKU' });
       return;
     }
-
-    let finalPriceInr = sku.priceInr;
-    let appliedCouponCode: string | null = null;
-
-    if (couponCode) {
-      const code = couponCode.trim().toUpperCase();
-      const coupon = await CouponCode.findOne({ code, isActive: true }).lean();
-      if (coupon && (!coupon.expiresAt || coupon.expiresAt > new Date())) {
-        if (
-          coupon.maxUses === null ||
-          coupon.maxUses === undefined ||
-          coupon.uses < coupon.maxUses
-        ) {
-          const discountInr =
-            coupon.discountType === 'percent'
-              ? Math.round((sku.priceInr * coupon.discountValue) / 100)
-              : Math.min(coupon.discountValue, sku.priceInr);
-          finalPriceInr = Math.max(1, sku.priceInr - discountInr);
-          appliedCouponCode = code;
-        }
-      }
+    if (
+      expectedAmountPaise !== undefined &&
+      expectedAmountPaise !== null &&
+      !(typeof expectedAmountPaise === 'number' && Number.isInteger(expectedAmountPaise))
+    ) {
+      res.status(400).json({ error: 'expectedAmountPaise must be an integer' });
+      return;
     }
+    // T-540 round 3: a couponCode that is present must be a non-blank string. A
+    // number, an object or a blank string is refused, never read as "no coupon"
+    // (that would charge full price silently). The web leaves the field out when
+    // there is no coupon, so it never sends a blank one.
+    if (
+      couponCode !== undefined &&
+      couponCode !== null &&
+      (typeof couponCode !== 'string' || couponCode.trim() === '')
+    ) {
+      res.status(400).json({ error: 'invalid_coupon_code' });
+      return;
+    }
+    const code = normaliseCouponCode(couponCode);
+
+    let quote: TopupQuote;
+    try {
+      quote = await quoteTopup({ skuId: sku.id, couponCode: code, userId, now: new Date() });
+    } catch (err) {
+      logger.error(
+        { skuId: sku.id, errName: err instanceof Error ? err.name : 'unknown' },
+        'Failed to quote top-up',
+      );
+      res.status(500).json({ error: 'Failed to create top-up order' });
+      return;
+    }
+    if (!quote.ok) {
+      res.status(409).json({ error: 'coupon_invalid', reason: quote.reason });
+      return;
+    }
+    // A top-up SKU always prices, so these are set; guard for the type only.
+    if (quote.originalPaise === null || quote.finalPaise === null) {
+      res.status(500).json({ error: 'Failed to create top-up order' });
+      return;
+    }
+    const { originalPaise, finalPaise } = quote;
+
+    if (typeof expectedAmountPaise === 'number' && expectedAmountPaise !== finalPaise) {
+      res.status(409).json({ error: 'price_changed', quote: quoteView(quote) });
+      return;
+    }
+
+    // ── ₹0: the free-grant path (the quote is ok only while the switch is on) ──
+    if (finalPaise === 0 && quote.coupon) {
+      const coupon = quote.coupon;
+      let grant;
+      try {
+        grant = await grantCouponInk({
+          userId,
+          couponId: String(coupon._id),
+          couponCode: coupon.code,
+          maxUsesPerUser: coupon.maxUsesPerUser,
+          skuId: sku.id,
+          inkUnits: sku.ink * 2, // 1 Ink = 2 ledger units
+          listPaise: originalPaise,
+        });
+      } catch (err) {
+        logger.error(
+          {
+            couponCode: coupon.code,
+            skuId: sku.id,
+            errName: err instanceof Error ? err.name : 'unknown',
+          },
+          'Failed to grant coupon top-up',
+        );
+        res.status(500).json({ error: 'Failed to create top-up order' });
+        return;
+      }
+      if (!grant.ok) {
+        if (grant.reason === 'user_not_found') {
+          res.status(500).json({ error: 'Failed to create top-up order' });
+          return;
+        }
+        res.status(409).json({
+          error: 'coupon_invalid',
+          reason: grant.reason === 'per_user_limit' ? QUOTE_REASONS.perUser : QUOTE_REASONS.usedUp,
+        });
+        return;
+      }
+      // Vikram: the monthly list value given away, for the marketing-spend line.
+      // No PII: no userId or ledger key, only the per-user use index n.
+      logger.info(
+        { couponCode: coupon.code, skuId: sku.id, listPaise: originalPaise, n: grant.n },
+        'coupon free grant',
+      );
+      res.json({
+        status: 'granted',
+        grant: { ink: sku.ink, couponCode: coupon.code, ledgerKey: grant.ledgerKey },
+      });
+      return;
+    }
+
+    const appliedCouponCode = quote.coupon ? quote.coupon.code : null;
 
     try {
       const notes: Record<string, string | number> = {
@@ -197,7 +338,7 @@ router.post(
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const order = await (razorpay.orders.create as any)({
-        amount: finalPriceInr * 100, // paise
+        amount: finalPaise, // integer paise, from the quote
         currency: 'INR',
         receipt: `topup_${sku.id}_${userId.slice(-8)}_${Date.now().toString().slice(-8)}`,
         notes,
@@ -207,8 +348,10 @@ router.post(
         status: 'success',
         data: {
           orderId: order.id,
-          amountInr: finalPriceInr,
-          originalAmountInr: sku.priceInr,
+          amountInr: paiseToInr(finalPaise),
+          amountPaise: finalPaise,
+          finalPaise,
+          originalAmountInr: paiseToInr(originalPaise),
           ink: sku.ink,
           skuId: sku.id,
           couponApplied: appliedCouponCode,
@@ -410,11 +553,29 @@ router.post('/webhook/razorpay', async (req: Request, res: Response) => {
   // T-413: ack only after the handler succeeds. A thrown error (e.g. a failed Ink
   // grant) returns 500 so Razorpay retries; T-399's per-cycle claim, rolled back on a
   // failed grant, makes that retry grant exactly once. Fixed 500 body, nothing from err.
+  // T-558: the Razorpay sub id (if any) for the per-process adopt-busy count.
+  const subEntity = (payload.payload.subscription as { entity?: { id?: unknown } } | undefined)
+    ?.entity;
+  const webhookSubId = typeof subEntity?.id === 'string' ? subEntity.id : undefined;
   try {
     await handleWebhookEvent(payload.event, payload.payload);
   } catch (err: unknown) {
     // T-323: no err.message or stack (a duplicate-key message carries the duplicate value).
     const e = err as { name?: unknown; code?: unknown } | null | undefined;
+    // T-558 (Arjun): the webhook adopt found the user's create lock held (a
+    // subscribe or another adopt). 500 so Razorpay retries, but not an alert:
+    // a warn only. One Sentry event when the same sub id is busy on
+    // ADOPT_BUSY_REPEAT_THRESHOLD consecutive deliveries (counted per process).
+    if (err instanceof SubscriptionAdoptBusyError || e?.name === 'SubscriptionAdoptBusyError') {
+      logger.warn(
+        { event: payload.event, subId: webhookSubId, errorName: e?.name },
+        'Webhook subscription adopt busy (create lock held); asking Razorpay to retry',
+      );
+      recordWebhookAdoptBusy(webhookSubId, true);
+      res.status(500).json({ error: 'Internal Server Error' });
+      return;
+    }
+    recordWebhookAdoptBusy(webhookSubId, false);
     // T-415: another attempt holds a fresh grant claim (normal for the order.paid +
     // payment.captured pair). 500 so Razorpay retries, but it is not an alert.
     if (err instanceof GrantClaimBusyError || e?.name === 'GrantClaimBusyError') {
@@ -460,6 +621,7 @@ router.post('/webhook/razorpay', async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Internal Server Error' });
     return;
   }
+  recordWebhookAdoptBusy(webhookSubId, false);
   res.json({ status: 'ok' });
 });
 

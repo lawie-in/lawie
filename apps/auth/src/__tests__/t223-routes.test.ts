@@ -14,7 +14,7 @@
 
 import './setupEnv';
 
-jest.mock('ioredis', () => require('ioredis-mock'));
+jest.mock('ioredis', () => jest.requireActual('ioredis-mock'));
 
 jest.mock('@lawie/email-client', () => ({
   enqueueEmail: jest.fn(),
@@ -142,9 +142,9 @@ describe('T-223 AC1 register queues the verify email', () => {
   const reg = (email: string) =>
     supertest(app).post('/register').send({ email, password: PASSWORD, name: 'New Person' });
 
-  it('enqueues { template, userId } with no address, name or link; registration is 201', async () => {
+  it('enqueues { template, userId } with no address, name or link; registration is 202', async () => {
     const res = await reg('t223-reg-1@example.com');
-    expect(res.status).toBe(201);
+    expect(res.status).toBe(202);
     await waitFor(async () => enqueueMock.mock.calls.length === 1);
 
     const u = await User.findOne({ email: 't223-reg-1@example.com' }).lean();
@@ -162,7 +162,7 @@ describe('T-223 AC1 register queues the verify email', () => {
 
   it('logs the userId and outcome only', async () => {
     const res = await reg('t223-reg-log@example.com');
-    expect(res.status).toBe(201);
+    expect(res.status).toBe(202);
     await waitFor(async () => enqueueMock.mock.calls.length === 1);
     await waitFor(async () =>
       (logger.info as jest.Mock).mock.calls.some(
@@ -176,10 +176,10 @@ describe('T-223 AC1 register queues the verify email', () => {
     expect(call[0]).toEqual({ userId: String(u!._id), outcome: 'queued' });
   });
 
-  it('enqueue rejects: registration still 201, user created, only the userId is logged', async () => {
+  it('enqueue rejects: registration still 202, user created, only the userId is logged', async () => {
     enqueueMock.mockRejectedValue(new Error('redis down for t223-reg-2@example.com'));
     const res = await reg('t223-reg-2@example.com');
-    expect(res.status).toBe(201);
+    expect(res.status).toBe(202);
     expect(await User.countDocuments({ email: 't223-reg-2@example.com' })).toBe(1);
     await waitFor(async () =>
       (logger.error as jest.Mock).mock.calls.some((c) => c[1] === 'Verify email enqueue failed'),
@@ -187,12 +187,12 @@ describe('T-223 AC1 register queues the verify email', () => {
     expect(allLogged()).not.toContain('t223-reg-2@example.com');
   });
 
-  it('enqueue throws synchronously: registration still 201', async () => {
+  it('enqueue throws synchronously: registration still 202', async () => {
     enqueueMock.mockImplementation(() => {
       throw new Error('sync boom');
     });
     const res = await reg('t223-reg-3@example.com');
-    expect(res.status).toBe(201);
+    expect(res.status).toBe(202);
     expect(await User.countDocuments({ email: 't223-reg-3@example.com' })).toBe(1);
   });
 
@@ -200,25 +200,25 @@ describe('T-223 AC1 register queues the verify email', () => {
     enqueueMock.mockReturnValue(new Promise(() => undefined));
     const t0 = Date.now();
     const res = await reg('t223-reg-4@example.com');
-    expect(res.status).toBe(201);
+    expect(res.status).toBe(202);
     expect(Date.now() - t0).toBeLessThan(2000);
   });
 
-  it('Redis (resend cap store) errors: registration is 201 and fast, nothing enqueued', async () => {
+  it('Redis (resend cap store) errors: registration is 202 and fast, nothing enqueued', async () => {
     breakCapStore('reject');
     const t0 = Date.now();
     const res = await reg('t223-reg-5@example.com');
-    expect(res.status).toBe(201);
+    expect(res.status).toBe(202);
     expect(Date.now() - t0).toBeLessThan(2000);
     await new Promise((r) => setTimeout(r, 100));
     expect(enqueueMock).not.toHaveBeenCalled();
   });
 
-  it('Redis (resend cap store) never answers: registration is 201 and fast', async () => {
+  it('Redis (resend cap store) never answers: registration is 202 and fast', async () => {
     breakCapStore('hang');
     const t0 = Date.now();
     const res = await reg('t223-reg-6@example.com');
-    expect(res.status).toBe(201);
+    expect(res.status).toBe(202);
     expect(Date.now() - t0).toBeLessThan(2000);
     expect(await User.countDocuments({ email: 't223-reg-6@example.com' })).toBe(1);
   });
@@ -456,7 +456,7 @@ describe('T-223 AC3 POST /verify-email/resend', () => {
     });
   });
 
-  it('a second call within 60 s: 429 with retryAfter > 0, Retry-After header, fixed message, nothing sent', async () => {
+  it('a second call within 2 min: 429 with retryAfter > 0, Retry-After header, fixed message, nothing sent', async () => {
     const u = await mk();
     const t = await loginAs(u.email);
     expect((await resend(t)).status).toBe(202);
@@ -465,7 +465,8 @@ describe('T-223 AC3 POST /verify-email/resend', () => {
     expect(res.body.error).toBe('verify_email_rate_limited');
     expect(res.body.message).toBe(VERIFY_RESEND_LIMIT_MESSAGE);
     expect(res.body.retryAfter).toBeGreaterThan(0);
-    expect(res.body.retryAfter).toBeLessThanOrEqual(60);
+    expect(res.body.retryAfter).toBeLessThanOrEqual(120);
+    expect(res.body.retryAfter).toBeGreaterThan(60);
     expect(Number(res.headers['retry-after'])).toBe(res.body.retryAfter);
     expect(res.headers['cache-control']).toBe('no-store');
     expect(enqueueMock).toHaveBeenCalledTimes(1);
@@ -629,16 +630,16 @@ describe('T-223 end to end in auth: register -> mint -> verify -> /me', () => {
     const reg = await supertest(app)
       .post('/register')
       .send({ email: 't223-e2e@example.com', password: PASSWORD, name: 'E2E Person' });
-    expect(reg.status).toBe(201);
-    const data = reg.body.data as { accessToken?: string; tokens?: { accessToken: string } };
-    const access = (data.tokens?.accessToken ?? data.accessToken) as string;
+    expect(reg.status).toBe(202);
+    expect(reg.body.data.accessToken).toBeUndefined();
     await waitFor(async () => enqueueMock.mock.calls.length === 1);
 
     const u = await User.findOne({ email: 't223-e2e@example.com' }).lean();
     const userId = String(u!._id);
     expect(enqueueMock).toHaveBeenCalledWith({ template: 'auth.verifyEmail', userId });
 
-    // before: /me says unverified and no bonus
+    // before: a login (T-522: sign-up gives no session) says unverified and no bonus
+    const access = await loginAs('t223-e2e@example.com');
     const before = await supertest(app).get('/me').set(bearer(access));
     expect(before.body.data.emailVerified).toBe(false);
     expect(await bonusRows(u!._id)).toBe(0);
@@ -647,7 +648,7 @@ describe('T-223 end to end in auth: register -> mint -> verify -> /me', () => {
     const minted = await supertest(app)
       .post('/internal/verify-email/mint')
       .set('x-internal-secret', SECRET)
-      .send({ userId });
+      .send({ userId, kind: 'signin' });
     expect(minted.status).toBe(200);
     expect(minted.body.email).toBe('t223-e2e@example.com');
     const token = tokenOf(minted.body.link as string);
@@ -656,7 +657,9 @@ describe('T-223 end to end in auth: register -> mint -> verify -> /me', () => {
     // the user opens the link
     const v = await verify({ token });
     expect(v.status).toBe(200);
-    expect(v.body).toEqual({ status: 'verified' });
+    // T-522: a signin link verifies AND signs in
+    expect(v.body.status).toBe('verified');
+    expect(typeof v.body.accessToken).toBe('string');
 
     const after = await supertest(app).get('/me').set(bearer(access));
     expect(after.body.data.emailVerified).toBe(true);

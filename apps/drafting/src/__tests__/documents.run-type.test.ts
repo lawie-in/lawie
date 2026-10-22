@@ -11,7 +11,7 @@ import request from 'supertest';
 import app from '../app';
 import { AppSetting } from '../models/AppSetting.model';
 import { effectiveRunType, Generation } from '../models/Generation.model';
-import { User } from '../models/User.model';
+import { createVerifiedUser } from './verifiedUser';
 import { resolveRun } from '../routes/documents.routes';
 import { _clearAppSettingsCache } from '../services/app-settings.service';
 import { sdkAnswer } from './sdkStream';
@@ -66,7 +66,7 @@ beforeEach(async () => {
     key: 'ai.rates.claude-sonnet-4-5-20250929',
     value: JSON.stringify({ input_usd_per_mtok: 3, output_usd_per_mtok: 15 }),
   });
-  await User.create({
+  await createVerifiedUser({
     _id: USER_ID,
     plan: 'free',
     planTier: 'free',

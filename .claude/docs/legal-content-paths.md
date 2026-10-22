@@ -39,6 +39,9 @@ See also `.claude/docs/golden-snapshots.md` — most of the court-rules paths ab
 - `apps/drafting/src/services/annexures.service.ts` (the Memo of Parties, affidavit and vakalatnama text and the disclaimer lines; Ajay signed T-381 and T-424 against it). Added by Priya, 15 Oct 2026 (T-116), on Ajay's ruling. Any change comes with Ajay's signed text.
 - `apps/drafting/src/services/fact-verifier.ts`: all of the file except the banner wording (`factCheckBannerText`), which stays with Priya, Madhuri and Rajesh. This covers `FACT_CHECK_DISCLAIMER` and the verification rules (what counts as a failed fact check). Added by Priya, 15 Oct 2026 (T-116), on Ajay's ruling. Any change comes with Ajay's signed text.
 - `apps/drafting/src/services/related-acts.ts` (builds the RELATED ACTS text the model sees, T-477). Any change comes with Ajay's signed text.
+- `apps/web/src/app/(marketing)/terms/page.tsx` and `apps/web/src/components/marketing/nl-copy.ts` (T-554). Ajay signs their text.
+- `apps/web/src/app/(marketing)/faq/page.tsx`, `apps/web/src/app/(marketing)/privacy/page.tsx` and `apps/web/src/app/(marketing)/refunds/page.tsx` (T-555, AJ-554-M1). Ajay signs their text.
+- `apps/email-worker/src/templates/auth/welcome.tsx` (T-557, AJ-556-M1). Ajay signs their text.
 
 Database content, not a repo path: the four sample PDFs (output of `apps/drafting/scripts/seed-sample-pdfs.ts`, stored in MongoDB, served at `/api/samples/*`; T-254). They are not files in the repo, and each regenerated PDF still needs Ajay's signature on its exported text before any link is restored. HARD RULE: run `apps/drafting/scripts/seed-sample-pdfs.ts` against a non-production database only. The script loads `.env.production` first when that file exists, and a `MONGO_URI` already exported in your shell beats every env file, so check the effective `MONGO_URI` before every run: the value in your shell, and the env file the script reports loading (`→ Loaded env from ...`).
 

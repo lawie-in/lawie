@@ -22,6 +22,7 @@ import './setupDb';
 
 // eslint-disable-next-line import/order
 import app from '../app';
+import { seedVerifiedUsers } from './verifiedUser';
 // eslint-disable-next-line import/order
 import { preflightCheck } from '../services/preflight.service';
 
@@ -325,10 +326,7 @@ describe('POST /preflight route', () => {
   };
 
   it('400 when template_id missing', async () => {
-    const res = await supertest(app)
-      .post('/preflight')
-      .set(AUTH_HEADERS)
-      .send({ form_data: {} });
+    const res = await supertest(app).post('/preflight').set(AUTH_HEADERS).send({ form_data: {} });
     expect(res.status).toBe(400);
     expect(res.body.error).toMatch(/template_id/);
   });
@@ -415,3 +413,5 @@ describe('POST /preflight route', () => {
     expect(res.body).toHaveProperty('verdict');
   });
 });
+
+seedVerifiedUsers('507f1f77bcf86cd799439011');

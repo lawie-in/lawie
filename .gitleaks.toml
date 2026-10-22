@@ -29,6 +29,12 @@ description = "INTERNAL_SECRET with a real value"
 regex = '''(?i)internal_secret\s*[=:]\s*['"]?[A-Za-z0-9+/=_-]{32,}['"]?'''
 tags = ["secret", "lawie"]
 
+[[rules]]
+id = "lawie-test-signup-secret"
+description = "T-563 test sign-up bypass secret (lts_ prefix)"
+regex = '''lts_[A-Za-z0-9_-]{28,}'''
+tags = ["secret", "lawie"]
+
 # ── Allowlist (things that look like secrets but aren't) ──────────────────────
 [allowlist]
 description = "Known-safe files and placeholders"

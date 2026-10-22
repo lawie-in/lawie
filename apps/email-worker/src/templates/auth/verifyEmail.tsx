@@ -2,12 +2,15 @@
  * T-223 — verify-your-email. Every visible string is Ajay's signed text, word for word
  * (handoff/legal/T-223-verify-email-signed.md, part A; main subject and button only, never
  * the unsigned alternates B and C). Do not edit a string here without a new sign-off.
+ * T-522: the preheader, body (two variants) and expiry line are AJ-522-S1 (Ajay, 22 Oct 2026,
+ * handoff/legal/T-511-copy-rulings-ajay.md), for the 30-minute `signin` link. EN only.
  *
  * Data shape: the worker builds this from auth's /internal/verify-email/mint response. It is
  * NEVER taken from job data (the job carries the userId only):
  *   {
  *     name: string;       // greeting only
  *     verifyUrl: string;  // `${FRONTEND_URL}/verify-email?token=<token>`
+ *     signupInkGranted?: boolean; // T-522: from the mint response; picks the body variant
  *   }
  *
  * The subject is a fixed string: it carries no name and no address.
@@ -37,29 +40,39 @@ import type { TemplateDef } from '../index';
 interface VerifyEmailData {
   name?: string;
   verifyUrl?: string;
+  /** T-522 (AJ-522-S1): true once the sign-up Ink was granted; picks the shorter body. */
+  signupInkGranted?: boolean;
 }
 
 export const VERIFY_EMAIL_SUBJECT = 'Verify your Lawie email';
 export const VERIFY_EMAIL_STRINGS = {
-  preheader: 'This link works once and expires in 24 hours.',
-  body: 'Please verify your email address for your Lawie account. You need a verified email to receive your 5 sign-up Ink and to buy Ink.',
+  preheader: 'This link works once and expires in 30 minutes.',
+  body: 'Please verify your email address for your Lawie account. You need a verified email to start drafting, buy Ink and receive your 5 sign-up Ink.',
+  // T-522 (AJ-522-S1): the body for an account that has already had its sign-up Ink.
+  bodyInkGranted:
+    'Please verify your email address for your Lawie account. You need a verified email to start drafting and buy Ink.',
   button: 'Verify email',
   expiry:
-    'This link works once and expires in 24 hours. If it has expired, sign in and ask for a new one.',
+    'This link works once, expires in 30 minutes and signs you in, so do not forward it. If it no longer works, sign in and ask for a new one.',
   fallback: "If the button doesn't work, copy this link into your browser:",
   notYou:
-    "Didn't create a Lawie account? Ignore this email: without this link, nothing is verified. To have the account removed, write to privacy@lawie.in.",
+    "Didn't create a Lawie account? Ignore this email: without this link, nothing is verified. To have the account removed, write to contact@lawie.in.",
   help: 'Need help? Write to contact@lawie.in.',
   disclaimer:
     'Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.',
   signOff: 'Team Lawie',
   footer1: 'Lawie (Sole Proprietorship), Ranchi, Jharkhand',
   footer2: 'You are receiving this because this address was used to create a Lawie account.',
-  footer3: 'Help: contact@lawie.in · Data and privacy requests: privacy@lawie.in',
+  footer3: 'Help, data and privacy requests: contact@lawie.in',
   footer4: 'Privacy Policy: https://lawie.in/privacy · Terms: https://lawie.in/terms',
 } as const;
 
 const S = VERIFY_EMAIL_STRINGS;
+
+/** T-522 (AJ-522-S1): drop the sign-up Ink clause once that grant has been made. */
+function bodyFor(data: VerifyEmailData): string {
+  return data.signupInkGranted === true ? S.bodyInkGranted : S.body;
+}
 
 function requireUrl(data: VerifyEmailData): string {
   // Never render a verify email without its link. The thrown message names no value.
@@ -80,7 +93,7 @@ export const authVerifyEmailTemplate: TemplateDef<VerifyEmailData> = {
     return [
       `Hello ${name},`,
       '',
-      S.body,
+      bodyFor(data),
       '',
       `Verify email: ${url}`,
       '',
@@ -121,7 +134,7 @@ export const authVerifyEmailTemplate: TemplateDef<VerifyEmailData> = {
         >
           <Container style={{ maxWidth: 600, margin: '0 auto', padding: '32px 24px' }}>
             <Text style={textStyle}>{`Hello ${name},`}</Text>
-            <Text style={textStyle}>{S.body}</Text>
+            <Text style={textStyle}>{bodyFor(data)}</Text>
             <Section style={{ marginTop: 24, marginBottom: 24 }}>
               <Link
                 href={url}

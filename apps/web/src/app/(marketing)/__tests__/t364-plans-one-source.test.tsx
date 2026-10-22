@@ -5,10 +5,9 @@ import { PLANS } from '@lawie/shared';
 import { act, type ReactElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 
-import { PlanUpgrade } from '@/components/billing/PlanUpgrade';
+import { PlanChooser } from '@/components/billing/PlanChooser';
 import { PaywallModal } from '@/components/credits/PaywallModal';
-import { UpgradeSuccessModal } from '@/components/credits/UpgradeSuccessModal';
-import { formatPlanInk, formatPlanPrice, type SubscriptionPlan } from '@/lib/plans';
+import { type SubscriptionPlan } from '@/lib/plans';
 
 import HomePage from '../page';
 import { metadata as pricingMetadata } from '../pricing/layout';
@@ -34,8 +33,8 @@ jest.mock('@/components/PrivacyUpdatePrompt', () => ({
 // T-436: PlanUpgrade renders a State picker, which reads the signed-in user (none here).
 jest.mock('@/context/AuthContext', () => ({ useAuth: () => ({ user: null }) }));
 jest.mock('@/components/VerifyEmailPrompt', () => ({
+  openVerifyIfDraftRefused: async () => false,
   VerifyEmailCard: () => null,
-  isEmailVerificationRequired: async () => false,
   useNeedsEmailVerification: () => false,
 }));
 jest.mock('@/components/credits/TopUpModal', () => ({ TopUpModal: () => null }));
@@ -92,14 +91,14 @@ describe('T-364 PLANS pinned', () => {
 describe('T-364 pricing page', () => {
   it('monthly view shows the PLANS prices and Ink, with no yearly teaser (T-398 hold)', () => {
     const text = render(<PricingPage />);
-    expect(text).toContain(formatPlanPrice(servedPlan('solo_monthly')));
-    expect(text).toContain(formatPlanPrice(servedPlan('pro_monthly')));
-    expect(text).toContain('₹799/month');
-    expect(text).toContain('₹1,999/month');
-    expect(text).toContain(formatPlanInk(servedPlan('solo_monthly')));
-    expect(text).toContain(formatPlanInk(servedPlan('pro_monthly')));
-    expect(text).toContain('50 Ink/month');
-    expect(text).toContain('150 Ink/month');
+    expect(text).toContain(`${inr(PLANS.solo_monthly.priceInr)} a month`);
+    expect(text).toContain(`${inr(PLANS.pro_monthly.priceInr)} a month`);
+    expect(text).toContain('₹799 a month');
+    expect(text).toContain('₹1,999 a month');
+    expect(text).toContain(`${PLANS.solo_monthly.inkPerCycle} Ink a month`);
+    expect(text).toContain(`${PLANS.pro_monthly.inkPerCycle} Ink a month`);
+    expect(text).toContain('50 Ink a month');
+    expect(text).toContain('150 Ink a month');
   });
 
   it('T-398 yearly is held: no toggle, no yearly price or text anywhere', () => {
@@ -119,42 +118,34 @@ describe('T-364 pricing page', () => {
     expect(text).not.toContain('3,998');
   });
 
-  it('T-398 Pro card: PLANS price, four bullets, button; no false rows', () => {
+  const card = (id: string) => container.querySelector(`[data-plan="${id}"]`) as HTMLElement;
+
+  it('T-517 Pro card: PLANS price, Ink line, three includes, button (T-398 strings)', () => {
     render(<PricingPage />);
-    const pro = Array.from(container.querySelectorAll('.plan')).find(
-      (e) => e.querySelector('.plan-name')?.textContent === 'Pro',
-    ) as HTMLElement;
-    expect(pro).toBeDefined();
-    expect(pro.querySelector('.plan-price')?.textContent).toBe(
-      `${inr(PLANS.pro_monthly.priceInr)}/month`,
-    );
+    const pro = card('pro');
+    expect(pro).not.toBeNull();
+    expect(pro.textContent).toContain(`${inr(PLANS.pro_monthly.priceInr)} a month`);
+    expect(pro.textContent).toContain(`${PLANS.pro_monthly.inkPerCycle} Ink a month`);
     const rows = Array.from(pro.querySelectorAll('li')).map((l) => l.textContent?.trim());
     expect(rows).toEqual([
-      `${PLANS.pro_monthly.inkPerCycle} Ink/month`,
       'Everything in Solo',
       'Ink refills every month',
       'Top-up packs available anytime',
     ]);
     expect(pro.textContent).not.toContain('Everything in Solo, plus');
-    expect(pro.querySelector('a.btn')?.textContent?.trim()).toBe('Sign up to choose Pro');
+    expect(pro.querySelector('a')?.textContent?.trim()).toBe('Sign up to choose Pro');
   });
 
-  it('T-398 Free and Solo cards: buttons, price, no yearly line', () => {
+  it('T-517 Free and Solo cards: buttons, price, no yearly line', () => {
     render(<PricingPage />);
-    const cards = Array.from(container.querySelectorAll('.plan')) as HTMLElement[];
-    const byName = (n: string) =>
-      cards.find((e) => e.querySelector('.plan-name')?.textContent === n) as HTMLElement;
-    expect(byName('Free').querySelector('a.btn')?.textContent?.trim()).toBe(
-      'Start with 5 free Ink',
-    );
-    expect(byName('Solo').querySelector('a.btn')?.textContent?.trim()).toBe(
-      'Sign up to choose Solo',
-    );
-    expect(byName('Solo').querySelector('.plan-price')?.textContent).toBe(
-      `${inr(PLANS.solo_monthly.priceInr)}/month`,
-    );
-    expect(byName('Solo').querySelector('.plan-alt')?.textContent).toBe('');
-    expect(byName('Pro').querySelector('.plan-alt')?.textContent).toBe('');
+    expect(card('free').querySelector('a')?.textContent?.trim()).toBe('Start with 5 free Ink');
+    expect(card('solo').querySelector('a')?.textContent?.trim()).toBe('Sign up to choose Solo');
+    expect(card('solo').textContent).toContain(`${inr(PLANS.solo_monthly.priceInr)} a month`);
+    expect(card('solo').textContent).not.toMatch(/year/i);
+    expect(card('pro').textContent).not.toMatch(/year/i);
+    expect(
+      Array.from(container.querySelectorAll('[data-plan]')).map((e) => e.getAttribute('data-plan')),
+    ).toEqual(['free', 'solo', 'pro']);
   });
 
   it('metadata description carries the Solo price and Ink from PLANS', () => {
@@ -175,11 +166,10 @@ describe('T-364 Settings plan list equals the pricing page (the /plans cross-che
     // is checked for NOT appearing on the page; monthly SKUs must match Settings exactly.
     const pricingText = render(<PricingPage />);
     if (served.cycle === 'yearly') {
-      expect(pricingText).not.toContain(formatPlanPrice(served));
       expect(pricingText).not.toContain(inr(served.priceInr));
     } else {
-      expect(pricingText).toContain(formatPlanPrice(served));
-      expect(pricingText).toContain(formatPlanInk(served));
+      expect(pricingText).toContain(`${inr(served.priceInr)} a month`);
+      expect(pricingText).toContain(`${served.inkPerCycle} Ink a month`);
     }
     act(() => root.unmount());
     container.remove();
@@ -188,28 +178,48 @@ describe('T-364 Settings plan list equals the pricing page (the /plans cross-che
     container = document.createElement('div');
     document.body.appendChild(container);
     root = createRoot(container);
-    const settingsText = await renderAsync(<PlanUpgrade planId={id} />);
-    expect(settingsText).toContain(
-      `Upgrade to ${served.tier === 'pro' ? 'Pro' : 'Solo'} — ${formatPlanPrice(served)}`,
+    // T-509: the Settings plan chooser lists monthly plans only (yearly hidden, T-399), in the
+    // same price and Ink as the pricing page, from the same /plans payload.
+    const settingsText = await renderAsync(
+      <PlanChooser
+        plans={IDS.map(servedPlan).filter((p) => p.cycle === 'monthly')}
+        current="free"
+        switchDate=""
+        pendingPlanId={null}
+        onChoose={() => {}}
+        onSwitch={() => {}}
+      />,
     );
-    expect(settingsText).toContain(formatPlanInk(served));
+    if (served.cycle === 'yearly') {
+      expect(settingsText).not.toContain(inr(served.priceInr));
+    } else {
+      expect(settingsText).toContain(`${inr(served.priceInr)} a month`);
+      expect(settingsText).toContain(`${served.inkPerCycle} Ink a month`);
+    }
     expect(settingsText).not.toMatch(/unlimited/i);
     expect(settingsText).not.toContain('₹799 Unlimited');
   });
 });
 
 describe('T-364 home, paywall, upgrade-success', () => {
-  it('home Solo and Pro cards use the PLANS price and Ink', () => {
+  it('home shows the Free and Solo cards from PLANS and no Pro; Pro is on pricing', () => {
     const text = render(<HomePage />).replace(/\s+/g, ' ');
-    expect(text).toContain(`${inr(PLANS.solo_monthly.priceInr)}/month`);
-    expect(text).toContain(`${inr(PLANS.pro_monthly.priceInr)}/month`);
-    expect(text).toContain('₹799/month');
-    expect(text).toContain('₹1,999/month');
+    expect(text).toContain(`${inr(PLANS.solo_monthly.priceInr)} a month`);
     expect(text).toContain(`${PLANS.solo_monthly.inkPerCycle} Ink a month`);
-    expect(text).toContain(`${PLANS.pro_monthly.inkPerCycle} Ink a month`);
+    expect(text).toContain('₹799 a month');
     expect(text).toContain('50 Ink a month');
-    expect(text).toContain('150 Ink a month');
+    expect(
+      Array.from(container.querySelectorAll('[data-plan]')).map((e) => e.getAttribute('data-plan')),
+    ).toEqual(['free', 'solo']);
+    expect(container.querySelector('[data-plan="pro"]')).toBeNull();
+    expect(text).not.toMatch(/\bPro\b/);
+    expect(text).not.toContain('₹1,999');
+    expect(text).not.toContain('150 Ink');
     expect(text).not.toMatch(/unlimited/i);
+    act(() => root.unmount());
+    root = createRoot(container);
+    render(<PricingPage />);
+    expect(container.querySelector('[data-plan="pro"]')).not.toBeNull();
   });
 
   it('PaywallModal shows the Solo Ink and price from PLANS', () => {
@@ -221,22 +231,6 @@ describe('T-364 home, paywall, upgrade-success', () => {
     );
     expect(text).toContain('50 Ink / mo · ₹799');
     expect(text).not.toMatch(/unlimited/i);
-  });
-
-  it('UpgradeSuccessModal shows the Ink for each tier from PLANS', () => {
-    const solo = render(
-      <UpgradeSuccessModal planLabel="Solo" inkPerCycle={50} renewsOn="1 Nov" onClose={() => {}} />,
-    );
-    expect(solo).toContain(`${PLANS.solo_monthly.inkPerCycle} Ink a month`);
-    expect(solo).not.toMatch(/unlimited/i);
-    act(() => root.unmount());
-    root = createRoot(container);
-    const pro = render(
-      <UpgradeSuccessModal planLabel="Pro" inkPerCycle={150} renewsOn="1 Nov" onClose={() => {}} />,
-    );
-    expect(pro).toContain(`${PLANS.pro_monthly.inkPerCycle} Ink a month`);
-    expect(pro).toContain('150 Ink a month');
-    expect(pro).not.toMatch(/unlimited/i);
   });
 
   it('no page says "Unlimited"', () => {

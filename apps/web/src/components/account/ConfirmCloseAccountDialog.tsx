@@ -52,7 +52,7 @@ export const CLOSE_DIALOG_TEXT = {
   generic: 'We could not close your account. Try again.',
   signInAgain: 'Sign in again, then try once more.',
   partial:
-    "We couldn't finish erasing your data. Your account is closed and you have been signed out. We will finish erasing it; if you have any questions, write to us at privacy@lawie.in.",
+    "We couldn't finish erasing your data. Your account is closed and you have been signed out. We will finish erasing it; if you have any questions, write to us at contact@lawie.in.",
 } as const;
 
 type ErrorKind = 'wrong' | 'reauth' | 'plan' | 'generic' | 'partial';
@@ -205,7 +205,7 @@ export default function ConfirmCloseAccountDialog({
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={bodyId}
-        className="max-h-[90dvh] w-full max-w-sm overflow-y-auto rounded-xl bg-white p-6 shadow-2xl sm:max-w-md"
+        className="max-h-[90dvh] max-h-[90vh] w-full max-w-sm overflow-y-auto rounded-xl bg-white p-6 shadow-2xl supports-[height:100dvh]:max-h-[90dvh] sm:max-w-md"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 id={titleId} className="font-heading text-brand-navy text-xl font-semibold">

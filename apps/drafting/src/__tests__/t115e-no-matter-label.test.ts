@@ -12,6 +12,7 @@ import path from 'path';
 import request from 'supertest';
 
 import app from '../app';
+import { seedVerifiedUsers } from './verifiedUser';
 import redis from '../config/redis';
 import { AppSetting } from '../models/AppSetting.model';
 import { Event } from '../models/Event.model';
@@ -246,3 +247,5 @@ describe('T-115e script: unset-event-labels', () => {
     expect(await events().find({}).sort({ _id: 1 }).toArray()).toEqual(after);
   });
 });
+
+seedVerifiedUsers('507f1f77bcf86cd799439071');

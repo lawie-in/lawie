@@ -29,6 +29,7 @@ jest.mock('next/link', () => ({
 }));
 jest.mock('@/components/credits/PaywallModal', () => ({ PaywallModal: () => null }));
 jest.mock('@/components/VerifyEmailPrompt', () => ({
+  openVerifyIfDraftRefused: async () => false,
   openVerifyInsteadOfPaywall: async () => false,
 }));
 
@@ -218,17 +219,36 @@ describe('OneFlow SSE done event and the Ink balance', () => {
     expect(mockNotify).toHaveBeenCalledWith();
   });
 
+  it('T-545: the chip shows done.inkDebited, not the "Uses 2 Ink" quote, and does not change the balance notice', async () => {
+    await toBrief(2);
+    await confirm(sse([ev('done', { docId: 'd1', inkDebited: 1, balance: { totalInk: 7 } })]));
+    const text = container.textContent?.replace(/\s+/g, ' ') ?? '';
+    expect(text).toContain('1 Ink used');
+    expect(text).not.toContain('2 Ink used');
+    expect(mockNotify).toHaveBeenCalledWith({ totalInk: 7 });
+  });
+
+  it('T-545: a done with a balance but no inkDebited shows no chip (the quote is not the debit)', async () => {
+    await toBrief(2);
+    await confirm(sse([ev('done', { docId: 'd1', balance: { totalInk: 7 } })]));
+    expect(container.textContent).not.toContain('Ink used');
+  });
+
   it('does not call it on an error event', async () => {
     await toBrief(2);
     await confirm(sse([ev('error', { reason: 'Boom', retryable: true })]));
     expect(mockNotify).not.toHaveBeenCalled();
-    expect(container.textContent).toContain('Boom');
+    // review round 2: an error event's reason is never shown (only insufficient_ink's).
+    expect(container.textContent).toContain('The draft did not finish.');
+    expect(container.textContent).not.toContain('Boom');
   });
 
   it('does not call it when the stream is lost before done', async () => {
     await toBrief(2);
     await confirm(sse([ev('warning', { warnings: [] })]));
     expect(mockNotify).not.toHaveBeenCalled();
-    expect(container.textContent).toContain('connection was lost');
+    // T-565 W13: the signed line alone; the old prose reason is gone.
+    expect(container.textContent).toContain('Connection lost. Check your documents.');
+    expect(container.textContent).not.toContain('connection was lost');
   });
 });

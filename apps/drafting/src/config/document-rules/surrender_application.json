@@ -150,7 +150,7 @@
     "State express surrender to the jurisdiction of the Hon'ble Court.",
     "Include undertaking to cooperate with investigation.",
     "Surrender constituting custody for bail purposes under BNSS 480.",
-    "Cite BNS sections for the underlying offences (never IPC).",
+    "Cite the sections of the underlying offence as registered (BNS for an offence on or after 1 July 2024, IPC for an offence before that date).",
     "Prayer is for the court to take cognizance of surrender and pass appropriate orders — NOT for protection from arrest.",
     "Do NOT generate the verification clause or advocate signature block — those are added programmatically.",
     "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."

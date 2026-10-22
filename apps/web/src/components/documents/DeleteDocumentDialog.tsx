@@ -39,7 +39,7 @@ export const DELETE_DIALOG_TEXT = {
   working: 'Deleting...',
   workingStatus: 'Deleting the document.',
   error:
-    "We couldn't finish deleting this document. Please try again. If this keeps happening, write to us at privacy@lawie.in.",
+    "We couldn't finish deleting this document. Please try again. If this keeps happening, write to us at contact@lawie.in.",
 } as const;
 
 /** The status line the list shows after the dialog closes (Madhuri's strings, T-115 section A). */

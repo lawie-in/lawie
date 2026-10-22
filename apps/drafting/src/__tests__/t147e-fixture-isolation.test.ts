@@ -39,6 +39,7 @@ import { Generation } from '../models/Generation.model';
 import { LlmAuxCall } from '../models/LlmAuxCall.model';
 import { PlaceholderRate } from '../models/PlaceholderRate.model';
 import { User } from '../models/User.model';
+import { createVerifiedUser } from './verifiedUser';
 import { _clearAppSettingsCache } from '../services/app-settings.service';
 import { CLAUSES_MARKER } from '../services/brief-drafter';
 import { spendInk } from '../services/credits.service';
@@ -258,7 +259,7 @@ beforeEach(async () => {
     formattingRulesRef: 'bihar_district',
   });
   // The real user has a name and Ink. The fixture user has NO users row, by design.
-  await User.create({
+  await createVerifiedUser({
     _id: REAL,
     name: 'Real Advocate',
     email: 'real@test.com',
@@ -268,7 +269,7 @@ beforeEach(async () => {
     inkAnnualCarry: 0,
     inkTopup: INK_BEFORE,
   });
-  await User.create({
+  await createVerifiedUser({
     _id: ADMIN,
     name: 'Admin',
     email: 'admin@test.com',

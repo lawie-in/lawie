@@ -12,17 +12,23 @@ import './config/sentry';
 import app from './app';
 import { connectDatabase } from './config/database';
 import { env } from './config/env';
+import { ensureInkLedgerIndexes } from './config/ink-ledger-indexes';
 import logger from './config/logger';
+import { ensureSubscriptionIndexes } from './config/subscription-indexes';
 import { startInvoiceSweep } from './services/invoice-sweep.service';
+import { startReconcileSweep } from './services/subscription-reconcile-sweep.service';
 
 async function bootstrap() {
   try {
     await connectDatabase();
+    await ensureInkLedgerIndexes(); // T-519: never throws; logs and continues on failure
+    await ensureSubscriptionIndexes(); // T-536: never throws; logs, reports and continues
     app.listen(env.PORT, () => {
       logger.info(`💳 Billing Service running on http://localhost:${env.PORT}`);
       logger.info(`   Environment: ${env.NODE_ENV}`);
     });
     startInvoiceSweep(); // T-436: finish GST invoices left in 'issuing', at boot and every 5 min
+    startReconcileSweep(); // T-527: adopt or cancel subs a timed-out create left at Razorpay
   } catch (error) {
     logger.error({ error }, 'Failed to start billing service');
     process.exit(1);

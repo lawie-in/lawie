@@ -7,8 +7,7 @@ import SiteNav from '@/components/marketing/SiteNav';
 
 export const metadata: Metadata = {
   title: 'Lawie — Refund Policy',
-  description:
-    'Lawie subscriptions are billed in advance and are non-refundable. You can cancel anytime to stop future charges.',
+  description: "Lawie's refund policy for plans and Ink top-up packs.",
 };
 
 export default function RefundsPage() {
@@ -36,21 +35,24 @@ export default function RefundsPage() {
         <div className="container">
           <div style={{ textAlign: 'center', marginBottom: '32px' }}>
             <span className="legal-updated">
-              <Calendar strokeWidth={1.5} /> Last updated: 1 June 2026
+              <Calendar strokeWidth={1.5} /> Last updated: 22 October 2026
             </span>
           </div>
           <div className="card refund-card">
             <p>
-              Lawie operates on a monthly and annual subscription basis. Subscriptions are billed in
-              advance.{' '}
-              <strong>We do not offer refunds for any portion of the subscription period.</strong>
+              Payments for plans and Ink top-up packs are non-refundable once the plan period has
+              started or the Ink has been added to your account.
             </p>
             <p>
-              You can cancel your subscription at any time from your account settings. Cancellation
-              stops all future charges. Cancellation does not refund payments already made. If you
-              cancel an annual plan, you keep your monthly Ink until the end of the year you paid
-              for.
+              If you were charged twice for the same purchase, or charged by mistake, write to
+              contact@lawie.in within 30 days. We will check and refund the extra amount to the
+              original payment method, and issue a GST credit note.
             </p>
+            <p>
+              Cancelling a plan stops future charges and takes effect at the end of the current
+              billing period.
+            </p>
+            <p>This does not affect any right you have under law.</p>
             <p>
               For billing questions, contact us at{' '}
               <a

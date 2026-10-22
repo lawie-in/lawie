@@ -344,12 +344,6 @@
       "name": "Two Witnesses",
       "required": true,
       "description": "Mandatory"
-    },
-    {
-      "id": "lawie_disclaimer",
-      "name": "Lawie Drafting Assistant Disclaimer",
-      "required": true,
-      "description": "Standard Lawie disclaimer"
     }
   ],
   "prayerTemplate": "",
@@ -395,7 +389,6 @@
       "Para 21: REGISTRATION — license agreements are NOT compulsorily registerable under S.17 Registration Act (since no interest in land created). HOWEVER, some states (Maharashtra, Karnataka) mandate registration of leave-and-license. Bihar / Jharkhand / UP / Delhi do not mandate.",
       "Schedule A — Licensed Premises description.",
       "Two witnesses' attestation.",
-      "Append Lawie disclaimer.",
       "WHERE LICENSEE INVESTS IN PREMISES on faith of license — flag S.60 proviso Easements Act: license becomes irrevocable to extent of investment unless terms expressly negative this. Include explicit clause that no investment / improvement creates any equity / right of irrevocability.",
       "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
@@ -479,7 +472,6 @@
     "TDS compliance by licensee (Form 26Q / 26QC) as applicable",
     "GST invoicing by licensor (commercial)",
     "Insurance policy (commercial license)",
-    "Lawie disclaimer included",
     "Critical: language preserves license character — review by advocate to avoid re-characterisation as lease"
   ],
   "validation_rules": [

@@ -5,7 +5,7 @@
 
 import './setupEnv';
 
-jest.mock('ioredis', () => require('ioredis-mock'));
+jest.mock('ioredis', () => jest.requireActual('ioredis-mock'));
 
 import './setupDb';
 
@@ -23,26 +23,26 @@ const reg = (email: string, extra: Record<string, unknown> = {}) =>
     .send({ email, password: PASSWORD, name: 'Test Person', ...extra });
 
 describe('T-234 AC7 — password register records Terms acceptance', () => {
-  it('CURRENT_TERMS_VERSION is 2026-10-15 (matches /terms Last updated, T-436)', () => {
-    expect(CURRENT_TERMS_VERSION).toBe('2026-10-15');
+  it('CURRENT_TERMS_VERSION is 2026-10-22 (matches /terms Last updated, T-541)', () => {
+    expect(CURRENT_TERMS_VERSION).toBe('2026-10-22');
   });
 
-  it('CURRENT_PRIVACY_VERSION is 2026-10-15 (Ajay, GST file Addendum 4); each constant equals its own current date', () => {
-    // T-436: both versions are 2026-10-15 (the merge date), so the two dates coincide. They are still
-    // separate constants, each asserted against its own date.
+  it('CURRENT_PRIVACY_VERSION is 2026-10-15 (Ajay, GST file Addendum 4) and CURRENT_TERMS_VERSION is 2026-10-22 (T-541); each equals its own current date', () => {
+    // T-541: Terms moved to 2026-10-22 (top-up Ink expiry narrowed); Privacy stays 2026-10-15 (T-436).
+    // They are separate constants, each asserted against its own date.
     expect(CURRENT_PRIVACY_VERSION).toBe('2026-10-15');
-    expect(CURRENT_TERMS_VERSION).toBe('2026-10-15');
+    expect(CURRENT_TERMS_VERSION).toBe('2026-10-22');
   });
 
   it('sets termsAcceptedAt (server time), termsVersion and acceptedVia=password', async () => {
     const before = Date.now();
     const res = await reg('terms@example.com');
-    expect(res.status).toBe(201);
+    expect(res.status).toBe(202);
     const u = await User.findOne({ email: 'terms@example.com' }).lean();
     expect(u!.termsAcceptedAt).toBeInstanceOf(Date);
     expect(u!.termsAcceptedAt!.getTime()).toBeGreaterThanOrEqual(before - 1000);
     expect(u!.termsAcceptedAt!.getTime()).toBeLessThanOrEqual(Date.now() + 1000);
-    expect(u!.termsVersion).toBe('2026-10-15');
+    expect(u!.termsVersion).toBe('2026-10-22');
     expect(u!.privacyVersion).toBe('2026-10-15');
     expect(u!.acceptedVia).toBe('password');
     await verifyAndSeed(u!._id);
@@ -55,16 +55,16 @@ describe('T-234 AC7 — password register records Terms acceptance', () => {
       privacyVersion: '1999-01-01',
       acceptedVia: 'google',
     });
-    expect(res.status).toBe(201);
+    expect(res.status).toBe(202);
     const u = await User.findOne({ email: 'spoof@example.com' }).lean();
     expect(u!.termsAcceptedAt!.getFullYear()).toBeGreaterThanOrEqual(2026);
-    expect(u!.termsVersion).toBe('2026-10-15');
+    expect(u!.termsVersion).toBe('2026-10-22');
     expect(u!.privacyVersion).toBe('2026-10-15');
     expect(u!.acceptedVia).toBe('password');
     await verifyAndSeed(u!._id);
   });
 
-  it('a duplicate-email register (409) does not touch the existing acceptance', async () => {
+  it('a duplicate-email register (neutral 202) does not touch the existing acceptance', async () => {
     await reg('dupterms@example.com');
     const first = await User.findOne({ email: 'dupterms@example.com' }).lean();
     const res = await reg('dupterms@example.com', {
@@ -72,10 +72,10 @@ describe('T-234 AC7 — password register records Terms acceptance', () => {
       privacyVersion: 'x',
       acceptedVia: 'google',
     });
-    expect(res.status).toBe(409);
+    expect(res.status).toBe(202);
     const after = await User.findOne({ email: 'dupterms@example.com' }).lean();
     expect(after!.termsAcceptedAt).toEqual(first!.termsAcceptedAt);
-    expect(after!.termsVersion).toBe('2026-10-15');
+    expect(after!.termsVersion).toBe('2026-10-22');
     expect(after!.privacyVersion).toBe('2026-10-15');
     expect(after!.acceptedVia).toBe('password');
     await verifyAndSeed(first!._id);

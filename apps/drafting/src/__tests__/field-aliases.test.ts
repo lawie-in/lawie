@@ -32,19 +32,32 @@ describe('FIELD_ALIASES (T-382)', () => {
     } catch {
       /* ignore */
     }
+    try {
+      m.statutory_duty = 'z';
+    } catch {
+      /* ignore */
+    }
+    try {
+      delete m.statutory_duty;
+    } catch {
+      /* ignore */
+    }
     expect(FIELD_ALIASES).toEqual({
       advocate_enrolment: 'advocate_enrollment',
       bhajan_lal_categories_invoked: 'quashing_categories_invoked',
+      statutory_duty: 'statute_invoked',
     });
   });
 
-  it('has exactly two keys (T-382 and T-451), in order', () => {
+  it('has exactly three keys (T-382, T-451 and T-489), in order', () => {
     expect(Object.keys(FIELD_ALIASES)).toEqual([
       'advocate_enrolment',
       'bhajan_lal_categories_invoked',
+      'statutory_duty',
     ]);
     expect(FIELD_ALIASES.advocate_enrolment).toBe('advocate_enrollment');
     expect(FIELD_ALIASES.bhajan_lal_categories_invoked).toBe('quashing_categories_invoked');
+    expect(FIELD_ALIASES.statutory_duty).toBe('statute_invoked');
   });
 
   it('guard: holds none of the SLOT_ALIASES keys (Arjun ruling 8cfbce3)', () => {

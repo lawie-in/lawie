@@ -1,9 +1,11 @@
 /**
  * T-223 (Arjun, condition 4; promised to AWS in the SES production-access case): at most one
- * verify email per user per 60 s and five per 24 h, counted in Redis at the enqueue site.
+ * verify email per user per interval and five per 24 h, counted in Redis at the enqueue site.
+ * T-522 (Arjun, 22 Oct 2026): the interval is now 2 minutes (was 60 s), still five per day. The
+ * key name keeps its T-223 "min" segment, so keys already in Redis keep counting.
  *
  * Keys are local to auth and hold no PII (userId only):
- *   auth:verify-email:min:<userId>  "1", PX 60 000        (one per minute; SET NX claims it)
+ *   auth:verify-email:min:<userId>  "1", PX 120 000       (one per 2 min; SET NX claims it)
  *   auth:verify-email:day:<userId>  counter, PX 86 400 000 (fixed 24 h window from the first send)
  *
  * Order: read the day count, then claim the minute key with SET NX, then INCR the day counter.
@@ -15,7 +17,7 @@
  */
 import type Redis from 'ioredis';
 
-export const VERIFY_EMAIL_MIN_INTERVAL_MS = 60 * 1000;
+export const VERIFY_EMAIL_MIN_INTERVAL_MS = 2 * 60 * 1000;
 export const VERIFY_EMAIL_DAY_WINDOW_MS = 24 * 60 * 60 * 1000;
 export const VERIFY_EMAIL_DAY_CAP = 5;
 

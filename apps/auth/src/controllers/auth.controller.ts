@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 
+import { AppError } from '../middleware/errorHandler';
 import { closeAccount } from '../services/account-erase.service';
 import {
   registerUser,
@@ -8,14 +9,26 @@ import {
   logoutUser,
   getPrivacyStatus,
   acceptPrivacy,
-  setGstStateCode,
-  SET_GST_STATE_PRIVACY_BODY,
+  changePassword,
+  getPrivacyHistory,
+  updateProfile,
+  UPDATE_ME_PRIVACY_BODY,
+  resendVerifyByEmail,
+  signInFromVerifyLink,
+  type RegisterOutcome,
 } from '../services/auth.service';
+import { padToFloor } from '../services/latency-pad';
 import {
   completePasswordReset,
   isResetTokenLive,
   requestPasswordReset,
 } from '../services/password-reset.service';
+import { deleteUserSessionById, hashToken, listActiveSessions } from '../services/session.service';
+import {
+  TEST_ACCOUNTS_CAP_ERROR,
+  TEST_SIGNUP_BAD_NAME_ERROR,
+  tryTestSignupBypass,
+} from '../services/test-signup-bypass.service';
 import {
   VERIFY_RESEND_LIMITED,
   VERIFY_RESEND_LIMIT_MESSAGE,
@@ -28,25 +41,121 @@ import {
   validateUpdateMe,
   parseForgotPasswordEmail,
   checkResetPassword,
+  checkChangePassword,
+  DEFAULT_COURT_NOT_IN_COURTS,
 } from '../validators/auth.validator';
 
-export async function register(req: Request, res: Response, next: NextFunction): Promise<void> {
-  try {
-    const parsed = validateRegister(req.body);
-    const { user, tokens, referralApplied } = await registerUser(parsed, {
-      ip: req.ip,
-      userAgent: req.headers['user-agent'],
-    });
+/**
+ * T-522 (Arjun 4, open point (a) confirmed 22 Oct 2026) — the one answer to an accepted sign-up,
+ * identical for a new and an existing address (and for the signed-out resend), in auth's
+ * standard wrapper: no user id, no email, no tokens, no referral flag. The web reads data.status.
+ */
+export const SIGNUP_ACCEPTED_BODY = { status: 'success', data: { status: 'check_email' } } as const;
+export const SIGNUP_RATE_LIMITED = 'rate_limited';
 
-    res.status(201).json({
-      status: 'success',
-      data: {
-        user: { id: user._id, email: user.email, name: user.name, role: user.role },
-        ...tokens,
-        // T-234: only present when a referral code was sent and the outcome is known.
-        ...(referralApplied !== undefined ? { referralApplied } : {}),
-      },
+/** T-522 — the shared tail of the two neutral routes: 202 padded, 429 or 503. */
+async function sendNeutralOutcome(
+  res: Response,
+  outcome: RegisterOutcome,
+  startedAt: number,
+  route: string,
+): Promise<void> {
+  switch (outcome.kind) {
+    case 'accepted':
+      await padToFloor(startedAt, route);
+      res.status(202).json(SIGNUP_ACCEPTED_BODY);
+      return;
+    case 'limited':
+      res.setHeader('Retry-After', String(outcome.retryAfterSeconds));
+      res.status(429).json({ error: SIGNUP_RATE_LIMITED, retryAfter: outcome.retryAfterSeconds });
+      return;
+    case 'unavailable':
+      res.status(503).json({ error: 'service_unavailable' });
+      return;
+  }
+}
+
+/**
+ * T-522 — POST /register (public), neutral (Arjun rulings 1, 3, 4):
+ *   422  validation (checked first, before any lookup or count)
+ *   202  SIGNUP_ACCEPTED_BODY, Cache-Control: no-store, padded to SIGNUP_RESPONSE_FLOOR_MS from
+ *        the start of the request; the same for a new and an existing address; no session
+ *   429  { error: 'rate_limited', retryAfter } + Retry-After  over the IP or email bucket
+ *   503  { error: 'service_unavailable' }  the rate-limit store failed; nothing looked up
+ * The body is never logged.
+ *
+ * T-563 (Arjun) — the develop-only test sign-up bypass runs here, after validation and before
+ * the neutral path. When it does not apply (off, no `bypass-test: true`, wrong or missing
+ * secret, non-reserved email) the request falls through unchanged. When it applies:
+ *   201  login's success body (user + tokens) and a session
+ *   400  { error: 'invalid_test_name' }  right secret, name not starting with TEST
+ *   409  { error: 'test_accounts_cap' }   the live test-account cap is reached
+ *   429 / 503  as the neutral path
+ */
+export async function register(req: Request, res: Response, next: NextFunction): Promise<void> {
+  const startedAt = Date.now();
+  try {
+    res.setHeader('Cache-Control', 'no-store');
+    const parsed = validateRegister(req.body);
+    const ip = clientIpForRateLimit(req);
+    const test = await tryTestSignupBypass(parsed, {
+      headers: req.headers,
+      ip,
+      meta: { ip: req.ip, userAgent: req.headers['user-agent'] },
     });
+    switch (test.kind) {
+      case 'created': {
+        const { user, tokens } = test;
+        res.status(201).json({
+          status: 'success',
+          data: {
+            user: { id: user._id, email: user.email, name: user.name, role: user.role },
+            ...tokens,
+          },
+        });
+        return;
+      }
+      case 'bad_name':
+        res.status(400).json({ error: TEST_SIGNUP_BAD_NAME_ERROR });
+        return;
+      case 'cap':
+        res.status(409).json({ error: TEST_ACCOUNTS_CAP_ERROR });
+        return;
+      case 'limited':
+      case 'unavailable':
+        await sendNeutralOutcome(res, test, startedAt, 'register');
+        return;
+      case 'not_applied':
+        break;
+    }
+    const outcome = await registerUser(parsed, ip);
+    await sendNeutralOutcome(res, outcome, startedAt, 'register');
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * T-522 (Arjun 5) — POST /verify-email/resend-by-email { email } (public). Shares the sign-up
+ * IP and email buckets (429 / 503 as /register); otherwise always the same padded 202 as
+ * /register, whether or not anything was sent. 400 { error: 'invalid_email' } for a missing or
+ * badly formed address (format only). The body is never logged.
+ */
+export async function resendVerifyByEmailHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  const startedAt = Date.now();
+  try {
+    res.setHeader('Cache-Control', 'no-store');
+    const email = parseForgotPasswordEmail(req.body);
+    if (!email) {
+      res.status(400).json({ error: 'invalid_email' });
+      return;
+    }
+    const outcome = await resendVerifyByEmail(email, clientIpForRateLimit(req));
+    await sendNeutralOutcome(res, outcome, startedAt, 'verify-email/resend-by-email');
   } catch (err) {
     next(err);
   }
@@ -245,6 +354,11 @@ export const VERIFY_LINK_INVALID = 'verify_link_invalid';
  * T-223 — POST /verify-email { token } (public: the token is the credential). The token travels
  * in the body only and is never logged; neither is the body. An expired, used or forged link
  * is one answer (400), so a caller learns nothing about which it was.
+ *
+ * T-522 (Arjun 1): only this POST uses a token up. A 'signin' link (sign-up and resend) also
+ * signs the user in exactly as /login does: 200 { status, user, accessToken, refreshToken }. A
+ * 'verify' link (the T-358 notice, or one minted before T-522) returns { status } only. An
+ * expired or used link is 400 verify_link_invalid and creates no session.
  */
 export async function verifyEmailHandler(
   req: Request,
@@ -254,16 +368,31 @@ export async function verifyEmailHandler(
   try {
     res.setHeader('Cache-Control', 'no-store');
     const token = (req.body as { token?: unknown } | undefined)?.token;
+    res.setHeader('Referrer-Policy', 'no-referrer');
     const result = await verifyEmailToken(token);
-    if (result.kind === 'verified') {
-      res.status(200).json({ status: 'verified' });
+    if (result.kind === 'expired_or_invalid') {
+      res.status(400).json({ error: VERIFY_LINK_INVALID });
       return;
     }
-    if (result.kind === 'already_verified') {
-      res.status(200).json({ status: 'already_verified' });
+    if (result.linkKind !== 'signin') {
+      res.status(200).json({ status: result.kind });
       return;
     }
-    res.status(400).json({ error: VERIFY_LINK_INVALID });
+    const signedIn = await signInFromVerifyLink(result.userId, {
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
+    if (!signedIn) {
+      // The account was deactivated or removed between the verify and the sign-in: no session.
+      res.status(400).json({ error: VERIFY_LINK_INVALID });
+      return;
+    }
+    const { user, tokens } = signedIn;
+    res.status(200).json({
+      status: result.kind,
+      user: { id: user._id, email: user.email, name: user.name, role: user.role },
+      ...tokens,
+    });
   } catch (err) {
     next(err);
   }
@@ -320,9 +449,13 @@ export async function getMe(req: Request, res: Response, next: NextFunction): Pr
 }
 
 /**
- * T-436 — PATCH /me { gstStateCode }: the GST State/UT for the user's tax invoices.
- *   200 { status: 'success', data: { gstStateCode } }  saved
- *   422 any other field, a missing field, or a code not in GST_STATES (validateUpdateMe)
+ * T-436 / T-507 — PATCH /me: any of gstStateCode, name, phone, enrollmentNumber, barCouncil,
+ * barCouncilState, practiceAreas, yearsOfExperience, courtsPractisedIn, defaultCourt (rules in
+ * validateUpdateMe; null clears an optional field).
+ *   200 { status: 'success', data: { <exactly the keys sent, as stored> } }  saved; so a body of
+ *       only { gstStateCode } still answers { data: { gstStateCode } }
+ *   422 an unknown or read-only field (email included), an empty body, a bad value, or a
+ *       defaultCourt that is not one of courtsPractisedIn (sent or stored); nothing stored
  *   403 { error: 'privacy_reaccept_required' }  the current privacy version is not accepted
  *       (Ajay, GST file Addendum 7 (2)); nothing stored. The T-343 shape, so the web's
  *       privacyFetch shows the re-accept prompt.
@@ -336,19 +469,164 @@ export async function updateMeHandler(
 ): Promise<void> {
   try {
     res.setHeader('Cache-Control', 'no-store');
-    const { gstStateCode } = validateUpdateMe(req.body);
-    const outcome = await setGstStateCode(req.jwtPayload!.sub, gstStateCode);
+    const input = validateUpdateMe(req.body);
+    const outcome = await updateProfile(req.jwtPayload!.sub, input);
     switch (outcome.kind) {
       case 'saved':
-        res.status(200).json({ status: 'success', data: { gstStateCode: outcome.gstStateCode } });
+        res.status(200).json({ status: 'success', data: outcome.data });
         return;
       case 'privacy_reaccept_required':
-        res.status(403).json(SET_GST_STATE_PRIVACY_BODY);
+        res.status(403).json(UPDATE_ME_PRIVACY_BODY);
+        return;
+      case 'default_court_not_in_courts':
+        throw new AppError(422, DEFAULT_COURT_NOT_IN_COURTS);
+      case 'not_found':
+        res.status(401).json({ status: 'error', message: 'User not found or inactive' });
+        return;
+    }
+  } catch (err) {
+    next(err);
+  }
+}
+
+/** T-507 — the caller's access token (authenticate already verified the Bearer header). */
+function bearerToken(req: Request): string {
+  return req.headers.authorization!.split(' ')[1];
+}
+
+/**
+ * T-507 — POST /me/password { currentPassword, newPassword } (signed in).
+ *   200 { status: 'success', data: { revokedSessions } }  changed; every OTHER session signed
+ *       out, the caller's kept
+ *   422 { status, statusCode: 422, error: 'weak_password', message, unmet }  newPassword fails a
+ *       sign-up rule (the T-221 reset shape)
+ *   422 (AppError shape) currentPassword missing
+ *   403 { error: 'wrong_password' }  currentPassword does not match
+ *   409 { error: 'no_password' }  the account has no password (Google-only)
+ *   429 { error: 'rate_limited', retryAfter } + Retry-After  5 wrong current passwords in 15 min
+ *       for this user (password-change-rate-limit.ts; the T-221 reset body)
+ *   503 { error: 'service_unavailable' }  the limiter store failed; nothing looked up or changed
+ *   401 user not found, inactive or being closed (as GET /me)
+ * Rate limits: per user (above), and per IP as /login is, by the gateway's publicRateLimiter on
+ * the whole /api/auth proxy. The body is never logged.
+ */
+export async function changePasswordHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    res.setHeader('Cache-Control', 'no-store');
+    const check = checkChangePassword(req.body);
+    if (!check.ok) {
+      if (check.kind === 'invalid') throw new AppError(422, check.message);
+      res.status(422).json({
+        status: 'error',
+        statusCode: 422,
+        error: PASSWORD_RESET_WEAK,
+        message: check.message,
+        unmet: check.unmet,
+      });
+      return;
+    }
+    const outcome = await changePassword(
+      req.jwtPayload!.sub,
+      bearerToken(req),
+      check.currentPassword,
+      check.newPassword,
+    );
+    switch (outcome.kind) {
+      case 'changed':
+        res
+          .status(200)
+          .json({ status: 'success', data: { revokedSessions: outcome.revokedSessions } });
+        return;
+      case 'wrong_password':
+        res.status(403).json({ error: 'wrong_password' });
+        return;
+      case 'no_password':
+        res.status(409).json({ error: 'no_password' });
+        return;
+      case 'limited':
+        res.setHeader('Retry-After', String(outcome.retryAfterSeconds));
+        res.status(429).json({
+          error: PASSWORD_RESET_RATE_LIMITED,
+          retryAfter: outcome.retryAfterSeconds,
+        });
+        return;
+      case 'unavailable':
+        res.status(503).json({ error: 'service_unavailable' });
         return;
       case 'not_found':
         res.status(401).json({ status: 'error', message: 'User not found or inactive' });
         return;
     }
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * T-507 — GET /me/sessions (signed in).
+ *   200 { status: 'success', data: { sessions: [{ id, userAgent, createdAt, current }] } }
+ *       newest first; only live sessions (see listActiveSessions). No IP, no hashes.
+ */
+export async function listSessionsHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    res.setHeader('Cache-Control', 'no-store');
+    const sessions = await listActiveSessions(req.jwtPayload!.sub, hashToken(bearerToken(req)));
+    res.status(200).json({ status: 'success', data: { sessions } });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * T-507 — DELETE /me/sessions/:id (signed in): sign that session out.
+ *   200 { status: 'success' }  signed out (the caller's own session too, if that is the id)
+ *   404 { error: 'not_found' }  not a session of this user (or not an id at all)
+ */
+export async function deleteSessionHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    res.setHeader('Cache-Control', 'no-store');
+    const deleted = await deleteUserSessionById(req.jwtPayload!.sub, req.params.id);
+    if (!deleted) {
+      res.status(404).json({ error: 'not_found' });
+      return;
+    }
+    res.status(200).json({ status: 'success' });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * T-507 — GET /me/privacy-history (signed in).
+ *   200 { status: 'success', data: { privacyHistory: [{ version, acceptedAt, via }] } }  newest
+ *       first; [] when none recorded
+ *   401 user not found, inactive or being closed (as GET /me)
+ */
+export async function privacyHistoryHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    res.setHeader('Cache-Control', 'no-store');
+    const privacyHistory = await getPrivacyHistory(req.jwtPayload!.sub);
+    if (privacyHistory === null) {
+      res.status(401).json({ status: 'error', message: 'User not found or inactive' });
+      return;
+    }
+    res.status(200).json({ status: 'success', data: { privacyHistory } });
   } catch (err) {
     next(err);
   }

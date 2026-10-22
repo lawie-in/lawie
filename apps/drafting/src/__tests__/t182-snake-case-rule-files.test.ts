@@ -174,6 +174,12 @@ describe('T-182 — snake_case rule files', () => {
     // undoing that one string reproduces the old digest 08984e74...912d. New digest starts 2ff33967, ends 3156.
     // T-245a re-record (Ajay approved, 41a4b27): bail_regular instructions per Addenda 1-3.
     // New digest starts 108eb018, ends 4625 (full: 108eb0184a123e3dbac89e4ad7bdd730507d58c5727d67d5219948f0bfe34625).
+    // T-566 re-record (Ajay items 55, 54/S1, 66): the assembler's base prompt changed in three
+    // places only: the persona ("...drafting a legal document for an advocate to review and file."),
+    // rule 1 (Ajay's item 54 law line, bail_regular being in category criminal_bail) and the deleted
+    // rule 9 ("Use today's date format..."). Putting the old persona, old rule 1 and old rule 9 back
+    // reproduces the old digest 108eb018...4625 exactly. New digest starts cdad2c59, ends cdef
+    // (full: cdad2c59efd0a50c8c25bd4958856a3216ae62fbb5d459af907c6dca63e5cdef).
     // Fails if the bail_regular rule JSON or the assembler's output changes on purpose;
     // then re-record it, do not loosen it.
     it('matches the sha256 recorded from develop', async () => {
@@ -181,8 +187,7 @@ describe('T-182 — snake_case rule files', () => {
       const digest = createHash('sha256')
         .update(`${p.systemPrompt}\n=====USER=====\n${p.userPrompt}\n`)
         .digest('hex');
-      expect(digest.startsWith('108eb018')).toBe(true);
-      expect(digest.endsWith('4625')).toBe(true);
+      expect(digest).toBe('cdad2c59efd0a50c8c25bd4958856a3216ae62fbb5d459af907c6dca63e5cdef');
     });
   });
 

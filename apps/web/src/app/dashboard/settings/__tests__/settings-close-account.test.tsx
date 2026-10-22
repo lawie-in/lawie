@@ -15,7 +15,6 @@ jest.mock('@/context/AuthContext', () => ({
 jest.mock('@/hooks/useCredits', () => ({
   useCredits: () => ({ balance: { totalInk: 3 }, loaded: true }),
 }));
-jest.mock('@/components/billing/PlanUpgrade', () => ({ PlanUpgrade: () => null }));
 (globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 let container: HTMLDivElement;
@@ -83,5 +82,12 @@ describe('Settings: Close account', () => {
     await click(openBtn());
     const del = (apiFetch as jest.Mock).mock.calls.filter(([, i]) => i?.method === 'DELETE');
     expect(del).toHaveLength(0);
+  });
+
+  it('T-535: the trigger is the ghost-danger variant; the confirm dialog does not reuse it', async () => {
+    expect(openBtn().getAttribute('data-variant')).toBe('ghost-danger');
+    expect(openBtn().className).toContain('text-[color:var(--err)]');
+    await click(openBtn());
+    expect(dialog()!.querySelector('[data-variant="ghost-danger"]')).toBeNull();
   });
 });

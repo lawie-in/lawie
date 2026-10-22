@@ -69,7 +69,7 @@
       { "id": "state", "label": "State", "type": "text", "required": true },
       {
         "id": "offences_alleged",
-        "label": "BNS / Special Act sections invoked (use BNS, NOT IPC)",
+        "label": "Sections invoked in the FIR (BNS, IPC or Special Act, as registered)",
         "type": "textarea",
         "required": true
       },
@@ -249,12 +249,6 @@
       "name": "Affidavit in support",
       "required": true,
       "description": "Affidavit accompanying petition"
-    },
-    {
-      "id": "disclaimer",
-      "name": "Advocate Responsibility Disclaimer",
-      "required": true,
-      "description": "Standard Lawie disclaimer"
     }
   ],
   "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, the Petitioner most respectfully prays that this Hon'ble Court, in exercise of its inherent jurisdiction under Section 528 of the Bharatiya Nagarik Suraksha Sanhita, 2023, and / or under Articles 226 and 227 of the Constitution of India, may graciously be pleased to:\n\na) Quash and set aside FIR No. {fir_number} dated {fir_date} registered at Police Station {police_station}, District {district}, State of {state}, for offences alleged under {offences_alleged}, and all proceedings / investigation arising therefrom;\n\nb) Pending hearing and final disposal of this petition, stay the further investigation by the Respondent No.1 in respect of the said FIR;\n\nc) Pending hearing and final disposal of this petition, restrain the Respondent No.1 from arresting / taking any coercive steps against the Petitioner in connection with the said FIR;\n\nd) Pending hearing and final disposal of this petition, restrain the Respondent No.1 from filing chargesheet / final report in the said FIR without prior leave of this Hon'ble Court;\n\ne) Award costs of this petition;\n\nf) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the Petitioner shall ever pray.",
@@ -274,7 +268,7 @@
       "The seven categories are illustrative, not exhaustive — court repeatedly clarified.",
       "Para 1: Description of parties — petitioner, State (through Respondent SHO), informant.",
       "Para 2: Petitioner's profile — clean antecedents, social/professional position, age.",
-      "Para 3: Brief description of FIR — number, date, PS, district, BNS sections (NEVER use IPC).",
+      "Para 3: Brief description of FIR — number, date, PS, district, and the sections as registered in the FIR (BNS for an offence on or after 1 July 2024, IPC for an offence before that date).",
       "Para 4: Relationship between petitioner and informant — sets up context.",
       "Para 5: Quote FIR allegations VERBATIM (with translation if vernacular) — necessary because court examines FIR taken at face value.",
       "Para 6: Petitioner's version of factual matrix — true context.",
@@ -293,7 +287,6 @@
       "Para 18: Where multiple accused: distinct grounds for each accused — applicant cannot piggyback on co-accused's case.",
       "VERY IMPORTANT — court examines FIR on its FACE; defence material not considered at quashing stage except documents of unimpeachable character (court orders, statutory documents that disprove allegations). Therefore, FRAME ARGUMENTS within FIR's four corners + such unimpeachable material.",
       "Affidavit in support is mandatory.",
-      "Append Lawie disclaimer.",
       "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
@@ -361,7 +354,7 @@
   "validation_rules": [
     "petitioner_name must not be empty",
     "fir_number, fir_date, police_station must not be empty",
-    "offences_alleged must use BNS sections (warn if IPC sections detected)",
+    "offences_alleged uses the code in force on the date of the offence: BNS for an offence on or after 1 July 2024, IPC for an offence before that date (warn only where the sections do not match the offence date).",
     "quashing_categories_invoked must have at least one selected",
     "factual_matrix must not be empty",
     "ingredient_analysis_per_section must not be empty",

@@ -23,6 +23,7 @@ import { AppSetting } from '../models/AppSetting.model';
 import { Generation } from '../models/Generation.model';
 import { Template } from '../models/Template.model';
 import { User } from '../models/User.model';
+import { createVerifiedUser } from './verifiedUser';
 import { _clearAppSettingsCache } from '../services/app-settings.service';
 import {
   costForTemplate,
@@ -126,7 +127,7 @@ const LEGACY_DOC_TYPES: string[] = [
 ];
 
 async function seedUser(inkTopup = 2000) {
-  await User.create({
+  await createVerifiedUser({
     _id: USER_ID,
     plan: 'free',
     planTier: 'free',

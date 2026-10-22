@@ -12,7 +12,7 @@
 
 import './setupEnv';
 
-jest.mock('ioredis', () => require('ioredis-mock'));
+jest.mock('ioredis', () => jest.requireActual('ioredis-mock'));
 
 jest.mock('../config/env', () => ({
   env: {
@@ -351,7 +351,7 @@ describe('T-299 ruling 6 — linking Google to a password account', () => {
     const reg = await supertest(authApp)
       .post('/register')
       .send({ email: 'victim6@example.com', password: PASSWORD, name: 'Attacker' });
-    expect(reg.status).toBe(201);
+    expect(reg.status).toBe(202);
     const login = await supertest(authApp)
       .post('/login')
       .send({ email: 'victim6@example.com', password: PASSWORD });

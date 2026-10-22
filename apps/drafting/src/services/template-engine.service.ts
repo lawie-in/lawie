@@ -2374,6 +2374,9 @@ function applyCauseTitlePartyBlanks(
       ctx[key] = blank;
     } else if (key === 'respondents_list') {
       ctx[key] = numberRespondents(ctx[key]);
+    } else if (templateId === 'mandamus') {
+      // T-489 (Ajay 53132fb2): a multi-line answer prints on one title line.
+      ctx[key] = String(ctx[key]).replace(/\s+/g, ' ').trim();
     }
   }
   if (templateId === 'certiorari') {
@@ -2889,7 +2892,24 @@ export function sanitiseAIBody(text: string): string {
     if (/Lawie does not provide legal advice/i.test(t)) return false;
     return true;
   });
-  return cleaned.join('\n\n').trim();
+  // T-566 (item 65, Ajay's review 22 Oct; Arjun: by line, not paragraph): a
+  // line that carries the Lawie disclaimer goes on its own and the rest of its
+  // paragraph stays. Runs after the paragraph rules so they still see each
+  // paragraph whole; a paragraph left empty is dropped. Ruling 65e adds the
+  // second phrase.
+  const lawieLineFree = cleaned
+    .map((para) =>
+      para
+        .split('\n')
+        .filter(
+          (line) =>
+            !/Lawie is a drafting assistant/i.test(line) &&
+            !/Lawie is not legal counsel/i.test(line),
+        )
+        .join('\n'),
+    )
+    .filter((para) => para.trim() !== '');
+  return lawieLineFree.join('\n\n').trim();
 }
 
 /**
@@ -2940,6 +2960,43 @@ export function drafterPromptCourtRule(
 }
 
 /**
+ * T-566 item 54 (Ajay, pre-Anushka legal review 22 Oct, L96; rulings 54a/54b):
+ * the law line for a pack in a criminal category that is not one of the six
+ * law-switch packs. Byte for byte; legal content, do not edit without Ajay.
+ */
+export const OFFENCE_DATE_LAW_RULE =
+  'Use BNS section numbers for an offence committed on or after 1 July 2024, and IPC section numbers for an offence committed before that date. For procedure and evidence, use BNSS and BSA, except in a matter that was pending before 1 July 2024, where CrPC and the Evidence Act continue to apply. If the date of the offence is not given, write [To be confirmed: section and code].';
+
+/**
+ * T-566 ruling 54b: a criminal category is a rule-pack `category` of
+ * `criminal` or one that starts `criminal_` (criminal_bail, criminal_petition,
+ * criminal_procedural, criminal_appellate). Every other category is not.
+ */
+export function isCriminalCategory(category: string | undefined | null): boolean {
+  return typeof category === 'string' && /^criminal(?:_|$)/.test(category);
+}
+
+/**
+ * T-566 ruling S1: writ_petition_criminal (category `writ`) also gets the item
+ * 54 line. It is named here by id; its category is not changed.
+ */
+const OFFENCE_DATE_LAW_RULE_EXTRA_IDS: readonly string[] = ['writ_petition_criminal'];
+
+/**
+ * T-566 rulings 54b and S1: whether a pack gets OFFENCE_DATE_LAW_RULE. A pack
+ * in a criminal category, or one of the ids named in ruling S1.
+ */
+export function getsOffenceDateLawRule(
+  templateId: string | undefined | null,
+  category: string | undefined | null,
+): boolean {
+  return (
+    isCriminalCategory(category) ||
+    (typeof templateId === 'string' && OFFENCE_DATE_LAW_RULE_EXTRA_IDS.includes(templateId))
+  );
+}
+
+/**
  * Build the AI system prompt for config-driven generation.
  * T-410: `courtData` (optional) tells a District from a State Commission for
  * consumer_complaint's localRules.
@@ -2964,35 +3021,47 @@ export function buildAISystemPrompt(
   const isContract =
     config.category === 'civil' && ['rent_agreement', 'nda', 'mou'].includes(config.template_id);
 
-  let contractRule = '';
-  if (isContract) {
-    contractRule = `
-8. CONTRACTS — ANTI-INVENTION RULE: Do NOT introduce any term, clause, rate, percentage, penalty, or condition that is not explicitly present in the user-provided form data. You may only arrange and formalise the terms given. If the user has not specified an interest rate, notice period, or penalty — do NOT invent one.`;
-  }
-
-  // T-245a: the six bail packs never get the "never IPC/CrPC" rule. Their rule 1
-  // is Ajay's signed S-text (offence law by the date of the offence) and P-text
-  // (procedure by the PROCEDURE CODE the law switch puts in the case details).
+  // T-245a: the six bail packs keep Ajay's signed S-text (offence law by the
+  // date of the offence) and P-text (procedure by the PROCEDURE CODE the law
+  // switch puts in the case details). T-566 item 54 (rulings 54a/54b): every
+  // other pack in a criminal category, and writ_petition_criminal (ruling S1),
+  // gets Ajay's date-aware line; any other pack gets no law line, and the rules
+  // after it move up.
   const lawRule = isLawSwitchPack(config.template_id)
     ? `${S_TEXT} ${P_TEXT}`
-    : 'Use ONLY Bharatiya Nyaya Sanhita (BNS) 2023, Bharatiya Nagarik Suraksha Sanhita (BNSS) 2023, and Bharatiya Sakshya Adhiniyam (BSA) 2023 section numbers. NEVER reference old IPC, CrPC, or IEA section numbers.';
+    : getsOffenceDateLawRule(config.template_id, config.category)
+      ? OFFENCE_DATE_LAW_RULE
+      : null;
 
-  return `You are a senior Indian advocate with 20+ years of practice, drafting a court-ready legal document.
+  const criticalRules = [
+    ...(lawRule ? [lawRule] : []),
+    'Format with numbered paragraphs (1, 2, 3...) for the body.',
+    'Use formal, respectful legal language appropriate for Indian courts.',
+    'Do NOT include any commentary or notes outside the document content.',
+    "NEVER alter, embellish, or contradict the user's stated facts. Reproduce FIR numbers, dates, names, and amounts EXACTLY as provided.",
+    [
+      'Generate ONLY the numbered body paragraphs as instructed. Do NOT include:',
+      '   - Any court header or cause-title block ("IN THE COURT OF..." / "IN THE HIGH COURT OF...") — the cause title is already rendered above by the template engine; a second copy corrupts the document (A7)',
+      '   - The prayer clause, verification clause, or advocate block',
+      '   - The footer disclaimer ("First draft generated with AI" / "Lawie does not provide legal advice") — it is added to the export footer automatically and must NOT appear in the body (A6)',
+    ].join('\n'),
+    `Write any date as D Month YYYY, for example 4 April 2026. Never work out, add or change a date that is not given. ${NOT_KNOWN_DATE_LINE}`,
+    ...(isContract
+      ? [
+          'CONTRACTS — ANTI-INVENTION RULE: Do NOT introduce any term, clause, rate, percentage, penalty, or condition that is not explicitly present in the user-provided form data. You may only arrange and formalise the terms given. If the user has not specified an interest rate, notice period, or penalty — do NOT invent one.',
+        ]
+      : []),
+  ]
+    .map((rule, i) => `${i + 1}. ${rule}`)
+    .join('\n');
+
+  return `You are a senior Indian advocate with 20+ years of practice, drafting a legal document for an advocate to review and file.
 
 DOCUMENT TYPE: ${config.display_name}
 CATEGORY: ${config.category}
 
 CRITICAL RULES:
-1. ${lawRule}
-2. Format with numbered paragraphs (1, 2, 3...) for the body.
-3. Use formal, respectful legal language appropriate for Indian courts.
-4. Do NOT include any commentary or notes outside the document content.
-5. NEVER alter, embellish, or contradict the user's stated facts. Reproduce FIR numbers, dates, names, and amounts EXACTLY as provided.
-6. Generate ONLY the numbered body paragraphs as instructed. Do NOT include:
-   - Any court header or cause-title block ("IN THE COURT OF..." / "IN THE HIGH COURT OF...") — the cause title is already rendered above by the template engine; a second copy corrupts the document (A7)
-   - The prayer clause, verification clause, or advocate block
-   - The footer disclaimer ("First draft generated with AI" / "Lawie does not provide legal advice") — it is added to the export footer automatically and must NOT appear in the body (A6)
-7. Write any date as D Month YYYY, for example 4 April 2026. Never work out, add or change a date that is not given. ${NOT_KNOWN_DATE_LINE}${contractRule}
+${criticalRules}
 
 ANTI-HALLUCINATION GUARDRAILS (MANDATORY):
 - Use the EXACT respondent / opposite party name provided in the form data. NEVER substitute, guess, or infer a different entity name (e.g., do NOT replace a retailer name with a manufacturer name).
@@ -3011,7 +3080,7 @@ RELATED ACTS: ${relatedActs.join(', ')}${courtRule?.localRules?.length ? `\n\nCO
       : ''
   }${
     config.category === 'criminal'
-      ? `\n\nBNS SECTION WHITELIST (MANDATORY — SCRUM-64): You MUST ONLY cite BNS sections from this verified First Schedule list: ${BNS_VALID_SECTIONS.join(', ')}. Any BNS section number NOT in this list does not exist in the Bharatiya Nyaya Sanhita — do NOT use it under any circumstances.\nA sub-section of a listed section may be cited, for example 103(1) or 316(2).`
+      ? `\n\nBNS SECTION WHITELIST (MANDATORY — SCRUM-64): When you cite a BNS section, cite only one from this verified First Schedule list: ${BNS_VALID_SECTIONS.join(', ')}. Any BNS section number NOT in this list does not exist in the Bharatiya Nyaya Sanhita — do NOT use it under any circumstances.\nA sub-section of a listed section may be cited, for example 103(1) or 316(2).`
       : ''
   }`;
 }

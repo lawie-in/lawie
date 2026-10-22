@@ -31,7 +31,7 @@ const T = {
   generic: 'We could not close your account. Try again.',
   signInAgain: 'Sign in again, then try once more.',
   partial:
-    "We couldn't finish erasing your data. Your account is closed and you have been signed out. We will finish erasing it; if you have any questions, write to us at privacy@lawie.in.",
+    "We couldn't finish erasing your data. Your account is closed and you have been signed out. We will finish erasing it; if you have any questions, write to us at contact@lawie.in.",
 };
 
 let container: HTMLDivElement;

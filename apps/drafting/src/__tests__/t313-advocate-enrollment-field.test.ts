@@ -28,6 +28,7 @@ import app from '../app';
 import logger from '../config/logger';
 import { AppSetting } from '../models/AppSetting.model';
 import { User } from '../models/User.model';
+import { createVerifiedUser } from './verifiedUser';
 import { _clearAppSettingsCache } from '../services/app-settings.service';
 import * as aiService from '../services/ai.service';
 import { buildAnnexuresPack } from '../services/annexures.service';
@@ -314,7 +315,7 @@ describe('T-313 POST /generate-from-template (bail_regular)', () => {
       key: `ai.rates.${MODEL}`,
       value: JSON.stringify({ input_usd_per_mtok: 3, output_usd_per_mtok: 15 }),
     });
-    await User.create({
+    await createVerifiedUser({
       _id: USER_ID,
       plan: 'free',
       planTier: 'free',

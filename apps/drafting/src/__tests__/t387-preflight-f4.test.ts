@@ -10,6 +10,7 @@ import './setupDb';
 import request from 'supertest';
 
 import app from '../app';
+import { seedVerifiedUsers } from './verifiedUser';
 import { User } from '../models/User.model';
 import { preflightCheck, type PreflightProfile } from '../services/preflight.service';
 
@@ -75,12 +76,24 @@ describe('T-387 POST /preflight route', () => {
     'x-user-plan': 'pro',
     'x-user-role': 'Client',
   });
-  const stubUser = (number: string | null) =>
-    jest.spyOn(User, 'findById').mockReturnValue({
-      select: () => ({
-        maxTimeMS: () => ({ lean: () => Promise.resolve({ enrollmentNumber: number }) }),
-      }),
-    } as never);
+  // The profile read (no projection argument) is stubbed. The T-522 fence read (it passes a
+  // projection) goes to the real model, so the seeded verified user lets the request through and
+  // the spy counts only the profile read.
+  const stubUser = (number: string | null) => {
+    const real = User.findById.bind(User);
+    return jest.spyOn(User, 'findById').mockImplementation(((id: unknown, projection?: unknown) =>
+      projection
+        ? real(id as never, projection as never)
+        : {
+            select: () => ({
+              maxTimeMS: () => ({ lean: () => Promise.resolve({ enrollmentNumber: number }) }),
+            }),
+          }) as never);
+  };
+
+  // Profile reads only: the T-522 fence read passes a projection as a second argument.
+  const profileReads = (spy: jest.SpyInstance) =>
+    spy.mock.calls.filter((c: unknown[]) => c.length === 1).length;
 
   afterEach(() => {
     jest.restoreAllMocks();
@@ -93,7 +106,7 @@ describe('T-387 POST /preflight route', () => {
       .set(headers())
       .send({ template_id: 'vakalatnama', form_data: BASE });
     expect(res.status).toBe(200);
-    expect(spy).toHaveBeenCalledTimes(1);
+    expect(profileReads(spy)).toBe(1);
     expect(res.body.hardBlockReason ?? '').not.toContain(MSG);
   });
 
@@ -124,6 +137,8 @@ describe('T-387 POST /preflight route', () => {
       .set(headers())
       .send({ template_id: 'affidavit_identity', form_data: BASE });
     expect(res.status).toBe(200);
-    expect(spy).not.toHaveBeenCalled();
+    expect(profileReads(spy)).toBe(0);
   });
 });
+
+seedVerifiedUsers('507f1f77bcf86cd799439387');

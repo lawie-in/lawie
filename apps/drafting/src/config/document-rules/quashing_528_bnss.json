@@ -84,7 +84,7 @@
       },
       {
         "id": "offences_alleged",
-        "label": "BNS / Special Act sections invoked (NOT IPC)",
+        "label": "Sections invoked in the FIR (BNS, IPC or Special Act, as registered)",
         "type": "textarea",
         "required": true
       },
@@ -228,12 +228,6 @@
       "name": "Affidavit in support",
       "required": true,
       "description": "Affidavit accompanying petition"
-    },
-    {
-      "id": "disclaimer",
-      "name": "Advocate Responsibility Disclaimer",
-      "required": true,
-      "description": "Standard Lawie disclaimer"
     }
   ],
   "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, the Petitioner most respectfully prays that this Hon'ble Court, in exercise of its inherent jurisdiction under Section 528 of the Bharatiya Nagarik Suraksha Sanhita, 2023, may graciously be pleased to:\n\na) Quash and set aside FIR No. {fir_number} dated {fir_date} registered at Police Station {police_station}, District {district}, State of {state}, for offences under {offences_alleged} of the Bharatiya Nyaya Sanhita, 2023 / {special_acts}, and all consequential proceedings arising therefrom including the chargesheet / cognizance order / pending proceedings in Case No. {case_number_below} pending before the Hon'ble Court of {court_taking_cognizance};\n\nb) Pending hearing and final disposal of this petition, stay further proceedings in the said case before the Court below;\n\nc) Pending hearing and final disposal of this petition, restrain the Respondents from arresting the Petitioner in connection with the said FIR;\n\nd) Award costs of this petition;\n\ne) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the Petitioner shall ever pray.",
@@ -249,7 +243,7 @@
       "Quashing on compromise — distinction between compoundable and non-compoundable offences; HC's wider power under inherent jurisdiction; categories of cases where settlement valid even in non-compoundable offences (e.g., matrimonial, family, commercial, civil flavor offences).",
       "Categories of offences which cannot be quashed even on settlement (heinous, public interest).",
       "Para 1: Description of parties.",
-      "Para 2: FIR details — number, date, PS, district, sections invoked. Note: must use BNS / BNSS / BSA section numbers, not IPC / CrPC / IEA, for offences registered after 1 July 2024. Pre-1 July 2024 FIRs continue under old code.",
+      "Para 2: FIR details — number, date, PS, district, and the sections as registered in the FIR (BNS for an offence on or after 1 July 2024, IPC for an offence before that date; any other Act as named in the FIR).",
       "Para 3: Factual matrix — what genuinely happened, from petitioner's perspective.",
       "Para 4: Section-by-section ingredient analysis — for each BNS section invoked, list ingredients and demonstrate which ingredient is missing. CRITICAL paragraph.",
       "Para 5: Recognised quashing categories invoked — state which of the 7 categories applies and quote the relevant category VERBATIM.",
@@ -267,7 +261,6 @@
       "Where pure money recovery / cheque dishonour / civil contract disputes given S.318 BNS (cheating) colour — cat 5 squarely applies.",
       "Where multiple FIRs on same incident: second FIR on same incident not permissible.",
       "Affidavit in support is mandatory.",
-      "Append Lawie disclaimer.",
       "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
@@ -309,7 +302,7 @@
       "sections": [
         {
           "number": "Various",
-          "description": "Substantive offence sections — use BNS numbers, not IPC. Common: S.85 (cruelty by husband — was IPC 498A); S.80 (dowry death — was IPC 304B); S.103(1) (murder — was IPC 302); S.115(2) (voluntarily causing hurt — was IPC 323); S.318(4) (cheating — was IPC 420); S.351 (criminal intimidation — was IPC 506)"
+          "description": "Substantive offence sections: BNS for an offence on or after 1 July 2024, IPC for an offence before that date."
         }
       ]
     },
@@ -346,7 +339,7 @@
   "validation_rules": [
     "petitioner_name must not be empty",
     "fir_details must not be empty",
-    "offences_alleged must use BNS sections (warn if IPC sections detected)",
+    "offences_alleged uses the code in force on the date of the offence: BNS for an offence on or after 1 July 2024, IPC for an offence before that date (warn only where the sections do not match the offence date).",
     "grounds_for_quashing must have at least one category selected",
     "factual_matrix must not be empty",
     "specific_ingredients_analysis must not be empty",

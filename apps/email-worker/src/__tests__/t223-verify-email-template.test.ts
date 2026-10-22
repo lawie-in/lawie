@@ -68,11 +68,29 @@ function visible(html: string): string {
     .replace(/[\u200B-\u200F\u2060\uFEFF\u00A0]/g, '');
 }
 
+// T-522: the three rows Ajay re-signed as AJ-522-S1 (handoff/legal/T-511-copy-rulings-ajay.md),
+// byte for byte. They replace the T-223 preheader, body and expiry line (the "24 hours" ones).
+const S1 = {
+  preheader: 'This link works once and expires in 30 minutes.',
+  body: 'Please verify your email address for your Lawie account. You need a verified email to start drafting, buy Ink and receive your 5 sign-up Ink.',
+  bodyInkGranted:
+    'Please verify your email address for your Lawie account. You need a verified email to start drafting and buy Ink.',
+  expiry:
+    'This link works once, expires in 30 minutes and signs you in, so do not forward it. If it no longer works, sign in and ask for a new one.',
+} as const;
+
+// T-559 (AJ-559-M1), byte for byte from handoff/legal/T-511-copy-rulings-ajay.md. The T-223
+// signed file still holds the old privacy@ not-you line; M1(2) supersedes that one row.
+const M1_NOT_YOU =
+  "Didn't create a Lawie account? Ignore this email: without this link, nothing is verified. To have the account removed, write to contact@lawie.in.";
+const M1_FOOTER3 = 'Help, data and privacy requests: contact@lawie.in';
+
 let signed: Record<string, string>;
 let out: ReturnType<typeof runRender>;
 
 beforeAll(() => {
   signed = signedStrings();
+  signed['Not-you line (line 64)'] = M1_NOT_YOU;
   out = runRender({ name: NAME, verifyUrl: URL_ });
 }, 90_000);
 
@@ -110,11 +128,11 @@ describe('T-223 verify-email template: signed strings', () => {
   it('the HTML holds every signed string word for word', () => {
     const text = visible(out.html);
     const expected = [
-      signed.Preheader,
+      S1.preheader,
       signed.Greeting.replace('{name}', NAME),
-      signed.Body,
+      S1.body,
       signed.Button,
-      signed['Expiry line'],
+      S1.expiry,
       signed['Link fallback'],
       signed['Not-you line (line 64)'],
       signed['Help line'],
@@ -134,9 +152,9 @@ describe('T-223 verify-email template: signed strings', () => {
   it('the plain text holds the signed body with "Verify email: {verifyUrl}" in place of the button', () => {
     const expected = [
       signed.Greeting.replace('{name}', NAME),
-      signed.Body,
+      S1.body,
       `${signed.Button}: ${URL_}`,
-      signed['Expiry line'],
+      S1.expiry,
       signed['Link fallback'],
       signed['Not-you line (line 64)'],
       signed['Help line'],
@@ -146,6 +164,44 @@ describe('T-223 verify-email template: signed strings', () => {
     ];
     for (const s of expected) expect(out.text).toContain(s);
     expect(out.text).toContain(URL_);
+  });
+
+  it('AJ-559-M1: not-you line and footer3 use contact@lawie.in, never privacy@', () => {
+    const text = visible(out.html);
+    for (const part of [text, out.text]) {
+      expect(part).toContain(M1_NOT_YOU);
+      expect(part).toContain(M1_FOOTER3);
+      expect(part).not.toContain('privacy@');
+    }
+  });
+
+  it('AJ-522-S1: no "24 hours" anywhere (ship gate), and the 30-minute lines are there', () => {
+    const text = visible(out.html);
+    expect(text).not.toMatch(/24 hours/);
+    expect(out.text).not.toMatch(/24 hours/);
+    expect(text).toContain('expires in 30 minutes');
+    expect(text).toContain('signs you in, so do not forward it');
+  });
+
+  it('AJ-522-S1: the default body names the 5 sign-up Ink; the Ink-granted body does not', () => {
+    for (const data of [
+      { name: NAME, verifyUrl: URL_ },
+      { name: NAME, verifyUrl: URL_, signupInkGranted: false },
+      { name: NAME, verifyUrl: URL_, signupInkGranted: undefined },
+    ]) {
+      const r = runRender(data);
+      expect(visible(r.html)).toContain(S1.body);
+      expect(r.text).toContain(S1.body);
+      expect(visible(r.html)).not.toContain(S1.bodyInkGranted);
+    }
+    const granted = runRender({ name: NAME, verifyUrl: URL_, signupInkGranted: true });
+    expect(visible(granted.html)).toContain(S1.bodyInkGranted);
+    expect(granted.text).toContain(S1.bodyInkGranted);
+    expect(visible(granted.html)).not.toContain('sign-up Ink');
+    expect(granted.text).not.toContain('sign-up Ink');
+    // only a strict true picks the shorter body
+    const loose = runRender({ name: NAME, verifyUrl: URL_, signupInkGranted: 'true' });
+    expect(visible(loose.html)).toContain(S1.body);
   });
 
   it('the name is HTML-escaped in the HTML body', () => {

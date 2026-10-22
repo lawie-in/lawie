@@ -86,7 +86,7 @@ export const PASSWORD_RESET_STRINGS = {
   /** Line 1 when the supplier address already names the city (no "Ranchi, Jharkhand" twice). */
   footer1WithCity: 'Lawie (Sole Proprietorship), {street}',
   footer2: 'You are receiving this because you have a Lawie account.',
-  footer3: 'Help: contact@lawie.in · Data and privacy requests: privacy@lawie.in',
+  footer3: 'Help, data and privacy requests: contact@lawie.in',
   footer4: 'Privacy Policy: https://lawie.in/privacy · Terms: https://lawie.in/terms',
 } as const;
 

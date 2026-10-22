@@ -22,11 +22,8 @@ jest.mock('@/components/PrivacyUpdatePrompt', () => ({
   usePrivacyDescribedBy: () => undefined,
   onPrivacyAccepted: () => () => {},
 }));
-let mockNeedsVerification = false;
 jest.mock('@/components/VerifyEmailPrompt', () => ({
-  VerifyEmailCard: () => <div data-testid="verify-card" />,
-  isEmailVerificationRequired: async () => false,
-  useNeedsEmailVerification: () => mockNeedsVerification,
+  openVerifyIfDraftRefused: async () => false,
 }));
 
 const reply = (status: number, body: unknown = {}) => ({
@@ -50,10 +47,10 @@ let root: Root;
 const rzpOpen = jest.fn();
 const rzpCtor = jest.fn();
 
-const select = () => container.querySelector('select') as HTMLSelectElement;
+const select = () => document.body.querySelector('select') as HTMLSelectElement;
 const payBtn = () =>
-  Array.from(container.querySelectorAll('button')).find((b) =>
-    /Pay with Razorpay/.test(b.textContent ?? ''),
+  Array.from(document.body.querySelectorAll('button')).find(
+    (b) => b.textContent === 'Buy',
   ) as HTMLButtonElement;
 const callsTo = (p: string) => mockPrivacyFetch.mock.calls.filter((c) => c[1] === p);
 
@@ -84,7 +81,6 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockUserId = `u-${Math.random()}`;
   blocked = new WeakSet();
-  mockNeedsVerification = false;
   savedState = null;
   mockApiFetch.mockImplementation(async (path: string) =>
     path === '/api/auth/me'
@@ -109,8 +105,10 @@ afterEach(() => {
 describe('T-436 top-up modal: State before Pay', () => {
   it('shows the picker between the coupon and Pay (tab order: coupon, State, Pay)', async () => {
     await mount();
-    const nodes = Array.from(container.querySelectorAll('input, select, button'));
-    const coupon = container.querySelector('input[type="text"], input:not([type])') as HTMLElement;
+    const nodes = Array.from(document.body.querySelectorAll('input, select, button'));
+    const coupon = document.body.querySelector(
+      'input[type="text"], input:not([type])',
+    ) as HTMLElement;
     expect(coupon).not.toBeNull();
     expect(nodes.indexOf(coupon)).toBeLessThan(nodes.indexOf(select()));
     expect(nodes.indexOf(select())).toBeLessThan(nodes.indexOf(payBtn()));
@@ -120,7 +118,7 @@ describe('T-436 top-up modal: State before Pay', () => {
     await mount();
     expect(payBtn().disabled).toBe(false); // the button stays enabled (spec §2)
     await pay();
-    expect(container.querySelector('[role="alert"]')?.textContent).toBe(
+    expect(document.body.querySelector('[role="alert"]')?.textContent).toBe(
       'Select your State to continue.',
     );
     expect(document.activeElement).toBe(select());
@@ -169,10 +167,14 @@ describe('T-436 top-up modal: State before Pay', () => {
     expect(payBtn().disabled).toBe(false);
   });
 
-  it('an unverified user sees the verify card and no State picker', async () => {
-    mockNeedsVerification = true;
+  it('T-522: there is no verify card; the State picker and Buy always show', async () => {
     await mount();
-    expect(container.querySelector('[data-testid="verify-card"]')).not.toBeNull();
-    expect(select()).toBeNull();
+    expect(document.body.querySelector('[data-testid="verify-card"]')).toBeNull();
+    expect(
+      document.body.querySelector('section[aria-labelledby="verify-checkout-title"]'),
+    ).toBeNull();
+    expect(select()).not.toBeNull();
+    expect(payBtn()).toBeDefined();
+    expect(payBtn().disabled).toBe(false);
   });
 });

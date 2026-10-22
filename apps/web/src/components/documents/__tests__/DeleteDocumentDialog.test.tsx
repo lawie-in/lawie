@@ -19,7 +19,7 @@ const SIGNED = {
   working: 'Deleting...',
   workingStatus: 'Deleting the document.',
   error:
-    "We couldn't finish deleting this document. Please try again. If this keeps happening, write to us at privacy@lawie.in.",
+    "We couldn't finish deleting this document. Please try again. If this keeps happening, write to us at contact@lawie.in.",
 };
 const TITLE = 'Zorblax v. Quimby SECRET-TITLE';
 
