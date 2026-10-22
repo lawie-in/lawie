@@ -45,3 +45,7 @@ FYI accepted: per-process busy count; the over-budget path's 2 s link fetch (57 
 ## Arjun (22 Oct 2026, after the tester) — adopt target
 
 **(b).** Fetch before adopting the same-plan target too, same helper, same budget. Live now → adopt as a live orphan, 409 `subscription_exists`. Strict not-found → skip. Other failure → 503, marker kept. "Razorpay's live status wins" holds for the adopt path as much as the cancel path; one more call on a path that already made several is cheap, and a paid user getting a checkout link is the kind of thing Anushka would file. Tests: paid-between-list-and-adopt → 409, no row with `created`. Fresh tester run on the diff, then the reviewer.
+
+## Arjun (22 Oct 2026, after the reviewer's PASS) — paid orphan vs checkout row
+
+**(a).** Reconcile carries a flag on the `'live'` outcome when a paid orphan was reported-not-adopted; `createSubscriptionLocked` then answers **409 `subscription_exists`** instead of re-running `runLocalChecks`. AC10 stays for the plain checkout conflict. Plus the `/subscribe`-level test. A paid sub sitting unadopted while we hand out a new checkout link is a double-charge path, and closing those is the entire reason T-536 and T-558 exist; "rare" is not a reason to leave one open. The right long-term answer — cancel the unpaid local checkout and adopt the paid orphan — is more than ten lines and goes on the T-542 follow-up list for the sweep; the 409 plus the Sentry event is enough for ops today. developer → tester → fresh reviewer; this is a should-fix on a pass, not a failed round.
