@@ -44,3 +44,11 @@ team-warroom/
 .env
 .env.*
 !.env.example
+
+# T-533 AC9: no handoff docs, agent config or markdown in any image (founder, 21 Oct 2026).
+# Nothing reads a .md file at build or run time; docs/templates above holds only JSON.
+handoff/
+.claude/
+CLAUDE.md
+.github/
+**/*.md

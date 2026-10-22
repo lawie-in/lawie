@@ -20,7 +20,9 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
 
-COPY . .
+COPY package.json yarn.lock ./
+COPY apps/web/ ./apps/web/
+COPY packages/shared/ ./packages/shared/
 
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
