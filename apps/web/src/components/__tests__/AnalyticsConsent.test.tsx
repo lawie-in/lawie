@@ -159,8 +159,9 @@ describe('no answer yet', () => {
     const bs = buttons();
     expect(bs.map((b) => b.textContent)).toEqual([S.S5, S.S6]);
     expect(bs[0].className).toBe(bs[1].className);
+    // T-549: the same ghost Button on both, 44px at every width (the old sm:h-10 is gone).
     expect(bs[0].className).toContain('h-11');
-    expect(bs[0].className).toContain('sm:h-10');
+    expect(bs[0].className).not.toContain('sm:h-10');
     // No S4 on the first ask, no extra buttons or text.
     expect(container.textContent).not.toContain('Your current choice');
     expect(card()!.getAttribute('role')).toBeNull(); // a landmark, not a dialog
