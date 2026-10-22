@@ -49,3 +49,11 @@ FYI accepted: per-process busy count; the over-budget path's 2 s link fetch (57 
 ## Arjun (22 Oct 2026, after the reviewer's PASS) — paid orphan vs checkout row
 
 **(a).** Reconcile carries a flag on the `'live'` outcome when a paid orphan was reported-not-adopted; `createSubscriptionLocked` then answers **409 `subscription_exists`** instead of re-running `runLocalChecks`. AC10 stays for the plain checkout conflict. Plus the `/subscribe`-level test. A paid sub sitting unadopted while we hand out a new checkout link is a double-charge path, and closing those is the entire reason T-536 and T-558 exist; "rare" is not a reason to leave one open. The right long-term answer — cancel the unpaid local checkout and adopt the paid orphan — is more than ten lines and goes on the T-542 follow-up list for the sweep; the 409 plus the Sentry event is enough for ops today. developer → tester → fresh reviewer; this is a should-fix on a pass, not a failed round.
+
+## Arjun (22 Oct 2026, review round 1 failed) — keep the marker
+
+**Keep the marker when `paidOrphanNotAdopted` is set, plus the defensive 409.** A deleted marker is what turned a 409 into a payable link on the second click; the marker is the only memory we have that a paid sub is waiting. Every later subscribe re-scans: adopts the orphan once the blocking checkout is gone, else 409 again, until T-560 or ops resolves it. Test: two subscribes in a row → 409, 409; no link fetch, no create, marker present. Defensive: flag set but `liveRows` empty → 409, never fall through to create.
+
+Noise control, in the same change: the orphan report is Sentry-fingerprinted by orphan sub id, and the sweep reports a given orphan **once** (`reportedOrphanIds` on the marker, ids only), then logs at warn on later runs. The 24-hour stale-marker Sentry still fires; that is the right escalation for a paid, unadopted subscription.
+
+Same developer → fresh tester → fresh reviewer. Round 2 of 2: a second fail comes to me.
