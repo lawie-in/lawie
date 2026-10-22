@@ -14,7 +14,7 @@ import PricingPage from '../pricing/page';
 import ToolsPage from '../tools/page';
 
 import { LandingPage } from '@/components/landing/LandingPage';
-import { TOP_BAR_COPY } from '@/components/marketing/nl-copy';
+import { landingCopy, TOP_BAR_COPY } from '@/components/marketing/nl-copy';
 
 jest.mock('@/components/marketing/SiteNav', () => ({ __esModule: true, default: () => null }));
 jest.mock('@/components/marketing/SiteFooter', () => ({ __esModule: true, default: () => null }));
@@ -202,6 +202,11 @@ describe('T-398 / T-517 pricing page copy (Ajay conditions 1-4)', () => {
   const AJ_EN = 'Start free';
   const AJ_HI = 'मुफ़्त शुरू कीजिए';
   const BANNED = [/free forever/i, /free trial/i, /always free/i];
+  // The signed Hindi "5 free Ink" (landingCopy('hi').cta begins with it): the only context where
+  // a Hindi "मुफ़्त" may sit besides the one header link. Both nukta forms are scanned, so the
+  // look-alike "मुफ्त" cannot slip through either.
+  const HI_FIVE_INK = '5 मुफ़्त Ink';
+  const HI_FREE_FORMS = ['मुफ़्त', 'मुफ्त'];
 
   /** Reasons a rendered page breaks Ajay's "free" rules; empty when it is clean. */
   function freeViolations(root: HTMLElement, label: string): string[] {
@@ -224,6 +229,19 @@ describe('T-398 / T-517 pricing page copy (Ajay conditions 1-4)', () => {
     for (const m of rest.matchAll(/free/g)) {
       if (rest.slice(m.index! - 2, m.index! + 8) !== '5 free Ink') {
         out.push(`stray "free": ...${rest.slice(Math.max(0, m.index! - 12), m.index! + 12)}...`);
+      }
+    }
+    if (label === AJ_HI) {
+      // Hindi condition (b): every remaining "मुफ़्त" is inside the signed "5 मुफ़्त Ink".
+      for (const form of HI_FREE_FORMS) {
+        let at = rest.indexOf(form);
+        while (at !== -1) {
+          const start = at - 2;
+          if (rest.slice(start, start + HI_FIVE_INK.length) !== HI_FIVE_INK) {
+            out.push(`stray "${form}": ...${rest.slice(Math.max(0, at - 12), at + 14)}...`);
+          }
+          at = rest.indexOf(form, at + 1);
+        }
       }
     }
     return out;
@@ -274,12 +292,23 @@ describe('T-398 / T-517 pricing page copy (Ajay conditions 1-4)', () => {
   it('Hindi: the checker needs exactly "मुफ़्त शुरू कीजिए", in the header, once', () => {
     const good = '<header><a href="/s">मुफ़्त शुरू कीजिए</a></header><main></main>';
     expect(freeViolations(fixture(good), AJ_HI)).toEqual([]);
+    // The signed "5 मुफ़्त Ink" is allowed, and only that.
+    expect(
+      freeViolations(fixture(good.replace('<main></main>', '<main>5 मुफ़्त Ink</main>')), AJ_HI),
+    ).toEqual([]);
     for (const html of [
       good.replace('कीजिए<', 'कीजिए अभी<'),
       good.replace('मुफ़्त', 'मुफ्त'), // a different nukta form is not the signed string
       good.replace('</header>', '<a href="/t">मुफ़्त शुरू कीजिए</a></header>'),
       '<header></header><main><a href="/s">मुफ़्त शुरू कीजिए</a></main>',
       good.replace('<main>', '<main>free forever'),
+      // (b) in Hindi: every other "मुफ़्त" phrase is rejected
+      good.replace('<main></main>', '<main>हमेशा मुफ़्त</main>'), // always free
+      good.replace('<main></main>', '<main>मुफ़्त ट्रायल</main>'), // free trial
+      good.replace('<main></main>', '<main>मुफ़्त</main>'), // a loose "मुफ़्त"
+      good.replace('<main></main>', '<main>हमेशा मुफ्त</main>'), // look-alike nukta form
+      good.replace('</header>', '<a href="/t">मुफ़्त</a></header>'), // a second header link
+      good.replace('<main></main>', '<main>5 मुफ़्त Ink, मुफ़्त</main>'), // signed phrase plus a stray
     ]) {
       expect(freeViolations(fixture(html), AJ_HI).length).toBeGreaterThan(0);
     }
@@ -318,6 +347,17 @@ describe('T-398 / T-517 pricing page copy (Ajay conditions 1-4)', () => {
     // The English "Start free" must not appear on the Hindi page either.
     expect(container.textContent).not.toContain(AJ_EN);
     for (const re of BANNED) expect(container.textContent).not.toMatch(re);
+    // Condition (b) in Hindi: with the one header link stripped, every "मुफ़्त" is in "5 मुफ़्त Ink".
+    expect(landingCopy('hi').cta.startsWith(HI_FIVE_INK)).toBe(true);
+    expect(freeViolations(container, AJ_HI)).toEqual([]);
+    const clone = container.cloneNode(true) as HTMLElement;
+    clone.querySelectorAll('style,script').forEach((e) => e.remove());
+    const idx = Array.from(container.querySelectorAll('a')).indexOf(links[0]);
+    clone.querySelectorAll('a')[idx].remove();
+    const rest = norm(clone.textContent ?? '');
+    expect(rest.split(HI_FIVE_INK).length - 1).toBeGreaterThanOrEqual(1);
+    expect(rest.split(HI_FIVE_INK).join('').includes('मुफ़्त')).toBe(false);
+    expect(rest.split(HI_FIVE_INK).join('').includes('मुफ्त')).toBe(false);
   });
 
   it('T-398: every capital "Free" on pricing is the plan name (card title, "Everything in Free", plan-name contexts)', () => {
