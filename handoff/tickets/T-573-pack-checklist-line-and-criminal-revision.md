@@ -16,3 +16,10 @@
 
 ## Files
 Claimed by Priya when Shashank takes it. `criminal_revision.json` only after T-472 is merged.
+
+## More follow-ups from Shashank's T-566 report (22 Oct 2026), all parked until after Anushka's first run
+3. Validator date-scoping, after Mahak's T-472/T-567 (needs `ai.service.ts`).
+4. Retire `prompt-assembler`.
+5. Stale S.M.S. Pharmaceuticals comments in `ai.service.ts`.
+6. Sample PDFs: regenerate on a non-prod DB; Ajay re-signs each one; fix the rent-agreement shared address then.
+7. One golden-set real-model run (paid) after all drafting merges, read per fixture. This one is NOT parked: run it once before Anushka (see Priya's note to Shashank), because she tests generated drafts.
