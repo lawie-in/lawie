@@ -4,7 +4,7 @@ import { act } from 'react';
 import { ShelfKpis, typeLabel, type ShelfKpisProps } from '../ShelfKpis';
 import type { LoadStatus } from '../useDashboardData';
 
-import { parsedSummary, RENEWS_ISO, RENEWS_TEXT, tile, tileText } from './dash-test-utils';
+import { flush, parsedSummary, RENEWS_ISO, RENEWS_TEXT, tile, tileText } from './dash-test-utils';
 
 import type { SubscriptionStatus } from '@/components/billing/subscriptionStatus';
 import {
@@ -16,7 +16,19 @@ import {
   stubMatchMedia,
 } from '@/components/ui/__tests__/nl-test-utils';
 
-beforeEach(() => stubMatchMedia());
+const mockApiFetch = jest.fn();
+jest.mock('@/lib/apiFetch', () => ({ apiFetch: (...a: unknown[]) => mockApiFetch(...a) }));
+
+beforeEach(() => {
+  stubMatchMedia();
+  // /api/auth/me: a verified account, so the low-Ink nudge (T-565 item 33) can show.
+  mockApiFetch.mockReset();
+  mockApiFetch.mockResolvedValue({
+    ok: true,
+    status: 200,
+    json: async () => ({ data: { emailVerified: true } }),
+  });
+});
 afterEach(cleanupMounted);
 
 const planOf = (over: Partial<SubscriptionStatus> = {}): SubscriptionStatus => ({
@@ -354,12 +366,19 @@ describe('tile 5: Plan and renewal', () => {
 
 describe('low-Ink nudge (copy 3.3)', () => {
   const nudge = (c: ParentNode) => c.querySelector('[data-low-ink]');
-  const inkTile = (ink: number, over: Partial<ShelfKpisProps> = {}) =>
-    render({ ink: { loaded: true, loading: false, totalInk: ink, monthlyAllotment: 0 }, ...over });
+  // T-565 item 33: the nudge waits for GET /api/auth/me to confirm a verified account.
+  const inkTile = async (ink: number, over: Partial<ShelfKpisProps> = {}) => {
+    const r = render({
+      ink: { loaded: true, loading: false, totalInk: ink, monthlyAllotment: 0 },
+      ...over,
+    });
+    await flush();
+    return r;
+  };
 
-  it('shows below 3 Ink: 2.5 shows, 2 shows', () => {
+  it('shows below 3 Ink: 2.5 shows, 2 shows', async () => {
     for (const n of [2.5, 2, 1]) {
-      const { container, unmount } = inkTile(n);
+      const { container, unmount } = await inkTile(n);
       expect(nudge(container)).not.toBeNull();
       expect(nudge(container)!.textContent).toContain(
         `${n} Ink left. You see the Ink cost before you generate.`,
@@ -368,37 +387,40 @@ describe('low-Ink nudge (copy 3.3)', () => {
     }
   });
 
-  it('does not show at exactly 3 Ink, nor above', () => {
+  it('does not show at exactly 3 Ink, nor above', async () => {
     for (const n of [3, 3.5, 12]) {
-      const { container, unmount } = inkTile(n);
+      const { container, unmount } = await inkTile(n);
       expect(nudge(container)).toBeNull();
       unmount();
     }
   });
 
-  it('does not show before the balance is known (a loading 0 must not nudge)', () => {
+  it('does not show before the balance is known (a loading 0 must not nudge)', async () => {
     const { container } = render({
       ink: { loaded: false, loading: true, totalInk: 0, monthlyAllotment: 0 },
     });
+    await flush();
     expect(nudge(container)).toBeNull();
   });
 
-  it('zero on Free: the signed "used your 5 Ink" line', () => {
-    const { container } = inkTile(0);
+  it('zero on Free: the signed "used your 5 Ink" line', async () => {
+    const { container } = await inkTile(0);
     expect(nudge(container)!.textContent).toContain(
       'You have used your 5 Ink. Top up or choose a plan to keep drafting.',
     );
   });
 
-  it('zero on a paid plan with a renewal date: the refill line with the date', () => {
-    const { container } = inkTile(0, { plan: { data: planOf({ tier: 'pro' }), status: 'ready' } });
+  it('zero on a paid plan with a renewal date: the refill line with the date', async () => {
+    const { container } = await inkTile(0, {
+      plan: { data: planOf({ tier: 'pro' }), status: 'ready' },
+    });
     expect(nudge(container)!.textContent).toContain(
       `You have no Ink left. It refills on ${RENEWS_TEXT}, or you can top up now.`,
     );
   });
 
-  it('zero on a paid plan with no date falls back to the low line', () => {
-    const { container } = inkTile(0, {
+  it('zero on a paid plan with no date falls back to the low line', async () => {
+    const { container } = await inkTile(0, {
       plan: { data: planOf({ tier: 'pro', renewsAt: null }), status: 'ready' },
     });
     expect(nudge(container)!.textContent).toContain('0 Ink left.');
@@ -410,8 +432,8 @@ describe('low-Ink nudge (copy 3.3)', () => {
       inkTile(0, { plan: { data, status } });
     const text = (c: ParentNode) => nudge(c)!.querySelector('p')!.textContent;
 
-    it('active and renewing: the refill line with the date', () => {
-      const { container } = zero(planOf({ tier: 'pro' }));
+    it('active and renewing: the refill line with the date', async () => {
+      const { container } = await zero(planOf({ tier: 'pro' }));
       expect(text(container)).toBe(
         `You have no Ink left. It refills on ${RENEWS_TEXT}, or you can top up now.`,
       );
@@ -422,31 +444,31 @@ describe('low-Ink nudge (copy 3.3)', () => {
       ['status cancelled', { status: 'cancelled' }],
       ['status completed', { status: 'completed' }],
       ['past due', { state: 'past_due' as const }],
-    ])('%s: the Low line, no refill promise', (_n, over) => {
-      const { container } = zero(planOf({ tier: 'solo', ...over }));
+    ])('%s: the Low line, no refill promise', async (_n, over) => {
+      const { container } = await zero(planOf({ tier: 'solo', ...over }));
       expect(text(container)).toBe(LOW0);
       expect(container.textContent).not.toMatch(/refills/);
     });
 
-    it('no plan data (loading or failed): the Low line, no refill promise', () => {
+    it('no plan data (loading or failed): the Low line, no refill promise', async () => {
       for (const status of ['loading', 'error'] as LoadStatus[]) {
-        const { container, unmount } = zero(null, status);
+        const { container, unmount } = await zero(null, status);
         expect(text(container)).toBe(LOW0);
         expect(container.textContent).not.toMatch(/refills/);
         unmount();
       }
     });
 
-    it('Free zero line is unchanged', () => {
-      const { container } = zero(planOf({ tier: 'free', status: null, renewsAt: null }));
+    it('Free zero line is unchanged', async () => {
+      const { container } = await zero(planOf({ tier: 'free', status: null, renewsAt: null }));
       expect(text(container)).toBe(
         'You have used your 5 Ink. Top up or choose a plan to keep drafting.',
       );
     });
   });
 
-  it('Top up, See plans and Not now are wired', () => {
-    const { container, p } = inkTile(1);
+  it('Top up, See plans and Not now are wired', async () => {
+    const { container, p } = await inkTile(1);
     const buttons = qa('button', nudge(container)!);
     const topUp = buttons.find((b) => b.textContent === 'Top up')!;
     click(topUp);
@@ -459,8 +481,8 @@ describe('low-Ink nudge (copy 3.3)', () => {
     expect(p.onDismissNudge).toHaveBeenCalledTimes(1);
   });
 
-  it('is hidden once dismissed (nudgeDismissed)', () => {
-    const { container } = inkTile(1, { nudgeDismissed: true });
+  it('is hidden once dismissed (nudgeDismissed)', async () => {
+    const { container } = await inkTile(1, { nudgeDismissed: true });
     expect(nudge(container)).toBeNull();
     expect(tileText(container, 'Ink balance')).toContain('1 Ink');
   });

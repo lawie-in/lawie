@@ -49,7 +49,11 @@ import DocumentChoiceStep, { NONE_OF_THESE } from './DocumentChoiceStep';
 import { EXPORT_HASH } from './draftActions';
 import DraftReadyStep from './DraftReadyStep';
 import GeneratingStep from './GeneratingStep';
-import type { GenerationError } from './generationFailure';
+import {
+  INSUFFICIENT_INK_CODE,
+  refusedStartError,
+  type GenerationError,
+} from './generationFailure';
 import { takeDraftPrefill } from './initialQuery';
 import { NOT_STARTED_LINE, inkCostState } from './InkCostLine';
 import NightScope from './NightScope';
@@ -384,7 +388,7 @@ function OneFlowSteps({
             const asked = data.questions ?? [];
             setQuestions(asked);
             if (data.needs_upgrade) {
-              setBriefMessage('This document needs the Pro plan. You can upgrade from Settings.');
+              setBriefMessage('This document is not available on your current plan.');
             }
             const first = openQuestions(asked, data.brief, data.ledger, 1);
             // A new reading starts the count of rounds again: a new description
@@ -728,46 +732,42 @@ function OneFlowSteps({
               return;
             }
             // T-388: the paywall shows the server's cost, never a made-up one.
-            // Without a cost there is no paywall; the service's own line is shown.
             if (typeof data.cost === 'number' && Number.isFinite(data.cost) && data.cost > 0) {
               setPaywall({
                 cost: data.cost,
                 balance: data.balance?.totalInk ?? data.balance?.total ?? 0,
               });
-            } else {
-              setBriefMessage(data.message ?? NOT_STARTED_LINE);
+              setPhase('brief');
+              return;
             }
-            setPhase('brief');
+            // T-565 W12 (Ajay): a 402 with no cost has no paywall. The generic line with retry,
+            // never the server's own text.
+            setGenError(refusedStartError(res.status, data));
             return;
           }
           if (res.status === 400 && data.error === 'no_match') {
             setPhase('no_match');
             return;
           }
-          if (res.status === 400 || res.status === 403) {
-            // The service checked the brief again and wants something first. Its own line is shown.
-            const line =
-              data.message ??
-              (res.status === 403
-                ? 'This document needs the Pro plan. You can upgrade from Settings.'
-                : 'Check the brief and try again.');
-            setPhase('brief');
-            // Work the brief out again so the screen shows what is missing, then say why.
-            void update().then(() => setBriefMessage(line));
-            return;
-          }
-          setGenError({
-            reason: data.message ?? 'The draft could not be started. Please try again.',
-            retryable: res.status >= 500,
-            source: 'start',
-          });
+          // T-565 B5 (Ajay W3/W6/W7/W12), as the form flow: the privacy gate, the verify 403
+          // and the 402 paths returned above. 409 → the documents-list line, no retry (a retry
+          // would take a second Ink hold); the plan gate's 403 → the signed plan line, no
+          // retry; every other refusal (400, 401, 403, 429, 5xx, a 402 with no cost) →
+          // `Something did not work. Try again.` with retry. Never a raw reason. "Try again"
+          // calls generate(true), which resends this run's run_id (X-Run-Id, read above): the
+          // server continues that run if it exists, otherwise it assigns a new one. A 409 never
+          // offers a retry; 429 and 401 are answered before any Ink hold.
+          setGenError(refusedStartError(res.status, data));
           return;
         }
         if (!res.body) {
+          // T-565 W13 (Ajay): no reason (''), under `The draft did not finish.` + the 41b line.
+          // Routed as an error event with no inkReleased, so the card shows the documents-list
+          // line and makes no Ink claim (a 'start' card would show the empty reason as heading).
           setGenError({
-            reason: 'The drafting service sent nothing back.',
+            reason: '',
             retryable: true,
-            source: 'start',
+            source: 'error_event',
           });
           return;
         }
@@ -802,14 +802,19 @@ function OneFlowSteps({
             }
             if (event === 'error') {
               setGenError({
+                // T-565 W13: no server reason is shown (''), except for insufficient_ink, whose
+                // reason is the card's heading (T-521).
                 reason:
-                  typeof payload.reason === 'string'
+                  payload.code === INSUFFICIENT_INK_CODE && typeof payload.reason === 'string'
                     ? payload.reason
-                    : 'The drafting service returned an error.',
+                    : '',
                 retryable: payload.retryable !== false,
                 // T-521 (Arjun ruling 4): the code decides what is said about Ink.
                 source: 'error_event',
                 ...(typeof payload.code === 'string' ? { code: payload.code } : {}),
+                // T-567 item 41 / Ajay 41b: only an explicit `inkReleased: true` from the route
+                // allows "No Ink was used."; absent or anything else is not confirmed.
+                ...(payload.inkReleased === true ? { inkReleased: true } : {}),
               });
               return;
             }
@@ -828,7 +833,7 @@ function OneFlowSteps({
 
         if (!done) {
           setGenError({
-            reason: 'The connection was lost before the draft was finished.',
+            reason: '', // T-565 W13: no reason shown.
             retryable: true,
             source: 'dropped',
           });
@@ -898,13 +903,13 @@ function OneFlowSteps({
         setPhase('ready');
       } catch {
         setGenError({
-          reason: 'Lost the connection to the drafting service.',
+          reason: '', // T-565 W13: no reason shown.
           retryable: true,
           source: 'dropped',
         });
       }
     },
-    [description, reset, update, kinds, guidedInkCost, inkCostLoading],
+    [description, reset, kinds, guidedInkCost, inkCostLoading],
   );
 
   // ── Moving between the screens ────────────────────────────────────────────

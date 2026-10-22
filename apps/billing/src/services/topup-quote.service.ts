@@ -45,7 +45,7 @@ export const QUOTE_REASONS = {
   notApplicable: 'This coupon does not apply to the selected item.',
   usedUp: 'Coupon has reached its usage limit.',
   perUser: 'You have already used this coupon.',
-  cannotApply: 'This coupon cannot be applied to this item',
+  cannotApply: 'This coupon cannot be applied to this item.',
 } as const;
 
 /** The coupon fields the quote reads (a lean CouponCode document fits). */

@@ -49,6 +49,12 @@ function loadRazorpayScript(): Promise<boolean> {
 }
 
 /**
+ * T-565 item 45 (Ajay's pre-Anushka review row 45; copy v1 generic failure): every order failure
+ * shows this one signed line with Retry. No billing code, server message or network detail.
+ */
+const ORDER_FAILED = 'Something did not work. Try again.';
+
+/**
  * T-525: the top-up dialog on the Radix Dialog primitives (components/ui/Dialog.tsx is the
  * confirm/destructive wrapper with a fixed footer, so this builds on the primitives directly).
  * Night Library tokens; a 440px dialog above 640px and a bottom sheet at 640px and below (spec 5).
@@ -165,6 +171,9 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
   // handlePurchase checks the server's order amount against it, so the two cannot drift.
   const displayedTotal = selected ? (coupon ? coupon.finalPriceInr : selected.priceInr) : 0;
 
+  /** True from Buy (or Retry) until handlePurchase has returned. */
+  const purchaseInFlight = useRef(false);
+
   const handleApplyCoupon = async () => {
     if (!couponInput.trim()) return;
     setCouponValidating(true);
@@ -193,7 +202,10 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
   };
 
   const handlePurchase = async () => {
-    if (!selected) return;
+    // T-565 (review): one order at a time. `submitting` is state, so two clicks in the same
+    // tick would both pass it; this ref closes that gap. Also no new order while Checkout is up.
+    if (!selected || purchaseInFlight.current || checkoutOpenRef.current) return;
+    purchaseInFlight.current = true;
     setSubmitting(true);
     setError('');
     try {
@@ -218,8 +230,7 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
         return setSubmitting(false);
       }
       if (!orderRes.ok) {
-        const body = await orderRes.json();
-        setError(body.error ?? 'Order creation failed');
+        setError(ORDER_FAILED);
         setSubmitting(false);
         return;
       }
@@ -244,14 +255,14 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
         !Number.isFinite(displayedTotal) ||
         amountInr !== displayedTotal
       ) {
-        setError('Something did not work. Try again.');
+        setError(ORDER_FAILED);
         setSubmitting(false);
         return;
       }
 
       const ok = await loadRazorpayScript();
       if (!ok || !window.Razorpay) {
-        setError('Could not load Razorpay. Please retry or contact support.');
+        setError(ORDER_FAILED);
         setSubmitting(false);
         return;
       }
@@ -284,10 +295,27 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
       checkoutOpenRef.current = true;
       setCheckoutOpen(true);
     } catch {
-      setError('Network error');
+      setError(ORDER_FAILED);
       setSubmitting(false);
+    } finally {
+      // Every exit (including the early returns above) frees the guard.
+      purchaseInFlight.current = false;
     }
   };
+
+  // T-565 item 45: Retry runs Buy again. It unmounts while the order is retried, so once the
+  // retry settles with a failure, focus goes back to Retry (as the plans Retry above does).
+  const orderRetryRef = useRef<HTMLButtonElement>(null);
+  const refocusAfterOrderRetry = useRef(false);
+  const handleRetryOrder = () => {
+    refocusAfterOrderRetry.current = true;
+    void handlePurchase();
+  };
+  useEffect(() => {
+    if (!refocusAfterOrderRetry.current || submitting) return;
+    refocusAfterOrderRetry.current = false;
+    if (error) orderRetryRef.current?.focus();
+  }, [submitting, error]);
 
   return (
     <RadixDialog.Root
@@ -523,9 +551,18 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
             </Button>
           </footer>
           {error && (
-            <p role="alert" className="nl-body-sm text-nl-err px-nl-6 pb-nl-4 m-0">
-              {error}
-            </p>
+            // T-565 item 45: the signed generic failure + Retry, in the plans-error pattern.
+            <div className="px-nl-6 pb-nl-4">
+              <div
+                role="alert"
+                className="gap-nl-3 border-nl-err px-nl-4 py-nl-3 flex items-center justify-between border"
+              >
+                <p className="nl-body-sm text-nl-err m-0">{error}</p>
+                <Button ref={orderRetryRef} variant="ghost" onClick={handleRetryOrder}>
+                  Retry
+                </Button>
+              </div>
+            </div>
           )}
         </RadixDialog.Content>
       </RadixDialog.Portal>

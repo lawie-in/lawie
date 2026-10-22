@@ -22,6 +22,7 @@ import { useRouter } from 'next/navigation';
 import { useCallback } from 'react';
 
 import { CommandBar, DEFAULT_QUICK_CHIPS, type CommandBarItem } from '@/components/shell';
+import { DRAFT_PREFILL_KEY } from '@/lib/draftPrefill';
 
 export const COMMAND_CHIP_HREF: Record<string, string> = {
   'bail-application': '/dashboard/new?kind=bail_regular',
@@ -36,7 +37,7 @@ export function commandHref(item: CommandBarItem): string {
 }
 
 /** sessionStorage key for the Draft description; read and cleared by the describe step. */
-export const DRAFT_PREFILL_KEY = 'lawie:draft-prefill';
+export { DRAFT_PREFILL_KEY };
 
 /** Longest description carried to /dashboard/new, in code points. */
 export const DRAFT_PREFILL_MAX = 500;

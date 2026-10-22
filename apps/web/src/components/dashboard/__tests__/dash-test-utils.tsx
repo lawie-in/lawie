@@ -20,6 +20,8 @@ export const PATHS = {
   documents: '/api/documents',
   balance: '/api/credits/balance',
   status: '/api/billing/status',
+  // T-565 item 33: the low-Ink nudge asks /me whether the account is verified.
+  me: '/api/auth/me',
 } as const;
 
 export type Handlers = Partial<Record<string, () => Promise<unknown>>>;

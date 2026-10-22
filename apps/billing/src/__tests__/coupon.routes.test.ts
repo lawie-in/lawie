@@ -354,7 +354,7 @@ describe('GET /validate-coupon/:code — accepted', () => {
     const res = await request(app).get('/validate-coupon/SAVE10?skuId=topup_mini');
     expect(res.body).toEqual({
       valid: false,
-      reason: 'This coupon cannot be applied to this item',
+      reason: 'This coupon cannot be applied to this item.',
     });
   });
 
@@ -381,7 +381,7 @@ describe('GET /validate-coupon/:code — accepted', () => {
     const res = await request(app).get('/validate-coupon/SAVE10?skuId=topup_max');
     expect(res.body).toEqual({
       valid: false,
-      reason: 'This coupon cannot be applied to this item',
+      reason: 'This coupon cannot be applied to this item.',
     });
   });
 
