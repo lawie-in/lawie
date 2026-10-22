@@ -8,6 +8,7 @@
  * guard could not reach a real host.
  */
 import {
+  APP_PUBLIC_ENV_KEYS,
   E2E_API_URL,
   E2E_BASE_URL,
   assertLocalTargets,
@@ -117,6 +118,14 @@ test.describe('harness: preflight and builders (no browser)', () => {
     expect(env.NEXT_PUBLIC_SOMETHING_ELSE).toBe('');
     expect(env.SENTRY_DSN).toBe('');
     expect(env.NEXT_TELEMETRY_DISABLED).toBe('1');
+
+    // Every key the app reads is set even when the shell does not export it, so a local .env
+    // file cannot fill it (@next/env never overrides a key already in the environment).
+    const bare = e2eWebServerEnv({});
+    for (const key of APP_PUBLIC_ENV_KEYS) {
+      expect(bare[key], key).toBe(key === 'NEXT_PUBLIC_API_URL' ? 'http://localhost:4000' : '');
+    }
+    expect(bare.NEXT_PUBLIC_GRIEVANCE_OFFICER_NAME).toBe('');
   });
 
   test('networkDecision and the local-only builders', () => {

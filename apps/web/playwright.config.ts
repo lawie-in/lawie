@@ -6,8 +6,10 @@
  *   aborts every other host and FAILS the test that tried. The gateway is mocked at the network
  *   edge (http://localhost:4000, nothing listens there); no live services, no Anthropic calls.
  * - Local-only API: the dev server below is started with NEXT_PUBLIC_API_URL hard-set to
- *   http://localhost:4000 and every other NEXT_PUBLIC_* and the Sentry DSNs blanked, whatever the
- *   shell exports (the cloud shell exports https://api.lawie.in and a real DSN). The preflight
+ *   http://localhost:4000; every other NEXT_PUBLIC_* key present in the shell AND every key the
+ *   app reads (e2e/guards.ts APP_PUBLIC_ENV_KEYS) is blanked, as are the Sentry DSNs, so neither
+ *   the shell nor a local .env file can set them (the cloud shell exports https://api.lawie.in
+ *   and a real DSN). The preflight
  *   below throws before any browser or server starts if the API or base URL is not local
  *   (incident handoff/ops/incident-2026-10-21-stray-e2e-traffic.md).
  * - Never reuse a server: `reuseExistingServer` is always false. A leftover server on :3100 may

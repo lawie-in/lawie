@@ -102,3 +102,25 @@ export function sse(
     body: sseBody(events),
   };
 }
+
+/** A promise a spec releases by hand, so a mocked reply waits for the spec, not for a timer. */
+export interface Gate {
+  readonly opened: Promise<void>;
+  release(): void;
+}
+
+export function createGate(): Gate {
+  let release: () => void = () => undefined;
+  const opened = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  return { opened, release };
+}
+
+/** A handler that answers `reply` only after the gate is released. */
+export function gated(reply: MockReply, gate: Gate): MockHandler {
+  return async () => {
+    await gate.opened;
+    return reply;
+  };
+}

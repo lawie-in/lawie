@@ -94,11 +94,27 @@ export function assertLocalTargets({ apiUrl, baseURL }: LocalTargets): void {
 }
 
 /**
+ * Every NEXT_PUBLIC_* key the app reads (grep of apps/web/src, next.config.mjs, instrumentation
+ * and the sentry configs for `process.env.NEXT_PUBLIC_`; the GA measurement id is a constant in
+ * src/components/analytics/analytics-routes.ts, not an env key), plus NEXT_PUBLIC_SENTRY_DSN as
+ * a precaution. Add a key here when the app starts reading a new one. NEXT_PUBLIC_API_URL is
+ * then hard-set to the local mock origin rather than left blank.
+ */
+export const APP_PUBLIC_ENV_KEYS: readonly string[] = [
+  'NEXT_PUBLIC_API_URL',
+  'NEXT_PUBLIC_GRIEVANCE_OFFICER_NAME',
+  'NEXT_PUBLIC_SENTRY_DSN',
+];
+
+/**
  * The environment the e2e `next dev` is started with, on top of the caller's environment
- * (Playwright merges `webServer.env` over process.env). Every NEXT_PUBLIC_* the shell exports
- * is blanked, then the API URL is hard-set to the local mock origin; Sentry DSNs and the auth
- * token are blanked and Next telemetry is off, so neither the browser bundle nor the dev server
- * is pointed at a hosted service by the developer's or the cloud session's shell.
+ * (Playwright merges `webServer.env` over process.env). Blanked: every NEXT_PUBLIC_* key present
+ * in the shell AND every key in APP_PUBLIC_ENV_KEYS (the keys the app reads), so neither the
+ * shell nor a local .env file can fill them (@next/env never overrides a key already in the
+ * environment, and an explicit '' counts as set). Then the API URL is hard-set to the local mock
+ * origin, SENTRY_DSN and SENTRY_AUTH_TOKEN are blanked and Next telemetry is off. A NEXT_PUBLIC_*
+ * key in neither list that only a local .env file sets is not covered; the browser guard still
+ * blocks and fails any traffic it causes.
  */
 export function e2eWebServerEnv(
   parentEnv: Readonly<Record<string, string | undefined>>,
@@ -107,6 +123,7 @@ export function e2eWebServerEnv(
   for (const key of Object.keys(parentEnv)) {
     if (key.startsWith('NEXT_PUBLIC_')) env[key] = '';
   }
+  for (const key of APP_PUBLIC_ENV_KEYS) env[key] = '';
   return {
     ...env,
     NEXT_PUBLIC_API_URL: E2E_API_URL,

@@ -11,6 +11,7 @@
 import type { BrowserContext, Page } from '@playwright/test';
 
 import { expect, mockApi, test } from './fixtures';
+import { E2E_BASE_URL } from './guards';
 import {
   THEMES,
   hideDevOverlay,
@@ -147,15 +148,23 @@ for (const theme of THEMES) {
       });
       await page.goto('/dashboard/documents');
       await expect(page.getByRole('link', { name: 'Regular bail application' })).toBeVisible();
+      // DEFECT T-571 (reported, not fixed here): /dashboard/documents scrolls sideways at 390 px
+      // (scrollWidth 473) and 768 px (888). Pinned directly, not with test.fail, so the network
+      // guard's teardown check still fails this test on any leak or unmocked call.
+      testInfo.annotations.push({
+        type: 'defect',
+        description: 'T-571 documents list sideways scroll',
+      });
+      if (testInfo.project.name === 'desktop-1280') {
+        await noSideways(page);
+      } else {
+        const { scrollWidth, inner } = await pageOverflow(page);
+        expect(
+          scrollWidth,
+          'DEFECT T-571: documents list overflows below 1280 px; if this fails the defect is fixed: switch to noSideways',
+        ).toBeGreaterThan(inner);
+      }
       await saveShot(page, testInfo, theme, 'documents');
-      // DEFECT (reported, not fixed here): /dashboard/documents scrolls sideways at 390 px
-      // (scrollWidth 473) and 768 px (888). test.fail marks it as a known failure and turns red
-      // again, as an unexpected pass, the day it is fixed.
-      test.fail(
-        testInfo.project.name !== 'desktop-1280',
-        'DEFECT: documents list overflows sideways below 1280 px',
-      );
-      await noSideways(page);
     });
 
     test(`settings: plan`, async ({ page, context }, testInfo) => {
@@ -212,7 +221,7 @@ for (const theme of THEMES) {
       const gate = new Promise<void>((resolve) => {
         release = resolve;
       });
-      await page.route('**/login**', async (route) => {
+      await page.route(`${E2E_BASE_URL}/login**`, async (route) => {
         if (route.request().headers()['rsc']) await gate;
         await route.fallback();
       });

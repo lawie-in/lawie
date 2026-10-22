@@ -199,12 +199,12 @@ export function generateEvents(done: Partial<SseDone> = {}): SseEvent[] {
   ];
 }
 
-/** The generate-from-brief reply; `delayMs` (default 600) keeps the generating step visible. */
+/** The generate-from-brief reply. To observe the generating step use `gated()` (mocks/reply.ts), not a delay. */
 export function generateReply(
   events: SseEvent[] = generateEvents(),
   opts: { delayMs?: number } = {},
 ): MockReply {
-  return sse(events, { delayMs: opts.delayMs ?? 600, headers: { 'x-run-id': 'run_e2e_0001' } });
+  return sse(events, { delayMs: opts.delayMs ?? 0, headers: { 'x-run-id': 'run_e2e_0001' } });
 }
 
 /** A stream that fails with the service's `error` event. */
@@ -212,5 +212,5 @@ export function generateErrorReply(
   reason = 'The drafting service could not finish this draft.',
   extra: { retryable?: boolean; code?: string } = {},
 ): MockReply {
-  return generateReply([{ event: 'error', data: { reason, ...extra } }], { delayMs: 300 });
+  return generateReply([{ event: 'error', data: { reason, ...extra } }], { delayMs: 0 });
 }

@@ -7,10 +7,13 @@ import { flowsOnDesktopOnly, seedSignedIn } from './helpers';
 import {
   briefResponse,
   generateErrorReply,
+  createGate,
+  gated,
   generateReply,
   intakeEnabled,
   json,
   sse,
+  type MockHandler,
   templateConfigs,
 } from './mocks';
 
@@ -21,7 +24,7 @@ const MATTER = 'Recover Rs 2,50,000 owed by Mehta Traders for goods supplied in 
 async function setUp(
   page: import('@playwright/test').Page,
   context: import('@playwright/test').BrowserContext,
-  generate = generateReply(),
+  generate: MockHandler = generateReply(undefined, { delayMs: 0 }),
 ) {
   await seedSignedIn(page, context);
   const calls = await mockApi(page, {
@@ -46,7 +49,8 @@ test.describe('new draft', () => {
     page,
     context,
   }) => {
-    const calls = await setUp(page, context);
+    const gate = createGate();
+    const calls = await setUp(page, context, gated(generateReply(undefined, { delayMs: 0 }), gate));
     await page.goto('/dashboard/new');
     await expect(
       page.getByRole('heading', { level: 1, name: 'What do you need to draft?' }),
@@ -65,6 +69,8 @@ test.describe('new draft', () => {
       page.getByRole('heading', { level: 1, name: 'Drafting your Legal notice' }),
     ).toBeVisible();
     await expect(page.getByText('Writing the draft')).toBeVisible();
+    // The stream waits for the spec, not for a timer.
+    gate.release();
 
     await expect(page.getByRole('heading', { level: 1, name: 'Legal notice' })).toBeVisible();
     await expect(page.getByText('Your draft is ready.')).toBeVisible();
@@ -116,13 +122,16 @@ test.describe('new draft', () => {
     page,
     context,
   }) => {
+    const gate = createGate();
     await setUp(
       page,
       context,
-      generateErrorReply('The drafting service could not finish this draft.'),
+      gated(generateErrorReply('The drafting service could not finish this draft.'), gate),
     );
     await toBrief(page);
     await page.getByRole('button', { name: 'Confirm brief and continue' }).click();
+    await expect(page.getByText('Writing the draft')).toBeVisible();
+    gate.release();
 
     await expect(
       page.getByRole('heading', { name: 'The draft did not finish. No Ink was used.' }),

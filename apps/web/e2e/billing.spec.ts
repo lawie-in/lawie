@@ -4,6 +4,7 @@
  * shortUrl and that page load is fulfilled by the test. Runs on desktop-1280.
  */
 import { expect, mockApi, test } from './fixtures';
+import { E2E_BASE_URL } from './guards';
 import { flowsOnDesktopOnly, seedSignedIn } from './helpers';
 import { cancelReply, json, shells, subscribeReply } from './mocks';
 
@@ -31,13 +32,17 @@ test.describe('settings: plan', () => {
       'POST /api/billing/subscribe': json(subscribeReply()),
     });
     // The local "payment page": fulfil the document so the app's own payment route is not loaded.
-    await page.route('**/dashboard/payment/success**', (route) =>
+    await page.route(`${E2E_BASE_URL}/dashboard/payment/success**`, (route) =>
       route.fulfill({ contentType: 'text/html', body: '<!doctype html><title>paid</title>' }),
     );
     await page.goto('/dashboard/settings#plan');
     await page.getByRole('button', { name: 'Choose Solo' }).click();
 
-    await expect(page).toHaveURL(/\/dashboard\/payment\/success\?e2e=1$/);
+    await expect(page).toHaveURL(
+      new RegExp(
+        `^${E2E_BASE_URL.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/dashboard/payment/success\\?e2e=1$`,
+      ),
+    );
     const subscribe = calls.find((c) => c.path === '/api/billing/subscribe');
     expect(subscribe?.method).toBe('POST');
     expect(subscribe?.body).toEqual({ planId: 'solo_monthly' });
