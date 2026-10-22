@@ -171,6 +171,9 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
   // handlePurchase checks the server's order amount against it, so the two cannot drift.
   const displayedTotal = selected ? (coupon ? coupon.finalPriceInr : selected.priceInr) : 0;
 
+  /** True from Buy (or Retry) until handlePurchase has returned. */
+  const purchaseInFlight = useRef(false);
+
   const handleApplyCoupon = async () => {
     if (!couponInput.trim()) return;
     setCouponValidating(true);
@@ -199,7 +202,10 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
   };
 
   const handlePurchase = async () => {
-    if (!selected) return;
+    // T-565 (review): one order at a time. `submitting` is state, so two clicks in the same
+    // tick would both pass it; this ref closes that gap. Also no new order while Checkout is up.
+    if (!selected || purchaseInFlight.current || checkoutOpenRef.current) return;
+    purchaseInFlight.current = true;
     setSubmitting(true);
     setError('');
     try {
@@ -291,6 +297,9 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
     } catch {
       setError(ORDER_FAILED);
       setSubmitting(false);
+    } finally {
+      // Every exit (including the early returns above) frees the guard.
+      purchaseInFlight.current = false;
     }
   };
 

@@ -180,17 +180,23 @@ describe('OneFlow 402 without a finite cost (T-388, was `cost ?? 1`)', () => {
     ['a null cost', { cost: null }],
     ['a zero cost', { cost: 0 }],
     ['a string cost', { cost: 'lots' }],
-  ])('does not open the paywall with %s, and shows the service message', async (_n, extra) => {
-    await toBrief(2);
-    mockPrivacyFetch.mockResolvedValue(
-      jsonRes(402, { message: 'Not enough Ink for this.', balance: { totalInk: 0 }, ...extra }),
-    );
-    await act(async () => buttonWith('Confirm brief and continue')?.click());
-    await flush();
-    expect(mockPaywall).not.toHaveBeenCalled();
-    expect(container.querySelector('[data-testid="paywall"]')).toBeNull();
-    expect(container.textContent).toContain('Not enough Ink for this.');
-  });
+  ])(
+    'does not open the paywall with %s, and shows the generic line with Try again, never the service message',
+    async (_n, extra) => {
+      await toBrief(2);
+      mockPrivacyFetch.mockResolvedValue(
+        jsonRes(402, { message: 'Not enough Ink for this.', balance: { totalInk: 0 }, ...extra }),
+      );
+      await act(async () => buttonWith('Confirm brief and continue')?.click());
+      await flush();
+      expect(mockPaywall).not.toHaveBeenCalled();
+      expect(container.querySelector('[data-testid="paywall"]')).toBeNull();
+      // review round 2 (2): refusedStartError(402), no server text, nothing on the brief.
+      expect(container.textContent).toContain('Something did not work. Try again.');
+      expect(container.textContent).not.toContain('Not enough Ink for this.');
+      expect(buttonWith('Try again')).toBeDefined();
+    },
+  );
 
   it('opens the paywall with the server cost and balance when the cost is a finite number above 0', async () => {
     await toBrief(2);
@@ -211,7 +217,8 @@ describe('OneFlow Ink cost under Confirm and under Try again is the same number'
     await toBrief(2);
     expect(costLines().map((p) => p.textContent)).toEqual(['Uses 2 Ink']);
     await confirm(failedStream());
-    expect(container.textContent).toContain('Boom');
+    expect(container.textContent).toContain('The draft did not finish.');
+    expect(container.textContent).not.toContain('Boom');
     expect(costLines().map((p) => p.textContent)).toEqual(['Uses 2 Ink']);
     const retry = container.querySelector('button[aria-describedby="generating-retry-ink-cost"]');
     expect((retry as HTMLButtonElement).disabled).toBe(false);

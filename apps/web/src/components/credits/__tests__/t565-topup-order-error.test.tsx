@@ -271,3 +271,39 @@ describe('coupon reasons are signed as they are and still show', () => {
     expect(body()).not.toContain(GENERIC);
   });
 });
+
+describe('review round 2: a same-tick double Buy creates one order', () => {
+  it('two synchronous clicks send ONE order request', async () => {
+    let release!: (v: unknown) => void;
+    mockPrivacyFetch.mockReturnValueOnce(new Promise((r) => (release = r)));
+    await mountModal();
+    const buy = button('Buy')!;
+    await act(async () => {
+      buy.click();
+      buy.click();
+    });
+    expect(mockPrivacyFetch).toHaveBeenCalledTimes(1);
+    release(GOOD_ORDER);
+    await flush();
+    expect(rzpOpen).toHaveBeenCalledTimes(1);
+  });
+
+  it('the guard is released after a failure: Retry then creates a second order', async () => {
+    mockPrivacyFetch
+      .mockResolvedValueOnce(reply({ error: 'x' }, 500))
+      .mockResolvedValueOnce(GOOD_ORDER);
+    await mountModal();
+    await click(button('Buy'));
+    await click(button('Retry'));
+    expect(mockPrivacyFetch).toHaveBeenCalledTimes(2);
+    expect(rzpOpen).toHaveBeenCalledTimes(1);
+  });
+
+  it('the guard is released after a thrown error', async () => {
+    mockPrivacyFetch.mockRejectedValueOnce(new Error('net')).mockResolvedValueOnce(GOOD_ORDER);
+    await mountModal();
+    await click(button('Buy'));
+    await click(button('Retry'));
+    expect(mockPrivacyFetch).toHaveBeenCalledTimes(2);
+  });
+});

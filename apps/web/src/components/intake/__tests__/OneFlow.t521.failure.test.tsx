@@ -151,7 +151,7 @@ afterEach(() => {
 });
 
 describe('OneFlow generation failure wording (T-521 AC3)', () => {
-  it('server error event with an unknown code: the signed line, and the server reason', async () => {
+  it('server error event with an unknown code: the signed line, and NOT the server reason', async () => {
     await toBrief();
     await confirmWith(
       sse([
@@ -160,7 +160,7 @@ describe('OneFlow generation failure wording (T-521 AC3)', () => {
     );
     expect(text()).toContain(SIGNED);
     expect(text()).toContain(DOCS_LINE);
-    expect(text()).toContain('The drafter stopped.');
+    expect(text()).not.toContain('The drafter stopped.');
     expect(text()).not.toContain('No Ink was used');
     expect(text()).not.toContain(LOST);
     expect(container.querySelector('[data-no-ink-claim="true"]')).toBeNull();
@@ -320,7 +320,7 @@ describe('OneFlow failure after a very long partial stream (break-ui)', () => {
       sse([...chunks(), ev('error', { reason: 'Stopped late.', code: 'drafter_failed' })]),
     );
     expect(text()).toContain(SIGNED);
-    expect(text()).toContain('Stopped late.');
+    expect(text()).not.toContain('Stopped late.');
     expect(text()).not.toContain('Paragraph 5');
     expect(sentDescribed(0)).toBe(TYPED);
     expect(buttonWith('Try again')).toBeDefined();

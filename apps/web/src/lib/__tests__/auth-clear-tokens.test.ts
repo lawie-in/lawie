@@ -2,7 +2,7 @@
  * T-343 review round 1 (should-fix): clearTokens also forgets the privacy prompt's
  * "shown this sign-in" flags, and only those.
  */
-import { PRIVACY_PROMPT_SHOWN_PREFIX, clearTokens } from '../auth';
+import { PRIVACY_PROMPT_SHOWN_PREFIX, clearTokens, saveTokens } from '../auth';
 import { DRAFT_PREFILL_KEY } from '@/components/intake/initialQuery';
 
 beforeEach(() => {
@@ -80,5 +80,47 @@ describe('clearTokens (T-565 item 40): the command bar matter text does not outl
       if (this === sessionStorage) throw new Error('blocked');
     });
     expect(() => clearTokens()).not.toThrow();
+  });
+});
+
+describe('saveTokens (T-565 item 40, review round 3): a new session drops the matter text', () => {
+  const jwt = (sub: string) =>
+    `h.${Buffer.from(JSON.stringify({ sub, exp: Math.floor(Date.now() / 1000) + 600 })).toString('base64url')}.s`;
+  const KEY = 'lawie:draft-prefill';
+
+  it('no token stored before: the key is cleared', () => {
+    sessionStorage.setItem(KEY, 'left by another user');
+    saveTokens(jwt('u1'), 'r1');
+    expect(sessionStorage.getItem(KEY)).toBeNull();
+    expect(localStorage.getItem('lawie_refresh_token')).toBe('r1');
+  });
+
+  it('a different sub: the key is cleared', () => {
+    saveTokens(jwt('u1'), 'r1');
+    sessionStorage.setItem(KEY, 'u1 text');
+    saveTokens(jwt('u2'), 'r2');
+    expect(sessionStorage.getItem(KEY)).toBeNull();
+  });
+
+  it('the same sub (refresh or re-issue): the key is kept', () => {
+    saveTokens(jwt('u1'), 'r1');
+    sessionStorage.setItem(KEY, 'u1 text');
+    saveTokens(jwt('u1'), 'r2');
+    expect(sessionStorage.getItem(KEY)).toBe('u1 text');
+  });
+
+  it('a stored token that cannot be read counts as no session: cleared', () => {
+    localStorage.setItem('lawie_access_token', 'garbage');
+    sessionStorage.setItem(KEY, 'x');
+    saveTokens(jwt('u1'), 'r1');
+    expect(sessionStorage.getItem(KEY)).toBeNull();
+  });
+
+  it('does not throw when sessionStorage is blocked, and still stores the tokens', () => {
+    jest.spyOn(Storage.prototype, 'removeItem').mockImplementation(function (this: Storage) {
+      if (this === sessionStorage) throw new Error('blocked');
+    });
+    expect(() => saveTokens(jwt('u1'), 'r1')).not.toThrow();
+    expect(localStorage.getItem('lawie_refresh_token')).toBe('r1');
   });
 });

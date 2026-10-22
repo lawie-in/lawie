@@ -241,22 +241,29 @@ describe('OneFlow 402 message (AC3)', () => {
     json: async () => b,
   });
 
-  it("shows Meera's line on a 402 with no cost and no message", async () => {
+  it("a 402 with no cost and no message shows the generic line with Try again, not Meera's line", async () => {
     expect(NOT_STARTED_LINE).toBe("We couldn't start this just now. Please try again in a moment.");
     await toBrief(2);
     mockPrivacyFetch.mockResolvedValue(jsonRes(402, { balance: { totalInk: 0 } }));
     await act(async () => confirmBtn().click());
     await flush();
     expect(mockPaywall).not.toHaveBeenCalled();
-    expect(container.querySelector('[role="alert"]')?.textContent).toContain(NOT_STARTED_LINE);
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain(
+      'Something did not work. Try again.',
+    );
+    expect(container.textContent).not.toContain(NOT_STARTED_LINE);
+    expect(
+      Array.from(container.querySelectorAll('button')).some((b) => b.textContent === 'Try again'),
+    ).toBe(true);
   });
 
-  it('shows data.message instead when the service sent one', async () => {
+  it('a 402 with a message but no cost still shows no server text', async () => {
     await toBrief(2);
     mockPrivacyFetch.mockResolvedValue(jsonRes(402, { message: 'Plan limit reached.' }));
     await act(async () => confirmBtn().click());
     await flush();
-    expect(container.textContent).toContain('Plan limit reached.');
+    expect(container.textContent).toContain('Something did not work. Try again.');
+    expect(container.textContent).not.toContain('Plan limit reached.');
     expect(container.textContent).not.toContain(NOT_STARTED_LINE);
   });
 });

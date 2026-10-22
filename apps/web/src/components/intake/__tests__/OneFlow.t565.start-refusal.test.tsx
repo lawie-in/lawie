@@ -369,10 +369,11 @@ describe('W13: no prose reasons on dropped connections or reasonless errors', ()
     );
   });
 
-  it('an error event with a string reason still shows it under the signed lines', async () => {
+  it('an error event with a string reason never shows it (only insufficient_ink does)', async () => {
     await toBrief();
     await confirmWith(sse([ev('error', { reason: 'The drafter stopped.', code: 'x' })]));
-    expect(text()).toContain('The drafter stopped.');
+    expect(text()).not.toContain('The drafter stopped.');
+    expect(text()).toContain(DRAFT_DID_NOT_FINISH);
   });
 
   it('empty body: heading + documents line, no Ink claim, no old prose', async () => {
@@ -382,5 +383,43 @@ describe('W13: no prose reasons on dropped connections or reasonless errors', ()
       DRAFT_DID_NOT_FINISH + CHECK_DOCUMENTS_LIST,
     );
     expectNoOld();
+  });
+});
+
+describe('review round 2: server text on an SSE error event', () => {
+  it('insufficient_ink still shows its reason (the one exception)', async () => {
+    await toBrief();
+    await confirmWith(
+      sse([
+        ev('error', {
+          reason: 'There is not enough Ink for this draft.',
+          code: 'insufficient_ink',
+          retryable: false,
+        }),
+      ]),
+    );
+    expect(text()).toContain('There is not enough Ink for this draft.');
+  });
+
+  it.each([
+    ['no code', {}],
+    ['an unknown code', { code: 'drafter_failed' }],
+    ['inkReleased true', { code: 'x', inkReleased: true }],
+  ])('a banned string reason is never rendered (%s)', async (_n, extra) => {
+    const banned = 'The draft could not be finished, your inputs are saved.';
+    await toBrief();
+    await confirmWith(sse([ev('error', { reason: banned, ...extra })]));
+    expect(text()).not.toContain('your inputs are saved');
+    expect(text()).not.toContain('could not be finished');
+    expect(text()).toContain(DRAFT_DID_NOT_FINISH);
+  });
+
+  it('a 402 with no cost shows no server text and no brief-page message', async () => {
+    await toBrief();
+    await confirmWith(refused(402, { message: 'Plan limit reached.', balance: { totalInk: 0 } }));
+    expect(heading()).toBe(SOMETHING_DID_NOT_WORK);
+    expect(text()).not.toContain('Plan limit reached.');
+    expect(text()).not.toContain("We couldn't start this just now");
+    expect(buttonWith('Try again')).toBeDefined();
   });
 });

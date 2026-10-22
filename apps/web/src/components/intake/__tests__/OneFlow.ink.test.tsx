@@ -238,7 +238,9 @@ describe('OneFlow SSE done event and the Ink balance', () => {
     await toBrief(2);
     await confirm(sse([ev('error', { reason: 'Boom', retryable: true })]));
     expect(mockNotify).not.toHaveBeenCalled();
-    expect(container.textContent).toContain('Boom');
+    // review round 2: an error event's reason is never shown (only insufficient_ink's).
+    expect(container.textContent).toContain('The draft did not finish.');
+    expect(container.textContent).not.toContain('Boom');
   });
 
   it('does not call it when the stream is lost before done', async () => {

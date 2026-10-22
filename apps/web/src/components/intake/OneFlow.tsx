@@ -49,7 +49,11 @@ import DocumentChoiceStep, { NONE_OF_THESE } from './DocumentChoiceStep';
 import { EXPORT_HASH } from './draftActions';
 import DraftReadyStep from './DraftReadyStep';
 import GeneratingStep from './GeneratingStep';
-import { refusedStartError, type GenerationError } from './generationFailure';
+import {
+  INSUFFICIENT_INK_CODE,
+  refusedStartError,
+  type GenerationError,
+} from './generationFailure';
 import { takeDraftPrefill } from './initialQuery';
 import { NOT_STARTED_LINE, inkCostState } from './InkCostLine';
 import NightScope from './NightScope';
@@ -728,16 +732,17 @@ function OneFlowSteps({
               return;
             }
             // T-388: the paywall shows the server's cost, never a made-up one.
-            // Without a cost there is no paywall; the service's own line is shown.
             if (typeof data.cost === 'number' && Number.isFinite(data.cost) && data.cost > 0) {
               setPaywall({
                 cost: data.cost,
                 balance: data.balance?.totalInk ?? data.balance?.total ?? 0,
               });
-            } else {
-              setBriefMessage(data.message ?? NOT_STARTED_LINE);
+              setPhase('brief');
+              return;
             }
-            setPhase('brief');
+            // T-565 W12 (Ajay): a 402 with no cost has no paywall. The generic line with retry,
+            // never the server's own text.
+            setGenError(refusedStartError(res.status, data));
             return;
           }
           if (res.status === 400 && data.error === 'no_match') {
@@ -747,9 +752,11 @@ function OneFlowSteps({
           // T-565 B5 (Ajay W3/W6/W7/W12), as the form flow: the privacy gate, the verify 403
           // and the 402 paths returned above. 409 → the documents-list line, no retry (a retry
           // would take a second Ink hold); the plan gate's 403 → the signed plan line, no
-          // retry; every other refusal (400, 401, 403, 429, 5xx) → `Something did not work.
-          // Try again.` with retry. "Try again" calls generate(true), which resends this run's
-          // run_id (X-Run-Id, read above), so it never starts a fresh run. Never a raw reason.
+          // retry; every other refusal (400, 401, 403, 429, 5xx, a 402 with no cost) →
+          // `Something did not work. Try again.` with retry. Never a raw reason. "Try again"
+          // calls generate(true), which resends this run's run_id (X-Run-Id, read above): the
+          // server continues that run if it exists, otherwise it assigns a new one. A 409 never
+          // offers a retry; 429 and 401 are answered before any Ink hold.
           setGenError(refusedStartError(res.status, data));
           return;
         }
@@ -795,8 +802,12 @@ function OneFlowSteps({
             }
             if (event === 'error') {
               setGenError({
-                // T-565 W13: the event's reason when it sent one, else no reason ('').
-                reason: typeof payload.reason === 'string' ? payload.reason : '',
+                // T-565 W13: no server reason is shown (''), except for insufficient_ink, whose
+                // reason is the card's heading (T-521).
+                reason:
+                  payload.code === INSUFFICIENT_INK_CODE && typeof payload.reason === 'string'
+                    ? payload.reason
+                    : '',
                 retryable: payload.retryable !== false,
                 // T-521 (Arjun ruling 4): the code decides what is said about Ink.
                 source: 'error_event',
