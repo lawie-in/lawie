@@ -21,6 +21,7 @@ jest.mock('@/context/AuthContext', () => ({
 jest.mock('@/components/credits/PaywallModal', () => ({ PaywallModal: () => null }));
 jest.mock('@/components/VerifyEmailPrompt', () => ({
   openVerifyInsteadOfPaywall: async () => false,
+  openVerifyIfDraftRefused: async () => false,
 }));
 jest.mock('@/components/PrivacyUpdatePrompt', () => ({
   PrivacyBlockedNotice: () => null,
