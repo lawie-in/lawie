@@ -1010,13 +1010,22 @@ describe('T-542 AC9: a failed insert after the Razorpay create writes the reconc
     await ensureSubscriptionIndexes();
     const u = await seedUser();
     createMock.mockImplementationOnce(async () => {
-      await seedRow(u.userId, sid('rv-ret'), 'created');
+      // Raw insert: seedRow goes through Subscription.create and would use up
+      // the spy's first once-implementation below.
+      await Subscription.collection.insertOne({
+        userId: new mongoose.Types.ObjectId(u.userId),
+        razorpaySubscriptionId: sid('rv-ret'),
+        status: 'created',
+        planId: SOLO,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
       return { id: sid('ins2'), short_url: url('ins2') };
     });
     const realCreate = Subscription.create.bind(Subscription) as (
       ...a: unknown[]
     ) => Promise<unknown>;
-    jest
+    const createSpy = jest
       .spyOn(Subscription, 'create')
       .mockImplementationOnce((async (...args: unknown[]) => {
         try {
@@ -1036,6 +1045,10 @@ describe('T-542 AC9: a failed insert after the Razorpay create writes the reconc
     expect(res.status).not.toBe(409);
     expect(await markerCount(u.userId)).toBe(1);
     expect(await getSub(sid('ins2'))).toBeNull();
+    // First insert hit the live index, the blocker ended, the SECOND insert failed.
+    expect(createSpy).toHaveBeenCalledTimes(2);
+    expect((await getSub(sid('rv-ret')))!.status).toBe('cancelled');
+    expect(cancelMock).not.toHaveBeenCalled();
   });
 
   it('a marker write failure does not mask the original error (still a 5xx, ids-only log)', async () => {
