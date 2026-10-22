@@ -13,7 +13,7 @@ export default function SiteFooter() {
           </Link>
           <p className="footer-tag">
             Legal drafting for Indian advocates. Criminal drafts use BNS, BNSS and BSA section
-            numbers.
+            numbers, or IPC, CrPC and the Evidence Act where the old law applies.
           </p>
           <p className="footer-disclaimer">
             Lawie is a drafting assistant. The advocate is responsible for legal accuracy and

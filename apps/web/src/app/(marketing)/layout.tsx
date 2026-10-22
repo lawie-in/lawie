@@ -30,7 +30,7 @@ const fraunces = Fraunces({
 export const metadata: Metadata = {
   title: 'Lawie — AI Legal Drafting for Indian Advocates',
   description:
-    'Legal drafting for Indian advocates. Criminal drafts use BNS, BNSS and BSA section numbers.',
+    'Legal drafting for Indian advocates. Criminal drafts use BNS, BNSS and BSA section numbers, or IPC, CrPC and the Evidence Act where the old law applies.',
 };
 
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {
