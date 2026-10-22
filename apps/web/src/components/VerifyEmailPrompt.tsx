@@ -295,23 +295,6 @@ export async function openVerifyInsteadOfPaywall(): Promise<boolean> {
   return true;
 }
 
-/**
- * True when a response is a 403 email_verification_required; it also marks verification as
- * required (the verify bar shows). Opens no dialog: billing callers use
- * `openVerifyIfDraftRefused(res, 'topup' | 'subscribe')` since T-522.
- */
-export async function isEmailVerificationRequired(res: Response): Promise<boolean> {
-  if (res.status !== 403) return false;
-  try {
-    const body = (await res.clone().json()) as { error?: unknown };
-    if (body?.error !== EMAIL_VERIFICATION_REQUIRED) return false;
-  } catch {
-    return false;
-  }
-  setState({ requiredByServer: true, emailVerified: false });
-  return true;
-}
-
 function retryAfterMs(res: Response, body: { retryAfter?: unknown } | null): number {
   const fromBody = Number(body?.retryAfter);
   if (Number.isFinite(fromBody) && fromBody > 0) return fromBody * 1000;

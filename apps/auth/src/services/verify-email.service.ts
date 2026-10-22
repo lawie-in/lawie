@@ -98,6 +98,14 @@ export const NOT_YET_VERIFIED = {
   $or: [{ googleId: { $exists: false } }, { googleId: { $in: [null, ''] } }],
 };
 
+/**
+ * T-522 (review): an account that can verify — active and not being closed. T-115c sets
+ * isActive false and `erasure` on close; this is the same rule as password-reset ELIGIBLE,
+ * signInFromVerifyLink and the signup-attempt prepare. Used by mint (default), verify and
+ * request, so an account being erased gets no link, no token burn and no bonus or referral Ink.
+ */
+const LIVE_ACCOUNT = { isActive: { $ne: false }, erasure: { $exists: false } };
+
 // ── Mint (internal route, called by the email worker) ───────────────────────
 
 export type MintVerifyLinkResult =
@@ -116,7 +124,7 @@ export type MintVerifyLinkResult =
 
 export interface MintVerifyLinkOptions {
   /**
-   * T-358: replaces the default `isActive: { $ne: false }` condition. The deletion notice
+   * T-358: replaces the default LIVE_ACCOUNT condition (active, not being closed). The deletion notice
    * passes its own eligibility (unverified sweep filter, which includes deactivated accounts).
    * NOT_YET_VERIFIED is always applied as well.
    */
@@ -142,7 +150,7 @@ export async function mintVerifyLink(
 ): Promise<MintVerifyLinkResult> {
   if (!mongoose.Types.ObjectId.isValid(userId)) return { kind: 'not_found' };
   const _id = new mongoose.Types.ObjectId(userId);
-  const eligibility = opts.eligibility ?? { isActive: { $ne: false } };
+  const eligibility = opts.eligibility ?? LIVE_ACCOUNT;
 
   const linkKind = normaliseLinkKind(opts.linkKind);
   const ttlMs = linkKind === 'signin' ? SIGNIN_LINK_TTL_MS : (opts.ttlMs ?? VERIFY_LINK_TTL_MS);
@@ -203,12 +211,13 @@ export type VerifyEmailTokenResult =
 export async function verifyEmailToken(token: unknown): Promise<VerifyEmailTokenResult> {
   if (typeof token !== 'string' || !TOKEN_RE.test(token)) return { kind: 'expired_or_invalid' };
   const hash = hashVerifyToken(token);
-  // isActive as in mintVerifyLink: a deactivated account's old link verifies nothing and grants
-  // no bonus; it reads as expired_or_invalid.
+  // LIVE_ACCOUNT as in mintVerifyLink: a deactivated account's, or one being erased, old link
+  // verifies nothing, is not burned and grants no bonus or referral Ink; it reads as
+  // expired_or_invalid.
   const live = {
     emailVerifyTokenHash: hash,
     emailVerifyExpires: { $gt: new Date() },
-    isActive: { $ne: false },
+    ...LIVE_ACCOUNT,
   };
   // T-522: the kind is cleared with the hash and expiry, in the same write (single use).
   const clearLink = {
@@ -265,7 +274,8 @@ export type RequestVerifyEmailResult =
  * request path); a failed push is logged with the userId only and the user can resend.
  * Not every call adds a job: the email client drops it when the user already has a verify job
  * pending (T-390), and this still returns 'queued' because that pending job will send.
- * A refused call (verified, Google, unknown user) does not use up the cap.
+ * A refused call (verified, Google, unknown, deactivated or being-erased user) does not use up
+ * the cap; the last two read as not_found (LIVE_ACCOUNT, T-522 review).
  */
 export async function requestVerifyEmail(
   userId: string,
@@ -274,7 +284,10 @@ export async function requestVerifyEmail(
   if (!mongoose.Types.ObjectId.isValid(userId)) return { kind: 'not_found' };
   const _id = new mongoose.Types.ObjectId(userId);
 
-  const user = await User.findById(_id, { emailVerified: 1, authProvider: 1, googleId: 1 }).lean();
+  const user = await User.findOne(
+    { _id, ...LIVE_ACCOUNT },
+    { emailVerified: 1, authProvider: 1, googleId: 1 },
+  ).lean();
   if (!user) return { kind: 'not_found' };
   // Same rule as NOT_YET_VERIFIED / VERIFIED_FOR_BONUS (T-351); T-522: the shared check.
   if (isVerified(user)) return { kind: 'already_verified' };

@@ -293,6 +293,8 @@ function LoginContent() {
   const [resendState, setResendState] = useState<ResendState>('idle');
   /** ms epoch when the client wait ends (2 minutes from the submit, then from each resend). */
   const waitUntil = useRef(0);
+  /** True while the client wait runs: Resend email renders aria-disabled (T-522 review). */
+  const [waitActive, setWaitActive] = useState(false);
   const waitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const checkTitleRef = useRef<HTMLHeadingElement>(null);
   // T-517 (AJ-511-M11, AJ-517-M3): consent on Create account. Unticked by default; gates Create
@@ -368,11 +370,14 @@ function LoginContent() {
   };
 
   // The end of the client wait: a showing wait (or sent) line becomes the S6 end-of-wait line.
+  // Every wait start (submit, a sent resend, a 429) comes through here.
   const scheduleWaitEnd = () => {
     clearWaitTimer();
+    setWaitActive(waitUntil.current > Date.now());
     waitTimer.current = setTimeout(
       () => {
         waitTimer.current = null;
+        setWaitActive(false);
         setResendState((p) => (p === 'wait' || p === 'sent' ? 'ready' : p));
       },
       Math.max(0, waitUntil.current - Date.now()),
@@ -381,6 +386,7 @@ function LoginContent() {
 
   const leaveCheckEmail = () => {
     clearWaitTimer();
+    setWaitActive(false);
     setCheckEmail(null);
     setResendState('idle');
   };
@@ -752,9 +758,17 @@ function LoginContent() {
                   <button
                     type="button"
                     onClick={() => void resendByEmail()}
+                    // T-522 review (Rajesh §2 pattern, as ui/Banner's action): aria-disabled while
+                    // the client wait runs, never the disabled attribute, so it keeps focus and a
+                    // press still shows the M4 wait line (resendByEmail sends nothing then).
+                    aria-disabled={waitActive || undefined}
                     aria-busy={resendState === 'sending' || undefined}
                     aria-describedby="check-email-status"
-                    className={cn(TEXT_LINK, 'inline-flex min-h-[44px] items-center')}
+                    className={cn(
+                      TEXT_LINK,
+                      'inline-flex min-h-[44px] items-center',
+                      waitActive && 'cursor-not-allowed opacity-40',
+                    )}
                   >
                     {AUTH_COPY.checkEmail.resend}
                   </button>
