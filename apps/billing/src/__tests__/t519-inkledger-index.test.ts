@@ -170,6 +170,7 @@ describe('T-519 startup wiring (src/index.ts)', () => {
     onSpy.mockRestore();
     // doMock registrations persist across tests; clear the ones the next test must see real.
     jest.dontMock('../config/ink-ledger-indexes');
+    jest.dontMock('../config/subscription-indexes');
     jest.dontMock('mongoose');
     jest.restoreAllMocks();
   });
@@ -246,6 +247,11 @@ describe('T-519 startup wiring (src/index.ts)', () => {
     jest.isolateModules(() => {
       jest.doMock('../config/sentry', () => ({}));
       jest.doMock('@sentry/node', () => ({ captureException: jest.fn() }));
+      // T-536: the subscription index step has its own tests (t536); stub it so
+      // the shared mocked createIndex only sees the inkledger call.
+      jest.doMock('../config/subscription-indexes', () => ({
+        ensureSubscriptionIndexes: jest.fn(async () => undefined),
+      }));
       jest.doMock('dotenv', () => ({ __esModule: true, default: { config: jest.fn() } }));
       jest.doMock('../app', () => ({ __esModule: true, default: { listen } }));
       jest.doMock('../config/database', () => ({
