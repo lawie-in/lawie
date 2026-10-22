@@ -1,0 +1,15 @@
+# T-565: Legal fixes, signed-in app, web (review section C, web items)
+
+| Field  | Value |
+| ------ | ----- |
+| Phase  | 4 — Release (MUST items block Anushka's browser run) |
+| Owner  | Lead (build, web), Ajay byte-checks |
+| Mode   | Full chain (web, legal content) |
+| Status | To do. Tanvi. MUST before Anushka. Start with files nobody else holds; the rest after Kunal's T-544 and Vishal's T-522 merge. Priya, 22 Oct 2026 |
+| Source | Ajay's pre-Anushka legal review: `handoff/legal/pre-anushka-legal-review-22-oct.md` (22 Oct 2026, b871e0f7) |
+
+## Items
+Review section C, web: **29, 31 to 40, 42, 43** MUST; 44 to 51 SHOULD (do them too). 29 watermark notice delete; 31 daily-login line delete; 32 `Prices include GST.`; 33 low-Ink nudge hidden from unverified users; 34 plan name on the sidebar; 35 contact@; 36 empty templates text; 37 and 38 section finder wording and badges; 39 delete the fallback filing checklist; 40 clear the draft-prefill key on sign-out and on read in both flows (code only); 42 DraftReadyStep chip; 43 PipelineStatus (old flow) strings; 44 to 51 as listed (50: delete unused modals once confirmed; 49 needs Priya and Arjun to confirm the Solo gate: ask Priya). Conflicts: DraftReadyStep.tsx is Kunal's until T-544 merges; TopUpModal.tsx, lib/auth.ts, dashboard layout and LowInkNudge relate to Vishal's T-522 claim: wait for his merge for those.
+
+## Rules for every item
+Signed fix text is in the review file next to its item number (file:line, current text, signed fix). Paste it **byte for byte**; if a line has moved, find it by the current text. Anything unclear goes to the real Ajay (session_019mZoKeM2MTfCyV5HEZrqnZ), never invented. Files under `.claude/docs/legal-content-paths.md` come back to Ajay for a byte check at READY. Do not touch files held by another lead's claim row; wait for their merge or ask Priya.
