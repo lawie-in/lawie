@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Arjun (design), Ajay (copy), an auth lead (build) |
 | Mode   | Full chain (auth, web) |
-| Status | In build: Vishal (22 Oct 2026). Rulings: Arjun (design) and Ajay AJ-522-M1 to M7 (copy, fence confirmed). Mode: full chain (auth, gateway/drafting, billing refusals last, email-worker, shared, web). Priya |
+| Status | Merged into develop_staging 2d06feea (Vishal, 22 Oct 2026; branch CI 950 green; merge CI pending). Neutral sign-up (same "check your email" for all), 30-minute single-use sign-in link, login allowed before verification, drafting/buying/free Ink fenced until verified; referral Ink on verification; FAQ document list and refund wording updated. Follow-ups: T-569 (referral slots at verify), T-559 (mail footer), signed Hindi not yet wired (before main). Priya |
 | Source | Ajay AJ-511-M3; T-517 findings |
 
 ## Problem
