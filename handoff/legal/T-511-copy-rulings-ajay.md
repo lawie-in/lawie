@@ -153,3 +153,4 @@ The final file still comes to me for sign-off.
 | AJ-522-S12 | S5 verifying title | Signed: `Verifying your email…` / HI `आपका ईमेल सत्यापित किया जा रहा है…`, then `Still working…` after 8 s. Replace the interim T-223 `Verify your email` on this state. |
 | AJ-522-S13 | Signed-out resend that fails (network or server error, not the neutral 202) | Use `Something did not work. Try again.` + `Retry` for both network and server failures. It says nothing about whether an email exists and does not wrongly blame the connection. |
 | AJ-522-S14 | `Not now` source | OK: EN from copy v1 §3 Dismiss (row 334), HI `अभी नहीं` from S8. |
+| AJ-520-M1 | Dashboard tile `{a} draft, {b} finalised or exported (all time)` (`dashboardCopy.ts:35-36`) | Signed. It was given by message on 21 Oct and is recorded here now (pre-Anushka review item 46). |
