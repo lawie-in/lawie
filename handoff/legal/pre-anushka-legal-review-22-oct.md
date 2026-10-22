@@ -231,3 +231,5 @@ Items 29, 31, 32, 34, 35, 36, 37, 38, 39, 43 (T1, T3, T6), 44, 47 and 50 match b
 | Step 5 of 5 — ready | Signed as is. |
 
 With these, the old flow is fully signed. `describe_first` may still stay ON for Anushka. That choice is Priya's, not a legal requirement.
+| 63a | legal_notice_defamation.json:198, keep "If criminal route" | Yes, keep the condition. The whole line becomes: `If the criminal route is taken, cite BNS Section 356 for defamation on or after 1 July 2024, and IPC Sections 499 and 500 for defamation before that date.` |
+| 65g | mandamus.json:159 `Disclaimer: Lawie is a drafting assistant; advocate is responsible…` | Delete it, as with item 65. Priya extends the claim to that line. It is the only change to mandamus.json (T-489's signed lines are untouched). |
