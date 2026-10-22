@@ -15,6 +15,10 @@ import mongoose from 'mongoose';
 import { SUBSCRIPTION_PLANS } from '../config/credit-skus';
 import logger from '../config/logger';
 import { razorpay } from '../config/razorpay';
+import {
+  isLiveSubscriptionConflict,
+  NON_TERMINAL_SUBSCRIPTION_STATUSES,
+} from '../config/subscription-indexes';
 import { authenticate } from '../middleware/authenticate';
 import { Subscription, isSubscriptionStatus } from '../models/Subscription.model';
 import { User } from '../models/User.model';
@@ -168,36 +172,74 @@ router.get(
 
 // ── POST /admin/billing/subscriptions/:id/sync ───────────────────────────────
 
-router.post(
-  '/admin/billing/subscriptions/:id/sync',
-  authenticate,
-  requireAdmin,
-  async (req: Request, res: Response): Promise<void> => {
-    const razId = req.params.id;
+const syncSubscription = async (req: Request, res: Response): Promise<void> => {
+  const razId = req.params.id;
 
-    let razSub: Record<string, unknown>;
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      razSub = (await (razorpay.subscriptions.fetch as any)(razId)) as Record<string, unknown>;
-    } catch {
-      res.status(502).json({ error: 'Failed to fetch from Razorpay' });
+  let razSub: Record<string, unknown>;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    razSub = (await (razorpay.subscriptions.fetch as any)(razId)) as Record<string, unknown>;
+  } catch {
+    res.status(502).json({ error: 'Failed to fetch from Razorpay' });
+    return;
+  }
+
+  // T-438: findOneAndUpdate does not run schema validators, so check
+  // Razorpay's live status against the known list before writing anything.
+  const liveStatus = razSub['status'];
+  if (!isSubscriptionStatus(liveStatus)) {
+    const shown = typeof liveStatus === 'string' ? liveStatus.slice(0, 64) : typeof liveStatus;
+    logger.warn(
+      { razorpaySubscriptionId: razId, status: shown },
+      'Admin sync: unknown Razorpay subscription status, nothing written',
+    );
+    res.status(400).json({ error: 'Unknown Razorpay subscription status', status: shown });
+    return;
+  }
+
+  // T-536 (Arjun ruling 2H): the sync never revives a terminal row while the
+  // user has another non-terminal row (a second live sub). The live index is
+  // the hard guard; this check answers the same 409 before trying the write.
+  const local = await Subscription.findOne({ razorpaySubscriptionId: razId })
+    .select('_id userId status')
+    .lean();
+  if (!local) {
+    res.status(404).json({ error: 'Subscription not found locally' });
+    return;
+  }
+  const otherLive = () =>
+    Subscription.findOne({
+      userId: local.userId,
+      _id: { $ne: local._id },
+      status: { $in: NON_TERMINAL_SUBSCRIPTION_STATUSES },
+    })
+      .select('razorpaySubscriptionId')
+      .lean();
+  const conflict = (existingSubscriptionId: string | null): void => {
+    logger.warn(
+      { razorpaySubscriptionId: razId, existingSubscriptionId, status: liveStatus },
+      'Admin sync: user already has another live subscription, nothing written',
+    );
+    res.status(409).json({
+      error: 'live_subscription_conflict',
+      subscriptionId: razId,
+      existingSubscriptionId,
+    });
+  };
+  if (
+    NON_TERMINAL_SUBSCRIPTION_STATUSES.includes(liveStatus) &&
+    !NON_TERMINAL_SUBSCRIPTION_STATUSES.includes(local.status)
+  ) {
+    const other = await otherLive();
+    if (other) {
+      conflict(other.razorpaySubscriptionId);
       return;
     }
+  }
 
-    // T-438: findOneAndUpdate does not run schema validators, so check
-    // Razorpay's live status against the known list before writing anything.
-    const liveStatus = razSub['status'];
-    if (!isSubscriptionStatus(liveStatus)) {
-      const shown = typeof liveStatus === 'string' ? liveStatus.slice(0, 64) : typeof liveStatus;
-      logger.warn(
-        { razorpaySubscriptionId: razId, status: shown },
-        'Admin sync: unknown Razorpay subscription status, nothing written',
-      );
-      res.status(400).json({ error: 'Unknown Razorpay subscription status', status: shown });
-      return;
-    }
-
-    const updated = await Subscription.findOneAndUpdate(
+  let updated;
+  try {
+    updated = await Subscription.findOneAndUpdate(
       { razorpaySubscriptionId: razId },
       {
         $set: {
@@ -212,13 +254,42 @@ router.post(
       },
       { new: true },
     ).lean();
+  } catch (err) {
+    if (!isLiveSubscriptionConflict(err)) throw err;
+    // Another non-terminal row landed between the check and the write.
+    const other = await otherLive();
+    conflict(other?.razorpaySubscriptionId ?? null);
+    return;
+  }
 
-    if (!updated) {
-      res.status(404).json({ error: 'Subscription not found locally' });
-      return;
+  if (!updated) {
+    res.status(404).json({ error: 'Subscription not found locally' });
+    return;
+  }
+
+  res.json({ ok: true, status: updated.status });
+};
+
+router.post(
+  '/admin/billing/subscriptions/:id/sync',
+  authenticate,
+  requireAdmin,
+  async (req: Request, res: Response): Promise<void> => {
+    // T-536: any error other than the handled 404 / 409 paths fails cleanly
+    // (500), never an unhandled rejection from this async Express 4 handler.
+    try {
+      await syncSubscription(req, res);
+    } catch (err) {
+      const { code } = (err ?? {}) as { code?: unknown };
+      logger.error(
+        {
+          errName: err instanceof Error ? err.name : typeof err,
+          ...(typeof code === 'number' || typeof code === 'string' ? { code } : {}),
+        },
+        'Admin sync: failed',
+      );
+      if (!res.headersSent) res.status(500).json({ error: 'Failed to sync subscription' });
     }
-
-    res.json({ ok: true, status: updated.status });
   },
 );
 

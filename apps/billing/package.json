@@ -11,7 +11,8 @@
     "test": "jest --coverage --forceExit --detectOpenHandles",
     "test:watch": "jest --watch",
     "backfill:yearly-drip": "ts-node --transpile-only scripts/backfill-yearly-drip.ts",
-    "backfill:invoices": "ts-node --transpile-only scripts/backfill-invoices.ts"
+    "backfill:invoices": "ts-node --transpile-only scripts/backfill-invoices.ts",
+    "check:live-sub-duplicates": "ts-node --transpile-only scripts/check-live-subscription-duplicates.ts"
   },
   "dependencies": {
     "@lawie/email-client": "1.0.0",

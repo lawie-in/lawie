@@ -8,6 +8,10 @@ import { findPlanByRazorpayId, findSubscriptionPlan, findTopupSku } from '../con
 import { env } from '../config/env';
 import logger from '../config/logger';
 import { razorpay } from '../config/razorpay';
+import {
+  isLiveSubscriptionConflict,
+  NON_TERMINAL_SUBSCRIPTION_STATUSES,
+} from '../config/subscription-indexes';
 import { CouponCode } from '../models/CouponCode.model';
 import { CouponUsage } from '../models/CouponUsage.model';
 import {
@@ -623,10 +627,48 @@ function reportAdoptedLiveSub(
 }
 
 /**
+ * T-536: the user's one non-terminal row (newest first, should more than one
+ * predate the live index), or null.
+ */
+function findNonTerminalRow(userId: string) {
+  return Subscription.findOne({
+    userId,
+    status: { $in: NON_TERMINAL_SUBSCRIPTION_STATUSES },
+  }).sort({ createdAt: -1 });
+}
+
+/**
+ * T-536 (Arjun ruling 2): a write was refused, or a Razorpay sub left
+ * unadopted, because the user already has a non-terminal row (the live
+ * index, or a second live orphan). One error log and a Sentry error, ids
+ * only. `existingSubscriptionId` is null when no existing row was found.
+ */
+function reportLiveConflict(
+  marker: string,
+  userId: string,
+  subscriptionId: string,
+  existingSubscriptionId: string | null,
+): void {
+  logger.error({ userId, subscriptionId, existingSubscriptionId }, marker);
+  Sentry.withScope((scope) => {
+    scope.setTag('marker', marker);
+    scope.setTag('userId', userId);
+    scope.setTag('razorpaySubscriptionId', subscriptionId);
+    scope.setExtra('existingSubscriptionId', existingSubscriptionId);
+    Sentry.captureMessage(marker, 'error');
+  });
+}
+
+/**
  * T-527: write the local row for a Razorpay sub, as the normal create path
  * does (userId, razorpaySubscriptionId, status, planId), with Razorpay's
  * status. E11000 (a webhook wrote it meanwhile): the row is re-read and
  * returned as the existing local row.
+ *
+ * T-536 (Arjun ruling 2B): E11000 from the live index (the user already has
+ * a non-terminal row): that existing row is re-read and returned instead, so
+ * the caller treats it as the live / checkout result. Its
+ * razorpaySubscriptionId then differs from item.id; never rethrown.
  */
 async function adoptRazorpaySub(
   userId: string,
@@ -647,6 +689,22 @@ async function adoptRazorpaySub(
     return row;
   } catch (err) {
     if (!isDuplicateKey(err)) throw err;
+    if (isLiveSubscriptionConflict(err)) {
+      const existing = await findNonTerminalRow(userId);
+      if (existing) {
+        logger.warn(
+          {
+            userId,
+            subscriptionId: item.id,
+            existingSubscriptionId: existing.razorpaySubscriptionId,
+            existingStatus: existing.status,
+          },
+          'billing.subscription.reconcile_adopt_live_conflict',
+        );
+        return existing;
+      }
+      // The blocking row ended meanwhile: the re-read by id below decides.
+    }
     const reread = await Subscription.findOne({ razorpaySubscriptionId: item.id });
     if (!reread) throw err;
     logger.info(
@@ -702,6 +760,9 @@ async function syncLocalToLive(
  * Every matching sub with no local row is handled:
  * - active / pending / halted / paused: adopted as a row with its status and
  *   reported (reportAdoptedLiveSub). Then { kind: 'live', row } (newest).
+ *   T-536: adopted only after the checkouts below are cancelled, and only the
+ *   newest; any other live one is reported (reportLiveConflict), not adopted.
+ *   A live-index refusal answers with the user's existing non-terminal row.
  * - created / authenticated: when requestedPlanId is set, no live sub was
  *   found and notes.planId is the requested plan, the newest such sub is
  *   adopted and returned ({ kind: 'adopted_checkout' }). Every other one is
@@ -729,6 +790,9 @@ export async function reconcileRazorpaySubscriptions(
   // Unfinished checkouts of this user, newest first; `row` is set when the sub
   // already has a local row.
   const checkouts: { item: RazorpaySubItem; row?: HydratedDocument<ISubscription> }[] = [];
+  // T-536: live at Razorpay with no local row, newest first; adopted after
+  // the checkout cancels.
+  const liveOrphans: RazorpaySubItem[] = [];
   for (const item of items) {
     if (!isSubscriptionStatus(item.status)) continue;
     const isLive = LIVE_STATUSES.includes(item.status);
@@ -769,14 +833,15 @@ export async function reconcileRazorpaySubscriptions(
       checkouts.push({ item });
       continue;
     }
-    const row = await adoptRazorpaySub(userId, item);
-    if (row.userId.equals(userId) && LIVE_STATUSES.includes(row.status)) liveRows.push(row);
-    reportAdoptedLiveSub(userId, item.id, item.status);
+    // T-536 (Arjun ruling 2B): adopted only after the checkouts are cancelled
+    // below, so the user's own local checkout rows never block the adopt at
+    // the live index.
+    liveOrphans.push(item);
   }
 
   const planOf = (c: (typeof checkouts)[number]) => c.row?.planId ?? c.item.planId;
   const adoptTarget =
-    liveRows.length === 0 && subscribe
+    liveRows.length === 0 && liveOrphans.length === 0 && subscribe
       ? checkouts.find((c) => planOf(c) === opts.requestedPlanId)
       : undefined;
 
@@ -807,11 +872,58 @@ export async function reconcileRazorpaySubscriptions(
     }
   }
 
+  // T-536 (Arjun ruling 2B): the live orphans, only now that this user's own
+  // checkouts are cancelled. The newest is adopted and reported as before.
+  // Any other is a second paid sub for this user: reported for ops (error log
+  // and Sentry, ids only), never adopted and never cancelled here.
+  const [newestOrphan, ...extraOrphans] = liveOrphans;
+  let orphanAnswerId: string | null = null;
+  if (newestOrphan) {
+    const row = await adoptRazorpaySub(userId, newestOrphan);
+    orphanAnswerId = row.razorpaySubscriptionId;
+    if (row.razorpaySubscriptionId === newestOrphan.id) {
+      if (row.userId.equals(userId) && LIVE_STATUSES.includes(row.status)) liveRows.push(row);
+      reportAdoptedLiveSub(userId, newestOrphan.id, newestOrphan.status);
+    } else {
+      // The live index refused it: the user's existing non-terminal row is
+      // the answer (no create follows); the paid orphan is left for ops.
+      reportLiveConflict(
+        'billing.subscription.reconcile_live_orphan_not_adopted',
+        userId,
+        newestOrphan.id,
+        row.razorpaySubscriptionId,
+      );
+      liveRows.push(row);
+    }
+  }
+  for (const extra of extraOrphans) {
+    reportLiveConflict(
+      'billing.subscription.reconcile_live_orphan_not_adopted',
+      userId,
+      extra.id,
+      orphanAnswerId,
+    );
+  }
+
   let adopted: ReconcileOutcome | undefined;
   if (adoptTarget) {
     // An existing local row is reused as is; otherwise the row is written now.
     const row = adoptTarget.row ?? (await adoptRazorpaySub(userId, adoptTarget.item));
-    if (row.userId.equals(userId)) {
+    if (row.razorpaySubscriptionId !== adoptTarget.item.id) {
+      // T-536: the live index refused the adopt (a non-terminal row for this
+      // user landed meanwhile). The unpaid orphan checkout is cancelled now at
+      // Razorpay (a failed cancel throws: 503, marker kept) and the existing
+      // row is the answer, so no create follows.
+      checkReconcileBudget(userId, opts.lockedAt);
+      await cancelNowAtRazorpay(userId, adoptTarget.item.id, {
+        cancelled: 'Orphan subscription cancelled at Razorpay on reconcile',
+        alreadyEnded: 'Orphan subscription already ended at Razorpay on reconcile',
+        notFound: 'Orphan subscription not found at Razorpay on reconcile; treated as ended',
+        failed: 'Razorpay cancel of orphan subscription failed on reconcile; marker kept',
+      });
+      cancelled += 1;
+      liveRows.push(row);
+    } else if (row.userId.equals(userId)) {
       if (LIVE_STATUSES.includes(row.status)) {
         // Paid meanwhile (a webhook wrote it live): answered like a live sub.
         liveRows.push(row);
@@ -951,6 +1063,18 @@ async function adoptUnknownSubLocked(
     );
   } catch (err) {
     if (!isDuplicateKey(err)) throw err;
+    if (isLiveSubscriptionConflict(err)) {
+      // T-536 (Arjun ruling 2C): a non-terminal row for this user landed after
+      // the check above; the live index refused a second. Reported, not adopted.
+      const existing = await findNonTerminalRow(notesUserId);
+      reportLiveConflict(
+        'billing.webhook.unknown_subscription_live_conflict',
+        notesUserId,
+        subId,
+        existing?.razorpaySubscriptionId ?? null,
+      );
+      return null;
+    }
     row = await Subscription.findOne({ razorpaySubscriptionId: subId });
   }
   if (row) {
@@ -992,13 +1116,19 @@ function reportDuplicateCancelFailed(
  * existing row is still the answer. A checkout answers with its link, as the
  * reuse path does (fetched; a failed fetch falls back to the 409); anything
  * else is the 409 via existsError.
+ *
+ * T-536 (Arjun ruling 2A): also used when the live index refused the new
+ * sub's row (rowId null): the same cancel and answer, no local row to mark.
  */
 async function resolvePostCreateDuplicate(
   userId: string,
-  newRow: HydratedDocument<ISubscription>,
+  // T-536: `rowId` is null when the live index refused the new sub's row.
+  newRow: { razorpaySubscriptionId: string; rowId: mongoose.Types.ObjectId | null },
   existing: HydratedDocument<ISubscription>,
   requestedPlanId: string,
   existsError: (s: HydratedDocument<ISubscription>) => Promise<SubscriptionExistsError>,
+  // T-536: run after a failed cancel (and its report); must not throw.
+  onCancelFailed?: () => Promise<void>,
 ): Promise<{ subscriptionId: string; shortUrl: string; planId: string }> {
   logger.warn(
     {
@@ -1024,10 +1154,11 @@ async function resolvePostCreateDuplicate(
       newRow.razorpaySubscriptionId,
       existing.razorpaySubscriptionId,
     );
+    if (onCancelFailed) await onCancelFailed();
   }
-  if (cancelled) {
+  if (cancelled && newRow.rowId) {
     await Subscription.updateOne(
-      { _id: newRow._id, status: 'created' },
+      { _id: newRow.rowId, status: 'created' },
       { $set: { status: 'cancelled', cancelledAt: new Date() } },
     );
   }
@@ -1375,13 +1506,50 @@ async function createSubscriptionLocked(
   }
   /* eslint-enable @typescript-eslint/no-explicit-any */
 
-  const newRow = await Subscription.create({
-    userId,
-    razorpaySubscriptionId: sub.id,
-    status: 'created',
-    // T-444: so a checkout reuse can return this sub's own plan.
-    planId: planSku.id,
-  });
+  const writeNewRow = () =>
+    Subscription.create({
+      userId,
+      razorpaySubscriptionId: sub.id,
+      status: 'created',
+      // T-444: so a checkout reuse can return this sub's own plan.
+      planId: planSku.id,
+    });
+  let newRow: HydratedDocument<ISubscription>;
+  try {
+    newRow = await writeNewRow();
+  } catch (err) {
+    if (!isLiveSubscriptionConflict(err)) throw err;
+    // T-536 (Arjun ruling 2A): the live index refused the row: the user already
+    // has a non-terminal row (written while this call held the lock). The new
+    // sub is cancelled at Razorpay and the existing row answered, exactly as
+    // the post-create duplicate check below does. A failed cancel is reported
+    // (reportDuplicateCancelFailed, ids only) and the existing row still answers.
+    const existing = await findNonTerminalRow(userId);
+    if (existing) {
+      logger.warn(
+        {
+          userId,
+          subscriptionId: sub.id,
+          existingSubscriptionId: existing.razorpaySubscriptionId,
+        },
+        'billing.subscription.create_live_conflict',
+      );
+      return resolvePostCreateDuplicate(
+        userId,
+        { razorpaySubscriptionId: sub.id, rowId: null },
+        existing,
+        planSku.id,
+        existsError,
+        // T-536 (lead, T-527 design): the new sub is still at Razorpay with no
+        // local row. The reconcile marker (lock's createdAt) lets the sweep scan
+        // and cancel it later. writeReconcileMarker never throws and logs a
+        // failure with ids only, so the response is unchanged.
+        () => writeReconcileMarker(userId, new Date(lockedAt), planSku.id),
+      );
+    }
+    // The blocking row ended between the insert and the re-read: write once more.
+    newRow = await writeNewRow();
+  }
 
   logger.info(
     { userId, subscriptionId: sub.id, planId: planSku.id },
@@ -1401,7 +1569,13 @@ async function createSubscriptionLocked(
     createdAt: { $gte: new Date(lockedAt), $lte: newRow.createdAt },
   }).sort({ createdAt: 1 });
   if (earlier) {
-    return resolvePostCreateDuplicate(userId, newRow, earlier, planSku.id, existsError);
+    return resolvePostCreateDuplicate(
+      userId,
+      { razorpaySubscriptionId: newRow.razorpaySubscriptionId, rowId: newRow._id },
+      earlier,
+      planSku.id,
+      existsError,
+    );
   }
 
   return {

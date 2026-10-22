@@ -1,14 +1,15 @@
 # T-544: T-521 follow-ups (intake and editor)
 
-| Field  | Value |
-| ------ | ----- |
-| Phase  | 4 — Polish and release |
-| Owner  | Lead (build), Rajesh reviews, Ajay for any new string |
-| Mode   | Full chain (web) |
+| Field  | Value                                                           |
+| ------ | --------------------------------------------------------------- |
+| Phase  | 4 — Polish and release                                          |
+| Owner  | Lead (build), Rajesh reviews, Ajay for any new string           |
+| Mode   | Full chain (web)                                                |
 | Status | To do. Not a v1 blocker except where marked. Priya, 21 Oct 2026 |
-| Source | Kunal's T-521 report; Rajesh and the fifth reviewer |
+| Source | Kunal's T-521 report; Rajesh and the fifth reviewer             |
 
 ## Items
+
 1. `draftActions.ts` Finalise uses raw `fetch` like the editor page. Use `apiFetch` so a 401 after a long generation refreshes the session.
 2. Focus moves to Export on success even if the user tabbed elsewhere while saving. Move it only if focus is still on Finalise.
 3. DraftReadyStep title is `nl-h2`; the page title should be the document name in `nl-h1` (Rajesh).
@@ -25,4 +26,5 @@
 14. The template flow (`dashboard/new`) shows no Ink chip and never refreshes the Ink pill (found by Vishal, T-545). Needs Ajay for any new chip placement.
 
 ## Acceptance criteria
+
 Each item done or moved with a reason; tests for 1, 2 and 5; Rajesh signs the restyled screens.
