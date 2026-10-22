@@ -41,3 +41,7 @@ C. **Yes.** Delete filter matches `_id`, `lockCreatedAt` and `lastLockCreatedAt 
 D. **Leave it, report it.** Do not cancel `adoptTarget` off a stale decision; log `reconcile_adopt_target_superseded` (ids only). Same rule as A.
 
 FYI accepted: per-process busy count; the over-budget path's 2 s link fetch (57 s worst case inside the 60 s TTL).
+
+## Arjun (22 Oct 2026, after the tester) — adopt target
+
+**(b).** Fetch before adopting the same-plan target too, same helper, same budget. Live now → adopt as a live orphan, 409 `subscription_exists`. Strict not-found → skip. Other failure → 503, marker kept. "Razorpay's live status wins" holds for the adopt path as much as the cancel path; one more call on a path that already made several is cheap, and a paid user getting a checkout link is the kind of thing Anushka would file. Tests: paid-between-list-and-adopt → 409, no row with `created`. Fresh tester run on the diff, then the reviewer.
