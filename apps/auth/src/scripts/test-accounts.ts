@@ -8,7 +8,9 @@
  * --older-than takes <n>d or <n>h (default 1d; 0d means every test account). Delete is a dry run
  * unless --apply is given: the dry run only reads and writes nothing. --apply erases each one
  * through the account-erase service (lockAccount onlyIf isTestAccount, then runAccountErase:
- * drafts, documents, ledger, everything). An account with an active plan is skipped.
+ * drafts, documents, ledger, everything). An active (test-mode) plan does not stop it (Arjun,
+ * option c): no cancel call, one 'test_account_erase_with_plan' line, then the erase. Admin and
+ * the golden-set user are never selected; billing unreachable skips the account.
  *
  * Prints user ids and counts only: never an email, a name or a value.
  *
@@ -35,12 +37,15 @@ import { env } from '../config/env';
 import redis from '../config/redis';
 import { User } from '../models/User.model';
 import {
-  GOLDEN_SET_USER_ID,
   fetchSubscriptionStatus,
   lockAccount,
   runAccountErase,
 } from '../services/account-erase.service';
-import { testAccountsOlderThanFilter } from '../services/test-account-sweep.service';
+import {
+  TEST_ACCOUNT_LOCK_FILTER,
+  logTestAccountEraseWithPlan,
+  testAccountsOlderThanFilter,
+} from '../services/test-account-sweep.service';
 /* eslint-enable import/order, import/first */
 
 const DEFAULT_OLDER_THAN = '1d';
@@ -89,11 +94,8 @@ async function main(): Promise<number> {
   await mongoose.connect(env.MONGO_URI, { serverSelectionTimeoutMS: 5000 });
 
   const cutoff = new Date(Date.now() - args.olderThanMs);
-  const rows = await User.find({
-    ...testAccountsOlderThanFilter(cutoff),
-    role: { $ne: 'Admin' },
-    _id: { $ne: new mongoose.Types.ObjectId(GOLDEN_SET_USER_ID) },
-  })
+  // Never Admin or the golden-set user (both in the filter).
+  const rows = await User.find(testAccountsOlderThanFilter(cutoff))
     .select('_id')
     .sort({ createdAt: 1 })
     .lean();
@@ -112,18 +114,29 @@ async function main(): Promise<number> {
     return 0;
   }
 
-  const counts = { found: ids.length, erased: 0, pending: 0, skipped: 0, failed: 0 };
+  const counts = {
+    found: ids.length,
+    erased: 0,
+    pending: 0,
+    skipped: 0,
+    failed: 0,
+    withActivePlan: 0,
+  };
   for (const userId of ids) {
     try {
       const sub = await fetchSubscriptionStatus(userId);
-      if (sub.kind === 'unavailable' || sub.active) {
+      if (sub.kind === 'unavailable') {
         counts.skipped += 1;
-        console.log(
-          `${userId}: skipped (${sub.kind === 'unavailable' ? 'billing unreachable' : 'active plan'})`,
-        );
+        console.log(`${userId}: skipped (billing unreachable)`);
         continue;
       }
-      const locked = await lockAccount(userId, { onlyIf: { isTestAccount: true } });
+      if (sub.active) {
+        // Arjun (option c): erased anyway, no cancel call.
+        counts.withActivePlan += 1;
+        logTestAccountEraseWithPlan(userId, sub.status);
+        console.log(`${userId}: active plan (${sub.status}); erasing anyway`);
+      }
+      const locked = await lockAccount(userId, { onlyIf: TEST_ACCOUNT_LOCK_FILTER });
       if (!locked) {
         counts.skipped += 1;
         console.log(`${userId}: skipped (no longer a due test account)`);

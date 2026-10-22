@@ -1,25 +1,52 @@
 /**
  * T-563 (Arjun reconciled 2; AJ-563-M6) — erases test accounts within 7 days of creation.
  * Modelled on unverified-sweep: find due test accounts, check billing once, conditional lock
- * (onlyIf isTestAccount, one atomic write) then runAccountErase. An erase cut off part-way is
+ * (onlyIf isTestAccount, one atomic write) then runAccountErase. An active (test-mode) plan
+ * does not hold the erase (Arjun, option c): it is logged and the account erased; no cancel.
+ * Billing unreachable still skips (retried next run). An erase cut off part-way is
  * finished by the account-erase sweep. Logs ids and counts only.
  *
  * Always on: it only ever touches isTestAccount accounts, which exist only where the bypass
  * was enabled, and it must keep erasing them after the bypass is turned off.
  */
+import { Types } from 'mongoose';
+
 import logger from '../config/logger';
 import { User } from '../models/User.model';
 
-import { fetchSubscriptionStatus, lockAccount, runAccountErase } from './account-erase.service';
+import {
+  GOLDEN_SET_USER_ID,
+  fetchSubscriptionStatus,
+  lockAccount,
+  runAccountErase,
+} from './account-erase.service';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 export const TEST_ACCOUNT_MAX_AGE_DAYS = 7;
 export const TEST_ACCOUNT_SWEEP_INTERVAL_MS = 60 * 60 * 1000;
 export const TEST_ACCOUNT_SWEEP_BATCH = 50;
 
-/** Test accounts created before `cutoff` and not already being erased. */
+/** Test accounts created before `cutoff`, not already being erased; never Admin or golden-set. */
 export function testAccountsOlderThanFilter(cutoff: Date): Record<string, unknown> {
-  return { isTestAccount: true, createdAt: { $lt: cutoff }, erasure: { $exists: false } };
+  return {
+    isTestAccount: true,
+    createdAt: { $lt: cutoff },
+    erasure: { $exists: false },
+    role: { $ne: 'Admin' },
+    _id: { $ne: new Types.ObjectId(GOLDEN_SET_USER_ID) },
+  };
+}
+
+/** Re-checked inside the lock's own write (lockAccount onlyIf). */
+export const TEST_ACCOUNT_LOCK_FILTER = { isTestAccount: true, role: { $ne: 'Admin' } };
+
+/**
+ * T-563 (Arjun, option c): a test account with an active (test-mode) plan is erased anyway, with
+ * no cancel call; billing /internal/erase-user handles the plan and later webhooks go to the
+ * unknown-user handling. One line, ids and status only. Real accounts keep the refusal.
+ */
+export function logTestAccountEraseWithPlan(userId: string, subscriptionStatus: string): void {
+  logger.warn({ userId, subscriptionStatus }, 'test_account_erase_with_plan');
 }
 
 export interface TestAccountSweepCounts {
@@ -27,7 +54,8 @@ export interface TestAccountSweepCounts {
   erased: number;
   erasePending: number;
   skippedNoLongerDue: number;
-  skippedSubscriptionActive: number;
+  /** Erased (or erase started) although billing reported an active plan. */
+  withActivePlan: number;
   skippedBillingUnavailable: number;
 }
 
@@ -38,7 +66,7 @@ export async function runTestAccountSweep(now: Date = new Date()): Promise<TestA
     erased: 0,
     erasePending: 0,
     skippedNoLongerDue: 0,
-    skippedSubscriptionActive: 0,
+    withActivePlan: 0,
     skippedBillingUnavailable: 0,
   };
   try {
@@ -57,11 +85,10 @@ export async function runTestAccountSweep(now: Date = new Date()): Promise<TestA
         continue;
       }
       if (sub.active) {
-        counts.skippedSubscriptionActive += 1;
-        logger.warn({ userId }, 'Test account erase held: active plan');
-        continue;
+        counts.withActivePlan += 1;
+        logTestAccountEraseWithPlan(userId, sub.status);
       }
-      const locked = await lockAccount(userId, { onlyIf: { isTestAccount: true } });
+      const locked = await lockAccount(userId, { onlyIf: TEST_ACCOUNT_LOCK_FILTER });
       if (!locked) {
         counts.skippedNoLongerDue += 1;
         continue;
