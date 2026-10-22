@@ -300,6 +300,12 @@ const RETRY_LABEL = 'Retry';
 /** T-565 W7 (Ajay): the plan gate's 403. No Retry. */
 const NOT_ON_CURRENT_PLAN = 'This document is not available on your current plan.';
 
+/**
+ * T-565 W12 (Ajay): under a charging button that is off because the Ink cost is unknown. Shown
+ * only in that state; no link, no alert role, no Sentry report.
+ */
+const COST_UNKNOWN_REASON = 'You can generate once the Ink cost is shown.';
+
 /** T-565 W6/W7: failures where retrying cannot help, so the card has no Retry button. */
 const NO_RETRY_FAILURES: ReadonlySet<GenerationFailure> = new Set(['in_progress', 'plan_required']);
 
@@ -459,7 +465,7 @@ function SoftWarnCard({
             onClick={proceed}
             disabled={blocked}
             aria-disabled={blocked ? 'true' : undefined}
-            aria-describedby={showCostLine ? SOFT_WARN_INK_COST_ID : undefined}
+            aria-describedby={SOFT_WARN_INK_COST_ID}
             style={{
               textAlign: 'left',
               fontSize: '13px',
@@ -483,6 +489,12 @@ function SoftWarnCard({
               kind={cost.templateId ?? 'unknown'}
               action="soft_warn"
             />
+          )}
+          {/* T-565 W12 (Ajay): why the button is off, only while the cost is unknown. */}
+          {!showCostLine && (
+            <p id={SOFT_WARN_INK_COST_ID} style={{ margin: 0, fontSize: '12px', color: '#633806' }}>
+              {COST_UNKNOWN_REASON}
+            </p>
           )}
         </div>
         <button
@@ -704,6 +716,9 @@ function GenerationFailedCard({
   // button stays off until the cost is known (T-388), with no notice.
   const blocked = notStarted ? costState === 'loading' : costBlocked(cost);
   const showCostLine = costState !== 'unknown';
+  // T-565 W12 (Ajay): why the button is off, only while the cost is unknown; not on the
+  // not-started card, whose `Try again` stays on.
+  const showCostReason = costState === 'unknown' && !notStarted;
   // T-565 W1/W3/W6/W7 (Ajay): the signed lines for each kind of failure.
   const lines =
     generationFailure === 'not_started'
@@ -761,7 +776,9 @@ function GenerationFailedCard({
                   onClick={blocked ? undefined : onRetry}
                   disabled={blocked}
                   aria-disabled={blocked ? 'true' : undefined}
-                  aria-describedby={showCostLine ? FAILED_RETRY_INK_COST_ID : undefined}
+                  aria-describedby={
+                    showCostLine || showCostReason ? FAILED_RETRY_INK_COST_ID : undefined
+                  }
                   style={{
                     fontSize: '13px',
                     fontWeight: 500,
@@ -785,6 +802,14 @@ function GenerationFailedCard({
                     kind={cost.templateId ?? 'unknown'}
                     action="retry"
                   />
+                )}
+                {showCostReason && (
+                  <p
+                    id={FAILED_RETRY_INK_COST_ID}
+                    style={{ margin: 0, fontSize: '12px', color: '#791F1F' }}
+                  >
+                    {COST_UNKNOWN_REASON}
+                  </p>
                 )}
               </div>
             )}

@@ -86,6 +86,12 @@ async function submitOneStepForm() {
   await click('Generate document');
 }
 
+// jsdom has no TextEncoder/TextDecoder; the page decodes the SSE stream with them.
+beforeAll(() => {
+  const util = jest.requireActual('util') as typeof import('util');
+  Object.assign(globalThis, { TextEncoder: util.TextEncoder, TextDecoder: util.TextDecoder });
+});
+
 beforeEach(() => {
   jest.clearAllMocks();
   mockVerifyInstead = false;
@@ -346,13 +352,110 @@ describe('T-565 W3: gates unchanged', () => {
     expect(labels()).toContain('Generate document');
   });
 
-  it('a 429 is still the stream card (out of this change): `Try again`, no raw reason', async () => {
-    mockPrivacyFetch.mockResolvedValue(reply(429, { error: RAW }));
+  it('a 422 (any other 4xx) still falls to the stream card with Try again', async () => {
+    mockPrivacyFetch.mockResolvedValue(reply(422, { error: RAW }));
     await submitOneStepForm();
     expect(text()).toContain('The draft did not finish.');
     expect(text()).not.toContain(LINE);
     expect(labels()).toContain('Try again');
     expect(labels()).not.toContain('Retry');
     expect(text()).not.toContain(RAW);
+  });
+});
+
+const streamReply = (chunks: string[], failAfter?: number, empty?: boolean) => ({
+  ok: true,
+  status: 200,
+  headers: { get: () => null },
+  body: {
+    getReader: () => {
+      let i = 0;
+      return {
+        read: async () => {
+          if (failAfter !== undefined && i >= failAfter) throw new Error('socket reset');
+          if (i >= chunks.length) return { done: true, value: undefined };
+          const chunk = chunks[i];
+          i += 1;
+          return {
+            done: false,
+            value: empty ? new Uint8Array(0) : new TextEncoder().encode(chunk),
+          };
+        },
+      };
+    },
+  },
+});
+
+describe('T-565 round 3: more pre-stream failures are request_failed', () => {
+  it.each([
+    [401, { error: RAW }],
+    [402, { error: RAW }],
+    [429, { error: RAW }],
+  ])(
+    '%s with no paywall data and no verify gate: the generic line + Retry',
+    async (status, body) => {
+      mockPrivacyFetch.mockResolvedValue(reply(status, body));
+      await submitOneStepForm();
+      expect(count(LINE)).toBe(1);
+      expect(text()).not.toContain(RAW);
+      expect(text()).not.toContain('The draft did not finish.');
+      expect(container.querySelector('[data-testid="paywall"]')).toBeNull();
+      expect(labels()).toContain('Retry');
+      expect(labels()).not.toContain('Try again');
+    },
+  );
+
+  it('a 200 with no body: the generic line + Retry', async () => {
+    mockPrivacyFetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: { get: () => null },
+      body: null,
+    });
+    await submitOneStepForm();
+    expect(count(LINE)).toBe(1);
+    expect(labels()).toContain('Retry');
+    expect(text()).not.toContain('The draft did not finish.');
+  });
+
+  it('the fetch throwing before any data: the generic line + Retry, never the error message', async () => {
+    mockPrivacyFetch.mockRejectedValue(new Error('network down secret'));
+    await submitOneStepForm();
+    expect(count(LINE)).toBe(1);
+    expect(labels()).toContain('Retry');
+    expect(text()).not.toContain('network down secret');
+  });
+
+  it('the read throwing before the first chunk: the generic line + Retry', async () => {
+    mockPrivacyFetch.mockResolvedValue(streamReply([], 0));
+    await submitOneStepForm();
+    expect(count(LINE)).toBe(1);
+    expect(labels()).toContain('Retry');
+    expect(text()).not.toContain('The draft did not finish.');
+  });
+
+  it('an empty first chunk is not data: a throw after it is still the generic line', async () => {
+    mockPrivacyFetch.mockResolvedValue(streamReply(['x'], 1, true));
+    await submitOneStepForm();
+    expect(count(LINE)).toBe(1);
+    expect(labels()).toContain('Retry');
+  });
+
+  it('the read throwing AFTER the first chunk: the stream card with Try again', async () => {
+    mockPrivacyFetch.mockResolvedValue(
+      streamReply(['event: message\ndata: {"text":"partial"}\n\n'], 1),
+    );
+    await submitOneStepForm();
+    expect(text()).toContain('The draft did not finish.');
+    expect(text()).not.toContain(LINE);
+    expect(labels()).toContain('Try again');
+    expect(labels()).not.toContain('Retry');
+  });
+
+  it('the paywall 402 (with data), the verify 402 and the privacy 403 are unchanged', async () => {
+    mockPrivacyFetch.mockResolvedValue(reply(402, { cost: 3, balance: { total: 1 } }));
+    await submitOneStepForm();
+    expect(container.querySelector('[data-testid="paywall"]')).not.toBeNull();
+    expect(text()).not.toContain(LINE);
   });
 });

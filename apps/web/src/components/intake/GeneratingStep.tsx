@@ -7,9 +7,8 @@
  *
  * T-521 (Night Library, spec 04/05): the folio with the inkwell drain and a
  * skeleton ("Still working…" after 8s). What a failure says about Ink is
- * decided in `generationFailure.ts` (Arjun ruling 4): the signed "The draft did
- * not finish. No Ink was used." only for a server error event that is not
- * `insufficient_ink`.
+ * decided in `generationFailure.ts` (Arjun ruling 4; T-567 item 41): "No Ink
+ * was used." only when a server error event confirms the hold was released.
  */
 import { AlertTriangle, Check } from 'lucide-react';
 
@@ -85,6 +84,9 @@ export default function GeneratingStep({
             <AlertTriangle size={20} className="text-nl-err mt-1 flex-none" aria-hidden />
             <div className="min-w-0">
               <h1 className="nl-h3 text-nl-text break-words">{copy.headline}</h1>
+              {copy.statusLine && (
+                <p className="nl-body-sm text-nl-soft mt-nl-1 break-words">{copy.statusLine}</p>
+              )}
               {copy.detail && (
                 <p className="nl-body-sm text-nl-soft mt-nl-1 break-words">{copy.detail}</p>
               )}

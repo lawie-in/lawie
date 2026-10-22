@@ -24,6 +24,7 @@ jest.mock('@sentry/nextjs', () => ({
 
 let container: HTMLDivElement;
 let root: Root;
+const COST_UNKNOWN_REASON = 'You can generate once the Ink cost is shown.';
 const onRetry = jest.fn();
 const onProceedAnyway = jest.fn();
 const onInkCostRetry = jest.fn();
@@ -118,13 +119,16 @@ describe.each(buttons)(
       expect(handler()).toHaveBeenCalledTimes(1);
     });
 
-    it('unknown (T-565 W8): disabled, aria-disabled, no cost line or notice, no describedby, click does not charge', () => {
+    it('unknown (T-565 W8/W12): disabled, aria-disabled, the reason line (no alert, no notice), described by it, click does not charge', () => {
       mount(state, { inkCost: undefined });
       const btn = byLabel(label, nth);
       expect(btn.disabled).toBe(true);
       expect(btn.getAttribute('aria-disabled')).toBe('true');
-      expect(btn.hasAttribute('aria-describedby')).toBe(false);
-      expect(container.querySelector(`#${blockedId}`)).toBeNull();
+      expect(btn.getAttribute('aria-describedby')).toBe(blockedId);
+      const reason = container.querySelector(`#${blockedId}`) as HTMLElement;
+      expect(reason.textContent).toBe(COST_UNKNOWN_REASON);
+      expect(reason.hasAttribute('role')).toBe(false);
+      expect(btn.parentElement?.contains(reason)).toBe(true);
       expect(container.querySelector('[role="alert"]')).toBeNull();
       expect(container.textContent).not.toContain(INK_COST_UNKNOWN);
       expect(container.textContent).not.toContain(INK_COST_RECHECK);
@@ -155,15 +159,18 @@ describe.each(buttons)(
 );
 
 describe('PipelineStatus soft-warn with an unknown cost (T-565 W8)', () => {
-  it('no cost line, no notice, no skip-button line, no Sentry warning', () => {
+  it('the reason line once, no notice, no skip-button line, no Sentry warning', () => {
     mount('soft_warn', { inkCost: undefined });
     expect(container.querySelectorAll('[role="alert"]')).toHaveLength(0);
     expect(container.textContent).not.toContain(INK_COST_UNKNOWN);
-    expect(container.querySelector(`#${SOFT_WARN_INK_COST_ID}`)).toBeNull();
+    expect(container.textContent?.split(COST_UNKNOWN_REASON).length).toBe(2);
+    expect(container.querySelector(`#${SOFT_WARN_INK_COST_ID}`)?.textContent).toBe(
+      COST_UNKNOWN_REASON,
+    );
     expect(container.querySelector('#soft-warn-skip-ink-cost')).toBeNull();
     expect(mockCapture).not.toHaveBeenCalled();
   });
-  it('blocked: the one button has no describedby and stays disabled', () => {
+  it('blocked: the one button is described by the reason line and stays disabled', () => {
     mount('soft_warn', { inkCost: undefined });
     expect(
       Array.from(container.querySelectorAll('button')).filter(
@@ -171,7 +178,7 @@ describe('PipelineStatus soft-warn with an unknown cost (T-565 W8)', () => {
       ),
     ).toHaveLength(1);
     const a = byLabel('Generate anyway', 0);
-    expect(a.hasAttribute('aria-describedby')).toBe(false);
+    expect(a.getAttribute('aria-describedby')).toBe(SOFT_WARN_INK_COST_ID);
     expect(a.disabled).toBe(true);
     expect(a.getAttribute('aria-disabled')).toBe('true');
     act(() => a.click());
@@ -205,11 +212,35 @@ describe('PipelineStatus soft-warn with an unknown cost (T-565 W8)', () => {
     const retry = byLabel('Retry') as HTMLButtonElement;
     expect(retry.disabled).toBe(true);
     expect(retry.getAttribute('aria-disabled')).toBe('true');
-    expect(retry.hasAttribute('aria-describedby')).toBe(false);
+    expect(retry.getAttribute('aria-describedby')).toBe(FAILED_RETRY_INK_COST_ID);
+    expect(container.querySelector(`#${FAILED_RETRY_INK_COST_ID}`)?.textContent).toBe(
+      COST_UNKNOWN_REASON,
+    );
     act(() => retry.click());
     expect(onRetry).not.toHaveBeenCalled();
     expect(onInkCostRetry).not.toHaveBeenCalled();
     expect(mockCapture).not.toHaveBeenCalled();
+  });
+  it.each([
+    ['soft_warn', undefined, 'Generate anyway'],
+    ['generation_failed', 'request_failed', 'Retry'],
+    ['generation_failed', 'stream', 'Try again'],
+  ] as const)(
+    '%s/%s: the reason line is not shown while loading or once known',
+    (state, kind, label) => {
+      mount(state, { inkCost: undefined, inkCostLoading: true, generationFailure: kind });
+      expect(container.textContent).not.toContain(COST_UNKNOWN_REASON);
+      expect(container.textContent).toContain(INK_COST_LOADING);
+      mount(state, { inkCost: 2, generationFailure: kind });
+      expect(container.textContent).not.toContain(COST_UNKNOWN_REASON);
+      expect(container.textContent).toContain('Uses 2 Ink');
+      expect(byLabel(label).disabled).toBe(false);
+    },
+  );
+  it('the not-started card never shows the reason line (its Try again is on)', () => {
+    mount('generation_failed', { inkCost: undefined, generationFailure: 'not_started' });
+    expect(container.textContent).not.toContain(COST_UNKNOWN_REASON);
+    expect(byLabel('Try again').disabled).toBe(false);
   });
   it('request-failed card: loading shows the status line, known shows Uses N Ink', () => {
     mount('generation_failed', {

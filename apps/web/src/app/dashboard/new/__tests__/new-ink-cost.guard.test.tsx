@@ -179,8 +179,10 @@ async function reachNotStartedCard() {
   expect(container.querySelector('#soft-warn-ink-cost')?.textContent).toBe('Uses 3 Ink');
   await act(async () => probe('probe-refetch').click());
   await flush();
-  // T-565 W8: no cost line and no notice on the soft-warn card; its button is blocked
-  expect(container.querySelector('#soft-warn-ink-cost')).toBeNull();
+  // T-565 W8/W12: the soft-warn card shows the reason line (no notice); its button is blocked
+  expect(container.querySelector('#soft-warn-ink-cost')?.textContent).toBe(
+    'You can generate once the Ink cost is shown.',
+  );
   expect(count(INK_COST_UNKNOWN)).toBe(0);
   expect(buttonWith('Generate anyway')!.disabled).toBe(true);
   await act(async () => probe('probe-proceed').click());

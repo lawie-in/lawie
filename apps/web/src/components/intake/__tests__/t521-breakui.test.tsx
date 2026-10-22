@@ -166,6 +166,34 @@ describe('break-ui: failure card', () => {
       />,
     );
 
+  it('GeneratingStep: inkReleased true shows `No Ink was used.` under the headline, not the documents-list line', () => {
+    const { container } = card({
+      reason: 'Stopped.',
+      retryable: true,
+      source: 'error_event',
+      code: 'drafter_failed',
+      inkReleased: true,
+    });
+    const t = container.textContent ?? '';
+    expect(t).toContain('The draft did not finish.');
+    expect(t).toContain('No Ink was used.');
+    expect(t).not.toContain('Check your documents list');
+    expect(t.indexOf('No Ink was used.')).toBeGreaterThan(t.indexOf('The draft did not finish.'));
+    expect(container.querySelector('[data-no-ink-claim="true"]')).not.toBeNull();
+  });
+
+  it('GeneratingStep: an empty reason shows the headline and status line only', () => {
+    const { container } = card({
+      reason: '',
+      retryable: true,
+      source: 'error_event',
+      inkReleased: false,
+    });
+    const t = container.textContent ?? '';
+    expect(t).toContain('The draft did not finish.');
+    expect(t).toContain('Check your documents list');
+  });
+
   it('error event after a long partial draft: the signed line, a very long reason, both actions visible', () => {
     const { container } = card({
       reason: LONG_REASON,
@@ -173,7 +201,9 @@ describe('break-ui: failure card', () => {
       source: 'error_event',
       code: 'drafter_failed',
     });
-    expect(container.textContent).toContain('The draft did not finish. No Ink was used.');
+    expect(container.textContent).toContain('The draft did not finish.');
+    expect(container.textContent).toContain('Check your documents list');
+    expect(container.textContent).not.toContain('No Ink was used');
     expect(container.textContent).toContain(LONG_REASON);
     expect(btnText(container)).toEqual(expect.arrayContaining(['Back to the brief', 'Try again']));
     expect(q('.min-w-0', container)).not.toBeNull();

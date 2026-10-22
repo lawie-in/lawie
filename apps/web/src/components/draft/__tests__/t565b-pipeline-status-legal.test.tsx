@@ -239,8 +239,9 @@ describe('generation failed (W1, W3)', () => {
     expect(btn().disabled).toBe(false);
   });
 
-  it('stream card with an unknown cost: no notice or link, Try again stays disabled', () => {
+  it('stream card with an unknown cost (W12): the reason line, no notice or link, Try again disabled and described by it', () => {
     const text = failedText('stream', { inkCost: undefined, onInkCostRetry: jest.fn() });
+    expect(count(text, 'You can generate once the Ink cost is shown.')).toBe(1);
     expect(text).not.toContain('We could not work out the Ink cost');
     expect(text).not.toContain('Check the cost again');
     const btn = Array.from(container.querySelectorAll('button')).find(
@@ -248,7 +249,11 @@ describe('generation failed (W1, W3)', () => {
     ) as HTMLButtonElement;
     expect(btn.disabled).toBe(true);
     expect(btn.getAttribute('aria-disabled')).toBe('true');
-    expect(btn.hasAttribute('aria-describedby')).toBe(false);
+    const id = btn.getAttribute('aria-describedby') as string;
+    expect(container.querySelector(`#${id}`)?.textContent).toBe(
+      'You can generate once the Ink cost is shown.',
+    );
+    expect(container.querySelector('[role="alert"]')).toBeNull();
   });
 
   it('not retryable: no Try again or Retry button, Edit the form stays', () => {

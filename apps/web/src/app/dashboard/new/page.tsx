@@ -367,6 +367,9 @@ function NewDocumentContent() {
       setGenerationRetryable(true);
       setGenerationFailure('stream');
 
+      // Priya: set once the first stream data arrives. A failure before that means no draft
+      // started (request-failed card); after it, the draft did not finish (stream card).
+      let streamDataSeen = false;
       try {
         const res = await privacyFetch('generate', '/api/documents/generate-from-template', {
           method: 'POST',
@@ -424,7 +427,9 @@ function NewDocumentContent() {
           //     line, no Retry.
           //   403 from the plan gate → `This document is not available on your current plan.`,
           //     no Retry.
-          //   Any other 400/403, a 404 and a 5xx → `Something did not work. Try again.` + Retry.
+          //   Any other 400/403, a 401 (the fetch helper has already tried its token refresh), a
+          //     402 with no paywall data, a 404, a 429 and a 5xx → `Something did not work. Try
+          //     again.` + Retry: no draft started (Priya).
           if (res.status === 409) {
             setGenerationFailure('in_progress');
             setGenerationRetryable(false);
@@ -433,8 +438,11 @@ function NewDocumentContent() {
             setGenerationRetryable(false);
           } else if (
             res.status === 400 ||
+            res.status === 401 ||
+            res.status === 402 ||
             res.status === 403 ||
             res.status === 404 ||
+            res.status === 429 ||
             res.status >= 500
           ) {
             setGenerationFailure('request_failed');
@@ -448,6 +456,8 @@ function NewDocumentContent() {
 
         if (!res.body) {
           setGenerationError('The drafting service returned no response body. Please try again.');
+          // No stream, so no draft started (Priya): the request-failed card with Retry.
+          setGenerationFailure('request_failed');
           setGenerationRetryable(true);
           setPipelineState('generation_failed');
           return;
@@ -468,6 +478,7 @@ function NewDocumentContent() {
             reading = false;
             break;
           }
+          if (value && value.length > 0) streamDataSeen = true;
 
           buffer += decoder.decode(value, { stream: true });
           const lines = buffer.split('\n');
@@ -543,6 +554,8 @@ function NewDocumentContent() {
         const reason =
           err instanceof Error ? err.message : 'Lost connection to the drafting service.';
         setGenerationError(reason);
+        // Priya: a request or read that failed before any stream data started no draft.
+        if (!streamDataSeen) setGenerationFailure('request_failed');
         setGenerationRetryable(true);
         setPipelineState('generation_failed');
       }
