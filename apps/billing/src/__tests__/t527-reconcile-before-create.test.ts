@@ -395,6 +395,7 @@ describe('T-527 AC1/AC2: reconcile before create on subscribe', () => {
     const u = await seedUser();
     await plantMarker(u.userId);
     allMock.mockResolvedValue({ items: [rzpItem(u.userId, sid('auth'), 'authenticated')] });
+    fetchMock.mockResolvedValue({ status: 'authenticated' }); // T-542 (b): Razorpay's status wins
 
     const res = await subscribe(u);
 

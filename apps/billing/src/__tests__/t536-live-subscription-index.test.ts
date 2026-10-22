@@ -1069,7 +1069,10 @@ describe('T-536 2B: reconcile, live index built', () => {
     await plantMarker(u.userId);
     allMock.mockResolvedValue({ items: [rzpItem(u.userId, sid('co-stuck'), 'created', SOLO)] });
     cancelMock.mockRejectedValue(new Error('cannot cancel'));
-    fetchMock.mockRejectedValue(new Error('cannot fetch'));
+    // T-542 (b): the pre-adopt fetch succeeds; only the later fetch (after the failed cancel) rejects.
+    fetchMock
+      .mockResolvedValueOnce({ status: 'created' })
+      .mockRejectedValue(new Error('cannot fetch'));
     const realCreate = Subscription.create.bind(Subscription) as (
       ...a: unknown[]
     ) => Promise<unknown>;

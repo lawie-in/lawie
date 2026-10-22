@@ -479,12 +479,14 @@ describe('T-542 AC1: an orphan checkout is fetched before it is cancelled', () =
       const u = await seedUser();
       await plantMarker(u.userId);
       allMock.mockResolvedValue({ items: [rzpItem(u.userId, sid('tgt3'), 'created', SOLO)] });
-      fetchMock.mockRejectedValue({ statusCode: 404 });
+      // pre-adopt fetch: still a checkout; the fetch before the ~:918 cancel: not found
+      fetchMock.mockResolvedValueOnce({ status: 'created' }).mockRejectedValue({ statusCode: 404 });
       createLosesTo(u, sid('blk3'), 'active');
 
       const out = await recon(u, SOLO);
 
       expect(out.kind).toBe('live');
+      expect(fetchMock).toHaveBeenCalledTimes(2);
       expect(cancelMock).not.toHaveBeenCalled();
       expect(callsFor(errorSpy, NOT_ADOPTED)).toHaveLength(0);
       expect(await markerCount(u.userId)).toBe(0);
@@ -494,7 +496,9 @@ describe('T-542 AC1: an orphan checkout is fetched before it is cancelled', () =
       const u = await seedUser();
       await plantMarker(u.userId);
       allMock.mockResolvedValue({ items: [rzpItem(u.userId, sid('tgt4'), 'created', SOLO)] });
-      fetchMock.mockRejectedValue(Object.assign(new Error('x'), { statusCode: 503 }));
+      fetchMock
+        .mockResolvedValueOnce({ status: 'created' })
+        .mockRejectedValue(Object.assign(new Error('x'), { statusCode: 503 }));
       createLosesTo(u, sid('blk4'), 'active');
 
       await expect(recon(u, SOLO)).rejects.toBeInstanceOf(SubscriptionCancelFailedError);
@@ -519,10 +523,133 @@ describe('T-542 AC1: an orphan checkout is fetched before it is cancelled', () =
 
       await expect(recon(u, SOLO)).rejects.toBeInstanceOf(SubscriptionCancelFailedError);
 
-      expect(fetchMock).not.toHaveBeenCalled();
+      // Only the pre-adopt fetch ran; none after the budget was exceeded.
+      expect(fetchMock).toHaveBeenCalledTimes(1);
       expect(cancelMock).not.toHaveBeenCalled();
       expect(await markerCount(u.userId)).toBe(1);
     });
+  });
+});
+
+// ─── ruling (b): the adopt target is fetched before it is adopted ────────────
+describe('T-542 (b): a same-plan orphan with no local row is fetched before it is adopted', () => {
+  it('paid between list and adopt: adopted as LIVE, no created row, 409 through /subscribe, never cancelled', async () => {
+    const u = await seedUser();
+    await plantMarker(u.userId);
+    allMock.mockResolvedValue({ items: [rzpItem(u.userId, sid('paid-tgt'), 'created', SOLO)] });
+    fetchMock.mockResolvedValue({ status: 'active' });
+
+    const res = await subscribe(u, SOLO);
+
+    expect(res.status).toBe(409);
+    expect(res.body.error).toBe('subscription_exists');
+    expect(fetchMock).toHaveBeenCalledWith(sid('paid-tgt'));
+    expect(createMock).not.toHaveBeenCalled();
+    expect(cancelMock).not.toHaveBeenCalled();
+    const rows = await rowsOf(u.userId);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].status).toBe('active');
+    expect(rows.some((r) => r.status === 'created')).toBe(false);
+    expect(
+      callsFor(warnSpy, 'billing.subscription.reconcile_orphan_checkout_now_live'),
+    ).toHaveLength(1);
+    expect(callsFor(errorSpy, 'billing.subscription.reconcile_adopted_live')).toHaveLength(1);
+    expect(
+      callsFor(errorSpy, 'billing.subscription.reconcile_adopt_target_superseded'),
+    ).toHaveLength(0);
+    expect(await markerCount(u.userId)).toBe(0);
+  });
+
+  it('still created: adopted with Razorpay status (authenticated wins over the list)', async () => {
+    const u = await seedUser();
+    await plantMarker(u.userId);
+    allMock.mockResolvedValue({ items: [rzpItem(u.userId, sid('st-tgt'), 'created', SOLO)] });
+    fetchMock.mockResolvedValue({ status: 'authenticated' });
+
+    const out = await recon(u, SOLO);
+
+    expect(out.kind).toBe('adopted_checkout');
+    expect((await getSub(sid('st-tgt')))!.status).toBe('authenticated');
+  });
+
+  it('not found at the pre-adopt fetch: adopt skipped, no row, no cancel, marker deleted', async () => {
+    const u = await seedUser();
+    await plantMarker(u.userId);
+    allMock.mockResolvedValue({ items: [rzpItem(u.userId, sid('nf-tgt'), 'created', SOLO)] });
+    fetchMock.mockRejectedValue({ statusCode: 404 });
+
+    const out = await recon(u, SOLO);
+
+    expect(out.kind).toBe('none');
+    expect(await getSub(sid('nf-tgt'))).toBeNull();
+    expect(cancelMock).not.toHaveBeenCalled();
+    expect(await markerCount(u.userId)).toBe(0);
+  });
+
+  it('fetch 5xx: 503 through /subscribe, marker kept, nothing adopted, cancelled or created', async () => {
+    const u = await seedUser();
+    await plantMarker(u.userId);
+    allMock.mockResolvedValue({ items: [rzpItem(u.userId, sid('5xx-tgt'), 'created', SOLO)] });
+    fetchMock.mockRejectedValue(Object.assign(new Error('x'), { statusCode: 502 }));
+
+    const res = await subscribe(u, SOLO);
+
+    expect(res.status).toBe(503);
+    expect(await getSub(sid('5xx-tgt'))).toBeNull();
+    expect(cancelMock).not.toHaveBeenCalled();
+    expect(createMock).not.toHaveBeenCalled();
+    expect(await markerCount(u.userId)).toBe(1);
+  });
+
+  it.each(['cancelled', 'completed', 'expired'])(
+    'fetched with terminal status %s: not adopted, not cancelled, one ids/status warn',
+    async (status) => {
+      const u = await seedUser();
+      await plantMarker(u.userId);
+      allMock.mockResolvedValue({
+        items: [rzpItem(u.userId, sid(`t-${status}`), 'created', SOLO)],
+      });
+      fetchMock.mockResolvedValue({ status });
+
+      const out = await recon(u, SOLO);
+
+      expect(out.kind).toBe('none');
+      expect(await getSub(sid(`t-${status}`))).toBeNull();
+      expect(cancelMock).not.toHaveBeenCalled();
+      const w = callsFor(warnSpy, 'billing.subscription.reconcile_adopt_target_not_checkout');
+      expect(w).toHaveLength(1);
+      expect(JSON.stringify(w[0][0])).toContain(status);
+      expect(observed()).not.toContain('leak-canary');
+    },
+  );
+
+  it('budget exceeded before the pre-adopt fetch: no fetch, no adopt, 503, marker kept', async () => {
+    useSkewedClock();
+    const u = await seedUser();
+    await plantMarker(u.userId);
+    allMock.mockImplementation(async () => {
+      skew = CREATE_LOCK_BUDGET_MS + 5_000;
+      return { items: [rzpItem(u.userId, sid('bud-tgt'), 'created', SOLO)] };
+    });
+
+    const res = await subscribe(u, SOLO);
+
+    expect(res.status).toBe(503);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(await getSub(sid('bud-tgt'))).toBeNull();
+    expect(await markerCount(u.userId)).toBe(1);
+  });
+
+  it('a target with a local row is reused without a fetch', async () => {
+    const u = await seedUser();
+    await plantMarker(u.userId);
+    await seedRow(u.userId, sid('row-tgt'), 'created', SOLO);
+    allMock.mockResolvedValue({ items: [rzpItem(u.userId, sid('row-tgt'), 'created', SOLO)] });
+
+    const out = await recon(u, SOLO);
+
+    expect(out.kind).toBe('adopted_checkout');
+    expect(fetchMock).not.toHaveBeenCalledWith(sid('row-tgt'));
   });
 });
 

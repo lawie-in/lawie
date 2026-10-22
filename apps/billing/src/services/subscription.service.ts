@@ -829,13 +829,14 @@ async function syncLocalToLive(
 
 /**
  * T-542 (Arjun): read an orphan checkout's status at Razorpay right before it
- * would be cancelled, since the list may be stale (paid since). Razorpay
+ * is cancelled or adopted, since the list may be stale (paid since). Razorpay
  * saying the id does not exist (isRazorpayNotFound, as cancelNowAtRazorpay)
- * gives { notFound: true }: already ended, the caller skips the cancel. Any
+ * gives { notFound: true }: already ended, the caller skips the cancel or
+ * adopt. Any
  * other failure (timeout, auth, 5xx) throws SubscriptionCancelFailedError
  * (503, marker kept). Logs ids only.
  */
-async function fetchOrphanStatusBeforeCancel(
+async function fetchOrphanStatusAtRazorpay(
   userId: string,
   razorpaySubscriptionId: string,
 ): Promise<{ notFound: true } | { notFound: false; status: unknown }> {
@@ -980,7 +981,7 @@ export async function reconcileRazorpaySubscriptions(
       // since the list was read. Fetched first; live now means it is a live
       // orphan (adopted or reported below, never cancelled).
       checkReconcileBudget(userId, opts.lockedAt);
-      const fetched = await fetchOrphanStatusBeforeCancel(userId, c.item.id);
+      const fetched = await fetchOrphanStatusAtRazorpay(userId, c.item.id);
       // T-542 (Arjun): not at Razorpay: already ended, nothing to cancel.
       if (fetched.notFound) continue;
       const rzpStatus = fetched.status;
@@ -1021,6 +1022,46 @@ export async function reconcileRazorpaySubscriptions(
     }
   }
 
+  // T-542 (Arjun, ruling (b)): a row-less adopt target is fetched before it is
+  // adopted; Razorpay's status wins over the list snapshot. Live now: a live
+  // orphan (adopted as live below, the 409; no 'created' row). Not found, or
+  // no longer a checkout: treated as ended, not adopted. Any other fetch
+  // failure: 503, marker kept. A target with a local row is reused as before.
+  // A target already superseded by a late-live orphan (D below) is decided
+  // first and never fetched: it is neither adopted nor cancelled anyway.
+  const supersededTarget = adoptTarget && liveOrphans.length > 0 ? adoptTarget : undefined;
+  if (supersededTarget) adoptTarget = undefined;
+  if (adoptTarget && !adoptTarget.row) {
+    checkReconcileBudget(userId, opts.lockedAt);
+    const fetched = await fetchOrphanStatusAtRazorpay(userId, adoptTarget.item.id);
+    const rzpStatus = fetched.notFound ? undefined : fetched.status;
+    if (isLiveRazorpayStatus(rzpStatus)) {
+      logger.warn(
+        { userId, subscriptionId: adoptTarget.item.id, status: rzpStatus },
+        'billing.subscription.reconcile_orphan_checkout_now_live',
+      );
+      const nowLive: RazorpaySubItem = { ...adoptTarget.item, status: rzpStatus };
+      const at = liveOrphans.findIndex((o) => o.createdAt < nowLive.createdAt);
+      if (at === -1) liveOrphans.push(nowLive);
+      else liveOrphans.splice(at, 0, nowLive);
+      adoptTarget = undefined;
+    } else if (isSubscriptionStatus(rzpStatus) && CHECKOUT_STATUSES.includes(rzpStatus)) {
+      adoptTarget = { ...adoptTarget, item: { ...adoptTarget.item, status: rzpStatus } };
+    } else {
+      if (!fetched.notFound) {
+        logger.warn(
+          {
+            userId,
+            subscriptionId: adoptTarget.item.id,
+            status: typeof rzpStatus === 'string' ? rzpStatus : null,
+          },
+          'billing.subscription.reconcile_adopt_target_not_checkout',
+        );
+      }
+      adoptTarget = undefined;
+    }
+  }
+
   // T-536 (Arjun ruling 2B): the live orphans, only now that this user's own
   // checkouts are cancelled. The newest is adopted and reported as before.
   // Any other is a second paid sub for this user: reported for ops (error log
@@ -1058,14 +1099,15 @@ export async function reconcileRazorpaySubscriptions(
   // one turned live in the cancel loop (fetched as paid). The target is then
   // neither adopted nor cancelled (a sub is only cancelled on an explicit
   // decision); it is reported for ops, ids only.
-  if (adoptTarget && liveOrphans.length > 0) {
+  // (Decided above, before the pre-adopt fetch; reported here, once the
+  // answering orphan id is known.)
+  if (supersededTarget) {
     reportLiveConflict(
       'billing.subscription.reconcile_adopt_target_superseded',
       userId,
-      adoptTarget.item.id,
+      supersededTarget.item.id,
       orphanAnswerId,
     );
-    adoptTarget = undefined;
   }
 
   let adopted: ReconcileOutcome | undefined;
@@ -1082,7 +1124,7 @@ export async function reconcileRazorpaySubscriptions(
       // index will not take; reported like any unadopted live orphan, never
       // cancelled here.
       checkReconcileBudget(userId, opts.lockedAt);
-      const fetched = await fetchOrphanStatusBeforeCancel(userId, adoptTarget.item.id);
+      const fetched = await fetchOrphanStatusAtRazorpay(userId, adoptTarget.item.id);
       if (fetched.notFound) {
         // T-542 (Arjun): not at Razorpay: already ended, nothing to cancel.
       } else if (isLiveRazorpayStatus(fetched.status)) {
