@@ -23,6 +23,8 @@ import {
   getSubscriptionStatus,
   handleWebhookEvent,
   NoLiveSubscriptionError,
+  recordWebhookAdoptBusy,
+  SubscriptionAdoptBusyError,
   SubscriptionCancelFailedError,
   SubscriptionCreateUnknownOutcomeError,
   SubscriptionExistsError,
@@ -551,11 +553,29 @@ router.post('/webhook/razorpay', async (req: Request, res: Response) => {
   // T-413: ack only after the handler succeeds. A thrown error (e.g. a failed Ink
   // grant) returns 500 so Razorpay retries; T-399's per-cycle claim, rolled back on a
   // failed grant, makes that retry grant exactly once. Fixed 500 body, nothing from err.
+  // T-558: the Razorpay sub id (if any) for the per-process adopt-busy count.
+  const subEntity = (payload.payload.subscription as { entity?: { id?: unknown } } | undefined)
+    ?.entity;
+  const webhookSubId = typeof subEntity?.id === 'string' ? subEntity.id : undefined;
   try {
     await handleWebhookEvent(payload.event, payload.payload);
   } catch (err: unknown) {
     // T-323: no err.message or stack (a duplicate-key message carries the duplicate value).
     const e = err as { name?: unknown; code?: unknown } | null | undefined;
+    // T-558 (Arjun): the webhook adopt found the user's create lock held (a
+    // subscribe or another adopt). 500 so Razorpay retries, but not an alert:
+    // a warn only. One Sentry event when the same sub id is busy on
+    // ADOPT_BUSY_REPEAT_THRESHOLD consecutive deliveries (counted per process).
+    if (err instanceof SubscriptionAdoptBusyError || e?.name === 'SubscriptionAdoptBusyError') {
+      logger.warn(
+        { event: payload.event, subId: webhookSubId, errorName: e?.name },
+        'Webhook subscription adopt busy (create lock held); asking Razorpay to retry',
+      );
+      recordWebhookAdoptBusy(webhookSubId, true);
+      res.status(500).json({ error: 'Internal Server Error' });
+      return;
+    }
+    recordWebhookAdoptBusy(webhookSubId, false);
     // T-415: another attempt holds a fresh grant claim (normal for the order.paid +
     // payment.captured pair). 500 so Razorpay retries, but it is not an alert.
     if (err instanceof GrantClaimBusyError || e?.name === 'GrantClaimBusyError') {
@@ -601,6 +621,7 @@ router.post('/webhook/razorpay', async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Internal Server Error' });
     return;
   }
+  recordWebhookAdoptBusy(webhookSubId, false);
   res.json({ status: 'ok' });
 });
 
