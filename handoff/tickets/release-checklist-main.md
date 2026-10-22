@@ -55,3 +55,9 @@ Several web tests read `handoff/legal/*` at test time (for example the byte-for-
 5. If there are duplicates: for each user pick the real row and set the other to a terminal status by hand. Re-run until exit 0. The script never writes.
 6. After deploy the index builds at boot. If duplicates remain, billing logs "live index create failed" plus a Sentry error and still starts, with the guard off. Fix the duplicates and restart billing.
 Repeat on production before main (there are no production subscriptions yet, so the check should be clean).
+
+## T-563 test sign-up bypass: founder steps and conditions (22 Oct 2026; Arjun's design, Ajay AJ-563-M1a/M2a/M6a)
+- Before it is enabled on develop: `test.lawie.in` must have NO MX record and never receive mail (DNS check by the founder). The server refuses the bypass for any other domain.
+- The founder generates the secret himself (`openssl rand -hex 32`, `lts_` prefix per Arjun's design), sets `TEST_SIGNUP_BYPASS=true` and `TEST_SIGNUP_BYPASS_SECRET` on the develop box, and `LAWIE_TEST_SIGNUP_SECRET` in the cloud-session environment. Never in a file, chat, ticket or log.
+- Production: BOTH `TEST_SIGNUP_BYPASS` and `TEST_SIGNUP_BYPASS_SECRET` ABSENT. Production boot refuses to start if either is set.
+- Test accounts are synthetic only (consent version `test-bypass`, excluded from consent exports); retention 30 days, same day if any real personal data is found. Founder runs the list/delete scripts (dry-run first).
