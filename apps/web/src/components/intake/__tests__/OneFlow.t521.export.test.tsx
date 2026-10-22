@@ -1,6 +1,6 @@
 // T-521: on the ready view, Export routes to the editor's export (/dashboard/documents/:id#export)
-// and Open in editor routes without the hash. The "{n} Ink used" chip carries the cost known
-// before the draft started.
+// and Open in editor routes without the hash. The "{n} Ink used" chip carries the Ink the server
+// says it settled (done.inkDebited, T-545), never the quote known before the draft started.
 import { TextDecoder as NodeTextDecoder, TextEncoder as NodeTextEncoder } from 'util';
 
 import { act } from 'react';
@@ -125,10 +125,19 @@ describe('OneFlow ready view (T-521)', () => {
     expect(push).toHaveBeenLastCalledWith('/dashboard/documents/doc77');
   });
 
-  it('shows the cost known before the draft started as "4 Ink used"', async () => {
-    await toReady({ docId: 'doc77' });
-    expect(container.textContent?.replace(/\s+/g, ' ')).toContain('4 Ink used');
+  it('shows the Ink the server debited (done.inkDebited) as "3 Ink used", not the 4 Ink quote', async () => {
+    await toReady({ docId: 'doc77', inkDebited: 3 });
+    const text = container.textContent?.replace(/\s+/g, ' ') ?? '';
+    expect(text).toContain('3 Ink used');
+    expect(text).not.toContain('4 Ink used');
     expect(container.innerHTML.toLowerCase()).not.toContain('regenerate');
+  });
+
+  it('a done event without inkDebited shows no chip, even though the quote is 4 Ink', async () => {
+    await toReady({ docId: 'doc77' });
+    expect(container.textContent).toContain('Your draft is ready');
+    expect(container.textContent).not.toContain('Ink used');
+    expect(container.querySelector('[data-testid="ink-used-chip"]')).toBeNull();
   });
 
   it('a draft with no saved document id offers no Export route', async () => {
