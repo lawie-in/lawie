@@ -112,6 +112,17 @@ async function signUpToCheckEmail() {
   await submit();
 }
 
+// The page posts to `${NEXT_PUBLIC_API_URL}/api/auth/...`. CI has no value for it (a dev shell may),
+// which made the URL "undefined/api/auth/register", missed the fetch fake and showed the S8 error.
+const realApiUrl = process.env.NEXT_PUBLIC_API_URL;
+beforeAll(() => {
+  process.env.NEXT_PUBLIC_API_URL = 'http://api.test';
+});
+afterAll(() => {
+  if (realApiUrl === undefined) delete process.env.NEXT_PUBLIC_API_URL;
+  else process.env.NEXT_PUBLIC_API_URL = realApiUrl;
+});
+
 beforeEach(() => {
   window.sessionStorage.clear();
   window.localStorage.clear();
