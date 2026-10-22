@@ -140,3 +140,17 @@ MUST: 0.1, 0.2, 1–14, 23, 29–43, 54–65 (43 items, counting 0.1 and 0.2). S
 | 41d | Hindi | The server sends a code. The web shows the signed EN or HI from its own strings (`ड्राफ़्ट पूरा नहीं बना।` / `कोई Ink नहीं कटा।`, AJ-539-M2). The server's English text goes to logs only. |
 | 24 | {n} in the rate-limit line | Compute {n} from the reset time (`Retry-After`), rounded up to whole minutes, with a minimum of 1. Use the T-221 variants: n = 1 gives the one-minute line, and no Retry-After gives the generic `Too many requests. Please wait a few minutes, then try again.` It applies to both limiters (60 s and 15 min). |
 | 25 | welcome.tsx footer (after T-559) | footer1: the reset mail's street-address builder. footer2 `You are receiving this because you have a Lawie account.` footer3 `Help, data and privacy requests: contact@lawie.in` footer4 `Privacy Policy: https://lawie.in/privacy · Terms: https://lawie.in/terms`. **Keep** `Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.` (pinned by the T-557 test). |
+
+## Answers to T-564 questions (Kunal, 22 Oct)
+
+| Ref | Question | Ruling |
+|---|---|---|
+| A1 | Refunds "Last updated" | `22 October 2026`. |
+| A2 | Rest of the Refunds page | (a) Meta description: `Lawie's refund policy for plans and Ink top-up packs.` (b) Keep the billing-contact paragraph as it is (contact@). (c) Keep `This policy is governed by Indian law.` as it is. |
+| A3 | Annual-plan mentions in the Terms | **No change to the Terms.** The removal applies to the Refunds page only. The T-433 sentence and §6 "monthly or annual basis" are conditional and true, so they stay as pinned. |
+| A4 | Lines that now contradict Refunds paragraph 2 | Terms payments sentence: `All payments are non-refundable, except as set out in our Refund Policy. This does not affect any right you have under law.` (reuse version `2026-10-22`, no prod acceptance yet). FAQ refunds answer: `Payments are non-refundable once the plan period has started or the Ink has been added. If you were charged twice or by mistake, write to contact@lawie.in within 30 days. See the Refund Policy.` `nl-copy.ts:148`: replace "are not refunded; see the Refund Policy." with `are non-refundable except as set out in the Refund Policy.` |
+| A5 | FAQ document list | Use the Q4 list (`nl-copy.ts:140`), minus every type not live in the v1 picker on develop. If civil packs are off, drop `plaints` and `written statements`. Both FAQ lists must match. Priya confirms the live list. |
+| A6 | Contact page | (a) Meta: `Email contact@lawie.in.` (b) Hero: `Email is the fastest way to reach us.` (c) Delete the "We typically reply within 24 hours." paragraph. |
+| A7 | Where "Top-up Ink stays." goes | Straight after `Ink you already have stays until then.` |
+| A8 | Custody-limits line | OK: `…default bail eligibility dates under BNSS for an arrest on or after 1 July 2024.` |
+| A9 | About paragraph 3 | Keep it as it is (signed now). It describes the problem, not a product claim. |
