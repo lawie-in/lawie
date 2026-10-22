@@ -41,3 +41,5 @@ Ajay's conditions for that cleanup (21 Oct 2026): (a) count first; the filter ma
 
 ## Flags list (22 Oct 2026)
 T-540 adds the AppSettings key `feature.coupon_free_grant` (default OFF). Turn it on only after T-553 (TopUpModal granted and 409 states) has shipped. Follow-ups after T-540: T-551 (invoice discount line), T-552 ("Coupon, ₹0" history row), T-553.
+
+T-540: switch `feature.coupon_free_grant` stays OFF until T-553 AND T-556 item 1 have shipped. While off, a 100% coupon shows "cannot apply".
