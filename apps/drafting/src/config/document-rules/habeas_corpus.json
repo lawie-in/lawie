@@ -241,7 +241,7 @@
   "verificationTemplate": "VERIFICATION\n\nI, {petitioner_name}, son/daughter/wife of {petitioner_father_name}, aged about {petitioner_age} years, resident of {petitioner_address}, the Petitioner herein (filing as next friend of the detenu Shri/Smt. {detenu_name}), do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above petition are true and correct to my personal knowledge save and except such facts as are gathered from sources stated, which I believe to be true. No part is false and nothing material has been concealed.\n\nVerified at {place} on this {date}.\n\nPetitioner / Next Friend",
   "prompt_context": {
     "promptInstructions": [
-      "Draft a petition for writ of HABEAS CORPUS — the great writ of liberty. 'habeas corpus is the great writ of liberty.'",
+      "Draft a petition for writ of HABEAS CORPUS — the great writ of liberty.",
       "Cause-title MUST mention Article 226 (HC) and/or Article 32 (SC) read with Article 21 and Article 22.",
       "URGENCY language must be drafted into the body — habeas listings are usually obtained within 24-48 hours.",
       "Petitioner may be 'next friend' — relaxed locus. any person genuinely interested can file.",

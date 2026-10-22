@@ -367,7 +367,7 @@
     "grantor_age >= 18",
     "attorney_age >= 18",
     "powers_scope must contain at least 1 enumerated power",
-    "if includes_power_to_sell == 'yes_flag_title_warning' — title clause paragraph must be inserted",
+    "if includes_power_to_sell == 'yes_flag_title_warning' — title clause must be inserted",
     "if registration_or_notarisation == 'registered_under_S17_Registration_Act' — stamp duty must reflect registration schedule",
     "if state == 'executed_abroad' — registration_or_notarisation must be 'consulate_attested_if_grantor_abroad' or 'apostilled_if_grantor_in_apostille_country'",
     "duration field must be specified",
