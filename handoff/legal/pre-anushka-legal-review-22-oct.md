@@ -129,3 +129,14 @@ Remove every mention of annual plans until one is sold.
 ## Count
 
 MUST: 0.1, 0.2, 1–14, 23, 29–43, 54–65 (43 items, counting 0.1 and 0.2). SHOULD/NOTE: the rest.
+
+## Answers to T-567 questions (Mahak via Priya, 22 Oct)
+
+| Ref | Question | Ruling |
+|---|---|---|
+| 41a | AppSettingMissing / auth-config failures | Yes. Every server failure before `done` shows `The draft did not finish.` The configuration detail goes to logs only. |
+| 41b | When to show "No Ink was used." | **Only where the route has released the hold before sending the error event** (the T-521 rule in `generationFailure.ts`). `classifyLlmError` only labels the failure and never decides the Ink line. If the route cannot confirm the release, show no Ink line, and add the neutral `Check your documents list to see where this draft stands.` |
+| 41c | rate_limited, NETWORK | Yes: both show `The draft did not finish.`, with the Ink line per 41b. |
+| 41d | Hindi | The server sends a code. The web shows the signed EN or HI from its own strings (`ड्राफ़्ट पूरा नहीं बना।` / `कोई Ink नहीं कटा।`, AJ-539-M2). The server's English text goes to logs only. |
+| 24 | {n} in the rate-limit line | Compute {n} from the reset time (`Retry-After`), rounded up to whole minutes, with a minimum of 1. Use the T-221 variants: n = 1 gives the one-minute line, and no Retry-After gives the generic `Too many requests. Please wait a few minutes, then try again.` It applies to both limiters (60 s and 15 min). |
+| 25 | welcome.tsx footer (after T-559) | footer1: the reset mail's street-address builder. footer2 `You are receiving this because you have a Lawie account.` footer3 `Help, data and privacy requests: contact@lawie.in` footer4 `Privacy Policy: https://lawie.in/privacy · Terms: https://lawie.in/terms`. **Keep** `Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.` (pinned by the T-557 test). |
