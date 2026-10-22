@@ -874,8 +874,11 @@ function OneFlowSteps({
           disclaimer:
             typeof done.disclaimer === 'string' ? done.disclaimer : (factCheck?.disclaimer ?? null),
           ...(rendered ? { rendered } : {}),
-          // T-521: the cost checked as known before the draft started (T-388).
-          ...(typeof cost === 'number' ? { inkUsed: cost } : {}),
+          // T-545: the Ink the server says it settled, and nothing else (never the quote).
+          // Absent (no settle), 0 or not a number: no chip.
+          ...(typeof done.inkDebited === 'number' && done.inkDebited > 0
+            ? { inkUsed: done.inkDebited }
+            : {}),
         });
         setPhase('ready');
       } catch {

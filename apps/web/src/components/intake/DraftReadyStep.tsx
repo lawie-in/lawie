@@ -75,7 +75,7 @@ export default function DraftReadyStep({
   const docId = result.docId;
   const finalised = finalise === 'done';
   const saving = finalise === 'saving';
-  // Ajay (AJ-521-M1 to M8): the chip shows the real debit only, never "0 Ink used". Unknown,
+  // Ajay (AJ-521-M4): the chip shows the real debit only, never "0 Ink used". Unknown,
   // zero or not a finite number: no chip. A failed draft never reaches this screen.
   const inkUsed =
     typeof result.inkUsed === 'number' && Number.isFinite(result.inkUsed) && result.inkUsed > 0

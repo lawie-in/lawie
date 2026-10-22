@@ -284,9 +284,10 @@ export interface DraftResult {
    */
   rendered?: RenderedClause[];
   /**
-   * T-521: the Ink this draft used, as the client knew it when the draft started
-   * (the template-configs price; T-388: the cost shown is the cost charged).
-   * Absent when it was not known; the chip is then not shown.
+   * T-545: the Ink actually debited for this draft, from the `done` event's
+   * `inkDebited` (in Ink, so .5 is possible). Never the quoted cost. Set only
+   * when the server sent a number above 0; absent otherwise, and the chip is
+   * then not shown.
    */
   inkUsed?: number;
 }
