@@ -1,4 +1,5 @@
-// T-433: plan Ink expires monthly (yearly included, no carry); top-up Ink never expires.
+// T-433: plan Ink expires monthly (yearly included, no carry); top-up Ink does not expire while
+// the account is open and ends at closure (T-541).
 // Pins Ajay's signed strings (handoff/legal/T-433-ink-expiry-wording-signed.md, 925bc30, and
 // Addendum 2 of T-238-pricing-page-lines-signed.md, 74fe979) word for word, and his rule:
 // no web string contains "rolls over", "roll over" or "carry over" except the signed negative lines.
@@ -44,7 +45,7 @@ const norm = (s: string) => s.replace(/\s+/g, ' ');
 const MODAL_PLAN_LINE =
   'Plan Ink resets each month; top-up Ink does not expire while your account is open';
 const TERMS_SENTENCES =
-  'Plan Ink is given for each month of your plan, including on annual plans. Plan Ink left unused at the end of that month expires and does not carry over. Top-up Ink you buy separately never expires.';
+  'Plan Ink is given for each month of your plan, including on annual plans. Plan Ink left unused at the end of that month expires and does not carry over. Top-up Ink you buy separately does not expire while your account is open. It ends when your account is closed.';
 const TERMS_ANCHOR = 'a failed generation is not charged. ';
 const FAQ_COST_LINE = 'You see the Ink cost before you generate a draft.';
 const FAQ_EXPIRY =
@@ -107,8 +108,8 @@ describe('T-433 Terms §6', () => {
     expect(text).toContain(TERMS_ANCHOR + TERMS_SENTENCES);
   });
 
-  it('bumped Last updated to 14 October 2026; T-436 moved it on to 15 October 2026', () => {
-    expect(norm(render(<TermsPage />))).toContain('Last updated: 15 October 2026');
+  it('Last updated: bumped to 14 October (T-433), 15 October (T-436), now 22 October 2026 (T-541)', () => {
+    expect(norm(render(<TermsPage />))).toContain('Last updated: 22 October 2026');
   });
 
   it('has no unsigned rollover / carry wording', () => {

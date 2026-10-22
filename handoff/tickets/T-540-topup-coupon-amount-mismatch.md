@@ -36,3 +36,15 @@ A guard in TopUpModal: if `order.amountInr` differs from the displayed total, Ch
 - The ₹0 rule is (a): a free-grant path with no Razorpay order. A 100% coupon grants the Ink directly and shows "Coupon, ₹0" in billing history, with no tax invoice. A partial coupon gets the normal T-436 invoice with a discount line.
 - Build rules: the coupon usage count is atomic at the grant; `maxUses` and `maxUsesPerUser` are mandatory for any coupon that can reach 100%; a final amount between 0 and 100 paise (exclusive) rounds to ₹1 inside the quote function; the list value is logged without personal data.
 - The 409 for a ₹0 quote is replaced by this free-grant path.
+
+## Arjun (22 Oct 2026) — three calls after Explore (Shashank)
+
+1. **Free grant behind a switch — (b), but as an AppSettings key, not an env var.** `feature.coupon_free_grant` (global, env fallback `FEATURE_DEFAULT_COUPON_FREE_GRANT`, default `off`), the same shape as `feature.fact_ledger`: the founder flips it in mongosh, no redeploy, no new line in any env file. Off → a ₹0 quote returns `409 coupon_invalid` ("This coupon cannot be applied to this item"), nothing granted. On → `{ status: 'granted', grant: { ink, couponCode, ledgerKey } }` and **no `data`**, so today's web cannot open Checkout on it. The web's granted state (T-535's guard) lands before the key is turned on. The server never sends `amountInr: 0` with an `orderId`.
+2. **Validate: optional auth, drop the `userId` query param.** JWT present → its `sub` drives `maxUsesPerUser`; anonymous → no per-user check, and the response says `perUserChecked: false` so the web can re-validate after login. Order and free-grant always check it, atomically.
+3. **Follow-ups, not T-540:** the partial-coupon invoice discount line (invoice.service, Invoice.model, PDF) and the "Coupon, ₹0" billing-history row (new route + web). T-540's invoice stays at the charged amount, which is the net taxable value, so GST is right; it lacks the discount line until the follow-up. Priya posts both; Vikram's ruling names them.
+
+Small things: all agreed — `coupon_grant` ledger reason (admin revenue stays honest), charged amount in ledger metadata, `CouponUsage.orderId` holds the ledger key for free grants, admin create rejects fractional fixed values and any coupon that can reach 100 % without non-zero `maxUses` and `maxUsesPerUser`.
+
+## Arjun (22 Oct 2026) — whole rupees
+
+(a). Inside `quoteTopup()`, a percent discount rounds to whole rupees: `discountPaise = Math.round(originalPaise * value / 100 / 100) * 100`. Every final amount is whole rupees and integer paise; today's web (`amountInr * 100`) stays exact. The order and validate responses also carry `amountPaise`, so the web can switch to it in its own ticket without another server change. The whole-rupee rule is written into the quote tests (10 % of ₹199 → ₹20 off → ₹179).
