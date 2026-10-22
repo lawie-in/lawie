@@ -35,6 +35,9 @@ function expected(
   allow: string | undefined,
   guard: string | undefined,
 ): Expected {
+  // T-558 (Arjun): a value outside {unset,'','true'} / {unset,'','strict'} refuses in every NODE_ENV.
+  if (allow !== undefined && allow !== '' && allow !== 'true') return 'refuse';
+  if (guard !== undefined && guard !== '' && guard !== 'strict') return 'refuse';
   const prod = nodeEnv === 'production';
   if (kind === 'live') return prod ? 'ok' : 'refuse';
   if (!prod) return 'ok';
@@ -46,31 +49,34 @@ function expected(
 const matrix = NODE_ENVS.flatMap((n) =>
   KINDS.flatMap((k) => ALLOWS.flatMap((a) => GUARDS.map((g) => [n, k, a, g] as const))),
 );
+const validEnumValues = (a: string | undefined, g: string | undefined) =>
+  (a === undefined || a === '' || a === 'true') && (g === undefined || g === '' || g === 'strict');
 const show = (v: string | undefined) => (v === undefined ? 'unset' : JSON.stringify(v));
 
 describe('T-527 AC5: checkRazorpayKeyMode (pure)', () => {
   const { checkRazorpayKeyMode } = jest.requireActual<typeof EnvModule>('../config/env');
 
-  it.each(matrix.map(([n, k, a, g]) => [n, k, show(a), show(g), a, g] as const))(
-    '%s + %s key + ALLOW %s + GUARD %s',
-    (nodeEnv, kind, _a, _g, allow, guard) => {
-      const k = key(kind);
-      const res = checkRazorpayKeyMode(nodeEnv, k, allow === 'true', guard === 'strict');
-      const want = expected(nodeEnv, kind, allow, guard);
+  it.each(
+    matrix
+      .filter(([, , a, g]) => validEnumValues(a, g))
+      .map(([n, k, a, g]) => [n, k, show(a), show(g), a, g] as const),
+  )('%s + %s key + ALLOW %s + GUARD %s', (nodeEnv, kind, _a, _g, allow, guard) => {
+    const k = key(kind);
+    const res = checkRazorpayKeyMode(nodeEnv, k, allow === 'true', guard === 'strict');
+    const want = expected(nodeEnv, kind, allow, guard);
 
-      if (want === 'ok') expect(res).toEqual({ ok: true });
-      else if (want === 'refuse') expect(res).toEqual({ ok: false, reason: expect.any(String) });
-      else expect(res).toEqual({ ok: true, level: want, message: expect.any(String) });
+    if (want === 'ok') expect(res).toEqual({ ok: true });
+    else if (want === 'refuse') expect(res).toEqual({ ok: false, reason: expect.any(String) });
+    else expect(res).toEqual({ ok: true, level: want, message: expect.any(String) });
 
-      // No compat alias and nothing carrying the key value.
-      expect(res).not.toHaveProperty('warn');
-      const printed = JSON.stringify(res);
-      expect(printed).not.toContain(k);
-      expect(printed).not.toContain(TAIL);
-      const text = 'reason' in res ? res.reason : 'message' in res ? res.message : '';
-      if (want !== 'ok') expect(text.length).toBeGreaterThan(0);
-    },
-  );
+    // No compat alias and nothing carrying the key value.
+    expect(res).not.toHaveProperty('warn');
+    const printed = JSON.stringify(res);
+    expect(printed).not.toContain(k);
+    expect(printed).not.toContain(TAIL);
+    const text = 'reason' in res ? res.reason : 'message' in res ? res.message : '';
+    if (want !== 'ok') expect(text.length).toBeGreaterThan(0);
+  });
 
   it('strictGuard defaults to false (production + test key boots with level error)', () => {
     expect(checkRazorpayKeyMode('production', key('test'), false)).toEqual({
@@ -160,7 +166,14 @@ describe('T-527 AC5: loadEnv (superRefine -> exit)', () => {
         expect(exitSpy).toHaveBeenCalledWith(1);
         expect(String(threw)).toBe('Error: exit:1');
         const printed = JSON.stringify(consoleErr.mock.calls);
-        expect(printed).toContain('RAZORPAY_KEY_ID');
+        // An out-of-enum value names its own variable; otherwise the key rule names RAZORPAY_KEY_ID.
+        if (allow !== undefined && allow !== '' && allow !== 'true') {
+          expect(printed).toContain('RAZORPAY_ALLOW_TEST_KEYS');
+        }
+        if (guard !== undefined && guard !== '' && guard !== 'strict') {
+          expect(printed).toContain('RAZORPAY_KEY_GUARD');
+        }
+        if (validEnumValues(allow, guard)) expect(printed).toContain('RAZORPAY_KEY_ID');
         expect(printed).not.toContain(k);
         expect(printed).not.toContain(TAIL);
       } else {
@@ -175,20 +188,45 @@ describe('T-527 AC5: loadEnv (superRefine -> exit)', () => {
           expect(notice!.message).not.toContain(k);
           expect(notice!.message).not.toContain(TAIL);
         }
-        expect(mod!.razorpayKeyModeWarning).toBe(want === 'warn' ? notice!.message : undefined);
+        // T-558 (Arjun): the razorpayKeyModeWarning export is gone; razorpayKeyModeNotice is the one.
+        expect(mod).not.toHaveProperty('razorpayKeyModeWarning');
       }
     },
   );
 
-  it('only the exact strings opt in: ALLOW "true", GUARD "strict"', () => {
+  it('T-558: only the exact strings are accepted: ALLOW unset/empty/"true", GUARD unset/empty/"strict"', () => {
+    for (const nodeEnv of ['production', 'development', 'test']) {
+      for (const ok of [undefined, '', 'true']) {
+        expect(load(nodeEnv, key('other'), ok, undefined).threw).toBeUndefined();
+      }
+      for (const ok of [undefined, '', 'strict']) {
+        expect(
+          load(nodeEnv, key(nodeEnv === 'production' ? 'live' : 'other'), undefined, ok).threw,
+        ).toBeUndefined();
+      }
+      for (const bad of ['TRUE', '1', 'false', 'yes', ' true']) {
+        expect(load(nodeEnv, key('other'), bad, undefined).threw).toBeDefined();
+      }
+      for (const bad of ['STRICT', 'x', 'true', 'off']) {
+        expect(load(nodeEnv, key('other'), undefined, bad).threw).toBeDefined();
+      }
+    }
+  });
+
+  it('T-558: a refused value prints the variable name, never the key', () => {
+    const k = key('test');
+    load('production', k, 'TRUE', undefined);
+    load('development', k, undefined, 'x');
+    const printed = JSON.stringify(consoleErr.mock.calls);
+    expect(printed).toContain('RAZORPAY_ALLOW_TEST_KEYS');
+    expect(printed).toContain('RAZORPAY_KEY_GUARD');
+    expect(printed).not.toContain(TAIL);
+  });
+
+  it('T-558 AC8: ALLOW=true wins over a valid GUARD; empty ALLOW does not', () => {
     expect(load('production', key('test'), 'true', 'strict').threw).toBeUndefined();
-    for (const bad of ['TRUE', '1', '']) {
-      expect(load('production', key('test'), bad, 'strict').threw).toBeDefined();
-      expect(load('production', key('test'), bad, undefined).threw).toBeUndefined();
-    }
-    for (const bad of ['STRICT', 'x', '']) {
-      expect(load('production', key('test'), undefined, bad).threw).toBeUndefined();
-    }
+    expect(load('production', key('test'), 'true', '').threw).toBeUndefined();
+    expect(load('production', key('test'), '', 'strict').threw).toBeDefined();
   });
 });
 
@@ -262,11 +300,9 @@ describe('T-527 AC5: the boot notice in config/razorpay.ts', () => {
     ).not.toContain(TAIL);
   });
 
-  it('error level also for an unprefixed key and for GUARD values other than "strict"', () => {
+  it('error level also for an unprefixed key and for an empty GUARD', () => {
     for (const [kind, guard] of [
       ['other', undefined],
-      ['test', 'STRICT'],
-      ['test', 'x'],
       ['test', ''],
     ] as const) {
       const { log, sentry } = boot('production', key(kind), undefined, guard);
