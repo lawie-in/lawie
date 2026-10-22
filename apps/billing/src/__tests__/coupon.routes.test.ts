@@ -12,7 +12,9 @@ import request from 'supertest';
 
 import app from '../app';
 import { CouponCode } from '../models/CouponCode.model';
+import { AppSetting } from '../models/AppSetting.model';
 import { CouponUsage } from '../models/CouponUsage.model';
+import { clearAppSettingsCache } from '../services/app-settings.service';
 
 const INTERNAL_SECRET = process.env.INTERNAL_SECRET!;
 const ADMIN_ID = '507f1f77bcf86cd799439011';
@@ -45,6 +47,16 @@ async function coupon(over: Record<string, unknown> = {}) {
 beforeAll(async () => {
   await CouponCode.init();
 });
+
+// T-540: the free-grant switch is cached for 60 s; each test starts with it off.
+beforeEach(() => {
+  clearAppSettingsCache();
+});
+
+async function freeGrantSwitchOn(): Promise<void> {
+  await AppSetting.create({ key: 'feature.coupon_free_grant', value: 'true' });
+  clearAppSettingsCache();
+}
 
 describe('Coupons — who may manage them', () => {
   const adminCalls: Array<[string, 'post' | 'get' | 'patch', string]> = [
@@ -141,7 +153,14 @@ describe('POST /admin/coupons', () => {
     const res = await request(app)
       .post('/admin/coupons')
       .set(headers())
-      .send({ label: 'Big', discountType: 'fixed', discountValue: 500 });
+      // T-540: a fixed 500 can make an item free, so it needs both limits.
+      .send({
+        label: 'Big',
+        discountType: 'fixed',
+        discountValue: 500,
+        maxUses: 10,
+        maxUsesPerUser: 1,
+      });
     expect(res.status).toBe(201);
     expect(res.body.discountValue).toBe(500);
   });
@@ -262,7 +281,10 @@ describe('GET /validate-coupon/:code — refused', () => {
   it('a user who has already used it', async () => {
     const c = await coupon();
     await CouponUsage.create({ couponId: c._id, userId: USER_ID, orderId: 'order_1' });
-    const res = await request(app).get(`/validate-coupon/SAVE10?skuId=topup_mid&userId=${USER_ID}`);
+    // T-540: the user comes from the signed headers (the old userId query param is ignored).
+    const res = await request(app)
+      .get('/validate-coupon/SAVE10?skuId=topup_mid')
+      .set(headers('Client'));
     expect(res.body).toEqual({ valid: false, reason: 'You have already used this coupon.' });
   });
 
@@ -291,6 +313,12 @@ describe('GET /validate-coupon/:code — accepted', () => {
       originalPriceInr: 199,
       discountInr: 20,
       finalPriceInr: 179,
+      // T-540: integer paise, and whether the per-user limit was checked (no user here).
+      originalPaise: 19900,
+      discountPaise: 2000,
+      finalPaise: 17900,
+      amountPaise: 17900,
+      perUserChecked: false,
     });
   });
 
@@ -306,8 +334,9 @@ describe('GET /validate-coupon/:code — accepted', () => {
     });
   });
 
-  it('a fixed discount is never more than the price', async () => {
-    await coupon({ discountType: 'fixed', discountValue: 100 });
+  it('a fixed discount is never more than the price (a free quote, switch on)', async () => {
+    await coupon({ discountType: 'fixed', discountValue: 100, maxUses: 5, maxUsesPerUser: 1 });
+    await freeGrantSwitchOn();
     // topup_mini is ₹65.
     const res = await request(app).get('/validate-coupon/SAVE10?skuId=topup_mini');
     expect(res.body).toMatchObject({
@@ -315,6 +344,17 @@ describe('GET /validate-coupon/:code — accepted', () => {
       originalPriceInr: 65,
       discountInr: 65,
       finalPriceInr: 0,
+      discountPaise: 6500,
+      finalPaise: 0,
+    });
+  });
+
+  it('T-540: the same free quote is refused while the free-grant switch is off', async () => {
+    await coupon({ discountType: 'fixed', discountValue: 100, maxUses: 5, maxUsesPerUser: 1 });
+    const res = await request(app).get('/validate-coupon/SAVE10?skuId=topup_mini');
+    expect(res.body).toEqual({
+      valid: false,
+      reason: 'This coupon cannot be applied to this item',
     });
   });
 
@@ -324,10 +364,25 @@ describe('GET /validate-coupon/:code — accepted', () => {
     expect(res.body).toMatchObject({ originalPriceInr: 199, discountInr: 50, finalPriceInr: 149 });
   });
 
-  it('a 100 percent coupon makes the item free', async () => {
-    await coupon({ discountValue: 100 });
+  it('a 100 percent coupon makes the item free (switch on)', async () => {
+    await coupon({ discountValue: 100, maxUses: 5, maxUsesPerUser: 1 });
+    await freeGrantSwitchOn();
     const res = await request(app).get('/validate-coupon/SAVE10?skuId=topup_max');
-    expect(res.body).toMatchObject({ originalPriceInr: 499, discountInr: 499, finalPriceInr: 0 });
+    expect(res.body).toMatchObject({
+      originalPriceInr: 499,
+      discountInr: 499,
+      finalPriceInr: 0,
+      amountPaise: 0,
+    });
+  });
+
+  it('T-540: a 100 percent coupon is refused while the free-grant switch is off', async () => {
+    await coupon({ discountValue: 100, maxUses: 5, maxUsesPerUser: 1 });
+    const res = await request(app).get('/validate-coupon/SAVE10?skuId=topup_max');
+    expect(res.body).toEqual({
+      valid: false,
+      reason: 'This coupon cannot be applied to this item',
+    });
   });
 
   it('a coupon for one item is accepted for that item', async () => {
@@ -368,13 +423,16 @@ describe('GET /validate-coupon/:code — accepted', () => {
   it('a user under the per-user limit, and another user, are both accepted', async () => {
     const c = await coupon({ maxUsesPerUser: 2 });
     await CouponUsage.create({ couponId: c._id, userId: USER_ID, orderId: 'order_1' });
-    const same = await request(app).get(
-      `/validate-coupon/SAVE10?skuId=topup_mid&userId=${USER_ID}`,
-    );
+    // T-540: the user is the signed x-user-id, not a query param.
+    const same = await request(app)
+      .get('/validate-coupon/SAVE10?skuId=topup_mid')
+      .set(headers('Client'));
     expect(same.body.valid).toBe(true);
-    const other = await request(app).get(
-      `/validate-coupon/SAVE10?skuId=topup_mid&userId=${new mongoose.Types.ObjectId().toString()}`,
-    );
+    expect(same.body.perUserChecked).toBe(true);
+    const other = await request(app)
+      .get('/validate-coupon/SAVE10?skuId=topup_mid')
+      .set({ ...headers('Client'), 'x-user-id': new mongoose.Types.ObjectId().toString() });
     expect(other.body.valid).toBe(true);
+    expect(other.body.perUserChecked).toBe(true);
   });
 });

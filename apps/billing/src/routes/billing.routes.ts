@@ -13,10 +13,9 @@ import { readSellerConfig } from '../config/gst';
 import logger from '../config/logger';
 import { razorpay } from '../config/razorpay';
 import { authenticate } from '../middleware/authenticate';
-import { CouponCode } from '../models/CouponCode.model';
 import { Invoice } from '../models/Invoice.model';
 import { User } from '../models/User.model';
-import { GrantClaimBusyError } from '../services/ink-ledger.service';
+import { GrantClaimBusyError, grantCouponInk } from '../services/ink-ledger.service';
 import { invoicePdfFilename, renderInvoicePdf } from '../services/invoice-pdf.service';
 import {
   cancelSubscriptionAtCycleEnd,
@@ -30,6 +29,14 @@ import {
   SubscriptionInProgressError,
   verifyWebhookSignature,
 } from '../services/subscription.service';
+import {
+  QUOTE_REASONS,
+  normaliseCouponCode,
+  paiseToInr,
+  quoteTopup,
+  quoteView,
+  type TopupQuote,
+} from '../services/topup-quote.service';
 
 const router = Router();
 
@@ -188,9 +195,16 @@ router.post('/cancel', authenticate, requireCurrentPrivacy, async (req: Request,
 
 // ── POST /topup/order — create a one-off Razorpay order for a top-up SKU ─────
 //
-// Body: { skuId: 'topup_mini' | 'topup_mid' | 'topup_max' }
-// Response: { orderId, amountInr, ink, razorpayKeyId } so the frontend can
-// hand the orderId to Razorpay Checkout SDK.
+// Body: { skuId, couponCode?, expectedAmountPaise? }
+// T-540: the amount comes from quoteTopup(), the same function validate-coupon
+// shows the footer total with, in integer paise. Responses:
+// - 200 { status: 'success', data: { orderId, amountInr, amountPaise, finalPaise, originalAmountInr,
+//   ink, skuId, couponApplied, razorpayKeyId } }: hand orderId to Razorpay Checkout;
+// - 200 { status: 'granted', grant: { ink, couponCode, ledgerKey } }: a ₹0 quote (100%
+//   coupon) with feature.coupon_free_grant on; Ink granted, no Razorpay order, no data;
+// - 409 { error: 'coupon_invalid', reason }: the coupon given no longer applies
+//   (never silently dropped), or a free grant lost a race; nothing created;
+// - 409 { error: 'price_changed', quote }: expectedAmountPaise differs from the quote.
 // T-343 — user-started payment: needs the current privacy version (not the webhook).
 // T-223 — and a verified email (or Google account).
 router.post(
@@ -200,35 +214,117 @@ router.post(
   requireVerifiedEmail,
   async (req: Request, res: Response) => {
     const { sub: userId } = req.jwtPayload!;
-    const { skuId, couponCode } = req.body as { skuId?: string; couponCode?: string };
+    const { skuId, couponCode, expectedAmountPaise } = req.body as {
+      skuId?: string;
+      couponCode?: unknown;
+      expectedAmountPaise?: unknown;
+    };
 
     const sku = findTopupSku(String(skuId ?? ''));
     if (!sku) {
       res.status(400).json({ error: 'Unknown top-up SKU' });
       return;
     }
-
-    let finalPriceInr = sku.priceInr;
-    let appliedCouponCode: string | null = null;
-
-    if (couponCode) {
-      const code = couponCode.trim().toUpperCase();
-      const coupon = await CouponCode.findOne({ code, isActive: true }).lean();
-      if (coupon && (!coupon.expiresAt || coupon.expiresAt > new Date())) {
-        if (
-          coupon.maxUses === null ||
-          coupon.maxUses === undefined ||
-          coupon.uses < coupon.maxUses
-        ) {
-          const discountInr =
-            coupon.discountType === 'percent'
-              ? Math.round((sku.priceInr * coupon.discountValue) / 100)
-              : Math.min(coupon.discountValue, sku.priceInr);
-          finalPriceInr = Math.max(1, sku.priceInr - discountInr);
-          appliedCouponCode = code;
-        }
-      }
+    if (
+      expectedAmountPaise !== undefined &&
+      expectedAmountPaise !== null &&
+      !(typeof expectedAmountPaise === 'number' && Number.isInteger(expectedAmountPaise))
+    ) {
+      res.status(400).json({ error: 'expectedAmountPaise must be an integer' });
+      return;
     }
+    // T-540 round 3: a couponCode that is present must be a non-blank string. A
+    // number, an object or a blank string is refused, never read as "no coupon"
+    // (that would charge full price silently). The web leaves the field out when
+    // there is no coupon, so it never sends a blank one.
+    if (
+      couponCode !== undefined &&
+      couponCode !== null &&
+      (typeof couponCode !== 'string' || couponCode.trim() === '')
+    ) {
+      res.status(400).json({ error: 'invalid_coupon_code' });
+      return;
+    }
+    const code = normaliseCouponCode(couponCode);
+
+    let quote: TopupQuote;
+    try {
+      quote = await quoteTopup({ skuId: sku.id, couponCode: code, userId, now: new Date() });
+    } catch (err) {
+      logger.error(
+        { skuId: sku.id, errName: err instanceof Error ? err.name : 'unknown' },
+        'Failed to quote top-up',
+      );
+      res.status(500).json({ error: 'Failed to create top-up order' });
+      return;
+    }
+    if (!quote.ok) {
+      res.status(409).json({ error: 'coupon_invalid', reason: quote.reason });
+      return;
+    }
+    // A top-up SKU always prices, so these are set; guard for the type only.
+    if (quote.originalPaise === null || quote.finalPaise === null) {
+      res.status(500).json({ error: 'Failed to create top-up order' });
+      return;
+    }
+    const { originalPaise, finalPaise } = quote;
+
+    if (typeof expectedAmountPaise === 'number' && expectedAmountPaise !== finalPaise) {
+      res.status(409).json({ error: 'price_changed', quote: quoteView(quote) });
+      return;
+    }
+
+    // ── ₹0: the free-grant path (the quote is ok only while the switch is on) ──
+    if (finalPaise === 0 && quote.coupon) {
+      const coupon = quote.coupon;
+      let grant;
+      try {
+        grant = await grantCouponInk({
+          userId,
+          couponId: String(coupon._id),
+          couponCode: coupon.code,
+          maxUsesPerUser: coupon.maxUsesPerUser,
+          skuId: sku.id,
+          inkUnits: sku.ink * 2, // 1 Ink = 2 ledger units
+          listPaise: originalPaise,
+        });
+      } catch (err) {
+        logger.error(
+          {
+            couponCode: coupon.code,
+            skuId: sku.id,
+            errName: err instanceof Error ? err.name : 'unknown',
+          },
+          'Failed to grant coupon top-up',
+        );
+        res.status(500).json({ error: 'Failed to create top-up order' });
+        return;
+      }
+      if (!grant.ok) {
+        if (grant.reason === 'user_not_found') {
+          res.status(500).json({ error: 'Failed to create top-up order' });
+          return;
+        }
+        res.status(409).json({
+          error: 'coupon_invalid',
+          reason: grant.reason === 'per_user_limit' ? QUOTE_REASONS.perUser : QUOTE_REASONS.usedUp,
+        });
+        return;
+      }
+      // Vikram: the monthly list value given away, for the marketing-spend line.
+      // No PII: no userId or ledger key, only the per-user use index n.
+      logger.info(
+        { couponCode: coupon.code, skuId: sku.id, listPaise: originalPaise, n: grant.n },
+        'coupon free grant',
+      );
+      res.json({
+        status: 'granted',
+        grant: { ink: sku.ink, couponCode: coupon.code, ledgerKey: grant.ledgerKey },
+      });
+      return;
+    }
+
+    const appliedCouponCode = quote.coupon ? quote.coupon.code : null;
 
     try {
       const notes: Record<string, string | number> = {
@@ -240,7 +336,7 @@ router.post(
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const order = await (razorpay.orders.create as any)({
-        amount: finalPriceInr * 100, // paise
+        amount: finalPaise, // integer paise, from the quote
         currency: 'INR',
         receipt: `topup_${sku.id}_${userId.slice(-8)}_${Date.now().toString().slice(-8)}`,
         notes,
@@ -250,8 +346,10 @@ router.post(
         status: 'success',
         data: {
           orderId: order.id,
-          amountInr: finalPriceInr,
-          originalAmountInr: sku.priceInr,
+          amountInr: paiseToInr(finalPaise),
+          amountPaise: finalPaise,
+          finalPaise,
+          originalAmountInr: paiseToInr(originalPaise),
           ink: sku.ink,
           skuId: sku.id,
           couponApplied: appliedCouponCode,

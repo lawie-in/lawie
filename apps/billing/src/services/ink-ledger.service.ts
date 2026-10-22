@@ -17,6 +17,8 @@ import * as Sentry from '@sentry/node';
 import mongoose from 'mongoose';
 
 import logger from '../config/logger';
+import { CouponCode } from '../models/CouponCode.model';
+import { CouponUsage } from '../models/CouponUsage.model';
 import { User } from '../models/User.model';
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -564,6 +566,212 @@ export async function grantTopupInk(input: {
   logger.info({ userId, inkUnits, razorpayOrderId }, 'topup ink granted');
 
   return inkUnits;
+}
+
+/** T-540 round 2: a pending free-grant claim older than this may be re-claimed. */
+export const COUPON_CLAIM_STALE_MS = 120_000;
+
+/** T-540: the ledger key (and CouponUsage.orderId) of a user's n-th free grant of a coupon. */
+export function couponGrantKey(couponId: string, userId: string, n: number): string {
+  return `coupon:${couponId}:${userId}:${n}`;
+}
+
+export type CouponGrantResult =
+  | { ok: true; inkUnits: number; ledgerKey: string; n: number }
+  | { ok: false; reason: 'per_user_limit' | 'usage_limit' | 'user_not_found' };
+
+/**
+ * T-540 (Vikram's ruling, option a): grant top-up Ink for a ₹0 quote (a 100%
+ * coupon) with no Razorpay order. Not a sale: reason 'coupon_grant' (never
+ * 'topup_purchase', so top-up revenue is not inflated), no amountInr, no invoice.
+ *
+ * Counted atomically at the grant, with single-document compare-and-sets only
+ * (no multi-document transaction):
+ * 1. Per-user claim: n = this user's CouponUsage count + 1 (refused past
+ *    maxUsesPerUser), then insert the ledger row with `_id`
+ *    coupon:<couponId>:<userId>:<n>, state 'pending'. `_id` is unique, so two
+ *    concurrent grants of the same n collide and exactly one wins.
+ * 2. Global count: CouponCode.findOneAndUpdate({ _id, isActive, not expired,
+ *    uses < maxUses }, { $inc: { uses: 1 } }). No match = the last use was taken.
+ * 3. CouponUsage row, orderId = the ledger key.
+ * 4. $inc inkTopup, then mark the claim 'granted'.
+ * Any failure before the Ink lands undoes the earlier steps, so a lost race
+ * grants nothing and counts nothing.
+ *
+ * Stale claims (T-540 round 2): a claim row still 'pending' after
+ * COUPON_CLAIM_STALE_MS (a crashed attempt) is re-claimed by a CAS on the
+ * claimedAt and claimToken read, with a new token; a fresh pending claim is a
+ * lost race. No double grant is possible: a crash after the CouponUsage row was
+ * written moves the count past this n, so only a crash before step 3 leaves a
+ * claim that can collide. A crash between steps 2 and 3 leaves `uses` one high
+ * after the re-claim (fails closed: the coupon runs out one use early).
+ *
+ * Logs carry couponCode, skuId and n only (never the userId or ledger key).
+ */
+export async function grantCouponInk(input: {
+  userId: string;
+  couponId: string;
+  couponCode: string;
+  maxUsesPerUser: number | null;
+  skuId: string;
+  inkUnits: number;
+  listPaise: number;
+  now?: Date;
+}): Promise<CouponGrantResult> {
+  const { userId, couponId, couponCode, maxUsesPerUser, skuId, inkUnits, listPaise } = input;
+  const now = input.now ?? new Date();
+
+  if (!mongoose.Types.ObjectId.isValid(userId) || !mongoose.Types.ObjectId.isValid(couponId)) {
+    return { ok: false, reason: 'user_not_found' };
+  }
+  const userOid = new mongoose.Types.ObjectId(userId);
+  const couponOid = new mongoose.Types.ObjectId(couponId);
+
+  const db = mongoose.connection.db;
+  if (!db) throw new Error('ink-ledger: database not connected');
+  const ledger = db.collection<{ _id: string } & Record<string, unknown>>('inkledger');
+
+  // 1. Per-user claim.
+  const used = await CouponUsage.countDocuments({ couponId: couponOid, userId: userOid });
+  const n = used + 1;
+  if (maxUsesPerUser && n > maxUsesPerUser) return { ok: false, reason: 'per_user_limit' };
+
+  const ledgerKey = couponGrantKey(couponId, userId, n);
+  const claimToken = newClaimToken();
+  try {
+    await ledger.insertOne({
+      _id: ledgerKey,
+      userId: userOid,
+      delta: inkUnits,
+      reason: 'coupon_grant',
+      sourceBucket: 'topup',
+      reference: ledgerKey,
+      metadata: { couponId, couponCode, skuId, listPaise, provider: 'coupon' },
+      state: 'pending',
+      claimedAt: now,
+      claimToken,
+      createdAt: now,
+    });
+  } catch (err) {
+    if ((err as { code?: unknown } | null)?.code !== 11000) throw err;
+    // T-540 round 2: a claim left 'pending' by a crashed attempt is taken over
+    // once stale (T-415's pattern): CAS on the claimedAt and token we read, so
+    // only one re-claimer wins. Anything else is a lost race.
+    const existing = await ledger.findOne({ _id: ledgerKey });
+    const claimedAt = existing?.claimedAt as Date | undefined;
+    const stale =
+      existing?.state === 'pending' &&
+      claimedAt instanceof Date &&
+      now.getTime() - claimedAt.getTime() > COUPON_CLAIM_STALE_MS;
+    if (!existing || !stale) {
+      logger.warn({ couponCode, skuId, n }, 'ink-ledger: coupon grant lost the per-user claim');
+      return { ok: false, reason: 'per_user_limit' };
+    }
+    const reclaimed = await ledger.updateOne(
+      { _id: ledgerKey, state: 'pending', claimedAt, claimToken: existing.claimToken },
+      { $set: { claimedAt: now, claimToken } },
+    );
+    if (reclaimed.matchedCount === 0) {
+      logger.warn({ couponCode, skuId, n }, 'ink-ledger: coupon grant lost the stale re-claim');
+      return { ok: false, reason: 'per_user_limit' };
+    }
+    logger.warn({ couponCode, skuId, n }, 'ink-ledger: stale coupon grant claim re-claimed');
+  }
+
+  let usesCounted = false;
+  let usageWritten = false;
+  const rollback = async (errName: string): Promise<void> => {
+    try {
+      if (usageWritten) await CouponUsage.deleteOne({ couponId: couponOid, orderId: ledgerKey });
+      if (usesCounted) await CouponCode.updateOne({ _id: couponOid }, { $inc: { uses: -1 } });
+      await ledger.deleteOne({ _id: ledgerKey, state: 'pending', claimToken });
+    } catch (rollbackErr) {
+      logger.error(
+        {
+          couponCode,
+          skuId,
+          n,
+          errName,
+          rollbackErrName: rollbackErr instanceof Error ? rollbackErr.name : 'unknown',
+        },
+        'ink-ledger: coupon grant rollback failed; check the coupon uses count and claim row',
+      );
+    }
+  };
+
+  // 2. Global count, compare-and-set on the coupon document.
+  let counted;
+  try {
+    counted = await CouponCode.findOneAndUpdate(
+      {
+        _id: couponOid,
+        isActive: true,
+        $and: [
+          { $or: [{ expiresAt: null }, { expiresAt: { $gt: now } }] },
+          { $or: [{ maxUses: null }, { $expr: { $lt: ['$uses', '$maxUses'] } }] },
+        ],
+      },
+      { $inc: { uses: 1 } },
+      { new: true },
+    ).lean();
+  } catch (err) {
+    await rollback(err instanceof Error ? err.name : 'unknown');
+    throw err;
+  }
+  if (!counted) {
+    await rollback('CouponNoLongerAvailable');
+    logger.warn({ couponCode, skuId }, 'ink-ledger: coupon grant lost the usage count');
+    return { ok: false, reason: 'usage_limit' };
+  }
+  usesCounted = true;
+
+  // 3. Usage row (the per-user count reads these).
+  try {
+    await CouponUsage.create({ couponId: couponOid, userId: userOid, orderId: ledgerKey });
+    usageWritten = true;
+  } catch (err) {
+    await rollback(err instanceof Error ? err.name : 'unknown');
+    throw err;
+  }
+
+  // 4. The Ink.
+  let updated;
+  try {
+    updated = await User.findByIdAndUpdate(
+      userOid,
+      { $inc: { inkTopup: inkUnits } },
+      { new: true },
+    ).lean();
+  } catch (err) {
+    await rollback(err instanceof Error ? err.name : 'unknown');
+    throw err;
+  }
+  if (!updated) {
+    await rollback('UserNotFound');
+    return { ok: false, reason: 'user_not_found' };
+  }
+
+  const totalAfter =
+    ((updated.inkSub as number | undefined) ?? 0) +
+    ((updated.inkAnnualCarry as number | undefined) ?? 0) +
+    ((updated.inkTopup as number | undefined) ?? inkUnits);
+
+  try {
+    await retryOnThrow(() =>
+      ledger.updateOne(
+        { _id: ledgerKey, claimToken },
+        { $set: { state: 'granted', grantedAt: new Date(), balanceAfter: totalAfter } },
+      ),
+    );
+  } catch (err) {
+    // The Ink stood; the claim stays 'pending', which still blocks this n.
+    logger.error(
+      { couponCode, skuId, n, errName: err instanceof Error ? err.name : 'unknown' },
+      'ink-ledger: coupon grant done but the claim was not marked granted',
+    );
+  }
+
+  return { ok: true, inkUnits, ledgerKey, n };
 }
 
 /**
