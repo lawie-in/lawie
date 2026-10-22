@@ -194,3 +194,7 @@ MUST: 0.1, 0.2, 1–14, 23, 29–43, 54–65 (43 items, counting 0.1 and 0.2). S
 | 72 | gpa :372 and related lines (gpa:378, spa:334/339/346, joint_development_agreement:642) | R1 for all of them: keep the proposition ("GPA does not transfer title…") and drop the name, citation and connector. |
 | 55 | post-processor.ts:620 comment | No objection. Fix it. |
 | A5-final | FAQ document list (Kunal, flag state from Priya) | Signed: `Bail applications, legal notices, writ petitions, maintenance petitions, written statements, affidavits.` in both `faq/page.tsx` and `nl-copy.ts:140` (after T-522 merges). Only plaints are off in v1. If `feature.template_civil_plaint` turns on, `plaints` returns, with my re-check. |
+
+## Byte check T-564, fix/t-564-legal-pages @ cb014014: approved (Ajay, 22 Oct 2026)
+
+Items 1–12 and 14–20, 22 and A1–A9 match this file byte for byte (26 strings checked by script; the Terms A4 sentence is exact once the Refund Policy link markup is joined). The deleted files are gone. None of the barred phrases remain (legal@, "within 24 hours", "no queues", "Most documents use", "mappings reliable", "in minutes", "Start Drafting Free", "built around", "Maps IPC", "Formats the cause", "full drafts"). The Terms keep version 2026-10-22 and "Last updated: 22 October 2026", as ruled. **Open:** item 21, `nl-copy.ts:140` (drop "plaints, ") and `nl-copy.ts:148` (A4) go with T-522 and **must land before Anushka**: until then the landing FAQ's "not refunded" contradicts the new Refund Policy. Item 13: the flag stays OFF.
