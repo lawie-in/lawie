@@ -1114,10 +1114,16 @@ function LookupTab({
 
           <div className="bg-nl-brass-light p-nl-3">
             <p className="nl-label text-nl-brass-dark m-0">Tip</p>
+            {/* T-565 item 37 + T4: Ajay's signed text (section-converter copy), one sentence per line. */}
             <p className="nl-body-sm text-nl-text mt-nl-1 mb-0">
-              Auto-detects either direction. Type the old IPC and we&rsquo;ll show the BNS
-              equivalent — or vice versa. Press <kbd className={KBD}>{shortcutLabel}</kbd> from any
-              drafting screen.
+              Look up an IPC, CrPC or IEA section and see the BNS, BNSS or BSA section that replaced
+              it.
+            </p>
+            <p className="nl-body-sm text-nl-text mt-nl-1 mb-0">
+              Check the bare act before you rely on a mapping.
+            </p>
+            <p className="nl-body-sm text-nl-text mt-nl-1 mb-0">
+              Press <kbd className={KBD}>{shortcutLabel}</kbd> from any drafting screen.
             </p>
           </div>
         </>
@@ -1237,6 +1243,16 @@ function BookmarksTab({
 
 // ── Detail card (state 04 of the design) ────────────────────────────────────
 
+/**
+ * T-565 item 38: the merged/split badges, exact text signed by Ajay (T-296 addendum,
+ * handoff/legal/section-converter-copy-signed.md). Any other mapping_type shows no badge; the
+ * raw value is never shown.
+ */
+const DETAIL_MAPPING_TYPE_BADGES: Record<string, string | undefined> = {
+  merged: 'Merged with other sections — verify scope',
+  split: 'Split across several sections — check which one applies',
+};
+
 function DetailCard({
   detail,
   loading,
@@ -1319,7 +1335,7 @@ function DetailCard({
         <div className="border-nl-line p-nl-3 border">
           <div className="gap-nl-3 flex items-center justify-between">
             <div className="flex-1">
-              <p className="nl-label text-nl-muted m-0">Old · pre-2024</p>
+              <p className="nl-label text-nl-muted m-0">Old law · before 1 July 2024</p>
               <p className={cn(SECTION_REF, 'nl-body mt-nl-1 mb-0')}>
                 §{detail.mapping.old_section} {detail.mapping.old_code}
               </p>
@@ -1335,10 +1351,20 @@ function DetailCard({
               </p>
             </div>
           </div>
-          <div className="mt-nl-2 nl-body-sm text-nl-ok flex items-center gap-1.5">
-            <span aria-hidden="true" className="bg-nl-ok h-1.5 w-1.5 rounded-full" />
-            Mapped · in force
-          </div>
+          {/* T-565 T7: `Mapped` only for a direct one-to-one mapping. */}
+          {detail.mapping.mapping_type === 'direct' && (
+            <div className="mt-nl-2 nl-body-sm text-nl-ok flex items-center gap-1.5">
+              <span aria-hidden="true" className="bg-nl-ok h-1.5 w-1.5 rounded-full" />
+              Mapped
+            </div>
+          )}
+          {/* T-565 item 38 + T7: the signed merged/split badges (T-296 addendum); repealed,
+              unverified and any other type show no status badge. */}
+          {DETAIL_MAPPING_TYPE_BADGES[detail.mapping.mapping_type] && (
+            <p className="mt-nl-1 nl-body-sm text-nl-soft mb-0">
+              {DETAIL_MAPPING_TYPE_BADGES[detail.mapping.mapping_type]}
+            </p>
+          )}
         </div>
       )}
 

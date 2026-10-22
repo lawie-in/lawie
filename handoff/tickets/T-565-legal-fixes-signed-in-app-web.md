@@ -13,3 +13,6 @@ Review section C, web: **29, 31 to 40, 42, 43** MUST; 44 to 51 SHOULD (do them t
 
 ## Rules for every item
 Signed fix text is in the review file next to its item number (file:line, current text, signed fix). Paste it **byte for byte**; if a line has moved, find it by the current text. Anything unclear goes to the real Ajay (session_019mZoKeM2MTfCyV5HEZrqnZ), never invented. Files under `.claude/docs/legal-content-paths.md` come back to Ajay for a byte check at READY. Do not touch files held by another lead's claim row; wait for their merge or ask Priya.
+
+## W5 (Ajay, 22 Oct): MUST before main
+§NEW-n ids must never show as section names anywhere in the app (finder entries hidden, no raw ids in UI). Part of wave 2a with 42 and 48.

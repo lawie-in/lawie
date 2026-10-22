@@ -75,3 +75,7 @@ Open points:
 - **(c)** Yes — a `signin` link for an already-verified, active account still signs the user in. It is single-use, 30 minutes, sent only to that address, the same trust as reset-by-email. Not for an erased, locked or Google-only account (those get the neutral expired page with Sign in).
 
 Vishal: unhold the tester and the web step. Build copy from Ajay's **S1–S8 only**.
+
+## Arjun (22 Oct 2026) — golden-set fixture user and the verified fence
+
+**(a).** `requireVerifiedEmail` exempts `isFixtureUser(userId)` before the DB read, exactly as `enforceCredits`, `feature-switches` and the credits fixture branches already do — same gateway-signed trust, same single helper, no new exemption surface. T-147e stands: the fixture user never gets a `users` row. Add the test that a non-fixture user with no row still gets 403, and one that the fixture user passes the fence without a DB read.

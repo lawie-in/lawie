@@ -67,12 +67,12 @@ describe('Inkwell drain end offset (--nl-ink-to)', () => {
     expect(v.rect.style.transform).toBe('translateY(50%)');
   });
 
-  it('reduced motion unchanged: static 60%, no class, no animation', () => {
+  it('reduced motion (T-544): static at the real level, no class, no animation', () => {
     stubMatchMedia({ [REDUCED]: true });
     const { container } = mount(<Inkwell balance={5} draining />);
     const rect = q('g rect', container) as SVGRectElement;
-    expect(q('svg', container)!.getAttribute('data-level')).toBe('60');
-    expect(rect.style.transform).toBe('translateY(40%)');
+    expect(q('svg', container)!.getAttribute('data-level')).toBe('5');
+    expect(rect.style.transform).toBe('translateY(95%)');
     expect(rect.getAttribute('class') ?? '').not.toContain('nl-ink-draining');
   });
 });

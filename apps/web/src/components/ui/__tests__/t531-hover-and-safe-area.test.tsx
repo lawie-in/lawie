@@ -124,8 +124,25 @@ describe('Button hover per variant', () => {
     expect(b.className).not.toMatch(/translate-y|halo/);
   });
 
-  it('destructive: no hover rule at all (no lift, no halo, no recolour)', () => {
-    expect(hoverClasses(btn('destructive'))).toEqual([]);
+  it('T-544 destructive: only Oxblood High on hover, fine pointers, enabled only; no lift, no halo', () => {
+    const b = btn('destructive');
+    expect(b.className).toContain(hover.NL_DESTRUCTIVE_HOVER);
+    expect(b.className).not.toMatch(/translate-y|halo/);
+    expect(b.className).not.toContain(hover.NL_PRIMARY_BUTTON_HOVER);
+    expect(b.className).not.toContain(hover.NL_GHOST_HOVER);
+    expect(hoverClasses(b)).toEqual([`${FINE}:enabled:hover:bg-nl-ox-hi`]);
+  });
+
+  it('T-544 destructive hover keeps the focus ring transitioning (outline-color, box-shadow)', () => {
+    expect(hover.NL_DESTRUCTIVE_HOVER).toContain(
+      'outline-color,box-shadow,transform,background-color',
+    );
+  });
+
+  it('T-544 the destructive change leaves primary and ghost hover rules as they were', () => {
+    expect(btn('primary').className).not.toContain('bg-nl-ox-hi');
+    expect(btn('ghost').className).not.toContain('bg-nl-ox-hi');
+    expect(btn('ghost-danger').className).not.toContain('bg-nl-ox-hi');
   });
 
   it('ghost-danger: Rust Soft on hover only, no lift, no halo', () => {

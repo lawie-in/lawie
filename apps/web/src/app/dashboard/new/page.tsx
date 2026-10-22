@@ -851,10 +851,7 @@ function NewDocumentContent() {
       {!loadingTemplates && templates.length === 0 && (
         <div className="rounded-xl border border-slate-200 bg-white p-8 text-center">
           <FileText size={24} className="mx-auto text-slate-300" />
-          <p className="mt-2 text-sm text-slate-500">
-            No templates available yet. Templates will appear here as they are reviewed by our legal
-            team.
-          </p>
+          <p className="mt-2 text-sm text-slate-500">No templates available yet.</p>
         </div>
       )}
 

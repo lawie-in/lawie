@@ -89,11 +89,10 @@ describe('T-555 metadata descriptions (AJ-555-M1, AJ-555-M2)', () => {
   });
 });
 
-describe('T-555 PipelineStatus label (AJ-555-M4)', () => {
-  it('shows "Citing sections…" while drafting and not the BNS-only label', () => {
+describe('T-555 PipelineStatus label (AJ-555-M4), retired by T-565 (Ajay T2)', () => {
+  it('the rotating drafting lines are gone: no "Citing sections…" and no BNS-only label, ever', () => {
     act(() => root.render(<PipelineStatus state="drafting" />));
     const seen: string[] = [];
-    // The status rotates every 6s; step through all ten phrases.
     for (let i = 0; i < 12; i++) {
       seen.push(container.textContent ?? '');
       act(() => {
@@ -101,9 +100,9 @@ describe('T-555 PipelineStatus label (AJ-555-M4)', () => {
       });
     }
     const all = seen.join('\n');
-    expect(all).toContain(signed('AJ-555-M4'));
-    expect(all).toContain('Citing sections…');
+    expect(all).not.toContain('Citing sections');
     expect(all).not.toContain('Citing BNS / BNSS sections');
+    expect(all).toContain('Writing the draft…');
   });
 });
 

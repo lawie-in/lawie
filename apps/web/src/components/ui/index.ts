@@ -7,7 +7,14 @@ export {
   type TextareaProps,
   type FieldAppearance,
 } from './Field';
-export { Chip, InkChip, type ChipProps, type ChipVariant, type InkChipProps } from './Chip';
+export {
+  Chip,
+  InkChip,
+  formatInk,
+  type ChipProps,
+  type ChipVariant,
+  type InkChipProps,
+} from './Chip';
 export { Card, type CardProps, type CardState, type CardVariant } from './Card';
 export {
   EmptyState,
@@ -20,13 +27,7 @@ export {
   type SkeletonProps,
   type StateAction,
 } from './States';
-export {
-  Inkwell,
-  INKWELL_REDUCED_LEVEL,
-  INKWELL_DRAIN_END_OFFSET,
-  clampLevel,
-  type InkwellProps,
-} from './Inkwell';
+export { Inkwell, INKWELL_DRAIN_END_OFFSET, clampLevel, type InkwellProps } from './Inkwell';
 export { Seal, type SealProps, type SealState } from './Seal';
 export {
   ToastProvider,

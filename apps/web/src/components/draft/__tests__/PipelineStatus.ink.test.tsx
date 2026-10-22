@@ -47,10 +47,12 @@ function mount(state: PipelineState, cost: { inkCost?: number; inkCostLoading?: 
 }
 const byDescribedBy = (id: string) =>
   container.querySelector(`button[aria-describedby="${id}"]`) as HTMLButtonElement;
-const byLabel = (label: string) =>
-  Array.from(container.querySelectorAll('button')).find(
-    (b) => b.textContent === label,
-  ) as HTMLButtonElement;
+// T-565 T6: the soft-warn card has two buttons both labelled `Generate anyway` (first = the
+// primary one above the "Edit the form" link, second = the one under it); `nth` picks between them.
+const byLabel = (label: string, nth = 0) =>
+  Array.from(container.querySelectorAll('button')).filter((b) => b.textContent === label)[
+    nth
+  ] as HTMLButtonElement;
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -70,6 +72,8 @@ const buttons: Array<{
   /** T-432: the line the button points at while the cost is loading or unknown. */
   blockedId: string;
   label: string;
+  /** which of the buttons carrying `label` (T-565 T6: two are `Generate anyway`) */
+  nth: number;
   handler: () => jest.Mock;
   action: string;
 }> = [
@@ -79,25 +83,28 @@ const buttons: Array<{
     id: FAILED_RETRY_INK_COST_ID,
     blockedId: FAILED_RETRY_INK_COST_ID,
     label: 'Try again',
+    nth: 0,
     handler: () => onRetry,
     action: 'retry',
   },
   {
-    name: 'soft-warn "Looks correct — generate anyway"',
+    name: 'soft-warn first "Generate anyway"',
     state: 'soft_warn',
     id: SOFT_WARN_INK_COST_ID,
     blockedId: SOFT_WARN_INK_COST_ID,
-    label: 'Looks correct — generate anyway',
+    label: 'Generate anyway',
+    nth: 0,
     handler: () => onProceedAnyway,
     action: 'soft_warn',
   },
   {
-    name: 'soft-warn "Skip and generate anyway"',
+    name: 'soft-warn second "Generate anyway"',
     state: 'soft_warn',
     id: SOFT_WARN_SKIP_INK_COST_ID,
     // T-432: blocked, the skip button shares the one line above it.
     blockedId: SOFT_WARN_INK_COST_ID,
-    label: 'Skip and generate anyway',
+    label: 'Generate anyway',
+    nth: 1,
     handler: () => onProceedAnyway,
     action: 'soft_warn',
   },
@@ -105,7 +112,7 @@ const buttons: Array<{
 
 describe.each(buttons)(
   'PipelineStatus $name',
-  ({ state, id, blockedId, label, handler, action }) => {
+  ({ state, id, blockedId, label, nth, handler, action }) => {
     it('known: "Uses N Ink" under the button, enabled, described by the line, click charges', () => {
       mount(state, { inkCost: 5 });
       const btn = byDescribedBy(id);
@@ -122,7 +129,7 @@ describe.each(buttons)(
 
     it('unknown: disabled, aria-disabled, alert notice, click does not charge', () => {
       mount(state, { inkCost: undefined });
-      const btn = byLabel(label);
+      const btn = byLabel(label, nth);
       expect(btn.getAttribute('aria-describedby')).toBe(blockedId);
       expect(btn.disabled).toBe(true);
       expect(btn.getAttribute('aria-disabled')).toBe('true');
@@ -135,7 +142,7 @@ describe.each(buttons)(
 
     it('loading: status line, disabled, click does not charge, no Sentry', () => {
       mount(state, { inkCost: undefined, inkCostLoading: true });
-      const btn = byLabel(label);
+      const btn = byLabel(label, nth);
       expect(btn.getAttribute('aria-describedby')).toBe(blockedId);
       expect(btn.disabled).toBe(true);
       expect(btn.getAttribute('aria-disabled')).toBe('true');
@@ -167,8 +174,9 @@ describe('PipelineStatus soft-warn reports an unknown cost once', () => {
   });
   it('T-432: blocked, both buttons point at the one line and both stay disabled', () => {
     mount('soft_warn', { inkCost: undefined });
-    const a = byLabel('Looks correct — generate anyway');
-    const b = byLabel('Skip and generate anyway');
+    const a = byLabel('Generate anyway', 0);
+    const b = byLabel('Generate anyway', 1);
+    expect(a).not.toBe(b);
     for (const btn of [a, b]) {
       expect(btn.getAttribute('aria-describedby')).toBe(SOFT_WARN_INK_COST_ID);
       expect(btn.disabled).toBe(true);
@@ -179,7 +187,7 @@ describe('PipelineStatus soft-warn reports an unknown cost once', () => {
   it('T-432: loading is one status line too, both buttons described by it', () => {
     mount('soft_warn', { inkCost: undefined, inkCostLoading: true });
     expect(container.querySelectorAll('[role="status"]')).toHaveLength(1);
-    expect(byLabel('Skip and generate anyway').getAttribute('aria-describedby')).toBe(
+    expect(byLabel('Generate anyway', 1).getAttribute('aria-describedby')).toBe(
       SOFT_WARN_INK_COST_ID,
     );
     expect(container.querySelector(`#${SOFT_WARN_SKIP_INK_COST_ID}`)).toBeNull();

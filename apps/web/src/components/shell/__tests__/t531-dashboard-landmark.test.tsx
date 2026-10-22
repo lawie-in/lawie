@@ -119,11 +119,12 @@ describe('break-ui: dashboard bar worst case', () => {
     mockUser = { id: 'u1', name: LONG_NAME, email: LONG_EMAIL, plan: 'free' };
   });
 
-  it('the Ink chip with 99,999 stays on one line (nowrap) and in the row; FINDING: it prints 99999, ungrouped', () => {
+  it('the Ink chip with 99,999 stays on one line (nowrap) and in the row, grouped en-IN (T-544)', () => {
     render();
     const chip = q('header [data-variant="brass"]')!;
     expect(chip.className).toContain('whitespace-nowrap');
-    expect(chip.textContent).toContain('99999');
+    expect(chip.textContent).toContain('99,999');
+    expect(chip.textContent).not.toContain('99999');
     expect(chip.textContent).toMatch(/Ink$/);
     expect(chip.textContent).not.toMatch(/undefined|NaN/);
   });
