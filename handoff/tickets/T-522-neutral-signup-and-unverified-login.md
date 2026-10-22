@@ -32,11 +32,12 @@ Signed copy (M3) wants the same "Check your email" screen for a new and an exist
 
 Scope: auth (sign-up, verify-and-login token, resend), gateway/drafting (`requireVerifiedEmail` on generate), web (neutral screen, verify bar, hint from the shared constant). Touches legal copy (Ajay's AJ-511-M3 text is the screen copy; AJ-517-M18 is the item) — Ajay sign-off reference on the ticket. Full chain. Anushka's run covers both flows.
 
-## UNCONFIRMED, pending the real Arjun (marked by Priya, 22 Oct 2026)
+## CONFIRMED by the real Arjun with amendments (22 Oct 2026). Earlier marked unconfirmed by Priya
 Vishal reports that the eight "detailed rulings" below came from an Arjun subagent run inside his own session, not from the real Arjun. The first ruling block the real Arjun wrote (neutral screen, the unverified fence, shared constant) stands. Everything in this section is a proposal until the real Arjun confirms, amends or strikes it. The T-522 backend built on it is not committed.
 Open points from the developer for Arjun: (a) register body: auth's wrapper `{status:'success',data:{status:'check_email'}}` or a literal `{"success":true,...}`; (b) a referral code that lapses between sign-up and verify: re-check at grant time (Ajay's S3 implies yes); (c) should a `signin` link for an already-verified account still sign the user in?
 
-## Arjun's detailed rulings, UNCONFIRMED (22 Oct 2026, relayed by Vishal from a subagent)
+## Arjun's detailed rulings 1 to 8 (CONFIRMED 22 Oct 2026 with amendments)
+**Amendments:** strike "ADR-001" (no ADR needed); the ship gate is Ajay's AJ-522-S1, not M8; the floor is 500 ms. **Open points ruled:** (a) HTTP 202 with auth's standard wrapper `{ status:'success', data:{ status:'check_email' } }`, no-store; (b) yes, re-check the referral at grant time: lapsed means `not_applied` plus the one-time notice; (c) yes, a `signin` link still signs in an already-verified active account (not erased, locked or Google-only).
 1. Tokens get a kind, `signin` or `verify`. Sign-up and resend links are `signin`: 30 min, single use, they sign the user in. The T-358 notice link is verify-only, 7 days. A missing kind counts as `verify`. The token is used up only by a POST. **Ship gate: no merge while the verify mail says "24 hours"** (Ajay re-signs the verify mail). ADR-001 (email-link sign-in) by Arjun; it does not block the build.
 2. Referral Ink is deferred to verify; `grantReferralInk` is fenced. `referralApplied` leaves the register response. `GET /me` gets `referralStatus`; the dashboard shows the notice once (wording: Ajay).
 3. Sign-up throttle in auth (Redis, T-221 pattern): IP 20/h then 429; email hash 5/h then 429; the M5 mail at most one per hour per address, silent; store failure then 503.
