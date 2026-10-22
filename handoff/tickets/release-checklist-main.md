@@ -81,3 +81,8 @@ A tester subagent in Vishal's T-522 run printed the cloud session's environment 
 All legal MUSTs are closed once T-522 (merged), T-559, T-564 (merged), T-565 (wave 2b + the 1-line fix), T-566 and T-567 are merged and develop is redeployed. Send Ajay the 2023-offence draft from Anushka's run.
 Before main (not before Anushka): "Disclaimer slip" checklist lines and criminal_revision 64/65 (T-573), the T-522 Hindi wiring (T-572), the 54d date-scoped validator (T-573 item 3), and the Grievance Officer name set in prod config.
 - T-563 (Vishal): `TEST_SIGNUP_BYPASS` and `TEST_SIGNUP_BYPASS_SECRET` must be ABSENT on prod. Auth refuses to boot if either is set on a production box (RAZORPAY_KEY_GUARD=strict, SECRETS_ENV=prod, or an rzp_live_ key). Before Anushka's run ends, the founder runs `yarn workspace @lawie/auth test-accounts:delete --apply` and records the count.
+
+## TOP OF YOUR LIST: incident escalated to HIGH (Arjun, 22 Oct 2026; see handoff/ops/incident-2026-10-22-env-dump.md)
+1. Rotate the LIVE Razorpay key pair first, today (the agent environment carried an rzp_live_ pair; the live secret is in a dumped transcript). Then rotate the long-term AWS IAM key.
+2. Check the develop box: it may be running LIVE Razorpay keys if its env came from this config (Arjun's T-526 ruling assumed test keys). Count-only check: `grep -c rzp_live_` on the box's env file, never print values. If live: switch to test keys + test plan ids + test webhook, restart, before Anushka's run.
+3. Hold Anushka's billing/purchase checks until you confirm (2).
