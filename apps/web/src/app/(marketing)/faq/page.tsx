@@ -10,7 +10,7 @@ import SiteNav from '@/components/marketing/SiteNav';
 export const metadata: Metadata = {
   title: 'Lawie — Frequently Asked Questions',
   description:
-    'Answers to common questions about Lawie: documents, BNS/BNSS/BSA mappings, pricing, privacy, and how Lawie drafts documents.',
+    'Answers about Lawie: the documents it drafts, Ink and pricing, privacy, and how drafts work.',
 };
 
 const productFaq = [
@@ -20,9 +20,9 @@ const productFaq = [
       'Bail applications (regular and anticipatory), legal notices (S.80 CPC and S.138 NI Act), rent agreements, consumer complaints, vakalatnama, affidavits, and maintenance petitions.',
   },
   {
-    question: 'Are the BNS, BNSS, BSA mappings reliable?',
+    question: 'Which criminal codes do drafts use?',
     answer:
-      'Section mappings are built from the official IPC→BNS, CrPC→BNSS, and IEA→BSA correspondence tables. Check every section in your draft before you file. You should always review the final document before filing.',
+      'Criminal drafts use BNS, BNSS and BSA section numbers, or IPC, CrPC and the Evidence Act where the old law applies. Check every section against the bare act before you file.',
   },
   {
     question: 'Can I edit the document after Lawie generates it?',
@@ -30,14 +30,13 @@ const productFaq = [
       'Yes. Every document opens in an editor where you can change any text, add annexures, or adjust the formatting. Lawie gives you a structured starting point and you stay in control of the final draft.',
   },
   {
-    question: 'Which courts does Lawie format for?',
+    question: 'Which courts can I draft for?',
     answer:
-      "Only the courts in Lawie's court list. The list does not yet cover every District and High Court in Bihar, Jharkhand, UP, and Delhi. Check that your court is listed before you draft.",
+      "The courts in Lawie's court list. Check the cause title and format against your court's rules before you file.",
   },
   {
     question: 'Does Lawie handle Hindi documents?',
-    answer:
-      'English is fully supported today. Hindi drafting is on the roadmap and rolling out template by template.',
+    answer: 'Drafts are in English today. Hindi drafting: coming soon.',
   },
 ];
 
@@ -60,7 +59,7 @@ const pricingFaq = [
   {
     question: 'Do you offer refunds?',
     answer:
-      'No. Subscriptions are billed in advance and are non-refundable for any portion of the subscription period. You can cancel anytime to stop future charges — see the Refund Policy for details.',
+      'Payments are non-refundable once the plan period has started or the Ink has been added. If you were charged twice or by mistake, write to contact@lawie.in within 30 days. See the Refund Policy.',
   },
   {
     question: 'What payment methods do you accept?',

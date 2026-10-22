@@ -52,7 +52,7 @@ export default function SiteNav({ activePage }: SiteNavProps) {
               Sign In
             </Link>
             <Link className="btn btn-primary btn-sm" href="/login">
-              Start Drafting Free
+              Start free
             </Link>
             <button
               className="nav-burger"
@@ -113,7 +113,7 @@ export default function SiteNav({ activePage }: SiteNavProps) {
             Sign In
           </Link>
           <Link className="btn btn-primary btn-block" href="/login">
-            Start Drafting Free
+            Start free
           </Link>
         </div>
       </aside>
