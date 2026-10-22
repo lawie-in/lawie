@@ -17,6 +17,7 @@ import { createHash } from 'crypto';
 import request from 'supertest';
 
 import app from '../app';
+import { seedVerifiedUsers } from './verifiedUser';
 import redis from '../config/redis';
 import { AppSetting } from '../models/AppSetting.model';
 import { _clearAppSettingsCache } from '../services/app-settings.service';
@@ -280,3 +281,5 @@ describe('T-482 E: POST /intake routing, mocked model', () => {
     expect(res.body.template_id).toBeUndefined();
   });
 });
+
+seedVerifiedUsers('507f1f77bcf86cd799439072');

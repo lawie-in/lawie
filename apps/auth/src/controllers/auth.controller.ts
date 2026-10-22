@@ -13,7 +13,11 @@ import {
   getPrivacyHistory,
   updateProfile,
   UPDATE_ME_PRIVACY_BODY,
+  resendVerifyByEmail,
+  signInFromVerifyLink,
+  type RegisterOutcome,
 } from '../services/auth.service';
+import { padToFloor } from '../services/latency-pad';
 import {
   completePasswordReset,
   isResetTokenLive,
@@ -36,23 +40,78 @@ import {
   DEFAULT_COURT_NOT_IN_COURTS,
 } from '../validators/auth.validator';
 
-export async function register(req: Request, res: Response, next: NextFunction): Promise<void> {
-  try {
-    const parsed = validateRegister(req.body);
-    const { user, tokens, referralApplied } = await registerUser(parsed, {
-      ip: req.ip,
-      userAgent: req.headers['user-agent'],
-    });
+/**
+ * T-522 (Arjun 4, open point (a) confirmed 22 Oct 2026) — the one answer to an accepted sign-up,
+ * identical for a new and an existing address (and for the signed-out resend), in auth's
+ * standard wrapper: no user id, no email, no tokens, no referral flag. The web reads data.status.
+ */
+export const SIGNUP_ACCEPTED_BODY = { status: 'success', data: { status: 'check_email' } } as const;
+export const SIGNUP_RATE_LIMITED = 'rate_limited';
 
-    res.status(201).json({
-      status: 'success',
-      data: {
-        user: { id: user._id, email: user.email, name: user.name, role: user.role },
-        ...tokens,
-        // T-234: only present when a referral code was sent and the outcome is known.
-        ...(referralApplied !== undefined ? { referralApplied } : {}),
-      },
-    });
+/** T-522 — the shared tail of the two neutral routes: 202 padded, 429 or 503. */
+async function sendNeutralOutcome(
+  res: Response,
+  outcome: RegisterOutcome,
+  startedAt: number,
+  route: string,
+): Promise<void> {
+  switch (outcome.kind) {
+    case 'accepted':
+      await padToFloor(startedAt, route);
+      res.status(202).json(SIGNUP_ACCEPTED_BODY);
+      return;
+    case 'limited':
+      res.setHeader('Retry-After', String(outcome.retryAfterSeconds));
+      res.status(429).json({ error: SIGNUP_RATE_LIMITED, retryAfter: outcome.retryAfterSeconds });
+      return;
+    case 'unavailable':
+      res.status(503).json({ error: 'service_unavailable' });
+      return;
+  }
+}
+
+/**
+ * T-522 — POST /register (public), neutral (Arjun rulings 1, 3, 4):
+ *   422  validation (checked first, before any lookup or count)
+ *   202  SIGNUP_ACCEPTED_BODY, Cache-Control: no-store, padded to SIGNUP_RESPONSE_FLOOR_MS from
+ *        the start of the request; the same for a new and an existing address; no session
+ *   429  { error: 'rate_limited', retryAfter } + Retry-After  over the IP or email bucket
+ *   503  { error: 'service_unavailable' }  the rate-limit store failed; nothing looked up
+ * The body is never logged.
+ */
+export async function register(req: Request, res: Response, next: NextFunction): Promise<void> {
+  const startedAt = Date.now();
+  try {
+    res.setHeader('Cache-Control', 'no-store');
+    const parsed = validateRegister(req.body);
+    const outcome = await registerUser(parsed, clientIpForRateLimit(req));
+    await sendNeutralOutcome(res, outcome, startedAt, 'register');
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * T-522 (Arjun 5) — POST /verify-email/resend-by-email { email } (public). Shares the sign-up
+ * IP and email buckets (429 / 503 as /register); otherwise always the same padded 202 as
+ * /register, whether or not anything was sent. 400 { error: 'invalid_email' } for a missing or
+ * badly formed address (format only). The body is never logged.
+ */
+export async function resendVerifyByEmailHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  const startedAt = Date.now();
+  try {
+    res.setHeader('Cache-Control', 'no-store');
+    const email = parseForgotPasswordEmail(req.body);
+    if (!email) {
+      res.status(400).json({ error: 'invalid_email' });
+      return;
+    }
+    const outcome = await resendVerifyByEmail(email, clientIpForRateLimit(req));
+    await sendNeutralOutcome(res, outcome, startedAt, 'verify-email/resend-by-email');
   } catch (err) {
     next(err);
   }
@@ -251,6 +310,11 @@ export const VERIFY_LINK_INVALID = 'verify_link_invalid';
  * T-223 — POST /verify-email { token } (public: the token is the credential). The token travels
  * in the body only and is never logged; neither is the body. An expired, used or forged link
  * is one answer (400), so a caller learns nothing about which it was.
+ *
+ * T-522 (Arjun 1): only this POST uses a token up. A 'signin' link (sign-up and resend) also
+ * signs the user in exactly as /login does: 200 { status, user, accessToken, refreshToken }. A
+ * 'verify' link (the T-358 notice, or one minted before T-522) returns { status } only. An
+ * expired or used link is 400 verify_link_invalid and creates no session.
  */
 export async function verifyEmailHandler(
   req: Request,
@@ -260,16 +324,31 @@ export async function verifyEmailHandler(
   try {
     res.setHeader('Cache-Control', 'no-store');
     const token = (req.body as { token?: unknown } | undefined)?.token;
+    res.setHeader('Referrer-Policy', 'no-referrer');
     const result = await verifyEmailToken(token);
-    if (result.kind === 'verified') {
-      res.status(200).json({ status: 'verified' });
+    if (result.kind === 'expired_or_invalid') {
+      res.status(400).json({ error: VERIFY_LINK_INVALID });
       return;
     }
-    if (result.kind === 'already_verified') {
-      res.status(200).json({ status: 'already_verified' });
+    if (result.linkKind !== 'signin') {
+      res.status(200).json({ status: result.kind });
       return;
     }
-    res.status(400).json({ error: VERIFY_LINK_INVALID });
+    const signedIn = await signInFromVerifyLink(result.userId, {
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
+    if (!signedIn) {
+      // The account was deactivated or removed between the verify and the sign-in: no session.
+      res.status(400).json({ error: VERIFY_LINK_INVALID });
+      return;
+    }
+    const { user, tokens } = signedIn;
+    res.status(200).json({
+      status: result.kind,
+      user: { id: user._id, email: user.email, name: user.name, role: user.role },
+      ...tokens,
+    });
   } catch (err) {
     next(err);
   }

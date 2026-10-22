@@ -9,7 +9,7 @@ import app from '../app';
 import { AppSetting } from '../models/AppSetting.model';
 import { LawieDocument } from '../models/Document.model';
 import { Generation } from '../models/Generation.model';
-import { User } from '../models/User.model';
+import { createVerifiedUser } from './verifiedUser';
 import { _clearAppSettingsCache } from '../services/app-settings.service';
 import { sdkAnswer } from './sdkStream';
 const mockMessagesStream = jest.fn();
@@ -57,7 +57,7 @@ const VALID_BAIL_FORM_DATA = {
 };
 
 async function seedUser(userId: string) {
-  await User.create({
+  await createVerifiedUser({
     _id: userId,
     plan: 'free',
     planTier: 'free',

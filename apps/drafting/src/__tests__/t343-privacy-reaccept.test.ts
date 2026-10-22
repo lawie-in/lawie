@@ -18,6 +18,7 @@ import * as privacyConstants from '@lawie/shared/dist/constants/privacy';
 import request from 'supertest';
 
 import app from '../app';
+import { seedVerifiedUsers } from './verifiedUser';
 import { LawieDocument } from '../models/Document.model';
 import { encrypt } from '../utils/encryption';
 
@@ -223,3 +224,5 @@ describe('T-343 @lawie/shared: requireCurrentPrivacy unit', () => {
     expect(Object.isFrozen(PRIVACY_VERSION_SUMMARIES)).toBe(true);
   });
 });
+
+seedVerifiedUsers('507f1f77bcf86cd799439077');

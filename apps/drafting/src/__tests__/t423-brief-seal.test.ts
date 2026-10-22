@@ -31,7 +31,7 @@ jest.mock('@anthropic-ai/sdk', () =>
 import app from '../app';
 import { AppSetting } from '../models/AppSetting.model';
 import { Court } from '../models/Court.model';
-import { User } from '../models/User.model';
+import { createVerifiedUser } from './verifiedUser';
 import { _clearAppSettingsCache } from '../services/app-settings.service';
 import { CLAUSES_MARKER } from '../services/brief-drafter';
 import { storesState } from '../services/brief-party-fields';
@@ -97,7 +97,7 @@ beforeEach(async () => {
     city: 'Patna',
     formattingRulesRef: 'bihar_district',
   });
-  await User.create({
+  await createVerifiedUser({
     _id: USER_ID,
     plan: 'free',
     planTier: 'free',

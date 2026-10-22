@@ -9,7 +9,7 @@
 
 import './setupEnv';
 
-jest.mock('ioredis', () => require('ioredis-mock'));
+jest.mock('ioredis', () => jest.requireActual('ioredis-mock'));
 jest.mock('@sentry/node', () => {
   const actual = jest.requireActual('@sentry/node');
   return { ...actual, captureException: jest.fn() };
@@ -25,6 +25,8 @@ import { User } from '../models/User.model';
 import * as authService from '../services/auth.service';
 
 const PASSWORD = 'Passw0rdOk';
+// AJ-522-S7 / S10, byte for byte from the signed rulings file.
+const S7 = 'Use at least 8 characters, with an upper-case letter, a lower-case letter and a digit.';
 const captureException = Sentry.captureException as jest.Mock;
 
 function expect422(res: supertest.Response, ...fragments: string[]) {
@@ -53,7 +55,8 @@ describe('T-208 AC4 — POST /register validation', () => {
     const res = await supertest(app)
       .post('/register')
       .send({ email: 't208-short@example.com', password: 'Ab1', name: 'Test' });
-    expect422(res, 'Password must be at least 8 characters');
+    expect422(res, S7);
+    expect(res.body.message).toBe(S7);
     expect(await User.findOne({ email: 't208-short@example.com' })).toBeNull();
   });
 
@@ -61,11 +64,10 @@ describe('T-208 AC4 — POST /register validation', () => {
     const res = await supertest(app)
       .post('/register')
       .send({ email: 't208-weak@example.com', password: 'alllowercase', name: 'Test' });
-    expect422(
-      res,
-      'Must contain at least one uppercase letter',
-      'Must contain at least one number',
-    );
+    // S10: one signed line, once, however many rules failed; the per-rule texts are gone.
+    expect422(res, S7);
+    expect(res.body.message).toBe(S7);
+    expect(res.body.message).not.toContain('uppercase');
   });
 
   it('missing name -> 422 "Name is required"', async () => {
@@ -103,12 +105,8 @@ describe('T-208 AC4 — POST /register validation', () => {
     const res = await supertest(app)
       .post('/register')
       .send({ email: 'bad', password: 'short', name: '' });
-    expect422(
-      res,
-      'Invalid email format',
-      'Password must be at least 8 characters',
-      'Name is required',
-    );
+    expect422(res, 'Invalid email format', S7, 'Name is required');
+    expect(res.body.message).toBe(`Invalid email format; ${S7}; Name is required`);
   });
 });
 
@@ -152,18 +150,15 @@ describe('T-208 AC2 — validation errors are not reported to Sentry', () => {
 });
 
 describe('T-208 AC5 — valid requests unchanged', () => {
-  it('valid register -> 201, valid login -> 200 with tokens, no Sentry', async () => {
+  it('valid register -> 202 neutral (no tokens), valid login -> 200 with tokens, no Sentry', async () => {
     const email = 't208-ok@example.com';
     const reg = await supertest(app)
       .post('/register')
       .send({ email, password: PASSWORD, name: 'Test Person' });
-    expect(reg.status).toBe(201);
-    expect(reg.body.data.user.email).toBe(email);
-    expect(reg.body.data.accessToken).toEqual(expect.any(String));
+    expect(reg.status).toBe(202);
+    expect(reg.body).toEqual({ status: 'success', data: { status: 'check_email' } });
+    expect(reg.body.data.accessToken).toBeUndefined();
 
-    // JWTs are second-granular: login in the same second as register yields an identical
-    // token and a duplicate sessions.jwtTokenHash (pre-existing, unrelated to T-208).
-    await new Promise((r) => setTimeout(r, 1100));
     const login = await supertest(app).post('/login').send({ email, password: PASSWORD });
     expect(login.status).toBe(200);
     expect(login.body.data.accessToken).toEqual(expect.any(String));
@@ -178,12 +173,14 @@ describe('T-208 AC5 — valid requests unchanged', () => {
     expect(res.status).toBe(401);
   });
 
-  it('duplicate register still 409', async () => {
+  it('duplicate register is the neutral 202 (T-522: no 409)', async () => {
     const email = 't208-dup@example.com';
     const body = { email, password: PASSWORD, name: 'Test' };
-    await supertest(app).post('/register').send(body);
+    const first = await supertest(app).post('/register').send(body);
     const res = await supertest(app).post('/register').send(body);
-    expect(res.status).toBe(409);
+    expect(first.status).toBe(202);
+    expect(res.status).toBe(202);
+    expect(res.body).toEqual(first.body);
   });
 });
 

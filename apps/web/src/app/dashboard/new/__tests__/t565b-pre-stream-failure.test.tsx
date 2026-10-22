@@ -30,6 +30,7 @@ jest.mock('@/components/credits/PaywallModal', () => ({
 let mockVerifyInstead = false;
 jest.mock('@/components/VerifyEmailPrompt', () => ({
   openVerifyInsteadOfPaywall: async () => mockVerifyInstead,
+  openVerifyIfDraftRefused: async () => false,
 }));
 const mockPrivacyFetch = jest.fn();
 jest.mock('@/components/PrivacyUpdatePrompt', () => ({

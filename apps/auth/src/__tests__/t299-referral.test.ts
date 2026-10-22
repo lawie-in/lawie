@@ -7,7 +7,7 @@
 
 import './setupEnv';
 
-jest.mock('ioredis', () => require('ioredis-mock'));
+jest.mock('ioredis', () => jest.requireActual('ioredis-mock'));
 
 import './setupDb';
 
@@ -30,7 +30,7 @@ beforeEach(() => {
 afterEach(() => jest.restoreAllMocks());
 
 const mkUser = (email: string) =>
-  User.create({ email, name: 'Secret Name', password: 'Passw0rdOk' });
+  User.create({ email, name: 'Secret Name', password: 'Passw0rdOk', emailVerified: true });
 const inkOf = async (id: mongoose.Types.ObjectId) =>
   (await rawUsers().findOne({ _id: id }))!.inkTopup ?? 0;
 

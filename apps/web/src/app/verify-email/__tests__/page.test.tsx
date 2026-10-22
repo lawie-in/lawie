@@ -1,43 +1,56 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Makes this file a module so its top-level names do not clash with other test files under tsc.
 export {};
-// T-223 AC4 (web) — the /verify-email landing page the emailed link opens.
-// Mounted with react-dom/client; module state (the one-POST-per-token map) is reset per test.
+// T-522 (AJ-522-S5, S12) — the /verify-email landing page the emailed link opens: the five states.
+// Mounted with react-dom/client; module state (the one-POST-per-token map) is reset per test by
+// loading a fresh copy of the page (jest.resetModules, then dynamic imports; no require).
 
 (globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
-// Strings typed out independently of the source.
-// Signed: handoff/legal/T-223-verify-email-signed.md (part B "all states approved as drafted").
-// Not yet signed ("Ajay to check", handoff/marketing/copy/verify-email-t223.md "Additions for Ajay"):
-// landingError, landingErrorRetry, expiredSignedOut, expiredSignedOutCta.
+// Strings typed out independently of the source, copied from
+// handoff/legal/T-511-copy-rulings-ajay.md (origin/develop_staging) AJ-522-S5, S12, M4.
 const S = {
-  title: 'Verify your email',
-  verified: 'Your email is verified. You can continue.',
-  already: 'Your email is already verified.',
-  expired: 'This link has expired. Send a new one.',
-  resend: 'Resend email',
-  landingError: "We couldn't verify your email just now. Please try again.",
-  retry: 'Try again',
-  expiredSignedOut: 'This link has expired. Sign in to send a new one.',
+  verifying: 'Verifying your email…', // AJ-522-S12
+  stillWorking: 'Still working…', // AJ-522-S5 (after 8 s)
+  verifiedTitle: 'Email verified',
+  verifiedSignedIn: 'Your email is verified. You can continue.',
+  goToShelf: 'Go to your shelf',
+  verifiedSignedOut: 'Your email is verified. Sign in to continue.',
   signIn: 'Sign in',
-  sent: 'Email sent to a***@example.com. Check your inbox and your spam folder.',
+  expiredTitle: 'This link has expired or was already used.',
+  expiredLine:
+    'Sign in to continue. If your email is not verified yet, you can ask for a new link.',
+  failed: "We couldn't verify your email just now. Please try again.",
+  tryAgain: 'Try again',
+  resend: 'Resend email',
+  sent: 'Email sent. Check your inbox and spam folder.', // AJ-522-M4
+  // T-223 lines this ticket replaced: they must not render any more.
+  oldExpired: 'This link has expired. Send a new one.',
+  oldExpiredSignedOut: 'This link has expired. Sign in to send a new one.',
+  oldAlready: 'Your email is already verified.',
 };
 const TOKEN = 'TOK_s3cr3t_abc123';
+const ACCESS = 'access.jwt.value';
+const REFRESH = 'refresh.jwt.value';
 const FULL_EMAIL = 'alice.secret@example.com';
 const VERIFY = '/api/auth/verify-email';
+const RESEND = '/api/auth/verify-email/resend';
+const RESEND_BY_EMAIL = '/api/auth/verify-email/resend-by-email';
 
 let mockUser: { id: string; email: string } | null;
 let mockLoading: boolean;
+const mockLogin = jest.fn();
 jest.mock('@/context/AuthContext', () => ({
-  useAuth: () => ({ user: mockUser, login: jest.fn(), logout: jest.fn(), isLoading: mockLoading }),
+  useAuth: () => ({ user: mockUser, login: mockLogin, logout: jest.fn(), isLoading: mockLoading }),
 }));
 
 type Reply = { status?: number; body?: unknown; throws?: boolean };
 type Handler = Reply | ((n: number) => Reply);
-let calls: { url: string; path: string; method: string; body?: string }[];
+let calls: { url: string; path: string; method: string; body?: string; init: RequestInit }[];
 let handlers: Record<string, Handler>;
 let consoleSpies: jest.SpyInstance[];
-let h: ReturnType<typeof load>;
+let h: Awaited<ReturnType<typeof load>> | undefined;
+let pendingVerify: ((r: Reply) => void) | null = null;
 
 function fakeResponse(status: number, body: unknown) {
   const make = (): any => ({
@@ -53,11 +66,17 @@ function installFetch() {
   calls = [];
   const counts: Record<string, number> = {};
   (global as any).fetch = jest.fn(async (url: string, init: RequestInit = {}) => {
-    const path = String(url).replace(/^https?:\/\/[^/]+/, '');
-    calls.push({ url: String(url), path, method: init.method ?? 'GET', body: init.body as string });
-    counts[path] = (counts[path] ?? 0) + 1;
-    const hd = handlers[path];
-    const r = typeof hd === 'function' ? hd(counts[path]) : hd;
+    const p = String(url).replace(/^https?:\/\/[^/]+/, '');
+    calls.push({
+      url: String(url),
+      path: p,
+      method: init.method ?? 'GET',
+      body: init.body as string,
+      init,
+    });
+    counts[p] = (counts[p] ?? 0) + 1;
+    const hd = handlers[p];
+    const r = typeof hd === 'function' ? hd(counts[p]) : hd;
     if (!r) return fakeResponse(404, {});
     if (r.throws) throw new Error('network');
     return fakeResponse(r.status ?? 200, r.body ?? {});
@@ -66,19 +85,26 @@ function installFetch() {
 const me = (emailVerified: boolean, hasGoogle: boolean): Reply => ({
   body: { data: { emailVerified, hasGoogle } },
 });
+const SIGNIN_OK: Reply = {
+  body: { status: 'verified', accessToken: ACCESS, refreshToken: REFRESH, user: { id: 'u1' } },
+};
 const verifyCalls = () => calls.filter((c) => c.path === VERIFY);
 
-function load(opts: { strict?: boolean; token?: string | null } = {}) {
+async function load(opts: { strict?: boolean; token?: string | null } = {}) {
   jest.resetModules();
-  const React = require('react');
+  const React = await import('react');
   const { act } = React;
-  const { createRoot } = require('react-dom/client');
+  const { createRoot } = await import('react-dom/client');
+  const nav = await import('next/navigation');
   const token = opts.token === undefined ? TOKEN : opts.token;
   window.history.replaceState(null, '', token ? `/verify-email?token=${token}` : '/verify-email');
-  require('next/navigation').useSearchParams.mockReturnValue(
+  (nav.useSearchParams as jest.Mock).mockReturnValue(
     new URLSearchParams(token ? `token=${token}` : ''),
   );
-  const Page = require('../page').default;
+  const router = { push: jest.fn(), replace: jest.fn(), prefetch: jest.fn() };
+  (nav.useRouter as jest.Mock).mockReturnValue(router);
+  const pageMod = await import('../page');
+  const Page = pageMod.default;
   const container = document.createElement('div');
   document.body.appendChild(container);
   const root = createRoot(container);
@@ -90,12 +116,21 @@ function load(opts: { strict?: boolean; token?: string | null } = {}) {
   return {
     act,
     flush,
+    router,
+    metadata: pageMod.metadata,
     async mount() {
       const el = React.createElement(Page);
       await act(async () =>
         root.render(opts.strict ? React.createElement(React.StrictMode, null, el) : el),
       );
       await flush();
+    },
+    /** For fake timers: the macrotask flush would hang, so only microtasks are drained. */
+    async mountFake() {
+      await act(async () => root.render(React.createElement(Page)));
+      await act(async () => {
+        for (let i = 0; i < 15; i += 1) await Promise.resolve();
+      });
     },
     async unmount() {
       await act(async () => root.unmount());
@@ -112,6 +147,8 @@ const byText = (label: string) =>
   Array.from(document.querySelectorAll('button, a')).find((b) => b.textContent === label) as
     | HTMLElement
     | undefined;
+const title = () => document.querySelector('h1')?.textContent;
+const bodyText = () => document.body.textContent ?? '';
 const alertText = () =>
   Array.from(document.querySelectorAll('[role="alert"]'))
     .map((r) => r.textContent)
@@ -119,7 +156,7 @@ const alertText = () =>
 const politeText = () =>
   Array.from(document.querySelectorAll('[role="status"]'))
     .map((r) => r.textContent)
-    .filter(Boolean) // the page's own region and the resend core's region may both be mounted
+    .filter(Boolean)
     .join('|');
 
 function signIn() {
@@ -130,6 +167,8 @@ function signIn() {
 beforeEach(() => {
   mockUser = null;
   mockLoading = false;
+  mockLogin.mockReset();
+  pendingVerify = null;
   localStorage.clear();
   handlers = { [VERIFY]: { body: { status: 'verified' } } };
   installFetch();
@@ -139,13 +178,15 @@ beforeEach(() => {
 });
 afterEach(async () => {
   await h?.unmount();
+  h = undefined;
   document.body.innerHTML = '';
+  jest.useRealTimers();
   consoleSpies.forEach((s) => s.mockRestore());
 });
 
-describe('T-223 AC4 — landing: token handling', () => {
-  it('strips ?token= from the address bar, keeping the path', async () => {
-    h = load();
+describe('T-522 landing — the token', () => {
+  it('removes ?token= from the address bar, keeping the path', async () => {
+    h = await load();
     expect(window.location.search).toContain('token=');
     await h.mount();
     expect(window.location.search).toBe('');
@@ -153,13 +194,14 @@ describe('T-223 AC4 — landing: token handling', () => {
     expect(window.location.href).not.toContain(TOKEN);
   });
 
-  it('POSTs the token in the JSON body to a fixed path; the token is never in a URL', async () => {
-    h = load();
+  it('POSTs the token exactly once, in the JSON body, to a fixed path; the token is never in a URL', async () => {
+    h = await load();
     await h.mount();
     const c = verifyCalls();
     expect(c).toHaveLength(1);
     expect(c[0].method).toBe('POST');
     expect(JSON.parse(c[0].body as string)).toEqual({ token: TOKEN });
+    expect(c[0].init.referrerPolicy).toBe('no-referrer');
     for (const call of calls) {
       expect(call.url).not.toContain(TOKEN);
       expect(call.path).not.toContain('token');
@@ -167,155 +209,285 @@ describe('T-223 AC4 — landing: token handling', () => {
     expect(c[0].path).toBe(VERIFY);
   });
 
-  it('sends the POST once under StrictMode double effects', async () => {
-    h = load({ strict: true });
+  it('sends the POST once under StrictMode double effects, and re-renders do not spend it again', async () => {
+    handlers[VERIFY] = SIGNIN_OK;
+    h = await load({ strict: true });
     await h.mount();
+    await h.flush();
     expect(verifyCalls()).toHaveLength(1);
-    expect(document.body.textContent).toContain(S.verified);
+    expect(mockLogin).toHaveBeenCalledWith(ACCESS, REFRESH);
+    expect(bodyText()).toContain(S.verifiedSignedIn);
   });
 
-  it('the page head: no-referrer and noindex', () => {
-    h = load();
-    const { metadata } = require('../page');
-    expect(metadata.referrer).toBe('no-referrer');
-    expect(metadata.robots).toEqual({ index: false, follow: false });
+  it('the page head: no-referrer and noindex', async () => {
+    h = await load();
+    expect(h.metadata.referrer).toBe('no-referrer');
+    expect(h.metadata.robots).toEqual({ index: false, follow: false });
   });
 
-  it('no console call contains the token or the address, on success, expiry and error', async () => {
+  it('no console call contains the token, the session tokens or the address', async () => {
     signIn();
     handlers[VERIFY] = { status: 500, body: {} };
-    h = load();
+    h = await load();
     await h.mount();
-    handlers[VERIFY] = { throws: true };
-    await h.click(byText(S.retry) as Element);
+    handlers[VERIFY] = SIGNIN_OK;
+    await h.click(byText(S.tryAgain) as Element);
     const all = consoleSpies.flatMap((s) => s.mock.calls).map((c) => JSON.stringify(c));
     for (const line of all) {
       expect(line).not.toContain(TOKEN);
+      expect(line).not.toContain(ACCESS);
       expect(line).not.toContain('alice');
     }
   });
 });
 
-describe('T-223 AC4 — landing: outcomes and signed strings', () => {
-  it('verified: signed "verified" text in the page and the polite region', async () => {
-    h = load();
-    await h.mount();
-    expect(document.querySelector('h1')?.textContent).toBe(S.title);
-    expect(document.querySelector('p')?.textContent).toBe(S.verified);
-    expect(politeText()).toBe(S.verified);
-    expect(byText(S.retry)).toBeUndefined();
+describe('AJ-522-S5 state 1 — verifying (S12)', () => {
+  it('shows "Verifying your email…" while the POST is pending, then "Still working…" after 8 s', async () => {
+    jest.useFakeTimers();
+    (global as any).fetch = jest.fn(async (url: string, init: RequestInit = {}) => {
+      const p = String(url).replace(/^https?:\/\/[^/]+/, '');
+      calls.push({ url: String(url), path: p, method: init.method ?? 'GET', init });
+      if (p === VERIFY) {
+        return new Promise((resolve) => {
+          pendingVerify = (r) => resolve(fakeResponse(r.status ?? 200, r.body ?? {}));
+        });
+      }
+      return fakeResponse(404, {});
+    });
+    h = await load();
+    await h.mountFake();
+    expect(title()).toBe(S.verifying);
+    expect(title()).not.toBe('Verify your email');
+    expect(bodyText()).not.toContain(S.stillWorking);
+    await h.act(async () => {
+      jest.advanceTimersByTime(7_000);
+    });
+    expect(bodyText()).not.toContain(S.stillWorking);
+    await h.act(async () => {
+      jest.advanceTimersByTime(1_500);
+    });
+    expect(bodyText()).toContain(S.stillWorking);
+    expect(verifyCalls()).toHaveLength(1);
+    await h.act(async () => {
+      pendingVerify?.({ body: SIGNIN_OK.body });
+      for (let i = 0; i < 15; i += 1) await Promise.resolve();
+    });
+    expect(title()).toBe(S.verifiedTitle);
   });
 
-  it('already_verified: signed "already verified" text', async () => {
-    handlers[VERIFY] = { body: { status: 'already_verified' } };
-    h = load();
+  it('waits for auth to finish loading before deciding', async () => {
+    mockLoading = true;
+    h = await load();
     await h.mount();
-    expect(document.querySelector('p')?.textContent).toBe(S.already);
-    expect(politeText()).toBe(S.already);
+    expect(verifyCalls()).toHaveLength(0);
+    expect(title()).toBe(S.verifying);
+  });
+});
+
+describe('AJ-522-S5 state 2 — verified and signed in', () => {
+  it('a sign-in link response logs the user in, and shows the signed title, line and button', async () => {
+    handlers[VERIFY] = SIGNIN_OK;
+    h = await load();
+    await h.mount();
+    expect(mockLogin).toHaveBeenCalledTimes(1);
+    expect(mockLogin).toHaveBeenCalledWith(ACCESS, REFRESH);
+    expect(title()).toBe(S.verifiedTitle);
+    expect(politeText()).toBe(S.verifiedSignedIn);
+    expect(byText(S.goToShelf)).toBeDefined();
+    expect(byText(S.signIn)).toBeUndefined();
+    expect(byText(S.tryAgain)).toBeUndefined();
+    expect(document.querySelector('[role="alert"]')).toBeNull();
+    expect(bodyText()).not.toContain(ACCESS);
+    expect(bodyText()).not.toContain(REFRESH);
   });
 
-  it('signed in, link expired (400): expired line plus Resend, which posts to /resend', async () => {
+  it('Go to your shelf goes to the dashboard', async () => {
+    handlers[VERIFY] = SIGNIN_OK;
+    h = await load();
+    await h.mount();
+    await h.click(byText(S.goToShelf) as Element);
+    expect(h.router.push).toHaveBeenCalledWith('/dashboard');
+  });
+
+  it('a verify-only link opened with a session shows the same signed-in state, without a second login', async () => {
     signIn();
     handlers['/api/auth/me'] = me(false, false);
-    handlers[VERIFY] = { status: 400, body: { error: 'verify_link_invalid' } };
-    handlers['/api/auth/verify-email/resend'] = { status: 202, body: {} };
-    h = load();
+    handlers[VERIFY] = { body: { status: 'verified' } };
+    h = await load();
     await h.mount();
-    expect(alertText()).toBe(S.expired);
-    expect(document.body.textContent).toContain(S.expired);
-    expect(byText(S.signIn)).toBeUndefined();
-    await h.click(byText(S.resend) as Element);
-    expect(calls.filter((c) => c.path === '/api/auth/verify-email/resend')).toHaveLength(1);
-    expect(politeText()).toBe(S.sent);
-    expect(document.body.textContent).not.toContain(FULL_EMAIL);
+    expect(mockLogin).not.toHaveBeenCalled();
+    expect(title()).toBe(S.verifiedTitle);
+    expect(politeText()).toBe(S.verifiedSignedIn);
   });
 
-  it('signed out, link expired: signed-out line and a Sign in link to /login; no Resend', async () => {
-    handlers[VERIFY] = { status: 400, body: { error: 'verify_link_invalid' } };
-    h = load();
+  it('already_verified with tokens also signs in', async () => {
+    handlers[VERIFY] = {
+      body: { status: 'already_verified', accessToken: ACCESS, refreshToken: REFRESH },
+    };
+    h = await load();
     await h.mount();
-    expect(alertText()).toBe(S.expiredSignedOut);
-    const link = byText(S.signIn) as HTMLAnchorElement;
-    expect(link.tagName).toBe('A');
-    expect(link.getAttribute('href')).toBe('/login');
-    expect(byText(S.resend)).toBeUndefined();
-    expect(calls.filter((c) => c.path.includes('resend'))).toHaveLength(0);
+    expect(mockLogin).toHaveBeenCalledWith(ACCESS, REFRESH);
+    expect(title()).toBe(S.verifiedTitle);
   });
 
-  it('no token in the link: expired state, no POST', async () => {
-    h = load({ token: null });
-    await h.mount();
-    expect(verifyCalls()).toHaveLength(0);
-    expect(alertText()).toBe(S.expiredSignedOut);
-  });
-
-  it.each([
-    ['500', { status: 500, body: {} }],
-    ['503', { status: 503, body: {} }],
-    ['network error', { throws: true }],
-  ])('%s: error text plus Try again, never the expired text', async (_l, reply) => {
-    handlers[VERIFY] = reply as Reply;
-    h = load();
-    await h.mount();
-    expect(alertText()).toBe(S.landingError);
-    expect(document.body.textContent).not.toContain('expired');
-    expect(byText(S.retry)).toBeDefined();
-  });
-
-  it('Try again re-POSTs the same token and then shows the result', async () => {
-    let n = 0;
-    handlers[VERIFY] = () =>
-      ++n === 1 ? { status: 503, body: {} } : { body: { status: 'verified' } };
-    h = load();
-    await h.mount();
-    await h.click(byText(S.retry) as Element);
-    const c = verifyCalls();
-    expect(c).toHaveLength(2);
-    expect(JSON.parse(c[1].body as string)).toEqual({ token: TOKEN });
-    expect(document.querySelector('p')?.textContent).toBe(S.verified);
-    expect(byText(S.retry)).toBeUndefined();
-  });
-
-  it('Try again moves focus to the page title, not <body>', async () => {
-    handlers[VERIFY] = { status: 500, body: {} };
-    h = load();
-    await h.mount();
-    await h.click(byText(S.retry) as Element);
-    expect(document.activeElement).toBe(document.querySelector('h1'));
-  });
-
-  it('signed in and already verified: "already verified", no verify POST', async () => {
+  it('signed in and already verified: skips the page to /dashboard without spending the link', async () => {
     signIn();
     handlers['/api/auth/me'] = me(true, false);
-    h = load();
+    h = await load();
     await h.mount();
     expect(verifyCalls()).toHaveLength(0);
-    expect(document.querySelector('p')?.textContent).toBe(S.already);
+    expect(h.router.replace).toHaveBeenCalledWith('/dashboard');
   });
 
-  it('signed in as a Google user: "already verified", no verify POST', async () => {
+  it('signed in as a Google user: skips to /dashboard, no verify POST', async () => {
     signIn();
     handlers['/api/auth/me'] = me(false, true);
-    h = load();
+    h = await load();
     await h.mount();
     expect(verifyCalls()).toHaveLength(0);
-    expect(document.querySelector('p')?.textContent).toBe(S.already);
+    expect(h.router.replace).toHaveBeenCalledWith('/dashboard');
   });
 
   it('signed in but /me fails: falls through to the POST (the token is the credential)', async () => {
     signIn();
     handlers['/api/auth/me'] = { status: 500, body: {} };
-    h = load();
+    h = await load();
     await h.mount();
     expect(verifyCalls()).toHaveLength(1);
-    expect(document.querySelector('p')?.textContent).toBe(S.verified);
+    expect(title()).toBe(S.verifiedTitle);
+  });
+});
+
+describe('AJ-522-S5 state 3 — verified, not signed in', () => {
+  it('a 200 without tokens and no session: the sign-in line and a Sign in button, no login', async () => {
+    handlers[VERIFY] = { body: { status: 'verified' } };
+    h = await load();
+    await h.mount();
+    expect(mockLogin).not.toHaveBeenCalled();
+    expect(politeText()).toBe(S.verifiedSignedOut);
+    expect(byText(S.signIn)).toBeDefined();
+    expect(byText(S.goToShelf)).toBeUndefined();
+    expect(byText(S.resend)).toBeUndefined();
+    expect(bodyText()).not.toContain(S.verifiedSignedIn);
   });
 
-  it('waits for auth to finish loading before deciding', async () => {
-    mockLoading = true;
-    h = load();
+  it('Sign in goes to the sign-in form', async () => {
+    h = await load();
+    await h.mount();
+    await h.click(byText(S.signIn) as Element);
+    expect(h.router.push).toHaveBeenCalledWith('/login?mode=signin');
+  });
+
+  it('a token without a refresh token does not log anyone in', async () => {
+    handlers[VERIFY] = { body: { status: 'verified', accessToken: ACCESS } };
+    h = await load();
+    await h.mount();
+    expect(mockLogin).not.toHaveBeenCalled();
+    expect(politeText()).toBe(S.verifiedSignedOut);
+  });
+});
+
+describe('AJ-522-S5 state 4 — expired or used', () => {
+  it('a 400 signed out: the signed title and line, Sign in, no Resend, no login, no resend call', async () => {
+    handlers[VERIFY] = { status: 400, body: { error: 'verify_link_invalid' } };
+    h = await load();
+    await h.mount();
+    expect(title()).toBe(S.expiredTitle);
+    expect(bodyText()).toContain(S.expiredLine);
+    expect(byText(S.signIn)).toBeDefined();
+    expect(byText(S.resend)).toBeUndefined();
+    expect(mockLogin).not.toHaveBeenCalled();
+    expect(calls.filter((c) => c.path.includes('resend'))).toHaveLength(0);
+    expect(bodyText()).not.toContain(S.oldExpired);
+    expect(bodyText()).not.toContain(S.oldExpiredSignedOut);
+  });
+
+  it('Resend email shows only when a session exists, and uses the signed-in resend (never resend-by-email)', async () => {
+    signIn();
+    handlers['/api/auth/me'] = me(false, false);
+    handlers[VERIFY] = { status: 400, body: { error: 'verify_link_invalid' } };
+    handlers[RESEND] = { status: 202, body: {} };
+    h = await load();
+    await h.mount();
+    expect(title()).toBe(S.expiredTitle);
+    expect(byText(S.resend)).toBeDefined();
+    await h.click(byText(S.resend) as Element);
+    expect(calls.filter((c) => c.path === RESEND)).toHaveLength(1);
+    expect(calls.filter((c) => c.path === RESEND_BY_EMAIL)).toHaveLength(0);
+    expect(politeText()).toContain(S.sent);
+    expect(bodyText()).not.toContain(FULL_EMAIL);
+  });
+
+  it('Sign in on the expired state goes to the sign-in form', async () => {
+    handlers[VERIFY] = { status: 400, body: {} };
+    h = await load();
+    await h.mount();
+    await h.click(byText(S.signIn) as Element);
+    expect(h.router.push).toHaveBeenCalledWith('/login?mode=signin');
+  });
+
+  it('no token in the link: the expired state and no POST', async () => {
+    h = await load({ token: null });
     await h.mount();
     expect(verifyCalls()).toHaveLength(0);
-    expect(document.querySelector('section')?.getAttribute('aria-busy')).toBe('true');
+    expect(title()).toBe(S.expiredTitle);
+    expect(byText(S.resend)).toBeUndefined();
+  });
+});
+
+describe('AJ-522-S5 state 5 — failure', () => {
+  it.each([
+    ['500', { status: 500, body: {} }],
+    ['503', { status: 503, body: {} }],
+    ['network error', { throws: true }],
+  ])('%s: the signed failure line plus Try again, never the expired state', async (_l, reply) => {
+    handlers[VERIFY] = reply as Reply;
+    h = await load();
+    await h.mount();
+    expect(alertText()).toBe(S.failed);
+    expect(byText(S.tryAgain)).toBeDefined();
+    expect(title()).not.toBe(S.expiredTitle);
+    expect(bodyText()).not.toContain('expired');
+    expect(mockLogin).not.toHaveBeenCalled();
+  });
+
+  it('Try again re-POSTs the same token (a second POST only because the first failed) and then shows the result', async () => {
+    let n = 0;
+    handlers[VERIFY] = () => (++n === 1 ? { status: 503, body: {} } : SIGNIN_OK);
+    h = await load();
+    await h.mount();
+    expect(verifyCalls()).toHaveLength(1);
+    await h.click(byText(S.tryAgain) as Element);
+    const c = verifyCalls();
+    expect(c).toHaveLength(2);
+    expect(JSON.parse(c[1].body as string)).toEqual({ token: TOKEN });
+    expect(title()).toBe(S.verifiedTitle);
+    expect(mockLogin).toHaveBeenCalledWith(ACCESS, REFRESH);
+    expect(byText(S.tryAgain)).toBeUndefined();
+  });
+
+  it('Try again moves focus to the page title, not <body>', async () => {
+    handlers[VERIFY] = { status: 500, body: {} };
+    h = await load();
+    await h.mount();
+    await h.click(byText(S.tryAgain) as Element);
+    expect(document.activeElement).toBe(document.querySelector('h1'));
+  });
+});
+
+describe('focus and the old T-223 strings', () => {
+  it('each settled state moves focus to the title', async () => {
+    handlers[VERIFY] = SIGNIN_OK;
+    h = await load();
+    await h.mount();
+    expect(document.activeElement).toBe(document.querySelector('h1'));
+  });
+
+  it('the old "already verified" and "expired, send a new one" lines never render', async () => {
+    handlers[VERIFY] = { body: { status: 'already_verified' } };
+    h = await load();
+    await h.mount();
+    expect(bodyText()).not.toContain(S.oldAlready);
+    expect(bodyText()).not.toContain(S.oldExpired);
   });
 });

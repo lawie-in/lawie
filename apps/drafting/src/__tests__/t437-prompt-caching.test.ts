@@ -27,7 +27,7 @@ import { spendCapCheck } from '../middleware/spendCap';
 import { AppSetting } from '../models/AppSetting.model';
 import { Generation } from '../models/Generation.model';
 import { LlmAuxCall } from '../models/LlmAuxCall.model';
-import { User } from '../models/User.model';
+import { createVerifiedUser } from './verifiedUser';
 import { recordGeneration } from '../routes/documents.routes';
 import { cachedSystemBlocks, streamGenerateFromBrief } from '../services/ai.service';
 import { _clearAppSettingsCache } from '../services/app-settings.service';
@@ -1115,7 +1115,7 @@ describe('the template pipeline is not cached (its system prompt varies per requ
   };
 
   it('POST /generate-from-template sends system as a plain string with no cache_control; cost row has no cache cost', async () => {
-    await User.create({
+    await createVerifiedUser({
       _id: USER_ID,
       plan: 'free',
       planTier: 'free',

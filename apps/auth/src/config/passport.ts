@@ -10,7 +10,7 @@ import {
 } from '../models/User.model';
 import { grantSignupBonus } from '../services/credit-bonus.service';
 import { discardOAuthUtm, getVerifiedOAuthState, takeOAuthUtm } from '../services/oauth-state';
-import { applyReferralCode } from '../services/referral.service';
+import { applyReferralCode, grantDeferredReferralInk } from '../services/referral.service';
 import { deleteAllUserSessions } from '../services/session.service';
 import { buildSignupSource } from '../validators/auth.validator';
 
@@ -135,9 +135,13 @@ export function initPassport(): void {
               // signupBonusGrantedAt guard keeps it to one grant (a no-op if already granted).
               // Non-blocking, like the new-user grant below: it never fails the OAuth callback.
               const linkedUserId = user._id.toString();
-              void grantSignupBonus(linkedUserId).catch(() => {
-                logger.warn({ userId: linkedUserId }, 'Signup bonus after Google link failed');
-              });
+              // T-522 (Arjun (b)): the link verifies the account, so a referral recorded at its
+              // password sign-up is granted next, after the bonus (re-checked; never throws).
+              void grantSignupBonus(linkedUserId)
+                .catch(() => {
+                  logger.warn({ userId: linkedUserId }, 'Signup bonus after Google link failed');
+                })
+                .then(() => grantDeferredReferralInk(linkedUserId));
             } else {
               // 3. Brand-new user — create account.
               // T-242 — sign-up source, taken (read + deleted) from Redis under the verified

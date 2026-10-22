@@ -15,6 +15,7 @@ import mongoose from 'mongoose';
 
 import { Generation } from '../models/Generation.model';
 import { User } from '../models/User.model';
+import { createVerifiedUser } from './verifiedUser';
 import {
   INK_HOLD_TTL_MS,
   holdInk,
@@ -37,7 +38,7 @@ const TEMP_FIELDS = ['_ds', '_dc', '_dt', '_r1', '_r2', '_h'];
 type Balance = { inkSub: number; inkAnnualCarry: number; inkTopup: number };
 
 async function seed(b: Partial<Balance> = {}, userId = USER_ID) {
-  await User.create({
+  await createVerifiedUser({
     _id: userId,
     plan: 'free',
     planTier: 'free',

@@ -30,6 +30,7 @@ jest.mock('@/components/credits/PaywallModal', () => ({
 // Switchable prompts.
 let mockVerifyInstead = false;
 jest.mock('@/components/VerifyEmailPrompt', () => ({
+  openVerifyIfDraftRefused: async () => false,
   openVerifyInsteadOfPaywall: async () => mockVerifyInstead,
 }));
 let mockPrecheckBlocks = false;

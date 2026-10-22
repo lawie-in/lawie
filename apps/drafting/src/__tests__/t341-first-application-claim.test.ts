@@ -17,7 +17,7 @@ import app from '../app';
 import redis from '../config/redis';
 import { AppSetting } from '../models/AppSetting.model';
 import { Court } from '../models/Court.model';
-import { User } from '../models/User.model';
+import { createVerifiedUser } from './verifiedUser';
 import { _clearAppSettingsCache } from '../services/app-settings.service';
 import { loadAvermentLists } from '../services/averments';
 import {
@@ -444,7 +444,7 @@ async function setup(ledger: boolean) {
     city: 'Patna',
     formattingRulesRef: 'bihar_district',
   });
-  await User.create({
+  await createVerifiedUser({
     _id: USER_ID,
     plan: 'free',
     planTier: 'free',

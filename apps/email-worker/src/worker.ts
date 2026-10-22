@@ -128,6 +128,8 @@ export interface MintedVerifyLink {
   email: string;
   name: string;
   link: string;
+  /** T-522: the sign-up Ink was already granted (picks the verify mail's body variant). */
+  signupInkGranted?: boolean;
 }
 
 /**
@@ -156,7 +158,9 @@ export const mintVerifyLinkViaAuth: MintVerifyLinkFn = async (userId) => {
       'content-type': 'application/json',
       [INTERNAL_HEADERS.SECRET]: env.INTERNAL_SECRET,
     },
-    body: JSON.stringify({ userId }),
+    // T-522 (Arjun 1): the verify mail carries a 'signin' link (30 min, signs in). The route's
+    // default is 'verify', so the worker must ask for it.
+    body: JSON.stringify({ userId, kind: 'signin' }),
     signal: AbortSignal.timeout(MINT_TIMEOUT_MS),
   });
   if (res.status === 409 || res.status === 404) return null;
@@ -175,7 +179,51 @@ export const mintVerifyLinkViaAuth: MintVerifyLinkFn = async (userId) => {
     email: body.email,
     name: typeof body.name === 'string' ? body.name : '',
     link: body.link,
+    signupInkGranted: body.signupInkGranted === true,
   };
+};
+
+// ── T-522: existing-address sign-up attempt mail (auth) ─────────────────────
+
+/** What auth's signup-attempt prepare returns. PII: never log any of it. */
+export interface PreparedSignupAttempt {
+  email: string;
+  signInUrl: string;
+  resetUrl: string;
+}
+
+/**
+ * Asks auth for the address and the two page links for an auth.signupAttempt job. Returns null
+ * on 404 (no such user, deactivated, being closed): the job is dropped. Throws a value-free
+ * error otherwise, so BullMQ retries.
+ */
+export type PrepareSignupAttemptFn = (userId: string) => Promise<PreparedSignupAttempt | null>;
+
+class SignupAttemptPrepareError extends Error {
+  readonly code: string;
+  constructor(code: string) {
+    super(`signup-attempt prepare failed: ${code}`);
+    this.name = 'SignupAttemptPrepareError';
+    this.code = code;
+  }
+}
+
+export const prepareSignupAttemptViaAuth: PrepareSignupAttemptFn = async (userId) => {
+  let res: Response;
+  try {
+    res = await postToAuth('/internal/signup-attempt/prepare', { userId });
+  } catch (err) {
+    // Network error or timeout. The original message can carry the URL: not kept.
+    const name = (err as { name?: unknown } | null)?.name;
+    throw new SignupAttemptPrepareError(name === 'TimeoutError' ? 'TIMEOUT' : 'NETWORK');
+  }
+  if (res.status === 404) return null;
+  if (!res.ok) throw new SignupAttemptPrepareError(`HTTP_${res.status}`);
+  const body = (await res.json().catch(() => null)) as Record<string, unknown> | null;
+  if (body && nonEmpty(body.email) && nonEmpty(body.signInUrl) && nonEmpty(body.resetUrl)) {
+    return { email: body.email, signInUrl: body.signInUrl, resetUrl: body.resetUrl };
+  }
+  throw new SignupAttemptPrepareError('BAD_RESPONSE');
 };
 
 // ── T-221: password-reset mint (auth) ───────────────────────────────────────
@@ -541,6 +589,8 @@ function invoiceRenderData(view: InvoiceEmailView, userId: string): Record<strin
 const UNFILLED_PLACEHOLDER_MESSAGE = 'email has unfilled footer placeholders; not sent';
 const NO_STREET_ADDRESS_MESSAGE =
   'password reset email needs the supplier street address; not sent';
+const NO_STREET_ADDRESS_SIGNUP_ATTEMPT_MESSAGE =
+  'sign-up attempt email needs the supplier street address; not sent';
 /** Errors raised by the placeholder guard: rethrown as-is, without the Sentry/log path. */
 const placeholderRefusals = new WeakSet<object>();
 
@@ -570,6 +620,7 @@ export function createProcessor(
   notice: UnverifiedNoticeDeps = unverifiedNoticeViaAuth,
   invoiceView: FetchInvoiceViewFn = fetchInvoiceViewViaBilling,
   passwordReset: MintPasswordResetFn = mintPasswordResetViaAuth,
+  signupAttempt: PrepareSignupAttemptFn = prepareSignupAttemptViaAuth,
 ): Processor<EmailJobData> {
   return async (job: Job<EmailJobData>) => {
     const { template, cc, bcc, replyTo, data } = job.data;
@@ -581,13 +632,15 @@ export function createProcessor(
     const isVerify = template === 'auth.verifyEmail';
     const isNotice = template === 'auth.unverifiedDeletionNotice';
     const isPasswordReset = template === 'auth.passwordReset';
+    const isSignupAttempt = template === 'auth.signupAttempt';
     // T-436: invoice and credit-note emails resolve the recipient through billing.
     const invoiceKind = INVOICE_TEMPLATE_KIND[template];
     const rawInvoiceId = data?.invoiceId;
     const invoiceId = invoiceKind && nonEmpty(rawInvoiceId) ? rawInvoiceId : undefined;
     // All of these resolve the recipient through auth or billing; the job's to/cc/bcc/replyTo
     // are never used.
-    const userIdOnly = isVerify || isNotice || isPasswordReset || invoiceKind !== undefined;
+    const userIdOnly =
+      isVerify || isNotice || isPasswordReset || isSignupAttempt || invoiceKind !== undefined;
     // T-358: which verify-link mail this is, for the outcome report (set once known).
     let mail: VerifyMail | null = isVerify ? 'verify' : null;
     Sentry.addBreadcrumb({
@@ -629,7 +682,43 @@ export function createProcessor(
           return { skipped: 'not_eligible' };
         }
         to = [minted.email];
-        renderData = { name: minted.name, verifyUrl: minted.link, userId };
+        renderData = {
+          name: minted.name,
+          verifyUrl: minted.link,
+          signupInkGranted: minted.signupInkGranted === true,
+          userId,
+        };
+      }
+      if (isSignupAttempt) {
+        // T-522 (AJ-522-M5): the address and links come from auth at send time, never the job.
+        if (!userId) throw new UnrecoverableError('auth.signupAttempt job without a userId');
+        // Checked before the fetch, so no PII is pulled for an email that cannot render.
+        if (!isTemplateRegistered(template)) {
+          throw new Error(`Template "${template}" is not registered`);
+        }
+        // AJ-522-S9: footer line 1 carries the supplier street address, as in the reset mail.
+        // Same guard as auth.passwordReset: no live send without it, checked before the fetch.
+        const streetAddress = supplierStreetAddress();
+        if (isLiveSend() && !streetAddress) {
+          logger.error(
+            { userId: ids.userId, reason: 'supplier_street_address_unset' },
+            'Sign-up attempt email not sent: supplier street address not set',
+          );
+          const refusal = new UnrecoverableError(NO_STREET_ADDRESS_SIGNUP_ATTEMPT_MESSAGE);
+          placeholderRefusals.add(refusal);
+          throw refusal;
+        }
+        const prepared = await signupAttempt(userId);
+        if (!prepared) {
+          logger.info(
+            { jobId, template: ids.template, userId: ids.userId },
+            'Sign-up attempt email not sent: no such user, inactive or being closed',
+          );
+          return { skipped: 'not_eligible' };
+        }
+        to = [prepared.email];
+        renderData = { signInUrl: prepared.signInUrl, resetUrl: prepared.resetUrl, userId };
+        if (streetAddress) renderData = { ...renderData, streetAddress };
       }
       if (isPasswordReset) {
         // T-221: the address and the link (or the login URL) come from auth at send time,
@@ -862,6 +951,8 @@ export interface StartWorkersOptions {
   invoiceView?: FetchInvoiceViewFn;
   /** T-221 password-reset mint; defaults to the call to auth's internal route. */
   passwordReset?: MintPasswordResetFn;
+  /** T-522 signup-attempt prepare; defaults to the call to auth's internal route. */
+  signupAttempt?: PrepareSignupAttemptFn;
 }
 
 export function startWorkers(options: StartWorkersOptions = {}): Worker[] {
@@ -882,6 +973,7 @@ export function startWorkers(options: StartWorkersOptions = {}): Worker[] {
     options.notice,
     options.invoiceView,
     options.passwordReset,
+    options.signupAttempt,
   );
   const started: Worker[] = [];
   for (const queueName of WORKER_QUEUE_NAMES) {

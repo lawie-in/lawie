@@ -24,6 +24,7 @@ import { render } from '@react-email/render';
 import type { ReactElement } from 'react';
 
 import { authPasswordResetTemplate } from './auth/passwordReset';
+import { authSignupAttemptTemplate } from './auth/signupAttempt';
 import { authUnverifiedDeletionNoticeTemplate } from './auth/unverifiedDeletionNotice';
 import { authVerifyEmailTemplate } from './auth/verifyEmail';
 import { authWelcomeTemplate } from './auth/welcome';
@@ -47,6 +48,8 @@ const REGISTRY: Partial<Record<EmailTemplate, TemplateDef<any>>> = {
   // T-221: variants 'link' (E1) and 'google' (E2); data from auth's password-reset mint.
   'auth.passwordReset': authPasswordResetTemplate,
   'auth.unverifiedDeletionNotice': authUnverifiedDeletionNoticeTemplate,
+  // T-522 (AJ-522-M5): the existing-address mail on a sign-up attempt; data from auth's prepare.
+  'auth.signupAttempt': authSignupAttemptTemplate,
   // T-436 (b/c): Ajay Addendum 5 (invoice); Addendum 7 (4a) and Addendum 9 (credit note).
   'billing.taxInvoice': billingTaxInvoiceTemplate,
   'billing.creditNote': billingCreditNoteTemplate,

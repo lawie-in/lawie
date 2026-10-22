@@ -33,7 +33,7 @@ import app from '../app';
 import { AppSetting } from '../models/AppSetting.model';
 import { LawieDocument } from '../models/Document.model';
 import { Event } from '../models/Event.model';
-import { User } from '../models/User.model';
+import { createVerifiedUser } from './verifiedUser';
 import { _clearAppSettingsCache } from '../services/app-settings.service';
 import { applyPartyFields, mapPartyFields } from '../services/brief-party-fields';
 import { sealFormInputs } from '../utils/case-details';
@@ -373,7 +373,7 @@ beforeEach(async () => {
   page.pdf.mockResolvedValue(Buffer.from('%PDF'));
 
   await AppSetting.create({ key: 'ai.drafting_model', value: 'claude-sonnet-4-5-20250929' });
-  await User.create({
+  await createVerifiedUser({
     _id: USER_ID,
     plan: 'free',
     planTier: 'free',

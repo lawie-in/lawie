@@ -6,7 +6,7 @@
 
 import './setupEnv';
 
-jest.mock('ioredis', () => require('ioredis-mock'));
+jest.mock('ioredis', () => jest.requireActual('ioredis-mock'));
 jest.mock('@lawie/email-client', () => ({ enqueueEmail: jest.fn() }));
 
 import './setupDb';
@@ -149,7 +149,14 @@ describe('prepare', () => {
     const u = await rawOne(id);
     expect(u!.emailVerifyTokenHash).toBeDefined();
     expect(JSON.stringify(u)).not.toContain(token);
-    expect(await verifyEmailToken(token)).toEqual({ kind: 'verified', userId: id });
+    expect(u!.emailVerifyKind).toBe('verify');
+    // The T-358 notice link is verify-only (T-522): it never signs anyone in.
+    expect(await verifyEmailToken(token)).toEqual({
+      kind: 'verified',
+      userId: id,
+      linkKind: 'verify',
+    });
+    expect((await rawOne(id))!.emailVerifyKind).toBeUndefined();
   });
 
   it('the first notice link lasts 7 days', async () => {
@@ -229,7 +236,11 @@ describe('prepare', () => {
     const ta = new URL(a.body.link).searchParams.get('token') as string;
     const tb = new URL(b.body.link).searchParams.get('token') as string;
     expect(await verifyEmailToken(ta)).toEqual({ kind: 'expired_or_invalid' });
-    expect(await verifyEmailToken(tb)).toEqual({ kind: 'verified', userId: id });
+    expect(await verifyEmailToken(tb)).toEqual({
+      kind: 'verified',
+      userId: id,
+      linkKind: 'verify',
+    });
   });
 
   it('404 for an unknown user, and for a value that is not an ObjectId', async () => {

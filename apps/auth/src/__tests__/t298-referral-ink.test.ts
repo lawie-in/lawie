@@ -4,11 +4,14 @@
  * Unit math: bonusInk N credits N*2 ledger units into the raw users.inkTopup bucket
  * (display = units / 2). The signup seed adds 10 units (5 Ink). So a referred new user ends
  * with inkTopup = 10 + 2N and two ledger rows (free_seed delta 10, referral_bonus delta 2N).
+ *
+ * T-522 (Arjun 2): a password sign-up records the code at register and grants NO Ink; the referral
+ * Ink (and the seed) are granted when the address is verified. Register is the neutral 202.
  */
 
 import './setupEnv';
 
-jest.mock('ioredis', () => require('ioredis-mock'));
+jest.mock('ioredis', () => jest.requireActual('ioredis-mock'));
 
 import './setupDb';
 
@@ -22,12 +25,24 @@ import { registerUser } from '../services/auth.service';
 import { grantSignupBonus } from '../services/credit-bonus.service';
 import { applyReferralCode } from '../services/referral.service';
 
-import { ledger, makeCode, rawUsers, waitFor, verifyAndSeed } from './t234-helpers';
+import redis from '../config/redis';
+
+import {
+  ledger,
+  makeCode,
+  rawUsers,
+  waitFor,
+  verifyAndSeed,
+  verifyViaLink,
+  waitForReferralDecision,
+} from './t234-helpers';
 
 const PASSWORD = 'Passw0rdOk';
 const BONUS = 3; // Ink -> 6 units
 
-beforeEach(() => {
+beforeEach(async () => {
+  // T-522: many sign-ups from one test IP; the per-IP sign-up bucket is reset for each test.
+  await redis.flushall();
   // signalDraftingBonus calls the drafting service over HTTP; never hit the network.
   global.fetch = jest.fn().mockResolvedValue({ ok: true, status: 200 }) as unknown as typeof fetch;
 });
@@ -54,14 +69,22 @@ async function expectBalanceAndLedgerAgree(userId: unknown, expectedUnits: numbe
 }
 
 describe('T-298 / Ajay gate — NEW email sign-up with a referral code credits top-up Ink', () => {
-  it('register 201, referralApplied true; raw inkTopup = 10 + 2N, ledger agrees', async () => {
+  it('register 202 records the code with no Ink; on verification raw inkTopup = 10 + 2N, ledger agrees', async () => {
     await makeCode({ code: 'GATEPW1', bonusInk: BONUS });
     const res = await reg('gate-pw@example.com', { referralCode: 'gatepw1' });
-    expect(res.status).toBe(201);
-    expect(res.body.data.referralApplied).toBe(true);
+    expect(res.status).toBe(202);
+    expect(res.text).not.toContain('referralApplied');
 
+    const u0 = await User.findOne({ email: 'gate-pw@example.com' }).lean();
+    const decided = await waitForReferralDecision(u0!._id);
+    expect(decided['referralStatus']).toBe('applied');
+    // recorded, but no Ink and no ledger row before verification
+    expect((await rawUsers().findOne({ _id: u0!._id }))!.inkTopup ?? 0).toBe(0);
+    expect(await ledger().countDocuments({ userId: u0!._id })).toBe(0);
+
+    await verifyViaLink(u0!._id);
+    await waitFor(async () => ledger().findOne({ userId: u0!._id, reason: 'referral_bonus' }));
     const u = await User.findOne({ email: 'gate-pw@example.com' }).lean();
-    await verifyAndSeed(u!._id);
     const rows = await expectBalanceAndLedgerAgree(u!._id, 10 + BONUS * 2, 2);
     const ref = rows.find((r) => r.reason === 'referral_bonus')!;
     expect(ref.delta).toBe(BONUS * 2);
@@ -78,18 +101,22 @@ describe('T-298 / Ajay gate — NEW email sign-up with a referral code credits t
   it('default bonus (5 Ink) -> inkTopup 20', async () => {
     await makeCode({ code: 'DEFAULT5', bonusInk: 5 });
     const res = await reg('def5@example.com', { referralCode: 'DEFAULT5' });
-    expect(res.body.data.referralApplied).toBe(true);
+    expect(res.status).toBe(202);
     const u = await User.findOne({ email: 'def5@example.com' }).lean();
-    await verifyAndSeed(u!._id);
+    await waitForReferralDecision(u!._id);
+    await verifyViaLink(u!._id);
+    await waitFor(async () => ledger().findOne({ userId: u!._id, reason: 'referral_bonus' }));
     await expectBalanceAndLedgerAgree(u!._id, 20, 2);
   });
 
   it('the referral Ink lands exactly once even if the code is applied again', async () => {
     await makeCode({ code: 'ONCEONLY', bonusInk: BONUS });
     const res = await reg('once@example.com', { referralCode: 'ONCEONLY' });
-    expect(res.body.data.referralApplied).toBe(true);
+    expect(res.status).toBe(202);
     const u = await User.findOne({ email: 'once@example.com' }).lean();
-    await verifyAndSeed(u!._id);
+    await waitForReferralDecision(u!._id);
+    await verifyViaLink(u!._id);
+    await waitFor(async () => ledger().findOne({ userId: u!._id, reason: 'referral_bonus' }));
     expect(await applyReferralCode(u!._id.toString(), 'ONCEONLY')).toBe('already_applied');
     await expectBalanceAndLedgerAgree(u!._id, 10 + BONUS * 2, 2);
     expect((await ReferralCode.findOne({ code: 'ONCEONLY' }).lean())!.uses).toBe(1);
@@ -98,6 +125,11 @@ describe('T-298 / Ajay gate — NEW email sign-up with a referral code credits t
   it('legacy freeTierBonusGrant still set (bonus*5)', async () => {
     await makeCode({ code: 'LEGACY1', bonusInk: BONUS });
     await reg('legacy@example.com', { referralCode: 'LEGACY1' });
+    const u0 = await User.findOne({ email: 'legacy@example.com' }).lean();
+    await waitForReferralDecision(u0!._id);
+    expect(u0!.freeTierBonusGrant ?? 0).toBe(0); // nothing before verification
+    await verifyViaLink(u0!._id);
+    await waitFor(async () => ledger().findOne({ userId: u0!._id, reason: 'referral_bonus' }));
     const u = await User.findOne({ email: 'legacy@example.com' }).lean();
     expect(u!.freeTierBonusGrant).toBe(BONUS * 5);
   });
@@ -181,10 +213,10 @@ describe('T-298 c — signup seed and referral are order-independent', () => {
     expect((await User.findById(u._id).lean())!.earnedCredits).toBe(5);
   });
 
-  it('plain register (no code): inkTopup 10, one ledger row, referralApplied absent', async () => {
+  it('plain register (no code): 202, inkTopup 10 after verification, one ledger row, referralApplied absent', async () => {
     const res = await reg('nocode@example.com');
-    expect(res.status).toBe(201);
-    expect('referralApplied' in res.body.data).toBe(false);
+    expect(res.status).toBe(202);
+    expect(res.text).not.toContain('referralApplied');
     const u = await User.findOne({ email: 'nocode@example.com' }).lean();
     await verifyAndSeed(u!._id);
     await expectBalanceAndLedgerAgree(u!._id, 10, 1);
@@ -197,14 +229,15 @@ describe('Ajay Addendum 1 — expired / used-up / unknown code at email sign-up'
     ['expired', { expiresAt: new Date(Date.now() - 60_000) }],
     ['used up', { maxUses: 1, uses: 1 }],
   ] as Array<[string, { expiresAt?: Date; maxUses?: number; uses?: number }]>)(
-    '%s code: 201, referralApplied false, account created, no referral Ink',
+    '%s code: 202 (same as any), account created, referralStatus not_applied, no referral Ink',
     async (_l, opts) => {
       await makeCode({ code: 'DEADCODE', bonusInk: BONUS, ...opts });
       const res = await reg('dead@example.com', { referralCode: 'DEADCODE' });
-      expect(res.status).toBe(201);
-      expect(res.body.data.referralApplied).toBe(false);
+      expect(res.status).toBe(202);
+      expect(res.text).not.toContain('referralApplied');
       const u = await User.findOne({ email: 'dead@example.com' }).lean();
       expect(u).not.toBeNull();
+      expect((await waitForReferralDecision(u!._id))['referralStatus']).toBe('not_applied');
       expect(u!.referredVia ?? null).toBeNull();
       await verifyAndSeed(u!._id);
       const rows = await expectBalanceAndLedgerAgree(u!._id, 10, 1);
@@ -213,36 +246,41 @@ describe('Ajay Addendum 1 — expired / used-up / unknown code at email sign-up'
     },
   );
 
-  it('disabled and unknown codes: referralApplied false', async () => {
+  it('disabled and unknown codes: 202, referralStatus not_applied', async () => {
     await makeCode({ code: 'OFFCODE1', bonusInk: BONUS });
     await ReferralCode.updateOne({ code: 'OFFCODE1' }, { isActive: false });
     const a = await reg('off@example.com', { referralCode: 'OFFCODE1' });
     const b = await reg('nosuch@example.com', { referralCode: 'NOSUCHXX' });
-    expect(a.status).toBe(201);
-    expect(a.body.data.referralApplied).toBe(false);
-    expect(b.status).toBe(201);
-    expect(b.body.data.referralApplied).toBe(false);
+    expect(a.status).toBe(202);
+    expect(b.status).toBe(202);
+    expect(a.body).toEqual(b.body);
+    for (const e of ['off@example.com', 'nosuch@example.com']) {
+      const u = await User.findOne({ email: e }).lean();
+      expect((await waitForReferralDecision(u!._id))['referralStatus']).toBe('not_applied');
+    }
   });
 });
 
 describe('T-298 / Arjun — maxUses can never be overshot', () => {
-  it('maxUses 1, five concurrent sign-ups: one grant, uses = 1, four created with no Ink and referralApplied:false', async () => {
+  it('maxUses 1, five concurrent sign-ups: one slot, uses = 1, four created with no referral and not_applied', async () => {
     await makeCode({ code: 'ONESLOT', bonusInk: BONUS, maxUses: 1 });
     const results = await Promise.all(
       Array.from({ length: 5 }, (_, i) => reg(`slot${i}@example.com`, { referralCode: 'ONESLOT' })),
     );
-    expect(results.map((r) => r.status)).toEqual([201, 201, 201, 201, 201]);
-    const applied = results.filter((r) => r.body.data.referralApplied === true);
-    const refused = results.filter((r) => r.body.data.referralApplied === false);
-    expect(applied).toHaveLength(1);
-    expect(refused).toHaveLength(4);
+    expect(results.map((r) => r.status)).toEqual([202, 202, 202, 202, 202]);
+    for (const r of results) expect(r.body).toEqual(results[0].body);
 
     const code = await ReferralCode.findOne({ code: 'ONESLOT' }).lean();
     expect(code!.uses).toBe(1);
 
+    const found = await User.find({ email: /^slot\d@example.com$/ }).lean();
+    expect(found).toHaveLength(5);
+    for (const u of found) await waitForReferralDecision(u._id);
+    // re-read after every decision has landed (a refused claim is released in the background)
     const users = await User.find({ email: /^slot\d@example.com$/ }).lean();
-    expect(users).toHaveLength(5);
-    for (const u of users) await verifyAndSeed(u._id);
+    // The last-slot holder (uses == maxUses) is still granted at verification (uses > maxUses rule).
+    for (const u of users) await verifyViaLink(u._id);
+    await waitFor(async () => ledger().findOne({ reason: 'referral_bonus' }));
     const referred = users.filter((u) => u.referredVia);
     const notReferred = users.filter((u) => !u.referredVia);
     expect(referred).toHaveLength(1);
@@ -296,19 +334,18 @@ describe('T-298 — role', () => {
     async (role) => {
       const email = `role-${Math.random().toString(36).slice(2)}@example.com`;
       const res = await reg(email, { role });
-      expect(res.status).toBe(201);
-      expect(res.body.data.user.role).toBe('Lawyer');
+      expect(res.status).toBe(202);
       expect((await User.findOne({ email }).lean())!.role).toBe('Lawyer');
     },
   );
 
   it('service level: registerUser sets Lawyer', async () => {
-    const { user } = await registerUser({
-      email: 'svcrole@example.com',
-      password: PASSWORD,
-      name: 'S',
-    });
-    expect(user.role).toBe('Lawyer');
+    const outcome = await registerUser(
+      { email: 'svcrole@example.com', password: PASSWORD, name: 'S' },
+      undefined,
+    );
+    expect(outcome).toEqual({ kind: 'accepted' });
+    expect((await User.findOne({ email: 'svcrole@example.com' }).lean())!.role).toBe('Lawyer');
   });
 
   it('schema default stays Client (least privilege) and existing users are untouched', async () => {

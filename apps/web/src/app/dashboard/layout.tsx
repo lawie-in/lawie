@@ -17,6 +17,7 @@ import { OfflineBanner } from '@/components/shell/OfflineBanner';
 import { Spinner } from '@/components/ui';
 import VerifyEmailPrompt from '@/components/VerifyEmailPrompt';
 import { useAuth } from '@/context/AuthContext';
+import { cn } from '@/lib/cn';
 
 /**
  * T-525: the content container for Night Library pages that do not bring their own (settings,
@@ -58,10 +59,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className="nl nl-root flex min-h-screen flex-col overflow-x-clip">
         {/* T-520: signed-in top bar; the theme toggle is in its menu (one header row). */}
         <DashboardTopBar />
-        <OfflineBanner />
-
-        {/* T-223: verify-your-email banner under the top bar and the Ink-refusal verify modal. */}
+        {/* T-522 (Rajesh §2): the persistent verify bar sits under the top bar, above the offline
+            banner, on every dashboard route until the address is verified; it also mounts the
+            draft refusal dialog (AJ-522-M6). */}
         <VerifyEmailPrompt />
+        <OfflineBanner />
 
         {/* T-343: id and tabIndex so focus can return here when the privacy prompt closes. */}
         <main id="dashboard-main" tabIndex={-1} className="min-w-0 flex-1 focus:outline-none">
@@ -100,9 +102,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* Sidebar — fixed on mobile, static on desktop */}
       <div
-        className={`fixed inset-y-0 left-0 z-30 transition-transform duration-200 md:relative md:translate-x-0 ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        className={cn(
+          'fixed inset-y-0 left-0 z-30 transition-transform duration-200 md:relative md:translate-x-0',
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full',
+        )}
       >
         <Sidebar />
       </div>
@@ -124,8 +127,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         </div>
 
-        {/* T-223: verify-your-email banner under the top bar (unverified email users only) and
-            the Ink-refusal verify modal. The privacy dialog (below) is modal over both. */}
+        {/* T-522: the persistent verify bar under the top bar (unverified email users only) and
+            the draft refusal dialog (AJ-522-M6). The privacy dialog (below) is modal over both. */}
         <VerifyEmailPrompt />
 
         {/* T-343: id and tabIndex so focus can return here when the privacy prompt closes.

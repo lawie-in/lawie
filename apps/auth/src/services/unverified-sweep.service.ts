@@ -295,6 +295,8 @@ export async function prepareUnverifiedNotice(
   const minted = await mintVerifyLink(userId, {
     eligibility: { $and: [eligibility, { isActive: { $ne: false } }] },
     ttlMs: NOTICE_LINK_TTL_MS,
+    // T-522 (Arjun 1; AJ-522-M1(c)): the notice link verifies only; it never signs anyone in.
+    linkKind: 'verify',
   });
   if (minted.kind !== 'minted') return notEligible();
   logger.info({ userId, notice, variant: 'A' }, 'Unverified notice prepared');

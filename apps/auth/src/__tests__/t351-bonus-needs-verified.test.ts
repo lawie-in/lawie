@@ -9,7 +9,7 @@
 
 import './setupEnv';
 
-jest.mock('ioredis', () => require('ioredis-mock'));
+jest.mock('ioredis', () => jest.requireActual('ioredis-mock'));
 
 import './setupDb';
 
@@ -208,11 +208,11 @@ describe('T-351 AC1/AC3/AC4 — tryGrantDailyLoginBonus', () => {
 describe('T-351 AC2/AC3 — through the real register and login routes', () => {
   const settle = () => new Promise((r) => setTimeout(r, 300));
 
-  it('password register: 201, no Ink, no credits, no seed; login also gives no daily bonus', async () => {
+  it('password register: 202, no Ink, no credits, no seed; login also gives no daily bonus', async () => {
     const res = await supertest(app)
       .post('/register')
       .send({ email: 'e2e-unverified@example.com', password: PASSWORD, name: 'E2E Person' });
-    expect(res.status).toBe(201);
+    expect(res.status).toBe(202);
     const u = await User.findOne({ email: 'e2e-unverified@example.com' }).lean();
     await settle(); // register fires the grant with `void`; give it time to (not) land
     await expectNothingGranted(u!._id);
