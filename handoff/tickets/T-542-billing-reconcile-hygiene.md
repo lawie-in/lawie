@@ -32,3 +32,12 @@ Fix or record as accepted (Arjun) each of the five optional findings listed in t
 10. **(b).** On a live-index refusal where the conflicting row is a checkout, re-run `runLocalChecks()` (≈:1451): same-plan reuse with link, different-plan cancel. Least new code, same behaviour as the normal path.
 
 Mode: full chain, Razorpay mocked, no new env vars. Go.
+
+## Arjun (22 Oct 2026, before the tester) — four points
+
+A. **OK.** An orphan that turns live after `liveOrphans` was processed is never cancelled: report `reconcile_live_orphan_not_adopted` (ids only), the existing row stays the answer, the sweep or ops picks it up. Rule: a paid sub is cancelled only on an explicit decision, never as a side effect of ordering.
+B. **Yes.** Strict not-found on the pre-cancel fetch = already ended: skip the cancel, carry on. 503 stays for timeout/5xx/auth.
+C. **Yes.** Delete filter matches `_id`, `lockCreatedAt` and `lastLockCreatedAt ≤ this scan's bound`; a marker bumped mid-scan survives for the next scan.
+D. **Leave it, report it.** Do not cancel `adoptTarget` off a stale decision; log `reconcile_adopt_target_superseded` (ids only). Same rule as A.
+
+FYI accepted: per-process busy count; the over-budget path's 2 s link fetch (57 s worst case inside the 60 s TTL).
