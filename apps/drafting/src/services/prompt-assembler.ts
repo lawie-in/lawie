@@ -16,7 +16,7 @@ import {
   readMandatoryClauses,
 } from './rule-pack.service';
 import { convertOldReferencesInText } from './sections.service';
-import { isCriminalCategory, OFFENCE_DATE_LAW_RULE } from './template-engine.service';
+import { getsOffenceDateLawRule, OFFENCE_DATE_LAW_RULE } from './template-engine.service';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -377,15 +377,15 @@ export function resolveCourtRule(courtType: string, courtName: string): CourtRul
 
 /**
  * Build the base system prompt that applies to all document types.
- * T-566 (Ajay, rulings 54a/54b and 66): rule 1 is Ajay's item 54 line, given
- * only when the document rule's `category` is a criminal category (the test
- * buildAISystemPrompt uses); with any other category, or no document rule, there
- * is no law line and the rules after it move up. The old "today's date" rule is
- * deleted (ruling 66).
+ * T-566 (Ajay, rulings 54a/54b, S1 and 66): rule 1 is Ajay's item 54 line, given
+ * only when the document rule's `category` is a criminal category or its
+ * docType is writ_petition_criminal (the test buildAISystemPrompt uses); for
+ * any other document, or no document rule, there is no law line and the rules
+ * after it move up. The old "today's date" rule is deleted (ruling 66).
  */
-function buildBasePrompt(category?: string | null): string {
+function buildBasePrompt(category?: string | null, docType?: string | null): string {
   const rules = [
-    ...(isCriminalCategory(category) ? [OFFENCE_DATE_LAW_RULE] : []),
+    ...(getsOffenceDateLawRule(docType, category) ? [OFFENCE_DATE_LAW_RULE] : []),
     'Format with numbered paragraphs (1, 2, 3...) for the body.',
     'Use formal, respectful legal language appropriate for Indian courts.',
     'Use placeholders [DATE] and [PLACE] where specific dates/places are not provided.',
@@ -563,7 +563,7 @@ export async function assemblePrompt(input: PromptInput): Promise<AssembledPromp
   const convertedInput = { ...input, keyFacts: convertedFacts, reliefPrayer: convertedRelief };
 
   // Build system prompt from modular pieces
-  const systemParts: string[] = [buildBasePrompt(docRule?.category)];
+  const systemParts: string[] = [buildBasePrompt(docRule?.category, docRule?.docType)];
 
   if (docRule) {
     systemParts.push(buildDocTypeSection(docRule));

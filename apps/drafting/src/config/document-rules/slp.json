@@ -4,7 +4,7 @@
     "owner": "Ajay (CLO)",
     "validated_by": "Ajay (CLO) — Batch 7 writs + tribunals 2026-05-12",
     "last_updated": "2026-05-12",
-    "change_protocol": "All edits require CLO sign-off. Do not name judgments in model-visible text (Ajay, T-441)."
+    "change_protocol": "Format STRICTLY per Supreme Court Rules 2013. All edits require CLO sign-off. Do not name judgments in model-visible text (Ajay, T-441)."
   },
   "template_id": "slp",
   "card_description": "A Special Leave Petition before the Supreme Court under Article 136 of the Constitution.",
@@ -236,8 +236,7 @@
       "Cause-title: 'IN THE SUPREME COURT OF INDIA' + jurisdiction line + 'Arising out of the final judgment and order dated ... passed by HC ...'.",
       "Limitation: 90 days from the date of impugned judgment of HC (Article 133 Limitation Act 1963). If review filed in HC, 60 days from review dismissal. Section 5 Limitation Act 1963 for condonation of delay.",
       "Para A: Questions of Law — numbered substantial questions of law of GENERAL public importance. Art. 136 'a very wide and discretionary' power exercised sparingly only on exceptional and special circumstances + grave injustice.",
-      "discretion of SC; Article 136 not regular appeal; merger doctrine — once SC dismisses by speaking order, the HC order merges.",
-      "substantial question of law definition.",
+      "Article 136 not regular appeal; merger doctrine — once SC dismisses by speaking order, the HC order merges.",
       "Para B: Declaration — (i) no similar SLP filed; (ii) limitation complied or delay condonation sought; (iii) no review pending in HC (or if filed/dismissed, give details); (iv) all material facts disclosed.",
       "Para C: Limitation — calculate carefully; period excluded for obtaining certified copy.",
       "Para D-F: Statement of facts — brief, material only.",

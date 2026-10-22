@@ -4,7 +4,7 @@
     "owner": "Ajay (CLO)",
     "validated_by": "Ajay (CLO) — Batch 6 transactional deeds pass 2026-05-12",
     "last_updated": "2026-05-12",
-    "change_protocol": "All edits require CLO sign-off. Suraj Lamp warning must appear prominently when GPA includes power to sell. Authentication / notarisation / registration requirements differ for property powers vs general powers."
+    "change_protocol": "All edits require CLO sign-off. The title clause must appear prominently when GPA includes power to sell. Authentication / notarisation / registration requirements differ for property powers vs general powers."
   },
   "template_id": "gpa",
   "card_description": "A General Power of Attorney letting a person act generally for the grantor.",
@@ -367,7 +367,7 @@
     "grantor_age >= 18",
     "attorney_age >= 18",
     "powers_scope must contain at least 1 enumerated power",
-    "if includes_power_to_sell == 'yes_flag_title_warning' — disclaimer paragraph must be inserted",
+    "if includes_power_to_sell == 'yes_flag_title_warning' — title clause paragraph must be inserted",
     "if registration_or_notarisation == 'registered_under_S17_Registration_Act' — stamp duty must reflect registration schedule",
     "if state == 'executed_abroad' — registration_or_notarisation must be 'consulate_attested_if_grantor_abroad' or 'apostilled_if_grantor_in_apostille_country'",
     "duration field must be specified",

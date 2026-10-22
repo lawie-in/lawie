@@ -393,8 +393,19 @@ export function validateSectionReferences(
 }
 
 /**
+ * T-566 ruling S11a (Ajay, 22 Oct): the warning on any IPC citation, whatever
+ * the offence date, until the date-scoped item 54d follow-up lands. {x} is the
+ * IPC section as cited. Byte for byte; legal content, do not edit without Ajay.
+ */
+function ipcCitationWarning(section: string): string {
+  return `This draft cites Section ${section} IPC. Confirm the offence date: BNS applies to offences on or after 1 July 2024, IPC to offences before that date.`;
+}
+
+/**
  * Detect old IPC/CrPC/IEA references and suggest BNS/BNSS/BSA equivalents.
  * Uses the SCRUM-27 section mapping database for accurate suggestions.
+ * T-566 S11a: an IPC reference gets ipcCitationWarning in both branches; a
+ * CrPC or IEA reference keeps its message.
  */
 export async function detectOldLawReferences(text: string): Promise<ValidationWarning[]> {
   const refs = extractOldLawReferences(text);
@@ -422,7 +433,10 @@ export async function detectOldLawReferences(text: string): Promise<ValidationWa
     if (result && result.new_section) {
       warnings.push({
         type: 'old_law_reference',
-        message: `Old law reference detected: Section ${ref.section} ${ref.code}. Use Section ${result.new_section} ${result.new_code} (${result.new_code_full}) instead.`,
+        message:
+          ref.code === 'IPC'
+            ? ipcCitationWarning(ref.section)
+            : `Old law reference detected: Section ${ref.section} ${ref.code}. Use Section ${result.new_section} ${result.new_code} (${result.new_code_full}) instead.`,
         details: {
           section: ref.section,
           code: ref.code,
@@ -432,7 +446,10 @@ export async function detectOldLawReferences(text: string): Promise<ValidationWa
     } else {
       warnings.push({
         type: 'old_law_reference',
-        message: `Old law reference detected: Section ${ref.section} ${ref.code}. Please verify and use the corresponding BNS/BNSS/BSA section.`,
+        message:
+          ref.code === 'IPC'
+            ? ipcCitationWarning(ref.section)
+            : `Old law reference detected: Section ${ref.section} ${ref.code}. Please verify and use the corresponding BNS/BNSS/BSA section.`,
         details: { section: ref.section, code: ref.code },
       });
     }

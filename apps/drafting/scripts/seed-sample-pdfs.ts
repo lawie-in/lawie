@@ -78,20 +78,20 @@ const CONSUMER_COMPLAINT_FORM: Record<string, unknown> = {
   father_name: 'Sample Person 4',
   relation_type: 'W/o',
   applicant_age: '35',
-  address: '45, Boring Road, Patna – 800001',
+  address: 'Sample Road, Patna',
   respondent_name:
-    'M/s Sample Beverages Pvt. Ltd., Plot No. 12, Industrial Area, Patna – 800010 (through its Managing Director)',
+    'M/s Sample Beverages Pvt. Ltd., Sample Road, Patna (through its Managing Director)',
   language: 'English',
   deficiency_details:
-    'On 15.01.2025, the Complainant purchased one bottle of "CoolDrink" Cola (500 ml, MRP Rs. 23/-) from M/s Sample Store, Patna vide Cash Memo No. RKS/0042 dated 15.01.2025. Upon opening the sealed bottle at home, the Complainant discovered a sharp metallic fragment approximately 2 cm in length inside the beverage. The Complainant was on the verge of consuming the beverage when she noticed the foreign object. The presence of such a hazardous foreign material in a sealed, factory-packed branded beverage constitutes a clear defect in goods under Section 2(10) and deficiency in service under Section 2(11) of the Consumer Protection Act, 2019, on the part of the Opposite Party. The Complainant immediately approached the retailer, who refused to accept responsibility and directed her to contact the manufacturer. A written complaint was dispatched to the Opposite Party by registered post on 20.01.2025 (Registered Post No. PTA20250120). Despite receipt, the Opposite Party neither acknowledged the complaint nor provided any relief. This act of the Opposite Party amounts to an unfair trade practice and deficiency in service.',
+    'On 15.01.2025, the Complainant purchased one bottle of "SampleDrink" Cola (500 ml, MRP Rs. 23/-) from M/s Sample Store, Patna vide Cash Memo No. SMP/0042 dated 15.01.2025. Upon opening the sealed bottle at home, the Complainant discovered a sharp metallic fragment approximately 2 cm in length inside the beverage. The Complainant was on the verge of consuming the beverage when she noticed the foreign object. The presence of such a hazardous foreign material in a sealed, factory-packed branded beverage constitutes a clear defect in goods under Section 2(10) and deficiency in service under Section 2(11) of the Consumer Protection Act, 2019, on the part of the Opposite Party. The Complainant immediately approached the retailer, who refused to accept responsibility and directed her to contact the manufacturer. A written complaint was dispatched to the Opposite Party by registered post on 20.01.2025 (Registered Post No. PTA20250120). Despite receipt, the Opposite Party neither acknowledged the complaint nor provided any relief. This act of the Opposite Party amounts to an unfair trade practice and deficiency in service.',
   consideration_amount: 23,
   purchase_date: '2025-01-15',
-  invoice_number: 'RKS/0042',
+  invoice_number: 'SMP/0042',
   payment_mode: 'Cash',
   compensation_claimed: 50000,
   litigation_cost: 10000,
   territorial_basis:
-    "The Opposite Party manufactures and distributes its products within the territorial jurisdiction of this Hon'ble District Commission. The cause of action arose at Boring Road, Patna, which falls within the jurisdiction of the District Consumer Disputes Redressal Commission, Patna.",
+    "The Opposite Party manufactures and distributes its products within the territorial jurisdiction of this Hon'ble District Commission. The cause of action arose at Sample Road, Patna, which falls within the jurisdiction of the District Consumer Disputes Redressal Commission, Patna.",
   pecuniary_basis:
     'The total claim amounts to Rs. 23/- (refund) + Rs. 50,000/- (compensation for mental agony and harassment) + Rs. 10,000/- (litigation costs) = Rs. 60,023/-. This is well within the pecuniary jurisdiction of the District Consumer Disputes Redressal Commission (up to Rs. 50,00,000/- as per the Consumer Protection (Jurisdiction) Rules, 2021).',
   limitation_basis:
@@ -101,9 +101,9 @@ const CONSUMER_COMPLAINT_FORM: Record<string, unknown> = {
 const LEGAL_NOTICE_FORM: Record<string, unknown> = {
   state: 'Bihar',
   applicant_name: 'Smt. Sample Person 5',
-  applicant_address: 'Flat 4B, Shree Apartments, Boring Road, Patna – 800001',
+  applicant_address: 'Sample Road, Patna',
   respondent_name: 'Sh. Sample Person 6',
-  respondent_address: '12, Rajendra Nagar, Patna – 800016',
+  respondent_address: 'Sample Road, Patna',
   respondent_type: 'individual',
   language: 'English',
   advocate_name: 'Adv. Sample Advocate',

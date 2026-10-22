@@ -328,14 +328,14 @@
     "Where executed abroad: Indian Consulate attestation OR Apostille (Hague countries); authentication under S.18 Registration Act within 3 months of arrival",
     "Where Grantor is company: Board Resolution + MOA extract",
     "Specific transaction documents (e.g., draft sale deed, agreement to sell, case papers) referenced and attached if circumstances permit",
-    "Where SPA includes power to sell — disclaimer (sale only by registered sale deed) prominently inserted"
+    "Where SPA includes power to sell — title clause (sale only by registered sale deed) prominently inserted"
   ],
   "validation_rules": [
     "grantor_age >= 18 and attorney_age >= 18",
     "transaction_description must be at least 100 characters — enforces specificity",
     "property_or_subject_id must not be empty",
     "counterparty_name must not be empty (unless transaction is sole-grantor act like own court representation — then counterparty can be 'N/A — case-specific')",
-    "if specific_transaction_type contains 'sale' — disclaimer paragraph must be inserted",
+    "if specific_transaction_type contains 'sale' — title clause paragraph must be inserted",
     "duration_or_completion_event must be specified",
     "stamp_duty_paid > 0",
     "if state == 'executed_abroad' — registration_or_notarisation must be consulate or apostille",

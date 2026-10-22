@@ -2977,6 +2977,26 @@ export function isCriminalCategory(category: string | undefined | null): boolean
 }
 
 /**
+ * T-566 ruling S1: writ_petition_criminal (category `writ`) also gets the item
+ * 54 line. It is named here by id; its category is not changed.
+ */
+const OFFENCE_DATE_LAW_RULE_EXTRA_IDS: readonly string[] = ['writ_petition_criminal'];
+
+/**
+ * T-566 rulings 54b and S1: whether a pack gets OFFENCE_DATE_LAW_RULE. A pack
+ * in a criminal category, or one of the ids named in ruling S1.
+ */
+export function getsOffenceDateLawRule(
+  templateId: string | undefined | null,
+  category: string | undefined | null,
+): boolean {
+  return (
+    isCriminalCategory(category) ||
+    (typeof templateId === 'string' && OFFENCE_DATE_LAW_RULE_EXTRA_IDS.includes(templateId))
+  );
+}
+
+/**
  * Build the AI system prompt for config-driven generation.
  * T-410: `courtData` (optional) tells a District from a State Commission for
  * consumer_complaint's localRules.
@@ -3004,11 +3024,12 @@ export function buildAISystemPrompt(
   // T-245a: the six bail packs keep Ajay's signed S-text (offence law by the
   // date of the offence) and P-text (procedure by the PROCEDURE CODE the law
   // switch puts in the case details). T-566 item 54 (rulings 54a/54b): every
-  // other pack in a criminal category gets Ajay's date-aware line; a pack in
-  // any other category gets no law line, and the rules after it move up.
+  // other pack in a criminal category, and writ_petition_criminal (ruling S1),
+  // gets Ajay's date-aware line; any other pack gets no law line, and the rules
+  // after it move up.
   const lawRule = isLawSwitchPack(config.template_id)
     ? `${S_TEXT} ${P_TEXT}`
-    : isCriminalCategory(config.category)
+    : getsOffenceDateLawRule(config.template_id, config.category)
       ? OFFENCE_DATE_LAW_RULE
       : null;
 
