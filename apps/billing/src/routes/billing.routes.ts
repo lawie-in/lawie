@@ -100,7 +100,6 @@ router.get('/plans', (_req: Request, res: Response) => {
       id: t.id,
       ink: t.ink,
       priceInr: t.priceInr,
-      badge: t.badge,
       pricePerInkInr: t.pricePerInkInr,
     })),
   });
@@ -173,7 +172,9 @@ router.post(
 //
 // Idempotent: a second call returns the same body, with no Razorpay call.
 // Ink and the plan are untouched (they run to paidThrough, T-399).
-router.post('/cancel', authenticate, requireCurrentPrivacy, async (req: Request, res: Response) => {
+// T-567 item 23 (Ajay): no privacy gate. A user who chose "Not now" must still be
+// able to cancel and then close their account (T-343 §2, DPDP).
+router.post('/cancel', authenticate, async (req: Request, res: Response) => {
   const { sub: userId } = req.jwtPayload!;
   try {
     const result = await cancelSubscriptionAtCycleEnd(userId);
