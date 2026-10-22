@@ -19,13 +19,13 @@ The auth folio (spec 02) with the Create account form replaced by a result; the 
 - Secondary actions, both text links in Brass Text, 44px targets: `Resend email` (section 2 throttle rules apply; this screen is signed out, so a success shows the S6 line `Request sent. Check your inbox and spam folder.` in Ok text, a throttle shows the M4 wait line `Please wait before asking for another email.` in Warn text, and the end of the wait shows S6 `You can resend the email now.`, all `role=status`); `Use a different email` (S4) back to the form with the field kept and focused. Heading HI `अपना ईमेल देखिए` (S4).
 - Below the folio, Muted body-sm: the "Lawie is a drafting assistant…" line as on the auth pages.
 - No "didn't get it" countdown, no spinner, no distinction of any kind between a new and an existing address; the screen is identical byte for byte.
-- States: loading is the form's own submit spinner (the screen appears only on success); error on the sign-up request stays on the form (spec 02 error banner with Retry). Resend failure: the Retry banner pattern inside the folio, under the links.
+- States: loading is the form's own submit spinner (the screen appears only on success); error on the sign-up request stays on the form (spec 02 error banner with Retry). Resend failure (network or server, S13): `Something did not work. Try again.` in Rust text with a `Retry` ghost, inside the folio under the links. Never the S8 connection line here: signed out, nothing may hint whether an email exists.
 
 ## 2. Verify bar on the dashboard (persistent)
 
 `ui/Banner` kind `verify-email`, tone warn, full width under the top bar, above the offline banner (verify bar first, then `OfflineBanner`, both warn tone; at 360 the two stack and the page content starts below both), not dismissible. It is the only banner that persists across routes inside the dashboard shell until the address is verified.
 
-- Text (M3): `Verify your email to start drafting, buy Ink and receive your 5 sign-up Ink. We sent a link to {masked}.`; drop the sign-up Ink clause when that grant was already made.
+- Text (M3): `Verify your email to start drafting, buy Ink and receive your 5 sign-up Ink. We sent a link to {masked}.`; when the sign-up Ink was already granted, the re-signed S11 line: `Verify your email to start drafting and buy Ink. We sent a link to {masked}.` (HI per S11). S11 replaces M3's drop rule.
 - Action: ghost small `Resend email` (the Banner's action slot).
 - Resend states, in the same bar (the text line swaps, the bar does not grow a second row at 360; Body Small wraps): sending (button loading, width held); sent, `Email sent. Check your inbox and spam folder.` for 6 s then back to the M3 line; throttled, `Please wait before asking for another email.` (the real limit is 2 min and 5 a day, so never the "a minute" variant) and the button disabled with `aria-disabled` (not `disabled`: it keeps focus and the wait line is read out), 40% opacity, `cursor-not-allowed`, re-enabled when the window passes. `ui/Banner` gets an `action.disabled` prop for this (shared UI, Priya extends it; T-522 review, 22 Oct); daily limit reached, same wait line, button disabled until the next day; failure (S8), `Couldn't send the email. Check your connection and try again.` in Rust text with a `Retry` ghost; end of a wait window, S6 `You can resend the email now.`.
 - Announcements: the bar is `role=status`; the sent and wait lines announce once.
@@ -47,7 +47,7 @@ A refusal is a `ui/Dialog` (bottom sheet at 360), opened at the moment of the ac
 
 `app/verify-email/page.tsx` restyled as a Night Library folio, five states (S5), all on the same page:
 
-- Verifying: folio with a single-line skeleton under the title `Verifying your email…`; "Still working…" after 8 s.
+- Verifying: folio with a single-line skeleton under the title `Verifying your email…` (S12, replaces the interim T-223 title); "Still working…" after 8 s.
 - Verified and signed in: the brass disc with the check stamps (the Seal motion, 550 ms; fade under reduced motion), title `Email verified`, body `Your email is verified. You can continue.`, one primary `Go to your shelf` that leads to `/dashboard`. The verify bar is gone on arrival; if the sign-up Ink was just granted, the dashboard shows the Ink chip with the new balance and nothing else announces it (no toast, no confetti).
 - Verified, not signed in (verify-kind and legacy links): the same check disc, title `Email verified`, body `Your email is verified. Sign in to continue.`, one primary `Sign in` to `/login`. No resend.
 - Link used or expired (AJ-522-M1 b): Rust title `This link has expired or was already used.`, line `Sign in to continue. If your email is not verified yet, you can ask for a new link.`, one primary `Sign in`. `Resend email` appears here only when a session already exists (S5), so nothing reveals whether an account exists. Signs no one in.
