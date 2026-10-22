@@ -1,3 +1,15 @@
+// T-563: the bypass and production-marker variables must never be inherited from the shell the
+// suite runs in; a test sets its own fake values. Deleted before anything reads the env.
+for (const name of [
+  'TEST_SIGNUP_BYPASS',
+  'TEST_SIGNUP_BYPASS_SECRET',
+  'RAZORPAY_KEY_GUARD',
+  'SECRETS_ENV',
+  'RAZORPAY_KEY_ID',
+]) {
+  delete process.env[name];
+}
+
 process.env.NODE_ENV = 'test';
 process.env.PORT = '4001';
 process.env.MONGO_URI = 'mongodb://placeholder:27017/test';
