@@ -7,8 +7,9 @@
  *    the request is an ordinary sign-up (T-522's neutral path), with no log and no count.
  *  - The `bypass-password` header is compared with crypto.timingSafeEqual on SHA-256 digests.
  *    Wrong or missing: an ordinary sign-up (nothing distinguishes the outcome) plus exactly one
- *    warn 'test_signup_rejected' carrying an IP hash only. Over 5 rejections an hour from one IP:
- *    the ordinary 429.
+ *    warn 'test_signup_rejected' carrying an IP hash only. After 5 rejections an hour from one
+ *    IP, that IP's bypass attempts (even with the right secret) are silently dropped: the
+ *    ordinary path answers, never a bypass-specific 429 (Arjun: nothing reveals the bypass).
  *  - Right secret: the email must be on a reserved test domain (@example.com, @example.org,
  *    *.test), otherwise an ordinary sign-up; the name must start with TEST, otherwise 400. Then
  *    20 accepted per IP per day (429) and at most 200 test accounts (409 test_accounts_cap).
@@ -155,17 +156,19 @@ export async function tryTestSignupBypass(
   if (!testBypassSecretMatches(headerValue(req.headers[TEST_BYPASS_SECRET_HEADER]), deps.secret)) {
     logger.warn({ ipHash }, 'test_signup_rejected');
     try {
-      const [count, ttl] = await hit(
-        deps.redis,
-        testSignupRejectKey(ipHash),
-        TEST_SIGNUP_REJECT_WINDOW_MS,
-      );
-      if (count > TEST_SIGNUP_REJECT_IP_CAP) {
-        return { kind: 'limited', retryAfterSeconds: toRetrySeconds(ttl) };
-      }
+      await hit(deps.redis, testSignupRejectKey(ipHash), TEST_SIGNUP_REJECT_WINDOW_MS);
     } catch {
       // Store down: the ordinary sign-up's own limiter fails closed (503).
     }
+    return { kind: 'not_applied' };
+  }
+
+  // Over the rejection limit: this IP is out of bypass consideration for the window, silently.
+  // A store failure fails closed the same way (ordinary path).
+  try {
+    const rejected = Number((await deps.redis.get(testSignupRejectKey(ipHash))) ?? 0);
+    if (rejected >= TEST_SIGNUP_REJECT_IP_CAP) return { kind: 'not_applied' };
+  } catch {
     return { kind: 'not_applied' };
   }
 
