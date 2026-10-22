@@ -50,42 +50,51 @@ test.describe('new draft', () => {
     context,
   }) => {
     const gate = createGate();
-    const calls = await setUp(page, context, gated(generateReply(undefined, { delayMs: 0 }), gate));
-    await page.goto('/dashboard/new');
-    await expect(
-      page.getByRole('heading', { level: 1, name: 'What do you need to draft?' }),
-    ).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Continue' })).toBeDisabled();
+    try {
+      const calls = await setUp(
+        page,
+        context,
+        gated(generateReply(undefined, { delayMs: 0 }), gate),
+      );
+      await page.goto('/dashboard/new');
+      await expect(
+        page.getByRole('heading', { level: 1, name: 'What do you need to draft?' }),
+      ).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Continue' })).toBeDisabled();
 
-    await page.getByLabel('Your matter').fill(MATTER);
-    await page.getByRole('button', { name: 'Continue' }).click();
+      await page.getByLabel('Your matter').fill(MATTER);
+      await page.getByRole('button', { name: 'Continue' }).click();
 
-    await expect(page.getByRole('heading', { level: 1, name: 'Check your brief' })).toBeVisible();
-    // The Ink cost is shown before Confirm.
-    await expect(page.getByText('Uses 1 Ink')).toBeVisible();
-    await page.getByRole('button', { name: 'Confirm brief and continue' }).click();
+      await expect(page.getByRole('heading', { level: 1, name: 'Check your brief' })).toBeVisible();
+      // The Ink cost is shown before Confirm.
+      await expect(page.getByText('Uses 1 Ink')).toBeVisible();
+      await page.getByRole('button', { name: 'Confirm brief and continue' }).click();
 
-    await expect(
-      page.getByRole('heading', { level: 1, name: 'Drafting your Legal notice' }),
-    ).toBeVisible();
-    await expect(page.getByText('Writing the draft')).toBeVisible();
-    // The stream waits for the spec, not for a timer.
-    gate.release();
+      await expect(
+        page.getByRole('heading', { level: 1, name: 'Drafting your Legal notice' }),
+      ).toBeVisible();
+      await expect(page.getByText('Writing the draft')).toBeVisible();
+      // The stream waits for the spec, not for a timer.
+      gate.release();
 
-    await expect(page.getByRole('heading', { level: 1, name: 'Legal notice' })).toBeVisible();
-    await expect(page.getByText('Your draft is ready.')).toBeVisible();
-    await expect(page.getByTestId('ink-used-chip')).toContainText('1 Ink used');
+      await expect(page.getByRole('heading', { level: 1, name: 'Legal notice' })).toBeVisible();
+      await expect(page.getByText('Your draft is ready.')).toBeVisible();
+      await expect(page.getByTestId('ink-used-chip')).toContainText('1 Ink used');
 
-    await page.getByRole('button', { name: 'Finalise', exact: true }).click();
-    await expect(page.getByTestId('finalised-chip')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Export PDF / Word' })).toBeVisible();
+      await page.getByRole('button', { name: 'Finalise', exact: true }).click();
+      await expect(page.getByTestId('finalised-chip')).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Export PDF / Word' })).toBeVisible();
 
-    const brief = calls.find((c) => c.path === '/api/documents/intake/brief');
-    expect(brief?.body).toMatchObject({ description: MATTER });
-    expect(calls.some((c) => c.path === '/api/documents/generate-from-brief')).toBe(true);
-    const patch = calls.find((c) => c.method === 'PATCH');
-    expect(patch?.params.id).toBe('doc_e2e_new1');
-    expect(patch?.body).toEqual({ status: 'finalised' });
+      const brief = calls.find((c) => c.path === '/api/documents/intake/brief');
+      expect(brief?.body).toMatchObject({ description: MATTER });
+      expect(calls.some((c) => c.path === '/api/documents/generate-from-brief')).toBe(true);
+      const patch = calls.find((c) => c.method === 'PATCH');
+      expect(patch?.params.id).toBe('doc_e2e_new1');
+      expect(patch?.body).toEqual({ status: 'finalised' });
+    } finally {
+      // Never leave the mocked handler holding a request if an assertion above failed.
+      gate.release();
+    }
   });
 
   test('no Ink chip when nothing was debited', async ({ page, context }) => {
@@ -123,22 +132,27 @@ test.describe('new draft', () => {
     context,
   }) => {
     const gate = createGate();
-    await setUp(
-      page,
-      context,
-      gated(generateErrorReply('The drafting service could not finish this draft.'), gate),
-    );
-    await toBrief(page);
-    await page.getByRole('button', { name: 'Confirm brief and continue' }).click();
-    await expect(page.getByText('Writing the draft')).toBeVisible();
-    gate.release();
+    try {
+      await setUp(
+        page,
+        context,
+        gated(generateErrorReply('The drafting service could not finish this draft.'), gate),
+      );
+      await toBrief(page);
+      await page.getByRole('button', { name: 'Confirm brief and continue' }).click();
+      await expect(page.getByText('Writing the draft')).toBeVisible();
+      gate.release();
 
-    await expect(
-      page.getByRole('heading', { name: 'The draft did not finish. No Ink was used.' }),
-    ).toBeVisible();
-    await page.getByRole('button', { name: 'Back to the brief' }).click();
-    await page.getByRole('button', { name: 'Edit my description' }).click();
-    await expect(page.getByLabel('Your matter')).toHaveValue(MATTER);
+      await expect(
+        page.getByRole('heading', { name: 'The draft did not finish. No Ink was used.' }),
+      ).toBeVisible();
+      await page.getByRole('button', { name: 'Back to the brief' }).click();
+      await page.getByRole('button', { name: 'Edit my description' }).click();
+      await expect(page.getByLabel('Your matter')).toHaveValue(MATTER);
+    } finally {
+      // Never leave the mocked handler holding a request if an assertion above failed.
+      gate.release();
+    }
   });
 
   test('a dropped stream says the connection was lost and makes no Ink claim', async ({

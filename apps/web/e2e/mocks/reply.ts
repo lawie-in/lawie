@@ -85,11 +85,11 @@ export function sseBody(events: readonly SseEvent[]): string {
     .join('');
 }
 
-/** An SSE reply. Default delay 600 ms so the generating screen is observable. */
+/** An SSE reply. No delay by default; to observe the generating step use `gated()` below. */
 export function sse(
   events: readonly SseEvent[],
   {
-    delayMs = 600,
+    delayMs = 0,
     status = 200,
     headers = {},
   }: Pick<MockReply, 'delayMs' | 'status' | 'headers'> = {},
