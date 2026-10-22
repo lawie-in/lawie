@@ -34,7 +34,7 @@ export default function TermsPage() {
         <div className="container">
           <div style={{ marginBottom: '44px' }}>
             <span className="legal-updated">
-              <Calendar strokeWidth={1.5} /> Last updated: 15 October 2026
+              <Calendar strokeWidth={1.5} /> Last updated: 22 October 2026
             </span>
             <p
               style={{
@@ -153,12 +153,12 @@ export default function TermsPage() {
                   1. You are charged only after a draft is generated; a failed generation is not
                   charged. Plan Ink is given for each month of your plan, including on annual plans.
                   Plan Ink left unused at the end of that month expires and does not carry over.
-                  Top-up Ink you buy separately never expires. Subscriptions renew automatically
-                  until cancelled. You may cancel at any time from your account settings;
-                  cancellation stops future charges and takes effect at the end of the current
-                  billing period. All payments are non-refundable, as set out in our{' '}
-                  <Link href="/refunds">Refund Policy</Link>. This does not affect any right you
-                  have under law.
+                  Top-up Ink you buy separately does not expire while your account is open. It ends
+                  when your account is closed. Subscriptions renew automatically until cancelled.
+                  You may cancel at any time from your account settings; cancellation stops future
+                  charges and takes effect at the end of the current billing period. All payments
+                  are non-refundable, as set out in our <Link href="/refunds">Refund Policy</Link>.
+                  This does not affect any right you have under law.
                 </p>
               </section>
               <section id="ip">
