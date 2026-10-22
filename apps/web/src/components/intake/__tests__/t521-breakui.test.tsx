@@ -309,7 +309,7 @@ describe('break-ui: wrapping of long user and service text (round 4)', () => {
     expect(qa('input[type="radio"]', container)).toHaveLength(3); // two choices + "none of these"
   });
 
-  it('GeneratingStep: "Drafting your ..." title, failure headline and detail all wrap', () => {
+  it('GeneratingStep: "Writing your ..." title, failure headline and detail all wrap', () => {
     const run = (error: Parameters<typeof GeneratingStep>[0]['error']) =>
       mount(
         <GeneratingStep

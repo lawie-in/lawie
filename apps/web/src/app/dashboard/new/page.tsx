@@ -106,6 +106,18 @@ function categoryColors(order: number): { color: string; border: string } {
   return CATEGORY_PALETTE[(Math.max(order, 1) - 1) % CATEGORY_PALETTE.length];
 }
 
+/**
+ * T-565 W7: the generate route's plan gate answers 403 `{ error: 'This template requires a Pro
+ * plan' }` (documents.routes.ts) and may carry an `upgradeUrl`. The text is only matched here,
+ * never shown.
+ */
+function isPlanGate(body: unknown): boolean {
+  if (!body || typeof body !== 'object') return false;
+  const b = body as { error?: unknown; upgradeUrl?: unknown };
+  if (typeof b.upgradeUrl === 'string') return true;
+  return typeof b.error === 'string' && /requires an? .*plan/i.test(b.error);
+}
+
 // ── Category filter chip ────────────────────────────────────────────────────
 
 function CategoryChip({
@@ -338,11 +350,9 @@ function NewDocumentContent() {
       // Every caller ends here, including the fail-open preflight paths. The
       // advocate stays on this screen and sees the notice here ("Edit form"
       // goes back to the form with the answers kept, T-432). "Try again" here
-      // waits for the cost (its own notice and "Check the cost again" link)
-      // and then drafts from the saved inputs.
+      // fetches the cost again and then drafts from the saved inputs (T-565 W8:
+      // the card shows no unknown-cost notice).
       if (!templateInkCostKnown) {
-        // The card says the draft did not start; the cost notice is the line
-        // under its "Try again", so it is not repeated (and cannot go stale) here.
         setGenerationError(NOT_STARTED_LINE);
         setGenerationRetryable(true);
         // T-565 W1: nothing was sent; the card says `The draft could not start.` alone.
@@ -379,8 +389,10 @@ function NewDocumentContent() {
         if (!res.ok) {
           let reason = 'Generation could not start.';
           let paywallInfo: { cost: number; balance: number } | null = null;
+          let errorBody: unknown = null;
           try {
             const data = await res.json();
+            errorBody = data;
             reason = data.error ?? data.message ?? reason;
             // 402 Insufficient credits — open the paywall modal instead of the
             // generation_failed card. The shape is { cost, balance: {...} } from
@@ -405,10 +417,26 @@ function NewDocumentContent() {
             return;
           }
           setGenerationError(reason);
-          // T-565 W3 (Ajay): the privacy gate's 403 returned above (its T-343 prompt shows on the
-          // form) and an unverified user's 402 opened the verify modal. Every other 400/403/409
-          // shows `Something did not work. Try again.` with a Retry button, never the reason.
-          if (res.status === 400 || res.status === 403 || res.status === 409) {
+          // T-565 W3/W6/W7 (Ajay): the privacy gate's 403 returned above (its T-343 prompt shows
+          // on the form) and an unverified user's 402 opened the verify modal. The reason is
+          // never shown.
+          //   409 (the Ink hold: a draft for this run is already in progress) → the documents-list
+          //     line, no Retry.
+          //   403 from the plan gate → `This document is not available on your current plan.`,
+          //     no Retry.
+          //   Any other 400/403, a 404 and a 5xx → `Something did not work. Try again.` + Retry.
+          if (res.status === 409) {
+            setGenerationFailure('in_progress');
+            setGenerationRetryable(false);
+          } else if (res.status === 403 && isPlanGate(errorBody)) {
+            setGenerationFailure('plan_required');
+            setGenerationRetryable(false);
+          } else if (
+            res.status === 400 ||
+            res.status === 403 ||
+            res.status === 404 ||
+            res.status >= 500
+          ) {
             setGenerationFailure('request_failed');
             setGenerationRetryable(true);
           } else {
@@ -523,11 +551,26 @@ function NewDocumentContent() {
   );
 
   // ── Retry handler (generation_failed card) ────────────────────────────────
+  // T-565 W8 (Ajay): on the not-started card (the cost is unknown) "Try again" fetches the
+  // cost again and drafts once it is known; the unknown-cost notice is not on that card.
+  const [retryWhenCostKnown, setRetryWhenCostKnown] = useState(false);
   const handleRetry = useCallback(async () => {
-    if (pendingFormData.current) {
-      await runGeneration(pendingFormData.current);
+    if (!pendingFormData.current) return;
+    if (!templateInkCostKnown) {
+      setRetryWhenCostKnown(true);
+      retryInkCost();
+      return;
     }
-  }, [runGeneration]);
+    await runGeneration(pendingFormData.current);
+  }, [runGeneration, templateInkCostKnown, retryInkCost]);
+  useEffect(() => {
+    if (!retryWhenCostKnown || inkCostLoading) return;
+    setRetryWhenCostKnown(false);
+    // Still unknown: the not-started card stays, with its "Try again".
+    if (templateInkCostKnown && pendingFormData.current) {
+      void runGeneration(pendingFormData.current);
+    }
+  }, [retryWhenCostKnown, inkCostLoading, templateInkCostKnown, runGeneration]);
 
   // ── Submit form → preflight first ────────────────────────────────────────
   const handleSubmit = useCallback(

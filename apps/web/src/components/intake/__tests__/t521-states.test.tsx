@@ -101,7 +101,8 @@ describe('GeneratingStep (T-521)', () => {
   it('shows the Inkwell drain, three steps when repairing, and a skeleton', () => {
     stubMatchMedia({});
     const { container } = run({ repairing: true, inkLevel: 40 });
-    expect(container.textContent).toContain('Drafting your Bail application');
+    expect(container.textContent).toContain('Writing your Bail application…');
+    expect(container.textContent).not.toContain('Drafting your');
     expect(qa('li', container)).toHaveLength(3);
     expect(q('svg[data-draining]', container)).not.toBeNull();
     expect(q('[aria-busy="true"]', container)).not.toBeNull();

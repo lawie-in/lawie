@@ -230,29 +230,68 @@ function fmtRelative(iso: string): string {
 }
 
 /**
- * T-565 W5 (Ajay, 22 Oct; T-326): a new provision with no old equivalent carries a synthetic
- * old-side id (`NEW-1`, `NEW-2`, …). A synthetic id is never shown as a section number, and
- * until signed text exists such entries are hidden from the finder altogether.
+ * T-565 W5a (Ajay, 22 Oct; section-converter Addendum 2, T-326): a new provision with no old
+ * equivalent is seeded with a placeholder old-side id, `NEW-<new section>` (e.g. NEW-111). The
+ * entry is shown, but that id is never shown, copied, inserted or sent in a request: the old
+ * box says `No equivalent in the {OldCode}`, the new section and title show as for any other
+ * row, and Copy gives `{NewCode} {n}` only (e.g. `BNS 111`).
  */
+const PLACEHOLDER_SECTION = /^NEW-(.+)$/i;
+
 function isPlaceholderSection(section: string | null | undefined): boolean {
-  return typeof section === 'string' && /^NEW-/i.test(section.trim());
+  return typeof section === 'string' && PLACEHOLDER_SECTION.test(section.trim());
 }
 
-/** T-565 W5: a search match the finder must not show. */
-function isHiddenMatch(m: SearchMatch): boolean {
-  return (
-    m.is_new_provision === true ||
-    isPlaceholderSection(m.section) ||
-    isPlaceholderSection(m.mapped_to?.section)
-  );
+/** Old-code abbreviation in T-295 casing, from the old code or, failing that, the new code. */
+const OLD_CODE_DISPLAY: Record<string, string> = { IPC: 'IPC', CRPC: 'CrPC', IEA: 'IEA' };
+const OLD_CODE_FOR_NEW: Record<string, string> = { BNS: 'IPC', BNSS: 'CrPC', BSA: 'IEA' };
+const NEW_CODE_FOR_OLD: Record<string, string> = { IPC: 'BNS', CRPC: 'BNSS', IEA: 'BSA' };
+
+/**
+ * T-565 W5a: the section to show or look up. A placeholder `NEW-n` on an old code is the new
+ * provision itself (`n` in the matching new code); anything else is returned as it is.
+ */
+function realSection(code: string, section: string): { code: string; section: string } {
+  const m = section.trim().match(PLACEHOLDER_SECTION);
+  if (!m) return { code, section };
+  return { code: NEW_CODE_FOR_OLD[code.toUpperCase()] ?? code, section: m[1] };
 }
 
-/** T-565 W5: a loaded detail the finder must not show. */
-function isHiddenDetail(d: SectionDetail): boolean {
+/**
+ * T-565 W5a: a saved Recent or Bookmark entry, as shown. An entry saved with a placeholder id
+ * shows the new provision instead; its stored title is the old side's, so it is not shown.
+ */
+function realEntry<T extends { code: string; section: string; title: string }>(entry: T): T {
+  if (!isPlaceholderSection(entry.section)) return entry;
+  return { ...entry, ...realSection(entry.code, entry.section), title: '' };
+}
+
+/** T-565 W5a: a typeahead match, as shown. A placeholder id never reaches the row. */
+function realMatch(m: SearchMatch): SearchMatch {
+  if (isPlaceholderSection(m.section)) {
+    // An old-code match whose old side is a placeholder: show the new provision it stands for.
+    const target =
+      m.mapped_to?.section && !isPlaceholderSection(m.mapped_to.section)
+        ? { code: m.mapped_to.code, section: m.mapped_to.section }
+        : realSection(m.code, m.section);
+    return {
+      ...m,
+      ...target,
+      title: m.mapped_to?.title ?? '',
+      mapped_to: null,
+      is_new_provision: true,
+    };
+  }
+  if (isPlaceholderSection(m.mapped_to?.section)) {
+    return { ...m, mapped_to: null, is_new_provision: true };
+  }
+  return m;
+}
+
+/** `{OldCode}` for the `No equivalent in the {OldCode}` line (T-295 casing). */
+function oldCodeDisplay(oldCode: string, newCode: string): string {
   return (
-    isPlaceholderSection(d.section) ||
-    isPlaceholderSection(d.mapping?.old_section) ||
-    isPlaceholderSection(d.mapping?.new_section)
+    OLD_CODE_DISPLAY[oldCode.toUpperCase()] ?? OLD_CODE_FOR_NEW[newCode.toUpperCase()] ?? oldCode
   );
 }
 
@@ -653,23 +692,26 @@ function FinderBody({
     })();
   }, []);
 
+  // T-565 W5a: an entry saved earlier with a placeholder NEW-n id shows (and is keyed as) the
+  // new provision it stands for, so the id is never shown or sent.
+  const visibleBookmarks = useMemo(() => bookmarks.map(realEntry), [bookmarks]);
   const bookmarkSet = useMemo(
-    () => new Set(bookmarks.map((b) => `${b.code}:${b.section}`)),
-    [bookmarks],
+    () => new Set(visibleBookmarks.map((b) => `${b.code}:${b.section}`)),
+    [visibleBookmarks],
   );
-  // T-565 W5: an entry saved earlier with a synthetic NEW-n id is not shown in Recent or Bookmarks.
-  const visibleRecent = useMemo(
-    () => recent.filter((r) => !isPlaceholderSection(r.section)),
-    [recent],
-  );
-  const visibleBookmarks = useMemo(
-    () => bookmarks.filter((b) => !isPlaceholderSection(b.section)),
-    [bookmarks],
-  );
+  const visibleRecent = useMemo(() => {
+    const seen = new Set<string>();
+    return recent.map(realEntry).filter((r) => {
+      const key = `${r.code}:${r.section}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [recent]);
 
-  const loadDetail = useCallback(async (code: string, section: string) => {
-    // T-565 W5: a synthetic NEW-n id is never looked up, shown or logged to Recent.
-    if (isPlaceholderSection(section)) return;
+  const loadDetail = useCallback(async (rawCode: string, rawSection: string) => {
+    // T-565 W5a: a placeholder NEW-n id is never looked up; the new provision is.
+    const { code, section } = realSection(rawCode, rawSection);
     setDetailLoading(true);
     setActiveDetail({
       // Show a placeholder shell immediately so DetailCard mounts with the
@@ -701,11 +743,6 @@ function FinderBody({
         return;
       }
       const detail = (await res.json()) as SectionDetail;
-      // T-565 W5: a new provision whose old side is a NEW-n id is hidden (not shown at all).
-      if (isHiddenDetail(detail)) {
-        setActiveDetail(null);
-        return;
-      }
       setActiveDetail(detail);
       // Log to recent (server + local).
       await apiFetch('/api/users/me/recent/sections', {
@@ -743,9 +780,14 @@ function FinderBody({
   }, [pendingPreload, loadDetail, onConsumePreload]);
 
   const toggleBookmark = useCallback(
-    async (code: string, section: string, title: string) => {
+    async (rawCode: string, rawSection: string, title: string) => {
+      // T-565 W5a: keyed and saved as the new provision, never as a placeholder NEW-n id.
+      const { code, section } = realSection(rawCode, rawSection);
       const key = `${code}:${section}`;
-      const existing = bookmarks.find((b) => `${b.code}:${b.section}` === key);
+      const existing = bookmarks.find((b) => {
+        const real = realSection(b.code, b.section);
+        return `${real.code}:${real.section}` === key;
+      });
 
       if (existing) {
         // Optimistic remove: drop from UI immediately, server call follows.
@@ -977,8 +1019,9 @@ function LookupTab({
         const res = await fetch(`${API_URL}/api/sections/search?${params}&limit=10`);
         if (!res.ok) return;
         const data = await res.json();
-        // T-565 W5: entries with a synthetic NEW-n id are never shown.
-        const results = ((data.results ?? []) as SearchMatch[]).filter((m) => !isHiddenMatch(m));
+        // T-565 W5a: a new provision shows as its new section and title; a placeholder NEW-n id
+        // never reaches a row.
+        const results = ((data.results ?? []) as SearchMatch[]).map(realMatch);
         typeaheadCache.set(term, results);
         if (!cancelled) setMatches(results);
       } finally {
@@ -1323,7 +1366,16 @@ function DetailCard({
   const [bareOpen, setBareOpen] = useState(true);
 
   const citation = citationText(detail);
-  const related = detail.related.filter((r) => !isPlaceholderSection(r.section));
+  // T-565 W5a (Addendum 2): a new provision with no old equivalent. The old box says
+  // `No equivalent in the {OldCode}`, Copy gives `{NewCode} {n}` only, and no `Mapped` badge
+  // shows (it is not a one-to-one mapping, T7).
+  const mapping = detail.mapping;
+  const newProvision = !!mapping && isPlaceholderSection(mapping.old_section);
+  const copyText =
+    newProvision && mapping
+      ? `${mapping.new_code} ${mapping.new_section ?? detail.section}`
+      : citation;
+  const related = detail.related.map(realEntry);
 
   if (loading) {
     return (
@@ -1355,7 +1407,7 @@ function DetailCard({
   }
 
   function onCopy() {
-    navigator.clipboard.writeText(citation);
+    navigator.clipboard.writeText(copyText);
     setCopied(true);
     setTimeout(() => setCopied(false), 1800);
   }
@@ -1385,9 +1437,18 @@ function DetailCard({
           <div className="gap-nl-3 flex items-center justify-between">
             <div className="flex-1">
               <p className="nl-label text-nl-muted m-0">Old law · before 1 July 2024</p>
-              <p className={cn(SECTION_REF, 'nl-body mt-nl-1 mb-0')}>
-                §{detail.mapping.old_section} {detail.mapping.old_code}
-              </p>
+              {newProvision ? (
+                <p className="nl-body text-nl-text mt-nl-1 mb-0">
+                  {`No equivalent in the ${oldCodeDisplay(
+                    detail.mapping.old_code,
+                    detail.mapping.new_code,
+                  )}`}
+                </p>
+              ) : (
+                <p className={cn(SECTION_REF, 'nl-body mt-nl-1 mb-0')}>
+                  §{detail.mapping.old_section} {detail.mapping.old_code}
+                </p>
+              )}
             </div>
             <ChevronRight size={16} aria-hidden="true" className="text-nl-muted" />
             <div className="flex-1">
@@ -1401,7 +1462,7 @@ function DetailCard({
             </div>
           </div>
           {/* T-565 T7: `Mapped` only for a direct one-to-one mapping. */}
-          {detail.mapping.mapping_type === 'direct' && (
+          {detail.mapping.mapping_type === 'direct' && !newProvision && (
             <div className="mt-nl-2 nl-body-sm text-nl-ok flex items-center gap-1.5">
               <span aria-hidden="true" className="bg-nl-ok h-1.5 w-1.5 rounded-full" />
               Mapped
@@ -1498,7 +1559,7 @@ function DetailCard({
       )}
 
       {/* Related sections */}
-      {/* T-565 W5: no related entry with a synthetic NEW-n id. */}
+      {/* T-565 W5a: a related entry never shows a placeholder NEW-n id. */}
       {related.length > 0 && (
         <div>
           <p className="nl-label text-nl-muted mb-nl-1 mt-0">Related sections</p>

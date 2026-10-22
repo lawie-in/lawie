@@ -1,5 +1,5 @@
 // T-565 wave 2a (Ajay, pre-Anushka legal review 22 Oct; W1, W2, W3 and the string changes): the
-// PipelineStatus cards. Every signed string byte-exact, one `Generate anyway`, no replaced string.
+// PipelineStatus cards (round 2: W6 409, W7 plan gate, W8 not-started Try again, W10 hard block). Every signed string byte-exact, one `Generate anyway`, no replaced string.
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 
@@ -53,9 +53,10 @@ const failedText = (failure?: GenerationFailure, extra: Record<string, unknown> 
   });
 
 describe('hard block', () => {
-  it('step label and heading both read `The draft could not start.`, button `Edit the form`', () => {
+  it('W10: `The draft could not start.` shows once (no step label), button `Edit the form`', () => {
     const text = show('hard_block', { hardBlockReason: 'Client name is missing' });
-    expect(count(text, 'The draft could not start.')).toBe(2);
+    expect(count(text, 'The draft could not start.')).toBe(1);
+    expect(text).not.toContain('Step ');
     expect(text).toContain('Client name is missing');
     expect(buttons()).toContain('Edit the form');
     expect(buttons()).not.toContain('Edit form');
@@ -179,6 +180,75 @@ describe('generation failed (W1, W3)', () => {
       expect(handlers.onEditForm).toHaveBeenCalledTimes(1);
       expect(buttons()).not.toContain('Edit form');
     }
+  });
+
+  it('in progress (W6): the documents-list line alone, no Retry or Try again, even when retryable', () => {
+    const text = failedText('in_progress');
+    expect(count(text, 'Check your documents list to see where this draft stands.')).toBe(1);
+    expect(text).not.toContain('The draft did not finish.');
+    expect(text).not.toContain('Something did not work');
+    expect(text).not.toContain('Raw reason');
+    expect(buttons()).not.toContain('Retry');
+    expect(buttons()).not.toContain('Try again');
+    expect(buttons()).toContain('Edit the form');
+  });
+
+  it('plan gate (W7): the signed plan line alone, no Retry or Try again', () => {
+    const text = failedText('plan_required');
+    expect(count(text, 'This document is not available on your current plan.')).toBe(1);
+    expect(text).not.toContain('Something did not work');
+    expect(text).not.toContain('Check your documents list');
+    expect(text).not.toContain('Raw reason');
+    expect(buttons()).not.toContain('Retry');
+    expect(buttons()).not.toContain('Try again');
+    expect(buttons()).toContain('Edit the form');
+  });
+
+  it.each<GenerationFailure>(['in_progress', 'plan_required'])(
+    '%s: no heading `Drafting could not finish` and no step label',
+    (kind) => {
+      expect(failedText(kind)).not.toContain('Drafting could not finish');
+      expect(container.querySelector('span[style*="uppercase"]')).toBeNull();
+    },
+  );
+
+  it('not started (W8): Try again is enabled with an unknown cost, no notice, no re-check link', () => {
+    const onInkCostRetry = jest.fn();
+    const text = failedText('not_started', { inkCost: undefined, onInkCostRetry });
+    expect(text).not.toContain('We could not work out the Ink cost');
+    expect(text).not.toContain('Check the cost again');
+    expect(buttons()).not.toContain('Check the cost again');
+    const btn = Array.from(container.querySelectorAll('button')).find(
+      (b) => b.textContent === 'Try again',
+    ) as HTMLButtonElement;
+    expect(btn.disabled).toBe(false);
+    act(() => btn.click());
+    expect(handlers.onRetry).toHaveBeenCalledTimes(1);
+  });
+
+  it('not started (W8): while the cost loads Try again is off and the loading line shows; known shows Uses N Ink', () => {
+    let text = failedText('not_started', { inkCost: undefined, inkCostLoading: true });
+    expect(text).toContain('Working out the Ink cost...');
+    const btn = () =>
+      Array.from(container.querySelectorAll('button')).find(
+        (b) => b.textContent === 'Try again',
+      ) as HTMLButtonElement;
+    expect(btn().disabled).toBe(true);
+    text = failedText('not_started', { inkCost: 3 });
+    expect(text).toContain('Uses 3 Ink');
+    expect(btn().disabled).toBe(false);
+  });
+
+  it('stream card with an unknown cost: no notice or link, Try again stays disabled', () => {
+    const text = failedText('stream', { inkCost: undefined, onInkCostRetry: jest.fn() });
+    expect(text).not.toContain('We could not work out the Ink cost');
+    expect(text).not.toContain('Check the cost again');
+    const btn = Array.from(container.querySelectorAll('button')).find(
+      (b) => b.textContent === 'Try again',
+    ) as HTMLButtonElement;
+    expect(btn.disabled).toBe(true);
+    expect(btn.getAttribute('aria-disabled')).toBe('true');
+    expect(btn.hasAttribute('aria-describedby')).toBe(false);
   });
 
   it('not retryable: no Try again or Retry button, Edit the form stays', () => {

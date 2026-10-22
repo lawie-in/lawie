@@ -293,7 +293,7 @@ describe('T-432 AC1/AC2: every return path keeps answers and step', () => {
     await open('Alpha notice');
     await fillThreeSteps();
     await click('Generate document'); // privacyFetch -> 500 -> generation_failed
-    expect(text()).toContain('The draft did not finish.'); // T-565: the server reason is not shown
+    expect(text()).toContain('Something did not work. Try again.'); // T-565 W3: a 500 pre-stream; the server reason is not shown
     expect(text()).not.toContain('Model down');
     await click('Edit the form');
     await expectAnswersKept();

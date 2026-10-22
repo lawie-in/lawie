@@ -129,7 +129,7 @@ export default function GeneratingStep({
             advocate's real level shows, static. Not shown while the balance is unknown. */}
         {typeof inkLevel === 'number' && <Inkwell balance={inkLevel} draining />}
         <div className="w-full min-w-0 text-center">
-          <h1 className="nl-h2 text-nl-text break-words">Drafting your {documentName}</h1>
+          <h1 className="nl-h2 text-nl-text break-words">Writing your {documentName}…</h1>
           <p className="nl-body text-nl-soft mt-nl-2">
             This can take a little while. Please keep this tab open.
           </p>

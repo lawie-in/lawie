@@ -1,6 +1,10 @@
-// T-565 wave 2a, W3 (Ajay, pre-Anushka legal review 22 Oct): a pre-stream 400/403/409 from
-// generate-from-template shows `Something did not work. Try again.` with a `Retry` button, never
-// the raw server reason. The privacy-gate 403 (T-343 prompt) and the 402 paths are unchanged.
+// T-565 wave 2a, W3/W6/W7 (Ajay, pre-Anushka legal review 22 Oct), pre-stream failures from
+// generate-from-template (the raw server reason is never shown):
+//   409 -> `Check your documents list to see where this draft stands.` alone, no Retry (W6)
+//   plan-gate 403 (body has an `upgradeUrl` string, or `error` matches /requires an? .*plan/i)
+//     -> `This document is not available on your current plan.` alone, no Retry (W7)
+//   any other 400/403, 404, 5xx -> `Something did not work. Try again.` + `Retry` (W3)
+// The privacy-gate 403 (T-343 prompt) and the 402 paths are unchanged.
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 
@@ -142,33 +146,124 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe('T-565 W3: pre-stream 400/403/409', () => {
-  it.each([400, 403, 409])(
-    '%s: the generic line, a Retry button, never the raw reason',
-    async (status) => {
-      mockPrivacyFetch.mockResolvedValue(reply(status, { error: RAW }));
-      await submitOneStepForm();
-      expect(generateCalls()).toHaveLength(1);
-      expect(count(LINE)).toBe(1);
-      expect(text()).not.toContain(RAW);
-      expect(text()).not.toContain('Generation could not start');
-      expect(text()).not.toContain('The draft did not finish.');
-      expect(labels()).toContain('Retry');
-      expect(labels()).not.toContain('Try again');
-      expect(labels()).toContain('Edit the form');
-      expect(text()).not.toContain('Drafting could not finish');
-    },
-  );
+const DOCS_LIST = 'Check your documents list to see where this draft stands.';
+const PLAN_LINE = 'This document is not available on your current plan.';
+const noRetry = () => {
+  expect(labels()).not.toContain('Retry');
+  expect(labels()).not.toContain('Try again');
+  expect(labels()).toContain('Edit the form');
+};
+
+describe('T-565 W6: 409 (a draft for this run is already in progress)', () => {
+  it('shows the documents-list line alone, no Retry, never the raw reason', async () => {
+    mockPrivacyFetch.mockResolvedValue(reply(409, { error: RAW }));
+    await submitOneStepForm();
+    expect(count(DOCS_LIST)).toBe(1);
+    expect(text()).not.toContain(LINE);
+    expect(text()).not.toContain('The draft did not finish.');
+    expect(text()).not.toContain(RAW);
+    expect(text()).not.toContain('Generation could not start');
+    noRetry();
+  });
+
+  it('never makes a second request (no double Ink hold)', async () => {
+    mockPrivacyFetch.mockResolvedValue(reply(409, { error: RAW }));
+    await submitOneStepForm();
+    await flush();
+    expect(generateCalls()).toHaveLength(1);
+    expect(buttonWith('Retry')).toBeUndefined();
+    expect(buttonWith('Try again')).toBeUndefined();
+  });
+
+  it('a body with `message`, or with no JSON, shows the same line', async () => {
+    mockPrivacyFetch.mockResolvedValue(reply(409, { message: RAW }));
+    await submitOneStepForm();
+    expect(count(DOCS_LIST)).toBe(1);
+    expect(text()).not.toContain(RAW);
+    act(() => root.unmount());
+    root = createRoot(container);
+    mockPrivacyFetch.mockResolvedValue(
+      reply(409, null, {
+        json: async () => {
+          throw new Error('not json');
+        },
+      }),
+    );
+    await submitOneStepForm();
+    expect(count(DOCS_LIST)).toBe(1);
+    noRetry();
+  });
+});
+
+describe('T-565 W7: plan-gate 403', () => {
+  it.each([
+    ['an upgradeUrl string', { error: RAW, upgradeUrl: '/pricing' }],
+    ['the route text `requires a Pro plan`', { error: 'This template requires a Pro plan' }],
+    ['`requires an Enterprise plan`, any case', { error: 'REQUIRES AN Enterprise PLAN to use' }],
+  ])('%s: the signed plan line alone, no Retry', async (_n, body) => {
+    mockPrivacyFetch.mockResolvedValue(reply(403, body));
+    await submitOneStepForm();
+    expect(count(PLAN_LINE)).toBe(1);
+    expect(text()).not.toContain(LINE);
+    expect(text()).not.toContain(RAW);
+    expect(text()).not.toContain('requires a');
+    expect(generateCalls()).toHaveLength(1);
+    noRetry();
+  });
+
+  it('an upgradeUrl that is not a string does not make it a plan gate', async () => {
+    mockPrivacyFetch.mockResolvedValue(reply(403, { error: RAW, upgradeUrl: 5 }));
+    await submitOneStepForm();
+    expect(count(LINE)).toBe(1);
+    expect(text()).not.toContain(PLAN_LINE);
+    expect(labels()).toContain('Retry');
+  });
+
+  it('a 400 with plan-gate text is not a plan gate (only a 403 is)', async () => {
+    mockPrivacyFetch.mockResolvedValue(
+      reply(400, { error: 'requires a Pro plan', upgradeUrl: '/x' }),
+    );
+    await submitOneStepForm();
+    expect(count(LINE)).toBe(1);
+    expect(text()).not.toContain(PLAN_LINE);
+    expect(labels()).toContain('Retry');
+  });
+});
+
+describe('T-565 W3: other pre-stream failures', () => {
+  it.each([
+    [400, { error: RAW }],
+    [403, { error: RAW }],
+    [403, { error: 'Forbidden' }],
+    [403, {}],
+    [404, { error: RAW }],
+    [500, { error: RAW }],
+    [502, { error: RAW }],
+    [503, { error: RAW }],
+  ])('%s %j: the generic line, a Retry button, never the raw reason', async (status, body) => {
+    mockPrivacyFetch.mockResolvedValue(reply(status, body));
+    await submitOneStepForm();
+    expect(generateCalls()).toHaveLength(1);
+    expect(count(LINE)).toBe(1);
+    expect(text()).not.toContain(RAW);
+    expect(text()).not.toContain('Generation could not start');
+    expect(text()).not.toContain('The draft did not finish.');
+    expect(text()).not.toContain(DOCS_LIST);
+    expect(text()).not.toContain(PLAN_LINE);
+    expect(labels()).toContain('Retry');
+    expect(labels()).not.toContain('Try again');
+    expect(labels()).toContain('Edit the form');
+  });
 
   it('a body with `message` instead of `error`, or no JSON body, shows the same line', async () => {
-    mockPrivacyFetch.mockResolvedValue(reply(409, { message: RAW }));
+    mockPrivacyFetch.mockResolvedValue(reply(400, { message: RAW }));
     await submitOneStepForm();
     expect(count(LINE)).toBe(1);
     expect(text()).not.toContain(RAW);
     act(() => root.unmount());
     root = createRoot(container);
     mockPrivacyFetch.mockResolvedValue(
-      reply(400, null, {
+      reply(403, null, {
         json: async () => {
           throw new Error('not json');
         },
@@ -176,10 +271,11 @@ describe('T-565 W3: pre-stream 400/403/409', () => {
     );
     await submitOneStepForm();
     expect(count(LINE)).toBe(1);
+    expect(labels()).toContain('Retry');
   });
 
   it('Retry re-runs the request, and a second failure shows the same line again', async () => {
-    mockPrivacyFetch.mockResolvedValue(reply(409, { error: RAW }));
+    mockPrivacyFetch.mockResolvedValue(reply(400, { error: RAW }));
     await submitOneStepForm();
     expect(generateCalls()).toHaveLength(1);
     await click('Retry');
@@ -190,7 +286,7 @@ describe('T-565 W3: pre-stream 400/403/409', () => {
   });
 
   it('Retry resends the same form answers', async () => {
-    mockPrivacyFetch.mockResolvedValue(reply(403, { error: RAW }));
+    mockPrivacyFetch.mockResolvedValue(reply(500, { error: RAW }));
     await submitOneStepForm();
     await click('Retry');
     const [first, second] = generateCalls().map((c) => JSON.parse((c[2] as { body: string }).body));
@@ -199,7 +295,7 @@ describe('T-565 W3: pre-stream 400/403/409', () => {
   });
 
   it('Retry that then succeeds leaves the failure card', async () => {
-    mockPrivacyFetch.mockResolvedValueOnce(reply(409, { error: RAW }));
+    mockPrivacyFetch.mockResolvedValueOnce(reply(400, { error: RAW }));
     await submitOneStepForm();
     const chunks = ['event: done\ndata: {"docId":"d1","paragraphCount":2}\n\n'];
     mockPrivacyFetch.mockResolvedValue({
@@ -250,8 +346,8 @@ describe('T-565 W3: gates unchanged', () => {
     expect(labels()).toContain('Generate document');
   });
 
-  it('a 500 is not a request failure: the stream card, `Try again`, no raw reason', async () => {
-    mockPrivacyFetch.mockResolvedValue(reply(500, { error: RAW }));
+  it('a 429 is still the stream card (out of this change): `Try again`, no raw reason', async () => {
+    mockPrivacyFetch.mockResolvedValue(reply(429, { error: RAW }));
     await submitOneStepForm();
     expect(text()).toContain('The draft did not finish.');
     expect(text()).not.toContain(LINE);
