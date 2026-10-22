@@ -154,3 +154,15 @@ MUST: 0.1, 0.2, 1–14, 23, 29–43, 54–65 (43 items, counting 0.1 and 0.2). S
 | A7 | Where "Top-up Ink stays." goes | Straight after `Ink you already have stays until then.` |
 | A8 | Custody-limits line | OK: `…default bail eligibility dates under BNSS for an arrest on or after 1 July 2024.` |
 | A9 | About paragraph 3 | Keep it as it is (signed now). It describes the problem, not a product claim. |
+
+## Answers to T-565 questions (Tanvi, 22 Oct)
+
+| Ref | Question | Ruling |
+|---|---|---|
+| T1 | NO_MISMATCH_FOUND in the old form flow (no brief) | Not true there. The old flow gets its own line: `The drafting checks flagged nothing. Read the draft before you use it.` Show it only when the stream sent no warning event. |
+| T2 | Does row 43 retire "Citing sections…"? | Yes, in the old flow. Change the t555 test to assert that `Citing BNS / BNSS sections…` is absent, not that `Citing sections…` is present. |
+| T3 | Breadcrumb "Checking … Checking" | Not intended. The Verifying step becomes `Checking inputs` and the Validating step becomes `Checking the draft`. |
+| T4 | "Auto-detects either direction. Press ⌘K from any drafting screen." | Cut "Auto-detects either direction." Keep `Press ⌘K from any drafting screen.` (functional). |
+| T5 | `Prices include GST.` on its own line under the price | OK. |
+| T6 | Other PipelineStatus strings | Signed: "Skip and generate anyway" → `Generate anyway`. "Let me fix this — edit form" → `Edit the form`. "Error — drafting could not finish" → `The draft did not finish.` "Step 3 of 5 — drafting (streaming)" → `Step 3 of 5 — writing the draft`. "The AI service returned an error mid-draft. Please try again." → `The draft did not finish.` with the Ink line per 41b. Any other PipelineStatus string not listed in row 43 or here: keep the old flow off for Anushka (`describe_first` ON) and send the list to me before main. |
+| T7 | Finder card shows "Mapped" for every type | `Mapped` only for a direct one-to-one mapping. Merged and split types use their signed T-296 badges. Repealed and unverified types show **no** status badge until I sign one. |
