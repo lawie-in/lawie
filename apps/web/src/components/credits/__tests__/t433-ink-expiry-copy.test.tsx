@@ -43,7 +43,8 @@ const norm = (s: string) => s.replace(/\s+/g, ' ');
 // Signed strings, byte-exact.
 const TERMS_SENTENCES =
   'Plan Ink is given for each month of your plan, including on annual plans. Plan Ink left unused at the end of that month expires and does not carry over. Top-up Ink you buy separately does not expire while your account is open. It ends when your account is closed.';
-const TERMS_ANCHOR = 'a failed generation is not charged. ';
+// T-564 item 9 (Ajay 22 Oct): the signed failed-generation line.
+const TERMS_ANCHOR = 'If a draft fails to generate, no Ink is used. ';
 const FAQ_COST_LINE = 'You see the Ink cost before you generate a draft.';
 const FAQ_EXPIRY =
   'Solo and Pro plans give you fresh Ink every month; plan Ink left unused at the end of the month does not carry over. You can also buy top-up packs anytime, and top-up Ink never expires.';
@@ -67,7 +68,7 @@ function withoutSignedLines(text: string): string {
 }
 
 describe('T-433 Terms §6', () => {
-  it('has the signed expiry sentences, straight after the failed-generation line', () => {
+  it('has the signed expiry sentences, straight after the signed failed-generation line', () => {
     const text = norm(render(<TermsPage />));
     expect(text).toContain(TERMS_ANCHOR + TERMS_SENTENCES);
   });

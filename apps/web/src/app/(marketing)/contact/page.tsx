@@ -8,8 +8,7 @@ import SiteNav from '@/components/marketing/SiteNav';
 
 export const metadata: Metadata = {
   title: 'Lawie — Contact',
-  description:
-    'Get in touch with Lawie. Email contact@lawie.in — we typically reply within 24 hours.',
+  description: 'Email contact@lawie.in.',
 };
 
 export default function ContactPage() {
@@ -41,7 +40,7 @@ export default function ContactPage() {
             Contact
           </span>
           <h1>Get in touch.</h1>
-          <p className="sub">Email is the fastest way to reach us — no forms, no queues.</p>
+          <p className="sub">Email is the fastest way to reach us.</p>
         </div>
       </header>
 
@@ -55,7 +54,6 @@ export default function ContactPage() {
             <a className="email" href="mailto:contact@lawie.in">
               contact@lawie.in
             </a>
-            <p>We typically reply within 24 hours.</p>
           </div>
           <div className="address">
             <span className="lbl">Based in</span>
@@ -80,8 +78,8 @@ export default function ContactPage() {
               <p style={{ fontSize: '15px', color: 'var(--text-2)' }}>
                 Terms, compliance, and notices.
               </p>
-              <a className="link-arrow" href="mailto:legal@lawie.in">
-                legal@lawie.in <ArrowRight strokeWidth={1.5} />
+              <a className="link-arrow" href="mailto:contact@lawie.in">
+                contact@lawie.in <ArrowRight strokeWidth={1.5} />
               </a>
             </article>
             <article className="card route">
