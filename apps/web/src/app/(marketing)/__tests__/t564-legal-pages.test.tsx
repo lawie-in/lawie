@@ -42,18 +42,38 @@ const REVIEW = readFileSync(
   'utf8',
 );
 
-/** Backtick segments of the last cell of the table row that starts with `| <id> |`. */
+/** The text of the review file between a "## " heading and the next "## " heading. */
+function reviewSection(headingStart: string): string {
+  const parts = REVIEW.split(/^## /m);
+  const matches = parts.filter((p) => p.startsWith(headingStart));
+  if (matches.length !== 1) {
+    throw new Error(`Expected one "## ${headingStart}" section, found ${matches.length}`);
+  }
+  return matches[0];
+}
+
+/**
+ * Backtick segments of the last cell of the table row that starts with `| <id> |`. Numeric ids are
+ * read only from section A ("Marketing and policy pages"); ids starting with "A" only from the
+ * "Answers to T-564 questions" section. The row must be unique inside its section.
+ */
 function signedSegments(id: string): string[] {
-  const row = REVIEW.split('\n').find((l) => l.startsWith(`| ${id} |`));
-  if (!row) throw new Error(`Row ${id} not found in the review file`);
-  const cells = row.replace(/\|\s*$/, '').split(' | ');
+  const section = /^\d+$/.test(id)
+    ? reviewSection('A. Marketing and policy pages')
+    : reviewSection('Answers to T-564 questions');
+  const rows = section.split('\n').filter((l) => l.startsWith(`| ${id} |`));
+  if (rows.length !== 1)
+    throw new Error(`Expected one row ${id} in its section, found ${rows.length}`);
+  const cells = rows[0].replace(/\|\s*$/, '').split(' | ');
   const last = cells[cells.length - 1];
   return Array.from(last.matchAll(/`([^`]+)`/g), (m) => m[1]);
 }
 
 /** The four numbered Refunds paragraphs (item 11). */
 function refundParagraphs(): string[] {
-  const after = REVIEW.split('**Refunds text (item 11), signed.**')[1];
+  const after = reviewSection('A. Marketing and policy pages').split(
+    '**Refunds text (item 11), signed.**',
+  )[1];
   return after
     .split('\n')
     .filter((l) => /^\d\. `/.test(l))
@@ -247,6 +267,23 @@ describe('items 7, 8, 12, 17, 18, A4 (FAQ refunds): FAQ page', () => {
     expect(a).toContain('Payments are non-refundable once the plan period has started');
     expect(text).toContain(a);
     expect(text).not.toContain('Cancellation does not refund');
+  });
+
+  // Ajay confirmed A5 in his own session. Pinned as a literal: the review's A5 row gives a rule,
+  // not the sentence. Plaints are out because the plaint flag is off for v1; written statements
+  // stay live. nl-copy.ts:140 (Vishal's T-522) must drop 'plaints, ' later so both lists match;
+  // that line is deliberately not asserted here.
+  it('item 16 / A5: the documents answer is the pinned v1 list', async () => {
+    const text = await renderFaq();
+    const q = 'What documents does Lawie generate today?';
+    const a =
+      'Bail applications, legal notices, writ petitions, maintenance petitions, written statements, affidavits.';
+    expect(text).toContain(`${q} ${a}`);
+    for (const old of ['rent agreements', 'consumer complaints', 'vakalatnama', 'plaints']) {
+      expect(a).not.toContain(old);
+    }
+    expect(text).not.toContain('Bail applications (regular and anticipatory)');
+    expect(text).not.toContain('S.138 NI Act), rent agreements');
   });
 
   it('item 12: the backups sentence is unchanged', async () => {

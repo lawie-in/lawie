@@ -17,7 +17,7 @@ const productFaq = [
   {
     question: 'What documents does Lawie generate today?',
     answer:
-      'Bail applications (regular and anticipatory), legal notices (S.80 CPC and S.138 NI Act), rent agreements, consumer complaints, vakalatnama, affidavits, and maintenance petitions.',
+      'Bail applications, legal notices, writ petitions, maintenance petitions, written statements, affidavits.',
   },
   {
     question: 'Which criminal codes do drafts use?',
