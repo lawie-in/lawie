@@ -30,3 +30,7 @@ Fact: the validator never sees the offence date; passing it through is in `ai.se
 - **(b)** interim in T-566, `validator.ts` only: the old "Use Section X BNS instead" warning is **suppressed** — it now contradicts the item-54 rule for pre-July-2024 offences, and a wrong legal warning is worse than none. The loss is bounded: item 54 moves the date logic into the prompt, so the model, which does see the date when a pack has one, applies it; the validator check returns with (a). **Needs Ajay's OK** (it removes a warning). If he prefers a warning to stay, the fallback is a neutral line he signs ("This draft cites Section X IPC. Confirm the offence date: BNS applies to offences on or after 1 July 2024.") shown whenever an IPC citation appears — it asserts nothing about replacement.
 - (c) rejected: it would show the "replaced" text for earlier offences, which Ajay forbade.
 Recorded as an open legal item on T-566 until Ajay answers; the rest of the ticket proceeds.
+
+## Arjun (22 Oct 2026) — 54d resolved by Ajay (S11)
+
+Ajay's S11 supersedes (b): no suppression. The validator message becomes his signed, unscoped text, "Check the code: Section {x} BNS replaced Section {y} IPC for an offence on or after 1 July 2024." — true for any offence date, so no wrong advice is possible. Applied in T-566, `validator.ts` message only. (a) stands: date-scoping (hide it for an offence before 1 July 2024) is the follow-up after Mahak merges. No objection.
