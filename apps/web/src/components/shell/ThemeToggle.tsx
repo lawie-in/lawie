@@ -67,7 +67,11 @@ export function ThemeToggle({
             />
             <span
               className={cn(
-                'nl-body-sm rounded-nl-sm px-nl-3 text-nl-soft inline-flex min-h-[44px] min-w-[44px] items-center justify-center font-medium',
+                // T-544 (Rajesh, T-531 N1): the frame is 44px (40px option + 2 padding + 2 border).
+                // The ::before restores the 44px hit area in height only (2px above and below;
+                // inset-x-0, so neighbours never overlap). The focus ring stays on this 40px span.
+                'nl-body-sm rounded-nl-sm px-nl-3 text-nl-soft relative inline-flex min-h-[40px] min-w-[44px] items-center justify-center font-medium',
+                "before:absolute before:-inset-y-[2px] before:inset-x-0 before:content-['']",
                 'transition-colors duration-150 ease-[ease] motion-reduce:transition-none',
                 'peer-checked:bg-nl-brass-light peer-checked:text-nl-brass-dark',
                 'peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-[3px] peer-focus-visible:outline-[color:var(--brass)]',

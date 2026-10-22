@@ -371,7 +371,7 @@ export function CommandBar({
             if (anchorRef.current?.contains(e.target as Node)) e.preventDefault();
           }}
           data-phase={phase}
-          className="nl rounded-nl-md border-nl-line bg-nl-card p-nl-2 text-nl-text shadow-nl-card z-50 w-[var(--radix-popper-anchor-width)] max-w-[100vw] border"
+          className="nl rounded-nl-md border-nl-line bg-nl-card p-nl-2 text-nl-text shadow-nl-card z-[60] w-[var(--radix-popper-anchor-width)] max-w-[100vw] border"
         >
           <ul
             id={listboxId}
