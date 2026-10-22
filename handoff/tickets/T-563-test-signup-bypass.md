@@ -63,3 +63,9 @@ Ruling: `handoff/legal/T-563-test-accounts-ruling-ajay.md` — CONFIRMED with co
 ## Arjun (22 Oct 2026) — eight Explore points (Vishal): defaults OK
 
 1. Consent marker = `termsAcceptance { acceptedVia: 'test', version: 'test-bypass' }`; `privacyVersion = CURRENT` so `requireCurrentPrivacy` passes. 2. Pure `isProductionBox({ RAZORPAY_KEY_GUARD, SECRETS_ENV, RAZORPAY_KEY_ID })` in `packages/shared`; auth's `env.ts` superRefine refuses boot; billing adopts later. 3. Check `SECRETS_ENV` now, forward-compatible with T-534. 4. No daily login bonus for `isTestAccount`: 30 Ink once, nothing else. 5. 30 Ink = 60 units: `inkTopup +60`, inkledger row `test_grant`, `signupBonusGrantedAt` set, no creditledger row, no drafting grant signal. 6. Email skip in auth's internal mint/prepare routes (`not_eligible` for `isTestAccount`). 7. Shared `TEST_CONSENT_VERSION` + filter helper + test; the export itself does not exist yet. 8. Billing exclusions (live-key purchase guard, invoices, revenue views) → follow-up after Shashank's merge; the boot refusal already makes a live key impossible on a bypass box.
+
+## Arjun (22 Oct 2026, after build 5bbd1d50)
+
+2. **Sweep and delete script erase a test account even with an active test-mode plan.** Order: cancel the subscription at Razorpay through the existing guarded cancel path (`cancel(id,false)`, strict not-found = ended), then erase. Test-mode money is not money; AJ-563-M6's 7-day limit is absolute. If the cancel fails, log ids and erase anyway — a dangling test-mode sub at Razorpay is harmless and the 24-hour unknown-sub report would surface it.
+3. `invalid_test_name` (400) on a bypass with a non-`TEST` name: OK. It is reachable only with the right secret, so it reveals nothing to anyone else; no user-facing string needed.
+1. The production-marker finding in the agent environment is handled in `handoff/ops/incident-2026-10-22-env-dump.md` (addendum).
