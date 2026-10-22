@@ -434,7 +434,7 @@ describe("T-450 (c): Ajay's exact strings (T-245 file, T-450 questions and byte 
 
 // ── (d) _meta.change_protocol unchanged (Ajay, T-450 questions 1 and 2) ─────
 
-describe('T-450 (d): _meta.change_protocol is unchanged for partition_deed, gpa, sale_deed', () => {
+describe('T-450 (d): _meta.change_protocol is unchanged for partition_deed and sale_deed; gpa is the T-566 S10 text', () => {
   const protocol = (id: string): string =>
     String(((readPack(id)._meta as Json) ?? {}).change_protocol ?? '');
 
@@ -446,7 +446,8 @@ describe('T-450 (d): _meta.change_protocol is unchanged for partition_deed, gpa,
 
   it('gpa', () => {
     expect(protocol('gpa')).toBe(
-      'All edits require CLO sign-off. Suraj Lamp warning must appear prominently when GPA includes power to sell. Authentication / notarisation / registration requirements differ for property powers vs general powers.',
+      // T-566 ruling S10 (Ajay, 22 Oct): "Suraj Lamp warning" became "The title clause".
+      'All edits require CLO sign-off. The title clause must appear prominently when GPA includes power to sell. Authentication / notarisation / registration requirements differ for property powers vs general powers.',
     );
   });
 

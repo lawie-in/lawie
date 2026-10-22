@@ -212,12 +212,6 @@
       "name": "Statement of Truth — Order VI R.15A (Commercial Courts only)",
       "required": false,
       "description": "Mandatory in Commercial Courts"
-    },
-    {
-      "id": "disclaimer",
-      "name": "Advocate Responsibility Disclaimer",
-      "required": true,
-      "description": "Standard Lawie disclaimer"
     }
   ],
   "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, the Defendant most respectfully prays that this Hon'ble Court may graciously be pleased to:\n\na) Dismiss the suit filed by the Plaintiff with exemplary costs;\n\nb) Grant the Defendant's counter-claim, if any, for {counter_claim_details};\n\nc) Allow the Defendant's set-off in the sum of Rs. {set_off_amount}/-, if pleaded;\n\nd) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the Defendant shall ever pray.",
@@ -247,7 +241,6 @@
       "Affidavit in support — Order VI R.15(4) — mandatory.",
       "Statement of Truth — Order VI R.15A — mandatory in Commercial Courts (post 2018 amendments to CPC and CCA Schedule).",
       "Tone: precise, point-by-point. Avoid argumentative language. Avoid evasive denials.",
-      "Append Lawie disclaimer.",
       "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },

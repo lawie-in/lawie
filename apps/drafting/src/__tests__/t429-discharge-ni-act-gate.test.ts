@@ -157,6 +157,11 @@ describe('T-429 A: niS138Charged', () => {
   });
 });
 
+// T-566 (Ajay items 64/R1, ruling 64d): the case name "S.M.S. Pharmaceuticals" was removed from
+// the model-visible Para 10 line, which now reads as the bare proposition. The Para 10 NI Act
+// text is identified by its own wording; the gate is asserted on it exactly as before.
+const PARA10_MARKER = "director must be 'in charge of and responsible to' company";
+
 // ── B ────────────────────────────────────────────────────────────────────
 describe('T-429 B: packForCharge on the real discharge pack', () => {
   it('premise: the real pack has one NI Act entry (S.138, S.141) and one Para 10 NI line', () => {
@@ -164,7 +169,7 @@ describe('T-429 B: packForCharge on the real discharge pack', () => {
     expect(niActs(p)).toHaveLength(1);
     expect(niActs(p)[0].sections.map((s) => s.number)).toEqual(['S.138', 'S.141']);
     expect(para10(p)).toHaveLength(1);
-    expect(para10(p)[0]).toContain('S.M.S. Pharmaceuticals');
+    expect(para10(p)[0]).toContain(PARA10_MARKER);
   });
 
   const NO_CHARGE: Array<[string, unknown]> = [
@@ -327,11 +332,11 @@ describe('T-429 C: the prompt renderers with the gated pack', () => {
     });
 
     it.each([BNS_ONLY, '', '[To be confirmed: x]', '{{MISSING: x}}'])(
-      'charge %j: no NI Act, no S.M.S. Pharmaceuticals, no Para 10 text, other content kept',
+      'charge %j: no NI Act, no Para 10 text, other content kept',
       (charge) => {
         const text = render(packForCharge(dischargePack(), { offences_charged: charge }));
         expect(text).not.toContain('Negotiable Instruments');
-        expect(text).not.toContain('S.M.S. Pharmaceuticals');
+        expect(text).not.toContain(PARA10_MARKER);
         expect(text).not.toContain('Neeta Bhalla');
         expect(text).not.toContain('NI Act');
         expect(text).toContain('Bharatiya Nagarik Suraksha Sanhita');
@@ -353,8 +358,8 @@ describe('T-429 C: the prompt renderers with the gated pack', () => {
     const off = buildDrafterUserPrompt(
       drafterInput(packForCharge(dischargePack(), { offences_charged: BNS_ONLY })),
     );
-    expect(on).toContain('S.M.S. Pharmaceuticals');
-    expect(off).not.toContain('S.M.S. Pharmaceuticals');
+    expect(on).toContain(PARA10_MARKER);
+    expect(off).not.toContain(PARA10_MARKER);
   });
 });
 
@@ -453,14 +458,14 @@ describe('T-429 D: end to end with a stubbed model', () => {
       const text = await briefPromptsFor(c);
       expect(mockMessagesStream).toHaveBeenCalled();
       expect(text).not.toContain('Negotiable Instruments');
-      expect(text).not.toContain('S.M.S. Pharmaceuticals');
+      expect(text).not.toContain(PARA10_MARKER);
     });
 
     it.each([BNS_ONLY, undefined])('ledger path, charge %j: no NI Act', async (c) => {
       const text = await briefPromptsFor(c, true);
       expect(mockMessagesStream).toHaveBeenCalled();
       expect(text).not.toContain('Negotiable Instruments');
-      expect(text).not.toContain('S.M.S. Pharmaceuticals');
+      expect(text).not.toContain(PARA10_MARKER);
     });
 
     it.each(['S.138 NI Act', S138_CHARGE])('charge %j: the prompt has the NI Act', async (c) => {
@@ -480,7 +485,7 @@ describe('T-429 D: end to end with a stubbed model', () => {
         const text = await templatePromptsFor(c);
         expect(mockMessagesStream).toHaveBeenCalled();
         expect(text).not.toContain('Negotiable Instruments');
-        expect(text).not.toContain('S.M.S. Pharmaceuticals');
+        expect(text).not.toContain(PARA10_MARKER);
       },
     );
 
@@ -488,7 +493,7 @@ describe('T-429 D: end to end with a stubbed model', () => {
       const text = await templatePromptsFor(c);
       expect(mockMessagesStream).toHaveBeenCalled();
       expect(text).toContain('Negotiable Instruments');
-      expect(text).toContain('S.M.S. Pharmaceuticals');
+      expect(text).toContain(PARA10_MARKER);
     });
 
     it('the registry config is not changed by a gated run', async () => {

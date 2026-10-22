@@ -193,12 +193,6 @@
       "name": "Affidavit in support",
       "required": true,
       "description": "Affidavit accompanying application"
-    },
-    {
-      "id": "disclaimer",
-      "name": "Advocate Responsibility Disclaimer",
-      "required": true,
-      "description": "Standard Lawie disclaimer"
     }
   ],
   "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, the Applicant most respectfully prays that this Hon'ble Court may graciously be pleased to:\n\na) Condone the delay of {delay_in_days} days in filing the accompanying {proceeding_type} under Section 5 of the Limitation Act, 1963;\n\nb) Admit the accompanying {proceeding_type} on the file of this Hon'ble Court and proceed to dispose it on merits;\n\nc) Award costs of this application;\n\nd) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the Applicant shall ever pray.",
@@ -226,7 +220,6 @@
       "Note S.5 NOT applicable to suits; for suits, see S.3 (bar) and S.12-14 (exclusion/extension).",
       "Where time-barred SARFAESI, NI Act, NCDRC matters — many have own limitation regimes (e.g., NI Act S.142(b) proviso 30-day condonation power); cite specific statute.",
       "Affidavit in support is mandatory.",
-      "Append Lawie disclaimer.",
       "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },

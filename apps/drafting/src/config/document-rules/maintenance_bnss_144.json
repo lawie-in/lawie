@@ -31,7 +31,7 @@
     "owner": "Ajay (CLO)",
     "validated_by": "Ajay (CLO) — Batch 3 family-law pass 2026-05-12",
     "last_updated": "2026-05-12",
-    "change_protocol": "All edits require CLO sign-off. Section number is 144 BNSS — never use 125 CrPC."
+    "change_protocol": "All edits require CLO sign-off. Use Section 144 BNSS for a petition filed on or after 1 July 2024; refer to Section 125 CrPC only for an earlier order or a proceeding pending before that date."
   },
   "template_id": "maintenance_bnss_144",
   "card_description": "An application for maintenance under Section 144 BNSS (Section 125 CrPC).",
@@ -259,12 +259,6 @@
       "name": "Verification",
       "required": true,
       "description": "Verification on oath"
-    },
-    {
-      "id": "disclaimer",
-      "name": "Advocate Responsibility Disclaimer",
-      "required": true,
-      "description": "Standard Lawie disclaimer"
     }
   ],
   "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, it is most respectfully prayed that this Hon'ble Court may graciously be pleased to:\n\na) Direct the Respondent to pay to the Applicant a monthly allowance of Rs. {amount_claimed_monthly}/- for the maintenance of the Applicant {and dependent children, if any} under Section 144 of the Bharatiya Nagarik Suraksha Sanhita, 2023;\nb) Direct the Respondent to pay interim maintenance of Rs. {interim_amount}/- per month pending final disposal of this application;\nc) Direct the Respondent to pay litigation expenses;\nd) Pass any other order(s) as this Hon'ble Court may deem fit and proper.\n\nAnd for this act of kindness, the Applicant shall ever pray.",
@@ -272,7 +266,7 @@
   "prompt_context": {
     "promptInstructions": [
       "Draft an application for maintenance under Section 144 of the Bharatiya Nagarik Suraksha Sanhita, 2023.",
-      "CRITICAL: Use Section 144 BNSS — never refer to Section 125 CrPC. BNSS replaced CrPC effective 1 July 2024.",
+      "Use Section 144 BNSS for a petition filed on or after 1 July 2024. Refer to Section 125 CrPC only for an earlier order, or for a proceeding pending before that date.",
       "Plead applicant's capacity clearly (wife / divorced wife not remarried / minor legitimate child / minor illegitimate child / major child unable due to physical or mental abnormality / father or mother unable to maintain self).",
       "For WIFE: plead valid marriage. Include negative averment that wife is not living in adultery, has not refused without sufficient reason to live with husband, and parties are not living separately by mutual consent (S.144(4) BNSS).",
       "Plead respondent's sufficient means: occupation, monthly income, assets. Attach salary slips / bank statements / business records / property documents where available.",
@@ -283,7 +277,6 @@
       "Jurisdiction under S.145 BNSS: court of Magistrate where respondent is, or where applicant resides, or where parties last resided together.",
       "Forum: Application is filed before Judicial Magistrate First Class. Family Court has concurrent jurisdiction where established.",
       "Tone: factual, evidence-anchored. Avoid emotional excess; magistrates respond to documents.",
-      "Append Lawie disclaimer.",
       "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },

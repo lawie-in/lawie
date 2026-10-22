@@ -229,12 +229,6 @@
       "name": "Affidavit in support",
       "required": true,
       "description": "Mandatory"
-    },
-    {
-      "id": "disclaimer",
-      "name": "Advocate Responsibility Disclaimer",
-      "required": true,
-      "description": "Standard Lawie disclaimer"
     }
   ],
   "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above and in the larger public interest, the Petitioner most respectfully prays that this Hon'ble Court may graciously be pleased to:\n\na) Issue an appropriate writ, order or direction, more particularly a writ in the nature of mandamus, directing the Respondents to {primary_relief};\n\nb) Direct constitution of an expert committee / appoint an amicus curiae to assist this Hon'ble Court and to oversee implementation of any directions issued;\n\nc) Direct the Respondents to file affidavit(s) disclosing the steps taken in relation to {subject_matter} and to file periodic compliance reports;\n\nd) Issue continuing mandamus to ensure compliance with the constitutional / statutory mandate;\n\ne) Pending hearing and final disposal of the present petition, grant such interim direction as this Hon'ble Court may deem fit;\n\nf) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the larger public interest and in the interest of justice.\n\nAnd for this act of kindness, the Petitioner shall ever pray.",
@@ -262,7 +256,6 @@
       "Para 15: Where continuing mandamus / expert committee sought — continuing mandamus; Bhure Lal Committee for vehicular pollution.",
       "Prayer — precise reliefs; direction for committee where complex factual investigation needed.",
       "Affidavit by petitioner-in-person or authorised office bearer (with board resolution annexed).",
-      "Append Lawie disclaimer.",
       "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
