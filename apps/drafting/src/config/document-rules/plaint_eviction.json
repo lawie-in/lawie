@@ -271,12 +271,6 @@
       "name": "Affidavit in support",
       "required": true,
       "description": "Order VI R.15(4)"
-    },
-    {
-      "id": "disclaimer",
-      "name": "Advocate Responsibility Disclaimer",
-      "required": true,
-      "description": "Standard Lawie disclaimer"
     }
   ],
   "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, the Plaintiff most respectfully prays that this Hon'ble Court may graciously be pleased to:\n\na) Pass a decree of ejectment / eviction directing the Defendant to vacate and deliver vacant and peaceful possession of the suit premises described in the Schedule to the Plaintiff;\n\nb) Pass a decree for recovery of arrears of rent of Rs. {rent_arrears}/- from {arrears_from} to the date of termination of tenancy;\n\nc) Direct the Defendant to pay mesne profits / damages for wrongful use and occupation at the rate of Rs. ____/- per month from the date of termination of tenancy till delivery of vacant possession to the Plaintiff;\n\nd) Award future interest at the rate of 12% per annum on the decretal sums u/s 34 CPC;\n\ne) Award costs of the suit in favour of the Plaintiff;\n\nf) Pass any other order(s) as this Hon'ble Court may deem fit and proper.\n\nAnd for this act of kindness, the Plaintiff shall ever pray.",
@@ -303,7 +297,6 @@
       "Para 14: Valuation and court fee — state Schedule (typically annual rent or 1.5x annual rent for ejectment).",
       "Para 15: Prayer for: (i) ejectment; (ii) recovery of arrears; (iii) mesne profits; (iv) interest u/s 34; (v) costs.",
       "Where lease is registered, suit can be filed in regular civil court. Where in Small Causes Courts area (Bombay/Calcutta/Madras/Hyderabad), Small Causes Court has exclusive jurisdiction for premises possession suits up to certain valuation.",
-      "Append Lawie disclaimer.",
       "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },

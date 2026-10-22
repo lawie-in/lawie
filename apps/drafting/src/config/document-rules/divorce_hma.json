@@ -225,12 +225,6 @@
       "name": "Verification",
       "required": true,
       "description": "Verification on oath"
-    },
-    {
-      "id": "disclaimer",
-      "name": "Advocate Responsibility Disclaimer",
-      "required": true,
-      "description": "Standard Lawie disclaimer — advocate retains responsibility for accuracy"
     }
   ],
   "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, it is most respectfully prayed that this Hon'ble Court may graciously be pleased to:\n\na) Pass a decree of divorce dissolving the marriage between the Petitioner and the Respondent solemnised on {marriage_date} at {marriage_place} under Section 13 of the Hindu Marriage Act, 1955;\nb) Award costs of this petition to the Petitioner;\nc) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the Petitioner shall ever pray.",
@@ -248,7 +242,6 @@
       "Establish jurisdiction under S.19 HMA — marriage solemnised within / respondent resides within / parties last resided together within / petitioner resides within (where respondent is outside India).",
       "Use formal, respectful language. Address court as 'this Hon'ble Court'.",
       "Do NOT generate verification block or advocate signature — added programmatically.",
-      "Append Lawie disclaimer: 'Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.'",
       "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },

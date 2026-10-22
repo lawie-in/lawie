@@ -617,7 +617,7 @@ export function generateFilingChecklist(docRule: DocumentRuleConfig | null): str
 // ── Main Post-Processor ──────────────────────────────────────────────────────
 
 /**
- * Post-process AI-generated text into a court-ready document.
+ * Post-process AI-generated text into a document for an advocate to review and file.
  *
  * Steps:
  * 1. Normalize paragraph numbering

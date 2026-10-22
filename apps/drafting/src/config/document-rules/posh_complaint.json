@@ -325,12 +325,6 @@
       "name": "Supporting Documents",
       "required": true,
       "description": "Evidence list"
-    },
-    {
-      "id": "disclaimer",
-      "name": "Advocate Responsibility Disclaimer",
-      "required": true,
-      "description": "Standard Lawie disclaimer"
     }
   ],
   "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, the Aggrieved Woman / Complainant most respectfully prays that this Hon'ble Committee may graciously be pleased to:\n\na) Initiate an inquiry against the Respondent in accordance with Section 11 of the Sexual Harassment of Women at Workplace (Prevention, Prohibition and Redressal) Act, 2013 and the Service Rules / POSH Rules 2013 applicable;\n\nb) Pending the inquiry, grant interim relief to the Complainant under Section 12 of the Act, including {specific_interim_relief};\n\nc) Upon conclusion of the inquiry and on finding the allegations established, recommend action against the Respondent under Section 13 of the Act, including {specific_final_relief};\n\nd) Direct payment of compensation to the Complainant under Section 13(3)(b) read with Section 15 of the Act;\n\ne) Ensure strict confidentiality under Section 16 of the Act throughout the proceedings;\n\nf) Pass any other order(s) as this Hon'ble Committee may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the Aggrieved Woman / Complainant shall ever pray.",
@@ -373,7 +367,6 @@
       "Para 17: Where conduct also constitutes a crime under BNS — woman may simultaneously file FIR; POSH Committee does NOT bar criminal action.",
       "Annexures: Identity proof; documentary evidence; witness list; medical / psychological reports if any.",
       "Verification on solemn affirmation.",
-      "Append Lawie disclaimer.",
       "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },

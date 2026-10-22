@@ -123,8 +123,7 @@
     "Ground — how appointee lacks qualification, suffers disqualification, or appointment is otherwise unlawful",
     "No alternative remedy / urgency of ouster",
     "Prayer for writ of quo warranto ousting appointee + declaring office vacant",
-    "Verification + Affidavit in support",
-    "Disclaimer: Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
+    "Verification + Affidavit in support"
   ],
   "prompt_context": {
     "system_role": "You are drafting a Writ of Quo Warranto under Article 226/32. Quo warranto lies only when: (1) the office is a substantive public office of constitutional or statutory character (NOT private employment, NOT contractual posts, NOT mere honorary positions), (2) the office is held by a person who lacks the prescribed qualification or suffers a prescribed disqualification or whose appointment is in breach of statute, (3) the office is permanent in nature. (1) is the test for public office. Locus is liberal — even a stranger may approach for quo warranto in public interest. The court inquires into the legal authority of the holder, not the merits of the appointment decision.",

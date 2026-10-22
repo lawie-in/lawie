@@ -251,12 +251,6 @@
       "name": "Affidavit in support",
       "required": true,
       "description": "Order VI R.15(4) + Order 39 R.3 for interim"
-    },
-    {
-      "id": "disclaimer",
-      "name": "Advocate Responsibility Disclaimer",
-      "required": true,
-      "description": "Standard Lawie disclaimer"
     }
   ],
   "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, the Plaintiff most respectfully prays that this Hon'ble Court may graciously be pleased to:\n\na) Pass a decree of permanent prohibitory injunction under Section 38 of the Specific Relief Act, 1963 restraining the Defendant, his agents, servants, representatives, and persons claiming through or under him, from interfering with the Plaintiff's lawful possession of the suit property described in the Schedule / from {acts_of_defendant};\n\nb) Pass a decree of permanent mandatory injunction under Section 39 of the Specific Relief Act, 1963 directing the Defendant to {mandatory_act} (if applicable);\n\nc) Award costs of the suit in favour of the Plaintiff;\n\nd) Pass any other order(s) as this Hon'ble Court may deem fit and proper.\n\nA separate application under Order 39 Rules 1 and 2 read with Section 151 CPC is being filed seeking temporary injunction pending disposal of the suit.\n\nAnd for this act of kindness, the Plaintiff shall ever pray.",
@@ -285,8 +279,7 @@
       "Interim injunction tripod test: (i) prima facie case — serious question to be tried; (ii) balance of convenience in favour of plaintiff; (iii) irreparable injury if injunction refused. Do not name any judgment; where an authority would normally be cited, write [Authority — add if relied upon].",
       "Where ex parte ad-interim sought: Order 39 R.3 proviso — court must record reasons for ex parte order, plaintiff must file undertaking and deliver copy to defendant within prescribed time.",
       "Where status quo claimed — distinguish from injunction; status quo presumes existing factual matrix preserved.",
-      "Verification and affidavit mandatory.",
-      "Append Lawie disclaimer."
+      "Verification and affidavit mandatory."
     ]
   },
   "relevantActs": [

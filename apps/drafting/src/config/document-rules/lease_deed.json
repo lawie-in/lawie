@@ -424,12 +424,6 @@
       "name": "Witnesses",
       "required": true,
       "description": "Two adult witnesses (mandatory for registration)"
-    },
-    {
-      "id": "lawie_disclaimer",
-      "name": "Lawie Drafting Assistant Disclaimer",
-      "required": true,
-      "description": "Standard Lawie disclaimer"
     }
   ],
   "prayerTemplate": "",
@@ -466,7 +460,6 @@
       "Para 21: Registration — parties acknowledge mandatory registration; stamp duty + registration fee borne by [specified party].",
       "Schedule A — property description.",
       "Two witnesses' attestation.",
-      "Append Lawie disclaimer.",
       "Where commercial lease — additional clauses for fit-out period (rent-free period during fit-out), rent commencement date distinct from possession date, hand-over conditions, anti-corruption / anti-bribery, confidentiality, indemnity caps.",
       "Where lessor is HUF — Karta executes with consent of adult coparceners.",
       "Where lessor is a company — board resolution required and annexed.",
@@ -591,8 +584,7 @@
     "Registration within 4 months of execution (S.23 Registration Act)",
     "Post-registration: TDS compliance by Lessee (Form 26QC for 194-IB / Form 26Q for 194-I)",
     "Where rent control state — verify whether premises within Rent Control Act ambit; if yes, special procedure",
-    "Where commercial lease > Rs.18,000/month — GST registration of Lessor (if applicable) and proper invoicing",
-    "Lawie disclaimer included"
+    "Where commercial lease > Rs.18,000/month — GST registration of Lessor (if applicable) and proper invoicing"
   ],
   "validation_rules": [
     "lease_term_years + lease_term_months/12 must be > 11 months — otherwise route to rent_agreement template",

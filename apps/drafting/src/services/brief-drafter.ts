@@ -2645,18 +2645,27 @@ export function withoutDisclaimers(text: string): string {
       if (/^(?:DISCLAIMER|NOTE)\s*:/i.test(t)) return false;
       if (/AI[\s-]assisted draft/i.test(t)) return false;
       if (/Lawie does not provide legal advice/i.test(t)) return false;
+      // T-566 (item 65, Ajay's review 22 Oct; ruling 65e): safety net for the
+      // old pack disclaimers.
+      if (/Lawie is a drafting assistant/i.test(t)) return false;
+      if (/Lawie is not legal counsel/i.test(t)) return false;
       return true;
     })
     .join('\n\n')
     .trim();
 }
 
-/** A line that is the disclaimer the system adds itself (SCRUM-62). */
+/**
+ * A line that is the disclaimer the system adds itself (SCRUM-62), or the old
+ * pack disclaimer (T-566 ruling 65e).
+ */
 function isDisclaimer(text: string): boolean {
   return (
     /AI[\s-]assisted draft/i.test(text) ||
     /^DISCLAIMER\s*:/i.test(text) ||
-    /Lawie does not provide legal advice/i.test(text)
+    /Lawie does not provide legal advice/i.test(text) ||
+    /Lawie is a drafting assistant/i.test(text) ||
+    /Lawie is not legal counsel/i.test(text)
   );
 }
 

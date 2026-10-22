@@ -238,12 +238,6 @@
       "name": "Annexures",
       "required": true,
       "description": "Order of CIT(A), order of AO, all documents"
-    },
-    {
-      "id": "disclaimer",
-      "name": "Advocate Responsibility Disclaimer",
-      "required": true,
-      "description": "Standard Lawie disclaimer"
     }
   ],
   "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above and the grounds set forth hereinabove, the Appellant most respectfully prays that this Hon'ble Tribunal may graciously be pleased to:\n\na) Set aside the impugned order dated {impugned_order_date} passed by the {first_appellate_authority} in {first_appellate_order_no} for Assessment Year {assessment_year};\n\nb) Allow the appeal of the Appellant and direct the Assessing Officer to {specific_direction — delete addition / allow exemption / accept return / consequential relief};\n\nc) Grant consequential relief by way of refund of tax wrongly recovered along with interest;\n\nd) Permit the Appellant to add, alter, amend or substitute any grounds of appeal at the time of hearing of this appeal;\n\ne) Pass any other order(s) as this Hon'ble Tribunal may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the Appellant shall ever pray.",
@@ -287,7 +281,6 @@
       "Para 13: Appeal to HC under S.260A within 120 days from receipt of ITAT order — substantial question of law only.",
       "Annexures: (i) copy of CIT(A) order, (ii) copy of AO order, (iii) copy of grounds before CIT(A), (iv) copy of return + computation, (v) other documents referred in grounds. Two complete sets typically + extra copies as per ITAT rules.",
       "Verification: per Form 36 — by appellant if individual; by Karta if HUF; by partner if firm; by principal officer / authorised signatory if company.",
-      "Append Lawie disclaimer.",
       "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },

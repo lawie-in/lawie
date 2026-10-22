@@ -341,12 +341,6 @@
       "name": "Two Witnesses",
       "required": true,
       "description": "Mandatory"
-    },
-    {
-      "id": "lawie_disclaimer",
-      "name": "Lawie Drafting Assistant Disclaimer",
-      "required": true,
-      "description": "Standard Lawie disclaimer"
     }
   ],
   "prayerTemplate": "",
@@ -379,7 +373,6 @@
       "Para 14: REGISTRATION — mandatory for all mortgages where value > Rs.100 EXCEPT mortgage by deposit of title deeds (S.58(f)) within notified towns where memorandum is not itself the operative document.",
       "Schedule A — property description.",
       "Two witnesses' attestation.",
-      "Append Lawie disclaimer.",
       "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
@@ -478,8 +471,7 @@
     "CERSAI registration of mortgage by financial institutions — mandatory under SARFAESI w.e.f. 2011",
     "Post-execution: noting of mortgage in revenue records",
     "Where bank mortgagee — SARFAESI applicability flag in deed",
-    "Where mortgage of agricultural land in Bihar/Jharkhand — additional state tenancy law compliance",
-    "Lawie disclaimer included"
+    "Where mortgage of agricultural land in Bihar/Jharkhand — additional state tenancy law compliance"
   ],
   "validation_rules": [
     "mortgagor_age >= 18",

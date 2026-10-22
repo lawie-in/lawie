@@ -4,7 +4,7 @@
     "owner": "Ajay (CLO)",
     "validated_by": "Ajay (CLO) — Batch 7 writs + tribunals 2026-05-12",
     "last_updated": "2026-05-12",
-    "change_protocol": "All edits require CLO sign-off. Sunil Batra, A.K. Roy, Rekha v. Tamil Nadu cites mandatory."
+    "change_protocol": "All edits require CLO sign-off. Do not name judgments in model-visible text (Ajay, T-441)."
   },
   "template_id": "habeas_corpus",
   "card_description": "A writ petition for habeas corpus against unlawful detention.",
@@ -235,22 +235,16 @@
       "name": "Affidavit in support",
       "required": true,
       "description": "Mandatory"
-    },
-    {
-      "id": "disclaimer",
-      "name": "Advocate Responsibility Disclaimer",
-      "required": true,
-      "description": "Standard Lawie disclaimer"
     }
   ],
   "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, and in view of the urgency of the matter touching upon the personal liberty of the detenu, the Petitioner most respectfully prays that this Hon'ble Court may graciously be pleased to:\n\na) Issue a writ in the nature of HABEAS CORPUS directing the Respondents to produce the body of the detenu, Shri/Smt. {detenu_name}, before this Hon'ble Court forthwith and to show cause as to under what authority of law he/she is being detained;\n\nb) Upon production, declare the said detention to be illegal and unconstitutional and set the detenu at liberty forthwith;\n\nc) Direct the Respondents to furnish the grounds of detention and the order, if any, by which the detenu has been deprived of his/her liberty;\n\nd) Award appropriate compensation to the detenu for the violation of his/her fundamental rights under Articles 21 and 22 of the Constitution of India;\n\ne) Pending hearing and final disposal of this petition, direct the Respondents to disclose the present whereabouts of the detenu and to permit communication with the next of kin and counsel;\n\nf) Award costs of this petition;\n\ng) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the Petitioner shall ever pray.",
   "verificationTemplate": "VERIFICATION\n\nI, {petitioner_name}, son/daughter/wife of {petitioner_father_name}, aged about {petitioner_age} years, resident of {petitioner_address}, the Petitioner herein (filing as next friend of the detenu Shri/Smt. {detenu_name}), do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above petition are true and correct to my personal knowledge save and except such facts as are gathered from sources stated, which I believe to be true. No part is false and nothing material has been concealed.\n\nVerified at {place} on this {date}.\n\nPetitioner / Next Friend",
   "prompt_context": {
     "promptInstructions": [
-      "Draft a petition for writ of HABEAS CORPUS — the great writ of liberty. Cite Sunil Batra v. Delhi Administration (1978) 4 SCC 494 — 'habeas corpus is the great writ of liberty.'",
+      "Draft a petition for writ of HABEAS CORPUS — the great writ of liberty. 'habeas corpus is the great writ of liberty.'",
       "Cause-title MUST mention Article 226 (HC) and/or Article 32 (SC) read with Article 21 and Article 22.",
       "URGENCY language must be drafted into the body — habeas listings are usually obtained within 24-48 hours.",
-      "Petitioner may be 'next friend' — relaxed locus. Cite Sheela Barse v. State of Maharashtra (1983) 2 SCC 96; any person genuinely interested can file.",
+      "Petitioner may be 'next friend' — relaxed locus. any person genuinely interested can file.",
       "Para 1: Description of parties — petitioner (next friend), detenu, State respondents. Where ordinary respondent the State, include Home Secretary, DGP, SHO of relevant PS, and if known, the detaining authority/jailer.",
       "Para 2: Locus standi — relationship to detenu, bona fide. Petitioner not stranger; or even if stranger, public-spirited where detenu unable to approach court.",
       "Para 3: Description of detenu — name, age, ordinary address, occupation.",
@@ -258,22 +252,22 @@
       "Para 7: Place of detention — if known, state. If unknown, pray for direction to State to disclose. Production order can be made even without knowing exact location.",
       "Para 8: Type of detention and illegality:",
       "   (a) Police custody beyond 24 hours without production before Magistrate — Art. 22(2) violation; S.58 BNSS [S.57 CrPC] mandate.",
-      "   (b) Preventive detention — Cite Ranjit Kumar Chakraborty v. State of WB (1972) 1 SCC 1; A.K. Roy v. Union of India (1982) 1 SCC 271 (NSA constitutionality); Rekha v. State of Tamil Nadu (2011) 5 SCC 244 (preventive detention requires strict compliance). Grounds: (i) non-application of mind, (ii) delay in execution, (iii) non-communication of grounds, (iv) right to representation, (v) Advisory Board reference.",
-      "   (c) Illegal private confinement — habeas lies even against private persons. Cite Mohd Ikram Hussain v. State of UP AIR 1964 SC 1625; Gohar Begum v. Suggi AIR 1960 SC 93.",
-      "   (d) Illegal private confinement of adult woman — Cite Lata Singh v. State of UP (2006) 5 SCC 475 (adult woman right to choose).",
-      "   (e) Child custody — habeas where retention is so unlawful that legal remedy by guardianship would be illusory; otherwise Guardians and Wards Act may be appropriate. Cite Tejaswini Gaud v. Shekhar Jagdish Prasad Tewari (2019) 7 SCC 42.",
-      "   (f) Missing person with state action suspected — Cite Bhim Singh v. State of J&K (1985) 4 SCC 677 (compensation awarded for illegal detention of MLA).",
+      "   (b) Preventive detention — NSA constitutionality; preventive detention requires strict compliance. Grounds: (i) non-application of mind, (ii) delay in execution, (iii) non-communication of grounds, (iv) right to representation, (v) Advisory Board reference.",
+      "   (c) Illegal private confinement — habeas lies even against private persons.",
+      "   (d) Illegal private confinement of adult woman — adult woman right to choose.",
+      "   (e) Child custody — habeas where retention is so unlawful that legal remedy by guardianship would be illusory; otherwise Guardians and Wards Act may be appropriate.",
+      "   (f) Missing person with state action suspected — compensation awarded for illegal detention of MLA.",
       "Para 9: Representations made — to police (Diary No., dates), Magistrate u/S.100 BNSS [S.97 CrPC search warrant for unlawfully confined person], higher authorities. Show inadequacy / inaction.",
       "Para 10: Article 21 (procedure not just/fair/reasonable) and Article 22 (procedural safeguards) violation.",
       "Para 11: Urgency — every day's detention is irreparable injury to liberty. Health, communication blackout, risk to life.",
       "Para 12: Where preventive detention — challenge specific grounds:",
       "   - Subjective satisfaction not bona fide",
-      "   - Failure to communicate grounds in language detenu understands (Art. 22(5)) — Cite Hadibandhu Das v. District Magistrate (1969) 1 SCR 227.",
-      "   - Delay in disposal of representation — Cite Rekha v. State of TN (2011) 5 SCC 244.",
-      "   - Stale grounds / live link snapped — Cite Lakshman Khatik v. State of WB (1974) 4 SCC 1.",
+      "   - Failure to communicate grounds in language detenu understands (Art. 22(5)).",
+      "   - Delay in disposal of representation.",
+      "   - Stale grounds / live link snapped.",
       "Prayer — production of body forthwith, declaration of illegality, liberation, compensation, disclosure.",
       "Affidavit in support mandatory.",
-      "Append Lawie disclaimer."
+      "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
   "relevantActs": [
