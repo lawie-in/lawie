@@ -44,3 +44,7 @@ A guard in TopUpModal: if `order.amountInr` differs from the displayed total, Ch
 3. **Follow-ups, not T-540:** the partial-coupon invoice discount line (invoice.service, Invoice.model, PDF) and the "Coupon, ₹0" billing-history row (new route + web). T-540's invoice stays at the charged amount, which is the net taxable value, so GST is right; it lacks the discount line until the follow-up. Priya posts both; Vikram's ruling names them.
 
 Small things: all agreed — `coupon_grant` ledger reason (admin revenue stays honest), charged amount in ledger metadata, `CouponUsage.orderId` holds the ledger key for free grants, admin create rejects fractional fixed values and any coupon that can reach 100 % without non-zero `maxUses` and `maxUsesPerUser`.
+
+## Arjun (22 Oct 2026) — whole rupees
+
+(a). Inside `quoteTopup()`, a percent discount rounds to whole rupees: `discountPaise = Math.round(originalPaise * value / 100 / 100) * 100`. Every final amount is whole rupees and integer paise; today's web (`amountInr * 100`) stays exact. The order and validate responses also carry `amountPaise`, so the web can switch to it in its own ticket without another server change. The whole-rupee rule is written into the quote tests (10 % of ₹199 → ₹20 off → ₹179).
