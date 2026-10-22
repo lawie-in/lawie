@@ -59,3 +59,7 @@ Everything else in my section stands. Both rulings now agree; Vishal may build a
 
 ## Ajay
 Ruling: `handoff/legal/T-563-test-accounts-ruling-ajay.md` — CONFIRMED with conditions. Ajay's later note also allows `@test.lawie.in` (if it has no MX) and 30 days with synthetic facts only; **we keep the stricter reconciled version above** (reserved test domains only, 7-day erase), which satisfies both. Real data found in a test account → same-day erase.
+
+## Arjun (22 Oct 2026) — eight Explore points (Vishal): defaults OK
+
+1. Consent marker = `termsAcceptance { acceptedVia: 'test', version: 'test-bypass' }`; `privacyVersion = CURRENT` so `requireCurrentPrivacy` passes. 2. Pure `isProductionBox({ RAZORPAY_KEY_GUARD, SECRETS_ENV, RAZORPAY_KEY_ID })` in `packages/shared`; auth's `env.ts` superRefine refuses boot; billing adopts later. 3. Check `SECRETS_ENV` now, forward-compatible with T-534. 4. No daily login bonus for `isTestAccount`: 30 Ink once, nothing else. 5. 30 Ink = 60 units: `inkTopup +60`, inkledger row `test_grant`, `signupBonusGrantedAt` set, no creditledger row, no drafting grant signal. 6. Email skip in auth's internal mint/prepare routes (`not_eligible` for `isTestAccount`). 7. Shared `TEST_CONSENT_VERSION` + filter helper + test; the export itself does not exist yet. 8. Billing exclusions (live-key purchase guard, invoices, revenue views) → follow-up after Shashank's merge; the boot refusal already makes a live key impossible on a bypass box.

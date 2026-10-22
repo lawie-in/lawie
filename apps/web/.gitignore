@@ -1,0 +1,4 @@
+# T-523: Playwright output (goldens under e2e/__screenshots__ are tracked; CI makes them)
+test-results/
+playwright-report/
+e2e/artefacts/
