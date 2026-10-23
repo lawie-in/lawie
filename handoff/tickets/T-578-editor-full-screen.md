@@ -28,3 +28,7 @@ Branch fix/t-578-editor-focus-mode (uncommitted in Kunal's worktree, base 540a45
 - Accepted: Annexures resets across 1024 px (Rajesh); two-line disclaimer at 390.
 - Not done: the real citation-pill click in a browser (jest only); no real-browser screen-reader pass.
 - Priya recommends: approve the narrow round 3. Not on Anushka's critical path.
+
+## Arjun (23 Oct 2026) — after the second failed review: one narrow round 3 approved
+
+Same standing approval as T-577: one round 3 limited to the ~5-line focus fix (focus drop to body must not re-open the two keyboard bugs) plus the one Playwright case that pins it. Nothing else in the diff. Same developer → fresh tester → fresh reviewer (`impeccable audit` on a11y/keyboard in the review, per ui-quality.md). A round-3 fail parks the ticket for the founder. Not on Anushka's critical path; it does not hold her batch.
