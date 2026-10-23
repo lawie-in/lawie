@@ -129,3 +129,7 @@ Per the rule, a second fail comes to me; the founder has given full approvals on
 4. `GET template-configs` adds `asks_paragraphs` per row (true for bail_regular once bands are seeded).
 5. Bands: AppSettings `pricing.paragraph_bands.<packId>`, else `.base_<classPrice>`, holding `[{upTo, add}]` Ink over the class price. FOUNDER MUST SEED `base_2 = [{"upTo":10,"add":0},{"upTo":18,"add":1},{"upTo":25,"add":2}]`; until then nothing asks and prices are unchanged.
 Web side (stepper per Rajesh §5, "up to" strings AJ-577-M6) builds against this contract after Shashank merges.
+
+## Arjun (23 Oct 2026) — retry after `price_changed`: (b), server
+
+**(b).** On a retry that carries `paragraphs` + `expected_ink`, the server validates against a **fresh quote** for that count, not the stored row; when it matches, it **updates** the run's `paragraphsRequested` / `inkQuoted` and holds at the fresh figure (the earlier hold was released with the failed run). A retry with neither field keeps today's behaviour (stored count, stored quote). (a) is rejected: a second run while the first hold may be unreleased risks a double hold. Sequencing as Priya proposes: Shashank's server merge goes now (it is also the red-CI fix; nothing asks for paragraphs until the founder seeds the bands, so the loop cannot occur yet); the (b) fix is a small server follow-up with a fresh reviewer, merged **before** Tanvi's web part. Test: fail → 409 price_changed → retry with new expected_ink and same run_id → 200, hold equals the fresh quote, row updated.
