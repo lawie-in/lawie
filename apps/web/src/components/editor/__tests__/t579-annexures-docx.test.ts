@@ -155,13 +155,30 @@ const labelIndexes = (p: Parsed) =>
   HEADINGS.map(([label]) => p.paras.findIndex((x) => x.text === label));
 
 describe.each([
-  ['t579-annexures-full.html', 'Affidavit of Ramesh Kumar', 'Copy of FIR No. 091/2024'],
+  [
+    't579-annexures-full.html',
+    'Affidavit of Ramesh Kumar',
+    'Copy of FIR No. 091/2024',
+    // AJ-579-BC: the advocate's name is typed in this pack, so no [Advocate Name]
+    [
+      '[Advocate to insert 3–5 sentence summary of the factual background before filing.]',
+      '[Advocate to add further dates as appropriate before filing.]',
+    ],
+  ],
   [
     't579-annexures-sparse.html',
     'Affidavit of राम कुमार',
     'Copy of FIR / Complaint (if available)',
+    // Memo of Parties, Synopsis, List of Dates, Vakalatnama body, Vakalatnama signature block
+    [
+      '[Advocate Name]',
+      '[Advocate to insert 3–5 sentence summary of the factual background before filing.]',
+      '[Advocate to add further dates as appropriate before filing.]',
+      '[Advocate Name]',
+      '[Advocate Name]',
+    ],
   ],
-])('T-579 B: exportAnnexuresDocx(%s)', (fixture, affidavitRow, firRow) => {
+])('T-579 B: exportAnnexuresDocx(%s)', (fixture, affidavitRow, firRow, advocatePlaceholders) => {
   let p: Parsed;
   let saved: [Blob, string];
   beforeAll(async () => {
@@ -308,27 +325,41 @@ describe.each([
     }
   });
 
-  it('every blank (a run of 3+ underscores, or a [To be confirmed: …] marker) is highlighted yellow, with its characters unchanged', () => {
+  it('every blank (3+ underscores, [To be confirmed: …], the Advocate placeholders) is highlighted yellow, with its characters unchanged', () => {
     const sourceText = htmlText(read(fixture));
     const underscoreRuns = sourceText.match(/_{3,}/g)!;
     const markers = sourceText.match(/\[To be confirmed: [^\]]*\]/g) ?? [];
     expect(underscoreRuns.length).toBeGreaterThan(10);
+    const isAdvocate = (t: string) => /^\[Advocate (Name|to [^\]]*)\]$/.test(t);
 
     const highlighted = p.paras.flatMap((x) => x.highlighted);
     expect(highlighted.filter((t) => /^_{3,}$/.test(t))).toEqual(underscoreRuns);
     expect(highlighted.filter((t) => t.startsWith('[To be confirmed'))).toEqual(markers);
+    // AJ-579-BC: the Advocate placeholders, typed by hand per pack, in document order
+    expect(highlighted.filter(isAdvocate)).toEqual(advocatePlaceholders);
     // nothing else is highlighted
     expect(
-      highlighted.filter((t) => !/^_{3,}$/.test(t) && !t.startsWith('[To be confirmed')),
+      highlighted.filter(
+        (t) => !/^_{3,}$/.test(t) && !t.startsWith('[To be confirmed') && !isAdvocate(t),
+      ),
     ).toEqual([]);
     // and no blank is left unhighlighted
     for (const x of p.paras) {
       for (const t of x.unhighlighted) expect(t).not.toMatch(/_{3,}/);
       for (const t of x.unhighlighted) expect(t).not.toMatch(/\[To be confirmed/);
+      for (const t of x.unhighlighted) expect(t).not.toMatch(/\[Advocate /);
     }
-    // highlighted blanks are bold with black text, as the draft's
+    // highlighted blanks are yellow
     const run = p.paras.find((x) => x.highlighted.length > 0)!;
     expect(run.el.getElementsByTagName('w:highlight')[0].getAttribute('w:val')).toBe('yellow');
+  });
+
+  it('the notary caption keeps its text and is NOT highlighted (deliberate: Ajay may rule on it)', () => {
+    const caption = p.paras.filter((x) =>
+      x.text.includes('[Notary / Oath Commissioner Stamp & Seal]'),
+    );
+    expect(caption.length).toBeGreaterThanOrEqual(1);
+    for (const x of caption) expect(x.highlighted).toEqual([]);
   });
 
   it('the footer-line is plain text, not highlighted', () => {

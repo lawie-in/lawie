@@ -839,10 +839,31 @@ function annexBlocks(container: Element, ctx: AnnexContext, base: RunFormat = {}
  * its blanks. The draft's own exceptions (a line of only underscores is a
  * signature line) are not applied here: an annexure's lone `___________` (an
  * amount, an address not given) is a detail still to be filled in.
+ *
+ * AJ-579-BC (Ajay): the annexure builder's own bracketed placeholders are blanks
+ * too: `[Advocate Name]` and the `[Advocate to …]` instructions (the synopsis
+ * summary, further dates). Only these exact forms the builder writes, so any
+ * other bracketed text (a citation a user typed, the notary stamp-box caption)
+ * is not highlighted. Text unchanged.
  */
+const ANNEXURE_PLACEHOLDER = /\[Advocate Name\]|\[Advocate to [^\]\n]*\]/g;
+
 export const findAnnexureBlanks: FindBlanks = (text) => {
   const blanks = findBlanks(text);
-  const taken = blanks.map((b) => [b.start, b.end] as const);
+  const taken: (readonly [number, number])[] = blanks.map((b) => [b.start, b.end] as const);
+  for (const m of text.matchAll(ANNEXURE_PLACEHOLDER)) {
+    const start = m.index ?? 0;
+    const end = start + m[0].length;
+    if (taken.some(([a, b]) => start < b && end > a)) continue;
+    blanks.push({
+      start,
+      end,
+      text: m[0],
+      label: m[0].slice(1, -1),
+      context: blankContext(text, { start, end }),
+    });
+    taken.push([start, end]);
+  }
   for (const m of text.matchAll(/_{3,}/g)) {
     const start = m.index ?? 0;
     const end = start + m[0].length;
