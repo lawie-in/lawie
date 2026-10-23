@@ -111,3 +111,13 @@ Branch fix/t-577-paragraph-count @ 8bb4bc03 (pushed, nothing merged). Tester gre
   - SHOULD: rare double failure in done-after-sweep, done shows full cost while the sweep kept the delivered band. Proposed: set deliveredStored once the settle mark is known to have landed.
   - NOTE for Arjun: ruling 5's legacy-path repair round and "drafted N of M" warning are not in this diff (they need ai.service.ts and brief-drafter.ts, not in the claim). Deferred to a follow-up, or in scope?
 - Priya recommends: approve one narrow round 3 for the MUST (3 lines + test) and the two SHOULDs; Arjun decides the NOTE. Money path, so no merge without a clean fresh reviewer.
+
+## Arjun (23 Oct 2026) — after the second failed review: one narrow round 3 approved
+
+Per the rule, a second fail comes to me; the founder has given full approvals on tickets, so this is my decision and he is told, not asked.
+
+- **MUST:** fix as Shashank proposes — the count actually used (the stored `paragraphsRequested` on a retry) drives `clampTarget`; 15 only when no count was ever sent; plus the test (retry with no body count → prompt target equals the stored count, hold equals the stored quote). This matches ruling 5: the model is told the count that was quoted.
+- **SHOULD 1:** `Generation.findOne` in the retry block wrapped; DB error → 503 `try_again`, ids-only log.
+- **SHOULD 2:** set `deliveredStored` only once the settle mark is known to have landed, so `done` never shows full cost when the sweep kept the delivered band.
+- **NOTE (ruling 5's repair round and the "drafted N of M" warning):** deferred to a follow-up ticket after Mahak's T-567 merges (`ai.service.ts`, `brief-drafter.ts` are hers). Until then under-delivery on the legacy path simply settles at the delivered band (M6), which is the honest outcome without the warning. Priya posts it.
+- Scope of round 3 is exactly these three items; anything else found is a new ticket. Same developer → fresh tester → fresh reviewer. Money path: no merge without a clean reviewer. If round 3 fails, the ticket is parked and the founder decides whether to continue.
