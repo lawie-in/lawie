@@ -22,6 +22,18 @@ export interface IInkHold {
   deliver?: boolean;
   /** The ledger reference settleInk was given, for a settle the sweep finishes. */
   reference?: string;
+  /**
+   * T-577: the quoted price in units, set only for a draft that asked for a
+   * paragraph count (equal to `units` when taken). Absent on every other hold.
+   */
+  quotedUnits?: number;
+  /**
+   * T-577: the units to keep when this hold is settled: min(quote, band of the
+   * delivered paragraph count). Set once the draft's count is known (and by a
+   * settle given actualUnits), so the sweep, a lost-hold re-hold and done all
+   * settle the same figure. Absent → the full hold, as before.
+   */
+  settleUnits?: number;
 }
 
 export interface IUserDrafting extends Document {
@@ -103,6 +115,9 @@ const UserSchema = new Schema<IUserDrafting>(
             expiresAt: { type: Date, required: true },
             deliver: Boolean,
             reference: String,
+            // T-577: set only for a draft that asked for a paragraph count.
+            quotedUnits: Number,
+            settleUnits: Number,
           },
           { _id: false },
         ),

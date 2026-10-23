@@ -79,6 +79,7 @@ export const PUBLIC_TEMPLATE_SUMMARY_KEYS = [
   'plan_access',
   'supported_languages',
   'credits_cost',
+  'asks_paragraphs',
 ] as const;
 
 /** Keys of each GET /templates `templates[]` row (Mongo camelCase rows). */

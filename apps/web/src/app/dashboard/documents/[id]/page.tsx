@@ -37,6 +37,7 @@ import NightScope from '@/components/intake/NightScope';
 import { folio } from '@/components/intake/nlUi';
 import { secondaryButton } from '@/components/intake/ui';
 import { Button, ErrorState, Skeleton } from '@/components/ui';
+import { useMediaQuery } from '@/components/ui/motion';
 import { useAuth } from '@/context/AuthContext';
 import { getAccessToken } from '@/lib/auth';
 
@@ -72,6 +73,9 @@ type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 type ExportFormat = 'pdf' | 'docx';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+
+/** Tailwind's `lg` (1024px), where the right rail sits beside the editor. */
+const LG_QUERY = '(min-width: 1024px)';
 
 export default function DocumentEditorPage() {
   const { id } = useParams<{ id: string }>();
@@ -112,6 +116,12 @@ export default function DocumentEditorPage() {
   });
 
   const isFree = user?.plan !== 'pro';
+
+  // T-578: the editor's focus mode is open; the save state then shows in the editor's toolbar.
+  const [editorFocusMode, setEditorFocusMode] = useState(false);
+  // T-578 (Rajesh's note §2.5): from lg the Annexures row is at the top of the right rail, below
+  // lg it is in the editor column. One instance at a time, so the region is never doubled.
+  const annexuresInRail = useMediaQuery(LG_QUERY, false);
 
   // T-521: Retry on a failed load fetches again.
   const [loadKey, setLoadKey] = useState(0);
@@ -450,13 +460,46 @@ export default function DocumentEditorPage() {
     );
   }
 
+  // The save state: in the header, or in the editor's toolbar while focus mode is open (T-578).
+  // T-578 review: text at 4.5:1 or more in both places. The header sits on the Wall ground
+  // (Muted: 5.1:1 by day, 6.1:1 at night); the toolbar is slate-50 in both themes (slate-600).
+  const renderSaveState = (textClass: string) => (
+    <span className={`flex items-center gap-1 text-xs ${textClass}`}>
+      {saveStatus === 'saving' && (
+        <>
+          <Loader2 size={12} className="animate-spin" /> Saving…
+        </>
+      )}
+      {saveStatus === 'saved' && (
+        <>
+          <CheckCircle2 size={12} className="text-green-500" /> Saved
+        </>
+      )}
+      {saveStatus === 'error' && (
+        <>
+          <AlertTriangle size={12} className="text-red-500" /> Save failed
+        </>
+      )}
+      {saveStatus === 'idle' && doc.updatedAt && (
+        <>
+          <Clock size={12} /> v{doc.version}
+        </>
+      )}
+    </span>
+  );
+
+  const annexures = annexuresCardVisible(doc) ? (
+    <AnnexuresCard docId={doc._id} title={doc.title} />
+  ) : null;
+
   return (
     // T-138: below md the page is one column that scrolls as one page. The fixed height, the
     // squeezing and the editor's own scroll start at md, where the layout is as it was.
     // T-521: on the Night Library ground (NightScope).
     <NightScope className="flex flex-col gap-4 lg:h-[calc(100vh-4rem)] lg:flex-row">
-      {/* Left: Editor */}
-      <div className="flex flex-col gap-3 lg:flex-1 lg:overflow-hidden">
+      {/* Left: Editor. T-578: 8px between rows below lg (the Annexures row is here), so the
+          editor starts within the fold budget at 390 and 768. */}
+      <div className="flex flex-col gap-2 lg:flex-1 lg:gap-3 lg:overflow-hidden">
         {/* Header — the title, then the buttons under it below md */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between lg:gap-3">
           <div className="flex min-w-0 items-center gap-3">
@@ -479,29 +522,8 @@ export default function DocumentEditorPage() {
           </div>
 
           <div className="mt-2 flex flex-wrap items-center gap-2 lg:mt-0 lg:shrink-0 lg:flex-nowrap">
-            {/* Save status indicator */}
-            <span className="flex items-center gap-1 text-xs text-slate-400">
-              {saveStatus === 'saving' && (
-                <>
-                  <Loader2 size={12} className="animate-spin" /> Saving…
-                </>
-              )}
-              {saveStatus === 'saved' && (
-                <>
-                  <CheckCircle2 size={12} className="text-green-500" /> Saved
-                </>
-              )}
-              {saveStatus === 'error' && (
-                <>
-                  <AlertTriangle size={12} className="text-red-500" /> Save failed
-                </>
-              )}
-              {saveStatus === 'idle' && doc.updatedAt && (
-                <>
-                  <Clock size={12} /> v{doc.version}
-                </>
-              )}
-            </span>
+            {/* Save status indicator. T-578: in the editor's toolbar while focus mode is open. */}
+            {!editorFocusMode && renderSaveState('text-nl-muted')}
 
             {/* Manual save */}
             <button
@@ -579,32 +601,42 @@ export default function DocumentEditorPage() {
           </div>
         )}
 
-        {/* T-106/T-125 — the starting-draft label. It is the service's text and cannot be dismissed. */}
-        {doc.startingDraft && doc.startingDraftLabel && (
-          <p
-            role="note"
-            className="border-brand-gold bg-brand-gold-light text-brand-gold-dark rounded-lg border px-3 py-2 text-sm font-semibold"
-          >
-            {doc.startingDraftLabel}
-          </p>
-        )}
+        {/* T-578 notes row (Rajesh's note §2.3, Ajay confirmed 23 Oct): no card, no border, no
+            fill; Muted on the Wall ground, 20px lines, 4px apart. Text byte-identical. */}
+        {((doc.startingDraft && doc.startingDraftLabel) || doc.disclaimer) && (
+          <div className="flex flex-col gap-1">
+            {/* T-106/T-125 — the starting-draft label. The service's text; cannot be dismissed. */}
+            {doc.startingDraft && doc.startingDraftLabel && (
+              <p role="note" className="nl-body-sm text-nl-muted font-medium leading-5">
+                {doc.startingDraftLabel}
+              </p>
+            )}
 
-        {/* T-197 — the signed disclaimer, on every draft. The service's text; not dismissible. */}
-        {doc.disclaimer && (
-          <div
-            role="note"
-            className="border-brand-line bg-brand-page rounded-lg border px-3.5 py-2.5"
-          >
-            <p className="text-brand-navy text-sm">{doc.disclaimer}</p>
+            {/* T-197 — the signed disclaimer, on every draft. The service's text; not dismissible. */}
+            {doc.disclaimer && (
+              <div role="note">
+                <p className="nl-body-sm text-nl-muted leading-5">{doc.disclaimer}</p>
+              </div>
+            )}
           </div>
         )}
 
-        {/* T-381 — the Annexures card: court documents with a party only */}
-        {annexuresCardVisible(doc) && <AnnexuresCard docId={doc._id} title={doc.title} />}
+        {/* T-381 — the Annexures card: court documents with a party only. T-578: below lg here,
+            from lg at the top of the right rail. */}
+        {/* Crossing 1024px remounts the card and resets its state to idle, by design (T-381). */}
+        {!annexuresInRail && annexures}
 
         {/* Editor */}
         <div className="lg:min-h-0 lg:flex-1">
-          <DocumentEditor initialContent={doc.content} onUpdate={handleEditorUpdate} />
+          <DocumentEditor
+            initialContent={doc.content}
+            onUpdate={handleEditorUpdate}
+            saveState={renderSaveState('text-slate-600')}
+            // T-578 (Ajay, 23 Oct): the same T-197 text, pinned in focus mode. Remove this
+            // one line to drop the second copy.
+            focusFooter={doc.disclaimer}
+            onFocusModeChange={setEditorFocusMode}
+          />
         </div>
       </div>
 
@@ -622,6 +654,9 @@ export default function DocumentEditorPage() {
 
       {/* Right: Sidebar panel — filing checklist + sections cited */}
       <div className="w-full shrink-0 space-y-4 overflow-y-auto lg:w-72">
+        {/* T-578: from lg the Annexures row is first in the rail, above the filing checklist. */}
+        {annexuresInRail && annexures}
+
         {/* Filing checklist */}
         {checklist.length > 0 && (
           <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">

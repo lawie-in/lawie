@@ -163,6 +163,17 @@ export const APP_SETTING_KEYS = {
    * invalid falls back to 4000 in llm-usage.ts (getIntakeReceptionCap).
    */
   CAP_INTAKE_RECEPTION: 'ai.cap.intake_reception',
+  /**
+   * T-577 — the paragraph-count Ink bands, a key PREFIX: the row read is
+   * `pricing.paragraph_bands.<packId>`, else `pricing.paragraph_bands.base_<classPrice>`
+   * (classPrice = costForTemplate, e.g. `base_2`). Value: a JSON array of Ink
+   * ADDED over the class price, ascending, e.g.
+   * `[{"upTo":10,"add":0},{"upTo":18,"add":1},{"upTo":25,"add":2}]` (Vikram).
+   * Optional: missing or invalid means the
+   * pack does not ask for a count and is charged its class price
+   * (credits.service quoteDraft), never a failed draft.
+   */
+  PARAGRAPH_BANDS_PREFIX: 'pricing.paragraph_bands',
 } as const;
 
 // Per-model USD rates (`ai.rates.<model-slug>`) and the USD→INR conversion

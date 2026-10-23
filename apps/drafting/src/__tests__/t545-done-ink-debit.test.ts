@@ -395,7 +395,7 @@ describe('T-545 the sweep keeps the full hold (justifies `cost` on the sweep-pai
     expect(rows.reduce((sum, r) => sum - (r.delta as number), 0)).toBe(6); // all 6 units
   });
 
-  it('source guard: every settleInk call inside releaseExpiredHolds passes no actualUnits (fails if T-202 changes the sweep)', () => {
+  it('source guard: every settleInk call inside releaseExpiredHolds passes no actualUnits, and settleInk keeps hold.settleUnits ?? hold.units then (T-577; fails if the sweep starts choosing its own figure)', () => {
     const src = readFileSync(join(__dirname, '../services/credits.service.ts'), 'utf8');
     const start = src.indexOf('export async function releaseExpiredHolds(');
     expect(start).toBeGreaterThan(-1);
@@ -426,6 +426,10 @@ describe('T-545 the sweep keeps the full hold (justifies `cost` on the sweep-pai
       // (ownerId, runId, runSequence) or (..., undefined, reference): the 4th is never a number
       expect(args.length === 3 || args[3] === 'undefined').toBe(true);
     }
+    // T-577: the sweep still passes no figure; what it keeps is the one stored on the hold
+    // (the delivered band) and, with none stored, the full hold (the premise above).
+    const settleSrc = src.slice(src.indexOf('export async function settleInk('));
+    expect(settleSrc).toContain('actualUnits ?? hold.settleUnits ?? hold.units');
   });
 
   it('the sweep charges exactly the held Ink: ledger delta equals the hold, so `cost` is what was debited', async () => {

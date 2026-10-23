@@ -16,7 +16,8 @@ import { AlertTriangle, Check, Download, FileText, Loader2 } from 'lucide-react'
 import { useEffect, useId, useRef, useState } from 'react';
 
 import { downloadBlob, filenameFromDisposition } from '@/components/editor/exportUtils';
-import { card, linkButton, primaryButton, secondaryButton, small } from '@/components/intake/ui';
+import { linkButton, secondaryButton } from '@/components/intake/ui';
+import { Button } from '@/components/ui';
 import { getAccessToken } from '@/lib/auth';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
@@ -101,6 +102,7 @@ export default function AnnexuresCard({ docId, title }: AnnexuresCardProps) {
   const [state, setState] = useState<CardState>({ kind: 'idle' });
   const busy = useRef(false);
   const titleId = useId();
+  const helpId = useId();
   const missingTitleRef = useRef<HTMLHeadingElement | null>(null);
   const retryRef = useRef<HTMLButtonElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
@@ -179,33 +181,45 @@ export default function AnnexuresCard({ docId, title }: AnnexuresCardProps) {
           : '';
 
   return (
-    <div role="region" aria-labelledby={titleId} className={card}>
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between lg:gap-6">
-        <div className="min-w-0">
+    // T-578 (Rajesh's note §2.4-5, layout only): below lg one 44px row (Card fill, Control Line
+    // border) with a ghost button on the right; from lg the same row stacked at the top of the
+    // right rail. The states open under the row on action only. Strings and role unchanged.
+    <div
+      role="region"
+      aria-labelledby={titleId}
+      className="bg-nl-card text-nl-text rounded-nl-md px-nl-3 lg:py-nl-3 border border-[color:var(--line-control)]"
+    >
+      <div className="gap-nl-3 lg:gap-nl-2 flex min-h-[42px] items-center lg:flex-col lg:items-stretch">
+        <div className="gap-x-nl-3 lg:gap-nl-1 flex min-w-0 flex-1 flex-wrap items-center lg:flex-col lg:items-start">
           <h2
             id={titleId}
-            className="text-brand-navy flex items-center gap-2 text-base font-semibold"
+            className="gap-nl-2 flex shrink-0 items-center text-[14px] font-medium leading-5"
           >
             <FileText size={16} aria-hidden="true" />
             {ANNEX_STRINGS.region_label}
           </h2>
-          <p className={`${small} mt-1`}>{ANNEX_STRINGS.button_help}</p>
+          {/* Below 640px (sm) the line is hidden and only read as the button's description. */}
+          <p id={helpId} className="text-nl-muted text-[13px] leading-5 max-[639px]:hidden">
+            {ANNEX_STRINGS.button_help}
+          </p>
         </div>
-        <button
+        <Button
           ref={buttonRef}
-          type="button"
+          variant="ghost"
+          size="sm"
           onClick={() => void createPack()}
           aria-busy={loading}
           aria-disabled={loading}
-          className={`${primaryButton} w-full aria-disabled:cursor-default aria-disabled:opacity-60 lg:w-auto lg:min-w-[220px] lg:shrink-0`}
+          aria-describedby={helpId}
+          className="shrink-0 aria-disabled:cursor-default aria-disabled:opacity-60 lg:h-11 lg:w-full"
         >
-          {loading && <Loader2 size={18} className="animate-spin" aria-hidden="true" />}
+          {loading && <Loader2 size={16} className="animate-spin" aria-hidden="true" />}
           {loading ? ANNEX_STRINGS.loading : ANNEX_STRINGS.button}
-        </button>
+        </Button>
       </div>
 
       {state.kind === 'success' && (
-        <div className="mt-4 space-y-3">
+        <div className="mt-nl-2 pb-nl-3 space-y-3 lg:pb-0">
           <div className="bg-brand-teal-light text-brand-teal-dark rounded-lg px-3 py-2">
             <p className="flex items-center gap-2 text-sm font-semibold">
               <Check size={16} aria-hidden="true" />
@@ -226,7 +240,7 @@ export default function AnnexuresCard({ docId, title }: AnnexuresCardProps) {
       )}
 
       {state.kind === 'missing' && (
-        <div className="border-brand-gold bg-brand-gold-light text-brand-gold-dark mt-4 rounded-lg border px-3 py-2">
+        <div className="border-brand-gold bg-brand-gold-light text-brand-gold-dark mb-nl-3 mt-nl-2 rounded-lg border px-3 py-2 lg:mb-0">
           <h3
             ref={missingTitleRef}
             tabIndex={-1}
@@ -247,7 +261,7 @@ export default function AnnexuresCard({ docId, title }: AnnexuresCardProps) {
       {/* Errors go to their own alert node, with the retry in the same row (as T-233). */}
       <div role="alert">
         {state.kind === 'error' && (
-          <div className="bg-brand-error-light text-brand-error mt-4 flex flex-wrap items-center gap-2 rounded-lg px-3 py-2">
+          <div className="bg-brand-error-light text-brand-error mb-nl-3 mt-nl-2 flex flex-wrap items-center gap-2 rounded-lg px-3 py-2 lg:mb-0">
             <AlertTriangle size={16} className="flex-shrink-0" aria-hidden="true" />
             <p className="flex-1 text-sm">{ANNEX_STRINGS.error}</p>
             <button
