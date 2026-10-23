@@ -129,6 +129,12 @@ export interface Skeleton {
    * (T-374's loader validation) reads the skeleton's own top-level list first.
    */
   antecedents_none_values?: string[];
+  /**
+   * T-577 (AJ-577-M5): the pack asks the advocate for a total body paragraph
+   * count in [mandatory, cap]; `default` when none is chosen. `mandatory` is
+   * derived (the `required: true` clauses whose `when` holds), never stored.
+   */
+  bodyParagraphs?: { default: number; cap: number };
   /** The pack's mandatory clause ids this skeleton covers (ADR-025 slot list), when the loader gives them. */
   mandatoryClauses?: string[];
   clauses: SkeletonClause[];

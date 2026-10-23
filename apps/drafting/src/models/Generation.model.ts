@@ -88,6 +88,13 @@ export interface IGeneration extends Document {
   ledger?: 'on' | 'off';
   /** T-477: how many echoed [only when: ...] markers were stripped from the AI body (count only) */
   onlyWhenStrips?: number;
+  /**
+   * T-577: the paragraph count this run was quoted for and the Ink quoted, so
+   * a retry or resume re-quotes the same (a mismatch is a 409 price_changed).
+   * Set only when the pack asked for a count; absent on every other row.
+   */
+  paragraphsRequested?: number;
+  inkQuoted?: number;
   /** Per-section breakdown — how much of the cost is the repeated system prompt (feeds T-004). */
   calls?: IGenerationCall[];
 
@@ -190,6 +197,9 @@ const GenerationSchema = new Schema<IGeneration>(
     ledger: { type: String, enum: ['on', 'off'], default: undefined },
     /** T-477: how many echoed [only when: ...] markers were stripped from the AI body (count only) */
     onlyWhenStrips: { type: Number, default: undefined },
+    /** T-577: set only when the pack asked for a paragraph count. */
+    paragraphsRequested: { type: Number, default: undefined, min: 1 },
+    inkQuoted: { type: Number, default: undefined, min: 0 },
     calls: { type: [GenerationCallSchema], default: undefined },
   },
   { timestamps: true },

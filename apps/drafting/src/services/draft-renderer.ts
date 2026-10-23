@@ -956,6 +956,71 @@ function lettered(lines: readonly string[]): string[] {
   return lines.map((l, i) => `(${i < 26 ? String.fromCharCode(97 + i) : String(i + 1)}) ${l}`);
 }
 
+/**
+ * T-577 (AJ-577-M7): what a skeleton condition is read against: the ledger's
+ * entries by key (`factEntriesByKey`), the pack's option ids (`packOptionIds`)
+ * and the skeleton's value lists (`skeletonValueLists`).
+ */
+export interface SkeletonWhenContext {
+  held: ReadonlyMap<string, readonly LedgerFact[]>;
+  optionIds: OptionIdMap;
+  valueLists: ValueLists;
+}
+
+/** The option id of a choice fact's entry (by its display, else its value), when the pack maps it. */
+export function skeletonOptionIdOf(
+  ctx: SkeletonWhenContext,
+  key: string,
+  f: LedgerFact,
+): string | undefined {
+  const map = ctx.optionIds[key];
+  if (!map) return undefined;
+  return map[folded(f.display)] ?? (typeof f.value === 'string' ? map[folded(f.value)] : undefined);
+}
+
+function skeletonSeenOf(ctx: SkeletonWhenContext, key: string, f: LedgerFact): Set<string> {
+  return new Set(
+    [folded(f.value), folded(f.display), folded(skeletonOptionIdOf(ctx, key, f))].filter(
+      (s) => s !== '',
+    ),
+  );
+}
+
+function skeletonValuesOf(ctx: SkeletonWhenContext, set: SkeletonValueSet): string[] | null {
+  const list = Array.isArray(set) ? set : ctx.valueLists[set];
+  return list ? list.map(folded) : null;
+}
+
+/**
+ * Does a skeleton condition (`when`, `requires`) hold? The renderer's own
+ * rule, moved here unchanged (T-577, AJ-577-M7) so the paragraph count's
+ * mandatory clauses are read the same way.
+ */
+export function skeletonWhenHolds(c: SkeletonCondition, ctx: SkeletonWhenContext): boolean {
+  if ('all_of' in c) return c.all_of.length > 0 && c.all_of.every((x) => skeletonWhenHolds(x, ctx));
+  const entries = ctx.held.get(c.key) ?? [];
+  // A key the ledger does not hold never satisfies a condition (Ajay, 10 Oct 2026).
+  if (entries.length === 0) return false;
+  if (c.present === true) return entries.some((f) => skeletonSeenOf(ctx, c.key, f).size > 0);
+  if (c.in !== undefined) {
+    const wanted = skeletonValuesOf(ctx, c.in);
+    if (!wanted) return false;
+    return entries.some((f) => {
+      const seen = skeletonSeenOf(ctx, c.key, f);
+      return wanted.some((w) => seen.has(w));
+    });
+  }
+  if (c.not_in !== undefined) {
+    const barred = skeletonValuesOf(ctx, c.not_in);
+    if (!barred) return false;
+    return entries.every((f) => {
+      const seen = skeletonSeenOf(ctx, c.key, f);
+      return seen.size > 0 && !barred.some((w) => seen.has(w));
+    });
+  }
+  return false;
+}
+
 export function renderDraft(input: DraftRenderInput): DraftRenderResult {
   const { skeleton } = input;
   const held = factEntriesByKey(input.facts);
@@ -1000,45 +1065,12 @@ export function renderDraft(input: DraftRenderInput): DraftRenderResult {
   );
   /** Held, or a date answered "Not known" (printed as its blank): a clause reading it prints. */
   const given = (key: string): boolean => held.has(key) || notKnown.has(key);
-  const optionIdOf = (key: string, f: LedgerFact): string | undefined => {
-    const map = optionIds[key];
-    if (!map) return undefined;
-    return (
-      map[folded(f.display)] ?? (typeof f.value === 'string' ? map[folded(f.value)] : undefined)
-    );
-  };
-  const seenOf = (key: string, f: LedgerFact): Set<string> =>
-    new Set(
-      [folded(f.value), folded(f.display), folded(optionIdOf(key, f))].filter((s) => s !== ''),
-    );
-  const valuesOf = (set: SkeletonValueSet): string[] | null => {
-    const list = Array.isArray(set) ? set : valueLists[set];
-    return list ? list.map(folded) : null;
-  };
-  const holds = (c: SkeletonCondition): boolean => {
-    if ('all_of' in c) return c.all_of.length > 0 && c.all_of.every(holds);
-    const entries = held.get(c.key) ?? [];
-    // A key the ledger does not hold never satisfies a condition (Ajay, 10 Oct 2026).
-    if (entries.length === 0) return false;
-    if (c.present === true) return entries.some((f) => seenOf(c.key, f).size > 0);
-    if (c.in !== undefined) {
-      const wanted = valuesOf(c.in);
-      if (!wanted) return false;
-      return entries.some((f) => {
-        const seen = seenOf(c.key, f);
-        return wanted.some((w) => seen.has(w));
-      });
-    }
-    if (c.not_in !== undefined) {
-      const barred = valuesOf(c.not_in);
-      if (!barred) return false;
-      return entries.every((f) => {
-        const seen = seenOf(c.key, f);
-        return seen.size > 0 && !barred.some((w) => seen.has(w));
-      });
-    }
-    return false;
-  };
+  // T-577 (AJ-577-M7): the condition helpers live at module level
+  // (skeletonWhenHolds), unchanged; renderDraft calls them with its own context.
+  const whenContext: SkeletonWhenContext = { held, optionIds, valueLists };
+  const optionIdOf = (key: string, f: LedgerFact): string | undefined =>
+    skeletonOptionIdOf(whenContext, key, f);
+  const holds = (c: SkeletonCondition): boolean => skeletonWhenHolds(c, whenContext);
   /** True when no key the condition reads is held: the clause's facts were not given. */
   const unheld = (c: SkeletonCondition | undefined): boolean =>
     conditionKeys(c).every((k) => !held.has(k));
