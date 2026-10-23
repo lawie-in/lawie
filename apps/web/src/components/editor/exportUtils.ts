@@ -1,4 +1,5 @@
 import {
+  blankContext,
   blankMarksToTags,
   draftHeaderText,
   findBlanks,
@@ -14,11 +15,18 @@ import {
   Footer,
   Header,
   HeadingLevel,
+  LevelFormat,
   Packer,
   Paragraph,
+  ShadingType,
+  Table,
+  TableBorders,
+  TableCell,
+  TableRow,
   TextRun,
+  WidthType,
 } from 'docx';
-import type { IRunOptions } from 'docx';
+import type { IParagraphOptions, IRunOptions } from 'docx';
 import { saveAs } from 'file-saver';
 
 import { missingAsBlanks, normaliseLineEnds } from './blankCount';
@@ -277,8 +285,15 @@ interface RunFormat {
   blank?: boolean;
 }
 
-function textRun(text: string, fmt: RunFormat): TextRun {
-  const opts: { -readonly [K in keyof IRunOptions]: IRunOptions[K] } = { text };
+/**
+ * `style` (T-579, annexures only) adds size, colour etc. under the format; a
+ * blank keeps its own bold, yellow and black over it. The draft export never
+ * passes it, so its runs are as before.
+ */
+function textRun(text: string, fmt: RunFormat, style?: IRunOptions): TextRun {
+  const opts: { -readonly [K in keyof IRunOptions]: IRunOptions[K] } = style
+    ? { ...style, text }
+    : { text };
   if (fmt.bold || fmt.blank) opts.bold = true;
   if (fmt.italics) opts.italics = true;
   if (fmt.underline) opts.underline = {};
@@ -455,4 +470,481 @@ export async function exportDocx(
   const blob = await Packer.toBlob(doc);
   const filename = `${title.replace(/[^a-zA-Z0-9\s-]/g, '').slice(0, 60)}.docx`;
   saveAs(blob, filename);
+}
+
+// ── T-579: the annexures pack as an editable Word file ──────────────────────
+// The drafting service builds the annexures as HTML (buildAnnexuresHtml), the
+// one source the PDF is rendered from. POST /documents/:id/annexures-pack
+// ?format=html returns it; this turns it into a .docx with the same text, in
+// the same order: one paragraph per block, real Word tables, a page break
+// before each annexure after the first, and each annexure's own disclaimer
+// line at its end, as in the PDF (AJ-579-M1). No page header or footer: the PDF
+// has none. htmlToDocxParagraphs (the draft's export) is not used or changed.
+
+/** Block-level tags; anything else is inline (text, strong, em, u, span, br). */
+const ANNEX_BLOCK_TAGS = new Set([
+  'p',
+  'div',
+  'h1',
+  'h2',
+  'h3',
+  'h4',
+  'h5',
+  'h6',
+  'table',
+  'ul',
+  'ol',
+  'li',
+  'tr',
+  'td',
+  'th',
+  'tbody',
+  'thead',
+  'style',
+]);
+
+/** Numbered list config for `<ol>`; each list is its own instance, so it starts at 1. */
+const ANNEX_NUMBERING_REF = 'lawie-annexure-numbered';
+
+/** A4 width less the 1.5" left and 1" right margins, in twips. */
+const ANNEX_TEXT_WIDTH = 11906 - 2160 - 1440;
+
+type AnnexBlock = Paragraph | Table;
+
+interface AnnexContext {
+  /** The next block starts a new page (the annexure's page-break class). */
+  breakBefore: boolean;
+  /** `<ol>` lists seen, for their numbering instance. */
+  lists: number;
+}
+
+type InlineItem = { text: string; fmt: RunFormat } | { br: true };
+
+function isAnnexBlock(node: Node): boolean {
+  return (
+    node.nodeType === Node.ELEMENT_NODE &&
+    ANNEX_BLOCK_TAGS.has((node as Element).tagName.toLowerCase())
+  );
+}
+
+function hasClass(el: Element, name: string): boolean {
+  return el.classList.contains(name);
+}
+
+/** The inline content of a node as text and line breaks, with the format passed down. */
+function collectInline(node: Node, fmt: RunFormat, out: InlineItem[]): void {
+  if (node.nodeType === Node.TEXT_NODE) {
+    const text = node.textContent ?? '';
+    if (text) out.push({ text, fmt });
+    return;
+  }
+  if (node.nodeType !== Node.ELEMENT_NODE) return;
+  const el = node as HTMLElement;
+  const tag = el.tagName.toLowerCase();
+  if (tag === 'br') {
+    out.push({ br: true });
+    return;
+  }
+  const inner: RunFormat = { ...fmt };
+  if (tag === 'strong' || tag === 'b') inner.bold = true;
+  if (tag === 'em' || tag === 'i') inner.italics = true;
+  if (tag === 'u') inner.underline = true;
+  if (el.hasAttribute('data-lawie-blank')) inner.blank = true;
+  el.childNodes.forEach((child) => collectInline(child, inner, out));
+}
+
+/**
+ * Inline items to runs, with white space folded as a browser does: runs of
+ * spaces, tabs and line ends become one space, and none at the start or end of
+ * a line. Other characters (no-break spaces, underscores) are kept as they are.
+ */
+function inlineRuns(items: InlineItem[], style?: IRunOptions): TextRun[] {
+  const runs: TextRun[] = [];
+  let line: { text: string; fmt: RunFormat }[] = [];
+  const flushLine = () => {
+    const last = line[line.length - 1];
+    if (last) last.text = last.text.replace(/ $/, '');
+    for (const seg of line) if (seg.text) runs.push(textRun(seg.text, seg.fmt, style));
+    line = [];
+  };
+  let atStart = true;
+  for (const item of items) {
+    if ('br' in item) {
+      flushLine();
+      runs.push(new TextRun({ break: 1 }));
+      atStart = true;
+      continue;
+    }
+    let text = item.text.replace(/[ \t\n\r\f]+/g, ' ');
+    if (atStart) text = text.replace(/^ /, '');
+    if (!text) continue;
+    line.push({ text, fmt: item.fmt });
+    atStart = text.endsWith(' ');
+  }
+  flushLine();
+  return runs;
+}
+
+function hasVisibleText(items: InlineItem[]): boolean {
+  return items.some((i) => !('br' in i) && /[^ \t\n\r\f]/.test(i.text));
+}
+
+function alignmentOf(el: HTMLElement): IParagraphOptions['alignment'] {
+  const align = el.style.textAlign;
+  if (align === 'center') return AlignmentType.CENTER;
+  if (align === 'right') return AlignmentType.RIGHT;
+  if (align === 'justify') return AlignmentType.JUSTIFIED;
+  return undefined;
+}
+
+function annexParagraph(ctx: AnnexContext, options: IParagraphOptions): Paragraph {
+  if (!ctx.breakBefore) return new Paragraph(options);
+  ctx.breakBefore = false;
+  return new Paragraph({ ...options, pageBreakBefore: true });
+}
+
+/** One block element with only inline content, as one paragraph styled as the PDF CSS does. */
+function annexLeafParagraph(el: HTMLElement, ctx: AnnexContext): Paragraph {
+  const tag = el.tagName.toLowerCase();
+  const items: InlineItem[] = [];
+  el.childNodes.forEach((child) => collectInline(child, {}, items));
+
+  let base: RunFormat = {};
+  let style: IRunOptions | undefined;
+  const opts: { -readonly [K in keyof IParagraphOptions]: IParagraphOptions[K] } = {
+    alignment: alignmentOf(el),
+  };
+  if (/^h[1-6]$/.test(tag)) {
+    base = { bold: true };
+    if (tag === 'h2') {
+      style = { allCaps: true };
+      opts.alignment = opts.alignment ?? AlignmentType.CENTER;
+    }
+    opts.spacing = { before: 160, after: 100 };
+  } else if (hasClass(el, 'annexure-label')) {
+    base = { bold: true, underline: true };
+    style = { size: 20 };
+    opts.alignment = AlignmentType.CENTER;
+  } else if (hasClass(el, 'disclaimer')) {
+    style = { size: 18, color: '666666' };
+    opts.alignment = AlignmentType.CENTER;
+    opts.border = { top: { style: BorderStyle.SINGLE, size: 4, color: '999999', space: 4 } };
+    opts.spacing = { before: 480 };
+  } else if (hasClass(el, 'notary-title')) {
+    base = { bold: true };
+    opts.alignment = AlignmentType.CENTER;
+  } else if (hasClass(el, 'stamp-placeholder')) {
+    base = { italics: true };
+    style = { size: 20, color: '999999' };
+    opts.alignment = AlignmentType.CENTER;
+  } else if (hasClass(el, 'sig-line')) {
+    // The PDF's signature rule (an empty bordered box): a ruled empty line.
+    opts.border = { bottom: { style: BorderStyle.SINGLE, size: 6, color: '000000', space: 1 } };
+    opts.indent = { right: Math.round(ANNEX_TEXT_WIDTH * 0.1) };
+  }
+  if (hasClass(el, 'indent')) opts.indent = { left: 480 };
+
+  const runs = inlineRuns(
+    items.map((i) => ('br' in i ? i : { text: i.text, fmt: { ...base, ...i.fmt } })),
+    style,
+  );
+  return annexParagraph(ctx, { ...opts, children: runs });
+}
+
+/** "30%" from an element's own width, as a Word percentage width. */
+function percentWidth(el: HTMLElement): `${number}%` | undefined {
+  const m = /^(\d+(?:\.\d+)?)%$/.exec(el.style.width.trim());
+  return m ? (`${Number(m[1])}%` as `${number}%`) : undefined;
+}
+
+function annexTable(el: HTMLTableElement, ctx: AnnexContext): AnnexBlock[] {
+  const out: AnnexBlock[] = [];
+  if (ctx.breakBefore) out.push(annexParagraph(ctx, { children: [] }));
+  // Layout tables (the signature blocks) have no borders in the PDF.
+  const layout = /border\s*:\s*none/i.test(el.getAttribute('style') ?? '');
+  const line = { style: BorderStyle.SINGLE, size: 4, color: '000000' } as const;
+  const borders = layout
+    ? TableBorders.NONE
+    : {
+        top: line,
+        bottom: line,
+        left: line,
+        right: line,
+        insideHorizontal: line,
+        insideVertical: line,
+      };
+
+  const htmlRows = Array.from(el.rows);
+  const columns = Math.max(
+    1,
+    ...htmlRows.map((r) => Array.from(r.cells).reduce((n, c) => n + Math.max(1, c.colSpan), 0)),
+  );
+  // Column widths from the first full row's cell widths; the rest share what is left.
+  const firstRow = htmlRows.find(
+    (r) => Array.from(r.cells).reduce((n, c) => n + Math.max(1, c.colSpan), 0) === columns,
+  );
+  // One entry per column: a cell spanning n columns gives each of them 1/n of its width.
+  const pct: (number | undefined)[] = firstRow
+    ? Array.from(firstRow.cells).flatMap((c) => {
+        const span = Math.max(1, c.colSpan);
+        const w = percentWidth(c);
+        return Array.from({ length: span }, () => (w ? parseFloat(w) / span : undefined));
+      })
+    : [];
+  const fixed = pct.reduce<number>((n, p) => n + (p ?? 0), 0);
+  const open = Array.from({ length: columns }, (_, i) => pct[i]).filter(
+    (p) => p === undefined,
+  ).length;
+  const share = open > 0 ? Math.max(0, 100 - fixed) / open : 0;
+  const columnWidths = Array.from({ length: columns }, (_, i) =>
+    Math.round(((pct[i] ?? share) / 100) * ANNEX_TEXT_WIDTH),
+  );
+
+  const rows = htmlRows.map(
+    (tr) =>
+      new TableRow({
+        children: Array.from(tr.cells).map((cell) => {
+          const header = cell.tagName.toLowerCase() === 'th';
+          const cellCtx: AnnexContext = { breakBefore: false, lists: ctx.lists };
+          let children = annexBlocks(cell, cellCtx, header ? { bold: true } : {});
+          ctx.lists = cellCtx.lists;
+          if (children.length === 0 || !(children[children.length - 1] instanceof Paragraph)) {
+            // A Word cell must end with a paragraph.
+            children = [...children, new Paragraph({ children: [] })];
+          }
+          const width = percentWidth(cell);
+          return new TableCell({
+            children,
+            ...(cell.colSpan > 1 ? { columnSpan: cell.colSpan } : {}),
+            ...(width ? { width: { size: width, type: WidthType.PERCENTAGE } } : {}),
+            ...(header
+              ? { shading: { fill: 'F0F0F0', type: ShadingType.CLEAR, color: 'auto' } }
+              : {}),
+            ...(layout ? {} : { margins: { top: 60, bottom: 60, left: 115, right: 115 } }),
+          });
+        }),
+      }),
+  );
+  out.push(
+    new Table({
+      rows,
+      borders,
+      width: { size: '100%', type: WidthType.PERCENTAGE },
+      columnWidths,
+    }),
+  );
+  return out;
+}
+
+/**
+ * The blocks of a container, in order. Inline content between blocks becomes a
+ * paragraph of its own; a lone <br> between blocks is an empty line, as in the
+ * PDF. `base` is the format the container gives its text (bold in a <th>).
+ */
+function annexBlocks(container: Element, ctx: AnnexContext, base: RunFormat = {}): AnnexBlock[] {
+  const out: AnnexBlock[] = [];
+  let pending: Node[] = [];
+
+  const flush = () => {
+    if (pending.length === 0) return;
+    const items: InlineItem[] = [];
+    pending.forEach((n) => collectInline(n, base, items));
+    pending = [];
+    if (hasVisibleText(items)) {
+      out.push(annexParagraph(ctx, { children: inlineRuns(items) }));
+    } else if (items.some((i) => 'br' in i)) {
+      out.push(annexParagraph(ctx, { children: [] }));
+    }
+  };
+
+  container.childNodes.forEach((node) => {
+    if (!isAnnexBlock(node)) {
+      pending.push(node);
+      return;
+    }
+    flush();
+    const el = node as HTMLElement;
+    const tag = el.tagName.toLowerCase();
+    if (tag === 'style') return;
+    if (tag === 'table') {
+      out.push(...annexTable(el as HTMLTableElement, ctx));
+      return;
+    }
+    if (tag === 'ul' || tag === 'ol') {
+      const instance = tag === 'ol' ? ++ctx.lists : 0;
+      el.childNodes.forEach((li) => {
+        if (li.nodeType !== Node.ELEMENT_NODE || (li as Element).tagName.toLowerCase() !== 'li')
+          return;
+        const items: InlineItem[] = [];
+        li.childNodes.forEach((c) => collectInline(c, base, items));
+        out.push(
+          annexParagraph(ctx, {
+            children: inlineRuns(items),
+            ...(tag === 'ul'
+              ? { bullet: { level: 0 } }
+              : { numbering: { reference: ANNEX_NUMBERING_REF, level: 0, instance } }),
+          }),
+        );
+      });
+      return;
+    }
+    if (tag === 'div' && hasClass(el, 'page-break')) ctx.breakBefore = true;
+    const hasBlockChild = Array.from(el.childNodes).some(isAnnexBlock);
+    if (!hasBlockChild && tag !== 'div') {
+      out.push(annexLeafParagraph(el, ctx));
+      return;
+    }
+    if (!hasBlockChild) {
+      // A div of text (label, disclaimer, notary title, stamp line) or an empty
+      // rule (sig-line). Other empty divs print nothing.
+      const items: InlineItem[] = [];
+      el.childNodes.forEach((c) => collectInline(c, {}, items));
+      if (hasVisibleText(items) || hasClass(el, 'sig-line')) out.push(annexLeafParagraph(el, ctx));
+      return;
+    }
+    const inner = annexBlocks(el, ctx, base);
+    if (hasClass(el, 'notary-box')) {
+      // The PDF's bordered notary box: a one-cell table with a heavier border.
+      const box = { style: BorderStyle.SINGLE, size: 12, color: '000000' } as const;
+      if (inner.length === 0 || !(inner[inner.length - 1] instanceof Paragraph)) {
+        inner.push(new Paragraph({ children: [] }));
+      }
+      out.push(
+        new Table({
+          rows: [
+            new TableRow({
+              children: [
+                new TableCell({
+                  children: inner,
+                  margins: { top: 120, bottom: 120, left: 120, right: 120 },
+                }),
+              ],
+            }),
+          ],
+          borders: { top: box, bottom: box, left: box, right: box },
+          width: { size: '100%', type: WidthType.PERCENTAGE },
+        }),
+      );
+      return;
+    }
+    out.push(...inner);
+  });
+  flush();
+  return out;
+}
+
+/**
+ * AJ-579-M2: in the Word file every `[To be confirmed: …]` marker and every run
+ * of three or more underscores is a blank, highlighted as the draft's DOCX marks
+ * its blanks. The draft's own exceptions (a line of only underscores is a
+ * signature line) are not applied here: an annexure's lone `___________` (an
+ * amount, an address not given) is a detail still to be filled in.
+ *
+ * AJ-579-BC (Ajay): the annexure builder's own bracketed placeholders are blanks
+ * too: `[Advocate Name]` and the `[Advocate to …]` instructions (the synopsis
+ * summary, further dates). Only these exact forms the builder writes, so any
+ * other bracketed text (a citation a user typed, the notary stamp-box caption)
+ * is not highlighted. Text unchanged.
+ */
+const ANNEXURE_PLACEHOLDER = /\[Advocate Name\]|\[Advocate to [^\]\n]*\]/g;
+
+export const findAnnexureBlanks: FindBlanks = (text) => {
+  const blanks = findBlanks(text);
+  const taken: (readonly [number, number])[] = blanks.map((b) => [b.start, b.end] as const);
+  for (const m of text.matchAll(ANNEXURE_PLACEHOLDER)) {
+    const start = m.index ?? 0;
+    const end = start + m[0].length;
+    if (taken.some(([a, b]) => start < b && end > a)) continue;
+    blanks.push({
+      start,
+      end,
+      text: m[0],
+      label: m[0].slice(1, -1),
+      context: blankContext(text, { start, end }),
+    });
+    taken.push([start, end]);
+  }
+  for (const m of text.matchAll(/_{3,}/g)) {
+    const start = m.index ?? 0;
+    const end = start + m[0].length;
+    if (taken.some(([a, b]) => start < b && end > a)) continue;
+    blanks.push({
+      start,
+      end,
+      text: m[0],
+      label: UNDERSCORE_BLANK_LABEL,
+      context: blankContext(text, { start, end }),
+    });
+  }
+  return blanks.sort((a, b) => a.start - b.start);
+};
+
+/**
+ * The annexures HTML (from ?format=html) as Word blocks, in order. The text is
+ * the HTML's own text; only the blanks get the blank styling.
+ */
+export function annexuresHtmlToDocxBlocks(html: string): AnnexBlock[] {
+  const { marked } = markBlanks(html, findAnnexureBlanks);
+  const tagged = blankMarksToTags(marked, '<span data-lawie-blank="">', '</span>');
+  const doc = new DOMParser().parseFromString(tagged, 'text/html');
+  return annexBlocks(doc.body, { breakBefore: false, lists: 0 });
+}
+
+/** The annexures Word document: Times New Roman 12pt, 1.5" left margin, as the PDF. */
+export function annexuresDocxDocument(html: string): Document {
+  return new Document({
+    styles: {
+      default: {
+        document: {
+          run: { font: { ascii: 'Times New Roman', hAnsi: 'Times New Roman' }, size: 24 },
+          paragraph: { spacing: { after: 80, line: 360 } },
+        },
+      },
+    },
+    numbering: {
+      config: [
+        {
+          reference: ANNEX_NUMBERING_REF,
+          levels: [
+            {
+              level: 0,
+              format: LevelFormat.DECIMAL,
+              text: '%1.',
+              alignment: AlignmentType.LEFT,
+              style: { paragraph: { indent: { left: 720, hanging: 360 } } },
+            },
+          ],
+        },
+      ],
+    },
+    sections: [
+      {
+        properties: {
+          page: {
+            margin: { top: 1440, bottom: 1440, left: 2160, right: 1440 }, // 1.5" left, as the PDF
+          },
+        },
+        children: annexuresHtmlToDocxBlocks(html),
+      },
+    ],
+  });
+}
+
+/** `<title>_annexures.docx`, the title cleaned as for the PDF (AnnexuresCard). */
+export function annexuresDocxFilename(title: string): string {
+  return `${title.replace(/[^a-zA-Z0-9\s-]/g, '').slice(0, 60)}_annexures.docx`;
+}
+
+/**
+ * T-579: save the annexures as an editable Word file. `html` is the `html` of
+ * POST /documents/:id/annexures-pack?format=html; `filename` is its `filename`
+ * when given, else `<title>_annexures.docx`.
+ */
+export async function exportAnnexuresDocx(
+  html: string,
+  title: string,
+  filename?: string,
+): Promise<void> {
+  const blob = await Packer.toBlob(annexuresDocxDocument(html));
+  saveAs(blob, filename || annexuresDocxFilename(title));
 }

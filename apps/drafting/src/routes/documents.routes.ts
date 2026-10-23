@@ -28,7 +28,12 @@ import {
   streamGenerateGuided,
   streamGenerateFromTemplate,
 } from '../services/ai.service';
-import { buildAnnexuresPack, estimateBodyParaCount } from '../services/annexures.service';
+import {
+  annexuresFilename,
+  buildAnnexuresHtml,
+  buildAnnexuresPack,
+  estimateBodyParaCount,
+} from '../services/annexures.service';
 import { AvermentLists, factEntriesByKey, loadAvermentLists } from '../services/averments';
 import {
   briefText,
@@ -2408,11 +2413,15 @@ function partyMappingOf(
 // POST /documents/:id/annexures-pack — SCRUM-65: generate 7 mandatory annexures as a multi-page PDF
 // Court-rule aware: designation, verification language, party labels from court_rules JSON.
 // Returns: application/pdf — single PDF with each annexure on a fresh page.
+// T-579: `?format=html` returns application/json `{ title, filename, html }` instead
+// (the same annexures HTML the PDF is rendered from, for the web's Word export):
+// same lookup, errors and export mark, no Chromium, no Ink.
 router.post(
   '/:id/annexures-pack',
   validateObjectId,
   authenticate,
   async (req: Request, res: Response): Promise<void> => {
+    const asHtml = req.query.format === 'html';
     const payload = req.jwtPayload!;
     const doc = await LawieDocument.findOne({
       _id: req.params.id,
@@ -2485,15 +2494,18 @@ router.post(
       }
     }
 
-    let pdfBuffer: Buffer;
+    let pdfBuffer: Buffer | undefined;
+    let html: string | undefined;
     try {
-      pdfBuffer = await buildAnnexuresPack({
+      const packInput = {
         formData,
         bodyParaCount,
         advocateName: payload.name || undefined,
         enrollmentNumber: await profileEnrollmentNumber(payload.sub),
         courtData,
-      });
+      };
+      if (asHtml) html = buildAnnexuresHtml(packInput).html;
+      else pdfBuffer = await buildAnnexuresPack(packInput);
     } catch (err) {
       console.error(
         '[drafting] Annexures pack render failed:',
@@ -2513,13 +2525,18 @@ router.post(
       userId: payload.sub,
       type: 'draft.exported',
       docId: doc._id,
-      metadata: { format: 'annexures_pdf', docType: doc.docType },
+      metadata: { format: asHtml ? 'annexures_docx' : 'annexures_pdf', docType: doc.docType },
     });
 
-    const filename = `${doc.title.replace(/[^a-zA-Z0-9\s-]/g, '').slice(0, 60)}_annexures.pdf`;
+    if (html !== undefined) {
+      res.json({ title: doc.title, filename: annexuresFilename(doc.title, 'docx'), html });
+      return;
+    }
+
+    const filename = annexuresFilename(doc.title, 'pdf');
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    res.setHeader('Content-Length', pdfBuffer.length);
+    res.setHeader('Content-Length', pdfBuffer!.length);
     res.send(pdfBuffer);
   },
 );
