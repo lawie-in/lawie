@@ -115,6 +115,8 @@ export interface ParagraphControl {
 export interface ParagraphSnapshot {
   paragraphs: number;
   expectedInk: number;
+  /** The quote sent is a ceiling ("up to"), read with the figure at the press. */
+  ceiling: boolean;
 }
 
 export interface ParagraphQuoteRequest {
@@ -293,6 +295,9 @@ export function useParagraphQuote({
    * re-quote at the count clamped to the new range, so the stepper and the quote leave the refused
    * count. Until that quote is back, generate has no snapshot, so the refused count is never sent
    * again. The count stays editable; the line stays until the next successful quote after this one.
+   * When there is no count in range to move to (the server's `min` is above the cap, or the clamp
+   * lands on the refused count), nothing is re-quoted: the cost is unknown (`failed`) until the
+   * advocate changes the count, so no press can send the refused count again.
    */
   const applyRangeError = useCallback(
     (min: unknown) => {
@@ -300,11 +305,23 @@ export function useParagraphQuote({
       const floor = isCount(min) ? min : q?.min;
       if (floor === undefined) return;
       setRangeLine({ min: floor, server: true });
-      if (!q) return;
-      const newMin = floor <= q.max ? floor : q.min;
-      const quote = newMin !== q.min ? { ...q, min: newMin } : q;
-      const target = clampParagraphs(state.current.value ?? quote.paragraphs, newMin, quote.max);
-      put({ quote, value: target });
+      if (!q) {
+        put({ status: 'failed' });
+        return;
+      }
+      const refused = q.paragraphs;
+      if (floor > q.max) {
+        put({ status: 'failed' });
+        return;
+      }
+      const quote = floor !== q.min ? { ...q, min: floor } : q;
+      const target = clampParagraphs(state.current.value ?? refused, floor, quote.max);
+      if (target === refused) {
+        put({ quote, status: 'failed' });
+        return;
+      }
+      // Loading before the request, so no snapshot exists even if the request cannot go out.
+      put({ quote, value: target, status: 'loading' });
       void request(target, { keepRangeLine: true });
     },
     [put, request],
@@ -321,7 +338,7 @@ export function useParagraphQuote({
     const s = state.current;
     if (s.asks === false && s.status === 'ready') return undefined;
     if (s.status !== 'ready' || !s.quote || s.value !== s.quote.paragraphs) return null;
-    return { paragraphs: s.quote.paragraphs, expectedInk: s.quote.ink };
+    return { paragraphs: s.quote.paragraphs, expectedInk: s.quote.ink, ceiling: s.quote.ceiling };
   }, []);
 
   const control: ParagraphControl = {

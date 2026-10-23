@@ -313,11 +313,6 @@ function OneFlowSteps({
   } = paragraphQuote;
   /** T-577: one generation at a time when a count is sent (a double press starts one). */
   const paragraphGenerating = useRef(false);
-  /** T-577: the quote on screen is a ceiling (read at each render). */
-  const quoteIsCeiling = useRef(false);
-  quoteIsCeiling.current = paragraphQuote.control.quote?.ceiling === true;
-  /** T-577: the quote sent with this generation was a ceiling (captured at the press). */
-  const paragraphQuoteCeiling = useRef(false);
   /**
    * T-577: the type whose 409 came on a retry, so the next press (on that type) resends this
    * run's run_id. Null otherwise.
@@ -806,7 +801,7 @@ function OneFlowSteps({
               // T-577: on a ceiling quote the modal says "up to", with the larger of the 402's
               // cost and the quoted ceiling sent, so it never disagrees with "Uses up to N Ink"
               // (the pre-check 402 carries the class price, below the ceiling).
-              const ceiling = para !== undefined && paragraphQuoteCeiling.current;
+              const ceiling = para?.ceiling === true;
               setPaywall({
                 cost: ceiling && para ? Math.max(data.cost, para.expectedInk) : data.cost,
                 balance: data.balance?.totalInk ?? data.balance?.total ?? 0,
@@ -1009,7 +1004,6 @@ function OneFlowSteps({
         if (snap === undefined && !positiveNumber(paragraphPlainInk)) return;
         if (paragraphGenerating.current) return;
         para = snap;
-        paragraphQuoteCeiling.current = snap !== undefined && quoteIsCeiling.current;
         clearPriceChanged();
       } else {
         // T-388 (Arjun): nothing that charges starts while the Ink cost is not

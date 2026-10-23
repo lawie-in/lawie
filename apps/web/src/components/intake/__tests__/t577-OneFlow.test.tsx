@@ -422,12 +422,8 @@ describe('(4) 400 paragraph_count_out_of_range', () => {
   };
 
   it('no generation, back on the brief, M4 line from the server min, never the server message, ring and still editable', async () => {
-    await toBrief();
-    // the re-quote that follows the 400 carries the raised floor
-    quoteImpl = (b) => {
-      const n = typeof b.paragraphs === 'number' ? b.paragraphs : 10;
-      return ok(quoteBody(n, inkFor(n), { min: 8 }));
-    };
+    await toBrief(); // the refused count (10) is already inside the new range [8, 25]
+    const quotesBefore = quoteCalls().length;
     await confirm(refused(400, body));
     expect(generateCalls()).toHaveLength(1);
     expect(heading()).toBe('Check your brief');
@@ -439,9 +435,28 @@ describe('(4) 400 paragraph_count_out_of_range', () => {
     expect(spin()?.getAttribute('aria-invalid')).toBe('true');
     expect(spin()?.disabled).toBe(false);
     expect(spin()?.getAttribute('aria-valuemin')).toBe('8');
-    expect(buttonWith('Confirm brief and continue')?.getAttribute('aria-disabled')).not.toBe(
-      'true',
-    );
+    // no re-quote of the refused count; the cost is unknown and Confirm is off until the count changes
+    expect(quoteCalls().length).toBe(quotesBefore);
+    expect(text()).toContain(INK_COST_UNKNOWN);
+    expect(buttonWith('Confirm brief and continue')?.getAttribute('aria-disabled')).toBe('true');
+    await confirm(sse([]));
+    expect(generateCalls()).toHaveLength(1);
+    // changing the count quotes it and Generate sends it
+    await more();
+    await confirm(sse([]));
+    expect(generateCalls()).toHaveLength(2);
+    expect(sent(1).paragraphs).toBe(11);
+  });
+
+  it('the server min above the cap: M4 line, cost unknown, no re-quote, no POST possible', async () => {
+    await toBrief();
+    const quotesBefore = quoteCalls().length;
+    await confirm(refused(400, { ...body, min: 30 }));
+    expect(text()).toContain('Choose between 30 and 25 paragraphs.');
+    expect(quoteCalls().length).toBe(quotesBefore);
+    expect(buttonWith('Confirm brief and continue')?.getAttribute('aria-disabled')).toBe('true');
+    await confirm(sse([]));
+    expect(generateCalls()).toHaveLength(1);
   });
 
   it('the count stays editable and Generate can be pressed again (sends again)', async () => {
@@ -555,6 +570,27 @@ describe('(4c) a 400 from the QUOTE endpoint', () => {
     expect(text()).toContain(INK_COST_UNKNOWN);
     await confirm(sse([]));
     expect(generateCalls()).toHaveLength(0);
+  });
+});
+
+describe('(10b) the ceiling flag comes from the snapshot taken at the press', () => {
+  const poor = (cost: number) =>
+    refused(402, { error: 'insufficient_credits', cost, balance: { totalInk: 1 } });
+
+  it('a quote that turns non-ceiling AFTER the press does not change the paywall (ceiling stays true)', async () => {
+    await toBrief(); // ceiling quote on screen at the press
+    // the 402 arrives; meanwhile the next quote (not yet asked) would be non-ceiling
+    quoteImpl = (b) => ok(quoteBody(Number(b.paragraphs ?? 10), 2, { ceiling: false }));
+    await confirm(poor(2));
+    expect(mockPaywall.mock.calls[mockPaywall.mock.calls.length - 1][0].ceiling).toBe(true);
+  });
+
+  it('a non-ceiling quote at the press gives no ceiling even if an earlier quote was a ceiling', async () => {
+    await toBrief(); // first quote: ceiling true
+    quoteImpl = (b) => ok(quoteBody(Number(b.paragraphs ?? 10), 2, { ceiling: false }));
+    await more(); // the quote on screen is now ceiling:false
+    await confirm(poor(2));
+    expect(mockPaywall.mock.calls[mockPaywall.mock.calls.length - 1][0].ceiling).toBeFalsy();
   });
 });
 

@@ -112,7 +112,7 @@ describe('useParagraphQuote', () => {
     expect(bodyOf(0)).toEqual({ kind: 'bail', values: { a: 1 }, ledger_id: 'L1', language: 'en' });
     expect(hook.control.status).toBe('ready');
     expect(hook.control.value).toBe(10);
-    expect(hook.snapshot()).toEqual({ paragraphs: 10, expectedInk: 2 });
+    expect(hook.snapshot()).toEqual({ paragraphs: 10, expectedInk: 2, ceiling: true });
   });
 
   it('a committed change re-quotes with paragraphs (clamped); the same count does not', async () => {
@@ -123,7 +123,7 @@ describe('useParagraphQuote', () => {
     await act(async () => hook.control.onCommit(12, false));
     await flush();
     expect(bodyOf(1).paragraphs).toBe(12);
-    expect(hook.snapshot()).toEqual({ paragraphs: 12, expectedInk: 3 });
+    expect(hook.snapshot()).toEqual({ paragraphs: 12, expectedInk: 3, ceiling: true });
     await act(async () => hook.control.onCommit(12, false));
     await flush();
     expect(mockApiFetch).toHaveBeenCalledTimes(2);
@@ -155,7 +155,7 @@ describe('useParagraphQuote', () => {
     expect(hook.snapshot()).toBeNull();
     d.resolve(ok(quoteBody(14, 3)));
     await flush();
-    expect(hook.snapshot()).toEqual({ paragraphs: 14, expectedInk: 3 });
+    expect(hook.snapshot()).toEqual({ paragraphs: 14, expectedInk: 3, ceiling: true });
   });
 
   it('a stale answer is dropped: the older response arriving last does not win', async () => {
@@ -173,7 +173,7 @@ describe('useParagraphQuote', () => {
     await flush();
     expect(hook.control.value).toBe(20);
     expect(hook.control.quote?.ink).toBe(4);
-    expect(hook.snapshot()).toEqual({ paragraphs: 20, expectedInk: 4 });
+    expect(hook.snapshot()).toEqual({ paragraphs: 20, expectedInk: 4, ceiling: true });
   });
 
   it('a stale FAILURE is dropped too', async () => {
@@ -247,7 +247,7 @@ describe('useParagraphQuote', () => {
     await act(async () => hook.control.onRetry());
     await flush();
     expect(bodyOf(2).paragraphs).toBe(14);
-    expect(hook.snapshot()).toEqual({ paragraphs: 14, expectedInk: 3 });
+    expect(hook.snapshot()).toEqual({ paragraphs: 14, expectedInk: 3, ceiling: true });
   });
 
   it('a new kind starts again from the server default (no paragraphs)', async () => {
@@ -272,7 +272,7 @@ describe('useParagraphQuote', () => {
     expect(hook.control.quote?.ink).toBe(3);
     expect(hook.control.value).toBe(10);
     expect(hook.control.priceChanged).toBe(true);
-    expect(hook.snapshot()).toEqual({ paragraphs: 10, expectedInk: 3 });
+    expect(hook.snapshot()).toEqual({ paragraphs: 10, expectedInk: 3, ceiling: true });
     await act(async () => hook.clearPriceChanged());
     expect(hook.control.priceChanged).toBe(false);
   });
@@ -332,7 +332,7 @@ describe('useParagraphQuote', () => {
     await act(async () => d.resolve(ok(quoteBody(8, 2, { min: 8 }))));
     await flush();
     expect(hook.control.status).toBe('ready');
-    expect(hook.snapshot()).toEqual({ paragraphs: 8, expectedInk: 2 });
+    expect(hook.snapshot()).toEqual({ paragraphs: 8, expectedInk: 2, ceiling: true });
     expect(hook.control.quote?.min).toBe(8);
     expect(hook.control.rangeLine).toEqual({ min: 8, server: true });
   });
@@ -349,22 +349,94 @@ describe('useParagraphQuote', () => {
     expect(hook.control.rangeLine).toBeNull();
   });
 
-  it('applyRangeError: a count already in range is re-quoted too; a bad min falls back to the quote floor', async () => {
-    await atSeven();
-    mockApiFetch.mockResolvedValue(ok(quoteBody(7, 2)));
-    await act(async () => hook.applyRangeError(undefined));
-    await flush();
-    expect(hook.control.rangeLine).toEqual({ min: 7, server: true });
-    expect(hook.control.quote?.min).toBe(7);
-    expect(mockApiFetch).toHaveBeenCalledTimes(1);
+  describe('applyRangeError with no count to move to: failed, no re-quote, nothing can send', () => {
+    const quoted = async (extra: Record<string, unknown> = {}) => {
+      mockApiFetch.mockResolvedValueOnce(ok(quoteBody(10, 2, extra)));
+      await act(async () => root.render(<Harness />));
+      await flush();
+      mockApiFetch.mockClear();
+    };
+
+    it('the clamp lands on the refused count: failed (cost unknown), the raised floor and the M4 line kept, no request', async () => {
+      await quoted();
+      await act(async () => hook.applyRangeError(8)); // 10 is already in [8, 25]
+      await flush();
+      expect(mockApiFetch).not.toHaveBeenCalled();
+      expect(hook.control.status).toBe('failed');
+      expect(hook.snapshot()).toBeNull();
+      expect(hook.control.rangeLine).toEqual({ min: 8, server: true });
+      expect(hook.control.quote?.min).toBe(8);
+      expect(hook.control.value).toBe(10);
+    });
+
+    it('a bad min falls back to the quote floor: the same, failed with no request', async () => {
+      await quoted();
+      await act(async () => hook.applyRangeError(undefined));
+      await flush();
+      expect(mockApiFetch).not.toHaveBeenCalled();
+      expect(hook.control.status).toBe('failed');
+      expect(hook.snapshot()).toBeNull();
+      expect(hook.control.rangeLine).toEqual({ min: 7, server: true });
+    });
+
+    it('the server min above the quote max: failed, the M4 line kept, no request, floor not raised', async () => {
+      await quoted();
+      await act(async () => hook.applyRangeError(26));
+      await flush();
+      expect(mockApiFetch).not.toHaveBeenCalled();
+      expect(hook.control.status).toBe('failed');
+      expect(hook.snapshot()).toBeNull();
+      expect(hook.control.rangeLine).toEqual({ min: 26, server: true });
+      expect(hook.control.quote?.min).toBe(7);
+    });
+
+    it('no quote yet: the M4 line cannot be applied to a quote, status failed, no request', async () => {
+      const d = deferred();
+      mockApiFetch.mockReturnValueOnce(d.promise);
+      await act(async () => root.render(<Harness />));
+      mockApiFetch.mockClear();
+      await act(async () => hook.applyRangeError(8));
+      expect(mockApiFetch).not.toHaveBeenCalled();
+      expect(hook.control.status).toBe('failed');
+      expect(hook.snapshot()).toBeNull();
+    });
+
+    it('nothing can be sent until the count changes; a changed count is quoted and sendable again', async () => {
+      await quoted();
+      await act(async () => hook.applyRangeError(8));
+      expect(hook.snapshot()).toBeNull();
+      await flush();
+      expect(hook.snapshot()).toBeNull();
+      expect(hook.control.status).toBe('failed');
+      mockApiFetch.mockResolvedValueOnce(ok(quoteBody(11, 3, { min: 8 })));
+      await act(async () => hook.control.onCommit(11, false));
+      await flush();
+      expect(bodyOf(mockApiFetch.mock.calls.length - 1).paragraphs).toBe(11);
+      expect(hook.snapshot()).toEqual({ paragraphs: 11, expectedInk: 3, ceiling: true });
+    });
+
+    it('when it does move: loading and no snapshot are set before the request goes out', async () => {
+      mockApiFetch.mockResolvedValueOnce(ok(quoteBody(10, 2)));
+      await act(async () => root.render(<Harness />));
+      await flush();
+      mockApiFetch.mockResolvedValueOnce(ok(quoteBody(7, 2)));
+      await act(async () => hook.control.onCommit(7, false));
+      await flush();
+      const d = deferred();
+      mockApiFetch.mockReturnValueOnce(d.promise);
+      await act(async () => hook.applyRangeError(8));
+      expect(hook.control.status).toBe('loading');
+      expect(hook.snapshot()).toBeNull();
+      await act(async () => d.resolve(ok(quoteBody(8, 2, { min: 8 }))));
+      await flush();
+    });
   });
 
-  it('applyRangeError: a min above the quote max is not applied to the floor', async () => {
-    await atSeven();
-    mockApiFetch.mockResolvedValue(ok(quoteBody(7, 2)));
-    await act(async () => hook.applyRangeError(40));
+  it("snapshot carries the quote's ceiling flag, true or false", async () => {
+    mockApiFetch.mockResolvedValueOnce(ok(quoteBody(10, 2, { ceiling: false })));
+    await act(async () => root.render(<Harness />));
     await flush();
-    expect(hook.control.quote?.min).toBe(7);
+    expect(hook.snapshot()).toEqual({ paragraphs: 10, expectedInk: 2, ceiling: false });
   });
 
   describe('a 400 from the QUOTE endpoint', () => {
@@ -386,7 +458,7 @@ describe('useParagraphQuote', () => {
       expect(hook.control.rangeLine).toEqual({ min: 9, server: true });
       expect(hook.control.value).toBe(9);
       expect(hook.control.status).toBe('ready');
-      expect(hook.snapshot()).toEqual({ paragraphs: 9, expectedInk: 2 });
+      expect(hook.snapshot()).toEqual({ paragraphs: 9, expectedInk: 2, ceiling: true });
     });
 
     it('never the same count twice: when the clamp equals the count just sent it is failed (cost unknown), no loop', async () => {
