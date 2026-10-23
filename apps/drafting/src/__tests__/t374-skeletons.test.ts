@@ -42,9 +42,10 @@ const PACKS = ['bail_regular', 'bail_anticipatory', 'bail_before_magistrate', 'd
 /** SHA-256 of each signed md FILE, pinned (computed 14 Oct 2026, T-245a v4/v5/v6/v2), and of the json block + "\n". */
 const SIGNED: Record<string, { version: number; mdSha: string; blockSha: string }> = {
   bail_regular: {
-    version: 4,
-    mdSha: 'f5c12070ab1d7cf1fa37849cb305373a146709b6230dd35a221355d1ec764405',
-    blockSha: 'd09d7bac30fd495f9c8c4e6db3898525ee0f0977c286df3c65c909d5ebfda54d',
+    // T-577: v5 (bodyParagraphs block), re-signed by Ajay 23 Oct 2026.
+    version: 5,
+    mdSha: 'fa8568cff20e3e5a6d90c741947adf46cc7c2b72452b1f632852a17f5d173515',
+    blockSha: '5dcb06872b948920697adf5b795251742004b2874c480c3c9ca0595f2f0e9995',
   },
   bail_anticipatory: {
     version: 5,
