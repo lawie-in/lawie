@@ -37,3 +37,7 @@ Every ticket I byte-checked and approved is signed for production as merged: T-4
 - No lawyer has run the product end to end in a browser. Draft quality, flow errors and any copy I could only check in code (D-list items 7–10 if skipped) go unverified by a lawyer before real users.
 - The drafts carry the signed disclaimers, so the advocate bears filing responsibility. But a visibly wrong draft (wrong code, wrong court, wrong party) costs trust and invites complaints. These go to the Grievance Officer within 24 hours / 15 days.
 - The founder's own rule (CLAUDE.md quality gate, 8 Oct) requires Anushka's PASS before main. Skipping it is his decision to make and record. I do not sign it as passed.
+
+**Blocker 5 cleared once merged (Ajay, 23 Oct):** `fix/t-573-criminal-revision` is approved. It makes 7 deletions only in criminal_revision.json: the "Advocate Responsibility Disclaimer" mandatory clause and the "Append Lawie disclaimer." instruction. The JSON is valid. S is present once. No case name and no Lawie disclaimer remain in model-visible text (`key_citations`, `_meta` and the unread `disclaimer` key aside, R6/65d). The three T-441 leftovers (:254, :266, :267) stay: they are drafting guidance with no judgment named.
+
+**Waiver recorded (23 Oct 2026):** Priya relayed the founder's words: "waive the quality gate (Anushka's PASS) for the v1 go-live." The waiver is his. Anushka's PASS is not given and is not signed by me. Blockers 1–6 in section A still apply. A waiver of the quality gate does not waive legal requirements.

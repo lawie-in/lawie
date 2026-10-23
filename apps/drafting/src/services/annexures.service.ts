@@ -752,12 +752,44 @@ export interface AnnexuresInput {
   courtData?: CourtLookupData;
 }
 
+/** T-579: one annexure of the pack: its label and heading as printed, and its HTML. */
+export interface AnnexurePart {
+  /** As printed in the part's `annexure-label` div, e.g. "ANNEXURE A". */
+  label: string;
+  /** As printed in the part's `<h2>`, e.g. "Memo of Parties". */
+  heading: string;
+  /** The part's own HTML block, ending with its own disclaimer line. */
+  html: string;
+}
+
+/** T-579: the annexures pack as HTML, the single source for the PDF and the Word file. */
+export interface AnnexuresHtml {
+  /** The full wrapped document (doctype, CSS, body) that the PDF path renders. */
+  html: string;
+  /** The 7 annexures A to G in order; `parts[i].html` joined with "\n" is the body. */
+  parts: AnnexurePart[];
+}
+
 /**
- * Build a multi-page PDF containing all 7 mandatory annexures.
- * Each annexure starts on a new page (page-break-before: always).
+ * T-579: the file name stem shared by the PDF and the Word file: the document
+ * title with anything but letters, digits, spaces and hyphens removed, at most
+ * 60 characters (as the route has always derived it).
+ */
+export function annexuresFileTitle(docTitle: string): string {
+  return docTitle.replace(/[^a-zA-Z0-9\s-]/g, '').slice(0, 60);
+}
+
+/** T-579: `<stem>_annexures.pdf` or `<stem>_annexures.docx`. */
+export function annexuresFilename(docTitle: string, ext: 'pdf' | 'docx'): string {
+  return `${annexuresFileTitle(docTitle)}_annexures.${ext}`;
+}
+
+/**
+ * T-579: build the HTML of all 7 mandatory annexures (one source for both
+ * renderers). Each annexure after the first starts with the page-break class.
  * Court rules are resolved automatically from formData.court_id / court_type + state.
  */
-export async function buildAnnexuresPack(input: AnnexuresInput): Promise<Buffer> {
+export function buildAnnexuresHtml(input: AnnexuresInput): AnnexuresHtml {
   const { formData, bodyParaCount = 10, advocateName, enrollmentNumber, courtData } = input;
 
   // T-300: the same advocate name as the draft (resolveAdvocateName): the typed
@@ -792,18 +824,47 @@ export async function buildAnnexuresPack(input: AnnexuresInput): Promise<Buffer>
   const chosen = chosenCourtHeading(courtData);
   const rules: CourtRules = chosen ? { ...resolved, designation: chosen.header } : resolved;
 
-  const parts: string[] = [
-    annexureMemoOfParties(enrichedForm, rules, false), // A — first page, no break
-    annexureSynopsis(enrichedForm, rules), // B
-    annexureListOfDates(enrichedForm), // C
-    annexureIndexOfDocuments(enrichedForm), // D
-    annexureVakalatnama(enrichedForm, rules), // E
-    annexureCourtFeeStatement(enrichedForm, rules), // F
-    annexureAffidavit(enrichedForm, rules, bodyParaCount), // G
+  const parts: AnnexurePart[] = [
+    {
+      label: 'ANNEXURE A',
+      heading: 'Memo of Parties',
+      html: annexureMemoOfParties(enrichedForm, rules, false), // A — first page, no break
+    },
+    { label: 'ANNEXURE B', heading: 'Synopsis', html: annexureSynopsis(enrichedForm, rules) },
+    {
+      label: 'ANNEXURE C',
+      heading: 'List of Dates and Chronology of Events',
+      html: annexureListOfDates(enrichedForm),
+    },
+    {
+      label: 'ANNEXURE D',
+      heading: 'Index of Documents Annexed',
+      html: annexureIndexOfDocuments(enrichedForm),
+    },
+    { label: 'ANNEXURE E', heading: 'Vakalatnama', html: annexureVakalatnama(enrichedForm, rules) },
+    {
+      label: 'ANNEXURE F',
+      heading: 'Court Fee Paid Statement',
+      html: annexureCourtFeeStatement(enrichedForm, rules),
+    },
+    {
+      label: 'ANNEXURE G',
+      heading: 'Affidavit',
+      html: annexureAffidavit(enrichedForm, rules, bodyParaCount),
+    },
   ];
 
-  const html = wrapHtml(parts.join('\n'));
-  return renderPdf(html);
+  const html = wrapHtml(parts.map((p) => p.html).join('\n'));
+  return { html, parts };
+}
+
+/**
+ * Build a multi-page PDF containing all 7 mandatory annexures.
+ * Each annexure starts on a new page (page-break-before: always).
+ * T-579: a thin wrapper, buildAnnexuresHtml then renderPdf.
+ */
+export async function buildAnnexuresPack(input: AnnexuresInput): Promise<Buffer> {
+  return renderPdf(buildAnnexuresHtml(input).html);
 }
 
 /**
