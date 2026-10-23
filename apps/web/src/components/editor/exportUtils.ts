@@ -683,10 +683,12 @@ function annexTable(el: HTMLTableElement, ctx: AnnexContext): AnnexBlock[] {
   const firstRow = htmlRows.find(
     (r) => Array.from(r.cells).reduce((n, c) => n + Math.max(1, c.colSpan), 0) === columns,
   );
+  // One entry per column: a cell spanning n columns gives each of them 1/n of its width.
   const pct: (number | undefined)[] = firstRow
-    ? Array.from(firstRow.cells).map((c) => {
+    ? Array.from(firstRow.cells).flatMap((c) => {
+        const span = Math.max(1, c.colSpan);
         const w = percentWidth(c);
-        return w ? parseFloat(w) : undefined;
+        return Array.from({ length: span }, () => (w ? parseFloat(w) / span : undefined));
       })
     : [];
   const fixed = pct.reduce<number>((n, p) => n + (p ?? 0), 0);
