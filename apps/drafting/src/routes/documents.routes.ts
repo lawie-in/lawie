@@ -474,7 +474,11 @@ export async function withInkHold(
   /** T-577: the settle amount for the delivered count (Ink and units); unset → the full hold. */
   let deliveredInk: number | undefined;
   let deliveredUnits: number | undefined;
-  /** T-577: true only once the delivered band is stored on the hold (what a sweep then keeps). */
+  /**
+   * T-577: true only once the delivered band is known to be on the hold as
+   * settleUnits (setHoldSettleUnits {set:true}, or settleInk's mark landed):
+   * what a sweep then keeps.
+   */
   let deliveredStored = false;
 
   // Express 4 does not catch a rejected async handler: a throw here would
@@ -632,7 +636,20 @@ export async function withInkHold(
       let settled: Awaited<ReturnType<typeof settleInk>>;
       try {
         // T-577: deliveredUnits is unset unless the pack asked for a count.
-        settled = await settleInk(userId, runId, runSequence, deliveredUnits, reference);
+        // A mark that lands carries it as the hold's settleUnits, which a
+        // sweep then keeps (even if this call loses the pull or throws).
+        settled = await settleInk(
+          userId,
+          runId,
+          runSequence,
+          deliveredUnits,
+          reference,
+          deliveredUnits !== undefined
+            ? () => {
+                deliveredStored = true;
+              }
+            : undefined,
+        );
       } catch (err) {
         // The hold (marked delivered, if the mark landed) stays; the sweep
         // settles or releases it.
@@ -660,8 +677,9 @@ export async function withInkHold(
           // actualUnits, so it kept the full hold: the held cost (already Ink).
           // T-577: unless the delivered band was stored on the hold
           // (delivered()), which the sweep keeps instead.
-          // Only a stored band (setHoldSettleUnits {set:true}) counts: a failed
-          // store leaves the sweep keeping the full hold, so done shows `cost`.
+          // Only a band known to be on the hold counts (setHoldSettleUnits
+          // {set:true}, or settleInk's mark with it landed): otherwise the
+          // sweep kept the full hold, so done shows `cost`.
           doneInkDebited = deliveredStored && deliveredInk !== undefined ? deliveredInk : cost;
           await readDoneBalance();
           return;
@@ -746,7 +764,7 @@ export async function withInkHold(
       deliveredUnits = unitsFromInk(deliveredInk);
       try {
         const stored = await setHoldSettleUnits(userId, runId, runSequence, deliveredUnits);
-        deliveredStored = stored.set;
+        if (stored.set) deliveredStored = true;
       } catch (err) {
         // finish() still passes the figure to settleInk; only a sweep that
         // beats it would keep the full hold. Ids only.
@@ -1649,13 +1667,31 @@ router.post(
     // T-577: a retry or resume of a run that was quoted for a count re-quotes
     // the same: the stored count stands when none is sent, and a different
     // count or Ink is a 409 price_changed. Only for a pack that asks.
+    /**
+     * T-577: the count the model is asked for: the one sent, or on a retry
+     * with none sent the run's stored count (what is quoted and held). A first
+     * run with no count stays undefined, so clampTarget gives its 15 (ruling 2).
+     */
+    let requestedParagraphs = parsed.data.paragraphs;
     if (quote.asks && runSequence > 1) {
-      const prior = await Generation.findOne({ runId, userId: payload.sub, templateId: recordId })
-        .sort({ runSequence: -1 })
-        .select('paragraphsRequested inkQuoted')
-        .lean();
+      let prior: { paragraphsRequested?: number | null; inkQuoted?: number | null } | null;
+      try {
+        prior = await Generation.findOne({ runId, userId: payload.sub, templateId: recordId })
+          .sort({ runSequence: -1 })
+          .select('paragraphsRequested inkQuoted')
+          .lean();
+      } catch (err) {
+        // No hold has been taken yet. Ids only.
+        console.error(
+          `[drafting] could not read the run's quoted count (runId=${runId}, runSequence=${runSequence}):`,
+          err instanceof Error ? err.name : 'unknown',
+        );
+        res.status(503).json({ error: 'try_again' });
+        return;
+      }
       if (prior?.paragraphsRequested !== undefined && prior.paragraphsRequested !== null) {
         if (parsed.data.paragraphs === undefined) {
+          requestedParagraphs = prior.paragraphsRequested;
           const again = await quoteDraft(recordId, {
             paragraphs: prior.paragraphsRequested,
             facts: paragraphFactsFor(values, ledger?.facts),
@@ -1710,7 +1746,7 @@ router.post(
         const common = {
           brief,
           language,
-          targetParagraphs: clampTarget(parsed.data.paragraphs),
+          targetParagraphs: clampTarget(requestedParagraphs),
           courtData,
           userId: payload.sub,
           runId,

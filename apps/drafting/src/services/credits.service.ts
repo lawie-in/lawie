@@ -1146,6 +1146,10 @@ export async function releaseInk(
  * kept (including `ledger_failed`, where the Ink stays kept). It is absent for
  * `fixture_run` (nothing was ever charged) and `no_hold`. It can be 0 only if
  * a real settle kept 0 units.
+ *
+ * T-577: `onMarked` is called once the step-1 mark has landed (with
+ * `settleUnits` when `actualUnits` was given), even if this call then loses
+ * the pull to a sweep or throws: from then on a sweep keeps that figure.
  */
 export async function settleInk(
   userId: string,
@@ -1153,6 +1157,7 @@ export async function settleInk(
   runSequence: number,
   actualUnits?: number,
   reference?: string,
+  onMarked?: () => void,
 ): Promise<{
   settled: boolean;
   reason?: 'fixture_run' | 'no_hold' | 'ledger_failed';
@@ -1187,6 +1192,7 @@ export async function settleInk(
     { arrayFilters: [{ 'h.runId': runId, 'h.runSequence': runSequence }] },
   );
   if (marked.matchedCount === 0) return { settled: false, reason: 'no_hold' };
+  onMarked?.();
 
   // Holds are never changed after holdInk except for the mark above, and the
   // filter pins this exact hold (expiresAt), so this split is the one pulled.
