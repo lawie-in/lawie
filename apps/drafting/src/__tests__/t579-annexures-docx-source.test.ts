@@ -6,7 +6,6 @@
  *    signed T-317 line (AJ-579-M1/M2); file name helpers.
  * 2. POST /documents/:id/annexures-pack?format=html (JSON for the web's Word export)
  *    next to the unchanged PDF path.
- * 3. The per-user limiter (createAnnexuresRateLimiter), mounted in a test app.
  *
  * All expectations are typed by hand from the ticket and the signed rulings, not
  * captured from the code. renderPdf (Chromium) is mocked.
@@ -14,7 +13,6 @@
 import './setupEnv';
 import './setupDb';
 
-import express from 'express';
 import mongoose from 'mongoose';
 import supertest from 'supertest';
 
@@ -23,8 +21,6 @@ jest.mock('../services/pdf-export.service', () => ({
   renderPdf: (...args: unknown[]) => mockRenderPdf(...args),
 }));
 
-// eslint-disable-next-line import/order
-import redis from '../config/redis';
 // eslint-disable-next-line import/order
 import app from '../app';
 // eslint-disable-next-line import/order
@@ -42,8 +38,6 @@ import {
 import { sealFormInputs } from '../utils/case-details';
 // eslint-disable-next-line import/order
 import { encrypt } from '../utils/encryption';
-// eslint-disable-next-line import/order
-import { createAnnexuresRateLimiter, ANNEXURES_RATE_LIMIT } from '../routes/documents.routes';
 
 const DISCLAIMER =
   '<div class="disclaimer">Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice.</div>';
@@ -349,142 +343,13 @@ describe('T-579 2: POST /documents/:id/annexures-pack?format=html', () => {
     }
   });
 
-  it("the route's own limiter is skipped when NODE_ENV is test (documented: other suites call as one user >10 times)", async () => {
-    expect(process.env.NODE_ENV).toBe('test');
+  it('the route has no per-route limiter: 15 calls as one user, both formats, all 200', async () => {
     const id = await makeDoc();
-    for (let i = 0; i < ANNEXURES_RATE_LIMIT.max + 3; i++) {
-      const res = await supertest(app).post(`/${id}/annexures-pack?format=html`).set(AUTH);
+    for (let i = 0; i < 15; i++) {
+      const q = i % 2 === 0 ? '?format=html' : '';
+      const res = await supertest(app).post(`/${id}/annexures-pack${q}`).set(AUTH);
       expect(res.status).toBe(200);
+      expect(res.headers['retry-after']).toBeUndefined();
     }
-    expect(await redis.get(`rl:annexures:${AUTH['x-user-id']}`)).toBeNull();
-  });
-});
-
-// ── 3. the limiter ───────────────────────────────────────────────────────────
-
-describe('T-579 3: createAnnexuresRateLimiter', () => {
-  const T221 = 'Too many requests. Please wait 60 minutes, then try again.';
-
-  function mount(opts?: Parameters<typeof createAnnexuresRateLimiter>[0]) {
-    const a = express();
-    a.use((req, _res, next) => {
-      const sub = req.header('x-test-sub');
-      if (sub) (req as unknown as { jwtPayload: { sub: string } }).jwtPayload = { sub };
-      next();
-    });
-    a.post('/x', createAnnexuresRateLimiter(opts), (_req, res) => {
-      res.json({ ok: true });
-    });
-    return a;
-  }
-
-  beforeEach(async () => {
-    await redis.flushall();
-  });
-
-  it('defaults are 10 per 3600 seconds', () => {
-    expect(ANNEXURES_RATE_LIMIT).toEqual({ max: 10, windowSeconds: 3600 });
-  });
-
-  it('allows 10 per hour per user; the 11th is 429 with Retry-After and the signed T-221 body', async () => {
-    const a = mount();
-    for (let i = 0; i < 10; i++) {
-      const ok = await supertest(a).post('/x').set('x-test-sub', 'user-1');
-      expect(ok.status).toBe(200);
-    }
-    const res = await supertest(a).post('/x').set('x-test-sub', 'user-1');
-    expect(res.status).toBe(429);
-    expect(res.body).toEqual({ error: T221 });
-    const retry = Number(res.headers['retry-after']);
-    expect(Number.isInteger(retry)).toBe(true);
-    expect(retry).toBeGreaterThan(3500);
-    expect(retry).toBeLessThanOrEqual(3600);
-    // stays blocked
-    expect((await supertest(a).post('/x').set('x-test-sub', 'user-1')).status).toBe(429);
-  });
-
-  it('a different user is not limited', async () => {
-    const a = mount({ max: 2 });
-    await supertest(a).post('/x').set('x-test-sub', 'u1').expect(200);
-    await supertest(a).post('/x').set('x-test-sub', 'u1').expect(200);
-    await supertest(a).post('/x').set('x-test-sub', 'u1').expect(429);
-    await supertest(a).post('/x').set('x-test-sub', 'u2').expect(200);
-  });
-
-  it('counts in Redis under rl:annexures:<sub> with an expiry', async () => {
-    const a = mount();
-    await supertest(a).post('/x').set('x-test-sub', 'user-9').expect(200);
-    expect(await redis.get('rl:annexures:user-9')).toBe('1');
-    const ttl = await redis.ttl('rl:annexures:user-9');
-    expect(ttl).toBeGreaterThan(0);
-    expect(ttl).toBeLessThanOrEqual(3600);
-  });
-
-  it('a key left without an expiry gets one instead of blocking for good', async () => {
-    await redis.set('rl:annexures:stuck', '50'); // no TTL
-    const a = mount();
-    const res = await supertest(a).post('/x').set('x-test-sub', 'stuck');
-    expect(res.status).toBe(429);
-    expect(await redis.ttl('rl:annexures:stuck')).toBeGreaterThan(0);
-  });
-
-  it('the signed message variants follow the gateway wording', async () => {
-    const a1 = mount({ max: 1, windowSeconds: 30 });
-    await supertest(a1).post('/x').set('x-test-sub', 'v1').expect(200);
-    const one = await supertest(a1).post('/x').set('x-test-sub', 'v1');
-    expect(one.status).toBe(429);
-    expect(one.body).toEqual({ error: 'Too many requests. Please wait 1 minute, then try again.' });
-
-    const a2 = mount({ max: 1, windowSeconds: 90 });
-    await supertest(a2).post('/x').set('x-test-sub', 'v2').expect(200);
-    const two = await supertest(a2).post('/x').set('x-test-sub', 'v2');
-    expect(two.body).toEqual({
-      error: 'Too many requests. Please wait 2 minutes, then try again.',
-    });
-  });
-
-  it('a Redis failure lets the request through and logs only the error name', async () => {
-    const incr = jest
-      .spyOn(redis, 'incr')
-      .mockRejectedValue(
-        Object.assign(new Error('secret-host:6379 refused for user-7'), { name: 'ReplyError' }),
-      );
-    const errSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
-    try {
-      const res = await supertest(mount()).post('/x').set('x-test-sub', 'user-7');
-      expect(res.status).toBe(200);
-      const logged = errSpy.mock.calls.flat().map(String).join(' ');
-      expect(logged).toContain('ReplyError');
-      expect(logged).not.toContain('secret-host');
-      expect(logged).not.toContain('user-7');
-    } finally {
-      incr.mockRestore();
-      errSpy.mockRestore();
-    }
-  });
-
-  it('skip: true passes everything through and does not touch Redis', async () => {
-    const a = mount({ max: 1, skip: true });
-    for (let i = 0; i < 3; i++) await supertest(a).post('/x').set('x-test-sub', 'sk').expect(200);
-    expect(await redis.get('rl:annexures:sk')).toBeNull();
-  });
-
-  it('both formats count against the same budget (route-mounted limiter, skip off)', async () => {
-    // The route's own instance is skipped under Jest, so mount the same factory
-    // in front of a stand-in that accepts both formats.
-    const a = express();
-    a.use((req, _res, next) => {
-      (req as unknown as { jwtPayload: { sub: string } }).jwtPayload = { sub: 'both' };
-      next();
-    });
-    a.post('/annexures-pack', createAnnexuresRateLimiter({ max: 4 }), (_req, res) => {
-      res.json({ ok: true });
-    });
-    await supertest(a).post('/annexures-pack').expect(200);
-    await supertest(a).post('/annexures-pack?format=html').expect(200);
-    await supertest(a).post('/annexures-pack').expect(200);
-    await supertest(a).post('/annexures-pack?format=html').expect(200);
-    await supertest(a).post('/annexures-pack').expect(429);
-    await supertest(a).post('/annexures-pack?format=html').expect(429);
   });
 });

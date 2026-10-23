@@ -6,9 +6,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import mongoose from 'mongoose';
 import { z } from 'zod';
 
-import { env } from '../config/env';
 import logger from '../config/logger';
-import redis from '../config/redis';
 import { authenticate } from '../middleware/authenticate';
 import { chargedCost, enforceCredits, insufficientInkBody } from '../middleware/enforceCredits';
 import { FREE_TIER_MONTHLY_LIMIT } from '../middleware/enforceFreeLimit';
@@ -2036,74 +2034,6 @@ function partyMappingOf(
   return { packId, mapped: mapPartyFields(packId, formData) };
 }
 
-// ── T-579: annexures pack rate limit (Arjun): 10 per hour per user, both formats ──
-
-/** The signed T-221 limit line and its variants (as the gateway's RATE_LIMIT_MESSAGES). */
-const ANNEXURES_LIMIT_MESSAGES = {
-  minutes: 'Too many requests. Please wait {n} minutes, then try again.',
-  oneMinute: 'Too many requests. Please wait 1 minute, then try again.',
-  unknown: 'Too many requests. Please wait a few minutes, then try again.',
-} as const;
-
-function annexuresLimitMessage(retryAfterSeconds: number): string {
-  if (!Number.isFinite(retryAfterSeconds) || retryAfterSeconds < 0) {
-    return ANNEXURES_LIMIT_MESSAGES.unknown;
-  }
-  const minutes = Math.max(1, Math.ceil(retryAfterSeconds / 60));
-  if (minutes === 1) return ANNEXURES_LIMIT_MESSAGES.oneMinute;
-  return ANNEXURES_LIMIT_MESSAGES.minutes.replace('{n}', String(minutes));
-}
-
-export const ANNEXURES_RATE_LIMIT = { max: 10, windowSeconds: 3600 } as const;
-
-/**
- * T-579: per-user limiter for POST /:id/annexures-pack, counted in Redis by
- * user id (`rl:annexures:<sub>`), so it holds across instances. Every
- * authenticated request counts, PDF or HTML. Over the limit: 429 with
- * Retry-After (seconds) and `{ error: <signed T-221 line> }`, the gateway's
- * body. A Redis failure lets the request through (fail open: no Ink and no
- * model call sit behind this route); only the error name is logged.
- */
-export function createAnnexuresRateLimiter(
-  opts: { max?: number; windowSeconds?: number; skip?: boolean } = {},
-) {
-  const max = opts.max ?? ANNEXURES_RATE_LIMIT.max;
-  const windowSeconds = opts.windowSeconds ?? ANNEXURES_RATE_LIMIT.windowSeconds;
-  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    if (opts.skip) return next();
-    const sub = req.jwtPayload?.sub;
-    if (!sub) return next();
-    const key = `rl:annexures:${sub}`;
-    let count: number;
-    let ttl: number;
-    try {
-      count = await redis.incr(key);
-      if (count === 1) await redis.expire(key, windowSeconds);
-      ttl = await redis.ttl(key);
-      // A key left without an expiry would block the user for good.
-      if (ttl < 0) {
-        await redis.expire(key, windowSeconds);
-        ttl = windowSeconds;
-      }
-    } catch (err) {
-      console.error(
-        '[drafting] Annexures rate limit check failed:',
-        err instanceof Error ? err.name : 'UnknownError',
-      );
-      return next();
-    }
-    if (count > max) {
-      res.setHeader('Retry-After', String(ttl));
-      res.status(429).json({ error: annexuresLimitMessage(ttl) });
-      return;
-    }
-    next();
-  };
-}
-
-// Skipped under Jest: existing route suites make more than 10 calls as one user.
-const annexuresRateLimiter = createAnnexuresRateLimiter({ skip: env.NODE_ENV === 'test' });
-
 // POST /documents/:id/annexures-pack — SCRUM-65: generate 7 mandatory annexures as a multi-page PDF
 // Court-rule aware: designation, verification language, party labels from court_rules JSON.
 // Returns: application/pdf — single PDF with each annexure on a fresh page.
@@ -2114,7 +2044,6 @@ router.post(
   '/:id/annexures-pack',
   validateObjectId,
   authenticate,
-  annexuresRateLimiter,
   async (req: Request, res: Response): Promise<void> => {
     const asHtml = req.query.format === 'html';
     const payload = req.jwtPayload!;
