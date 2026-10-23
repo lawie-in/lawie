@@ -17,6 +17,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { DraftResult } from './briefTypes';
 import { finaliseDocument } from './draftActions';
 import { actions, folio, linkButton, page } from './nlUi';
+import { PARAGRAPH_TEXT, fillParagraphCopy } from './paragraphCopy';
 
 import { Button, Chip, ErrorState, InkChip, Spinner, formatInk } from '@/components/ui';
 
@@ -93,6 +94,15 @@ export default function DraftReadyStep({
     typeof result.inkUsed === 'number' && Number.isFinite(result.inkUsed) && result.inkUsed > 0
       ? result.inkUsed
       : null;
+  // T-577 (AJ-577-M1 (3)): only for a real debit below the quoted ceiling; {n} is that debit.
+  // `inkQuoted` is set only for a draft sent with a paragraph count, so never when asks was false.
+  const lowerDebit =
+    inkUsed !== null &&
+    typeof result.inkQuoted === 'number' &&
+    Number.isFinite(result.inkQuoted) &&
+    inkUsed < result.inkQuoted
+      ? fillParagraphCopy(PARAGRAPH_TEXT.lowerDebit, { n: inkUsed })
+      : null;
   // T-521 (a11y, WCAG 2.4.3): focus never falls to <body>. Finalise stays focusable while it
   // saves (aria-disabled, not disabled); on success it unmounts and focus moves to Export,
   // which becomes the primary "Export PDF / Word". On failure focus stays on Finalise.
@@ -164,6 +174,11 @@ export default function DraftReadyStep({
               )}
             </span>
           </div>
+          {lowerDebit && (
+            <p className="nl-body-sm text-nl-muted mt-nl-1" data-testid="lower-debit-line">
+              {lowerDebit}
+            </p>
+          )}
         </div>
       </div>
 

@@ -18,6 +18,7 @@ import * as Sentry from '@sentry/nextjs';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 
+import { PARAGRAPH_TEXT, fillParagraphCopy } from './paragraphCopy';
 import { linkButton } from './ui';
 
 /**
@@ -29,6 +30,16 @@ import { linkButton } from './ui';
 export function formatInkCost(n: number | undefined): string | null {
   if (typeof n !== 'number' || !Number.isFinite(n) || n <= 0) return null;
   return `Uses ${n} Ink`;
+}
+
+/**
+ * T-577 (AJ-577-M6 (2), signed): the cost line for a paragraph quote that is a ceiling,
+ * "Uses up to N Ink". Opt-in through InkCostLine's `ceiling`; `formatInkCost` (the T-372 line)
+ * is unchanged for every other caller. Null when there is no positive cost to show.
+ */
+export function formatInkCeiling(n: number | undefined): string | null {
+  if (formatInkCost(n) === null) return null;
+  return fillParagraphCopy(PARAGRAPH_TEXT.cost, { n: n as number });
 }
 
 /** Arjun's notice, word for word. Do not reword. */
@@ -73,6 +84,7 @@ export default function InkCostLine({
   kind,
   action,
   report = true,
+  ceiling = false,
 }: {
   /** Unique per button; the button's aria-describedby points here. */
   id: string;
@@ -87,6 +99,12 @@ export default function InkCostLine({
   action: InkCostAction;
   /** Report the unknown state to Sentry. Off for a second line in the same card, so it is reported once. */
   report?: boolean;
+  /**
+   * T-577: the cost is a paragraph quote's ceiling: the known state reads "Uses up to N Ink"
+   * (AJ-577-M6 (2)) in a polite live region, so a new figure (a re-quote, a 409) is announced.
+   * Off by default: every other caller keeps "Uses N Ink".
+   */
+  ceiling?: boolean;
 }) {
   const state = inkCostState(cost, loading);
 
@@ -102,6 +120,14 @@ export default function InkCostLine({
     reported.current = true;
     Sentry.captureMessage('Ink cost unknown', { level: 'warning', tags: { kind, action } });
   }, [state, report, kind, action]);
+
+  if (state === 'known' && ceiling) {
+    return (
+      <p id={id} role="status" className="text-sm text-slate-600">
+        {formatInkCeiling(cost)}
+      </p>
+    );
+  }
 
   if (state === 'known') {
     return (

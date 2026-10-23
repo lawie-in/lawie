@@ -13,7 +13,7 @@
  * on request, a "Required" tag, and what could not be read as "To be asked".
  * Without a ledger the screen is exactly as before.
  */
-import { ChevronDown, Loader2 } from 'lucide-react';
+import { AlertTriangle, ChevronDown, Loader2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 import {
@@ -37,8 +37,12 @@ import {
   Value,
 } from './briefTypes';
 import CourtPicker from './CourtPicker';
+import { SOMETHING_DID_NOT_WORK } from './generationFailure';
 import InkCostLine, { inkCostState } from './InkCostLine';
 import * as nl from './nlUi';
+import ParagraphBandTrack from './ParagraphBandTrack';
+import { PARAGRAPH_TEXT } from './paragraphCopy';
+import ParagraphStepper from './ParagraphStepper';
 import {
   card,
   h1,
@@ -53,9 +57,10 @@ import {
   tagGold,
   tagPlain,
 } from './ui';
+import type { ParagraphControl } from './useParagraphQuote';
 import ValueInput from './ValueInput';
 
-import { ErrorState, Skeleton } from '@/components/ui';
+import { ErrorState, STATE_COPY, Skeleton } from '@/components/ui';
 
 /**
  * T-136. Ajay's line (CLO, 7 Oct 2026, part 2, condition 2), word for word. The
@@ -535,6 +540,8 @@ export default function BriefStep({
   onInkCostRetry,
   inkCostKind,
   askedAnswers,
+  paragraphs,
+  inkCostCeiling = false,
 }: {
   brief: Brief;
   /** T-147b: the fact ledger, when the service sent one. Rows render from it. */
@@ -579,6 +586,13 @@ export default function BriefStep({
   inkCostKind?: string;
   /** T-365 AC2: the advocate's answers to the items sent as `asked_empty`, by key. */
   askedAnswers?: Record<string, Value>;
+  /**
+   * T-577: the paragraph stepper, only for a type whose quote asks. Absent: the brief is as
+   * before. With it, `inkCost` / `inkCostLoading` are the quote's.
+   */
+  paragraphs?: ParagraphControl;
+  /** T-577: the cost is a paragraph quote's ceiling ("Uses up to N Ink", AJ-577-M6 (2)). */
+  inkCostCeiling?: boolean;
 }) {
   const [dismissed, setDismissed] = useState<string[]>([]);
   const [name, setName] = useState(brief.kind.name);
@@ -1047,6 +1061,21 @@ export default function BriefStep({
         </p>
       )}
 
+      {/* T-577 (Rajesh section 5): the count, directly above the cost line and Confirm. */}
+      {paragraphs && (
+        <section aria-labelledby="brief-paragraphs-label" className="gap-nl-2 mt-6 flex flex-col">
+          <ParagraphStepper control={paragraphs} />
+          {paragraphs.quote && paragraphs.value !== null && (
+            <ParagraphBandTrack
+              min={paragraphs.quote.min}
+              max={paragraphs.quote.max}
+              value={paragraphs.value}
+              bands={paragraphs.quote.bands}
+            />
+          )}
+        </section>
+      )}
+
       <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-center gap-x-5">
           <button type="button" onClick={onEditDescription} className={linkButton}>
@@ -1076,14 +1105,38 @@ export default function BriefStep({
             {pending && <Loader2 size={16} className="animate-spin" aria-hidden="true" />}
             Confirm brief and continue
           </button>
-          <InkCostLine
-            id={INK_COST_ID}
-            cost={inkCost}
-            loading={inkCostLoading}
-            onRetry={onInkCostRetry}
-            kind={inkCostKind ?? brief.kind.id ?? 'unknown'}
-            action="confirm"
-          />
+          {paragraphs?.status === 'try_again' ? (
+            // T-577: a 503 from the quote: the signed row 455 with Retry; nothing charges.
+            <div className="flex flex-col items-start gap-1 sm:items-end">
+              <p id={INK_COST_ID} role="alert" className="text-brand-error text-sm">
+                {SOMETHING_DID_NOT_WORK}
+              </p>
+              <button type="button" onClick={paragraphs.onRetry} className={linkButton}>
+                {STATE_COPY.retry}
+              </button>
+            </div>
+          ) : (
+            <InkCostLine
+              id={INK_COST_ID}
+              cost={inkCost}
+              loading={inkCostLoading}
+              onRetry={paragraphs ? paragraphs.onRetry : onInkCostRetry}
+              kind={inkCostKind ?? brief.kind.id ?? 'unknown'}
+              action="confirm"
+              ceiling={inkCostCeiling}
+            />
+          )}
+          {/* T-577: a 409 price_changed; the cost line above already shows the new figure. */}
+          {paragraphs?.priceChanged && (
+            <p
+              role="alert"
+              className="nl-body-sm text-nl-warn flex items-start gap-2"
+              data-testid="price-changed-line"
+            >
+              <AlertTriangle size={16} className="mt-0.5 flex-none" aria-hidden="true" />
+              <span>{PARAGRAPH_TEXT.priceChanged}</span>
+            </p>
+          )}
         </div>
       </div>
     </div>

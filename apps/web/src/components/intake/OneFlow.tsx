@@ -59,6 +59,7 @@ import { NOT_STARTED_LINE, inkCostState } from './InkCostLine';
 import NightScope from './NightScope';
 import NoMatchStep from './NoMatchStep';
 import QuestionsStep from './QuestionsStep';
+import { useParagraphQuote, type ParagraphSnapshot } from './useParagraphQuote';
 
 import { PaywallModal } from '@/components/credits/PaywallModal';
 import {
@@ -181,6 +182,18 @@ function inkCostOf(
     : kinds.find((k) => k.template_id === kindId)?.credits_cost;
 }
 
+/**
+ * T-577: the type asks for a paragraph count (template-configs `asks_paragraphs`). A type with no
+ * rule pack never does. False: no quote, no stepper, nothing sent, the brief as before.
+ */
+function kindAsksParagraphs(kindId: string | undefined, kinds: KindSummary[]): boolean {
+  if (!kindId || kindId === NO_RULE_PACK) return false;
+  return kinds.find((k) => k.template_id === kindId)?.asks_paragraphs === true;
+}
+
+const positiveNumber = (v: unknown): v is number =>
+  typeof v === 'number' && Number.isFinite(v) && v > 0;
+
 /** T-388 (Meera, final): a 402 that carries neither a cost nor a line of its own (now in InkCostLine). */
 export { NOT_STARTED_LINE };
 
@@ -269,6 +282,38 @@ function OneFlowSteps({
   const runId = useRef<string | undefined>(undefined);
   const updateSeq = useRef(0);
 
+  // ── T-577: the paragraph count, for a type that asks ──────────────────────
+  const briefKindId = brief ? (brief.kind.id ?? NO_RULE_PACK) : undefined;
+  const kindAsks = kindAsksParagraphs(briefKindId, kinds);
+  const paragraphQuote = useParagraphQuote({
+    enabled: kindAsks,
+    kind: kindAsks ? briefKindId : undefined,
+    ledgerId: ledger?.ledger_id,
+    readRequest: () => {
+      const current = briefRef.current;
+      if (!current) return null;
+      return {
+        kind: current.kind.id ?? NO_RULE_PACK,
+        values: valuesRef.current,
+        ...(ledgerRef.current ? { ledger_id: ledgerRef.current.ledger_id } : {}),
+      };
+    },
+  });
+  const {
+    snapshot: paragraphSnapshot,
+    plainInk: paragraphPlainInk,
+    clearPriceChanged,
+    applyPriceChanged,
+    applyRangeError,
+  } = paragraphQuote;
+  /** T-577: one generation at a time when a count is sent (a double press starts one). */
+  const paragraphGenerating = useRef(false);
+  /**
+   * T-577: the type whose 409 came on a retry, so the next press (on that type) resends this
+   * run's run_id. Null otherwise.
+   */
+  const priceChangedOnRetry = useRef<string | null>(null);
+
   const setBrief = useCallback((next: Brief | null) => {
     briefRef.current = next;
     setBriefState(next);
@@ -311,6 +356,7 @@ function OneFlowSteps({
     chosenKind.current = undefined;
     lastRead.current = null;
     runId.current = undefined;
+    priceChangedOnRetry.current = null;
   }, [setBrief, setLedger]);
 
   /** The description and every answer, for the dates the service reads again. */
@@ -665,14 +711,8 @@ function OneFlowSteps({
 
   // ── The draft ─────────────────────────────────────────────────────────────
 
-  const generate = useCallback(
-    async (retry: boolean) => {
-      const current = briefRef.current;
-      if (!current) return;
-      // T-388 (Arjun): nothing that charges starts while the Ink cost is not
-      // known. Confirm and "Try again" are off then too; this is the backstop.
-      const cost = inkCostOf(current.kind.id ?? NO_RULE_PACK, kinds, guidedInkCost);
-      if (inkCostState(cost, inkCostLoading) !== 'known') return;
+  const generateNow = useCallback(
+    async (current: Brief, retry: boolean, para: ParagraphSnapshot | undefined) => {
       // T-343: ask before leaving the brief, so focus stays on the confirm button.
       if (await privacyPrecheck('generate')) return;
       if (!retry) runId.current = undefined;
@@ -704,6 +744,8 @@ function OneFlowSteps({
             ...(kind !== NO_RULE_PACK && ledgerRef.current
               ? { ledger_id: ledgerRef.current.ledger_id }
               : {}),
+            // T-577: only when the quote asks; the cost shown is the cost held (T-388).
+            ...(para ? { paragraphs: para.paragraphs, expected_ink: para.expectedInk } : {}),
           }),
         });
         // T-343: privacy re-acceptance needed; the prompt or P7 box is shown. Back to the brief.
@@ -724,7 +766,25 @@ function OneFlowSteps({
             message?: string;
             cost?: number;
             balance?: { totalInk?: number; total?: number };
+            ink?: unknown;
+            min?: unknown;
           };
+          // T-577: both refusals come before any Ink hold, and only for a request that sent a
+          // count. Never the server's text: the signed lines only. A 409 never retries itself.
+          if (para && res.status === 409 && data.error === 'price_changed') {
+            // AJ-577-M8: the cost line shows the 409's `ink`, the stepper keeps its value, and
+            // the next press sends the new expected_ink (with this run's run_id after a retry).
+            priceChangedOnRetry.current = retry ? kind : null;
+            applyPriceChanged(data.ink);
+            setPhase('brief');
+            return;
+          }
+          if (para && res.status === 400 && data.error === 'paragraph_count_out_of_range') {
+            // AJ-577-M4 from the server's `min`; the count stays editable.
+            applyRangeError(data.min);
+            setPhase('brief');
+            return;
+          }
           if (res.status === 402) {
             // T-223 trigger 2: an unverified email user gets the verify modal, not the paywall.
             if (await openVerifyInsteadOfPaywall()) {
@@ -899,6 +959,14 @@ function OneFlowSteps({
           ...(typeof done.inkDebited === 'number' && done.inkDebited > 0
             ? { inkUsed: done.inkDebited }
             : {}),
+          // T-577: the ceiling and the count delivered, only for a draft sent with a count.
+          ...(para && positiveNumber(done.inkQuoted) ? { inkQuoted: done.inkQuoted } : {}),
+          ...(para &&
+          typeof done.paragraphsDelivered === 'number' &&
+          Number.isInteger(done.paragraphsDelivered) &&
+          done.paragraphsDelivered >= 0
+            ? { paragraphsDelivered: done.paragraphsDelivered }
+            : {}),
         });
         setPhase('ready');
       } catch {
@@ -909,7 +977,46 @@ function OneFlowSteps({
         });
       }
     },
-    [description, reset, kinds, guidedInkCost, inkCostLoading],
+    [description, reset, applyPriceChanged, applyRangeError],
+  );
+
+  const generate = useCallback(
+    async (retry: boolean) => {
+      const current = briefRef.current;
+      if (!current) return;
+      // T-577: a type that asks charges the quote. Nothing starts without a current quote for
+      // the count on the stepper (null), and a count goes with it only when the quote asks.
+      const asking = kindAsksParagraphs(current.kind.id ?? NO_RULE_PACK, kinds);
+      let para: ParagraphSnapshot | undefined;
+      if (asking) {
+        const snap = paragraphSnapshot();
+        if (snap === null) return;
+        if (snap === undefined && !positiveNumber(paragraphPlainInk)) return;
+        if (paragraphGenerating.current) return;
+        para = snap;
+        clearPriceChanged();
+      } else {
+        // T-388 (Arjun): nothing that charges starts while the Ink cost is not
+        // known. Confirm and "Try again" are off then too; this is the backstop.
+        const cost = inkCostOf(current.kind.id ?? NO_RULE_PACK, kinds, guidedInkCost);
+        if (inkCostState(cost, inkCostLoading) !== 'known') return;
+      }
+      if (asking) paragraphGenerating.current = true;
+      try {
+        await generateNow(current, retry, para);
+      } finally {
+        if (asking) paragraphGenerating.current = false;
+      }
+    },
+    [
+      kinds,
+      guidedInkCost,
+      inkCostLoading,
+      generateNow,
+      paragraphSnapshot,
+      paragraphPlainInk,
+      clearPriceChanged,
+    ],
   );
 
   // ── Moving between the screens ────────────────────────────────────────────
@@ -1087,15 +1194,31 @@ function OneFlowSteps({
 
   // T-372 / T-388: the one Ink cost of this brief, shown under Confirm and
   // under "Try again", from the same template-configs price.
-  const briefKind = brief ? (brief.kind.id ?? NO_RULE_PACK) : undefined;
-  const inkCost = briefKind === undefined ? undefined : inkCostOf(briefKind, kinds, guidedInkCost);
+  const briefKind = briefKindId;
+  // T-577: for a type that asks, the cost is the paragraph quote's (a ceiling when it says so),
+  // and while it is on its way or failed nothing charges. Every other type: as before.
+  const pq = paragraphQuote.control;
+  const quoteAsks = kindAsks && paragraphQuote.asks !== false;
+  const inkCost = kindAsks
+    ? paragraphQuote.asks === false
+      ? paragraphQuote.plainInk
+      : pq.status === 'ready'
+        ? pq.quote?.ink
+        : undefined
+    : briefKind === undefined
+      ? undefined
+      : inkCostOf(briefKind, kinds, guidedInkCost);
+  const costLoading = kindAsks ? pq.status === 'loading' || pq.status === 'idle' : inkCostLoading;
+  const costRetry = kindAsks ? pq.onRetry : onInkCostRetry;
+  const costCeiling = quoteAsks && pq.quote?.ceiling === true;
 
   if (phase === 'generating') {
     return (
       <GeneratingStep
         inkCost={inkCost}
-        inkCostLoading={inkCostLoading}
-        onInkCostRetry={onInkCostRetry}
+        inkCostLoading={costLoading}
+        onInkCostRetry={costRetry}
+        inkCostCeiling={costCeiling}
         kind={briefKind}
         inkLevel={inkLevel}
         documentName={brief?.kind.name ?? 'document'}
@@ -1170,13 +1293,19 @@ function OneFlowSteps({
           }}
           onEditDescription={editDescription}
           onCancel={cancel}
-          onConfirm={() => void generate(false)}
+          onConfirm={() => {
+            // T-577: after a 409 that came on a retry, the next press resends this run's run_id.
+            const again = priceChangedOnRetry.current === (brief.kind.id ?? NO_RULE_PACK);
+            priceChangedOnRetry.current = null;
+            void generate(again);
+          }}
           confirmDescribedBy={privacyDescribedBy}
           inkCost={inkCost}
-          inkCostLoading={inkCostLoading}
-          onInkCostRetry={onInkCostRetry}
+          inkCostLoading={costLoading}
+          onInkCostRetry={costRetry}
           inkCostKind={briefKind}
           askedAnswers={askedAnswers}
+          {...(quoteAsks ? { paragraphs: pq, inkCostCeiling: costCeiling } : {})}
         />
         <ChangeDocumentDialog
           open={changeOpen}

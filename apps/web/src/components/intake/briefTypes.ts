@@ -247,6 +247,11 @@ export interface KindSummary {
   plan_access: 'free' | 'pro';
   /** T-372: the template's Ink cost, from the template-configs API when sent. */
   credits_cost?: number;
+  /**
+   * T-577: the type asks for a paragraph count (template-configs `asks_paragraphs`). Only then is
+   * the paragraph quote fetched; absent or false: the brief is as before.
+   */
+  asks_paragraphs?: boolean;
 }
 
 export interface Finding {
@@ -290,6 +295,13 @@ export interface DraftResult {
    * then not shown.
    */
   inkUsed?: number;
+  /**
+   * T-577: the `done` event's `inkQuoted` (the ceiling shown before Generate). Set only when the
+   * draft was generated with a paragraph count (the quote asked); absent otherwise.
+   */
+  inkQuoted?: number;
+  /** T-577: the `done` event's `paragraphsDelivered`, when the quote asked. */
+  paragraphsDelivered?: number;
 }
 
 /** T-373: one clause the D1 renderer printed, with its status. */

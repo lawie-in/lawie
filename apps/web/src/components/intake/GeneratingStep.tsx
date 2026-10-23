@@ -58,6 +58,7 @@ export default function GeneratingStep({
   onInkCostRetry,
   kind = 'unknown',
   inkLevel = null,
+  inkCostCeiling = false,
 }: {
   documentName: string;
   repairing: boolean;
@@ -77,6 +78,8 @@ export default function GeneratingStep({
    * balance is unknown: no inkwell then, never a made-up level.
    */
   inkLevel?: number | null;
+  /** T-577: the cost is a paragraph quote's ceiling ("Uses up to N Ink", AJ-577-M6 (2)). */
+  inkCostCeiling?: boolean;
 }) {
   if (error) {
     // T-388 (Arjun): "Try again" charges, so it waits for a known cost.
@@ -129,6 +132,7 @@ export default function GeneratingStep({
                     onRetry={onInkCostRetry}
                     kind={kind}
                     action="retry"
+                    ceiling={inkCostCeiling}
                   />
                 )}
               </div>
