@@ -302,14 +302,140 @@ describe('useParagraphQuote', () => {
     expect(hook.control.priceChanged).toBe(false);
   });
 
-  it('applyRangeError: M4 line from the server min, quote floor updated; falls back to the quote min', async () => {
-    mockApiFetch.mockResolvedValue(ok(quoteBody(10, 2)));
+  // A quote at 7 (the old floor), then the server says the floor is 8.
+  async function atSeven() {
+    mockApiFetch.mockResolvedValueOnce(ok(quoteBody(10, 2)));
     await act(async () => root.render(<Harness />));
     await flush();
+    mockApiFetch.mockResolvedValueOnce(ok(quoteBody(7, 2)));
+    await act(async () => hook.control.onCommit(7, false));
+    await flush();
+    expect(hook.control.value).toBe(7);
+    mockApiFetch.mockClear();
+  }
+
+  it('applyRangeError: M4 line from the server min, stepper clamped into the new range and RE-QUOTED', async () => {
+    await atSeven();
+    const d = deferred();
+    mockApiFetch.mockReturnValueOnce(d.promise);
     await act(async () => hook.applyRangeError(8));
+    // before the re-quote answers: loading, no snapshot (so the refused 7 can never be sent),
+    // the stepper already left 7, the M4 line shows and the floor is raised
+    expect(hook.control.status).toBe('loading');
+    expect(hook.snapshot()).toBeNull();
+    expect(hook.control.value).toBe(8);
     expect(hook.control.rangeLine).toEqual({ min: 8, server: true });
     expect(hook.control.quote?.min).toBe(8);
-    await act(async () => hook.applyRangeError(undefined));
+    expect(mockApiFetch).toHaveBeenCalledTimes(1);
+    expect(bodyOf(0).paragraphs).toBe(8);
+    // the answer: ready at 8, and the M4 line is still up
+    await act(async () => d.resolve(ok(quoteBody(8, 2, { min: 8 }))));
+    await flush();
+    expect(hook.control.status).toBe('ready');
+    expect(hook.snapshot()).toEqual({ paragraphs: 8, expectedInk: 2 });
+    expect(hook.control.quote?.min).toBe(8);
     expect(hook.control.rangeLine).toEqual({ min: 8, server: true });
+  });
+
+  it('applyRangeError: the line clears on the next successful quote after the re-quote', async () => {
+    await atSeven();
+    mockApiFetch.mockResolvedValueOnce(ok(quoteBody(8, 2, { min: 8 })));
+    await act(async () => hook.applyRangeError(8));
+    await flush();
+    expect(hook.control.rangeLine).not.toBeNull();
+    mockApiFetch.mockResolvedValueOnce(ok(quoteBody(12, 3, { min: 8 })));
+    await act(async () => hook.control.onCommit(12, false));
+    await flush();
+    expect(hook.control.rangeLine).toBeNull();
+  });
+
+  it('applyRangeError: a count already in range is re-quoted too; a bad min falls back to the quote floor', async () => {
+    await atSeven();
+    mockApiFetch.mockResolvedValue(ok(quoteBody(7, 2)));
+    await act(async () => hook.applyRangeError(undefined));
+    await flush();
+    expect(hook.control.rangeLine).toEqual({ min: 7, server: true });
+    expect(hook.control.quote?.min).toBe(7);
+    expect(mockApiFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('applyRangeError: a min above the quote max is not applied to the floor', async () => {
+    await atSeven();
+    mockApiFetch.mockResolvedValue(ok(quoteBody(7, 2)));
+    await act(async () => hook.applyRangeError(40));
+    await flush();
+    expect(hook.control.quote?.min).toBe(7);
+  });
+
+  describe('a 400 from the QUOTE endpoint', () => {
+    const range400 = (min: unknown, extra: Record<string, unknown> = {}) => ({
+      ok: false,
+      status: 400,
+      json: async () => ({ error: 'paragraph_count_out_of_range', min, ...extra }),
+    });
+
+    it('paragraph_count_out_of_range with a valid min: the M4 line and ONE re-quote at the clamped count', async () => {
+      await atSeven();
+      mockApiFetch.mockResolvedValueOnce(range400(9, { max: 25 }));
+      mockApiFetch.mockResolvedValueOnce(ok(quoteBody(9, 2, { min: 9 })));
+      await act(async () => hook.control.onCommit(8, false));
+      await flush();
+      expect(mockApiFetch).toHaveBeenCalledTimes(2);
+      expect(bodyOf(0).paragraphs).toBe(8);
+      expect(bodyOf(1).paragraphs).toBe(9);
+      expect(hook.control.rangeLine).toEqual({ min: 9, server: true });
+      expect(hook.control.value).toBe(9);
+      expect(hook.control.status).toBe('ready');
+      expect(hook.snapshot()).toEqual({ paragraphs: 9, expectedInk: 2 });
+    });
+
+    it('never the same count twice: when the clamp equals the count just sent it is failed (cost unknown), no loop', async () => {
+      await atSeven();
+      // the count sent (9) is already the new floor
+      mockApiFetch.mockResolvedValue(range400(9, { max: 25 }));
+      await act(async () => hook.control.onCommit(9, false));
+      await flush();
+      expect(mockApiFetch).toHaveBeenCalledTimes(1);
+      expect(hook.control.status).toBe('failed');
+      expect(hook.snapshot()).toBeNull();
+      expect(hook.control.rangeLine).toEqual({ min: 9, server: true });
+    });
+
+    it('if the re-quote also answers 400 the loop ends (at most two requests per press)', async () => {
+      await atSeven();
+      mockApiFetch.mockResolvedValue(range400(9, { max: 25 }));
+      await act(async () => hook.control.onCommit(8, false));
+      await flush();
+      expect(mockApiFetch).toHaveBeenCalledTimes(2);
+      expect(hook.control.status).toBe('failed');
+      expect(hook.snapshot()).toBeNull();
+    });
+
+    it.each([[undefined], ['9'], [0], [1.5]])(
+      'a 400 with an unusable min (%p) is just failed: no line, no re-quote',
+      async (min) => {
+        await atSeven();
+        mockApiFetch.mockResolvedValue(range400(min));
+        await act(async () => hook.control.onCommit(8, false));
+        await flush();
+        expect(mockApiFetch).toHaveBeenCalledTimes(1);
+        expect(hook.control.status).toBe('failed');
+        expect(hook.control.rangeLine).toBeNull();
+      },
+    );
+
+    it('a different 400 error is just failed', async () => {
+      await atSeven();
+      mockApiFetch.mockResolvedValue({
+        ok: false,
+        status: 400,
+        json: async () => ({ error: 'other', min: 9 }),
+      });
+      await act(async () => hook.control.onCommit(8, false));
+      await flush();
+      expect(mockApiFetch).toHaveBeenCalledTimes(1);
+      expect(hook.control.status).toBe('failed');
+      expect(hook.control.rangeLine).toBeNull();
+    });
   });
 });

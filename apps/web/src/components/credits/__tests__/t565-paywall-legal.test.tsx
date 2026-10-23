@@ -22,13 +22,14 @@ afterEach(() => {
   container.remove();
 });
 
-function render(cost = 5, balance = 1) {
+function render(cost = 5, balance = 1, ceiling?: boolean) {
   act(() =>
     root.render(
       <PaywallModal
         documentLabel="Bail application"
         cost={cost}
         balance={balance}
+        ceiling={ceiling}
         onClose={jest.fn()}
       />,
     ),
@@ -69,4 +70,23 @@ describe('T-565 PaywallModal', () => {
       'This draft costs 12 Ink — you have 0.',
     );
   });
+
+  it('T-577 AJ-577-M11 (2): on a ceiling hold the heading says `up to`', () => {
+    render(4, 1, true);
+    expect(document.body.querySelector('h2')?.textContent).toBe(
+      'This draft costs up to 4 Ink — you have 1.',
+    );
+    expect(paragraphs()).toContain('Insufficient Ink');
+  });
+
+  it.each([[undefined], [false]])(
+    'T-577: ceiling %p keeps the fixed AJ-539-M9 heading',
+    (ceiling) => {
+      render(4, 1, ceiling);
+      expect(document.body.querySelector('h2')?.textContent).toBe(
+        'This draft costs 4 Ink — you have 1.',
+      );
+      expect(document.body.textContent).not.toContain('up to');
+    },
+  );
 });

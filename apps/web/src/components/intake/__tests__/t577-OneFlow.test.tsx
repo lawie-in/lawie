@@ -18,7 +18,13 @@ jest.mock('@/hooks/useCredits', () => ({ notifyCreditsChanged: jest.fn() }));
 jest.mock('next/navigation', () => ({
   useRouter: () => ({ push: jest.fn(), replace: jest.fn() }),
 }));
-jest.mock('@/components/credits/PaywallModal', () => ({ PaywallModal: () => null }));
+const mockPaywall = jest.fn();
+jest.mock('@/components/credits/PaywallModal', () => ({
+  PaywallModal: (p: unknown) => {
+    mockPaywall(p);
+    return null;
+  },
+}));
 jest.mock('@/components/VerifyEmailPrompt', () => ({
   openVerifyIfDraftRefused: async () => false,
   openVerifyInsteadOfPaywall: async () => false,
@@ -36,7 +42,8 @@ jest.mock('@/components/PrivacyUpdatePrompt', () => ({
 }));
 
 const TYPED = 'My client was arrested under a FIR and needs regular bail please.';
-const M8 = 'The Ink cost has changed. Check it and press Generate again.';
+// AJ-577-M11 (1) re-signed the 409 line (it replaces M8); the name M8 is kept for the tests.
+const M8 = 'The Ink cost has changed. Check it, then continue.';
 
 const brief: Brief = {
   kind: { id: 'bail', name: 'Bail application', court_document: false },
@@ -170,6 +177,10 @@ const tryAgain = async (response: unknown) => {
   await act(async () => buttonWith('Try again')?.click());
   await flush();
 };
+const fewer = async () => {
+  await act(async () => aria('Fewer paragraphs').click());
+  await flush();
+};
 const more = async () => {
   await act(async () => aria('More paragraphs').click());
   await flush();
@@ -177,6 +188,7 @@ const more = async () => {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockPaywall.mockClear();
   mockApiFetch.mockReset();
   mockPrivacyFetch.mockReset();
   quoteImpl = defaultQuote;
@@ -411,6 +423,11 @@ describe('(4) 400 paragraph_count_out_of_range', () => {
 
   it('no generation, back on the brief, M4 line from the server min, never the server message, ring and still editable', async () => {
     await toBrief();
+    // the re-quote that follows the 400 carries the raised floor
+    quoteImpl = (b) => {
+      const n = typeof b.paragraphs === 'number' ? b.paragraphs : 10;
+      return ok(quoteBody(n, inkFor(n), { min: 8 }));
+    };
     await confirm(refused(400, body));
     expect(generateCalls()).toHaveLength(1);
     expect(heading()).toBe('Check your brief');
@@ -454,6 +471,163 @@ describe('(4) 400 paragraph_count_out_of_range', () => {
     await confirm(refused(400, { error: 'bad_input', min: 8 }));
     expect(text()).not.toContain('Choose between');
     expect(text()).toContain(SOMETHING_DID_NOT_WORK);
+  });
+});
+
+describe('(4b) after a Generate 400 the refused count cannot be sent again', () => {
+  const body = { error: 'paragraph_count_out_of_range', min: 8, max: 25, paragraphs: 7 };
+  const stepToSeven = async () => {
+    for (let i = 0; i < 3; i += 1) await fewer(); // 10 -> 7
+    expect(spin()?.value).toBe('7');
+  };
+
+  it('the stepper leaves 7 and is re-quoted at 8; a press while that quote is out sends nothing; after it, the POST carries 8', async () => {
+    await toBrief();
+    await stepToSeven();
+    // hold the re-quote
+    let release!: (v: unknown) => void;
+    quoteImpl = () => new Promise((r) => (release = r));
+    await confirm(refused(400, body));
+    expect(generateCalls()).toHaveLength(1);
+    expect(spin()?.value).toBe('8');
+    expect(text()).toContain('Choose between 8 and 25 paragraphs.');
+    // a repeat press before the new quote is back cannot POST the refused 7 (or anything)
+    await confirm(sse([]));
+    expect(generateCalls()).toHaveLength(1);
+    // the re-quote arrives (floor 8): the M4 line stays, the next press sends 8
+    await act(async () => release(ok(quoteBody(8, 2, { min: 8 }))));
+    await flush();
+    expect(text()).toContain('Choose between 8 and 25 paragraphs.');
+    expect(spin()?.getAttribute('aria-valuemin')).toBe('8');
+    quoteImpl = defaultQuote;
+    await confirm(sse([]));
+    expect(generateCalls()).toHaveLength(2);
+    expect(sent(1).paragraphs).toBe(8);
+    expect(sent(1).paragraphs).not.toBe(7);
+    expect(sent(1).expected_ink).toBe(2);
+  });
+
+  it('the M4 line clears on the next successful quote after the re-quote (a step press)', async () => {
+    await toBrief();
+    await stepToSeven();
+    quoteImpl = (b) => {
+      const n = typeof b.paragraphs === 'number' ? b.paragraphs : 10;
+      return ok(quoteBody(n, inkFor(n), { min: 8 }));
+    };
+    await confirm(refused(400, body));
+    expect(text()).toContain('Choose between 8 and 25 paragraphs.');
+    await more();
+    expect(text()).not.toContain('Choose between');
+  });
+});
+
+describe('(4c) a 400 from the QUOTE endpoint', () => {
+  const range400 = (min: number) => ({
+    ok: false,
+    status: 400,
+    json: async () => ({ error: 'paragraph_count_out_of_range', min, max: 25, message: 'SERVER' }),
+  });
+
+  it('shows the M4 line from its min and re-quotes once at the clamped count; the stepper follows it', async () => {
+    await toBrief();
+    for (let i = 0; i < 3; i += 1) await fewer(); // 7
+    const before = quoteCalls().length;
+    quoteImpl = (b) =>
+      b.paragraphs === 8 ? range400(9) : ok(quoteBody(Number(b.paragraphs ?? 10), 2, { min: 9 }));
+    await more(); // asks for 8 -> 400 min 9 -> one re-quote at 9
+    expect(quoteCalls().length - before).toBe(2);
+    expect(quoteSent(before).paragraphs).toBe(8);
+    expect(quoteSent(before + 1).paragraphs).toBe(9);
+    expect(spin()?.value).toBe('9');
+    expect(text()).toContain('Choose between 9 and 25 paragraphs.');
+    expect(text()).not.toContain('SERVER');
+    await confirm(sse([]));
+    expect(sent(0).paragraphs).toBe(9);
+  });
+
+  it('never loops: when the clamp equals the count just asked, the cost is unknown and nothing can POST', async () => {
+    await toBrief();
+    const before = quoteCalls().length;
+    quoteImpl = () => range400(10);
+    await more();
+    // asks 11; 11 is within [10, 25], so the clamp is the same count: it is not asked again
+    expect(quoteCalls().length - before).toBe(1);
+    expect(text()).toContain(INK_COST_UNKNOWN);
+    await confirm(sse([]));
+    expect(generateCalls()).toHaveLength(0);
+  });
+});
+
+describe('(10) the paywall on a ceiling hold (AJ-577-M11 (2))', () => {
+  const lastPaywall = () => mockPaywall.mock.calls[mockPaywall.mock.calls.length - 1]?.[0];
+  const poor = (cost: number, balance = 1) =>
+    refused(402, { error: 'insufficient_credits', cost, balance: { totalInk: balance } });
+
+  it('a ceiling quote: ceiling true, cost = the quoted ceiling when the 402 carries the lower class price', async () => {
+    await toBrief(); // ceiling quote at 10 -> expected_ink 2
+    for (let i = 0; i < 4; i += 1) await more(); // 14 -> 3
+    await confirm(poor(2));
+    expect(sent(0).expected_ink).toBe(3);
+    expect(lastPaywall()).toMatchObject({ cost: 3, balance: 1, ceiling: true });
+  });
+
+  it('a ceiling quote: the 402 cost wins when it is the larger', async () => {
+    await toBrief(); // expected_ink 2
+    await confirm(poor(5));
+    expect(lastPaywall()).toMatchObject({ cost: 5, balance: 1, ceiling: true });
+  });
+
+  it('equal costs: ceiling true, same cost', async () => {
+    await toBrief();
+    await confirm(poor(2));
+    expect(lastPaywall()).toMatchObject({ cost: 2, ceiling: true });
+  });
+
+  it('a quote with ceiling:false: ceiling is false and the cost is the 402 cost as before', async () => {
+    quoteImpl = (b) => {
+      const n = typeof b.paragraphs === 'number' ? b.paragraphs : 10;
+      return ok(quoteBody(n, inkFor(n), { ceiling: false }));
+    };
+    await toBrief();
+    for (let i = 0; i < 4; i += 1) await more();
+    await confirm(poor(2));
+    expect(sent(0).expected_ink).toBe(3);
+    const p = lastPaywall();
+    expect(p.cost).toBe(2);
+    expect(p.ceiling).toBeFalsy();
+  });
+
+  it('a quote with asks:false (no count sent): no ceiling', async () => {
+    quoteImpl = () => ok({ asks: false, ink: 5 });
+    await toBrief(true);
+    await confirm(poor(4));
+    expect(sent(0)).not.toHaveProperty('paragraphs');
+    const p = lastPaywall();
+    expect(p.cost).toBe(4);
+    expect(p.ceiling).toBeFalsy();
+  });
+
+  it.each([false, 'absent' as const])(
+    'a type that does not ask (asks_paragraphs=%p): no ceiling',
+    async (asks) => {
+      await toBrief(asks);
+      await confirm(poor(4));
+      const p = lastPaywall();
+      expect(p.cost).toBe(4);
+      expect(p.ceiling).toBeFalsy();
+    },
+  );
+
+  it('the ceiling is read at the press: a later quote does not change an open paywall', async () => {
+    await toBrief();
+    await confirm(poor(2));
+    expect(lastPaywall().ceiling).toBe(true);
+    // the next press on a quote that is no longer a ceiling
+    quoteImpl = (b) => ok(quoteBody(Number(b.paragraphs ?? 10), 2, { ceiling: false }));
+    await more();
+    mockPaywall.mockClear();
+    await confirm(poor(2));
+    expect(lastPaywall().ceiling).toBeFalsy();
   });
 });
 

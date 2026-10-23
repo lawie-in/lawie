@@ -106,6 +106,33 @@ describe('ParagraphStepper', () => {
     expect(container.textContent).not.toContain('Up to this many');
   });
 
+  it('ceiling:false aria-label is the signed `{n} paragraphs` (AJ-577-M10 (2)); ceiling:true stays `Up to {n} paragraphs`', async () => {
+    await show(control({ quote: { ...QUOTE, ceiling: false }, value: 12 }));
+    expect(input().getAttribute('aria-label')).toBe('12 paragraphs');
+    await show(control({ value: 12 }));
+    expect(input().getAttribute('aria-label')).toBe('Up to 12 paragraphs');
+  });
+
+  it('− and + carry the dimmed class (aria-disabled:opacity-40), at the limits they are aria-disabled but still focusable', async () => {
+    await show(control({ value: 7 }));
+    for (const l of ['Fewer paragraphs', 'More paragraphs']) {
+      expect(btn(l).className).toContain('aria-disabled:opacity-40');
+    }
+    const lo = btn('Fewer paragraphs');
+    expect(lo.getAttribute('aria-disabled')).toBe('true');
+    expect(lo.disabled).toBe(false);
+    act(() => lo.focus());
+    expect(document.activeElement).toBe(lo);
+    expect(btn('More paragraphs').getAttribute('aria-disabled')).toBeNull();
+    await show(control({ value: 25 }));
+    const hi = btn('More paragraphs');
+    expect(hi.getAttribute('aria-disabled')).toBe('true');
+    expect(hi.disabled).toBe(false);
+    act(() => hi.focus());
+    expect(document.activeElement).toBe(hi);
+    expect(btn('Fewer paragraphs').getAttribute('aria-disabled')).toBeNull();
+  });
+
   it('− and + commit value -/+ 1 (not typed)', async () => {
     const c = control();
     await show(c);

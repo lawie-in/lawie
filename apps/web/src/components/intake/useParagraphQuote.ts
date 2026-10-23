@@ -103,7 +103,7 @@ export interface ParagraphControl {
   value: number | null;
   status: ParagraphQuoteStatus;
   rangeLine: ParagraphRangeLine | null;
-  /** A 409 `price_changed` showed a new cost (AJ-577-M8 line). */
+  /** A 409 `price_changed` showed a new cost (AJ-577-M11 (1) line, which replaces M8). */
   priceChanged: boolean;
   /** A committed change: a step press, an arrow key, or blur (`typed`). */
   onCommit: (n: number, typed: boolean) => void;
@@ -166,13 +166,17 @@ export function useParagraphQuote({
   }, []);
 
   const request = useCallback(
-    async (paragraphs: number | undefined, keepPriceChanged = false) => {
+    async (
+      paragraphs: number | undefined,
+      { keepPriceChanged = false, keepRangeLine = false } = {},
+    ): Promise<void> => {
       const body = readRef.current();
       if (!body) return;
       const mine = ++seq.current;
       put({ status: 'loading' });
       let next: ParsedParagraphQuote | null = null;
       let tryAgain = false;
+      let outOfRange: { min: number; max: unknown } | null = null;
       try {
         const res = await apiFetch('/api/documents/paragraph-quote', {
           method: 'POST',
@@ -186,17 +190,46 @@ export function useParagraphQuote({
           }),
         });
         if (res.ok) next = parseParagraphQuote(await res.json().catch(() => null));
-        else tryAgain = res.status === 503;
+        else if (res.status === 400) {
+          const data = (await res.json().catch(() => null)) as {
+            error?: unknown;
+            min?: unknown;
+            max?: unknown;
+          } | null;
+          if (data?.error === 'paragraph_count_out_of_range' && isCount(data.min)) {
+            outOfRange = { min: data.min, max: data.max };
+          }
+        } else tryAgain = res.status === 503;
       } catch {
         next = null;
       }
       if (mine !== seq.current) return; // A newer request is on its way; its answer counts.
+      if (outOfRange) {
+        // AJ-577-M4 from the quote's own 400: the range line from its `min`, and one re-quote at
+        // the nearest count in range. Never the same count again (no loop).
+        const q = state.current.quote;
+        const min = outOfRange.min;
+        const max = isCount(outOfRange.max) && outOfRange.max >= min ? outOfRange.max : q?.max;
+        setRangeLine({ min, server: true });
+        if (q && max !== undefined) put({ quote: { ...q, min, max } });
+        const from = paragraphs ?? state.current.value ?? min;
+        const target = max === undefined ? Math.max(min, from) : clampParagraphs(from, min, max);
+        if (target !== paragraphs) {
+          put({ value: target });
+          void request(target, { keepPriceChanged, keepRangeLine: true });
+          return;
+        }
+        put({ status: 'failed' });
+        return;
+      }
       if (!next) {
         // The stepper stays as it is; the cost is unknown, so nothing charges.
         put({ status: tryAgain ? 'try_again' : 'failed' });
         return;
       }
       if (!keepPriceChanged) setPriceChanged(false);
+      // The range line stays through the re-quote that answers it, and clears on the next one.
+      if (!keepRangeLine) setRangeLine(null);
       if (!next.asks) {
         setPlainInk(next.ink);
         put({ asks: false, quote: null, value: null, status: 'ready' });
@@ -223,10 +256,11 @@ export function useParagraphQuote({
       if (!q) return;
       const next = clampParagraphs(n, q.min, q.max);
       // AJ-577-M4: a typed value outside the range is clamped, and the range line says why.
-      setRangeLine(typed && next !== n ? { min: q.min, server: false } : null);
+      const clamped = typed && next !== n;
+      setRangeLine(clamped ? { min: q.min, server: false } : null);
       put({ value: next });
       if (next === q.paragraphs && state.current.status === 'ready') return;
-      void request(next);
+      void request(next, { keepRangeLine: clamped });
     },
     [put, request],
   );
@@ -237,7 +271,7 @@ export function useParagraphQuote({
 
   /**
    * T-577: a 409 `price_changed` before any hold. The cost shows the 409's `ink`, the stepper keeps
-   * its value, and the M8 line shows. Without a usable `ink` the quote is asked for again.
+   * its value, and the M11 (1) line shows. Without a usable `ink` the quote is asked for again.
    */
   const applyPriceChanged = useCallback(
     (ink: unknown) => {
@@ -247,24 +281,36 @@ export function useParagraphQuote({
         put({ quote: { ...q, ink }, status: 'ready' });
         return;
       }
-      void request(q ? (state.current.value ?? undefined) : undefined, true);
+      void request(q ? (state.current.value ?? undefined) : undefined, {
+        keepPriceChanged: true,
+      });
     },
     [put, request],
   );
 
-  /** T-577: the server's 400 `paragraph_count_out_of_range`: the M4 line from its `min`. */
+  /**
+   * T-577: Generate's 400 `paragraph_count_out_of_range`: the M4 line from its `min`, and a
+   * re-quote at the count clamped to the new range, so the stepper and the quote leave the refused
+   * count. Until that quote is back, generate has no snapshot, so the refused count is never sent
+   * again. The count stays editable; the line stays until the next successful quote after this one.
+   */
   const applyRangeError = useCallback(
     (min: unknown) => {
       const q = state.current.quote;
       const floor = isCount(min) ? min : q?.min;
       if (floor === undefined) return;
       setRangeLine({ min: floor, server: true });
-      if (q && isCount(min) && min !== q.min && min <= q.max) put({ quote: { ...q, min } });
+      if (!q) return;
+      const newMin = floor <= q.max ? floor : q.min;
+      const quote = newMin !== q.min ? { ...q, min: newMin } : q;
+      const target = clampParagraphs(state.current.value ?? quote.paragraphs, newMin, quote.max);
+      put({ quote, value: target });
+      void request(target, { keepRangeLine: true });
     },
-    [put],
+    [put, request],
   );
 
-  /** The M8 line clears on the next press. */
+  /** The M11 (1) line clears on the next press. */
   const clearPriceChanged = useCallback(() => setPriceChanged(false), []);
 
   /**

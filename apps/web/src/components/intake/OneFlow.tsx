@@ -267,7 +267,12 @@ function OneFlowSteps({
   const [repairing, setRepairing] = useState(false);
   const [genError, setGenError] = useState<GenerationError | null>(null);
   const [result, setResult] = useState<DraftResult | null>(null);
-  const [paywall, setPaywall] = useState<{ cost: number; balance: number } | null>(null);
+  const [paywall, setPaywall] = useState<{
+    cost: number;
+    balance: number;
+    /** T-577: the hold was a paragraph quote's ceiling (AJ-577-M11 (2)). */
+    ceiling?: boolean;
+  } | null>(null);
 
   // What the next request must carry, readable without waiting for a render.
   const briefRef = useRef<Brief | null>(null);
@@ -308,6 +313,11 @@ function OneFlowSteps({
   } = paragraphQuote;
   /** T-577: one generation at a time when a count is sent (a double press starts one). */
   const paragraphGenerating = useRef(false);
+  /** T-577: the quote on screen is a ceiling (read at each render). */
+  const quoteIsCeiling = useRef(false);
+  quoteIsCeiling.current = paragraphQuote.control.quote?.ceiling === true;
+  /** T-577: the quote sent with this generation was a ceiling (captured at the press). */
+  const paragraphQuoteCeiling = useRef(false);
   /**
    * T-577: the type whose 409 came on a retry, so the next press (on that type) resends this
    * run's run_id. Null otherwise.
@@ -772,7 +782,7 @@ function OneFlowSteps({
           // T-577: both refusals come before any Ink hold, and only for a request that sent a
           // count. Never the server's text: the signed lines only. A 409 never retries itself.
           if (para && res.status === 409 && data.error === 'price_changed') {
-            // AJ-577-M8: the cost line shows the 409's `ink`, the stepper keeps its value, and
+            // AJ-577-M11 (1) (replaces M8): the cost line shows the 409's `ink`, the stepper keeps its value, and
             // the next press sends the new expected_ink (with this run's run_id after a retry).
             priceChangedOnRetry.current = retry ? kind : null;
             applyPriceChanged(data.ink);
@@ -793,9 +803,14 @@ function OneFlowSteps({
             }
             // T-388: the paywall shows the server's cost, never a made-up one.
             if (typeof data.cost === 'number' && Number.isFinite(data.cost) && data.cost > 0) {
+              // T-577: on a ceiling quote the modal says "up to", with the larger of the 402's
+              // cost and the quoted ceiling sent, so it never disagrees with "Uses up to N Ink"
+              // (the pre-check 402 carries the class price, below the ceiling).
+              const ceiling = para !== undefined && paragraphQuoteCeiling.current;
               setPaywall({
-                cost: data.cost,
+                cost: ceiling && para ? Math.max(data.cost, para.expectedInk) : data.cost,
                 balance: data.balance?.totalInk ?? data.balance?.total ?? 0,
+                ...(ceiling ? { ceiling: true } : {}),
               });
               setPhase('brief');
               return;
@@ -994,6 +1009,7 @@ function OneFlowSteps({
         if (snap === undefined && !positiveNumber(paragraphPlainInk)) return;
         if (paragraphGenerating.current) return;
         para = snap;
+        paragraphQuoteCeiling.current = snap !== undefined && quoteIsCeiling.current;
         clearPriceChanged();
       } else {
         // T-388 (Arjun): nothing that charges starts while the Ink cost is not
@@ -1320,6 +1336,7 @@ function OneFlowSteps({
             documentLabel={brief.kind.name}
             cost={paywall.cost}
             balance={paywall.balance}
+            ceiling={paywall.ceiling}
             onClose={() => setPaywall(null)}
           />
         )}

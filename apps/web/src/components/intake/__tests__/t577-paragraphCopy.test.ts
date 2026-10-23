@@ -1,4 +1,4 @@
-// T-577: the 19 signed strings (AJ-577-M1, M4, M6, M8, M9), byte for byte. The expected values are
+// T-577: the 21 signed strings (AJ-577-M1, M4, M6, M9, M10 (2), M11 (1); M11 (1) replaces M8), byte for byte. The expected values are
 // typed here independently of paragraphCopy.ts and were checked against
 // `git show origin/develop_staging:handoff/legal/T-511-copy-rulings-ajay.md` by script.
 import { PARAGRAPH_COPY, PARAGRAPH_TEXT, fillParagraphCopy } from '../paragraphCopy';
@@ -8,11 +8,12 @@ const SIGNED_EN = {
   fewer: 'Fewer paragraphs',
   more: 'More paragraphs',
   stepper: 'Up to {n} paragraphs',
+  ariaNoCeiling: '{n} paragraphs',
   help: 'Up to this many body paragraphs. Headings, prayer and verification are not counted. You pay for what is drafted, never more than shown.',
   helpExact: 'Body paragraphs. Headings, prayer and verification are not counted.',
   cost: 'Uses up to {n} Ink',
   range: 'Choose between {min} and 25 paragraphs.',
-  priceChanged: 'The Ink cost has changed. Check it and press Generate again.',
+  priceChanged: 'The Ink cost has changed. Check it, then continue.',
   lowerDebit: 'This draft has fewer paragraphs than you asked for, so it used {n} Ink.',
 };
 const SIGNED_HI = {
@@ -20,21 +21,22 @@ const SIGNED_HI = {
   fewer: 'कम पैराग्राफ़',
   more: 'ज़्यादा पैराग्राफ़',
   stepper: 'अधिकतम {n} पैराग्राफ़',
+  ariaNoCeiling: '{n} पैराग्राफ़',
   help: 'अधिकतम इतने मुख्य पैराग्राफ़। शीर्षक, प्रार्थना और सत्यापन नहीं गिने जाते। जितना ड्राफ़्ट बनेगा उतने का ही भुगतान, दिखाई गई राशि से ज़्यादा कभी नहीं।',
   helpExact: null,
   cost: 'अधिकतम {n} Ink लगेंगे',
   range: '{min} से 25 के बीच पैराग्राफ़ चुनिए।',
-  priceChanged: 'Ink की लागत बदल गई है। उसे देखिए और फिर से Generate दबाइए।',
+  priceChanged: 'Ink की लागत बदल गई है। उसे देखिए, फिर आगे बढ़िए।',
   lowerDebit: 'इस ड्राफ़्ट में आपके चुने हुए से कम पैराग्राफ़ हैं, इसलिए इसमें {n} Ink लगे।',
 };
 
 describe('T-577 signed copy', () => {
-  it('EN equals the signed strings exactly (10 strings)', () => {
+  it('EN equals the signed strings exactly (11 strings)', () => {
     expect(PARAGRAPH_COPY.en).toStrictEqual(SIGNED_EN);
-    expect(Object.keys(PARAGRAPH_COPY.en)).toHaveLength(10);
+    expect(Object.keys(PARAGRAPH_COPY.en)).toHaveLength(11);
   });
 
-  it('HI equals the signed strings exactly (9 signed; helpExact has none)', () => {
+  it('HI equals the signed strings exactly (10 signed; helpExact has none)', () => {
     expect(PARAGRAPH_COPY.hi).toStrictEqual(SIGNED_HI);
     expect(PARAGRAPH_COPY.hi.helpExact).toBeNull();
   });
@@ -47,6 +49,12 @@ describe('T-577 signed copy', () => {
         true,
       );
     }
+  });
+
+  it('the old M8 text is gone (M11 (1) replaced it), and no button is named', () => {
+    expect(PARAGRAPH_COPY.en.priceChanged).not.toContain('press Generate again');
+    expect(PARAGRAPH_COPY.hi.priceChanged).not.toContain('Generate');
+    expect(Object.keys(PARAGRAPH_COPY.hi)).toHaveLength(11);
   });
 
   it('the rendered text is EN', () => {

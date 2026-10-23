@@ -14,10 +14,21 @@ interface PaywallModalProps {
   cost: number;
   /** Current total Ink balance */
   balance: number;
+  /**
+   * T-577 (AJ-577-M11 (2)): the hold is a paragraph quote's ceiling, so the heading says "up to".
+   * Absent or false: the fixed AJ-539-M9 heading, as before.
+   */
+  ceiling?: boolean;
   onClose: () => void;
 }
 
-export function PaywallModal({ documentLabel, cost, balance, onClose }: PaywallModalProps) {
+export function PaywallModal({
+  documentLabel,
+  cost,
+  balance,
+  ceiling = false,
+  onClose,
+}: PaywallModalProps) {
   const [showTopUp, setShowTopUp] = useState(false);
   const shortBy = Math.max(0, cost - balance);
 
@@ -55,9 +66,11 @@ export function PaywallModal({ documentLabel, cost, balance, onClose }: PaywallM
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-red-200">
                   Insufficient Ink
                 </p>
-                {/* T-565 item 44 (AJ-539-M9), signed text. */}
+                {/* T-565 item 44 (AJ-539-M9), signed text; T-577 AJ-577-M11 (2) on a ceiling. */}
                 <h2 className="mt-0.5 text-lg font-bold text-white">
-                  {`This draft costs ${cost} Ink — you have ${balance}.`}
+                  {ceiling
+                    ? `This draft costs up to ${cost} Ink — you have ${balance}.`
+                    : `This draft costs ${cost} Ink — you have ${balance}.`}
                 </h2>
               </div>
             </div>

@@ -32,11 +32,11 @@ function stepperWords(ceiling: boolean): { before: string; after: string } {
 
 export function paragraphsAriaLabel(n: number, ceiling: boolean): string {
   if (ceiling) return fillParagraphCopy(PARAGRAPH_TEXT.stepper, { n });
-  return `${n} ${stepperWords(false).after}`;
+  return fillParagraphCopy(PARAGRAPH_TEXT.ariaNoCeiling, { n }); // AJ-577-M10 (2)
 }
 
 const stepButton =
-  'nl-focus text-nl-text inline-flex min-h-[44px] min-w-[44px] items-center justify-center bg-transparent disabled:opacity-40';
+  'nl-focus text-nl-text inline-flex min-h-[44px] min-w-[44px] items-center justify-center bg-transparent disabled:opacity-40 aria-disabled:opacity-40';
 
 export default function ParagraphStepper({ control }: { control: ParagraphControl }) {
   const { quote, value, rangeLine, onCommit } = control;
