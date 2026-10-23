@@ -38,3 +38,5 @@ Rajesh: a second button beside the PDF, same card.
 2. The route has no limiter today; add a modest per-user limiter in this ticket covering both formats (10/h per user, 429 with the standard body) — the PDF path spends Chromium time and should have had one. No Ink (Vikram).
 3. Yes: `draft.exported` with `format: 'annexures_docx'`; `exportedAs` stays `'annexures'`.
 4. In scope, a real gap: extend `htmlToDocxParagraphs` with `<table>` → a docx `Table` (Index of Documents) and `<div>` blocks → paragraph containers; keep existing callers byte-identical (tests on the draft export unchanged).
+
+Amendment (Arjun, 23 Oct): point 2 is struck — the gateway already applies its plan limiter to the annexures-pack URL for both formats; no drafting-side limiter, no change to live PDF behaviour.
