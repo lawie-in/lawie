@@ -96,3 +96,8 @@ Design closed. Priya claims: drafting first (Shashank: quote function, range che
 7. **One `countBodyParagraphs()`** for check, settle and `done`; sub-points do not count. OK.
 8. **Bands keying and defaults (Vikram informed):** `pricing.paragraph_bands.<packId>`, falling back to `pricing.paragraph_bands.base_<classPrice>` (`base_2` for M). **Setting missing → the pack does not ask and charges its base price** — the feature degrades to today, never refuses. `expected_ink` on the generate request; mismatch → 409 `price_changed` with the fresh quote (T-540 pattern).
 Contract with Priya accepted: `POST /paragraph-quote → { min, max, default, ink, bands, ceiling: true|false }`, 400 with min/max before the hold, `done` adds `inkQuoted` and `paragraphsDelivered`.
+
+## Arjun (23 Oct 2026) — two amendments after build, part 1
+
+1. Band value shape accepted: `pricing.paragraph_bands.<packId>` / `.base_<classPrice>` holding `[{ upTo, add }]` as Ink over the class price (`base_2 = [{upTo:10,add:0},{upTo:18,add:1},{upTo:25,add:2}]`).
+2. **Ruling 4 amended:** `enforceCredits` pre-checks against the pack's **min** band (the class price, as today); the exact check is the **hold** after the quote — `holdInk` with the quoted Ink, and its 402 carries the quoted figure. Pre-checking the max band would refuse users who can afford their chosen count and could fire before the range 400. Shown = held = debited still holds.
