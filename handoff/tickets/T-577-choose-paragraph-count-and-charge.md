@@ -84,3 +84,15 @@ Remaining before build: Rajesh's stepper design (live price from the quote endpo
 4. **Default when the user skips:** the pack's `defaultBodyParagraphs` (bail_regular: 10, which is today's output and today's 2-Ink price), clamped up to `mandatoryCount` if the facts raise it. Golden set unchanged.
 6. **Which types ask:** packs whose signed skeleton declares `bodyParagraphs: { mandatory, default, cap }` — bail_regular first, the other bail packs next (same rule, their own skeleton's required clauses), then the rest by pack as Ajay signs each list. Fixed-form packs (affidavit, vakalatnama, memo of parties) have no such block and never ask. A pack without the block behaves exactly as today.
 Design closed. Priya claims: drafting first (Shashank: quote function, range check, prompt target, repair round, settle-at-delivered, skeleton blocks for bail), web second (stepper per Rajesh).
+
+## Arjun (23 Oct 2026) — drafting Explore, eight calls (Shashank)
+
+1. **D1 skeleton path (the live path): (b).** On D1 the count is a **ceiling**: "up to N" paragraphs; the renderer prints one paragraph per rendered clause as today, we settle at the delivered band. No new splitting mechanism (that is v2's document grammar, ADR-026, not a v1 patch to a signed skeleton), and no rerouting bail to the brief path. The stepper copy says "up to" (Rajesh/Madhuri; Ajay sees it). Exact-count behaviour exists only where the prompt already has a TARGET (legacy brief path).
+2. **Legacy brief default:** `TARGET_PARAGRAPHS` fallback stays 15 when the request carries no count (today's prompts and goldens unchanged). When the stepper is shown the web always sends a value, defaulting to the skeleton's `default` (10 for bail), so "absent" only ever means a legacy client.
+3. **Form path (generate-from-template):** out of scope now; ceiling semantics there later.
+4. **Range and quote:** yes — the route checks the range and quotes **after** the ledger/facts are loaded, before `withInkHold`; `enforceCredits` pre-checks against the max band and its 402 carries the quoted figure.
+5. **Retry/resume:** yes — `paragraphsRequested` and `inkQuoted` on the run (`resolveRun`); re-quote must match or 409 `price_changed`.
+6. **Under-delivery settle:** yes — store the delivered-band units on the hold at delivery; the sweep, the lost-hold re-hold and done-after-sweep settle at that stored figure, never at full cost when it is present.
+7. **One `countBodyParagraphs()`** for check, settle and `done`; sub-points do not count. OK.
+8. **Bands keying and defaults (Vikram informed):** `pricing.paragraph_bands.<packId>`, falling back to `pricing.paragraph_bands.base_<classPrice>` (`base_2` for M). **Setting missing → the pack does not ask and charges its base price** — the feature degrades to today, never refuses. `expected_ink` on the generate request; mismatch → 409 `price_changed` with the fresh quote (T-540 pattern).
+Contract with Priya accepted: `POST /paragraph-quote → { min, max, default, ink, bands, ceiling: true|false }`, 400 with min/max before the hold, `done` adds `inkQuoted` and `paragraphsDelivered`.
