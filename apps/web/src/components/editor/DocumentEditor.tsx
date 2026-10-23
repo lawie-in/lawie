@@ -6,12 +6,20 @@ import Underline from '@tiptap/extension-underline';
 import type { Node as PmNode } from '@tiptap/pm/model';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import { useCallback, useEffect, useRef } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type ReactNode,
+} from 'react';
 
 import {
   SECTION_FINDER_INSERT_EVENT,
   SECTION_FINDER_OPEN_EVENT,
 } from '../sections/SectionFinderPanel';
+import { usePrefersReducedMotion } from '../ui/motion';
 
 import {
   EXPORT_BLANKS_GO_BACK_EVENT,
@@ -24,7 +32,26 @@ interface DocumentEditorProps {
   initialContent: string;
   onUpdate: (html: string) => void;
   editable?: boolean;
+  /**
+   * T-578: the page's save state. Shown in the toolbar while focus mode is open, so autosave is
+   * never hidden (the page's own copy is under the layer).
+   */
+  saveState?: ReactNode;
+  /**
+   * T-578: the line pinned to the bottom of the focus-mode layer. The page passes the same
+   * T-197 disclaimer text it shows above the editor; drop the prop to drop the second copy.
+   */
+  focusFooter?: string | null;
+  /** T-578: told when focus mode opens and closes (the page moves its save state). */
+  onFocusModeChange?: (open: boolean) => void;
 }
+
+/** T-578: the layer's fade, in and out (design note §3). None under reduced motion. */
+const FOCUS_FADE_MS = 150;
+
+/** T-578: what Tab can reach inside the focus-mode layer (the editor is contenteditable). */
+const LAYER_FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [contenteditable="true"], [tabindex]:not([tabindex="-1"])';
 
 /**
  * Convert plain text (from AI generation) to simple HTML for TipTap.
@@ -91,9 +118,141 @@ export default function DocumentEditor({
   initialContent,
   onUpdate,
   editable = true,
+  saveState,
+  focusFooter,
+  onFocusModeChange,
 }: DocumentEditorProps) {
   const onUpdateRef = useRef(onUpdate);
   onUpdateRef.current = onUpdate;
+
+  // T-578 focus mode. Only the container's classes change: the Tiptap instance and its DOM are
+  // never remounted, so unsaved edits, undo history and the page's autosave carry on as they are.
+  const [focusMode, setFocusMode] = useState(false);
+  // 'in' while the layer fades in, 'out' while it fades out before the classes go back.
+  const [fade, setFade] = useState<'in' | 'out' | null>(null);
+  const reducedMotion = usePrefersReducedMotion();
+  const focusToggleRef = useRef<HTMLButtonElement>(null);
+  const fadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onFocusModeChangeRef = useRef(onFocusModeChange);
+  onFocusModeChangeRef.current = onFocusModeChange;
+
+  const openFocusMode = useCallback(() => {
+    if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current);
+    setFocusMode(true);
+    setFade(reducedMotion ? null : 'in');
+    onFocusModeChangeRef.current?.(true);
+    if (!reducedMotion) {
+      fadeTimerRef.current = setTimeout(() => setFade(null), FOCUS_FADE_MS);
+    }
+  }, [reducedMotion]);
+
+  const closeFocusMode = useCallback(() => {
+    if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current);
+    const done = () => {
+      setFocusMode(false);
+      setFade(null);
+      onFocusModeChangeRef.current?.(false);
+      // Focus returns to the control (it is the same button in both states), unless it has
+      // already gone somewhere else during the fade (e.g. the finder's search box, Ctrl/Cmd+K).
+      const active = document.activeElement;
+      if (!active || active === document.body || containerRef.current?.contains(active)) {
+        focusToggleRef.current?.focus();
+      }
+    };
+    if (reducedMotion) {
+      done();
+      return;
+    }
+    setFade('out');
+    fadeTimerRef.current = setTimeout(done, FOCUS_FADE_MS);
+  }, [reducedMotion]);
+
+  // T-578 review: the section finder (z-40) opens under the layer (z-45), so anything that
+  // opens it closes focus mode first: at once, with no fade, and without moving focus. The
+  // finder then records the editor as where to return to, moves focus into itself after the
+  // same commit that removed the layer, and is visible and operable.
+  const focusModeRef = useRef(false);
+  focusModeRef.current = focusMode;
+  const closeFocusModeForFinder = useCallback(() => {
+    if (!focusModeRef.current) return;
+    if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current);
+    focusModeRef.current = false;
+    setFocusMode(false);
+    setFade(null);
+    onFocusModeChangeRef.current?.(false);
+  }, []);
+
+  const toggleFocusMode = useCallback(() => {
+    if (focusMode && fade !== 'out') closeFocusMode();
+    else if (!focusMode) openFocusMode();
+  }, [focusMode, fade, closeFocusMode, openFocusMode]);
+
+  // Keys while focus mode is open. This handler is on the layer itself, so it only sees keys
+  // while focus is inside the layer. The layer root is focusable (tabIndex -1) while open, so a
+  // click on a blank part of the layer focuses the root instead of dropping focus to <body>.
+  const handleLayerKeyDown = (e: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (!focusMode) return;
+
+    // Ctrl/Cmd+K opens the section finder (its window listener). Close the layer first, also
+    // during the fade-out, and let the event go on to that listener: no preventDefault, no
+    // stopPropagation.
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+      closeFocusModeForFinder();
+      return;
+    }
+
+    if (fade === 'out') return;
+
+    // Escape closes focus mode. Tiptap has no Escape command, but ProseMirror's own keydown
+    // handling marks Escape defaultPrevented, so that flag is not checked here. Nothing inside
+    // the layer opens anything Escape should close first; dialogs (z-50) are not in the editor.
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      closeFocusMode();
+      return;
+    }
+
+    // Tab and Shift+Tab wrap inside the layer, so focus never lands on a control hidden under
+    // it (WCAG 2.4.11). A Tab Tiptap has already used (indenting a list item) is left alone.
+    if (e.key === 'Tab' && !e.defaultPrevented && containerRef.current) {
+      const items = Array.from(
+        containerRef.current.querySelectorAll<HTMLElement>(LAYER_FOCUSABLE),
+      ).filter((el) => !el.closest('[inert], [hidden]'));
+      if (items.length === 0) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      const active = document.activeElement;
+      // On the layer root itself (after a click on a blank part) the next stop is the first
+      // control and the previous one the last: Shift+Tab from the root would otherwise leave.
+      const atRoot = active === containerRef.current;
+      const inside = active instanceof HTMLElement && containerRef.current.contains(active);
+      if (e.shiftKey && (active === first || atRoot || !inside)) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && (active === last || atRoot || !inside)) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+  };
+
+  // Page scroll is locked while the layer is open (overflow hidden on html), and restored to
+  // what it was on exit or unmount.
+  useEffect(() => {
+    if (!focusMode || typeof document === 'undefined') return;
+    const html = document.documentElement;
+    const previous = html.style.overflow;
+    html.style.overflow = 'hidden';
+    return () => {
+      html.style.overflow = previous;
+    };
+  }, [focusMode]);
+
+  useEffect(() => {
+    return () => {
+      if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current);
+    };
+  }, []);
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -207,6 +366,8 @@ export default function DocumentEditor({
       const [code, section] = payload.split(':');
       if (!code || !section) return;
       e.preventDefault();
+      // T-578 review: the finder opens under the focus-mode layer; close the layer first.
+      closeFocusModeForFinder();
       window.dispatchEvent(
         new CustomEvent(SECTION_FINDER_OPEN_EVENT, {
           detail: { preload: { code, section } },
@@ -215,7 +376,7 @@ export default function DocumentEditor({
     }
     root.addEventListener('click', handleClick);
     return () => root.removeEventListener('click', handleClick);
-  }, [editor]);
+  }, [editor, closeFocusModeForFinder]);
 
   const getHtml = useCallback(() => {
     return editor?.getHTML() ?? '';
@@ -230,19 +391,62 @@ export default function DocumentEditor({
     }
   }, [getHtml]);
 
+  // T-578: the same three nodes in both modes; only their classes change.
+  const layerClass = focusMode
+    ? [
+        // Fixed layer on Wall: above the sidebar (30), below every dialog (50), the consent
+        // sheet (55) and the command bar (60). Safe-area insets padded (viewport-fit=cover).
+        // outline-none: the root takes focus only from a click on a blank part (tabIndex -1).
+        'fixed inset-0 z-[45] flex flex-col bg-nl-wall outline-none',
+        'pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)]',
+        'pl-[env(safe-area-inset-left,0px)] pr-[env(safe-area-inset-right,0px)]',
+        'transition-opacity duration-150 ease-[ease] motion-reduce:transition-none',
+        fade === 'out' ? 'opacity-0' : 'opacity-100',
+        fade === 'in' ? 'motion-safe:animate-[nl-fade-in_150ms_ease_both]' : '',
+      ].join(' ')
+    : 'flex h-full flex-col rounded-xl border border-slate-200 bg-white shadow-sm';
+  // 390: the sheet fills the width with a 16px gutter; from sm it is centred at 210mm, 24px top.
+  const canvasClass = focusMode
+    ? 'min-h-0 flex-1 overflow-y-auto overscroll-contain bg-nl-wall p-4 sm:px-6 sm:pb-6 sm:pt-6'
+    : 'overflow-y-auto bg-slate-100 p-2 lg:min-h-0 lg:flex-1 lg:p-6';
+  const sheetClass = focusMode
+    ? 'mx-auto bg-white sm:max-w-[210mm] sm:shadow-md'
+    : 'mx-auto max-w-[210mm] bg-white shadow-md';
+
   return (
+    // The keydown handler only acts while focus mode is open (Escape closes it).
     <div
       ref={containerRef}
-      className="flex h-full flex-col rounded-xl border border-slate-200 bg-white shadow-sm"
+      className={layerClass}
+      onKeyDown={handleLayerKeyDown}
+      tabIndex={focusMode ? -1 : undefined}
+      data-focus-mode={focusMode ? 'open' : undefined}
     >
-      <Toolbar editor={editor} />
+      <Toolbar
+        editor={editor}
+        focusMode={focusMode}
+        onToggleFocusMode={toggleFocusMode}
+        focusToggleRef={focusToggleRef}
+        saveState={saveState}
+      />
       {/* Paper canvas — A4-like proportions. From md it scrolls on its own; below md it is as
-          tall as the draft and the page scrolls (T-138). */}
-      <div className="overflow-y-auto bg-slate-100 p-2 lg:min-h-0 lg:flex-1 lg:p-6">
-        <div className="mx-auto max-w-[210mm] bg-white shadow-md">
+          tall as the draft and the page scrolls (T-138). In focus mode it scrolls in the layer. */}
+      <div className={canvasClass}>
+        <div className={sheetClass}>
           <EditorContent editor={editor} />
         </div>
       </div>
+      {/* T-578 (Ajay, 23 Oct): in focus mode the T-197 disclaimer is pinned to the bottom of the
+          layer, a flex child after the scroll area, so it never scrolls away and the draft never
+          runs under it. Same text as the page's line (the page passes it). Not dismissible. */}
+      {focusMode && focusFooter && (
+        <p
+          role="note"
+          className="border-nl-line bg-nl-wall text-nl-muted shrink-0 border-t p-2 text-center text-[13px] leading-5"
+        >
+          {focusFooter}
+        </p>
+      )}
     </div>
   );
 }

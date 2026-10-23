@@ -101,3 +101,31 @@ Contract with Priya accepted: `POST /paragraph-quote → { min, max, default, in
 
 1. Band value shape accepted: `pricing.paragraph_bands.<packId>` / `.base_<classPrice>` holding `[{ upTo, add }]` as Ink over the class price (`base_2 = [{upTo:10,add:0},{upTo:18,add:1},{upTo:25,add:2}]`).
 2. **Ruling 4 amended:** `enforceCredits` pre-checks against the pack's **min** band (the class price, as today); the exact check is the **hold** after the quote — `holdInk` with the quoted Ink, and its 402 carries the quoted figure. Pre-checking the max band would refuse users who can afford their chosen count and could fire before the range 400. Shown = held = debited still holds.
+
+## Build status (Shashank, 23 Oct 2026): HELD for the founder's decision on a round 3
+Branch fix/t-577-paragraph-count @ 8bb4bc03 (pushed, nothing merged). Tester green: drafting 267/267 suites, 16209 tests, snapshots unchanged. bail_regular is exactly Ajay's two lines (AJ-577-M5). Reviewer found no other problems: single price source, refusals before any hold, M6 (charge never above the shown ceiling) on every path, null-config packs unchanged, strict validator, pure extraction of `holds`.
+- Review round 1 (FAIL), fixed in d3051b69: MUST: expected_ink was checked before the retry re-quote, so a retry could be held or charged above the shown figure. SHOULD: done-after-sweep showed the delivered band when it had not been stored; the bands warning named the wrong key. NOTE: the validator allowed cap 0.
+- Review round 2 (FAIL, open):
+  - MUST (documents.routes.ts:1713): on a retry with no count, the route re-quotes and holds at the stored paragraphsRequested (e.g. 19 gives 4 Ink), but the model is still sent targetParagraphs = clampTarget(undefined) = 15. On the legacy brief path (hi/bilingual or no ledger) the user gets a shorter draft and is charged 3. M6 still holds (the charge only goes down) but "the model is told the count" and Arjun's ruling 5 break. Proposed fix (about 3 lines): keep the count actually used (the stored count on a retry), pass clampTarget(thatCount), keep 15 when no count was ever sent; plus a test.
+  - SHOULD: the new Generation.findOne in the retry block has no try/catch, so a DB error hangs the request. Proposed: 503 with ids-only logging.
+  - SHOULD: rare double failure in done-after-sweep, done shows full cost while the sweep kept the delivered band. Proposed: set deliveredStored once the settle mark is known to have landed.
+  - NOTE for Arjun: ruling 5's legacy-path repair round and "drafted N of M" warning are not in this diff (they need ai.service.ts and brief-drafter.ts, not in the claim). Deferred to a follow-up, or in scope?
+- Priya recommends: approve one narrow round 3 for the MUST (3 lines + test) and the two SHOULDs; Arjun decides the NOTE. Money path, so no merge without a clean fresh reviewer.
+
+## Arjun (23 Oct 2026) — after the second failed review: one narrow round 3 approved
+
+Per the rule, a second fail comes to me; the founder has given full approvals on tickets, so this is my decision and he is told, not asked.
+
+- **MUST:** fix as Shashank proposes — the count actually used (the stored `paragraphsRequested` on a retry) drives `clampTarget`; 15 only when no count was ever sent; plus the test (retry with no body count → prompt target equals the stored count, hold equals the stored quote). This matches ruling 5: the model is told the count that was quoted.
+- **SHOULD 1:** `Generation.findOne` in the retry block wrapped; DB error → 503 `try_again`, ids-only log.
+- **SHOULD 2:** set `deliveredStored` only once the settle mark is known to have landed, so `done` never shows full cost when the sweep kept the delivered band.
+- **NOTE (ruling 5's repair round and the "drafted N of M" warning):** deferred to a follow-up ticket after Mahak's T-567 merges (`ai.service.ts`, `brief-drafter.ts` are hers). Until then under-delivery on the legacy path simply settles at the delivered band (M6), which is the honest outcome without the warning. Priya posts it.
+- Scope of round 3 is exactly these three items; anything else found is a new ticket. Same developer → fresh tester → fresh reviewer. Money path: no merge without a clean reviewer. If round 3 fails, the ticket is parked and the founder decides whether to continue.
+
+## FINAL API CONTRACT (Shashank, 23 Oct 2026; branch fix/t-577-paragraph-count @ 065166c0, round 3 reviewed clean)
+1. `POST /api/documents/paragraph-quote` `{kind, values?, ledger_id?, paragraphs?: int 1-100, language?}` returns `{asks:false, ink}` or `{asks:true, ink, min, max, default, paragraphs, bands:[{from,to,ink}] (clipped to min..max), ceiling:bool}`. No hold, no model call. Errors 400/404/503/500.
+2. `generate-from-brief` accepts `paragraphs?: int` and `expected_ink?: number` (steps of 0.5). Out of range: 400 `{error:"paragraph_count_out_of_range", min, max, paragraphs, message:"Choose between <min> and 25 paragraphs."}` (web renders Ajay's EN/HI AJ-577-M4 from `min`). `expected_ink` differs from the held price, or a retry no longer matches: 409 `{error:"price_changed", ink}`. Both before any Ink hold. A retry DB failure: 503 `{error:"try_again"}`.
+3. The `done` event adds `inkQuoted` and `paragraphsDelivered` when `asks:true`. `inkDebited <= inkQuoted`; the web shows the AJ-577-M1 (3) lower-debit line when it is less.
+4. `GET template-configs` adds `asks_paragraphs` per row (true for bail_regular once bands are seeded).
+5. Bands: AppSettings `pricing.paragraph_bands.<packId>`, else `.base_<classPrice>`, holding `[{upTo, add}]` Ink over the class price. FOUNDER MUST SEED `base_2 = [{"upTo":10,"add":0},{"upTo":18,"add":1},{"upTo":25,"add":2}]`; until then nothing asks and prices are unchanged.
+Web side (stepper per Rajesh §5, "up to" strings AJ-577-M6) builds against this contract after Shashank merges.
