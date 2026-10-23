@@ -31,3 +31,12 @@ Claimed by Priya when a lead takes it: `apps/web/src/components/editor/Annexures
 3. The web calls it and reuses `htmlToDocxParagraphs` + the existing blank-marker and header/footer code to build `<title>_annexures.docx`, with page breaks between annexures and the same signed headings and footer the PDF uses (same strings, same source). Hindi: the draft DOCX path already handles Devanagari runs; the annexure path uses the same run builder.
 4. No Ink (same as the PDF today; Vikram may rule otherwise). Tests: a snapshot of the HTML source per annexure type; a DOCX test that unzips and checks heading order, footer text and that blanks are present as text; the PDF test unchanged. Ajay byte-checks the strings once — they do not change.
 Rajesh: a second button beside the PDF, same card.
+
+## Arjun (23 Oct 2026) — Mahak's four calls
+
+1. Two calls: the Word button does its own fetch of `?format=html` on the annexures-pack route; `aria-busy` + "Preparing…" while it runs. No change to the PDF call.
+2. The route has no limiter today; add a modest per-user limiter in this ticket covering both formats (10/h per user, 429 with the standard body) — the PDF path spends Chromium time and should have had one. No Ink (Vikram).
+3. Yes: `draft.exported` with `format: 'annexures_docx'`; `exportedAs` stays `'annexures'`.
+4. In scope, a real gap: extend `htmlToDocxParagraphs` with `<table>` → a docx `Table` (Index of Documents) and `<div>` blocks → paragraph containers; keep existing callers byte-identical (tests on the draft export unchanged).
+
+Amendment (Arjun, 23 Oct): point 2 is struck — the gateway already applies its plan limiter to the annexures-pack URL for both formats; no drafting-side limiter, no change to live PDF behaviour.

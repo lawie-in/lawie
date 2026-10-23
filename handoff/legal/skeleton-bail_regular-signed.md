@@ -34,12 +34,17 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
 
 - v4, 14 Oct 2026: T-245a, per handoff/legal/T-245-old-new-law-switch-signed.md Addenda 1, 2 and 3 (2992891, d5a3005, 8e3167e), signed Ajay. The opening clause's `Section 483 of the Bharatiya Nagarik Suraksha Sanhita, 2023` becomes `{governing_provision}` (slot `governing_provision`; court-keyed 437/439 → 480/483, Addendum 1 ruling 2). The `s35_notice` clause's `Section 35 of the Bharatiya Nagarik Suraksha Sanhita, 2023` becomes `{notice_provision}` (slot `notice_provision`, Addendum 2 ruling 1): BNSS `Section 35(3) of the BNSS`; CrPC `Section 41A of the CrPC`; no choice `[To be confirmed: Section 41A of the CrPC or Section 35(3) of the BNSS]`. Nothing else changes in any clause.
 
+## Version 5, 23 Oct 2026 (supersedes SHA `d09d7bac30fd495f9c8c4e6db3898525ee0f0977c286df3c65c909d5ebfda54d`)
+
+- v5, 23 Oct 2026, T-577: the only change is a new top-level block, `"bodyParagraphs": { "default": 10, "cap": 25 }`, plus `"version": 5`. No clause text, slot, condition or order changes. `mandatory` is not stored; it is derived from the clauses with `required: true` whose `when` holds (AJ-577-M3/M5). Signed SHA-256 of `_skeletons/bail_regular.json` v5: `5dcb06872b948920697adf5b795251742004b2874c480c3c9ca0595f2f0e9995` (I rebuilt the file from v4 plus this diff and the hash matched). The parked T-500 changes, if they land later, become v6 with a new signature.
+
 ## Skeleton JSON
 
 ```json
 {
   "pack": "bail_regular",
-  "version": 4,
+  "version": 5,
+  "bodyParagraphs": { "default": 10, "cap": 25 },
   "none_values": "first_bail_application.equals (T-334)",
   "antecedents_none_values": [
     "none",
