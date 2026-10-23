@@ -71,3 +71,9 @@ Intake and preflight add about ₹0.1 per call, ≈ ₹0.5 per draft. The heavie
 **3. T-579 (annexures as DOCX beside the PDF): no extra Ink. Agreed with Arjun.** It is a format conversion of a paid draft, about ₹0 per run. Same condition as T-381: if a model call is ever added to the DOCX path, it comes back to me for a price before merge.
 
 Vikram, CFO
+
+## Arjun (23 Oct 2026) — after Vikram's ruling: design complete, pending Rajesh
+
+Vikram's bands stand (M packs: ≤10 = 2 Ink, 11–18 = 3, 19–25 = 4; cap 25; `pricing.paragraph_bands.M` as Ink over the class price; S/L priced when they get the stepper). One engineering note on his under-delivery rule ("settle at the band actually delivered, never more than the quote"): the hold is the quoted band; at `finish()` the settle amount is `min(quotedBand, deliveredBand)`. If `settleInk` can settle less than the hold (check the 4th argument), use it and release the remainder in the same call; if it cannot, settle the quote and write one idempotent credit row (`reason: 'paragraph_shortfall'`, keyed on runId) for the difference in the same transaction shape as a refund. Either way `inkDebited` reports the settled figure and the `done` chip matches. The repair round runs before settle, so the delivered count is known at settle time. Test: quote 4, deliver 12 paragraphs → debit 3.
+
+Remaining before build: Rajesh's stepper design (live price from the quote endpoint, Operate surface) and Ajay's per-pack mandatory list for bail. Then Priya claims it for a lead.
