@@ -73,6 +73,15 @@ describe('bodyParagraphs validation', () => {
   });
 
   it.each([
+    ['cap 0', { default: 0, cap: 0 }],
+    ['cap 0 with a default', { default: 10, cap: 0 }],
+    ['negative cap', { default: -5, cap: -1 }],
+    ['negative cap with a default', { default: 10, cap: -3 }],
+  ])('rejects %s, saying the cap must be at least 1', (_n, bp) => {
+    expect(bpErrors(errorsWith(bp))).toContain('bodyParagraphs.cap must be at least 1');
+  });
+
+  it.each([
     ['null', null],
     ['an array', [10, 25]],
     ['a number', 25],

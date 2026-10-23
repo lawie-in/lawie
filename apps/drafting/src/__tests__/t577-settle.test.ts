@@ -15,6 +15,7 @@ import { User } from '../models/User.model';
 import { createVerifiedUser } from './verifiedUser';
 import { type InkHoldHandle, withInkHold } from '../routes/documents.routes';
 import { _clearAppSettingsCache } from '../services/app-settings.service';
+import * as credits from '../services/credits.service';
 import {
   _resetParagraphBandWarnings,
   DraftQuote,
@@ -222,6 +223,46 @@ describe('item 7: settle at the delivered band', () => {
     });
     expect(doneOf(res)!.inkDebited).toBe(3);
     expect(await spent()).toBe(3);
+  });
+
+  describe('done-after-sweep reports the band only when it was stored', () => {
+    const sweptThenFinish = async (store: () => Promise<{ set: boolean }>) => {
+      jest.spyOn(credits, 'setHoldSettleUnits').mockImplementation(store);
+      const res = makeRes();
+      await drive(res, await quoteFor(25), async (ink) => {
+        await ink.delivered(12);
+        await User.collection.updateOne(
+          { _id: OID },
+          { $set: { 'inkHolds.$[h].deliver': true, 'inkHolds.$[h].expiresAt': new Date(0) } },
+          { arrayFilters: [{ 'h.runId': 'run-577' }] },
+        );
+        await releaseExpiredHolds(USER_ID);
+        await ink.finish({ saved: true, duplicate: false });
+        ink.sendDone({ ...DONE });
+      });
+      return res;
+    };
+
+    it('setHoldSettleUnits throws: done shows the full cost (the sweep kept the full hold), and the debit is the full 4', async () => {
+      const res = await sweptThenFinish(async () => {
+        throw new Error('store down');
+      });
+      expect(doneOf(res)!.inkDebited).toBe(4);
+      expect(await spent()).toBe(4);
+    });
+
+    it('setHoldSettleUnits {set:false}: done shows the full cost, matching the debit', async () => {
+      const res = await sweptThenFinish(async () => ({ set: false }));
+      expect(doneOf(res)!.inkDebited).toBe(4);
+      expect(await spent()).toBe(4);
+    });
+
+    it('setHoldSettleUnits {set:true} (the real store): done shows the delivered band 3, matching the debit', async () => {
+      const real = credits.setHoldSettleUnits;
+      const res = await sweptThenFinish(() => real(USER_ID, 'run-577', 1, 6));
+      expect(doneOf(res)!.inkDebited).toBe(3);
+      expect(await spent()).toBe(3);
+    });
   });
 
   it('a flat quote (pack does not ask): delivered() does nothing, the hold has no quote fields, full price settles', async () => {

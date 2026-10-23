@@ -430,6 +430,49 @@ describe('item 5: generate-from-brief refusals come before any hold or model cal
     expect(done!.inkDebited).toBe(2);
   });
 
+  it('retry with stored 19, no count sent, expected_ink 4 (the held figure): no 409, held at 4', async () => {
+    await priorRun({ paragraphsRequested: 19, inkQuoted: 4 });
+    const hold = jest.spyOn(credits, 'holdInk');
+    const { res, done } = await generate(
+      regularBase(),
+      { run_id: RUN, expected_ink: 4 },
+      { delivered: 19 },
+    );
+    expect(res.status).toBe(200);
+    expect(hold.mock.calls[0][0].costCredits).toBe(4);
+    expect(done!.inkQuoted).toBe(4);
+  });
+
+  it('retry with stored 19, no count sent, expected_ink 3 (the default-count figure is not what is held): 409 ink 4, no hold, no model call', async () => {
+    await priorRun({ paragraphsRequested: 19, inkQuoted: 4 });
+    const hold = jest.spyOn(credits, 'holdInk');
+    const { res } = await generate(regularBase(), { run_id: RUN, expected_ink: 3 });
+    expect(res.status).toBe(409);
+    expect(res.body).toEqual({ error: 'price_changed', ink: 4 });
+    expect(hold).not.toHaveBeenCalled();
+    expect(mockParse).not.toHaveBeenCalled();
+    expect(mockStream).not.toHaveBeenCalled();
+    expect(await holds()).toHaveLength(0);
+    expect(await inkLeft()).toBe(40);
+  });
+
+  it('retry with stored 19 and expected_ink 2 (the default count price) is also refused: 409 ink 4', async () => {
+    await priorRun({ paragraphsRequested: 19, inkQuoted: 4 });
+    const { res } = await generate(regularBase(), { run_id: RUN, expected_ink: 2 });
+    expect(res.status).toBe(409);
+    expect(res.body).toEqual({ error: 'price_changed', ink: 4 });
+  });
+
+  it('first run with a mismatching expected_ink: 409 before any hold', async () => {
+    const hold = jest.spyOn(credits, 'holdInk');
+    const { res } = await generate(regularBase(), { paragraphs: 12, expected_ink: 2 });
+    expect(res.status).toBe(409);
+    expect(res.body).toEqual({ error: 'price_changed', ink: 3 });
+    expect(hold).not.toHaveBeenCalled();
+    expect(mockParse).not.toHaveBeenCalled();
+    expect(await holds()).toHaveLength(0);
+  });
+
   it('a retry with the same count and price goes through', async () => {
     await priorRun({ paragraphsRequested: 12, inkQuoted: 3 });
     const { res, done } = await generate(

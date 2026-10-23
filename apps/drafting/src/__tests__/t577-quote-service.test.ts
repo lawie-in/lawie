@@ -24,6 +24,7 @@ import {
   _setParagraphConfigSourceForTests,
   costForTemplate,
   getParagraphBands,
+  getParagraphBandsWithKey,
   getParagraphConfig,
   ledgerFactsFromValues,
   mandatoryCount,
@@ -467,11 +468,43 @@ describe('quoteDraft: missing or invalid bands -> the pack does not ask (class p
     },
   );
 
-  it('bands that do not cover [min, cap] (stop at 18) -> asks:false, one warn on the pack key', async () => {
+  it('bands that do not cover [min, cap] (stop at 18), parsed from base_2 -> asks:false, one warn naming base_2 (not the pack key)', async () => {
     await seed(`${PREFIX}.base_2`, '[{"upTo":10,"add":0},{"upTo":18,"add":1}]');
     expect(await quoteDraft('bail_regular', { paragraphs: 12 })).toEqual({ asks: false, ink: 2 });
     await quoteDraft('bail_regular');
+    expect(bandWarns().filter((l) => l.includes(`${PREFIX}.base_2`))).toHaveLength(1);
+    expect(bandWarns().filter((l) => l.includes(`${PREFIX}.bail_regular`))).toHaveLength(0);
+  });
+
+  it('a pack key that parses but is short of the cap -> one warn naming the pack key', async () => {
+    await seedBase2();
+    await seed(`${PREFIX}.bail_regular`, '[{"upTo":10,"add":0},{"upTo":18,"add":1}]');
+    expect(await quoteDraft('bail_regular')).toEqual({ asks: false, ink: 2 });
+    await quoteDraft('bail_regular');
     expect(bandWarns().filter((l) => l.includes(`${PREFIX}.bail_regular`))).toHaveLength(1);
+    expect(bandWarns().filter((l) => l.includes(`${PREFIX}.base_2`))).toHaveLength(0);
+  });
+
+  it('getParagraphBandsWithKey returns the key actually read, per path', async () => {
+    expect(await getParagraphBandsWithKey('bail_regular', 2)).toBeNull();
+    await seedBase2();
+    const viaBase = await getParagraphBandsWithKey('bail_regular', 2);
+    expect(viaBase!.key).toBe(`${PREFIX}.base_2`);
+    expect(viaBase!.bands.map((b) => b.ink)).toEqual([2, 3, 4]);
+    await seed(`${PREFIX}.bail_regular`, '[{"upTo":25,"add":1}]');
+    const viaPack = await getParagraphBandsWithKey('bail_regular', 2);
+    expect(viaPack).toEqual({
+      key: `${PREFIX}.bail_regular`,
+      bands: [{ from: 1, to: 25, ink: 3 }],
+    });
+    // getParagraphBands is still the plain array
+    expect(await getParagraphBands('bail_regular', 2)).toEqual(viaPack!.bands);
+  });
+
+  it('an invalid pack key falls back to base_ and the key returned is base_', async () => {
+    await seedBase2();
+    await seed(`${PREFIX}.bail_regular`, 'garbage');
+    expect((await getParagraphBandsWithKey('bail_regular', 2))!.key).toBe(`${PREFIX}.base_2`);
   });
 
   it('a per-pack key that is valid wins even when base_ is invalid (no ask:false)', async () => {

@@ -44,7 +44,7 @@ const SIGNED: Record<string, { version: number; mdSha: string; blockSha: string 
   bail_regular: {
     // T-577: v5 (bodyParagraphs block), re-signed by Ajay 23 Oct 2026.
     version: 5,
-    mdSha: 'fa8568cff20e3e5a6d90c741947adf46cc7c2b72452b1f632852a17f5d173515',
+    mdSha: '653c787792252982750a21d928803222b068e35afbfd7fbdc47c47a31ffdf1d0',
     blockSha: '5dcb06872b948920697adf5b795251742004b2874c480c3c9ca0595f2f0e9995',
   },
   bail_anticipatory: {
