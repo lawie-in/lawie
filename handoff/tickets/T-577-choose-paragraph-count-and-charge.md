@@ -28,3 +28,13 @@ Ask the user how many paragraphs they want, draft that many, and charge accordin
 
 ## Files
 Claimed by Priya when a lead takes it, after design sign-off.
+
+## Arjun (23 Oct 2026) — design, short
+
+1. **Counted:** the free-form body paragraphs only (facts + grounds), after the pack's mandatory paragraphs. Cause title, prayer, verification, headings, mandatory legal paragraphs: never counted, never cut. The server computes `mandatoryCount` from the pack, so the user picks `extraCount` in `[packMin, cap − mandatoryCount]`.
+2. **Cap and price: Vikram** (asked). Default cap 25 total until he rules. Price is a step function in Ink, not per paragraph: small/medium/large bands (e.g. ≤8 / ≤16 / ≤25) so the quote stays a whole-Ink figure and the T-453 cost classes keep meaning. Bands and Ink per band are Vikram's numbers, in AppSettings (`pricing.paragraph_bands`), not code.
+3. **Shown equals charged (T-388):** `costForTemplate(templateId, extraCount)` is the one quote function; `enforceCredits` holds that figure, `finish()` settles it, `inkDebited` (T-545) reports it. The count is part of the run record, so a resume or retry re-quotes identically. **Server-side range check** returns 400 `paragraph_count_out_of_range` with the allowed range; the form never decides.
+4. **Default when skipped:** the pack's current default count (what today's draft produces) → today's flow and the golden set are unchanged.
+5. **Model and verifier:** the count goes into the prompt as a hard target with ±1 tolerance; the post-processor **never truncates or pads**: under by >1 → one repair round asking for the missing paragraphs; over by >1 → one repair round asking to merge; still off → deliver as is with a `warning` event ("drafted N of the M paragraphs you asked for") and charge the **quoted** band (never more). Ajay's guard: mandatory paragraphs are outside the count by construction, so a short count cannot drop required content; he confirms the mandatory list per pack.
+6. **Scope:** bail first; packs with a fixed form (affidavit, vakalatnama) do not ask. Rajesh designs the control (a stepper with the price updating live, Operate surface).
+Follow-up, not now: v2's compiler reads the same `extraCount`.

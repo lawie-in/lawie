@@ -20,3 +20,14 @@
 
 ## Files
 Claimed by Priya when a lead takes it: `apps/web/src/components/editor/AnnexuresCard.tsx`, `exportUtils.ts`, the drafting annexure route and service (Explore finds them), tests.
+
+## Arjun (23 Oct 2026) — how it is built today, and the design
+
+**Today:** `apps/drafting/src/services/annexures.service.ts` builds each annexure as an **HTML string** (memo of parties, synopsis, …, from `formData` + court rules), wraps it (`wrapHtml`), and `buildAnnexuresPack` renders the pages to one PDF with **Puppeteer/Chromium**. The route `POST /documents/:id/annexures-pack` returns `application/pdf`. The web's draft export already makes DOCX **client-side** with the `docx` package (`exportUtils.ts`, `htmlToDocxParagraphs`) — so the two renderers already exist, one on each side.
+
+**Design — one source, two renderers, no new library:**
+1. The service's HTML builders become the single source: factor `buildAnnexuresHtml(doc, rules) → { title, sections: [{ heading, html }], footer }` out of `buildAnnexuresPack`; the PDF path renders it as before.
+2. New `POST /documents/:id/annexures-pack?format=html` (same auth, same eligibility, same rate limit, same `exportedAs` mark, same error bodies) returns that JSON. No PDF, no Chromium on this path, so it is cheaper than the PDF.
+3. The web calls it and reuses `htmlToDocxParagraphs` + the existing blank-marker and header/footer code to build `<title>_annexures.docx`, with page breaks between annexures and the same signed headings and footer the PDF uses (same strings, same source). Hindi: the draft DOCX path already handles Devanagari runs; the annexure path uses the same run builder.
+4. No Ink (same as the PDF today; Vikram may rule otherwise). Tests: a snapshot of the HTML source per annexure type; a DOCX test that unzips and checks heading order, footer text and that blanks are present as text; the PDF test unchanged. Ajay byte-checks the strings once — they do not change.
+Rajesh: a second button beside the PDF, same card.
