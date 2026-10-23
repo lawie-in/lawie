@@ -474,6 +474,8 @@ export async function withInkHold(
   /** T-577: the settle amount for the delivered count (Ink and units); unset → the full hold. */
   let deliveredInk: number | undefined;
   let deliveredUnits: number | undefined;
+  /** T-577: true only once the delivered band is stored on the hold (what a sweep then keeps). */
+  let deliveredStored = false;
 
   // Express 4 does not catch a rejected async handler: a throw here would
   // leave the request hanging, so it is answered with the route's own 500.
@@ -658,7 +660,9 @@ export async function withInkHold(
           // actualUnits, so it kept the full hold: the held cost (already Ink).
           // T-577: unless the delivered band was stored on the hold
           // (delivered()), which the sweep keeps instead.
-          doneInkDebited = deliveredInk ?? cost;
+          // Only a stored band (setHoldSettleUnits {set:true}) counts: a failed
+          // store leaves the sweep keeping the full hold, so done shows `cost`.
+          doneInkDebited = deliveredStored && deliveredInk !== undefined ? deliveredInk : cost;
           await readDoneBalance();
           return;
         }
@@ -741,7 +745,8 @@ export async function withInkHold(
       deliveredInk = settleInkForDelivered(paragraphQuote, count);
       deliveredUnits = unitsFromInk(deliveredInk);
       try {
-        await setHoldSettleUnits(userId, runId, runSequence, deliveredUnits);
+        const stored = await setHoldSettleUnits(userId, runId, runSequence, deliveredUnits);
+        deliveredStored = stored.set;
       } catch (err) {
         // finish() still passes the figure to settleInk; only a sweep that
         // beats it would keep the full hold. Ids only.
@@ -1398,6 +1403,9 @@ router.post(
         return;
       }
       try {
+        // Stored facts only: withS138DateChecks stays on generate-from-brief,
+        // after Confirm (T-363, ruling b). It adds computed keys only for the
+        // s.138 pack, which does not ask, so the minimum is the same.
         ledgerFacts = currentState(doc).facts;
       } catch (err) {
         // Ids only: never a fact value.
@@ -1563,10 +1571,6 @@ router.post(
       res.status(400).json(paragraphRangeError(quote));
       return;
     }
-    if (parsed.data.expected_ink !== undefined && parsed.data.expected_ink !== quote.ink) {
-      res.status(409).json({ error: 'price_changed', ink: quote.ink });
-      return;
-    }
 
     // The brief is worked out again here. What the browser says about it is not
     // trusted: for a document with no rule pack, a court signal in the user's
@@ -1674,6 +1678,14 @@ router.post(
           return;
         }
       }
+    }
+    // T-577 (T-388, AJ-577-M6): the shown figure is checked against the quote
+    // that is held and charged, so after the retry re-quote above (a retry
+    // with no count is priced at its stored count). Still before any hold or
+    // model call.
+    if (parsed.data.expected_ink !== undefined && parsed.data.expected_ink !== quote.ink) {
+      res.status(409).json({ error: 'price_changed', ink: quote.ink });
+      return;
     }
     const runQuote = quote;
     /** T-577: stored on the run's Generation rows, only when the pack asked for a count. */

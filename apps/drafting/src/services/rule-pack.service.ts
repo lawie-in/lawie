@@ -1287,6 +1287,9 @@ export function validateSkeleton(raw: unknown, pack: RulePack | null, packId?: s
       }
       if (typeof cap !== 'number' || !Number.isInteger(cap)) {
         errors.push('bodyParagraphs.cap is not an integer');
+      } else if (cap < 1) {
+        // A pack that asks must allow at least one body paragraph.
+        errors.push('bodyParagraphs.cap must be at least 1');
       }
       if (
         typeof def === 'number' &&

@@ -308,13 +308,25 @@ export async function getParagraphBands(
   templateId: string,
   classPrice: number,
 ): Promise<ParagraphBand[] | null> {
+  return (await getParagraphBandsWithKey(templateId, classPrice))?.bands ?? null;
+}
+
+/**
+ * getParagraphBands, with the AppSettings key the bands were read from (the
+ * pack key, or the `base_<classPrice>` fallback), so a later warning names
+ * the key that was actually parsed.
+ */
+export async function getParagraphBandsWithKey(
+  templateId: string,
+  classPrice: number,
+): Promise<{ bands: ParagraphBand[]; key: string } | null> {
   const prefix = APP_SETTING_KEYS.PARAGRAPH_BANDS_PREFIX;
   const packKey = `${prefix}.${templateId}`;
   const baseKey = `${prefix}.base_${classPrice}`;
   const own = await readBands(packKey, classPrice);
-  if (Array.isArray(own)) return own;
+  if (Array.isArray(own)) return { bands: own, key: packKey };
   const base = await readBands(baseKey, classPrice);
-  if (Array.isArray(base)) return base;
+  if (Array.isArray(base)) return { bands: base, key: baseKey };
   if (own === 'missing' && base === 'missing') {
     warnBandsOnce(packKey, 'missing');
     warnBandsOnce(baseKey, 'missing');
@@ -385,12 +397,14 @@ export async function quoteDraft(
 
   const max = config.cap;
   const min = Math.min(mandatoryCount(templateId, input.facts ?? []) ?? 1, max);
-  const allBands = await getParagraphBands(templateId, classPrice);
-  if (!allBands) return flat;
-  // The bands must price every count the user may choose.
+  const read = await getParagraphBandsWithKey(templateId, classPrice);
+  if (!read) return flat;
+  const allBands = read.bands;
+  // The bands must price every count the user may choose. The warning names
+  // the key whose bands were parsed (the pack's, or the base fallback).
   for (let n = min; n <= max; n += 1) {
     if (!bandFor(allBands, n)) {
-      warnBandsOnce(`${APP_SETTING_KEYS.PARAGRAPH_BANDS_PREFIX}.${templateId}`, 'invalid');
+      warnBandsOnce(read.key, 'invalid');
       return flat;
     }
   }
