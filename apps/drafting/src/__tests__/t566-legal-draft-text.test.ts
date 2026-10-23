@@ -73,8 +73,8 @@ const PACK_FILES = readdirSync(RULES_DIR)
   .filter((f) => f.endsWith('.json'))
   .sort();
 const PACK_IDS = PACK_FILES.map((f) => f.replace(/\.json$/, ''));
-// criminal_revision.json is another claim's (T-472); T-566 did not touch it.
-const T566_PACK_FILES = PACK_FILES.filter((f) => f !== 'criminal_revision.json');
+// T-573 brought criminal_revision.json under the item-65 scans; every pack is now covered.
+const T566_PACK_FILES = PACK_FILES;
 
 type Json = unknown;
 type Pack = Record<string, Json>;
@@ -513,7 +513,8 @@ describe('T-566 ruling S11a: the validator warning on an IPC citation', () => {
 describe('T-566 item 65 (rulings 65a, 65b, 65c, 65g): no Lawie disclaimer inside any pack', () => {
   it('scans the real pack directory (92 files)', () => {
     expect(PACK_FILES).toHaveLength(92);
-    expect(T566_PACK_FILES).toHaveLength(91);
+    expect(T566_PACK_FILES).toHaveLength(92);
+    expect(T566_PACK_FILES).toContain('criminal_revision.json');
   });
 
   it.each(T566_PACK_FILES)(
@@ -734,7 +735,7 @@ describe('T-566 item 65 / ruling 65e: the strip filters catch both phrases', () 
 // ── 7. Item 64 / S4-S7 ──────────────────────────────────────────────────────
 
 describe('T-566 item 64 (rulings 64a-64d, S4-S7): no judgment names in discharge, habeas, slp', () => {
-  const PACKS = ['discharge_application', 'habeas_corpus', 'slp'];
+  const PACKS = ['discharge_application', 'habeas_corpus', 'slp', 'criminal_revision'];
 
   it.each(PACKS)('%s: sentence S is the last promptInstructions element, exactly once', (id) => {
     const list = instructions(id);
