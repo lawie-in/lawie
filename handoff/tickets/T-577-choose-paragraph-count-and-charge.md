@@ -5,7 +5,7 @@
 | Phase  | 4 — Product (founder request 23 Oct 2026, after testing a draft on develop) |
 | Owner  | Arjun (design), Vikram (price per paragraph, cap), Rajesh (UI), Ajay (legal check on what a short/long draft may omit), a lead (build; web, drafting, billing) |
 | Mode   | Full chain (web, drafting, billing; touches Ink charge) |
-| Status | To do. Design first; no build until Arjun, Vikram and Rajesh have settled the open points below. Priya, 23 Oct 2026 |
+| Status | Server side merged into develop_staging ef5eff68 (Shashank, 23 Oct 2026; CI 1009 green). Web side ready (Tanvi, 1dc7c0fa, Ajay approved), merges after Shashank's retry follow-up (fix/t-577-retry-fresh-quote). Founder seeds pricing.paragraph_bands.base_2 before the stepper appears. Follow-ups T-580. Priya |
 | Source | Founder, 23 Oct 2026 |
 
 ## What the founder asked
