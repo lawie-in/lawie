@@ -19,3 +19,6 @@ Arjun's T-577 ruling 5 asks for a repair round when the model delivers a differe
 
 ## Files
 Claimed by Priya when a lead takes it: `apps/drafting/src/services/ai.service.ts`, `brief-drafter.ts`, tests. Not before T-577 and T-567 are merged.
+
+## Added 23 Oct 2026 (Arjun, from T-577 round 3; pre-existing, not blocking)
+5. A sweep that reads an Ink hold before the route's settle-units mark lands keeps the full hold while `done` shows the delivered band. It over-reports but never over-charges (M6 holds). Fix: the sweep recomputes the charge from the hold it actually pulled. Test for the race.
