@@ -8,7 +8,12 @@ import { z } from 'zod';
 
 import logger from '../config/logger';
 import { authenticate } from '../middleware/authenticate';
-import { chargedCost, enforceCredits, insufficientInkBody } from '../middleware/enforceCredits';
+import {
+  chargedCost,
+  enforceCredits,
+  enforceCreditsForBrief,
+  insufficientInkBody,
+} from '../middleware/enforceCredits';
 import { FREE_TIER_MONTHLY_LIMIT } from '../middleware/enforceFreeLimit';
 import { requireVerifiedEmail } from '../middleware/requireVerifiedEmail';
 import { spendCapCheck } from '../middleware/spendCap';
@@ -24,7 +29,7 @@ import {
   streamGenerateFromTemplate,
 } from '../services/ai.service';
 import { buildAnnexuresPack, estimateBodyParaCount } from '../services/annexures.service';
-import { AvermentLists, loadAvermentLists } from '../services/averments';
+import { AvermentLists, factEntriesByKey, loadAvermentLists } from '../services/averments';
 import {
   briefText,
   clampTarget,
@@ -44,17 +49,28 @@ import {
 } from '../services/brief-party-fields';
 import {
   costForTemplate,
+  DraftQuote,
   extendInkHold,
   getCreditBalance,
   holdInk,
   inkFromUnits,
   INK_HOLD_HEARTBEAT_MS,
   INK_HOLD_MAX_HEARTBEAT_MS,
+  installParagraphConfigSource,
+  ParagraphQuote,
+  paragraphFactsFor,
+  quoteDraft,
+  quoteInRange,
   releaseInk,
+  skeletonParagraphSource,
+  setHoldSettleUnits,
   settleInk,
+  settleInkForDelivered,
+  unitsFromInk,
   wasInkSettled,
 } from '../services/credits.service';
 import { eraseDocument } from '../services/document-erase.service';
+import { packOptionIds, skeletonValueLists, skeletonWhenHolds } from '../services/draft-renderer';
 import {
   factDiffRunType,
   FactDiffRunType,
@@ -90,7 +106,7 @@ import {
   renderPdf,
 } from '../services/pdf-export.service';
 import { preflightCheck } from '../services/preflight.service';
-import { applyFieldAliases, loadRulePack } from '../services/rule-pack.service';
+import { applyFieldAliases, loadRulePack, loadSkeleton } from '../services/rule-pack.service';
 import { NOT_FIXTURE, NOT_FIXTURE_GENERATION } from '../services/run-origin';
 import { withS138DateChecks } from '../services/s138-date-checks';
 import {
@@ -135,6 +151,30 @@ function validateObjectId(req: Request, _res: Response, next: NextFunction): voi
 }
 
 const router = Router();
+
+/**
+ * T-577 (AJ-577-M5, M7): every pack's paragraph block comes from its signed
+ * skeleton (`bodyParagraphs`); a pack without one does not ask. The mandatory
+ * count reads each required clause's `when` with the renderer's own
+ * skeletonWhenHolds, given the pack's option ids and the skeleton's value
+ * lists exactly as ai.service builds them for renderDraft.
+ */
+installParagraphConfigSource(
+  skeletonParagraphSource(loadSkeleton, (packId, skeleton) => {
+    const pack = loadRulePack(packId);
+    const optionIds = pack ? packOptionIds(pack.facts) : {};
+    let lists: Pick<AvermentLists, 'banned' | 'allowed'>;
+    try {
+      lists = loadAvermentLists(packId);
+    } catch {
+      // A list name that cannot be resolved fails closed, as in the renderer.
+      lists = { banned: [], allowed: [] };
+    }
+    const valueLists = skeletonValueLists(skeleton, lists);
+    return (when, facts) =>
+      skeletonWhenHolds(when, { held: factEntriesByKey(facts), optionIds, valueLists });
+  }),
+);
 
 /**
  * T-357 AC3: log a template-config load failure once. Only the message is
@@ -214,6 +254,9 @@ export interface RecordGenerationInput {
   ledger?: 'on' | 'off';
   /** T-477: how many echoed [only when: ...] markers were stripped from the AI body (count only) */
   onlyWhenStrips?: number;
+  /** T-577: the quoted paragraph count and Ink, only when the pack asked for a count. */
+  paragraphsRequested?: number;
+  inkQuoted?: number;
 }
 
 /**
@@ -259,6 +302,11 @@ export async function recordGeneration(
       intakeId: input.intakeId,
       ledger: input.ledger,
       onlyWhenStrips: input.onlyWhenStrips,
+      // T-577: present only when the pack asked for a count, so every other row is written as before.
+      ...(input.paragraphsRequested !== undefined
+        ? { paragraphsRequested: input.paragraphsRequested }
+        : {}),
+      ...(input.inkQuoted !== undefined ? { inkQuoted: input.inkQuoted } : {}),
       costUsd,
       costStatus: rate.costStatus,
       rateInputUsdPerMTok: rate.costStatus === 'priced' ? rate.rate.inputUsdPerMTok : undefined,
@@ -361,6 +409,15 @@ export interface InkHoldHandle {
    * `inkDebited` (T-545) when finish() knows what was settled.
    */
   sendDone(data: Record<string, unknown>): void;
+  /**
+   * T-577: the draft's delivered body paragraph count (countBodyParagraphs).
+   * For a paragraph-count quote it fixes the settle at min(quote, delivered
+   * band), stores it on the hold (so the sweep and a lost-hold path keep the
+   * same figure) and returns that Ink. Call it once the result is in, before
+   * the Generation row is written. Without such a quote it does nothing and
+   * returns undefined (the full hold is settled, as before).
+   */
+  delivered(count: number): Promise<number | undefined>;
 }
 
 /**
@@ -399,18 +456,29 @@ const DONE_BALANCE_TIMEOUT_MS = 1000;
 export async function withInkHold(
   req: Request,
   res: Response,
-  key: { runId: string; runSequence: number },
+  /**
+   * T-577: `quote` is the paragraph-count quote `cost` came from. Only an
+   * asking quote changes anything (quote stored on the hold, settle at the
+   * delivered band).
+   */
+  key: { runId: string; runSequence: number; quote?: DraftQuote },
   cost: number,
   preStreamError: Record<string, unknown>,
   run: (ink: InkHoldHandle) => Promise<void>,
 ): Promise<void> {
   const userId = req.jwtPayload!.sub;
-  const { runId, runSequence } = key;
+  const { runId, runSequence, quote } = key;
+  const paragraphQuote: ParagraphQuote | undefined = quote?.asks ? quote : undefined;
+  /** T-577: the hold's quote flag, only for an asking quote (holds are written as before otherwise). */
+  const holdExtra = paragraphQuote ? { quoted: true } : {};
+  /** T-577: the settle amount for the delivered count (Ink and units); unset → the full hold. */
+  let deliveredInk: number | undefined;
+  let deliveredUnits: number | undefined;
 
   // Express 4 does not catch a rejected async handler: a throw here would
   // leave the request hanging, so it is answered with the route's own 500.
   try {
-    const held = await holdInk({ userId, costCredits: cost, runId, runSequence });
+    const held = await holdInk({ userId, costCredits: cost, runId, runSequence, ...holdExtra });
     if (!held.ok) {
       if (held.reason === 'duplicate') {
         res.status(409).json({ error: 'Draft already in progress', runId });
@@ -561,7 +629,8 @@ export async function withInkHold(
       closed = true;
       let settled: Awaited<ReturnType<typeof settleInk>>;
       try {
-        settled = await settleInk(userId, runId, runSequence, undefined, reference);
+        // T-577: deliveredUnits is unset unless the pack asked for a count.
+        settled = await settleInk(userId, runId, runSequence, deliveredUnits, reference);
       } catch (err) {
         // The hold (marked delivered, if the mark landed) stays; the sweep
         // settles or releases it.
@@ -587,7 +656,9 @@ export async function withInkHold(
         if (await wasInkSettled(userId, runId, runSequence)) {
           // T-545: the settled record has no units. The sweep settles with no
           // actualUnits, so it kept the full hold: the held cost (already Ink).
-          doneInkDebited = cost;
+          // T-577: unless the delivered band was stored on the hold
+          // (delivered()), which the sweep keeps instead.
+          doneInkDebited = deliveredInk ?? cost;
           await readDoneBalance();
           return;
         }
@@ -609,13 +680,19 @@ export async function withInkHold(
       // refused re-hold: no `done`, the 402 text as an SSE error.
       let reheld = false;
       try {
-        const again = await holdInk({ userId, costCredits: cost, runId, runSequence });
+        const again = await holdInk({
+          userId,
+          costCredits: cost,
+          runId,
+          runSequence,
+          ...holdExtra,
+        });
         if (!again.ok && again.reason !== 'duplicate') {
           await withholdDraft();
           return;
         }
         reheld = again.ok;
-        const retried = await settleInk(userId, runId, runSequence, undefined, reference);
+        const retried = await settleInk(userId, runId, runSequence, deliveredUnits, reference);
         if (retried.settled) {
           if (typeof retried.units === 'number') doneInkDebited = inkFromUnits(retried.units);
           await readDoneBalance();
@@ -658,6 +735,22 @@ export async function withInkHold(
       if (doneBalance) payload.balance = doneBalance;
       res.write(`event: done\ndata: ${JSON.stringify(payload)}\n\n`);
       res.end();
+    },
+    async delivered(count) {
+      if (!paragraphQuote) return undefined;
+      deliveredInk = settleInkForDelivered(paragraphQuote, count);
+      deliveredUnits = unitsFromInk(deliveredInk);
+      try {
+        await setHoldSettleUnits(userId, runId, runSequence, deliveredUnits);
+      } catch (err) {
+        // finish() still passes the figure to settleInk; only a sweep that
+        // beats it would keep the full hold. Ids only.
+        console.warn(
+          `[drafting] could not store the delivered band on the hold (runId=${runId}, runSequence=${runSequence}):`,
+          err instanceof Error ? err.name : 'unknown',
+        );
+      }
+      return deliveredInk;
     },
   };
 
@@ -730,15 +823,26 @@ router.get(
     const hidden = await hiddenTemplateIds(req.jwtPayload!.sub);
     configs = configs.filter((c) => !hidden.has(c.template_id));
     const guidedCost = costForTemplate(GUIDED_ID);
+    // T-577: the price comes from quoteDraft (T-388 single source). For a pack
+    // that does not ask (every pack today) it is costForTemplate, unchanged;
+    // for one that asks it is the default count's quote.
+    const quotes = await Promise.all(configs.map((c) => quoteDraft(c.template_id)));
     res.json({
-      templates: configs.map((config) => {
+      templates: configs.map((config, i) => {
         // T-372: the price the charge uses (single source, T-227); omitted when unpriced.
-        const creditsCost = costForTemplate(config.template_id);
+        // T-577: an asking pack shows its quote; any other pack's quote IS
+        // costForTemplate (quoteDraft's flat branch), read here directly.
+        const q = quotes[i];
+        const creditsCost = q?.asks ? q.ink : costForTemplate(config.template_id);
         // T-385: allowlist projection; description is the signed card line (T-365 AC6), no metadata.
-        return publicTemplateSummary({
-          ...config,
-          ...(creditsCost !== undefined ? { credits_cost: creditsCost } : {}),
-        });
+        return {
+          ...publicTemplateSummary({
+            ...config,
+            ...(creditsCost !== undefined ? { credits_cost: creditsCost } : {}),
+          }),
+          // T-577: does this pack ask for a paragraph count (false for every pack today)?
+          asks_paragraphs: quotes[i]?.asks === true,
+        };
       }),
       // T-372: a brief with no rule pack is charged as the guided draft.
       ...(guidedCost !== undefined ? { guided_credits_cost: guidedCost } : {}),
@@ -1147,7 +1251,85 @@ const briefGenerateSchema = z.object({
     .string()
     .regex(/^[a-f0-9]{24}$/i, 'must be a ledger id')
     .optional(),
+  /**
+   * T-577: the Ink the advocate was shown (the quote). When sent and not the
+   * server's quote, the draft is refused with 409 price_changed before any hold.
+   */
+  expected_ink: z.number().nonnegative().max(1000).multipleOf(0.5).optional(),
 });
+
+/**
+ * T-577: POST /documents/paragraph-quote body. The facts the minimum depends
+ * on come from `values` (and the ledger, when one is given and the switch is
+ * on), as in generate-from-brief.
+ */
+const paragraphQuoteSchema = z.object({
+  kind: briefGenerateSchema.shape.kind,
+  values: briefGenerateSchema.shape.values,
+  ledger_id: briefGenerateSchema.shape.ledger_id,
+  paragraphs: briefGenerateSchema.shape.paragraphs,
+  language: z.enum(['en', 'hi', 'bilingual']).default('en'),
+});
+
+/**
+ * AJ-577-M4 (signed), EN; the HI line is web-side. `{min}` is the pack's
+ * mandatory count from the server. The signed line has the cap as the
+ * literal 25 (Vikram's cap), so only `{min}` is substituted.
+ */
+const PARAGRAPH_RANGE_LINE = 'Choose between {min} and 25 paragraphs.';
+
+/** T-577: the 400 for a count outside [min, max]. */
+function paragraphRangeError(quote: ParagraphQuote): Record<string, unknown> {
+  return {
+    error: 'paragraph_count_out_of_range',
+    min: quote.min,
+    max: quote.max,
+    paragraphs: quote.paragraphs,
+    message: PARAGRAPH_RANGE_LINE.replace('{min}', String(quote.min)),
+  };
+}
+
+/** T-577: the public quote (no internal fields). `{asks:false, ink}` for a pack that does not ask. */
+function publicQuote(quote: DraftQuote): Record<string, unknown> {
+  if (!quote.asks) return { asks: false, ink: quote.ink };
+  return {
+    asks: true,
+    ink: quote.ink,
+    min: quote.min,
+    max: quote.max,
+    default: quote.default,
+    paragraphs: quote.paragraphs,
+    bands: quote.bands,
+    ceiling: quote.ceiling,
+  };
+}
+
+/**
+ * T-577: does this run draft through the D1 skeleton/ledger path? The same
+ * rule as ai.service's d1SkeletonFor: a rule pack, a fact ledger in use, the
+ * English draft, and a signed skeleton with clauses. On that path the count
+ * is a ceiling ("up to N"): the skeleton is filled, never split or padded.
+ */
+function draftsViaSkeleton(kind: string, ledgerInUse: boolean, language: string): boolean {
+  if (kind === 'none' || !ledgerInUse || language !== 'en') return false;
+  try {
+    const skeleton = loadSkeleton(kind);
+    return !!skeleton && skeleton.clauses.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * T-577: the delivered body paragraph count, the one count used for the
+ * settle and the done payload. Today it is the pipeline's own count
+ * (`bodyParaCount`: assembleDocument's numbered body paragraphs on the legacy
+ * path, the numbered paragraphs of the rendered text on D1), the figure
+ * already stored as Generation.paragraphCount.
+ */
+export function countBodyParagraphs(result: { bodyParaCount: number }): number {
+  return result.bodyParaCount;
+}
 
 /** The credit gate reads `template_id`. For a brief the rule pack is the template. */
 function kindAsTemplateId(req: Request, _res: Response, next: NextFunction): void {
@@ -1183,6 +1365,75 @@ async function describeFirstOnly(req: Request, res: Response, next: NextFunction
   next();
 }
 
+// POST /documents/paragraph-quote (T-577): the price of a draft for a
+// paragraph count, from quoteDraft (the one quote function). Cheap: no model
+// call, no hold, no run. Same gates as generate-from-brief up to the credit
+// gate. 200 {asks:false, ink} for a pack that does not ask (every pack today);
+// else {asks:true, ink, min, max, default, paragraphs, bands, ceiling}; a
+// count outside [min, max] is the same 400 as generate-from-brief's.
+router.post(
+  '/paragraph-quote',
+  authenticate,
+  requireCurrentPrivacy,
+  requireVerifiedEmail,
+  describeFirstOnly,
+  templateGuard(bodyField('kind')),
+  async (req: Request, res: Response): Promise<void> => {
+    const parsed = paragraphQuoteSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({
+        error: 'Invalid request',
+        issues: parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`),
+      });
+      return;
+    }
+    const payload = req.jwtPayload!;
+    const { kind, values, ledger_id, paragraphs, language } = parsed.data;
+    const guided = kind === 'none';
+    let ledgerFacts: LedgerFact[] | undefined;
+    if (!guided && ledger_id !== undefined && (await isFactLedgerEnabled(payload.sub))) {
+      const doc = await loadOwnLedger(ledger_id, payload.sub);
+      if (!doc || doc.documentKind !== kind) {
+        res.status(404).json({ error: 'Ledger not found' });
+        return;
+      }
+      try {
+        ledgerFacts = currentState(doc).facts;
+      } catch (err) {
+        // Ids only: never a fact value.
+        console.error(
+          `[drafting] ledger unreadable for a quote (ledgerId=${String(doc.id)}):`,
+          err instanceof Error ? err.name : 'unknown',
+        );
+        res.status(503).json({ error: 'ledger_unavailable' });
+        return;
+      }
+    }
+    try {
+      const quote = await quoteDraft(guided ? GUIDED_ID : kind, {
+        paragraphs,
+        facts: paragraphFactsFor(values, ledgerFacts),
+        ceiling: draftsViaSkeleton(kind, ledgerFacts !== undefined, language),
+      });
+      if (!quote) {
+        res.status(400).json({ error: 'Unknown document type' });
+        return;
+      }
+      if (quote.asks && !quoteInRange(quote)) {
+        res.status(400).json(paragraphRangeError(quote));
+        return;
+      }
+      res.json(publicQuote(quote));
+    } catch (err) {
+      console.error(
+        '[drafting] paragraph quote failed:',
+        err instanceof Error ? err.name : 'unknown',
+      );
+      res.status(500).json({ error: 'quote_failed' });
+    }
+  },
+);
+
 router.post(
   '/generate-from-brief',
   authenticate,
@@ -1191,7 +1442,7 @@ router.post(
   describeFirstOnly,
   templateGuard(bodyField('kind')), // T-375
   kindAsTemplateId,
-  enforceCredits,
+  enforceCreditsForBrief, // T-577: enforceCredits priced by quoteDraft (same as enforceCredits when the pack does not ask)
   spendCapCheck,
   async (req: Request, res: Response): Promise<void> => {
     const parsed = briefGenerateSchema.safeParse(req.body);
@@ -1294,6 +1545,29 @@ router.post(
       };
     }
 
+    // T-577: the one quote (after the ledger, which can change the minimum;
+    // before any hold or model call). For a pack that does not ask it is
+    // costForTemplate, the price enforceCredits checked, and nothing below
+    // changes; `paragraphs` still only feeds clampTarget, as before.
+    let quote = await quoteDraft(recordId, {
+      paragraphs: parsed.data.paragraphs,
+      facts: paragraphFactsFor(values, ledger?.facts),
+      ceiling: draftsViaSkeleton(kind, ledger !== null, language),
+    });
+    if (!quote) {
+      // enforceCredits already refused an unpriced id; kept for the type.
+      res.status(400).json({ error: 'Unknown document type' });
+      return;
+    }
+    if (quote.asks && !quoteInRange(quote)) {
+      res.status(400).json(paragraphRangeError(quote));
+      return;
+    }
+    if (parsed.data.expected_ink !== undefined && parsed.data.expected_ink !== quote.ink) {
+      res.status(409).json({ error: 'price_changed', ink: quote.ink });
+      return;
+    }
+
     // The brief is worked out again here. What the browser says about it is not
     // trusted: for a document with no rule pack, a court signal in the user's
     // words makes it a court document whatever was sent (T-107, section 2).
@@ -1367,14 +1641,57 @@ router.post(
     );
     res.setHeader('X-Run-Id', runId);
     res.setHeader('X-Run-Sequence', String(runSequence));
+
+    // T-577: a retry or resume of a run that was quoted for a count re-quotes
+    // the same: the stored count stands when none is sent, and a different
+    // count or Ink is a 409 price_changed. Only for a pack that asks.
+    if (quote.asks && runSequence > 1) {
+      const prior = await Generation.findOne({ runId, userId: payload.sub, templateId: recordId })
+        .sort({ runSequence: -1 })
+        .select('paragraphsRequested inkQuoted')
+        .lean();
+      if (prior?.paragraphsRequested !== undefined && prior.paragraphsRequested !== null) {
+        if (parsed.data.paragraphs === undefined) {
+          const again = await quoteDraft(recordId, {
+            paragraphs: prior.paragraphsRequested,
+            facts: paragraphFactsFor(values, ledger?.facts),
+            ceiling: quote.ceiling,
+          });
+          if (again) quote = again;
+        }
+        if (quote.asks && !quoteInRange(quote)) {
+          res.status(400).json(paragraphRangeError(quote));
+          return;
+        }
+        if (
+          !quote.asks ||
+          quote.paragraphs !== prior.paragraphsRequested ||
+          (prior.inkQuoted !== undefined &&
+            prior.inkQuoted !== null &&
+            prior.inkQuoted !== quote.ink)
+        ) {
+          res.status(409).json({ error: 'price_changed', ink: quote.ink });
+          return;
+        }
+      }
+    }
+    const runQuote = quote;
+    /** T-577: stored on the run's Generation rows, only when the pack asked for a count. */
+    const quoteRecord = runQuote.asks
+      ? { paragraphsRequested: runQuote.paragraphs, inkQuoted: runQuote.ink }
+      : {};
     const startedAt = Date.now();
 
     // T-226: hold the cost before any model call (402/409 refusals as JSON;
     // no header has been sent yet). Every ending below closes the hold.
     // The pre-stream 500 body below.
     const holdError = { error: 'Generation failed' };
-    const inkKey = { runId, runSequence };
-    const inkCost = chargedCost(req); // T-227: no default price
+    // T-577: the quote rides with the key; only an asking quote changes the hold.
+    const inkKey = { runId, runSequence, quote: runQuote };
+    const gateCost = chargedCost(req); // T-227: no default price (throws if enforceCredits did not run)
+    // T-577: the hold is the route's quote (T-388). For a pack that does not
+    // ask it is the same figure enforceCredits stashed.
+    const inkCost = runQuote.asks ? runQuote.ink : gateCost;
     await withInkHold(req, res, inkKey, inkCost, holdError, async (ink) => {
       let result;
       try {
@@ -1445,6 +1762,7 @@ router.post(
           runSequence,
           runType,
           ledger: ledger ? 'on' : 'off',
+          ...quoteRecord,
         });
         if (failed) {
           // The error event was already sent. End only now, after the row exists.
@@ -1466,6 +1784,12 @@ router.post(
         }
         return;
       }
+
+      // T-577: the delivered count fixes the settle (min(quote, delivered
+      // band)) and is stored on the hold before the Generation row exists, so
+      // a sweep keeps the same figure. Nothing for a pack that does not ask.
+      const paragraphsDelivered = countBodyParagraphs(result);
+      await ink.delivered(paragraphsDelivered);
 
       // Save. A database failure must not stop the done event.
       let docId: string | null = null;
@@ -1539,6 +1863,7 @@ router.post(
           runSequence,
           runType,
           ledger: ledger ? 'on' : 'off',
+          ...quoteRecord,
         });
         duplicateAttempt = duplicate;
 
@@ -1644,6 +1969,9 @@ router.post(
         // T-373 (ADR-025 renderer rule 5): the clauses the renderer printed, for the
         // checks panel. Ids, statuses, blank labels and reasons only; D1 packs only.
         ...(result.rendered ? { rendered: result.rendered } : {}),
+        // T-577: only when the pack asked for a count. inkDebited (T-545,
+        // added by sendDone) is the settled figure, at most inkQuoted.
+        ...(runQuote.asks ? { inkQuoted: runQuote.ink, paragraphsDelivered } : {}),
       });
     });
   },

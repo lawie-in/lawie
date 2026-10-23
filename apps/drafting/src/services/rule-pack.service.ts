@@ -1027,6 +1027,11 @@ export interface Skeleton {
    */
   antecedents_none_values?: string[];
   /**
+   * T-577 (AJ-577-M5): the pack asks for a body paragraph count. `mandatory` is
+   * derived from the `required: true` clauses that apply, never stored.
+   */
+  bodyParagraphs?: { default: number; cap: number };
+  /**
    * In T-373's type for structural identity. Not a field of the signed JSON (validation
    * rejects it there) and not set by this loader.
    */
@@ -1046,7 +1051,11 @@ export function clearSkeletonCache(): void {
   skeletonCache.clear();
 }
 
-const SKELETON_KEYS = new Set(['pack', 'version', 'none_values', 'clauses']);
+const SKELETON_KEYS = new Set(['pack', 'version', 'none_values', 'clauses', 'bodyParagraphs']);
+
+/** T-577 (AJ-577-M5): the only keys of a skeleton's `bodyParagraphs` block, and the cap's ceiling. */
+const BODY_PARAGRAPHS_KEYS = new Set(['default', 'cap']);
+const BODY_PARAGRAPHS_MAX = 25;
 
 function isSkeletonTopKey(k: string): boolean {
   return SKELETON_KEYS.has(k) || SKELETON_VALUE_LIST_KEY.test(k);
@@ -1260,6 +1269,41 @@ export function validateSkeleton(raw: unknown, pack: RulePack | null, packId?: s
   }
   if (raw.none_values !== undefined && !nonEmptyString(raw.none_values)) {
     errors.push('none_values is not a non-empty string');
+  }
+  // T-577 (AJ-577-M5 (2)): the optional body-paragraph block is exactly
+  // { default: integer, cap: integer } with mandatory <= default <= cap <= 25.
+  // `mandatory` is derived, never stored; here it is checked at its largest
+  // (every `required: true` clause applying).
+  if (raw.bodyParagraphs !== undefined) {
+    const bp = raw.bodyParagraphs;
+    if (!isObj(bp)) {
+      errors.push('bodyParagraphs is not an object');
+    } else {
+      unknownKeys(bp, BODY_PARAGRAPHS_KEYS, 'bodyParagraphs', errors);
+      const def = bp.default;
+      const cap = bp.cap;
+      if (typeof def !== 'number' || !Number.isInteger(def)) {
+        errors.push('bodyParagraphs.default is not an integer');
+      }
+      if (typeof cap !== 'number' || !Number.isInteger(cap)) {
+        errors.push('bodyParagraphs.cap is not an integer');
+      }
+      if (
+        typeof def === 'number' &&
+        Number.isInteger(def) &&
+        typeof cap === 'number' &&
+        Number.isInteger(cap)
+      ) {
+        const mandatory = Array.isArray(raw.clauses)
+          ? raw.clauses.filter((c) => isObj(c) && c.required === true).length
+          : 0;
+        if (!(mandatory <= def && def <= cap && cap <= BODY_PARAGRAPHS_MAX)) {
+          errors.push(
+            `bodyParagraphs needs mandatory (${mandatory}) <= default <= cap <= ${BODY_PARAGRAPHS_MAX}`,
+          );
+        }
+      }
+    }
   }
   // Other value lists (`<name>_none_values`): an inline list of unique non-empty strings
   // only. Only `none_values` is a reference string.

@@ -28,7 +28,14 @@
 import * as Sentry from '@sentry/node';
 import { Request, Response, NextFunction } from 'express';
 
-import { CreditBalance, costForTemplate, getCreditBalance } from '../services/credits.service';
+import {
+  CreditBalance,
+  DraftQuote,
+  costForTemplate,
+  getCreditBalance,
+  paragraphFactsFor,
+  quoteDraft,
+} from '../services/credits.service';
 import { isFixtureUser } from '../services/run-origin';
 
 // Belt-and-braces ceiling for free-plan accounts. Once we trust the credit
@@ -43,6 +50,35 @@ export async function enforceCredits(
   req: Request,
   res: Response,
   next: NextFunction,
+): Promise<void> {
+  return gate(req, res, next, false);
+}
+
+/**
+ * T-577: enforceCredits for generate-from-brief. The price comes from
+ * quoteDraft (the one quote function) with the body's `paragraphs` and the
+ * brief values as facts. The early balance check stays at the pack's class
+ * price (its lowest band, today's enforceCredits figure; Arjun's amended
+ * ruling 4); the exact check is the hold of the route's quote, whose 402 has
+ * the same body. This gate's 402 carries the quoted figure (cost, message).
+ * For a pack that does not ask the quote is costForTemplate, so this behaves
+ * exactly as enforceCredits. The route re-quotes after the ledger load; that
+ * quote is what is held.
+ * The form path (generate-from-template) keeps enforceCredits.
+ */
+export async function enforceCreditsForBrief(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  return gate(req, res, next, true);
+}
+
+async function gate(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+  quoteParagraphs: boolean,
 ): Promise<void> {
   const payload = req.jwtPayload;
   if (!payload) {
@@ -87,6 +123,27 @@ export async function enforceCredits(
     return;
   }
 
+  // T-577: on the brief route the price is quoteDraft's. For a pack that
+  // does not ask it equals `cost` above (costForTemplate), so nothing changes.
+  // The pre-check stays at the class price (`needed`); the hold does the exact check.
+  const needed = cost;
+  if (quoteParagraphs && templateId !== undefined) {
+    const b = req.body as { paragraphs?: unknown; values?: unknown };
+    const paragraphs =
+      typeof b.paragraphs === 'number' && Number.isInteger(b.paragraphs) ? b.paragraphs : undefined;
+    let quote: DraftQuote | undefined;
+    try {
+      quote = await quoteDraft(templateId, { paragraphs, facts: paragraphFactsFor(b.values) });
+    } catch (err) {
+      // quoteDraft reads settings defensively; a throw here is a bug. Today's price stands.
+      console.error(
+        '[drafting] enforceCredits: quote failed; class price used:',
+        err instanceof Error ? err.name : 'unknown',
+      );
+    }
+    if (quote) cost = quote.ink;
+  }
+
   // T-147e: the golden-set user has no balance and is never charged
   // (spendInk skips it too). No balance is read for it.
   if (isFixtureUser(payload.sub)) {
@@ -97,7 +154,7 @@ export async function enforceCredits(
 
   const balance = await getCreditBalance(payload.sub);
 
-  if (balance.totalInk >= cost) {
+  if (balance.totalInk >= needed) {
     // Stash the cost so the route handler can hold it (withInkHold → holdInk)
     // without recomputing — and so the SSE done event can echo it.
     (req as Request & { creditCost?: number }).creditCost = cost;
