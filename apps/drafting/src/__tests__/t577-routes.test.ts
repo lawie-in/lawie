@@ -175,6 +175,8 @@ async function generate(
     : null;
   return { res, done, ledger_id };
 }
+/** The spy generate() installs when told how many paragraphs were delivered. */
+const target = () => aiService.streamGenerateFromBrief as unknown as jest.Mock;
 const holds = async () =>
   (((await User.collection.findOne({ _id: OID })) as any).inkHolds ?? []) as any[];
 const inkLeft = async () => (await credits.getCreditBalance(USER_ID)).totalInk;
@@ -482,6 +484,106 @@ describe('item 5: generate-from-brief refusals come before any hold or model cal
     );
     expect(res.status).toBe(200);
     expect(done!.inkQuoted).toBe(3);
+  });
+
+  // ── round 3: the model is asked for the count that is quoted and held ──
+
+  it('round 3 (1): retry with stored 19, run_id, no count -> the model gets clampTarget(19) and the hold is the 19-count quote', async () => {
+    await priorRun({ paragraphsRequested: 19, inkQuoted: 4 });
+    const hold = jest.spyOn(credits, 'holdInk');
+    const { res, done } = await generate(regularBase(), { run_id: RUN }, { delivered: 19 });
+    expect(res.status).toBe(200);
+    expect(res.headers['x-run-sequence']).toBe('2');
+    expect(target()).toHaveBeenCalledTimes(1);
+    expect(target().mock.calls[0][0].targetParagraphs).toBe(clampTarget(19));
+    expect(target().mock.calls[0][0].targetParagraphs).not.toBe(clampTarget(undefined));
+    expect(hold.mock.calls[0][0]).toMatchObject({ costCredits: 4, runSequence: 2, quoted: true });
+    expect(done!.inkQuoted).toBe(4);
+    expect(done!.inkDebited).toBe(4);
+    // the new attempt's row carries the same count and price (ruling 5)
+    const rows = await Generation.find({ userId: USER_ID, runSequence: 2 }).lean();
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ paragraphsRequested: 19, inkQuoted: 4 });
+  });
+
+  it('round 3 (1): retry with the stored count sent explicitly gets the same target', async () => {
+    await priorRun({ paragraphsRequested: 19, inkQuoted: 4 });
+    const { res } = await generate(
+      regularBase(),
+      { run_id: RUN, paragraphs: 19 },
+      { delivered: 19 },
+    );
+    expect(res.status).toBe(200);
+    expect(target().mock.calls[0][0].targetParagraphs).toBe(clampTarget(19));
+  });
+
+  it('round 3 (2): a first run with no count keeps the legacy target 15 (ruling 2), a sent count is used as sent', async () => {
+    const { res } = await generate(regularBase(), {}, { delivered: 10 });
+    expect(res.status).toBe(200);
+    expect(target().mock.calls[0][0].targetParagraphs).toBe(15);
+    expect(target().mock.calls[0][0].targetParagraphs).toBe(clampTarget(undefined));
+    target().mockRestore();
+    const sent = await generate(regularBase(), { paragraphs: 12 }, { delivered: 12 });
+    expect(sent.res.status).toBe(200);
+    expect(target().mock.calls[0][0].targetParagraphs).toBe(clampTarget(12));
+  });
+
+  describe('round 3 (3): the retry lookup fails', () => {
+    const LEAK = 'zz-driver-message-must-not-be-logged';
+    const FACT = regularBase()[0].display;
+    const logged = (...spies: jest.SpyInstance[]) =>
+      spies.flatMap((s) => s.mock.calls.map((c) => c.map(String).join(' '))).join('\n');
+
+    it.each([
+      [
+        'findOne throws',
+        () => {
+          throw new Error(LEAK);
+        },
+      ],
+      [
+        'the query rejects',
+        () => ({
+          sort: () => ({ select: () => ({ lean: () => Promise.reject(new Error(LEAK)) }) }),
+        }),
+      ],
+    ])(
+      '%s -> 503 try_again before any hold or model call; the log has ids only',
+      async (_n, impl) => {
+        await priorRun({ paragraphsRequested: 19, inkQuoted: 4 });
+        jest.spyOn(Generation, 'findOne').mockImplementation(impl as never);
+        const err = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+        const hold = jest.spyOn(credits, 'holdInk');
+        const target = jest.spyOn(aiService, 'streamGenerateFromBrief');
+        const { res, done } = await generate(regularBase(), { run_id: RUN });
+        expect(res.status).toBe(503);
+        expect(res.body).toEqual({ error: 'try_again' });
+        expect(done).toBeNull();
+        expect(hold).not.toHaveBeenCalled();
+        expect(target).not.toHaveBeenCalled();
+        expect(mockParse).not.toHaveBeenCalled();
+        expect(mockStream).not.toHaveBeenCalled();
+        expect(await holds()).toHaveLength(0);
+        expect(await inkLeft()).toBe(40);
+        expect(await Generation.countDocuments({ runSequence: 2 })).toBe(0);
+        const log = logged(err, console.warn as unknown as jest.SpyInstance);
+        expect(log).toContain(RUN);
+        expect(log).toContain('runSequence=2');
+        expect(log).not.toContain(LEAK);
+        expect(log).not.toContain(FACT);
+        expect(log).not.toContain('test@test.com');
+      },
+    );
+
+    it('a first run (runSequence 1) never reads the prior row, so the same failure does not touch it', async () => {
+      const find = jest.spyOn(Generation, 'findOne').mockImplementation(() => {
+        throw new Error(LEAK);
+      });
+      const { res, done } = await generate(regularBase(), {}, { delivered: 10 });
+      expect(res.status).toBe(200);
+      expect(done!.inkDebited).toBe(2);
+      expect(find).not.toHaveBeenCalled();
+    });
   });
 });
 

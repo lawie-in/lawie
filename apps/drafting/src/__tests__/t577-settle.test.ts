@@ -412,3 +412,296 @@ describe('item 8 (AJ-577-M6): debit <= quoted Ink for every delivered count', ()
     }
   });
 });
+
+// ── round 3: done-after-sweep follows what is known to be on the hold ───────
+
+/**
+ * Lets a sweep win the pull: the first findOneAndUpdate on the users
+ * collection (settleInk's step 2) is preceded by the hold expiring and
+ * releaseExpiredHolds settling it (a delivered hold, at its stored
+ * settleUnits). settleInk's own pull then finds the hold gone: no_hold.
+ */
+function sweepWinsNextPull(runId: string) {
+  const real = User.collection.findOneAndUpdate.bind(User.collection) as (
+    ...a: unknown[]
+  ) => Promise<unknown>;
+  let armed = true;
+  return jest.spyOn(User.collection, 'findOneAndUpdate').mockImplementation((async (
+    ...a: unknown[]
+  ) => {
+    if (armed) {
+      armed = false;
+      await User.collection.updateOne(
+        { _id: OID },
+        { $set: { 'inkHolds.$[h].expiresAt': new Date(0) } },
+        { arrayFilters: [{ 'h.runId': runId }] },
+      );
+      expect(await releaseExpiredHolds(USER_ID)).toEqual({ settled: 1, released: 0 });
+    }
+    return real(...a);
+  }) as never);
+}
+
+/** settleInk passthrough that counts how often the route's onMarked was invoked. */
+function countMarks() {
+  const real = credits.settleInk;
+  const state = { marks: 0, results: [] as unknown[], args: [] as unknown[][] };
+  jest.spyOn(credits, 'settleInk').mockImplementation(async (u, r, s, a, ref, cb) => {
+    state.args.push([u, r, s, a, ref, cb]);
+    const out = await real(u, r, s, a, ref, () => {
+      state.marks += 1;
+      cb?.();
+    });
+    state.results.push(out);
+    return out;
+  });
+  return state;
+}
+
+const storeFails: Array<[string, () => Promise<{ set: boolean }>]> = [
+  [
+    'setHoldSettleUnits throws',
+    async () => {
+      throw new Error('store down');
+    },
+  ],
+  ['setHoldSettleUnits {set:false}', async () => ({ set: false })],
+];
+
+describe('round 3: the store fails, settleInk marks with the band and a sweep wins the pull', () => {
+  it.each(storeFails)(
+    '%s: done shows the delivered band 3 = the sweep debit (not the full cost 4)',
+    async (_n, store) => {
+      jest.spyOn(credits, 'setHoldSettleUnits').mockImplementation(store);
+      const q = await quoteFor(25);
+      const marks = countMarks();
+      const res = makeRes();
+      await drive(res, q, async (ink) => {
+        expect(await ink.delivered(12)).toBe(3);
+        expect((await holdOf())[0]).not.toHaveProperty('settleUnits');
+        sweepWinsNextPull('run-577');
+        await ink.finish({ saved: true, duplicate: false });
+        ink.sendDone({ ...DONE });
+      });
+      expect(marks.marks).toBe(1);
+      expect(marks.args[0][3]).toBe(6);
+      expect(marks.results[0]).toEqual({ settled: false, reason: 'no_hold' });
+      expect(await holdOf()).toHaveLength(0);
+      expect(await spent()).toBe(3);
+      expect(doneOf(res)!.inkDebited).toBe(3);
+      expect(doneOf(res)!.inkDebited).toBe(await spent());
+      expect(await spent()).toBeLessThanOrEqual(q.ink);
+    },
+  );
+
+  it.each(storeFails)(
+    '%s, every delivered count: done = the sweep debit = settleInkForDelivered, <= the quote (AJ-577-M6)',
+    async (_n, store) => {
+      const q = await quoteFor(25);
+      for (const delivered of [0, 1, 6, 7, 10, 11, 18, 19, 22, 25, 26, 40]) {
+        await topUp();
+        jest.restoreAllMocks();
+        jest.spyOn(credits, 'setHoldSettleUnits').mockImplementation(store);
+        const runId = `r3-${delivered}`;
+        const before = (await getCreditBalance(USER_ID)).totalInk;
+        const res = makeRes();
+        await drive(
+          res,
+          q,
+          async (ink) => {
+            await ink.delivered(delivered);
+            sweepWinsNextPull(runId);
+            await ink.finish({ saved: true, duplicate: false });
+            ink.sendDone({ ...DONE });
+          },
+          { runId },
+        );
+        const debit = before - (await getCreditBalance(USER_ID)).totalInk;
+        expect(debit).toBe(settleInkForDelivered(q, delivered));
+        expect(doneOf(res)!.inkDebited).toBe(debit);
+        expect(debit).toBeLessThanOrEqual(q.ink);
+      }
+    },
+  );
+
+  it('delivered() never called (no band known): settleInk gets no onMarked, a sweep that wins keeps the full hold and done shows the cost', async () => {
+    const q = await quoteFor(25);
+    const marks = countMarks();
+    const res = makeRes();
+    await drive(res, q, async (ink) => {
+      sweepWinsNextPull('run-577');
+      await ink.finish({ saved: true, duplicate: false });
+      ink.sendDone({ ...DONE });
+    });
+    expect(marks.args[0][3]).toBeUndefined();
+    expect(marks.args[0][5]).toBeUndefined();
+    expect(await spent()).toBe(4);
+    expect(doneOf(res)!.inkDebited).toBe(4);
+  });
+
+  it('settleInk marks, then throws: finish returns early, done has no inkDebited, the marked hold stays for the sweep, which keeps the band', async () => {
+    jest.spyOn(credits, 'setHoldSettleUnits').mockResolvedValue({ set: false });
+    jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const q = await quoteFor(25);
+    const marks = countMarks();
+    const real = User.collection.findOneAndUpdate.bind(User.collection) as (
+      ...a: unknown[]
+    ) => Promise<unknown>;
+    let armed = false;
+    jest.spyOn(User.collection, 'findOneAndUpdate').mockImplementation((async (...a: unknown[]) => {
+      if (armed) {
+        armed = false;
+        throw new Error('pull failed');
+      }
+      return real(...a);
+    }) as never);
+    const res = makeRes();
+    await drive(res, q, async (ink) => {
+      await ink.delivered(12);
+      armed = true;
+      await ink.finish({ saved: true, duplicate: false });
+      ink.sendDone({ ...DONE });
+    });
+    expect(marks.marks).toBe(1);
+    expect(doneOf(res)).not.toHaveProperty('inkDebited');
+    const h = await holdOf();
+    expect(h).toHaveLength(1);
+    expect(h[0]).toMatchObject({ deliver: true, settleUnits: 6 });
+    await User.collection.updateOne(
+      { _id: OID },
+      { $set: { 'inkHolds.$[h].expiresAt': new Date(0) } },
+      { arrayFilters: [{ 'h.runId': 'run-577' }] },
+    );
+    expect(await releaseExpiredHolds(USER_ID)).toEqual({ settled: 1, released: 0 });
+    expect(await spent()).toBe(3);
+  });
+});
+
+describe('round 3: settleInk returns no_hold before its mark lands', () => {
+  it.each(storeFails)(
+    '%s, hold already settled by a sweep (full hold kept): onMarked never called, done shows the full cost 4 = the debit',
+    async (_n, store) => {
+      jest.spyOn(credits, 'setHoldSettleUnits').mockImplementation(store);
+      const q = await quoteFor(25);
+      const marks = countMarks();
+      const res = makeRes();
+      await drive(res, q, async (ink) => {
+        await ink.delivered(12);
+        await User.collection.updateOne(
+          { _id: OID },
+          { $set: { 'inkHolds.$[h].deliver': true, 'inkHolds.$[h].expiresAt': new Date(0) } },
+          { arrayFilters: [{ 'h.runId': 'run-577' }] },
+        );
+        expect(await releaseExpiredHolds(USER_ID)).toEqual({ settled: 1, released: 0 });
+        await ink.finish({ saved: true, duplicate: false });
+        ink.sendDone({ ...DONE });
+      });
+      expect(marks.marks).toBe(0);
+      expect(marks.results[0]).toEqual({ settled: false, reason: 'no_hold' });
+      expect(await spent()).toBe(4);
+      expect(doneOf(res)!.inkDebited).toBe(4);
+      expect(doneOf(res)!.inkDebited).toBe(await spent());
+      expect(await spent()).toBeLessThanOrEqual(q.ink);
+    },
+  );
+});
+
+describe('round 3: settleInk onMarked', () => {
+  const take = async (runId: string, n = 25) => {
+    const q = await quoteFor(n);
+    await holdInk({ userId: USER_ID, costCredits: q.ink, runId, runSequence: 1, quoted: true });
+    return q;
+  };
+
+  it('called once when the mark lands (with actual units); the return shape is unchanged', async () => {
+    await take('om-1');
+    const cb = jest.fn();
+    const out = await credits.settleInk(USER_ID, 'om-1', 1, 6, 'ref-1', cb);
+    expect(cb).toHaveBeenCalledTimes(1);
+    expect(out).toEqual({ settled: true, units: 6 });
+    expect(await spent()).toBe(3);
+  });
+
+  it('called once when no actual units were given (the mark still lands), full hold kept', async () => {
+    await take('om-2');
+    const cb = jest.fn();
+    const out = await credits.settleInk(USER_ID, 'om-2', 1, undefined, undefined, cb);
+    expect(cb).toHaveBeenCalledTimes(1);
+    expect(out).toEqual({ settled: true, units: 8 });
+  });
+
+  it('not called when the hold is absent; shape no_hold', async () => {
+    const cb = jest.fn();
+    expect(await credits.settleInk(USER_ID, 'om-none', 1, 6, undefined, cb)).toEqual({
+      settled: false,
+      reason: 'no_hold',
+    });
+    expect(cb).not.toHaveBeenCalled();
+    expect(await spent()).toBe(0);
+  });
+
+  it('not called for an invalid user id (shape unchanged)', async () => {
+    const cb = jest.fn();
+    expect(await credits.settleInk('not-an-id', 'x', 1, 6, undefined, cb)).toEqual({
+      settled: false,
+      reason: 'no_hold',
+    });
+    expect(cb).not.toHaveBeenCalled();
+  });
+
+  it('not called when the mark matches nothing (the hold changed between the read and the mark)', async () => {
+    await take('om-4');
+    const realFind = User.collection.findOne.bind(User.collection) as (
+      ...a: unknown[]
+    ) => Promise<unknown>;
+    jest.spyOn(User.collection, 'findOne').mockImplementation((async (...a: unknown[]) => {
+      const doc = await realFind(...a);
+      // another writer moves the hold's expiry after settleInk read it
+      await User.collection.updateOne(
+        { _id: OID },
+        { $set: { 'inkHolds.$[h].expiresAt': new Date(Date.now() + 99_000_000) } },
+        { arrayFilters: [{ 'h.runId': 'om-4' }] },
+      );
+      return doc;
+    }) as never);
+    const cb = jest.fn();
+    expect(await credits.settleInk(USER_ID, 'om-4', 1, 6, undefined, cb)).toEqual({
+      settled: false,
+      reason: 'no_hold',
+    });
+    expect(cb).not.toHaveBeenCalled();
+    jest.restoreAllMocks();
+    // nothing was marked or charged
+    const h = await holdOf();
+    expect(h).toHaveLength(1);
+    expect(h[0]).not.toHaveProperty('deliver');
+    expect(h[0]).not.toHaveProperty('settleUnits');
+  });
+
+  it('still called once when the pull then loses to a sweep (which keeps the marked band); shape no_hold, one debit', async () => {
+    await take('om-5');
+    sweepWinsNextPull('om-5');
+    const cb = jest.fn();
+    const out = await credits.settleInk(USER_ID, 'om-5', 1, 6, undefined, cb);
+    expect(cb).toHaveBeenCalledTimes(1);
+    expect(out).toEqual({ settled: false, reason: 'no_hold' });
+    expect(await spent()).toBe(3);
+    expect(await spent()).toBeLessThanOrEqual(4);
+  });
+
+  it('still called once when the call then throws', async () => {
+    await take('om-6');
+    jest.spyOn(User.collection, 'findOneAndUpdate').mockRejectedValue(new Error('pull failed'));
+    const cb = jest.fn();
+    await expect(credits.settleInk(USER_ID, 'om-6', 1, 6, undefined, cb)).rejects.toThrow(
+      'pull failed',
+    );
+    expect(cb).toHaveBeenCalledTimes(1);
+  });
+
+  it('works without a callback (callers unchanged)', async () => {
+    await take('om-7');
+    expect(await credits.settleInk(USER_ID, 'om-7', 1, 6)).toEqual({ settled: true, units: 6 });
+  });
+});
