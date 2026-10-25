@@ -28,11 +28,10 @@ fi
 npm install -g yarn@1 pm2 >/dev/null
 node -v; yarn -v; pm2 -v
 
-echo "== 4. redis: localhost only =="
+echo "== 4. redis (local; NOT used in prod — REDIS_URL points at the managed service; disabled below) =="
 sed -i 's/^#\? *bind .*/bind 127.0.0.1 ::1/' /etc/redis/redis.conf
 sed -i 's/^#\? *appendonly .*/appendonly yes/' /etc/redis/redis.conf
-systemctl enable --now redis-server && systemctl restart redis-server
-redis-cli ping
+systemctl disable --now redis-server || true
 
 echo "== 5. certbot =="
 snap install core >/dev/null 2>&1 || true; snap refresh core >/dev/null 2>&1 || true
@@ -54,9 +53,11 @@ chmod 600 ~/.ssh/config'
 echo "----- PUBLIC deploy key (safe to paste into GitHub -> repo Settings -> Deploy keys, read-only) -----"
 cat /home/$APP_USER/.ssh/lawie_deploy.pub
 echo "-----------------------------------------------------------------------------------------------"
+set +o pipefail
 if ! sudo -u $APP_USER ssh -T git@github.com 2>&1 | grep -q "successfully authenticated"; then
   echo "Deploy key not yet added on GitHub. Add the PUBLIC key above (read-only), then re-run this script."; exit 2
 fi
+set -o pipefail
 
 echo "== 6. clone main as $APP_USER =="
 if [[ ! -d $APP_DIR/.git ]]; then
