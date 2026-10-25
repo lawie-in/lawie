@@ -6,7 +6,7 @@
 # It does NOT create the env file and does NOT start the apps (next steps).
 set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
-APP_USER=ubuntu; APP_DIR=/home/ubuntu/lawie; REPO=https://github.com/lawie-in/lawie.git
+APP_USER=ubuntu; APP_DIR=/home/ubuntu/lawie; REPO=git@github.com:lawie-in/lawie.git   # private repo: read-only deploy key (step 0 below)
 
 echo "== 1. swap (2 GB) =="
 if ! swapon --show | grep -q /swapfile; then
@@ -38,6 +38,25 @@ echo "== 5. certbot =="
 snap install core >/dev/null 2>&1 || true; snap refresh core >/dev/null 2>&1 || true
 snap install --classic certbot >/dev/null 2>&1 || true
 ln -sf /snap/bin/certbot /usr/bin/certbot
+
+echo "== 0. read-only deploy key for the private repo =="
+sudo -u $APP_USER mkdir -p /home/$APP_USER/.ssh && chmod 700 /home/$APP_USER/.ssh
+if [[ ! -f /home/$APP_USER/.ssh/lawie_deploy ]]; then
+  sudo -u $APP_USER ssh-keygen -q -t ed25519 -N "" -C "lawie-prod deploy key" -f /home/$APP_USER/.ssh/lawie_deploy
+fi
+sudo -u $APP_USER bash -c 'cat > ~/.ssh/config <<CFG
+Host github.com
+  IdentityFile ~/.ssh/lawie_deploy
+  IdentitiesOnly yes
+  StrictHostKeyChecking accept-new
+CFG
+chmod 600 ~/.ssh/config'
+echo "----- PUBLIC deploy key (safe to paste into GitHub -> repo Settings -> Deploy keys, read-only) -----"
+cat /home/$APP_USER/.ssh/lawie_deploy.pub
+echo "-----------------------------------------------------------------------------------------------"
+if ! sudo -u $APP_USER ssh -T git@github.com 2>&1 | grep -q "successfully authenticated"; then
+  echo "Deploy key not yet added on GitHub. Add the PUBLIC key above (read-only), then re-run this script."; exit 2
+fi
 
 echo "== 6. clone main as $APP_USER =="
 if [[ ! -d $APP_DIR/.git ]]; then
