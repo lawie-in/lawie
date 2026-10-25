@@ -1,32 +1,41 @@
 {
   "_meta": {
-    "description": "Document-rules config for default_bail — BNSS 187(3) statutory bail when charge sheet not filed within stipulated period",
+    "description": "Document-rules config for default_bail: statutory bail when a police report has not been filed within the period the advocate states",
     "owner": "Ajay (CLO)",
-    "validated_by": "Ajay (CLO) — Batch 1 templates pass 2026-05-12. Time-limits hard-coded per BNSS 187(3).",
-    "last_updated": "2026-05-12",
-    "change_protocol": "All edits require CLO sign-off. Validation rule on elapsed_days is load-bearing — DO NOT modify without legal review."
+    "validated_by": "Ajay (CLO), T-251, 12 Oct 2026",
+    "last_updated": "2026-10-12",
+    "change_protocol": "All edits require CLO sign-off.",
+    "note": "A practising advocate checks this pack before it goes live, in particular the default-bail periods (60 and 90 days), which the pack leaves to the advocate to state."
   },
   "template_id": "default_bail",
+  "card_description": "An application for default bail when the police report is not filed within the period the law allows.",
   "docType": "default_bail",
   "parentDocType": "bail_application",
-  "title": "Default Bail Application (BNSS 187(3))",
-  "displayName": "Default Bail Application under BNSS 187(3)",
+  "title": "Default Bail Application",
+  "displayName": "Default Bail Application",
   "category": "criminal_bail",
   "creditsCost": 2,
   "court_levels": ["magistrate", "cjm", "sessions", "district"],
   "causeTitle": {
-    "format": "IN THE COURT OF {courtDesignation}\n\n{caseNomenclature}\n\nIN THE MATTER OF:\n{applicant} ... Applicant/Accused\nVERSUS\nState of {state} ... Respondent",
+    "format": "IN THE COURT OF {courtDesignation}\n\n{caseNomenclature}\n(Under {governing_provision})\n\nIN THE MATTER OF:\n{applicant} ... Applicant/Accused\nVERSUS\nState of {state} ... Respondent",
     "partyDesignations": [
       { "role": "applicant", "label": "Applicant/Accused" },
       { "role": "respondent", "label": "Respondent (State)" }
     ],
-    "caseNomenclature": "DEFAULT BAIL APPLICATION No. _____ of [YEAR]\n(Under Section 187(3) of BNSS, 2023)"
+    "caseNomenclature": "DEFAULT BAIL APPLICATION No. _____ of [YEAR]"
   },
   "form_schema": [
     { "name": "applicant_name", "label": "Applicant Name", "type": "text", "required": true },
     {
+      "name": "applicant_relation",
+      "label": "Relation to the person named below",
+      "type": "select",
+      "options": ["Son of (S/o)", "Daughter of (D/o)", "Wife of (W/o)", "Husband of (H/o)"],
+      "required": false
+    },
+    {
       "name": "applicant_parentage",
-      "label": "Father's / Husband's Name",
+      "label": "Name of father, mother or spouse",
       "type": "text",
       "required": true
     },
@@ -46,20 +55,34 @@
       "required": true
     },
     { "name": "fir_number", "label": "FIR Number", "type": "text", "required": true },
-    { "name": "fir_date", "label": "FIR Date", "type": "date", "required": true },
+    {
+      "name": "fir_date",
+      "label": "Date of FIR, or of the complaint if no FIR",
+      "type": "date",
+      "required": false,
+      "question": "On what date was the FIR registered, or the complaint filed if there is no FIR?",
+      "ask_when_empty": true
+    },
+    {
+      "name": "offence_date",
+      "label": "Date of the alleged offence (or of the offence of conviction)",
+      "type": "date",
+      "required": false
+    },
+    {
+      "name": "procedure_code",
+      "label": "This application is under",
+      "type": "select",
+      "options": ["BNSS and BSA", "CrPC and Evidence Act"],
+      "required": false,
+      "help": "Matters only for a case that began before 1 July 2024. For an FIR on or after that date, Lawie uses the BNSS."
+    },
     { "name": "police_station", "label": "Police Station", "type": "text", "required": true },
     {
       "name": "offences_alleged",
-      "label": "Offences (BNS sections)",
+      "label": "Offences (as written in the FIR)",
       "type": "textarea",
       "required": true
-    },
-    {
-      "name": "offence_punishment_max_years",
-      "label": "Maximum Punishment (years) for Most Serious Offence",
-      "type": "number",
-      "required": true,
-      "help": "Used to determine 60-day vs 90-day window"
     },
     { "name": "arrest_date", "label": "Date of Arrest", "type": "date", "required": true },
     {
@@ -69,10 +92,24 @@
       "required": true
     },
     {
-      "name": "elapsed_days",
-      "label": "Days Elapsed Since First Remand",
-      "type": "number",
+      "name": "period_claimed",
+      "label": "Default-bail period that applies",
+      "type": "select",
+      "options": ["60 days", "90 days", "Period under a special Act"],
       "required": true
+    },
+    {
+      "name": "period_expiry_date",
+      "label": "Date the period expired",
+      "type": "date",
+      "required": false
+    },
+    {
+      "name": "special_act_period",
+      "label": "Special Act and its period (if any)",
+      "type": "text",
+      "required": false,
+      "show_if": "period_claimed === period_under_a_special_act"
     },
     {
       "name": "charge_sheet_status",
@@ -93,65 +130,66 @@
     },
     {
       "name": "willingness_to_furnish_bond",
-      "label": "Willing to Furnish Bond (mandatory)",
-      "type": "select",
-      "options": ["Yes"],
+      "label": "The applicant will furnish bail bonds and sureties as directed",
+      "type": "checkbox",
       "required": true
+    },
+    {
+      "name": "earlier_bail_applications",
+      "label": "Earlier bail applications (court, date, result)",
+      "type": "textarea",
+      "required": false
     },
     { "name": "advocate_name", "label": "Advocate Name", "type": "text", "required": true },
     {
-      "name": "advocate_enrolment",
+      "name": "advocate_enrollment",
       "label": "Bar Council Enrolment No.",
       "type": "text",
       "required": true
     }
   ],
-  "mandatory_clauses": [
-    "BNSS Section 187(3) statutory entitlement",
-    "computation of days from first remand",
-    "applicable statutory window (60 / 90 days)",
-    "fact that charge sheet not filed within statutory period",
-    "indefeasible right accrued on expiry",
-    "willingness and readiness to furnish bail bond",
-    "prayer for release on default bail",
-    "verification on oath"
-  ],
   "mandatoryClauses": [
     {
       "id": "statutory_provision",
-      "name": "BNSS 187(3) Reference",
+      "name": "Provision Invoked",
       "required": true,
-      "description": "Express invocation of Section 187(3) BNSS, 2023 (corresponding to Section 167(2) of old CrPC)"
+      "description": "The provision under which default bail is sought, as GOVERNING PROVISION gives it."
     },
     {
-      "id": "computation",
-      "name": "Day Computation",
+      "id": "custody_dates",
+      "name": "Arrest and First Remand",
       "required": true,
-      "description": "Day-by-day tabulation from first remand showing expiry of statutory period"
+      "description": "The date of arrest and the date of first remand, as the brief gives them, or the blank."
     },
     {
       "id": "applicable_window",
-      "name": "Applicable Window",
+      "name": "Period and Expiry",
       "required": true,
-      "description": "Statement of which window applies: 60 days (offences up to 10 yrs) or 90 days (above 10 yrs / life / death)"
+      "description": "The default-bail period the brief says applies and the date it expired, as the brief gives them, or the blank. Never worked out by Lawie."
     },
     {
       "id": "non_filing",
-      "name": "Non-Filing of Charge Sheet",
+      "name": "Police Report",
       "required": true,
-      "description": "Specific averment that police report (charge sheet) not filed before expiry of statutory period"
+      "description": "Whether a police report had been filed when the application was made, as the brief gives it, or the blank."
     },
     {
       "id": "indefeasible_right",
-      "name": "Indefeasible Right",
+      "name": "Entitlement to Release",
       "required": true,
-      "description": "Assertion of indefeasible right per Uday Mohanlal Acharya v. State of Maharashtra (2001) 5 SCC 453"
+      "description": "Submission that, the period having expired without a police report, the applicant is entitled to be released on bail. Naming no judgment."
     },
     {
       "id": "willingness",
-      "name": "Willingness to Furnish Bond",
+      "name": "Undertaking to Furnish Bond",
       "required": true,
-      "description": "Express willingness and readiness to furnish bail bond as may be directed"
+      "description": "The applicant's undertaking for the future to furnish bail bonds and sureties as directed. Never a statement of fact."
+    },
+    {
+      "id": "earlier_applications",
+      "name": "Earlier Bail Applications",
+      "required": true,
+      "description": "Every earlier bail application in this matter, with the court, the date of the order and the result, or that it is pending; or the blank where the brief does not say."
     },
     {
       "id": "prayer",
@@ -166,20 +204,21 @@
       "description": "Verification on oath"
     }
   ],
-  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, and as the statutory period under Section 187(3) BNSS, 2023 has expired without the police report being filed, it is most respectfully prayed that this Hon'ble Court may graciously be pleased to:\n\na) Release the applicant {applicant} on default bail under Section 187(3) BNSS, 2023 in connection with FIR No. {fir_number} dated {fir_date} of Police Station {police_station};\nb) Direct release on such bond and sureties as this Hon'ble Court may deem fit;\nc) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the applicant shall ever pray.",
-  "verificationTemplate": "VERIFICATION\n\nI, {applicant}, S/o {parentName}, aged about {age} years, currently in judicial custody at {jail}, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above application are true and correct to the best of my knowledge and belief. No part of it is false and nothing material has been concealed therein.\n\nVerified at {place} on this {date}.\n\nDeponent",
-  "prompt_context": "Draft a Default Bail Application under Section 187(3) of the Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023 — the successor to Section 167(2) CrPC. The statutory framework: an accused in custody acquires an indefeasible right to be released on default bail if the investigation is not completed and police report (charge sheet) not filed within: (a) 60 days from first remand for offences punishable with imprisonment up to 10 years; (b) 90 days from first remand for offences punishable with death, imprisonment for life, or imprisonment for a term not less than 10 years. The right is statutory and not discretionary. Key precedents: Uday Mohanlal Acharya v. State of Maharashtra (2001) 5 SCC 453; Sanjay Dutt v. State (1994) 5 SCC 410; Bikramjit Singh v. State of Punjab (2020) 10 SCC 616 (must apply before charge sheet is filed to enforce the right); Rakesh Kumar Paul v. State of Assam (2017) 15 SCC 67. The application must include precise day-count from date of first remand. Special statutes (UAPA, PMLA, NDPS) have different default-bail windows — flag this. Always cite BNS for substantive offences, BNSS 187(3) for the procedural right.",
+  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, it is most respectfully prayed that this Hon'ble Court may graciously be pleased to:\n\na) Release the applicant {applicant} on default bail under {governing_provision} in connection with FIR No. {fir_number} dated {fir_date} of Police Station {police_station};\nb) Direct release on such bond and sureties as this Hon'ble Court may deem fit;\nc) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the applicant shall ever pray.",
+  "verificationTemplate": "VERIFICATION\n\nI, {applicant}, {parentRelation}, aged about {age} years, currently in judicial custody at {jail}, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above application are true and correct to the best of my knowledge and belief. No part of it is false and nothing material has been concealed therein.\n\nVerified at {place} on this {date}.\n\nDeponent",
+  "prompt_context": "Draft a Default Bail Application under the provision given as GOVERNING PROVISION in the case details. The application rests on dates the BRIEF gives: the date of arrest, the date of first remand, the period the advocate says applies (60 days, 90 days, or the period under a special Act) and whether a police report has been filed. Lawie does not work out which period applies and does not count days.",
   "promptInstructions": [
-    "Draft a Default Bail Application strictly under Section 187(3) BNSS, 2023 (the successor to Section 167(2) CrPC).",
-    "Open with paragraph stating accused was arrested on {arrest_date}, first remanded to custody on {remand_date}, and continues to be in custody.",
-    "Tabulate the day-count showing 60 or 90 days have expired from first remand, with no police report filed.",
-    "Identify which statutory window applies based on offence_punishment_max_years: ≤10 yrs = 60 days; >10 yrs / life / death = 90 days.",
-    "Cite Uday Mohanlal Acharya v. State of Maharashtra (2001) 5 SCC 453 and Bikramjit Singh v. State of Punjab (2020) 10 SCC 616 on the indefeasible right.",
-    "Cite Rakesh Kumar Paul v. State of Assam (2017) 15 SCC 67 on right being available when charge sheet not filed.",
-    "Include express willingness to furnish bond.",
-    "Cite BNS section numbers for the underlying offences (never IPC).",
-    "Do NOT generate the verification clause or advocate signature block — those are added programmatically.",
-    "If offence is under UAPA / NDPS / PMLA, flag that special statute may extend the default-bail window."
+    "Draft a Default Bail Application under the provision given as GOVERNING PROVISION in the case details, and cite only that provision as the provision under which bail is sought.",
+    "Cite the offences as the BRIEF gives them (FIR, charge sheet, complaint or order). The law of the offence follows the date of the offence: an offence committed before 1 July 2024 is under the Indian Penal Code, 1860; one committed on or after that date is under the Bharatiya Nyaya Sanhita, 2023. Never convert a section from one code to the other. Where the BRIEF does not give the date of the offence, write the sections as the BRIEF gives them and add [To be confirmed: date of the alleged offence, which decides whether the IPC or the BNS applies]. Where the sections the BRIEF gives are under the other code from the one the date points to, or the alleged acts run across 1 July 2024, keep the sections as the BRIEF gives them and add [To be confirmed: whether the IPC or the BNS applies to the offence].",
+    "Cite the procedure under the code given as PROCEDURE CODE in the case details: the Bharatiya Nagarik Suraksha Sanhita, 2023 with the Bharatiya Sakshya Adhiniyam, 2023, or the Code of Criminal Procedure, 1973 with the Indian Evidence Act, 1872. Cite only that code, in the heading, the body and the prayer. Where no PROCEDURE CODE is given, cite the provision in both forms inside a blank, for example [To be confirmed: Section 437 of the CrPC or Section 480 of the BNSS].",
+    "State the date of arrest and the date of first remand to custody as the BRIEF gives them, and that the applicant remains in custody only if the BRIEF says so. Use a blank for any of them the BRIEF does not give.",
+    "State the period the BRIEF says applies (60 days, 90 days, or a period under a special Act) and the date on which the BRIEF says it expired. Do not work out which period applies, and do not count or tabulate days. Where the BRIEF gives a blank for the period, write that blank exactly as the BRIEF gives it; where it does not, write [To be confirmed: the default-bail period that applies to this offence]. Where the BRIEF gives a blank for the date of expiry, write that blank exactly as the BRIEF gives it; where it does not, write [To be confirmed: the date on which the period expired].",
+    "State whether a police report has been filed only as the BRIEF gives it, as on the date of this application. Where the BRIEF does not say, write [To be confirmed: whether a police report had been filed when this application was made]. Do not say that the investigation is incomplete unless the BRIEF says so.",
+    "Where the BRIEF says an offence is under a special Act (for example the NDPS Act, the UAPA or the PMLA), do not apply the BNSS or CrPC periods to it; write [To be confirmed: the default-bail period and any extension under <that Act>].",
+    "Submit, as \"It is submitted that ...\", that the period having expired without a police report, as stated above, the applicant is entitled to be released on bail. Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon].",
+    "Give the applicant's undertaking for the future to furnish bail bonds and sureties as this Hon'ble Court directs. Never as a fact and never as the advocate's undertaking.",
+    "State every earlier bail application in this matter that the BRIEF mentions: the court it was made to, the date of the order and the result, or that it is still pending, each as the BRIEF gives it. Use a blank for any of these the BRIEF does not give. Where the BRIEF mentions no earlier bail application, do not say that this is the first application or that none is pending; write [To be confirmed: whether any earlier bail application was made in this matter, to which court, and with what result].",
+    "Do NOT generate the Prayer clause, Verification clause, or Advocate signature block — those are added programmatically by the system."
   ],
   "relevantActs": [
     {
@@ -187,7 +226,7 @@
       "sections": [
         {
           "number": "187(3)",
-          "description": "Default bail when charge sheet not filed within 60 / 90 days from first remand"
+          "description": "Procedure when investigation cannot be completed in twenty-four hours"
         },
         {
           "number": "187",
@@ -218,11 +257,8 @@
     "Surety bond format ready"
   ],
   "validation_rules": [
-    "elapsed_days >= 60 || (elapsed_days >= 90 && offence_punishment_max_years >= 10)",
-    "charge_sheet_status must indicate non-filing or post-period filing",
-    "remand_date must be before application_date",
-    "if offence_punishment_max_years >= 10 (life/death equivalent) then elapsed_days must be >= 90",
-    "if offence_punishment_max_years < 10 then elapsed_days must be >= 60",
-    "willingness_to_furnish_bond must be Yes — without this the indefeasible right does not crystallise"
+    "remand_date, if given, must not be before arrest_date",
+    "application_date, if given, must not be before remand_date",
+    "period_claimed must be given; if empty, the draft carries the blank"
   ]
 }

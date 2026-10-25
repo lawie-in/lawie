@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. Vineeta Sharma is non-negotiable — daughters' coparcenary rights post-2005 must be reflected. Stamp duty often higher than sale deed where shares reduced."
   },
   "template_id": "partition_deed",
+  "card_description": "A deed dividing joint family or co-owned property among its members.",
   "docType": "partition_deed",
   "title": "Partition Deed (Hindu Joint Family — Mitakshara Coparcenary)",
   "displayName": "Partition Deed",
@@ -145,6 +146,14 @@
         ]
       },
       {
+        "id": "execution_place",
+        "label": "Place of execution",
+        "type": "text",
+        "required": false,
+        "help": "City or town where the document will be signed.",
+        "ask_when_empty": true
+      },
+      {
         "id": "witness_1_name_address",
         "label": "Witness 1 name & address",
         "type": "textarea",
@@ -182,7 +191,7 @@
       "id": "daughters_coparcenary_recital",
       "name": "Daughters as Coparceners Recital (HSA S.6 post-2005)",
       "required": true,
-      "description": "Affirm daughters' coparcenary rights per HSA 2005 amendment and Vineeta Sharma (2020)"
+      "description": "Affirm daughters' coparcenary rights per HSA 2005 amendment"
     },
     {
       "id": "joint_property_schedule",
@@ -267,12 +276,6 @@
       "name": "Two Witnesses",
       "required": true,
       "description": "Mandatory"
-    },
-    {
-      "id": "lawie_disclaimer",
-      "name": "Lawie Drafting Assistant Disclaimer",
-      "required": true,
-      "description": "Standard Lawie disclaimer"
     }
   ],
   "prayerTemplate": "",
@@ -282,9 +285,8 @@
       "Draft a PARTITION DEED of Hindu Joint Family / Mitakshara coparcenary property.",
       "BACKGROUND — Hindu joint family is governed by Mitakshara (most of India incl. Bihar, Jharkhand, UP, Delhi) OR Dayabhaga (West Bengal, Assam). In Mitakshara: coparcenary is a body of male and female members who acquire interest in joint family property by birth. Coparcenary extends to 4 degrees from a common ancestor.",
       "CRITICAL — Hindu Succession (Amendment) Act, 2005, w.e.f. 9 September 2005, amended S.6 of HSA 1956 to provide that DAUGHTERS OF A COPARCENER SHALL BY BIRTH BECOME COPARCENERS in their own right in the same manner as sons. Daughters have same rights and liabilities as sons.",
-      "CRITICAL CASE — Vineeta Sharma v. Rakesh Sharma (2020) 9 SCC 1, three-judge bench, OVERRULED Prakash v. Phulavati (2016) 2 SCC 36 to the extent inconsistent: Daughters' coparcenary rights are RETROSPECTIVE — daughters get coparcenary rights from BIRTH, regardless of whether father was alive on 9 September 2005. Earlier decisions requiring father to be alive on 2005 commencement date are OVERRULED.",
+      "Daughter is coparcener by birth, irrespective of whether father was alive on 09.09.2005; the amended S.6 HSA operates retroactively, not retrospectively.",
       "S.6 HSA (amended): Notional partition concept — for purposes of devolution under proviso, a deemed partition is presumed to have taken place immediately before death of coparcener; coparcener's share devolves by intestate / testate succession under HSA.",
-      "Cite supporting cases: \n   - Vineeta Sharma v. Rakesh Sharma (2020) 9 SCC 1 — daughters' retrospective coparcenary rights.\n   - Danamma @ Suman Surpur v. Amar (2018) 3 SCC 343.\n   - Arunachala Gounder v. Ponnusamy (2022) — clarified self-acquired property devolution for sole daughter Hindu females.",
       "MUST IDENTIFY: who are the coparceners? Apply the test:\n   - All living male and female lineal descendants of common ancestor within 4 degrees.\n   - Post 2005 — daughters AND daughters' children (descendants of daughters who are coparceners) are coparceners by birth.\n   - Widows of pre-deceased coparceners — get share by notional partition (Class I heir for husband's notional share).\n   - Adopted children — same rights as natural-born after valid Hindu adoption.",
       "EXCLUDE FROM COPARCENARY: married daughters' husbands (not coparceners); mothers (Class I heirs but not coparceners themselves); sister of common ancestor (collateral, not in line).",
       "MINOR COPARCENER: Minor's share is interest in coparcenary. Partition affecting minor's interest requires court permission under Hindu Minority and Guardianship Act, 1956 OR Guardians and Wards Act, 1890. Without court order, partition is voidable at instance of minor on attaining majority. FLAG prominently.",
@@ -292,7 +294,7 @@
       "Para 1: Title 'DEED OF PARTITION'.",
       "Para 2: Recital of joint family — genealogy from common ancestor; school of Hindu law (Mitakshara).",
       "Para 3: Schedule of parties — all coparceners + adult members with full identification.",
-      "Para 4: Daughters' coparcenary recital — affirm that all daughters (and daughters of daughters, granddaughters in line) are coparceners by birth per HSA S.6 (as amended 2005) and Vineeta Sharma (2020).",
+      "Para 4: Daughters' coparcenary recital — affirm that all daughters (and daughters of daughters, granddaughters in line) are coparceners by birth per HSA S.6 (as amended 2005).",
       "Para 5: Recital of joint property — set out properties (immovable in Schedule I; movable in Schedule II; business in Schedule III; liabilities in Schedule IV); state how property was acquired (ancestral / blended / accretions).",
       "Para 6: Recital that parties wish to effect partition because [reason — family settlement, separation of branches, professional separation, etc.]. State that all members consent freely without coercion.",
       "Para 7: METHOD OF PARTITION:\n   (a) By metes and bounds — specific properties allotted to each sharer in lieu of share.\n   (b) By specified shares — sharing percentage, then properties physically divided per share.\n   (c) With owelty — where physical division not equal, balancing cash payment to make shares equal.",
@@ -308,10 +310,10 @@
       "Para 17: GOVERNING LAW — Hindu Succession Act, 1956 as amended.",
       "Schedules I-IV (property) + Schedules A, B, C... (allotments) appended.",
       "Two witnesses' attestation.",
-      "Append Lawie disclaimer.",
-      "Note on FAMILY ARRANGEMENT vs PARTITION DEED: A FAMILY ARRANGEMENT is a wider concept including settlement of disputes; courts treat genuine family arrangements indulgently per Kale v. Deputy Director of Consolidation (1976) 3 SCC 119. Where dispute being settled in addition to partition — consider family settlement deed (may have lower stamp duty in some states).",
-      "Note on ORAL PARTITION + MEMORANDUM: Oral partition followed by a memorandum of partition (recording what already happened) may avoid registration / lower stamp duty — but courts scrutinise such memoranda; risk of being held a partition deed in substance. Cite Roshan Singh v. Zile Singh (1988) Supp SCC 718.",
-      "Note on INCOME TAX — partition of HUF: complete partition extinguishes HUF (or partial — partial recognised pre-1980, post-1980 partial partitions of registered HUF not recognised by IT Dept under S.171 ITA). Where HUF is taxable entity — Form for recording partition with Income Tax Officer mandatory."
+      "Note on FAMILY ARRANGEMENT vs PARTITION DEED: A FAMILY ARRANGEMENT is a wider concept including settlement of disputes; courts treat genuine family arrangements indulgently. Where dispute being settled in addition to partition — consider family settlement deed (may have lower stamp duty in some states).",
+      "Note on ORAL PARTITION + MEMORANDUM: Oral partition followed by a memorandum of partition (recording what already happened) may avoid registration / lower stamp duty — but courts scrutinise such memoranda; risk of being held a partition deed in substance.",
+      "Note on INCOME TAX — partition of HUF: complete partition extinguishes HUF (or partial — partial recognised pre-1980, post-1980 partial partitions of registered HUF not recognised by IT Dept under S.171 ITA). Where HUF is taxable entity — Form for recording partition with Income Tax Officer mandatory.",
+      "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
   "relevantActs": [
@@ -404,8 +406,7 @@
     "Registration at Sub-Registrar within 4 months of execution (S.23 Registration Act)",
     "Post-registration: mutation applications in each sharer's name in revenue / municipal records",
     "Update bank accounts / FDs / demat / shares as per allotment",
-    "Where partition under-allots a coparcener — flag potential gift tax / capital gains consequence",
-    "Lawie disclaimer included"
+    "Where partition under-allots a coparcener — flag potential gift tax / capital gains consequence"
   ],
   "validation_rules": [
     "common_ancestor must be specified",

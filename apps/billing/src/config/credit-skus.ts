@@ -1,8 +1,8 @@
 /**
  * Credit SKU catalog — Ink pricing, Razorpay plan IDs.
  *
- * Source of truth for the public /pricing page, /billing/plans endpoint, and
- * ink allocation on webhook events. Prices are in INR (paise for Razorpay).
+ * Serves the /billing/plans endpoint and ink allocation on webhook events.
+ * Prices are in INR (paise for Razorpay).
  *
  * Subscription plan IDs live in env (one per SKU); top-up SKUs use one-off
  * Razorpay Orders and don't need pre-created plans.
@@ -11,7 +11,12 @@
  * Callers multiply by 2 before passing to grantSubscriptionInk / grantTopupInk.
  *
  * Per SCRUM-102 — Ink pricing finalized 2026-06-10 (Pricing Model Finalized doc).
+ * T-364: subscription prices, cycles and Ink come from PLANS in @lawie/shared,
+ * the one source shared with the web pricing page (and the yearly drip via
+ * INK_PER_CYCLE). Only the Razorpay env keys live here. Top-up SKUs stay here.
  */
+import { PLANS } from '@lawie/shared';
+import type { SubscriptionPlanId } from '@lawie/shared';
 
 export interface SubscriptionPlanSku {
   id: 'solo_monthly' | 'solo_yearly' | 'pro_monthly' | 'pro_yearly';
@@ -27,53 +32,46 @@ export interface SubscriptionPlanSku {
     | 'RAZORPAY_PLAN_PRO_YEARLY';
 }
 
-export const SUBSCRIPTION_PLANS: SubscriptionPlanSku[] = [
-  {
-    id: 'solo_monthly',
-    tier: 'solo',
-    cycle: 'monthly',
-    priceInr: 799,
-    inkPerCycle: 50,
-    razorpayPlanIdEnvKey: 'RAZORPAY_PLAN_SOLO_MONTHLY',
-  },
-  {
-    id: 'solo_yearly',
-    tier: 'solo',
-    cycle: 'yearly',
-    priceInr: 7990,
-    inkPerCycle: 50, // monthly drip — same monthly grant per renewal
-    razorpayPlanIdEnvKey: 'RAZORPAY_PLAN_SOLO_YEARLY',
-  },
-  {
-    id: 'pro_monthly',
-    tier: 'pro',
-    cycle: 'monthly',
-    priceInr: 1999,
-    inkPerCycle: 150,
-    razorpayPlanIdEnvKey: 'RAZORPAY_PLAN_PRO_MONTHLY',
-  },
-  {
-    id: 'pro_yearly',
-    tier: 'pro',
-    cycle: 'yearly',
-    priceInr: 19990,
-    inkPerCycle: 150,
-    razorpayPlanIdEnvKey: 'RAZORPAY_PLAN_PRO_YEARLY',
-  },
+const RAZORPAY_PLAN_ENV_KEYS: Record<
+  SubscriptionPlanId,
+  SubscriptionPlanSku['razorpayPlanIdEnvKey']
+> = {
+  solo_monthly: 'RAZORPAY_PLAN_SOLO_MONTHLY',
+  // Yearly plans are granted every month: at the yearly charge, then 11 lazy
+  // monthly drips (settleYearlyDrip in @lawie/shared, T-399).
+  solo_yearly: 'RAZORPAY_PLAN_SOLO_YEARLY',
+  pro_monthly: 'RAZORPAY_PLAN_PRO_MONTHLY',
+  pro_yearly: 'RAZORPAY_PLAN_PRO_YEARLY',
+};
+
+const PLAN_ORDER: SubscriptionPlanId[] = [
+  'solo_monthly',
+  'solo_yearly',
+  'pro_monthly',
+  'pro_yearly',
 ];
+
+export const SUBSCRIPTION_PLANS: SubscriptionPlanSku[] = PLAN_ORDER.map((id) => ({
+  id,
+  tier: PLANS[id].tier,
+  cycle: PLANS[id].cycle,
+  priceInr: PLANS[id].priceInr,
+  inkPerCycle: PLANS[id].inkPerCycle,
+  razorpayPlanIdEnvKey: RAZORPAY_PLAN_ENV_KEYS[id],
+}));
 
 export interface TopupSku {
   id: 'topup_mini' | 'topup_mid' | 'topup_max';
   ink: number; // Ink display units (×2 to get ledger units)
   priceInr: number;
-  badge?: 'POPULAR' | 'BEST_VALUE';
   pricePerInkInr: number;
 }
 
+// T-567 item 52 (AJ-535-M3): no badges; they were never rendered.
 export const TOPUP_SKUS: TopupSku[] = [
   { id: 'topup_mini', ink: 3, priceInr: 65, pricePerInkInr: 21.7 },
-  { id: 'topup_mid', ink: 10, priceInr: 199, badge: 'POPULAR', pricePerInkInr: 19.9 },
-  { id: 'topup_max', ink: 28, priceInr: 499, badge: 'BEST_VALUE', pricePerInkInr: 17.8 },
+  { id: 'topup_mid', ink: 10, priceInr: 199, pricePerInkInr: 19.9 },
+  { id: 'topup_max', ink: 28, priceInr: 499, pricePerInkInr: 17.8 },
 ];
 
 export function findSubscriptionPlan(id: string): SubscriptionPlanSku | undefined {

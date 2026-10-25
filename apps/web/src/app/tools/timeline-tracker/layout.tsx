@@ -1,4 +1,7 @@
 import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
+
+import { getToolFeatures } from '@/lib/features';
 
 export const metadata: Metadata = {
   title: 'BNSS Investigation Timeline Tracker | Custody Limits & Default Bail — Lawie',
@@ -16,6 +19,9 @@ export const metadata: Metadata = {
   ],
 };
 
-export default function TimelineTrackerLayout({ children }: { children: React.ReactNode }) {
+// T-375: hidden (404) while its feature switch is off, or the flag can't be read.
+export default async function TimelineTrackerLayout({ children }: { children: React.ReactNode }) {
+  const features = await getToolFeatures();
+  if (!features.tool_timeline) notFound();
   return children;
 }

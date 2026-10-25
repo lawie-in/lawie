@@ -1,3 +1,5 @@
+import crypto from 'crypto';
+
 import { UserRole, UserPlan } from '@lawie/shared';
 import jwt, { JwtPayload, SignOptions } from 'jsonwebtoken';
 
@@ -9,6 +11,12 @@ export interface TokenPayload {
   name: string;
   role: UserRole;
   plan: UserPlan;
+  /**
+   * T-343 — the user's accepted privacyVersion, read from the user record when the token is
+   * issued (login, register, OAuth, refresh, privacy acceptance). Absent on tokens issued before
+   * T-343 and for users with no recorded version: both count as not accepted.
+   */
+  pv?: string;
   type: 'access' | 'refresh';
 }
 
@@ -16,9 +24,14 @@ function sign(payload: Omit<TokenPayload, 'type'>, type: 'access' | 'refresh'): 
   const secret = type === 'access' ? env.JWT_SECRET : env.JWT_REFRESH_SECRET;
   const expiresIn = type === 'access' ? env.JWT_EXPIRES_IN : env.JWT_REFRESH_EXPIRES_IN;
 
+  // jwtid gives every token a unique `jti`, so two tokens signed for the same
+  // user in the same second (iat has 1s resolution) still differ and hash to
+  // different session keys (T-209). Verify does not require `jti`, so tokens
+  // issued before this change keep verifying until they expire.
   return jwt.sign({ ...payload, type } as object, secret, {
     expiresIn,
     algorithm: 'HS256',
+    jwtid: crypto.randomUUID(),
   } as SignOptions);
 }
 

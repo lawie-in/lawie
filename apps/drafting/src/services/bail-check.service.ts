@@ -7,22 +7,61 @@
  *   - Compoundable / non-compoundable
  *   - Maximum punishment
  *   - Recommended BNSS bail section
- *   - Court jurisdiction level
+ *   - Court by which triable (First Schedule, T-289)
  */
-import offencesData from '../config/bns-offences.json';
-
+import {
+  ANY_MAGISTRATE,
+  attributeNotes,
+  CODE_REMINDER,
+  COURT_OF_SESSION,
+  DEPENDS_FIRST_SCHEDULE,
+  MAGISTRATE_FIRST_CLASS,
+  MOST_SERIOUS_CANNOT_BE_DETERMINED,
+  NOT_AN_OFFENCE,
+  NOT_VERIFIED,
+  outsideBnsRange,
+  readToolSections,
+  ResolutionKind,
+  resolveBnsKey,
+  resolveOffence,
+  showsVerifyCaveat,
+  TABLE_CODE,
+  VERIFY_CAVEAT,
+} from './bns-offence-resolver';
 import { lookupOldToNew } from './sections.service';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 export interface OffenceInfo {
+  /** BNS section as resolved (the input target) */
   section: string;
+  /** How the target resolved (T-277, R2) */
+  resolution: Exclude<ResolutionKind, 'not_an_offence'>;
+  /** Table row or variant key used */
+  resolvedKey: string;
   title: string;
+  /** Variant's offence description, when resolved through a variant */
+  offenceDescription?: string;
   punishment: string;
-  maxYears: number;
-  bailable: boolean;
-  cognizable: boolean;
-  compoundable: boolean;
+  /** T-361 AC2: the row's signed note (Ajay, e7c0418), shown under the punishment line as is */
+  note?: string;
+  /** Only an exact-key row carries max_years; null otherwise (T-277, R1) */
+  maxYears: number | null;
+  /** Term for the BNSS 480/483 choice only: exact row or parent row without variants */
+  courtMaxYears: number | null;
+  /** T-289: court by which triable, as printed in the First Schedule; null = depends */
+  triableBy: string | null;
+  /** null = "Depends. Check the First Schedule." (T-277, R3) — never false */
+  bailable: boolean | null;
+  cognizable: boolean | null;
+  /** 'with_permission' = "Compoundable with the Court's permission" (Ajay, Q7) */
+  compoundable: boolean | 'with_permission' | null;
+  /** ATTRIBUTE_DEPENDS when the matching attribute is null (T-361 Addendum 1); Q7 text for with_permission */
+  bailableNote: string | null;
+  cognizableNote: string | null;
+  compoundableNote: string | null;
+  /** T-371: VERIFY_CAVEAT for a verify-flagged row. The raw verify text is never served. */
+  caveat?: string;
   chapter: string;
 }
 
@@ -35,27 +74,59 @@ export interface SectionResult {
   convertedFromIpc: boolean;
   /** Original IPC section if converted */
   ipcSection?: string;
-  /** Offence details, null if section not found */
+  /** Offence details, null if the section does not resolve to an offence */
   offence: OffenceInfo | null;
-  /** True if section found in our database */
+  /** True if the section resolved to an offence in our table */
   found: boolean;
+  /**
+   * Set when an IPC input has no BNS target (NO_BNS_EQUIVALENT), the section or its
+   * mapping row is missing / unverified (NOT_VERIFIED, T-371), or the BNS section
+   * does not create an offence (NOT_AN_OFFENCE).
+   */
+  note?: string;
+  /**
+   * T-383: on a not-found row only, the section as the summary lines name it
+   * (displaySection): "400", "IPC 236", "21 of another Act". Never the raw token.
+   */
+  display?: string;
+  /**
+   * T-361 AC4: CODE_REMINDER (Ajay, signed) when the input was a bare number with no
+   * code ("351", including one guessed as IPC), found or not. Never set for a coded input.
+   */
+  codeReminder?: string;
 }
 
 export interface BailCheckResult {
   sections: SectionResult[];
   summary: {
-    /** Overall bail type based on most serious offence */
-    overallBailable: boolean;
-    /** Most serious offence section */
-    mostSeriousSection: string;
-    /** Maximum punishment across all sections */
+    /**
+     * false if any charged section is non-bailable; true only if every charged
+     * section resolved and is bailable; null otherwise ("depends").
+     */
+    overallBailable: boolean | null;
+    /** When overallBailable is null: DEPENDS_FIRST_SCHEDULE, or NOT_VERIFIED when every unknown section is missing / not verified (1363d68) */
+    overallBailableNote: string | null;
+    /** Charged sections whose bailability is not known (null or unresolved IPC input) */
+    undeterminedSections: string[];
+    /**
+     * Most serious offence section, by maximum term only (T-361 AC3). A section with no
+     * known maximum is left out (T-361 Addendum 1); null when none has one.
+     */
+    mostSeriousSection: string | null;
+    /** Punishment of the most serious section; MOST_SERIOUS_CANNOT_BE_DETERMINED or 'N/A' otherwise */
     maxPunishment: string;
-    maxYears: number;
-    /** Recommended BNSS section for bail */
-    bnssBailSection: string;
+    /** MOST_SERIOUS_CANNOT_BE_DETERMINED when sections resolved but none has a known maximum */
+    mostSeriousNote: string | null;
+    /** null when any resolved section has no single max term */
+    maxYears: number | null;
+    /** Term behind the BNSS 480/483 choice only; may come from a parent row (never the period or the court) */
+    courtMaxYears: number | null;
+    /** Recommended BNSS section for bail; null when bailability depends */
+    bnssBailSection: string | null;
     bnssBailSectionTitle: string;
-    /** Recommended court level */
+    /** T-289: court by which triable (First Schedule, as printed), or COURT_LEVEL_DEPENDS */
     courtLevel: string;
+    /** Always '': no court explanation text is signed (T-289) */
     courtLevelExplanation: string;
     /** CTA text */
     recommendation: string;
@@ -64,31 +135,35 @@ export interface BailCheckResult {
 
 // ── Offence Lookup ─────────────────────────────────────────────────────────────
 
-const offences = offencesData.offences as Record<
-  string,
-  {
-    title: string;
-    punishment: string;
-    max_years: number;
-    bailable: boolean;
-    cognizable: boolean;
-    compoundable: boolean;
-    chapter: string;
-  }
->;
-
 function lookupOffence(bnsSection: string): OffenceInfo | null {
-  const entry = offences[bnsSection];
-  if (!entry) return null;
+  const r = resolveOffence(bnsSection);
+  if (r.kind === 'not_an_offence' || r.key === null) return null;
+  // Ajay Q7: one rule everywhere — 'with_permission' is kept, never "Depends".
+  const compoundable =
+    r.compoundable === 'yes'
+      ? true
+      : r.compoundable === 'no'
+        ? false
+        : r.compoundable === 'with_permission'
+          ? 'with_permission'
+          : null;
   return {
-    section: bnsSection,
-    title: entry.title,
-    punishment: entry.punishment,
-    maxYears: entry.max_years,
-    bailable: entry.bailable,
-    cognizable: entry.cognizable,
-    compoundable: entry.compoundable,
-    chapter: entry.chapter,
+    section: r.section,
+    resolution: r.kind,
+    resolvedKey: r.key,
+    title: r.title ?? '',
+    ...(r.offence ? { offenceDescription: r.offence } : {}),
+    punishment: r.punishment ?? '',
+    ...(r.punishmentNote ? { note: r.punishmentNote } : {}),
+    maxYears: r.maxYears,
+    courtMaxYears: r.courtMaxYears,
+    triableBy: r.triableBy,
+    bailable: r.bailable,
+    cognizable: r.cognizable,
+    compoundable,
+    ...attributeNotes(r),
+    ...(showsVerifyCaveat(r) ? { caveat: VERIFY_CAVEAT } : {}),
+    chapter: r.chapter ?? '',
   };
 }
 
@@ -152,96 +227,139 @@ function isLikelyIpc(section: string): boolean {
   return IPC_INDICATORS.has(section);
 }
 
+/** Ajay (CLO), T-277 round 6 / T-289: the court when the First Schedule gives no single court. */
+export const COURT_LEVEL_DEPENDS = 'Depends on the offence. Check the First Schedule.';
+/** Ajay (CLO), T-277 round 7 (signed): non-bailable, death/life or above 7 years. */
+export const BAIL_TITLE_483 =
+  'Bail in non-bailable offence (BNSS Section 483), discretionary: apply to the Sessions Court or the High Court';
+/** Ajay (CLO), T-277 round 7 (signed): non-bailable, up to 7 years. */
+export const BAIL_TITLE_480 =
+  'Bail in non-bailable offence (BNSS Section 480), discretionary: apply to the Magistrate; if refused, to the Sessions Court or the High Court under BNSS Section 483';
+/** Ajay (CLO), T-277 round 6: no bail provision named when a term is unknown. */
+export const BAIL_PROVISION_DEPENDS =
+  'Which bail provision applies depends on the offence. Check BNSS sections 480 and 483.';
+
 // ── Jurisdiction Logic ─────────────────────────────────────────────────────────
 
-function determineCourtLevel(maxYears: number): {
-  level: string;
-  explanation: string;
-} {
-  if (maxYears === 0) {
-    return {
-      level: 'Judicial Magistrate First Class (JMFC)',
-      explanation:
-        'Offences punishable with fine only or imprisonment up to 3 years are triable by a Magistrate.',
-    };
+/**
+ * Ajay (CLO), T-289 rules 3-5 (signed): the court comes ONLY from the First
+ * Schedule value (`triableBy`), never from the term.
+ * - One charged section: its value as printed (a reference value included); null
+ *   is COURT_LEVEL_DEPENDS.
+ * - Several: any Court of Session decides; else, if every one is Magistrate of the
+ *   first class or Any Magistrate, the higher of the two; else (a null, a reference
+ *   value or any other value) COURT_LEVEL_DEPENDS.
+ * `null` in `values` is a charged section whose court is unknown.
+ */
+function determineCourtLevel(values: Array<string | null>): string {
+  if (values.length === 0) return COURT_LEVEL_DEPENDS;
+  if (values.length === 1) return values[0] ?? COURT_LEVEL_DEPENDS;
+  if (values.includes(COURT_OF_SESSION)) return COURT_OF_SESSION;
+  if (values.every((v) => v === MAGISTRATE_FIRST_CLASS || v === ANY_MAGISTRATE)) {
+    return values.includes(MAGISTRATE_FIRST_CLASS) ? MAGISTRATE_FIRST_CLASS : ANY_MAGISTRATE;
   }
-  if (maxYears <= 3) {
-    return {
-      level: 'Judicial Magistrate First Class (JMFC)',
-      explanation: `Maximum punishment is ${maxYears} year(s). Offences up to 3 years imprisonment are triable by JMFC.`,
-    };
-  }
-  if (maxYears <= 7) {
-    return {
-      level: 'Court of Sessions',
-      explanation: `Maximum punishment is ${maxYears} years. Offences with punishment between 3-7 years are generally triable by Sessions Court.`,
-    };
-  }
-  if (maxYears >= 99) {
-    return {
-      level: 'Court of Sessions (bail from High Court if rejected)',
-      explanation:
-        'Offences punishable with death or imprisonment for life. Triable exclusively by Sessions Court. If bail rejected by Sessions, approach High Court under BNSS Section 482.',
-    };
-  }
-  return {
-    level: 'Court of Sessions or High Court',
-    explanation: `Maximum punishment exceeds 7 years (${maxYears} years). Triable by Sessions Court. Bail may be sought from Sessions or High Court.`,
-  };
+  return COURT_LEVEL_DEPENDS;
 }
 
 function determineBnssBailSection(
-  bailable: boolean,
-  maxYears: number,
-): { section: string; title: string } {
+  bailable: boolean | null,
+  courtMaxYears: number | null,
+): { section: string | null; title: string } {
+  // T-277: bailability unknown → no recommended section.
+  if (bailable === null) {
+    return { section: null, title: DEPENDS_FIRST_SCHEDULE };
+  }
   if (bailable) {
     return {
       section: '478',
       title: 'Bail in bailable offence (BNSS Section 478) — bail is a matter of right',
     };
   }
-  if (maxYears >= 99) {
-    // Death / life imprisonment — BNSS 482 (anticipatory) or 480 (regular from Sessions/HC)
-    return {
-      section: '480',
-      title:
-        'Bail in non-bailable offence (BNSS Section 480) — discretionary, apply before Sessions/High Court',
-    };
+  // Term unknown: no provision named (round 6 (e)); the caller normally catches this.
+  if (courtMaxYears === null) {
+    return { section: null, title: BAIL_PROVISION_DEPENDS };
   }
-  if (maxYears > 7) {
-    return {
-      section: '480',
-      title:
-        'Bail in non-bailable offence (BNSS Section 480) — discretionary, Sessions Court or High Court',
-    };
+  // Ajay (signed, T-277 round 7): death or life, or above 7 years → BNSS 483.
+  if (courtMaxYears > 7) {
+    return { section: '483', title: BAIL_TITLE_483 };
   }
-  // Non-bailable but < 7 years
-  return {
-    section: '480',
-    title:
-      'Bail in non-bailable offence (BNSS Section 480) — discretionary, apply before Magistrate/Sessions Court',
-  };
+  // Ajay (signed, T-277 round 7): up to 7 years → BNSS 480.
+  return { section: '480', title: BAIL_TITLE_480 };
 }
 
 // ── Main Check ─────────────────────────────────────────────────────────────────
 
+/** Ajay (CLO), T-267 ruling C: a null BNS target is reported, never looked up as BNS. */
+export const NO_BNS_EQUIVALENT = 'No BNS equivalent. Check the Gazette';
+
+/** "21 of another Act": an Act the signed tables do not cover. Shown to the user as is. */
+const OTHER_ACT_TOKEN = /^(\S+) of another Act$/;
+
+/**
+ * T-371: the bail checker's input, read with the tools' reader (T-277), so
+ * "BNS 318(4), BNS 316(2)" and "318(4), 316(2)" give the same sections. Each entry
+ * becomes a checker token: a bare number → "318(4)" (the IPC guess below still
+ * applies), a table code → "318(4)-BNS", "420-IPC", "154-CrPC" and so on, and an Act
+ * the tables do not cover → "21 of another Act" (as the timeline route words it; no
+ * internal code is ever shown).
+ */
+export function readBailInputs(text: string): string[] {
+  return readToolSections(text).map((e) => {
+    if (e.code === null) return e.number;
+    // An explicit BNS keeps its code, so "BNS 400" is never guessed as IPC 400.
+    const code = TABLE_CODE[e.code];
+    return code ? `${e.number}-${code}` : `${e.number} of another Act`;
+  });
+}
+
+/** How a charged section is named in "Section {n}: …" lines: "420-IPC" → "IPC 420". */
+function displaySection(input: string, ipcSection: string | undefined, bnsSection: string): string {
+  if (ipcSection) return `IPC ${ipcSection}`;
+  return bnsSection || input;
+}
+
 export async function checkBailEligibility(sectionInputs: string[]): Promise<BailCheckResult> {
   const results: SectionResult[] = [];
+  /** Charged sections whose bailability is unknown (T-277). */
+  const undeterminedSections: string[] = [];
+  /**
+   * Ajay (CLO), T-371 build sign-off (1363d68): the summary line for each entry in
+   * undeterminedSections uses the same text as its row: the row's note (NOT_VERIFIED,
+   * NO_BNS_EQUIVALENT) for a missing or unresolved section, DEPENDS_FIRST_SCHEDULE for
+   * a signed row whose bailable is null. Same index as undeterminedSections.
+   */
+  const undeterminedNotes: string[] = [];
 
   for (const raw of sectionInputs) {
     const input = raw.trim();
     if (!input) continue;
 
     // Check if user provided code prefix (e.g., "302-IPC", "103-BNS")
-    const dashMatch = input.match(/^(\d+[A-Za-z]?(?:\(\d+\))?)\s*[-–]\s*(\w+)$/);
+    const dashMatch = input.match(/^(\d+[A-Za-z]{0,2}(?:\([0-9A-Za-z]+\))*)\s*[-–]\s*(\w+)$/);
     let bnsSection = input;
     let convertedFromIpc = false;
     let ipcSection: string | undefined;
+    let note: string | undefined;
+    /** An IPC input that did not reach a BNS target. */
+    let ipcUnresolved = false;
+    /** T-361 AC4: a bare number, no code given (readBailInputs passes it through as is). */
+    const bareNumber = !OTHER_ACT_TOKEN.test(input) && !dashMatch;
 
-    if (dashMatch) {
+    if (OTHER_ACT_TOKEN.test(input)) {
+      // T-371: an Act the signed tables do not cover; never looked up as BNS.
+      bnsSection = '';
+      ipcUnresolved = true;
+      note = NOT_VERIFIED;
+    } else if (dashMatch) {
       const [, num, code] = dashMatch;
       const codeUpper = code.toUpperCase();
-      if (codeUpper === 'IPC') {
+      if (codeUpper !== 'IPC' && codeUpper !== 'BNS') {
+        // T-371: CrPC, IEA, BNSS, BSA or another Act: not in the BNS offences table.
+        // Before T-371 these were looked up as BNS numbers.
+        bnsSection = '';
+        ipcUnresolved = true;
+        note = NOT_VERIFIED;
+      } else if (codeUpper === 'IPC') {
         // Explicit IPC — convert via lookupOldToNew
         const mapping = await lookupOldToNew(num, 'IPC');
         if (mapping && mapping.new_section) {
@@ -249,9 +367,14 @@ export async function checkBailEligibility(sectionInputs: string[]): Promise<Bai
           bnsSection = mapping.new_section;
           convertedFromIpc = true;
         } else {
-          bnsSection = num;
+          bnsSection = '';
           ipcSection = num;
           convertedFromIpc = true;
+          ipcUnresolved = true;
+          // T-371 (T-361 Addendum 1): missing or unverified row → NOT_VERIFIED; a
+          // repealed row keeps Ajay's T-267 "No BNS equivalent" note.
+          note =
+            mapping && mapping.mapping_type !== 'unverified' ? NO_BNS_EQUIVALENT : NOT_VERIFIED;
         }
       } else {
         bnsSection = num;
@@ -263,14 +386,39 @@ export async function checkBailEligibility(sectionInputs: string[]): Promise<Bai
         ipcSection = input;
         bnsSection = mapping.new_section;
         convertedFromIpc = true;
-      } else {
-        // Section is likely IPC (> 358 or in known set) but no mapping found
+      } else if (mapping && mapping.mapping_type !== 'unverified') {
+        bnsSection = '';
         ipcSection = input;
         convertedFromIpc = true;
+        ipcUnresolved = true;
+        note = NO_BNS_EQUIVALENT;
+      } else {
+        // Likely IPC (> 358 or in known set) but no row, or an unverified row.
+        bnsSection = '';
+        ipcSection = input;
+        convertedFromIpc = true;
+        ipcUnresolved = true;
+        // T-371 (T-361 Addendum 1): same as an explicit "NNN-IPC" with no row.
+        note = NOT_VERIFIED;
       }
     }
 
-    const offence = lookupOffence(bnsSection);
+    const offence = note ? null : lookupOffence(bnsSection);
+    if (!offence && !note && !ipcUnresolved) {
+      if (resolveBnsKey(bnsSection) === null && outsideBnsRange(bnsSection)) {
+        // T-371 Addendum 1 point 1: a number outside the BNS (above 358) is unknown.
+        note = NOT_VERIFIED;
+        ipcUnresolved = true;
+      } else {
+        // T-277 rule 3 (kept by T-371 Addendum 1 point 1): a BNS number from 1 to 358
+        // with no row, or a sub-section that creates no offence.
+        note = NOT_AN_OFFENCE;
+      }
+    }
+    if (!offence && ipcUnresolved) {
+      undeterminedSections.push(displaySection(input, ipcSection, bnsSection));
+      undeterminedNotes.push(note ?? NOT_VERIFIED);
+    }
 
     results.push({
       input,
@@ -279,45 +427,133 @@ export async function checkBailEligibility(sectionInputs: string[]): Promise<Bai
       ipcSection,
       offence,
       found: offence !== null,
+      ...(note ? { note } : {}),
+      ...(offence ? {} : { display: displaySection(input, ipcSection, bnsSection) }),
+      ...(bareNumber ? { codeReminder: CODE_REMINDER } : {}),
     });
   }
 
-  // Determine summary from most serious offence
+  // T-277: null bailable / max_years are "depends", never false / 0.
   const foundResults = results.filter((r) => r.offence !== null);
-  const mostSerious = foundResults.reduce<SectionResult | null>((worst, curr) => {
-    if (!worst) return curr;
-    if (!curr.offence || !worst.offence) return worst;
-    // Non-bailable > bailable
-    if (!curr.offence.bailable && worst.offence.bailable) return curr;
-    if (curr.offence.bailable && !worst.offence.bailable) return worst;
-    // Higher punishment
-    return curr.offence.maxYears > worst.offence.maxYears ? curr : worst;
-  }, null);
+  for (const r of foundResults) {
+    if (r.offence && r.offence.bailable === null) {
+      undeterminedSections.push(displaySection(r.input, r.ipcSection, r.bnsSection));
+      undeterminedNotes.push(DEPENDS_FIRST_SCHEDULE);
+    }
+  }
 
-  const overallBailable =
-    foundResults.length > 0
-      ? foundResults.every((r) => r.offence !== null && r.offence.bailable)
-      : true;
+  // T-361 AC3 + Addendum 1 (Ajay), T-371 (Arjun): "most serious" ranks by the
+  // maximum term only. A section with no known maximum (max_years null, or a variant
+  // with no term of its own) is left out entirely, never ranked as infinite or lowest.
+  // The first section wins a tie.
+  const ranked = foundResults.filter(
+    (r): r is SectionResult & { offence: OffenceInfo & { courtMaxYears: number } } =>
+      typeof r.offence?.courtMaxYears === 'number',
+  );
+  const mostSerious = ranked.reduce<(typeof ranked)[number] | null>(
+    (worst, curr) =>
+      !worst || curr.offence.courtMaxYears > worst.offence.courtMaxYears ? curr : worst,
+    null,
+  );
+  const mostSeriousUndetermined = foundResults.length > 0 && mostSerious === null;
 
-  const maxYears = mostSerious?.offence?.maxYears ?? 0;
-  const court = determineCourtLevel(maxYears);
-  const bnssBail = determineBnssBailSection(overallBailable, maxYears);
+  let overallBailable: boolean | null;
+  if (foundResults.some((r) => r.offence?.bailable === false)) overallBailable = false;
+  else if (foundResults.length === 0 || undeterminedSections.length > 0) overallBailable = null;
+  else overallBailable = true;
 
-  const recommendation = overallBailable
-    ? 'All charged sections are bailable. Bail is a matter of right under BNSS Section 478. The accused is entitled to be released on bail.'
-    : `One or more sections are non-bailable. Bail application should be filed under BNSS Section ${bnssBail.section} before the ${court.level}. Consider filing for anticipatory bail under BNSS Section 482 if arrest is apprehended.`;
+  const maxYears: number | null =
+    foundResults.length === 0 || foundResults.some((r) => r.offence?.maxYears === null)
+      ? null
+      : Math.max(...foundResults.map((r) => r.offence?.maxYears ?? 0));
+  // Ajay (T-277 rounds 2, 6, 7): the term behind the BNSS 480/483 choice only. A
+  // parent row without variants may set it. A known death/life term fixes 483 even
+  // if another term is unknown; otherwise any unknown term → no provision named.
+  // T-289: this term never decides the court.
+  const knownCourtTerms = foundResults
+    .map((r) => r.offence?.courtMaxYears)
+    .filter((y): y is number => typeof y === 'number');
+  const anyUnknownTerm = foundResults.some((r) => r.offence?.courtMaxYears === null);
+  const anyKnownLife = knownCourtTerms.some((y) => y >= 99);
+  const courtMaxYears: number | null =
+    foundResults.length === 0 || (anyUnknownTerm && !anyKnownLife)
+      ? null
+      : Math.max(...knownCourtTerms);
+  // Ajay (T-289): the court only from the First Schedule value. An IPC input with no
+  // BNS target is a charged section whose court is unknown; a section that creates
+  // no offence is left out (Q9).
+  const courtLevel = determineCourtLevel(
+    results
+      .filter((r) => r.offence !== null || r.note !== NOT_AN_OFFENCE)
+      .map((r) => r.offence?.triableBy ?? null),
+  );
+  // Ajay (round 6): a non-bailable charge with an unknown term names no bail
+  // provision, unless a known term (exact, or a parent's court term) is death or life.
+  // Ajay (1363d68): the overall "unknown" text follows its rows. Any signed row with a
+  // null bailable (or nothing to go on) keeps DEPENDS_FIRST_SCHEDULE; otherwise the
+  // rows are all missing / unresolved, and NOT_VERIFIED (or their one shared note) applies.
+  const overallUnknownNote =
+    undeterminedNotes.length === 0 || undeterminedNotes.includes(DEPENDS_FIRST_SCHEDULE)
+      ? DEPENDS_FIRST_SCHEDULE
+      : undeterminedNotes.includes(NOT_VERIFIED)
+        ? NOT_VERIFIED
+        : undeterminedNotes[0];
+  const bnssBailBase =
+    overallBailable === false && anyUnknownTerm && !anyKnownLife
+      ? { section: null, title: BAIL_PROVISION_DEPENDS }
+      : determineBnssBailSection(overallBailable, courtMaxYears);
+  const bnssBail =
+    overallBailable === null ? { ...bnssBailBase, title: overallUnknownNote } : bnssBailBase;
+  // Ajay (round 6, 1363d68): one line per section whose bailability is unknown, in the
+  // same text as its row.
+  const dependsLines = undeterminedSections.map((n, i) => `Section ${n}: ${undeterminedNotes[i]}`);
+
+  let recommendation: string;
+  if (overallBailable === true) {
+    recommendation =
+      'All charged sections are bailable. Bail is a matter of right under BNSS Section 478. The accused is entitled to be released on bail.';
+  } else if (overallBailable === false) {
+    if (bnssBail.section === null) {
+      recommendation = `One or more sections are non-bailable. ${BAIL_PROVISION_DEPENDS}`;
+    } else {
+      // T-289: no forum from the term; the signed 480/483 title names where to apply.
+      recommendation = `One or more sections are non-bailable. Bail application should be filed under BNSS Section ${bnssBail.section}. Consider filing for anticipatory bail under BNSS Section 482 if arrest is apprehended.`;
+    }
+    recommendation = [recommendation, ...dependsLines].join(' ');
+  } else if (dependsLines.length > 0) {
+    recommendation = dependsLines.join(' ');
+  } else {
+    // Nothing resolved to an offence: only the left-out lines below apply.
+    recommendation = '';
+  }
+  // Ajay Q9: a non-offence section is excluded from "all", and the summary says so.
+  const leftOut = results
+    .filter((r) => r.note === NOT_AN_OFFENCE)
+    .map(
+      (r) =>
+        `Section ${displaySection(r.input, r.ipcSection, r.bnsSection)} does not create an offence, so it was left out.`,
+    );
+  recommendation = [recommendation, ...leftOut].filter(Boolean).join(' ');
 
   return {
     sections: results,
     summary: {
       overallBailable,
-      mostSeriousSection: mostSerious?.bnsSection ?? '',
-      maxPunishment: mostSerious?.offence?.punishment ?? 'N/A',
+      overallBailableNote: overallBailable === null ? overallUnknownNote : null,
+      undeterminedSections,
+      mostSeriousSection: mostSerious?.bnsSection ?? null,
+      maxPunishment: mostSerious
+        ? mostSerious.offence.punishment
+        : mostSeriousUndetermined
+          ? MOST_SERIOUS_CANNOT_BE_DETERMINED
+          : 'N/A',
+      mostSeriousNote: mostSeriousUndetermined ? MOST_SERIOUS_CANNOT_BE_DETERMINED : null,
       maxYears,
+      courtMaxYears,
       bnssBailSection: bnssBail.section,
       bnssBailSectionTitle: bnssBail.title,
-      courtLevel: court.level,
-      courtLevelExplanation: court.explanation,
+      courtLevel,
+      courtLevelExplanation: '',
       recommendation,
     },
   };

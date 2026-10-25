@@ -11,12 +11,12 @@
   "courtType": "tribunal",
   "designation": "BEFORE THE DEBTS RECOVERY TRIBUNAL",
   "jurisdictionNote": "Debts Recovery Tribunal constituted under Section 3 of the Recovery of Debts and Bankruptcy Act, 1993. Original jurisdiction over applications by banks/FIs for recovery of debts exceeding Rs. 20 lakh; also hears securitisation applications under Section 17 SARFAESI Act, 2002. Appellate forum: DRAT (uses the same rule file).",
-  "cause_title_format": "{courtDesignation}, {city}\n{caseNomenclature}\n\n{applicant} ... APPLICANT BANK / FINANCIAL INSTITUTION\n\nVERSUS\n\n{defendant} ... DEFENDANT BORROWER",
+  "cause_title_format": "{courtDesignation}, {city}\n{caseNomenclature}\n\n{applicant} ... APPLICANT\n\nVERSUS\n\n{defendant} ... DEFENDANT",
   "party_designation": {
     "petitioner": "Applicant",
     "respondent": "Defendant",
-    "applicant": "Applicant Bank / Financial Institution",
-    "defendant": "Defendant Borrower",
+    "applicant": "Applicant",
+    "defendant": "Defendant",
     "complainant": "Applicant",
     "counter_party": "Defendant",
     "state": "Union of India through Secretary, Ministry of Finance, Department of Financial Services"
@@ -37,7 +37,7 @@
     "closing": "And for this act of kindness, the applicant shall ever pray.",
     "tone": "neutral"
   },
-  "verification_format": "I, {deponent_name}, the duly authorised officer of the Applicant Bank / Financial Institution herein above named, do hereby verify that the contents of the above application are true and correct to the best of my knowledge derived from the records maintained in the ordinary course of business, and nothing material has been concealed therefrom.\n\nVerified at {place} on this {date}.\n\nAUTHORISED OFFICER, APPLICANT BANK / FI",
+  "verification_format": "I, {deponent_name}, {designation}, do hereby verify that the contents of paragraphs ___ to ___ above are true to my personal knowledge, and the contents of paragraphs ___ to ___ are based on records and information received, which I believe to be true, and nothing material has been concealed therefrom.\n\nVerified at {place} on this {date}.\n\nDEPONENT",
   "supported_languages": ["en"],
   "formattingPreferences": {
     "numberingStyle": "numeric",

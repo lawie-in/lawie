@@ -37,6 +37,20 @@ async function doRefresh(): Promise<string | null> {
 }
 
 /**
+ * Refresh the access token, sharing one in-flight refresh between all callers. Refresh tokens
+ * are single-use (T-299), so every refresh in the app must go through here (T-343: privacyFetch
+ * uses it too). Resolves to the new access token, or null when the refresh failed.
+ */
+export function refreshAccessToken(): Promise<string | null> {
+  if (!refreshing) {
+    refreshing = doRefresh().finally(() => {
+      refreshing = null;
+    });
+  }
+  return refreshing;
+}
+
+/**
  * Like `fetch`, but automatically:
  * 1. Attaches `Authorization: Bearer <token>` from localStorage
  * 2. On 401 → refreshes the access token (once) and retries
@@ -60,21 +74,18 @@ export async function apiFetch(path: string, init: RequestInit = {}): Promise<Re
   if (res.status !== 401) return res;
 
   // 401 — try to refresh exactly once (de-duplicate concurrent refreshes)
-  if (!refreshing) {
-    refreshing = doRefresh().finally(() => {
-      refreshing = null;
-    });
-  }
-
-  const newToken = await refreshing;
+  const newToken = await refreshAccessToken();
 
   if (!newToken) {
-    // Refresh failed — clear session and redirect to login
+    // Refresh failed — clear session and redirect to login.
+    // Return a promise that never resolves so no caller .then()/.catch() fires
+    // while the browser navigates away — prevents stale error banners.
     clearTokens();
     if (typeof window !== 'undefined') {
       window.location.replace('/login');
+      return new Promise<Response>(() => {});
     }
-    return res; // caller won't use this — page is navigating away
+    return res;
   }
 
   // Retry with fresh token

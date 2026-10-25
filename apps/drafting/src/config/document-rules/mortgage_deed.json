@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. Type of mortgage determines registration mandate and stamp duty — must be precisely classified. Equitable mortgage by deposit of title deeds is restricted to notified towns."
   },
   "template_id": "mortgage_deed",
+  "card_description": "A mortgage deed of immovable property under the Transfer of Property Act, 1882.",
   "docType": "mortgage_deed",
   "title": "Mortgage Deed (Transfer of Property Act, 1882 — S.58-104)",
   "displayName": "Mortgage Deed",
@@ -210,6 +211,14 @@
         "options": ["bihar", "jharkhand", "uttar_pradesh", "delhi"]
       },
       {
+        "id": "execution_place",
+        "label": "Place of execution",
+        "type": "text",
+        "required": false,
+        "help": "City or town where the document will be signed.",
+        "ask_when_empty": true
+      },
+      {
         "id": "witness_1_name_address",
         "label": "Witness 1 name & address",
         "type": "textarea",
@@ -332,12 +341,6 @@
       "name": "Two Witnesses",
       "required": true,
       "description": "Mandatory"
-    },
-    {
-      "id": "lawie_disclaimer",
-      "name": "Lawie Drafting Assistant Disclaimer",
-      "required": true,
-      "description": "Standard Lawie disclaimer"
     }
   ],
   "prayerTemplate": "",
@@ -348,10 +351,10 @@
       "S.58 TPA — Mortgage: 'A mortgage is the transfer of an interest in specific immovable property for the purpose of securing the payment of money advanced or to be advanced by way of loan, an existing or future debt, or the performance of an engagement which may give rise to a pecuniary liability.'",
       "SIX TYPES OF MORTGAGE under S.58 — MUST classify correctly because each has distinct registration, stamp duty, possession, and remedy rules:",
       "(a) SIMPLE MORTGAGE [S.58(b)]: Mortgagor BINDS HIMSELF PERSONALLY to pay; transfers right to mortgagee to cause property to be sold by court decree on default. MORTGAGOR RETAINS POSSESSION. Registration MANDATORY. Stamp duty per state Article 40.",
-      "(b) MORTGAGE BY CONDITIONAL SALE [S.58(c)]: Apparent sale subject to condition that on default sale becomes absolute; on payment sale is void. Three forms of conditions. Cite Pandit Chunchun Jha v. Sk. Ebadat Ali AIR 1954 SC 345 — proviso must be IN SAME DOCUMENT. Mortgagor retains possession (typically). Mandatory registration. Remedy: foreclosure (S.67) — not sale.",
+      "(b) MORTGAGE BY CONDITIONAL SALE [S.58(c)]: Apparent sale subject to condition that on default sale becomes absolute; on payment sale is void. Three forms of conditions. Proviso must be IN SAME DOCUMENT. Mortgagor retains possession (typically). Mandatory registration. Remedy: foreclosure (S.67) — not sale.",
       "(c) USUFRUCTUARY MORTGAGE [S.58(d)]: POSSESSION delivered to mortgagee; mortgagee receives rents and profits in lieu of interest / principal / both. No personal liability of mortgagor. Mortgagor has right to redeem on payment per terms. Common in agricultural areas. Mandatory registration if value > Rs.100. Stamp duty under Article 40 state.",
       "(d) ENGLISH MORTGAGE [S.58(e)]: Mortgagor binds himself to repay AND TRANSFERS PROPERTY ABSOLUTELY to mortgagee, subject to proviso for re-conveyance on payment. Possession often retained by mortgagor or mortgagee per terms. Power of sale without court intervention available under S.69 to (i) mortgagee in Calcutta/Madras/Bombay metros OR (ii) where mortgagee is Govt OR (iii) where contract provides. Mandatory registration. Stamp duty highest among types — close to conveyance rate in some states.",
-      "(e) MORTGAGE BY DEPOSIT OF TITLE DEEDS / EQUITABLE MORTGAGE [S.58(f)]: A person in any of the following towns — Calcutta, Madras, Bombay, and any other town which State Govt notifies — delivers to a creditor or his agent documents of title to immovable property, with intent to create security thereon. ALSO CALLED MORTGAGE BY DEPOSIT OF TITLE DEEDS. KEY ADVANTAGES: (i) NO MANDATORY REGISTRATION (subject to memorandum not being conveyancing instrument); (ii) Lower stamp duty than other types. KEY RESTRICTION: Only in notified towns. Memorandum of deposit of title deeds (MoDT) usually drawn up — must NOT contain operative mortgage words (else becomes registerable mortgage). Cite Veerappa Pillai v. Rajan AIR 1952 SC 222.",
+      "(e) MORTGAGE BY DEPOSIT OF TITLE DEEDS / EQUITABLE MORTGAGE [S.58(f)]: A person in any of the following towns — Calcutta, Madras, Bombay, and any other town which State Govt notifies — delivers to a creditor or his agent documents of title to immovable property, with intent to create security thereon. ALSO CALLED MORTGAGE BY DEPOSIT OF TITLE DEEDS. KEY ADVANTAGES: (i) NO MANDATORY REGISTRATION (subject to memorandum not being conveyancing instrument); (ii) Lower stamp duty than other types. KEY RESTRICTION: Only in notified towns. Memorandum of deposit of title deeds (MoDT) usually drawn up — must NOT contain operative mortgage words (else becomes registerable mortgage).",
       "(f) ANOMALOUS MORTGAGE [S.58(g)]: Any mortgage not falling within (b)-(f). Terms entirely as agreed. Less common — mostly tribal customs / commercial structures.",
       "STRUCTURE OF DEED:",
       "Para 1: Parties identification.",
@@ -360,7 +363,7 @@
       "Para 4: TYPE OF MORTGAGE — explicitly classify. Examples:\n   - Simple: 'NOW THIS DEED WITNESSES that in consideration of the loan of Rs. [amount] advanced this day by the Mortgagee to the Mortgagor (the receipt whereof Mortgagor hereby acknowledges), the Mortgagor doth hereby bind himself personally to pay the said sum together with interest at [rate] per annum to the Mortgagee, AND the Mortgagor doth hereby mortgage and transfer unto the Mortgagee, by way of SIMPLE MORTGAGE under Section 58(b) of the Transfer of Property Act, 1882, the immovable property more particularly described in Schedule A hereunder as security for due repayment of the said sum together with interest. PROVIDED that on default of payment as herein provided, the Mortgagee shall be entitled to cause the said property to be sold by a decree of a competent court and recover the dues from sale proceeds.'\n   - English: '...the Mortgagor doth hereby absolutely transfer and convey unto the Mortgagee the immovable property described in Schedule A by way of ENGLISH MORTGAGE under Section 58(e) of the Transfer of Property Act, 1882, SUBJECT TO A PROVISO that the Mortgagee shall re-transfer the said property to the Mortgagor upon payment of the mortgage money together with interest as herein provided.'\n   - Usufructuary: 'The Mortgagor doth hereby deliver possession of the property described in Schedule A unto the Mortgagee by way of USUFRUCTUARY MORTGAGE under Section 58(d) of the TPA, and authorises the Mortgagee to receive and appropriate the rents and profits of the property in lieu of interest / principal as herein provided.'",
       "Para 5: REPAYMENT SCHEDULE — EMI / bullet / interest-only.",
       "Para 6: COVENANTS BY MORTGAGOR:\n   (a) Pay principal + interest as agreed.\n   (b) Pay all property taxes, water, electricity, society dues.\n   (c) Maintain property in good condition; do not commit waste.\n   (d) Insure property against fire and other risks; mortgagee named as loss payee.\n   (e) Not transfer / alienate / further mortgage during subsistence without mortgagee's consent.\n   (f) Permit mortgagee to inspect.\n   (g) Notify mortgagee of any litigation / acquisition affecting property.",
-      "Para 7: REDEMPTION (S.60 TPA): At any time after principal money has become due, mortgagor is entitled, on payment of full mortgage money + interest + costs, to require the mortgagee (a) to deliver back mortgaged property + title deeds; (b) re-transfer / re-convey property; (c) acknowledge in writing that all rights in mortgage are extinguished. CRITICAL — Equity of redemption is INVIOLABLE — any clog on the equity of redemption is VOID. Cite Stanley v. Wilde [1899] 2 Ch 474; Murarilal v. Devkaran AIR 1965 SC 225; Pomal Kanji v. Vrajlal Karsandas (1989) 1 SCC 458; Manibhai v. Bai Hina (1976) 1 SCC 256.",
+      "Para 7: REDEMPTION (S.60 TPA): At any time after principal money has become due, mortgagor is entitled, on payment of full mortgage money + interest + costs, to require the mortgagee (a) to deliver back mortgaged property + title deeds; (b) re-transfer / re-convey property; (c) acknowledge in writing that all rights in mortgage are extinguished. CRITICAL — Equity of redemption is INVIOLABLE — any clog on the equity of redemption is VOID.",
       "Para 8: FORECLOSURE / SALE (S.67 TPA):\n   - For mortgage by conditional sale and anomalous mortgages — foreclosure (taking absolute title) is available remedy.\n   - For simple, English, and usufructuary mortgages — SALE by court decree is the remedy (S.67(a)).\n   - For usufructuary mortgage — only after stipulated period during which mortgagee may retain possession; foreclosure not available.",
       "Para 9: POWER OF SALE WITHOUT COURT INTERVENTION (S.69 TPA): Limited application — only English mortgages and where (i) mortgagee is government, (ii) mortgaged property in Bombay/Calcutta/Madras presidency-towns, or (iii) expressly contracted.",
       "Para 10: SARFAESI ACT, 2002 — applies where mortgagee is a bank / financial institution. Bank can sell mortgaged property without court intervention after notice under S.13(2) SARFAESI on default; mortgagor's representation under S.13(3A); possession under S.13(4). DRT for borrower's grievance under S.17.",
@@ -370,7 +373,7 @@
       "Para 14: REGISTRATION — mandatory for all mortgages where value > Rs.100 EXCEPT mortgage by deposit of title deeds (S.58(f)) within notified towns where memorandum is not itself the operative document.",
       "Schedule A — property description.",
       "Two witnesses' attestation.",
-      "Append Lawie disclaimer."
+      "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
   "relevantActs": [
@@ -468,8 +471,7 @@
     "CERSAI registration of mortgage by financial institutions — mandatory under SARFAESI w.e.f. 2011",
     "Post-execution: noting of mortgage in revenue records",
     "Where bank mortgagee — SARFAESI applicability flag in deed",
-    "Where mortgage of agricultural land in Bihar/Jharkhand — additional state tenancy law compliance",
-    "Lawie disclaimer included"
+    "Where mortgage of agricultural land in Bihar/Jharkhand — additional state tenancy law compliance"
   ],
   "validation_rules": [
     "mortgagor_age >= 18",

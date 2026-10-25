@@ -1,0 +1,31 @@
+[
+  {
+    "id": "example-01",
+    "description": "My client Ram Kumar, aged 32, was arrested on 15/03/2026 in FIR No. 124/2026 under section 103 BNS and is in judicial custody. We need to apply for regular bail before the sessions court.",
+    "expected": "bail_regular",
+    "court": true,
+    "language": "en"
+  },
+  {
+    "id": "example-02",
+    "description": "Mere padosi ko meri parking space chhe mahine ke liye use karne ki consent letter chahiye.",
+    "expected": "guided_light",
+    "court": false,
+    "language": "mixed",
+    "also_ok": ["license_agreement"]
+  },
+  {
+    "id": "example-03",
+    "description": "I want to file a writ petition in the High Court because the municipal body demolished my shop wall without any notice.",
+    "expected": "writ_petition_civil",
+    "court": true,
+    "language": "en"
+  },
+  {
+    "id": "example-04",
+    "description": "What is the best cricket bat to buy for under five thousand rupees?",
+    "expected": "no_match",
+    "court": false,
+    "language": "en"
+  }
+]

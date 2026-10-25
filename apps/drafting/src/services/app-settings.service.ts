@@ -10,6 +10,7 @@
  * config must live in the DB only (per founder instruction 2026-05-11), so
  * there is no codebase or env fallback. Callers handle the error by surfacing
  * a clear "set this key in /admin/ai-config" message to the advocate.
+ * Exception (T-283): the two feature switches fall back to FEATURE_DEFAULT_* in intake.service.ts when missing.
  */
 import { AppSetting } from '../models/AppSetting.model';
 
@@ -21,6 +22,28 @@ interface CacheEntry {
 }
 
 const cache = new Map<string, CacheEntry>();
+
+/**
+ * T-453: modules that keep their own cache of a resolved setting (llm-usage's
+ * effort and intake cap caches) register here, so an admin write (the key) or a full clear
+ * (null) reaches them too.
+ */
+type InvalidationListener = (key: string | null) => void;
+const invalidationListeners = new Set<InvalidationListener>();
+
+export function onAppSettingInvalidated(fn: InvalidationListener): void {
+  invalidationListeners.add(fn);
+}
+
+function notifyInvalidated(key: string | null): void {
+  for (const fn of invalidationListeners) {
+    try {
+      fn(key);
+    } catch {
+      // A listener must never fail a settings write.
+    }
+  }
+}
 
 export class AppSettingMissingError extends Error {
   readonly key: string;
@@ -78,6 +101,7 @@ export async function setAppSetting(input: {
   ).lean();
 
   cache.delete(key);
+  notifyInvalidated(key);
 
   return {
     key: doc!.key,
@@ -105,6 +129,7 @@ export async function listAppSettings(): Promise<
 /** Test helper — clear the in-memory cache. NOT called in production paths. */
 export function _clearAppSettingsCache(): void {
   cache.clear();
+  notifyInvalidated(null);
 }
 
 // ── Well-known keys (string constants only — NOT default values) ────────────
@@ -116,4 +141,41 @@ export function _clearAppSettingsCache(): void {
 export const APP_SETTING_KEYS = {
   DRAFTING_MODEL: 'ai.drafting_model',
   PREFLIGHT_MODEL: 'ai.preflight_model',
+  /** ADR-019 §3.8 — a Haiku model id (a bare alias or a dated id). No default in code. */
+  INTAKE_MODEL: 'ai.intake_model',
+  /**
+   * T-453 — output_config.effort per stage (low | medium | high | xhigh | max).
+   * Optional: a missing or invalid value falls back to the default in
+   * llm-usage.ts (getAiEffort), never a failed call.
+   */
+  EFFORT_INTAKE: 'ai.effort.intake',
+  EFFORT_PREFLIGHT: 'ai.effort.preflight',
+  EFFORT_BODY: 'ai.effort.body',
+  /**
+   * T-453 follow-up — max_tokens for the intake_extract call, a whole number
+   * in 500-8000. Optional: missing or invalid falls back to 3000 in
+   * llm-usage.ts (getIntakeExtractCap), never a failed call.
+   */
+  CAP_INTAKE_EXTRACT: 'ai.cap.intake_extract',
+  /**
+   * T-453 follow-up (golden run 64) — max_tokens for both intake_reception
+   * calls (pack and guided), a whole number in 500-8000. Optional: missing or
+   * invalid falls back to 4000 in llm-usage.ts (getIntakeReceptionCap).
+   */
+  CAP_INTAKE_RECEPTION: 'ai.cap.intake_reception',
+  /**
+   * T-577 — the paragraph-count Ink bands, a key PREFIX: the row read is
+   * `pricing.paragraph_bands.<packId>`, else `pricing.paragraph_bands.base_<classPrice>`
+   * (classPrice = costForTemplate, e.g. `base_2`). Value: a JSON array of Ink
+   * ADDED over the class price, ascending, e.g.
+   * `[{"upTo":10,"add":0},{"upTo":18,"add":1},{"upTo":25,"add":2}]` (Vikram).
+   * Optional: missing or invalid means the
+   * pack does not ask for a count and is charged its class price
+   * (credits.service quoteDraft), never a failed draft.
+   */
+  PARAGRAPH_BANDS_PREFIX: 'pricing.paragraph_bands',
 } as const;
+
+// Per-model USD rates (`ai.rates.<model-slug>`) and the USD→INR conversion
+// (`finance.usd_inr`) live in llm-usage.ts (getModelRates / getUsdInrRate /
+// priceUsage) — T-003, see handoff/design/T-003-token-usage-design.md §3.5.

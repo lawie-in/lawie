@@ -11,7 +11,7 @@
   "courtId": "uk_district",
   "courtType": "district_court",
   "designation": "IN THE COURT OF DISTRICT & SESSIONS JUDGE",
-  "jurisdictionNote": "District-level criminal and civil courts in Uttarakhand, governed by the Uttar Pradesh Civil Courts Act, 1887 (as adapted by Uttarakhand on State formation in 2000) read with the Allahabad/Nainital High Court Rules. Sessions courts try offences punishable with imprisonment exceeding 7 years. Uttarakhand presently comprises 13 revenue districts spread across the Garhwal and Kumaon divisions and the subordinate judiciary is supervised by the High Court of Uttarakhand at Nainital. Hindi is the official language of the State subordinate courts under the Uttarakhand Official Language Act, 2000.",
+  "jurisdictionNote": "District-level criminal and civil courts in Uttarakhand, governed by the Uttar Pradesh Civil Courts Act, 1887 (as adapted by Uttarakhand on State formation in 2000) read with the Allahabad/Nainital High Court Rules. Which court tries an offence is set by the First Schedule to BNSS, not by the length of the sentence. Uttarakhand presently comprises 13 revenue districts spread across the Garhwal and Kumaon divisions and the subordinate judiciary is supervised by the High Court of Uttarakhand at Nainital. Hindi is the official language of the State subordinate courts under the Uttarakhand Official Language Act, 2000.",
   "cause_title_format": "{courtDesignation}, {city}\n{caseNomenclature}\n\n{petitioner} ... PETITIONER\n\nVERSUS\n\n{respondent} ... RESPONDENT",
   "party_designation": {
     "petitioner": "Petitioner",
@@ -24,8 +24,8 @@
     "state": "State of Uttarakhand through the Principal Secretary, Home Department, Government of Uttarakhand, Dehradun"
   },
   "case_nomenclature": {
-    "regular_bail": "Crl. Misc. (Bail) No. _____ of {year}",
-    "anticipatory_bail": "Crl. Misc. (A.B.) No. _____ of {year}",
+    "regular_bail": "Bail Application No. _____ of {year}",
+    "anticipatory_bail": "Anticipatory Bail Application No. _____ of {year}",
     "sessions_case": "Sessions Trial No. _____ of {year}",
     "calendar_case": "Criminal Case No. _____ of {year}",
     "civil_suit": "Civil Suit No. _____ of {year}",

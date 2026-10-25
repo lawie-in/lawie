@@ -14,11 +14,11 @@
   "cause_title_format": "{courtDesignation}, {bench}\n{caseNomenclature}\n\nAssessment Year: {assessment_year}\n\n{appellant} ... APPELLANT\n\nVERSUS\n\n{respondent} ... RESPONDENT",
   "party_designation": {
     "petitioner": "Appellant",
-    "respondent": "The Assistant Commissioner of Income Tax / Deputy Commissioner of Income Tax (as applicable), <Circle/Ward>",
+    "respondent": "[To be confirmed: Assessing Officer's designation, Circle or Ward]",
     "applicant": "Appellant",
     "complainant": "Appellant",
     "counter_party": "Respondent",
-    "state": "The Assistant Commissioner of Income Tax / Deputy Commissioner of Income Tax (as applicable), <Circle/Ward>"
+    "state": "[To be confirmed: Assessing Officer's designation, Circle or Ward]"
   },
   "case_nomenclature": {
     "appeal": "ITA No. _____ of {year}",

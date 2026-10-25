@@ -1,4 +1,5 @@
 {
+  "card_description": "A complaint before a Consumer Commission about defective goods or deficient service.",
   "_meta": {
     "description": "Document-rules config for consumer_complaint — drives prompt, validation, mandatory clauses",
     "owner": "Ajay (CLO)",
@@ -31,7 +32,7 @@
           },
           {
             "field_id": "court_name",
-            "label": "Forum Name",
+            "label": "Consumer Commission",
             "type": "dropdown_search",
             "source": "courts_db.courts",
             "filtered_by": ["state", "court_type"],
@@ -52,6 +53,18 @@
             "type": "text",
             "required": true,
             "inject_into": ["cause_title"]
+          },
+          {
+            "field_id": "relation_type",
+            "label": "Relation",
+            "type": "dropdown",
+            "options": [
+              { "value": "S/o", "label": "S/o (Son of)" },
+              { "value": "D/o", "label": "D/o (Daughter of)" },
+              { "value": "W/o", "label": "W/o (Wife of)" }
+            ],
+            "required": true,
+            "inject_into": ["cause_title", "body", "verification"]
           },
           {
             "field_id": "applicant_age",
@@ -81,6 +94,12 @@
             "options_from": "supported_languages",
             "default": "en",
             "required": true
+          },
+          {
+            "field_id": "advocate_enrollment",
+            "label": "Bar Council Enrollment No.",
+            "type": "text",
+            "required": false
           }
         ]
       },

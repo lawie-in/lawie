@@ -1,0 +1,11 @@
+{
+  "extends": "../../apps/drafting/tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "../..",
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": { "@lawie/shared": ["../../packages/shared/src"] }
+  },
+  "include": ["./**/*.ts", "../../apps/drafting/src/**/*.ts"],
+  "exclude": ["../../apps/drafting/src/__tests__/**", "./results/**"]
+}

@@ -10,7 +10,7 @@
  * Design: docs/Admin Panel Design/Code generation _ ledger with usage bars.png
  */
 
-import { CheckCircle2, Copy, Loader2, PlusCircle, Search } from 'lucide-react';
+import { CheckCircle2, Copy, Loader2, Pencil, PlusCircle, Save, Search, X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
@@ -22,6 +22,8 @@ interface ReferralCodeRow {
   isActive: boolean;
   maxUses: number | null;
   uses: number;
+  bonusInk: number;
+  expiresAt: string | null;
   createdAt: string;
 }
 
@@ -35,9 +37,18 @@ export default function ReferralCodesPage() {
   // Generate
   const [label, setLabel] = useState('');
   const [maxUses, setMaxUses] = useState('');
+  const [bonusInk, setBonusInk] = useState('5');
+  const [expiresAt, setExpiresAt] = useState('');
   const [generating, setGenerating] = useState(false);
   const [genError, setGenError] = useState('');
   const [copied, setCopied] = useState<string | null>(null);
+
+  // Inline edit state
+  const [editingCode, setEditingCode] = useState<string | null>(null);
+  const [editLabel, setEditLabel] = useState('');
+  const [editExpiresAt, setEditExpiresAt] = useState('');
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState('');
 
   // Filter + search
   const [tab, setTab] = useState<Tab>('all');
@@ -72,6 +83,8 @@ export default function ReferralCodesPage() {
       const body: Record<string, unknown> = {};
       if (label.trim()) body.label = label.trim();
       if (maxUses.trim()) body.maxUses = parseInt(maxUses, 10);
+      body.bonusInk = bonusInk.trim() ? parseInt(bonusInk, 10) : 5;
+      if (expiresAt.trim()) body.expiresAt = new Date(expiresAt).toISOString();
 
       const res = await apiFetch('/api/auth/admin/referral-codes', {
         method: 'POST',
@@ -83,6 +96,8 @@ export default function ReferralCodesPage() {
         setCodes((prev) => [newCode, ...prev]);
         setLabel('');
         setMaxUses('');
+        setBonusInk('5');
+        setExpiresAt('');
       } else {
         const data = await res.json();
         setGenError(data.error ?? 'Failed to generate code');
@@ -113,6 +128,48 @@ export default function ReferralCodesPage() {
     setTimeout(() => setCopied(null), 2000);
   };
 
+  const startEdit = (rc: ReferralCodeRow) => {
+    setEditingCode(rc.code);
+    setEditLabel(rc.label ?? '');
+    setEditExpiresAt(rc.expiresAt ? rc.expiresAt.slice(0, 10) : '');
+    setEditError('');
+  };
+
+  const cancelEdit = () => {
+    setEditingCode(null);
+    setEditLabel('');
+    setEditExpiresAt('');
+    setEditError('');
+  };
+
+  const saveEdit = async (code: string) => {
+    setEditSaving(true);
+    setEditError('');
+    try {
+      const body: Record<string, unknown> = { label: editLabel.trim() || undefined };
+      if (editExpiresAt) body.expiresAt = new Date(editExpiresAt).toISOString();
+      else body.expiresAt = null;
+
+      const res = await apiFetch(`/api/auth/admin/referral-codes/${code}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setCodes((prev) => prev.map((c) => (c.code === code ? { ...c, ...updated } : c)));
+        cancelEdit();
+      } else {
+        const data = await res.json();
+        setEditError(data.error ?? 'Save failed.');
+      }
+    } catch {
+      setEditError('Network error.');
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
   // ── Filter ──────────────────────────────────────────────────────────────
   const filtered = codes.filter((c) => {
     if (tab === 'active' && !c.isActive) return false;
@@ -135,7 +192,7 @@ export default function ReferralCodesPage() {
     <div>
       <AdminPageHeader
         title="Referral codes"
-        eyebrow="Each redeemed code grants 25 bonus drafts"
+        eyebrow="Each code carries a configurable Ink bonus granted on signup"
       >
         <button
           type="button"
@@ -163,7 +220,7 @@ export default function ReferralCodesPage() {
             8-char uppercase
           </span>
         </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_220px_120px]">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_140px_100px_160px_120px]">
           <input
             id="referral-gen-label"
             type="text"
@@ -175,10 +232,25 @@ export default function ReferralCodesPage() {
           />
           <input
             type="number"
-            placeholder="Max uses (blank = ∞)"
+            placeholder="Bonus Ink (default 5)"
+            value={bonusInk}
+            onChange={(e) => setBonusInk(e.target.value)}
+            min={1}
+            className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400"
+          />
+          <input
+            type="number"
+            placeholder="Max uses (∞)"
             value={maxUses}
             onChange={(e) => setMaxUses(e.target.value)}
             min={1}
+            className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400"
+          />
+          <input
+            type="date"
+            placeholder="Expires (optional)"
+            value={expiresAt}
+            onChange={(e) => setExpiresAt(e.target.value)}
             className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400"
           />
           <button
@@ -201,9 +273,7 @@ export default function ReferralCodesPage() {
               key={t}
               onClick={() => setTab(t)}
               className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition ${
-                tab === t
-                  ? 'bg-slate-900 text-white'
-                  : 'text-slate-600 hover:bg-slate-200'
+                tab === t ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-200'
               }`}
             >
               {t.charAt(0).toUpperCase() + t.slice(1)}
@@ -250,6 +320,8 @@ export default function ReferralCodesPage() {
                 <th className="px-4 py-3">Label</th>
                 <th className="px-4 py-3">Signups</th>
                 <th className="px-4 py-3 text-center">Cap</th>
+                <th className="px-4 py-3 text-center">Bonus</th>
+                <th className="px-4 py-3 text-center">Expires</th>
                 <th className="px-4 py-3 text-center">Status</th>
                 <th className="px-4 py-3">Created</th>
                 <th className="px-4 py-3" />
@@ -280,7 +352,20 @@ export default function ReferralCodesPage() {
                         </button>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-slate-600">{rc.label ?? '—'}</td>
+                    <td className="px-4 py-3">
+                      {editingCode === rc.code ? (
+                        <input
+                          type="text"
+                          value={editLabel}
+                          onChange={(e) => setEditLabel(e.target.value)}
+                          maxLength={100}
+                          autoFocus
+                          className="w-full rounded border border-amber-300 px-2 py-1 text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-amber-400"
+                        />
+                      ) : (
+                        <span className="text-slate-600">{rc.label ?? '—'}</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <div className="h-1 w-20 overflow-hidden rounded-full bg-slate-100">
@@ -294,8 +379,29 @@ export default function ReferralCodesPage() {
                         </span>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-center text-slate-500">
-                      {rc.maxUses ?? '∞'}
+                    <td className="px-4 py-3 text-center text-slate-500">{rc.maxUses ?? '∞'}</td>
+                    <td className="px-4 py-3 text-center">
+                      <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                        {rc.bonusInk ?? 5} Ink
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-center text-xs text-slate-400">
+                      {editingCode === rc.code ? (
+                        <input
+                          type="date"
+                          value={editExpiresAt}
+                          onChange={(e) => setEditExpiresAt(e.target.value)}
+                          className="rounded border border-amber-300 px-2 py-1 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-amber-400"
+                        />
+                      ) : rc.expiresAt ? (
+                        new Date(rc.expiresAt).toLocaleDateString('en-IN', {
+                          day: '2-digit',
+                          month: 'short',
+                          year: 'numeric',
+                        })
+                      ) : (
+                        '—'
+                      )}
                     </td>
                     <td className="px-4 py-3 text-center">
                       {rc.isActive ? (
@@ -316,14 +422,54 @@ export default function ReferralCodesPage() {
                       })}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      {rc.isActive && (
-                        <button
-                          type="button"
-                          onClick={() => handleDisable(rc.code)}
-                          className="text-xs font-medium text-red-500 hover:text-red-700"
-                        >
-                          Disable
-                        </button>
+                      {editingCode === rc.code ? (
+                        <div className="flex items-center justify-end gap-2">
+                          {editError && (
+                            <span className="text-[11px] text-red-500">{editError}</span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => saveEdit(rc.code)}
+                            disabled={editSaving}
+                            className="flex items-center gap-1 rounded bg-slate-900 px-2 py-1 text-[11px] font-semibold text-white hover:bg-slate-700 disabled:opacity-50"
+                          >
+                            {editSaving ? (
+                              <Loader2 size={11} className="animate-spin" />
+                            ) : (
+                              <Save size={11} />
+                            )}
+                            Save
+                          </button>
+                          <button
+                            type="button"
+                            onClick={cancelEdit}
+                            disabled={editSaving}
+                            className="flex items-center gap-1 rounded border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                          >
+                            <X size={11} />
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-end gap-3">
+                          <button
+                            type="button"
+                            onClick={() => startEdit(rc)}
+                            className="text-slate-400 hover:text-slate-700"
+                            title="Edit label or expiry"
+                          >
+                            <Pencil size={13} />
+                          </button>
+                          {rc.isActive && (
+                            <button
+                              type="button"
+                              onClick={() => handleDisable(rc.code)}
+                              className="text-xs font-medium text-red-500 hover:text-red-700"
+                            >
+                              Disable
+                            </button>
+                          )}
+                        </div>
                       )}
                     </td>
                   </tr>

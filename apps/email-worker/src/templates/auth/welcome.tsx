@@ -48,9 +48,10 @@ export const authWelcomeTemplate: TemplateDef<WelcomeData> = {
           <Container style={{ maxWidth: 600, margin: '0 auto', padding: '32px 24px' }}>
             <Heading style={{ color: '#0D1F3C', fontSize: 24 }}>Welcome, {name}.</Heading>
             <Text style={{ color: '#0D1F3C', fontSize: 14, lineHeight: '22px' }}>
-              You can now draft court-ready documents — bail applications, legal notices, rent
-              agreements, and more — formatted to your court&apos;s rules, with the right BNS / BNSS
-              sections, in under five minutes per document.
+              You can now describe your matter and get a first draft of a bail application, notice,
+              writ or maintenance petition to review and edit before you file. Criminal drafts use
+              BNS, BNSS and BSA section numbers, or IPC, CrPC and the Evidence Act where the old law
+              applies.
             </Text>
             <Section style={{ marginTop: 24 }}>
               <Link
@@ -70,8 +71,8 @@ export const authWelcomeTemplate: TemplateDef<WelcomeData> = {
             </Section>
             <Hr style={{ borderColor: '#0D1F3C20', margin: '32px 0 16px' }} />
             <Text style={{ color: '#0D1F3C99', fontSize: 11, lineHeight: '18px' }}>
-              AI-assisted drafting — verify with applicable law before filing. Lawie does not
-              provide legal advice.
+              Lawie is a drafting assistant. The advocate is responsible for legal accuracy and
+              filing.
             </Text>
           </Container>
         </Body>

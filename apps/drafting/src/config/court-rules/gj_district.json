@@ -11,7 +11,7 @@
   "courtId": "gj_district",
   "courtType": "district_court",
   "designation": "IN THE COURT OF DISTRICT & SESSIONS JUDGE",
-  "jurisdictionNote": "District-level criminal and civil courts in Gujarat. Sessions courts try offences punishable with imprisonment exceeding 7 years. District courts handle civil suits, execution proceedings, and appeals from subordinate courts. City Civil & Sessions Court, Ahmedabad operates under the Bombay City Civil Court Act, 1948 (as adopted in Gujarat). Designated Special Courts handle Atrocities, POCSO, NDPS and PMLA cases.",
+  "jurisdictionNote": "District-level criminal and civil courts in Gujarat. Which court tries an offence is set by the First Schedule to BNSS, not by the length of the sentence. District courts handle civil suits, execution proceedings, and appeals from subordinate courts. City Civil & Sessions Court, Ahmedabad operates under the Bombay City Civil Court Act, 1948 (as adopted in Gujarat). Designated Special Courts handle Atrocities, POCSO, NDPS and PMLA cases.",
   "cause_title_format": "{courtDesignation}, {city}\n{caseNomenclature}\n\n{petitioner} ... APPLICANT\n\nVERSUS\n\n{respondent} ... RESPONDENT",
   "party_designation": {
     "petitioner": "Petitioner",
@@ -24,8 +24,8 @@
     "state": "State of Gujarat through the Principal Secretary, Home Department, Government of Gujarat, Gandhinagar"
   },
   "case_nomenclature": {
-    "regular_bail": "Criminal Misc. Application No. _____ of {year}",
-    "anticipatory_bail": "Criminal Misc. Application (For A. Bail) No. _____ of {year}",
+    "regular_bail": "Bail Application No. _____ of {year}",
+    "anticipatory_bail": "Anticipatory Bail Application No. _____ of {year}",
     "sessions_case": "Sessions Case No. _____ of {year}",
     "civil_suit": "Regular Civil Suit No. _____ of {year}",
     "special_civil_suit": "Special Civil Suit No. _____ of {year}",

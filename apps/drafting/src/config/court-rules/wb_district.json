@@ -11,7 +11,7 @@
   "courtId": "wb_district",
   "courtType": "district_court",
   "designation": "IN THE COURT OF DISTRICT & SESSIONS JUDGE",
-  "jurisdictionNote": "District-level criminal and civil courts in West Bengal, governed by the Bengal, Agra and Assam Civil Courts Act, 1887 read with the Calcutta High Court (Original Side / Appellate Side) Rules and the Civil Rules and Orders of the High Court at Calcutta. Sessions courts try offences punishable with imprisonment exceeding 7 years. West Bengal presently comprises 23 revenue districts; the subordinate judiciary is supervised by the High Court at Calcutta. Bengali (Bangla) and English are the working languages of the State subordinate courts under the West Bengal Official Language Act, 1961 (as amended).",
+  "jurisdictionNote": "District-level criminal and civil courts in West Bengal, governed by the Bengal, Agra and Assam Civil Courts Act, 1887 read with the Calcutta High Court (Original Side / Appellate Side) Rules and the Civil Rules and Orders of the High Court at Calcutta. Which court tries an offence is set by the First Schedule to BNSS, not by the length of the sentence. West Bengal presently comprises 23 revenue districts; the subordinate judiciary is supervised by the High Court at Calcutta. Bengali (Bangla) and English are the working languages of the State subordinate courts under the West Bengal Official Language Act, 1961 (as amended).",
   "cause_title_format": "{courtDesignation}, {city}\n{caseNomenclature}\n\n{petitioner} ... PETITIONER\n\nVERSUS\n\n{respondent} ... RESPONDENT",
   "party_designation": {
     "petitioner": "Petitioner",
@@ -24,8 +24,8 @@
     "state": "State of West Bengal through the Principal Secretary, Home (Police) Department, Government of West Bengal, Kolkata"
   },
   "case_nomenclature": {
-    "regular_bail": "Crl. Misc. (Bail) No. _____ of {year}",
-    "anticipatory_bail": "Crl. Misc. (A.B.) No. _____ of {year}",
+    "regular_bail": "Bail Application No. _____ of {year}",
+    "anticipatory_bail": "Anticipatory Bail Application No. _____ of {year}",
     "sessions_case": "Sessions Trial No. _____ of {year}",
     "calendar_case": "G.R. Case No. _____ of {year}",
     "civil_suit": "Title Suit No. _____ of {year}",

@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. Para-wise denial structure and 30/120-day limitation are non-negotiable."
   },
   "template_id": "written_statement",
+  "card_description": "A written statement by the defendant under Order 8 CPC.",
   "docType": "written_statement",
   "title": "Written Statement (Order VIII CPC)",
   "displayName": "Written Statement (Order VIII CPC)",
@@ -211,12 +212,6 @@
       "name": "Statement of Truth — Order VI R.15A (Commercial Courts only)",
       "required": false,
       "description": "Mandatory in Commercial Courts"
-    },
-    {
-      "id": "disclaimer",
-      "name": "Advocate Responsibility Disclaimer",
-      "required": true,
-      "description": "Standard Lawie disclaimer"
     }
   ],
   "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, the Defendant most respectfully prays that this Hon'ble Court may graciously be pleased to:\n\na) Dismiss the suit filed by the Plaintiff with exemplary costs;\n\nb) Grant the Defendant's counter-claim, if any, for {counter_claim_details};\n\nc) Allow the Defendant's set-off in the sum of Rs. {set_off_amount}/-, if pleaded;\n\nd) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the Defendant shall ever pray.",
@@ -224,8 +219,8 @@
   "prompt_context": {
     "promptInstructions": [
       "Draft a Written Statement strictly under Order VIII CPC.",
-      "TIME LIMIT: Order VIII R.1 — file WS within 30 days of service of summons. Court may extend to 120 days (in non-commercial suits) on recorded reasons for sufficient cause, with cost. In Commercial Courts, 120 days is the OUTER LIMIT and beyond it WS cannot be filed (SCG Contracts v. KS Chamankar 2019).",
-      "Cite: SCG Contracts (India) Pvt Ltd v. KS Chamankar Infrastructure Pvt Ltd (2019) 12 SCC 210 — 120-day limit in commercial suits is mandatory and inflexible.",
+      "TIME LIMIT: Order VIII R.1 — file WS within 30 days of service of summons. Court may extend to 120 days (in non-commercial suits) on recorded reasons for sufficient cause, with cost. In Commercial Courts, 120 days is the OUTER LIMIT and beyond it WS cannot be filed.",
+      "120-day limit in commercial suits is mandatory and inflexible.",
       "PARA-WISE ADMISSION / DENIAL — the core structure of WS. Each material allegation in plaint must be: (a) specifically admitted; (b) specifically denied; or (c) denial of knowledge (only where defendant has no knowledge and cannot reasonably be expected to have).",
       "Order VIII R.3 — Denial must be specific. General denial is no denial.",
       "Order VIII R.4 — Evasive denial is no denial. If defendant disputes a fact, he must answer the substance.",
@@ -234,11 +229,11 @@
       "Para 2-onwards: PRELIMINARY OBJECTIONS first — maintainability, jurisdiction, limitation, mis-joinder/non-joinder, no cause of action, bar of res judicata, bar under any statute.",
       "Then: PARA-WISE RESPONSE — 'In response to paragraph 1 of the plaint, the Defendant denies / admits / states...' for each paragraph.",
       "After para-wise response: ADDITIONAL PLEAS (Order VIII R.2) — affirmative defences. Must specifically plead: limitation, payment, release, discharge, illegality, fraud, misrepresentation, want of consideration, lack of authority etc. (failure to specifically plead = waiver).",
-      "Cite: Badat & Co v. East India Trading Co AIR 1964 SC 538 — specific pleas mandatory.",
+      "Specific pleas mandatory.",
       "SET-OFF (Order VIII R.6) — defendant may, where suit is for recovery of money, claim set-off against plaintiff's claim. Conditions: (i) suit for ascertained sum; (ii) set-off claim also for ascertained sum legally recoverable; (iii) within court's pecuniary jurisdiction; (iv) both parties fill same character. Court fee payable on set-off as if separate plaint.",
       "EQUITABLE SET-OFF — judicial creation, allowed where claims arise out of same transaction (not just ascertained sums).",
       "COUNTER-CLAIM (Order VIII R.6A-6G) — defendant may set up cross-claim. Conditions: (i) cause of action accrued before filing WS; (ii) within pecuniary jurisdiction of court; (iii) court fee payable. Counter-claim treated as cross-suit; plaintiff files written statement in reply to counter-claim. Final decree disposes both.",
-      "Cite: Ashok Kumar Kalra v. Wing Cdr Surendra Agnihotri (2020) — counter-claim must be filed before issues are framed; outer limit similar to WS time.",
+      "Counter-claim must be filed before issues are framed; outer limit similar to WS time.",
       "Order VIII R.1A — defendant to produce documents relied upon along with WS.",
       "Order VIII R.9 — no pleading subsequent to WS other than by way of defence to set-off / counter-claim, except with leave of court.",
       "PRAYER — dismissal of suit with costs + relief on counter-claim/set-off.",
@@ -246,7 +241,7 @@
       "Affidavit in support — Order VI R.15(4) — mandatory.",
       "Statement of Truth — Order VI R.15A — mandatory in Commercial Courts (post 2018 amendments to CPC and CCA Schedule).",
       "Tone: precise, point-by-point. Avoid argumentative language. Avoid evasive denials.",
-      "Append Lawie disclaimer."
+      "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
   "relevantActs": [

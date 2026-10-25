@@ -1,0 +1,63 @@
+{
+  "id": "19-t363-s138-memo-and-notice-dates-in-words",
+  "pack": "legal_notice_s138",
+  "title": "s.138 notice: memo 15 Sep and notice 30 Oct given in words, outside 30 days (T-363 AC1, AC2)",
+  "risk": "Run 3 T-192 FAIL: dates in words were not filled, and a notice 45 days after the memo was drafted with no warning. The brief shows B2 and waits (asserted in apps/drafting t363 and the BriefStep web test; this harness reads the ledger and the draft). Whatever the advocate confirms, the draft must not call the notice in time",
+  "source": "handoff/quality/2026-10-13-run-3-develop-FAIL.md (T-192 and s.138 notice entries); handoff/legal/T-363-s138-notice-wording-signed.md",
+  "review": "drafted by dev from Anushka's reports, not yet reviewed by Anushka",
+  "ajay": null,
+  "language": "en",
+  "description": "Mere client Suresh Gupta ko Demo Traders ke malik ne 3 lakh ka cheque diya, cheque no. 004512, date 1 sept 2026, HDFC Bank Karol Bagh. 15 sept 2026 ko lagaya, bounce ho gaya. Return memo received on fifteenth September 2026. I will send the notice on thirtieth October 2026. Notice chahiye. Delhi.",
+  "court": null,
+  "expect": {
+    "ledger": [
+      {
+        "key": "respondent_name",
+        "why": "T-471 (Ajay (a)): the drawer firm is the drawer's name",
+        "display": "Demo Traders"
+      },
+      {
+        "key": "memo_received_date",
+        "why": "AC2: 'fifteenth September 2026' fills the memo date",
+        "display": "15 September 2026"
+      },
+      {
+        "key": "notice_sent_date",
+        "why": "AC2: 'thirtieth October 2026' fills the notice date",
+        "display": "30 October 2026"
+      }
+    ],
+    "not_written": [
+      {
+        "banned_entry_id": "notice_within_thirty_days",
+        "why": "AC1: the notice is outside 30 days (B2), so 'within time' stays banned"
+      }
+    ],
+    "absent": [
+      {
+        "any_of": [
+          "within thirty days",
+          "within 30 days",
+          "within the statutory period",
+          "within time",
+          "30 din ke andar"
+        ],
+        "why": "AC1: the draft must not call a notice sent 45 days after the memo in time"
+      }
+    ],
+    "present": [
+      {
+        "any_of": ["Demo Traders"],
+        "why": "the drawer is kept"
+      }
+    ],
+    "allow_violations": []
+  },
+  "recorded": {
+    "clean": {
+      "reception": "{\"outcome\": \"read\", \"read\": [{\"id\": \"applicant_name\", \"value\": \"Suresh Gupta\", \"quote\": \"Suresh Gupta\"}, {\"id\": \"respondent_name\", \"value\": \"Demo Traders\", \"quote\": \"Demo Traders ke malik\"}, {\"id\": \"cheque_amount\", \"value\": \"300000\", \"quote\": \"3 lakh ka cheque\"}, {\"id\": \"memo_received_date\", \"value\": \"2026-09-15\", \"quote\": \"Return memo received on fifteenth September 2026\"}, {\"id\": \"notice_sent_date\", \"value\": \"2026-10-30\", \"quote\": \"I will send the notice on thirtieth October 2026\"}, {\"id\": \"drawee_bank\", \"value\": \"HDFC Bank\", \"quote\": \"HDFC Bank\"}, {\"id\": \"drawee_branch\", \"value\": \"Karol Bagh\", \"quote\": \"HDFC Bank Karol Bagh\"}], \"conflicts\": [], \"questions\": []}",
+      "extract": "{\"facts\": [{\"key\": \"applicant_name\", \"span\": \"Suresh Gupta\", \"confidence\": 0.97}, {\"key\": \"respondent_name\", \"span\": \"Demo Traders\", \"confidence\": 0.9}, {\"key\": \"cheque_amount\", \"span\": \"3 lakh\", \"confidence\": 0.97}, {\"key\": \"cheque_date\", \"span\": \"1 sept 2026\", \"confidence\": 0.95}, {\"key\": \"presentation_date\", \"span\": \"15 sept 2026\", \"confidence\": 0.92}, {\"key\": \"memo_received_date\", \"span\": \"fifteenth September 2026\", \"confidence\": 0.92}, {\"key\": \"notice_sent_date\", \"span\": \"thirtieth October 2026\", \"confidence\": 0.92}, {\"key\": \"drawee_bank\", \"span\": \"HDFC Bank\", \"confidence\": 0.95}, {\"key\": \"drawee_branch\", \"span\": \"Karol Bagh\", \"confidence\": 0.94}]}",
+      "drafter": "1. That you, Demo Traders, issued to my client Suresh Gupta a cheque dated 1 September 2026 for Rs 3,00,000 drawn on HDFC Bank, Karol Bagh.\n\n2. That my client presented the said cheque on 15 September 2026 and it was returned unpaid.\n\n3. That the amount of Rs 3,00,000 remains unpaid.\n"
+    }
+  }
+}

@@ -37,7 +37,8 @@ describe('credit-skus catalog', () => {
       const sku = findTopupSku('topup_mid');
       expect(sku).toBeDefined();
       expect(sku!.ink).toBe(10);
-      expect(sku!.badge).toBe('POPULAR');
+      // T-567 item 52 (Ajay): the badges were never rendered; they are gone.
+      expect(sku).not.toHaveProperty('badge');
     });
 
     it('returns undefined for unknown id', () => {

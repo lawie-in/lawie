@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. Distinguish release vs gift vs sale vs partition — substance determines stamp duty + tax. Concessional rates for release to family co-sharer in many states."
   },
   "template_id": "release_deed",
+  "card_description": "A deed by which a co-owner or heir gives up their share in a property.",
   "docType": "release_deed",
   "title": "Release / Relinquishment Deed",
   "displayName": "Release Deed (Relinquishment)",
@@ -151,6 +152,14 @@
         "options": ["bihar", "jharkhand", "uttar_pradesh", "delhi"]
       },
       {
+        "id": "execution_place",
+        "label": "Place of execution",
+        "type": "text",
+        "required": false,
+        "help": "City or town where the document will be signed.",
+        "ask_when_empty": true
+      },
+      {
         "id": "witness_1_name_address",
         "label": "Witness 1 name & address",
         "type": "textarea",
@@ -243,12 +252,6 @@
       "name": "Two Witnesses",
       "required": true,
       "description": "Mandatory"
-    },
-    {
-      "id": "lawie_disclaimer",
-      "name": "Lawie Drafting Assistant Disclaimer",
-      "required": true,
-      "description": "Standard Lawie disclaimer"
     }
   ],
   "prayerTemplate": "",
@@ -272,12 +275,12 @@
       "Para 11: Stamp duty + registration — borne by [specified party, usually Releasee].",
       "Para 12: Schedule A — property description + share description.",
       "Para 13: Witnesses (2 adults).",
-      "Append Lawie disclaimer.",
-      "Cite Kuppuswami Chettiar v. ASPA Arumugam Chettiar (1967) 1 SCR 275 — release operates by way of enlargement of existing co-sharer's right, not as fresh transfer.",
-      "Cite Kale v. Deputy Director of Consolidation (1976) 3 SCC 119 — family settlements (which often include releases) are indulgently treated by courts; bona fide settlements upheld even if technically defective.",
+      "Release operates by way of enlargement of existing co-sharer's right, not as fresh transfer.",
+      "Family settlements (which often include releases) are indulgently treated by courts; bona fide settlements upheld even if technically defective.",
       "Income tax: where release is treated as gift between relatives (S.56(2)(x) ITA definition of relative) — no tax in releasee's hands; if among non-relatives and value > Rs.50,000, taxable. Where release is treated as sale — capital gains for releasor.",
       "Where releasor is a minor or under guardianship — additional flags; court permission for transfer of minor's interest required.",
-      "Note: For RELEASE OF MORTGAGE specifically (mortgagee releasing security to mortgagor on full payment) — different template — typically called RECONVEYANCE DEED or NO DUE / RELEASE OF MORTGAGE. Flag if user data shows mortgagee as releasor."
+      "Note: For RELEASE OF MORTGAGE specifically (mortgagee releasing security to mortgagor on full payment) — different template — typically called RECONVEYANCE DEED or NO DUE / RELEASE OF MORTGAGE. Flag if user data shows mortgagee as releasor.",
+      "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
   "relevantActs": [
@@ -356,8 +359,7 @@
     "Where releasee is unrelated — flag higher stamp duty + gift tax / capital gains implications",
     "Where release of mortgage — appropriate reconveyance template",
     "Registration within 4 months of execution (S.23 Registration Act)",
-    "Post-registration: mutation in releasee's name only (releasor's name removed)",
-    "Lawie disclaimer included"
+    "Post-registration: mutation in releasee's name only (releasor's name removed)"
   ],
   "validation_rules": [
     "releasor_age >= 18 (otherwise flag minor + need court permission)",

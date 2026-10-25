@@ -1,295 +1,216 @@
 'use client';
 
-import { Scale, Home, Megaphone, AlignLeft, Clock, Loader2 } from 'lucide-react';
-import Link from 'next/link';
-import { useEffect, useState } from 'react';
+/**
+ * T-520: "Your shelf" (Night Library spec 03; copy handoff/copy/T-511-copy-v1.md section 3).
+ * Order: greeting, title and date line; command bar; error (if any); KPI grid; shelf.
+ * Data: Ink from useCredits (only once a real balance has arrived), the shelf from
+ * GET /api/documents, tiles 3, 4, 6 and 7 from the T-506 summary, tile 5 from the T-508 status.
+ * Loading: skeleton tiles and three skeleton spines, "Still working…" after 8s. Error: one line
+ * with Retry, tiles keep their last values. No time-saved tile.
+ *
+ * T-524: "Still working…" sits right after the command bar and error slot, so it is on screen at
+ * 360px. Retry keeps the error line mounted until every source settles, so keyboard focus stays
+ * on Retry; if the error then goes away, focus moves to the page title. A blank name drops the
+ * greeting line (no invented wording); a long one wraps.
+ */
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { TopUpModal } from '@/components/credits/TopUpModal';
+import { DashboardCommandBar } from '@/components/dashboard/DashboardCommandBar';
+import { DASHBOARD_COPY } from '@/components/dashboard/dashboardCopy';
+import { Shelf } from '@/components/dashboard/Shelf';
+import { ShelfKpis } from '@/components/dashboard/ShelfKpis';
+import {
+  useDashboardSummary,
+  usePlanStatus,
+  useShelfDocuments,
+} from '@/components/dashboard/useDashboardData';
+import { ErrorState, STILL_WORKING_AFTER_MS } from '@/components/ui';
+import { ReferralNotAppliedNotice } from '@/components/VerifyEmailPrompt';
 import { useAuth } from '@/context/AuthContext';
-import { useUsage } from '@/hooks/useUsage';
-import { apiFetch } from '@/lib/apiFetch';
+import { useCredits } from '@/hooks/useCredits';
+import { cn } from '@/lib/cn';
 
-interface DocumentSummary {
-  _id: string;
-  title: string;
-  docType: string;
-  status: 'draft' | 'finalised' | 'exported';
-  createdAt: string;
+/** Copy 3.1 date line `{weekday}, {date}`, India time. */
+function dateLine(now: Date): string {
+  const tz = 'Asia/Kolkata';
+  const weekday = new Intl.DateTimeFormat('en-IN', { weekday: 'long', timeZone: tz }).format(now);
+  const date = new Intl.DateTimeFormat('en-IN', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: tz,
+  }).format(now);
+  return `${weekday}, ${date}`;
 }
 
-const STATUS_STYLES: Record<string, string> = {
-  draft: 'bg-slate-100 text-slate-600',
-  finalised: 'bg-green-100 text-green-700',
-  exported: 'bg-blue-100 text-blue-700',
-};
-
-const QUICK_CREATE = [
-  {
-    label: 'Bail application',
-    borderColor: 'border-t-blue-400',
-    iconColor: 'text-blue-400',
-    icon: Scale,
-    href: '/dashboard/new?type=bail',
-  },
-  {
-    label: 'Legal notice',
-    borderColor: 'border-t-amber-400',
-    iconColor: 'text-amber-400',
-    icon: Megaphone,
-    href: '/dashboard/new?type=notice',
-  },
-  {
-    label: 'Rent agreement',
-    borderColor: 'border-t-green-400',
-    iconColor: 'text-green-400',
-    icon: Home,
-    href: '/dashboard/new?type=rent',
-  },
-  {
-    label: 'Consumer complaint',
-    borderColor: 'border-t-purple-400',
-    iconColor: 'text-purple-400',
-    icon: AlignLeft,
-    href: '/dashboard/new?type=consumer',
-  },
-];
-
-function getGreeting(): string {
-  const h = new Date().getHours();
-  if (h < 12) return 'Good morning';
-  if (h < 17) return 'Good afternoon';
-  return 'Good evening';
-}
-
-function getLastName(name: string): string {
-  return name.split(' ').pop() ?? name;
-}
-
-function QuickCreateGrid() {
-  return (
-    <div>
-      <h2 className="text-sm font-semibold text-slate-700">Quick create</h2>
-      <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {QUICK_CREATE.map(({ label, borderColor, iconColor, icon: Icon, href }) => (
-          <Link
-            key={label}
-            href={href}
-            className={`rounded-xl border border-t-[3px] border-slate-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md ${borderColor}`}
-          >
-            <Icon size={20} className={iconColor} />
-            <p className="mt-2 text-sm font-semibold text-slate-800">{label}</p>
-            <p className="mt-1 text-xs text-blue-500">Create new →</p>
-          </Link>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function RecentDocumentsTable() {
-  const [docs, setDocs] = useState<DocumentSummary[]>([]);
-  const [loading, setLoading] = useState(true);
-
+/** True after `ms` while `active`; resets when it stops. */
+function useSlow(active: boolean, ms: number): boolean {
+  const [slow, setSlow] = useState(false);
   useEffect(() => {
-    apiFetch('/api/documents')
-      .then((r) => (r.ok ? r.json() : { documents: [] }))
-      .then((data) => setDocs((data.documents ?? []).slice(0, 5)))
-      .catch(() => setDocs([]))
-      .finally(() => setLoading(false));
-  }, []);
-
-  return (
-    <div>
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-slate-700">Recent documents</h2>
-        {docs.length > 0 && (
-          <Link href="/dashboard/documents" className="text-xs text-amber-600 hover:underline">
-            View all →
-          </Link>
-        )}
-      </div>
-      <div className="mt-3 overflow-hidden rounded-xl border border-slate-200 bg-white">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-slate-100">
-              <th className="px-4 py-3 text-left text-xs font-medium text-slate-400">Title</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-slate-400">Type</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-slate-400">Date</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-slate-400">Status</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-50">
-            {loading && (
-              <tr>
-                <td colSpan={4} className="px-4 py-8 text-center">
-                  <Loader2 size={14} className="mx-auto animate-spin text-slate-300" />
-                </td>
-              </tr>
-            )}
-            {!loading && docs.length === 0 && (
-              <tr>
-                <td colSpan={4} className="px-4 py-10 text-center text-xs text-slate-400">
-                  No documents yet — use Quick create above to draft your first one
-                </td>
-              </tr>
-            )}
-            {!loading &&
-              docs.map((doc) => (
-                <tr key={doc._id} className="group hover:bg-slate-50">
-                  <td className="px-4 py-3">
-                    <Link
-                      href={`/dashboard/documents/${doc._id}`}
-                      className="block max-w-[200px] truncate text-xs font-medium text-slate-800 group-hover:text-amber-600"
-                    >
-                      {doc.title}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3 text-xs capitalize text-slate-500">
-                    {doc.docType.replace(/_/g, ' ')}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="flex items-center gap-1 text-xs text-slate-400">
-                      <Clock size={11} />
-                      {new Date(doc.createdAt).toLocaleDateString('en-IN', {
-                        day: '2-digit',
-                        month: 'short',
-                      })}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize ${STATUS_STYLES[doc.status] ?? 'bg-slate-100 text-slate-600'}`}
-                    >
-                      {doc.status}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
+    if (!active) {
+      setSlow(false);
+      return undefined;
+    }
+    const t = window.setTimeout(() => setSlow(true), ms);
+    return () => window.clearTimeout(t);
+  }, [active, ms]);
+  return slow;
 }
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const { data: usage, loading: usageLoading } = useUsage();
+  const { balance, loaded: inkLoaded, loading: inkLoading, refresh: refreshInk } = useCredits();
+  const docs = useShelfDocuments();
+  const summary = useDashboardSummary();
+  const plan = usePlanStatus();
+  const [nudgeDismissed, setNudgeDismissed] = useState(false);
+  const [topUpOpen, setTopUpOpen] = useState(false);
+  // T-524: true from a Retry press until every source has settled (see the effect below).
+  const [retrying, setRetrying] = useState(false);
+  const [inkRetryPending, setInkRetryPending] = useState(false);
+  const mounted = useRef(true);
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const errorRef = useRef<HTMLDivElement>(null);
+  /** Keyboard focus was inside the error line (Retry) when it last had focus. */
+  const focusInError = useRef(false);
+  // Client only: the layout renders this page after auth has loaded, so no server/client mismatch.
+  const [today, setToday] = useState<string | null>(null);
+
+  useEffect(() => {
+    setToday(dateLine(new Date()));
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
+  const reloadDocs = docs.reload;
+  const reloadSummary = summary.reload;
+  const reloadPlan = plan.reload;
+  const retry = useCallback(() => {
+    // Each reload sets its status to 'loading' in this same batch, so the settle effect below
+    // cannot see "nothing loading" before the requests have started.
+    setRetrying(true);
+    setInkRetryPending(true);
+    reloadDocs();
+    reloadSummary();
+    reloadPlan();
+    Promise.resolve(refreshInk())
+      .catch(() => undefined)
+      .finally(() => {
+        if (mounted.current) setInkRetryPending(false);
+      });
+  }, [reloadDocs, reloadSummary, reloadPlan, refreshInk]);
+
+  const retrySettled =
+    docs.status !== 'loading' &&
+    summary.status !== 'loading' &&
+    plan.status !== 'loading' &&
+    !inkRetryPending;
+  useEffect(() => {
+    if (retrying && retrySettled) setRetrying(false);
+  }, [retrying, retrySettled]);
+
+  // Any source that failed with nothing to show: documents, summary, Ink balance, or plan.
+  const failed =
+    docs.status === 'error' ||
+    summary.status === 'error' ||
+    (!inkLoading && !inkLoaded) ||
+    (plan.status === 'error' && !plan.data);
+  const firstLoad =
+    (docs.data === null && docs.status === 'loading') ||
+    (summary.data === null && summary.status === 'loading');
+  const slow = useSlow(firstLoad, STILL_WORKING_AFTER_MS);
+  const showError = failed || retrying;
+
+  // The error line went away (the retry worked) while it held focus: put focus on the page title,
+  // not on <body>.
+  useEffect(() => {
+    if (showError || !focusInError.current) return;
+    focusInError.current = false;
+    const active = typeof document === 'undefined' ? null : document.activeElement;
+    if (!active || active === document.body) titleRef.current?.focus();
+  }, [showError]);
+
+  const ink = useMemo(
+    () => ({
+      loaded: inkLoaded,
+      loading: inkLoading,
+      totalInk: balance.totalInk,
+      monthlyAllotment: Number.isFinite(balance.inkSubMonthlyAllotment)
+        ? balance.inkSubMonthlyAllotment
+        : 0,
+    }),
+    [inkLoaded, inkLoading, balance.totalInk, balance.inkSubMonthlyAllotment],
+  );
 
   if (!user) return null;
+  const name = typeof user.name === 'string' ? user.name.trim() : '';
 
-  const isPro = user.plan === 'pro';
-  const docCount = usage?.used ?? 0;
-  const lastName = getLastName(user.name);
-
-  // While usage is loading we don't yet know whether to show the first-time
-  // empty state or the populated dashboard. Render a neutral loading screen
-  // (visually identical to DashboardLayout's auth loader) so the user never
-  // sees the populated branch flash before "Create your first…" lands.
-  if (usageLoading) {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-amber-500 border-t-transparent" />
-      </div>
-    );
-  }
-
-  // ── Empty state — free user, 0 documents ──────────────────────────────────
-  if (!isPro && docCount === 0) {
-    return (
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">
-          Welcome to Lawie, <span className="text-amber-500">Advocate {lastName}</span>
-        </h1>
-        <p className="mt-1 text-sm text-slate-500">
-          You have {usage?.limit ?? 3} free documents this month. Let&apos;s draft your first one.
-        </p>
-
-        <div className="mt-16 flex flex-col items-center text-center">
-          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-amber-50 ring-8 ring-amber-100">
-            <Scale size={34} className="text-amber-500" />
-          </div>
-          <h2 className="mt-6 text-xl font-bold text-slate-900">
-            Create your first court-ready document
-          </h2>
-          <p className="mt-2 max-w-sm text-sm leading-relaxed text-slate-500">
-            Draft a bail application, legal notice, or rent agreement — formatted for your court,
-            with the right BNS sections, in under 5 minutes.
-          </p>
-          <Link
-            href="/dashboard/new"
-            className="mt-6 inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-sm font-medium text-slate-800 shadow-sm transition-colors hover:bg-slate-50"
-          >
-            Start drafting →
-          </Link>
-          <p className="mt-3 text-xs text-slate-400">
-            Free plan: {usage?.limit ?? 3} documents/month — no credit card required
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  // ── Pro user or free user with documents ─────────────────────────────────
   return (
-    <div className="space-y-8">
-      {/* Greeting */}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">
-          {getGreeting()}, <span className="text-amber-500">Advocate {lastName}</span>
+    <div className="gap-nl-6 px-nl-4 py-nl-6 min-[900px]:px-nl-8 mx-auto flex w-full max-w-[1180px] flex-col">
+      <header className="gap-nl-1 flex min-w-0 flex-col">
+        {/* No name: leave the greeting out rather than show "Hello," or invent a fallback. */}
+        {name ? (
+          <p className="nl-body text-nl-soft m-0 min-w-0 break-words">
+            {DASHBOARD_COPY.greeting(name)}
+          </p>
+        ) : null}
+        <h1 ref={titleRef} tabIndex={-1} className="nl-h1 text-nl-text m-0 focus:outline-none">
+          {DASHBOARD_COPY.title}
         </h1>
-        <p className="mt-0.5 text-sm text-slate-500">
-          {isPro
-            ? 'Unlimited documents — draft as much as you need'
-            : `You have ${usage?.remaining ?? 0} document${usage?.remaining === 1 ? '' : 's'} remaining this month`}
-        </p>
-      </div>
+        {today ? <p className="nl-body-sm text-nl-muted m-0">{today}</p> : null}
+      </header>
 
-      {/* Usage / Pro banner */}
-      <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
-        {isPro ? (
-          <>
-            <div>
-              <p className="text-sm font-semibold text-slate-700">Pro plan — unlimited documents</p>
-              <p className="mt-0.5 text-xs text-slate-400">
-                {docCount} documents drafted this month
-              </p>
-            </div>
-            <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
-              Pro member
-            </span>
-          </>
-        ) : (
-          <>
-            <div className="flex items-center gap-3">
-              {/* Usage dots */}
-              <div className="flex items-center gap-1.5">
-                {Array.from({ length: usage?.limit ?? 3 }).map((_, i) => (
-                  <span
-                    key={i}
-                    className={`h-5 w-5 rounded-full border-2 transition-colors ${
-                      i < docCount
-                        ? 'border-amber-500 bg-amber-500'
-                        : 'border-amber-300 bg-transparent'
-                    }`}
-                  />
-                ))}
-              </div>
-              <p className="text-sm text-slate-600">
-                {docCount} of {usage?.limit ?? 3} documents used
-              </p>
-            </div>
-            <Link
-              href="/dashboard/settings"
-              className="rounded-lg bg-amber-500 px-4 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-amber-600"
-            >
-              Upgrade to Pro — ₹799/mo
-            </Link>
-          </>
-        )}
-      </div>
+      {/* T-522 (AJ-522-S3): the one-time "code not applied" line, after verification only. */}
+      <ReferralNotAppliedNotice />
 
-      <QuickCreateGrid />
-      <RecentDocumentsTable />
+      {/* T-524: no Ctrl/Cmd+K focus jump behind the top-up modal (it has no focus trap). */}
+      <DashboardCommandBar hotkeySuspended={topUpOpen} />
+
+      {showError ? (
+        <div
+          ref={errorRef}
+          onFocus={() => {
+            focusInError.current = true;
+          }}
+          onBlur={(e) => {
+            const next = e.relatedTarget as Node | null;
+            if (next && errorRef.current?.contains(next)) return;
+            // Focus moved somewhere real; a blur with no target (the line unmounting, or the
+            // window losing focus) keeps the flag so the effect above can restore focus.
+            if (next) focusInError.current = false;
+          }}
+        >
+          <ErrorState
+            message={DASHBOARD_COPY.error}
+            onRetry={retry}
+            retryLabel={DASHBOARD_COPY.retry}
+          />
+        </div>
+      ) : null}
+
+      {/* One live region for the whole page, filled after 8s of first loading (spec 08). T-524:
+          here, under the command bar, so it is on screen at 360px instead of below the shelf.
+          Visually hidden while empty (still in the accessibility tree, so the later text is
+          announced) so it adds no gap. */}
+      <p role="status" className={cn('nl-body-sm text-nl-muted m-0', !slow && 'sr-only')}>
+        {slow ? DASHBOARD_COPY.stillWorking : null}
+      </p>
+
+      <ShelfKpis
+        ink={ink}
+        summary={{ data: summary.data, status: summary.status }}
+        plan={{ data: plan.data, status: plan.status }}
+        nudgeDismissed={nudgeDismissed}
+        onDismissNudge={() => setNudgeDismissed(true)}
+        onTopUp={() => setTopUpOpen(true)}
+      />
+
+      <Shelf docs={docs.data} status={docs.status} />
+
+      {topUpOpen ? <TopUpModal onClose={() => setTopUpOpen(false)} /> : null}
     </div>
   );
 }

@@ -7,6 +7,7 @@
     "notes": "HC / SC practice — chronological table of dates + events filed with petition. Two-column format."
   },
   "template_id": "list_of_dates",
+  "card_description": "A list of dates and events for filing with a petition.",
   "title": "List of Dates (Chronological Events Table)",
   "category": "procedural",
   "creditsCost": 1,
@@ -90,7 +91,7 @@
     }
   ],
   "prompt_context": {
-    "system_prompt_addendum": "You are drafting a LIST OF DATES for HC / SC filing. CRITICAL CONSTRAINTS: (1) STRICTLY chronological — earliest date first, filing date last. (2) Two-column table: Date | Event. (3) Each event one line, concise (max 1-2 sentences). (4) Cross-reference petition paragraph numbers: '(Refer Para X of the Petition)'. (5) Include all material dates: FIR registration, charge-sheet, cognizance, framing of charges, impugned order date, application for certified copy, copy obtained date, filing date. (6) Highlight cause of action row (bold / asterisk). (7) For criminal matters use BNS/BNSS section citations (post 2024) — IPC/CrPC only if event predates 1 July 2024. (8) For appeals/SLPs: include impugned order date AND certified copy receipt date (limitation calculation). (9) Format dates as DD.MM.YYYY. (10) Mandatory under SC Rules 2013 Order XV, Delhi HC Rules, Bombay HC OS Rules.",
+    "system_prompt_addendum": "You are drafting a LIST OF DATES for HC / SC filing. CRITICAL CONSTRAINTS: (1) STRICTLY chronological — earliest date first, filing date last. (2) Two-column table: Date | Event. (3) Each event one line, concise (max 1-2 sentences). (4) Cross-reference petition paragraph numbers: '(Refer Para X of the Petition)'. (5) Include all material dates: FIR registration, charge-sheet, cognizance, framing of charges, impugned order date, application for certified copy, copy obtained date, filing date. (6) Highlight cause of action row (bold / asterisk). (7) For each section cited, use the code in force on the date of the offence: BNS for an offence on or after 1 July 2024, IPC for an offence before that date. For procedure, use BNSS, except in a matter pending before 1 July 2024, where CrPC continues to apply. (8) For appeals/SLPs: include impugned order date AND certified copy receipt date (limitation calculation). (9) Format dates as DD.MM.YYYY. (10) Mandatory under SC Rules 2013 Order XV, Delhi HC Rules, Bombay HC OS Rules.",
     "tone": "Strictly factual, chronological, no argumentation.",
     "key_phrases": [
       "FIR registered",
@@ -127,7 +128,7 @@
     "cause_of_action_present": "WARN if cause_of_action_date does not appear in events_table.",
     "filing_date_last": "WARN if filing_date is not the last entry in the events table.",
     "limitation_analysis": "INFO — for appeals/SLPs, ensure both impugned order date AND certified copy receipt date are present (s.12 Limitation Act exclusion).",
-    "sanhita_citations": "INFO — events post 01.07.2024 should cite BNS/BNSS/BSA, not IPC/CrPC/IEA.",
+    "sanhita_citations": "INFO — check that each section cited matches the code in force on the date of the offence (BNS on or after 1 July 2024, IPC before).",
     "date_format": "WARN if dates not in DD.MM.YYYY format."
   }
 }

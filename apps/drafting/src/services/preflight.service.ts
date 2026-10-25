@@ -25,12 +25,41 @@
 import Anthropic from '@anthropic-ai/sdk';
 import mongoose from 'mongoose';
 
-import bnsOffences from '../config/bns-offences.json';
 import { env } from '../config/env';
 import { Court } from '../models/Court.model';
 import { Event } from '../models/Event.model';
+import { LlmAuxCall } from '../models/LlmAuxCall.model';
 
 import { APP_SETTING_KEYS, getAppSetting } from './app-settings.service';
+import {
+  ChargedSection,
+  normaliseBnsSection,
+  parentSection,
+  readChargedField,
+  resolveBnsKey,
+  resolveOffence,
+} from './bns-offence-resolver';
+import { isLawSwitchPack, offenceLawFor } from './law-switch';
+import {
+  cacheCounts,
+  effectiveCacheRates,
+  estimateOutputTokens,
+  getAiEffort,
+  getModelRates,
+  logLlmCall,
+  parseAnthropicMessageUsage,
+  priceUsage,
+} from './llm-usage';
+import { lookupOldToNew } from './sections.service';
+import {
+  clientFormData,
+  declaredFieldIds,
+  fieldSourceOf,
+  loadTemplateConfig,
+  oldLawLine,
+  resolveAdvocate,
+  resolveEnrollmentNumber,
+} from './template-engine.service';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -54,13 +83,15 @@ export interface PreflightResult {
 
 // ── BNS whitelist ─────────────────────────────────────────────────────────────
 
-const BNS_WHITELIST = new Set(Object.keys((bnsOffences as { offences: Record<string, unknown> }).offences));
+// T-277 R5: a citation passes when it is a table key or has a parent row.
+// Same resolveBnsKey as validator.ts BNS_SECTION_WHITELIST, so they cannot drift.
+const BNS_WHITELIST = { has: (section: string): boolean => resolveBnsKey(section) !== null };
 
-const BNS_BAILABLE_SECTIONS = new Set(
-  Object.entries((bnsOffences as { offences: Record<string, { bailable: boolean }> }).offences)
-    .filter(([, v]) => v.bailable)
-    .map(([k]) => k),
-);
+// T-277: E1 goes through the same resolver. Only a definite "bailable" counts;
+// a null ("depends") or a non-offence never does.
+const BNS_BAILABLE_SECTIONS = {
+  has: (section: string): boolean => resolveOffence(section).bailable === true,
+};
 
 /** Valid BNSS bail sections per chapter (BNSS 478–484) */
 const BNSS_BAIL_SECTIONS = new Set(['478', '479', '480', '481', '482', '483', '484']);
@@ -69,6 +100,38 @@ const BNSS_BAIL_SECTIONS = new Set(['478', '479', '480', '481', '482', '483', '4
 
 function str(v: unknown): string {
   return typeof v === 'string' ? v.trim() : '';
+}
+
+/**
+ * T-387: the profile values the renderer would use — the JWT name and the
+ * profile's enrolment number. Both optional; absent means an empty profile.
+ */
+export interface PreflightProfile {
+  advocateName?: string;
+  enrollmentNumber?: string;
+}
+
+/**
+ * T-387: the enrolment number the draft will print, by the same steps as
+ * buildPlaceholderContext (T-311): a typed advocate_enrollment wins; else the
+ * profile number, only when the printed name is also the profile's; else
+ * undefined. No config means nothing is rendered, so nothing is printed.
+ */
+function printedEnrollmentNumber(
+  templateId: string,
+  rawFormData: Record<string, unknown>,
+  profile?: PreflightProfile,
+): string | undefined {
+  const config = loadTemplateConfig(templateId);
+  if (!config) return undefined;
+  const { kept: formData } = clientFormData(config, rawFormData);
+  const advocate = resolveAdvocate(formData, { name: profile?.advocateName }, config);
+  const declaresEnrollment = declaredFieldIds(config).has('advocate_enrollment');
+  return resolveEnrollmentNumber(
+    declaresEnrollment ? formData.advocate_enrollment : undefined,
+    profile?.enrollmentNumber,
+    advocate.fromProfile,
+  );
 }
 
 function num(v: unknown): number | null {
@@ -103,18 +166,68 @@ function parseFirYear(firNumber: string): number | null {
   return y < 100 ? 2000 + y : y;
 }
 
-/** Normalise BNS section string: "103", "103(1)", "BNS 103" → "103" or "103(1)" */
-function normaliseBnsSection(raw: string): string {
-  return raw.replace(/^(BNS|BNSS|BSA)\s*/i, '').trim();
+/**
+ * Parse sections_charged with the one shared reader (Arjun, T-277 round 4) and his
+ * step 7 correction: picker array values of a `source: bns_mapping` field default
+ * to BNS; a plain string keeps bare numbers bare.
+ */
+function parseSectionsCharged(templateId: string, value: unknown): ChargedSection[] {
+  return readChargedField(value, fieldSourceOf(loadTemplateConfig(templateId), 'sections_charged'));
 }
 
-/** Parse sections_charged field — accepts comma-separated or array */
-function parseSectionsCharged(value: unknown): string[] {
-  if (Array.isArray(value)) return value.map((v) => normaliseBnsSection(str(v))).filter(Boolean);
-  return str(value)
-    .split(/[,;]+/)
-    .map((s) => normaliseBnsSection(s))
-    .filter(Boolean);
+/** Display: a BNS number as before ("303"); another code named ("IPC 302"); bare as typed. */
+function sectionLabel(e: ChargedSection): string {
+  if (e.code === null || e.code === 'BNS') return e.number;
+  return `${e.code === 'CRPC' ? 'CrPC' : e.code} ${e.number}`;
+}
+
+/** True when `a` is `b` or an ancestor of `b` along the T-277 parentSection chain. */
+function isSelfOrAncestor(a: string, b: string): boolean {
+  for (let k: string | null = b; k; k = parentSection(k)) if (k === a) return true;
+  return false;
+}
+
+/**
+ * T-324 sub-section rule: the table's BNS target and the attached BNS section match
+ * when, after normaliseBnsSection, one is the other or an ancestor of it (T-277
+ * parentSection chain). "303" matches a "303(2)" target and "303(2)(a)" does too;
+ * siblings ("303(1)" vs "303(2)") and different sections never match.
+ */
+function sameBnsSection(tableTarget: string, attached: string): boolean {
+  const t = normaliseBnsSection(tableTarget);
+  const a = normaliseBnsSection(attached);
+  if (!t || !a) return false;
+  return isSelfOrAncestor(t, a) || isSelfOrAncestor(a, t);
+}
+
+/**
+ * T-324 (Arjun's alias follow-up to T-295; Ajay's condition): indices in `sections`
+ * of IPC alias entries whose old-law finding is skipped. The attached entry is the
+ * reader's `attachedTo` (recorded before dedupe). Skip only when it is an explicit
+ * BNS entry AND the signed T-267 table (via lookupOldToNew) maps the IPC number to it.
+ * CrPC / IEA aliases, a missing or non-BNS attachedTo, IPC numbers with no BNS
+ * target, and any lookup failure keep the warning.
+ */
+async function bnsMatchedAliasIndices(sections: ChargedSection[]): Promise<Set<number>> {
+  const skip = new Set<number>();
+  for (let i = 0; i < sections.length; i++) {
+    const e = sections[i];
+    const attached = e.attachedTo;
+    if (!e.alias || e.code !== 'IPC' || attached?.code !== 'BNS') continue;
+    try {
+      const row = await lookupOldToNew(e.number, 'IPC');
+      if (
+        row?.new_code === 'BNS' &&
+        row.new_section &&
+        sameBnsSection(row.new_section, attached.number)
+      ) {
+        skip.add(i);
+      }
+    } catch {
+      // Lookup unavailable: keep the warning (never skip on an unknown).
+    }
+  }
+  return skip;
 }
 
 /** Levenshtein distance ≤ 2 (used for name-match check D1) */
@@ -139,6 +252,7 @@ function nearMatch(a: string, b: string): boolean {
 async function runPureRules(
   templateId: string,
   formData: Record<string, unknown>,
+  profile?: PreflightProfile,
 ): Promise<PreflightFinding[]> {
   const findings: PreflightFinding[] = [];
   const today = new Date();
@@ -206,14 +320,45 @@ async function runPureRules(
     });
   }
 
-  // ── HARD BLOCK #3: BNS section not in whitelist ──────────────────────────
-  const sections = parseSectionsCharged(formData['sections_charged']);
-  for (const s of sections) {
-    if (s && !BNS_WHITELIST.has(s)) {
+  // ── BNS whitelist (hard, #3) / old-law section (soft, T-295) / no code (soft) ──
+  const sections = parseSectionsCharged(templateId, formData['sections_charged']);
+  // `sections` comes from the T-277 reader, already deduped on (code, number).
+  const matchedAliases = await bnsMatchedAliasIndices(sections);
+  // T-245a (Ajay, Addendum 1 ruling 7, 2992891): the old-law finding follows the
+  // offence date only. It is raised only when the offence date is given and is on
+  // or after 1 July 2024. No offence date: no finding (the S-text blank handles it);
+  // the FIR date is never a stand-in for the offence date. This gate is for the
+  // six T-245a bail packs only; every other template keeps the finding with no
+  // date gate, as before T-245a.
+  const oldLawFindingOn = isLawSwitchPack(templateId)
+    ? offenceLawFor(formData['offence_date']) === 'BNS'
+    : true;
+  for (const [i, e] of sections.entries()) {
+    // T-295 (Priya's soft decision; Arjun's ruling: the T-277 reader, not a per-part
+    // loop): an IPC / CrPC / IEA entry is a SOFT warning carrying Ajay's signed line.
+    // Never a section_whitelist finding; an old-law number never goes through the BNS
+    // whitelist. T-245a: date-aware, on the offence date only (see above).
+    // T-324: an IPC alias on a BNS entry the T-267 table maps it to gets no finding.
+    const oldLine = oldLawLine(e.code, e.number);
+    if (oldLine) {
+      if (oldLawFindingOn && !matchedAliases.has(i)) {
+        findings.push({ rule_id: 'old_law_section', severity: 'soft', question: oldLine });
+      }
+    } else if (e.code === null) {
+      // Arjun (step 7 correction): a bare number is a soft warning, never a block,
+      // and is never looked up in the BNS table.
+      findings.push({
+        rule_id: 'section_no_code',
+        severity: 'soft',
+        question: `Section ${e.number} has no code (BNS, IPC …). Add the code so it can be checked.`,
+      });
+    } else if (e.code === 'BNS' && !BNS_WHITELIST.has(e.number)) {
+      // Otherwise hard block only for an explicit BNS code with an unknown parent
+      // (BNS 999(1)). BNSS, BSA and other Acts no longer block (they did by accident).
       findings.push({
         rule_id: 'section_whitelist',
         severity: 'hard',
-        question: `BNS Section ${s} is not in the First Schedule (recognised BNS offences). Please verify — this may be a typo or hallucination.`,
+        question: `BNS Section ${sectionLabel(e)} is not in the First Schedule (recognised BNS offences). Please verify — this may be a typo or hallucination.`,
       });
     }
   }
@@ -234,18 +379,24 @@ async function runPureRules(
       findings.push({
         rule_id: 'F2',
         severity: 'hard',
-        question: "Bank's dishonour reason (e.g. 'insufficient funds') is required to establish s.138 ingredients. Please add.",
+        question:
+          "Bank's dishonour reason (e.g. 'insufficient funds') is required to establish s.138 ingredients. Please add.",
       });
     }
   }
 
-  // F4: vakalatnama — bar enrolment number required
+  // F4: vakalatnama — bar enrolment number required. T-387 (Ajay, 13 Oct
+  // 2026): F4 checks the number the draft will print, resolved as
+  // buildPlaceholderContext does (T-311), on the same un-aliased form data the
+  // renderer reads, so a body carrying only the old T-382 key resolves as the
+  // draft would.
   if (templateId === 'vakalatnama') {
-    if (!str(formData['advocate_enrolment_no'])) {
+    if (!str(printedEnrollmentNumber(templateId, formData, profile))) {
       findings.push({
         rule_id: 'F4',
         severity: 'hard',
-        question: 'Bar enrolment number is missing. Required under BCI Rules — vakalatnama will be rejected by registry without it.',
+        question:
+          'Bar enrolment number is missing. Required under BCI Rules — vakalatnama will be rejected by registry without it.',
       });
     }
   }
@@ -316,12 +467,14 @@ async function runPureRules(
 
   // ── E1: Anticipatory bail for bailable offence ───────────────────────────
   if (templateId === 'bail_anticipatory' && sections.length > 0) {
-    const allBailable = sections.every((s) => BNS_BAILABLE_SECTIONS.has(s));
+    const allBailable = sections.every(
+      (e) => e.code === 'BNS' && BNS_BAILABLE_SECTIONS.has(e.number),
+    );
     if (allBailable) {
       findings.push({
         rule_id: 'E1',
         severity: 'soft',
-        question: `All sections cited (${sections.join(', ')}) are bailable. Anticipatory bail (BNSS 482) isn't required — bail is a right under BNSS 478. Proceed?`,
+        question: `All sections cited (${sections.map(sectionLabel).join(', ')}) are bailable. Anticipatory bail (BNSS 482) isn't required — bail is a right under BNSS 478. Proceed?`,
       });
     }
   }
@@ -331,7 +484,8 @@ async function runPureRules(
     findings.push({
       rule_id: 'E2',
       severity: 'soft',
-      question: 'No arrest date provided. If the petitioner has not been arrested yet, anticipatory bail (BNSS 482) may be the correct route.',
+      question:
+        'No arrest date provided. If the petitioner has not been arrested yet, anticipatory bail (BNSS 482) may be the correct route.',
     });
   }
 
@@ -400,15 +554,72 @@ Rules:
 - Return empty findings array if nothing is unusual
 - Max 3 findings total`;
 
+/**
+ * T-437 (Arjun ruling 2): one LlmAuxCall row per preflight model call, the
+ * same fields as intake's rows (numbers and ids only, never the form data or
+ * the reply). No intake id reaches the preflight route, so the row has none.
+ * Never throws: a failed write is logged and preflight goes on.
+ */
+async function recordPreflightCall(args: {
+  userId?: string;
+  status: 'completed' | 'failed';
+  model: string;
+  response: unknown;
+  text: string;
+  durationMs: number;
+}): Promise<void> {
+  if (!args.userId || !mongoose.Types.ObjectId.isValid(args.userId)) return;
+  try {
+    const counts = parseAnthropicMessageUsage(args.response);
+    const fromProvider = counts.inputTokens !== undefined || counts.outputTokens !== undefined;
+    const usage = {
+      inputTokens: counts.inputTokens ?? 0,
+      outputTokens: fromProvider
+        ? (counts.outputTokens ?? 0)
+        : args.text
+          ? estimateOutputTokens(args.text)
+          : 0,
+      ...cacheCounts(counts),
+    };
+    const rate = await getModelRates(args.model);
+    const priced = rate.costStatus === 'priced';
+    const usedCache = Object.keys(cacheCounts(counts)).length > 0;
+    const cacheRates = priced && usedCache ? effectiveCacheRates(rate.rate) : undefined;
+    await LlmAuxCall.create({
+      userId: args.userId,
+      purpose: 'preflight',
+      status: args.status,
+      aiModel: args.model,
+      transport: 'direct',
+      ...usage,
+      imageCount: 0,
+      costUsd: priced ? priceUsage(usage, rate.rate, args.model) : 0,
+      costStatus: rate.costStatus,
+      usageSource: fromProvider ? 'provider' : 'estimated',
+      rateInputUsdPerMTok: priced ? rate.rate.inputUsdPerMTok : undefined,
+      rateOutputUsdPerMTok: priced ? rate.rate.outputUsdPerMTok : undefined,
+      rateCacheWriteUsdPerMTok: cacheRates?.cacheWriteUsdPerMTok,
+      rateCacheReadUsdPerMTok: cacheRates?.cacheReadUsdPerMTok,
+      durationMs: args.durationMs,
+    });
+  } catch (err) {
+    console.error(
+      '[preflight] failed to record LlmAuxCall (purpose=preflight):',
+      err instanceof Error ? err.message : 'unknown error',
+    );
+  }
+}
+
 async function runLLMChecks(
   templateId: string,
   formData: Record<string, unknown>,
+  userId?: string,
 ): Promise<{ findings: PreflightFinding[]; ran: boolean }> {
   if (!env.ANTHROPIC_API_KEY) {
     return { findings: [], ran: false };
   }
 
-  const sections = parseSectionsCharged(formData['sections_charged']);
+  const sections = parseSectionsCharged(templateId, formData['sections_charged']);
   const factsNarrative = str(formData['facts_narrative'] ?? formData['key_facts'] ?? '');
 
   // Only run LLM if there's enough text to analyse
@@ -418,7 +629,7 @@ async function runLLMChecks(
 
   const payload = {
     template_id: templateId,
-    sections_charged: sections,
+    sections_charged: sections.map(sectionLabel),
     facts_narrative: factsNarrative.slice(0, 1500), // token budget
     respondent_type: str(formData['respondent_type'] ?? ''),
   };
@@ -429,23 +640,66 @@ async function runLLMChecks(
     // degrades gracefully to rules-only (fail-open per ADR-018).
     const model = await getAppSetting(APP_SETTING_KEYS.PREFLIGHT_MODEL);
     const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
-    const response = await client.messages.create({
+    // T-453: effort from ai.effort.preflight (default low). Never throws.
+    const effort = await getAiEffort('preflight');
+    const startedAt = Date.now();
+    // T-437: not cached (Arjun ruling 2) — the system prompt stays a plain string.
+    let response: Anthropic.Message;
+    try {
+      response = await client.messages.create({
+        model,
+        max_tokens: 300,
+        system: HAIKU_SYSTEM_PROMPT,
+        messages: [{ role: 'user', content: JSON.stringify(payload) }],
+        ...(effort ? { output_config: { effort } } : {}),
+      });
+    } catch (callErr) {
+      logLlmCall({
+        stage: 'preflight',
+        call: 'preflight',
+        model,
+        effort: effort ?? null,
+        status: 'failed',
+      });
+      throw callErr;
+    }
+    const durationMs = Date.now() - startedAt;
+    const callUsage = parseAnthropicMessageUsage(response);
+    logLlmCall({
+      stage: 'preflight',
+      call: 'preflight',
       model,
-      max_tokens: 300,
-      system: HAIKU_SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: JSON.stringify(payload) }],
+      effort: effort ?? null,
+      status: 'completed',
+      inputTokens: callUsage.inputTokens,
+      outputTokens: callUsage.outputTokens,
+      cacheReadInputTokens: callUsage.cacheReadInputTokens,
+      cacheCreationInputTokens: callUsage.cacheCreationInputTokens,
+      stopReason: typeof response?.stop_reason === 'string' ? response.stop_reason : null,
     });
 
-    const text =
-      response.content[0].type === 'text' ? response.content[0].text : '';
+    // T-453: the first text block, not content[0] — Haiku 5.5 thinks by default,
+    // so content[0] can be a thinking block.
+    const textBlock = (response.content ?? []).find(
+      (b): b is Anthropic.TextBlock => b?.type === 'text',
+    );
+    const text = textBlock?.text ?? '';
 
     // Strip markdown fences if any
     const clean = text.replace(/```(?:json)?/gi, '').trim();
-    const parsed = JSON.parse(clean) as {
+    let parsed: {
       unusual: boolean;
       hard_block: boolean;
       findings: Array<{ rule_id: string; question: string }>;
     };
+    try {
+      parsed = JSON.parse(clean) as typeof parsed;
+    } catch (parseErr) {
+      // The call was made and billed even though its reply is unusable.
+      await recordPreflightCall({ userId, status: 'failed', model, response, text, durationMs });
+      throw parseErr;
+    }
+    await recordPreflightCall({ userId, status: 'completed', model, response, text, durationMs });
 
     const findings: PreflightFinding[] = (parsed.findings ?? []).map((f) => ({
       rule_id: f.rule_id,
@@ -472,17 +726,22 @@ async function runLLMChecks(
  * @param templateId  The template being generated (e.g. "bail_anticipatory")
  * @param formData    The advocate-submitted form data
  * @param userId      For telemetry (optional)
+ * @param profile     T-387: the profile's advocate name (JWT) and enrolment
+ *                    number, so F4 resolves the number the vakalatnama will
+ *                    print exactly as the renderer does (optional; absent
+ *                    means an empty profile)
  * @returns PreflightResult — verdict, questions, optional hard-block reason
  */
 export async function preflightCheck(
   templateId: string,
   formData: Record<string, unknown>,
   userId?: string,
+  profile?: PreflightProfile,
 ): Promise<PreflightResult> {
   // Run pure rules + Haiku in parallel (ADR-018: run alongside each other)
   const [ruleFindings, llmResult] = await Promise.all([
-    runPureRules(templateId, formData),
-    runLLMChecks(templateId, formData),
+    runPureRules(templateId, formData, profile),
+    runLLMChecks(templateId, formData, userId),
   ]);
 
   const allFindings = [...ruleFindings, ...llmResult.findings];

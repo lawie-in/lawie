@@ -10,7 +10,7 @@
   "courtId": "consumer_commission_generic",
   "courtType": "consumer_commission",
   "designation": "BEFORE THE DISTRICT CONSUMER DISPUTES REDRESSAL COMMISSION",
-  "jurisdictionNote": "District Consumer Disputes Redressal Commission constituted under Section 28 of the Consumer Protection Act, 2019. Pecuniary jurisdiction: value of goods/services paid as consideration not exceeding Rs. 50 Lakh (per CPA Jurisdiction Notification dated 21 December 2021). Hears complaints under Section 35 CPA 2019.",
+  "jurisdictionNote": "District Consumer Disputes Redressal Commission constituted under Section 28 of the Consumer Protection Act, 2019. Pecuniary jurisdiction: value of goods/services paid as consideration not exceeding Rs. 50 Lakh (per the Consumer Protection (Jurisdiction of the District Commission, the State Commission and the National Commission) Rules, 2021). Hears complaints under Section 35 CPA 2019.",
   "cause_title_format": "{courtDesignation}, {city}\n{caseNomenclature}\n\n{complainant} ... COMPLAINANT\n\nVERSUS\n\n{opposite_party} ... OPPOSITE PARTY",
   "party_designation": {
     "petitioner": "Complainant",
@@ -18,7 +18,7 @@
     "applicant": "Complainant",
     "opposite_party": "Opposite Party",
     "complainant": "Complainant",
-    "state": "State through the Collector / District Magistrate, {district}"
+    "state": "State of {state}"
   },
   "case_nomenclature": {
     "consumer_complaint": "Consumer Complaint No. _____ of {year}",
@@ -37,10 +37,7 @@
     "tone": "humble"
   },
   "verification_format": "I, {deponent_name}, the Complainant herein above named, do hereby verify that the contents of the above complaint are true and correct to the best of my knowledge and belief, and nothing material has been concealed therefrom.\n\nVerified at {place} on this {date}.\n\nCOMPLAINANT",
-  "supported_languages": [
-    "en",
-    "hi"
-  ],
+  "supported_languages": ["en", "hi"],
   "formattingPreferences": {
     "numberingStyle": "numeric",
     "paragraphStyle": "numbered",
@@ -53,7 +50,7 @@
     "Three sets of the complaint with documents to be filed (original + 2 copies).",
     "Court fee as per state Consumer Commission rules (typically Rs. 100-500 for District Commission).",
     "Complaint must be filed within 2 years from the date of cause of action (Section 69 CPA 2019).",
-    "Pecuniary jurisdiction: District Commission hears complaints where value does not exceed Rs. 50 Lakh (per Notification dated 21 December 2021)."
+    "Pecuniary jurisdiction: District Commission hears complaints where value does not exceed Rs. 50 Lakh (per the Consumer Protection (Jurisdiction of the District Commission, the State Commission and the National Commission) Rules, 2021)."
   ],
   "e_filing_mandatory": false
 }

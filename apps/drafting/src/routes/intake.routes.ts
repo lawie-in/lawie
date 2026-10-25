@@ -1,0 +1,379 @@
+/**
+ * Describe-first intake routes — ADR-019 §3.3. Ticket T-101 (and T-102 for
+ * /intake/answers). Mounted at '/', reached through the gateway as
+ * /documents/intake, which already applies login, session check and the
+ * per-user request limit. No gateway change.
+ *
+ * Intake spends no Ink or drops (ADR §3.8). No description text is logged.
+ */
+import { Request, Response, Router } from 'express';
+import { z } from 'zod';
+
+import { authenticate } from '../middleware/authenticate';
+import { requireVerifiedEmail } from '../middleware/requireVerifiedEmail';
+import { LedgerConflictError, LedgerFullError } from '../services/fact-ledger.service';
+import { isTemplateEnabled, TEMPLATE_NOT_FOUND } from '../services/feature-switches';
+import {
+  applyAnswers,
+  INTAKE_LIMITS,
+  IntakeLimitError,
+  isDescribeFirstEnabled,
+  isFactLedgerEnabled,
+  LedgerNotFoundError,
+  runBriefIntake,
+  runIntake,
+  updateBrief,
+  updateLedger,
+} from '../services/intake.service';
+
+const router = Router();
+
+const intakeSchema = z.object({
+  description: z
+    .string()
+    .trim()
+    .min(
+      INTAKE_LIMITS.descriptionMin,
+      `Please describe the matter in at least ${INTAKE_LIMITS.descriptionMin} characters.`,
+    )
+    .max(
+      INTAKE_LIMITS.descriptionMax,
+      `Please keep the description under ${INTAKE_LIMITS.descriptionMax} characters.`,
+    ),
+  language: z.enum(['en', 'hi', 'bilingual']).optional(),
+  /** After needs_choice: the template the user picked, with the same intake_id. */
+  template_id: z.string().min(1).max(100).optional(),
+  intake_id: z.string().uuid().optional(),
+});
+
+// GET /documents/intake/enabled — ADR-019 §3.11. Off means New document
+// opens the gallery exactly as today.
+router.get('/intake/enabled', authenticate, async (req: Request, res: Response): Promise<void> => {
+  res.json({ enabled: await isDescribeFirstEnabled(req.jwtPayload!.sub) });
+});
+
+router.post(
+  '/intake',
+  authenticate,
+  requireVerifiedEmail,
+  async (req: Request, res: Response): Promise<void> => {
+    const parsed = intakeSchema.safeParse(req.body);
+    if (!parsed.success) {
+      // Messages come from the schema only, never from the submitted text.
+      res.status(400).json({
+        error: 'Invalid request',
+        issues: parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`),
+      });
+      return;
+    }
+    const payload = req.jwtPayload!;
+    try {
+      const result = await runIntake({
+        userId: payload.sub,
+        plan: payload.plan,
+        description: parsed.data.description,
+        language: parsed.data.language,
+        templateId: parsed.data.template_id,
+        intakeId: parsed.data.intake_id,
+      });
+      res.json(result);
+    } catch (err) {
+      if (err instanceof IntakeLimitError) {
+        res.setHeader('Retry-After', String(err.retryAfterSeconds));
+        res.status(429).json({
+          error: 'intake_limit',
+          message:
+            err.scope === 'daily'
+              ? "You have used today's quota for describing. Browse templates still works."
+              : 'You have described several matters in a short time. Please wait a few minutes. Browse templates still works.',
+          retry_after_seconds: err.retryAfterSeconds,
+        });
+        return;
+      }
+      console.error('[intake] unexpected error:', err instanceof Error ? err.name : 'unknown');
+      res.json({ outcome: 'unavailable' });
+    }
+  },
+);
+
+const answersSchema = z.object({
+  intake_id: z.string().uuid(),
+  template_id: z.string().min(1).max(100),
+  fields: z.record(z.unknown()).default({}),
+  answers: z.record(z.unknown()).default({}),
+  round: z.number().int().min(1).max(10),
+});
+
+// POST /documents/intake/answers — T-102. No model call, no quota, no cost.
+router.post('/intake/answers', authenticate, async (req: Request, res: Response): Promise<void> => {
+  const parsed = answersSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({
+      error: 'Invalid request',
+      issues: parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`),
+    });
+    return;
+  }
+  // T-375: a template hidden by its feature switch is not found.
+  if (!(await isTemplateEnabled(parsed.data.template_id, req.jwtPayload!.sub))) {
+    res.status(404).json(TEMPLATE_NOT_FOUND);
+    return;
+  }
+  const result = applyAnswers({
+    intakeId: parsed.data.intake_id,
+    templateId: parsed.data.template_id,
+    fields: parsed.data.fields,
+    answers: parsed.data.answers,
+    round: parsed.data.round,
+  });
+  if (!result) {
+    res.status(404).json({ error: 'Template not found' });
+    return;
+  }
+  res.json(result);
+});
+
+// ── The brief (T-105, ADR-021 sections 3.2 to 3.4) ──────────────────────────
+//
+// POST /documents/intake/brief          describe, and get a brief with questions
+// POST /documents/intake/brief/update   work the brief out again; no model call
+//
+// Both are closed unless `feature.describe_first` is on for the user. Nothing
+// the user sends is stored or logged, and error messages never repeat it.
+
+const KIND = z
+  .string()
+  .min(1)
+  .max(100)
+  .regex(/^[a-z0-9_]+$/, 'must be a document kind');
+
+/** T-147b: a fact-ledger id. Read only while `feature.fact_ledger` is on for the user. */
+const LEDGER_ID = z.string().regex(/^[a-f0-9]{24}$/i, 'must be a ledger id');
+
+const valueSchema = z.object({
+  key: z.string().min(1).max(200),
+  value: z.union([z.string().max(6000), z.array(z.string().max(500)).max(30)]),
+  source: z.enum(['description', 'user']).default('user'),
+  quote: z.string().max(1000).optional(),
+  label: z.string().max(200).optional(),
+  // T-150: a typed name marked "Please check" keeps its mark across updates.
+  // A request can only add a mark, never a value.
+  please_check: z.boolean().optional(),
+});
+
+const courtSchema = z
+  .object({
+    state: z.string().max(200).nullish(),
+    court_type: z.string().max(200).nullish(),
+    court: z.string().max(200).nullish(),
+  })
+  .optional();
+
+const briefSchema = z
+  .object({
+    description: intakeSchema.shape.description,
+    language: z.enum(['en', 'hi', 'bilingual']).optional(),
+    /** A rule-pack id, or `none`. Sent when the user picked or changed the kind. */
+    kind: KIND.optional(),
+    intake_id: z.string().uuid().optional(),
+    keep: z.array(valueSchema).max(100).optional(),
+    court: courtSchema,
+    /** A document with no rule pack only: 2 or 3, with the answers so far. */
+    round: z.number().int().min(1).max(3).optional(),
+    answers: z
+      .array(
+        z.object({
+          question: z.string().min(1).max(300),
+          answer: z.string().max(INTAKE_LIMITS.answerMax),
+        }),
+      )
+      .max(10)
+      .optional(),
+    /** T-147b, on a change of document: the ledger shown so far. */
+    ledger_id: LEDGER_ID.optional(),
+  })
+  .refine((b) => (b.round ?? 1) === 1 || b.intake_id !== undefined, {
+    message: 'intake_id is required after round 1',
+    path: ['intake_id'],
+  });
+
+function invalid(res: Response, error: z.ZodError): void {
+  // Messages come from the schema only, never from the submitted text.
+  res.status(400).json({
+    error: 'Invalid request',
+    issues: error.issues.map((i) => `${i.path.join('.')}: ${i.message}`),
+  });
+}
+
+router.post(
+  '/intake/brief',
+  authenticate,
+  requireVerifiedEmail,
+  async (req: Request, res: Response): Promise<void> => {
+    const payload = req.jwtPayload!;
+    if (!(await isDescribeFirstEnabled(payload.sub))) {
+      res.status(404).json({ error: 'not_enabled' });
+      return;
+    }
+    const parsed = briefSchema.safeParse(req.body);
+    if (!parsed.success) {
+      invalid(res, parsed.error);
+      return;
+    }
+    try {
+      const result = await runBriefIntake({
+        userId: payload.sub,
+        plan: payload.plan,
+        description: parsed.data.description,
+        language: parsed.data.language,
+        kind: parsed.data.kind,
+        intakeId: parsed.data.intake_id,
+        keep: parsed.data.keep,
+        court: parsed.data.court ?? undefined,
+        round: parsed.data.round,
+        answers: parsed.data.answers,
+        ledgerId: parsed.data.ledger_id,
+      });
+      res.json(result);
+    } catch (err) {
+      if (err instanceof LedgerNotFoundError) {
+        res.status(404).json({ error: 'Ledger not found' });
+        return;
+      }
+      if (err instanceof IntakeLimitError) {
+        res.setHeader('Retry-After', String(err.retryAfterSeconds));
+        res.status(429).json({
+          error: 'intake_limit',
+          message:
+            err.scope === 'daily'
+              ? "You have used today's quota for describing. Browse document types still works."
+              : 'You have described several matters in a short time. Please wait a few minutes.',
+          retry_after_seconds: err.retryAfterSeconds,
+        });
+        return;
+      }
+      console.error('[intake] unexpected error:', err instanceof Error ? err.name : 'unknown');
+      res.json({ outcome: 'unavailable' });
+    }
+  },
+);
+
+/** T-189: the most one list or several-choices edit may carry. */
+const LIST_EDIT_LIMITS = { entries: 30, entryMax: 500, totalMax: 3000 } as const;
+
+const briefUpdateSchema = z.object({
+  kind: KIND,
+  kind_name: z.string().max(120).optional(),
+  court_document: z.boolean().optional(),
+  values: z.array(valueSchema).max(200).default([]),
+  court: courtSchema,
+  description: z
+    .string()
+    .max(INTAKE_LIMITS.descriptionMax + 10 * INTAKE_LIMITS.answerMax)
+    .optional(),
+  /** T-147b: the ledger shown with the brief, and the answers and edits to write to it. */
+  ledger_id: LEDGER_ID.optional(),
+  ledger_edits: z
+    .array(
+      z.object({
+        key: z.string().min(1).max(200),
+        /**
+         * T-189: every entry of a list or several choices, as an array. Kept
+         * small: each ledger version stores the whole state.
+         */
+        text: z.union([
+          z.string().max(6000),
+          z
+            .array(z.string().max(LIST_EDIT_LIMITS.entryMax))
+            .max(LIST_EDIT_LIMITS.entries)
+            .refine((xs) => xs.reduce((n, x) => n + x.length, 0) <= LIST_EDIT_LIMITS.totalMax, {
+              message: `at most ${LIST_EDIT_LIMITS.totalMax} characters in all`,
+            }),
+        ]),
+        /** True when the value was given on the questions step. */
+        from_question: z.boolean().optional(),
+      }),
+    )
+    .max(20)
+    .default([]),
+});
+
+router.post(
+  '/intake/brief/update',
+  authenticate,
+  requireVerifiedEmail, // T-522 — no model call for an unverified email account
+  async (req: Request, res: Response): Promise<void> => {
+    if (!(await isDescribeFirstEnabled(req.jwtPayload!.sub))) {
+      res.status(404).json({ error: 'not_enabled' });
+      return;
+    }
+    const parsed = briefUpdateSchema.safeParse(req.body);
+    if (!parsed.success) {
+      invalid(res, parsed.error);
+      return;
+    }
+    // T-375: a kind hidden by its feature switch is not found, before the ledger is touched.
+    if (!(await isTemplateEnabled(parsed.data.kind, req.jwtPayload!.sub))) {
+      res.status(404).json(TEMPLATE_NOT_FOUND);
+      return;
+    }
+    // T-147b: the ledger first, so a ledger that is not this user's changes nothing.
+    // The brief below is worked out as before from the values sent. T-498: the
+    // updated ledger only takes the facts it holds off "Still unknown" and off
+    // what Confirm waits for.
+    let ledgerPart: Record<string, unknown> = {};
+    let ledger: Awaited<ReturnType<typeof updateLedger>>['ledger'] | undefined;
+    const userId = req.jwtPayload!.sub;
+    if (parsed.data.ledger_id !== undefined && (await isFactLedgerEnabled(userId))) {
+      try {
+        const out = await updateLedger({
+          userId,
+          ledgerId: parsed.data.ledger_id,
+          kind: parsed.data.kind,
+          edits: parsed.data.ledger_edits.map((e) => ({
+            key: e.key,
+            text: e.text,
+            fromQuestion: e.from_question,
+          })),
+        });
+        ledgerPart = { ledger: out.ledger, ledger_results: out.results };
+        ledger = out.ledger;
+      } catch (err) {
+        if (err instanceof LedgerNotFoundError) {
+          res.status(404).json({ error: 'Ledger not found' });
+          return;
+        }
+        if (err instanceof LedgerConflictError) {
+          res.status(409).json({ error: 'ledger_conflict' });
+          return;
+        }
+        if (err instanceof LedgerFullError) {
+          res.status(422).json({ error: 'ledger_version_limit' });
+          return;
+        }
+        console.error(
+          '[intake] ledger update failed:',
+          err instanceof Error ? err.name : 'unknown',
+        );
+        res.status(503).json({ error: 'ledger_unavailable' });
+        return;
+      }
+    }
+    const brief = updateBrief({
+      kind: parsed.data.kind,
+      kindName: parsed.data.kind_name,
+      courtDocument: parsed.data.court_document,
+      values: parsed.data.values,
+      court: parsed.data.court ?? undefined,
+      description: parsed.data.description,
+      ...(ledger ? { ledger } : {}),
+    });
+    if (!brief) {
+      res.status(404).json({ error: 'Document kind not found' });
+      return;
+    }
+    res.json({ brief, ...ledgerPart });
+  },
+);
+
+export default router;

@@ -1,7 +1,11 @@
 import http from 'http';
 import type { Socket } from 'net';
 
-import { INTERNAL_HEADERS } from '@lawie/shared';
+import {
+  CURRENT_PRIVACY_VERSION,
+  INTERNAL_HEADERS,
+  createJsonBodyErrorHandler,
+} from '@lawie/shared';
 import * as Sentry from '@sentry/node';
 import compression from 'compression';
 import cors from 'cors';
@@ -19,12 +23,20 @@ const planRateLimiter = createPlanRateLimiter();
 
 const app = express();
 
+// Trust nginx reverse proxy — required for express-rate-limit to read X-Forwarded-For correctly
+app.set('trust proxy', 1);
+
 // ── Security & performance ───────────────────────────────────────────────────
 app.use(helmet());
 app.use(
   cors({
     origin: env.ALLOWED_ORIGINS.split(','),
     credentials: true,
+    // Without this, the browser's fetch Response.headers silently drops any
+    // non-CORS-safelisted header — the web app's run-id retry logic (T-003
+    // §3.8) was reading X-Run-Id/X-Run-Sequence as null despite both being
+    // on the wire, found via a live browser check, not a type error.
+    exposedHeaders: ['X-Run-Id', 'X-Run-Sequence'],
   }),
 );
 // @types/compression doesn't perfectly align with @types/express overloads
@@ -35,6 +47,41 @@ app.use(compression() as any);
 app.use((req, _res, next) => {
   for (const key of Object.values(INTERNAL_HEADERS)) {
     delete req.headers[key];
+  }
+  next();
+});
+
+// ── T-223 (Arjun, condition 3): no /internal/ path is reachable from outside ─
+// Services mount internal routes (auth /internal/verify-email/mint, drafting
+// /internal/grant-bonus, T-115c /internal/erase-user) at their root, and the proxies forward
+// /api/<svc>/* to that root, so without this rule /api/auth/internal/... would reach them guarded
+// only by the secret. Before every proxy: any path with an `internal` segment gets the plain
+// gateway 404. Case-insensitive; percent-encoding is decoded (repeatedly, for double encoding)
+// and backslashes count as slashes, so %2Finternal%2F and \internal\ are caught too. A path
+// that will not decode is also checked in its raw encoded form. Nothing is logged: the path
+// may carry a token.
+const MAX_DECODE_PASSES = 3;
+
+export function hasInternalSegment(rawUrl: string): boolean {
+  let path = (rawUrl.split('?')[0] ?? '').split('#')[0] ?? '';
+  for (let i = 0; i < MAX_DECODE_PASSES && path.includes('%'); i += 1) {
+    try {
+      path = decodeURIComponent(path);
+    } catch {
+      if (/(^|\/|\\|%2f|%5c)internal(\/|\\|%2f|%5c|;|$)/i.test(path)) return true;
+      break;
+    }
+  }
+  return path
+    .toLowerCase()
+    .split(/[/\\]/)
+    .some((segment) => (segment.split(';')[0] ?? '').trim() === 'internal');
+}
+
+app.use((req, res, next) => {
+  if (hasInternalSegment(req.originalUrl || req.url)) {
+    res.status(404).json({ error: 'Route not found', service: 'gateway' });
+    return;
   }
   next();
 });
@@ -53,6 +100,18 @@ const onProxyError = (err: Error, _req: express.Request, res: http.ServerRespons
   }
 };
 
+// ── T-343: accepted privacy version, from the verified `pv` claim only ───────
+// Any client-sent copy was already deleted by the strip middleware above (it is in
+// INTERNAL_HEADERS); removeHeader is a second guard so only the claim can reach a service.
+// A token without a string `pv` (issued before T-343) forwards no header: not accepted.
+function setPrivacyVersionHeader(proxyReq: http.ClientRequest, req: express.Request): void {
+  proxyReq.removeHeader(INTERNAL_HEADERS.USER_PRIVACY_VERSION);
+  const pv = req.jwtPayload?.pv;
+  if (typeof pv === 'string' && pv) {
+    proxyReq.setHeader(INTERNAL_HEADERS.USER_PRIVACY_VERSION, pv);
+  }
+}
+
 // ── Proxy with internal headers (for authenticated routes) ──────────────────
 function createAuthenticatedProxy(target: string) {
   return createProxyMiddleware({
@@ -67,6 +126,7 @@ function createAuthenticatedProxy(target: string) {
           proxyReq.setHeader(INTERNAL_HEADERS.USER_EMAIL, expressReq.jwtPayload.email);
           proxyReq.setHeader(INTERNAL_HEADERS.USER_ROLE, expressReq.jwtPayload.role);
           proxyReq.setHeader(INTERNAL_HEADERS.USER_PLAN, expressReq.jwtPayload.plan);
+          setPrivacyVersionHeader(proxyReq, expressReq);
           proxyReq.setHeader(INTERNAL_HEADERS.USER_NAME, expressReq.jwtPayload.name);
         }
       },
@@ -130,13 +190,59 @@ app.use(
     on: { error: onProxyError },
   }),
 );
+// T-436: /api/billing/public/supplier: the GST supplier details from billing's
+// env (legal name, trade name, GSTIN, State). No JWT, same as /plans.
+// Exact path only: a sub-path (/api/billing/public/supplier/x) would be
+// rewritten to /public/supplierx, so it 404s here instead.
+app.use(
+  '/api/billing/public/supplier',
+  (req, res, next) => {
+    if (req.path !== '/') {
+      res.status(404).json({ error: 'Route not found', service: 'gateway' });
+      return;
+    }
+    next();
+  },
+  publicRateLimiter,
+  createProxyMiddleware({
+    target: env.BILLING_SERVICE_URL,
+    changeOrigin: true,
+    pathRewrite: { '^/': '/public/supplier' },
+    on: { error: onProxyError },
+  }),
+);
+
+// ── PUBLIC sample PDFs — landing page download buttons, no JWT required ──────
+app.use(
+  '/api/samples',
+  publicRateLimiter,
+  createProxyMiddleware({
+    target: env.DRAFTING_SERVICE_URL,
+    changeOrigin: true,
+    pathRewrite: { '^/': '/sample-assets/' },
+    on: { error: onProxyError },
+  }),
+);
 
 // ── Dev bypass middleware (development only) ────────────────────────────────
+/**
+ * The reserved golden-set fixture user (T-147e). Must equal GOLDEN_SET_USER_ID
+ * in apps/drafting/src/services/run-origin.ts; kept here so the gateway does
+ * not depend on the drafting service.
+ */
+export const GOLDEN_SET_USER_ID = '0000000000000000000f147e';
 // Postman: set header X-Dev-Bypass: true to skip JWT + session check.
 // Optionally set X-Dev-User-Plan: pro|free, X-Dev-User-Email, X-Dev-User-Name.
 function devBypass(req: express.Request, res: express.Response, next: express.NextFunction): void {
   if (env.NODE_ENV !== 'development' || req.headers['x-dev-bypass'] !== 'true') {
     next();
+    return;
+  }
+  // T-147e: the golden-set fixture user is never reachable from outside the
+  // drafting service's own runner, not even through the dev bypass.
+  const devUserId = req.headers['x-dev-user-id'];
+  if (typeof devUserId === 'string' && devUserId.trim().toLowerCase() === GOLDEN_SET_USER_ID) {
+    res.status(403).json({ error: 'Forbidden' });
     return;
   }
   // Inject mock JWT payload so downstream middleware/proxy sees a valid user
@@ -146,6 +252,8 @@ function devBypass(req: express.Request, res: express.Response, next: express.Ne
     name: (req.headers['x-dev-user-name'] as string) ?? 'Dev User',
     role: 'Client',
     plan: (req.headers['x-dev-user-plan'] as string) ?? 'pro',
+    // T-343 (Arjun, Addendum 2.3): the dev user has accepted the current privacy version.
+    pv: CURRENT_PRIVACY_VERSION,
     type: 'access',
   };
   req.tokenHash = 'dev-bypass-no-token-hash';
@@ -204,6 +312,7 @@ app.use(
           proxyReq.setHeader(INTERNAL_HEADERS.USER_EMAIL, expressReq.jwtPayload.email);
           proxyReq.setHeader(INTERNAL_HEADERS.USER_ROLE, expressReq.jwtPayload.role);
           proxyReq.setHeader(INTERNAL_HEADERS.USER_PLAN, expressReq.jwtPayload.plan);
+          setPrivacyVersionHeader(proxyReq, expressReq);
           proxyReq.setHeader(INTERNAL_HEADERS.USER_NAME, expressReq.jwtPayload.name);
         }
       },
@@ -230,6 +339,7 @@ app.use(
           proxyReq.setHeader(INTERNAL_HEADERS.USER_EMAIL, expressReq.jwtPayload.email);
           proxyReq.setHeader(INTERNAL_HEADERS.USER_ROLE, expressReq.jwtPayload.role);
           proxyReq.setHeader(INTERNAL_HEADERS.USER_PLAN, expressReq.jwtPayload.plan);
+          setPrivacyVersionHeader(proxyReq, expressReq);
           proxyReq.setHeader(INTERNAL_HEADERS.USER_NAME, expressReq.jwtPayload.name);
         }
       },
@@ -237,6 +347,25 @@ app.use(
     },
   }),
 );
+
+// ── Admin + drafting service catch-all ─────────────────────────────────────
+// Covers /api/drafting/admin/* (overview KPIs, credits ledger, panel review,
+// app-settings, review-tokens) and any future drafting endpoints that don't
+// have a dedicated /api/<resource> entry above.
+// Express strips '/api/drafting' from req.url before handing to the proxy,
+// so '/api/drafting/admin/overview/kpis' reaches drafting as '/admin/overview/kpis' —
+// which matches the app.use('/', adminOverviewRoutes) mount in drafting/app.ts.
+app.use(
+  '/api/drafting',
+  ...authChain,
+  planRateLimiter,
+  createAuthenticatedProxy(env.DRAFTING_SERVICE_URL),
+);
+
+// ── Body-parser errors (T-315) ──────────────────────────────────────────────
+// The gateway parses no bodies today (everything is proxied); this is a defensive
+// no-op so a parser added later cannot echo a body through the default handler.
+app.use(createJsonBodyErrorHandler({ logger }));
 
 // ── Sentry error handler ────────────────────────────────────────────────────
 Sentry.setupExpressErrorHandler(app);

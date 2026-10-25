@@ -13,6 +13,7 @@ services:
       dockerfile: apps/web/Dockerfile
       args:
         NEXT_PUBLIC_API_URL: https://demo.lawie.in
+        NEXT_PUBLIC_GRIEVANCE_OFFICER_NAME: ${NEXT_PUBLIC_GRIEVANCE_OFFICER_NAME:-}
     container_name: lawie_web
     restart: unless-stopped
     env_file: .env.demo
@@ -141,6 +142,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 4003
+      RAZORPAY_ALLOW_TEST_KEYS: 'true'
     networks:
       - lawie_demo
     healthcheck:

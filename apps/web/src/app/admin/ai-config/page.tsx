@@ -9,15 +9,7 @@
  * Design: docs/Admin Panel Design/Runtime model selection _ editable rows _ audit.png
  */
 
-import {
-  AlertTriangle,
-  CheckCircle2,
-  Info,
-  Loader2,
-  PencilLine,
-  Save,
-  X,
-} from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Info, Loader2, PencilLine, Save, X, Zap } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
 import { AdminPageHeader, ServiceHealthyBadge } from '@/components/admin/AdminPageHeader';
@@ -28,6 +20,21 @@ interface AppSetting {
   value: string;
   description?: string;
   updatedAt: string;
+}
+
+interface AiUsage {
+  month: string;
+  totalTokens: number;
+  totalCostInr: number;
+  generationCount: number;
+  avgCostPerGenInr: number;
+  /** T-437 — prompt cache. Optional so an older drafting service still renders. */
+  cacheReadTokens?: number;
+  cacheWriteTokens?: number;
+  cacheReadCostInr?: number;
+  cacheWriteCostInr?: number;
+  cacheSavingsInr?: number;
+  cacheHitSharePct?: number;
 }
 
 const REQUIRED_KEYS: Array<{ key: string; help: string; required: boolean }> = [
@@ -47,6 +54,7 @@ export default function AiConfigPage() {
   const [settings, setSettings] = useState<AppSetting[]>([]);
   const [fetching, setFetching] = useState(true);
   const [error, setError] = useState('');
+  const [aiUsage, setAiUsage] = useState<AiUsage | null>(null);
 
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
@@ -74,6 +82,12 @@ export default function AiConfigPage() {
 
   useEffect(() => {
     void fetchSettings();
+    const month = new Date().toISOString().slice(0, 7);
+    apiFetch(`/api/drafting/admin/ai-usage?month=${month}`)
+      .then(async (res) => {
+        if (res.ok) setAiUsage(await res.json());
+      })
+      .catch(() => undefined);
   }, [fetchSettings]);
 
   const startEdit = (key: string, value: string, description?: string) => {
@@ -154,9 +168,12 @@ export default function AiConfigPage() {
       <div className="mb-5 flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50 p-4">
         <Info size={14} className="mt-0.5 flex-shrink-0 text-blue-500" />
         <div className="text-sm text-blue-900">
-          <p className="font-medium">Changes take effect within ~1 minute (drafting service cache TTL). No redeploy required.</p>
+          <p className="font-medium">
+            Changes take effect within ~1 minute (drafting service cache TTL). No redeploy required.
+          </p>
           <p className="mt-0.5 text-blue-700">
-            Drafts cannot be generated until <code className="font-mono">ai.drafting_model</code> is populated.
+            Drafts cannot be generated until <code className="font-mono">ai.drafting_model</code> is
+            populated.
           </p>
         </div>
       </div>
@@ -224,8 +241,96 @@ export default function AiConfigPage() {
         </section>
       )}
 
+      {/* AI cost this month */}
+      {aiUsage && (
+        <section className="mt-7 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="mb-4 flex items-center gap-2">
+            <Zap size={14} className="text-amber-500" />
+            <h2 className="text-sm font-semibold text-slate-800">AI cost — {aiUsage.month}</h2>
+          </div>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <div>
+              <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">
+                Total cost
+              </p>
+              <p className="mt-1 text-xl font-bold text-slate-900">
+                ₹{aiUsage.totalCostInr.toLocaleString('en-IN')}
+              </p>
+            </div>
+            <div>
+              <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">
+                Generations
+              </p>
+              <p className="mt-1 text-xl font-bold text-slate-900">
+                {aiUsage.generationCount.toLocaleString('en-IN')}
+              </p>
+            </div>
+            <div>
+              <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">
+                Avg per generation
+              </p>
+              <p className="mt-1 text-xl font-bold text-slate-900">₹{aiUsage.avgCostPerGenInr}</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">
+                Total tokens
+              </p>
+              <p className="mt-1 text-xl font-bold text-slate-900">
+                {aiUsage.totalTokens.toLocaleString('en-IN')}
+              </p>
+            </div>
+          </div>
+          {/* T-437: prompt cache — its cost is already inside Total cost. */}
+          <div className="mt-4 grid grid-cols-2 gap-4 border-t border-slate-100 pt-4 sm:grid-cols-4">
+            <div>
+              <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">
+                Cache reads
+              </p>
+              <p className="mt-1 text-xl font-bold text-slate-900">
+                {(aiUsage.cacheReadTokens ?? 0).toLocaleString('en-IN')}
+              </p>
+              <p className="text-xs text-slate-500">
+                ₹{(aiUsage.cacheReadCostInr ?? 0).toLocaleString('en-IN')}
+              </p>
+            </div>
+            <div>
+              <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">
+                Cache writes
+              </p>
+              <p className="mt-1 text-xl font-bold text-slate-900">
+                {(aiUsage.cacheWriteTokens ?? 0).toLocaleString('en-IN')}
+              </p>
+              <p className="text-xs text-slate-500">
+                ₹{(aiUsage.cacheWriteCostInr ?? 0).toLocaleString('en-IN')}
+              </p>
+            </div>
+            <div>
+              <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">
+                Cache hit share
+              </p>
+              <p className="mt-1 text-xl font-bold text-slate-900">
+                {aiUsage.cacheHitSharePct ?? 0}%
+              </p>
+              <p className="text-xs text-slate-500">of input tokens</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">
+                Cache saving
+              </p>
+              <p className="mt-1 text-xl font-bold text-slate-900">
+                ₹{(aiUsage.cacheSavingsInr ?? 0).toLocaleString('en-IN')}
+              </p>
+              <p className="text-xs text-slate-500">net of write cost</p>
+            </div>
+          </div>
+        </section>
+      )}
+
       <p className="mt-6 text-xs text-slate-400">
-        Bootstrap: <code className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[11px]">yarn workspace @lawie/drafting seed:setting &lt;key&gt; &lt;value&gt;</code>
+        Bootstrap:{' '}
+        <code className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[11px]">
+          yarn workspace @lawie/drafting seed:setting &lt;key&gt; &lt;value&gt;
+        </code>
       </p>
     </div>
   );
@@ -261,7 +366,7 @@ function SettingRow(p: SettingRowProps) {
   return (
     <div className={`rounded-xl border p-4 shadow-sm ${cardClass}`}>
       <div className="flex items-start justify-between gap-3">
-        <div className="flex-1 min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <code className="font-mono text-sm font-semibold text-slate-900">{p.row.key}</code>
             {p.row.isConfigured ? (
@@ -281,9 +386,7 @@ function SettingRow(p: SettingRowProps) {
               </span>
             )}
           </div>
-          {p.row.help && (
-            <p className="mt-1 text-xs text-slate-500">{p.row.help}</p>
-          )}
+          {p.row.help && <p className="mt-1 text-xs text-slate-500">{p.row.help}</p>}
         </div>
         {!p.isEditing && (
           <button
@@ -302,12 +405,11 @@ function SettingRow(p: SettingRowProps) {
           <code className="block max-w-full overflow-x-auto rounded-lg bg-slate-100 px-3 py-2 font-mono text-xs text-slate-800">
             {p.row.value}
           </code>
-          {p.row.description && (
-            <p className="mt-2 text-xs text-slate-500">{p.row.description}</p>
-          )}
+          {p.row.description && <p className="mt-2 text-xs text-slate-500">{p.row.description}</p>}
           {p.row.updatedAt && (
             <p className="mt-1 text-[11px] text-slate-400">
-              Updated {new Date(p.row.updatedAt).toLocaleString('en-IN', {
+              Updated{' '}
+              {new Date(p.row.updatedAt).toLocaleString('en-IN', {
                 day: '2-digit',
                 month: 'short',
                 year: 'numeric',

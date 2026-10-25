@@ -19,8 +19,10 @@ describe('Template model — loose schema (SCRUM-80)', () => {
     slug: 'bail_anticipatory',
     displayName: 'Anticipatory Bail Application',
     category: 'criminal',
+    catalogueCategory: 'criminal_bail_custody',
     description: 'Anticipatory bail under BNSS 482',
     sourceFile: 'bail_anticipatory.json',
+    creditsCost: 2,
   };
 
   it('creates a template with minimal required fields and applies defaults', async () => {
@@ -30,7 +32,7 @@ describe('Template model — loose schema (SCRUM-80)', () => {
     expect(tpl.displayName).toBe(valid.displayName);
     expect(tpl.planAccess).toBe('free');
     expect(tpl.icon).toBe('file-text');
-    expect(tpl.creditsCost).toBe(1);
+    expect(tpl.creditsCost).toBe(2);
     expect(tpl.states).toEqual(['all']);
     expect(tpl.supportedLanguages).toEqual(['en']);
     expect(tpl.isActive).toBe(true);
@@ -42,6 +44,12 @@ describe('Template model — loose schema (SCRUM-80)', () => {
       category: 'non_court_legal_document',
     });
     expect(tpl.category).toBe('non_court_legal_document');
+  });
+
+  it('requires creditsCost: there is no default price (T-227)', async () => {
+    await expect(Template.create({ ...valid, creditsCost: undefined })).rejects.toThrow(
+      /creditsCost.*required/i,
+    );
   });
 
   it('rejects missing templateId', async () => {

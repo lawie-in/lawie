@@ -3,8 +3,10 @@
 FROM node:20-alpine AS deps
 
 WORKDIR /app
+ENV HUSKY=0
 
 COPY package.json yarn.lock ./
+COPY .husky/install.mjs ./.husky/
 COPY apps/web/package.json ./apps/web/
 COPY packages/shared/package.json ./packages/shared/
 
@@ -25,6 +27,10 @@ ENV NODE_ENV=production
 
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+# T-543: NEXT_PUBLIC_* values are inlined by `next build`, so each one must be a build ARG.
+# Empty or unset keeps the footer fallback ("For complaints, write to contact@lawie.in.").
+ARG NEXT_PUBLIC_GRIEVANCE_OFFICER_NAME
+ENV NEXT_PUBLIC_GRIEVANCE_OFFICER_NAME=$NEXT_PUBLIC_GRIEVANCE_OFFICER_NAME
 
 WORKDIR /app/apps/web
 RUN yarn build

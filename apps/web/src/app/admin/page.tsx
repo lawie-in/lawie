@@ -7,7 +7,7 @@
  *
  * Layout chrome lives in apps/web/src/app/admin/layout.tsx. This page renders:
  *   • Top: title + Export CSV + New referral code shortcut
- *   • 4 KPI tiles (active advocates, drafts, panel reviews pending, free→paid)
+ *   • 5 KPI tiles (active advocates, drafts, panel reviews pending, free→paid, ink in circulation)
  *   • Two-column body: Recent activity (left, ~60%) + side rail (right, ~40%)
  *     — side rail stacks AI runtime + monthly revenue
  *   • Bottom: Top referral codes table
@@ -26,6 +26,7 @@ interface Kpis {
   panelReviewsPending: { value: number; overdue: number };
   conversion: { valuePct: number; deltaPct: number };
   monthlyRevenue: { inr: number; paid: number; newPaid: number; churn: number };
+  inkCirculation?: number;
 }
 
 interface ActivityItem {
@@ -49,12 +50,32 @@ interface TopReferral {
   createdAt: string;
 }
 
+type ActivityTab = 'all' | 'signups' | 'drafts' | 'reviews' | 'topups';
+
+const ACTIVITY_TAB_LABELS: { key: ActivityTab; label: string }[] = [
+  { key: 'all', label: 'All' },
+  { key: 'signups', label: 'Signups' },
+  { key: 'drafts', label: 'Drafts' },
+  { key: 'reviews', label: 'Reviews' },
+  { key: 'topups', label: 'Topups' },
+];
+
+const ACTIVITY_TYPE_MAP: Record<ActivityTab, ActivityItem['type'][]> = {
+  all: ['signup', 'draft', 'review', 'redemption', 'topup'],
+  signups: ['signup'],
+  drafts: ['draft'],
+  reviews: ['review'],
+  topups: ['topup', 'redemption'],
+};
+
 export default function AdminOverviewPage() {
   const [kpis, setKpis] = useState<Kpis | null>(null);
   const [activity, setActivity] = useState<ActivityItem[]>([]);
+  const [activityTab, setActivityTab] = useState<ActivityTab>('all');
   const [aiRuntime, setAiRuntime] = useState<AiRuntime | null>(null);
   const [topReferrals, setTopReferrals] = useState<TopReferral[]>([]);
   const [loading, setLoading] = useState(true);
+  const [csvExporting, setCsvExporting] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -83,16 +104,39 @@ export default function AdminOverviewPage() {
     })();
   }, []);
 
+  const filteredActivity = activity.filter((it) =>
+    ACTIVITY_TYPE_MAP[activityTab].includes(it.type),
+  );
+
+  const handleExportCsv = async () => {
+    setCsvExporting(true);
+    try {
+      const res = await apiFetch('/api/drafting/admin/overview/activity?format=csv');
+      if (!res.ok) return;
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `lawie-activity-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setCsvExporting(false);
+    }
+  };
+
   return (
     <div>
       <AdminPageHeader title="Operations overview" eyebrow="Updated just now">
-        <a
-          href="#"
-          onClick={(e) => e.preventDefault()}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+        <button
+          type="button"
+          onClick={() => void handleExportCsv()}
+          disabled={csvExporting}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
         >
-          <Download size={13} /> Export CSV
-        </a>
+          {csvExporting ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+          Export CSV
+        </button>
         <Link
           href="/admin/referral-codes"
           className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3.5 py-2 text-xs font-semibold text-white hover:bg-slate-700"
@@ -110,13 +154,15 @@ export default function AdminOverviewPage() {
 
       {/* KPI tiles */}
       {kpis && (
-        <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-5">
           <KpiTile
             label="Active advocates"
             value={kpis.activeAdvocates.value.toLocaleString('en-IN')}
-            delta={kpis.activeAdvocates.deltaWeek > 0
-              ? `+${kpis.activeAdvocates.deltaWeek} this week`
-              : 'No change this week'}
+            delta={
+              kpis.activeAdvocates.deltaWeek > 0
+                ? `+${kpis.activeAdvocates.deltaWeek} this week`
+                : 'No change this week'
+            }
             positive={kpis.activeAdvocates.deltaWeek > 0}
           />
           <KpiTile
@@ -150,6 +196,16 @@ export default function AdminOverviewPage() {
             }
             positive={kpis.conversion.deltaPct >= 0}
           />
+          <KpiTile
+            label="Ink in circulation"
+            value={
+              kpis.inkCirculation !== null && kpis.inkCirculation !== undefined
+                ? Math.floor(kpis.inkCirculation / 2).toLocaleString('en-IN')
+                : '—'
+            }
+            delta="across all advocates"
+            positive={true}
+          />
         </div>
       )}
 
@@ -158,26 +214,32 @@ export default function AdminOverviewPage() {
         <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
           <header className="mb-3 flex items-center justify-between">
             <h2 className="text-sm font-semibold text-slate-800">Recent activity</h2>
-            <div className="flex items-center gap-1 rounded-lg bg-slate-100 p-0.5 text-[10px] font-medium">
-              {['All', 'Signups', 'Drafts', 'Reviews'].map((label) => (
-                <span
-                  key={label}
-                  className={`rounded-md px-2 py-1 ${
-                    label === 'All' ? 'bg-slate-900 text-white' : 'text-slate-500'
+            <div className="flex items-center gap-0.5 rounded-lg bg-slate-100 p-0.5 text-[10px] font-medium">
+              {ACTIVITY_TAB_LABELS.map(({ key, label }) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setActivityTab(key)}
+                  className={`rounded-md px-2.5 py-1 transition ${
+                    activityTab === key
+                      ? 'bg-slate-900 text-white'
+                      : 'text-slate-500 hover:text-slate-700'
                   }`}
                 >
                   {label}
-                </span>
+                </button>
               ))}
             </div>
           </header>
           <ul className="divide-y divide-slate-100">
-            {activity.length === 0 ? (
+            {filteredActivity.length === 0 ? (
               <li className="py-6 text-center text-xs text-slate-400">
-                No recent activity in the last 7 days.
+                {activity.length === 0
+                  ? 'No recent activity in the last 7 days.'
+                  : `No ${activityTab === 'all' ? '' : activityTab + ' '}activity to show.`}
               </li>
             ) : (
-              activity.slice(0, 8).map((it, i) => (
+              filteredActivity.slice(0, 8).map((it, i) => (
                 <li key={i} className="flex items-start gap-3 py-3 text-sm">
                   <span
                     className={`mt-1 h-1.5 w-1.5 flex-shrink-0 rounded-full ${
@@ -192,11 +254,9 @@ export default function AdminOverviewPage() {
                               : 'bg-slate-400'
                     }`}
                   />
-                  <div className="flex-1 min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p className="font-medium text-slate-800">{it.label}</p>
-                    {it.detail && (
-                      <p className="truncate text-xs text-slate-500">{it.detail}</p>
-                    )}
+                    {it.detail && <p className="truncate text-xs text-slate-500">{it.detail}</p>}
                   </div>
                   <span className="flex-shrink-0 text-[11px] text-slate-400">
                     {relativeTime(it.at)}
@@ -249,11 +309,7 @@ export default function AdminOverviewPage() {
                   value={kpis.monthlyRevenue.paid.toLocaleString('en-IN')}
                   tint="text-slate-100"
                 />
-                <Stat
-                  label="New"
-                  value={`+${kpis.monthlyRevenue.newPaid}`}
-                  tint="text-green-400"
-                />
+                <Stat label="New" value={`+${kpis.monthlyRevenue.newPaid}`} tint="text-green-400" />
                 <Stat
                   label="Churn"
                   value={String(kpis.monthlyRevenue.churn)}
@@ -269,7 +325,10 @@ export default function AdminOverviewPage() {
       <section className="mt-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
         <header className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-slate-800">Top referral codes</h2>
-          <Link href="/admin/referral-codes" className="text-xs font-medium text-amber-700 hover:text-amber-900">
+          <Link
+            href="/admin/referral-codes"
+            className="text-xs font-medium text-amber-700 hover:text-amber-900"
+          >
             Manage all →
           </Link>
         </header>
@@ -353,7 +412,9 @@ function RuntimeRow({ label, value, ok }: { label: string; value: string; ok: bo
   return (
     <div className="flex items-center justify-between py-1.5 text-xs">
       <code className="font-mono text-slate-600">{label}</code>
-      <span className={`flex items-center gap-1 font-mono ${ok ? 'text-slate-800' : 'text-amber-700'}`}>
+      <span
+        className={`flex items-center gap-1 font-mono ${ok ? 'text-slate-800' : 'text-amber-700'}`}
+      >
         {!ok && <Sparkles size={11} />}
         {value}
       </span>

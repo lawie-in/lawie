@@ -13,6 +13,7 @@ import './setupDb';
 import supertest from 'supertest';
 
 import app from '../app';
+import { seedVerifiedUsers } from './verifiedUser';
 import { BonusCredit } from '../models/BonusCredit.model';
 // Generation import was used by the legacy "falls to monthly limit" test that
 // the SCRUM-73 rewrite replaced — kept here as a comment so the symbol is
@@ -130,10 +131,7 @@ describe('enforceFreeLimit — bonus deduction', () => {
 
     // Simulate enforceFreeLimit consuming one bonus draft:
     // directly call the update that enforceFreeLimit performs
-    await BonusCredit.updateOne(
-      { userId: USER_ID, used: { $lt: 25 } },
-      { $inc: { used: 1 } },
-    );
+    await BonusCredit.updateOne({ userId: USER_ID, used: { $lt: 25 } }, { $inc: { used: 1 } });
 
     const bc = await BonusCredit.findOne({ userId: USER_ID });
     expect(bc!.used).toBe(1);
@@ -143,15 +141,17 @@ describe('enforceFreeLimit — bonus deduction', () => {
 
   it('refuses generation with 402 when user has zero credits (post SCRUM-73)', async () => {
     // SCRUM-73 — enforceFreeLimit replaced with enforceCredits. With no
-    // credits in any bucket the route now responds 402 "Insufficient credits".
+    // credits in any bucket the route now responds 402 "Insufficient Ink".
     const res = await supertest(app)
       .post('/generate-from-template')
       .set(AUTH)
       .send({ template_id: 'bail_anticipatory', form_data: { applicant_name: 'Test' } });
 
     expect(res.status).toBe(402);
-    expect(res.body.error).toMatch(/Insufficient credits/);
-    expect(res.body.cost).toBe(2);   // bail_anticipatory costs 2 credits
+    expect(res.body.error).toMatch(/Insufficient Ink/);
+    expect(res.body.cost).toBe(2); // bail_anticipatory costs 2 credits
     expect(res.body.balance.total).toBe(0);
   });
 });
+
+seedVerifiedUsers('507f1f77bcf86cd799439011');

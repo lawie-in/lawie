@@ -14,24 +14,32 @@
  *     uses the jobId for dedupe.
  *
  * One queue per priority tier (per ADR latency budgets):
- *   email:high → verifyEmail, passwordReset, paymentReceipt, paymentFailed
+ *   email:high → verifyEmail, passwordReset (T-221), signupAttempt (T-522), paymentReceipt,
+ *                paymentFailed
  *   email:low  → digest, draftComplete, monthlyInvoice, lowCredit, referral,
- *                advocatePackInvite, welcome
+ *                advocatePackInvite, welcome, unverifiedDeletionNotice (T-358)
  */
+import { randomUUID } from 'crypto';
+
 import { Queue, JobsOptions } from 'bullmq';
 import Redis from 'ioredis';
 
 // ── Template registry (compile-time literal union) ──────────────────────────
 //
-// Founder decision 2026-05-17: only Google OAuth ships in Phase 1, so
-// auth.verifyEmail (Google pre-verifies) and auth.passwordReset (no password)
-// are not on this list. Re-introduce them later if non-OAuth login lands.
+// Email and password sign-up shipped after the 2026-05-17 Google-only decision, so
+// T-223 (12 Oct 2026) adds auth.verifyEmail back. T-221 adds auth.passwordReset.
 export type EmailTemplate =
   | 'auth.welcome'
+  | 'auth.verifyEmail'
+  | 'auth.passwordReset'
+  | 'auth.unverifiedDeletionNotice'
+  | 'auth.signupAttempt'
   | 'billing.subscriptionConfirmed'
   | 'billing.paymentFailed'
   | 'billing.monthlyInvoice'
   | 'billing.lowCreditWarning'
+  | 'billing.taxInvoice'
+  | 'billing.creditNote'
   | 'drafting.draftComplete'
   | 'admin.referralIssued'
   | 'admin.advocatePackInvite'
@@ -47,10 +55,19 @@ const QUEUE_BY_TIER = {
 /** Template → tier (latency budget). */
 const TIER_BY_TEMPLATE: Record<EmailTemplate, 'high' | 'low'> = {
   'auth.welcome': 'low',
+  'auth.verifyEmail': 'high',
+  // T-221: the user is waiting on the forgot-password screen.
+  'auth.passwordReset': 'high',
+  // T-358: deletion is held until this is sent, so it is not latency-critical.
+  'auth.unverifiedDeletionNotice': 'low',
+  // T-522: the existing-address mail on a sign-up attempt; the owner may be on the sign-up screen.
+  'auth.signupAttempt': 'high',
   'billing.subscriptionConfirmed': 'high',
   'billing.paymentFailed': 'high',
   'billing.monthlyInvoice': 'low',
   'billing.lowCreditWarning': 'low',
+  'billing.taxInvoice': 'high',
+  'billing.creditNote': 'high',
   'drafting.draftComplete': 'low',
   'admin.referralIssued': 'low',
   'admin.advocatePackInvite': 'low',
@@ -59,8 +76,16 @@ const TIER_BY_TEMPLATE: Record<EmailTemplate, 'high' | 'low'> = {
 
 // ── Public API ──────────────────────────────────────────────────────────────
 
-export interface EnqueueEmailInput {
-  template: EmailTemplate;
+/** Templates whose job carries a userId only; the worker asks auth for the address. */
+export type UserIdOnlyTemplate =
+  | 'auth.verifyEmail'
+  | 'auth.passwordReset'
+  | 'auth.unverifiedDeletionNotice'
+  | 'auth.signupAttempt';
+
+/** Every template except the userId-only ones: the producer knows and sends the address. */
+export interface EnqueueAddressedEmailInput {
+  template: Exclude<EmailTemplate, UserIdOnlyTemplate>;
   to: string | string[];
   data: Record<string, unknown>;
   cc?: string[];
@@ -72,10 +97,102 @@ export interface EnqueueEmailInput {
   idempotencyKey?: string;
 }
 
+/**
+ * T-223 (Arjun, condition 1): the verify-email job carries the userId only. No address, no
+ * token, no link: the worker asks auth (/internal/verify-email/mint) for all three when it
+ * runs the job. No idempotencyKey: the resend cap is enforced in auth before enqueueEmail is
+ * called.
+ *
+ * T-390: at most ONE pending verify job per user (BullMQ deduplication, id `verify:<userId>`,
+ * no ttl). While the worker is held (T-379, unfilled footer), resends used to pile up N jobs,
+ * which on release meant N mints and N emails with only the last link working. Now a resend
+ * that finds the user's job still waiting (or delayed for a retry) is dropped and the result
+ * says `deduped: true`. The token is minted at SEND time, so the one email that goes out
+ * carries the newest, working link.
+ *
+ * The dedup key lives only while that job is waiting / delayed / active: BullMQ deletes it
+ * when the job completes or finally fails (or is removed). A resend after the email has gone
+ * out queues a new job as normal. If a resend arrives while the job is ACTIVE (minting /
+ * sending), it is also dropped: the user gets the email being sent right now, and its link
+ * is valid because nothing mints after it. That is acceptable. `replace` / `extend` /
+ * `keepLastIfActive` are deliberately not used (the job data is identical, so there is
+ * nothing newer to keep).
+ *
+ * Retry backoff counts as pending: if the send failed and the job is delayed waiting for its
+ * next attempt, a resend in that window is dropped too (the retry will mint and send). This
+ * costs at most about one wasted resend against the cap, in line with Arjun's T-390 AC2 ruling
+ * (the resend cap stays as is).
+ *
+ * T-416: if the dedup key points at a job that no longer exists (its hash was deleted outside
+ * BullMQ, e.g. a manual DEL / FLUSH or eviction), the orphaned key is removed and the job is
+ * added once more, so a stale key cannot block a user's verify emails.
+ *
+ * A fixed jobId such as `verify-<userId>` is NOT used: the completed job is kept 7 days
+ * (removeOnComplete), so a fixed id would silently swallow a real later resend. Each add gets
+ * a random jobId instead, which is only how a dedup hit is detected (BullMQ returns the
+ * EXISTING job's id on a hit).
+ */
+export interface EnqueueVerifyEmailInput {
+  template: 'auth.verifyEmail';
+  userId: string;
+  /** Optional explicit priority; defaults to TIER_BY_TEMPLATE['auth.verifyEmail'] ('high'). */
+  priority?: 'high' | 'low';
+}
+
+/**
+ * T-358 (Arjun ruling 2): the unverified-account deletion notice carries the userId only, like
+ * T-223. The worker asks auth (/internal/unverified-notice/prepare) which notice is due, the
+ * variant, address, name, deletion date and (variant A) a fresh verify link at send time, and
+ * reports the outcome back. No address in Redis. The auth sweep passes idempotencyKey
+ * `unverified-notice:<userId>:<first|warning>` (used as the jobId, so a second enqueue of the
+ * same notice while its job is kept is dropped, and the first notice never blocks the warning).
+ */
+export interface EnqueueUnverifiedNoticeInput {
+  template: 'auth.unverifiedDeletionNotice';
+  userId: string;
+  idempotencyKey?: string;
+  priority?: 'high' | 'low';
+}
+
+/**
+ * T-221 (Priya, T-220 note): the password-reset email carries the userId only. No address, no
+ * token, no link: the worker asks auth (/internal/password-reset/mint) at send time, which
+ * mints a fresh reset token (or, for a Google-only account, says so) and returns the address.
+ * No idempotencyKey: auth rate-limits forgot-password requests before enqueueEmail is called,
+ * and each mint replaces the previous token, so only the newest link works.
+ */
+export interface EnqueuePasswordResetInput {
+  template: 'auth.passwordReset';
+  userId: string;
+  priority?: 'high' | 'low';
+}
+
+/**
+ * T-522 (AJ-522-M5): the "Someone tried to create a Lawie account" mail to an existing address
+ * carries the userId only (T-223 condition 1: no address in Redis). The worker asks auth
+ * (/internal/signup-attempt/prepare) for the address and the sign-in and reset page links. No
+ * idempotencyKey: auth sends at most one per address per hour (SET NX) before enqueueEmail.
+ */
+export interface EnqueueSignupAttemptInput {
+  template: 'auth.signupAttempt';
+  userId: string;
+  priority?: 'high' | 'low';
+}
+
+export type EnqueueEmailInput =
+  | EnqueueAddressedEmailInput
+  | EnqueueVerifyEmailInput
+  | EnqueuePasswordResetInput
+  | EnqueueUnverifiedNoticeInput
+  | EnqueueSignupAttemptInput;
+
 export interface EnqueueEmailResult {
   jobId: string;
   queue: 'email-high' | 'email-low';
-  /** True when an existing job with the same idempotencyKey already existed. */
+  /**
+   * True when nothing was added: an existing job with the same idempotencyKey already existed,
+   * or (auth.verifyEmail, T-390) the user already had a verify job pending.
+   */
   deduped: boolean;
 }
 
@@ -89,6 +206,106 @@ export async function enqueueEmail(input: EnqueueEmailInput): Promise<EnqueueEma
   const queue = getQueue(queueName);
 
   const jobName = input.template;
+  const opts: JobsOptions = {
+    removeOnComplete: { age: 7 * 24 * 60 * 60, count: 1000 }, // keep 7 days / 1000 most recent
+    removeOnFail: { age: 30 * 24 * 60 * 60 }, // keep 30 days for replay
+    attempts: tier === 'high' ? 5 : 3,
+    backoff: { type: 'exponential', delay: 5_000 },
+  };
+
+  if (input.template === 'auth.verifyEmail') {
+    // No recipient in the job: `to` stays empty and the worker resolves it through auth.
+    const verifyJobData = {
+      template: input.template,
+      to: [] as string[],
+      cc: [] as string[],
+      bcc: [] as string[],
+      data: { userId: input.userId },
+    };
+    // T-390: one pending verify job per user. No ttl: the key is cleared when the job
+    // completes or finally fails, so a resend after a send queues normally.
+    const deduplicationId = `verify:${input.userId}`;
+    const addVerifyJob = async (): Promise<EnqueueEmailResult> => {
+      const requestedJobId = `verify-${randomUUID()}`;
+      const verifyJob = await queue.add(jobName, verifyJobData, {
+        ...opts,
+        jobId: requestedJobId,
+        deduplication: { id: deduplicationId },
+      });
+      // On a dedup hit BullMQ adds nothing and returns the id of the job already pending.
+      const verifyJobId = verifyJob.id ?? requestedJobId;
+      return {
+        jobId: String(verifyJobId),
+        queue: queueName,
+        deduped: verifyJobId !== requestedJobId,
+      };
+    };
+
+    const first = await addVerifyJob();
+    if (!first.deduped) return first;
+
+    // T-416: the dedup key points at a job whose hash is gone (deleted outside BullMQ: manual
+    // DEL / FLUSH, eviction). BullMQ would keep dropping every resend for this user, so drop
+    // the orphaned key and add once more. One retry only, no loop.
+    const pending = await queue.getJob(first.jobId);
+    if (pending) return first;
+    await queue.removeDeduplicationKey(deduplicationId);
+    return addVerifyJob();
+  }
+
+  if (input.template === 'auth.passwordReset') {
+    // T-221: no recipient, token or link in the job; the worker resolves them through auth.
+    const resetJobData = {
+      template: input.template,
+      to: [] as string[],
+      cc: [] as string[],
+      bcc: [] as string[],
+      data: { userId: input.userId },
+    };
+    const resetJob = await queue.add(jobName, resetJobData, opts);
+    return { jobId: String(resetJob.id ?? jobName), queue: queueName, deduped: false };
+  }
+
+  if (input.template === 'auth.signupAttempt') {
+    // T-522: no recipient in the job; the worker resolves it through auth at send time.
+    const attemptJobData = {
+      template: input.template,
+      to: [] as string[],
+      cc: [] as string[],
+      bcc: [] as string[],
+      data: { userId: input.userId },
+    };
+    const attemptJob = await queue.add(jobName, attemptJobData, opts);
+    return { jobId: String(attemptJob.id ?? jobName), queue: queueName, deduped: false };
+  }
+
+  if (input.template === 'auth.unverifiedDeletionNotice') {
+    // T-358: no recipient in the job; the worker resolves it through auth at send time.
+    const noticeJobData = {
+      template: input.template,
+      to: [] as string[],
+      cc: [] as string[],
+      bcc: [] as string[],
+      data: { userId: input.userId },
+    };
+    if (input.idempotencyKey) opts.jobId = input.idempotencyKey;
+    // T-358 review: keep completed notice jobs by AGE only (7 days), not by the shared 1000-job
+    // count, which the sweep's 200/hour can cycle through in hours. While the job is kept, its
+    // jobId dedupes a re-queue, so a send whose outcome report failed is not repeated with a new
+    // date. Failed-job retention (30 days) is unchanged.
+    opts.removeOnComplete = { age: 7 * 24 * 60 * 60 };
+    const noticeJob = await queue.add(jobName, noticeJobData, opts);
+    const noticeDeduped =
+      typeof input.idempotencyKey === 'string' &&
+      typeof noticeJob.timestamp === 'number' &&
+      Date.now() - noticeJob.timestamp > 1000;
+    return {
+      jobId: String(noticeJob.id ?? input.idempotencyKey ?? jobName),
+      queue: queueName,
+      deduped: noticeDeduped,
+    };
+  }
+
   const jobData = {
     template: input.template,
     to: Array.isArray(input.to) ? input.to : [input.to],
@@ -98,12 +315,6 @@ export async function enqueueEmail(input: EnqueueEmailInput): Promise<EnqueueEma
     data: input.data,
   };
 
-  const opts: JobsOptions = {
-    removeOnComplete: { age: 7 * 24 * 60 * 60, count: 1000 }, // keep 7 days / 1000 most recent
-    removeOnFail: { age: 30 * 24 * 60 * 60 }, // keep 30 days for replay
-    attempts: tier === 'high' ? 5 : 3,
-    backoff: { type: 'exponential', delay: 5_000 },
-  };
   if (input.idempotencyKey) {
     opts.jobId = input.idempotencyKey;
   }

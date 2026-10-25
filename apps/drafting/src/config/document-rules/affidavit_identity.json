@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. Vishal may flag missing fields by Jira ticket; he must not author legal content unilaterally."
   },
   "template_id": "affidavit_identity",
+  "card_description": "A sworn affidavit confirming a person's identity, for banks, offices and property work.",
   "docType": "affidavit_identity",
   "parentDocType": "affidavit",
   "title": "Affidavit of Identity",
@@ -91,7 +92,14 @@
       "required": false
     },
     { "name": "execution_date", "label": "Date of Execution", "type": "date", "required": true },
-    { "name": "execution_place", "label": "Place of Execution", "type": "text", "required": true },
+    {
+      "name": "execution_place",
+      "label": "Place of execution",
+      "type": "text",
+      "required": true,
+      "help": "City or town where the document will be signed.",
+      "ask_when_empty": true
+    },
     {
       "name": "stamp_paper_value",
       "label": "Stamp Paper Value (₹)",
@@ -162,7 +170,7 @@
   ],
   "prayerTemplate": "",
   "verificationTemplate": "VERIFICATION\n\nI, the deponent above-named, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above affidavit are true to my personal knowledge. No part of it is false and nothing material has been concealed therefrom.\n\nVerified at {place} on this {date}.\n\nDeponent",
-  "prompt_context": "Draft an Affidavit of Identity (also called 'one-and-same person' affidavit, name affidavit, or KYC affidavit). This is a non-court document, executed before a Notary Public under the Notaries Act, 1952, or before an Oath Commissioner. Common purposes: (a) reconciling different spellings of name across documents (PAN vs Aadhaar vs school certificate); (b) confirming permanent address; (c) declaring change of name; (d) submitting to bank for KYC; (e) submitting to government department for verification. Executed on non-judicial stamp paper of value as per state (typically ₹10-₹100). STRUCTURE: (1) heading 'AFFIDAVIT' (no court cause-title since this is non-court); (2) 'Before the Notary Public, [city]' line; (3) deponent identification; (4) 'do hereby solemnly affirm and declare as under:'; (5) factual paragraphs; (6) name-reconciliation paragraph (if applicable); (7) purpose paragraph; (8) verification; (9) deponent signature; (10) notary attestation block. NEVER include any IPC reference — use BNS where relevant. False statements in affidavits attract BNS Section 229 (giving false evidence) / BNS Section 230 (fabricating false evidence) — same as IPC 191/192.",
+  "prompt_context": "Draft an Affidavit of Identity (also called 'one-and-same person' affidavit, name affidavit, or KYC affidavit). This is a non-court document, executed before a Notary Public under the Notaries Act, 1952, or before an Oath Commissioner. Common purposes: (a) reconciling different spellings of name across documents (PAN vs Aadhaar vs school certificate); (b) confirming permanent address; (c) declaring change of name; (d) submitting to bank for KYC; (e) submitting to government department for verification. Executed on non-judicial stamp paper of value as per state (typically ₹10-₹100). STRUCTURE: (1) heading 'AFFIDAVIT' (no court cause-title since this is non-court); (2) 'Before the Notary Public, [city]' line; (3) deponent identification; (4) 'do hereby solemnly affirm and declare as under:'; (5) factual paragraphs; (6) name-reconciliation paragraph (if applicable); (7) purpose paragraph; (8) verification; (9) deponent signature; (10) notary attestation block. Do not cite any penal provision in the affidavit.",
   "promptInstructions": [
     "Draft a non-court Affidavit of Identity for the purpose specified.",
     "Open with 'AFFIDAVIT' centred at the top.",
@@ -175,7 +183,7 @@
     "Add the verification clause.",
     "Add a signature block for the deponent.",
     "Add attestation block for Notary / Oath Commissioner with seal and register entry placeholder.",
-    "Do NOT include any IPC reference — if citing penalty for false affidavit, use BNS Sections 229-230.",
+    "Do not cite any penal provision in the affidavit.",
     "Do NOT include court cause-title — this is a non-court document."
   ],
   "relevantActs": [
@@ -191,8 +199,9 @@
     {
       "act": "Bharatiya Nyaya Sanhita (BNS), 2023",
       "sections": [
-        { "number": "229", "description": "False evidence — penalty (successor to IPC 191/193)" },
-        { "number": "230", "description": "Fabricating false evidence (successor to IPC 192/194)" }
+        { "number": "227", "description": "Giving false evidence (successor to IPC 191)" },
+        { "number": "228", "description": "Fabricating false evidence (successor to IPC 192)" },
+        { "number": "229", "description": "Punishment for false evidence (successor to IPC 193)" }
       ]
     },
     {

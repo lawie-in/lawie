@@ -22,6 +22,8 @@ export interface ITemplate extends Document {
   displayName: string;
   slug: string;
   category: string;
+  /** T-240: library category id (one of T-239's 26), from config/catalogue. */
+  catalogueCategory: string;
   description: string;
   icon: string;
   planAccess: 'free' | 'pro';
@@ -52,8 +54,10 @@ const TemplateSchema = new Schema<ITemplate>(
       trim: true,
       lowercase: true,
     },
-    // Kept as a duplicate of templateId for backwards-compat with the existing
-    // `/templates/:slug` route; sync service writes both to the same value.
+    // A duplicate of templateId (the catalogue template_id); the sync service
+    // writes both to the same value. Kept because pre-SCRUM-80 rows may have
+    // only slug: the sync service and GET /templates' hidden-template filter
+    // (T-385) match on either. No route reads it by slug (T-385 removed /:slug).
     slug: {
       type: String,
       required: true,
@@ -63,13 +67,18 @@ const TemplateSchema = new Schema<ITemplate>(
     },
     displayName: { type: String, required: true, trim: true, maxlength: 200 },
     category: { type: String, required: true, trim: true },
+    // T-240: the library category, from config/catalogue (never the rule file).
+    // `category` above stays the behaviour value. The seed always writes it.
+    catalogueCategory: { type: String, required: true, trim: true },
     description: { type: String, default: '', maxlength: 2000 },
     icon: { type: String, default: 'file-text' },
     planAccess: { type: String, enum: ['free', 'pro'], default: 'free' },
     courtLevels: { type: [String], default: [] },
     states: { type: [String], default: ['all'] },
     supportedLanguages: { type: [String], default: ['en'] },
-    creditsCost: { type: Number, default: 1, min: 0 },
+    // T-227: no default. The seed writes the price from the one price list
+    // (credits.service TEMPLATE_PRICES); a row without one is invalid.
+    creditsCost: { type: Number, required: true, min: 0 },
     formSchema: { type: Schema.Types.Mixed, default: () => ({ steps: [] }) },
     documentStructure: { type: Schema.Types.Mixed, default: () => ({ sections: [] }) },
     validationRules: { type: Schema.Types.Mixed, default: () => ({}) },
@@ -86,6 +95,7 @@ const TemplateSchema = new Schema<ITemplate>(
 
 // Indexes — catalog filters by plan + category, sort by display name.
 TemplateSchema.index({ category: 1 });
+TemplateSchema.index({ catalogueCategory: 1 });
 TemplateSchema.index({ planAccess: 1 });
 TemplateSchema.index({ isActive: 1 });
 TemplateSchema.index({ courtLevels: 1 });

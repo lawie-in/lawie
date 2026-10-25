@@ -10,7 +10,7 @@
   "courtId": "cjm_generic",
   "courtType": "cjm",
   "designation": "IN THE COURT OF CHIEF JUDICIAL MAGISTRATE",
-  "jurisdictionNote": "Chief Judicial Magistrate — jurisdiction under S.16 BNSS. Tries offences punishable with imprisonment up to 7 years. Has powers of remand (S.187 BNSS), first bail hearing for non-bailable offences within CJM jurisdiction, and supervisory authority over JMFCs in the district.",
+  "jurisdictionNote": "Chief Judicial Magistrate (S.10 BNSS). May pass any sentence authorised by law except death, imprisonment for life or imprisonment for a term exceeding seven years (S.23 BNSS). Has powers of remand (S.187 BNSS), first bail hearing for non-bailable offences within CJM jurisdiction, and supervisory authority over JMFCs in the district.",
   "cause_title_format": "{courtDesignation}, {city}\n{caseNomenclature}\n\n{petitioner} ... APPLICANT/ACCUSED\n\nVERSUS\n\n{respondent} ... COMPLAINANT/STATE",
   "party_designation": {
     "petitioner": "Applicant",
@@ -22,8 +22,8 @@
     "state": "State through the S.H.O., P.S. {policeStation}"
   },
   "case_nomenclature": {
-    "regular_bail": "Criminal Case No. _____ of {year}",
-    "default_bail": "Criminal Case No. _____ of {year}",
+    "regular_bail": "Bail Application No. _____ of {year}",
+    "default_bail": "Bail Application No. _____ of {year}",
     "complaint_case": "Complaint Case No. _____ of {year}",
     "misc_criminal": "Criminal Misc. No. _____ of {year}",
     "remand_application": "Remand Application No. _____ of {year}",
@@ -52,7 +52,7 @@
     "causeListFormat": "{courtDesignation}, {city}"
   },
   "localRules": [
-    "CJM has jurisdiction over offences punishable up to 7 years (S.16 BNSS).",
+    "A CJM may pass any sentence authorised by law except death, imprisonment for life or imprisonment for a term exceeding seven years (S.23 BNSS).",
     "Bail applications for non-bailable offences within CJM jurisdiction to mention FIR details and custody period.",
     "All applications to be filed with index and pagination.",
     "Vakalatnama to be filed at the first instance.",

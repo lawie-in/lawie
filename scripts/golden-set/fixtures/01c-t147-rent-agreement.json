@@ -1,0 +1,78 @@
+{
+  "id": "1c-t147-rent-agreement",
+  "pack": "rent_agreement",
+  "title": "Fixture 1c: Anushka's T-147 rent agreement (Patna)",
+  "risk": "T-147 defect class 2 on a deed: 'har mahine ki 5 tarikh tak' became 'within 5 days of the due date', both fathers' names and 'sirf rehne ke liye' were lost, and 'Floor: 3B' was invented from the flat number",
+  "source": "handoff/quality/2026-10-07-run-2-develop-FAIL.md scenario 7 and finding 2. Not one of the five seeded packs (rent_agreement is default-deny); it is fixture 1c because AC2 names the rent terms.",
+  "review": "drafted by dev from Anushka's reports, not yet reviewed by Anushka",
+  "ajay": null,
+  "language": "en",
+  "description": "Rent agreement banana hai, Patna. Makaan malik Ram Kishore Sinha s/o Late Shiv Kishore Sinha, kirayedar Amit Kumar s/o Mahesh Prasad. Flat no. 3B, Testvilla Apartment, Boring Road, Patna. Kiraya 12000 rupaye, har mahine ki 5 tarikh tak dena hoga. Security 24000. 11 mahine ke liye, 1 Nov 2026 se. Notice 1 mahina. Sirf rehne ke liye.",
+  "court": null,
+  "expect": {
+    "exact": [
+      {
+        "any_of": [
+          "har mahine ki 5 tarikh tak"
+        ],
+        "why": "AC2: the rent terms, character-exact"
+      },
+      {
+        "any_of": [
+          "sirf rehne ke liye",
+          "Sirf rehne ke liye"
+        ],
+        "why": "AC2: the permitted use in her words"
+      },
+      {
+        "any_of": [
+          "Shiv Kishore Sinha"
+        ],
+        "why": "run 2: the landlord's father's name was lost"
+      },
+      {
+        "any_of": [
+          "Mahesh Prasad"
+        ],
+        "why": "run 2: the tenant's father's name was lost"
+      }
+    ],
+    "absent": [
+      {
+        "any_of": [
+          "within 5 days of the due date"
+        ],
+        "why": "run 2: her rent term was rewritten"
+      },
+      {
+        "any_of": [
+          "Floor: 3B",
+          "Floor 3B"
+        ],
+        "why": "run 2: 3B is the flat number, not a floor"
+      }
+    ],
+    "ledger": [
+      {
+        "key": "rent_due_date",
+        "why": "read from the description",
+        "display": "har mahine ki 5 tarikh tak"
+      },
+      {
+        "key": "permitted_use",
+        "why": "read from the description",
+        "display": "Sirf rehne ke liye"
+      },
+      {
+        "key": "applicant_name",
+        "why": "read from the description",
+        "display": "Ram Kishore Sinha"
+      },
+      {
+        "key": "respondent_name",
+        "why": "read from the description",
+        "display": "Amit Kumar"
+      }
+    ]
+  }
+}

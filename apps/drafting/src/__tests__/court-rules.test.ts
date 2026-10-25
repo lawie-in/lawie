@@ -49,6 +49,9 @@ const REQUIRED_RULE_FIELDS = [
 const courtsData: CourtsFile = JSON.parse(readFileSync(COURTS_JSON_PATH, 'utf-8'));
 const ruleFiles = readdirSync(COURT_RULES_DIR).filter((f) => f.endsWith('.json'));
 
+// T-428: exact pending-confirmation line exempt from the {year} rule below.
+const PENDING_CASE_LINE = '[To be confirmed: case type and number]';
+
 describe('Court Rules — Data Integrity (SCRUM-50 CLO review)', () => {
   // ── Test 1: Every court's formattingRulesRef resolves to existing rule file ──
   describe('formattingRulesRef resolution', () => {
@@ -133,12 +136,26 @@ describe('Court Rules — Data Integrity (SCRUM-50 CLO review)', () => {
         const rule: CourtRuleFile = JSON.parse(
           readFileSync(join(COURT_RULES_DIR, filename), 'utf-8'),
         );
+        // Leaves may be flat strings or nested (state -> matter) blocks.
+        const walk = (node: unknown, path: string): void => {
+          if (typeof node === 'string') {
+            // T-428: high_court_generic's pending line (Ajay's OK outstanding). Drop this
+            // exemption (and the constant) if the line gets a number format.
+            if (node === PENDING_CASE_LINE) return;
+            expect(node).toContain('{year}');
+            // Should not be empty
+            expect(node.replace('{year}', '').trim().length).toBeGreaterThan(5);
+            // Prevent test from being useless
+            expect(path.length).toBeGreaterThan(0);
+          } else {
+            expect(node).toEqual(expect.any(Object));
+            for (const [k, v] of Object.entries(node as Record<string, unknown>)) {
+              walk(v, `${path}.${k}`);
+            }
+          }
+        };
         for (const [docType, format] of Object.entries(rule.case_nomenclature)) {
-          expect(format).toContain('{year}');
-          // Should not be empty
-          expect(format.replace('{year}', '').trim().length).toBeGreaterThan(5);
-          // Prevent test from being useless
-          expect(docType.length).toBeGreaterThan(0);
+          walk(format, docType);
         }
       }
     });
@@ -161,6 +178,9 @@ describe('Court Rules — Data Integrity (SCRUM-50 CLO review)', () => {
       bench: 'BENCH A',
       assessment_year: '2025-26',
       company_name: 'XYZ Pvt. Ltd.',
+      // T-149: the cause-title suffixes come from the signed party labels
+      party_label_petitioner_upper: 'APPLICANT',
+      party_label_respondent_upper: 'OPPOSITE PARTY',
     };
 
     it.each(ruleFiles)('%s cause_title_format merges without unfilled placeholders', (filename) => {

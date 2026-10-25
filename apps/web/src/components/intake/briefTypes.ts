@@ -1,0 +1,550 @@
+/**
+ * The one drafting flow (T-125, ADR-021): what the brief API returns and the
+ * small pure helpers the screens share. Nothing here talks to the network and
+ * nothing here is stored in the browser.
+ *
+ * Shapes follow apps/drafting/src/services/intake-brief.ts (T-105) and the
+ * `generate-from-brief` route (T-106).
+ */
+
+import { blanksInContent } from '../editor/blankCount';
+
+export type ValueKind =
+  | 'text'
+  | 'narrative'
+  | 'date'
+  | 'number'
+  | 'amount'
+  | 'choice'
+  | 'choices'
+  | 'list';
+
+export type BriefPart = 'parties' | 'facts' | 'dates' | 'numbers' | 'relief';
+
+export type Value = string | string[];
+
+export interface BriefItem {
+  key: string;
+  part: BriefPart;
+  label: string;
+  kind: ValueKind;
+  required: boolean;
+  options: string[];
+  value: Value | null;
+  source: 'description' | 'user' | null;
+  quote?: string;
+  /** True for a value read from the description, or with a `note` to read. */
+  please_check: boolean;
+  /** The service's line shown with "Please check" (T-150). Shown as sent. */
+  note?: string;
+  /** An empty fact an edited description left unclear: asked again, shows its blank (T-150). */
+  reask?: boolean;
+  /** For a date: what it is the date of. */
+  meaning?: string;
+  /** The blank the draft shows while this is not given. */
+  placeholder: string;
+  party_name: boolean;
+  /**
+   * T-190: answered "Not known", or "none" where only a present fact is used.
+   * No value and no fact, but it counts as asked: its question is not open again.
+   */
+  asked_empty?: boolean;
+}
+
+export interface BriefCourt {
+  state: string | null;
+  court_type: string | null;
+  court: string | null;
+}
+
+export interface LooseDate {
+  value: string;
+  kind: string | null;
+  meaning: string | null;
+}
+
+export interface Brief {
+  kind: { id: string | null; name: string; court_document: boolean };
+  court: BriefCourt;
+  items: BriefItem[];
+  loose_dates: LooseDate[];
+  unplaced: Array<{ label: string; value: Value }>;
+  still_unknown: Array<{ key: string; label: string; placeholder: string }>;
+  can_confirm: boolean;
+  confirm_blockers: Array<'court' | 'parties'>;
+  confirm_message: string | null;
+  /** T-363 AC1: T-192's signed B2 line, when the brief's own s.138 dates give it. */
+  date_check?: { line: 'B2'; text: string };
+}
+
+export interface BriefQuestion {
+  key: string;
+  question: string;
+  round: 1 | 2;
+  label: string;
+  kind: ValueKind;
+  options: string[];
+  /** T-190: the pack's own signed question, printed as sent. */
+  source?: 'pack';
+  /**
+   * T-190 (AC8): asked to confirm a value the brief already shows. It stays open
+   * until the advocate answers it, even though the brief holds a value.
+   */
+  confirm?: boolean;
+}
+
+/** One thing the user gave, as the API takes it. */
+export interface GivenValue {
+  key: string;
+  value: Value;
+  source: 'description' | 'user';
+  quote?: string;
+  label?: string;
+  /** A typed name the edited description gives differently (T-150). Sent back so the mark stays. */
+  please_check?: boolean;
+}
+
+export interface BriefResponse {
+  intake_id?: string;
+  outcome: 'brief' | 'questions' | 'needs_choice' | 'no_match' | 'unavailable';
+  brief?: Brief;
+  questions?: BriefQuestion[];
+  /** With `questions` for a document with no rule pack: the round to send back. */
+  next_round?: number;
+  choices?: Array<{ kind: string; name: string }>;
+  needs_upgrade?: boolean;
+  /** T-147b: sent only while the fact ledger is on for the user. Without it the brief shows as before. */
+  ledger?: Ledger;
+}
+
+// ── The fact ledger (T-147b) ────────────────────────────────────────────────
+//
+// Shapes follow apps/drafting/src/services/fact-ledger.service.ts and
+// packages/shared/src/types/fact-ledger.ts. A fact links to its brief item by
+// `key`. The ledger is shown; it is not what the draft is written from (T-147c).
+
+export type FactType =
+  | 'amount'
+  | 'date'
+  | 'person_name'
+  | 'place_name'
+  | 'police_station'
+  | 'court'
+  | 'section_ref'
+  | 'case_number'
+  | 'text'
+  | 'enum'
+  | 'boolean';
+
+/** `user`: from the description. `asked`: typed in answer to a question or as an edit. */
+export type FactSource = 'user' | 'asked';
+
+export interface LedgerFact {
+  id: string;
+  key: string;
+  label: string;
+  type: FactType;
+  value: unknown;
+  /** What the screen and the draft print. */
+  display: string;
+  /** The advocate's own words, exactly as stored. */
+  raw_span: string;
+  source: FactSource;
+  confidence: number;
+  required_in_draft: boolean;
+  /** The display before the advocate's last edit of this fact, if any. */
+  previous_display?: string;
+}
+
+export interface LedgerUnresolved {
+  id: string;
+  key: string;
+  label: string;
+  type: FactType;
+  raw_span: string;
+  source: FactSource;
+  /** A code. Never shown. */
+  reason: string;
+  /** One plain sentence from the service. Shown as sent. */
+  detail: string;
+}
+
+export interface Ledger {
+  ledger_id: string;
+  version: number;
+  run_type: 'user' | 'fixture';
+  document_kind: string;
+  facts: LedgerFact[];
+  unresolved: LedgerUnresolved[];
+  /** The fact type of every brief item the ledger holds, by key. */
+  fields: Record<string, FactType>;
+}
+
+export type LedgerEditResult =
+  | { key: string; status: 'saved'; display: string | null }
+  | { key: string; status: 'unreadable'; reason: string; detail: string }
+  | { key: string; status: 'skipped' };
+
+/** What one edit on the brief came to, for the row's status line. */
+export type EditOutcome =
+  | { status: 'saved'; display: string | null }
+  | { status: 'unreadable'; detail: string }
+  | { status: 'failed' };
+
+/**
+ * The facts the screen renders, exactly the ledger's facts, each with what is
+ * shown for it. Rows render from this, so a test can compare it, and the
+ * screen, with the ledger payload.
+ */
+export function renderedLedgerFacts(
+  ledger: Ledger,
+): Array<{ key: string; display: string; raw_span: string; required: boolean }> {
+  return ledger.facts.map((f) => ({
+    key: f.key,
+    display: f.display,
+    raw_span: f.raw_span,
+    required: f.required_in_draft,
+  }));
+}
+
+/** What the field holds for a ledger fact: a date picker and chips need the value, the rest the display. */
+export function fieldValueOf(item: BriefItem, fact: LedgerFact): Value {
+  if ((item.kind === 'date' || item.kind === 'choice') && typeof fact.value === 'string') {
+    return fact.value;
+  }
+  return fact.display;
+}
+
+/** The reveal shows nothing new when the words are the display and there is no earlier value. */
+export function hasReveal(fact: LedgerFact): boolean {
+  return fact.raw_span.trim() !== fact.display.trim() || fact.previous_display !== undefined;
+}
+
+/** "You wrote" for the description and for an edit; "Your answer" for an answer to a question. */
+export function revealLabel(source: FactSource, edited: boolean): string {
+  return source === 'user' || edited ? 'You wrote' : 'Your answer';
+}
+
+/** The ledger entry of one brief item: its fact, or what could not be read. */
+export function ledgerEntryOf(
+  ledger: Ledger | null | undefined,
+  key: string,
+): { fact?: LedgerFact; unresolved?: LedgerUnresolved; type?: FactType } {
+  if (!ledger) return {};
+  return {
+    fact: ledger.facts.find((f) => f.key === key),
+    unresolved: ledger.unresolved.find((u) => u.key === key),
+    type: ledger.fields[key],
+  };
+}
+
+/** A row of the documents list (GET /api/documents/template-configs). */
+export interface KindSummary {
+  template_id: string;
+  display_name: string;
+  category: string;
+  description: string;
+  plan_access: 'free' | 'pro';
+  /** T-372: the template's Ink cost, from the template-configs API when sent. */
+  credits_cost?: number;
+}
+
+export interface Finding {
+  type: string;
+  message: string;
+}
+
+/** What the draft-ready screen shows. Every line of text in it comes from the service. */
+export interface DraftResult {
+  docId: string | null;
+  name: string;
+  /** False when the document has no rule pack. */
+  rulePack: boolean;
+  startingDraft: boolean;
+  startingDraftLabel: string | null;
+  labelReason: string | null;
+  missingClauses: Array<{ id: string; title: string }>;
+  findings: Finding[];
+  blanks: number;
+  /**
+   * T-147d: what the fact verifier needs the advocate to check before filing,
+   * as the service sent it. Null when nothing does, or the draft was not
+   * written from the fact ledger.
+   */
+  factCheck?: FactCheckBanner | null;
+  /**
+   * T-197: the signed disclaimer, as the service sent it with every finished
+   * draft. Shown once: inside the banner when there is one, else as a note.
+   * Null when the service sent none; the web app keeps no copy of the text.
+   */
+  disclaimer?: string | null;
+  /**
+   * T-373 (ADR-025 D1): the clauses the renderer printed, as the service sent them.
+   * Present only for a D1 pack; the checks panel is then built from this list.
+   */
+  rendered?: RenderedClause[];
+  /**
+   * T-545: the Ink actually debited for this draft, from the `done` event's
+   * `inkDebited` (in Ink, so .5 is possible). Never the quoted cost. Set only
+   * when the server sent a number above 0; absent otherwise, and the chip is
+   * then not shown.
+   */
+  inkUsed?: number;
+}
+
+/** T-373: one clause the D1 renderer printed, with its status. */
+export interface RenderedClause {
+  clauseId: string;
+  status: 'ok' | 'missing' | 'fallback';
+  /** The labels of the blanks left in the clause. */
+  missing?: string[];
+  reason?: 'not_returned' | 'unverified';
+}
+
+/** T-147d: the fact verifier's banner, printed as the service sent it. */
+export interface FactCheckBanner {
+  text: string;
+  items: Array<{ check: string; label: string; note: string }>;
+  disclaimer: string;
+}
+
+/** T-147d: the banner from the done event, or null when it is absent or not in shape. */
+export function readFactCheckBanner(raw: unknown): FactCheckBanner | null {
+  if (typeof raw !== 'object' || raw === null) return null;
+  const banner = (raw as { banner?: unknown }).banner;
+  if (typeof banner !== 'object' || banner === null) return null;
+  const b = banner as Record<string, unknown>;
+  if (typeof b.text !== 'string' || typeof b.disclaimer !== 'string' || !Array.isArray(b.items)) {
+    return null;
+  }
+  const items = b.items.filter(
+    (i): i is { check: string; label: string; note: string } =>
+      typeof i === 'object' &&
+      i !== null &&
+      typeof (i as Record<string, unknown>).check === 'string' &&
+      typeof (i as Record<string, unknown>).label === 'string' &&
+      typeof (i as Record<string, unknown>).note === 'string',
+  );
+  return { text: b.text, items, disclaimer: b.disclaimer };
+}
+
+/** The id the API uses for a document with no rule pack. */
+export const NO_RULE_PACK = 'none';
+
+export const TEXT_MAX = 500;
+export const NARRATIVE_MAX = 6000;
+export const LIST_MAX = 30;
+
+export function isEmptyValue(v: Value | null | undefined): boolean {
+  return v === null || v === undefined || v === '' || (Array.isArray(v) && v.length === 0);
+}
+
+function sameValue(a: Value, b: Value): boolean {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
+/**
+ * What the page holds after the service answers: every value the brief placed,
+ * and every earlier value the brief could not place (so that a change of
+ * document loses nothing). The service does not send keys for the values it
+ * could not place, so those are matched by their value.
+ */
+export function valuesAfter(brief: Brief, previous: GivenValue[]): GivenValue[] {
+  const placed: GivenValue[] = [];
+  const emptyKeys = new Set<string>();
+  const itemKeys = new Set<string>();
+  for (const item of brief.items) {
+    itemKeys.add(item.key);
+    if (isEmptyValue(item.value)) {
+      emptyKeys.add(item.key);
+      continue;
+    }
+    placed.push({
+      key: item.key,
+      value: item.value as Value,
+      source: item.source ?? 'user',
+      ...(item.quote ? { quote: item.quote } : {}),
+      label: item.label,
+      // T-150: keep the mark on a typed name. A mark with a note (Rule B) is
+      // worked out again by the service, so it is not carried.
+      ...(item.source === 'user' && item.please_check && !item.note ? { please_check: true } : {}),
+    });
+  }
+  // T-190: a "Not known" answer places no value but is kept, so it stays asked.
+  const askedEmpty = new Set(brief.items.filter((i) => i.asked_empty).map((i) => i.key));
+  const kept = previous.filter(
+    (v) =>
+      !isEmptyValue(v.value) &&
+      (askedEmpty.has(v.key) ||
+        ((!itemKeys.has(v.key) || emptyKeys.has(v.key)) &&
+          brief.unplaced.some((u) => sameValue(u.value, v.value)))),
+  );
+  return [...placed, ...kept];
+}
+
+/**
+ * T-365 AC2: the advocate's own answer to each item the service marks
+ * `asked_empty` ("Not known", "none"). The service sends such an item with no
+ * value; `valuesAfter` keeps the answer, so the row can still show it.
+ */
+export function askedEmptyAnswers(brief: Brief, values: GivenValue[]): Record<string, Value> {
+  const out: Record<string, Value> = {};
+  for (const item of brief.items) {
+    if (!item.asked_empty) continue;
+    const given = values.find((v) => v.key === item.key && !isEmptyValue(v.value));
+    if (given) out[item.key] = given.value;
+  }
+  return out;
+}
+
+function foldWord(v: string): string {
+  return v
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim();
+}
+
+/** T-481: a one-choice item whose options are exactly Yes and No. */
+function isYesNoChoice(item: BriefItem): boolean {
+  if (item.kind !== 'choice' || item.options.length !== 2) return false;
+  const folded = new Set(item.options.map(foldWord));
+  return folded.has('yes') && folded.has('no');
+}
+
+/**
+ * T-481: the undertaking boxes whose "No" the service drops (T-251). Kept in
+ * step with `UNDERTAKINGS` in apps/drafting/src/services/intake-brief.ts (~1289),
+ * where `buildBrief` skips a declined undertaking. Matched on the key's last segment.
+ */
+const DECLINED_UNDERTAKING_KEYS: ReadonlySet<string> = new Set(['willingness_to_furnish_bond']);
+
+function isDeclinableUndertaking(key: string): boolean {
+  const at = key.lastIndexOf('.');
+  return DECLINED_UNDERTAKING_KEYS.has(at < 0 ? key : key.slice(at + 1));
+}
+
+/**
+ * T-498: the keys the fact ledger holds a fact for. The row shows that fact
+ * (with "Please check" when read from the description), so it is given: not
+ * asked in the rounds and not listed as still unknown. An empty display is not
+ * a fact, and a "No" on an undertaking box (T-251) is not yet given. Kept in
+ * step with `ledgerGivenKeys` in apps/drafting/src/services/intake-brief.ts.
+ * Empty with no ledger, so nothing changes with the ledger off.
+ */
+export function ledgerGivenKeys(ledger: Ledger | null | undefined): Set<string> {
+  const out = new Set<string>();
+  if (!ledger) return out;
+  for (const f of ledger.facts) {
+    if (typeof f.display !== 'string' || f.display.trim() === '') continue;
+    const declined =
+      isDeclinableUndertaking(f.key) &&
+      [f.display, String(f.value)].some((v) => {
+        const w = foldWord(v);
+        return w === 'no' || w === 'false';
+      });
+    if (!declined) out.add(f.key);
+  }
+  return out;
+}
+
+/**
+ * T-481: the service places no value for a "No" on an undertaking box (T-251:
+ * a "No" is an undertaking not yet given, so its blank shows), and sends no
+ * `asked_empty` for it either. Without this the advocate's "No" is dropped and
+ * the row looks unanswered, so "No" cannot be chosen. An undertaking Yes/No
+ * item the service left empty (and does not re-ask), that the advocate
+ * answered "No" themselves, is marked
+ * `asked_empty` here, so the T-365 path keeps the "No" (and sends it with the
+ * draft), shows it as chosen, and does not ask it again. A value the service
+ * placed is never changed.
+ */
+export function withDeclinedAnswers(brief: Brief, previous: GivenValue[]): Brief {
+  let changed = false;
+  const items = brief.items.map((item) => {
+    // A server re-ask (T-150) is never hidden.
+    if (
+      item.asked_empty ||
+      item.reask ||
+      !isEmptyValue(item.value) ||
+      !isDeclinableUndertaking(item.key) ||
+      !isYesNoChoice(item)
+    ) {
+      return item;
+    }
+    const given = previous.find((v) => v.key === item.key);
+    if (
+      !given ||
+      given.source !== 'user' ||
+      typeof given.value !== 'string' ||
+      foldWord(given.value) !== 'no'
+    ) {
+      return item;
+    }
+    changed = true;
+    return { ...item, asked_empty: true };
+  });
+  return changed ? { ...brief, items } : brief;
+}
+
+/** Set, replace or clear one value the user typed. The new value carries no "Please check" mark. */
+export function withValue(
+  values: GivenValue[],
+  key: string,
+  value: Value,
+  label: string,
+): GivenValue[] {
+  const rest = values.filter((v) => v.key !== key);
+  return isEmptyValue(value) ? rest : [...rest, { key, value, source: 'user', label }];
+}
+
+const MONTHS = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
+
+/** 2026-08-25 -> 25 August 2026. Anything else is returned as written. */
+export function dateInWords(iso: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (!m) return iso;
+  const month = MONTHS[Number(m[2]) - 1];
+  return month ? `${Number(m[3])} ${month} ${m[1]}` : iso;
+}
+
+/**
+ * How many visible blanks the draft carries (T-107, section 4). T-483: the same
+ * count the editor's export warning, the export header and the server PDF show
+ * for this content: Ajay's signed set in @lawie/shared (findBlanks), read through
+ * the export's own helper (missingAsBlanks first, then blankText). So the
+ * signing date of the verification ("on this ___ day of ___") and the cause
+ * title's "No. ___ of" are not counted, as the export does not count them, and
+ * every blank counts as the export dialog counts it (repeats included).
+ */
+export function countBlanks(text: string): number {
+  return blanksInContent(text).length;
+}
+
+/** The words after "[To be confirmed: " in a blank, for showing it. */
+export function describeValue(v: Value): string {
+  return Array.isArray(v) ? v.join(', ') : v;
+}
+
+export const PART_TITLES: Record<BriefPart, string> = {
+  parties: 'Parties',
+  facts: 'Facts',
+  dates: 'Dates',
+  numbers: 'Numbers',
+  relief: 'What is asked for',
+};
+
+/** The order the brief shows its parts in (T-126, B1). The court comes before these. */
+export const PART_ORDER: BriefPart[] = ['parties', 'facts', 'dates', 'numbers', 'relief'];

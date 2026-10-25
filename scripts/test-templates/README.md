@@ -12,9 +12,12 @@ docker compose up -d   # or whatever you use locally
 # 2. Confirm the gateway is reachable
 curl -s http://localhost:4000/health
 
-# 3. Run the test
-bash scripts/test-templates/run-all.sh
+# 3. Run the test. INTERNAL_SECRET must be set; the script has no default.
+INTERNAL_SECRET="$(grep '^INTERNAL_SECRET=' .env | cut -d= -f2-)" \
+  bash scripts/test-templates/run-all.sh
 ```
+
+Without `INTERNAL_SECRET` the script stops with a one-line message. Take it from the `.env` of the stack you are calling. Never write it into this script or into a payload.
 
 Override the URL if your gateway runs elsewhere:
 

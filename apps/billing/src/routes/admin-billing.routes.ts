@@ -1,0 +1,441 @@
+/**
+ * Admin billing routes — feeds /admin/subscriptions and /admin/revenue.
+ *
+ *   GET  /admin/billing/subscriptions        List all subscriptions (search + filter)
+ *   GET  /admin/billing/subscriptions/:id    Single subscription detail + payment history
+ *   POST /admin/billing/subscriptions/:id/sync  Re-fetch live status from Razorpay
+ *   GET  /admin/billing/revenue              Revenue KPIs + 6-month trend + plan mix
+ *   GET  /admin/billing/invoices.csv?month=YYYY-MM  T-436: GST invoices + credit notes (GSTR-1)
+ *
+ * All Admin-only (role === 'Admin').
+ */
+import { Router, Request, Response } from 'express';
+import mongoose from 'mongoose';
+
+import { SUBSCRIPTION_PLANS } from '../config/credit-skus';
+import logger from '../config/logger';
+import { razorpay } from '../config/razorpay';
+import {
+  isLiveSubscriptionConflict,
+  NON_TERMINAL_SUBSCRIPTION_STATUSES,
+} from '../config/subscription-indexes';
+import { authenticate } from '../middleware/authenticate';
+import { Subscription, isSubscriptionStatus } from '../models/Subscription.model';
+import { User } from '../models/User.model';
+import { buildInvoiceCsv } from '../services/invoice-export.service';
+
+const router = Router();
+
+function requireAdmin(req: Request, res: Response, next: () => void): void {
+  if (req.jwtPayload?.role !== 'Admin') {
+    res.status(403).json({ error: 'Admin access required' });
+    return;
+  }
+  next();
+}
+
+/**
+ * The plan we sell that has this Razorpay plan id. A subscription with no plan
+ * id matches nothing: without the first check it would match any plan whose
+ * env var is not set, because both sides would be undefined.
+ */
+function planFor(razorpayPlanId: string | undefined) {
+  if (!razorpayPlanId) return undefined;
+  return SUBSCRIPTION_PLANS.find((p) => process.env[p.razorpayPlanIdEnvKey] === razorpayPlanId);
+}
+
+function normalizePlan(razorpayPlanId: string | undefined): string {
+  const plan = planFor(razorpayPlanId);
+  return plan ? `${plan.tier} / ${plan.cycle}` : (razorpayPlanId ?? 'unknown');
+}
+
+// ── GET /admin/billing/subscriptions ─────────────────────────────────────────
+
+router.get(
+  '/admin/billing/subscriptions',
+  authenticate,
+  requireAdmin,
+  async (req: Request, res: Response): Promise<void> => {
+    const q = String(req.query['q'] ?? '').trim();
+    const status = String(req.query['status'] ?? '').trim();
+    const limit = Math.min(Number(req.query['limit'] ?? 50), 200);
+    const skip = Number(req.query['skip'] ?? 0);
+
+    const filter: Record<string, unknown> = {};
+    if (status) filter['status'] = status;
+
+    let subs = await Subscription.find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    const total = await Subscription.countDocuments(filter);
+
+    // Decorate with user info
+    const userIds = subs.map((s) => s.userId);
+    const users = await User.find({ _id: { $in: userIds } })
+      .select('name email')
+      .lean();
+    const userMap = new Map(users.map((u) => [String(u._id), u]));
+
+    if (q) {
+      subs = subs.filter((s) => {
+        const u = userMap.get(String(s.userId));
+        const name = String((u as Record<string, unknown> | undefined)?.['name'] ?? '');
+        const email = String((u as Record<string, unknown> | undefined)?.['email'] ?? '');
+        const razId = s.razorpaySubscriptionId ?? '';
+        const lq = q.toLowerCase();
+        return (
+          name.toLowerCase().includes(lq) ||
+          email.toLowerCase().includes(lq) ||
+          razId.toLowerCase().includes(lq)
+        );
+      });
+    }
+
+    res.json({
+      subscriptions: subs.map((s) => {
+        const u = userMap.get(String(s.userId)) as { name?: string; email?: string } | undefined;
+        return {
+          _id: String(s._id),
+          userId: String(s.userId),
+          userName: u?.name ?? '',
+          userEmail: u?.email ?? '',
+          razorpaySubscriptionId: s.razorpaySubscriptionId,
+          planLabel: normalizePlan(s.razorpayPlanId),
+          planType: s.planType,
+          amount: s.amount,
+          amountInr: Math.round(s.amount / 100),
+          currency: s.currency,
+          status: s.status,
+          currentPeriodStart: s.currentPeriodStart ?? null,
+          currentPeriodEnd: s.currentPeriodEnd ?? null,
+          cancelledAt: s.cancelledAt ?? null,
+          createdAt: s.createdAt,
+        };
+      }),
+      total,
+      limit,
+      skip,
+    });
+  },
+);
+
+// ── GET /admin/billing/subscriptions/:id ────────────────────────────────────
+
+router.get(
+  '/admin/billing/subscriptions/:id',
+  authenticate,
+  requireAdmin,
+  async (req: Request, res: Response): Promise<void> => {
+    const sub = await Subscription.findOne({
+      razorpaySubscriptionId: req.params.id,
+    }).lean();
+
+    if (!sub) {
+      res.status(404).json({ error: 'Subscription not found' });
+      return;
+    }
+
+    const user = await User.findById(sub.userId).select('name email').lean();
+
+    res.json({
+      _id: String(sub._id),
+      userId: String(sub.userId),
+      userName: (user as { name?: string } | null)?.name ?? '',
+      userEmail: (user as { email?: string } | null)?.email ?? '',
+      razorpaySubscriptionId: sub.razorpaySubscriptionId,
+      razorpayPlanId: sub.razorpayPlanId,
+      planLabel: normalizePlan(sub.razorpayPlanId),
+      planType: sub.planType,
+      amount: sub.amount,
+      amountInr: Math.round(sub.amount / 100),
+      currency: sub.currency,
+      status: sub.status,
+      currentPeriodStart: sub.currentPeriodStart ?? null,
+      currentPeriodEnd: sub.currentPeriodEnd ?? null,
+      cancelledAt: sub.cancelledAt ?? null,
+      createdAt: sub.createdAt,
+      paymentHistory: (sub.paymentHistory ?? [])
+        .slice(-10)
+        .reverse()
+        .map((p) => ({
+          paymentId: p.paymentId,
+          amount: Math.round(p.amount / 100),
+          status: p.status,
+          paidAt: p.paidAt,
+        })),
+    });
+  },
+);
+
+// ── POST /admin/billing/subscriptions/:id/sync ───────────────────────────────
+
+const syncSubscription = async (req: Request, res: Response): Promise<void> => {
+  const razId = req.params.id;
+
+  let razSub: Record<string, unknown>;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    razSub = (await (razorpay.subscriptions.fetch as any)(razId)) as Record<string, unknown>;
+  } catch {
+    res.status(502).json({ error: 'Failed to fetch from Razorpay' });
+    return;
+  }
+
+  // T-438: findOneAndUpdate does not run schema validators, so check
+  // Razorpay's live status against the known list before writing anything.
+  const liveStatus = razSub['status'];
+  if (!isSubscriptionStatus(liveStatus)) {
+    const shown = typeof liveStatus === 'string' ? liveStatus.slice(0, 64) : typeof liveStatus;
+    logger.warn(
+      { razorpaySubscriptionId: razId, status: shown },
+      'Admin sync: unknown Razorpay subscription status, nothing written',
+    );
+    res.status(400).json({ error: 'Unknown Razorpay subscription status', status: shown });
+    return;
+  }
+
+  // T-536 (Arjun ruling 2H): the sync never revives a terminal row while the
+  // user has another non-terminal row (a second live sub). The live index is
+  // the hard guard; this check answers the same 409 before trying the write.
+  const local = await Subscription.findOne({ razorpaySubscriptionId: razId })
+    .select('_id userId status')
+    .lean();
+  if (!local) {
+    res.status(404).json({ error: 'Subscription not found locally' });
+    return;
+  }
+  const otherLive = () =>
+    Subscription.findOne({
+      userId: local.userId,
+      _id: { $ne: local._id },
+      status: { $in: NON_TERMINAL_SUBSCRIPTION_STATUSES },
+    })
+      .select('razorpaySubscriptionId')
+      .lean();
+  const conflict = (existingSubscriptionId: string | null): void => {
+    logger.warn(
+      { razorpaySubscriptionId: razId, existingSubscriptionId, status: liveStatus },
+      'Admin sync: user already has another live subscription, nothing written',
+    );
+    res.status(409).json({
+      error: 'live_subscription_conflict',
+      subscriptionId: razId,
+      existingSubscriptionId,
+    });
+  };
+  if (
+    NON_TERMINAL_SUBSCRIPTION_STATUSES.includes(liveStatus) &&
+    !NON_TERMINAL_SUBSCRIPTION_STATUSES.includes(local.status)
+  ) {
+    const other = await otherLive();
+    if (other) {
+      conflict(other.razorpaySubscriptionId);
+      return;
+    }
+  }
+
+  let updated;
+  try {
+    updated = await Subscription.findOneAndUpdate(
+      { razorpaySubscriptionId: razId },
+      {
+        $set: {
+          status: liveStatus,
+          currentPeriodStart: razSub['current_start']
+            ? new Date(Number(razSub['current_start']) * 1000)
+            : undefined,
+          currentPeriodEnd: razSub['current_end']
+            ? new Date(Number(razSub['current_end']) * 1000)
+            : undefined,
+        },
+      },
+      { new: true },
+    ).lean();
+  } catch (err) {
+    if (!isLiveSubscriptionConflict(err)) throw err;
+    // Another non-terminal row landed between the check and the write.
+    const other = await otherLive();
+    conflict(other?.razorpaySubscriptionId ?? null);
+    return;
+  }
+
+  if (!updated) {
+    res.status(404).json({ error: 'Subscription not found locally' });
+    return;
+  }
+
+  res.json({ ok: true, status: updated.status });
+};
+
+router.post(
+  '/admin/billing/subscriptions/:id/sync',
+  authenticate,
+  requireAdmin,
+  async (req: Request, res: Response): Promise<void> => {
+    // T-536: any error other than the handled 404 / 409 paths fails cleanly
+    // (500), never an unhandled rejection from this async Express 4 handler.
+    try {
+      await syncSubscription(req, res);
+    } catch (err) {
+      const { code } = (err ?? {}) as { code?: unknown };
+      logger.error(
+        {
+          errName: err instanceof Error ? err.name : typeof err,
+          ...(typeof code === 'number' || typeof code === 'string' ? { code } : {}),
+        },
+        'Admin sync: failed',
+      );
+      if (!res.headersSent) res.status(500).json({ error: 'Failed to sync subscription' });
+    }
+  },
+);
+
+// ── GET /admin/billing/revenue ────────────────────────────────────────────────
+
+router.get(
+  '/admin/billing/revenue',
+  authenticate,
+  requireAdmin,
+  async (_req: Request, res: Response): Promise<void> => {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    // Active subscriptions
+    const activeSubs = await Subscription.find({ status: 'active' }).lean();
+
+    // MRR calculation: monthly subs at face value; annuals amortized (÷12)
+    let mrrPaise = 0;
+    const planMixMap: Record<string, number> = {};
+    for (const s of activeSubs) {
+      const plan = planFor(s.razorpayPlanId);
+      const label = plan ? `${plan.tier}_${plan.cycle}` : 'unknown';
+      planMixMap[label] = (planMixMap[label] ?? 0) + 1;
+      if (s.planType === 'monthly') {
+        mrrPaise += s.amount;
+      } else {
+        mrrPaise += Math.round(s.amount / 12);
+      }
+    }
+
+    // Topup revenue this month from inkledger collection
+    const db = mongoose.connection.db;
+    let topupRevenueInr = 0;
+    if (db) {
+      const topupAgg = await db
+        .collection('inkledger')
+        .aggregate([
+          {
+            $match: {
+              reason: 'topup_purchase',
+              createdAt: { $gte: startOfMonth },
+            },
+          },
+          {
+            $group: {
+              _id: null,
+              total: { $sum: { $ifNull: ['$metadata.amountInr', 0] } },
+            },
+          },
+        ])
+        .toArray();
+      topupRevenueInr = (topupAgg[0] as { total?: number } | undefined)?.total ?? 0;
+    }
+
+    const mrrInr = Math.round(mrrPaise / 100);
+    const activeCount = activeSubs.length;
+    const paidUserIds = [...new Set(activeSubs.map((s) => String(s.userId)))];
+    const arpuInr = paidUserIds.length > 0 ? Math.round(mrrInr / paidUserIds.length) : 0;
+
+    // 6-month trend
+    const trend: Array<{ month: string; subInr: number; topupInr: number }> = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
+      const monthLabel = d.toLocaleDateString('en-IN', { month: 'short', year: '2-digit' });
+
+      // Count active subs that had a payment this month as a proxy for revenue
+      const monthSubs = await Subscription.find({
+        'paymentHistory.paidAt': { $gte: d, $lt: monthEnd },
+        'paymentHistory.status': 'captured',
+      }).lean();
+
+      let monthSubPaise = 0;
+      for (const s of monthSubs) {
+        const pays = (s.paymentHistory ?? []).filter(
+          (p) => p.paidAt >= d && p.paidAt < monthEnd && p.status === 'captured',
+        );
+        for (const p of pays) monthSubPaise += p.amount;
+      }
+
+      let monthTopupInr = 0;
+      if (db) {
+        const topupAgg = await db
+          .collection('inkledger')
+          .aggregate([
+            {
+              $match: {
+                reason: 'topup_purchase',
+                createdAt: { $gte: d, $lt: monthEnd },
+              },
+            },
+            { $group: { _id: null, total: { $sum: { $ifNull: ['$metadata.amountInr', 0] } } } },
+          ])
+          .toArray();
+        monthTopupInr = (topupAgg[0] as { total?: number } | undefined)?.total ?? 0;
+      }
+
+      trend.push({
+        month: monthLabel,
+        subInr: Math.round(monthSubPaise / 100),
+        topupInr: monthTopupInr,
+      });
+    }
+
+    res.json({
+      mrr: mrrInr,
+      arr: mrrInr * 12,
+      activeCount,
+      topupRevenueThisMonth: topupRevenueInr,
+      arpu: arpuInr,
+      planMix: planMixMap,
+      trend,
+    });
+  },
+);
+
+// ── GET /admin/billing/invoices.csv?month=YYYY-MM ────────────────────────────
+// T-436: invoices and credit notes issued in that calendar month (IST), credit
+// notes as negative amounts. Through the gateway: /api/billing/admin/billing/invoices.csv.
+
+router.get(
+  '/admin/billing/invoices.csv',
+  authenticate,
+  requireAdmin,
+  async (req: Request, res: Response): Promise<void> => {
+    const month = String(req.query['month'] ?? '');
+    try {
+      const result = await buildInvoiceCsv(month);
+      if (!result) {
+        res.status(400).json({ error: 'month must be YYYY-MM' });
+        return;
+      }
+      res.set({
+        'Content-Type': 'text/csv; charset=utf-8',
+        'Content-Disposition': `attachment; filename="invoices-${month}.csv"`,
+        'Cache-Control': 'private, no-store',
+      });
+      res.send(result.csv);
+    } catch (err) {
+      logger.error(
+        { errName: err instanceof Error ? err.name : 'unknown' },
+        'Failed to export invoices CSV',
+      );
+      res.status(500).json({ error: 'Failed to export invoices' });
+    }
+  },
+);
+
+export default router;

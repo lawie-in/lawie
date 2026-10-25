@@ -28,40 +28,53 @@ import {
   validateReferralCode,
   disableReferralCode,
   listReferralCodes,
-  REFERRAL_BONUS_DRAFTS,
 } from '../services/referral.service';
+import { createSession } from '../services/session.service';
 
 // ── Auth helper — real JWT signed with test secret ─────────────────────────────
 
 const FOUNDER_ID = '507f1f77bcf86cd799439011';
 const CLIENT_ID = '507f1f77bcf86cd799439012';
 
-function adminToken(userId = FOUNDER_ID) {
-  return signAccessToken({
+// T-325: authenticate now requires a live Redis session, so every signed token
+// is given a real session (same createSession the login flow uses).
+async function sessionFor(
+  token: string,
+  userId: string,
+  role: string,
+  email: string,
+  name: string,
+) {
+  await createSession(
+    userId,
+    token,
+    `refresh-${token.slice(-24)}`,
+    { plan: 'free', email, role, name },
+    {},
+  );
+  return { Authorization: `Bearer ${token}` };
+}
+
+async function adminHeaders(userId = FOUNDER_ID) {
+  const token = signAccessToken({
     sub: userId,
     email: 'founder@lawie.in',
     name: 'Founder',
     role: 'Admin',
     plan: 'free',
   });
+  return sessionFor(token, userId, 'Admin', 'founder@lawie.in', 'Founder');
 }
 
-function clientToken(userId = CLIENT_ID) {
-  return signAccessToken({
+async function clientHeaders(userId = CLIENT_ID) {
+  const token = signAccessToken({
     sub: userId,
     email: 'advocate@lawie.in',
     name: 'Test Advocate',
     role: 'Client',
     plan: 'free',
   });
-}
-
-function adminHeaders() {
-  return { Authorization: `Bearer ${adminToken()}` };
-}
-
-function clientHeaders() {
-  return { Authorization: `Bearer ${clientToken()}` };
+  return sessionFor(token, userId, 'Client', 'advocate@lawie.in', 'Test Advocate');
 }
 
 // ── ReferralCode model ────────────────────────────────────────────────────────
@@ -205,7 +218,7 @@ describe('POST /admin/referral-codes', () => {
   it('201 for Admin role — creates code', async () => {
     const res = await supertest(app)
       .post('/admin/referral-codes')
-      .set(adminHeaders())
+      .set(await adminHeaders())
       .send({ label: 'Ranchi bar review' });
     expect(res.status).toBe(201);
     expect(res.body.code).toMatch(/^[A-Z0-9]{8}$/);
@@ -216,7 +229,7 @@ describe('POST /admin/referral-codes', () => {
   it('403 for Client role', async () => {
     const res = await supertest(app)
       .post('/admin/referral-codes')
-      .set(clientHeaders())
+      .set(await clientHeaders())
       .send({});
     expect(res.status).toBe(403);
   });
@@ -229,7 +242,7 @@ describe('POST /admin/referral-codes', () => {
   it('201 with maxUses cap', async () => {
     const res = await supertest(app)
       .post('/admin/referral-codes')
-      .set(adminHeaders())
+      .set(await adminHeaders())
       .send({ maxUses: 50 });
     expect(res.status).toBe(201);
     expect(res.body.maxUses).toBe(50);
@@ -239,14 +252,18 @@ describe('POST /admin/referral-codes', () => {
 describe('GET /admin/referral-codes', () => {
   it('200 for Admin — lists codes', async () => {
     await ReferralCode.create({ code: 'LISTTEST', createdBy: FOUNDER_ID });
-    const res = await supertest(app).get('/admin/referral-codes').set(adminHeaders());
+    const res = await supertest(app)
+      .get('/admin/referral-codes')
+      .set(await adminHeaders());
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body.codes)).toBe(true);
     expect(res.body.codes.some((c: { code: string }) => c.code === 'LISTTEST')).toBe(true);
   });
 
   it('403 for non-Admin', async () => {
-    const res = await supertest(app).get('/admin/referral-codes').set(clientHeaders());
+    const res = await supertest(app)
+      .get('/admin/referral-codes')
+      .set(await clientHeaders());
     expect(res.status).toBe(403);
   });
 });
@@ -256,7 +273,7 @@ describe('PATCH /admin/referral-codes/:code/disable', () => {
     await ReferralCode.create({ code: 'DISBLME1', createdBy: FOUNDER_ID });
     const res = await supertest(app)
       .patch('/admin/referral-codes/DISBLME1/disable')
-      .set(adminHeaders());
+      .set(await adminHeaders());
     expect(res.status).toBe(200);
     expect(res.body.isActive).toBe(false);
   });
@@ -264,14 +281,14 @@ describe('PATCH /admin/referral-codes/:code/disable', () => {
   it('404 for unknown code', async () => {
     const res = await supertest(app)
       .patch('/admin/referral-codes/NOTEXIST/disable')
-      .set(adminHeaders());
+      .set(await adminHeaders());
     expect(res.status).toBe(404);
   });
 
   it('403 for non-Admin', async () => {
     const res = await supertest(app)
       .patch('/admin/referral-codes/DISBLME1/disable')
-      .set(clientHeaders());
+      .set(await clientHeaders());
     expect(res.status).toBe(403);
   });
 });
@@ -284,7 +301,8 @@ describe('GET /validate-code/:code', () => {
     const res = await supertest(app).get('/validate-code/PUBTEST1');
     expect(res.status).toBe(200);
     expect(res.body.valid).toBe(true);
-    expect(res.body.bonusDrafts).toBe(REFERRAL_BONUS_DRAFTS);
+    // Each code carries its own Ink bonus now. 5 is the default (33eaa5d).
+    expect(res.body.bonusInk).toBe(5);
     expect(res.body.label).toBe('Test batch');
   });
 

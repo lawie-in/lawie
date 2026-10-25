@@ -21,9 +21,14 @@ const envSchema = z.object({
   // can change them at runtime via /admin/ai-config without redeploy.
   ANTHROPIC_API_KEY: z.string().default(''),
 
-  // Helicone — LLM cost observability proxy (optional, disabled if empty)
-  HELICONE_API_KEY: z.string().default(''),
-  HELICONE_GATEWAY_URL: z.string().default('https://ai-gateway.helicone.ai/v1/chat/completions'),
+  // T-283: the one exception to "runtime config lives in AppSetting". These are
+  // the fallback for feature.describe_first / feature.fact_ledger, used only
+  // when the AppSetting doc is missing or holds anything other than 'on'/'off'
+  // (T-356). An 'on' or 'off' in the database always wins.
+  // T-356 part 1: describe-first defaults on for every user. The fact ledger
+  // stays off until T-187 and T-188 are merged (part 2).
+  FEATURE_DEFAULT_DESCRIBE_FIRST: z.enum(['on', 'off']).default('on'),
+  FEATURE_DEFAULT_FACT_LEDGER: z.enum(['on', 'off']).default('off'),
 
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),
   SENTRY_DSN: z.string().default(''),

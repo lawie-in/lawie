@@ -1,8 +1,40 @@
 import { RATE_LIMITS } from '@lawie/shared';
-import { Request } from 'express';
+import { Request, Response } from 'express';
 import rateLimit from 'express-rate-limit';
 
 import { env } from '../config/env';
+
+/**
+ * T-567 item 24 (Ajay): the signed T-221 limit line and its variants. No upsell.
+ */
+export const RATE_LIMIT_MESSAGES = {
+  minutes: 'Too many requests. Please wait {n} minutes, then try again.',
+  oneMinute: 'Too many requests. Please wait 1 minute, then try again.',
+  unknown: 'Too many requests. Please wait a few minutes, then try again.',
+} as const;
+
+/**
+ * {n} is the Retry-After seconds rounded up to whole minutes, minimum 1.
+ * No usable Retry-After gives the generic line.
+ */
+export function rateLimitMessage(retryAfterSeconds: unknown): string {
+  if (retryAfterSeconds === undefined || retryAfterSeconds === null || retryAfterSeconds === '') {
+    return RATE_LIMIT_MESSAGES.unknown;
+  }
+  const seconds = Number(retryAfterSeconds);
+  if (!Number.isFinite(seconds) || seconds < 0) return RATE_LIMIT_MESSAGES.unknown;
+  const minutes = Math.max(1, Math.ceil(seconds / 60));
+  if (minutes === 1) return RATE_LIMIT_MESSAGES.oneMinute;
+  return RATE_LIMIT_MESSAGES.minutes.replace('{n}', String(minutes));
+}
+
+/**
+ * express-rate-limit sets Retry-After (standardHeaders) before it builds the body,
+ * so the body reads the same value the client gets in the header.
+ */
+function rateLimitBody(_req: Request, res: Response): { error: string } {
+  return { error: rateLimitMessage(res.getHeader('Retry-After')) };
+}
 
 /**
  * Build the rate-limit store.
@@ -43,7 +75,7 @@ export function createPlanRateLimiter() {
     keyGenerator: (req: Request) => req.jwtPayload?.sub ?? req.ip ?? 'unknown',
     standardHeaders: true,
     legacyHeaders: false,
-    message: { error: 'Rate limit exceeded. Upgrade to Pro for higher limits.' },
+    message: rateLimitBody,
     store: buildStore(),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   }) as any;
@@ -58,6 +90,6 @@ export const publicRateLimiter = rateLimit({
   max: 200,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Too many requests, please try again later.' },
+  message: rateLimitBody,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 }) as any;
