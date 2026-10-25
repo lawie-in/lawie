@@ -11,7 +11,7 @@
   "courtId": "ap_district",
   "courtType": "district_court",
   "designation": "IN THE COURT OF DISTRICT & SESSIONS JUDGE",
-  "jurisdictionNote": "District-level criminal and civil courts in Andhra Pradesh. Following the 2022 reorganisation, AP now has 26 districts. Sessions courts try offences punishable with imprisonment exceeding 7 years. AP retains the A.P. Civil Courts Act, 1972 and A.P. Civil Rules of Practice & Circular Orders, 1980. Sessions cases are numbered 'S.C.' and special cases as 'Spl. S.C.'",
+  "jurisdictionNote": "District-level criminal and civil courts in Andhra Pradesh. Following the 2022 reorganisation, AP now has 26 districts. Which court tries an offence is set by the First Schedule to BNSS, not by the length of the sentence. AP retains the A.P. Civil Courts Act, 1972 and A.P. Civil Rules of Practice & Circular Orders, 1980. Sessions cases are numbered 'S.C.' and special cases as 'Spl. S.C.'",
   "cause_title_format": "{courtDesignation}, {city}\n{caseNomenclature}\n\n{petitioner} ... PETITIONER\n\nVERSUS\n\n{respondent} ... RESPONDENT",
   "party_designation": {
     "petitioner": "Petitioner",
@@ -24,8 +24,8 @@
     "state": "State of Andhra Pradesh through the Principal Secretary, Home Department, Government of Andhra Pradesh, Amaravati"
   },
   "case_nomenclature": {
-    "regular_bail": "Crl. M.P. No. _____ of {year}",
-    "anticipatory_bail": "Crl. M.P. (A.B.) No. _____ of {year}",
+    "regular_bail": "Bail Application No. _____ of {year}",
+    "anticipatory_bail": "Anticipatory Bail Application No. _____ of {year}",
     "sessions_case": "S.C. No. _____ of {year}",
     "calendar_case": "C.C. No. _____ of {year}",
     "civil_suit": "O.S. No. _____ of {year}",

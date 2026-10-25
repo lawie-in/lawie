@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. Vineeta Sharma (2020) coparcenary equality and HSA 2005 framework are non-negotiable."
   },
   "template_id": "plaint_partition",
+  "card_description": "A plaint in a suit for partition of joint or co-owned property.",
   "docType": "plaint_partition",
   "title": "Plaint — Suit for Partition of Joint Family / Co-owned Property",
   "displayName": "Plaint for Partition (CPC + Hindu Succession Act)",
@@ -89,7 +90,7 @@
       },
       {
         "id": "women_coparceners",
-        "label": "Female coparceners — daughters with equal share post HSA 2005 amendment (Vineeta Sharma)",
+        "label": "Female coparceners: daughters with an equal share after the Hindu Succession (Amendment) Act, 2005",
         "type": "textarea",
         "required": false
       },
@@ -207,10 +208,10 @@
       "description": "Fraction claimed with computation per HSA 2005 / customary rules"
     },
     {
-      "id": "vineeta_sharma_paragraph",
+      "id": "daughter_coparcener_paragraph",
       "name": "Daughters' Equal Coparcenary Rights — HSA S.6 (2005 amendment)",
       "required": true,
-      "description": "Per Vineeta Sharma v. Rakesh Sharma (2020), daughter is coparcener by birth, irrespective of whether father alive on 09.09.2005"
+      "description": "Daughter is coparcener by birth, irrespective of whether father alive on 09.09.2005"
     },
     {
       "id": "demand_and_refusal_paragraph",
@@ -259,12 +260,6 @@
       "name": "Affidavit in support",
       "required": true,
       "description": "Order VI R.15(4)"
-    },
-    {
-      "id": "disclaimer",
-      "name": "Advocate Responsibility Disclaimer",
-      "required": true,
-      "description": "Standard Lawie disclaimer"
     }
   ],
   "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, the Plaintiff most respectfully prays that this Hon'ble Court may graciously be pleased to:\n\na) Pass a preliminary decree declaring the share of the Plaintiff as {plaintiff_share_claimed} in the joint family / coparcenary properties described in the Schedule, and that of each defendant as enumerated;\n\nb) Pass a final decree of partition by metes and bounds of the said properties through a Court Commissioner / Local Commission and allot separate possession of the Plaintiff's share;\n\nc) Direct an accounting of the income, profits, and rents derived from the joint family properties by the defendants and pay over the Plaintiff's share thereof along with mesne profits;\n\nd) Pass a permanent injunction restraining the Defendants from alienating, encumbering or otherwise dealing with the Plaintiff's share in the suit properties;\n\ne) Declare that any alienations made by any defendant during the pendency of this suit are subject to the result of this suit u/s 52 TPA;\n\nf) Award costs of the suit in favour of the Plaintiff;\n\ng) Pass any other order(s) as this Hon'ble Court may deem fit and proper.\n\nAnd for this act of kindness, the Plaintiff shall ever pray.",
@@ -274,14 +269,14 @@
       "Draft a plaint for partition of joint Hindu family / coparcenary / co-owned property under CPC read with Hindu Succession Act, 1956 (post-2005 amendment).",
       "Identify the school applicable — Mitakshara (most of India) or Dayabhaga (West Bengal, Assam). Under Mitakshara, coparcener has share by birth; under Dayabhaga, only on father's death.",
       "POST 2005 HSA AMENDMENT (Section 6 HSA): Daughters become coparceners BY BIRTH in same manner as sons, with same rights and liabilities. Survivorship under Mitakshara is ABOLISHED — devolution is now by intestate / testamentary succession, with notional partition on death.",
-      "Vineeta Sharma v. Rakesh Sharma (2020) 9 SCC 1 — landmark: daughter is coparcener by birth, irrespective of whether father was alive on 09.09.2005. Reverses Prakash v. Phulavati (2016) 2 SCC 36 on this point.",
+      "Daughter is coparcener by birth, irrespective of whether father was alive on 09.09.2005.",
       "Para 1: Plaintiff description and relationship to joint family.",
       "Para 2: Defendants — ALL coparceners and co-sharers must be impleaded. Non-joinder of necessary party is fatal (Order I R.9).",
       "Para 3: Common ancestor and genealogy — provide family tree showing descent from common ancestor (typically 3-4 generations).",
       "Para 4: Nature of property — joint Hindu family / Mitakshara coparcenary / Dayabhaga / ancestral / self-acquired property thrown into common hotchpot / co-owned.",
       "Para 5: Schedule of properties — detailed list with boundaries (for land/buildings), denominations (for shares/securities), valuation each.",
       "Para 6: Plaintiff's share computation — per HSA S.6 and notional partition principles. For daughter: equal share with sons. Wife: under notional partition, takes share equal to son in father's share.",
-      "Para 7: For pre-2005 demises or earlier partitions, plead carefully — pre-2005 daughters did not have coparcenary status, but Vineeta Sharma clarifies retrospective conferment.",
+      "Para 7: For pre-2005 demises or earlier partitions, plead carefully — the daughter's right under amended S.6 HSA arises by birth and operates retroactively, not retrospectively; a partition by registered deed or court decree before 20.12.2004 is not reopened.",
       "Para 8: Current possession of each property and who is enjoying income.",
       "Para 9: Demand for partition — under Mitakshara, severance of status occurs on unequivocal demand. Plead specific date and mode.",
       "Para 10: Defendant's refusal / denial.",
@@ -294,7 +289,7 @@
       "Note: partition suit follows TWO stages — preliminary decree (declares shares) and final decree (effects physical partition usually through Court Commissioner).",
       "Stamp duty payable on final partition decree (state-specific Schedule).",
       "Verification and affidavit mandatory.",
-      "Append Lawie disclaimer."
+      "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
   "relevantActs": [

@@ -6,6 +6,7 @@ import './setupDb';
 
 import { LawieDocument } from '../models/Document.model';
 import { Event } from '../models/Event.model';
+import { readFilingChecklist } from '../utils/case-details';
 import { contentToHtml } from '../services/pdf-export.service';
 
 const USER_ID = '000000000000000000000001';
@@ -37,7 +38,10 @@ describe('Document model — checklist fields', () => {
       generatedContent: 'encrypted-content',
     });
 
-    expect(doc.filingChecklist).toEqual([]);
+    // T-115a: no plain filingChecklist default (it would put a plain field on every new
+    // document). A document with neither field reads as an empty list.
+    expect(doc.toObject()).not.toHaveProperty('filingChecklist');
+    expect(readFilingChecklist(doc)).toEqual([]);
     expect(doc.checklistState).toEqual([]);
   });
 
@@ -138,8 +142,10 @@ I verify the contents are true.`;
 
   it('includes AI disclaimer', () => {
     const html = contentToHtml(sampleContent, false);
-    expect(html).toContain('AI-assisted draft');
-    expect(html).toContain('class="disclaimer"');
+    expect(html).toContain(
+      '<div class="disclaimer">First draft generated with AI. Check it against the applicable law before filing. Lawie does not provide legal advice.</div>',
+    );
+    expect(html).not.toContain('AI-assisted');
   });
 
   it('never includes watermark regardless of tier (policy: no watermark on any output)', () => {

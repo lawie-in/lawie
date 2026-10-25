@@ -1,5 +1,9 @@
+import { DRAFT_PREFILL_KEY } from './draftPrefill';
+
 const ACCESS_TOKEN_KEY = 'lawie_access_token';
 const REFRESH_TOKEN_KEY = 'lawie_refresh_token';
+/** T-343: sessionStorage prefix of the privacy prompt's "shown this sign-in" flags. */
+export const PRIVACY_PROMPT_SHOWN_PREFIX = 'lawie_privacy_prompt_shown:';
 
 export interface AuthUser {
   id: string;
@@ -24,8 +28,31 @@ function isExpired(token: string): boolean {
   return Date.now() / 1000 > payload.exp;
 }
 
+/** The `sub` of a token, expired or not; null when there is none or it cannot be read. */
+function tokenSubject(token: string | null): string | null {
+  if (!token) return null;
+  const sub = parseJwt(token)?.sub;
+  return typeof sub === 'string' ? sub : null;
+}
+
+/** T-565 item 40: drop the command bar's matter text from this tab. Never throws. */
+function clearDraftPrefill(): void {
+  try {
+    sessionStorage.removeItem(DRAFT_PREFILL_KEY);
+  } catch {
+    // Storage unavailable: nothing to clear.
+  }
+}
+
 export function saveTokens(accessToken: string, refreshToken: string): void {
   if (typeof window === 'undefined') return;
+  // T-565 item 40 (review): sessionStorage is per tab, so a tab that was open when another tab
+  // signed out can still hold the last user's matter text. A new session (no stored token
+  // before, or a different user) drops it. A token refresh or re-issue for the same user keeps
+  // it, so text on its way to the describe step is not lost mid-navigation.
+  const before = tokenSubject(localStorage.getItem(ACCESS_TOKEN_KEY));
+  const after = tokenSubject(accessToken);
+  if (before === null || before !== after) clearDraftPrefill();
   localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
   localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
 }
@@ -34,6 +61,18 @@ export function clearTokens(): void {
   if (typeof window === 'undefined') return;
   localStorage.removeItem(ACCESS_TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
+  // T-343: signing out forgets "privacy prompt shown", so the next sign-in prompts again.
+  // T-565 item 40: it also drops any matter text left for the describe step. Every sign-out
+  // comes here: AuthContext logout, and apiFetch's forced sign-out when the refresh fails.
+  clearDraftPrefill();
+  try {
+    for (let i = sessionStorage.length - 1; i >= 0; i -= 1) {
+      const k = sessionStorage.key(i);
+      if (k?.startsWith(PRIVACY_PROMPT_SHOWN_PREFIX)) sessionStorage.removeItem(k);
+    }
+  } catch {
+    // Storage unavailable: nothing to clear.
+  }
 }
 
 export function getAccessToken(): string | null {
@@ -64,4 +103,34 @@ export function getSessionUser(): AuthUser | null {
 /** True if there is a valid, non-expired access token in storage. */
 export function isAuthenticated(): boolean {
   return getSessionUser() !== null;
+}
+
+/**
+ * T-115c — the analytics consent choice (AnalyticsConsent's CONSENT_STORAGE_KEY). It is about
+ * this browser, not the account (a random id, no name or email), so closing an account keeps it.
+ * Copied here, not imported, so this module stays free of component imports.
+ */
+const KEPT_ON_ACCOUNT_CLOSE = new Set(['lawie.consent.analytics']);
+
+/**
+ * T-115c (Rajesh's spec §4) — after an account is closed, remove everything the app stored in
+ * this browser: the tokens and privacy-prompt flags (clearTokens), then every other Lawie key in
+ * localStorage and sessionStorage (all start with `lawie`: lawie.sectionFinder.*,
+ * lawie_referral_shown, lawie.oauth.verifier, lawie_signup_utm, lawie:document-delete-outcome,
+ * lawie_splash_seen). Only the analytics consent choice stays. Never throws.
+ */
+export function clearAllLocalState(): void {
+  if (typeof window === 'undefined') return;
+  clearTokens();
+  for (const getStore of [() => window.localStorage, () => window.sessionStorage]) {
+    try {
+      const store = getStore();
+      for (let i = store.length - 1; i >= 0; i -= 1) {
+        const k = store.key(i);
+        if (k && k.startsWith('lawie') && !KEPT_ON_ACCOUNT_CLOSE.has(k)) store.removeItem(k);
+      }
+    } catch {
+      // Storage unavailable: nothing to clear.
+    }
+  }
 }

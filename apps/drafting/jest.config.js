@@ -9,6 +9,9 @@ module.exports = {
   moduleNameMapper: {
     '^ioredis$': 'ioredis-mock',
   },
+  // In CI, a failed test also shows as a note on the pull request, so the
+  // reason can be read without opening the job log. Does nothing locally.
+  reporters: ['default', 'github-actions'],
   // Only health check tests for now — coverage improves as feature tests are added per ticket
   coverageThreshold: {
     global: {

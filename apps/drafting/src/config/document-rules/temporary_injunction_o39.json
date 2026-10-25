@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. Tripod test (prima facie / balance of convenience / irreparable injury) is non-negotiable."
   },
   "template_id": "temporary_injunction_o39",
+  "card_description": "An application under Order 39 Rules 1 and 2 CPC for a temporary injunction.",
   "docType": "temporary_injunction_o39",
   "title": "Application for Temporary Injunction (Order 39 R.1-2 CPC)",
   "displayName": "Temporary Injunction Application (Order 39 R.1-2 CPC)",
@@ -190,12 +191,6 @@
       "name": "Affidavit in support",
       "required": true,
       "description": "O.39 R.3 — affidavit mandatory"
-    },
-    {
-      "id": "disclaimer",
-      "name": "Advocate Responsibility Disclaimer",
-      "required": true,
-      "description": "Standard Lawie disclaimer"
     }
   ],
   "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, the Applicant most respectfully prays that this Hon'ble Court may graciously be pleased to:\n\na) Grant a temporary injunction under Order 39 Rules 1 and 2 read with Section 151 CPC restraining the Defendant/Non-Applicant, his agents, servants, representatives, assigns, and all persons claiming through or under him, from {acts_complained_of} pending final disposal of the suit;\n\nb) In the alternative and pending notice to the Non-Applicant, grant an ad-interim ex parte order in terms of prayer (a) above for the reasons stated hereinabove, in exercise of powers under the proviso to Order 39 Rule 3 CPC;\n\nc) Award costs of this application;\n\nd) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the Applicant shall ever pray.",
@@ -205,7 +200,7 @@
       "Draft an application for temporary injunction under Order 39 Rules 1 and 2 read with Section 151 CPC.",
       "Order 39 R.1 — temporary injunction may be granted where: (a) property in dispute in danger of being wasted/damaged/alienated; (b) defendant threatens or intends to remove/dispose property to defraud creditors; (c) defendant threatens to dispossess or otherwise cause injury to plaintiff in relation to disputed property.",
       "Order 39 R.2 — injunction to restrain breach of contract or other injury.",
-      "Triple test — MANDATORY and to be addressed in three separate paragraphs: (i) prima facie case / serious question to be tried, (ii) balance of convenience, (iii) irreparable injury — citing Dalpat Kumar v. Prahlad Singh (1992) 1 SCC 719 and M. Gurudas v. Rasaranjan (2006) 8 SCC 367.",
+      "Triple test — MANDATORY and to be addressed in three separate paragraphs: (i) prima facie case / serious question to be tried, (ii) balance of convenience, (iii) irreparable injury. Do not name any judgment; where an authority would normally be cited, write [Authority — add if relied upon].",
       "Para 1: Reference to main suit number, parties, cause of action.",
       "Para 2: Brief recap of plaintiff's case in main suit.",
       "Para 3: Plaintiff's legal right / title / possession.",
@@ -215,13 +210,11 @@
       "Para 7: Irreparable injury — why damages inadequate (special character of property, continuing trespass, loss of goodwill, etc.).",
       "Para 8: Plaintiff's undertaking to compensate defendant if injunction wrongly obtained (Order 25 R.1 or undertaking in lieu).",
       "If ex parte sought: separate paragraph under O.39 R.3 proviso citing reasons — urgency, frustration of purpose if notice given, defendant likely to defeat object of injunction. Court must record reasons for not issuing notice.",
-      "Cite Morgan Stanley Mutual Fund v. Kartick Das (1994) 4 SCC 225 — ex parte injunction principles.",
-      "Cite Anand Prasad Agarwalla v. Tarkeshwar Prasad (2001) 5 SCC 568 — ex parte order should be exception not rule.",
+      "Ex parte relief is the exception, not the rule: state the specific urgency, and why notice would defeat the purpose, as reasoning on the facts in the brief. Do not name any judgment; where an authority would normally be cited, write [Authority — add if relied upon].",
       "Affidavit in support is mandatory under O.39 R.3.",
       "Where Commercial Courts Act applies (specified commercial disputes, value >= Rs.3 lakh): pre-institution mediation u/S.12A unless urgent interim relief sought — flag this.",
       "Where suit relates to immovable property in UP/Bihar/Jharkhand: verify possession with khatauni / mutation extracts.",
-      "Do not pray for permanent injunction in this application — that is in the plaint prayer.",
-      "Append Lawie disclaimer."
+      "Do not pray for permanent injunction in this application — that is in the plaint prayer."
     ]
   },
   "relevantActs": [

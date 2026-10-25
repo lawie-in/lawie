@@ -1,4 +1,5 @@
 {
+  "card_description": "A legal notice about defamatory statements.",
   "_meta": {
     "description": "Document-rules config for legal_notice_defamation — pre-litigation notice for defamation (civil tort or criminal under BNS 356)",
     "owner": "Ajay (CLO)",
@@ -123,9 +124,10 @@
       "act": "Bharatiya Nyaya Sanhita, 2023",
       "sections": [
         {
-          "number": "356",
-          "description": "Defamation — definition, exceptions, and punishment (replaces IPC Sections 499–500)"
-        }
+          "number": "356(1)",
+          "description": "Defamation — definition and exceptions (replaces IPC Section 499)"
+        },
+        { "number": "356(2)", "description": "Defamation — punishment (replaces IPC Section 500)" }
       ]
     },
     {
@@ -193,7 +195,7 @@
   ],
   "promptInstructions": [
     "Draft a Legal Notice for Defamation. Route may be civil (tort), criminal (BNS Section 356), or both — confirm from input.",
-    "If criminal route, cite BNS Section 356 (not IPC 499/500 — IPC stands repealed for offences committed after 1 July 2024).",
+    "If the criminal route is taken, cite BNS Section 356 for defamation on or after 1 July 2024, and IPC Sections 499 and 500 for defamation before that date.",
     "If civil route, base on tort of defamation — establish publication, identification, defamatory imputation, falsity, and damage.",
     "Reproduce the exact defamatory words or imputation verbatim. If innuendo, explain the secondary meaning understood by audience.",
     "State the date, medium (newspaper/social media/email/oral statement), and audience reach of publication.",

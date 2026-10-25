@@ -2,7 +2,7 @@
   "template_id": "bail_regular",
   "display_name": "Regular Bail Application",
   "category": "criminal",
-  "description": "Application for regular bail under Section 480/481 BNSS, 2023",
+  "description": "Application for regular bail",
   "icon": "scales",
   "plan_access": "free",
   "applicable_courts": {
@@ -41,12 +41,43 @@
           },
           {
             "field_id": "fir_date",
-            "label": "FIR Date",
+            "label": "Date of FIR, or of the complaint if no FIR",
             "type": "date",
-            "required": true,
+            "required": false,
+            "question": "On what date was the FIR registered, or the complaint filed if there is no FIR?",
+            "ask_when_empty": true,
             "inject_into": [
               "body_para_1",
               "prayer"
+            ]
+          },
+          {
+            "field_id": "offence_date",
+            "label": "Date of the alleged offence (or of the offence of conviction)",
+            "type": "date",
+            "required": false,
+            "inject_into": [
+              "ai_prompt"
+            ]
+          },
+          {
+            "field_id": "procedure_code",
+            "label": "This application is under",
+            "type": "dropdown",
+            "options": [
+              {
+                "id": "bnss_and_bsa",
+                "label": "BNSS and BSA"
+              },
+              {
+                "id": "crpc_and_evidence_act",
+                "label": "CrPC and Evidence Act"
+              }
+            ],
+            "required": false,
+            "help": "Matters only for a case that began before 1 July 2024. For an FIR on or after that date, Lawie uses the BNSS.",
+            "inject_into": [
+              "ai_prompt"
             ]
           },
           {
@@ -65,7 +96,7 @@
             "type": "multi_select_search",
             "source": "bns_mapping",
             "required": true,
-            "auto_convert_old": true,
+            "auto_convert_old": false,
             "inject_into": [
               "body_para_1",
               "ai_prompt"
@@ -103,6 +134,226 @@
             "inject_into": [
               "ai_prompt"
             ]
+          },
+          {
+            "field_id": "earlier_bail_applications",
+            "label": "Earlier bail applications in this matter",
+            "type": "textarea",
+            "required": false,
+            "question": "Has any bail application (regular, anticipatory or interim) been made for the applicant in this case before, in any court, including the High Court? If yes, give for each: the court, the date of the order and the result (rejected, dismissed as withdrawn, granted and cancelled, or still pending). If none, write \"None\".",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "antecedents",
+            "label": "Criminal antecedents",
+            "type": "textarea",
+            "required": false,
+            "question": "Is any other criminal case (FIR, charge sheet or conviction) pending or past against the applicant? If yes, give each case number, police station or court, sections and its status. If none, write \"None\".",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "arrest_date",
+            "label": "Date of arrest",
+            "type": "date",
+            "required": false,
+            "question": "On what date was the applicant arrested? Give the date in the arrest memo, even if custody began on another date.",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "investigation_status",
+            "label": "Investigation status",
+            "type": "dropdown",
+            "options": [
+              {
+                "id": "under_investigation",
+                "label": "Under investigation"
+              },
+              {
+                "id": "charge_sheet_filed",
+                "label": "Charge sheet filed"
+              },
+              {
+                "id": "cognizance_taken",
+                "label": "Cognizance taken"
+              },
+              {
+                "id": "not_known",
+                "label": "Not known"
+              }
+            ],
+            "required": false,
+            "question": "What is the stage of the investigation?",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "applicant_sex",
+            "label": "Sex of the applicant",
+            "type": "dropdown",
+            "options": [
+              {
+                "id": "male",
+                "label": "Male"
+              },
+              {
+                "id": "female",
+                "label": "Female"
+              },
+              {
+                "id": "transgender",
+                "label": "Transgender"
+              },
+              {
+                "id": "not_given",
+                "label": "Not given"
+              }
+            ],
+            "required": false,
+            "question": "Sex of the applicant.",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "medical_condition",
+            "label": "Medical condition of the applicant",
+            "type": "textarea",
+            "required": false,
+            "question": "Does the applicant suffer from any illness, disability or medical condition you want placed before the court? If yes, name it as written in the medical papers. If not, leave it blank.",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "named_in_fir",
+            "label": "Whether the applicant is named in the FIR",
+            "type": "dropdown",
+            "options": [
+              {
+                "id": "yes",
+                "label": "Yes"
+              },
+              {
+                "id": "no",
+                "label": "No"
+              },
+              {
+                "id": "not_known",
+                "label": "Not known"
+              }
+            ],
+            "required": false,
+            "question": "Is the applicant named in the FIR?",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "recovery_status",
+            "label": "Recovery or seizure from the applicant",
+            "type": "textarea",
+            "required": false,
+            "question": "Has anything been recovered or seized from the applicant, or at the applicant's instance? If yes, say what. If nothing, write \"None\".",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "cooperated_with_investigation",
+            "label": "Whether the applicant has cooperated with the investigation",
+            "type": "dropdown",
+            "options": [
+              {
+                "id": "yes",
+                "label": "Yes"
+              },
+              {
+                "id": "no",
+                "label": "No"
+              },
+              {
+                "id": "not_known",
+                "label": "Not known"
+              }
+            ],
+            "required": false,
+            "question": "Has the applicant so far joined or cooperated with the investigation (for example, appeared when called or gave a statement)?",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "applicant_occupation",
+            "label": "Applicant occupation",
+            "type": "text",
+            "required": false,
+            "question": "What does the applicant do for a living (for example: daily-wage labourer, farmer, driver, shopkeeper)? If nothing, write \"Unemployed\".",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "sole_earning_member",
+            "label": "Whether the applicant is the only earning member of the family",
+            "type": "dropdown",
+            "options": [
+              {
+                "id": "yes",
+                "label": "Yes"
+              },
+              {
+                "id": "no",
+                "label": "No"
+              },
+              {
+                "id": "not_known",
+                "label": "Not known"
+              }
+            ],
+            "required": false,
+            "question": "Is the applicant the only earning member of the family?",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "dependants",
+            "label": "Who depends on the applicant",
+            "type": "textarea",
+            "required": false,
+            "question": "Who in the family depends on the applicant's income (for example: aged mother, wife, two minor children)? If not known, leave it blank.",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "local_ties",
+            "label": "Family and local ties of the applicant",
+            "type": "textarea",
+            "required": false,
+            "question": "What family or local ties does the applicant have at the address given (for example: lives there with parents, wife and children; owns the house; has lived there since birth)? If not known, leave it blank.",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "s35_notice_status",
+            "label": "Notice to appear (Section 35 BNSS / Section 41A CrPC)",
+            "type": "dropdown",
+            "options": [
+              {
+                "id": "served",
+                "label": "Served"
+              },
+              {
+                "id": "not_served",
+                "label": "Not served"
+              },
+              {
+                "id": "not_known",
+                "label": "Not known"
+              }
+            ],
+            "required": false,
+            "question": "Before the arrest, was a notice of appearance under Section 35(3) of the BNSS or Section 41A of the CrPC served on the applicant?",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "co_accused_bail_court",
+            "label": "Court that granted bail to the co-accused",
+            "type": "text",
+            "required": false,
+            "question": "Has any co-accused in this case been granted bail? If yes, which court granted it? If not, leave it blank.",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "co_accused_bail_date",
+            "label": "Date of the co-accused's bail order",
+            "type": "date",
+            "required": false,
+            "question": "Date of that bail order.",
+            "ask_when_empty": true
           }
         ]
       },
@@ -161,8 +412,36 @@
             ]
           },
           {
+            "field_id": "applicant_relation",
+            "label": "Relation to the person named below",
+            "type": "dropdown",
+            "options": [
+              {
+                "id": "son_of",
+                "label": "Son of (S/o)"
+              },
+              {
+                "id": "daughter_of",
+                "label": "Daughter of (D/o)"
+              },
+              {
+                "id": "wife_of",
+                "label": "Wife of (W/o)"
+              },
+              {
+                "id": "husband_of",
+                "label": "Husband of (H/o)"
+              }
+            ],
+            "required": false,
+            "inject_into": [
+              "cause_title",
+              "verification"
+            ]
+          },
+          {
             "field_id": "father_name",
-            "label": "Father's / Husband's Name",
+            "label": "Name of father, mother or spouse",
             "type": "text",
             "required": true,
             "inject_into": [
@@ -194,6 +473,12 @@
             "options_from": "supported_languages",
             "default": "en",
             "required": true
+          },
+          {
+            "field_id": "advocate_enrollment",
+            "label": "Bar Council Enrollment No.",
+            "type": "text",
+            "required": false
           }
         ]
       },
@@ -280,15 +565,22 @@
     ]
   },
   "computed_fields": {
+    "court_type_id": {
+      "logic": "courts_db.lookup(court_name).court_type"
+    },
     "bail_section": {
-      "logic": "if currently_in_custody === 'no' then '482' else '480'",
-      "label_map": {
-        "480": "Regular Bail",
-        "482": "Anticipatory Bail"
-      }
+      "logic": "value_map[court_type_id] || '[Section — verify before filing]'",
+      "value_map": {
+        "jmfc": "480",
+        "cjm": "480",
+        "sessions": "483",
+        "high_court": "483",
+        "high_court_bench": "483"
+      },
+      "instruction": "This application is made under {governing_provision}. Cite only this one provision as the provision under which bail is sought. {do_not_cite}."
     },
     "bail_type_label": {
-      "logic": "label_map[bail_section]"
+      "logic": "'Regular Bail'"
     },
     "court_designation": {
       "logic": "courts_db.lookup(court_name).designation"
@@ -300,7 +592,7 @@
       "logic": "courts_db.lookup(court_name).city"
     },
     "case_nomenclature": {
-      "logic": "court_rules[court_name].case_nomenclature || 'Criminal Miscellaneous Case'"
+      "logic": "court_rules[court_name].case_nomenclature || '[To be confirmed: case type and number]'"
     }
   },
   "document_structure": {
@@ -309,13 +601,13 @@
         "section_id": "cause_title",
         "type": "template",
         "alignment": "center",
-        "template": "{court_header}\n\n{case_nomenclature}\n\nIN THE MATTER OF:\n\n{applicant_name}\nS/o {father_name}\nAge: {applicant_age} years\nR/o {address}\n                                              ... {party_label_petitioner}\n\nVersus\n\n{state_respondent}\n                                              ... {party_label_respondent}"
+        "template": "{court_header}\n\n{case_nomenclature}\n\nIN THE MATTER OF:\n\n{applicant_name}\n{parent_relation}\nAge: {applicant_age} years\nR/o {address}\n                                              ... {party_label_petitioner}\n\nVersus\n\n{state_respondent}\n                                              ... {party_label_respondent}"
       },
       {
         "section_id": "application_heading",
         "type": "template",
         "alignment": "center",
-        "template": "APPLICATION FOR {bail_type_label} UNDER SECTION {bail_section} OF THE BHARATIYA NAGARIK SURAKSHA SANHITA, 2023"
+        "template": "APPLICATION FOR REGULAR BAIL UNDER {GOVERNING_PROVISION}"
       },
       {
         "section_id": "addressing_clause",
@@ -326,7 +618,7 @@
       {
         "section_id": "body",
         "type": "ai_generated",
-        "prompt_context": "Generate 7-10 numbered paragraphs for a {bail_type_label} application. Paragraph 1 must mention FIR No. {fir_number} dated {fir_date}, registered at PS {police_station}, under Sections {sections_charged} of BNS, 2023. Paragraphs 2-3 should narrate the facts based on: {facts_narrative}. Subsequent paragraphs should establish the grounds for bail: {grounds_for_bail}. Reference Article 21 of Constitution. Use formal legal language. Do NOT generate the prayer clause or verification — those are template-handled.",
+        "prompt_context": "Generate 7-10 numbered paragraphs for a {bail_type_label} application. Paragraph 1 must mention FIR No. {fir_number} dated {fir_date}, registered at PS {police_station}, under Section(s) {sections_charged}, as written in the FIR. Paragraphs 2-3 should narrate the facts based on: {facts_narrative}. Subsequent paragraphs should establish the grounds for bail: {grounds_for_bail}. Reference Article 21 of Constitution. Use formal legal language. Do NOT generate the prayer clause or verification — those are template-handled.",
         "numbering": "numeric",
         "min_paragraphs": 7,
         "max_paragraphs": 12
@@ -335,7 +627,7 @@
         "section_id": "prayer",
         "type": "template",
         "alignment": "left",
-        "template": "PRAYER\n\n{prayer_opening}\n\na) Grant {bail_type_label} to the {party_label_petitioner}, {applicant_name}, in connection with FIR No. {fir_number} dated {fir_date}, PS {police_station}, under Section {bail_section} of BNSS, 2023, on such terms and conditions as this Hon'ble Court may deem fit;\n\nb) Pass such other orders as this Hon'ble Court may deem fit and proper in the facts and circumstances of the case, in the interest of justice.\n\n{prayer_closing}"
+        "template": "PRAYER\n\n{prayer_opening}\n\na) Grant {bail_type_label} to the {party_label_petitioner}, {applicant_name}, in connection with FIR No. {fir_number} dated {fir_date}, PS {police_station}, under {governing_provision}, on such terms and conditions as this Hon'ble Court may deem fit;\n\nb) Pass such other orders as this Hon'ble Court may deem fit and proper in the facts and circumstances of the case, in the interest of justice.\n\n{prayer_closing}"
       },
       {
         "section_id": "verification",
@@ -347,7 +639,7 @@
         "section_id": "advocate_block",
         "type": "template",
         "alignment": "right",
-        "template": "THROUGH:\n\n_________________________\n{advocate_name}\nAdvocate\nEnrollment No. {enrollment_number}\n\nPlace: {court_city}\nDate: {current_date}"
+        "template": "THROUGH:\n\n_________________________\n{advocate_name}\nAdvocate\nEnrollment No. {enrollment_number}\n\nPlace: {place}\nDate: {current_date}"
       }
     ]
   },
@@ -377,7 +669,7 @@
       "CrPC",
       "IEA"
     ],
-    "auto_convert_old_to_new": true,
+    "auto_convert_old_to_new": false,
     "mandatory_sections": [
       "cause_title",
       "application_heading",

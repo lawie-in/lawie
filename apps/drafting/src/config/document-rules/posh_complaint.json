@@ -4,9 +4,10 @@
     "owner": "Ajay (CLO)",
     "validated_by": "Ajay (CLO) — Batch 7 writs + tribunals 2026-05-12",
     "last_updated": "2026-05-12",
-    "change_protocol": "All edits require CLO sign-off. Confidentiality protection S.16 paramount. Vishaka heritage cite mandatory."
+    "change_protocol": "All edits require CLO sign-off. Do not name judgments in model-visible text (Ajay, T-441)."
   },
   "template_id": "posh_complaint",
+  "card_description": "A complaint of sexual harassment at the workplace under the POSH Act, 2013.",
   "docType": "posh_complaint",
   "title": "Complaint under the Sexual Harassment of Women at Workplace (Prevention, Prohibition and Redressal) Act, 2013",
   "displayName": "POSH Complaint (SH Act 2013)",
@@ -324,19 +325,13 @@
       "name": "Supporting Documents",
       "required": true,
       "description": "Evidence list"
-    },
-    {
-      "id": "disclaimer",
-      "name": "Advocate Responsibility Disclaimer",
-      "required": true,
-      "description": "Standard Lawie disclaimer"
     }
   ],
   "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, the Aggrieved Woman / Complainant most respectfully prays that this Hon'ble Committee may graciously be pleased to:\n\na) Initiate an inquiry against the Respondent in accordance with Section 11 of the Sexual Harassment of Women at Workplace (Prevention, Prohibition and Redressal) Act, 2013 and the Service Rules / POSH Rules 2013 applicable;\n\nb) Pending the inquiry, grant interim relief to the Complainant under Section 12 of the Act, including {specific_interim_relief};\n\nc) Upon conclusion of the inquiry and on finding the allegations established, recommend action against the Respondent under Section 13 of the Act, including {specific_final_relief};\n\nd) Direct payment of compensation to the Complainant under Section 13(3)(b) read with Section 15 of the Act;\n\ne) Ensure strict confidentiality under Section 16 of the Act throughout the proceedings;\n\nf) Pass any other order(s) as this Hon'ble Committee may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the Aggrieved Woman / Complainant shall ever pray.",
   "verificationTemplate": "VERIFICATION\n\nI, {complainant_name}, the Aggrieved Woman / Complainant herein, do hereby verify under solemn affirmation that the contents of paragraphs 1 to {lastParagraph} of the above complaint are true and correct to my personal knowledge. No part is false and nothing material has been concealed. I invoke the confidentiality protections under Section 16 of the Act.\n\nVerified at {place} on this {date}.\n\nComplainant",
   "prompt_context": {
     "promptInstructions": [
-      "Draft a complaint under the Sexual Harassment of Women at Workplace (Prevention, Prohibition and Redressal) Act, 2013 — 'POSH Act' / 'SH Act'. Legislation traces lineage to Vishaka v. State of Rajasthan (1997) 6 SCC 241.",
+      "Draft a complaint under the Sexual Harassment of Women at Workplace (Prevention, Prohibition and Redressal) Act, 2013 — 'POSH Act' / 'SH Act'.",
       "MANDATORY: Caption 'CONFIDENTIAL' on every page. Section 16 of the Act mandates confidentiality of the woman's identity, contents of complaint, inquiry proceedings, recommendations. Disclosure can lead to penalty under S.17.",
       "Forum: ICC (Internal Complaints Committee — workplace with ≥10 employees, mandatory under S.4) OR LC (Local Complaints Committee — district level for workplaces with <10 employees / unorganised sector / where complaint against employer himself, S.6-7).",
       "Para 1: Parties — anonymise where appropriate; do NOT publish in any extra-committee forum.",
@@ -372,7 +367,7 @@
       "Para 17: Where conduct also constitutes a crime under BNS — woman may simultaneously file FIR; POSH Committee does NOT bar criminal action.",
       "Annexures: Identity proof; documentary evidence; witness list; medical / psychological reports if any.",
       "Verification on solemn affirmation.",
-      "Append Lawie disclaimer."
+      "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
   "relevantActs": [
@@ -435,7 +430,8 @@
           "number": "S.79",
           "description": "Word, gesture or act intended to insult modesty (was IPC 509)"
         },
-        { "number": "S.63", "description": "Rape (was IPC 375)" }
+        { "number": "S.63", "description": "Rape (was IPC 375)" },
+        { "number": "S.64", "description": "Punishment for rape (was IPC 376)" }
       ]
     }
   ],

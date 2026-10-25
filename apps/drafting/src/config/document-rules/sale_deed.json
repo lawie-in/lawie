@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. Stamp duty schedules vary by state — list state-wise references but do NOT hardcode rates. Suraj Lamp disclaimer mandatory when user proposes GPA-cum-sale shortcut."
   },
   "template_id": "sale_deed",
+  "card_description": "A sale deed of immovable property under the Transfer of Property Act, 1882.",
   "docType": "sale_deed",
   "title": "Sale Deed (Transfer of Property Act, 1882 — S.54-55)",
   "displayName": "Sale Deed (Immovable Property)",
@@ -195,6 +196,14 @@
         "options": ["bihar", "jharkhand", "uttar_pradesh", "delhi"]
       },
       {
+        "id": "execution_place",
+        "label": "Place of execution",
+        "type": "text",
+        "required": false,
+        "help": "City or town where the document will be signed.",
+        "ask_when_empty": true
+      },
+      {
         "id": "witness_1_name_address",
         "label": "Witness 1 name & address",
         "type": "textarea",
@@ -316,12 +325,6 @@
       "name": "Space for Registration Endorsement",
       "required": true,
       "description": "Sub-Registrar's endorsement"
-    },
-    {
-      "id": "lawie_disclaimer",
-      "name": "Lawie Drafting Assistant Disclaimer",
-      "required": true,
-      "description": "Standard Lawie disclaimer — advocate is responsible for legal accuracy and execution"
     }
   ],
   "prayerTemplate": "",
@@ -331,7 +334,7 @@
       "Draft a SALE DEED for ABSOLUTE conveyance of immovable property under Transfer of Property Act, 1882, Sections 54 (Sale defined) and 55 (Rights and liabilities of buyer and seller).",
       "CRITICAL — Section 54 TPA: 'Sale' = transfer of ownership in exchange for a price paid or promised. For tangible immovable property of value Rs.100 or upwards, sale can be made ONLY by a registered instrument.",
       "CRITICAL — Section 17(1)(b) Registration Act, 1908: Non-testamentary instruments which purport or operate to create, declare, assign, limit or extinguish any right, title or interest of value of Rs.100 and upwards, to or in immovable property, MUST be registered. UNREGISTERED SALE DEED DOES NOT TRANSFER TITLE.",
-      "CRITICAL — Suraj Lamp & Industries Pvt Ltd v. State of Haryana (2012) 1 SCC 656: 'GPA-cum-Sale' or 'SA-cum-GPA-cum-Will' transactions are NOT valid modes of transfer of immovable property. Title can pass ONLY by registered sale deed. ALWAYS WARN the advocate if any GPA-cum-sale shortcut is being attempted — explicitly flag it in the draft cover note.",
+      "CRITICAL — 'GPA-cum-Sale' or 'SA-cum-GPA-cum-Will' transactions are NOT valid modes of transfer of immovable property. Title can pass ONLY by registered sale deed. ALWAYS WARN the advocate if any GPA-cum-sale shortcut is being attempted — explicitly flag it in the draft cover note.",
       "Start with RECITAL OF TITLE: trace the vendor's title — prior sale deed number, date, registration details; or inheritance with succession certificate / mutation; or partition deed; or settlement deed. Include mutation entry numbers in revenue records (Bihar — Jamabandi; UP — Khatauni; Jharkhand — Khatian; Delhi — Mutation Register).",
       "PROPERTY DESCRIPTION (Schedule A) must include: (a) Full postal address, (b) Khasra / Survey / Plot No., (c) Khata / Patta No., (d) Total extent (area in sq ft / sq m for plots and houses; acres + decimals for agricultural land), (e) Boundaries — North, South, East, West with neighbour's name/property/feature, (f) Registration Sub-District + Tehsil + District.",
       "CONSIDERATION: state amount in figures AND words. State mode of payment — cash (NOTE: cash above Rs.20,000 attracts Income Tax Act S.269SS / 269T penalties; advise bank transfer / DD / RTGS), cheque (with number, date, bank), DD, RTGS / NEFT (with UTR). Receipt clause must explicitly acknowledge full receipt; if part payment, state schedule.",
@@ -349,8 +352,8 @@
       "Where vendor / purchaser is a HUF — Karta executes; mention HUF status and that property is sold in capacity of Karta with consent of all adult coparceners.",
       "Where vendor / purchaser is a company — board resolution annexed; signed by authorised signatory.",
       "Where minor coparcener interest exists — court permission under Hindu Minority and Guardianship Act, 1956 OR Guardians and Wards Act, 1890 required; flag this prominently.",
-      "Where property is ancestral coparcenary — daughters' coparcenary rights post HSA 2005 amendment (Vineeta Sharma v. Rakesh Sharma 2020 — daughters are coparceners by birth even if father died before 2005); advise all coparceners must be parties or grant NOC.",
-      "Append Lawie disclaimer: 'This sale deed is a drafting assistant output. The executing advocate is responsible for legal accuracy, due diligence on title, stamp duty correctness, registration formalities, and statutory compliance. Lawie is not legal counsel to either party.'"
+      "Where property is ancestral coparcenary — daughters' coparcenary rights post HSA 2005 amendment (daughters are coparceners by birth even if father died before 2005); advise all coparceners must be parties or grant NOC.",
+      "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
   "relevantActs": [
@@ -451,7 +454,7 @@
       "sections": [
         {
           "number": "S.6",
-          "description": "Daughters as coparceners (post 2005 amendment, Vineeta Sharma)"
+          "description": "Daughters as coparceners (post 2005 amendment)"
         }
       ]
     },
@@ -492,8 +495,7 @@
     "Update property tax record in purchaser's name",
     "Where agricultural land in Jharkhand tribal area — Deputy Commissioner's permission under CNT/SPT Act ANNEXED",
     "Where minor's interest involved — court permission order ANNEXED",
-    "Where company is party — Board Resolution + Memorandum of Association ANNEXED",
-    "Lawie disclaimer prominently included"
+    "Where company is party — Board Resolution + Memorandum of Association ANNEXED"
   ],
   "validation_rules": [
     "consideration_amount must be > 0",

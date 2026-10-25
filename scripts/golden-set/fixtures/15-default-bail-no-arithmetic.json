@@ -1,0 +1,85 @@
+{
+  "id": "15-default-bail-no-arithmetic",
+  "pack": "default_bail",
+  "title": "Default bail, Ranchi: dates and the advocate's period given, no day count",
+  "risk": "Run 1 blocker (custody length computed) on default bail: arrest and remand dates print as given, the period and its expiry date are the advocate's, and the model must not count days or work out which period applies (T-251)",
+  "source": "handoff/quality/2026-10-06-baseline-run-FAIL.md blocker 2 ('approximately three days'), applied to default_bail; dev-written matter",
+  "review": "drafted by dev from Anushka's reports, not yet reviewed by Anushka",
+  "ajay": null,
+  "language": "en",
+  "description": "Default bail chahiye, CJM Ranchi. Client Sunil Oraon s/o Mangra Oraon, 30 saal, Hatia Ranchi. FIR 512/2026 dated 1 July 2026, PS Doranda, section 303(2) BNS, saza 3 saal tak. Arrest 2 July 2026, pehli remand 3 July 2026. Default bail ki period 60 days, jo 1 September 2026 ko khatam hui. Charge sheet abhi tak file nahi hui. Bond bharne ko taiyaar.",
+  "court": {
+    "state": "Jharkhand",
+    "court_type": "cjm",
+    "court": "jharkhand_cjm_ranchi"
+  },
+  "expect": {
+    "exact": [
+      {
+        "any_of": ["2 July 2026"],
+        "why": "arrest date as given"
+      },
+      {
+        "any_of": ["3 July 2026"],
+        "why": "remand date as given"
+      }
+    ],
+    "not_written": [
+      {
+        "banned_entry_id": "statutory_threshold_crossed",
+        "why": "the model must not conclude it"
+      },
+      {
+        "banned_entry_id": "days_elapsed",
+        "why": "Lawie neither counts days nor states a length of custody (T-251)"
+      },
+      {
+        "banned_entry_id": "punishment_category",
+        "why": "Lawie does not classify the offence; the advocate states the period (T-251)"
+      },
+      {
+        "banned_entry_id": "no_extension_sought",
+        "why": "never given"
+      }
+    ],
+    "absent": [
+      {
+        "any_of": [
+          "more than 60 days",
+          "more than 90 days",
+          "days in custody",
+          "days have elapsed",
+          "has been in custody for"
+        ],
+        "why": "a computed conclusion or a day count"
+      }
+    ],
+    "ledger": [
+      {
+        "key": "arrest_date",
+        "why": "read from the description",
+        "display": "2 July 2026"
+      },
+      {
+        "key": "remand_date",
+        "why": "read from the description",
+        "display": "3 July 2026"
+      },
+      {
+        "key": "police_station",
+        "why": "read from the description",
+        "display": "Doranda"
+      },
+      {
+        "key": "period_claimed",
+        "why": "read from the description",
+        "display": "60 days"
+      },
+      {
+        "key": "period_expiry_date",
+        "why": "read from the description",
+        "display": "1 September 2026"
+      }
+    ]
+  }
+}

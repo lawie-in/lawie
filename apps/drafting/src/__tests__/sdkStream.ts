@@ -1,0 +1,112 @@
+/**
+ * T-118 — helpers for faking the Anthropic SDK's `messages.stream()` in tests.
+ * Every model call goes straight to the SDK now, so tests replace the SDK
+ * module (see the `jest.mock('@anthropic-ai/sdk', ...)` in each test file) and
+ * feed it the same event shapes the real stream emits.
+ */
+
+export interface SdkUsage {
+  input: number;
+  output: number;
+}
+
+/** What streamLLM hands to `messages.stream()`. */
+export interface SdkStreamParams {
+  model: string;
+  max_tokens: number;
+  system: string;
+  messages: Array<{ role: string; content: string }>;
+}
+
+export function asyncIterable<T>(items: T[]): AsyncIterable<T> {
+  return {
+    [Symbol.asyncIterator]: () => {
+      let i = 0;
+      return {
+        next: async () =>
+          i < items.length
+            ? { value: items[i++], done: false }
+            : { value: undefined as unknown as T, done: true },
+      };
+    },
+  };
+}
+
+/** The events of one successful stream: input tokens, two text chunks, output tokens. */
+export function sdkEvents(content: string, usage: SdkUsage = { input: 4000, output: 800 }) {
+  const cut = Math.max(0, content.length - 40);
+  return [
+    { type: 'message_start', message: { usage: { input_tokens: usage.input, output_tokens: 0 } } },
+    {
+      type: 'content_block_delta',
+      delta: { type: 'text_delta', text: content.slice(0, cut) },
+    },
+    {
+      type: 'content_block_delta',
+      delta: { type: 'text_delta', text: content.slice(cut) },
+    },
+    { type: 'message_delta', usage: { output_tokens: usage.output } },
+  ];
+}
+
+/** What `messages.stream()` resolves to for one successful answer. */
+export function sdkStreamOf(content: string, usage?: SdkUsage): AsyncIterable<unknown> {
+  return asyncIterable(sdkEvents(content, usage));
+}
+
+/** The SDK module stub: `new Anthropic()` gives a client whose stream is `streamFn`. */
+export function sdkModuleStub(
+  streamFn: (...args: unknown[]) => unknown,
+  parseFn?: (...args: unknown[]) => unknown,
+) {
+  return {
+    __esModule: true,
+    default: jest.fn().mockImplementation(() => ({
+      messages: { stream: streamFn, ...(parseFn ? { parse: parseFn } : {}) },
+    })),
+  };
+}
+
+/**
+ * T-373: what `messages.parse()` resolves to (ADR-025 D1). `parsed` is the
+ * parsed_output the SDK would give; null is a structured answer that did not
+ * parse. Usage is the provider's token counts.
+ */
+export function sdkParseResponse(parsed: unknown, usage: SdkUsage = { input: 4000, output: 800 }) {
+  return {
+    parsed_output: parsed,
+    content: [{ type: 'text', text: parsed === null ? '' : JSON.stringify(parsed) }],
+    usage: { input_tokens: usage.input, output_tokens: usage.output },
+  };
+}
+
+/** One successful stream: the text, then the provider's token counts. */
+export function sdkAnswer(text: string, input: number, output: number): AsyncIterable<unknown> {
+  return asyncIterable([
+    { type: 'message_start', message: { usage: { input_tokens: input, output_tokens: 0 } } },
+    { type: 'content_block_delta', delta: { type: 'text_delta', text } },
+    { type: 'message_delta', usage: { output_tokens: output } },
+  ]);
+}
+
+/**
+ * T-437: the `system` a cached call sends is an array of text blocks, a
+ * per-request one is still a plain string. Flattens either to its text, so a
+ * test that concatenates or searches the system prompt never reads
+ * "[object Object]" and never matches against array elements by accident.
+ */
+export function systemText(system: unknown): string {
+  if (typeof system === 'string') return system;
+  if (Array.isArray(system)) return system.map((b) => (b as { text: string }).text).join('');
+  throw new Error(`system is neither a string nor a block array: ${typeof system}`);
+}
+
+/**
+ * T-437: `system` is exactly one text block holding `text` byte for byte,
+ * carrying the single 1h ephemeral cache_control. The expected shape is
+ * written out here rather than built by cachedSystemBlocks, so a change to
+ * the TTL or the block shape fails the test.
+ */
+export function expectCachedSystem(system: unknown, text: string): void {
+  expect(system).toEqual([{ type: 'text', text, cache_control: { type: 'ephemeral', ttl: '1h' } }]);
+}

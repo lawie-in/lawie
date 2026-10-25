@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. Readiness and willingness pleading is non-negotiable. Post-2018 SRA amendment treats SP as general rule."
   },
   "template_id": "plaint_specific_performance",
+  "card_description": "A plaint in a suit for specific performance of a contract.",
   "docType": "plaint_specific_performance",
   "title": "Plaint — Suit for Specific Performance of Contract",
   "displayName": "Plaint for Specific Performance (S.10-14 SRA)",
@@ -241,7 +242,7 @@
       "id": "readiness_willingness_paragraph",
       "name": "Readiness and Willingness — S.16(c) SRA",
       "required": true,
-      "description": "Continuous readiness and willingness to perform essential terms — Beemaiah v. Govindappa; Syed Dastagir v. T.R. Gopalakrishna Setty"
+      "description": "Continuous readiness and willingness to perform essential terms"
     },
     {
       "id": "defendant_breach_paragraph",
@@ -302,12 +303,6 @@
       "name": "Affidavit in support",
       "required": true,
       "description": "Order VI R.15(4)"
-    },
-    {
-      "id": "disclaimer",
-      "name": "Advocate Responsibility Disclaimer",
-      "required": true,
-      "description": "Standard Lawie disclaimer"
     }
   ],
   "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, the Plaintiff most respectfully prays that this Hon'ble Court may graciously be pleased to:\n\na) Pass a decree of specific performance of the agreement / contract dated {contract_date} directing the Defendant to execute and register a sale deed / lease / instrument of transfer in favour of the Plaintiff in respect of the suit property described in the Schedule, against payment of the balance consideration of Rs. {balance_consideration}/-, which the Plaintiff is ready and willing to pay;\n\nb) In the event the Defendant fails to execute the sale deed within the time fixed, direct that the same be executed through the process of this Hon'ble Court under Order XXI Rule 34 CPC;\n\nc) Direct the Defendant to deliver vacant and peaceful possession of the suit property to the Plaintiff;\n\nd) In the alternative, and only if specific performance cannot be granted, award the Plaintiff damages of Rs. {damages_amount}/- under Section 21 of the Specific Relief Act, 1963, along with refund of earnest money of Rs. {earnest_money_paid}/-;\n\ne) Award costs of the suit in favour of the Plaintiff;\n\nf) Pass any other order(s) as this Hon'ble Court may deem fit and proper.\n\nAnd for this act of kindness, the Plaintiff shall ever pray.",
@@ -321,10 +316,10 @@
       "S.14 (post-amendment) — Contracts NOT specifically enforceable (exhaustive list): (a) where party suffered substituted performance under S.20; (b) involving continuous duty which court cannot supervise; (c) dependent on personal qualifications of parties; (d) determinable in nature.",
       "S.16 — Personal bars to relief: (a) party who would not be entitled to recover compensation; (b) party who becomes incapable of performing; (c) party who fails to aver and prove that he has performed or has always been ready and willing to perform essential terms of the contract.",
       "S.16(c) READINESS AND WILLINGNESS — MANDATORY PLEADING. Plaintiff MUST plead continuous readiness and willingness. Pleading of mere 'ready and willing' insufficient — must plead specific acts: earnest paid, balance kept ready, financial capacity, performance of conditions precedent.",
-      "Cite: Syed Dastagir v. T.R. Gopalakrishna Setty (1999) 6 SCC 337 — readiness implies financial capacity; willingness implies conduct.",
-      "Cite: J.P. Builders v. A. Ramadas Rao (2011) 1 SCC 429 — readiness and willingness must be continuous throughout.",
-      "Cite: Beemaiah v. Govindappa (2013) 11 SCC 754 — pleadings of readiness and willingness essential; absence fatal.",
-      "Cite: Kamal Kumar v. Premlata Joshi (2019) 3 SCC 704 — explanation to S.16(c) post-2018 — actual tender of money not necessary; willingness to pay must be averred.",
+      "Readiness implies financial capacity; willingness implies conduct.",
+      "Readiness and willingness must be continuous throughout.",
+      "Pleadings of readiness and willingness essential; absence fatal.",
+      "Explanation to S.16(c) post-2018 — actual tender of money not necessary; willingness to pay must be averred.",
       "Para 1-2: Parties description.",
       "Para 3: Existence and terms of contract — date, mode (written/oral), consideration, time for performance.",
       "Para 4: Subject-matter description — for immovable property, full schedule with boundaries.",
@@ -332,17 +327,17 @@
       "Para 6: SPECIFIC pleading of plaintiff's readiness and willingness throughout — show source of funds, bank balance, sale of other assets if any. Plead willingness to perform balance obligations.",
       "Para 7: Defendant's breach / refusal — specific acts and dates. Where defendant alleges time of essence and seeks to terminate, address that.",
       "Para 8: Legal notice calling upon defendant to perform — date and reply.",
-      "Para 9: Time of essence analysis — generally in immovable property transactions, time is NOT of the essence (Chand Rani v. Kamal Rani; Saradamani Kandappan v. Rajalakshmi (2011) 12 SCC 18 — but plaintiff must still act with reasonable diligence).",
+      "Para 9: Time of essence analysis — generally in immovable property transactions, time is NOT of the essence (but plaintiff must still act with reasonable diligence).",
       "Para 10: Confirm contract not within S.14 exceptions.",
       "Para 11: Alternative relief under S.21 SRA — claim damages in alternative.",
       "Para 12: Cause of action — date of fixed performance or, if no date fixed, date plaintiff had notice that defendant refused.",
       "Para 13: Limitation — Article 54 Limitation Act — 3 years from date fixed for performance, or, if none fixed, from when plaintiff had notice of refusal.",
       "Para 14: Jurisdiction — S.16 CPC for immovable property suits.",
       "Para 15: Court fee — ad valorem on consideration (state Court Fees Act).",
-      "If commercial dispute u/s 2(1)(c) CCA 2015 and value >=Rs.3 lakh: Commercial Court track + pre-institution mediation u/s 12A (Patil Automation).",
+      "If commercial dispute u/s 2(1)(c) CCA 2015 and value >=Rs.3 lakh: Commercial Court track + pre-institution mediation u/s 12A.",
       "Note S.19A SRA — substituted performance of contracts (post-2018).",
       "Tone: precise. Avoid argumentative.",
-      "Append Lawie disclaimer."
+      "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
   "relevantActs": [

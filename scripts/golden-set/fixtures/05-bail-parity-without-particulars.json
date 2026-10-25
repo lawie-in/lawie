@@ -1,0 +1,63 @@
+{
+  "id": "05-bail-parity-without-particulars",
+  "pack": "bail_regular",
+  "title": "Bail, Delhi: co-accused bail mentioned without court or date",
+  "risk": "Risk from the T-147 class 1 pattern: 'co-accused ko bail mil gayi' with no court, date or name must not become a parity ground ('similarly placed', 'identical role')",
+  "source": "handoff/quality/2026-10-07-run-2-develop-FAIL.md finding 2 (invented grounds), applied to parity; dev-written matter",
+  "review": "drafted by dev from Anushka's reports, not yet reviewed by Anushka",
+  "ajay": null,
+  "language": "en",
+  "description": "Client Salim Khan s/o Rashid Khan, 33 saal, Tis Hazari sessions court mein regular bail. FIR 401/2026 PS Sadar Bazar, section 309(4) BNS. 20 Aug 2026 se custody mein. Co-accused ko bail mil gayi hai shayad.",
+  "court": {
+    "state": "Delhi",
+    "court_type": "sessions",
+    "court": "delhi_tis_hazari"
+  },
+  "expect": {
+    "not_written": [
+      {
+        "banned_entry_id": "parity_same_role",
+        "why": "nothing about the role was given"
+      },
+      {
+        "banned_entry_id": "parity_co_accused",
+        "why": "no court, date or name of the co-accused's order"
+      }
+    ],
+    "absent": [
+      {
+        "any_of": [
+          "similarly placed",
+          "stands on the same footing",
+          "identical"
+        ],
+        "why": "parity asserted without particulars"
+      }
+    ],
+    "present": [
+      {
+        "any_of": [
+          "Sadar Bazar"
+        ],
+        "why": "police station given"
+      }
+    ],
+    "ledger": [
+      {
+        "key": "applicant_name",
+        "why": "read from the description",
+        "display": "Salim Khan"
+      },
+      {
+        "key": "police_station",
+        "why": "read from the description",
+        "display": "Sadar Bazar"
+      },
+      {
+        "key": "custody_since",
+        "why": "read from the description",
+        "display": "20 August 2026"
+      }
+    ]
+  }
+}

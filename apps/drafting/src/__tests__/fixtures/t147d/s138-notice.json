@@ -1,0 +1,29 @@
+{
+  "_header": "RECONSTRUCTED from Anushka's quality report handoff/quality/2026-10-07-run-2-develop-FAIL.md (scenario 5, finding 2). Her run-2 drafts were never saved. Sentences in quotes in her report are used verbatim (\"presented the said cheque for encashment on 15.09.2026 at HDFC Bank, Karol Bagh\", \"in the week following the presentation\", the amount blank \"[To be confirmed: cheque amount (rs.)]\"); the rest of the text, the payee's name and every ledger value she did not state are reconstructed for the test and are not her output. T-147d, AC2.",
+  "pack": "legal_notice_s138",
+  "ledger": {
+    "facts": [
+      { "id": "f1", "key": "applicant_name", "label": "Payee / Notice Sender", "type": "person_name", "value": "sureshgupta", "display": "Suresh Gupta", "raw_span": "Suresh Gupta", "source": "user", "confidence": 0.99, "required_in_draft": true },
+      { "id": "f2", "key": "respondent_name", "label": "Drawer / Noticee", "type": "person_name", "value": "demotraders", "display": "Demo Traders", "raw_span": "Demo Traders ke malik", "source": "user", "confidence": 0.9, "required_in_draft": true },
+      { "id": "f3", "key": "cheque_amount", "label": "Cheque Amount (Rs.)", "type": "amount", "value": 300000, "display": "Rs 3,00,000", "raw_span": "3 lakh ka cheque", "source": "user", "confidence": 0.99, "required_in_draft": true },
+      { "id": "f4", "key": "cheque_date", "label": "Cheque Date", "type": "date", "value": "2026-09-01", "display": "1 September 2026", "raw_span": "date 1 sept 2026", "source": "user", "confidence": 0.99, "required_in_draft": true },
+      { "id": "f5", "key": "drawee_bank", "label": "Drawee Bank Name", "type": "text", "value": "HDFC Bank", "display": "HDFC Bank", "raw_span": "HDFC Bank", "source": "user", "confidence": 0.95, "required_in_draft": true },
+      { "id": "f6", "key": "drawee_branch", "label": "Drawee Branch", "type": "place_name", "value": "karolbagh", "display": "Karol Bagh", "raw_span": "Karol Bagh", "source": "user", "confidence": 0.95, "required_in_draft": true },
+      { "id": "f7", "key": "presentation_date", "label": "Date of Presentation to Bank", "type": "date", "value": "2026-09-15", "display": "15 September 2026", "raw_span": "15 sept ko lagaya", "source": "user", "confidence": 0.95, "required_in_draft": true }
+    ],
+    "unresolved": [
+      { "id": "u1", "key": "dishonour_date", "label": "Date of Dishonour / Return Memo", "type": "date", "raw_span": "return memo pichle hafte aaya", "source": "user", "reason": "unrecognised", "detail": "\"pichle hafte\" is not a date." }
+    ]
+  },
+  "skeleton": [
+    "LEGAL NOTICE UNDER SECTION 138 OF THE NEGOTIABLE INSTRUMENTS ACT, 1881\n\nBy Registered Post A.D. / Speed Post\n\nTo,\n[To be confirmed: drawer / noticee]\n[To be confirmed: drawer address]\n\nSir/Madam,\n\nUnder instructions from and on behalf of my client, Suresh Gupta, I hereby serve upon you the following legal notice:",
+    "You are therefore called upon to make payment of the said cheque amount within 15 days of receipt of this notice, failing which my client shall be constrained to initiate proceedings under Section 138 of the Negotiable Instruments Act, 1881."
+  ],
+  "body": "1. That you issued a cheque dated 01.09.2026 for [To be confirmed: cheque amount (rs.)] drawn on HDFC Bank, Karol Bagh in favour of my client.\n\n2. That my client presented the said cheque for encashment on 15.09.2026 at HDFC Bank, Karol Bagh.\n\n3. That the said cheque was returned unpaid and the return memo was received by my client in the week following the presentation.\n\n4. That the amount of [To be confirmed: cheque amount (rs.)] remains unpaid.",
+  "expected": [
+    { "check": "dropped", "ledgerKey": "cheque_amount", "from_report": "\"3 lakh\" (amount blank five times)" },
+    { "check": "dropped", "ledgerKey": "respondent_name", "from_report": "\"Demo Traders\" gone" },
+    { "check": "mutation", "ledgerKey": "dishonour_date", "reason": "unresolved", "from_report": "memo received \"in the week following the presentation\"" },
+    { "check": "mutation", "ledgerKey": "drawee_branch", "reason": "wrong_fact", "from_report": "\"presented the said cheque for encashment on 15.09.2026 at HDFC Bank, Karol Bagh\"" }
+  ]
+}

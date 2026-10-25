@@ -10,19 +10,19 @@ import SiteNav from '@/components/marketing/SiteNav';
 export const metadata: Metadata = {
   title: 'Lawie — Frequently Asked Questions',
   description:
-    'Answers to common questions about Lawie: documents, BNS/BNSS/BSA mappings, pricing, privacy, and how the AI-assisted drafting tool works.',
+    'Answers about Lawie: the documents it drafts, Ink and pricing, privacy, and how drafts work.',
 };
 
 const productFaq = [
   {
     question: 'What documents does Lawie generate today?',
     answer:
-      'Bail applications (regular and anticipatory), legal notices (S.80 CPC and S.138 NI Act), rent agreements, consumer complaints, vakalatnama, affidavits, maintenance petitions, and cheque bounce complaints. New templates are added regularly.',
+      'Bail applications, legal notices, writ petitions, maintenance petitions, written statements, affidavits.',
   },
   {
-    question: 'Are the BNS, BNSS, BSA mappings reliable?',
+    question: 'Which criminal codes do drafts use?',
     answer:
-      'Section mappings are built from the official IPC→BNS, CrPC→BNSS, and IEA→BSA correspondence tables. Every section cited in a generated document is validated against these mappings before it appears in your draft. You should always review the final document before filing.',
+      'Criminal drafts use BNS, BNSS and BSA section numbers, or IPC, CrPC and the Evidence Act where the old law applies. Check every section against the bare act before you file.',
   },
   {
     question: 'Can I edit the document after Lawie generates it?',
@@ -30,14 +30,13 @@ const productFaq = [
       'Yes. Every document opens in an editor where you can change any text, add annexures, or adjust the formatting. Lawie gives you a structured starting point and you stay in control of the final draft.',
   },
   {
-    question: 'Which courts does Lawie format for?',
+    question: 'Which courts can I draft for?',
     answer:
-      'District and High Courts across Bihar, Jharkhand, UP, and Delhi, with more states added regularly. You select your state, court type, and court name, and the cause title and formatting adjust accordingly.',
+      "The courts in Lawie's court list. Check the cause title and format against your court's rules before you file.",
   },
   {
     question: 'Does Lawie handle Hindi documents?',
-    answer:
-      'English is fully supported today. Hindi drafting is on the roadmap and rolling out template by template.',
+    answer: 'Drafts are in English today. Hindi drafting: coming soon.',
   },
 ];
 
@@ -45,12 +44,12 @@ const pricingFaq = [
   {
     question: 'How much does Lawie cost?',
     answer:
-      'Lawie has a free tier that includes 5 Ink (lifetime). Solo is ₹799/month (50 Ink/month). Pro is ₹1,999/month (150 Ink/month).',
+      'Lawie has a free tier that includes 5 Ink (one time), once your email is verified. Paid plans add more Ink; see the pricing page for current plans.',
   },
   {
     question: "What's included in the free tier?",
     answer:
-      'Five Ink lifetime for free users. All templates, court formatting, BNS validation, PDF/DOCX export. Free exports carry a Lawie watermark.',
+      '5 Ink on sign-up, once your email is verified (one time). Every document type on Lawie, PDF and DOCX export. Criminal drafts use BNS, BNSS and BSA section numbers, or IPC, CrPC and the Evidence Act where the old law applies.',
   },
   {
     question: 'Can I cancel anytime?',
@@ -60,12 +59,12 @@ const pricingFaq = [
   {
     question: 'Do you offer refunds?',
     answer:
-      'No. Subscriptions are billed in advance and are non-refundable for any portion of the subscription period. You can cancel anytime to stop future charges — see the Refund Policy for details.',
+      'Payments are non-refundable once the plan period has started or the Ink has been added. If you were charged twice or by mistake, write to contact@lawie.in within 30 days. See the Refund Policy.',
   },
   {
     question: 'What payment methods do you accept?',
     answer:
-      'Payments are processed securely through Razorpay, which supports UPI, debit and credit cards, net banking, and popular wallets.',
+      'Payments are processed through Razorpay, which supports UPI, debit and credit cards, net banking, and popular wallets.',
   },
 ];
 
@@ -73,22 +72,22 @@ const legalFaq = [
   {
     question: 'Is Lawie a substitute for a lawyer?',
     answer:
-      'No. Lawie is an AI-assisted drafting tool — not a substitute for legal advice. You remain responsible for reviewing and finalising every document before it is used or filed.',
+      'No. Lawie is a drafting assistant. You are responsible for legal accuracy, and for reviewing and finalising every document before it is used or filed.',
   },
   {
-    question: 'Are my case details private?',
+    question: 'How is my case data handled?',
     answer:
-      'Your documents are encrypted in storage and transmitted over secure connections. Case details are processed only to generate the document you requested. See the Privacy Policy for how data is handled under the DPDP Act, 2023.',
+      'Your drafts and briefs are encrypted in our database, and connections to Lawie use HTTPS. Your form answers and the list of facts Lawie builds from your matter are not yet encrypted in the same way. We do not currently keep backups, so download and keep your own copy of every document you need. Lawie uses your case details only to create your drafts. The Privacy Policy lists what we store, where, and who else receives it.',
   },
   {
     question: 'What disclaimer applies to generated documents?',
     answer:
-      'Every document is produced by an AI-assisted tool and should be reviewed by the filing advocate before use. Lawie does not certify any document as court-approved or legally valid.',
+      'Every document is a first draft generated with AI and must be reviewed by the filing advocate before use. Lawie does not certify any document as court-approved or legally valid.',
   },
   {
     question: 'Who reviews the templates?',
     answer:
-      'Templates are designed against current Indian court formats and validated against the official section mappings. Lawie is an AI-assisted tool — the filing advocate is responsible for reviewing each generated draft before use.',
+      "Templates follow Lawie's court rules for the courts in its list. Lawie is a drafting assistant: the filing advocate is responsible for reviewing each generated draft before use.",
   },
 ];
 
@@ -98,14 +97,13 @@ const technicalFaq = [
     answer: 'No. Lawie runs entirely in your web browser. There is nothing to download or install.',
   },
   {
-    question: 'Does Lawie work on mobile?',
+    question: 'Can I use Lawie on my phone?',
     answer:
-      'Yes. The site and the drafting flow work on modern mobile browsers, though a larger screen is more comfortable for reviewing long documents.',
+      'We have not tested Lawie on phones yet. For now, please use a laptop or desktop browser.',
   },
   {
     question: 'How fast does document generation happen?',
-    answer:
-      'Most documents are generated in under five minutes from a completed form, depending on the length and complexity of the document.',
+    answer: 'It depends on the length and complexity of the document.',
   },
 ];
 

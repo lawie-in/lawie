@@ -11,7 +11,7 @@
   "courtId": "tn_district",
   "courtType": "district_court",
   "designation": "IN THE COURT OF PRINCIPAL DISTRICT & SESSIONS JUDGE",
-  "jurisdictionNote": "District-level criminal and civil courts in Tamil Nadu. Sessions courts try offences punishable with imprisonment exceeding 7 years. Sessions cases are typically numbered S.C. No. and special sessions cases as Spl. Sessions C. No. Chennai operates as the City Civil & Sessions Court under the Tamil Nadu Civil Courts Act, 1873 and the Madras High Court Original Side Rules as locally adapted.",
+  "jurisdictionNote": "District-level criminal and civil courts in Tamil Nadu. Which court tries an offence is set by the First Schedule to BNSS, not by the length of the sentence. Sessions cases are typically numbered S.C. No. and special sessions cases as Spl. Sessions C. No. Chennai operates as the City Civil & Sessions Court under the Tamil Nadu Civil Courts Act, 1873 and the Madras High Court Original Side Rules as locally adapted.",
   "cause_title_format": "{courtDesignation}, {city}\n{caseNomenclature}\n\n{petitioner} ... PETITIONER\n\nVERSUS\n\n{respondent} ... RESPONDENT",
   "party_designation": {
     "petitioner": "Petitioner",
@@ -21,11 +21,11 @@
     "defendant": "Defendant",
     "complainant": "Complainant",
     "accused": "Accused",
-    "state": "State of Tamil Nadu represented by the Public Prosecutor / Inspector of Police (as applicable) through the Principal Secretary, Home Department, Government of Tamil Nadu, Chennai"
+    "state": "State of Tamil Nadu"
   },
   "case_nomenclature": {
-    "regular_bail": "Crl. M.P. No. _____ of {year}",
-    "anticipatory_bail": "Crl. O.P. (A.B.) No. _____ of {year}",
+    "regular_bail": "Bail Application No. _____ of {year}",
+    "anticipatory_bail": "Anticipatory Bail Application No. _____ of {year}",
     "sessions_case": "S.C. No. _____ of {year}",
     "special_sessions_case": "Spl. Sessions Case No. _____ of {year}",
     "calendar_case": "C.C. No. _____ of {year}",

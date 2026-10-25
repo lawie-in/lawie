@@ -11,7 +11,7 @@
   "courtId": "kl_district",
   "courtType": "district_court",
   "designation": "IN THE COURT OF DISTRICT & SESSIONS JUDGE",
-  "jurisdictionNote": "District-level criminal and civil courts in Kerala. Sessions courts try offences punishable with imprisonment exceeding 7 years. Kerala operates under the Kerala Civil Courts Act, 1957 and the Kerala Civil Rules of Practice, 1971. Sessions cases are numbered 'S.C.', criminal calendar cases 'C.C.', criminal miscellaneous petitions 'C.M.P.'",
+  "jurisdictionNote": "District-level criminal and civil courts in Kerala. Which court tries an offence is set by the First Schedule to BNSS, not by the length of the sentence. Kerala operates under the Kerala Civil Courts Act, 1957 and the Kerala Civil Rules of Practice, 1971. Sessions cases are numbered 'S.C.', criminal calendar cases 'C.C.', criminal miscellaneous petitions 'C.M.P.'",
   "cause_title_format": "{courtDesignation}, {city}\n{caseNomenclature}\n\n{petitioner} ... PETITIONER\n\nVERSUS\n\n{respondent} ... RESPONDENT",
   "party_designation": {
     "petitioner": "Petitioner",
@@ -24,8 +24,8 @@
     "state": "State of Kerala through the Principal Secretary, Home Department, Government of Kerala, Thiruvananthapuram"
   },
   "case_nomenclature": {
-    "regular_bail": "C.M.P. No. _____ of {year}",
-    "anticipatory_bail": "Crl. M.C. (A.B.) No. _____ of {year}",
+    "regular_bail": "Bail Application No. _____ of {year}",
+    "anticipatory_bail": "Anticipatory Bail Application No. _____ of {year}",
     "sessions_case": "S.C. No. _____ of {year}",
     "calendar_case": "C.C. No. _____ of {year}",
     "civil_suit": "O.S. No. _____ of {year}",

@@ -15,6 +15,8 @@ import {
 import Link from 'next/link';
 import { useState, useCallback } from 'react';
 
+import CookieSettingsButton from '@/components/CookieSettingsButton';
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -23,12 +25,29 @@ interface OffenceInfo {
   section: string;
   title: string;
   punishment: string;
-  maxYears: number;
-  bailable: boolean;
-  cognizable: boolean;
-  compoundable: boolean;
+  /** T-361 AC2: the row's signed note from the API, shown under the punishment line as is. */
+  note?: string;
+  maxYears: number | null;
+  /** null = unknown: never shown as "Non-…" (T-277) */
+  bailable: boolean | null;
+  cognizable: boolean | null;
+  compoundable: boolean | 'with_permission' | null;
+  /** Ajay's texts from the API */
+  bailableNote?: string | null;
+  cognizableNote?: string | null;
+  compoundableNote?: string | null;
+  /** T-371: Ajay's caveat for a verify-flagged row (6526597); never the raw verify text */
+  caveat?: string;
   chapter: string;
 }
+
+/** Ajay (CLO), T-277: fallback for the summary when the API sends no note. */
+const DEPENDS_FIRST_SCHEDULE = 'Depends. Check the First Schedule.';
+/** Ajay (CLO), T-361 Addendum 1: fallback for a null attribute. Same text as the API. */
+const ATTRIBUTE_DEPENDS =
+  'Depends on the sub-section or the offence — see the BNSS First Schedule.';
+/** Ajay (CLO), T-277 Q7. */
+const WITH_COURT_PERMISSION = "Compoundable with the Court's permission";
 
 interface SectionResult {
   input: string;
@@ -37,16 +56,30 @@ interface SectionResult {
   ipcSection?: string;
   offence: OffenceInfo | null;
   found: boolean;
+  /**
+   * Ajay's signed note from the API, shown as is: "No BNS equivalent. Check the
+   * Gazette", "Not verified — check the Gazette" (T-371), or "This section does not
+   * create an offence. Check the Gazette." (T-267, T-278)
+   */
+  note?: string;
+  /** T-383: not-found rows only: the section as the API names it ("400", "IPC 236"). */
+  display?: string;
+  /** T-361 AC4: Ajay's signed reminder for a bare number with no code, shown as is. */
+  codeReminder?: string;
 }
 
 interface BailCheckResult {
   sections: SectionResult[];
   summary: {
-    overallBailable: boolean;
-    mostSeriousSection: string;
+    overallBailable: boolean | null;
+    overallBailableNote?: string | null;
+    /** null when no charged section has a known maximum (T-371) */
+    mostSeriousSection: string | null;
     maxPunishment: string;
-    maxYears: number;
-    bnssBailSection: string;
+    /** "Cannot be determined" when sections resolved but none has a known maximum */
+    mostSeriousNote?: string | null;
+    maxYears: number | null;
+    bnssBailSection: string | null;
     bnssBailSectionTitle: string;
     courtLevel: string;
     courtLevelExplanation: string;
@@ -189,26 +222,36 @@ export default function BailCheckerPage() {
             {/* Summary Card */}
             <div
               className={`rounded-xl border-2 p-6 ${
-                result.summary.overallBailable
+                result.summary.overallBailable === true
                   ? 'border-green-200 bg-green-50'
-                  : 'border-red-200 bg-red-50'
+                  : result.summary.overallBailable === false
+                    ? 'border-red-200 bg-red-50'
+                    : 'border-slate-200 bg-white'
               }`}
             >
               <div className="mb-3 flex items-center gap-3">
-                {result.summary.overallBailable ? (
+                {result.summary.overallBailable === true ? (
                   <Shield className="h-8 w-8 text-green-600" />
-                ) : (
+                ) : result.summary.overallBailable === false ? (
                   <ShieldAlert className="h-8 w-8 text-red-600" />
+                ) : (
+                  <AlertTriangle className="h-8 w-8 text-amber-500" />
                 )}
                 <div>
                   <h2 className="text-xl font-bold">
-                    {result.summary.overallBailable ? 'Bailable' : 'Non-Bailable'}
+                    {result.summary.overallBailable === true
+                      ? 'Bailable'
+                      : result.summary.overallBailable === false
+                        ? 'Non-Bailable'
+                        : (result.summary.overallBailableNote ?? DEPENDS_FIRST_SCHEDULE)}
                   </h2>
-                  <p className="text-sm text-slate-600">
-                    {result.summary.overallBailable
-                      ? 'Bail is a matter of right'
-                      : 'Bail is at the discretion of the court'}
-                  </p>
+                  {result.summary.overallBailable !== null && (
+                    <p className="text-sm text-slate-600">
+                      {result.summary.overallBailable
+                        ? 'Bail is a matter of right'
+                        : 'Bail is at the discretion of the court'}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -217,9 +260,11 @@ export default function BailCheckerPage() {
                   <Gavel className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
                   <div>
                     <span className="font-medium">Court:</span> {result.summary.courtLevel}
-                    <p className="mt-0.5 text-xs text-slate-500">
-                      {result.summary.courtLevelExplanation}
-                    </p>
+                    {result.summary.courtLevelExplanation && (
+                      <p className="mt-0.5 text-xs text-slate-500">
+                        {result.summary.courtLevelExplanation}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-start gap-2">
@@ -229,7 +274,7 @@ export default function BailCheckerPage() {
                     {result.summary.bnssBailSectionTitle}
                   </div>
                 </div>
-                {result.summary.mostSeriousSection && (
+                {result.summary.mostSeriousSection ? (
                   <div className="flex items-start gap-2">
                     <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
                     <div>
@@ -237,6 +282,16 @@ export default function BailCheckerPage() {
                       {result.summary.mostSeriousSection} — {result.summary.maxPunishment}
                     </div>
                   </div>
+                ) : (
+                  result.summary.mostSeriousNote && (
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
+                      <div>
+                        <span className="font-medium">Most serious offence:</span>{' '}
+                        {result.summary.mostSeriousNote}
+                      </div>
+                    </div>
+                  )
                 )}
               </div>
 
@@ -266,12 +321,18 @@ export default function BailCheckerPage() {
                           )}
                           <span
                             className={`rounded px-2 py-0.5 text-xs font-medium ${
-                              s.offence.bailable
+                              s.offence.bailable === true
                                 ? 'bg-green-100 text-green-700'
-                                : 'bg-red-100 text-red-700'
+                                : s.offence.bailable === false
+                                  ? 'bg-red-100 text-red-700'
+                                  : 'bg-amber-100 text-amber-700'
                             }`}
                           >
-                            {s.offence.bailable ? 'Bailable' : 'Non-Bailable'}
+                            {s.offence.bailable === true
+                              ? 'Bailable'
+                              : s.offence.bailable === false
+                                ? 'Non-Bailable'
+                                : (s.offence.bailableNote ?? ATTRIBUTE_DEPENDS)}
                           </span>
                         </div>
                         <p className="mb-2 text-sm font-medium text-slate-800">{s.offence.title}</p>
@@ -279,33 +340,64 @@ export default function BailCheckerPage() {
                           <div>
                             <span className="font-medium text-slate-600">Punishment:</span>{' '}
                             {s.offence.punishment}
+                            {/* T-361 AC2: Ajay's signed row note, under the punishment line, as is. */}
+                            {s.offence.note && (
+                              <span className="mt-1 block text-slate-500">{s.offence.note}</span>
+                            )}
                           </div>
                           <div className="flex items-center gap-1">
-                            {s.offence.cognizable ? (
+                            {s.offence.cognizable === true ? (
                               <CheckCircle className="h-3 w-3 text-orange-500" />
-                            ) : (
+                            ) : s.offence.cognizable === false ? (
                               <XCircle className="h-3 w-3 text-slate-400" />
+                            ) : (
+                              <AlertTriangle className="h-3 w-3 text-amber-500" />
                             )}
-                            {s.offence.cognizable ? 'Cognizable' : 'Non-Cognizable'}
+                            {s.offence.cognizable === true
+                              ? 'Cognizable'
+                              : s.offence.cognizable === false
+                                ? 'Non-Cognizable'
+                                : (s.offence.cognizableNote ?? ATTRIBUTE_DEPENDS)}
                           </div>
                           <div className="flex items-center gap-1">
-                            {s.offence.compoundable ? (
+                            {s.offence.compoundable === true ||
+                            s.offence.compoundable === 'with_permission' ? (
                               <CheckCircle className="h-3 w-3 text-blue-500" />
-                            ) : (
+                            ) : s.offence.compoundable === false ? (
                               <XCircle className="h-3 w-3 text-slate-400" />
+                            ) : (
+                              <AlertTriangle className="h-3 w-3 text-amber-500" />
                             )}
-                            {s.offence.compoundable ? 'Compoundable' : 'Non-Compoundable'}
+                            {s.offence.compoundable === true
+                              ? 'Compoundable'
+                              : s.offence.compoundable === 'with_permission'
+                                ? (s.offence.compoundableNote ?? WITH_COURT_PERMISSION)
+                                : s.offence.compoundable === false
+                                  ? 'Non-Compoundable'
+                                  : (s.offence.compoundableNote ?? ATTRIBUTE_DEPENDS)}
                           </div>
                         </div>
+                        {/* T-371: Ajay's caveat, once per section (6526597) */}
+                        {s.offence.caveat && (
+                          <p className="mt-2 text-xs text-amber-800">{s.offence.caveat}</p>
+                        )}
+                        {/* T-361 AC4: Ajay's reminder for a bare number, from the API as is. */}
+                        {s.codeReminder && (
+                          <p className="mt-2 text-xs text-slate-500">{s.codeReminder}</p>
+                        )}
                       </div>
                     ) : (
-                      <div className="flex items-center gap-2 text-sm text-slate-500">
-                        <AlertTriangle className="h-4 w-4 text-amber-500" />
-                        Section &ldquo;{s.input}&rdquo; — not found in our BNS database.
-                        {s.convertedFromIpc && (
-                          <span className="text-xs text-amber-600">
-                            (Tried converting from IPC {s.ipcSection})
-                          </span>
+                      <div>
+                        <div className="flex items-center gap-2 text-sm text-slate-500">
+                          <AlertTriangle className="h-4 w-4 shrink-0 text-amber-500" />
+                          {/* T-383: the API's display form, never the raw token ("400-BNS"). */}
+                          Section {s.display ?? s.input}
+                          {/* T-278: only the API's signed note; the page adds no text of its own. */}
+                          {s.note && <> — {s.note}</>}
+                        </div>
+                        {/* T-361 AC4: Ajay's reminder for a bare number, from the API as is. */}
+                        {s.codeReminder && (
+                          <p className="mt-1 text-xs text-slate-500">{s.codeReminder}</p>
                         )}
                       </div>
                     )}
@@ -334,6 +426,11 @@ export default function BailCheckerPage() {
             </p>
           </div>
         )}
+
+        {/* T-310: reopens the analytics consent notice (S9). */}
+        <div className="mt-8 text-center">
+          <CookieSettingsButton variant="tool" />
+        </div>
       </div>
     </div>
   );

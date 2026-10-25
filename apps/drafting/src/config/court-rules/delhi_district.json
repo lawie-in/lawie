@@ -10,8 +10,8 @@
   "courtId": "delhi_district",
   "courtType": "district_court",
   "designation": "IN THE COURT OF ADDITIONAL SESSIONS JUDGE",
-  "jurisdictionNote": "District-level criminal courts in Delhi across six court complexes: Saket, Patiala House, Tis Hazari, Karkardooma, Rohini, and Dwarka. Sessions courts try offences punishable with imprisonment exceeding 7 years.",
-  "cause_title_format": "{courtDesignation}, {city}\n{caseNomenclature}\n\n{petitioner} ... APPLICANT\n\nVERSUS\n\n{respondent} ... RESPONDENT",
+  "jurisdictionNote": "District-level criminal courts in Delhi across six court complexes: Saket, Patiala House, Tis Hazari, Karkardooma, Rohini, and Dwarka. Which court tries an offence is set by the First Schedule to BNSS, not by the length of the sentence.",
+  "cause_title_format": "{courtDesignation}, {city}\n{caseNomenclature}\n\n{petitioner} ... {party_label_petitioner_upper}\n\nVERSUS\n\n{respondent} ... {party_label_respondent_upper}",
   "party_designation": {
     "petitioner": "Plaintiff (civil) / Applicant (criminal)",
     "respondent": "Defendant (civil) / Opposite Party (criminal)",
@@ -23,9 +23,19 @@
     "accused": "Accused",
     "state": "State (NCT of Delhi) through S.H.O., P.S. {policeStation}"
   },
+  "party_designation_by_side": {
+    "criminal": {
+      "petitioner": "Applicant",
+      "respondent": "Respondent"
+    },
+    "civil": {
+      "petitioner": "Plaintiff",
+      "respondent": "Defendant"
+    }
+  },
   "case_nomenclature": {
     "regular_bail": "Bail Application No. _____ of {year}",
-    "anticipatory_bail": "Bail Application No. _____ of {year}",
+    "anticipatory_bail": "Anticipatory Bail Application No. _____ of {year}",
     "civil_suit": "Civil Suit No. _____ of {year}",
     "execution": "Execution Petition No. _____ of {year}",
     "misc_criminal": "Criminal Misc. Application No. _____ of {year}",
@@ -43,10 +53,7 @@
     "tone": "humble"
   },
   "verification_format": "I, {deponent_name}, {designation}, do hereby verify that the contents of the above application are true and correct to my knowledge. No part of it is false and nothing material has been concealed therefrom.\n\nVerified at {place} on this {date}.\n\nDEPONENT",
-  "supported_languages": [
-    "en",
-    "hi"
-  ],
+  "supported_languages": ["en", "hi"],
   "formattingPreferences": {
     "numberingStyle": "numeric",
     "paragraphStyle": "numbered",

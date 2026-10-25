@@ -1,4 +1,5 @@
 {
+  "card_description": "A legal notice to stop copyright infringement under the Copyright Act, 1957.",
   "_meta": {
     "description": "Document-rules config for legal_notice_copyright_infringement — cease & desist under Copyright Act, 1957; includes DMCA-style takedown for digital infringement",
     "owner": "Ajay (CLO)",
@@ -236,7 +237,7 @@
     "Identify the protected work — title, category (literary/dramatic/musical/artistic/cinematograph film/sound recording/computer programme), year of creation, year of publication, author, and current owner.",
     "Annex copyright registration certificate if registered — but note that registration is not mandatory for protection or suit.",
     "Establish ownership chain if owner is not the original author — assignment deed (S.18), licence (S.30), or employment relationship (S.17).",
-    "Aver originality — the modicum of creativity standard recognised in Eastern Book Co. v. D.B. Modak (2008).",
+    "Aver originality — the modicum of creativity standard.",
     "Particularise the infringement — exact infringing copy, URL or physical location, extent of copying (substantial part test), nature of use (commercial / non-commercial), date of detection, evidence preserved.",
     "Address any anticipated fair dealing defence under Section 52 (criticism/review, research, education, news reporting) and explain why it does not apply.",
     "Demand: (a) immediate cease and desist, (b) takedown of online content with proof, (c) delivery up of infringing copies and means of reproduction, (d) account of profits OR damages at owner's election, (e) written undertaking on affidavit, (f) costs.",
@@ -245,6 +246,7 @@
     "State the favourable forum under Section 62 — suit may be filed where plaintiff resides or carries on business; reserve right to seek John Doe / Ashok Kumar orders for unknown infringers.",
     "Allow 7-15 days response window; no statutory cooling-off period.",
     "Use firm and assertive legal language.",
-    "Do NOT generate the advocate signature block — it is added programmatically."
+    "Do NOT generate the advocate signature block — it is added programmatically.",
+    "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
   ]
 }

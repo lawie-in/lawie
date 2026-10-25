@@ -13,6 +13,8 @@ import {
 import Link from 'next/link';
 import { useState, useCallback } from 'react';
 
+import CookieSettingsButton from '@/components/CookieSettingsButton';
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -27,32 +29,57 @@ interface TimelineMilestone {
 
 interface TimelineResult {
   arrestDate: string;
-  maxYears: number;
+  /** null when no default-bail period can be given (T-277) */
+  maxYears: number | null;
   isLifeOrDeath: boolean;
-  policeCustodyEndDate: string;
+  /** T-367: last day of the police-custody window (day 40 / 60); null with no period */
+  policeCustodyEndDate: string | null;
   policeCustodyDays: number;
-  judicialCustodyEndDate: string;
-  judicialCustodyDays: number;
-  chargesheetDeadline: string;
-  defaultBailDate: string;
+  /** T-367 R1 line (Ajay), or the "Depends on the offence" note with no period */
+  policeCustodyNote?: string;
+  judicialCustodyEndDate: string | null;
+  judicialCustodyDays: number | null;
+  chargesheetDeadline: string | null;
+  defaultBailDate: string | null;
+  /** T-367 R2 line (Ajay); null with no period */
+  detentionLimitNote?: string | null;
+  /** T-367 R3 line (Ajay); null with no period */
+  chargesheetNote?: string | null;
+  /** "Depends on the offence. Check BNSS section 187." when there is no period */
+  periodNote?: string | null;
   bnssSection: string;
   bnssSectionTitle: string;
-  remandBreakdown: {
-    policeCustody: { from: string; to: string; days: number };
-    judicialCustody: { from: string; to: string; days: number };
-  };
   milestones: TimelineMilestone[];
-  defaultBailAvailable: boolean;
+  defaultBailAvailable: boolean | null;
   defaultBailExplanation: string;
   sectionsUsed: string[];
   sectionsNotFound: string[];
+  sectionsWithoutPeriod?: string[];
+  /** Per-section notes from the API (Ajay's texts) */
+  sectionNotes?: Record<string, string>;
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
+const MONTHS = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
+
+/** T-367 (Ajay): dates print as "4 April 2026". Read from the ISO parts, so no time zone shifts the day. */
 function formatDate(iso: string): string {
-  const d = new Date(iso + 'T00:00:00');
-  return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  const [y, m, d] = iso.split('-').map(Number);
+  return `${d} ${MONTHS[m - 1]} ${y}`;
 }
 
 function daysFromNow(iso: string): number {
@@ -60,6 +87,15 @@ function daysFromNow(iso: string): number {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   return Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+/** Ajay (CLO), T-367 Addendum 3: the charge sheet card line. No lateness wording: the
+ * tracker cannot know whether a charge sheet was filed. "day" when d is 1. */
+function chargesheetCountdown(periodDays: number, d: number): string {
+  const days = (n: number) => `${n} ${n === 1 ? 'day' : 'days'}`;
+  if (d > 0) return `${periodDays}-day period · ${days(d)} left`;
+  if (d === 0) return `${periodDays}-day period · Today is the last day`;
+  return `${periodDays}-day period · The last day was ${days(-d)} ago`;
 }
 
 // ── Milestone Colors ─────────────────────────────────────────────────────────
@@ -131,6 +167,24 @@ export default function TimelineTrackerPage() {
     }
   }, [arrestDate, sections]);
 
+  // T-277: the 60/90-day parts render only when the API gives a period.
+  const period =
+    result &&
+    result.judicialCustodyDays !== null &&
+    result.chargesheetDeadline !== null &&
+    result.defaultBailDate !== null
+      ? {
+          days: result.judicialCustodyDays,
+          chargesheetDeadline: result.chargesheetDeadline,
+          defaultBailDate: result.defaultBailDate,
+        }
+      : null;
+  // T-367 Addendum 1 (4): the card uses the police milestone's label from the API.
+  const policeMilestone = result?.milestones.find((m) => m.type === 'police_custody');
+  const chargesheetMilestone = result?.milestones.find((m) => m.type === 'chargesheet');
+  const defaultBailMilestone = result?.milestones.find((m) => m.type === 'default_bail');
+  const sectionNoteList = result?.sectionNotes ? Object.values(result.sectionNotes) : [];
+
   const handleExample = () => {
     const today = new Date();
     const thirtyDaysAgo = new Date(today);
@@ -161,7 +215,7 @@ export default function TimelineTrackerPage() {
                 BNSS Investigation Timeline Tracker
               </h1>
               <p className="text-sm text-slate-500">
-                Calculate custody limits, chargesheet deadlines, and default bail dates
+                Calculate custody limits, charge sheet deadlines, and default bail dates
               </p>
             </div>
           </div>
@@ -173,8 +227,9 @@ export default function TimelineTrackerPage() {
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
+              {/* T-367 Addendum 1 (1): Ajay's label and help text. */}
               <label className="mb-2 block text-sm font-medium text-slate-700">
-                Date of Arrest / FIR
+                Date of first remand
               </label>
               <div className="relative">
                 <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -185,6 +240,9 @@ export default function TimelineTrackerPage() {
                   className="w-full rounded-lg border border-slate-300 py-2.5 pl-10 pr-4 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
+              <p className="mt-1 text-xs text-slate-500">
+                The date the Magistrate first ordered the accused into custody. This is day 1.
+              </p>
             </div>
             <div>
               <label className="mb-2 block text-sm font-medium text-slate-700">
@@ -233,59 +291,72 @@ export default function TimelineTrackerPage() {
           <div className="mt-6 space-y-4">
             {/* Summary Cards */}
             <div className="grid gap-3 sm:grid-cols-3">
-              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
-                <div className="mb-1 text-xs font-medium uppercase tracking-wide text-amber-600">
-                  Police Custody Limit
+              {/* T-367: the window date and Ajay's R1 line come from the API. */}
+              {result.policeCustodyEndDate && policeMilestone && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                  <div className="mb-1 text-xs font-medium text-amber-600">
+                    {policeMilestone.label}
+                  </div>
+                  <div className="text-lg font-bold text-amber-900">
+                    {formatDate(result.policeCustodyEndDate)}
+                  </div>
+                  {result.policeCustodyNote && (
+                    <div className="mt-1 text-xs text-amber-700">{result.policeCustodyNote}</div>
+                  )}
                 </div>
-                <div className="text-lg font-bold text-amber-900">
-                  {formatDate(result.policeCustodyEndDate)}
-                </div>
-                <div className="mt-1 text-xs text-amber-700">
-                  {result.policeCustodyDays} days from arrest (BNSS 187)
-                </div>
-              </div>
+              )}
 
-              <div className="rounded-xl border border-red-200 bg-red-50 p-4">
-                <div className="mb-1 text-xs font-medium uppercase tracking-wide text-red-600">
-                  Chargesheet Deadline
-                </div>
-                <div className="text-lg font-bold text-red-900">
-                  {formatDate(result.chargesheetDeadline)}
-                </div>
-                <div className="mt-1 text-xs text-red-700">
-                  {result.judicialCustodyDays} days —{' '}
-                  {(() => {
-                    const d = daysFromNow(result.chargesheetDeadline);
-                    if (d < 0) return `${Math.abs(d)} days overdue`;
-                    if (d === 0) return 'due today';
-                    return `${d} days remaining`;
-                  })()}
-                </div>
-              </div>
+              {period && (
+                <>
+                  {/* T-367 Addendum 2 (3a, 3b): card headings are the API's milestone labels. */}
+                  <div className="rounded-xl border border-red-200 bg-red-50 p-4">
+                    <div className="mb-1 text-xs font-medium text-red-600">
+                      {chargesheetMilestone?.label}
+                    </div>
+                    <div className="text-lg font-bold text-red-900">
+                      {formatDate(period.chargesheetDeadline)}
+                    </div>
+                    <div className="mt-1 text-xs text-red-700">
+                      {chargesheetCountdown(period.days, daysFromNow(period.chargesheetDeadline))}
+                    </div>
+                  </div>
 
-              <div className="rounded-xl border border-green-200 bg-green-50 p-4">
-                <div className="mb-1 text-xs font-medium uppercase tracking-wide text-green-600">
-                  Default Bail Date
-                </div>
-                <div className="text-lg font-bold text-green-900">
-                  {formatDate(result.defaultBailDate)}
-                </div>
-                <div className="mt-1 text-xs text-green-700">
-                  Day {result.judicialCustodyDays + 1} — BNSS 187(3)
-                </div>
-              </div>
+                  <div className="rounded-xl border border-green-200 bg-green-50 p-4">
+                    <div className="mb-1 text-xs font-medium text-green-600">
+                      {defaultBailMilestone?.label}
+                    </div>
+                    <div className="text-lg font-bold text-green-900">
+                      {formatDate(period.defaultBailDate)}
+                    </div>
+                    <div className="mt-1 text-xs text-green-700">
+                      Day {period.days + 1}: default bail (BNSS 187(3))
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
-            {/* Sections Not Found Warning */}
-            {result.sectionsNotFound.length > 0 && (
+            {/* No period (T-277): the API's note replaces the 60/90-day parts */}
+            {!period && result.periodNote && (
               <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
                 <div className="flex items-center gap-2 text-sm text-amber-700">
                   <AlertTriangle className="h-4 w-4 shrink-0" />
-                  Sections not found in BNS database: {result.sectionsNotFound.join(', ')}. Timeline
-                  calculated using remaining sections only.
+                  {result.periodNote}
                 </div>
               </div>
             )}
+
+            {/* Per-section notes from the API (T-277). T-278: a not-found section's
+                note also comes from here; the page adds no text of its own. */}
+            {sectionNoteList.length > 0 &&
+              sectionNoteList.map((note, i) => (
+                <div key={i} className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                  <div className="flex items-center gap-2 text-sm text-amber-700">
+                    <AlertTriangle className="h-4 w-4 shrink-0" />
+                    {note}
+                  </div>
+                </div>
+              ))}
 
             {/* Visual Timeline */}
             <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -342,74 +413,20 @@ export default function TimelineTrackerPage() {
               </div>
             </div>
 
-            {/* Remand Breakdown */}
-            <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h3 className="mb-3 font-semibold text-slate-900">Staggered Remand Breakdown</h3>
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="h-3 w-3 rounded-full bg-amber-500" />
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-slate-700">
-                        Police / Physical Custody
-                      </span>
-                      <span className="text-sm text-slate-500">
-                        {result.remandBreakdown.policeCustody.days} days
-                      </span>
-                    </div>
-                    <div className="text-xs text-slate-500">
-                      {formatDate(result.remandBreakdown.policeCustody.from)} —{' '}
-                      {formatDate(result.remandBreakdown.policeCustody.to)}
-                    </div>
-                  </div>
-                </div>
-                {/* Progress bar */}
-                <div className="h-3 overflow-hidden rounded-full bg-slate-100">
-                  <div className="flex h-full">
-                    <div
-                      className="bg-amber-400"
-                      style={{
-                        width: `${(result.remandBreakdown.policeCustody.days / result.judicialCustodyDays) * 100}%`,
-                      }}
-                    />
-                    <div
-                      className="bg-blue-400"
-                      style={{
-                        width: `${(result.remandBreakdown.judicialCustody.days / result.judicialCustodyDays) * 100}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="h-3 w-3 rounded-full bg-blue-500" />
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-slate-700">Judicial Custody</span>
-                      <span className="text-sm text-slate-500">
-                        {result.remandBreakdown.judicialCustody.days} days
-                      </span>
-                    </div>
-                    <div className="text-xs text-slate-500">
-                      {formatDate(result.remandBreakdown.judicialCustody.from)} —{' '}
-                      {formatDate(result.remandBreakdown.judicialCustody.to)}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
             {/* Default Bail Box */}
-            <div className="rounded-xl border-2 border-green-200 bg-green-50 p-6">
-              <div className="mb-2 flex items-center gap-2">
-                <Shield className="h-5 w-5 text-green-600" />
-                <h3 className="font-semibold text-green-900">Default Bail — BNSS Section 187(3)</h3>
+            {period && (
+              <div className="rounded-xl border-2 border-green-200 bg-green-50 p-6">
+                <div className="mb-2 flex items-center gap-2">
+                  <Shield className="h-5 w-5 text-green-600" />
+                  <h3 className="font-semibold text-green-900">Default bail (BNSS 187(3))</h3>
+                </div>
+                <p className="text-sm text-green-800">{result.defaultBailExplanation}</p>
+                <div className="mt-3 rounded-lg bg-white/60 p-3 text-sm">
+                  <span className="font-medium">Applicable BNSS provision:</span>{' '}
+                  {result.bnssSectionTitle}
+                </div>
               </div>
-              <p className="text-sm text-green-800">{result.defaultBailExplanation}</p>
-              <div className="mt-3 rounded-lg bg-white/60 p-3 text-sm">
-                <span className="font-medium">Applicable BNSS provision:</span>{' '}
-                {result.bnssSectionTitle}
-              </div>
-            </div>
+            )}
 
             {/* BNSS Reference */}
             <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -418,20 +435,15 @@ export default function TimelineTrackerPage() {
                 <div>
                   <h3 className="font-semibold text-slate-900">Legal Reference</h3>
                   <ul className="mt-2 space-y-1.5 text-sm text-slate-600">
+                    {/* T-367: Ajay's R1 and R2 lines replace the old 187(2) and 187(4) items. */}
+                    {/* With no period the Depends line shows once, outside this list. */}
+                    {period && result.policeCustodyNote && <li>{result.policeCustodyNote}</li>}
+                    {period && result.detentionLimitNote && <li>{result.detentionLimitNote}</li>}
+                    {/* T-367 Addendum 1 (7): Ajay's signed 187(3) line, exactly. */}
                     <li>
-                      <span className="font-medium">BNSS Section 187(2):</span> Police custody shall
-                      not exceed 15 days in the whole (first produced before Magistrate within 24
-                      hours of arrest).
-                    </li>
-                    <li>
-                      <span className="font-medium">BNSS Section 187(3):</span> Default bail — if
-                      investigation not completed within 60/90 days, the accused shall be released
-                      on bail. This right is indefeasible.
-                    </li>
-                    <li>
-                      <span className="font-medium">BNSS Section 187(4):</span> 60 days for offences
-                      punishable with imprisonment &lt; 10 years; 90 days for offences punishable
-                      with death, life imprisonment, or &ge; 10 years.
+                      BNSS 187(3): if the investigation is not completed within 60 or 90 days, the
+                      accused is to be released on bail if prepared to and does furnish bail
+                      (default bail).
                     </li>
                   </ul>
                 </div>
@@ -441,7 +453,9 @@ export default function TimelineTrackerPage() {
             {/* CTA */}
             <div className="rounded-xl border border-blue-200 bg-blue-50 p-6 text-center">
               <p className="mb-3 text-sm text-slate-700">
-                Need to file a default bail application?
+                {/* T-367 Addendum 3: /dashboard/new ignores ?type=, so the link cannot open
+                    the default_bail pack; Ajay's alternative question applies. */}
+                Need to draft a bail application?
               </p>
               <Link
                 href="/dashboard/new?type=bail_application"
@@ -452,14 +466,18 @@ export default function TimelineTrackerPage() {
               </Link>
             </div>
 
-            {/* Disclaimer */}
+            {/* Disclaimer: Ajay's signed text (T-367 Addendum 2, 3f). */}
             <p className="text-center text-xs text-slate-400">
-              This tool is for informational purposes only. Actual custody periods depend on court
-              orders, remand extensions, and case-specific facts. Always verify timelines with
-              applicable BNSS provisions. Lawie does not provide legal advice.
+              This tracker counts dates from the date you enter. It is not legal advice. Check the
+              remand orders and the BNSS before relying on it.
             </p>
           </div>
         )}
+
+        {/* T-310: reopens the analytics consent notice (S9). */}
+        <div className="mt-8 text-center">
+          <CookieSettingsButton variant="tool" />
+        </div>
       </div>
     </div>
   );

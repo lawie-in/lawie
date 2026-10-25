@@ -1,0 +1,2140 @@
+/**
+ * The brief (T-105, ADR-021 sections 3.2 to 3.4).
+ *
+ * One shape for every document: the kind of document, the court, the parties,
+ * the facts, the dates with what each is the date of, the numbers, what is
+ * asked for, and what is still unknown. The user confirms it before anything
+ * is drafted.
+ *
+ * This file has no I/O: no model call, no database, no logging. It builds the
+ * checklist from a rule pack, checks what the model read against the user's
+ * own words, and works out what is still unknown and whether the brief can be
+ * confirmed.
+ *
+ * LEGAL CONTENT: the rules here are Ajay's, signed in T-127
+ * (`handoff/design/T-127-one-flow-rules-and-prompts.md`, sections 2, 6 and 7).
+ * The lists are in `src/config/intake/`. Do not change either without his
+ * sign-off.
+ *
+ * Privacy: nothing here logs. Reasons for dropping a value carry ids only.
+ */
+import courtDocuments from '../config/intake/court-documents.json';
+import dateMeanings from '../config/intake/date-meanings.json';
+
+import {
+  isCustodyChoice,
+  needsNotInCustodyWarning,
+  REGULAR_BAIL_NOT_IN_CUSTODY_WARNING,
+} from './bail-guard';
+import { datesInText, iso, isOwnWords, normalise } from './intake-text';
+import { isLawSwitchPack } from './law-switch';
+import type { RulePack, RulePackFact } from './rule-pack.service';
+import { s138BriefDateCheck } from './s138-date-checks';
+import { evaluateShowIf } from './template-engine.service';
+import { humaniseOptionLabel } from './template-promoter';
+
+// ── Shapes ──────────────────────────────────────────────────────────────────
+
+export type BriefPart = 'parties' | 'facts' | 'dates' | 'numbers' | 'relief';
+
+export type ValueKind =
+  | 'text'
+  | 'narrative'
+  | 'date'
+  | 'number'
+  | 'amount'
+  | 'choice'
+  | 'choices'
+  | 'list';
+
+export interface ChecklistItem {
+  key: string;
+  label: string;
+  part: BriefPart;
+  kind: ValueKind;
+  required: boolean;
+  /** Allowed values for `choice` and `choices`. */
+  options: string[];
+  /** False when the model may never read this from the description. The user enters it. */
+  modelReadable: boolean;
+  /** True for the name of a party. On a court document these must be given to confirm. */
+  partyName: boolean;
+  /** For a date: the kind of date it is (T-127, section 6.3), or null when it is always asked. */
+  dateKind: string | null;
+  /** The pack's show_if condition (T-153). While it is false and the fact is empty, it is not on the brief. */
+  showIf?: string;
+  /** Option ids, in the same order as `options` (T-153), for `showIf`. */
+  optionIds?: string[];
+  /** T-190: the pack's own question, exactly as the pack writes it (`source: 'pack'`). */
+  question?: string;
+  /** T-190: an optional fact the pack asks for when it is empty, after every required fact. */
+  askWhenEmpty?: boolean;
+  /** T-471: the s.138 drawer as named on the cheque (firm, company or person): read as text, not a person name. */
+  drawerAsNamed?: boolean;
+}
+
+export type ValueSource = 'description' | 'user';
+
+export interface BriefItem {
+  key: string;
+  part: BriefPart;
+  label: string;
+  kind: ValueKind;
+  required: boolean;
+  options: string[];
+  value: string | string[] | null;
+  source: ValueSource | null;
+  /** The user's words a value was read from. Only for values read from the description. */
+  quote?: string;
+  /**
+   * True for a value read from the description: the user is asked to check it.
+   * Also true on the custody field of a regular bail with the client not in
+   * custody (T-150, Rule B), with `note` saying why.
+   */
+  please_check: boolean;
+  /** Ajay's line shown with the "Please check" mark, when there is one (T-150, Rule B). */
+  note?: string;
+  /**
+   * True for an empty fact whose earlier answer an edited description left
+   * unclear (T-150, Rule A, `cleared`). It is asked again and shows its blank,
+   * even when it is not required.
+   */
+  reask?: boolean;
+  /** For a date: what it is the date of, as shown to the user. */
+  meaning?: string;
+  /** The blank the draft will show while this is not given. */
+  placeholder: string;
+  party_name: boolean;
+  /**
+   * T-190: the advocate answered "Not known" or "Not given", or "none" on a fact
+   * that must be present to be used (Ajay, condition 5). No value is placed and
+   * no fact is written, but the fact counts as asked: it is not asked again.
+   */
+  asked_empty?: true;
+  /**
+   * T-336 (T-190 AC8 without the ledger): a "none" for earlier bail
+   * applications read from the description, not yet confirmed by the advocate.
+   * The value stays on the brief, marked "Please check", and is asked to
+   * confirm; until then the draft treats it as unknown and shows its blank.
+   */
+  unconfirmed?: true;
+}
+
+export interface BriefCourt {
+  state: string | null;
+  court_type: string | null;
+  court: string | null;
+}
+
+export interface Brief {
+  kind: { id: string | null; name: string; court_document: boolean };
+  /** Never filled by the model. The user chooses it from the courts data. */
+  court: BriefCourt;
+  items: BriefItem[];
+  /**
+   * Dates the description states that are not placed under any fact. `meaning`
+   * is what the user's words say the date is the date of, when they say it, for
+   * example "Date of arrest" on a document that has no such fact. With no
+   * meaning the user is asked what it is the date of.
+   */
+  loose_dates: LooseDate[];
+  /** Values that belong to no item of this kind of document. Kept so that a change of kind loses nothing. */
+  unplaced: Array<{ label: string; value: string | string[] }>;
+  still_unknown: Array<{ key: string; label: string; placeholder: string }>;
+  can_confirm: boolean;
+  confirm_blockers: Array<'court' | 'parties'>;
+  /** The line shown under Confirm when it is off (T-127, section 7.2). */
+  confirm_message: string | null;
+  /**
+   * T-363 AC1: for a `legal_notice_s138` whose own dates give T-192's B2, the
+   * signed B2 line. The advocate confirms the dates before drafting. The
+   * entry stays banned (T-192). Absent for any other result or pack.
+   */
+  date_check?: { line: 'B2'; text: string };
+}
+
+export interface LooseDate {
+  value: string;
+  kind: string | null;
+  meaning: string | null;
+}
+
+export interface BriefQuestion {
+  key: string;
+  question: string;
+  round: 1 | 2;
+  label: string;
+  kind: ValueKind;
+  options: string[];
+  /** T-190: the question is the pack's own signed text, asked as written. */
+  source?: 'pack';
+  /**
+   * T-190 (AC8): asked to confirm a value the brief already shows, because the
+   * ledger holds no fact for it. It stays open until the advocate answers it.
+   */
+  confirm?: boolean;
+}
+
+export const QUESTION_LIMITS = { perRound: 5, rounds: 2 } as const;
+
+const TEXT_MAX = 500;
+const NARRATIVE_MAX = 6000;
+const LIST_MAX = 30;
+
+// ── Which packs are court documents (T-127, section 2.1) ────────────────────
+
+const NOT_COURT = new Set<string>(courtDocuments.not_court_documents);
+
+/** A pack is a court document unless Ajay has listed it as not one. */
+export function isCourtDocument(packId: string): boolean {
+  return !NOT_COURT.has(packId);
+}
+
+// ── Kinds of date (T-127, section 6) ────────────────────────────────────────
+
+interface DateKind {
+  id: string;
+  label: string;
+  subject: string[];
+  tie?: string[];
+  /**
+   * T-342: a kind added for one pack's own facts. It counts only when the
+   * pack being read has a fact of this kind, so every other reading (and any
+   * reading with no pack) is as before it was added.
+   */
+  pack_only?: boolean;
+  /** T-342: words that stop these words being this kind of date (Ajay: "dishonour memo dated X" is the memo's own date). */
+  not_with?: string[];
+  facts: string[];
+}
+
+const DATE_KINDS = dateMeanings.kinds as DateKind[];
+const DATE_KIND_OF_FACT = new Map<string, DateKind>();
+for (const kind of DATE_KINDS) for (const fact of kind.facts) DATE_KIND_OF_FACT.set(fact, kind);
+const DATE_KIND_BY_ID = new Map(DATE_KINDS.map((k) => [k.id, k]));
+const ALWAYS_ASKED_DATES = new Set<string>(dateMeanings.always_asked.facts);
+const NOT_A_DATE = new Set<string>(dateMeanings.not_a_date.facts);
+
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/** Latin-script cues match whole words only. Other scripts match as written. */
+function hasCue(normText: string, cue: string): boolean {
+  const c = normalise(cue);
+  if (c.length === 0) return false;
+  if (/^[\x20-\x7e]+$/.test(c)) {
+    const body = escapeRegExp(c).replace(/ /g, ' +');
+    return new RegExp(`(?<![a-z0-9])${body}(?![a-z0-9])`).test(normText);
+  }
+  return normText.includes(c);
+}
+
+/** Where a cue stands in the text, by the same rule as `hasCue`: [start, end) of each match. */
+function cueSpans(normText: string, cue: string): Array<[number, number]> {
+  const c = normalise(cue);
+  if (c.length === 0) return [];
+  const spans: Array<[number, number]> = [];
+  if (/^[\x20-\x7e]+$/.test(c)) {
+    const body = escapeRegExp(c).replace(/ /g, ' +');
+    for (const m of normText.matchAll(new RegExp(`(?<![a-z0-9])${body}(?![a-z0-9])`, 'g'))) {
+      spans.push([m.index as number, (m.index as number) + m[0].length]);
+    }
+    return spans;
+  }
+  for (let at = normText.indexOf(c); at !== -1; at = normText.indexOf(c, at + 1)) {
+    spans.push([at, at + c.length]);
+  }
+  return spans;
+}
+
+/** The cues of a kind (subject and tie) these normalised words carry. */
+function cuesCarried(normText: string, kind: DateKind): string[] {
+  return [...kind.subject, ...(kind.tie ?? [])].filter((cue) => hasCue(normText, cue));
+}
+
+/** True when every place each cue stands lies inside one of the outer spans. */
+function standsInside(normText: string, cues: string[], outer: Array<[number, number]>): boolean {
+  return cues.every((cue) =>
+    cueSpans(normText, cue).every(([s, e]) => outer.some(([os, oe]) => os <= s && e <= oe)),
+  );
+}
+
+/**
+ * T-342 part 2: longest-cue precedence. Of the kinds whose cues these words
+ * carry, one wins when one of its subject cues holds every cue of every other
+ * kind, each strictly shorter and standing inside that cue where it is written.
+ * "received the return memo" holds "return memo" (dishonour) and "received"
+ * (served), so memo_received wins. Otherwise nothing changes: every kind is
+ * returned and the caller treats the words as ambiguous.
+ */
+function byLongestCue(words: string, kinds: string[]): string[] {
+  if (kinds.length < 2) return kinds;
+  const text = normalise(words);
+  for (const winnerId of kinds) {
+    const winner = DATE_KIND_BY_ID.get(winnerId);
+    if (!winner) continue;
+    for (const cue of winner.subject) {
+      const outer = cueSpans(text, cue);
+      if (outer.length === 0) continue;
+      const length = normalise(cue).length;
+      const holdsAll = kinds
+        .filter((k) => k !== winnerId)
+        .every((otherId) => {
+          const other = DATE_KIND_BY_ID.get(otherId);
+          if (!other) return false;
+          const cues = cuesCarried(text, other);
+          return cues.every((c) => normalise(c).length < length) && standsInside(text, cues, outer);
+        });
+      if (holdsAll) return [winnerId];
+    }
+  }
+  return kinds;
+}
+
+/**
+ * The kinds of date these words give, read for a pack whose date facts have
+ * the kinds in `scope`. A kind not in `scope` is set aside only when every cue
+ * of it stands inside a subject cue of a kind in `scope` (as "till" and "valid
+ * till" of end stand inside "valid till" of cheque_validity); a kind with a cue
+ * of its own (such as "served" in "the notice sent to him was served on X")
+ * still counts, so the clause stays ambiguous. Then longest-cue precedence.
+ * A pack_only kind not in `scope` is never seen at all. With no scope it is
+ * `dateKindsIn` with no pack_only kind: exactly as before T-342.
+ */
+function kindsReadFor(words: string, scope?: ReadonlySet<string>): string[] {
+  const kinds = dateKindsIn(words, scope);
+  if (!scope) return kinds;
+  const text = normalise(words);
+  const inScope = kinds.filter((k) => scope.has(k));
+  const outer = inScope.flatMap((id) => {
+    const kind = DATE_KIND_BY_ID.get(id) as DateKind;
+    return kind.subject.flatMap((cue) => cueSpans(text, cue));
+  });
+  const ownCue = kinds.filter(
+    (id) =>
+      !scope.has(id) &&
+      !standsInside(text, cuesCarried(text, DATE_KIND_BY_ID.get(id) as DateKind), outer),
+  );
+  const counted = [...inScope, ...ownCue];
+  const won = byLongestCue(words, counted);
+  // Precedence only ever picks a kind of this pack. A kind off the pack that
+  // wins leaves the words as ambiguous as they were before T-342.
+  if (won.length === 1 && counted.length > 1 && !scope.has(won[0])) return counted;
+  return won;
+}
+
+/**
+ * The kinds of every date fact on a checklist, including two facts of one
+ * kind (which are always asked): their cues still mark a clause as theirs.
+ */
+function dateKindsOnChecklist(checklist: ChecklistItem[]): Set<string> {
+  const kinds = new Set<string>();
+  for (const i of checklist) {
+    if (i.kind !== 'date') continue;
+    if (i.dateKind) kinds.add(i.dateKind);
+    const name = i.key.slice(i.key.lastIndexOf('.') + 1);
+    const kind = DATE_KIND_OF_FACT.get(name);
+    if (kind) kinds.add(kind.id);
+  }
+  return kinds;
+}
+
+/** True when the words carry a subject cue of this kind and, where it has them, a tie cue. */
+export function carriesDateKind(words: string, kindId: string): boolean {
+  const kind = DATE_KIND_BY_ID.get(kindId);
+  if (!kind) return false;
+  const text = normalise(words);
+  if (!kind.subject.some((cue) => hasCue(text, cue))) return false;
+  if (kind.tie && kind.tie.length > 0 && !kind.tie.some((cue) => hasCue(text, cue))) return false;
+  if (kind.not_with && kind.not_with.some((cue) => hasCue(text, cue))) return false;
+  return true;
+}
+
+/**
+ * Every kind of date these words carry a cue for. A pack_only kind (T-342)
+ * counts only when `scope` (the kinds of a pack's date facts) holds it.
+ */
+export function dateKindsIn(words: string, scope?: ReadonlySet<string>): string[] {
+  return DATE_KINDS.filter(
+    (k) => (!k.pack_only || scope?.has(k.id) === true) && carriesDateKind(words, k.id),
+  ).map((k) => k.id);
+}
+
+export function dateKindLabel(kindId: string): string | null {
+  return DATE_KIND_BY_ID.get(kindId)?.label ?? null;
+}
+
+/**
+ * T-440 (Ajay, a9bc957, Q2): what a date item's blank names, as the brief's
+ * `meaning` is worked out: the kind's label when the item has a kind, else the
+ * item's own label. Null for an item that is not a date.
+ */
+export function dateMeaningOf(
+  item: Pick<ChecklistItem, 'kind' | 'label'> & { dateKind?: string | null },
+): string | null {
+  if (item.kind !== 'date') return null;
+  return (item.dateKind ? dateKindLabel(item.dateKind) : null) ?? item.label;
+}
+
+export interface StatedDate {
+  value: string;
+  /** The kind of date the user's words give it, or null when they give none or more than one. */
+  kind: string | null;
+  /** The user's words around the date: one clause, holding this one date. */
+  words: string;
+}
+
+/**
+ * The dates a text states, read by code, each with the words around it.
+ *
+ * The text is cut into clauses. A clause that holds exactly one date and the
+ * cues of exactly one kind gives that date its meaning. This is the same test
+ * as T-127, section 6.2, with one more limit: no other kind's cue at all.
+ * Anything else has no meaning here and is asked.
+ *
+ * T-342 part 2: given `kinds` (the kinds of one pack's date facts), a kind not
+ * in it counts only when it has a cue of its own, and when several kinds still
+ * match, longest-cue precedence picks one or none (`kindsReadFor`). Without
+ * `kinds` the reading is exactly as before.
+ */
+export function statedDates(text: string, kinds?: ReadonlySet<string>): StatedDate[] {
+  const clauses = text
+    // A full stop ends a clause only before a letter, so "No. 124" and "15.03.2026" stay whole.
+    // A comma ends one unless a year follows, so "15th March, 2026" stays whole.
+    // "and", "but" and their Hindi forms end one, so "arrested on … and is in custody" is two.
+    .split(
+      /(?:;|\n|\u0964)+|\.\s+(?=[\u0900-\u097FA-Za-z])|,(?!\s*\d{4}(?!\d))\s*|\s+(?:and|but|aur|\u0914\u0930|\u0924\u0925\u093E)\s+/,
+    )
+    .map((c) => c.trim())
+    .filter((c) => c.length > 0);
+  const byDate = new Map<string, StatedDate>();
+  const twice = new Set<string>();
+  for (const clause of clauses) {
+    const dates = datesInText(clause);
+    if (dates.length === 0) continue;
+    const found = dates.length === 1 ? kindsReadFor(clause, kinds) : [];
+    const kind = found.length === 1 ? found[0] : null;
+    for (const value of dates) {
+      const earlier = byDate.get(value);
+      if (earlier && earlier.kind !== kind) twice.add(value);
+      if (!earlier) byDate.set(value, { value, kind, words: clause });
+    }
+  }
+  // Dates the splitter missed (a date cut in two by punctuation) still show, with no meaning.
+  for (const value of datesInText(text)) {
+    if (!byDate.has(value)) byDate.set(value, { value, kind: null, words: '' });
+  }
+  // The same date under two meanings in two places: the code does not choose.
+  for (const value of twice) {
+    const d = byDate.get(value) as StatedDate;
+    byDate.set(value, { ...d, kind: null });
+  }
+  return [...byDate.values()].sort((a, b) => a.value.localeCompare(b.value));
+}
+
+// ── The checklist ───────────────────────────────────────────────────────────
+
+/** Facts that name the court the document is filed in. The court picker covers them. */
+const FORUM_FACTS = new Set([
+  'court',
+  'court_designation',
+  'court_name',
+  'court_type',
+  'state',
+  'state_of_filing',
+  'district',
+  'forum',
+  'jurisdiction_court',
+]);
+
+/** ADR-019 rule 4.1.2 (as amended by AJ-2026-10-08-T139): court, district, bench, tribunal and forum are never read by the model. The police station is read like any text fact: the advocate's own words must stand in the quote. */
+const COURT_LIKE = /(^|_)(court|courts|district|bench|tribunal|forum)(_|$)/;
+
+const PARTY_ROLE =
+  /(^|[._])(applicant|petitioner|respondent|plaintiff|defendant|complainant|accused|appellant|opposite_party|opp_party|non_applicant|sender|recipient|noticee|addressee|landlord|tenant|lessor|lessee|licensor|licensee|deponent|client|husband|wife|buyer|seller|vendor|purchaser|vendee|employer|employee|donor|donee|testator|executor|beneficiary|mortgagor|mortgagee|borrower|lender|principal|attorney|agent|franchisor|franchisee|disclosing_party|receiving_party|first_party|second_party|party|parties|claimant|deceased|minor|guardian|detenu|company|promoter|allottee|drawer|payee|creditor|debtor|founder|founders|shareholder|shareholders|subscriber|subscribers|owner|developer|distributor|supplier|service_provider|releasor|releasee|informant|victim|convict|appointee)\d*([._]|$)/;
+
+const RELIEF = /(^|[._])(relief|reliefs|prayer|prayers)([._]|$)/;
+
+/** Details of a party, such as an age or an address. They sit with the parties. */
+const PARTY_DETAIL =
+  /(^|[._])(father|mother|spouse|parentage|address|age|occupation|residence)([._]|$)/;
+
+const NUMBERS =
+  /(^|_)(number|no|sections|section|offences|offence)(_|$)|(amount|value|fee|fees|rent|deposit|price|consideration|ctc|salary|capital|compensation|arrears)$/;
+
+/** Taken from the request, never asked: the language of the document. */
+const NOT_ASKED = new Set(['language', 'document_language']);
+
+const NOT_A_PARTY_NAME =
+  /(father|mother|husband|parent|guardian|bank|firm|witness|advocate)_?name$/;
+
+const MULTI_TYPES = new Set([
+  'multi_select_search',
+  'checkbox_group',
+  'checkbox_multi',
+  'multi-select',
+  'multiselect',
+  'multi_select',
+  'enum_set',
+  'array',
+  'list',
+]);
+
+const YES_NO = ['Yes', 'No'];
+
+function valueKind(fact: RulePackFact): { kind: ValueKind; options: string[] } {
+  const type = (fact.type ?? '').toLowerCase();
+  const namedAsDate = DATE_KIND_OF_FACT.has(fact.name) || ALWAYS_ASKED_DATES.has(fact.name);
+  if ((type === 'date' || namedAsDate) && !NOT_A_DATE.has(fact.name)) {
+    return { kind: 'date', options: [] };
+  }
+  if (fact.options.length > 0) {
+    return { kind: MULTI_TYPES.has(type) ? 'choices' : 'choice', options: [...fact.options] };
+  }
+  if (type === 'boolean' || type === 'bool' || type === 'checkbox') {
+    return { kind: 'choice', options: YES_NO };
+  }
+  if (MULTI_TYPES.has(type)) return { kind: 'list', options: [] };
+  if (type === 'textarea') return { kind: 'narrative', options: [] };
+  if (['currency', 'money', 'rupees', 'inr'].includes(type)) return { kind: 'amount', options: [] };
+  if (['number', 'integer', 'float', 'decimal'].includes(type)) {
+    return { kind: 'number', options: [] };
+  }
+  return { kind: 'text', options: [] };
+}
+
+function partOf(key: string, name: string, kind: ValueKind): BriefPart {
+  if (kind === 'date') return 'dates';
+  if (RELIEF.test(name)) return 'relief';
+  if (PARTY_DETAIL.test(name)) return 'parties';
+  if (kind === 'amount' || NUMBERS.test(name)) return 'numbers';
+  // A long text about a party, such as the defendant's response, is a fact.
+  if (kind !== 'narrative' && PARTY_ROLE.test(key)) return 'parties';
+  if (kind === 'number') return 'numbers';
+  return 'facts';
+}
+
+/** The name of a party: `applicant_name`, `sender.name`, or a bare role such as `applicant`. */
+function isPartyName(name: string, kind: ValueKind, part: BriefPart): boolean {
+  if (part !== 'parties' || kind !== 'text') return false;
+  if (/(^|_)name$/.test(name)) return !NOT_A_PARTY_NAME.test(name);
+  // A bare role, with nothing after it: the fact is the party.
+  return PARTY_ROLE.test(name) && !name.includes('_');
+}
+
+/**
+ * A label as it is written after "To be confirmed: ": lower case, except for
+ * words written in capitals such as FIR. T-440 (Ajay, a9bc957, Q2): the ledger
+ * path's `{{MISSING: …}}` blank for a date uses the same words.
+ */
+export function blankLabel(label: string): string {
+  return label
+    .replace(/\s+/g, ' ')
+    .trim()
+    .split(' ')
+    .map((w) => (/^[A-Z0-9./-]{2,}$/.test(w) ? w : w.toLowerCase()))
+    .join(' ');
+}
+
+function placeholderFor(label: string): string {
+  return `[To be confirmed: ${blankLabel(label)}]`;
+}
+
+export const FIXED_KEYS = {
+  firstParty: 'fixed.first_party',
+  otherParty: 'fixed.other_party',
+  facts: 'fixed.facts',
+  relief: 'fixed.relief',
+} as const;
+
+const FIXED_LABELS = {
+  firstParty: 'The person the document is for',
+  otherParty: 'The person or authority it is against or addressed to',
+  facts: 'What happened, in order',
+  /** For an agreement, a deed or an affidavit, where nothing "happened". */
+  anythingElse: 'Anything else the document should say',
+  relief: 'What is asked for',
+} as const;
+
+function fixedItem(
+  key: string,
+  label: string,
+  part: BriefPart,
+  kind: ValueKind,
+  required: boolean,
+): ChecklistItem {
+  return {
+    key,
+    label,
+    part,
+    kind,
+    required,
+    options: [],
+    modelReadable: true,
+    partyName: part === 'parties',
+    dateKind: null,
+  };
+}
+
+/**
+ * The facts a document needs: the pack's facts, then the fixed items the pack
+ * does not already cover (T-127, section 2.2). On a court document the facts
+ * that name the court are left out, because the court picker covers them.
+ */
+export function buildChecklist(pack: RulePack): ChecklistItem[] {
+  const court = isCourtDocument(pack.id);
+  const items: ChecklistItem[] = [];
+  const seen = new Set<string>();
+
+  // Two date facts of one kind in a pack: the code cannot tell which a date
+  // belongs to, so neither is read from the description (T-127, section 6.5).
+  const perKind = new Map<string, number>();
+  for (const fact of pack.facts) {
+    const kind = DATE_KIND_OF_FACT.get(fact.name);
+    if (kind) perKind.set(kind.id, (perKind.get(kind.id) ?? 0) + 1);
+  }
+
+  for (const fact of pack.facts) {
+    if (seen.has(fact.key)) continue;
+    seen.add(fact.key);
+    if (court && FORUM_FACTS.has(fact.name)) continue;
+    if (NOT_ASKED.has(fact.name)) continue;
+
+    const { kind, options } = valueKind(fact);
+    const part = partOf(fact.key, fact.name, kind);
+    let dateKind: string | null = null;
+    let modelReadable = true;
+    if (kind === 'date') {
+      const meaning = DATE_KIND_OF_FACT.get(fact.name);
+      if (meaning && (perKind.get(meaning.id) ?? 0) === 1) dateKind = meaning.id;
+      // A date with no kind, or one of two of the same kind, is always asked.
+      modelReadable = dateKind !== null;
+    } else if (COURT_LIKE.test(fact.name) && kind !== 'amount' && kind !== 'number') {
+      modelReadable = false;
+    }
+
+    items.push({
+      key: fact.key,
+      label: fact.label,
+      part,
+      kind,
+      required: fact.required,
+      options,
+      modelReadable,
+      partyName: isPartyName(fact.name, kind, part),
+      dateKind,
+      ...(fact.show_if ? { showIf: fact.show_if } : {}),
+      ...(fact.option_ids && fact.option_ids.length === options.length
+        ? { optionIds: fact.option_ids }
+        : {}),
+      ...(fact.question?.source === 'pack' ? { question: fact.question.text } : {}),
+      ...(fact.ask_when_empty === true ? { askWhenEmpty: true } : {}),
+    });
+  }
+
+  if (!items.some((i) => i.part === 'parties')) {
+    items.push(fixedItem(FIXED_KEYS.firstParty, FIXED_LABELS.firstParty, 'parties', 'text', true));
+    items.push(fixedItem(FIXED_KEYS.otherParty, FIXED_LABELS.otherParty, 'parties', 'text', court));
+  }
+  // A court document or a notice tells a story and asks for something. An
+  // agreement, a deed or an affidavit does not (T-127, section 2.2).
+  const tellsAStory = court || pack.id.startsWith('legal_notice');
+  if (!items.some((i) => i.part === 'facts' && i.kind === 'narrative')) {
+    items.push(
+      tellsAStory
+        ? fixedItem(FIXED_KEYS.facts, FIXED_LABELS.facts, 'facts', 'narrative', true)
+        : fixedItem(FIXED_KEYS.facts, FIXED_LABELS.anythingElse, 'facts', 'narrative', false),
+    );
+  }
+  if (tellsAStory && !items.some((i) => i.part === 'relief') && pack.prayerTemplate === null) {
+    items.push(fixedItem(FIXED_KEYS.relief, FIXED_LABELS.relief, 'relief', 'narrative', false));
+  }
+  return items;
+}
+
+/** The checklist for a request with no rule pack: the four fixed items. */
+export function fixedChecklist(courtDocument: boolean): ChecklistItem[] {
+  return [
+    fixedItem(FIXED_KEYS.firstParty, FIXED_LABELS.firstParty, 'parties', 'text', true),
+    fixedItem(FIXED_KEYS.otherParty, FIXED_LABELS.otherParty, 'parties', 'text', courtDocument),
+    fixedItem(FIXED_KEYS.facts, FIXED_LABELS.facts, 'facts', 'narrative', true),
+    fixedItem(FIXED_KEYS.relief, FIXED_LABELS.relief, 'relief', 'narrative', true),
+  ];
+}
+
+function oneLine(s: string, max: number): string {
+  const flat = s.replace(/\s+/g, ' ').replace(/\|/g, '/').trim();
+  return flat.length > max ? `${flat.slice(0, max - 1)}…` : flat;
+}
+
+function modelKind(kind: ValueKind): string {
+  if (kind === 'choices') return 'choice, one or more';
+  return kind;
+}
+
+/** The lines given to the Reception model. Items the model may not read are left out. */
+export function checklistLines(items: ChecklistItem[]): string[] {
+  return items
+    .filter((i) => i.modelReadable)
+    .map((i) => {
+      const meaning = i.kind === 'date' && i.dateKind ? dateKindLabel(i.dateKind) : null;
+      const parts = [
+        i.key,
+        meaning ?? oneLine(i.label, 120),
+        modelKind(i.kind),
+        i.required ? 'required' : 'optional',
+      ];
+      if (i.options.length > 0) parts.push(i.options.map((o) => oneLine(o, 60)).join('; '));
+      return parts.join(' | ');
+    });
+}
+
+// ── Checking what the model read (T-127, sections 2.3 and 6.2) ───────────────
+
+export interface ReadValue {
+  value: string | string[];
+  quote: string;
+}
+
+export interface ReadCheck {
+  values: Map<string, ReadValue>;
+  /** Why a value was not kept. Ids and reasons only, never the user's text. */
+  dropped: Array<{ key: string; reason: string }>;
+}
+
+type Checked<T> = { ok: true; value: T } | { ok: false; reason: string };
+const fail = (reason: string): { ok: false; reason: string } => ({ ok: false, reason });
+
+function wholeIn(normQuote: string, value: string): boolean {
+  const nv = normalise(value);
+  if (!nv) return false;
+  return new RegExp(`(^|[^a-z0-9])${escapeRegExp(nv)}([^a-z0-9]|$)`).test(normQuote);
+}
+
+function matchOption(options: string[], value: string): string | null {
+  const nv = normalise(value);
+  // T-473: a value saved before labels were humanised holds the raw pack text
+  // (`yes_flag_title_warning`); the same helper turns it into today's label.
+  const nh = normalise(humaniseOptionLabel(value));
+  return (
+    options.find((o) => normalise(o) === nv) ?? options.find((o) => normalise(o) === nh) ?? null
+  );
+}
+
+function isIsoDate(v: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
+  return iso(+v.slice(0, 4), +v.slice(5, 7), +v.slice(8, 10)) !== null;
+}
+
+function isNumber(v: string): boolean {
+  const digits = v.replace(/[^0-9.]/g, '');
+  return digits !== '' && Number.isFinite(Number(digits));
+}
+
+// ── Police station and sections (AJ-2026-10-08-T139, parts 1 and 2) ─────────
+
+function isPoliceStationItem(item: ChecklistItem): boolean {
+  return (
+    item.kind === 'text' && /(^|_)(police_station|ps_name|thana)(_|$)/.test(lastSegment(item.key))
+  );
+}
+
+const STATION_CUE = '(?:p\\.?\\s?s\\.?|thana|police station|थाना|पुलिस स्टेशन)';
+
+/**
+ * True when the value names a police station: the value holds a station word
+ * ("Saraidhela PS"), or one stands next to it in the quote ("PS Kaiserbagh").
+ * A district or a locality alone ("in Gaya") does not.
+ */
+function namesAStation(value: string, normQuote: string): boolean {
+  const nv = normalise(value);
+  const edge = (s: string): string => `(?<![a-z0-9])${s}(?![a-z0-9])`;
+  if (new RegExp(edge(STATION_CUE)).test(nv)) return true;
+  const v = escapeRegExp(nv);
+  return new RegExp(edge(`(?:${v}\\s+${STATION_CUE}|${STATION_CUE}\\s+${v})`)).test(normQuote);
+}
+
+/** A free list of section numbers, such as `sections_charged`. */
+function isSectionsItem(item: ChecklistItem): boolean {
+  return item.kind === 'list' && /^(sections?|offences?)(_|$)/.test(lastSegment(item.key));
+}
+
+// "भा.न्या.सं." is the Hindi short form of the BNS (AJ-2026-10-08-T139-A2), and
+// "भा.दं.सं." of the IPC (AJ-2026-10-08-T139-final).
+const ACT_WORD =
+  '(?:bnss|bns|bsa|ipc|crpc|cr\\.\\s?p\\.\\s?c\\.?|iea|भा\\.\\s?न्या\\.\\s?सं\\.?|भा\\.\\s?दं\\.\\s?सं\\.?)';
+const TRAILING_ACT = new RegExp(`(?:^|\\s+|(?<=[0-9)]))(${ACT_WORD})$`);
+const ACT_IN_TEXT = new RegExp(`(?<![a-z0-9.])${ACT_WORD}(?![a-z0-9])`, 'gi');
+/** A bare section number, with any sub-sections: "303", "317(2)", "498a". */
+const BARE_SECTION = /^\d+[a-z]?(\(\d+[a-z]?\))*$/;
+
+/** Act forms that name the same act under another id. */
+const ACT_ALIAS: Readonly<Record<string, string>> = { भान्यासं: 'bns', भादंसं: 'ipc' };
+
+function actId(word: string): string {
+  const id = word.toLowerCase().replace(/[\s.]/g, '');
+  return ACT_ALIAS[id] ?? id;
+}
+
+// ── Citation groups (AJ-2026-10-08-T139-A2) ─────────────────────────────────
+
+/** A section number standing whole in a normalised quote; not part of a date or a word. */
+const SECTION_IN_TEXT =
+  /(?<![a-z0-9(])(?<!\d[.:-])\d+[a-z]?(?:\(\d+[a-z]?\))*(?![a-z0-9(])(?![.:-]\d)/g;
+/** What may join two numbers of one run, or two acts into an "IPC/BNS" doubt. */
+// "r/w", "read with", "सपठित" and the like: AJ-2026-10-08-T139-final-2, item 2.
+const JOINER = /^(?:\s*(?:,|&|\/|and|or|व|एवं|और|तथा|r\/w\.?|r\.w\.|read\s+with|सपठित|पठित)\s*)+$/i;
+/** What may stand between an act and the run it qualifies, act first: "IPC की धारा 302", "BNS s. 103". */
+const ACT_BEFORE_GAP =
+  /^\s*(?:(?:की|के)\s+)?(?:(?:s|ss|sec|secs|section|sections|u\/s|धारा)\.?)?\s*$/;
+/** What may stand between a run and its act, act last: "302, 307 IPC", "103 of BNS". */
+const ACT_AFTER_GAP = /^\s*(?:of(?:\s+the)?)?\s*$/;
+
+/**
+ * Each section number in the quote, with the act its citation group binds it
+ * to, or null where the binding is in doubt. A group is a run of numbers joined
+ * by JOINER, plus the one act next to the run, before or after it. A run with
+ * no act next to it, with a different act on each side, or whose act is joined
+ * to another act ("IPC/BNS") is in doubt.
+ */
+function sectionsByAct(normQuote: string): Array<{ section: string; act: string | null }> {
+  const acts = [...normQuote.matchAll(ACT_IN_TEXT)].map((m) => ({
+    id: actId(m[0]),
+    start: m.index,
+    end: m.index + m[0].length,
+  }));
+  const nums = [...normQuote.matchAll(SECTION_IN_TEXT)].map((m) => ({
+    section: m[0],
+    start: m.index,
+    end: m.index + m[0].length,
+  }));
+  const runs: Array<typeof nums> = [];
+  for (const n of nums) {
+    const run = runs[runs.length - 1];
+    const prev = run?.[run.length - 1];
+    if (prev && JOINER.test(normQuote.slice(prev.end, n.start))) run.push(n);
+    else runs.push([n]);
+  }
+  const joinedToAnother = (i: number): boolean =>
+    (i > 0 && JOINER.test(normQuote.slice(acts[i - 1].end, acts[i].start))) ||
+    (i < acts.length - 1 && JOINER.test(normQuote.slice(acts[i].end, acts[i + 1].start)));
+  const out: Array<{ section: string; act: string | null }> = [];
+  for (const run of runs) {
+    const start = run[0].start;
+    const end = run[run.length - 1].end;
+    let before = -1;
+    for (let i = 0; i < acts.length && acts[i].end <= start; i++) before = i;
+    const after = acts.findIndex((a) => a.start >= end);
+    const bound = new Set<number>();
+    if (before >= 0 && ACT_BEFORE_GAP.test(normQuote.slice(acts[before].end, start)))
+      bound.add(before);
+    if (after >= 0 && ACT_AFTER_GAP.test(normQuote.slice(end, acts[after].start))) bound.add(after);
+    const ids = new Set([...bound].map((i) => acts[i].id));
+    const act = ids.size === 1 && ![...bound].some(joinedToAnother) ? [...ids][0] : null;
+    for (const n of run) out.push({ section: n.section, act });
+  }
+  return out;
+}
+
+/** The act words a quote names, by id, each with the first form it is written in. */
+function actsInQuote(quote: string): Map<string, string> {
+  const acts = new Map<string, string>();
+  for (const m of quote.normalize('NFKC').matchAll(ACT_IN_TEXT)) {
+    const id = actId(m[0]);
+    if (!acts.has(id)) acts.set(id, m[0]);
+  }
+  return acts;
+}
+
+/** One section token, whole, with its sub-section: "303" does not match "303(2)". */
+function sectionIn(normQuote: string, token: string): boolean {
+  return new RegExp(`(?<![a-z0-9(])${escapeRegExp(token)}(?![a-z0-9(])`).test(normQuote);
+}
+
+/**
+ * A list of sections, as the model gives it: "303(2) and 317(2) BNS" or
+ * ["303(2) BNS", "317(2) BNS"]. Each value is split on " and ", "," and "&";
+ * an act word at the end of a token is set aside; each token must then stand
+ * whole in the quote. One token that fails fails the list. The act is kept as
+ * the quote writes it, and never assumed.
+ */
+function checkSections(strings: string[], quote: string, normQuote: string): Checked<string[]> {
+  const actsInValues = new Set<string>();
+  const cited: Array<{ section: string; act: string | null }> = [];
+  let tokens = 0;
+  let everyTokenHasAct = true;
+  let everyTokenBare = true;
+  for (const s of strings) {
+    for (const part of normalise(s).split(/\s+and\s+|\s*[,&]\s*/)) {
+      let token = part.trim();
+      const act = TRAILING_ACT.exec(token);
+      if (act) {
+        actsInValues.add(actId(act[1]));
+        token = token.slice(0, act.index).trim();
+      }
+      if (token === '') continue;
+      if (!sectionIn(normQuote, token)) return fail('not_in_quote');
+      if (!act) everyTokenHasAct = false;
+      if (!BARE_SECTION.test(token)) everyTokenBare = false;
+      cited.push({ section: token, act: act ? actId(act[1]) : null });
+      tokens += 1;
+    }
+  }
+  if (tokens === 0) return fail('type');
+  const quoteActs = actsInQuote(quote);
+  // An act the quote does not name is not kept.
+  for (const a of actsInValues) if (!quoteActs.has(a)) return fail('act_not_in_quote');
+  // With two acts in the quote, a token with no act of its own cannot be placed
+  // under either (AJ-2026-10-08-T139-diff, Blocker 3).
+  if (quoteActs.size > 1 && !everyTokenHasAct) return fail('two_acts_in_quote');
+  // Each number in each token must match, one for one, an occurrence of that
+  // number the quote binds to the token's act: its own act, or for a bare token
+  // the quote's one act. With two acts a doubt fails as act_mismatch (A2); with
+  // one act, as act_unclear, so "25" in "302 IPC and 25 Arms Act" never becomes
+  // "25 IPC" (AJ-2026-10-08-T139-final, C1).
+  if (quoteActs.size >= 1) {
+    const doubt = quoteActs.size > 1 ? 'act_mismatch' : 'act_unclear';
+    const onlyAct = quoteActs.size === 1 ? [...quoteActs.keys()][0] : null;
+    const unused = sectionsByAct(normQuote);
+    for (const c of cited) {
+      const act = c.act ?? onlyAct;
+      const numbers = [...c.section.matchAll(SECTION_IN_TEXT)].map((m) => m[0]);
+      if (act === null || numbers.length === 0) return fail(doubt);
+      for (const n of numbers) {
+        const i = unused.findIndex((u) => u.act === act && u.section === n);
+        if (i < 0) return fail(doubt);
+        unused.splice(i, 1);
+      }
+    }
+  }
+  const value = [...strings];
+  if (actsInValues.size === 0 && quoteActs.size > 0) {
+    // The model left the act out. With one act in the quote it is put back as
+    // written, but only when every token is a bare section number; a token such
+    // as "25 arms act" would otherwise get the wrong act (Blocker 2).
+    if (!everyTokenBare) return fail('act_unclear');
+    const [written] = [...quoteActs.values()];
+    value[value.length - 1] = `${value[value.length - 1]} ${written}`;
+  }
+  return { ok: true, value };
+}
+
+function checkPlain(
+  item: ChecklistItem,
+  raw: unknown,
+  quote: string,
+  normText: string,
+): Checked<string | string[]> {
+  const normQuote = normalise(quote);
+  let value = raw;
+  // Models often send numbers as JSON numbers; read them as the digits written.
+  if (typeof value === 'number' && Number.isFinite(value)) value = String(value);
+
+  if (item.kind === 'choices' || item.kind === 'list') {
+    const list = Array.isArray(value) ? value : typeof value === 'string' ? [value] : null;
+    if (!list || list.length === 0 || list.length > LIST_MAX) return fail('type');
+    if (!list.every((v) => typeof v === 'string' && v.trim() !== '')) return fail('type');
+    const strings = (list as string[]).map((v) => v.trim());
+    if (item.kind === 'choices') {
+      const picked = strings.map((v) => matchOption(item.options, v));
+      if (picked.some((p) => p === null)) return fail('option');
+      return { ok: true, value: [...new Set(picked as string[])] };
+    }
+    if (isSectionsItem(item)) return checkSections(strings, quote, normQuote);
+    // A free list: each value must stand in the quote as written.
+    if (!strings.every((v) => wholeIn(normQuote, v))) return fail('not_in_quote');
+    return { ok: true, value: strings };
+  }
+
+  if (typeof value !== 'string' || value.trim() === '') return fail('type');
+  const v = value.trim();
+
+  switch (item.kind) {
+    case 'choice': {
+      const picked = matchOption(item.options, v);
+      return picked === null ? fail('option') : { ok: true, value: picked };
+    }
+    case 'number':
+    case 'amount': {
+      if (!isNumber(v)) return fail('type');
+      // The number must stand whole in the quote: "5" does not match "15".
+      const want = v.replace(/[^0-9.]/g, '').replace(/\.0+$/, '');
+      const inQuote = (quote.replace(/(\d),(?=\d)/g, '$1').match(/\d+(?:\.\d+)?/g) ?? []).map((n) =>
+        n.replace(/\.0+$/, ''),
+      );
+      return inQuote.includes(want) ? { ok: true, value: v } : fail('not_in_quote');
+    }
+    case 'text':
+    case 'narrative': {
+      if (v.length > (item.kind === 'text' ? TEXT_MAX : NARRATIVE_MAX)) return fail('length');
+      if (!isOwnWords(v, normText)) return fail('not_own_words');
+      // The words must sit inside this fact's own quote, so that a name from
+      // another sentence cannot land under the wrong fact (ADR-019 rule 4.1.3).
+      if (!isOwnWords(v, normQuote)) return fail('not_in_quote');
+      // AJ-2026-10-08-T139 1(b): a district or a locality alone is not a police station.
+      if (isPoliceStationItem(item) && !namesAStation(v, normQuote)) return fail('not_a_station');
+      return { ok: true, value: v };
+    }
+    default:
+      return fail('type');
+  }
+}
+
+/**
+ * The checks on a date (T-127, section 6.2). `usedQuotes` holds, for each date
+ * already placed, the quotes it was placed from.
+ */
+function checkDate(
+  item: ChecklistItem,
+  raw: unknown,
+  quote: string,
+  otherKinds: string[],
+  usedQuotes: Map<string, Set<string>>,
+): Checked<string> {
+  if (typeof raw !== 'string' || !isIsoDate(raw.trim())) return fail('type');
+  const value = raw.trim();
+  if (item.dateKind === null) return fail('always_asked');
+  const inQuote = datesInText(quote);
+  if (inQuote.length === 0) return fail('not_in_quote');
+  if (inQuote.length > 1) return fail('two_dates_in_quote');
+  if (inQuote[0] !== value) return fail('not_in_quote');
+  if (!carriesDateKind(quote, item.dateKind)) return fail('no_meaning_in_quote');
+  // T-342 part 2: another checklist kind's cue does not drop the date when this
+  // kind's cue holds it, as "received the return memo" holds "return memo".
+  // The quote is then read as statedDates reads it, so a kind off the checklist
+  // with a cue of its own ("served" in "received the return memo, notice served
+  // on X") still drops it. A quote with no other checklist kind is checked as before.
+  // A pack_only kind (L2, L4, L5 on s138) is always read this way, so "notice
+  // sent ... served on X" never gives L5 (Ajay). Other kinds keep the check
+  // they had before T-342 when no other checklist kind is in the quote.
+  const alsoMatched = otherKinds.filter((k) => carriesDateKind(quote, k));
+  if (alsoMatched.length > 0 || DATE_KIND_BY_ID.get(item.dateKind)?.pack_only === true) {
+    const won = kindsReadFor(quote, new Set([item.dateKind, ...otherKinds]));
+    if (won.length !== 1 || won[0] !== item.dateKind) return fail('two_meanings_in_quote');
+  }
+  if (usedQuotes.get(value)?.has(normalise(quote))) return fail('date_used_twice');
+  return { ok: true, value };
+}
+
+/**
+ * Keep only what the user's own words support. `text` is the description. The
+ * model's answer is never trusted on its own.
+ */
+export function checkRead(
+  checklist: ChecklistItem[],
+  text: string,
+  parsed: Record<string, unknown> | null,
+): ReadCheck {
+  const result: ReadCheck = { values: new Map(), dropped: [] };
+  const raw = parsed && Array.isArray(parsed.read) ? parsed.read : [];
+  const byKey = new Map(checklist.map((i) => [i.key, i]));
+  const normText = normalise(text);
+  const drop = (key: string, reason: string): void => {
+    if (!result.dropped.some((d) => d.key === key)) result.dropped.push({ key, reason });
+  };
+
+  // Two different values for one fact: neither is kept (ADR-019 rule 4.1.5).
+  const conflicted = new Set<string>(
+    parsed && Array.isArray(parsed.conflicts)
+      ? parsed.conflicts.filter((c): c is string => typeof c === 'string')
+      : [],
+  );
+  const firstValue = new Map<string, string>();
+  for (const entry of raw) {
+    const e = (entry ?? {}) as { id?: unknown; value?: unknown };
+    if (typeof e.id !== 'string') continue;
+    const asText = JSON.stringify(e.value);
+    const earlier = firstValue.get(e.id);
+    if (earlier !== undefined && earlier !== asText) conflicted.add(e.id);
+    firstValue.set(e.id, asText);
+  }
+
+  const kindsOnChecklist = [
+    ...new Set(checklist.map((i) => i.dateKind).filter((k): k is string => k !== null)),
+  ];
+  const usedQuotes = new Map<string, Set<string>>();
+
+  for (const entry of raw) {
+    const e = (entry ?? {}) as { id?: unknown; value?: unknown; quote?: unknown };
+    if (typeof e.id !== 'string') continue;
+    const key = e.id;
+    if (result.values.has(key)) continue;
+    const item = byKey.get(key);
+    if (!item) {
+      // The id is the model's own text, so it is not echoed.
+      drop('(not on the checklist)', 'not_on_checklist');
+      continue;
+    }
+    if (conflicted.has(key)) {
+      drop(key, 'conflict');
+      continue;
+    }
+    if (!item.modelReadable) {
+      drop(key, 'not_readable');
+      continue;
+    }
+    const quote = typeof e.quote === 'string' ? e.quote : '';
+    if (normalise(quote).length < 2 || !normText.includes(normalise(quote))) {
+      drop(key, 'no_matching_quote');
+      continue;
+    }
+
+    if (item.kind === 'date') {
+      const others = kindsOnChecklist.filter((k) => k !== item.dateKind);
+      const checked = checkDate(item, e.value, quote, others, usedQuotes);
+      if (!checked.ok) {
+        drop(key, checked.reason);
+        continue;
+      }
+      const quotes = usedQuotes.get(checked.value) ?? new Set<string>();
+      quotes.add(normalise(quote));
+      usedQuotes.set(checked.value, quotes);
+      result.values.set(key, { value: checked.value, quote });
+      continue;
+    }
+
+    const checked = checkPlain(item, e.value, quote, normText);
+    if (!checked.ok) {
+      drop(key, checked.reason);
+      continue;
+    }
+    result.values.set(key, { value: checked.value, quote });
+  }
+  for (const key of conflicted) {
+    if (byKey.has(key) && !result.values.has(key)) drop(key, 'conflict');
+  }
+  return result;
+}
+
+/**
+ * Dates the model did not return, or returned with a quote that failed, are
+ * read by code under the same rule: one clause, one date, one kind of cue. A
+ * date is placed only on the one fact of that kind on the checklist, and only
+ * when that fact is still empty and the date is not placed anywhere else.
+ */
+export function datesReadByCode(
+  checklist: ChecklistItem[],
+  text: string,
+  already: Map<string, ReadValue>,
+): Map<string, ReadValue> {
+  const out = new Map<string, ReadValue>();
+  const placedDates = new Set<string>();
+  for (const [key, v] of already) {
+    const item = checklist.find((i) => i.key === key);
+    if (item?.kind === 'date' && typeof v.value === 'string') placedDates.add(v.value);
+  }
+  // T-342 part 2: read for this checklist, so another pack's kinds do not collide.
+  for (const stated of statedDates(text, dateKindsOnChecklist(checklist))) {
+    if (stated.kind === null || stated.words === '' || placedDates.has(stated.value)) continue;
+    const targets = checklist.filter((i) => i.modelReadable && i.dateKind === stated.kind);
+    if (targets.length !== 1) continue;
+    const [target] = targets;
+    if (already.has(target.key) || out.has(target.key)) continue;
+    out.set(target.key, { value: stated.value, quote: stated.words });
+    placedDates.add(stated.value);
+  }
+  return out;
+}
+
+// ── Values the user typed ───────────────────────────────────────────────────
+
+/** Null when the value is acceptable for this item, else a short reason. Never echoes the value. */
+export function checkUserValue(item: ChecklistItem, value: unknown): string | null {
+  if (item.kind === 'choices' || item.kind === 'list') {
+    if (!Array.isArray(value) || value.length === 0) return 'Give at least one value.';
+    if (value.length > LIST_MAX) return `Give at most ${LIST_MAX} values.`;
+    const allText = value.every(
+      (v) => typeof v === 'string' && v.trim() !== '' && v.length <= TEXT_MAX,
+    );
+    if (!allText) return 'Each value must be text.';
+    if (item.kind === 'choices') {
+      const allListed = value.every((v) => matchOption(item.options, v as string) !== null);
+      if (!allListed) return 'Choose from the list.';
+    }
+    return null;
+  }
+  if (typeof value !== 'string' || value.trim() === '') return 'This cannot be empty.';
+  const v = value.trim();
+  switch (item.kind) {
+    case 'date':
+      return isIsoDate(v) ? null : 'Give the date as YYYY-MM-DD.';
+    case 'choice':
+      return matchOption(item.options, v) !== null ? null : 'Choose from the list.';
+    case 'number':
+    case 'amount':
+      return isNumber(v) ? null : 'Give a number.';
+    case 'narrative':
+      return v.length <= NARRATIVE_MAX ? null : `Keep this under ${NARRATIVE_MAX} characters.`;
+    default:
+      return v.length <= TEXT_MAX ? null : `Keep this under ${TEXT_MAX} characters.`;
+  }
+}
+
+function canonical(item: ChecklistItem, value: string | string[]): string | string[] {
+  if (item.kind === 'choice' && typeof value === 'string') {
+    return matchOption(item.options, value) ?? value.trim();
+  }
+  if (item.kind === 'choices' && Array.isArray(value)) {
+    return [...new Set(value.map((v) => matchOption(item.options, v) ?? v.trim()))];
+  }
+  return Array.isArray(value) ? value.map((v) => v.trim()) : value.trim();
+}
+
+// ── Answers that write no fact (T-190, Ajay's conditions 3 and 5) ───────────
+//
+// LEGAL CONTENT: the lists are Ajay's (T-190 sign-off, 11 Oct 2026, and his
+// rulings of 12 Oct 2026). Do not change them without his sign-off.
+
+/**
+ * T-190 AC8: the fact asked straight after the party names, ahead of every
+ * other question, because leaving it out risks suppressing an earlier bail
+ * application (Kusha Duruka v. State of Odisha, SC, 2024).
+ */
+export const PROTECTED_QUESTION_KEY = 'earlier_bail_applications';
+
+/** Condition 3: these choices write no fact. */
+const NOT_KNOWN_ANSWERS = new Set(['not known', 'not given']);
+
+/** Condition 5: the facts used only when present. A "none" answer on them writes no fact. */
+const NONE_IS_EMPTY_KEYS = new Set([
+  'medical_condition',
+  'local_ties',
+  'co_accused_bail_court',
+  'co_accused_bail_date',
+  'dependants',
+]);
+
+/**
+ * Case, spacing and punctuation folded: "N/A." reads as "n a". The same folding
+ * as the averment conditions (`averments.ts`), so a value compares here as it
+ * would there.
+ */
+export function foldAnswer(v: string): string {
+  return normalise(v)
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim();
+}
+
+/** Condition 5: "none" in the advocate's words, folded. */
+const NONE_ANSWERS = new Set(
+  ['none', 'nil', 'no', 'not applicable', 'n/a', 'nahi', 'koi nahi', 'kuch nahi'].map(foldAnswer),
+);
+
+/**
+ * True when this answer writes no fact (T-190), on a fact the pack asks for
+ * when empty only: "Not known" or "Not given", or a "none" answer on a fact
+ * that is used only when present (`medical_condition`, `local_ties`, `co_accused_bail_court`,
+ * `co_accused_bail_date`, `dependants`).
+ */
+export function isNoFactAnswer(
+  item: Pick<ChecklistItem, 'key' | 'askWhenEmpty'>,
+  value: string,
+): boolean {
+  const folded = foldAnswer(value);
+  if (folded === '') return false;
+  // Only on a fact the bail pack asks for when empty, so another pack that
+  // reuses a key such as `dependants` is not affected.
+  if (item.askWhenEmpty !== true) return false;
+  if (NOT_KNOWN_ANSWERS.has(folded)) return true;
+  return NONE_IS_EMPTY_KEYS.has(lastSegment(item.key)) && NONE_ANSWERS.has(folded);
+}
+
+// ── Building the brief ──────────────────────────────────────────────────────
+
+export interface GivenValue {
+  key: string;
+  value: string | string[];
+  source: ValueSource;
+  quote?: string;
+  /** Shown when the value cannot be placed after a change of kind. */
+  label?: string;
+  /**
+   * A typed name the edited description gives differently. The value stays; it
+   * is marked "Please check" (T-150, AJ-2026-10-07-T150-diff). The web app sends
+   * it back on later updates so the mark is not lost; it is dropped once the
+   * advocate edits that field.
+   */
+  please_check?: boolean;
+}
+
+export interface BuildBriefInput {
+  kind: { id: string | null; name: string; court_document: boolean };
+  checklist: ChecklistItem[];
+  /** What was read from the description and what the user typed. A later entry for a key wins. */
+  values: GivenValue[];
+  court?: Partial<BriefCourt> | null;
+  /** When given, the dates in it that were not placed are listed as loose dates. */
+  description?: string;
+  /** Extra "still unknown" lines, for a request with no pack (the model's own list). */
+  extraUnknowns?: string[];
+  /** Keys an edited description left unclear (T-150): marked `reask` while empty. */
+  reask?: readonly string[];
+  /**
+   * T-336: the answers that would make earlier bail applications aver "no
+   * earlier bail application" (the pack's `first_bail_application` values).
+   * Such a value read from the description is marked `unconfirmed`.
+   */
+  holdNone?: readonly string[];
+  /**
+   * T-498: keys the fact ledger holds (`ledgerGivenKeys`), with the ledger on.
+   * They are not listed as still unknown and a party name among them does not
+   * block Confirm. Items and values are not changed.
+   */
+  ledgerGiven?: ReadonlySet<string>;
+}
+
+function clean(s: unknown): string | null {
+  return typeof s === 'string' && s.trim() !== ''
+    ? s.replace(/\s+/g, ' ').trim().slice(0, 200)
+    : null;
+}
+
+function lastSegment(key: string): string {
+  const at = key.lastIndexOf('.');
+  return at < 0 ? key : key.slice(at + 1);
+}
+
+function isEmpty(v: string | string[] | null): boolean {
+  return v === null || v === '' || (Array.isArray(v) && v.length === 0);
+}
+
+/** Undertaking checkboxes: a "No" is not a fact, it is an undertaking not yet given (T-251). */
+const UNDERTAKINGS = new Set(['willingness_to_furnish_bond']);
+
+/** A "No" or false on an undertaking box counts as unticked, so its blank shows. */
+function isDeclinedUndertaking(given: GivenValue): boolean {
+  if (!UNDERTAKINGS.has(lastSegment(given.key))) return false;
+  const v = normalise(String(given.value));
+  return v === 'no' || v === 'false';
+}
+
+/**
+ * T-498: the keys the fact ledger holds a fact for (ledger on). The brief's row
+ * shows such a fact (with "Please check" when it was read from the
+ * description), so it counts as given: it is not asked in the question rounds
+ * and not listed as still unknown, even where Reception placed no value for it.
+ * An entry with an empty display is not a fact, and a "No" on an undertaking
+ * box (T-251) is an undertaking not yet given. Kept in step with
+ * `ledgerGivenKeys` in apps/web/src/components/intake/briefTypes.ts.
+ */
+export function ledgerGivenKeys(
+  facts: ReadonlyArray<{ key: string; display: string; value: unknown }>,
+): Set<string> {
+  const out = new Set<string>();
+  for (const f of facts) {
+    if (typeof f.display !== 'string' || f.display.trim() === '') continue;
+    const declined = [f.display, String(f.value)].some((value) =>
+      isDeclinedUndertaking({ key: f.key, value, source: 'description' }),
+    );
+    if (!declined) out.add(f.key);
+  }
+  return out;
+}
+
+/**
+ * T-498: a brief already built, with the facts the ledger holds taken off
+ * "Still unknown" and off what Confirm waits for, as `buildBrief` does with
+ * `ledgerGiven`. Items and values do not change; with no given keys the brief
+ * is returned as it is.
+ */
+export function withoutLedgerGiven(brief: Brief, given: ReadonlySet<string>): Brief {
+  if (given.size === 0) return brief;
+  const confirm = confirmState(brief.kind.court_document, brief.court, brief.items, given);
+  return {
+    ...brief,
+    still_unknown: brief.still_unknown.filter((u) => !given.has(u.key)),
+    ...confirm,
+    can_confirm: confirm.confirm_blockers.length === 0,
+  };
+}
+
+/** "Applicant Name" -> "applicant". The party as it reads after "the name of the". */
+function partyLabel(label: string): string {
+  const stripped = label
+    .replace(/\(.*?\)/g, ' ')
+    .replace(/\b(full\s+)?name\b/gi, ' ')
+    .replace(/[:/]+\s*$/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+  return stripped.length > 0 ? stripped : 'party';
+}
+
+// ── IPC on a matter dated on or after 1 July 2024 (AJ-2026-10-08-T139, part 5) ──
+
+/** Ajay's text, exact. Shown with "Please check" on the sections item. */
+export const IPC_AFTER_1_JULY_2024_NOTE =
+  'If the offence was committed on or after 1 July 2024, the Bharatiya Nyaya Sanhita, 2023 (BNS) applies, not the Indian Penal Code (IPC). Check the sections before you file.';
+
+const BNS_IN_FORCE = '2024-07-01';
+
+/** The facts that hold the sections or offences charged: a list or a text. */
+const SECTIONS_FACT = /^(sections?|offences?)(_|$)/;
+
+const IPC_WORD =
+  /(?<![a-z0-9])(ipc|i\.\s?p\.\s?c\.?|indian penal code|भा\.\s?दं\.\s?सं\.?|भारतीय दंड संहिता)(?![a-z0-9])/;
+
+/**
+ * The date of the offence or occurrence, as the brief gives it. Null when it is
+ * not given. T-245a (Ajay, Addendum 1 ruling 7, 2992891): offence date only. The
+ * FIR date is never a stand-in for it: with no offence date there is no note
+ * (the S-text blank handles it). That rule is for the six T-245a bail packs
+ * only (`isLawSwitchPack`); every other kind keeps the FIR date fallback it had
+ * before T-245a.
+ */
+function offenceOrFirDate(
+  checklist: ChecklistItem[],
+  placed: Map<string, GivenValue>,
+  kindId: string | null,
+): string | null {
+  const dateOf = (test: (i: ChecklistItem) => boolean): string | null => {
+    for (const item of checklist) {
+      if (item.kind !== 'date' || !test(item)) continue;
+      const v = placed.get(item.key)?.value;
+      if (typeof v === 'string' && isIsoDate(v)) return v;
+    }
+    return null;
+  };
+  const offence = dateOf(
+    (i) =>
+      i.dateKind === 'incident' ||
+      /(^|_)(offen[cs]e|occurrence|incident)(_|$)/.test(lastSegment(i.key)),
+  );
+  if (kindId !== null && isLawSwitchPack(kindId)) return offence;
+  return offence ?? dateOf((i) => i.dateKind === 'fir' || lastSegment(i.key) === 'fir_date');
+}
+
+/** The sections item cites the IPC and the offence is dated on or after 1 July 2024. */
+function needsIpcNote(
+  item: ChecklistItem,
+  value: string | string[],
+  matterDate: string | null,
+): boolean {
+  if (matterDate === null || matterDate < BNS_IN_FORCE) return false;
+  if (!['list', 'text', 'narrative'].includes(item.kind)) return false;
+  if (!SECTIONS_FACT.test(lastSegment(item.key))) return false;
+  const text = normalise(Array.isArray(value) ? value.join(', ') : value);
+  return IPC_WORD.test(text);
+}
+
+/**
+ * The checklist keys whose show_if is false for the values given (T-153).
+ * A choice is compared by its option id, whether the value is the option's
+ * label or its id, as the form compares it.
+ *
+ * Values are keyed by `lastSegment(item.key)`, as show_if names a field
+ * without its group: two groups with a field of the same name would collide,
+ * and the later one wins.
+ */
+function hiddenByShowIf(checklist: ChecklistItem[], placed: Map<string, GivenValue>): Set<string> {
+  const hidden = new Set<string>();
+  if (!checklist.some((i) => i.showIf)) return hidden;
+  const values: Record<string, unknown> = {};
+  for (const item of checklist) {
+    const v = placed.get(item.key)?.value;
+    if (typeof v !== 'string') continue;
+    let value = v;
+    if (item.optionIds) {
+      const nv = normalise(v);
+      const at = item.options.findIndex((o) => normalise(o) === nv);
+      const byId = item.optionIds.find((id) => normalise(id) === nv);
+      value = at >= 0 ? item.optionIds[at] : (byId ?? v);
+    }
+    values[lastSegment(item.key)] = value;
+  }
+  for (const item of checklist) {
+    if (item.showIf && !evaluateShowIf(item.showIf, values)) hidden.add(item.key);
+  }
+  return hidden;
+}
+
+/**
+ * Put the values on the checklist and work out what is still unknown and
+ * whether the brief can be confirmed (ADR-021 decision D2).
+ *
+ * A value whose key is not on this checklist is carried over when exactly one
+ * item has the same fact name. Otherwise it is kept under `unplaced`, so a
+ * change of kind loses nothing.
+ */
+export function buildBrief(input: BuildBriefInput): Brief {
+  const byKey = new Map(input.checklist.map((i) => [i.key, i]));
+  const byName = new Map<string, ChecklistItem[]>();
+  for (const item of input.checklist) {
+    const name = lastSegment(item.key);
+    byName.set(name, [...(byName.get(name) ?? []), item]);
+  }
+
+  const placed = new Map<string, GivenValue>();
+  const unplaced = new Map<string, { label: string; value: string | string[] }>();
+  /** T-190: facts answered "Not known", or "none" where only a present fact is used. */
+  const askedEmpty = new Set<string>();
+  for (const given of input.values) {
+    if (isEmpty(given.value) || isDeclinedUndertaking(given)) continue;
+    let item = byKey.get(given.key);
+    if (!item && !given.key.startsWith('fixed.')) {
+      const sameName = byName.get(lastSegment(given.key)) ?? [];
+      if (sameName.length === 1) item = sameName[0];
+    }
+    if (item && typeof given.value === 'string' && isNoFactAnswer(item, given.value)) {
+      // No value is placed: the draft shows no fact for it. Only the advocate's
+      // own answer or typed value marks it asked; the same words read from the
+      // description leave it to be asked (T-190 review round 1).
+      unplaced.delete(given.key);
+      if (given.source === 'user') {
+        placed.delete(item.key);
+        askedEmpty.add(item.key);
+      }
+      continue;
+    }
+    if (!item || checkUserValue(item, given.value) !== null) {
+      const label = clean(given.label) ?? lastSegment(given.key).replace(/_/g, ' ');
+      unplaced.set(given.key, { label, value: given.value });
+      continue;
+    }
+    unplaced.delete(given.key);
+    askedEmpty.delete(item.key);
+    placed.set(item.key, { ...given, key: item.key, value: canonical(item, given.value) });
+  }
+
+  // T-336: a "none" on earlier bail applications read from the description is
+  // held until the advocate confirms it. The later entry for a key wins, so the
+  // advocate's own answer replaces it and clears the mark.
+  const holdNone = new Set((input.holdNone ?? []).map(foldAnswer).filter((v) => v !== ''));
+  const unconfirmed = (given: GivenValue | undefined): boolean =>
+    given !== undefined &&
+    given.source === 'description' &&
+    lastSegment(given.key) === PROTECTED_QUESTION_KEY &&
+    typeof given.value === 'string' &&
+    holdNone.has(foldAnswer(given.value));
+
+  // T-153: a fact the form hides (show_if false) is not asked and shows no blank.
+  const hidden = hiddenByShowIf(input.checklist, placed);
+  const matterDate = offenceOrFirDate(input.checklist, placed, input.kind.id);
+  const items: BriefItem[] = input.checklist
+    .filter((item) => !(hidden.has(item.key) && !placed.has(item.key)))
+    .map((item) => {
+      const given = placed.get(item.key);
+      const meaning = dateMeaningOf(item) ?? undefined;
+      // T-150, Rule B: a regular bail for a client not in custody. Warn, never block.
+      const custodyWarning =
+        item.kind === 'choice' &&
+        isCustodyChoice(item.options) &&
+        needsNotInCustodyWarning(input.kind.id, given ? given.value : null);
+      // AJ-2026-10-08-T139 part 5: an IPC section on a matter dated on or after 1 July 2024. Warn only.
+      const ipcNote =
+        !custodyWarning && given !== undefined && needsIpcNote(item, given.value, matterDate);
+      return {
+        key: item.key,
+        part: item.part,
+        label: item.label,
+        kind: item.kind,
+        required: item.required,
+        options: item.options,
+        value: given ? given.value : null,
+        source: given ? given.source : null,
+        ...(given && given.source === 'description' && given.quote ? { quote: given.quote } : {}),
+        please_check:
+          given?.source === 'description' ||
+          given?.please_check === true ||
+          custodyWarning ||
+          ipcNote,
+        ...(custodyWarning ? { note: REGULAR_BAIL_NOT_IN_CUSTODY_WARNING } : {}),
+        ...(ipcNote ? { note: IPC_AFTER_1_JULY_2024_NOTE } : {}),
+        ...(!given && input.reask?.includes(item.key) ? { reask: true } : {}),
+        ...(meaning !== undefined ? { meaning } : {}),
+        placeholder: placeholderFor(meaning ?? item.label),
+        party_name: item.partyName,
+        ...(!given && askedEmpty.has(item.key) ? { asked_empty: true as const } : {}),
+        ...(unconfirmed(given) ? { unconfirmed: true as const } : {}),
+      };
+    });
+
+  const court: BriefCourt = {
+    state: clean(input.court?.state),
+    court_type: clean(input.court?.court_type),
+    court: clean(input.court?.court),
+  };
+
+  // T-498: a fact the ledger holds is not unknown (with the ledger on).
+  const given = input.ledgerGiven ?? new Set<string>();
+  const still_unknown = items
+    .filter((i) => i.required && isEmpty(i.value) && !given.has(i.key))
+    .map((i) => ({ key: i.key, label: i.label, placeholder: i.placeholder }));
+  (input.extraUnknowns ?? []).forEach((text, idx) => {
+    const label = clean(text);
+    if (label) {
+      still_unknown.push({ key: `unknown.${idx + 1}`, label, placeholder: placeholderFor(label) });
+    }
+  });
+
+  const { confirm_blockers: blockers, confirm_message } = confirmState(
+    input.kind.court_document,
+    court,
+    items,
+    given,
+  );
+
+  const placedDates = new Set(
+    items
+      .filter((i) => i.kind === 'date' && typeof i.value === 'string')
+      .map((i) => i.value as string),
+  );
+  const loose_dates: LooseDate[] =
+    input.description === undefined
+      ? []
+      : statedDates(input.description)
+          .filter((d) => !placedDates.has(d.value))
+          .map((d) => ({
+            value: d.value,
+            kind: d.kind,
+            meaning: d.kind ? dateKindLabel(d.kind) : null,
+          }));
+
+  // T-363 AC1: T-192's B2 on the brief's own dates, for the advocate to confirm.
+  const dateCheck = s138BriefDateCheck(input.kind.id, items);
+
+  return {
+    kind: input.kind,
+    court,
+    items,
+    loose_dates,
+    unplaced: [...unplaced.values()],
+    still_unknown,
+    can_confirm: blockers.length === 0,
+    confirm_blockers: blockers,
+    confirm_message,
+    ...(dateCheck ? { date_check: dateCheck } : {}),
+  };
+}
+
+/**
+ * What Confirm waits for on a court document: the court, and each required
+ * party's name. T-498: a party name the ledger holds (`given`) shows on its row,
+ * so it does not block Confirm.
+ */
+function confirmState(
+  courtDocument: boolean,
+  court: BriefCourt,
+  items: ReadonlyArray<BriefItem>,
+  given: ReadonlySet<string>,
+): Pick<Brief, 'confirm_blockers' | 'confirm_message'> {
+  const blockers: Brief['confirm_blockers'] = [];
+  let confirm_message: string | null = null;
+  if (courtDocument) {
+    const courtChosen = court.state !== null && court.court_type !== null && court.court !== null;
+    const missingParties = items.filter(
+      (i) => i.party_name && i.required && isEmpty(i.value) && !given.has(i.key),
+    );
+    if (!courtChosen) blockers.push('court');
+    if (missingParties.length > 0) blockers.push('parties');
+    // The wording is Ajay's (T-127, section 7.2).
+    if (!courtChosen && missingParties.length > 0) {
+      confirm_message = 'Choose the court and add the parties to continue.';
+    } else if (!courtChosen) {
+      confirm_message = 'Choose the court to continue.';
+    } else if (missingParties.length > 0) {
+      confirm_message = `Add the name of the ${partyLabel(missingParties[0].label)} to continue.`;
+    }
+  }
+  return { confirm_blockers: blockers, confirm_message };
+}
+
+// ── An edited description (T-150, Rule A) ───────────────────────────────────
+//
+// LEGAL CONTENT: the rule is Ajay's, signed in AJ-2026-10-07-T150. Signed text:
+// "When the advocate edits the description, an earlier answer that the new
+// description clearly contradicts is replaced by the new description's reading
+// of that fact, exactly as the description gives it, and marked "Please check".
+// If the new description says nothing on that fact, the earlier answer stays
+// unchanged and is not marked. If the new description gives two values for that
+// fact, or is not clear on it, the existing conflict rule (ADR-019 4.1.5)
+// applies: nothing is guessed."
+
+/**
+ * The kinds of fact where a different value is a contradiction. A name, a
+ * list or a long text told again in other words is not, so those stay as the
+ * advocate typed them.
+ */
+const SINGLE_VALUE_KINDS = new Set<ValueKind>(['choice', 'date', 'number', 'amount']);
+
+/**
+ * A name: a party's name or any other `..._name` text fact. A typed name is
+ * never replaced, but when the edited description gives a different one it is
+ * marked "Please check" (AJ-2026-10-07-T150-diff). The code does not pick
+ * between two names.
+ */
+function isNameItem(item: ChecklistItem): boolean {
+  return item.kind === 'text' && (item.partyName || /(^|_)name$/.test(lastSegment(item.key)));
+}
+
+/**
+ * Why a reading was dropped that means the new description gives two values
+ * for the fact, or is not clear on it. The fact is then left empty and asked:
+ * neither the earlier answer nor a guess is kept (ADR-019 4.1.5).
+ */
+const UNCLEAR_READING = new Set([
+  'conflict',
+  'two_dates_in_quote',
+  'two_meanings_in_quote',
+  'date_used_twice',
+]);
+
+function sameValue(item: ChecklistItem, a: string | string[], b: string | string[]): boolean {
+  const flat = (v: string | string[]): string => {
+    const c = canonical(item, v);
+    const s = Array.isArray(c) ? c.join('\n') : c;
+    if (item.kind === 'number' || item.kind === 'amount') {
+      return s.replace(/[^0-9.]/g, '').replace(/\.0+$/, '');
+    }
+    return normalise(s);
+  };
+  return flat(a) === flat(b);
+}
+
+export interface EditedDescriptionResult {
+  /** The values for `buildBrief`: the new reading, then the earlier answers that still stand. */
+  values: GivenValue[];
+  /** Keys whose earlier answer the new description replaced. Ids only. */
+  replaced: string[];
+  /**
+   * Keys whose earlier answer was taken out because the new description is not
+   * clear on them. They are left empty, show their blank, and must be asked
+   * again: pass them to `buildQuestions` as `alsoAsk`.
+   */
+  cleared: string[];
+  /** Keys of typed names kept as typed but marked "Please check": the description gives another name. */
+  nameDiffers: string[];
+}
+
+/**
+ * Rule A. `read` is what the new description gives, already checked against
+ * the user's words (`checkRead` and `datesReadByCode`); `dropped` is why other
+ * readings were not kept. `earlier` is what the advocate typed before the edit.
+ *
+ * - The new description gives a different value: the reading replaces the
+ *   earlier answer. It is a description value, so it is marked "Please check".
+ * - It gives two values, or is not clear: the earlier answer is taken out and
+ *   nothing is put in its place.
+ * - It says nothing: the earlier answer stays, unmarked.
+ * - A name is never replaced. When the description gives a different name, the
+ *   typed name stays and is marked "Please check".
+ * - T-335: an answer that writes no fact ("Not known", `isNoFactAnswer`) is
+ *   never replaced or cleared by the new description.
+ *
+ * Only an edited description comes here (`descriptionWasEdited`). A first
+ * description has no earlier answers, so it never does.
+ */
+export function valuesAfterEditedDescription(
+  checklist: ChecklistItem[],
+  read: Map<string, ReadValue>,
+  dropped: Array<{ key: string; reason: string }>,
+  earlier: GivenValue[],
+): EditedDescriptionResult {
+  const byKey = new Map(checklist.map((i) => [i.key, i]));
+  const byName = new Map<string, ChecklistItem[]>();
+  for (const item of checklist) {
+    const name = lastSegment(item.key);
+    byName.set(name, [...(byName.get(name) ?? []), item]);
+  }
+  const unclear = new Set(dropped.filter((d) => UNCLEAR_READING.has(d.reason)).map((d) => d.key));
+
+  const replaced: string[] = [];
+  const cleared: string[] = [];
+  const nameDiffers: string[] = [];
+  const kept: GivenValue[] = [];
+  for (const given of earlier) {
+    // The same lookup as `buildBrief`, so a value from another kind lands where it would.
+    let item = byKey.get(given.key);
+    if (!item && !given.key.startsWith('fixed.')) {
+      const sameName = byName.get(lastSegment(given.key)) ?? [];
+      if (sameName.length === 1) item = sameName[0];
+    }
+    // T-335 (Arjun, 12 Oct 2026): the advocate's "Not known" stays until the
+    // advocate removes it, even when the new description gives a value. This
+    // overrides Rule A for that case only.
+    if (
+      item &&
+      given.source === 'user' &&
+      typeof given.value === 'string' &&
+      isNoFactAnswer(item, given.value)
+    ) {
+      kept.push(given);
+      continue;
+    }
+    if (item && isNameItem(item) && !isEmpty(given.value)) {
+      const now = read.get(item.key);
+      if (now && !isEmpty(now.value) && !sameValue(item, now.value, given.value)) {
+        // Keep the typed name; the advocate must look at it (AJ-2026-10-07-T150-diff).
+        kept.push({ ...given, please_check: true });
+        if (!nameDiffers.includes(item.key)) nameDiffers.push(item.key);
+      } else {
+        kept.push(given);
+      }
+      continue;
+    }
+    if (!item || !SINGLE_VALUE_KINDS.has(item.kind) || isEmpty(given.value)) {
+      kept.push(given);
+      continue;
+    }
+    const now = read.get(item.key);
+    if (now) {
+      if (sameValue(item, now.value, given.value)) kept.push(given);
+      else if (!replaced.includes(item.key)) replaced.push(item.key);
+      continue;
+    }
+    if (unclear.has(item.key)) {
+      if (!cleared.includes(item.key)) cleared.push(item.key);
+      continue;
+    }
+    kept.push(given);
+  }
+
+  const values: GivenValue[] = [
+    ...[...read].map(([key, v]) => ({
+      key,
+      value: v.value,
+      quote: v.quote,
+      source: 'description' as const,
+    })),
+    // An earlier answer that still stands comes last, so it wins over the reading.
+    ...kept,
+  ];
+  return { values, replaced, cleared, nameDiffers };
+}
+
+// ── Questions (T-127, section 2.5) ──────────────────────────────────────────
+
+/** Ajay's order. The names of the parties come first; a party's other details come last. */
+const PART_ORDER: Record<BriefPart, number> = {
+  numbers: 1,
+  dates: 1,
+  facts: 2,
+  relief: 3,
+  parties: 4,
+};
+
+function cleanQuestion(q: string | undefined): string | null {
+  if (typeof q !== 'string') return null;
+  const flat = q.replace(/\s+/g, ' ').trim();
+  return flat.length >= 5 && flat.length <= 240 ? flat : null;
+}
+
+function fallbackQuestion(item: BriefItem): string {
+  const what = item.kind === 'date' && item.meaning ? item.meaning : item.label;
+  return `Please give: ${what.replace(/[?.:]+\s*$/, '')}.`;
+}
+
+/** T-190: what `buildQuestions` needs to ask the pack's own questions. */
+export interface PackQuestionInput {
+  /** The brief's checklist: each fact's pack question and `askWhenEmpty`. */
+  checklist?: readonly ChecklistItem[];
+  /** Facts asked to confirm a value the brief already shows (T-190 AC8). */
+  confirm?: ReadonlySet<string>;
+  /**
+   * T-498: facts the fact ledger holds (`ledgerGivenKeys`). They are given, so
+   * they are not asked as missing even when Reception placed no value. A fact
+   * in `alsoAsk`, `alwaysAsk` or `confirm` is still asked. Without it, nothing
+   * changes.
+   */
+  ledgerGiven?: ReadonlySet<string>;
+}
+
+/** T-190: the pack's optional questions rank after every part of the required ones. */
+const OPTIONAL_PACK_RANK = 10;
+
+/**
+ * One question for each required fact that is missing, in Ajay's order: the
+ * names of the parties, then the numbers and dates that identify the case, then
+ * the facts and the grounds, then the rest. Five a round, two rounds, no more.
+ *
+ * The model words the questions. It does not decide which are asked: a
+ * question about a fact that is not missing, or not on the checklist, is
+ * dropped, and a missing fact with no question gets one written from its label.
+ *
+ * T-190: with the pack's checklist, an empty optional fact the pack asks for
+ * (`askWhenEmpty`) is asked too, after every required fact, in pack order, in
+ * the pack's own words. Earlier bail applications is asked straight after the
+ * party names, inside the cap. A fact answered "Not known" is not asked again.
+ */
+export function buildQuestions(
+  brief: Brief,
+  worded: Map<string, string>,
+  /** Facts to ask even when not required: an answer an edited description left unclear (T-150). */
+  alsoAsk: ReadonlySet<string> = new Set(),
+  /**
+   * T-147b: facts to ask whether or not the brief has a value for them: what
+   * the fact ledger could not read. The brief's value is left as it is. They
+   * are kept within the cap before any other question.
+   */
+  alwaysAsk: ReadonlySet<string> = new Set(),
+  /**
+   * T-190: the pack's own questions. `checklist` gives each fact's pack
+   * question and `askWhenEmpty`; `confirm` holds facts asked to confirm a value
+   * the brief already shows (AC8). Without it, nothing changes.
+   */
+  pack: PackQuestionInput = {},
+): BriefQuestion[] {
+  const cap = QUESTION_LIMITS.perRound * QUESTION_LIMITS.rounds;
+  const packItems = new Map((pack.checklist ?? []).map((i) => [i.key, i]));
+  const confirm = pack.confirm ?? new Set<string>();
+  const ledgerGiven = pack.ledgerGiven ?? new Set<string>();
+  // T-498: a fact the ledger holds counts as given, unless T-150 asks it again.
+  const notGiven = (item: BriefItem): boolean =>
+    isEmpty(item.value) && !(ledgerGiven.has(item.key) && !alsoAsk.has(item.key));
+  const askWhenEmpty = (item: BriefItem): boolean =>
+    packItems.get(item.key)?.askWhenEmpty === true && notGiven(item) && !item.asked_empty;
+  const confirming = (item: BriefItem): boolean =>
+    confirm.has(item.key) && packItems.get(item.key)?.askWhenEmpty === true;
+  // T-190 AC8: earlier bail applications, asked straight after the party names.
+  const isProtected = (item: BriefItem): boolean =>
+    !item.party_name &&
+    lastSegment(item.key) === PROTECTED_QUESTION_KEY &&
+    (askWhenEmpty(item) || confirming(item));
+  const sorted = brief.items
+    .map((item, index) => ({ item, index }))
+    .filter(
+      ({ item }) =>
+        alwaysAsk.has(item.key) ||
+        ((item.required || alsoAsk.has(item.key)) && notGiven(item)) ||
+        askWhenEmpty(item) ||
+        confirming(item),
+    )
+    .sort((a, b) => {
+      // A fact an edited description left unclear comes straight after the
+      // party names, so the cap never leaves it unasked (T-150).
+      // T-190: the pack's optional questions come after every required fact,
+      // in the pack's order.
+      const rank = (item: BriefItem): number =>
+        item.party_name
+          ? 0
+          : isProtected(item)
+            ? 0.25
+            : alsoAsk.has(item.key) || alwaysAsk.has(item.key)
+              ? 0.5
+              : !item.required && (askWhenEmpty(item) || confirming(item))
+                ? OPTIONAL_PACK_RANK
+                : PART_ORDER[item.part];
+      const pa = rank(a.item);
+      const pb = rank(b.item);
+      return pa - pb || a.index - b.index;
+    });
+  // Ajay's order for the cap (T-147b): the party names keep their places first,
+  // then earlier bail applications (T-190 AC8, inside the cap, never an 11th),
+  // then what the ledger could not read, then the rest. Party names rank first
+  // in `sorted`, so with no `alwaysAsk` this is the first `cap` of it, as before.
+  const parties = sorted.filter(({ item }) => item.party_name).slice(0, cap);
+  const protectedOnes = sorted
+    .filter(({ item }) => isProtected(item))
+    .slice(0, cap - parties.length);
+  const always = sorted
+    .filter(({ item }) => !item.party_name && !isProtected(item) && alwaysAsk.has(item.key))
+    .slice(0, cap - parties.length - protectedOnes.length);
+  const room = cap - parties.length - protectedOnes.length - always.length;
+  const others = sorted
+    .filter(({ item }) => !item.party_name && !isProtected(item) && !alwaysAsk.has(item.key))
+    .slice(0, room);
+  const kept = new Set([...parties, ...protectedOnes, ...always, ...others]);
+  const missing = sorted.filter((m) => kept.has(m));
+
+  return missing.map(({ item }, i) => {
+    // T-190: the pack's question is asked exactly as signed, at any length
+    // (Arjun, condition 1). A model's wording keeps the 240-character limit.
+    const own = packItems.get(item.key)?.question;
+    return {
+      key: item.key,
+      question: own ?? cleanQuestion(worded.get(item.key)) ?? fallbackQuestion(item),
+      round: i < QUESTION_LIMITS.perRound ? 1 : 2,
+      label: item.label,
+      kind: item.kind,
+      options: item.options,
+      ...(own !== undefined ? { source: 'pack' as const } : {}),
+      ...(confirming(item) ? { confirm: true } : {}),
+    };
+  });
+}
+
+/** The model's questions, by checklist key. Anything that is not text is ignored. */
+export function wordedQuestions(parsed: Record<string, unknown> | null): Map<string, string> {
+  const out = new Map<string, string>();
+  const raw = parsed && Array.isArray(parsed.questions) ? parsed.questions : [];
+  for (const q of raw) {
+    const e = (q ?? {}) as { id?: unknown; question?: unknown };
+    if (typeof e.id === 'string' && typeof e.question === 'string' && !out.has(e.id)) {
+      out.set(e.id, e.question);
+    }
+  }
+  return out;
+}
+
+// ── A request with no rule pack: the brief from T-107's Reception ────────────
+
+export interface GuidedReading {
+  values: GivenValue[];
+  /** The source words of each fact that was kept, for reading dates. */
+  sources: string[];
+  unknowns: string[];
+  /** How many things the model returned that the user's words did not support. */
+  dropped: number;
+}
+
+function ownWords(value: unknown, normText: string, max: number): string | null {
+  if (typeof value !== 'string') return null;
+  const v = value.trim();
+  if (v === '' || v.length > max) return null;
+  return isOwnWords(v, normText) ? v : null;
+}
+
+/**
+ * Turn the brief that the T-107 Reception prompt returns into values for the
+ * fixed checklist. `text` is the description and the answers together.
+ *
+ * Every fact needs its source words in the user's text, or it is dropped and
+ * listed as unknown (T-107, section 5, server checks). A fact is kept as the
+ * user's own source words, not as the model's wording of them. Names and
+ * requests must be the user's own words. On a court document the court is
+ * never taken from the model. Dates are not taken from the model's list
+ * (T-127, section 3.1): see `guidedDates`.
+ */
+export function readGuidedBrief(
+  rawBrief: unknown,
+  text: string,
+  courtDocument: boolean,
+): GuidedReading {
+  const brief = (
+    rawBrief && typeof rawBrief === 'object' && !Array.isArray(rawBrief) ? rawBrief : {}
+  ) as Record<string, unknown>;
+  const normText = normalise(text);
+  const values: GivenValue[] = [];
+  const unknowns: string[] = [];
+  let dropped = 0;
+
+  const from = ownWords(brief.from, normText, TEXT_MAX);
+  if (from) values.push({ key: FIXED_KEYS.firstParty, value: from, source: 'description' });
+  else if (brief.from) dropped += 1;
+
+  const to = ownWords(brief.to, normText, TEXT_MAX);
+  if (to) values.push({ key: FIXED_KEYS.otherParty, value: to, source: 'description' });
+  else if (brief.to) dropped += 1;
+
+  // Not a court document: the office or authority may stand as the other party.
+  if (!courtDocument && !to) {
+    const authority = ownWords(brief.court_or_authority, normText, TEXT_MAX);
+    if (authority) {
+      values.push({ key: FIXED_KEYS.otherParty, value: authority, source: 'description' });
+    }
+  }
+
+  const sources: string[] = [];
+  for (const f of Array.isArray(brief.facts) ? brief.facts : []) {
+    const e = (f ?? {}) as { text?: unknown; source?: unknown };
+    const source = typeof e.source === 'string' ? e.source.trim() : '';
+    if (normalise(source).length < 2 || !normText.includes(normalise(source))) {
+      dropped += 1;
+      continue;
+    }
+    if (!sources.includes(source)) sources.push(source);
+  }
+  if (dropped > 0) unknowns.push('a detail we could not find in your words');
+  if (sources.length > 0) {
+    values.push({
+      key: FIXED_KEYS.facts,
+      value: sources.join('\n').slice(0, NARRATIVE_MAX),
+      source: 'description',
+      quote: sources[0],
+    });
+  }
+
+  const requests = (Array.isArray(brief.requests) ? brief.requests : [])
+    .map((r) => ownWords(r, normText, NARRATIVE_MAX))
+    .filter((r): r is string => r !== null);
+  if (requests.length > 0) {
+    values.push({ key: FIXED_KEYS.relief, value: requests.join('\n'), source: 'description' });
+  }
+
+  for (const u of Array.isArray(brief.unknowns) ? brief.unknowns : []) {
+    const label = clean(u);
+    if (label) unknowns.push(label);
+  }
+
+  return { values, sources, unknowns: [...new Set(unknowns)].slice(0, 20), dropped };
+}
+
+/** A checklist item for a date found in a request with no pack. */
+export function guidedDateItem(kindId: string): ChecklistItem {
+  return {
+    key: `date.${kindId}`,
+    label: dateKindLabel(kindId) ?? kindId,
+    part: 'dates',
+    kind: 'date',
+    required: false,
+    options: [],
+    modelReadable: false,
+    partyName: false,
+    dateKind: kindId,
+  };
+}
+
+// ── Court signals (T-107, sections 2 and 3) ─────────────────────────────────
+
+const COURT_SIGNALS = [
+  'court',
+  'tribunal',
+  'forum',
+  'commission',
+  'magistrate',
+  'judge',
+  'bench',
+  "hon'ble",
+  'fir',
+  'crime number',
+  'case number',
+  'police station',
+  'custody',
+  'arrest',
+  'bail',
+  'petition',
+  'plaint',
+  'written statement',
+  'suit',
+  'appeal',
+  'revision',
+  'writ',
+  'quashing',
+  'injunction',
+  'stay',
+  'decree',
+  'execution',
+  'summons',
+  'warrant',
+  'charge sheet',
+  'cognizance',
+  'अदालत',
+  'न्यायालय',
+  'थाना',
+  'प्राथमिकी',
+  'जमानत',
+  'याचिका',
+  'अपील',
+  'मुकदमा',
+  'वाद',
+  'गिरफ्तारी',
+  'हिरासत',
+];
+
+const CODE_WITH_SECTION =
+  /\b(bns|bnss|bsa|ipc|crpc|evidence act)\b[^.]{0,40}\d|\d[^.]{0,40}\b(bns|bnss|bsa|ipc|crpc|evidence act)\b/;
+
+/** True when the description carries one of Ajay's court signals (T-107, section 2). */
+export function hasCourtSignal(description: string): boolean {
+  const text = normalise(description);
+  return COURT_SIGNALS.some((s) => hasCue(text, s)) || CODE_WITH_SECTION.test(text);
+}
+
+const SUPREME_COURT = ['supreme court', 'apex court', 'सर्वोच्च न्यायालय', 'उच्चतम न्यायालय'];
+
+/** T-107, section 3, item 1: nothing for the Supreme Court is drafted without a rule pack. */
+export function namesSupremeCourt(description: string): boolean {
+  const text = normalise(description);
+  return SUPREME_COURT.some((s) => hasCue(text, s));
+}

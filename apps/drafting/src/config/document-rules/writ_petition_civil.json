@@ -4,9 +4,10 @@
     "owner": "Ajay (CLO)",
     "validated_by": "Ajay (CLO) — Batch 7 writs + tribunals 2026-05-12",
     "last_updated": "2026-05-12",
-    "change_protocol": "All edits require CLO sign-off. Maneka Gandhi, Whirlpool, Bandhua Mukti Morcha cites mandatory."
+    "change_protocol": "All edits require CLO sign-off. Do not name judgments in model-visible text (Ajay, T-441)."
   },
   "template_id": "writ_petition_civil",
+  "card_description": "A civil writ petition before the High Court under Article 226 of the Constitution.",
   "docType": "writ_petition_civil",
   "title": "Writ Petition (Civil) under Article 226 of the Constitution of India",
   "displayName": "Writ Petition (Civil) — WP(C)",
@@ -181,7 +182,7 @@
       "id": "alternative_remedy_paragraph",
       "name": "Alternative Remedy",
       "required": true,
-      "description": "Whirlpool exceptions — natural justice / vires / FR violation / inadequate remedy"
+      "description": "Exceptions to the alternative-remedy bar — natural justice / vires / FR violation / inadequate remedy"
     },
     {
       "id": "limitation_paragraph",
@@ -212,12 +213,6 @@
       "name": "Affidavit in support",
       "required": true,
       "description": "Mandatory under HC Rules"
-    },
-    {
-      "id": "disclaimer",
-      "name": "Advocate Responsibility Disclaimer",
-      "required": true,
-      "description": "Standard Lawie disclaimer"
     }
   ],
   "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, the Petitioner most respectfully prays that this Hon'ble Court may graciously be pleased to:\n\na) Issue an appropriate writ, order or direction, more particularly a writ in the nature of {writ_type_primary}, quashing and setting aside {impugned_order_brief};\n\nb) Issue a writ in the nature of mandamus directing the Respondents to {positive_relief};\n\nc) Pending hearing and final disposal of the present petition, stay the operation and effect of {impugned_order_brief};\n\nd) Award costs of this petition; and\n\ne) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the Petitioner shall ever pray.",
@@ -231,19 +226,19 @@
       "Para 3-6: Statement of facts in chronological order.",
       "Para 7: Impugned order / action / inaction — date, issuing authority, content. Annex copy.",
       "Para 8: Locus standi — petitioner's legal injury / fundamental right / statutory right affected.",
-      "Para 9: Alternative remedy — Cite Whirlpool Corporation v. Registrar of Trade Marks (1998) 8 SCC 1 — alternative remedy not absolute bar; exceptions: (i) violation of fundamental right, (ii) violation of natural justice, (iii) order without jurisdiction, (iv) vires challenge.",
-      "Para 10: Grounds — numbered (A), (B), (C)... constitutional grounds (Article 14 arbitrariness, Article 19 unreasonable restriction, Article 21 procedure not just/fair/reasonable per Maneka Gandhi v. Union of India (1978) 1 SCC 248, Article 300A property without authority of law); statutory grounds (ultra vires the statute, contrary to statutory mandate, non-application of mind, mala fides, irrelevant considerations, Wednesbury unreasonableness).",
-      "Doctrine of legitimate expectation — Cite Food Corporation of India v. Kamdhenu Cattle Feed (1993) 1 SCC 71; Navjyoti Co-operative v. Union of India (1992) 4 SCC 477.",
-      "Doctrine of proportionality — Cite Om Kumar v. Union of India (2001) 2 SCC 386.",
-      "Where action affects livelihood / human dignity, cite Bandhua Mukti Morcha v. Union of India (1984) 3 SCC 161; Olga Tellis v. BMC (1985) 3 SCC 545.",
-      "Where service matter — Cite State of UP v. Mohd Nooh AIR 1958 SC 86 (HC writ over service tribunals); B.C. Chaturvedi v. Union of India (1995) 6 SCC 749 (scope of judicial review in service matters — limited to procedural infirmity, mala fides, perversity).",
-      "Where regulatory order challenged — Cite Reliance Energy Ltd v. Maharashtra State Road Development Corp (2007) 8 SCC 1 (judicial review in commercial matters limited).",
+      "Para 9: Alternative remedy — alternative remedy not absolute bar; exceptions: (i) violation of fundamental right, (ii) violation of natural justice, (iii) order without jurisdiction, (iv) vires challenge.",
+      "Para 10: Grounds — numbered (A), (B), (C)... constitutional grounds (Article 14 arbitrariness, Article 19 unreasonable restriction, Article 21 procedure not just/fair/reasonable, Article 300A property without authority of law); statutory grounds (ultra vires the statute, contrary to statutory mandate, non-application of mind, mala fides, irrelevant considerations, irrationality (no reasonable authority could have so decided)).",
+      "Doctrine of legitimate expectation.",
+      "Doctrine of proportionality.",
+      "Where action affects livelihood / human dignity — plead Article 21.",
+      "Where service matter — HC writ over service tribunals; scope of judicial review in service matters — limited to procedural infirmity, mala fides, perversity.",
+      "Where regulatory order challenged — judicial review in commercial matters limited.",
       "Para 11: Interim relief — stay of impugned order / status quo; balance of convenience and irreparable injury.",
-      "Para 12: Limitation / laches — no statutory limitation for Art. 226, but unreasonable delay defeats relief — Cite Tilokchand Motichand v. H.B. Munshi (1969) 1 SCC 110; State of MP v. Bhailal Bhai AIR 1964 SC 1006 (3 years as guide for monetary claims).",
+      "Para 12: Limitation / laches — no statutory limitation for Art. 226, but unreasonable delay defeats relief — 3 years as guide for monetary claims.",
       "Prayer must specify writ type (mandamus / certiorari / prohibition / quo warranto) and consequential reliefs.",
       "Affidavit in support is mandatory under HC Writ Rules (e.g., Allahabad HC Rules Chapter XXII; Delhi HC Rules; Patna HC Writ Rules; Jharkhand HC Rules).",
       "Court fee per state HC fees schedule.",
-      "Append Lawie disclaimer at end."
+      "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
   "relevantActs": [
@@ -257,7 +252,7 @@
         { "number": "Article 19", "description": "Fundamental freedoms" },
         {
           "number": "Article 21",
-          "description": "Protection of life and personal liberty — Maneka Gandhi expanded scope"
+          "description": "Protection of life and personal liberty — expanded scope"
         },
         {
           "number": "Article 226",

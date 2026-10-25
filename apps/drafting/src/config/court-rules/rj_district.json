@@ -11,7 +11,7 @@
   "courtId": "rj_district",
   "courtType": "district_court",
   "designation": "IN THE COURT OF DISTRICT & SESSIONS JUDGE",
-  "jurisdictionNote": "District-level criminal and civil courts in Rajasthan, governed by the Rajasthan Civil Courts Ordinance, 1950 and Rajasthan High Court Rules, 1952. Sessions courts try offences punishable with imprisonment exceeding 7 years. Rajasthan was reorganised in 2023, with 19 new districts notified — current count is 50 districts. Hindi is the official language of the State courts under the Rajasthan Official Language Act, 1956.",
+  "jurisdictionNote": "District-level criminal and civil courts in Rajasthan, governed by the Rajasthan Civil Courts Ordinance, 1950 and Rajasthan High Court Rules, 1952. Which court tries an offence is set by the First Schedule to BNSS, not by the length of the sentence. Rajasthan was reorganised in 2023, with 19 new districts notified — current count is 50 districts. Hindi is the official language of the State courts under the Rajasthan Official Language Act, 1956.",
   "cause_title_format": "{courtDesignation}, {city}\n{caseNomenclature}\n\n{petitioner} ... PETITIONER\n\nVERSUS\n\n{respondent} ... RESPONDENT",
   "party_designation": {
     "petitioner": "Petitioner",
@@ -24,8 +24,8 @@
     "state": "State of Rajasthan through the Principal Secretary, Home Department, Government of Rajasthan, Jaipur"
   },
   "case_nomenclature": {
-    "regular_bail": "Crl. Misc. Bail Appln. No. _____ of {year}",
-    "anticipatory_bail": "Crl. Misc. (A.B.) Appln. No. _____ of {year}",
+    "regular_bail": "Bail Application No. _____ of {year}",
+    "anticipatory_bail": "Anticipatory Bail Application No. _____ of {year}",
     "sessions_case": "S.C. No. _____ of {year}",
     "calendar_case": "C.C. No. _____ of {year}",
     "civil_suit": "Civil Suit No. _____ of {year}",

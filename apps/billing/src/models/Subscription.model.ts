@@ -1,12 +1,26 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
-export type SubscriptionStatus =
-  | 'created'
-  | 'authenticated'
-  | 'active'
-  | 'paused'
-  | 'cancelled'
-  | 'expired';
+/**
+ * T-438: every documented Razorpay subscription status. Single source for the
+ * TS type, the schema enum and the admin sync's check of Razorpay's live value.
+ */
+export const SUBSCRIPTION_STATUSES = [
+  'created',
+  'authenticated',
+  'active',
+  'pending',
+  'halted',
+  'paused',
+  'cancelled',
+  'completed',
+  'expired',
+] as const;
+
+export type SubscriptionStatus = (typeof SUBSCRIPTION_STATUSES)[number];
+
+export function isSubscriptionStatus(value: unknown): value is SubscriptionStatus {
+  return typeof value === 'string' && (SUBSCRIPTION_STATUSES as readonly string[]).includes(value);
+}
 
 export interface IPaymentRecord {
   paymentId: string;
@@ -32,7 +46,29 @@ export interface ISubscription extends Document {
 
   paymentHistory: IPaymentRecord[];
 
+  // T-399: plan SKU id (e.g. 'solo_yearly'), cycle, end of the paid period
+  // (Razorpay current_end), yearly drip state, and the last granted cycle
+  // (Razorpay paid_count, or current_start when paid_count is absent).
+  planId?: string;
+  billingCycle?: 'monthly' | 'yearly';
+  paidThrough?: Date;
+  inkDripAnchor?: Date; // start of the paid year; drip n is anchor + n months
+  inkDripNextAt?: Date;
+  inkDripCount?: number;
+  lastGrantedPaidCount?: number;
+  lastGrantedPeriodStart?: Date;
+  // T-415: state of the claim on the cycle above ('pending' until the grant
+  // succeeds), when it was (re-)claimed, and the claiming attempt's token.
+  // Absent on pre-T-415 documents, which count as granted.
+  grantClaimState?: 'pending' | 'granted';
+  grantClaimedAt?: Date;
+  grantClaimToken?: string;
+
   cancelledAt?: Date;
+  // T-508: the user asked to cancel at the end of the current cycle (Razorpay
+  // cancel_at_cycle_end). Status is unchanged until the cancelled webhook.
+  // Absent on older documents; the schema default reads them as false.
+  cancelAtCycleEnd?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -78,7 +114,7 @@ const SubscriptionSchema = new Schema<ISubscription>(
 
     status: {
       type: String,
-      enum: ['created', 'authenticated', 'active', 'paused', 'cancelled', 'expired'],
+      enum: SUBSCRIPTION_STATUSES,
       required: true,
     },
     currentPeriodStart: Date,
@@ -89,7 +125,20 @@ const SubscriptionSchema = new Schema<ISubscription>(
       default: [],
     },
 
+    planId: String,
+    billingCycle: { type: String, enum: ['monthly', 'yearly'] },
+    paidThrough: Date,
+    inkDripAnchor: Date,
+    inkDripNextAt: Date,
+    inkDripCount: Number,
+    lastGrantedPaidCount: Number,
+    lastGrantedPeriodStart: Date,
+    grantClaimState: { type: String, enum: ['pending', 'granted'] },
+    grantClaimedAt: Date,
+    grantClaimToken: String,
+
     cancelledAt: Date,
+    cancelAtCycleEnd: { type: Boolean, default: false },
   },
   { timestamps: true },
 );

@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off."
   },
   "template_id": "rcr_petition",
+  "card_description": "A petition for restitution of conjugal rights.",
   "docType": "rcr_petition",
   "title": "Petition for Restitution of Conjugal Rights",
   "displayName": "RCR Petition (s.9 HMA / s.22 SMA)",
@@ -19,7 +20,7 @@
       { "role": "petitioner", "label": "Petitioner" },
       { "role": "respondent", "label": "Respondent" }
     ],
-    "caseNomenclature": "RCR Petition No. _____ of [YEAR]"
+    "caseNomenclature": "[To be confirmed: case type] No. _____ of {current_year}"
   },
   "form_schema": {
     "fields": [
@@ -165,12 +166,6 @@
       "name": "Verification",
       "required": true,
       "description": "Verification on oath"
-    },
-    {
-      "id": "disclaimer",
-      "name": "Advocate Responsibility Disclaimer",
-      "required": true,
-      "description": "Standard Lawie disclaimer"
     }
   ],
   "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, it is most respectfully prayed that this Hon'ble Court may graciously be pleased to:\n\na) Pass a decree of restitution of conjugal rights directing the Respondent to return to the society of the Petitioner and resume cohabitation;\nb) Award costs of this petition;\nc) Pass any other order(s) as this Hon'ble Court may deem fit and proper.\n\nAnd for this act of kindness, the Petitioner shall ever pray.",
@@ -184,10 +179,10 @@
       "Plead in detail why respondent has NO reasonable excuse for withdrawal. Under the Explanation to S.9 HMA, where a question arises as to reasonable excuse, the burden lies on the person who has withdrawn — but petitioner must still plead non-existence of reasonable excuse.",
       "Plead efforts at reconciliation: visits, communications, intervention of family/community elders.",
       "Plead petitioner's continuing willingness and readiness to receive respondent and resume cohabitation.",
-      "Address Saroj Rani v. Sudarshan Kumar Chadha (1984) 4 SCC 90 — RCR constitutionality upheld; remedy is consortium not coercion.",
+      "RCR constitutionality upheld; remedy is consortium not coercion.",
       "Note in instructions to advocate (not in petition body): non-compliance with RCR decree for 1+ year is itself a ground for divorce under S.13(1A)(ii) HMA / S.27(2) SMA.",
       "Tone should be conciliatory — RCR is restorative, not punitive.",
-      "Append Lawie disclaimer."
+      "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
   "relevantActs": [

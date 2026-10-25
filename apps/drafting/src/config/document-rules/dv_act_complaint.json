@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. PWDV definitions (aggrieved person, domestic relationship, shared household) are non-negotiable."
   },
   "template_id": "dv_act_complaint",
+  "card_description": "An application under the Protection of Women from Domestic Violence Act, 2005.",
   "docType": "dv_act_complaint",
   "title": "Application under Protection of Women from Domestic Violence Act, 2005",
   "displayName": "Domestic Violence Act Application (s.12 PWDV)",
@@ -78,7 +79,7 @@
       },
       {
         "id": "additional_respondents",
-        "label": "Additional respondents (in-laws, family members — Hiral Harsora applies)",
+        "label": "Additional respondents (in-laws, family members)",
         "type": "textarea",
         "required": false
       },
@@ -253,13 +254,13 @@
       "id": "shared_household",
       "name": "Shared Household u/s 2(s)",
       "required": true,
-      "description": "Place where aggrieved person lives or has lived in domestic relationship — Satish Chander Ahuja v. Sneha Ahuja applies"
+      "description": "Place where aggrieved person lives or has lived in domestic relationship"
     },
     {
       "id": "respondent_definition",
       "name": "Respondent u/s 2(q)",
       "required": true,
-      "description": "Adult male / or per Hiral P. Harsora v. Kusum Narottamdas Harsora (2016) any relative including female relatives"
+      "description": "Adult male / or any relative including female relatives"
     },
     {
       "id": "acts_of_violence",
@@ -290,12 +291,6 @@
       "name": "Verification",
       "required": true,
       "description": "Verification on oath"
-    },
-    {
-      "id": "disclaimer",
-      "name": "Advocate Responsibility Disclaimer",
-      "required": true,
-      "description": "Standard Lawie disclaimer"
     }
   ],
   "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, the Applicant / Aggrieved Person most respectfully prays that this Hon'ble Court may graciously be pleased to:\n\na) Pass a PROTECTION ORDER under Section 18 of the PWDV Act, 2005 restraining the Respondent from committing any act of domestic violence, entering the place of employment of the Applicant, attempting to communicate with the Applicant, alienating any assets, or causing violence to her dependants;\n\nb) Pass a RESIDENCE ORDER under Section 19 (i) restraining the Respondent from dispossessing the Applicant from the shared household at {shared_household_address}, (ii) directing the Respondent to remove himself from the shared household, and/or (iii) directing the Respondent to secure same level of alternate accommodation;\n\nc) Pass a MONETARY RELIEF ORDER under Section 20 directing the Respondent to pay (i) maintenance of Rs. ____/- per month; (ii) medical expenses of Rs. ____; (iii) loss of earnings of Rs. ____; (iv) rent / mortgage of Rs. ____;\n\nd) Pass a CUSTODY ORDER under Section 21 granting temporary custody of the minor child(ren) to the Applicant;\n\ne) Pass a COMPENSATION ORDER under Section 22 directing the Respondent to pay Rs. {compensation_amount}/- as compensation for mental torture and emotional distress caused;\n\nf) Pass an ex-parte interim order under Section 23(2) pending final disposal;\n\ng) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the Applicant shall ever pray.",
@@ -304,18 +299,17 @@
     "promptInstructions": [
       "Draft an application under Section 12 of the Protection of Women from Domestic Violence Act, 2005.",
       "Establish three statutory ingredients explicitly: (i) aggrieved person status u/s 2(a); (ii) domestic relationship u/s 2(f); (iii) shared household u/s 2(s).",
-      "Identify respondent(s) per S.2(q). Per Hiral P. Harsora v. Kusum Narottamdas Harsora (2016) 10 SCC 165, the word 'adult male' has been struck down — female relatives (mother-in-law, sister-in-law) may be respondents.",
+      "Identify respondent(s) per S.2(q). The word 'adult male' has been struck down — female relatives (mother-in-law, sister-in-law) may be respondents.",
       "Plead specific incidents of violence with dates, places, witnesses, and nature (physical / sexual / verbal / emotional / economic abuse — S.3 and Explanations).",
-      "Cite Indra Sarma v. V.K.V. Sarma (2013) 15 SCC 755 for live-in relationship tests if applicable.",
-      "Shared household — refer to Satish Chander Ahuja v. Sneha Ahuja (2021) 1 SCC 414 (overruling S.R. Batra v. Taruna Batra on this point): right to reside is not limited to households owned/rented by husband.",
+      "Shared household — right to reside is not limited to households owned/rented by husband.",
       "Identify reliefs sought clearly and separately — S.18 protection, S.19 residence, S.20 monetary, S.21 custody, S.22 compensation. Multi-relief is the strength of PWDV.",
-      "Monetary relief under S.20 — adequate, fair, reasonable, consistent with standard of living to which aggrieved person is accustomed. Include heads: maintenance, medical, loss of earnings, mortgage/rent. Cross-reference Rajnesh v. Neha for affidavit of assets.",
+      "Monetary relief under S.20 — adequate, fair, reasonable, consistent with standard of living to which aggrieved person is accustomed. Include heads: maintenance, medical, loss of earnings, mortgage/rent. Where maintenance or other monetary relief is sought, file an affidavit of assets and liabilities of both parties.",
       "Plead jurisdiction under S.27 — court of JMFC / Metropolitan Magistrate where aggrieved person resides, or temporarily resides, or carries on business; or where respondent resides; or where cause of action arose.",
       "Mention DIR (Domestic Incident Report) by Protection Officer if obtained.",
       "Seek ex-parte interim orders under S.23(2) where prima facie violence shown.",
       "Tone: factual, compassionate but professional. Documentary evidence is critical — medical, police, photographs, financial records.",
       "Note: PWDV proceedings are quasi-civil though before Magistrate — procedure largely under CrPC/BNSS (S.28 PWDV).",
-      "Append Lawie disclaimer."
+      "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
   "relevantActs": [
@@ -332,7 +326,7 @@
         },
         {
           "number": "2(q)",
-          "description": "'Respondent' — read down per Hiral Harsora; includes female relatives"
+          "description": "'Respondent' — read down; includes female relatives"
         },
         { "number": "2(s)", "description": "'Shared household'" },
         {

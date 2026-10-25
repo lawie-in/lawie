@@ -15,14 +15,33 @@
 import { ChevronLeft, ChevronRight, IndianRupee, Paperclip, Search, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { isScopedCourtTemplate, NOT_OFFERED_SUFFIX, SAVED_TYPE_NAMES } from '../intake/bailCourts';
+import ConsumerLevelGroup, {
+  CONSUMER_COURT_LABEL,
+  CONSUMER_COURT_TYPE,
+  CONSUMER_NO_MATCH,
+  CONSUMER_TEMPLATE_ID,
+  LIVE_CLEARED,
+  LIVE_COURT_SHOWN,
+  LIVE_NATIONAL_SHOWN,
+  LIVE_STATE_SHOWN,
+  NCDRC_COURT_ID,
+  NCDRC_COURT_TYPE,
+  NCDRC_OPTION_LABEL,
+  NCDRC_STATE_ID,
+  type ConsumerLevel,
+  type LevelChangeHow,
+} from '../intake/ConsumerLevelGroup';
+import InkCostLine, { inkCostState } from '../intake/InkCostLine';
+
 // ── Types (mirrored from backend template-engine types) ─────────────────────
 
-interface FieldOption {
+export interface FieldOption {
   id: string;
   label: string;
 }
 
-interface FormField {
+export interface FormField {
   field_id: string;
   label: string;
   type:
@@ -71,7 +90,7 @@ interface FormStep {
   fields: FormField[];
 }
 
-interface TemplateConfig {
+export interface TemplateConfig {
   template_id: string;
   display_name: string;
   supported_languages: string[];
@@ -87,7 +106,45 @@ interface DynamicFormRendererProps {
   onSubmit: (formData: Record<string, unknown>) => void;
   onCancel: () => void;
   submitting?: boolean;
+  /** T-343: aria-describedby for the Generate (last-step) button, e.g. the privacy P7 box. */
+  submitDescribedBy?: string;
+  /** T-388: what "Generate document" charges (template-configs `credits_cost`). */
+  inkCost?: number;
+  /** T-388: the cost is being fetched. */
+  inkCostLoading?: boolean;
+  /** T-388: fetches the cost again when it could not be worked out. */
+  onInkCostRetry?: () => void;
+  /** T-388: the template id, for the Sentry report only. */
+  templateId?: string;
+  /**
+   * T-432: answers to start from, read on mount only (merged over the schema
+   * defaults). The page passes back the last snapshot when it shows the form
+   * again, so a return from the privacy block, the paywall, the verify-email
+   * bounce or "Edit form" keeps what was typed. Held in memory by the caller;
+   * never written to browser storage.
+   */
+  initialValues?: Record<string, unknown>;
+  /** T-432: the step to start on, read on mount only (clamped to the schema). */
+  initialStep?: number;
+  /** T-432: the consumer Commission level to start with, read on mount only. */
+  initialLevel?: ConsumerLevel | null;
+  /** T-432: called with the answers, step and level whenever any of them changes. */
+  onStateChange?: (
+    values: Record<string, unknown>,
+    step: number,
+    level: ConsumerLevel | null,
+  ) => void;
 }
+
+/** T-432: what the form reports through `onStateChange`, for the caller to hold. */
+export interface FormSnapshot {
+  values: Record<string, unknown>;
+  step: number;
+  level: ConsumerLevel | null;
+}
+
+/** T-388: id of the Ink cost line under "Generate document". */
+export const SUBMIT_INK_COST_ID = 'form-submit-ink-cost';
 
 // ── Helper: evaluate show_if / depends_on expressions ──────────────────────
 //
@@ -148,6 +205,18 @@ function formatRupee(raw: string): string {
     currency: 'INR',
     maximumFractionDigits: 0,
   }).format(num);
+}
+
+/**
+ * T-473: label for a selected chip whose id is not in the option list. An
+ * underscore-joined id (`known_state_custody`, `GWA_1890_secular`) reads as
+ * `Known state custody` / `GWA 1890 secular` (author capitals kept); any other
+ * value (free text the user typed) is shown as is.
+ */
+export function humaniseChipLabel(id: string): string {
+  if (!/^[A-Za-z0-9]+(_[A-Za-z0-9]+)+$/.test(id)) return id;
+  const sentence = id.split('_').join(' ');
+  return sentence.charAt(0).toUpperCase() + sentence.slice(1);
 }
 
 // ── Field Components ────────────────────────────────────────────────────────
@@ -350,6 +419,9 @@ function MultiSelectSearchField({
   options,
   allowFreeText = false,
   searchHandler,
+  readHandler,
+  maxValues,
+  maxValueLength,
 }: {
   field: FormField;
   value: string[];
@@ -359,10 +431,83 @@ function MultiSelectSearchField({
   /** SCRUM-85 — when provided, the dropdown is populated by debounced remote
    *  search instead of static `options`. Returns up to N matches for `query`. */
   searchHandler?: (query: string) => Promise<FieldOption[]>;
+  /** T-290 — bns_mapping picker only. Returns what the server reads from each
+   *  value (entries[i] for values[i]), or null if the check failed, timed out or
+   *  was aborted. Shows the S1 hint and a "Read as" line under each chip. */
+  readHandler?: (values: string[], signal: AbortSignal) => Promise<SectionRead[][] | null>;
+  /** T-309 — bns_mapping picker only: at most this many chips (no new text at the
+   *  cap; the input is just made read-only). */
+  maxValues?: number;
+  /** T-309 — bns_mapping picker only: never add a value longer than this. */
+  maxValueLength?: number;
 }) {
   const [search, setSearch] = useState('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [remoteResults, setRemoteResults] = useState<FieldOption[]>([]);
   const [remoteLoading, setRemoteLoading] = useState(false);
+  // T-290 (Arjun, Addendum 2): ONE read call for all chip values whenever the chip
+  // list changes. entries[i] belongs to chip i. A newer call aborts the older one.
+  // Every check result is tied to the exact list it was made for (`forKey`), so a
+  // result never lands on a different list of chips.
+  const valuesKey = JSON.stringify(value);
+  const [readResult, setReadResult] = useState<SectionReadResult | null>(null);
+  // T-309 — only values the server accepts are sent (Arjun's caps), so one bad
+  // stored value can't fail the whole call. sendIndex[i] is chip i's index in
+  // the sent list, or null if chip i can't be sent (it shows S8 on its own).
+  const { sendIndex } = useMemo(
+    () => pickSendableReadValues(JSON.parse(valuesKey) as string[]),
+    [valuesKey],
+  );
+
+  useEffect(() => {
+    if (!readHandler) return;
+    const { sendable } = pickSendableReadValues(JSON.parse(valuesKey) as string[]);
+    if (sendable.length === 0) return;
+    // One call per chip list. The controller is aborted when the list changes or
+    // the picker unmounts, which also cancels a pending retry (T-309: on failure,
+    // retry the same request once after ~2 s; a success replaces S8).
+    const controller = new AbortController();
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+    const run = (attempt: number) => {
+      void readHandler(sendable, controller.signal).then((entries) => {
+        if (controller.signal.aborted) return; // superseded or unmounted
+        const ok = entries !== null && entries.length === sendable.length;
+        setReadResult(
+          ok
+            ? { forKey: valuesKey, status: 'ok', entries }
+            : { forKey: valuesKey, status: 'failed' },
+        );
+        if (!ok && attempt === 0) {
+          retryTimer = setTimeout(() => {
+            if (!controller.signal.aborted) run(1);
+          }, SECTION_READ_RETRY_MS);
+        }
+      });
+    };
+    run(0);
+    return () => {
+      controller.abort();
+      clearTimeout(retryTimer);
+    };
+  }, [valuesKey, readHandler]);
+
+  /** S7 (undefined) until this exact chip list has been checked. A chip that
+   *  can't be sent shows S8 straight away. */
+  function readStateAt(index: number): SectionReadState | undefined {
+    const slot = sendIndex[index];
+    if (slot === null || slot === undefined) return { status: 'failed' };
+    if (!readResult || readResult.forKey !== valuesKey) return undefined;
+    if (readResult.status === 'failed') return { status: 'failed' };
+    return { status: 'ok', sections: readResult.entries[slot] ?? [] };
+  }
+
+  // T-309 — caps (bns_mapping only; undefined elsewhere means no cap).
+  const atCap = maxValues !== undefined && value.length >= maxValues;
+  function canAdd(v: string): boolean {
+    if (atCap) return false;
+    if (maxValueLength !== undefined && v.length > maxValueLength) return false;
+    return !value.includes(v);
+  }
 
   // SCRUM-85: debounced typeahead for fields with a `searchHandler`. Tracks the
   // latest request to discard stale ones (advocate types fast).
@@ -393,23 +538,27 @@ function MultiSelectSearchField({
     if (searchHandler) {
       // Remote-search mode: dropdown shows whatever the handler returned, minus
       // anything the user has already picked.
-      return remoteResults.filter((o) => !value.includes(o.id));
+      // T-309: also drop any match too long to add (bns_mapping cap).
+      return remoteResults.filter(
+        (o) =>
+          !value.includes(o.id) && (maxValueLength === undefined || o.id.length <= maxValueLength),
+      );
     }
     return search.length > 0
       ? options.filter(
           (o) => o.label.toLowerCase().includes(search.toLowerCase()) && !value.includes(o.id),
         )
       : options.filter((o) => !value.includes(o.id));
-  }, [searchHandler, options, search, value, remoteResults]);
+  }, [searchHandler, options, search, value, remoteResults, maxValueLength]);
 
   const selectedItems: FieldOption[] = value.map((id) => {
     const found = options.find((o) => o.id === id);
-    return found ?? { id, label: id };
+    return found ?? { id, label: humaniseChipLabel(id) };
   });
 
   function addFreeText() {
     const trimmed = search.trim();
-    if (trimmed && !value.includes(trimmed)) {
+    if (trimmed && canAdd(trimmed)) {
       onChange([...value, trimmed]);
       setSearch('');
     }
@@ -418,35 +567,53 @@ function MultiSelectSearchField({
   return (
     <div>
       <FieldLabel field={field} />
-      {allowFreeText && (
+      {allowFreeText && !readHandler && (
         <p className="mt-0.5 text-xs text-slate-400">Type a section and press Enter to add</p>
       )}
       {/* Selected items as tags */}
       {selectedItems.length > 0 && (
-        <div className="mt-1 flex flex-wrap gap-1">
-          {selectedItems.map((item) => (
-            <span
-              key={item.id}
-              className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800"
-            >
-              {item.label}
-              <X
-                size={12}
-                className="cursor-pointer hover:text-amber-600"
-                onClick={() => onChange(value.filter((v) => v !== item.id))}
-              />
-            </span>
+        <div className="mt-1 space-y-2 sm:space-y-1">
+          {selectedItems.map((item, index) => (
+            <div key={item.id}>
+              <div className="flex min-w-0 items-center gap-2 sm:gap-1">
+                <span className="inline-flex min-w-0 items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 [overflow-wrap:anywhere]">
+                  {item.label}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onChange(value.filter((v) => v !== item.id));
+                    searchInputRef.current?.focus();
+                  }}
+                  aria-label={`Remove ${item.label}`}
+                  className="inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 sm:h-6 sm:w-6 sm:rounded-full sm:border-0"
+                >
+                  <X size={16} className="sm:h-3 sm:w-3" aria-hidden="true" />
+                </button>
+              </div>
+              {readHandler && (
+                <div aria-live="polite">
+                  <SectionReadLines state={readStateAt(index)} />
+                </div>
+              )}
+            </div>
           ))}
         </div>
       )}
       {/* Search + dropdown */}
-      <div className="relative mt-1">
+      <div className="relative mt-2 sm:mt-1">
         <div className={`${inputClasses} flex items-center gap-2`}>
           <Search size={14} className="flex-shrink-0 text-slate-400" />
           <input
+            ref={searchInputRef}
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            maxLength={maxValueLength}
+            // T-309: at the chip cap the input stops taking text. readOnly, not
+            // disabled, so the remove button can still return focus here.
+            readOnly={atCap}
+            aria-disabled={atCap || undefined}
             onKeyDown={(e) => {
               if (allowFreeText && (e.key === 'Enter' || e.key === ',')) {
                 e.preventDefault();
@@ -454,9 +621,11 @@ function MultiSelectSearchField({
               }
             }}
             placeholder={field.placeholder || 'Search and select…'}
-            className="flex-1 bg-transparent text-sm outline-none"
+            className={`flex-1 bg-transparent text-sm outline-none ${
+              atCap ? 'cursor-not-allowed opacity-40' : ''
+            }`}
           />
-          {allowFreeText && search.trim() && (
+          {allowFreeText && !atCap && search.trim() && (
             <button
               type="button"
               onClick={addFreeText}
@@ -466,7 +635,7 @@ function MultiSelectSearchField({
             </button>
           )}
         </div>
-        {search.length > 0 && (
+        {!atCap && search.length > 0 && (
           <div className="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg">
             {remoteLoading && filtered.length === 0 && (
               <div className="px-3 py-2 text-xs text-slate-400">Searching…</div>
@@ -480,6 +649,7 @@ function MultiSelectSearchField({
                 type="button"
                 className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-amber-50"
                 onClick={() => {
+                  if (!canAdd(opt.id)) return;
                   onChange([...value, opt.id]);
                   setSearch('');
                 }}
@@ -490,7 +660,64 @@ function MultiSelectSearchField({
           </div>
         )}
       </div>
+      {readHandler && (
+        <p className="mt-1 text-xs text-slate-500">
+          A number without the Act is read as a BNS section. For IPC, type the Act, for example IPC
+          302.
+        </p>
+      )}
     </div>
+  );
+}
+
+/** T-290 — S8, signed by Ajay. One constant so every S8 reads the same. */
+const SECTION_READ_FAILED_LINE =
+  'Could not check this section. Check the Act and the number before you generate.';
+
+/** T-290 — the "Read as" lines for one entered value (S2 to S8, signed by Ajay).
+ *  Never renders nothing: a missing line would read as "nothing wrong". */
+function SectionReadLines({ state }: { state: SectionReadState | undefined }) {
+  if (state === undefined) {
+    return <p className="mt-0.5 break-words text-xs text-slate-600">Checking this section</p>;
+  }
+  if (state.status === 'failed') {
+    return <p className="mt-0.5 text-xs text-red-500">{SECTION_READ_FAILED_LINE}</p>;
+  }
+  const { sections } = state;
+  if (sections.length === 0) {
+    return <p className="mt-0.5 text-xs text-red-500">Not read as a section</p>;
+  }
+  return (
+    <>
+      {sections.map((s, i) => {
+        const key = `${i}-${s.code ?? ''}-${s.number}`;
+        if (s.code === 'OTHER') {
+          return (
+            <p key={key} className="mt-0.5 break-words text-xs text-slate-600">
+              Read as a section of another Act (not checked by Lawie)
+            </p>
+          );
+        }
+        // T-309: the bns_mapping reader always gives a code, but never invent one
+        // and never show no line: a null or unknown code shows S8 for this item.
+        if (!isNamedReadCode(s.code)) {
+          return (
+            <p key={key} className="mt-0.5 text-xs text-red-500">
+              {SECTION_READ_FAILED_LINE}
+            </p>
+          );
+        }
+        return (
+          <p key={key} className="mt-0.5 break-words text-xs text-slate-600">
+            Read as{' '}
+            <span className="font-medium">
+              {displayReadAsCode(s.code)} {s.number}
+            </span>
+            {s.code === 'BNS' && s.title ? `: ${s.title}` : null}
+          </p>
+        );
+      })}
+    </>
   );
 }
 
@@ -577,6 +804,7 @@ function FileField({
   onChange: (v: UploadedFile[]) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const chooseButtonRef = useRef<HTMLButtonElement>(null);
   function handlePick(e: React.ChangeEvent<HTMLInputElement>) {
     const list = e.target.files;
     if (!list) return;
@@ -593,6 +821,7 @@ function FileField({
     <div>
       <FieldLabel field={field} />
       <button
+        ref={chooseButtonRef}
         type="button"
         onClick={() => inputRef.current?.click()}
         className={`${inputClasses} flex items-center gap-2 text-left text-slate-600 hover:bg-slate-50`}
@@ -615,23 +844,26 @@ function FileField({
         onChange={handlePick}
       />
       {value.length > 0 && (
-        <ul className="mt-1 space-y-1">
+        <ul className="mt-2 space-y-2 sm:mt-1 sm:space-y-1">
           {value.map((f, i) => (
             <li
               key={`${f.name}-${i}`}
-              className="flex items-center justify-between rounded border border-slate-100 px-2 py-1 text-xs text-slate-600"
+              className="flex items-center justify-between gap-2 rounded border border-slate-100 py-0 pl-2 pr-0 text-xs text-slate-600 sm:pr-1"
             >
-              <span className="truncate">
+              <span className="min-w-0 truncate">
                 {f.name}
                 <span className="ml-2 text-slate-400">{(f.size / 1024).toFixed(0)} KB</span>
               </span>
               <button
                 type="button"
-                onClick={() => onChange(value.filter((_, j) => j !== i))}
-                className="text-slate-400 hover:text-slate-600"
-                aria-label="Remove"
+                onClick={() => {
+                  onChange(value.filter((_, j) => j !== i));
+                  chooseButtonRef.current?.focus();
+                }}
+                aria-label={`Remove ${f.name}`}
+                className="inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 sm:h-6 sm:w-6 sm:border-0"
               >
-                <X size={12} />
+                <X size={16} className="sm:h-3 sm:w-3" aria-hidden="true" />
               </button>
             </li>
           ))}
@@ -707,77 +939,216 @@ function StepIndicator({ steps, currentStep }: { steps: FormStep[]; currentStep:
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
-function useCourtsData(formData: Record<string, unknown>) {
+/**
+ * T-411: an optional template scope. For consumer_complaint the lists are filtered by the
+ * Commission level (part 1 server API); with no scope everything behaves as before.
+ * T-425: for the six bail packs the three lists are asked for with `template=<id>`.
+ */
+export interface CourtsScope {
+  templateId?: string;
+  level?: ConsumerLevel | null;
+  /** T-425 (AC3): the form field holding the court, so a saved court can be kept. */
+  courtFieldId?: string;
+}
+
+interface SavedCourt {
+  id: string;
+  name: string;
+  state: string;
+}
+
+export function useCourtsData(formData: Record<string, unknown>, scope?: CourtsScope) {
   const [states, setStates] = useState<FieldOption[]>([]);
+  const [statesLoaded, setStatesLoaded] = useState(false);
   const [courtTypes, setCourtTypes] = useState<FieldOption[]>([]);
+  const [typesLoaded, setTypesLoaded] = useState(false);
   const [courts, setCourts] = useState<FieldOption[]>([]);
+  const [courtsLoaded, setCourtsLoaded] = useState(false);
+  const [saved, setSaved] = useState<SavedCourt | null>(null);
+  // T-425: saved court ids whose by-id lookup failed; not asked again.
+  const lookupFailed = useRef<Set<string>>(new Set());
 
   const stateId = String(formData.state ?? '');
   const courtType = String(formData.court_type ?? '');
+  const courtId = scope?.courtFieldId ? String(formData[scope.courtFieldId] ?? '') : '';
+  const consumer = scope?.templateId === CONSUMER_TEMPLATE_ID;
+  const bail = isScopedCourtTemplate(scope?.templateId);
+  const level = consumer ? (scope?.level ?? null) : null;
+  const query =
+    consumer && level
+      ? `template=${CONSUMER_TEMPLATE_ID}&level=${level}`
+      : bail
+        ? `template=${encodeURIComponent(scope?.templateId as string)}`
+        : '';
 
-  // Fetch states once on mount
-  const statesFetched = useRef(false);
+  // Fetch states once on mount (once per level in consumer mode)
+  const statesFetched = useRef<string | null>(null);
   useEffect(() => {
-    if (statesFetched.current) return;
-    statesFetched.current = true;
-    fetch(`${API_URL}/api/courts/states`)
+    if (consumer && (!level || level === 'national')) {
+      statesFetched.current = null;
+      setStates([]);
+      setStatesLoaded(false);
+      return;
+    }
+    if (statesFetched.current === query) return;
+    statesFetched.current = query;
+    let off = false;
+    setStatesLoaded(false);
+    fetch(`${API_URL}/api/courts/states${query ? `?${query}` : ''}`)
       .then((r) => r.json())
       .then((data) => {
+        if (off) return;
         if (data.states) {
           setStates(
             data.states.map((s: { id: string; name: string }) => ({ id: s.id, label: s.name })),
           );
+          setStatesLoaded(true);
         }
       })
       .catch(() => {});
-  }, []);
+    return () => {
+      // A stale response (the level changed, or unmount) is dropped; forget the key so
+      // the next run fetches again rather than skipping.
+      off = true;
+      statesFetched.current = null;
+    };
+  }, [consumer, level, query]);
 
   // Fetch court types when state changes
   useEffect(() => {
+    if (consumer) {
+      // The level replaces the court type in consumer mode.
+      setCourtTypes([]);
+      setTypesLoaded(false);
+      return;
+    }
     if (!stateId) {
       setCourtTypes([]);
+      setTypesLoaded(false);
       setCourts([]);
       return;
     }
-    fetch(`${API_URL}/api/courts/types?state=${encodeURIComponent(stateId)}`)
+    const typesPath = `${API_URL}/api/courts/types?state=${encodeURIComponent(stateId)}`;
+    let off = false;
+    setTypesLoaded(false);
+    fetch(query ? `${typesPath}&${query}` : typesPath)
       .then((r) => r.json())
       .then((data) => {
+        if (off) return;
         if (data.types) {
           setCourtTypes(
             data.types.map((t: { id: string; label: string }) => ({ id: t.id, label: t.label })),
           );
+          setTypesLoaded(true);
         }
       })
       .catch(() => {});
-  }, [stateId]);
+    return () => {
+      off = true;
+    };
+  }, [stateId, consumer, query]);
 
   // Fetch courts when state + court_type change
   useEffect(() => {
-    if (!stateId || !courtType) {
-      setCourts([]);
-      return;
+    let path: string;
+    if (consumer) {
+      if (!level || (level !== 'national' && !stateId)) {
+        setCourts([]);
+        setCourtsLoaded(false);
+        return;
+      }
+      path =
+        level === 'national'
+          ? `${API_URL}/api/courts?${query}`
+          : `${API_URL}/api/courts?${query}&state=${encodeURIComponent(stateId)}`;
+    } else {
+      if (!stateId || !courtType) {
+        setCourts([]);
+        setCourtsLoaded(false);
+        return;
+      }
+      path = `${API_URL}/api/courts?state=${encodeURIComponent(stateId)}&type=${encodeURIComponent(courtType)}`;
+      if (query) path = `${path}&${query}`;
     }
-    fetch(
-      `${API_URL}/api/courts?state=${encodeURIComponent(stateId)}&type=${encodeURIComponent(courtType)}`,
-    )
+    let off = false;
+    setCourtsLoaded(false);
+    fetch(path)
       .then((r) => r.json())
       .then((data) => {
+        if (off) return;
         if (data.courts) {
           setCourts(
             data.courts.map((c: { courtId: string; name: string }) => ({
               id: c.courtId,
-              label: c.name,
+              // T-411: signed UI label for NCDRC; the record's name still prints.
+              label: consumer && c.courtId === NCDRC_COURT_ID ? NCDRC_OPTION_LABEL : c.name,
             })),
           );
+          setCourtsLoaded(true);
         }
       })
       .catch(() => {});
-  }, [stateId, courtType]);
+    return () => {
+      off = true;
+    };
+  }, [stateId, courtType, consumer, level, query]);
 
-  return { states, courtTypes, courts };
+  // T-425 (AC3): a bail form holding a court this pack no longer offers keeps it. Ask for
+  // that court by id only to name it in the list; the value itself is never changed.
+  const courtNotOffered =
+    bail && courtId !== '' && courtsLoaded && !courts.some((c) => c.id === courtId);
+  useEffect(() => {
+    if (!courtNotOffered || saved?.id === courtId) return;
+    const id = courtId;
+    if (lookupFailed.current.has(id)) return;
+    let off = false;
+    fetch(`${API_URL}/api/courts/${encodeURIComponent(id)}`)
+      .then(async (res) => {
+        if (!res.ok) throw new Error('court');
+        const data = (await res.json()) as { court?: { name?: string; state?: string } };
+        if (!data.court?.name) throw new Error('court');
+        if (!off) setSaved({ id, name: data.court.name, state: data.court.state ?? '' });
+      })
+      // Only the label is lost: the saved id still shows. A failure is about the id, so it
+      // is remembered even if this run was superseded.
+      .catch(() => {
+        lookupFailed.current.add(id);
+      });
+    return () => {
+      off = true;
+    };
+  }, [courtNotOffered, courtId, saved?.id]);
+
+  const savedName = saved && saved.id === courtId ? saved : null;
+  const keptStateLabel =
+    bail && stateId && statesLoaded && !states.some((s) => s.id === stateId)
+      ? `${savedName?.state || stateId}${NOT_OFFERED_SUFFIX}`
+      : null;
+  const keptTypeLabel =
+    bail && courtType && typesLoaded && !courtTypes.some((t) => t.id === courtType)
+      ? `${SAVED_TYPE_NAMES[courtType] ?? courtType}${NOT_OFFERED_SUFFIX}`
+      : null;
+  const keptCourtLabel = courtNotOffered
+    ? `${savedName?.name ?? courtId}${NOT_OFFERED_SUFFIX}`
+    : null;
+
+  const shownStates = useMemo(
+    () => (keptStateLabel ? [{ id: stateId, label: keptStateLabel }, ...states] : states),
+    [keptStateLabel, stateId, states],
+  );
+  const shownTypes = useMemo(
+    () => (keptTypeLabel ? [{ id: courtType, label: keptTypeLabel }, ...courtTypes] : courtTypes),
+    [keptTypeLabel, courtType, courtTypes],
+  );
+  const shownCourts = useMemo(
+    () => (keptCourtLabel ? [{ id: courtId, label: keptCourtLabel }, ...courts] : courts),
+    [keptCourtLabel, courtId, courts],
+  );
+
+  return { states: shownStates, courtTypes: shownTypes, courts: shownCourts, courtsLoaded };
 }
 
-function resolveOptions(
+export function resolveOptions(
   field: FormField,
   formData: Record<string, unknown>,
   templateConfig: TemplateConfig,
@@ -810,7 +1181,7 @@ function resolveOptions(
 // SCRUM-85 — typeahead handler for in-form section pickers (bail templates etc).
 // Fetches /api/sections/search and shapes results into FieldOption[] with the
 // new section number as the chosen value and a "<section> · <title>" label.
-async function fetchBnsMappingResults(query: string): Promise<FieldOption[]> {
+export async function fetchBnsMappingResults(query: string): Promise<FieldOption[]> {
   try {
     const res = await fetch(
       `${API_URL}/api/sections/search?q=${encodeURIComponent(query)}&code=BNS&limit=10`,
@@ -828,6 +1199,199 @@ async function fetchBnsMappingResults(query: string): Promise<FieldOption[]> {
   }
 }
 
+// T-290 — what the server reads from bns_mapping picker values (POST
+// /sections/read, Arjun). `title` is set only for BNS, from the signed T-277 table.
+export interface SectionRead {
+  code: 'BNS' | 'BNSS' | 'BSA' | 'IPC' | 'CRPC' | 'IEA' | 'OTHER' | null;
+  number: string;
+  title: string | null;
+}
+
+// T-290 (Ajay, on ba4b11c) — display only: the code as practitioners write it in
+// the "Read as" line ("Read as CrPC 41"). Stored values and the server response
+// keep the reader's codes unchanged.
+type NamedReadCode = Exclude<SectionRead['code'], 'OTHER' | null>;
+const READ_AS_DISPLAY_CODE: Readonly<Record<NamedReadCode, string>> = {
+  IPC: 'IPC',
+  CRPC: 'CrPC',
+  IEA: 'IEA',
+  BNS: 'BNS',
+  BNSS: 'BNSS',
+  BSA: 'BSA',
+};
+
+/** T-309 — true only for a code the picker can name in a "Read as" line. */
+export function isNamedReadCode(code: unknown): code is NamedReadCode {
+  return (
+    typeof code === 'string' && Object.prototype.hasOwnProperty.call(READ_AS_DISPLAY_CODE, code)
+  );
+}
+
+/** T-290 — the display form of a named reader code, e.g. CRPC → "CrPC". */
+export function displayReadAsCode(code: NamedReadCode): string {
+  return READ_AS_DISPLAY_CODE[code];
+}
+
+/** T-290 — the plain text of the S2/S3/S4 line for one named-code section, e.g.
+ *  "Read as CrPC 41" or "Read as BNS 303: Theft". Null for OTHER or a bare
+ *  number (those are not S2 to S4). Pure, so it can be unit-tested. */
+export function formatReadAsLine(s: SectionRead): string | null {
+  if (!isNamedReadCode(s.code)) return null;
+  const title = s.code === 'BNS' && s.title ? `: ${s.title}` : '';
+  return `Read as ${displayReadAsCode(s.code)} ${s.number}${title}`;
+}
+
+type SectionReadState = { status: 'ok'; sections: SectionRead[] } | { status: 'failed' };
+
+type SectionReadResult =
+  | { forKey: string; status: 'ok'; entries: SectionRead[][] }
+  | { forKey: string; status: 'failed' };
+
+const SECTION_READ_TIMEOUT_MS = 5000;
+// T-309 — one automatic retry of a failed read, after about 2 s.
+const SECTION_READ_RETRY_MS = 2000;
+
+// T-309 — Arjun's /sections/read caps for `values` (more is a 400 for the whole
+// call). The bns_mapping picker enforces the same caps on input.
+export const SECTION_READ_MAX_VALUES = 30;
+export const SECTION_READ_MAX_VALUE_LENGTH = 100;
+
+/** T-309 — the values that can be sent to /sections/read: strings of at most
+ *  100 characters, the first 30 of them. sendIndex[i] is values[i]'s index in
+ *  `sendable`, or null if values[i] is not sent (that chip shows S8 on its own).
+ *  Pure, so it can be unit-tested. */
+export function pickSendableReadValues(values: readonly unknown[]): {
+  sendable: string[];
+  sendIndex: Array<number | null>;
+} {
+  const sendable: string[] = [];
+  const sendIndex = values.map((v) => {
+    if (
+      typeof v !== 'string' ||
+      v.length > SECTION_READ_MAX_VALUE_LENGTH ||
+      sendable.length >= SECTION_READ_MAX_VALUES
+    ) {
+      return null;
+    }
+    sendable.push(v);
+    return sendable.length - 1;
+  });
+  return { sendable, sendIndex };
+}
+
+// T-290 — POSTs {values} to /api/sections/read (POST so FIR numbers stay out of
+// URLs) and returns entries[i].read for values[i]. Returns null on network error,
+// non-2xx, bad shape, the ~5 s timeout, or an abort from the caller, so the picker
+// shows S8 rather than a guess.
+export async function fetchSectionRead(
+  values: string[],
+  signal: AbortSignal,
+): Promise<SectionRead[][] | null> {
+  const controller = new AbortController();
+  const abort = () => controller.abort();
+  if (signal.aborted) return null;
+  signal.addEventListener('abort', abort);
+  const timer = setTimeout(abort, SECTION_READ_TIMEOUT_MS);
+  try {
+    const res = await fetch(`${API_URL}/api/sections/read`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ values }),
+      signal: controller.signal,
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { entries?: Array<{ read?: SectionRead[] }> };
+    if (!Array.isArray(data.entries)) return null;
+    const entries = data.entries.map((e) => e?.read);
+    return entries.every(Array.isArray) ? (entries as SectionRead[][]) : null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+    signal.removeEventListener('abort', abort);
+  }
+}
+
+// ── One field's input, by type (shared with the describe-first follow-up, T-103) ──
+
+export function FieldInput({
+  field,
+  value,
+  options,
+  onChange,
+}: {
+  field: FormField;
+  value: unknown;
+  options: FieldOption[];
+  onChange: (v: unknown) => void;
+}) {
+  return (
+    <>
+      {(field.type === 'text' || field.type === 'date' || field.type === 'number') && (
+        <TextField field={field} value={String(value ?? '')} onChange={(v) => onChange(v)} />
+      )}
+
+      {field.type === 'textarea' && (
+        <TextareaField field={field} value={String(value ?? '')} onChange={(v) => onChange(v)} />
+      )}
+
+      {field.type === 'dropdown' && (
+        <DropdownField
+          field={field}
+          value={String(value ?? '')}
+          onChange={(v) => onChange(v)}
+          options={options}
+        />
+      )}
+
+      {field.type === 'dropdown_search' && (
+        <DropdownSearchField
+          field={field}
+          value={String(value ?? '')}
+          onChange={(v) => onChange(v)}
+          options={options}
+        />
+      )}
+
+      {field.type === 'multi_select_search' && (
+        <MultiSelectSearchField
+          field={field}
+          value={Array.isArray(value) ? (value as string[]) : []}
+          onChange={(v) => onChange(v)}
+          options={options}
+          allowFreeText={field.source === 'bns_mapping'}
+          searchHandler={field.source === 'bns_mapping' ? fetchBnsMappingResults : undefined}
+          readHandler={field.source === 'bns_mapping' ? fetchSectionRead : undefined}
+          maxValues={field.source === 'bns_mapping' ? SECTION_READ_MAX_VALUES : undefined}
+          maxValueLength={
+            field.source === 'bns_mapping' ? SECTION_READ_MAX_VALUE_LENGTH : undefined
+          }
+        />
+      )}
+
+      {field.type === 'checkbox_group' && (
+        <CheckboxGroupField
+          field={field}
+          value={Array.isArray(value) ? (value as string[]) : []}
+          onChange={(v) => onChange(v)}
+        />
+      )}
+
+      {field.type === 'currency' && (
+        <CurrencyField field={field} value={String(value ?? '')} onChange={(v) => onChange(v)} />
+      )}
+
+      {field.type === 'file' && (
+        <FileField
+          field={field}
+          value={Array.isArray(value) ? (value as UploadedFile[]) : []}
+          onChange={(v) => onChange(v)}
+        />
+      )}
+    </>
+  );
+}
+
 // ── Main Component ──────────────────────────────────────────────────────────
 
 export default function DynamicFormRenderer({
@@ -835,9 +1399,22 @@ export default function DynamicFormRenderer({
   onSubmit,
   onCancel,
   submitting = false,
+  submitDescribedBy,
+  inkCost,
+  inkCostLoading = false,
+  onInkCostRetry,
+  templateId,
+  initialValues,
+  initialStep,
+  initialLevel,
+  onStateChange,
 }: DynamicFormRendererProps) {
   const steps = config.form_schema.steps;
-  const [step, setStep] = useState(0);
+  // T-432: seeded on mount only; with no seed this starts at step 1 as before.
+  const [step, setStep] = useState(() => {
+    if (typeof initialStep !== 'number' || !Number.isInteger(initialStep)) return 0;
+    return Math.min(Math.max(initialStep, 0), steps.length - 1);
+  });
   const [formData, setFormData] = useState<Record<string, unknown>>(() => {
     // Initialize with defaults from the schema. Array-shaped fields (checkbox group,
     // multi-select, file) get `[]`, scalar fields get '' unless the config supplies a default.
@@ -857,11 +1434,93 @@ export default function DynamicFormRenderer({
         }
       }
     }
-    return initial;
+    // T-432: a returning advocate's answers win over the defaults.
+    return initialValues ? { ...initial, ...initialValues } : initial;
+  });
+
+  // T-411: a consumer complaint picks the Commission level first.
+  const consumer = config.template_id === CONSUMER_TEMPLATE_ID;
+  const [level, setLevel] = useState<ConsumerLevel | null>(() =>
+    consumer ? (initialLevel ?? null) : null,
+  );
+  const [live, setLive] = useState('');
+  const focusNext = useRef<string | null>(null);
+  const courtFieldIds = useMemo(() => {
+    const ids: {
+      state?: string;
+      type?: string;
+      court?: string;
+      stateField?: FormField;
+      courtField?: FormField;
+    } = {};
+    for (const s of steps) {
+      for (const f of s.fields) {
+        if (f.source === 'courts_db.states') {
+          ids.state = f.field_id;
+          ids.stateField = f;
+        }
+        if (f.source === 'courts_db.court_types') ids.type = f.field_id;
+        if (f.source === 'courts_db.courts') {
+          ids.court = f.field_id;
+          ids.courtField = f;
+        }
+      }
+    }
+    return ids;
+  }, [steps]);
+
+  // T-432: hand every change to the caller, which holds it in memory so the
+  // form can be shown again as it was. The ref keeps a new callback identity
+  // from re-running this.
+  const onStateChangeRef = useRef(onStateChange);
+  onStateChangeRef.current = onStateChange;
+  useEffect(() => {
+    onStateChangeRef.current?.(formData, step, level);
+  }, [formData, step, level]);
+
+  useEffect(() => {
+    if (!focusNext.current) return;
+    const el = document.getElementById(focusNext.current);
+    focusNext.current = null;
+    el?.focus();
   });
 
   // Courts data from API — cascading dropdowns (SCRUM-50)
-  const courtsData = useCourtsData(formData);
+  // T-425/T-482: bail and maintenance ask with template=<id> and keep a saved court.
+  const bail = isScopedCourtTemplate(config.template_id);
+  const courtsData = useCourtsData(
+    formData,
+    consumer
+      ? { templateId: config.template_id, level }
+      : bail
+        ? { templateId: config.template_id, courtFieldId: courtFieldIds.court }
+        : undefined,
+  );
+
+  const onLevel = (next: ConsumerLevel, how: LevelChangeHow) => {
+    if (next === level) return;
+    const { state: sId, type: tId, court: cId } = courtFieldIds;
+    const hadChoice =
+      level === 'national'
+        ? Boolean(cId && formData[cId])
+        : Boolean((sId && formData[sId]) || (cId && formData[cId]));
+    setLevel(next);
+    // Changing the level clears the state and court below it. The court type (and the
+    // state, for NCDRC) are set from the level, so required checks still pass.
+    setFormData((prev) => {
+      const out = { ...prev };
+      if (sId) out[sId] = next === 'national' ? NCDRC_STATE_ID : '';
+      if (tId) out[tId] = next === 'national' ? NCDRC_COURT_TYPE : CONSUMER_COURT_TYPE;
+      if (cId) out[cId] = '';
+      return out;
+    });
+    const shown = next === 'national' ? LIVE_NATIONAL_SHOWN : LIVE_STATE_SHOWN;
+    setLive(hadChoice ? `${LIVE_CLEARED} ${shown}` : shown);
+    // Arrow keys keep focus on the chip (radio pattern); click, Space or Enter moves it on.
+    if (how === 'activate') {
+      focusNext.current = next === 'national' ? 'dfr-consumer-court' : 'dfr-consumer-state';
+    }
+  };
 
   // Build a map of field_id → cascades_to for cascade resets
   const cascadeMap = useMemo(() => {
@@ -937,13 +1596,110 @@ export default function DynamicFormRenderer({
   }, [visibleFields, formData, fieldErrors]);
 
   const isLastStep = step === steps.length - 1;
+  // T-388 (Arjun): "Generate document" charges, so it waits for a known cost.
+  // "Next" charges nothing and is not held.
+  const costBlocked = isLastStep && inkCostState(inkCost, inkCostLoading) !== 'known';
+  const submitDescribedByIds = isLastStep
+    ? [submitDescribedBy, SUBMIT_INK_COST_ID].filter(Boolean).join(' ')
+    : undefined;
 
   function handleNext() {
     if (isLastStep) {
+      if (costBlocked) return;
       onSubmit(formData);
     } else {
       setStep((s) => s + 1);
     }
+  }
+
+  function renderConsumerCourt() {
+    const { state: sId, type: tId, court: cId, stateField, courtField } = courtFieldIds;
+    const national = level === 'national';
+    const stateValue = sId ? String(formData[sId] ?? '') : '';
+    const courtValue = cId ? String(formData[cId] ?? '') : '';
+    const courtDisabled = !level || (!national && !stateValue);
+    const chosen = courtsData.courts.find((c) => c.id === courtValue);
+    const selectClass = `${inputClasses} min-h-[44px] disabled:bg-slate-100`;
+    return (
+      <div key="consumer-court" className="col-span-full">
+        <ConsumerLevelGroup id="dfr-consumer-level" value={level} onChange={onLevel} />
+        <p aria-live="polite" role="status" className="sr-only">
+          {live}
+        </p>
+        {level && (
+          <div className={`mt-4 grid grid-cols-1 gap-4 ${national ? '' : 'sm:grid-cols-2'}`}>
+            {!national && sId && (
+              <div>
+                <label
+                  htmlFor="dfr-consumer-state"
+                  className="block text-xs font-medium text-slate-600"
+                >
+                  State
+                  {stateField?.required && <span className="ml-0.5 text-red-400">*</span>}
+                </label>
+                <select
+                  id="dfr-consumer-state"
+                  value={stateValue}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setFormData((prev) => {
+                      const out = { ...prev, [sId]: v };
+                      if (tId) out[tId] = CONSUMER_COURT_TYPE;
+                      if (cId) out[cId] = '';
+                      return out;
+                    });
+                    if (v) setLive(LIVE_COURT_SHOWN);
+                  }}
+                  className={selectClass}
+                >
+                  <option value="">Choose</option>
+                  {courtsData.states.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+                {stateField && (
+                  <FieldFooter field={stateField} errorMessage={fieldErrors[stateField.field_id]} />
+                )}
+              </div>
+            )}
+            {cId && (
+              <div>
+                <label
+                  htmlFor="dfr-consumer-court"
+                  className="block text-xs font-medium text-slate-600"
+                >
+                  {CONSUMER_COURT_LABEL}
+                  {courtField?.required && <span className="ml-0.5 text-red-400">*</span>}
+                </label>
+                <select
+                  id="dfr-consumer-court"
+                  value={courtValue}
+                  disabled={courtDisabled}
+                  onChange={(e) => setField(cId, e.target.value)}
+                  className={selectClass}
+                >
+                  <option value="">Choose</option>
+                  {courtsData.courts.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+                {chosen && <p className="mt-1 text-xs text-slate-600">{chosen.label}</p>}
+                {courtField && (
+                  <FieldFooter field={courtField} errorMessage={fieldErrors[courtField.field_id]} />
+                )}
+              </div>
+            )}
+          </div>
+        )}
+        {!national && stateValue && courtsData.courtsLoaded && courtsData.courts.length === 0 && (
+          <p className="mt-2 text-xs text-slate-500">{CONSUMER_NO_MATCH}</p>
+        )}
+      </div>
+    );
   }
 
   return (
@@ -959,7 +1715,13 @@ export default function DynamicFormRenderer({
         <h2 className="mb-4 text-sm font-semibold text-slate-700">{currentStep.title}</h2>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {visibleFields.map((field) => {
+          {visibleFields.map((field, fieldIndex) => {
+            if (consumer && field.source?.startsWith('courts_db.')) {
+              // T-411: one consumer block replaces the state / court type / court fields.
+              const first = visibleFields.findIndex((f) => f.source?.startsWith('courts_db.'));
+              if (fieldIndex !== first) return null;
+              return renderConsumerCourt();
+            }
             const options = resolveOptions(field, formData, config, courtsData);
             const value = formData[field.field_id];
 
@@ -972,76 +1734,12 @@ export default function DynamicFormRenderer({
 
             return (
               <div key={field.field_id} className={isFullWidth ? 'col-span-full' : ''}>
-                {(field.type === 'text' || field.type === 'date' || field.type === 'number') && (
-                  <TextField
-                    field={field}
-                    value={String(value ?? '')}
-                    onChange={(v) => setField(field.field_id, v)}
-                  />
-                )}
-
-                {field.type === 'textarea' && (
-                  <TextareaField
-                    field={field}
-                    value={String(value ?? '')}
-                    onChange={(v) => setField(field.field_id, v)}
-                  />
-                )}
-
-                {field.type === 'dropdown' && (
-                  <DropdownField
-                    field={field}
-                    value={String(value ?? '')}
-                    onChange={(v) => setField(field.field_id, v)}
-                    options={options}
-                  />
-                )}
-
-                {field.type === 'dropdown_search' && (
-                  <DropdownSearchField
-                    field={field}
-                    value={String(value ?? '')}
-                    onChange={(v) => setField(field.field_id, v)}
-                    options={options}
-                  />
-                )}
-
-                {field.type === 'multi_select_search' && (
-                  <MultiSelectSearchField
-                    field={field}
-                    value={Array.isArray(value) ? (value as string[]) : []}
-                    onChange={(v) => setField(field.field_id, v)}
-                    options={options}
-                    allowFreeText={field.source === 'bns_mapping'}
-                    searchHandler={
-                      field.source === 'bns_mapping' ? fetchBnsMappingResults : undefined
-                    }
-                  />
-                )}
-
-                {field.type === 'checkbox_group' && (
-                  <CheckboxGroupField
-                    field={field}
-                    value={Array.isArray(value) ? (value as string[]) : []}
-                    onChange={(v) => setField(field.field_id, v)}
-                  />
-                )}
-
-                {field.type === 'currency' && (
-                  <CurrencyField
-                    field={field}
-                    value={String(value ?? '')}
-                    onChange={(v) => setField(field.field_id, v)}
-                  />
-                )}
-
-                {field.type === 'file' && (
-                  <FileField
-                    field={field}
-                    value={Array.isArray(value) ? (value as UploadedFile[]) : []}
-                    onChange={(v) => setField(field.field_id, v)}
-                  />
-                )}
+                <FieldInput
+                  field={field}
+                  value={value}
+                  options={options}
+                  onChange={(v) => setField(field.field_id, v)}
+                />
 
                 <FieldFooter field={field} errorMessage={fieldErrors[field.field_id]} />
               </div>
@@ -1050,36 +1748,52 @@ export default function DynamicFormRenderer({
         </div>
       </div>
 
-      {/* Navigation */}
-      <div className="mt-4 flex items-center justify-between">
+      {/* Navigation (T-388: top-aligned, so the Ink cost line under the button moves nothing).
+          T-432: stacked at phone width (Generate and its cost line above Cancel/Back, with a
+          real gap); a row from sm up, as before. */}
+      <div className="mt-4 flex flex-col-reverse gap-3 sm:flex-row sm:items-start sm:justify-between">
         <button
           type="button"
           onClick={() => (step === 0 ? onCancel() : setStep((s) => s - 1))}
-          className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50"
+          className="flex items-center gap-1.5 self-start rounded-lg border border-slate-200 px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50"
         >
           <ChevronLeft size={14} />
           {step === 0 ? 'Cancel' : 'Back'}
         </button>
 
-        <button
-          type="button"
-          disabled={!canAdvance || submitting}
-          onClick={handleNext}
-          className={`flex items-center gap-1.5 rounded-lg px-5 py-2 text-xs font-semibold text-white shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
-            isLastStep ? 'bg-slate-900 hover:bg-slate-700' : 'bg-amber-500 hover:bg-amber-600'
-          }`}
-        >
-          {submitting ? (
-            'Generating…'
-          ) : isLastStep ? (
-            'Generate document'
-          ) : (
-            <>
-              Next
-              <ChevronRight size={14} />
-            </>
+        <div className="flex flex-col items-stretch gap-1 sm:items-end">
+          <button
+            type="button"
+            disabled={!canAdvance || submitting || costBlocked}
+            aria-disabled={costBlocked ? 'true' : undefined}
+            onClick={handleNext}
+            aria-describedby={submitDescribedByIds}
+            className={`flex items-center justify-center gap-1.5 rounded-lg px-5 py-2 text-xs font-semibold text-white shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+              isLastStep ? 'bg-slate-900 hover:bg-slate-700' : 'bg-amber-500 hover:bg-amber-600'
+            }`}
+          >
+            {submitting ? (
+              'Generating…'
+            ) : isLastStep ? (
+              'Generate document'
+            ) : (
+              <>
+                Next
+                <ChevronRight size={14} />
+              </>
+            )}
+          </button>
+          {isLastStep && (
+            <InkCostLine
+              id={SUBMIT_INK_COST_ID}
+              cost={inkCost}
+              loading={inkCostLoading}
+              onRetry={onInkCostRetry}
+              kind={templateId ?? config.template_id ?? 'unknown'}
+              action="submit"
+            />
           )}
-        </button>
+        </div>
       </div>
     </div>
   );

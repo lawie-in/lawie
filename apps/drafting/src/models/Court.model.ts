@@ -18,6 +18,11 @@ export interface ICourt extends Document {
   formattingRulesRef: string;
   caseNomenclature: string;
   supportedLanguages: string[];
+  /**
+   * T-482: when set, the court is listed only for these template ids (courts.routes.ts):
+   * never in an unscoped list or another template's list. A by-id lookup still finds it.
+   */
+  templates?: string[];
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -81,6 +86,11 @@ const CourtSchema = new Schema<ICourt>(
     supportedLanguages: {
       type: [String],
       default: ['en'],
+    },
+    // T-482: no default, so a court without the field stays without it (listed for all).
+    templates: {
+      type: [String],
+      default: undefined,
     },
     isActive: {
       type: Boolean,

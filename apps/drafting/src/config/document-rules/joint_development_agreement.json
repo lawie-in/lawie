@@ -1,12 +1,13 @@
 {
   "_meta": {
-    "description": "Document-rules config for joint_development_agreement (JDA) — Landowner contributes land; Developer contributes construction expertise + capital; mutually agreed split of constructed units OR revenue. Hybrid character per Sushila Devi v. Mohan Lal. RERA registration mandatory for projects > 500 sqm OR 8 units. Stamp duty varies by state — some treat as conveyance, others as agreement.",
+    "description": "Document-rules config for joint_development_agreement (JDA) — Landowner contributes land; Developer contributes construction expertise + capital; mutually agreed split of constructed units OR revenue. Hybrid character: one party contributes land, the other construction. RERA registration mandatory for projects > 500 sqm OR 8 units. Stamp duty varies by state — some treat as conveyance, others as agreement.",
     "owner": "Ajay (CLO)",
     "validated_by": "Ajay (CLO) — Batch 6 transactional deeds pass 2026-05-12",
     "last_updated": "2026-05-12",
     "change_protocol": "All edits require CLO sign-off. RERA compliance is non-negotiable for qualifying projects. GST on JDA per CBIC Notification 04/2018-CT(R) and 06/2019-CT(R) — flag for landowner."
   },
   "template_id": "joint_development_agreement",
+  "card_description": "An agreement between a landowner and a developer to build on the land and share the result.",
   "docType": "joint_development_agreement",
   "title": "Joint Development Agreement (JDA) — Landowner & Developer",
   "displayName": "Joint Development Agreement (JDA)",
@@ -242,7 +243,7 @@
         "required": true,
         "options": [
           "yes_limited_gpa_for_developer_share_sales",
-          "yes_general_gpa_with_suraj_lamp_flag",
+          "yes_general_gpa_with_title_flag",
           "no_separate_sale_deeds_for_each_unit"
         ]
       },
@@ -264,6 +265,14 @@
         "type": "select",
         "required": true,
         "options": ["bihar", "jharkhand", "uttar_pradesh", "delhi"]
+      },
+      {
+        "id": "execution_place",
+        "label": "Place of execution",
+        "type": "text",
+        "required": false,
+        "help": "City or town where the document will be signed.",
+        "ask_when_empty": true
       },
       {
         "id": "witness_1_name_address",
@@ -454,12 +463,6 @@
       "name": "Two Witnesses",
       "required": true,
       "description": "Mandatory"
-    },
-    {
-      "id": "lawie_disclaimer",
-      "name": "Lawie Drafting Assistant Disclaimer",
-      "required": true,
-      "description": "Standard Lawie disclaimer"
     }
   ],
   "prayerTemplate": "",
@@ -467,7 +470,7 @@
   "prompt_context": {
     "promptInstructions": [
       "Draft a JOINT DEVELOPMENT AGREEMENT (JDA) between Landowner and Developer.",
-      "NATURE OF JDA: A hybrid commercial arrangement where Landowner contributes LAND and Developer contributes CONSTRUCTION (capital, expertise, marketing, approvals). The constructed property is shared in agreed proportion. Courts have characterised JDAs in various ways depending on structure — Sushila Devi v. Mohan Lal AIR 1955 SC 481 (joint venture nature); Faqir Chand Gulati v. Uppal Agencies Pvt Ltd (2008) 10 SCC 345 (landowner is consumer if developer fails to deliver agreed share).",
+      "NATURE OF JDA: A hybrid commercial arrangement where Landowner contributes LAND and Developer contributes CONSTRUCTION (capital, expertise, marketing, approvals). The constructed property is shared in agreed proportion.",
       "REGULATORY FRAMEWORK:",
       "(1) RERA, 2016 — Section 3 mandates registration of real estate projects where (a) area of land proposed to be developed > 500 sqm, OR (b) number of apartments proposed > 8 (inclusive of all phases). Developer is the 'promoter' for RERA purposes (S.2(zk) includes a person who, in case of land developed under JDA, builds and sells apartments). Mandatory disclosures, escrow account (70% of buyer payments), timely delivery — all apply.",
       "(2) GST on JDA: per CBIC Notification 04/2018-CT(R) dated 25.01.2018 and Notification 06/2019-CT(R) dated 29.03.2019:\n   - GST liability on landowner for transfer of development rights to developer arises at the time of issuance of completion certificate / first occupation (whichever earlier).\n   - GST is on the construction services / share received by landowner.\n   - Reverse charge mechanism applies (developer pays GST on landowner's share at completion).\n   - 1% (affordable housing) / 5% (other residential) for new schemes without ITC; 12% with ITC for under-construction commercial.\n   - FLAG landowner that GST on his/her constructed share is payable.",
@@ -485,7 +488,7 @@
       "Para 9: TIMELINE:\n   - Approvals: within [X] months of execution.\n   - Construction start: within [Y] months of receipt of approvals.\n   - Construction completion: within [Z] months of construction start.\n   - Grace period: 6 months for force majeure / unforeseen delays.\n   - Outer limit per RERA registration declaration.",
       "Para 10: DEVELOPER'S OBLIGATIONS:\n   - Bear all costs of approvals, construction, marketing, brokerage.\n   - Construct as per sanctioned plan + RERA disclosures.\n   - Maintain quality (specifications in Schedule D).\n   - Comply with labour laws (CLRA / BOCW / EPF / ESI / minimum wages).\n   - Maintain insurance — construction all risk + workmen compensation + public liability.\n   - Provide handover of Landowner's share with OC.",
       "Para 11: LANDOWNER'S OBLIGATIONS:\n   - Provide vacant possession on signing / within agreed time.\n   - Clear all encumbrances + provide marketable title.\n   - Pay land revenue and taxes up to date.\n   - Cooperate in approvals (appear before authorities; execute documents as required).\n   - Execute Sale Deeds with end-buyers for Developer's share (against payment of consideration directly to Developer).\n   - Not alienate / encumber land during currency of JDA.",
-      "Para 12: POWER OF ATTORNEY — Landowner shall execute a LIMITED PoA in Developer's favour for:\n   (a) Obtaining approvals.\n   (b) Representing before authorities.\n   (c) Selling Developer's share of units to end-buyers (signing sale deeds, receiving consideration, mutation, etc.).\n   CRITICAL — must include Suraj Lamp disclaimer in PoA; sale to end-buyers must be by REGISTERED SALE DEED, and Landowner is the conveyor of title to end-buyers (PoA-holder Developer presents and registers).",
+      "Para 12: POWER OF ATTORNEY — Landowner shall execute a LIMITED PoA in Developer's favour for:\n   (a) Obtaining approvals.\n   (b) Representing before authorities.\n   (c) Selling Developer's share of units to end-buyers (signing sale deeds, receiving consideration, mutation, etc.).\n   CRITICAL — must include title disclaimer in PoA; sale to end-buyers must be by REGISTERED SALE DEED, and Landowner is the conveyor of title to end-buyers (PoA-holder Developer presents and registers).",
       "Para 13: RERA COMPLIANCE:\n   - Developer to register project with state RERA authority BEFORE marketing / accepting bookings.\n   - Maintain separate RERA escrow account for 70% of buyer payments.\n   - Disclose this JDA on RERA portal.\n   - Comply with RERA timelines, refunds, penalties.\n   - Issue allotment letters and agreements for sale per RERA-prescribed format.",
       "Para 14: DEFAULT & TERMINATION:\n   - Developer's default — failure to obtain approvals within timeline / failure to complete construction / quality breach / insolvency. Consequence: termination + restoration of land to landowner + liquidated damages.\n   - Landowner's default — title defect / refusal to cooperate / alienation in breach. Consequence: developer's right to specific performance + damages.\n   - Cure period: 90 days for material defaults.",
       "Para 15: FORCE MAJEURE — natural calamities, war, regulatory ban, pandemic; suspends obligations; if continuing > 12 months, either party may terminate.",
@@ -497,12 +500,10 @@
       "Para 21: GOVERNING LAW — Indian law.",
       "Schedules A (Land), B (Landowner's share), C (Developer's share), D (Specifications), E (Approvals checklist).",
       "Two witnesses' attestation.",
-      "Append Lawie disclaimer.",
-      "Cite Faqir Chand Gulati v. Uppal Agencies (2008) 10 SCC 345 — landowner under JDA is a CONSUMER and developer is service provider; landowner can approach consumer fora for developer's deficiency in handover.",
-      "Cite Sushila Devi v. Mohan Lal AIR 1955 SC 481 — characterisation of JDA.",
       "Where multiple co-owner landowners — all must sign; clearly demarcate inter se sharing among landowners in landowner's overall share.",
       "Where land is HUF — Karta + adult coparceners; court permission for minor coparceners.",
-      "Where land is agricultural — conversion to non-agricultural use before development; flag state-specific conversion process."
+      "Where land is agricultural — conversion to non-agricultural use before development; flag state-specific conversion process.",
+      "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
   "relevantActs": [
@@ -583,7 +584,7 @@
       "sections": [
         {
           "number": "S.2(7)",
-          "description": "Consumer — includes landowner under JDA per Faqir Chand Gulati"
+          "description": "Definition of \"consumer\""
         }
       ]
     },
@@ -616,8 +617,7 @@
     "Post-execution: noting in revenue records of JDA (where state permits)",
     "Periodic disclosure to RERA portal",
     "Compliance with GST on JDA at completion certificate stage",
-    "Income tax — Form 26QC for TDS u/s 194-IC by developer on monetary consideration",
-    "Lawie disclaimer included"
+    "Income tax — Form 26QC for TDS u/s 194-IC by developer on monetary consideration"
   ],
   "validation_rules": [
     "landowner_age >= 18",
@@ -631,7 +631,7 @@
     "approvals_timeline_months > 0",
     "if (estimated_built_up_area > 500 OR estimated_number_of_units > 8) — rera_required must be 'yes_rera_registration_mandatory'",
     "if rera_required == 'yes_rera_registration_mandatory' — rera_authority must be specified (not 'not_applicable')",
-    "gpa_to_developer must be specified; if 'yes_general_gpa_with_suraj_lamp_flag' — Suraj Lamp disclaimer required",
+    "gpa_to_developer must be specified; if 'yes_general_gpa_with_title_flag' — title clause required",
     "termination_grounds must not be empty",
     "property_boundaries must mention N/S/E/W",
     "stamp_duty_paid > 0",

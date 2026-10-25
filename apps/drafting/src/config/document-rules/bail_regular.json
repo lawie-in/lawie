@@ -1,9 +1,10 @@
 {
+  "card_description": "A regular bail application for an accused person in custody.",
   "_meta": {
     "description": "Document-rules config for bail_regular — drives prompt, validation, mandatory clauses",
     "owner": "Ajay (CLO)",
-    "validated_by": "Ajay (CLO) — audited 2026-05-10 in Batch 3 config completion pass + SCRUM-89 form_schema port from production override 2026-05-12",
-    "last_updated": "2026-05-12",
+    "validated_by": "Ajay (CLO) — section numbers checked against the BNSS and BNS on 2026-10-06 (T-135). His validation note of May 2026 is withdrawn. A practising advocate is still to compare the quoted provisions before release.",
+    "last_updated": "2026-10-06",
     "change_protocol": "All edits require CLO sign-off. Vishal may flag missing fields by Jira ticket; he must not author legal content unilaterally."
   },
   "form_schema": {
@@ -22,10 +23,37 @@
           },
           {
             "field_id": "fir_date",
-            "label": "FIR Date",
+            "label": "Date of FIR, or of the complaint if no FIR",
             "type": "date",
-            "required": true,
+            "required": false,
+            "question": "On what date was the FIR registered, or the complaint filed if there is no FIR?",
+            "ask_when_empty": true,
             "inject_into": ["body_para_1", "prayer"]
+          },
+          {
+            "field_id": "offence_date",
+            "label": "Date of the alleged offence (or of the offence of conviction)",
+            "type": "date",
+            "required": false,
+            "inject_into": ["ai_prompt"]
+          },
+          {
+            "field_id": "procedure_code",
+            "label": "This application is under",
+            "type": "dropdown",
+            "options": [
+              {
+                "id": "bnss_and_bsa",
+                "label": "BNSS and BSA"
+              },
+              {
+                "id": "crpc_and_evidence_act",
+                "label": "CrPC and Evidence Act"
+              }
+            ],
+            "required": false,
+            "help": "Matters only for a case that began before 1 July 2024. For an FIR on or after that date, Lawie uses the BNSS.",
+            "inject_into": ["ai_prompt"]
           },
           {
             "field_id": "police_station",
@@ -40,7 +68,7 @@
             "type": "multi_select_search",
             "source": "bns_mapping",
             "required": true,
-            "auto_convert_old": true,
+            "auto_convert_old": false,
             "inject_into": ["body_para_1", "ai_prompt"]
           },
           {
@@ -71,6 +99,226 @@
             "required": false,
             "show_if": "currently_in_custody !== no",
             "inject_into": ["ai_prompt"]
+          },
+          {
+            "field_id": "earlier_bail_applications",
+            "label": "Earlier bail applications in this matter",
+            "type": "textarea",
+            "required": false,
+            "question": "Has any bail application (regular, anticipatory or interim) been made for the applicant in this case before, in any court, including the High Court? If yes, give for each: the court, the date of the order and the result (rejected, dismissed as withdrawn, granted and cancelled, or still pending). If none, write \"None\".",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "antecedents",
+            "label": "Criminal antecedents",
+            "type": "textarea",
+            "required": false,
+            "question": "Is any other criminal case (FIR, charge sheet or conviction) pending or past against the applicant? If yes, give each case number, police station or court, sections and its status. If none, write \"None\".",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "arrest_date",
+            "label": "Date of arrest",
+            "type": "date",
+            "required": false,
+            "question": "On what date was the applicant arrested? Give the date in the arrest memo, even if custody began on another date.",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "investigation_status",
+            "label": "Investigation status",
+            "type": "dropdown",
+            "options": [
+              {
+                "id": "under_investigation",
+                "label": "Under investigation"
+              },
+              {
+                "id": "charge_sheet_filed",
+                "label": "Charge sheet filed"
+              },
+              {
+                "id": "cognizance_taken",
+                "label": "Cognizance taken"
+              },
+              {
+                "id": "not_known",
+                "label": "Not known"
+              }
+            ],
+            "required": false,
+            "question": "What is the stage of the investigation?",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "applicant_sex",
+            "label": "Sex of the applicant",
+            "type": "dropdown",
+            "options": [
+              {
+                "id": "male",
+                "label": "Male"
+              },
+              {
+                "id": "female",
+                "label": "Female"
+              },
+              {
+                "id": "transgender",
+                "label": "Transgender"
+              },
+              {
+                "id": "not_given",
+                "label": "Not given"
+              }
+            ],
+            "required": false,
+            "question": "Sex of the applicant.",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "medical_condition",
+            "label": "Medical condition of the applicant",
+            "type": "textarea",
+            "required": false,
+            "question": "Does the applicant suffer from any illness, disability or medical condition you want placed before the court? If yes, name it as written in the medical papers. If not, leave it blank.",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "named_in_fir",
+            "label": "Whether the applicant is named in the FIR",
+            "type": "dropdown",
+            "options": [
+              {
+                "id": "yes",
+                "label": "Yes"
+              },
+              {
+                "id": "no",
+                "label": "No"
+              },
+              {
+                "id": "not_known",
+                "label": "Not known"
+              }
+            ],
+            "required": false,
+            "question": "Is the applicant named in the FIR?",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "recovery_status",
+            "label": "Recovery or seizure from the applicant",
+            "type": "textarea",
+            "required": false,
+            "question": "Has anything been recovered or seized from the applicant, or at the applicant's instance? If yes, say what. If nothing, write \"None\".",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "cooperated_with_investigation",
+            "label": "Whether the applicant has cooperated with the investigation",
+            "type": "dropdown",
+            "options": [
+              {
+                "id": "yes",
+                "label": "Yes"
+              },
+              {
+                "id": "no",
+                "label": "No"
+              },
+              {
+                "id": "not_known",
+                "label": "Not known"
+              }
+            ],
+            "required": false,
+            "question": "Has the applicant so far joined or cooperated with the investigation (for example, appeared when called or gave a statement)?",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "applicant_occupation",
+            "label": "Applicant occupation",
+            "type": "text",
+            "required": false,
+            "question": "What does the applicant do for a living (for example: daily-wage labourer, farmer, driver, shopkeeper)? If nothing, write \"Unemployed\".",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "sole_earning_member",
+            "label": "Whether the applicant is the only earning member of the family",
+            "type": "dropdown",
+            "options": [
+              {
+                "id": "yes",
+                "label": "Yes"
+              },
+              {
+                "id": "no",
+                "label": "No"
+              },
+              {
+                "id": "not_known",
+                "label": "Not known"
+              }
+            ],
+            "required": false,
+            "question": "Is the applicant the only earning member of the family?",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "dependants",
+            "label": "Who depends on the applicant",
+            "type": "textarea",
+            "required": false,
+            "question": "Who in the family depends on the applicant's income (for example: aged mother, wife, two minor children)? If not known, leave it blank.",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "local_ties",
+            "label": "Family and local ties of the applicant",
+            "type": "textarea",
+            "required": false,
+            "question": "What family or local ties does the applicant have at the address given (for example: lives there with parents, wife and children; owns the house; has lived there since birth)? If not known, leave it blank.",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "s35_notice_status",
+            "label": "Notice to appear (Section 35 BNSS / Section 41A CrPC)",
+            "type": "dropdown",
+            "options": [
+              {
+                "id": "served",
+                "label": "Served"
+              },
+              {
+                "id": "not_served",
+                "label": "Not served"
+              },
+              {
+                "id": "not_known",
+                "label": "Not known"
+              }
+            ],
+            "required": false,
+            "question": "Before the arrest, was a notice of appearance under Section 35(3) of the BNSS or Section 41A of the CrPC served on the applicant?",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "co_accused_bail_court",
+            "label": "Court that granted bail to the co-accused",
+            "type": "text",
+            "required": false,
+            "question": "Has any co-accused in this case been granted bail? If yes, which court granted it? If not, leave it blank.",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "co_accused_bail_date",
+            "label": "Date of the co-accused's bail order",
+            "type": "date",
+            "required": false,
+            "question": "Date of that bail order.",
+            "ask_when_empty": true
           }
         ]
       },
@@ -113,8 +361,21 @@
             "inject_into": ["cause_title", "verification", "prayer"]
           },
           {
+            "field_id": "applicant_relation",
+            "label": "Relation to the person named below",
+            "type": "dropdown",
+            "options": [
+              { "id": "son_of", "label": "Son of (S/o)" },
+              { "id": "daughter_of", "label": "Daughter of (D/o)" },
+              { "id": "wife_of", "label": "Wife of (W/o)" },
+              { "id": "husband_of", "label": "Husband of (H/o)" }
+            ],
+            "required": false,
+            "inject_into": ["cause_title", "verification"]
+          },
+          {
             "field_id": "father_name",
-            "label": "Father's / Husband's Name",
+            "label": "Name of father, mother or spouse",
             "type": "text",
             "required": true,
             "inject_into": ["cause_title"]
@@ -140,6 +401,12 @@
             "options_from": "supported_languages",
             "default": "en",
             "required": true
+          },
+          {
+            "field_id": "advocate_enrollment",
+            "label": "Bar Council Enrollment No.",
+            "type": "text",
+            "required": false
           }
         ]
       },
@@ -224,7 +491,7 @@
   "displayName": "Regular Bail Application",
   "category": "criminal",
   "causeTitle": {
-    "format": "IN THE COURT OF {courtDesignation}\n\n{caseNomenclature}\n\n{applicant} ... Applicant/Accused\nVERSUS\nState of {state} / {respondent} ... Respondent/Complainant",
+    "format": "IN THE COURT OF {courtDesignation}\n\n{caseNomenclature}\n(Under {governing_provision})\n\n{applicant} ... Applicant/Accused\nVERSUS\nState of {state} / {respondent} ... Respondent/Complainant",
     "partyDesignations": [
       { "role": "applicant", "label": "Applicant/Accused" },
       { "role": "respondent", "label": "Respondent/Complainant" }
@@ -252,9 +519,15 @@
     },
     {
       "id": "no_flight_risk",
-      "name": "No Flight Risk",
+      "name": "Undertakings",
       "required": true,
-      "description": "Assertion that applicant will not abscond or tamper with evidence"
+      "description": "Undertakings by the applicant for the future, if released on bail: not to abscond, not to tamper with the evidence or influence witnesses, to appear on every date fixed, and to abide by the conditions imposed. Never a statement of fact."
+    },
+    {
+      "id": "earlier_applications",
+      "name": "Earlier Bail Applications",
+      "required": true,
+      "description": "Every earlier bail application in this matter, with the court, the date of the order and the result, or that it is pending; or the blank where the brief does not say."
     },
     {
       "id": "prayer",
@@ -275,11 +548,11 @@
       "description": "Name and enrollment number of advocate"
     }
   ],
-  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, it is most respectfully prayed that this Hon'ble Court may graciously be pleased to:\n\na) Grant regular bail to the applicant {applicant} in connection with {firDetails} under Sections 480/481/482 of the Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023, on such terms and conditions as this Hon'ble Court may deem fit and proper;\nb) Direct the release of the applicant on furnishing personal bond with surety to the satisfaction of this Hon'ble Court;\nc) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the applicant shall ever pray.",
+  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, it is most respectfully prayed that this Hon'ble Court may graciously be pleased to:\n\na) Grant regular bail to the applicant {applicant} in connection with {firDetails} under {governing_provision}, on such terms and conditions as this Hon'ble Court may deem fit and proper;\nb) Direct the release of the applicant on furnishing personal bond with surety to the satisfaction of this Hon'ble Court;\nc) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the applicant shall ever pray.",
   "specialPrayerAdditions": {
     "dv_dowry": "d) Direct the applicant to furnish an undertaking not to contact the complainant or her family members directly or indirectly;\ne) Direct the applicant to provide an undertaking regarding the return/safekeeping of stridhan and dowry articles as per the inventory;"
   },
-  "verificationTemplate": "VERIFICATION\n\nI, {applicant}, {relation} of {parentName}, aged about {age} years, resident of {address}, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above application are true and correct to the best of my knowledge and belief. No part of it is false and nothing material has been concealed therein.\n\nVerified at {place} on this {date}.\n\nDeponent",
+  "verificationTemplate": "VERIFICATION\n\nI, {applicant}, {parentRelation}, aged about {age} years, resident of {address}, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above application are true and correct to the best of my knowledge and belief. No part of it is false and nothing material has been concealed therein.\n\nVerified at {place} on this {date}.\n\nDeponent",
   "filingChecklist": [
     "Application (original + 2 copies)",
     "Vakalatnama / Memo of Appearance",
@@ -295,14 +568,16 @@
     {
       "act": "Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023",
       "sections": [
-        { "number": "480", "description": "Bail in bailable offences" },
-        { "number": "481", "description": "Bail in non-bailable offences" },
-        { "number": "482", "description": "Bail to person accused of non-bailable offence" },
+        { "number": "478", "description": "In what cases bail to be taken (bailable offences)" },
+        {
+          "number": "480",
+          "description": "When bail may be taken in case of non-bailable offence"
+        },
         {
           "number": "483",
           "description": "Special powers of High Court or Court of Session regarding bail"
         },
-        { "number": "484", "description": "Bail when trial of offence is not concluded" }
+        { "number": "484", "description": "Amount of bond and reduction thereof" }
       ]
     },
     {
@@ -312,8 +587,8 @@
           "number": "85",
           "description": "Cruelty by husband or relatives of husband (replaces IPC 498A)"
         },
-        { "number": "86", "description": "Dowry death (replaces IPC 304B)" },
-        { "number": "103", "description": "Murder (replaces IPC 302)" }
+        { "number": "80", "description": "Dowry death (replaces IPC 304B)" },
+        { "number": "103(1)", "description": "Murder (replaces IPC 302)" }
       ]
     }
   ],
@@ -328,17 +603,19 @@
         { "number": "20", "description": "Monetary reliefs" },
         { "number": "22", "description": "Compensation orders" }
       ],
-      "note": "When bail application involves BNS 85/86 (domestic violence/dowry), reference PWDVA provisions in the grounds."
+      "note": "When the bail application involves cruelty or dowry death, reference PWDVA provisions in the grounds."
     }
   ],
   "promptInstructions": [
-    "Draft a Regular Bail Application under Sections 480/481/482 BNSS, 2023.",
+    "Draft a Regular Bail Application under the provision given as GOVERNING PROVISION in the case details, and cite only that provision as the provision under which bail is sought, in the heading, the opening paragraph and the prayer.",
+    "Cite the offences as the BRIEF gives them (FIR, charge sheet, complaint or order). The law of the offence follows the date of the offence: an offence committed before 1 July 2024 is under the Indian Penal Code, 1860; one committed on or after that date is under the Bharatiya Nyaya Sanhita, 2023. Never convert a section from one code to the other. Where the BRIEF does not give the date of the offence, write the sections as the BRIEF gives them and add [To be confirmed: date of the alleged offence, which decides whether the IPC or the BNS applies]. Where the sections the BRIEF gives are under the other code from the one the date points to, or the alleged acts run across 1 July 2024, keep the sections as the BRIEF gives them and add [To be confirmed: whether the IPC or the BNS applies to the offence].",
+    "Cite the procedure under the code given as PROCEDURE CODE in the case details: the Bharatiya Nagarik Suraksha Sanhita, 2023 with the Bharatiya Sakshya Adhiniyam, 2023, or the Code of Criminal Procedure, 1973 with the Indian Evidence Act, 1872. Cite only that code, in the heading, the body and the prayer. Where no PROCEDURE CODE is given, cite the provision in both forms inside a blank, for example [To be confirmed: Section 437 of the CrPC or Section 480 of the BNSS].",
     "Begin PARAGRAPH 1 with the exact FIR details provided — FIR number, date, police station, district, offences alleged. Use the values EXACTLY as given in the case details.",
-    "State the custody status clearly — date of arrest, whether judicial or police custody, total days in custody.",
-    "Set out specific grounds for bail: no prior criminal history, cooperation with investigation, roots in community, health conditions if any, investigation complete/charge sheet filed, parity with co-accused granted bail.",
-    "Reference Bharatiya Nyaya Sanhita (BNS) section numbers for the alleged offences — NEVER use old IPC section numbers. IPC 498A = BNS 85, IPC 304B = BNS 86.",
-    "If the case involves domestic violence (BNS 85/86), also reference the Protection of Women from Domestic Violence Act (PWDVA) 2005 where relevant, especially Sections 12, 18, 19, 20, 22.",
-    "Include standard undertakings: will not abscond, will not tamper with evidence, will appear on all dates, will not contact prosecution witnesses.",
+    "State the custody status as the BRIEF gives it: the date of arrest, the date from which the applicant has been in custody, and whether that custody is judicial or police. Where the BRIEF gives the date of arrest and the date custody began as two dates, keep them as two dates. Do not work out the number of days in custody.",
+    "Set out the grounds for bail that the BRIEF gives, and no others. Do not assert a ground (for example no criminal history, cooperation with the investigation, roots in the community, ill health, investigation complete, parity with a co-accused) unless the BRIEF states it. State each ground as the BRIEF puts it: do not add a reason or a detail to it.",
+    "If the case involves cruelty or dowry death, also reference the Protection of Women from Domestic Violence Act (PWDVA) 2005 where relevant, especially Sections 12, 18, 19, 20, 22.",
+    "Give the standard undertakings as undertakings by the applicant for the future, never as facts and never as undertakings by the advocate: the applicant undertakes that, if released on bail, the applicant will not abscond, will not tamper with the evidence, will not make any inducement, threat or promise to any witness or other person acquainted with the facts of the case, will appear on every date fixed, and will abide by every condition this Hon'ble Court imposes.",
+    "State every earlier bail application in this matter that the BRIEF mentions: the court it was made to, the date of the order and the result, or that it is still pending, each as the BRIEF gives it. Use a blank for any of these the BRIEF does not give. Where the BRIEF mentions no earlier bail application, do not say that this is the first application or that none is pending; write [To be confirmed: whether any earlier bail application was made in this matter, to which court, and with what result].",
     "For DV/dowry cases, include specific undertakings: no contact with complainant, undertaking regarding stridhan/dowry articles.",
     "Use formal, respectful legal language appropriate for Indian courts.",
     "Do NOT generate the Prayer clause, Verification clause, or Advocate signature block — those are added programmatically by the system."

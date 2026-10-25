@@ -1,0 +1,19 @@
+{
+  "_header": "RECONSTRUCTED from Anushka's quality report handoff/quality/2026-10-07-run-2-develop-FAIL.md (scenario 9, findings 1 to 3). Her run-2 drafts were never saved. Sentences in quotes in her report are used verbatim (\"IN THE COURT OF _____\", \"He is a long-standing resident of Patna with family ties to the locality.\", the para 5 citation sentence); the rest of the text and every ledger value she did not state are reconstructed for the test and are not her output. T-147d, AC2.",
+  "pack": "bail_before_magistrate",
+  "ledger": {
+    "facts": [
+      { "id": "f1", "key": "applicant_name", "label": "Applicant Name", "type": "person_name", "value": "testmohanprasad", "display": "Testmohan Prasad", "raw_span": "Testmohan Prasad", "source": "user", "confidence": 0.99, "required_in_draft": true },
+      { "id": "f2", "key": "police_station", "label": "Police Station", "type": "police_station", "value": "pirbahore", "display": "Pirbahore", "raw_span": "PS Pirbahore", "source": "user", "confidence": 0.99, "required_in_draft": true }
+    ],
+    "unresolved": []
+  },
+  "skeleton": [
+    "IN THE COURT OF _____\n\n_____ ... Applicant/Accused\nVERSUS\nState of Bihar ... Opposite Party\n\nTO, THE HON'BLE _____,"
+  ],
+  "body": "1. That the applicant Testmohan Prasad is in judicial custody in connection with the FIR registered at Police Station _____.\n\n2. That the applicant is innocent. He is a long-standing resident of Patna with family ties to the locality.\n\n5. Applying the well-established triple-test laid down in Sushila Aggarwal v. State (NCT of Delhi) (2020) 5 SCC 1 and P. Chidambaram v. Directorate of Enforcement (2019) 9 SCC 24, the applicant deserves bail.",
+  "expected": [
+    { "check": "dropped", "ledgerKey": "police_station", "from_report": "\"PS Pirbahore\" (police station blank)" },
+    { "check": "banned", "bannedEntryId": "permanent_resident", "from_report": "\"He is a long-standing resident of Patna with family ties to the locality.\"", "note": "not in AC2's list; caught once Ajay's phrases landed" }
+  ]
+}

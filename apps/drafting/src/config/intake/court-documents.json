@@ -1,0 +1,43 @@
+{
+  "_meta": {
+    "description": "Which rule packs are court documents. A pack is a court document unless it is listed here, so a new pack is one until Ajay says otherwise. On a court document the brief cannot be confirmed without the court and the parties (ADR-021 decision D2).",
+    "owner": "Ajay (CLO)",
+    "signed": "T-127, 6 Oct 2026, section 2.1",
+    "last_updated": "2026-10-06",
+    "change_protocol": "Legal content. All edits require CLO sign-off."
+  },
+  "not_court_documents": [
+    "affidavit_identity",
+    "aoa",
+    "distribution_agreement",
+    "employment_agreement",
+    "founders_agreement",
+    "franchise_agreement",
+    "gift_deed",
+    "gpa",
+    "joint_development_agreement",
+    "lease_deed",
+    "legal_notice_breach_of_contract",
+    "legal_notice_consumer_deficiency",
+    "legal_notice_copyright_infringement",
+    "legal_notice_defamation",
+    "legal_notice_eviction",
+    "legal_notice_s138",
+    "legal_notice_s80",
+    "legal_notice_trademark_infringement",
+    "license_agreement",
+    "loan_agreement",
+    "moa",
+    "mortgage_deed",
+    "mou",
+    "nda",
+    "partition_deed",
+    "release_deed",
+    "rent_agreement",
+    "sale_deed",
+    "service_agreement",
+    "shareholders_agreement",
+    "spa",
+    "will"
+  ]
+}

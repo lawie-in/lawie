@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. Post-trial proviso (due diligence) is non-negotiable."
   },
   "template_id": "amendment_of_pleadings",
+  "card_description": "An application under Order 6 Rule 17 CPC to amend a plaint or written statement.",
   "docType": "amendment_of_pleadings",
   "title": "Application for Amendment of Pleadings (Order 6 R.17 CPC)",
   "displayName": "Amendment of Pleadings Application (Order 6 R.17 CPC)",
@@ -207,12 +208,6 @@
       "name": "Affidavit in support",
       "required": true,
       "description": "Affidavit accompanying application"
-    },
-    {
-      "id": "disclaimer",
-      "name": "Advocate Responsibility Disclaimer",
-      "required": true,
-      "description": "Standard Lawie disclaimer"
     }
   ],
   "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, the Applicant most respectfully prays that this Hon'ble Court may graciously be pleased to:\n\na) Grant leave to the Applicant under Order 6 Rule 17 read with Section 151 CPC to amend the {pleading_to_amend} in the manner shown in the proposed amendments annexed hereto (Annexure-A);\n\nb) Permit the Applicant to file the amended {pleading_to_amend} within such time as this Hon'ble Court may fix;\n\nc) Award such costs as this Hon'ble Court may deem fit and proper;\n\nd) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the Applicant shall ever pray.",
@@ -222,10 +217,10 @@
       "Draft an application for amendment of pleadings under Order 6 Rule 17 read with Section 151 CPC.",
       "Order 6 R.17 has TWO parts: (i) Main provision — court may at any stage allow amendments necessary to determine real questions in controversy. (ii) Proviso (added 2002) — no application for amendment shall be allowed after trial has commenced, unless court concludes that despite due diligence, party could not have raised the matter before commencement of trial.",
       "Pre-trial: liberal approach. Post-trial: strict due diligence test.",
-      "Cite Salem Advocate Bar Association v. Union of India (2005) 6 SCC 344 — proviso constitutional; due diligence test affirmed.",
-      "Cite Revajeetu Builders & Developers v. Narayanaswamy & Sons (2009) 10 SCC 84 — six factors for amendment (whether necessary for real controversy, whether bona fide, prejudice, no costs cure, fundamental change in nature of suit, delay).",
-      "Cite Rajesh Kumar Aggarwal v. K.K. Modi (2006) 4 SCC 385 — amendment to introduce new cause of action vs. clarify existing.",
-      "Cite Pankaja v. Yellappa (2004) 6 SCC 415 — amendment introducing time-barred claim not allowed unless relation-back doctrine applies.",
+      "Proviso constitutional; due diligence test affirmed.",
+      "Six factors for amendment (whether necessary for real controversy, whether bona fide, prejudice, no costs cure, fundamental change in nature of suit, delay).",
+      "Amendment to introduce new cause of action vs. clarify existing.",
+      "Amendment introducing time-barred claim not allowed unless relation-back doctrine applies.",
       "Para 1: Reference to main suit, parties, stage.",
       "Para 2: Pleading sought to be amended (plaint / WS / replication) and paragraph numbers.",
       "Para 3: Stage of suit — critical. If issues framed but evidence not commenced — pre-trial. If evidence commenced — proviso engaged.",
@@ -238,12 +233,12 @@
       "Para 10: Limitation — if amendment introduces new claim, check if claim is within limitation OR if relation-back to original plaint is available (only in narrow circumstances).",
       "Common permissible amendments: typographical / clerical corrections, clarification of existing pleas, adding alternative reliefs, particulars of fraud / misrepresentation, change of valuation, addition/deletion of parties (technically O.1 R.10 — but mention).",
       "Common impermissible amendments: introducing entirely new cause of action especially time-barred; withdrawal of admissions; introducing inconsistent / contradictory pleas; changing nature of suit (e.g., possession suit to title suit fundamentally).",
-      "Cite Heeralal v. Kalyan Mal (1998) 1 SCC 278 — withdrawal of admissions ordinarily not permitted.",
-      "Cite Ragu Thilak D. John v. S. Rayappan (2001) 2 SCC 472 — amendment to introduce relief of declaration not allowed if substantive suit different.",
-      "Cite Sampath Kumar v. Ayyakannu (2002) 7 SCC 559 — amendment to alter relief from injunction to declaration permitted in appropriate cases.",
+      "Withdrawal of admissions ordinarily not permitted.",
+      "Amendment to introduce relief of declaration not allowed if substantive suit different.",
+      "Amendment to alter relief from injunction to declaration permitted in appropriate cases.",
       "For commercial courts: Order XI proceeding rules of Commercial Courts Act override certain CPC defaults; amendments more restricted.",
       "Affidavit in support is mandatory.",
-      "Append Lawie disclaimer."
+      "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
   "relevantActs": [

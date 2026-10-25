@@ -11,7 +11,7 @@
   "courtId": "sk_district",
   "courtType": "district_court",
   "designation": "IN THE COURT OF DISTRICT & SESSIONS JUDGE",
-  "jurisdictionNote": "District-level criminal and civil courts in Sikkim, governed by the Sikkim Civil Courts Act, 1978 and the Civil Procedure Code as extended, read with the High Court of Sikkim Rules. Sessions courts try offences punishable with imprisonment exceeding 7 years. Following the 2021 reorganisation, Sikkim comprises six revenue districts: Gangtok (East), Gyalshing (West), Mangan (North), Namchi (South), Pakyong and Soreng. The subordinate judiciary is supervised by the High Court of Sikkim at Gangtok. English is the language of the State subordinate courts; Article 371F preserves Sikkim's pre-merger laws.",
+  "jurisdictionNote": "District-level criminal and civil courts in Sikkim, governed by the Sikkim Civil Courts Act, 1978 and the Civil Procedure Code as extended, read with the High Court of Sikkim Rules. Which court tries an offence is set by the First Schedule to BNSS, not by the length of the sentence. Following the 2021 reorganisation, Sikkim comprises six revenue districts: Gangtok (East), Gyalshing (West), Mangan (North), Namchi (South), Pakyong and Soreng. The subordinate judiciary is supervised by the High Court of Sikkim at Gangtok. English is the language of the State subordinate courts; Article 371F preserves Sikkim's pre-merger laws.",
   "cause_title_format": "{courtDesignation}, {city}\n{caseNomenclature}\n\n{petitioner} ... PETITIONER\n\nVERSUS\n\n{respondent} ... RESPONDENT",
   "party_designation": {
     "petitioner": "Petitioner",
@@ -24,8 +24,8 @@
     "state": "State of Sikkim through the Principal Secretary, Home Department, Government of Sikkim, Gangtok"
   },
   "case_nomenclature": {
-    "regular_bail": "Crl. Misc. (Bail) No. _____ of {year}",
-    "anticipatory_bail": "Crl. Misc. (A.B.) No. _____ of {year}",
+    "regular_bail": "Bail Application No. _____ of {year}",
+    "anticipatory_bail": "Anticipatory Bail Application No. _____ of {year}",
     "sessions_case": "Sessions Trial No. _____ of {year}",
     "calendar_case": "Criminal Case No. _____ of {year}",
     "civil_suit": "Title Suit No. _____ of {year}",

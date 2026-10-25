@@ -7,6 +7,7 @@
     "notes": "Founders Agreement governs co-founder relationship pre/post incorporation. Often executed before incorporation and superseded/supplemented by SHA at fundraise. Vesting, IP assignment, equity split, exit are core. S.27 Contract Act limits post-exit non-compete; valid as shareholder restriction."
   },
   "template_id": "founders_agreement",
+  "card_description": "An agreement between the co-founders of a business.",
   "title": "Co-Founders Agreement",
   "category": "corporate",
   "creditsCost": 2,
@@ -164,10 +165,12 @@
       "Equity split should reflect capital + time + IP contributions clearly.",
       "Deadlock: prefer mediation first; buy-sell mechanisms for hard deadlocks.",
       "Pre-incorporation founders agreement should provide for novation/assignment to Company upon incorporation.",
-      "Stamp duty per state (INR 100-500 typical).",
-      "Reference Niranjan Shankar Golikari v. Century Spinning [1967] for permitted in-term restraints."
+      "Stamp duty per state (INR 100-500 typical)."
     ],
-    "tone": "Formal, founder-friendly, balanced between founders."
+    "tone": "Formal, founder-friendly, balanced between founders.",
+    "promptInstructions": [
+      "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
+    ]
   },
   "relevantActs": [
     { "act": "Indian Contract Act 1872", "sections": ["S.10, S.23, S.27"] },

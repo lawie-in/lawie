@@ -10,8 +10,10 @@
  *   - Total:    ₹2,000/day (~$24 USD)
  */
 import { Request, Response, NextFunction } from 'express';
+import mongoose from 'mongoose';
 
 import { Generation } from '../models/Generation.model';
+import { NOT_FIXTURE_GENERATION } from '../services/run-origin';
 
 const PER_USER_DAILY_CAP_USD = 6; // ~₹500
 const TOTAL_DAILY_CAP_USD = 24; // ~₹2,000
@@ -23,7 +25,7 @@ export async function spendCapCheck(
 ): Promise<void> {
   try {
     const userId = req.jwtPayload?.sub;
-    if (!userId) {
+    if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
       next();
       return;
     }
@@ -31,9 +33,13 @@ export async function spendCapCheck(
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
 
-    // Aggregate daily spend for this user
+    // Aggregate daily spend for this user. $match runs through the native
+    // driver, not Mongoose's query casting, so userId (a string, from the
+    // JWT) has to be converted to match the ObjectId field — a plain string
+    // here would silently never match any row (T-003 §3.7).
+    const userObjectId = new mongoose.Types.ObjectId(userId);
     const [userSpend] = await Generation.aggregate([
-      { $match: { userId, createdAt: { $gte: startOfDay } } },
+      { $match: { userId: userObjectId, createdAt: { $gte: startOfDay }, ...NOT_FIXTURE_GENERATION } },
       { $group: { _id: null, totalCost: { $sum: '$costUsd' } } },
     ]);
 
@@ -49,7 +55,7 @@ export async function spendCapCheck(
 
     // Aggregate total daily spend across all users
     const [totalSpend] = await Generation.aggregate([
-      { $match: { createdAt: { $gte: startOfDay } } },
+      { $match: { createdAt: { $gte: startOfDay }, ...NOT_FIXTURE_GENERATION } },
       { $group: { _id: null, totalCost: { $sum: '$costUsd' } } },
     ]);
 

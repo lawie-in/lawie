@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. Vishal may flag missing fields by Jira ticket; he must not author legal content unilaterally."
   },
   "template_id": "surrender_application",
+  "card_description": "An application by an accused to surrender before the court.",
   "docType": "surrender_application",
   "parentDocType": "criminal_application",
   "title": "Surrender Application",
@@ -22,8 +23,15 @@
   "form_schema": [
     { "name": "applicant_name", "label": "Applicant Name", "type": "text", "required": true },
     {
+      "name": "applicant_relation",
+      "label": "Relation to the person named below",
+      "type": "select",
+      "options": ["Son of (S/o)", "Daughter of (D/o)", "Wife of (W/o)", "Husband of (H/o)"],
+      "required": false
+    },
+    {
       "name": "applicant_parentage",
-      "label": "Father's / Husband's Name",
+      "label": "Name of father, mother or spouse",
       "type": "text",
       "required": true
     },
@@ -78,7 +86,7 @@
     },
     { "name": "advocate_name", "label": "Advocate Name", "type": "text", "required": true },
     {
-      "name": "advocate_enrolment",
+      "name": "advocate_enrollment",
       "label": "Bar Council Enrolment No.",
       "type": "text",
       "required": true
@@ -131,8 +139,8 @@
     }
   ],
   "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, the applicant having surrendered himself before this Hon'ble Court of his own volition, it is most respectfully prayed that this Hon'ble Court may graciously be pleased to:\n\na) Take cognizance of the surrender of the applicant {applicant} in connection with FIR No. {fir_number} dated {fir_date} of Police Station {police_station};\nb) Pass appropriate order regarding custody / remand / release of the applicant in accordance with law;\nc) Direct the Investigating Officer concerned to be informed of the surrender;\nd) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the applicant shall ever pray.",
-  "verificationTemplate": "VERIFICATION\n\nI, {applicant}, S/o {parentName}, aged about {age} years, by occupation {occupation}, resident of {address}, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above application are true and correct to the best of my knowledge and belief. No part of it is false and nothing material has been concealed therein.\n\nVerified at {place} on this {date}.\n\nDeponent",
-  "prompt_context": "Draft a Surrender Application before the Magistrate having jurisdiction. CRITICAL — surrender is NOT the same as anticipatory bail. Surrender is the voluntary act of the accused presenting himself to the court to avoid arrest by the police; the prayer is for the court to take cognizance of the surrender and pass an appropriate order — which may be remand to judicial custody OR release on bail (if offence is bailable, or if accused moves bail application simultaneously). Surrender is typically deployed when an FIR has been registered, the accused apprehends arrest, and prefers to be in the custody/under the orders of a judicial forum rather than police. The Hon'ble Supreme Court has recognised this practice in Niranjan Singh v. Prabhakar (1980) 2 SCC 559 — surrender to court's jurisdiction places the person 'in custody' for the purposes of bail under Section 480 BNSS. The application must clearly state (1) particulars of FIR; (2) genuine apprehension of arrest; (3) act of surrender; (4) prayer for court to take cognizance and pass orders. A separate bail application (regular bail / bailable offence release) is usually filed alongside.",
+  "verificationTemplate": "VERIFICATION\n\nI, {applicant}, {parentRelation}, aged about {age} years, by occupation {occupation}, resident of {address}, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above application are true and correct to the best of my knowledge and belief. No part of it is false and nothing material has been concealed therein.\n\nVerified at {place} on this {date}.\n\nDeponent",
+  "prompt_context": "Draft a Surrender Application before the Magistrate having jurisdiction. CRITICAL — surrender is NOT the same as anticipatory bail. Surrender is the voluntary act of the accused presenting himself to the court to avoid arrest by the police; the prayer is for the court to take cognizance of the surrender and pass an appropriate order — which may be remand to judicial custody OR release on bail (if offence is bailable, or if accused moves bail application simultaneously). Surrender is typically deployed when an FIR has been registered, the accused apprehends arrest, and prefers to be in the custody/under the orders of a judicial forum rather than police. Surrender to court's jurisdiction places the person 'in custody' for the purposes of bail under Section 480 BNSS. The application must clearly state (1) particulars of FIR; (2) genuine apprehension of arrest; (3) act of surrender; (4) prayer for court to take cognizance and pass orders. A separate bail application (regular bail / bailable offence release) is usually filed alongside.",
   "promptInstructions": [
     "Draft a Surrender Application — accused voluntarily appearing before the Magistrate to submit to court jurisdiction.",
     "CRITICAL — this is NOT an anticipatory bail application. Do NOT pray for protection from arrest. Pray for the court to take cognizance of surrender.",
@@ -141,10 +149,11 @@
     "Establish the apprehension of arrest with concrete facts.",
     "State express surrender to the jurisdiction of the Hon'ble Court.",
     "Include undertaking to cooperate with investigation.",
-    "Cite Niranjan Singh v. Prabhakar (1980) 2 SCC 559 on surrender constituting custody for bail purposes under BNSS 480.",
-    "Cite BNS sections for the underlying offences (never IPC).",
+    "Surrender constituting custody for bail purposes under BNSS 480.",
+    "Cite the sections of the underlying offence as registered (BNS for an offence on or after 1 July 2024, IPC for an offence before that date).",
     "Prayer is for the court to take cognizance of surrender and pass appropriate orders — NOT for protection from arrest.",
-    "Do NOT generate the verification clause or advocate signature block — those are added programmatically."
+    "Do NOT generate the verification clause or advocate signature block — those are added programmatically.",
+    "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
   ],
   "relevantActs": [
     {

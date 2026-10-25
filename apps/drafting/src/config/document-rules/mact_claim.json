@@ -4,9 +4,10 @@
     "owner": "Ajay (CLO)",
     "validated_by": "Ajay (CLO) — Batch 7 writs + tribunals 2026-05-12",
     "last_updated": "2026-05-12",
-    "change_protocol": "All edits require CLO sign-off. Sarla Verma, National Insurance v. Pranay Sethi multiplier method mandatory."
+    "change_protocol": "All edits require CLO sign-off. Do not name judgments in model-visible text (Ajay, T-441)."
   },
   "template_id": "mact_claim",
+  "card_description": "A claim petition before the Motor Accidents Claims Tribunal under Section 166 of the Motor Vehicles Act, 1988.",
   "docType": "mact_claim",
   "title": "Claim Petition under Section 166 of the Motor Vehicles Act, 1988",
   "displayName": "MACT Claim Petition (S.166 MV Act)",
@@ -232,7 +233,7 @@
       "id": "computation_paragraph",
       "name": "Computation of Compensation — Multiplier Method",
       "required": true,
-      "description": "Sarla Verma / Pranay Sethi method"
+      "description": "Multiplier method, with future prospects, personal expenses deduction and conventional heads"
     },
     {
       "id": "vehicle_insurance_paragraph",
@@ -257,12 +258,6 @@
       "name": "Affidavit in support",
       "required": true,
       "description": "Mandatory"
-    },
-    {
-      "id": "disclaimer",
-      "name": "Advocate Responsibility Disclaimer",
-      "required": true,
-      "description": "Standard Lawie disclaimer"
     }
   ],
   "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, the Claimant(s) most respectfully pray(s) that this Hon'ble Tribunal may graciously be pleased to:\n\na) Award just compensation in the sum of Rs. {compensation_claimed_amount}/- (Rupees ________ only) jointly and severally against the Respondents in favour of the Claimant(s);\n\nb) Award interest at the rate of 9% per annum on the awarded compensation from the date of filing of the claim petition till the date of realization;\n\nc) Award costs of this petition;\n\nd) Pass any other order(s) as this Hon'ble Tribunal may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the Claimant(s) shall ever pray.",
@@ -276,29 +271,27 @@
       "Para 1: Parties — Claimant(s), Driver (R-1), Owner (R-2), Insurer (R-3). Where pillion / passenger of offending vehicle, may need to add additional respondents.",
       "Para 2: Jurisdiction — invoke S.166(2) ground.",
       "Para 3-5: Accident details — date, time, place, manner. Particulars of rashness/negligence (high speed, wrong side, signal jumping, drunk driving, overloading, inadequate brakes).",
-      "Para 6: FIR details — number, date, PS, BNS sections (S.281 BNS rash driving — was IPC 279; S.106 BNS causing death by negligence — was IPC 304A; S.125 BNS rash or negligent act endangering — was IPC 336/337/338). Annex certified copy.",
-      "Para 7: Driver details and license status. Lack of valid license relevant to insurer's defence under S.149 (now S.149 read with current law) — but Pay & Recover principle of insurer applies (National Insurance v. Swaran Singh (2004) 3 SCC 297).",
+      "Para 6: FIR details — number, date, PS, and the sections as registered in the FIR (BNS for an offence on or after 1 July 2024, IPC for an offence before that date). Annex certified copy.",
+      "Para 7: Driver details and license status. Lack of valid license relevant to insurer's defence under S.149 (now S.149 read with current law) — but Pay & Recover principle of insurer applies.",
       "Para 8: Owner details and policy details.",
       "Para 9: Insurance — verify policy was valid on date of accident; third-party insurance is mandatory under S.146 MV Act.",
       "Para 10: Victim / deceased details — age, occupation, income with proof (salary slips, IT returns, employer certificate, self-declaration).",
       "Para 11: Injury / death — medical particulars; for death, post-mortem; for injury, treatment record + permanent disability certificate (if applicable).",
       "Para 12: Claimants and their relationship — for death claim, legal heirs per personal law (Hindu Succession Act 1956 / Indian Succession Act 1925 / Muslim personal law).",
-      "Para 13: Computation — apply MULTIPLIER METHOD per Sarla Verma v. DTC (2009) 6 SCC 121 and National Insurance Co v. Pranay Sethi (2017) 16 SCC 680:",
+      "Para 13: Computation — apply MULTIPLIER METHOD:",
       "   - Age multiplier table: 15 (up to 15 years), 18 (15-20), 17 (21-25), 16 (26-30), 16 (31-35), 16 (36-40), 15 (41-45), 13 (46-50), 11 (51-55), 8 (56-60), 5 (61-65), 5 (66-70).",
       "   - Annual income calculation.",
-      "   - Future prospects addition: 50% if deceased ≤40 with permanent job; 30% if 40-50; 15% if 50-60 with permanent job; for self-employed: 40% / 25% / 10%; for fixed salary: 30% / 20% / 10%.",
-      "   - Personal expenses deduction: 1/3 (married + dependants), 1/2 (bachelor), graduated by family size per Sarla Verma.",
-      "   - Conventional heads (Pranay Sethi): Loss of estate ₹15,000; Loss of consortium ₹40,000 per spouse; Funeral expenses ₹15,000 — to be enhanced by 10% every 3 years.",
-      "   - For minor / child death — Cite Kishan Gopal v. Lala (2014) 1 SCC 244; R.K. Malik v. Kiran Pal (2009) 14 SCC 1.",
-      "   - For non-earning member (housewife) — Cite Lata Wadhwa v. State of Bihar (2001) 8 SCC 197; Arun Kumar Agrawal v. National Insurance Co (2010) 9 SCC 218; Kirti v. Oriental Insurance (2021) 2 SCC 166.",
-      "Para 14: For injury claims — heads: medical expenses; loss of earning during treatment; future loss of earning capacity (based on permanent disability percent and age); pain & suffering; future medical expenses; loss of amenities; conveyance; attendant charges. Cite Raj Kumar v. Ajay Kumar (2011) 1 SCC 343 (permanent disability quantification).",
-      "Para 15: Pay & Recover — where insurer can plead defence (no license / breach of policy), Tribunal may direct insurer to pay and recover from owner (National Insurance v. Swaran Singh).",
+      "   - Future prospects addition: permanent job — 50% if deceased below 40, 30% if 40-50, 15% if 50-60; self-employed or fixed salary — 40% / 25% / 10% for the same age bands.",
+      "   - Personal expenses deduction: 1/3 (married + dependants), 1/2 (bachelor), graduated by family size.",
+      "   - Conventional heads: Loss of estate ₹15,000; Loss of consortium ₹40,000 per spouse; Funeral expenses ₹15,000 — to be enhanced by 10% every 3 years.",
+      "Para 14: For injury claims — heads: medical expenses; loss of earning during treatment; future loss of earning capacity (based on permanent disability percent and age); pain & suffering; future medical expenses; loss of amenities; conveyance; attendant charges.",
+      "Para 15: Pay & Recover — where insurer can plead defence (no license / breach of policy), Tribunal may direct insurer to pay and recover from owner.",
       "Para 16: Interest — 9% per annum from date of filing till realisation generally awarded.",
       "Para 17: Reference to S.140 (no-fault liability — pre-amendment ₹50,000 for death, ₹25,000 for grievous; under MV Amendment Act 2019, S.164 provides ₹5 lakh for death and ₹2.5 lakh for grievous as no-fault).",
-      "Para 18: Reference to S.163A (structured formula — though largely superseded by Pranay Sethi computation in S.166 claims).",
+      "Para 18: Reference to S.163A (structured formula — though largely superseded by multiplier-method computation in S.166 claims).",
       "Annexures: FIR copy, MLC, post-mortem, hospital records, disability certificate, age proof, income proof, legal heir certificate, identity proof of claimants, RC of vehicle, DL of driver, insurance policy.",
       "Affidavit in support mandatory.",
-      "Append Lawie disclaimer."
+      "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
   "relevantActs": [
@@ -328,10 +321,18 @@
     {
       "act": "Bharatiya Nyaya Sanhita, 2023 (BNS)",
       "sections": [
-        { "number": "S.106", "description": "Causing death by negligence (was IPC 304A)" },
+        { "number": "S.106(1)", "description": "Causing death by negligence (was IPC 304A)" },
         {
           "number": "S.125",
-          "description": "Rash or negligent act endangering life (was IPC 336/337/338)"
+          "description": "Act endangering life or personal safety of others (was IPC 336)"
+        },
+        {
+          "number": "S.125(a)",
+          "description": "Act endangering life or personal safety of others, where hurt is caused (was IPC 337)"
+        },
+        {
+          "number": "S.125(b)",
+          "description": "Act endangering life or personal safety of others, where grievous hurt is caused (was IPC 338)"
         },
         { "number": "S.281", "description": "Rash driving / riding on public way (was IPC 279)" }
       ]
@@ -369,7 +370,7 @@
     "accident_place must not be empty",
     "offending_vehicle_number must not be empty",
     "fir_number, fir_date, police_station must not be empty",
-    "sections_charged must use BNS sections (warn if IPC 279/304A/337/338 detected)",
+    "sections_charged uses the code in force on the date of the offence: BNS for an offence on or after 1 July 2024, IPC for an offence before that date (warn only where the sections do not match the offence date).",
     "claimants_list must not be empty",
     "compensation_claimed_amount must be > 0",
     "compensation_heads must list at least one head",

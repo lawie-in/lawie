@@ -4,9 +4,10 @@
     "owner": "Ajay (CLO)",
     "validated_by": "Ajay (CLO) — Batch 7 writs + tribunals 2026-05-12",
     "last_updated": "2026-05-12",
-    "change_protocol": "All edits require CLO sign-off. Pritam Singh, Kunhayammed, Mathai cites mandatory. Format STRICTLY per Supreme Court Rules 2013."
+    "change_protocol": "Format STRICTLY per Supreme Court Rules 2013. All edits require CLO sign-off. Do not name judgments in model-visible text (Ajay, T-441)."
   },
   "template_id": "slp",
+  "card_description": "A Special Leave Petition before the Supreme Court under Article 136 of the Constitution.",
   "docType": "slp",
   "title": "Special Leave Petition under Article 136 of the Constitution of India",
   "displayName": "Special Leave Petition (SLP)",
@@ -224,12 +225,6 @@
       "name": "AOR Certificate",
       "required": true,
       "description": "Filed only through AOR — Order XX SC Rules"
-    },
-    {
-      "id": "disclaimer",
-      "name": "Advocate Responsibility Disclaimer",
-      "required": true,
-      "description": "Standard Lawie disclaimer"
     }
   ],
   "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, the Petitioner most respectfully prays that this Hon'ble Court may graciously be pleased to:\n\na) Grant special leave to appeal under Article 136 of the Constitution of India against the impugned final judgment and order dated {impugned_order_date} passed by the Hon'ble High Court of {hc_name} in {hc_case_no};\n\nb) Pending hearing and final disposal of the present petition, stay the operation, execution and effect of the said impugned final judgment and order dated {impugned_order_date};\n\nc) Pending hearing and final disposal of the present petition, grant such interim protection as this Hon'ble Court may deem fit;\n\nd) Award costs of the present petition; and\n\ne) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the Petitioner shall ever pray.",
@@ -240,9 +235,8 @@
       "FORMAT STRICTLY per Supreme Court Rules 2013 Order XXII (civil SLP) / Order XXI (criminal SLP). Filing only through Advocate-on-Record (Order IV).",
       "Cause-title: 'IN THE SUPREME COURT OF INDIA' + jurisdiction line + 'Arising out of the final judgment and order dated ... passed by HC ...'.",
       "Limitation: 90 days from the date of impugned judgment of HC (Article 133 Limitation Act 1963). If review filed in HC, 60 days from review dismissal. Section 5 Limitation Act 1963 for condonation of delay.",
-      "Para A: Questions of Law — numbered substantial questions of law of GENERAL public importance. Cite Pritam Singh v. State AIR 1950 SC 169 — Art. 136 'a very wide and discretionary' power exercised sparingly only on exceptional and special circumstances + grave injustice.",
-      "Cite N. Suriyakala v. A. Mohan Doss (2007) 9 SCC 196 — discretion of SC; Mathai @ Joby v. George (2016) 7 SCC 700 — Article 136 not regular appeal; Kunhayammed v. State of Kerala (2000) 6 SCC 359 (merger doctrine — once SC dismisses by speaking order, the HC order merges).",
-      "Cite Sir Chunilal V. Mehta v. Century Spinning AIR 1962 SC 1314 — substantial question of law definition.",
+      "Para A: Questions of Law — numbered substantial questions of law of GENERAL public importance. Art. 136 'a very wide and discretionary' power exercised sparingly only on exceptional and special circumstances + grave injustice.",
+      "Article 136 not regular appeal; merger doctrine — once SC dismisses by speaking order, the HC order merges.",
       "Para B: Declaration — (i) no similar SLP filed; (ii) limitation complied or delay condonation sought; (iii) no review pending in HC (or if filed/dismissed, give details); (iv) all material facts disclosed.",
       "Para C: Limitation — calculate carefully; period excluded for obtaining certified copy.",
       "Para D-F: Statement of facts — brief, material only.",
@@ -254,14 +248,13 @@
       "   - HC misapplied / misread precedent",
       "   - Grave miscarriage of justice — shocks conscience of court",
       "   - In criminal SLP: HC failed to consider Section 313 statement; appreciation of evidence perverse; sentence shockingly disproportionate.",
-      "Cite criminal SLP grounds — Hari Singh v. Sukhbir Singh (1988) 4 SCC 551; Smt. Dalbir Kaur v. State of Punjab (1976) 4 SCC 158; Arunachalam v. PSR Sadhanantham (1979) 2 SCC 297.",
       "Para I: Interim relief — stay of impugned order; status quo pending hearing.",
       "Para J: Where review petition dismissed by HC, attach review judgment + impugned judgment.",
       "Order of papers per SC Rules Order XXII Rule 2 — cover page; list of dates; questions of law; declarations; SLP body; annexures (HC judgment first); affidavit; AOR vakalatnama.",
       "AOR alone files. AOR certificate signed.",
       "Court fee — Schedule II SC Rules; civil SLP higher than criminal.",
       "Caveat: Where impugned order is interlocutory, very rare leave. Where review by SC against own order, separate procedure (curative).",
-      "Append Lawie disclaimer."
+      "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]."
     ]
   },
   "relevantActs": [

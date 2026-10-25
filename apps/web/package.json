@@ -5,17 +5,20 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3000",
-    "build": "next build",
+    "build": "NODE_ENV=production next build",
     "start": "next start",
     "lint": "eslint 'src/**/*.{ts,tsx}' --fix",
     "test": "jest --coverage --passWithNoTests",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "test:e2e": "playwright test",
+    "test:e2e:update": "echo 'test:e2e:update: goldens are generated in CI (linux, real fonts) only; never commit goldens from a sandbox run.' && playwright test --update-snapshots"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.6.0",
     "@lawie/shared": "1.0.0",
     "@radix-ui/react-dialog": "^1.0.5",
     "@radix-ui/react-dropdown-menu": "^2.0.6",
+    "@radix-ui/react-popover": "~1.1.15",
     "@radix-ui/react-toast": "^1.1.5",
     "@sentry/nextjs": "^10.50.0",
     "@tiptap/extension-placeholder": "^3.22.5",
@@ -39,6 +42,7 @@
     "zustand": "^4.5.2"
   },
   "devDependencies": {
+    "@playwright/test": "1.56.1",
     "@testing-library/jest-dom": "^6.4.6",
     "@testing-library/react": "^16.0.0",
     "@testing-library/user-event": "^14.5.2",
