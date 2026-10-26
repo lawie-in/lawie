@@ -20,3 +20,6 @@ Cause title leaves both parties blank though para 1 names them; 'Civil Suit No. 
 
 ## Files
 Lead lists after Explore (drafting pack legal_content (injunction), court and state lists). Claimed by Priya.
+
+## Added 26 Oct 2026 (from Vishal's T-611 Explore)
+7. O.39 'relief sought in the main suit' prints {{MISSING}} although the user wrote it: add the field to temporary_injunction_o39.json (this ticket holds the pack). Ajay's ruling R2 (asked by Vishal) applies.
