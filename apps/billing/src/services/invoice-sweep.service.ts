@@ -18,8 +18,15 @@
  * enqueue is bounded by INVOICE_EMAIL_ENQUEUE_TIMEOUT_MS (in queueInvoiceEmail),
  * so a stuck Redis cannot hang a run.
  *
+ * T-595 (Vikram's compliance rule): a tax invoice is due within 30 days of
+ * payment, so each run also raises one Sentry event per row still 'issuing',
+ * or issued with its email still unqueued, INVOICE_OVERDUE_ALERT_MS after
+ * payment. It runs last on both paths, including "GST config incomplete", so
+ * a row this run issued or emailed does not alert.
+ *
  * Logs counts, ids and err.name only.
  */
+import * as Sentry from '@sentry/node';
 import mongoose from 'mongoose';
 
 import { missingSellerConfig, readEffectiveFrom } from '../config/gst';
@@ -40,6 +47,10 @@ export const INVOICE_SWEEP_INTERVAL_MS = 5 * 60 * 1000;
 export const INVOICE_SWEEP_MIN_AGE_MS = 60 * 1000;
 /** Rows handled per run. */
 export const INVOICE_SWEEP_BATCH = 200;
+/** T-595: a row still unissued or unemailed this long after payment raises one Sentry event. */
+export const INVOICE_OVERDUE_ALERT_MS = 24 * 60 * 60 * 1000;
+/** T-595: the fixed Sentry message for an overdue invoice. */
+export const INVOICE_OVERDUE_ALERT_MESSAGE = 'billing.invoice.overdue_24h';
 
 export interface InvoiceSweepCounts {
   found: number;
@@ -55,6 +66,100 @@ export interface InvoiceSweepCounts {
   emailsPending: number;
   /** T-436 (Ajay Addendum 8 #2): rows whose user is erased; not emailed, marker set. */
   emailsSkippedErased: number;
+  /** T-595: overdue rows (24 h after payment) that raised a Sentry event this run. */
+  overdueAlerted: number;
+}
+
+/**
+ * T-595: ids already alerted by this process. Pruned every run to the ids
+ * still overdue, so it stays bounded.
+ *
+ * A process restart can repeat one capture per still-overdue invoice; that is
+ * acceptable only because the fingerprint is per invoice id, so Sentry keeps
+ * it on the same issue and the new-issue alert fires once.
+ */
+const alertedOverdueIds = new Set<string>();
+
+/** T-595 test hook: forget which invoices were already alerted. */
+export function resetOverdueAlertsForTests(): void {
+  alertedOverdueIds.clear();
+}
+
+/**
+ * T-595: one Sentry event per invoice or credit note still 'issuing', or issued
+ * with its email unqueued, INVOICE_OVERDUE_ALERT_MS after payment. The event
+ * carries the id, kind, reason and age in whole hours only: no email, amount,
+ * name, userId or GSTIN. Rows touched within `before` are left, as in the
+ * other passes. A DB or capture error is logged (err.name only) and leaves the
+ * rest of the sweep to run.
+ */
+async function alertOverdueInvoices(
+  now: Date,
+  before: Date,
+  counts: InvoiceSweepCounts,
+): Promise<void> {
+  const cutoff = new Date(now.getTime() - INVOICE_OVERDUE_ALERT_MS);
+  let rows: Array<{ _id: unknown; kind: string; state: string; draft?: { paidAt?: Date } }>;
+  try {
+    rows = await Invoice.find({
+      'draft.paidAt': { $lt: cutoff },
+      // Same "recently touched" guards as the issue and email passes: a row this run
+      // just issued (email enqueued in the background) or one a backfill is still
+      // issuing is left alone.
+      $or: [
+        { state: 'issuing', createdAt: { $lt: before } },
+        { ...unqueuedEmailFilter(), issuedAt: { $lt: before } },
+      ],
+    })
+      .sort({ 'draft.paidAt': 1, _id: 1 })
+      .limit(INVOICE_SWEEP_BATCH)
+      .select('_id kind state draft.paidAt')
+      .lean();
+  } catch (err) {
+    logger.error(
+      { errName: err instanceof Error ? err.name : 'unknown' },
+      'Invoice sweep: overdue invoice check failed',
+    );
+    return;
+  }
+
+  const overdue = new Set(rows.map((r) => String(r._id)));
+  for (const id of alertedOverdueIds) {
+    if (!overdue.has(id)) alertedOverdueIds.delete(id);
+  }
+
+  const alertedIds: string[] = [];
+  for (const row of rows) {
+    const invoiceId = String(row._id);
+    if (alertedOverdueIds.has(invoiceId)) continue;
+    const paidAt = row.draft?.paidAt ? new Date(row.draft.paidAt).getTime() : null;
+    const ageHours = paidAt === null ? null : Math.round((now.getTime() - paidAt) / 3_600_000);
+    const reason = row.state === 'issuing' ? 'issuing' : 'email_unqueued';
+    try {
+      Sentry.captureMessage(INVOICE_OVERDUE_ALERT_MESSAGE, {
+        level: 'error',
+        fingerprint: [INVOICE_OVERDUE_ALERT_MESSAGE, invoiceId],
+        tags: { invoiceId, kind: row.kind, reason },
+        extra: { ageHours },
+      });
+    } catch (err) {
+      // Not marked as alerted, so the next run tries again.
+      logger.error(
+        { invoiceId, errName: err instanceof Error ? err.name : 'unknown' },
+        'Invoice sweep: overdue invoice capture failed',
+      );
+      continue;
+    }
+    alertedOverdueIds.add(invoiceId);
+    alertedIds.push(invoiceId);
+  }
+  counts.overdueAlerted = alertedIds.length;
+  if (alertedIds.length > 0) {
+    logger.error(
+      { count: alertedIds.length, invoiceIds: alertedIds },
+      'Invoice sweep: invoices unissued or unemailed 24 h after payment',
+    );
+  }
 }
 
 /**
@@ -116,6 +221,7 @@ export async function runInvoiceSweep(now: Date = new Date()): Promise<InvoiceSw
     emailsQueued: 0,
     emailsPending: 0,
     emailsSkippedErased: 0,
+    overdueAlerted: 0,
   };
   const before = new Date(now.getTime() - INVOICE_SWEEP_MIN_AGE_MS);
 
@@ -130,6 +236,8 @@ export async function runInvoiceSweep(now: Date = new Date()): Promise<InvoiceSw
       );
     }
     await sweepUnqueuedEmails(before, counts);
+    // T-595: this is exactly the case the alert is for.
+    await alertOverdueInvoices(now, before, counts);
     return counts;
   }
 
@@ -178,6 +286,8 @@ export async function runInvoiceSweep(now: Date = new Date()): Promise<InvoiceSw
   }
 
   await sweepUnqueuedEmails(before, counts);
+  // T-595: after this run's issue and email passes, so only rows still stuck alert.
+  await alertOverdueInvoices(now, before, counts);
 
   if (counts.found > 0 || counts.emailsQueued > 0 || counts.emailsSkippedErased > 0) {
     logger.info(counts, 'Invoice sweep');
