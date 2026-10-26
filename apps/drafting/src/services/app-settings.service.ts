@@ -24,6 +24,41 @@ interface CacheEntry {
 const cache = new Map<string, CacheEntry>();
 
 /**
+ * T-585 (Arjun's go-live finding): the AI model keys drafting cannot work
+ * without. Their missing state is held in memory, set at boot by
+ * primeConfigWarnings and refreshed on every later read or write of one of
+ * them, so /health reports it with no DB call. Key names only, never values.
+ */
+const REQUIRED_AI_KEYS = ['ai.drafting_model', 'ai.preflight_model', 'ai.intake_model'] as const;
+const missingRequired = new Set<string>();
+
+function trackRequired(key: string, missing: boolean): void {
+  if (!(REQUIRED_AI_KEYS as readonly string[]).includes(key)) return;
+  if (missing) missingRequired.add(key);
+  else missingRequired.delete(key);
+}
+
+/** T-585: the required AI keys missing at the last read, in a fixed order. No DB call. */
+export function getConfigWarnings(): string[] {
+  return REQUIRED_AI_KEYS.filter((k) => missingRequired.has(k));
+}
+
+/**
+ * T-585: read the required AI keys once at boot and return the missing ones.
+ * Never throws; a read error other than a missing doc leaves that key's state as it was.
+ */
+export async function primeConfigWarnings(): Promise<string[]> {
+  for (const key of REQUIRED_AI_KEYS) {
+    try {
+      await getAppSetting(key);
+    } catch {
+      // getAppSetting already recorded a missing key; other errors are not a config warning.
+    }
+  }
+  return getConfigWarnings();
+}
+
+/**
  * T-453: modules that keep their own cache of a resolved setting (llm-usage's
  * effort and intake cap caches) register here, so an admin write (the key) or a full clear
  * (null) reaches them too.
@@ -70,9 +105,11 @@ export async function getAppSetting(key: string): Promise<string> {
   const doc = await AppSetting.findOne({ key }).lean();
   if (!doc) {
     // Don't cache misses — admin UI insert should be picked up immediately
+    trackRequired(key, true);
     throw new AppSettingMissingError(key);
   }
 
+  trackRequired(key, false);
   cache.set(key, { value: doc.value, expiresAt: now + TTL_MS });
   return doc.value;
 }
@@ -101,6 +138,7 @@ export async function setAppSetting(input: {
   ).lean();
 
   cache.delete(key);
+  trackRequired(key, false);
   notifyInvalidated(key);
 
   return {
@@ -129,6 +167,7 @@ export async function listAppSettings(): Promise<
 /** Test helper — clear the in-memory cache. NOT called in production paths. */
 export function _clearAppSettingsCache(): void {
   cache.clear();
+  missingRequired.clear();
   notifyInvalidated(null);
 }
 
