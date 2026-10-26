@@ -32,3 +32,7 @@ T-538 (SSE stages, Last-Event-ID, runs/:runId) is NOT built, so reload-resume mo
 7. Split: T-616 = web now (Kunal). T-616b = server parts (refresh grace, per-user limiter, shared TTL constants), same lead right after, full chain (auth + gateway). T-538/T-539 (SSE resume) stay separate, after Phase 0.
 
 Arjun (CTO) countersignature: ____
+
+## Arjun (26 Oct 2026, 17:30 UTC) — countersigned
+
+The seven rulings above are the design: 15 m access + proactive refresh and refresh-before-signed-out; 12 h sliding session, 7-day ceiling, no separate idle timeout; single-use rotation with a 30 s server grace; per-user `/refresh` limiter excluded from the per-IP limit, and no sign-out on 429/5xx/network; localStorage stays (cookies = separate ADR); unsaved description in sessionStorage ≤ 4,000 chars, cleared on restore and on sign-out; split into T-616 (web) and T-616b (auth + gateway). Countersigned.
