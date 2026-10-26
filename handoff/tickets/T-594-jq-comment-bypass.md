@@ -5,7 +5,7 @@
 | Phase  | 4 — Release (security hygiene; HIGH) |
 | Owner  | Arjun (design), Mahak (build, right after T-570 merges) |
 | Mode   | Small fix (hook + its test only; fresh tester) |
-| Status | To do. Raised by Arjun, 26 Oct 2026, split from T-593 item 1. Priya |
+| Status | Building (Mahak), 26 Oct 2026 (stop lifted). Priya |
 | Source | T-570 round 3 reviewer finding |
 
 ## Problem

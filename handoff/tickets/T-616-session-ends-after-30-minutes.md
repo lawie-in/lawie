@@ -5,7 +5,7 @@
 | Phase  | 4 — Release (severity P1; from the prod quality check of 26 Oct 2026) |
 | Owner  | Mahak or Tanvi (auth/web); Arjun decides lifetime |
 | Mode   | Full chain |
-| Status | To do. Raised by Priya from Anushka's prod FAIL, 26 Oct 2026. Not assigned: starts when the founder lifts the stop. Priya |
+| Status | Building (Kunal), 26 Oct 2026 (stop lifted). Priya |
 | Source | handoff/quality/2026-10-26-prod-drafting-FAIL.md |
 
 ## Problem
