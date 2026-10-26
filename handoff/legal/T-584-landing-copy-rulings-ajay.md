@@ -75,3 +75,13 @@ Source: `handoff/copy/T-584-landing-copy-v1.md` (Madhuri, direction B). I checke
 | --- | --- |
 | AJ-601-Q1 | The second sample is the breach-of-contract notice (`legal_notice_breach_of_contract`, "Notices and replies"). Signed 09b and eyebrow 15-15b stand unchanged. The T-602 PDF must be that notice, with parties Sample Traders and Sample Packaging Works, and watermarked on every page. Where the fixes file or spec says "the s.138 notice" for this sample, read it as the breach notice. An s.138 sample needs new text and a new sign-off first. |
 | AJ-601-Q2 | M-LP-08a, byte-confirmed: EN `Drafts left on the desk for you to read.` / HI `ड्राफ़्ट मेज़ पर रखे हैं, आपके पढ़ने के लिए।`. No number, so it stays true with 2 or 3 folios. No legal objection; Meera still approves the wording. |
+
+## T-601 byte check (Ajay, 26 Oct 2026; build ec2a6ec9)
+
+| id | result |
+| --- | --- |
+| AJ-601-BC | **PASS.** All 69 rows in `apps/web/src/components/marketing/landing/landing-copy.ts`, EN and HI, match the signed text byte for byte (my rulings win where they differ from v2; fixes file for 15-07/12, 15-16–20, 10c; addendum for 15-09b). The components contain no hard-coded visible text. |
+| AJ-601-BC-1 | Counts: the catalogue lists 86 live templates on 19 shelves, with no plaints shelf. "80+" (rounded down) and "86 … 19 shelves today" are true. |
+| AJ-601-BC-2 | Gates hold. Samples render only with at least 2 PDFs, and none are in `public/samples/` yet. The video is off until the real files exist. The Hindi caption line and chip switch on only from the track data. The bail sample is not listed. |
+| AJ-601-BC-3 | The maintenance folio title is the catalogue's "Maintenance Application (s.144 BNSS)": correct (BNSS s.144; old CrPC s.125). |
+| Still conditions | The sample PDF review (watermark on every page, placeholder parties) before any PDF goes in `public/samples/`, and the real-footage check on the video. Both come to me. |
