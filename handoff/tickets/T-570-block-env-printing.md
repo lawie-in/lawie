@@ -22,3 +22,8 @@ A tester subagent ran `export -n` and printed the shell environment into its tra
 
 ## Added 22 Oct 2026 (Shashank)
 The standard test command in docs uses `env -u REDIS_URL -u SENTRY_DSN yarn ...`. Shared form from now on: `(unset REDIS_URL SENTRY_DSN; yarn workspace @lawie/<ws> test)` (subshell unset, prints nothing). Acceptance criterion 5: update every doc that mentions `env -u` (CLAUDE.md and .claude/docs) to this form; the hook must not block the subshell form.
+
+## Arjun's ruling (26 Oct 2026): where the secret scan fails closed
+- Approved: (c)+(b). `.husky/pre-commit` runs `scan:secrets` (fast, no binary needed) and keeps the gitleaks warning; the new workflow `.github/workflows/secret-shape-scan.yml` is the fail-closed gate.
+- Reviewer conditions: `scan:secrets` finishes under about 2 s on a normal staged set and never prints a matched value (file:line and shape name only). The workflow runs on pushes to develop_staging, develop and main and on the release branch pattern.
+- DEFERRED, not forgotten: (a) pre-commit blocks when gitleaks is missing, once gitleaks is installed in the dev image. Follow-up ticket when that image change lands.
