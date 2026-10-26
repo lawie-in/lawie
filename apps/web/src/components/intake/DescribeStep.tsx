@@ -17,9 +17,10 @@ import { useId } from 'react';
 import { folio, h1, linkButton, page, sub } from './nlUi';
 
 import { Button, Textarea } from '@/components/ui';
+import { DESCRIPTION_MAX } from '@/lib/draftPrefill';
 
 export const DESCRIPTION_MIN = 20;
-export const DESCRIPTION_MAX = 4000;
+export { DESCRIPTION_MAX };
 
 /** Signed: handoff/copy/T-511-copy-v1.md (dashboard command bar placeholder; spec 04 empty state). */
 export const DESCRIBE_PLACEHOLDER = 'A bail application for a client arrested on Tuesday…';
