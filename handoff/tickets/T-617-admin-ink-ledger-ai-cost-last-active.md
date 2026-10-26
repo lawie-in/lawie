@@ -19,3 +19,14 @@ The Ink ledger shows none of the 6 Ink spent (Spent -0, 16 in circulation vs 33 
 
 ## Files
 Lead lists after Explore (apps/billing, apps/drafting admin routes, web admin). Claimed by Priya.
+
+## Vikram (26 Oct 2026): AI cost formula (AC2)
+
+Per call, in USD, rates per million tokens from the model price table in AppSettings:
+`cost = (input × rIn + output × rOut + cacheWrite5m × 1.25·rIn + cacheWrite1h × 2·rIn + cacheRead × 0.1·rIn) / 1,000,000`
+(`input` is uncached input only, as `Generation.inputTokens` already stores it.) In ₹: `cost × ai.fx_inr_per_usd` (AppSetting, 88 today). A draft sums its generation row and its aux calls (intake, preflight, v3 passes).
+
+- **A missing rate is never ₹0.** Store `costStatus: 'rate_missing'` (the model already has it) and show "rate missing" on the admin page, with the token count. Prod's "₹0 for 38,248 tokens" is almost certainly that: the price table is not seeded on prod.
+- Rates on develop today: Sonnet 5.5 $2 in / $10 out, cache write (1h) $4, cache read $0.20. Haiku 5.5 is $0.10 / $0.50 on develop. Arjun confirms that figure against Anthropic's price page before it is seeded on prod (see ADR-drafting-v3 §4, Vikram).
+- Rates are copied onto each row at save (already the design), so a price change never rewrites history.
+- **Prod seed gap:** prod also lacks `pricing.paragraph_bands.*` (T-577), so any count charges the class price. A 25-paragraph bail is charged 2 Ink instead of 4 (≈ ₹6.50 cost per Ink, over the line). Seed the price table and the bands on prod (values in T-577 "## Vikram"), or hold the paragraph count at ≤ 10 until they are.
