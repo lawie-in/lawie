@@ -17,48 +17,48 @@ Section order, top to bottom: top bar · hero with the drafting demo · how it w
 
 - Column 1180px with 48px side padding from 1280; 24px padding 720 to 1279; 16px below 720. Sections 96px vertical padding at desktop, 56px below 720. Hairline `--line` between sections; alternating sections sit on `--wall` and a deeper shade (`#0b1512` night / `--day-wood` day) as on the canvas.
 - Type: h1 Tiro 54/60 (phone 34/40); h2 Tiro 36/44 (phone 28/34); eyebrow Mukta 13 uppercase tracking .08em in `--muted`; lead Mukta 18/28 `--text-soft` (phone 16/26); body 16/26.
-- Buttons: `ui/Button` primary (brass) and ghost; 52px tall for the hero and final CTA, 44 to 48 elsewhere. One primary per viewport (DESIGN.md One Primary): in the hero the only brass fill is `Start a free draft`; the top bar's brass CTA hides while the hero CTA is in view (as T-528 built it).
+- Buttons: `ui/Button` primary (brass) and ghost; 52px tall for the hero and final CTA, 44 to 48 elsewhere. One primary per viewport (DESIGN.md One Primary): in the hero the only brass fill is the signed `Start with 5 free Ink`; the top bar carries the signed `Start free` as a ghost button on the landing (NightTopBar `ctaVariant="ghost"`, as T-528 built it), with no swap or hide on scroll.
 - Both themes from tokens; nothing hard-coded. Contrast computed by the reviewer from hex (ui-quality lesson, 21 Oct).
 
 ## 2. Hero: the product performs
 
-Desktop (≥ 900): grid 5fr/7fr, 56px gap, items centred. Left: eyebrow `[ ]`, h1 `[Describe the matter. Read the draft.]`, lead `[ ]`, CTA `Start a free draft`, then two Muted lines: `Free plan: 5 Ink once your email is verified. Prices include GST.` and the signed disclaimer `Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.` Right: the lit folio.
+Desktop (≥ 900): grid 5fr/7fr, 56px gap, items centred. Left: eyebrow `[ ]`, h1 `[Describe the matter. Read the draft.]`, lead `[ ]`, CTA `Start with 5 free Ink` (signed, t366 pins "free" beside "5 Ink"), then two Muted lines: the signed `5 Ink on sign-up, once your email is verified (one time)` and the signed disclaimer `Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.` Right: the lit folio.
 
 The folio (reworks `DemoFolio`):
-- 1280: folio 560px wide, 440px min height, Card `--day-card` paper (#fbf8f0 in both themes: paper is paper), radius 6, shadow `0 18px 50px rgba(0,0,0,.45)` at night, DESIGN.md One Shadow by day. Lamp pool: a radial gradient of `--amber` at 16% centred above the folio, static below 1280 and under reduced motion; from 1280 with `(pointer:fine)` it follows the pointer within ±24px, 120ms linear (spec T-511 motion table, unchanged).
+- 1280: folio 560px wide, 440px min height, the app's folio surface (Card in both themes, with the 1px brass hairline on top), radius 4, the one `--shadow-card` (this is the page's only shadow). Lamp pool: the existing `--lamp` radial at 16% centred above the folio, static below 1280 and under reduced motion; from 1280 with `(pointer:fine)` it follows the pointer within ±24px, 120ms linear (spec T-511 motion table, unchanged).
 - Inkwell (ui/Inkwell) at the folio's top right with the stage name (Mukta 500 14) and pct (Tiro 24 tabular), exactly the T-539 progress language, driven by the script, not a timer per frame.
-- Script (static asset, no model call): the folio writes a fictional regular bail application, lines 1 to 3 of the grounds, pen-writing 2.6s once when the folio enters the viewport (IntersectionObserver, threshold .5), the inkwell draining from 100% to about 54% in step, then holds. The text is a static string in `nl-copy.ts` marked `[fictional sample, Ajay]`. SAMPLE watermark: Tiro 64px, tracking .3em, `rgba(142,47,47,.18)`, rotated −24°, bordered, centred, `pointer-events:none`, present in every state.
+- Script (static asset, no model call): the folio writes a fictional regular bail application, lines 1 to 3 of the grounds, pen-writing 2.6s once when the folio enters the viewport (IntersectionObserver, threshold .5), the inkwell draining from 100% to about 54% in step, then holds. The text is a static string in `nl-copy.ts`: Ajay rows for the court heading, cause title and paragraphs 1 to 3 (fictional, no section numbers), via Madhuri. The stage name beside the inkwell reuses a T-539 signed stage name. SAMPLE watermark: Tiro 64px, tracking .3em, `--ox` at 18% opacity, rotated −24°, bordered, centred, `pointer-events:none`, present in every state; HI word नमूना (Ajay row); the folio carries `aria-label="Sample draft, fictional parties"` (Ajay row).
 - Reduced motion or `prefers-reduced-data`/Save-Data: the finished three lines and the inkwell at 54%, nothing moves. Tab hidden: paused, resumes.
 - Phone (< 900): one column; copy, CTA, the two Muted lines, then inkwell row (34px icon + stage + pct), then the folio full width (16px gutter), 300px min height, 22px padding; the demo runs once in view. Phone budget: no lamp follow, no shadow blur above 24px, the demo is the only animation on the first screen.
 - States: the demo is scripted and has no error state. If `IntersectionObserver` is missing, render the finished state.
 
 ## 3. Coverage: the card catalogue
 
-- Section on the deeper ground. Eyebrow `What we draft`; h2 `[Twenty drawers. Every template in the library.]`; lead `[ ]`.
-- Drawers: `ui/Card` variant "drawer": 1280 four columns, 16px gap; 720 to 1279 three; below 720 two columns, 10px gap. Each drawer: name (Mukta 500 15/20), count `{n} drafts` (Mukta 13 Muted, tabular), a brass pull (40×6, radius 3) centred at the bottom; min height 92 (84 on phones); Card fill, Line border, radius 6. It is a `<button aria-expanded>`; the open drawer takes `--brass-soft` fill and a Brass border.
-- Open panel: one panel under the grid (not inside it, so the grid does not reflow): Brass border, Card fill, radius 8, 28/32 padding (18 on phones). Header `{name} · {n} drafts` Brass Text 14/500; the templates as a 3-column list at 1280 (2 at 720, 1 on phones), Mukta 16, each row with a Line hairline. The first drawer is open on load. Opening another: 200ms ease-out height and opacity; under reduced motion instant. Only one open at a time. Keyboard: drawers are in one tab sequence; Enter/Space open; the panel follows in DOM order so the reader lands on the list.
-- Footer line under the panel: `{total} drafts on {shelves} shelves today.` in Text Soft 500 + `[ ]` Muted.
-- 3.4 **Generated list.** The drawers are rendered from a generated JSON produced at build time from `apps/drafting/src/config/catalogue` (categories.ts for names and order, the batches for ids and categories), through a script in `apps/web` (or a shared package, Arjun's call), never typed by hand. The count excludes aliases (`DOC_TYPE_ALIASES`) and disabled or hidden templates; Arjun defines "shown" (the base batch has 92 entries where the ticket says 86). Display names: the template's display title from `template-configs`, not the id. Categories with zero templates are not rendered. A test pins that the JSON equals the catalogue (fails when a template is added without regenerating).
+- Section on the deeper ground. Eyebrow `What we draft`; h2 M-LP-05 `Open a drawer. See the templates.` (signed copy wins; no number in the heading); lead M-LP-06.
+- Drawers: `ui/Card` variant "drawer": 1280 four columns, 16px gap; 720 to 1279 three; below 720 two columns, 10px gap. Each drawer: name (Mukta 500 15/20), count `{n} drafts` (Mukta 13 Muted, tabular), a brass pull (40×6, radius 3) centred at the bottom; min height 92 (84 on phones); Card fill, Line border, radius 4 (DESIGN.md Shapes). It is a `<button aria-expanded>`; the open drawer takes `--brass-soft` fill and a Brass border.
+- Open panel: one panel under the grid (not inside it, so the grid does not reflow): Brass border, Card fill, radius 4, 28/32 padding (18 on phones). Header `{name} · {n} drafts` Brass Text 14/500; the templates as a 3-column list at 1280 (2 at 720, 1 on phones), Mukta 16, each row with a Line hairline. The first drawer is open on load. Opening another: 200ms ease-out height and opacity; under reduced motion instant. Only one open at a time. Keyboard: drawers are in one tab sequence; Enter/Space open; the panel follows in DOM order so the reader lands on the list.
+- Footer line under the panel: `{headline} drafts on {shelves} shelves today.` in Text Soft 500, where `{headline}` is Arjun's `total` rounded down to the nearest ten with a plus (`90+`), never the exact count; then M-LP-07 in Muted.
+- 3.4 **Generated list.** The drawers are rendered from a generated JSON produced at build time from `apps/drafting/src/config/catalogue` (categories.ts for names and order, the batches for ids and categories), through Arjun's exporter `yarn workspace @lawie/drafting export:catalogue` writing `apps/web/src/data/landing-catalogue.json` (T-600; see Arjun's answer below for the "shown" rule: no aliases, no non-template prices, no feature-switched categories). Today that is 19 shelves. Display names: the template's display title from `template-configs`, not the id. Categories with zero templates are not rendered. A test pins that the JSON equals the catalogue (fails when a template is added without regenerating).
 - Hindi: the category names and template titles need Hindi strings before the toggle shows them; until then the toggle keeps English in this section and Madhuri's brief lists it.
 
 ## 4. Sample drafts
 
-- Section on `--wall`. Eyebrow `Sample drafts`; h2 `[Three drafts left on the desk for you to read.]`; lead `[ ]`.
-- The desk: a `--wood` panel, radius 12, 48px padding (20/16 on phones), inset 1px Line, a lamp gradient from the top (static). Three folios in a 3-column grid (28px gap); on phones a horizontal scroll row of 240px folios with scroll-snap, 14px gap, scrollbar hidden, the row scrollable by keyboard as a list of links.
-- Folio: `<a>` to the sample's PDF (static file), paper #fbf8f0, radius 6, 26px padding, min height 340: category eyebrow (11px uppercase Muted-on-paper #5c685f), title Tiro 18, a 3-line summary 14/22, meta line `{pages} pages · {language} · {format}` #5c685f, SAMPLE watermark as §2. Desk tilt: −1.2°, 0 with −10px lift, +1°; none on phones. Hover (pointer fine): translateY −2px 150ms; no lift under reduced motion.
+- Section on `--wall`. Eyebrow `Sample drafts`; h2 M-LP-08a; lead M-LP-08b. The three templates (Madhuri, confirmed): `bail_regular`, `legal_notice_breach_of_contract`, `plaint_recovery`; titles are the templates' display titles from template-configs, pulled by the build, never typed.
+- The desk: a `--bg-wood` panel, radius 4, 48px padding (20/16 on phones), 1px Line border, the static `--lamp` gradient from the top. Three folios in a 3-column grid (28px gap); on phones a horizontal scroll row of 240px folios with scroll-snap, 14px gap, scrollbar hidden, the row scrollable by keyboard as a list of links.
+- Folio: `<a>` to the sample's PDF (static file), Card surface, 1px Line border, **no shadow** (One Shadow rule: the hero folio has it), radius 4, 26px padding, min height 340: category eyebrow (11px uppercase Muted), title Tiro 18, summary M-LP-09a/b/c 14/22, meta line `{pages} pages · {language} · PDF` Muted, SAMPLE watermark as §2. Desk tilt: −1.2°, 0 with −10px lift, +1°; none on phones. Hover (pointer fine): translateY −2px 150ms; no lift under reduced motion.
 - Assets: three PDFs under `apps/web/public/samples/` produced once from the product with fictional parties, redacted, the watermark baked into every page, reviewed by Ajay; names and facts in the summaries are Madhuri's and Ajay's. No live call; no "generated for you".
 - Empty/loading: none, the assets are static. If a PDF 404s the link still opens the browser's error; acceptable, the tester checks the three URLs.
 
 ## 5. Demo video
 
-- Section on `--wall` after samples. Header row: eyebrow `The long version`, h2 `[One draft, start to seal, in ninety seconds.]`, right-aligned Muted note `[Real product, fictional parties. Captions. Loads on play.]`.
-- Player: 16:9, radius 8, Line border. Poster image (`<img loading="lazy">`, WebP ≤ 120KB, 1280×720, the lit folio with no faces and no client data) with a 96px brass play button (`<button aria-label="Play the demo video">`, 64 on phones) and two chips bottom-left: `CC English · हिंदी` (Brass Soft) and the duration. Pressing play swaps in `<video controls preload="none" playsinline>` with `<track kind="captions">` for both languages and the poster as `poster`; the file is a static MP4 (H.264, ≤ 8MB, 1280×720) from `public/` or the CDN, never autoplay, sound only after the press. The poster stays as the fallback when `<video>` is unsupported.
+- Section on `--wall` after samples. Header row: eyebrow `The long version`, h2 M-LP-10b `Watch one draft from description to review.` (no duration anywhere in copy; the only duration on the page is the chip reading the file's real length), right-aligned Muted note M-LP-10c.
+- Player (Arjun, 26 Oct): 16:9, radius 4, Line border. Poster JPEG (`loading="lazy"`, ≤ 120KB, 1280×720, the lit folio with no faces and no client data). `<video muted playsinline loop preload="none">` from `apps/web/public/`, H.264/AAC, ≤ 3 MB (a longer cut is shortened, never hosted elsewhere), started muted only when in the viewport and `prefers-reduced-motion` is not set; otherwise the poster stays. Captions `<track kind="captions" default>` for EN and HI, on by default because the loop is silent. The 96px brass button (`aria-label="Play with sound"`, 64 on phones) unmutes and shows native controls; sound only after the press. Two chips bottom-left: `CC English · हिंदी` (Brass Soft) and the duration read from the file. **Not rendered in prod until the real footage exists:** the section mounts only when the asset is present (no file, no section), not behind a flag (Ajay's condition).
 - Reduced motion: unchanged (video plays only on request). Phone budget: nothing loads before the press except the poster.
 - Who records it is open with the founder; the spec does not change with that answer.
 
 ## 6. Ink and prices, trust, FAQ, final CTA, footer
 
-Carry over from T-511/T-528 as built (NightPlanCard ×3, price Tiro 34/40, `Prices include GST`, `A failed draft does not use Ink. Plan Ink does not carry over.`; trust three columns `[ ]`; NightFaq with the signed disclaimer answer open; final CTA h2 `[Sit down. Describe the matter.]` + `Start a free draft`; NightFooter with the disclaimer line and the legal links, `Case diary and reminders: coming`). No change beyond their position.
+Carry over from T-511/T-528 as built: NightPlanCard ×2 (Free and Solo only; Pro stays on /pricing, Priya decision 2), price Tiro 34/40, the signed `Prices include GST. Plan Ink does not carry over to the next month.`; trust three columns M-LP-12a to 12f plus the signed privacy link and grievance officer line; NightFaq with the signed disclaimer answer open; final CTA h2 M-LP-13 + the signed `Start with 5 free Ink`; NightFooter exactly as built (no "coming" line; `Case diary and reminders: coming` is withdrawn). No change beyond their position.
 
 ## 7. Motion summary (emil set)
 
@@ -68,10 +68,10 @@ Carry over from T-511/T-528 as built (NightPlanCard ×3, price Tiro 34/40, `Pric
 | Lamp pool | follows pointer 120ms linear, 1280 + fine pointer | static | static |
 | Drawers | 200ms ease-out open/close | instant | same |
 | Sample folio hover | translateY −2px 150ms | none | no hover |
-| Video | none until pressed | same | same |
+| Video | muted in-view loop, captions on; sound on press | poster only | same as desktop |
 | Wordmark ink-fill (T-599, pending founder) | 600ms once per tab session | static | same |
 
-Nothing on the page moves on a timer after first view. Budget: the landing ships two font files, three WebP posters at most, the sample PDFs and the MP4 behind a press; JS for the demo and drawers only.
+Nothing on the page moves on a timer after first view. Budget: the landing ships two font files, one JPEG poster, the sample PDFs behind links and the ≤ 3 MB MP4 only when in view; JS for the demo and drawers only. Tokens: the existing `--bg-wall`, `--bg-wood`, `--lamp`, `--shadow-card`, `--radius-sm/md`, `--ox`; **no new tokens in globals.css** for this page.
 
 ## 8. States on this page
 
@@ -79,12 +79,12 @@ Loading: the hero folio renders its finished state server-side so a slow script 
 
 ## 9. Acceptance (Playwright, 390/768/1280, both themes)
 
-1. The hero CTA is the only brass-filled control in the first viewport; the top bar CTA appears after the hero scrolls out.
+1. The hero CTA is the only brass-filled control in the first viewport; the top bar CTA is ghost throughout the landing.
 2. The folio's finished state is visible with reduced motion on; with motion on, the inkwell reaches ~54% once and holds.
-3. Drawers: 20 render from the generated JSON; the first is open; opening another closes it; keyboard reaches every drawer and the panel; `aria-expanded` is correct.
+3. Drawers: one per category in the generated JSON (19 today); the first is open; opening another closes it; keyboard reaches every drawer and the panel; `aria-expanded` is correct.
 4. The total equals the catalogue after aliases/disabled are excluded (unit test on the generator).
 5. Three sample links return 200 and each PDF carries the SAMPLE watermark on every page (one visual check per PDF).
-6. The video element does not exist before play; after play it has two caption tracks and `preload="none"` was honoured.
+6. The video section does not render when the asset is absent; when present, the video is muted with two caption tracks, `preload="none"`, and does not start under reduced motion.
 7. Contrast of every text/background pair computed from hex ≥ 4.5:1 (reviewer prints the ratios).
 8. Lighthouse mobile performance ≥ 85 on the deployed develop page with the posters in place.
 
@@ -107,3 +107,15 @@ Loading: the hero folio renders its finished state server-side so a slow script 
 **1. Catalogue generator and "shown".** Source of truth is `apps/drafting/src/config/catalogue/` (`TEMPLATE_CATALOGUE`, `CATALOGUE_CATEGORIES`). The landing must not import drafting code and must not depend on the API at request time. So: a script in the drafting workspace, `yarn workspace @lawie/drafting export:catalogue`, writes `apps/web/src/data/landing-catalogue.json` (committed) — `{ generatedAt, categories: [{ id, name, order, templates: [{ id, name }] }], total }`. "Shown" = every key of `TEMPLATE_CATALOGUE`, in `CATALOGUE_CATEGORIES` order; **not** `DOC_TYPE_ALIASES` (aliases are not templates), **not** `NON_TEMPLATE_PRICES` ids, and **not** any category or id that `feature-switches.ts` hides when its switch is at its default (today `civil_plaints_suits` behind `feature.template_civil_plaint`, default off) — the generator reads the same switch table, so flipping a default and re-running keeps them in step. The web renders the JSON only. CI drift check: the drafting test suite gets one test that runs the exporter in memory and compares to the committed JSON; a stale file fails CI with the message "run export:catalogue". The headline number on the page is `total` rounded **down** to the nearest ten with a plus ("90+"), never the exact count, so a single template change never makes copy wrong. Ajay's claim sign-off covers the category names and the "+" line, not each template name.
 
 **2. Demo MP4.** `apps/web/public/` for now: one file, H.264/AAC, ≤ 3 MB, 1280×720 or smaller, with a poster JPEG; `<video muted playsinline preload="none" loop>` started only in-viewport and only when `prefers-reduced-motion` is not set, otherwise the poster. No CDN bucket today (another credential, another bill, and Cloudflare is DNS-only so it would not cache anyway); when the Cloudflare proxy is turned on, the file is cached at the edge with nothing else to do. If the cut exceeds 3 MB, it is shortened, not hosted elsewhere.
+
+## Rulings, 26 Oct 2026 (Madhuri's and Kunal's questions; folded into the sections above)
+
+1. Signed code strings win over the spec's placeholders: `Start with 5 free Ink`, `Start free`, `5 Ink on sign-up, once your email is verified (one time)`, `Prices include GST. Plan Ink does not carry over to the next month.`. `Start a free draft` and `Free plan: 5 Ink once your email is verified. Prices include GST.` are withdrawn.
+2. `Case diary and reminders: coming` is withdrawn; NightFooter as built.
+3. Coverage heading is the signed M-LP-05; the number is never typed; the headline count is Arjun's `90+` form.
+4. Video: Arjun's constraints (≤ 3 MB, JPEG poster, muted in-view loop); no duration in copy; not rendered until real footage exists.
+5. Prices: Free and Solo only.
+6. Top bar CTA: ghost on the landing, no change on scroll.
+7. DESIGN.md wins over the canvas numbers: radii 0 or 4 (the 12 is bottom sheets only); one shadow, on the hero folio; existing tokens only, no additions; the folio is the Card surface in both themes; watermark `--ox` 18%.
+8. New Ajay rows via Madhuri: the hero folio's court heading, cause title and three fictional grounds; the SAMPLE HI word; the folio aria-label; the stage name and inkwell label reuse T-539.
+9. Madhuri: "ninety seconds" dropped; "seal" stays a product word, not marketing; samples are bail_regular, legal_notice_breach_of_contract, plaint_recovery; coverage stays English under the Hindi toggle until T-600 fixes the shown list.
