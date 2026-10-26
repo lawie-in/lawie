@@ -29,3 +29,4 @@ Also recorded: the T-488 correction in `go-live-ruling-23-oct.md` (it was never 
 | Open from AJ-488-M1 | The `cheque_validity_date` cue ("last", "validity", "printed") is not in the s.138 table. It is handled by the T-192 checks (t192 tests pass). Not a blocker; Vishal confirms in one line that T-192 covers it. |
 
 **P4 SIGNED at 31bd7994.** T-488 counts as merged only when a develop_staging SHA contains 31bd7994; I name that SHA in the T-611 final check.
+| P4-F1 | cheque_validity_date: Vishal confirms the s.138 table does not cover it (only the generic stems in cuedKeys). T-611 adds a test: the date held as cheque_validity_date under its own label passes; the same date under another label goes to repair, then ask (P1). Any code change stays inside AJ-488-M1 (cues "last", "validity", "printed"). Checked at the final byte check. |
