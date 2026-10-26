@@ -118,6 +118,9 @@ services:
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:4000}
         NEXT_PUBLIC_GRIEVANCE_OFFICER_NAME: ${NEXT_PUBLIC_GRIEVANCE_OFFICER_NAME:-}
+        NEXT_PUBLIC_SENTRY_DSN: ${NEXT_PUBLIC_SENTRY_DSN:-}
+        NEXT_PUBLIC_SENTRY_ENVIRONMENT: ${NEXT_PUBLIC_SENTRY_ENVIRONMENT:-}
+        SENTRY_RELEASE: ${SENTRY_RELEASE:-}
     container_name: lawie_web
     restart: unless-stopped
     env_file: .env.development

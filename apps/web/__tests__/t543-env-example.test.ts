@@ -58,6 +58,7 @@ function webPublicVarsRead(): string[] {
   for (const f of [
     'next.config.mjs',
     'instrumentation.ts',
+    'instrumentation-client.ts',
     'sentry.server.config.ts',
     'sentry.edge.config.ts',
   ]) {
