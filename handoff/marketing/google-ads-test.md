@@ -11,8 +11,8 @@ Status: DRAFT. Not running. Needs (1) Vikram's okay on the spend, (2) Ajay's sig
 | Bidding | Manual CPC, max CPC ₹40. No automated bidding in the test |
 | Language | English. Hindi ads in round 2 after Ajay reads the Hindi |
 | Locations | Bihar, Jharkhand, Uttar Pradesh, Madhya Pradesh, Rajasthan, Delhi NCR (the district-court junior ICP) |
-| Landing page | The Lawie landing page, with UTMs: utm_source=google, utm_medium=cpc, utm_campaign=search-test-oct26, utm_term={keyword} |
-| Goal | Sign-ups (GA key event). A sign-up counts only after the consent banner is accepted |
+| Landing page | The Lawie landing page, with manual UTMs: utm_source=google, utm_medium=cpc, utm_campaign=search-test-oct26-format (ad group 1) or search-test-oct26-software (ad group 2). The app keeps only source, medium and campaign (100 characters each), so the ad group goes in utm_campaign. utm_term and gclid are not kept |
+| Goal | Sign-ups, counted from our own accounts data by utm_campaign. There is no GA sign-up event today (Priya checked the code, 26 Oct), so no conversion is set up in Google Ads. Clicks and cost come from Ads |
 | Rule | Blended CAC (spend ÷ new paying users) at or under ₹2,000 (Vikram) |
 | Stop rule | After about 150 clicks, if sign-ups are under 3% of clicks, pause. Change the ad or the page before spending more. Also pause if spend hits ₹5,000 |
 
@@ -60,12 +60,12 @@ You are setting up ONE Google Ads Search campaign, saved as PAUSED. Do not enabl
 
 Rules:
 - Use ONLY the text below. Do not add, reword or "improve" any keyword, headline or description. Do not accept any Google recommendation, auto-applied recommendation, broad match, budget increase or "optimised" setting. Turn off auto-apply.
-- Do not install any new tag or edit the website. Only link GA4 and import the existing sign-up key event as the conversion goal, if it exists. If it does not, stop and tell me.
+- Do not install any new tag or edit the website. Do not set up any conversion tracking, and do not link or import anything from GA4. Do not change the auto-tagging setting.
 - Change nothing else in the account.
 - If a screen is unclear or asks something not covered here, stop and ask me.
 
 Campaign:
-- Type: Search. Goal: Leads or Website traffic (use the sign-up conversion if available). Name: search-test-oct26.
+- Type: Search. Goal: Website traffic. Name: search-test-oct26.
 - Networks: Google Search only. Turn OFF Search partners and Display network.
 - Locations: Bihar, Jharkhand, Uttar Pradesh, Madhya Pradesh, Rajasthan, Delhi. Presence only (people in the location).
 - Language: English.
@@ -74,7 +74,7 @@ Campaign:
 - Ad group 1 "format-draft". Keywords: [bail application format] [legal notice format] "bail application draft" "anticipatory bail application" "draft legal notice online" "affidavit format"
 - Ad group 2 "software". Keywords: "legal drafting software" "legal drafting software for advocates" "ai legal drafting india"
 - Negative keywords (campaign level, phrase match): lawyer near me, advocate near me, hire, consultation, free legal advice, jobs, course, internship, salary, college, exam
-- One Responsive Search Ad per ad group, same text. Final URL: {LANDING_URL}/?utm_source=google&utm_medium=cpc&utm_campaign=search-test-oct26&utm_term={keyword}
+- One Responsive Search Ad per ad group, same text. Final URL, ad group 1: {LANDING_URL}/?utm_source=google&utm_medium=cpc&utm_campaign=search-test-oct26-format . Final URL, ad group 2: {LANDING_URL}/?utm_source=google&utm_medium=cpc&utm_campaign=search-test-oct26-software
   Headlines: 1) Lawie: Drafting for Advocates 2) Start with 5 free Ink 3) First Draft, You Review It 4) Bail Application Draft 5) Legal Notice Draft 6) You Stay the Advocate 7) Solo Plan ₹799 a Month 8) Describe It, Get a Draft
   Descriptions: 1) Describe your matter in plain words. Lawie writes a first draft. You review and edit it. 2) Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing. 3) Start with 5 free Ink once you verify your email. Solo plan ₹799 a month, 50 Ink.
 - Do not pin headlines. Do not add images, sitelinks, callouts or call extensions.
@@ -82,7 +82,7 @@ Campaign:
 When done: leave the campaign PAUSED, then send me a screenshot or text list of every setting above as saved, plus anything Google flagged or disapproved. Do not click Enable.
 ```
 
-Before anyone enables it: Vikram okays the spend, Ajay signs the copy, the founder confirms the cash, and Priya or the web lead confirms the sign-up conversion respects the consent banner.
+Before anyone enables it: Vikram okays the spend, Ajay signs the copy, the founder confirms the cash. Priya has confirmed the landing page keeps utm_source, utm_medium and utm_campaign on the account at sign-up. A sign-up report by utm_campaign (and, later, paying users by campaign) must be ready before day 1; Priya to ask for it.
 
 ## Vikram (26 Oct 2026): spend okayed, with a different yardstick
 
