@@ -4,17 +4,18 @@
  * one-flow describe step reads it once, removes it and prefills the textarea.
  * It is never submitted on its own, and the value is never logged.
  */
-import { DRAFT_PREFILL_KEY } from '@/lib/draftPrefill';
+import { DESCRIPTION_MAX, DRAFT_PREFILL_KEY, capToLimit } from '@/lib/draftPrefill';
 
 // Re-exported for existing imports; the one definition is in lib/draftPrefill.ts.
 export { DRAFT_PREFILL_KEY };
 
-export const INITIAL_PREFILL_MAX = 500;
+/** T-608: the New document page's limit, so the carried text is never cut short. */
+export const INITIAL_PREFILL_MAX = DESCRIPTION_MAX;
 
 /** Trimmed and capped text to prefill, or undefined when there is none. Pure. */
 export function initialPrefillFrom(raw: string | null | undefined): string | undefined {
   if (typeof raw !== 'string') return undefined;
-  const text = raw.trim().slice(0, INITIAL_PREFILL_MAX).trim();
+  const text = capToLimit(raw.trim(), INITIAL_PREFILL_MAX);
   return text === '' ? undefined : text;
 }
 
