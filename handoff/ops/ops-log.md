@@ -9,3 +9,6 @@
 | 2026-10-26 11:30 | lawie-prod | `lawie-prod-ops action=health` (`--region ap-south-1` needed: CLI ignores `AWS_REGION` here) | arjun session (Task 1), founder go in chat | Success: 4000/4001/4002/4003/9100 → 200; 3000 → 404 (no `/health` on web; pm2 lawie-web online) |
 | 2026-10-26 11:30 | lawie-prod | `lawie-prod-ops action=status` | arjun session (Task 1), founder go in chat | Success: all 6 lawie-* online; billing ↺1 (9h), others ↺0 (11h); host ram 29.8% |
 | 2026-10-26 11:30 | lawie-prod | `lawie-prod-ops action=disk` | arjun session (Task 1), founder go in chat | Success: / 52% (9.9G/20G); RAM 826M used of 3836M; swap 0 used |
+| 2026-10-26 11:31 | develop (i-07925b68d6dd907c4) | `lawie-prod-ops action=health` (first SSM check on this box) | arjun session (Task 2), founder go in chat | Success: 4000/4001/4002/4003/9100 → 200; 3000 → 404 (no `/health` on web) |
+| 2026-10-26 11:31 | develop (i-07925b68d6dd907c4) | `lawie-prod-ops action=status` | arjun session (Task 2), founder go in chat | Success: all 6 lawie-* online, ↺0, uptime 17m (recent reboot) |
+| 2026-10-26 11:31 | develop (i-07925b68d6dd907c4) | `lawie-prod-ops action=disk` | arjun session (Task 2), founder go in chat | Success: / 76% (14G/19G, 4.6G free); RAM 671M used of 909M (238M available); swap 37M of 2047M |

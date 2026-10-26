@@ -67,3 +67,24 @@ aws ssm get-command-invocation --command-id <id> --instance-id i-0e11d3dd5716776
 ```
 
 Environment needs the `aws` CLI and outbound access to `ssm.ap-south-1.amazonaws.com` / `ec2.ap-south-1.amazonaws.com`.
+
+## Proposed v2 of `lawie-prod-ops` (Nikhil, 26 Oct 2026 — founder applies in the console; not live)
+
+Why: (1) `health` probes `/health` on 3000 and web has no such route, so a healthy web always reads 404; (2) `logs` for a process name the box doesn't have fails with pm2's raw error — the develop box is older and may differ; (3) `restart` uses `pm2 restart --update-env`, but pm2 caches env across `restart` (26 Oct drafting crash-loop) — `reload --update-env` is the documented safe path. Parameters unchanged; IAM policy unchanged.
+
+Diff to `runCommand` (only these three lines change):
+
+```diff
+-  "  logs) if [ \"$S\" = all ]; then run_u \"pm2 logs --lines $N --nostream\"; else run_u \"pm2 logs $S --lines $N --nostream\"; fi ;;",
++  "  logs) if [ \"$S\" = all ]; then run_u \"pm2 logs --lines $N --nostream\"; elif run_u \"pm2 describe $S >/dev/null 2>&1\"; then run_u \"pm2 logs $S --lines $N --nostream\"; else echo \"no pm2 process named $S on this box; processes:\"; run_u 'pm2 status'; fi ;;",
+-  "  health) for p in 4000 4001 4002 4003 9100 3000; do printf '%s ' $p; curl -s -o /dev/null -w '%{http_code}\\n' --max-time 5 http://127.0.0.1:$p/health || true; done ;;",
++  "  health) for p in 4000 4001 4002 4003 9100; do printf '%s ' $p; curl -s -o /dev/null -w '%{http_code}\\n' --max-time 5 http://127.0.0.1:$p/health || true; done; printf '3000 / '; curl -s -o /dev/null -w '%{http_code}\\n' --max-time 10 http://127.0.0.1:3000/ || true ;;",
+-  "  restart) if [ \"$S\" = all ]; then run_u 'pm2 restart all --update-env'; else run_u \"pm2 restart $S --update-env\"; fi ;;",
++  "  restart) if [ \"$S\" = all ]; then run_u 'cd ~/lawie && pm2 reload ecosystem.config.js --update-env'; else run_u \"cd ~/lawie && pm2 reload ecosystem.config.js --only $S --update-env\"; fi ;;",
+```
+
+Expected `health` output after v2: `4000 200` … `9100 200`, then `3000 / 200`.
+
+Apply (founder): Systems Manager → Documents → `lawie-prod-ops` → Actions → Create new version → paste the edited JSON → **Set as default version**. Then Nikhil runs `action=health` on both boxes and logs it. Rollback: set the previous version as default.
+
+Session note: the CLI in the cloud session ignores `AWS_REGION`; calls need `--region ap-south-1` after the allow-listed prefix.
