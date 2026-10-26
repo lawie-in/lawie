@@ -35,6 +35,7 @@ Every dev-crew subagent (`developer`, `tester`, `reviewer`, `doc-writer`) follow
 - Do one step. Do not do the next agent's job.
 - End with your role's report format and nothing after it.
 - Say what you ran and what you did not run.
+- Never print the environment (`env`, `printenv`, `export`, `set`, `declare -x`, `/proc/*/environ`, `process.env` dumps); check a variable with `[ -n "$VAR" ] && echo set`, and run tests as `(unset REDIS_URL SENTRY_DSN; yarn workspace @lawie/<ws> test)`.
 
 ## Quality gate
 

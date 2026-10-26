@@ -15,9 +15,19 @@ export function scrubEvent<T extends Sentry.Event>(event: T): T {
   return scrubSentryEvent(event);
 }
 
+// T-586: release is the commit SHA in SENTRY_RELEASE (deploy.sh exports it from
+// `git rev-parse HEAD`; the Docker build takes it as a build ARG). It is set here only when
+// non-empty: an explicit `release: undefined` would override the release withSentryConfig
+// injects at build time from the same SENTRY_RELEASE. Empty strings fall back, so an empty
+// compose/ARG default never tags an empty release or an empty environment.
+const release = process.env.SENTRY_RELEASE || undefined;
+
 Sentry.init({
   dsn: process.env.SENTRY_DSN,
   enabled: process.env.NODE_ENV === 'production',
+  ...(release ? { release } : {}),
+  environment: process.env.SENTRY_ENVIRONMENT || process.env.NODE_ENV,
+  sendDefaultPii: false,
   tracesSampleRate: 0.2,
   beforeSend: (event) => scrubEvent(event),
   beforeSendTransaction: (event) => scrubEvent(event),

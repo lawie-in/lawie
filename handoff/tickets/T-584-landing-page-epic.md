@@ -19,6 +19,12 @@ The founder is not happy with the landing page content. The "what we can draft t
 5. Demo video (founder, 26 Oct 2026): a short product demo on the landing page, shown from the real product with fictional, redacted parties (no real client data), with captions and a poster image. Meera/Madhuri write the script, Rajesh sets where it sits on the page, Ajay signs every on-screen claim and the voiceover (BCI rules, "sample" watermark on any draft shown). Served as a static file or from a CDN, lazy-loaded, no autoplay with sound, reduced-motion respected, within the mobile budget in ui-quality.md. No live Anthropic call from the page. Who records and produces it is decided with the founder (screen capture of develop or prod with a test account; Arjun confirms no secrets or PII are visible in frame).
 6. Build: one lead, full chain, web only, after 1 to 4 are signed.
 
+## Related (26 Oct 2026)
+T-599: the remaining marketing pages (privacy, free tools, about, faq, terms, refunds, contact) are still in the old style, and the Lawie logo animation was dropped from the landing page in T-517. Rajesh specs both together with this epic.
+
+## Founder's choice (26 Oct 2026)
+Direction B, The Reading Desk (handoff/design/T-584-landing-directions.md; canvas https://claude.ai/artifact/BUUtog4ppu6xS3Hidid3ou): the lit folio writes a bail application in the hero; coverage is 20 drawers that open in place, generated from the catalogue (the lead resolves aliases and disabled templates before any count is shown; the base batch has 92 entries, not 86). Rajesh next writes the Figma file and per-screen handoff spec; Madhuri gets the copy brief; Ajay signs claims after copy. The logo-fill proposal (wordmark ink-fills once in the hero, same fill as the app loading screen capped at 1.2 s, LogoSplash retires) is Rajesh's proposal in T-599 and still needs the founder's yes.
+
 ## Sequence
 Rajesh and Madhuri first, then one lead for the build. Not before the ai.* settings and T-583 are done on prod.
 
