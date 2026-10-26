@@ -246,3 +246,10 @@ Approved by Arjun 17:31 UTC. Adds two read-only actions to v6; nothing else chan
 - `nginx-access`, with param `path` (`^/[a-z0-9/_.-]{1,80}$`, default `/unset`, refused at default) and the existing `lines`. It runs `grep -F -- "$P" /var/log/nginx/access.log | tail -n "$N"` and awk prints only time, method, path with the query string stripped, and status. No IP, referrer or UA. Only the current `access.log` is read, not rotated files.
 - `env-has`, with param `name` (`^[A-Z][A-Z0-9_]{1,60}$`, default `UNSET`, refused at default). It derives the env path from `ecosystem.config.js` like deploy does and prints `NAME: set`, `NAME: set but empty` or `NAME: unset` using `grep -c`. It never prints the value. A line written `export NAME=` reads as unset.
 - `P='{{ path }}'; E='{{ name }}'` are appended single-quoted to the assignment line.
+
+### SSM version 8 — PREPARED, not applied (26 Oct 2026, 20:05 UTC, Nikhil)
+JSON: `handoff/ops/runbooks/lawie-prod-ops-v8.json`. Only change vs v7, besides the description: `deploy) deploy_guard && if [ -f /home/ubuntu/lawie/scripts/deploy-local.sh ]; then sudo -u ubuntu -i bash …/deploy-local.sh "$B"; else deploy_run; fi`.
+- The document keeps its own branch/instance guard (defence in depth).
+- Nothing is exported before the call. `sudo -i` starts a clean login env, so the env file's values aren't shadowed.
+- The file check runs before the pull, so the first deploy after T-606 lands uses the inline body. Later deploys use the script.
+- To apply: once T-606 is on a box, run `update-document` → `update-document-default-version 8` → ops-log row.
