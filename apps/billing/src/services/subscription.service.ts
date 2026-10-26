@@ -1929,7 +1929,6 @@ async function createSubscriptionLocked(
         // the Razorpay account yet (ticket raised). Until then, use Razorpay's max count, which
         // is 100 years either way. Remove once Razorpay enables perpetual subscriptions.
         total_count: planSku.cycle === 'yearly' ? 100 : 1200,
-        callback_url: `${env.FRONTEND_URL}/dashboard/payment/success`,
         notes: { userId, email, planId: planSku.id, tier: planSku.tier, cycle: planSku.cycle },
       }),
     );
