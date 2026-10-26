@@ -18,3 +18,6 @@ Signed in about 21:48 IST; at about 22:20 IST opening New document sent the user
 
 ## Files
 Lead lists after Explore (auth session / token refresh (web + auth)). Claimed by Priya.
+
+## Scope after Kunal's Explore (26 Oct 2026)
+T-538 (SSE stages, Last-Event-ID, runs/:runId) is NOT built, so reload-resume moves out of this ticket to T-538/T-539. This ticket: the web-only session fix (tokens are bearer JWTs in localStorage; access JWT 15 min by default; nothing refreshes proactively; on full page load an expired access token is treated as signed out without trying the refresh token; any failed refresh, including a 429 from the shared per-IP limit, signs out every tab). Server-side options wait for Arjun's answers.
