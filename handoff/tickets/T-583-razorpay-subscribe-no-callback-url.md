@@ -5,7 +5,7 @@
 | Phase  | 4 — Release (live prod bug) |
 | Owner  | Arjun (raised), Shashank (build) |
 | Mode   | Full chain (billing). Reviewer pass is mandatory (money path) |
-| Status | Merged into develop_staging (b42dbf51, CI 1024 green), 26 Oct 2026. Redeploy billing only, no env change. Follow-up T-592 (return path). Priya |
+| Status | Merged into develop_staging (b42dbf51, CI 1024 green) and released to prod via hotfix PR #100 (merged and deployed by the founder, 26 Oct 2026). Follow-up T-592 (return path). Priya |
 | Source | Arjun's prod smoke, 26 Oct 2026 |
 
 ## Problem
