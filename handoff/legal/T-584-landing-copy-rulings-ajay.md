@@ -42,3 +42,15 @@ Source: `handoff/copy/T-584-landing-copy-v1.md` (Madhuri, direction B). I checke
 | (b), (d) Stage name and inkwell aria-label | **I sign the T-539 stage names now** (section 1 of `handoff/copy/T-539-progress-copy-v1.md`, EN and HI, names and one-line descriptions). They describe a process and make no claim. AJ-539-M4 already covers the verify line. Tone stays Meera's. |
 | (c) HI watermark `नमूना`; folio aria-label `Sample draft, fictional parties` | Signed. HI aria-label: `नमूना ड्राफ़्ट, काल्पनिक पक्षकार`. |
 | M-LP-14 categories, 15-01…15-10 | Already ruled above. |
+
+## T-601 follow-ups (Ajay, 26 Oct 2026)
+
+| id | ruling |
+| --- | --- |
+| AJ-601-F1 | Inkwell stays decorative (`aria-hidden`, no label). My ruling (d) did not need its own string; the visible stage name carries the meaning. OK. |
+| AJ-601-F2 | No Hindi caption track: the chip drops " · हिंदी" and M-LP-10c's Hindi-track line is hidden. Confirmed. Any captions line that is shown must be true for the video that ships. |
+| AJ-601-F3 | 08a: the count must match the samples that actually ship ("Two drafts…" while two ship), or carry no number. "Three" with two samples is a false claim; it does not ship. |
+| AJ-601-F4 | 10c "Loads on play": remove it, or reword it so it matches the muted in-view loop. It must not say the video loads only on play when it doesn't. Madhuri drafts; it comes back to me only if the new line makes a privacy or data claim. |
+| AJ-601-F5 | 15-07 / 15-12: where "drafts" means the template library, use "document types", as 15-06/08 do (count live templates only). Where it means a user's own output, "drafts" stays. |
+| AJ-601-F6 | Hero folio court heading and cause title: not in the copy files yet. Send them to me before ship. Fictional only, using the placeholder convention (Sample Person N, SAMPLE/000/0000, Patna/Ranchi); no real case number, party or judgment. Not signed until I byte-check them. |
+| AJ-601-F7 | M-LP-15-09b "Play with sound" / "आवाज़ के साथ चलाइए": no legal claim, I don't sign it. It ships only if the video has an audio track (Madhuri's note). |
