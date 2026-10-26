@@ -110,11 +110,13 @@ test.describe('harness: preflight and builders (no browser)', () => {
     const env = e2eWebServerEnv({
       NEXT_PUBLIC_API_URL: 'https://api.lawie.in',
       NEXT_PUBLIC_SENTRY_DSN: 'https://key@o0.ingest.example.invalid/1',
+      NEXT_PUBLIC_SENTRY_ENVIRONMENT: 'production',
       NEXT_PUBLIC_SOMETHING_ELSE: 'https://elsewhere.invalid',
       SENTRY_DSN: 'https://key@o0.ingest.example.invalid/2',
     });
     expect(env.NEXT_PUBLIC_API_URL).toBe('http://localhost:4000');
     expect(env.NEXT_PUBLIC_SENTRY_DSN).toBe('');
+    expect(env.NEXT_PUBLIC_SENTRY_ENVIRONMENT).toBe('');
     expect(env.NEXT_PUBLIC_SOMETHING_ELSE).toBe('');
     expect(env.SENTRY_DSN).toBe('');
     expect(env.NEXT_TELEMETRY_DISABLED).toBe('1');
