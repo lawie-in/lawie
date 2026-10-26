@@ -173,6 +173,7 @@ import {
   sanitiseAIBody,
   stripOnlyWhenMarkers,
   promptPartyDesignations,
+  promptCourtState,
   TO_BE_CONFIRMED_DESIGNATION_RULE,
   CourtRuleData,
   PLACEHOLDER_ALIASES,
@@ -1444,9 +1445,16 @@ export interface BriefGenerateResult extends TemplateGenerateResult {
 export function drafterPartyDesignationLines(
   courtRule: CourtRuleData | undefined,
   templateId: string,
+  courtState?: string,
 ): string[] {
   if (!courtRule) return [];
-  const { entries, needsToBeConfirmedRule } = promptPartyDesignations(courtRule, templateId);
+  // T-488: the State known to the caller, so writ_petition_civil's State line
+  // names it (T-479, Ajay f9415fe8) rather than the no-State line.
+  const { entries, needsToBeConfirmedRule } = promptPartyDesignations(
+    courtRule,
+    templateId,
+    courtState,
+  );
   const lines = entries.map(([role, label]) => `Party designation, ${role}: "${label}"`);
   if (needsToBeConfirmedRule) lines.push(TO_BE_CONFIRMED_DESIGNATION_RULE.replace(/^- /, ''));
   return lines;
@@ -2025,7 +2033,11 @@ export async function streamGenerateFromBrief(
         // T-149 / T-158: the same labels as buildAISystemPrompt's PARTY
         // DESIGNATIONS block: matter-type labels, no "not applicable" state,
         // and the C2 rule when a label is a "[To be confirmed: ...]" blank.
-        ...drafterPartyDesignationLines(courtRule, templateConfig.template_id),
+        ...drafterPartyDesignationLines(
+          courtRule,
+          templateConfig.template_id,
+          promptCourtState(ctx, courtData),
+        ),
       ],
       target: input.targetParagraphs,
       language: input.language,

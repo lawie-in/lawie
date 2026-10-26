@@ -54,7 +54,7 @@ import { loadRulePack } from './rule-pack.service';
 // ── Versions recorded with every fact-diff row ──────────────────────────────
 
 /** Bump when a check changes what it flags. */
-export const VERIFIER_VERSION = 't147d-1';
+export const VERIFIER_VERSION = 't488-1';
 
 /** First 12 hex characters of the SHA-256 of the repair prompt. */
 export const REPAIR_PROMPT_VERSION = createHash('sha256')
@@ -774,6 +774,103 @@ function cueStems(label: string, key: string): Set<string> {
   return new Set(words.filter((w) => w.length >= 3 && !CUE_STOP.has(w)).map(stem));
 }
 
+/**
+ * T-488 (Ajay 971d2685, b37ed330): the s.138 date labels. A date is judged
+ * only against the field its own label names. These keys take their cues from
+ * this table, not from their label words. Words are folded.
+ */
+const S138_DATE_KEYS = new Set([
+  'cheque_date',
+  'presentation_date',
+  'dishonour_date',
+  'memo_received_date',
+  'notice_sent_date',
+]);
+/** "dated X" is the date of the nearest of these nouns before it. Date words take precedence. */
+const DATE_WORDS = new Set(['dated', 'dt', 'dinank', 'दिनांक']);
+const DATED_NOUN: ReadonlyMap<string, string> = new Map([
+  ['cheque', 'cheque_date'],
+  ['chek', 'cheque_date'],
+  ['चेक', 'cheque_date'],
+  ['notice', 'notice_sent_date'],
+  ['notis', 'notice_sent_date'],
+  ['नोटिस', 'notice_sent_date'],
+  ['memo', 'dishonour_date'],
+  ['मेमो', 'dishonour_date'],
+]);
+const PRESENTED_WORDS = new Set([
+  'presented',
+  'presenting',
+  'presentation',
+  'deposited',
+  'depositing',
+  'deposit',
+  'jama',
+  'जमा',
+  'प्रस्तुत',
+]);
+const DISHONOUR_WORDS = new Set([
+  'returned',
+  'dishonoured',
+  'dishonored',
+  'dishonour',
+  'dishonor',
+  'bounced',
+  'bounce',
+  'unpaid',
+  'anadrit',
+  'अनादरित',
+]);
+/** The return memo: its date, or with a received word the date it was received. */
+const MEMO_WORDS = new Set(['memo', 'मेमो', 'return']);
+/** "received" alone is no cue (b37ed330): it names the memo receipt only with a memo word. */
+const RECEIVED_WORDS = new Set(['received', 'receipt', 'recd', 'prapt', 'प्राप्त', 'mila', 'मिला']);
+const NOTICE_WORDS = new Set(['notice', 'notis', 'नोटिस']);
+/** "sent" names the notice date only with a notice word. */
+const SENT_WORDS = new Set(['sent', 'dispatched', 'despatched', 'bheja', 'bheji', 'भेजा', 'भेजी']);
+/** Never a date label on its own: the instrument nearly every s.138 sentence names. */
+const DATE_CUE_NOT = new Set(['cheque', 'chek', 'चेक']);
+
+/**
+ * The s.138 keys these words label, with how near the cue stands (0 = the
+ * word just before the date). `segment` is the clause from the previous date
+ * on, folded; a cue word stands in its last `near` words, its companion word
+ * ("memo" for "received", "notice" for "sent", the noun of "dated") anywhere
+ * in it. A "dated" with a noun decides alone.
+ */
+function s138Labels(
+  segment: readonly string[],
+  near: number,
+): Array<{ key: string; at: number; memoOnly?: boolean }> {
+  const n = segment.length;
+  const from = Math.max(0, n - near);
+  for (let i = n - 1; i >= from; i -= 1) {
+    if (!DATE_WORDS.has(segment[i])) continue;
+    for (let j = i - 1; j >= 0; j -= 1) {
+      const key = DATED_NOUN.get(segment[j]);
+      if (key) return [{ key, at: n - 1 - i }];
+    }
+  }
+  const nearest = (set: ReadonlySet<string>, lo: number): number => {
+    for (let i = n - 1; i >= lo; i -= 1) if (set.has(segment[i])) return n - 1 - i;
+    return -1;
+  };
+  const out: Array<{ key: string; at: number; memoOnly?: boolean }> = [];
+  const received = nearest(RECEIVED_WORDS, from);
+  if (received >= 0 && nearest(MEMO_WORDS, 0) >= 0) {
+    out.push({ key: 'memo_received_date', at: received });
+  }
+  const presented = nearest(PRESENTED_WORDS, from);
+  if (presented >= 0) out.push({ key: 'presentation_date', at: presented });
+  const returned = nearest(DISHONOUR_WORDS, from);
+  if (returned >= 0) out.push({ key: 'dishonour_date', at: returned });
+  const memo = nearest(MEMO_WORDS, from);
+  if (memo >= 0) out.push({ key: 'dishonour_date', at: memo, memoOnly: true });
+  const sent = nearest(SENT_WORDS, from);
+  if (sent >= 0 && nearest(NOTICE_WORDS, 0) >= 0) out.push({ key: 'notice_sent_date', at: sent });
+  return out;
+}
+
 function amountKey(v: number): string {
   return String(Math.round(v * 100));
 }
@@ -900,25 +997,52 @@ function cuedKeys(
   types: readonly string[],
 ): Array<{ key: string; unresolved: boolean }> {
   const [clauseStart] = sentenceAround(text, at, at);
-  const before = text.slice(clauseStart, at);
-  const words = fold(before)
-    .split(' ')
-    .filter((w) => w !== '')
-    .slice(-8)
-    .reverse();
-  const out: Array<{ key: string; unresolved: boolean }> = [];
-  const seen = new Set<string>();
-  for (const w of words) {
-    const s = stem(w);
-    for (const c of src.cues) {
-      if (!types.includes(c.type) || seen.has(c.key)) continue;
-      if (c.stems.has(s)) {
-        seen.add(c.key);
-        out.push({ key: c.key, unresolved: c.unresolved });
+  const forDate = types.includes('date');
+  let from = clauseStart;
+  if (forDate) {
+    // T-488: a date's label is in the words after the previous date of its sentence.
+    const clause = text.slice(clauseStart, at);
+    for (const re of DATE_RES) {
+      for (const m of clause.matchAll(re)) {
+        from = Math.max(from, clauseStart + m.index! + m[0].length);
       }
     }
   }
-  return out;
+  const segment = fold(text.slice(from, at))
+    .split(' ')
+    .filter((w) => w !== '');
+  const words = segment.slice(-8).reverse();
+  const bare = (k: string): string => k.slice(k.lastIndexOf('.') + 1);
+  const tabled = (c: Sources['cues'][number]): boolean =>
+    c.type === 'date' && S138_DATE_KEYS.has(bare(c.key));
+  const found: Array<{ key: string; unresolved: boolean; at: number }> = [];
+  const seen = new Set<string>();
+  words.forEach((w, i) => {
+    const s = stem(w);
+    for (const c of src.cues) {
+      if (!types.includes(c.type) || seen.has(c.key) || tabled(c)) continue;
+      if (c.type === 'date' && DATE_CUE_NOT.has(s)) continue;
+      if (c.stems.has(s)) {
+        seen.add(c.key);
+        found.push({ key: c.key, unresolved: c.unresolved, at: i });
+      }
+    }
+  });
+  if (forDate) {
+    const byName = new Map(src.cues.filter(tabled).map((c) => [bare(c.key), c]));
+    let labels = s138Labels(segment, 8);
+    // "return memo received": the memo words name the receipt, not the dishonour.
+    if (byName.has('memo_received_date') && labels.some((l) => l.key === 'memo_received_date')) {
+      labels = labels.filter((l) => !l.memoOnly);
+    }
+    for (const l of [...labels].sort((a, b) => a.at - b.at)) {
+      const c = byName.get(l.key);
+      if (!c || seen.has(c.key)) continue;
+      seen.add(c.key);
+      found.push({ key: c.key, unresolved: c.unresolved, at: l.at });
+    }
+  }
+  return found.sort((a, b) => a.at - b.at).map(({ key, unresolved }) => ({ key, unresolved }));
 }
 
 function labelOfKey(src: Sources, key: string): string {
@@ -1149,12 +1273,14 @@ function judgeDate(src: Sources, text: string, en: Entity): Judged | null {
   const held = src.dates.get(n.value);
   if (held && held.length > 0) {
     // The date is the ledger's; is it said to be the date of something else?
-    if (cued.length > 0 && !cued.some((c) => held.some((f) => f.key === c.key))) {
-      const u = cued.find((c) => c.unresolved);
-      if (u) return mutation(src, en, u.key, 'unresolved');
-      return mutation(src, en, cued[0].key, 'wrong_fact');
-    }
-    return null;
+    // T-488 (Ajay 971d2685): a date is judged only against the keys its own
+    // label names. No label: it passes. A label naming its own key: it passes.
+    // Labels that all name other keys: it is the nearest held one's wrong date.
+    if (cued.length === 0) return null;
+    if (cued.some((c) => held.some((f) => f.key === c.key))) return null;
+    const heldCue = cued.find((c) => !c.unresolved);
+    if (heldCue) return mutation(src, en, heldCue.key, 'wrong_fact');
+    return mutation(src, en, cued[0].key, 'unresolved');
   }
   if (src.skeleton.has(en.text)) return null;
   const u = cued.find((c) => c.unresolved);
