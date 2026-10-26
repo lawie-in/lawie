@@ -421,11 +421,11 @@ describe('T-586 AC3 Dockerfile and compose', () => {
     expect(text).toMatch(new RegExp(`^\\s+${name}:\\s*\\$\\{${name}:-\\}\\s*$`, 'm'));
   });
 
-  it('deploy.sh sets and exports SENTRY_RELEASE from git rev-parse HEAD after the env is sourced', () => {
-    const text = fs.readFileSync(path.join(REPO, 'deploy.sh'), 'utf8');
+  it('scripts/deploy-local.sh sets and exports SENTRY_RELEASE from git rev-parse HEAD after the env is sourced', () => {
+    const text = fs.readFileSync(path.join(REPO, 'scripts', 'deploy-local.sh'), 'utf8');
     const line = 'SENTRY_RELEASE=$(git rev-parse HEAD); export SENTRY_RELEASE';
     const exp = text.indexOf(line);
-    const src = text.indexOf('set -a');
+    const src = text.indexOf('eval "$ENV_EXPORTS"');
     expect(src).toBeGreaterThanOrEqual(0);
     expect(exp).toBeGreaterThan(src);
     // No `&&` form: `X=$(false) && export X` does not abort under `set -e`, so a failed
