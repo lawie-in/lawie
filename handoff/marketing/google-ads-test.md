@@ -11,7 +11,7 @@ Status: DRAFT. Not running. Needs (1) Vikram's okay on the spend, (2) Ajay's sig
 | Bidding | Manual CPC, max CPC ₹40. No automated bidding in the test |
 | Language | English. Hindi ads in round 2 after Ajay reads the Hindi |
 | Locations | Bihar, Jharkhand, Uttar Pradesh, Madhya Pradesh, Rajasthan, Delhi NCR (the district-court junior ICP) |
-| Landing page | The Lawie landing page, with manual UTMs: utm_source=google, utm_medium=cpc, utm_campaign=search-test-oct26-format (ad group 1) or search-test-oct26-software (ad group 2). The app keeps only source, medium and campaign (100 characters each), so the ad group goes in utm_campaign. utm_term and gclid are not kept |
+| Landing page | The Lawie landing page, with manual UTMs: utm_source=google-format or google-software (the existing count-by-source then splits by ad group; Priya, 26 Oct), utm_medium=cpc, utm_campaign=search-test-oct26-format (ad group 1) or search-test-oct26-software (ad group 2). The app keeps only source, medium and campaign (100 characters each), so the ad group goes in utm_campaign. utm_term and gclid are not kept |
 | Goal | Sign-ups, counted from our own accounts data by utm_campaign. There is no GA sign-up event today (Priya checked the code, 26 Oct), so no conversion is set up in Google Ads. Clicks and cost come from Ads |
 | Rule | Blended CAC (spend ÷ new paying users) at or under ₹2,000 (Vikram) |
 | Stop rule | Vikram's gate (section below) replaces my 3% rule: after ₹2,500, continue only if cost per verified sign-up is ₹250 or less. 3% of clicks stays as a floor. Report each ad group separately |
@@ -74,7 +74,7 @@ Campaign:
 - Ad group 1 "format-draft". Keywords: [bail application format] [legal notice format] "bail application draft" "anticipatory bail application" "draft legal notice online" "affidavit format"
 - Ad group 2 "software". Keywords: "legal drafting software" "legal drafting software for advocates" "ai legal drafting india"
 - Negative keywords (campaign level, phrase match): lawyer near me, advocate near me, hire, consultation, free legal advice, jobs, course, internship, salary, college, exam
-- One Responsive Search Ad per ad group, same text. Final URL, ad group 1: {LANDING_URL}/?utm_source=google&utm_medium=cpc&utm_campaign=search-test-oct26-format . Final URL, ad group 2: {LANDING_URL}/?utm_source=google&utm_medium=cpc&utm_campaign=search-test-oct26-software
+- One Responsive Search Ad per ad group, same text. Final URL, ad group 1: {LANDING_URL}/?utm_source=google-format&utm_medium=cpc&utm_campaign=search-test-oct26-format . Final URL, ad group 2: {LANDING_URL}/?utm_source=google-software&utm_medium=cpc&utm_campaign=search-test-oct26-software
   Headlines: 1) Lawie: Drafting for Advocates 2) Start with 5 free Ink 3) First Draft, You Review It 4) Bail Application Draft 5) Legal Notice Draft 6) You Stay the Advocate 7) Solo Plan ₹799 a Month 8) Describe It, Get a Draft
   Descriptions: 1) Describe your matter in plain words. Lawie writes a first draft. You review and edit it. 2) Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing. 3) Start with 5 free Ink once you verify your email. Solo plan ₹799 a month, 50 Ink.
 - Do not pin headlines. Do not add images, sitelinks, callouts or call extensions.
@@ -101,3 +101,16 @@ Before anyone enables it: Vikram okays the spend, Ajay signs the copy, the found
 **Not before T-403 and Anushka's PASS** (unchanged). Paid clicks must land on the production site, with sign-up source tracking (T-242) and the consent banner working, or the test measures nothing.
 
 Vikram, CFO
+
+## Ajay (26 Oct 2026): copy signed, with conditions
+
+All 8 headlines and 3 descriptions signed as written (handoff/legal/google-ads-test-copy-ruling-ajay.md). The price is GST-inclusive, so the ad needs no "incl. GST". Conditions:
+1. Production only, after T-403 and Anushka's PASS. Do not enable before she passes.
+2. No Ads or GA cookie before consent. Priya checked the code: gtag loads only after consent and on public pages, and no Ads tag is installed.
+3. Auto-apply and AI-generated assets OFF. Sitelinks and callouts need his sign-off (the agent adds none).
+4. Pause the campaign if the price, the 50 Ink or the bail/notice templates change.
+5. Hindi round 2 goes to him first.
+
+## Reporting (Priya, 26 Oct)
+
+Sign-ups by ad group come from the existing count-by-source report, using utm_source google-format and google-software. T-623 will group by utm_campaign and add paying users per campaign, in time for the end-of-test read. Until then Arjun pulls counts only.
