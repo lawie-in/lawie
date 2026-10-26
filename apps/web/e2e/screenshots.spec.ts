@@ -78,7 +78,9 @@ for (const theme of THEMES) {
     test(`landing`, async ({ page, context }, testInfo) => {
       await seedVisitor(context, theme);
       await page.goto('/');
-      await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible();
+      await expect(
+        page.getByRole('heading', { level: 1, name: 'Describe the matter. Read the draft.' }),
+      ).toBeVisible();
       await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
       await noSideways(page);
       await saveShot(page, testInfo, theme, 'landing');
