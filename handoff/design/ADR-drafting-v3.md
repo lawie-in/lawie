@@ -47,7 +47,7 @@ Hindi: a separate ticket on top of Phase 1 (ledger `display` forms carry the lan
 
 ## 4. Budget, models, orchestration
 
-- **Budget** (asserted in CI and at runtime): p50 ≤ 45 s, p95 ≤ 90 s end to end; ≤ 30k tokens per draft; cost cap per run `ai.cost_cap_paise`, default 800 paise, **Vikram confirms** against Ink pricing (1 Ink ≈ ₹21.7 at the 3-Ink pack; his model puts cost near ₹4 per Ink).
+- **Budget** (asserted in CI and at runtime): p50 ≤ 45 s, p95 ≤ 90 s end to end; ≤ 30k tokens per draft; cost cap per run = `ai.cost_cap_paise_per_ink` (default 900) × Ink quoted for the run (Vikram, 26 Oct: a flat cap fails a legitimate 25-paragraph bail at ~₹13); a run that trips the cap is failed safe — no Ink charged, one Sentry event. Margin gate: Vikram's line is ₹3.70 per Ink; his v3 p90 estimate for bail is ₹3.75–5.75, so the golden set measures cost per Ink before v3 ships, and the order of fixes if over the line is prompt caching, then moving a pass to Haiku, then price (founder's call).
 - **Models:** one AppSetting per role (table above) plus `ai.effort.*`. The admin AI page (T-609) lists all of them as required/optional, with the T-585 boot warning. Migration: today's `ai.drafting_model`/`ai.intake_model`/`ai.preflight_model` map to drafter/extractor/fact_checker with a fallback for one release.
 - **Orchestration:** an in-process state machine in the drafting service. Every step idempotent and persisted (a run document: step, ledger version, outputs by step id), so a crash or a token expiry resumes from the last step. SSE stages (T-538) extended with the new stage names and `round`. No BullMQ in v3.0; the state machine is written so a queue can wrap it later (T-537).
 
