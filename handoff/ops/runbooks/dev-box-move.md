@@ -26,7 +26,7 @@ In the box's site config(s) under `/etc/nginx/sites-available/`:
 
 ## 3. TLS (founder)
 ```
-sudo certbot --nginx -d develop.lawie.in -d www.develop.lawie.in -d develop.api.lawie.in
+sudo certbot --nginx -m admin@lawie.in -d develop.lawie.in -d www.develop.lawie.in -d develop.api.lawie.in
 sudo certbot renew --dry-run
 ```
 Old `lawie.in` certs on this box: `sudo certbot delete --cert-name <old name>` once the new ones work.
@@ -107,7 +107,7 @@ CREDS
 
 ### 3. TLS
 1. `dig +short develop.lawie.in www.develop.lawie.in develop.api.lawie.in` — each equals the box's current IP (grey cloud).
-2. `certbot --nginx --non-interactive --agree-tos -m <FOUNDER_CERTBOT_EMAIL> -d develop.lawie.in -d www.develop.lawie.in -d develop.api.lawie.in` (founder fills the email; not a secret, but not written into git).
+2. `certbot --nginx --non-interactive --agree-tos -m admin@lawie.in -d develop.lawie.in -d www.develop.lawie.in -d develop.api.lawie.in` (`admin@lawie.in` is the standard certbot contact for all Lawie boxes; Arjun, 26 Oct 2026).
 3. `nginx -t` → `systemctl reload nginx`
 4. `certbot renew --dry-run`
 5. `certbot certificates` — note the old lawie.in cert name; after step 8 passes: `certbot delete --non-interactive --cert-name <old name>` → `nginx -t` → reload.
