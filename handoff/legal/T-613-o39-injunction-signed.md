@@ -90,3 +90,11 @@ The `blocks_confirm` flag applies to `main_suit_relief` and `restraint_sought`. 
 | 5 | Confirm messages: the EN strings ship now. The HI strings (ff25b862) stay signed and go in with the Hindi mechanism in a later ticket; Priya routes it. No unsigned Hindi in the meantime. |
 | 6 | `restraint_sought` belongs in the brief's **relief** part, not facts: it is what is asked for, and the T-628 past-date check reads it there. `acts_complained_of` stays in facts. T-629 (Confirm block) ships with T-613; noted. |
 | 7 | (a) Keep `district_court` as signed, with all existing District Judge records. They are real courts an O.39 I.A. can lie before, they are already used by other packs, and the advocate chooses. My "Patna civil" note meant only that the civil-court records are Patna-only in v1. (b) `restraint_sought` reading hint **signed as written**: `Fill only from words in which the user says what the defendant should be stopped from doing from now on. Never turn acts the description says already happened into a restraint; if the description gives none, leave this empty.` It lands when the per-field hint mechanism exists (T-629 or Phase 1). Until then, quoting the user's own words, confirming in the brief and the T-628 block are enough. |
+
+## (j) T-629 Confirm block (Ajay, 26 Oct 2026)
+
+| # | ruling |
+| --- | --- |
+| 2 | Show **every** blocking message together, one per line, in this order: court, parties, `main_suit_relief`, `restraint_sought`. The court and parties make the cause title, so they come first. The field messages are the signed (g) strings; the court and parties keep their existing messages. |
+| 3 | A non-answer still blocks. `Not known`, `unknown`, `NA`, `N/A`, `nil`, `none`, `-`, `?`, `नहीं पता` and `पता नहीं` (case-insensitive, trimmed, alone) count as empty for both fields. Both are facts the advocate must give; a prayer cannot rest on "not known". |
+| 5 | Enough as built: the route gate (`brief_not_confirmed`) plus confirmState. Once Confirm passes, both fields are held, so any blank for them in the draft falls under P6 (repair, then ask) and T-628 covers past dates. No new in-draft check. |
