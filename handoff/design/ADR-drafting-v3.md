@@ -86,6 +86,6 @@ Phase 0 gate: one automatic repair from the ledger, then ask the user. The "ask 
 
 ## Signatures
 
-- Arjun (CTO): ____
+- Arjun (CTO): SIGNED 26 Oct 2026, 17:30 UTC — principles 1–7, roles, budget, orchestration, acceptance and phasing are my decisions as written; Phase 0 = T-610/611/612/613/616/619 already assigned. Two conditions: (a) Phase 1 does not start until Phase 0 is merged and Anushka has re-run the six matters on develop; (b) any change to section 3F, 5 or 6 after Ajay signs re-opens his signature.
 - Ajay (CLO), sections 3F, 5, 6: ____
 - Founder approval: ____
