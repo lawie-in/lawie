@@ -102,3 +102,15 @@ Phase 0 gate: one automatic repair from the ledger, then ask the user. The "ask 
 **Margin check before v3 ships.** v3's extra Sonnet pass (≈ ₹3) plus two Haiku calls puts a 2-Ink bail at roughly ₹7.5–11.5 at p90. That is ₹3.75–5.75 per Ink, over the ₹3.70 line. The golden set must measure v3's p90 cost per Ink by class before release. If it is over the line: prompt caching on the extra pass first, then the extra pass on Haiku, and only then a class price change, which is the founder's call.
 
 **Rate check.** Develop prices Haiku 5.5 at $0.10/$0.50 per MTok, a tenth of Haiku 4.5's $1/$5. Arjun to confirm against Anthropic's price page. If the true rate is 10× higher, intake and preflight cost about ₹3 per draft, not ₹0.4, and every figure above rises.
+
+## Arjun (26 Oct 2026, 17:30 UTC) — argued packs → template ids (for section 3F, per Ajay's sign-off)
+
+Sonnet legal reviewer (Ajay's "argued" list) applies to these catalogue ids; every other pack gets the Haiku rubric:
+
+- Bail (all): `bail_regular`, `bail_anticipatory`, `bail_before_magistrate`, `bail_cancellation`, `interim_bail`, `default_bail`, `suspension_of_sentence`, `surrender_application`
+- Temporary injunction: plaint_injunction temporary_injunction_o39 
+- Quashing: `fir_quashing`, `quashing_528_bnss`
+- Criminal revision: `criminal_revision`
+- Criminal appeal: `criminal_appeal`
+
+The list lives in code as `ARGUED_PACKS` next to the catalogue (one place, tested), and Ajay's sign-off file is the authority for additions. `discharge_application`, `habeas_corpus` and `writ_petition_criminal` are not on Ajay's list today; Priya asks him whether they should be before Phase 2.
