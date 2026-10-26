@@ -10,12 +10,12 @@
 //   row scrolls by keyboard as the links take focus.
 // - Hover (fine pointer, motion allowed): 2px lift, 150ms.
 
-import type { LandingCatalogue } from './catalogue-source';
 import { LANDING_STYLE, type SampleEntry } from './landing-config';
 import { LP, SAMPLE_SUMMARIES, categoryName, fill, tr } from './landing-copy';
 
 import { landingCopy, type Lang } from '@/components/marketing/nl-copy';
 import { cn } from '@/lib/cn';
+import type { LandingCatalogue } from '@/lib/landingCatalogue';
 
 const TILT = [
   'min-[720px]:-rotate-[1.2deg]',

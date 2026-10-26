@@ -6,7 +6,7 @@ import path from 'path';
 
 import { act } from 'react';
 
-import type { LandingCatalogue } from '../catalogue-source';
+import type { LandingCatalogue } from '@/lib/landingCatalogue';
 
 export const REPO_ROOT = path.resolve(__dirname, '../../../../../../../');
 

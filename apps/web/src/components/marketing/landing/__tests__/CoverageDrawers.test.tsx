@@ -3,8 +3,8 @@
 import { act } from 'react';
 
 import { CoverageDrawers } from '../CoverageDrawers';
-import { headlineCount } from '../catalogue-source';
 import { ReadingDeskLanding } from '../ReadingDeskLanding';
+import { headlineCount, landingCatalogue } from '@/lib/landingCatalogue';
 import { FIXTURE, bigCatalogue, clearMatchMedia, norm } from './_helpers';
 
 import {
@@ -383,5 +383,28 @@ describe('motion', () => {
     fireEvent.click(drawers(c)[2]);
     expect(grid.children).toHaveLength(before);
     expect(grid.querySelectorAll('[role="region"]')).toHaveLength(0);
+  });
+});
+
+describe('the real T-600 catalogue, through the page defaults (no catalogue prop)', () => {
+  const shelves = landingCatalogue.categories.filter((c) => c.templates.length > 0);
+
+  it('the lead line, the exact footer total and one drawer per non-empty category', () => {
+    const r = render(<ReadingDeskLanding />);
+    const c = r.container;
+    expect(shelves.length).toBeGreaterThan(0);
+    expect(c.querySelector('[data-coverage-headline]')!.textContent).toBe(
+      `${headlineCount(landingCatalogue.total)} document types in the library, shelved by subject.`,
+    );
+    expect(norm(c.querySelector('[data-coverage-total]')!.textContent)).toBe(
+      `${landingCatalogue.total} document types on ${shelves.length} shelves today.`,
+    );
+    expect(drawers(c).map((b) => b.dataset.drawer)).toEqual(shelves.map((x) => x.id));
+    expect(expanded(c)[0]).toBe('true');
+    // total is the sum of the templates (the generator's contract), and no empty shelf is shown.
+    expect(shelves.reduce((n, x) => n + x.templates.length, 0)).toBe(landingCatalogue.total);
+    expect(drawers(c).length).toBe(
+      landingCatalogue.categories.filter((x) => x.templates.length).length,
+    );
   });
 });

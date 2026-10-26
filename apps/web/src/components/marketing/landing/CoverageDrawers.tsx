@@ -13,7 +13,6 @@
 
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 
-import type { LandingCatalogue } from './catalogue-source';
 import { LANDING_STYLE } from './landing-config';
 import { LP, categoryName, drawerAriaLabel, drawerCountLabel, fill, tr } from './landing-copy';
 
@@ -21,6 +20,7 @@ import type { Lang } from '@/components/marketing/nl-copy';
 import { usePrefersReducedMotion } from '@/components/ui';
 import { CONTROL_LINE } from '@/components/ui/hover';
 import { cn } from '@/lib/cn';
+import type { LandingCatalogue } from '@/lib/landingCatalogue';
 
 const useIsoLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect;
 

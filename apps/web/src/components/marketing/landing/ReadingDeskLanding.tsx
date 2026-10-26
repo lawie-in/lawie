@@ -18,11 +18,6 @@
 import Link from 'next/link';
 import { useState } from 'react';
 
-import {
-  TEMPORARY_CATALOGUE_FIXTURE,
-  headlineCount,
-  type LandingCatalogue,
-} from './catalogue-source';
 import { CoverageDrawers } from './CoverageDrawers';
 import { DemoVideo } from './DemoVideo';
 import { HeroFolio } from './HeroFolio';
@@ -43,6 +38,7 @@ import {
 } from '@/components/marketing/nl-copy';
 import { NL_TEXT_LINK, nlLinkButton } from '@/components/marketing/nl-link';
 import { cn } from '@/lib/cn';
+import { headlineCount, landingCatalogue, type LandingCatalogue } from '@/lib/landingCatalogue';
 
 const SECTION = LANDING_STYLE.section;
 const RULED = 'border-t border-nl-line';
@@ -63,7 +59,7 @@ function PrimaryCta({ label, className }: { label: string; className?: string })
 
 export interface ReadingDeskLandingProps {
   initialLang?: Lang;
-  /** The T-600 catalogue. TEMPORARY default: the fixture in catalogue-source.ts. */
+  /** The T-600 catalogue (apps/web/src/data/landing-catalogue.json); tests may pass a fixture. */
   catalogue?: LandingCatalogue;
   /** public/demo/demo.mp4, a valid demo.json, its poster and the English captions exist (server check). */
   videoAvailable?: boolean;
@@ -83,7 +79,7 @@ export interface ReadingDeskLandingProps {
 
 export function ReadingDeskLanding({
   initialLang = 'en',
-  catalogue = TEMPORARY_CATALOGUE_FIXTURE,
+  catalogue = landingCatalogue,
   videoAvailable = false,
   hindiCaptionsAvailable = false,
   videoHasAudio = false,

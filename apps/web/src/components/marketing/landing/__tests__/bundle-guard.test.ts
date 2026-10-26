@@ -32,7 +32,6 @@ describe('landing folder guard', () => {
         'DemoVideo.tsx',
         'landing-copy.ts',
         'landing-config.ts',
-        'catalogue-source.ts',
         'useInView.ts',
       ]),
     );
@@ -53,6 +52,24 @@ describe('landing folder guard', () => {
     for (const f of files) {
       const code = strip(fs.readFileSync(path.join(DIR, f), 'utf8'));
       expect({ f, hit: re.test(code) }).toEqual({ f, hit: false });
+    }
+  });
+
+  it('the temporary catalogue-source.ts is gone, and never coexists with the T-600 JSON', () => {
+    const temp = path.join(DIR, 'catalogue-source.ts');
+    const json = path.resolve(DIR, '../../../data/landing-catalogue.json');
+    expect(fs.existsSync(temp)).toBe(false);
+    expect(fs.existsSync(json) && fs.existsSync(temp)).toBe(false);
+    expect(fs.existsSync(path.resolve(DIR, '../../../lib/landingCatalogue.ts'))).toBe(true);
+  });
+
+  it('every landing file reads the catalogue from @/lib/landingCatalogue only', () => {
+    for (const f of files) {
+      const t = strip(fs.readFileSync(path.join(DIR, f), 'utf8'));
+      expect({ f, hit: /catalogue-source|data\/landing-catalogue/.test(t) }).toEqual({
+        f,
+        hit: false,
+      });
     }
   });
 
