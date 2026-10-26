@@ -1,3 +1,4 @@
+import { isVerified } from '@lawie/shared';
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 
@@ -12,6 +13,7 @@ import { grantSignupBonus } from '../services/credit-bonus.service';
 import { discardOAuthUtm, getVerifiedOAuthState, takeOAuthUtm } from '../services/oauth-state';
 import { applyReferralCode, grantDeferredReferralInk } from '../services/referral.service';
 import { deleteAllUserSessions } from '../services/session.service';
+import { queueWelcomeEmail } from '../services/welcome-email.service';
 import { buildSignupSource } from '../validators/auth.validator';
 
 import { env } from './env';
@@ -102,6 +104,8 @@ export function initPassport(): void {
             user = await User.findOne({ email });
             if (user && !user.isActive) return refuseDeactivated(user.id as string);
             if (user) {
+              // T-587: read before the link, which makes the account count as verified.
+              const verifiedBeforeLink = isVerified(user);
               user.googleId = profile.id;
               // T-299 ruling 6 and Arjun's answer 1 (until T-223 verifies email): linking makes the
               // account Google-only. Whoever set the password may not own the address; the owner can
@@ -142,6 +146,10 @@ export function initPassport(): void {
                   logger.warn({ userId: linkedUserId }, 'Signup bonus after Google link failed');
                 })
                 .then(() => grantDeferredReferralInk(linkedUserId));
+              // T-587: the link verified an unverified password account, so it gets the welcome
+              // (once: the welcomeQueuedAt claim). An account verified before the link does not
+              // (it was welcomed at verification, or predates go-live: no backfill).
+              if (!verifiedBeforeLink) void queueWelcomeEmail(linkedUserId);
             } else {
               // 3. Brand-new user — create account.
               // T-242 — sign-up source, taken (read + deleted) from Redis under the verified
@@ -168,6 +176,9 @@ export function initPassport(): void {
               isNewUser = true;
               // Signup bonus — non-blocking, never fails OAuth callback
               void grantSignupBonus(user._id.toString());
+              // T-587: a Google account counts as verified, so the welcome goes now (once:
+              // the welcomeQueuedAt claim). Non-blocking; never fails the OAuth callback.
+              void queueWelcomeEmail(user._id.toString());
             }
           } else if (!user.termsAcceptedAt) {
             // 1b. Returning Google user who signed up before the consent line existed.

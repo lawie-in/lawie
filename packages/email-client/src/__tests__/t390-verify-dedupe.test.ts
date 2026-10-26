@@ -104,13 +104,17 @@ describe('T-390 verify-email producer dedupe', () => {
 
   it('other templates are unchanged: idempotencyKey becomes jobId, no deduplication', async () => {
     await enqueueEmail({
-      template: 'auth.welcome',
+      template: 'billing.subscriptionConfirmed',
       to: 'a@example.com',
       data: { name: 'A' },
-      idempotencyKey: 'welcome-1',
+      idempotencyKey: 'sub-1',
     });
-    await enqueueEmail({ template: 'auth.welcome', to: 'a@example.com', data: { name: 'A' } });
-    expect(calls[0].opts.jobId).toBe('welcome-1');
+    await enqueueEmail({
+      template: 'billing.subscriptionConfirmed',
+      to: 'a@example.com',
+      data: { name: 'A' },
+    });
+    expect(calls[0].opts.jobId).toBe('sub-1');
     expect(calls[0].opts.deduplication).toBeUndefined();
     expect(calls[1].opts.jobId).toBeUndefined();
     expect(calls[1].opts.deduplication).toBeUndefined();
