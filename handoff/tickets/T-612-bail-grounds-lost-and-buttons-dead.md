@@ -19,3 +19,6 @@ The ground picked in round 1 shows 'To be asked' in the brief; clicking a ground
 
 ## Files
 Lead lists after Explore (web brief + drafting). Claimed by Priya.
+
+## Added by part 2 of the prod check (Anushka, item 11)
+The same fault is in ANTICIPATORY bail: four grounds picked (no prior record, will cooperate, deep roots, reputation ruined by arrest) were all gone on the brief ('To be asked'); clicking a ground on the brief did nothing; the draft prints `{{MISSING: Grounds for Anticipatory Bail (select all applicable)}}` as para 6 and argues nothing (eight short paragraphs). AC 1 to 4 apply to both bail types. Both bail drafts print `{{MISSING: Grounds for ...}}` (T-611 guard also applies).

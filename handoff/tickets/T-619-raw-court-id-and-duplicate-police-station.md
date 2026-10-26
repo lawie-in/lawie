@@ -18,3 +18,6 @@ The court shows as 'bihar_sessions_patna' in the document header, My documents a
 
 ## Files
 Lead lists after Explore (web (header, My documents, Document info) and drafting bail pack). Claimed by Priya.
+
+## Added by part 2 (item 11)
+Anticipatory bail para 2 prints 'Police Station Mahila Police Station' (same doubled-label bug); the draft says 'himself or herself' although Male was chosen (pronoun should follow the chosen gender).

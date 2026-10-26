@@ -1,11 +1,11 @@
 # Quality check: drafting on lawie.in (production): FAIL
 
 - **By:** Anushka (CQO), from the founder's chat. I wrote the verdict myself.
-- **When:** Mon 26 Oct 2026, about 21:48 to 22:21 IST. I stopped there because Lawie signed the account out (see item 8). Part 2 is pending.
+- **When:** Mon 26 Oct 2026, about 21:48 to 22:21 IST, when Lawie signed the account out (see item 8). Part 2 ran from 22:23 to 22:30 IST, after the founder signed in again.
 - **Build:** lawie.in as live on 26 Oct 2026, after the founder said the "Could not read your description" fix was deployed.
 - **Where:** the founder's Chrome, through the Claude extension, at desktop width (1470 px, later 1280 px).
 - **Account:** "Anand Test", Free plan.
-  - Ink went from 28 to 22: four drafts, costing 2 + 1 + 1 + 2.
+  - Ink went from 28 to 20: five drafts, costing 2 + 1 + 1 + 2 + 2.
   - The dashboard showed each drop as it happened.
   - No Ink was granted from admin.
 - **Client details:** all made up.
@@ -13,8 +13,6 @@
   - PDF and DOCX downloads: no permission was given, so I didn't click them.
   - Phone width: the browser window would not shrink below 1280 px. This was my end, not a Lawie fault.
   - The 4,000-character limit.
-  - A full anticipatory bail draft: the session ended just as I started it.
-  - The Hindi interface.
 
 ## Overall: FAIL
 
@@ -30,7 +28,7 @@ Drafting works again on lawie.in. Four drafts were made, each in about 30 second
   - the sale deed date (shown four times);
   - the relief in the main suit;
   - the applicant's address.
-- **In regular bail, my chosen ground was lost twice, and the grounds buttons on the brief do nothing when clicked.** The draft has no grounds paragraph at all.
+- **In both regular and anticipatory bail, grounds picked in the questions are lost, and the grounds buttons on the brief do nothing.** Neither bail draft argues a single ground; each prints `{{MISSING: Grounds for Bail}}`.
 - **The injunction prayer restrains the defendant from digging "on 20 October 2026",** a date already past. The cause title leaves both parties blank.
 - **The session ended after about 30–35 minutes.** Lawie sent me to sign in midway through a new draft.
 - **Admin money and audit records are still wrong:**
@@ -173,9 +171,46 @@ Drafting works again on lawie.in. Four drafts were made, each in about 30 second
 
 From description to questions: about 30–35 s each time.
 
-## Pending, after the founder signs in again
+## Part 2, after the founder signed in again (22:23 to 22:30 IST)
 
-- A full anticipatory bail draft. It was recognised from the description; the draft is not made yet.
-- The Hindi interface.
-- Downloads, if permitted.
-- Phone width, on a different browser window.
+Ink went from 22 to 20.
+
+### 11. Anticipatory bail (from description): FAIL
+
+- **Input:**
+  - Pankaj Singh (29), S/o Ramesh Singh, Rajendra Nagar, Patna.
+  - The wife's FIR 77/2026 dated 12 Oct 2026, Mahila PS Patna, under s.85 BNS and ss.3–4 of the Dowry Prohibition Act.
+  - Married on 5 Feb 2023; she left on 14 June 2026.
+  - The allegations are general, with no date or incident.
+  - Not yet arrested, no antecedents, a teacher, will cooperate.
+- **Recognised from description: PASS.** The questions suited the case: earlier bail applications, why arrest is feared, grounds, and stage of investigation.
+- **I picked four grounds:** no prior record, will cooperate, deep roots, and reputation ruined by arrest.
+  - **All four were gone on the brief,** which showed "To be asked". This is the same fault as in regular bail, so it affects both bail types.
+  - **Clicking a ground on the brief did nothing,** as in regular bail.
+- **The draft (2 Ink, 30 s):**
+  - Correctly under **s.482 BNSS**.
+  - The undertaking follows the s.482(2) conditions.
+  - The prayer includes immediate release if arrested.
+  - **Para 6 is `{{MISSING: Grounds for Anticipatory Bail (select all applicable)}}`.** Nothing is argued. The draft is eight short paragraphs.
+  - It leaves out the marriage date, that she left in June, and that the allegations name no date or incident. Only my one-line "why arrest is feared" answer is used.
+  - **"Police Station Mahila Police Station"** (para 2).
+  - "himself or herself", although "Male" was chosen.
+- **Blanks:** the page says 2.
+
+### 12. Hindi: FAIL
+
+- The first click on हिन्दी did nothing. The second worked.
+- **Only the home page changes**, and only partly: "Documents", "Prices", "FAQ" and "Sign in" stay in English.
+- The dashboard and New document stay entirely in English.
+- While signed in, the home page still shows "Sign in" and "Start with 5 free Ink".
+- I switched the site back to English afterwards.
+
+### Admin after part 2
+
+The dashboard's "Drafts by type" shows bail 2, guided 1, legal notice 1: four of five. The injunction is still left out.
+
+## Still not done
+
+- Downloads: no permission was given.
+- Phone width: I need a different browser window.
+- The 4,000-character limit.
