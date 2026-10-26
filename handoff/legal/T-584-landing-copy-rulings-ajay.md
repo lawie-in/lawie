@@ -1,0 +1,23 @@
+# T-584 landing copy v1: Ajay's rulings (26 Oct 2026)
+
+Source: `handoff/copy/T-584-landing-copy-v1.md` (Madhuri, direction B). I checked it against the BCI rule on advertising (no guarantees, no comparisons, nothing implying the advocate is replaced, no time-saved claims) and the signed AJ-511 set. **Signed as written** unless a row below changes it. The build uses this file plus the copy file.
+
+| Ref | Ruling |
+|---|---|
+| M-LP-02 | Signed: option #1, `Describe the matter. Read the draft.` / `मामला बताइए। ड्राफ़्ट पढ़िए।` |
+| M-LP-03, 04a, 11c | Signed, **on condition** that Hindi input works end to end in the build (Priya confirms). If it does not, drop "in English or Hindi" / "हिंदी या अंग्रेज़ी में" from all three. |
+| M-LP-04b | Signed. The second sentence is the AJ-511-M2/M5 line, under its condition. |
+| M-LP-04c, 11f, 11g | Signed, on condition that editing and PDF/Word export are live on the plan shown (AJ-511-M16). |
+| M-LP-06 | **Changed** ("cannot be out of date" is an absolute claim): `This list is built from our template library and changes when the library does. Open any drawer to see what is in it today.` / HI `यह सूची हमारी टेम्पलेट लाइब्रेरी से बनती है और उसके साथ बदलती है। कोई भी दराज़ खोलकर देखिए कि आज उसमें क्या है।` |
+| M-LP-07 | Signed. |
+| M-LP-08b | **Changed:** drop "details redacted" (the parties are invented, so nothing is redacted). EN `Prepared in advance with fictional parties, with a SAMPLE watermark on every page. They show how a first draft reads, not a filed document.` HI: the same cut (remove `विवरण छिपाए (redacted) गए,`). Condition: I check each sample PDF (watermark on every page) before it is served. |
+| M-LP-09a | **Names changed** to obvious placeholders (as AJ-556 / item 71), so no real person matches: `Fictional parties: Sample Person 1 and the State. A first-time accused; the draft sets out the facts and grounds from the description given.` / HI `काल्पनिक पक्षकार: नमूना व्यक्ति 1 और राज्य। पहली बार का अभियुक्त; ड्राफ़्ट दिए गए विवरण से तथ्य और आधार रखता है।` |
+| M-LP-09b | **Names changed:** `Fictional parties: Sample Traders and Sample Packaging Works. The notice sets out the agreement, the alleged breach and the demand, as described.` / HI `काल्पनिक पक्षकार: सैंपल ट्रेडर्स और सैंपल पैकेजिंग वर्क्स। नोटिस विवरण के अनुसार करार, कथित उल्लंघन और माँग रखता है।` |
+| M-LP-09c | **Template swapped**: plaints are off in v1, so the sample must be a live template. Use the maintenance petition (`maintenance_bnss_144`): `Fictional parties: Sample Person 2 and Sample Person 3. A maintenance petition, with the facts and relief laid out from the description.` / HI `काल्पनिक पक्षकार: नमूना व्यक्ति 2 और नमूना व्यक्ति 3। भरण-पोषण याचिका, जिसमें विवरण से तथ्य और राहत रखी गई है।` If the catalogue title differs, use the catalogue title. |
+| M-LP-10c | Signed, on condition the footage is the real build (no mock-up). |
+| M-LP-11a, 11b, 11e | Signed. Screens show fictional data only; no section number is legible. |
+| M-LP-11d | Signed under AJ-511-M1 (the shown cost is the charged ceiling). |
+| M-LP-12b, 12d, 12f | Signed. 12f follows AJ-511-M13, and the Privacy Policy's vendor list governs. |
+| M-LP-14 (categories) | **Rule:** a category shelf shows only if it has at least one live template (the generator hides empty ones), so **14-05 "Civil: plaints and suits" does not show in v1**. **14-06 HI changed** to `सिविल: बचाव और अंतरिम आवेदन` (प्रतिरक्षा reads as military defence). All others are signed as written: 14-01 to 04, 07, 08, 10, 11, 13 to 18, and 21 to 24. 14-04 HI `परक्राम्य लिखत अधिनियम` is correct. |
+| M-LP-14-T | Not written yet. It comes to me with Arjun's catalogue generator (T-600). |
+| Not mine | 01, 05, 05e, 08a, 08e, 10a, 10b, 11h, 12a and 13: labels or already signed. No objection. |
