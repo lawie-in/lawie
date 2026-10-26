@@ -22,6 +22,9 @@ The founder is not happy with the landing page content. The "what we can draft t
 ## Related (26 Oct 2026)
 T-599: the remaining marketing pages (privacy, free tools, about, faq, terms, refunds, contact) are still in the old style, and the Lawie logo animation was dropped from the landing page in T-517. Rajesh specs both together with this epic.
 
+## Founder's choice (26 Oct 2026)
+Direction B, The Reading Desk (handoff/design/T-584-landing-directions.md; canvas https://claude.ai/artifact/BUUtog4ppu6xS3Hidid3ou): the lit folio writes a bail application in the hero; coverage is 20 drawers that open in place, generated from the catalogue (the lead resolves aliases and disabled templates before any count is shown; the base batch has 92 entries, not 86). Rajesh next writes the Figma file and per-screen handoff spec; Madhuri gets the copy brief; Ajay signs claims after copy. The logo-fill proposal (wordmark ink-fills once in the hero, same fill as the app loading screen capped at 1.2 s, LogoSplash retires) is Rajesh's proposal in T-599 and still needs the founder's yes.
+
 ## Sequence
 Rajesh and Madhuri first, then one lead for the build. Not before the ai.* settings and T-583 are done on prod.
 
