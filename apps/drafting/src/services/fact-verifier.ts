@@ -2240,6 +2240,13 @@ const FILL_TYPES = new Set<string>([
   'text',
 ]);
 
+/**
+ * The longest text fact code puts in a blank's place. A longer one, or one with
+ * a line break (which would change the paragraphs before the verifier and the
+ * T-200 check read them), is left to the one model repair.
+ */
+const TEXT_FILL_MAX = 300;
+
 const MISSING_TOKEN_RE = /\{\{\s*MISSING\s*:\s*([^}]*?)\s*\}\}/gi;
 
 /** A `{{MISSING: label}}` for a fact the ledger holds. */
@@ -2278,6 +2285,7 @@ function fillFor(list: readonly LedgerFact[] | undefined): string | null {
   if (!FILL_TYPES.has(f.type)) return null;
   const d = displayOf(f);
   if (d === '' || /\{\{|\}\}/.test(d)) return null;
+  if (f.type === 'text' && (d.length > TEXT_FILL_MAX || /[\r\n]/.test(d))) return null;
   return d;
 }
 
@@ -2332,6 +2340,28 @@ export function heldBlanksIn(
     }
     out.push({ key, label: m[1] });
   }
+  return out;
+}
+
+/**
+ * T-611 P6: where the one model repair is asked to print a held fact: the span
+ * of each `{{MISSING: label}}` in the body whose label names a held fact (the
+ * same blanks `repairHeldBlanks` lists). For T-200 R2b.4: the repair re-records
+ * a paragraph only when its change stays inside one of these spans' sentences.
+ */
+export function heldBlankSpans(
+  body: string,
+  facts: readonly LedgerFact[],
+): Array<{ from: number; to: number }> {
+  const entries = factEntriesByKey(facts);
+  const out: Array<{ from: number; to: number }> = [];
+  splitParagraphs(body).forEach((p) => {
+    for (const m of p.text.matchAll(MISSING_TOKEN_RE)) {
+      if (heldKeyForLabel(m[1], entries) === null) continue;
+      const from = p.start + m.index!;
+      out.push({ from, to: from + m[0].length });
+    }
+  });
   return out;
 }
 

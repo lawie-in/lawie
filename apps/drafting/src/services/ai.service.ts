@@ -108,6 +108,7 @@ import {
   FactViolation,
   fillHeldBlanks,
   HeldBlank,
+  heldBlankSpans,
   heldBlanksIn,
   repairHeldBlanks,
   splitParagraphs,
@@ -2467,14 +2468,28 @@ export async function streamGenerateFromBrief(
       // Drafter's own blanks for facts the ledger holds. Before the verifier,
       // so it checks the filled body and its own blanks are never filled.
       const bodyFill = fillHeldBlanks(output.body, ledger.facts);
-      let filledBody = bodyFill.text;
-      if (bodyFill.left.length > 0) {
-        filledBody = await repairHeldBlanks(verifierInputFor(filledBody, ledger), factRepair);
+      if (bodyFill.text !== output.body) {
+        // T-200, R2b.1: the deterministic fill is a code edit; it records the
+        // changed paragraphs again.
+        recordAgainAfterCodeEdit(output.report, output.body, bodyFill.text, recorded, missing);
+        output = { ...output, body: bodyFill.text };
       }
-      if (filledBody !== output.body) {
-        // T-200, R2b.1: a code edit records the changed paragraphs again.
-        recordAgainAfterCodeEdit(output.report, output.body, filledBody, recorded, missing);
-        output = { ...output, body: filledBody };
+      if (bodyFill.left.length > 0) {
+        const repaired = await repairHeldBlanks(verifierInputFor(output.body, ledger), factRepair);
+        if (repaired !== output.body) {
+          // T-200, R2b.4: the held-blank repair is a model repair. A paragraph is
+          // recorded again only when its change stays inside a sentence of a
+          // blank the repair was asked to fill. Spans are in the body it read.
+          recordAgainAfterCodeEdit(
+            output.report,
+            output.body,
+            repaired,
+            recorded,
+            missing,
+            heldBlankSpans(output.body, ledger.facts),
+          );
+          output = { ...output, body: repaired };
+        }
       }
       factCheck = await verifyAndRepair(verifierInputFor(output.body, ledger), factRepair);
       // T-200: the fact check's edits record the changed paragraphs again. With

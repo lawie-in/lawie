@@ -5,12 +5,15 @@
  * never a raw {{MISSING token (AC1, AC5). Mocked model, no network.
  */
 import './setupDb';
+import mongoose from 'mongoose';
 import request from 'supertest';
 
 import app from '../app';
 import { AppSetting } from '../models/AppSetting.model';
 import { Court } from '../models/Court.model';
 import { LawieDocument } from '../models/Document.model';
+import { Generation } from '../models/Generation.model';
+import { User } from '../models/User.model';
 import { createVerifiedUser } from './verifiedUser';
 import { _clearAppSettingsCache } from '../services/app-settings.service';
 import type { DraftParagraphsOutput } from '../services/draft-renderer';
@@ -120,5 +123,107 @@ describe('D1: a blank for a fact not held is delivered, and never served raw', (
     expect(got.status).toBe(200);
     expect(got.body.content).not.toMatch(/\{\{\s*MISSING/i);
     expect(got.body.content).toContain('[To be confirmed:');
+  });
+});
+
+describe('D1: a conflicting value withholds the draft (P1), at the route', () => {
+  const OID = new mongoose.Types.ObjectId(USER_ID);
+  const CONFLICT = '3 May 2026'; // held as the FIR date, said in the draft to be the arrest date
+
+  async function run(kind: 'bail_before_magistrate' | 'bail_regular', facts: any[], mutate: any) {
+    const skeleton = loadSkeleton(kind)!;
+    const held = new Set(facts.map((f) => f.key));
+    const output: DraftParagraphsOutput = {
+      paragraphs: skeleton.clauses.map((c) => ({
+        clauseId: c.id,
+        factRefs: [...(c.slots ?? [])].filter((s) => held.has(s)),
+        text: '',
+        items: [],
+      })),
+    };
+    mutate(output);
+    mockParse.mockResolvedValue(sdkParseResponse(output));
+    const ledger = await createLedger({
+      userId: USER_ID,
+      documentKind: kind,
+      intakeId: 'i1',
+      state: { facts, unresolved: [] },
+    });
+    const byKey = new Map<string, string[]>();
+    for (const f of facts) byKey.set(f.key, [...(byKey.get(f.key) ?? []), f.display]);
+    const values = [...byKey].map(([key, v]) => ({ key, value: v.length === 1 ? v[0] : v }));
+    return request(app)
+      .post('/generate-from-brief')
+      .set(headers())
+      .send({
+        kind,
+        values,
+        court: { state: 'bihar', court_type: 'sessions', court: COURT_ID },
+        ledger_id: String(ledger._id),
+      });
+  }
+
+  it('bail_before_magistrate: fact_conflict, no done, no document, hold released, failed row, value not logged', async () => {
+    const facts = [
+      ...magistrateBase().filter((f) => f.key !== 'facts_narrative'),
+      fact('arrest_date', '12 May 2026', { type: 'date', value: '2026-05-12' }),
+      // the advocate's own words: a date held as the FIR date, written as the arrest date
+      fact('facts_narrative', `The arrest date was ${CONFLICT} and she had no part in the deal.`),
+    ];
+    const logs = (['log', 'info', 'warn', 'error', 'debug'] as const).map((m) =>
+      jest.spyOn(console, m).mockImplementation(() => undefined),
+    );
+    const res = await run('bail_before_magistrate', facts, (o: DraftParagraphsOutput) => {
+      const p = o.paragraphs.find((x) => x.clauseId === 'facts');
+      if (p) p.text = `The arrest date was ${CONFLICT} and she had no part in the deal.`;
+    });
+    const errs = res.text
+      .split('\n\n')
+      .filter((b) => b.startsWith('event: error\n'))
+      .map((b) => JSON.parse(b.split('\ndata: ')[1]));
+    expect(errs).toHaveLength(1);
+    expect(errs[0]).toMatchObject({
+      code: 'fact_conflict',
+      retryable: false,
+      conflict: { keyA: 'arrest_date', keyB: 'fir_date' },
+    });
+    expect(res.text).not.toContain('event: done');
+    expect(await LawieDocument.countDocuments({})).toBe(0);
+    const gens = await Generation.find({ userId: USER_ID }).lean();
+    expect(gens.map((g) => g.status)).toEqual(['failed']);
+    const u = (await User.collection.findOne({ _id: OID })) as unknown as {
+      inkTopup: number;
+      inkSub: number;
+      inkHolds: unknown[];
+    };
+    expect(u.inkTopup).toBe(2000);
+    expect(u.inkSub).toBe(0);
+    expect(u.inkHolds).toEqual([]);
+    expect(
+      await mongoose.connection
+        .db!.collection('inkledger')
+        .countDocuments({ userId: OID, reason: 'generate' }),
+    ).toBe(0);
+    const logged = logs
+      .flatMap((s) => s.mock.calls)
+      .map((c) => c.map(String).join(' '))
+      .join('\n');
+    expect(logged).not.toContain(CONFLICT);
+    expect(logged).not.toContain('Which is right');
+    logs.forEach((s) => s.mockRestore());
+  });
+
+  it('control: the same draft with the date under its own label is delivered', async () => {
+    const facts = [
+      ...magistrateBase().filter((f) => f.key !== 'facts_narrative'),
+      fact('arrest_date', '12 May 2026', { type: 'date', value: '2026-05-12' }),
+      fact('facts_narrative', 'The arrest date was 12 May 2026 and she had no part in the deal.'),
+    ];
+    const res = await run('bail_before_magistrate', facts, (o: DraftParagraphsOutput) => {
+      o.paragraphs.find((x) => x.clauseId === 'facts')!.text =
+        'The arrest date was 12 May 2026 and she had no part in the deal.';
+    });
+    expect(res.text).not.toContain('event: error');
+    expect(res.text).toContain('event: done');
   });
 });
