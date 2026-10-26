@@ -3,7 +3,7 @@
 | Field  | Value |
 | ------ | ----- |
 | Phase  | 4 — Release (data loss without warning; UI) |
-| Owner  | Rajesh (one line of design), a lead (build; web) |
+| Owner  | a lead (build; web). Arjun 26 Oct: behaviour only, no Rajesh |
 | Mode   | Small fix (web only); Rajesh gate for the visible hint |
 | Status | To do. Raised 26 Oct 2026 from Anushka's prod smoke. Priya |
 | Source | Anushka's report: a 657-character description stopped mid-sentence at "he is the" |

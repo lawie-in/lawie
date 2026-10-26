@@ -5,7 +5,7 @@
 | Phase  | 4 — Release (P0, prod down for drafting) |
 | Owner  | Arjun (diagnosis), Nikhil (box checks), a lead (fix if it is code) |
 | Mode   | Diagnose first; small fix if code, ops if config |
-| Status | To do. Raised 26 Oct 2026 from Anushka's prod smoke (FAIL). Priya |
+| Status | ROOT CAUSE FOUND (Nikhil, prod drafting log, read-only): configuration, not code. FOUNDER CONFIG: set ai.drafting_model, ai.preflight_model and ai.intake_model in /admin/ai-config on lawie.in (same values as the develop DB). Keep open until Anushka reruns the draft step. Priya |
 | Source | Anushka's report: 4 attempts on lawie.in, Anand Test account |
 
 ## What was seen
@@ -21,3 +21,7 @@ Every attempt at the first step (describe-first) shows `Could not read your desc
 2. Fix applied (ops: AppSettings/env by the founder; or code by a lead). Name any env or setting only; no values.
 3. Anushka reruns the same bail matter end to end: brief, questions, draft, blanks, Ink charge.
 4. A regression guard if it was code or a silent config gap (for example the describe step surfaces the real reason class, not a generic message).
+
+## Root cause (26 Oct 2026, Arjun and Nikhil)
+The three `ai.*` AppSettings are missing in the prod database. Prod drafting log: `[intake] ai.intake_model is not set` x10, `ai.drafting_model is missing` on generation, boot WARN at 14:14 and 15:30 (T-585 doing its job). No Anthropic or network errors; gateway clean. Drafting has never worked on prod since go-live. No lead needed.
+Side finding, same log: `pricing.paragraph_bands.*` AppSettings are also absent on prod, so packs charge the class price (not fatal). Vikram to be told; the founder's config list gets it.
