@@ -5,7 +5,7 @@
 | Phase  | 4 — Release (security hygiene; before main) |
 | Owner  | Arjun (design), a lead (build; small fix, root config) |
 | Mode   | Small fix (hook script + tests + one CLAUDE.md line) |
-| Status | To do. Posted 22 Oct 2026 on Arjun's request after the env-dump incident. Priya |
+| Status | Merged into develop_staging (74021adc), 26 Oct 2026. Follow-ups: T-594 (HIGH jq comment bypass, next) and T-593. Priya |
 | Source | `handoff/ops/incident-2026-10-22-env-dump.md` (Arjun) |
 
 ## Problem
@@ -22,3 +22,12 @@ A tester subagent ran `export -n` and printed the shell environment into its tra
 
 ## Added 22 Oct 2026 (Shashank)
 The standard test command in docs uses `env -u REDIS_URL -u SENTRY_DSN yarn ...`. Shared form from now on: `(unset REDIS_URL SENTRY_DSN; yarn workspace @lawie/<ws> test)` (subshell unset, prints nothing). Acceptance criterion 5: update every doc that mentions `env -u` (CLAUDE.md and .claude/docs) to this form; the hook must not block the subshell form.
+
+## Arjun's ruling (26 Oct 2026): where the secret scan fails closed
+- Approved: (c)+(b). `.husky/pre-commit` runs `scan:secrets` (fast, no binary needed) and keeps the gitleaks warning; the new workflow `.github/workflows/secret-shape-scan.yml` is the fail-closed gate.
+- Reviewer conditions: `scan:secrets` finishes under about 2 s on a normal staged set and never prints a matched value (file:line and shape name only). The workflow runs on pushes to develop_staging, develop and main and on the release branch pattern.
+- DEFERRED, not forgotten: (a) pre-commit blocks when gitleaks is missing, once gitleaks is installed in the dev image. Follow-up ticket when that image change lands.
+
+## Arjun (26 Oct 2026, 01:00 UTC) — round 3 granted, narrow
+
+Second review failed on two must-fix bypasses in the hook (jq `\(…)` string interpolation reaching `env`/`$ENV`; `\u` decoded with up to 8 hex digits where bash takes 4, so `/proc/self$'/environ'` slipped) and one should-fix (camelCase/digit names like `webhookSecret`, `key1` missing the scan deny list). These are the exact bypasses the hook exists to stop, so one more round under the founder's standing approval (T-577/T-578 precedent). Scope: those three, each with a test. Same developer, fresh tester, fresh reviewer reviewing the delta only. Anything else the reviewer finds becomes a follow-up ticket; there is no round 4. Also approved earlier tonight: (c)+(b) — pre-commit runs `scan:secrets`, the gitleaks block stays a warning until gitleaks is in the dev image; the new workflow is the fail-closed gate.

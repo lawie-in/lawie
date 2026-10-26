@@ -17,6 +17,7 @@ ssh "$SERVER" bash -s << 'ENDSSH'
 
   echo "  loading env..."
   set -a && source .env.production && set +a
+  SENTRY_RELEASE=$(git rev-parse HEAD); export SENTRY_RELEASE
 
   echo "  installing dependencies..."
   yarn install --frozen-lockfile

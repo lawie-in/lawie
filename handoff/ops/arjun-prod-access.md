@@ -1,0 +1,239 @@
+# Arjun's production access — narrow SSM Run Command, no shell (26 Oct 2026)
+
+Founder decision: give Arjun's cloud session a way to operate the prod box without a shell, without admin, without keys in chat.
+
+Shape: one IAM user `lawie-arjun-ops` → may call `ssm:SendCommand` only on instance `i-0e11d3dd5716776ff` and only with the custom document `lawie-prod-ops`, whose parameters allow-list the commands. No `StartSession`, no S3, no IAM, no console. Key pair goes into the Claude cloud environment settings as `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION=ap-south-1`; rotate every 30 days; delete when T-533's pipeline removes the need.
+
+## SSM document `lawie-prod-ops` (Command document, schema 2.2, JSON)
+
+```json
+{
+  "schemaVersion": "2.2",
+  "description": "Lawie prod: allow-listed ops for Arjun's session. No free-form shell.",
+  "parameters": {
+    "action": { "type": "String", "allowedValues": ["status", "logs", "health", "restart", "deploy", "nginx-test", "disk"] },
+    "service": { "type": "String", "default": "all", "allowedPattern": "^(all|lawie-(gateway|auth|drafting|billing|email-worker|web))$" },
+    "lines": { "type": "String", "default": "100", "allowedPattern": "^[0-9]{1,3}$" }
+  },
+  "mainSteps": [{
+    "action": "aws:runShellScript",
+    "name": "run",
+    "inputs": {
+      "timeoutSeconds": "900",
+      "runCommand": [
+        "set -u",
+        "A='{{ action }}'; S='{{ service }}'; N='{{ lines }}'",
+        "run_u() { sudo -u ubuntu -i bash -lc \"$1\"; }",
+        "case \"$A\" in",
+        "  status) run_u 'pm2 status' ;;",
+        "  logs) if [ \"$S\" = all ]; then run_u \"pm2 logs --lines $N --nostream\"; else run_u \"pm2 logs $S --lines $N --nostream\"; fi ;;",
+        "  health) for p in 4000 4001 4002 4003 9100 3000; do printf '%s ' $p; curl -s -o /dev/null -w '%{http_code}\\n' --max-time 5 http://127.0.0.1:$p/health || true; done ;;",
+        "  restart) if [ \"$S\" = all ]; then run_u 'pm2 restart all --update-env'; else run_u \"pm2 restart $S --update-env\"; fi ;;",
+        "  deploy) run_u 'cd ~/lawie && ./deploy.sh' ;;",
+        "  nginx-test) nginx -t ;;",
+        "  disk) df -h / && free -m ;;",
+        "esac"
+      ]
+    }
+  }]
+}
+```
+
+Note: `logs` prints service logs only; pino never logs secrets, and the no-env-print hook (T-570) applies to the calling session. `deploy` runs the existing `deploy.sh` (pulls `main`).
+
+## IAM policy `lawie-arjun-ops-policy` (replace ACCOUNT_ID)
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    { "Sid": "SendOnlyOurDocToOurBox", "Effect": "Allow", "Action": "ssm:SendCommand",
+      "Resource": [
+        "arn:aws:ec2:ap-south-1:ACCOUNT_ID:instance/i-0e11d3dd5716776ff",
+        "arn:aws:ssm:ap-south-1:ACCOUNT_ID:document/lawie-prod-ops"
+      ] },
+    { "Sid": "ReadResults", "Effect": "Allow",
+      "Action": ["ssm:GetCommandInvocation", "ssm:ListCommandInvocations", "ssm:ListCommands", "ssm:DescribeInstanceInformation", "ec2:DescribeInstances"],
+      "Resource": "*" }
+  ]
+}
+```
+
+## Use from the session
+
+```
+aws ssm send-command --instance-ids i-0e11d3dd5716776ff --document-name lawie-prod-ops --parameters action=health
+aws ssm get-command-invocation --command-id <id> --instance-id i-0e11d3dd5716776ff
+```
+
+Environment needs the `aws` CLI and outbound access to `ssm.ap-south-1.amazonaws.com` / `ec2.ap-south-1.amazonaws.com`.
+
+## Proposed v2 of `lawie-prod-ops` (Nikhil, 26 Oct 2026 — founder applies in the console; not live)
+
+Why: (1) `health` probes `/health` on 3000 and web has no such route, so a healthy web always reads 404; (2) `logs` for a process name the box doesn't have fails with pm2's raw error — the develop box is older and may differ; (3) `restart` uses `pm2 restart --update-env`, but pm2 caches env across `restart` (26 Oct drafting crash-loop) — `reload --update-env` is the documented safe path. Parameters unchanged; IAM policy unchanged.
+
+Diff to `runCommand` (only these three lines change):
+
+```diff
+-  "  logs) if [ \"$S\" = all ]; then run_u \"pm2 logs --lines $N --nostream\"; else run_u \"pm2 logs $S --lines $N --nostream\"; fi ;;",
++  "  logs) if [ \"$S\" = all ]; then run_u \"pm2 logs --lines $N --nostream\"; elif run_u \"pm2 describe $S >/dev/null 2>&1\"; then run_u \"pm2 logs $S --lines $N --nostream\"; else echo \"no pm2 process named $S on this box; processes:\"; run_u 'pm2 status'; fi ;;",
+-  "  health) for p in 4000 4001 4002 4003 9100 3000; do printf '%s ' $p; curl -s -o /dev/null -w '%{http_code}\\n' --max-time 5 http://127.0.0.1:$p/health || true; done ;;",
++  "  health) for p in 4000 4001 4002 4003 9100; do printf '%s ' $p; curl -s -o /dev/null -w '%{http_code}\\n' --max-time 5 http://127.0.0.1:$p/health || true; done; printf '3000 / '; curl -s -o /dev/null -w '%{http_code}\\n' --max-time 10 http://127.0.0.1:3000/ || true ;;",
+-  "  restart) if [ \"$S\" = all ]; then run_u 'pm2 restart all --update-env'; else run_u \"pm2 restart $S --update-env\"; fi ;;",
++  "  restart) if [ \"$S\" = all ]; then run_u 'cd ~/lawie && pm2 reload ecosystem.config.js --update-env'; else run_u \"cd ~/lawie && pm2 reload ecosystem.config.js --only $S --update-env\"; fi ;;",
+```
+
+Expected `health` output after v2: `4000 200` … `9100 200`, then `3000 / 200`.
+
+Apply (founder): Systems Manager → Documents → `lawie-prod-ops` → Actions → Create new version → paste the edited JSON → **Set as default version**. Then Nikhil runs `action=health` on both boxes and logs it. Rollback: set the previous version as default.
+
+Session note: the CLI in the cloud session ignores `AWS_REGION`; calls need `--region ap-south-1` after the allow-listed prefix.
+
+## Arjun (26 Oct 2026, 12:40 UTC) — develop box: full shell for Nikhil, prod stays narrow
+
+Founder decision: the founder does not want to be the hands for develop-box changes. Ruling: **two keys, two blast radii.**
+
+- **Prod** (`i-0e11d3dd5716776ff`): unchanged — `lawie-arjun-ops` (to be renamed `lawie-nikhil-ops`) may only run the allow-listed `lawie-prod-ops` document. File edits, certbot and env changes on prod remain founder steps over Session Manager until a reviewed document action exists for each (v2 adds `nginx-reload` and `cert-renew`; never a free-form shell).
+- **Develop** (`i-07925b68d6dd907c4`): a second IAM user `lawie-dev-shell` with `ssm:SendCommand` on that one instance and the built-in `AWS-RunShellScript` document only, plus result reads. This gives Nikhil any command on the develop box. It cannot reach prod: IAM evaluates every resource ARN in a SendCommand, and that user's policy names no prod ARN. A separate user is required because a single user holding (prod instance, prod doc, dev instance, dev doc) could pair the dev doc with the prod instance.
+- Keys: `AWS_DEV_ACCESS_KEY_ID` / `AWS_DEV_SECRET_ACCESS_KEY` in Nikhil's environment; his session writes them into a `dev` CLI profile at start (never echoed) and uses `--profile dev`. The default profile stays the prod-narrow key.
+- Guard rails that stay: every develop-box command is one SSM invocation (recorded in SSM command history for 30 days) and one ops-log row; secret VALUES are never passed as command text (SSM logs parameters) — the founder still types them, or Nikhil edits an env line only when the value is non-secret; never `env`/`printenv`; deploy only from `develop`.
+- Allow rule: `Bash(aws ssm send-command --profile dev --instance-ids i-07925b68d6dd907c4 --document-name AWS-RunShellScript *)`.
+
+## Document v3 (deploy inline) — Nikhil, 26 Oct 2026 (founder applies; supersedes the v2 proposal above)
+
+Why: on 26 Oct 13:50 UTC `action=deploy` ran the in-git `deploy.sh`, which is the old **laptop** script (`SERVER=ubuntu@13.202.145.184`, `scp` of the env file, then `ssh`). On the prod box that meant prod tried to copy its env file to the develop box's released IP; it timed out before auth (near miss, nothing sent). v3 never calls `deploy.sh`: the deploy runs inline, box-local, no `scp`/`ssh`.
+
+What changes vs v1:
+- New parameter `branch` (`main` | `develop`, default `main`). `deploy` checks the instance id over IMDSv2: `main` only on `i-0e11d3dd5716776ff` (prod), `develop` only on `i-07925b68d6dd907c4` (develop); anything else exits 2.
+- `deploy` (as `ubuntu`, in `~/lawie`): refuses (exit 4) if tracked files are modified on the box → `git fetch` → `checkout <branch>` → `pull --ff-only` → prints `HEAD <sha>` → reads the env file path from `ecosystem.config.js` (`const ENV_FILE`) and sources it without printing (exit 3 if missing) → `SENTRY_RELEASE` = HEAD → `yarn install --frozen-lockfile --production=false` → build `@lawie/shared`, `@lawie/email-client`, all workspaces → web standalone asset copies → `pm2 reload ecosystem.config.js --update-env` → health gate (10 × 3 s on 4000/4001/4002/4003/9100 `/health` and 3000 `/`; exit 5 on failure) → `DEPLOY OK <sha>`.
+- The three v2 fixes are included: `health` probes `/` on 3000; `logs` checks `pm2 describe` first; `restart` is `pm2 reload ecosystem.config.js [--only <svc>] --update-env`.
+- `timeoutSeconds` 900 → 2400 (full build on a small box). IAM policy unchanged.
+
+Invocation after it is default:
+`aws ssm send-command --instance-ids i-0e11d3dd5716776ff --document-name lawie-prod-ops --parameters action=deploy,branch=main --region ap-south-1`
+(develop: same with `--instance-ids i-07925b68d6dd907c4` and `branch=develop`).
+
+Apply (founder): AWS console → Systems Manager → Documents → **Owned by me** → `lawie-prod-ops` → **Actions → Create new version** → replace the content with the JSON below (JSON format) → **Create new version** → back on the document, **Versions** tab → select the new version → **Set default version**. Tell Nikhil the new version number. Rollback: set the previous version as default.
+
+Separately (Priya ticket): the in-git `deploy.sh` must stop being a laptop script; until then nobody runs `./deploy.sh` on either box.
+
+```json
+{
+  "schemaVersion": "2.2",
+  "description": "Lawie prod/develop: allow-listed ops. No free-form shell. v3: deploy inline, box-local, branch-guarded.",
+  "parameters": {
+    "action": {
+      "type": "String",
+      "allowedValues": [
+        "status",
+        "logs",
+        "health",
+        "restart",
+        "deploy",
+        "nginx-test",
+        "disk"
+      ]
+    },
+    "service": {
+      "type": "String",
+      "default": "all",
+      "allowedPattern": "^(all|lawie-(gateway|auth|drafting|billing|email-worker|web))$"
+    },
+    "lines": {
+      "type": "String",
+      "default": "100",
+      "allowedPattern": "^[0-9]{1,3}$"
+    },
+    "branch": {
+      "type": "String",
+      "default": "main",
+      "allowedValues": [
+        "main",
+        "develop"
+      ]
+    }
+  },
+  "mainSteps": [
+    {
+      "action": "aws:runShellScript",
+      "name": "run",
+      "inputs": {
+        "timeoutSeconds": "2400",
+        "runCommand": [
+          "set -u",
+          "A='{{ action }}'; S='{{ service }}'; N='{{ lines }}'; B='{{ branch }}'",
+          "run_u() { sudo -u ubuntu -i bash -lc \"$1\"; }",
+          "deploy_guard() {",
+          "  TOK=$(curl -s --max-time 5 -X PUT http://169.254.169.254/latest/api/token -H 'X-aws-ec2-metadata-token-ttl-seconds: 60')",
+          "  IID=$(curl -s --max-time 5 -H \"X-aws-ec2-metadata-token: $TOK\" http://169.254.169.254/latest/meta-data/instance-id)",
+          "  case \"$B:$IID\" in",
+          "    main:i-0e11d3dd5716776ff|develop:i-07925b68d6dd907c4) echo \"deploy $B on $IID\" ;;",
+          "    *) echo \"refused: branch $B is not allowed on instance $IID\"; exit 2 ;;",
+          "  esac",
+          "}",
+          "deploy_run() {",
+          "  sudo -u ubuntu -i bash -s -- \"$B\" <<'DEPLOY'",
+          "set -euo pipefail",
+          "BR=\"$1\"",
+          "cd ~/lawie",
+          "if ! git diff --quiet || ! git diff --cached --quiet; then echo 'refused: tracked files modified on the box:'; git status --short --untracked-files=no; exit 4; fi",
+          "git fetch -q origin",
+          "git checkout -q \"$BR\"",
+          "git pull -q --ff-only origin \"$BR\"",
+          "echo \"HEAD $(git rev-parse --short HEAD) on $BR\"",
+          "ENVF=$(sed -n \"s/^const ENV_FILE = '\\(.*\\)';$/\\1/p\" ecosystem.config.js)",
+          "[ -n \"$ENVF\" ] && [ -f \"$ENVF\" ] || { echo 'refused: env file named in ecosystem.config.js not found'; exit 3; }",
+          "set -a; . \"$ENVF\"; set +a",
+          "SENTRY_RELEASE=$(git rev-parse HEAD); export SENTRY_RELEASE",
+          "echo 'install'; yarn install --frozen-lockfile --production=false",
+          "echo 'build packages'; yarn workspace @lawie/shared build; yarn workspace @lawie/email-client build",
+          "echo 'build services'; yarn workspaces run build",
+          "cp -r apps/web/public/. apps/web/.next/standalone/apps/web/public/",
+          "cp -r apps/web/.next/static apps/web/.next/standalone/apps/web/.next/static 2>/dev/null || true",
+          "echo 'reload'; pm2 reload ecosystem.config.js --update-env",
+          "fail=0",
+          "for c in 4000/health 4001/health 4002/health 4003/health 9100/health 3000/; do",
+          "  code=000",
+          "  for i in 1 2 3 4 5 6 7 8 9 10; do",
+          "    code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 \"http://127.0.0.1:$c\" || true)",
+          "    [ \"$code\" = 200 ] && break",
+          "    sleep 3",
+          "  done",
+          "  echo \"health $c $code\"",
+          "  [ \"$code\" = 200 ] || fail=1",
+          "done",
+          "pm2 status",
+          "[ \"$fail\" = 0 ] || { echo 'DEPLOY FAILED health gate'; exit 5; }",
+          "echo \"DEPLOY OK $(git rev-parse --short HEAD)\"",
+          "DEPLOY",
+          "}",
+          "case \"$A\" in",
+          "  status) run_u 'pm2 status' ;;",
+          "  logs) if [ \"$S\" = all ]; then run_u \"pm2 logs --lines $N --nostream\"; elif run_u \"pm2 describe $S >/dev/null 2>&1\"; then run_u \"pm2 logs $S --lines $N --nostream\"; else echo \"no pm2 process named $S on this box; processes:\"; run_u 'pm2 status'; fi ;;",
+          "  health) for p in 4000 4001 4002 4003 9100; do printf '%s ' $p; curl -s -o /dev/null -w '%{http_code}\\n' --max-time 5 http://127.0.0.1:$p/health || true; done; printf '3000 / '; curl -s -o /dev/null -w '%{http_code}\\n' --max-time 10 http://127.0.0.1:3000/ || true ;;",
+          "  restart) if [ \"$S\" = all ]; then run_u 'cd ~/lawie && pm2 reload ecosystem.config.js --update-env'; else run_u \"cd ~/lawie && pm2 reload ecosystem.config.js --only $S --update-env\"; fi ;;",
+          "  deploy) deploy_guard && deploy_run ;;",
+          "  nginx-test) nginx -t ;;",
+          "  disk) df -h / && free -m ;;",
+          "esac"
+        ]
+      }
+    }
+  ]
+}
+```
+
+## Arjun (26 Oct 2026, 14:55 UTC) — founder decision A: Nikhil maintains the prod document
+
+The founder chose convenience over the console click: `lawie-arjun-ops` also gets `ssm:UpdateDocument` and `ssm:UpdateDocumentDefaultVersion` on the `lawie-prod-ops` ARN (plus the read actions). Nikhil raised, correctly, that this is equivalent to a root shell on prod for that identity — any runCommand can be written into a new version and run. Accepted by the founder with these controls: every document change is a new version (never an in-place edit of the default), gets an ops-log row and a diff note in this file, and is visible in CloudTrail/SSM version history; the key rotates every 30 days; T-533's pipeline replaces session-driven prod deploys and this grant is removed then. The "prod = allow-listed document only" line in the two-keys section above is superseded by this decision.
+
+### v3 applied as SSM version 2 (26 Oct 2026, 14:58 UTC, Nikhil)
+Created by Nikhil with `ssm:UpdateDocument` (founder's option A, granted 14:51 UTC). Content = the JSON above, verified byte-equal via `get-document --document-version 2`. Default version change pending.
+
+### SSM versions 3 and 4 (26 Oct 2026, Nikhil)
+- **v3 (SSM version 3):** adds `git checkout -q -- apps/web/next-env.d.ts` before the dirty-tree check (Next.js regenerates it every build; it blocked the first v3 run with exit 4).
+- **v4 (SSM version 4):** replaces `set -a; . "$ENVF"; set +a` with a `node --env-file="$ENVF"` loader that emits single-quoted `export` lines into `eval` (dotenv semantics like pm2; values with spaces/quotes/`$` are safe; exit 3 if the file can't be parsed). Reason: an unquoted value with a space in the prod env file broke bash `source` (exit 127). Boxes run node v20.20.2 (`--env-file` needs ≥ 20.6).
+- Default version is still **2** (set-default blocked by the session's permission check); until it is 4, call with `--document-version 4`.
+
+### SSM version 5 (26 Oct 2026, 16:20 UTC, Nikhil) — default
+Adds `seed-setting`: parameters `key` (`^(ai|pricing|feature)\.[a-z0-9_.]{1,60}$`, default `ai.unset`) and `value` (`^[A-Za-z0-9_.:\-\[\]{},"]{1,200}$`, default `unset`); both assigned single-quoted (`K='{{ key }}'; V='{{ value }}'`), refused if left at defaults; runs `yarn -s workspace @lawie/drafting seed:setting "$K" "$V"` as ubuntu with the env loaded exactly like `deploy` (v4 loader). Invocation: `--parameters action=seed-setting,key=ai.intake_model,value=claude-haiku-5-5`.
