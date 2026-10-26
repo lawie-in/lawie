@@ -15,3 +15,17 @@ Source: Vishal's proposal of 26 Oct, built on ADR3-L10 and L11 (`ADR-drafting-v3
 | R2 | **Ruled.** temporary_injunction_o39 needs a required pack field, signed: label `Relief sought in the main suit`, question `What relief does the main suit ask for?` If it is not answered, the gate asks (P6); it is never written by the model. Shashank's T-613 takes it (he holds the pack); Priya confirms. |
 
 Also recorded: the T-488 correction in `go-live-ruling-23-oct.md` (it was never merged; my "as merged" line did not cover it).
+
+## P4 / T-488 byte check (Ajay, 26 Oct 2026): fix/t-611-missing-facts-gate @ 31bd7994
+
+| item | result |
+| --- | --- |
+| Fold | 31bd7994 merges 01dcc4a4 into the T-611 branch on f84371a0, with no hand edits. Diff checked: `51d2546d...31bd7994 -- apps/drafting/src`, 5 services and 3 t488 tests. |
+| Hashes (sha256, first 16) | fact-verifier `321a8bb22c2be4b5`, ai.service `75c6a69a79f08a90`, intake-brief `22dbfdfaf2281fdc`, template-engine.service `fe84c199452079bf`, fact-ledger.service `75ccfb4e0f98a868`. I recomputed them myself and they match. |
+| Cue table | Matches AJ-488-M1: `cheque`/`chek`/`चेक` alone is no cue (DATE_CUE_NOT). "dated" + noun maps to its key. "received" needs a memo word; "sent" needs a notice word. Hindi cues present (jama, dinank, prapt, mila, bheja, प्रस्तुत, अनादरित). |
+| a5052a6d | Held date: no label passes, and a label naming its own key passes. Labels that all name other keys are judged against the nearest held one. This is the tightening I approved (AJ-488-M2). Under P1, that `wrong_fact` now becomes a repair, then a question, never a blank; Vishal builds that on top. |
+| 5d62b13f | `state_of_filing` → `{state}` only when the State is unanswered (certiorari, quo_warranto, interim_application). OK under T-479. |
+| 01dcc4a4 | Comment only. |
+| Open from AJ-488-M1 | The `cheque_validity_date` cue ("last", "validity", "printed") is not in the s.138 table. It is handled by the T-192 checks (t192 tests pass). Not a blocker; Vishal confirms in one line that T-192 covers it. |
+
+**P4 SIGNED at 31bd7994.** T-488 counts as merged only when a develop_staging SHA contains 31bd7994; I name that SHA in the T-611 final check.
