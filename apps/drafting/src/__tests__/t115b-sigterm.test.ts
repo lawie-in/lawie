@@ -14,6 +14,9 @@ jest.mock('../config/database', () => ({
 jest.mock('../config/redis', () => ({
   disconnectRedis: (...a: unknown[]) => disconnectRedis(...a),
 }));
+jest.mock('../services/app-settings.service', () => ({
+  primeConfigWarnings: jest.fn().mockResolvedValue([]),
+}));
 jest.mock('../services/credits.service', () => ({
   startHoldSweep: jest.fn(),
   stopHoldSweep: (...a: unknown[]) => stopHoldSweep(...a),

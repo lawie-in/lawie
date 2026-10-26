@@ -13,8 +13,8 @@ import { metadata as pricingMetadata } from '../pricing/layout';
 import PricingPage from '../pricing/page';
 import ToolsPage from '../tools/page';
 
-import { LandingPage } from '@/components/landing/LandingPage';
-import { landingCopy, TOP_BAR_COPY } from '@/components/marketing/nl-copy';
+import { ReadingDeskLanding } from '@/components/marketing/landing/ReadingDeskLanding';
+import { footerCopy, landingCopy, TOP_BAR_COPY } from '@/components/marketing/nl-copy';
 
 jest.mock('@/components/marketing/SiteNav', () => ({ __esModule: true, default: () => null }));
 jest.mock('@/components/marketing/SiteFooter', () => ({ __esModule: true, default: () => null }));
@@ -142,12 +142,25 @@ describe('T-366 every 5-Ink sign-up promise says verified (AC5)', () => {
     }
   });
 
-  it('home plan cell, hero note and CTA wording (T-517 signed lines)', () => {
+  it('home plan cell, hero lines and CTA wording (T-601 Reading Desk, signed lines)', () => {
     const text = norm(render(<HomePage />));
+    // The two Muted lines under the hero CTA (spec 2): the free-plan line, then the disclaimer.
     expect(text).toContain('5 Ink on sign-up, once your email is verified (one time)');
-    expect(text).toContain('Verify your email to receive your 5 Ink.');
+    expect(text).toContain(footerCopy('en').disclaimer);
+    expect(footerCopy('en').disclaimer).toBe(
+      'Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.',
+    );
     expect(text).toContain('Start with 5 free Ink');
-    expect(text).toContain('No card needed.');
+    // The hero h1 and the 5 free Ink wording sit in the hero section.
+    const hero = norm(
+      container.querySelector('section[aria-labelledby="hero-heading"]')!.textContent ?? '',
+    );
+    expect(hero).toContain('Describe the matter. Read the draft.');
+    expect(hero).toContain('Start with 5 free Ink');
+    expect(hero).toContain('5 Ink on sign-up, once your email is verified (one time)');
+    // v2 dropped these two old hero lines; they must not come back unsigned.
+    expect(text).not.toContain('Verify your email to receive your 5 Ink.');
+    expect(text).not.toContain('No card needed.');
     expect(text).not.toMatch(/lifetime/i);
   });
 
@@ -338,7 +351,7 @@ describe('T-398 / T-517 pricing page copy (Ajay conditions 1-4)', () => {
   });
 
   it('home (Hindi): exactly one "मुफ़्त शुरू कीजिए" link, in the header, and no banned phrase', () => {
-    render(<LandingPage initialLang="hi" />);
+    render(<ReadingDeskLanding initialLang="hi" />);
     const links = Array.from(container.querySelectorAll('a')).filter(
       (a) => a.textContent === AJ_HI,
     );

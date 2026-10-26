@@ -24,7 +24,7 @@ test.describe('landing page', () => {
     await expect(
       page.getByRole('heading', {
         level: 1,
-        name: 'Describe the matter. Lawie writes the first draft.',
+        name: 'Describe the matter. Read the draft.',
       }),
     ).toBeVisible();
 

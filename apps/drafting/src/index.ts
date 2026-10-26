@@ -15,6 +15,7 @@ import { connectDatabase } from './config/database';
 import { env } from './config/env';
 import logger from './config/logger';
 import { disconnectRedis } from './config/redis';
+import { primeConfigWarnings } from './services/app-settings.service';
 import { startHoldSweep, stopHoldSweep } from './services/credits.service';
 import { startDocumentEraseSweep, stopDocumentEraseSweep } from './services/document-erase.service';
 import { primeToolSwitches } from './services/feature-switches';
@@ -62,6 +63,10 @@ async function bootstrap() {
     // T-375: read the two tool switches once, so the first requests see their real
     // value. Never throws; a failed read leaves them off until a later refresh.
     await primeToolSwitches();
+    // T-585: one WARN per required AI setting that is unset. Key name only, never a value.
+    for (const key of await primeConfigWarnings()) {
+      logger.warn({ setting: key }, 'Required AppSetting is not configured');
+    }
     app.listen(env.PORT, () => {
       logger.info(`📝 Drafting Service running on http://localhost:${env.PORT}`);
       logger.info(`   Environment: ${env.NODE_ENV}`);

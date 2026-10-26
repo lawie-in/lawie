@@ -10,7 +10,7 @@ import path from 'path';
 import { act, type ReactElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 
-import { LandingPage } from '../../landing/LandingPage';
+import { ReadingDeskLanding } from '../../marketing/landing/ReadingDeskLanding';
 import PricingPage from '../../../app/(marketing)/pricing/page';
 import TermsPage from '../../../app/(marketing)/terms/page';
 
@@ -108,7 +108,7 @@ describe('T-433 Pricing page (T-517)', () => {
 
 describe('T-433 landing (AJ-517-M12)', () => {
   it('shows the two M12 lines and no other rollover / carry wording', () => {
-    const text = norm(render(<LandingPage />));
+    const text = norm(render(<ReadingDeskLanding />));
     expect(text).toContain('Plan Ink does not carry over to the next month.');
     expect(text).toContain('Plan Ink left unused at the end of the month does not carry over.');
     expect(withoutSignedLines(text)).not.toMatch(FORBIDDEN);

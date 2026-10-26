@@ -15,7 +15,13 @@
  */
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
 
-import { catalogueCategoryFor, DOC_TYPE_ALIASES, TEMPLATE_CATALOGUE } from '../config/catalogue';
+import { TEMPLATE_CATALOGUE } from '../config/catalogue';
+import {
+  CIVIL_PLAINT_CATEGORY,
+  LEGACY_PLAINT_DOC_TYPE,
+  switchForTemplate,
+  TEMPLATE_CIVIL_PLAINT_SETTING,
+} from '../config/catalogue/template-switches';
 import { env } from '../config/env';
 import logger from '../config/logger';
 
@@ -28,17 +34,16 @@ import { isFixtureUser } from './run-origin';
 export const DESCRIBE_FIRST_SETTING = 'feature.describe_first';
 export const TOOL_TIMELINE_SETTING = 'feature.tool_timeline';
 export const TOOL_BAIL_CHECKER_SETTING = 'feature.tool_bail_checker';
-export const TEMPLATE_CIVIL_PLAINT_SETTING = 'feature.template_civil_plaint';
-
-/** The catalogue category `feature.template_civil_plaint` hides (Arjun's ruling 1). */
-export const CIVIL_PLAINT_CATEGORY = 'civil_plaints_suits';
-
-/** The legacy POST /generate docType that is a plaint (Arjun's ruling 2). Not a catalogue id. */
-export const LEGACY_PLAINT_DOC_TYPE = 'plaint';
+// T-600: the template-switch facts live in the pure config/catalogue/template-switches.ts
+// (no env, so the landing exporter can read them); re-exported here for every importer.
+export {
+  CIVIL_PLAINT_CATEGORY,
+  LEGACY_PLAINT_DOC_TYPE,
+  switchForTemplate,
+  TEMPLATE_CIVIL_PLAINT_SETTING,
+};
 
 // ── The reader ──────────────────────────────────────────────────────────────
-
-const hasOwn = (o: object, k: string): boolean => Object.prototype.hasOwnProperty.call(o, k);
 
 /**
  * T-356 (Arjun's rule): a switch's admin setting is 'on' or 'off', nothing
@@ -191,17 +196,8 @@ export function _resetToolSwitches(): void {
 
 // ── Templates ───────────────────────────────────────────────────────────────
 
-/**
- * The switch that hides a template id, a doc-type alias of one, or the legacy
- * 'plaint' docType; `undefined` when no switch covers it. The category comes
- * from the catalogue, so no plaint id is listed here.
- */
-function switchForTemplate(templateId: string): string | undefined {
-  if (templateId === LEGACY_PLAINT_DOC_TYPE) return TEMPLATE_CIVIL_PLAINT_SETTING;
-  const id = hasOwn(DOC_TYPE_ALIASES, templateId) ? DOC_TYPE_ALIASES[templateId] : templateId;
-  if (catalogueCategoryFor(id) === CIVIL_PLAINT_CATEGORY) return TEMPLATE_CIVIL_PLAINT_SETTING;
-  return undefined;
-}
+// switchForTemplate (which switch covers a template id) is in
+// config/catalogue/template-switches.ts, imported above (T-600).
 
 /**
  * T-375: false when a switch that is off hides this template id (or the legacy

@@ -1,0 +1,483 @@
+{
+  "generatedAt": "2026-10-26T03:45:11.244Z",
+  "categories": [
+    {
+      "id": "criminal_bail_custody",
+      "name": "Criminal: bail and custody",
+      "order": 1,
+      "templates": [
+        {
+          "id": "bail_regular",
+          "name": "Regular Bail Application"
+        },
+        {
+          "id": "bail_anticipatory",
+          "name": "Anticipatory Bail Application"
+        },
+        {
+          "id": "bail_before_magistrate",
+          "name": "Bail Application before Magistrate (Section 480 BNSS / Section 437 CrPC)"
+        },
+        {
+          "id": "bail_cancellation",
+          "name": "Application for Cancellation of Bail"
+        },
+        {
+          "id": "default_bail",
+          "name": "Default Bail Application"
+        },
+        {
+          "id": "interim_bail",
+          "name": "Interim Bail Application"
+        },
+        {
+          "id": "suspension_of_sentence",
+          "name": "Application for Suspension of Sentence Pending Appeal"
+        }
+      ]
+    },
+    {
+      "id": "criminal_complaints_police_trial",
+      "name": "Criminal: complaints, police, trial applications",
+      "order": 2,
+      "templates": [
+        {
+          "id": "discharge_application",
+          "name": "Discharge Application"
+        },
+        {
+          "id": "surrender_application",
+          "name": "Application for Surrender before Magistrate"
+        }
+      ]
+    },
+    {
+      "id": "criminal_appeals_revisions_quashing",
+      "name": "Criminal: appeals, revisions, quashing",
+      "order": 3,
+      "templates": [
+        {
+          "id": "criminal_appeal",
+          "name": "Criminal Appeal (S.415-419 BNSS)"
+        },
+        {
+          "id": "criminal_revision",
+          "name": "Criminal Revision (S.438 read with S.440 / S.442 BNSS)"
+        },
+        {
+          "id": "fir_quashing",
+          "name": "FIR Quashing Petition (S.528 BNSS)"
+        },
+        {
+          "id": "quashing_528_bnss",
+          "name": "Quashing Petition (S.528 BNSS)"
+        }
+      ]
+    },
+    {
+      "id": "cheque_bounce_ni_act",
+      "name": "Cheque bounce / NI Act",
+      "order": 4,
+      "templates": [
+        {
+          "id": "legal_notice_s138",
+          "name": "Cheque Bounce Notice (Section 138 NI Act)"
+        }
+      ]
+    },
+    {
+      "id": "civil_defence_interlocutory",
+      "name": "Civil: defence and interlocutory",
+      "order": 6,
+      "templates": [
+        {
+          "id": "written_statement",
+          "name": "Written Statement (Order VIII CPC)"
+        },
+        {
+          "id": "replication",
+          "name": "Replication (Order VIII R.9 CPC)"
+        },
+        {
+          "id": "amendment_of_pleadings",
+          "name": "Amendment of Pleadings Application (Order 6 R.17 CPC)"
+        },
+        {
+          "id": "condonation_of_delay",
+          "name": "Condonation of Delay Application (S.5 Limitation Act)"
+        },
+        {
+          "id": "production_of_documents",
+          "name": "Production of Documents Application (Order 11 CPC)"
+        },
+        {
+          "id": "receiver_appointment",
+          "name": "Application for Receiver (Order 40 R.1 CPC)"
+        },
+        {
+          "id": "temporary_injunction_o39",
+          "name": "Temporary Injunction Application (Order 39 R.1-2 CPC)"
+        }
+      ]
+    },
+    {
+      "id": "civil_appeals_revision_review_execution",
+      "name": "Civil: appeals, revision, review, execution",
+      "order": 7,
+      "templates": [
+        {
+          "id": "review_petition",
+          "name": "Review Petition"
+        }
+      ]
+    },
+    {
+      "id": "family_matrimonial",
+      "name": "Family and matrimonial",
+      "order": 8,
+      "templates": [
+        {
+          "id": "divorce_hma",
+          "name": "Divorce Petition (HMA, contested)"
+        },
+        {
+          "id": "divorce_mutual_consent",
+          "name": "Mutual Consent Divorce (s.13B HMA / s.28 SMA)"
+        },
+        {
+          "id": "divorce_sma",
+          "name": "Divorce Petition (SMA, contested)"
+        },
+        {
+          "id": "dv_act_complaint",
+          "name": "Domestic Violence Act Application (s.12 PWDV)"
+        },
+        {
+          "id": "guardianship_petition",
+          "name": "Guardianship Petition (GWA 1890 / HMGA 1956)"
+        },
+        {
+          "id": "judicial_separation",
+          "name": "Judicial Separation Petition (s.10 HMA / s.23 SMA)"
+        },
+        {
+          "id": "maintenance_bnss_144",
+          "name": "Maintenance Application (s.144 BNSS)"
+        },
+        {
+          "id": "rcr_petition",
+          "name": "RCR Petition (s.9 HMA / s.22 SMA)"
+        }
+      ]
+    },
+    {
+      "id": "property_conveyancing",
+      "name": "Property and conveyancing",
+      "order": 10,
+      "templates": [
+        {
+          "id": "gift_deed",
+          "name": "Gift Deed"
+        },
+        {
+          "id": "gpa",
+          "name": "General Power of Attorney (GPA)"
+        },
+        {
+          "id": "joint_development_agreement",
+          "name": "Joint Development Agreement (JDA)"
+        },
+        {
+          "id": "lease_deed",
+          "name": "Lease Deed (Registered)"
+        },
+        {
+          "id": "license_agreement",
+          "name": "License Agreement"
+        },
+        {
+          "id": "mortgage_deed",
+          "name": "Mortgage Deed"
+        },
+        {
+          "id": "partition_deed",
+          "name": "Partition Deed"
+        },
+        {
+          "id": "release_deed",
+          "name": "Release Deed (Relinquishment)"
+        },
+        {
+          "id": "sale_deed",
+          "name": "Sale Deed (Immovable Property)"
+        },
+        {
+          "id": "spa",
+          "name": "Special Power of Attorney (SPA)"
+        },
+        {
+          "id": "will",
+          "name": "Last Will and Testament"
+        }
+      ]
+    },
+    {
+      "id": "rent_control_tenancy",
+      "name": "Rent control and tenancy",
+      "order": 11,
+      "templates": [
+        {
+          "id": "rent_agreement",
+          "name": "Residential Rent Agreement"
+        }
+      ]
+    },
+    {
+      "id": "consumer",
+      "name": "Consumer",
+      "order": 13,
+      "templates": [
+        {
+          "id": "consumer_complaint",
+          "name": "Consumer Complaint"
+        }
+      ]
+    },
+    {
+      "id": "service_labour",
+      "name": "Service and labour",
+      "order": 14,
+      "templates": [
+        {
+          "id": "posh_complaint",
+          "name": "POSH Complaint (SH Act 2013)"
+        },
+        {
+          "id": "cat_oa",
+          "name": "CAT Original Application (S.19 ATA 1985)"
+        }
+      ]
+    },
+    {
+      "id": "company_insolvency",
+      "name": "Company and insolvency",
+      "order": 15,
+      "templates": [
+        {
+          "id": "aoa",
+          "name": "Articles of Association"
+        },
+        {
+          "id": "moa",
+          "name": "Memorandum of Association"
+        },
+        {
+          "id": "shareholders_agreement",
+          "name": "Shareholders Agreement (SHA)"
+        },
+        {
+          "id": "founders_agreement",
+          "name": "Co-Founders Agreement"
+        },
+        {
+          "id": "ibc_application",
+          "name": "IBC Application (S.7/9/10) — NCLT"
+        }
+      ]
+    },
+    {
+      "id": "contracts_agreements",
+      "name": "Contracts and agreements",
+      "order": 16,
+      "templates": [
+        {
+          "id": "nda",
+          "name": "Non-Disclosure Agreement (NDA)"
+        },
+        {
+          "id": "service_agreement",
+          "name": "Service / Independent Contractor Agreement"
+        },
+        {
+          "id": "distribution_agreement",
+          "name": "Distribution / Dealership Agreement"
+        },
+        {
+          "id": "employment_agreement",
+          "name": "Employment Agreement"
+        },
+        {
+          "id": "franchise_agreement",
+          "name": "Franchise Agreement"
+        },
+        {
+          "id": "loan_agreement",
+          "name": "Loan Agreement"
+        },
+        {
+          "id": "mou",
+          "name": "Memorandum of Understanding"
+        }
+      ]
+    },
+    {
+      "id": "writs_constitutional",
+      "name": "Writs and constitutional",
+      "order": 17,
+      "templates": [
+        {
+          "id": "certiorari",
+          "name": "Writ Petition — Certiorari"
+        },
+        {
+          "id": "curative_petition",
+          "name": "Curative Petition before the Supreme Court (Article 137 + Order XLVIII SC Rules, 2013)"
+        },
+        {
+          "id": "habeas_corpus",
+          "name": "Habeas Corpus Petition"
+        },
+        {
+          "id": "interim_application",
+          "name": "Interim Application (IA) for Interim Relief During Pendency"
+        },
+        {
+          "id": "mandamus",
+          "name": "Writ Petition for Mandamus"
+        },
+        {
+          "id": "pil",
+          "name": "Public Interest Litigation (PIL)"
+        },
+        {
+          "id": "quo_warranto",
+          "name": "Writ Petition — Quo Warranto (Article 226/32)"
+        },
+        {
+          "id": "slp",
+          "name": "Special Leave Petition (SLP)"
+        },
+        {
+          "id": "writ_petition_civil",
+          "name": "Writ Petition (Civil) — WP(C)"
+        },
+        {
+          "id": "writ_petition_criminal",
+          "name": "Writ Petition (Criminal) — WP(CRL)"
+        }
+      ]
+    },
+    {
+      "id": "tax",
+      "name": "Tax",
+      "order": 18,
+      "templates": [
+        {
+          "id": "itat_appeal",
+          "name": "ITAT Appeal (S.253 IT Act)"
+        }
+      ]
+    },
+    {
+      "id": "rera",
+      "name": "RERA",
+      "order": 21,
+      "templates": [
+        {
+          "id": "rera_complaint",
+          "name": "RERA Complaint (S.31 RERA)"
+        }
+      ]
+    },
+    {
+      "id": "mact",
+      "name": "MACT",
+      "order": 22,
+      "templates": [
+        {
+          "id": "mact_claim",
+          "name": "MACT Claim Petition (S.166 MV Act)"
+        }
+      ]
+    },
+    {
+      "id": "notices_replies",
+      "name": "Notices and replies",
+      "order": 23,
+      "templates": [
+        {
+          "id": "legal_notice_breach_of_contract",
+          "name": "Legal Notice — Breach of Contract"
+        },
+        {
+          "id": "legal_notice_consumer_deficiency",
+          "name": "Legal Notice — Consumer Deficiency (Pre-Complaint under CPA 2019)"
+        },
+        {
+          "id": "legal_notice_copyright_infringement",
+          "name": "Legal Notice — Copyright Infringement (Cease & Desist + Takedown)"
+        },
+        {
+          "id": "legal_notice_defamation",
+          "name": "Legal Notice — Defamation (Civil / Criminal BNS 356)"
+        },
+        {
+          "id": "legal_notice_eviction",
+          "name": "Legal Notice — Eviction / Quit Notice (State Rent Act / TPA S.106)"
+        },
+        {
+          "id": "legal_notice_trademark_infringement",
+          "name": "Legal Notice — Trademark Infringement / Passing Off (Cease & Desist)"
+        },
+        {
+          "id": "legal_notice_s80",
+          "name": "Legal Notice under Section 80 CPC"
+        }
+      ]
+    },
+    {
+      "id": "affidavits_court_forms",
+      "name": "Affidavits and court forms",
+      "order": 24,
+      "templates": [
+        {
+          "id": "affidavit_in_support",
+          "name": "Affidavit in Support of Petition / Application"
+        },
+        {
+          "id": "counter_affidavit",
+          "name": "Counter-Affidavit / Reply Affidavit (Respondent)"
+        },
+        {
+          "id": "list_of_dates",
+          "name": "List of Dates (Chronological Events Table)"
+        },
+        {
+          "id": "memo_of_parties",
+          "name": "Memo of Parties"
+        },
+        {
+          "id": "rejoinder_affidavit",
+          "name": "Rejoinder Affidavit (Petitioner's Reply to Counter)"
+        },
+        {
+          "id": "restoration_application",
+          "name": "Application for Restoration of Suit (Order 9 Rule 9 CPC)"
+        },
+        {
+          "id": "synopsis",
+          "name": "Synopsis (HC / SC Practice — 1-Page Petition Overview)"
+        },
+        {
+          "id": "vakalatnama",
+          "name": "Vakalatnama"
+        },
+        {
+          "id": "affidavit_identity",
+          "name": "Affidavit of Identity / Name / One-and-Same Person"
+        }
+      ]
+    }
+  ],
+  "total": 86
+}
