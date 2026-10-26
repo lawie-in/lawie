@@ -16,7 +16,7 @@ A paid top-up or renewal emails the customer only through the tax-invoice mail. 
 2. Never two mails for one payment: receipt only when no invoice will ever be issued for it.
 3. Vikram confirms the receipt is not presented as a tax invoice (no GSTIN; the word "receipt"). Ajay signs one line of wording.
 4. SUPERSEDED BY VIKRAM'S RULES BELOW (Arjun agreed 26 Oct): `issueInvoice` returns an explicit reason; the receipt is sent only on `before_gst_date`; never on incomplete GST config or invoice email off; bad input is an error that logs and sends nothing. Wording is Ajay's AJ-588-M1.
-5. Add the 24h check: an invoice still `issuing`, or an invoice email unsent, 24 h after capture goes to Sentry as one alert, captured from the existing 5-minute sweep (no new scheduler).
+5. MOVED to T-595 (Arjun, 26 Oct 2026; do NOT build here). Was: the 24h check: an invoice still `issuing`, or an invoice email unsent, 24 h after capture goes to Sentry as one alert, captured from the existing 5-minute sweep (no new scheduler).
 6. No PII in logs. Tests for: before GST date (receipt), invoice due (no receipt), config incomplete or email off (no receipt), bad input (error, no mail), 24h alert. Billing and email-worker tests and build green.
 
 ## Files
