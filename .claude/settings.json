@@ -1,6 +1,6 @@
 {
   "permissions": {
-    "deny": ["Read(./.env)", "Read(./.env.*)", "Read(./**/*.pem)"],
+    "deny": ["Read(./.env)", "Read(./.env.*)", "Read(./**/*.pem)", "Read(//proc/**)"],
     "ask": [],
     "allow": [
       "Bash(git pull *)",
@@ -29,6 +29,10 @@
           {
             "type": "command",
             "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/no-secrets-bash.sh"
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/no-env-print.sh"
           }
         ]
       }
