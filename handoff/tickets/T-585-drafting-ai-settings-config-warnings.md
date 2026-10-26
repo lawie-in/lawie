@@ -5,7 +5,7 @@
 | Phase  | 4 — Release (prod hygiene) |
 | Owner  | Arjun (raised), Vishal (build) |
 | Mode   | Small fix (drafting only) |
-| Status | To do. Raised by Arjun, 26 Oct 2026. Priya |
+| Status | Merged into develop_staging (e0b7ffdf, CI 1030 green), 26 Oct 2026. Redeploy drafting; no env, no migration. Empty config_warnings is not proof the ai.* settings are set. Priya |
 | Source | Arjun's go-live finding: prod went live with ai.drafting_model, ai.preflight_model and ai.intake_model all unset and nothing said so |
 
 ## Acceptance criteria
