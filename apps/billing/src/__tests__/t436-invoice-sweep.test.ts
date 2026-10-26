@@ -182,6 +182,14 @@ describe('startInvoiceSweep / stopInvoiceSweep', () => {
         pendingRuns.push(r);
       });
     }) as never);
+    // T-595: the config-incomplete path ends with the overdue check, an Invoice.find chain.
+    const chain = {
+      sort: () => chain,
+      limit: () => chain,
+      select: () => chain,
+      lean: async () => [],
+    };
+    jest.spyOn(Invoice, 'find').mockImplementation((() => chain) as never);
     return { missing, count, release: () => pendingRuns.splice(0).forEach((r) => r(0)) };
   }
   const flush = async () => {

@@ -19,13 +19,16 @@
  * no entry has no price and is refused, never charged.
  */
 import { settleYearlyDrip } from '@lawie/shared';
+import type { LedgerFact } from '@lawie/shared';
 import mongoose, { Types } from 'mongoose';
 
 import { DOC_TYPE_ALIASES, NON_TEMPLATE_PRICES, TEMPLATE_PRICES } from '../config/catalogue';
 import { CreditBucket, CreditLedger, CreditSource } from '../models/CreditLedger.model';
 import { Generation } from '../models/Generation.model';
 import { IInkHold, User } from '../models/User.model';
+import type { LoadSkeleton, Skeleton, SkeletonCondition } from '../types/skeleton';
 
+import { APP_SETTING_KEYS, getAppSetting } from './app-settings.service';
 import { isFixtureUser } from './run-origin';
 
 // T-240: the price list, the non-template prices and the one alias map live in
@@ -50,6 +53,395 @@ export function costForTemplate(templateId: string): number | undefined {
     return ownPrice(TEMPLATE_PRICES, DOC_TYPE_ALIASES[templateId]);
   }
   return undefined;
+}
+
+// ── Paragraph count and its price (T-577; Arjun, Vikram, Ajay AJ-577-M1..M4) ──
+//
+// A pack whose signed skeleton declares a body-paragraph block asks the user
+// for a total body paragraph count N in [mandatoryCount(pack, facts), cap] and
+// is priced by Vikram's Ink bands (AppSettings). Every other pack is priced as
+// before by costForTemplate. `quoteDraft` is the ONE place a draft's price is
+// computed (T-388: shown = held = debited): enforceCreditsForBrief, the
+// template-configs `credits_cost`, the quote route, the hold, the settle and
+// the done payload all read it.
+
+/**
+ * The facts a pack's mandatory count depends on, as ledger entries (the shape
+ * the skeleton's `when` evaluator reads). Brief values without a ledger are
+ * turned into entries by `ledgerFactsFromValues`.
+ */
+export type ParagraphFacts = readonly LedgerFact[];
+
+/** One pack's paragraph block. `mandatory` gives the minimum for these facts. */
+export interface ParagraphConfig {
+  mandatory: (facts: ParagraphFacts) => number;
+  default: number;
+  cap: number;
+}
+
+/** Where the per-pack block comes from. */
+export type ParagraphConfigSource = (templateId: string) => ParagraphConfig | null;
+
+/** Does a skeleton `when` condition hold for these facts? (The skeleton's own evaluator.) */
+export type SkeletonWhenHolds = (when: SkeletonCondition, facts: ParagraphFacts) => boolean;
+
+/**
+ * T-577 (AJ-577-M5): the paragraph config a signed skeleton declares. Null
+ * when the skeleton has no `bodyParagraphs` block (the pack does not ask).
+ * `mandatory(facts)` is the number of `required: true` clauses whose `when`
+ * holds (no `when` = always), so it cannot drift from the skeleton: for
+ * bail_regular 7, or 8 when custody_status applies (AJ-577-M3).
+ */
+export function paragraphConfigFromSkeleton(
+  skeleton: Skeleton | null,
+  whenHolds: SkeletonWhenHolds,
+): ParagraphConfig | null {
+  const block = skeleton?.bodyParagraphs;
+  if (!skeleton || !block) return null;
+  const required = skeleton.clauses.filter((c) => c.required === true);
+  return {
+    mandatory: (facts) => required.filter((c) => !c.when || whenHolds(c.when, facts)).length,
+    default: block.default,
+    cap: block.cap,
+  };
+}
+
+/**
+ * The source for every pack: the loaded skeleton's `bodyParagraphs` block,
+ * with `evaluatorFor` giving that pack's `when` evaluator (draft-renderer's
+ * skeletonWhenHolds with the pack's option ids and value lists). Read once
+ * per pack and kept. A skeleton that cannot be read counts as "does not ask"
+ * (today's path).
+ */
+export function skeletonParagraphSource(
+  load: LoadSkeleton,
+  evaluatorFor: (packId: string, skeleton: Skeleton) => SkeletonWhenHolds,
+): ParagraphConfigSource {
+  const cache = new Map<string, ParagraphConfig | null>();
+  return (templateId) => {
+    const hit = cache.get(templateId);
+    if (hit !== undefined) return hit;
+    let config: ParagraphConfig | null = null;
+    try {
+      const skeleton = load(templateId);
+      if (skeleton?.bodyParagraphs) {
+        config = paragraphConfigFromSkeleton(skeleton, evaluatorFor(templateId, skeleton));
+      }
+    } catch {
+      config = null;
+    }
+    cache.set(templateId, config);
+    return config;
+  };
+}
+
+/** No pack asks: the source until one is installed (and in a process that never installs one). */
+const noPackAsks: ParagraphConfigSource = () => null;
+let installedParagraphSource: ParagraphConfigSource = noPackAsks;
+let paragraphConfigSource: ParagraphConfigSource = noPackAsks;
+
+/**
+ * Install the real source (documents.routes does, at load, with the skeleton
+ * source). Kept out of this module so the skeleton and renderer modules are
+ * not pulled into every importer of the price list.
+ */
+export function installParagraphConfigSource(source: ParagraphConfigSource): void {
+  installedParagraphSource = source;
+  paragraphConfigSource = source;
+}
+
+/** The pack's paragraph block, or null when the pack does not ask. */
+export function getParagraphConfig(templateId: string): ParagraphConfig | null {
+  return paragraphConfigSource(templateId);
+}
+
+/**
+ * TEST ONLY: replace the paragraph config source (null restores the
+ * installed one), so tests can exercise any config. Never called in production.
+ */
+export function _setParagraphConfigSourceForTests(source: ParagraphConfigSource | null): void {
+  paragraphConfigSource = source ?? installedParagraphSource;
+}
+
+/**
+ * The pack's mandatory body paragraph count for these facts (AJ-577-M2/M3),
+ * or null when the pack does not ask. Never below 1.
+ */
+export function mandatoryCount(templateId: string, facts: ParagraphFacts = []): number | null {
+  const config = getParagraphConfig(templateId);
+  if (!config) return null;
+  const n = config.mandatory(facts);
+  return Number.isInteger(n) && n >= 1 ? n : 1;
+}
+
+/**
+ * The brief's values as ledger-like entries (source `user`, the value as its
+ * own display), one per value or per list item, the way the s.138 brief
+ * reader builds the brief's entries; the skeleton evaluator then reads them as it
+ * reads a ledger (the option-id map turns an option label into its id).
+ * Malformed or empty items are skipped.
+ */
+export function ledgerFactsFromValues(values: unknown): LedgerFact[] {
+  const facts: LedgerFact[] = [];
+  if (!Array.isArray(values)) return facts;
+  for (const item of values) {
+    if (!item || typeof item !== 'object') continue;
+    const { key, value } = item as { key?: unknown; value?: unknown };
+    if (typeof key !== 'string' || key === '') continue;
+    const list = Array.isArray(value) ? value : [value];
+    list.forEach((v, i) => {
+      if (typeof v !== 'string' || v.trim() === '') return;
+      const text = v.trim();
+      facts.push({
+        id: `brief:${key}:${i}`,
+        key,
+        label: key,
+        type: 'text',
+        value: text,
+        display: text,
+        raw_span: '',
+        source: 'user',
+        confidence: 1,
+        required_in_draft: false,
+      });
+    });
+  }
+  return facts;
+}
+
+/**
+ * The facts for a draft: the ledger's entries, plus the brief's for any key
+ * the ledger does not hold.
+ */
+export function paragraphFactsFor(
+  values: unknown,
+  ledgerFacts?: readonly LedgerFact[],
+): ParagraphFacts {
+  if (!ledgerFacts) return ledgerFactsFromValues(values);
+  const inLedger = new Set(ledgerFacts.map((f) => f.key));
+  return [...ledgerFacts, ...ledgerFactsFromValues(values).filter((f) => !inLedger.has(f.key))];
+}
+
+/** One Ink band: total body paragraphs `from`..`to` (inclusive) cost `ink` (absolute Ink). */
+export interface ParagraphBand {
+  from: number;
+  to: number;
+  ink: number;
+}
+
+/** The highest count any band may cover (Vikram: cap 25). */
+export const PARAGRAPH_BAND_MAX = 25;
+
+/**
+ * Strict shape check of a bands value (Vikram's format, confirmed by Arjun):
+ * a non-empty JSON array of {upTo, add} (no other keys), whole numbers,
+ * upTo >= 1 and strictly ascending, the last upTo <= 25, add >= 0. `add` is
+ * Ink over the pack's class price. Returned as absolute bands: band i covers
+ * (previous upTo + 1)..upTo (the first starts at 1) at classPrice + add.
+ * Null when anything is off.
+ */
+export function parseParagraphBands(raw: string, classPrice: number): ParagraphBand[] | null {
+  let value: unknown;
+  try {
+    value = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  if (!Array.isArray(value) || value.length === 0) return null;
+  const bands: ParagraphBand[] = [];
+  for (const item of value) {
+    if (typeof item !== 'object' || item === null || Array.isArray(item)) return null;
+    const keys = Object.keys(item);
+    if (keys.length !== 2 || !['upTo', 'add'].every((k) => keys.includes(k))) return null;
+    const { upTo, add } = item as Record<string, unknown>;
+    if (typeof upTo !== 'number' || typeof add !== 'number') return null;
+    if (!Number.isInteger(upTo) || !Number.isInteger(add)) return null;
+    const prev = bands[bands.length - 1];
+    const from = prev ? prev.to + 1 : 1;
+    if (upTo < from || upTo > PARAGRAPH_BAND_MAX || add < 0) return null;
+    bands.push({ from, to: upTo, ink: classPrice + add });
+  }
+  return bands;
+}
+
+/** Keys already warned about (missing or invalid), so each is logged once. */
+const warnedBandKeys = new Set<string>();
+
+function warnBandsOnce(key: string, problem: 'missing' | 'invalid' | 'unreadable'): void {
+  const tag = `${key}:${problem}`;
+  if (warnedBandKeys.has(tag)) return;
+  warnedBandKeys.add(tag);
+  // The key name only, never the value.
+  console.warn(
+    `[drafting] paragraph bands ${problem} (key=${key}); the pack is charged its class price`,
+  );
+}
+
+/** TEST ONLY: forget which band keys were warned about. */
+export function _resetParagraphBandWarnings(): void {
+  warnedBandKeys.clear();
+}
+
+async function readBands(
+  key: string,
+  classPrice: number,
+): Promise<ParagraphBand[] | null | 'missing'> {
+  let raw: string;
+  try {
+    raw = await getAppSetting(key);
+  } catch (err) {
+    if (err instanceof Error && err.name === 'AppSettingMissingError') return 'missing';
+    warnBandsOnce(key, 'unreadable');
+    return null;
+  }
+  const bands = parseParagraphBands(raw, classPrice);
+  if (!bands) warnBandsOnce(key, 'invalid');
+  return bands;
+}
+
+/**
+ * The bands for a pack: `pricing.paragraph_bands.<packId>`, else
+ * `pricing.paragraph_bands.base_<classPrice>`. Null when both are missing or
+ * invalid (one warn per key, key name only).
+ */
+export async function getParagraphBands(
+  templateId: string,
+  classPrice: number,
+): Promise<ParagraphBand[] | null> {
+  return (await getParagraphBandsWithKey(templateId, classPrice))?.bands ?? null;
+}
+
+/**
+ * getParagraphBands, with the AppSettings key the bands were read from (the
+ * pack key, or the `base_<classPrice>` fallback), so a later warning names
+ * the key that was actually parsed.
+ */
+export async function getParagraphBandsWithKey(
+  templateId: string,
+  classPrice: number,
+): Promise<{ bands: ParagraphBand[]; key: string } | null> {
+  const prefix = APP_SETTING_KEYS.PARAGRAPH_BANDS_PREFIX;
+  const packKey = `${prefix}.${templateId}`;
+  const baseKey = `${prefix}.base_${classPrice}`;
+  const own = await readBands(packKey, classPrice);
+  if (Array.isArray(own)) return { bands: own, key: packKey };
+  const base = await readBands(baseKey, classPrice);
+  if (Array.isArray(base)) return { bands: base, key: baseKey };
+  if (own === 'missing' && base === 'missing') {
+    warnBandsOnce(packKey, 'missing');
+    warnBandsOnce(baseKey, 'missing');
+  }
+  return null;
+}
+
+function bandFor(bands: readonly ParagraphBand[], n: number): ParagraphBand | undefined {
+  return bands.find((b) => n >= b.from && n <= b.to);
+}
+
+/** A pack that does not ask: today's price, unchanged. */
+export interface FlatQuote {
+  asks: false;
+  ink: number;
+}
+
+/** A pack that asks for a paragraph count. */
+export interface ParagraphQuote {
+  asks: true;
+  /** The Ink for `paragraphs` (the ceiling shown before Generate, AJ-577-M2 (a)). */
+  ink: number;
+  /** mandatoryCount for these facts. */
+  min: number;
+  /** The pack's cap. */
+  max: number;
+  /** The pack's default, clamped into [min, max]. */
+  default: number;
+  /** The count quoted: the one asked for, else `default`. Can be out of range (see quoteInRange). */
+  paragraphs: number;
+  /** The bands, clipped to [min, max]. */
+  bands: ParagraphBand[];
+  /** True when the pack drafts through the D1 skeleton/ledger path: the count is "up to N". */
+  ceiling: boolean;
+  /** The Ink of the band holding `max`: the most this pack can cost (an out-of-range count is quoted at it). */
+  maxInk: number;
+  /** All bands as configured, for the settle at the delivered band. */
+  allBands: ParagraphBand[];
+}
+
+export type DraftQuote = FlatQuote | ParagraphQuote;
+
+/** Is the quoted count inside [min, max]? Always true for a pack that does not ask. */
+export function quoteInRange(quote: DraftQuote): boolean {
+  return !quote.asks || (quote.paragraphs >= quote.min && quote.paragraphs <= quote.max);
+}
+
+/**
+ * THE price of one draft (T-388 single source). Undefined when the id has no
+ * price (callers refuse it, as costForTemplate's).
+ *  - The pack does not ask, or its bands are missing/invalid/do not cover
+ *    [min, cap] → {asks:false, ink: costForTemplate} (exactly today's price).
+ *    No settings read happens for a pack that does not ask.
+ *  - Else → the band for `paragraphs` (default when absent); an out-of-range
+ *    count is quoted at `maxInk` and must be refused by the caller (quoteInRange).
+ * `ceiling` is the caller's call (it knows whether the run goes down the D1
+ * skeleton/ledger path); it is echoed only on an asking quote.
+ */
+export async function quoteDraft(
+  templateId: string,
+  input: { paragraphs?: number; facts?: ParagraphFacts; ceiling?: boolean } = {},
+): Promise<DraftQuote | undefined> {
+  const classPrice = costForTemplate(templateId);
+  if (classPrice === undefined) return undefined;
+  const flat: FlatQuote = { asks: false, ink: classPrice };
+  const config = getParagraphConfig(templateId);
+  if (!config) return flat;
+
+  const max = config.cap;
+  const min = Math.min(mandatoryCount(templateId, input.facts ?? []) ?? 1, max);
+  const read = await getParagraphBandsWithKey(templateId, classPrice);
+  if (!read) return flat;
+  const allBands = read.bands;
+  // The bands must price every count the user may choose. The warning names
+  // the key whose bands were parsed (the pack's, or the base fallback).
+  for (let n = min; n <= max; n += 1) {
+    if (!bandFor(allBands, n)) {
+      warnBandsOnce(read.key, 'invalid');
+      return flat;
+    }
+  }
+  const def = Math.min(max, Math.max(min, config.default));
+  const paragraphs = input.paragraphs ?? def;
+  const maxInk = bandFor(allBands, max)!.ink;
+  const inRange = paragraphs >= min && paragraphs <= max;
+  const ink = inRange ? bandFor(allBands, paragraphs)!.ink : maxInk;
+  const bands = allBands
+    .filter((b) => b.to >= min && b.from <= max)
+    .map((b) => ({ from: Math.max(b.from, min), to: Math.min(b.to, max), ink: b.ink }));
+  return {
+    asks: true,
+    ink,
+    min,
+    max,
+    default: def,
+    paragraphs,
+    bands,
+    ceiling: input.ceiling === true,
+    maxInk,
+    allBands,
+  };
+}
+
+/**
+ * The Ink a delivered draft is settled at (Vikram: settle at the delivered
+ * band, never more than the quote): min(quoted, band of `delivered`). A
+ * count no band covers above the bands, or an unknown count (not a whole
+ * number >= 1, e.g. the count could not be read), settles at the quote. Below
+ * the first band it settles at the first band.
+ */
+export function settleInkForDelivered(quote: ParagraphQuote, delivered: number): number {
+  if (!Number.isInteger(delivered) || delivered < 1) return quote.ink;
+  const first = quote.allBands[0];
+  const band = delivered < first.from ? first : bandFor(quote.allBands, delivered);
+  return band ? Math.min(quote.ink, band.ink) : quote.ink;
 }
 
 // ── Reads ────────────────────────────────────────────────────────────────────
@@ -409,8 +801,8 @@ export async function spendInk(input: {
 // (kept, with ledger rows) or released (refunded). Charge rule: Ink is kept
 // only when a successful run's draft reached the user.
 //
-// AC9: holdInk, settleInk, releaseInk, releaseExpiredHolds and extendInkHold
-// are the only code that touches `inkHolds`.
+// AC9: holdInk, settleInk, releaseInk, releaseExpiredHolds, extendInkHold
+// and (T-577) setHoldSettleUnits are the only code that touches `inkHolds`.
 // `inkSettled` is written only by settleInk (in the pull) and read only by
 // wasInkSettled. Billing renewal and cancel `$set` the buckets
 // and must never touch it.
@@ -469,6 +861,11 @@ export function inkFromUnits(units: number): number {
   return units / 2;
 }
 
+/** T-577: Ink to storage units (×2), the inverse of inkFromUnits. Routes never multiply by 2 themselves. */
+export function unitsFromInk(ink: number): number {
+  return Math.round(ink * 2);
+}
+
 /** How many settled-hold keys a user keeps (newest last). */
 export const INK_SETTLED_KEEP = 50;
 const inkUsers = () => User.collection as unknown as mongoose.mongo.Collection<UserInkFields>;
@@ -498,8 +895,13 @@ export async function holdInk(input: {
   costCredits: number;
   runId: string;
   runSequence: number;
+  /**
+   * T-577: the cost is a paragraph-count quote; store it on the hold as
+   * `quotedUnits`. Absent → the hold is written exactly as before.
+   */
+  quoted?: boolean;
 }): Promise<HoldInkResult> {
-  const { userId, costCredits, runId, runSequence } = input;
+  const { userId, costCredits, runId, runSequence, quoted } = input;
   // T-147e: a golden-set run is never held or charged.
   if (isFixtureUser(userId)) return { ok: true, fixture: true };
   if (!mongoose.Types.ObjectId.isValid(userId)) return { ok: false, reason: 'user_not_found' };
@@ -557,6 +959,7 @@ export async function holdInk(input: {
                   split: { sub: '$_ds', carry: '$_dc', topup: '$_dt' },
                   unit: 'ink2',
                   expiresAt: { $literal: expiresAt },
+                  ...(quoted === true ? { quotedUnits: { $literal: costUnits } } : {}),
                 },
               ],
             ],
@@ -602,6 +1005,51 @@ export async function extendInkHold(
     { arrayFilters: [{ 'h.runId': runId, 'h.runSequence': runSequence }] },
   );
   return { extended: r.matchedCount > 0 };
+}
+
+/**
+ * T-577: record on a live hold the units its settle must keep (the delivered
+ * band, never above the hold). One write, only if the hold is still there and
+ * not yet marked delivered; never re-creates a hold. The sweep and a
+ * lost-hold path then settle this figure (settleInk with no actualUnits).
+ */
+export async function setHoldSettleUnits(
+  userId: string,
+  runId: string,
+  runSequence: number,
+  units: number,
+): Promise<{ set: boolean }> {
+  if (isFixtureUser(userId)) return { set: false };
+  if (!mongoose.Types.ObjectId.isValid(userId)) return { set: false };
+  if (!Number.isFinite(units) || units < 0) return { set: false };
+  const oid = new mongoose.Types.ObjectId(userId);
+  const r = await inkUsers().updateOne(
+    { _id: oid, inkHolds: { $elemMatch: { runId, runSequence, deliver: { $ne: true } } } },
+    [
+      {
+        $set: {
+          inkHolds: {
+            $map: {
+              input: { $ifNull: ['$inkHolds', []] },
+              in: {
+                $cond: [
+                  isHoldFor(runId, runSequence),
+                  {
+                    $mergeObjects: [
+                      '$$this',
+                      { settleUnits: { $min: [{ $literal: units }, '$$this.units'] } },
+                    ],
+                  },
+                  '$$this',
+                ],
+              },
+            },
+          },
+        },
+      },
+    ],
+  );
+  return { set: r.matchedCount > 0 };
 }
 
 /**
@@ -691,12 +1139,17 @@ export async function releaseInk(
  * `actualUnits` (T-202): when below the hold, the difference goes back to
  * the buckets in the same write as the $pull. The kept part is taken from the
  * split in spend order, so the refund comes back to the last buckets taken.
- * Today `actualUnits` is always the hold.
+ * T-577: a paragraph-count draft passes min(quote, delivered band); with no
+ * actualUnits the hold's stored `settleUnits` is used, else the full hold.
  *
  * T-545: `units` is the storage units this settle kept, set whenever Ink was
  * kept (including `ledger_failed`, where the Ink stays kept). It is absent for
  * `fixture_run` (nothing was ever charged) and `no_hold`. It can be 0 only if
  * a real settle kept 0 units.
+ *
+ * T-577: `onMarked` is called once the step-1 mark has landed (with
+ * `settleUnits` when `actualUnits` was given), even if this call then loses
+ * the pull to a sweep or throws: from then on a sweep keeps that figure.
  */
 export async function settleInk(
   userId: string,
@@ -704,6 +1157,7 @@ export async function settleInk(
   runSequence: number,
   actualUnits?: number,
   reference?: string,
+  onMarked?: () => void,
 ): Promise<{
   settled: boolean;
   reason?: 'fixture_run' | 'no_hold' | 'ledger_failed';
@@ -728,15 +1182,23 @@ export async function settleInk(
       $set: {
         'inkHolds.$[h].deliver': true,
         ...(reference !== undefined ? { 'inkHolds.$[h].reference': reference } : {}),
+        // T-577: the settle amount travels with the mark, so a sweep that
+        // finishes this settle keeps the same figure.
+        ...(actualUnits !== undefined
+          ? { 'inkHolds.$[h].settleUnits': Math.max(0, Math.min(actualUnits, hold.units)) }
+          : {}),
       },
     },
     { arrayFilters: [{ 'h.runId': runId, 'h.runSequence': runSequence }] },
   );
   if (marked.matchedCount === 0) return { settled: false, reason: 'no_hold' };
+  onMarked?.();
 
   // Holds are never changed after holdInk except for the mark above, and the
   // filter pins this exact hold (expiresAt), so this split is the one pulled.
-  const charged = Math.max(0, Math.min(actualUnits ?? hold.units, hold.units));
+  // T-577: with no actualUnits, a stored settleUnits (the delivered band) is
+  // kept; with neither, the full hold, as before.
+  const charged = Math.max(0, Math.min(actualUnits ?? hold.settleUnits ?? hold.units, hold.units));
   const keptSub = Math.min(hold.split.sub, charged);
   const keptCarry = Math.min(hold.split.carry, charged - keptSub);
   const keptTopup = Math.min(hold.split.topup, charged - keptSub - keptCarry);

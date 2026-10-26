@@ -21,6 +21,7 @@ import sectionsReadRoutes from './routes/sections-read.routes';
 import sectionsRoutes from './routes/sections.routes';
 import templatesRoutes from './routes/templates.routes';
 import usersRoutes from './routes/users.routes';
+import { getConfigWarnings } from './services/app-settings.service';
 import {
   toolFeatures,
   toolGuard,
@@ -42,6 +43,8 @@ app.get('/health', (_req, res) => {
     timestamp: new Date().toISOString(),
     // T-371 (ADR-025 D2): SHA-256 of the raw bytes of each signed table served.
     signedTables: signedTableHashes(),
+    // T-585: required AI setting keys missing at the last read. In memory, no DB call.
+    config_warnings: getConfigWarnings(),
   });
 });
 

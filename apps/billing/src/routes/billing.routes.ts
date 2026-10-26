@@ -40,6 +40,22 @@ import {
   type TopupQuote,
 } from '../services/topup-quote.service';
 
+// T-583: the Razorpay SDK rejects with a plain object such as
+// { statusCode: 400, error: { code, description, ... } }. Only statusCode and
+// error.code are returned; description and every other field can carry user
+// data and are never read.
+function razorpayErrorFields(err: unknown): { rzpStatus?: number; rzpCode?: string } {
+  const out: { rzpStatus?: number; rzpCode?: string } = {};
+  if (typeof err !== 'object' || err === null) return out;
+  const { statusCode, error } = err as { statusCode?: unknown; error?: unknown };
+  if (typeof statusCode === 'number') out.rzpStatus = statusCode;
+  if (typeof error === 'object' && error !== null) {
+    const { code } = error as { code?: unknown };
+    if (typeof code === 'string') out.rzpCode = code;
+  }
+  return out;
+}
+
 const router = Router();
 
 /** T-223 AC5 — error code the web app turns into the verify-your-email prompt at checkout. */
@@ -100,7 +116,6 @@ router.get('/plans', (_req: Request, res: Response) => {
       id: t.id,
       ink: t.ink,
       priceInr: t.priceInr,
-      badge: t.badge,
       pricePerInkInr: t.pricePerInkInr,
     })),
   });
@@ -161,6 +176,8 @@ router.post(
         {
           userId: req.jwtPayload?.sub,
           errName: err instanceof Error ? err.name : 'unknown',
+          // T-583: Razorpay's status and code only, never description.
+          ...razorpayErrorFields(err),
         },
         'Failed to create subscription',
       );
@@ -173,7 +190,9 @@ router.post(
 //
 // Idempotent: a second call returns the same body, with no Razorpay call.
 // Ink and the plan are untouched (they run to paidThrough, T-399).
-router.post('/cancel', authenticate, requireCurrentPrivacy, async (req: Request, res: Response) => {
+// T-567 item 23 (Ajay): no privacy gate. A user who chose "Not now" must still be
+// able to cancel and then close their account (T-343 §2, DPDP).
+router.post('/cancel', authenticate, async (req: Request, res: Response) => {
   const { sub: userId } = req.jwtPayload!;
   try {
     const result = await cancelSubscriptionAtCycleEnd(userId);

@@ -77,7 +77,7 @@ describe('subscription.service', () => {
         ['solo_yearly', 100],
         ['pro_yearly', 100],
       ])(
-        'sends total_count for %s = %i, with callback_url and notes intact',
+        'sends total_count for %s = %i, with notes intact and no callback_url (T-583)',
         async (planId, count) => {
           const userId = new mongoose.Types.ObjectId().toString();
           const email = 'user@example.com';
@@ -92,7 +92,7 @@ describe('subscription.service', () => {
           const payload = (mockedRazorpay.subscriptions.create as jest.Mock).mock.calls[0][0];
           expect(payload.total_count).toBe(count);
           expect(payload.customer_notify).toBe(1);
-          expect(payload.callback_url).toMatch(/\/dashboard\/payment\/success$/);
+          expect(payload).not.toHaveProperty('callback_url');
           expect(payload.notes).toEqual(expect.objectContaining({ userId, email, planId }));
         },
       );

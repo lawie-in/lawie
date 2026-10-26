@@ -1,0 +1,104 @@
+# ============================================================
+# LAWIE PRODUCTION ENV — TEMPLATE (names only, no values)
+# ============================================================
+# Where it goes : the single file named on line 1 of ecosystem.config.js
+#                 (ENV_FILE) under /home/ubuntu/lawie/ on the NEW prod box.
+# Permissions   : chown ubuntu, chmod 600
+# How to use    : copy this file there, fill every <...>, delete the lines
+#                 marked "DELETE", never paste a value anywhere else.
+# Legend        : [R] required (service refuses to boot without it)
+#                 [o] optional (safe default exists; set it anyway where shown)
+#                 [X] MUST BE ABSENT in production — do not add these lines
+# ------------------------------------------------------------
+
+# ---------- 1. SHARED (every service reads these) ----------
+NODE_ENV=production                                   # [o] must be exactly "production"
+LOG_LEVEL=info                                        # [o]
+REDIS_URL=redis://127.0.0.1:6379                      # [R] on-box redis
+MONGO_URI=<atlas-flex-uri-with-new-user>              # [R] new Flex cluster, new DB user
+INTERNAL_SECRET=<new-random-64-hex>                   # [R] one value, same for all services
+SENTRY_DSN=<sentry-dsn>                               # [o] set it
+AUTH_SERVICE_URL=http://localhost:4001                # [R for email-worker]
+DRAFTING_SERVICE_URL=http://localhost:4002            # [R for email-worker]
+BILLING_SERVICE_URL=http://localhost:4003             # [R for email-worker]
+FRONTEND_URL=https://lawie.in                         # [o] set it
+ALLOWED_ORIGINS=https://lawie.in                      # [o] set it
+GATEWAY_PORT=4000                                     # [o]
+AUTH_PORT=4001                                        # [o]
+DRAFTING_PORT=4002                                    # [o]
+BILLING_PORT=4003                                     # [o]
+
+# ---------- 2. GATEWAY ----------
+JWT_SECRET=<new-random-64-hex>                        # [R] same value in auth
+
+# ---------- 3. AUTH ----------
+# JWT_SECRET is shared with gateway (above)
+JWT_REFRESH_SECRET=<new-random-64-hex>                # [R]
+JWT_EXPIRES_IN=15m                                    # [o]
+JWT_REFRESH_EXPIRES_IN=30d                            # [o]
+GOOGLE_CLIENT_ID=<google-oauth-client-id>             # [o] all three or Google sign-in is off
+GOOGLE_CLIENT_SECRET=<new-google-oauth-client-secret> # [o] rotated
+GOOGLE_CALLBACK_URL=https://api.lawie.in/api/auth/google/callback   # [o] add this URL in Google console
+UNVERIFIED_SWEEP_ENABLED=true                         # [R]
+RAZORPAY_KEY_GUARD=strict                             # set it (prod marker)
+# RAZORPAY_KEY_ID is set once in section 5 (auth reads the same name for its key-mode guard)
+# [X] TEST_SIGNUP_BYPASS           — DO NOT ADD
+# [X] TEST_SIGNUP_BYPASS_SECRET    — DO NOT ADD
+# [X] SECRETS_ENV                  — DO NOT ADD (T-534 not deployed)
+
+# ---------- 4. DRAFTING ----------
+ENCRYPTION_KEY=<new-random-64-hex>                    # [R] new value (prod starts with an empty DB)
+ANTHROPIC_API_KEY=<new-anthropic-key>                 # [R in practice] new key; revoke the old one
+FEATURE_DEFAULT_FACT_LEDGER=on                        # [o]
+FEATURE_DEFAULT_DESCRIBE_FIRST=on                     # [o]
+# PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser # [o] only if Chromium is elsewhere on the new box
+
+# ---------- 5. BILLING ----------
+RAZORPAY_KEY_ID=<live-key-id-after-rotation>          # [R] starts with rzp_live_
+RAZORPAY_KEY_SECRET=<live-key-secret-after-rotation>  # [R]
+RAZORPAY_WEBHOOK_SECRET=<new-live-webhook-secret>     # [R] live-mode webhook -> https://api.lawie.in/<same path as today>
+RAZORPAY_PLAN_ID=<live-plan-id>                       # [R]
+RAZORPAY_PLAN_SOLO_MONTHLY=<live-plan-id>             # as today
+RAZORPAY_PLAN_PRO_MONTHLY=<live-plan-id>              # as today
+RAZORPAY_PLAN_SOLO_YEARLY=<live-plan-id>              # as today
+RAZORPAY_PLAN_PRO_YEARLY=<live-plan-id>               # as today
+# RAZORPAY_KEY_GUARD=strict is set once in section 3
+INVOICE_EMAIL_ENABLED=true                            # [R]
+GST_GSTIN=<as-today>                                  # [o] copy from the current file
+GST_LEGAL_NAME=<as-today>                             # [o]
+GST_TRADE_NAME=<as-today>                             # [o]
+GST_ADDRESS=<as-today>                                # [R] the email worker refuses live reset/welcome mails without it (footer address)
+GST_STATE_CODE=<as-today>                             # [o]
+GST_EFFECTIVE_FROM=<as-today>                         # [o]
+GST_SIGNATURE_PATH=<as-today>                         # [o]
+FEATURE_DEFAULT_COUPON_FREE_GRANT=off                 # [o]
+# [X] RAZORPAY_ALLOW_TEST_KEYS      — DO NOT ADD
+
+# ---------- 6. EMAIL-WORKER ----------
+EMAIL_DRY_RUN=false                                   # [R]
+EMAIL_PROVIDER=ses                                    # [o]
+AWS_REGION=ap-south-1                                 # [o]
+AWS_SES_ACCESS_KEY_ID=<lawie-ses-sender-key-id>       # needed for SES; the SES-only IAM user
+AWS_SES_SECRET_ACCESS_KEY=<lawie-ses-sender-secret>   # needed for SES
+EMAIL_FROM_NAME=Lawie                                 # [o]
+EMAIL_FROM_ADDRESS=<verified-sender@lawie.in>         # [o]
+EMAIL_REPLY_TO=<support@lawie.in>                     # [o]
+EMAIL_FOUNDER=<founder-address>                       # [o]
+EMAIL_QUEUE_PREFIX=<as-today>                         # [o]
+EMAIL_WORKER_CONCURRENCY=<as-today>                   # [o]
+# [X] EMAIL_DEV_REDIRECT_TO         — DO NOT ADD
+# [X] SMTP_HOST / SMTP_PORT / SMTP_USER / SMTP_PASS — DO NOT ADD (only if SES is not ready: then EMAIL_PROVIDER=smtp + these four)
+
+# ---------- 7. WEB (NEXT_PUBLIC_* are baked at `next build`; change = rebuild web) ----------
+NEXT_PUBLIC_API_URL=https://api.lawie.in
+NEXT_PUBLIC_GRIEVANCE_OFFICER_NAME=Abhinav Anand
+NEXT_PUBLIC_SENTRY_DSN=<sentry-browser-dsn>
+SENTRY_ENVIRONMENT=production                         # runtime, web only; reload is enough
+# web also reads SENTRY_DSN from section 1
+
+# ---------- 8. NEVER IN THIS FILE ----------
+# HELICONE_API_KEY, HELICONE_GATEWAY_URL
+# AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY  (the general IAM pair — only the SES pair above)
+# any rzp_test_ value
+# CODECOV_TOKEN, GH_TOKEN, GITHUB_TOKEN
+# MONGO_ROOT_USER, MONGO_ROOT_PASS (local docker only)

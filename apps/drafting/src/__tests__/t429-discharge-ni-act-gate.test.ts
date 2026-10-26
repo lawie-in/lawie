@@ -610,8 +610,8 @@ const REV_INSTR_DRAFT =
   "Draft a Criminal Revision Petition under S.438 BNSS (calling for records; was S.397 CrPC) read with S.440 BNSS (Sessions Judge's powers of revision; was S.399 CrPC) or S.442 BNSS (High Court's powers of revision; was S.401 CrPC).";
 const REV_INSTR_BNSS =
   "BNSS provisions: S.438 — the High Court or a Sessions Judge may call for and examine the record; S.440 — Sessions Judge's powers of revision; S.441 — powers of an Additional Sessions Judge; S.442 — High Court's powers of revision; S.443 — High Court's power to withdraw or transfer revision cases.";
-const REV_INSTR_PARA6 =
-  'Para 6: Whether appeal lay — where an appeal lies and none was brought, no revision at the instance of the party who could have appealed (S.442 BNSS; was S.401(4) CrPC); revision is residual.';
+const REV_INSTR_PARA5 =
+  'Para 5: Whether appeal lay — where an appeal lies and none was brought, no revision at the instance of the party who could have appealed (S.442 BNSS; was S.401(4) CrPC); revision is residual.';
 const REV_INSTR_FORUM =
   'Choice of forum: Where the impugned order is by a Magistrate — revision lies to the Sessions Judge (S.438 read with S.440 BNSS) or to the High Court (S.438 read with S.442 BNSS), not both (S.438(3) BNSS). Where the impugned order is by a Sessions Court — revision lies to the High Court. Strategic — Sessions revision may be quicker; the High Court also has inherent powers (S.528 BNSS).';
 
@@ -642,7 +642,7 @@ describe('T-429 F: criminal_revision signed strings (c55d390)', () => {
   it.each([
     ['Draft a Criminal Revision Petition', REV_INSTR_DRAFT],
     ['BNSS provisions', REV_INSTR_BNSS],
-    ['Para 6', REV_INSTR_PARA6],
+    ['Para 5', REV_INSTR_PARA5],
     ['Choice of forum', REV_INSTR_FORUM],
   ])('instruction "%s" is the signed text, once', (_n, text) => {
     expect(raw().prompt_context.promptInstructions.filter((l) => l === text)).toHaveLength(1);
@@ -654,7 +654,7 @@ describe('T-429 F: criminal_revision signed strings (c55d390)', () => {
 
   it('the loaded pack carries the same four instructions', () => {
     const loaded = loadRulePack('criminal_revision') as RulePack;
-    for (const t of [REV_INSTR_DRAFT, REV_INSTR_BNSS, REV_INSTR_PARA6, REV_INSTR_FORUM]) {
+    for (const t of [REV_INSTR_DRAFT, REV_INSTR_BNSS, REV_INSTR_PARA5, REV_INSTR_FORUM]) {
       expect(loaded.draftingInstructions).toContain(t);
     }
   });

@@ -119,6 +119,22 @@ import {
   type LawSwitchResult,
 } from './law-switch';
 import {
+  computeLimitation,
+  findLimitationClaims,
+  findLimitationClaimsChecked,
+  lastParagraphNumber,
+  LIMITATION_FACT_KEY,
+  LIMITATION_SECTION_ID,
+  type LimitationClaim,
+  limitationFlagMessage,
+  limitationInputFromLedger,
+  limitationInputFromValues,
+  limitationParagraph,
+  limitationRuleFor,
+  type LimitationResult,
+  withLimitationFact,
+} from './limitation.service';
+import {
   CacheUsage,
   cacheCounts,
   CallUsage,
@@ -337,15 +353,40 @@ export async function* streamLLM(
 
 // ── AI error classification ────────────────────────────────────────────────
 //
-// Surfaces a user-readable reason + a retryable flag for every kind of failure
-// the LLM stream can produce (Anthropic 429/5xx, network/socket drop, etc).
-// Classification is by the SDK error's HTTP status, then by message text.
-// The route handler emits
-// this via `event: error` SSE; the frontend renders it in the
-// generation_failed pipeline state.
+// Labels every kind of failure the LLM stream can produce (Anthropic 429/5xx,
+// network/socket drop, etc) with a code and a retryable flag. Classification is
+// by the SDK error's HTTP status, then by message text. The stream emits it via
+// `event: error` SSE; the frontend renders it in the generation_failed state.
+//
+// T-567 item 41 (Ajay, AJ-539-M2): every server failure before `done` shows the
+// advocate only `The draft did not finish.`. The server's own English detail
+// goes to logs only. The classifier never decides the Ink line (41b).
+
+/** AJ-539-M2: the only user-facing text for a server failure before `done`. */
+export const DRAFT_DID_NOT_FINISH = 'The draft did not finish.';
+
+/**
+ * The SSE `event: error` payload. `reason` is user-facing: signed text only,
+ * or ''. `inkReleased` (Arjun, T-567): true only once releaseInk has returned
+ * success for this run; absent or false means not confirmed. No emitter sets
+ * it today, so the web shows no "No Ink was used." line.
+ */
+export interface SseErrorEvent {
+  section?: string;
+  reason: string;
+  retryable: boolean;
+  code: string;
+  runId?: string;
+  inkReleased?: boolean;
+}
+
+/** Writes one SSE `event: error`. The caller ends the response. */
+export function writeSseError(res: Response, event: SseErrorEvent): void {
+  res.write(`event: error\ndata: ${JSON.stringify(event)}\n\n`);
+}
 
 interface ClassifiedLlmError {
-  /** Stable code for telemetry / future translation */
+  /** Stable code for telemetry and the web's own strings */
   code:
     | 'rate_limited'
     | 'provider_unavailable'
@@ -353,8 +394,10 @@ interface ClassifiedLlmError {
     | 'invalid_request'
     | 'network'
     | 'unknown';
-  /** One-line copy shown directly to the advocate */
+  /** Shown to the advocate: always DRAFT_DID_NOT_FINISH (AJ-539-M2). */
   userMessage: string;
+  /** The server's own detail, for logs only. Never sent to the client. */
+  logMessage: string;
   /** Whether re-clicking "Try again" is likely to succeed */
   retryable: boolean;
 }
@@ -382,49 +425,51 @@ function isProviderConnectionError(err: unknown): boolean {
 }
 
 function classifyLlmError(err: unknown): ClassifiedLlmError {
-  // App-setting missing — model not configured in DB. Surface the exact key
-  // so the founder knows what to set in /admin/ai-config.
+  // App-setting missing — model not configured in DB. The key goes to the log
+  // only (41a): the advocate sees no internal configuration.
   if (err instanceof AppSettingMissingError) {
     return {
       code: 'auth',
-      userMessage: `AI model is not configured. The founder must set "${err.key}" in /admin/ai-config before drafts can be generated.`,
+      userMessage: DRAFT_DID_NOT_FINISH,
+      logMessage: `AI model is not configured: app setting "${err.key}" is missing (set it in /admin/ai-config).`,
       retryable: false,
     };
   }
 
   const RATE_LIMITED: ClassifiedLlmError = {
     code: 'rate_limited',
-    userMessage:
-      'The AI service is currently rate-limited. Please wait a few seconds and try again.',
+    userMessage: DRAFT_DID_NOT_FINISH,
+    logMessage: 'The AI provider rate-limited the request.',
     retryable: true,
   };
   const PROVIDER_UNAVAILABLE: ClassifiedLlmError = {
     code: 'provider_unavailable',
-    userMessage:
-      'The AI service is temporarily unavailable. Please try again in a moment — your inputs are saved.',
+    userMessage: DRAFT_DID_NOT_FINISH,
+    logMessage: 'The AI provider is temporarily unavailable.',
     retryable: true,
   };
   const AUTH: ClassifiedLlmError = {
     code: 'auth',
-    userMessage:
-      'The drafting service could not authenticate with the AI provider. Please contact support — this is a server-side configuration issue.',
+    userMessage: DRAFT_DID_NOT_FINISH,
+    logMessage: 'The drafting service could not authenticate with the AI provider (configuration).',
     retryable: false,
   };
   const INVALID_REQUEST: ClassifiedLlmError = {
     code: 'invalid_request',
-    userMessage:
-      'The AI rejected the prompt for this draft. Try shortening the facts narrative, then generate again.',
+    userMessage: DRAFT_DID_NOT_FINISH,
+    logMessage: 'The AI provider rejected the request as invalid.',
     retryable: false,
   };
   const NETWORK: ClassifiedLlmError = {
     code: 'network',
-    userMessage: 'Network error reaching the AI service. Check your connection and try again.',
+    userMessage: DRAFT_DID_NOT_FINISH,
+    logMessage: 'Network error reaching the AI provider.',
     retryable: true,
   };
   const UNKNOWN: ClassifiedLlmError = {
     code: 'unknown',
-    userMessage:
-      'The AI service returned an unexpected error. Please try again. If this keeps happening, contact support.',
+    userMessage: DRAFT_DID_NOT_FINISH,
+    logMessage: 'The AI provider returned an unexpected error.',
     retryable: true,
   };
 
@@ -766,23 +811,22 @@ export async function streamGenerateDocument(
       const classified = classifyLlmError(llmErr);
       if (process.env.NODE_ENV !== 'test') {
         console.error(
-          `[drafting] LLM stream failed (legacy generate, runId=${input.runId}, runSequence=${input.runSequence}, runType=${input.runType}):`,
+          `[drafting] LLM stream failed (legacy generate, runId=${input.runId}, runSequence=${input.runSequence}, runType=${input.runType}, code=${classified.code}): ${classified.logMessage}`,
           llmErr instanceof Error ? llmErr.message : llmErr,
         );
       }
-      res.write(
-        `event: error\ndata: ${JSON.stringify({
-          reason: classified.userMessage,
-          retryable: classified.retryable,
-          code: classified.code,
-          runId: input.runId,
-        })}\n\n`,
-      );
+      // T-567 item 41: signed text only; no inkReleased (the hold is not yet released).
+      writeSseError(res, {
+        reason: classified.userMessage,
+        retryable: classified.retryable,
+        code: classified.code,
+        runId: input.runId,
+      });
       // Not res.end() here — the route ends the response only after the
       // failed Generation row is persisted, so a fast retry's resolveRun
       // query is guaranteed to find this attempt rather than racing it.
       throw new GenerationFailedError(
-        classified.userMessage,
+        classified.logMessage,
         classified.code,
         meter.totals(),
         draft.model,
@@ -883,6 +927,12 @@ export interface TemplateGenerateResult {
   transport?: 'direct';
   /** Paragraph count of the final draft, from assembleDocument */
   bodyParaCount: number;
+  /**
+   * T-472: how many of the model's sentences state a limitation position
+   * (each is a checks-panel warning; the text is never changed). Present only
+   * on a pack whose limitation is computed.
+   */
+  limitationFlags?: number;
   /** T-477: echoed [only when: ...] markers stripped from the AI body, summed across sections (count only) */
   onlyWhenStrips?: number;
 }
@@ -1054,24 +1104,23 @@ export async function streamGenerateFromTemplate(
           const classified = classifyLlmError(llmErr);
           if (process.env.NODE_ENV !== 'test') {
             console.error(
-              `[drafting] LLM stream failed (section ${section.section_id}, runId=${input.runId}, runSequence=${input.runSequence}, runType=${input.runType}):`,
+              `[drafting] LLM stream failed (section ${section.section_id}, runId=${input.runId}, runSequence=${input.runSequence}, runType=${input.runType}, code=${classified.code}): ${classified.logMessage}`,
               llmErr instanceof Error ? llmErr.message : llmErr,
             );
           }
-          res.write(
-            `event: error\ndata: ${JSON.stringify({
-              section: section.section_id,
-              reason: classified.userMessage,
-              retryable: classified.retryable,
-              code: classified.code,
-              runId: input.runId,
-            })}\n\n`,
-          );
+          // T-567 item 41: signed text only; no inkReleased (the hold is not yet released).
+          writeSseError(res, {
+            section: section.section_id,
+            reason: classified.userMessage,
+            retryable: classified.retryable,
+            code: classified.code,
+            runId: input.runId,
+          });
           // Not res.end() here — the route ends the response only after the
           // failed Generation row is persisted, so a fast retry's resolveRun
           // query is guaranteed to find this attempt rather than racing it.
           throw new GenerationFailedError(
-            classified.userMessage,
+            classified.logMessage,
             classified.code,
             meter.totals(),
             aiModel,
@@ -1091,8 +1140,22 @@ export async function streamGenerateFromTemplate(
       }
     }
 
+    // ── T-472 (Ajay, Arjun option d): the computed limitation paragraph ─────────
+    // A system section right after the model's text, numbered after its last
+    // paragraph. The model's text is never changed.
+    const limitation = limitationForValues(templateConfig.template_id, convertedFormData);
+    const limitationAt =
+      limitation !== null ? insertLimitationSection(renderedSections, limitation) : -1;
+    const limitationNumber =
+      limitation !== null && limitationAt >= 0
+        ? numberLimitationSection(renderedSections, limitationAt, limitation)
+        : null;
+
     // ── Assemble full document ─────────────────────────────────────────────────
-    const { fullText, bodyParaCount } = assembleDocument(renderedSections);
+    const assembled = assembleDocument(renderedSections);
+    const { fullText } = assembled;
+    // T-472: the computed paragraph is the draft's last numbered paragraph.
+    const bodyParaCount = limitationNumber ?? assembled.bodyParaCount;
 
     // Update body_para_count in the context and re-render verification if needed
     ctx.body_para_count = String(bodyParaCount);
@@ -1128,9 +1191,13 @@ export async function streamGenerateFromTemplate(
     );
 
     // ── Filing checklist from config ───────────────────────────────────────────
-    const filingChecklist = templateConfig.filing_checklist.map((item) =>
-      item.replace(/\{(\w+)\}/g, (_m, key: string) => ctx[key] ?? '_____'),
-    );
+    const filingChecklist = [
+      ...templateConfig.filing_checklist.map((item) =>
+        item.replace(/\{(\w+)\}/g, (_m, key: string) => ctx[key] ?? '_____'),
+      ),
+      // T-472: the signed s.5 line when late, AJ-472-M1 line when unknown, none when in time.
+      ...(limitation?.checklistItems ?? []),
+    ];
 
     if (filingChecklist.length > 0) {
       res.write(`event: checklist\ndata: ${JSON.stringify({ items: filingChecklist })}\n\n`);
@@ -1242,6 +1309,19 @@ export async function streamGenerateFromTemplate(
       }
     }
 
+    // T-472: the model's own limitation statements, flagged only.
+    const limitationWarnings =
+      limitation !== null && limitationNumber !== null
+        ? limitationClaimWarnings(
+            findLimitationClaims(aiSections.map((s) => s.content)).map((sentence) => ({
+              sentence,
+              blanked: false,
+            })),
+            limitationNumber,
+          )
+        : [];
+    allWarnings.push(...limitationWarnings);
+
     if (allWarnings.length > 0) {
       res.write(`event: warning\ndata: ${JSON.stringify({ warnings: allWarnings })}\n\n`);
     }
@@ -1257,6 +1337,7 @@ export async function streamGenerateFromTemplate(
       aiModel,
       transport,
       bodyParaCount,
+      ...(limitation !== null ? { limitationFlags: limitationWarnings.length } : {}),
       onlyWhenStrips,
     };
   } finally {
@@ -1655,6 +1736,113 @@ function lawSwitchSlotTexts(facts: readonly LedgerFact[]): string[] {
     .map((f) => f.display as string);
 }
 
+// ── T-472: limitation, computed by code (Ajay, T-245 file, Anushka run 4) ───
+
+/** The limitation for a form-path case (values keyed by field id), or null for a pack without a rule. */
+function limitationForValues(
+  templateId: string,
+  values: Readonly<Record<string, unknown>>,
+): LimitationResult | null {
+  const rule = limitationRuleFor(templateId);
+  return rule === null ? null : computeLimitation(rule, limitationInputFromValues(rule, values));
+}
+
+/**
+ * The limitation for the brief path. With a ledger, from its `user`/`asked`
+ * facts only (an unresolved date is unknown; a computed fact is never an
+ * input). Without one, from the brief's items. Null for a pack without a rule.
+ */
+function limitationForBrief(input: BriefGenerateInput): LimitationResult | null {
+  const rule = limitationRuleFor(input.templateConfig.template_id);
+  if (rule === null) return null;
+  if (input.ledger) {
+    return computeLimitation(
+      rule,
+      limitationInputFromLedger(
+        rule,
+        input.ledger.facts,
+        (input.ledger.unresolved ?? []).map((u) => u.key),
+      ),
+    );
+  }
+  const values: Record<string, unknown> = {};
+  for (const item of input.brief.items) {
+    if (typeof item.value === 'string') values[lastKeySegment(item.key)] = item.value;
+  }
+  return computeLimitation(rule, limitationInputFromValues(rule, values));
+}
+
+/**
+ * T-472 (Arjun, option d): the computed paragraph is a system section, not
+ * model text. It goes right after the first AI section (the body), before the
+ * prayer, unnumbered until the body is known (`numberLimitationSection`).
+ * Returns its index, or -1 when there is no AI section to follow.
+ */
+function insertLimitationSection(
+  sections: RenderedSection[],
+  limitation: LimitationResult,
+): number {
+  const body = sections.findIndex((s) => s.type === 'ai_generated');
+  if (body < 0) return -1;
+  sections.splice(body + 1, 0, {
+    section_id: LIMITATION_SECTION_ID,
+    type: 'template',
+    content: limitation.text,
+    alignment: sections[body].alignment ?? 'left',
+  });
+  return body + 1;
+}
+
+/**
+ * Numbers the computed section one after the model's highest top-level
+ * paragraph number (AJ-472-M2: never a fixed number; "8.1" sub-numbers do not
+ * count, and a number the model skipped cannot make it collide) and fills
+ * `{body_para_count}` in the other system sections with that number, so the
+ * verification's "1 to N" covers it. Returns the number. Nothing in the
+ * model's text changes.
+ * T-474: a pack with two or more AI sections (form path) reads the first one
+ * only, as assembleDocument does; a D1 skeleton pack never gets this section.
+ */
+function numberLimitationSection(
+  sections: RenderedSection[],
+  at: number,
+  limitation: LimitationResult,
+): number {
+  const body = sections.find((s) => s.type === 'ai_generated');
+  const n = lastParagraphNumber(body?.content ?? '') + 1;
+  sections[at] = { ...sections[at], content: limitationParagraph(limitation, n) };
+  for (let i = 0; i < sections.length; i++) {
+    const s = sections[i];
+    if (s.type === 'template' && s.content.includes('{body_para_count}')) {
+      sections[i] = { ...s, content: s.content.replace(/\{body_para_count\}/g, String(n)) };
+    }
+  }
+  return n;
+}
+
+/**
+ * T-472 (Arjun, option d): a checks-panel warning for each of the model's
+ * sentences that states a limitation position, the signed text verbatim. The
+ * sentence is never changed. `blanked` (the fact verifier blanked or removed
+ * it) goes in details only; `expected` is the sentence as it prints, or the
+ * model's own words when it no longer prints.
+ */
+function limitationClaimWarnings(
+  claims: readonly LimitationClaim[],
+  n: number,
+): ValidationWarning[] {
+  return claims.map(({ sentence, blanked }) => ({
+    type: 'limitation',
+    message: limitationFlagMessage(n),
+    details: {
+      rule: 'limitation_claim',
+      field: LIMITATION_SECTION_ID,
+      expected: sentence,
+      ...(blanked ? { blanked: true } : {}),
+    },
+  }));
+}
+
 export async function streamGenerateFromBrief(
   rawInput: BriefGenerateInput,
   res: Response,
@@ -1664,13 +1852,27 @@ export async function streamGenerateFromBrief(
   // derived facts (governing_provision, women_proviso, notice_provision) are
   // added per request and never stored, as the s.138 computed facts are.
   const law = lawSwitchForBrief(rawInput);
-  const input: BriefGenerateInput =
+  const lawInput: BriefGenerateInput =
     law !== null && rawInput.ledger
       ? {
           ...rawInput,
           ledger: { ...rawInput.ledger, facts: withLawSwitchFacts(rawInput.ledger.facts, law) },
         }
       : rawInput;
+  // T-472: limitation, computed by code from the case's dates (never stored).
+  // With a ledger, its one computed fact goes in the same way, so the Drafter's
+  // facts and the fact verifier's ledger carry it.
+  const limitation = limitationForBrief(lawInput);
+  const input: BriefGenerateInput =
+    limitation !== null && lawInput.ledger
+      ? {
+          ...lawInput,
+          ledger: {
+            ...lawInput.ledger,
+            facts: withLimitationFact(lawInput.ledger.facts, limitation),
+          },
+        }
+      : lawInput;
   const { pack: loadedPack, templateConfig, courtData } = input;
   // T-147c: with the ledger, everything the system writes and every check reads
   // the ledger's displays; without it, the brief exactly as before.
@@ -1776,10 +1978,22 @@ export async function streamGenerateFromBrief(
       bodyAt = renderedSections.length;
       renderedSections.push({ section_id: 'body', type: 'ai_generated', content: '' });
     }
+    // T-472 (Arjun, option d): the computed limitation paragraph is a system
+    // section after the body, so the Drafter is shown it as text that follows
+    // its own, and the limitation clause counts as a system part. Never on D1.
+    const limitationAt =
+      limitation !== null && !d1SkeletonFor(input)
+        ? insertLimitationSection(renderedSections, limitation)
+        : -1;
     const systemText = systemTextAround(renderedSections);
 
     // ── What the Drafter is given ─────────────────────────────────────────────
-    const parts = systemParts(templateConfig);
+    const parts = [
+      ...systemParts(templateConfig),
+      ...(limitationAt >= 0
+        ? [{ sectionId: LIMITATION_SECTION_ID, label: LIMITATION_SECTION_ID.replace(/_/g, ' ') }]
+        : []),
+    ];
     // T-410 (Ajay 2a8b722): a consumer_complaint reads the consumer rule, as the system prompt does.
     const courtRule = drafterPromptCourtRule(templateConfig.template_id, courtData);
     // The provision that follows the court chosen (T-135).
@@ -1828,7 +2042,12 @@ export async function streamGenerateFromBrief(
           target: promptInput.target,
           language: promptInput.language,
           facts: ledgerDrafterFacts(
-            input.ledger.facts,
+            // T-472: the computed limitation fact is not a FACT for the Drafter:
+            // the system section prints it, and a copy would print it twice.
+            // The verifier's ledger (input.ledger.facts) keeps it.
+            input.ledger.facts.filter(
+              (f) => !(f.source === 'computed' && f.key === LIMITATION_FACT_KEY),
+            ),
             buildChecklist(pack),
             ctx.court_designation || courtData?.designation || null,
             brief.kind.court_document,
@@ -1923,22 +2142,21 @@ export async function streamGenerateFromBrief(
       const classified = classifyLlmError(llmErr);
       if (process.env.NODE_ENV !== 'test') {
         console.error(
-          `[drafting] Drafter stream failed (kind=${pack.id}, runId=${input.runId}, runSequence=${input.runSequence}, runType=${input.runType}):`,
+          `[drafting] Drafter stream failed (kind=${pack.id}, runId=${input.runId}, runSequence=${input.runSequence}, runType=${input.runType}, code=${classified.code}): ${classified.logMessage}`,
           llmErr instanceof Error ? llmErr.name : 'unknown',
         );
       }
-      res.write(
-        `event: error\ndata: ${JSON.stringify({
-          section: 'body',
-          reason: classified.userMessage,
-          retryable: classified.retryable,
-          code: classified.code,
-          runId: input.runId,
-        })}\n\n`,
-      );
+      // T-567 item 41: signed text only; no inkReleased (the hold is not yet released).
+      writeSseError(res, {
+        section: 'body',
+        reason: classified.userMessage,
+        retryable: classified.retryable,
+        code: classified.code,
+        runId: input.runId,
+      });
       // The route ends the response after the failed Generation row is saved.
       throw new GenerationFailedError(
-        classified.userMessage,
+        classified.logMessage,
         classified.code,
         meter.totals(),
         aiModel,
@@ -2037,6 +2255,9 @@ export async function streamGenerateFromBrief(
       }
       missing = afterRemoval;
     }
+    // T-472: the body before the fact verifier, so a limitation claim it
+    // blanks or removes is still flagged (with `blanked` in details).
+    const bodyBeforeFactCheck = output.body;
 
     // ── The fact verifier (T-147d): the ledger path only ──────────────────────
     // Every ledger draft is checked against the ledger in code. On failure one
@@ -2153,8 +2374,16 @@ export async function streamGenerateFromBrief(
 
     // ── The body takes its place among the parts the system wrote ─────────────
     renderedSections[bodyAt] = { ...renderedSections[bodyAt], content: output.body };
+    // T-472: the computed paragraph takes the number after the model's last one.
+    const limitationNumber =
+      limitation !== null && limitationAt >= 0
+        ? numberLimitationSection(renderedSections, limitationAt, limitation)
+        : null;
 
-    const { fullText, bodyParaCount } = assembleDocument(renderedSections);
+    const assembled = assembleDocument(renderedSections);
+    const { fullText } = assembled;
+    // T-472: the computed paragraph is the draft's last numbered paragraph.
+    const bodyParaCount = limitationNumber ?? assembled.bodyParaCount;
     ctx.body_para_count = String(bodyParaCount);
     /** Each part as it prints: the number of the last paragraph filled in. */
     const printed = renderedSections.map((s) =>
@@ -2179,9 +2408,13 @@ export async function streamGenerateFromBrief(
       templateConfig.filing_checklist.length > 0
         ? templateConfig.filing_checklist
         : pack.filingChecklist;
-    const filingChecklist = checklistSource.map((item) =>
-      item.replace(/\{(\w+)\}/g, (_m, key: string) => ctx[key] ?? '_____'),
-    );
+    const filingChecklist = [
+      ...checklistSource.map((item) =>
+        item.replace(/\{(\w+)\}/g, (_m, key: string) => ctx[key] ?? '_____'),
+      ),
+      // T-472: the signed s.5 line when late, AJ-472-M1 line when unknown, none when in time.
+      ...(limitation?.checklistItems ?? []),
+    ];
     if (filingChecklist.length > 0) {
       res.write(`event: checklist\ndata: ${JSON.stringify({ items: filingChecklist })}\n\n`);
     }
@@ -2278,6 +2511,16 @@ export async function streamGenerateFromBrief(
     // A case citation the advocate did not give was removed (T-148):
     allWarnings.push(...citationWarnings(citations.removed));
 
+    // T-472: the model's own limitation statements, flagged only.
+    const limitationWarnings =
+      limitation !== null && limitationNumber !== null
+        ? limitationClaimWarnings(
+            findLimitationClaimsChecked(bodyBeforeFactCheck, body),
+            limitationNumber,
+          )
+        : [];
+    allWarnings.push(...limitationWarnings);
+
     // Every mandatory clause of the pack (ADR-021, rule 1).
     // T-236 (Ajay, 15 Oct 2026): a clause lost in a citation removal keeps the
     // same message, which names the clause, with Ajay's closing sentences.
@@ -2315,6 +2558,7 @@ export async function streamGenerateFromBrief(
       aiModel,
       transport,
       bodyParaCount,
+      ...(limitation !== null ? { limitationFlags: limitationWarnings.length } : {}),
       missingClauses: missing,
       repaired,
       // T-147d: a draft the fact verifier had to change is never delivered as clean.
@@ -2586,23 +2830,22 @@ async function d1GenerateFromBrief(c: D1Context): Promise<BriefGenerateResult> {
     const classified = classifyLlmError(err);
     if (process.env.NODE_ENV !== 'test') {
       console.error(
-        `[drafting] Drafter structured call failed (kind=${pack.id}, runId=${input.runId}, runSequence=${input.runSequence}, runType=${input.runType}):`,
+        `[drafting] Drafter structured call failed (kind=${pack.id}, runId=${input.runId}, runSequence=${input.runSequence}, runType=${input.runType}, code=${classified.code}): ${classified.logMessage}`,
         err instanceof Error ? err.name : 'unknown',
       );
     }
-    res.write(
-      `event: error\ndata: ${JSON.stringify({
-        section: 'body',
-        reason: classified.userMessage,
-        retryable: classified.retryable,
-        code: classified.code,
-        runId: input.runId,
-      })}\n\n`,
-    );
+    // T-567 item 41: signed text only; no inkReleased (the hold is not yet released).
+    writeSseError(res, {
+      section: 'body',
+      reason: classified.userMessage,
+      retryable: classified.retryable,
+      code: classified.code,
+      runId: input.runId,
+    });
     const { aiModel, transport } = c.callInfo();
     // The route ends the response after the failed Generation row is saved.
     return new GenerationFailedError(
-      classified.userMessage,
+      classified.logMessage,
       classified.code,
       c.meter.totals(),
       aiModel,
@@ -2830,22 +3073,21 @@ export async function streamGenerateGuided(
       const classified = classifyLlmError(llmErr);
       if (process.env.NODE_ENV !== 'test') {
         console.error(
-          `[drafting] Drafter stream failed (kind=none, runId=${input.runId}, runSequence=${input.runSequence}, runType=${input.runType}):`,
+          `[drafting] Drafter stream failed (kind=none, runId=${input.runId}, runSequence=${input.runSequence}, runType=${input.runType}, code=${classified.code}): ${classified.logMessage}`,
           llmErr instanceof Error ? llmErr.name : 'unknown',
         );
       }
-      res.write(
-        `event: error\ndata: ${JSON.stringify({
-          section: 'body',
-          reason: classified.userMessage,
-          retryable: classified.retryable,
-          code: classified.code,
-          runId: input.runId,
-        })}\n\n`,
-      );
+      // T-567 item 41: signed text only; no inkReleased (the hold is not yet released).
+      writeSseError(res, {
+        section: 'body',
+        reason: classified.userMessage,
+        retryable: classified.retryable,
+        code: classified.code,
+        runId: input.runId,
+      });
       // The route ends the response after the failed Generation row is saved.
       throw new GenerationFailedError(
-        classified.userMessage,
+        classified.logMessage,
         classified.code,
         meter.totals(),
         aiModel,
