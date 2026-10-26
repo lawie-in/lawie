@@ -81,6 +81,8 @@ server {
 server {
   listen 80; server_name api.lawie.in;
   client_max_body_size 25m;
+  # Razorpay posts here (live webhook URL, registered Jun 2026); billing verifies the HMAC itself.
+  location = /webhooks/razorpay { proxy_pass http://127.0.0.1:4003/webhook/razorpay; proxy_http_version 1.1; proxy_set_header Host $host; proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; proxy_set_header X-Forwarded-Proto https; }
   location / { proxy_pass http://127.0.0.1:4000; proxy_http_version 1.1;
     proxy_set_header Host $host; proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; proxy_set_header X-Forwarded-Proto $scheme;
