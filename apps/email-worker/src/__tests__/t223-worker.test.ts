@@ -181,7 +181,7 @@ describe('T-223 worker: 200 from the mint seam', () => {
     const send = okSend();
     const mint = jest.fn();
     const job = verifyJob({
-      template: 'auth.welcome',
+      template: 'billing.lowCreditWarning',
       to: ['advocate@example.com'],
       cc: ['c@example.com'],
       data: { name: 'N', userId: USER_ID },

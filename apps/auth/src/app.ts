@@ -16,6 +16,7 @@ import consentRoutes from './routes/consent.routes';
 import internalPasswordResetRoutes from './routes/internal-password-reset.routes';
 import internalUnverifiedNoticeRoutes from './routes/internal-unverified-notice.routes';
 import internalVerifyRoutes from './routes/internal-verify.routes';
+import internalWelcomeRoutes from './routes/internal-welcome.routes';
 import oauthRoutes from './routes/oauth.routes';
 import referralRoutes from './routes/referral.routes';
 
@@ -54,6 +55,8 @@ app.use('/', internalVerifyRoutes);
 app.use('/', internalUnverifiedNoticeRoutes);
 // T-221 — email worker only (INTERNAL_SECRET): mints the password-reset link at send time.
 app.use('/', internalPasswordResetRoutes);
+// T-587 — email worker only (INTERNAL_SECRET): the welcome mail's address and name at send time.
+app.use('/', internalWelcomeRoutes);
 
 app.use((_req, res) => {
   res.status(404).json({ error: 'Route not found', service: 'auth' });
