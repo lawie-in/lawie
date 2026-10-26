@@ -27,14 +27,14 @@ aws ec2 describe-instances --instance-ids i-07925b68d6dd907c4 --region ap-south-
 ```
 S4. Wait for the SSM agent to come online (1–2 min after boot; pm2 resurrects the six processes on boot), then `lawie-prod-ops action=status` on the box. Not online after ~3 min → report to Arjun, don't loop.
 S5. Cloudflare — update the three A records to the new IP:
+Command form (must match the allow rules exactly): `curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" https://api.cloudflare.com/client/v4/...`. The header comes first and the URL straight after it; any other options go after the URL. The URL is never quoted, nothing is piped, and `-v` is never used. Responses are plain JSON with no secrets in them; read the fields directly.
 ```
-# once, record the result in this file:
-curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/zones?name=lawie.in" | jq -r '.result[0].id'
-# per record (NAME = develop.lawie.in, www.develop.lawie.in, develop.api.lawie.in):
-curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/zones/<ZONE_ID>/dns_records?type=A&name=<NAME>" | jq -r '.result[] | [.id,.content,.proxied] | @tsv'
-curl -s -X PATCH -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H "Content-Type: application/json" \
-  "https://api.cloudflare.com/client/v4/zones/<ZONE_ID>/dns_records/<RECORD_ID>" \
-  --data '{"content":"<NEW_IP>","ttl":60}' | jq -r '.success'
+# once, then record .result[0].id in this file:
+curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" https://api.cloudflare.com/client/v4/zones --get --data-urlencode name=lawie.in
+# per record (NAME = develop.lawie.in, www.develop.lawie.in, develop.api.lawie.in); note .id, .content, .proxied:
+curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" https://api.cloudflare.com/client/v4/zones/<ZONE_ID>/dns_records --get --data-urlencode type=A --data-urlencode name=<NAME>
+# update; expect "success":true:
+curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" https://api.cloudflare.com/client/v4/zones/<ZONE_ID>/dns_records/<RECORD_ID> -X PATCH -H "Content-Type: application/json" --data '{"content":"<NEW_IP>","ttl":60}'
 ```
 - PATCH changes only `content` and `ttl`; `proxied` is kept as it is.
 - Exactly one record must match each name. Zero or more than one → stop and report; don't create or delete records.
@@ -67,10 +67,10 @@ T4. Ops-log row: `stop`, who asked, the snapshot result. Report to Arjun. DNS st
 ```
    `ec2:DescribeInstances` is already in `ReadResults`. If the root volume is encrypted with a customer-managed KMS key, start also needs `kms:CreateGrant` on that key; the default `aws/ebs` key needs nothing extra.
 2. **Cloudflare token (founder):** use a custom API token with **Zone → DNS → Edit** on zone `lawie.in` only, with IP filtering off (cloud session egress varies) and a TTL of 90 days. Put it in the session environment as `CLOUDFLARE_API_TOKEN`.
-   - Risk to know: Cloudflare cannot scope a token to single records. This token could edit prod's `lawie.in` / `api.lawie.in` records too.
+   - Risk to know: Cloudflare cannot scope a token to single records. This token could edit prod's `lawie.in` / `api.lawie.in` records too. **Accepted by Arjun on 26 Oct 2026; no separate zone.**
    - Mitigation: the rules above, plus the exact-name match in S5.
    - Alternative: move the develop names to a separate zone (e.g. a `develop.lawie.in` subdomain zone on a paid plan), so the token can't reach prod. That is the founder's call.
-3. **`.claude/settings.json` allow rules (Priya ticket; a lead edits it):**
+3. **`.claude/settings.json` allow rules (Arjun hands the lines to the founder, who pushes them; no Priya ticket):**
    - `aws ec2 start-instances --instance-ids i-07925b68d6dd907c4 *`
    - `aws ec2 stop-instances --instance-ids i-07925b68d6dd907c4 *`
    - `aws ec2 wait instance-running --instance-ids i-07925b68d6dd907c4 *`
