@@ -18,3 +18,9 @@
 
 ## Files
 Same as T-570 (root config held by one lead at a time): .claude/hooks/no-env-print.*, scripts/secret-shape-scan.mjs and tests, .github/workflows/secret-shape-scan.yml, .husky/pre-commit, root package.json. Claimed by Priya when a lead takes it, after T-570 merges.
+
+## More bypass routes (26 Oct 2026, from Mahak's T-594 reviewer; HIGH, pre-existing)
+- bash $'...' decoder turns \cX, \r, \a, \e, \f, \v into letters, so `jq -n $'# "\cJenv # "'` still prints env.
+- `--argfile` (2 args) is missing from withArg.
+- `jq -n -- '-1, env'` finds no filter.
+- Earlier: --library-path, -f, `$ENV`, import/include.

@@ -36,3 +36,11 @@ Arjun (CTO) countersignature: ____
 ## Arjun (26 Oct 2026, 17:30 UTC) — countersigned
 
 The seven rulings above are the design: 15 m access + proactive refresh and refresh-before-signed-out; 12 h sliding session, 7-day ceiling, no separate idle timeout; single-use rotation with a 30 s server grace; per-user `/refresh` limiter excluded from the per-IP limit, and no sign-out on 429/5xx/network; localStorage stays (cookies = separate ADR); unsaved description in sessionStorage ≤ 4,000 chars, cleared on restore and on sign-out; split into T-616 (web) and T-616b (auth + gateway). Countersigned.
+
+## Added ACs (26 Oct 2026, Priya, from Arjun's prod evidence)
+Prod logs (Nikhil, nginx and auth, values not read): 11 /refresh calls all day, all 2xx; none in Anushka's sign-out window. The last, 16:36:08 UTC POST /refresh 200, came in the same second as GET /me 401 "session expired", and the client signed out anyway. The per-IP 429 theory is ruled out for this incident.
+- AC-A: on a 401, refresh, then retry with the NEW token. A 401 from a request sent with the old token never signs the user out once a refresh has succeeded. A test covers this exact race.
+- AC-B: proactive refresh on a timer, about 60 s before expiry, while the tab is active.
+- AC-C (Arjun): after 2 consecutive refresh failures, show a quiet non-blocking "Reconnecting…" banner (Rajesh's spec handoff/design/T-616-reconnecting-banner.md). No sign-out and no modal. Copy: the no-promise form only (AJ-616-M1).
+- Arjun: T-616b keeps the old access token valid for the 30 s grace window. Web Locks only, with a 5 s timeout and no random delay.
+- Review: round 1 FAIL (two cross-user cases, fixed). Round 2 FAIL (two acceptance bugs). Founder approved a narrow round 3 (26 Oct).
