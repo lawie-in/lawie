@@ -7,14 +7,14 @@ Status: DRAFT. Not running. Needs (1) Vikram's okay on the spend, (2) Ajay's sig
 | Item | Value |
 | --- | --- |
 | Type | Google Ads Search only. Search partners off. No Display, no video, no Performance Max |
-| Budget | ₹500 a day, 10 days, about ₹5,000 total. Hard stop on the end date |
+| Budget | ₹500 a day. Round A: 5 days, ₹2,500. Round B (another 5 days, ₹2,500) only if Round A passes Vikram's gate below. ₹5,000 hard cap |
 | Bidding | Manual CPC, max CPC ₹40. No automated bidding in the test |
 | Language | English. Hindi ads in round 2 after Ajay reads the Hindi |
 | Locations | Bihar, Jharkhand, Uttar Pradesh, Madhya Pradesh, Rajasthan, Delhi NCR (the district-court junior ICP) |
 | Landing page | The Lawie landing page, with manual UTMs: utm_source=google, utm_medium=cpc, utm_campaign=search-test-oct26-format (ad group 1) or search-test-oct26-software (ad group 2). The app keeps only source, medium and campaign (100 characters each), so the ad group goes in utm_campaign. utm_term and gclid are not kept |
 | Goal | Sign-ups, counted from our own accounts data by utm_campaign. There is no GA sign-up event today (Priya checked the code, 26 Oct), so no conversion is set up in Google Ads. Clicks and cost come from Ads |
 | Rule | Blended CAC (spend ÷ new paying users) at or under ₹2,000 (Vikram) |
-| Stop rule | After about 150 clicks, if sign-ups are under 3% of clicks, pause. Change the ad or the page before spending more. Also pause if spend hits ₹5,000 |
+| Stop rule | Vikram's gate (section below) replaces my 3% rule: after ₹2,500, continue only if cost per verified sign-up is ₹250 or less. 3% of clicks stays as a floor. Report each ad group separately |
 
 ## Keywords (phrase match; exact match for the first two)
 
@@ -69,7 +69,7 @@ Campaign:
 - Networks: Google Search only. Turn OFF Search partners and Display network.
 - Locations: Bihar, Jharkhand, Uttar Pradesh, Madhya Pradesh, Rajasthan, Delhi. Presence only (people in the location).
 - Language: English.
-- Budget: INR 500 per day. Start date: the day I tell you. End date: 10 days after the start.
+- Budget: INR 500 per day. Start date: the day I tell you. End date: 5 days after the start (Round A). I will ask you to extend it only after the Round A check.
 - Bidding: Manual CPC, max CPC INR 40. Enhanced CPC off.
 - Ad group 1 "format-draft". Keywords: [bail application format] [legal notice format] "bail application draft" "anticipatory bail application" "draft legal notice online" "affidavit format"
 - Ad group 2 "software". Keywords: "legal drafting software" "legal drafting software for advocates" "ai legal drafting india"
