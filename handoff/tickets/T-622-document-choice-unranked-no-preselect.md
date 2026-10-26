@@ -24,3 +24,8 @@ The matcher and the server field (`unranked: true` is added on the server in T-6
 ## Gates
 - Design: Rajesh one line (pending).
 - Legal: Ajay T610-F2a (f0985461); sign any new copy.
+
+## Design (Rajesh, 26 Oct 2026)
+- Unselected: every card in optionCard's rest state (Control Line border, no brass, radios unchecked); nothing visually "recommended". No new helper line at rest: the existing sub "Your description could fit more than one. Pick the closest." stays byte-identical.
+- Continue: `aria-disabled` (not the `disabled` attribute; stays focusable), dimmed as ui/Button does.
+- On Continue with nothing picked: Rust Body Small under the card group, `role="alert"`: "Pick a document to continue." / HI "आगे बढ़ने के लिए एक दस्तावेज़ चुनिए।" (NEW: Ajay signs). Clears when a card is picked; focus moves to the first radio.
