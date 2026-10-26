@@ -87,5 +87,5 @@ Phase 0 gate: one automatic repair from the ledger, then ask the user. The "ask 
 ## Signatures
 
 - Arjun (CTO): SIGNED 26 Oct 2026, 17:30 UTC — principles 1–7, roles, budget, orchestration, acceptance and phasing are my decisions as written; Phase 0 = T-610/611/612/613/616/619 already assigned. Two conditions: (a) Phase 1 does not start until Phase 0 is merged and Anushka has re-run the six matters on develop; (b) any change to section 3F, 5 or 6 after Ajay signs re-opens his signature.
-- Ajay (CLO), sections 3F, 5, 6: ____
+- Ajay (CLO), sections 3F, 5, 6: SIGNED with conditions, dfdd3542 (handoff/legal/ADR-drafting-v3-legal-signoff-ajay.md). Conditions: the rubric text is signed by Ajay before Phase 2; the reviewer never writes law and adds no section or citation; no UI says "legally reviewed"; golden cases use fictional parties only; nightly logs carry no draft text. Argued packs: all bail packs, temporary injunction, quashing, criminal revision, criminal appeal (Arjun maps to ids). T-611: a conflicting ledger value goes to the user as a question, neither kept silently nor blanked.
 - Founder approval: ____
