@@ -105,6 +105,9 @@ describe('GET /health config_warnings', () => {
     expect(res.body.service).toBe('drafting');
     expect(res.body.timestamp).toBeDefined();
     expect(res.body.signedTables).toBeDefined();
+    expect(Object.keys(res.body).sort()).toEqual(
+      ['config_warnings', 'service', 'signedTables', 'status', 'timestamp'].sort(),
+    );
   });
 
   it('lists the missing keys', async () => {
