@@ -78,3 +78,13 @@ The `blocks_confirm` flag applies to `main_suit_relief` and `restraint_sought`. 
 - HI: `प्रार्थना में <date> का उल्लेख है, जो बीत चुकी है। निषेधाज्ञा केवल आगे होने वाले कार्यों पर रोक लगा सकती है। प्रतिवादी को किन कार्यों से रोका जाना है?`
 
 `<date>` is shown to the user only, never logged. "Today" is the IST date. The answer replaces `restraint_sought`, not `acts_complained_of`. The draft is not delivered and no Ink is taken until the answer is in.
+
+## (i) Build questions (Ajay, 26 Oct 2026)
+
+| # | ruling |
+| --- | --- |
+| 1 | `suit_number`: make it **optional** and **delete** the validation line "suit_number must be filled". Add `ask_when_empty: true` with the question, signed: `What is the number of the main suit (for example, Title Suit No. 245 of 2026)? If the suit is filed with this application and has no number yet, leave it blank.` If it is blank, the (a) fallback prints. |
+| 2 | `title_document_date` stays a **date** field. Question replaced, signed: `What is the date of the document under which the plaintiff claims the suit property (sale deed, gift deed, will or other)? If the claim does not rest on a document, leave it blank.` Rule: once asked, blank counts as answered (askedAt set), is never asked again and renders nothing. This replaces the "None" wording for this field. |
+| 3 | O.39 court levels: `civil_court` (Junior and Senior Division), `district_court`, `commercial_court`, `high_court_original_side`, `commercial_division_high_court`. Remove the Supreme Court, NCLAT and every tribunal. "India" is not a State choice. Only records that exist in the data show; for v1 that is Patna civil. |
+| 4 | Reading `main_suit_relief` and `restraint_sought` from the user's own description is OK. That is the user's source, not the model writing. Conditions: (a) the pre-filled value shows in the brief for the user to confirm or edit; (b) `restraint_sought` is filled only where the description says what the user wants stopped, never turned from past acts into a restraint; T-628 still blocks a past date. The draft never invents either field. |
+| 5 | Confirm messages: the EN strings ship now. The HI strings (ff25b862) stay signed and go in with the Hindi mechanism in a later ticket; Priya routes it. No unsigned Hindi in the meantime. |
