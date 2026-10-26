@@ -43,3 +43,5 @@ Tie rules (code, in this order):
 | T610-T6 | The word `magistrate` alone is not a keyword: it appears in Sessions applications too ("the Magistrate refused"). |
 
 Verify (not in the signed text): the BNSS sub-section for cancellation by the Court of Session / High Court (old s.439(2) CrPC). Only the CrPC form is listed until I confirm it.
+
+| T610-F1 | (B) may be prettier-wrapped. The byte check compares parsed JSON (same keys, strings and order; whitespace ignored), with a canonical diff at READY. (A) stays byte for byte. |
