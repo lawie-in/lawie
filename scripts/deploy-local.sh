@@ -37,8 +37,10 @@ fail() {
 # Parsing is Node's own (`--env-file`, dotenv semantics, the same way pm2 reads the
 # file), so unquoted values with spaces work and nothing in a value is ever executed.
 # util.parseEnv (same parser) supplies the file's variable names; values come from the
-# process env that --env-file populated. Every value is single-quoted with each ' written
-# as '\'' so $, backticks, quotes, spaces and newlines stay literal through eval.
+# process env that --env-file populated. A variable already set in the calling shell wins
+# over the same name in the env file (same as pm2/dotenv at runtime). Every value is
+# single-quoted with each ' written as '\'' so $, backticks, quotes, spaces and newlines
+# stay literal through eval.
 # Exits 3 on any problem. Output is never printed by the caller.
 ENV_LOADER_JS='
 const fs = require("fs");
