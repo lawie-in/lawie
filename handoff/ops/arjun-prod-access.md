@@ -222,3 +222,7 @@ Separately (Priya ticket): the in-git `deploy.sh` must stop being a laptop scrip
   ]
 }
 ```
+
+## Arjun (26 Oct 2026, 14:55 UTC) — founder decision A: Nikhil maintains the prod document
+
+The founder chose convenience over the console click: `lawie-arjun-ops` also gets `ssm:UpdateDocument` and `ssm:UpdateDocumentDefaultVersion` on the `lawie-prod-ops` ARN (plus the read actions). Nikhil raised, correctly, that this is equivalent to a root shell on prod for that identity — any runCommand can be written into a new version and run. Accepted by the founder with these controls: every document change is a new version (never an in-place edit of the default), gets an ops-log row and a diff note in this file, and is visible in CloudTrail/SSM version history; the key rotates every 30 days; T-533's pipeline replaces session-driven prod deploys and this grant is removed then. The "prod = allow-listed document only" line in the two-keys section above is superseded by this decision.
