@@ -55,3 +55,5 @@ Also recorded: the T-488 correction in `go-live-ruling-23-oct.md` (it was never 
 | P4-F1 | cheque_validity_date test at t611-verifier.test.ts:302; the cue words are unchanged. |
 
 **APPROVED at d1a318e9.** T-611, and with it T-488, counts as merged **only at the develop_staging SHA that contains d1a318e9**, which I record when it lands (go-live correction, 26 Oct). Open follow-up: the paise format in intake-text.ts (P-R3) has the right shape at :288, but its owner confirms it in the P-R3 ticket.
+
+**Merged (Ajay, 27 Oct 2026):** develop_staging `023b08c507ccbfed4b30cab4348a572ce9e3b6a9` contains d1a318e9 (T-611) and 31bd7994 (T-488). I checked this myself with `git merge-base --is-ancestor`, and fact-verifier, ai.service and fact-ledger.service have the same hashes after the merge. This is the "as merged" SHA for T-611 and T-488. CI is pending (Vishal confirms green). Production still needs the founder's release and Anushka's PASS.
