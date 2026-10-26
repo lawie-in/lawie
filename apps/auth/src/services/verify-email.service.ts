@@ -40,6 +40,7 @@ import { User } from '../models/User.model';
 import { grantSignupBonus } from './credit-bonus.service';
 import { grantDeferredReferralInk } from './referral.service';
 import { consumeVerifyEmailQuota } from './verify-rate-limit';
+import { queueWelcomeEmail } from './welcome-email.service';
 
 /**
  * Default lifetime of a 'verify'-kind link minted without its own ttlMs (T-223's 24 hours). The
@@ -238,6 +239,9 @@ export async function verifyEmailToken(token: unknown): Promise<VerifyEmailToken
     // T-522 (Arjun ruling 2): the referral Ink recorded at sign-up is granted now, after the
     // sign-up bonus. grantReferralInk is fenced and idempotent; this never throws.
     await grantDeferredReferralInk(userId);
+    // T-587: the welcome email, once per user (welcomeQueuedAt claim). Verified branch only:
+    // never for already_verified. The enqueue is not awaited; this never throws.
+    await queueWelcomeEmail(userId);
     logger.info({ userId, linkKind }, 'Email verified');
     return { kind: 'verified', userId, linkKind };
   }

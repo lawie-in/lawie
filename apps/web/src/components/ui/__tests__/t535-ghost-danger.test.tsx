@@ -22,7 +22,7 @@ describe('T-535 Button ghost-danger', () => {
   it('hover background is --err-light, gated to real hover pointers', () => {
     const b = cls('ghost-danger');
     expect(b.className).toContain(
-      '[@media(hover:hover)_and_(pointer:fine)]:enabled:hover:bg-[color:var(--err-light)]',
+      '[@media(hover:hover)_and_(pointer:fine)]:[&:not([aria-disabled=true])]:enabled:hover:bg-[color:var(--err-light)]',
     );
     // no ungated hover background
     expect(

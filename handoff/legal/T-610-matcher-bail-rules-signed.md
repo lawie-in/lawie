@@ -43,3 +43,17 @@ Tie rules (code, in this order):
 | T610-T6 | The word `magistrate` alone is not a keyword: it appears in Sessions applications too ("the Magistrate refused"). |
 
 Verify (not in the signed text): the BNSS sub-section for cancellation by the Court of Session / High Court (old s.439(2) CrPC). Only the CrPC form is listed until I confirm it.
+
+| T610-F1 | (B) may be prettier-wrapped. The byte check compares parsed JSON (same keys, strings and order; whitespace ignored), with a canonical diff at READY. (A) stays byte for byte. |
+| T610-F2 | T5 fallback: if anticipatory and regular phrases both match and the model fails twice, show bail_regular and bail_anticipatory as two unranked cards (fixed order, neither marked as suggested), with "None of these". Nothing is drafted or charged until the user picks. Fits T5. |
+| T610-F3 | Rule 3: prefix matching stays. `bailable`, `non-bailable`, `जमानती` and `गैर-जमानती` count as the bail word: they are bail matters, and keywords only rank. |
+| T610-F2a | Interim: option (a) accepted. In the F2 fallback the existing pick screen may pre-check the first card (bail_regular), because the user still has to press Continue and nothing is drafted or charged before that. That beats "not found". Condition: Priya opens a small web ticket (`unranked: true`, nothing pre-selected, Rajesh one line) and it is merged before the next prod cut after T-610. |
+| T610-F2b | Bail guard on the F2 fallback: **the guard still runs**, so do not skip it. It only reorders and never removes or picks, under the T-127 signed cues. With T-622 nothing is pre-selected, so an order from the signed cues helps and does not suggest. If the cue is `arrested`, bail_regular goes first; if `expects`, bail_anticipatory goes first; if `both` or `none`, the fixed order from F2 applies. This amends F2 ("fixed order") for this case only. |
+
+## T-610 byte check (Ajay, 26 Oct 2026): fix/t-610-regular-bail-match @ 023fe0a8
+
+| id | result |
+| --- | --- |
+| T610-BC | **APPROVED.** (A): intake.prompts.ts lines 40–45 are byte-identical to my (A) block (cmp, 6 lines); the prompt hunk replaces only the old bail line. (B): `jq -c` of match-keywords.json is identical to my (B) block. The code carries T1 (refusal phrases as signed), T2 (bare 482 / 482 crpc / magistrate dropped), rule 3 (bail word, F3 prefix) and F2/F2a/F2b. The t292 and t482 prompt hashes were re-pinned only because of this prompt change. It counts as merged only at the develop_staging SHA that contains 023fe0a8, with T-622 in the same release. |
+| T610-E1 | Edge: both phrase sets matched and the model answers `is_legal_drafting: false`. A description with bail phrases is legal drafting, so treat this as the F2 fallback (two cards, guard order per F2b), not no_match. Ruling now; it can ship in T-610 or as a follow-up before the T-610/T-622 prod cut. |
+| T610-BC2 | E1 delta 023fe0a8 → 1917770a checked: comments plus the E1 branch in intake.service.ts (`needs_choice` with the T5 pair), and tests. No prompt, keyword or legal file changed. **Approved**; T610-BC covers the legal text. It counts as merged at the develop_staging SHA that contains 1917770a, with T-622. |

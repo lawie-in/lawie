@@ -27,6 +27,7 @@ import { Lamp, Spinner } from '@/components/ui';
 import { CheckDisc } from '@/components/VerifyEmailPrompt';
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/cn';
+import { POST_LOGIN_PATH_KEY, rememberPostLoginPath, safeReturnPath } from '@/lib/safeReturnPath';
 import { clearSignupSource, readSignupSource } from '@/lib/signup-source';
 
 // T-234 — email + password sign-in and sign-up next to Google.
@@ -253,10 +254,32 @@ function GoogleIcon() {
   );
 }
 
+/**
+ * T-616: where to go after signing in. `?next=` when it is a safe same-site path. A failed Google
+ * sign-in comes back as /login?error=... without it, so then the path this tab stored before the
+ * Google redirect is used (read, not removed: /auth/callback removes it after a success).
+ */
+function returnPathFrom(params: { get(name: string): string | null }): string | null {
+  const fromQuery = safeReturnPath(params.get('next'));
+  if (fromQuery || !params.get('error')) return fromQuery;
+  try {
+    return safeReturnPath(sessionStorage.getItem(POST_LOGIN_PATH_KEY));
+  } catch {
+    return null;
+  }
+}
+
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login } = useAuth();
+  const { login, user } = useAuth();
+  // T-616: read once, so a mode switch (which drops the query) keeps it.
+  const [returnPath] = useState<string | null>(() => returnPathFrom(searchParams));
+
+  // T-616: already signed in (e.g. another tab signed in) and sent here with a return path: go.
+  useEffect(() => {
+    if (user && returnPath) router.replace(returnPath);
+  }, [user, returnPath, router]);
 
   // Sign in links use an explicit ?mode=signin, never bare /login. Next 16.2.4 bug: after a direct
   // load of /login?mode=signup, hydration caches the route under the key "/login" with canonical URL
@@ -547,6 +570,8 @@ function LoginContent() {
     if (source?.utmSource) params.set('utmSource', source.utmSource);
     if (source?.utmMedium) params.set('utmMedium', source.utmMedium);
     if (source?.utmCampaign) params.set('utmCampaign', source.utmCampaign);
+    // T-616: the return path stays in this tab (sessionStorage), never in the Google URL or state.
+    rememberPostLoginPath(returnPath);
     window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/api/auth/google?${params.toString()}`;
   };
 
@@ -659,7 +684,7 @@ function LoginContent() {
     const refreshToken = json.data?.refreshToken;
     if (!isSignup && res.ok && accessToken && refreshToken) {
       login(accessToken, refreshToken);
-      router.replace('/dashboard');
+      router.replace(returnPath ?? '/dashboard');
       return;
     }
 

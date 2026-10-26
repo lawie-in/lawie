@@ -114,3 +114,6 @@ Sonnet legal reviewer (Ajay's "argued" list) applies to these catalogue ids; eve
 - Criminal appeal: `criminal_appeal`
 
 The list lives in code as `ARGUED_PACKS` next to the catalogue (one place, tested), and Ajay's sign-off file is the authority for additions. `discharge_application`, `habeas_corpus` and `writ_petition_criminal` are not on Ajay's list today; Priya asks him whether they should be before Phase 2.
+
+## Phase 1 backlog (Priya, 26 Oct 2026)
+- Extractor field hint, temporary_injunction_o39.restraint_sought (Ajay SIGNED, T-613 row 7, 1a357337): "Fill only from words in which the user says what the defendant should be stopped from doing from now on. Never turn acts the description says already happened into a restraint; if the description gives none, leave this empty." A per-field hint needs rule-pack, buildChecklist, extractLines and the extract prompt (roles C and D).

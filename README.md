@@ -44,7 +44,7 @@ lawie/
 ├── docs/               # Architecture docs, deploy guides
 ├── docker-compose.yml          # Local dev
 ├── docker-compose.demo.yml     # EC2 t3.micro demo
-├── deploy.sh                   # Production deploy: pm2 on EC2 (ecosystem.config.js), health-gated
+├── scripts/deploy-local.sh     # Box-local deploy (pm2 on EC2), branch-guarded, health-gated
 └── .env.example
 ```
 

@@ -51,6 +51,7 @@ jest.mock('../templates/auth/verifyEmail', () =>
 const mockRender = jest.fn();
 jest.mock('../templates', () => ({
   renderTemplate: (...a: unknown[]) => mockRender(...a),
+  isTemplateRegistered: () => true,
 }));
 const mockProviderSend = jest.fn();
 jest.mock('../providers', () => ({
@@ -148,15 +149,30 @@ async function runProcessor(
 ) {
   const send = jest.fn(async () => ({ messageId: 'sent-1' }));
   const mint = jest.fn(async () => ({ email: LEAK_ADDRESS, name: LEAK_NAME, link: LINK }));
-  return inEnv(env, async ({ worker }) => {
+  // T-587: auth.welcome resolves address and name through auth at send time (prepare stubbed).
+  const welcome = jest.fn(async () => ({
+    email: LEAK_ADDRESS,
+    name: LEAK_NAME,
+    loginUrl: 'https://lawie.in/login',
+  }));
+  // A live welcome send needs the supplier street address (footer line 1).
+  return inEnv({ GST_ADDRESS: '12 Example Marg, Fake Nagar', ...env }, async ({ worker }) => {
     let thrown: unknown;
     let result: unknown;
     try {
-      result = await worker.createProcessor(send, mint)(job(template, attemptsMade, attempts), 't');
+      result = await worker.createProcessor(
+        send,
+        mint,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        welcome,
+      )(job(template, attemptsMade, attempts), 't');
     } catch (e) {
       thrown = e;
     }
-    return { send, mint, thrown, result, isFinal: worker.isFinalAttempt };
+    return { send, mint, welcome, thrown, result, isFinal: worker.isFinalAttempt };
   });
 }
 
@@ -353,6 +369,7 @@ describe.each(LIVE_ENVS)('queue worker, live mode (%s)', (_name, LIVE) => {
   it('auth.welcome as shipped (no placeholders) is sent in live mode', async () => {
     const r = await runProcessor(LIVE, 'auth.welcome');
     expect(r.thrown).toBeUndefined();
+    expect(r.welcome).toHaveBeenCalledTimes(1);
     expect(r.send).toHaveBeenCalledTimes(1);
     expect(r.result).toEqual({ messageId: 'sent-1' });
   });
@@ -362,9 +379,26 @@ describe.each(LIVE_ENVS)('queue worker, live mode (%s)', (_name, LIVE) => {
     const send = jest.fn(async () => {
       throw new Error('boom');
     });
-    await inEnv(LIVE, async ({ worker }) => {
-      await expect(worker.createProcessor(send)(job('auth.welcome', 4, 5), 't')).rejects.toThrow();
+    const welcome = jest.fn(async () => ({
+      email: LEAK_ADDRESS,
+      name: LEAK_NAME,
+      loginUrl: 'https://lawie.in/login',
+    }));
+    await inEnv({ GST_ADDRESS: '12 Example Marg, Fake Nagar', ...LIVE }, async ({ worker }) => {
+      await expect(
+        worker.createProcessor(
+          send,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          welcome,
+        )(job('auth.welcome', 4, 5), 't'),
+      ).rejects.toThrow('Error in email send');
     });
+    expect(welcome).toHaveBeenCalledTimes(1);
+    expect(send).toHaveBeenCalledTimes(1);
     expect(capture).toHaveBeenCalledTimes(1);
   });
 });

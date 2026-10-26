@@ -69,7 +69,7 @@ describe('T-544 item 12: destructive hover', () => {
     const el = mount(<Button variant="destructive">x</Button>).container.querySelector('button')!;
     expect(el.className).toContain(NL_DESTRUCTIVE_HOVER);
     expect(NL_DESTRUCTIVE_HOVER).toContain(
-      '[@media(hover:hover)_and_(pointer:fine)]:enabled:hover:bg-nl-ox-hi',
+      '[@media(hover:hover)_and_(pointer:fine)]:[&:not([aria-disabled=true])]:enabled:hover:bg-nl-ox-hi',
     );
   });
   it('primary and ghost do not get it', () => {

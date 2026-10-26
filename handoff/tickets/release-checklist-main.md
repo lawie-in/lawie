@@ -94,3 +94,9 @@ T-472 (limitation computed, merge 4f91e5a0 local only) and T-567 (legal server a
 
 ## T-587 welcome email: prod worker needs GST_ADDRESS (26 Oct 2026, Priya, from Tanvi)
 The email worker refuses a LIVE welcome send without `GST_ADDRESS` (the footer needs the street address, same as the reset and signup-attempt mails). The prod email-worker env must have `GST_ADDRESS` set (name only here; you set the value). It already needs it for reset mails.
+
+## T-610 + T-622 must ship together (26 Oct 2026, Priya, from Ajay T610-F2a f0985461)
+Do not cut prod with T-610 unless T-622 (DocumentChoiceStep: no pre-selected card when `unranked: true`) is also merged into develop_staging.
+
+## T-613 + T-628 + T-629 ship together (26 Oct 2026, Priya, Ajay R2-F1 12914711)
+Do not cut prod with T-613 (O.39) unless T-628 (past date in the prayer) and T-629 (required fields block Confirm) are also merged. Release step: re-seed courts (`seed-courts`) for the Patna Junior Division record and the Andaman id fix. Founder or ops runs it.

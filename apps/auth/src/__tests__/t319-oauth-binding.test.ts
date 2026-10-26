@@ -9,6 +9,11 @@
 
 import './setupEnv';
 
+// T-587: a Google sign-up / link queues the welcome email; stub the client so nothing reaches Redis.
+jest.mock('@lawie/email-client', () => ({
+  enqueueEmail: jest.fn().mockResolvedValue({ jobId: 'j' }),
+}));
+
 jest.mock('ioredis', () => require('ioredis-mock'));
 
 const JWT_SECRET = 'test-jwt-secret-key-at-least-32-chars-long';
