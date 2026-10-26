@@ -16,3 +16,6 @@
 
 ## Files
 apps/drafting/src/services/app-settings.service.ts, apps/drafting/src/index.ts, apps/drafting/src/app.ts (/health only), their tests. Nothing else.
+
+## Known limit (Vishal, reviewer note, 26 Oct 2026)
+Empty config_warnings is not proof the ai.* settings are set: a failed boot DB read is silent, and the boot reads have no timeout (same as the existing primeToolSwitches).

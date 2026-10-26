@@ -31,6 +31,15 @@ ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 # Empty or unset keeps the footer fallback ("For complaints, write to contact@lawie.in.").
 ARG NEXT_PUBLIC_GRIEVANCE_OFFICER_NAME
 ENV NEXT_PUBLIC_GRIEVANCE_OFFICER_NAME=$NEXT_PUBLIC_GRIEVANCE_OFFICER_NAME
+# T-586: browser Sentry (apps/web/instrumentation-client.ts). Empty or unset DSN: no browser init.
+# Empty environment falls back to NODE_ENV. SENTRY_RELEASE (the commit SHA) is read by
+# withSentryConfig at build and inlined as the release; .git is not in the build context.
+ARG NEXT_PUBLIC_SENTRY_DSN
+ENV NEXT_PUBLIC_SENTRY_DSN=$NEXT_PUBLIC_SENTRY_DSN
+ARG NEXT_PUBLIC_SENTRY_ENVIRONMENT
+ENV NEXT_PUBLIC_SENTRY_ENVIRONMENT=$NEXT_PUBLIC_SENTRY_ENVIRONMENT
+ARG SENTRY_RELEASE
+ENV SENTRY_RELEASE=$SENTRY_RELEASE
 
 WORKDIR /app/apps/web
 RUN yarn build
