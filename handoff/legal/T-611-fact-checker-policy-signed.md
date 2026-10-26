@@ -30,3 +30,14 @@ Also recorded: the T-488 correction in `go-live-ruling-23-oct.md` (it was never 
 
 **P4 SIGNED at 31bd7994.** T-488 counts as merged only when a develop_staging SHA contains 31bd7994; I name that SHA in the T-611 final check.
 | P4-F1 | cheque_validity_date: Vishal confirms the s.138 table does not cover it (only the generic stems in cuedKeys). T-611 adds a test: the date held as cheque_validity_date under its own label passes; the same date under another label goes to repair, then ask (P1). Any code change stays inside AJ-488-M1 (cues "last", "validity", "printed"). Checked at the final byte check. |
+
+## T-611 build rulings (Ajay, 26 Oct 2026; Vishal's server build)
+
+| id | ruling |
+| --- | --- |
+| P-R1 | Repair-prompt "what" lines **approved byte for byte**: P1 `the draft gives "${text}" for ${labelA}, but in FACTS that value is the ${labelB}`; P2 `the draft gives "${text}" for ${labelA}, but in FACTS that value is given in ${labelB}, not as ${labelA}`; P6 `the draft has a blank for ${label}, which is in FACTS; print it in the words of its display in place of the blank`. P3 keeps "differs from FACTS". |
+| P-R2 | P3 mismatch question, **signed** (not the P6 line, which wrongly says a detail is missing): `The draft gives <value> for the <label>, but your facts give <held value>. Which is right?` Both values are shown to the user only and never logged. |
+| P-R3 | Paise: the brief moves to my form `Rupees <words> and <words> Paise only` in a follow-up ticket (intake-text.ts owner; Priya routes it). Until then the parser reads both forms. |
+| P-R4 | D1 bail packs with no repair pass: **accepted for Phase 0.** A conflict withholds the draft, charges no Ink and asks the one question. Report the withhold rate per pack; the repair pass comes in Phase 2 (ADR §7). |
+| P-R5 | Bank-role check (drawee branch `wrong_fact`): **bring it under P1 in T-611.** Blanking a held name breaks the signed P1 ("never blanks a value the ledger holds"). |
+| P-R6 | Scope confirmed with one change. An uncued amount, or a date that matches no ledger value, is model-introduced and stays a blank. **But** a non-held date or amount under a *held* label goes to repair, then ask (P1/P3), not a blank: the ledger holds the truth for that label, and a blank there is today's fault. The gate still never fills the verifier's blanks silently. |
