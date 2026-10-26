@@ -460,7 +460,8 @@ export function readMatchAnswer(
 /**
  * T-610: the decision from a read answer and the keyword ranking (allowed ids, best first).
  *
- * - Not legal drafting: the keyword candidates as a pick, or no_match when there are none.
+ * - Not legal drafting: the T5 pair (T610-E1), else the keyword candidates as a pick,
+ *   or no_match when there are none.
  * - A problem answer (after the caller's one retry): the keyword candidates
  *   as a pick, or no_match when there are none.
  * - Top candidate at or above MATCH_PICK_THRESHOLD: matched.
@@ -477,6 +478,12 @@ export function decideFromAnswer(
   const base = { category: answer.category, isCourtDocument: answer.isCourtDocument };
   const keywords = [...new Set(keywordIds)];
   if (!answer.isLegalDrafting) {
+    // T610-E1 (Ajay, ca507e9b): both bail phrase sets matched, so it is legal drafting
+    // whatever the model said: the F2 fallback (exactly the two cards, unranked; the
+    // bail guard orders them as F2b), not no_match. Not cached; nothing drafted or charged.
+    if (t5Pair && t5Pair.length === 2) {
+      return { kind: 'needs_choice', choices: [...t5Pair], t5Fallback: true, ...base };
+    }
     // A description with catalogue keywords is never "not found" (ADR-drafting-v3 3B); gibberish has none.
     if (keywords.length > 0) {
       return { kind: 'needs_choice', choices: keywords.slice(0, MAX_MATCH_CHOICES), ...base };
@@ -1830,7 +1837,8 @@ export async function runBriefIntake(req: BriefIntakeRequest): Promise<BriefInta
     }
 
     // T610-T5 (Ajay F2/F2a/F2b, 1bf3df1a, f0985461, edfe8645): the pair is used only when the answer is
-    // still a problem after the retry; a good answer leaves T5 to the model.
+    // still a problem after the retry, or (T610-E1, Ajay, ca507e9b) says not legal drafting;
+    // a good answer leaves T5 to the model.
     const matched = decideFromAnswer(answer, keywordIds, keywords.t5Pair);
     // F2b: the guard runs on the T5 pair too (it reorders the two, never adds or drops one);
     // the spread below keeps t5Fallback, so the response stays unranked.

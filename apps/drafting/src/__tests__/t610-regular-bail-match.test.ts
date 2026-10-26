@@ -21,6 +21,7 @@ import redis from '../config/redis';
 import keywordFile from '../config/intake/match-keywords.json';
 import { AppSetting } from '../models/AppSetting.model';
 import { User } from '../models/User.model';
+import { Event } from '../models/Event.model';
 import { createVerifiedUser, seedVerifiedUsers } from './verifiedUser';
 import { _clearAppSettingsCache } from '../services/app-settings.service';
 import {
@@ -1022,5 +1023,127 @@ describe('T-610 F3: bailable / non-bailable count as the bail word for rule 3', 
   it('a section number with none of those words still scores nothing', () => {
     expect(ids('offence under section 483 BNSS')).toEqual([]);
     expect(ids('अपराध 483 BNSS')).toEqual([]);
+  });
+});
+
+// ── T610-E1 (Ajay, ca507e9b): T5 pair + is_legal_drafting false = the F2 fallback ──
+
+describe('T-610 E1: T5 pair + the model says not legal drafting', () => {
+  const NOT_LEGAL = answer(null, 'low', { is_legal_drafting: false });
+  const PAIR = ['bail_regular', 'bail_anticipatory'];
+
+  it.each([
+    ['arrested cue', T5_ARRESTED, PAIR],
+    ['expects-arrest cue', T5_EXPECTS, ['bail_anticipatory', 'bail_regular']],
+    ['both cues', T5_BOTH, PAIR],
+    ['no cue', T5_NONE, PAIR],
+    ['arrested cue with interim bail also matching', T5_WITH_INTERIM, PAIR],
+    [
+      'expects cue with interim bail also matching',
+      `${T5_EXPECTS} Also interim bail until the hearing.`,
+      ['bail_anticipatory', 'bail_regular'],
+    ],
+  ])('%s: exactly the two cards in the guard order, unranked', async (_c, text, expected) => {
+    scriptModel(NOT_LEGAL);
+    const res = await post({ description: text });
+    expect(res.status).toBe(200);
+    expect(res.body.outcome).toBe('needs_choice');
+    expect(kinds(res)).toEqual(expected);
+    expect(res.body.choices).toHaveLength(2);
+    expect(res.body.unranked).toBe(true);
+    expect(res.body.brief).toBeUndefined();
+  });
+
+  it('makes exactly one MATCH call (no retry)', async () => {
+    scriptModel(NOT_LEGAL);
+    const res = await post({ description: T5_ARRESTED });
+    expect(res.body.unranked).toBe(true);
+    expect(matchCalls()).toHaveLength(1);
+  });
+
+  it('is not cached: a second identical request makes a new MATCH call', async () => {
+    scriptModel(NOT_LEGAL, NOT_LEGAL);
+    const first = await post({ description: T5_ARRESTED });
+    expect(first.body.unranked).toBe(true);
+    expect(matchCalls()).toHaveLength(1);
+    const second = await post({ description: T5_ARRESTED });
+    expect(second.body.outcome).toBe('needs_choice');
+    expect(second.body.unranked).toBe(true);
+    expect(matchCalls()).toHaveLength(2);
+  });
+
+  it('spends no Ink', async () => {
+    await createVerifiedUser({
+      _id: USER_ID,
+      plan: 'free',
+      planTier: 'free',
+      inkSub: 0,
+      inkAnnualCarry: 0,
+      inkTopup: 2000,
+    });
+    scriptModel(NOT_LEGAL);
+    const res = await post({ description: T5_ARRESTED });
+    expect(res.body.unranked).toBe(true);
+    const user = await User.findById(USER_ID).lean();
+    expect(user!.inkTopup).toBe(2000);
+  });
+
+  it('records no demand.no_match event', async () => {
+    scriptModel(NOT_LEGAL);
+    const res = await post({ description: T5_ARRESTED });
+    expect(res.body.unranked).toBe(true);
+    expect(await Event.countDocuments({ type: 'demand.no_match' })).toBe(0);
+  });
+
+  it('only one phrase set (regular bail): the keyword pick, no unranked key', async () => {
+    expect(matchKeywords(ONE_LINER).t5Pair).toBeNull();
+    scriptModel(NOT_LEGAL);
+    const res = await post({ description: ONE_LINER });
+    expect(res.body.outcome).toBe('needs_choice');
+    expect(kinds(res)).toEqual(ids(ONE_LINER).slice(0, kinds(res).length));
+    expect(kinds(res)).toContain('bail_regular');
+    expect(res.body).not.toHaveProperty('unranked');
+    expect(matchCalls()).toHaveLength(1);
+  });
+
+  it('only one phrase set (anticipatory bail): the keyword pick, no unranked key', async () => {
+    const text = 'anticipatory bail for my client, he fears arrest in a cheating case';
+    expect(matchKeywords(text).t5Pair).toBeNull();
+    scriptModel(NOT_LEGAL);
+    const res = await post({ description: text });
+    expect(res.body.outcome).toBe('needs_choice');
+    expect(kinds(res)).toContain('bail_anticipatory');
+    expect(res.body).not.toHaveProperty('unranked');
+  });
+
+  it('gibberish (no keywords) is still no_match', async () => {
+    scriptModel(NOT_LEGAL);
+    const res = await post({ description: GIBBERISH });
+    expect(res.body.outcome).toBe('no_match');
+    expect(res.body).not.toHaveProperty('unranked');
+    expect(matchCalls()).toHaveLength(1);
+  });
+
+  it('decideFromAnswer: not legal + pair is exactly the two cards, flagged', () => {
+    const notLegal = readMatchAnswer(JSON.parse(NOT_LEGAL), new Set(PAIR));
+    const d = decideFromAnswer(notLegal, ['interim_bail'], ['bail_regular', 'bail_anticipatory']);
+    expect(d).toMatchObject({ kind: 'needs_choice', choices: PAIR, t5Fallback: true });
+  });
+
+  it('decideFromAnswer: not legal + pair ids not allowed (no pair) is the keyword pick or no_match', () => {
+    const allowed = new Set(['bail_regular', 'interim_bail']);
+    const notLegal = readMatchAnswer(JSON.parse(NOT_LEGAL), allowed);
+    const m = matchKeywords(T5_WITH_INTERIM, allowed);
+    expect(m.t5Pair).toBeNull();
+    const pick = decideFromAnswer(
+      notLegal,
+      m.candidates.map((c) => c.templateId),
+      m.t5Pair,
+    );
+    expect(pick).toMatchObject({ kind: 'needs_choice', choices: ['interim_bail'] });
+    expect(pick.t5Fallback).toBeUndefined();
+    const none = decideFromAnswer(notLegal, [], m.t5Pair);
+    expect(none.kind).toBe('no_match');
+    expect(none.t5Fallback).toBeUndefined();
   });
 });

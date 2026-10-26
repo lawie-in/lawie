@@ -206,7 +206,8 @@ export interface KeywordMatch {
    * T610-T5 (Ajay F2/F2a/F2b, 1bf3df1a, f0985461, edfe8645): when T5 removed both bail ids,
    * the pair, in this fixed order: [bail_regular, bail_anticipatory]. Only when
    * both are allowed (if `allowed` is given). Used only on the failure path,
-   * when the model has failed twice; otherwise T5 leaves it to the model.
+   * when the model has failed twice, and (T610-E1, Ajay, ca507e9b) when it answers
+   * is_legal_drafting false; otherwise T5 leaves it to the model.
    */
   t5Pair: [string, string] | null;
 }
