@@ -54,7 +54,7 @@ import { loadRulePack } from './rule-pack.service';
 // ── Versions recorded with every fact-diff row ──────────────────────────────
 
 /** Bump when a check changes what it flags. */
-export const VERIFIER_VERSION = 't488-1';
+export const VERIFIER_VERSION = 't611-1';
 
 /** First 12 hex characters of the SHA-256 of the repair prompt. */
 export const REPAIR_PROMPT_VERSION = createHash('sha256')
@@ -120,6 +120,36 @@ export interface FactViolation {
   bannedEntryId?: string;
   /** What is wrong, in plain words, for the repair prompt. No legal conclusion. */
   what: string;
+  /**
+   * T-611 (Ajay P1, P3): a value the ledger holds, or an amount judged against a
+   * held fact, that is never blanked. Still there after the one repair, the
+   * draft is withheld and the advocate asked. The value is `draftValue`.
+   */
+  conflict?: FactConflictRef;
+}
+
+/**
+ * T-611 P1: the two roles of a conflicting value. `wrong_label`: the draft
+ * gives a held value as the fact A, and the ledger holds it as the fact B (a
+ * key, or for P2 the text fact the date is written in). `mismatch` (P3): the
+ * draft gives an amount for the held fact A that differs from it; no B.
+ */
+export interface FactConflictRef {
+  kind: 'wrong_label' | 'mismatch';
+  keyA: string;
+  labelA: string;
+  keyB: string | null;
+  labelB: string | null;
+}
+
+/**
+ * A conflict still there after the repair. `value` is the draft's value and
+ * `heldValue` the ledger's display for the fact A (P3, Ajay P-R2), for the
+ * question to the advocate only: never logged, never sent to Sentry.
+ */
+export interface FactConflict extends FactConflictRef {
+  value: string;
+  heldValue: string | null;
 }
 
 export interface FactDiffDraft {
@@ -221,6 +251,17 @@ export interface FactCheckOutcome {
   banner: FactBanner | null;
   /** `{{MISSING: ...}}` placeholders the verifier itself put in. */
   placeholdersAdded: number;
+  /**
+   * T-611 P1: values never blanked that still conflict after the repair. Not
+   * empty means the draft is not delivered: the caller asks the advocate.
+   * Absent reads as none.
+   */
+  conflicts?: FactConflict[];
+  /**
+   * T-611 P6: the label of each blank this check itself put in, and of each
+   * value it asked the repair to fix: blanks the gate never fills or counts.
+   */
+  ownBlankLabels?: string[];
 }
 
 /** The repair call: system prompt and user prompt in, the model's text out (null if it failed). */
@@ -499,6 +540,10 @@ interface Entity {
   name?: string;
   /** For a bare number with a time unit ("15 days"). */
   period?: boolean;
+  /** T-611 P3: an amount in words, read as rupees (undefined when it cannot be read). */
+  amount?: number;
+  /** T-611 P3: the amount is written in words. */
+  words?: boolean;
 }
 
 const MONTH = String.raw`(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|June?|July?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)`;
@@ -525,6 +570,120 @@ const AMOUNT_RES: readonly RegExp[] = [
   // T-478: the lookbehind keeps "rs"/"inr" inside a word ("Orders 100") from being an amount.
   /(?<![\p{L}\p{N}])(?:Rs\.?|INR|₹|Rupees)\s*\d[\d,]*(?:\.\d{1,2})?(?:\s*(?:lakhs?|lacs?|crores?|thousand))?(?:\s*\/-)?/giu,
   /\b\d[\d,]*(?:\.\d+)?\s*(?:lakhs?|lacs?|crores?)\b/giu,
+];
+
+// ── T-611 P3 (Ajay): amounts in words, Indian system, read as the figure ─────
+
+const WORD_ONES: ReadonlyMap<string, number> = new Map(
+  'zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen'
+    .split(' ')
+    .map((w, i) => [w, i] as [string, number]),
+);
+const WORD_TENS: ReadonlyMap<string, number> = new Map(
+  'twenty thirty forty fifty sixty seventy eighty ninety'
+    .split(' ')
+    .map((w, i) => [w, (i + 2) * 10] as [string, number]),
+);
+const WORD_SCALES: ReadonlyMap<string, number> = new Map([
+  ['thousand', 1_000],
+  ['lakh', 100_000],
+  ['lakhs', 100_000],
+  ['lac', 100_000],
+  ['lacs', 100_000],
+  ['crore', 10_000_000],
+  ['crores', 10_000_000],
+]);
+
+/** A whole number of rupees from folded number words, or null if it is not one. */
+function wholeFromWords(words: readonly string[]): number | null {
+  let total = 0;
+  let chunk = 0;
+  let lastScale = Number.POSITIVE_INFINITY;
+  let last: 'none' | 'unit' | 'teen' | 'tens' | 'hundred' = 'none';
+  let any = false;
+  for (const w of words) {
+    if (w === 'and') continue;
+    const one = WORD_ONES.get(w);
+    const ten = WORD_TENS.get(w);
+    const scale = WORD_SCALES.get(w);
+    if (one !== undefined) {
+      if (one >= 10) {
+        // "Twenty Eleven" is not a number; "Hundred Eleven" is.
+        if (last === 'unit' || last === 'teen' || last === 'tens') return null;
+        last = 'teen';
+      } else {
+        if (last === 'unit' || last === 'teen') return null;
+        last = 'unit';
+      }
+      chunk += one;
+    } else if (ten !== undefined) {
+      if (last === 'unit' || last === 'teen' || last === 'tens') return null;
+      chunk += ten;
+      last = 'tens';
+    } else if (w === 'hundred') {
+      if (chunk < 1 || chunk > 99) return null;
+      chunk *= 100;
+      last = 'hundred';
+    } else if (scale !== undefined) {
+      if (chunk < 1 || scale >= lastScale || chunk * scale >= lastScale) return null;
+      total += chunk * scale;
+      chunk = 0;
+      lastScale = scale;
+      last = 'none';
+    } else {
+      return null;
+    }
+    any = true;
+  }
+  if (!any || chunk >= lastScale) return null;
+  total += chunk;
+  return Number.isSafeInteger(total) && total > 0 ? total : null;
+}
+
+/**
+ * T-611 P3: an amount written in words ("Rupees Two Lakh Forty Thousand only",
+ * "Rupees Fifteen Thousand and Fifty Paise only", "Rupees Fifteen Thousand and
+ * Paise Fifty only", "fifty thousand rupees"), in rupees. Null when the words
+ * are not one amount.
+ */
+export function amountFromWords(text: string): number | null {
+  let s = fold(text);
+  for (let i = 0; i < 3; i += 1) {
+    s = s
+      .replace(/^(?:rupees?|rs|inr)\s+/, '')
+      .replace(/\s+only$/, '')
+      .replace(/\s+rupees?$/, '')
+      .trim();
+  }
+  let paise = 0;
+  const m = /^(.*?)\s+and\s+paise\s+(.+)$/.exec(s) ?? /^(.*?)\s+and\s+(.+?)\s+paise$/.exec(s);
+  if (m) {
+    const p = wholeFromWords(m[2].split(' '));
+    if (p === null || p > 99) return null;
+    paise = p;
+    s = m[1];
+  }
+  const rupees = wholeFromWords(s.split(' ').filter((w) => w !== ''));
+  if (rupees === null) return null;
+  return rupees + paise / 100;
+}
+
+const NUM_WORD = String.raw`(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|lakhs?|lacs?|crores?)(?![\p{L}\p{M}])`;
+const NUM_WORDS = String.raw`${NUM_WORD}(?:(?:\s+|-)(?:and\s+)?${NUM_WORD})*`;
+const PAISE_WORDS = String.raw`(?:\s+and\s+(?:${NUM_WORDS}\s+paise|paise\s+${NUM_WORDS}))`;
+/**
+ * T-611 P3: amounts in words, claimed before the proper-noun pass so their words are never names.
+ * The rupee words never end just before "Paise", so "and Fifty Paise" is read as the paise.
+ */
+const AMOUNT_WORDS_RES: readonly RegExp[] = [
+  new RegExp(
+    String.raw`(?<![\p{L}\p{N}])(?:Rupees|Rs\.?|INR|₹)\s*${NUM_WORDS}(?!\s+paise)${PAISE_WORDS}?(?:\s+only(?![\p{L}\p{M}]))?`,
+    'giu',
+  ),
+  new RegExp(
+    String.raw`(?<![\p{L}\p{N}])${NUM_WORDS}(?!\s+paise)${PAISE_WORDS}?\s+rupees?(?:\s+only)?(?![\p{L}\p{M}])`,
+    'giu',
+  ),
 ];
 
 const DATE_RES: readonly RegExp[] = [
@@ -626,6 +785,21 @@ function extractEntities(text: string): Entity[] {
     for (const m of text.matchAll(re)) {
       const t = m[0].replace(/[\s,]+$/, '');
       add({ type: 'amount', text: t, start: m.index!, end: m.index! + t.length });
+    }
+  }
+  // T-611 P3: an amount in words is one amount entity, never a run of names.
+  for (const re of AMOUNT_WORDS_RES) {
+    for (const m of text.matchAll(re)) {
+      const t = m[0].replace(/[\s,]+$/, '');
+      const value = amountFromWords(t);
+      add({
+        type: 'amount',
+        text: t,
+        start: m.index!,
+        end: m.index! + t.length,
+        words: true,
+        ...(value !== null ? { amount: value } : {}),
+      });
     }
   }
   for (const re of DATE_RES) {
@@ -757,6 +931,12 @@ interface Sources {
   cues: Array<{ key: string; type: string; stems: Set<string>; unresolved: boolean }>;
   personNames: Array<{ fact: LedgerFact; words: string[] }>;
   skeletonText: string;
+  /**
+   * T-611 P2 (Ajay, amended): each date written in a text fact the advocate
+   * gave, with the keys its own words there name it the date of. Held as the
+   * value only: it is never blanked as unsupported.
+   */
+  textDates: Map<string, Array<{ fact: LedgerFact; roles: ReadonlySet<string> }>>;
 }
 
 const CUE_STOP = new Set(
@@ -952,7 +1132,7 @@ function buildSources(input: VerifierInput): Sources {
     if (byKey.has(u.key)) continue;
     cues.push({ key: u.key, type: u.type, stems: cueStems(u.label, u.key), unresolved: true });
   }
-  return {
+  const src: Sources = {
     facts,
     byKey,
     entries,
@@ -986,7 +1166,30 @@ function buildSources(input: VerifierInput): Sources {
           .filter((w) => w !== ''),
       })),
     skeletonText,
+    textDates: new Map(),
   };
+  // T-611 P2: the dates in the advocate's own text facts (never a computed one).
+  for (const f of facts) {
+    if (f.type !== 'text' || f.source === 'computed') continue;
+    const texts = [displayOf(f), typeof f.value === 'string' ? f.value : ''].filter(
+      (t, i, all) => t !== '' && all.indexOf(t) === i,
+    );
+    for (const t of texts) {
+      for (const re of DATE_RES) {
+        for (const m of t.matchAll(re)) {
+          const n = normalizeDate(m[0].replace(/\s+day\s+of\s+/i, ' '), {
+            referenceYear: src.referenceYear,
+          });
+          if (!n.ok) continue;
+          const roles = new Set(cuedKeys(src, t, m.index!, ['date']).map((c) => c.key));
+          const list = src.textDates.get(n.value) ?? [];
+          list.push({ fact: f, roles });
+          src.textDates.set(n.value, list);
+        }
+      }
+    }
+  }
+  return src;
 }
 
 /** The keys a value in this clause is said to be, nearest cue first. */
@@ -1077,9 +1280,20 @@ const GENERIC_LABEL: Record<FactEntityType, string> = {
  * presented or deposited, with nothing in the clause saying "drawn on" or
  * "drawee". Karol Bagh, the drawee branch, given as the presenting branch.
  */
-const ROLE_RULES: ReadonlyArray<{ key: RegExp; wrong: RegExp; right: RegExp; what: string }> = [
+const ROLE_RULES: ReadonlyArray<{
+  key: RegExp;
+  wrong: RegExp;
+  right: RegExp;
+  what: string;
+  /** T-611 P-R5: the role the draft gives the value, for the P1 question (no ledger key holds it). */
+  role: { key: string; label: string };
+}> = [
   {
     key: /^drawee_branch$/,
+    role: {
+      key: 'presenting_branch',
+      label: 'bank or branch where the cheque was presented',
+    },
     wrong:
       /\b(?:present(?:ed|s|ing)?|deposit(?:ed|s|ing)?|collecting\s+bank|presenting\s+bank|banker)\b/i,
     right:
@@ -1141,6 +1355,24 @@ function mutation(
     draftValue: en.text,
     what: what ?? said,
   };
+}
+
+/**
+ * T-611 P1 (Ajay): a value never blanked. The violation goes to the one repair
+ * like any other, naming both labels; if it is still there after the repair it
+ * is a conflict the advocate is asked about, not a blank.
+ */
+function conflicting(
+  src: Sources,
+  en: Entity,
+  keyA: string,
+  reason: 'differs' | 'wrong_fact' | 'unresolved',
+  ref: { kind: FactConflictRef['kind']; keyB: string | null; labelB: string | null },
+  what?: (labelA: string) => string,
+): Judged {
+  const labelA = labelOfKey(src, keyA);
+  const v = mutation(src, en, keyA, reason, what?.(labelA));
+  return { ...v, conflict: { kind: ref.kind, keyA, labelA, keyB: ref.keyB, labelB: ref.labelB } };
 }
 
 function judgeEntity(src: Sources, text: string, en: Entity): Judged | null {
@@ -1260,7 +1492,14 @@ function judgeDate(src: Sources, text: string, en: Entity): Judged | null {
     if (src.verbatim.has(en.text)) return null;
     const u = cued.find((c) => c.unresolved);
     if (u) return mutation(src, en, u.key, 'unresolved');
-    if (cued[0]) return mutation(src, en, cued[0].key, 'differs');
+    // T-611 P-R6 (Ajay): a date under a held label is repaired, then asked; never blanked.
+    if (cued[0]) {
+      return conflicting(src, en, cued[0].key, 'differs', {
+        kind: 'mismatch',
+        keyB: null,
+        labelB: null,
+      });
+    }
     return unsupported(en, `the draft gives "${en.text}" as a date, which is not in FACTS`);
   }
   const n = normalizeDate(en.text.replace(/\s+day\s+of\s+/i, ' '), {
@@ -1278,25 +1517,75 @@ function judgeDate(src: Sources, text: string, en: Entity): Judged | null {
     // Labels that all name other keys: it is the nearest held one's wrong date.
     if (cued.length === 0) return null;
     if (cued.some((c) => held.some((f) => f.key === c.key))) return null;
+    // T-611 P1: a held value is never blanked; a repair request naming both labels.
     const heldCue = cued.find((c) => !c.unresolved);
-    if (heldCue) return mutation(src, en, heldCue.key, 'wrong_fact');
-    return mutation(src, en, cued[0].key, 'unresolved');
+    const owner = held[0];
+    const a = heldCue ?? cued[0];
+    return conflicting(
+      src,
+      en,
+      a.key,
+      heldCue ? 'wrong_fact' : 'unresolved',
+      { kind: 'wrong_label', keyB: owner.key, labelB: owner.label },
+      (labelA) =>
+        `the draft gives "${en.text}" for ${labelA}, but in FACTS that value is the ${owner.label}`,
+    );
+  }
+  // T-611 P2: a date written in the advocate's own text fact is held (the value
+  // only). No label, or a label the text itself gives it: it passes. A label
+  // the text does not give it: P1.
+  const inText = src.textDates.get(n.value);
+  if (inText && inText.length > 0) {
+    if (cued.length === 0) return null;
+    if (cued.some((c) => inText.some((t) => t.roles.has(c.key)))) return null;
+    const owner = inText[0].fact;
+    const a = cued.find((c) => !c.unresolved) ?? cued[0];
+    return conflicting(
+      src,
+      en,
+      a.key,
+      a.unresolved ? 'unresolved' : 'wrong_fact',
+      { kind: 'wrong_label', keyB: owner.key, labelB: owner.label },
+      (labelA) =>
+        `the draft gives "${en.text}" for ${labelA}, but in FACTS that value is given in ${owner.label}, not as ${labelA}`,
+    );
   }
   if (src.skeleton.has(en.text)) return null;
   const u = cued.find((c) => c.unresolved);
   if (u) return mutation(src, en, u.key, 'unresolved');
-  if (cued[0]) return mutation(src, en, cued[0].key, 'differs');
+  // T-611 P-R6 (Ajay): a non-held date under a held label: repair, then ask (P3 form).
+  if (cued[0]) {
+    return conflicting(src, en, cued[0].key, 'differs', {
+      kind: 'mismatch',
+      keyB: null,
+      labelB: null,
+    });
+  }
   return unsupported(en);
 }
 
 function judgeAmount(src: Sources, text: string, en: Entity): Judged | null {
-  const n = normalizeAmount(en.text);
-  if (n.ok && src.amounts.has(amountKey(n.value))) return null;
+  // T-611 P3: an amount in words is read as the figure and judged like digits.
+  let value: number | undefined = en.amount;
+  if (!en.words) {
+    const n = normalizeAmount(en.text);
+    if (n.ok) value = n.value;
+  }
+  if (value !== undefined && src.amounts.has(amountKey(value))) return null;
   if (src.skeleton.has(en.text)) return null;
+  if (en.words && src.ledger.has(en.text)) return null;
   const cued = cuedKeys(src, text, en.start, ['amount']);
   const u = cued.find((c) => c.unresolved);
   if (u) return mutation(src, en, u.key, 'unresolved');
-  if (cued[0]) return mutation(src, en, cued[0].key, 'differs');
+  // T-611 P3: an amount given for a held fact that differs from it is never
+  // blanked or corrected: a repair request, then the advocate is asked.
+  if (cued[0]) {
+    return conflicting(src, en, cued[0].key, 'differs', {
+      kind: 'mismatch',
+      keyB: null,
+      labelB: null,
+    });
+  }
   const amountFacts = src.facts.filter((f) => f.type === 'amount');
   if (amountFacts.length === 1) return mutation(src, en, amountFacts[0].key, 'differs');
   return unsupported(en);
@@ -1364,7 +1653,18 @@ function roleCheck(src: Sources, text: string, en: Entity): Judged | null {
     const [s, e] = sentenceAround(text, en.start, en.end);
     const clause = text.slice(s, e);
     if (rule.wrong.test(clause) && !rule.right.test(clause)) {
-      return mutation(src, en, fact.key, 'wrong_fact', `"${en.text}" ${rule.what}`);
+      // T-611 P-R5 (Ajay): a held name is never blanked; repair, then the P1 question.
+      const v = mutation(src, en, fact.key, 'wrong_fact', `"${en.text}" ${rule.what}`);
+      return {
+        ...v,
+        conflict: {
+          kind: 'wrong_label',
+          keyA: rule.role.key,
+          labelA: rule.role.label,
+          keyB: fact.key,
+          labelB: fact.label,
+        },
+      };
     }
   }
   return null;
@@ -1431,6 +1731,8 @@ function present(src: Sources, f: LedgerFact, entities: Entity[], allFolded: str
     case 'amount':
       return entities.some((e) => {
         if (e.type !== 'amount') return false;
+        // T-611 P3: an amount in words counts as its figure.
+        if (e.words) return e.amount !== undefined && amountKey(e.amount) === amountKey(f.value);
         const n = normalizeAmount(e.text);
         return n.ok && amountKey(n.value) === amountKey(f.value);
       });
@@ -1656,7 +1958,7 @@ export function verifyDraft(input: VerifierInput): FactViolation[] {
 export function applyPlaceholders(
   body: string,
   violations: readonly FactViolation[],
-): { body: string; added: number } {
+): { body: string; added: number; labels: string[] } {
   const paragraphs = splitParagraphs(body);
   const byPara = new Map<number, FactViolation[]>();
   for (const v of violations) {
@@ -1667,6 +1969,7 @@ export function applyPlaceholders(
   }
   const replaced = new Map<number, string>();
   let added = 0;
+  const labels: string[] = [];
   for (const [pi, list] of byPara) {
     const p = paragraphs[pi];
     if (!p) continue;
@@ -1688,12 +1991,14 @@ export function applyPlaceholders(
     spans.sort((a, b) => b.s - a.s);
     let text = p.text;
     for (const sp of spans) {
-      text = text.slice(0, sp.s) + placeholder(sp.label) + text.slice(sp.e);
+      const token = placeholder(sp.label);
+      text = text.slice(0, sp.s) + token + text.slice(sp.e);
       added += 1;
+      labels.push(token.slice('{{MISSING: '.length, -2));
     }
     replaced.set(pi, text);
   }
-  return { body: replaceParagraphs(body, replaced), added };
+  return { body: replaceParagraphs(body, replaced), added, labels };
 }
 
 // ── The repair pass ─────────────────────────────────────────────────────────
@@ -1763,6 +2068,8 @@ function violationKey(v: FactViolation): string {
 }
 
 function finalResolution(v: FactViolation): FactResolution {
+  // T-611 P1: a conflict is never blanked; the draft is withheld and the advocate asked.
+  if (v.conflict) return 'flagged';
   if (v.check === 'banned') return 'stripped';
   if (v.check === 'dropped') return 'flagged';
   return 'placeholdered';
@@ -1831,6 +2138,8 @@ export async function verifyAndRepair(
       records: [],
       banner: null,
       placeholdersAdded: 0,
+      conflicts: [],
+      ownBlankLabels: [],
     };
   }
 
@@ -1865,7 +2174,10 @@ export async function verifyAndRepair(
   }
 
   const remaining = afterRepair ?? initial;
-  const placed = applyPlaceholders(current, remaining);
+  // T-611 P1: a value the ledger holds (and a P3 amount) is never blanked.
+  const conflicts = conflictsOf(remaining);
+  const toBlank = remaining.filter((v) => !v.conflict);
+  const placed = applyPlaceholders(current, toBlank);
   const after = new Set((afterRepair ?? []).map(violationKey));
   const records: FactDiffDraft[] = [
     ...initial.map((v) =>
@@ -1885,9 +2197,199 @@ export async function verifyAndRepair(
     initial,
     afterRepair,
     records,
-    banner: buildFactBanner(remaining),
+    banner: buildFactBanner(toBlank),
     placeholdersAdded: placed.added,
+    conflicts,
+    // A blank the repair wrote for a value it was asked to fix is the check's own too.
+    ownBlankLabels: [
+      ...placed.labels,
+      ...(afterRepair !== null
+        ? initial.filter((v) => !v.conflict && v.check !== 'dropped').map((v) => v.label)
+        : []),
+    ],
   };
+}
+
+/** T-611 P1: the conflicts among these violations, one per value and pair of labels. */
+export function conflictsOf(violations: readonly FactViolation[]): FactConflict[] {
+  const out: FactConflict[] = [];
+  const seen = new Set<string>();
+  for (const v of violations) {
+    if (!v.conflict) continue;
+    const value = v.draftValue ?? '';
+    const k = [v.conflict.kind, v.conflict.keyA, v.conflict.keyB ?? '', fold(value)].join('|');
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push({ ...v.conflict, value, heldValue: v.ledgerValue });
+  }
+  return out;
+}
+
+// ── T-611 P6 (Ajay, L10(c)): blanks for facts the ledger holds ─────────────
+
+/** Fact types whose display can stand in a sentence where its blank was. */
+const FILL_TYPES = new Set<string>([
+  'amount',
+  'date',
+  'person_name',
+  'place_name',
+  'police_station',
+  'court',
+  'section_ref',
+  'case_number',
+  'text',
+]);
+
+const MISSING_TOKEN_RE = /\{\{\s*MISSING\s*:\s*([^}]*?)\s*\}\}/gi;
+
+/** A `{{MISSING: label}}` for a fact the ledger holds. */
+export interface HeldBlank {
+  key: string;
+  label: string;
+}
+
+/**
+ * The held key a blank's label names: the fact's own label (the pack's signed
+ * field label) or its key in words ("Amount in Words", "amount in words" for
+ * `amount_in_words`). Null when it names no held fact, or more than one.
+ * T-611 round 3: a pack label that is also one of the verifier's generic words
+ * ("Police Station" on bail_regular) still names its fact. A generic word
+ * that names no held fact stays unmatched; the blanks the verifier itself
+ * wrote are kept out by the caller (`ownBlankLabels`), never by the word.
+ */
+function heldKeyForLabel(
+  label: string,
+  entries: ReadonlyMap<string, readonly LedgerFact[]>,
+): string | null {
+  const want = fold(label);
+  if (want === '') return null;
+  const keys = new Set<string>();
+  for (const [key, list] of entries) {
+    const bare = key.slice(key.lastIndexOf('.') + 1).replace(/_/g, ' ');
+    if (list.some((f) => fold(f.label) === want) || fold(bare) === want) keys.add(key);
+  }
+  return keys.size === 1 ? [...keys][0] : null;
+}
+
+/** The one display a held key's blank is filled with, or null when code cannot pick it. */
+function fillFor(list: readonly LedgerFact[] | undefined): string | null {
+  if (!list || list.length !== 1) return null;
+  const f = list[0];
+  if (!FILL_TYPES.has(f.type)) return null;
+  const d = displayOf(f);
+  if (d === '' || /\{\{|\}\}/.test(d)) return null;
+  return d;
+}
+
+/**
+ * T-611 P6: the one deterministic fill. Every blank whose label names a fact
+ * the ledger holds, with one entry that prints as it stands, gets that fact's
+ * display. `left` is every held blank code could not fill (a list, a choice);
+ * a blank for a fact the ledger does not hold stays as it is.
+ */
+export function fillHeldBlanks(
+  text: string,
+  facts: readonly LedgerFact[],
+): { text: string; filled: HeldBlank[]; left: HeldBlank[] } {
+  const entries = factEntriesByKey(facts);
+  const filled: HeldBlank[] = [];
+  const left: HeldBlank[] = [];
+  const out = text.replace(MISSING_TOKEN_RE, (token, label: string) => {
+    const key = heldKeyForLabel(label, entries);
+    if (key === null) return token;
+    const display = fillFor(entries.get(key));
+    if (display === null) {
+      left.push({ key, label });
+      return token;
+    }
+    filled.push({ key, label });
+    return display;
+  });
+  return { text: out, filled, left };
+}
+
+/**
+ * T-611 P6: the held blanks still in a text (the fill not applied), less one
+ * for each label in `own`: the blanks the fact check itself put in (a value
+ * the ledger does not hold, a stripped assertion), which stay blanks.
+ */
+export function heldBlanksIn(
+  text: string,
+  facts: readonly LedgerFact[],
+  own: readonly string[] = [],
+): HeldBlank[] {
+  const entries = factEntriesByKey(facts);
+  const allowance = new Map<string, number>();
+  for (const l of own) allowance.set(fold(l), (allowance.get(fold(l)) ?? 0) + 1);
+  const out: HeldBlank[] = [];
+  for (const m of text.matchAll(MISSING_TOKEN_RE)) {
+    const key = heldKeyForLabel(m[1], entries);
+    if (key === null) continue;
+    const left = allowance.get(fold(m[1])) ?? 0;
+    if (left > 0) {
+      allowance.set(fold(m[1]), left - 1);
+      continue;
+    }
+    out.push({ key, label: m[1] });
+  }
+  return out;
+}
+
+/**
+ * T-611 P6: the one model repair of the held blanks code could not fill, on
+ * the signed fact-repair prompt. The repaired paragraphs are kept only when
+ * they hold no finding the body did not already have. Returns the body as it
+ * stands after the repair (unchanged if the repair failed or was refused).
+ */
+export async function repairHeldBlanks(
+  input: VerifierInput,
+  repair: FactRepairCall,
+): Promise<string> {
+  const entries = factEntriesByKey(input.facts);
+  const paragraphs = splitParagraphs(input.body);
+  const violations: FactViolation[] = [];
+  paragraphs.forEach((p, pi) => {
+    for (const m of p.text.matchAll(MISSING_TOKEN_RE)) {
+      const key = heldKeyForLabel(m[1], entries);
+      if (key === null) continue;
+      const list = entries.get(key) ?? [];
+      const display = list.map(displayOf).filter((d) => d !== '');
+      violations.push({
+        check: 'dropped',
+        entityType: list[0] ? entityTypeOfFact(list[0]) : 'phrase',
+        reason: 'left_out',
+        ledgerKey: key,
+        label: m[1],
+        paragraphIndex: pi,
+        charOffset: m.index!,
+        length: m[0].length,
+        ledgerValue: display.join('; ') || null,
+        draftValue: m[0],
+        what: `the draft has a blank for ${m[1]}, which is in FACTS; print it in the words of its display in place of the blank`,
+      });
+    }
+  });
+  if (violations.length === 0) return input.body;
+  const indices = [...new Set(violations.map((v) => v.paragraphIndex))].sort((a, b) => a - b);
+  const user = buildFactRepairUserPrompt({
+    paragraphs: indices.map((i) => ({ index: i, text: paragraphs[i].text })),
+    violations,
+    facts: [...entries.values()].flat().map((f) => ({
+      key: f.key,
+      label: f.label,
+      type: f.type,
+      display: displayOf(f),
+    })),
+    banned: resolveAverments(input.lists, input.facts).banned,
+  });
+  const raw = await repair(DRAFTER_FACT_REPAIR_SYSTEM_PROMPT, user);
+  const parsed = raw === null ? null : parseFactRepair(raw, indices);
+  if (!parsed) return input.body;
+  const repaired = replaceParagraphs(input.body, parsed);
+  // Nothing the check did not already find in the body before the repair.
+  const before = new Set(verifyDraft(input).map(violationKey));
+  const after = verifyDraft({ ...input, body: repaired });
+  return after.every((v) => before.has(violationKey(v))) ? repaired : input.body;
 }
 
 /** `{{MISSING: ...}}` placeholders in a text. */

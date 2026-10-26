@@ -1046,3 +1046,115 @@ export function carryOver(
 }
 
 export type { LedgerState };
+
+// ── T-611 P5 (Ajay, L10(a)): amount_in_words, computed from cheque_amount ───
+
+const P5_ONES = [
+  '',
+  'One',
+  'Two',
+  'Three',
+  'Four',
+  'Five',
+  'Six',
+  'Seven',
+  'Eight',
+  'Nine',
+  'Ten',
+  'Eleven',
+  'Twelve',
+  'Thirteen',
+  'Fourteen',
+  'Fifteen',
+  'Sixteen',
+  'Seventeen',
+  'Eighteen',
+  'Nineteen',
+];
+const P5_TENS = [
+  '',
+  '',
+  'Twenty',
+  'Thirty',
+  'Forty',
+  'Fifty',
+  'Sixty',
+  'Seventy',
+  'Eighty',
+  'Ninety',
+];
+
+function p5BelowHundred(n: number): string {
+  if (n < 20) return P5_ONES[n];
+  return [P5_TENS[Math.floor(n / 10)], P5_ONES[n % 10]].filter((w) => w !== '').join(' ');
+}
+
+/** A whole number in words, Indian numbering: Crore, Lakh, Thousand, Hundred. */
+function p5IndianWords(n: number): string {
+  const parts: string[] = [];
+  const crore = Math.floor(n / 10_000_000);
+  const lakh = Math.floor((n % 10_000_000) / 100_000);
+  const thousand = Math.floor((n % 100_000) / 1000);
+  const hundred = Math.floor((n % 1000) / 100);
+  const rest = n % 100;
+  if (crore > 0) parts.push(`${p5IndianWords(crore)} Crore`);
+  if (lakh > 0) parts.push(`${p5BelowHundred(lakh)} Lakh`);
+  if (thousand > 0) parts.push(`${p5BelowHundred(thousand)} Thousand`);
+  if (hundred > 0) parts.push(`${P5_ONES[hundred]} Hundred`);
+  if (rest > 0) parts.push(p5BelowHundred(rest));
+  return parts.join(' ');
+}
+
+/**
+ * T-611 P5, signed format: `Rupees <words> only`; with paise
+ * `Rupees <words> and <words> Paise only`. Indian numbering. Null below one rupee.
+ */
+export function amountInWordsP5(rupeesValue: number): string | null {
+  if (!Number.isFinite(rupeesValue)) return null;
+  const paiseTotal = Math.round(rupeesValue * 100);
+  const rupees = Math.floor(paiseTotal / 100);
+  const paise = paiseTotal % 100;
+  if (!Number.isSafeInteger(rupees) || rupees < 1) return null;
+  const paiseWords = paise > 0 ? ` and ${p5BelowHundred(paise)} Paise` : '';
+  return `Rupees ${p5IndianWords(rupees)}${paiseWords} only`;
+}
+
+/**
+ * T-611 P5: on a pack whose checklist has `amount_in_words`, that fact is
+ * computed by code from the held `cheque_amount` (source `computed`, per
+ * request, never stored), so the Drafter's facts, the skeleton brief and the
+ * verifier all see it held. Any stored value under the key gives way to it.
+ * When `cheque_amount` is not held, `amount_in_words` is not held either: it
+ * is never guessed. `checklist` gives the key and the pack's signed label.
+ */
+export function withAmountInWordsFact(
+  facts: readonly LedgerFact[],
+  checklist: ReadonlyArray<{ key: string; label: string }>,
+): LedgerFact[] {
+  const item = checklist.find((i) => lastSegment(i.key) === 'amount_in_words');
+  if (!item) return [...facts];
+  const others = facts.filter((f) => lastSegment(f.key) !== 'amount_in_words');
+  const cheque = facts.filter(
+    (f) =>
+      lastSegment(f.key) === 'cheque_amount' && f.type === 'amount' && typeof f.value === 'number',
+  );
+  // One held amount only: a list or two values is not computed from.
+  if (cheque.length !== 1 || typeof cheque[0].value !== 'number') return others;
+  const words = amountInWordsP5(cheque[0].value);
+  if (words === null) return others;
+  return [
+    ...others,
+    {
+      id: `computed:${item.key}`,
+      key: item.key,
+      label: item.label,
+      type: 'text',
+      value: words,
+      display: words,
+      raw_span: '',
+      source: 'computed',
+      confidence: 1,
+      required_in_draft: false,
+    },
+  ];
+}

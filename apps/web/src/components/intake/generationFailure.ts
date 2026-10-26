@@ -63,6 +63,12 @@ export function refusedStartError(status: number, body: unknown): GenerationErro
 /** The SSE error code the server sends when the Ink hold was lost and could not be re-taken. */
 export const INSUFFICIENT_INK_CODE = 'insufficient_ink';
 
+/**
+ * T-611: the codes of a draft the server withheld to ask the advocate one
+ * question (Ajay P1, P-R2, P6). The question is the server's signed `reason`.
+ */
+export const FACT_QUESTION_CODES: ReadonlySet<string> = new Set(['fact_needed', 'fact_conflict']);
+
 /** Where a failed generation came from. */
 export type GenerationFailureSource =
   /** The server sent `event: error`. */
@@ -100,6 +106,11 @@ export interface GenerationFailureCopy {
 
 export function generationFailureCopy(error: GenerationError): GenerationFailureCopy {
   const source = error.source ?? 'start';
+  // T-611: a withheld draft is not a failure. The signed question is the heading,
+  // with no other line: no document was made, and the Ink line is not confirmed.
+  if (source === 'error_event' && error.code !== undefined && FACT_QUESTION_CODES.has(error.code)) {
+    return { headline: error.reason, statusLine: null, detail: null, noInkClaim: false };
+  }
   if (source === 'error_event' && error.code !== INSUFFICIENT_INK_CODE) {
     const released = error.inkReleased === true;
     return {

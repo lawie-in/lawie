@@ -98,10 +98,18 @@ import {
   DRAFTER_PACK_SYSTEM_PROMPT,
   DRAFTER_REPAIR_SYSTEM_PROMPT,
 } from './drafter.prompts';
+import { withAmountInWordsFact } from './fact-ledger.service';
 import {
+  conflictsOf,
   FactCheckOutcome,
+  FactConflict,
   FactDiffDraft,
+  FactRepairCall,
   FactViolation,
+  fillHeldBlanks,
+  HeldBlank,
+  heldBlanksIn,
+  repairHeldBlanks,
   splitParagraphs,
   verifyAndRepair,
   verifyDraft,
@@ -504,18 +512,29 @@ function classifyLlmError(err: unknown): ClassifiedLlmError {
   return UNKNOWN;
 }
 
+/**
+ * Why a run ended before `done`. T-611 (Ajay P1, P6): `fact_needed` and
+ * `fact_conflict` are a draft withheld by the delivery gate; the route returns
+ * the hold and saves a failed row, as for any other code.
+ */
+export type GenerationFailedCode =
+  | ClassifiedLlmError['code']
+  | 'party_details_missing'
+  | 'fact_needed'
+  | 'fact_conflict';
+
 /** Sentinel thrown after a mid-stream LLM failure so the route handler knows
  *  the SSE has already been ended and not to re-emit `done`. Carries whatever
  *  usage was captured before the failure (T-003) so the route can still
  *  record a Generation row for the attempt instead of losing it. */
 export class GenerationFailedError extends Error {
-  readonly code: ClassifiedLlmError['code'] | 'party_details_missing';
+  readonly code: GenerationFailedCode;
   readonly usage: UsageTotals;
   readonly aiModel?: string;
   readonly transport?: 'direct';
   constructor(
     message: string,
-    code: ClassifiedLlmError['code'] | 'party_details_missing',
+    code: GenerationFailedCode,
     usage: UsageTotals,
     aiModel?: string,
     transport?: 'direct',
@@ -671,6 +690,109 @@ function refuseMissingParty(
     })}\n\n`,
   );
   return new GenerationFailedError(reason, 'party_details_missing', new UsageMeter().totals());
+}
+
+// ── T-611: the delivery gate (Arjun's Phase 0 gate; Ajay P1 and P6, signed) ─
+
+/** Signed (Ajay, T-611 P6). */
+export function factNeededLine(label: string): string {
+  return `One detail is needed before the draft: ${label}.`;
+}
+
+/** Signed (Ajay, T-611 P1). `value` goes to the advocate only: never logged. */
+export function factConflictLine(value: string, labelA: string, labelB: string): string {
+  return `The draft gives ${value} as the ${labelA}, but your facts give it as the ${labelB}. Which is right?`;
+}
+
+/**
+ * Signed (Ajay, T-611 P-R2): an amount, or a date (P-R6), given for a held fact
+ * that differs from it. Both values go to the advocate only: never logged.
+ */
+export function factMismatchLine(value: string, label: string, heldValue: string): string {
+  return `The draft gives ${value} for the ${label}, but your facts give ${heldValue}. Which is right?`;
+}
+
+/** What the gate withholds a draft for: one question to the advocate. */
+export type WithheldDraft =
+  | { code: 'fact_conflict'; conflict: FactConflict }
+  | { code: 'fact_needed'; blank: HeldBlank };
+
+/**
+ * T-611: the draft is not delivered. Sends the one question as the paths' own
+ * `event: error` (the shape of refuseMissingParty) and returns the
+ * GenerationFailedError to throw, with the usage of the whole run: the route
+ * returns the hold, saves the failed row and ends the response, so no Ink is
+ * taken. Logs ids, keys and the code only, never a value or the question.
+ */
+export function withholdDraft(
+  res: Response,
+  runId: string,
+  packId: string,
+  withheld: WithheldDraft,
+  usage: UsageTotals,
+  aiModel?: string,
+  transport?: 'direct',
+): GenerationFailedError {
+  if (!res.headersSent) {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+  }
+  let payload: Record<string, unknown>;
+  let keys: string;
+  if (withheld.code === 'fact_conflict') {
+    const c = withheld.conflict;
+    // P1 asks with both labels; a value that differs from its held fact (P3,
+    // P-R6) asks with both values (P-R2).
+    let reason: string;
+    if (c.kind === 'wrong_label' && c.labelB !== null) {
+      reason = factConflictLine(c.value, c.labelA, c.labelB);
+    } else if (c.heldValue !== null && c.heldValue !== '') {
+      reason = factMismatchLine(c.value, c.labelA, c.heldValue);
+    } else {
+      // Not reached: fact A is held, so it has a display. Never a guessed question.
+      reason = factNeededLine(c.labelA);
+    }
+    payload = {
+      section: 'body',
+      reason,
+      retryable: false,
+      code: 'fact_conflict',
+      error: 'fact_conflict',
+      key: c.keyA,
+      label: c.labelA,
+      conflict: { keyA: c.keyA, labelA: c.labelA, keyB: c.keyB, labelB: c.labelB },
+      runId,
+    };
+    keys = `${c.keyA}${c.keyB ? `,${c.keyB}` : ''}`;
+  } else {
+    const b = withheld.blank;
+    payload = {
+      section: 'body',
+      reason: factNeededLine(b.label),
+      retryable: false,
+      code: 'fact_needed',
+      error: 'fact_needed',
+      key: b.key,
+      label: b.label,
+      runId,
+    };
+    keys = b.key;
+  }
+  res.write(`event: error\ndata: ${JSON.stringify(payload)}\n\n`);
+  // T-611 P-R4: one line per withheld draft, for the withhold rate per pack.
+  // The pack id, the code and the keys only: never a value, a label or the question.
+  if (process.env.NODE_ENV !== 'test') {
+    console.info(`[drafting] draft withheld (kind=${packId}, code=${withheld.code}, keys=${keys})`);
+  }
+  return new GenerationFailedError(
+    `draft withheld: ${withheld.code} (keys=${keys})`,
+    withheld.code,
+    usage,
+    aiModel,
+    transport,
+  );
 }
 
 /**
@@ -1871,7 +1993,7 @@ export async function streamGenerateFromBrief(
   // With a ledger, its one computed fact goes in the same way, so the Drafter's
   // facts and the fact verifier's ledger carry it.
   const limitation = limitationForBrief(lawInput);
-  const input: BriefGenerateInput =
+  const limitedInput: BriefGenerateInput =
     limitation !== null && lawInput.ledger
       ? {
           ...lawInput,
@@ -1881,6 +2003,22 @@ export async function streamGenerateFromBrief(
           },
         }
       : lawInput;
+  // T-611 P5 (Ajay, L10(a)): amount_in_words is computed by code from the held
+  // cheque_amount, per request and never stored, so the Drafter's facts, the
+  // skeleton brief and the fact verifier see it held. Not held when
+  // cheque_amount is not. Only on a pack whose checklist has the field.
+  const input: BriefGenerateInput = limitedInput.ledger
+    ? {
+        ...limitedInput,
+        ledger: {
+          ...limitedInput.ledger,
+          facts: withAmountInWordsFact(
+            limitedInput.ledger.facts,
+            buildChecklist(limitedInput.pack),
+          ),
+        },
+      }
+    : limitedInput;
   const { pack: loadedPack, templateConfig, courtData } = input;
   // T-147c: with the ledger, everything the system writes and every check reads
   // the ledger's displays; without it, the brief exactly as before.
@@ -2278,52 +2416,67 @@ export async function streamGenerateFromBrief(
     // becomes {{MISSING: label}}. A draft that passes is unchanged. Nothing
     // here is logged but ids and counts.
     let factCheck: FactCheckOutcome | undefined;
+    /** The fact repair call: one model call on the signed fact-repair prompt (T-147d). */
+    const factRepair: FactRepairCall = async (system, user) => {
+      res.write(`event: repair\ndata: ${JSON.stringify({ facts: true })}\n\n`);
+      let factRaw = '';
+      const factDraft: CallUsageDraft = {
+        inputTokens: 0,
+        outputTokens: 0,
+        usageSource: 'none',
+      };
+      try {
+        // T-437: cached only when it is the constant fact-repair prompt.
+        for await (const text of streamLLM(system, user, 8192, factDraft, {
+          cacheSystem: system === DRAFTER_FACT_REPAIR_SYSTEM_PROMPT,
+        }))
+          factRaw += text;
+        recordCall('fact_repair', factDraft, factRaw);
+        return factRaw;
+      } catch (factErr) {
+        // A failed repair never fails the draft: the placeholders follow. Its tokens are counted.
+        recordCall('fact_repair', factDraft, factRaw);
+        if (process.env.NODE_ENV !== 'test') {
+          console.error(
+            `[drafting] Fact repair pass failed (kind=${pack.id}, runId=${input.runId}):`,
+            factErr instanceof Error ? factErr.name : 'unknown',
+          );
+        }
+        return null;
+      }
+    };
+    /** The verifier's input for a body, on this draft's ledger (T-147d). */
+    const verifierInputFor = (body: string, ledger: NonNullable<typeof input.ledger>) => ({
+      body,
+      facts: ledger.facts,
+      unresolved: ledger.unresolved ?? [],
+      lists: ledger.lists,
+      skeleton: [
+        systemText.before,
+        systemText.after,
+        ...(ledgerInput?.facts.court ? [ledgerInput.facts.court] : []),
+        ...(promptInput.statedInstructions ?? []),
+      ],
+      packText: packTexts(pack),
+      packId: pack.id,
+    });
     if (ledgerInput && input.ledger) {
       const ledger = input.ledger;
-      factCheck = await verifyAndRepair(
-        {
-          body: output.body,
-          facts: ledger.facts,
-          unresolved: ledger.unresolved ?? [],
-          lists: ledger.lists,
-          skeleton: [
-            systemText.before,
-            systemText.after,
-            ...(ledgerInput.facts.court ? [ledgerInput.facts.court] : []),
-            ...(promptInput.statedInstructions ?? []),
-          ],
-          packText: packTexts(pack),
-          packId: pack.id,
-        },
-        async (system, user) => {
-          res.write(`event: repair\ndata: ${JSON.stringify({ facts: true })}\n\n`);
-          let factRaw = '';
-          const factDraft: CallUsageDraft = {
-            inputTokens: 0,
-            outputTokens: 0,
-            usageSource: 'none',
-          };
-          try {
-            // T-437: cached only when it is the constant fact-repair prompt.
-            for await (const text of streamLLM(system, user, 8192, factDraft, {
-              cacheSystem: system === DRAFTER_FACT_REPAIR_SYSTEM_PROMPT,
-            }))
-              factRaw += text;
-            recordCall('fact_repair', factDraft, factRaw);
-            return factRaw;
-          } catch (factErr) {
-            // A failed repair never fails the draft: the placeholders follow. Its tokens are counted.
-            recordCall('fact_repair', factDraft, factRaw);
-            if (process.env.NODE_ENV !== 'test') {
-              console.error(
-                `[drafting] Fact repair pass failed (kind=${pack.id}, runId=${input.runId}):`,
-                factErr instanceof Error ? factErr.name : 'unknown',
-              );
-            }
-            return null;
-          }
-        },
-      );
+      // T-611 P6 (Ajay, L10(c)): the gate's one deterministic fill from the
+      // ledger, then one model repair of what code cannot fill, on the
+      // Drafter's own blanks for facts the ledger holds. Before the verifier,
+      // so it checks the filled body and its own blanks are never filled.
+      const bodyFill = fillHeldBlanks(output.body, ledger.facts);
+      let filledBody = bodyFill.text;
+      if (bodyFill.left.length > 0) {
+        filledBody = await repairHeldBlanks(verifierInputFor(filledBody, ledger), factRepair);
+      }
+      if (filledBody !== output.body) {
+        // T-200, R2b.1: a code edit records the changed paragraphs again.
+        recordAgainAfterCodeEdit(output.report, output.body, filledBody, recorded, missing);
+        output = { ...output, body: filledBody };
+      }
+      factCheck = await verifyAndRepair(verifierInputFor(output.body, ledger), factRepair);
       // T-200: the fact check's edits record the changed paragraphs again. With
       // no model repair applied (afterRepair null) only code edited the body
       // (R2b.1). With one, a paragraph counts only when its change stays inside
@@ -2381,6 +2534,53 @@ export async function streamGenerateFromBrief(
         for (const m of missing) {
           if (!beforeRemoval.some((was) => was.id === m.id)) lostInRemoval.add(m.id);
         }
+      }
+    }
+
+    // ── T-611: the delivery gate (Arjun's Phase 0 gate; Ajay P1 and P6) ───────
+    // After the fact verifier, before anything of the draft is sent. A value
+    // the ledger holds that still conflicts after the one repair (P1), or a
+    // blank for a fact the ledger holds still there after the fill and the
+    // model repair (P6): the draft is not delivered, the advocate is asked,
+    // and the thrown error makes the route return the hold, so no Ink is
+    // taken. A blank for a fact the ledger does not hold, and a blank the fact
+    // check itself put in, stay blanks and the draft is delivered.
+    if (ledgerInput && input.ledger) {
+      const ledger = input.ledger;
+      const conflicts = factCheck?.conflicts ?? [];
+      if (conflicts.length > 0) {
+        throw withholdDraft(
+          res,
+          input.runId,
+          pack.id,
+          { code: 'fact_conflict', conflict: conflicts[0] },
+          meter.totals(),
+          aiModel,
+          transport,
+        );
+      }
+      // The parts the system wrote: the same one deterministic fill (no model call).
+      renderedSections.forEach((section, i) => {
+        if (i === bodyAt) return;
+        const filled = fillHeldBlanks(section.content, ledger.facts);
+        if (filled.filled.length > 0) renderedSections[i] = { ...section, content: filled.text };
+      });
+      const stillHeld = [
+        ...heldBlanksIn(output.body, ledger.facts, factCheck?.ownBlankLabels ?? []),
+        ...renderedSections
+          .filter((_s, i) => i !== bodyAt)
+          .flatMap((sec) => heldBlanksIn(sec.content, ledger.facts)),
+      ];
+      if (stillHeld.length > 0) {
+        throw withholdDraft(
+          res,
+          input.runId,
+          pack.id,
+          { code: 'fact_needed', blank: stillHeld[0] },
+          meter.totals(),
+          aiModel,
+          transport,
+        );
       }
     }
 
@@ -2734,6 +2934,8 @@ function d1FactCheck(body: string, violations: FactViolation[]): FactCheckOutcom
     records,
     banner: null,
     placeholdersAdded: 0,
+    // T-611 P1: nothing is blanked on D1 either; a conflict withholds the draft.
+    conflicts: conflictsOf(violations),
   };
 }
 
@@ -2923,7 +3125,7 @@ async function d1GenerateFromBrief(c: D1Context): Promise<BriefGenerateResult> {
 
   // ── No case law on its own (T-148): kept on D1 ────────────────────────────
   const citations = removeUngivenCitations(rendered.body, ledgerCitationSources(ledgerInput.facts));
-  const body = citations.text;
+  let body = citations.text;
 
   // ── The fact verifier, read-only (Arjun, D1 call shape 3) ─────────────────
   // An `unsupported` date or amount stated by value in a held own-words fact's
@@ -2954,8 +3156,67 @@ async function d1GenerateFromBrief(c: D1Context): Promise<BriefGenerateResult> {
     }).filter((v) => !statedByAdvocate(v)),
   );
 
-  // ── The body takes its place among the parts the system wrote ─────────────
+  // ── T-611: the delivery gate (Arjun's Phase 0 gate; Ajay P1 and P6) ───────
+  // D1 has no model repair pass (signed, T-373), so the gate here is the one
+  // deterministic fill from the ledger. A conflict, or a blank for a fact the
+  // ledger holds still there after the fill, withholds the draft: the advocate
+  // is asked and the thrown error makes the route return the hold.
   const renderedSections = c.renderedSections;
+  const gateInfo = c.callInfo();
+  const conflicts = factCheck.conflicts ?? [];
+  if (conflicts.length > 0) {
+    throw withholdDraft(
+      res,
+      input.runId,
+      pack.id,
+      { code: 'fact_conflict', conflict: conflicts[0] },
+      c.meter.totals(),
+      gateInfo.aiModel,
+      gateInfo.transport,
+    );
+  }
+  const filledLabels = new Set<string>();
+  const bodyFill = fillHeldBlanks(body, ledger.facts);
+  for (const b of bodyFill.filled) filledLabels.add(b.label);
+  body = bodyFill.text;
+  renderedSections.forEach((section, i) => {
+    if (i === c.bodyAt) return;
+    const filled = fillHeldBlanks(section.content, ledger.facts);
+    if (filled.filled.length === 0) return;
+    renderedSections[i] = { ...section, content: filled.text };
+    for (const b of filled.filled) filledLabels.add(b.label);
+  });
+  const stillHeld = [
+    body,
+    ...renderedSections.filter((_s, i) => i !== c.bodyAt).map((sec) => sec.content),
+  ].flatMap((t) => heldBlanksIn(t, ledger.facts));
+  if (stillHeld.length > 0) {
+    throw withholdDraft(
+      res,
+      input.runId,
+      pack.id,
+      { code: 'fact_needed', blank: stillHeld[0] },
+      c.meter.totals(),
+      gateInfo.aiModel,
+      gateInfo.transport,
+    );
+  }
+  // rendered[] (the checks panel, the label) names no blank the fill has filled.
+  const renderedClauses: RenderedClause[] =
+    filledLabels.size === 0
+      ? rendered.rendered
+      : rendered.rendered.map((r) => {
+          if (!r.missing || r.missing.length === 0) return r;
+          const left = r.missing.filter((l) => !filledLabels.has(l));
+          if (left.length === r.missing.length) return r;
+          return {
+            ...r,
+            missing: left,
+            ...(r.status === 'missing' && left.length === 0 ? { status: 'ok' as const } : {}),
+          };
+        });
+
+  // ── The body takes its place among the parts the system wrote ─────────────
   renderedSections[c.bodyAt] = { ...renderedSections[c.bodyAt], content: body };
   const { fullText, bodyParaCount } = assembleDocument(renderedSections);
   c.ctx.body_para_count = String(bodyParaCount);
@@ -2988,7 +3249,7 @@ async function d1GenerateFromBrief(c: D1Context): Promise<BriefGenerateResult> {
   }
 
   // ── The checks panel: from rendered[] (ADR-025 renderer rule 5) ───────────
-  const missing = d1MissingClauses(rendered.rendered);
+  const missing = d1MissingClauses(renderedClauses);
   const warnings = await d1Warnings(c, body, citations.removed, missing);
   if (warnings.length > 0) {
     res.write(`event: warning\ndata: ${JSON.stringify({ warnings })}\n\n`);
@@ -3009,11 +3270,11 @@ async function d1GenerateFromBrief(c: D1Context): Promise<BriefGenerateResult> {
     missingClauses: missing,
     repaired: false,
     // T-373: the label reads rendered[] (a clause printed with a blank labels the draft).
-    startingDraft: needsStartingDraftLabel(missing, warnings, rendered.rendered),
-    labelReason: labelReason(missing, warnings, rendered.rendered),
+    startingDraft: needsStartingDraftLabel(missing, warnings, renderedClauses),
+    labelReason: labelReason(missing, warnings, renderedClauses),
     // Arjun B: no factCheck on D1; the findings go to the fact-diff log tagged d1.
     factDiff: { outcome: factCheck, path: 'd1' },
-    rendered: rendered.rendered,
+    rendered: renderedClauses,
   };
 }
 
