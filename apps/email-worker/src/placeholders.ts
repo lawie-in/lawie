@@ -81,7 +81,9 @@ export function anyTemplateUnfilled(): boolean {
  * a worker without it still boots and sends every other email. Unset or blank → undefined;
  * whitespace runs are collapsed.
  *
- * This is a passwordReset-only guard, enforced in the worker before the mint. It is deliberately
+ * The same guard is used for auth.passwordReset, auth.signupAttempt (AJ-522-S9) and auth.welcome
+ * (AJ-587-M1), whose footer line 1 carries this address; the worker checks it before the reset
+ * mint or the auth prepare fetch, so a refused job never calls auth. It is deliberately
  * NOT part of TEMPLATE_FOOTERS / UNFILLED_PLACEHOLDERS: anyTemplateUnfilled() gates boot and
  * /health, and would hold the verify and invoice emails too.
  */

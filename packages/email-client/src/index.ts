@@ -184,8 +184,9 @@ export interface EnqueueSignupAttemptInput {
  * T-587 (Arjun, option A): the welcome email carries the userId only, like T-223. No address and
  * no name in Redis: the worker asks auth (/internal/welcome/prepare) for both at send time. The
  * jobId is fixed per user (`welcome-<userId>`; BullMQ refuses a custom id with one colon, so not
- * `welcome:<userId>`): a second enqueue while the job is kept (7 days completed, 30 days failed)
- * is dropped. Auth's welcomeQueuedAt claim is the real once-only guard; this is a second fence.
+ * `welcome:<userId>`): a second enqueue while the job is kept is dropped. A completed job is kept
+ * up to 7 days or the 1000 most recent completed jobs, whichever is fewer; a failed one 30 days.
+ * Auth's welcomeQueuedAt claim is the real once-only guard; this is only a second fence.
  */
 export interface EnqueueWelcomeEmailInput {
   template: 'auth.welcome';

@@ -12,6 +12,8 @@
  *    (built as passwordReset.tsx footer1() does, from its exported strings), footer2 the reset
  *    mail's, footer3 the T-559 line, footer4 the verify mail's.
  *
+ * Plain text: the same signed lines, with `{button}: {url}` in place of the button.
+ *
  * Data shape: the worker builds this from auth's /internal/welcome/prepare response. It is NEVER
  * taken from job data (the job carries the userId only, T-587 option A):
  *   {
@@ -68,10 +70,15 @@ const S = WELCOME_STRINGS;
 
 const DEFAULT_LOGIN_URL = 'https://lawie.in/login';
 
-/** The display name, trimmed; null when absent or blank (the no-name forms are used). */
+/**
+ * The display name, trimmed; null when absent or blank (the no-name forms are used). Runs of
+ * control characters (CR, LF, NUL, …) become one space before the trim, so a name can never
+ * carry a line break into the Subject header.
+ */
 function displayName(data: WelcomeData): string | null {
   if (typeof data.name !== 'string') return null;
-  const name = data.name.trim();
+  // eslint-disable-next-line no-control-regex
+  const name = data.name.replace(/[\u0000-\u001f\u007f]+/g, ' ').trim();
   return name.length > 0 ? name : null;
 }
 
@@ -98,6 +105,26 @@ export const authWelcomeTemplate: TemplateDef<WelcomeData> = {
   subject: (data) => {
     const name = displayName(data);
     return name === null ? S.subjectNoName : S.subject.replace('{name}', name);
+  },
+  text: (data) => {
+    const name = displayName(data);
+    const heading = name === null ? S.headingNoName : S.heading.replace('{name}', name);
+    return [
+      heading,
+      '',
+      S.body,
+      '',
+      `${S.button}: ${loginUrlOf(data)}`,
+      '',
+      S.disclaimer,
+      '',
+      '--',
+      footer1(data),
+      S.footer2,
+      S.footer3,
+      S.footer4,
+      '',
+    ].join('\n');
   },
   Body: (data) => {
     const name = displayName(data);
