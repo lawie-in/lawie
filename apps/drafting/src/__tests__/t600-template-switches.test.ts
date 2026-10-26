@@ -1,15 +1,25 @@
 /**
  * T-600 - template-switches (pure module extracted from feature-switches, T-375 unchanged).
  */
+import { AppSettingMissingError } from '../services/app-settings.service';
 import {
   CIVIL_PLAINT_CATEGORY,
   hiddenAtDefaults,
   LEGACY_PLAINT_DOC_TYPE,
   switchForTemplate,
   TEMPLATE_CIVIL_PLAINT_SETTING,
+  TEMPLATE_SWITCH_DEFAULTS,
 } from '../config/catalogue/template-switches';
 import { DOC_TYPE_ALIASES, TEMPLATE_CATALOGUE } from '../config/catalogue';
 import * as featureSwitches from '../services/feature-switches';
+
+jest.mock('../services/app-settings.service', () => {
+  const actual = jest.requireActual('../services/app-settings.service');
+  return {
+    ...actual,
+    getAppSetting: jest.fn((key: string) => Promise.reject(new actual.AppSettingMissingError(key))),
+  };
+});
 
 const plaintIds = Object.keys(TEMPLATE_CATALOGUE).filter(
   (id) => TEMPLATE_CATALOGUE[id].category === CIVIL_PLAINT_CATEGORY,
@@ -55,5 +65,33 @@ describe('T-600 feature-switches re-exports', () => {
     expect(featureSwitches.CIVIL_PLAINT_CATEGORY).toBe(CIVIL_PLAINT_CATEGORY);
     expect(featureSwitches.LEGACY_PLAINT_DOC_TYPE).toBe(LEGACY_PLAINT_DOC_TYPE);
     expect(featureSwitches.TEMPLATE_CIVIL_PLAINT_SETTING).toBe(TEMPLATE_CIVIL_PLAINT_SETTING);
+  });
+});
+
+describe('T-600 TEMPLATE_SWITCH_DEFAULTS stays in step with feature-switches', () => {
+  const keys = [
+    ...new Set(
+      Object.keys(TEMPLATE_CATALOGUE)
+        .map((id) => switchForTemplate(id))
+        .filter((k): k is string => k !== undefined),
+    ),
+  ];
+
+  it('every switch that covers a catalogue template has a default', () => {
+    expect(keys.length).toBeGreaterThan(0);
+    for (const k of keys) expect(Object.keys(TEMPLATE_SWITCH_DEFAULTS)).toContain(k);
+  });
+
+  it('with no AppSetting, the runtime value equals the code default', async () => {
+    expect(new AppSettingMissingError('x')).toBeInstanceOf(AppSettingMissingError);
+    for (const k of Object.keys(TEMPLATE_SWITCH_DEFAULTS)) {
+      expect(await featureSwitches.isFeatureOn(k)).toBe(TEMPLATE_SWITCH_DEFAULTS[k]);
+    }
+  });
+
+  it('hiddenTemplateIds() equals hiddenAtDefaults()', async () => {
+    expect([...(await featureSwitches.hiddenTemplateIds())].sort()).toEqual(
+      [...hiddenAtDefaults()].sort(),
+    );
   });
 });

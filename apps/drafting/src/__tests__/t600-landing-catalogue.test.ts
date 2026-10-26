@@ -157,8 +157,6 @@ describe('T-600 template names', () => {
   });
 
   it('a non-active override never hides a template from the catalogue', () => {
-    const id = Object.keys(buildLandingCatalogue().categories[0].templates)[0];
-    void id;
     const first = buildLandingCatalogue().categories[0].templates[0].id;
     put(overridesDir, first, { display_name: 'Draft', metadata: { status: 'archived' } });
     const built = buildLandingCatalogue({ overridesDir });
@@ -241,6 +239,13 @@ describe('T-600 serialiseLandingCatalogue', () => {
 
   it('round-trips the committed file byte for byte', () => {
     const text = readFileSync(OUTPUT_PATH, 'utf-8');
-    expect(serialiseLandingCatalogue(buildLandingCatalogue(), text, () => T2)).toBe(text);
+    const rebuilt = serialiseLandingCatalogue(buildLandingCatalogue(), text, () => T2);
+    if (rebuilt !== text) {
+      throw new Error(
+        'landing-catalogue.json is not byte-exact with the exporter output: run export:catalogue ' +
+          '(yarn workspace @lawie/drafting export:catalogue) and commit it.',
+      );
+    }
+    expect(rebuilt).toBe(text);
   });
 });
