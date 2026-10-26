@@ -19,3 +19,19 @@ A paid top-up or renewal emails the customer only through the tax-invoice mail. 
 
 ## Files
 apps/billing/src/services/subscription.service.ts (the two hooks), new `paymentReceipt` template in apps/email-worker and packages/email-client (names reserved), their tests. Lead confirms after Explore.
+
+## Vikram (26 Oct 2026): receipt rules
+
+**(1) Not a tax invoice. Confirmed.** The receipt:
+- is titled "Payment receipt";
+- carries no GSTIN, legal name or address, no SAC code, no CGST/SGST/IGST split, and no "tax" wording at all;
+- shows the trade name "Lawie", the item (plan or top-up name), amount paid in ₹, Ink credited, payment date, Razorpay order id and payment id, and the support email;
+- uses **no number from the invoice series**. Identify it by the order id only. The GST invoice series must have no gaps, so a receipt can never take a number from it.
+
+**(2) Never both. Arjun's default holds.** Send the receipt only when billing has decided no invoice will ever be issued for that payment. Today that is one case: payment before `GST_EFFECTIVE_FROM` (we registered 19 Jun 2026; the only such payment is the founder's own ₹199 test on 15 Jun). Do not send a receipt when:
+- **GST config is incomplete or invoice email is off.** `recordInvoiceForPayment` still records the row and the sweep issues it later, so a tax invoice is owed. A receipt there would be the "both" case.
+- **Input is bad** (no payment id, no positive amount). `null` there is an error, not "none due". It logs and sends nothing. Please return an explicit reason from `issueInvoice` (`before_gst_date` and so on) and send the receipt on that reason only.
+
+**Compliance guard (my addition):** a tax invoice for a service is due within 30 days of payment. An invoice row still `issuing`, or an invoice email still unsent, 24 h after capture goes to Sentry as one alert. That way "config incomplete" or "email off" on prod is found within a day, not at GST return time. T-403's launch check must include `INVOICE_EMAIL_ENABLED=true` and the GST env set.
+
+Vikram, CFO
