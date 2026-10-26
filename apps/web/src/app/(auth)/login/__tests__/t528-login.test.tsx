@@ -156,8 +156,12 @@ describe('T-528 non-primary hover: ghost and Google, no lift, no halo', () => {
   const gated = '[@media(hover:hover)_and_(pointer:fine)]';
 
   it('NL_GHOST_HOVER: border to Brass, ground to Brass Soft, gated, colour fade kept under reduced motion, no lift or halo', () => {
-    expect(NL_GHOST_HOVER).toContain(`${gated}:[&:not(:disabled)]:hover:border-nl-brass`);
-    expect(NL_GHOST_HOVER).toContain(`${gated}:[&:not(:disabled)]:hover:bg-nl-brass-light`);
+    expect(NL_GHOST_HOVER).toContain(
+      `${gated}:[&:not([aria-disabled=true])]:[&:not(:disabled)]:hover:border-nl-brass`,
+    );
+    expect(NL_GHOST_HOVER).toContain(
+      `${gated}:[&:not([aria-disabled=true])]:[&:not(:disabled)]:hover:bg-nl-brass-light`,
+    );
     expect(GHOST).not.toContain('motion-reduce:transition-none');
     expect(GHOST).toContain('duration-150');
     expect(GHOST).toContain('ease-[ease]');
@@ -193,7 +197,9 @@ describe('T-528 non-primary hover: ghost and Google, no lift, no halo', () => {
     expect(cls(apply)).toContain(CONTROL_LINE);
     expect(apply.className).not.toMatch(/translate|shadow-nl-halo/);
     // The hover is gated on :not(:disabled), and Apply is disabled with no code, so it cannot react.
-    expect(NL_GHOST_HOVER).toContain(`${gated}:[&:not(:disabled)]:hover:border-nl-brass`);
+    expect(NL_GHOST_HOVER).toContain(
+      `${gated}:[&:not([aria-disabled=true])]:[&:not(:disabled)]:hover:border-nl-brass`,
+    );
     expect(apply.disabled).toBe(true);
     const input = q<HTMLInputElement>('#referral-code')!;
     await act(async () => setInput(input, 'ABCD1234'));

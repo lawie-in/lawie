@@ -112,6 +112,7 @@ export interface BriefResponse {
   /** With `questions` for a document with no rule pack: the round to send back. */
   next_round?: number;
   choices?: Array<{ kind: string; name: string }>;
+  unranked?: boolean;
   needs_upgrade?: boolean;
   /** T-147b: sent only while the fact ledger is on for the user. Without it the brief shows as before. */
   ledger?: Ledger;
