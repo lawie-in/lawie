@@ -5,7 +5,7 @@
 | Phase  | 4 — Release (founder rule 26 Oct 2026: every customer event sends an email) |
 | Owner  | Arjun (raised), Tanvi (build) |
 | Mode   | Full chain (auth) |
-| Status | To do. Raised by Arjun, 26 Oct 2026. Priya |
+| Status | READY, not merged (stopped 26 Oct 05:21): branch fix/t-587-auth-welcome-email @ 531d8331, reviewer pass, branch CI 1028 green, Ajay byte check AJ-587-BC approved (handoff/legal/T-511-copy-rulings-ajay.md). Waits only for the merge slot in the next window. Prod email-worker needs GST_ADDRESS. Priya |
 | Source | handoff/ops/email-audit-2026-10-26.md (Arjun) |
 
 ## Problem
