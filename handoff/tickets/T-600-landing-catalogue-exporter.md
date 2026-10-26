@@ -5,7 +5,7 @@
 | Phase  | 5 — Growth (first build half of T-584; no copy needed, no UI) |
 | Owner  | Arjun (design, answered in the T-584 spec §11), Vishal (build) |
 | Mode   | Full chain (two services: drafting exporter + test, web data file). Fresh reviewer |
-| Status | To do. Raised 26 Oct 2026. Priya |
+| Status | Merged into develop_staging (cd66c174), 26 Oct 2026. CI: run 1042 on ec2a6ec9 (earlier runs cancelled by concurrency); the drafting drift test is the one to watch. Landing catalogue: 86 templates, 19 shelves, "80+". No deploy step of its own. Priya |
 | Source | handoff/design/T-584-landing-reading-desk-spec.md §11 (Arjun) |
 
 ## Problem

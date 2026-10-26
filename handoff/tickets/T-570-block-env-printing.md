@@ -5,7 +5,7 @@
 | Phase  | 4 — Release (security hygiene; before main) |
 | Owner  | Arjun (design), a lead (build; small fix, root config) |
 | Mode   | Small fix (hook script + tests + one CLAUDE.md line) |
-| Status | To do. Posted 22 Oct 2026 on Arjun's request after the env-dump incident. Priya |
+| Status | Merged into develop_staging (74021adc), 26 Oct 2026. Follow-ups: T-594 (HIGH jq comment bypass, next) and T-593. Priya |
 | Source | `handoff/ops/incident-2026-10-22-env-dump.md` (Arjun) |
 
 ## Problem

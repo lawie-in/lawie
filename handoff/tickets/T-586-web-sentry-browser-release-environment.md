@@ -5,7 +5,7 @@
 | Phase  | 4 — Release (from Arjun's Sentry audit, handoff/ops/go-live-2026-10-23.md) |
 | Owner  | Arjun (raised), Kunal (build) |
 | Mode   | Small fix (web only, no UI change) |
-| Status | Merged into develop_staging (1606252c, CI 1026 green), 26 Oct 2026. Redeploy web; set NEXT_PUBLIC_SENTRY_DSN and NEXT_PUBLIC_SENTRY_ENVIRONMENT BEFORE the web build. Priya |
+| Status | Merged into develop_staging (1606252c, CI 1026 green), 26 Oct 2026. Redeploy web; set NEXT_PUBLIC_SENTRY_DSN and NEXT_PUBLIC_SENTRY_ENVIRONMENT before the web build. Priya |
 | Source | Sentry audit: web has server and edge Sentry only; browser errors are lost |
 
 ## Acceptance criteria

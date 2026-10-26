@@ -5,7 +5,7 @@
 | Phase  | 5 — Growth (UI; Rajesh gate satisfied by his spec; web only) |
 | Owner  | Rajesh (spec), Madhuri (copy), Ajay (claims, signed), Arjun (constraints), Kunal (build) |
 | Mode   | Full chain (web). Fresh reviewer; Rajesh checks the 8 acceptance checks; Ajay checks sample PDFs before they are served |
-| Status | To do. Raised 26 Oct 2026. Founder chose B. Copy signed by Ajay. Build starts now; the coverage section needs T-600's data file (merge order below). Priya |
+| Status | Merged into develop_staging (ec2a6ec9), 26 Oct 2026. Web, gateway, auth, email-worker and billing jobs green on run 1042; drafting still running at 05:21. Ajay byte check PASS (3729378e); Rajesh acceptance PASS from code; Lighthouse and the browser checks are T-604. Samples (T-602) and video sections render nothing until their files exist. Redeploy web. Priya |
 | Source | handoff/design/T-584-landing-reading-desk-spec.md, handoff/copy/T-584-landing-copy-v1.md, handoff/legal/T-584-landing-copy-rulings-ajay.md |
 
 ## Acceptance criteria

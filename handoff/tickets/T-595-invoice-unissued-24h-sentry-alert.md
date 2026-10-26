@@ -5,7 +5,7 @@
 | Phase  | 4 — Release (compliance guard; split from T-588 by Arjun, 26 Oct 2026) |
 | Owner  | Vikram (rule), Arjun (design), Shashank (build) |
 | Mode   | Small fix (billing only) |
-| Status | To do. Raised 26 Oct 2026. Priya |
+| Status | Merged into develop_staging (509aae4e), 26 Oct 2026. CI over it: run 1042 on ec2a6ec9 (earlier runs cancelled by concurrency). Redeploy billing. Known limit: if 200+ invoices stay permanently stuck, a newly overdue one may not alert (T-597). Priya |
 | Source | Vikram's T-588 ruling (compliance guard): a tax invoice for a service is due within 30 days of payment. "Config incomplete" or "email off" on prod must be found within a day, not at GST return time |
 
 ## Acceptance criteria
