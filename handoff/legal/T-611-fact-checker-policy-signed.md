@@ -43,3 +43,15 @@ Also recorded: the T-488 correction in `go-live-ruling-23-oct.md` (it was never 
 | P-R6 | Scope confirmed with one change. An uncued amount, or a date that matches no ledger value, is model-introduced and stays a blank. **But** a non-held date or amount under a *held* label goes to repair, then ask (P1/P3), not a blank: the ledger holds the truth for that label, and a blank there is today's fault. The gate still never fills the verifier's blanks silently. |
 | P-R7 | The P-R2 question also covers dates, so no separate string. Bank role under P1: label A `bank or branch where the cheque was presented` (the signed ROLE_RULES wording) is **signed**, so the question reads `The draft gives <name> as the bank or branch where the cheque was presented, but your facts give it as the Drawee Branch. Which is right?` The withhold log line `[drafting] draft withheld (kind=<packId>, code=<code>, keys=<keys>)` carries no values and is OK. |
 | R2-F1 | R2 is met at intake: `main_suit_relief` (and T-613 `restraint_sought`) are required questions, and the brief cannot be confirmed until they are answered. P6 is unchanged (held facts only). If a draft still has a blank for either, it is a blocking gate finding, never filled by the model. |
+
+## T-611 final byte check (Ajay, 26 Oct 2026): fix/t-611-missing-facts-gate @ d1a318e9
+
+| item | result |
+| --- | --- |
+| Hashes (sha256, first 16, recomputed myself) | fact-verifier `69fc4333aedde27c`, ai.service `77281116f319daf5`, fact-ledger.service `9e81ab46d63a41a0`, intake-brief `22dbfdfaf2281fdc` and template-engine.service `fe84c199452079bf` (both unchanged since 31bd7994). All match Vishal's. |
+| User strings | Byte-identical to the signed text: P6 (ai.service:700), P1 (:705), P-R2/P-R7 (:713), P5 `Rupees … only` / ` and … Paise only` (fact-ledger:1119), P7 `[To be confirmed: …]`, the bank label, and the three repair lines. |
+| R2b hunk (ai.service ~2470–2493) | **Approved.** The deterministic fill stays under R2b.1. The held-blank model repair is re-recorded only inside the sentences of the blanks it was asked to fill (R2b.4), so a repair that weakens a mandatory clause stays visible to the missing-clause check. Text facts over 300 characters or with a line break go to the model repair, then the P6 question, not to the code fill. OK. |
+| Logs | New lines carry only pack id, runId, code, keys and the error name. No `<value>`, no draft text. |
+| P4-F1 | cheque_validity_date test at t611-verifier.test.ts:302; the cue words are unchanged. |
+
+**APPROVED at d1a318e9.** T-611, and with it T-488, counts as merged **only at the develop_staging SHA that contains d1a318e9**, which I record when it lands (go-live correction, 26 Oct). Open follow-up: the paise format in intake-text.ts (P-R3) has the right shape at :288, but its owner confirms it in the P-R3 ticket.
