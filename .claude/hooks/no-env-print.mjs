@@ -47,7 +47,10 @@
  * checked on its own).
  *
  * Accepted jq false positive: a bare `env` / `$ENV` token in the filter outside a string
- * literal blocks even when it is harmless (e.g. a jq function or variable named env).
+ * literal or `#` comment blocks even when it is harmless (e.g. a jq function or variable
+ * named env). The jq filter also fails closed on string interpolation (`"\(...)"`), an
+ * unterminated string, and a `#` comment that contains a carriage return or ends in a
+ * backslash, even when harmless.
  */
 import { readFileSync, realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -585,13 +588,49 @@ function analyzeWords(input, seg, prevSeg, depth) {
           break;
         }
       }
-      // A string literal with interpolation (`"\(env)"`) runs code inside the string: it
-      // cannot be blanked safely, so it fails closed.
-      for (const lit of (filter ?? '').match(/"(?:\\.|[^"\\])*"/g) ?? []) {
-        if (lit.includes('\\(')) throw new Blocked('jq-env');
+      // One left-to-right scan builds `code`: string literals are blanked to `""` (so
+      // `has("env")` is not a filter token) and `#` comments outside strings are dropped
+      // (so a `"` inside a comment cannot pair with a later quote and hide `env`).
+      // Fails closed on: string interpolation (`"\(env)"` runs code inside the string), an
+      // unterminated string, and a comment that contains a `\r` or ends in a backslash
+      // (jq 1.7 continues such a comment onto the next line, so its extent is ambiguous).
+      const src = filter ?? '';
+      let code = '';
+      for (let i = 0; i < src.length; ) {
+        const ch = src[i];
+        if (ch === '#') {
+          let j = i + 1;
+          // jq's lexer ends a comment at `\n` only. A `\r` in the comment, or a trailing
+          // backslash, makes its extent ambiguous across jq versions: fail closed.
+          while (j < src.length && src[j] !== '\n') j += 1;
+          const body = src.slice(i + 1, j);
+          if (body.includes('\r') || body.endsWith('\\')) throw new Blocked('jq-env');
+          i = j; // the newline itself is kept as ordinary whitespace
+          continue;
+        }
+        if (ch === '"') {
+          let j = i + 1;
+          let closed = false;
+          while (j < src.length) {
+            if (src[j] === '\\') {
+              if (src[j + 1] === '(') throw new Blocked('jq-env');
+              j += 2;
+              continue;
+            }
+            if (src[j] === '"') {
+              closed = true;
+              break;
+            }
+            j += 1;
+          }
+          if (!closed) throw new Blocked('jq-env');
+          code += '""';
+          i = j + 1;
+          continue;
+        }
+        code += ch;
+        i += 1;
       }
-      // String literals are blanked first, so `has("env")` or `"env"` is not a filter token.
-      const code = (filter ?? '').replace(/"(?:\\.|[^"\\])*"/g, '""');
       // Allowed: one named key only (env.HOME, env["HOME"], $ENV.HOME). `env[]`, `env[0]`,
       // `env[$k]`, `env | ...` and bare `env` / `$ENV` are the whole object.
       if (
