@@ -240,3 +240,9 @@ Adds `seed-setting`: parameters `key` (`^(ai|pricing|feature)\.[a-z0-9_.]{1,60}$
 
 ### SSM version 6 (26 Oct 2026, 17:31 UTC, Nikhil) — default
 Only change vs v5: `key` allowedPattern `^(ai|pricing|feature)\.[a-z0-9_.]{1,60}$` → `^(ai|pricing|feature|finance)\.[a-z0-9_.-]{1,60}$` (hyphen allowed, for `ai.rates.<model-id>`; `finance.` prefix, for `finance.usd_inr`), plus the description line. Everything else equal to v5 (verified by JSON comparison before `update-document`). Approved by Arjun 17:29 UTC. A hyphen is safe in the single-quoted `K='{{ key }}'`. Value values with commas need the JSON `--parameters '{"action":["seed-setting"],"key":[...],"value":[...]}'` form, since the shorthand splits on commas.
+
+### SSM version 7 (26 Oct 2026, 17:34 UTC, Nikhil) — default
+Approved by Arjun 17:31 UTC. Adds two read-only actions to v6; nothing else changes:
+- `nginx-access`, with param `path` (`^/[a-z0-9/_.-]{1,80}$`, default `/unset`, refused at default) and the existing `lines`. It runs `grep -F -- "$P" /var/log/nginx/access.log | tail -n "$N"` and awk prints only time, method, path with the query string stripped, and status. No IP, referrer or UA. Only the current `access.log` is read, not rotated files.
+- `env-has`, with param `name` (`^[A-Z][A-Z0-9_]{1,60}$`, default `UNSET`, refused at default). It derives the env path from `ecosystem.config.js` like deploy does and prints `NAME: set`, `NAME: set but empty` or `NAME: unset` using `grep -c`. It never prints the value. A line written `export NAME=` reads as unset.
+- `P='{{ path }}'; E='{{ name }}'` are appended single-quoted to the assignment line.
