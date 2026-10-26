@@ -8,6 +8,7 @@
  */
 import crypto from 'crypto';
 
+import { DOC_TYPE_ALIASES } from '../config/catalogue/aliases';
 import redis from '../config/redis';
 import { Event } from '../models/Event.model';
 import type { IFactLedger } from '../models/FactLedger.model';
@@ -64,6 +65,7 @@ import {
   wordedQuestions,
 } from './intake-brief';
 import { readIntakeCache, writeIntakeCache } from './intake-cache';
+import { matchKeywords, rankKeywordCandidates } from './intake-keyword-match';
 import {
   datesInText,
   digitsOnly,
@@ -144,6 +146,11 @@ export const INTAKE_LIMITS = {
   dailyFree: 40,
   dailyPaid: 150,
   matchMaxTokens: 300,
+  /**
+   * T-610 (Arjun, 26 Oct 2026): the one retry of the MATCH call, after a
+   * malformed, truncated or off-list answer, has a larger cap. The first call stays at 300.
+   */
+  matchRetryMaxTokens: 600,
   fillMaxTokens: 1500,
   /**
    * T-105: Reception reads up to 40 checklist lines and words up to 10 questions.
@@ -288,6 +295,13 @@ export interface MatchDecision {
   choices?: string[];
   /** Why no_match, for the demand signal: not legal drafting, or the model named an unknown id / was malformed. */
   noMatchReason?: 'not_legal_drafting' | 'unknown_template' | 'malformed';
+  /**
+   * T610-T5 (Ajay F2/F2a/F2b, 1bf3df1a, f0985461, edfe8645): the two bail cards shown
+   * after the model failed twice. Never cached. The bail guard still runs on them: it
+   * only reorders on the T-127 cues (arrested: bail_regular first; expects:
+   * bail_anticipatory first; both or none: the F2 order), never adds or removes one.
+   */
+  t5Fallback?: boolean;
   // T-115e (Ajay, 12 Oct 2026): the model's matter label is not kept. It can
   // carry party names, and a demand signal holds no personal data.
   category: string;
@@ -325,46 +339,202 @@ function cleanLabel(raw: unknown): string {
   return raw.replace(/[0-9]/g, '').replace(/\s+/g, ' ').trim().slice(0, 80);
 }
 
-export function decideMatch(
+// ── T-610: reading the MATCH answer, the threshold and the top-3 pick ───────
+
+/**
+ * T-610 (ADR-drafting-v3 3B): at or above this, the top candidate is matched.
+ * Below it the user picks from up to 3. Start value; tuned later on logged intakes.
+ */
+export const MATCH_PICK_THRESHOLD = 0.75;
+
+/**
+ * T-610: today's MATCH answer gives confidence as a word (the prompt is Ajay's
+ * and keeps that shape). Code maps it to a number for the threshold. The named
+ * alternatives never score above medium, so only the primary can be matched.
+ */
+export const LEGACY_MATCH_CONFIDENCE = { high: 0.9, medium: 0.6, low: 0.3 } as const;
+
+/** The most choices a needs_choice offers. */
+export const MAX_MATCH_CHOICES = 3;
+
+export interface MatchCandidate {
+  templateId: string;
+  confidence: number;
+}
+
+/**
+ * The MATCH answer, read. `problem` is set when the answer cannot be used as
+ * given (worth one retry): `malformed` (unparseable, truncated, or no valid
+ * confidence) or `off_list` (it names ids, and none is in the catalogue).
+ */
+export interface MatchAnswer {
+  problem?: 'malformed' | 'off_list';
+  isLegalDrafting: boolean;
+  /** Allowed ids only, after alias resolution, deduped, in the model's order. */
+  candidates: MatchCandidate[];
+  category: string;
+  isCourtDocument: boolean;
+}
+
+function idKey(raw: string): string {
+  return raw
+    .trim()
+    .replace(/^["'`]+|["'`]+$/g, '')
+    .toLowerCase()
+    .replace(/[\s-]+/g, '_');
+}
+
+/**
+ * T-610: an id the model named, as a catalogue id. Exact, then simple
+ * normalisation (case, spaces, hyphens, quotes), then DOC_TYPE_ALIASES
+ * (bail_application → bail_regular), then the display name. Null when none is allowed.
+ */
+export function resolveTemplateId(
+  raw: string,
+  allowed: ReadonlySet<string>,
+  displayNames?: ReadonlyMap<string, string>,
+): string | null {
+  if (allowed.has(raw)) return raw;
+  const key = idKey(raw);
+  if (allowed.has(key)) return key;
+  const alias = DOC_TYPE_ALIASES[key];
+  if (alias && allowed.has(alias)) return alias;
+  const byName = displayNames?.get(key);
+  if (byName && allowed.has(byName)) return byName;
+  return null;
+}
+
+/** Display name (as an id key) → template id, for resolveTemplateId. */
+export function displayNameIndex(catalogue: CatalogueEntry[]): Map<string, string> {
+  return new Map(catalogue.map((c) => [idKey(c.display_name), c.template_id]));
+}
+
+export function readMatchAnswer(
   parsed: Record<string, unknown> | null,
-  allowed: Set<string>,
-): MatchDecision {
+  allowed: ReadonlySet<string>,
+  displayNames?: ReadonlyMap<string, string>,
+): MatchAnswer {
   if (!parsed) {
     return {
-      kind: 'no_match',
-      noMatchReason: 'malformed',
+      problem: 'malformed',
+      isLegalDrafting: true,
+      candidates: [],
       category: '',
       isCourtDocument: false,
     };
   }
-  const category = demandCategory(parsed.category);
-  const isCourtDocument = parsed.is_court_document === true;
-  const base = { category, isCourtDocument };
+  const base = {
+    isLegalDrafting: parsed.is_legal_drafting !== false,
+    category: demandCategory(parsed.category),
+    isCourtDocument: parsed.is_court_document === true,
+  };
+  if (!base.isLegalDrafting) return { ...base, candidates: [] };
 
-  if (parsed.is_legal_drafting === false) {
-    return { kind: 'no_match', noMatchReason: 'not_legal_drafting', ...base };
-  }
-  const confidence = parsed.confidence;
-  if (confidence !== 'high' && confidence !== 'medium' && confidence !== 'low') {
-    return { kind: 'no_match', noMatchReason: 'malformed', ...base };
+  const word = parsed.confidence;
+  if (word !== 'high' && word !== 'medium' && word !== 'low') {
+    return { ...base, problem: 'malformed', candidates: [] };
   }
   const primary = typeof parsed.template_id === 'string' ? parsed.template_id : null;
   const alternatives = Array.isArray(parsed.alternatives)
     ? parsed.alternatives.filter((a): a is string => typeof a === 'string')
     : [];
+  const top = LEGACY_MATCH_CONFIDENCE[word];
+  const rest = Math.min(top, LEGACY_MATCH_CONFIDENCE.medium);
+  const named: Array<[string, number]> = [
+    ...(primary ? [[primary, top] as [string, number]] : []),
+    ...alternatives.map((a) => [a, rest] as [string, number]),
+  ];
 
-  if (confidence === 'low' || (primary === null && alternatives.length === 0)) {
-    return { kind: 'guided', ...base };
+  const candidates: MatchCandidate[] = [];
+  for (const [raw, confidence] of named) {
+    const id = resolveTemplateId(raw, allowed, displayNames);
+    if (id && !candidates.some((c) => c.templateId === id)) {
+      candidates.push({ templateId: id, confidence });
+    }
   }
-  if (confidence === 'high') {
-    if (primary && allowed.has(primary)) return { kind: 'matched', templateId: primary, ...base };
-    return { kind: 'no_match', noMatchReason: 'unknown_template', ...base };
+  // Ids named and none in the catalogue. "low" means no template fits, so it is not a bad answer.
+  const offList = named.length > 0 && candidates.length === 0 && word !== 'low';
+  return { ...base, candidates, ...(offList ? { problem: 'off_list' as const } : {}) };
+}
+
+/**
+ * T-610: the decision from a read answer and the keyword ranking (allowed ids, best first).
+ *
+ * - Not legal drafting: the T5 pair (T610-E1), else the keyword candidates as a pick,
+ *   or no_match when there are none.
+ * - A problem answer (after the caller's one retry): the keyword candidates
+ *   as a pick, or no_match when there are none.
+ * - Top candidate at or above MATCH_PICK_THRESHOLD: matched.
+ * - Otherwise up to 3 choices: model confidence, then keyword rank, then the
+ *   model's order; keyword-only ids after. None at all: guided.
+ *
+ * Keywords never give 'matched' on their own.
+ */
+export function decideFromAnswer(
+  answer: MatchAnswer,
+  keywordIds: readonly string[] = [],
+  t5Pair: readonly string[] | null = null,
+): MatchDecision {
+  const base = { category: answer.category, isCourtDocument: answer.isCourtDocument };
+  const keywords = [...new Set(keywordIds)];
+  if (!answer.isLegalDrafting) {
+    // T610-E1 (Ajay, ca507e9b): both bail phrase sets matched, so it is legal drafting
+    // whatever the model said: the F2 fallback (exactly the two cards, unranked; the
+    // bail guard orders them as F2b), not no_match. Not cached; nothing drafted or charged.
+    if (t5Pair && t5Pair.length === 2) {
+      return { kind: 'needs_choice', choices: [...t5Pair], t5Fallback: true, ...base };
+    }
+    // A description with catalogue keywords is never "not found" (ADR-drafting-v3 3B); gibberish has none.
+    if (keywords.length > 0) {
+      return { kind: 'needs_choice', choices: keywords.slice(0, MAX_MATCH_CHOICES), ...base };
+    }
+    return { kind: 'no_match', noMatchReason: 'not_legal_drafting', ...base };
   }
-  // medium: always ask, never pick (§4.2.2)
-  const named = [primary, ...alternatives].filter((x): x is string => !!x);
-  const choices = [...new Set(named.filter((id) => allowed.has(id)))].slice(0, 3);
-  if (choices.length === 0) return { kind: 'no_match', noMatchReason: 'unknown_template', ...base };
+  if (answer.problem) {
+    // T610-T5 (Ajay F2/F2a/F2b, 1bf3df1a, f0985461, edfe8645): anticipatory and regular phrases both
+    // found and the model failed twice: exactly these two cards, bail_regular then
+    // bail_anticipatory, never no_match. Nothing is drafted or charged until the user picks.
+    if (t5Pair && t5Pair.length === 2) {
+      return { kind: 'needs_choice', choices: [...t5Pair], t5Fallback: true, ...base };
+    }
+    if (keywords.length > 0) {
+      return { kind: 'needs_choice', choices: keywords.slice(0, MAX_MATCH_CHOICES), ...base };
+    }
+    return {
+      kind: 'no_match',
+      noMatchReason: answer.problem === 'off_list' ? 'unknown_template' : 'malformed',
+      ...base,
+    };
+  }
+  const rank = (id: string) => {
+    const i = keywords.indexOf(id);
+    return i < 0 ? Number.MAX_SAFE_INTEGER : i;
+  };
+  const ordered = answer.candidates
+    .map((c, i) => ({ ...c, i }))
+    .sort(
+      (a, b) => b.confidence - a.confidence || rank(a.templateId) - rank(b.templateId) || a.i - b.i,
+    );
+  const top = ordered[0];
+  if (top && top.confidence >= MATCH_PICK_THRESHOLD) {
+    return { kind: 'matched', templateId: top.templateId, ...base };
+  }
+  const choices = [...new Set([...ordered.map((c) => c.templateId), ...keywords])].slice(
+    0,
+    MAX_MATCH_CHOICES,
+  );
+  if (choices.length === 0) return { kind: 'guided', ...base };
   return { kind: 'needs_choice', choices, ...base };
+}
+
+/** The MATCH answer as one decision, with no retry. `keywordIds` are allowed ids, best first. */
+export function decideMatch(
+  parsed: Record<string, unknown> | null,
+  allowed: Set<string>,
+  keywordIds: readonly string[] = [],
+  displayNames?: ReadonlyMap<string, string>,
+): MatchDecision {
+  return decideFromAnswer(readMatchAnswer(parsed, allowed, displayNames), keywordIds);
 }
 
 // ── Fill result ─────────────────────────────────────────────────────────────
@@ -1032,7 +1202,14 @@ export async function runIntake(req: IntakeRequest): Promise<IntakeResponse> {
   );
   if (text === null) return { intake_id: intakeId, outcome: 'unavailable' };
 
-  const matched = decideMatch(parseModelJson(text), allowed);
+  // T-610: alias resolution, the threshold and the keyword ranking apply here too (no retry on this older path).
+  const keywordIds = rankKeywordCandidates(req.description, allowed).map((c) => c.templateId);
+  const matched = decideMatch(
+    parseModelJson(text),
+    allowed,
+    keywordIds,
+    displayNameIndex(catalogue),
+  );
   // T-122: the bail guard. It can turn a single match into a choice, or reorder
   // a choice. It never picks a document. The log line carries no description text.
   const guard = applyBailGuard(matched, req.description, allowed);
@@ -1120,6 +1297,12 @@ export interface BriefIntakeResponse {
   /** With `questions` for a document with no rule pack: the round to send back with the answers. */
   next_round?: number;
   choices?: Array<{ kind: string; name: string }>;
+  /**
+   * T-610 / T-622: only on the T610-T5 two-card fallback (Ajay F2/F2a/F2b,
+   * 1bf3df1a, f0985461, edfe8645): the choices are not ranked, so the web pre-selects none. Absent on
+   * every other needs_choice.
+   */
+  unranked?: true;
   needs_upgrade?: boolean;
   /** T-147b, only while `feature.fact_ledger` is on for the user: the ledger written for this brief. */
   ledger?: LedgerView;
@@ -1137,10 +1320,23 @@ interface BriefContext {
   ledger: { enabled: boolean; earlier: IFactLedger | null };
 }
 
+function intakeCacheParts(
+  ctx: BriefContext,
+  purpose: LlmAuxPurpose,
+  system: string,
+  user: string,
+): string[] {
+  return [ctx.userId, purpose, ctx.model, system, user];
+}
+
 /**
  * A model call that is answered from the cache when this exact request was
  * made in the last 30 minutes. A cached answer costs nothing, so it is not
  * counted against the limits and no usage row is written for it.
+ *
+ * T-610: an answer that cannot be parsed is never cached. `write: false`
+ * leaves the write to the caller (the MATCH call caches only a final match);
+ * `fresh: true` skips the cache read (the one MATCH retry).
  */
 async function cachedModelCall(
   ctx: BriefContext,
@@ -1148,14 +1344,19 @@ async function cachedModelCall(
   system: string,
   user: string,
   maxTokens: number,
-): Promise<string | null> {
-  const cacheParts = [ctx.userId, purpose, ctx.model, system, user];
-  const cached = await readIntakeCache(cacheParts);
-  if (cached !== null) return cached;
+  opts: { write?: boolean; fresh?: boolean } = {},
+): Promise<{ text: string | null; fromCache: boolean }> {
+  const cacheParts = intakeCacheParts(ctx, purpose, system, user);
+  if (!opts.fresh) {
+    const cached = await readIntakeCache(cacheParts);
+    if (cached !== null) return { text: cached, fromCache: true };
+  }
   await ctx.spend();
   const text = await modelCall(ctx, purpose, system, user, maxTokens);
-  if (text !== null) await writeIntakeCache(cacheParts, text);
-  return text;
+  if (text !== null && opts.write !== false && parseModelJson(text) !== null) {
+    await writeIntakeCache(cacheParts, text);
+  }
+  return { text, fromCache: false };
 }
 
 /**
@@ -1334,7 +1535,7 @@ async function briefWithPack(
   const checklist = checklistFor(pack);
   // T-453 follow-up: the cap is config (ai.cap.intake_reception). Never throws.
   const maxTokens = await getIntakeReceptionCap();
-  const text = await cachedModelCall(
+  const { text } = await cachedModelCall(
     ctx,
     'intake_reception',
     RECEPTION_PACK_SYSTEM_PROMPT,
@@ -1452,7 +1653,7 @@ async function briefWithNoPack(
   // Light mode is not used yet (T-127, section 3.1). Strict is always the safe mode.
   // T-453 follow-up: the cap is config (ai.cap.intake_reception). Never throws.
   const maxTokens = await getIntakeReceptionCap();
-  const text = await cachedModelCall(
+  const { text } = await cachedModelCall(
     ctx,
     'intake_reception',
     RECEPTION_GUIDED_SYSTEM_PROMPT,
@@ -1597,16 +1798,50 @@ export async function runBriefIntake(req: BriefIntakeRequest): Promise<BriefInta
       return await briefWithPack(ctx, pack, req);
     }
 
-    const text = await cachedModelCall(
+    // T-610: the keyword pass (Ajay's table), allowed ids only. It ranks; it never matches alone.
+    const keywords = matchKeywords(req.description, allowed);
+    const keywordIds = keywords.candidates.map((c) => c.templateId);
+    const displayNames = displayNameIndex(catalogue);
+    const matchUser = buildMatchUserPrompt(req.description, catalogue);
+    const first = await cachedModelCall(
       ctx,
       'intake_match',
       MATCH_SYSTEM_PROMPT,
-      buildMatchUserPrompt(req.description, catalogue),
+      matchUser,
       INTAKE_LIMITS.matchMaxTokens,
+      { write: false },
     );
-    if (text === null) return { intake_id: intakeId, outcome: 'unavailable' };
+    if (first.text === null) return { intake_id: intakeId, outcome: 'unavailable' };
 
-    const matched = decideMatch(parseModelJson(text), allowed);
+    let answerText = first.text;
+    let answer = readMatchAnswer(parseModelJson(answerText), allowed, displayNames);
+    const firstProblem = answer.problem;
+    // T-610: a malformed, truncated or off-list answer gets one fresh retry, with
+    // the larger cap. A failed retry keeps the first answer (then the keyword pick).
+    if (firstProblem) {
+      const retry = await cachedModelCall(
+        ctx,
+        'intake_match',
+        MATCH_SYSTEM_PROMPT,
+        matchUser,
+        INTAKE_LIMITS.matchRetryMaxTokens,
+        { write: false, fresh: true },
+      );
+      if (retry.text !== null) {
+        const again = readMatchAnswer(parseModelJson(retry.text), allowed, displayNames);
+        if (!again.problem || answer.problem === 'malformed') {
+          answer = again;
+          answerText = retry.text;
+        }
+      }
+    }
+
+    // T610-T5 (Ajay F2/F2a/F2b, 1bf3df1a, f0985461, edfe8645): the pair is used only when the answer is
+    // still a problem after the retry, or (T610-E1, Ajay, ca507e9b) says not legal drafting;
+    // a good answer leaves T5 to the model.
+    const matched = decideFromAnswer(answer, keywordIds, keywords.t5Pair);
+    // F2b: the guard runs on the T5 pair too (it reorders the two, never adds or drops one);
+    // the spread below keeps t5Fallback, so the response stays unranked.
     const guard = applyBailGuard(matched, req.description, allowed);
     const decision: MatchDecision = guard.changed
       ? { ...matched, kind: 'needs_choice', templateId: undefined, choices: guard.choices }
@@ -1616,7 +1851,19 @@ export async function runBriefIntake(req: BriefIntakeRequest): Promise<BriefInta
         `[intake] bail guard changed the match (intakeId=${intakeId}, from=${matched.kind}, cue=${guard.cue})`,
       );
     }
-    console.info(`[intake] match decided (intakeId=${intakeId}, outcome=${decision.kind})`);
+    // Ids, counts and reasons only: never description text.
+    console.info(
+      `[intake] match decided (intakeId=${intakeId}, outcome=${decision.kind}, noMatchReason=${decision.noMatchReason ?? 'none'}, answer=${firstProblem ?? 'ok'}, retried=${firstProblem !== undefined}, retryAnswer=${firstProblem ? (answer.problem ?? 'ok') : 'none'}, keywordCandidates=${keywordIds.length}, t5Fallback=${decision.t5Fallback === true}, top=${decision.templateId ?? decision.choices?.[0] ?? 'none'})`,
+    );
+    // T-610 (Arjun, 26 Oct 2026): only a deliberate model answer is cached: matched or guided.
+    // Never a malformed, truncated or off-list answer, a no_match, or a keyword (fallback) pick.
+    const deliberate = decision.kind === 'matched' || decision.kind === 'guided';
+    if (deliberate && !(first.fromCache && answerText === first.text)) {
+      await writeIntakeCache(
+        intakeCacheParts(ctx, 'intake_match', MATCH_SYSTEM_PROMPT, matchUser),
+        answerText,
+      );
+    }
 
     switch (decision.kind) {
       case 'matched': {
@@ -1630,6 +1877,7 @@ export async function runBriefIntake(req: BriefIntakeRequest): Promise<BriefInta
           intake_id: intakeId,
           outcome: 'needs_choice',
           choices: (decision.choices ?? []).map((id) => ({ kind: id, name: byId.get(id) ?? id })),
+          ...(decision.t5Fallback ? { unranked: true as const } : {}),
         };
       }
       case 'guided': {
