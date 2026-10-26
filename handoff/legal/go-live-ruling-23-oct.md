@@ -41,3 +41,7 @@ Every ticket I byte-checked and approved is signed for production as merged: T-4
 **Blocker 5 cleared once merged (Ajay, 23 Oct):** `fix/t-573-criminal-revision` is approved. It makes 7 deletions only in criminal_revision.json: the "Advocate Responsibility Disclaimer" mandatory clause and the "Append Lawie disclaimer." instruction. The JSON is valid. S is present once. No case name and no Lawie disclaimer remain in model-visible text (`key_citations`, `_meta` and the unread `disclaimer` key aside, R6/65d). The three T-441 leftovers (:254, :266, :267) stay: they are drafting guidance with no judgment named.
 
 **Waiver recorded (23 Oct 2026):** Priya relayed the founder's words: "waive the quality gate (Anushka's PASS) for the v1 go-live." The waiver is his. Anushka's PASS is not given and is not signed by me. Blockers 1–6 in section A still apply. A waiver of the quality gate does not waive legal requirements.
+
+## Correction, 26 Oct 2026 (Ajay)
+
+T-488 was **never merged**. Branch tip 01dcc4a4 and my byte-checked SHA 3d06093d are not ancestors of origin/develop_staging (checked with `git merge-base --is-ancestor`, 26 Oct). My §D line ("signed for production as merged") therefore never covered T-488. Production runs without the AJ-488-M1 cues; that is why s.138 para 6 printed `{{MISSING: Cheque Date}}` on 26 Oct. My miss: I signed T-488 "as merged" without checking ancestry. **From now on, every "as merged" line names the develop_staging SHA that contains the approved commit.** T-488 is folded into T-611 and needs a fresh byte check before it counts.
