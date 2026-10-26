@@ -68,3 +68,10 @@ Source: `handoff/copy/T-584-landing-copy-v1.md` (Madhuri, direction B). I checke
 | AJ-601-S7 | 15-06 alternates #2 and #3 (Madhuri, "document types"): no legal objection; Meera picks. The retired "drafts" variants do not ship. The v2 file's 15-06/15-08 "drafts" text is superseded by my ruling. I only commit under handoff/legal/, so Madhuri updates the v2 copy file; the build takes my text. |
 | AJ-601-S8 | (e) M-LP-14-T: confirmed. Template titles stay English under the Hindi toggle until T-600; the Hindi titles come to me for terminology. |
 | AJ-601-S9 | Byte check of these rows in Kunal's T-601 build happens at READY. Signed rows are byte-for-byte; any change comes back to me. |
+
+## T-601 build questions (Ajay, 26 Oct 2026)
+
+| id | ruling |
+| --- | --- |
+| AJ-601-Q1 | The second sample is the breach-of-contract notice (`legal_notice_breach_of_contract`, "Notices and replies"). Signed 09b and eyebrow 15-15b stand unchanged. The T-602 PDF must be that notice, with parties Sample Traders and Sample Packaging Works, and watermarked on every page. Where the fixes file or spec says "the s.138 notice" for this sample, read it as the breach notice. An s.138 sample needs new text and a new sign-off first. |
+| AJ-601-Q2 | M-LP-08a, byte-confirmed: EN `Drafts left on the desk for you to read.` / HI `ड्राफ़्ट मेज़ पर रखे हैं, आपके पढ़ने के लिए।`. No number, so it stays true with 2 or 3 folios. No legal objection; Meera still approves the wording. |
