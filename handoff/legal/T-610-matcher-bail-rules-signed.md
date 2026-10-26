@@ -45,3 +45,5 @@ Tie rules (code, in this order):
 Verify (not in the signed text): the BNSS sub-section for cancellation by the Court of Session / High Court (old s.439(2) CrPC). Only the CrPC form is listed until I confirm it.
 
 | T610-F1 | (B) may be prettier-wrapped. The byte check compares parsed JSON (same keys, strings and order; whitespace ignored), with a canonical diff at READY. (A) stays byte for byte. |
+| T610-F2 | T5 fallback: if anticipatory and regular phrases both match and the model fails twice, show bail_regular and bail_anticipatory as two unranked cards (fixed order, neither marked as suggested), with "None of these". Nothing is drafted or charged until the user picks. Fits T5. |
+| T610-F3 | Rule 3: prefix matching stays. `bailable`, `non-bailable`, `जमानती` and `गैर-जमानती` count as the bail word: they are bail matters, and keywords only rank. |
