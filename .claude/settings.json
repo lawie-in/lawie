@@ -17,6 +17,17 @@
       "Bash(sed *)",
       "Bash(cat *)",
       "Bash(ls *)",
+      "Bash(aws ssm send-command --instance-ids i-0e11d3dd5716776ff --document-name lawie-prod-ops *)",
+      "Bash(aws ssm send-command --instance-ids i-07925b68d6dd907c4 --document-name lawie-prod-ops *)",
+      "Bash(aws ssm send-command --profile dev --instance-ids i-07925b68d6dd907c4 --document-name AWS-RunShellScript *)",
+      "Bash(aws ssm get-command-invocation --profile dev *)",
+      "Bash(aws sts get-caller-identity --profile dev *)",
+      "Bash(aws ssm get-command-invocation *)",
+      "Bash(aws ec2 start-instances --instance-ids i-07925b68d6dd907c4 *)",
+      "Bash(aws ec2 stop-instances --instance-ids i-07925b68d6dd907c4 *)",
+      "Bash(aws ec2 wait *)",
+      "Bash(aws ec2 describe-instances *)",
+      "Bash(curl -s -H \"Authorization: Bearer $CLOUDFLARE_API_TOKEN\" https://api.cloudflare.com/client/v4/*)",
       "ArtifactData",
       "ArtifactComments"
     ]
