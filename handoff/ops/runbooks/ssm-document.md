@@ -21,5 +21,5 @@ Systems Manager → Documents → **Owned by me** → `lawie-prod-ops` → **Act
 Versions tab → select the previous version → **Set default version**.
 
 ## Never
-- Never run `action=deploy` without `branch=` (v1's deploy calls the in-git laptop `deploy.sh`: scp of the env file to a stale IP).
+- Never run `action=deploy` without `branch=` (v1's deploy called the retired laptop script: scp of the env file to a stale IP). From v8, deploy runs the box's `scripts/deploy-local.sh <branch>`.
 - Never hold write rights on the document in an AI session.

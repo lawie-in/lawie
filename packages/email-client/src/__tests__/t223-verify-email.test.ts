@@ -88,7 +88,7 @@ describe('T-223 AC1 enqueue shape for auth.verifyEmail', () => {
       // @ts-expect-error auth.verifyEmail needs a userId
       void enqueueEmail({ template: 'auth.verifyEmail' });
       // @ts-expect-error other templates keep `to` required
-      void enqueueEmail({ template: 'auth.welcome', data: {} });
+      void enqueueEmail({ template: 'billing.subscriptionConfirmed', data: {} });
       // @ts-expect-error other templates do not take a userId in place of `to`
       void enqueueEmail({ template: 'billing.paymentFailed', userId: USER_ID, data: {} });
     };
@@ -96,7 +96,11 @@ describe('T-223 AC1 enqueue shape for auth.verifyEmail', () => {
   });
 
   it('other templates are unchanged: still addressed, still carry data', async () => {
-    await enqueueEmail({ template: 'auth.welcome', to: 'a@example.com', data: { name: 'A' } });
+    await enqueueEmail({
+      template: 'billing.subscriptionConfirmed',
+      to: 'a@example.com',
+      data: { name: 'A' },
+    });
     expect(calls[0].data).toMatchObject({ to: ['a@example.com'], data: { name: 'A' } });
   });
 });
