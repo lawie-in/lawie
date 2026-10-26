@@ -18,3 +18,6 @@
 
 ## Files
 apps/web/src/components/dashboard/DashboardCommandBar.tsx and its tests; the New document page limit constant only if shared. Claimed by Priya when a lead takes it.
+
+## Added by the 26 Oct prod check (Anushka, item 6)
+The box holds all 657 characters but only 499 reach the New document page, with no warning; the sole-earner, chargesheet, sureties and magistrate's-refusal facts were dropped. The box also suggested 'Bail application' but opened the general page. Text typed right after the New document page loads sometimes did not appear (unconfirmed: the browser may not have had focus).
