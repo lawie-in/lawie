@@ -19,6 +19,9 @@ The founder is not happy with the landing page content. The "what we can draft t
 5. Demo video (founder, 26 Oct 2026): a short product demo on the landing page, shown from the real product with fictional, redacted parties (no real client data), with captions and a poster image. Meera/Madhuri write the script, Rajesh sets where it sits on the page, Ajay signs every on-screen claim and the voiceover (BCI rules, "sample" watermark on any draft shown). Served as a static file or from a CDN, lazy-loaded, no autoplay with sound, reduced-motion respected, within the mobile budget in ui-quality.md. No live Anthropic call from the page. Who records and produces it is decided with the founder (screen capture of develop or prod with a test account; Arjun confirms no secrets or PII are visible in frame).
 6. Build: one lead, full chain, web only, after 1 to 4 are signed.
 
+## Related (26 Oct 2026)
+T-599: the remaining marketing pages (privacy, free tools, about, faq, terms, refunds, contact) are still in the old style, and the Lawie logo animation was dropped from the landing page in T-517. Rajesh specs both together with this epic.
+
 ## Sequence
 Rajesh and Madhuri first, then one lead for the build. Not before the ai.* settings and T-583 are done on prod.
 
