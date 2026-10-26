@@ -88,3 +88,13 @@ Expected `health` output after v2: `4000 200` … `9100 200`, then `3000 / 200`.
 Apply (founder): Systems Manager → Documents → `lawie-prod-ops` → Actions → Create new version → paste the edited JSON → **Set as default version**. Then Nikhil runs `action=health` on both boxes and logs it. Rollback: set the previous version as default.
 
 Session note: the CLI in the cloud session ignores `AWS_REGION`; calls need `--region ap-south-1` after the allow-listed prefix.
+
+## Arjun (26 Oct 2026, 12:40 UTC) — develop box: full shell for Nikhil, prod stays narrow
+
+Founder decision: the founder does not want to be the hands for develop-box changes. Ruling: **two keys, two blast radii.**
+
+- **Prod** (`i-0e11d3dd5716776ff`): unchanged — `lawie-arjun-ops` (to be renamed `lawie-nikhil-ops`) may only run the allow-listed `lawie-prod-ops` document. File edits, certbot and env changes on prod remain founder steps over Session Manager until a reviewed document action exists for each (v2 adds `nginx-reload` and `cert-renew`; never a free-form shell).
+- **Develop** (`i-07925b68d6dd907c4`): a second IAM user `lawie-dev-shell` with `ssm:SendCommand` on that one instance and the built-in `AWS-RunShellScript` document only, plus result reads. This gives Nikhil any command on the develop box. It cannot reach prod: IAM evaluates every resource ARN in a SendCommand, and that user's policy names no prod ARN. A separate user is required because a single user holding (prod instance, prod doc, dev instance, dev doc) could pair the dev doc with the prod instance.
+- Keys: `AWS_DEV_ACCESS_KEY_ID` / `AWS_DEV_SECRET_ACCESS_KEY` in Nikhil's environment; his session writes them into a `dev` CLI profile at start (never echoed) and uses `--profile dev`. The default profile stays the prod-narrow key.
+- Guard rails that stay: every develop-box command is one SSM invocation (recorded in SSM command history for 30 days) and one ops-log row; secret VALUES are never passed as command text (SSM logs parameters) — the founder still types them, or Nikhil edits an env line only when the value is non-secret; never `env`/`printenv`; deploy only from `develop`.
+- Allow rule: `Bash(aws ssm send-command --profile dev --instance-ids i-07925b68d6dd907c4 --document-name AWS-RunShellScript *)`.
