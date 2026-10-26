@@ -51,9 +51,9 @@ afterAll(async () => {
 });
 
 describe('enqueueEmail', () => {
-  it('routes auth.welcome to the low-tier queue', async () => {
+  it('routes billing.lowCreditWarning (addressed, low tier) to the low-tier queue', async () => {
     const r = await enqueueEmail({
-      template: 'auth.welcome',
+      template: 'billing.lowCreditWarning',
       to: 'advocate@example.com',
       data: { name: 'Test' },
     });
@@ -88,7 +88,7 @@ describe('enqueueEmail', () => {
 
   it('honours an explicit priority override', async () => {
     const r = await enqueueEmail({
-      template: 'auth.welcome',
+      template: 'billing.lowCreditWarning',
       to: 'advocate@example.com',
       data: {},
       priority: 'high',
@@ -98,17 +98,17 @@ describe('enqueueEmail', () => {
 
   it('forwards the idempotencyKey as the BullMQ jobId', async () => {
     await enqueueEmail({
-      template: 'auth.welcome',
+      template: 'billing.lowCreditWarning',
       to: 'advocate@example.com',
       data: {},
-      idempotencyKey: 'welcome-abc-123',
+      idempotencyKey: 'low-credit-abc-123',
     });
-    expect(calls[0].opts.jobId).toBe('welcome-abc-123');
+    expect(calls[0].opts.jobId).toBe('low-credit-abc-123');
   });
 
   it('wraps a single string recipient into an array', async () => {
     await enqueueEmail({
-      template: 'auth.welcome',
+      template: 'billing.lowCreditWarning',
       to: 'a@x.com',
       data: {},
     });
@@ -139,7 +139,7 @@ describe('enqueueEmail', () => {
     });
     expect(calls[0].opts.attempts).toBe(5);
     await enqueueEmail({
-      template: 'auth.welcome',
+      template: 'billing.lowCreditWarning',
       to: 't@e.com',
       data: {},
     });

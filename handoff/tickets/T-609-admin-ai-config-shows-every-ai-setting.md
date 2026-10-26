@@ -16,3 +16,6 @@
 
 ## Files
 Lead lists after Explore: the admin page under apps/web, the drafting admin settings route (apps/drafting/src/routes/app-settings.routes.ts, admin-overview.routes.ts) and tests. Claimed by Priya.
+
+## Added (Arjun, 26 Oct 2026)
+5. The page also lists `ai.rates.*` and `pricing.*` settings (model price table, paragraph bands, finance.usd_inr), each with a "missing on this environment" badge, so seeding gaps are seen before they reach prod. Missing rates show "rate missing", never INR 0 (Vikram, T-617).
