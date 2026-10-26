@@ -229,3 +229,8 @@ The founder chose convenience over the console click: `lawie-arjun-ops` also get
 
 ### v3 applied as SSM version 2 (26 Oct 2026, 14:58 UTC, Nikhil)
 Created by Nikhil with `ssm:UpdateDocument` (founder's option A, granted 14:51 UTC). Content = the JSON above, verified byte-equal via `get-document --document-version 2`. Default version change pending.
+
+### SSM versions 3 and 4 (26 Oct 2026, Nikhil)
+- **v3 (SSM version 3):** adds `git checkout -q -- apps/web/next-env.d.ts` before the dirty-tree check (Next.js regenerates it every build; it blocked the first v3 run with exit 4).
+- **v4 (SSM version 4):** replaces `set -a; . "$ENVF"; set +a` with a `node --env-file="$ENVF"` loader that emits single-quoted `export` lines into `eval` (dotenv semantics like pm2; values with spaces/quotes/`$` are safe; exit 3 if the file can't be parsed). Reason: an unquoted value with a space in the prod env file broke bash `source` (exit 127). Boxes run node v20.20.2 (`--env-file` needs ≥ 20.6).
+- Default version is still **2** (set-default blocked by the session's permission check); until it is 4, call with `--document-version 4`.
