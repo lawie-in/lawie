@@ -5,7 +5,7 @@
 | Phase  | 4 — Release (P0, prod down for drafting) |
 | Owner  | Arjun (diagnosis), Nikhil (box checks), a lead (fix if it is code) |
 | Mode   | Diagnose first; small fix if code, ops if config |
-| Status | ROOT CAUSE FOUND (Nikhil, prod drafting log, read-only): configuration, not code. FOUNDER CONFIG: set ai.drafting_model, ai.preflight_model and ai.intake_model in /admin/ai-config on lawie.in (same values as the develop DB). Keep open until Anushka reruns the draft step. Priya |
+| Status | CORRECTED ROOT CAUSE (Arjun, 26 Oct): prod has ai.drafting_model and ai.preflight_model (set 07:49 today) but NOT ai.intake_model, and /admin/ai-config has no row for it, so it can only be seeded from the box. FOUNDER runs the one seed command (Arjun gives it). The two drafting_model failures in the log are from last night (before 07:49). Keep open until Anushka reruns the draft step. Follow-up T-609. Priya |
 | Source | Anushka's report: 4 attempts on lawie.in, Anand Test account |
 
 ## What was seen
