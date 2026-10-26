@@ -53,7 +53,10 @@ export const PATTERNS = [
  *
  * Known residual gaps of the SHA entry (reviewed, accepted): a `# SHA` comment line inside a
  * fenced code block counts as a heading; a table header such as `| Name | SHA-256 | Value |`
- * allows any 40/64-hex in every column of that table, not only the SHA column.
+ * allows any 40/64-hex in every column of that table, not only the SHA column. The deny
+ * words are matched after splitting `_`, `-`, camelCase and letter-digit boundaries, plus
+ * a list of joined compounds (APIKEY, webhooksecret, authtoken); a joined label outside
+ * that list (e.g. RAZORPAYSECRET, MYTOKEN) is not denied.
  */
 export const ALLOW = [
   // Signed SHA-256 hashes (64 hex) and git commit SHAs (40 hex) in handoff docs: the line,
@@ -109,6 +112,21 @@ function contextOf(lines, i) {
   return parts.join('\n');
 }
 
+/**
+ * Splits labels into words before the `deny` test: `_`/`-` to spaces, camelCase and
+ * letter-digit boundaries split (webhookSecret, apiKey, razorpayKeySecret, authToken, key1).
+ */
+function denyText(text) {
+  return text
+    .replace(/[_-]/g, ' ')
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/([A-Za-z])(\d)/g, '$1 $2');
+}
+
+/** Joined all-caps or lower-case compounds the word split cannot see (APIKEY, webhooksecret). */
+const DENY_JOINED =
+  /(?:api|auth|access|private|secret|webhook|key|client|bearer|refresh)(?:keys?|secrets?|tokens?|passwords?|pass)/i;
+
 function isAllowed(patternName, value, context) {
   for (const a of ALLOW) {
     if (a.pattern !== patternName) continue;
@@ -117,7 +135,7 @@ function isAllowed(patternName, value, context) {
     if (a.shape && a.shape(value)) return true;
     if (a.context) {
       const masked = context.split(value).join('<HIT>');
-      if (a.deny && a.deny.test(masked.replace(/[_-]/g, ' '))) continue;
+      if (a.deny && (a.deny.test(denyText(masked)) || DENY_JOINED.test(masked))) continue;
       if (a.context.test(masked)) return true;
     }
   }

@@ -230,7 +230,9 @@ function tokenize(s) {
           const e = s[j];
           // Decode \xHH, \NNN (octal), \uHHHH, \UHHHHHHHH so $'\x65nviron' reads as environ.
           const hex = /^x([0-9A-Fa-f]{1,2})/.exec(s.slice(j));
-          const uni = /^[uU]([0-9A-Fa-f]{1,8})/.exec(s.slice(j));
+          // bash: \u takes at most 4 hex digits, \U at most 8.
+          const uni =
+            /^u([0-9A-Fa-f]{1,4})/.exec(s.slice(j)) || /^U([0-9A-Fa-f]{1,8})/.exec(s.slice(j));
           const oct = /^([0-7]{1,3})/.exec(s.slice(j));
           if (hex) {
             out += String.fromCharCode(parseInt(hex[1], 16));
@@ -582,6 +584,11 @@ function analyzeWords(input, seg, prevSeg, depth) {
           filter = a;
           break;
         }
+      }
+      // A string literal with interpolation (`"\(env)"`) runs code inside the string: it
+      // cannot be blanked safely, so it fails closed.
+      for (const lit of (filter ?? '').match(/"(?:\\.|[^"\\])*"/g) ?? []) {
+        if (lit.includes('\\(')) throw new Blocked('jq-env');
       }
       // String literals are blanked first, so `has("env")` or `"env"` is not a filter token.
       const code = (filter ?? '').replace(/"(?:\\.|[^"\\])*"/g, '""');
