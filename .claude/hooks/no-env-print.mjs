@@ -41,8 +41,13 @@
  * command names built from variables or globs (`$C`, `/usr/bin/pr*env`), eval or
  * execution of command output (`$(echo printenv)`, `cat x.sh | bash`), shell aliases and
  * functions, other hosts or processes (ssh host env, docker exec, gdb attach), `set -x`
- * tracing that echoes expanded values, scripts run from a file, and printing a single
- * variable (`echo "$X"`, `node -p process.env.X`).
+ * tracing that echoes expanded values, scripts run from a file, printing a single
+ * variable (`echo "$X"`, `node -p process.env.X`), and `cd /proc/self` in one call then
+ * `cat environ` in a later one (the shell's cwd persists between Bash calls; each call is
+ * checked on its own).
+ *
+ * Accepted jq false positive: a bare `env` / `$ENV` token in the filter outside a string
+ * literal blocks even when it is harmless (e.g. a jq function or variable named env).
  */
 import { readFileSync, realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -223,7 +228,21 @@ function tokenize(s) {
         if (s[j] === '\\') {
           j += 1;
           const e = s[j];
-          out += e === 'n' ? '\n' : e === 't' ? '\t' : e;
+          // Decode \xHH, \NNN (octal), \uHHHH, \UHHHHHHHH so $'\x65nviron' reads as environ.
+          const hex = /^x([0-9A-Fa-f]{1,2})/.exec(s.slice(j));
+          const uni = /^[uU]([0-9A-Fa-f]{1,8})/.exec(s.slice(j));
+          const oct = /^([0-7]{1,3})/.exec(s.slice(j));
+          if (hex) {
+            out += String.fromCharCode(parseInt(hex[1], 16));
+            j += hex[0].length - 1;
+          } else if (uni) {
+            const cp = parseInt(uni[1], 16);
+            out += cp <= 0x10ffff ? String.fromCodePoint(cp) : '';
+            j += uni[0].length - 1;
+          } else if (oct) {
+            out += String.fromCharCode(parseInt(oct[1], 8) & 0xff);
+            j += oct[0].length - 1;
+          } else out += e === 'n' ? '\n' : e === 't' ? '\t' : e;
         } else out += s[j];
       }
       if (j >= s.length) throw new ParseError('quote');
@@ -551,18 +570,25 @@ function analyzeWords(input, seg, prevSeg, depth) {
     if (name === 'jq' || name === 'gojq') {
       // The filter (not option values, not files): `env` / `$ENV` as a whole object.
       const withArg = ['--arg', '--argjson', '--slurpfile', '--rawfile'];
-      const filters = [];
+      // Only the first non-option argument is the filter; later ones are input files (or
+      // --args values). With -f/--from-file the filter is in a file this hook cannot see.
+      let filter = null;
       for (let k = 0; k < args.length; k += 1) {
         const a = args[k];
         if (withArg.includes(a)) k += 2;
-        else if (['-f', '--from-file', '-L', '--indent', '--tab'].includes(a))
-          k += a === '--tab' ? 0 : 1;
-        else if (a === '--args' || a === '--jsonargs') break;
-        else if (!a.startsWith('-')) filters.push(a);
+        else if (a === '-f' || a === '--from-file') break;
+        else if (a === '-L' || a === '--indent') k += 1;
+        else if (!a.startsWith('-')) {
+          filter = a;
+          break;
+        }
       }
-      const code = filters.join('\n');
+      // String literals are blanked first, so `has("env")` or `"env"` is not a filter token.
+      const code = (filter ?? '').replace(/"(?:\\.|[^"\\])*"/g, '""');
+      // Allowed: one named key only (env.HOME, env["HOME"], $ENV.HOME). `env[]`, `env[0]`,
+      // `env[$k]`, `env | ...` and bare `env` / `$ENV` are the whole object.
       if (
-        /(?<![.\w$])env\b(?!\s*(?:\.\s*[A-Za-z_"]|\[))|\$ENV\b(?!\s*(?:\.\s*[A-Za-z_"]|\[))|\$__prog_args\b/.test(
+        /(?<![.\w$])env\b(?!\s*(?:\.\s*[A-Za-z_"]|\[\s*"))|\$ENV\b(?!\s*(?:\.\s*[A-Za-z_"]|\[\s*"))|\$__prog_args\b/.test(
           code,
         )
       )
@@ -778,6 +804,8 @@ function analyze(s, depth) {
     for (const w of words) {
       if (w.split('/').some((c) => c !== '' && globCanMatchEnviron(c)))
         throw new Blocked('proc-environ');
+      // Brace expansion (env{i,}ron, {a..z}) is not modelled: next to /proc it fails closed.
+      if (/\{[^{}]*(?:,|\.\.)[^{}]*\}/.test(w)) throw new Blocked('proc-environ');
     }
   }
   segments.forEach((seg, idx) =>

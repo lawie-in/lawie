@@ -50,6 +50,10 @@ export const PATTERNS = [
  * context also matches (a "SHA" label next to a secret-ish word is not trusted). `lengths`
  * restricts an entry to values of those exact lengths. `shape` tests the value's shape only
  * (never a literal value).
+ *
+ * Known residual gaps of the SHA entry (reviewed, accepted): a `# SHA` comment line inside a
+ * fenced code block counts as a heading; a table header such as `| Name | SHA-256 | Value |`
+ * allows any 40/64-hex in every column of that table, not only the SHA column.
  */
 export const ALLOW = [
   // Signed SHA-256 hashes (64 hex) and git commit SHAs (40 hex) in handoff docs: the line,
@@ -59,7 +63,9 @@ export const ALLOW = [
     pattern: 'long-hex',
     lengths: [40, 64],
     context: /\bSHA(?:-?256|-?1)?\b/i,
-    deny: /secret|key|token|password|webhook|api/i,
+    // Whole words, tested with `_` and `-` read as spaces: RAZORPAY_KEY_SECRET, api_key and
+    // webhook-secret are denied; rapid, capital, monkey and keyboard are not.
+    deny: /\b(?:secrets?|keys?|tokens?|passwords?|webhooks?|api)\b/i,
     reason: 'a content hash or commit SHA labelled as one',
   },
   // A 40-hex commit SHA as the ref in a GitHub blob/tree/commit URL (vendored skill docs).
@@ -111,7 +117,7 @@ function isAllowed(patternName, value, context) {
     if (a.shape && a.shape(value)) return true;
     if (a.context) {
       const masked = context.split(value).join('<HIT>');
-      if (a.deny && a.deny.test(masked)) continue;
+      if (a.deny && a.deny.test(masked.replace(/[_-]/g, ' '))) continue;
       if (a.context.test(masked)) return true;
     }
   }
