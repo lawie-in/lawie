@@ -62,3 +62,12 @@ The plaintiff's undertaking to compensate the defendant for any loss if the inju
 ```
 
 **Correction:** the old Para 8 cited "Order 25 R.1" for the undertaking. That is wrong: O.25 R.1 is security for costs. No rule is cited for the undertaking now.
+
+## (g) Confirm blocked on empty required fields (R2-F1)
+
+The `blocks_confirm` flag applies to `main_suit_relief` and `restraint_sought`. The confirmState hunk in intake-brief.ts gets my byte check at READY. Messages, **signed**:
+
+| field | EN | HI |
+| --- | --- | --- |
+| main_suit_relief | `Add the relief sought in the main suit to continue.` | `आगे बढ़ने के लिए मुख्य वाद में माँगी गई राहत जोड़िए।` |
+| restraint_sought | `Add the acts the defendant should be restrained from, to continue.` | `आगे बढ़ने के लिए वे कार्य जोड़िए जिनसे प्रतिवादी को रोका जाना है।` |
