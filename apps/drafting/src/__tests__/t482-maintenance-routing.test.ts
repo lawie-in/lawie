@@ -168,14 +168,14 @@ describe('T-482 D: the prompts', () => {
   const SIGNED_SENTENCE =
     '- A catalogue line may end with "match terms": those terms alone are not enough to choose that template when the description also has divorce, Domestic Violence Act (DV Act), Hindu Adoptions and Maintenance Act (HAMA), custody or guardianship words; in that case use confidence "medium" and list it together with those templates in alternatives, so the advocate chooses.';
 
-  it('the system prompt has the signed sentence (59d26051) once, and without it is the pre-change prompt', () => {
+  it('the system prompt has the signed sentence (59d26051) once, and without it is the prompt before this line (T-610 bail lines included)', () => {
     const line = `${SIGNED_SENTENCE}\n`;
     expect(MATCH_SYSTEM_PROMPT.split(line)).toHaveLength(2);
     // the old wording ("... (DV Act) or Hindu Adoptions ...") is gone
     expect(MATCH_SYSTEM_PROMPT).not.toContain('(DV Act) or Hindu');
     expect(MATCH_SYSTEM_PROMPT).toContain('custody or guardianship words');
     expect(createHash('sha256').update(MATCH_SYSTEM_PROMPT.replace(line, '')).digest('hex')).toBe(
-      '9b5d2d0f92602a15952bb698b13476e6b79cce6a0968e4c06d92503df1cf83df',
+      '8b3e0e769825f31bad96e0495e18db3e27d459151d86fadbc63eda3aa9cb70f3',
     );
   });
 
