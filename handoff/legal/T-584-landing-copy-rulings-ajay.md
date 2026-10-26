@@ -54,3 +54,17 @@ Source: `handoff/copy/T-584-landing-copy-v1.md` (Madhuri, direction B). I checke
 | AJ-601-F5 | 15-07 / 15-12: where "drafts" means the template library, use "document types", as 15-06/08 do (count live templates only). Where it means a user's own output, "drafts" stays. |
 | AJ-601-F6 | Hero folio court heading and cause title: not in the copy files yet. Send them to me before ship. Fictional only, using the placeholder convention (Sample Person N, SAMPLE/000/0000, Patna/Ranchi); no real case number, party or judgment. Not signed until I byte-check them. |
 | AJ-601-F7 | M-LP-15-09b "Play with sound" / "आवाज़ के साथ चलाइए": no legal claim, I don't sign it. It ships only if the video has an audio track (Madhuri's note). |
+
+## T-601 fixes sign-off (Ajay, 26 Oct 2026; source `handoff/copy/T-584-landing-copy-v2-fixes.md`)
+
+| id | ruling |
+| --- | --- |
+| AJ-601-S1 | M-LP-10c (English track only) "Real product, fictional parties. Captions in English." / "असली प्रोडक्ट, काल्पनिक पक्षकार। अंग्रेज़ी कैप्शन।": SIGNED. It replaces the v2 10c line; "Loads on play" is gone for good. |
+| AJ-601-S2 | M-LP-10c-hi "…Captions in English and Hindi." / "…हिंदी और अंग्रेज़ी कैप्शन।": SIGNED, shown only when a Hindi caption track exists in the video data. Chip M-LP-15-10 follows the same rule; 15-10a "CC English" otherwise. |
+| AJ-601-S3 | M-LP-15-07 "{n} document types" / "{n} प्रकार के दस्तावेज़" and 15-07b "1 document type" / "1 प्रकार का दस्तावेज़": SIGNED. They are covered by my 15-06/08 reasoning. {n} counts live templates only, from the catalogue; it is never typed. The panel header uses the same string. |
+| AJ-601-S4 | M-LP-15-16 "In the Court of the Sessions Judge, Sample District" / "सत्र न्यायाधीश के न्यायालय में, नमूना ज़िला": SIGNED. Choice: keep "Sample District", no real district, so no real court is implied. |
+| AJ-601-S5 | M-LP-15-20 "Application for regular bail" / "नियमित जमानत के लिए आवेदन": SIGNED. No section, case number or FIR anywhere in the folio. |
+| AJ-601-S6 | M-LP-15-17 "Sample Person 1 … Applicant" / "नमूना व्यक्ति 1 … आवेदक", 15-18 "Versus" / "बनाम", 15-19 "The State … Opposite Party" / "राज्य … विपक्षी": SIGNED. Choice: "Opposite Party", the usual Patna/Ranchi cause-title label for the State in a bail application. Not "Respondent". |
+| AJ-601-S7 | 15-06 alternates #2 and #3 (Madhuri, "document types"): no legal objection; Meera picks. The retired "drafts" variants do not ship. The v2 file's 15-06/15-08 "drafts" text is superseded by my ruling. I only commit under handoff/legal/, so Madhuri updates the v2 copy file; the build takes my text. |
+| AJ-601-S8 | (e) M-LP-14-T: confirmed. Template titles stay English under the Hindi toggle until T-600; the Hindi titles come to me for terminology. |
+| AJ-601-S9 | Byte check of these rows in Kunal's T-601 build happens at READY. Signed rows are byte-for-byte; any change comes back to me. |
