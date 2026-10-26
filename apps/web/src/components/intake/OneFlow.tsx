@@ -806,9 +806,13 @@ function OneFlowSteps({
             if (event === 'error') {
               setGenError({
                 // T-565 W13: no server reason is shown (''), except for insufficient_ink, whose
-                // reason is the card's heading (T-521).
+                // reason is the card's heading (T-521), and T-611's fact_needed / fact_conflict,
+                // whose reason is Ajay's signed question (generationFailure FACT_QUESTION_CODES).
                 reason:
-                  payload.code === INSUFFICIENT_INK_CODE && typeof payload.reason === 'string'
+                  (payload.code === INSUFFICIENT_INK_CODE ||
+                    payload.code === 'fact_needed' ||
+                    payload.code === 'fact_conflict') &&
+                  typeof payload.reason === 'string'
                     ? payload.reason
                     : '',
                 retryable: payload.retryable !== false,

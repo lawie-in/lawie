@@ -355,11 +355,14 @@ describe('AC2: the T-147 draft fails this verifier (run-2 replay)', () => {
     expect(bank?.paragraphIndex).toBe(1);
   });
 
-  it('s138: nothing wrong is delivered: the memo-date phrase and the wrong branch are gone, replaced by a placeholder', async () => {
+  it('s138: the memo-date phrase is replaced by a placeholder; the wrong branch (a held name) is a P1 conflict, never blanked', async () => {
+    // T-611 / Ajay ceee45cb: a held name is never blanked. The drawee branch used as the
+    // presenting branch stays in the text and is reported as a conflict (the draft is then withheld).
     const out = await verifyAndRepair(inputOf(S138), repairSpy(null));
     const paras = splitParagraphs(out.body).map((p) => p.text);
-    expect(paras[1]).toMatch(/\{\{MISSING: /);
-    expect(paras[1]).not.toContain('Karol Bagh');
+    expect(paras[1]).not.toMatch(/\{\{MISSING: /);
+    expect(paras[1]).toContain('Karol Bagh');
+    expect(out.conflicts?.some((c) => c.keyA === 'presenting_branch')).toBe(true);
     expect(paras[2]).toMatch(/\{\{MISSING: /);
     expect(out.body).not.toMatch(/week following/);
     // "drawn on HDFC Bank, Karol Bagh" is true and stays
@@ -889,10 +892,12 @@ describe('AC5: a draft that still fails is delivered with {{MISSING}} and a bann
     );
   });
 
-  it('wrong-fact and unresolved values become placeholders named for the fact', async () => {
+  it('an unresolved value becomes a placeholder named for the fact; a held name is not blanked', async () => {
+    // T-611 / Ajay ceee45cb: the drawee branch (held) is a P1 conflict now, not {{MISSING: Drawee Branch}}.
     const out = await verifyAndRepair(inputOf(S138), repairSpy(null));
     const p = splitParagraphs(out.body).map((x) => x.text);
-    expect(p[1]).toContain('{{MISSING: Drawee Branch}}');
+    expect(p[1]).not.toContain('{{MISSING: Drawee Branch}}');
+    expect(p[1]).toContain('Karol Bagh');
     expect(p[2]).toContain('{{MISSING: Date of Dishonour / Return Memo}}');
   });
 });
@@ -972,12 +977,14 @@ describe('AC6 and AC7: the fact-diff log and the placeholder rate', () => {
     expect(rows.some((r) => r.phase === 'after_repair' && r.resolution === 'stripped')).toBe(true);
   });
 
-  it('resolutions without a repair: banned is stripped, mutation placeholdered, dropped flagged', async () => {
+  it('resolutions without a repair: banned is stripped, mutation flagged or placeholdered, dropped flagged', async () => {
     await log(S138, { userId: U1, documentId: D1, ledgerId: L1 });
     const rows = await FactDiff.find({}).lean();
     expect(rows.every((r) => r.phase === 'initial')).toBe(true);
     const by = (check: string) => rows.filter((r) => r.check === check).map((r) => r.resolution);
-    expect(by('mutation')).toEqual(['placeholdered', 'placeholdered']);
+    // T-611 / Ajay ceee45cb: the bank-role mutation (a held name) is a conflict, so it is 'flagged'
+    // (the draft is withheld), not placeholdered; the unresolved dishonour date still is.
+    expect(by('mutation')).toEqual(['flagged', 'placeholdered']);
     expect(by('dropped')).toEqual(['flagged', 'flagged']);
     await FactDiff.deleteMany({});
     await log(RB, { userId: U1, documentId: D1, ledgerId: L1 });
@@ -1271,7 +1278,8 @@ describe('the weekly fact-diff report', () => {
     const md = buildWeeklyFactDiffReport(from, to, await loadWeeklyFactDiffData(from, to));
     expect(md).toMatch(/\| legal_notice_s138 \| 0 \| 2 \| 2 \| 0 \| 4 \|/); // unsupported, dropped, mutation, banned, total
     expect(md).toMatch(/## Placeholder rate per rule pack/);
-    expect(md).toMatch(/\| legal_notice_s138 \| 1 \| 2\.00 \| 25\.0% \|/);
+    // T-611 / Ajay ceee45cb: one of the two mutations is a conflict (not blanked), so 1 placeholder per draft.
+    expect(md).toMatch(/\| legal_notice_s138 \| 1 \| 1\.00 \| 12\.5% \|/);
   });
 
   it('fixture runs are counted but never reported', async () => {
