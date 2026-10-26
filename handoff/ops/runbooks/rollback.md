@@ -16,8 +16,8 @@ A deploy fails health, crash-loops, or the founder's smoke fails on something th
 cd ~/lawie
 git checkout pre-<version>
 yarn install --frozen-lockfile --production=false
-yarn workspaces run build          # shared → email-client → all, as deploy.sh
-# web static copy: the two cp lines from deploy.sh
+yarn workspaces run build          # shared → email-client → all, as scripts/deploy-local.sh
+# web static copy: the two cp lines from scripts/deploy-local.sh
 pm2 reload ecosystem.config.js --update-env
 ```
 If an env NAME the release added breaks boot of the older code, the founder removes that line, then reload again with `--update-env`.

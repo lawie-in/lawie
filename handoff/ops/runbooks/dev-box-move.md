@@ -50,13 +50,13 @@ One env file, the one `ecosystem.config.js` names. Values with spaces or commas 
 - **Google Cloud console** → OAuth client → Authorized redirect URIs: add `https://develop.api.lawie.in/api/auth/google/callback`; authorized JS origins `https://develop.lawie.in`, `https://www.develop.lawie.in`. Remove the box's old entries only after step 8 passes.
 - **Razorpay dashboard (Test mode)** → Webhooks: URL `https://develop.api.lawie.in/webhooks/razorpay`, same events as prod; secret = the test `RAZORPAY_WEBHOOK_SECRET` in the env file.
 
-## 6. deploy.sh pulls `develop`, not `main` (founder, on the box)
-Change the branch in the box-local `~/lawie/deploy.sh` to `develop`, then `git -C ~/lawie checkout develop`. The in-git `deploy.sh` is Priya's ticket (backlog #3); this box-local edit is the stopgap.
+## 6. The box deploys `develop`, not `main`
+No edit is needed on the box. `scripts/deploy-local.sh` (T-606) takes the branch as an argument, and its guard allows only `develop` on this instance. The document's `deploy` has the same guard and needs `branch=develop`. Just `git -C ~/lawie checkout develop` (as ubuntu).
 
 **Stop here until the t3.small resize (step 0.5) is done.**
 
-## 7. Build and reload (founder: `cd ~/lawie && ./deploy.sh`, or Nikhil `action=deploy`)
-`NEXT_PUBLIC_*` changed, so web must rebuild — `deploy.sh` does a full build. Then `pm2 reload ecosystem.config.js --update-env` (never plain `restart`; pm2 keeps the old env).
+## 7. Build and reload (Nikhil `action=deploy,branch=develop`, or founder: `sudo -u ubuntu -i bash ~/lawie/scripts/deploy-local.sh develop`)
+`NEXT_PUBLIC_*` changed, so web must rebuild — `scripts/deploy-local.sh` does a full build (the document's inline fallback does the same if the script isn't on the box yet). Then `pm2 reload ecosystem.config.js --update-env` (never plain `restart`; pm2 keeps the old env).
 
 ## 8. Verify
 - Nikhil: `action=health` (200 on 4000–4003, 9100), `action=status` (six online, ↺ not climbing), `action=logs service=lawie-auth lines=20` (environment development, no refuse-to-boot).
@@ -122,13 +122,12 @@ CREDS
 ### 5. External consoles — founder (unchanged)
 Google OAuth redirect URI + JS origins; Razorpay **test** webhook `https://develop.api.lawie.in/webhooks/razorpay`.
 
-### 6. deploy.sh pulls `develop`
-1. `grep -n -E 'main|develop' /home/ubuntu/lawie/deploy.sh` — locate the branch line(s).
-2. `sed -i` on exactly those line(s) to `develop` (box-local stopgap; in-git fix is Priya's ticket).
-3. `sudo -iu ubuntu bash -lc 'git -C ~/lawie fetch origin develop && git -C ~/lawie checkout develop && git -C ~/lawie rev-parse --abbrev-ref HEAD'` → `develop`.
+### 6. Box on `develop`
+1. No script edit (branch is an argument to `scripts/deploy-local.sh`).
+2. `sudo -iu ubuntu bash -lc 'git -C ~/lawie fetch origin develop && git -C ~/lawie checkout develop && git -C ~/lawie rev-parse --abbrev-ref HEAD'` → `develop`.
 
 ### 7. Build and reload
-1. `sudo -iu ubuntu bash -lc 'cd ~/lawie && ./deploy.sh'` (full build; `NEXT_PUBLIC_*` changed). Long-running: pass `--timeout-seconds 1800` on the send-command and poll the invocation.
+1. `lawie-prod-ops action=deploy,branch=develop` on `i-07925b68d6dd907c4` (runs `scripts/deploy-local.sh develop` when present, else the inline body; full build; `NEXT_PUBLIC_*` changed). Long-running: pass `--timeout-seconds 1800` on the send-command and poll the invocation.
 2. `sudo -iu ubuntu bash -lc 'cd ~/lawie && pm2 reload ecosystem.config.js --update-env'` (never plain `restart`).
 
 ### 8. Verify

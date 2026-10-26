@@ -13,11 +13,17 @@ const mockGetToken = jest.fn();
 const mockGetRefresh = jest.fn();
 const mockSaveTokens = jest.fn();
 const mockClearTokens = jest.fn();
+const mockEndSessionForced = jest.fn();
 jest.mock('@/lib/auth', () => ({
   getAccessToken: () => mockGetToken(),
   getRefreshToken: () => mockGetRefresh(),
   saveTokens: (...a: unknown[]) => mockSaveTokens(...a),
   clearTokens: () => mockClearTokens(),
+  // T-616: a refresh the auth service refused ends the session through endSessionForced.
+  endSessionForced: () => mockEndSessionForced(),
+  isTokenExpired: () => false,
+  // T-616 review: apiFetch compares the user of the token a request was sent with.
+  tokenSubject: () => null,
 }));
 
 const base: DraftResult = {
@@ -255,7 +261,7 @@ describe('DraftReadyStep actions', () => {
     expect(text()).not.toContain('Something did not work');
   });
 
-  it('T-544: a failed refresh clears the session, goes to /login, and shows no error banner', async () => {
+  it('T-544: a refused refresh ends the session (T-616 forced end), goes to /login, and shows no error banner', async () => {
     const replace = jest.fn();
     const original = window.location;
     Object.defineProperty(window, 'location', {
@@ -267,7 +273,10 @@ describe('DraftReadyStep actions', () => {
       fetchMock.mockResolvedValue({ ok: false, status: 401, json: async () => ({}) });
       await mount();
       await click(btn('Finalise'));
-      expect(mockClearTokens).toHaveBeenCalledTimes(1);
+      // T-616: the forced end keeps the matter text, so it is not the explicit clearTokens.
+      expect(mockEndSessionForced).toHaveBeenCalledTimes(1);
+      expect(mockClearTokens).not.toHaveBeenCalled();
+      // jsdom's pathname is "/", which has nothing to return to: plain /login.
       expect(replace).toHaveBeenCalledWith('/login');
       // apiFetch never resolves, so neither the chip nor the error shows
       expect(container.querySelector('[data-testid="finalised-chip"]')).toBeNull();
