@@ -5,7 +5,7 @@
 | Phase  | 4 — Release (severity P1; from the prod quality check of 26 Oct 2026) |
 | Owner  | Mahak or Tanvi (auth/web); Arjun decides lifetime |
 | Mode   | Full chain |
-| Status | Building (Kunal), 26 Oct 2026 (stop lifted). Priya |
+| Status | Web part merged into develop_staging at e73914df (CI 1053 green), 26 Oct 2026. T-616b (server) building, Kunal. Priya |
 | Source | handoff/quality/2026-10-26-prod-drafting-FAIL.md |
 
 ## Problem
