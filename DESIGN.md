@@ -291,7 +291,7 @@ Quiet until pressed; the brass one is the only loud thing on the page.
 - **Ghost:** transparent, Brass Text label, 1px Control Line border.
 - **Destructive:** Oxblood fill, white label; sits last in a dialog, after the ghost safe action. Only inside a confirm dialog.
 - **Ghost, danger:** transparent, Rust text and 1px Rust border, hover background Rust Soft, no lift. The one danger cue outside a dialog: Close account, Cancel plan in Settings. It opens the dialog; it never performs the action itself.
-- **Hover / Focus:** primary hover lifts 1px with the 4px Brass Soft halo, 150ms ease. Ghost (and any ghost-styled link or the Google button) does not lift: its border goes Line to Brass and its background to Brass Soft, 150ms. Destructive does not lift or glow. Focus is the system ring on all three. Disabled is opacity .5. Loading swaps the label for a spinner and holds the width.
+- **Hover / Focus:** primary hover lifts 1px with the 4px Brass Soft halo, 150ms ease. Ghost (and any ghost-styled link or the Google button) does not lift: its border goes Line to Brass and its background to Brass Soft, 150ms. Destructive does not lift or glow. Focus is the system ring on all three. Disabled is opacity .5. **Hover is for an enabled control only:** a button that is `disabled`, `aria-disabled`, busy or loading shows no lift, halo, border or ground change on hover, in every variant (T-622; the gate lives in `ui/hover.ts`). Loading swaps the label for a spinner and holds the width.
 
 ### Chips
 - **Style:** pill, 12px Mukta 500, 4px by 10px padding. Neutral is Text Soft on a Line border; brass, moss, amber and rust tones use the status pair. The Ink chip carries a brass dot before the number.
@@ -336,6 +336,7 @@ The question at the top of the desk: "What do you need to draft?" in Title type,
 
 ### Do:
 - **Do** set every number with tabular numerals and keep Ink as a number plus the word Ink (never a draft count).
+- **Don't** let an inert control react to hover: `disabled`, `aria-disabled`, busy or loading means no lift, halo or colour change (T-622).
 - **Do** keep 150ms colour fades (hover ground, border, focus ring) under reduced motion. Reduced motion removes movement (lift, drain, pulse, scroll), not colour (T-544).
 - **Do** build both themes from the same token names; a component that reads one literal colour is a bug.
 - **Do** keep the lamp follow and the dust motes behind `(pointer: fine) and (min-width: 900px)`, and pause every loop on `visibilitychange`.
