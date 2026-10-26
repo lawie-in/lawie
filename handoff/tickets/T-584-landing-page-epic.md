@@ -16,7 +16,8 @@ The founder is not happy with the landing page content. The "what we can draft t
 2. Madhuri: copy for the hero and the coverage section. The coverage list is generated from the templates catalogue, never hand-written, so it cannot go stale.
 3. Ajay: signs every claim about what Lawie drafts (BCI advertising rules: no "guaranteed", no comparative claims). Prior ruling on sample drafts applies: redacted, fictional parties, watermark "sample".
 4. Arjun's constraints: sample drafts are static assets or pre-generated and reviewed by Ajay; no live Anthropic calls from the marketing page. Animations respect prefers-reduced-motion and the mobile budget in ui-quality.md.
-5. Build: one lead, full chain, web only, after 1 to 4 are signed.
+5. Demo video (founder, 26 Oct 2026): a short product demo on the landing page, shown from the real product with fictional, redacted parties (no real client data), with captions and a poster image. Meera/Madhuri write the script, Rajesh sets where it sits on the page, Ajay signs every on-screen claim and the voiceover (BCI rules, "sample" watermark on any draft shown). Served as a static file or from a CDN, lazy-loaded, no autoplay with sound, reduced-motion respected, within the mobile budget in ui-quality.md. No live Anthropic call from the page. Who records and produces it is decided with the founder (screen capture of develop or prod with a test account; Arjun confirms no secrets or PII are visible in frame).
+6. Build: one lead, full chain, web only, after 1 to 4 are signed.
 
 ## Sequence
 Rajesh and Madhuri first, then one lead for the build. Not before the ai.* settings and T-583 are done on prod.
