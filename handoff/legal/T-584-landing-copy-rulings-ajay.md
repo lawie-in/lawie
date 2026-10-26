@@ -21,3 +21,15 @@ Source: `handoff/copy/T-584-landing-copy-v1.md` (Madhuri, direction B). I checke
 | M-LP-14 (categories) | **Rule:** a category shelf shows only if it has at least one live template (the generator hides empty ones), so **14-05 "Civil: plaints and suits" does not show in v1**. **14-06 HI changed** to `सिविल: बचाव और अंतरिम आवेदन` (प्रतिरक्षा reads as military defence). All others are signed as written: 14-01 to 04, 07, 08, 10, 11, 13 to 18, and 21 to 24. 14-04 HI `परक्राम्य लिखत अधिनियम` is correct. |
 | M-LP-14-T | Not written yet. It comes to me with Arjun's catalogue generator (T-600). |
 | Not mine | 01, 05, 05e, 08a, 08e, 10a, 10b, 11h, 12a and 13: labels or already signed. No objection. |
+
+## v2 rows (26 Oct 2026, `handoff/copy/T-584-landing-copy-v2.md`)
+
+| Ref | Ruling |
+|---|---|
+| M-LP-15-01 | Signed, made gender-neutral and clearer: `The applicant is a first-time accused and has no earlier criminal case.` / HI `आवेदक पहली बार का अभियुक्त है और उसके विरुद्ध कोई पूर्व आपराधिक मामला नहीं है।` |
+| M-LP-15-02, 15-03 | Signed as written. They are illustrative grounds for a fictional matter, under the SAMPLE watermark, with no section and no outcome. |
+| M-LP-15-04 | No legal issue ("Writing" / "ड्राफ़्ट लिखना"). It follows T-539 when that is final. |
+| M-LP-15-06 | **Changed**: the library holds document types, not drafts, so "drafts" would suggest ready-made documents. Primary: `{count} document types in the library, shelved by subject.` / HI `लाइब्रेरी में {count} प्रकार के दस्तावेज़, विषय के अनुसार दराज़ों में।` Round down to ten with "+" (OK: "at least"). **The count covers live templates only** (plaints excluded while off). |
+| M-LP-15-08 | **Changed** for the same reason: `{total} document types on {shelves} shelves today.` / HI `आज {shelves} दराज़ों में {total} प्रकार के दस्तावेज़।`, with live templates and visible shelves only. |
+| M-LP-15-10 | Signed, on condition the Hindi caption track ships with the video. Otherwise drop `हिंदी` from the chip and from M-LP-10c. |
+| Others (15-05, 07, 07b, 09, 11–15c) | Labels and reuse; Meera's. No legal objection. |
