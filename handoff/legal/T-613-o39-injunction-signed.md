@@ -71,3 +71,10 @@ The `blocks_confirm` flag applies to `main_suit_relief` and `restraint_sought`. 
 | --- | --- | --- |
 | main_suit_relief | `Add the relief sought in the main suit to continue.` | `आगे बढ़ने के लिए मुख्य वाद में माँगी गई राहत जोड़िए।` |
 | restraint_sought | `Add the acts the defendant should be restrained from, to continue.` | `आगे बढ़ने के लिए वे कार्य जोड़िए जिनसे प्रतिवादी को रोका जाना है।` |
+
+## (h) T-628 gate question, code `past_date_in_prayer` (signed, 26 Oct 2026)
+
+- EN: `The prayer refers to <date>, which has already passed. An injunction can only restrain what happens from now on. What should the defendant be restrained from?`
+- HI: `प्रार्थना में <date> का उल्लेख है, जो बीत चुकी है। निषेधाज्ञा केवल आगे होने वाले कार्यों पर रोक लगा सकती है। प्रतिवादी को किन कार्यों से रोका जाना है?`
+
+`<date>` is shown to the user only, never logged. "Today" is the IST date. The answer replaces `restraint_sought`, not `acts_complained_of`. The draft is not delivered and no Ink is taken until the answer is in.
