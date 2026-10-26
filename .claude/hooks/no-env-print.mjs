@@ -22,7 +22,8 @@
  *   ps e / ps -E             BSD flags that print process environments
  *   yarn/npm/pnpm run env    the package managers' built-in env dump
  *   systemctl show-environment
- *   jq                       `env` or `$ENV` as a whole object (jq -n env, jq -n '$ENV')
+ *   jq                       `env` or `$ENV` as a whole object (jq -n env, jq -n '$ENV'),
+ *                            a program the hook cannot see (-f, import/include, --run-tests)
  *   awk/gawk/mawk/nawk       ENVIRON other than ENVIRON["NAME"]
  *   interpreters (node, bun, deno, python, perl, ruby, php) whose code dumps the whole
  *   environment object (process.env, process.env.toJSON()/valueOf()/toString(),
@@ -46,11 +47,33 @@
  * `cat environ` in a later one (the shell's cwd persists between Bash calls; each call is
  * checked on its own).
  *
- * Accepted jq false positive: a bare `env` / `$ENV` token in the filter outside a string
- * literal or `#` comment blocks even when it is harmless (e.g. a jq function or variable
- * named env). The jq filter also fails closed on string interpolation (`"\(...)"`), an
- * unterminated string, and a `#` comment that contains a carriage return or ends in a
- * backslash, even when harmless.
+ * Known fail-closed false positives (T-593; blocked even when harmless, by design):
+ *   jq filter
+ *   - any `\(` interpolation in a jq string literal (`"a\(.x)b"`)
+ *   - an unterminated jq string literal
+ *   - any jq `#` comment that contains a carriage return or ends in a backslash
+ *   - a bare `env`, `$ENV`, `$ ENV` or `$__prog_args` token outside strings and comments,
+ *     e.g. a jq function named env (`def env: 1; env`), `$ env`, `mod::env`
+ *   - `env` / `$ENV` followed by anything but one key (`.NAME`, `."NAME"`, `["NAME"]`):
+ *     `env | .HOME`, `env.[]`, `env?`
+ *   - an `import` or `include` keyword outside strings and comments
+ *   jq options
+ *   - `-f` / `--from-file` / `--from-file=FILE`, and any short option word containing an
+ *     `f` (`-nf`, `-fn`, and an attached library path such as `-L./lib/foo`, because
+ *     jq <= 1.7 reads every letter of the word as a flag)
+ *   - `--run-tests`
+ *   - any jq or gojq option not in this file's tables (unknown long options, unknown short
+ *     letters, `--name=value` forms other than `--indent=` and `--library-path=`)
+ *   - `--library-path DIR` and a short cluster ending in L (`-nL DIR`): DIR is also checked
+ *     as a filter, so a DIR like `./env` blocks
+ *   bash `$'...'` strings
+ *   - a NUL anywhere (`\0`, `\x0`, `\u0`, `\c@`, `\400`): bash truncates there
+ *   - `\c` at the end, `\c\` without a second backslash, `\c` + a non-ASCII character
+ *   - `\u` / `\U` above U+10FFFF or in the surrogate range D800-DFFF
+ *   /proc
+ *   - any command that mentions /proc and environ (see above)
+ *   - any word with a glob (`*`, `?`, `[..]`) that can match environ, or any brace
+ *     expansion, in a command that mentions /proc (`ls /proc/*` blocks)
  */
 import { readFileSync, realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -75,6 +98,12 @@ function findClose(s, start) {
     const c = s[i];
     if (c === '\\') {
       i += 1;
+    } else if (c === '$' && s[i + 1] === "'") {
+      // $'...': a backslash escapes the next character, so `\'` does not end it.
+      let j = i + 2;
+      for (; j < s.length && s[j] !== "'"; j += 1) if (s[j] === '\\') j += 1;
+      if (j >= s.length) throw new ParseError('quote');
+      i = j;
     } else if (c === "'") {
       const j = s.indexOf("'", i + 1);
       if (j < 0) throw new ParseError('quote');
@@ -225,36 +254,27 @@ function tokenize(s) {
       wordQuoted = true;
       i = j + 1;
     } else if (c === '$' && s[i + 1] === "'") {
+      // Find the end as bash's lexer does (a backslash escapes the next character, so
+      // `\'` does not end the string), then decode the body on its own.
       let j = i + 2;
-      let out = '';
-      for (; j < s.length && s[j] !== "'"; j += 1) {
-        if (s[j] === '\\') {
-          j += 1;
-          const e = s[j];
-          // Decode \xHH, \NNN (octal), \uHHHH, \UHHHHHHHH so $'\x65nviron' reads as environ.
-          const hex = /^x([0-9A-Fa-f]{1,2})/.exec(s.slice(j));
-          // bash: \u takes at most 4 hex digits, \U at most 8.
-          const uni =
-            /^u([0-9A-Fa-f]{1,4})/.exec(s.slice(j)) || /^U([0-9A-Fa-f]{1,8})/.exec(s.slice(j));
-          const oct = /^([0-7]{1,3})/.exec(s.slice(j));
-          if (hex) {
-            out += String.fromCharCode(parseInt(hex[1], 16));
-            j += hex[0].length - 1;
-          } else if (uni) {
-            const cp = parseInt(uni[1], 16);
-            out += cp <= 0x10ffff ? String.fromCodePoint(cp) : '';
-            j += uni[0].length - 1;
-          } else if (oct) {
-            out += String.fromCharCode(parseInt(oct[1], 8) & 0xff);
-            j += oct[0].length - 1;
-          } else out += e === 'n' ? '\n' : e === 't' ? '\t' : e;
-        } else out += s[j];
-      }
+      for (; j < s.length && s[j] !== "'"; j += 1) if (s[j] === '\\') j += 1;
       if (j >= s.length) throw new ParseError('quote');
-      word += out;
+      word += decodeAnsiC(s.slice(i + 2, j));
       inWord = true;
       wordQuoted = true;
       i = j + 1;
+    } else if (c === '$' && s[i + 1] === '$') {
+      // `$$` (the shell's PID) is one unit, so a `"` after it is not a `$"..."` quote.
+      word += '$$';
+      inWord = true;
+      i += 2;
+    } else if (c === '$' && s[i + 1] === '"') {
+      // bash locale quoting: `$"text"` is "text" translated, and with no message catalogue
+      // the text is unchanged. Drop the `$` so `$"printenv"` reads as printenv (not as a
+      // variable `$printenv`). Inside "..." a `$"` is not locale quoting; skipDouble
+      // consumes those strings whole, so this branch never sees them.
+      inWord = true;
+      i += 1;
     } else if (c === '"') {
       const j = skipDouble(s, i + 1);
       const inner = s.slice(i + 1, j);
@@ -343,6 +363,79 @@ function tokenize(s) {
     segments: segments.filter((g) => g.words.length || g.heredocs.length || g.herestrings.length),
     subs,
   };
+}
+
+/** bash `$'...'` escapes with a fixed single-character meaning. */
+const ANSI_C_SIMPLE = {
+  a: '\x07',
+  b: '\x08',
+  e: '\x1b',
+  E: '\x1b',
+  f: '\x0c',
+  n: '\n',
+  r: '\r',
+  t: '\t',
+  v: '\x0b',
+  '\\': '\\',
+  "'": "'",
+  '"': '"',
+  '?': '?',
+};
+
+/**
+ * Decodes the body of a bash `$'...'` string as bash's ansicstr does, so `$'\x65nviron'`
+ * reads as environ and `$'\cJ'` is a real newline (a jq program split across lines).
+ * Unknown escapes (and `\x`, `\u`, `\U` with no digits) stay as backslash + character.
+ * Fails closed (ParseError) where bash's result is not modelled with confidence: a NUL
+ * anywhere (bash truncates the string there), `\c` at the end, `\c\` not followed by a
+ * second backslash, `\c` + a non-ASCII character, and `\u`/`\U` above U+10FFFF or in the
+ * surrogate range.
+ */
+function decodeAnsiC(raw) {
+  let out = '';
+  for (let j = 0; j < raw.length; j += 1) {
+    if (raw[j] !== '\\') {
+      out += raw[j];
+      continue;
+    }
+    j += 1;
+    const e = raw[j];
+    const rest = raw.slice(j);
+    let m;
+    if (e === undefined) throw new ParseError('ansi-c');
+    if (Object.hasOwn(ANSI_C_SIMPLE, e)) {
+      out += ANSI_C_SIMPLE[e];
+    } else if ((m = /^[0-7]{1,3}/.exec(rest))) {
+      // bash: at most 3 octal digits, value truncated to one byte.
+      out += String.fromCharCode(parseInt(m[0], 8) & 0xff);
+      j += m[0].length - 1;
+    } else if ((m = /^x([0-9A-Fa-f]{1,2})/.exec(rest))) {
+      out += String.fromCharCode(parseInt(m[1], 16));
+      j += m[0].length - 1;
+    } else if ((m = /^u([0-9A-Fa-f]{1,4})/.exec(rest) || /^U([0-9A-Fa-f]{1,8})/.exec(rest))) {
+      // bash: \u takes at most 4 hex digits, \U at most 8.
+      const cp = parseInt(m[1], 16);
+      if (cp > 0x10ffff || (cp >= 0xd800 && cp <= 0xdfff)) throw new ParseError('ansi-c');
+      out += String.fromCodePoint(cp);
+      j += m[0].length - 1;
+    } else if (e === 'c') {
+      // bash TOCTRL: `\c?` is DEL, otherwise toupper(X) & 0x1f (`\cJ` is a newline).
+      // `\c\\` is control-backslash and consumes both backslashes.
+      const x = raw[j + 1];
+      if (x === undefined) throw new ParseError('ansi-c');
+      if (x === '\\') {
+        if (raw[j + 2] !== '\\') throw new ParseError('ansi-c');
+        j += 2;
+      } else j += 1;
+      const code = x.charCodeAt(0);
+      if (code > 0x7e) throw new ParseError('ansi-c');
+      out += String.fromCharCode(x === '?' ? 0x7f : code & 0x1f);
+    } else {
+      out += `\\${e}`;
+    }
+  }
+  if (out.includes('\0')) throw new ParseError('ansi-c-nul');
+  return out;
 }
 
 /** `$(..)` and backtick bodies inside a double-quoted string or `${..}`. */
@@ -509,6 +602,162 @@ function checkInterpreterCode(code, name) {
   if (pl || rb || php) for (const m of code.matchAll(/`([^`]*)`/g)) analyze(m[1], 1);
 }
 
+// jq 1.6/1.7/1.8 and gojq options. Anything not listed here fails closed (jq-env): an
+// option this hook does not know might take a value, and then the real filter is missed.
+const JQ_LONG_FLAGS = new Set([
+  '--slurp',
+  '--raw-input',
+  '--null-input',
+  '--compact-output',
+  '--tab',
+  '--color-output',
+  '--monochrome-output',
+  '--ascii-output',
+  '--unbuffered',
+  '--sort-keys',
+  '--raw-output',
+  '--raw-output0',
+  '--join-output',
+  '--nul-output',
+  '--exit-status',
+  '--seq',
+  '--stream',
+  '--stream-errors',
+  '--binary',
+  '--args',
+  '--jsonargs',
+  '--help',
+  '--version',
+  '--build-configuration',
+  '--debug-dump-disasm',
+  '--debug-trace',
+  '--debug-trace=all',
+  '--yaml-input',
+  '--yaml-output',
+]);
+const JQ_LONG_ONE_VALUE = new Set(['--indent']);
+const JQ_LONG_TWO_VALUES = new Set(['--arg', '--argjson', '--slurpfile', '--rawfile', '--argfile']);
+// Short flags that take no value. `L` (library path) and `f` (from file) are handled apart.
+const JQ_SHORT_FLAGS = new Set([...'srjanecSCMhVRb0v']);
+
+/**
+ * The words jq could treat as its program. The first positional argument is the filter;
+ * later positionals are input files (or --args/--jsonargs values) and are not checked.
+ * Option values are consumed so they are not mistaken for the filter. Where jq versions
+ * disagree on whether an option takes a value (`--library-path DIR`: jq <= 1.7 does not
+ * consume DIR, gojq and jq 1.8 do; a short cluster ending in L such as `-nL DIR`), the
+ * value is consumed AND returned as a candidate, so both readings are checked.
+ * Throws Blocked('jq-env') when the program is somewhere this hook cannot read
+ * (-f / --from-file in any form, --run-tests) or an option is unknown.
+ */
+function jqFilterCandidates(args) {
+  const candidates = [];
+  let filter = null;
+  let optionsDone = false;
+  for (let k = 0; k < args.length; k += 1) {
+    const a = args[k];
+    if (optionsDone || !a.startsWith('-')) {
+      if (filter === null) filter = a;
+      continue;
+    }
+    if (a === '--') {
+      // jq 1.7+/gojq: everything after `--` is positional, so the next word is the filter.
+      optionsDone = true;
+      continue;
+    }
+    if (a === '-') continue; // jq <= 1.7 ignores a lone `-` as an empty option cluster
+    if (a.startsWith('--')) {
+      if (/^--(?:from-file|run-tests)(?:=|$)/.test(a)) throw new Blocked('jq-env');
+      if (JQ_LONG_TWO_VALUES.has(a)) k += 2;
+      else if (JQ_LONG_ONE_VALUE.has(a)) k += 1;
+      else if (a === '--library-path') {
+        if (k + 1 < args.length) candidates.push(args[k + 1]);
+        k += 1;
+      } else if (/^--(?:indent|library-path)=/.test(a)) {
+        // gojq attached value; nothing more to consume
+      } else if (!JQ_LONG_FLAGS.has(a)) throw new Blocked('jq-env');
+      continue;
+    }
+    // Short cluster. jq <= 1.7 matches each short option with strchr over the whole
+    // word, so an `f` anywhere (even inside an attached -L path) turns on --from-file.
+    if (a.includes('f')) throw new Blocked('jq-env');
+    const body = a.slice(1);
+    const l = body.indexOf('L');
+    for (const ch of l < 0 ? body : body.slice(0, l))
+      if (!JQ_SHORT_FLAGS.has(ch)) throw new Blocked('jq-env');
+    if (l < 0 || l < body.length - 1) continue; // no L, or -LDIR with the path attached
+    if (body.length === 1) {
+      k += 1; // `-L DIR`: every version consumes DIR
+    } else {
+      // `-nL DIR`: jq <= 1.7 does not consume DIR (it becomes the filter), gojq does.
+      if (k + 1 < args.length) candidates.push(args[k + 1]);
+      k += 1;
+    }
+  }
+  if (filter !== null) candidates.push(filter);
+  return candidates;
+}
+
+/**
+ * Blocks a jq program that reads the whole environment. One left-to-right scan builds
+ * `code`: string literals are blanked to `""` (so `has("env")` is not a filter token) and
+ * `#` comments outside strings are dropped (so a `"` inside a comment cannot pair with a
+ * later quote and hide `env`). Fails closed on: string interpolation (`"\(env)"` runs code
+ * inside the string), an unterminated string, a comment that contains a `\r` or ends in a
+ * backslash (jq 1.7 continues such a comment onto the next line, so its extent is
+ * ambiguous), and `import` / `include` (a module found via -L or the default search path
+ * can call env where this hook cannot see).
+ */
+function checkJqFilter(src) {
+  let code = '';
+  for (let i = 0; i < src.length; ) {
+    const ch = src[i];
+    if (ch === '#') {
+      let j = i + 1;
+      // jq's lexer ends a comment at `\n` only. A `\r` in the comment, or a trailing
+      // backslash, makes its extent ambiguous across jq versions: fail closed.
+      while (j < src.length && src[j] !== '\n') j += 1;
+      const body = src.slice(i + 1, j);
+      if (body.includes('\r') || body.endsWith('\\')) throw new Blocked('jq-env');
+      i = j; // the newline itself is kept as ordinary whitespace
+      continue;
+    }
+    if (ch === '"') {
+      let j = i + 1;
+      let closed = false;
+      while (j < src.length) {
+        if (src[j] === '\\') {
+          if (src[j + 1] === '(') throw new Blocked('jq-env');
+          j += 2;
+          continue;
+        }
+        if (src[j] === '"') {
+          closed = true;
+          break;
+        }
+        j += 1;
+      }
+      if (!closed) throw new Blocked('jq-env');
+      code += '""';
+      i = j + 1;
+      continue;
+    }
+    code += ch;
+    i += 1;
+  }
+  // Allowed: one named key only (env.HOME, env["HOME"], $ENV.HOME, $ ENV.HOME). `env[]`,
+  // `env[0]`, `env[$k]`, `env | ...` and bare `env` / `$ENV` are the whole object. jq 1.6
+  // lexes `$` and the name as separate tokens, so `$ ENV` (whitespace or a comment, already
+  // reduced to whitespace above, between them) is the same variable.
+  if (
+    /(?<![.\w$])env\b(?!\s*(?:\.\s*[A-Za-z_"]|\[\s*"))|\$\s*ENV\b(?!\s*(?:\.\s*[A-Za-z_"]|\[\s*"))|\$\s*__prog_args\b/.test(
+      code,
+    )
+  )
+    throw new Blocked('jq-env');
+  if (/(?<![.\w$])(?:import|include)\b/.test(code)) throw new Blocked('jq-env');
+}
+
 /** Checks one simple command (already split into words). */
 function analyzeWords(input, seg, prevSeg, depth) {
   let words = input.slice();
@@ -574,71 +823,7 @@ function analyzeWords(input, seg, prevSeg, depth) {
     }
     if (name === 'jq' || name === 'gojq') {
       // The filter (not option values, not files): `env` / `$ENV` as a whole object.
-      const withArg = ['--arg', '--argjson', '--slurpfile', '--rawfile'];
-      // Only the first non-option argument is the filter; later ones are input files (or
-      // --args values). With -f/--from-file the filter is in a file this hook cannot see.
-      let filter = null;
-      for (let k = 0; k < args.length; k += 1) {
-        const a = args[k];
-        if (withArg.includes(a)) k += 2;
-        else if (a === '-f' || a === '--from-file') break;
-        else if (a === '-L' || a === '--indent') k += 1;
-        else if (!a.startsWith('-')) {
-          filter = a;
-          break;
-        }
-      }
-      // One left-to-right scan builds `code`: string literals are blanked to `""` (so
-      // `has("env")` is not a filter token) and `#` comments outside strings are dropped
-      // (so a `"` inside a comment cannot pair with a later quote and hide `env`).
-      // Fails closed on: string interpolation (`"\(env)"` runs code inside the string), an
-      // unterminated string, and a comment that contains a `\r` or ends in a backslash
-      // (jq 1.7 continues such a comment onto the next line, so its extent is ambiguous).
-      const src = filter ?? '';
-      let code = '';
-      for (let i = 0; i < src.length; ) {
-        const ch = src[i];
-        if (ch === '#') {
-          let j = i + 1;
-          // jq's lexer ends a comment at `\n` only. A `\r` in the comment, or a trailing
-          // backslash, makes its extent ambiguous across jq versions: fail closed.
-          while (j < src.length && src[j] !== '\n') j += 1;
-          const body = src.slice(i + 1, j);
-          if (body.includes('\r') || body.endsWith('\\')) throw new Blocked('jq-env');
-          i = j; // the newline itself is kept as ordinary whitespace
-          continue;
-        }
-        if (ch === '"') {
-          let j = i + 1;
-          let closed = false;
-          while (j < src.length) {
-            if (src[j] === '\\') {
-              if (src[j + 1] === '(') throw new Blocked('jq-env');
-              j += 2;
-              continue;
-            }
-            if (src[j] === '"') {
-              closed = true;
-              break;
-            }
-            j += 1;
-          }
-          if (!closed) throw new Blocked('jq-env');
-          code += '""';
-          i = j + 1;
-          continue;
-        }
-        code += ch;
-        i += 1;
-      }
-      // Allowed: one named key only (env.HOME, env["HOME"], $ENV.HOME). `env[]`, `env[0]`,
-      // `env[$k]`, `env | ...` and bare `env` / `$ENV` are the whole object.
-      if (
-        /(?<![.\w$])env\b(?!\s*(?:\.\s*[A-Za-z_"]|\[\s*"))|\$ENV\b(?!\s*(?:\.\s*[A-Za-z_"]|\[\s*"))|\$__prog_args\b/.test(
-          code,
-        )
-      )
-        throw new Blocked('jq-env');
+      for (const filter of jqFilterCandidates(args)) checkJqFilter(filter);
       return;
     }
     if (/^[gmn]?awk$/.test(name)) {

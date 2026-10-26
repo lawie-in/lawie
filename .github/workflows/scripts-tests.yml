@@ -1,0 +1,65 @@
+name: Scripts tests
+
+# T-593: runs scripts/__tests__ (env-print hook, secret-shape scan, deploy-local.sh, export-pdf).
+# scripts/ is not a yarn workspace, so no ci.yml job runs these tests; and ci.yml skips pushes
+# that touch only handoff/**, .claude/** and **/*.md (T-249), so a hook-only change would never
+# run its own tests. Hence its own workflow, with its own concurrency group, so it never cancels
+# a CI run. Required check for the founder to add to branch protection:
+#   Scripts tests / Run scripts tests
+# Safe to mark required: every PR to main, develop or develop_staging runs it (no paths filter on
+# pull_request, about a minute per PR), so the check always reports. Only pushes are path-filtered.
+# Push paths: scripts/ and .claude/ (code under test), plus every file outside them a scripts test
+# reads: CLAUDE.md and .claude/settings.json (no-env-print.test), handoff/** (the secret-shape
+# scan tests scan the real tracked tree and expect exit 0), ecosystem.config.js and docs/DEPLOY.md
+# (deploy-local.test); plus install inputs (package.json, yarn.lock, .husky/ via prepare) and
+# this file.
+on:
+  push:
+    branches: [main, develop, develop_staging, 'release/**', 'hotfix/**', 'feature/**', 'fix/**']
+    paths:
+      - 'scripts/**'
+      - '.claude/**'
+      - '.husky/**'
+      - 'handoff/**'
+      - 'CLAUDE.md'
+      - 'docs/DEPLOY.md'
+      - 'ecosystem.config.js'
+      - 'package.json'
+      - 'yarn.lock'
+      - 'jest.config.base.js'
+      - 'tsconfig*.json'
+      - '.github/workflows/scripts-tests.yml'
+  # No paths filter on PRs: a required check that a PR never starts stays "Expected" forever.
+  pull_request:
+    branches: [main, develop, develop_staging]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  scripts-tests:
+    name: Run scripts tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          # '20' resolves to the latest 20.x. deploy-local.test needs >= 20.12 (util.parseEnv);
+          # on an older node its loader tests skip rather than run.
+          node-version: '20'
+          cache: 'yarn'
+      # puppeteer is a root devDependency; the export-pdf tests never launch a browser (they
+      # skip with "PDF not generated" when the PDFs are absent), so no Chromium download.
+      - run: yarn install --frozen-lockfile
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: 'true'
+      # jest and ts-jest are hoisted to the root node_modules from the workspaces.
+      # ubuntu-latest ships shellcheck, so deploy-local.test's shellcheck test runs here
+      # (it skips only when shellcheck is not on PATH).
+      - run: yarn test:scripts

@@ -280,6 +280,7 @@ describe('T-570 config', () => {
     expect(text.match(/^- Never print the environment/gm)?.length).toBe(1);
     expect(text).toContain('(unset REDIS_URL SENTRY_DSN; yarn workspace @lawie/<ws> test)');
     // origin/develop_staging had 59 lines; one line added, small slack allowed.
-    expect(text.split('\n').length).toBeLessThanOrEqual(62);
+    // budget: 80; CLAUDE.md is loaded into every crew context
+    expect(text.split('\n').length).toBeLessThanOrEqual(80);
   });
 });
