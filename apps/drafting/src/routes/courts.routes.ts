@@ -1,5 +1,9 @@
+import { readFileSync } from 'fs';
+import { join } from 'path';
+
 import { Router, Request, Response } from 'express';
 
+import logger from '../config/logger';
 import { Court } from '../models/Court.model';
 import { consumerForum } from '../services/template-engine.service';
 
@@ -10,7 +14,8 @@ const router = Router();
  *
  * Optional query params, accepted by GET /courts, GET /courts/types and GET /courts/states:
  *   - `template`: a template id. Only templates in TEMPLATE_COURT_FILTER narrow the list
- *     (consumer_complaint, T-411; the six bail packs, T-425; maintenance_bnss_144, T-482).
+ *     (consumer_complaint, T-411; the six bail packs, T-425; maintenance_bnss_144, T-482;
+ *     temporary_injunction_o39, T-613).
  *     A missing or unknown template (or one sent more than once) means no filter, i.e.
  *     exactly the pre-T-411 result. Templates' `court_levels` are NOT honoured in general:
  *     the packs use a free vocabulary for them ('transactional', 'magistrate', ...).
@@ -193,6 +198,33 @@ const MAINTENANCE_FILTER: TemplateCourtFilter = {
   levelOf: () => null,
 };
 
+/**
+ * T-613 (Ajay 0d38b724, ruling (i) 3; legal content): an Order 39 temporary injunction
+ * application lies before the civil court where the suit is: Civil Judge (Senior or Junior
+ * Division), District Judge, Commercial Court, or the High Court on its original side or
+ * its Commercial Division. No Supreme Court, NCLAT, tribunal or consumer forum, and no
+ * national stateId (no stateless level). Only records in the courts data are offered.
+ * `commercial_court`, `high_court_original_side` and `commercial_division_high_court`
+ * have no record yet: a record seeded with one of those types is offered with no code
+ * change. A plain `high_court` record (appellate side) is not in scope.
+ */
+const O39_COURT_TYPES = [
+  'civil_court',
+  'civil_court_junior',
+  'district_court',
+  'commercial_court',
+  'high_court_original_side',
+  'commercial_division_high_court',
+];
+
+const O39_FILTER: TemplateCourtFilter = {
+  filter: { courtType: { $in: O39_COURT_TYPES } },
+  levels: [],
+  stateless: [],
+  keepsType: true,
+  levelOf: () => null,
+};
+
 const TEMPLATE_COURT_FILTER: ReadonlyMap<string, TemplateCourtFilter> = new Map([
   ...BAIL_TEMPLATE_IDS.map((id) => [id, bailFilter(id)] as const),
   [
@@ -213,6 +245,7 @@ const TEMPLATE_COURT_FILTER: ReadonlyMap<string, TemplateCourtFilter> = new Map(
     },
   ],
   ['maintenance_bnss_144', MAINTENANCE_FILTER],
+  ['temporary_injunction_o39', O39_FILTER],
 ]);
 
 type TemplateScope =
@@ -296,9 +329,56 @@ async function scopedCourts(
 }
 
 /**
+ * T-613: the stateId the national forums carry (Supreme Court, NCDRC, NCLT Principal
+ * Bench, NCLAT). It is not a State.
+ */
+const NATIONAL_STATE_ID = 'india';
+
+/**
+ * T-613: whether GET /courts/states may list NATIONAL_STATE_ID. Unscoped: yes, the
+ * generic picker is the only way to reach the Supreme Court and the other national
+ * forums (e.g. slp, writs). Scoped: only when the scope has a stateless level and the
+ * request asks for no level or for that level (consumer_complaint and level=national,
+ * i.e. NCDRC). Never for a scope with no national forum (the bail packs, which already
+ * exclude it, maintenance_bnss_144, whose fallback would otherwise offer it, and
+ * temporary_injunction_o39).
+ */
+function nationalInScope(scope: TemplateScope): boolean {
+  if (scope.kind !== 'scoped') return true;
+  const { stateless } = scope.spec;
+  return stateless.length > 0 && (scope.level === null || stateless.includes(scope.level));
+}
+
+const COURTS_FILE = join(__dirname, '..', 'config', 'courts', 'indian-courts.json');
+let stateNames: ReadonlyMap<string, string> | null = null;
+
+/**
+ * T-613: the canonical state names (the `states` list of indian-courts.json), by id. The
+ * court records spell some states several ways; the list never varies by scope. Read once;
+ * an unreadable file gives an empty map (record names are used, as before).
+ */
+function canonicalStateNames(): ReadonlyMap<string, string> {
+  if (stateNames) return stateNames;
+  const names = new Map<string, string>();
+  try {
+    const data = JSON.parse(readFileSync(COURTS_FILE, 'utf-8')) as {
+      states?: Array<{ id?: unknown; name?: unknown }>;
+    };
+    for (const s of data.states ?? []) {
+      if (typeof s.id === 'string' && typeof s.name === 'string') names.set(s.id, s.name);
+    }
+  } catch {
+    // No courts list: record names stand. Logged once: the empty map is cached below.
+    logger.warn({ file: COURTS_FILE }, 'canonical state names unavailable; using record names');
+  }
+  stateNames = names;
+  return names;
+}
+
+/**
  * GET /courts/states[?template=<id>[&level=<level>]]
  * Returns distinct states that have active courts (in the template's scope, if any; see
- * TEMPLATE_COURT_FILTER above).
+ * TEMPLATE_COURT_FILTER above), once per stateId, named from the canonical states list.
  */
 router.get('/states', async (req: Request, res: Response): Promise<void> => {
   const scope = templateScope(req);
@@ -316,11 +396,15 @@ router.get('/states', async (req: Request, res: Response): Promise<void> => {
           'state stateId',
         );
 
+  // T-613: one entry per stateId, named from the canonical `states` list, and the
+  // national stateId only where a national forum can be picked (nationalInScope).
+  const withNational = nationalInScope(scope);
+  const canonical = canonicalStateNames();
   const stateMap = new Map<string, string>();
   for (const c of courts) {
-    if (!stateMap.has(c.stateId)) {
-      stateMap.set(c.stateId, c.state);
-    }
+    if (stateMap.has(c.stateId)) continue;
+    if (c.stateId === NATIONAL_STATE_ID && !withNational) continue;
+    stateMap.set(c.stateId, canonical.get(c.stateId) ?? c.state);
   }
 
   const states = Array.from(stateMap.entries())
@@ -380,6 +464,8 @@ router.get('/types', async (req: Request, res: Response): Promise<void> => {
     cjm: 'Chief Judicial Magistrate',
     jmfc: 'Judicial Magistrate First Class',
     civil_court: 'Civil Court (Senior Division)',
+    // T-613 (Ajay, signed 26 Oct 2026; legal content): the junior civil court.
+    civil_court_junior: 'Civil Court (Junior Division)',
     // T-473: the other court types the courts seed carries, so no raw id shows.
     supreme_court: 'Supreme Court',
     tribunal: 'Tribunal',
