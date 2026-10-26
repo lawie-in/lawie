@@ -237,3 +237,6 @@ Created by Nikhil with `ssm:UpdateDocument` (founder's option A, granted 14:51 U
 
 ### SSM version 5 (26 Oct 2026, 16:20 UTC, Nikhil) — default
 Adds `seed-setting`: parameters `key` (`^(ai|pricing|feature)\.[a-z0-9_.]{1,60}$`, default `ai.unset`) and `value` (`^[A-Za-z0-9_.:\-\[\]{},"]{1,200}$`, default `unset`); both assigned single-quoted (`K='{{ key }}'; V='{{ value }}'`), refused if left at defaults; runs `yarn -s workspace @lawie/drafting seed:setting "$K" "$V"` as ubuntu with the env loaded exactly like `deploy` (v4 loader). Invocation: `--parameters action=seed-setting,key=ai.intake_model,value=claude-haiku-5-5`.
+
+### SSM version 6 (26 Oct 2026, 17:31 UTC, Nikhil) — default
+Only change vs v5: `key` allowedPattern `^(ai|pricing|feature)\.[a-z0-9_.]{1,60}$` → `^(ai|pricing|feature|finance)\.[a-z0-9_.-]{1,60}$` (hyphen allowed, for `ai.rates.<model-id>`; `finance.` prefix, for `finance.usd_inr`), plus the description line. Everything else equal to v5 (verified by JSON comparison before `update-document`). Approved by Arjun 17:29 UTC. A hyphen is safe in the single-quoted `K='{{ key }}'`. Value values with commas need the JSON `--parameters '{"action":["seed-setting"],"key":[...],"value":[...]}'` form, since the shorthand splits on commas.
