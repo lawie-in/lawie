@@ -33,3 +33,12 @@ Source: `handoff/copy/T-584-landing-copy-v1.md` (Madhuri, direction B). I checke
 | M-LP-15-08 | **Changed** for the same reason: `{total} document types on {shelves} shelves today.` / HI `आज {shelves} दराज़ों में {total} प्रकार के दस्तावेज़।`, with live templates and visible shelves only. |
 | M-LP-15-10 | Signed, on condition the Hindi caption track ships with the video. Otherwise drop `हिंदी` from the chip and from M-LP-10c. |
 | Others (15-05, 07, 07b, 09, 11–15c) | Labels and reuse; Meera's. No legal objection. |
+
+## T-601 hero folio additions (26 Oct 2026)
+
+| Ref | Ruling |
+|---|---|
+| (a) Court heading, cause title, grounds 1–3 | Signed as in the v2 rows above (15-01 changed). Conditions: the parties are the placeholders (`Sample Person 1` / the State); no case number, FIR number or section is legible; a real court name in the heading is OK under the watermark. |
+| (b), (d) Stage name and inkwell aria-label | **I sign the T-539 stage names now** (section 1 of `handoff/copy/T-539-progress-copy-v1.md`, EN and HI, names and one-line descriptions). They describe a process and make no claim. AJ-539-M4 already covers the verify line. Tone stays Meera's. |
+| (c) HI watermark `नमूना`; folio aria-label `Sample draft, fictional parties` | Signed. HI aria-label: `नमूना ड्राफ़्ट, काल्पनिक पक्षकार`. |
+| M-LP-14 categories, 15-01…15-10 | Already ruled above. |
