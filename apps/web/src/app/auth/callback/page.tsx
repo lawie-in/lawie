@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useRef, useState } from 'react';
 
 import { useAuth } from '@/context/AuthContext';
+import { takePostLoginPath } from '@/lib/safeReturnPath';
 import { clearSignupSource } from '@/lib/signup-source';
 
 // T-234 — one-time notices when a referral code sent with Google added no Ink.
@@ -79,6 +80,8 @@ function CallbackHandler() {
   // T-234: the auth service adds referral=not_applied (new account, code no longer valid) or
   // referral=existing_account (account already existed). Show the notice once, then continue.
   const [referralNotice, setReferralNotice] = useState<string | null>(null);
+  // T-616: where the sign-in started from (validated again), taken after a successful exchange.
+  const [returnPath, setReturnPath] = useState('/dashboard');
 
   useEffect(() => {
     if (handled.current) return;
@@ -140,12 +143,14 @@ function CallbackHandler() {
       // T-242/T-344: signed in, so the tags are now with the account (new) or not needed
       // (existing). Cleared only here; every error return above keeps them for the next try.
       clearSignupSource();
+      const next = takePostLoginPath() ?? '/dashboard';
       const notice = referralNoticeFor(referral, referralShown);
       if (notice) {
+        setReturnPath(next);
         setReferralNotice(notice);
         return;
       }
-      router.replace('/dashboard');
+      router.replace(next);
     })();
   }, [params, login, router]);
 
@@ -162,7 +167,7 @@ function CallbackHandler() {
           </p>
           <button
             type="button"
-            onClick={() => router.replace('/dashboard')}
+            onClick={() => router.replace(returnPath)}
             className="bg-lawie-600 hover:bg-lawie-700 mt-5 h-12 w-full rounded-xl text-base font-semibold text-white"
           >
             Continue
