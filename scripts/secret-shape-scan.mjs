@@ -38,23 +38,28 @@ export const PATTERNS = [
   { name: 'private-key-header', re: /-----BEGIN (?:[A-Z0-9]+ )*PRIVATE KEY-----/g },
   { name: 'google-api-key', re: /\bAIza[0-9A-Za-z_-]{35}\b/g },
   { name: 'test-signup-secret', re: /\blts_[A-Za-z0-9_-]{28,}/g },
-  { name: 'long-hex', re: /\b[0-9a-fA-F]{32,}\b/g },
+  // Hex boundaries, not word boundaries: also catches 0x<hex> and secret_<hex>.
+  { name: 'long-hex', re: /(?<![0-9A-Fa-f])[0-9A-Fa-f]{32,}(?![0-9A-Fa-f])/g },
 ];
 
 /**
- * Reviewed context allowlist. `context` is tested against the CONTEXT of a hit, with the
- * matched value replaced by `<HIT>`, so an entry can only ever describe surrounding text:
- * the hit's line, the previous non-blank line, and (for a markdown table row) the table's
- * header row. `lengths` restricts an entry to values of those exact lengths. `shape` tests
- * the value's shape only (never a literal value).
+ * Reviewed context allowlist. `context` is tested against the LABEL CONTEXT of a hit, with
+ * the matched value replaced by `<HIT>`, so an entry can only ever describe surrounding text:
+ * the hit's own line, the previous non-blank line only if it is a markdown heading, and (for
+ * a markdown table row) the table's header row. `deny` cancels the entry when that same
+ * context also matches (a "SHA" label next to a secret-ish word is not trusted). `lengths`
+ * restricts an entry to values of those exact lengths. `shape` tests the value's shape only
+ * (never a literal value).
  */
 export const ALLOW = [
   // Signed SHA-256 hashes (64 hex) and git commit SHAs (40 hex) in handoff docs: the line,
-  // the line before it (e.g. a "## Final ship SHA" heading) or the table header names SHA.
+  // a heading right above it (e.g. "## Final ship SHA") or the table header names SHA, and
+  // nothing in that context says secret, key, token, password, webhook or api.
   {
     pattern: 'long-hex',
     lengths: [40, 64],
     context: /\bSHA(?:-?256|-?1)?\b/i,
+    deny: /secret|key|token|password|webhook|api/i,
     reason: 'a content hash or commit SHA labelled as one',
   },
   // A 40-hex commit SHA as the ref in a GitHub blob/tree/commit URL (vendored skill docs).
@@ -81,12 +86,12 @@ export const ALLOW = [
   },
 ];
 
-/** The hit's line, the previous non-blank line and, for a table row, the table header row. */
+/** The hit's line, a markdown heading right above it and, for a table row, the header row. */
 function contextOf(lines, i) {
   const parts = [lines[i]];
   for (let j = i - 1; j >= 0; j -= 1) {
     if (lines[j].trim() !== '') {
-      parts.push(lines[j]);
+      if (/^\s{0,3}#{1,6}\s/.test(lines[j])) parts.push(lines[j]);
       break;
     }
   }
@@ -104,7 +109,11 @@ function isAllowed(patternName, value, context) {
     if (a.lengths && !a.lengths.includes(value.length)) continue;
     if (a.credentials && a.credentials.test(value)) return true;
     if (a.shape && a.shape(value)) return true;
-    if (a.context && a.context.test(context.split(value).join('<HIT>'))) return true;
+    if (a.context) {
+      const masked = context.split(value).join('<HIT>');
+      if (a.deny && a.deny.test(masked)) continue;
+      if (a.context.test(masked)) return true;
+    }
   }
   return false;
 }

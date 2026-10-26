@@ -17,18 +17,32 @@
  *   declare / typeset        bare, options only (e.g. -x), or any -p
  *   readonly                 bare, options only, or -p
  *   set                      bare
- *   /proc/<pid>/environ      any mention
+ *   /proc/<pid>/environ      any mention, also dequoted (env""iron, envir\on) or as a glob
+ *                            that can match `environ` (env*, e?viron, [e]nviron) next to /proc
  *   ps e / ps -E             BSD flags that print process environments
  *   yarn/npm/pnpm run env    the package managers' built-in env dump
  *   systemctl show-environment
+ *   jq                       `env` or `$ENV` as a whole object (jq -n env, jq -n '$ENV')
+ *   awk/gawk/mawk/nawk       ENVIRON other than ENVIRON["NAME"]
  *   interpreters (node, bun, deno, python, perl, ruby, php) whose code dumps the whole
- *   environment object (process.env, os.environ, %ENV, ENV, getenv()) or shells out to
- *   one of the commands above.
+ *   environment object (process.env, process.env.toJSON()/valueOf()/toString(),
+ *   require('process').env, const { env } = process, os.environ, %ENV, ENV, getenv())
+ *   or shells out to one of the commands above.
  * Allowed: `env [-u NAME] [NAME=value] cmd ...` (runs cmd; prints nothing itself), set
  * with options (`set -euo pipefail`), `export NAME=value`, `unset`, single-variable checks
  * (`[ -n "$VAR" ] && echo set`, `test -n "$VAR"`, `[ -z "${VAR+x}" ]`, `process.env.X`,
  * `os.environ.get("X")`, `'X' in os.environ`), and the subshell form
  * `(unset REDIS_URL SENTRY_DSN; yarn workspace @lawie/<ws> test)`.
+ *
+ * Accepted false positive: any command that mentions /proc and environ is blocked, even
+ * git, grep or a commit message quoting them (no exemptions, by design).
+ *
+ * Known out of scope (not caught; this guards against accidents, not a determined agent):
+ * command names built from variables or globs (`$C`, `/usr/bin/pr*env`), eval or
+ * execution of command output (`$(echo printenv)`, `cat x.sh | bash`), shell aliases and
+ * functions, other hosts or processes (ssh host env, docker exec, gdb attach), `set -x`
+ * tracing that echoes expanded values, scripts run from a file, and printing a single
+ * variable (`echo "$X"`, `node -p process.env.X`).
  */
 import { readFileSync, realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -432,12 +446,21 @@ function checkInterpreterCode(code, name) {
   const php = /^php/.test(name);
   if (js) {
     if (
-      /(?<!['"`]\s*in\s+)\b(?:process|Bun)\s*\.\s*env\b(?!\s*(?:\.\s*[A-Za-z_$]|\[|\?\.\s*[A-Za-z_$[]))/.test(
+      /(?<!['"`]\s*in\s+)(?:\b(?:process|Bun)|\brequire\s*\(\s*['"`](?:node:)?process['"`]\s*\))\s*\.\s*env\b(?!\s*(?:(?:\.|\?\.)\s*(?!(?:valueOf|toJSON|toString|toLocaleString|constructor|__proto__)\b)[A-Za-z_$]|\[))/.test(
         code,
       )
     )
       throw new Blocked('interpreter-env-dump');
     if (/\bprocess\s*\[\s*['"`]env['"`]\s*\]/.test(code)) throw new Blocked('interpreter-env-dump');
+    // Destructured whole object: const { env } = process; import { env } from 'process'.
+    if (
+      /\{[^}]*\benv\b[^}]*\}\s*=\s*(?:globalThis\s*\.\s*)?(?:process\b|require\s*\(\s*['"`](?:node:)?process['"`])/.test(
+        code,
+      )
+    )
+      throw new Blocked('interpreter-env-dump');
+    if (/\bimport\s*\{[^}]*\benv\b[^}]*\}\s*from\s*['"`](?:node:)?process['"`]/.test(code))
+      throw new Blocked('interpreter-env-dump');
     if (/\bDeno\s*\.\s*env\s*\.\s*toObject\b/.test(code)) throw new Blocked('interpreter-env-dump');
   }
   if (py) {
@@ -523,6 +546,32 @@ function analyzeWords(input, seg, prevSeg, depth) {
     }
     if (name === 'set') {
       if (args.length === 0) throw new Blocked('set');
+      return;
+    }
+    if (name === 'jq' || name === 'gojq') {
+      // The filter (not option values, not files): `env` / `$ENV` as a whole object.
+      const withArg = ['--arg', '--argjson', '--slurpfile', '--rawfile'];
+      const filters = [];
+      for (let k = 0; k < args.length; k += 1) {
+        const a = args[k];
+        if (withArg.includes(a)) k += 2;
+        else if (['-f', '--from-file', '-L', '--indent', '--tab'].includes(a))
+          k += a === '--tab' ? 0 : 1;
+        else if (a === '--args' || a === '--jsonargs') break;
+        else if (!a.startsWith('-')) filters.push(a);
+      }
+      const code = filters.join('\n');
+      if (
+        /(?<![.\w$])env\b(?!\s*(?:\.\s*[A-Za-z_"]|\[))|\$ENV\b(?!\s*(?:\.\s*[A-Za-z_"]|\[))|\$__prog_args\b/.test(
+          code,
+        )
+      )
+        throw new Blocked('jq-env');
+      return;
+    }
+    if (/^[gmn]?awk$/.test(name)) {
+      if (/\bENVIRON\b(?!\s*\[\s*"[^"]+"\s*\])/.test(args.join('\n')))
+        throw new Blocked('awk-environ');
       return;
     }
     if (name === 'ps') {
@@ -692,10 +741,45 @@ function analyzeWords(input, seg, prevSeg, depth) {
   throw new ParseError('depth');
 }
 
+/** Whether a glob path component (*, ?, [..]) can match the whole name `environ`. */
+function globCanMatchEnviron(component) {
+  if (!/[*?[]/.test(component)) return component === 'environ';
+  let re = '';
+  for (let i = 0; i < component.length; i += 1) {
+    const c = component[i];
+    if (c === '*') re += '.*';
+    else if (c === '?') re += '.';
+    else if (c === '[') {
+      const j = component.indexOf(']', i + 2);
+      if (j < 0) re += '\\[';
+      else {
+        re += `[${component
+          .slice(i + 1, j)
+          .replace(/^!/, '^')
+          .replace(/\\/g, '\\\\')}]`;
+        i = j;
+      }
+    } else re += c.replace(/[.+^${}()|\\]/g, '\\$&');
+  }
+  try {
+    return new RegExp(`^${re}$`).test('environ');
+  } catch {
+    return true; // an unreadable glob next to /proc fails closed
+  }
+}
+
 function analyze(s, depth) {
   if (depth > MAX_DEPTH) throw new ParseError('depth');
   if (/\/proc\b/.test(s) && /environ\b/.test(s)) throw new Blocked('proc-environ');
   const { segments, subs } = tokenize(s);
+  // Dequoted words: /proc/self/env""iron, envir\on, /proc/*/env*, or `cd /proc/1; cat e*`.
+  const words = segments.flatMap((g) => g.words);
+  if (/\/proc\b/.test(s) || words.some((w) => w.includes('/proc'))) {
+    for (const w of words) {
+      if (w.split('/').some((c) => c !== '' && globCanMatchEnviron(c)))
+        throw new Blocked('proc-environ');
+    }
+  }
   segments.forEach((seg, idx) =>
     analyzeWords(seg.words, seg, idx > 0 ? segments[idx - 1] : null, depth),
   );
