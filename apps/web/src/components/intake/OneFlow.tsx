@@ -226,6 +226,7 @@ function OneFlowSteps({
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ text: string; retry?: boolean } | null>(null);
   const [choices, setChoices] = useState<Array<{ kind: string; name: string }>>([]);
+  const [unranked, setUnranked] = useState(false);
 
   const [brief, setBriefState] = useState<Brief | null>(null);
   /** T-147b: the fact ledger, only when the service sends one. */
@@ -297,6 +298,7 @@ function OneFlowSteps({
     setPreset(null);
     setMessage(null);
     setChoices([]);
+    setUnranked(false);
     setBrief(null);
     setLedger(null);
     setQuestions([]);
@@ -408,6 +410,7 @@ function OneFlowSteps({
             return;
           case 'needs_choice':
             setChoices(data.choices ?? []);
+            setUnranked(data.unranked === true);
             setPhase('choice');
             return;
           case 'no_match':
@@ -1038,6 +1041,7 @@ function OneFlowSteps({
         onChoose={handleChoose}
         onEditDescription={editDescription}
         submitting={busy}
+        unranked={unranked}
       />
     );
   }
