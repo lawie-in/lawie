@@ -137,4 +137,22 @@ describe('DocumentChoiceStep unranked (T-622)', () => {
     cleanupMounted();
     expect(setup(false).alert()).toBeNull();
   });
+
+  it('(9) a second press with nothing picked remounts the alert (new node, still exactly one); picking removes it', () => {
+    const { cont, alert, radios, container } = setup(true);
+    const alerts = () => qa('[role="alert"]', container);
+    click(cont());
+    const first = alert();
+    expect(first).not.toBeNull();
+    expect(alerts()).toHaveLength(1);
+    click(cont());
+    const second = alert();
+    expect(second).not.toBeNull();
+    expect(second).not.toBe(first);
+    expect(first!.isConnected).toBe(false);
+    expect(alerts()).toHaveLength(1);
+    expect(second!.textContent).toBe('Pick a document to continue.');
+    click(radios()[0]);
+    expect(alerts()).toHaveLength(0);
+  });
 });

@@ -46,6 +46,8 @@ export default function DocumentChoiceStep({
     unranked ? null : (choices[0]?.template_id ?? NONE_OF_THESE),
   );
   const [pickError, setPickError] = useState(false);
+  // Remounts the alert on every guarded press, so a screen reader announces it each time.
+  const [pickTries, setPickTries] = useState(0);
   const groupRef = useRef<HTMLDivElement>(null);
   const nothingPicked = selected === null;
   const name = useId();
@@ -69,6 +71,7 @@ export default function DocumentChoiceStep({
           e.preventDefault();
           if (selected === null) {
             setPickError(true);
+            setPickTries((n) => n + 1);
             groupRef.current?.querySelector<HTMLInputElement>('input[type="radio"]')?.focus();
             return;
           }
@@ -104,7 +107,7 @@ export default function DocumentChoiceStep({
             })}
           </div>
           {pickError && (
-            <p role="alert" className="nl-body-sm text-nl-err mt-nl-3">
+            <p key={pickTries} role="alert" className="nl-body-sm text-nl-err mt-nl-3">
               {PICK_A_DOCUMENT.en}
             </p>
           )}
