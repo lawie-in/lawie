@@ -34,6 +34,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 
 import { useAuth } from '@/context/AuthContext';
+import { buildLoginRedirect } from '@/lib/safeReturnPath';
 
 interface NavItem {
   href: string;
@@ -73,7 +74,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
   }
   if (!user) {
-    if (typeof window !== 'undefined') router.replace('/login');
+    // T-616: come back to this page after signing in (pathname only, never the query).
+    if (typeof window !== 'undefined') router.replace(buildLoginRedirect(pathname));
     return null;
   }
   if (user.role !== 'Admin') {
