@@ -5,3 +5,4 @@
 | 2026-10-26 09:58 | lawie-prod | `lawie-prod-ops action=health` (first SSM check; IAM user `lawie-arjun-ops`) | arjun session (Task 1), founder go in chat | Success: 4000/4001/4002/4003/9100 → 200; 3000 → 404 (web has no `/health` route; pm2 shows lawie-web online) |
 | 2026-10-26 09:58 | lawie-prod | `lawie-prod-ops action=status` | arjun session (Task 1), founder go in chat | Success: all 6 lawie-* online; billing ↺1 (7h uptime), others ↺0 (10h) |
 | 2026-10-26 09:58 | lawie-prod | `lawie-prod-ops action=disk` | arjun session (Task 1), founder go in chat | Success: / 52% used (9.9G/20G); RAM 846M used of 3836M; swap 0 used |
+| 2026-10-26 11:26 | lawie-prod | `lawie-prod-ops action=health/status/disk` (restart session; `sts` = `lawie-arjun-ops`, 3 AWS vars set) | arjun session (Task 1) | **Not sent**: SSM send-command blocked by this session's permission classifier; nothing ran on the box |
