@@ -1,0 +1,29 @@
+{
+  "bail_regular": [
+    "regular bail",
+    "sessions court bail",
+    "bail before the sessions",
+    "bail in the high court",
+    "483 bnss",
+    "439 crpc",
+    "नियमित जमानत"
+  ],
+  "bail_anticipatory": [
+    "anticipatory bail",
+    "apprehension of arrest",
+    "apprehends arrest",
+    "pre-arrest bail",
+    "482 bnss",
+    "438 crpc",
+    "अग्रिम जमानत"
+  ],
+  "bail_before_magistrate": [
+    "bail before the magistrate",
+    "magistrate bail",
+    "480 bnss",
+    "437 crpc"
+  ],
+  "default_bail": ["default bail", "statutory bail", "187(3) bnss", "167(2) crpc"],
+  "interim_bail": ["interim bail", "temporary bail", "अंतरिम जमानत"],
+  "bail_cancellation": ["cancellation of bail", "cancel bail", "cancel the bail", "439(2) crpc"]
+}

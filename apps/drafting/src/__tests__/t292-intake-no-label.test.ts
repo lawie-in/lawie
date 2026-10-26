@@ -45,7 +45,10 @@ const headers = () => ({
 // T-482 (Ajay 9ad6a8f1, wording signed in 59d26051): the "match terms" rule line was added; the
 // hash below is of the prompt with it. The earlier hash (9b5d2d0f...) is still the prompt minus
 // that one line (t482-maintenance-routing test).
-const PROMPT_SHA256 = '3b8abbf3ee79a9d04a7cabc6eca61bd367875b1a04f5cba0baab4975aae40fc9';
+// T-610 (Ajay, signed 26 Oct 2026): the single bail line became six bail lines (regular/anticipatory,
+// which court, default, interim, cancellation, s.482). The hash below is of the prompt with them;
+// the t610 test pins the six lines themselves.
+const PROMPT_SHA256 = '91a5a5ead8a96c5b95def5568c53bb804ecd3e7f2c9a02d2c5f0f551a88dc323';
 
 describe('T-292 match prompt: no label', () => {
   it('contains no "label" anywhere, as a rule or a JSON key', () => {

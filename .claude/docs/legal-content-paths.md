@@ -43,12 +43,14 @@ See also `.claude/docs/golden-snapshots.md` — most of the court-rules paths ab
 - `apps/web/src/app/(marketing)/faq/page.tsx`, `apps/web/src/app/(marketing)/privacy/page.tsx` and `apps/web/src/app/(marketing)/refunds/page.tsx` (T-555, AJ-554-M1). Ajay signs their text.
 - `apps/email-worker/src/templates/auth/welcome.tsx` (T-557, AJ-556-M1). Ajay signs their text.
 
+- `apps/drafting/src/services/intake-keyword-match.ts`, and the T-610 bail fallback branch in `intake.service.ts` (T610-F2/F2a/F2b/E1: two bail cards shown, unranked, nothing charged), added by T-610 (Ajay, 26 Oct 2026).
+
 Database content, not a repo path: the four sample PDFs (output of `apps/drafting/scripts/seed-sample-pdfs.ts`, stored in MongoDB, served at `/api/samples/*`; T-254). They are not files in the repo, and each regenerated PDF still needs Ajay's signature on its exported text before any link is restored. HARD RULE: run `apps/drafting/scripts/seed-sample-pdfs.ts` against a non-production database only. The script loads `.env.production` first when that file exists, and a `MONGO_URI` already exported in your shell beats every env file, so check the effective `MONGO_URI` before every run: the value in your shell, and the env file the script reports loading (`→ Loaded env from ...`).
 
 Any NEW file that holds a prompt is legal content from the day it is created. A prompt moved to a new file stays legal content. A prompt split out of, or copied from, a listed file is covered from the commit that moves or copies it. The ticket that creates the file adds its path to this list in the same change. Whoever builds a planned file removes its "planned" marker, and corrects the path if it differs, in the same change.
 
 **Deliberately not on this list (Ajay, 15 Oct 2026)**
 
-`apps/drafting/src/services/intake.service.ts` only imports its prompts from the listed `intake.prompts.ts`.
+`apps/drafting/src/services/intake.service.ts` imports its prompts from the listed `intake.prompts.ts`; the rest of the file is not legal content, EXCEPT the T-610 bail fallback branch, which is listed above (Ajay, 26 Oct 2026).
 
 `apps/drafting/src/services/fact-ledger.service.ts` holds the fact-merge rule (ADR-019 4.1.5), and `apps/drafting/src/services/rule-pack.service.ts` passes `prompt_context` and `promptInstructions` on and hosts the `loadSkeleton` loader. A ticket that changes a rule or a prompt in either of these last two must ask Ajay first.
