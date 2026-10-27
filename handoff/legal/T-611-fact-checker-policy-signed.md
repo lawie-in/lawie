@@ -93,3 +93,5 @@ Also recorded: the T-488 correction in `go-live-ruling-23-oct.md` (it was never 
 | Follow-up (not T-637) | The cause-title template prints a typed non-answer ("R/o Not known"). Rule for that ticket (with T-640, Priya routes it): a FR-9 no-fact answer in any code-assembled section (cause title, verification, advocate block) prints the section's signed blank (`_____`), never the non-answer text. |
 
 **T-637 APPROVED at a42e2f58.** It counts as merged at the develop_staging merge SHA that contains a42e2f58. FR-6 (the ledger-flag state in the release note) and FR-7 conditions still apply.
+
+**T-637 merged (Ajay, 27 Oct 2026):** develop_staging merge SHA `1701b2da53abc4fb7096f20f76df55d7a9daf94b` contains a42e2f58. I checked it myself: form-ledger and fact-verifier have their approved hashes after the merge. CI is pending.
