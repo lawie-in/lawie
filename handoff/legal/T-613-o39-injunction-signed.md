@@ -142,4 +142,4 @@ The `blocks_confirm` flag applies to `main_suit_relief` and `restraint_sought`. 
 **APPROVED at 12a7b2bf.** It counts as merged at the develop_staging SHA that contains 12a7b2bf. It ships with T-613 and T-629; T-637 (the form-route T-611 gate) is a prod release gate.
 | 4 | T-634 web labels (`fix/t-634-t613-follow-ups` @ 23fee46c): **APPROVED.** SAVED_TYPE_NAMES `civil_court_junior`, `high_court`, `high_court_bench` and `sessions` are byte-identical to courts.routes.ts TYPE_LABELS (lines 460–468). Munsif was not added, which is correct. It counts as merged at the develop_staging SHA that contains 23fee46c. |
 
-**T-628 merged (Ajay, 27 Oct 2026):** develop_staging `b2e910540842c8417b8fcc8f9b01348d3925df16` contains 12a7b2bf. I checked it myself, and prayer-date-gate and ai.service have the same hashes after the merge. CI is pending (Vishal confirms green).
+**T-628 merged (Ajay, 27 Oct 2026):** develop_staging merge SHA `b2e910540842c8417b8fcc8f9b01348d3925df16` contains 12a7b2bf. I checked it myself, and prayer-date-gate and ai.service have the same hashes after the merge. CI is pending (Vishal confirms green).
