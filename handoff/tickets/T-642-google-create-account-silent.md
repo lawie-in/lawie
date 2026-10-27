@@ -1,6 +1,8 @@
 # T-642 — Google on Create account does nothing (prod hotfix)
 
-Status: assigned to vishal, 27 Oct 2026 (hotfix, founder)
+Status: in review — passed fresh reviewer 27 Oct 2026 (branch 91dadb56); awaiting Ajay byte-check. Release as v1.2.1.
+
+**SCOPE CHANGED 27 Oct 2026 (founder: build all now):** full chain. A) M16 next-sign-in consent panel for acceptedVia 'google' accounts (AJ-642-M1..M7, Arjun field names + 3 conditions, Rajesh panel (c) + constraints). B) Google on Create account needs no tick; byContinuing line on both tabs; email keeps the checkbox. The original ACs below are superseded by those rulings.
 Priority: P0 hotfix on v1.2.0 prod
 Mode: small fix (web only, one file + its tests)
 
