@@ -19,7 +19,10 @@ const envObject = z.object({
   JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 chars'),
   JWT_REFRESH_SECRET: z.string().min(32, 'JWT_REFRESH_SECRET must be at least 32 chars'),
   JWT_EXPIRES_IN: z.string().default('15m'),
-  JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
+  // T-616b — IGNORED. The refresh lifetime is no longer configurable: it comes from
+  // @lawie/shared (SESSION_TTL_HOURS sliding, SESSION_ABSOLUTE_DAYS ceiling). Still accepted so
+  // an environment that still sets it keeps booting; nothing reads it.
+  JWT_REFRESH_EXPIRES_IN: z.string().optional(),
 
   // Google OAuth — optional so the service starts without creds in dev
   // Set both to enable the /google OAuth route
