@@ -116,7 +116,7 @@ import {
   VerifierInput,
   verifyDraft,
 } from './fact-verifier';
-import { buildInMemoryLedger, formLedgerValues } from './form-ledger';
+import { briefLedgerValues, buildInMemoryLedger, formLedgerValues } from './form-ledger';
 import { Brief, buildChecklist, FIXED_KEYS } from './intake-brief';
 import {
   DEFAULT_BAIL_CRPC_ACT,
@@ -176,7 +176,6 @@ import { assemblePrompt, PromptInput } from './prompt-assembler';
 import { renderRelatedActs } from './related-acts';
 import { loadRulePack, loadSkeleton as loadSignedSkeleton } from './rule-pack.service';
 import type { RulePack } from './rule-pack.service';
-import { withS138DateChecks } from './s138-date-checks';
 import { convertOldReferencesInText } from './sections.service';
 import {
   TemplateConfig,
@@ -1371,14 +1370,14 @@ export async function streamGenerateFromTemplate(
     // Worked out here so the gate's ledger carries its one computed fact.
     const limitation = limitationForValues(templateConfig.template_id, convertedFormData);
 
-    // ── T-637: the T-611 delivery gate on the form route (Ajay FR-1, FR-2) ────
+    // ── T-637: the held-blank gate on the form route (Ajay FR-1, FR-2) ───────
     // Always, whatever feature.fact_ledger says. The ledger is built in memory
     // from the form answers for this request (source `asked`, Ajay FR-3) and
-    // never stored. The same steps as the brief pack path: the one code fill,
-    // one model repair of what code could not fill, the fact verifier, then the
-    // withhold (fact_conflict, then fact_needed, then T-628 past_date: one
-    // question at a time). A withheld draft is not delivered and takes no Ink:
-    // the route releases the hold and saves the failed row; no done.
+    // never stored. Arjun option B, gate only: the one code fill of a held
+    // blank, one model repair of what code could not fill, then fact_needed;
+    // then T-628 past_date (one question at a time). No fact verifier on this
+    // route, so no fact_conflict. A withheld draft is not delivered and takes
+    // no Ink: the route releases the hold and saves the failed row; no done.
     // No T-200 recordAgainAfterCodeEdit here: this route has no clause report
     // (no ===CLAUSES=== trailer and no findMissingClauses), so there is nothing
     // to record again. Logs carry ids, keys and codes only, never a value.
@@ -1406,7 +1405,10 @@ export async function streamGenerateFromTemplate(
       packText: packTexts(gatePack),
       packId: gatePack.id,
     });
-    /** The fact repair call: one model call on the signed fact-repair prompt, as on the brief path. */
+    /**
+     * The held-blank repair's one model call on the signed fact-repair prompt
+     * (repairHeldBlanks), as on the brief path.
+     */
     const factRepair: FactRepairCall = async (system, user) => {
       res.write(`event: repair\ndata: ${JSON.stringify({ facts: true })}\n\n`);
       let factRaw = '';
@@ -1436,37 +1438,21 @@ export async function streamGenerateFromTemplate(
         return null;
       }
     };
-    let conflict: FactConflict | null = null;
     const bodyHeld: HeldBlank[] = [];
-    for (let i = 0; i < renderedSections.length && conflict === null; i++) {
+    for (let i = 0; i < renderedSections.length; i++) {
       const section = renderedSections[i];
       if (section.type !== 'ai_generated') continue;
       // Ajay FR-4: a `[To be confirmed: <label>]` for a held fact is a blank here.
-      let body = heldLabelBlanksAsMissing(section.content, gateFacts);
+      const marked = heldLabelBlanksAsMissing(section.content, gateFacts);
       // T-611 P6 (L10(c)): the one deterministic fill, then one model repair.
-      const fill = fillHeldBlanks(body, gateFacts);
-      body = fill.text;
+      const fill = fillHeldBlanks(marked, gateFacts);
+      let body = fill.text;
       if (fill.left.length > 0) body = await repairHeldBlanks(verifierInputFor(body), factRepair);
-      // T-147d / T-611 P1-P3: the fact verifier, with its one targeted repair.
-      const check = await verifyAndRepair(verifierInputFor(body), factRepair);
-      renderedSections[i] = { ...section, content: check.body };
-      if ((check.conflicts ?? []).length > 0) {
-        conflict = (check.conflicts as FactConflict[])[0];
-        break;
-      }
-      // P6: the blanks the fact check itself put in stay blanks and are not counted.
-      bodyHeld.push(...heldBlanksIn(check.body, gateFacts, check.ownBlankLabels ?? []));
-    }
-    if (conflict !== null) {
-      throw withholdDraft(
-        res,
-        input.runId,
-        templateConfig.template_id,
-        { code: 'fact_conflict', conflict },
-        meter.totals(),
-        aiModel,
-        transport,
-      );
+      // Where the gate did nothing the text is unchanged (`marked` differs
+      // only where a held `[To be confirmed]` was found, which is withheld below
+      // unless it was filled).
+      if (body !== section.content) renderedSections[i] = { ...section, content: body };
+      bodyHeld.push(...heldBlanksIn(body, gateFacts));
     }
     // The parts the system wrote: the same one deterministic fill (no model call).
     renderedSections.forEach((section, i) => {
@@ -1787,6 +1773,19 @@ export interface BriefGenerateInput {
   runId: string;
   runSequence: number;
   runType: RunType;
+  /**
+   * T-637 (Arjun option B, gate only): with no `ledger`, an in-memory ledger
+   * built from the confirmed brief for this request (form-ledger.ts), never
+   * stored. Read ONLY by the held-blank gate: the one code fill of a
+   * `{{MISSING: label}}` for a held fact, one repair of what is left, then
+   * fact_needed. The Drafter, its prompt, the checks and the D1 choice never
+   * see it. Ignored when `ledger` is present. Absent with no ledger: built here.
+   */
+  gateLedger?: {
+    facts: LedgerFact[];
+    unresolved: LedgerUnresolvedFact[];
+    lists: AvermentLists;
+  };
   /**
    * T-373 (ADR-025 D1): the pack's signed skeleton source. Absent: T-374's
    * `loadSkeleton` from rule-pack.service.ts (the `_skeletons/` files).
@@ -2245,10 +2244,10 @@ function limitationClaimWarnings(
 /**
  * T-637: the ledger the form route's gate reads, for this request only and
  * never stored: the form answers as `asked` facts (Ajay FR-3; form-ledger.ts),
- * then the per-request computed facts the brief path adds, in its order and by
- * the same functions: the T-192 s.138 date checks (generate-from-brief), the
- * T-245a law switch, the T-472 limitation and the T-611 P5 amount in words
- * (streamGenerateFromBrief).
+ * then the per-request computed facts streamGenerateFromBrief adds, in its
+ * order and by the same functions: the T-245a law switch, the T-472
+ * limitation and the T-611 P5 amount in words. (Not the T-192 s.138 date
+ * checks: T-363 ruling (b) keeps them on generate-from-brief, after Confirm.)
  */
 function formRouteLedger(
   pack: RulePack,
@@ -2256,12 +2255,29 @@ function formRouteLedger(
   law: LawSwitchResult | null,
   limitation: LimitationResult | null,
 ): { facts: LedgerFact[]; unresolved: LedgerUnresolvedFact[] } {
-  const state = buildInMemoryLedger(pack, formLedgerValues(values));
-  let facts = withS138DateChecks(
-    state.facts,
-    pack.id,
-    state.unresolved.map((u) => u.key),
+  return withGateComputedFacts(
+    pack,
+    buildInMemoryLedger(pack, formLedgerValues(values)),
+    law,
+    limitation,
   );
+}
+
+/**
+ * T-637: an in-memory gate ledger with the per-request computed facts, in the
+ * brief path's order (T-245a law switch, T-472 limitation, T-611 P5 amount in
+ * words), by the same functions. Never stored.
+ */
+function withGateComputedFacts(
+  pack: RulePack,
+  state: { facts: readonly LedgerFact[]; unresolved: LedgerUnresolvedFact[] },
+  law: LawSwitchResult | null,
+  limitation: LimitationResult | null,
+): { facts: LedgerFact[]; unresolved: LedgerUnresolvedFact[] } {
+  // T-363 ruling (b): the s.138 date checks are added on generate-from-brief
+  // only, after Confirm (the route adds them to the brief's gate ledger); the
+  // form route has no Confirm step and does not add them.
+  let facts = [...state.facts];
   if (law !== null) facts = withLawSwitchFacts(facts, law);
   if (limitation !== null) facts = withLimitationFact(facts, limitation);
   facts = withAmountInWordsFact(facts, buildChecklist(pack));
@@ -2335,6 +2351,19 @@ export async function streamGenerateFromBrief(
       }
     : limitedInput;
   const { pack: loadedPack, templateConfig, courtData } = input;
+  // T-637 (Arjun option B, gate only): with no persisted ledger, the held-blank
+  // gate's in-memory ledger (the route's, else built here from the confirmed
+  // brief), with the same per-request computed facts. Nothing else reads it.
+  const gateBase = input.ledger
+    ? null
+    : (input.gateLedger ?? {
+        ...buildInMemoryLedger(loadedPack, briefLedgerValues(input.brief)),
+        lists: loadAvermentLists(loadedPack.id),
+      });
+  const gateLedger =
+    gateBase === null
+      ? null
+      : { ...withGateComputedFacts(loadedPack, gateBase, law, limitation), lists: gateBase.lists };
   // T-147c: with the ledger, everything the system writes and every check reads
   // the ledger's displays; without it, the brief exactly as before.
   const brief = input.ledger ? ledgerSkeletonBrief(input.brief, input.ledger.facts) : input.brief;
@@ -2576,10 +2605,11 @@ export async function streamGenerateFromBrief(
       });
     }
 
-    // The body streams as it is written only with no ledger (T-147d) and never
-    // for the pack the T-628 gate reads, whose body goes out with the system's
-    // parts once the gate has passed.
-    const streamBody = !ledgerInput && pack.id !== PAST_DATE_GATE_PACK_ID;
+    // The body streams as it is written only with no ledger (T-147d), never
+    // for the pack the T-628 gate reads, and (T-637) never while the held-blank
+    // gate below may withhold it: its body goes out with the system's parts
+    // once the gates have passed.
+    const streamBody = !ledgerInput && gateLedger === null && pack.id !== PAST_DATE_GATE_PACK_ID;
     try {
       // T-431: a sided pack's system prompt ends with the deponent line; it
       // varies per request, so that prompt is not cached (T-437).
@@ -2917,6 +2947,63 @@ export async function streamGenerateFromBrief(
         );
       }
     }
+    // ── T-637: the held-blank gate with no persisted ledger (Arjun option B) ──
+    // T-611 P6 only, on the in-memory ledger: the one code fill of a
+    // `{{MISSING: label}}` for a held fact, one model repair of what code
+    // could not fill, then fact_needed (withheld, no Ink, the signed line). No
+    // fact verifier here, so no fact_conflict: the verifier runs only with a
+    // persisted ledger, as before. The T-200 records follow the same rules as
+    // on the ledger path (R2b.1 for the fill, R2b.4 for the repair).
+    if (!ledgerInput && gateLedger !== null) {
+      const g = gateLedger;
+      const before = output.body;
+      const bodyFill = fillHeldBlanks(output.body, g.facts);
+      if (bodyFill.text !== output.body) {
+        recordAgainAfterCodeEdit(output.report, output.body, bodyFill.text, recorded, missing);
+        output = { ...output, body: bodyFill.text };
+      }
+      if (bodyFill.left.length > 0) {
+        const repairedBody = await repairHeldBlanks(verifierInputFor(output.body, g), factRepair);
+        if (repairedBody !== output.body) {
+          recordAgainAfterCodeEdit(
+            output.report,
+            output.body,
+            repairedBody,
+            recorded,
+            missing,
+            heldBlankSpans(output.body, g.facts),
+          );
+          output = { ...output, body: repairedBody };
+        }
+      }
+      // The clauses are checked again only when the gate changed the body.
+      if (output.body !== before) {
+        missing = findMissingClauses(pack, output, parts, { ...clauseCheck, recorded });
+      }
+      // The parts the system wrote: the same one deterministic fill (no model call).
+      renderedSections.forEach((section, i) => {
+        if (i === bodyAt) return;
+        const filled = fillHeldBlanks(section.content, g.facts);
+        if (filled.filled.length > 0) renderedSections[i] = { ...section, content: filled.text };
+      });
+      const stillHeld = [
+        ...heldBlanksIn(output.body, g.facts),
+        ...renderedSections
+          .filter((_s, i) => i !== bodyAt)
+          .flatMap((sec) => heldBlanksIn(sec.content, g.facts)),
+      ];
+      if (stillHeld.length > 0) {
+        throw withholdDraft(
+          res,
+          input.runId,
+          pack.id,
+          { code: 'fact_needed', blank: stillHeld[0] },
+          meter.totals(),
+          aiModel,
+          transport,
+        );
+      }
+    }
     // ── T-628: a past date in the O.39 prayer (Ajay, T-613 §(h), §(k)) ────────
     // After the T-611 checks, with or without a ledger. The draft is withheld
     // until the advocate gives restraint_sought again: no delivery, no Ink.
@@ -2932,7 +3019,7 @@ export async function streamGenerateFromBrief(
       [
         ctx[SUBJECT_MATTER_KEY],
         formData[SUBJECT_MATTER_KEY],
-        ...subjectMatterDisplays(input.ledger?.facts),
+        ...subjectMatterDisplays(input.ledger?.facts ?? gateLedger?.facts),
       ],
     );
     if (pastDate !== null) {

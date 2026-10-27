@@ -1617,12 +1617,10 @@ router.post(
     // before any hold or model call). For a pack that does not ask it is
     // costForTemplate, the price enforceCredits checked, and nothing below
     // changes; `paragraphs` still only feeds clampTarget, as before.
-    // T-637: every rule-pack draft now drafts from a ledger (the persisted one,
-    // else the in-memory one built below), so the skeleton rule reads it as in use.
     let quote = await quoteDraft(recordId, {
       paragraphs: parsed.data.paragraphs,
       facts: paragraphFactsFor(values, ledger?.facts),
-      ceiling: draftsViaSkeleton(kind, ledger !== null || pack !== null, language),
+      ceiling: draftsViaSkeleton(kind, ledger !== null, language),
     });
     if (!quote) {
       // enforceCredits already refused an unpriced id; kept for the type.
@@ -1675,14 +1673,14 @@ router.post(
       return;
     }
 
-    // T-637 (Arjun, 27 Oct 2026): the T-611 delivery gate runs on every draft,
-    // whatever feature.fact_ledger says. With no persisted ledger (none sent,
-    // or the switch off), one is built in memory from the confirmed brief for
-    // this request: description values as `user`, typed or edited answers as
-    // `asked`, as overlayBrief would write them, and the same T-192 s.138 date
-    // checks. It is never stored and needs no intake id. With a persisted
-    // ledger nothing here runs. Before any hold; ids only in the log.
-    let memoryLedger: {
+    // T-637 (Arjun option B, gate only): with no persisted ledger (none sent,
+    // or feature.fact_ledger off), an in-memory ledger is built from the
+    // confirmed brief for this request: description values as `user`, typed or
+    // edited answers as `asked`, as overlayBrief would write them. It is used
+    // ONLY by the held-blank gate (fill, one repair, fact_needed); the Drafter,
+    // its prompt, the verifier, FactDiff and the ledger flag see no ledger, as
+    // before. Never stored; no intake id. Before any hold; ids only in the log.
+    let gateLedger: {
       facts: LedgerFact[];
       unresolved: LedgerUnresolvedFact[];
       lists: AvermentLists;
@@ -1700,7 +1698,8 @@ router.post(
         return;
       }
       const state = buildInMemoryLedger(pack, briefLedgerValues(brief));
-      memoryLedger = {
+      gateLedger = {
+        // T-192 / T-363 (b): the s.138 date checks, after Confirm, as for a stored ledger.
         facts: withS138DateChecks(
           state.facts,
           kind,
@@ -1710,8 +1709,6 @@ router.post(
         lists,
       };
     }
-    /** The ledger the draft is written from and gated on: the persisted one, else the in-memory one. */
-    const draftLedger = ledger ?? memoryLedger;
 
     // ADR-021 rule 3: the court comes from the courts list only.
     let courtData: CourtLookupData | undefined;
@@ -1843,15 +1840,17 @@ router.post(
                   pack,
                   templateConfig,
                   ...(described ? { described } : {}),
-                  ...(draftLedger
+                  ...(ledger
                     ? {
                         ledger: {
-                          facts: draftLedger.facts,
-                          lists: draftLedger.lists,
-                          unresolved: draftLedger.unresolved,
+                          facts: ledger.facts,
+                          lists: ledger.lists,
+                          unresolved: ledger.unresolved,
                         },
                       }
                     : {}),
+                  // T-637: with no persisted ledger, the held-blank gate's ledger only.
+                  ...(gateLedger ? { gateLedger } : {}),
                   advocateName: payload.name || undefined,
                   enrollmentNumber: await profileEnrollmentNumber(payload.sub),
                 },
@@ -1891,8 +1890,7 @@ router.post(
           runId,
           runSequence,
           runType,
-          // T-480: which drafting path ran (T-637: the in-memory ledger is that path too).
-          ledger: draftLedger ? 'on' : 'off',
+          ledger: ledger ? 'on' : 'off',
           ...quoteRecord,
         });
         if (failed) {
@@ -1993,8 +1991,7 @@ router.post(
           runId,
           runSequence,
           runType,
-          // T-480: which drafting path ran (T-637: the in-memory ledger is that path too).
-          ledger: draftLedger ? 'on' : 'off',
+          ledger: ledger ? 'on' : 'off',
           ...quoteRecord,
         });
         duplicateAttempt = duplicate;
@@ -2015,8 +2012,7 @@ router.post(
       // Its own try: a failure here never stops the draft. Ids only in the log line.
       // T-373 (Arjun B): on D1 the read-only findings come in factDiff, tagged d1.
       const factOutcome = result.factCheck ?? result.factDiff?.outcome;
-      // T-637: an in-memory ledger has no id (null) and no fixture run type.
-      if (draftLedger && pack && factOutcome && !duplicateAttempt) {
+      if (ledger && pack && factOutcome && !duplicateAttempt) {
         try {
           await writeFactCheckLog({
             outcome: factOutcome,
@@ -2024,10 +2020,10 @@ router.post(
             runId,
             documentId: docId,
             userId: payload.sub,
-            ledgerId: ledger ? ledger.id : null,
+            ledgerId: ledger.id,
             rulePack: pack.id,
             rulePackVersion: rulePackVersionOf(pack),
-            runType: ledger ? ledger.runType : factDiffRunType(undefined),
+            runType: ledger.runType,
             requiredFactCount: buildChecklist(pack).filter((i) => i.required).length,
             deliveredText: result.fullText,
           });
@@ -2086,9 +2082,8 @@ router.post(
           : result.missingClauses
         ).map((m) => ({ id: m.id, title: m.title })),
         repaired: result.repaired,
-        // T-480: which drafting path ran (on = written from a fact ledger,
-        // persisted or, T-637, in memory).
-        ledger: draftLedger ? 'on' : 'off',
+        // T-480: which drafting path ran (on = written from a fact ledger).
+        ledger: ledger ? 'on' : 'off',
         startingDraft: result.startingDraft,
         startingDraftLabel: result.startingDraft ? STARTING_DRAFT_LABEL : null,
         labelReason: result.labelReason,
