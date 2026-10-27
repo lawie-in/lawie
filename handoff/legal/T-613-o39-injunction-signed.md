@@ -119,3 +119,4 @@ The `blocks_confirm` flag applies to `main_suit_relief` and `restraint_sought`. 
 | F3 sale-deed date | Covered by T-611 P2 (merged at 023b08c5). Re-test on develop with Anushka's matter. |
 
 **APPROVED at 502e05e9.** It counts as merged only at the develop_staging SHA that contains 502e05e9. T-629 (Confirm block) and T-628 (prayer date gate) must be in the same prod release.
+| 5 | (T-628, 27 Oct) A day-first numeric date (03/12/2026 = 3 December 2026) **counts as resolved and blocks** if it is past. That is the Indian convention the brief already uses, and the gate only asks a question, so a misread costs one question, not a wrong draft. One addition: a month-and-year with no day ("September 2026") whose whole month ended before today (IST) blocks. A current or future month does not. The other gaps Vishal lists (Devanagari month first, other spellings, ambiguous two-digit years) do not block; I accept that for Phase 0. |
