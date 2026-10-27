@@ -50,3 +50,12 @@ Reason: the arrest date starts custody, not judicial custody. "In judicial custo
 - FIR or case reference: the existing form stays where a template already uses it (`{police_station} P.S. Case No. …`, Bihar and Jharkhand usage). Do not add it where it is absent.
 - Hindi: `थाना {police_station}`.
 - No other wording ships. Every template that prints the slot is checked so that each draft has exactly one prefix. This is in my byte check at READY.
+
+## (7) Build questions (Ajay, 27 Oct 2026)
+
+| # | ruling |
+| --- | --- |
+| 1 | No roots fallback in bail_regular: **confirmed.** Its `roots` clause drops itself when `local_ties` is empty, and its `no_flight_risk` ground has no slot, so there is no gap. Adding a fallback would print a ground the advocate never ticked. |
+| 2 | `_averments`: **add entries** for G2 and G4 in both packs, so the T-200 clause check can find them. G2: kind `averment`, text `the amount in dispute has been paid or deposited by or on behalf of the applicant, without prejudice to the applicant's defence`. G4: kind `averment`, text `the applicant is ready to furnish a bail bond with surety to the satisfaction of this Hon'ble Court and to abide by every condition this Hon'ble Court may impose`. No `requires` (no slot). Phrases are Tanvi's to propose and come to me with the byte check. |
+| 3 | v6 skeleton re-sign: I re-sign only from a **pushed** commit after the review passes. I rebuild the SHA from the JSON at that commit myself. The parked T-500 changes, if they land, become v7. |
+| 4 | T-638 note: `annexures.service.ts:505` "registered at PS {ps}" → `registered at Police Station {ps}` (T-612 (6)). That is legal text and comes to me with T-638. |
