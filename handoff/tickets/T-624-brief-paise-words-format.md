@@ -5,7 +5,7 @@
 | Phase  | 4 — Release (legal wording) |
 | Owner  | whoever holds apps/drafting/src/services/intake-text.ts (Ajay) |
 | Mode   | Small fix; legal content (Ajay signed P-R3, ceee45cb) |
-| Status | To do. Raised 26 Oct 2026 from Ajay's T-611 build rulings. Priya |
+| Status | Merged into develop_staging 9c8b3c65 (CI 1082 green), 27 Oct 2026. Priya |
 
 ## Problem
 T-611 computes the amount in words for drafts using the signed form. The brief's own paise formatter in intake-text.ts still uses the old form.
