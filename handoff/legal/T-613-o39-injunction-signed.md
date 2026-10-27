@@ -143,3 +143,13 @@ The `blocks_confirm` flag applies to `main_suit_relief` and `restraint_sought`. 
 | 4 | T-634 web labels (`fix/t-634-t613-follow-ups` @ 23fee46c): **APPROVED.** SAVED_TYPE_NAMES `civil_court_junior`, `high_court`, `high_court_bench` and `sessions` are byte-identical to courts.routes.ts TYPE_LABELS (lines 460–468). Munsif was not added, which is correct. It counts as merged at the develop_staging SHA that contains 23fee46c. |
 
 **T-628 merged (Ajay, 27 Oct 2026):** develop_staging merge SHA `b2e910540842c8417b8fcc8f9b01348d3925df16` contains 12a7b2bf. I checked it myself, and prayer-date-gate and ai.service have the same hashes after the merge. CI is pending (Vishal confirms green).
+
+## T-629 byte check (Ajay, 27 Oct 2026): fix/t-629-o39-confirm-block @ commit SHA a7b3890c (base 07974232)
+
+| item | result |
+| --- | --- |
+| o39-confirm-messages.ts (new, legal) | The §(g) EN and HI strings are byte-identical to this file. `O39_NON_ANSWERS` matches §(j)3 (whole value, trimmed, case-insensitive, NFC). Order main_suit_relief, then restraint_sought (§j2). `requiredFieldBlockers` is exported for the form route (FR-5a). |
+| Pack | Only `blocks_confirm: true` was added to the two fields; labels and questions are unchanged. |
+| intake-brief confirmState (sha256 first 16 `e4c00bd612ee867e`) | Per the lead's report and the reviewer: all blocking lines shown together (court/parties, then the two fields); EN only (§i5); only the brief's own value lifts it (fail closed); restraint_sought in RELIEF (§i6); title_document_date asked once and blank = answered (§i2). I checked the strings and the pack myself; the confirmState logic I take from the passing review and the tests. |
+
+**T-629 APPROVED at a7b3890c.** It counts as merged at the develop_staging merge SHA that contains it. The form-route wiring (FR-5a/AC8) comes to me as a delta after T-637 merges. T-613, T-628, T-629 and T-637 ship together.
