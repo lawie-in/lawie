@@ -35,7 +35,11 @@ export const MAINTENANCE_TEMPLATE_ID = 'maintenance_bnss_144';
  * state + type + court picker: the bail packs (T-425) and maintenance (T-482).
  */
 export function isScopedCourtTemplate(templateId: string | null | undefined): boolean {
-  return isBailTemplate(templateId) || templateId === MAINTENANCE_TEMPLATE_ID;
+  return (
+    isBailTemplate(templateId) ||
+    templateId === MAINTENANCE_TEMPLATE_ID ||
+    templateId === 'temporary_injunction_o39'
+  );
 }
 
 /** T-425 (AC3): added to a saved choice the scoped list no longer offers. */

@@ -127,10 +127,14 @@ describe('T-482 names, headings and nomenclature (Ajay 656332c9)', () => {
 });
 
 describe('T-482 A: GET /courts/* with template=maintenance_bnss_144', () => {
-  it('/states offers every state', async () => {
+  it('/states offers every state (T-613: not the national "India", which is no State)', async () => {
     const res = await get(`/courts/states?template=${MAINT}`);
     const all = await get('/courts/states');
-    expect(res.body.states).toEqual(all.body.states);
+    expect(all.body.states.map((s: { id: string }) => s.id)).toContain('india');
+    expect(res.body.states).toEqual(
+      all.body.states.filter((s: { id: string }) => s.id !== 'india'),
+    );
+    expect(res.body.states.map((s: { id: string }) => s.id)).not.toContain('india');
     expect(res.body.states.map((s: { id: string }) => s.id)).toEqual(
       expect.arrayContaining(['bihar', 'jharkhand', 'goa']),
     );
@@ -304,7 +308,10 @@ describe('T-482 A2: states outside Bihar and Jharkhand get the previous, unscope
     const res = await get(`/courts/states?template=${MAINT}`);
     const stateIds = res.body.states.map((s: { id: string }) => s.id);
     expect(new Set(stateIds).size).toBe(stateIds.length);
-    expect(new Set(stateIds)).toEqual(new Set(ALL_ROWS.map((r) => r.stateId as string)));
+    // T-613: every state of the data, but the national stateId 'india' is no State choice here.
+    expect(new Set(stateIds)).toEqual(
+      new Set(ALL_ROWS.map((r) => r.stateId as string).filter((i) => i !== 'india')),
+    );
     expect(stateIds).toEqual(expect.arrayContaining(OTHER_STATES));
   });
 

@@ -2262,6 +2262,7 @@ const CAUSE_TITLE_PARTY_BLANKS: Readonly<Record<string, ReadonlyArray<readonly [
       ['statute_invoked', CERTIORARI_STATUTE_BLANK],
       ['grievance_summary', GRIEVANCE_SUMMARY_BLANK],
     ],
+    temporary_injunction_o39: [['suit_number', 'Suit No. _____ of {current_year}']],
   };
 
 /** True for a value that is empty or a `[To be confirmed: …]` / `{{MISSING: …}}` blank. */

@@ -145,6 +145,7 @@ const TEMPLATE_TO_DOC_TYPE: Record<string, DocType> = {
   writ_petition: DOC_TYPES.PETITION,
   criminal_complaint: DOC_TYPES.COMPLAINT,
   plaint_civil: DOC_TYPES.PLAINT,
+  temporary_injunction_o39: DOC_TYPES.INJUNCTION,
 };
 
 /** Skip this route if :id is not a valid ObjectId (avoids catching /templates etc.) */
