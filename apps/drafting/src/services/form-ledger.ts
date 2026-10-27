@@ -15,7 +15,7 @@
  */
 import type { LedgerFact, LedgerUnresolvedFact } from '@lawie/shared';
 
-import { requiredFieldBlockers } from '../config/intake/o39-confirm-messages';
+import { O39_REQUIRED_FIELDS, requiredFieldBlockers } from '../config/intake/o39-confirm-messages';
 
 import {
   applyEdit,
@@ -271,6 +271,26 @@ export interface FormRequiredFieldBlock {
 }
 
 /**
+ * The O.39 required fields as the §(j)3 check reads them. form_data is
+ * unchecked JSON: a string, null, undefined or a list of strings is kept; any
+ * other value (an object, a boolean, a number, a list holding a non-string)
+ * is no answer and becomes '', so it blocks rather than passing as answered.
+ */
+function requiredFieldView(formData: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  const view: Record<string, unknown> = {};
+  for (const key of O39_REQUIRED_FIELDS) {
+    const v = Object.prototype.hasOwnProperty.call(formData, key) ? formData[key] : undefined;
+    const readable =
+      v === null ||
+      v === undefined ||
+      typeof v === 'string' ||
+      (Array.isArray(v) && v.every((e) => typeof e === 'string'));
+    view[key] = readable ? v : '';
+  }
+  return view;
+}
+
+/**
  * T-629 blocks_confirm / Ajay FR-1(b), FR-5, FR-5a; T-613 §(g), §(j)2, §(j)3:
  * the form route's required-field and non-answer pre-check (main_suit_relief,
  * restraint_sought on temporary_injunction_o39), run right after
@@ -284,7 +304,7 @@ export function formRequiredFieldBlock(
   formData: Readonly<Record<string, unknown>>,
 ): FormRequiredFieldBlock | null {
   if (templateId !== O39_TEMPLATE_ID) return null;
-  const missing = requiredFieldBlockers(formData);
+  const missing = requiredFieldBlockers(requiredFieldView(formData));
   if (missing.length === 0) return null;
   return {
     error: 'brief_not_confirmed',

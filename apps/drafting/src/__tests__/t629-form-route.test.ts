@@ -177,6 +177,35 @@ describe('T-629 AC8 unit: formRequiredFieldBlock', () => {
       expect(formRequiredFieldBlock(O39, { main_suit_relief: v, restraint_sought: v })).toBeNull();
   });
 
+  const BAD_SHAPES: [string, unknown][] = [
+    ['{}', {}],
+    ['true', true],
+    ['0', 0],
+    ['[{}]', [{}]],
+    ['[0]', [0]],
+    ['[]', []],
+    ["['N/A', ' ']", ['N/A', ' ']],
+  ];
+  it.each(BAD_SHAPES)('non-string / empty-array value %s blocks on each field', (_n, v) => {
+    expect(formRequiredFieldBlock(O39, { ...ok, main_suit_relief: v })).toEqual({
+      error: 'brief_not_confirmed',
+      message: L1,
+      blockers: ['required_fields'],
+      confirm_blocking_keys: ['main_suit_relief'],
+    });
+    expect(formRequiredFieldBlock(O39, { ...ok, restraint_sought: v })).toEqual({
+      error: 'brief_not_confirmed',
+      message: L2,
+      blockers: ['required_fields'],
+      confirm_blocking_keys: ['restraint_sought'],
+    });
+  });
+
+  it('an array of real strings is an answer', () => {
+    const v = ['Declaration of title', 'Permanent injunction'];
+    expect(formRequiredFieldBlock(O39, { main_suit_relief: v, restraint_sought: v })).toBeNull();
+  });
+
   it('other templates: null, even with empty required fields', () => {
     for (const t of ['bail_regular', 'bail_anticipatory', 'unknown_template', ''])
       expect(formRequiredFieldBlock(t, {})).toBeNull();
@@ -260,6 +289,39 @@ describe('T-629 AC8 route: POST /generate-from-template', () => {
     await expectNothingRan();
   });
 
+  const SHAPES: [string, unknown][] = [
+    ['{}', {}],
+    ['true', true],
+    ['0', 0],
+    ['[{}]', [{}]],
+    ['[0]', [0]],
+    ['[]', []],
+    ["['N/A', ' ']", ['N/A', ' ']],
+  ];
+  describe.each(['main_suit_relief', 'restraint_sought'])('non-string value in %s', (field) => {
+    it.each(SHAPES)('%s: 400 with the exact body, nothing ran', async (_n, v) => {
+      const res = await postO39({ [field]: v });
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual({
+        error: 'brief_not_confirmed',
+        message: field === 'main_suit_relief' ? L1 : L2,
+        blockers: ['required_fields'],
+        confirm_blocking_keys: [field],
+      });
+      await expectNothingRan();
+    });
+  });
+
+  it('an array of real strings in both fields is delivered', async () => {
+    mockMessagesStream.mockResolvedValue(sdkAnswer(BODY, 4000, 800));
+    const v = ['Declaration of title', 'Permanent injunction'];
+    const res = await postO39({ main_suit_relief: v, restraint_sought: v });
+    expect(res.status).toBe(200);
+    expect(res.text).not.toContain('brief_not_confirmed');
+    expect(res.text).toContain('event: done');
+    expect(await LawieDocument.countDocuments({})).toBe(1);
+  });
+
   it('valid O.39 form proceeds as before: delivered, Ink taken, no error event', async () => {
     mockMessagesStream.mockResolvedValue(sdkAnswer(BODY, 4000, 800));
     const res = await postO39();
@@ -268,6 +330,13 @@ describe('T-629 AC8 route: POST /generate-from-template', () => {
     expect(res.text).not.toContain('event: error');
     expect(res.text).toContain('event: done');
     expect(await LawieDocument.countDocuments({})).toBe(1);
+    const u = (await User.collection.findOne({ _id: OID })) as unknown as { inkTopup: number };
+    expect(u.inkTopup).toBeLessThan(START_INK);
+    const rows = await mongoose.connection
+      .db!.collection('inkledger')
+      .find({ userId: OID })
+      .toArray();
+    expect(rows.length).toBeGreaterThan(0);
   });
 
   it('a longer answer containing "none" is delivered', async () => {
@@ -285,6 +354,8 @@ describe('T-629 AC8 route: POST /generate-from-template', () => {
         template_id: 'bail_regular',
         form_data: { main_suit_relief: '', restraint_sought: '' },
       });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('Form validation failed');
     expect(JSON.stringify(res.body)).not.toContain('brief_not_confirmed');
     expect(res.text).not.toContain(L1);
     expect(res.text).not.toContain(L2);
