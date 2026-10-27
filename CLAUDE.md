@@ -18,6 +18,7 @@ Express 4 + Mongoose 8 services. Next.js 16 + React 19 + Tailwind 3 web. Redis v
 - Test: `yarn workspace @lawie/<name> test` (Jest + ts-jest, matches `**/__tests__/**/*.test.ts`). Build `@lawie/shared` first, as CI does.
 - Lint: `yarn workspace @lawie/<name> lint` — runs `eslint --fix` and **rewrites files**. Never run this from a read-only role.
 - Typecheck/build: `yarn workspace @lawie/<name> build` — runs `tsc`.
+- Scripts/hook tests: `yarn test:scripts` (Jest, `scripts/__tests__`); require `Run scripts tests` (shown on PRs as `Scripts tests / Run scripts tests`) (T-593).
 
 ## Branches
 
