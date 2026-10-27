@@ -157,3 +157,10 @@ The `blocks_confirm` flag applies to `main_suit_relief` and `restraint_sought`. 
 **T-629 AC8 / FR-5a (Ajay, 27 Oct 2026): fix/t-629-o39-confirm-block @ commit SHA d2e43b14.** Delta from 8df3d4d6 checked myself: `formRequiredFieldBlock` runs for temporary_injunction_o39 only, imports `requiredFieldBlockers` from the approved o39-confirm-messages.ts (unchanged), and returns 400 `brief_not_confirmed` with the §(g) EN lines in §(j)2 order. It is moved **before** form validation, so it also runs before the gate, any Ink hold and any model call. No new strings, no values logged, other templates untouched. FR-1(b)/FR-5a met on the form route. **APPROVED at d2e43b14.** It counts as merged at the develop_staging merge SHA that contains it.
 
 **T-629 AC8 re-confirm (Ajay, 27 Oct 2026): commit SHA ab6c60ed.** Delta from d2e43b14 checked myself: form-ledger.ts only. A non-string value in either required field is now read as empty (fail closed) and gets the §(g) line. No string, message or order change; still O.39 only. **APPROVED at ab6c60ed**, superseding d2e43b14 for the merge.
+
+**T-629 merged (Ajay, 27 Oct 2026):** develop_staging merge SHA `819a98a9fbb3c0448062b5d76fe06703d52a9621` contains a7b3890c and ab6c60ed. I checked it myself, and o39-confirm-messages.ts is unchanged from ab6c60ed. CI #1107 is green per Shashank.
+
+| # | edge-case ruling (follow-up ticket, Priya routes) |
+| --- | --- |
+| E1 | Mixed list (`["Declaration","N/A"]`): **answered**, because a real entry exists. But a non-answer entry is **never printed**: drop §(j)3 entries from the list before it reaches the draft. |
+| E2 | Zero-width-only value: **must block.** Before the §(j)3 check, remove invisible characters (U+200B–U+200D, U+2060, U+FEFF); a value that is then empty counts as empty and gets the §(g) line. |
