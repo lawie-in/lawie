@@ -66,8 +66,13 @@ export const INSUFFICIENT_INK_CODE = 'insufficient_ink';
 /**
  * T-611: the codes of a draft the server withheld to ask the advocate one
  * question (Ajay P1, P-R2, P6). The question is the server's signed `reason`.
+ * T-628: `past_date_in_prayer`, a past date in an O.39 prayer (Ajay, T-613 §(h)).
  */
-export const FACT_QUESTION_CODES: ReadonlySet<string> = new Set(['fact_needed', 'fact_conflict']);
+export const FACT_QUESTION_CODES: ReadonlySet<string> = new Set([
+  'fact_needed',
+  'fact_conflict',
+  'past_date_in_prayer',
+]);
 
 /** Where a failed generation came from. */
 export type GenerationFailureSource =
