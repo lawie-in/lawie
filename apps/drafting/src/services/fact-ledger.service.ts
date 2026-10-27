@@ -186,6 +186,24 @@ export function referenceYear(now: Date): number {
 
 type LedgerValue = LedgerFact['value'];
 
+const PS_MARKER = String.raw`(?:p\.?\s*s\.?|police\s+station|थाना)`;
+const PS_LEAD = new RegExp(`^${PS_MARKER}(?=[\\s.:,-])[\\s.:,-]*`, 'iu');
+const PS_TRAIL = new RegExp(`[\\s.:,-]+${PS_MARKER}\\s*$`, 'iu');
+
+/**
+ * Ajay T-612 (6)(a): the bare station name stored as the display. One leading
+ * or trailing PS, P.S., Police Station or थाना is removed (case- and
+ * dot-insensitive); a trailing one first. A value that is only a marker, or a
+ * marker glued to the name ("KotwaliPS"), is kept as written.
+ */
+export function bareStationName(display: string): string {
+  const v = display.trim();
+  const t = v.replace(PS_TRAIL, '').trim();
+  if (t !== v && t !== '') return t;
+  const l = v.replace(PS_LEAD, '').trim();
+  return l !== '' ? l : v;
+}
+
 /**
  * Read one value of a fact type from the advocate's words. Never guesses.
  *
@@ -222,8 +240,11 @@ export function normalizeForItem(
       return normalizePersonName(text);
     case 'place_name':
       return normalizePlaceName(text);
-    case 'police_station':
-      return normalizePoliceStation(text);
+    case 'police_station': {
+      // T-612 (6)(a): display is the bare name; value (the key) and raw_span unchanged.
+      const n = normalizePoliceStation(text);
+      return n.ok ? { ok: true, value: n.value, display: bareStationName(n.display) } : n;
+    }
     case 'court':
       return normalizeCourt(text);
     case 'case_number':

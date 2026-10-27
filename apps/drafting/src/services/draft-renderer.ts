@@ -593,6 +593,12 @@ export const POLICE_STATION_PREFIXES: ReadonlyArray<readonly string[]> = [
  */
 export function stripPoliceStationPrefix(value: string): string {
   const v = value.trim();
+  // T-612 (6): a ledger saved before the bare-name store may hold a trailing
+  // marker ("Kotwali P.S.") or a leading थाना; one is removed so one prefix prints.
+  const tail = v.replace(/[\s.:,-]+(?:p\.?\s*s\.?|police\s+station|थाना)\s*$/iu, '').trim();
+  if (tail !== v && tail !== '') return tail;
+  const lead = v.replace(/^थाना[\s.:,-]+/u, '').trim();
+  if (lead !== v && lead !== '') return lead;
   for (const words of POLICE_STATION_PREFIXES) {
     let rest = v;
     let matched = true;

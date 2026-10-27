@@ -71,7 +71,7 @@ interface Signed {
   question: string;
   form: string;
 }
-function signedRows(): Signed[] {
+function signedRows(packId?: string): Signed[] {
   const t190 = read(
     join(REPO, 'handoff', 'tickets', 'T-190-bail-pack-questions-for-averment-keys.md'),
   );
@@ -123,6 +123,14 @@ function signedRows(): Signed[] {
   s35.label = 'Notice to appear (Section 35 BNSS / Section 41A CrPC)';
   s35.question =
     'Before the arrest, was a notice of appearance under Section 35(3) of the BNSS or Section 41A of the CrPC served on the applicant?';
+  // T-612: Ajay re-signed the medical question (handoff/legal/T-612-bail-grounds-wording-signed.md,
+  // section (4), 26 Oct 2026), for bail_regular and bail_anticipatory only. The T-190 ticket
+  // table still has the old text.
+  const medical = rows.find((r) => r.key === 'medical_condition');
+  if (!medical) throw new Error('no medical_condition row in T-190');
+  if (packId === 'bail_regular' || packId === 'bail_anticipatory')
+    medical.question =
+      'Does the applicant have any illness, disability or medical condition you want placed before the court? If yes, name it as written in the medical papers. If not, write "None".';
   return rows;
 }
 const SIGNED = signedRows();
@@ -138,8 +146,8 @@ const FIR_DATE_SIGNED: Signed = {
   question: 'On what date was the FIR registered, or the complaint filed if there is no FIR?',
   form: 'Date',
 };
-const signedOf = (key: string) =>
-  key === 'fir_date' ? FIR_DATE_SIGNED : SIGNED.find((s) => s.key === key)!;
+const signedOf = (key: string, packId?: string) =>
+  key === 'fir_date' ? FIR_DATE_SIGNED : signedRows(packId).find((s) => s.key === key)!;
 const optionsOf = (s: Signed): string[] | null =>
   s.form.startsWith('Choices: ') ? s.form.slice(9).split('. ')[0].split(' / ') : null;
 
@@ -248,7 +256,7 @@ describe.each(PACKS)('T-190 AC1-AC3 pack file %s', (packId) => {
       expect(fields.slice(at, at + want.length).map((f) => f.id)).toEqual(want);
       expect(fields.find((f) => f.id === 'fir_date')!.ask_when_empty).toBe(true);
       for (const f of asked) {
-        const s = signedOf(f.id);
+        const s = signedOf(f.id, packId);
         expect(f.label).toBe(s.label);
         expect(f.question).toBe(s.question);
         expect(f.required).toBe(false);
@@ -269,7 +277,7 @@ describe.each(PACKS)('T-190 AC1-AC3 pack file %s', (packId) => {
     const asked = cl.filter((i) => i.askWhenEmpty);
     expect(asked.map((i) => i.key)).toEqual(askedWant);
     for (const i of asked) {
-      expect(i.question).toBe(signedOf(i.key).question);
+      expect(i.question).toBe(signedOf(i.key, packId).question);
       expect(i.required).toBe(false);
       expect(i.label).toBe(signedOf(i.key).label);
     }
@@ -426,7 +434,7 @@ describe.each(PACKS)('T-190 buildQuestions on %s', (packId) => {
     if (enr.required) expect(keys).toContain('advocate_enrollment');
     else expect(keys).not.toContain('advocate_enrollment');
     for (const k of keys) {
-      const own = signedRows().find((s) => s.key === k);
+      const own = signedRows(packId).find((s) => s.key === k);
       const item = q.find((x) => x.key === k)!;
       if (own) {
         expect(item.question).toBe(own.question);

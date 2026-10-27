@@ -520,7 +520,9 @@ describe('T-189: several values are not a conflict; repeats are kept once; singl
   it('a single-value item reads as before next to list entries', () => {
     const r = read([{ key: 'police_station', span: 'PS Kotwali', confidence: 0.99 }, S1, S2]);
     expect(entries(r, 'police_station')).toHaveLength(1);
-    expect(entries(r, 'police_station')[0].display).toBe('PS Kotwali');
+    // T-612 (6)(a): bare station name as the display; the typed words stay in raw_span.
+    expect(entries(r, 'police_station')[0].display).toBe('Kotwali');
+    expect(entries(r, 'police_station')[0].raw_span).toBe('PS Kotwali');
     expect(entries(r, 'sections_charged')).toHaveLength(2);
   });
 });
