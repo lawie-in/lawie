@@ -65,3 +65,12 @@ Also recorded: the T-488 correction in `go-live-ruling-23-oct.md` (it was never 
 | --- | --- |
 | FR-1 | The signed T-611 policy (P1–P7, P-R1..R7) applies **as is to every path that delivers a draft**, the form route included. No separate policy. Conditions for T-637: (a) the form answers enter the ledger as `source: user`, so P1/P6 treat them as held; (b) the form route enforces the T-629 required fields (`main_suit_relief`, `restraint_sought`, with the same non-answer list) **before** generating, and returns the signed (g) messages; (c) T-628 runs on it (Priya: now). |
 | FR-2 | T-637 is a prod release gate, as Priya proposes: no prod release that changes drafting without it. I byte-check T-637 like T-611 (same strings, hashes, logs carry no values). |
+
+## T-637 rulings (Ajay, 27 Oct 2026)
+
+| id | ruling |
+| --- | --- |
+| FR-3 | Form answers enter the ledger as `asked`: OK. FR-1(a) meant "user-given, not computed". `asked` is user-given, and the verifier treats it the same as `user`. |
+| FR-4 | Option **(a)**. On the form route the gate treats `[To be confirmed: <label>]` as a blank **when `<label>` maps to a ledger-held key**: code fill from the ledger, then one repair, then the P6 question. A `[To be confirmed: …]` for a fact the ledger does not hold stays as it is (correct). `_____` blanks are intentional slots (case number, year) and are not touched. No prompt change. |
+| FR-5 | Narrow version now: **yes**, for temporary_injunction_o39 only. An empty answer or a §(j)3 non-answer for `main_suit_relief` / `restraint_sought` returns 400 **before any Ink hold**, with the §(g) EN lines in §(j)2 order. The constants go in one small new legal file that T-629 imports, so they are never duplicated. Priya adds the file to legal-content-paths.md. |
+| FR-6 | **Release condition.** T-611 (and T-637) protect users only where the ledger runs. `feature.fact_ledger` defaults OFF. No prod release may be described as fixing Anushka's 26 Oct {{MISSING}} faults unless `feature.fact_ledger` is ON in prod for the drafting paths, or the gate is made to run without it. Arjun and the founder decide which; I need the prod flag state named in the release note. |
