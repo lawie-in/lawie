@@ -876,13 +876,17 @@ export async function acceptPrivacy(
  * Order (as acceptPrivacy, T-354): (1) the caller's access session must still be live, else 401
  * and nothing written; (2) one atomic conditional update, only on an active 'google' account with
  * no signupConsentAt, which sets the three signupConsent fields, termsVersion and privacyVersion
- * (AJ-642-M6), and pushes one 'google_confirm' privacyHistory row. acceptedVia, termsAcceptedAt
+ * (AJ-642-M6), privacyAcceptedAt (the same time) and privacyAcceptedVia 'google_confirm', and
+ * pushes one 'google_confirm' privacyHistory row. acceptedVia, termsAcceptedAt
  * and the earlier rows are untouched (M18(b)).
  * Idempotent (Arjun condition 2): a repeat, or a racing second call, matches nothing, so the first
  * timestamp and a single row stand, and it still succeeds. A non-'google' account is a no-op
  * success too (nothing to confirm; needsSignupConsent is false for it).
  *
- * No token rotation: unlike acceptPrivacy, no token claim depends on these fields. Logs only the
+ * No token rotation, unlike acceptPrivacy. The token's `pv` claim comes from privacyVersion,
+ * which this update may change, so a token minted before it can carry a stale `pv`. Such a token
+ * gets one 403 privacy_reaccept_required on a gated call; the web's privacyFetch then sees /me
+ * not behind, refreshes (the new pair carries the current `pv`) and retries once. Logs only the
  * user id, never tokens.
  */
 export async function recordSignupConsent(userId: string, accessToken: string): Promise<void> {
@@ -906,10 +910,14 @@ export async function recordSignupConsent(userId: string, accessToken: string): 
         signupConsentTermsVersion: CURRENT_TERMS_VERSION,
         signupConsentPrivacyVersion: CURRENT_PRIVACY_VERSION,
         // AJ-642-M6 (no double prompt): the versions shown become the accepted versions, so the
-        // T-343 prompt fires only if what was shown was stale. acceptedVia, termsAcceptedAt and
-        // privacyAcceptedAt / privacyAcceptedVia stay as they are.
+        // T-343 prompt fires only if what was shown was stale. acceptedVia and termsAcceptedAt
+        // stay as they are.
         termsVersion: CURRENT_TERMS_VERSION,
         privacyVersion: CURRENT_PRIVACY_VERSION,
+        // Ajay (via Priya): the privacy acceptance is this one, at the same time as
+        // signupConsentAt.
+        privacyAcceptedAt: acceptedAt,
+        privacyAcceptedVia: 'google_confirm',
       },
       $push: {
         privacyHistory: {

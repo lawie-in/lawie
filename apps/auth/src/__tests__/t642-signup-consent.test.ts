@@ -27,6 +27,9 @@ async function seed(email: string, extra: Record<string, unknown> = {}) {
   expect(res.status).toBe(200);
   const d = res.body.data;
   const token = (d.tokens ?? d).accessToken as string;
+  // Reviewer should-fix 5: the raw seeded doc has no signupConsentAt key unless the case set it.
+  const rawDoc = await User.collection.findOne({ email });
+  if (extra.signupConsentAt === undefined) expect(rawDoc).not.toHaveProperty('signupConsentAt');
   return token;
 }
 const raw = (email: string) => mongoose.connection.db!.collection('users').findOne({ email });
@@ -95,6 +98,8 @@ describe('T-642 AC6 — POST /me/signup-consent', () => {
     expect(u.termsVersion).toBe(CURRENT_TERMS_VERSION);
     expect(u.privacyVersion).toBe(CURRENT_PRIVACY_VERSION);
     expect(u.acceptedVia).toBe('google');
+    expect(u.privacyAcceptedAt).toEqual(u.signupConsentAt);
+    expect(u.privacyAcceptedVia).toBe('google_confirm');
     expect(u.termsAcceptedAt).toEqual(termsAt);
     expect(u.privacyHistory).toHaveLength(2);
     expect(u.privacyHistory[0]).toMatchObject({ version: '2026-01-01', via: 'signup' });
@@ -115,6 +120,9 @@ describe('T-642 AC6 — POST /me/signup-consent', () => {
     expect((await supertest(app).post('/me/signup-consent').set(bearer(t))).status).toBe(200);
     const second = (await raw('c2@example.com'))!;
     expect(second.signupConsentAt).toEqual(first.signupConsentAt);
+    expect(second.privacyAcceptedAt).toEqual(first.privacyAcceptedAt);
+    expect(second.privacyAcceptedVia).toBe(first.privacyAcceptedVia);
+    expect(first.privacyAcceptedVia).toBe('google_confirm');
     expect(second.privacyHistory).toHaveLength(first.privacyHistory.length);
   });
 
