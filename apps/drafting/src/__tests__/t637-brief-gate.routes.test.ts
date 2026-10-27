@@ -279,6 +279,49 @@ describe('T-637 no-ledger brief route (feature.fact_ledger off, no ledger_id)', 
     expect(sectionsText(res)).toContain('{{MISSING: Applicant occupation}}');
   });
 
+  const postWithAddress = (address: string) =>
+    request(app)
+      .post('/generate-from-brief')
+      .set(headers())
+      .send({
+        kind: 'bail_regular',
+        values: VALUES.map((v) => (v.key === 'address' ? { ...v, value: address } : v)),
+        court,
+      });
+
+  // Ajay FR-9b (f5eefc44): a typed "Not known" gives no fact, so the draft is DELIVERED with the
+  // blank (P6 does not ask). "Not known" is never printed in its place.
+  it('Ajay FR-9b (f5eefc44): "Not known" typed for a blank field is no fact: delivered with the {{MISSING}} blank, no fact_needed, no repair', async () => {
+    mockModel(answer(body().replace(P3_, BLANK_PARA)));
+    const res = await postWithAddress('Not known');
+    expect(res.status).toBe(200);
+    expect(events(res.text, 'error')).toEqual([]);
+    expect(res.text).not.toContain('fact_needed');
+    expect(events(res.text, 'done')).toHaveLength(1);
+    expect(mockMessagesStream).toHaveBeenCalledTimes(1);
+    const secs = sectionsText(res);
+    expect(secs).toContain(`resident of {{MISSING: ${ADDRESS_LABEL}}}, is in judicial custody`);
+    // Only the blank's place (the body) is checked: the cause-title template prints the raw
+    // typed address ("R/o Not known") on its own, outside the gate.
+    const bodySection = events(res.text, 'template_sections')[0].sections.find(
+      (x: { section_id: string }) => x.section_id === 'body',
+    );
+    expect(bodySection.content).not.toContain('Not known');
+    expect(res.text).not.toMatch(TEXT_CHUNK);
+  });
+
+  it('Ajay FR-9: a held fact "none": its blank is not filled; delivered with the blank, no fact_needed, no "none" in its place', async () => {
+    mockModel(answer(body().replace(P3_, BLANK_PARA)));
+    const res = await postWithAddress('none');
+    expect(events(res.text, 'error')).toEqual([]);
+    expect(events(res.text, 'done')).toHaveLength(1);
+    expect(mockMessagesStream).toHaveBeenCalledTimes(1); // no repair either
+    const secs = sectionsText(res);
+    expect(secs).not.toMatch(/resident of\s+none/i);
+    expect(secs).toContain('resident of');
+    expect(secs).not.toContain('123 Main St');
+  });
+
   it('AC9: the Drafter system and user prompt bytes are pinned (exact snapshot of a fixed input)', async () => {
     // The prompt carries today's date: fix the clock (only Date) so the pin does not drift.
     jest.useFakeTimers({

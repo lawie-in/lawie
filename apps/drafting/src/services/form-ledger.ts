@@ -48,6 +48,66 @@ export interface InMemoryLedgerState {
   unresolved: LedgerUnresolvedFact[];
 }
 
+/**
+ * Ajay FR-9 (4813ba79): answers that give no fact. The blank stays and P6
+ * asks. Matched on the whole answer, trimmed, case-insensitive, nukta-
+ * insensitive (`foldNonAnswer`), on any item; also the `not_known` option id
+ * and an option whose label folds to "Not known".
+ */
+export const NO_FACT_ANSWERS: readonly string[] = [
+  'not known',
+  'unknown',
+  'नहीं पता',
+  'पता नहीं',
+  '?',
+  '-',
+];
+
+/**
+ * Ajay FR-9 (4813ba79): answers that stay facts (they drive the signed none
+ * variants) but are never printed into a blank (`withoutNeverFilledFacts`).
+ */
+export const NEVER_FILLED_ANSWERS: readonly string[] = ['none', 'nil', 'NA', 'N/A', 'no'];
+
+/** The option id of a "Not known" choice. */
+const NOT_KNOWN_OPTION_ID = 'not_known';
+
+/**
+ * An answer as FR-9 compares it: trimmed, inner spaces collapsed, lower case,
+ * with the Devanagari nukta (U+093C) taken out. Unlike foldAnswer it keeps
+ * `-` and `?`, which are whole answers here.
+ */
+export function foldNonAnswer(text: string): string {
+  return text
+    .normalize('NFD')
+    .replace(/\u093C/g, '')
+    .normalize('NFC')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLowerCase();
+}
+
+const NO_FACT_FOLDED: ReadonlySet<string> = new Set(NO_FACT_ANSWERS.map(foldNonAnswer));
+const NEVER_FILLED_FOLDED: ReadonlySet<string> = new Set(NEVER_FILLED_ANSWERS.map(foldNonAnswer));
+
+/** FR-9: true when the whole answer is one that gives no fact. */
+export function isNoFactNonAnswer(text: string): boolean {
+  const raw = text.trim();
+  if (raw === '') return false;
+  return raw.toLowerCase() === NOT_KNOWN_OPTION_ID || NO_FACT_FOLDED.has(foldNonAnswer(raw));
+}
+
+/**
+ * FR-9: the facts the gate may print into a blank: every fact but one whose
+ * display folds to a NEVER_FILLED_ANSWERS answer. Those stay in the ledger;
+ * only the gate's fill, repair and held-blank count read this list.
+ */
+export function withoutNeverFilledFacts(facts: readonly LedgerFact[]): LedgerFact[] {
+  return facts.filter(
+    (f) => !(typeof f.display === 'string' && NEVER_FILLED_FOLDED.has(foldNonAnswer(f.display))),
+  );
+}
+
 /** A value already showing a placeholder blank is not an answer. */
 const BLANK_VALUE = /\[To be confirmed:|\{\{\s*MISSING\s*:|^_{3,}$/i;
 
@@ -79,7 +139,10 @@ function editText(item: ChecklistItem, value: unknown): string | string[] | unde
     if (typeof v === 'string') {
       const t = v.trim();
       if (t === '' || BLANK_VALUE.test(t)) return undefined;
-      return item.options.length > 0 ? optionLabel(item, t) : t;
+      // FR-9: a non-answer (typed, the `not_known` id, or its option label) is no fact.
+      if (isNoFactNonAnswer(t)) return undefined;
+      const text = item.options.length > 0 ? optionLabel(item, t) : t;
+      return isNoFactNonAnswer(text) ? undefined : text;
     }
     if (typeof v === 'boolean') return booleanText(item, v);
     if (typeof v === 'number') return Number.isFinite(v) ? String(v) : null;

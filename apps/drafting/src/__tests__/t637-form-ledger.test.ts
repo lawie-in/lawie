@@ -10,6 +10,10 @@ import {
   buildInMemoryLedger,
   formLedgerValues,
   formRequiredFieldBlock,
+  isNoFactNonAnswer,
+  NEVER_FILLED_ANSWERS,
+  NO_FACT_ANSWERS,
+  withoutNeverFilledFacts,
 } from '../services/form-ledger';
 import { buildChecklist } from '../services/intake-brief';
 import { loadRulePack } from '../services/rule-pack.service';
@@ -182,5 +186,85 @@ describe('heldLabelBlanksAsMissing (Ajay 06d18fed)', () => {
   it('with no held facts nothing changes', () => {
     const text = `[To be confirmed: ${label('address')}]`;
     expect(heldLabelBlanksAsMissing(text, [])).toBe(text);
+  });
+});
+
+describe('Ajay FR-9 (4813ba79): non-answers give no fact', () => {
+  it("the constants are exactly Ajay's lists", () => {
+    expect([...NO_FACT_ANSWERS]).toEqual([
+      'not known',
+      'unknown',
+      'नहीं पता',
+      'पता नहीं',
+      '?',
+      '-',
+    ]);
+    expect([...NEVER_FILLED_ANSWERS]).toEqual(['none', 'nil', 'NA', 'N/A', 'no']);
+  });
+
+  it('isNoFactNonAnswer matches each entry, in any case, trimmed', () => {
+    for (const a of NO_FACT_ANSWERS) {
+      expect(isNoFactNonAnswer(a)).toBe(true);
+      expect(isNoFactNonAnswer(`  ${a.toUpperCase()}  `)).toBe(true);
+    }
+    expect(isNoFactNonAnswer('Not Known')).toBe(true);
+    expect(isNoFactNonAnswer('UNKNOWN')).toBe(true);
+    expect(isNoFactNonAnswer('not   known')).toBe(true);
+  });
+
+  it('isNoFactNonAnswer ignores the nukta and accepts the not_known option id', () => {
+    expect(isNoFactNonAnswer('नहीं पता')).toBe(true);
+    // Nukta (U+093C) added after a consonant, precomposed and decomposed forms.
+    expect(isNoFactNonAnswer('नहीं प\u093Cता')).toBe(true);
+    expect(isNoFactNonAnswer('प\u093Cता नहीं')).toBe(true);
+    expect(isNoFactNonAnswer('न\u093Cहीं पता'.normalize('NFC'))).toBe(true);
+    expect(isNoFactNonAnswer('पता न\u093Cहीं'.normalize('NFD'))).toBe(true);
+    expect(isNoFactNonAnswer('not_known')).toBe(true);
+    expect(isNoFactNonAnswer(' NOT_KNOWN ')).toBe(true);
+  });
+
+  it('isNoFactNonAnswer is whole-answer only', () => {
+    for (const t of ['not known yet', 'unknown to me', 'Kotwali', '', '   ', '- 5', 'none', 'no']) {
+      expect(isNoFactNonAnswer(t)).toBe(false);
+    }
+  });
+
+  it('a typed "Not known" in a free-text field gives no fact', () => {
+    const s = buildInMemoryLedger(PACK, [{ key: 'address', value: 'Not known', source: 'asked' }]);
+    expect(s).toEqual({ facts: [], unresolved: [] });
+  });
+
+  it('the not_known option id gives no fact; a real option still does', () => {
+    const none = buildInMemoryLedger(PACK, [
+      { key: 'investigation_status', value: 'not_known', source: 'asked' },
+    ]);
+    expect(none).toEqual({ facts: [], unresolved: [] });
+    const real = buildInMemoryLedger(PACK, [
+      { key: 'investigation_status', value: 'under_investigation', source: 'asked' },
+    ]);
+    expect(factsFor(real, 'investigation_status')).toHaveLength(1);
+  });
+
+  it('a list made only of non-answers gives no fact', () => {
+    const s = buildInMemoryLedger(PACK, [
+      { key: 'sections_charged', value: ['unknown', '-', '?'], source: 'asked' },
+    ]);
+    expect(s).toEqual({ facts: [], unresolved: [] });
+  });
+
+  it('none / nil / NA / N/A / no typed in a free-text field stay facts', () => {
+    for (const t of ['none', 'NIL', 'NA', 'N/A', 'No']) {
+      const s = buildInMemoryLedger(PACK, [{ key: 'address', value: t, source: 'asked' }]);
+      expect(factsFor(s, 'address')).toHaveLength(1);
+    }
+  });
+
+  it('withoutNeverFilledFacts drops none / nil / NA / N/A / no in any case and keeps the rest', () => {
+    const mk = (display: string, i: number) =>
+      ({ id: `f${i}`, key: `k${i}`, display, value: display }) as unknown as LedgerFact;
+    const drop = ['none', 'None', 'NIL', 'nil', 'NA', 'na', 'N/A', 'n/a', 'No', ' no '].map(mk);
+    const keep = ['Kotwali', 'Yes', 'Not known', 'Nobody', 'Nilesh'].map((d, i) => mk(d, 100 + i));
+    const out = withoutNeverFilledFacts([...drop, ...keep]);
+    expect(out.map((f) => f.display)).toEqual(['Kotwali', 'Yes', 'Not known', 'Nobody', 'Nilesh']);
   });
 });

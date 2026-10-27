@@ -116,7 +116,12 @@ import {
   VerifierInput,
   verifyDraft,
 } from './fact-verifier';
-import { briefLedgerValues, buildInMemoryLedger, formLedgerValues } from './form-ledger';
+import {
+  briefLedgerValues,
+  buildInMemoryLedger,
+  formLedgerValues,
+  withoutNeverFilledFacts,
+} from './form-ledger';
 import { Brief, buildChecklist, FIXED_KEYS } from './intake-brief';
 import {
   DEFAULT_BAIL_CRPC_ACT,
@@ -1382,7 +1387,11 @@ export async function streamGenerateFromTemplate(
     // (no ===CLAUSES=== trailer and no findMissingClauses), so there is nothing
     // to record again. Logs carry ids, keys and codes only, never a value.
     const gateLedger = formRouteLedger(gateFiles.pack, convertedFormData, law, limitation);
-    const gateFacts = gateLedger.facts;
+    // Ajay FR-9 (4813ba79): a none / nil / NA / N/A / no answer stays a fact but
+    // is never printed into a blank. The gate's fill, repair and held-blank
+    // count read the ledger without those facts, so such a blank stays a plain
+    // blank: not filled, and never a fact_needed the advocate could not clear.
+    const gateFacts = withoutNeverFilledFacts(gateLedger.facts);
     // T-407 / T-429: the pack as the model was given it for this case.
     const gatePack = packForCharge(
       packForDrawer(gateFiles.pack, convertedFormData),
@@ -1499,7 +1508,7 @@ export async function streamGenerateFromTemplate(
       [
         ctx[SUBJECT_MATTER_KEY],
         convertedFormData[SUBJECT_MATTER_KEY],
-        ...subjectMatterDisplays(gateFacts),
+        ...subjectMatterDisplays(gateLedger.facts),
       ],
     );
     if (pastDate !== null && pastDate.code === 'past_date_in_prayer') {
@@ -2955,7 +2964,10 @@ export async function streamGenerateFromBrief(
     // persisted ledger, as before. The T-200 records follow the same rules as
     // on the ledger path (R2b.1 for the fill, R2b.4 for the repair).
     if (!ledgerInput && gateLedger !== null) {
-      const g = gateLedger;
+      // Ajay FR-9 (4813ba79): as on the form route, a none / nil / NA / N/A / no
+      // fact is never printed into a blank: fill, repair and the held-blank
+      // count read the ledger without it, so its blank stays a plain blank.
+      const g = { ...gateLedger, facts: withoutNeverFilledFacts(gateLedger.facts) };
       const before = output.body;
       const bodyFill = fillHeldBlanks(output.body, g.facts);
       if (bodyFill.text !== output.body) {

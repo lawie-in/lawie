@@ -267,6 +267,60 @@ describe('T-637 form route: the held-blank gate (in-memory ledger)', () => {
   });
 });
 
+describe('T-637 form route: Ajay FR-9 (4813ba79) non-answers', () => {
+  // Ajay FR-9b (f5eefc44): a typed "Not known" gives no fact, so nothing is held and the draft is
+  // DELIVERED with the blank (P6 does not ask). "Not known" is never printed in its place.
+  it('"Not known" typed for a blank field is no fact: delivered with the {{MISSING}} blank, no fact_needed, no repair, never filled with "Not known" (Ajay FR-9b f5eefc44)', async () => {
+    mockMessagesStream.mockResolvedValue(sdkAnswer(withP3(BLANK_P3), 4000, 800));
+    const res = await postBail({ address: 'Not known' });
+    expect(res.status).toBe(200);
+    expect(events(res.text, 'error')).toEqual([]);
+    expect(res.text).not.toContain('fact_needed');
+    expect(events(res.text, 'done')).toHaveLength(1);
+    expect(repairCalls()).toHaveLength(0);
+    expect(mockMessagesStream).toHaveBeenCalledTimes(1);
+    const secs = sectionsText(res);
+    expect(secs).toContain(`resident of {{MISSING: ${ADDRESS_LABEL}}}, is in judicial custody`);
+    // Only the blank's place (the body) is checked: the cause-title template prints the raw
+    // typed address ("R/o Not known") on its own, outside the gate.
+    const bodySection = events(res.text, 'template_sections')[0].sections.find(
+      (x: { section_id: string }) => x.section_id === 'body',
+    );
+    expect(bodySection.content).not.toContain('Not known');
+    expect(res.text).not.toMatch(TEXT_CHUNK);
+  });
+
+  it('a held fact "none": its {{MISSING}} blank is not filled; delivered with the blank, no fact_needed, no "none" in its place', async () => {
+    mockMessagesStream.mockResolvedValue(sdkAnswer(withP3(BLANK_P3), 4000, 800));
+    const res = await postBail({ address: 'none' });
+    expect(events(res.text, 'error')).toEqual([]);
+    expect(events(res.text, 'done')).toHaveLength(1);
+    expect(repairCalls()).toHaveLength(0); // not repaired either
+    expect(mockMessagesStream).toHaveBeenCalledTimes(1);
+    const secs = sectionsText(res);
+    expect(secs).not.toContain('resident of none');
+    expect(secs).not.toMatch(/resident of\s+none/i);
+    expect(secs).not.toContain(ADDRESS);
+    expect(secs).toContain('resident of');
+    expect(await LawieDocument.countDocuments({})).toBe(1);
+  });
+
+  // Ajay FR-9a (4591bfb3) confirms: a Yes/No fact answered "No" (display "No") is
+  // never filled into a blank. Pins this behaviour.
+  it('a Yes/No fact answered "No" is not filled into its blank (Ajay FR-9a 4591bfb3)', async () => {
+    const coopLabel = CHECKLIST.find((i) => i.key === 'cooperated_with_investigation')!.label;
+    const blank = `3. That cooperation with the investigation is {{MISSING: ${coopLabel}}}.`;
+    mockMessagesStream.mockResolvedValue(sdkAnswer(withP3(blank), 4000, 800));
+    const res = await postBail({ cooperated_with_investigation: false });
+    expect(events(res.text, 'error')).toEqual([]);
+    expect(events(res.text, 'done')).toHaveLength(1);
+    expect(repairCalls()).toHaveLength(0);
+    const secs = sectionsText(res);
+    expect(secs).not.toContain('investigation is No');
+    expect(secs).not.toMatch(/investigation is\s+No\b/);
+  });
+});
+
 describe('T-637 form route: T-628 still blocks after the gate', () => {
   it('a past date in the O.39 prayer: past_date_in_prayer, no done, no text, no Ink', async () => {
     jest.useFakeTimers({
