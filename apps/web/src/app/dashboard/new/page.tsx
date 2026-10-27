@@ -193,6 +193,8 @@ function NewDocumentContent() {
   // Generation error (AI service failed mid-stream — surfaces in PipelineStatus)
   const [generationError, setGenerationError] = useState<string | undefined>(undefined);
   const [generationRetryable, setGenerationRetryable] = useState<boolean>(true);
+  // T-637: the SSE error event's `code`, so a withheld draft shows its one question.
+  const [generationErrorCode, setGenerationErrorCode] = useState<string | undefined>(undefined);
   // T-565 W1/W3: which signed failure the card shows (not started / request failed / stream).
   const [generationFailure, setGenerationFailure] = useState<GenerationFailure>('stream');
   // Paywall (SCRUM-73 — opens when enforceCredits returns 402)
@@ -366,6 +368,7 @@ function NewDocumentContent() {
       setPipelineState('drafting');
       setError('');
       setGenerationError(undefined);
+      setGenerationErrorCode(undefined);
       setGenerationRetryable(true);
       setGenerationFailure('stream');
 
@@ -522,15 +525,17 @@ function NewDocumentContent() {
                         ? payload.reason
                         : 'The AI service returned an error.',
                     );
+                    setGenerationErrorCode(
+                      typeof payload.code === 'string' ? payload.code : undefined,
+                    );
                     setGenerationRetryable(payload.retryable !== false);
                     setPipelineState('generation_failed');
                     reading = false;
                     return;
                   default:
-                    if (payload.text) {
-                      // Count paragraph breaks as a proxy for paragraph count
-                      paraCount += (payload.text.match(/\n\n/g) ?? []).length;
-                    }
+                    // T-637: the body is not streamed as text any more (the server
+                    // sends it only after the delivery gate); the paragraph count
+                    // comes from `done.paragraphCount`.
                     break;
                 }
               } catch {
@@ -760,6 +765,7 @@ function NewDocumentContent() {
           onEditForm={handleEditForm}
           onOpenEditor={handleOpenEditor}
           generationError={generationError}
+          generationErrorCode={generationErrorCode}
           generationRetryable={generationRetryable}
           generationFailure={generationFailure}
           onRetry={handleRetry}

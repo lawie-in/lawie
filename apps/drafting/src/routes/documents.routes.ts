@@ -23,6 +23,7 @@ import { Event } from '../models/Event.model';
 import { effectiveRunType, Generation, RunType } from '../models/Generation.model';
 import { User } from '../models/User.model';
 import {
+  formGateFiles,
   GenerationFailedError,
   streamGenerateFromBrief,
   streamGenerateGuided,
@@ -85,6 +86,11 @@ import {
 import { currentState, loadOwnLedger } from '../services/fact-ledger.service';
 import { FACT_CHECK_DISCLAIMER } from '../services/fact-verifier';
 import { bodyField, hiddenTemplateIds, templateGuard } from '../services/feature-switches';
+import {
+  briefLedgerValues,
+  buildInMemoryLedger,
+  formRequiredFieldBlock,
+} from '../services/form-ledger';
 import { isCourtDocument, namesSupremeCourt, buildChecklist } from '../services/intake-brief';
 import type { BriefItem } from '../services/intake-brief';
 import {
@@ -1025,6 +1031,30 @@ router.post(
       return;
     }
 
+    // T-629 blocks_confirm / Ajay FR-1(b): the required-field and non-answer
+    // pre-check goes here, before any Ink hold. A no-op until T-629 (Priya,
+    // T-637; Ajay FR-5a): it always returns null today.
+    const requiredFieldBlock = formRequiredFieldBlock(template_id, form_data);
+    if (requiredFieldBlock !== null) {
+      res.status(400).json(requiredFieldBlock);
+      return;
+    }
+
+    // T-637: the T-611 delivery gate's rule pack and averment lists, read before
+    // any run or Ink hold, so a missing or broken file answers as JSON and no
+    // draft goes out ungated. Ids only in the log.
+    let gate: ReturnType<typeof formGateFiles>;
+    try {
+      gate = formGateFiles(template_id);
+    } catch (err) {
+      console.error(
+        `[drafting] delivery gate files unreadable (kind=${template_id}):`,
+        err instanceof Error ? err.name : 'unknown',
+      );
+      res.status(500).json({ error: 'Template config unavailable' });
+      return;
+    }
+
     // T-003 §3.8 — resolve before streaming starts so X-Run-Id/X-Run-Sequence
     // can go out as response headers no matter how this attempt ends.
     const { runId, runSequence, runType } = await resolveRun(
@@ -1057,13 +1087,15 @@ router.post(
             runId,
             runSequence,
             runType,
+            gate,
           },
           res,
         );
       } catch (genErr) {
         // T-226: a failed run returns its hold, before the response ends.
         await ink.release();
-        // GenerationFailedError = mid-stream LLM failure. SSE `event: error` was
+        // GenerationFailedError = mid-stream LLM failure, or (T-611 / T-637) a
+        // draft the delivery gate withheld with its one question. SSE `event: error` was
         // already emitted and the response is closed. Still record what the
         // attempt actually used (T-003) — a failed generation isn't free. No
         // Ink is spent on a failed attempt.
@@ -1214,6 +1246,9 @@ router.post(
         creditsSpent,
         // T-197: the signed disclaimer goes with every finished draft.
         disclaimer: FACT_CHECK_DISCLAIMER,
+        // T-637: the body no longer streams as text, so the web reads the
+        // paragraph count here: the same count as the brief route's.
+        paragraphCount: countBodyParagraphs(result),
       });
     });
   },
@@ -1582,10 +1617,12 @@ router.post(
     // before any hold or model call). For a pack that does not ask it is
     // costForTemplate, the price enforceCredits checked, and nothing below
     // changes; `paragraphs` still only feeds clampTarget, as before.
+    // T-637: every rule-pack draft now drafts from a ledger (the persisted one,
+    // else the in-memory one built below), so the skeleton rule reads it as in use.
     let quote = await quoteDraft(recordId, {
       paragraphs: parsed.data.paragraphs,
       facts: paragraphFactsFor(values, ledger?.facts),
-      ceiling: draftsViaSkeleton(kind, ledger !== null, language),
+      ceiling: draftsViaSkeleton(kind, ledger !== null || pack !== null, language),
     });
     if (!quote) {
       // enforceCredits already refused an unpriced id; kept for the type.
@@ -1637,6 +1674,44 @@ router.post(
       });
       return;
     }
+
+    // T-637 (Arjun, 27 Oct 2026): the T-611 delivery gate runs on every draft,
+    // whatever feature.fact_ledger says. With no persisted ledger (none sent,
+    // or the switch off), one is built in memory from the confirmed brief for
+    // this request: description values as `user`, typed or edited answers as
+    // `asked`, as overlayBrief would write them, and the same T-192 s.138 date
+    // checks. It is never stored and needs no intake id. With a persisted
+    // ledger nothing here runs. Before any hold; ids only in the log.
+    let memoryLedger: {
+      facts: LedgerFact[];
+      unresolved: LedgerUnresolvedFact[];
+      lists: AvermentLists;
+    } | null = null;
+    if (ledger === null && pack) {
+      let lists: AvermentLists;
+      try {
+        lists = loadAvermentLists(kind);
+      } catch (err) {
+        console.error(
+          `[drafting] averment list unreadable (kind=${kind}):`,
+          err instanceof Error ? err.name : 'unknown',
+        );
+        res.status(503).json({ error: 'averments_unavailable' });
+        return;
+      }
+      const state = buildInMemoryLedger(pack, briefLedgerValues(brief));
+      memoryLedger = {
+        facts: withS138DateChecks(
+          state.facts,
+          kind,
+          state.unresolved.map((u) => u.key),
+        ),
+        unresolved: state.unresolved,
+        lists,
+      };
+    }
+    /** The ledger the draft is written from and gated on: the persisted one, else the in-memory one. */
+    const draftLedger = ledger ?? memoryLedger;
 
     // ADR-021 rule 3: the court comes from the courts list only.
     let courtData: CourtLookupData | undefined;
@@ -1768,12 +1843,12 @@ router.post(
                   pack,
                   templateConfig,
                   ...(described ? { described } : {}),
-                  ...(ledger
+                  ...(draftLedger
                     ? {
                         ledger: {
-                          facts: ledger.facts,
-                          lists: ledger.lists,
-                          unresolved: ledger.unresolved,
+                          facts: draftLedger.facts,
+                          lists: draftLedger.lists,
+                          unresolved: draftLedger.unresolved,
                         },
                       }
                     : {}),
@@ -1816,7 +1891,8 @@ router.post(
           runId,
           runSequence,
           runType,
-          ledger: ledger ? 'on' : 'off',
+          // T-480: which drafting path ran (T-637: the in-memory ledger is that path too).
+          ledger: draftLedger ? 'on' : 'off',
           ...quoteRecord,
         });
         if (failed) {
@@ -1917,7 +1993,8 @@ router.post(
           runId,
           runSequence,
           runType,
-          ledger: ledger ? 'on' : 'off',
+          // T-480: which drafting path ran (T-637: the in-memory ledger is that path too).
+          ledger: draftLedger ? 'on' : 'off',
           ...quoteRecord,
         });
         duplicateAttempt = duplicate;
@@ -1938,7 +2015,8 @@ router.post(
       // Its own try: a failure here never stops the draft. Ids only in the log line.
       // T-373 (Arjun B): on D1 the read-only findings come in factDiff, tagged d1.
       const factOutcome = result.factCheck ?? result.factDiff?.outcome;
-      if (ledger && pack && factOutcome && !duplicateAttempt) {
+      // T-637: an in-memory ledger has no id (null) and no fixture run type.
+      if (draftLedger && pack && factOutcome && !duplicateAttempt) {
         try {
           await writeFactCheckLog({
             outcome: factOutcome,
@@ -1946,10 +2024,10 @@ router.post(
             runId,
             documentId: docId,
             userId: payload.sub,
-            ledgerId: ledger.id,
+            ledgerId: ledger ? ledger.id : null,
             rulePack: pack.id,
             rulePackVersion: rulePackVersionOf(pack),
-            runType: ledger.runType,
+            runType: ledger ? ledger.runType : factDiffRunType(undefined),
             requiredFactCount: buildChecklist(pack).filter((i) => i.required).length,
             deliveredText: result.fullText,
           });
@@ -2008,8 +2086,9 @@ router.post(
           : result.missingClauses
         ).map((m) => ({ id: m.id, title: m.title })),
         repaired: result.repaired,
-        // T-480: which drafting path ran (on = written from a fact ledger).
-        ledger: ledger ? 'on' : 'off',
+        // T-480: which drafting path ran (on = written from a fact ledger,
+        // persisted or, T-637, in memory).
+        ledger: draftLedger ? 'on' : 'off',
         startingDraft: result.startingDraft,
         startingDraftLabel: result.startingDraft ? STARTING_DRAFT_LABEL : null,
         labelReason: result.labelReason,

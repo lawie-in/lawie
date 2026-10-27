@@ -27,7 +27,7 @@ import type { LoadSkeleton, Skeleton } from '../types/skeleton';
 import { startSseKeepAlive } from '../utils/sse-keepalive';
 
 import { APP_SETTING_KEYS, AppSettingMissingError, getAppSetting } from './app-settings.service';
-import { AvermentLists, resolveAverments } from './averments';
+import { AvermentLists, loadAvermentLists, resolveAverments } from './averments';
 import {
   briefText,
   buildDrafterUserPrompt,
@@ -113,8 +113,10 @@ import {
   repairHeldBlanks,
   splitParagraphs,
   verifyAndRepair,
+  VerifierInput,
   verifyDraft,
 } from './fact-verifier';
+import { buildInMemoryLedger, formLedgerValues } from './form-ledger';
 import { Brief, buildChecklist, FIXED_KEYS } from './intake-brief';
 import {
   DEFAULT_BAIL_CRPC_ACT,
@@ -172,8 +174,9 @@ import {
 } from './prayer-date-gate';
 import { assemblePrompt, PromptInput } from './prompt-assembler';
 import { renderRelatedActs } from './related-acts';
-import { loadSkeleton as loadSignedSkeleton } from './rule-pack.service';
+import { loadRulePack, loadSkeleton as loadSignedSkeleton } from './rule-pack.service';
 import type { RulePack } from './rule-pack.service';
+import { withS138DateChecks } from './s138-date-checks';
 import { convertOldReferencesInText } from './sections.service';
 import {
   TemplateConfig,
@@ -1112,6 +1115,25 @@ export interface TemplateGenerateInput {
   runSequence: number;
   /** T-110 */
   runType: RunType;
+  /**
+   * T-637: the template's rule pack and averment lists for the T-611 delivery
+   * gate, loaded by the route before the Ink hold so a load failure answers
+   * as JSON. Absent: loaded here, before anything is streamed. The gate always
+   * runs on this route (Ajay FR-2), whatever `feature.fact_ledger` says.
+   */
+  gate?: { pack: RulePack; lists: AvermentLists };
+}
+
+/**
+ * T-637: the rule pack and averment lists the form route's gate reads. Throws
+ * when the template has no rule pack, or either file cannot be read: the
+ * route then answers as for a broken template config, and no draft goes out
+ * ungated. Ids only in any message.
+ */
+export function formGateFiles(templateId: string): { pack: RulePack; lists: AvermentLists } {
+  const pack = loadRulePack(templateId);
+  if (!pack) throw new Error(`T-637: no rule pack for template ${templateId}`);
+  return { pack, lists: loadAvermentLists(pack.id) };
 }
 
 export interface TemplateGenerateResult {
@@ -1154,6 +1176,8 @@ export async function streamGenerateFromTemplate(
   res: Response,
 ): Promise<TemplateGenerateResult> {
   const { templateConfig, formData, advocateName, enrollmentNumber } = input;
+  // T-637: the delivery gate's files, before any header is sent.
+  const gateFiles = input.gate ?? formGateFiles(templateConfig.template_id);
 
   // ── Auto-convert old-law references in text fields ─────────────────────────
   const convertedFormData = { ...formData };
@@ -1263,9 +1287,10 @@ export async function streamGenerateFromTemplate(
     let aiModel: string | undefined;
     let transport: 'direct' | undefined;
     let onlyWhenStrips = 0;
-    // T-628: the model's text of an O.39 draft is not streamed; it goes out with
-    // the system's parts once the past-date gate below has read the prayer.
-    const streamBody = templateConfig.template_id !== PAST_DATE_GATE_PACK_ID;
+    // T-637 (AC2): the model's text is never streamed on this route, for any
+    // template. It goes out with the system's parts in `template_sections`,
+    // only once the T-611 delivery gate and the T-628 past-date gate below have
+    // read it (no body before the gate decides, no body without Ink).
 
     for (const section of promptConfig.document_structure.sections) {
       if (section.type === 'template') {
@@ -1289,7 +1314,6 @@ export async function streamGenerateFromTemplate(
           // this draft's placeholder context (T-407), so it varies per request.
           for await (const text of streamLLM(systemPrompt, userPrompt, 8192, draft)) {
             aiText += text;
-            if (streamBody) res.write(`data: ${JSON.stringify({ text })}\n\n`);
           }
           aiModel = draft.model;
           transport = draft.transport;
@@ -1343,14 +1367,139 @@ export async function streamGenerateFromTemplate(
       }
     }
 
+    // T-472: limitation, computed by code from the form's dates (never stored).
+    // Worked out here so the gate's ledger carries its one computed fact.
+    const limitation = limitationForValues(templateConfig.template_id, convertedFormData);
+
+    // ── T-637: the T-611 delivery gate on the form route (Ajay FR-1, FR-2) ────
+    // Always, whatever feature.fact_ledger says. The ledger is built in memory
+    // from the form answers for this request (source `asked`, Ajay FR-3) and
+    // never stored. The same steps as the brief pack path: the one code fill,
+    // one model repair of what code could not fill, the fact verifier, then the
+    // withhold (fact_conflict, then fact_needed, then T-628 past_date: one
+    // question at a time). A withheld draft is not delivered and takes no Ink:
+    // the route releases the hold and saves the failed row; no done.
+    // No T-200 recordAgainAfterCodeEdit here: this route has no clause report
+    // (no ===CLAUSES=== trailer and no findMissingClauses), so there is nothing
+    // to record again. Logs carry ids, keys and codes only, never a value.
+    const gateLedger = formRouteLedger(gateFiles.pack, convertedFormData, law, limitation);
+    const gateFacts = gateLedger.facts;
+    // T-407 / T-429: the pack as the model was given it for this case.
+    const gatePack = packForCharge(
+      packForDrawer(gateFiles.pack, convertedFormData),
+      convertedFormData,
+    );
+    const courtLine = ctx.court_designation || courtData?.designation || '';
+    /** What the system wrote or gave the model: the template sections, the court line, the stated lines. */
+    const systemSkeleton = [
+      ...renderedSections.filter((s) => s.type === 'template').map((s) => s.content),
+      ...(courtLine ? [courtLine] : []),
+      ...(law?.lines ?? []),
+      ...promptConfig.related_acts,
+    ];
+    const verifierInputFor = (body: string): VerifierInput => ({
+      body,
+      facts: gateFacts,
+      unresolved: gateLedger.unresolved,
+      lists: gateFiles.lists,
+      skeleton: systemSkeleton,
+      packText: packTexts(gatePack),
+      packId: gatePack.id,
+    });
+    /** The fact repair call: one model call on the signed fact-repair prompt, as on the brief path. */
+    const factRepair: FactRepairCall = async (system, user) => {
+      res.write(`event: repair\ndata: ${JSON.stringify({ facts: true })}\n\n`);
+      let factRaw = '';
+      const factDraft: CallUsageDraft = { inputTokens: 0, outputTokens: 0, usageSource: 'none' };
+      const recordRepair = (): void => {
+        aiModel = factDraft.model ?? aiModel;
+        transport = factDraft.transport ?? transport;
+        meter.record(callUsageOf('fact_repair', factDraft, factRaw));
+      };
+      try {
+        // T-437: cached only when it is the constant fact-repair prompt.
+        for await (const text of streamLLM(system, user, 8192, factDraft, {
+          cacheSystem: system === DRAFTER_FACT_REPAIR_SYSTEM_PROMPT,
+        }))
+          factRaw += text;
+        recordRepair();
+        return factRaw;
+      } catch (factErr) {
+        // A failed repair never fails the draft: the gate reads what is left. Its tokens are counted.
+        recordRepair();
+        if (process.env.NODE_ENV !== 'test') {
+          console.error(
+            `[drafting] Fact repair pass failed (kind=${templateConfig.template_id}, runId=${input.runId}):`,
+            factErr instanceof Error ? factErr.name : 'unknown',
+          );
+        }
+        return null;
+      }
+    };
+    let conflict: FactConflict | null = null;
+    const bodyHeld: HeldBlank[] = [];
+    for (let i = 0; i < renderedSections.length && conflict === null; i++) {
+      const section = renderedSections[i];
+      if (section.type !== 'ai_generated') continue;
+      // Ajay FR-4: a `[To be confirmed: <label>]` for a held fact is a blank here.
+      let body = heldLabelBlanksAsMissing(section.content, gateFacts);
+      // T-611 P6 (L10(c)): the one deterministic fill, then one model repair.
+      const fill = fillHeldBlanks(body, gateFacts);
+      body = fill.text;
+      if (fill.left.length > 0) body = await repairHeldBlanks(verifierInputFor(body), factRepair);
+      // T-147d / T-611 P1-P3: the fact verifier, with its one targeted repair.
+      const check = await verifyAndRepair(verifierInputFor(body), factRepair);
+      renderedSections[i] = { ...section, content: check.body };
+      if ((check.conflicts ?? []).length > 0) {
+        conflict = (check.conflicts as FactConflict[])[0];
+        break;
+      }
+      // P6: the blanks the fact check itself put in stay blanks and are not counted.
+      bodyHeld.push(...heldBlanksIn(check.body, gateFacts, check.ownBlankLabels ?? []));
+    }
+    if (conflict !== null) {
+      throw withholdDraft(
+        res,
+        input.runId,
+        templateConfig.template_id,
+        { code: 'fact_conflict', conflict },
+        meter.totals(),
+        aiModel,
+        transport,
+      );
+    }
+    // The parts the system wrote: the same one deterministic fill (no model call).
+    renderedSections.forEach((section, i) => {
+      if (section.type !== 'template') return;
+      const filled = fillHeldBlanks(section.content, gateFacts);
+      if (filled.filled.length > 0) renderedSections[i] = { ...section, content: filled.text };
+    });
+    const stillHeld = [
+      ...bodyHeld,
+      ...renderedSections
+        .filter((s) => s.type === 'template')
+        .flatMap((s) => heldBlanksIn(s.content, gateFacts)),
+    ];
+    if (stillHeld.length > 0) {
+      throw withholdDraft(
+        res,
+        input.runId,
+        templateConfig.template_id,
+        { code: 'fact_needed', blank: stillHeld[0] },
+        meter.totals(),
+        aiModel,
+        transport,
+      );
+    }
+
     // ── T-628: a past date in the O.39 prayer (Ajay, T-613 §(h), §(k)) ────────
-    // The same check as the brief paths, before anything of the draft is sent:
-    // restraint_sought and the system prayer (subject_matter left out, §(k)6),
-    // or the model's own prayer where there is none. Never the body. The route
-    // releases the hold and saves the failed row; no done, no Ink.
-    // (The T-611 checks are not on this route: T-637.)
+    // The same check as the brief paths, after the T-611 checks and before
+    // anything of the draft is sent: restraint_sought and the system prayer
+    // (subject_matter left out, §(k)6), or the model's own prayer where there
+    // is none. Never the body. The route releases the hold and saves the
+    // failed row; no done, no Ink.
     const pastDate = pastDatePrayerHold(
-      { id: templateConfig.template_id, facts: [] },
+      gateFiles.pack,
       ctx[RESTRAINT_SOUGHT_KEY] ?? convertedFormData[RESTRAINT_SOUGHT_KEY],
       renderedSections,
       -1,
@@ -1359,7 +1508,13 @@ export async function streamGenerateFromTemplate(
         .map((sec) => sec.content)
         .join('\n\n'),
       new Date(),
-      ctx[SUBJECT_MATTER_KEY] ?? convertedFormData[SUBJECT_MATTER_KEY],
+      // The form value and the ledger's display: the T-611 fill above may have
+      // put that display in a held blank in the prayer.
+      [
+        ctx[SUBJECT_MATTER_KEY],
+        convertedFormData[SUBJECT_MATTER_KEY],
+        ...subjectMatterDisplays(gateFacts),
+      ],
     );
     if (pastDate !== null && pastDate.code === 'past_date_in_prayer') {
       const formLabel = templateConfig.form_schema.steps
@@ -1379,7 +1534,6 @@ export async function streamGenerateFromTemplate(
     // ── T-472 (Ajay, Arjun option d): the computed limitation paragraph ─────────
     // A system section right after the model's text, numbered after its last
     // paragraph. The model's text is never changed.
-    const limitation = limitationForValues(templateConfig.template_id, convertedFormData);
     const limitationAt =
       limitation !== null ? insertLimitationSection(renderedSections, limitation) : -1;
     const limitationNumber =
@@ -2084,6 +2238,54 @@ function limitationClaimWarnings(
       ...(blanked ? { blanked: true } : {}),
     },
   }));
+}
+
+// ── T-637: the form route's in-memory ledger and its held blanks ─────────────
+
+/**
+ * T-637: the ledger the form route's gate reads, for this request only and
+ * never stored: the form answers as `asked` facts (Ajay FR-3; form-ledger.ts),
+ * then the per-request computed facts the brief path adds, in its order and by
+ * the same functions: the T-192 s.138 date checks (generate-from-brief), the
+ * T-245a law switch, the T-472 limitation and the T-611 P5 amount in words
+ * (streamGenerateFromBrief).
+ */
+function formRouteLedger(
+  pack: RulePack,
+  values: Readonly<Record<string, unknown>>,
+  law: LawSwitchResult | null,
+  limitation: LimitationResult | null,
+): { facts: LedgerFact[]; unresolved: LedgerUnresolvedFact[] } {
+  const state = buildInMemoryLedger(pack, formLedgerValues(values));
+  let facts = withS138DateChecks(
+    state.facts,
+    pack.id,
+    state.unresolved.map((u) => u.key),
+  );
+  if (law !== null) facts = withLawSwitchFacts(facts, law);
+  if (limitation !== null) facts = withLimitationFact(facts, limitation);
+  facts = withAmountInWordsFact(facts, buildChecklist(pack));
+  return { facts, unresolved: state.unresolved };
+}
+
+/** `[To be confirmed: <label>]`, the editor's signed blank (T-611 P7). */
+const TO_BE_CONFIRMED_BLANK_RE = /\[To be confirmed:\s*([^\]]*?)\s*\]/gi;
+
+/**
+ * T-637 (Ajay FR-4, option a): on the form route a `[To be confirmed: <label>]`
+ * is a blank for the gate when `<label>` names a fact the ledger holds, by the
+ * gate's own label matching (the label is tried as a `{{MISSING: <label>}}`
+ * through heldBlanksIn). Each such blank is written as that `{{MISSING}}` so
+ * the one fill, the one repair and the P6 question treat it as theirs. A
+ * `[To be confirmed: ...]` for a fact the ledger does not hold, and a `_____`
+ * slot, are left as they are.
+ */
+export function heldLabelBlanksAsMissing(text: string, facts: readonly LedgerFact[]): string {
+  return text.replace(TO_BE_CONFIRMED_BLANK_RE, (token: string, label: string) => {
+    if (label === '' || /[{}]/.test(label)) return token;
+    const missing = `{{MISSING: ${label}}}`;
+    return heldBlanksIn(missing, facts).length > 0 ? missing : token;
+  });
 }
 
 export async function streamGenerateFromBrief(
