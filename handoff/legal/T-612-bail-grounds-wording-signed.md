@@ -103,3 +103,13 @@ This **replaces** Tanvi's marker-keeping fix in `bareStationName`: one rule on e
 1. A **trailing** `Thana` / `थाना` (the last word, with a name left before it) **is stripped** once: "Kotwali थाना" prints `Police Station Kotwali`. Hindi word order puts the marker last, and a station name ending in "Thana" is far rarer than one beginning with it. A leading bare "Thana X" stays as in (6a). This is a one-line add in T-612.
 2. Raw values typed straight into a template form (template-engine ~2152–2165, T-139 / C2 rules): this moves to **T-638**, with the annexures line. It is not blocking, because the outputs there are redundant, not a wrong name. T-638 applies the (6a)/(6b) table on that path too and adds `पुलिस स्टेशन` and `पुलिस थाना` as always-stripped markers (they are never part of a name). The C2 rule is amended to match in T-638, with my byte check.
 3. (27 Oct) Two-marker inputs: **option A.** Store and render each apply the table once, so an input with two markers loses both end to end ("PS PS Kadamkuan" and "P.S. Kotwali Thana" print `Police Station Kadamkuan` / `Police Station Kotwali`). That is correct output and never worse than one marker. "Applied once" in (6a) means once **per stage**, not once overall. The renderer strip stays for old ledgers. Tests pin the store-then-render outputs.
+
+## T-612 final byte check (Ajay, 27 Oct 2026): fix/t-612-bail-grounds @ commit SHA fc25a22d
+
+| item | result |
+| --- | --- |
+| Since 41991cf1 | No change in `apps/drafting/src/config`. The skeleton md files on the branch are byte-identical to mine (v6). The t449 averments pins moved to my SHAs (8ee0a756…, 4173d669…). |
+| Police station code | `bareStationName` (store) and `stripPoliceStationPrefix` (render) each apply, once per stage, the table: trailing then leading PS / P.S. / P S / Police Station (whole marker, followed by a separator); leading Thana/थाना only with `:` `-` `–`; trailing Thana/थाना as the last word. A marker-only value is kept as written. Matches (6a), (6b)1 and (6b)3. "Thana Bhawan" is never stripped; "Psalm Nagar" is untouched. |
+| Out of scope | Template raw path and the annexures line → T-638. |
+
+**T-612 APPROVED at fc25a22d.** It counts as merged at the develop_staging merge SHA that contains fc25a22d.
