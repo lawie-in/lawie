@@ -50,6 +50,7 @@ import { EXPORT_HASH } from './draftActions';
 import DraftReadyStep from './DraftReadyStep';
 import GeneratingStep from './GeneratingStep';
 import {
+  FACT_QUESTION_CODES,
   INSUFFICIENT_INK_CODE,
   refusedStartError,
   type GenerationError,
@@ -806,9 +807,13 @@ function OneFlowSteps({
             if (event === 'error') {
               setGenError({
                 // T-565 W13: no server reason is shown (''), except for insufficient_ink, whose
-                // reason is the card's heading (T-521).
+                // reason is the card's heading (T-521), and a withheld draft's question (T-611
+                // fact_needed / fact_conflict, T-628 past_date_in_prayer), whose reason is Ajay's
+                // signed question (generationFailure FACT_QUESTION_CODES).
                 reason:
-                  payload.code === INSUFFICIENT_INK_CODE && typeof payload.reason === 'string'
+                  (payload.code === INSUFFICIENT_INK_CODE ||
+                    (typeof payload.code === 'string' && FACT_QUESTION_CODES.has(payload.code))) &&
+                  typeof payload.reason === 'string'
                     ? payload.reason
                     : '',
                 retryable: payload.retryable !== false,

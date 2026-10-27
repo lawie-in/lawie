@@ -45,3 +45,5 @@ Every ticket I byte-checked and approved is signed for production as merged: T-4
 ## Correction, 26 Oct 2026 (Ajay)
 
 T-488 was **never merged**. Branch tip 01dcc4a4 and my byte-checked SHA 3d06093d are not ancestors of origin/develop_staging (checked with `git merge-base --is-ancestor`, 26 Oct). My §D line ("signed for production as merged") therefore never covered T-488. Production runs without the AJ-488-M1 cues; that is why s.138 para 6 printed `{{MISSING: Cheque Date}}` on 26 Oct. My miss: I signed T-488 "as merged" without checking ancestry. **From now on, every "as merged" line names the develop_staging SHA that contains the approved commit.** T-488 is folded into T-611 and needs a fresh byte check before it counts.
+
+**T-488 resolved (27 Oct 2026):** now merged in develop_staging `023b08c5` (with T-611, approved at d1a318e9). It counts for production only once that SHA is released.

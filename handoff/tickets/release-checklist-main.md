@@ -100,3 +100,12 @@ Do not cut prod with T-610 unless T-622 (DocumentChoiceStep: no pre-selected car
 
 ## T-613 + T-628 + T-629 ship together (26 Oct 2026, Priya, Ajay R2-F1 12914711)
 Do not cut prod with T-613 (O.39) unless T-628 (past date in the prayer) and T-629 (required fields block Confirm) are also merged. Release step: re-seed courts (`seed-courts`) for the Patna Junior Division record and the Andaman id fix. Founder or ops runs it.
+
+## T-637 before any prod cut carrying T-611 (27 Oct 2026, Priya)
+The Templates form route has no T-611 gate until T-637 merges. Do not cut prod for the drafting fixes without it.
+
+## FR-6: feature.fact_ledger must be ON, or the gate must run without it (27 Oct 2026, Ajay 06d18fed)
+T-611 and T-637 work only where feature.fact_ledger is ON, and it defaults to OFF. No prod release may be called the fix for Anushka's 26 Oct faults unless the flag is ON in prod or the gate runs without a ledger. The release note must state the flag's value. Arjun is checking the current value via Nikhil.
+
+## T-613 + T-628 + T-629 + T-637 ship to prod together (Ajay FR-5a 04f5aa77, 27 Oct 2026)
+These four tickets go in one release. T-629 enforces the O.39 required fields on both the brief and the form routes. FR-6 is met by T-637 (the gate runs without a ledger, Arjun); the release note still states the feature.fact_ledger value.

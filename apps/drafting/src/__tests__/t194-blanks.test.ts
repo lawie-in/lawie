@@ -245,8 +245,10 @@ describe('templates built from the real rule packs', () => {
   const load = (name: string) =>
     JSON.parse(fs.readFileSync(path.join(RULES, `${name}.json`), 'utf8'));
 
-  function fill(tpl: string, nomenclature: string): string {
-    return tpl
+  function fill(tpl: string, nomenclature: string, tokens: Record<string, string> = {}): string {
+    let named = tpl;
+    for (const [k, v] of Object.entries(tokens)) named = named.split(`{${k}}`).join(v);
+    return named
       .replace('{caseNomenclature}', nomenclature)
       .replace(/\[YEAR\]/g, '2026')
       .replace(/\{date\}/g, '_____ day of _________, 2026')
@@ -254,15 +256,15 @@ describe('templates built from the real rule packs', () => {
   }
 
   /** Cause title + paragraph 1 + prayer + standard verification of a pack. */
-  function draftOf(name: string): string {
+  function draftOf(name: string, tokens: Record<string, string> = {}): string {
     const pack = load(name);
     const nomenclature: string = pack.causeTitle.caseNomenclature;
-    const title = fill(pack.causeTitle.format, nomenclature);
+    const title = fill(pack.causeTitle.format, nomenclature, tokens);
     return [
       title,
       '1. That the applicant is innocent and has been falsely implicated.',
       'PRAYER\n\nIt is prayed that the application be allowed.',
-      fill(pack.verificationTemplate, nomenclature),
+      fill(pack.verificationTemplate, nomenclature, tokens),
     ].join('\n\n');
   }
 
@@ -270,9 +272,25 @@ describe('templates built from the real rule packs', () => {
     ['bail_regular', 0],
     ['discharge_application', 1],
     ['bail_cancellation', 2],
-    ['temporary_injunction_o39', 1],
   ])('%s: %i counted', (name, expected) => {
     expect(countBlanks(draftOf(name))).toBe(expected);
+  });
+
+  // T-613: the O.39 title no longer carries a "Civil Suit No. _____" blank of its own. The suit
+  // number is {suit_number}: as given it counts 0 (the I.A. number is exempt); blank, the
+  // signed fallback "Suit No. _____ of {current_year}" prints and counts 1.
+  it('temporary_injunction_o39: suit number given -> 0 counted (the I.A. number is exempt)', () => {
+    expect(
+      countBlanks(
+        draftOf('temporary_injunction_o39', { suit_number: 'Title Suit No. 245 of 2026' }),
+      ),
+    ).toBe(0);
+  });
+
+  it('temporary_injunction_o39: suit number blank (fallback printed) -> 1 counted', () => {
+    expect(
+      countBlanks(draftOf('temporary_injunction_o39', { suit_number: 'Suit No. _____ of 2026' })),
+    ).toBe(1);
   });
 
   it('the packs still carry the nomenclature the counts rely on', () => {
@@ -286,7 +304,7 @@ describe('templates built from the real rule packs', () => {
       'Arising out of Bail Order dated _____ in Bail Application No. _____',
     );
     expect(load('temporary_injunction_o39').causeTitle.caseNomenclature).toBe(
-      'I.A. No. _____ of [YEAR] in Civil Suit No. _____ of [YEAR]',
+      'I.A. No. _____ of {current_year}',
     );
   });
 
@@ -296,10 +314,13 @@ describe('templates built from the real rule packs', () => {
     expect(b[0].context).toContain('No. _____');
   });
 
-  it('I.A. exempts the I.A. number and counts the Civil Suit number', () => {
-    const b = findBlanks(draftOf('temporary_injunction_o39'));
+  it('I.A. exempts the I.A. number and counts the suit-number fallback, not a Civil Suit blank', () => {
+    const t = draftOf('temporary_injunction_o39', { suit_number: 'Suit No. _____ of 2026' });
+    const b = findBlanks(t);
     expect(b).toHaveLength(1);
-    expect(b[0].context).toContain('Civil Suit No.');
+    expect(b[0].context).toContain('Suit No.');
+    expect(b[0].context).not.toContain('Civil Suit No.');
+    expect(t).not.toContain('Civil Suit No.');
   });
 
   it('bail_cancellation: the order date and the bail application number count', () => {

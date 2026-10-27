@@ -13,6 +13,12 @@ export interface ISession extends Document {
   isActive: boolean;
   expiresAt: Date;
   lastActivityAt: Date;
+  /**
+   * T-616b — when the sign-in that started this session family happened. Carried through every
+   * rotation (each rotation writes a new row); expiresAt never passes it + SESSION_ABSOLUTE_DAYS.
+   * Absent on rows written before T-616b. Not indexed.
+   */
+  originalCreatedAt?: Date;
 
   createdAt: Date;
 }
@@ -60,6 +66,9 @@ const SessionSchema = new Schema<ISession>(
     lastActivityAt: {
       type: Date,
       default: Date.now,
+    },
+    originalCreatedAt: {
+      type: Date,
     },
   },
   { timestamps: { createdAt: true, updatedAt: false } },

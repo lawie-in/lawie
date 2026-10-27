@@ -43,3 +43,35 @@ Also recorded: the T-488 correction in `go-live-ruling-23-oct.md` (it was never 
 | P-R6 | Scope confirmed with one change. An uncued amount, or a date that matches no ledger value, is model-introduced and stays a blank. **But** a non-held date or amount under a *held* label goes to repair, then ask (P1/P3), not a blank: the ledger holds the truth for that label, and a blank there is today's fault. The gate still never fills the verifier's blanks silently. |
 | P-R7 | The P-R2 question also covers dates, so no separate string. Bank role under P1: label A `bank or branch where the cheque was presented` (the signed ROLE_RULES wording) is **signed**, so the question reads `The draft gives <name> as the bank or branch where the cheque was presented, but your facts give it as the Drawee Branch. Which is right?` The withhold log line `[drafting] draft withheld (kind=<packId>, code=<code>, keys=<keys>)` carries no values and is OK. |
 | R2-F1 | R2 is met at intake: `main_suit_relief` (and T-613 `restraint_sought`) are required questions, and the brief cannot be confirmed until they are answered. P6 is unchanged (held facts only). If a draft still has a blank for either, it is a blocking gate finding, never filled by the model. |
+
+## T-611 final byte check (Ajay, 26 Oct 2026): fix/t-611-missing-facts-gate @ d1a318e9
+
+| item | result |
+| --- | --- |
+| Hashes (sha256, first 16, recomputed myself) | fact-verifier `69fc4333aedde27c`, ai.service `77281116f319daf5`, fact-ledger.service `9e81ab46d63a41a0`, intake-brief `22dbfdfaf2281fdc` and template-engine.service `fe84c199452079bf` (both unchanged since 31bd7994). All match Vishal's. |
+| User strings | Byte-identical to the signed text: P6 (ai.service:700), P1 (:705), P-R2/P-R7 (:713), P5 `Rupees … only` / ` and … Paise only` (fact-ledger:1119), P7 `[To be confirmed: …]`, the bank label, and the three repair lines. |
+| R2b hunk (ai.service ~2470–2493) | **Approved.** The deterministic fill stays under R2b.1. The held-blank model repair is re-recorded only inside the sentences of the blanks it was asked to fill (R2b.4), so a repair that weakens a mandatory clause stays visible to the missing-clause check. Text facts over 300 characters or with a line break go to the model repair, then the P6 question, not to the code fill. OK. |
+| Logs | New lines carry only pack id, runId, code, keys and the error name. No `<value>`, no draft text. |
+| P4-F1 | cheque_validity_date test at t611-verifier.test.ts:302; the cue words are unchanged. |
+
+**APPROVED at d1a318e9.** T-611, and with it T-488, counts as merged **only at the develop_staging SHA that contains d1a318e9**, which I record when it lands (go-live correction, 26 Oct). Open follow-up: the paise format in intake-text.ts (P-R3) has the right shape at :288, but its owner confirms it in the P-R3 ticket.
+
+**Merged (Ajay, 27 Oct 2026):** develop_staging `023b08c507ccbfed4b30cab4348a572ce9e3b6a9` contains d1a318e9 (T-611) and 31bd7994 (T-488). I checked this myself with `git merge-base --is-ancestor`, and fact-verifier, ai.service and fact-ledger.service have the same hashes after the merge. This is the "as merged" SHA for T-611 and T-488. CI is pending (Vishal confirms green). Production still needs the founder's release and Anushka's PASS.
+| P-R3-BC | T-624 (`fix/t-624-paise-form` @ e038a0a9): **APPROVED.** intake-text.ts:287 gives ` and <words> Paise` → `Rupees … and Fifty Paise only`, the same as P5. Whole-rupee amounts are unchanged. The words comparison reads both orders and keeps rupees and paise apart (120.05 ≠ 100.25). t139 was changed only for the new form. It counts as merged at the develop_staging SHA that contains e038a0a9. |
+
+## Form route (Templates → form), Ajay 27 Oct 2026
+
+| id | ruling |
+| --- | --- |
+| FR-1 | The signed T-611 policy (P1–P7, P-R1..R7) applies **as is to every path that delivers a draft**, the form route included. No separate policy. Conditions for T-637: (a) the form answers enter the ledger as `source: user`, so P1/P6 treat them as held; (b) the form route enforces the T-629 required fields (`main_suit_relief`, `restraint_sought`, with the same non-answer list) **before** generating, and returns the signed (g) messages; (c) T-628 runs on it (Priya: now). |
+| FR-2 | T-637 is a prod release gate, as Priya proposes: no prod release that changes drafting without it. I byte-check T-637 like T-611 (same strings, hashes, logs carry no values). |
+
+## T-637 rulings (Ajay, 27 Oct 2026)
+
+| id | ruling |
+| --- | --- |
+| FR-3 | Form answers enter the ledger as `asked`: OK. FR-1(a) meant "user-given, not computed". `asked` is user-given, and the verifier treats it the same as `user`. |
+| FR-4 | Option **(a)**. On the form route the gate treats `[To be confirmed: <label>]` as a blank **when `<label>` maps to a ledger-held key**: code fill from the ledger, then one repair, then the P6 question. A `[To be confirmed: …]` for a fact the ledger does not hold stays as it is (correct). `_____` blanks are intentional slots (case number, year) and are not touched. No prompt change. |
+| FR-5 | Narrow version now: **yes**, for temporary_injunction_o39 only. An empty answer or a §(j)3 non-answer for `main_suit_relief` / `restraint_sought` returns 400 **before any Ink hold**, with the §(g) EN lines in §(j)2 order. The constants go in one small new legal file that T-629 imports, so they are never duplicated. Priya adds the file to legal-content-paths.md. |
+| FR-6 | **Release condition.** T-611 (and T-637) protect users only where the ledger runs. `feature.fact_ledger` defaults OFF. No prod release may be described as fixing Anushka's 26 Oct {{MISSING}} faults unless `feature.fact_ledger` is ON in prod for the drafting paths, or the gate is made to run without it. Arjun and the founder decide which; I need the prod flag state named in the release note. |
+| FR-5a | Scope is Priya's call: no narrow file in T-637, and the O.39 required fields come with T-629. The legal condition FR-1(b) is unchanged: **T-629 must also cover the form route**, and no O.39 form-route draft reaches prod before it does. T-613, T-628, T-629 and T-637 ship together. |

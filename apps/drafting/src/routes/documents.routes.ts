@@ -128,6 +128,7 @@ import {
   sealFormInputs,
 } from '../utils/case-details';
 import { decrypt, encrypt } from '../utils/encryption';
+import { missingAsBlanks } from '../utils/missingAsBlanks';
 import { publicTemplateConfig, publicTemplateSummary } from '../utils/publicTemplateConfig';
 
 /**
@@ -144,6 +145,7 @@ const TEMPLATE_TO_DOC_TYPE: Record<string, DocType> = {
   writ_petition: DOC_TYPES.PETITION,
   criminal_complaint: DOC_TYPES.COMPLAINT,
   plaint_civil: DOC_TYPES.PLAINT,
+  temporary_injunction_o39: DOC_TYPES.INJUNCTION,
 };
 
 /** Skip this route if :id is not a valid ObjectId (avoids catching /templates etc.) */
@@ -2070,7 +2072,13 @@ router.get(
     let content: string;
     let filingChecklist: string[];
     try {
-      content = doc.finalContent ? decrypt(doc.finalContent) : decrypt(doc.generatedContent);
+      // T-611 (AC 1, 5): no client is sent a raw `{{MISSING: label}}` token; it
+      // goes out as the signed blank `[To be confirmed: label]`, as the PDF and
+      // the review link print it. Only what is served changes: the stored text
+      // and the generation-time placeholder count (fact-diff-log) are untouched.
+      content = missingAsBlanks(
+        doc.finalContent ? decrypt(doc.finalContent) : decrypt(doc.generatedContent),
+      );
       filingChecklist = readFilingChecklist(doc);
     } catch (err) {
       console.error(
