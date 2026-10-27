@@ -35,6 +35,7 @@ export const COURT_TYPES = {
   CJM: 'cjm',
   JMFC: 'jmfc',
   CIVIL_COURT: 'civil_court',
+  CIVIL_COURT_JUNIOR: 'civil_court_junior',
 } as const;
 
 export type CourtType = (typeof COURT_TYPES)[keyof typeof COURT_TYPES];
