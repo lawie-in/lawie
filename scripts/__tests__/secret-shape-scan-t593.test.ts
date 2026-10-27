@@ -228,6 +228,28 @@ describe('T-593 round 2: all-caps joined KEY / WEBHOOK / API labels', () => {
   });
 });
 
+describe('T-593 round 3: digits or a version tag after the suffix do not hide it', () => {
+  // Built from fragments so no full label sits in the source as one literal.
+  it.each([
+    ['RAZORPAY', 'KEY2'],
+    ['MY', 'KEY1'],
+    ['JWT', 'KEY2'],
+    ['RZP', 'API2'],
+    ['RAZORPAY', 'WEBHOOK2'],
+    ['RAZORPAY', 'KEYV2'],
+    ['DB', 'PWD2'],
+  ])('HITS: SHA label %s%s', (a, b) => {
+    expect(hits(labelled(a + b))).toBe(1);
+  });
+
+  it.each(['MONKEY2', 'TURKEY1', 'CAPITAL2', 'RAPID3', 'KEYBOARD2', 'SHA256'])(
+    'PASSES: false-positive guard %s',
+    (label) => {
+      expect(hits(labelled(label))).toBe(0);
+    },
+  );
+});
+
 describe('T-593 documented residuals (not protected, not pinned)', () => {
   // Residual: Cyrillic or Greek look-alike letters inside a label (e.g. a Cyrillic "E" in
   // SECRET) are not folded by NFKC, so they are not denied yet.
@@ -237,5 +259,6 @@ describe('T-593 documented residuals (not protected, not pinned)', () => {
   // Residuals of the all-caps suffix rule, deliberately not pinned as desired behaviour.
   it.todo('deny lower / Title-case joined labels (razorpaykey, Mykey, rzpapi)');
   it.todo('deny all-caps labels with the secret word as PREFIX (KEYRAZORPAY, APIRZP)');
+  it.todo('deny all-caps labels with the secret word as INFIX (RAZORPAYKEYPROD, RAZORPAYAPIPROD)');
   it.todo('invisible characters outside the stripped list');
 });

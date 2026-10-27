@@ -1,15 +1,212 @@
 import fs from 'node:fs';
 import path from 'node:path';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const YAML = require('yaml') as { parse: (s: string) => any };
+
+/**
+ * T-593 round 3: a tiny, STRICT parser for the block-YAML subset the workflow file uses, so
+ * this test needs no `yaml` package (no root devDependency, no yarn.lock change). Supported:
+ * 2-space-style indentation with spaces only; `key: value` and `key:` + nested block maps;
+ * `- ` block sequences (an item may start a map: `- run: x` + more keys under it); inline
+ * flow lists `[a, 'b']` of scalars; plain, 'single' and "double" quoted scalars; plain
+ * true / false / null / ~ / integers; `#` comments (whole-line, or after whitespace outside
+ * quotes). Anything else (tabs, block scalars | >, flow maps {}, anchors & aliases * tags !,
+ * documents ---, duplicate keys, a sequence at its key's indent, bad indentation) throws, so
+ * a workflow change the parser does not understand fails the test loudly instead of being
+ * misread. `on` stays the string key "on" (no YAML 1.1 boolean folding).
+ */
+type Line = { indent: number; text: string; no: number };
+
+function stripComment(s: string): string {
+  let quote = '';
+  for (let i = 0; i < s.length; i += 1) {
+    const c = s[i];
+    if (quote) {
+      if (c === quote) quote = '';
+    } else if (c === "'" || c === '"') {
+      quote = c;
+    } else if (c === '#' && (i === 0 || /\s/.test(s[i - 1]))) {
+      return s.slice(0, i);
+    }
+  }
+  return s;
+}
+
+function toLines(src: string): Line[] {
+  const out: Line[] = [];
+  src.split(/\r?\n/).forEach((raw, idx) => {
+    const no = idx + 1;
+    if (/^\s*\t/.test(raw)) throw new Error(`yaml line ${no}: tab indentation`);
+    const text = stripComment(raw).trimEnd();
+    if (text.trim() === '') return;
+    if (text.trim() === '---' || text.trim() === '...') {
+      throw new Error(`yaml line ${no}: document markers are not supported`);
+    }
+    const indent = text.length - text.trimStart().length;
+    out.push({ indent, text: text.trimStart(), no });
+  });
+  return out;
+}
+
+function scalar(raw: string, no: number): any {
+  const s = raw.trim();
+  if (s.startsWith("'")) {
+    const m = /^'((?:[^']|'')*)'$/.exec(s);
+    if (!m) throw new Error(`yaml line ${no}: bad single-quoted scalar`);
+    return m[1].replace(/''/g, "'");
+  }
+  if (s.startsWith('"')) {
+    const m = /^"([^"\\]*)"$/.exec(s);
+    if (!m) throw new Error(`yaml line ${no}: unsupported double-quoted scalar`);
+    return m[1];
+  }
+  if (s.startsWith('[')) {
+    if (!s.endsWith(']')) throw new Error(`yaml line ${no}: unterminated flow list`);
+    const body = s.slice(1, -1).trim();
+    if (body === '') return [];
+    const items: string[] = [];
+    let cur = '';
+    let quote = '';
+    for (const c of body) {
+      if (quote) {
+        if (c === quote) quote = '';
+      } else if (c === "'" || c === '"') {
+        quote = c;
+      } else if (c === ',') {
+        items.push(cur);
+        cur = '';
+        continue;
+      } else if (c === '[' || c === '{') {
+        throw new Error(`yaml line ${no}: nested flow collections are not supported`);
+      }
+      cur += c;
+    }
+    if (quote) throw new Error(`yaml line ${no}: unterminated quote in flow list`);
+    items.push(cur);
+    return items.map((it) => {
+      if (it.trim() === '') throw new Error(`yaml line ${no}: empty flow list item`);
+      return scalar(it, no);
+    });
+  }
+  if (/^[{|>&*!%@`]/.test(s)) {
+    throw new Error(`yaml line ${no}: unsupported scalar start "${s[0]}"`);
+  }
+  if (s === '' || s === '~' || s === 'null') return null;
+  if (s === 'true') return true;
+  if (s === 'false') return false;
+  if (/^-?\d+$/.test(s)) return Number(s);
+  return s;
+}
+
+/**
+ * `key: rest` / `key:` -> [key, rest] for a plain key (letters, digits, `_ . / -`); a line
+ * that is not a mapping entry -> null. An unquoted `: ` or trailing `:` that is not such a
+ * key (e.g. `a b: c`, `'k': v`) throws rather than being read as a scalar.
+ */
+function splitKey(text: string, no: number): [string, string] | null {
+  const m = /^([A-Za-z0-9_][A-Za-z0-9_./-]*):(?:\s+(.*))?$/.exec(text);
+  if (m) return [m[1], m[2] ?? ''];
+  if (/(?::\s|:$)/.test(stripQuoted(text))) {
+    throw new Error(`yaml line ${no}: unsupported mapping key in "${text}"`);
+  }
+  return null;
+}
+
+/** The text with quoted spans blanked, so a `: ` inside quotes is not seen as a key colon. */
+function stripQuoted(s: string): string {
+  return s.replace(/'(?:[^']|'')*'|"[^"\\]*"/g, (q) => ' '.repeat(q.length));
+}
+
+function parseBlock(lines: Line[], i: number, indent: number): [any, number] {
+  return lines[i].text === '-' || lines[i].text.startsWith('- ')
+    ? parseSeq(lines, i, indent)
+    : parseMap(lines, i, indent);
+}
+
+function parseMap(lines: Line[], i: number, indent: number): [any, number] {
+  const obj: Record<string, any> = {};
+  while (i < lines.length && lines[i].indent === indent) {
+    const { text, no } = lines[i];
+    if (text === '-' || text.startsWith('- ')) {
+      throw new Error(`yaml line ${no}: sequence item inside a mapping`);
+    }
+    const kv = splitKey(text, no);
+    if (!kv) throw new Error(`yaml line ${no}: expected "key: value", got "${text}"`);
+    const [key, rest] = kv;
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      throw new Error(`yaml line ${no}: duplicate key "${key}"`);
+    }
+    i += 1;
+    if (rest !== '') {
+      obj[key] = scalar(rest, no);
+    } else if (i < lines.length && lines[i].indent > indent) {
+      [obj[key], i] = parseBlock(lines, i, lines[i].indent);
+    } else if (
+      i < lines.length &&
+      lines[i].indent === indent &&
+      (lines[i].text === '-' || lines[i].text.startsWith('- '))
+    ) {
+      throw new Error(`yaml line ${lines[i].no}: sequence at its key's indent is not supported`);
+    } else {
+      obj[key] = null;
+    }
+  }
+  if (i < lines.length && lines[i].indent > indent) {
+    throw new Error(`yaml line ${lines[i].no}: unexpected indentation`);
+  }
+  return [obj, i];
+}
+
+function parseSeq(lines: Line[], i: number, indent: number): [any, number] {
+  const arr: any[] = [];
+  while (
+    i < lines.length &&
+    lines[i].indent === indent &&
+    (lines[i].text === '-' || lines[i].text.startsWith('- '))
+  ) {
+    const { text, no } = lines[i];
+    const content = text === '-' ? '' : text.slice(2);
+    if (content.trim() === '') {
+      i += 1;
+      if (i >= lines.length || lines[i].indent <= indent) {
+        throw new Error(`yaml line ${no}: empty sequence item`);
+      }
+      let v: any;
+      [v, i] = parseBlock(lines, i, lines[i].indent);
+      arr.push(v);
+    } else if (content.startsWith(' ')) {
+      throw new Error(`yaml line ${no}: more than one space after "-"`);
+    } else if (splitKey(content, no)) {
+      // `- key: v` starts a map whose keys sit at indent + 2 (the column of `key`).
+      const copy = lines.slice();
+      copy[i] = { indent: indent + 2, text: content, no };
+      let v: any;
+      [v, i] = parseMap(copy, i, indent + 2);
+      arr.push(v);
+    } else {
+      arr.push(scalar(content, no));
+      i += 1;
+    }
+  }
+  if (i < lines.length && lines[i].indent > indent) {
+    throw new Error(`yaml line ${lines[i].no}: unexpected indentation`);
+  }
+  return [arr, i];
+}
+
+function parseWorkflowYaml(src: string): any {
+  const lines = toLines(src);
+  if (lines.length === 0 || lines[0].indent !== 0) throw new Error('yaml: empty or indented');
+  const [doc, end] = parseMap(lines, 0, 0);
+  if (end !== lines.length) throw new Error(`yaml line ${lines[end].no}: trailing content`);
+  return doc;
+}
 
 // T-593: the Scripts tests workflow is the only CI that runs scripts/__tests__. These tests pin
-// its name (the required-check string), triggers, paths and the command it runs.
+// its name and job name (branch protection requires the job's check-run name), triggers, paths
+// and the command it runs.
 const ROOT = path.resolve(__dirname, '..', '..');
 const WORKFLOW_REL = '.github/workflows/scripts-tests.yml';
-const wf = YAML.parse(fs.readFileSync(path.join(ROOT, WORKFLOW_REL), 'utf8'));
-// YAML 1.2 keeps `on` as a string key; tolerate a YAML 1.1 parse that turns it into `true`.
-const on = wf.on ?? wf[true as unknown as string];
+const wf = parseWorkflowYaml(fs.readFileSync(path.join(ROOT, WORKFLOW_REL), 'utf8'));
+const on = wf.on;
 const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
 
 describe('scripts-tests workflow', () => {
@@ -20,7 +217,8 @@ describe('scripts-tests workflow', () => {
   it('has exactly one job, id scripts-tests, named "Run scripts tests"', () => {
     expect(Object.keys(wf.jobs)).toEqual(['scripts-tests']);
     expect(wf.jobs['scripts-tests'].name).toBe('Run scripts tests');
-    // The required-check string is "<workflow name> / <job name>".
+    // Branch protection requires the job's check-run name ("Run scripts tests"); a PR's check
+    // list displays it as "<workflow name> / <job name>", which is what the docs quote.
     expect(`${wf.name} / ${wf.jobs['scripts-tests'].name}`).toBe(
       'Scripts tests / Run scripts tests',
     );

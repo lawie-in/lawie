@@ -64,14 +64,17 @@ export const PATTERNS = [
  * (DBPWD). Company-secretary words (secretary, secretariat, secretarial) are exempt. An
  * ALL-CAPS run ending in KEY, KEYS, KEYID, WEBHOOK(S) or API after two or more characters is
  * also denied (DENY_CAPS_SUFFIX: RAZORPAYKEY, MYKEY, JWTKEY, RAZORPAYWEBHOOK, RZPAPI), minus
- * a short list of English words (MONKEY, TURKEY, HOCKEY, TURNKEY, OKAPI, ...). All deny
+ * a short list of English words (MONKEY, TURKEY, HOCKEY, TURNKEY, OKAPI, ...); both the
+ * stem and the suffix tests also run on each letter-only piece of a run, so digits or a
+ * `V2` version tag after the word do not hide it (RAZORPAYKEY2, RAZORPAYKEYV2, DBPWD2). All deny
  * tests run on the context after NFKC and with zero-width / soft-hyphen characters removed
  * (denyPlain), so fullwidth or invisibly split labels are denied too.
  *
  * Residual deny gaps (reviewed, accepted for T-593): lower-case or Title-case joined labels
  * on KEY / WEBHOOK / API outside the fixed prefixes (razorpaykey, Mykey, rzpapi) are not
  * denied, to keep monkey, turkey, turnkey prose allowed; an all-caps run with the word as a
- * PREFIX (KEYRAZORPAY, APIRZP, WEBHOOKRZP) is not denied; bare hmac, salt, nonce, seed, cred
+ * PREFIX (KEYRAZORPAY, APIRZP, WEBHOOKRZP) or as an INFIX followed by more letters
+ * (RAZORPAYKEYPROD, RAZORPAYAPIPROD) is not denied; bare hmac, salt, nonce, seed, cred
  * and pwd are not deny words; Cyrillic / Greek look-alike letters (not folded by NFKC) and
  * invisible characters outside denyPlain's list can still disguise a deny word; the all-caps
  * WAAPI (Web Animations API) and similar acronyms ending in API ARE denied next to a SHA.
@@ -179,11 +182,29 @@ const DENY_CAPS_SUFFIX = /^[A-Z0-9]{2,}(?:KEY(?:S|ID)?|WEBHOOKS?|API)$/;
 const DENY_CAPS_EXEMPT =
   /^(?:MONKEY|TURKEY|HOCKEY|DONKEY|JOCKEY|WHISKEY|LACKEY|FLUNKEY|MALARKEY|TURNKEY|LATCHKEY|HOTKEY|OKAPI)S?$/;
 
+/**
+ * T-593 round 3: the letter-only pieces of one alphanumeric run, so digits before or after a
+ * suffix no longer hide it (RAZORPAYKEY2, MYKEY1, RZPAPI2, DBPWD2). A version tag `V<digits>`
+ * / `v<digits>` is cut together with its digits (RAZORPAYKEYV2 -> RAZORPAYKEY).
+ */
+function letterPieces(run) {
+  return run.split(/[Vv]?[0-9]+/).filter(Boolean);
+}
+
 function deniedByStem(text) {
   for (const run of text.match(/[A-Za-z0-9]+/g) || []) {
-    if (DENY_STEM_EXEMPT.test(run)) continue;
-    if (DENY_STEMS.test(run)) return true;
-    if (DENY_CAPS_SUFFIX.test(run) && !DENY_CAPS_EXEMPT.test(run)) return true;
+    const pieces = letterPieces(run);
+    // Stems: the run itself and each letter piece (the `.pwd$` stem needs the piece: DBPWD2).
+    for (const c of [run, ...pieces]) {
+      if (DENY_STEM_EXEMPT.test(c)) continue;
+      if (DENY_STEMS.test(c)) return true;
+    }
+    // Caps suffix: the run itself (HMAC2KEY, DB2KEY) and each all-caps letter piece; the
+    // 2-character minimum and the English-word exemptions apply to the piece (MONKEY2 passes).
+    const caps = pieces.flatMap((p) => p.match(/[A-Z]+/g) || []);
+    for (const c of [run, ...caps]) {
+      if (DENY_CAPS_SUFFIX.test(c) && !DENY_CAPS_EXEMPT.test(c)) return true;
+    }
   }
   return false;
 }

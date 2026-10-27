@@ -63,7 +63,8 @@
  *     jq <= 1.7 reads every letter of the word as a flag)
  *   - `--run-tests`
  *   - any jq or gojq option not in this file's tables (unknown long options, unknown short
- *     letters, `--name=value` forms other than `--indent=` and `--library-path=`)
+ *     letters, `--name=value` forms other than `--indent=`, `--library-path=` and
+ *     `--debug-trace=all`)
  *   - `--library-path DIR` and a short cluster ending in L (`-nL DIR`): DIR is also checked
  *     as a filter, so a DIR like `./env` blocks
  *   bash `$'...'` strings

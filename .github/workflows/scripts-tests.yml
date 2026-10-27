@@ -4,8 +4,8 @@ name: Scripts tests
 # scripts/ is not a yarn workspace, so no ci.yml job runs these tests; and ci.yml skips pushes
 # that touch only handoff/**, .claude/** and **/*.md (T-249), so a hook-only change would never
 # run its own tests. Hence its own workflow, with its own concurrency group, so it never cancels
-# a CI run. Required check for the founder to add to branch protection:
-#   Scripts tests / Run scripts tests
+# a CI run. Required check for the founder to add to branch protection (it matches the job's
+# check-run name): require `Run scripts tests` (shown on PRs as `Scripts tests / Run scripts tests`).
 # Safe to mark required: every PR to main, develop or develop_staging runs it (no paths filter on
 # pull_request, about a minute per PR), so the check always reports. Only pushes are path-filtered.
 # Push paths: scripts/ and .claude/ (code under test), plus every file outside them a scripts test
