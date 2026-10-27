@@ -8,6 +8,16 @@ import OneFlow from '../OneFlow';
 import { DRAFT_PREFILL_KEY } from '../initialQuery';
 import type { KindSummary } from '../briefTypes';
 
+import { DESCRIPTION_MAX } from '@/lib/draftPrefill';
+
+// A realistic matter text of exactly `n` characters that ends mid-sentence, so a cut is visible.
+const matterText = (n: number): string => {
+  const base =
+    'The client is a sole earner and was arrested after the chargesheet was filed, the sureties are ready and the magistrate refused bail. ';
+  const tail = ' he is the';
+  return base.repeat(Math.ceil(n / base.length)).slice(0, n - tail.length) + tail;
+};
+
 (globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 Object.assign(globalThis, { TextDecoder: NodeTextDecoder, TextEncoder: NodeTextEncoder });
 
@@ -130,10 +140,37 @@ describe('OneFlow prefill from sessionStorage (T-521 round 3)', () => {
     expect(replaceSpy).not.toHaveBeenCalled();
   });
 
-  it('trims and caps at 500 characters', async () => {
-    stored(`   ${'w'.repeat(700)}   `);
+  it('trims and caps at the shared DESCRIPTION_MAX (T-608, was 500)', async () => {
+    stored(`   ${'w'.repeat(DESCRIPTION_MAX + 700)}   `);
     await render();
-    expect(ta().value).toBe('w'.repeat(500));
+    expect(ta().value).toBe('w'.repeat(DESCRIPTION_MAX));
+  });
+
+  it('exactly DESCRIPTION_MAX characters arrive whole in the textarea', async () => {
+    stored('v'.repeat(DESCRIPTION_MAX));
+    await render();
+    expect(ta().value).toHaveLength(DESCRIPTION_MAX);
+  });
+
+  it('T-608 AC3: a 657-character stored description ends up whole in the textarea, ending "he is the"', async () => {
+    const text = matterText(657);
+    stored(text);
+    await render();
+    expect(ta().value).toHaveLength(657);
+    expect(ta().value).toBe(text);
+    expect(ta().value.endsWith(' he is the')).toBe(true);
+    expect(window.sessionStorage.getItem(DRAFT_PREFILL_KEY)).toBeNull();
+    expect(replaceSpy).not.toHaveBeenCalled(); // sessionStorage only, nothing in the URL
+    expect(window.location.search).toBe('');
+  });
+
+  it('T-608 AC3: the whole 657 characters are what Continue sends', async () => {
+    const text = matterText(657);
+    stored(text);
+    await render();
+    await act(async () => btn('Continue')?.click());
+    await flush();
+    expect(JSON.parse(mockApiFetch.mock.calls[0][1].body).description).toBe(text);
   });
 
   it('is sent only when the advocate presses Continue', async () => {

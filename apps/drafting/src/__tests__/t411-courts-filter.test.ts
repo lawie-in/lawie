@@ -206,11 +206,11 @@ describe('T-411 template-scoped court picker (server)', () => {
       expect(res.body.states.map((s: { id: string }) => s.id).sort()).toEqual(['bihar', 'delhi']);
     });
 
-    it('level=national returns India only', async () => {
+    it('level=national returns India only (named canonically, T-613)', async () => {
       const res = await request(app).get(
         '/courts/states?template=consumer_complaint&level=national',
       );
-      expect(res.body.states).toEqual([{ id: 'india', name: 'India' }]);
+      expect(res.body.states).toEqual([{ id: 'india', name: 'India (Union)' }]);
     });
   });
 

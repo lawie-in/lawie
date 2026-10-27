@@ -91,7 +91,7 @@ describe('T-353 AC3 real Redis', () => {
       startWorkers({ connection, send });
       const job = await q.add(
         'send',
-        { template: 'auth.welcome', to: [LEAK_ADDRESS], cc: [], bcc: [], data: {} },
+        { template: 'billing.lowCreditWarning', to: [LEAK_ADDRESS], cc: [], bcc: [], data: {} },
         { attempts: 3, backoff: { type: 'fixed', delay: 100 } },
       );
       const end = Date.now() + 15_000;

@@ -39,6 +39,7 @@ import {
   RenderedClause,
   Value,
   valuesAfter,
+  withAskedKeys,
   withDeclinedAnswers,
   withValue,
 } from './briefTypes';
@@ -50,6 +51,7 @@ import { EXPORT_HASH } from './draftActions';
 import DraftReadyStep from './DraftReadyStep';
 import GeneratingStep from './GeneratingStep';
 import {
+  FACT_QUESTION_CODES,
   INSUFFICIENT_INK_CODE,
   refusedStartError,
   type GenerationError,
@@ -90,10 +92,13 @@ const EMPTY_COURT: BriefCourt = { state: null, court_type: null, court: null };
 const UNREADABLE = 'We could not read that just now. Try again, or browse document types.';
 const JSON_POST = { method: 'POST', headers: { 'Content-Type': 'application/json' } } as const;
 
-/** T-147b: one answer or edit for the fact ledger, as the update route takes it. */
+/**
+ * T-147b: one answer or edit for the fact ledger, as the update route takes it.
+ * T-612: several choices or a list go as an array (an empty array clears them).
+ */
 interface LedgerEditBody {
   key: string;
-  text: string;
+  text: string | string[];
   from_question?: boolean;
 }
 
@@ -157,7 +162,11 @@ function openQuestions(
   const open = new Set(
     brief.items
       .filter(
-        (i) => isEmptyValue(i.value) && !i.asked_empty && (i.reask === true || !given.has(i.key)),
+        (i) =>
+          isEmptyValue(i.value) &&
+          !i.asked_empty &&
+          !i.asked_blank &&
+          (i.reask === true || !given.has(i.key)),
       )
       .map((i) => i.key),
   );
@@ -226,6 +235,7 @@ function OneFlowSteps({
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ text: string; retry?: boolean } | null>(null);
   const [choices, setChoices] = useState<Array<{ kind: string; name: string }>>([]);
+  const [unranked, setUnranked] = useState(false);
 
   const [brief, setBriefState] = useState<Brief | null>(null);
   /** T-147b: the fact ledger, only when the service sends one. */
@@ -259,6 +269,8 @@ function OneFlowSteps({
   // What the next request must carry, readable without waiting for a render.
   const briefRef = useRef<Brief | null>(null);
   const valuesRef = useRef<GivenValue[]>([]);
+  /** T-629 (§(i)2): questions asked and left blank, sent as `asked_keys`. */
+  const askedKeysRef = useRef<string[]>([]);
   const courtRef = useRef<BriefCourt>(EMPTY_COURT);
   const answersRef = useRef<Array<{ question: string; answer: string }>>([]);
   const intakeId = useRef<string | undefined>(undefined);
@@ -297,6 +309,7 @@ function OneFlowSteps({
     setPreset(null);
     setMessage(null);
     setChoices([]);
+    setUnranked(false);
     setBrief(null);
     setLedger(null);
     setQuestions([]);
@@ -305,6 +318,7 @@ function OneFlowSteps({
     setGenError(null);
     setRepairing(false);
     valuesRef.current = [];
+    askedKeysRef.current = [];
     courtRef.current = EMPTY_COURT;
     answersRef.current = [];
     intakeId.current = undefined;
@@ -408,6 +422,7 @@ function OneFlowSteps({
             return;
           case 'needs_choice':
             setChoices(data.choices ?? []);
+            setUnranked(data.unranked === true);
             setPhase('choice');
             return;
           case 'no_match':
@@ -533,6 +548,7 @@ function OneFlowSteps({
             values: valuesRef.current,
             court: courtRef.current,
             description: everythingSaid(),
+            ...(askedKeysRef.current.length > 0 ? { asked_keys: askedKeysRef.current } : {}),
             // T-147b: answers and edits go to the ledger too. The brief is worked out as before.
             ...(onLedger ? { ledger_id: onLedger.ledger_id, ledger_edits: edits } : {}),
           }),
@@ -567,7 +583,8 @@ function OneFlowSteps({
   /** T-147b: the ledger edit for a value, when the ledger holds this item. */
   const ledgerEdit = (key: string, value: Value, fromQuestion: boolean): LedgerEditBody[] => {
     const l = ledgerRef.current;
-    if (!l || l.fields[key] === undefined || Array.isArray(value)) return [];
+    // T-612: an array (ticked choices, list entries) is sent too; it was dropped before.
+    if (!l || l.fields[key] === undefined) return [];
     return [{ key, text: value, ...(fromQuestion ? { from_question: true } : {}) }];
   };
 
@@ -640,14 +657,25 @@ function OneFlowSteps({
   );
 
   const answerQuestions = useCallback(
-    async (given: Array<{ question: BriefQuestion; value: Value }>) => {
+    async (given: Array<{ question: BriefQuestion; value: Value }>, blankKeys: string[] = []) => {
       const edits: LedgerEditBody[] = [];
       for (const g of given) {
         valuesRef.current = withValue(valuesRef.current, g.question.key, g.value, g.question.label);
         edits.push(...ledgerEdit(g.question.key, g.value, true));
       }
+      // T-629 (§(i)2): a question left blank was asked. Only the facts the service
+      // marks `blank_once_asked` are kept; any other blank changes nothing, as before.
+      const eligible = new Set(
+        (briefRef.current?.items ?? []).filter((i) => i.blank_once_asked).map((i) => i.key),
+      );
+      const askedBefore = askedKeysRef.current.length;
+      askedKeysRef.current = withAskedKeys(
+        askedKeysRef.current,
+        blankKeys.filter((k) => eligible.has(k)),
+      );
+      const newlyAsked = askedKeysRef.current.length > askedBefore;
       setBusy(true);
-      if (given.length > 0) await update(undefined, edits);
+      if (given.length > 0 || newlyAsked) await update(undefined, edits);
       setBusy(false);
       // The brief the service sent last (an update that was overtaken is not adopted).
       if (
@@ -803,9 +831,13 @@ function OneFlowSteps({
             if (event === 'error') {
               setGenError({
                 // T-565 W13: no server reason is shown (''), except for insufficient_ink, whose
-                // reason is the card's heading (T-521).
+                // reason is the card's heading (T-521), and a withheld draft's question (T-611
+                // fact_needed / fact_conflict, T-628 past_date_in_prayer), whose reason is Ajay's
+                // signed question (generationFailure FACT_QUESTION_CODES).
                 reason:
-                  payload.code === INSUFFICIENT_INK_CODE && typeof payload.reason === 'string'
+                  (payload.code === INSUFFICIENT_INK_CODE ||
+                    (typeof payload.code === 'string' && FACT_QUESTION_CODES.has(payload.code))) &&
+                  typeof payload.reason === 'string'
                     ? payload.reason
                     : '',
                 retryable: payload.retryable !== false,
@@ -1038,6 +1070,7 @@ function OneFlowSteps({
         onChoose={handleChoose}
         onEditDescription={editDescription}
         submitting={busy}
+        unranked={unranked}
       />
     );
   }
@@ -1123,7 +1156,7 @@ function OneFlowSteps({
           totalRounds={2}
           description={description}
           busy={busy}
-          onSubmit={(given) => void answerQuestions(given)}
+          onSubmit={(given, blankKeys) => void answerQuestions(given, blankKeys)}
           onSkip={() => setPhase('brief')}
           onEditDescription={editDescription}
           suggestions={suggestedAnswers(roundQuestions, brief, ledger)}

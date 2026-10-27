@@ -42,15 +42,16 @@ const PACKS = ['bail_regular', 'bail_anticipatory', 'bail_before_magistrate', 'd
 /** SHA-256 of each signed md FILE, pinned (computed 14 Oct 2026, T-245a v4/v5/v6/v2), and of the json block + "\n". */
 const SIGNED: Record<string, { version: number; mdSha: string; blockSha: string }> = {
   bail_regular: {
-    // T-577: v5 (bodyParagraphs block), re-signed by Ajay 23 Oct 2026.
-    version: 5,
-    mdSha: '653c787792252982750a21d928803222b068e35afbfd7fbdc47c47a31ffdf1d0',
-    blockSha: '5dcb06872b948920697adf5b795251742004b2874c480c3c9ca0595f2f0e9995',
+    // T-612: v6 (new grounds, medical None, sole earner), re-signed by Ajay 26 Oct 2026.
+    version: 6,
+    mdSha: '98c413b996074799bb51631c93af5a2eeb393f5b03beb344705cdd86345518a8',
+    blockSha: '91fbd67a36b0909aa857d3f597da6b28c33d9cd0c7827692fd491b3a726fff41',
   },
   bail_anticipatory: {
-    version: 5,
-    mdSha: 'c50c2c5689f35cd7fedaa63a803de3209b440e34e56a5980a045cf4b47a458c7',
-    blockSha: 'dec4efbdfddd47d120627506a9e34f96d536da96d238efe7d24eefa71a804e3a',
+    // T-612: v6, re-signed by Ajay 26 Oct 2026.
+    version: 6,
+    mdSha: '2a36261a1745cccbebefc4c3533c23c51141701ea4d31ec00e02b9aa9ae0b6a3',
+    blockSha: '98dc226270fde6c570a66b8dab833267118ce82731d9a70d2bde2b7d0106caca',
   },
   bail_before_magistrate: {
     version: 6,

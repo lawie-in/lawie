@@ -60,6 +60,11 @@ export interface RulePackFact {
   question?: { text: string; source: 'pack' };
   /** T-190: the pack asks this optional fact when it is empty (`ask_when_empty: true`). */
   ask_when_empty?: true;
+  /**
+   * T-629: the pack blocks Confirm while this fact is empty (`blocks_confirm: true`;
+   * Ajay, T-613 §(g): main_suit_relief and restraint_sought on the O.39 pack).
+   */
+  blocks_confirm?: true;
 }
 
 /**
@@ -244,12 +249,15 @@ function factFromDef(
  * T-190: the pack's question and `ask_when_empty`, when the pack gives them.
  * The text is kept byte for byte: it is Ajay's signed wording.
  */
-function packQuestion(def: Obj): Pick<RulePackFact, 'question' | 'ask_when_empty'> {
-  const out: Pick<RulePackFact, 'question' | 'ask_when_empty'> = {};
+function packQuestion(
+  def: Obj,
+): Pick<RulePackFact, 'question' | 'ask_when_empty' | 'blocks_confirm'> {
+  const out: Pick<RulePackFact, 'question' | 'ask_when_empty' | 'blocks_confirm'> = {};
   if (typeof def.question === 'string' && def.question.trim() !== '') {
     out.question = { text: def.question, source: 'pack' };
   }
   if (def.ask_when_empty === true) out.ask_when_empty = true;
+  if (def.blocks_confirm === true) out.blocks_confirm = true;
   return out;
 }
 

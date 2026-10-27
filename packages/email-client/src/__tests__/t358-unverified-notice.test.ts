@@ -133,9 +133,9 @@ describe('T-358 enqueue shape for auth.unverifiedDeletionNotice', () => {
     expect(r.deduped).toBe(false);
   });
 
-  it('does not touch the other templates: auth.welcome still carries its recipient', async () => {
+  it('does not touch the other templates: billing.subscriptionConfirmed still carries its recipient', async () => {
     await enqueueEmail({
-      template: 'auth.welcome',
+      template: 'billing.subscriptionConfirmed',
       to: 'success@simulator.amazonses.com',
       data: { name: 'N' },
     });
@@ -180,7 +180,7 @@ describe('retention: completed notice jobs are kept 7 days by age (so their jobI
 
   it('other templates keep age 7 days AND the 1000-job count limit (unchanged)', async () => {
     await enqueueEmail({
-      template: 'auth.welcome',
+      template: 'billing.subscriptionConfirmed',
       to: 'success@simulator.amazonses.com',
       data: { name: 'N' },
     });
@@ -197,7 +197,7 @@ describe('retention: completed notice jobs are kept 7 days by age (so their jobI
       idempotencyKey: KEY,
     });
     await enqueueEmail({
-      template: 'auth.welcome',
+      template: 'billing.subscriptionConfirmed',
       to: 'success@simulator.amazonses.com',
       data: {},
     });

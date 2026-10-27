@@ -13,6 +13,10 @@ The assertions are:
 - the verifier's four checks (unsupported, dropped, mutation, banned), read from the run's `FactDiff` rows. By default any finding fails the fixture, including a banned phrase the pipeline stripped before delivery. A fixture can accept a known finding in `expect.allow_violations`.
 - each fixture's own expectations: `not_written`, `absent`, `present`, `exact` (character-exact), `ledger` and, for the four bail packs on a signed skeleton, `rendered`.
 
+### Withheld drafts (T-611)
+
+Both paths end in a delivery gate. A fact the ledger holds that the draft still prints as a blank, or a held value used under the wrong label, gets one code fill and (off D1) one model repair. If the problem remains, the draft is not delivered: the stream ends with an `error` event whose code is `fact_needed` or `fact_conflict`, no Ink is taken, and a failed row is saved. A fixture that expects a draft therefore fails on that code. The server logs `[drafting] draft withheld (kind=..., code=..., keys=...)` with no values.
+
 ### `rendered` (T-373, ADR-025 D1)
 
 The four bail packs (`bail_regular`, `bail_anticipatory`, `default_bail`, `bail_before_magistrate`) draft from a signed clause skeleton in English. Their done event carries `rendered[]`: one `{clauseId, status, reason?}` per printed clause, with `status` one of `ok`, `missing` (printed with a `{{MISSING: label}}` blank) or `fallback` (an own-words clause whose model text failed the check, printed as the advocate's own words). The checks panel reads this list only.
@@ -28,7 +32,7 @@ The four bail packs (`bail_regular`, `bail_anticipatory`, `default_bail`, `bail_
 
 - Setting `rendered` at all also asserts that the draft took the D1 path (`rendered[]` is present) and that every rendered entry has a clauseId.
 - `no_status`: no clause may have these statuses. `status`: these clauses must have exactly this status. `not_rendered`: these clauses must not be printed (a clause for a fact the advocate never gave).
-- On D1 the fact verifier runs read-only. Its findings are written to the fact-diff log tagged `path: d1` and still fail a fixture unless it lists them in `allow_violations`.
+- On D1 the fact verifier never blanks a value the ledger holds (T-611). Its findings are written to the fact-diff log tagged `path: d1` and still fail a fixture unless it lists them in `allow_violations`.
 
 ### Recorded replies on D1 packs
 

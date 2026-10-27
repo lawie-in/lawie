@@ -22,12 +22,12 @@
     "commercial_division_high_court"
   ],
   "causeTitle": {
-    "format": "IN THE COURT OF {courtDesignation}\nAT {courtPlace}\n\n{caseNomenclature}\n\nIN THE MATTER OF:\n{plaintiff} ... Plaintiff/Applicant\nVERSUS\n{defendant} ... Defendant/Non-Applicant",
+    "format": "IN THE COURT OF {courtDesignation}\nAT {courtPlace}\n\nI.A. No. _____ of {current_year}\nin\n{suit_number}\n\nIN THE MATTER OF:\n{plaintiff_name} ... Plaintiff/Applicant\nVERSUS\n{defendant_name} ... Defendant/Non-Applicant",
     "partyDesignations": [
       { "role": "plaintiff", "label": "Plaintiff/Applicant" },
       { "role": "defendant", "label": "Defendant/Non-Applicant" }
     ],
-    "caseNomenclature": "I.A. No. _____ of [YEAR] in Civil Suit No. _____ of [YEAR]"
+    "caseNomenclature": "I.A. No. _____ of {current_year}"
   },
   "form_schema": {
     "fields": [
@@ -35,7 +35,9 @@
         "id": "suit_number",
         "label": "Parent suit number / year",
         "type": "text",
-        "required": true
+        "required": false,
+        "question": "What is the number of the main suit (for example, Title Suit No. 245 of 2026)? If the suit is filed with this application and has no number yet, leave it blank.",
+        "ask_when_empty": true
       },
       {
         "id": "plaintiff_name",
@@ -54,6 +56,22 @@
         "label": "Subject-matter of suit (property/right/obligation)",
         "type": "textarea",
         "required": true
+      },
+      {
+        "id": "title_document_date",
+        "label": "Date of the title document (sale deed, gift deed or other)",
+        "type": "date",
+        "required": false,
+        "question": "What is the date of the document under which the plaintiff claims the suit property (sale deed, gift deed, will or other)? If the claim does not rest on a document, leave it blank.",
+        "ask_when_empty": true
+      },
+      {
+        "id": "main_suit_relief",
+        "label": "Relief sought in the main suit",
+        "type": "textarea",
+        "required": true,
+        "question": "What relief does the main suit ask for?",
+        "blocks_confirm": true
       },
       {
         "id": "type_of_injunction_sought",
@@ -91,6 +109,14 @@
         "label": "Specific acts of defendant sought to be restrained (with dates)",
         "type": "textarea",
         "required": true
+      },
+      {
+        "id": "restraint_sought",
+        "label": "Acts the defendant should be restrained from",
+        "type": "textarea",
+        "required": true,
+        "question": "What should the defendant be stopped from doing from now on (for example: raising any construction, transferring or mortgaging the property, dispossessing the plaintiff)? Describe the acts, not past events.",
+        "blocks_confirm": true
       },
       {
         "id": "ex_parte_sought",
@@ -193,7 +219,7 @@
       "description": "O.39 R.3 — affidavit mandatory"
     }
   ],
-  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, the Applicant most respectfully prays that this Hon'ble Court may graciously be pleased to:\n\na) Grant a temporary injunction under Order 39 Rules 1 and 2 read with Section 151 CPC restraining the Defendant/Non-Applicant, his agents, servants, representatives, assigns, and all persons claiming through or under him, from {acts_complained_of} pending final disposal of the suit;\n\nb) In the alternative and pending notice to the Non-Applicant, grant an ad-interim ex parte order in terms of prayer (a) above for the reasons stated hereinabove, in exercise of powers under the proviso to Order 39 Rule 3 CPC;\n\nc) Award costs of this application;\n\nd) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the Applicant shall ever pray.",
+  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, the Applicant most respectfully prays that this Hon'ble Court may graciously be pleased to:\n\na) Grant a temporary injunction under Order 39 Rules 1 and 2 read with Section 151 CPC restraining the Defendant/Non-Applicant, and all persons acting through or claiming under the Defendant/Non-Applicant, from {restraint_sought} in respect of the suit property described as {subject_matter}, pending final disposal of the suit;\n\nb) In the alternative and pending notice to the Non-Applicant, grant an ad-interim ex parte order in terms of prayer (a) above for the reasons stated hereinabove, in exercise of powers under the proviso to Order 39 Rule 3 CPC;\n\nc) Award costs of this application;\n\nd) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the Applicant shall ever pray.",
   "verificationTemplate": "VERIFICATION\n\nI, {plaintiff_name}, the Applicant herein, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above application are true and correct to my personal knowledge, and matters of legal submission are believed true on advice of counsel. No part is false and nothing material has been concealed.\n\nVerified at {place} on this {date}.\n\nApplicant",
   "prompt_context": {
     "promptInstructions": [
@@ -201,14 +227,15 @@
       "Order 39 R.1 — temporary injunction may be granted where: (a) property in dispute in danger of being wasted/damaged/alienated; (b) defendant threatens or intends to remove/dispose property to defraud creditors; (c) defendant threatens to dispossess or otherwise cause injury to plaintiff in relation to disputed property.",
       "Order 39 R.2 — injunction to restrain breach of contract or other injury.",
       "Triple test — MANDATORY and to be addressed in three separate paragraphs: (i) prima facie case / serious question to be tried, (ii) balance of convenience, (iii) irreparable injury. Do not name any judgment; where an authority would normally be cited, write [Authority — add if relied upon].",
-      "Para 1: Reference to main suit number, parties, cause of action.",
-      "Para 2: Brief recap of plaintiff's case in main suit.",
-      "Para 3: Plaintiff's legal right / title / possession.",
-      "Para 4: Specific acts of defendant — overt threats or actual interference — with dates and particulars.",
-      "Para 5: Prima facie case paragraph — serious triable issue exists.",
-      "Para 6: Balance of convenience — greater hardship if relief refused.",
-      "Para 7: Irreparable injury — why damages inadequate (special character of property, continuing trespass, loss of goodwill, etc.).",
-      "Para 8: Plaintiff's undertaking to compensate defendant if injunction wrongly obtained (Order 25 R.1 or undertaking in lieu).",
+      "Set out the application in this order, each point in its own paragraph or paragraphs:",
+      "The main suit: its number as given, the parties and the cause of action.",
+      "A brief recap of the plaintiff's case in the main suit, including the relief the suit seeks as given in main_suit_relief.",
+      "The plaintiff's legal right, title or possession, with the title document and its date only as the brief gives them.",
+      "The specific acts of the defendant, threatened or actual, with dates and particulars only as the brief gives them.",
+      "Prima facie case: there is a serious question to be tried.",
+      "Balance of convenience: the plaintiff would suffer greater hardship if the relief is refused.",
+      "Irreparable injury: why damages would not be an adequate remedy.",
+      "The plaintiff's undertaking to compensate the defendant for any loss if the injunction is later found to have been wrongly obtained.",
       "If ex parte sought: separate paragraph under O.39 R.3 proviso citing reasons — urgency, frustration of purpose if notice given, defendant likely to defeat object of injunction. Court must record reasons for not issuing notice.",
       "Ex parte relief is the exception, not the rule: state the specific urgency, and why notice would defeat the purpose, as reasoning on the facts in the brief. Do not name any judgment; where an authority would normally be cited, write [Authority — add if relied upon].",
       "Affidavit in support is mandatory under O.39 R.3.",
@@ -280,7 +307,6 @@
     "Disclaimer slip — Lawie drafting assistance acknowledged"
   ],
   "validation_rules": [
-    "suit_number must be filled (parent suit reference mandatory)",
     "prima_facie_case must not be empty",
     "balance_of_convenience must not be empty",
     "irreparable_injury must not be empty",

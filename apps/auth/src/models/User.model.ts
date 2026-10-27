@@ -148,6 +148,7 @@ export interface IUser extends Document {
   planRenewsAt?: Date;
   lastLoginBonusAt?: Date; // Used by daily-login-bonus dedupe
   signupBonusGrantedAt?: Date; // Idempotency guard for signup bonus (SCRUM-100)
+  welcomeQueuedAt?: Date | null; // T-587: once-only guard for the welcome email
 
   // T-563 — set only by the develop-only test sign-up bypass. Immutable, default false.
   isTestAccount: boolean;
@@ -332,6 +333,8 @@ const UserSchema = new Schema<IUser>(
     planRenewsAt: { type: Date, default: null },
     lastLoginBonusAt: { type: Date, default: null },
     signupBonusGrantedAt: { type: Date, default: null },
+    // T-587 — set when the welcome email is queued (atomic claim). Never cleared: at most once.
+    welcomeQueuedAt: { type: Date, default: null },
     // T-563 (Arjun) — true only for an account made by the test sign-up bypass. Set at create,
     // never changed. Excluded from user counts, referral and the consent export.
     isTestAccount: { type: Boolean, default: false, immutable: true },

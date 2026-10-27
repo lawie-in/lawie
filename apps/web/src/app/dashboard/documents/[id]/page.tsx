@@ -29,6 +29,7 @@ import {
   downloadBlob,
   exportDocx,
   exportPdf,
+  missingAsBlanks,
   type Blank,
   type ExportBlanksGoBackDetail,
 } from '@/components/editor/exportUtils';
@@ -150,7 +151,15 @@ export default function DocumentEditorPage() {
         if (!r.ok) throw new Error(r.status === 404 ? 'Document not found' : 'Failed to load');
         return r.json();
       })
-      .then((data: DocumentData) => {
+      .then((loaded: DocumentData) => {
+        // T-611 (AC 1, 5): a raw {{MISSING: label}} token never reaches the
+        // editor; it shows as [To be confirmed: label], as the exports print it.
+        // The server serves it so already; this covers any older response. The
+        // blank count reads both forms alike, so it does not change.
+        const data =
+          typeof loaded.content === 'string'
+            ? { ...loaded, content: missingAsBlanks(loaded.content) }
+            : loaded;
         setDoc(data);
         latestHtmlRef.current = data.content;
         savedHtmlRef.current = data.content;

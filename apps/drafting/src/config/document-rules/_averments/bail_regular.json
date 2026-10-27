@@ -1495,6 +1495,30 @@
         "label": "Residential Address",
         "present": true
       }
+    },
+    {
+      "id": "amount_paid_or_deposited",
+      "kind": "averment",
+      "averment": "the amount in dispute has been paid or deposited by or on behalf of the applicant, without prejudice to the applicant's defence",
+      "requires": {
+        "key": "grounds_for_bail",
+        "label": "Grounds for Bail (select all applicable)",
+        "equals": [
+          "Amount in dispute paid or deposited (without admission)"
+        ]
+      }
+    },
+    {
+      "id": "ready_to_furnish_bail_bond_and_sureties",
+      "kind": "averment",
+      "averment": "the applicant is ready to furnish a bail bond with surety to the satisfaction of this Hon'ble Court and to abide by every condition this Hon'ble Court may impose",
+      "requires": {
+        "key": "grounds_for_bail",
+        "label": "Grounds for Bail (select all applicable)",
+        "equals": [
+          "Ready to furnish a bail bond and sureties"
+        ]
+      }
     }
   ]
 }

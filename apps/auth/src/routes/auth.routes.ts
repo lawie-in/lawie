@@ -28,6 +28,10 @@ const router = Router();
 // one padded 202 for a new and an existing address. No session.
 router.post('/register', register);
 router.post('/login', login);
+// T-616b — rotates the refresh token with a 30 s grace (a repeat inside it gets the same new
+// refresh token), 12 h sliding / 7-day absolute lifetime, and a per-user limit of 60 per 15 min
+// checked inside refreshTokens after the token is verified (refresh-rate-limit.ts; 429 +
+// Retry-After, 503 if the store fails). Per IP as /login, by the gateway's publicRateLimiter.
 router.post('/refresh', refresh);
 router.post('/logout', authenticateAllowRevoked, logout);
 // T-221 — public. Rate limited per email and per IP inside forgotPassword (AC4), on top of the

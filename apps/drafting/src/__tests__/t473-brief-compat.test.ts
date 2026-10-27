@@ -162,10 +162,11 @@ describe('T-473 /courts/types labels', () => {
     await Court.collection.insertMany(rows as never[]);
   });
 
-  it('the courts list carries the ten known types', () => {
+  it('the courts list carries the eleven known types', () => {
     expect(types.sort()).toEqual(
       [
         'civil_court',
+        'civil_court_junior',
         'cjm',
         'consumer_commission',
         'district_court',
