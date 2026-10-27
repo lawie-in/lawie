@@ -16,7 +16,6 @@ import type Redis from 'ioredis';
 import logger from '../config/logger';
 import redisClient from '../config/redis';
 import { AppError } from '../middleware/errorHandler';
-import { Session } from '../models/Session.model';
 import {
   User,
   IUser,
@@ -36,10 +35,16 @@ import {
 } from './password-change-rate-limit';
 import { applyReferralCode } from './referral.service';
 import {
+  RefreshLimiterUnavailableError,
+  RefreshRateLimitedError,
+  reserveRefreshAttempt,
+} from './refresh-rate-limit';
+import {
   createSession,
   deleteOtherUserSessions,
   deleteSession,
   hashToken,
+  rotateRefreshSession,
   SessionMeta,
 } from './session.service';
 import { claimSignupAttemptMail, consumeSignupQuota } from './signup-rate-limit';
@@ -360,27 +365,23 @@ export async function refreshTokens(
     throw new AppError(401, INVALID_REFRESH_MESSAGE);
   }
 
-  // T-299 (Arjun, must-fix): a refresh needs a live session. Take the refresh key atomically
-  // (MULTI GET+DEL, not GETDEL: production's Redis version is not recorded; same as T-306's
-  // takeOAuthCode). Missing (logged out, revoked, Google link, expired, or already used by a
-  // parallel refresh): the same 401 as a bad JWT, and nothing is issued.
-  const redis = (await import('../config/redis')).default;
-  const refreshKey = refreshSessionKey(payload.sub, hashToken(refreshToken));
-  const taken = await redis.multi().get(refreshKey).del(refreshKey).exec();
-  const [getErr, oldRefreshData] = taken?.[0] ?? [];
-  if (getErr || typeof oldRefreshData !== 'string') {
-    throw new AppError(401, INVALID_REFRESH_MESSAGE);
-  }
-  let oldAccessTokenHash: unknown;
-  let oldAuthAt: unknown;
+  // T-616b (Arjun) — per-user limit, keyed by the uid of the VERIFIED token, before anything is
+  // consumed (a refused call leaves the token usable). A grace replay counts too. Redis failing
+  // fails closed: 503, nothing consumed or issued.
+  let reservation: Awaited<ReturnType<typeof reserveRefreshAttempt>>;
   try {
-    const parsed = JSON.parse(oldRefreshData) as { accessTokenHash?: unknown; authAt?: unknown };
-    oldAccessTokenHash = parsed.accessTokenHash;
-    oldAuthAt = parsed.authAt;
+    reservation = await reserveRefreshAttempt(redisClient, payload.sub);
   } catch {
-    oldAccessTokenHash = undefined;
+    throw new RefreshLimiterUnavailableError();
   }
-  if (typeof oldAccessTokenHash !== 'string' || !oldAccessTokenHash) {
+  if (!reservation.allowed) throw new RefreshRateLimitedError(reservation.retryAfterSeconds);
+
+  // T-299 (Arjun, must-fix): a refresh needs a live session. Missing (logged out, revoked,
+  // Google link, expired, or spent and past its grace window): the same 401 as a bad JWT, and
+  // nothing is issued. This peek only keeps that answer ahead of the user lookup; the
+  // single-use guarantee is rotateRefreshSession's atomic script.
+  const oldRefreshHash = hashToken(refreshToken);
+  if ((await redisClient.exists(refreshSessionKey(payload.sub, oldRefreshHash))) !== 1) {
     throw new AppError(401, INVALID_REFRESH_MESSAGE);
   }
 
@@ -389,28 +390,30 @@ export async function refreshTokens(
     throw new AppError(401, 'User not found or inactive');
   }
 
-  // Delete the old access session (rotate-on-refresh). The refresh key is already gone.
-  await deleteSession(payload.sub, oldAccessTokenHash);
-
-  const tokens = generateTokenPair({
-    sub: user._id.toString(),
-    email: user.email,
-    name: user.name,
-    role: user.role,
-    plan: user.plan,
-    pv: user.privacyVersion,
+  // T-616b — rotate with a 30 s grace (session.service rotateRefreshSession): the first
+  // presentation gets a new pair; the same token again inside the window gets the SAME new
+  // refresh token and a fresh access token; after the window, or past the 7-day ceiling, 401.
+  // The old access key is no longer deleted here (that 401'd requests in flight); it expires
+  // within min(30 s, its JWT's life). authAt (T-115c) and originalCreatedAt are carried.
+  const rotation = await rotateRefreshSession({
+    userId: user._id.toString(),
+    oldRefreshHash,
+    claims: {
+      sub: user._id.toString(),
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      plan: user.plan,
+      pv: user.privacyVersion,
+    },
+    userInfo: { plan: user.plan, email: user.email, role: user.role, name: user.name },
+    meta: { ip: meta.ip, userAgent: meta.userAgent },
   });
+  if (rotation.kind === 'invalid' || rotation.kind === 'expired') {
+    throw new AppError(401, INVALID_REFRESH_MESSAGE);
+  }
 
-  await createSession(
-    user._id.toString(),
-    tokens.accessToken,
-    tokens.refreshToken,
-    { plan: user.plan, email: user.email, role: user.role, name: user.name },
-    // T-115c — carried, never refreshed: a refresh proves nothing new about the user.
-    { ...meta, authAt: typeof oldAuthAt === 'string' ? oldAuthAt : undefined },
-  );
-
-  return tokens;
+  return { accessToken: rotation.accessToken, refreshToken: rotation.refreshToken };
 }
 
 /** T-343 — what GET /me reports about the user's privacy acceptance. */
@@ -738,47 +741,43 @@ export async function getPrivacyHistory(userId: string): Promise<PrivacyHistoryR
 /**
  * T-343 — POST /me/privacy-acceptance. Records acceptance of CURRENT_PRIVACY_VERSION with
  * server values only (version, time, via 'reaccept'); nothing comes from the request body.
- * Order: (1) atomically take the caller's access session (401 and nothing written if it is
- * gone), deleting its refresh key and audit row; (2) the conditional update (only when the
- * stored version differs, so a double submit adds one history row, not two); (3) a new pair,
- * carrying the new `pv`, via createSession (rotation as /refresh, Arjun's addendum). Logs only
- * the user id, never tokens.
+ * Order: (1) take the caller's session (401 and nothing written if it is gone); (2) the
+ * conditional update (only when the stored version differs, so a double submit adds one history
+ * row, not two); (3) the new pair, carrying the new `pv` (rotation as /refresh, Arjun's
+ * addendum). Logs only the user id, never tokens.
  *
- * T-354 — why this order is kept (Arjun, 12 Oct 2026, option A). Full order: take the access
- * session (MULTI GET+DEL; 401 if gone) → delete its refresh key and Session row → conditional
- * updateOne (version + history) → isActive check → createSession. The acceptance is a consent
- * record, so it is written only by a request whose session we have just proved live and
- * consumed. Updating first (option B) would let a revoked session record consent in a race.
- * Do not reorder without a new ruling.
+ * T-354 — why this order is kept (Arjun, 12 Oct 2026, option A): take first, then the update,
+ * then the isActive check. The acceptance is a consent record, so it is written only by a
+ * request whose session we have just proved live and consumed. Updating first (option B) would
+ * let a revoked session record consent in a race. Do not reorder without a new ruling.
  *
- * Failure mode (accepted): if anything after the take throws unexpectedly (a Mongo or Redis
- * error in the update, the user read or createSession), the request returns 500 and the web
- * shows P8. The old session is already gone, so the user's next action signs them out
- * (apiFetch 401 → /refresh 401, its refresh key was deleted → /login). No session leaks (the
- * old pair is dead, no new pair was issued) and the user is never locked out (logging in
- * again works and shows the prompt again if the update did not land). This is the same
- * trade-off as /refresh after its take: a rare sign-out after a DB failure is safe. (If the
- * refresh-key delete itself is what fails, that key may survive and /refresh can still
- * rotate it: the user stays signed in and sees the prompt again; still no extra pair.)
+ * T-616b — the "take" is now the same rotation /refresh uses (rotateRefreshSession, same 30 s
+ * grace), applied to the refresh token the caller's access session names. It consumes that
+ * refresh token atomically and writes the new pair at once, so the new tokens are minted with
+ * pv = CURRENT_PRIVACY_VERSION, the value the update below makes true. The caller's access key is
+ * not deleted; it expires within min(30 s, its JWT's life). Two accepts with one token, or an
+ * accept racing a /refresh of the same session, get the same new refresh token (grace replay)
+ * and each its own access token: never a second refresh token or session family.
+ *
+ * Failure mode (accepted, unchanged in effect): if the update or the user read throws after the
+ * take, the request returns 500 and the web shows P8. A first rotation is then undone: its
+ * whole family is revoked (new pair, grace record, the old access key), so the old pair is dead,
+ * no session leaks, the user's next action signs them out (apiFetch 401 → /refresh 401 →
+ * /login) and logging in again works and shows the prompt again if the update did not land. A
+ * grace replay only drops its own access key (the first caller's session stands).
  */
 export async function acceptPrivacy(
   userId: string,
   accessToken: string,
   meta: SessionMeta = {},
 ): Promise<{ accessToken: string; refreshToken: string }> {
-  // Review round 1 (must-fix): take the caller's access session atomically FIRST (MULTI GET+DEL,
-  // the /refresh pattern), so two concurrent accepts with one token can't both issue a pair
-  // (T-299 single use). Not taken (already used, revoked, expired): 401, no DB write, nothing
-  // issued. Never log the token or its hash.
-  const redis = (await import('../config/redis')).default;
+  // (1) The caller's access session must be live; it names the refresh token to rotate. Never
+  // log the token or its hash.
   const accessHash = hashToken(accessToken);
-  const accessKey = sessionKey(userId, accessHash);
-  const taken = await redis.multi().get(accessKey).del(accessKey).exec();
-  const [getErr, oldSessionData] = taken?.[0] ?? [];
-  if (getErr || typeof oldSessionData !== 'string') {
+  const oldSessionData = await redisClient.get(sessionKey(userId, accessHash));
+  if (typeof oldSessionData !== 'string') {
     throw new AppError(401, 'Session expired or revoked. Please log in again.');
   }
-  // The taken session's refresh key and audit row go too (as deleteSession does).
   let oldRefreshHash: unknown;
   let oldAuthAt: unknown;
   try {
@@ -788,51 +787,86 @@ export async function acceptPrivacy(
   } catch {
     oldRefreshHash = undefined;
   }
-  if (typeof oldRefreshHash === 'string' && oldRefreshHash) {
-    await redis.del(refreshSessionKey(userId, oldRefreshHash));
+  if (typeof oldRefreshHash !== 'string' || !oldRefreshHash) {
+    throw new AppError(401, 'Session expired or revoked. Please log in again.');
   }
-  await Session.deleteOne({ userId, jwtTokenHash: accessHash });
 
-  const acceptedAt = new Date();
-  await User.updateOne(
-    { _id: userId, isActive: true, privacyVersion: { $ne: CURRENT_PRIVACY_VERSION } },
-    {
-      $set: {
-        privacyVersion: CURRENT_PRIVACY_VERSION,
-        privacyAcceptedAt: acceptedAt,
-        privacyAcceptedVia: 'reaccept',
-      },
-      $push: {
-        privacyHistory: { version: CURRENT_PRIVACY_VERSION, acceptedAt, via: 'reaccept' },
-      },
-    },
-  );
-
-  const user = await User.findById(userId);
-  if (!user || !user.isActive) {
+  const before = await User.findById(userId);
+  if (!before || !before.isActive) {
+    // As before T-616b: the caller's session does not survive (nothing issued, nothing recorded).
+    await deleteSession(userId, accessHash);
     throw new AppError(401, 'User not found or inactive');
   }
 
-  const tokens = generateTokenPair({
-    sub: user._id.toString(),
-    email: user.email,
-    name: user.name,
-    role: user.role,
-    plan: user.plan,
-    pv: user.privacyVersion,
-  });
-
-  await createSession(
-    user._id.toString(),
-    tokens.accessToken,
-    tokens.refreshToken,
-    { plan: user.plan, email: user.email, role: user.role, name: user.name },
+  const rotation = await rotateRefreshSession({
+    userId,
+    oldRefreshHash,
+    claims: {
+      sub: before._id.toString(),
+      email: before.email,
+      name: before.name,
+      role: before.role,
+      plan: before.plan,
+      // What the update below makes true (it only ever sets this version).
+      pv: CURRENT_PRIVACY_VERSION,
+    },
+    userInfo: { plan: before.plan, email: before.email, role: before.role, name: before.name },
+    meta: { ip: meta.ip, userAgent: meta.userAgent },
     // T-115c — carried from the session that was taken, like /refresh.
-    { ...meta, authAt: typeof oldAuthAt === 'string' ? oldAuthAt : undefined },
-  );
+    fallbackAuthAt: typeof oldAuthAt === 'string' ? oldAuthAt : undefined,
+  });
+  if (rotation.kind === 'invalid' || rotation.kind === 'expired') {
+    throw new AppError(401, 'Session expired or revoked. Please log in again.');
+  }
 
-  logger.info({ userId: user._id.toString() }, 'Privacy version accepted');
-  return tokens;
+  try {
+    // (2) The consent record.
+    const acceptedAt = new Date();
+    await User.updateOne(
+      { _id: userId, isActive: true, privacyVersion: { $ne: CURRENT_PRIVACY_VERSION } },
+      {
+        $set: {
+          privacyVersion: CURRENT_PRIVACY_VERSION,
+          privacyAcceptedAt: acceptedAt,
+          privacyAcceptedVia: 'reaccept',
+        },
+        $push: {
+          privacyHistory: { version: CURRENT_PRIVACY_VERSION, acceptedAt, via: 'reaccept' },
+        },
+      },
+    );
+
+    // (3) Still active (deactivated meanwhile: no pair).
+    const user = await User.findById(userId);
+    if (!user || !user.isActive) {
+      throw new AppError(401, 'User not found or inactive');
+    }
+  } catch (err) {
+    await undoAcceptRotation(userId, rotation);
+    throw err;
+  }
+
+  logger.info({ userId }, 'Privacy version accepted');
+  return { accessToken: rotation.accessToken, refreshToken: rotation.refreshToken };
+}
+
+/** T-616b — see acceptPrivacy's failure mode. Best effort: never masks the original error. */
+async function undoAcceptRotation(
+  userId: string,
+  rotation: { kind: 'rotated' | 'replayed'; accessHash: string },
+): Promise<void> {
+  try {
+    if (rotation.kind === 'rotated') {
+      await deleteSession(userId, rotation.accessHash);
+    } else {
+      await redisClient.del(sessionKey(userId, rotation.accessHash));
+    }
+  } catch (undoErr) {
+    logger.warn(
+      { userId, errKind: errorKind(undoErr) },
+      'Privacy accept: undoing the rotation failed',
+    );
+  }
 }
 
 export async function logoutUser(userId: string, accessToken: string): Promise<void> {

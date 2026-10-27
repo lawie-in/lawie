@@ -5,7 +5,7 @@
 | Phase  | 4 — Release (severity P1; from the prod quality check of 26 Oct 2026) |
 | Owner  | Mahak or Tanvi (auth/web); Arjun decides lifetime |
 | Mode   | Full chain |
-| Status | Web part merged into develop_staging at e73914df (CI 1053 green), 26 Oct 2026. T-616b (server) building, Kunal. Priya |
+| Status | Merged into develop_staging: web e73914df, server 00ef385b (T-616b), env fix 2a7f25a4 (CI 1079 green), 27 Oct 2026. Deploy auth as a quick rollout. Priya |
 | Source | handoff/quality/2026-10-26-prod-drafting-FAIL.md |
 
 ## Problem
@@ -48,3 +48,7 @@ Prod logs (Nikhil, nginx and auth, values not read): 11 /refresh calls all day, 
 
 ## T-616b env note (Arjun, 27 Oct 2026)
 JWT_REFRESH_EXPIRES_IN is ignored after T-616b; the refresh lifetime comes from SESSION_TTL_HOURS=12 and SESSION_ABSOLUTE_DAYS=7. Whichever lead merges second of T-616b and the env docs drops it from .env.example and prod-env-template.txt. Revoke-on-reuse is T-635.
+
+## T-616b known limits (Arjun, 27 Oct 2026)
+- A replay from tab 2 is 401 if its successor was already rotated again within 30 s (tab 1 refresh plus privacy accept). Safe; tab 2 signs out.
+- On the last rotation before the 7-day cap, the access JWT (900 s) can outlive the ceiling by ≤15 min.

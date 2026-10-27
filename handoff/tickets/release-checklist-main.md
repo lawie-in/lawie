@@ -100,3 +100,6 @@ Do not cut prod with T-610 unless T-622 (DocumentChoiceStep: no pre-selected car
 
 ## T-613 + T-628 + T-629 ship together (26 Oct 2026, Priya, Ajay R2-F1 12914711)
 Do not cut prod with T-613 (O.39) unless T-628 (past date in the prayer) and T-629 (required fields block Confirm) are also merged. Release step: re-seed courts (`seed-courts`) for the Patna Junior Division record and the Andaman id fix. Founder or ops runs it.
+
+## T-637 before any prod cut carrying T-611 (27 Oct 2026, Priya)
+The Templates form route has no T-611 gate until T-637 merges. Do not cut prod for the drafting fixes without it.

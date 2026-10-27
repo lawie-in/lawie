@@ -299,7 +299,7 @@ describe('T-139 criterion 3: the amount in words', () => {
     ['Rs. 2,40,000/-', 'Rupees Two Lakh Forty Thousand only'],
     ['240000', 'Rupees Two Lakh Forty Thousand only'],
     ['1,25,50,075', 'Rupees One Crore Twenty Five Lakh Fifty Thousand Seventy Five only'],
-    ['15,000.50', 'Rupees Fifteen Thousand and Paise Fifty only'],
+    ['15,000.50', 'Rupees Fifteen Thousand and Fifty Paise only'],
     [
       '99,99,99,999',
       'Rupees Ninety Nine Crore Ninety Nine Lakh Ninety Nine Thousand Nine Hundred Ninety Nine only',
@@ -308,7 +308,7 @@ describe('T-139 criterion 3: the amount in words', () => {
     ['100', 'Rupees One Hundred only'],
     ['1,00,000', 'Rupees One Lakh only'],
     ['10,00,00,000', 'Rupees Ten Crore only'],
-    ['12.05', 'Rupees Twelve and Paise Five only'],
+    ['12.05', 'Rupees Twelve and Five Paise only'],
     ['15,000.00', 'Rupees Fifteen Thousand only'],
   ])('amountInWords(%s)', (figures, words) => {
     expect(amountInWords(figures)).toBe(words);

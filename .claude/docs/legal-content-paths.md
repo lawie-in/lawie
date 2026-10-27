@@ -45,7 +45,9 @@ See also `.claude/docs/golden-snapshots.md` — most of the court-rules paths ab
 
 - `apps/drafting/src/services/intake-keyword-match.ts`, and the T-610 bail fallback branch in `intake.service.ts` (T610-F2/F2a/F2b/E1: two bail cards shown, unranked, nothing charged), added by T-610 (Ajay, 26 Oct 2026).
 
-- `apps/drafting/src/services/prayer-date-gate.ts` (planned): the T-628 past-date-in-prayer rule (Ajay, T-613 file §k, e802bac5).
+- `apps/drafting/src/services/prayer-date-gate.ts` (planned; T-628 in build): the T-628 past-date-in-prayer rule (Ajay, T-613 file §k, e802bac5).
+
+- `apps/drafting/src/routes/courts.routes.ts`: court scopes per template (TEMPLATE_COURT_FILTER) and court type labels (Ajay eb3ee17d, 27 Oct 2026).
 
 Database content, not a repo path: the four sample PDFs (output of `apps/drafting/scripts/seed-sample-pdfs.ts`, stored in MongoDB, served at `/api/samples/*`; T-254). They are not files in the repo, and each regenerated PDF still needs Ajay's signature on its exported text before any link is restored. HARD RULE: run `apps/drafting/scripts/seed-sample-pdfs.ts` against a non-production database only. The script loads `.env.production` first when that file exists, and a `MONGO_URI` already exported in your shell beats every env file, so check the effective `MONGO_URI` before every run: the value in your shell, and the env file the script reports loading (`→ Loaded env from ...`).
 

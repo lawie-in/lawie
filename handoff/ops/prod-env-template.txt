@@ -35,7 +35,8 @@ JWT_SECRET=<new-random-64-hex>                        # [R] same value in auth
 # JWT_SECRET is shared with gateway (above)
 JWT_REFRESH_SECRET=<new-random-64-hex>                # [R]
 JWT_EXPIRES_IN=15m                                    # [o]
-JWT_REFRESH_EXPIRES_IN=30d                            # [o]
+# JWT_REFRESH_EXPIRES_IN is ignored after T-616b (Arjun, 27 Oct 2026); delete it from the box env at the next deploy.
+# Session lifetimes are fixed in packages/shared (SESSION_TTL_HOURS 12, SESSION_ABSOLUTE_DAYS 7); no env variable reads them.
 GOOGLE_CLIENT_ID=<google-oauth-client-id>             # [o] all three or Google sign-in is off
 GOOGLE_CLIENT_SECRET=<new-google-oauth-client-secret> # [o] rotated
 GOOGLE_CALLBACK_URL=https://api.lawie.in/api/auth/google/callback   # [o] add this URL in Google console
