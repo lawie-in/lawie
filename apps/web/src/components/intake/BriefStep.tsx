@@ -14,7 +14,7 @@
  * Without a ledger the screen is exactly as before.
  */
 import { ChevronDown, Loader2 } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   Brief,
@@ -155,6 +155,8 @@ function fieldId(key: string): string {
 
 type RowStatus =
   | { kind: 'saving'; typed: Value }
+  // T-612: the service took no ledger edit for this row; what was picked stays on screen.
+  | { kind: 'kept'; typed: Value }
   | { kind: 'saved_as'; display: string }
   | { kind: 'unreadable'; typed: Value; detail: string }
   | { kind: 'failed'; typed: Value };
@@ -215,14 +217,36 @@ function Item({
   const notKnownDate = isEmptyValue(item.value) && !entry.fact && isNotKnownDate(item, askedAnswer);
 
   // T-147b: the row renders from the ledger. With no fact and nothing outstanding,
-  // the brief's own value shows as before.
+  // the brief's own value shows as before. T-612: several choices or a list is one
+  // fact per entry under the same key, so every one of them is the row's value.
+  const multi = item.kind === 'choices' || item.kind === 'list';
+  const multiFacts = multi && ledger ? ledger.facts.filter((f) => f.key === item.key) : [];
+  // T-612: a pick kept after a null outcome gives way once the ledger's entries
+  // for this key change (a re-read, another document).
+  const multiDisplaysKey = multi ? JSON.stringify(multiFacts.map((f) => f.display)) : '[]';
+  const multiLedgerKey = multi
+    ? JSON.stringify([multiDisplaysKey, entry.unresolved?.raw_span ?? null])
+    : '';
+  // T-612: the same array while the entries are the same, so a re-render elsewhere
+  // does not reset a list being typed in (ValueInput resets on a new value).
+  const multiShown = useMemo(() => JSON.parse(multiDisplaysKey) as string[], [multiDisplaysKey]);
+  useEffect(() => {
+    setStatus((s) => (s?.kind === 'kept' ? null : s));
+  }, [multiLedgerKey]);
+  // T-612: only the newest pick on this row may set its status; an older answer
+  // arriving later must not undo it.
+  const latestCommit = useRef(0);
+  // T-612: for several choices or a list, what was just picked shows while it
+  // saves too, so a chip stays ticked and the next tick adds to it.
   const shown: Value | null =
-    status && 'typed' in status && status.kind !== 'saving'
+    status && 'typed' in status && (multi || status.kind !== 'saving')
       ? status.typed
       : notKnown !== undefined
         ? notKnown
         : entry.fact
-          ? fieldValueOf(item, entry.fact)
+          ? multi
+            ? multiShown
+            : fieldValueOf(item, entry.fact)
           : entry.unresolved
             ? null
             : item.value;
@@ -258,10 +282,14 @@ function Item({
       void onCommit(value);
       return;
     }
+    const mine = ++latestCommit.current;
     setStatus({ kind: 'saving', typed: value });
     const out = await onCommit(value);
+    if (mine !== latestCommit.current) return;
     if (!out) {
-      setStatus(null);
+      // T-612: no ledger result for this row. For several choices or a list,
+      // falling back to the ledger reset the chips, so the pick stays on screen.
+      setStatus(multi ? { kind: 'kept', typed: value } : null);
       return;
     }
     if (out.status === 'failed') setStatus({ kind: 'failed', typed: value });
@@ -316,7 +344,10 @@ function Item({
     <div
       className={WIDE.has(item.kind) ? 'sm:col-span-2' : ''}
       {...(onLedger && entry.fact
-        ? { 'data-ledger-key': entry.fact.key, 'data-ledger-display': entry.fact.display }
+        ? {
+            'data-ledger-key': entry.fact.key,
+            'data-ledger-display': multi ? multiShown.join(', ') : entry.fact.display,
+          }
         : {})}
       {...(toBeAsked ? { 'data-ledger-unresolved': item.key } : {})}
     >

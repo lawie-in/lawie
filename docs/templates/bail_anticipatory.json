@@ -189,7 +189,7 @@
             "label": "Medical condition of the applicant",
             "type": "textarea",
             "required": false,
-            "question": "Does the applicant suffer from any illness, disability or medical condition you want placed before the court? If yes, name it as written in the medical papers. If not, leave it blank.",
+            "question": "Does the applicant have any illness, disability or medical condition you want placed before the court? If yes, name it as written in the medical papers. If not, write \"None\".",
             "ask_when_empty": true
           },
           {
@@ -487,6 +487,18 @@
               {
                 "id": "professional_reputation",
                 "label": "Arrest would ruin professional reputation irreparably"
+              },
+              {
+                "id": "amount_paid_or_deposited",
+                "label": "Amount in dispute paid or deposited (without admission)"
+              },
+              {
+                "id": "only_earning_member",
+                "label": "Only earning member of the family"
+              },
+              {
+                "id": "ready_to_furnish_bail_bond_and_sureties",
+                "label": "Ready to furnish a bail bond and sureties"
               }
             ],
             "inject_into": [
@@ -550,7 +562,7 @@
       {
         "section_id": "body",
         "type": "ai_generated",
-        "prompt_context": "Generate 8-12 numbered paragraphs for an Anticipatory Bail application under {governing_provision}. Paragraph 1 must mention FIR No. {fir_number} dated {fir_date}, registered at PS {police_station}, under Section(s) {sections_charged}, as written in the FIR. State that the applicant APPREHENDS arrest and has NOT been arrested yet. Paragraphs 2-4 should narrate the facts: {facts_narrative}. Subsequent paragraphs should establish grounds: {grounds_for_bail}. Include reference to: (i) Article 21 of Constitution, (ii) the conditions the court may impose when granting anticipatory bail, (iii) that custodial interrogation is not necessary as applicant is willing to join investigation. Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]. Do NOT generate the prayer clause or verification — those are template-handled.",
+        "prompt_context": "Generate 8-12 numbered paragraphs for an Anticipatory Bail application under {governing_provision}. Paragraph 1 must mention FIR No. {fir_number} dated {fir_date}, registered at Police Station {police_station}, under Section(s) {sections_charged}, as written in the FIR. State that the applicant APPREHENDS arrest and has NOT been arrested yet. Paragraphs 2-4 should narrate the facts: {facts_narrative}. Subsequent paragraphs should establish grounds: {grounds_for_bail}. Include reference to: (i) Article 21 of Constitution, (ii) the conditions the court may impose when granting anticipatory bail, (iii) that custodial interrogation is not necessary as applicant is willing to join investigation. Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon]. Do NOT generate the prayer clause or verification — those are template-handled.",
         "numbering": "numeric",
         "min_paragraphs": 8,
         "max_paragraphs": 12
@@ -559,7 +571,7 @@
         "section_id": "prayer",
         "type": "template",
         "alignment": "left",
-        "template": "PRAYER\n\n{prayer_opening}\n\na) Grant Anticipatory Bail to the {party_label_petitioner}, {applicant_name}, in the event of arrest in connection with FIR No. {fir_number} dated {fir_date}, PS {police_station}, under {governing_provision}, on such terms and conditions as this Hon'ble Court may deem fit;\n\nb) Direct that in the event of arrest, the {party_label_petitioner} shall be released on bail forthwith;\n\nc) Pass such other orders as this Hon'ble Court may deem fit and proper in the facts and circumstances of the case, in the interest of justice.\n\n{prayer_closing}"
+        "template": "PRAYER\n\n{prayer_opening}\n\na) Grant Anticipatory Bail to the {party_label_petitioner}, {applicant_name}, in the event of arrest in connection with FIR No. {fir_number} dated {fir_date}, Police Station {police_station}, under {governing_provision}, on such terms and conditions as this Hon'ble Court may deem fit;\n\nb) Direct that in the event of arrest, the {party_label_petitioner} shall be released on bail forthwith;\n\nc) Pass such other orders as this Hon'ble Court may deem fit and proper in the facts and circumstances of the case, in the interest of justice.\n\n{prayer_closing}"
       },
       {
         "section_id": "verification",
