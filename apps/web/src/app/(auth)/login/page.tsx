@@ -530,7 +530,7 @@ function LoginContent() {
     return code;
   };
 
-  // T-517 (AJ-517-M3): Create account and Google on that tab wait for the consent box.
+  // T-517 (AJ-517-M3): email Create account waits for the consent box (Google does not, T-642).
   const consentMissing = (): boolean => {
     if (!isSignup || consent) return false;
     setConsentError(CONSENT_COPY.required);
@@ -539,10 +539,7 @@ function LoginContent() {
 
   const handleGoogleLogin = async () => {
     lastAttempt.current = 'google';
-    if (consentMissing()) {
-      consentRef.current?.focus();
-      return;
-    }
+    // T-642 (AJ-642-M1): Google has no checkbox on either tab; the "By continuing" line covers it.
     // T-319: no verifier, no redirect. No crypto (non-secure origin): the https line. Any other
     // failure (sessionStorage): the existing network-style error.
     const result = await createOAuthChallenge();
@@ -975,7 +972,7 @@ function LoginContent() {
                     </div>
                   )}
 
-                  {/* Google OAuth (gated by the consent box on Create account, AJ-517-M3) */}
+                  {/* Google OAuth: no consent box on either tab (T-642, AJ-642-M1) */}
                   <button
                     onClick={() => void handleGoogleLogin()}
                     type="button"
@@ -990,23 +987,20 @@ function LoginContent() {
                     <GoogleIcon />
                     {AUTH_COPY.google}
                   </button>
-                  {/* Sign in tab only, beside the Google button (AJ-517-M18): the T-234 consent
-                      line (Ajay, 11 Oct 2026), word for word, with its Terms and Privacy links. A
-                      Google sign-in from this tab can still create an account and has no
-                      checkbox. */}
-                  {!isSignup && (
-                    <p className="nl-body-sm mt-nl-3 text-nl-soft">
-                      {AUTH_COPY.byContinuing.before}
-                      <Link href="/terms" target="_blank" rel="noopener" className={TEXT_LINK}>
-                        {AUTH_COPY.byContinuing.terms}
-                      </Link>
-                      {AUTH_COPY.byContinuing.middle}
-                      <Link href="/privacy" target="_blank" rel="noopener" className={TEXT_LINK}>
-                        {AUTH_COPY.byContinuing.privacy}
-                      </Link>
-                      {AUTH_COPY.byContinuing.after}
-                    </p>
-                  )}
+                  {/* Both tabs, beside the Google button (AJ-517-M18, AJ-642-M1): the T-234
+                      consent line (Ajay, 11 Oct 2026), word for word, with its Terms and Privacy
+                      links. Google has no checkbox on either tab; this line is its consent. */}
+                  <p className="nl-body-sm mt-nl-3 text-nl-soft">
+                    {AUTH_COPY.byContinuing.before}
+                    <Link href="/terms" target="_blank" rel="noopener" className={TEXT_LINK}>
+                      {AUTH_COPY.byContinuing.terms}
+                    </Link>
+                    {AUTH_COPY.byContinuing.middle}
+                    <Link href="/privacy" target="_blank" rel="noopener" className={TEXT_LINK}>
+                      {AUTH_COPY.byContinuing.privacy}
+                    </Link>
+                    {AUTH_COPY.byContinuing.after}
+                  </p>
 
                   <div className="my-nl-5 gap-nl-3 flex items-center">
                     <div className="bg-nl-line h-px flex-1" />

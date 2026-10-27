@@ -15,6 +15,7 @@ import {
 } from '@/components/shell/nightLibraryPaths';
 import { OfflineBanner } from '@/components/shell/OfflineBanner';
 import { SessionReconnectingBanner } from '@/components/shell/SessionReconnectingBanner';
+import SignupConsentPrompt from '@/components/SignupConsentPrompt';
 import { Spinner } from '@/components/ui';
 import VerifyEmailPrompt from '@/components/VerifyEmailPrompt';
 import { useAuth } from '@/context/AuthContext';
@@ -62,6 +63,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className="nl nl-root flex min-h-screen flex-col overflow-x-clip">
         {/* T-520: signed-in top bar; the theme toggle is in its menu (one header row). */}
         <DashboardTopBar />
+        {/* T-642 (AJ-642-M6, Rajesh): the Google sign-up consent panel, in the banner slot above
+            the verify bar, on every dashboard page while /me says needsSignupConsent. Not modal. */}
+        <SignupConsentPrompt />
         {/* T-522 (Rajesh §2): the persistent verify bar sits under the top bar, above the offline
             banner, on every dashboard route until the address is verified; it also mounts the
             draft refusal dialog (AJ-522-M6). */}
@@ -133,7 +137,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
 
         {/* T-522: the persistent verify bar under the top bar (unverified email users only) and
-            the draft refusal dialog (AJ-522-M6). The privacy dialog (below) is modal over both. */}
+            the draft refusal dialog (AJ-522-M6). The privacy dialog (below) is modal over both.
+            T-642: the Google sign-up consent panel sits above the verify bar (not modal). */}
+        <SignupConsentPrompt />
         <VerifyEmailPrompt />
         {/* T-616: same slot in the legacy shell (/dashboard/new, documents, templates), in flow
             above the scrolling main; this shell has no OfflineBanner. */}

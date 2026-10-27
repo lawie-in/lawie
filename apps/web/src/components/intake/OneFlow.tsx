@@ -76,6 +76,7 @@ import {
 } from '@/components/VerifyEmailPrompt';
 import { notifyCreditsChanged } from '@/hooks/useCredits';
 import { apiFetch } from '@/lib/apiFetch';
+import { signupConsentGate } from '@/lib/signupConsent';
 
 type Phase =
   | 'describe'
@@ -701,6 +702,8 @@ function OneFlowSteps({
       // known. Confirm and "Try again" are off then too; this is the backstop.
       const cost = inkCostOf(current.kind.id ?? NO_RULE_PACK, kinds, guidedInkCost);
       if (inkCostState(cost, inkCostLoading) !== 'known') return;
+      // T-642 (AJ-642-M3/M6): no draft while the Google sign-up consent is needed.
+      if (await signupConsentGate()) return;
       // T-343: ask before leaving the brief, so focus stays on the confirm button.
       if (await privacyPrecheck('generate')) return;
       if (!retry) runId.current = undefined;

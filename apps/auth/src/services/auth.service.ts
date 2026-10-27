@@ -23,6 +23,7 @@ import {
   CURRENT_TERMS_VERSION,
   privacySignupAcceptance,
   PrivacyAcceptedVia,
+  SIGNUP_CONSENT_TEXT_VERSION,
 } from '../models/User.model';
 import { buildSignupSource, UpdateMeInput, UtmTags } from '../validators/auth.validator';
 
@@ -444,6 +445,19 @@ export function privacyStatusFor(user: Pick<IUser, 'privacyVersion'>): PrivacySt
 }
 
 /**
+ * T-642 (AJ-517-M18(c), AJ-642-M4; Arjun condition 3) — computed on every GET /me, never stored.
+ * True only for an acceptedVia 'google' account with no signupConsentAt. Any other acceptedVia
+ * (password, test, missing) is always false, whatever the other fields hold. A test account is
+ * never 'google' (AJ-563-M1a), so no test acceptance stands in for this one.
+ */
+export function needsSignupConsentFor(
+  user: Pick<IUser, 'acceptedVia' | 'signupConsentAt'>,
+): boolean {
+  if (user.acceptedVia !== 'google') return false;
+  return !(user.signupConsentAt instanceof Date);
+}
+
+/**
  * T-507 — the profile fields GET /me reports, under their API names (barCouncil is stored as
  * User.barCouncilId, barCouncilState as User.state). A value never given is null; a list is [].
  * barCouncilState is returned as stored: records from before T-507 may hold free text there.
@@ -478,6 +492,8 @@ export type MeStatus = PrivacyStatus &
     signupInkGranted: boolean;
     /** T-522 (Arjun 2): a sign-up referral code's outcome; null when none was sent or unknown. */
     referralStatus: 'applied' | 'not_applied' | null;
+    /** T-642: the next-sign-in M16 box must show (needsSignupConsentFor). */
+    needsSignupConsent: boolean;
   };
 
 function stringOrNull(v: unknown): string | null {
@@ -492,7 +508,7 @@ export async function getPrivacyStatus(userId: string): Promise<MeStatus> {
   // googleId is select:false on the schema, so it is asked for explicitly (+googleId).
   const user = await User.findById(userId).select(
     'privacyVersion isActive emailVerified authProvider gstStateCode +googleId +password ' +
-      'signupBonusGrantedAt referralStatus ' +
+      'signupBonusGrantedAt referralStatus acceptedVia signupConsentAt ' +
       'name phone enrollmentNumber barCouncilId state practiceAreas yearsOfExperience ' +
       'courtsPractisedIn defaultCourt',
   );
@@ -504,6 +520,7 @@ export async function getPrivacyStatus(userId: string): Promise<MeStatus> {
     (typeof user.googleId === 'string' && user.googleId.length > 0);
   return {
     ...privacyStatusFor(user),
+    needsSignupConsent: needsSignupConsentFor(user),
     emailVerified: user.emailVerified === true,
     hasGoogle,
     hasPassword: typeof user.password === 'string' && user.password.length > 0,
@@ -848,6 +865,72 @@ export async function acceptPrivacy(
 
   logger.info({ userId }, 'Privacy version accepted');
   return { accessToken: rotation.accessToken, refreshToken: rotation.refreshToken };
+}
+
+/**
+ * T-642 — POST /me/signup-consent: the AJ-517-M16 box accepted on the next-sign-in step for an
+ * acceptedVia 'google' account (AJ-642-M2..M5). Server values only, nothing from the body: the
+ * versions are CURRENT_TERMS_VERSION and CURRENT_PRIVACY_VERSION, the same constants the email
+ * Create-account path stores (Arjun condition 1), and the time is server time.
+ *
+ * Order (as acceptPrivacy, T-354): (1) the caller's access session must still be live, else 401
+ * and nothing written; (2) one atomic conditional update, only on an active 'google' account with
+ * no signupConsentAt, which sets the three signupConsent fields, termsVersion and privacyVersion
+ * (AJ-642-M6), privacyAcceptedAt (the same time) and privacyAcceptedVia 'google_confirm', and
+ * pushes one 'google_confirm' privacyHistory row. acceptedVia, termsAcceptedAt
+ * and the earlier rows are untouched (M18(b)).
+ * Idempotent (Arjun condition 2): a repeat, or a racing second call, matches nothing, so the first
+ * timestamp and a single row stand, and it still succeeds. A non-'google' account is a no-op
+ * success too (nothing to confirm; needsSignupConsent is false for it).
+ *
+ * No token rotation, unlike acceptPrivacy. The token's `pv` claim comes from privacyVersion,
+ * which this update may change, so a token minted before it can carry a stale `pv`. Such a token
+ * gets one 403 privacy_reaccept_required on a gated call; the web's privacyFetch then sees /me
+ * not behind, refreshes (the new pair carries the current `pv`) and retries once. Logs only the
+ * user id, never tokens.
+ */
+export async function recordSignupConsent(userId: string, accessToken: string): Promise<void> {
+  const accessHash = hashToken(accessToken);
+  const session = await redisClient.get(sessionKey(userId, accessHash));
+  if (typeof session !== 'string') {
+    throw new AppError(401, 'Session expired or revoked. Please log in again.');
+  }
+
+  const user = await User.findById(userId).select('isActive').lean();
+  if (!user || !user.isActive) {
+    throw new AppError(401, 'User not found or inactive');
+  }
+
+  const acceptedAt = new Date();
+  const res = await User.updateOne(
+    { _id: userId, isActive: true, acceptedVia: 'google', signupConsentAt: null },
+    {
+      $set: {
+        signupConsentAt: acceptedAt,
+        signupConsentTermsVersion: CURRENT_TERMS_VERSION,
+        signupConsentPrivacyVersion: CURRENT_PRIVACY_VERSION,
+        // AJ-642-M6 (no double prompt): the versions shown become the accepted versions, so the
+        // T-343 prompt fires only if what was shown was stale. acceptedVia and termsAcceptedAt
+        // stay as they are.
+        termsVersion: CURRENT_TERMS_VERSION,
+        privacyVersion: CURRENT_PRIVACY_VERSION,
+        // Ajay (via Priya): the privacy acceptance is this one, at the same time as
+        // signupConsentAt.
+        privacyAcceptedAt: acceptedAt,
+        privacyAcceptedVia: 'google_confirm',
+      },
+      $push: {
+        privacyHistory: {
+          version: CURRENT_PRIVACY_VERSION,
+          acceptedAt,
+          via: 'google_confirm',
+          termsVersion: CURRENT_TERMS_VERSION,
+          consentTextVersion: SIGNUP_CONSENT_TEXT_VERSION,
+        },
+      },
+    },
+  );
+  if (res.modifiedCount > 0) logger.info({ userId }, 'Google sign-up consent recorded');
 }
 
 /** T-616b — see acceptPrivacy's failure mode. Best effort: never masks the original error. */
