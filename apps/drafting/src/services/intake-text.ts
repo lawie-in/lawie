@@ -269,7 +269,8 @@ function indianWords(n: number): string {
 
 /**
  * An amount in figures, in words, in Ajay's format: "Rupees Two Lakh Forty
- * Thousand only", or with paise "Rupees Fifteen Thousand and Paise Fifty only".
+ * Thousand only", or with paise "Rupees Fifteen Thousand and Fifty Paise only"
+ * (Ajay P-R3, ceee45cb).
  * The figures may carry "Rs.", "/-" and Indian or Western commas. Null when the
  * figures are not a plain amount of at least one rupee.
  */
@@ -284,16 +285,40 @@ export function amountInWords(figures: string): string | null {
   const rupees = Number(m[1]);
   const paise = m[2] === undefined ? 0 : Number(m[2].padEnd(2, '0'));
   if (!Number.isSafeInteger(rupees) || rupees < 1) return null;
-  const paiseWords = paise > 0 ? ` and Paise ${belowHundred(paise)}` : '';
+  const paiseWords = paise > 0 ? ` and ${belowHundred(paise)} Paise` : '';
   return `Rupees ${indianWords(rupees)}${paiseWords} only`;
 }
 
-/** The words of an amount, compared loosely: case, "Rs."/"Rupees", "only", "and", hyphens, "Lakhs"/"Crores". */
+/** The words of a paise count, 1 to 99, as amountWordsKey sees them (lower case, hyphens as spaces). */
+const PAISE_WORDS =
+  '(?:(?:twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)(?: (?:one|two|three|four|five|six|seven|eight|nine))?' +
+  '|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen)';
+
+/**
+ * The paise at the end of an amount's words, in either order: "and Paise Fifty"
+ * (the old brief form) or "and Fifty Paise" (Ajay P-R3). The "and" is optional
+ * for "Paise <words>" but required for "<words> Paise", since without it the
+ * split between rupees and paise is not known ("One Hundred Twenty Five Paise").
+ */
+const PAISE_TAIL = new RegExp(`(?: and)? paise (${PAISE_WORDS})$| and (${PAISE_WORDS}) paise$`);
+
+/**
+ * The words of an amount, compared loosely: case, "Rs."/"Rupees", "only", "and",
+ * hyphens, "Lakhs"/"Crores", and the paise in either order (P-R3: the parser
+ * reads both forms). The paise are put in one canonical form, " # <words> paise",
+ * before "and" is dropped. The "#" keeps the line between rupees and paise, so
+ * 120.05 ("One Hundred Twenty and Five Paise") and 100.25 ("One Hundred and
+ * Twenty Five Paise") keep different keys.
+ */
 function amountWordsKey(words: string): string {
   return normalise(words)
     .replace(/-/g, ' ')
     .replace(/\/|\(|\)|\./g, ' ')
-    .replace(/\b(rupees|rupee|rs|inr|only|and)\b/g, ' ')
+    .replace(/\b(rupees|rupee|rs|inr|only)\b/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(PAISE_TAIL, (_m, before?: string, after?: string) => ` # ${before ?? after} paise`)
+    .replace(/\band\b/g, ' ')
     .replace(/\blakhs\b/g, 'lakh')
     .replace(/\bcrores\b/g, 'crore')
     .replace(/\s+/g, ' ')
