@@ -113,3 +113,5 @@ This **replaces** Tanvi's marker-keeping fix in `bareStationName`: one rule on e
 | Out of scope | Template raw path and the annexures line → T-638. |
 
 **T-612 APPROVED at fc25a22d.** It counts as merged at the develop_staging merge SHA that contains fc25a22d.
+
+**T-612 merged (Ajay, 27 Oct 2026):** develop_staging merge SHA `81ca13d24259c13f974688b8283dadf70c70360d` contains fc25a22d. I checked it myself: the v6 skeleton JSON and md files have the signed SHAs (91fbd67a…, 98dc2262…; md 98c413b9…, 2a36261a…), and handoff/legal is unchanged from my ff6e0f04, so the merge kept my version.
