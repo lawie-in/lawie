@@ -254,3 +254,6 @@ JSON: `handoff/ops/runbooks/lawie-prod-ops-v8.json`. Only change vs v7, besides 
 - The file check runs before the pull, so the first deploy after T-606 lands uses the inline body. Later deploys use the script.
 - To apply: once T-606 is on a box, run `update-document` → `update-document-default-version 8` → ops-log row.
 - Applied 20:00 UTC on Arjun's word (20:00 UTC). Status Active, default = 8, `get-document --document-version 8` == repo JSON.
+
+### SSM version 9 (27 Oct 2026, 13:43 UTC, Nikhil) — default
+On Arjun's word (13:41 UTC, release v1.2.0). JSON: `handoff/ops/runbooks/lawie-prod-ops-v9.json`; SSM content == repo JSON. Only change vs v8 (besides the description) is the new action `seed-courts`. Its function `seed_courts_run` loads the env exactly like `seed_run`/deploy (v4 loader, as ubuntu) and runs `yarn -s workspace @lawie/drafting seed:courts`. It takes no parameters. The script (`apps/drafting/src/scripts/seed-courts.ts`) is upsert-on-courtId only: idempotent, nothing deleted.
