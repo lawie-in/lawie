@@ -293,6 +293,8 @@ describe('consent (AJ-517-M3)', () => {
 
   it('T-642 AC4: the Google redirect params are the same on both tabs (challenge only, no consent param)', async () => {
     stubCrypto();
+    const prevApiUrl = process.env.NEXT_PUBLIC_API_URL;
+    process.env.NEXT_PUBLIC_API_URL = 'http://api.test';
     const urls: string[] = [];
     const orig = window.location;
     Object.defineProperty(window, 'location', {
@@ -317,6 +319,8 @@ describe('consent (AJ-517-M3)', () => {
       }
     } finally {
       Object.defineProperty(window, 'location', { configurable: true, value: orig });
+      if (prevApiUrl === undefined) delete process.env.NEXT_PUBLIC_API_URL;
+      else process.env.NEXT_PUBLIC_API_URL = prevApiUrl;
     }
     expect(urls).toHaveLength(2);
     const keys = urls.map((u) => [...new URL(u).searchParams.keys()].sort());
