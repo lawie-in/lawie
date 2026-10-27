@@ -89,8 +89,7 @@ describe('T-613 E (route): O.39 saved document and generation record', () => {
     expect(rows[0].docType).toBe('injunction');
   });
 
-  // FINDING (expected red): the chosen type is civil_court_junior, which COURT_TYPES in
-  // packages/shared does not list, so Document.courtType rejects it and the draft is not saved.
+  // A Junior Division draft is saved, with courtType civil_court_junior.
   it('saves the draft when the court is the Junior Division record (court_type civil_court_junior)', async () => {
     const res = await run('civil_court_junior', 'bihar_civil_junior_patna');
     expect(res.status).toBe(200);
@@ -98,5 +97,14 @@ describe('T-613 E (route): O.39 saved document and generation record', () => {
     expect(docs).toHaveLength(1);
     expect(docs[0].docType).toBe('injunction');
     expect(docs[0].courtType).toBe('civil_court_junior');
+  });
+
+  // T-634: a High Court Bench draft keeps its courtType (COURT_TYPES lists high_court_bench).
+  it('saves courtType high_court_bench for a High Court Bench court', async () => {
+    const res = await run('high_court_bench', 'bihar_civil_junior_patna');
+    expect(res.status).toBe(200);
+    const docs = await LawieDocument.find({ userId: USER_ID }).lean();
+    expect(docs).toHaveLength(1);
+    expect(docs[0].courtType).toBe('high_court_bench');
   });
 });
