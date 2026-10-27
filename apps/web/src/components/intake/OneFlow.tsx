@@ -91,10 +91,13 @@ const EMPTY_COURT: BriefCourt = { state: null, court_type: null, court: null };
 const UNREADABLE = 'We could not read that just now. Try again, or browse document types.';
 const JSON_POST = { method: 'POST', headers: { 'Content-Type': 'application/json' } } as const;
 
-/** T-147b: one answer or edit for the fact ledger, as the update route takes it. */
+/**
+ * T-147b: one answer or edit for the fact ledger, as the update route takes it.
+ * T-612: several choices or a list go as an array (an empty array clears them).
+ */
 interface LedgerEditBody {
   key: string;
-  text: string;
+  text: string | string[];
   from_question?: boolean;
 }
 
@@ -571,7 +574,8 @@ function OneFlowSteps({
   /** T-147b: the ledger edit for a value, when the ledger holds this item. */
   const ledgerEdit = (key: string, value: Value, fromQuestion: boolean): LedgerEditBody[] => {
     const l = ledgerRef.current;
-    if (!l || l.fields[key] === undefined || Array.isArray(value)) return [];
+    // T-612: an array (ticked choices, list entries) is sent too; it was dropped before.
+    if (!l || l.fields[key] === undefined) return [];
     return [{ key, text: value, ...(fromQuestion ? { from_question: true } : {}) }];
   };
 

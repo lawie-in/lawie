@@ -39,10 +39,8 @@ describe('SHA allowlist deny: camelCase and joined compounds', () => {
     expect(hits(text)).toEqual([]);
   });
 
-  // DOCUMENTED RESIDUAL GAP (see allowlist comment): joined labels outside the DENY_JOINED
-  // list are NOT denied, so the SHA allowlist lets them through. If this starts failing,
-  // the gap was closed: flip these to HITS deliberately.
-  it.each(['RAZORPAYSECRET', 'MYTOKEN'])('KNOWN GAP: %s is not denied', (label) => {
-    expect(hits(`SHA-256 ${label} ${H64}\n`)).toEqual([]);
+  // T-593 closed the joined-label gap: secret stems inside any joined run are denied.
+  it.each(['RAZORPAYSECRET', 'MYTOKEN'])('HITS: joined label %s', (label) => {
+    expect(hits(`SHA-256 ${label} ${H64}\n`).length).toBe(1);
   });
 });

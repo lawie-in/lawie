@@ -54,9 +54,30 @@ export const PATTERNS = [
  * Known residual gaps of the SHA entry (reviewed, accepted): a `# SHA` comment line inside a
  * fenced code block counts as a heading; a table header such as `| Name | SHA-256 | Value |`
  * allows any 40/64-hex in every column of that table, not only the SHA column. The deny
- * words are matched after splitting `_`, `-`, camelCase and letter-digit boundaries, plus
- * a list of joined compounds (APIKEY, webhooksecret, authtoken); a joined label outside
- * that list (e.g. RAZORPAYSECRET, MYTOKEN) is not denied.
+ * words are matched after splitting `_`, `-`, camelCase and letter-digit / digit-letter
+ * boundaries, plus a list of joined compounds (APIKEY, webhooksecret, authtoken) and (T-593)
+ * a stem rule: any alphanumeric run that CONTAINS a secret stem (DENY_STEMS: secret, token,
+ * password, credential, bearer, apikey, signingkey, ...) is a deny word in any case, so
+ * HMACSECRET, RAZORPAYSECRET, MYTOKEN, Hmacsecret, HMAC2SECRET and JWTSECRET are denied like
+ * `hmac secret`. Bare `hmac`, `nonce`, `salt`, `seed`, `cred` and `pwd` are NOT stems (legal
+ * prose: "HMAC nonce", "credit", PWDVA, PwD); `pwd` counts only as the end of a longer run
+ * (DBPWD). Company-secretary words (secretary, secretariat, secretarial) are exempt. An
+ * ALL-CAPS run ending in KEY, KEYS, KEYID, WEBHOOK(S) or API after two or more characters is
+ * also denied (DENY_CAPS_SUFFIX: RAZORPAYKEY, MYKEY, JWTKEY, RAZORPAYWEBHOOK, RZPAPI), minus
+ * a short list of English words (MONKEY, TURKEY, HOCKEY, TURNKEY, OKAPI, ...); both the
+ * stem and the suffix tests also run on each letter-only piece of a run, so digits or a
+ * `V2` version tag after the word do not hide it (RAZORPAYKEY2, RAZORPAYKEYV2, DBPWD2). All deny
+ * tests run on the context after NFKC and with zero-width / soft-hyphen characters removed
+ * (denyPlain), so fullwidth or invisibly split labels are denied too.
+ *
+ * Residual deny gaps (reviewed, accepted for T-593): lower-case or Title-case joined labels
+ * on KEY / WEBHOOK / API outside the fixed prefixes (razorpaykey, Mykey, rzpapi) are not
+ * denied, to keep monkey, turkey, turnkey prose allowed; an all-caps run with the word as a
+ * PREFIX (KEYRAZORPAY, APIRZP, WEBHOOKRZP) or as an INFIX followed by more letters
+ * (RAZORPAYKEYPROD, RAZORPAYAPIPROD) is not denied; bare hmac, salt, nonce, seed, cred
+ * and pwd are not deny words; Cyrillic / Greek look-alike letters (not folded by NFKC) and
+ * invisible characters outside denyPlain's list can still disguise a deny word; the all-caps
+ * WAAPI (Web Animations API) and similar acronyms ending in API ARE denied next to a SHA.
  */
 export const ALLOW = [
   // Signed SHA-256 hashes (64 hex) and git commit SHAs (40 hex) in handoff docs: the line,
@@ -120,12 +141,89 @@ function denyText(text) {
   return text
     .replace(/[_-]/g, ' ')
     .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-    .replace(/([A-Za-z])(\d)/g, '$1 $2');
+    .replace(/([A-Za-z])(\d)/g, '$1 $2')
+    .replace(/(\d)([A-Za-z])/g, '$1 $2');
 }
 
 /** Joined all-caps or lower-case compounds the word split cannot see (APIKEY, webhooksecret). */
 const DENY_JOINED =
   /(?:api|auth|access|private|secret|webhook|key|client|bearer|refresh)(?:keys?|secrets?|tokens?|passwords?|pass)/i;
+
+/**
+ * T-593: secret stems that deny a SHA label wherever they sit inside a joined alphanumeric
+ * run, whatever its case (HMACSECRET, MYTOKEN, Hmacsecret, HMAC2SECRET, dbpasswd). The run is
+ * split on every non-alphanumeric character, so HMAC.SECRET and HMAC/SECRET are covered too.
+ */
+const DENY_STEMS = new RegExp(
+  [
+    'secret',
+    'token',
+    'passw(?:or)?d',
+    'passphrase',
+    'credential',
+    'creds',
+    'bearer',
+    '(?:api|private|priv|access|auth|signing|encryption|hmac|client|master|session|webhook|ssh)keys?',
+    '.pwd$', // DBPWD, ROOTPWD; never a bare PWD/PwD (Persons with Disabilities) or PWDVA
+  ].join('|'),
+  'i',
+);
+/** English words the stems would otherwise catch (company secretary in legal docs). */
+const DENY_STEM_EXEMPT = /^secretar(?:y|ies|iats?|ial)$/i;
+
+/**
+ * T-593 round 1: an ALL-CAPS run (as written, after denyPlain) that ENDS with one of the
+ * original deny words KEY / KEYS / KEYID / WEBHOOK(S) / API after at least two other
+ * characters: RAZORPAYKEY, MYKEY, JWTKEY, ENCKEY, RAZORPAYWEBHOOK, RZPAPI. Suffix only, so
+ * all-caps CAPITAL, RAPID, APIARY, KEYBOARD and LAPIS are never caught; lower/Title case
+ * (monkey, Turkey) is never caught. All-caps English words ending in KEY or API are exempt.
+ */
+const DENY_CAPS_SUFFIX = /^[A-Z0-9]{2,}(?:KEY(?:S|ID)?|WEBHOOKS?|API)$/;
+const DENY_CAPS_EXEMPT =
+  /^(?:MONKEY|TURKEY|HOCKEY|DONKEY|JOCKEY|WHISKEY|LACKEY|FLUNKEY|MALARKEY|TURNKEY|LATCHKEY|HOTKEY|OKAPI)S?$/;
+
+/**
+ * T-593 round 3: the letter-only pieces of one alphanumeric run, so digits before or after a
+ * suffix no longer hide it (RAZORPAYKEY2, MYKEY1, RZPAPI2, DBPWD2). A version tag `V<digits>`
+ * / `v<digits>` is cut together with its digits (RAZORPAYKEYV2 -> RAZORPAYKEY).
+ */
+function letterPieces(run) {
+  return run.split(/[Vv]?[0-9]+/).filter(Boolean);
+}
+
+function deniedByStem(text) {
+  for (const run of text.match(/[A-Za-z0-9]+/g) || []) {
+    const pieces = letterPieces(run);
+    // Stems: the run itself and each letter piece (the `.pwd$` stem needs the piece: DBPWD2).
+    for (const c of [run, ...pieces]) {
+      if (DENY_STEM_EXEMPT.test(c)) continue;
+      if (DENY_STEMS.test(c)) return true;
+    }
+    // Caps suffix: the run itself (HMAC2KEY, DB2KEY) and each all-caps letter piece; the
+    // 2-character minimum and the English-word exemptions apply to the piece (MONKEY2 passes).
+    const caps = pieces.flatMap((p) => p.match(/[A-Z]+/g) || []);
+    for (const c of [run, ...caps]) {
+      if (DENY_CAPS_SUFFIX.test(c) && !DENY_CAPS_EXEMPT.test(c)) return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * T-593: invisible characters a label could hide behind (zero-width space / non-joiner /
+ * joiner, word joiner, invisible operators, Mongolian vowel separator, BOM / zero-width
+ * no-break space, soft hyphen). Written as escapes so the source itself carries none.
+ */
+const INVISIBLE = /[\u00AD\u180E\u200B-\u200D\u2060-\u2064\uFEFF]/g;
+
+/**
+ * The context the deny tests see: NFKC first (fullwidth and other compatibility look-alikes
+ * become ASCII, e.g. fullwidth SECRET), then invisible characters removed, so SE<ZWSP>CRET
+ * and S<SHY>ECRET read as SECRET. Used for the deny tests only, never to find a SHA label.
+ */
+function denyPlain(text) {
+  return text.normalize('NFKC').replace(INVISIBLE, '');
+}
 
 function isAllowed(patternName, value, context) {
   for (const a of ALLOW) {
@@ -135,7 +233,12 @@ function isAllowed(patternName, value, context) {
     if (a.shape && a.shape(value)) return true;
     if (a.context) {
       const masked = context.split(value).join('<HIT>');
-      if (a.deny && (a.deny.test(denyText(masked)) || DENY_JOINED.test(masked))) continue;
+      if (a.deny) {
+        const plain = denyPlain(masked);
+        if (a.deny.test(denyText(plain)) || DENY_JOINED.test(plain) || deniedByStem(plain)) {
+          continue;
+        }
+      }
       if (a.context.test(masked)) return true;
     }
   }

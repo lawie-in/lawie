@@ -520,7 +520,9 @@ describe('T-189: several values are not a conflict; repeats are kept once; singl
   it('a single-value item reads as before next to list entries', () => {
     const r = read([{ key: 'police_station', span: 'PS Kotwali', confidence: 0.99 }, S1, S2]);
     expect(entries(r, 'police_station')).toHaveLength(1);
-    expect(entries(r, 'police_station')[0].display).toBe('PS Kotwali');
+    // T-612 (6)(a): bare station name as the display; the typed words stay in raw_span.
+    expect(entries(r, 'police_station')[0].display).toBe('Kotwali');
+    expect(entries(r, 'police_station')[0].raw_span).toBe('PS Kotwali');
     expect(entries(r, 'sections_charged')).toHaveLength(2);
   });
 });
@@ -1375,30 +1377,100 @@ describe('R3 and R5: averment unlocking over every entry of a key', () => {
     expect(none.banned.map((b) => b.id)).toEqual(['b1', 'b2']);
   });
 
-  it('blocker trigger: no averment of the 5 seeded packs interpolates or conditions on a list or choices key', () => {
-    const multiKeys = new Set(
+  // T-612 DEFAULT (Ajay may rule otherwise; keep this block isolated): the one list/choices key an
+  // averment may read is grounds_for_bail, and only through `equals` on its option label. Anything else
+  // on a list or choices key, and any interpolation of one, is still a blocker.
+  const GROUNDS_KEY = 'grounds_for_bail';
+  const multiKeysOfAllPacks = () =>
+    new Set(
       listRulePackIds().flatMap((id) =>
         buildChecklist(loadRulePack(id)!)
           .filter((i) => isMultiItem(i))
           .map((i) => i.key),
       ),
     );
-    expect(multiKeys.size).toBeGreaterThan(0);
-    for (const id of listRulePackIds()) {
-      const l = loadAvermentLists(id);
-      const used: string[] = [];
-      const collect = (c: AvermentCondition | null) => {
-        if (c === null) return;
-        if ('all_of' in c) c.all_of.forEach(collect);
-        else used.push(c.key);
-      };
-      for (const b of l.banned) collect(b.unlocked_by);
-      for (const a of l.allowed) {
-        collect(a.requires);
-        for (const m of a.averment.matchAll(/\{\{([a-z0-9_.]+)\}\}/g)) used.push(m[1]);
+  /** What a pack's averments do on a list or choices key that the T-612 default does not allow. */
+  const multiKeyOffences = (
+    l: Pick<ReturnType<typeof loadAvermentLists>, 'banned' | 'allowed'>,
+    multiKeys: Set<string>,
+  ): string[] => {
+    const bad: string[] = [];
+    const collect = (c: AvermentCondition | null) => {
+      if (c === null) return;
+      if ('all_of' in c) {
+        c.all_of.forEach(collect);
+        return;
       }
-      for (const k of used) expect(multiKeys.has(k)).toBe(false);
+      if (!multiKeys.has(c.key)) return;
+      const equalsOnly =
+        c.equals !== undefined && c.present === undefined && c.not_in === undefined;
+      if (c.key !== GROUNDS_KEY || !equalsOnly) bad.push(`condition on ${c.key}`);
+    };
+    for (const b of l.banned) collect(b.unlocked_by);
+    for (const a of l.allowed) {
+      collect(a.requires);
+      for (const m of a.averment.matchAll(/\{\{([a-z0-9_.]+)\}\}/g)) {
+        if (multiKeys.has(m[1])) bad.push(`interpolates ${m[1]}`);
+      }
     }
+    return bad;
+  };
+
+  it('blocker trigger: no averment of the 5 seeded packs interpolates or conditions on a list or choices key, except grounds_for_bail by equals (T-612)', () => {
+    const multiKeys = multiKeysOfAllPacks();
+    expect(multiKeys.size).toBeGreaterThan(0);
+    expect(multiKeys.has(GROUNDS_KEY)).toBe(true);
+    for (const id of listRulePackIds()) {
+      expect(multiKeyOffences(loadAvermentLists(id), multiKeys)).toEqual([]);
+    }
+  });
+
+  it('the narrowed guard still catches another list key, a non-equals read of grounds_for_bail, and an interpolation', () => {
+    const multiKeys = multiKeysOfAllPacks();
+    expect(multiKeys.has('sections_charged')).toBe(true);
+    const entry = (over: Record<string, unknown>) =>
+      ({
+        id: 'x',
+        kind: 'averment',
+        averment: 'the applicant is here',
+        requires: null,
+        ...over,
+      }) as never;
+    const lists = (allowed: unknown[]) => ({ banned: [], allowed }) as never;
+    // the allowed shape
+    expect(
+      multiKeyOffences(
+        lists([entry({ requires: { key: GROUNDS_KEY, label: 'G', equals: ['Parity'] } })]),
+        multiKeys,
+      ),
+    ).toEqual([]);
+    // another list key
+    expect(
+      multiKeyOffences(
+        lists([
+          entry({ requires: { key: 'sections_charged', label: 'S', equals: ['318(4) BNS'] } }),
+        ]),
+        multiKeys,
+      ),
+    ).toEqual(['condition on sections_charged']);
+    // grounds_for_bail by present, and inside all_of
+    expect(
+      multiKeyOffences(
+        lists([
+          entry({
+            requires: { all_of: [{ key: GROUNDS_KEY, label: 'G', present: true }] },
+          }),
+        ]),
+        multiKeys,
+      ),
+    ).toEqual([`condition on ${GROUNDS_KEY}`]);
+    // an interpolation of a list key, grounds_for_bail included
+    expect(
+      multiKeyOffences(
+        lists([entry({ averment: 'on {{grounds_for_bail}} the applicant' })]),
+        multiKeys,
+      ),
+    ).toEqual(['interpolates grounds_for_bail']);
   });
 });
 

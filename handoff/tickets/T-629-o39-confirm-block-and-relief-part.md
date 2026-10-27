@@ -72,3 +72,6 @@ Decisions (Priya, 26 Oct): AC5's asked-blank mechanism is owned by T-629, built 
 - (3) does a typed "Not known" still block?
 - (5) is an in-draft check wanted?
 - does a "Not known" chip on title_document_date force the T-440 blank?
+
+## Added AC (Ajay FR-5a, 04f5aa77, 27 Oct 2026)
+- AC8: T-629 also enforces the O.39 required fields (main_suit_relief, restraint_sought) and the §(j)3 non-answer list on the Templates form route (generate-from-template), before generation, with the signed messages in §(j)2 order. Use T-637's hook.

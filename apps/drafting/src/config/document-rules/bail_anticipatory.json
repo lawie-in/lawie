@@ -158,7 +158,7 @@
             "label": "Medical condition of the applicant",
             "type": "textarea",
             "required": false,
-            "question": "Does the applicant suffer from any illness, disability or medical condition you want placed before the court? If yes, name it as written in the medical papers. If not, leave it blank.",
+            "question": "Does the applicant have any illness, disability or medical condition you want placed before the court? If yes, name it as written in the medical papers. If not, write \"None\".",
             "ask_when_empty": true
           },
           {
@@ -417,6 +417,18 @@
               {
                 "id": "professional_reputation",
                 "label": "Arrest would ruin professional reputation irreparably"
+              },
+              {
+                "id": "amount_paid_or_deposited",
+                "label": "Amount in dispute paid or deposited (without admission)"
+              },
+              {
+                "id": "only_earning_member",
+                "label": "Only earning member of the family"
+              },
+              {
+                "id": "ready_to_furnish_bail_bond_and_sureties",
+                "label": "Ready to furnish a bail bond and sureties"
               }
             ],
             "inject_into": ["ai_prompt"]

@@ -26,6 +26,7 @@ export type DocType = (typeof DOC_TYPES)[keyof typeof DOC_TYPES];
 export const COURT_TYPES = {
   DISTRICT_COURT: 'district_court',
   HIGH_COURT: 'high_court',
+  HIGH_COURT_BENCH: 'high_court_bench',
   SUPREME_COURT: 'supreme_court',
   TRIBUNAL: 'tribunal',
   CONSUMER_FORUM: 'consumer_forum',
