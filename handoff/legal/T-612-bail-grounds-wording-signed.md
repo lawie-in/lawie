@@ -98,3 +98,7 @@ Effects:
 - An old-ledger "थाना Kotwali" prints `Police Station थाना Kotwali`. Accepted on the same ground; there is no migration.
 
 This **replaces** Tanvi's marker-keeping fix in `bareStationName`: one rule on every path, with no second strip in the renderer. It amends T-334 Addendum 2: its `Thana` / `Thana:` entries now follow this table. I byte-check it on the new SHA.
+
+(6b) Follow-ups (27 Oct 2026):
+1. A **trailing** `Thana` / `थाना` (the last word, with a name left before it) **is stripped** once: "Kotwali थाना" prints `Police Station Kotwali`. Hindi word order puts the marker last, and a station name ending in "Thana" is far rarer than one beginning with it. A leading bare "Thana X" stays as in (6a). This is a one-line add in T-612.
+2. Raw values typed straight into a template form (template-engine ~2152–2165, T-139 / C2 rules): this moves to **T-638**, with the annexures line. It is not blocking, because the outputs there are redundant, not a wrong name. T-638 applies the (6a)/(6b) table on that path too and adds `पुलिस स्टेशन` and `पुलिस थाना` as always-stripped markers (they are never part of a name). The C2 rule is amended to match in T-638, with my byte check.
