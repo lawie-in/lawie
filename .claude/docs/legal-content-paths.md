@@ -45,7 +45,7 @@ See also `.claude/docs/golden-snapshots.md` — most of the court-rules paths ab
 
 - `apps/drafting/src/services/intake-keyword-match.ts`, and the T-610 bail fallback branch in `intake.service.ts` (T610-F2/F2a/F2b/E1: two bail cards shown, unranked, nothing charged), added by T-610 (Ajay, 26 Oct 2026).
 
-- `apps/drafting/src/services/prayer-date-gate.ts` (planned; T-628 in build): the T-628 past-date-in-prayer rule (Ajay, T-613 file §k, e802bac5).
+- `apps/drafting/src/services/prayer-date-gate.ts`, added by T-628 (b2e91054): the T-628 past-date-in-prayer rule (Ajay, T-613 file §k, e802bac5).
 
 - `apps/drafting/src/routes/courts.routes.ts`: court scopes per template (TEMPLATE_COURT_FILTER) and court type labels (Ajay eb3ee17d, 27 Oct 2026).
 
