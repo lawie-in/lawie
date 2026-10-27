@@ -5,7 +5,7 @@
 | Phase  | 4 — Release (P0, release gate) |
 | Owner  | vishal, straight after T-628 |
 | Mode   | Full chain; legal (ai.service.ts, Ajay's T-611 policy) |
-| Status | To do. Raised 27 Oct 2026 from Vishal's T-628 developer. Priya |
+| Status | Merged into develop_staging 1701b2da (CI 1104), 27 Oct 2026. Priya |
 
 ## Problem
 POST /documents/generate-from-template (documents.routes.ts ~977-1050, streamGenerateFromTemplate) streams body text with only templateGuard. No T-611 gate runs: no held-fact fill, no repair, no withhold, and no fact_needed question. Anushka's regular-bail draft (26 Oct prod item 1) used this path.

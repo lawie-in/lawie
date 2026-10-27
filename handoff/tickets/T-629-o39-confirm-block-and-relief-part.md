@@ -5,7 +5,7 @@
 | Phase  | 4 — Release (legal; ships with T-613) |
 | Owner  | shashank, after T-611 and T-612 merge (they hold intake-brief.ts hunks) |
 | Mode   | Full chain; legal (intake-brief.ts, rule-pack.service.ts) |
-| Status | To do. Split from T-613, 26 Oct 2026 (Ajay R2-F1 12914711). Priya |
+| Status | Merged into develop_staging 819a98a9 (CI 1107), 27 Oct 2026. Priya |
 
 ## Acceptance criteria
 1. A pack field flag `blocks_confirm: true`, carried through rule-pack.service.ts (ask Ajay first) to the checklist, BriefItem and the confirm_blockers type. confirmState blocks Confirm while main_suit_relief or restraint_sought is empty.

@@ -5,7 +5,7 @@
 | Phase  | 4 — Release (severity P1; from the prod quality check of 26 Oct 2026) |
 | Owner  | Tanvi/Kunal (web) + a drafting lead; Ajay for grounds list |
 | Mode   | Full chain |
-| Status | Building (Tanvi), 26 Oct 2026 (stop lifted). Priya |
+| Status | Merged into develop_staging 81ca13d2 (CI 1100), 27 Oct 2026. Priya |
 | Source | handoff/quality/2026-10-26-prod-drafting-FAIL.md |
 
 ## Problem

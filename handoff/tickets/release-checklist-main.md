@@ -109,3 +109,10 @@ T-611 and T-637 work only where feature.fact_ledger is ON, and it defaults to OF
 
 ## T-613 + T-628 + T-629 + T-637 ship to prod together (Ajay FR-5a 04f5aa77, 27 Oct 2026)
 These four tickets go in one release. T-629 enforces the O.39 required fields on both the brief and the form routes. FR-6 is met by T-637 (the gate runs without a ledger, Arjun); the release note still states the feature.fact_ledger value.
+
+## Release candidate, 27 Oct 2026 (Priya)
+All drafting release gates are merged into develop_staging at 819a98a9: T-610, T-611 (with T-488), T-612, T-613, T-622, T-624, T-628, T-629, T-634 and T-637, plus T-616/T-616b, T-608, T-587, T-593, T-594 and T-606. Next steps:
+1. The founder merges develop_staging into develop.
+2. Nikhil deploys the develop box.
+3. Anushka re-runs the 26 Oct drafting matters on develop.
+Prod release steps: run seed:courts; deploy auth as a quick rollout; delete JWT_REFRESH_EXPIRES_IN from the env (optional). The release note states feature.fact_ledger (the gate runs either way) and makes no "fact-checked" or "verified" claims (Ajay FR-6/FR-7). Open, not blocking: Ajay to rule on mixed lists such as ["Declaration","N/A"] and zero-width values (Shashank's T-629 note).
