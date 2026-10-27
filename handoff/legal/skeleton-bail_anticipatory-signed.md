@@ -39,12 +39,16 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
 
 - v5, 14 Oct 2026: T-245a, per handoff/legal/T-245-old-new-law-switch-signed.md Addendum 1 ruling 2 (2992891), signed Ajay. The hard-coded `Section N of the Bharatiya Nagarik Suraksha Sanhita, 2023` becomes `{governing_provision}` (slot `governing_provision`). Nothing else changes in any clause.
 
+## Version 6, 27 Oct 2026 (supersedes SHA `dec4efbdfddd47d120627506a9e34f96d536da96d238efe7d24eefa71a804e3a`)
+
+- v6, 27 Oct 2026, T-612 (Tanvi, fix/t-612-bail-grounds @ commit SHA d1e85da6). Changes, all per `T-612-bail-grounds-wording-signed.md` (72ffc479, 73e3be57, 42b0ac55): new grounds G2 `amount_paid_or_deposited`, G3 `only_earning_member` (`use_clause: sole_breadwinner`, signed requires and missing_label) and G4 `ready_to_furnish_bail_bond_and_sureties`, with my signed sentences byte for byte (G1 was already here); `sole_breadwinner` gets `skip_if_rendered: grounds.only_earning_member`; the `deep_roots_in_community` ground now uses a new clause `roots_ground` (order 84) with my three signed fallbacks (T-612 (3)): local_ties held, address only, neither. The renderer prints a `use_clause` clause once, inside the list, so it never prints twice; the existing `roots` clause keeps `skip_if_rendered: grounds.deep_roots_in_community`. `medical_condition_none_values` and the `medical` clause/ground as in bail_regular v6. No other text, slot or order change. I checked the diff against v5 line by line. Signed SHA-256 of `_skeletons/bail_anticipatory.json` v6: `98dc226270fde6c570a66b8dab833267118ce82731d9a70d2bde2b7d0106caca`. The parked T-500 changes, if they land, become v7.
+
 ## Skeleton JSON
 
 ```json
 {
   "pack": "bail_anticipatory",
-  "version": 5,
+  "version": 6,
   "none_values": "first_bail_application.equals (T-334)",
   "antecedents_none_values": [
     "none",
@@ -65,6 +69,13 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
     "koi aapradhik record nahi",
     "कोई नहीं",
     "कोई आपराधिक रिकॉर्ड नहीं"
+  ],
+  "medical_condition_none_values": [
+    "None",
+    "none",
+    "no",
+    "नहीं",
+    "कोई नहीं"
   ],
   "clauses": [
     {
@@ -189,10 +200,7 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
           "text": "The applicant will cooperate with the investigation and the trial."
         },
         "deep_roots_in_community": {
-          "text": "The applicant has roots in society: {local_ties}.",
-          "slots": [
-            "local_ties"
-          ]
+          "use_clause": "roots_ground"
         },
         "no_evidence_tampering": {
           "text": "There is no likelihood of the applicant tampering with the evidence or influencing any witness."
@@ -207,10 +215,30 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
           "text": "The applicant seeks bail on medical grounds, the applicant suffering from {medical_condition}.",
           "slots": [
             "medical_condition"
-          ]
+          ],
+          "requires": {
+            "key": "medical_condition",
+            "not_in": "medical_condition_none_values"
+          }
         },
         "professional_reputation": {
           "text": "The applicant's arrest would cause irreparable harm to the applicant's professional reputation."
+        },
+        "amount_paid_or_deposited": {
+          "text": "The amount in dispute has been paid or deposited by or on behalf of the applicant, without prejudice to the applicant's defence."
+        },
+        "only_earning_member": {
+          "use_clause": "sole_breadwinner",
+          "requires": {
+            "key": "sole_earning_member",
+            "in": [
+              "yes"
+            ]
+          },
+          "missing_label": "Whether the applicant is the only earning member of the family"
+        },
+        "ready_to_furnish_bail_bond_and_sureties": {
+          "text": "The applicant is ready to furnish a bail bond with surety to the satisfaction of this Hon'ble Court and to abide by every condition this Hon'ble Court may impose."
         }
       }
     },
@@ -304,7 +332,8 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
           "yes"
         ]
       },
-      "text": "The applicant is the only earning member of the family."
+      "text": "The applicant is the only earning member of the family.",
+      "skip_if_rendered": "grounds.only_earning_member"
     },
     {
       "id": "dependants",
@@ -314,6 +343,49 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
       "text": "{dependants} depend on the applicant.",
       "slots": [
         "dependants"
+      ]
+    },
+    {
+      "id": "roots_ground",
+      "order": 84,
+      "required": false,
+      "source": "fixed",
+      "when": {
+        "key": "grounds_for_bail",
+        "in": [
+          "deep_roots_in_community"
+        ]
+      },
+      "variants": [
+        {
+          "when": {
+            "key": "local_ties",
+            "present": true
+          },
+          "text": "The applicant has roots in society: {local_ties}.",
+          "slots": [
+            "local_ties"
+          ]
+        },
+        {
+          "when": {
+            "key": "address",
+            "present": true
+          },
+          "text": "The applicant resides at {address} and has roots in society.",
+          "slots": [
+            "address"
+          ]
+        },
+        {
+          "when": {
+            "key": "grounds_for_bail",
+            "in": [
+              "deep_roots_in_community"
+            ]
+          },
+          "text": "The applicant has roots in society."
+        }
       ]
     },
     {
@@ -334,9 +406,17 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
       "order": 90,
       "required": false,
       "source": "fixed",
-      "text": "The applicant suffers from {medical_condition}.",
-      "slots": [
-        "medical_condition"
+      "variants": [
+        {
+          "when": {
+            "key": "medical_condition",
+            "not_in": "medical_condition_none_values"
+          },
+          "text": "The applicant suffers from {medical_condition}.",
+          "slots": [
+            "medical_condition"
+          ]
+        }
       ],
       "skip_if_rendered": "grounds.medical_grounds"
     },
@@ -351,4 +431,4 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
 }
 ```
 
-SHA-256 of the JSON block (between the fences, final newline included): `dec4efbdfddd47d120627506a9e34f96d536da96d238efe7d24eefa71a804e3a`
+SHA-256 of the JSON block (between the fences, final newline included): `98dc226270fde6c570a66b8dab833267118ce82731d9a70d2bde2b7d0106caca`

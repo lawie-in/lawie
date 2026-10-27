@@ -59,3 +59,14 @@ Reason: the arrest date starts custody, not judicial custody. "In judicial custo
 | 2 | `_averments`: **add entries** for G2 and G4 in both packs, so the T-200 clause check can find them. G2: kind `averment`, text `the amount in dispute has been paid or deposited by or on behalf of the applicant, without prejudice to the applicant's defence`. G4: kind `averment`, text `the applicant is ready to furnish a bail bond with surety to the satisfaction of this Hon'ble Court and to abide by every condition this Hon'ble Court may impose`. No `requires` (no slot). Phrases are Tanvi's to propose and come to me with the byte check. |
 | 3 | v6 skeleton re-sign: I re-sign only from a **pushed** commit after the review passes. I rebuild the SHA from the JSON at that commit myself. The parked T-500 changes, if they land, become v7. |
 | 4 | T-638 note: `annexures.service.ts:505` "registered at PS {ps}" → `registered at Police Station {ps}` (T-612 (6)). That is legal text and comes to me with T-638. |
+
+## T-612 byte check and v6 re-sign (Ajay, 27 Oct 2026): fix/t-612-bail-grounds @ commit SHA d1e85da6
+
+| item | result |
+| --- | --- |
+| Skeletons | Diffs against v5 checked line by line. G1–G4 sentences, G3 requires/missing_label/skip, roots fallbacks (anticipatory) and the medical none values are byte-identical to (1)–(4) and (7). The renderer prints a `use_clause` clause once (draft-renderer.ts ~1321/1381). **Re-signed v6**: bail_regular SHA `91fbd67a36b0909aa857d3f597da6b28c33d9cd0c7827692fd491b3a726fff41`, bail_anticipatory SHA `98dc226270fde6c570a66b8dab833267118ce82731d9a70d2bde2b7d0106caca`. Both md files hold the new fenced block, which I checked equals the file plus "\n". |
+| Packs and docs/templates | Option labels and the medical question are byte-identical in all four files. |
+| Police station | No "PS {…}" left in prose. The court-rules cause-title form `through the S.H.O., P.S. {policeStation}` is the existing signed cause-title usage, with one prefix and the bare name. OK under (6). |
+| _averments G2/G4 | Option (a) agreed: `requires` = its own ticked ground, ids `amount_paid_or_deposited` / `ready_to_furnish_bail_bond_and_sureties`, kind `averment`, texts as (7)2. Byte check of that follow-up commit is still to come. |
+
+**APPROVED at d1e85da6** for the skeletons, packs and police-station change. It counts as merged at the develop_staging SHA that contains the final T-612 commit, after the _averments follow-up check.
