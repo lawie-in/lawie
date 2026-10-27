@@ -103,3 +103,6 @@ Do not cut prod with T-613 (O.39) unless T-628 (past date in the prayer) and T-6
 
 ## T-637 before any prod cut carrying T-611 (27 Oct 2026, Priya)
 The Templates form route has no T-611 gate until T-637 merges. Do not cut prod for the drafting fixes without it.
+
+## FR-6: feature.fact_ledger must be ON, or the gate must run without it (27 Oct 2026, Ajay 06d18fed)
+T-611 and T-637 work only where feature.fact_ledger is ON, and it defaults to OFF. No prod release may be called the fix for Anushka's 26 Oct faults unless the flag is ON in prod or the gate runs without a ledger. The release note must state the flag's value. Arjun is checking the current value via Nikhil.
