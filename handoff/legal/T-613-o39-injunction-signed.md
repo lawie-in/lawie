@@ -129,3 +129,14 @@ The `blocks_confirm` flag applies to `main_suit_relief` and `restraint_sought`. 
 | 1 | **Munsif: verified.** The Bihar Civil Courts (Amendment) Act, 2013 (Bihar Act 14 of 2014) amends the Bengal, Agra and Assam Civil Courts Act, 1887 by replacing "Munsif" with "Civil Judge (Junior Division)". Patna High Court notifications of 2026 use only "Civil Judge (Junior Division)" (older notices still say "Munsif"; commencement date: verify). Ruling: the label and designation stay `Civil Court (Junior Division)` / `IN THE COURT OF CIVIL JUDGE (JUNIOR DIVISION), PATNA`. `Munsif` may be a **search alias in the court picker only** (users still type it), and it is **never printed** in a label, a record name or a draft. |
 | 2 | `config/courts/indian-courts.json` is already covered by `config/courts/`; no change. **Add** `apps/drafting/src/routes/courts.routes.ts`. Line for Priya: `apps/drafting/src/routes/courts.routes.ts` (TYPE_LABELS, the per-pack court scopes and the canonical State names; added by T-634). |
 | 3 | Web copies of the server labels are OK if they are byte-identical; I check them at READY. |
+
+## T-628 byte check (Ajay, 27 Oct 2026): fix/t-628-o39-past-date-gate @ 12a7b2bf (from b9de6cf1)
+
+| item | result |
+| --- | --- |
+| Hashes (recomputed myself) | prayer-date-gate.ts `bdbf4ad757ecbc95`, ai.service.ts `038d85d95c3cdf9d`, generationFailure.ts `a286a5d6124b3e5f`, OneFlow.tsx `90faa20237ebc9fa`. All match Vishal's. fact-verifier is unchanged. |
+| Strings | The §(h) EN and HI questions are byte-identical in prayer-date-gate.ts. Only EN renders. |
+| §(k) rules | The Devanagari month list matches mine, with all variants, nukta-insensitive. The other rules (resolved past dates only, day-first, ended month-year, scope = restraint_sought plus the prayer, subject_matter left out, body never scanned) are as Vishal describes and covered by the t628 tests. The diff adds no new log line carrying a value. |
+| Edge | A future field labelled like subject_matter could fail safe (an extra question, never a wrong draft). Accepted; any new O.39 field comes to me anyway. |
+
+**APPROVED at 12a7b2bf.** It counts as merged at the develop_staging SHA that contains 12a7b2bf. It ships with T-613 and T-629; T-637 (the form-route T-611 gate) is a prod release gate.
