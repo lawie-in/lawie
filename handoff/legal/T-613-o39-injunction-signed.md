@@ -140,3 +140,4 @@ The `blocks_confirm` flag applies to `main_suit_relief` and `restraint_sought`. 
 | Edge | A future field labelled like subject_matter could fail safe (an extra question, never a wrong draft). Accepted; any new O.39 field comes to me anyway. |
 
 **APPROVED at 12a7b2bf.** It counts as merged at the develop_staging SHA that contains 12a7b2bf. It ships with T-613 and T-629; T-637 (the form-route T-611 gate) is a prod release gate.
+| 4 | T-634 web labels (`fix/t-634-t613-follow-ups` @ 23fee46c): **APPROVED.** SAVED_TYPE_NAMES `civil_court_junior`, `high_court`, `high_court_bench` and `sessions` are byte-identical to courts.routes.ts TYPE_LABELS (lines 460–468). Munsif was not added, which is correct. It counts as merged at the develop_staging SHA that contains 23fee46c. |
