@@ -188,3 +188,6 @@ Not now: multi-AZ database (Flex is single-region, fine), CDN (Next.js static as
 
 ## Autoscaling note (Arjun, 27 Oct 2026, T-616b)
 The auth refresh-rotation Lua scripts assume a single Redis (managed, non-Cluster). Moving to Redis Cluster would need a slot-aware rewrite of those scripts.
+
+## Deploy note for the next cut carrying T-616b (Arjun, 27 Oct 2026)
+Deploy auth as a quick rollout with no mixed-version overlap. An old auth instance returns 401 to grace replays, does not walk the token family on logout, and writes refresh records without originalCreatedAt.

@@ -57,3 +57,11 @@ Also recorded: the T-488 correction in `go-live-ruling-23-oct.md` (it was never 
 **APPROVED at d1a318e9.** T-611, and with it T-488, counts as merged **only at the develop_staging SHA that contains d1a318e9**, which I record when it lands (go-live correction, 26 Oct). Open follow-up: the paise format in intake-text.ts (P-R3) has the right shape at :288, but its owner confirms it in the P-R3 ticket.
 
 **Merged (Ajay, 27 Oct 2026):** develop_staging `023b08c507ccbfed4b30cab4348a572ce9e3b6a9` contains d1a318e9 (T-611) and 31bd7994 (T-488). I checked this myself with `git merge-base --is-ancestor`, and fact-verifier, ai.service and fact-ledger.service have the same hashes after the merge. This is the "as merged" SHA for T-611 and T-488. CI is pending (Vishal confirms green). Production still needs the founder's release and Anushka's PASS.
+| P-R3-BC | T-624 (`fix/t-624-paise-form` @ e038a0a9): **APPROVED.** intake-text.ts:287 gives ` and <words> Paise` → `Rupees … and Fifty Paise only`, the same as P5. Whole-rupee amounts are unchanged. The words comparison reads both orders and keeps rupees and paise apart (120.05 ≠ 100.25). t139 was changed only for the new form. It counts as merged at the develop_staging SHA that contains e038a0a9. |
+
+## Form route (Templates → form), Ajay 27 Oct 2026
+
+| id | ruling |
+| --- | --- |
+| FR-1 | The signed T-611 policy (P1–P7, P-R1..R7) applies **as is to every path that delivers a draft**, the form route included. No separate policy. Conditions for T-637: (a) the form answers enter the ledger as `source: user`, so P1/P6 treat them as held; (b) the form route enforces the T-629 required fields (`main_suit_relief`, `restraint_sought`, with the same non-answer list) **before** generating, and returns the signed (g) messages; (c) T-628 runs on it (Priya: now). |
+| FR-2 | T-637 is a prod release gate, as Priya proposes: no prod release that changes drafting without it. I byte-check T-637 like T-611 (same strings, hashes, logs carry no values). |

@@ -18,7 +18,7 @@ import app from '../app';
 import redis from '../config/redis';
 import { Session } from '../models/Session.model';
 import { User } from '../models/User.model';
-import * as sessionService from '../services/session.service';
+import { resetClock } from './t616b-helpers';
 
 const PASSWORD = 'Passw0rdOk';
 const OLD_VERSION = '2026-10-11';
@@ -69,7 +69,23 @@ beforeEach(async () => {
   await redis.flushall();
   global.fetch = jest.fn().mockResolvedValue({ ok: true, status: 200 }) as unknown as typeof fetch;
 });
-afterEach(() => jest.restoreAllMocks());
+afterEach(() => {
+  resetClock();
+  jest.restoreAllMocks();
+});
+
+/** Every session / refresh / grace key (the T-616b refresh limiter key is not a session). */
+const sessionKeys = () => redis.keys('session:*');
+
+/** The first User.findById goes through; the second rejects (the read after the update). */
+function failSecondUserRead() {
+  const real = User.findById.bind(User);
+  let calls = 0;
+  jest.spyOn(User, 'findById').mockImplementation(((...args: Parameters<typeof real>) => {
+    calls += 1;
+    return calls === 2 ? Promise.reject(new Error('mongo down')) : real(...args);
+  }) as never);
+}
 
 describe('T-354 AC1 — the database update rejects after the session is taken', () => {
   const EMAIL = 'upd-fail@example.com';
@@ -77,7 +93,7 @@ describe('T-354 AC1 — the database update rejects after the session is taken',
   it('is a 500 with no tokens; the old pair is dead; no session leaks; no history row', async () => {
     await seedUser(EMAIL);
     const old = await loginAs(EMAIL);
-    expect(await redis.keys('*')).toHaveLength(2); // one access + one refresh key
+    expect(await sessionKeys()).toHaveLength(2); // one access + one refresh key
     expect(await Session.countDocuments({ userId: old.userId })).toBe(1);
 
     jest.spyOn(User, 'updateOne').mockRejectedValueOnce(new Error('mongo down'));
@@ -89,8 +105,8 @@ describe('T-354 AC1 — the database update rejects after the session is taken',
 
     await expectOldPairDead(old);
 
-    // No session anywhere: Redis (access and refresh keys) and the Mongo audit row.
-    expect(await redis.keys('*')).toEqual([]);
+    // No session anywhere: Redis (access, refresh and grace keys) and the Mongo audit row.
+    expect(await sessionKeys()).toEqual([]);
     expect(await Session.countDocuments({ userId: old.userId })).toBe(0);
 
     // Nothing was recorded.
@@ -132,25 +148,83 @@ describe('T-354 AC1 — the database update rejects after the session is taken',
   });
 });
 
-describe('T-354 AC1 — createSession rejects after the update landed', () => {
-  const EMAIL = 'cs-fail@example.com';
-
-  it('is a 500 with no tokens; the update stands; the old pair is dead; no session leaks', async () => {
-    await seedUser(EMAIL);
-    const old = await loginAs(EMAIL);
-    const spy = jest
-      .spyOn(sessionService, 'createSession')
-      .mockRejectedValueOnce(new Error('redis down'));
+describe('T-354 AC1 — the Session row cannot be written during the rotation (T-616b)', () => {
+  // T-616b: accept no longer calls createSession; the rotation (rotateRefreshSession) writes the
+  // new pair and its Session row. The update comes AFTER the rotation now, so a failure here means
+  // no consent was recorded.
+  it('is a 500 with no tokens; nothing is recorded; no session key survives; the old pair is dead at once', async () => {
+    await seedUser('sc-fail@example.com');
+    const old = await loginAs('sc-fail@example.com');
+    jest.spyOn(Session, 'create').mockRejectedValueOnce(new Error('mongo down') as never);
 
     const res = await accept(old.accessToken);
 
-    expect(spy).toHaveBeenCalledTimes(1);
     expect(res.status).toBe(500);
     expect(res.body.status).not.toBe('success');
     expectNoTokensIn(res.body, old);
 
+    const u = await User.findOne({ email: 'sc-fail@example.com' }).lean();
+    expect(u?.privacyVersion).toBe(OLD_VERSION);
+    expect(u?.privacyHistory ?? []).toHaveLength(0);
+    expect(await Session.countDocuments({ userId: old.userId })).toBe(0);
+
+    // The rotation is undone: new access/refresh keys, grace record and old access key all gone,
+    // with no clock advance.
+    expect(await sessionKeys()).toEqual([]);
     await expectOldPairDead(old);
-    expect(await redis.keys('*')).toEqual([]);
+  });
+
+  it('/refresh: Session.create rejecting leaves no session key, a 500 with no tokens, the old pair dead at once', async () => {
+    await seedUser('sc-fail-rf@example.com');
+    const old = await loginAs('sc-fail-rf@example.com');
+    jest.spyOn(Session, 'create').mockRejectedValueOnce(new Error('mongo down') as never);
+
+    const res = await supertest(app).post('/refresh').send({ refreshToken: old.refreshToken });
+
+    expect(res.status).toBe(500);
+    expectNoTokensIn(res.body, old);
+    expect(await sessionKeys()).toEqual([]);
+    expect(await Session.countDocuments({ userId: old.userId })).toBe(0);
+    await expectOldPairDead(old);
+
+    const again = await loginAs('sc-fail-rf@example.com');
+    expect((await supertest(app).get('/me').set(bearer(again.accessToken))).status).toBe(200);
+  });
+
+  it('is not a lock-out: logging in again works and the prompt is still asked', async () => {
+    await seedUser('sc-fail2@example.com');
+    const old = await loginAs('sc-fail2@example.com');
+    jest.spyOn(Session, 'create').mockRejectedValueOnce(new Error('mongo down') as never);
+    expect((await accept(old.accessToken)).status).toBe(500);
+
+    const again = await loginAs('sc-fail2@example.com');
+    const me = await supertest(app).get('/me').set(bearer(again.accessToken));
+    expect(me.status).toBe(200);
+    expect(me.body.data.needsPrivacyAcceptance).toBe(true);
+    expect((await accept(again.accessToken)).status).toBe(200);
+    const u = await User.findOne({ email: 'sc-fail2@example.com' }).lean();
+    expect(u?.privacyHistory).toHaveLength(1);
+  });
+});
+
+describe('T-354 AC1 — the user read after the update rejects (T-616b)', () => {
+  const EMAIL = 'cs-fail@example.com';
+
+  it('is a 500 with no tokens; the update stands; the rotation is undone at once; no session leaks', async () => {
+    await seedUser(EMAIL);
+    const old = await loginAs(EMAIL);
+    // accept reads the user twice: before the rotation (real) and after the update (rejects).
+    failSecondUserRead();
+
+    const res = await accept(old.accessToken);
+
+    expect(res.status).toBe(500);
+    expect(res.body.status).not.toBe('success');
+    expectNoTokensIn(res.body, old);
+
+    // dead immediately, no clock advance: the undo revokes the whole family, old access key too
+    await expectOldPairDead(old);
+    expect(await sessionKeys()).toEqual([]);
     expect(await Session.countDocuments({ userId: old.userId })).toBe(0);
 
     // The update landed: version stored and exactly one history row.
@@ -163,7 +237,7 @@ describe('T-354 AC1 — createSession rejects after the update landed', () => {
   it('logging in again works and shows no prompt; no second history row is added', async () => {
     await seedUser('cs-fail2@example.com');
     const old = await loginAs('cs-fail2@example.com');
-    jest.spyOn(sessionService, 'createSession').mockRejectedValueOnce(new Error('redis down'));
+    failSecondUserRead();
     expect((await accept(old.accessToken)).status).toBe(500);
 
     const again = await loginAs('cs-fail2@example.com');

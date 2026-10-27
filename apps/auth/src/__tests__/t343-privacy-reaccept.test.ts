@@ -25,6 +25,8 @@ import { User } from '../models/User.model';
 import { verifyAccessToken, verifyRefreshToken } from '../services/jwt.service';
 import { hashToken, validateSession } from '../services/session.service';
 
+import { advanceClock, graceKeys, liveRefreshKeys, resetClock } from './t616b-helpers';
+
 const PASSWORD = 'Passw0rdOk';
 const OLD_VERSION = '2026-10-11';
 const SUMMARY = PRIVACY_VERSION_SUMMARIES['2026-10-15'];
@@ -59,7 +61,10 @@ beforeEach(async () => {
   await redis.flushall();
   global.fetch = jest.fn().mockResolvedValue({ ok: true, status: 200 }) as unknown as typeof fetch;
 });
-afterEach(() => jest.restoreAllMocks());
+afterEach(() => {
+  resetClock();
+  jest.restoreAllMocks();
+});
 
 describe('T-343 AC1/AC3 — GET /me for older, current and missing versions', () => {
   it('older version: needsPrivacyAcceptance true, with the signed summary', async () => {
@@ -259,19 +264,32 @@ describe('T-343 AC2 — POST /me/privacy-acceptance', () => {
     expect((await supertest(app).get('/me').set(bearer(next.accessToken))).status).toBe(200);
   });
 
-  it('deletes the old access session and the old refresh key', async () => {
+  it('the old access session dies within the 30 s grace window; the old refresh token is spent after it', async () => {
     await seedUser('gone@example.com', { privacyVersion: OLD_VERSION });
     const old = await loginAs('gone@example.com');
     expect(await validateSession(old.userId, hashToken(old.accessToken))).not.toBeNull();
 
-    await accept(old.accessToken);
+    const res = await accept(old.accessToken);
+    expect(res.status).toBe(200);
 
+    // T-616b: not deleted (requests in flight with it keep working), but cut to <= 30 s
+    const oldKey = `session:${old.userId}:${hashToken(old.accessToken)}`;
+    const ttl = await redis.ttl(oldKey);
+    expect(ttl).toBeGreaterThan(0);
+    expect(ttl).toBeLessThanOrEqual(30);
+    expect((await supertest(app).get('/me').set(bearer(old.accessToken))).status).toBe(200);
+
+    advanceClock(31);
     expect(await validateSession(old.userId, hashToken(old.accessToken))).toBeNull();
     expect((await supertest(app).get('/me').set(bearer(old.accessToken))).status).toBe(401);
     const refreshed = await supertest(app)
       .post('/refresh')
       .send({ refreshToken: old.refreshToken });
     expect(refreshed.status).toBe(401);
+    // the new pair is the live one
+    expect((await supertest(app).get('/me').set(bearer(res.body.data.accessToken))).status).toBe(
+      200,
+    );
   });
 
   it('stores no IP address and no user agent on the user or in the history', async () => {
@@ -335,14 +353,16 @@ describe('T-343 AC2 — POST /me/privacy-acceptance', () => {
     await seedUser('dbl@example.com', { privacyVersion: OLD_VERSION });
     const { accessToken } = await loginAs('dbl@example.com');
     const [a, b] = await Promise.all([accept(accessToken), accept(accessToken)]);
-    // Review round 1: the access session is taken atomically, so exactly one accept wins.
-    expect([a.status, b.status].sort()).toEqual([200, 401]);
+    // T-616b: the second is a grace replay of the first rotation, not a 401 and not a second pair.
+    expect([a.status, b.status]).toEqual([200, 200]);
+    expect(a.body.data.refreshToken).toBe(b.body.data.refreshToken);
+    expect(a.body.data.accessToken).not.toBe(b.body.data.accessToken);
     const u = await User.findOne({ email: 'dbl@example.com' }).lean();
     expect(u?.privacyHistory).toHaveLength(1);
     expect(u?.privacyVersion).toBe(CURRENT_PRIVACY_VERSION);
   });
 
-  it('concurrent accepts on one token leave exactly one new live session pair', async () => {
+  it('concurrent accepts on one token leave exactly one new session family (one refresh token)', async () => {
     await seedUser('conc@example.com', { privacyVersion: OLD_VERSION });
     const old = await loginAs('conc@example.com');
     const results = await Promise.all([
@@ -350,18 +370,23 @@ describe('T-343 AC2 — POST /me/privacy-acceptance', () => {
       accept(old.accessToken),
       accept(old.accessToken),
     ]);
-    const statuses = results.map((r) => r.status).sort();
-    expect(statuses).toEqual([200, 401, 401]);
-    const winner = results.find((r) => r.status === 200) as (typeof results)[number];
+    expect(results.map((r) => r.status)).toEqual([200, 200, 200]);
+    const refreshTokens = new Set(results.map((r) => r.body.data.refreshToken as string));
+    expect(refreshTokens.size).toBe(1);
+    expect([...refreshTokens][0]).not.toBe(old.refreshToken);
+    const accessTokens = results.map((r) => r.body.data.accessToken as string);
+    expect(new Set(accessTokens).size).toBe(3);
 
-    const accessKeys = await redis.keys(`session:${old.userId}:*`);
-    expect(accessKeys).toEqual([
-      `session:${old.userId}:${hashToken(winner.body.data.accessToken)}`,
-    ]);
-    expect(await validateSession(old.userId, hashToken(old.accessToken))).toBeNull();
-    expect(
-      await validateSession(old.userId, hashToken(winner.body.data.accessToken)),
-    ).not.toBeNull();
+    // every returned access session is live; the old one only for <= 30 s
+    for (const t of accessTokens) {
+      expect(await validateSession(old.userId, hashToken(t))).not.toBeNull();
+    }
+    const oldTtl = await redis.ttl(`session:${old.userId}:${hashToken(old.accessToken)}`);
+    expect(oldTtl).toBeGreaterThan(0);
+    expect(oldTtl).toBeLessThanOrEqual(30);
+    expect(await liveRefreshKeys(old.userId)).toHaveLength(1);
+    expect(await graceKeys(old.userId)).toHaveLength(1);
+
     const rows = await mongoose.connection.db
       ?.collection('sessions')
       .find({ userId: new mongoose.Types.ObjectId(old.userId) })
@@ -371,11 +396,18 @@ describe('T-343 AC2 — POST /me/privacy-acceptance', () => {
     expect(u?.privacyHistory).toHaveLength(1);
   });
 
-  it('the old refresh token is dead after accept; the new one works once', async () => {
+  it('the old refresh token is dead once the grace window has passed; inside it, it gets the same new token', async () => {
     await seedUser('oldref@example.com', { privacyVersion: OLD_VERSION });
     const old = await loginAs('oldref@example.com');
     const res = await accept(old.accessToken);
     expect(res.status).toBe(200);
+    // inside the window: the replay returns the refresh token accept issued, never another one
+    const inside = await supertest(app).post('/refresh').send({ refreshToken: old.refreshToken });
+    expect(inside.status).toBe(200);
+    expect(inside.body.data.refreshToken).toBe(res.body.data.refreshToken);
+    expect(verifyAccessToken(inside.body.data.accessToken).pv).toBe(CURRENT_PRIVACY_VERSION);
+
+    advanceClock(31);
     const dead = await supertest(app).post('/refresh').send({ refreshToken: old.refreshToken });
     expect(dead.status).toBe(401);
     const live = await supertest(app)
