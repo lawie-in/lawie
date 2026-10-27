@@ -23,6 +23,11 @@ import {
   isResetTokenLive,
   requestPasswordReset,
 } from '../services/password-reset.service';
+import {
+  RefreshLimiterUnavailableError,
+  RefreshRateLimitedError,
+  refreshRateLimitMessage,
+} from '../services/refresh-rate-limit';
 import { deleteUserSessionById, hashToken, listActiveSessions } from '../services/session.service';
 import {
   TEST_ACCOUNTS_CAP_ERROR,
@@ -181,6 +186,18 @@ export async function login(req: Request, res: Response, next: NextFunction): Pr
   }
 }
 
+/**
+ * POST /refresh. Answers:
+ *   200 { status, data: { accessToken, refreshToken } }  rotated; or (T-616b) the same refresh
+ *       token presented again within 30 s of its rotation: the SAME new refresh token and a
+ *       fresh access token
+ *   400 refreshToken missing
+ *   401 bad/expired JWT, no live session, spent past the grace window, past the 7-day ceiling
+ *   429 { status, error: 'rate_limited', message, retryAfter } + Retry-After  T-616b: over
+ *       60 calls per 15 min for this user (refresh-rate-limit.ts; message as the gateway's)
+ *   503 { error: 'service_unavailable' }  the limiter store failed; nothing consumed or issued
+ * The web client never signs out on 429/5xx and honours Retry-After (capped at 5 minutes).
+ */
 export async function refresh(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const { refreshToken } = req.body;
@@ -195,9 +212,25 @@ export async function refresh(req: Request, res: Response, next: NextFunction): 
     });
     res.status(200).json({ status: 'success', data: tokens });
   } catch (err) {
+    if (err instanceof RefreshRateLimitedError) {
+      res.setHeader('Retry-After', String(err.retryAfterSeconds));
+      res.status(429).json({
+        status: 'error',
+        error: REFRESH_RATE_LIMITED,
+        message: refreshRateLimitMessage(err.retryAfterSeconds),
+        retryAfter: err.retryAfterSeconds,
+      });
+      return;
+    }
+    if (err instanceof RefreshLimiterUnavailableError) {
+      res.status(503).json({ error: 'service_unavailable' });
+      return;
+    }
     next(err);
   }
 }
+
+export const REFRESH_RATE_LIMITED = 'rate_limited';
 
 // ── T-221: forgot / reset password ──────────────────────────────────────────
 

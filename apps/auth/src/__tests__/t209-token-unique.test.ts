@@ -225,7 +225,14 @@ describe('T-209 AC4 — tokens signed the old way (no jti) still work', () => {
     const { accessToken, refreshToken } = res.body.data;
     expect((jwt.decode(accessToken) as jwt.JwtPayload).jti).toBeTruthy();
     expect(refreshToken).not.toBe(refresh);
-    expect(await redis.exists(`session:${id}:${hashToken(access)}`)).toBe(0);
+    // T-616b: the old access key is not deleted; it is cut to the 30 s grace window
+    const oldTtl = await redis.ttl(`session:${id}:${hashToken(access)}`);
+    expect(oldTtl).toBeGreaterThan(0);
+    expect(oldTtl).toBeLessThanOrEqual(30);
     expect(await redis.exists(`session:${id}:${hashToken(accessToken)}`)).toBe(1);
+    // the old-format refresh key now holds a grace record that dies within 30 s
+    const grace = JSON.parse((await redis.get(`session:refresh:${id}:${hashToken(refresh)}`))!);
+    expect(grace.g).toBe(1);
+    expect(await redis.ttl(`session:refresh:${id}:${hashToken(refresh)}`)).toBeLessThanOrEqual(30);
   });
 });

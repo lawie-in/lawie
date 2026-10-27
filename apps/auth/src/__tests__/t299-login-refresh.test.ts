@@ -17,9 +17,12 @@ import supertest from 'supertest';
 
 import app from '../app';
 import redis from '../config/redis';
+import { Session } from '../models/Session.model';
 import { User } from '../models/User.model';
 import { DUMMY_PASSWORD_HASH } from '../services/auth.service';
 import { deleteAllUserSessions, hashToken, validateSession } from '../services/session.service';
+
+import { advanceClock, graceKeys, liveRefreshKeys, resetClock } from './t616b-helpers';
 
 const PASSWORD = 'Passw0rdOk';
 const WRONG = 'Wr0ngPassword';
@@ -28,7 +31,10 @@ beforeEach(async () => {
   await redis.flushall();
   global.fetch = jest.fn().mockResolvedValue({ ok: true, status: 200 }) as unknown as typeof fetch;
 });
-afterEach(() => jest.restoreAllMocks());
+afterEach(() => {
+  resetClock();
+  jest.restoreAllMocks();
+});
 
 const login = (email: string, password: string) =>
   supertest(app).post('/login').send({ email, password });
@@ -164,10 +170,25 @@ describe('T-299 refresh needs a live session', () => {
     const body = JSON.stringify(res.body);
     expect(body).toContain('accessToken');
     expect(body).not.toContain(s.refreshToken);
-    // old access session is gone, the new one is live
+    const next = res.body.data as { accessToken: string; refreshToken: string };
+    expect(next.refreshToken).not.toBe(s.refreshToken);
+    expect(next.accessToken).not.toBe(s.accessToken);
+    // T-616b: the old access session is NOT deleted (requests in flight keep working) but it now
+    // dies within the 30 s grace window; the new one is live.
+    const oldTtl = await redis.ttl(`session:${s.userId}:${hashToken(s.accessToken)}`);
+    expect(oldTtl).toBeGreaterThan(0);
+    expect(oldTtl).toBeLessThanOrEqual(30);
+    expect(await validateSession(s.userId, hashToken(next.accessToken))).not.toBeNull();
+    // inside the window the old refresh token gets the SAME new refresh token, not a second one
+    const again = await refresh(s.refreshToken);
+    expect(again.status).toBe(200);
+    expect(again.body.data.refreshToken).toBe(next.refreshToken);
+    // past the window the old refresh token is spent, and so is its old access session
+    advanceClock(31);
     expect(await validateSession(s.userId, hashToken(s.accessToken))).toBeNull();
-    // the old refresh token is spent
     expect((await refresh(s.refreshToken)).status).toBe(401);
+    // ... without having killed the rotated session
+    expect((await refresh(next.refreshToken)).status).toBe(200);
   });
 
   it('the rotated refresh token works in turn', async () => {
@@ -200,17 +221,26 @@ describe('T-299 refresh needs a live session', () => {
     expect(res.body.message).toBe('Invalid or expired refresh token');
   });
 
-  it('two concurrent refreshes with one token: exactly one 200', async () => {
+  it('two concurrent refreshes with one token: one rotation, one refresh token, one family', async () => {
     const s = await signedIn('rf-race@example.com');
     const results = await Promise.all([
       refresh(s.refreshToken),
       refresh(s.refreshToken),
       refresh(s.refreshToken),
     ]);
-    const statuses = results.map((r) => r.status).sort();
-    expect(statuses).toEqual([200, 401, 401]);
-    // only one new session pair exists
-    expect(await redis.keys(`session:refresh:${s.userId}:*`)).toHaveLength(1);
+    // T-616b: all three are inside the grace window, so all three succeed ...
+    expect(results.map((r) => r.status)).toEqual([200, 200, 200]);
+    // ... but with ONE new refresh token (never a second session family) ...
+    const refreshTokens = new Set(results.map((r) => r.body.data.refreshToken as string));
+    expect(refreshTokens.size).toBe(1);
+    expect([...refreshTokens][0]).not.toBe(s.refreshToken);
+    // ... and three distinct access tokens.
+    expect(new Set(results.map((r) => r.body.data.accessToken)).size).toBe(3);
+    // exactly one live refresh key (the new one) plus one grace key (the old one's slot)
+    expect(await liveRefreshKeys(s.userId)).toHaveLength(1);
+    expect(await graceKeys(s.userId)).toHaveLength(1);
+    // one Session row for the family (the login row was replaced by the rotation)
+    expect(await Session.countDocuments({ userId: s.userId })).toBe(1);
   });
 
   it('a deactivated user cannot refresh, and the spent refresh key is not reusable', async () => {
