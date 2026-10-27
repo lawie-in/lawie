@@ -32,7 +32,8 @@ export const MAINTENANCE_TEMPLATE_ID = 'maintenance_bnss_144';
 
 /**
  * True when the brief's court lists are scoped by `template=<id>` in the generic
- * state + type + court picker: the bail packs (T-425) and maintenance (T-482).
+ * state + type + court picker: the bail packs (T-425), maintenance (T-482) and
+ * temporary_injunction_o39 (T-613).
  */
 export function isScopedCourtTemplate(templateId: string | null | undefined): boolean {
   return (
@@ -56,4 +57,9 @@ export const SAVED_TYPE_NAMES: Readonly<Record<string, string>> = {
   tribunal: 'Tribunal',
   // T-482: the maintenance scope's derived type.
   family_court: 'Family Court',
+  // T-634: the rest of the server's TYPE_LABELS (courts.routes.ts), so no raw id shows.
+  civil_court_junior: 'Civil Court (Junior Division)',
+  high_court: 'High Court',
+  high_court_bench: 'High Court Bench',
+  sessions: 'Sessions Court',
 };
