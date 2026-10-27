@@ -70,3 +70,14 @@ Reason: the arrest date starts custody, not judicial custody. "In judicial custo
 | _averments G2/G4 | Option (a) agreed: `requires` = its own ticked ground, ids `amount_paid_or_deposited` / `ready_to_furnish_bail_bond_and_sureties`, kind `averment`, texts as (7)2. Byte check of that follow-up commit is still to come. |
 
 **APPROVED at d1e85da6** for the skeletons, packs and police-station change. It counts as merged at the develop_staging SHA that contains the final T-612 commit, after the _averments follow-up check.
+
+## T-612 _averments check (Ajay, 27 Oct 2026): fix/t-612-bail-grounds @ commit SHA 41991cf1
+
+| item | result |
+| --- | --- |
+| G2/G4 entries | Both packs: kind `averment`, texts byte-identical to (7)2, each `requires` its own ticked ground (option label equals the signed label, pack grounds label exact). The skeleton JSON is unchanged since d1e85da6, and the md files on the branch are byte-identical to mine. |
+| Inheritance | interim_bail and bail_before_magistrate inherit these entries and unlock only on that exact ticked label: OK. |
+| Signed _averments SHA-256 at 41991cf1 | bail_regular SHA `8ee0a7569fe463b93ab5d0c951b6cf4e8562a3c389fd49af1cd06e41b824b26f`; bail_anticipatory SHA `4173d669e03be93ec6d882bf4b0fde28cd68ceed1274f50347f6914e9e830fc6`. The pins (t190 AC5, t334, t449 (e)) move to these. |
+| t189 R3/R5 guard | **Narrow**: allow exactly `grounds_for_bail` with `equals` only. Any other list or choices key still fails. Do not retire the guard. |
+
+**T-612 APPROVED at 41991cf1.** It counts as merged at the develop_staging SHA that contains 41991cf1.
