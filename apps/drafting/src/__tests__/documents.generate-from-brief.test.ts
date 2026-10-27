@@ -191,6 +191,16 @@ afterEach(() => {
 });
 
 describe('POST /generate-from-brief — a draft that passes', () => {
+  it('T-628 regression: another pack on the no-ledger path still streams its body as text chunks', async () => {
+    mockModel(drafterAnswer());
+    const res = await post({ kind: 'bail_regular', values: VALUES, court, paragraphs: 12 });
+    expect(res.status).toBe(200);
+    expect(res.text).toMatch(/data: \{"text":/);
+    const streamed = (res.text.match(/data: (\{"text":[^\n]*)/g) ?? []).join('');
+    expect(streamed).toContain('Ram Kumar');
+    expect(event(res.text, 'done')).not.toBeNull();
+  });
+
   it('writes the body under the rule pack, adds the fixed parts from the brief, and carries no label', async () => {
     const fetchMock = mockModel(drafterAnswer());
     const res = await post({ kind: 'bail_regular', values: VALUES, court, paragraphs: 12 });
