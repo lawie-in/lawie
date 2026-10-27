@@ -875,8 +875,9 @@ export async function acceptPrivacy(
  *
  * Order (as acceptPrivacy, T-354): (1) the caller's access session must still be live, else 401
  * and nothing written; (2) one atomic conditional update, only on an active 'google' account with
- * no signupConsentAt, which sets the three signupConsent fields and pushes one 'google_confirm'
- * privacyHistory row. acceptedVia, termsAcceptedAt and the earlier rows are untouched (M18(b)).
+ * no signupConsentAt, which sets the three signupConsent fields, termsVersion and privacyVersion
+ * (AJ-642-M6), and pushes one 'google_confirm' privacyHistory row. acceptedVia, termsAcceptedAt
+ * and the earlier rows are untouched (M18(b)).
  * Idempotent (Arjun condition 2): a repeat, or a racing second call, matches nothing, so the first
  * timestamp and a single row stand, and it still succeeds. A non-'google' account is a no-op
  * success too (nothing to confirm; needsSignupConsent is false for it).
@@ -904,6 +905,11 @@ export async function recordSignupConsent(userId: string, accessToken: string): 
         signupConsentAt: acceptedAt,
         signupConsentTermsVersion: CURRENT_TERMS_VERSION,
         signupConsentPrivacyVersion: CURRENT_PRIVACY_VERSION,
+        // AJ-642-M6 (no double prompt): the versions shown become the accepted versions, so the
+        // T-343 prompt fires only if what was shown was stale. acceptedVia, termsAcceptedAt and
+        // privacyAcceptedAt / privacyAcceptedVia stay as they are.
+        termsVersion: CURRENT_TERMS_VERSION,
+        privacyVersion: CURRENT_PRIVACY_VERSION,
       },
       $push: {
         privacyHistory: {
