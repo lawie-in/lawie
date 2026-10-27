@@ -39,6 +39,7 @@ import {
   RenderedClause,
   Value,
   valuesAfter,
+  withAskedKeys,
   withDeclinedAnswers,
   withValue,
 } from './briefTypes';
@@ -161,7 +162,11 @@ function openQuestions(
   const open = new Set(
     brief.items
       .filter(
-        (i) => isEmptyValue(i.value) && !i.asked_empty && (i.reask === true || !given.has(i.key)),
+        (i) =>
+          isEmptyValue(i.value) &&
+          !i.asked_empty &&
+          !i.asked_blank &&
+          (i.reask === true || !given.has(i.key)),
       )
       .map((i) => i.key),
   );
@@ -264,6 +269,8 @@ function OneFlowSteps({
   // What the next request must carry, readable without waiting for a render.
   const briefRef = useRef<Brief | null>(null);
   const valuesRef = useRef<GivenValue[]>([]);
+  /** T-629 (§(i)2): questions asked and left blank, sent as `asked_keys`. */
+  const askedKeysRef = useRef<string[]>([]);
   const courtRef = useRef<BriefCourt>(EMPTY_COURT);
   const answersRef = useRef<Array<{ question: string; answer: string }>>([]);
   const intakeId = useRef<string | undefined>(undefined);
@@ -311,6 +318,7 @@ function OneFlowSteps({
     setGenError(null);
     setRepairing(false);
     valuesRef.current = [];
+    askedKeysRef.current = [];
     courtRef.current = EMPTY_COURT;
     answersRef.current = [];
     intakeId.current = undefined;
@@ -540,6 +548,7 @@ function OneFlowSteps({
             values: valuesRef.current,
             court: courtRef.current,
             description: everythingSaid(),
+            ...(askedKeysRef.current.length > 0 ? { asked_keys: askedKeysRef.current } : {}),
             // T-147b: answers and edits go to the ledger too. The brief is worked out as before.
             ...(onLedger ? { ledger_id: onLedger.ledger_id, ledger_edits: edits } : {}),
           }),
@@ -648,14 +657,25 @@ function OneFlowSteps({
   );
 
   const answerQuestions = useCallback(
-    async (given: Array<{ question: BriefQuestion; value: Value }>) => {
+    async (given: Array<{ question: BriefQuestion; value: Value }>, blankKeys: string[] = []) => {
       const edits: LedgerEditBody[] = [];
       for (const g of given) {
         valuesRef.current = withValue(valuesRef.current, g.question.key, g.value, g.question.label);
         edits.push(...ledgerEdit(g.question.key, g.value, true));
       }
+      // T-629 (§(i)2): a question left blank was asked. Only the facts the service
+      // marks `blank_once_asked` are kept; any other blank changes nothing, as before.
+      const eligible = new Set(
+        (briefRef.current?.items ?? []).filter((i) => i.blank_once_asked).map((i) => i.key),
+      );
+      const askedBefore = askedKeysRef.current.length;
+      askedKeysRef.current = withAskedKeys(
+        askedKeysRef.current,
+        blankKeys.filter((k) => eligible.has(k)),
+      );
+      const newlyAsked = askedKeysRef.current.length > askedBefore;
       setBusy(true);
-      if (given.length > 0) await update(undefined, edits);
+      if (given.length > 0 || newlyAsked) await update(undefined, edits);
       setBusy(false);
       // The brief the service sent last (an update that was overtaken is not adopted).
       if (
@@ -1136,7 +1156,7 @@ function OneFlowSteps({
           totalRounds={2}
           description={description}
           busy={busy}
-          onSubmit={(given) => void answerQuestions(given)}
+          onSubmit={(given, blankKeys) => void answerQuestions(given, blankKeys)}
           onSkip={() => setPhase('brief')}
           onEditDescription={editDescription}
           suggestions={suggestedAnswers(roundQuestions, brief, ledger)}

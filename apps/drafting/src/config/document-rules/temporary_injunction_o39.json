@@ -70,7 +70,8 @@
         "label": "Relief sought in the main suit",
         "type": "textarea",
         "required": true,
-        "question": "What relief does the main suit ask for?"
+        "question": "What relief does the main suit ask for?",
+        "blocks_confirm": true
       },
       {
         "id": "type_of_injunction_sought",
@@ -114,7 +115,8 @@
         "label": "Acts the defendant should be restrained from",
         "type": "textarea",
         "required": true,
-        "question": "What should the defendant be stopped from doing from now on (for example: raising any construction, transferring or mortgaging the property, dispossessing the plaintiff)? Describe the acts, not past events."
+        "question": "What should the defendant be stopped from doing from now on (for example: raising any construction, transferring or mortgaging the property, dispossessing the plaintiff)? Describe the acts, not past events.",
+        "blocks_confirm": true
       },
       {
         "id": "ex_parte_sought",

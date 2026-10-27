@@ -15,6 +15,8 @@
  */
 import type { LedgerFact, LedgerUnresolvedFact } from '@lawie/shared';
 
+import { O39_REQUIRED_FIELDS, requiredFieldBlockers } from '../config/intake/o39-confirm-messages';
+
 import {
   applyEdit,
   factTypeFor,
@@ -251,16 +253,63 @@ export function briefLedgerValues(brief: Pick<Brief, 'items'>): LedgerValueInput
   return out;
 }
 
+/** The pack whose form route runs the T-629 required-field pre-check. */
+const O39_TEMPLATE_ID = 'temporary_injunction_o39';
+
 /**
- * T-629 blocks_confirm / Ajay FR-1(b): the form route's required-field and
- * non-answer pre-check (main_suit_relief, restraint_sought on
- * temporary_injunction_o39), run right after validateFormData and before any
- * Ink hold. Not in this build (Priya, T-637; Ajay FR-5a): T-629 fills it in
- * and returns the signed (g) block. Until then it never blocks.
+ * The form route's 400 body when a required O.39 field is empty or a non-
+ * answer. Same shape as generate-from-brief's `brief_not_confirmed` (error,
+ * message, blockers), with the blocking field ids added.
+ */
+export interface FormRequiredFieldBlock {
+  error: 'brief_not_confirmed';
+  /** The signed §(g) EN lines, one per line, in §(j)2 order. */
+  message: string;
+  blockers: ['required_fields'];
+  /** The blocking field ids, in the same order as the lines. */
+  confirm_blocking_keys: string[];
+}
+
+/**
+ * The O.39 required fields as the §(j)3 check reads them. form_data is
+ * unchecked JSON: a string, null, undefined or a list of strings is kept; any
+ * other value (an object, a boolean, a number, a list holding a non-string)
+ * is no answer and becomes '', so it blocks rather than passing as answered.
+ */
+function requiredFieldView(formData: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  const view: Record<string, unknown> = {};
+  for (const key of O39_REQUIRED_FIELDS) {
+    const v = Object.prototype.hasOwnProperty.call(formData, key) ? formData[key] : undefined;
+    const readable =
+      v === null ||
+      v === undefined ||
+      typeof v === 'string' ||
+      (Array.isArray(v) && v.every((e) => typeof e === 'string'));
+    view[key] = readable ? v : '';
+  }
+  return view;
+}
+
+/**
+ * T-629 blocks_confirm / Ajay FR-1(b), FR-5, FR-5a; T-613 §(g), §(j)2, §(j)3:
+ * the form route's required-field and non-answer pre-check (main_suit_relief,
+ * restraint_sought on temporary_injunction_o39), run right after
+ * the plan check, before validateFormData (FR-5: an empty answer gets the
+ * signed lines too) and before any Ink hold. The form field ids are the pack
+ * keys (the promoted O.39 form keeps them; no alias renames them). The text
+ * comes only from o39-confirm-messages.ts. Every other template: null.
  */
 export function formRequiredFieldBlock(
-  _templateId: string,
-  _formData: Readonly<Record<string, unknown>>,
-): null {
-  return null;
+  templateId: string,
+  formData: Readonly<Record<string, unknown>>,
+): FormRequiredFieldBlock | null {
+  if (templateId !== O39_TEMPLATE_ID) return null;
+  const missing = requiredFieldBlockers(requiredFieldView(formData));
+  if (missing.length === 0) return null;
+  return {
+    error: 'brief_not_confirmed',
+    message: missing.map((b) => b.en).join('\n'),
+    blockers: ['required_fields'],
+    confirm_blocking_keys: missing.map((b) => b.key),
+  };
 }

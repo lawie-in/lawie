@@ -1024,19 +1024,20 @@ router.post(
       return;
     }
 
+    // T-629 AC8 / Ajay FR-1(b), FR-5: on temporary_injunction_o39 an empty or
+    // non-answer main_suit_relief / restraint_sought is refused with the signed
+    // (g) lines. Runs before validateFormData, so an empty field gets those
+    // lines and not the generic error, and before the gate, run and Ink hold.
+    const requiredFieldBlock = formRequiredFieldBlock(template_id, form_data);
+    if (requiredFieldBlock !== null) {
+      res.status(400).json(requiredFieldBlock);
+      return;
+    }
+
     // Validate form data against template schema
     const validationErrors = validateFormData(templateConfig, form_data);
     if (validationErrors.length > 0) {
       res.status(400).json({ error: 'Form validation failed', issues: validationErrors });
-      return;
-    }
-
-    // T-629 blocks_confirm / Ajay FR-1(b): the required-field and non-answer
-    // pre-check goes here, before any Ink hold. A no-op until T-629 (Priya,
-    // T-637; Ajay FR-5a): it always returns null today.
-    const requiredFieldBlock = formRequiredFieldBlock(template_id, form_data);
-    if (requiredFieldBlock !== null) {
-      res.status(400).json(requiredFieldBlock);
       return;
     }
 

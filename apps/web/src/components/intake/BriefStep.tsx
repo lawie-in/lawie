@@ -627,15 +627,29 @@ export default function BriefStep({
   const partiesNeeded =
     brief.confirm_blockers.includes('parties') && brief.items.some(partyMissing);
   const courtNeeded = brief.confirm_blockers.includes('court');
+  // T-629: a required field (main_suit_relief, restraint_sought) blocks until
+  // the service says otherwise. The ledger never lifts it (fail closed).
+  const requiredNeeded = brief.confirm_blockers.includes('required_fields');
   // Only the parties the ledger holds are lifted; any other "no" stays.
   const partiesLifted = brief.confirm_blockers.includes('parties') && !partiesNeeded;
-  const briefCanConfirm = brief.can_confirm || (partiesLifted && !courtNeeded);
-  // The service's line, unless only the court is left of what it named (Ajay's
-  // signed wording, T-127 section 7.2, as in apps/drafting intake-brief.ts).
+  const briefCanConfirm = brief.can_confirm || (partiesLifted && !courtNeeded && !requiredNeeded);
+  // The service's lines, unless the parties were lifted: then the court's line
+  // (Ajay's signed wording, T-127 section 7.2, as in apps/drafting
+  // intake-brief.ts) if the court is still needed, and the required fields'
+  // signed lines after it (T-629, T-613 §(j)2). The service's first line is the
+  // court/parties line whenever either blocks.
+  const serviceLines = (brief.confirm_message ?? '').split('\n').filter((l) => l !== '');
+  const fieldLines =
+    courtNeeded || brief.confirm_blockers.includes('parties')
+      ? serviceLines.slice(1)
+      : serviceLines;
+  const liftedLines = [...(courtNeeded ? ['Choose the court to continue.'] : []), ...fieldLines];
   const confirmLine = briefCanConfirm
     ? null
     : partiesLifted
-      ? 'Choose the court to continue.'
+      ? liftedLines.length > 0
+        ? liftedLines.join('\n')
+        : null
       : brief.confirm_message;
   const canConfirm = briefCanConfirm && !datesHeld;
   const dateCheckContinue = useRef<HTMLButtonElement>(null);
@@ -721,7 +735,13 @@ export default function BriefStep({
       return;
     }
     const party = brief.items.find(partyMissing);
-    if (party) focusField(party.key);
+    if (party) {
+      focusField(party.key);
+      return;
+    }
+    // T-629: then the first required field, in the signed order (§(j)2).
+    const field = requiredNeeded ? brief.confirm_blocking_keys?.[0] : undefined;
+    if (field) focusField(field);
   };
 
   /** What a press of Confirm does, with the brief as it is now. */
@@ -1055,7 +1075,7 @@ export default function BriefStep({
         <button
           type="button"
           onClick={focusFirstBlocker}
-          className="bg-brand-error-light text-brand-error focus-visible:ring-brand-teal mt-4 block w-full rounded-lg p-3 text-left text-sm font-semibold focus:outline-none focus-visible:ring-2"
+          className="bg-brand-error-light text-brand-error focus-visible:ring-brand-teal mt-4 block w-full whitespace-pre-line rounded-lg p-3 text-left text-sm font-semibold focus:outline-none focus-visible:ring-2"
         >
           {confirmLine}
         </button>
