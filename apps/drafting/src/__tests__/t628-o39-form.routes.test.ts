@@ -244,7 +244,7 @@ describe('T-628 form route: controls are delivered', () => {
     expect((await rawUser()).inkTopup).toBeLessThan(START_INK);
   });
 
-  it('another template on the form route still streams text chunks', async () => {
+  it('T-637 (Arjun option B): another template on the form route streams no text chunk; the body is in template_sections', async () => {
     mockMessagesStream.mockResolvedValue(
       sdkAnswer('1. Applicant seeks bail on 3 March 2020.', 1000, 200),
     );
@@ -274,8 +274,10 @@ describe('T-628 form route: controls are delivered', () => {
         },
       });
     expect(res.status).toBe(200);
-    expect(res.text).toMatch(TEXT_CHUNK);
-    expect(res.text).toContain('Applicant seeks bail');
+    expect(res.text).not.toMatch(TEXT_CHUNK);
+    expect(JSON.stringify(events(res.text, 'template_sections')[0])).toContain(
+      'Applicant seeks bail',
+    );
     expect(events(res.text, 'done')).toHaveLength(1);
   });
 });

@@ -191,13 +191,12 @@ afterEach(() => {
 });
 
 describe('POST /generate-from-brief — a draft that passes', () => {
-  it('T-628 regression: another pack on the no-ledger path still streams its body as text chunks', async () => {
+  it('T-637 (Arjun option B): another pack on the no-ledger path no longer streams text chunks; the body is in template_sections', async () => {
     mockModel(drafterAnswer());
     const res = await post({ kind: 'bail_regular', values: VALUES, court, paragraphs: 12 });
     expect(res.status).toBe(200);
-    expect(res.text).toMatch(/data: \{"text":/);
-    const streamed = (res.text.match(/data: (\{"text":[^\n]*)/g) ?? []).join('');
-    expect(streamed).toContain('Ram Kumar');
+    expect(res.text).not.toMatch(/data: \{"text":/);
+    expect(JSON.stringify(event(res.text, 'template_sections'))).toContain('Ram Kumar');
     expect(event(res.text, 'done')).not.toBeNull();
   });
 
