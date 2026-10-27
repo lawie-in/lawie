@@ -1,6 +1,6 @@
 # T-642 — Google on Create account does nothing (prod hotfix)
 
-Status: in review — passed fresh reviewer 27 Oct 2026 (branch 91dadb56); awaiting Ajay byte-check. Release as v1.2.1.
+Status: Merged into develop_staging (32aa3579, CI fix d24d261e). Release v1.2.1 PR #106 to main. Follow-ups: onCloseAutoFocus instead of 50ms refocus; named secondaryButtonLarge; direct AC3 test; 3001 fallback in review/[token]/page.tsx:40.
 
 **SCOPE CHANGED 27 Oct 2026 (founder: build all now):** full chain. A) M16 next-sign-in consent panel for acceptedVia 'google' accounts (AJ-642-M1..M7, Arjun field names + 3 conditions, Rajesh panel (c) + constraints). B) Google on Create account needs no tick; byContinuing line on both tabs; email keeps the checkbox. The original ACs below are superseded by those rulings.
 Priority: P0 hotfix on v1.2.0 prod
