@@ -25,7 +25,12 @@ export type ReferralStatus = 'applied' | 'not_applied';
  * T-343 (Ajay §4) — how the current privacyVersion was accepted. 'signin' (Ajay, round 5): the
  * T-234 Google consent stamp on a linked or returning account set privacyVersion at sign-in.
  */
-export type PrivacyAcceptedVia = 'signup' | 'reaccept' | 'signin';
+export type PrivacyAcceptedVia = 'signup' | 'reaccept' | 'signin' | 'google_confirm';
+/**
+ * T-642 (AJ-642-M5) — the consent text a 'google_confirm' row records: the AJ-517-M16 box line.
+ * Change it only when Ajay signs a new wording for that line.
+ */
+export const SIGNUP_CONSENT_TEXT_VERSION = 'AJ-517-M16';
 /** T-358 — which email started the unverified-account clock. */
 export type FirstVerifySentVia = 'verify' | 'notice';
 
@@ -34,13 +39,23 @@ export interface IPrivacyAcceptance {
   version: string;
   acceptedAt: Date;
   via: PrivacyAcceptedVia;
+  /** T-642 (AJ-642-M5): on 'google_confirm' rows only, the Terms version shown in the M16 box. */
+  termsVersion?: string;
+  /** T-642 (AJ-642-M5): on 'google_confirm' rows only, SIGNUP_CONSENT_TEXT_VERSION. */
+  consentTextVersion?: string;
 }
 
 const PrivacyAcceptanceSchema = new Schema<IPrivacyAcceptance>(
   {
     version: { type: String, required: true, trim: true },
     acceptedAt: { type: Date, required: true },
-    via: { type: String, enum: ['signup', 'reaccept', 'signin'], required: true },
+    via: {
+      type: String,
+      enum: ['signup', 'reaccept', 'signin', 'google_confirm'],
+      required: true,
+    },
+    termsVersion: { type: String, trim: true },
+    consentTextVersion: { type: String, trim: true },
   },
   { _id: false },
 );
@@ -165,6 +180,13 @@ export interface IUser extends Document {
   privacyAcceptedAt?: Date;
   privacyAcceptedVia?: PrivacyAcceptedVia;
   privacyHistory?: IPrivacyAcceptance[];
+
+  // T-642 (AJ-517-M18(c), AJ-642-M2..M5) — the next-sign-in M16 box for acceptedVia 'google'
+  // accounts. Server-set only, once (atomic filter on signupConsentAt: null). acceptedVia and
+  // termsAcceptedAt are never changed by it (M18(b)).
+  signupConsentAt?: Date;
+  signupConsentTermsVersion?: string;
+  signupConsentPrivacyVersion?: string;
 
   // T-242 — where the sign-up came from (Ajay, T-242 signed). Set once, only when an account is
   // created and the landing link carried at least one tag. Deleted with the account.
@@ -347,8 +369,16 @@ const UserSchema = new Schema<IUser>(
 
     // T-343 — no defaults: absent means no acceptance recorded under T-343 rules yet.
     privacyAcceptedAt: { type: Date },
-    privacyAcceptedVia: { type: String, enum: ['signup', 'reaccept', 'signin'] },
+    privacyAcceptedVia: {
+      type: String,
+      enum: ['signup', 'reaccept', 'signin', 'google_confirm'],
+    },
     privacyHistory: { type: [PrivacyAcceptanceSchema], default: undefined },
+
+    // T-642 — no defaults: absent means the M16 box has not been accepted on this account.
+    signupConsentAt: { type: Date },
+    signupConsentTermsVersion: { type: String, trim: true },
+    signupConsentPrivacyVersion: { type: String, trim: true },
 
     // T-242 — no default: absent means no tags were present at sign-up.
     signupSource: { type: SignupSourceSchema },
