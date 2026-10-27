@@ -214,9 +214,29 @@ describe('consent (AJ-517-M3)', () => {
     ]);
   });
 
-  it('Create account does not show the "By continuing" line (it has the consent box)', async () => {
+  it('T-642 AC1: Create account shows the same "By continuing" line under Google, byte for byte, with both links', async () => {
     await mount('mode=signup');
-    expect(norm(q('[role="tabpanel"]')!.textContent)).not.toContain('By continuing');
+    const panel = q('[role="tabpanel"]')!;
+    const line = qa('p, div, small, span').find(
+      (e) => norm(e.textContent) === BY_CONTINUING,
+    ) as HTMLElement;
+    expect(line).toBeDefined();
+    expect(q('form')!.contains(line)).toBe(false);
+    expect(panel.contains(line)).toBe(true);
+    expect(
+      Boolean(googleButton().compareDocumentPosition(line) & Node.DOCUMENT_POSITION_FOLLOWING),
+    ).toBe(true);
+    expect(
+      Array.from(line.querySelectorAll('a')).map((a) => [
+        norm(a.textContent),
+        a.getAttribute('href'),
+      ]),
+    ).toEqual([
+      ['Terms of Service', '/terms'],
+      ['Privacy Policy', '/privacy'],
+    ]);
+    // T-642 AC2 (AJ-642-M1): the email form keeps its checkbox.
+    expect(q('#consent')).not.toBeNull();
   });
 
   it('the auth page footer has no Cookie settings button (analytics never loads here)', async () => {
@@ -259,18 +279,58 @@ describe('consent (AJ-517-M3)', () => {
     expect(document.activeElement).toBe(q('#name'));
   });
 
-  it('unticked: Continue with Google is blocked too (no verifier stored, no redirect)', async () => {
+  it('T-642 (AJ-642-M1): Continue with Google on Create account needs no tick: the PKCE start runs with the box unticked', async () => {
     stubCrypto();
     await mount('mode=signup');
+    expect((q('#consent') as HTMLInputElement).checked).toBe(false);
     await act(async () => void googleButton().click());
     await flush();
     await flush();
-    expect(norm(q('#consent-error')!.textContent)).toBe(CONSENT_REQUIRED);
-    expect(document.activeElement).toBe(q('#consent'));
-    expect(window.sessionStorage.getItem('lawie.oauth.verifier')).toBeNull();
+    await flush();
+    expect(q('#consent-error')).toBeNull();
+    expect(window.sessionStorage.getItem('lawie.oauth.verifier')).not.toBeNull();
   });
 
-  it('ticked: Google proceeds to the PKCE start', async () => {
+  it('T-642 AC4: the Google redirect params are the same on both tabs (challenge only, no consent param)', async () => {
+    stubCrypto();
+    const prevApiUrl = process.env.NEXT_PUBLIC_API_URL;
+    process.env.NEXT_PUBLIC_API_URL = 'http://api.test';
+    const urls: string[] = [];
+    const orig = window.location;
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: new Proxy(orig, {
+        get: (t, k) => (k === 'href' ? (urls[urls.length - 1] ?? t.href) : Reflect.get(t, k)),
+        set: (_t, k, v) => {
+          if (k === 'href') urls.push(String(v));
+          return true;
+        },
+      }),
+    });
+    try {
+      for (const mode of ['mode=signup', 'mode=signin']) {
+        await mount(mode);
+        await act(async () => void googleButton().click());
+        await flush();
+        await flush();
+        await flush();
+        act(() => root!.unmount());
+        host!.remove();
+      }
+    } finally {
+      Object.defineProperty(window, 'location', { configurable: true, value: orig });
+      if (prevApiUrl === undefined) delete process.env.NEXT_PUBLIC_API_URL;
+      else process.env.NEXT_PUBLIC_API_URL = prevApiUrl;
+    }
+    expect(urls).toHaveLength(2);
+    const keys = urls.map((u) => [...new URL(u).searchParams.keys()].sort());
+    expect(keys[0]).toEqual(keys[1]);
+    expect(keys[0]).toContain('challenge');
+    expect(keys[0].some((k) => /consent|terms|accept/i.test(k))).toBe(false);
+    expect(new URL(urls[0]).pathname).toBe('/api/auth/google');
+  });
+
+  it('T-642: the tick does not change the Google start (same verifier stored)', async () => {
     stubCrypto();
     await mount('mode=signup');
     await tickConsent();

@@ -81,6 +81,8 @@ describe('T-343 AC1/AC3 — GET /me for older, current and missing versions', ()
         summary: SUMMARY,
         // T-223: /me also reports the verification state (seeded as an unverified email user).
         emailVerified: false,
+        // T-642 (Arjun 3): computed, false for a non-google account.
+        needsSignupConsent: false,
         // T-522: /me also reports the sign-up Ink and referral state.
         signupInkGranted: false,
         referralStatus: null,
@@ -114,6 +116,8 @@ describe('T-343 AC1/AC3 — GET /me for older, current and missing versions', ()
       currentPrivacyVersion: CURRENT_PRIVACY_VERSION,
       needsPrivacyAcceptance: false,
       emailVerified: false,
+      // T-642: computed, false for a non-google account.
+      needsSignupConsent: false,
       signupInkGranted: false,
       referralStatus: null,
       hasGoogle: false,

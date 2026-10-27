@@ -23,6 +23,7 @@ import { useCallback } from 'react';
 
 import { CommandBar, DEFAULT_QUICK_CHIPS, type CommandBarItem } from '@/components/shell';
 import { DESCRIPTION_MAX, DRAFT_PREFILL_KEY, capToLimit } from '@/lib/draftPrefill';
+import { signupConsentBlocksNow } from '@/lib/signupConsent';
 
 export const COMMAND_CHIP_HREF: Record<string, string> = {
   'bail-application': '/dashboard/new?kind=bail_regular',
@@ -82,6 +83,9 @@ export function DashboardCommandBar({
   const onSelect = useCallback((item: CommandBarItem) => router.push(commandHref(item)), [router]);
   const onSubmit = useCallback(
     (text: string) => {
+      // T-642 (AJ-642-M3/M6): no new draft while the Google sign-up consent is needed. Kept
+      // synchronous (it only navigates); /dashboard/new gates the generate itself.
+      if (signupConsentBlocksNow()) return;
       storeDraftPrefill(text);
       router.push('/dashboard/new');
     },
