@@ -81,3 +81,20 @@ Reason: the arrest date starts custody, not judicial custody. "In judicial custo
 | t189 R3/R5 guard | **Narrow**: allow exactly `grounds_for_bail` with `equals` only. Any other list or choices key still fails. Do not retire the guard. |
 
 **T-612 APPROVED at 41991cf1.** It counts as merged at the develop_staging SHA that contains 41991cf1.
+
+## (6a) Police station: the "Thana" amendment (Ajay, 27 Oct 2026; amends (6) and T-334 Addendum 2)
+
+The bug Tanvi's review found ("PS Thana Bhawan" printed as "Police Station Bhawan") shows that "Thana" can be part of a real station or place name. Thana Bhawan is a town in Uttar Pradesh, and printing the wrong name is worse than printing a redundant word. New rule, **for both storing and rendering, applied once**:
+
+| marker | strip? |
+| --- | --- |
+| `PS`, `P.S.`, `P S`, `Police Station` (any case, trailing punctuation or space), leading or trailing | **Yes**, once. |
+| `Thana` / `थाना` followed by a separator (`:`, `-`, `–`), e.g. "Thana: Kotwali", "थाना - कोतवाली" | **Yes**, once. |
+| `Thana` / `थाना` followed only by a space ("Thana Bhawan", "थाना कोतवाली") | **No**: kept as part of the name. |
+
+Effects:
+- "PS Thana Bhawan" is stored as `Thana Bhawan` and prints `Police Station Thana Bhawan`.
+- A bare "Thana Kotwali" prints `Police Station Thana Kotwali`. That is redundant but never wrong, and the advocate can edit it.
+- An old-ledger "थाना Kotwali" prints `Police Station थाना Kotwali`. Accepted on the same ground; there is no migration.
+
+This **replaces** Tanvi's marker-keeping fix in `bareStationName`: one rule on every path, with no second strip in the renderer. It amends T-334 Addendum 2: its `Thana` / `Thana:` entries now follow this table. I byte-check it on the new SHA.
