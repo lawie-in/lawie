@@ -9,7 +9,8 @@
  *
  * Copy: the signed M2 set only (SIGNUP_CONSENT_COPY), the AJ-517-M16 box and the AJ-517-M3 error
  * (CONSENT_COPY), byte for byte. The box is unticked by default; "Accept and continue" is disabled
- * until it is ticked. On accept: POST /me/signup-consent, then the panel hides.
+ * until it is ticked. On accept: POST /me/signup-consent, then the panel hides. A failed save
+ * shows T-343's P8 line under the button (AJ-642-M7, reused, no new string) and the panel stays.
  *
  * Drafting and purchase entry points call signupConsentGate() (lib/signupConsent.ts), which
  * scrolls here and focuses the checkbox instead of sending the request.
@@ -18,6 +19,7 @@ import Link from 'next/link';
 import { useEffect } from 'react';
 
 import { CONSENT_COPY, SIGNUP_CONSENT_COPY } from '@/components/marketing/nl-copy';
+import { PRIVACY_PROMPT_STRINGS } from '@/components/PrivacyUpdatePrompt';
 import { Button, Card } from '@/components/ui';
 import { CONTROL_LINE } from '@/components/ui/hover';
 import { useAuth } from '@/context/AuthContext';
@@ -159,6 +161,12 @@ export default function SignupConsentPrompt() {
         >
           {SIGNUP_CONSENT_COPY.accept}
         </Button>
+        {/* AJ-642-M7: T-343's P8, byte for byte, under the button. */}
+        {s.saveFailed && (
+          <p role="alert" className="nl-body-sm mt-nl-2 text-nl-err mb-0">
+            {PRIVACY_PROMPT_STRINGS.P8}
+          </p>
+        )}
       </div>
     </Card>
   );

@@ -15,8 +15,10 @@
  * Nothing else is fenced: Settings, export, delete, Privacy Policy and support stay usable.
  *
  * The state comes from GET /api/auth/me `needsSignupConsent` (computed by the server, never
- * stored). An unknown state is asked for before the gate answers; any /me error fails open
- * (no server block exists for this step: AJ-642-M3). Nothing here logs tokens or user data.
+ * stored), asked by the panel on every dashboard load. While that request is in flight the gate
+ * waits for it. With no answer (the panel is not mounted, or /me failed) the gate fails open:
+ * there is no panel to send the user to, and no server block exists for this step (AJ-642-M3).
+ * Nothing here logs tokens or user data.
  */
 import { useSyncExternalStore } from 'react';
 
@@ -36,6 +38,8 @@ export interface SignupConsentState {
   showError: boolean;
   /** POST /me/signup-consent in flight. */
   pending: boolean;
+  /** The last accept failed (AJ-642-M7: the T-343 P8 line shows under the button). */
+  saveFailed: boolean;
 }
 
 const initial: SignupConsentState = {
@@ -43,6 +47,7 @@ const initial: SignupConsentState = {
   ticked: false,
   showError: false,
   pending: false,
+  saveFailed: false,
 };
 
 let state: SignupConsentState = initial;
@@ -103,17 +108,24 @@ function prefersReducedMotion(): boolean {
 
 /**
  * Rajesh (T-642 4): scroll the panel into view (its scroll-margin-top is the top bar's height)
- * and focus the CHECKBOX. Smooth only without reduced motion. Run after the current task, so a
- * caller can close its own dialog first and the panel is not inert when focused.
+ * and focus the CHECKBOX. Smooth only without reduced motion. Run after the current task (or
+ * after `delayMs`), so a caller can close its own dialog first and the panel is not inert when
+ * focused.
  */
-export function focusSignupConsent(): void {
+export function focusSignupConsent(delayMs = 0): void {
   if (typeof window === 'undefined') return;
   setTimeout(() => {
     const panel = document.getElementById(SIGNUP_CONSENT_PANEL_ID);
     panel?.scrollIntoView({ block: 'start', behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
     const box = document.getElementById(SIGNUP_CONSENT_CHECKBOX_ID);
     box?.focus({ preventScroll: true });
-  }, 0);
+  }, delayMs);
+}
+
+function block(): true {
+  if (!state.ticked) setState({ showError: true });
+  focusSignupConsent();
+  return true;
 }
 
 /**
@@ -122,27 +134,34 @@ export function focusSignupConsent(): void {
  * error shows if the box is unticked). False: go ahead.
  */
 export async function signupConsentGate(): Promise<boolean> {
-  const needed = state.needed === null ? await refreshSignupConsent() : state.needed;
-  if (needed !== true) return false;
-  if (!state.ticked) setState({ showError: true });
-  focusSignupConsent();
-  return true;
+  const needed = state.needed === null && inFlight ? await inFlight : state.needed;
+  return needed === true ? block() : false;
+}
+
+/**
+ * The same check, synchronous, from the state already known (an in-flight /me is not waited
+ * for). Only for an entry point that sends no request itself and must stay synchronous, e.g. the
+ * command bar's Draft, which only navigates to /dashboard/new (whose generate is gated).
+ */
+export function signupConsentBlocksNow(): boolean {
+  return state.needed === true ? block() : false;
 }
 
 /** POST /api/auth/me/signup-consent. True on success (the panel then hides). */
 export async function acceptSignupConsent(): Promise<boolean> {
   if (state.pending || !state.ticked) return false;
-  setState({ pending: true });
+  setState({ pending: true, saveFailed: false });
   try {
     const res = await apiFetch('/api/auth/me/signup-consent', { method: 'POST' });
     if (!res.ok) {
-      setState({ pending: false });
+      // AJ-642-M7: the panel stays and the button re-enables; nothing was recorded.
+      setState({ pending: false, saveFailed: true });
       return false;
     }
-    setState({ pending: false, needed: false, showError: false });
+    setState({ pending: false, needed: false, showError: false, saveFailed: false });
     return true;
   } catch {
-    setState({ pending: false });
+    setState({ pending: false, saveFailed: true });
     return false;
   }
 }

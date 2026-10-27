@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { isPrivacyBlocked, privacyFetch } from '@/components/PrivacyUpdatePrompt';
 import { openVerifyIfDraftRefused } from '@/components/VerifyEmailPrompt';
 import type { GstStateController } from '@/hooks/useGstState';
+import { signupConsentGate } from '@/lib/signupConsent';
 
 /** T-343 action key for the subscribe call (its P7 box and aria-describedby). */
 export const SUBSCRIBE_ACTION_KEY = 'subscribe';
@@ -63,6 +64,9 @@ export function useSubscribe(gst: GstStateController) {
       try {
         // T-436 (spec §2): no State -> the picker shows its error and takes focus; no call.
         if (!(await gst.ensureReady())) return;
+        // T-642 (AJ-642-M3/M6): no subscribe / upgrade checkout while the Google sign-up consent
+        // is needed; the gate brings the consent panel into view. finally resets as usual.
+        if (await signupConsentGate()) return;
         const res = await privacyFetch(SUBSCRIBE_ACTION_KEY, '/api/billing/subscribe', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

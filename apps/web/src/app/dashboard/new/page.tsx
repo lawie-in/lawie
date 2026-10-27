@@ -64,6 +64,7 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { useCredits } from '@/hooks/useCredits';
 import { apiFetch } from '@/lib/apiFetch';
+import { signupConsentGate } from '@/lib/signupConsent';
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -350,6 +351,9 @@ function NewDocumentContent() {
   const runGeneration = useCallback(
     async (formData: Record<string, unknown>) => {
       if (!selectedConfig) return;
+      // T-642 (AJ-642-M3/M6): no generate request while the Google sign-up consent is needed;
+      // the gate brings the consent panel into view instead. Covers Retry too.
+      if (await signupConsentGate()) return;
       // T-388 (Arjun): nothing that charges starts while the cost is not known.
       // Every caller ends here, including the fail-open preflight paths. The
       // advocate stays on this screen and sees the notice here ("Edit form"
@@ -619,6 +623,8 @@ function NewDocumentContent() {
       // T-388: an unknown cost blocks before the preflight. "Generate document"
       // is off then and the notice is under it (DynamicFormRenderer).
       if (!templateInkCostKnown) return;
+      // T-642: before leaving the form (no preflight, no generate) while consent is needed.
+      if (await signupConsentGate()) return;
       // T-343: ask before leaving the form, so a privacy block never unmounts (empties) it.
       if (await privacyPrecheck('generate')) return;
 
