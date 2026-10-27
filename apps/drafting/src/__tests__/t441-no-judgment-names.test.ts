@@ -173,7 +173,7 @@ describe('T-441: pinned wording (R1 keeps the proposition word for word)', () =>
     walk(load(TWIN_PATH));
     expect(hits).toHaveLength(1);
     expect(hits[0]).toBe(
-      'Generate 8-12 numbered paragraphs for an Anticipatory Bail application under {governing_provision}. Paragraph 1 must mention FIR No. {fir_number} dated {fir_date}, registered at PS {police_station}, under Section(s) {sections_charged}, as written in the FIR. State that the applicant APPREHENDS arrest and has NOT been arrested yet. Paragraphs 2-4 should narrate the facts: {facts_narrative}. Subsequent paragraphs should establish grounds: {grounds_for_bail}. Include reference to: (i) Article 21 of Constitution, ' +
+      'Generate 8-12 numbered paragraphs for an Anticipatory Bail application under {governing_provision}. Paragraph 1 must mention FIR No. {fir_number} dated {fir_date}, registered at Police Station {police_station}, under Section(s) {sections_charged}, as written in the FIR. State that the applicant APPREHENDS arrest and has NOT been arrested yet. Paragraphs 2-4 should narrate the facts: {facts_narrative}. Subsequent paragraphs should establish grounds: {grounds_for_bail}. Include reference to: (i) Article 21 of Constitution, ' +
         TWIN_RESTORED +
         ' ' +
         S +

@@ -1055,9 +1055,15 @@ describe('T-190 pack text and averment files are unchanged where they must be', 
     // bail_regular and bail_anticipatory re-pinned for T-334 (Ajay, T-334 Addendum 1, signed 9b484ee).
     // T-245a: re-pinned (Ajay, Addenda 1 #9 and 2 #1): the two s35 entries carry the new label
     // and {{notice_provision}}. The develop_staging copy is still the T-334 file until this merges.
-    bail_regular: 'df163457bd78cd19698d968d8e80a278fd738590aa779018c6ab25202f1fa923',
+    bail_regular: '8ee0a7569fe463b93ab5d0c951b6cf4e8562a3c389fd49af1cd06e41b824b26f',
     interim_bail: '8951ebda37020b9527672013595fabc1c1a7c80470d8ceade8f33c4883d3bf66',
     bail_before_magistrate: '6519fdc6a96efbe03d98f71f6f67ab55633e9634e28b6dbffe321e72c50efa56',
+    bail_anticipatory: '4173d669e03be93ec6d882bf4b0fde28cd68ceed1274f50347f6914e9e830fc6',
+  };
+  // T-612: re-pinned (Ajay, 27 Oct 2026) with the G2 and G4 averments; until this merges, develop_staging
+  // still holds the T-245a files below.
+  const BEFORE_T612: Record<string, string> = {
+    bail_regular: 'df163457bd78cd19698d968d8e80a278fd738590aa779018c6ab25202f1fa923',
     bail_anticipatory: '270a841d242ef26fc74859cfa94b4bf6feb414bbf0a01ffb32f1a7ae8caa83de',
   };
   const BEFORE_T245A: Record<string, string> = {
@@ -1082,7 +1088,9 @@ describe('T-190 pack text and averment files are unchanged where they must be', 
         upstream = null; // no such ref here (shallow clone): the pinned hash stands
       }
       if (upstream) {
-        expect([PINNED[id], BEFORE_T245A[id]].filter(Boolean)).toContain(sha(upstream));
+        expect([PINNED[id], BEFORE_T245A[id], BEFORE_T612[id]].filter(Boolean)).toContain(
+          sha(upstream),
+        );
       }
     },
   );

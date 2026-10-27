@@ -471,9 +471,9 @@ describe('T-449 (e): document-rules/_averments is unchanged', () => {
   const AVERMENTS_AT_BASE: Record<string, string> = {
     'README.md': '0d907ff3f7c397a6',
     '_default.json': '3a2b31cc00742cb2',
-    'bail_anticipatory.json': '270a841d242ef26f',
+    'bail_anticipatory.json': '4173d669e03be93e',
     'bail_before_magistrate.json': '6519fdc6a96efbe0',
-    'bail_regular.json': 'df163457bd78cd19',
+    'bail_regular.json': '8ee0a7569fe463b9',
     'default_bail.json': '2e882516bf7c5ad8',
     'interim_bail.json': '8951ebda37020b95',
     'legal_notice_s138.json': 'f85eb9a1a1703826',
