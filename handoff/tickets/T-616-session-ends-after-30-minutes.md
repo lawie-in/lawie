@@ -5,7 +5,7 @@
 | Phase  | 4 — Release (severity P1; from the prod quality check of 26 Oct 2026) |
 | Owner  | Mahak or Tanvi (auth/web); Arjun decides lifetime |
 | Mode   | Full chain |
-| Status | Web part merged into develop_staging at e73914df (CI 1053 green), 26 Oct 2026. T-616b (server) building, Kunal. Priya |
+| Status | Merged into develop_staging: web e73914df, server 00ef385b (T-616b), env fix 2a7f25a4 (CI 1079 green), 27 Oct 2026. Deploy auth as a quick rollout. Priya |
 | Source | handoff/quality/2026-10-26-prod-drafting-FAIL.md |
 
 ## Problem
