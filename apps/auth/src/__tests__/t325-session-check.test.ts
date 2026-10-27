@@ -305,6 +305,8 @@ describe('authenticateAllowRevoked is confined to /logout', () => {
       '/me/privacy-history',
       '/me/sessions',
       '/me/sessions/:id',
+      // T-642: POST /me/signup-consent also needs a live session.
+      '/me/signup-consent',
       '/verify-email/resend',
     ]);
   });

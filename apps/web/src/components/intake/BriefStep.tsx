@@ -56,6 +56,7 @@ import {
 import ValueInput from './ValueInput';
 
 import { ErrorState, Skeleton } from '@/components/ui';
+import { useSignupConsent } from '@/lib/signupConsent';
 
 /**
  * T-136. Ajay's line (CLO, 7 Oct 2026, part 2, condition 2), word for word. The
@@ -760,6 +761,8 @@ export default function BriefStep({
   // update ends. A failed update (its line shows in `message`) drops the press.
   const [confirmHeld, setConfirmHeld] = useState(false);
   const pending = busy || updating || confirming;
+  // T-642 (Rajesh 3, option a): while the sign-up consent panel shows, its button is the one primary.
+  const { needed: signupConsentNeeded } = useSignupConsent();
   useEffect(() => {
     if (!confirmHeld || updating) return;
     setConfirmHeld(false);
@@ -1122,7 +1125,16 @@ export default function BriefStep({
             aria-describedby={confirmDescribedByIds}
             // T-481: not while an update runs (see `onConfirmClick`).
             disabled={busy || confirming}
-            className={`${primaryButton} ${confirmOff ? 'opacity-40' : ''}`}
+            // T-642: secondary while the consent panel shows, sized as primary so nothing shifts
+            // (48px min height, text-base, and 23px side padding + the 1px border = primary's 24px).
+            className={`${
+              signupConsentNeeded
+                ? secondaryButton
+                    .replace('min-h-[44px]', 'min-h-[48px]')
+                    .replace('px-4', 'px-[23px]')
+                    .replace('text-sm', 'text-base')
+                : primaryButton
+            } ${confirmOff ? 'opacity-40' : ''}`}
           >
             {pending && <Loader2 size={16} className="animate-spin" aria-hidden="true" />}
             Confirm brief and continue
