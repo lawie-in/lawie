@@ -107,3 +107,15 @@ The `blocks_confirm` flag applies to `main_suit_relief` and `restraint_sought`. 
 | 2 | Scope: `{restraint_sought}` plus **the prayer section, whoever wrote it**. That is the system-built prayer on the pack path, and the model's own prayer section if a path has no skeleton prayer. Body paragraphs are not scanned: past dates belong there. |
 | 3 | Devanagari month names are **in scope now**, because Hindi input reaches `restraint_sought`. Read these, with their spelling variants: जनवरी, फ़रवरी/फरवरी, मार्च, अप्रैल, मई, जून, जुलाई, अगस्त, सितंबर/सितम्बर, अक्टूबर/अक्तूबर, नवंबर/नवम्बर, दिसंबर/दिसम्बर (nukta-insensitive). |
 | 4 | Yes: `apps/drafting/src/services/prayer-date-gate.ts` is legal content. Priya adds it to legal-content-paths.md. Logs with `keys=restraint_sought` only, never `<date>`: OK. |
+
+## T-613 byte check (Ajay, 27 Oct 2026): fix/t-613-o39-injunction, T-613 commit 2031bab6, merged with develop_staging at 502e05e9
+
+| item | result |
+| --- | --- |
+| Pack (`temporary_injunction_o39.json` at 502e05e9) | **Exact**, checked by script against this file: cause title (a), caseNomenclature, prayer (a) (with `{acts_complained_of}` no longer in the prayer), the nine body lines (f) with no `Para N` left, O.25 R.1 gone, and the labels, questions, types and required flags of `restraint_sought`, `main_suit_relief`, `title_document_date` and `suit_number`. The "suit_number must be filled" validation is gone. |
+| Fallback | template-engine prints `Suit No. _____ of {current_year}` when `suit_number` is blank. OK. |
+| Courts | `Civil Court (Junior Division)` / `IN THE COURT OF CIVIL JUDGE (JUNIOR DIVISION), PATNA` exact. The engine strips a leading "IN THE COURT OF" from a designation (template-engine ~976), so the heading never doubles. |
+| Canonical State names | "India (Union)" and "Andaman and Nicobar Islands (UT)" are **OK as picker labels only**. Condition: no draft prints a `(Union)` or `(UT)` suffix, and the cause title keeps its signed party wording ("State of …" / "Union of India"). Anushka checks this on develop. |
+| F3 sale-deed date | Covered by T-611 P2 (merged at 023b08c5). Re-test on develop with Anushka's matter. |
+
+**APPROVED at 502e05e9.** It counts as merged only at the develop_staging SHA that contains 502e05e9. T-629 (Confirm block) and T-628 (prayer date gate) must be in the same prod release.
