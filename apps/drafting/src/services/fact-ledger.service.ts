@@ -186,22 +186,32 @@ export function referenceYear(now: Date): number {
 
 type LedgerValue = LedgerFact['value'];
 
-const PS_MARKER = String.raw`(?:p\.?\s*s\.?|police\s+station|थाना)`;
-const PS_LEAD = new RegExp(`^${PS_MARKER}(?=[\\s.:,-])[\\s.:,-]*`, 'iu');
-const PS_TRAIL = new RegExp(`[\\s.:,-]+${PS_MARKER}\\s*$`, 'iu');
+/** T-612 (6a): PS, P.S., P S or Police Station, any case. Matching only. */
+const PS_WORDS = String.raw`(?:police\s+station|p\.?\s*s\.?)`;
+const PS_LEAD = new RegExp(`^${PS_WORDS}(?=[\\s.:,\\-–])[\\s.:,\\-–]*`, 'iu');
+const PS_TRAIL = new RegExp(`[\\s.:,\\-–]+${PS_WORDS}\\s*$`, 'iu');
+/** T-612 (6a): Thana or थाना only when a separator (:, -, –) follows; "Thana Bhawan" keeps it. */
+const THANA_LEAD = /^(?:thana|थाना)\s*[:\-–]\s*/iu;
+/** T-612 (6b): a trailing Thana or थाना, the last word with a name before it ("Kotwali थाना"). */
+const THANA_TRAIL = /[\s.:,\-–]+(?:thana|थाना)\s*$/iu;
 
 /**
- * Ajay T-612 (6)(a): the bare station name stored as the display. One leading
- * or trailing PS, P.S., Police Station or थाना is removed (case- and
- * dot-insensitive); a trailing one first. A value that is only a marker, or a
- * marker glued to the name ("KotwaliPS"), is kept as written.
+ * Ajay T-612 (6a), amending (6) and T-334 Addendum 2: the station name stored
+ * as the display, with one marker removed, once: a trailing, else a leading
+ * PS, P.S., P S or Police Station (any case), else a leading Thana or थाना
+ * followed by a separator (`:`, `-`, `–`), else (6b) a trailing Thana or थाना.
+ * A leading bare "Thana Bhawan" or "थाना कोतवाली" keeps "Thana"/"थाना" as part
+ * of the name. A value that is only a marker, or a
+ * marker glued to the name ("KotwaliPS", "Psalm Nagar"), is kept as written.
+ * The draft renderer applies the same table (`stripPoliceStationPrefix`).
  */
 export function bareStationName(display: string): string {
   const v = display.trim();
-  const t = v.replace(PS_TRAIL, '').trim();
-  if (t !== v && t !== '') return t;
-  const l = v.replace(PS_LEAD, '').trim();
-  return l !== '' ? l : v;
+  for (const re of [PS_TRAIL, PS_LEAD, THANA_LEAD, THANA_TRAIL]) {
+    const rest = v.replace(re, '').trim();
+    if (rest !== v && rest !== '') return rest;
+  }
+  return v;
 }
 
 /**

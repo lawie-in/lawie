@@ -289,7 +289,9 @@ describe('round 5: stripPoliceStationPrefix', () => {
     ['police station: Hazratganj', 'Hazratganj'],
     ['Police Station - Hazratganj', 'Hazratganj'],
     ['Thana-Kotwali', 'Kotwali'],
-    ['Thana Kotwali', 'Kotwali'],
+    // T-612 (6a) amends T-334 Add. 2: Thana is stripped only with a separator after it.
+    ['Thana: Kotwali', 'Kotwali'],
+    ['Thana Kotwali', 'Thana Kotwali'],
     ['  PS   Gomti Nagar  ', 'Gomti Nagar'],
     ['PS: Sherghati', 'Sherghati'],
   ])('%j -> %j', (input, want) => {

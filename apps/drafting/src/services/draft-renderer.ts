@@ -587,34 +587,27 @@ export const POLICE_STATION_PREFIXES: ReadonlyArray<readonly string[]> = [
 ];
 
 /**
- * One leading police-station prefix removed (case-insensitive), then trimmed:
- * "PS Kadamkuan", "P.S. Kadamkuan", "Police Station Kadamkuan" and
- * "Thana-Kotwali" lose it; "Psalm Nagar" does not (whole words only).
+ * Ajay T-612 (6a), amending T-334 Addendum 2: one police-station marker
+ * removed, once, by the same table the ledger stores by (`bareStationName`):
+ * a trailing, else a leading PS, P.S., P S or Police Station (any case), else
+ * a leading Thana or थाना followed by a separator (`:`, `-`, `–`), else (6b) a
+ * trailing Thana or थाना. So "PS Kadamkuan", "Kotwali P.S.", "Thana-Kotwali"
+ * and "Kotwali थाना" lose it; "Thana Bhawan",
+ * "थाना कोतवाली", "Psalm Nagar" and "KotwaliPS" do not. A value already stored
+ * bare is left as it is.
  */
 export function stripPoliceStationPrefix(value: string): string {
   const v = value.trim();
-  // T-612 (6): a ledger saved before the bare-name store may hold a trailing
-  // marker ("Kotwali P.S.") or a leading थाना; one is removed so one prefix prints.
-  const tail = v.replace(/[\s.:,-]+(?:p\.?\s*s\.?|police\s+station|थाना)\s*$/iu, '').trim();
-  if (tail !== v && tail !== '') return tail;
-  const lead = v.replace(/^थाना[\s.:,-]+/u, '').trim();
-  if (lead !== v && lead !== '') return lead;
-  for (const words of POLICE_STATION_PREFIXES) {
-    let rest = v;
-    let matched = true;
-    for (const w of words) {
-      const m = rest.match(/^(\p{L}+)[\s.:,-]*/u);
-      if (!m || m[1].toLowerCase() !== w) {
-        matched = false;
-        break;
-      }
-      rest = rest.slice(m[0].length);
-    }
-    // A prefix glued to the name ("PSKadamkuan") is not a prefix.
-    if (matched && rest.trim() !== '' && rest.length < v.length) {
-      const consumed = v.slice(0, v.length - rest.length);
-      if (/[\s.:,-]$/.test(consumed)) return rest.trim();
-    }
+  const res = [
+    /[\s.:,\-–]+(?:police\s+station|p\.?\s*s\.?)\s*$/iu,
+    /^(?:police\s+station|p\.?\s*s\.?)(?=[\s.:,\-–])[\s.:,\-–]*/iu,
+    /^(?:thana|थाना)\s*[:\-–]\s*/iu,
+    // T-612 (6b): a trailing Thana or थाना, the last word with a name before it.
+    /[\s.:,\-–]+(?:thana|थाना)\s*$/iu,
+  ];
+  for (const re of res) {
+    const rest = v.replace(re, '').trim();
+    if (rest !== v && rest !== '') return rest;
   }
   return v;
 }

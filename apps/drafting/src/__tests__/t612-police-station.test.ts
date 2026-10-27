@@ -20,6 +20,12 @@ import {
 } from '../services/draft-renderer';
 import { applyEdit, normalizeForItem } from '../services/fact-ledger.service';
 import { buildChecklist } from '../services/intake-brief';
+import {
+  buildPlaceholderContext,
+  loadTemplateConfig,
+  renderTemplateSection,
+  replacePlaceholders,
+} from '../services/template-engine.service';
 import { loadRulePack, loadSkeleton } from '../services/rule-pack.service';
 
 import { anticipatoryBase, fact, regularBase } from './fixtures/t373';
@@ -29,37 +35,50 @@ const YEAR = 2026;
 type PackId = 'bail_regular' | 'bail_anticipatory';
 const PACKS: PackId[] = ['bail_regular', 'bail_anticipatory'];
 
-const SPELLINGS = [
-  'PS Kotwali',
-  'P.S. Kotwali',
-  'Police Station Kotwali',
-  'थाना Kotwali',
-  'Kotwali PS',
-  'Kotwali P.S.',
-  'Kotwali Police Station',
-  'Kotwali थाना',
-];
-
 const stationItem = () =>
   buildChecklist(loadRulePack('bail_regular')!).find((i) => i.key === 'police_station')!;
 
-describe('T-612 (6) normalizeForItem stores the bare station name', () => {
-  it.each(SPELLINGS)('%s -> display Kotwali, value kotwali', (text) => {
-    const n = normalizeForItem(stationItem(), text, YEAR);
-    expect(n).toMatchObject({ ok: true, display: 'Kotwali', value: 'kotwali' });
+// Ajay T-612 (6a), 27 Oct 2026: one table for storing and rendering.
+const KOTWALI_PS = [
+  'PS Kotwali',
+  'P.S. Kotwali',
+  'P S Kotwali',
+  'Police Station Kotwali',
+  'Kotwali PS',
+  'Kotwali P.S.',
+  'Kotwali Police Station',
+];
+const THANA_BHAWAN_MARKED = [
+  'PS Thana Bhawan',
+  'P.S. Thana Bhawan',
+  'Police Station Thana Bhawan',
+  'Thana Bhawan PS',
+];
+/** Typed -> stored display. */
+const TABLE: Array<[string, string]> = [
+  ...KOTWALI_PS.map((t): [string, string] => [t, 'Kotwali']),
+  ...THANA_BHAWAN_MARKED.map((t): [string, string] => [t, 'Thana Bhawan']),
+  ['Thana Bhawan', 'Thana Bhawan'],
+  ['Thana: Kotwali', 'Kotwali'],
+  ['Thana-Kotwali', 'Kotwali'],
+  ['थाना - कोतवाली', 'कोतवाली'],
+  ['थाना कोतवाली', 'थाना कोतवाली'],
+  ['थाना Kotwali', 'थाना Kotwali'],
+  // (6b): a trailing Thana/थाना (the last word, a name before it) is stripped once
+  ['Kotwali थाना', 'Kotwali'],
+  ['Kotwali Thana', 'Kotwali'],
+  ['Bhawan thana', 'Bhawan'],
+  ['Psalm Nagar', 'Psalm Nagar'],
+  ['KotwaliPS', 'KotwaliPS'],
+  ['Kotwali', 'Kotwali'],
+];
+
+describe('T-612 (6a) normalizeForItem stores the station name with one marker removed', () => {
+  it.each(TABLE)('%s -> %s', (text, display) => {
+    expect(normalizeForItem(stationItem(), text, YEAR)).toMatchObject({ ok: true, display });
   });
 
-  it.each([
-    ['Psalm Nagar', 'Psalm Nagar'],
-    ['KotwaliPS', 'KotwaliPS'],
-    ['Kotwali', 'Kotwali'],
-    ['Thana Bhawan PS', 'Thana Bhawan'],
-  ])('%s -> %s', (text, display) => {
-    const n = normalizeForItem(stationItem(), text, YEAR);
-    expect(n).toMatchObject({ ok: true, display });
-  });
-
-  it.each(SPELLINGS)('an answer "%s" keeps the typed words as raw_span', (text) => {
+  it.each(TABLE)('an answer "%s" keeps the typed words as raw_span', (text, display) => {
     const out = applyEdit(
       { facts: [], unresolved: [] },
       stationItem(),
@@ -67,10 +86,8 @@ describe('T-612 (6) normalizeForItem stores the bare station name', () => {
       YEAR,
     );
     const f = out.next!.facts.find((x) => x.key === 'police_station')!;
-    expect(f.display).toBe('Kotwali');
-    expect(f.value).toBe('kotwali');
-    expect(f.raw_span).toBe(text);
-    expect(out.result).toMatchObject({ status: 'saved', display: 'Kotwali' });
+    expect(f).toMatchObject({ display, raw_span: text });
+    expect(out.result).toMatchObject({ status: 'saved', display });
   });
 
   it('a question answer (from_question) keeps raw_span too', () => {
@@ -85,39 +102,51 @@ describe('T-612 (6) normalizeForItem stores the bare station name', () => {
   });
 });
 
-describe('T-612 (6) stripPoliceStationPrefix reads an old ledger', () => {
-  it.each(SPELLINGS)('%s -> Kotwali', (raw) => {
-    expect(stripPoliceStationPrefix(raw)).toBe('Kotwali');
+describe('T-612 (6b) a marker alone is not a name', () => {
+  it.each(['Thana', 'थाना'])('%s is never stripped to nothing', (text) => {
+    const n = normalizeForItem(stationItem(), text, YEAR);
+    if (n.ok) expect(n.display).toBe(text);
+    expect(stripPoliceStationPrefix(text)).toBe(text);
   });
-  it('the bare name stays', () => {
+});
+
+describe('T-612 (6a) stripPoliceStationPrefix applies the same table', () => {
+  it.each(TABLE)('%s -> %s', (raw, want) => {
+    expect(stripPoliceStationPrefix(raw)).toBe(want);
+  });
+  it('a value already stored bare is left as it is', () => {
+    expect(stripPoliceStationPrefix('Thana Bhawan')).toBe('Thana Bhawan');
     expect(stripPoliceStationPrefix('Kotwali')).toBe('Kotwali');
-  });
-  it('existing behaviour holds: Thana-Kotwali loses its prefix, Psalm Nagar does not', () => {
-    expect(stripPoliceStationPrefix('Thana-Kotwali')).toBe('Kotwali');
-    expect(stripPoliceStationPrefix('Psalm Nagar')).toBe('Psalm Nagar');
-  });
-  it('a trailing marker on a longer name goes', () => {
-    expect(stripPoliceStationPrefix('Thana Bhawan PS')).toBe('Thana Bhawan');
   });
 });
 
 // ── Draft: exactly one prefix ───────────────────────────────────────────────
 
-function render(packId: PackId, station: string) {
+const count = (h: string, n: string) => h.split(n).length - 1;
+
+// ── A new ledger fact, end to end: normalize, store, render ─────────────────
+
+/** The fact a new answer writes: the normalizer's display and value, the typed words as raw_span. */
+function storedFact(text: string): LedgerFact {
+  const n = normalizeForItem(stationItem(), text, YEAR);
+  if (!n.ok) throw new Error(`unreadable: ${text}`);
+  return fact('police_station', n.display, {
+    type: 'police_station',
+    value: n.value as never,
+    raw_span: text,
+  });
+}
+function renderFact(packId: PackId, f: LedgerFact): string {
   const pack = loadRulePack(packId)!;
   const skeleton = loadSkeleton(packId)!;
   const lists = loadAvermentLists(packId);
   const base = (packId === 'bail_regular' ? regularBase() : anticipatoryBase()).filter(
-    (f) => f.key !== 'police_station',
+    (x) => x.key !== 'police_station',
   );
-  const facts: LedgerFact[] = [
-    ...base,
-    fact('police_station', station, { type: 'police_station' }),
-  ];
   return renderDraft({
     skeleton,
     output: null,
-    facts,
+    facts: [...base, f],
     labels: Object.fromEntries(buildChecklist(pack).map((i) => [i.key, i.label])),
     clauseLabels: Object.fromEntries(pack.mandatoryClauses.map((m) => [m.id, m.title])),
     optionIds: packOptionIds(pack.facts),
@@ -125,15 +154,96 @@ function render(packId: PackId, station: string) {
     verifier: { unresolved: [], lists, packText: packTexts(pack), skeleton: [] },
   }).body;
 }
-const count = (h: string, n: string) => h.split(n).length - 1;
 
-describe.each(PACKS)('T-612 (6) %s prints one "Police Station Kotwali"', (packId) => {
-  // old ledgers hold the advocate's words; new ones the bare name
-  it.each([...SPELLINGS, 'Kotwali'])('ledger display "%s"', (display) => {
-    const body = render(packId, display);
-    expect(count(body, 'Police Station Kotwali')).toBe(1);
-    expect(body).not.toMatch(/\bPS\b|P\.S\.|थाना/u);
-    expect(body).not.toMatch(/Police Station\s+(?:Police Station|PS|P\.S\.|थाना)/u);
+const TEMPLATE_DATA = {
+  currently_in_custody: 'yes_judicial',
+  fir_number: '124/2026',
+  fir_date: '15/03/2026',
+  sections_charged: 'BNS 103',
+  facts_narrative: 'Facts.',
+  grounds_for_bail: ['false_implication'],
+  applicant_name: 'Ram Kumar',
+  father_name: 'Shyam Kumar',
+  bail_section: '480',
+  bail_type_label: 'Regular Bail',
+};
+/** The prayer section and the AI prompt, filled the way the template path fills them. */
+function templateTexts(packId: PackId, station: string): string[] {
+  const config = loadTemplateConfig(packId)!;
+  const ctx = buildPlaceholderContext(config, { ...TEMPLATE_DATA, police_station: station });
+  const out: string[] = [];
+  for (const sec of config.document_structure.sections) {
+    if (sec.section_id === 'prayer') out.push(renderTemplateSection(sec, ctx).content);
+    const prompt = (sec as { prompt_context?: string }).prompt_context;
+    if (prompt?.includes('{police_station}')) out.push(replacePlaceholders(prompt, ctx));
+  }
+  return out;
+}
+
+const D1_ONCE: Array<[string, string]> = [
+  ...KOTWALI_PS.map((t): [string, string] => [t, 'Police Station Kotwali']),
+  ['Thana: Kotwali', 'Police Station Kotwali'],
+  ['Thana-Kotwali', 'Police Station Kotwali'],
+  ...THANA_BHAWAN_MARKED.map((t): [string, string] => [t, 'Police Station Thana Bhawan']),
+  ['Thana Bhawan', 'Police Station Thana Bhawan'],
+  ['Kotwali थाना', 'Police Station Kotwali'],
+  ['Kotwali Thana', 'Police Station Kotwali'],
+  ['Bhawan thana', 'Police Station Bhawan'],
+];
+const noStrayMarker = (body: string) => {
+  expect(body).not.toMatch(/\bPS\b|P\.S\./u);
+  expect(body).not.toMatch(/Police Station\s+(?:Police Station|PS|P\.S\.)/u);
+};
+
+describe.each(PACKS)('T-612 (6a) %s: D1 prints one prefix', (packId) => {
+  it.each(D1_ONCE)('new fact from "%s" prints "%s" once', (text, want) => {
+    const body = renderFact(packId, storedFact(text));
+    expect(count(body, want)).toBe(1);
+    noStrayMarker(body);
+  });
+
+  it.each(D1_ONCE)('old-ledger value "%s" prints "%s" once', (text, want) => {
+    const body = renderFact(packId, fact('police_station', text, { type: 'police_station' }));
+    expect(count(body, want)).toBe(1);
+    noStrayMarker(body);
+  });
+
+  it('Thana Bhawan never loses its first word', () => {
+    for (const t of [...THANA_BHAWAN_MARKED, 'Thana Bhawan']) {
+      expect(renderFact(packId, storedFact(t))).not.toContain('Police Station Bhawan');
+    }
+  });
+
+  it.each(['थाना Kotwali'])(
+    'old-ledger "%s" prints "Police Station थाना Kotwali" (accepted by 6a, no migration)',
+    (text) => {
+      const body = renderFact(packId, fact('police_station', text, { type: 'police_station' }));
+      expect(count(body, 'Police Station थाना Kotwali')).toBe(1);
+    },
+  );
+
+  it.each(['Psalm Nagar', 'KotwaliPS', 'Kotwali'])('"%s" is stored unchanged', (text) => {
+    expect(storedFact(text).display).toBe(text);
+  });
+
+  // The template path (template-engine.service.ts) still applies the older T-139 rules to RAW values;
+  // only stored values are pinned here. Edge cases such as "Thana: Kotwali" or "P S Kotwali" on that
+  // path wait for T-638.
+  it.todo('template path, raw values (Thana: Kotwali, P S Kotwali, bare Thana Bhawan): T-638');
+
+  it.each([
+    ...KOTWALI_PS.filter((t) => t !== 'P S Kotwali').map((t): [string, string] => [
+      t,
+      'Police Station Kotwali',
+    ]),
+    ...THANA_BHAWAN_MARKED.map((t): [string, string] => [t, 'Police Station Thana Bhawan']),
+  ])('template path, stored value from "%s": prayer and prompt read "%s" once', (text, want) => {
+    const texts = templateTexts(packId, storedFact(text).display);
+    expect(texts.length).toBeGreaterThanOrEqual(2);
+    for (const t of texts) {
+      expect(count(t, want)).toBe(1);
+      expect(t).not.toMatch(/\bPS\b|P\.S\./u);
+    }
   });
 });
 
