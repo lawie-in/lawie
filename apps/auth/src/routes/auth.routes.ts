@@ -11,6 +11,7 @@ import {
   getMe,
   updateMeHandler,
   acceptPrivacyHandler,
+  signupConsentHandler,
   verifyEmailHandler,
   resendVerifyEmailHandler,
   resendVerifyByEmailHandler,
@@ -46,6 +47,8 @@ router.get('/me', authenticate, getMe);
 // requireCurrentPrivacy: auth gets no gateway pv header to read.
 router.patch('/me', authenticate, updateMeHandler);
 router.post('/me/privacy-acceptance', authenticate, acceptPrivacyHandler);
+// T-642 — the next-sign-in M16 box for acceptedVia 'google' accounts. Live session, as above.
+router.post('/me/signup-consent', authenticate, signupConsentHandler);
 // T-507 — account settings. Live session required. /me/password: per-user failed-attempt limit
 // (password-change-rate-limit.ts), and per IP as /login is:
 // by the gateway's publicRateLimiter on the whole /api/auth proxy (auth has no limiter of its
