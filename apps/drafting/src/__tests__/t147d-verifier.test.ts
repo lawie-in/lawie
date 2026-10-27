@@ -1798,13 +1798,14 @@ describe('switch off: the verifier is not there', () => {
     expect(await PlaceholderRate.countDocuments({})).toBe(0);
   });
 
-  it('on the old path the body is still streamed as it arrives', async () => {
+  // T-637 / Arjun option B: with no persisted ledger the body is held until the gate decides,
+  // so it is not streamed; it is delivered in template_sections.
+  it('on the old path no text chunk streams; the body is delivered in template_sections', async () => {
     await switchOff();
     mockModel(answer(CLEAN));
     const res = await post();
-    expect(res.text).toMatch(/data: \{"text":/);
-    const streamed = (res.text.match(/data: (\{"text":[^\n]*)/g) ?? []).join('');
-    expect(streamed).toContain('Ram Kumar');
+    expect(res.text).not.toMatch(/data: \{"text":/);
+    expect(JSON.stringify(event(res.text, 'template_sections'))).toContain('Ram Kumar');
   });
 });
 

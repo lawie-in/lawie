@@ -428,16 +428,18 @@ describe('T-477 E (Ajay): [only when: ...] and related_acts never reach the draf
     expect(ev).toContain('SARFAESI Act 2002, lends the sum.');
   });
 
-  // Finding, not a wish: the live SSE text chunks are written before sanitiseAIBody runs,
-  // so a streamed echo still reaches the browser until the client swaps in template_sections.
-  it('the raw streamed chunks still carry an echoed marker (sanitise runs after the stream)', async () => {
+  // T-637 / Arjun option B: the form route no longer streams text chunks, so an echoed marker
+  // never reaches the browser raw; the delivered body (template_sections) has it stripped.
+  it('no text chunk streams, and the echoed marker is stripped from the delivered body', async () => {
     const { written } = await runTemplate(
       'loan_agreement',
       FORM,
       '1. That the lender [only when: Foreign lender] lends.',
     );
-    const chunks = written.split('\n\n').filter((e) => e.startsWith('data: '));
-    expect(chunks.join('')).toContain('[only when: Foreign lender]');
+    expect(written).not.toMatch(/data: \{"text"/);
+    expect(written).not.toContain('[only when: Foreign lender]');
+    expect(written).toContain('event: template_sections');
+    expect(written).toContain('the lender');
   });
 });
 
