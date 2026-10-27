@@ -17,3 +17,10 @@ POST /documents/generate-from-template (documents.routes.ts ~977-1050, streamGen
 4. Tests on the form path, including Anushka's regular-bail inputs.
 5. Ajay confirms the policy applies as-is, or reviews the form path.
 6. Release gate: no prod cut without T-637.
+
+## Scope widened (Arjun, 27 Oct 2026): the gate runs with no ledger
+The delivery gate is a safety property. It runs on every draft, whatever the value of feature.fact_ledger. When no ledger exists, T-637 builds an in-memory ledger from the brief (brief path) or from the form answers (form route), then runs the same fill, repair and withhold.
+- AC7: gate tests cover both branches, ledger present and in-memory.
+- AC8: the gate is active with feature.fact_ledger off. A draft from Anushka's bail matter with the flag off never delivers a {{MISSING for a brief-held fact.
+- feature.fact_ledger keeps controlling only the persisted per-user ledger (Phase 1).
+- Ajay FR-6 is met by this; the release note still states the flag's value.
