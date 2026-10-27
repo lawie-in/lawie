@@ -14,7 +14,7 @@
  * Without a ledger the screen is exactly as before.
  */
 import { ChevronDown, Loader2 } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   Brief,
@@ -223,25 +223,29 @@ function Item({
   const multiFacts = multi && ledger ? ledger.facts.filter((f) => f.key === item.key) : [];
   // T-612: a pick kept after a null outcome gives way once the ledger's entries
   // for this key change (a re-read, another document).
+  const multiDisplaysKey = multi ? JSON.stringify(multiFacts.map((f) => f.display)) : '[]';
   const multiLedgerKey = multi
-    ? JSON.stringify([multiFacts.map((f) => f.display), entry.unresolved?.raw_span ?? null])
+    ? JSON.stringify([multiDisplaysKey, entry.unresolved?.raw_span ?? null])
     : '';
+  // T-612: the same array while the entries are the same, so a re-render elsewhere
+  // does not reset a list being typed in (ValueInput resets on a new value).
+  const multiShown = useMemo(() => JSON.parse(multiDisplaysKey) as string[], [multiDisplaysKey]);
   useEffect(() => {
     setStatus((s) => (s?.kind === 'kept' ? null : s));
   }, [multiLedgerKey]);
   // T-612: only the newest pick on this row may set its status; an older answer
   // arriving later must not undo it.
   const latestCommit = useRef(0);
-  // T-612: what was just picked shows while it saves too, so a chip stays ticked
-  // and the next tick adds to it.
+  // T-612: for several choices or a list, what was just picked shows while it
+  // saves too, so a chip stays ticked and the next tick adds to it.
   const shown: Value | null =
-    status && 'typed' in status
+    status && 'typed' in status && (multi || status.kind !== 'saving')
       ? status.typed
       : notKnown !== undefined
         ? notKnown
         : entry.fact
           ? multi
-            ? multiFacts.map((f) => f.display)
+            ? multiShown
             : fieldValueOf(item, entry.fact)
           : entry.unresolved
             ? null
@@ -342,9 +346,7 @@ function Item({
       {...(onLedger && entry.fact
         ? {
             'data-ledger-key': entry.fact.key,
-            'data-ledger-display': multi
-              ? multiFacts.map((f) => f.display).join(', ')
-              : entry.fact.display,
+            'data-ledger-display': multi ? multiShown.join(', ') : entry.fact.display,
           }
         : {})}
       {...(toBeAsked ? { 'data-ledger-unresolved': item.key } : {})}

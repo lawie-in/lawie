@@ -331,13 +331,12 @@ describe('T-612 BriefStep: rows that are not multi-select', () => {
     });
   };
 
-  it('a text row shows the typed text while saving, then falls back to the ledger on a null outcome', async () => {
+  it('a text row keeps the typed text while saving and after a null outcome; a later ledger change replaces it', async () => {
     const { res, onValue } = deferredRow();
     const row = briefOf([
       item({ key: 'police_station', label: 'Police Station', kind: 'text', options: [] }),
     ]);
-    const ledger = ledgerOf([fact('police_station', 'Kotwali')], ['police_station']);
-    mount(row, ledger, onValue);
+    mount(row, ledgerOf([fact('police_station', 'Kotwali')], ['police_station']), onValue);
     const input = () =>
       container.querySelector('input[type="text"], input:not([type])') as HTMLInputElement;
     expect(input().value).toBe('Kotwali');
@@ -346,11 +345,15 @@ describe('T-612 BriefStep: rows that are not multi-select', () => {
     expect(input().value).toBe('Gandhi Maidan');
     await act(async () => res[0](null));
     await settle();
-    expect(input().value).toBe('Kotwali');
     expect(text()).not.toContain('Saving…');
+    expect(container.querySelector('[id$="-status"]')).toBeNull();
+    expect(input().value).toBe('Gandhi Maidan');
+    mount(row, ledgerOf([fact('police_station', 'Sadar')], ['police_station']), onValue);
+    await settle();
+    expect(input().value).toBe('Sadar');
   });
 
-  it('a date row falls back to the ledger value on a null outcome', async () => {
+  it('a date row keeps the typed date while saving and after a null outcome; a later ledger change replaces it', async () => {
     const { res, onValue } = deferredRow();
     const row = briefOf([
       item({ key: 'custody_since', label: 'In custody since', kind: 'date', options: [] }),
@@ -362,21 +365,99 @@ describe('T-612 BriefStep: rows that are not multi-select', () => {
     expect(text()).toContain('Saving…');
     await act(async () => res[0](null));
     await settle();
-    expect(input().value).toBe('2026-09-20');
+    expect(text()).not.toContain('Saving…');
+    expect(container.querySelector('[id$="-status"]')).toBeNull();
+    expect(input().value).toBe('2026-09-21');
+    mount(row, ledgerOf([fact('custody_since', '2026-09-25')], ['custody_since']), onValue);
+    await settle();
+    expect(input().value).toBe('2026-09-25');
   });
 
-  it('a number row falls back to the ledger value on a null outcome', async () => {
+  it('a number row keeps the typed number while saving and after a null outcome', async () => {
     const { res, onValue } = deferredRow();
     const row = briefOf([
       item({ key: 'applicant_age', label: 'Age', kind: 'number', options: [] }),
     ]);
     mount(row, ledgerOf([fact('applicant_age', '34')], ['applicant_age']), onValue);
-    const input = container.querySelector('input') as HTMLInputElement;
-    await setInput(input, '35', true);
-    expect(input.value).toBe('35');
+    const input = () => container.querySelector('input') as HTMLInputElement;
+    await setInput(input(), '35', true);
+    expect(input().value).toBe('35');
+    expect(text()).toContain('Saving…');
     await act(async () => res[0](null));
     await settle();
-    expect((container.querySelector('input') as HTMLInputElement).value).toBe('34');
+    expect(text()).not.toContain('Saving…');
+    expect(container.querySelector('[id$="-status"]')).toBeNull();
+    expect(input().value).toBe('35');
+  });
+});
+
+describe('T-612 BriefStep: a list row being typed in', () => {
+  const LIST = briefOf([
+    item({ key: 'sections_charged', label: 'Sections', kind: 'list', options: [] }),
+  ]);
+  const sections = (...d: string[]) => d.map((x) => fact('sections_charged', x));
+  const ta = () => container.querySelector('textarea') as HTMLTextAreaElement;
+  const typeHalf = async (v: string) =>
+    act(async () => {
+      (
+        Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')?.set as (
+          x: string,
+        ) => void
+      ).call(ta(), v);
+      ta().dispatchEvent(new Event('input', { bubbles: true }));
+    });
+
+  it('half-typed text survives a re-render whose ledger is a new object with this key unchanged', async () => {
+    const own = sections('BNS 318(4)', 'BNS 316(2)');
+    mount(LIST, ledgerOf(own, ['sections_charged']), jest.fn());
+    await typeHalf('BNS 318(4)\nBNS 3');
+    mount(
+      LIST,
+      ledgerOf([...own, fact('police_station', 'Kotwali')], ['sections_charged', 'police_station']),
+      jest.fn(),
+    );
+    await settle();
+    expect(ta().value).toBe('BNS 318(4)\nBNS 3');
+  });
+
+  it('when its own facts change the textarea shows the new entries', async () => {
+    mount(LIST, ledgerOf(sections('BNS 318(4)', 'BNS 316(2)'), ['sections_charged']), jest.fn());
+    await typeHalf('BNS 3');
+    mount(
+      LIST,
+      ledgerOf(sections('BNS 318(4)', 'BNS 316(2)', 'BNS 61(2)'), ['sections_charged']),
+      jest.fn(),
+    );
+    await settle();
+    expect(ta().value).toContain('BNS 61(2)');
+    expect(ta().value).toContain('BNS 318(4)');
+  });
+});
+
+describe('T-612 BriefStep: a race that starts from a failed save', () => {
+  it('an older retry answering late does not overwrite the newer cumulative pick', async () => {
+    const { res, onValue } = deferredRow();
+    mount(BRIEF, LEDGER, onValue);
+    await click('Parity');
+    await act(async () => res[0]({ status: 'failed' }));
+    await settle();
+    expect(text()).toContain('Could not save');
+    const retry = Array.from(container.querySelectorAll('button')).find(
+      (b) => b.textContent === 'Try again',
+    );
+    await act(async () => retry?.click()); // older answer, res[1]
+    await click('Long custody'); // newer answer, res[2], builds on the pick
+    expect(onValue.mock.calls[1][1]).toEqual(['Parity']);
+    expect(onValue.mock.calls[2][1]).toEqual(['Parity', 'Long custody']);
+    await act(async () => res[2](saved('Parity, Long custody')));
+    mount(BRIEF, withFacts(...BOTH), onValue);
+    await settle();
+    await act(async () => res[1]({ status: 'failed' }));
+    await settle();
+    expect(pressed('Parity')).toBe('true');
+    expect(pressed('Long custody')).toBe('true');
+    expect(text()).not.toContain('Could not save');
+    expect(text()).not.toContain('Saving…');
   });
 });
 
