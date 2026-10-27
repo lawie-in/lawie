@@ -5,7 +5,7 @@
 | Phase  | 4 — Release (legal; ships with T-613) |
 | Owner  | vishal, straight after T-611 |
 | Mode   | Full chain; legal (ai.service.ts gate) |
-| Status | To do. Raised 26 Oct 2026 (Ajay d7fed857; question 22cc298f §h). Priya |
+| Status | Merged into develop_staging b2e91054, 27 Oct 2026 (CI pending). Ships with T-613 and T-629. Priya |
 
 ## Acceptance criteria
 1. A date before today (IST) in {restraint_sought} or anywhere in the prayer of a temporary_injunction_o39 draft is a blocking finding, code `past_date_in_prayer`, through withholdDraft on both paths.

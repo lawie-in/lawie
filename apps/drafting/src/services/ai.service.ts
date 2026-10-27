@@ -159,6 +159,17 @@ import {
   UsageTotals,
 } from './llm-usage';
 import { postProcess } from './post-processor';
+import {
+  modelPrayerSection,
+  PAST_DATE_GATE_PACK_ID,
+  pastDateInPrayer,
+  pastDateInPrayerLine,
+  RESTRAINT_SOUGHT_KEY,
+  RESTRAINT_SOUGHT_LABEL,
+  SUBJECT_MATTER_KEY,
+  subjectMatterDisplays,
+  withoutSubjectMatter,
+} from './prayer-date-gate';
 import { assemblePrompt, PromptInput } from './prompt-assembler';
 import { renderRelatedActs } from './related-acts';
 import { loadSkeleton as loadSignedSkeleton } from './rule-pack.service';
@@ -516,13 +527,15 @@ function classifyLlmError(err: unknown): ClassifiedLlmError {
 /**
  * Why a run ended before `done`. T-611 (Ajay P1, P6): `fact_needed` and
  * `fact_conflict` are a draft withheld by the delivery gate; the route returns
- * the hold and saves a failed row, as for any other code.
+ * the hold and saves a failed row, as for any other code. T-628 (Ajay, T-613
+ * §(h)): `past_date_in_prayer` is the same, for a past date in an O.39 prayer.
  */
 export type GenerationFailedCode =
   | ClassifiedLlmError['code']
   | 'party_details_missing'
   | 'fact_needed'
-  | 'fact_conflict';
+  | 'fact_conflict'
+  | 'past_date_in_prayer';
 
 /** Sentinel thrown after a mid-stream LLM failure so the route handler knows
  *  the SSE has already been ended and not to re-emit `done`. Carries whatever
@@ -716,7 +729,55 @@ export function factMismatchLine(value: string, label: string, heldValue: string
 /** What the gate withholds a draft for: one question to the advocate. */
 export type WithheldDraft =
   | { code: 'fact_conflict'; conflict: FactConflict }
-  | { code: 'fact_needed'; blank: HeldBlank };
+  | { code: 'fact_needed'; blank: HeldBlank }
+  | {
+      code: 'past_date_in_prayer';
+      key: typeof RESTRAINT_SOUGHT_KEY;
+      label: string;
+      /** As written in the prayer. Goes to the advocate only: never logged. */
+      date: string;
+    };
+
+/**
+ * T-628 (Ajay, T-613 §(b), §(h), §(k)): a clearly resolved date before today
+ * (IST) in `{restraint_sought}` or in the prayer of a temporary_injunction_o39
+ * draft. Reads `restraint_sought` as the draft used it, then the system-built
+ * `prayer` section; only where there is none, the model's own prayer section
+ * (from its prayer heading). Never the body. Null for any other pack, and when
+ * nothing blocks. Runs after the T-611 checks (Priya: one question at a time).
+ * §(k)6 (Ajay 410c3e34): the prayer is read with the `{subject_matter}` value
+ * the draft used left out (a deed or plot date there describes the property,
+ * and an answer to restraint_sought could never clear it); everything else in
+ * the prayer is read. `subjectMatter` is one value or a list of every text the
+ * prayer can show for it (the form value and the ledger's display, which the
+ * T-611 fill puts in a held blank); empty or missing changes nothing.
+ */
+export function pastDatePrayerHold(
+  pack: Pick<RulePack, 'id' | 'facts'>,
+  restraintSought: unknown,
+  sections: readonly RenderedSection[],
+  bodyAt: number,
+  body: string,
+  now: Date = new Date(),
+  subjectMatter?: unknown | readonly unknown[],
+): WithheldDraft | null {
+  if (pack.id !== PAST_DATE_GATE_PACK_ID) return null;
+  const texts: string[] = [];
+  if (typeof restraintSought === 'string') texts.push(restraintSought);
+  const systemPrayer = sections.filter((s, i) => i !== bodyAt && s.section_id === 'prayer');
+  if (systemPrayer.length > 0) {
+    texts.push(...systemPrayer.map((s) => withoutSubjectMatter(s.content, subjectMatter)));
+  } else {
+    const own = modelPrayerSection(body);
+    if (own !== null) texts.push(withoutSubjectMatter(own, subjectMatter));
+  }
+  const found = pastDateInPrayer(texts, now);
+  if (found === null) return null;
+  const label =
+    pack.facts.find((f) => f.key === RESTRAINT_SOUGHT_KEY || f.name === RESTRAINT_SOUGHT_KEY)
+      ?.label ?? RESTRAINT_SOUGHT_LABEL;
+  return { code: 'past_date_in_prayer', key: RESTRAINT_SOUGHT_KEY, label, date: found.date };
+}
 
 /**
  * T-611: the draft is not delivered. Sends the one question as the paths' own
@@ -767,6 +828,21 @@ export function withholdDraft(
       runId,
     };
     keys = `${c.keyA}${c.keyB ? `,${c.keyB}` : ''}`;
+  } else if (withheld.code === 'past_date_in_prayer') {
+    // T-628 (Ajay, T-613 §(h)): the signed EN question with the date as written.
+    // The date goes to the advocate in this event only: keys=restraint_sought
+    // is all that is logged (§(k)4).
+    payload = {
+      section: 'body',
+      reason: pastDateInPrayerLine(withheld.date),
+      retryable: false,
+      code: 'past_date_in_prayer',
+      error: 'past_date_in_prayer',
+      key: withheld.key,
+      label: withheld.label,
+      runId,
+    };
+    keys = withheld.key;
   } else {
     const b = withheld.blank;
     payload = {
@@ -1187,6 +1263,9 @@ export async function streamGenerateFromTemplate(
     let aiModel: string | undefined;
     let transport: 'direct' | undefined;
     let onlyWhenStrips = 0;
+    // T-628: the model's text of an O.39 draft is not streamed; it goes out with
+    // the system's parts once the past-date gate below has read the prayer.
+    const streamBody = templateConfig.template_id !== PAST_DATE_GATE_PACK_ID;
 
     for (const section of promptConfig.document_structure.sections) {
       if (section.type === 'template') {
@@ -1210,7 +1289,7 @@ export async function streamGenerateFromTemplate(
           // this draft's placeholder context (T-407), so it varies per request.
           for await (const text of streamLLM(systemPrompt, userPrompt, 8192, draft)) {
             aiText += text;
-            res.write(`data: ${JSON.stringify({ text })}\n\n`);
+            if (streamBody) res.write(`data: ${JSON.stringify({ text })}\n\n`);
           }
           aiModel = draft.model;
           transport = draft.transport;
@@ -1262,6 +1341,39 @@ export async function streamGenerateFromTemplate(
           alignment: section.alignment,
         });
       }
+    }
+
+    // ── T-628: a past date in the O.39 prayer (Ajay, T-613 §(h), §(k)) ────────
+    // The same check as the brief paths, before anything of the draft is sent:
+    // restraint_sought and the system prayer (subject_matter left out, §(k)6),
+    // or the model's own prayer where there is none. Never the body. The route
+    // releases the hold and saves the failed row; no done, no Ink.
+    // (The T-611 checks are not on this route: T-637.)
+    const pastDate = pastDatePrayerHold(
+      { id: templateConfig.template_id, facts: [] },
+      ctx[RESTRAINT_SOUGHT_KEY] ?? convertedFormData[RESTRAINT_SOUGHT_KEY],
+      renderedSections,
+      -1,
+      renderedSections
+        .filter((sec) => sec.type === 'ai_generated')
+        .map((sec) => sec.content)
+        .join('\n\n'),
+      new Date(),
+      ctx[SUBJECT_MATTER_KEY] ?? convertedFormData[SUBJECT_MATTER_KEY],
+    );
+    if (pastDate !== null && pastDate.code === 'past_date_in_prayer') {
+      const formLabel = templateConfig.form_schema.steps
+        .flatMap((step) => step.fields)
+        .find((f) => f.field_id === RESTRAINT_SOUGHT_KEY)?.label;
+      throw withholdDraft(
+        res,
+        input.runId,
+        templateConfig.template_id,
+        formLabel ? { ...pastDate, label: formLabel } : pastDate,
+        meter.totals(),
+        aiModel,
+        transport,
+      );
     }
 
     // ── T-472 (Ajay, Arjun option d): the computed limitation paragraph ─────────
@@ -2262,6 +2374,10 @@ export async function streamGenerateFromBrief(
       });
     }
 
+    // The body streams as it is written only with no ledger (T-147d) and never
+    // for the pack the T-628 gate reads, whose body goes out with the system's
+    // parts once the gate has passed.
+    const streamBody = !ledgerInput && pack.id !== PAST_DATE_GATE_PACK_ID;
     try {
       // T-431: a sided pack's system prompt ends with the deponent line; it
       // varies per request, so that prompt is not cached (T-437).
@@ -2282,11 +2398,12 @@ export async function streamGenerateFromBrief(
         const visible = filter.push(text);
         // T-147d: on the ledger path nothing of the body reaches the advocate
         // before the fact verifier has read it; the checked body is sent with
-        // the system's parts below.
-        if (visible && !ledgerInput) res.write(`data: ${JSON.stringify({ text: visible })}\n\n`);
+        // the system's parts below. T-628: nor, on any path, for an O.39 draft,
+        // before the past-date gate has read its prayer (no body without Ink).
+        if (visible && streamBody) res.write(`data: ${JSON.stringify({ text: visible })}\n\n`);
       }
       const tail = filter.end();
-      if (tail && !ledgerInput) res.write(`data: ${JSON.stringify({ text: tail })}\n\n`);
+      if (tail && streamBody) res.write(`data: ${JSON.stringify({ text: tail })}\n\n`);
       recordCall('body', draft, raw);
     } catch (llmErr) {
       recordCall('body', draft, raw);
@@ -2597,6 +2714,27 @@ export async function streamGenerateFromBrief(
           transport,
         );
       }
+    }
+    // ── T-628: a past date in the O.39 prayer (Ajay, T-613 §(h), §(k)) ────────
+    // After the T-611 checks, with or without a ledger. The draft is withheld
+    // until the advocate gives restraint_sought again: no delivery, no Ink.
+    const pastDate = pastDatePrayerHold(
+      pack,
+      ctx[RESTRAINT_SOUGHT_KEY] ?? formData[RESTRAINT_SOUGHT_KEY],
+      renderedSections,
+      bodyAt,
+      output.body,
+      new Date(),
+      // The form value and, with a ledger, its display: the T-611 fill above may
+      // have put that display in a held blank in the prayer.
+      [
+        ctx[SUBJECT_MATTER_KEY],
+        formData[SUBJECT_MATTER_KEY],
+        ...subjectMatterDisplays(input.ledger?.facts),
+      ],
+    );
+    if (pastDate !== null) {
+      throw withholdDraft(res, input.runId, pack.id, pastDate, meter.totals(), aiModel, transport);
     }
 
     // ── The body takes its place among the parts the system wrote ─────────────
@@ -3211,6 +3349,32 @@ async function d1GenerateFromBrief(c: D1Context): Promise<BriefGenerateResult> {
       input.runId,
       pack.id,
       { code: 'fact_needed', blank: stillHeld[0] },
+      c.meter.totals(),
+      gateInfo.aiModel,
+      gateInfo.transport,
+    );
+  }
+  // T-628: the same check as the pack path, after the T-611 checks. A no-op
+  // for any pack but temporary_injunction_o39, which has no D1 skeleton.
+  const pastDate = pastDatePrayerHold(
+    pack,
+    c.ctx[RESTRAINT_SOUGHT_KEY] ?? c.formData[RESTRAINT_SOUGHT_KEY],
+    renderedSections,
+    c.bodyAt,
+    body,
+    new Date(),
+    [
+      c.ctx[SUBJECT_MATTER_KEY],
+      c.formData[SUBJECT_MATTER_KEY],
+      ...subjectMatterDisplays(ledger.facts),
+    ],
+  );
+  if (pastDate !== null) {
+    throw withholdDraft(
+      res,
+      input.runId,
+      pack.id,
+      pastDate,
       c.meter.totals(),
       gateInfo.aiModel,
       gateInfo.transport,
