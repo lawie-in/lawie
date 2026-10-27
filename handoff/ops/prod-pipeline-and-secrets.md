@@ -184,3 +184,7 @@ Not now: multi-AZ database (Flex is single-region, fine), CDN (Next.js static as
 **Delta over the single box, before GST:** min 1 idle ≈ ₹3,000 (Vikram models ₹3,500); min 2 ≈ ₹6,600.
 
 **Finance rulings:** design now, buy on triggers — agreed. Added trigger: **50 paying subs** (≈ 5 subs' net pays for it). Whichever of the four triggers comes first. Model v8: Parameter Store ₹0; prod box ₹3,250 with IP and disk; +₹3,500 step at 50 paying subs; launch fixed infra ≈ ₹18,000/month without the Claude plan.
+
+
+## Autoscaling note (Arjun, 27 Oct 2026, T-616b)
+The auth refresh-rotation Lua scripts assume a single Redis (managed, non-Cluster). Moving to Redis Cluster would need a slot-aware rewrite of those scripts.

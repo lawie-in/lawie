@@ -44,3 +44,7 @@ Prod logs (Nikhil, nginx and auth, values not read): 11 /refresh calls all day, 
 - AC-C (Arjun): after 2 consecutive refresh failures, show a quiet non-blocking "Reconnecting…" banner (Rajesh's spec handoff/design/T-616-reconnecting-banner.md). No sign-out and no modal. Copy: the no-promise form only (AJ-616-M1).
 - Arjun: T-616b keeps the old access token valid for the 30 s grace window. Web Locks only, with a 5 s timeout and no random delay.
 - Review: round 1 FAIL (two cross-user cases, fixed). Round 2 FAIL (two acceptance bugs). Founder approved a narrow round 3 (26 Oct).
+
+
+## T-616b env note (Arjun, 27 Oct 2026)
+JWT_REFRESH_EXPIRES_IN is ignored after T-616b; the refresh lifetime comes from SESSION_TTL_HOURS=12 and SESSION_ABSOLUTE_DAYS=7. Whichever lead merges second of T-616b and the env docs drops it from .env.example and prod-env-template.txt. Revoke-on-reuse is T-635.
