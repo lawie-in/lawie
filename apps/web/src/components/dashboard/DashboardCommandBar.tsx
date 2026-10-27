@@ -13,16 +13,16 @@
  * chips with no single template go to /dashboard/new with no kind.
  *
  * Draft (Priya, T-520; privacy: no matter text in URLs): the description is written to
- * sessionStorage under DRAFT_PREFILL_KEY (trimmed, max 500 code points, well formed) and the bar
- * goes to plain /dashboard/new. The describe step (Kunal, intake) reads and then clears the key.
- * Blank text writes nothing and removes any stale key. Every storage access is guarded, so
- * private mode or a full quota never stops the navigation.
+ * sessionStorage under DRAFT_PREFILL_KEY (trimmed, max DESCRIPTION_MAX UTF-16 units, well formed)
+ * and the bar goes to plain /dashboard/new. The describe step (Kunal, intake) reads and then
+ * clears the key. Blank text writes nothing and removes any stale key. Every storage access is
+ * guarded, so private mode or a full quota never stops the navigation.
  */
 import { useRouter } from 'next/navigation';
 import { useCallback } from 'react';
 
 import { CommandBar, DEFAULT_QUICK_CHIPS, type CommandBarItem } from '@/components/shell';
-import { DRAFT_PREFILL_KEY } from '@/lib/draftPrefill';
+import { DESCRIPTION_MAX, DRAFT_PREFILL_KEY, capToLimit } from '@/lib/draftPrefill';
 
 export const COMMAND_CHIP_HREF: Record<string, string> = {
   'bail-application': '/dashboard/new?kind=bail_regular',
@@ -39,21 +39,22 @@ export function commandHref(item: CommandBarItem): string {
 /** sessionStorage key for the Draft description; read and cleared by the describe step. */
 export { DRAFT_PREFILL_KEY };
 
-/** Longest description carried to /dashboard/new, in code points. */
-export const DRAFT_PREFILL_MAX = 500;
+/** Longest description carried to /dashboard/new, in UTF-16 units (T-608: the page's limit). */
+export const DRAFT_PREFILL_MAX = DESCRIPTION_MAX;
 
 /**
- * The description to carry: trimmed, cut to 500 code points (a surrogate pair is never split),
- * and well formed (a lone surrogate becomes U+FFFD). '' when blank.
+ * The description to carry: trimmed, well formed (a lone surrogate becomes U+FFFD), then cut to
+ * DRAFT_PREFILL_MAX UTF-16 units at a code point boundary (a surrogate pair is never split).
+ * '' when blank.
  */
 export function draftPrefill(text: string): string {
-  return Array.from(text.trim())
-    .slice(0, DRAFT_PREFILL_MAX)
+  const wellFormed = Array.from(text.trim())
     .map((ch) => {
       const c = ch.charCodeAt(0);
       return ch.length === 1 && c >= 0xd800 && c <= 0xdfff ? '�' : ch;
     })
     .join('');
+  return capToLimit(wellFormed, DRAFT_PREFILL_MAX);
 }
 
 /** Writes (or, for blank text, removes) the prefill key. Never throws. */

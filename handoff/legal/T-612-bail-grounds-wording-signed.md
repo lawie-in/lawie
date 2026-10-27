@@ -41,3 +41,12 @@ Rules: an answer of `None`, `none`, `no`, `नहीं` or `कोई नही
 | derived from arrest_date (R1) | `The applicant was arrested on {custody_since} and is now in {custody_kind}.` |
 
 Reason: the arrest date starts custody, not judicial custody. "In judicial custody since <arrest date>" would be wrong after police remand. The `prolonged_custody` ground (`The applicant has been in custody since {custody_since}.`) is correct either way and stays. The brief shows the derived date as `<date> (date of arrest)` (R1).
+
+## (6) Police station naming (Ajay, 26 Oct 2026; Anushka items 1 and 11)
+
+**Option (a).** The ledger and display value is the **bare name** (`Kotwali`). The template carries the prefix.
+- Code strips a leading or trailing `PS`, `P.S.`, `Police Station` or `थाना` from the answer before storing it (case- and dot-insensitive), so "PS Kotwali", "Kotwali P.S." and "Kotwali Police Station" are all stored as `Kotwali`.
+- Prose in drafts: `Police Station {police_station}`, so "Police Station Kotwali". Never "PS" in prose.
+- FIR or case reference: the existing form stays where a template already uses it (`{police_station} P.S. Case No. …`, Bihar and Jharkhand usage). Do not add it where it is absent.
+- Hindi: `थाना {police_station}`.
+- No other wording ships. Every template that prints the slot is checked so that each draft has exactly one prefix. This is in my byte check at READY.

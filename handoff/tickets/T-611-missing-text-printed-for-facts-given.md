@@ -5,7 +5,7 @@
 | Phase  | 4 — Release (severity P0; from the prod quality check of 26 Oct 2026) |
 | Owner  | Vishal or Shashank (drafting); Ajay sees any wording change |
 | Mode   | Full chain |
-| Status | Building (Vishal), 26 Oct 2026. P0. Phase 0 of drafting v3. Priya |
+| Status | Merged into develop_staging 023b08c5 (CI 1069 green), 27 Oct 2026; T-488 rides with it. Priya |
 | Source | handoff/quality/2026-10-26-prod-drafting-FAIL.md |
 
 ## Problem

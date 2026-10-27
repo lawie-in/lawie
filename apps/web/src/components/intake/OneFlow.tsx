@@ -226,6 +226,7 @@ function OneFlowSteps({
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ text: string; retry?: boolean } | null>(null);
   const [choices, setChoices] = useState<Array<{ kind: string; name: string }>>([]);
+  const [unranked, setUnranked] = useState(false);
 
   const [brief, setBriefState] = useState<Brief | null>(null);
   /** T-147b: the fact ledger, only when the service sends one. */
@@ -297,6 +298,7 @@ function OneFlowSteps({
     setPreset(null);
     setMessage(null);
     setChoices([]);
+    setUnranked(false);
     setBrief(null);
     setLedger(null);
     setQuestions([]);
@@ -408,6 +410,7 @@ function OneFlowSteps({
             return;
           case 'needs_choice':
             setChoices(data.choices ?? []);
+            setUnranked(data.unranked === true);
             setPhase('choice');
             return;
           case 'no_match':
@@ -803,9 +806,13 @@ function OneFlowSteps({
             if (event === 'error') {
               setGenError({
                 // T-565 W13: no server reason is shown (''), except for insufficient_ink, whose
-                // reason is the card's heading (T-521).
+                // reason is the card's heading (T-521), and T-611's fact_needed / fact_conflict,
+                // whose reason is Ajay's signed question (generationFailure FACT_QUESTION_CODES).
                 reason:
-                  payload.code === INSUFFICIENT_INK_CODE && typeof payload.reason === 'string'
+                  (payload.code === INSUFFICIENT_INK_CODE ||
+                    payload.code === 'fact_needed' ||
+                    payload.code === 'fact_conflict') &&
+                  typeof payload.reason === 'string'
                     ? payload.reason
                     : '',
                 retryable: payload.retryable !== false,
@@ -1038,6 +1045,7 @@ function OneFlowSteps({
         onChoose={handleChoose}
         onEditDescription={editDescription}
         submitting={busy}
+        unranked={unranked}
       />
     );
   }

@@ -1947,6 +1947,14 @@ export function buildPlaceholderContext(
     ctx.courtPlace = notCourtPlaceValue;
   }
 
+  // T-488 (from T-479): any pack with a state_of_filing field (certiorari,
+  // quo_warranto, interim_application) gets it copied to {state} when no
+  // `state` answer is given. quo_warranto and interim_application have no
+  // {state} in their cause title and are not in STATE_FROM_COURT_PACKS.
+  const stateOfFiling =
+    isUnanswered(ctx.state) && !isUnanswered(ctx.state_of_filing) ? ctx.state_of_filing : undefined;
+  if (stateOfFiling !== undefined) ctx.state = stateOfFiling;
+
   // SCRUM-54 B2: Capitalise state name (form sends lowercase stateId like "bihar")
   if (ctx.state) {
     ctx.state = ctx.state
@@ -1954,7 +1962,11 @@ export function buildPlaceholderContext(
       .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
       .join(' ');
   }
+  const answeredState = stateOfFiling !== undefined ? ctx.state : undefined;
   applyStateFromCourt(config.template_id, ctx, courtData);
+  // T-488: applyStateFromCourt takes out a {state} that is only the court
+  // picker's State; the State the user answered is not that, so it stays.
+  if (answeredState !== undefined && isUnanswered(ctx.state)) ctx.state = answeredState;
 
   // SCRUM-54 B5, T-340: an ISO date in any "*date*" key, or in any field the
   // template declares as type "date" (e.g. minor_dob, custody_since), prints as
@@ -2495,7 +2507,7 @@ function applyStateFromCourt(
 }
 
 /** T-479: the State the prompt's civil-writ State line names (same guard as the cause title). */
-function promptCourtState(
+export function promptCourtState(
   ctx: PlaceholderContext | undefined,
   courtData: CourtLookupData | undefined,
 ): string | undefined {

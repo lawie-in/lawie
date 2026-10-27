@@ -71,6 +71,11 @@ export interface ChecklistItem {
   askWhenEmpty?: boolean;
   /** T-471: the s.138 drawer as named on the cheque (firm, company or person): read as text, not a person name. */
   drawerAsNamed?: boolean;
+  /**
+   * T-488 (Ajay, 971d2685): asked on the brief as usual, but not a fact the
+   * draft must print. Only the State on a s.138 notice (the jurisdiction picker).
+   */
+  notInDraft?: true;
 }
 
 export type ValueSource = 'description' | 'user';
@@ -630,6 +635,9 @@ export function buildChecklist(pack: RulePack): ChecklistItem[] {
         : {}),
       ...(fact.question?.source === 'pack' ? { question: fact.question.text } : {}),
       ...(fact.ask_when_empty === true ? { askWhenEmpty: true } : {}),
+      ...(pack.id === 'legal_notice_s138' && fact.name === 'state'
+        ? { notInDraft: true as const }
+        : {}),
     });
   }
 

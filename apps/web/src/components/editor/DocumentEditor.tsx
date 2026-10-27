@@ -24,6 +24,7 @@ import { usePrefersReducedMotion } from '../ui/motion';
 import {
   EXPORT_BLANKS_GO_BACK_EVENT,
   findBlanks,
+  missingAsBlanks,
   type ExportBlanksGoBackDetail,
 } from './exportUtils';
 import Toolbar from './Toolbar';
@@ -66,9 +67,13 @@ function escapePlainText(text: string): string {
   return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+// T-611 (AC 1, 5): a raw `{{MISSING: label}}` token is never shown in the
+// editor. It loads as `[To be confirmed: label]`, the form the exports and the
+// server PDF print (exportUtils' missingAsBlanks), for plain text and HTML alike.
 function textToHtml(text: string): string {
-  if (text.trimStart().startsWith('<')) return text; // already HTML
-  return escapePlainText(text.replace(/\r\n?/g, '\n'))
+  const shown = missingAsBlanks(text);
+  if (shown.trimStart().startsWith('<')) return shown; // already HTML
+  return escapePlainText(shown.replace(/\r\n?/g, '\n'))
     .split(/\n{2,}/)
     .map((para) => `<p>${para.replace(/\n/g, '<br>')}</p>`)
     .join('');
@@ -327,8 +332,9 @@ export default function DocumentEditor({
 
   // T-194 "Go back and fill": put the cursor at the start of the first blank in
   // document order and scroll it to the middle of the view. The editor finds
-  // the blank in its own text with the same findBlanks the export uses, so a
-  // blank shown here as {{MISSING: label}} is found as well.
+  // the blank in its own text with the same findBlanks the export uses. T-611: a
+  // {{MISSING: label}} token is never shown here; it loads as
+  // [To be confirmed: label] (textToHtml), which findBlanks finds.
   useEffect(() => {
     if (!editor) return;
     function handler(e: Event) {

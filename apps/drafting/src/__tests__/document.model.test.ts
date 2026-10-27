@@ -2,6 +2,8 @@ import './setupDb';
 
 import mongoose from 'mongoose';
 
+import { COURT_TYPES } from '@lawie/shared';
+
 import { LawieDocument } from '../models/Document.model';
 
 describe('Document model', () => {
@@ -114,5 +116,16 @@ describe('Document model', () => {
     await doc.save();
     expect(doc.status).toBe('exported');
     expect(doc.exportedAs).toEqual(['pdf', 'docx']);
+  });
+
+  it('accepts the Patna Junior Division court type (civil_court_junior)', () => {
+    expect(COURT_TYPES.CIVIL_COURT_JUNIOR).toBe('civil_court_junior');
+    const doc = new LawieDocument({ ...validDoc, courtType: 'civil_court_junior' });
+    expect(doc.validateSync()).toBeUndefined();
+  });
+
+  it('still rejects an unknown court type', () => {
+    const doc = new LawieDocument({ ...validDoc, courtType: 'not_a_court' });
+    expect(doc.validateSync()?.errors.courtType).toBeDefined();
   });
 });
