@@ -13,6 +13,7 @@ import {
   RESTRAINT_SOUGHT_KEY,
   RESTRAINT_SOUGHT_LABEL,
   SUBJECT_MATTER_KEY,
+  subjectMatterDisplays,
   withoutSubjectMatter,
 } from '../services/prayer-date-gate';
 
@@ -343,5 +344,85 @@ describe('withoutSubjectMatter (T-628, Ajay 410c3e34 §(k)6)', () => {
 
   it('a value that is the whole text leaves only the join', () => {
     expect(withoutSubjectMatter('Plot 4', 'Plot 4')).toBe('|');
+  });
+});
+
+describe('subjectMatterDisplays (§(k)6, the ledger text a held blank is filled with)', () => {
+  it('picks subject_matter and a grouped key ending .subject_matter, in order', () => {
+    expect(
+      subjectMatterDisplays([
+        { key: 'subject_matter', display: 'Plot 4' },
+        { key: 'property.subject_matter', display: 'Plot 5' },
+        { key: 'a.b.subject_matter', display: 'Plot 6' },
+      ]),
+    ).toEqual(['Plot 4', 'Plot 5', 'Plot 6']);
+  });
+
+  it('ignores other keys, including look-alikes', () => {
+    expect(
+      subjectMatterDisplays([
+        { key: 'plaintiff_name', display: 'Ram' },
+        { key: 'subject_matter_details', display: 'x' },
+        { key: 'subject_matter.other', display: 'y' },
+        { key: 'my_subject_matter', display: 'z' },
+      ]),
+    ).toEqual([]);
+  });
+
+  it('ignores blank and non-string displays', () => {
+    expect(
+      subjectMatterDisplays([
+        { key: 'subject_matter', display: '' },
+        { key: 'subject_matter', display: '   ' },
+        { key: 'subject_matter', display: 42 },
+        { key: 'subject_matter' },
+        { key: 'subject_matter', display: 'Plot 7' },
+      ]),
+    ).toEqual(['Plot 7']);
+  });
+
+  it('trims', () => {
+    expect(subjectMatterDisplays([{ key: 'subject_matter', display: '  Plot 4 \n' }])).toEqual([
+      'Plot 4',
+    ]);
+  });
+
+  it('is empty with no ledger or no facts', () => {
+    expect(subjectMatterDisplays(undefined)).toEqual([]);
+    expect(subjectMatterDisplays([])).toEqual([]);
+  });
+});
+
+describe('withoutSubjectMatter with a list (§(k)6)', () => {
+  it('removes each value', () => {
+    expect(withoutSubjectMatter('a Plot 4 b Land X c', ['Plot 4', 'Land X'])).toBe('a | b | c');
+  });
+
+  it('longest first: a value nested inside a longer one leaves nothing of the longer behind', () => {
+    const long = 'Plot 4, sale deed dated 5 March 2019';
+    const short = 'sale deed dated 5 March 2019';
+    const text = `restrain from ${long}.`;
+    expect(withoutSubjectMatter(text, [short, long])).toBe('restrain from |.');
+    expect(withoutSubjectMatter(text, [long, short])).toBe('restrain from |.');
+    // control: shortest first would leave the "Plot 4, " part
+    expect(withoutSubjectMatter(text, [short])).toBe('restrain from Plot 4, |.');
+  });
+
+  it('ignores blank and non-string entries', () => {
+    expect(withoutSubjectMatter('a Plot 4 b', ['', '   ', undefined, null, 7, {}, 'Plot 4'])).toBe(
+      'a | b',
+    );
+    expect(withoutSubjectMatter('a Plot 4 b', [undefined, '', null])).toBe('a Plot 4 b');
+    expect(withoutSubjectMatter('a Plot 4 b', [])).toBe('a Plot 4 b');
+  });
+
+  it('a single string still works, and a single non-string changes nothing', () => {
+    expect(withoutSubjectMatter('a Plot 4 b', 'Plot 4')).toBe('a | b');
+    expect(withoutSubjectMatter('a Plot 4 b', undefined)).toBe('a Plot 4 b');
+    expect(withoutSubjectMatter('a Plot 4 b', 12)).toBe('a Plot 4 b');
+  });
+
+  it('values are literal, never patterns', () => {
+    expect(withoutSubjectMatter('a (x.*) b xyz', ['(x.*)'])).toBe('a | b xyz');
   });
 });

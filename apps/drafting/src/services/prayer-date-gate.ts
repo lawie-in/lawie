@@ -59,14 +59,35 @@ export function pastDateInPrayerLine(date: string): string {
 }
 
 /**
- * §(k)6: `text` with every literal occurrence of the subject_matter value
- * taken out (a string match, never a pattern). Each occurrence becomes `|`,
- * which no date reader reads across, so the words either side cannot join
- * into a date. An empty, blank or non-string value changes nothing.
+ * §(k)6: `text` with every literal occurrence of each subject_matter text the
+ * prayer can show taken out (a string match, never a pattern): one value, or
+ * a list (the form value and the ledger's display, which a held blank in the
+ * prayer is filled with). Longest first, so one value inside another does not
+ * leave part of the longer behind. Each occurrence becomes `|`, which no date
+ * reader reads across, so the words either side cannot join into a date. An
+ * empty, blank or non-string value changes nothing.
  */
 export function withoutSubjectMatter(text: string, subjectMatter: unknown): string {
-  if (typeof subjectMatter !== 'string' || subjectMatter.trim() === '') return text;
-  return text.split(subjectMatter).join('|');
+  const values = (Array.isArray(subjectMatter) ? subjectMatter : [subjectMatter])
+    .filter((v): v is string => typeof v === 'string' && v.trim() !== '')
+    .sort((a, b) => b.length - a.length);
+  let out = text;
+  for (const v of values) out = out.split(v).join('|');
+  return out;
+}
+
+/**
+ * §(k)6: the ledger's displays for subject_matter (a dotted key matched on its
+ * last segment), trimmed as the fill prints them. Empty with no ledger.
+ */
+export function subjectMatterDisplays(
+  facts: readonly { key: string; display?: unknown }[] | undefined,
+): string[] {
+  if (!facts) return [];
+  return facts
+    .filter((f) => f.key.slice(f.key.lastIndexOf('.') + 1) === SUBJECT_MATTER_KEY)
+    .map((f) => (typeof f.display === 'string' ? f.display.trim() : ''))
+    .filter((d) => d !== '');
 }
 
 /** Today's date in India (UTC+05:30, no DST), ISO `YYYY-MM-DD`. */

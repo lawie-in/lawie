@@ -167,6 +167,7 @@ import {
   RESTRAINT_SOUGHT_KEY,
   RESTRAINT_SOUGHT_LABEL,
   SUBJECT_MATTER_KEY,
+  subjectMatterDisplays,
   withoutSubjectMatter,
 } from './prayer-date-gate';
 import { assemblePrompt, PromptInput } from './prompt-assembler';
@@ -747,7 +748,9 @@ export type WithheldDraft =
  * §(k)6 (Ajay 410c3e34): the prayer is read with the `{subject_matter}` value
  * the draft used left out (a deed or plot date there describes the property,
  * and an answer to restraint_sought could never clear it); everything else in
- * the prayer is read. Empty or missing `subjectMatter` changes nothing.
+ * the prayer is read. `subjectMatter` is one value or a list of every text the
+ * prayer can show for it (the form value and the ledger's display, which the
+ * T-611 fill puts in a held blank); empty or missing changes nothing.
  */
 export function pastDatePrayerHold(
   pack: Pick<RulePack, 'id' | 'facts'>,
@@ -756,7 +759,7 @@ export function pastDatePrayerHold(
   bodyAt: number,
   body: string,
   now: Date = new Date(),
-  subjectMatter?: unknown,
+  subjectMatter?: unknown | readonly unknown[],
 ): WithheldDraft | null {
   if (pack.id !== PAST_DATE_GATE_PACK_ID) return null;
   const texts: string[] = [];
@@ -2722,7 +2725,13 @@ export async function streamGenerateFromBrief(
       bodyAt,
       output.body,
       new Date(),
-      ctx[SUBJECT_MATTER_KEY] ?? formData[SUBJECT_MATTER_KEY],
+      // The form value and, with a ledger, its display: the T-611 fill above may
+      // have put that display in a held blank in the prayer.
+      [
+        ctx[SUBJECT_MATTER_KEY],
+        formData[SUBJECT_MATTER_KEY],
+        ...subjectMatterDisplays(input.ledger?.facts),
+      ],
     );
     if (pastDate !== null) {
       throw withholdDraft(res, input.runId, pack.id, pastDate, meter.totals(), aiModel, transport);
@@ -3354,7 +3363,11 @@ async function d1GenerateFromBrief(c: D1Context): Promise<BriefGenerateResult> {
     c.bodyAt,
     body,
     new Date(),
-    c.ctx[SUBJECT_MATTER_KEY] ?? c.formData[SUBJECT_MATTER_KEY],
+    [
+      c.ctx[SUBJECT_MATTER_KEY],
+      c.formData[SUBJECT_MATTER_KEY],
+      ...subjectMatterDisplays(ledger.facts),
+    ],
   );
   if (pastDate !== null) {
     throw withholdDraft(

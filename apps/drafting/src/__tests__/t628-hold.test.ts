@@ -4,6 +4,7 @@
  */
 import type { Response } from 'express';
 
+import { subjectMatterDisplays } from '../services/prayer-date-gate';
 import { GenerationFailedError, pastDatePrayerHold, withholdDraft } from '../services/ai.service';
 import { UsageMeter } from '../services/llm-usage';
 
@@ -141,6 +142,53 @@ describe('pastDatePrayerHold', () => {
 
     it('the body is still never read, with or without subject_matter', () => {
       expect(hold('x', noPrayer, 1, `1. On ${PAST} at ${SM}.`, SM)).toBeNull();
+    });
+
+    describe('a list: the form value and the ledger display (review round 2 should-fix)', () => {
+      const LEDGER_SM = 'land under sale deed dated 5 March 2019';
+      const ledgerPrayer = `a) restrain the defendant from dealing with ${LEDGER_SM};`;
+      const facts = [
+        { key: 'plaintiff_name', display: 'Ram' },
+        { key: 'subject_matter', display: `  ${LEDGER_SM} ` },
+      ];
+      const list = [undefined, undefined, ...subjectMatterDisplays(facts)];
+
+      it('a deed date only in the ledger subject_matter text inside the prayer returns null', () => {
+        expect(
+          hold('raising any construction', SECTIONS(ledgerPrayer), BODY_AT, 'b', list),
+        ).toBeNull();
+      });
+
+      it('control: the old single-undefined call on the same prayer blocks', () => {
+        expect(
+          hold('raising any construction', SECTIONS(ledgerPrayer), BODY_AT, 'b', undefined),
+        ).toMatchObject({ code: 'past_date_in_prayer', date: '5 March 2019' });
+      });
+
+      it('another past date in the prayer still blocks', () => {
+        expect(
+          hold(
+            'raising any construction',
+            SECTIONS(`${ledgerPrayer} Hearing on 1 January 2026.`),
+            BODY_AT,
+            'b',
+            list,
+          ),
+        ).toMatchObject({ date: '1 January 2026' });
+      });
+
+      it('a past date in restraint_sought still blocks', () => {
+        expect(hold(`after ${PAST}`, SECTIONS(ledgerPrayer), BODY_AT, 'b', list)).toMatchObject({
+          key: 'restraint_sought',
+          date: PAST,
+        });
+      });
+
+      it('the model own prayer path also excludes the ledger text', () => {
+        const own = `1. Body.\n\nPRAYER\n\n${ledgerPrayer}`;
+        expect(hold('x', noPrayer, 1, own, list)).toBeNull();
+        expect(hold('x', noPrayer, 1, own)).toMatchObject({ date: '5 March 2019' });
+      });
     });
 
     it('another pack still returns null', () => {

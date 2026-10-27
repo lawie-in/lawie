@@ -353,6 +353,69 @@ describe('T-628 route: gate order, fact_needed before past_date_in_prayer', () =
   });
 });
 
+describe('T-628 route: the ledger subject_matter fills the prayer blank (review round 2 should-fix)', () => {
+  const DEED = 'land under sale deed dated 5 March 2019';
+  async function ledgerWithSubject(restraint: string) {
+    const entries: Array<[string, string]> = [
+      ['subject_matter', DEED],
+      ['restraint_sought', restraint],
+    ];
+    const facts = entries.map(([key, text]) => ({
+      id: `f_${key}`,
+      key,
+      label: CHECKLIST.find((i) => i.key === key)?.label ?? key,
+      type: 'text',
+      value: text,
+      display: text,
+      raw_span: text,
+      source: 'user',
+      confidence: 0.99,
+      required_in_draft: true,
+    }));
+    const doc = await FactLedgerModel.create({
+      userId: USER_ID,
+      documentKind: KIND,
+      runType: 'user',
+      currentVersion: 1,
+      versions: [{ version: 1, facts, unresolved: [], createdAt: new Date(), reason: 'extract' }],
+    });
+    return String(doc._id);
+  }
+  const briefLacking = (restraint: string) =>
+    valuesWith(restraint).filter((v) => v.key !== 'subject_matter');
+
+  it('a deed date only in the ledger subject_matter text, filled into the prayer, is DELIVERED', async () => {
+    const RESTRAINT = 'raising any construction before 15 December 2026';
+    const id = await ledgerWithSubject(RESTRAINT);
+    mockMessagesStream.mockResolvedValue(sdkAnswer(answer(BODY), 4000, 800));
+    const res = await post(briefLacking(RESTRAINT), id);
+    expect(res.status).toBe(200);
+    expect(events(res.text, 'error')).toEqual([]);
+    expect(res.text).not.toContain('past_date_in_prayer');
+    expect(events(res.text, 'done')).toHaveLength(1);
+    expect((await Generation.find({ userId: USER_ID }).lean()).map((g) => g.status)).toEqual([
+      'completed',
+    ]);
+    expect((await rawUser()).inkTopup).toBeLessThan(START_INK);
+    // the fill really happened: the ledger text is in the delivered prayer
+    expect(res.text).toContain(DEED);
+    expect(res.text).toContain('before 15 December 2026');
+    expect(res.text).not.toContain('{{MISSING: Acts the defendant');
+  });
+
+  it('control: a past date in restraint_sought still blocks on the same ledger path', async () => {
+    const RESTRAINT = `raising construction after ${PAST}`;
+    const id = await ledgerWithSubject(RESTRAINT);
+    mockMessagesStream.mockResolvedValue(sdkAnswer(answer(BODY), 4000, 800));
+    const res = await post(briefLacking(RESTRAINT), id);
+    const errs = events(res.text, 'error');
+    expect(errs).toHaveLength(1);
+    expect(errs[0]).toMatchObject({ code: 'past_date_in_prayer', reason: LINE(PAST) });
+    expect(res.text).not.toContain('event: done');
+    await expectNoInkTaken();
+  });
+});
+
 describe('T-628 route: no-ledger path, the O.39 body is not streamed before the gate (review round 1, must-fix 1)', () => {
   const TEXT_CHUNK = /data: \{"text"/;
 
