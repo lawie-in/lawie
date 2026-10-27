@@ -4,7 +4,7 @@
  *  - amountsInText: sums of money by value (Indian or international grouping)
  *  - statedByValueIn: the one shared rule for a date or amount the advocate wrote
  *  - keepsToFact end to end: a verbatim amount and date are kept, a changed amount falls back
- *  - stripPoliceStationPrefix and the renderer's police_station slot (the ledger keeps the raw words)
+ *  - stripPoliceStationPrefix and the renderer's police_station slot (T-612 6a: the ledger stores the name with one marker removed; raw_span keeps the typed words)
  */
 import './setupEnv';
 
@@ -329,7 +329,7 @@ describe('round 5: stripPoliceStationPrefix', () => {
   });
 });
 
-describe('round 5: the renderer fills police_station stripped, the ledger keeps the raw words', () => {
+describe('round 5: the renderer fills police_station stripped (T-612 6a: the ledger stores it with one marker removed, raw_span keeps the typed words)', () => {
   const stationFacts = (display: string): LedgerFact[] => [
     ...regularBase().filter((f) => f.key !== 'police_station'),
     fact('police_station', display, { type: 'police_station' }),

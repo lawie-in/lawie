@@ -275,3 +275,45 @@ describe.each(PACKS)('T-612 (6) %s template reads "Police Station {police_statio
     }
   });
 });
+
+// ── Two markers: once per stage (Ajay 6b-3, 95d76a6d) ───────────────────────
+
+describe('two markers: once per stage (Ajay 6b-3)', () => {
+  const CASES: Array<[string, string, string]> = [
+    ['P.S. Kotwali Thana', 'Kotwali', 'Police Station Kotwali'],
+    ['PS Kotwali Thana', 'Kotwali', 'Police Station Kotwali'],
+    ['Kotwali Thana PS', 'Kotwali', 'Police Station Kotwali'],
+    ['PS Thana: Kotwali', 'Kotwali', 'Police Station Kotwali'],
+    ['Thana: Kotwali PS', 'Kotwali', 'Police Station Kotwali'],
+    ['PS PS Kadamkuan', 'Kadamkuan', 'Police Station Kadamkuan'],
+    ['PS Thana Bhawan', 'Thana Bhawan', 'Police Station Thana Bhawan'],
+  ];
+
+  it.each(CASES)(
+    'stripPoliceStationPrefix alone: "%s" -> the bare name after both stages',
+    (text, bare) => {
+      // the renderer's strip is the second stage: applied to what the first stage stored
+      expect(stripPoliceStationPrefix(stripPoliceStationPrefix(text))).toBe(bare);
+    },
+  );
+
+  it.each(CASES)('normalizeForItem: "%s" is stored with raw_span unchanged', (text) => {
+    const out = applyEdit(
+      { facts: [], unresolved: [] },
+      stationItem(),
+      { key: 'police_station', text },
+      YEAR,
+    );
+    expect(out.next!.facts.find((x) => x.key === 'police_station')!.raw_span).toBe(text);
+  });
+
+  describe.each(PACKS)('%s: store, then render', (packId) => {
+    it.each(CASES)('"%s" prints "%s" -> %s once, no marker left', (text, _bare, want) => {
+      const body = renderFact(packId, storedFact(text));
+      expect(count(body, want)).toBe(1);
+      expect(body).not.toMatch(/\bPS\b|P\.S\./u);
+      expect(body).not.toMatch(/Police Station\s+(?:Police Station|PS|P\.S\.)/u);
+      if (want.endsWith('Kotwali')) expect(body).not.toMatch(/Kotwali\s+(?:Thana|थाना)/u);
+    });
+  });
+});
