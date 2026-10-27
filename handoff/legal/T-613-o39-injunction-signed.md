@@ -98,3 +98,12 @@ The `blocks_confirm` flag applies to `main_suit_relief` and `restraint_sought`. 
 | 2 | Show **every** blocking message together, one per line, in this order: court, parties, `main_suit_relief`, `restraint_sought`. The court and parties make the cause title, so they come first. The field messages are the signed (g) strings; the court and parties keep their existing messages. |
 | 3 | A non-answer still blocks. `Not known`, `unknown`, `NA`, `N/A`, `nil`, `none`, `-`, `?`, `नहीं पता` and `पता नहीं` (case-insensitive, trimmed, alone) count as empty for both fields. Both are facts the advocate must give; a prayer cannot rest on "not known". |
 | 5 | Enough as built: the route gate (`brief_not_confirmed`) plus confirmState. Once Confirm passes, both fields are held, so any blank for them in the draft falls under P6 (repair, then ask) and T-628 covers past dates. No new in-draft check. |
+
+## (k) T-628 build rulings (Ajay, 27 Oct 2026)
+
+| # | ruling |
+| --- | --- |
+| 1 | Agreed: only a **clearly resolved** date before today (IST) blocks. An unresolved or ambiguous date does not block at the gate. The Phase 2 legal reviewer will flag it; until then the advocate reviews it. |
+| 2 | Scope: `{restraint_sought}` plus **the prayer section, whoever wrote it**. That is the system-built prayer on the pack path, and the model's own prayer section if a path has no skeleton prayer. Body paragraphs are not scanned: past dates belong there. |
+| 3 | Devanagari month names are **in scope now**, because Hindi input reaches `restraint_sought`. Read these, with their spelling variants: जनवरी, फ़रवरी/फरवरी, मार्च, अप्रैल, मई, जून, जुलाई, अगस्त, सितंबर/सितम्बर, अक्टूबर/अक्तूबर, नवंबर/नवम्बर, दिसंबर/दिसम्बर (nukta-insensitive). |
+| 4 | Yes: `apps/drafting/src/services/prayer-date-gate.ts` is legal content. Priya adds it to legal-content-paths.md. Logs with `keys=restraint_sought` only, never `<date>`: OK. |
