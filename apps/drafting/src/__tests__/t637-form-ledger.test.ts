@@ -149,8 +149,11 @@ describe('briefLedgerValues', () => {
 });
 
 describe('formRequiredFieldBlock', () => {
-  it('is a no-op for now (T-629 fills it in)', () => {
+  it('still returns null for another template, even with empty fields (T-629 blocks only temporary_injunction_o39)', () => {
     expect(formRequiredFieldBlock('bail_regular', { applicant_name: 'x' })).toBeNull();
+    expect(
+      formRequiredFieldBlock('bail_regular', { main_suit_relief: '', restraint_sought: '' }),
+    ).toBeNull();
   });
 });
 

@@ -7,7 +7,7 @@
  * AC3  a held `[To be confirmed: <label>]` is a blank; an unheld one and `_____` are left alone
  * AC4  Anushka's regular-bail inputs (the t611-gate fixtures) as form_data for bail_regular
  * AC7  the in-memory ledger branch (the form route never has a persisted ledger)
- * T-628 still blocks on the form route; formRequiredFieldBlock is called and is a no-op
+ * T-628 still blocks on the form route; formRequiredFieldBlock is called and returns null for a non-O.39 template
  *
  * The model is the Anthropic SDK stub; every answer is a fixture.
  */
@@ -255,7 +255,7 @@ describe('T-637 form route: the held-blank gate (in-memory ledger)', () => {
       expect(all).not.toContain(v);
   });
 
-  it('formRequiredFieldBlock is called with the template and form, and is a no-op (the draft is delivered)', async () => {
+  it('formRequiredFieldBlock is called with the template and form, and returns null for bail_regular (T-629 blocks only O.39); the draft is delivered', async () => {
     const spy = jest.spyOn(formLedger, 'formRequiredFieldBlock');
     mockMessagesStream.mockResolvedValueOnce(sdkAnswer(withP3(P3), 4000, 800));
     const res = await postBail();
