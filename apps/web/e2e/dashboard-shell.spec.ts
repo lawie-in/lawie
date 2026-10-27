@@ -158,6 +158,59 @@ test.describe('dashboard shell: top bar and command bar', () => {
     expect(state.left).toBeNull();
   });
 
+  test('a suggested chip with text typed opens /dashboard/new with the kind and no text in the URL', async ({
+    page,
+    context,
+  }) => {
+    await seedSignedIn(page, context);
+    await mockApi(page, {
+      'GET /api/documents/intake/enabled': json(intakeEnabled()),
+      'GET /api/documents/template-configs': json(templateConfigs()),
+    });
+    // Record what is written to the prefill key and every URL the app pushes. The describe page
+    // drops ?kind= from the address bar once it has applied it (it must not preset twice on a
+    // reload), and reads then clears the key, so both are observed at navigation time.
+    await page.addInitScript(() => {
+      const w = window as unknown as {
+        __writes: Array<[string, string]>;
+        __pushed: string[];
+      };
+      w.__writes = [];
+      w.__pushed = [];
+      const orig = Storage.prototype.setItem;
+      Storage.prototype.setItem = function (k: string, v: string) {
+        if (k === 'lawie:draft-prefill') w.__writes.push([k, v]);
+        return orig.call(this, k, v);
+      };
+      const push = History.prototype.pushState;
+      History.prototype.pushState = function (
+        state: unknown,
+        title: string,
+        url?: string | URL | null,
+      ) {
+        if (url !== null && url !== undefined) w.__pushed.push(String(url));
+        return push.call(this, state, title, url);
+      };
+    });
+    const text = 'Bail application for Ravi';
+    await page.goto('/dashboard');
+    await page.getByRole('combobox', { name: 'What do you need to draft?' }).fill(text);
+    await page.getByRole('option', { name: 'Bail application', exact: true }).click();
+
+    await expect(page).toHaveURL(/\/dashboard\/new(\?kind=bail_regular)?$/);
+    const state = await page.evaluate(() => {
+      const w = window as unknown as { __writes: Array<[string, string]>; __pushed: string[] };
+      return { writes: w.__writes, pushed: w.__pushed };
+    });
+    // The kind is the only query param; the typed text never enters the URL.
+    expect(state.pushed).toContain('/dashboard/new?kind=bail_regular');
+    for (const url of state.pushed) expect(url).not.toMatch(/Ravi|q=|%20/);
+    expect(page.url()).not.toContain('Ravi');
+    // The text travels in sessionStorage only. That it fills the "Your matter" box on
+    // /dashboard/new belongs to the describe-step change (part B of T-630), so it is not asserted.
+    expect(state.writes).toEqual([['lawie:draft-prefill', text]]);
+  });
+
   test('the theme toggle switches html[data-theme]', async ({ page, context }) => {
     await seedSignedIn(page, context, {
       theme: 'night',

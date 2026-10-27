@@ -334,11 +334,204 @@ describe('DashboardCommandBar routing', () => {
     expect(window.sessionStorage.getItem(DRAFT_PREFILL_KEY)).toBe('stale');
   });
 
-  it('a typed template name picks the template, not the free text', () => {
+  it('a typed template name picked from the list goes to the chip page and carries the text (T-630)', () => {
     mount(<DashboardCommandBar />);
     typeInto(input(), 'plaint');
     click(option('Plaint'));
     expect(push).toHaveBeenCalledWith('/dashboard/new');
+    expect(window.sessionStorage.getItem(DRAFT_PREFILL_KEY)).toBe('plaint');
+  });
+});
+
+describe('T-630: a chip or option picked with text typed carries the text and the kind', () => {
+  const stored = () => window.sessionStorage.getItem(DRAFT_PREFILL_KEY);
+  const draft = () => click(q('button[type=submit]'));
+  const highlightFirst = () => press(input(), { key: 'ArrowDown' });
+
+  it.each([
+    ['Bail application', '/dashboard/new?kind=bail_regular'],
+    ['Written statement', '/dashboard/new?kind=written_statement'],
+    ['Legal notice', '/dashboard/new'],
+    ['Plaint', '/dashboard/new'],
+  ])('clicking "%s" with text typed pushes %s and stores the text', (label, href) => {
+    const text = `${label} for Ravi`;
+    mount(<DashboardCommandBar />);
+    typeInto(input(), text);
+    click(option(label));
+    expect(push).toHaveBeenCalledTimes(1);
+    expect(push).toHaveBeenCalledWith(href);
+    expect(stored()).toBe(text);
+  });
+
+  it('Enter on a highlighted option does the same as a click (kind + text)', () => {
+    mount(<DashboardCommandBar />);
+    typeInto(input(), 'Bail application for Ravi');
+    highlightFirst();
+    press(input(), { key: 'Enter' });
+    expect(push).toHaveBeenCalledTimes(1);
+    expect(push).toHaveBeenCalledWith('/dashboard/new?kind=bail_regular');
+    expect(stored()).toBe('Bail application for Ravi');
+  });
+
+  it('Draft with a bail option highlighted pushes ?kind=bail_regular and stores the text', () => {
+    mount(<DashboardCommandBar />);
+    typeInto(input(), 'Bail application for Ravi');
+    highlightFirst();
+    draft();
+    expect(push).toHaveBeenCalledTimes(1);
+    expect(push).toHaveBeenCalledWith('/dashboard/new?kind=bail_regular');
+    expect(stored()).toBe('Bail application for Ravi');
+  });
+
+  it('Draft with a written statement highlighted pushes ?kind=written_statement', () => {
+    mount(<DashboardCommandBar />);
+    typeInto(input(), 'Written statement for Ravi');
+    highlightFirst();
+    draft();
+    expect(push).toHaveBeenCalledWith('/dashboard/new?kind=written_statement');
+    expect(stored()).toBe('Written statement for Ravi');
+  });
+
+  it('Draft with a kind-less chip highlighted (Plaint) pushes plain /dashboard/new', () => {
+    mount(<DashboardCommandBar />);
+    typeInto(input(), 'plaint for Ravi');
+    highlightFirst();
+    draft();
+    expect(push).toHaveBeenCalledWith('/dashboard/new');
+    expect(stored()).toBe('plaint for Ravi');
+  });
+
+  it('plain Draft with no highlight is exactly /dashboard/new, even if the text names a template', () => {
+    mount(<DashboardCommandBar />);
+    typeInto(input(), 'Bail application for Ravi');
+    draft();
+    expect(push).toHaveBeenCalledTimes(1);
+    expect(push.mock.calls[0][0]).toBe('/dashboard/new');
+    expect(stored()).toBe('Bail application for Ravi');
+  });
+
+  it('after Escape drops the highlight, Draft is plain /dashboard/new', () => {
+    mount(<DashboardCommandBar />);
+    typeInto(input(), 'Bail application for Ravi');
+    highlightFirst();
+    press(input(), { key: 'Escape' });
+    draft();
+    expect(push).toHaveBeenCalledWith('/dashboard/new');
+  });
+
+  it('Browse all templates with text typed goes to /dashboard/templates and stores no text', () => {
+    mount(<DashboardCommandBar />);
+    typeInto(input(), 'browse all templates');
+    const set = jest.spyOn(Storage.prototype, 'setItem');
+    click(option('Browse all templates'));
+    expect(push).toHaveBeenCalledTimes(1);
+    expect(push).toHaveBeenCalledWith('/dashboard/templates');
+    expect(set).not.toHaveBeenCalled();
+    expect(stored()).toBeNull();
+  });
+
+  it('Browse all templates with text typed leaves a pre-existing key untouched', () => {
+    window.sessionStorage.setItem(DRAFT_PREFILL_KEY, 'kept');
+    mount(<DashboardCommandBar />);
+    typeInto(input(), 'browse all templates');
+    const remove = jest.spyOn(Storage.prototype, 'removeItem');
+    click(option('Browse all templates'));
+    expect(push).toHaveBeenCalledWith('/dashboard/templates');
+    expect(remove).not.toHaveBeenCalled();
+    expect(stored()).toBe('kept');
+  });
+
+  it('Draft with Browse highlighted goes to /dashboard/new with the text stored (pinned)', () => {
+    mount(<DashboardCommandBar />);
+    typeInto(input(), 'browse all templates');
+    highlightFirst();
+    draft();
+    expect(push).toHaveBeenCalledTimes(1);
+    expect(push).toHaveBeenCalledWith('/dashboard/new');
+    expect(stored()).toBe('browse all templates');
+  });
+
+  it('a chip click with the input empty neither writes nor removes the key', () => {
+    window.sessionStorage.setItem(DRAFT_PREFILL_KEY, 'kept');
+    mount(<DashboardCommandBar />);
+    act(() => input().focus());
+    const set = jest.spyOn(Storage.prototype, 'setItem');
+    const remove = jest.spyOn(Storage.prototype, 'removeItem');
+    click(option('Written statement'));
+    expect(push).toHaveBeenCalledWith('/dashboard/new?kind=written_statement');
+    expect(set).not.toHaveBeenCalled();
+    expect(remove).not.toHaveBeenCalled();
+    expect(stored()).toBe('kept');
+  });
+
+  it('a whitespace-only input chip click neither writes nor removes the key', () => {
+    window.sessionStorage.setItem(DRAFT_PREFILL_KEY, 'kept');
+    mount(<DashboardCommandBar />);
+    typeInto(input(), '   ');
+    const set = jest.spyOn(Storage.prototype, 'setItem');
+    const remove = jest.spyOn(Storage.prototype, 'removeItem');
+    click(option('Bail application'));
+    expect(push).toHaveBeenCalledWith('/dashboard/new?kind=bail_regular');
+    expect(set).not.toHaveBeenCalled();
+    expect(remove).not.toHaveBeenCalled();
+    expect(stored()).toBe('kept');
+  });
+
+  it('text longer than the limit is capped on the chip path', () => {
+    const text = `Bail application ${matterText(DESCRIPTION_MAX + 500)}`;
+    mount(<DashboardCommandBar />);
+    typeInto(input(), text);
+    click(option('Bail application'));
+    expect(push).toHaveBeenCalledWith('/dashboard/new?kind=bail_regular');
+    expect(stored()).toHaveLength(DESCRIPTION_MAX);
+    expect(stored()).toBe(text.slice(0, DESCRIPTION_MAX));
+  });
+
+  it('a lone surrogate and surrounding spaces are sanitised on the chip path', () => {
+    mount(<DashboardCommandBar />);
+    typeInto(input(), '  Bail application \ud800 for Ravi  ');
+    click(option('Bail application'));
+    expect(push).toHaveBeenCalledWith('/dashboard/new?kind=bail_regular');
+    expect(stored()).toBe('Bail application � for Ravi');
+  });
+
+  it('chip navigation still happens when sessionStorage throws', () => {
+    jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('QuotaExceededError');
+    });
+    mount(<DashboardCommandBar />);
+    typeInto(input(), 'Bail application for Ravi');
+    click(option('Bail application'));
+    expect(push).toHaveBeenCalledWith('/dashboard/new?kind=bail_regular');
+  });
+
+  it('no pushed URL ever contains the typed text or a q= param', () => {
+    const text = 'Bail application for Ravi Zq7731';
+    const paths: Array<() => void> = [
+      () => click(option('Bail application')),
+      () => {
+        highlightFirst();
+        press(input(), { key: 'Enter' });
+      },
+      () => {
+        highlightFirst();
+        draft();
+      },
+      () => draft(),
+    ];
+    for (const go of paths) {
+      push.mockClear();
+      window.sessionStorage.clear();
+      const m = mount(<DashboardCommandBar />);
+      typeInto(input(), text);
+      go();
+      expect(push).toHaveBeenCalledTimes(1);
+      const url = push.mock.calls[0][0] as string;
+      expect(url).not.toMatch(/Ravi|Zq7731|%|q=/);
+      expect(url === '/dashboard/new' || url === '/dashboard/new?kind=bail_regular').toBe(true);
+      expect(new URL(url, 'http://x').searchParams.has('q')).toBe(false);
+      m.unmount();
+    }
   });
 });
 
