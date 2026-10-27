@@ -11,7 +11,7 @@
 // Only primary lifts 1px with the 4px Brass Soft halo. Ghost: border to Brass, ground to Brass
 // Soft, 150ms, no lift, no halo. Destructive (T-544, Rajesh T-531 F2): ground Oxblood to Oxblood
 // High, 150ms; it does not lift or glow. Every hover is gated to a hover-capable fine pointer and
-// to an enabled button.
+// to an enabled button that is not aria-disabled (T-622).
 
 import { forwardRef } from 'react';
 
@@ -39,7 +39,7 @@ const VARIANT: Record<ButtonVariant, string> = {
   // the system ButtonText/ButtonBorder keep the border visible; the focus ring is .nl-focus.
   'ghost-danger': cn(
     'bg-transparent text-[color:var(--err)] border border-[color:var(--err)]',
-    '[@media(hover:hover)_and_(pointer:fine)]:enabled:hover:bg-[color:var(--err-light)]',
+    '[@media(hover:hover)_and_(pointer:fine)]:[&:not([aria-disabled=true])]:enabled:hover:bg-[color:var(--err-light)]',
     'forced-colors:border-[color:ButtonBorder] forced-colors:text-[color:ButtonText]',
   ),
 };

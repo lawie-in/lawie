@@ -216,7 +216,7 @@
             "label": "Medical condition of the applicant",
             "type": "textarea",
             "required": false,
-            "question": "Does the applicant suffer from any illness, disability or medical condition you want placed before the court? If yes, name it as written in the medical papers. If not, leave it blank.",
+            "question": "Does the applicant have any illness, disability or medical condition you want placed before the court? If yes, name it as written in the medical papers. If not, write \"None\".",
             "ask_when_empty": true
           },
           {
@@ -544,6 +544,22 @@
               {
                 "id": "youth_first_time",
                 "label": "Young person, no prior offence"
+              },
+              {
+                "id": "business_dispute_civil_in_nature",
+                "label": "Dispute is essentially civil in nature"
+              },
+              {
+                "id": "amount_paid_or_deposited",
+                "label": "Amount in dispute paid or deposited (without admission)"
+              },
+              {
+                "id": "only_earning_member",
+                "label": "Only earning member of the family"
+              },
+              {
+                "id": "ready_to_furnish_bail_bond_and_sureties",
+                "label": "Ready to furnish a bail bond and sureties"
               }
             ],
             "inject_into": [
@@ -618,7 +634,7 @@
       {
         "section_id": "body",
         "type": "ai_generated",
-        "prompt_context": "Generate 7-10 numbered paragraphs for a {bail_type_label} application. Paragraph 1 must mention FIR No. {fir_number} dated {fir_date}, registered at PS {police_station}, under Section(s) {sections_charged}, as written in the FIR. Paragraphs 2-3 should narrate the facts based on: {facts_narrative}. Subsequent paragraphs should establish the grounds for bail: {grounds_for_bail}. Reference Article 21 of Constitution. Use formal legal language. Do NOT generate the prayer clause or verification — those are template-handled.",
+        "prompt_context": "Generate 7-10 numbered paragraphs for a {bail_type_label} application. Paragraph 1 must mention FIR No. {fir_number} dated {fir_date}, registered at Police Station {police_station}, under Section(s) {sections_charged}, as written in the FIR. Paragraphs 2-3 should narrate the facts based on: {facts_narrative}. Subsequent paragraphs should establish the grounds for bail: {grounds_for_bail}. Reference Article 21 of Constitution. Use formal legal language. Do NOT generate the prayer clause or verification — those are template-handled.",
         "numbering": "numeric",
         "min_paragraphs": 7,
         "max_paragraphs": 12
@@ -627,7 +643,7 @@
         "section_id": "prayer",
         "type": "template",
         "alignment": "left",
-        "template": "PRAYER\n\n{prayer_opening}\n\na) Grant {bail_type_label} to the {party_label_petitioner}, {applicant_name}, in connection with FIR No. {fir_number} dated {fir_date}, PS {police_station}, under {governing_provision}, on such terms and conditions as this Hon'ble Court may deem fit;\n\nb) Pass such other orders as this Hon'ble Court may deem fit and proper in the facts and circumstances of the case, in the interest of justice.\n\n{prayer_closing}"
+        "template": "PRAYER\n\n{prayer_opening}\n\na) Grant {bail_type_label} to the {party_label_petitioner}, {applicant_name}, in connection with FIR No. {fir_number} dated {fir_date}, Police Station {police_station}, under {governing_provision}, on such terms and conditions as this Hon'ble Court may deem fit;\n\nb) Pass such other orders as this Hon'ble Court may deem fit and proper in the facts and circumstances of the case, in the interest of justice.\n\n{prayer_closing}"
       },
       {
         "section_id": "verification",

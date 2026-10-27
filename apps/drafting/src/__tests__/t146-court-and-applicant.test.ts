@@ -513,7 +513,6 @@ describe('T-146 criterion 5: placeholder coverage of every document rule', () =>
     ],
     'surrender_application.json': ['verification:address', 'verification:occupation'],
     'suspension_of_sentence.json': ['verification:parentName'],
-    'temporary_injunction_o39.json': ['cause_title:defendant', 'cause_title:plaintiff'],
     'vakalatnama.json': [
       'cause_title:client',
       'cause_title:clientRole',

@@ -117,13 +117,13 @@ describe('T-220 AC4 retry then keep as failed, then replay (real Redis)', () => 
     startWorkers({ connection, send: failing });
 
     const { jobId, queue } = await enqueueEmail({
-      template: 'auth.welcome',
+      template: 'billing.lowCreditWarning',
       to: LEAK_ADDRESS,
       data: { name: LEAK_NAME, userId: '507f1f77bcf86cd799439011' },
     });
     expect(queue).toBe(QUEUE);
     await enqueueEmail({
-      template: 'auth.welcome',
+      template: 'billing.lowCreditWarning',
       to: LEAK_ADDRESS,
       data: { name: LEAK_NAME, userId: 'user-43' },
       idempotencyKey: RAW_JOB,
@@ -158,7 +158,7 @@ describe('T-220 AC4 retry then keep as failed, then replay (real Redis)', () => 
       expect(failedLogs.filter((l) => l.jobId === jobId)).toHaveLength(3);
       expect(failedLogs.find((l) => l.jobId === jobId)).toMatchObject({
         jobId,
-        template: 'auth.welcome',
+        template: 'billing.lowCreditWarning',
       });
       expect(allLogText()).not.toContain('leak@');
       expect(allLogText()).not.toContain('Zainab');
@@ -201,7 +201,7 @@ describe('T-220 AC4 retry then keep as failed, then replay (real Redis)', () => 
         .find((l) => String(l.msg).startsWith('Dry-run send'));
       expect(dry).toMatchObject({
         provider: 'dry-run',
-        template: 'auth.welcome',
+        template: 'billing.lowCreditWarning',
         userId: '507f1f77bcf86cd799439011',
         jobId,
       });

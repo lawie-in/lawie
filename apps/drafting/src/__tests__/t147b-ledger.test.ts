@@ -282,7 +282,9 @@ describe('T-147b AC4: the headline MACT case', () => {
     });
     expect(factOf(ledger, 'police_station')).toMatchObject({
       value: 'kotwali',
-      display: 'PS Kotwali',
+      // T-612 (6)(a): the display is the bare name; the typed words stay in raw_span.
+      display: 'Kotwali',
+      raw_span: 'PS Kotwali',
     });
     expect(factOf(ledger, 'accident_date')).toMatchObject({
       value: '2026-03-12',

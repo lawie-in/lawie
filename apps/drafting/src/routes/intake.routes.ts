@@ -271,6 +271,8 @@ const briefUpdateSchema = z.object({
     .string()
     .max(INTAKE_LIMITS.descriptionMax + 10 * INTAKE_LIMITS.answerMax)
     .optional(),
+  /** T-629 (§(i)2): facts the advocate was asked and left blank. Keys only, no values. */
+  asked_keys: z.array(z.string().min(1).max(200)).max(200).default([]),
   /** T-147b: the ledger shown with the brief, and the answers and edits to write to it. */
   ledger_id: LEDGER_ID.optional(),
   ledger_edits: z
@@ -366,6 +368,7 @@ router.post(
       values: parsed.data.values,
       court: parsed.data.court ?? undefined,
       description: parsed.data.description,
+      askedKeys: parsed.data.asked_keys,
       ...(ledger ? { ledger } : {}),
     });
     if (!brief) {

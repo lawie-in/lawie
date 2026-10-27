@@ -49,6 +49,15 @@ export interface BriefItem {
    * No value and no fact, but it counts as asked: its question is not open again.
    */
   asked_empty?: boolean;
+  /** T-629: Confirm is off while this fact is empty or a non-answer (the service decides). */
+  blocks_confirm?: boolean;
+  /**
+   * T-629 (Ajay, T-613 §(i)2): asked and left blank, which counts as answered.
+   * Its question is not open again and the draft shows nothing for it.
+   */
+  asked_blank?: boolean;
+  /** T-629 (§(i)2): a blank answer here counts as answered once asked; send it in `asked_keys`. */
+  blank_once_asked?: boolean;
 }
 
 export interface BriefCourt {
@@ -71,8 +80,11 @@ export interface Brief {
   unplaced: Array<{ label: string; value: Value }>;
   still_unknown: Array<{ key: string; label: string; placeholder: string }>;
   can_confirm: boolean;
-  confirm_blockers: Array<'court' | 'parties'>;
+  confirm_blockers: Array<'court' | 'parties' | 'required_fields'>;
+  /** T-629 (§(j)2): every blocking line, one per line ("\n"): court, parties, then the fields. */
   confirm_message: string | null;
+  /** T-629: the keys of the required fields that block Confirm, in signed order. */
+  confirm_blocking_keys?: string[];
   /** T-363 AC1: T-192's signed B2 line, when the brief's own s.138 dates give it. */
   date_check?: { line: 'B2'; text: string };
 }
@@ -112,6 +124,7 @@ export interface BriefResponse {
   /** With `questions` for a document with no rule pack: the round to send back. */
   next_round?: number;
   choices?: Array<{ kind: string; name: string }>;
+  unranked?: boolean;
   needs_upgrade?: boolean;
   /** T-147b: sent only while the fact ledger is on for the user. Without it the brief shows as before. */
   ledger?: Ledger;
@@ -484,6 +497,14 @@ export function withDeclinedAnswers(brief: Brief, previous: GivenValue[]): Brief
     return { ...item, asked_empty: true };
   });
   return changed ? { ...brief, items } : brief;
+}
+
+/**
+ * T-629 (§(i)2): the keys asked and left blank so far, with these added. Sent
+ * as `asked_keys` on brief/update; the service decides which of them count.
+ */
+export function withAskedKeys(asked: readonly string[], keys: readonly string[]): string[] {
+  return [...new Set([...asked, ...keys])];
 }
 
 /** Set, replace or clear one value the user typed. The new value carries no "Please check" mark. */

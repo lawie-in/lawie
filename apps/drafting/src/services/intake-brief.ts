@@ -20,6 +20,12 @@
  */
 import courtDocuments from '../config/intake/court-documents.json';
 import dateMeanings from '../config/intake/date-meanings.json';
+import {
+  isEmptyOrNonAnswer,
+  isO39RequiredField,
+  O39_REQUIRED_FIELDS,
+  requiredFieldBlockers,
+} from '../config/intake/o39-confirm-messages';
 
 import {
   isCustodyChoice,
@@ -71,6 +77,16 @@ export interface ChecklistItem {
   askWhenEmpty?: boolean;
   /** T-471: the s.138 drawer as named on the cheque (firm, company or person): read as text, not a person name. */
   drawerAsNamed?: boolean;
+  /**
+   * T-488 (Ajay, 971d2685): asked on the brief as usual, but not a fact the
+   * draft must print. Only the State on a s.138 notice (the jurisdiction picker).
+   */
+  notInDraft?: true;
+  /**
+   * T-629 (Ajay, T-613 §(g)): Confirm is off while this fact is empty or a
+   * §(j)3 non-answer. The pack's `blocks_confirm: true`.
+   */
+  blocksConfirm?: true;
 }
 
 export type ValueSource = 'description' | 'user';
@@ -118,6 +134,19 @@ export interface BriefItem {
    * confirm; until then the draft treats it as unknown and shows its blank.
    */
   unconfirmed?: true;
+  /** T-629: Confirm is off while this fact is empty or a non-answer (§(j)3). */
+  blocks_confirm?: true;
+  /**
+   * T-629 (Ajay, T-613 §(i)2): the advocate was asked and left it blank. That
+   * counts as answered: it is not asked again and the draft shows nothing for
+   * it. Not `asked_empty`, which would force T-440's "Not known" blank.
+   */
+  asked_blank?: true;
+  /**
+   * T-629 (§(i)2): a blank answer to this fact counts as answered once asked.
+   * Tells the web app which blank answers to send back as `asked_keys`.
+   */
+  blank_once_asked?: true;
 }
 
 export interface BriefCourt {
@@ -142,9 +171,15 @@ export interface Brief {
   unplaced: Array<{ label: string; value: string | string[] }>;
   still_unknown: Array<{ key: string; label: string; placeholder: string }>;
   can_confirm: boolean;
-  confirm_blockers: Array<'court' | 'parties'>;
-  /** The line shown under Confirm when it is off (T-127, section 7.2). */
+  confirm_blockers: Array<'court' | 'parties' | 'required_fields'>;
+  /**
+   * The lines shown under Confirm when it is off (T-127, section 7.2). T-629
+   * (§(j)2): every blocking message, one per line ("\n"), court and parties
+   * first, then the required fields in signed order.
+   */
   confirm_message: string | null;
+  /** T-629: the keys of the required fields that block Confirm, in §(j)2 order. */
+  confirm_blocking_keys?: string[];
   /**
    * T-363 AC1: for a `legal_notice_s138` whose own dates give T-192's B2, the
    * signed B2 line. The advocate confirms the dates before drafting. The
@@ -504,9 +539,16 @@ function valueKind(fact: RulePackFact): { kind: ValueKind; options: string[] } {
   return { kind: 'text', options: [] };
 }
 
+/**
+ * T-629 (Ajay, T-613 §(i)6): facts that are what is asked for, by exact name.
+ * Not every `_sought`: that would move ex_parte_sought, interim_custody_sought
+ * and others. acts_complained_of stays in facts.
+ */
+const RELIEF_KEYS = new Set(['restraint_sought']);
+
 function partOf(key: string, name: string, kind: ValueKind): BriefPart {
   if (kind === 'date') return 'dates';
-  if (RELIEF.test(name)) return 'relief';
+  if (RELIEF.test(name) || RELIEF_KEYS.has(name)) return 'relief';
   if (PARTY_DETAIL.test(name)) return 'parties';
   if (kind === 'amount' || NUMBERS.test(name)) return 'numbers';
   // A long text about a party, such as the defendant's response, is a fact.
@@ -630,6 +672,10 @@ export function buildChecklist(pack: RulePack): ChecklistItem[] {
         : {}),
       ...(fact.question?.source === 'pack' ? { question: fact.question.text } : {}),
       ...(fact.ask_when_empty === true ? { askWhenEmpty: true } : {}),
+      ...(pack.id === 'legal_notice_s138' && fact.name === 'state'
+        ? { notInDraft: true as const }
+        : {}),
+      ...(fact.blocks_confirm === true ? { blocksConfirm: true as const } : {}),
     });
   }
 
@@ -1282,7 +1328,20 @@ export interface BuildBriefInput {
    * block Confirm. Items and values are not changed.
    */
   ledgerGiven?: ReadonlySet<string>;
+  /**
+   * T-629 (§(i)2): keys the advocate was asked and left blank. On a fact in
+   * `BLANK_ONCE_ASKED` with no value, the item is marked `asked_blank`.
+   */
+  askedKeys?: readonly string[];
 }
+
+/**
+ * T-629 (Ajay, T-613 §(i)2): per pack, the facts where a blank once asked
+ * counts as answered and renders nothing. Only `title_document_date` is signed.
+ */
+const BLANK_ONCE_ASKED: Readonly<Record<string, readonly string[]>> = {
+  temporary_injunction_o39: ['title_document_date'],
+};
 
 function clean(s: unknown): string | null {
   return typeof s === 'string' && s.trim() !== ''
@@ -1341,8 +1400,10 @@ export function ledgerGivenKeys(
 export function withoutLedgerGiven(brief: Brief, given: ReadonlySet<string>): Brief {
   if (given.size === 0) return brief;
   const confirm = confirmState(brief.kind.court_document, brief.court, brief.items, given);
+  const { confirm_blocking_keys: _old, ...rest } = brief;
+  void _old;
   return {
-    ...brief,
+    ...rest,
     still_unknown: brief.still_unknown.filter((u) => !given.has(u.key)),
     ...confirm,
     can_confirm: confirm.confirm_blockers.length === 0,
@@ -1508,6 +1569,12 @@ export function buildBrief(input: BuildBriefInput): Brief {
     typeof given.value === 'string' &&
     holdNone.has(foldAnswer(given.value));
 
+  // T-629 (§(i)2): a blank once asked counts as answered, on the signed facts only.
+  const blankOnceAsked = new Set(BLANK_ONCE_ASKED[input.kind.id ?? ''] ?? []);
+  const askedBlank = new Set(
+    (input.askedKeys ?? []).filter((k) => blankOnceAsked.has(lastSegment(k))),
+  );
+
   // T-153: a fact the form hides (show_if false) is not asked and shows no blank.
   const hidden = hiddenByShowIf(input.checklist, placed);
   const matterDate = offenceOrFirDate(input.checklist, placed, input.kind.id);
@@ -1547,6 +1614,11 @@ export function buildBrief(input: BuildBriefInput): Brief {
         party_name: item.partyName,
         ...(!given && askedEmpty.has(item.key) ? { asked_empty: true as const } : {}),
         ...(unconfirmed(given) ? { unconfirmed: true as const } : {}),
+        ...(item.blocksConfirm === true ? { blocks_confirm: true as const } : {}),
+        ...(blankOnceAsked.has(lastSegment(item.key)) ? { blank_once_asked: true as const } : {}),
+        ...(!given && !askedEmpty.has(item.key) && askedBlank.has(item.key)
+          ? { asked_blank: true as const }
+          : {}),
       };
     });
 
@@ -1568,12 +1640,8 @@ export function buildBrief(input: BuildBriefInput): Brief {
     }
   });
 
-  const { confirm_blockers: blockers, confirm_message } = confirmState(
-    input.kind.court_document,
-    court,
-    items,
-    given,
-  );
+  const confirm = confirmState(input.kind.court_document, court, items, given);
+  const blockers = confirm.confirm_blockers;
 
   const placedDates = new Set(
     items
@@ -1602,8 +1670,7 @@ export function buildBrief(input: BuildBriefInput): Brief {
     unplaced: [...unplaced.values()],
     still_unknown,
     can_confirm: blockers.length === 0,
-    confirm_blockers: blockers,
-    confirm_message,
+    ...confirm,
     ...(dateCheck ? { date_check: dateCheck } : {}),
   };
 }
@@ -1612,13 +1679,19 @@ export function buildBrief(input: BuildBriefInput): Brief {
  * What Confirm waits for on a court document: the court, and each required
  * party's name. T-498: a party name the ledger holds (`given`) shows on its row,
  * so it does not block Confirm.
+ *
+ * T-629 (Ajay, T-613 §(g), §(j)2, §(j)3): on any document, a fact marked
+ * `blocks_confirm` that is empty or a non-answer blocks too. Only the brief's
+ * own value lifts it (typed, or read from the description); a ledger-held key
+ * does not, since the ledger's value is not seen here. Every message shows,
+ * one per line: court and parties first, then the fields in signed order.
  */
 function confirmState(
   courtDocument: boolean,
   court: BriefCourt,
   items: ReadonlyArray<BriefItem>,
   given: ReadonlySet<string>,
-): Pick<Brief, 'confirm_blockers' | 'confirm_message'> {
+): Pick<Brief, 'confirm_blockers' | 'confirm_message' | 'confirm_blocking_keys'> {
   const blockers: Brief['confirm_blockers'] = [];
   let confirm_message: string | null = null;
   if (courtDocument) {
@@ -1637,7 +1710,47 @@ function confirmState(
       confirm_message = `Add the name of the ${partyLabel(missingParties[0].label)} to continue.`;
     }
   }
-  return { confirm_blockers: blockers, confirm_message };
+
+  const required = requiredItemBlockers(items);
+  if (required.length === 0) return { confirm_blockers: blockers, confirm_message };
+  blockers.push('required_fields');
+  const lines = [
+    ...(confirm_message !== null ? [confirm_message] : []),
+    ...required.flatMap((r) => (r.en !== null ? [r.en] : [])),
+  ];
+  return {
+    confirm_blockers: blockers,
+    confirm_message: lines.length > 0 ? lines.join('\n') : null,
+    confirm_blocking_keys: required.map((r) => r.key),
+  };
+}
+
+/**
+ * T-629: the `blocks_confirm` items still empty or a non-answer, in §(j)2
+ * order, each with its signed EN message. A flagged fact with no signed
+ * message still blocks (fail closed), with no line of its own.
+ */
+function requiredItemBlockers(
+  items: ReadonlyArray<BriefItem>,
+): Array<{ key: string; en: string | null }> {
+  const open = items.filter((i) => i.blocks_confirm === true && isEmptyOrNonAnswer(i.value));
+  if (open.length === 0) return [];
+  const values: Record<string, unknown> = {};
+  for (const i of items) {
+    const name = lastSegment(i.key);
+    if (isO39RequiredField(name)) values[name] = i.value;
+  }
+  const signed = new Map<string, string>(
+    requiredFieldBlockers(values).map((b) => [b.key as string, b.en]),
+  );
+  const rank = (key: string): number => {
+    const at = (O39_REQUIRED_FIELDS as readonly string[]).indexOf(lastSegment(key));
+    return at < 0 ? O39_REQUIRED_FIELDS.length : at;
+  };
+  return open
+    .map((item, index) => ({ item, index }))
+    .sort((a, b) => rank(a.item.key) - rank(b.item.key) || a.index - b.index)
+    .map(({ item }) => ({ key: item.key, en: signed.get(lastSegment(item.key)) ?? null }));
 }
 
 // ── An edited description (T-150, Rule A) ───────────────────────────────────
@@ -1883,7 +1996,10 @@ export function buildQuestions(
   const notGiven = (item: BriefItem): boolean =>
     isEmpty(item.value) && !(ledgerGiven.has(item.key) && !alsoAsk.has(item.key));
   const askWhenEmpty = (item: BriefItem): boolean =>
-    packItems.get(item.key)?.askWhenEmpty === true && notGiven(item) && !item.asked_empty;
+    packItems.get(item.key)?.askWhenEmpty === true &&
+    notGiven(item) &&
+    !item.asked_empty &&
+    !item.asked_blank;
   const confirming = (item: BriefItem): boolean =>
     confirm.has(item.key) && packItems.get(item.key)?.askWhenEmpty === true;
   // T-190 AC8: earlier bail applications, asked straight after the party names.

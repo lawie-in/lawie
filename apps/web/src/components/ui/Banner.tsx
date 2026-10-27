@@ -3,10 +3,17 @@
 // T-511 part A: Banner (spec 3). Full width under the top bar, warn/soft or error/soft. Kinds:
 // AI down, payment failed, verify email, privacy re-accept. Error tone is role="alert", warn tone
 // role="status". Copy comes from props (copy file 4.5 and 5).
+// T-616: `session-reconnecting` (warn, never dismissible, no action; also aria-live="polite" and
+// aria-atomic="true", for this kind only). Rendered by components/shell/SessionReconnectingBanner.
 
 import { cn } from '@/lib/cn';
 
-export type BannerKind = 'ai-down' | 'payment-failed' | 'verify-email' | 'privacy-reaccept';
+export type BannerKind =
+  | 'ai-down'
+  | 'payment-failed'
+  | 'verify-email'
+  | 'privacy-reaccept'
+  | 'session-reconnecting';
 export type BannerTone = 'warn' | 'error';
 
 export const BANNER_TONE: Record<BannerKind, BannerTone> = {
@@ -14,7 +21,11 @@ export const BANNER_TONE: Record<BannerKind, BannerTone> = {
   'payment-failed': 'error',
   'verify-email': 'warn',
   'privacy-reaccept': 'warn',
+  'session-reconnecting': 'warn',
 };
+
+/** T-616: kinds that announce every text change as one polite, atomic update. */
+const LIVE_KINDS: ReadonlySet<BannerKind> = new Set(['session-reconnecting']);
 
 export interface BannerProps {
   kind: BannerKind;
@@ -51,10 +62,15 @@ export function Banner({
   className,
 }: BannerProps) {
   const resolvedTone = tone ?? BANNER_TONE[kind];
-  const showClose = dismissible && onDismiss && dismissLabel;
+  const live = LIVE_KINDS.has(kind);
+  // T-616: session-reconnecting is never dismissible and has no action, whatever is passed.
+  const showClose = !live && dismissible && onDismiss && dismissLabel;
+  const shownAction = live ? undefined : action;
   return (
     <div
       role={resolvedTone === 'error' ? 'alert' : 'status'}
+      aria-live={live ? 'polite' : undefined}
+      aria-atomic={live ? 'true' : undefined}
       data-kind={kind}
       data-tone={resolvedTone}
       className={cn(
@@ -64,20 +80,20 @@ export function Banner({
       )}
     >
       <p className="nl-body-sm min-w-0 flex-1 font-medium">{message}</p>
-      {action ? (
+      {shownAction ? (
         <button
           type="button"
           onClick={() => {
-            if (!action.disabled) action.onClick();
+            if (!shownAction.disabled) shownAction.onClick();
           }}
-          aria-disabled={action.disabled || undefined}
-          aria-busy={action.busy || undefined}
+          aria-disabled={shownAction.disabled || undefined}
+          aria-busy={shownAction.busy || undefined}
           className={cn(
             'nl-focus nl-body-sm rounded-nl-md px-nl-3 inline-flex min-h-[44px] items-center font-medium underline underline-offset-4',
-            action.disabled && 'cursor-not-allowed opacity-40',
+            shownAction.disabled && 'cursor-not-allowed opacity-40',
           )}
         >
-          {action.label}
+          {shownAction.label}
         </button>
       ) : null}
       {showClose ? (

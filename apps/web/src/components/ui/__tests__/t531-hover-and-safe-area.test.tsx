@@ -15,6 +15,8 @@ import { cleanupMounted, mount, q, qa } from './nl-test-utils';
 afterEach(cleanupMounted);
 
 const FINE = '[@media(hover:hover)_and_(pointer:fine)]';
+// T-622: the gate that keeps an aria-disabled button inert on hover.
+const NOT_AD = '[&:not([aria-disabled=true])]';
 const btn = (variant: ButtonVariant, extra: Record<string, unknown> = {}) =>
   mount(
     <Button variant={variant} {...extra}>
@@ -28,12 +30,9 @@ describe('ui/hover constants', () => {
   it('primary: a 4px halo and a 1px lift, both gated to fine hover pointers; no lift under reduced motion', () => {
     for (const rule of [hover.NL_PRIMARY_BUTTON_HOVER, hover.NL_PRIMARY_LINK_HOVER]) {
       const c = rule.split(/\s+/);
-      expect(c).toContain(
-        `${FINE}:${rule.includes('enabled') ? 'enabled:' : ''}hover:shadow-nl-halo`,
-      );
-      expect(c).toContain(
-        `${FINE}:${rule.includes('enabled') ? 'enabled:' : ''}hover:-translate-y-px`,
-      );
+      const gate = rule.includes('enabled') ? `${NOT_AD}:enabled:` : '';
+      expect(c).toContain(`${FINE}:${gate}hover:shadow-nl-halo`);
+      expect(c).toContain(`${FINE}:${gate}hover:-translate-y-px`);
       expect(
         c.some((x) => x.startsWith('motion-reduce:') && x.endsWith('hover:translate-y-0')),
       ).toBe(true);
@@ -45,8 +44,8 @@ describe('ui/hover constants', () => {
 
   it('ghost: border to Brass, ground to Brass Soft, 150ms; no lift, no halo, gated and not on :disabled', () => {
     const g = hover.NL_GHOST_HOVER;
-    expect(g).toContain(`${FINE}:[&:not(:disabled)]:hover:border-nl-brass`);
-    expect(g).toContain(`${FINE}:[&:not(:disabled)]:hover:bg-nl-brass-light`);
+    expect(g).toContain(`${FINE}:${NOT_AD}:[&:not(:disabled)]:hover:border-nl-brass`);
+    expect(g).toContain(`${FINE}:${NOT_AD}:[&:not(:disabled)]:hover:bg-nl-brass-light`);
     expect(g).toContain('duration-150');
     expect(g).toContain('border-color');
     expect(g).toContain('background-color');
@@ -130,7 +129,7 @@ describe('Button hover per variant', () => {
     expect(b.className).not.toMatch(/translate-y|halo/);
     expect(b.className).not.toContain(hover.NL_PRIMARY_BUTTON_HOVER);
     expect(b.className).not.toContain(hover.NL_GHOST_HOVER);
-    expect(hoverClasses(b)).toEqual([`${FINE}:enabled:hover:bg-nl-ox-hi`]);
+    expect(hoverClasses(b)).toEqual([`${FINE}:${NOT_AD}:enabled:hover:bg-nl-ox-hi`]);
   });
 
   it('T-544 destructive hover keeps the focus ring transitioning (outline-color, box-shadow)', () => {
@@ -148,7 +147,9 @@ describe('Button hover per variant', () => {
   it('ghost-danger: Rust Soft on hover only, no lift, no halo', () => {
     const b = btn('ghost-danger');
     expect(b.className).not.toMatch(/translate-y|halo/);
-    expect(hoverClasses(b)).toEqual([`${FINE}:enabled:hover:bg-[color:var(--err-light)]`]);
+    expect(hoverClasses(b)).toEqual([
+      `${FINE}:${NOT_AD}:enabled:hover:bg-[color:var(--err-light)]`,
+    ]);
   });
 
   it('only primary carries a lift or halo, across every variant', () => {

@@ -64,6 +64,13 @@
  * in job data, meta, the return value, failedReason or Sentry. A BullMQ retry mints again; only
  * the newest link works.
  *
+ * T-587 (Arjun, option A): an auth.welcome job carries the userId only. The processor asks auth
+ * (POST /internal/welcome/prepare, INTERNAL_SECRET) for the address, display name and login URL,
+ * then renders and sends. A 404 (no such user, inactive, being closed, a test account, or no
+ * welcome claimed) completes the job with no send and no Sentry event. Like the reset mail, a
+ * live send needs the supplier street address (footer line 1). The prepare response is never
+ * logged, put in job data, meta, the return value, failedReason or Sentry.
+ *
  * Test seam (T-220 AC4): createProcessor(send, mint, notice, invoiceView, passwordReset) takes the provider send
  * function and the verify-link mint function, and startWorkers({ connection, send }) takes both the Redis
  * connection and the send function, so a test can force a provider error
@@ -224,6 +231,54 @@ export const prepareSignupAttemptViaAuth: PrepareSignupAttemptFn = async (userId
     return { email: body.email, signInUrl: body.signInUrl, resetUrl: body.resetUrl };
   }
   throw new SignupAttemptPrepareError('BAD_RESPONSE');
+};
+
+// ── T-587: welcome mail (auth) ───────────────────────────────────────────────
+
+/** What auth's welcome prepare returns. PII: never log any of it. */
+export interface PreparedWelcome {
+  email: string;
+  /** Display name; '' when auth has none (the template uses its no-name forms). */
+  name: string;
+  loginUrl: string;
+}
+
+/**
+ * Asks auth for the address, display name and login URL for an auth.welcome job. Returns null
+ * on 404 (no such user, deactivated, being closed, a test account, or no welcome claimed): the
+ * job is dropped. Throws a value-free error otherwise, so BullMQ retries.
+ */
+export type PrepareWelcomeFn = (userId: string) => Promise<PreparedWelcome | null>;
+
+class WelcomePrepareError extends Error {
+  readonly code: string;
+  constructor(code: string) {
+    super(`welcome prepare failed: ${code}`);
+    this.name = 'WelcomePrepareError';
+    this.code = code;
+  }
+}
+
+export const prepareWelcomeViaAuth: PrepareWelcomeFn = async (userId) => {
+  let res: Response;
+  try {
+    res = await postToAuth('/internal/welcome/prepare', { userId });
+  } catch (err) {
+    // Network error or timeout. The original message can carry the URL: not kept.
+    const name = (err as { name?: unknown } | null)?.name;
+    throw new WelcomePrepareError(name === 'TimeoutError' ? 'TIMEOUT' : 'NETWORK');
+  }
+  if (res.status === 404) return null;
+  if (!res.ok) throw new WelcomePrepareError(`HTTP_${res.status}`);
+  const body = (await res.json().catch(() => null)) as Record<string, unknown> | null;
+  if (body && nonEmpty(body.email) && nonEmpty(body.loginUrl)) {
+    return {
+      email: body.email,
+      name: typeof body.name === 'string' ? body.name : '',
+      loginUrl: body.loginUrl,
+    };
+  }
+  throw new WelcomePrepareError('BAD_RESPONSE');
 };
 
 // ── T-221: password-reset mint (auth) ───────────────────────────────────────
@@ -591,6 +646,8 @@ const NO_STREET_ADDRESS_MESSAGE =
   'password reset email needs the supplier street address; not sent';
 const NO_STREET_ADDRESS_SIGNUP_ATTEMPT_MESSAGE =
   'sign-up attempt email needs the supplier street address; not sent';
+const NO_STREET_ADDRESS_WELCOME_MESSAGE =
+  'welcome email needs the supplier street address; not sent';
 /** Errors raised by the placeholder guard: rethrown as-is, without the Sentry/log path. */
 const placeholderRefusals = new WeakSet<object>();
 
@@ -621,6 +678,7 @@ export function createProcessor(
   invoiceView: FetchInvoiceViewFn = fetchInvoiceViewViaBilling,
   passwordReset: MintPasswordResetFn = mintPasswordResetViaAuth,
   signupAttempt: PrepareSignupAttemptFn = prepareSignupAttemptViaAuth,
+  welcome: PrepareWelcomeFn = prepareWelcomeViaAuth,
 ): Processor<EmailJobData> {
   return async (job: Job<EmailJobData>) => {
     const { template, cc, bcc, replyTo, data } = job.data;
@@ -633,6 +691,7 @@ export function createProcessor(
     const isNotice = template === 'auth.unverifiedDeletionNotice';
     const isPasswordReset = template === 'auth.passwordReset';
     const isSignupAttempt = template === 'auth.signupAttempt';
+    const isWelcome = template === 'auth.welcome';
     // T-436: invoice and credit-note emails resolve the recipient through billing.
     const invoiceKind = INVOICE_TEMPLATE_KIND[template];
     const rawInvoiceId = data?.invoiceId;
@@ -640,7 +699,12 @@ export function createProcessor(
     // All of these resolve the recipient through auth or billing; the job's to/cc/bcc/replyTo
     // are never used.
     const userIdOnly =
-      isVerify || isNotice || isPasswordReset || isSignupAttempt || invoiceKind !== undefined;
+      isVerify ||
+      isNotice ||
+      isPasswordReset ||
+      isSignupAttempt ||
+      isWelcome ||
+      invoiceKind !== undefined;
     // T-358: which verify-link mail this is, for the outcome report (set once known).
     let mail: VerifyMail | null = isVerify ? 'verify' : null;
     Sentry.addBreadcrumb({
@@ -718,6 +782,37 @@ export function createProcessor(
         }
         to = [prepared.email];
         renderData = { signInUrl: prepared.signInUrl, resetUrl: prepared.resetUrl, userId };
+        if (streetAddress) renderData = { ...renderData, streetAddress };
+      }
+      if (isWelcome) {
+        // T-587 (option A): the address and name come from auth at send time, never the job.
+        if (!userId) throw new UnrecoverableError('auth.welcome job without a userId');
+        // Checked before the fetch, so no PII is pulled for an email that cannot render.
+        if (!isTemplateRegistered(template)) {
+          throw new Error(`Template "${template}" is not registered`);
+        }
+        // AJ-587-M1 (review item 25): footer line 1 carries the supplier street address, as in
+        // the reset mail. Same guard: no live send without it, checked before the fetch.
+        const streetAddress = supplierStreetAddress();
+        if (isLiveSend() && !streetAddress) {
+          logger.error(
+            { userId: ids.userId, reason: 'supplier_street_address_unset' },
+            'Welcome email not sent: supplier street address not set',
+          );
+          const refusal = new UnrecoverableError(NO_STREET_ADDRESS_WELCOME_MESSAGE);
+          placeholderRefusals.add(refusal);
+          throw refusal;
+        }
+        const prepared = await welcome(userId);
+        if (!prepared) {
+          logger.info(
+            { jobId, template: ids.template, userId: ids.userId },
+            'Welcome email not sent: not eligible or no such user',
+          );
+          return { skipped: 'not_eligible' };
+        }
+        to = [prepared.email];
+        renderData = { name: prepared.name, loginUrl: prepared.loginUrl, userId };
         if (streetAddress) renderData = { ...renderData, streetAddress };
       }
       if (isPasswordReset) {
@@ -953,6 +1048,8 @@ export interface StartWorkersOptions {
   passwordReset?: MintPasswordResetFn;
   /** T-522 signup-attempt prepare; defaults to the call to auth's internal route. */
   signupAttempt?: PrepareSignupAttemptFn;
+  /** T-587 welcome prepare; defaults to the call to auth's internal route. */
+  welcome?: PrepareWelcomeFn;
 }
 
 export function startWorkers(options: StartWorkersOptions = {}): Worker[] {
@@ -974,6 +1071,7 @@ export function startWorkers(options: StartWorkersOptions = {}): Worker[] {
     options.invoiceView,
     options.passwordReset,
     options.signupAttempt,
+    options.welcome,
   );
   const started: Worker[] = [];
   for (const queueName of WORKER_QUEUE_NAMES) {

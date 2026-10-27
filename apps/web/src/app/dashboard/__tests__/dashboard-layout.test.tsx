@@ -48,6 +48,10 @@ jest.mock('@/components/sections/SectionFinderPanel', () => ({
   SectionFinderPanel: () => <div data-testid="section-finder" />,
   SECTION_FINDER_OPEN_EVENT: 'lawie:openSectionFinder',
 }));
+// T-616: a marker for the session banner (its own behaviour is tested in the shell tests).
+jest.mock('@/components/shell/SessionReconnectingBanner', () => ({
+  SessionReconnectingBanner: () => <div data-testid="session-banner" />,
+}));
 jest.mock('next/link', () => ({
   __esModule: true,
   default: ({ href, children, ...rest }: { href: string; children: React.ReactNode }) => (
@@ -129,7 +133,15 @@ describe('/dashboard: the Night Library shell', () => {
     expect(q('header', container)).toBeNull();
     expect(tid('privacy-prompt')).not.toBeNull();
     expect(q('.nl-root', container)).not.toBeNull();
-    expect(replace).toHaveBeenCalledWith('/login');
+    // T-616: back to this page after signing in (pathname only).
+    expect(replace).toHaveBeenCalledWith('/login?next=%2Fdashboard');
+  });
+
+  it('T-616: the return path is the pathname only, never a query or hash', () => {
+    page('/dashboard/new?draft=secret+matter#frag', { user: null });
+    expect(replace).toHaveBeenCalledTimes(1);
+    expect(replace).toHaveBeenCalledWith('/login?next=%2Fdashboard%2Fnew');
+    expect(String(replace.mock.calls[0][0])).not.toContain('secret');
   });
 
   it('still loading: the spinner and the privacy prompt, no redirect yet', () => {
@@ -181,7 +193,8 @@ describe.each([
     expect(q('.animate-spin', container)).not.toBeNull();
     expect(q('.nl-root', container)).toBeNull();
     expect(tid('privacy-prompt')).not.toBeNull();
-    expect(replace).toHaveBeenCalledWith('/login');
+    // T-616: back to this page after signing in (pathname only).
+    expect(replace).toHaveBeenCalledWith(`/login?next=${encodeURIComponent(path)}`);
   });
 });
 
@@ -211,7 +224,7 @@ describe.each(['/dashboard/settings', '/dashboard/settings/', '/dashboard/paymen
     it('signed out: redirects to /login without the page', () => {
       page(path, { user: null });
       expect(tid('child')).toBeNull();
-      expect(replace).toHaveBeenCalledWith('/login');
+      expect(replace).toHaveBeenCalledWith(`/login?next=${encodeURIComponent(path)}`);
     });
   },
 );
@@ -234,4 +247,46 @@ describe('path matching', () => {
     );
     expect(tid('legacy-sidebar')).not.toBeNull();
   });
+});
+
+describe('T-616: where the session-reconnecting banner sits', () => {
+  const before = (a: Element | null, b: Element | null) =>
+    Boolean(a && b && a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+
+  it('Night Library shell: after VerifyEmailPrompt, before OfflineBanner', () => {
+    const online = jest.spyOn(window.navigator, 'onLine', 'get').mockReturnValue(false);
+    page('/dashboard');
+    const banner = tid('session-banner');
+    expect(banner).not.toBeNull();
+    expect(before(tid('verify-prompt'), banner)).toBe(true);
+    const offline = q('[data-kind=offline]');
+    expect(offline).not.toBeNull();
+    expect(before(banner, offline)).toBe(true);
+    expect(before(banner, tid('child'))).toBe(true);
+    online.mockRestore();
+  });
+
+  it.each(['/dashboard/new', '/dashboard/documents', '/dashboard/templates'])(
+    'legacy shell %s: after VerifyEmailPrompt, in flow above the page',
+    (path) => {
+      page(path);
+      const banner = tid('session-banner');
+      expect(banner).not.toBeNull();
+      expect(before(tid('verify-prompt'), banner)).toBe(true);
+      expect(before(banner, tid('child'))).toBe(true);
+      expect(qa('[data-testid=session-banner]')).toHaveLength(1);
+      expect(q('[data-kind=offline]')).toBeNull(); // this shell never rendered OfflineBanner
+    },
+  );
+
+  it.each(['/dashboard', '/dashboard/new'])(
+    '%s: no banner in the loading spinner or the signed-out branch',
+    (path) => {
+      page(path, { isLoading: true, user: null });
+      expect(tid('session-banner')).toBeNull();
+      cleanupMounted();
+      page(path, { isLoading: false, user: null });
+      expect(tid('session-banner')).toBeNull();
+    },
+  );
 });
