@@ -64,6 +64,90 @@ describe('pastDatePrayerHold', () => {
     }
   });
 
+  describe('subject_matter left out of the prayer (Ajay 410c3e34 §(k)6)', () => {
+    const SM = 'Plot 4, Patna, sale deed dated 3 March 2020';
+    const prayer = (extra = '') => `a) restrain the defendant from dealing with ${SM}${extra};`;
+    const noPrayer: Sections = [section('cause_title', 'T'), section('body', '', 'ai_generated')];
+    const hold = (rs: unknown, sections: Sections, bodyAt: number, body: string, sm?: unknown) =>
+      pastDatePrayerHold(O39, rs, sections, bodyAt, body, NOW, sm);
+
+    it('a past date only in subject_matter returns null', () => {
+      expect(hold('raising any construction', SECTIONS(prayer()), BODY_AT, 'b', SM)).toBeNull();
+    });
+
+    it('with subject_matter missing, undefined, null or blank, the same text blocks', () => {
+      for (const sm of [undefined, null, '', '   ']) {
+        expect(
+          hold('raising any construction', SECTIONS(prayer()), BODY_AT, 'b', sm),
+        ).toMatchObject({
+          code: 'past_date_in_prayer',
+          date: '3 March 2020',
+        });
+      }
+      // and with the 6-argument call used before this round
+      expect(pastDatePrayerHold(O39, 'x', SECTIONS(prayer()), BODY_AT, 'b', NOW)).toMatchObject({
+        date: '3 March 2020',
+      });
+    });
+
+    it('a subject_matter that is not in the prayer excludes nothing', () => {
+      expect(hold('x', SECTIONS(prayer()), BODY_AT, 'b', 'a different value')).toMatchObject({
+        date: '3 March 2020',
+      });
+    });
+
+    it('a past date in restraint_sought blocks even when subject_matter also holds a date', () => {
+      expect(hold(`after ${PAST}`, SECTIONS(prayer()), BODY_AT, 'b', SM)).toEqual({
+        code: 'past_date_in_prayer',
+        key: 'restraint_sought',
+        label: 'Pack label for the restraint',
+        date: PAST,
+      });
+    });
+
+    it('restraint_sought is scanned whole: a restraint_sought equal to subject_matter still blocks', () => {
+      expect(hold(SM, SECTIONS('a) restrain'), BODY_AT, 'b', SM)).toMatchObject({
+        date: '3 March 2020',
+      });
+    });
+
+    it('a past date in the prayer outside subject_matter blocks (crafted prayer)', () => {
+      expect(
+        hold('x', SECTIONS(prayer(`, and on ${PAST} the defendant`)), BODY_AT, 'b', SM),
+      ).toMatchObject({ date: PAST });
+      // the fixed wording and other slots are still read
+      expect(
+        hold('x', SECTIONS(`${prayer()} Hearing on 1 January 2026.`), BODY_AT, 'b', SM),
+      ).toMatchObject({ date: '1 January 2026' });
+    });
+
+    it('the first date outside subject_matter is the one reported', () => {
+      const r = hold('x', SECTIONS(`before ${SM}, after 5 May 2026`), BODY_AT, 'b', SM);
+      expect(r).toMatchObject({ date: '5 May 2026' });
+    });
+
+    it('the join cannot make a new date out of the two halves', () => {
+      expect(
+        hold('x', SECTIONS('a) restrain on 20 October SM 2020;'), BODY_AT, 'b', 'SM'),
+      ).toBeNull();
+    });
+
+    it('the model own prayer path (no system prayer) also excludes subject_matter', () => {
+      const own = `1. Body.\n\nPRAYER\n\n${prayer()}`;
+      expect(hold('x', noPrayer, 1, own, SM)).toBeNull();
+      expect(hold('x', noPrayer, 1, own)).toMatchObject({ date: '3 March 2020' });
+      expect(hold('x', noPrayer, 1, `${own}\nafter ${PAST}`, SM)).toMatchObject({ date: PAST });
+    });
+
+    it('the body is still never read, with or without subject_matter', () => {
+      expect(hold('x', noPrayer, 1, `1. On ${PAST} at ${SM}.`, SM)).toBeNull();
+    });
+
+    it('another pack still returns null', () => {
+      expect(pastDatePrayerHold(OTHER, PAST, SECTIONS(prayer()), BODY_AT, 'b', NOW, SM)).toBeNull();
+    });
+  });
+
   it('a non-string restraint_sought is ignored', () => {
     expect(pastDatePrayerHold(O39, undefined, SECTIONS('a)'), BODY_AT, 'body', NOW)).toBeNull();
     expect(pastDatePrayerHold(O39, 42, SECTIONS('a)'), BODY_AT, 'body', NOW)).toBeNull();

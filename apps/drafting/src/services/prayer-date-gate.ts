@@ -14,6 +14,10 @@
  * 5. (eb3506f5) A month and year with no day ("September 2026") blocks when
  *    the whole month has ended before today (IST); the current month and later
  *    pass. A four-digit year only.
+ * 6. (410c3e34) The prayer is read with the `{subject_matter}` value left out:
+ *    a deed or plot date there describes the property. The other filled slots
+ *    and the fixed prayer wording are still read. The gate never asks a
+ *    question whose answer cannot clear the block.
  * 2. What is read: `{restraint_sought}` plus the prayer section, whoever
  *    wrote it. Body paragraphs are never read: past dates belong there.
  * 3. English month names, Devanagari month names (nukta-insensitive, with the
@@ -42,6 +46,9 @@ export const PAST_DATE_GATE_PACK_ID = 'temporary_injunction_o39';
 /** The field the answer replaces (T-613 §(h)): `restraint_sought`, never `acts_complained_of`. */
 export const RESTRAINT_SOUGHT_KEY = 'restraint_sought';
 
+/** The prayer slot left out of the scan (§(k)6). */
+export const SUBJECT_MATTER_KEY = 'subject_matter';
+
 /** Signed (Ajay, T-613 §(b)): the field's label, used only when the pack gives none. */
 export const RESTRAINT_SOUGHT_LABEL = 'Acts the defendant should be restrained from';
 
@@ -49,6 +56,17 @@ export const RESTRAINT_SOUGHT_LABEL = 'Acts the defendant should be restrained f
 export function pastDateInPrayerLine(date: string): string {
   // split/join, not replace: a `$` in the date is never read as a pattern.
   return PAST_DATE_IN_PRAYER_QUESTION.en.split('<date>').join(date);
+}
+
+/**
+ * §(k)6: `text` with every literal occurrence of the subject_matter value
+ * taken out (a string match, never a pattern). Each occurrence becomes `|`,
+ * which no date reader reads across, so the words either side cannot join
+ * into a date. An empty, blank or non-string value changes nothing.
+ */
+export function withoutSubjectMatter(text: string, subjectMatter: unknown): string {
+  if (typeof subjectMatter !== 'string' || subjectMatter.trim() === '') return text;
+  return text.split(subjectMatter).join('|');
 }
 
 /** Today's date in India (UTC+05:30, no DST), ISO `YYYY-MM-DD`. */

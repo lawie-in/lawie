@@ -12,6 +12,8 @@ import {
   istToday,
   RESTRAINT_SOUGHT_KEY,
   RESTRAINT_SOUGHT_LABEL,
+  SUBJECT_MATTER_KEY,
+  withoutSubjectMatter,
 } from '../services/prayer-date-gate';
 
 // 27 Oct 2026, 12:00 IST.
@@ -290,5 +292,56 @@ describe('modelPrayerSection (§(k)2: never the body)', () => {
   it('a past date inside the section blocks', () => {
     const body = '1. Body.\n\nPRAYER\n\na) restrain from building after 20 October 2026.';
     expect(pastDateInPrayer([modelPrayerSection(body)!], NOW)).toEqual({ date: '20 October 2026' });
+  });
+});
+
+describe('withoutSubjectMatter (T-628, Ajay 410c3e34 §(k)6)', () => {
+  it('the key is subject_matter', () => {
+    expect(SUBJECT_MATTER_KEY).toBe('subject_matter');
+  });
+
+  it('takes out every literal occurrence of the value', () => {
+    expect(withoutSubjectMatter('a) Plot 4 and again Plot 4 b)', 'Plot 4')).toBe(
+      'a) | and again | b)',
+    );
+  });
+
+  it('a date inside the value is gone, a date outside it stays', () => {
+    const sm = 'Plot 4, deed of 3 March 2020';
+    const out = withoutSubjectMatter(`restrain from ${sm}, after 20 October 2026`, sm);
+    expect(out).not.toContain('2020');
+    expect(out).toContain('20 October 2026');
+    expect(blocks(out)).toBe('20 October 2026');
+  });
+
+  it('is a string match, never a pattern: regex and $ characters in the value are literal', () => {
+    expect(withoutSubjectMatter('x (a+b)* $& y', '(a+b)*')).toBe('x | $& y');
+    expect(withoutSubjectMatter('x .* y', '.*')).toBe('x | y');
+    expect(withoutSubjectMatter('abc', '.')).toBe('abc');
+  });
+
+  it.each([[undefined], [null], [''], ['   '], ['\n\t'], [42], [{}], [['x']]])(
+    'a missing, blank or non-string value (%p) changes nothing',
+    (v) => {
+      const text = 'a) restrain on 20 October 2026';
+      expect(withoutSubjectMatter(text, v)).toBe(text);
+    },
+  );
+
+  it('the `|` join cannot make a new date out of the two halves', () => {
+    // "20 October" + [subject_matter "garbage"] + "2020" would read as 20 October 2020 if joined by nothing or a space
+    const out = withoutSubjectMatter('on 20 October SM 2020', 'SM');
+    expect(out).toBe('on 20 October | 2020');
+    expect(blocks(out)).toBeNull();
+    const out2 = withoutSubjectMatter('on 20/SM/2020 and 1.SM.2020', 'SM');
+    expect(blocks(out2)).toBeNull();
+    const out3 = withoutSubjectMatter('3 March2020x', 'March');
+    expect(blocks(out3)).toBeNull();
+    // a value that is a month name between day and year
+    expect(blocks(withoutSubjectMatter('on 20 October 2020', 'October'))).toBeNull();
+  });
+
+  it('a value that is the whole text leaves only the join', () => {
+    expect(withoutSubjectMatter('Plot 4', 'Plot 4')).toBe('|');
   });
 });

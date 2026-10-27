@@ -239,24 +239,35 @@ describe('T-628 route: a past date in restraint_sought withholds the draft', () 
     await expectNoInkTaken();
   });
 
-  it('a past date only in the rendered prayer (restraint_sought clean): blocked, and the prayer says what the system wrote', async () => {
-    // subject_matter lands in the system-built prayer (a)
+  it('T-628 / Ajay 410c3e34 (§(k)6): a past date only in subject_matter (a deed or plot date) is DELIVERED', async () => {
+    // subject_matter lands in the system-built prayer (a); the gate reads the prayer with that
+    // value left out, so no question is asked whose answer could not clear the block.
     mockMessagesStream.mockResolvedValue(sdkAnswer(answer(BODY), 4000, 800));
     const values = valuesWith('raising any construction').map((v) =>
       v.key === 'subject_matter' ? { ...v, value: `Plot 4, Patna, as surveyed on ${PAST}` } : v,
     );
     const res = await post(values);
+    expect(res.status).toBe(200);
+    expect(events(res.text, 'error')).toEqual([]);
+    expect(res.text).not.toContain('past_date_in_prayer');
+    expect(events(res.text, 'done')).toHaveLength(1);
+    expect(await LawieDocument.countDocuments({})).toBe(1);
+    expect((await Generation.find({ userId: USER_ID }).lean()).map((g) => g.status)).toEqual([
+      'completed',
+    ]);
+  });
+
+  it('a past date in restraint_sought still blocks when subject_matter also holds a date', async () => {
+    mockMessagesStream.mockResolvedValue(sdkAnswer(answer(BODY), 4000, 800));
+    const values = valuesWith(`raising construction after ${PAST}`).map((v) =>
+      v.key === 'subject_matter' ? { ...v, value: 'Plot 4, Patna, deed of 3 March 2020' } : v,
+    );
+    const res = await post(values);
     const errs = events(res.text, 'error');
     expect(errs).toHaveLength(1);
-    expect(errs[0]).toMatchObject({
-      code: 'past_date_in_prayer',
-      key: 'restraint_sought',
-      reason: LINE(PAST),
-    });
+    expect(errs[0]).toMatchObject({ code: 'past_date_in_prayer', reason: LINE(PAST) });
+    expect(res.text).not.toContain('3 March 2020');
     expect(res.text).not.toContain('event: done');
-    expect((await Generation.find({ userId: USER_ID }).lean()).map((g) => g.status)).toEqual([
-      'failed',
-    ]);
     await expectNoInkTaken();
   });
 
@@ -339,5 +350,33 @@ describe('T-628 route: gate order, fact_needed before past_date_in_prayer', () =
     expect(res.text).not.toContain('past_date_in_prayer');
     expect(res.text).not.toContain('event: done');
     await expectNoInkTaken();
+  });
+});
+
+describe('T-628 route: no-ledger path, the O.39 body is not streamed before the gate (review round 1, must-fix 1)', () => {
+  const TEXT_CHUNK = /data: \{"text"/;
+
+  it('a withheld O.39 run has no text chunk at all, before the error or after', async () => {
+    mockMessagesStream.mockResolvedValue(sdkAnswer(answer(BODY), 4000, 800));
+    const res = await post(valuesWith(`raising construction after ${PAST}`));
+    expect(events(res.text, 'error')).toHaveLength(1);
+    expect(res.text).not.toMatch(TEXT_CHUNK);
+    expect(res.text).not.toContain('"text"');
+    // nothing of the model's body, either
+    expect(res.text).not.toContain('threatened to build');
+    expect(res.text).not.toContain('event: template_sections');
+    expect(res.text).not.toContain('event: done');
+    await expectNoInkTaken();
+  });
+
+  it('a delivered O.39 run has no text chunk but does send template_sections with the body', async () => {
+    mockMessagesStream.mockResolvedValue(sdkAnswer(answer(BODY), 4000, 800));
+    const res = await post(valuesWith('raising any construction'));
+    expect(events(res.text, 'error')).toEqual([]);
+    expect(res.text).not.toMatch(TEXT_CHUNK);
+    const secs = events(res.text, 'template_sections');
+    expect(secs).toHaveLength(1);
+    expect(JSON.stringify(secs[0])).toContain('threatened to build');
+    expect(events(res.text, 'done')).toHaveLength(1);
   });
 });
