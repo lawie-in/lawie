@@ -106,3 +106,6 @@ The Templates form route has no T-611 gate until T-637 merges. Do not cut prod f
 
 ## FR-6: feature.fact_ledger must be ON, or the gate must run without it (27 Oct 2026, Ajay 06d18fed)
 T-611 and T-637 work only where feature.fact_ledger is ON, and it defaults to OFF. No prod release may be called the fix for Anushka's 26 Oct faults unless the flag is ON in prod or the gate runs without a ledger. The release note must state the flag's value. Arjun is checking the current value via Nikhil.
+
+## T-613 + T-628 + T-629 + T-637 ship to prod together (Ajay FR-5a 04f5aa77, 27 Oct 2026)
+These four tickets go in one release. T-629 enforces the O.39 required fields on both the brief and the form routes. FR-6 is met by T-637 (the gate runs without a ledger, Arjun); the release note still states the feature.fact_ledger value.
