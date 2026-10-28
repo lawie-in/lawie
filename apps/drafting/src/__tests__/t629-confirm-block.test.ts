@@ -46,7 +46,9 @@ const SIGNED_RELIEF_EN = 'Add the relief sought in the main suit to continue.';
 const SIGNED_RELIEF_HI = 'आगे बढ़ने के लिए मुख्य वाद में माँगी गई राहत जोड़िए।';
 const SIGNED_RESTRAINT_EN = 'Add the acts the defendant should be restrained from, to continue.';
 const SIGNED_RESTRAINT_HI = 'आगे बढ़ने के लिए वे कार्य जोड़िए जिनसे प्रतिवादी को रोका जाना है।';
-const COURT_PARTIES_MSG = 'Choose the court and add the parties to continue.';
+// T-644, AJ-644-M1 (typed byte for byte from handoff/legal/T-511-copy-rulings-ajay.md).
+const SIGNED_PLAINTIFF_EN = "Add the plaintiff's name to continue.";
+const SIGNED_DEFENDANT_EN = "Add the defendant's name to continue.";
 const COURT_ONLY_MSG = 'Choose the court to continue.';
 
 const O39 = 'temporary_injunction_o39';
@@ -89,8 +91,13 @@ describe('o39-confirm-messages: the signed strings', () => {
     expect(O39_CONFIRM_MESSAGES.restraint_sought.hi).toBe(SIGNED_RESTRAINT_HI);
   });
 
-  it('the field order is main_suit_relief, then restraint_sought', () => {
-    expect([...O39_REQUIRED_FIELDS]).toEqual(['main_suit_relief', 'restraint_sought']);
+  it('the field order is plaintiff_name, defendant_name (T-644), main_suit_relief, restraint_sought', () => {
+    expect([...O39_REQUIRED_FIELDS]).toEqual([
+      'plaintiff_name',
+      'defendant_name',
+      'main_suit_relief',
+      'restraint_sought',
+    ]);
     expect(isO39RequiredField('restraint_sought')).toBe(true);
     expect(isO39RequiredField('acts_complained_of')).toBe(false);
   });
@@ -149,13 +156,18 @@ describe('o39-confirm-messages: the signed strings', () => {
 
   it('requiredFieldBlockers returns the open fields in signed order, with the EN line', () => {
     expect(requiredFieldBlockers({})).toEqual([
+      { key: 'plaintiff_name', en: SIGNED_PLAINTIFF_EN },
+      { key: 'defendant_name', en: SIGNED_DEFENDANT_EN },
       { key: 'main_suit_relief', en: SIGNED_RELIEF_EN },
       { key: 'restraint_sought', en: SIGNED_RESTRAINT_EN },
     ]);
-    expect(requiredFieldBlockers({ main_suit_relief: 'x', restraint_sought: 'N/A' })).toEqual([
-      { key: 'restraint_sought', en: SIGNED_RESTRAINT_EN },
-    ]);
-    expect(requiredFieldBlockers({ main_suit_relief: 'x', restraint_sought: 'y' })).toEqual([]);
+    const parties = { plaintiff_name: 'Ramesh Kumar Verma', defendant_name: 'Sunita Devi Agarwal' };
+    expect(
+      requiredFieldBlockers({ ...parties, main_suit_relief: 'x', restraint_sought: 'N/A' }),
+    ).toEqual([{ key: 'restraint_sought', en: SIGNED_RESTRAINT_EN }]);
+    expect(
+      requiredFieldBlockers({ ...parties, main_suit_relief: 'x', restraint_sought: 'y' }),
+    ).toEqual([]);
   });
 });
 
@@ -244,11 +256,13 @@ describe('confirmState: the required fields block Confirm', () => {
     expect(b.can_confirm).toBe(true);
   });
 
-  it('(j)2 order: no court and no parties: court+parties line, then both fields', () => {
+  it('(j)2 order (AJ-644-M2): no court and no parties: court line, both party lines, then both fields', () => {
     const b = brief([], {}, NO_COURT);
     expect(b.confirm_blockers).toEqual(['court', 'parties', 'required_fields']);
     expect(b.confirm_message!.split('\n')).toEqual([
-      COURT_PARTIES_MSG,
+      COURT_ONLY_MSG,
+      SIGNED_PLAINTIFF_EN,
+      SIGNED_DEFENDANT_EN,
       SIGNED_RELIEF_EN,
       SIGNED_RESTRAINT_EN,
     ]);
@@ -267,10 +281,11 @@ describe('confirmState: the required fields block Confirm', () => {
   it('(j)2 order: parties missing, court chosen: the party line precedes the fields', () => {
     const b = brief([RELIEF]);
     expect(b.confirm_blockers).toEqual(['parties', 'required_fields']);
-    const lines = b.confirm_message!.split('\n');
-    expect(lines).toHaveLength(2);
-    expect(lines[0]).toMatch(/^Add the name of the .* to continue\.$/);
-    expect(lines[1]).toBe(SIGNED_RESTRAINT_EN);
+    expect(b.confirm_message!.split('\n')).toEqual([
+      SIGNED_PLAINTIFF_EN,
+      SIGNED_DEFENDANT_EN,
+      SIGNED_RESTRAINT_EN,
+    ]);
   });
 
   it('a value read from the description lifts the blocker (the brief shows it to confirm)', () => {

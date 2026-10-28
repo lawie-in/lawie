@@ -181,6 +181,12 @@ export interface Brief {
   /** T-629: the keys of the required fields that block Confirm, in §(j)2 order. */
   confirm_blocking_keys?: string[];
   /**
+   * T-644: on temporary_injunction_o39, the party keys counted as missing, in
+   * the order of their lines in `confirm_message`. Absent when none, and on
+   * every other pack.
+   */
+  confirm_missing_party_keys?: string[];
+  /**
    * T-363 AC1: for a `legal_notice_s138` whose own dates give T-192's B2, the
    * signed B2 line. The advocate confirms the dates before drafting. The
    * entry stays banned (T-192). Absent for any other result or pack.
@@ -1399,9 +1405,16 @@ export function ledgerGivenKeys(
  */
 export function withoutLedgerGiven(brief: Brief, given: ReadonlySet<string>): Brief {
   if (given.size === 0) return brief;
-  const confirm = confirmState(brief.kind.court_document, brief.court, brief.items, given);
-  const { confirm_blocking_keys: _old, ...rest } = brief;
+  const confirm = confirmState(
+    brief.kind.id,
+    brief.kind.court_document,
+    brief.court,
+    brief.items,
+    given,
+  );
+  const { confirm_blocking_keys: _old, confirm_missing_party_keys: _oldParties, ...rest } = brief;
   void _old;
+  void _oldParties;
   return {
     ...rest,
     still_unknown: brief.still_unknown.filter((u) => !given.has(u.key)),
@@ -1640,7 +1653,7 @@ export function buildBrief(input: BuildBriefInput): Brief {
     }
   });
 
-  const confirm = confirmState(input.kind.court_document, court, items, given);
+  const confirm = confirmState(input.kind.id, input.kind.court_document, court, items, given);
   const blockers = confirm.confirm_blockers;
 
   const placedDates = new Set(
@@ -1685,34 +1698,64 @@ export function buildBrief(input: BuildBriefInput): Brief {
  * own value lifts it (typed, or read from the description); a ledger-held key
  * does not, since the ledger's value is not seen here. Every message shows,
  * one per line: court and parties first, then the fields in signed order.
+ *
+ * T-644 (Ajay, AJ-644-M1, AJ-644-M2), temporary_injunction_o39 only: a party
+ * name that is empty or a §(j)3 non-answer is missing. The lines are the T-127
+ * court line, then the signed party lines (plaintiff, then defendant), one per
+ * line, in place of the combined court-and-parties line and the generic
+ * party line. `confirm_blocking_keys` stays the required fields' keys.
  */
 function confirmState(
+  packId: string | null,
   courtDocument: boolean,
   court: BriefCourt,
   items: ReadonlyArray<BriefItem>,
   given: ReadonlySet<string>,
-): Pick<Brief, 'confirm_blockers' | 'confirm_message' | 'confirm_blocking_keys'> {
+): Pick<
+  Brief,
+  'confirm_blockers' | 'confirm_message' | 'confirm_blocking_keys' | 'confirm_missing_party_keys'
+> {
   const blockers: Brief['confirm_blockers'] = [];
   let confirm_message: string | null = null;
+  let partyKeys: string[] = [];
   if (courtDocument) {
+    const o39 = packId === 'temporary_injunction_o39';
     const courtChosen = court.state !== null && court.court_type !== null && court.court !== null;
     const missingParties = items.filter(
-      (i) => i.party_name && i.required && isEmpty(i.value) && !given.has(i.key),
+      (i) =>
+        i.party_name &&
+        i.required &&
+        (o39 ? isEmptyOrNonAnswer(i.value) : isEmpty(i.value)) &&
+        !given.has(i.key),
     );
     if (!courtChosen) blockers.push('court');
     if (missingParties.length > 0) blockers.push('parties');
     // The wording is Ajay's (T-127, section 7.2).
-    if (!courtChosen && missingParties.length > 0) {
+    const courtLine = 'Choose the court to continue.';
+    if (o39) {
+      // AJ-644-M1's lines, in O39_REQUIRED_FIELDS order (plaintiff, then defendant).
+      const missingNames = new Set(missingParties.map((i) => lastSegment(i.key)));
+      const partyBlockers = requiredFieldBlockers({}).filter((b) => missingNames.has(b.key));
+      const partyLines = partyBlockers.map((b) => b.en);
+      // The item keys, in the order of their lines.
+      partyKeys = partyBlockers.flatMap((b) =>
+        missingParties.filter((i) => lastSegment(i.key) === b.key).map((i) => i.key),
+      );
+      const lines = [...(!courtChosen ? [courtLine] : []), ...partyLines];
+      confirm_message = lines.length > 0 ? lines.join('\n') : null;
+    } else if (!courtChosen && missingParties.length > 0) {
       confirm_message = 'Choose the court and add the parties to continue.';
     } else if (!courtChosen) {
-      confirm_message = 'Choose the court to continue.';
+      confirm_message = courtLine;
     } else if (missingParties.length > 0) {
       confirm_message = `Add the name of the ${partyLabel(missingParties[0].label)} to continue.`;
     }
   }
 
+  // T-644: set only when an O.39 party is missing, so other briefs are unchanged.
+  const parties = partyKeys.length > 0 ? { confirm_missing_party_keys: partyKeys } : {};
   const required = requiredItemBlockers(items);
-  if (required.length === 0) return { confirm_blockers: blockers, confirm_message };
+  if (required.length === 0) return { confirm_blockers: blockers, confirm_message, ...parties };
   blockers.push('required_fields');
   const lines = [
     ...(confirm_message !== null ? [confirm_message] : []),
@@ -1722,6 +1765,7 @@ function confirmState(
     confirm_blockers: blockers,
     confirm_message: lines.length > 0 ? lines.join('\n') : null,
     confirm_blocking_keys: required.map((r) => r.key),
+    ...parties,
   };
 }
 

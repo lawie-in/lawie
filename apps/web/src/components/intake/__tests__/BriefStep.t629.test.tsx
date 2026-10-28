@@ -271,14 +271,15 @@ describe('T-629 BriefStep: the message goes to the first blocking field', () => 
 
   it('an unnamed party still comes before the required fields', () => {
     mount(
-      briefOf(
-        ITEMS(),
-        blocked(
+      briefOf(ITEMS(), {
+        // T-644: on O.39 the service lists the missing parties (plaintiff line, AJ-644-M1).
+        ...blocked(
           ['parties', 'required_fields'],
-          `Add the name of the plaintiff to continue.\n${RELIEF_EN}\n${RESTRAINT_EN}`,
+          `Add the plaintiff's name to continue.\n${RELIEF_EN}\n${RESTRAINT_EN}`,
           ['main_suit_relief', 'restraint_sought'],
         ),
-      ),
+        confirm_missing_party_keys: ['plaintiff_name'],
+      }),
     );
     (document.activeElement as HTMLElement | null)?.blur();
     press(messageBtn());
