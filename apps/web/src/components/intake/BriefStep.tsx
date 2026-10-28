@@ -21,6 +21,7 @@ import {
   BriefCourt,
   BriefItem,
   dateInWords,
+  derivedDateCaption,
   describeValue,
   EditOutcome,
   fieldValueOf,
@@ -253,6 +254,10 @@ function Item({
             : item.value;
   const empty = isEmptyValue(shown);
   const heading = item.kind === 'date' && item.meaning ? item.meaning : item.label;
+  // T-638 (Ajay R1, B3): a custody date derived from the date of arrest shows
+  // "<date> (date of arrest)" beside it, while the row shows that derived value.
+  const derivedCaption =
+    !entry.fact && !status && shown === item.value ? derivedDateCaption(item) : null;
   const toBeAsked =
     onLedger &&
     entry.unresolved !== undefined &&
@@ -402,6 +407,7 @@ function Item({
             [
               required ? `${id}-required` : '',
               item.note ? `${id}-note` : '',
+              derivedCaption ? `${id}-derived` : '',
               statusLine ? `${id}-status` : '',
               showBlank && !needed ? `${id}-blank` : '',
             ]
@@ -412,6 +418,11 @@ function Item({
         />
       </div>
       {revealLines && revealOpen && <Reveal id={`${id}-span`} lines={revealLines} />}
+      {derivedCaption && (
+        <p id={`${id}-derived`} className={`${small} mt-1`}>
+          {derivedCaption}
+        </p>
+      )}
       {item.note && (
         <p id={`${id}-note`} className={`${small} mt-1`}>
           {item.note}

@@ -58,6 +58,22 @@ export interface BriefItem {
   asked_blank?: boolean;
   /** T-629 (§(i)2): a blank answer here counts as answered once asked; send it in `asked_keys`. */
   blank_once_asked?: boolean;
+  /**
+   * T-638 (Ajay R1, B3): the service derived this value (custody_since from the
+   * date of arrest). Shown with `DATE_OF_ARREST_CAPTION`; never sent back as a
+   * value, so an edit is the only way it becomes the advocate's own.
+   */
+  derived_from?: 'arrest_date';
+}
+
+/** T-638 (Ajay R1 / B3, signed): beside a derived custody date, `<date> (date of arrest)`. */
+export const DATE_OF_ARREST_CAPTION = '(date of arrest)';
+
+/** T-638: the caption of a derived date, the date in the draft's format: "12 June 2026 (date of arrest)". */
+export function derivedDateCaption(item: Pick<BriefItem, 'derived_from' | 'value'>): string | null {
+  if (item.derived_from !== 'arrest_date' || typeof item.value !== 'string') return null;
+  const words = dateInWords(item.value);
+  return words === item.value ? null : `${words} ${DATE_OF_ARREST_CAPTION}`;
 }
 
 export interface BriefCourt {
@@ -369,6 +385,11 @@ export function valuesAfter(brief: Brief, previous: GivenValue[]): GivenValue[] 
   for (const item of brief.items) {
     itemKeys.add(item.key);
     if (isEmptyValue(item.value)) {
+      emptyKeys.add(item.key);
+      continue;
+    }
+    // T-638 (B3): a derived value is the service's, not the advocate's: not sent back.
+    if (item.derived_from !== undefined) {
       emptyKeys.add(item.key);
       continue;
     }
