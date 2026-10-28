@@ -178,6 +178,9 @@ describe('T-638 B (9) the generation path derives custody_since (R1)', () => {
     expect(r.status).toBe(200);
     expect(r.body).not.toBe('');
     expect(count(r.body, DERIVED)).toBe(1);
+    // Ajay: the marker fact may be in the Drafter's FACTS list, never in the drafted body
+    expect(r.body).not.toContain('custody_since_derived');
+    expect(r.body).not.toMatch(/arrest_date/);
     expect(r.body).not.toContain('has been in judicial custody since');
     expect(r.body).not.toContain('The applicant was arrested on 12 June 2026.');
     const sent = JSON.stringify(mockParse.mock.calls[0][0]);

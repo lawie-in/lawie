@@ -620,3 +620,60 @@ describe('T-638 B review (4): no description', () => {
     expect(since(brief).value).toBeNull();
   });
 });
+
+// ── Ajay's condition: the computed marker never prints ──────────────────────
+
+describe('T-638 B: custody_since_derived (the marker fact) never prints', () => {
+  const withoutGrounds = (fs: LedgerFact[]) => fs.filter((f) => f.key !== 'grounds_for_bail');
+  const arrest = () => arrestFact('2026-06-12', '12 June 2026');
+  const CASES: Array<[string, () => LedgerFact[]]> = [
+    ['derived', () => [...withoutGrounds(REG_NO_CUSTODY_DATE()), arrest()]],
+    [
+      'derived with prolonged_custody ticked',
+      () => [...withoutGrounds(REG_NO_CUSTODY_DATE()), arrest(), prolonged],
+    ],
+    [
+      'given',
+      () => [
+        ...withoutGrounds(REG_NO_CUSTODY_DATE()),
+        arrest(),
+        fact('custody_since', '12 June 2026', { type: 'date', value: '2026-06-12' }),
+      ],
+    ],
+    [
+      'given, a different date',
+      () => [
+        ...withoutGrounds(REG_NO_CUSTODY_DATE()),
+        arrest(),
+        fact('custody_since', '20 June 2026', { type: 'date', value: '2026-06-20' }),
+      ],
+    ],
+    ['not derivable (surrender word)', () => [...withoutGrounds(REG_NO_CUSTODY_DATE()), arrest()]],
+  ];
+
+  it.each(CASES)(
+    '%s: the printed draft carries no machine token and no leaked marker',
+    (name, facts) => {
+      const described = name.startsWith('not derivable')
+        ? 'He surrendered.'
+        : 'Arrested for a cheating FIR.';
+      const sent = withCustodySinceDerived(facts(), 'bail_regular', described);
+      // the marker is there for the clause's `when` only in the derived cases
+      const marked = sent.some((f) => f.key === 'custody_since_derived');
+      expect(marked).toBe(name.startsWith('derived'));
+      const r = render(sent);
+      expect(r.body).not.toContain('custody_since_derived');
+      // "arrest_date" as a display token: the marker's own display, and the raw key
+      expect(r.body).not.toMatch(/arrest_date/);
+      for (const paragraph of r.paragraphs) {
+        expect(paragraph.text).not.toContain('custody_since_derived');
+        expect(paragraph.text).not.toMatch(/arrest_date/);
+      }
+      // any {{...}} in the body (a signed blank) is not about these keys
+      for (const m of r.body.match(/\{\{[^}]*\}\}/g) ?? []) {
+        expect(m).not.toMatch(/custody_since|arrest_date/);
+      }
+      expect(r.body).not.toMatch(/\{[a-z_]+\}/);
+    },
+  );
+});
