@@ -257,3 +257,20 @@ JSON: `handoff/ops/runbooks/lawie-prod-ops-v8.json`. Only change vs v7, besides 
 
 ### SSM version 9 (27 Oct 2026, 13:43 UTC, Nikhil) — default
 On Arjun's word (13:41 UTC, release v1.2.0). JSON: `handoff/ops/runbooks/lawie-prod-ops-v9.json`; SSM content == repo JSON. Only change vs v8 (besides the description) is the new action `seed-courts`. Its function `seed_courts_run` loads the env exactly like `seed_run`/deploy (v4 loader, as ubuntu) and runs `yarn -s workspace @lawie/drafting seed:courts`. It takes no parameters. The script (`apps/drafting/src/scripts/seed-courts.ts`) is upsert-on-courtId only: idempotent, nothing deleted.
+
+### SSM version 10: PREPARED, not applied (28 Oct 2026, 21:10 UTC, Nikhil)
+JSON: `handoff/ops/runbooks/lawie-prod-ops-v10.json`, built from v9. Plans: `billing-env-2026-10-27.md` and `puppeteer-chrome-2026-10-28.md`. Applied only on the founder's go in Nikhil's chat.
+
+**`env-set`**
+- Params are `envkey` and `envvalue`. The runbook's `key`/`value` names are already taken by `seed-setting` with another pattern, so they are not reused.
+- `envkey` is an allowedValues list of the 8 runbook names, default `UNSET`. A runtime guard also refuses any name containing KEY, SECRET, TOKEN, PASS, DSN or URI.
+- `envvalue` must match `^[A-Za-z0-9@._:/, -]{1,200}$` (no quote, `$` or backslash).
+- It finds the env file from line 1 of `ecosystem.config.js`. awk writes a umask-077 temp copy: the exact `KEY=` line is replaced by `KEY="value"`, or the line is appended if absent. A line for a longer name that shares the prefix is untouched (tested locally on a dummy file). The temp copy is `cat`-ed back so the owner and perms stay.
+- It checks that exactly one `KEY=` line exists and prints only `set KEY`.
+
+**`puppeteer-chrome`**
+- Runs as ubuntu in `apps/drafting`: `npx --no puppeteer browsers install chrome`. `--no` means npx never fetches a different puppeteer from npm.
+- Prints only the `chrome@…` line and `chrome ok`.
+- Then `pm2 restart lawie-drafting`, the 4002 health gate (10×3 s, exit 5 if not 200) and a `df -h /` line.
+
+Note for billing step 3: pm2 keeps the old env across a plain `restart`. After `env-set`, use the existing `action=restart service=lawie-billing` (then `lawie-email-worker`), which runs `pm2 reload ecosystem.config.js --only <svc> --update-env`.
