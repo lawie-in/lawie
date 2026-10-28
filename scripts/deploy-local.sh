@@ -243,9 +243,11 @@ main() {
   # one puppeteer that both the root and apps/drafting depend on. Idempotent (a no-op
   # when that build is already in the cache, ~/.cache/puppeteer or PUPPETEER_CACHE_DIR
   # from the env file). Its stdout (the install path) is dropped; errors stay on stderr.
+  # --no-install: never fetch puppeteer from the registry; fail closed if the local one
+  # is missing (Priya, T-649 round 2).
   echo "-> installing puppeteer's chrome..."
-  if ! npx puppeteer browsers install chrome > /dev/null; then
-    echo "  x DEPLOY FAILED: npx puppeteer browsers install chrome failed" >&2
+  if ! npx --no-install puppeteer browsers install chrome > /dev/null; then
+    echo "  x DEPLOY FAILED: npx --no-install puppeteer browsers install chrome failed" >&2
     exit 1
   fi
   echo "   chrome ok"
@@ -333,7 +335,7 @@ lawie-web|http://localhost:3000/"
   if ! TMPDIR="$PDF_SMOKE_DIR" node -e "$PDF_SMOKE_JS" "$PDF_SMOKE_DIR" "${REPO_DIR}/apps/drafting" \
     < /dev/null > /dev/null; then
     echo "  x DEPLOY FAILED: PDF smoke failed (Chrome launch or page.pdf did not produce %PDF)" >&2
-    echo "  check: npx puppeteer browsers install chrome, then pm2 logs lawie-drafting --lines 100" >&2
+    echo "  check: npx --no-install puppeteer browsers install chrome, then pm2 logs lawie-drafting --lines 100" >&2
     exit 1
   fi
   cleanup_pdf_smoke

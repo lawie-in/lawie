@@ -39,7 +39,7 @@ type Run = {
 };
 
 let n = 0;
-const runDeploy = (o: { npxExit?: number; smokeExit?: number }): Run => {
+const runDeploy = (o: { npxExit?: number; npxAbsent?: boolean; smokeExit?: number }): Run => {
   const base = path.join(root, `c${n++}`);
   const bin = path.join(base, 'bin');
   const repo = path.join(base, 'repo');
@@ -83,7 +83,15 @@ const runDeploy = (o: { npxExit?: number; smokeExit?: number }): Run => {
   stub(
     bin,
     'npx',
-    `echo "npx $*" >> "$STUB_LOG"\necho /fake/chrome/path/T649NPXSTDOUT\nexit ${o.npxExit ?? 0}`,
+    o.npxAbsent
+      ? // Local puppeteer missing: with --no-install npx refuses instead of fetching.
+        [
+          'echo "npx $*" >> "$STUB_LOG"',
+          'case "$*" in *--no-install*) echo "npm error npx canceled: puppeteer not installed" >&2; exit 1 ;; esac',
+          'echo FETCHED >> "$STUB_LOG"',
+          'exit 0',
+        ].join('\n')
+      : `echo "npx $*" >> "$STUB_LOG"\necho /fake/chrome/path/T649NPXSTDOUT\nexit ${o.npxExit ?? 0}`,
   );
   stub(
     bin,
@@ -116,11 +124,11 @@ const runDeploy = (o: { npxExit?: number; smokeExit?: number }): Run => {
 };
 
 describe('T-649 AC1: chrome install step', () => {
-  it('runs `npx puppeteer browsers install chrome` after yarn install, before the builds', () => {
+  it('runs `npx --no-install puppeteer browsers install chrome` after yarn install, before the builds', () => {
     const { r, calls } = runDeploy({});
     expect(r.status).toBe(0);
     const iInstall = calls.findIndex((c) => c.startsWith('yarn install'));
-    const iChrome = calls.indexOf('npx puppeteer browsers install chrome');
+    const iChrome = calls.indexOf('npx --no-install puppeteer browsers install chrome');
     const iBuild = calls.indexOf('yarn workspace @lawie/shared build');
     expect(iInstall).toBeGreaterThanOrEqual(0);
     expect(iChrome).toBeGreaterThan(iInstall);
@@ -136,19 +144,35 @@ describe('T-649 AC1: chrome install step', () => {
   it('a failing install fails the deploy with exit 1 and stops before build, reload and smoke', () => {
     const { r, err, calls } = runDeploy({ npxExit: 1 });
     expect(r.status).toBe(1);
-    expect(err).toContain('npx puppeteer browsers install chrome failed');
+    expect(err).toContain('npx --no-install puppeteer browsers install chrome failed');
     expect(calls.some((c) => c.startsWith('yarn workspace'))).toBe(false);
     expect(calls.some((c) => c.startsWith('pm2'))).toBe(false);
     expect(calls).not.toContain('node smoke');
   });
 
-  it('source: command text, no --no-install, once, and no /home/ubuntu literal', () => {
-    expect(text.match(/npx puppeteer browsers install chrome >/g)).toHaveLength(1);
-    expect(text).not.toMatch(/--no-install/);
+  it('local puppeteer absent: npx --no-install fails, deploy exits 1 before the builds, nothing fetched', () => {
+    const { r, err, calls } = runDeploy({ npxAbsent: true });
+    expect(r.status).toBe(1);
+    expect(err).toContain('npx --no-install puppeteer browsers install chrome failed');
+    expect(calls).toContain('npx --no-install puppeteer browsers install chrome');
+    expect(calls).not.toContain('FETCHED');
+    expect(calls.some((c) => c.startsWith('yarn workspace'))).toBe(false);
+    expect(calls.some((c) => c.startsWith('pm2'))).toBe(false);
+    expect(calls).not.toContain('node smoke');
+  });
+
+  it('source: the npx call carries --no-install, no bare npx puppeteer call, no /home/ubuntu literal', () => {
+    const callLines = text.split('\n').filter((l) => /^\s*if ! npx /.test(l));
+    expect(callLines).toHaveLength(1);
+    expect(callLines[0]).toContain('npx --no-install puppeteer browsers install chrome >');
+    // Every executable npx use (not comments, not echoed messages) has --no-install.
+    const npxCalls = text
+      .split('\n')
+      .filter((l) => /\bnpx\b/.test(l) && !/^\s*#/.test(l) && !/^\s*echo /.test(l));
+    expect(npxCalls).toHaveLength(1);
+    expect(text).not.toMatch(/npx (?!--no-install)\S*puppeteer/);
     expect(text).not.toMatch(/\/home\/ubuntu/);
-    expect(text.indexOf('yarn install')).toBeLessThan(
-      text.indexOf('npx puppeteer browsers install chrome >'),
-    );
+    expect(text.indexOf('yarn install')).toBeLessThan(text.indexOf('npx --no-install puppeteer'));
   });
 });
 
