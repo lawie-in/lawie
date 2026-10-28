@@ -54,6 +54,22 @@ export const SIGNUP_ATTEMPT_SENTINEL_FIELDS = {
   resetUrl: 'https://app.lawie.in/forgot-password',
 };
 
+/**
+ * T-646: the merge fields billing.concernReceived and admin.paymentConcern refuse to render
+ * without (the worker builds them from billing's concern email-view; ids and codes only).
+ */
+export const CONCERN_SENTINEL_FIELDS = {
+  reference: 'PC-7K3M9QX2',
+  paymentUrl:
+    'https://app.lawie.in/dashboard/settings?tab=billing#payment-507f1f77bcf86cd799439011',
+  concernId: '507f1f77bcf86cd799439012',
+  paymentId: '507f1f77bcf86cd799439011',
+  razorpayPaymentId: 'pay_SentinelAbc123',
+  reason: 'charged_no_ink',
+  maskedEmail: 'a***@example.com',
+  adminUrl: 'https://dashboard.razorpay.com/app/payments/pay_SentinelAbc123',
+};
+
 export type RealOutcome =
   | { ok: true; subject: string; html: string; text: string }
   | { ok: false; name: string; message: string };

@@ -17,6 +17,7 @@ import { Invoice } from '../models/Invoice.model';
 import { User } from '../models/User.model';
 import { GrantClaimBusyError, grantCouponInk } from '../services/ink-ledger.service';
 import { invoicePdfFilename, renderInvoicePdf } from '../services/invoice-pdf.service';
+import { recordTopupOrderSafely } from '../services/payment-record.service';
 import {
   cancelSubscriptionAtCycleEnd,
   createSubscription,
@@ -362,6 +363,19 @@ router.post(
         receipt: `topup_${sku.id}_${userId.slice(-8)}_${Date.now().toString().slice(-8)}`,
         notes,
       });
+
+      // T-646: record the ORDER only (status 'created', hidden from the history until a
+      // payment is attempted), so a later payment.failed / authorized can be attributed.
+      // Never throws; never changes this response.
+      if (typeof order?.id === 'string') {
+        await recordTopupOrderSafely({
+          userId,
+          razorpayOrderId: order.id,
+          amountPaise: finalPaise,
+          topupSkuId: sku.id,
+          inkUnits: sku.ink * 2, // 1 Ink = 2 ledger units
+        });
+      }
 
       res.json({
         status: 'success',

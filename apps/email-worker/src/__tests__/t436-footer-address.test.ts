@@ -10,6 +10,7 @@ import { VERIFY_EMAIL_STRINGS } from '../templates/auth/verifyEmail';
 import { templateHasUnfilledFooter, anyTemplateUnfilled } from '../placeholders';
 
 import {
+  CONCERN_SENTINEL_FIELDS,
   INVOICE_SENTINEL_FIELDS,
   SIGNUP_ATTEMPT_SENTINEL_FIELDS,
   renderReal,
@@ -29,6 +30,8 @@ const SENTINEL = {
   deletionDate: '21 October 2026',
   // billing.taxInvoice / billing.creditNote (T-436 b/c) refuse to render without these.
   ...INVOICE_SENTINEL_FIELDS,
+  // T-646: billing.concernReceived / admin.paymentConcern refuse to render without these.
+  ...CONCERN_SENTINEL_FIELDS,
   // auth.signupAttempt (T-522) refuses to render without its two page links.
   ...SIGNUP_ATTEMPT_SENTINEL_FIELDS,
 };

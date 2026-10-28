@@ -11,7 +11,7 @@ import type { PlanTier, SubscriptionPlan } from '@/lib/plans';
  * {support email} in AJ-509-M2: the in-app support address. (T-565: Sidebar "Get help" now uses
  * contact@lawie.in per AJ-517-M15; credits/GenerationFailedModal.tsx was deleted.)
  */
-export const SUPPORT_EMAIL = 'support@lawie.in';
+export const SUPPORT_EMAIL = 'contact@lawie.in';
 
 export const PLAN_COPY = {
   // §4.1 plan cards

@@ -43,6 +43,8 @@ import {
   subscriptionDescription,
   topupDescription,
 } from './invoice.service';
+import { paymentEntityOf, recordPaymentSafely, recordRefundSafely } from './payment-record.service';
+import { reverseInkForRefund } from './refund-ink.service';
 
 /** T-444: statuses whose checkout is unfinished; createSubscription reuses them. */
 const CHECKOUT_STATUSES: SubscriptionStatus[] = ['created', 'authenticated'];
@@ -2330,6 +2332,16 @@ export async function handleWebhookEvent(
         }
       }
 
+      // T-646 (Arjun ruling 3): the payment-history row, AFTER the grant and its
+      // claim. Own try/catch inside, idempotent on the payment id; never throws, so
+      // the webhook response and the grant order are unchanged.
+      await recordPaymentSafely(payload, {
+        userId: notes.user_id,
+        kind: 'topup',
+        inkUnits: sku.ink * 2,
+        topupSkuId: sku.id,
+      });
+
       // T-436: one GST invoice per captured top-up payment, keyed on the payment
       // id (order.paid and payment.captured carry the same one). Issued even when
       // the grant returned 0, so a retry after a crash finishes it. The amount is
@@ -2370,6 +2382,21 @@ export async function handleWebhookEvent(
         amount: refund.amount,
         processedAt: fromUnix(refund.created_at),
       });
+      // T-646 (Vikram 5): the refund takes back its share of the payment's Ink,
+      // never below zero, idempotent on refund:<refundId>. Throws (500, Razorpay
+      // retries) only when the reversal could not run; the retry reverses once.
+      await reverseInkForRefund({
+        refundId: refund.id,
+        razorpayPaymentId: refund.payment_id,
+        refundPaise: refund.amount,
+        paymentEntity: paymentEntityOf(payload),
+      });
+      // T-646 (Arjun ruling 3): the payment-history row. Never throws.
+      await recordRefundSafely(payload, {
+        id: refund.id,
+        paymentId: refund.payment_id,
+        amount: refund.amount,
+      });
     } else {
       logger.warn({ event }, 'Webhook: refund.processed without a usable refund entity');
     }
@@ -2382,7 +2409,15 @@ export async function handleWebhookEvent(
     | undefined;
   const subId = subPayload?.id as string | undefined;
 
-  if (!subId) return;
+  if (!subId) {
+    // T-646 (Vikram 1-2): a top-up payment that failed, or was attempted and is not
+    // settled yet, has no subscription entity. Recorded (attributed through the order
+    // row or notes) and nothing else; never throws, the response is unchanged.
+    if (event === 'payment.failed' || event === 'payment.authorized') {
+      await recordPaymentSafely(payload);
+    }
+    return;
+  }
 
   const sub = await Subscription.findOne({ razorpaySubscriptionId: subId });
   if (!sub) {
@@ -2705,6 +2740,17 @@ async function applySubscriptionEvent(
         );
       }
 
+      // T-646 (Arjun ruling 3): the payment-history row for this charge, AFTER the
+      // grant and its claim (T-399 / T-415 order unchanged). Only when the event
+      // carries a payment entity. Never throws; idempotent on the payment id.
+      await recordPaymentSafely(payload, {
+        userId: sub.userId.toString(),
+        kind: 'plan',
+        inkUnits: planSku ? planSku.inkPerCycle * 2 : 0,
+        razorpaySubscriptionId: subId,
+        ...(planSku ? { planId: planSku.id } : {}),
+      });
+
       // T-518 (Arjun): report-only. Reached only once this cycle's claim was
       // won and its grant (if any) went through, so a replay (lost claim, or a
       // Razorpay retry after a failed grant whose claim was rolled back)
@@ -2879,6 +2925,12 @@ async function applySubscriptionEvent(
 
     case 'payment.failed': {
       logger.warn({ userId: sub.userId, subId }, 'Payment failed for subscription');
+      // T-646 (Vikram 1): a failed plan payment is shown (it was attempted). Never throws.
+      await recordPaymentSafely(payload, {
+        userId: sub.userId.toString(),
+        kind: 'plan',
+        razorpaySubscriptionId: subId,
+      });
       break;
     }
 

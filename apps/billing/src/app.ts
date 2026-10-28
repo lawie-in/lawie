@@ -9,6 +9,7 @@ import adminBillingRoutes from './routes/admin-billing.routes';
 import billingRoutes from './routes/billing.routes';
 import couponRoutes from './routes/coupon.routes';
 import internalRoutes from './routes/internal.routes';
+import paymentsRoutes from './routes/payments.routes';
 
 const app = express();
 
@@ -30,6 +31,7 @@ app.use('/', billingRoutes);
 app.use('/', adminBillingRoutes);
 app.use('/', couponRoutes);
 app.use('/', internalRoutes); // T-115c erase-user, subscription-status (auth); T-436 invoice email-view (email-worker)
+app.use('/', paymentsRoutes); // T-646 GET /payments, POST /payments/:id/concerns, concern email-view (email-worker)
 
 // T-315 — rejected bodies (json and the webhook's raw parser) get a plain JSON 4xx that echoes nothing.
 app.use(createJsonBodyErrorHandler({ logger }));

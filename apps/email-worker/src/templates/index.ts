@@ -23,11 +23,13 @@ import type { EmailTemplate } from '@lawie/email-client';
 import { render } from '@react-email/render';
 import type { ReactElement } from 'react';
 
+import { adminPaymentConcernTemplate } from './admin/paymentConcern';
 import { authPasswordResetTemplate } from './auth/passwordReset';
 import { authSignupAttemptTemplate } from './auth/signupAttempt';
 import { authUnverifiedDeletionNoticeTemplate } from './auth/unverifiedDeletionNotice';
 import { authVerifyEmailTemplate } from './auth/verifyEmail';
 import { authWelcomeTemplate } from './auth/welcome';
+import { billingConcernReceivedTemplate } from './billing/concernReceived';
 import { billingCreditNoteTemplate } from './billing/creditNote';
 import { billingTaxInvoiceTemplate } from './billing/taxInvoice';
 
@@ -53,6 +55,10 @@ const REGISTRY: Partial<Record<EmailTemplate, TemplateDef<any>>> = {
   // T-436 (b/c): Ajay Addendum 5 (invoice); Addendum 7 (4a) and Addendum 9 (credit note).
   'billing.taxInvoice': billingTaxInvoiceTemplate,
   'billing.creditNote': billingCreditNoteTemplate,
+  // T-646: AJ-646-M2 acknowledgement; the support notice (Arjun ruling 4). Data from billing's
+  // GET /internal/payment-concerns/:id/email-view, never from the job.
+  'billing.concernReceived': billingConcernReceivedTemplate,
+  'admin.paymentConcern': adminPaymentConcernTemplate,
   // Madhuri's 8 templates land here as they ship.
 };
 
