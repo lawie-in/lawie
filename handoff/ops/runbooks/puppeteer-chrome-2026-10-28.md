@@ -4,7 +4,7 @@ Prod drafting error log since 27 Oct 13:55 UTC: `Puppeteer PDF render failed: Co
 
 ## 1. `puppeteer-chrome` action (lawie-prod-ops v10, same version as `env-set`)
 
-- Runs as `ubuntu`, cwd `/home/ubuntu/lawie`: `npx puppeteer browsers install chrome` (no version param — puppeteer picks the build it was installed with; idempotent, re-run safe).
+- Runs as `ubuntu`, cwd `/home/ubuntu/lawie`: `npx --no-install puppeteer browsers install chrome` (run from apps/drafting; `--no-install` so the box never fetches puppeteer from the registry and fails closed if the local one is missing — same as T-649; no version param — puppeteer picks the build it was installed with; idempotent, re-run safe).
 - Prints the installed path line and `chrome ok`, nothing else. No params.
 - Then `pm2 restart lawie-drafting` and the health gate (drafting 4002 200).
 - JSON into `handoff/ops/runbooks/lawie-prod-ops-v10.json`, diff note in `handoff/ops/arjun-prod-access.md`.
