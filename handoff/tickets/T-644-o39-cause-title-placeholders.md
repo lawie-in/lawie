@@ -1,6 +1,6 @@
 # T-644 — O.39 cause title shows {plaintiff}/{defendant} unfilled on prod
 
-Status: Built, READY 28 Oct 2026 (00684c1b); merging in slot.
+Status: Merged into develop_staging (d40f3000), 28 Oct 2026.
 
 ## Problem
 The drafting log shows `System placeholder "{plaintiff}"/"{defendant}" unfilled (temporary_injunction_o39, cause_title)`. An advocate can see an O.39 draft whose cause title still has raw placeholders.
