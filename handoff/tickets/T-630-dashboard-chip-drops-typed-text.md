@@ -1,4 +1,4 @@
-Status: assigned 28 Oct 2026 (see leads.md)
+Status: Merged into develop_staging (01d1f41a, CI 1167 green), 28 Oct 2026.
 
 # T-630: The dashboard document chip drops typed text and opens the general page
 

@@ -9,6 +9,11 @@
 // hotkey={false}); ArrowDown/ArrowUp move through the options; Enter picks the highlighted option
 // or, with none highlighted, submits the text (Draft); Escape closes.
 //
+// T-630: picking an option (click or Enter) passes the trimmed typed text as onSelect's second
+// argument, only when it is non-empty. Draft with an option highlighted passes that option as
+// onSubmit's second argument; with none highlighted onSubmit gets the text alone. No second
+// argument is ever passed as an explicit undefined.
+//
 // HOTKEY CONFLICT: components/sections/SectionFinderPanel.tsx also binds Ctrl/Cmd+K on window
 // (it toggles the section finder). If both are mounted on one page, both handlers fire. Either
 // mount the command bar with hotkey={false}, or (T-524, /dashboard) pass hotkeyExclusive so the
@@ -75,10 +80,16 @@ export interface CommandBarProps {
   items?: CommandBarItem[];
   /** Shown while the input is empty. */
   quickChips?: CommandBarItem[];
-  /** An option or quick chip was picked. */
-  onSelect: (item: CommandBarItem) => void;
-  /** Draft pressed (or Enter with nothing highlighted) with non-empty text. */
-  onSubmit: (text: string) => void;
+  /**
+   * An option or quick chip was picked. T-630: `query` is the trimmed typed text, present only
+   * when it is non-empty.
+   */
+  onSelect: (item: CommandBarItem, query?: string) => void;
+  /**
+   * Draft pressed (or Enter with nothing highlighted) with non-empty text. T-630: `highlighted`
+   * is the option highlighted at that moment, present only when there is one.
+   */
+  onSubmit: (text: string, highlighted?: CommandBarItem) => void;
   /** Replaces the default matching. */
   filter?: (items: CommandBarItem[], query: string) => CommandBarItem[];
   maxResults?: number;
@@ -213,10 +224,12 @@ export function CommandBar({
 
   const select = useCallback(
     (item: CommandBarItem) => {
+      const text = query.trim();
       close();
-      onSelect(item);
+      if (text) onSelect(item, text);
+      else onSelect(item);
     },
-    [close, onSelect],
+    [query, close, onSelect],
   );
 
   const submit = useCallback(() => {
@@ -225,9 +238,12 @@ export function CommandBar({
       focusInput();
       return;
     }
+    const highlighted =
+      open && activeIndex >= 0 && activeIndex < options.length ? options[activeIndex] : undefined;
     close();
-    onSubmit(text);
-  }, [query, focusInput, close, onSubmit]);
+    if (highlighted) onSubmit(text, highlighted);
+    else onSubmit(text);
+  }, [query, open, activeIndex, options, focusInput, close, onSubmit]);
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     const n = options.length;
@@ -377,6 +393,9 @@ export function CommandBar({
             id={listboxId}
             role="listbox"
             aria-label={label}
+            // A pointer that only passed over an option must not leave it highlighted: Draft
+            // passes the highlighted option to onSubmit (T-630).
+            onMouseLeave={() => setActiveIndex(-1)}
             className={cn(
               'm-0 list-none p-0',
               typing ? 'flex flex-col' : 'gap-nl-2 flex flex-wrap',
