@@ -7,6 +7,7 @@ import { flowsOnDesktopOnly, seedSignedIn } from './helpers';
 import {
   balances,
   documents,
+  E2E_TEMPLATES,
   intakeEnabled,
   json,
   shellMocks,
@@ -150,12 +151,16 @@ test.describe('dashboard shell: top bar and command bar', () => {
     await expect(
       page.getByRole('heading', { level: 1, name: 'What do you need to draft?' }),
     ).toBeVisible();
-    const state = await page.evaluate(() => ({
-      writes: (window as unknown as { __writes: Array<[string, string]> }).__writes,
-      left: window.sessionStorage.getItem('lawie:draft-prefill'),
-    }));
-    expect(state.writes).toEqual([['lawie:draft-prefill', text]]);
-    expect(state.left).toBeNull();
+    // T-630 B: the page reads and clears the key, then saves the textarea back under the same key
+    // 500 ms after typing pauses (so a reload keeps it). Every write is the same text, never more.
+    await expect
+      .poll(() => page.evaluate(() => window.sessionStorage.getItem('lawie:draft-prefill')))
+      .toBe(text);
+    const writes = await page.evaluate(
+      () => (window as unknown as { __writes: Array<[string, string]> }).__writes,
+    );
+    expect(writes[0]).toEqual(['lawie:draft-prefill', text]);
+    for (const w of writes) expect(w).toEqual(['lawie:draft-prefill', text]);
   });
 
   test('a suggested chip with text typed opens /dashboard/new with the kind and no text in the URL', async ({
@@ -165,7 +170,20 @@ test.describe('dashboard shell: top bar and command bar', () => {
     await seedSignedIn(page, context);
     await mockApi(page, {
       'GET /api/documents/intake/enabled': json(intakeEnabled()),
-      'GET /api/documents/template-configs': json(templateConfigs()),
+      // The chip sends kind=bail_regular, so the mocked library lists that template too.
+      'GET /api/documents/template-configs': json(
+        templateConfigs([
+          ...E2E_TEMPLATES,
+          {
+            template_id: 'bail_regular',
+            display_name: 'Regular Bail',
+            category: 'Criminal',
+            description: 'Regular bail before a Sessions Court.',
+            plan_access: 'free',
+            credits_cost: 1,
+          },
+        ]),
+      ),
     });
     // Record what is written to the prefill key and every URL the app pushes. The describe page
     // drops ?kind= from the address bar once it has applied it (it must not preset twice on a
@@ -198,6 +216,11 @@ test.describe('dashboard shell: top bar and command bar', () => {
     await page.getByRole('option', { name: 'Bail application', exact: true }).click();
 
     await expect(page).toHaveURL(/\/dashboard\/new(\?kind=bail_regular)?$/);
+    // T-630 B: the landing page shows the typed text AND the kind preset (its heading).
+    await expect(page.getByLabel('Your matter')).toHaveValue(text);
+    await expect(page.getByRole('heading', { level: 1, name: 'Regular Bail' })).toBeVisible();
+    // The page drops ?kind= once it has applied it: the settled URL has no query at all.
+    await expect(page).toHaveURL(/\/dashboard\/new$/);
     const state = await page.evaluate(() => {
       const w = window as unknown as { __writes: Array<[string, string]>; __pushed: string[] };
       return { writes: w.__writes, pushed: w.__pushed };
@@ -206,9 +229,31 @@ test.describe('dashboard shell: top bar and command bar', () => {
     expect(state.pushed).toContain('/dashboard/new?kind=bail_regular');
     for (const url of state.pushed) expect(url).not.toMatch(/Ravi|q=|%20/);
     expect(page.url()).not.toContain('Ravi');
-    // The text travels in sessionStorage only. That it fills the "Your matter" box on
-    // /dashboard/new belongs to the describe-step change (part B of T-630), so it is not asserted.
-    expect(state.writes).toEqual([['lawie:draft-prefill', text]]);
+    expect(page.url()).not.toContain('q=');
+    // The text travels in sessionStorage only; later writes are the describe page saving it back.
+    expect(state.writes[0]).toEqual(['lawie:draft-prefill', text]);
+    for (const w of state.writes) expect(w).toEqual(['lawie:draft-prefill', text]);
+  });
+
+  test('T-630 B: text typed on /dashboard/new survives a reload', async ({ page, context }) => {
+    await seedSignedIn(page, context);
+    await mockApi(page, {
+      'GET /api/documents/intake/enabled': json(intakeEnabled()),
+      'GET /api/documents/template-configs': json(templateConfigs()),
+    });
+    const text = 'Typed on the new page about a cheque that bounced for Meena';
+    await page.goto('/dashboard/new');
+    const box = page.getByLabel('Your matter');
+    await box.fill(text);
+    // The save waits for typing to pause (500 ms); poll for it rather than sleeping blind.
+    await expect
+      .poll(() => page.evaluate(() => window.sessionStorage.getItem('lawie:draft-prefill')), {
+        timeout: 5000,
+      })
+      .toBe(text);
+    await page.reload();
+    await expect(page.getByLabel('Your matter')).toHaveValue(text);
+    expect(page.url()).not.toContain('Meena');
   });
 
   test('the theme toggle switches html[data-theme]', async ({ page, context }) => {

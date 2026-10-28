@@ -393,6 +393,9 @@ export function CommandBar({
             id={listboxId}
             role="listbox"
             aria-label={label}
+            // A pointer that only passed over an option must not leave it highlighted: Draft
+            // passes the highlighted option to onSubmit (T-630).
+            onMouseLeave={() => setActiveIndex(-1)}
             className={cn(
               'm-0 list-none p-0',
               typing ? 'flex flex-col' : 'gap-nl-2 flex flex-wrap',
