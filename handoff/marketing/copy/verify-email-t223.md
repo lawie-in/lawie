@@ -8,8 +8,8 @@ Rules used: plain English, no "AI", no time or outcome claims, no "free" without
 ## When the prompt appears (T-223 decision, Arjun's AC 3)
 
 - Email and password sign-ups only. Google sign-ups count as verified: no email, no prompt.
-- T-351 and Ajay's signed claim: an email sign-up gets no sign-up Ink until the address is verified (the 5 Ink are granted on verification). No daily bonus until then either. So the verify modal replaces the paywall whenever the Ink refusal hits an unverified email user. The prompt appears (1) on sign-in (banner), (2) when a draft is refused for lack of Ink, and (3) at checkout. A verified user, or a Google user, who runs out of Ink still gets the normal paywall copy.
-- The daily bonus may not exist at v1 (open in T-201 and T-223). The email and the prompts therefore do not name it. If it ships, add "or get the daily login bonus" back after Ajay agrees.
+- T-351 and Ajay's signed claim: an email sign-up gets no sign-up Ink until the address is verified (the 5 Ink are granted on verification). ~~No daily bonus until then either.~~ (withdrawn, AJ-646-M9b) So the verify modal replaces the paywall whenever the Ink refusal hits an unverified email user. The prompt appears (1) on sign-in (banner), (2) when a draft is refused for lack of Ink, and (3) at checkout. A verified user, or a Google user, who runs out of Ink still gets the normal paywall copy.
+- ~~The daily bonus may not exist at v1. If it ships, add "or get the daily login bonus" back after Ajay agrees.~~ Withdrawn, AJ-646-M9b: the daily login bonus was never a real offer. Do not add it back.
 
 ## A. The email (`auth.verifyEmail`)
 
@@ -115,7 +115,7 @@ Notes:
 | --- | --- | --- |
 | 1 | Alternates B and C for subject and button (not signed) | Ajay |
 | 2 | 24 h, single-use and resend limit against the final build; if the build goes back to "first draft open", the trigger lines return to Ajay | Priya |
-| 3 | Daily login bonus: in or out at v1 | Priya, Vikram |
+| 3 | ~~Daily login bonus: in or out at v1~~ Withdrawn, AJ-646-M9b: never a real offer | ~~Priya, Vikram~~ |
 | 4 | Footer address and PIN | founder |
 | 5 | Meera's sign-off | Meera |
 

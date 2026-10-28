@@ -26,3 +26,34 @@ Today a customer can see only issued invoices (Settings → Invoices, T-436). Th
 
 ## Related
 Invoices stay empty on prod until GST_EFFECTIVE_FROM is set (founder env line).
+
+## Vikram (28 Oct 2026): statuses, amounts, refunds, start date
+
+**1. Statuses shown:** Paid, Failed, Processing, Refunded, Partly refunded. One status per row, from the Razorpay payment entity, never from our order alone.
+- **Failed** rows are shown only when there was a payment attempt (a Razorpay payment exists). Under them: "If money left your account, your bank returns it automatically." Ajay words the timing.
+- **Partly refunded** shows both figures: amount paid, amount refunded.
+
+**2. Orders started but never paid:** hide them. An order with no payment attempt is not a payment. Only someone who closed the checkout made one, and showing it as "pending" invites false concerns.
+- A payment that *was* attempted and not yet settled shows as **Processing**. When the webhook or a check against Razorpay settles it, the row updates.
+- Still Processing 24 h after the attempt: one Sentry alert. The row then says "We're checking this payment". Never hide a row where money may have moved.
+
+**3. Amounts:** the amount actually charged, from the Razorpay payment (not the SKU price), **GST-inclusive, with paise**: "₹65.00 incl. GST". That matches the invoice to the paisa. Refund rows show the refunded amount. Each row also shows the Ink it added, and for a refund the Ink taken back (point 5).
+
+**4. Refund SLA:** our policy is no refunds (Ajay, 13 Oct), except the statutory cases: double charge, charged but no Ink, a failed service. For those:
+- **We acknowledge a concern within 1 working day.**
+- **We decide within 3 working days.** An approved refund is started in Razorpay the same day it is decided.
+- **The bank credits it, normally in 5–7 working days.** This is the bank's timing, not ours. Say "normally", never promise a date.
+- A refund always goes back to the original payment method, never as Ink or credit, unless the customer asks.
+Ajay signs the wording and the grievance reference.
+
+**5. Refunds reverse Ink: yes.** Today a refunded purchase keeps its Ink, which is a leak. The founder's refunded ₹65 test on 25 Oct kept its 3 Ink.
+- **Full refund:** debit the Ink that payment granted. Partial refund: debit the same share, rounded down. Ledger key `refund:<refundId>`, idempotent.
+- **The balance never goes below zero.** If the Ink is already spent, debit what is left and log the shortfall (no PII) for support. Support factors spent Ink into the refund decision before approving it, so this is rare.
+- A credit note already follows every refund (T-436); the Ink reversal rides the same refund event.
+
+**6. History starts:**
+- **Paid and refunded payments: backfill from Razorpay from prod go-live (23 Oct 2026).** Money moved, so the record is reliable.
+- **Failed and processing: from the deploy date only**, since earlier ones are not reliable.
+- The pre-Ink ₹199 test of 15 Jun ("credits") is not backfilled. It belongs to the old product and a different account.
+
+Vikram, CFO

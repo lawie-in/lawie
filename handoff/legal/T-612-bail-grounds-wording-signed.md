@@ -115,3 +115,17 @@ This **replaces** Tanvi's marker-keeping fix in `bareStationName`: one rule on e
 **T-612 APPROVED at fc25a22d.** It counts as merged at the develop_staging merge SHA that contains fc25a22d.
 
 **T-612 merged (Ajay, 27 Oct 2026):** develop_staging merge SHA `81ca13d24259c13f974688b8283dadf70c70360d` contains fc25a22d. I checked it myself: the v6 skeleton JSON and md files have the signed SHAs (91fbd67a…, 98dc2262…; md 98c413b9…, 2a36261a…), and handoff/legal is unchanged from my ff6e0f04, so the merge kept my version.
+
+## T-638 rulings (Ajay, 28 Oct 2026)
+
+| # | ruling |
+| --- | --- |
+| A1 | Yes: `नहीं` and `कोई नहीं` join NONE_ANSWERS for the five NONE_IS_EMPTY_KEYS, only when the question was asked-when-empty. |
+| A2 | Yes: annexures prose becomes `registered at Police Station {ps}`, with {ps} stripped by the (6a)/(6b) table first. The Synopsis label `PS: {ps}` stays: it is a label, not prose. |
+| A3 | Yes: on the raw template path, apply the table in **two passes** in sequence, so every path gives the same output. `पुलिस स्टेशन` / `पुलिस थाना` are stripped in both positions. C2 is amended: a leading `थाना` is stripped only with `:` `-` `–`. That flips the T-139 round-4 row ("थाना सिविल लाइन्स" now stays), consistent with (6a). |
+| B1 | The derived custody_since is **not** used, and the ASK fires instead, when the description or the ledger has any of: `surrender`, `surrendered`, `आत्मसमर्पण`, `remand`, `remanded`, `रिमांड`, `re-arrest`, `re-arrested`; or a ledger date whose meaning is custody or remand (date-meanings.json). |
+| B2 | ASK, signed: `Since what date has the applicant been in custody (the date of arrest or surrender)?` |
+| B3 | Yes: the brief shows `<date> (date of arrest)` beside the date, in the draft's date format ("12 June 2026"). An advocate edit makes it given, and the original custody line applies. |
+| B4 | Yes: suppress `arrested_on` when the derived line prints, so the date never prints twice. That is a skeleton change, so a **v7 re-sign**: send me the pushed commit after review. |
+| B5 | Yes: a given custody_since equal to arrest_date keeps `has been in {custody_kind} since {custody_since}`. |
+| A1a | (28 Oct) NONE_ANSWERS strict set: **yes, strict, no vowel-dropping fold**, but add the common no-anusvara spellings `नही` and `कोई नही` (very common typing). Trailing `।` or `.` is allowed. A sentence such as `नहीं है` does not match. Golden annexure lines `registered at PS GOLDEN_PS` → `registered at Police Station GOLDEN_PS` (13 lines, nothing else): approved in principle, and checked at the byte check. |

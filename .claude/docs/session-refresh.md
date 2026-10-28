@@ -1,6 +1,6 @@
 # Web session refresh (T-616)
 
-Web only (`apps/web`). Fixes the session ending about 30-35 minutes in, mid-draft. The server half (12 h sliding refresh TTL, 7-day ceiling, 30 s rotation grace, per-user limiter) is T-616b and is documented under "Server (T-616b)" below. Persisting the OneFlow description is a later step.
+Web only (`apps/web`). Fixes the session ending about 30-35 minutes in, mid-draft. The server half (12 h sliding refresh TTL, 7-day ceiling, 30 s rotation grace, per-user limiter) is T-616b and is documented under "Server (T-616b)" below. Persisting the OneFlow description is documented under "Describe-step text (T-630)" below.
 
 ## Model
 
@@ -15,6 +15,30 @@ Web only (`apps/web`). Fixes the session ending about 30-35 minutes in, mid-draf
 - Forced end keeps the unsaved description under `lawie:draft-prefill` and writes the marker `lawie:forced-end-subject`. The same user signing back in gets the text back; a different user does not (the text is discarded).
 - Explicit sign-out wipes both keys.
 - Return path: guards send the user to `/login?next=<pathname>`. `safeReturnPath` / `buildLoginRedirect` (`apps/web/src/lib/safeReturnPath.ts`) accept pathname only (no query or hash), same-site, strict allowlist, no `/login`, `/auth` or `/api`. The path is held per tab in `lawie:post-login-path` across the Google redirect and is never sent to Google.
+
+## Describe-step text (T-630)
+
+Code: `apps/web/src/components/intake/OneFlow.tsx` (`saveDescriptionDraft`, the save, flush and cleanup effects), `apps/web/src/lib/auth.ts`, `apps/web/src/lib/draftPrefill.ts`.
+
+- **Saving.** While the user types in the describe step, the text is saved to `sessionStorage` key `lawie:draft-prefill` 500 ms after typing pauses (`DESCRIPTION_SAVE_DELAY_MS`), and at once on `pagehide` or when the tab becomes hidden. It is capped at 4000 chars (`DESCRIPTION_MAX`, cut at a code point boundary) and the key is removed when the text is blank.
+- **Removing.** The key is removed when the flow moves past describe (the "Browse document types" view is not past it) and on a normal in-app unmount. It is KEPT on unmount when the forced-end marker `lawie:forced-end-subject` is present (`endSessionForced` wrote it), after a final flush of the latest keystrokes.
+- **Restoring.** Read once on the next `/dashboard/new` load, and only if the box is still empty. Same user only: `saveTokens` (and `adoptForeignSession` for a session another tab stored) wipes it when a different user signs in or the marker names someone else, and explicit sign-out (`clearTokens`) wipes the text and the marker.
+- **Privacy.** Never in a URL, logs, analytics, Sentry, or any network call other than generate and read.
+- **Known limits.**
+  - The chip's `?kind=` is not carried across a forced end (the return path is pathname only), so the text comes back without the preset.
+  - A forced end on the brief or questions step does not keep the description (it is already removed past describe).
+  - If the same user's sign-in lands somewhere other than `/dashboard/new`, the key stays until the next visit or sign-out.
+  - `OneFlow.tsx` keeps its own copy of the marker string. Follow-up: export `FORCED_END_SUBJECT_KEY` from `lib/auth.ts`. A test guards against drift.
+
+## Dashboard command bar (T-630)
+
+`apps/web/src/components/dashboard/DashboardCommandBar.tsx`. Typed text goes to `sessionStorage` only, never into the URL; the only query param is `?kind=<template>`.
+
+- Clicking a chip, or Enter on a highlighted option, with text typed stores that text and opens `/dashboard/new?kind=<template>` (no `kind` for chips with no single template). With the input empty the key is not touched.
+- Draft with an option highlighted passes that option's kind. Draft with nothing highlighted goes to plain `/dashboard/new`. Draft is blocked while the sign-up consent is needed (T-642); chip/Enter-on-highlight selection has no such gate, the generate on `/dashboard/new` is gated.
+- Hover highlights an option, but leaving the list with the pointer clears the highlight, so Draft is not affected by a stray hover.
+- "Browse all templates" stores nothing and opens `/dashboard/templates`.
+- A kind is never guessed from the typed text.
 
 ## UI
 
