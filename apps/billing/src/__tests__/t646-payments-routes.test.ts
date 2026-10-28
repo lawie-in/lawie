@@ -137,6 +137,8 @@ describe('GET /payments', () => {
       checking: false,
       refundedPaise: 0,
       inkDelta: 10,
+      inkAddedInk: 10,
+      inkReversedInk: 0,
       referenceTail: 'QRSTUVWX',
       invoiceId: null,
       concern: null,

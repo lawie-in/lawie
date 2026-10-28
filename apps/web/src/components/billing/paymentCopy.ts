@@ -66,6 +66,8 @@ export const PAYMENT_COPY = {
   amountInclGst: (amount: string) => `${amount} incl. GST`,
   refundedAmount: (amount: string) => `Refunded ${amount}`, // DEV (VIKRAM §1: both figures)
   inkChange: (signed: string) => `${signed} Ink`, // DESIGN ("−2 Ink" / "+50 Ink")
+  /** Ink a refund took back, n unsigned (VIKRAM §3). AJ-646-M10. */
+  inkTakenBack: (n: string) => `\u2212${n} Ink removed for the refund`,
   referenceAria: (tail: string) => `Payment reference ending ${tail}`, // DEV
   copyReference: 'Copy reference', // DESIGN
   copied: 'Copied', // DESIGN

@@ -18,8 +18,9 @@
 import * as Sentry from '@sentry/node';
 import mongoose from 'mongoose';
 
-import { findTopupSku } from '../config/credit-skus';
+import { findPlanByRazorpayId, findSubscriptionPlan, findTopupSku } from '../config/credit-skus';
 import logger from '../config/logger';
+import { razorpay } from '../config/razorpay';
 import { Invoice } from '../models/Invoice.model';
 import {
   type IPayment,
@@ -30,6 +31,7 @@ import {
   type VisiblePaymentStatus,
 } from '../models/Payment.model';
 import { PaymentConcern, type ConcernStatus } from '../models/PaymentConcern.model';
+import { Subscription } from '../models/Subscription.model';
 
 import { REFUND_REVERSAL_REASON, topupClaimId } from './ink-ledger.service';
 
@@ -173,7 +175,69 @@ export async function resolvePaymentContext(
       }
     }
   }
+
+  // A subscription payment (payment.failed / .authorized usually carry no subscription
+  // entity): the payment's subscription_id, else its Razorpay invoice's subscription_id.
+  const subscriptionCtx = await subscriptionContextFor(entity, ctx);
+  if (subscriptionCtx) return subscriptionCtx;
   return null;
+}
+
+/** Longest wait for the Razorpay invoice read in subscriptionContextFor. */
+export const RAZORPAY_INVOICE_READ_TIMEOUT_MS = 5_000;
+
+/**
+ * The Razorpay subscription id of a payment's invoice (GET, as the invoice backfill does).
+ * Null on any failure or timeout; nothing from the response or the error is logged.
+ */
+async function subscriptionIdFromInvoice(invoiceId: string): Promise<string | null> {
+  let timer: NodeJS.Timeout | undefined;
+  try {
+    const timeout = new Promise<null>((resolve) => {
+      timer = setTimeout(() => resolve(null), RAZORPAY_INVOICE_READ_TIMEOUT_MS);
+      timer.unref();
+    });
+    const inv = (await Promise.race([
+      razorpay.invoices.fetch(invoiceId) as unknown as Promise<Record<string, unknown>>,
+      timeout,
+    ])) as Record<string, unknown> | null;
+    const subId = inv?.subscription_id;
+    return typeof subId === 'string' && subId ? subId : null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** Plan context through the local Subscription row, or null. */
+async function subscriptionContextFor(
+  entity: Entity,
+  ctx: PaymentContext,
+): Promise<PaymentContext | null> {
+  let subId =
+    typeof entity.subscription_id === 'string' && entity.subscription_id
+      ? entity.subscription_id
+      : null;
+  if (!subId && typeof entity.invoice_id === 'string' && entity.invoice_id) {
+    subId = await subscriptionIdFromInvoice(entity.invoice_id);
+  }
+  if (!subId) return null;
+  const sub = await Subscription.findOne({ razorpaySubscriptionId: subId }).lean();
+  if (!sub) return null;
+  const planId = (sub as { planId?: unknown }).planId;
+  const rzpPlanId = (sub as { razorpayPlanId?: unknown }).razorpayPlanId;
+  const plan =
+    (typeof planId === 'string' ? findSubscriptionPlan(planId) : undefined) ??
+    (typeof rzpPlanId === 'string' ? findPlanByRazorpayId(rzpPlanId) : undefined);
+  return {
+    ...ctx,
+    userId: String(sub.userId),
+    kind: 'plan',
+    razorpaySubscriptionId: subId,
+    inkUnits: ctx.inkUnits ?? (plan ? plan.inkPerCycle * 2 : 0),
+    ...(plan ? { planId: plan.id } : {}),
+  };
 }
 
 /**
@@ -219,38 +283,48 @@ export async function upsertPaymentFromEntity(
   };
   const moves = { $gt: [STATUS_RANK[status], currentRank] };
 
-  await Payment.collection.updateOne(
-    { razorpayPaymentId },
-    [
-      {
-        $set: {
-          userId: keep('userId', new mongoose.Types.ObjectId(ctx.userId)),
-          kind: keep('kind', ctx.kind),
-          razorpayOrderId: keep('razorpayOrderId', orderId),
-          razorpaySubscriptionId: keep(
-            'razorpaySubscriptionId',
-            ctx.razorpaySubscriptionId ?? null,
-          ),
-          topupSkuId: keep('topupSkuId', ctx.topupSkuId ?? null),
-          planId: keep('planId', ctx.planId ?? null),
-          source: keep('source', source),
-          createdAt: keep('createdAt', attemptedAt),
-          checkingAlertedAt: keep('checkingAlertedAt', null),
-          amountPaise: lit(amountPaise),
-          refundedPaise: { $max: [{ $ifNull: ['$refundedPaise', 0] }, refundedPaise] },
-          inkUnits: { $max: [{ $ifNull: ['$inkUnits', 0] }, inkUnits] },
-          inkReversedUnits: { $ifNull: ['$inkReversedUnits', 0] },
-          status: { $cond: [moves, status, '$status'] },
-          settledAt:
-            status === 'processing'
-              ? { $ifNull: ['$settledAt', null] }
-              : { $ifNull: ['$settledAt', lit(now)] },
-          updatedAt: lit(now),
+  const update = () =>
+    Payment.collection.updateOne(
+      { razorpayPaymentId },
+      [
+        {
+          $set: {
+            userId: keep('userId', new mongoose.Types.ObjectId(ctx.userId)),
+            kind: keep('kind', ctx.kind),
+            razorpayOrderId: keep('razorpayOrderId', orderId),
+            razorpaySubscriptionId: keep(
+              'razorpaySubscriptionId',
+              ctx.razorpaySubscriptionId ?? null,
+            ),
+            topupSkuId: keep('topupSkuId', ctx.topupSkuId ?? null),
+            planId: keep('planId', ctx.planId ?? null),
+            source: keep('source', source),
+            createdAt: keep('createdAt', attemptedAt),
+            checkingAlertedAt: keep('checkingAlertedAt', null),
+            amountPaise: lit(amountPaise),
+            refundedPaise: { $max: [{ $ifNull: ['$refundedPaise', 0] }, refundedPaise] },
+            inkUnits: { $max: [{ $ifNull: ['$inkUnits', 0] }, inkUnits] },
+            inkReversedUnits: { $ifNull: ['$inkReversedUnits', 0] },
+            status: { $cond: [moves, status, '$status'] },
+            settledAt:
+              status === 'processing'
+                ? { $ifNull: ['$settledAt', null] }
+                : { $ifNull: ['$settledAt', lit(now)] },
+            updatedAt: lit(now),
+          },
         },
-      },
-    ],
-    { upsert: true },
-  );
+      ],
+      { upsert: true },
+    );
+  try {
+    await update();
+  } catch (err) {
+    // Two deliveries raced the upsert and both tried to insert: the loser gets E11000 on the
+    // unique razorpayPaymentId. Once more, now as an update of the winner's row (the same
+    // forward-only pipeline). Any other error, or a second failure, is thrown.
+    if ((err as { code?: unknown } | null)?.code !== 11000) throw err;
+    await update();
+  }
   return true;
 }
 
@@ -429,6 +503,10 @@ export interface PaymentRowView {
   refundedPaise: number;
   /** Net Ink this payment changed, in Ink (units / 2): added minus taken back by refunds. */
   inkDelta: number;
+  /** Vikram 3: Ink this payment added (granted units / 2). 0 for failed / processing. */
+  inkAddedInk: number;
+  /** Vikram 3: Ink its refunds took back (reversed units / 2, >= 0). 0 for failed / processing. */
+  inkReversedInk: number;
   referenceTail: string;
   invoiceId: string | null;
   /** `note` goes back to its owner here only (Arjun/Priya follow-up); null when empty. */
@@ -566,7 +644,10 @@ export async function listPaymentsForUser(userId: string): Promise<PaymentRowVie
     if (checking && !r.checkingAlertedAt) void alertStuckProcessing(r);
     const rzp = r.razorpayPaymentId as string;
     const counted = STATUS_RANK[r.status] >= STATUS_RANK.paid;
-    const netUnits = counted ? Math.max(0, (r.inkUnits ?? 0) - (r.inkReversedUnits ?? 0)) : 0;
+    const addedUnits = counted ? Math.max(0, r.inkUnits ?? 0) : 0;
+    // AJ-646-M10: the Ink taken back is never more than was added.
+    const reversedUnits = counted ? Math.min(addedUnits, Math.max(0, r.inkReversedUnits ?? 0)) : 0;
+    const netUnits = Math.max(0, addedUnits - reversedUnits);
     return {
       id: String(r._id),
       createdAt: r.createdAt,
@@ -576,6 +657,8 @@ export async function listPaymentsForUser(userId: string): Promise<PaymentRowVie
       checking,
       refundedPaise: r.refundedPaise ?? 0,
       inkDelta: netUnits / 2,
+      inkAddedInk: addedUnits / 2,
+      inkReversedInk: reversedUnits / 2,
       referenceTail: rzp.slice(-REFERENCE_TAIL_LENGTH),
       invoiceId: invoiceByPayment.get(rzp) ?? null,
       concern: concernByPayment.get(String(r._id)) ?? null,

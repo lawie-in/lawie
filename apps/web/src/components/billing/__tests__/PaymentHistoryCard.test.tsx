@@ -5,7 +5,12 @@ import { act } from 'react';
 
 import { cleanupMounted, mount, stubMatchMedia } from '@/components/ui/__tests__/nl-test-utils';
 
-import { PaymentHistoryCard, parsePayments } from '../PaymentHistoryCard';
+import {
+  PaymentHistoryCard,
+  inkLines,
+  parsePayments,
+  type PaymentRow,
+} from '../PaymentHistoryCard';
 
 const mockApiFetch = jest.fn();
 jest.mock('@/lib/apiFetch', () => ({ apiFetch: (...a: unknown[]) => mockApiFetch(...a) }));
@@ -33,6 +38,8 @@ function pay(over: Record<string, unknown> = {}) {
     checking: false,
     refundedPaise: 0,
     inkDelta: 50,
+    inkAddedInk: 50,
+    inkReversedInk: 0,
     referenceTail: 'AB12',
     invoiceId: null,
     concern: null,
@@ -142,7 +149,9 @@ describe('a row', () => {
   });
 
   it('a plan payment is "Plan"', async () => {
-    payments = [pay({ kind: 'plan', amountPaise: 79900, inkDelta: 0 })];
+    payments = [
+      pay({ kind: 'plan', amountPaise: 79900, inkDelta: 0, inkAddedInk: 0, inkReversedInk: 0 }),
+    ];
     await render();
     expect(row('p1').textContent).toContain('Plan');
     expect(row('p1').textContent).toContain('₹799.00 incl. GST');
@@ -196,7 +205,7 @@ describe('a row', () => {
   });
 
   it('a failed payment carries the bank-returns note, and only a failed one', async () => {
-    payments = [pay({ id: 'a', status: 'failed', inkDelta: 0 }), pay({ id: 'b' })];
+    payments = [pay({ id: 'a', status: 'failed', inkDelta: 0, inkAddedInk: 0 }), pay({ id: 'b' })];
     await render();
     const note = 'If money left your account, your bank returns it automatically.';
     expect(row('a').textContent).toContain(note);
@@ -228,6 +237,167 @@ describe('a row', () => {
     await act(async () => btn('Copy reference')!.click());
     await flush();
     expect(row('p1')).not.toBeNull();
+  });
+});
+
+describe('Ink lines (Vikram §3, AJ-646-M10)', () => {
+  const REMOVED = (n: number) => `−${n} Ink removed for the refund`;
+  const inkText = (id: string) =>
+    Array.from(row(id).querySelectorAll('span.block'))
+      .map((s) => s.textContent ?? '')
+      .filter((t) => t.includes(' Ink'));
+
+  it('a paid row shows only "+N Ink"', async () => {
+    payments = [pay({ inkAddedInk: 50, inkReversedInk: 0 })];
+    await render();
+    expect(inkText('p1')).toEqual(['+50 Ink']);
+    expect(row('p1').textContent).not.toContain('removed for the refund');
+  });
+
+  it('a partly refunded row shows both lines with the exact signed string', async () => {
+    payments = [
+      pay({
+        status: 'partly_refunded',
+        refundedPaise: 2000,
+        inkDelta: 30,
+        inkAddedInk: 50,
+        inkReversedInk: 20,
+      }),
+    ];
+    await render();
+    expect(inkText('p1')).toEqual(['+50 Ink', REMOVED(20)]);
+    expect(row('p1').textContent).toContain('−20 Ink removed for the refund');
+    expect(row('p1').textContent).not.toContain('-20 Ink');
+  });
+
+  it('a fully refunded row shows both lines', async () => {
+    payments = [
+      pay({
+        status: 'refunded',
+        refundedPaise: 6500,
+        inkDelta: 0,
+        inkAddedInk: 50,
+        inkReversedInk: 50,
+      }),
+    ];
+    await render();
+    expect(inkText('p1')).toEqual(['+50 Ink', REMOVED(50)]);
+  });
+
+  it('cap: Ink reversed greater than Ink added shows the added value', async () => {
+    payments = [
+      pay({ status: 'refunded', refundedPaise: 6500, inkAddedInk: 50, inkReversedInk: 80 }),
+    ];
+    await render();
+    expect(inkText('p1')).toEqual(['+50 Ink', REMOVED(50)]);
+    expect(row('p1').textContent).not.toContain('80 Ink');
+  });
+
+  it('unknown inkAddedInk falls back to the signed net inkDelta', async () => {
+    payments = [
+      pay({ id: 'a', inkAddedInk: undefined, inkDelta: 50 }),
+      pay({ id: 'b', inkAddedInk: 'x', inkDelta: -2 }),
+      pay({ id: 'c', inkAddedInk: null, inkDelta: 0 }),
+    ];
+    await render();
+    expect(inkText('a')).toEqual(['+50 Ink']);
+    expect(inkText('b')).toEqual(['−2 Ink']);
+    expect(inkText('c')).toEqual([]);
+  });
+
+  it('unknown inkReversedInk hides the removed line on a refunded row', async () => {
+    payments = [
+      pay({ id: 'a', status: 'refunded', refundedPaise: 6500, inkReversedInk: undefined }),
+      pay({ id: 'b', status: 'refunded', refundedPaise: 6500, inkReversedInk: Number.NaN }),
+    ];
+    await render();
+    expect(inkText('a')).toEqual(['+50 Ink']);
+    expect(inkText('b')).toEqual(['+50 Ink']);
+  });
+
+  it('failed and processing rows show no Ink lines', async () => {
+    payments = [
+      pay({ id: 'a', status: 'failed', inkDelta: 0, inkAddedInk: 0, inkReversedInk: 0 }),
+      pay({ id: 'b', status: 'processing', inkDelta: 0, inkAddedInk: 0, inkReversedInk: 0 }),
+    ];
+    await render();
+    expect(inkText('a')).toEqual([]);
+    expect(inkText('b')).toEqual([]);
+  });
+
+  it('parsePayments keeps inkAddedInk/inkReversedInk, and null for missing or non-finite', () => {
+    const parsed = parsePayments({
+      payments: [
+        pay({ id: 'a', inkAddedInk: 50, inkReversedInk: 20 }),
+        pay({ id: 'b', inkAddedInk: undefined, inkReversedInk: Infinity }),
+        pay({ id: 'c', inkAddedInk: '5', inkReversedInk: null }),
+      ],
+    })!;
+    expect(parsed.map((p) => [p.inkAddedInk, p.inkReversedInk])).toEqual([
+      [50, 20],
+      [null, null],
+      [null, null],
+    ]);
+  });
+
+  describe('inkLines (direct)', () => {
+    const base = (over: Partial<PaymentRow>): PaymentRow => ({
+      ...(pay() as unknown as PaymentRow),
+      ...over,
+    });
+
+    it.each([
+      ['paid', { status: 'paid', inkAddedInk: 50, inkReversedInk: 0 }, ['+50 Ink']],
+      [
+        'paid with a stray reversal is not shown',
+        { status: 'paid', inkAddedInk: 50, inkReversedInk: 20 },
+        ['+50 Ink'],
+      ],
+      [
+        'partly refunded',
+        { status: 'partly_refunded', inkAddedInk: 50, inkReversedInk: 20 },
+        ['+50 Ink', REMOVED(20)],
+      ],
+      [
+        'fully refunded',
+        { status: 'refunded', inkAddedInk: 50, inkReversedInk: 50 },
+        ['+50 Ink', REMOVED(50)],
+      ],
+      [
+        'cap',
+        { status: 'refunded', inkAddedInk: 50, inkReversedInk: 999 },
+        ['+50 Ink', REMOVED(50)],
+      ],
+      [
+        'reversed unknown',
+        { status: 'refunded', inkAddedInk: 50, inkReversedInk: null },
+        ['+50 Ink'],
+      ],
+      [
+        'reversed zero',
+        { status: 'partly_refunded', inkAddedInk: 50, inkReversedInk: 0 },
+        ['+50 Ink'],
+      ],
+      [
+        'added unknown, net fallback, reversed shown uncapped',
+        { status: 'refunded', inkAddedInk: null, inkDelta: 30, inkReversedInk: 20 },
+        ['+30 Ink', REMOVED(20)],
+      ],
+      [
+        'added zero (plan) shows nothing',
+        { status: 'paid', inkAddedInk: 0, inkDelta: 0, inkReversedInk: 0 },
+        [],
+      ],
+      [
+        'added zero with a reversal: cap leaves nothing',
+        { status: 'refunded', inkAddedInk: 0, inkDelta: 0, inkReversedInk: 10 },
+        [],
+      ],
+      ['failed', { status: 'failed', inkAddedInk: 0, inkDelta: 0, inkReversedInk: 0 }, []],
+      ['processing', { status: 'processing', inkAddedInk: 0, inkDelta: 0, inkReversedInk: 0 }, []],
+    ] as [string, Partial<PaymentRow>, string[]][])('%s', (_n, over, expected) => {
+      expect(inkLines(base(over))).toEqual(expected);
+    });
   });
 });
 

@@ -25,6 +25,7 @@ import logger from '../config/logger';
 import { Payment } from '../models/Payment.model';
 
 import { REFUND_REVERSAL_REASON, reverseRefundInk, topupClaimId } from './ink-ledger.service';
+import { resolvePaymentContext } from './payment-record.service';
 
 /** Sentry, ids and numbers only; the request and user are stripped. */
 function reportRefundInk(
@@ -103,6 +104,19 @@ async function grantedFor(
         kind: 'topup',
         grantedUnits: delta,
         amountPaise: entityAmount ?? row?.amountPaise ?? 0,
+      };
+    }
+  }
+  // No row and no top-up claim: a plan charge whose row was never written. Attribute it the
+  // way the webhook does (subscription_id, or invoice -> subscription -> local row).
+  if (!row && paymentEntity && entityAmount) {
+    const ctx = await resolvePaymentContext({ ...paymentEntity, id: razorpayPaymentId });
+    if (ctx?.userId && ctx.kind && (ctx.inkUnits ?? 0) > 0) {
+      return {
+        userId: ctx.userId,
+        kind: ctx.kind,
+        grantedUnits: ctx.inkUnits as number,
+        amountPaise: entityAmount,
       };
     }
   }

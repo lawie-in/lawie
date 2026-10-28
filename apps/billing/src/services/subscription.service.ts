@@ -2743,6 +2743,9 @@ async function applySubscriptionEvent(
       // T-646 (Arjun ruling 3): the payment-history row for this charge, AFTER the
       // grant and its claim (T-399 / T-415 order unchanged). Only when the event
       // carries a payment entity. Never throws; idempotent on the payment id.
+      // Reached on every branch above: the won claim, the lost-claim / replay
+      // ("already granted") branch and the no-SKU branch, so a replay writes a row
+      // an earlier delivery failed to write.
       await recordPaymentSafely(payload, {
         userId: sub.userId.toString(),
         kind: 'plan',

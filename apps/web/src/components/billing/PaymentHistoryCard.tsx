@@ -39,6 +39,7 @@ import {
   Card,
   Chip,
   ToastProvider,
+  formatInk,
   loopPlayState,
   usePageVisible,
   useToast,
@@ -68,7 +69,12 @@ export interface PaymentRow {
   status: PaymentStatus;
   checking: boolean;
   refundedPaise: number;
+  /** Net Ink change (added minus taken back). */
   inkDelta: number;
+  /** Ink the payment added; null when billing did not send it (fall back to inkDelta). */
+  inkAddedInk: number | null;
+  /** Ink a refund took back; null when billing did not send it (then not shown). */
+  inkReversedInk: number | null;
   referenceTail: string;
   invoiceId: string | null;
   concern: PaymentConcern | null;
@@ -102,6 +108,8 @@ export function parsePayments(body: unknown): PaymentRow[] | null {
       checking: r.checking === true,
       refundedPaise: isNum(r.refundedPaise) ? r.refundedPaise : 0,
       inkDelta: isNum(r.inkDelta) ? r.inkDelta : 0,
+      inkAddedInk: isNum(r.inkAddedInk) ? r.inkAddedInk : null,
+      inkReversedInk: isNum(r.inkReversedInk) ? r.inkReversedInk : null,
       referenceTail: r.referenceTail,
       invoiceId: typeof r.invoiceId === 'string' && r.invoiceId ? r.invoiceId : null,
       concern: parseConcern(r.concern),
@@ -125,6 +133,29 @@ export function concernChip(status: string): { variant: ChipVariant; label: stri
   const variant: ChipVariant =
     status === 'open' ? 'warn' : status === 'resolved' ? 'ok' : 'neutral';
   return { variant, label };
+}
+
+/**
+ * VIKRAM §3: the Ink lines under the purpose. Line 1: "+{added} Ink" (or the net inkDelta when
+ * billing did not send inkAddedInk). Line 2, refunded / partly refunded rows with
+ * inkReversedInk > 0 only: "−{n} Ink removed for the refund" (AJ-646-M10), n clamped to the Ink
+ * added when both are known. A fully refunded top-up shows both.
+ */
+export function inkLines(row: PaymentRow): string[] {
+  const lines: string[] = [];
+  if (row.inkAddedInk !== null) {
+    if (row.inkAddedInk > 0) lines.push(PAYMENT_COPY.inkChange(formatSignedInk(row.inkAddedInk)));
+  } else if (row.inkDelta !== 0) {
+    lines.push(PAYMENT_COPY.inkChange(formatSignedInk(row.inkDelta)));
+  }
+  const refunded = row.status === 'refunded' || row.status === 'partly_refunded';
+  if (refunded && row.inkReversedInk !== null && row.inkReversedInk > 0) {
+    // AJ-646-M10: never more than was added (when both are known).
+    const shown =
+      row.inkAddedInk !== null ? Math.min(row.inkReversedInk, row.inkAddedInk) : row.inkReversedInk;
+    if (shown > 0) lines.push(PAYMENT_COPY.inkTakenBack(formatInk(shown)));
+  }
+  return lines;
 }
 
 export function purposeLabel(row: PaymentRow): string {
@@ -365,11 +396,11 @@ function PaymentHistoryCardBody() {
                       >
                         {purposeLabel(row)}
                       </span>
-                      {row.inkDelta !== 0 && (
-                        <span className="nl-body-sm text-nl-muted block tabular-nums">
-                          {PAYMENT_COPY.inkChange(formatSignedInk(row.inkDelta))}
+                      {inkLines(row).map((line) => (
+                        <span key={line} className="nl-body-sm text-nl-muted block tabular-nums">
+                          {line}
                         </span>
-                      )}
+                      ))}
                     </span>
                     {/* Amount */}
                     <span
