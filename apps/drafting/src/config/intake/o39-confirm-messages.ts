@@ -8,14 +8,26 @@
  *   §(j)2  every blocking message shows, one per line, in the order court,
  *          parties, main_suit_relief, restraint_sought;
  *   §(j)3  a non-answer (case-insensitive, trimmed, alone) counts as empty.
+ * Signed in handoff/legal/T-511-copy-rulings-ajay.md, AJ-644-M1 (T-644):
+ *          plaintiff_name and defendant_name, with their EN and HI messages
+ *          (byte for byte), in the §(j)2 parties position, plaintiff first.
  * And T-611 FR-5 / FR-5a: one file, imported by intake-brief.ts and (after
  * T-637) by the form route, so the strings are never duplicated.
  *
  * Pure: no I/O, no imports, so any route can call it.
  */
 
-/** §(j)2: the field order of the messages, after court and parties. */
-export const O39_REQUIRED_FIELDS = ['main_suit_relief', 'restraint_sought'] as const;
+/**
+ * §(j)2: the field order of the messages, after the court: the parties
+ * (T-644, AJ-644-M1: plaintiff before defendant), then main_suit_relief,
+ * restraint_sought.
+ */
+export const O39_REQUIRED_FIELDS = [
+  'plaintiff_name',
+  'defendant_name',
+  'main_suit_relief',
+  'restraint_sought',
+] as const;
 
 export type O39RequiredField = (typeof O39_REQUIRED_FIELDS)[number];
 
@@ -23,6 +35,15 @@ export type O39RequiredField = (typeof O39_REQUIRED_FIELDS)[number];
 export const O39_CONFIRM_MESSAGES: Readonly<
   Record<O39RequiredField, { readonly en: string; readonly hi: string }>
 > = {
+  // T-644: signed in AJ-644-M1 (handoff/legal/T-511-copy-rulings-ajay.md, 84311835).
+  plaintiff_name: {
+    en: "Add the plaintiff's name to continue.",
+    hi: 'आगे बढ़ने के लिए वादी का नाम जोड़िए।',
+  },
+  defendant_name: {
+    en: "Add the defendant's name to continue.",
+    hi: 'आगे बढ़ने के लिए प्रतिवादी का नाम जोड़िए।',
+  },
   main_suit_relief: {
     en: 'Add the relief sought in the main suit to continue.',
     hi: 'आगे बढ़ने के लिए मुख्य वाद में माँगी गई राहत जोड़िए।',

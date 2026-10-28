@@ -2194,6 +2194,9 @@ export const PLACEHOLDER_ALIASES: ReadonlyArray<
   ['petitioner', ['petitioner_name']],
   ['respondent', ['respondent_name']],
   ['complainant', ['complainant_name']],
+  // T-644: the civil packs' cause titles print {plaintiff} and {defendant}.
+  ['plaintiff', ['plaintiff_name']],
+  ['defendant', ['defendant_name']],
   ['parentName', ['applicant_parentage', 'applicant_father_name']],
   ['parentRelation', ['parent_relation']],
   ['age', ['applicant_age', 'appellant_age']],

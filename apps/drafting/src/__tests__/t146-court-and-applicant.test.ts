@@ -462,19 +462,8 @@ describe('T-146 criterion 5: placeholder coverage of every document rule', () =>
     'memo_of_parties.json': ['cause_title:seat'],
     'mou.json': ['cause_title:date'],
     'pil.json': ['prayer:primary_relief', 'prayer:subject_matter'],
-    'plaint_declaration.json': ['cause_title:defendant', 'cause_title:plaintiff'],
-    'plaint_eviction.json': [
-      'cause_title:defendant',
-      'cause_title:plaintiff',
-      'prayer:arrears_from',
-    ],
-    'plaint_injunction.json': [
-      'cause_title:defendant',
-      'cause_title:plaintiff',
-      'prayer:mandatory_act',
-    ],
-    'plaint_recovery.json': ['cause_title:defendant', 'cause_title:plaintiff'],
-    'plaint_specific_performance.json': ['cause_title:defendant', 'cause_title:plaintiff'],
+    'plaint_eviction.json': ['prayer:arrears_from'],
+    'plaint_injunction.json': ['prayer:mandatory_act'],
     'posh_complaint.json': [
       'cause_title:aggrieved_woman',
       'cause_title:workplaceName',
@@ -491,7 +480,8 @@ describe('T-146 criterion 5: placeholder coverage of every document rule', () =>
     ],
     'rcr_petition.json': ['cause_title:petitioner', 'cause_title:respondent'],
     'receiver_appointment.json': ['cause_title:respondent'],
-    'replication.json': ['cause_title:defendant', 'cause_title:plaintiff'],
+    // T-644: plaintiff is filled; replication has no defendant_name field.
+    'replication.json': ['cause_title:defendant'],
     'rera_complaint.json': [
       'cause_title:complainant',
       'cause_title:rera_office_location',
@@ -532,7 +522,8 @@ describe('T-146 criterion 5: placeholder coverage of every document rule', () =>
       'prayer:officials_named',
       'prayer:primary_direction',
     ],
-    'written_statement.json': ['cause_title:defendant', 'cause_title:plaintiff'],
+    // T-644: defendant is filled; written_statement has no plaintiff_name field.
+    'written_statement.json': ['cause_title:plaintiff'],
   };
 
   it('bail_before_magistrate has no placeholder the engine cannot fill', () => {

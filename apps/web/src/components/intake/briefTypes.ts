@@ -85,6 +85,8 @@ export interface Brief {
   confirm_message: string | null;
   /** T-629: the keys of the required fields that block Confirm, in signed order. */
   confirm_blocking_keys?: string[];
+  /** T-644: on O.39, the party keys the service counted as missing, in line order. */
+  confirm_missing_party_keys?: string[];
   /** T-363 AC1: T-192's signed B2 line, when the brief's own s.138 dates give it. */
   date_check?: { line: 'B2'; text: string };
 }

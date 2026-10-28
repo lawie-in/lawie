@@ -623,8 +623,15 @@ export default function BriefStep({
   // Confirm. The service already leaves it out when it had the ledger; this
   // keeps the screen in step when it did not. With no ledger nothing changes.
   const ledgerGiven = ledgerGivenKeys(ledger);
+  // T-644 (AJ-644-M1, AJ-644-M2): on O.39 the service names the missing parties
+  // (a §(j)3 non-answer counts), so the screen does not judge emptiness. An
+  // older brief without the list has none.
+  const o39 = brief.kind.id === 'temporary_injunction_o39';
+  const missingPartyKeys = brief.confirm_missing_party_keys ?? [];
   const partyMissing = (i: BriefItem): boolean =>
-    i.party_name && i.required && isEmptyValue(i.value) && !ledgerGiven.has(i.key);
+    i.party_name &&
+    (o39 ? missingPartyKeys.includes(i.key) : i.required && isEmptyValue(i.value)) &&
+    !ledgerGiven.has(i.key);
   const partiesNeeded =
     brief.confirm_blockers.includes('parties') && brief.items.some(partyMissing);
   const courtNeeded = brief.confirm_blockers.includes('court');
@@ -637,21 +644,41 @@ export default function BriefStep({
   // The service's lines, unless the parties were lifted: then the court's line
   // (Ajay's signed wording, T-127 section 7.2, as in apps/drafting
   // intake-brief.ts) if the court is still needed, and the required fields'
-  // signed lines after it (T-629, T-613 §(j)2). The service's first line is the
-  // court/parties line whenever either blocks.
+  // signed lines after it (T-629, T-613 §(j)2). The service's court/parties
+  // text is one line whenever either blocks, except on O.39 with the party
+  // list (T-644): the court line, then one line per listed party, in order.
   const serviceLines = (brief.confirm_message ?? '').split('\n').filter((l) => l !== '');
-  const fieldLines =
-    courtNeeded || brief.confirm_blockers.includes('parties')
-      ? serviceLines.slice(1)
-      : serviceLines;
-  const liftedLines = [...(courtNeeded ? ['Choose the court to continue.'] : []), ...fieldLines];
+  const courtLines = courtNeeded ? ['Choose the court to continue.'] : [];
+  const o39PartyLines = o39 && missingPartyKeys.length > 0;
+  const leadCount = o39PartyLines
+    ? courtLines.length + missingPartyKeys.length
+    : courtNeeded || brief.confirm_blockers.includes('parties')
+      ? 1
+      : 0;
+  const fieldLines = serviceLines.slice(leadCount);
+  const liftedLines = [...courtLines, ...fieldLines];
+  // T-644: on O.39, the service's lines less those of the parties the ledger holds.
+  const o39Lines = [
+    ...courtLines,
+    ...(o39PartyLines
+      ? missingPartyKeys.flatMap((k, at) => {
+          const line = serviceLines[courtLines.length + at];
+          return ledgerGiven.has(k) || line === undefined ? [] : [line];
+        })
+      : []),
+    ...fieldLines,
+  ];
   const confirmLine = briefCanConfirm
     ? null
-    : partiesLifted
-      ? liftedLines.length > 0
-        ? liftedLines.join('\n')
+    : o39
+      ? o39Lines.length > 0
+        ? o39Lines.join('\n')
         : null
-      : brief.confirm_message;
+      : partiesLifted
+        ? liftedLines.length > 0
+          ? liftedLines.join('\n')
+          : null
+        : brief.confirm_message;
   const canConfirm = briefCanConfirm && !datesHeld;
   const dateCheckContinue = useRef<HTMLButtonElement>(null);
   // The service may tidy the name. What it sends back is what is shown.
