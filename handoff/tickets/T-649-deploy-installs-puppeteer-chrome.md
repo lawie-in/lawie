@@ -1,6 +1,6 @@
 # T-649 — Deploy script installs Puppeteer's Chrome and smoke-tests a PDF
 
-Status: assigned to vishal, 28 Oct 2026 (P1).
+Status: Merged into develop_staging (b017f7ba), 28 Oct 2026.
 
 ## Problem
 PDF export and annexure packs have failed on prod since 27 Oct 13:55 UTC with `Puppeteer PDF render failed: Could not find Chrome (ver. 148.0.7778.97)`. The v1.2.0 install bumped puppeteer, but the matching Chrome build was never downloaded on the box. The ops fix tonight (an SSM action that installs Chrome) is separate. This ticket stops it happening again.
