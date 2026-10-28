@@ -42,16 +42,12 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
 
 - v6, 27 Oct 2026, T-612 (Tanvi, fix/t-612-bail-grounds @ commit SHA d1e85da6). Changes, all per `T-612-bail-grounds-wording-signed.md` (72ffc479, 73e3be57, 42b0ac55): new grounds `business_dispute_civil_in_nature` (G1), `amount_paid_or_deposited` (G2), `only_earning_member` (G3, `use_clause: sole_breadwinner`, `requires: sole_earning_member = yes`, signed missing_label), `ready_to_furnish_bail_bond_and_sureties` (G4), each with my signed sentence byte for byte; `sole_breadwinner` gets `skip_if_rendered: grounds.only_earning_member`, so it never prints twice; new top-level `medical_condition_none_values` (None, none, no, नहीं, कोई नहीं, T-612 (4)), so the `medical` clause prints only when the answer is not a none value, and the `medical_grounds` ground with a none answer renders its MISSING form (the gate asks, never drafts it). No roots fallback (T-612 (7)1). No other text, slot or order change. I checked the diff against v5 line by line. Signed SHA-256 of `_skeletons/bail_regular.json` v6: `91fbd67a36b0909aa857d3f597da6b28c33d9cd0c7827692fd491b3a726fff41`. The parked T-500 changes, if they land, become v7.
 
-## Version 7, 28 Oct 2026 (supersedes SHA `91fbd67a36b0909aa857d3f597da6b28c33d9cd0c7827692fd491b3a726fff41`)
-
-- v7, 28 Oct 2026, T-638 (Tanvi, fix/t-638-bail-custody-ps @ commit SHA 0469b3ae). Per `T-612-bail-grounds-wording-signed.md` (5) and T-638 B3–B5: a new clause `custody_status_derived` (order 29, not required), shown only when `currently_in_custody` is yes_judicial/yes_police **and** the ledger holds `custody_since_derived`, with my signed text `The applicant was arrested on {custody_since} and is now in {custody_kind}.` and the same custody_kind map. `custody_status` and `arrested_on` get `skip_if_rendered: custody_status_derived`, so neither the custody line nor the arrest date prints twice (B4). A given custody_since keeps the original line (B5). No other text, slot or order change. I checked the diff against v6 line by line. Signed SHA-256 of `_skeletons/bail_regular.json` v7: `b15e03a2354a22c722c513f13ae6637810d5d00aee4d76699701d03e05fd2e04`.
-
 ## Skeleton JSON
 
 ```json
 {
   "pack": "bail_regular",
-  "version": 7,
+  "version": 6,
   "bodyParagraphs": { "default": 10, "cap": 25 },
   "none_values": "first_bail_application.equals (T-334)",
   "antecedents_none_values": [
@@ -109,41 +105,6 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
       ]
     },
     {
-      "id": "custody_status_derived",
-      "order": 29,
-      "required": false,
-      "source": "fixed",
-      "when": {
-        "all_of": [
-          {
-            "key": "currently_in_custody",
-            "in": [
-              "yes_judicial",
-              "yes_police"
-            ]
-          },
-          {
-            "key": "custody_since_derived",
-            "present": true
-          }
-        ]
-      },
-      "text": "The applicant was arrested on {custody_since} and is now in {custody_kind}.",
-      "slots": [
-        "custody_since",
-        "custody_kind"
-      ],
-      "derived": {
-        "custody_kind": {
-          "from": "currently_in_custody",
-          "map": {
-            "yes_judicial": "judicial custody",
-            "yes_police": "police custody"
-          }
-        }
-      }
-    },
-    {
       "id": "custody_status",
       "order": 30,
       "required": true,
@@ -168,8 +129,7 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
             "yes_police": "police custody"
           }
         }
-      },
-      "skip_if_rendered": "custody_status_derived"
+      }
     },
     {
       "id": "arrested_on",
@@ -179,8 +139,7 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
       "text": "The applicant was arrested on {arrest_date}.",
       "slots": [
         "arrest_date"
-      ],
-      "skip_if_rendered": "custody_status_derived"
+      ]
     },
     {
       "id": "facts",
@@ -504,4 +463,4 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
 }
 ```
 
-SHA-256 of the JSON block (between the fences, final newline included): `b15e03a2354a22c722c513f13ae6637810d5d00aee4d76699701d03e05fd2e04`
+SHA-256 of the JSON block (between the fences, final newline included): `91fbd67a36b0909aa857d3f597da6b28c33d9cd0c7827692fd491b3a726fff41`

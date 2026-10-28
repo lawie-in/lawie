@@ -140,3 +140,5 @@ This **replaces** Tanvi's marker-keeping fix in `bareStationName`: one rule on e
 | (2) Brief display gap | **OK to ship with a note.** Only the brief caption can disagree; the wrong date is never printed, because generation refuses to derive. Ticket the fix in intake.service.ts updateBrief (Priya). |
 
 **APPROVED at 0469b3ae** for the strings and skeleton v7. The final approval comes after review, as a delta from 0469b3ae.
+
+**Correction (28 Oct 2026):** I pushed the v7 md to develop_staging (10f8fb64) before the T-638 skeleton JSON merged, which broke t374 on develop_staging. That was my miss. The md is restored to v6 (md SHA 98c413b9…, JSON 91fbd67a…). The v7 sign-off above stands. The v7 md (md SHA `91deb259…`, block SHA `b15e03a2…`) lands **only in the T-638 branch**, merged together with the v7 JSON, as T-612 did. Rule from now on: a re-signed skeleton md goes to the lead's branch, never straight to develop_staging.
