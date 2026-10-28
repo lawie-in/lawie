@@ -129,3 +129,14 @@ This **replaces** Tanvi's marker-keeping fix in `bareStationName`: one rule on e
 | B4 | Yes: suppress `arrested_on` when the derived line prints, so the date never prints twice. That is a skeleton change, so a **v7 re-sign**: send me the pushed commit after review. |
 | B5 | Yes: a given custody_since equal to arrest_date keeps `has been in {custody_kind} since {custody_since}`. |
 | A1a | (28 Oct) NONE_ANSWERS strict set: **yes, strict, no vowel-dropping fold**, but add the common no-anusvara spellings `नही` and `कोई नही` (very common typing). Trailing `।` or `.` is allowed. A sentence such as `नहीं है` does not match. Golden annexure lines `registered at PS GOLDEN_PS` → `registered at Police Station GOLDEN_PS` (13 lines, nothing else): approved in principle, and checked at the byte check. |
+
+## T-638 byte check and v7 re-sign (Ajay, 28 Oct 2026): fix/t-638-bail-custody-ps @ commit SHA 0469b3ae
+
+| item | result |
+| --- | --- |
+| Skeleton v7 | Diff against v6 checked: only `custody_status_derived` (signed (5) text, byte-identical) plus two `skip_if_rendered`. **Re-signed v7**, bail_regular SHA `b15e03a2354a22c722c513f13ae6637810d5d00aee4d76699701d03e05fd2e04`; md SHA `91deb259361bc4d8954d359b2f32d0889759096d9d2d6697e7000345069e0c3f`. No other skeleton changed. |
+| Strings | The B2 question is byte-identical in the pack and docs/templates. Caption `(date of arrest)`. Annexures: `registered at Police Station ${ps}`. The 13 golden lines change only that substring. B1 words are as signed (custody-since-derivation.ts:109–110). NONE_ANSWERS adds नहीं / कोई नहीं / नही / कोई नही. |
+| (1) `custody_since_derived` in the Drafter FACTS | **OK** as an internal marker, like the s.138 computed facts, on the condition that it never prints in draft text. The renderer uses it only as a `when` key; a test pins that the token is never in the body. |
+| (2) Brief display gap | **OK to ship with a note.** Only the brief caption can disagree; the wrong date is never printed, because generation refuses to derive. Ticket the fix in intake.service.ts updateBrief (Priya). |
+
+**APPROVED at 0469b3ae** for the strings and skeleton v7. The final approval comes after review, as a delta from 0469b3ae.
