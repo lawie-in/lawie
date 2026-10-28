@@ -5,7 +5,9 @@
  * Never exposed through the public gateway.
  *
  * POST /internal/grant-bonus
- *   Called by the auth service after a referral code is applied at signup.
+ *   Called by the auth service after a referral code is applied at signup
+ *   (referral.service.ts signalDraftingBonus). T-652: the only caller now; the signup bonus
+ *   stopped sending its signal in T-652.
  *   Creates or increments the BonusCredit record for the user.
  *
  * POST /internal/erase-user { userId, email?, dryRun? }  (T-115c)

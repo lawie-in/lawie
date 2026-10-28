@@ -156,12 +156,12 @@ export interface IUser extends Document {
   // ── SCRUM-73 / SCRUM-59 — credit system (founder-authorised 2026-05-12) ──
   // Three credit buckets, consumed in priority order: topup → earned → subscription.
   subscriptionCredits: number; // Granted on plan renewal. Lapses on monthly/yearly cycle.
-  earnedCredits: number; // From daily login + rating bonuses. Permanent.
+  earnedCredits: number; // Legacy: signup/login/rating accrual stopped in T-652. Kept for history; hidden.
   topupCredits: number; // One-time top-up purchases. Permanent.
   planTier: 'free' | 'practice' | 'firm';
   billingCycle: 'none' | 'monthly' | 'yearly';
   planRenewsAt?: Date;
-  lastLoginBonusAt?: Date; // Used by daily-login-bonus dedupe
+  lastLoginBonusAt?: Date; // Legacy: no longer written (T-652). Kept for history.
   signupBonusGrantedAt?: Date; // Idempotency guard for signup bonus (SCRUM-100)
   welcomeQueuedAt?: Date | null; // T-587: once-only guard for the welcome email
 

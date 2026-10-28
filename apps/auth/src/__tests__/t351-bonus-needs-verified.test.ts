@@ -19,12 +19,7 @@ import supertest from 'supertest';
 import app from '../app';
 import logger from '../config/logger';
 import { User } from '../models/User.model';
-import {
-  DAILY_LOGIN_BONUS,
-  SIGNUP_BONUS_CREDITS,
-  grantSignupBonus,
-  tryGrantDailyLoginBonus,
-} from '../services/credit-bonus.service';
+import { grantSignupBonus } from '../services/credit-bonus.service';
 
 import { ledger, rawUsers, waitFor } from './t234-helpers';
 
@@ -78,21 +73,20 @@ async function expectNothingGranted(id: unknown) {
 
 async function expectSignupBonusOnce(id: unknown) {
   const u = await raw(id);
-  expect(u.earnedCredits).toBe(SIGNUP_BONUS_CREDITS);
+  expect(u.earnedCredits ?? 0).toBe(0); // T-652: no earnedCredits accrual
+  expect(u.lastLoginBonusAt ?? null).toBeNull();
   expect(u.inkTopup).toBe(10);
   expect(u.signupBonusGrantedAt).toBeInstanceOf(Date);
   const seed = await ledger().find({ userId: id, reason: 'free_seed' }).toArray();
   expect(seed).toHaveLength(1);
   expect(seed[0].delta).toBe(10);
   expect(
-    await mongoose.connection
-      .db!.collection('creditledgers')
-      .countDocuments({ userId: id, source: 'signup_bonus' }),
-  ).toBe(1);
-  expect(fetchMock).toHaveBeenCalledTimes(1);
+    await mongoose.connection.db!.collection('creditledgers').countDocuments({ userId: id }),
+  ).toBe(0);
+  expect(fetchMock).not.toHaveBeenCalled(); // T-652: no drafting grant-bonus signal
 }
 
-/** Eligible cases, shared by the sign-up and daily bonus. */
+/** Eligible cases, used by the sign-up Ink seed. */
 const ELIGIBLE: Array<[string, Fields]> = [
   ['Google (authProvider google)', { authProvider: 'google', googleId: 'g-t351-a' }],
   ['Google provider without a googleId', { authProvider: 'google' }],
@@ -124,7 +118,7 @@ describe('T-351 AC1/AC3/AC4 — grantSignupBonus', () => {
     await expectNothingGranted(u._id);
   });
 
-  it.each(ELIGIBLE)('%s: grants 5 credits and the 10-unit Ink seed once', async (_l, fields) => {
+  it.each(ELIGIBLE)('%s: grants the 10-unit Ink seed once and no credits', async (_l, fields) => {
     const u = await mk(fields);
     await grantSignupBonus(String(u._id));
     await expectSignupBonusOnce(u._id);
@@ -160,55 +154,10 @@ describe('T-351 AC1/AC3/AC4 — grantSignupBonus', () => {
   });
 });
 
-describe('T-351 AC1/AC3/AC4 — tryGrantDailyLoginBonus', () => {
-  it.each(INELIGIBLE)('%s: returns 0, no credits, no marker, no ledger row', async (_l, fields) => {
-    const u = await mk(fields);
-    expect(await tryGrantDailyLoginBonus(String(u._id))).toBe(0);
-    expect(await tryGrantDailyLoginBonus(String(u._id))).toBe(0);
-    await expectNothingGranted(u._id);
-  });
-
-  it.each(ELIGIBLE)('%s: grants the daily bonus once per day', async (_l, fields) => {
-    const u = await mk(fields);
-    expect(await tryGrantDailyLoginBonus(String(u._id))).toBe(DAILY_LOGIN_BONUS);
-    expect(await tryGrantDailyLoginBonus(String(u._id))).toBe(0);
-    const r = await raw(u._id);
-    expect(r.earnedCredits).toBe(DAILY_LOGIN_BONUS);
-    expect(r.lastLoginBonusAt).toBeInstanceOf(Date);
-    expect(
-      await mongoose.connection
-        .db!.collection('creditledgers')
-        .countDocuments({ userId: u._id, source: 'login_bonus' }),
-    ).toBe(1);
-  });
-
-  it('unverified, then verified: the daily bonus is granted that same day, once', async () => {
-    const u = await mk();
-    expect(await tryGrantDailyLoginBonus(String(u._id))).toBe(0);
-    await rawUsers().updateOne({ _id: u._id }, { $set: { emailVerified: true } });
-    expect(await tryGrantDailyLoginBonus(String(u._id))).toBe(DAILY_LOGIN_BONUS);
-    expect(await tryGrantDailyLoginBonus(String(u._id))).toBe(0);
-    expect((await raw(u._id)).earnedCredits).toBe(DAILY_LOGIN_BONUS);
-  });
-
-  it('a verified user who already claimed before today can claim again today', async () => {
-    const u = await mk({ emailVerified: true });
-    await rawUsers().updateOne(
-      { _id: u._id },
-      { $set: { lastLoginBonusAt: new Date(Date.now() - 2 * 86_400_000) } },
-    );
-    expect(await tryGrantDailyLoginBonus(String(u._id))).toBe(DAILY_LOGIN_BONUS);
-  });
-
-  it('invalid id returns 0', async () => {
-    expect(await tryGrantDailyLoginBonus('nope')).toBe(0);
-  });
-});
-
 describe('T-351 AC2/AC3 — through the real register and login routes', () => {
   const settle = () => new Promise((r) => setTimeout(r, 300));
 
-  it('password register: 202, no Ink, no credits, no seed; login also gives no daily bonus', async () => {
+  it('password register: 202, no Ink, no credits, no seed; login gives nothing either', async () => {
     const res = await supertest(app)
       .post('/register')
       .send({ email: 'e2e-unverified@example.com', password: PASSWORD, name: 'E2E Person' });
@@ -225,7 +174,7 @@ describe('T-351 AC2/AC3 — through the real register and login routes', () => {
     await expectNothingGranted(u!._id);
   });
 
-  it('after the address is verified, the next grant call seeds once; login gives the daily bonus', async () => {
+  it('after the address is verified, the next grant call seeds once; login gives no bonus', async () => {
     await supertest(app)
       .post('/register')
       .send({ email: 'e2e-verified@example.com', password: PASSWORD, name: 'E2E Person' });
@@ -240,18 +189,15 @@ describe('T-351 AC2/AC3 — through the real register and login routes', () => {
       .post('/login')
       .send({ email: 'e2e-verified@example.com', password: PASSWORD });
     expect(login.status).toBe(200);
-    // login fires the daily bonus with `void`, so it can land after the response: wait for it.
-    const expected = SIGNUP_BONUS_CREDITS + DAILY_LOGIN_BONUS;
-    await waitFor(async () => (await raw(u!._id)).earnedCredits === expected);
-    expect((await raw(u!._id)).earnedCredits).toBe(expected);
+    await settle(); // login used to fire a `void` bonus; give any such write time to land
+    await expectSignupBonusOnce(u!._id);
   });
 });
 
 describe('T-351 AC5 — logs keep the user id only, never the address', () => {
-  it('skip path (signup and daily) writes no log line containing the email', async () => {
+  it('skip path (signup) writes no log line containing the email', async () => {
     const u = await mk({ email: 'secret-addr@example.com', name: 'Secret Name' });
     await grantSignupBonus(String(u._id));
-    await tryGrantDailyLoginBonus(String(u._id));
     for (const spy of logSpies) {
       for (const call of spy.mock.calls) {
         const text = JSON.stringify(call);
@@ -264,7 +210,6 @@ describe('T-351 AC5 — logs keep the user id only, never the address', () => {
   it('grant path also writes no email into any log line', async () => {
     const u = await mk({ email: 'secret-grant@example.com', emailVerified: true });
     await grantSignupBonus(String(u._id));
-    await tryGrantDailyLoginBonus(String(u._id));
     for (const spy of logSpies) {
       for (const call of spy.mock.calls) {
         expect(JSON.stringify(call)).not.toContain('secret-grant@example.com');

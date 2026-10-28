@@ -12,7 +12,6 @@ import {
 } from '../config/passport';
 import redis from '../config/redis';
 import { IUser } from '../models/User.model';
-import { tryGrantDailyLoginBonus } from '../services/credit-bonus.service';
 import { generateTokenPair } from '../services/jwt.service';
 import {
   OAUTH_VERIFIED_STATE_KEY,
@@ -204,8 +203,7 @@ router.get(
       { ip: req.ip, userAgent: req.headers['user-agent'], authAt: new Date().toISOString() },
     );
 
-    // SCRUM-73 — daily login bonus, non-blocking on the OAuth hot path.
-    void tryGrantDailyLoginBonus(user.id as string);
+    // T-652 (Ajay AJ-646-M9b): a Google sign-in grants no bonus and writes no ledger row.
 
     // T-306: redirect with a one-time code, never the tokens. The web callback page drops the
     // query string at once and exchanges the code by POST /oauth/exchange.

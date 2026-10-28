@@ -156,7 +156,7 @@ describe('T-223 AC2 verifyEmailToken', () => {
     expect(doc.emailVerifyTokenHash).toBeUndefined();
     expect(doc.emailVerifyExpires).toBeUndefined();
     expect(doc.signupBonusGrantedAt).toBeInstanceOf(Date);
-    expect(doc.earnedCredits).toBe(5);
+    expect(doc.earnedCredits ?? 0).toBe(0); // T-652: no earnedCredits accrual
     expect(doc.inkTopup).toBe(10);
     expect(await bonusRows(u._id)).toBe(1);
   });
@@ -252,7 +252,7 @@ describe('T-223 AC2 verifyEmailToken', () => {
     expect(results.filter((r) => r.kind === 'expired_or_invalid')).toHaveLength(2);
     expect(await bonusRows(u._id)).toBe(1);
     const doc = await raw(u._id);
-    expect(doc.earnedCredits).toBe(5);
+    expect(doc.earnedCredits ?? 0).toBe(0); // T-652: no earnedCredits accrual
     expect(doc.inkTopup).toBe(10);
   });
 
