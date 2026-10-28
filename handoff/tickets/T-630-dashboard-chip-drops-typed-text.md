@@ -1,3 +1,5 @@
+Status: assigned 28 Oct 2026 (see leads.md)
+
 # T-630: The dashboard document chip drops typed text and opens the general page
 
 | Field  | Value |

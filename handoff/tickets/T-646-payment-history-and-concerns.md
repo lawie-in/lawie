@@ -1,6 +1,6 @@
 # T-646 — Payment and Ink history, and raising a payment concern
 
-Status: backlog (unassigned). Founder ask, 27 Oct 2026: "That's important. That's transparency."
+Status: assigned to shashank, 28 Oct 2026 (Explore + gates first). Founder ask, 27 Oct 2026: "That's important. That's transparency."
 
 ## Problem
 Today a customer can see only issued invoices (Settings → Invoices, T-436). There is no list of payments: not failed or pending ones, top-ups, plan charges or refunds. There is also no record of how Ink was used. And there's no way to raise a concern about a payment from the product.

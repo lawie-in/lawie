@@ -1,6 +1,6 @@
 # T-644 — O.39 cause title shows {plaintiff}/{defendant} unfilled on prod
 
-Status: backlog (unassigned). Seen in the prod drafting error log after the v1.2.0 deploy (Arjun, 27 Oct 2026).
+Status: assigned to vishal, 28 Oct 2026. Seen in the prod drafting error log after the v1.2.0 deploy (Arjun, 27 Oct 2026).
 
 ## Problem
 The drafting log shows `System placeholder "{plaintiff}"/"{defendant}" unfilled (temporary_injunction_o39, cause_title)`. An advocate can see an O.39 draft whose cause title still has raw placeholders.

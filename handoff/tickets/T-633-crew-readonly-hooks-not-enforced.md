@@ -1,3 +1,5 @@
+Status: assigned 28 Oct 2026 (see leads.md)
+
 # T-633: Reviewer, doc-writer and tester role hooks are not enforced
 
 | Field  | Value |

@@ -1,3 +1,5 @@
+Status: assigned 28 Oct 2026 (see leads.md)
+
 # T-638: Bail "in custody since" from the arrest date (Ajay R1); police station in prose; Hindi non-answers
 
 | Field  | Value |
