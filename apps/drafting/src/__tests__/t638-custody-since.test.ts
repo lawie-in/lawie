@@ -16,6 +16,8 @@ import {
 import { loadAvermentLists } from '../services/averments';
 import { packTexts } from '../services/brief-drafter';
 import { packOptionIds, renderDraft, skeletonValueLists } from '../services/draft-renderer';
+import { overlayBrief } from '../services/fact-ledger.service';
+import { briefLedgerValues } from '../services/form-ledger';
 import { buildBrief, buildChecklist, buildQuestions } from '../services/intake-brief';
 import type { Brief, BriefQuestion } from '../services/intake-brief';
 import { loadRulePack, loadSkeleton } from '../services/rule-pack.service';
@@ -498,5 +500,123 @@ describe('T-638 B (7) the custody_since question (B2)', () => {
 
   it('not asked when it is derived', () => {
     expect(questionsFor([ARREST], DESC).map((x) => x.key)).not.toContain('custody_since');
+  });
+});
+
+// ── Review round 1: what the brief scans, several arrest dates, source null ──
+
+interface Given {
+  key: string;
+  value: string | string[];
+  quote?: string;
+}
+function briefWith(
+  values: Given[],
+  opts: { description?: string; checklist?: ReturnType<typeof buildChecklist> } = {},
+): Brief {
+  const cl = opts.checklist ?? buildChecklist(loadRulePack('bail_regular')!);
+  return buildBrief({
+    kind: KIND('bail_regular'),
+    checklist: cl,
+    values: values.map((v) => ({ quote: '', ...v, source: 'description' as const })),
+    description: opts.description ?? DESC,
+  }) as Brief;
+}
+const BASE: Given[] = [IN_CUSTODY, ARREST];
+
+describe('T-638 B review (1): a B1 word anywhere on the brief stops the derivation', () => {
+  const WORD = 'He surrendered before the court.';
+  const CASES: Array<[string, Given[]]> = [
+    ['an answer value', [{ key: 'facts_narrative', value: WORD }]],
+    ['an item quote', [{ key: 'facts_narrative', value: 'Cheating FIR.', quote: WORD }]],
+    ['an unplaced value', [{ key: 'fixed.notes', value: WORD }]],
+  ];
+
+  it.each(CASES)('%s: no value, no derived_from, and B2 is asked as written', (_n, extra) => {
+    const brief = briefWith([...BASE, ...extra]);
+    expect(since(brief).value).toBeNull();
+    expect(since(brief).derived_from).toBeUndefined();
+    const cl = buildChecklist(loadRulePack('bail_regular')!);
+    const q = buildQuestions(
+      briefWith([
+        ...Object.entries(TYPICAL).map(([key, value]) => ({ key, value })),
+        ...BASE,
+        ...extra,
+      ]),
+      new Map(),
+      new Set(),
+      new Set(),
+      { checklist: cl },
+    ).find((x) => x.key === 'custody_since');
+    expect(q?.question).toBe(B2);
+  });
+
+  it.each(CASES)('%s: the same input without the word derives', (_n, extra) => {
+    const calm = extra.map((g) => ({
+      ...g,
+      value: 'Cheating FIR.',
+      ...(g.quote !== undefined ? { quote: 'cheating FIR' } : {}),
+    }));
+    const brief = briefWith([...BASE, ...calm]);
+    expect(since(brief).value).toBe('2026-06-12');
+    expect(since(brief).derived_from).toBe('arrest_date');
+  });
+});
+
+describe('T-638 B review (2): several arrest_date items', () => {
+  const cl = () => {
+    const base = buildChecklist(loadRulePack('bail_regular')!);
+    const arrest = base.find((i) => i.key === 'arrest_date')!;
+    return [...base, { ...arrest, key: 'group.arrest_date' }];
+  };
+  it('two different dates: no derivation', () => {
+    const brief = briefWith(
+      [IN_CUSTODY, ARREST, { key: 'group.arrest_date', value: '2026-06-14' }],
+      { checklist: cl() },
+    );
+    expect(since(brief).value).toBeNull();
+    expect(since(brief).derived_from).toBeUndefined();
+  });
+  it('the same date twice: derives', () => {
+    const brief = briefWith(
+      [IN_CUSTODY, ARREST, { key: 'group.arrest_date', value: '2026-06-12' }],
+      { checklist: cl() },
+    );
+    expect(since(brief).value).toBe('2026-06-12');
+    expect(since(brief).derived_from).toBe('arrest_date');
+  });
+});
+
+describe("T-638 B review (3): a derived item is the code's, not the description's", () => {
+  const derivedBrief = () => briefWith(BASE);
+
+  it('its source is null', () => {
+    expect(since(derivedBrief()).source).toBeNull();
+    expect(since(derivedBrief()).derived_from).toBe('arrest_date');
+  });
+
+  it('briefLedgerValues has no custody_since, and still has the arrest date', () => {
+    const keys = briefLedgerValues(derivedBrief()).map((v) => v.key);
+    expect(keys).not.toContain('custody_since');
+    expect(keys).toContain('arrest_date');
+  });
+
+  it('overlayBrief writes no custody_since fact', () => {
+    const cl = buildChecklist(loadRulePack('bail_regular')!);
+    const { state } = overlayBrief({ facts: [], unresolved: [] }, derivedBrief(), cl, 2026);
+    expect(state.facts.map((f) => f.key)).not.toContain('custody_since');
+  });
+});
+
+describe('T-638 B review (4): no description', () => {
+  it('buildBrief without a description sets no derived_from', () => {
+    const cl = buildChecklist(loadRulePack('bail_regular')!);
+    const brief = buildBrief({
+      kind: KIND('bail_regular'),
+      checklist: cl,
+      values: BASE.map((v) => ({ ...v, quote: '', source: 'description' as const })),
+    }) as Brief;
+    expect(since(brief).derived_from).toBeUndefined();
+    expect(since(brief).value).toBeNull();
   });
 });

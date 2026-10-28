@@ -24,7 +24,7 @@ import {
   REGULAR_NARRATIVE_ABSOLUTE_RAW,
   regularBaseWithNarrative,
 } from './fixtures/t373';
-import { sdkParseResponse } from './sdkStream';
+import { sdkAnswer, sdkParseResponse } from './sdkStream';
 
 const mockStream = jest.fn();
 const mockParse = jest.fn();
@@ -219,5 +219,31 @@ describe('T-638 B (9) the generation path derives custody_since (R1)', () => {
     expect(r.status).toBe(200);
     expect(r.body).not.toBe('');
     expect(r.body).not.toContain(DERIVED);
+  });
+});
+
+describe('T-638 B (4) the route with no ledger', () => {
+  it('a derived custody_since never reaches the draft as a fact: the model is not told "in judicial custody since <arrest date>"', async () => {
+    mockStream.mockImplementation(async () => sdkAnswer('Body.\n\n---CLAUSES---\n', 10, 10));
+    const res = await request(app)
+      .post('/generate-from-brief')
+      .set(headers())
+      .send({
+        kind: 'bail_regular',
+        values: [
+          { key: 'applicant_name', value: 'Ramesh Kumar', source: 'user' },
+          { key: 'currently_in_custody', value: 'Yes — Judicial custody', source: 'user' },
+          { key: 'arrest_date', value: '2026-06-12', source: 'description' },
+        ],
+        description: 'Ramesh Kumar was arrested on 12 June 2026 for cheating and sent to jail.',
+        court,
+      });
+    expect(res.status).toBe(200);
+    expect(mockStream).toHaveBeenCalled();
+    const prompt = String(mockStream.mock.calls[0][0].messages[0].content);
+    // the arrest date is in the brief as the date of arrest; no custody date is made from it
+    expect(prompt).toContain('"key": "arrest_date"');
+    expect(prompt).not.toContain('"key": "custody_since"');
+    expect(prompt).not.toMatch(/in (judicial|police) custody since 12 June 2026/);
   });
 });

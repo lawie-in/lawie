@@ -1560,17 +1560,28 @@ function hiddenByShowIf(checklist: ChecklistItem[], placed: Map<string, GivenVal
  * (B2), when the description says a B1 word, or a custody or remand date
  * other than the date of arrest is held, stated, or held by the ledger.
  */
-function deriveCustodySinceItem(items: BriefItem[], input: BuildBriefInput): void {
+function deriveCustodySinceItem(
+  items: BriefItem[],
+  input: BuildBriefInput,
+  unplaced: ReadonlyArray<{ value: string | string[] }>,
+): void {
   if (input.kind.id !== CUSTODY_SINCE_PACK_ID || input.description === undefined) return;
   const at = items.findIndex((i) => lastSegment(i.key) === CUSTODY_SINCE_KEY && i.kind === 'date');
   if (at < 0) return;
   const item = items[at];
   if (!isEmpty(item.value) || item.asked_empty === true) return;
-  const valueOf = (name: string): string | string[] | null =>
-    items.find((i) => lastSegment(i.key) === name)?.value ?? null;
+  const strings = (v: string | string[] | null | undefined): string[] =>
+    v === null || v === undefined ? [] : Array.isArray(v) ? v : [v];
+  const named = (name: string): BriefItem[] => items.filter((i) => lastSegment(i.key) === name);
   const ledger = [...(input.ledgerGiven ?? [])].map(lastSegment);
-  const arrest = valueOf(ARREST_DATE_KEY);
-  const arrestIso = typeof arrest === 'string' && arrest.trim() !== '' ? arrest.trim() : null;
+  // Every arrest date the brief holds, as the generation path reads every
+  // arrest_date fact: more than one is not derived from (asked).
+  const arrestDates = named(ARREST_DATE_KEY)
+    .flatMap((i) => strings(i.value))
+    .map((d) => d.trim())
+    .filter((d) => d !== '');
+  const uniqueArrest = [...new Set(arrestDates)];
+  const arrestIso = uniqueArrest.length === 1 ? uniqueArrest[0] : null;
   const otherCustodyDate =
     items.some(
       (i) =>
@@ -1582,21 +1593,31 @@ function deriveCustodySinceItem(items: BriefItem[], input: BuildBriefInput): voi
     statedDates(input.description).some(
       (d) => d.kind !== null && CUSTODY_OR_REMAND_KINDS.has(d.kind) && d.value !== arrestIso,
     );
+  // B1 "the description or the ledger": the description (with the answers, as
+  // the web app sends it), every value and quote on the brief (the ledger
+  // mirrors them, T-335), and the values no item took.
+  const texts = [
+    input.description,
+    ...items.flatMap((i) => [...strings(i.value), ...strings(i.quote)]),
+    ...unplaced.flatMap((u) => strings(u.value)),
+  ];
   const result = deriveCustodySince({
     packId: input.kind.id,
-    custody: valueOf(CUSTODY_CHOICE_KEY),
-    arrestDates: arrestIso ? [arrestIso] : [],
+    custody: named(CUSTODY_CHOICE_KEY).flatMap((i) => strings(i.value)),
+    arrestDates,
     custodySinceHeld: ledger.includes(CUSTODY_SINCE_KEY),
     otherCustodyDate,
-    texts: [input.description],
+    texts,
   });
   if (!('derived' in result)) return;
   const { quote: _quote, ...rest } = item;
   void _quote;
+  // Source null: the value is the code's, not the description's nor the
+  // advocate's. overlayBrief and briefLedgerValues write no fact for it.
   items[at] = {
     ...rest,
     value: result.derived.value,
-    source: 'description',
+    source: null,
     please_check: false,
     derived_from: 'arrest_date',
   };
@@ -1706,7 +1727,7 @@ export function buildBrief(input: BuildBriefInput): Brief {
       };
     });
   // T-638 (Ajay R1, B1-B5): custody_since from the date of arrest, when it applies.
-  deriveCustodySinceItem(items, input);
+  deriveCustodySinceItem(items, input, [...unplaced.values()]);
 
   const court: BriefCourt = {
     state: clean(input.court?.state),

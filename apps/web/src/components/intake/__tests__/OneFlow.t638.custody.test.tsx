@@ -194,3 +194,40 @@ describe('T-638 B (8) the derived custody date and the update route', () => {
     );
   });
 });
+
+describe('T-638 B review (5) the questions step does not offer a derived date as a suggestion', () => {
+  const q = (): BriefQuestion => ({
+    key: 'custody_since',
+    question: 'QUESTION custody_since',
+    round: 1,
+    label: 'In custody since',
+    kind: 'date',
+    options: [],
+  });
+  const chips = () => Array.from(container.querySelectorAll('button[data-suggestion]'));
+  // the ledger could not read custody_since, so the key stays asked
+  const outstanding = (): Ledger => ({
+    ...ledgerOf([], ['custody_since']),
+    fields: { custody_since: 'date', arrest_date: 'date' },
+  });
+
+  it('a derived value (source null) gets no "Please check" chip', async () => {
+    await start({
+      brief: briefOf([{ ...derived, source: null }, arrest]),
+      ledger: outstanding(),
+      questions: [q()],
+    });
+    expect(container.querySelector('form')).not.toBeNull();
+    expect(chips()).toHaveLength(0);
+    expect(container.textContent).not.toContain('Please check: 12 June 2026');
+  });
+
+  it('control: a value read from the description (source description, not derived) still gets the chip', async () => {
+    await start({
+      brief: briefOf([{ ...derived, source: 'description', derived_from: undefined }, arrest]),
+      ledger: outstanding(),
+      questions: [q()],
+    });
+    expect(chips().map((c) => c.textContent)).toEqual(['Please check: 12 June 2026']);
+  });
+});
