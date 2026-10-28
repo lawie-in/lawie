@@ -6,8 +6,9 @@
 #   usage: scripts/deploy-local.sh <main|develop>
 #
 # Steps: branch guard (IMDSv2 instance id) -> not-root and tool checks -> clean-checkout
-# check -> fetch, checkout, pull --ff-only -> load env -> install -> build -> web
-# standalone assets -> pm2 reload -> T-442 health gate. Any failure exits non-zero.
+# check -> fetch, checkout, pull --ff-only -> load env -> install -> T-649 puppeteer's
+# Chrome -> build -> web standalone assets -> pm2 reload -> T-442 health gate (plus the
+# T-649 PDF smoke). Any failure exits non-zero.
 #
 # The whole body is in main(), called on the last line, so bash has read the entire file
 # before anything runs: a `git pull` that rewrites this file cannot change the running
@@ -63,6 +64,65 @@ for (const name of names) {
 }
 process.stdout.write(out);
 '
+
+# T-649: PDF smoke for the health gate. Launches Chrome through the puppeteer the drafting
+# app resolves (argv[2] is apps/drafting), with the same launch flags and the same
+# PUPPETEER_EXECUTABLE_PATH rule as apps/drafting/src/services/pdf-export.service.ts,
+# renders one fictional page and checks the bytes start with %PDF. No network (inline
+# HTML, no external resources), no path passed to page.pdf, the Chrome profile lives in
+# argv[1] (a mktemp dir removed on exit), and neither the HTML nor the PDF is printed:
+# on failure only a one-line error goes to stderr. Exit 0 ok, 1 failed, 2 timed out.
+PDF_SMOKE_JS='
+const path = require("path");
+const dir = process.argv[1];
+const workspace = process.argv[2];
+const timer = setTimeout(() => {
+  process.stderr.write("pdf smoke: timed out after 90s\n");
+  process.exit(2);
+}, 90000);
+const mod = require(require.resolve("puppeteer", { paths: [workspace] }));
+const puppeteer = mod.default || mod;
+async function run() {
+  const opts = {
+    headless: true,
+    args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
+    userDataDir: path.join(dir, "profile"),
+  };
+  if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+    opts.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+  }
+  const browser = await puppeteer.launch(opts);
+  try {
+    const page = await browser.newPage();
+    await page.setContent("<!doctype html><p>Lawie PDF smoke test</p>", { waitUntil: "load", timeout: 30000 });
+    const pdf = Buffer.from(await page.pdf({ format: "A4", timeout: 30000 }));
+    return pdf.length > 4 && pdf.subarray(0, 4).toString("latin1") === "%PDF";
+  } finally {
+    await browser.close();
+  }
+}
+run().then(
+  (ok) => {
+    clearTimeout(timer);
+    if (!ok) process.stderr.write("pdf smoke: output does not start with %PDF\n");
+    process.exit(ok ? 0 : 1);
+  },
+  (err) => {
+    clearTimeout(timer);
+    const msg = String((err && err.message) || err).split("\n")[0].slice(0, 200);
+    process.stderr.write("pdf smoke: " + msg + "\n");
+    process.exit(1);
+  },
+);
+'
+
+# T-649: the PDF smoke's temp dir; removed by the EXIT trap however the script ends.
+PDF_SMOKE_DIR=""
+cleanup_pdf_smoke() {
+  if [ -n "$PDF_SMOKE_DIR" ]; then
+    rm -rf -- "$PDF_SMOKE_DIR"
+  fi
+}
 
 main() {
   if [ "$#" -ne 1 ]; then
@@ -177,6 +237,19 @@ main() {
   echo "-> installing dependencies..."
   yarn install --frozen-lockfile --production=false
 
+  # T-649: download the Chrome build this puppeteer expects, or every PDF render fails
+  # with "Could not find Chrome" (prod, 27 Oct 2026). No version argument: puppeteer
+  # picks the build it was installed with. Run from the repo root, where yarn hoists the
+  # one puppeteer that both the root and apps/drafting depend on. Idempotent (a no-op
+  # when that build is already in the cache, ~/.cache/puppeteer or PUPPETEER_CACHE_DIR
+  # from the env file). Its stdout (the install path) is dropped; errors stay on stderr.
+  echo "-> installing puppeteer's chrome..."
+  if ! npx puppeteer browsers install chrome > /dev/null; then
+    echo "  x DEPLOY FAILED: npx puppeteer browsers install chrome failed" >&2
+    exit 1
+  fi
+  echo "   chrome ok"
+
   echo "-> building packages..."
   yarn workspace @lawie/shared build
   yarn workspace @lawie/email-client build
@@ -250,6 +323,22 @@ lawie-web|http://localhost:3000/"
   fi
 
   echo "  all six services healthy."
+
+  # T-649: PDF smoke, part of the health gate. A service can answer /health while every
+  # PDF export fails (no Chrome), so render one fictional page and require %PDF bytes.
+  # TMPDIR points Chrome's own temp files at the same mktemp dir.
+  echo "-> PDF smoke (fictional page, content not shown)..."
+  PDF_SMOKE_DIR="$(mktemp -d)"
+  trap cleanup_pdf_smoke EXIT
+  if ! TMPDIR="$PDF_SMOKE_DIR" node -e "$PDF_SMOKE_JS" "$PDF_SMOKE_DIR" "${REPO_DIR}/apps/drafting" \
+    < /dev/null > /dev/null; then
+    echo "  x DEPLOY FAILED: PDF smoke failed (Chrome launch or page.pdf did not produce %PDF)" >&2
+    echo "  check: npx puppeteer browsers install chrome, then pm2 logs lawie-drafting --lines 100" >&2
+    exit 1
+  fi
+  cleanup_pdf_smoke
+  PDF_SMOKE_DIR=""
+  echo "    ok   pdf smoke -> %PDF"
   echo "-> deploy complete: ${BRANCH} @ ${SENTRY_RELEASE} on the ${BOX} box."
 }
 
