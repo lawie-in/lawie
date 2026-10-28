@@ -11,3 +11,6 @@ Drafting logs raw `err.message` at about 15 sites. If a database, Anthropic or P
 3. Sentry on the server: turn consoleIntegration off, or scrub the breadcrumbs.
 4. Prod nginx log_format without the query string. Nikhil applies it, through Arjun.
 5. Tests cover the serializer and one drafting error site.
+
+## Added 28 Oct 2026 (from Shashank's T-646 Explore)
+6. Billing: add pino redact. At billing.routes.ts:381, log err.name/code instead of err.message when a top-up order fails (the same issue T-583 fixed for /subscribe).
