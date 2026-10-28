@@ -23,6 +23,7 @@ import { Event } from '../models/Event.model';
 import { effectiveRunType, Generation, RunType } from '../models/Generation.model';
 import { User } from '../models/User.model';
 import {
+  formGateFiles,
   GenerationFailedError,
   streamGenerateFromBrief,
   streamGenerateGuided,
@@ -85,6 +86,11 @@ import {
 import { currentState, loadOwnLedger } from '../services/fact-ledger.service';
 import { FACT_CHECK_DISCLAIMER } from '../services/fact-verifier';
 import { bodyField, hiddenTemplateIds, templateGuard } from '../services/feature-switches';
+import {
+  briefLedgerValues,
+  buildInMemoryLedger,
+  formRequiredFieldBlock,
+} from '../services/form-ledger';
 import { isCourtDocument, namesSupremeCourt, buildChecklist } from '../services/intake-brief';
 import type { BriefItem } from '../services/intake-brief';
 import {
@@ -1018,10 +1024,35 @@ router.post(
       return;
     }
 
+    // T-629 AC8 / Ajay FR-1(b), FR-5: on temporary_injunction_o39 an empty or
+    // non-answer main_suit_relief / restraint_sought is refused with the signed
+    // (g) lines. Runs before validateFormData, so an empty field gets those
+    // lines and not the generic error, and before the gate, run and Ink hold.
+    const requiredFieldBlock = formRequiredFieldBlock(template_id, form_data);
+    if (requiredFieldBlock !== null) {
+      res.status(400).json(requiredFieldBlock);
+      return;
+    }
+
     // Validate form data against template schema
     const validationErrors = validateFormData(templateConfig, form_data);
     if (validationErrors.length > 0) {
       res.status(400).json({ error: 'Form validation failed', issues: validationErrors });
+      return;
+    }
+
+    // T-637: the T-611 delivery gate's rule pack and averment lists, read before
+    // any run or Ink hold, so a missing or broken file answers as JSON and no
+    // draft goes out ungated. Ids only in the log.
+    let gate: ReturnType<typeof formGateFiles>;
+    try {
+      gate = formGateFiles(template_id);
+    } catch (err) {
+      console.error(
+        `[drafting] delivery gate files unreadable (kind=${template_id}):`,
+        err instanceof Error ? err.name : 'unknown',
+      );
+      res.status(500).json({ error: 'Template config unavailable' });
       return;
     }
 
@@ -1057,13 +1088,15 @@ router.post(
             runId,
             runSequence,
             runType,
+            gate,
           },
           res,
         );
       } catch (genErr) {
         // T-226: a failed run returns its hold, before the response ends.
         await ink.release();
-        // GenerationFailedError = mid-stream LLM failure. SSE `event: error` was
+        // GenerationFailedError = mid-stream LLM failure, or (T-611 / T-637) a
+        // draft the delivery gate withheld with its one question. SSE `event: error` was
         // already emitted and the response is closed. Still record what the
         // attempt actually used (T-003) — a failed generation isn't free. No
         // Ink is spent on a failed attempt.
@@ -1214,6 +1247,9 @@ router.post(
         creditsSpent,
         // T-197: the signed disclaimer goes with every finished draft.
         disclaimer: FACT_CHECK_DISCLAIMER,
+        // T-637: the body no longer streams as text, so the web reads the
+        // paragraph count here: the same count as the brief route's.
+        paragraphCount: countBodyParagraphs(result),
       });
     });
   },
@@ -1638,6 +1674,43 @@ router.post(
       return;
     }
 
+    // T-637 (Arjun option B, gate only): with no persisted ledger (none sent,
+    // or feature.fact_ledger off), an in-memory ledger is built from the
+    // confirmed brief for this request: description values as `user`, typed or
+    // edited answers as `asked`, as overlayBrief would write them. It is used
+    // ONLY by the held-blank gate (fill, one repair, fact_needed); the Drafter,
+    // its prompt, the verifier, FactDiff and the ledger flag see no ledger, as
+    // before. Never stored; no intake id. Before any hold; ids only in the log.
+    let gateLedger: {
+      facts: LedgerFact[];
+      unresolved: LedgerUnresolvedFact[];
+      lists: AvermentLists;
+    } | null = null;
+    if (ledger === null && pack) {
+      let lists: AvermentLists;
+      try {
+        lists = loadAvermentLists(kind);
+      } catch (err) {
+        console.error(
+          `[drafting] averment list unreadable (kind=${kind}):`,
+          err instanceof Error ? err.name : 'unknown',
+        );
+        res.status(503).json({ error: 'averments_unavailable' });
+        return;
+      }
+      const state = buildInMemoryLedger(pack, briefLedgerValues(brief));
+      gateLedger = {
+        // T-192 / T-363 (b): the s.138 date checks, after Confirm, as for a stored ledger.
+        facts: withS138DateChecks(
+          state.facts,
+          kind,
+          state.unresolved.map((u) => u.key),
+        ),
+        unresolved: state.unresolved,
+        lists,
+      };
+    }
+
     // ADR-021 rule 3: the court comes from the courts list only.
     let courtData: CourtLookupData | undefined;
     if (brief.kind.court_document) {
@@ -1777,6 +1850,8 @@ router.post(
                         },
                       }
                     : {}),
+                  // T-637: with no persisted ledger, the held-blank gate's ledger only.
+                  ...(gateLedger ? { gateLedger } : {}),
                   advocateName: payload.name || undefined,
                   enrollmentNumber: await profileEnrollmentNumber(payload.sub),
                 },

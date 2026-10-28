@@ -120,3 +120,47 @@ The `blocks_confirm` flag applies to `main_suit_relief` and `restraint_sought`. 
 
 **APPROVED at 502e05e9.** It counts as merged only at the develop_staging SHA that contains 502e05e9. T-629 (Confirm block) and T-628 (prayer date gate) must be in the same prod release.
 | 5 | (T-628, 27 Oct) A day-first numeric date (03/12/2026 = 3 December 2026) **counts as resolved and blocks** if it is past. That is the Indian convention the brief already uses, and the gate only asks a question, so a misread costs one question, not a wrong draft. One addition: a month-and-year with no day ("September 2026") whose whole month ended before today (IST) blocks. A current or future month does not. The other gaps Vishal lists (Devanagari month first, other spellings, ambiguous two-digit years) do not block; I accept that for Phase 0. |
+| 6 | (T-628, 27 Oct) Dead end: **option (a).** Scan `{restraint_sought}` plus the rendered prayer **with the `{subject_matter}` value left out**. The other filled slots and the fixed wording are still scanned. A deed, survey or plot date in the property description identifies the property; it is not a restraint. No new user string is needed. The same applies to any later slot that only describes the property. If a date outside `restraint_sought` still blocks, the gate must name a field the user can change; it may never ask a question whose answer cannot clear the block. |
+
+## (l) T-634 follow-ups (Ajay, 27 Oct 2026)
+
+| # | ruling |
+| --- | --- |
+| 1 | **Munsif: verified.** The Bihar Civil Courts (Amendment) Act, 2013 (Bihar Act 14 of 2014) amends the Bengal, Agra and Assam Civil Courts Act, 1887 by replacing "Munsif" with "Civil Judge (Junior Division)". Patna High Court notifications of 2026 use only "Civil Judge (Junior Division)" (older notices still say "Munsif"; commencement date: verify). Ruling: the label and designation stay `Civil Court (Junior Division)` / `IN THE COURT OF CIVIL JUDGE (JUNIOR DIVISION), PATNA`. `Munsif` may be a **search alias in the court picker only** (users still type it), and it is **never printed** in a label, a record name or a draft. |
+| 2 | `config/courts/indian-courts.json` is already covered by `config/courts/`; no change. **Add** `apps/drafting/src/routes/courts.routes.ts`. Line for Priya: `apps/drafting/src/routes/courts.routes.ts` (TYPE_LABELS, the per-pack court scopes and the canonical State names; added by T-634). |
+| 3 | Web copies of the server labels are OK if they are byte-identical; I check them at READY. |
+
+## T-628 byte check (Ajay, 27 Oct 2026): fix/t-628-o39-past-date-gate @ 12a7b2bf (from b9de6cf1)
+
+| item | result |
+| --- | --- |
+| Hashes (recomputed myself) | prayer-date-gate.ts `bdbf4ad757ecbc95`, ai.service.ts `038d85d95c3cdf9d`, generationFailure.ts `a286a5d6124b3e5f`, OneFlow.tsx `90faa20237ebc9fa`. All match Vishal's. fact-verifier is unchanged. |
+| Strings | The §(h) EN and HI questions are byte-identical in prayer-date-gate.ts. Only EN renders. |
+| §(k) rules | The Devanagari month list matches mine, with all variants, nukta-insensitive. The other rules (resolved past dates only, day-first, ended month-year, scope = restraint_sought plus the prayer, subject_matter left out, body never scanned) are as Vishal describes and covered by the t628 tests. The diff adds no new log line carrying a value. |
+| Edge | A future field labelled like subject_matter could fail safe (an extra question, never a wrong draft). Accepted; any new O.39 field comes to me anyway. |
+
+**APPROVED at 12a7b2bf.** It counts as merged at the develop_staging SHA that contains 12a7b2bf. It ships with T-613 and T-629; T-637 (the form-route T-611 gate) is a prod release gate.
+| 4 | T-634 web labels (`fix/t-634-t613-follow-ups` @ 23fee46c): **APPROVED.** SAVED_TYPE_NAMES `civil_court_junior`, `high_court`, `high_court_bench` and `sessions` are byte-identical to courts.routes.ts TYPE_LABELS (lines 460–468). Munsif was not added, which is correct. It counts as merged at the develop_staging SHA that contains 23fee46c. |
+
+**T-628 merged (Ajay, 27 Oct 2026):** develop_staging merge SHA `b2e910540842c8417b8fcc8f9b01348d3925df16` contains 12a7b2bf. I checked it myself, and prayer-date-gate and ai.service have the same hashes after the merge. CI is pending (Vishal confirms green).
+
+## T-629 byte check (Ajay, 27 Oct 2026): fix/t-629-o39-confirm-block @ commit SHA a7b3890c (base 07974232)
+
+| item | result |
+| --- | --- |
+| o39-confirm-messages.ts (new, legal) | The §(g) EN and HI strings are byte-identical to this file. `O39_NON_ANSWERS` matches §(j)3 (whole value, trimmed, case-insensitive, NFC). Order main_suit_relief, then restraint_sought (§j2). `requiredFieldBlockers` is exported for the form route (FR-5a). |
+| Pack | Only `blocks_confirm: true` was added to the two fields; labels and questions are unchanged. |
+| intake-brief confirmState (sha256 first 16 `e4c00bd612ee867e`) | Per the lead's report and the reviewer: all blocking lines shown together (court/parties, then the two fields); EN only (§i5); only the brief's own value lifts it (fail closed); restraint_sought in RELIEF (§i6); title_document_date asked once and blank = answered (§i2). I checked the strings and the pack myself; the confirmState logic I take from the passing review and the tests. |
+
+**T-629 APPROVED at a7b3890c.** It counts as merged at the develop_staging merge SHA that contains it. The form-route wiring (FR-5a/AC8) comes to me as a delta after T-637 merges. T-613, T-628, T-629 and T-637 ship together.
+
+**T-629 AC8 / FR-5a (Ajay, 27 Oct 2026): fix/t-629-o39-confirm-block @ commit SHA d2e43b14.** Delta from 8df3d4d6 checked myself: `formRequiredFieldBlock` runs for temporary_injunction_o39 only, imports `requiredFieldBlockers` from the approved o39-confirm-messages.ts (unchanged), and returns 400 `brief_not_confirmed` with the §(g) EN lines in §(j)2 order. It is moved **before** form validation, so it also runs before the gate, any Ink hold and any model call. No new strings, no values logged, other templates untouched. FR-1(b)/FR-5a met on the form route. **APPROVED at d2e43b14.** It counts as merged at the develop_staging merge SHA that contains it.
+
+**T-629 AC8 re-confirm (Ajay, 27 Oct 2026): commit SHA ab6c60ed.** Delta from d2e43b14 checked myself: form-ledger.ts only. A non-string value in either required field is now read as empty (fail closed) and gets the §(g) line. No string, message or order change; still O.39 only. **APPROVED at ab6c60ed**, superseding d2e43b14 for the merge.
+
+**T-629 merged (Ajay, 27 Oct 2026):** develop_staging merge SHA `819a98a9fbb3c0448062b5d76fe06703d52a9621` contains a7b3890c and ab6c60ed. I checked it myself, and o39-confirm-messages.ts is unchanged from ab6c60ed. CI #1107 is green per Shashank.
+
+| # | edge-case ruling (follow-up ticket, Priya routes) |
+| --- | --- |
+| E1 | Mixed list (`["Declaration","N/A"]`): **answered**, because a real entry exists. But a non-answer entry is **never printed**: drop §(j)3 entries from the list before it reaches the draft. |
+| E2 | Zero-width-only value: **must block.** Before the §(j)3 check, remove invisible characters (U+200B–U+200D, U+2060, U+FEFF); a value that is then empty counts as empty and gets the §(g) line. |

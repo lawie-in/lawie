@@ -191,6 +191,15 @@ afterEach(() => {
 });
 
 describe('POST /generate-from-brief — a draft that passes', () => {
+  it('T-637 (Arjun option B): another pack on the no-ledger path no longer streams text chunks; the body is in template_sections', async () => {
+    mockModel(drafterAnswer());
+    const res = await post({ kind: 'bail_regular', values: VALUES, court, paragraphs: 12 });
+    expect(res.status).toBe(200);
+    expect(res.text).not.toMatch(/data: \{"text":/);
+    expect(JSON.stringify(event(res.text, 'template_sections'))).toContain('Ram Kumar');
+    expect(event(res.text, 'done')).not.toBeNull();
+  });
+
   it('writes the body under the rule pack, adds the fixed parts from the brief, and carries no label', async () => {
     const fetchMock = mockModel(drafterAnswer());
     const res = await post({ kind: 'bail_regular', values: VALUES, court, paragraphs: 12 });

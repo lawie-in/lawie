@@ -1066,7 +1066,8 @@ describe('buildPlaceholderContext — police_station prefix dedup (A8)', () => {
     const ctx = buildPlaceholderContext(config, { ...minimalData, police_station: 'PS Chanho' });
     const rendered = renderTemplateSection(prayerSection, ctx);
     expect(rendered.content).not.toContain('PS PS');
-    expect(rendered.content).toMatch(/PS Chanho/);
+    // T-612 (6): the template carries "Police Station"; the stored name is bare.
+    expect(rendered.content).toMatch(/Police Station Chanho/);
   });
 
   test('rendered prayer for bail_regular never contains "PS PS"', () => {
@@ -1083,6 +1084,6 @@ describe('buildPlaceholderContext — police_station prefix dedup (A8)', () => {
     });
     const rendered = renderTemplateSection(prayerSection, ctx);
     expect(rendered.content).not.toContain('PS PS');
-    expect(rendered.content).toMatch(/PS Kotwali/);
+    expect(rendered.content).toMatch(/Police Station Kotwali/);
   });
 });

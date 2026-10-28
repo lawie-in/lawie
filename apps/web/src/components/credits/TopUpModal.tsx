@@ -23,6 +23,7 @@ import { notifyCreditsChanged } from '@/hooks/useCredits';
 import { useGstState } from '@/hooks/useGstState';
 import { apiFetch } from '@/lib/apiFetch';
 import { cn } from '@/lib/cn';
+import { focusSignupConsent, signupConsentGate } from '@/lib/signupConsent';
 
 interface TopupSku {
   id: string;
@@ -61,6 +62,9 @@ const ORDER_FAILED = 'Something did not work. Try again.';
  * Radix gives role=dialog, the focus trap, Escape, overlay click and focus return; aria-modal is
  * set here because Radix 1.1 does not. Callers mount it while open and pass onClose, as before.
  */
+/** T-642: delay before re-focusing the consent checkbox after this dialog closes. */
+const SIGNUP_CONSENT_REFOCUS_MS = 50;
+
 export function TopUpModal({ onClose }: { onClose: () => void }) {
   const [skus, setSkus] = useState<TopupSku[]>([]);
   const [selectedId, setSelectedId] = useState<string>('topup_mid');
@@ -205,7 +209,20 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
     // T-565 (review): one order at a time. `submitting` is state, so two clicks in the same
     // tick would both pass it; this ref closes that gap. Also no new order while Checkout is up.
     if (!selected || purchaseInFlight.current || checkoutOpenRef.current) return;
+    // Claimed before the gate's await, so a same-tick double Buy still makes one order (T-565).
     purchaseInFlight.current = true;
+    // T-642 (AJ-642-M3/M6): no top-up order while the Google sign-up consent is needed. Close
+    // this dialog (the panel behind it is inert while it is open) and let the gate focus the
+    // panel's checkbox. focusRestored is set so the close does not send focus back to the
+    // opener; the checkbox is focused again once the Radix close has unmounted the dialog and
+    // removed aria-hidden from the page (SIGNUP_CONSENT_REFOCUS_MS, after React's commit).
+    if (await signupConsentGate()) {
+      purchaseInFlight.current = false;
+      focusRestored.current = true;
+      onClose();
+      focusSignupConsent(SIGNUP_CONSENT_REFOCUS_MS);
+      return;
+    }
     setSubmitting(true);
     setError('');
     try {

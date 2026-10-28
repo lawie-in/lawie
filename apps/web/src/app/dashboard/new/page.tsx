@@ -64,6 +64,7 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { useCredits } from '@/hooks/useCredits';
 import { apiFetch } from '@/lib/apiFetch';
+import { signupConsentGate } from '@/lib/signupConsent';
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -193,6 +194,8 @@ function NewDocumentContent() {
   // Generation error (AI service failed mid-stream — surfaces in PipelineStatus)
   const [generationError, setGenerationError] = useState<string | undefined>(undefined);
   const [generationRetryable, setGenerationRetryable] = useState<boolean>(true);
+  // T-637: the SSE error event's `code`, so a withheld draft shows its one question.
+  const [generationErrorCode, setGenerationErrorCode] = useState<string | undefined>(undefined);
   // T-565 W1/W3: which signed failure the card shows (not started / request failed / stream).
   const [generationFailure, setGenerationFailure] = useState<GenerationFailure>('stream');
   // Paywall (SCRUM-73 — opens when enforceCredits returns 402)
@@ -348,6 +351,9 @@ function NewDocumentContent() {
   const runGeneration = useCallback(
     async (formData: Record<string, unknown>) => {
       if (!selectedConfig) return;
+      // T-642 (AJ-642-M3/M6): no generate request while the Google sign-up consent is needed;
+      // the gate brings the consent panel into view instead. Covers Retry too.
+      if (await signupConsentGate()) return;
       // T-388 (Arjun): nothing that charges starts while the cost is not known.
       // Every caller ends here, including the fail-open preflight paths. The
       // advocate stays on this screen and sees the notice here ("Edit form"
@@ -366,6 +372,7 @@ function NewDocumentContent() {
       setPipelineState('drafting');
       setError('');
       setGenerationError(undefined);
+      setGenerationErrorCode(undefined);
       setGenerationRetryable(true);
       setGenerationFailure('stream');
 
@@ -522,15 +529,17 @@ function NewDocumentContent() {
                         ? payload.reason
                         : 'The AI service returned an error.',
                     );
+                    setGenerationErrorCode(
+                      typeof payload.code === 'string' ? payload.code : undefined,
+                    );
                     setGenerationRetryable(payload.retryable !== false);
                     setPipelineState('generation_failed');
                     reading = false;
                     return;
                   default:
-                    if (payload.text) {
-                      // Count paragraph breaks as a proxy for paragraph count
-                      paraCount += (payload.text.match(/\n\n/g) ?? []).length;
-                    }
+                    // T-637: the body is not streamed as text any more (the server
+                    // sends it only after the delivery gate); the paragraph count
+                    // comes from `done.paragraphCount`.
                     break;
                 }
               } catch {
@@ -614,6 +623,8 @@ function NewDocumentContent() {
       // T-388: an unknown cost blocks before the preflight. "Generate document"
       // is off then and the notice is under it (DynamicFormRenderer).
       if (!templateInkCostKnown) return;
+      // T-642: before leaving the form (no preflight, no generate) while consent is needed.
+      if (await signupConsentGate()) return;
       // T-343: ask before leaving the form, so a privacy block never unmounts (empties) it.
       if (await privacyPrecheck('generate')) return;
 
@@ -760,6 +771,7 @@ function NewDocumentContent() {
           onEditForm={handleEditForm}
           onOpenEditor={handleOpenEditor}
           generationError={generationError}
+          generationErrorCode={generationErrorCode}
           generationRetryable={generationRetryable}
           generationFailure={generationFailure}
           onRetry={handleRetry}

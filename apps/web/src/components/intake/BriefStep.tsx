@@ -14,7 +14,7 @@
  * Without a ledger the screen is exactly as before.
  */
 import { ChevronDown, Loader2 } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   Brief,
@@ -56,6 +56,7 @@ import {
 import ValueInput from './ValueInput';
 
 import { ErrorState, Skeleton } from '@/components/ui';
+import { useSignupConsent } from '@/lib/signupConsent';
 
 /**
  * T-136. Ajay's line (CLO, 7 Oct 2026, part 2, condition 2), word for word. The
@@ -155,6 +156,8 @@ function fieldId(key: string): string {
 
 type RowStatus =
   | { kind: 'saving'; typed: Value }
+  // T-612: the service took no ledger edit for this row; what was picked stays on screen.
+  | { kind: 'kept'; typed: Value }
   | { kind: 'saved_as'; display: string }
   | { kind: 'unreadable'; typed: Value; detail: string }
   | { kind: 'failed'; typed: Value };
@@ -215,14 +218,36 @@ function Item({
   const notKnownDate = isEmptyValue(item.value) && !entry.fact && isNotKnownDate(item, askedAnswer);
 
   // T-147b: the row renders from the ledger. With no fact and nothing outstanding,
-  // the brief's own value shows as before.
+  // the brief's own value shows as before. T-612: several choices or a list is one
+  // fact per entry under the same key, so every one of them is the row's value.
+  const multi = item.kind === 'choices' || item.kind === 'list';
+  const multiFacts = multi && ledger ? ledger.facts.filter((f) => f.key === item.key) : [];
+  // T-612: a pick kept after a null outcome gives way once the ledger's entries
+  // for this key change (a re-read, another document).
+  const multiDisplaysKey = multi ? JSON.stringify(multiFacts.map((f) => f.display)) : '[]';
+  const multiLedgerKey = multi
+    ? JSON.stringify([multiDisplaysKey, entry.unresolved?.raw_span ?? null])
+    : '';
+  // T-612: the same array while the entries are the same, so a re-render elsewhere
+  // does not reset a list being typed in (ValueInput resets on a new value).
+  const multiShown = useMemo(() => JSON.parse(multiDisplaysKey) as string[], [multiDisplaysKey]);
+  useEffect(() => {
+    setStatus((s) => (s?.kind === 'kept' ? null : s));
+  }, [multiLedgerKey]);
+  // T-612: only the newest pick on this row may set its status; an older answer
+  // arriving later must not undo it.
+  const latestCommit = useRef(0);
+  // T-612: for several choices or a list, what was just picked shows while it
+  // saves too, so a chip stays ticked and the next tick adds to it.
   const shown: Value | null =
-    status && 'typed' in status && status.kind !== 'saving'
+    status && 'typed' in status && (multi || status.kind !== 'saving')
       ? status.typed
       : notKnown !== undefined
         ? notKnown
         : entry.fact
-          ? fieldValueOf(item, entry.fact)
+          ? multi
+            ? multiShown
+            : fieldValueOf(item, entry.fact)
           : entry.unresolved
             ? null
             : item.value;
@@ -258,10 +283,14 @@ function Item({
       void onCommit(value);
       return;
     }
+    const mine = ++latestCommit.current;
     setStatus({ kind: 'saving', typed: value });
     const out = await onCommit(value);
+    if (mine !== latestCommit.current) return;
     if (!out) {
-      setStatus(null);
+      // T-612: no ledger result for this row. For several choices or a list,
+      // falling back to the ledger reset the chips, so the pick stays on screen.
+      setStatus(multi ? { kind: 'kept', typed: value } : null);
       return;
     }
     if (out.status === 'failed') setStatus({ kind: 'failed', typed: value });
@@ -316,7 +345,10 @@ function Item({
     <div
       className={WIDE.has(item.kind) ? 'sm:col-span-2' : ''}
       {...(onLedger && entry.fact
-        ? { 'data-ledger-key': entry.fact.key, 'data-ledger-display': entry.fact.display }
+        ? {
+            'data-ledger-key': entry.fact.key,
+            'data-ledger-display': multi ? multiShown.join(', ') : entry.fact.display,
+          }
         : {})}
       {...(toBeAsked ? { 'data-ledger-unresolved': item.key } : {})}
     >
@@ -596,15 +628,29 @@ export default function BriefStep({
   const partiesNeeded =
     brief.confirm_blockers.includes('parties') && brief.items.some(partyMissing);
   const courtNeeded = brief.confirm_blockers.includes('court');
+  // T-629: a required field (main_suit_relief, restraint_sought) blocks until
+  // the service says otherwise. The ledger never lifts it (fail closed).
+  const requiredNeeded = brief.confirm_blockers.includes('required_fields');
   // Only the parties the ledger holds are lifted; any other "no" stays.
   const partiesLifted = brief.confirm_blockers.includes('parties') && !partiesNeeded;
-  const briefCanConfirm = brief.can_confirm || (partiesLifted && !courtNeeded);
-  // The service's line, unless only the court is left of what it named (Ajay's
-  // signed wording, T-127 section 7.2, as in apps/drafting intake-brief.ts).
+  const briefCanConfirm = brief.can_confirm || (partiesLifted && !courtNeeded && !requiredNeeded);
+  // The service's lines, unless the parties were lifted: then the court's line
+  // (Ajay's signed wording, T-127 section 7.2, as in apps/drafting
+  // intake-brief.ts) if the court is still needed, and the required fields'
+  // signed lines after it (T-629, T-613 §(j)2). The service's first line is the
+  // court/parties line whenever either blocks.
+  const serviceLines = (brief.confirm_message ?? '').split('\n').filter((l) => l !== '');
+  const fieldLines =
+    courtNeeded || brief.confirm_blockers.includes('parties')
+      ? serviceLines.slice(1)
+      : serviceLines;
+  const liftedLines = [...(courtNeeded ? ['Choose the court to continue.'] : []), ...fieldLines];
   const confirmLine = briefCanConfirm
     ? null
     : partiesLifted
-      ? 'Choose the court to continue.'
+      ? liftedLines.length > 0
+        ? liftedLines.join('\n')
+        : null
       : brief.confirm_message;
   const canConfirm = briefCanConfirm && !datesHeld;
   const dateCheckContinue = useRef<HTMLButtonElement>(null);
@@ -690,7 +736,13 @@ export default function BriefStep({
       return;
     }
     const party = brief.items.find(partyMissing);
-    if (party) focusField(party.key);
+    if (party) {
+      focusField(party.key);
+      return;
+    }
+    // T-629: then the first required field, in the signed order (§(j)2).
+    const field = requiredNeeded ? brief.confirm_blocking_keys?.[0] : undefined;
+    if (field) focusField(field);
   };
 
   /** What a press of Confirm does, with the brief as it is now. */
@@ -709,6 +761,8 @@ export default function BriefStep({
   // update ends. A failed update (its line shows in `message`) drops the press.
   const [confirmHeld, setConfirmHeld] = useState(false);
   const pending = busy || updating || confirming;
+  // T-642 (Rajesh 3, option a): while the sign-up consent panel shows, its button is the one primary.
+  const { needed: signupConsentNeeded } = useSignupConsent();
   useEffect(() => {
     if (!confirmHeld || updating) return;
     setConfirmHeld(false);
@@ -1024,7 +1078,7 @@ export default function BriefStep({
         <button
           type="button"
           onClick={focusFirstBlocker}
-          className="bg-brand-error-light text-brand-error focus-visible:ring-brand-teal mt-4 block w-full rounded-lg p-3 text-left text-sm font-semibold focus:outline-none focus-visible:ring-2"
+          className="bg-brand-error-light text-brand-error focus-visible:ring-brand-teal mt-4 block w-full whitespace-pre-line rounded-lg p-3 text-left text-sm font-semibold focus:outline-none focus-visible:ring-2"
         >
           {confirmLine}
         </button>
@@ -1071,7 +1125,16 @@ export default function BriefStep({
             aria-describedby={confirmDescribedByIds}
             // T-481: not while an update runs (see `onConfirmClick`).
             disabled={busy || confirming}
-            className={`${primaryButton} ${confirmOff ? 'opacity-40' : ''}`}
+            // T-642: secondary while the consent panel shows, sized as primary so nothing shifts
+            // (48px min height, text-base, and 23px side padding + the 1px border = primary's 24px).
+            className={`${
+              signupConsentNeeded
+                ? secondaryButton
+                    .replace('min-h-[44px]', 'min-h-[48px]')
+                    .replace('px-4', 'px-[23px]')
+                    .replace('text-sm', 'text-base')
+                : primaryButton
+            } ${confirmOff ? 'opacity-40' : ''}`}
           >
             {pending && <Loader2 size={16} className="animate-spin" aria-hidden="true" />}
             Confirm brief and continue

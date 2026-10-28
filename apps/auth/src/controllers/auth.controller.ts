@@ -9,6 +9,7 @@ import {
   logoutUser,
   getPrivacyStatus,
   acceptPrivacy,
+  recordSignupConsent,
   changePassword,
   getPrivacyHistory,
   updateProfile,
@@ -683,6 +684,28 @@ export async function acceptPrivacyHandler(
       userAgent: req.headers['user-agent'],
     });
     res.status(200).json({ status: 'success', data: tokens });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * T-642 — POST /me/signup-consent (live session). The body is ignored: versions and time are
+ * server values. Idempotent: a repeat answers 200 and keeps the first record.
+ *   200 { status: 'success', data: { needsSignupConsent: false } }
+ *   401 session gone, or user not found or inactive (as GET /me); nothing written
+ */
+export async function signupConsentHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    res.setHeader('Cache-Control', 'no-store');
+    // authenticate already verified the Bearer header and the live session.
+    const token = req.headers.authorization!.split(' ')[1];
+    await recordSignupConsent(req.jwtPayload!.sub, token);
+    res.status(200).json({ status: 'success', data: { needsSignupConsent: false } });
   } catch (err) {
     next(err);
   }

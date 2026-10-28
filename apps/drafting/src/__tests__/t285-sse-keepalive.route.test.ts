@@ -192,13 +192,13 @@ describe.each([
     }
     expect(JSON.stringify(done)).not.toContain('keep-alive');
 
-    // the text the browser assembles from the data events
-    const streamed = blocks(res.text)
-      .filter((b) => b.startsWith('data: '))
-      .map((b) => (JSON.parse(b.slice(6)) as { text?: string }).text ?? '')
-      .join('');
-    expect(streamed.length).toBeGreaterThan(0);
-    expect(streamed).not.toContain('keep-alive');
+    // T-637 / Arjun option B: no body text streams before the gate decides. The body goes out
+    // in template_sections, and keep-alive is not in it.
+    expect(res.text).not.toMatch(/data: \{"text"/);
+    const sections = event(res.text, 'template_sections');
+    expect(sections).not.toBeNull();
+    expect(JSON.stringify(sections!.sections).length).toBeGreaterThan(0);
+    expect(JSON.stringify(sections)).not.toContain('keep-alive');
 
     // the saved document
     const doc = await LawieDocument.findById(done!.docId as string).lean();

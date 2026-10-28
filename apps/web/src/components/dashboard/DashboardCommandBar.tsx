@@ -31,6 +31,7 @@ import { useCallback } from 'react';
 
 import { CommandBar, DEFAULT_QUICK_CHIPS, type CommandBarItem } from '@/components/shell';
 import { DESCRIPTION_MAX, DRAFT_PREFILL_KEY, capToLimit } from '@/lib/draftPrefill';
+import { signupConsentBlocksNow } from '@/lib/signupConsent';
 
 const NEW_DRAFT_HREF = '/dashboard/new';
 const BROWSE_TEMPLATES_ID = 'browse-all-templates';
@@ -119,6 +120,9 @@ export function DashboardCommandBar({
   );
   const onSubmit = useCallback(
     (text: string, highlighted?: CommandBarItem) => {
+      // T-642 (AJ-642-M3/M6): no new draft while the Google sign-up consent is needed. Kept
+      // synchronous (it only navigates); /dashboard/new gates the generate itself.
+      if (signupConsentBlocksNow()) return;
       storeDraftPrefill(text);
       router.push(newDraftHref(highlighted ? commandKind(highlighted) : null));
     },

@@ -186,6 +186,34 @@ export function referenceYear(now: Date): number {
 
 type LedgerValue = LedgerFact['value'];
 
+/** T-612 (6a): PS, P.S., P S or Police Station, any case. Matching only. */
+const PS_WORDS = String.raw`(?:police\s+station|p\.?\s*s\.?)`;
+const PS_LEAD = new RegExp(`^${PS_WORDS}(?=[\\s.:,\\-–])[\\s.:,\\-–]*`, 'iu');
+const PS_TRAIL = new RegExp(`[\\s.:,\\-–]+${PS_WORDS}\\s*$`, 'iu');
+/** T-612 (6a): Thana or थाना only when a separator (:, -, –) follows; "Thana Bhawan" keeps it. */
+const THANA_LEAD = /^(?:thana|थाना)\s*[:\-–]\s*/iu;
+/** T-612 (6b): a trailing Thana or थाना, the last word with a name before it ("Kotwali थाना"). */
+const THANA_TRAIL = /[\s.:,\-–]+(?:thana|थाना)\s*$/iu;
+
+/**
+ * Ajay T-612 (6a), amending (6) and T-334 Addendum 2: the station name stored
+ * as the display, with one marker removed, once: a trailing, else a leading
+ * PS, P.S., P S or Police Station (any case), else a leading Thana or थाना
+ * followed by a separator (`:`, `-`, `–`), else (6b) a trailing Thana or थाना.
+ * A leading bare "Thana Bhawan" or "थाना कोतवाली" keeps "Thana"/"थाना" as part
+ * of the name. A value that is only a marker, or a
+ * marker glued to the name ("KotwaliPS", "Psalm Nagar"), is kept as written.
+ * The draft renderer applies the same table (`stripPoliceStationPrefix`).
+ */
+export function bareStationName(display: string): string {
+  const v = display.trim();
+  for (const re of [PS_TRAIL, PS_LEAD, THANA_LEAD, THANA_TRAIL]) {
+    const rest = v.replace(re, '').trim();
+    if (rest !== v && rest !== '') return rest;
+  }
+  return v;
+}
+
 /**
  * Read one value of a fact type from the advocate's words. Never guesses.
  *
@@ -222,8 +250,11 @@ export function normalizeForItem(
       return normalizePersonName(text);
     case 'place_name':
       return normalizePlaceName(text);
-    case 'police_station':
-      return normalizePoliceStation(text);
+    case 'police_station': {
+      // T-612 (6)(a): display is the bare name; value (the key) and raw_span unchanged.
+      const n = normalizePoliceStation(text);
+      return n.ok ? { ok: true, value: n.value, display: bareStationName(n.display) } : n;
+    }
     case 'court':
       return normalizeCourt(text);
     case 'case_number':

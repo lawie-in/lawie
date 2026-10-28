@@ -1927,6 +1927,8 @@ export interface BriefUpdateRequest {
    * The draft path does not send it.
    */
   ledger?: Pick<LedgerView, 'facts'>;
+  /** T-629 (§(i)2): facts the advocate was asked and left blank (`buildBrief`'s `askedKeys`). */
+  askedKeys?: readonly string[];
 }
 
 /**
@@ -1960,6 +1962,7 @@ export function updateBrief(req: BriefUpdateRequest): Brief | null {
       values: req.values,
       court: req.court,
       description: req.description,
+      askedKeys: req.askedKeys,
     });
   }
   const allowed = new Set(getCatalogue().map((c) => c.template_id));
@@ -1972,6 +1975,7 @@ export function updateBrief(req: BriefUpdateRequest): Brief | null {
     court: req.court,
     description: req.description,
     holdNone: firstApplicationValues(pack.id),
+    askedKeys: req.askedKeys,
     ...(req.ledger ? { ledgerGiven: ledgerGivenKeys(req.ledger.facts) } : {}),
   });
 }

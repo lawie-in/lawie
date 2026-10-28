@@ -4,14 +4,18 @@ export interface ICourt extends Document {
   courtId: string;
   name: string;
   designation: string;
-  courtType:
+  courtType: // T-634: every type indian-courts.json carries.
+    | 'supreme_court'
     | 'high_court'
+    | 'high_court_bench'
     | 'sessions'
     | 'district_court'
     | 'jmfc'
     | 'cjm'
     | 'civil_court'
-    | 'consumer_commission';
+    | 'civil_court_junior'
+    | 'consumer_commission'
+    | 'tribunal';
   state: string;
   stateId: string;
   city: string;
@@ -49,13 +53,18 @@ const CourtSchema = new Schema<ICourt>(
     courtType: {
       type: String,
       enum: [
+        // T-634: every type indian-courts.json carries.
+        'supreme_court',
         'high_court',
+        'high_court_bench',
         'sessions',
         'district_court',
         'jmfc',
         'cjm',
         'civil_court',
+        'civil_court_junior',
         'consumer_commission',
+        'tribunal',
       ],
       required: true,
     },

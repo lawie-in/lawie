@@ -5,7 +5,7 @@
 | Phase  | 4 — Release (legal; ships with T-613) |
 | Owner  | shashank, after T-611 and T-612 merge (they hold intake-brief.ts hunks) |
 | Mode   | Full chain; legal (intake-brief.ts, rule-pack.service.ts) |
-| Status | To do. Split from T-613, 26 Oct 2026 (Ajay R2-F1 12914711). Priya |
+| Status | Merged into develop_staging 819a98a9 (CI 1107), 27 Oct 2026. Priya |
 
 ## Acceptance criteria
 1. A pack field flag `blocks_confirm: true`, carried through rule-pack.service.ts (ask Ajay first) to the checklist, BriefItem and the confirm_blockers type. confirmState blocks Confirm while main_suit_relief or restraint_sought is empty.
@@ -72,3 +72,6 @@ Decisions (Priya, 26 Oct): AC5's asked-blank mechanism is owned by T-629, built 
 - (3) does a typed "Not known" still block?
 - (5) is an in-draft check wanted?
 - does a "Not known" chip on title_document_date force the T-440 blank?
+
+## Added AC (Ajay FR-5a, 04f5aa77, 27 Oct 2026)
+- AC8: T-629 also enforces the O.39 required fields (main_suit_relief, restraint_sought) and the §(j)3 non-answer list on the Templates form route (generate-from-template), before generation, with the signed messages in §(j)2 order. Use T-637's hook.
