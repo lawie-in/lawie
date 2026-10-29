@@ -56,7 +56,7 @@
       { "id": "ws_filing_date", "label": "Date of WS filing", "type": "date", "required": true },
       {
         "id": "days_from_service",
-        "label": "Days from service of summons (must be within 30; extendable to 120 in non-commercial, max 120 in commercial)",
+        "label": "Days from service of summons (due within 30; the court may allow up to 90 for recorded reasons; 120 is the outer limit in a commercial suit)",
         "type": "number",
         "required": true
       },
@@ -220,7 +220,7 @@
   "prompt_context": {
     "promptInstructions": [
       "Draft a Written Statement strictly under Order VIII CPC.",
-      "TIME LIMIT: Order VIII R.1 — file WS within 30 days of service of summons. Court may extend to 120 days (in non-commercial suits) on recorded reasons for sufficient cause, with cost. In Commercial Courts, 120 days is the OUTER LIMIT and beyond it WS cannot be filed.",
+      "TIME LIMIT: Order VIII Rule 1 CPC — file the WS within 30 days of service of summons. The court may allow more time for reasons recorded in writing, up to 90 days from service. In a commercial suit the outer limit is 120 days, and after it the WS cannot be filed.",
       "120-day limit in commercial suits is mandatory and inflexible.",
       "PARA-WISE ADMISSION / DENIAL — the core structure of WS. Each material allegation in plaint must be: (a) specifically admitted; (b) specifically denied; or (c) denial of knowledge (only where defendant has no knowledge and cannot reasonably be expected to have).",
       "Order VIII R.3 — Denial must be specific. General denial is no denial.",
@@ -254,7 +254,7 @@
         { "number": "Order VI R.15A", "description": "Statement of Truth (Commercial Courts)" },
         {
           "number": "Order VIII R.1",
-          "description": "Written statement — 30 days, extendable; 120 days outer limit in commercial"
+          "description": "Written statement — 30 days; up to 90 days with the court's leave; 120 days outer limit in a commercial suit"
         },
         { "number": "Order VIII R.1A", "description": "Duty of defendant to produce documents" },
         { "number": "Order VIII R.2", "description": "New facts must be specially pleaded" },
