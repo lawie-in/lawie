@@ -1,6 +1,6 @@
 # T-650 — Party names still blank in the partition, replication and written-statement packs
 
-Status: assigned to tanvi, 29 Oct 2026. Split from T-644, 28 Oct 2026. This is legal content: pack JSON changes need Ajay's sign-off.
+Status: Merged into develop_staging (622cc4b7, CI 1232 green), 29 Oct 2026.
 
 ## Problem
 After T-644's plaintiff/defendant aliases, three packs still print "_____" for one party:

@@ -16,3 +16,10 @@
 - `script -qc`
 - jq clones (jaq, fq, python yq); jq auto-loading ~/.jq
 - Look-alike (Cyrillic/Greek) letters inside secret-shape-scan labels
+
+
+## Added 29 Oct 2026 (Arjun ruling, after a hook bypass in T-657)
+1. The no-env-print hook message becomes: "blocked by the no-env-print hook: a block is a stop. Use Edit for file changes and report BLOCKED to your lead; do not re-run this through a script, interpreter or renamed path."
+2. One line in CLAUDE.md's crew protocol, within the 80-line cap: "A permission or hook block is a stop, not a puzzle: report BLOCKED with the exact command; never reach the same effect through a script, an interpreter, a heredoc or a different path." The same rule goes in the lead briefings.
+3. Optional: the hook's false positive on heredoc text that merely mentions the env file name. Lower value than the rule.
+4. From T-633's second review: the developer role can Edit/Write .claude/hooks/** and .claude/settings*.json, and no-tests.sh doesn't forbid it. The tester and developer can also write files via Bash redirects.

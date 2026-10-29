@@ -1,6 +1,6 @@
 # T-660 — The brief can show a derived custody date that generation then refuses
 
-Status: backlog (unassigned). A T-638 follow-up (Tanvi; Ajay: ship with a note, ticket it), 29 Oct 2026.
+Status: assigned to tanvi, 29 Oct 2026. A T-638 follow-up (Tanvi; Ajay: ship with a note, ticket it), 29 Oct 2026.
 
 ## Problem
 The brief can't read the ledger's own extracted wording, so it may show a derived "(date of arrest)" date that generation refuses. It's a display mismatch only: a wrong date is never printed.
