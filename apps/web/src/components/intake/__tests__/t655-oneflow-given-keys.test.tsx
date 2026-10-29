@@ -117,7 +117,10 @@ async function start(response: { brief: Brief; ledger: Ledger; questions: BriefQ
     const set = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')?.set as (
       v: string,
     ) => void;
-    set.call(ta, 'My client wants an injunction against a neighbour over a plot in Patna.');
+    set.call(
+      ta,
+      'My client wants an injunction against a neighbour over a plot in Sample Nagar, Patna.',
+    );
     ta.dispatchEvent(new Event('input', { bubbles: true }));
   });
   await act(async () => buttonWith('Continue')?.click());

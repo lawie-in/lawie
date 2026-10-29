@@ -66,10 +66,10 @@ const LINE: Record<Key, string> = {
 
 // Fictional data only.
 const REAL: Record<Key, string> = {
-  plaintiff_name: 'Kavita Rani Mishra',
-  defendant_name: 'Harish Chandra Tiwari',
-  main_suit_relief: 'Declaration of title over Plot 17, Rajendra Nagar, Patna',
-  restraint_sought: 'raising any construction on Plot 17',
+  plaintiff_name: 'Sample Person 1',
+  defendant_name: 'Sample Person 2',
+  main_suit_relief: 'Declaration of title over Plot 000, Sample Nagar, Patna',
+  restraint_sought: 'raising any construction on Plot 000',
 };
 
 // The four non-answers the ruling names, all of them on the section (j)3 list.
@@ -282,7 +282,7 @@ describe('T-655 E: a pack that is not O.39 is unchanged', () => {
   });
 
   it('bail brief: the ledger-held party still lifts the parties block, as before', () => {
-    const values = [given('father_name', 'Suresh Yadav')];
+    const values = [given('father_name', 'Sample Person 3')];
     const base = buildBrief({
       kind: bailKind,
       checklist: bailList,

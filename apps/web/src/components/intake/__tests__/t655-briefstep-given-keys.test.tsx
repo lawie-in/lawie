@@ -41,7 +41,7 @@ const O39_ITEMS = [
     label: 'Defendant Name',
     part: 'parties',
     party_name: true,
-    value: 'Harish Chandra Tiwari',
+    value: 'Sample Person 2',
     source: 'user',
   }),
   item({ key: 'main_suit_relief', label: 'Relief', value: 'Declaration of title', source: 'user' }),
@@ -179,7 +179,7 @@ const unknownText = () =>
 
 describe('T-655 BriefStep: the given set is brief.ledger_given_keys', () => {
   it('O.39, field absent: a ledger-held plaintiff lifts nothing (fail closed), the signed line shows', () => {
-    mount(o39Blocked(), ledgerHolding('plaintiff_name', 'Kavita Rani Mishra'));
+    mount(o39Blocked(), ledgerHolding('plaintiff_name', 'Sample Person 1'));
     expect(confirmOff()).toBe(true);
     expect(container.textContent).toContain(PLAINTIFF_EN);
     act(() => confirmBtn().click());
@@ -187,7 +187,7 @@ describe('T-655 BriefStep: the given set is brief.ledger_given_keys', () => {
   });
 
   it('non-O.39, field absent: a ledger-held party lifts nothing either (fail closed)', () => {
-    mount(bailBlocked(), ledgerHolding('applicant_name', 'Kavita Rani Mishra'));
+    mount(bailBlocked(), ledgerHolding('applicant_name', 'Sample Person 1'));
     expect(confirmOff()).toBe(true);
     expect(container.textContent).toContain(BAIL_PARTIES_EN);
     act(() => confirmBtn().click());
@@ -202,7 +202,7 @@ describe('T-655 BriefStep: the given set is brief.ledger_given_keys', () => {
   it('empty list: a ledger fact is still not trusted', () => {
     mount(
       o39Blocked({ ledger_given_keys: [] }),
-      ledgerHolding('plaintiff_name', 'Kavita Rani Mishra'),
+      ledgerHolding('plaintiff_name', 'Sample Person 1'),
     );
     expect(confirmOff()).toBe(true);
     expect(container.textContent).toContain(PLAINTIFF_EN);
@@ -211,7 +211,7 @@ describe('T-655 BriefStep: the given set is brief.ledger_given_keys', () => {
   it('O.39, key present: that party is lifted and Confirm works', () => {
     mount(
       o39Blocked({ ledger_given_keys: ['plaintiff_name'] }),
-      ledgerHolding('plaintiff_name', 'Kavita Rani Mishra'),
+      ledgerHolding('plaintiff_name', 'Sample Person 1'),
     );
     expect(container.textContent).not.toContain(PLAINTIFF_EN);
     expect(confirmOff()).toBe(false);
@@ -222,7 +222,7 @@ describe('T-655 BriefStep: the given set is brief.ledger_given_keys', () => {
   it('non-O.39, key present: the party is lifted as before (T-498)', () => {
     mount(
       bailBlocked({ ledger_given_keys: ['applicant_name'] }),
-      ledgerHolding('applicant_name', 'Kavita Rani Mishra'),
+      ledgerHolding('applicant_name', 'Sample Person 1'),
     );
     expect(container.textContent).not.toContain(BAIL_PARTIES_EN);
     expect(confirmOff()).toBe(false);
@@ -231,7 +231,7 @@ describe('T-655 BriefStep: the given set is brief.ledger_given_keys', () => {
   it('Still unknown hides exactly the keys in the list, not what the ledger holds', () => {
     mount(
       bailBlocked({ ledger_given_keys: ['applicant_age'] }),
-      ledgerHolding('applicant_name', 'Kavita Rani Mishra'),
+      ledgerHolding('applicant_name', 'Sample Person 1'),
     );
     expect(unknownText()).not.toContain('[AGE]');
     expect(unknownText()).toContain('[APPLICANT]');
