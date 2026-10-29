@@ -32,6 +32,9 @@ import {
   normalizeAmount,
   normalizeDate,
 } from '@lawie/shared';
+// The signed qualifier list lives in the shared date module and is not re-exported
+// from the package index; imported from its own module, never copied.
+import { DATE_LABEL_QUALIFIERS } from '@lawie/shared/dist/utils/normalize/date';
 
 import {
   isEmptyOrNonAnswer,
@@ -224,28 +227,46 @@ function englishText(v: unknown, max: number): string | null {
 
 /** Two-digit-year numeric dates ("12/3/26"): ambiguous, so no fact (rule 1). */
 const TWO_DIGIT_YEAR_DATE = /(?<!\d)\d{1,2}([/.-])\d{1,2}\1\d{2}(?!\d)/u;
-const AMBIGUOUS_DATE_REASONS = new Set([
-  'two_digit_year_needs_reference',
-  'two_digit_year_ambiguous',
-  'missing_year',
-  'unknown_month',
-  'day_month_out_of_range',
-]);
 
+/** One word of the quote, for the qualifier check: case folded, punctuation off both ends. */
+function bareWord(w: string): string {
+  return w
+    .normalize('NFC')
+    .toLowerCase()
+    .replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
+}
+
+/**
+ * A date is a fact only when a contiguous run of the quote's words reads, by
+ * normalizeDate (with this field and today), to exactly the model's ISO value
+ * (review round 1, finding 3). So no day is ever supplied ("in March 2026"
+ * reads as no date, T-496), a two-digit year or a missing year reads as no
+ * date (Ajay rule 1), and a qualifier anywhere else in the quote ("on or
+ * about", "before": DATE_LABEL_QUALIFIERS, as normalizeDate never reads a
+ * label holding one) means no fact.
+ */
 function readDate(value: unknown, quote: string, key: string, today?: string): string | null {
   if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value.trim())) return null;
   const v = value.trim();
+  const opts = { fieldKey: key, ...(today ? { today } : {}) };
   // Range: a real calendar day; a past-event date after today is no fact.
-  const own = normalizeDate(v, { fieldKey: key, ...(today ? { today } : {}) });
+  const own = normalizeDate(v, opts);
   if (!own.ok || own.value !== v) return null;
-  const q = devanagariToArabic(quote);
-  if (TWO_DIGIT_YEAR_DATE.test(q)) return null;
-  // No reference year is passed, so a two-digit year never reads.
-  const fromQuote = normalizeDate(quote);
-  if (fromQuote.ok) return fromQuote.value === v ? v : null;
-  if (AMBIGUOUS_DATE_REASONS.has(fromQuote.reason)) return null;
-  // A quote with words around the date: its four-digit year must be in the quote.
-  return q.includes(v.slice(0, 4)) ? v : null;
+  if (TWO_DIGIT_YEAR_DATE.test(devanagariToArabic(quote))) return null;
+  const words = quote.normalize('NFC').trim().split(/\s+/).filter(Boolean);
+  for (let len = 1; len <= Math.min(words.length, 8); len += 1) {
+    for (let i = 0; i + len <= words.length; i += 1) {
+      const run = words
+        .slice(i, i + len)
+        .join(' ')
+        .replace(/^[([]+|[.,;:!?)\]]+$/g, '');
+      const n = normalizeDate(run, opts);
+      if (!n.ok || n.value !== v) continue;
+      const outside = [...words.slice(0, i), ...words.slice(i + len)].map(bareWord);
+      return outside.some((w) => DATE_LABEL_QUALIFIERS.has(w)) ? null : v;
+    }
+  }
+  return null;
 }
 
 /** P3: the figure is read by code from the quote's words; the model's figure must match. */
@@ -414,6 +435,21 @@ function stationBySignedRule(value: string, quote: string): boolean {
   return fold(bare) === fold(value);
 }
 
+/**
+ * Review round 1, finding 5: a text value still holding a signed Latin
+ * yes/no word (nahi, nahin, koi nahi, haan, ji haan; and with them T-671's
+ * pata nahi, maloom nahi, ...) is Hinglish copied raw, never a verbatim fact
+ * (T-676). The English "yes" and "no" are left out: they are English words.
+ */
+const LATIN_SIGNED_WORDS: readonly string[] = [...NO_WORDS, ...YES_WORDS].filter(
+  (w) => /^[a-z ]+$/.test(w) && w !== 'no' && w !== 'yes',
+);
+
+function holdsRawHinglish(value: string): boolean {
+  const v = fold(value);
+  return LATIN_SIGNED_WORDS.some((w) => hasWord(v, w));
+}
+
 function derivationFor(
   spec: FieldSpec,
   value: LedgerCandidate['value'],
@@ -428,7 +464,7 @@ function derivationFor(
       return 'signed_rule';
     case 'list':
       if (spec.item.kind === 'choices') return 'signed_rule';
-      return Array.isArray(value) && value.every((v) => inQuote(v, quote))
+      return Array.isArray(value) && value.every((v) => inQuote(v, quote) && !holdsRawHinglish(v))
         ? 'verbatim'
         : 'model_text';
     case 'name':
@@ -436,7 +472,9 @@ function derivationFor(
       if (inQuote(value, quote)) return 'verbatim';
       return spec.policeStation && stationBySignedRule(value, quote) ? 'signed_rule' : 'model_text';
     default:
-      return inQuote(String(value), quote) ? 'verbatim' : 'model_text';
+      return inQuote(String(value), quote) && !holdsRawHinglish(String(value))
+        ? 'verbatim'
+        : 'model_text';
   }
 }
 
@@ -549,11 +587,16 @@ export function validateExtraction(parsed: unknown, ctx: ValidateContext): Valid
       drop('not_model_readable');
       continue;
     }
-    if (
-      isNonAnswerFor(spec, quote) ||
-      (typeof e.value === 'string' && isNonAnswerFor(spec, e.value))
-    ) {
+    // Ajay rule 4: a non-answer is the user's words, so the QUOTE decides it
+    // (review round 1, finding 2). A non-answer VALUE on a quote that is not
+    // one is the model's, never a reason to clear a fact: no fact, asked again.
+    if (isNonAnswerFor(spec, quote)) {
       addNonAnswer(spec, src, quote);
+      continue;
+    }
+    if (typeof e.value === 'string' && isNonAnswerFor(spec, e.value)) {
+      drop('bad_value');
+      unresolved.add(spec.item.key);
       continue;
     }
     const c = e.confidence;

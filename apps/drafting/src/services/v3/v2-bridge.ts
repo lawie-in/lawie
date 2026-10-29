@@ -28,7 +28,7 @@ import { isNoFactAnswer } from '../intake-brief';
 import type { ChecklistItem, ReadValue } from '../intake-brief';
 
 import type { ExtractResult, LedgerCandidate } from './types';
-import { derivationOf } from './validate';
+import { derivationOf, fieldSpecs, findQuote, isNonAnswerFor } from './validate';
 
 function asBriefValue(c: LedgerCandidate): string | string[] {
   if (Array.isArray(c.value)) return c.value;
@@ -118,6 +118,10 @@ export function bridgeable(
   if (Array.isArray(c.value)) return null;
   const d = derivationOf(c);
   if (d === 'model_text') return null;
+  // Review round 1, finding 1: on an answer the candidate must come from THIS
+  // edit's words (its quote is in the edit), so a stale or reused reading can
+  // never overwrite a new answer (an earlier "No" over a new "haan").
+  if (answer && findQuote(text, c.source.quote) === null) return null;
   if (c.type === 'date' || c.type === 'money') return readSpan(c, text, item, refYear);
   if (c.type === 'choice') {
     if (!v2ReadsSame(item, c, String(c.value), refYear)) return null;
@@ -207,11 +211,15 @@ export interface BriefReads {
 export function briefReadsFromV3(
   result: ExtractResult,
   notBridged: ReadonlySet<string> = new Set(),
+  /** Review round 1, finding 7: the bridged words per key (v2ExtractionFromV3 `spans`). */
+  spans: ReadonlyMap<string, string> = new Map(),
 ): BriefReads {
   const values = new Map<string, ReadValue>();
   for (const c of result.candidates) {
     if (c.source.kind !== 'description' || notBridged.has(c.key)) continue;
-    values.set(c.key, { value: asBriefValue(c), quote: c.source.quote });
+    // Text and names: the user's own characters as the ledger holds them (T-335).
+    const span = c.type === 'text' || c.type === 'name' ? spans.get(c.key) : undefined;
+    values.set(c.key, { value: span ?? asBriefValue(c), quote: c.source.quote });
   }
   const ask = new Set<string>([
     ...result.conflicts.map((c) => c.key),
@@ -244,10 +252,11 @@ export function v2ExtractionFromV3(
   description: string,
   checklist: readonly ChecklistItem[],
   refYear: number,
-): { facts: V2Entry[]; notBridged: Set<string> } {
+): { facts: V2Entry[]; notBridged: Set<string>; spans: Map<string, string> } {
   const items = new Map(checklist.map((i) => [i.key, i]));
   const facts: V2Entry[] = [];
   const notBridged = new Set<string>();
+  const spans = new Map<string, string>();
   for (const c of result.candidates) {
     if (c.source.kind !== 'description') continue;
     const item = items.get(c.key);
@@ -266,6 +275,7 @@ export function v2ExtractionFromV3(
       notBridged.add(c.key);
       continue;
     }
+    spans.set(c.key, span);
     facts.push({
       key: c.key,
       span,
@@ -273,7 +283,7 @@ export function v2ExtractionFromV3(
       confidence: c.confidence,
     });
   }
-  return { facts, notBridged };
+  return { facts, notBridged, spans };
 }
 
 /**
@@ -306,6 +316,7 @@ export function editsFromV3(
   refYear: number,
 ): { edits: LedgerEdit[]; held: number[]; replaced: number; nonAnswers: number } {
   const items = new Map(checklist.map((i) => [i.key, i]));
+  const specs = fieldSpecs([...checklist]);
   const fold = (v: string): string => v.normalize('NFC').trim().replace(/\s+/g, ' ').toLowerCase();
   let replaced = 0;
   let nonAnswers = 0;
@@ -322,8 +333,18 @@ export function editsFromV3(
       out.push(e);
       return;
     }
-    const text = fold(e.text);
-    if (result.nonAnswers.some((n) => n.key === e.key && text.includes(fold(n.quote)))) {
+    // Review round 1, finding 4: the edit is emptied only when the WHOLE edit
+    // is the non-answer (its words are the quote, or the whole edit is one by
+    // the v2/signed rules). A non-answer inside a longer answer ("पिता का नाम
+    // पता नहीं, नाम Ramesh") does not wipe the rest: the edit goes on below.
+    const spec = specs.get(e.key);
+    const editText = fold(e.text);
+    const whole =
+      result.nonAnswers.some((n) => n.key === e.key && fold(n.quote) === editText) ||
+      (spec !== undefined &&
+        result.nonAnswers.some((n) => n.key === e.key) &&
+        isNonAnswerFor(spec, e.text));
+    if (whole) {
       nonAnswers += 1;
       out.push({ ...e, text: '' });
       return;

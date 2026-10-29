@@ -13,8 +13,9 @@
  * - ≤ 6 calls per run: beyond that the last good result is re-used;
  * - 60 calls per user per rolling 24 h (Redis); over the cap, or Redis
  *   unreadable, the turn is degraded and the caller uses v2;
- * - a 20 s timeout (AbortSignal);
- * - one call in flight per runId+turn: a second caller shares the first's outcome;
+ * - one 20 s deadline (AbortSignal) for the whole turn: settings, Redis slot, model call;
+ * - one call in flight per run: the same turn shares the first's outcome, another
+ *   turn of that run is degraded ('in_flight');
  * - on failure, timeout, a cap or bad JSON: no retry, `degraded` with a reason code.
  *
  * Not Ink-charged: it spends no intake quota and no Ink (intake is free).
@@ -97,7 +98,9 @@ export type DegradedReason =
   | 'timeout'
   | 'call_failed'
   | 'max_tokens'
-  | 'bad_json';
+  | 'bad_json'
+  /** Review round 1, finding 8: another turn of this run is in flight (one call per run). */
+  | 'in_flight';
 
 /** What the caller needs to write the LlmAuxCall row (purpose 'v3_extract'). Counts only. */
 export interface ExtractUsage {
@@ -131,7 +134,35 @@ interface RunState {
 const RUN_STATE_MAX = 5000;
 const RUN_STATE_TTL_MS = 6 * 60 * 60 * 1000;
 const runs = new Map<string, RunState>();
-const inFlight = new Map<string, Promise<ExtractOutcome>>();
+/** Arjun §2: one in-flight Extractor call per run, keyed by runId, with its turn. */
+const inFlight = new Map<string, { turn: number; promise: Promise<ExtractOutcome> }>();
+
+/** Thrown into a step that is still running when the turn's one deadline passes. */
+class DeadlineError extends Error {
+  constructor() {
+    super('v3 extractor deadline');
+    this.name = 'DeadlineError';
+  }
+}
+
+/** `p`, or a DeadlineError as soon as `signal` aborts. The step itself is not cancelled. */
+function beforeDeadline<T>(p: Promise<T>, signal: AbortSignal): Promise<T> {
+  if (signal.aborted) return Promise.reject(new DeadlineError());
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = (): void => reject(new DeadlineError());
+    signal.addEventListener('abort', onAbort, { once: true });
+    p.then(
+      (v) => {
+        signal.removeEventListener('abort', onAbort);
+        resolve(v);
+      },
+      (e: unknown) => {
+        signal.removeEventListener('abort', onAbort);
+        reject(e);
+      },
+    );
+  });
+}
 
 function runState(runId: string, now: number): RunState {
   let s = runs.get(runId);
@@ -413,6 +444,9 @@ async function runExtract(input: ExtractInput): Promise<ExtractOutcome> {
     return usage ? { status: 'degraded', reason, usage } : { status: 'degraded', reason };
   };
 
+  // Review round 1, finding 6: ONE 20 s deadline for the whole turn: the
+  // settings reads, the Redis slot and the model call all race it.
+  const signal = AbortSignal.timeout(EXTRACTOR_LIMITS.timeoutMs);
   const now = Date.now();
   const state = runState(input.runId, now);
   if (state.calls >= EXTRACTOR_LIMITS.callsPerRun) {
@@ -427,24 +461,30 @@ async function runExtract(input: ExtractInput): Promise<ExtractOutcome> {
 
   // Before the per-user slot, so an unset model never spends one.
   try {
-    model = (await resolveModel('extractor')).trim();
-  } catch {
-    return degraded('model_unset');
+    model = (await beforeDeadline(resolveModel('extractor'), signal)).trim();
+  } catch (err) {
+    return degraded(err instanceof DeadlineError ? 'timeout' : 'model_unset');
   }
   // resolveModel returns the first key that exists, even blank: a blank id is no model.
   if (model === '') return degraded('model_unset');
-  effort = await extractorV3Effort();
+  try {
+    effort = await beforeDeadline(extractorV3Effort(), signal);
+  } catch {
+    // extractorV3Effort never throws, so this is the deadline.
+    return degraded('timeout');
+  }
 
   try {
-    if (!(await takeUserSlot(input.userId, now))) return degraded('user_cap');
-  } catch {
+    if (!(await beforeDeadline(takeUserSlot(input.userId, now), signal))) {
+      return degraded('user_cap');
+    }
+  } catch (err) {
     // Fail open to v2: never 503 the user for intake.
-    return degraded('rate_check_failed');
+    return degraded(err instanceof DeadlineError ? 'timeout' : 'rate_check_failed');
   }
 
   state.calls += 1;
   const started = Date.now();
-  const signal = AbortSignal.timeout(EXTRACTOR_LIMITS.timeoutMs);
 
   let text: string;
   let usage: ExtractUsage;
@@ -503,21 +543,28 @@ async function runExtract(input: ExtractInput): Promise<ExtractOutcome> {
 
 /**
  * One Extractor turn. Never throws: any failure is `degraded` with a reason
- * code, and the caller runs the v2 path for this turn. A second call for the
- * same runId+turn while one is in flight gets the same outcome.
+ * code, and the caller runs the v2 path for this turn.
+ *
+ * Arjun §2, one in-flight call per run (review round 1, finding 8): a second
+ * call for the same run and turn while one is in flight gets the same
+ * outcome; a call for another turn of that run is degraded at once with
+ * 'in_flight' (it runs v2; no waiting, no second model call).
  */
 export function extractTurn(input: ExtractInput): Promise<ExtractOutcome> {
-  const key = `${input.runId}:${input.turn}`;
-  const pending = inFlight.get(key);
-  if (pending) return pending;
+  const pending = inFlight.get(input.runId);
+  if (pending) {
+    if (pending.turn === input.turn) return pending.promise;
+    logCall(input, 'degraded', { model: '', effort: null }, 'in_flight');
+    return Promise.resolve({ status: 'degraded', reason: 'in_flight' });
+  }
   const p = runExtract(input)
     .catch((): ExtractOutcome => {
       logCall(input, 'degraded', { model: '', effort: null }, 'call_failed');
       return { status: 'degraded', reason: 'call_failed' };
     })
     .finally(() => {
-      inFlight.delete(key);
+      if (inFlight.get(input.runId)?.promise === p) inFlight.delete(input.runId);
     });
-  inFlight.set(key, p);
+  inFlight.set(input.runId, { turn: input.turn, promise: p });
   return p;
 }

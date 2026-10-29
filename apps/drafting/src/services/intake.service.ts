@@ -1575,7 +1575,7 @@ async function briefWithPack(
   const v3Bridge = v3
     ? v2ExtractionFromV3(v3, req.description, checklist, referenceYear(req.now ?? new Date()))
     : null;
-  const v3Reads = v3 && v3Bridge ? briefReadsFromV3(v3, v3Bridge.notBridged) : null;
+  const v3Reads = v3 && v3Bridge ? briefReadsFromV3(v3, v3Bridge.notBridged, v3Bridge.spans) : null;
   if (v3Reads) {
     for (const k of v3Reads.noRead) read.values.delete(k);
     for (const [k, v] of v3Reads.values) read.values.set(k, v);
@@ -1793,7 +1793,7 @@ function istToday(now: Date): string {
 
 /**
  * T-683 (Arjun, T-683 answers §4 item 4): one Extractor turn, at stage ≥ 1
- * only. Null at stage 0, and when the turn is degraded: the caller then runs
+ * only. Null at stage 0, and when the turn is degraded or reused: the caller then runs
  * its v2 path unchanged. Never charged: no intake quota, no follow-up, no Ink.
  * The LlmAuxCall row (purpose v3_extract) is written whenever a call was made.
  * Never throws.
@@ -1832,7 +1832,10 @@ async function v3ResultFor(
         durationMs: usage.durationMs,
       });
     }
-    return outcome.status === 'degraded' ? null : outcome.result;
+    // Review round 1, finding 1: only a fresh reading of this turn is used. A
+    // 'reused' result (the run's 6-call cap) holds older answers, so the turn
+    // runs the v2 path, as Arjun §2 says ("asks in code").
+    return outcome.status === 'ok' ? outcome.result : null;
   } catch {
     return null;
   }
