@@ -285,3 +285,6 @@ JSON: `handoff/ops/runbooks/lawie-prod-ops-v11.json`, built from v10 (v10 is its
 
 ### SSM version 12 (29 Oct 2026, 09:09 UTC, Nikhil) — default
 Asked by Arjun at 09:08 UTC (Ajay, AJ-657-M1d). JSON: `handoff/ops/runbooks/lawie-prod-ops-v12.json`. The only change from v11, besides the description, is the backfill dry-run constant `--cutoff 2026-10-25T22:00:00Z` → `2026-10-25T20:00:00Z`. It is still dry run only, with no `--apply`. Active, default = 12, content == repo JSON.
+
+### SSM version 13 (29 Oct 2026, 09:38 UTC, Nikhil) — default
+Asked by the founder in Nikhil's chat ("set the env variable JWT_EXPIRES_IN to 2d"). JSON: `handoff/ops/runbooks/lawie-prod-ops-v13.json`. The only change from v12, besides the description, is that `JWT_EXPIRES_IN` is added to `env-set`'s `envkey` allowedValues. It passes the runtime secret-name guard (no KEY/SECRET/TOKEN/PASS/DSN/URI in the name). Active, default = 13, content == repo JSON.
