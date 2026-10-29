@@ -60,3 +60,4 @@ Any NEW file that holds a prompt is legal content from the day it is created. A 
 `apps/drafting/src/services/fact-ledger.service.ts` holds the fact-merge rule (ADR-019 4.1.5), and `apps/drafting/src/services/rule-pack.service.ts` passes `prompt_context` and `promptInstructions` on and hosts the `loadSkeleton` loader. A ticket that changes a rule or a prompt in either of these last two must ask Ajay first.
 
 - `apps/drafting/src/config/prompts/v3-extractor.ts` (drafting v3 Extractor prompt, T-683). Added by Priya, 29 Oct 2026, per the v3 ADR (Ajay signs prompts and hints). Any change comes with Ajay's signed text.
+- `apps/drafting/src/services/v3/validate.ts` (Ajay's signed rule-1 yes/no words NO_WORDS/YES_WORDS and the T-671 Hinglish non-answer guard, T-683). Added by Priya, 29 Oct 2026. Any change comes with Ajay's signed text.
