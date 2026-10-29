@@ -118,3 +118,11 @@ Intake per draft, Haiku (≈1 match + 4 reception + 1.5 extract): in ≈ 16k × 
 - **S2 Opus Drafter:** body ×2 → ≈ ₹5.3 mean, ≈ ₹12.2 p95; total ≈ ₹5.8 mean / ₹12.7 p95. Under the ₹18 cap at p95, but a long plaint at the 24 h max (14.8k in + 4.9k out) ≈ ₹14.5 — close.
 - **S3 Opus Drafter + reviewer (argued packs):** add one Opus reviewer pass ≈ body input again + ~800 out → ≈ +₹2.3 mean → ≈ ₹8 mean / ₹16 p95 on those packs — at the cap's edge.
   Side finding for T-681: the intake `match` call sends ~7.2k input tokens with no cache on every intake; caching its system/catalogue block would cut that to ~₹0.01 per call (Haiku cache read $0.01/MTok) — a ticket-sized win independent of the model question.
+
+## 2b. Prod token totals for Console reconciliation (Nikhil, 29 Oct 2026 19:21 UTC, doc v19 `token-totals`)
+
+Format: calls · input · output · cache_write · cache_read. Log starts 26 Oct 16:24 UTC, so "7 d" = month-to-date = 26 Oct 16:24 → 29 Oct 19:21; 1–26 Oct is Console-only (prod went live 25 Oct).
+A) All llm_call records: 24 h — haiku-5-5 × intake 109 · 373,500 · 104,770 · 0 · 0 | sonnet-5-5 × body 24 · 82,746 · 31,553 · 22,477 · 15,579. MTD — haiku × intake 139 · 500,936 · 135,289 · 0 · 0 | sonnet × body 33 · 115,023 · 39,883 · 36,324 · 19,863.
+B) generations (aiModel × origin × status; rows · llmCalls · in · out · cw · cr): 24 h — sonnet user completed 14 · 18 · 53,267 · 22,309 · 16,835 · 9,937 | failed 2 · 6 · 29,479 · 9,244 · 5,642 · 5,642. MTD — completed 20 · 27 · 85,544 · 30,639 · 30,682 · 14,221 | failed 2 · 6 · 29,479 · 9,244 · 5,642 · 5,642 | no-model failed 2 (instant vakalatnama failures). Fixture rows: 0.
+Caveats: llm_call has no user/run fields (smoke-account calls can't be excluded from A); B could exclude the smoke account by userId but Nikhil doesn't read userIds — Vikram treats MTD as "all prod usage incl. the founder's/Anushka's test drafts" (≈ all of it, pre-customers). Body calls A 33 vs B 35 differ by 2 (log start).
+Price correction (Vikram, pricing page 29 Oct): Sonnet 5.5 cache read is **$0.10**/MTok (the skill table's 0.20 is wrong); Opus = exactly 2× Sonnet on every class.
