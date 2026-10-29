@@ -174,8 +174,13 @@ export function initPassport(): void {
               });
               logger.info({ userId: user.id }, 'New user created via Google OAuth');
               isNewUser = true;
-              // Signup bonus — non-blocking, never fails OAuth callback
-              void grantSignupBonus(user._id.toString());
+              // Signup bonus — non-blocking, never fails OAuth callback. T-657: caught like the
+              // link call above; userId and the error name only (no message, email or name).
+              const newUserId = user._id.toString();
+              void grantSignupBonus(newUserId).catch((err: unknown) => {
+                const errName = err instanceof Error ? err.constructor.name : 'unknown';
+                logger.warn({ userId: newUserId, errName }, 'Signup bonus failed');
+              });
               // T-587: a Google account counts as verified, so the welcome goes now (once:
               // the welcomeQueuedAt claim). Non-blocking; never fails the OAuth callback.
               void queueWelcomeEmail(user._id.toString());
