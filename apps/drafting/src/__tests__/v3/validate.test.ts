@@ -6,8 +6,13 @@
 import { CONFIDENCE_FLOORS } from '@lawie/shared';
 
 import { buildChecklist, ChecklistItem } from '../../services/intake-brief';
-import { loadRulePack } from '../../services/rule-pack.service';
 import {
+  DateOwnMeaningWord,
+  listRulePackIds,
+  loadRulePack,
+} from '../../services/rule-pack.service';
+import {
+  derivationOf,
   findQuote,
   isDerivedKey,
   QUOTE_MAX,
@@ -47,6 +52,17 @@ const fact = (f: F) => ({
   confidence: 'confidence' in f ? f.confidence : 0.95,
 });
 
+/** What the extractor passes: each date field's own meaning words, from the pack only. */
+function ownWordsOf(packId: string): Map<string, readonly DateOwnMeaningWord[]> {
+  const pack = loadRulePack(packId);
+  if (!pack) throw new Error(`no pack ${packId}`);
+  return new Map(
+    pack.facts.flatMap((f) =>
+      f.date_own_meaning_words ? [[f.key, f.date_own_meaning_words] as const] : [],
+    ),
+  );
+}
+
 function run(
   packId: string,
   model: { facts?: F[]; non_answers?: F[]; unresolved?: string[] },
@@ -63,6 +79,7 @@ function run(
       description: ctx.description ?? '',
       answers: ctx.answers ?? [],
       today: TODAY,
+      dateOwnMeaningWords: ownWordsOf(packId),
     },
   );
 }
@@ -1287,5 +1304,301 @@ describe('T-683 validate: yes/no only from the user own words (T-675)', () => {
     expect(ws('nahi', 'yes').result.candidates).toEqual([]);
     expect(ws('haan', 'no').result.candidates).toEqual([]);
     expect(ws('Yes', 'no').result.candidates).toEqual([]);
+  });
+});
+
+// ── T-683 review round 1 (a94b3733), Ajay's own-meaning rule (e7d1c49e) ─────
+
+describe('T-683 validate: a date is read from the quote, never supplied (round 1, finding 3)', () => {
+  const arrest = (quote: string, value: string) =>
+    run('bail_regular', { facts: [{ key: 'arrest_date', value, quote }] }, { description: quote });
+
+  it.each([
+    ['in March 2026', '2026-03-15'],
+    ['in March 2026', '2026-03-01'],
+    ['in March 2026', '2026-03-31'],
+    ['March 2026', '2026-03-15'],
+    ['arrested in 03/2026', '2026-03-15'],
+  ])('a month and year with no day ("%s") never gives the day %s', (quote, value) => {
+    const out = arrest(quote, value);
+    expect(out.result.candidates).toEqual([]);
+    expect(out.result.unresolved).toEqual(['arrest_date']);
+    expect(out.dropped.bad_value).toBe(1);
+  });
+
+  it.each([
+    'on or about 05.03.2026',
+    'around 05.03.2026',
+    'approximately 05.03.2026',
+    'roughly 05.03.2026',
+    'before 05.03.2026',
+    'not later than 05.03.2026',
+    'by 05.03.2026',
+    'until 05.03.2026',
+    'nearly 05.03.2026',
+    '05.03.2026 or so, about',
+  ])('a qualifier ("%s") means no fact, and the key is asked again', (quote) => {
+    const out = arrest(quote, '2026-03-05');
+    expect(out.result.candidates).toEqual([]);
+    expect(out.result.unresolved).toEqual(['arrest_date']);
+    expect(out.dropped.bad_value).toBe(1);
+  });
+
+  it('the same date with no qualifier is a fact (control)', () => {
+    expect(valueOf(arrest('arrested on 05.03.2026', '2026-03-05'), 'arrest_date')).toBe(
+      '2026-03-05',
+    );
+  });
+
+  it('two dates in one quote: the value must be one of them, read exactly', () => {
+    const quote = 'arrested on 05.03.2026 and released on 10.03.2026';
+    expect(valueOf(arrest(quote, '2026-03-05'), 'arrest_date')).toBe('2026-03-05');
+    expect(valueOf(arrest(quote, '2026-03-10'), 'arrest_date')).toBe('2026-03-10');
+    // A date the quote does not hold (a day between, or a guess) is no fact.
+    for (const v of ['2026-03-07', '2026-03-15', '2026-05-03']) {
+      const out = arrest(quote, v);
+      expect(out.result.candidates).toEqual([]);
+      expect(out.result.unresolved).toEqual(['arrest_date']);
+    }
+  });
+
+  it.each([
+    'between 05.03.2026 and 10.03.2026',
+    '05.03.2026 or 10.03.2026',
+    'from 05.03.2026 till 10.03.2026',
+  ])('two dates joined by a range or "or" word ("%s") is no fact', (quote) => {
+    expect(arrest(quote, '2026-03-05').result.candidates).toEqual([]);
+    expect(arrest(quote, '2026-03-10').result.candidates).toEqual([]);
+  });
+
+  it('a two-digit year is no fact', () => {
+    expect(arrest('arrested on 05.03.26', '2026-03-05').result.candidates).toEqual([]);
+  });
+});
+
+describe('T-683 validate: Ajay own-meaning words for custody_since (e7d1c49e)', () => {
+  const custody = (quote: string, value = '2026-03-05') =>
+    run(
+      'bail_regular',
+      { facts: [{ key: 'custody_since', value, quote }] },
+      { description: quote },
+    );
+
+  it('1. "in judicial custody since 05.03.2026" gives 2026-03-05', () => {
+    expect(valueOf(custody('in judicial custody since 05.03.2026'), 'custody_since')).toBe(
+      '2026-03-05',
+    );
+  });
+
+  it('2. "05.03.2026 से जेल में" gives 2026-03-05', () => {
+    expect(valueOf(custody('05.03.2026 से जेल में'), 'custody_since')).toBe('2026-03-05');
+  });
+
+  it('3. "since about March 2026" gives no fact', () => {
+    for (const v of ['2026-03-15', '2026-03-01']) {
+      const out = custody('since about March 2026', v);
+      expect(out.result.candidates).toEqual([]);
+      expect(out.result.unresolved).toEqual(['custody_since']);
+    }
+  });
+
+  it('4. "before 05.03.2026" on custody_since gives no fact', () => {
+    const out = custody('before 05.03.2026');
+    expect(out.result.candidates).toEqual([]);
+    expect(out.result.unresolved).toEqual(['custody_since']);
+  });
+
+  it('5. "since 05.03.2026" on arrest_date gives no fact (only custody_since has the word)', () => {
+    const out = run(
+      'bail_regular',
+      { facts: [{ key: 'arrest_date', value: '2026-03-05', quote: 'since 05.03.2026' }] },
+      { description: 'He was held since 05.03.2026' },
+    );
+    expect(out.result.candidates).toEqual([]);
+    expect(out.result.unresolved).toEqual(['arrest_date']);
+  });
+
+  it('"since about 05.03.2026" still refuses: "about" is a qualifier', () => {
+    const out = custody('since about 05.03.2026');
+    expect(out.result.candidates).toEqual([]);
+    expect(out.result.unresolved).toEqual(['custody_since']);
+  });
+
+  it('the own word counts only when immediately next to the date', () => {
+    // "since" is not immediately before the date here, and "about" is a qualifier outside it.
+    expect(custody('since the day, about 05.03.2026').result.candidates).toEqual([]);
+    // "since" farther from the date than the word next to it is still a qualifier.
+    expect(custody('since the arrest on 05.03.2026').result.candidates).toEqual([]);
+  });
+
+  it('without the pack list (a caller passing none) "since" is a qualifier again', () => {
+    const out = validateExtraction(
+      {
+        facts: [
+          fact({
+            key: 'custody_since',
+            value: '2026-03-05',
+            quote: 'in judicial custody since 05.03.2026',
+          }),
+        ],
+        non_answers: [],
+        unresolved: [],
+      },
+      {
+        checklist: checklist('bail_regular'),
+        description: 'in judicial custody since 05.03.2026',
+        answers: [],
+        today: TODAY,
+      },
+    );
+    expect(out.result.candidates).toEqual([]);
+  });
+
+  it('the list comes from the real bail_regular pack, and no other field in any pack has one', () => {
+    const own = ownWordsOf('bail_regular').get('custody_since');
+    expect(own).toEqual([
+      { word: 'since', position: 'before' },
+      { word: 'from', position: 'before' },
+      { word: 'w.e.f.', position: 'before' },
+      { word: 'with effect from', position: 'before' },
+      { word: 'से', position: 'after' },
+      { word: 'se', position: 'after' },
+    ]);
+    const holders: string[] = [];
+    for (const id of listRulePackIds()) {
+      const pack = loadRulePack(id);
+      for (const f of pack?.facts ?? []) {
+        if (f.date_own_meaning_words !== undefined) holders.push(`${id}/${f.key}`);
+      }
+    }
+    expect(holders).toEqual(['bail_regular/custody_since']);
+  });
+});
+
+describe('T-683 validate: a non-answer is decided by the quote, never by the value (round 1, finding 2)', () => {
+  it('quote "Rahul Sharma", value "Not known" (answer): bad_value, unresolved, no non-answer, no fact', () => {
+    const out = run(
+      'bail_regular',
+      {
+        facts: [
+          {
+            key: 'applicant_name',
+            value: 'Not known',
+            quote: 'Rahul Sharma',
+            source: 'answer',
+            turn: 1,
+          },
+        ],
+      },
+      { answers: [{ turn: 1, askedKeys: ['applicant_name'], text: 'Rahul Sharma' }] },
+    );
+    expect(out.result.candidates).toEqual([]);
+    expect(out.result.nonAnswers).toEqual([]);
+    expect(out.result.unresolved).toEqual(['applicant_name']);
+    expect(out.dropped.bad_value).toBe(1);
+    expect(out.dropped.non_answer).toBeUndefined();
+  });
+
+  it('the same on the description: bad_value plus unresolved, no non-answer', () => {
+    const out = run(
+      'bail_regular',
+      { facts: [{ key: 'applicant_name', value: 'Not known', quote: 'Rahul Sharma' }] },
+      { description: 'Bail for Rahul Sharma.' },
+    );
+    expect(out.result.candidates).toEqual([]);
+    expect(out.result.nonAnswers).toEqual([]);
+    expect(out.result.unresolved).toEqual(['applicant_name']);
+    expect(out.dropped.bad_value).toBe(1);
+  });
+
+  it('a non-answer value on a non-party text field is the same: dropped, asked again', () => {
+    const out = run(
+      'bail_regular',
+      {
+        facts: [
+          { key: 'father_name', value: 'पता नहीं', quote: 'Ramesh', source: 'answer', turn: 1 },
+        ],
+      },
+      { answers: [{ turn: 1, askedKeys: ['father_name'], text: 'Ramesh' }] },
+    );
+    expect(out.result.candidates).toEqual([]);
+    expect(out.result.nonAnswers).toEqual([]);
+    expect(out.result.unresolved).toEqual(['father_name']);
+  });
+
+  it('the quote that IS a non-answer still goes to nonAnswers (control)', () => {
+    const out = run(
+      'bail_regular',
+      {
+        facts: [
+          { key: 'father_name', value: 'Ramesh', quote: 'पता नहीं', source: 'answer', turn: 1 },
+        ],
+      },
+      { answers: [{ turn: 1, askedKeys: ['father_name'], text: 'पता नहीं' }] },
+    );
+    expect(out.result.candidates).toEqual([]);
+    expect(out.result.nonAnswers).toEqual([{ key: 'father_name', quote: 'पता नहीं' }]);
+  });
+});
+
+describe('T-683 validate: raw Latin Hinglish is never verbatim (round 1, finding 5)', () => {
+  const ans = (key: string, value: unknown, text: string) =>
+    run(
+      'bail_regular',
+      { facts: [{ key, value, quote: text, source: 'answer', turn: 1 }] },
+      { answers: [{ turn: 1, askedKeys: [key], text }] },
+    );
+  const derivation = (out: ReturnType<typeof run>) => derivationOf(out.result.candidates[0]);
+
+  it.each([
+    ['Koi recovery nahi hui', 'Koi recovery nahi hui'],
+    ['ji haan, recovery hui thi', 'ji haan, recovery hui thi'],
+    ['nahin hui', 'nahin hui'],
+    ['haan', 'haan'],
+  ])('a text value "%s" copied raw from the quote is model_text', (text, value) => {
+    const out = ans('recovery_status', value, text);
+    expect(out.result.candidates).toHaveLength(1);
+    expect(derivation(out)).toBe('model_text');
+  });
+
+  it('a list item holding a signed Latin word makes the whole list model_text', () => {
+    const text = 'IPC 379 haan, IPC 411';
+    const out = ans('sections_charged', ['IPC 379 haan', 'IPC 411'], text);
+    expect(out.result.candidates).toHaveLength(1);
+    expect(derivation(out)).toBe('model_text');
+  });
+
+  it('English "no" and "yes" are English words, so they stay verbatim', () => {
+    expect(derivation(ans('recovery_status', 'No recovery was made', 'No recovery was made'))).toBe(
+      'verbatim',
+    );
+    expect(
+      derivation(ans('recovery_status', 'Yes, a phone was seized', 'Yes, a phone was seized')),
+    ).toBe('verbatim');
+  });
+
+  it('an ordinary English text answer is verbatim (control)', () => {
+    expect(derivation(ans('applicant_occupation', 'Mason', 'Mason'))).toBe('verbatim');
+  });
+
+  it('a list with no signed Latin word is verbatim (control)', () => {
+    const text = 'IPC 379, IPC 411';
+    expect(derivation(ans('sections_charged', ['IPC 379', 'IPC 411'], text))).toBe('verbatim');
+  });
+});
+
+describe('T-683 validate: the deep import of the signed qualifier list (round 1, finding 3)', () => {
+  it('@lawie/shared/dist/utils/normalize/date resolves under jest and gives the shared source list', async () => {
+    const deep = await import('@lawie/shared/dist/utils/normalize/date');
+    const source = await import('../../../../../packages/shared/src/utils/normalize/date');
+    expect(deep.DATE_LABEL_QUALIFIERS).toBeInstanceOf(Set);
+    expect(deep.DATE_LABEL_QUALIFIERS.size).toBeGreaterThan(20);
+    expect([...deep.DATE_LABEL_QUALIFIERS].sort()).toEqual(
+      [...source.DATE_LABEL_QUALIFIERS].sort(),
+    );
+    // The words the reader relies on.
+    for (const w of ['about', 'before', 'since', 'from', 'or', 'between']) {
+      expect(deep.DATE_LABEL_QUALIFIERS.has(w)).toBe(true);
+    }
   });
 });

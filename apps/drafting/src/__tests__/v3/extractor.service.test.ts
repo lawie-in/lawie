@@ -626,12 +626,66 @@ describe('extractTurn: one call in flight per runId + turn', () => {
     expect(ob).toBe(oa);
   });
 
-  it('a different turn of the same run is its own call', async () => {
+  it('a different turn of the same run while one is in flight is degraded in_flight at once, with no second model call', async () => {
+    let release: (v: unknown) => void = () => undefined;
+    mockCall.mockImplementation(() => new Promise((res) => (release = res)));
+    const first = extractTurn(input({ runId: 'run-dedupe-2', turn: 1 }));
+    await new Promise((r) => setImmediate(r));
+    const second = await extractTurn(input({ runId: 'run-dedupe-2', turn: 2 }));
+    // The second turn answered while the first was still waiting on the model.
+    expect(second).toEqual({ status: 'degraded', reason: 'in_flight' });
+    expect(mockCall).toHaveBeenCalledTimes(1);
+    expect(mockExec).toHaveBeenCalledTimes(1);
+    const lines = mockLogLlmCall.mock.calls.map((c) => c[0] as Record<string, unknown>);
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toMatchObject({
+      stage: 'extract',
+      status: 'degraded',
+      reason: 'in_flight',
+      runId: 'run-dedupe-2',
+    });
+    release(okResult());
+    expect((await first).status).toBe('ok');
+    expect(mockCall).toHaveBeenCalledTimes(1);
+  });
+
+  it('two concurrent UPDATE turns on one run: the second is in_flight, the first is untouched', async () => {
+    let release: (v: unknown) => void = () => undefined;
+    mockCall.mockImplementation(() => new Promise((res) => (release = res)));
+    const ans = (turn: number) => [
+      { turn, askedKeys: ['police_station'], text: 'थाना Govindpura' },
+    ];
+    const a = extractTurn(input({ runId: 'run-upd', turn: 3, description: '', answers: ans(1) }));
+    const b = extractTurn(input({ runId: 'run-upd', turn: 4, description: '', answers: ans(1) }));
+    expect(await b).toEqual({ status: 'degraded', reason: 'in_flight' });
+    while (mockCall.mock.calls.length === 0) await new Promise((r) => setImmediate(r));
+    release(okResult());
+    const oa = await a;
+    expect(oa.status).toBe('ok');
+    expect(mockCall).toHaveBeenCalledTimes(1);
+  });
+
+  it('a different run is its own call, never in_flight', async () => {
     await Promise.all([
-      extractTurn(input({ runId: 'run-dedupe-2', turn: 1 })),
-      extractTurn(input({ runId: 'run-dedupe-2', turn: 2 })),
+      extractTurn(input({ runId: 'run-x', turn: 1 })),
+      extractTurn(input({ runId: 'run-y', turn: 1 })),
     ]);
     expect(mockCall).toHaveBeenCalledTimes(2);
+  });
+
+  it('once the first call finishes, another turn of the run is a new call (not stuck in_flight)', async () => {
+    await extractTurn(input({ runId: 'run-dedupe-4', turn: 1 }));
+    const out = await extractTurn(input({ runId: 'run-dedupe-4', turn: 2 }));
+    expect(out.status).toBe('ok');
+    expect(mockCall).toHaveBeenCalledTimes(2);
+  });
+
+  it('a first call that fails frees the run for the next turn', async () => {
+    mockCall.mockRejectedValueOnce(new Error('boom'));
+    const first = await extractTurn(input({ runId: 'run-dedupe-5', turn: 1 }));
+    expect(first.status).toBe('degraded');
+    const out = await extractTurn(input({ runId: 'run-dedupe-5', turn: 2 }));
+    expect(out.status).toBe('ok');
   });
 
   it('after the first finishes, the same runId + turn is a new call', async () => {
@@ -872,5 +926,73 @@ describe('parseExtractorJson', () => {
     for (const bad of ['', 'no json', '[1]', '{', '{"a":', '}{', '"str"', '12']) {
       expect(parseExtractorJson(bad)).toBeNull();
     }
+  });
+});
+
+describe('extractTurn: one 20 s deadline covers the whole turn (round 1, finding 6)', () => {
+  /** AbortSignal.timeout on jest's fake timers, so advanceTimersByTime fires it. */
+  function fakeDeadline(): jest.SpyInstance {
+    return jest.spyOn(AbortSignal, 'timeout').mockImplementation((ms: number) => {
+      const ctrl = new AbortController();
+      setTimeout(() => ctrl.abort(), ms);
+      return ctrl.signal;
+    });
+  }
+
+  afterEach(() => jest.useRealTimers());
+
+  it('Redis hanging before the call: timeout at 20 s, no model call, a degraded line', async () => {
+    jest.useFakeTimers();
+    const spy = fakeDeadline();
+    mockExec.mockImplementation(() => new Promise(() => undefined));
+    let settled = false;
+    const p = extractTurn(input({ runId: 'run-redis-hang' })).then((o) => {
+      settled = true;
+      return o;
+    });
+    await jest.advanceTimersByTimeAsync(19_999);
+    expect(settled).toBe(false);
+    await jest.advanceTimersByTimeAsync(2);
+    const out = await p;
+    expect(spy).toHaveBeenCalledWith(EXTRACTOR_LIMITS.timeoutMs);
+    expect(EXTRACTOR_LIMITS.timeoutMs).toBe(20_000);
+    expect(out).toEqual({ status: 'degraded', reason: 'timeout' });
+    expect(mockCall).not.toHaveBeenCalled();
+    expect(mockLogLlmCall.mock.calls[0][0]).toMatchObject({
+      stage: 'extract',
+      status: 'degraded',
+      reason: 'timeout',
+    });
+  });
+
+  it('the settings read hanging: timeout at 20 s, no model call', async () => {
+    jest.useFakeTimers();
+    fakeDeadline();
+    mockSetting.mockImplementation(() => new Promise(() => undefined));
+    const p = extractTurn(input({ runId: 'run-setting-hang' }));
+    await jest.advanceTimersByTimeAsync(20_001);
+    expect(await p).toEqual({ status: 'degraded', reason: 'timeout' });
+    expect(mockCall).not.toHaveBeenCalled();
+  });
+
+  it('a slow Redis is not a timeout when it answers inside the deadline', async () => {
+    jest.useFakeTimers();
+    fakeDeadline();
+    mockExec.mockImplementation(
+      () => new Promise((res) => setTimeout(() => res(redisCount(1)), 10_000)),
+    );
+    const p = extractTurn(input({ runId: 'run-redis-slow' }));
+    await jest.advanceTimersByTimeAsync(10_001);
+    const out = await p;
+    expect(out.status).toBe('ok');
+    expect(mockCall).toHaveBeenCalledTimes(1);
+  });
+
+  it('the model call gets the same signal as the deadline', async () => {
+    const ctrl = new AbortController();
+    const spy = jest.spyOn(AbortSignal, 'timeout').mockReturnValue(ctrl.signal);
+    await extractTurn(input({ runId: 'run-same-signal' }));
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect((mockCall.mock.calls[0][1] as { signal: AbortSignal }).signal).toBe(ctrl.signal);
   });
 });

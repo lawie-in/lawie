@@ -581,3 +581,233 @@ describe('police station per T-612 (6a) through the update turn (stage 1)', () =
     expect(run('थाना कोतवाली', 'Thana Kotwali')).toBe('Thana Kotwali');
   });
 });
+
+// ── Review round 1 (a94b3733): the stale, wiped and held answers, through the routes ──
+
+describe('round 1: a reused or in-flight turn runs v2 and writes nothing stale', () => {
+  async function startLedger() {
+    await setStage('1');
+    mockExtractTurn.mockResolvedValueOnce(okOutcome(result()));
+    mockStream.mockReset();
+    mockStream.mockResolvedValueOnce(sdkAnswer(EMPTY_READ, 900, 120));
+    const d = await describe_();
+    expect(d.status).toBe(200);
+    mockExtractTurn.mockReset();
+    return d.body.ledger.ledger_id as string;
+  }
+  const fact = (
+    res: { body: { ledger: { facts: Array<Record<string, unknown>> } } },
+    key: string,
+  ) => res.body.ledger.facts.find((f) => f.key === key);
+  const oldNo = () =>
+    viaValidate([{ key: 'named_in_fir', value: 'No', quote: 'नहीं', source: 'answer', turn: 1 }], {
+      description: '',
+      answers: [answerOf(1, 'named_in_fir', 'नहीं')],
+    });
+
+  it('update, reused: an old "No" never overwrites the new "haan"; the edit goes in as typed (v2)', async () => {
+    const ledgerId = await startLedger();
+    mockExtractTurn.mockResolvedValue({ status: 'reused', result: oldNo() });
+    const res = await update_(ledgerId, [{ key: 'named_in_fir', text: 'haan' }]);
+    expect(res.status).toBe(200);
+    expect(mockExtractTurn).toHaveBeenCalledTimes(1);
+    // The results line for the edit is not a "skipped" hold: v2 handled the edit as sent.
+    expect(res.body.results?.[0]?.status ?? 'saved').not.toBe('skipped');
+    expect(JSON.stringify(fact(res, 'named_in_fir') ?? {})).not.toContain('No');
+  });
+
+  it('update, reused, a text answer: the new words are written, not the reused reading', async () => {
+    const ledgerId = await startLedger();
+    mockExtractTurn.mockResolvedValue({
+      status: 'reused',
+      result: viaValidate(
+        [
+          {
+            key: 'applicant_occupation',
+            value: 'Mason',
+            quote: 'Mason',
+            source: 'answer',
+            turn: 1,
+          },
+        ],
+        { description: '', answers: [answerOf(1, 'applicant_occupation', 'Mason')] },
+      ),
+    });
+    const res = await update_(ledgerId, [{ key: 'applicant_occupation', text: 'Welder' }]);
+    const f = JSON.stringify(fact(res, 'applicant_occupation'));
+    expect(f).toContain('Welder');
+    expect(f).not.toContain('Mason');
+  });
+
+  it('update, ok but the candidate is an older reading (quote not in the edit): held, nothing written', async () => {
+    const ledgerId = await startLedger();
+    mockExtractTurn.mockResolvedValue(okOutcome(oldNo()));
+    const res = await update_(ledgerId, [{ key: 'named_in_fir', text: 'haan' }]);
+    expect(res.status).toBe(200);
+    expect(fact(res, 'named_in_fir')).toBeUndefined();
+  });
+
+  it('describe, reused: the v2 extraction runs and the reused reading is not written', async () => {
+    await setStage('1');
+    mockExtractTurn.mockResolvedValue({
+      status: 'reused',
+      result: viaValidate([{ key: 'fir_number', value: '99/2026', quote: 'FIR No. 55/2026' }]),
+    });
+    mockV2Describe();
+    const res = await describe_();
+    expect(res.status).toBe(200);
+    expect(mockStream).toHaveBeenCalledTimes(2);
+    const f = JSON.stringify(
+      res.body.ledger.facts.find((x: { key: string }) => x.key === 'fir_number'),
+    );
+    expect(f).toContain('55/2026');
+    expect(f).not.toContain('99/2026');
+  });
+
+  it('update, in_flight (a second turn of the run): the edits go in as typed (v2), no hold', async () => {
+    const ledgerId = await startLedger();
+    mockExtractTurn.mockResolvedValue({ status: 'degraded', reason: 'in_flight' });
+    const res = await update_(ledgerId, [{ key: 'applicant_occupation', text: 'Mason' }]);
+    expect(res.status).toBe(200);
+    expect(JSON.stringify(fact(res, 'applicant_occupation'))).toContain('Mason');
+  });
+
+  it('describe, in_flight: the v2 extraction runs', async () => {
+    await setStage('1');
+    mockExtractTurn.mockResolvedValue({ status: 'degraded', reason: 'in_flight' });
+    mockV2Describe();
+    const res = await describe_();
+    expect(res.status).toBe(200);
+    expect(mockStream).toHaveBeenCalledTimes(2);
+    expect(res.body.ledger.facts.map((f: { key: string }) => f.key)).toEqual(['fir_number']);
+  });
+});
+
+describe('round 1: a non-answer is the quote, and a partial one keeps the rest', () => {
+  async function startLedger() {
+    await setStage('1');
+    mockExtractTurn.mockResolvedValueOnce(okOutcome(result()));
+    mockStream.mockReset();
+    mockStream.mockResolvedValueOnce(sdkAnswer(EMPTY_READ, 900, 120));
+    const d = await describe_();
+    mockExtractTurn.mockReset();
+    return d.body.ledger.ledger_id as string;
+  }
+  const fact = (
+    res: { body: { ledger: { facts: Array<Record<string, unknown>> } } },
+    key: string,
+  ) => res.body.ledger.facts.find((f) => f.key === key);
+
+  it('update: quote "Rahul Sharma", value "Not known": the name is written as typed, not wiped', async () => {
+    const ledgerId = await startLedger();
+    mockExtractTurn.mockResolvedValue(
+      okOutcome(
+        viaValidate(
+          [
+            {
+              key: 'applicant_name',
+              value: 'Not known',
+              quote: 'Rahul Sharma',
+              source: 'answer',
+              turn: 1,
+            },
+          ],
+          { description: '', answers: [answerOf(1, 'applicant_name', 'Rahul Sharma')] },
+        ),
+      ),
+    );
+    const res = await update_(ledgerId, [{ key: 'applicant_name', text: 'Rahul Sharma' }]);
+    expect(res.status).toBe(200);
+    const f = JSON.stringify(fact(res, 'applicant_name'));
+    expect(f).toContain('Rahul Sharma');
+    expect(f).not.toContain('Not known');
+  });
+
+  it('describe: value "Not known" on a real name in the description: no "Not known" fact is written', async () => {
+    await setStage('1');
+    mockExtractTurn.mockResolvedValue(
+      okOutcome(
+        viaValidate([{ key: 'applicant_name', value: 'Not known', quote: 'Sample Person 1' }]),
+      ),
+    );
+    mockStream.mockReset();
+    mockStream.mockResolvedValueOnce(sdkAnswer(EMPTY_READ, 900, 120));
+    const res = await describe_();
+    expect(res.status).toBe(200);
+    expect(JSON.stringify(res.body.ledger)).not.toContain('Not known');
+  });
+
+  it('update: "पता नहीं, Ramesh" with a partial non-answer keeps "Ramesh"', async () => {
+    const ledgerId = await startLedger();
+    const text = 'पता नहीं, Ramesh';
+    mockExtractTurn.mockResolvedValue(
+      okOutcome(
+        viaValidate([], {
+          description: '',
+          answers: [answerOf(1, 'father_name', text)],
+          non_answers: [{ key: 'father_name', quote: 'पता नहीं', turn: 1 }],
+        }),
+      ),
+    );
+    const res = await update_(ledgerId, [{ key: 'father_name', text }]);
+    expect(res.status).toBe(200);
+    expect(JSON.stringify(fact(res, 'father_name'))).toContain('Ramesh');
+  });
+});
+
+describe('round 1: raw Latin Hinglish is held, and brief and ledger agree on the user characters', () => {
+  async function startLedger() {
+    await setStage('1');
+    mockExtractTurn.mockResolvedValueOnce(okOutcome(result()));
+    mockStream.mockReset();
+    mockStream.mockResolvedValueOnce(sdkAnswer(EMPTY_READ, 900, 120));
+    const d = await describe_();
+    mockExtractTurn.mockReset();
+    return d.body.ledger.ledger_id as string;
+  }
+
+  it('update: a raw "Koi recovery nahi hui" value is held: nothing written, raw words not in the ledger', async () => {
+    const ledgerId = await startLedger();
+    const text = 'Koi recovery nahi hui';
+    mockExtractTurn.mockResolvedValue(
+      okOutcome(
+        viaValidate(
+          [{ key: 'recovery_status', value: text, quote: text, source: 'answer', turn: 1 }],
+          {
+            description: '',
+            answers: [answerOf(1, 'recovery_status', text)],
+          },
+        ),
+      ),
+    );
+    const res = await update_(ledgerId, [{ key: 'recovery_status', text }]);
+    expect(res.status).toBe(200);
+    expect(
+      res.body.ledger.facts.find((f: { key: string }) => f.key === 'recovery_status'),
+    ).toBeUndefined();
+    expect(JSON.stringify(res.body.ledger)).not.toContain('nahi hui');
+  });
+
+  it('describe: the brief and the ledger carry the same text, in the user case (not the model case)', async () => {
+    await setStage('1');
+    mockExtractTurn.mockResolvedValue(
+      okOutcome(
+        viaValidate([
+          { key: 'applicant_name', value: 'sample person 1', quote: 'Sample Person 1' },
+        ]),
+      ),
+    );
+    mockStream.mockReset();
+    mockStream.mockResolvedValueOnce(sdkAnswer(EMPTY_READ, 900, 120));
+    const res = await describe_();
+    expect(res.status).toBe(200);
+    const ledgerFact = JSON.stringify(
+      res.body.ledger.facts.find((f: { key: string }) => f.key === 'applicant_name'),
+    );
+    expect(ledgerFact).toContain('Sample Person 1');
+    expect(ledgerFact).not.toContain('sample person 1');
+    const brief = JSON.stringify(res.body.brief);
+    expect(brief).toContain('Sample Person 1');
+    expect(brief).not.toContain('sample person 1');
+  });
+});
