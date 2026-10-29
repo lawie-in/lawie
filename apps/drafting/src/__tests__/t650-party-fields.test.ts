@@ -391,19 +391,17 @@ describe('T-650 F: the brief', () => {
       expect(item.label).toBe(SIGNED[id].label);
     });
 
-    it('missing, it blocks Confirm with the generic T-127 line for that party', () => {
+    it('missing, it blocks Confirm with the signed (3h) line or the generic T-127 line', () => {
       const b = briefOf(id, [user(other, other === 'plaintiff_name' ? PLAINTIFF : DEFENDANT)]);
       expect(b.can_confirm).toBe(false);
       expect(b.confirm_blockers).toContain('parties');
-      // the generic line is built from the field label (partyLabel); for "Defendant No. 1 full name"
-      // that reads "defendant no. 1" (reported to the lead; not a signed line)
-      const who =
-        f === 'plaintiff_name'
-          ? 'plaintiff'
-          : id === 'plaint_partition'
-            ? 'defendant no. 1'
-            : 'defendant';
-      expect(b.confirm_message!.split('\n')[0]).toBe(`Add the name of the ${who} to continue.`);
+      // T-661: plaint_partition takes Ajay's signed (3h) line; replication and written_statement keep
+      // the generic line built from the field label (partyLabel).
+      const expected =
+        id === 'plaint_partition'
+          ? 'Add the name of Defendant No. 1 to continue.'
+          : `Add the name of the ${f === 'plaintiff_name' ? 'plaintiff' : 'defendant'} to continue.`;
+      expect(b.confirm_message!.split('\n')[0]).toBe(expected);
     });
 
     it('both parties held: the party block lifts', () => {
@@ -441,6 +439,8 @@ describe('T-650 G: plaint_partition other_defendants on the brief', () => {
     expect(b.items.find((i) => i.key.split('.').pop() === 'other_defendants')!.blocks_confirm).toBe(
       true,
     );
+    // T-661: Ajay's signed (3g) ask line
+    expect(b.confirm_message).toBe('Say whether there are other defendants to continue.');
   });
 
   it.each([YES_LABEL, NO_LABEL])('answered "%s": the block lifts', (label) => {

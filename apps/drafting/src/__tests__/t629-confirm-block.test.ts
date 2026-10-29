@@ -22,6 +22,7 @@ import {
   O39_NON_ANSWERS,
   O39_REQUIRED_FIELDS,
   requiredFieldBlockers,
+  signedConfirmMessage,
 } from '../config/intake/o39-confirm-messages';
 import {
   BriefItem,
@@ -172,19 +173,14 @@ describe('o39-confirm-messages: the signed strings', () => {
 });
 
 describe('fail closed: every blocks_confirm field in a pack has a signed message', () => {
-  // INTERIM EXCEPTION (Priya granted, T-650, 29 Oct 2026): plaint_partition#other_defendants blocks Confirm
-  // by config only (Ajay's (3g) rules the signed EN/HI ask line may follow via the M1 path). The line and
-  // the silent Confirm-block UX gap are follow-up ticket T-661. This is the ONLY unmessaged field allowed;
-  // any other blocks_confirm field without a signed message still fails this pin.
-  const INTERIM_UNMESSAGED: ReadonlyArray<{ pack: string; id: string }> = [
-    { pack: 'plaint_partition', id: 'other_defendants' },
-  ];
+  // T-661: no exception. A blocks_confirm field is messaged when it is an O.39 required field, or the
+  // pack has a signed line for it (PACK_CONFIRM_MESSAGES), with a non-empty EN and HI.
   const unmessaged = (flagged: Array<{ pack: string; id: string }>) =>
-    flagged.filter(
-      (f) =>
-        !isO39RequiredField(f.id) &&
-        !INTERIM_UNMESSAGED.some((x) => x.pack === f.pack && x.id === f.id),
-    );
+    flagged.filter((f) => {
+      if (isO39RequiredField(f.id)) return false;
+      const m = signedConfirmMessage(f.pack, f.id);
+      return !(m !== null && m.en.length > 0 && m.hi.length > 0);
+    });
 
   it('iterates every rule pack JSON', () => {
     const dir = join(__dirname, '..', 'config', 'document-rules');
@@ -195,7 +191,7 @@ describe('fail closed: every blocks_confirm field in a pack has a signed message
         if (f.blocks_confirm === true) flagged.push({ pack: id, id: f.id });
       }
     }
-    // The two O.39 fields, the T-650 interim field, and nothing else flagged.
+    // The two O.39 fields, the T-650 field, and nothing else flagged unmessaged.
     expect(flagged).toEqual(
       expect.arrayContaining([
         { pack: O39, id: 'main_suit_relief' },
@@ -214,14 +210,14 @@ describe('fail closed: every blocks_confirm field in a pack has a signed message
     expect(unmessaged([{ pack: 'bail_regular', id: 'some_new_field' }])).toEqual([
       { pack: 'bail_regular', id: 'some_new_field' },
     ]);
-    // the exception is exactly that pack and field, not the field name on another pack
+    // a signed line is for exactly that pack and field, not the field name on another pack
     expect(unmessaged([{ pack: 'replication', id: 'other_defendants' }])).toEqual([
       { pack: 'replication', id: 'other_defendants' },
     ]);
     expect(unmessaged([{ pack: 'plaint_partition', id: 'defendants_details' }])).toEqual([
       { pack: 'plaint_partition', id: 'defendants_details' },
     ]);
-    // the allowed ones pass
+    // the messaged ones pass
     expect(
       unmessaged([
         { pack: 'plaint_partition', id: 'other_defendants' },

@@ -104,3 +104,47 @@ export function requiredFieldBlockers(
     en: O39_CONFIRM_MESSAGES[key].en,
   }));
 }
+
+/**
+ * T-661: signed ask lines for fields outside O.39, keyed by pack id, then by
+ * field id (LEGAL CONTENT, Ajay). A per-pack map, since the same field id can
+ * have a different signed line in another pack (O.39 has its own
+ * defendant_name line above). EN is served; HI is kept for the Hindi
+ * mechanism, as for O.39.
+ *
+ * Signed in handoff/legal/T-650-party-fields-signed.md:
+ *   (3g) plaint_partition other_defendants;
+ *   (3h) plaint_partition defendant_name (replaces the interim generic line
+ *        built from the label).
+ * replication and written_statement have no signed ask lines, so they keep
+ * the generic T-127 line.
+ */
+export const PACK_CONFIRM_MESSAGES: Readonly<
+  Record<string, Readonly<Record<string, { readonly en: string; readonly hi: string }>>>
+> = {
+  plaint_partition: {
+    // (3g)
+    other_defendants: {
+      en: 'Say whether there are other defendants to continue.',
+      hi: 'आगे बढ़ने के लिए बताइए कि क्या अन्य प्रतिवादी भी हैं।',
+    },
+    // (3h)
+    defendant_name: {
+      en: 'Add the name of Defendant No. 1 to continue.',
+      hi: 'आगे बढ़ने के लिए प्रतिवादी संख्या 1 का नाम जोड़िए।',
+    },
+  },
+};
+
+/** T-661: the signed line for a field in a pack, or null when none is signed. */
+export function signedConfirmMessage(
+  packId: string | null,
+  fieldId: string,
+): { readonly en: string; readonly hi: string } | null {
+  if (packId === null) return null;
+  const pack = Object.prototype.hasOwnProperty.call(PACK_CONFIRM_MESSAGES, packId)
+    ? PACK_CONFIRM_MESSAGES[packId]
+    : undefined;
+  if (pack === undefined || !Object.prototype.hasOwnProperty.call(pack, fieldId)) return null;
+  return pack[fieldId];
+}
