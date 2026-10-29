@@ -69,6 +69,8 @@ interface DocumentData {
   courtDocument?: boolean;
   /** T-381 — the brief or the form inputs hold at least one party. Absent means no card. */
   hasParty?: boolean;
+  /** T-689 — the rule pack's name for the document type. Null or absent: show the humanised docType. */
+  docTypeLabel?: string | null;
 }
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
@@ -735,9 +737,14 @@ export default function DocumentEditorPage() {
           <dl className="mt-3 space-y-2 text-xs">
             <div className="flex justify-between">
               <dt className="text-slate-400">Type</dt>
-              <dd className="font-medium capitalize text-slate-700">
-                {doc.docType.replace(/_/g, ' ')}
-              </dd>
+              {/* T-689: the pack's label is already cased; only the enum fallback is capitalised. */}
+              {doc.docTypeLabel ? (
+                <dd className="font-medium text-slate-700">{doc.docTypeLabel}</dd>
+              ) : (
+                <dd className="font-medium capitalize text-slate-700">
+                  {doc.docType.replace(/_/g, ' ')}
+                </dd>
+              )}
             </div>
             <div className="flex justify-between">
               <dt className="text-slate-400">Court</dt>
