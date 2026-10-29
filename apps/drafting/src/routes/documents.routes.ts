@@ -25,6 +25,7 @@ import { User } from '../models/User.model';
 import {
   formGateFiles,
   GenerationFailedError,
+  GenerationFailure,
   streamGenerateFromBrief,
   streamGenerateGuided,
   streamGenerateFromTemplate,
@@ -53,6 +54,11 @@ import {
   readStoredBrief,
   storesState,
 } from '../services/brief-party-fields';
+import {
+  displayTitle,
+  resolveCourtLabel,
+  resolveCourtLabels,
+} from '../services/court-label.service';
 import {
   costForTemplate,
   DraftQuote,
@@ -270,6 +276,8 @@ export interface RecordGenerationInput {
   /** T-577: the quoted paragraph count and Ink, only when the pack asked for a count. */
   paragraphsRequested?: number;
   inkQuoted?: number;
+  /** T-678: the gate's codes on a withheld draft (codes and keys only, no user text). */
+  failure?: GenerationFailure;
 }
 
 /**
@@ -320,6 +328,8 @@ export async function recordGeneration(
         ? { paragraphsRequested: input.paragraphsRequested }
         : {}),
       ...(input.inkQuoted !== undefined ? { inkQuoted: input.inkQuoted } : {}),
+      // T-678: present only on a draft the gate withheld, so every other row is written as before.
+      ...(input.failure !== undefined ? { failure: input.failure } : {}),
       costUsd,
       costStatus: rate.costStatus,
       rateInputUsdPerMTok: rate.costStatus === 'priced' ? rate.rate.inputUsdPerMTok : undefined,
@@ -838,7 +848,14 @@ router.get('/', authenticate, async (req: Request, res: Response): Promise<void>
     .limit(50)
     .lean();
 
-  res.json({ documents: docs });
+  // T-674 AC3 (R4): courtName may hold a court id; the screen gets courtLabel.
+  const labels = await resolveCourtLabels(docs.map((d) => d.courtName));
+  res.json({
+    documents: docs.map((d) => {
+      const courtLabel = labels.get(String(d.courtName ?? '')) ?? '';
+      return { ...d, title: displayTitle(d.title, d.courtName, courtLabel), courtLabel };
+    }),
+  });
 });
 
 // GET /documents/template-configs — list available template configs for the form builder
@@ -1115,6 +1132,7 @@ router.post(
             runId,
             runSequence,
             runType,
+            failure: genErr.failure,
           });
           // Ended only now — after the row exists — so a fast retry's
           // resolveRun query can never race the write that makes it findable.
@@ -1169,11 +1187,16 @@ router.post(
       let duplicateAttempt = false;
       try {
         const encryptedContent = encrypt(result.fullText);
-        const title =
-          `${templateConfig.display_name} — ${String(form_data.court_name || form_data.state || '')}`.slice(
-            0,
-            300,
-          );
+        // T-674 AC3 (R4): the title carries the court's label, never its id; an
+        // unknown id leaves just the pack name. A typed court name stays as typed.
+        const titleCourt = form_data.court_name
+          ? await resolveCourtLabel(String(form_data.court_name))
+          : String(form_data.state || '');
+        const title = (
+          titleCourt
+            ? `${templateConfig.display_name} — ${titleCourt}`
+            : templateConfig.display_name
+        ).slice(0, 300);
         // Sequential, not Promise.all — Generation.documentId needs the Document's _id.
         const doc = await LawieDocument.create({
           userId: payload.sub,
@@ -1893,6 +1916,7 @@ router.post(
           runType,
           ledger: ledger ? 'on' : 'off',
           ...quoteRecord,
+          failure: failed?.failure,
         });
         if (failed) {
           // The error event was already sent. End only now, after the row exists.
@@ -2184,12 +2208,16 @@ router.get(
       );
     }
 
+    // T-674 AC3 (R4): the screen gets a label, never the stored court id.
+    const courtLabel = await resolveCourtLabel(doc.courtName);
+
     res.json({
       _id: doc._id,
-      title: doc.title,
+      title: displayTitle(doc.title, doc.courtName, courtLabel),
       docType: doc.docType,
       courtType: doc.courtType,
       courtName: doc.courtName,
+      courtLabel,
       content,
       status: doc.status,
       sectionsCited: doc.sectionsCited,
@@ -2408,7 +2436,13 @@ router.post(
       metadata: { format: 'pdf', docType: doc.docType },
     });
 
-    const filename = `${doc.title.replace(/[^a-zA-Z0-9\s-]/g, '').slice(0, 60)}.pdf`;
+    // T-674 AC3 (R4): the file name never carries a court id.
+    const shownTitle = displayTitle(
+      doc.title,
+      doc.courtName,
+      await resolveCourtLabel(doc.courtName),
+    );
+    const filename = `${shownTitle.replace(/[^a-zA-Z0-9\s-]/g, '').slice(0, 60)}.pdf`;
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Content-Length', pdfBuffer.length);
@@ -2611,12 +2645,18 @@ router.post(
       metadata: { format: asHtml ? 'annexures_docx' : 'annexures_pdf', docType: doc.docType },
     });
 
+    // T-674 AC3 (R4): the title and file name never carry a court id.
+    const shownTitle = displayTitle(
+      doc.title,
+      doc.courtName,
+      await resolveCourtLabel(doc.courtName),
+    );
     if (html !== undefined) {
-      res.json({ title: doc.title, filename: annexuresFilename(doc.title, 'docx'), html });
+      res.json({ title: shownTitle, filename: annexuresFilename(shownTitle, 'docx'), html });
       return;
     }
 
-    const filename = annexuresFilename(doc.title, 'pdf');
+    const filename = annexuresFilename(shownTitle, 'pdf');
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Content-Length', pdfBuffer!.length);
