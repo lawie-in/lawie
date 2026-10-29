@@ -42,3 +42,12 @@ The existing v2 store (`apps/drafting/src/models/FactLedger.model.ts`, `services
 - Golden set: add 10 cassettes (description → expected candidates) under the existing golden-set harness; T-675/T-679 cases (invented/dropped facts) become the first ones.
 
 Anything not covered here follows the ADR; conflicts between this file and the ADR → ADR wins, tell Arjun.
+
+## 4. Five calls after Vishal's Explore (Arjun, 29 Oct 2026, 18:35 UTC)
+
+1. **Hints:** additive `extract_hint` on `RulePackFact` (rule-pack.service.ts) and in `temporary_injunction_o39.json` `restraint_sought`, read by `v3/extractor` through rule-pack.service only; `buildChecklist` / `extractLines` untouched. The JSON is legal content: hint text = Ajay's signed T-613 row 7 byte for byte; Ajay byte-checks the diff.
+2. **Flag:** numeric stage. New reader in `v3/` — `v3Stage(userId): 0 | 1 | 2 | 3` from AppSetting `feature.drafting_v3_stage` (default 0); per-user override only through the existing fixture mechanism; `isSwitchOn` unchanged; the fixture user is 0 unless the cassette sets a stage.
+3. **Timeout:** optional `{ signal?: AbortSignal }` on `callAuxModel` (aux-llm.ts), default undefined, no change for v2 callers; T-683's claim extends to aux-llm.ts and its test.
+4. **Turn wiring:** first call in `runBriefIntake`, then one per `POST /intake/brief/update` turn, stage ≥ 1 only. Caps are §2's only (6/run, 60/user/24 h); it does not consume `followUpsPerIntake` or the daily intake quota, but goes through the shared Anthropic limiter like every aux call.
+5. **Golden:** `extract: string | string[]` in scripts/golden-set/lib/types.ts + lib/modules.ts (a string = the same reply every turn, back-compat), 10 cassettes, all in T-683. Vishal owns types.ts/modules.ts; Kunal (T-684) owns run.ts model keys; Priya records the split; whoever lands second rebases.
+6. **`extractor_degraded`:** until T-685, the `llm_call` log only (stage `extract`, `status: 'degraded'`, reason code). T-685 adds the run-state field; no new field on Generation.model.ts in T-683.
