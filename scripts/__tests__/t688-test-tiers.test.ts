@@ -351,7 +351,15 @@ function expectNodeModulesCache(id: string, job: any): void {
     expect.arrayContaining(['node_modules', 'apps/*/node_modules', 'packages/*/node_modules']),
   );
   expect(String(c.with.key)).toContain("hashFiles('yarn.lock')");
-  expect(String(c.with['restore-keys'] ?? '').trim()).not.toBe('');
+  const key = String(c.with.key);
+  expect(key).toContain('${{ env.NODE_VERSION }}');
+  expect(key).not.toContain('node20');
+  const restoreLines = String(c.with['restore-keys'] ?? '')
+    .split('\n')
+    .map((x) => x.trim())
+    .filter(Boolean);
+  expect(restoreLines.length).toBeGreaterThan(0);
+  for (const line of restoreLines) expect(key.startsWith(line)).toBe(true);
   const install = steps.findIndex((s) => /yarn install/.test(String(s.run ?? '')));
   expect(idx).toBeLessThan(install);
 }
