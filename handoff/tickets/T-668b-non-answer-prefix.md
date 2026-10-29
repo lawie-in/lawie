@@ -1,6 +1,6 @@
 # T-668b — "Not known (…)" counts as a non-answer; doubled "the" fixed
 
-Status: building (vishal), 29 Oct 2026. Headline of v1.2.4. Source: Anushka run 5b on v1.2.3 (handoff/tickets/anushka-run5-prod-v1.2.2.md and the run 5b doc).
+Status: merged b1cd4f64, released v1.2.4 (main bcb5771). Anushka 5c FAIL on the declaration plaint → T-668c, strike 2: Arjun writes the exact fix (two-strike rule).
 
 ## Acceptance criteria
 1. Ajay AJ-668-M5/M5b/M5d/M5e: a party-name value that equals a non-answer, or begins with one as a whole word followed by a boundary, is a non-answer. This applies in every pack, including the O.39 party checks. Relief and restraint stay exact. It never matches inside a word or a real name ("Nilesh", "Nagendra", "Not Known Traders", "Na. Muthukumar").
