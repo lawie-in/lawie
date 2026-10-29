@@ -587,12 +587,13 @@ export async function createLedger(args: {
   ) {
     throw new LedgerNotFoundV3Error();
   }
-  const existing = await FactLedgerV3Model.findOne({ runId: args.runId, userId: args.userId });
-  if (existing)
-    return snapshotOf(existing, unseal(existing.versions[existing.versions.length - 1]));
+  // Checked first, so a hand-built `initial` is refused even for a run that already has a ledger.
   if (args.initial !== undefined && !BUILT_INITIAL_STATES.has(args.initial)) {
     throw new LedgerInitialStateError();
   }
+  const existing = await FactLedgerV3Model.findOne({ runId: args.runId, userId: args.userId });
+  if (existing)
+    return snapshotOf(existing, unseal(existing.versions[existing.versions.length - 1]));
   const initial = args.initial ?? { entries: [], nonAnswers: [] };
   try {
     const doc = await FactLedgerV3Model.create({
@@ -1125,7 +1126,7 @@ export async function recordNonAnswer(
   userId: string,
   expectedVersion: number,
   n: NonAnswer,
-  /** Defaults to the ledger's own pack checklist: the key is always checked. */
+  /** Narrows the ledger's own pack checklist (never widens it): the key must be on both. */
   checklist?: readonly ChecklistItem[],
 ): Promise<LedgerSnapshot> {
   const doc = await loadV3(ledgerId, userId);
@@ -1133,8 +1134,11 @@ export async function recordNonAnswer(
   if (doc.currentVersion !== expectedVersion) throw new LedgerVersionRaceError();
   const before = unseal(doc.versions[doc.versions.length - 1]);
   // A non-answer is only for a key of this pack's checklist; else dropped, nothing written.
-  const items = checklist ?? checklistOf(doc.packId);
-  if (!items.some((i) => isLedgerItem(i) && i.key === n.key)) {
+  // Narrow only: the key must be on the ledger's pack checklist and, when a
+  // checklist is passed, on that one too. A passed list never widens the pack.
+  const onList = (list: readonly ChecklistItem[]): boolean =>
+    list.some((i) => isLedgerItem(i) && i.key === n.key);
+  if (!onList(checklistOf(doc.packId)) || (checklist !== undefined && !onList(checklist))) {
     const dropped: DropCount = { not_on_list: 1 };
     logger.info({ ledgerId, version: doc.currentVersion, dropped }, 'T-682: non-answer dropped');
     return snapshotOf(doc, before);

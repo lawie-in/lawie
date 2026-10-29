@@ -194,6 +194,80 @@ describe('recordNonAnswer: the key must be on the checklist', () => {
   });
 });
 
+describe('recordNonAnswer: a passed checklist can only narrow', () => {
+  it('a WIDER list cannot add a key that is not on the pack checklist', async () => {
+    const info = jest.spyOn(logger, 'info').mockImplementation(() => logger);
+    const s = await freshLedger();
+    const wider = [...CHECKLIST, { ...CHECKLIST[0], key: 'zorblax_extra_key' }];
+    const r = await L.recordNonAnswer(
+      s.ledgerId,
+      USER_A,
+      s.version,
+      { key: 'zorblax_extra_key', kind: 'not_known', turn: 1 },
+      wider,
+    );
+    expect(r.version).toBe(s.version);
+    expect(r.nonAnswers).toHaveLength(0);
+    const doc = (await FactLedgerV3Model.findById(s.ledgerId).lean())!;
+    expect(doc.versions).toHaveLength(1);
+    const line = info.mock.calls.find((c) => JSON.stringify(c[0]).includes('not_on_list'))!;
+    expect((line[0] as { dropped: Record<string, number> }).dropped).toEqual({ not_on_list: 1 });
+    expect(JSON.stringify(info.mock.calls)).not.toContain('zorblax');
+  });
+
+  it('a narrower list still drops a pack key that is not on it; a key on both is recorded', async () => {
+    const s = await freshLedger();
+    const narrow = CHECKLIST.filter((i) => i.key === 'fir_number');
+    const dropped = await L.recordNonAnswer(
+      s.ledgerId,
+      USER_A,
+      s.version,
+      { key: 'antecedents', kind: 'not_known', turn: 1 },
+      narrow,
+    );
+    expect(dropped.version).toBe(s.version);
+    expect(dropped.nonAnswers).toHaveLength(0);
+    const ok = await L.recordNonAnswer(
+      s.ledgerId,
+      USER_A,
+      s.version,
+      { key: 'fir_number', kind: 'not_known', turn: 1 },
+      narrow,
+    );
+    expect(ok.nonAnswers.map((n) => n.key)).toEqual(['fir_number']);
+  });
+});
+
+describe('createLedger: the initial guard runs before the existing-ledger lookup', () => {
+  it('a hand-built initial for a run that already has a ledger throws and changes nothing', async () => {
+    const s = await freshLedger();
+    const doc0 = (await FactLedgerV3Model.findById(s.ledgerId).lean())!;
+    const handBuilt = {
+      entries: [
+        {
+          id: 'e1',
+          key: 'applicant_name',
+          label: 'Name',
+          type: 'text' as const,
+          status: 'held' as const,
+          value: 'Zorblax',
+          display: 'Zorblax',
+          origin: { source: 'asked' as const, quote: 'Zorblax', confidence: 1 },
+          requiredInDraft: true,
+        },
+      ],
+      nonAnswers: [],
+    };
+    await expect(
+      L.createLedger({ runId: s.runId, userId: USER_A, packId: PACK, initial: handBuilt }),
+    ).rejects.toBeInstanceOf(L.LedgerInitialStateError);
+    const doc1 = (await FactLedgerV3Model.findById(s.ledgerId).lean())!;
+    expect(doc1.versions).toHaveLength(doc0.versions.length);
+    expect(doc1.currentVersion).toBe(doc0.currentVersion);
+    expect(await FactLedgerV3Model.countDocuments({ runId: s.runId })).toBe(1);
+  });
+});
+
 describe('createLedger: initial only from importV2State / carryOverState', () => {
   const SECRET = 'Zorblax-secret-5521';
   const entry = (): LedgerEntry => ({
