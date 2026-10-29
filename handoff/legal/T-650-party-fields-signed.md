@@ -50,3 +50,5 @@ No other text, field or order change (C3). The tests use the placeholders `Test 
 - (3i) The t629 exception for exactly `plaint_partition#other_defendants` is accepted. T-661 removes it.
 
 - (3j) T-661 scope (Priya, 29 Oct 2026): the generic "<label> is required" on the form route, and the generic T-127 brief line for replication and written_statement, are acceptable. They name a signed field label, assert nothing about the law and block generation. No signed form-route lines are needed. Matching M1 for consistency is a UX call (Priya), not a legal requirement.
+
+**T-650 MERGED (Ajay, 29 Oct 2026): develop_staging merge SHA 622cc4b7.** Checked myself: it contains approved commit SHA 29b66b51, and the three pack JSON files have no diff from 29b66b51 to the merge.
