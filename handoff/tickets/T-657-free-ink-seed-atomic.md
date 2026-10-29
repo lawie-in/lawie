@@ -1,6 +1,6 @@
 # T-657 — Free 5 Ink seed must be atomic with its once-only marker
 
-Status: backlog (unassigned), PRIORITY. From Kunal's T-652 review, 28 Oct 2026. Ajay AJ-646-M9d: "nobody gets it twice or loses it".
+Status: assigned to kunal, 29 Oct 2026 (PRIORITY). Ajay AJ-657-M1: one-time backfill — every verified account with the once-only marker but no free_seed row gets its 5 Ink, own free_seed "backfill" row, no email; report count (ids only); dry-run first, run via Arjun/Nikhil.
 
 ## Problem
 In auth `grantSignupBonus`, setting the once-only marker (signupBonusGrantedAt) and seeding the free 5 Ink (inkTopup +10, inkledger free_seed) are two separate writes. If the DB fails between them, the marker is set but the user has NO free Ink, and no retry heals it.
