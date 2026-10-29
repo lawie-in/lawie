@@ -137,6 +137,14 @@ export class LedgerVersionTooLargeError extends Error {
   }
 }
 
+/** createLedger's `initial` was not made by importV2State / carryOverState. Fixed message. */
+export class LedgerInitialStateError extends Error {
+  constructor() {
+    super('ledger initial state must come from importV2State or carryOverState');
+    this.name = 'LedgerInitialStateError';
+  }
+}
+
 /** A sealed version that does not decrypt to a ledger state. Fixed message, no content. */
 export class LedgerSealedUnreadableError extends Error {
   constructor() {
@@ -168,6 +176,11 @@ export { LedgerFullError };
 function lastSegment(key: string): string {
   const at = key.lastIndexOf('.');
   return at < 0 ? key : key.slice(at + 1);
+}
+
+/** v2 readExtraction's rule: a non-number or non-finite confidence is 0; then clamped to [0, 1]. */
+function clampConfidence(v: unknown): number {
+  return typeof v === 'number' && Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 0;
 }
 
 function nfc(s: string): string {
@@ -556,6 +569,7 @@ export function viewForBrief(
  * `LedgerRunTakenError`. `initial` is version 1's state (empty, an `import_v2`
  * or a `kind_change` carry-over, see `importV2State` / `carryOverState`).
  */
+// T-685: the orchestrator must always pass `intakeId` (document erase reaches v3 ledgers through it).
 export async function createLedger(args: {
   runId: string;
   userId: string;
@@ -576,6 +590,9 @@ export async function createLedger(args: {
   const existing = await FactLedgerV3Model.findOne({ runId: args.runId, userId: args.userId });
   if (existing)
     return snapshotOf(existing, unseal(existing.versions[existing.versions.length - 1]));
+  if (args.initial !== undefined && !BUILT_INITIAL_STATES.has(args.initial)) {
+    throw new LedgerInitialStateError();
+  }
   const initial = args.initial ?? { entries: [], nonAnswers: [] };
   try {
     const doc = await FactLedgerV3Model.create({
@@ -606,12 +623,20 @@ export async function createLedger(args: {
   }
 }
 
+/** The only states `createLedger` accepts as `initial`: made by importV2State / carryOverState. */
+const BUILT_INITIAL_STATES = new WeakSet<LedgerSealedState>();
+
+function builtInitial(state: LedgerSealedState): LedgerSealedState {
+  BUILT_INITIAL_STATES.add(state);
+  return state;
+}
+
 /** A v2 ledger's current state as version 1 of a v3 ledger (`reason: 'import_v2'`). */
 export function importV2State(s: LedgerSnapshot): LedgerSealedState {
-  return {
+  return builtInitial({
     entries: s.entries.filter((e) => e.origin.source !== 'derived'),
     nonAnswers: [...s.nonAnswers],
-  };
+  });
 }
 
 /**
@@ -623,7 +648,7 @@ export function carryOverState(
   checklist: readonly ChecklistItem[],
 ): LedgerSealedState {
   const byKey = new Map(checklist.filter(isLedgerItem).map((i) => [i.key, i]));
-  return {
+  return builtInitial({
     entries: earlier.entries
       .filter((e) => e.status === 'held' && e.origin.source === 'asked' && byKey.has(e.key))
       .map((e) => {
@@ -635,7 +660,7 @@ export function carryOverState(
         };
       }),
     nonAnswers: earlier.nonAnswers.filter((n) => byKey.has(n.key)),
-  };
+  });
 }
 
 /** A non-answer's kind, by v2's own `isNoFactAnswer` (the "Not known" list is not copied here). */
@@ -734,6 +759,8 @@ export async function appendCandidates(
       drop('no_fact_answer');
       continue;
     }
+    // Round 3 (Arjun): confidence clamped once, by v2 readExtraction's rule; everything after trusts it.
+    const confidence = clampConfidence(c.confidence);
     const rows: Row[] = [];
     if (isMultiItem(item) && Array.isArray(c.value)) {
       for (const v of c.value) {
@@ -741,8 +768,8 @@ export async function appendCandidates(
         // A list item is its own words; a choice is its option, on the candidate's quote.
         rows.push(
           item.kind === 'choices'
-            ? { key: item.key, span, option: t, confidence: c.confidence }
-            : { key: item.key, span: nfc(t), confidence: c.confidence },
+            ? { key: item.key, span, option: t, confidence }
+            : { key: item.key, span: nfc(t), confidence },
         );
       }
     } else {
@@ -752,7 +779,7 @@ export async function appendCandidates(
         ...(typeof c.value === 'string' && (item.kind === 'choice' || item.kind === 'choices')
           ? { option: c.value }
           : {}),
-        confidence: c.confidence,
+        confidence,
       });
     }
     for (const r of rows) {
@@ -782,7 +809,10 @@ export async function appendCandidates(
   /**
    * The verified, distinct readings of one key: rows that passed the pipeline
    * above, re-read by the v2 normalizer from the located span (the option for
-   * a choice), at or above the type's floor. The rest are dropped as `unverified`.
+   * a choice). Only a reading the normalizer cannot read is dropped
+   * (`unverified`); every other is kept whatever its confidence (Arjun, round
+   * 3), so two real differing readings are a conflict. One value read twice
+   * keeps its higher confidence.
    */
   const verified = (key: string): ConflictCandidate[] => {
     const item = byKey.get(key) as ChecklistItem;
@@ -795,13 +825,14 @@ export async function appendCandidates(
         referenceYear(now),
         dates,
       );
-      if (!n.ok || r.confidence < CONFIDENCE_FLOORS[type]) {
+      if (!n.ok) {
         drop('unverified');
         continue;
       }
       const k = JSON.stringify(n.value);
       const src = rowSource.get(r) as LedgerCandidate['source'];
-      if (!out.has(k)) {
+      const had = out.get(k);
+      if (!had || r.confidence > had.confidence) {
         out.set(k, {
           value: n.value,
           display: n.display,
@@ -830,8 +861,10 @@ export async function appendCandidates(
       candidates: cs,
     };
   };
-  // Keys with two values (readExtraction) or a reported conflict: a conflict
-  // only with two or more distinct verified readings; one is held; none stays unresolved.
+  // Keys with two values (readExtraction) or a reported conflict: two or more
+  // distinct verified readings are a conflict; one is held at or above its
+  // type's floor, else unresolved `low_confidence` (never held); none leaves
+  // what v2 `read` produced.
   const twoValues = new Set(
     read.unresolved.filter((u) => u.reason === 'conflicting_values').map((u) => u.key),
   );
@@ -846,6 +879,24 @@ export async function appendCandidates(
     const others = fresh.entries.filter((e) => e.key !== key);
     if (cs.length >= 2) {
       fresh.entries = [...others, conflictOf(key, cs)];
+    } else if (cs.length === 1 && cs[0].confidence < CONFIDENCE_FLOORS[factTypeFor(item)]) {
+      const v = cs[0];
+      fresh.entries = [
+        ...others,
+        {
+          ...fromV2Unresolved({
+            id: crypto.randomUUID(),
+            key,
+            label: item.label,
+            type: factTypeFor(item),
+            raw_span: v.source.quote,
+            source: answer ? 'asked' : 'user',
+            reason: 'low_confidence',
+            detail: LEDGER_DETAILS.low_confidence,
+          }),
+          origin: origin(v.source.quote, v.confidence),
+        },
+      ];
     } else if (cs.length === 1) {
       const v = cs[0];
       fresh.entries = [
@@ -863,20 +914,9 @@ export async function appendCandidates(
         },
       ];
     } else if (twoValues.has(key)) {
+      // None verified: v2's own unresolved item, unchanged.
       const u = read.unresolved.find((x) => x.key === key && x.reason === 'conflicting_values');
-      if (u) {
-        fresh.entries = [
-          ...others,
-          {
-            ...fromV2Unresolved({
-              ...u,
-              reason: 'low_confidence',
-              detail: LEDGER_DETAILS.low_confidence,
-            }),
-            origin: origin(u.raw_span, 0),
-          },
-        ];
-      }
+      if (u) fresh.entries = [...others, { ...fromV2Unresolved(u), origin: origin(u.raw_span, 0) }];
     }
   }
   for (const key of result.nonAnswers) {
@@ -1007,6 +1047,8 @@ function merge(
  * v2's own `applyEdit` (normalizer, non-answers, lists, unreadable values).
  * An answer to a conflict closes it (`conflict_resolved`); an unreadable one
  * leaves it open. A non-answer is recorded as a `NonAnswer` (AJ-655-M1).
+ * T-685: an empty text clears the key and closes its conflict, deliberately
+ * (as a v2 empty edit clears the fact and any doubt about it).
  */
 export async function applyUserEdit(
   ledgerId: string,
@@ -1083,11 +1125,20 @@ export async function recordNonAnswer(
   userId: string,
   expectedVersion: number,
   n: NonAnswer,
+  /** Defaults to the ledger's own pack checklist: the key is always checked. */
+  checklist?: readonly ChecklistItem[],
 ): Promise<LedgerSnapshot> {
   const doc = await loadV3(ledgerId, userId);
   if (!doc) throw new LedgerNotFoundV3Error();
   if (doc.currentVersion !== expectedVersion) throw new LedgerVersionRaceError();
   const before = unseal(doc.versions[doc.versions.length - 1]);
+  // A non-answer is only for a key of this pack's checklist; else dropped, nothing written.
+  const items = checklist ?? checklistOf(doc.packId);
+  if (!items.some((i) => isLedgerItem(i) && i.key === n.key)) {
+    const dropped: DropCount = { not_on_list: 1 };
+    logger.info({ ledgerId, version: doc.currentVersion, dropped }, 'T-682: non-answer dropped');
+    return snapshotOf(doc, before);
+  }
   const after = withNonAnswer(before, n);
   if (changedKeys(before, after).length === 0) return snapshotOf(doc, before);
   const updated = await append(doc, expectedVersion, before, after, 'answer');

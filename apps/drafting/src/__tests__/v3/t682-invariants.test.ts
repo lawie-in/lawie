@@ -11,7 +11,7 @@ import { FactLedgerV3Model } from '../../models/FactLedgerV3.model';
 import { _clearAppSettingsCache } from '../../services/app-settings.service';
 import { createLedger as createV2Ledger } from '../../services/fact-ledger.service';
 import * as L from '../../services/v3/ledger.service';
-import type { LedgerEntry } from '../../services/v3/ledger.types';
+import type { LedgerEntry, LedgerSnapshot } from '../../services/v3/ledger.types';
 import {
   ARREST,
   CHECKLIST,
@@ -563,7 +563,7 @@ describe('limits', () => {
         runId,
         userId: USER_A,
         packId: PACK,
-        initial: { entries: [big], nonAnswers: [] },
+        initial: L.importV2State({ entries: [big], nonAnswers: [] } as unknown as LedgerSnapshot),
       }),
     ).rejects.toBeInstanceOf(L.LedgerVersionTooLargeError);
     expect(await FactLedgerV3Model.countDocuments({ runId })).toBe(0);

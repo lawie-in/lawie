@@ -7,7 +7,7 @@
 import '../setupDb';
 import { FactLedgerV3Model } from '../../models/FactLedgerV3.model';
 import * as L from '../../services/v3/ledger.service';
-import type { LedgerEntry, LedgerCandidate } from '../../services/v3/ledger.types';
+import type { LedgerCandidate, LedgerEntry, LedgerSnapshot } from '../../services/v3/ledger.types';
 import { encrypt } from '../../utils/encryption';
 import {
   ARREST,
@@ -76,7 +76,7 @@ describe('MUST-FIX 1: conflict readings go through the same pipeline as held val
     expect(r.dropped.span_not_found).toBe(1);
   });
 
-  it('dropped candidates (span_not_found, no_span, over 200 chars, below floor) never reappear in a conflict', async () => {
+  it('dropped candidates (span_not_found, no_span, over 200 chars, below floor) never reappear in a conflict; a below-floor real reading is kept (round 3)', async () => {
     const long = `11.10.2026 ${'x'.repeat(200)}`;
     const text = `Arrested 10.10.2026 or 11.10.2026 or 12.10.2026 ${'x'.repeat(200)}`;
     const { r } = await viaConflicts(text, [
@@ -90,12 +90,19 @@ describe('MUST-FIX 1: conflict readings go through the same pipeline as held val
     const e = of(r.s.entries, 'arrest_date');
     expect(e).toHaveLength(1);
     expect(e[0].status).toBe('conflict');
-    expect(e[0].candidates).toHaveLength(2);
-    expect(e[0].candidates!.map((c) => c.value).sort()).toEqual(['2026-10-10', '2026-10-11']);
+    // round 3: the 0.05 reading of a text-present value is a real third reading, kept with its own confidence
+    expect(e[0].candidates).toHaveLength(3);
+    expect(e[0].candidates!.map((c) => c.value).sort()).toEqual([
+      '2026-10-10',
+      '2026-10-11',
+      '2026-10-12',
+    ]);
+    expect(e[0].candidates!.find((c) => c.value === '2026-10-12')!.confidence).toBe(0.05);
     expect(r.dropped.span_not_found).toBe(1);
     expect(r.dropped.no_span).toBe(2);
-    expect(r.dropped.unverified).toBe(1);
-    expect(JSON.stringify(e[0])).not.toContain('2026-10-12');
+    expect(r.dropped.unverified).toBeUndefined();
+    expect(JSON.stringify(e[0])).not.toContain('2026-10-13');
+    expect(JSON.stringify(e[0])).not.toContain('2026-10-14');
     expect(JSON.stringify(e[0])).not.toContain('invented');
   });
 
@@ -148,14 +155,23 @@ describe('MUST-FIX 1: conflict readings go through the same pipeline as held val
     expect(of(r.s.entries, 'arrest_date').map((x) => x.status)).toEqual(['held']);
   });
 
-  it('no verified reading is unresolved low_confidence with v2 detail line, not a conflict', async () => {
+  it('two real differing readings, both below the floor, are a conflict now (round 3), not unresolved', async () => {
     const { r } = await viaConflicts(TEXT, [D10({ confidence: 0.05 }), D11({ confidence: 0.05 })]);
     const e = of(r.s.entries, 'arrest_date');
     expect(e).toHaveLength(1);
-    expect(e[0]).toMatchObject({ status: 'unresolved', reason: 'low_confidence' });
-    expect(e[0].detail).toBe(
-      (await import('../../services/fact-ledger.service')).LEDGER_DETAILS.low_confidence,
-    );
+    expect(e[0].status).toBe('conflict');
+    expect(e[0].candidates).toHaveLength(2);
+    expect(e[0].candidates!.every((c) => c.confidence === 0.05)).toBe(true);
+    expect(r.dropped.unverified).toBeUndefined();
+  });
+
+  it('no reading the normaliser can read: nothing held, no conflict, both counted unverified', async () => {
+    const { r } = await viaConflicts('Arrested some day last month or maybe a week ago.', [
+      cand('arrest_date', '2026-10-10', 'some day last month'),
+      cand('arrest_date', '2026-10-11', 'a week ago'),
+    ]);
+    const e = of(r.s.entries, 'arrest_date');
+    expect(e.some((x) => x.status === 'held' || x.status === 'conflict')).toBe(false);
     expect(r.dropped.unverified).toBe(2);
   });
 
@@ -340,6 +356,10 @@ describe('SHOULD-FIX 1: an answer of only unresolved readings leaves a conflict 
   });
 });
 
+/** A big initial state, built the only accepted way: importV2State. */
+const bigInitial = (big: LedgerEntry) =>
+  L.importV2State({ entries: [big], nonAnswers: [] } as unknown as LedgerSnapshot);
+
 describe('SHOULD-FIX 2: the whole-document sealed budget', () => {
   it('is 12 MB and the per-version guard stays 2 MB', () => {
     expect(L.LEDGER_V3_MAX_DOC_SEALED_BYTES).toBe(12 * 1024 * 1024);
@@ -362,7 +382,7 @@ describe('SHOULD-FIX 2: the whole-document sealed budget', () => {
       runId: newRun(),
       userId: USER_A,
       packId: PACK,
-      initial: { entries: [big], nonAnswers: [] },
+      initial: bigInitial(big),
     });
     const keys = [
       'antecedents',
