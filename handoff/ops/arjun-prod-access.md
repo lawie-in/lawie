@@ -328,3 +328,10 @@ Rule from now on:
 - Nikhil learns of the merge from Priya (merge SHA + release tag in his chat) or from his own scheduled check of `origin/main`; either way he verifies the SHA is a `release/*` merge on `main` before deploying — a direct push to main or a hotfix branch is NOT covered and still needs the founder's go in his chat.
 - Deploy per the current runbook: `deploy,branch=main` → health → logs → external curls → report to Arjun; rollback point = previous main.
 - Everything else on prod (env lines, seeds, document changes beyond read-only actions) still needs the founder's go in Nikhil's chat.
+
+### SSM version 18 (29 Oct 2026, 19:14 UTC, Nikhil): Active, NOT default
+Asked by Arjun at 19:09 UTC (CFO's Opus-vs-Sonnet decision). JSON: `handoff/ops/runbooks/lawie-prod-ops-v18.json`. The only change from v17, besides the description, is the new action `token-stats`, which takes no params. It runs as ubuntu with the env loaded like deploy, from `apps/drafting`.
+- **Part 1, logs:** reads `lawie-drafting-out-N.log` `event=llm_call` records. For the last 24 h and last 7 d, grouped by stage | call | model, it prints count plus mean/p50/p95 of the 4 token fields, and the earliest record time.
+- **Part 2, generations:** reads completed, non-fixture rows (projection: runId, the 4 token totals, llmCalls, calls.sectionId). It prints per-draft mean/p50/p95, how many runs have more than one row, and how many drafts repeat a sectionId call (a retry or repair proxy).
+- **Output:** numbers and stage/call/model names only. The JS was tested locally on saved log samples (the log part).
+- **Running it:** default stays 13; run pinned with `--document-version 18`.
