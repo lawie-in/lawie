@@ -6,11 +6,34 @@ Read this before touching `apps/auth/src/services/credit-bonus.service.ts`, `app
 
 Since T-652 (Ajay AJ-646-M9b and AJ-646-M9c, 28 Oct 2026) no code path adds to `earnedCredits`: no daily login +2, no rating +1, no signup +5. Reason: DPDP purpose limitation. Users were never offered these credits, so the processing had no stated purpose.
 
-- Existing `earnedCredits` and `lastLoginBonusAt` values stay in the User documents. They are hidden, unspendable and not mentioned anywhere in the UI.
-- `spendCredits` (`apps/drafting/src/services/credits.service.ts`) has no callers. Never add one.
+- Existing `earnedCredits` and `lastLoginBonusAt` values stay in the User documents. They are hidden, guarded against spending (see "The earnedCredits spend guard (T-653)" below) and not mentioned anywhere in the UI.
+- `spendCredits` (`apps/drafting/src/services/credits.service.ts`) still has no callers and is a legacy path: drafts are paid in Ink (`holdInk` / `settleInk`, `releaseInk` on failure). Do not add a caller.
 - Signing in grants nothing and writes no `creditledger` row.
 - Clearing down existing `earnedCredits` is not built. If wanted, it is a separate script, dry-run first, run through Arjun and Nikhil.
-- Any future bonus scheme goes to Ajay first (AC5) for its offer and terms.
+- No signed bonus scheme exists. Any future bonus scheme goes to Ajay first (AC5, AJ-646-M9c) for its offer and terms.
+
+## The earnedCredits spend guard (T-653)
+
+Ajay AJ-646-M9c / AC3. `spendCredits` and `grantCredits` (`apps/drafting/src/services/credits.service.ts`) REFUSE the `earnedCredits` bucket with the typed `EarnedCreditsSpendDisabledError` (`code` `earned_credits_spend_disabled`) unless the env flag `EARNED_CREDITS_SPEND_ENABLED` is exactly the string `true`.
+
+- The flag is env-only (`apps/drafting/src/config/env.ts`): no AppSetting, no admin override. Off by default, and `.env.example` carries it as `false`. Read at call time (`isEarnedSpendEnabled`).
+- Fail-closed parse: unset, `''`, `TRUE`, `1`, `yes` or anything else is off. An odd value never stops boot.
+- Keep it off. It may be turned on only after Ajay has signed an offer and terms for a bonus scheme (none exists).
+- `grantCredits` throws the same error for the `earnedCredits` bucket with the flag off, before any write (checked after the `amount > 0` check).
+- Check order in `spendCredits` with the flag off. The amount must be > 0 first, then:
+  1. total (topup + earned + sub) < amount: `InsufficientCreditsError`, with `available` = topup + sub (earned is never reported).
+  2. else, if the plan (order topup, earned, sub) would take anything from earned: the typed refusal, before any write (all or nothing).
+  3. else a normal spend.
+- Consequence (deliberate; there are no callers): with earned > 0 and topup smaller than the amount, a spend is refused even when topup + sub could pay.
+- Debits are guarded (`$gte` per bucket). If one matches nothing (a concurrent drain), the debits already made in the call are re-credited, best effort, and `InsufficientCreditsError` is thrown. Ledger rows are written only after all debits have landed.
+
+Known limits:
+
+- A crash between debits leaves the earlier debits without a ledger row.
+- A debit the server applied but the driver reported as an error is not re-credited.
+- `NaN` passes the `amount <= 0` check and writes nothing. Non-finite amount hardening is a separate follow-up.
+- `getCreditBalance().total` still includes `earnedCredits`, and the 402 body from `enforceCredits` includes `balance.earnedCredits`. This is T-664, a separate ticket.
+- The source-scan test in `apps/drafting/src/__tests__/t653-earned-credits-guard.test.ts` only walks `*/src`. A future writer under `apps/*/scripts` would escape it (follow-up).
 
 ## Credit ledger (`creditledger`)
 
