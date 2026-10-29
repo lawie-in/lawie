@@ -1,6 +1,6 @@
 # T-679 — Given facts dropped or not read: party names, valuations, addresses, notices (Anushka Majors)
 
-Status: backlog. Source: Anushka run 5, prod v1.2.2, 29 Oct 2026 (handoff/tickets/anushka-run5-prod-v1.2.2.md). FAIL verdict.
+Status: PAUSED, folded into drafting v3 Phase 1 as an acceptance case (founder re-plan via Arjun, 29 Oct 2026). Branch kept.
 
 ## Acceptance criteria
 1. Party names stated in the description are read (declaration and both partitions asked "Needed to continue"). A court name is never pre-filled as a party.

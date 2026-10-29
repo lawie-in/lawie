@@ -80,3 +80,27 @@ Case, FIR and WP numbers, phone numbers, ID numbers and stray years (not after `
 **Tests:** the five titles Priya listed, the three limits above, and one each of a stray year and an FIR number (dropped). **Byte check on the new SHA.**
 
 I am not checking the section numbers in the examples here. They come from the user's label, and cleanLabel neither adds nor changes numbers.
+
+## T-677 rework, complete ruling (Ajay, 29 Oct 2026, on commit SHA 5a0998a2): NOT approved yet
+
+`cleanLabel` names the document kind. Its digit guard exists so that no case, FIR, phone or ID number (including 5+ digit runs) is ever carried into the name. Every rule below keeps that guard. One rule, all cases:
+
+1. **The safety net never restores a dropped digit.** Returning the raw label (`original`) is not allowed: it brings back `Section 123456`, `138/2024` and any ID or phone number.
+   - When the cleaned label dangles, repair the cleaned label instead. At each dangling spot, delete the orphan connector, and the orphan code/Act token with it where there is one. Then trim trailing connectors and the words `under`, `u/s`, `of`.
+   - Examples: `…482 CrPC / BNSS` → `…482 CrPC`; `IPC 302 and` → `IPC 302`; `Arbitration Act,` → `Arbitration Act`; `Petition under Section` → `Petition`.
+   - If the repaired label is still dangling or empty, use `Document`.
+   - Since the kept/dropped rules for digits are unchanged, this can only remove text, never add a digit.
+2. **A year right after `Act` is kept whatever the length of the Act's name** (as already ruled). Example: `Protection of Women from Domestic Violence Act, 2005` and `Domestic Violence Act 2005` both keep 2005. The year rule keys on the word `Act`, not on the 3-word name pattern, which is only for numbers *before* an Act.
+3. **A year after a code token with a comma is kept:** `CPC, 1908`, `CrPC, 1973`, `IPC, 1860`, `BNSS, 2023`, `BNS, 2023`, `BSA, 2023`. The year is 4 digits, between 1800 and 2099, after `<code>,`. Without a comma, a number after a code token stays a provision chain, as built.
+4. **Unchanged:** provision numbers per 250b5379. Case, FIR, W.P., phone and ID numbers and stray years are dropped. The 80-character cap applies.
+
+**Tests (each one an exact expected output):**
+- (1) `Section 123456 petition` → `Section petition` repaired to `petition`, or `Document`. It must not contain `123456`.
+- (1) `Complaint u/s 138/2024 NI Act` must not contain `2024`.
+- (1) `IPC 123/2024 case` must not contain `2024`.
+- (1) A 10-digit phone number and a 12-digit ID inside a label never survive.
+- (2) both Domestic Violence forms keep 2005.
+- (3) `Appeal under Section 96 CPC, 1908` → kept whole.
+- The five titles from the earlier ruling stay as they are.
+
+**Byte check on the new SHA.**

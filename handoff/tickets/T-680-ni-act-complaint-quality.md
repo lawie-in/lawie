@@ -1,6 +1,6 @@
 # T-680 — NI Act s.138 complaint: limitation warning, s.142 jurisdiction, no CrPC/BNSS mix (Anushka Major)
 
-Status: backlog. Source: Anushka run 5, prod v1.2.2, 29 Oct 2026 (handoff/tickets/anushka-run5-prod-v1.2.2.md). FAIL verdict.
+Status: PAUSED, folded into drafting v3 Phase 1 as an acceptance case (founder re-plan via Arjun, 29 Oct 2026). Branch kept.
 
 ## Acceptance criteria
 1. Notice served 23.08.2026, so the complaint was due by about 08.10.2026: show a limitation warning (Ajay's wording) when the complaint looks out of time.

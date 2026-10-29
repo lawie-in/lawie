@@ -8,5 +8,9 @@ Status: backlog (unassigned). The rest of Ajay's AJ-668-M1 ("every pack"), 29 Oc
 3. A test per pack: a non-answer blocks, a real name passes, and nothing prints the literal non-answer.
 4. Legal content: Ajay byte-checks before merge.
 
+4. Ajay additions (29 Oct): the Hindi danda (।) is a boundary like "."; Latin Hinglish non-answers (pata nahi, maloom nahi, …); M5 also applies on the guided-brief Confirm.
+
 ## Mode
 Small fix (drafting, plus web BriefStep if the screen needs it), legal content. Known gap until merged (AJ-668-M1).
+
+- Ajay, 29 Oct 2026 (f0f0a5b5): add the first_party override line to the T-127 doc copy: "Add the name of the person this document is for, to continue."

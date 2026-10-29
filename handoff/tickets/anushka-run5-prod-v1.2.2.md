@@ -111,3 +111,36 @@ Would I use this on a real matter today? No: one common civil plaint still lets 
 ```
 
 Arjun: T-668 passes 6/7; the miss is "Not known (…)" with a parenthetical — exact-match non-answer check. T-668b leads v1.2.4; T-665 re-opened as T-665b (custody still blank).
+
+# Anushka run 5c — production v1.2.4, headline T-668b re-check (29 Oct 2026, 14:37–15:10 UTC)
+
+Verbatim from session_01BmgAoYMpkTNwnBnT9k1DWA; scope = T-668b headline + smoke; 2 drafts.
+
+```
+VERDICT: FAIL
+Tested: https://lawie.in (prod, v1.2.4) · 29 Oct 2026, 14:37–~15:10 UTC · same test account, 48 Ink at start, 44 at end · 1280 wide
+
+Scenarios
+| # | What I did | Expected | What happened | Result |
+| 1 | Declaration (Gorakhpur), description "Defendant: Not known (a person claiming through a forged sale deed…)"; brief defendant left as the app read it | Asked for the name; Confirm blocked; no Ink | Form asked "…or should the defendant be shown only as unknown?" Brief defendant "Defendant: Not known"; no "to continue" line; Confirm enabled ("Uses 2 Ink"). No draft made | Fail |
+| 2 | Same suit, typed "Not known (a person claiming through a forged sale deed dated 12.02.2025)" into the brief defendant box | Blocked until a name is given | Line shows while the box is being filled: "Add the name of the person or authority this is against or addressed to, to continue." After clicking elsewhere it disappears; Confirm goes through. Draft made, 2 Ink spent (48 to 46). Heading "[To be confirmed: name and address of defendant] (a person claiming through a forged sale deed dated 12.02.2025) ...Defendant" | Fail |
+| 3 | Recovery suit, defendant "Not Known Traders, a partnership firm" | Passes as a real name | Accepted; Confirm enabled; form asked for the partner's name (fair) | Pass |
+| 4 | Eviction (Ranchi), form answer for tenant "Not known (the man running the shop, name to be checked)" | Asked again; blocked before Ink | Brief defendant empty; "Add the name of the person or authority this is against or addressed to, to continue."; Confirm disabled | Pass |
+| 5 | Wording of the "add the name" line | No "the the" | "Add the name of the person or authority this is against or addressed to, to continue." | Pass |
+| 6 | Smoke: sign in, regular bail (Mumbai), PDF export | Draft + real PDF | Signed in; para 3 "The applicant was arrested on 10 October 2026 and is now in judicial custody."; PDF 49,033 B, starts "%PDF"; 2 Ink | Pass |
+
+Findings
+- Major "Not known (…)" defendant in a declaration plaint still gets through, and Ink is charged.
+  - Typed into the brief: the block line appears while typing, then vanishes once the box loses focus, and Confirm drafts (2 Ink).
+  - Read from the description ("Defendant: Not known"): no block at all.
+  - The form itself offers "should the defendant be shown only as unknown?", which invites the outcome the release is meant to stop.
+  - Steps: New document → "Suit for declaration… Defendant: Not known (a person claiming through a forged sale deed dated 12.02.2025…)" → answer "Not known" on the form → choose any court → Confirm (or type the same in the brief box, click elsewhere, Confirm).
+  - "Not known" itself does not print in the heading; the verification was not reread.
+- Fixed since v1.2.3: "the the" wording; bail now states arrest date and custody.
+
+Not tested: written statement, replication and partition "Not known (…)" in this release (passed in v1.2.3 with plain "Not known"); phone width (not asked). Drafts used: 2 of 2 (one to prove scenario 2, one smoke).
+
+Would I use this on a real matter today? No: a declaration suit against an unnamed defendant still goes through and is charged before the name is asked for.
+```
+
+Arjun: third round on the same item. The declaration path differs from eviction (which blocks): the brief's block line is client-side and clears on blur, and the server accepts the confirm. Custody (T-665b) is fixed by the smoke evidence.
