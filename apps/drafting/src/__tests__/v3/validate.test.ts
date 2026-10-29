@@ -1022,24 +1022,99 @@ describe('T-683 validate: type and range rejection, and the closed key list', ()
     expect(neg.result.candidates).toEqual([]);
   });
 
-  it('a choice must be one of the allowed values', () => {
-    const d = 'The investigation is still going on.';
+  it('a choice is read only when the quote names its label, and must be an allowed value', () => {
+    const d = 'The matter is Under investigation as of now.';
     const ok = run(
+      'bail_regular',
+      {
+        facts: [
+          {
+            key: 'investigation_status',
+            value: 'Under investigation',
+            quote: 'Under investigation',
+          },
+        ],
+      },
+      { description: d },
+    );
+    expect(valueOf(ok, 'investigation_status')).toBe('Under investigation');
+    // Case and spacing are folded.
+    const folded = run(
+      'bail_regular',
+      {
+        facts: [
+          {
+            key: 'investigation_status',
+            value: 'Under investigation',
+            quote: 'matter is under  investigation',
+          },
+        ],
+      },
+      { description: 'The matter is under  investigation as of now.' },
+    );
+    expect(valueOf(folded, 'investigation_status')).toBe('Under investigation');
+    // A quote that does not name the label gives no fact: the key is asked.
+    const unnamed = run(
       'bail_regular',
       {
         facts: [
           { key: 'investigation_status', value: 'Under investigation', quote: 'still going on' },
         ],
       },
-      { description: d },
+      { description: 'The investigation is still going on.' },
     );
-    expect(valueOf(ok, 'investigation_status')).toBe('Under investigation');
+    expect(unnamed.result.candidates).toEqual([]);
+    expect(unnamed.result.unresolved).toEqual(['investigation_status']);
+    // A value that is not an option is rejected.
     const bad = run(
       'bail_regular',
-      { facts: [{ key: 'investigation_status', value: 'Almost done', quote: 'still going on' }] },
+      {
+        facts: [
+          { key: 'investigation_status', value: 'Almost done', quote: 'Under investigation' },
+        ],
+      },
       { description: d },
     );
     expect(bad.result.candidates).toEqual([]);
+  });
+
+  it('a whole-word match only: a label inside another word is not named', () => {
+    const out = run(
+      'bail_regular',
+      { facts: [{ key: 's35_notice_status', value: 'Served', quote: 'Unserved notice' }] },
+      { description: 'Unserved notice is the position.' },
+    );
+    expect(out.result.candidates).toEqual([]);
+  });
+
+  it('नहीं for named_in_fir (Yes / No / Not known) gives No; haan gives Yes', () => {
+    const no = run(
+      'bail_regular',
+      { facts: [{ key: 'named_in_fir', value: 'No', quote: 'नहीं', source: 'answer', turn: 1 }] },
+      { answers: [{ turn: 1, askedKeys: ['named_in_fir'], text: 'नहीं' }] },
+    );
+    expect(valueOf(no, 'named_in_fir')).toBe('No');
+    const yes = run(
+      'bail_regular',
+      { facts: [{ key: 'named_in_fir', value: 'Yes', quote: 'haan', source: 'answer', turn: 1 }] },
+      { answers: [{ turn: 1, askedKeys: ['named_in_fir'], text: 'haan' }] },
+    );
+    expect(valueOf(yes, 'named_in_fir')).toBe('Yes');
+  });
+
+  it('named_in_fir: a signed word with the opposite value, or no signed word, gives no fact', () => {
+    const flipped = run(
+      'bail_regular',
+      { facts: [{ key: 'named_in_fir', value: 'Yes', quote: 'नहीं', source: 'answer', turn: 1 }] },
+      { answers: [{ turn: 1, askedKeys: ['named_in_fir'], text: 'नहीं' }] },
+    );
+    expect(flipped.result.candidates).toEqual([]);
+    const none = run(
+      'bail_regular',
+      { facts: [{ key: 'named_in_fir', value: 'No', quote: 'FIR names unknown persons' }] },
+      { description: 'The FIR names unknown persons only.' },
+    );
+    expect(none.result.candidates).toEqual([]);
   });
 
   it('a court or an always-asked date is never read from the description', () => {
@@ -1173,5 +1248,44 @@ describe('T-683 validate: derived keys are not read from the model (Arjun T-683 
       { description: 'Sample Person 1 is in judicial custody since 05.03.2026.' },
     );
     expect(valueOf(out, 'custody_since')).toBe('2026-03-05');
+  });
+});
+
+describe('T-683 validate: yes/no only from the user own words (T-675)', () => {
+  const key = 'set_off_claim';
+  const ws = (quote: string, value: string, text = quote) =>
+    run('written_statement', { facts: [{ key, value, quote }] }, { description: text });
+
+  it('"The defendant denies the plaint" gives no set_off_claim, and the key is unresolved', () => {
+    const out = ws('The defendant denies the plaint', 'Yes');
+    expect(out.result.candidates).toEqual([]);
+    expect(out.result.unresolved).toEqual([key]);
+    expect(ws('The defendant denies the plaint', 'No').result.candidates).toEqual([]);
+  });
+
+  it('a quote with both sides gives no fact', () => {
+    const out = ws('haan lekin nahi', 'No');
+    expect(out.result.candidates).toEqual([]);
+    expect(out.result.unresolved).toEqual([key]);
+  });
+
+  it('"pata nahi" gives no fact', () => {
+    const out = ws('pata nahi', 'No');
+    expect(out.result.candidates).toEqual([]);
+    expect(out.result.unresolved).toEqual([key]);
+  });
+
+  it('a signed word with the matching value gives a fact', () => {
+    expect(valueOf(ws('nahi', 'no'), key)).toBe('No');
+    expect(valueOf(ws('haan', 'yes'), key)).toBe('Yes');
+    expect(valueOf(ws('ji haan', 'yes'), key)).toBe('Yes');
+    expect(valueOf(ws('koi nahi', 'no'), key)).toBe('No');
+    expect(valueOf(ws('No', 'no'), key)).toBe('No');
+  });
+
+  it('a signed word with the opposite value gives no fact', () => {
+    expect(ws('nahi', 'yes').result.candidates).toEqual([]);
+    expect(ws('haan', 'no').result.candidates).toEqual([]);
+    expect(ws('Yes', 'no').result.candidates).toEqual([]);
   });
 });
