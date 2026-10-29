@@ -303,3 +303,18 @@ Asked by Arjun at 10:08 UTC (Ajay, AJ-668-M4). JSON: `handoff/ops/runbooks/lawie
 - Params are passed as argv and re-validated in the JS. On error it prints only the error name.
 - The default stays 13 (the flip was blocked at 10:05 and not retried); run it pinned with `--document-version 15`.
 - Shorthand `--parameters` splits on commas, so send one template per call or use the JSON `--parameters` form for a list.
+
+### SSM version 16 (29 Oct 2026, 11:28 UTC, Nikhil): Active, NOT default
+Asked by Arjun at 11:27 UTC (T-681). JSON: `handoff/ops/runbooks/lawie-prod-ops-v16.json`. The only change from v15, besides the description, is the new action `generation-latency`, which takes no params.
+- Runs as ubuntu with the env loaded like deploy, from `apps/drafting`.
+- A `node -e` mongoose aggregate on `generations` only, for createdAt in the last 24 h and in the last 7 d.
+- Grouped by templateId + status, it prints count, how many rows have durationMs, and nearest-rank p50/p95 of `durationMs`. Numbers and template names only.
+- Default stays 13; run it pinned with `--document-version 16`.
+
+### SSM version 17 (29 Oct 2026, 11:33 UTC, Nikhil): Active, NOT default
+Asked by Arjun at 11:29 UTC (T-678). JSON: `handoff/ops/runbooks/lawie-prod-ops-v17.json`. The only change from v16, besides the description, is the new action `log-window` with params `since` (existing ISO pattern; refused at default) and `runid` (UUID pattern). It reads the files directly as ubuntu, without loading any env:
+- **Files:** `/home/ubuntu/.pm2/logs/lawie-drafting-{out,error}-N.log` only.
+- **JSON lines with `time` within ±5 s of `since`:** prints the time plus a whitelist of keys (level, event, stage, call, status, stop_reason, runId, code, verdict, gate, gateCode, outcome, reason, model, templateId, kind, msg). A value is printed only if it is a number or boolean, or a string of 60 chars or less with at most two spaces. `err` is reduced to its type or name and code.
+- **Plain lines that contain `runid`:** printed only through the first `(k=v, …)` group, with any other text replaced by `<text>` and quoted strings by `<q>`.
+- **Testing:** the JS was tested locally on saved prod log samples before publishing.
+- **Running it:** default stays 13; run pinned with `--document-version 17`.
