@@ -126,3 +126,32 @@ A) All llm_call records: 24 h — haiku-5-5 × intake 109 · 373,500 · 104,770 
 B) generations (aiModel × origin × status; rows · llmCalls · in · out · cw · cr): 24 h — sonnet user completed 14 · 18 · 53,267 · 22,309 · 16,835 · 9,937 | failed 2 · 6 · 29,479 · 9,244 · 5,642 · 5,642. MTD — completed 20 · 27 · 85,544 · 30,639 · 30,682 · 14,221 | failed 2 · 6 · 29,479 · 9,244 · 5,642 · 5,642 | no-model failed 2 (instant vakalatnama failures). Fixture rows: 0.
 Caveats: llm_call has no user/run fields (smoke-account calls can't be excluded from A); B could exclude the smoke account by userId but Nikhil doesn't read userIds — Vikram treats MTD as "all prod usage incl. the founder's/Anushka's test drafts" (≈ all of it, pre-customers). Body calls A 33 vs B 35 differ by 2 (log start).
 Price correction (Vikram, pricing page 29 Oct): Sonnet 5.5 cache read is **$0.10**/MTok (the skill table's 0.20 is wrong); Opus = exactly 2× Sonnet on every class.
+
+### 7b. Vikram on §2a (prod, 29 Oct ~19:40 UTC): verified, three corrections
+
+**Arjun's S1 body figures check out.** Mean 30,081 µ$ = ₹2.65. The "p95" of 69,604 µ$ = ₹6.1 adds up each component's own p95, so it is an upper bound, not a true p95. Fine to use as the planning ceiling.
+
+Corrections:
+1. **Intake per completed draft is ₹0.56, not ₹0.47.** In the last 24 h there were 61 reception, 36 match and 12 extract calls for 14 completed drafts, so the abandoned intakes' cost lands on the drafts that complete. Totals: 373k tokens in and 105k out = $0.090, divided by 14 = $0.0064.
+2. **Arjun's "long plaint ≈ ₹14.5" on Opus leaves out the cache write.** With the 24 h p95 row (14.8k in, 4.9k out, 5.6k cache write, 5.6k cache read) on Opus: $0.204 = **₹18.0** body + ₹0.56 intake. That is **at the ₹18 cap**, not ₹3.5 under it.
+3. **The S3 reviewer pass at p95** (12.3k in + 0.8k out on Opus) is ≈ ₹5.7, so S3 p95 ≈ **₹18.5, over the cap**. Arjun's ₹16 is low.
+
+**Console reconciliation (24 h ≈ calendar day):**
+- Haiku from §2a = $0.090 vs Console $0.08 ✅.
+- Sonnet from generations = 14 × $0.0284 = $0.40 vs Console $0.45. That is 89%; the rest is probably gate and d1 calls outside `generations`.
+- Reconciled within about 10%. That is good enough for a decision, but not for audit. Month to date ($0.76) follows when Nikhil's totals land.
+
+**Prod-based table, ₹ per 2-Ink draft (intake ₹0.56 included):**
+| | Mean | p95 (ceiling) | Pro yearly ₹18.4 | Solo monthly ₹26.4 | ₹18 cap |
+|---|---|---|---|---|---|
+| S1 Sonnet | 3.2 | 6.7 | 83% ✅ | 88% ✅ | never |
+| S2 Opus drafter | 5.9 | 12.8 (worst row 18.6) | 68% ✅ | 78% ✅ | binds only on the longest drafts (<5%) |
+| S3 Opus drafter + reviewer | 8.2–8.8 | ≈ 18.5 | 52–55% ❌ | 67–69% ✅ | binds at p95 (~5%) |
+
+**Ruling, updated:**
+- Prod is cheaper than develop's user rows, so **finance no longer blocks S2** for argued packs: 68% on our cheapest Ink. It still needs the blind A/B to show a quality gain (Arjun §5), and a per-pack switch, not a global one.
+- **S3 stays blocked at 2 Ink.** It is below 60% on Pro yearly and refuses about 5% at the cap. Either keep the reviewer on Sonnet (S2 economics), or price that pack at 3 Ink (founder's call).
+- Opus effort must be set explicitly to the effort we test with. If `high` raises output 20–30%, S2's mean goes to about ₹6.6 (64%). Still above the line.
+- **Side win:** caching the intake `match` block saves about ₹0.06 per call × 2.6 calls per draft ≈ ₹0.15 per draft (about 5%). Worth a small ticket, low priority.
+
+Vikram, CFO
