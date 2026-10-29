@@ -100,7 +100,8 @@ export type DropReason =
   | 'bad_value'
   | 'non_answer'
   | 'non_answer_not_asked'
-  | 'not_a_non_answer';
+  | 'not_a_non_answer'
+  | 'contains_non_answer';
 
 export interface ValidateOutcome {
   result: ExtractResult;
@@ -347,6 +348,19 @@ function hasWord(folded: string, word: string): boolean {
     .toLowerCase()
     .replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   return new RegExp(`(?<![\\p{L}\\p{M}])${w}(?![\\p{L}\\p{M}])`, 'u').test(folded);
+}
+
+/**
+ * T-676 AC2: the text carries the non-answer's words. A quote with a letter
+ * counts only as whole words (any script), so "Nil" is not in "Nilesh" and
+ * "Na" is not in "Narayan". A quote with no letter ("-", "?") counts only as
+ * the whole text, so a hyphenated name is never flagged for its "-".
+ */
+export function carriesNonAnswer(text: string, quote: string): boolean {
+  const t = fold(text);
+  const q = fold(quote);
+  if (q === '') return false;
+  return /\p{L}/u.test(q) ? hasWord(t, q) : t === q;
 }
 
 /**
@@ -626,7 +640,19 @@ export function validateExtraction(parsed: unknown, ctx: ValidateContext): Valid
       return;
     }
     drop('non_answer');
-    if (!nonAnswers.some((n) => n.key === spec.item.key && n.quote === quote)) {
+    // T-676 AC2: one entry per key + quote + source, so the same words on
+    // another turn keep their own turn for the same-turn rule (§10 a).
+    const seen = nonAnswers.some((n) => {
+      const from = nonAnswerFrom.get(n);
+      return (
+        n.key === spec.item.key &&
+        n.quote === quote &&
+        from !== undefined &&
+        from.kind === src.kind &&
+        from.turn === src.turn
+      );
+    });
+    if (!seen) {
       const n: NonAnswer = { key: spec.item.key, quote };
       nonAnswers.push(n);
       nonAnswerFrom.set(n, { kind: src.kind, turn: src.turn });
@@ -717,9 +743,17 @@ export function validateExtraction(parsed: unknown, ctx: ValidateContext): Valid
       (c) => c.key === n.key && c.source.kind === from.kind && c.source.turn === from.turn,
     );
     if (same.length === 0) return true;
+    // T-676 AC2: a value that carries the non-answer's words ("पता नहीं,
+    // Ramesh" for "पता नहीं") never wins; only a separate clean candidate can.
+    const carries = (c: LedgerCandidate): boolean =>
+      Array.isArray(c.value)
+        ? c.value.some((v) => carriesNonAnswer(v, n.quote))
+        : typeof c.value === 'string' && carriesNonAnswer(c.value, n.quote);
     const wins = (c: LedgerCandidate): boolean =>
       derivationOf(c) !== 'model_text' &&
-      !(typeof c.value === 'string' && isNonAnswerFor(spec, c.value));
+      !(typeof c.value === 'string' && isNonAnswerFor(spec, c.value)) &&
+      !carries(c);
+    for (const c of same) if (carries(c)) drop('contains_non_answer');
     if (same.some(wins)) {
       valid = valid.filter((c) => !same.includes(c) || wins(c));
       return false;

@@ -28,7 +28,7 @@ import { isNoFactAnswer } from '../intake-brief';
 import type { ChecklistItem, ReadValue } from '../intake-brief';
 
 import type { ExtractResult, LedgerCandidate } from './types';
-import { derivationOf, fieldSpecs, findQuote, isNonAnswerFor } from './validate';
+import { carriesNonAnswer, derivationOf, fieldSpecs, findQuote, isNonAnswerFor } from './validate';
 
 function asBriefValue(c: LedgerCandidate): string | string[] {
   if (Array.isArray(c.value)) return c.value;
@@ -354,7 +354,12 @@ export function editsFromV3(
       return;
     }
     // Arjun §10 (b767383c): a non-answer inside the edit, not the whole of it.
-    const partialNonAnswer = result.nonAnswers.some((n) => n.key === e.key);
+    // T-676 AC2: only one whose words are in THIS edit; a turn-0 "not known"
+    // never holds back a later clean answer for the same key. Whole words
+    // only, so "Nil" never matches inside "Nilesh".
+    const partialNonAnswer = result.nonAnswers.some(
+      (n) => n.key === e.key && carriesNonAnswer(editText, n.quote),
+    );
     const c = result.candidates.find(
       (x) =>
         x.key === e.key &&
