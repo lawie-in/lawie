@@ -57,3 +57,7 @@ Anything not covered here follows the ADR; conflicts between this file and the A
 1. **Derivation is T-682's `derive()` alone.** The Extractor emits only facts the user stated (description/answers). `v3/validate.ts` normalises and validates (date parse/range, money, name non-answer rules, type mapping) — **no derived keys**; a model output for a derived key is dropped as `not_on_list` (T-682 invariant 6). §3's "derived keys such as custody-since" is withdrawn.
 2. **No shared limiter in Phase 1.** The 60/user/24 h Redis counter (fail-open to v2) plus one in-flight call per run is enough; per-run counts/dedupe in process memory until T-685 is accepted. A shared Anthropic concurrency/rate limiter for all aux calls is a separate ticket, scheduled with T-685 (orchestrator) — Priya posts it.
 3. **Default model confirmed: `claude-haiku-5-5`** for `ai.model.extractor` (Vikram's cost run: ₹1.4 → ₹0.07 per turn; v3 at Sonnet would break the ₹3.70/Ink gate). Sonnet remains a setting-only switch after the golden set shows Haiku misses facts.
+
+## 6. Golden-set fixture cap (Arjun, 29 Oct 2026, 19:40 UTC)
+
+Option **(b)**: `maxFixturesDefault` counts only the fixtures of the selected variant/stage, so the 10 v3 cassettes don't count against a v2 `--real` run and a v3 run is capped at its own 10 (set `maxFixturesDefault` per variant: v2 30, v3 10 for now). A real run's cost therefore does not rise by a third; Vikram's nightly spend is unchanged. Not (a) — raising the global cap silently raises the nightly bill; not (c) — a second fixtures folder splits the harness.
