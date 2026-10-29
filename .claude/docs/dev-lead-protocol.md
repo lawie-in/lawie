@@ -217,3 +217,7 @@ The rule is mechanical:
   founder instead.
 - If the `ArtifactData` tool is unavailable in your session, say so at once and stop before
   branching. Working blind on a parallel ticket is how two leads collide.
+
+## Two-strike rule (founder, 29 Oct 2026)
+
+"If lead devs fail in two iterations, then Arjun solves the problem by reviewing their work." When a ticket's headline fails Anushka's check twice (or the reviewer twice, or two prod releases), the lead stops dispatching new rounds. Arjun reads the branch and the failing path himself, writes the exact diagnosis and fix into the ticket file (file:line, the change, the test that proves it in the real flow), and the lead's developer applies that and nothing else. The lead reports the two attempts honestly in the ticket; no third guess goes to prod. Priya tracks strike counts in the ticket Status line.
