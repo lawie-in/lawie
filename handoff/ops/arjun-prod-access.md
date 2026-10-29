@@ -288,3 +288,10 @@ Asked by Arjun at 09:08 UTC (Ajay, AJ-657-M1d). JSON: `handoff/ops/runbooks/lawi
 
 ### SSM version 13 (29 Oct 2026, 09:38 UTC, Nikhil) — default
 Asked by the founder in Nikhil's chat ("set the env variable JWT_EXPIRES_IN to 2d"). JSON: `handoff/ops/runbooks/lawie-prod-ops-v13.json`. The only change from v12, besides the description, is that `JWT_EXPIRES_IN` is added to `env-set`'s `envkey` allowedValues. It passes the runtime secret-name guard (no KEY/SECRET/TOKEN/PASS/DSN/URI in the name). Active, default = 13, content == repo JSON.
+
+### SSM version 14 (29 Oct 2026, 10:05 UTC, Nikhil): Active, NOT default
+Asked by Arjun at 10:04 UTC (Ajay). JSON: `handoff/ops/runbooks/lawie-prod-ops-v14.json`. The only change from v13, besides the description, is the new action `get-setting` with param `settingkey` (`^feature\.[a-z0-9_.-]{1,60}$`, default `feature.unset`, refused at default).
+- Runs as ubuntu with the env loaded like deploy, from `apps/drafting`.
+- `node -e` uses mongoose to read `appsettings.findOne({key})` (value field only). The key is passed as argv, not spliced into the code, and the JS re-checks the feature-only pattern.
+- Prints `key=value` or `key unset`. On error it prints only the error name.
+- `update-document-default-version 14` was blocked by the session permission check, so the default stays 13. Run get-setting pinned: `--document-version 14`.
