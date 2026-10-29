@@ -112,7 +112,8 @@ describe('bridge: a partial non-answer does not empty the edit (round 1, finding
     expect(nonAnswerOnly.nonAnswers).toEqual([{ key: 'father_name', quote: 'पता नहीं' }]);
   });
 
-  it('"पता नहीं, Ramesh" is not emptied: it goes in as typed, Ramesh kept', () => {
+  // Arjun §10 (b767383c): the round-1 expectation "goes in as typed" was the bug.
+  it('partial-non-answer-no-candidate-held: "पता नहीं, Ramesh", no candidate: held, nothing typed through', () => {
     const out = editsFromV3(
       [{ key: 'father_name', text: 'पता नहीं, Ramesh', fromQuestion: true }],
       nonAnswerOnly,
@@ -120,10 +121,61 @@ describe('bridge: a partial non-answer does not empty the edit (round 1, finding
       REF_YEAR,
     );
     expect(out.nonAnswers).toBe(0);
+    expect(out.held).toEqual([0]);
+    expect(out.edits).toEqual([]);
+    expect(out.replaced).toBe(0);
+    expect(JSON.stringify(out)).not.toContain('पता नहीं');
+  });
+
+  it('bridge, partial non-answer in Latin ("pata nahi sir"), no candidate: held, the raw words never written', () => {
+    // Hand-built result: the validator itself does not keep a Latin non-answer (the
+    // signed O.39 list has no "pata nahi"); this pins what the bridge does if one arrives.
+    const r: ExtractResult = {
+      ...validated([]),
+      nonAnswers: [{ key: 'father_name', quote: 'pata nahi' }],
+    };
+    const out = editsFromV3(
+      [{ key: 'father_name', text: 'pata nahi sir', fromQuestion: true }],
+      r,
+      checklist,
+      REF_YEAR,
+    );
+    expect(out.held).toEqual([0]);
+    expect(out.edits).toEqual([]);
+    expect(out.replaced).toBe(0);
+    expect(JSON.stringify(out)).not.toContain('pata nahi');
+  });
+
+  it('no candidate and no non-answer for the key: the edit goes to v2 as typed (unchanged)', () => {
+    const out = editsFromV3(
+      [{ key: 'father_name', text: 'Ramesh', fromQuestion: true }],
+      validated([]),
+      checklist,
+      REF_YEAR,
+    );
     expect(out.held).toEqual([]);
-    expect(out.edits).toEqual([
-      { key: 'father_name', text: 'पता नहीं, Ramesh', fromQuestion: true },
-    ]);
+    expect(out.edits).toEqual([{ key: 'father_name', text: 'Ramesh', fromQuestion: true }]);
+  });
+
+  it('partial-non-answer-with-candidate-writes-value: candidate "Ramesh" -> the edit text is exactly Ramesh', () => {
+    const r = validated(
+      [{ key: 'father_name', value: 'Ramesh', quote: 'Ramesh', source: 'answer', turn: 1 }],
+      {
+        answers: [ans(1, 'father_name', 'पता नहीं, Ramesh')],
+        non_answers: [{ key: 'father_name', quote: 'पता नहीं', turn: 1 }],
+      },
+    );
+    expect(r.candidates).toHaveLength(1);
+    const out = editsFromV3(
+      [{ key: 'father_name', text: 'पता नहीं, Ramesh', fromQuestion: true }],
+      r,
+      checklist,
+      REF_YEAR,
+    );
+    expect(out.held).toEqual([]);
+    expect(out.replaced).toBe(1);
+    expect(out.edits).toEqual([{ key: 'father_name', text: 'Ramesh', fromQuestion: true }]);
+    expect(JSON.stringify(out)).not.toContain('पता नहीं');
   });
 
   it('the whole edit as the non-answer ("पता नहीं") is still emptied (control)', () => {
@@ -254,5 +306,46 @@ describe('bridge: brief and ledger hold the same characters (round 1, finding 7)
       { description },
     );
     expect(briefReadsFromV3(r).values.get('applicant_name')!.value).toBe('Ramesh Sharma');
+  });
+});
+
+describe('description-turn-non-answer-vs-candidate-one-rule: brief and bridge read the same result (Arjun §10 a)', () => {
+  const DESC = 'Father name: पता नहीं. Brother Ramesh helps the family.';
+  function desc(value: string, quote: string): ExtractResult {
+    return validateExtraction(
+      {
+        facts: [
+          { key: 'father_name', source: 'description', turn: 0, quote, value, confidence: 0.97 },
+        ],
+        non_answers: [{ key: 'father_name', source: 'description', turn: 0, quote: 'पता नहीं' }],
+        unresolved: [],
+      },
+      { checklist, description: DESC, answers: [], today: '2026-10-29' },
+    ).result;
+  }
+
+  it('branch 1: a verbatim candidate wins, the non-answer is dropped, brief and bridge both carry it', () => {
+    const r = desc('Ramesh', 'Ramesh');
+    expect(r.nonAnswers.filter((n) => n.key === 'father_name')).toEqual([]);
+    expect(r.candidates.filter((c) => c.key === 'father_name')).toHaveLength(1);
+    const bridged = v2ExtractionFromV3(r, DESC, checklist, REF_YEAR);
+    expect(bridged.notBridged.has('father_name')).toBe(false);
+    expect(bridged.spans.get('father_name')).toBe('Ramesh');
+    const brief = briefReadsFromV3(r, bridged.notBridged, bridged.spans);
+    expect(brief.noRead.has('father_name')).toBe(false);
+    expect(brief.values.get('father_name')?.value).toBe('Ramesh');
+  });
+
+  it('branch 2: a candidate that is not bridgeable is dropped, the non-answer stands, brief and bridge both carry no fact', () => {
+    const r = desc('Mr Ramesh Kumar Sharma', 'Ramesh');
+    expect(r.nonAnswers.filter((n) => n.key === 'father_name')).toEqual([
+      { key: 'father_name', quote: 'पता नहीं' },
+    ]);
+    expect(r.candidates.filter((c) => c.key === 'father_name')).toEqual([]);
+    const bridged = v2ExtractionFromV3(r, DESC, checklist, REF_YEAR);
+    expect(bridged.facts.some((f) => f.key === 'father_name')).toBe(false);
+    const brief = briefReadsFromV3(r, bridged.notBridged, bridged.spans);
+    expect(brief.noRead.has('father_name')).toBe(true);
+    expect(brief.values.has('father_name')).toBe(false);
   });
 });

@@ -737,7 +737,7 @@ describe('round 1: a non-answer is the quote, and a partial one keeps the rest',
     expect(JSON.stringify(res.body.ledger)).not.toContain('Not known');
   });
 
-  it('update: "पता नहीं, Ramesh" with a partial non-answer keeps "Ramesh"', async () => {
+  it('update: "पता नहीं, Ramesh" with a partial non-answer and no candidate: held, key asked again, raw text never in the ledger', async () => {
     const ledgerId = await startLedger();
     const text = 'पता नहीं, Ramesh';
     mockExtractTurn.mockResolvedValue(
@@ -751,7 +751,36 @@ describe('round 1: a non-answer is the quote, and a partial one keeps the rest',
     );
     const res = await update_(ledgerId, [{ key: 'father_name', text }]);
     expect(res.status).toBe(200);
-    expect(JSON.stringify(fact(res, 'father_name'))).toContain('Ramesh');
+    expect(fact(res, 'father_name')).toBeUndefined();
+    expect(JSON.stringify(res.body.ledger)).not.toContain('पता नहीं');
+    expect(JSON.stringify(res.body.ledger)).not.toContain('Ramesh');
+  });
+
+  it.todo(
+    'T-671 AJ-671-M1: "pata nahi sir" (Latin partial non-answer, trailing courtesy word) is held once T-671 adds the Latin forms and the courtesy-tail rule',
+  );
+
+  it('update: "पता नहीं, Ramesh" with a "Ramesh" candidate: the ledger holds exactly "Ramesh"', async () => {
+    const ledgerId = await startLedger();
+    const text = 'पता नहीं, Ramesh';
+    mockExtractTurn.mockResolvedValue(
+      okOutcome(
+        viaValidate(
+          [{ key: 'father_name', value: 'Ramesh', quote: 'Ramesh', source: 'answer', turn: 1 }],
+          {
+            description: '',
+            answers: [answerOf(1, 'father_name', text)],
+            non_answers: [{ key: 'father_name', quote: 'पता नहीं', turn: 1 }],
+          },
+        ),
+      ),
+    );
+    const res = await update_(ledgerId, [{ key: 'father_name', text }]);
+    expect(res.status).toBe(200);
+    const f = fact(res, 'father_name') as Record<string, unknown>;
+    expect(f).toBeDefined();
+    expect(JSON.stringify(f)).toContain('Ramesh');
+    expect(JSON.stringify(res.body.ledger)).not.toContain('पता नहीं');
   });
 });
 

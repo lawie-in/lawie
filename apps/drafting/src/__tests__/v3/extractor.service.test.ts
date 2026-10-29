@@ -665,6 +665,51 @@ describe('extractTurn: one call in flight per runId + turn', () => {
     expect(mockCall).toHaveBeenCalledTimes(1);
   });
 
+  it('in-flight-same-turn-different-edits-degrades: same run and turn, other edits: in_flight, no second call, never the other result', async () => {
+    let release: (v: unknown) => void = () => undefined;
+    mockCall.mockImplementation(() => new Promise((res) => (release = res)));
+    const ans = (text: string) => [{ turn: 1, askedKeys: ['police_station'], text }];
+    const a = extractTurn(
+      input({ runId: 'run-edits-diff', turn: 3, description: '', answers: ans('थाना Govindpura') }),
+    );
+    const b = await extractTurn(
+      input({ runId: 'run-edits-diff', turn: 3, description: '', answers: ans('थाना Kotwali') }),
+    );
+    expect(b).toEqual({ status: 'degraded', reason: 'in_flight' });
+    while (mockCall.mock.calls.length === 0) await new Promise((r) => setImmediate(r));
+    release(okResult());
+    const oa = await a;
+    expect(oa.status).toBe('ok');
+    expect(b).not.toBe(oa);
+    expect(mockCall).toHaveBeenCalledTimes(1);
+    const lines = mockLogLlmCall.mock.calls.map((c) => c[0] as Record<string, unknown>);
+    expect(lines.filter((l) => l.reason === 'in_flight')).toHaveLength(1);
+    expect(JSON.stringify(lines)).not.toContain('Kotwali');
+  });
+
+  it('in-flight-identical-shared: same run, turn and identical edits (NFC-equal) share one call and one outcome', async () => {
+    let release: (v: unknown) => void = () => undefined;
+    mockCall.mockImplementation(() => new Promise((res) => (release = res)));
+    const text = 'थाना Govindpura';
+    const mk = (t: string) =>
+      input({
+        runId: 'run-edits-same',
+        turn: 3,
+        description: '',
+        answers: [{ turn: 1, askedKeys: ['police_station'], text: t }],
+      });
+    const a = extractTurn(mk(text));
+    const b = extractTurn(mk(text.normalize('NFD')));
+    const c = extractTurn(mk(text));
+    await new Promise((r) => setImmediate(r));
+    release(okResult());
+    const [oa, ob, oc] = await Promise.all([a, b, c]);
+    expect(mockCall).toHaveBeenCalledTimes(1);
+    expect(oa.status).toBe('ok');
+    expect(ob).toBe(oa);
+    expect(oc).toBe(oa);
+  });
+
   it('a different run is its own call, never in_flight', async () => {
     await Promise.all([
       extractTurn(input({ runId: 'run-x', turn: 1 })),
