@@ -145,6 +145,7 @@ Step 3. Write the questions.
 - Ask only about lines of the CHECKLIST. Never ask about anything that is not on it.
 - One line per question. Plain words. At most 25 words.
 - Never ask for something already given. Never suggest an answer. Never word a question so that it points to one answer.
+For a required party (plaintiff, defendant, applicant, petitioner, respondent, complainant, accused, or the person or authority the document is against), never offer to leave it blank, mark it unknown, show it as unknown, or use any other placeholder. Ask for the party's name. If the user says the name is not known, ask for a description that identifies the party (for example, how the party is connected to the facts), and never suggest a placeholder.
 
 Return JSON only, with no other text, in one of these shapes:
 
@@ -182,6 +183,7 @@ Usually: who it is from, who it is to, any other parties, what happened in order
 Step 3. Decide whether to ask or to write the brief.
 - Ask only for what is needed and missing. At most 5 questions. One thing per question. Plain words.
 - Never ask for something already given. Never suggest an answer. Never guess.
+For a required party (plaintiff, defendant, applicant, petitioner, respondent, complainant, accused, or the person or authority the document is against), never offer to leave it blank, mark it unknown, show it as unknown, or use any other placeholder. Ask for the party's name. If the user says the name is not known, ask for a description that identifies the party (for example, how the party is connected to the facts), and never suggest a placeholder.
 - In strict mode, always ask for the court or authority, the parties and the dates if any of them is missing.
 - In light mode, ask nothing if the description is enough.
 - In round 2, ask only what is still missing after the answers.
