@@ -72,3 +72,42 @@ Would I use this on a real matter today? No: wrong courts, invented facts, raw H
 ## Arjun's note (29 Oct 2026)
 
 Release items 2, 3a/3b, 4b, 6, 8 pass; 1 (court heading), 4a (custody), 5 (Hinglish/PS) fail; 3c (written statement) is a dead end. Blocker 5 (delivery-gate dead end on WS) and Blocker 3 (Hinglish passthrough, T-611 territory) read as regressions of this release — P1 for Priya. Blocker 1 is the courts catalogue and needs Ajay's list, not a code guess. Chrome/PDF on prod is confirmed working by item 8.
+
+# Anushka run 5b — production v1.2.3, headline T-668 re-check (29 Oct 2026, 12:03–12:50 UTC)
+
+Verbatim from session_01BmgAoYMpkTNwnBnT9k1DWA; scope = T-668 headline + 2-min smoke; 2 drafts.
+
+```
+VERDICT: FAIL
+Tested: https://lawie.in (prod, v1.2.3) · 29 Oct 2026, 12:03–~12:50 UTC · same test account, 52 Ink at start, 48 at end · 1280 wide
+
+Scenarios
+| # | What I did | Expected | What happened | Result |
+| 1 | Declaration plaint (Gorakhpur), "Defendant: Not known (a person claiming through a forged sale deed…)"; brief defendant left "Not known" | Asks for the name; no Ink | No question. Brief shows only "Please check"; Confirm enabled ("Uses 2 Ink"). Draft made, 2 Ink spent (52 to 50). Heading "[To be confirmed: name and address of the Defendant]", not "Not known" | Fail |
+| 2 | Eviction (Ranchi), tenant's name empty | Asks | Form asks "What is the tenant's full name?" and again in round 2; brief "Add the name of the the person or authority it is against or addressed to to continue." | Pass |
+| 3 | Eviction, "Not known" typed in brief defendant box | Blocked | Same line, Confirm disabled | Pass |
+| 4 | Eviction, "Not known" typed in the form's tenant-name question | Asks again; blocked before Ink | "The tenant's name is still missing. Should the draft leave a blank for it to be filled in later?"; brief still blocks | Pass (Minor) |
+| 5 | Partition (Durg), defendants "Ramesh Sahu and Not known" | Blocked | Blocked, Confirm disabled | Pass |
+| 6 | Written statement (Aligarh), plaintiff "Not known" | Blocked | "Add the name of the plaintiff to continue." Confirm disabled | Pass |
+| 7 | Replication (Kolkata), defendant "not known" | Blocked | Confirm disabled, "Choose the court and add the parties to continue." (no Kolkata court picked, so court also missing) | Pass (likely) |
+| 8 | Smoke: sign in, regular bail (Mumbai), PDF export | Draft + real PDF | Signed in; draft "Section 483 of the BNSS"; PDF 50,093 B, starts "%PDF"; 2 Ink | Pass (Major below) |
+
+Findings
+- Major Declaration plaint with "Not known" defendant is drafted and charged.
+  - Screen: defendant box "Not known" ("Please check"), no "to continue" line, "Uses 2 Ink", Confirm enabled.
+  - After draft: "The draft does not contain the person or authority it is addressed to as given in the brief: "Not known". Check that the name is written correctly."
+  - Steps: New document → "Suit for declaration… Defendant: Not known (…)" → skip questions → choose court → Confirm.
+  - Why: the exact case this release promises to stop; the user pays for a draft with no defendant. "Not known" did not print in heading or verification.
+- Major (carried over from v1.2.2) Bail drops custody facts: description "Arrested on 10.10.2026 and in judicial custody since then"; para 3 "The applicant has been in judicial custody since [To be confirmed: in custody since]".
+- Minor:
+  - "Add the name of the the person…" (doubled "the").
+  - Form offers "leave a blank for it to be filled in later", then the brief refuses a blank.
+  - Bail heading/address "THE HONOURABLE SESSIONS FOR GREATER BOMBAY AT MUMBAI" ("Court"/"Judge" missing).
+  - The known generic "Something did not work"/Retry did not appear in my runs.
+
+Not tested: specific performance and recovery plaints (WS covered a recovery suit from the defendant's side); the injunction plaint itself (TI application tested in v1.2.2); phone width (not asked). Drafts used: 2 of 3.
+
+Would I use this on a real matter today? No: one common civil plaint still lets "Not known" through and charges for it, and the bail draft still drops custody facts I gave.
+```
+
+Arjun: T-668 passes 6/7; the miss is "Not known (…)" with a parenthetical — exact-match non-answer check. T-668b leads v1.2.4; T-665 re-opened as T-665b (custody still blank).
