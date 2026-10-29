@@ -549,17 +549,32 @@ export type GenerationFailedCode =
  *  the SSE has already been ended and not to re-emit `done`. Carries whatever
  *  usage was captured before the failure (T-003) so the route can still
  *  record a Generation row for the attempt instead of losing it. */
+/**
+ * T-678: why the delivery gate withheld a draft, as codes only: the code, the
+ * gate rule id and the field keys it fired on. Never a value, a label or user
+ * text. Stored on the failed Generation row and logged.
+ */
+export interface GenerationFailure {
+  code: string;
+  rule: string;
+  keyA?: string;
+  keyB?: string;
+}
+
 export class GenerationFailedError extends Error {
   readonly code: GenerationFailedCode;
   readonly usage: UsageTotals;
   readonly aiModel?: string;
   readonly transport?: 'direct';
+  /** T-678: set only on a draft the delivery gate withheld. */
+  readonly failure?: GenerationFailure;
   constructor(
     message: string,
     code: GenerationFailedCode,
     usage: UsageTotals,
     aiModel?: string,
     transport?: 'direct',
+    failure?: GenerationFailure,
   ) {
     super(message);
     this.name = 'GenerationFailedError';
@@ -567,6 +582,7 @@ export class GenerationFailedError extends Error {
     this.usage = usage;
     this.aiModel = aiModel;
     this.transport = transport;
+    this.failure = failure;
   }
 }
 
@@ -811,6 +827,7 @@ export function withholdDraft(
   }
   let payload: Record<string, unknown>;
   let keys: string;
+  let failure: GenerationFailure;
   if (withheld.code === 'fact_conflict') {
     const c = withheld.conflict;
     // P1 asks with both labels; a value that differs from its held fact (P3,
@@ -836,6 +853,14 @@ export function withholdDraft(
       runId,
     };
     keys = `${c.keyA}${c.keyB ? `,${c.keyB}` : ''}`;
+    // T-678: the rule from the conflict kind (P1 a held value under another
+    // label, P3 a value that differs from its held fact).
+    failure = {
+      code: 'fact_conflict',
+      rule: c.kind === 'wrong_label' ? 'P1' : 'P3',
+      keyA: c.keyA,
+      ...(c.keyB ? { keyB: c.keyB } : {}),
+    };
   } else if (withheld.code === 'past_date_in_prayer') {
     // T-628 (Ajay, T-613 §(h)): the signed EN question with the date as written.
     // The date goes to the advocate in this event only: keys=restraint_sought
@@ -851,6 +876,7 @@ export function withholdDraft(
       runId,
     };
     keys = withheld.key;
+    failure = { code: 'past_date_in_prayer', rule: 'T613h', keyA: withheld.key };
   } else {
     const b = withheld.blank;
     payload = {
@@ -864,12 +890,16 @@ export function withholdDraft(
       runId,
     };
     keys = b.key;
+    failure = { code: 'fact_needed', rule: 'P6', keyA: b.key };
   }
   res.write(`event: error\ndata: ${JSON.stringify(payload)}\n\n`);
-  // T-611 P-R4: one line per withheld draft, for the withhold rate per pack.
-  // The pack id, the code and the keys only: never a value, a label or the question.
+  // T-611 P-R4 / T-678: one line per withheld draft, for the withhold rate per pack.
+  // The run id, the pack id, the rule, the code and the keys only: never a
+  // value, a label or the question.
   if (process.env.NODE_ENV !== 'test') {
-    console.info(`[drafting] draft withheld (kind=${packId}, code=${withheld.code}, keys=${keys})`);
+    console.info(
+      `[drafting] draft withheld (run=${runId}, kind=${packId}, rule=${failure.rule}, code=${withheld.code}, keys=${keys})`,
+    );
   }
   return new GenerationFailedError(
     `draft withheld: ${withheld.code} (keys=${keys})`,
@@ -877,6 +907,7 @@ export function withholdDraft(
     usage,
     aiModel,
     transport,
+    failure,
   );
 }
 

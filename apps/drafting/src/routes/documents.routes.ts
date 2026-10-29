@@ -25,6 +25,7 @@ import { User } from '../models/User.model';
 import {
   formGateFiles,
   GenerationFailedError,
+  GenerationFailure,
   streamGenerateFromBrief,
   streamGenerateGuided,
   streamGenerateFromTemplate,
@@ -270,6 +271,8 @@ export interface RecordGenerationInput {
   /** T-577: the quoted paragraph count and Ink, only when the pack asked for a count. */
   paragraphsRequested?: number;
   inkQuoted?: number;
+  /** T-678: the gate's codes on a withheld draft (codes and keys only, no user text). */
+  failure?: GenerationFailure;
 }
 
 /**
@@ -320,6 +323,8 @@ export async function recordGeneration(
         ? { paragraphsRequested: input.paragraphsRequested }
         : {}),
       ...(input.inkQuoted !== undefined ? { inkQuoted: input.inkQuoted } : {}),
+      // T-678: present only on a draft the gate withheld, so every other row is written as before.
+      ...(input.failure !== undefined ? { failure: input.failure } : {}),
       costUsd,
       costStatus: rate.costStatus,
       rateInputUsdPerMTok: rate.costStatus === 'priced' ? rate.rate.inputUsdPerMTok : undefined,
@@ -1115,6 +1120,7 @@ router.post(
             runId,
             runSequence,
             runType,
+            failure: genErr.failure,
           });
           // Ended only now — after the row exists — so a fast retry's
           // resolveRun query can never race the write that makes it findable.
@@ -1893,6 +1899,7 @@ router.post(
           runType,
           ledger: ledger ? 'on' : 'off',
           ...quoteRecord,
+          failure: failed?.failure,
         });
         if (failed) {
           // The error event was already sent. End only now, after the row exists.
