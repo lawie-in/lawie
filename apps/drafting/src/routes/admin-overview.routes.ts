@@ -3,7 +3,8 @@
  *
  *   GET /admin/overview/kpis      — 4 KPI tiles + monthly revenue
  *   GET /admin/overview/activity  — recent activity feed (signups, drafts, reviews, redemptions)
- *   GET /admin/overview/ai-runtime — current ai.drafting_model + ai.preflight_model values
+ *   GET /admin/overview/ai-runtime — the drafter and fact_checker models (drafting_model,
+ *                                    preflight_model) plus every role's model (T-684)
  *
  * All Admin-only (role === 'Admin'). KPIs are stitched from existing
  * collections — no new persistence needed.
@@ -16,7 +17,8 @@ import { CreditLedger } from '../models/CreditLedger.model';
 import { LawieDocument } from '../models/Document.model';
 import { ReviewToken } from '../models/ReviewToken.model';
 import { User } from '../models/User.model';
-import { getAppSetting, AppSettingMissingError } from '../services/app-settings.service';
+import { AppSettingMissingError, MODEL_ROLES, ModelRole } from '../services/app-settings.service';
+import { ModelSource, ResolvedModel, resolveModelWithSource } from '../services/llm-usage';
 import { NOT_FIXTURE } from '../services/run-origin';
 
 /** T-563 — test accounts (develop-only bypass) are left out of every user count and feed. */
@@ -354,21 +356,28 @@ router.get(
   authenticate,
   requireAdmin,
   async (_req: Request, res: Response): Promise<void> => {
-    const get = async (key: string) => {
+    // T-684: each role resolved as the call sites do (role key, then legacy
+    // key); a role with no key set is null, as a missing setting was before.
+    const get = async (role: ModelRole): Promise<ResolvedModel | null> => {
       try {
-        return await getAppSetting(key);
+        return await resolveModelWithSource(role);
       } catch (err) {
         if (err instanceof AppSettingMissingError) return null;
         throw err;
       }
     };
-    const [draftingModel, preflightModel] = await Promise.all([
-      get('ai.drafting_model'),
-      get('ai.preflight_model'),
-    ]);
+    const resolved = await Promise.all(MODEL_ROLES.map((role) => get(role)));
+    const models = {} as Record<ModelRole, string | null>;
+    const modelSources = {} as Record<ModelRole, ModelSource | null>;
+    MODEL_ROLES.forEach((role, i) => {
+      models[role] = resolved[i]?.model ?? null;
+      modelSources[role] = resolved[i]?.source ?? null;
+    });
     res.json({
-      drafting_model: draftingModel,
-      preflight_model: preflightModel,
+      drafting_model: models.drafter,
+      preflight_model: models.fact_checker,
+      models,
+      model_sources: modelSources,
     });
   },
 );
