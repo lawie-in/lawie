@@ -216,17 +216,7 @@ describe('T678-1: role words are never date cues, in any template', () => {
     for (const p of packs) {
       for (const f of p!.facts.filter((x) => x.type === 'date')) {
         const held = fact(f.key, f.label, 'date', '2026-01-10', '10 January 2026');
-        const own = new Set(
-          `${f.label} ${f.key}`
-            .toLowerCase()
-            .split(/[^\p{L}]+/u)
-            .filter(Boolean)
-            .map((w) => w.slice(0, 6)),
-        );
         for (const role of ROLES) {
-          // a role word sharing a 6-letter stem with a word of the field's own label
-          // (complaint/complainant, petition/petitioner) is that field's own cue, legitimately
-          if (role.split(/[^\p{L}]+/u).some((w) => own.has(w.slice(0, 6)))) continue;
           const body = `1. That the ${role} on 11 February 2026.`;
           const conflicts = verifyDraft(inputOf(p!.id, body, [held])).filter(
             (v) => v.conflict || v.reason === 'differs',
@@ -236,6 +226,107 @@ describe('T678-1: role words are never date cues, in any template', () => {
       }
     }
     expect(bad).toEqual([]);
+  });
+
+  // Reviewer round 1: role words that share a stem with the field's own noun
+  // (complainant/complaint, petitioner/petition, applicant/application, decree holder/decree)
+  // are checked too; the field's own noun still cues.
+  describe('role words that collide with a field noun (round 2)', () => {
+    const TEXT_KEY = 'incident_narrative';
+    const textFact = (text: string) => fact(TEXT_KEY, 'Narrative of events', 'text', text, text);
+    const NEUTRAL =
+      'Sample Person 1 met Sample Person 2 at the market on 12.03.2026 in the evening.';
+    const run = (packId: string, key: string, body: string, text: string) => {
+      const label = loadRulePack(packId)!.facts.find((f) => f.key === key)!.label;
+      const facts = [fact(key, label, 'date', '2026-01-10', '10 January 2026'), textFact(text)];
+      return inputOf(packId, body, facts);
+    };
+
+    it('the colliding role words are in the pack-wide ROLES list (the skip is gone)', () => {
+      for (const w of ['complainant', 'complainants', 'petitioner', 'applicant', 'decree-holder']) {
+        expect(ROLES).toContain(w);
+      }
+      expect(ROLES).toContain('opposite party');
+    });
+
+    const COLLIDING = [
+      ['bail_regular', 'fir_date', 'complaint', 'the complainant met the accused'],
+      ['criminal_revision', 'filing_date', 'revision petition', 'the petitioner met the accused'],
+      [
+        'curative_petition',
+        'review_petition_date_filed',
+        'review petition',
+        'the petitioner met the respondent',
+      ],
+    ];
+    for (const [packId, key, noun, role] of COLLIDING) {
+      it(`${packId}.${key}: "${role}" on a text-held date, date last: no conflict, no repair`, async () => {
+        const body = `1. That ${role} on 12.03.2026.`;
+        const i = run(packId, key, body, NEUTRAL);
+        expect(conflictsOf(verifyDraft(i))).toEqual([]);
+        expect(dateFindings(i)).toEqual([]);
+        const repair = repairSpy(null);
+        const out = await verifyAndRepair(run(packId, key, body, NEUTRAL), repair);
+        expect(repair).not.toHaveBeenCalled();
+        expect(out.body).toBe(body);
+        expect(out.conflicts ?? []).toEqual([]);
+      });
+      it(`${packId}.${key}: "${role}" on a text-held date, date first: no conflict, no repair`, async () => {
+        const body = `1. On 12.03.2026 ${role}.`;
+        const i = run(packId, key, body, NEUTRAL);
+        expect(conflictsOf(verifyDraft(i))).toEqual([]);
+        expect(dateFindings(i)).toEqual([]);
+        const repair = repairSpy(null);
+        const out = await verifyAndRepair(run(packId, key, body, NEUTRAL), repair);
+        expect(repair).not.toHaveBeenCalled();
+        expect(out.conflicts ?? []).toEqual([]);
+      });
+      it(`${packId}.${key}: a role word in the text fact's own sentence gives that fact no role either`, () => {
+        const text = `${role} on 12.03.2026.`;
+        const i = run(packId, key, `1. That ${role} on 12.03.2026.`, text);
+        expect(conflictsOf(verifyDraft(i))).toEqual([]);
+      });
+      it(`${packId}.${key}: control, "the date of the ${noun}, 12.03.2026" is still a cue: P2 conflict, one repair, then asks`, async () => {
+        const body = `1. That the date of the ${noun} was 12.03.2026.`;
+        const found = dateFindings(run(packId, key, body, NEUTRAL));
+        expect(found).toHaveLength(1);
+        expect(found[0].conflict).toMatchObject({
+          kind: 'wrong_label',
+          rule: 'P2',
+          keyA: key,
+          keyB: TEXT_KEY,
+        });
+        const stuck = repairSpy(`[[P1]]\n${body.replace(/^1\. /, '')}`);
+        const out = await verifyAndRepair(run(packId, key, body, NEUTRAL), stuck);
+        expect(stuck).toHaveBeenCalledTimes(1);
+        expect(out.conflicts ?? []).toHaveLength(1);
+      });
+    }
+
+    it('the field noun still cues in the same sentence as a role word ("complaint filed by the complainant on <date>")', () => {
+      const i = run(
+        'bail_regular',
+        'fir_date',
+        '1. That the complaint was filed by the complainant on 12.03.2026.',
+        NEUTRAL,
+      );
+      expect(dateFindings(i)).toHaveLength(1);
+    });
+
+    it('a decree-holder sentence does not cue a "decree" date field; "decree dated" does', () => {
+      const label = 'Date of decree';
+      const mk = (body: string) =>
+        inputOf(PACK, body, [
+          fact('decree_date', label, 'date', '2026-01-10', '10 January 2026'),
+          textFact(NEUTRAL),
+        ]);
+      expect(
+        dateFindings(mk('1. That the decree holder met the judgment debtor on 12.03.2026.')),
+      ).toEqual([]);
+      expect(
+        dateFindings(mk('1. That the decree was passed on 12.03.2026.')).length,
+      ).toBeGreaterThan(0);
+    });
   });
 
   it('a multi-word phrase ("opposite party") is removed as a phrase; "party" alone in another label is still a cue', () => {

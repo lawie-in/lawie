@@ -1031,8 +1031,9 @@ const DATE_CUE_STOP = new Set(DATE_NON_CUE_FORMS.filter((f) => !f.includes(' '))
 
 /**
  * Multi-word entries ("opposite party", "decree holder", "मकान मालिक"): removed
- * as whole phrases before the words are split, so "party" alone still counts
- * in any other label. Longest first.
+ * as whole phrases before the words are split, so their single words (e.g.
+ * "holder", "मकान") still count elsewhere ("party" is a generic stop word
+ * anyway, in CUE_STOP). Longest first.
  */
 const DATE_CUE_STOP_PHRASES: readonly string[] = DATE_NON_CUE_FORMS.filter((f) =>
   f.includes(' '),
@@ -1310,6 +1311,24 @@ function buildSources(input: VerifierInput): Sources {
   return src;
 }
 
+/**
+ * T-678 (T678-1, T678-1a): the positions in `words` covered by a non-cue
+ * phrase ("decree holder", "opposite party"), so a party-role phrase in the
+ * draft sentence is never a date cue. Positions, not a shortened list, so
+ * every other index in cuedKeys stays the same.
+ */
+function phraseStopped(words: readonly string[]): Set<number> {
+  const out = new Set<number>();
+  for (const ph of DATE_CUE_STOP_PHRASES) {
+    const pw = ph.split(' ');
+    for (let i = 0; i + pw.length <= words.length; i++) {
+      if (pw.every((w, j) => words[i + j] === w))
+        for (let j = 0; j < pw.length; j++) out.add(i + j);
+    }
+  }
+  return out;
+}
+
 /** The keys a value in this clause is said to be, nearest cue first. */
 function cuedKeys(
   src: Sources,
@@ -1333,6 +1352,12 @@ function cuedKeys(
     .split(' ')
     .filter((w) => w !== '');
   const words = segment.slice(-8).reverse();
+  // T-678 (T678-1, T678-1a): a party-role word or phrase in the draft sentence
+  // is never a date cue, even where its stem is a field word's ("complainant"
+  // and "complaint" are both "compla"). The field's own words stay cues.
+  const stoppedAt = forDate ? phraseStopped(segment) : new Set<number>();
+  const nonCue = (w: string, i: number): boolean =>
+    DATE_CUE_STOP.has(w) || stoppedAt.has(segment.length - 1 - i);
   const bare = (k: string): string => k.slice(k.lastIndexOf('.') + 1);
   const tabled = (c: Sources['cues'][number]): boolean =>
     c.type === 'date' && S138_DATE_KEYS.has(bare(c.key));
@@ -1343,6 +1368,7 @@ function cuedKeys(
     for (const c of src.cues) {
       if (!types.includes(c.type) || seen.has(c.key) || tabled(c)) continue;
       if (c.type === 'date' && DATE_CUE_NOT.has(s)) continue;
+      if (c.type === 'date' && nonCue(w, i)) continue;
       if (c.stems.has(s)) {
         seen.add(c.key);
         found.push({ key: c.key, unresolved: c.unresolved, at: i });
