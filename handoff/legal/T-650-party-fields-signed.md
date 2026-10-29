@@ -31,3 +31,20 @@ Why: Order VII Rule 1 CPC requires the plaint to give the name, description and 
 - (3e) The condition goes through `computed_fields`: `{defendant}{defendants_title_suffix}`, giving ` & Ors. ... Defendants` for yes and ` ... Defendant` for no. Signed as smoke-rendered.
 - (3f) Option labels for `other_defendants` (ids stay `yes` / `no`, T-473): `Yes, there are other defendants` / `No, Defendant No. 1 is the only defendant`. Signed.
 - (3g) `other_defendants` gets `"blocks_confirm": true`. An unanswered field must never fall back to the singular title. Signed ask line, EN: `Say whether there are other defendants to continue.` HI: `आगे बढ़ने के लिए बताइए कि क्या अन्य प्रतिवादी भी हैं।` If the line needs code (the AJ-644-M1 path), the interim rule in (4) applies: config-only blocking is acceptable, and the line follows with the M1 lines.
+
+## Byte check (Ajay, 29 Oct 2026): fix/t-650-party-fields @ commit SHA 29b66b51
+
+I checked the pack diff myself (`git diff 2dc23b3a 29b66b51 -- apps/drafting/src/config`). Three files, all as signed:
+
+| Pack | What changed |
+|---|---|
+| plaint_partition | Title ends `{defendant}{defendants_title_suffix}`. The computed suffix is ` & Ors. ... Defendants` / ` ... Defendant` (3c, 3e). New field `defendant_name` (3a). New field `other_defendants`, with the label, both option labels and `blocks_confirm: true` (3b, 3f, 3g). New validation line. |
+| replication | One field and one validation line (1). |
+| written_statement | One field and one validation line (2). |
+
+No other text, field or order change (C3). The tests use the placeholders `Test Plaintiff A` / `Test Defendant B` (C1). No snapshot was touched (C2).
+
+**T-650 APPROVED at 29b66b51** for the pack JSON. If the post-review delta touches `apps/drafting/src/config`, it needs a new byte check. A test-only delta I approve on sight. It counts as merged at the develop_staging merge SHA that contains it.
+
+- (3h) The interim generic brief line `Add the name of the defendant no. 1 to continue.` is accepted for T-650. T-661 replaces it with this signed line. EN: `Add the name of Defendant No. 1 to continue.` HI: `आगे बढ़ने के लिए प्रतिवादी संख्या 1 का नाम जोड़िए।`
+- (3i) The t629 exception for exactly `plaint_partition#other_defendants` is accepted. T-661 removes it.
