@@ -30,10 +30,17 @@ import {
   V3ExtractLine,
 } from '../../config/prompts/v3-extractor';
 import redis from '../../config/redis';
+import {
+  AI_EFFORT_VALUES,
+  APP_SETTING_KEYS,
+  getAppSetting,
+  MODEL_ROLE_REGISTRY,
+  onAppSettingInvalidated,
+} from '../app-settings.service';
 import { AuxCallError, AuxCallUsage, callAuxModel } from '../aux-llm';
 import { factTypeFor, isLedgerItem } from '../fact-ledger.service';
 import { ChecklistItem, dateKindLabel } from '../intake-brief';
-import { AiEffort, getRoleEffort, logLlmCall, resolveModel } from '../llm-usage';
+import { AiEffort, logLlmCall, resolveModel } from '../llm-usage';
 import type { RulePack } from '../rule-pack.service';
 
 import type { ExtractResult } from './types';
@@ -147,15 +154,70 @@ function runState(runId: string, now: number): RunState {
 export function _resetExtractorState(): void {
   runs.clear();
   inFlight.clear();
+  effortCached = null;
 }
 
-// ── Settings (T-684) ────────────────────────────────────────────────────────
+// ── Settings (T-684; Arjun, T-683 answers §8) ───────────────────────────────
 //
 // The model is the extractor role's: ai.model.extractor, else ai.intake_model
 // for one release (resolveModel). No code default (founder rule 2026-05-11):
-// unset everywhere, the turn is degraded with 'model_unset'. The effort is
-// getRoleEffort('extractor'): ai.effort.extractor, else ai.effort.intake, else
-// T-684's role default. Both are read through llm-usage, never by key here.
+// unset everywhere, the turn is degraded with 'model_unset'.
+//
+// The effort has its own chain (§8 item 1): ai.effort.extractor_v3, then
+// ai.effort.extractor, then medium. Never ai.effort.intake, so the v2 intake
+// chain (getRoleEffort('extractor'): extractor, intake, medium) is unchanged
+// and setting the v3 key never moves v2.
+
+/** §8 item 1: the effort when neither key in the v3 chain holds a valid value. */
+export const EXTRACTOR_V3_EFFORT_DEFAULT: AiEffort = 'medium';
+
+/** The v3 effort keys, in order. */
+export const EXTRACTOR_V3_EFFORT_KEYS: readonly string[] = Object.freeze([
+  APP_SETTING_KEYS.EFFORT_EXTRACTOR_V3,
+  MODEL_ROLE_REGISTRY.extractor.effortKey,
+]);
+
+const EFFORT_TTL_MS = 60_000;
+let effortCached: { value: AiEffort; expiresAt: number } | null = null;
+
+// Guarded: a test that replaces app-settings.service wholesale may not provide it.
+if (typeof onAppSettingInvalidated === 'function') {
+  onAppSettingInvalidated((key) => {
+    if (key === null || EXTRACTOR_V3_EFFORT_KEYS.includes(key)) effortCached = null;
+  });
+}
+
+/**
+ * The v3 Extractor's effort. A missing key, a failed read or a value outside
+ * the SDK's efforts moves to the next key (an invalid value warns with the key
+ * name only). Cached 60 s, the default included. Never throws.
+ */
+export async function extractorV3Effort(): Promise<AiEffort> {
+  const now = Date.now();
+  if (effortCached && effortCached.expiresAt > now) return effortCached.value;
+  let value: AiEffort = EXTRACTOR_V3_EFFORT_DEFAULT;
+  for (const key of EXTRACTOR_V3_EFFORT_KEYS) {
+    let raw: unknown;
+    try {
+      raw = await getAppSetting(key);
+    } catch {
+      continue;
+    }
+    const v = typeof raw === 'string' ? raw.trim().toLowerCase() : '';
+    if ((AI_EFFORT_VALUES as readonly string[]).includes(v)) {
+      value = v as AiEffort;
+      break;
+    }
+    logger.warn({ key }, `[v3-extractor] ${key} is not a valid effort; trying the next key`);
+  }
+  effortCached = { value, expiresAt: now + EFFORT_TTL_MS };
+  return value;
+}
+
+/** Test helper: forget the cached effort. NOT called in production paths. */
+export function _clearExtractorEffortCache(): void {
+  effortCached = null;
+}
 
 // ── The prompt ──────────────────────────────────────────────────────────────
 
@@ -369,7 +431,7 @@ async function runExtract(input: ExtractInput): Promise<ExtractOutcome> {
   }
   // resolveModel returns the first key that exists, even blank: a blank id is no model.
   if (model === '') return degraded('model_unset');
-  effort = await getRoleEffort('extractor');
+  effort = await extractorV3Effort();
 
   try {
     if (!(await takeUserSlot(input.userId, now))) return degraded('user_cap');

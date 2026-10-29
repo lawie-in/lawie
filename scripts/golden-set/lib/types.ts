@@ -248,7 +248,8 @@ export interface FixtureResult {
 
 // ── T-453: per-call model usage, from the service's llm_call listener ───────
 
-export type LlmStageName = 'intake' | 'preflight' | 'body';
+/** T-683: 'extract' is the v3 Extractor's llm_call stage (llm-usage.ts LlmLogStage). */
+export type LlmStageName = 'intake' | 'extract' | 'preflight' | 'body';
 
 /** One model call as the service's logLlmCall reported it. Ids and counts only, never text. */
 export interface LlmCallObserved {
