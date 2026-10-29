@@ -1,6 +1,6 @@
 # T-667 — Server balance total excludes earned credits; credit amount hardening
 
-Status: assigned to kunal, 29 Oct 2026. Follow-ups from his T-653 report.
+Status: merged into develop_staging e4990fba (kunal, CI green), 29 Oct 2026. MAX_VALUE cap question goes to T-670 (Vikram).
 
 ## Acceptance criteria
 1. `getCreditBalance` (apps/drafting credits.service.ts) and the 402 body: `total` either excludes `earnedCredits` or is removed, so no server response offers an earned-inclusive figure as the balance. List every consumer before you change it (the web reads `totalInk` since T-664).
