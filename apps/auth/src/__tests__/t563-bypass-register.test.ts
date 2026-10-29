@@ -12,6 +12,7 @@ jest.mock('@lawie/email-client', () => ({ enqueueEmail: jest.fn() }));
 import './setupDb';
 
 import { enqueueEmail } from '@lawie/email-client';
+import mongoose from 'mongoose';
 import supertest from 'supertest';
 
 import app from '../app';
@@ -19,11 +20,7 @@ import logger from '../config/logger';
 import redis from '../config/redis';
 import { Session } from '../models/Session.model';
 import { User } from '../models/User.model';
-import {
-  DAILY_LOGIN_BONUS,
-  grantTestInk,
-  tryGrantDailyLoginBonus,
-} from '../services/credit-bonus.service';
+import { grantTestInk } from '../services/credit-bonus.service';
 import {
   hashIpForTestSignup,
   testSignupAcceptKey,
@@ -206,18 +203,20 @@ describe('T-563 right secret', () => {
     expect(await ledger().countDocuments({ userId: u!._id })).toBe(1);
   });
 
-  it('the daily login bonus is skipped', async () => {
+  it('login gives the test account no bonus (T-652: no accrual for anyone)', async () => {
     const res = await reg('TEST_e@example.com', 'TEST_epsilon', GOOD);
-    const id = res.body.data.user.id;
-    expect(DAILY_LOGIN_BONUS).toBeGreaterThan(0);
-    expect(await tryGrantDailyLoginBonus(id)).toBe(0);
+    expect(res.status).toBe(201);
     const login = await supertest(app)
       .post('/login')
       .send({ email: 'test_e@example.com', password: PASSWORD });
     expect(login.status).toBe(200);
+    await new Promise((r) => setTimeout(r, 200));
     const u = await rawUsers().findOne({ email: 'test_e@example.com' });
     expect(u!.earnedCredits ?? 0).toBe(0);
     expect(u!.lastLoginBonusAt ?? null).toBeNull();
+    expect(
+      await mongoose.connection.db!.collection('creditledgers').countDocuments({ userId: u!._id }),
+    ).toBe(0);
   });
 
   it('a name not starting with TEST: 400 invalid_test_name, nothing created', async () => {

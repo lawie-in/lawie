@@ -15,12 +15,17 @@
   "creditsCost": 2,
   "court_levels": ["civil_judge_senior_division", "district_judge", "high_court_original_side"],
   "causeTitle": {
-    "format": "IN THE COURT OF {courtDesignation}\nAT {courtPlace}\n\n{caseNomenclature}\n\n{plaintiff} ... Plaintiff\nVERSUS\n{defendants} ... Defendants",
+    "format": "IN THE COURT OF {courtDesignation}\nAT {courtPlace}\n\n{caseNomenclature}\n\n{plaintiff} ... Plaintiff\nVERSUS\n{defendant}{defendants_title_suffix}",
     "partyDesignations": [
       { "role": "plaintiff", "label": "Plaintiff" },
       { "role": "defendants", "label": "Defendants (all coparceners / co-sharers including women)" }
     ],
     "caseNomenclature": "Civil Suit No. _____ of [YEAR] (Partition)"
+  },
+  "computed_fields": {
+    "defendants_title_suffix": {
+      "logic": "if other_defendants === 'yes' then ' & Ors. ... Defendants' else ' ... Defendant'"
+    }
   },
   "form_schema": {
     "fields": [
@@ -43,6 +48,23 @@
         "label": "Plaintiff's relationship to family (son / daughter / wife / grandchild / coparcener)",
         "type": "text",
         "required": true
+      },
+      {
+        "id": "defendant_name",
+        "label": "Defendant No. 1 full name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "other_defendants",
+        "label": "Are there defendants besides Defendant No. 1?",
+        "type": "select",
+        "required": true,
+        "options": [
+          { "id": "yes", "label": "Yes, there are other defendants" },
+          { "id": "no", "label": "No, Defendant No. 1 is the only defendant" }
+        ],
+        "blocks_confirm": true
       },
       {
         "id": "defendants_details",
@@ -384,6 +406,7 @@
   ],
   "validation_rules": [
     "plaintiff_name must not be empty",
+    "defendant_name must not be empty",
     "defendants_details must not be empty — every coparcener/co-sharer impleaded",
     "nature_of_property must be specified",
     "common_ancestor must not be empty",

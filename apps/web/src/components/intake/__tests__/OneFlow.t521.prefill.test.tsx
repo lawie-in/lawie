@@ -277,7 +277,7 @@ describe('OneFlow prefill from sessionStorage (T-521 round 3)', () => {
     expect(window.location.search).toBe('?q=Sentinel%20url%20words');
   });
 
-  it('with ?kind= and a stored prefill, templates loading late: the preset applies, the key is gone, the textarea is empty', async () => {
+  it('with ?kind= and a stored prefill, templates loading late (T-630): the preset applies, the key is read at once, the textarea holds the stored text', async () => {
     const list = [
       {
         template_id: 'bail_regular',
@@ -292,7 +292,7 @@ describe('OneFlow prefill from sessionStorage (T-521 round 3)', () => {
     expect(window.sessionStorage.getItem(DRAFT_PREFILL_KEY)).toBeNull();
     await render({ initialKind: 'bail_regular', kinds: list, loadingKinds: false });
     expect(container.querySelector('h1')?.textContent).toBe('Regular Bail');
-    expect(ta().value).toBe('');
+    expect(ta().value).toBe(SENT);
   });
 });
 
@@ -307,18 +307,20 @@ describe('chip path: ?kind= with a stored prefill (T-521 round 3, Tanvi)', () =>
     },
   ] as KindSummary[];
 
-  it('clears the key at once, submits nothing, and a later remount does not show the old text', async () => {
+  it('T-630: reads the key at once, shows the text with the preset, submits nothing, and a later remount does not show the old text', async () => {
     stored(SENT);
     await render({ initialKind: 'bail_regular', kinds: list });
     expect(window.sessionStorage.getItem(DRAFT_PREFILL_KEY)).toBeNull();
     expect(mockApiFetch).not.toHaveBeenCalled();
     expect(mockPrivacyFetch).not.toHaveBeenCalled();
-    // Chip path: the preset applies, the stored text is dropped (read and removed, not applied).
+    // T-630 chip path: the preset applies AND the stored text is in the textarea.
     expect(container.querySelector('h1')?.textContent).toBe('Regular Bail');
-    expect(ta().value).toBe('');
+    expect(ta().value).toBe(SENT);
 
-    // "Open Draft again" with no kind: a new instance finds nothing.
+    // "Open Draft again" with no kind: unmounting in-app removes the saved copy, so a new
+    // instance finds nothing.
     act(() => root.unmount());
+    expect(window.sessionStorage.getItem(DRAFT_PREFILL_KEY)).toBeNull();
     root = createRoot(container);
     await render();
     expect(ta().value).toBe('');

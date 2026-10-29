@@ -25,6 +25,7 @@ import {
   isO39RequiredField,
   O39_REQUIRED_FIELDS,
   requiredFieldBlockers,
+  signedConfirmMessage,
 } from '../config/intake/o39-confirm-messages';
 
 import {
@@ -32,6 +33,15 @@ import {
   needsNotInCustodyWarning,
   REGULAR_BAIL_NOT_IN_CUSTODY_WARNING,
 } from './bail-guard';
+import {
+  ARREST_DATE_KEY,
+  CUSTODY_CHOICE_KEY,
+  CUSTODY_OR_REMAND_DATE_KEYS,
+  CUSTODY_OR_REMAND_KINDS,
+  CUSTODY_SINCE_KEY,
+  CUSTODY_SINCE_PACK_ID,
+  deriveCustodySince,
+} from './custody-since-derivation';
 import { datesInText, iso, isOwnWords, normalise } from './intake-text';
 import { isLawSwitchPack } from './law-switch';
 import type { RulePack, RulePackFact } from './rule-pack.service';
@@ -147,6 +157,13 @@ export interface BriefItem {
    * Tells the web app which blank answers to send back as `asked_keys`.
    */
   blank_once_asked?: true;
+  /**
+   * T-638 (Ajay R1, B3): on a regular bail, the value is not the advocate's:
+   * custody_since is the date of arrest, derived. The brief shows it as
+   * `<date> (date of arrest)`. The web app does not send it back as a value,
+   * so it is worked out again on every update; an edit makes it given.
+   */
+  derived_from?: 'arrest_date';
 }
 
 export interface BriefCourt {
@@ -181,11 +198,24 @@ export interface Brief {
   /** T-629: the keys of the required fields that block Confirm, in §(j)2 order. */
   confirm_blocking_keys?: string[];
   /**
+   * T-644: on temporary_injunction_o39, the party keys counted as missing, in
+   * the order of their lines in `confirm_message`. Absent when none, and on
+   * every other pack.
+   */
+  confirm_missing_party_keys?: string[];
+  /**
    * T-363 AC1: for a `legal_notice_s138` whose own dates give T-192's B2, the
    * signed B2 line. The advocate confirms the dates before drafting. The
    * entry stays banned (T-192). Absent for any other result or pack.
    */
   date_check?: { line: 'B2'; text: string };
+  /**
+   * T-655: the keys the server counts as given by the fact ledger
+   * (`ledgerGivenKeys`), on every pack, when it had the ledger. The web uses
+   * this as its given set and does not judge the ledger itself. Absent when the
+   * server had no ledger: then nothing counts as ledger-given (fails closed).
+   */
+  ledger_given_keys?: string[];
 }
 
 export interface LooseDate {
@@ -1268,6 +1298,20 @@ const NONE_ANSWERS = new Set(
 );
 
 /**
+ * T-638 (Ajay, T-612 (4)): the Devanagari non-answers, folded with their vowel
+ * signs kept. `foldAnswer` drops combining marks, so "नहीं" would fold to "नह"
+ * and also match "नहा"; these are compared whole, marks included.
+ */
+const foldKeepingMarks = (v: string): string =>
+  normalise(v)
+    .replace(/[^\p{L}\p{M}\p{N}]+/gu, ' ')
+    .trim();
+// Ajay A1a (290692f0): the no-anusvara spellings count too.
+const NONE_ANSWERS_DEVANAGARI = new Set(
+  ['नहीं', 'कोई नहीं', 'नही', 'कोई नही'].map(foldKeepingMarks),
+);
+
+/**
  * True when this answer writes no fact (T-190), on a fact the pack asks for
  * when empty only: "Not known" or "Not given", or a "none" answer on a fact
  * that is used only when present (`medical_condition`, `local_ties`, `co_accused_bail_court`,
@@ -1283,7 +1327,10 @@ export function isNoFactAnswer(
   // reuses a key such as `dependants` is not affected.
   if (item.askWhenEmpty !== true) return false;
   if (NOT_KNOWN_ANSWERS.has(folded)) return true;
-  return NONE_IS_EMPTY_KEYS.has(lastSegment(item.key)) && NONE_ANSWERS.has(folded);
+  return (
+    NONE_IS_EMPTY_KEYS.has(lastSegment(item.key)) &&
+    (NONE_ANSWERS.has(folded) || NONE_ANSWERS_DEVANAGARI.has(foldKeepingMarks(value)))
+  );
 }
 
 // ── Building the brief ──────────────────────────────────────────────────────
@@ -1333,6 +1380,16 @@ export interface BuildBriefInput {
    * `BLANK_ONCE_ASKED` with no value, the item is marked `asked_blank`.
    */
   askedKeys?: readonly string[];
+  /**
+   * T-660: the ledger's part of the custody_since rule (T-638 R1 / B1), from
+   * `ledgerCustodyInputs` over the ledger's facts and unresolved entries, so
+   * the brief derives only when generation will. Absent: keys only, as before.
+   */
+  ledgerCustody?: {
+    texts: readonly string[];
+    otherCustodyDate: boolean;
+    custodySinceHeld: boolean;
+  };
 }
 
 /**
@@ -1374,8 +1431,11 @@ function isDeclinedUndertaking(given: GivenValue): boolean {
  * description), so it counts as given: it is not asked in the question rounds
  * and not listed as still unknown, even where Reception placed no value for it.
  * An entry with an empty display is not a fact, and a "No" on an undertaking
- * box (T-251) is an undertaking not yet given. Kept in step with
- * `ledgerGivenKeys` in apps/web/src/components/intake/briefTypes.ts.
+ * box (T-251) is an undertaking not yet given. T-655 (AJ-644-M3, FR-9): on
+ * an O.39 required field (plaintiff_name, defendant_name, main_suit_relief,
+ * restraint_sought) a §(j)3 non-answer in the display or the value is no fact,
+ * so it does not lift the block. The list is the one in o39-confirm-messages.ts
+ * (FR-5a). The web reads the result from `Brief.ledger_given_keys`.
  */
 export function ledgerGivenKeys(
   facts: ReadonlyArray<{ key: string; display: string; value: unknown }>,
@@ -1383,6 +1443,12 @@ export function ledgerGivenKeys(
   const out = new Set<string>();
   for (const f of facts) {
     if (typeof f.display !== 'string' || f.display.trim() === '') continue;
+    if (
+      isO39RequiredField(lastSegment(f.key)) &&
+      (isEmptyOrNonAnswer(f.display) || isEmptyOrNonAnswer(f.value))
+    ) {
+      continue;
+    }
     const declined = [f.display, String(f.value)].some((value) =>
       isDeclinedUndertaking({ key: f.key, value, source: 'description' }),
     );
@@ -1395,18 +1461,26 @@ export function ledgerGivenKeys(
  * T-498: a brief already built, with the facts the ledger holds taken off
  * "Still unknown" and off what Confirm waits for, as `buildBrief` does with
  * `ledgerGiven`. Items and values do not change; with no given keys the brief
- * is returned as it is.
+ * is returned as it is. T-655: the given keys are set on `ledger_given_keys`.
  */
 export function withoutLedgerGiven(brief: Brief, given: ReadonlySet<string>): Brief {
-  if (given.size === 0) return brief;
-  const confirm = confirmState(brief.kind.court_document, brief.court, brief.items, given);
-  const { confirm_blocking_keys: _old, ...rest } = brief;
+  if (given.size === 0) return { ...brief, ledger_given_keys: [] };
+  const confirm = confirmState(
+    brief.kind.id,
+    brief.kind.court_document,
+    brief.court,
+    brief.items,
+    given,
+  );
+  const { confirm_blocking_keys: _old, confirm_missing_party_keys: _oldParties, ...rest } = brief;
   void _old;
+  void _oldParties;
   return {
     ...rest,
     still_unknown: brief.still_unknown.filter((u) => !given.has(u.key)),
     ...confirm,
     can_confirm: confirm.confirm_blockers.length === 0,
+    ledger_given_keys: [...given],
   };
 }
 
@@ -1518,6 +1592,82 @@ function hiddenByShowIf(checklist: ChecklistItem[], placed: Map<string, GivenVal
  * item has the same fact name. Otherwise it is kept under `unplaced`, so a
  * change of kind loses nothing.
  */
+/**
+ * T-638 (Ajay R1, T-611; B1-B5, T-612 file): on a regular bail with the
+ * applicant in custody and no custody_since given, the brief shows the date of
+ * arrest as custody_since, marked `derived_from`, so the advocate sees it
+ * before drafting. Only with the description (the rule reads it for B1): a
+ * brief worked out again without it derives nothing. Not derived, so asked
+ * (B2), when the description says a B1 word, or a custody or remand date
+ * other than the date of arrest is held, stated, or held by the ledger.
+ */
+function deriveCustodySinceItem(
+  items: BriefItem[],
+  input: BuildBriefInput,
+  unplaced: ReadonlyArray<{ value: string | string[] }>,
+): void {
+  if (input.kind.id !== CUSTODY_SINCE_PACK_ID || input.description === undefined) return;
+  const at = items.findIndex((i) => lastSegment(i.key) === CUSTODY_SINCE_KEY && i.kind === 'date');
+  if (at < 0) return;
+  const item = items[at];
+  if (!isEmpty(item.value) || item.asked_empty === true) return;
+  const strings = (v: string | string[] | null | undefined): string[] =>
+    v === null || v === undefined ? [] : Array.isArray(v) ? v : [v];
+  const named = (name: string): BriefItem[] => items.filter((i) => lastSegment(i.key) === name);
+  const ledger = [...(input.ledgerGiven ?? [])].map(lastSegment);
+  // Every arrest date the brief holds, as the generation path reads every
+  // arrest_date fact: more than one is not derived from (asked).
+  const arrestDates = named(ARREST_DATE_KEY)
+    .flatMap((i) => strings(i.value))
+    .map((d) => d.trim())
+    .filter((d) => d !== '');
+  const uniqueArrest = [...new Set(arrestDates)];
+  const arrestIso = uniqueArrest.length === 1 ? uniqueArrest[0] : null;
+  const otherCustodyDate =
+    items.some(
+      (i) =>
+        lastSegment(i.key) !== CUSTODY_SINCE_KEY &&
+        CUSTODY_OR_REMAND_DATE_KEYS.has(lastSegment(i.key)) &&
+        !isEmpty(i.value),
+    ) ||
+    ledger.some((k) => k !== CUSTODY_SINCE_KEY && CUSTODY_OR_REMAND_DATE_KEYS.has(k)) ||
+    input.ledgerCustody?.otherCustodyDate === true ||
+    statedDates(input.description).some(
+      (d) => d.kind !== null && CUSTODY_OR_REMAND_KINDS.has(d.kind) && d.value !== arrestIso,
+    );
+  // B1 "the description or the ledger": the description (with the answers, as
+  // the web app sends it), every value and quote on the brief (the ledger
+  // mirrors them, T-335), and the values no item took.
+  const texts = [
+    input.description,
+    ...items.flatMap((i) => [...strings(i.value), ...strings(i.quote)]),
+    ...unplaced.flatMap((u) => strings(u.value)),
+    // T-660: and the ledger's own wording, as generation scans it.
+    ...(input.ledgerCustody?.texts ?? []),
+  ];
+  const result = deriveCustodySince({
+    packId: input.kind.id,
+    custody: named(CUSTODY_CHOICE_KEY).flatMap((i) => strings(i.value)),
+    arrestDates,
+    custodySinceHeld:
+      ledger.includes(CUSTODY_SINCE_KEY) || input.ledgerCustody?.custodySinceHeld === true,
+    otherCustodyDate,
+    texts,
+  });
+  if (!('derived' in result)) return;
+  const { quote: _quote, ...rest } = item;
+  void _quote;
+  // Source null: the value is the code's, not the description's nor the
+  // advocate's. overlayBrief and briefLedgerValues write no fact for it.
+  items[at] = {
+    ...rest,
+    value: result.derived.value,
+    source: null,
+    please_check: false,
+    derived_from: 'arrest_date',
+  };
+}
+
 export function buildBrief(input: BuildBriefInput): Brief {
   const byKey = new Map(input.checklist.map((i) => [i.key, i]));
   const byName = new Map<string, ChecklistItem[]>();
@@ -1621,6 +1771,8 @@ export function buildBrief(input: BuildBriefInput): Brief {
           : {}),
       };
     });
+  // T-638 (Ajay R1, B1-B5): custody_since from the date of arrest, when it applies.
+  deriveCustodySinceItem(items, input, [...unplaced.values()]);
 
   const court: BriefCourt = {
     state: clean(input.court?.state),
@@ -1640,7 +1792,7 @@ export function buildBrief(input: BuildBriefInput): Brief {
     }
   });
 
-  const confirm = confirmState(input.kind.court_document, court, items, given);
+  const confirm = confirmState(input.kind.id, input.kind.court_document, court, items, given);
   const blockers = confirm.confirm_blockers;
 
   const placedDates = new Set(
@@ -1672,6 +1824,7 @@ export function buildBrief(input: BuildBriefInput): Brief {
     can_confirm: blockers.length === 0,
     ...confirm,
     ...(dateCheck ? { date_check: dateCheck } : {}),
+    ...(input.ledgerGiven ? { ledger_given_keys: [...input.ledgerGiven] } : {}),
   };
 }
 
@@ -1685,34 +1838,67 @@ export function buildBrief(input: BuildBriefInput): Brief {
  * own value lifts it (typed, or read from the description); a ledger-held key
  * does not, since the ledger's value is not seen here. Every message shows,
  * one per line: court and parties first, then the fields in signed order.
+ *
+ * T-644 (Ajay, AJ-644-M1, AJ-644-M2), temporary_injunction_o39 only: a party
+ * name that is empty or a §(j)3 non-answer is missing. The lines are the T-127
+ * court line, then the signed party lines (plaintiff, then defendant), one per
+ * line, in place of the combined court-and-parties line and the generic
+ * party line. `confirm_blocking_keys` stays the required fields' keys.
  */
 function confirmState(
+  packId: string | null,
   courtDocument: boolean,
   court: BriefCourt,
   items: ReadonlyArray<BriefItem>,
   given: ReadonlySet<string>,
-): Pick<Brief, 'confirm_blockers' | 'confirm_message' | 'confirm_blocking_keys'> {
+): Pick<
+  Brief,
+  'confirm_blockers' | 'confirm_message' | 'confirm_blocking_keys' | 'confirm_missing_party_keys'
+> {
   const blockers: Brief['confirm_blockers'] = [];
   let confirm_message: string | null = null;
+  let partyKeys: string[] = [];
   if (courtDocument) {
+    const o39 = packId === 'temporary_injunction_o39';
     const courtChosen = court.state !== null && court.court_type !== null && court.court !== null;
     const missingParties = items.filter(
-      (i) => i.party_name && i.required && isEmpty(i.value) && !given.has(i.key),
+      (i) =>
+        i.party_name &&
+        i.required &&
+        (o39 ? isEmptyOrNonAnswer(i.value) : isEmpty(i.value)) &&
+        !given.has(i.key),
     );
     if (!courtChosen) blockers.push('court');
     if (missingParties.length > 0) blockers.push('parties');
     // The wording is Ajay's (T-127, section 7.2).
-    if (!courtChosen && missingParties.length > 0) {
+    const courtLine = 'Choose the court to continue.';
+    if (o39) {
+      // AJ-644-M1's lines, in O39_REQUIRED_FIELDS order (plaintiff, then defendant).
+      const missingNames = new Set(missingParties.map((i) => lastSegment(i.key)));
+      const partyBlockers = requiredFieldBlockers({}).filter((b) => missingNames.has(b.key));
+      const partyLines = partyBlockers.map((b) => b.en);
+      // The item keys, in the order of their lines.
+      partyKeys = partyBlockers.flatMap((b) =>
+        missingParties.filter((i) => lastSegment(i.key) === b.key).map((i) => i.key),
+      );
+      const lines = [...(!courtChosen ? [courtLine] : []), ...partyLines];
+      confirm_message = lines.length > 0 ? lines.join('\n') : null;
+    } else if (!courtChosen && missingParties.length > 0) {
       confirm_message = 'Choose the court and add the parties to continue.';
     } else if (!courtChosen) {
-      confirm_message = 'Choose the court to continue.';
+      confirm_message = courtLine;
     } else if (missingParties.length > 0) {
-      confirm_message = `Add the name of the ${partyLabel(missingParties[0].label)} to continue.`;
+      // T-661: the pack's signed line when Ajay signed one (T-650 (3h)), else the T-127 line.
+      confirm_message =
+        signedConfirmMessage(packId, lastSegment(missingParties[0].key))?.en ??
+        `Add the name of the ${partyLabel(missingParties[0].label)} to continue.`;
     }
   }
 
-  const required = requiredItemBlockers(items);
-  if (required.length === 0) return { confirm_blockers: blockers, confirm_message };
+  // T-644: set only when an O.39 party is missing, so other briefs are unchanged.
+  const parties = partyKeys.length > 0 ? { confirm_missing_party_keys: partyKeys } : {};
+  const required = requiredItemBlockers(packId, items);
+  if (required.length === 0) return { confirm_blockers: blockers, confirm_message, ...parties };
   blockers.push('required_fields');
   const lines = [
     ...(confirm_message !== null ? [confirm_message] : []),
@@ -1722,6 +1908,7 @@ function confirmState(
     confirm_blockers: blockers,
     confirm_message: lines.length > 0 ? lines.join('\n') : null,
     confirm_blocking_keys: required.map((r) => r.key),
+    ...parties,
   };
 }
 
@@ -1729,8 +1916,13 @@ function confirmState(
  * T-629: the `blocks_confirm` items still empty or a non-answer, in §(j)2
  * order, each with its signed EN message. A flagged fact with no signed
  * message still blocks (fail closed), with no line of its own.
+ *
+ * T-661: a field outside the O.39 list takes the pack's signed line
+ * (PACK_CONFIRM_MESSAGES, e.g. T-650 (3g) for plaint_partition
+ * other_defendants) when there is one.
  */
 function requiredItemBlockers(
+  packId: string | null,
   items: ReadonlyArray<BriefItem>,
 ): Array<{ key: string; en: string | null }> {
   const open = items.filter((i) => i.blocks_confirm === true && isEmptyOrNonAnswer(i.value));
@@ -1750,7 +1942,13 @@ function requiredItemBlockers(
   return open
     .map((item, index) => ({ item, index }))
     .sort((a, b) => rank(a.item.key) - rank(b.item.key) || a.index - b.index)
-    .map(({ item }) => ({ key: item.key, en: signed.get(lastSegment(item.key)) ?? null }));
+    .map(({ item }) => {
+      const name = lastSegment(item.key);
+      return {
+        key: item.key,
+        en: signedConfirmMessage(packId, name)?.en ?? signed.get(name) ?? null,
+      };
+    });
 }
 
 // ── An edited description (T-150, Rule A) ───────────────────────────────────

@@ -133,7 +133,9 @@
             "show_if": "currently_in_custody !== no",
             "inject_into": [
               "ai_prompt"
-            ]
+            ],
+            "question": "Since what date has the applicant been in custody (the date of arrest or surrender)?",
+            "ask_when_empty": true
           },
           {
             "field_id": "earlier_bail_applications",
