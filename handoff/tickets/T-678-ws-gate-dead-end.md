@@ -4,7 +4,7 @@ Status: building (vishal), paused for T-668b, 29 Oct 2026. P1 regression from T-
 
 ## Acceptance criteria
 1. Both WS runs ended at: "The draft gives 15.06.2025 as the Date of service of summons on defendant, but your facts give it as the Additional pleas… Which is right?" The facts were summons 05.10.2026 and repayment 15.06.2025, and the brief showed 5 October 2026. The gate confuses two different dated facts.
-2. Fix the cross-check so each date is matched to its own field. If it does ask, the user can answer in place, not only "Back to the brief".
+2. Fix the cross-check so each date is matched to its own field. ~~If it does ask, the user can answer in place, not only "Back to the brief".~~ Moved to T-678b (29 Oct 2026, Priya, per the 29 Oct note).
 3. A recorded-reply test with Anushka's WS inputs (fictional) produces a draft. No Ink is charged on any gate stop (already true; keep it).
 
 ## Added 29 Oct (Arjun, Ajay 25c55c73)
