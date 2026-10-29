@@ -353,7 +353,13 @@ function demandCategory(raw: unknown): DemandCategory {
 //   484"), unless it runs on into a case-number shape ("IPC 123/2024").
 // - A chain right AFTER the word "Act", optionally with a comma: this keeps the
 //   year as typed ("Arbitration and Conciliation Act, 1996", "Specific Relief
-//   Act 1963"). A year anywhere else ("Bail application 2024") is dropped.
+//   Act 1963"), however long the Act's name is (Ajay, rework ruling (2)). With
+//   a bracketed short name in between ("... Violence Act (PWDVA), 2005") only a
+//   1800-2099 year is kept.
+// - A 1800-2099 year right after "<code>," ("CPC, 1908", "CrPC, 1973", "BNSS,
+//   2023"): Ajay, rework ruling (3). Without the comma a number after a code
+//   is a provision chain, as above ("CPC 1908" keeps 1908 as a provision).
+//   A year anywhere else ("Bail application 2024") is dropped.
 // - A chain right BEFORE a code or Act token ("528 BNSS", "(now 528 BNSS)",
 //   "138 NI Act complaint", "302/34 IPC"), unless it is the tail of a case
 //   number ("123/2024 NI Act" drops 2024).
@@ -369,30 +375,41 @@ const LABEL_CODE = String.raw`\b(?:BNSS|BNS|BSA|IPC|IEA|PMLA|Cr\.?\s?P\.?\s?C|C\
 const LABEL_ACT_STOP = 'of|the|under|in|for|and|or|with|to|dated|no|by|on|at|from|a|an';
 const LABEL_ACT_NAME = String.raw`(?:(?!(?:${LABEL_ACT_STOP})\b)[a-z][a-z.']{0,19}\s{1,3}){0,3}act\b`;
 const LABEL_NOT_CASE_TAIL = String.raw`(?!\s*[/.-]\s*\d)`;
+const LABEL_YEAR = String.raw`(?:18|19|20)\d\d\b${LABEL_NOT_CASE_TAIL}`;
 const LABEL_REF_KEEP = new RegExp(
   String.raw`\b(?:(?:sections?|sec|u\/s)\b\.?|(?:s|ss)\.)\s*${labelRefChain(4)}` +
     String.raw`|\b(?:(?:orders?|rules?|articles?|regulations?|paras?)\b\.?|art\.)\s*${labelRefChain(3)}` +
     String.raw`|${LABEL_CODE}\s*${labelRefChain(4)}${LABEL_NOT_CASE_TAIL}` +
+    String.raw`|${LABEL_CODE}\s{0,3},\s{0,3}${LABEL_YEAR}` +
     String.raw`|\bact\b\s{0,3},?\s{0,3}${labelRefChain(4)}${LABEL_NOT_CASE_TAIL}` +
+    String.raw`|\bact\s{0,3}\([a-z][a-z. ]{0,11}\)\s{0,3},?\s{0,3}${LABEL_YEAR}` +
     String.raw`|(?<!\d\s{0,3}[/.-]\s{0,3})\b${labelRefChain(4)}(?=\s{0,3}(?:${LABEL_CODE}|${LABEL_ACT_NAME}))`,
   'gi',
 );
 
-// T-677 safety net (Ajay): a title must never name a law and half-state its
-// provision. A "dangling spot" is one of:
-//   (a) a number, then a connector, then no number: "IPC 302 and", "Section 138/";
-//   (b) a code/Act token with no number right before it, then a connector,
-//       then no number: "Act," / "CrPC / BNSS" / "IPC / case";
-//   (c) a connector, then a code/Act token, then no number: "/ BNSS", "(now BNSS)",
-//       "/ NI Act";
-//   (d) a section marker (Section(s), Sec, s., ss., u/s) with no number after:
-//       "Petition under Section".
+// T-677 safety net (Ajay, rework ruling (1)): a title must never name a law and
+// half-state its provision, and the net must never bring back a dropped digit.
+// So it only ever deletes text from the CLEANED label. A "dangling spot" is:
+//   (a) a number, then a connector, then no number: "IPC 302 and", "Section
+//       138/". Repair: delete the connector.
+//   (b) a code/Act token with no number right before it, then a connector, then
+//       no number ("Arbitration Act,", "IPC / case"); or any code/Act token
+//       followed by a connector at the very end ("96 CPC,"). Repair: delete the
+//       connector, keep the token.
+//   (c) a connector with no number right before it, then a code/Act token,
+//       then no number ("CrPC / BNSS", "/ NI Act"), or "(now <token>" with no
+//       number. Repair: delete the connector and the orphan token; for
+//       "(now ...)" the whole parenthetical, closing bracket included.
+//   (d) a section marker (Section(s), Sec, s., ss., u/s; not the "s." of
+//       "M/s.") with no number after it, at the end or in the middle ("Petition
+//       under Section", "Section petition"). Repair: delete the marker.
+// After each pass, trailing connectors and the words under, u/s and of are
+// trimmed. Passes repeat (at most LABEL_REPAIR_PASSES) until nothing dangles;
+// a label still dangling, or empty, becomes '' (callers then use 'Document').
 // Code/Act tokens here: BNSS BNS BSA IPC IEA PMLA CrPC CPC "NI Act" and the
 // word "Act" itself (so "and Conciliation Act" is not a dangling spot).
 // Connectors: / , & and to r/w "read with" "(now". A number is a digit or an
-// upper-case Roman numeral (XXXIX). If the cleaned label has MORE dangling
-// spots than the original label, dropping digits made a half-stated provision,
-// so the original label is used (whitespace collapse and the 80-char cap only).
+// upper-case Roman numeral (XXXIX).
 // Matched case-insensitively except the Roman numerals, hence labelCi().
 const labelCi = (word: string): string => word.replace(/[a-z]/g, (c) => `[${c}${c.toUpperCase()}]`);
 const LABEL_NUM_AHEAD = String.raw`(?=\d|[IVXLCDM]{1,8}\b)`;
@@ -408,18 +425,52 @@ const LABEL_CODE_CS =
   String.raw`|${labelCi('n')}\.?\s?${labelCi('i')}\.?\s{1,3}${labelCi('act')})\b\.?`;
 const LABEL_SECTION_CS =
   String.raw`(?:\b(?:${labelCi('sections')}|${labelCi('section')}|${labelCi('sec')}|${labelCi('u')}\/${labelCi('s')})\b\.?` +
-  String.raw`|\b(?:${labelCi('ss')}|${labelCi('s')})\.)`;
+  String.raw`|(?<![/'])\b(?:${labelCi('ss')}|${labelCi('s')})\.)`;
+const LABEL_NO_NUM = String.raw`(?!\s{0,3}${LABEL_NUM_AHEAD})`;
+const LABEL_TOKEN_NO_NUM = String.raw`(?!\s{0,3},?\s{0,3}${LABEL_NUM_AHEAD})`;
+// One regex per dangling kind; the repair uses each, LABEL_DANGLE is their union.
+const LABEL_DANGLE_A = String.raw`(\d[0-9A-Za-z()]{0,12})\s{0,3}${LABEL_CONN}${LABEL_NO_NUM}`;
+const LABEL_DANGLE_B = String.raw`(${LABEL_NUM_BEHIND}${LABEL_CODE_CS})\s{0,3}${LABEL_CONN}${LABEL_NO_NUM}`;
+const LABEL_DANGLE_B_END = String.raw`(${LABEL_CODE_CS})\s{0,3}${LABEL_CONN}\s{0,3}$`;
+const LABEL_DANGLE_C_NOW = String.raw`\s{0,3}\(\s{0,3}${labelCi('now')}\b\s{0,3}${LABEL_CODE_CS}${LABEL_TOKEN_NO_NUM}\s{0,3}\)?`;
+const LABEL_DANGLE_C = String.raw`\s{0,3}${LABEL_NUM_BEHIND}${LABEL_CONN}\s{0,3}${LABEL_CODE_CS}${LABEL_TOKEN_NO_NUM}`;
+const LABEL_DANGLE_D = String.raw`\s{0,3}${LABEL_SECTION_CS}${LABEL_NO_NUM}`;
 const LABEL_DANGLE = new RegExp(
-  String.raw`\d[0-9A-Za-z()]{0,12}\s{0,3}${LABEL_CONN}(?!\s{0,3}${LABEL_NUM_AHEAD})` +
-    String.raw`|${LABEL_NUM_BEHIND}${LABEL_CODE_CS}\s{0,3}${LABEL_CONN}(?!\s{0,3}${LABEL_NUM_AHEAD})` +
-    String.raw`|${LABEL_CONN}\s{0,3}${LABEL_CODE_CS}(?!\s{0,3},?\s{0,3}${LABEL_NUM_AHEAD})` +
-    String.raw`|${LABEL_SECTION_CS}(?!\s{0,3}${LABEL_NUM_AHEAD})`,
-  'g',
+  [
+    LABEL_DANGLE_A,
+    LABEL_DANGLE_B,
+    LABEL_DANGLE_B_END,
+    LABEL_DANGLE_C_NOW,
+    LABEL_DANGLE_C,
+    LABEL_DANGLE_D,
+  ].join('|'),
 );
+const LABEL_REPAIR: ReadonlyArray<[RegExp, string]> = [
+  // Every deletion leaves a space (collapsed after the pass), so two kept
+  // numbers can never run together into a longer one.
+  [new RegExp(LABEL_DANGLE_C_NOW, 'g'), ' '],
+  [new RegExp(LABEL_DANGLE_C, 'g'), ' '],
+  [new RegExp(LABEL_DANGLE_A, 'g'), '$1 '],
+  [new RegExp(LABEL_DANGLE_B_END, 'g'), '$1'],
+  [new RegExp(LABEL_DANGLE_B, 'g'), '$1 '],
+  [new RegExp(LABEL_DANGLE_D, 'g'), ' '],
+];
+const LABEL_TRAIL = new RegExp(
+  String.raw`(?:\s{0,3}(?:\b${labelCi('u')}\/${labelCi('s')}\b|${LABEL_CONN}` +
+    String.raw`|\b(?:${labelCi('under')}|${labelCi('of')})\b)){1,6}\s{0,3}$`,
+);
+const LABEL_REPAIR_PASSES = 10;
 const LABEL_MAX = 80;
 
-function labelDangles(s: string): number {
-  return Array.from(s.matchAll(LABEL_DANGLE)).length;
+// T-677 safety net: delete dangling spots from the cleaned label (never adds
+// text, so never adds a digit). '' when it cannot be repaired.
+function repairLabel(s: string): string {
+  let out = s;
+  for (let i = 0; i < LABEL_REPAIR_PASSES && out.search(LABEL_DANGLE) !== -1; i += 1) {
+    for (const [re, to] of LABEL_REPAIR) out = out.replace(re, to);
+    out = out.replace(/\s+/g, ' ').replace(LABEL_TRAIL, '').trim();
+  }
+  return out.search(LABEL_DANGLE) === -1 ? out : '';
 }
 
 // Collapse whitespace and cap at LABEL_MAX without leaving half a number: if
@@ -446,10 +497,9 @@ function cleanLabel(raw: unknown): string {
     last = at + m[0].length;
   }
   out += raw.slice(last).replace(/[0-9]/g, '');
-  const cleaned = capLabel(out);
-  // T-677 safety net (LABEL_DANGLE above): never a half-stated provision.
-  const original = capLabel(raw);
-  return labelDangles(cleaned) > labelDangles(original) ? original : cleaned;
+  // T-677 safety net (LABEL_DANGLE above): never a half-stated provision, and
+  // never the raw label back.
+  return repairLabel(capLabel(out));
 }
 
 // ── T-610: reading the MATCH answer, the threshold and the top-3 pick ───────

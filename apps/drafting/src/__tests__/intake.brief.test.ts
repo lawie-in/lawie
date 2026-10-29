@@ -994,26 +994,26 @@ describe('T-677 — section numbers survive in the document label', () => {
 
     // Changed in round 2: the old test locked a cut that left "Section 1".
     // Now the cap never leaves half a provision number.
-    it('cap: a cut inside a number token backs up to the last space', async () => {
+    // Round 4 (Ajay's rework ruling): the cut-back leaves a bare "Section", and
+    // the safety net now repairs that by deleting the marker.
+    it('cap (round 4: bare Section repaired away): a cut inside a number token backs up and repairs', async () => {
       const label = `${'a'.repeat(70)} Section 148A CPC`;
       const out = await nameViaUpdate(label);
-      expect(out).toBe(`${'a'.repeat(70)} Section`);
-      expect(out).toHaveLength(78);
+      expect(out).toBe('a'.repeat(70));
       expect(await nameViaModel(label)).toBe(out);
     });
 
-    it('cap: a cut inside "148A" itself never leaves 1, 14 or 148', async () => {
+    it('cap (round 4: bare Section repaired away): a cut inside "148A" itself never leaves 1, 14 or 148', async () => {
       for (const n of [68, 69, 70, 71]) {
         const out = await nameViaUpdate(`${'a'.repeat(n)} Section 148A CPC`);
-        expect(out).toBe(`${'a'.repeat(n)} Section`);
+        expect(out).toBe('a'.repeat(n));
         expect(out).not.toMatch(/\d/);
       }
     });
 
-    it('cap: a cut that lands on a space keeps the 80 characters', async () => {
+    it('cap (round 4: bare Section repaired away): a cut that lands on a space keeps the 72 a-s', async () => {
       const out = await nameViaUpdate(`${'a'.repeat(72)} Section 148A CPC`);
-      expect(out).toBe(`${'a'.repeat(72)} Section`);
-      expect(out).toHaveLength(80);
+      expect(out).toBe('a'.repeat(72));
     });
 
     it('cap: a token with no digit is cut where it falls', async () => {
@@ -1085,19 +1085,20 @@ describe('T-677 — section numbers survive in the document label', () => {
       expect(await nameViaModel(label)).toBe(expected);
     });
 
-    // Ajay's ruling (29 Oct 2026): where dropping digits would leave a dangling
-    // "Section 138/" or "Section 1,2,3,4,", the ORIGINAL label comes back
-    // unchanged, so these digits survive by design (the known trade-off).
+    // Round 4 (Ajay's rework ruling): the raw-label fallback is gone. Where
+    // dropping digits would leave a dangling "Section 138/" or "Section 1,2,3,4,",
+    // the CLEANED label is repaired (the orphan connector is deleted); no digit
+    // is ever restored.
     it.each([
-      ['Section 138/2024', 'Section 138/2024'],
-      ['Section 1,2,3,4,5', 'Section 1,2,3,4,5'],
+      ['Section 138/2024', 'Section 138'],
+      ['Section 1,2,3,4,5', 'Section 1,2,3,4'],
       ['Section 1, 2, 3, 4, 5, 6 NI Act', 'Section 1, 2, 3, 4, 5, 6 NI Act'],
-    ])('safety-net fallback (Ajay): %s comes back as the original', async (label, expected) => {
+    ])('safety-net repair (round 4, no raw fallback): %s -> %s', async (label, expected) => {
       expect(await nameViaUpdate(label)).toBe(expected);
       expect(await nameViaModel(label)).toBe(expected);
     });
 
-    it('safety-net fallback (Ajay): date, phone and Aadhaar shapes outside it are still cut', async () => {
+    it('safety-net repair (round 4): date, phone and Aadhaar shapes outside it are still cut', async () => {
       for (const [label, secret] of [
         ['Order 987-654-3210', '3210'],
         ['Section 1234-5678-9012', '9012'],
@@ -1194,14 +1195,10 @@ describe('T-677 — section numbers survive in the document label', () => {
       expect(await nameViaModel('Bail application in FIR No. 123/2024')).toBe(fir);
     });
 
-    it('a year directly after a code token is dropped, leaving the trailing comma', async () => {
-      // "CPC, 1908" is not "Act, year": the year goes and a comma stays (source quirk).
-      expect(await nameViaUpdate('Appeal under Section 96 CPC, 1908')).toBe(
-        'Appeal under Section 96 CPC,',
-      );
-      expect(await nameViaModel('Appeal under Section 96 CPC,')).toBe(
-        'Appeal under Section 96 CPC,',
-      );
+    it('a year after "<code>," is now kept whole (round 4, Ajay rework ruling 3)', async () => {
+      const label = 'Appeal under Section 96 CPC, 1908';
+      expect(await nameViaUpdate(label)).toBe(label);
+      expect(await nameViaModel(label)).toBe(label);
     });
 
     it('a FIR number inside a label with a code token is still dropped', async () => {
@@ -1214,25 +1211,30 @@ describe('T-677 — section numbers survive in the document label', () => {
       expect(await nameViaModel('12345')).toBe('Document');
     });
 
-    // The safety net: when dropping digits would leave a dangling spot, the
-    // original label comes back with its digits. Ajay's ruling; the case, FIR or
-    // (The net fires only when cleaning ADDS a dangling spot; see the next test.)
-    // ID number inside such a label survives by design (to be confirmed by Ajay).
+    // Round 4: the safety net repairs the CLEANED label and never restores a
+    // dropped digit (Ajay's rework ruling 1). The old tests asserted the raw
+    // label came back; they now assert the repaired text and that the original
+    // digit string is NOT in the output.
     it.each([
-      'Section 123456',
-      'Petition under Section 123456',
-      'FIR Section 99999999',
-      'IPC 123/2024 case',
-      'Section 138/2024',
-      'Bail under 123/2024 NI Act',
-    ])('safety-net fallback (Ajay): the original label survives: %s', async (label) => {
-      expect(await nameViaUpdate(label)).toBe(label);
-      expect(await nameViaModel(label)).toBe(label);
-    });
+      ['Section 123456', 'Document', '123456'],
+      ['Petition under Section 123456', 'Petition', '123456'],
+      ['FIR Section 99999999', 'FIR', '99999999'],
+      ['IPC 123/2024 case', 'IPC case', '2024'],
+      ['Section 138/2024', 'Section 138', '2024'],
+      ['Bail under 123/2024 NI Act', 'Bail', '123'],
+    ])(
+      'safety-net repair (round 4, no raw fallback): %s -> %s',
+      async (label, expected, digits) => {
+        const viaUpdate = await nameViaUpdate(label);
+        expect(viaUpdate).toBe(expected);
+        expect(viaUpdate).not.toContain(digits);
+        expect(await nameViaModel(label)).toBe(expected);
+      },
+    );
 
-    it('safety net: a label that already dangles in the original is cleaned as usual', async () => {
-      // "Section and" dangles in the original and in the cleaned label alike, so
-      // the net does not fire and the FIR number is dropped.
+    it('safety net: a label whose own text dangled is repaired as usual', async () => {
+      // "Section and" dangles in the original and in the cleaned label alike; the
+      // FIR number is dropped and the orphan marker is repaired away.
       const label = 'Petition under Section and bail in FIR No. 123/2024';
       const out = await nameViaUpdate(label);
       expect(out).not.toContain('123');
@@ -1246,7 +1248,7 @@ describe('T-677 — section numbers survive in the document label', () => {
       expect(await nameViaUpdate('Mother’s 2 children')).toBe('Mother’s children');
     });
 
-    it('safety net: the fallback is still capped at 80 and never ends in a space', async () => {
+    it('safety net: the repaired label is still capped at 80 and never ends in a space', async () => {
       const label = `Section 123456 ${'a'.repeat(100)}`;
       const out = await nameViaUpdate(label.slice(0, 120));
       expect(out.length).toBeLessThanOrEqual(80);
@@ -1299,6 +1301,195 @@ describe('T-677 — section numbers survive in the document label', () => {
       ['Suit under Order VII Rule 11 CPC', 'Suit under Order VII Rule 11 CPC'],
     ])('real-world title: %s', async (label, expected) => {
       expect(await nameViaUpdate(label)).toBe(expected);
+    });
+  });
+
+  describe("round 4: Ajay's complete rework ruling (no raw fallback, repair, years)", () => {
+    const WHOLE = [
+      'Caveat petition under Section 148A CPC',
+      'NI Act Section 138 Complaint for dishonoured cheque',
+      'Application under Section 483 BNSS',
+      'Section 156(3) CrPC',
+      'Order XXXIX Rules 1 and 2',
+      'Section 482 CrPC / 528 BNSS',
+      'Section 438 CrPC (now 528 BNSS)',
+      'IPC 302 and 34',
+      's.138 NI Act',
+      '138 NI Act complaint',
+      'Arbitration and Conciliation Act, 1996',
+      '(now 482 BNSS)',
+      'CrPC, 1973',
+      'IPC, 1860',
+      'BNSS, 2023',
+      'BNS, 2023',
+      'BSA, 2023',
+      'Cr.P.C., 1973',
+      'C.P.C., 1908',
+      'Section 1, 2, 3, 4, 5, 6 NI Act',
+      'Appeal under Section 96 CPC, 1908',
+      'Domestic Violence Act 2005',
+      'Protection of Women from Domestic Violence Act, 2005',
+      'Notice to M/s. Mohan Traders',
+    ];
+
+    it.each(WHOLE)('whole on both paths, byte for byte: %s', async (label) => {
+      expect(await nameViaUpdate(label)).toBe(label);
+      expect(await nameViaModel(label)).toBe(label);
+    });
+
+    it.each(WHOLE)('/update is a fixed point: %s', async (label) => {
+      const first = await nameViaUpdate(label);
+      expect(await nameViaUpdate(first)).toBe(first);
+    });
+
+    it('extension pending Ajay: a bracketed short name before the year keeps the year', async () => {
+      const label = 'Protection of Women from Domestic Violence Act (PWDVA), 2005';
+      expect(await nameViaUpdate(label)).toBe(label);
+    });
+
+    it('a year 1800-2099 after "<code>," is kept; outside the range it is not', async () => {
+      expect(await nameViaUpdate('CPC, 2150')).toBe('CPC');
+      expect(await nameViaUpdate('Appeal under Section 96 CPC, 19080')).toBe(
+        'Appeal under Section 96 CPC',
+      );
+    });
+
+    it('without a comma a number after a code token is a provision chain', async () => {
+      expect(await nameViaUpdate('Section 96 CPC 1908')).toBe('Section 96 CPC 1908');
+    });
+
+    // Repairs: only text is deleted, never a digit added.
+    it.each([
+      ['Application under Section 482 CrPC / BNSS', 'Application under Section 482 CrPC'],
+      ['Bail IPC 302 and', 'Bail IPC 302'],
+      ['Arbitration Act,', 'Arbitration Act'],
+      ['Petition under Section', 'Petition'],
+      ['Section', 'Document'],
+      ['/ BNSS', 'Document'],
+      ['Section petition', 'petition'],
+      ['Section 138/2024', 'Section 138'],
+      ['Section 1,2,3,4,5', 'Section 1,2,3,4'],
+      ['FIR Section 99999999', 'FIR'],
+      ['Section 123456', 'Document'],
+      ['Section 123456 petition', 'petition'],
+      ['Petition under Section 123456', 'Petition'],
+      ['Bail under 123/2024 NI Act', 'Bail'],
+      ['Complaint u/s 138/2024 NI Act', 'Complaint u/s 138 NI Act'],
+      ['IPC 123/2024 case', 'IPC case'],
+      ['Petition under Act, 20199 something', 'Petition under Act something'],
+      ['Section 482 CrPC / 52899 BNSS', 'Section 482 CrPC'],
+      ['Bail for Section 9876543210', 'Bail for'],
+      ['Notice to 123412341234 under Section', 'Notice'],
+      ['Call 9876543210', 'Call'],
+      ['12345', 'Document'],
+    ])('repair: %s -> %s', async (label, expected) => {
+      expect(await nameViaUpdate(label)).toBe(expected);
+    });
+
+    it.each([
+      ['Section 123456 petition', '123456'],
+      ['Complaint u/s 138/2024 NI Act', '2024'],
+      ['IPC 123/2024 case', '2024'],
+      ['Bail for Section 9876543210', '9876543210'],
+      ['Notice to 123412341234 under Section', '123412341234'],
+      ['Call 9876543210', '9876543210'],
+    ])('a dropped digit run never comes back (model path too): %s', async (label, digits) => {
+      expect(await nameViaUpdate(label)).not.toContain(digits);
+      expect(await nameViaModel(label)).not.toContain(digits);
+    });
+
+    it('repair: a "(now X)" parenthetical with no number is removed whole', async () => {
+      expect(await nameViaUpdate('Section 438 CrPC (now BNSS)')).toBe('Section 438 CrPC');
+      expect(await nameViaUpdate('Bail (now BNSS) petition')).toBe('Bail petition');
+    });
+
+    it('repair: the model path agrees with /update', async () => {
+      expect(await nameViaModel('Application under Section 482 CrPC / BNSS')).toBe(
+        'Application under Section 482 CrPC',
+      );
+    });
+
+    it('a label that repairs to nothing falls back to Document on the model path', async () => {
+      expect(await nameViaModel('Section')).toBe('Document');
+    });
+
+    it('still dropped: case numbers, stray years, phone shapes', async () => {
+      expect(await nameViaUpdate('Bail application in FIR No. 123/2024')).toBe(
+        'Bail application in FIR No. /',
+      );
+      expect(await nameViaUpdate('Bail application 2024')).toBe('Bail application');
+      expect(await nameViaUpdate('Bail order 2024')).toBe('Bail order');
+      expect(await nameViaUpdate('Mother’s 2 children')).toBe('Mother’s children');
+      expect(await nameViaUpdate('Order 987-654-3210')).toBe('Order 987--');
+      expect(await nameViaUpdate('Section 1234-5678-9012')).toBe('Section 1234--');
+      expect(await nameViaUpdate('Order 12-03-2024')).toBe('Order 12--');
+    });
+
+    it('property: cleanLabel never adds a digit, caps at 80, and leaves nothing dangling', async () => {
+      const tokens = [
+        'Section',
+        'Sections',
+        'u/s',
+        's.',
+        'CrPC',
+        'BNSS',
+        'IPC',
+        'CPC',
+        'NI Act',
+        'Act,',
+        'Act',
+        '/',
+        'and',
+        '(now',
+        ',',
+        '&',
+        'to',
+        'under',
+        'of',
+        'petition',
+        'bail',
+        '138',
+        '482',
+        '9876543210',
+        '123412341234',
+        '2024',
+        '1908',
+        '123456',
+        '3(1)(r)',
+        '148A',
+        '12345',
+      ];
+      // A fixed linear congruential generator: the same 40 strings every run.
+      let seed = 677;
+      const next = (n: number) => {
+        seed = (seed * 1103515245 + 12345) % 2147483648;
+        return seed % n;
+      };
+      const inputs: string[] = [];
+      for (let i = 0; i < 40; i += 1) {
+        const len = 2 + next(6);
+        inputs.push(Array.from({ length: len }, () => tokens[next(tokens.length)]).join(' '));
+      }
+      for (const input of inputs) {
+        const out = await nameViaUpdate(input);
+        const inputRuns = new Set(input.match(/\d+/g) ?? []);
+        for (const run of out.match(/\d+/g) ?? []) {
+          // Every digit run in the output is a digit run of the input (a bracket
+          // group such as 3(1)(r) is made of separate runs).
+          expect({ input, run, ok: inputRuns.has(run) }).toEqual({ input, run, ok: true });
+        }
+        expect(out.length).toBeLessThanOrEqual(80);
+        expect({ input, out, bare: /(?:\bsections?|\bsec|\bu\/s)$/i.test(out) }).toEqual({
+          input,
+          out,
+          bare: false,
+        });
+        expect({
+          input,
+          out,
+          dangling: /(?:\d|\bIPC|\bCrPC|\bBNSS|\bCPC|\bAct)\s*[/,&]$|\d\s+(?:and|to)$/i.test(out),
+        }).toEqual({ input, out, dangling: false });
+      }
     });
   });
 });
