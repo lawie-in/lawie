@@ -38,6 +38,7 @@ import {
   isPartyNameGuardedField,
   isPartyNonAnswer,
 } from '../../config/intake/signed-confirm-messages';
+import { CUSTODY_SINCE_DERIVED_KEY } from '../custody-since-derivation';
 import { factTypeFor, isLedgerItem, locateSpan } from '../fact-ledger.service';
 import type { ChecklistItem } from '../intake-brief';
 import { isNoFactAnswer } from '../intake-brief';
@@ -142,10 +143,32 @@ function candidateType(item: ChecklistItem, factType: FactType): LedgerCandidate
   }
 }
 
+// ── Derived keys (Arjun, T-683 answers §5 item 1) ───────────────────────────
+//
+// Derivation is T-682's derive() alone. A model value for a derived key is
+// never a candidate: the key is off the field specs, so it is dropped as
+// `not_on_list` (T-682 invariant 6) on every path.
+
+/**
+ * The derived key names (last key segment): the custody-since derivation's
+ * key (imported), and `amount_in_words`, computed by code from cheque_amount
+ * (T-611 P5, fact-ledger.service withAmountInWordsFact, which exports no
+ * constant for the name).
+ */
+const DERIVED_KEY_NAMES: ReadonlySet<string> = new Set([
+  CUSTODY_SINCE_DERIVED_KEY,
+  'amount_in_words',
+]);
+
+/** True for a key code derives: never read from the model. */
+export function isDerivedKey(key: string): boolean {
+  return DERIVED_KEY_NAMES.has(key.slice(key.lastIndexOf('.') + 1));
+}
+
 export function fieldSpecs(checklist: ChecklistItem[]): Map<string, FieldSpec> {
   const out = new Map<string, FieldSpec>();
   for (const item of checklist) {
-    if (!isLedgerItem(item) || out.has(item.key)) continue;
+    if (!isLedgerItem(item) || isDerivedKey(item.key) || out.has(item.key)) continue;
     const factType = factTypeFor(item);
     out.set(item.key, {
       item,

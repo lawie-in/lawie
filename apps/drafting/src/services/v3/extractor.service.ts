@@ -38,7 +38,7 @@ import { AiEffort, logLlmCall } from '../llm-usage';
 import type { RulePack } from '../rule-pack.service';
 
 import type { ExtractResult } from './types';
-import { DropReason, validateExtraction } from './validate';
+import { DropReason, isDerivedKey, validateExtraction } from './validate';
 
 // ── Limits (Arjun §2) ───────────────────────────────────────────────────────
 
@@ -224,18 +224,23 @@ export function extractorLines(
   const asked = new Set(answers.flatMap((a) => a.askedKeys));
   const hints = new Map<string, string>();
   for (const f of pack.facts) if (f.extract_hint) hints.set(f.key, f.extract_hint);
-  return checklist
-    .filter((i) => isLedgerItem(i) && (i.modelReadable || asked.has(i.key)))
-    .map((i) => {
-      const hint = hints.get(i.key);
-      return {
-        key: i.key,
-        what: (i.kind === 'date' && i.dateKind ? dateKindLabel(i.dateKind) : null) ?? i.label,
-        kind: kindWord(i),
-        options: i.kind === 'choice' || i.kind === 'choices' ? i.options : [],
-        ...(hint ? { hint } : {}),
-      };
-    });
+  return (
+    checklist
+      // Arjun §5: derived keys are never asked of the model (T-682 derive() only).
+      .filter(
+        (i) => isLedgerItem(i) && !isDerivedKey(i.key) && (i.modelReadable || asked.has(i.key)),
+      )
+      .map((i) => {
+        const hint = hints.get(i.key);
+        return {
+          key: i.key,
+          what: (i.kind === 'date' && i.dateKind ? dateKindLabel(i.dateKind) : null) ?? i.label,
+          kind: kindWord(i),
+          options: i.kind === 'choice' || i.kind === 'choices' ? i.options : [],
+          ...(hint ? { hint } : {}),
+        };
+      })
+  );
 }
 
 /**
