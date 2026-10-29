@@ -64,3 +64,19 @@ The list and the no-court rule follow in a separate ruling. Interim rule: when a
 ## T-677, T-678
 
 T-677: I byte-check the restored section numbers (148A, 138) before merge. T-678 needs no new text: the conflict question stays as signed (T-611 P-strings), and answering it in place is allowed.
+
+## T-677 known limits (Ajay, 29 Oct 2026, on Kunal's fix/t-677-section-numbers @ commit SHA ebae8eaa)
+
+**Rule:** a title must never misstate or half-state a provision. A fragment like `/ BNSS`, `(now BNSS)`, `IPC 302 and` or `Act,` names a law with no section, or reads as wrong. That is worse than leaving the number out. All three limits are **fixed in T-677**, not a follow-up:
+
+- **(1)** A number directly before or after an Act or code token (CrPC, BNSS, BNS, BSA, IPC, IEA, CPC, NI Act, or "Section/s.") is kept. So `Section 482 CrPC / 528 BNSS`, `(now 528 BNSS)`, `IPC 302 and 34` and `s.138 NI Act` survive whole. A list joined by `and`/`/`/`,` between provision numbers is kept as a unit.
+- **(2)** A 4-digit year directly after `Act` or `Act,` is kept, e.g. `Arbitration and Conciliation Act, 1996`.
+- **(3)** `138 NI Act complaint` keeps `138`. This is covered by (1).
+
+**Safety net:** if a cleaned title would still end in, or contain, an Act or code token with a dangling connector (`/`, `and`, `,`, `(now`) and no number, the original label is used unchanged.
+
+Case, FIR and WP numbers, phone numbers, ID numbers and stray years (not after `Act`) are still dropped.
+
+**Tests:** the five titles Priya listed, the three limits above, and one each of a stray year and an FIR number (dropped). **Byte check on the new SHA.**
+
+I am not checking the section numbers in the examples here. They come from the user's label, and cleanLabel neither adds nor changes numbers.
