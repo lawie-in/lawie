@@ -737,8 +737,20 @@ export function factNeededLine(label: string): string {
   return `One detail is needed before the draft: ${label}.`;
 }
 
-/** Signed (Ajay, T-611 P1). `value` goes to the advocate only: never logged. */
-export function factConflictLine(value: string, labelA: string, labelB: string): string {
+/**
+ * Signed (Ajay, T-611 P1; T-678 T678-3 for P2). `value` goes to the advocate
+ * only: never logged. `inText`: the value is held inside the text fact B (P2),
+ * not under a label, so the facts give it "in" B, not "as" B.
+ */
+export function factConflictLine(
+  value: string,
+  labelA: string,
+  labelB: string,
+  inText = false,
+): string {
+  if (inText) {
+    return `The draft gives ${value} as the ${labelA}, but your facts give it in the ${labelB}. Which is right?`;
+  }
   return `The draft gives ${value} as the ${labelA}, but your facts give it as the ${labelB}. Which is right?`;
 }
 
@@ -830,11 +842,12 @@ export function withholdDraft(
   let failure: GenerationFailure;
   if (withheld.code === 'fact_conflict') {
     const c = withheld.conflict;
-    // P1 asks with both labels; a value that differs from its held fact (P3,
-    // P-R6) asks with both values (P-R2).
+    // P1 asks with both labels (P2: the value is "in" the text fact B, T678-3);
+    // a value that differs from its held fact (P3, P-R6) asks with both values (P-R2).
+    const rule = c.rule ?? (c.kind === 'wrong_label' ? 'P1' : 'P3');
     let reason: string;
     if (c.kind === 'wrong_label' && c.labelB !== null) {
-      reason = factConflictLine(c.value, c.labelA, c.labelB);
+      reason = factConflictLine(c.value, c.labelA, c.labelB, rule === 'P2');
     } else if (c.heldValue !== null && c.heldValue !== '') {
       reason = factMismatchLine(c.value, c.labelA, c.heldValue);
     } else {
@@ -853,11 +866,11 @@ export function withholdDraft(
       runId,
     };
     keys = `${c.keyA}${c.keyB ? `,${c.keyB}` : ''}`;
-    // T-678: the rule from the conflict kind (P1 a held value under another
-    // label, P3 a value that differs from its held fact).
+    // T-678: the checker's rule tag (P1, P2, P3); a ref without one falls back
+    // to its kind (P1 a held value under another label, P3 a differing value).
     failure = {
       code: 'fact_conflict',
-      rule: c.kind === 'wrong_label' ? 'P1' : 'P3',
+      rule,
       keyA: c.keyA,
       ...(c.keyB ? { keyB: c.keyB } : {}),
     };

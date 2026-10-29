@@ -136,6 +136,12 @@ export interface FactViolation {
  */
 export interface FactConflictRef {
   kind: 'wrong_label' | 'mismatch';
+  /**
+   * T-678: the signed rule the conflict is raised under. P2: the value is held
+   * inside a text fact (label B), not under a label. Missing: P1 for
+   * `wrong_label`, P3 for `mismatch`.
+   */
+  rule?: 'P1' | 'P2' | 'P3';
   keyA: string;
   labelA: string;
   keyB: string | null;
@@ -945,13 +951,115 @@ const CUE_STOP = new Set(
   given full`.split(/\s+/),
 );
 
+/**
+ * T-678 (Ajay T678-1 and T678-1a f343661a, signed): words that never make a
+ * date cue on their own. Copied from the signed row. Date cues only; amount
+ * and station cues are unchanged. Matched as whole words after fold (so case
+ * and a hyphen or a space are the same), singular and plural. A cue still
+ * needs the dated field's own role word (service, summons, arrest, notice ...).
+ */
+const DATE_NON_CUE_EN: readonly string[] = [
+  'day',
+  'date',
+  'court',
+  'plaintiff',
+  'defendant',
+  'applicant',
+  'petitioner',
+  'respondent',
+  'complainant',
+  'accused',
+  'appellant',
+  'revisionist',
+  'caveator',
+  'opposite party',
+  'landlord',
+  'tenant',
+  'deponent',
+  'witness',
+  'decree-holder',
+  'judgment-debtor',
+];
+const DATE_NON_CUE_HI: readonly string[] = [
+  'वादी',
+  'प्रतिवादी',
+  'आवेदक',
+  'याचिकाकर्ता',
+  'प्रत्यर्थी',
+  'परिवादी',
+  'शिकायतकर्ता',
+  'अभियुक्त',
+  'आरोपी',
+  'न्यायालय',
+  'अपीलार्थी',
+  'विपक्षी',
+  'मकान मालिक',
+  'किरायेदार',
+  'साक्षी',
+];
+const DATE_NON_CUE_HINGLISH: readonly string[] = [
+  'vadi',
+  'prativadi',
+  'aavedak',
+  'avedak',
+  'abhiyukt',
+  'aaropi',
+  'aropi',
+  'shikayatkarta',
+  'nyayalay',
+  'kirayedar',
+];
+
+function enPlural(w: string): string {
+  if (/[^aeiou]y$/.test(w)) return `${w.slice(0, -1)}ies`;
+  if (/(s|x|z|ch|sh)$/.test(w)) return `${w}es`;
+  return `${w}s`;
+}
+
+/** Each entry folded, with its plural (last word only): EN and Hinglish -s/-es/-ies, HI -गण. */
+const DATE_NON_CUE_FORMS: readonly string[] = [
+  ...[...DATE_NON_CUE_EN, ...DATE_NON_CUE_HINGLISH].flatMap((e) => {
+    const f = fold(e);
+    const i = f.lastIndexOf(' ');
+    return [f, `${f.slice(0, i + 1)}${enPlural(f.slice(i + 1))}`];
+  }),
+  ...DATE_NON_CUE_HI.flatMap((e) => [fold(e), fold(`${e}गण`)]),
+];
+
+/** One-word entries: dropped as words. */
+const DATE_CUE_STOP = new Set(DATE_NON_CUE_FORMS.filter((f) => !f.includes(' ')));
+
+/**
+ * Multi-word entries ("opposite party", "decree holder", "मकान मालिक"): removed
+ * as whole phrases before the words are split, so "party" alone still counts
+ * in any other label. Longest first.
+ */
+const DATE_CUE_STOP_PHRASES: readonly string[] = DATE_NON_CUE_FORMS.filter((f) =>
+  f.includes(' '),
+).sort((a, b) => b.length - a.length);
+
+function withoutPhrases(folded: string, phrases: readonly string[]): string {
+  let t = ` ${folded} `;
+  for (const ph of phrases) {
+    const needle = ` ${ph} `;
+    while (t.includes(needle)) t = t.replace(needle, ' ');
+  }
+  return t.trim();
+}
+
 function stem(w: string): string {
   return w.length >= 6 ? w.slice(0, 6) : w;
 }
 
-function cueStems(label: string, key: string): Set<string> {
-  const words = fold(`${label} ${key.replace(/[._]/g, ' ')}`).split(' ');
-  return new Set(words.filter((w) => w.length >= 3 && !CUE_STOP.has(w)).map(stem));
+function cueStems(label: string, key: string, type?: string): Set<string> {
+  const forDate = type === 'date';
+  const folded = fold(`${label} ${key.replace(/[._]/g, ' ')}`);
+  const words = (forDate ? withoutPhrases(folded, DATE_CUE_STOP_PHRASES) : folded).split(' ');
+  return new Set(
+    words
+      .filter((w) => w.length >= 3 && !CUE_STOP.has(w) && !(forDate && DATE_CUE_STOP.has(w)))
+      .map(stem),
+  );
 }
 
 /**
@@ -1125,12 +1233,22 @@ function buildSources(input: VerifierInput): Sources {
   const cues: Sources['cues'] = [];
   for (const f of facts) {
     if (['date', 'amount', 'police_station'].includes(f.type)) {
-      cues.push({ key: f.key, type: f.type, stems: cueStems(f.label, f.key), unresolved: false });
+      cues.push({
+        key: f.key,
+        type: f.type,
+        stems: cueStems(f.label, f.key, f.type),
+        unresolved: false,
+      });
     }
   }
   for (const u of input.unresolved) {
     if (byKey.has(u.key)) continue;
-    cues.push({ key: u.key, type: u.type, stems: cueStems(u.label, u.key), unresolved: true });
+    cues.push({
+      key: u.key,
+      type: u.type,
+      stems: cueStems(u.label, u.key, u.type),
+      unresolved: true,
+    });
   }
   const src: Sources = {
     facts,
@@ -1367,12 +1485,21 @@ function conflicting(
   en: Entity,
   keyA: string,
   reason: 'differs' | 'wrong_fact' | 'unresolved',
-  ref: { kind: FactConflictRef['kind']; keyB: string | null; labelB: string | null },
+  ref: {
+    kind: FactConflictRef['kind'];
+    keyB: string | null;
+    labelB: string | null;
+    rule?: FactConflictRef['rule'];
+  },
   what?: (labelA: string) => string,
 ): Judged {
   const labelA = labelOfKey(src, keyA);
   const v = mutation(src, en, keyA, reason, what?.(labelA));
-  return { ...v, conflict: { kind: ref.kind, keyA, labelA, keyB: ref.keyB, labelB: ref.labelB } };
+  const rule = ref.rule ?? (ref.kind === 'wrong_label' ? 'P1' : 'P3');
+  return {
+    ...v,
+    conflict: { kind: ref.kind, rule, keyA, labelA, keyB: ref.keyB, labelB: ref.labelB },
+  };
 }
 
 function judgeEntity(src: Sources, text: string, en: Entity): Judged | null {
@@ -1533,7 +1660,9 @@ function judgeDate(src: Sources, text: string, en: Entity): Judged | null {
   }
   // T-611 P2: a date written in the advocate's own text fact is held (the value
   // only). No label, or a label the text itself gives it: it passes. A label
-  // the text does not give it: P1.
+  // the text does not give it: repair, then the P2 question. T-678 (Ajay
+  // T678-2): "no label" means no date-role cue of a dated field; party-role
+  // words are not cues (T678-1, cueStems).
   const inText = src.textDates.get(n.value);
   if (inText && inText.length > 0) {
     if (cued.length === 0) return null;
@@ -1545,7 +1674,7 @@ function judgeDate(src: Sources, text: string, en: Entity): Judged | null {
       en,
       a.key,
       a.unresolved ? 'unresolved' : 'wrong_fact',
-      { kind: 'wrong_label', keyB: owner.key, labelB: owner.label },
+      { kind: 'wrong_label', rule: 'P2', keyB: owner.key, labelB: owner.label },
       (labelA) =>
         `the draft gives "${en.text}" for ${labelA}, but in FACTS that value is given in ${owner.label}, not as ${labelA}`,
     );
@@ -1659,6 +1788,7 @@ function roleCheck(src: Sources, text: string, en: Entity): Judged | null {
         ...v,
         conflict: {
           kind: 'wrong_label',
+          rule: 'P1',
           keyA: rule.role.key,
           labelA: rule.role.label,
           keyB: fact.key,
