@@ -16,8 +16,8 @@
 import type { LedgerFact, LedgerUnresolvedFact } from '@lawie/shared';
 
 import {
-  isEmptyOrNonAnswer,
   isNonAnswerPartyPack,
+  isPartyNonAnswer,
   O39_REQUIRED_FIELDS,
   requiredFieldBlockers,
 } from '../config/intake/signed-confirm-messages';
@@ -308,7 +308,8 @@ function requiredFieldView(formData: Readonly<Record<string, unknown>>): Record<
  *
  * T-668 (AJ-668-M1, AJ-668-M3): on the NON_ANSWER_PARTY_PACKS templates, a
  * required party name (the brief's own rule: buildChecklist's partyName) that
- * is empty or a §(j)3 non-answer blocks, with the brief's line for the first
+ * is empty or a §(j)3 non-answer (with a tail, AJ-668-M5, M5b: isPartyNonAnswer)
+ * blocks, with the brief's line for the first
  * missing party in pack order (partyConfirmLine); the keys are every missing
  * party, in pack order. No pack (null or unreadable): null, and formGateFiles
  * answers. Every other template: null.
@@ -334,7 +335,7 @@ export function formRequiredFieldBlock(
         v === undefined ||
         typeof v === 'string' ||
         (Array.isArray(v) && v.every((e) => typeof e === 'string'));
-      return isEmptyOrNonAnswer(readable ? v : '');
+      return isPartyNonAnswer(readable ? v : '');
     });
     if (missingParties.length === 0) return null;
     return {
