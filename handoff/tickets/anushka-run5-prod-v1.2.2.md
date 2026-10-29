@@ -170,3 +170,34 @@ Would I use this on a real matter today? On this item, yes: an unnamed party is 
 ```
 
 Arjun: T-668 family closed on prod at v1.2.5 (main e0efa689). Minor (form wording "describe how this person is connected…" vs the brief's refusal) → Ajay's AJ-668c-P1 asked for the description route; the brief must accept a description as the party (M5b) — ticket T-668e, small, not urgent.
+
+# Anushka run 5e — production v1.2.6, headline T-678 (+T-674B1) re-check (29 Oct 2026, 18:34–18:55 UTC)
+
+Verbatim from session_01BmgAoYMpkTNwnBnT9k1DWA; scope = WS date check, court names not ids, PDF smoke; 1 draft.
+
+```
+VERDICT: PASS
+Tested: https://lawie.in (prod, v1.2.6) · 29 Oct 2026, 18:34–~18:55 UTC · same test account, 42 Ink at start, 40 at end · 1280 wide. Scope: written-statement date check, court names not ids, PDF smoke.
+
+Scenarios
+| # | What I did | Expected | What happened | Result |
+| 1 | Repeat of v1.2.2 WS: "…defendant Prakash Gowda says he took only Rs. 2,00,000 and repaid it fully by bank transfer on 15.06.2025 (UTR no. SBIN0000123456)… Summons served on 05.10.2026."; same answers; court "District Court, Mysuru"; Confirm | Drafts; no "Back to the brief" stop | Draft made, 2 Ink. Para 2: "Summons in the suit was served on the Defendant on 5 October 2026." Para 9: "…transfer of [To be confirmed: amount] on 15.06.2025, UTR SBIN0000123456." Dates correctly placed | Pass |
+| 2 | Looked for court ids in heading, page and Document info | Court names only | Heading "IN THE COURT OF DISTRICT & SESSIONS JUDGE, MYSURU"; subtitle and Document info "District Court, Mysuru"; no "_district"/"_sessions" text anywhere on the page | Pass |
+| 3 | PDF export of that draft | Non-empty PDF, name without id | File name "Written Statement Order VIII CPC  IN THE COURT OF DISTRICT J.pdf"; 67,509 B; starts "%PDF" | Pass |
+
+Findings
+- Blocker: none. Major (in scope): none.
+- Minor:
+  - Court name differs between list/file name ("IN THE COURT OF DISTRICT JUDGE, MYSURU", file name cut to "…DISTRICT J.pdf") and heading ("DISTRICT & SESSIONS JUDGE, MYSURU").
+  - Document info shows "Type: Petition" for a written statement.
+- Outside scope, carried over from v1.2.2 (not counted in this verdict):
+  - I answered "receipt of Rs. 2,00,000 admitted, it was repaid", but paras 6, 9 and 12 read "[To be confirmed: amount]"; given facts are still dropped.
+  - Para 2 prints the placeholder "(must be within 30; extendable to 120 in non-commercial, max 120 in commercial)". That is wrong law: 120 days is the commercial limit; the 90-day limit in ordinary suits is directory. Needs a practising advocate to confirm wording.
+  - "District & Sessions Judge" heading for a civil suit (court-type list has no Civil Judge for Karnataka).
+
+Not tested: other documents with role words near dates; phone width (not asked). My first run's log file had a naming slip, so I read the result from the saved document and page; the draft and Ink change are confirmed. Drafts used: 1 of 2.
+
+Would I use this on a real matter today? On this item, yes: the WS now drafts with dates in the right place and no ids show. The drafts still drop amounts I gave, so not yet for filing.
+```
+
+Arjun: T-678 closed on prod at v1.2.6 (main aaed820c). Minors → T-674 (court name consistency list/heading/file name; Karnataka Civil Judge type), a small "Type: Petition" label fix, and the WS para-2 time-limit placeholder text is legal content for Ajay (new ticket). Dropped amounts = T-679, a v3 acceptance case.

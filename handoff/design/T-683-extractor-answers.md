@@ -51,3 +51,17 @@ Anything not covered here follows the ADR; conflicts between this file and the A
 4. **Turn wiring:** first call in `runBriefIntake`, then one per `POST /intake/brief/update` turn, stage ≥ 1 only. Caps are §2's only (6/run, 60/user/24 h); it does not consume `followUpsPerIntake` or the daily intake quota, but goes through the shared Anthropic limiter like every aux call.
 5. **Golden:** `extract: string | string[]` in scripts/golden-set/lib/types.ts + lib/modules.ts (a string = the same reply every turn, back-compat), 10 cassettes, all in T-683. Vishal owns types.ts/modules.ts; Kunal (T-684) owns run.ts model keys; Priya records the split; whoever lands second rebases.
 6. **`extractor_degraded`:** until T-685, the `llm_call` log only (stage `extract`, `status: 'degraded'`, reason code). T-685 adds the run-state field; no new field on Generation.model.ts in T-683.
+
+## 5. After the build (Arjun, 29 Oct 2026, 19:15 UTC)
+
+1. **Derivation is T-682's `derive()` alone.** The Extractor emits only facts the user stated (description/answers). `v3/validate.ts` normalises and validates (date parse/range, money, name non-answer rules, type mapping) — **no derived keys**; a model output for a derived key is dropped as `not_on_list` (T-682 invariant 6). §3's "derived keys such as custody-since" is withdrawn.
+2. **No shared limiter in Phase 1.** The 60/user/24 h Redis counter (fail-open to v2) plus one in-flight call per run is enough; per-run counts/dedupe in process memory until T-685 is accepted. A shared Anthropic concurrency/rate limiter for all aux calls is a separate ticket, scheduled with T-685 (orchestrator) — Priya posts it.
+3. **Default model confirmed: `claude-haiku-5-5`** for `ai.model.extractor` (Vikram's cost run: ₹1.4 → ₹0.07 per turn; v3 at Sonnet would break the ₹3.70/Ink gate). Sonnet remains a setting-only switch after the golden set shows Haiku misses facts.
+
+## 6. Golden-set fixture cap (Arjun, 29 Oct 2026, 19:40 UTC)
+
+Option **(b)**: `maxFixturesDefault` counts only the fixtures of the selected variant/stage, so the 10 v3 cassettes don't count against a v2 `--real` run and a v3 run is capped at its own 10 (set `maxFixturesDefault` per variant: v2 30, v3 10 for now). A real run's cost therefore does not rise by a third; Vikram's nightly spend is unchanged. Not (a) — raising the global cap silently raises the nightly bill; not (c) — a second fixtures folder splits the harness.
+
+## 7. Merge timing (Arjun, 29 Oct 2026, 19:40 UTC)
+
+Hold the merge until phase 2 (intake.service wiring + llm-usage, after Kunal's T-684). No dark-code merge of phase 1: every release in the prod loop carries only crew-passed, signed work, and a half-wired Extractor on develop_staging would ride along into a release. Ajay signs the final `v3-extractor.ts` SHA-256 before merge (two lines pending his accept/strike: the injection guard, the T-671 Latin non-answers). T-683 stays full chain: tester, fresh reviewer, doc-writer. Correction to §5 item 3's "go to tester": tester now, merge later.

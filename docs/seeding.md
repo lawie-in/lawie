@@ -107,14 +107,28 @@ One-shot bootstrap of a fresh DB:
 yarn workspace @lawie/drafting seed:all
 
 # Set the AI model keys (DB is the only place these live — never in .env)
-yarn workspace @lawie/drafting seed:setting ai.drafting_model claude-sonnet-4-6
-yarn workspace @lawie/drafting seed:setting ai.preflight_model claude-haiku-4-5-20251001
+yarn workspace @lawie/drafting seed:setting ai.model.drafter claude-sonnet-4-6
+yarn workspace @lawie/drafting seed:setting ai.model.extractor <haiku-model-id>
+yarn workspace @lawie/drafting seed:setting ai.model.fact_checker claude-haiku-4-5-20251001
 ```
+
+Models are set per role (T-684), one `appsettings` row each: `ai.model.matcher`, `ai.model.extractor`, `ai.model.drafter`, `ai.model.fact_checker`, `ai.model.legal_reviewer` and `ai.model.language`. There is no default in code. Three are **required**: `drafter`, `extractor` and `fact_checker`. When one has neither its new key nor its legacy key, drafting logs a boot warning and `/health` lists the missing new key names under `config_warnings` (update any alert that matched the old names). The other three are optional: no call reads `legal_reviewer` or `language` yet, and `matcher` falls back to `ai.model.extractor`, then to `ai.intake_model`. The matcher call site is not wired yet, so intake matching still uses the extractor.
+The admin AI page (`/admin/ai-config`) shows the same list, marks the required roles, and warns when a required one is missing.
+
+Legacy keys, for one release only: `ai.drafting_model` (now `ai.model.drafter`), `ai.intake_model` (now `ai.model.extractor`) and `ai.preflight_model` (now `ai.model.fact_checker`). They are read only when the new key has no row; the new key always wins. A deprecation warning is logged once per legacy key per process (key name only). While only the old keys exist, each model call costs one extra Mongo read. To copy them across, run the helper from `apps/drafting`, dry run first:
+
+```bash
+cd apps/drafting
+MONGO_URI=<uri> npx ts-node --transpile-only scripts/migrate-model-settings.ts          # dry run, writes nothing
+MONGO_URI=<uri> npx ts-node --transpile-only scripts/migrate-model-settings.ts --apply  # write
+```
+
+`MONGO_URI` must be exported explicitly: this script never reads `.env` files, and exits with code 2 when it is unset or blank. It copies a legacy value to its new key only when the new key has no row, never deletes the old keys, and prints key names, counts and the database name only. It copies the three model keys, not the effort keys (those fall back at read time).
 
 Model prices live in `appsettings` as one JSON value per model, key `ai.rates.<model-slug>` (for example `ai.rates.claude-sonnet-4-6`). It holds four numbers, all USD per million tokens: `input_usd_per_mtok`, `output_usd_per_mtok`, `cache_write_usd_per_mtok` and `cache_read_usd_per_mtok`.
 `cache_write_usd_per_mtok` must be the **1-hour** cache-write price, 2× input (for example `6` for Sonnet 4.6 at `3` input), because the drafting calls use only the 1-hour prompt cache (T-437).
 
-Reasoning effort is set per stage by `ai.effort.intake`, `ai.effort.preflight` and `ai.effort.body` (sent as `output_config.effort`). Defaults when unset: `medium`, `low`, `medium`. Nothing needs seeding. To change one, run `seed:setting ai.effort.<stage> <value>`. Each stage's value is cached for 60 seconds, and an invalid value falls back to the default with a warning. No thinking budget is set.
+Reasoning effort is set per role by `ai.effort.<role>` for the same six roles (`matcher`, `extractor`, `drafter`, `fact_checker`, `legal_reviewer`, `language`), sent as `output_config.effort`. Nothing needs seeding. To change one, run `seed:setting ai.effort.<role> <value>`. The value is `low`, `medium`, `high`, `xhigh` or `max`; the admin API checks it on save (case-insensitive, stored trimmed and lower-case). When the role key is unset, the old stage key is read for one release: `ai.effort.body` (drafter), `ai.effort.intake` (extractor, matcher) and `ai.effort.preflight` (fact_checker); the matcher tries `ai.effort.extractor` before that. Defaults when nothing is set: extractor `medium`, matcher `medium`, drafter `medium`, fact_checker `low`, legal_reviewer `medium`, language `low`. Each value is cached for 60 seconds, and an invalid value falls back to the default with a warning. No thinking budget is set.
 
 The intake extraction call's `max_tokens` is set by `ai.cap.intake_extract` (a whole number from 500 to 8000; default `3000` when unset, so nothing needs seeding). To change it, run `seed:setting ai.cap.intake_extract <value>`. It is cached for 60 seconds, and an invalid value falls back to the default with a warning.
 
@@ -159,7 +173,7 @@ docker exec -i lawie_drafting sh -c \
 | Changing existing section mapping                        | Nothing since T-371: deploy the file; check its SHA-256 in drafting `GET /health`. Ajay signs the change first |
 | Adding a starter template                                | `seed:templates`                                                                                               |
 | Editing an existing template                             | Update the doc in Mongo directly, or delete + reseed                                                           |
-| AI model swap (Anthropic releases new model)             | `seed:setting ai.drafting_model <new-id>`                                                                      |
+| AI model swap (Anthropic releases new model)             | `seed:setting ai.model.drafter <new-id>`                                                                       |
 
 ---
 
