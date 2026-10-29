@@ -45,6 +45,8 @@ import {
   RECEPTION_GUIDED_SYSTEM_PROMPT,
   RECEPTION_PACK_SYSTEM_PROMPT,
 } from '../services/intake.prompts';
+import { decideFromAnswer, getCatalogue } from '../services/intake.service';
+import { matchKeywords } from '../services/intake-keyword-match';
 import { loadRulePack } from '../services/rule-pack.service';
 
 jest.setTimeout(60_000);
@@ -284,12 +286,107 @@ describe('T-668c B: fixed.other_party in a no-pack brief', () => {
     ).toBe(true);
   });
 
-  it('c. typed "Not known (...)" on fixed.other_party (observed behaviour, see report)', () => {
-    const b = noPack(ANUSHKA, true);
-    // The no-pack brief is not on the non-answer packs, so confirmState keeps the emptiness-only
-    // check there. This records what the code does today; the lead decides if no-pack needs more.
-    expect(b.confirm_missing_party_keys ?? []).not.toContain(FIXED_KEYS.otherParty);
-    expect(b.ledger_given_keys ?? []).not.toContain(FIXED_KEYS.otherParty);
+  it('c. (AJ-668d) typed "Not known (...)" on fixed.other_party of a court document blocks, with the ledger too', () => {
+    for (const ledger of [true, false]) {
+      const b = noPack(ANUSHKA, ledger);
+      expect(b.can_confirm).toBe(false);
+      expect(b.confirm_blockers).toContain('parties');
+      expect(b.confirm_missing_party_keys).toContain(FIXED_KEYS.otherParty);
+      expect(b.ledger_given_keys ?? []).not.toContain(FIXED_KEYS.otherParty);
+    }
+  });
+});
+
+// ── B2. AJ-668d: the generic party path on a court document ─────────────────
+
+const OTHER_LINE =
+  'Add the name of the person or authority this is against or addressed to, to continue.';
+const FIRST_LINE = 'Add the name of the person the document is for to continue.';
+
+function generic(
+  over: { first?: string | null; other?: string | null },
+  opts: { court_document?: boolean; ledger?: Array<[string, string]> } = {},
+) {
+  const first = over.first === undefined ? 'Sample Person 1' : over.first;
+  const other = over.other === undefined ? 'Sample Person 2' : over.other;
+  const values: GivenValue[] = [];
+  if (first !== null) values.push(given(FIXED_KEYS.firstParty, first));
+  if (other !== null) values.push(given(FIXED_KEYS.otherParty, other));
+  values.push(given(FIXED_KEYS.facts, 'A sample dispute about Plot 000.'));
+  values.push(given(FIXED_KEYS.relief, 'A sample declaration.'));
+  const courtDocument = opts.court_document ?? true;
+  return buildBrief({
+    kind: { id: null, name: 'Document', court_document: courtDocument },
+    checklist: fixedChecklist(courtDocument),
+    values,
+    court: COURT,
+    ...(opts.ledger
+      ? { ledgerGiven: ledgerGivenKeys(opts.ledger.map(([k, v]) => fact(k, v))) }
+      : {}),
+  } as any);
+}
+
+describe('T-668c B2: AJ-668d generic party items on a court document', () => {
+  it('sanity: real names on both confirm', () => {
+    expect(generic({}).can_confirm).toBe(true);
+  });
+
+  it.each([ANUSHKA, 'Defendant: Not known', 'Defendant: ' + ANUSHKA])(
+    'fixed.other_party %j blocks, with no ledger and with the ledger holding it',
+    (v) => {
+      for (const ledger of [undefined, [[FIXED_KEYS.otherParty, v]] as Array<[string, string]>]) {
+        const b = generic({ other: v }, { ledger });
+        expect(b.can_confirm).toBe(false);
+        expect(b.confirm_blockers).toContain('parties');
+        expect(b.confirm_missing_party_keys).toEqual([FIXED_KEYS.otherParty]);
+        expect(b.ledger_given_keys ?? []).not.toContain(FIXED_KEYS.otherParty);
+        expect(b.confirm_message).toBe(OTHER_LINE);
+      }
+    },
+  );
+
+  it('fixed.first_party "unknown" blocks, with the first-party line', () => {
+    for (const ledger of [
+      undefined,
+      [[FIXED_KEYS.firstParty, 'unknown']] as Array<[string, string]>,
+    ]) {
+      const b = generic({ first: 'unknown' }, { ledger });
+      expect(b.can_confirm).toBe(false);
+      expect(b.confirm_blockers).toContain('parties');
+      expect(b.confirm_missing_party_keys).toEqual([FIXED_KEYS.firstParty]);
+      expect(b.ledger_given_keys ?? []).not.toContain(FIXED_KEYS.firstParty);
+      expect(b.confirm_message).toBe(FIRST_LINE);
+    }
+  });
+
+  it('the exact lines for an empty party (no ledger)', () => {
+    expect(generic({ other: null }).confirm_message).toBe(OTHER_LINE);
+    expect(generic({ first: null }).confirm_message).toBe(FIRST_LINE);
+  });
+
+  it('empty other party with a real ledger name: confirmable (the exemption is for empty only)', () => {
+    const b = generic({ other: null }, { ledger: [[FIXED_KEYS.otherParty, 'Sample Person 2']] });
+    expect(b.confirm_blockers).not.toContain('parties');
+    expect(b.can_confirm).toBe(true);
+    expect(b.ledger_given_keys).toContain(FIXED_KEYS.otherParty);
+  });
+
+  it.each(['Respondent: Not Known Traders', 'Not Known Traders'])(
+    'control %j on fixed.other_party is confirmable',
+    (v) => {
+      const b = generic({ other: v }, { ledger: [[FIXED_KEYS.otherParty, v]] });
+      expect(b.confirm_blockers).not.toContain('parties');
+      expect(b.can_confirm).toBe(true);
+    },
+  );
+
+  it('a notice (court_document false): an empty addressee and "Not known (...)" are unchanged, confirmable', () => {
+    for (const other of [null, ANUSHKA]) {
+      const b = generic({ other }, { court_document: false });
+      expect(b.confirm_blockers).not.toContain('parties');
+      expect(b.confirm_missing_party_keys ?? []).toEqual([]);
+      expect(b.can_confirm).toBe(true);
+    }
   });
 });
 
@@ -555,10 +652,134 @@ describe('T-668c D2: run 5c scenario 2 through the real update -> confirm path (
     await expectNothingRan();
   });
 
+  it('run 5c sequence: a description-sourced labelled fact in the ledger, then a clean typed non-answer over it: update blocked, Confirm 400, no Ink', async () => {
+    const labelled = `Defendant: ${ANUSHKA}`;
+    const ledger_id = await ledgerWith({ [DEF]: labelled });
+    // The description-sourced fact, as the extractor would have stored it.
+    const upd = await update({
+      ledger_id,
+      ledger_edits: [{ key: DEF, text: ANUSHKA }],
+      values: webValues(ANUSHKA),
+    });
+    expect(upd.status).toBe(200);
+    expect(upd.body.brief.can_confirm).toBe(false);
+    expect(upd.body.brief.confirm_missing_party_keys).toContain(DEF);
+    expect(upd.body.brief.ledger_given_keys ?? []).not.toContain(DEF);
+    const res = await generate({ ledger_id, values: webValues(ANUSHKA) });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('brief_not_confirmed');
+    expect(res.body.blockers).toEqual(['parties']);
+    await expectNothingRan();
+  });
+
   it('control: a real name typed and blurred is given, and the brief can confirm', async () => {
     const { res } = await typeAndBlur('Sample Person 2');
     expect(res.body.brief.confirm_blockers).not.toContain('parties');
     expect(res.body.brief.ledger_given_keys).toContain(DEF);
+  });
+});
+
+describe('T-668c D3: run 5c on the generic path (fixed.other_party), real routes', () => {
+  const DESCRIPTION =
+    'Suit for declaration and permanent injunction against a person claiming through a forged sale deed. Defendant: Not known (a person claiming through a forged sale deed dated 12.02.2025)';
+  const LUCKNOW = {
+    state: 'uttar_pradesh',
+    court_type: 'district_court',
+    court: 'district_court_lucknow',
+  };
+  const web = (other: string, source: 'user' | 'description' = 'user') => [
+    {
+      key: FIXED_KEYS.firstParty,
+      value: 'Sample Person 1',
+      source: 'user',
+      label: 'The person the document is for',
+    },
+    {
+      key: FIXED_KEYS.otherParty,
+      value: other,
+      source,
+      label: 'The person or authority it is against or addressed to',
+    },
+    {
+      key: FIXED_KEYS.facts,
+      value: 'A sample dispute about Plot 000.',
+      source: 'user',
+      label: 'What happened',
+    },
+    {
+      key: FIXED_KEYS.relief,
+      value: 'A sample declaration.',
+      source: 'user',
+      label: 'What you want',
+    },
+  ];
+  const base = { kind: 'none', kind_name: 'Plaint', court_document: true, court: LUCKNOW };
+
+  it('her sequence: described, then typed over it, blur, Confirm: update blocked, 400 brief_not_confirmed, no model call, no Ink', async () => {
+    const first = await request(app)
+      .post('/intake/brief/update')
+      .set(headers())
+      .send({ ...base, description: DESCRIPTION, values: web(ANUSHKA, 'description') });
+    expect(first.status).toBe(200);
+    expect(first.body.brief.can_confirm).toBe(false);
+    const typed = await request(app)
+      .post('/intake/brief/update')
+      .set(headers())
+      .send({ ...base, description: DESCRIPTION, values: web(ANUSHKA, 'user') });
+    expect(typed.status).toBe(200);
+    expect(typed.body.brief.can_confirm).toBe(false);
+    expect(typed.body.brief.confirm_blockers).toContain('parties');
+    expect(typed.body.brief.confirm_missing_party_keys).toContain(FIXED_KEYS.otherParty);
+    expect(typed.body.brief.confirm_message).toBe(OTHER_LINE);
+    const res = await request(app)
+      .post('/generate-from-brief')
+      .set(headers())
+      .send({ ...base, values: web(ANUSHKA, 'user'), described: DESCRIPTION });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('brief_not_confirmed');
+    expect(res.body.blockers).toEqual(['parties']);
+    await expectNothingRan();
+  });
+
+  it('control: "Respondent: Not Known Traders" typed is not stopped by the party check', async () => {
+    const res = await request(app)
+      .post('/generate-from-brief')
+      .set(headers())
+      .send({ ...base, values: web('Respondent: Not Known Traders'), described: DESCRIPTION });
+    expect(res.status).not.toBe(404);
+    expect(res.body?.error).not.toBe('brief_not_confirmed');
+  });
+});
+
+describe('T-668c D4: which kind the matcher gives her exact description (no model call)', () => {
+  const DESC =
+    'Suit for declaration and permanent injunction. Defendant: Not known (a person claiming through a forged sale deed dated 12.02.2025)';
+  it('records the deterministic keyword pass (ranks only, never matches alone) and the decision with a stubbed model answer', () => {
+    const allowed = new Set(getCatalogue().map((c) => c.template_id));
+    const kw = matchKeywords(DESC, allowed);
+    const ids = kw.candidates.map((c) => c.templateId);
+    // Observed: her description hits no keyword phrase, so the kind comes from the model alone.
+    expect(ids).toEqual([]);
+    expect(kw.t5Pair).toBeNull();
+    // The model call is stubbed here by an answer object; decideFromAnswer is the pure part.
+    const noPick = decideFromAnswer(
+      { isLegalDrafting: true, candidates: [], category: 'court', isCourtDocument: true },
+      ids,
+    );
+    // With no model pick the keywords alone never give 'matched'.
+    expect(noPick.kind).not.toBe('matched');
+    // The model is stubbed with a confident pick: the decision follows the model's pick.
+    const top = ids[0] ?? 'plaint_declaration';
+    const picked = decideFromAnswer(
+      {
+        isLegalDrafting: true,
+        candidates: [{ templateId: top, confidence: 1 } as any],
+        category: 'court',
+        isCourtDocument: true,
+      },
+      ids,
+    );
+    expect(picked).toMatchObject({ kind: 'matched', templateId: top });
   });
 });
 

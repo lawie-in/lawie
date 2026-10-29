@@ -1918,6 +1918,10 @@ function confirmState(
     // T-668 (AJ-668-M1): in the plaint packs, replication and written_statement
     // a typed §(j)3 non-answer party name is missing too, as on O.39.
     const nonAnswer = o39 || isNonAnswerPartyPack(packId);
+    // T-668d (AJ-668d): on a court document the generic party items are party
+    // names too, so the same non-answer rule applies to them.
+    const nonAnswerFor = (key: string): boolean =>
+      nonAnswer || key === FIXED_KEYS.firstParty || key === FIXED_KEYS.otherParty;
     const courtChosen = court.state !== null && court.court_type !== null && court.court !== null;
     const missingParties = items.filter(
       (i) =>
@@ -1926,7 +1930,7 @@ function confirmState(
         // T-668b (AJ-668-M5 to M5e): on O.39 and the M1 packs a non-answer
         // with a tail (`Not known (…)`) is missing too. One rule, party names only.
         // T-668c: the ledger exemption applies to emptiness, never to a non-answer.
-        (nonAnswer
+        (nonAnswerFor(i.key)
           ? isEmpty(i.value)
             ? !given.has(i.key)
             : isPartyNonAnswer(i.value)
@@ -1957,7 +1961,10 @@ function confirmState(
     }
     // T-668: on these packs the screen follows the service's missing party keys
     // (a non-answer counts), in item order; empty (so absent) when none is missing.
-    if (!o39 && nonAnswer) partyKeys = missingParties.map((i) => i.key);
+    // T-668d: so does a missing generic party item on a court document.
+    if (!o39 && missingParties.some((i) => nonAnswerFor(i.key))) {
+      partyKeys = missingParties.map((i) => i.key);
+    }
   }
 
   // T-644: set only when an O.39 party is missing; T-668: or a party on one of the
