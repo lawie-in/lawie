@@ -1,6 +1,6 @@
 # T-665 — Arrest dates and the custody answer come from the ledger too
 
-Status: backlog (unassigned). Follow-up to T-660 (merged 3bf05b39), 29 Oct 2026. Ajay: ship T-660 with a note, ticket this.
+Status: assigned to tanvi, 29 Oct 2026. Follow-up to T-660 (merged 3bf05b39). Ajay: ship T-660 with a note, ticket this.
 
 ## Why
 T-660 made `ledgerCustodyInputs` the one source for ledger wording in the brief and in generation. The arrest dates and the custody answer are still read from the brief's own items, not from the ledger.

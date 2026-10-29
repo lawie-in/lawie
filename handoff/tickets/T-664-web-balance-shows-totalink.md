@@ -1,6 +1,6 @@
 # T-664 — Every balance the web shows is totalInk
 
-Status: assigned to tanvi, 29 Oct 2026. Ajay ruling AJ-664-M1 (bcc1b832), found in Kunal's T-653 Explore.
+Status: merged into develop_staging 1e5e1316 (tanvi, CI 1257 green), 29 Oct 2026. Ajay approved at 373bbbac. Server-side follow-up: T-667.
 
 ## Why
 The spend gate (`enforceCredits`) and the 402 message use `totalInk`. The web paywall (`apps/web/src/app/dashboard/new/page.tsx` ~l.424) shows `balance.total`, which includes the legacy hidden `earnedCredits`. So a user can be refused a draft while the paywall shows a balance that covers it.
