@@ -526,6 +526,12 @@ async function runExtract(input: ExtractInput): Promise<ExtractOutcome> {
     description: input.description,
     answers: input.answers,
     ...(input.today ? { today: input.today } : {}),
+    // Ajay e7d1c49e: each date field's own meaning words, from its pack only.
+    dateOwnMeaningWords: new Map(
+      input.pack.facts.flatMap((f) =>
+        f.date_own_meaning_words ? [[f.key, f.date_own_meaning_words] as const] : [],
+      ),
+    ),
   });
   // Arjun §9: how many candidates the stage-1 bridge will not write to the v2 ledger.
   const bridgeSkipped = countNonVerbatim(

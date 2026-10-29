@@ -46,6 +46,7 @@ import { factTypeFor, isLedgerItem, locateSpan } from '../fact-ledger.service';
 import type { ChecklistItem } from '../intake-brief';
 import { isNoFactAnswer } from '../intake-brief';
 import { policeStationName, stripStationMarkerOnce } from '../police-station-name';
+import type { DateOwnMeaningWord } from '../rule-pack.service';
 
 import type { ExtractResult, LedgerCandidate, LedgerCandidateType, NonAnswer } from './types';
 
@@ -77,6 +78,11 @@ export interface ValidateContext {
   answers: ValidateAnswer[];
   /** Today, ISO YYYY-MM-DD (IST), so a past-event date after today gives no fact. */
   today?: string;
+  /**
+   * T-683 (Ajay e7d1c49e): each date field's own meaning words, from its pack
+   * (RulePackFact.date_own_meaning_words), by key. A field with none: as before.
+   */
+  dateOwnMeaningWords?: ReadonlyMap<string, readonly DateOwnMeaningWord[]>;
 }
 
 /** Why a model entry was not kept. Reason codes only, never a key or text. */
@@ -228,12 +234,37 @@ function englishText(v: unknown, max: number): string | null {
 /** Two-digit-year numeric dates ("12/3/26"): ambiguous, so no fact (rule 1). */
 const TWO_DIGIT_YEAR_DATE = /(?<!\d)\d{1,2}([/.-])\d{1,2}\1\d{2}(?!\d)/u;
 
-/** One word of the quote, for the qualifier check: case folded, punctuation off both ends. */
+/**
+ * One word of the quote, for the qualifier check: case folded, punctuation off
+ * both ends. Combining marks are letters' parts and stay ("से" stays "से").
+ */
 function bareWord(w: string): string {
   return w
     .normalize('NFC')
     .toLowerCase()
-    .replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
+    .replace(/^[^\p{L}\p{M}\p{N}]+|[^\p{L}\p{M}\p{N}]+$/gu, '');
+}
+
+/**
+ * Ajay e7d1c49e: how many of `side`'s words, next to the date, are one of the
+ * field's own meaning words for that position (the longest that fits): for
+ * 'before', the words at the end of `side`; for 'after', those at its start.
+ */
+function ownWordsNextToDate(
+  side: readonly string[],
+  own: readonly DateOwnMeaningWord[],
+  position: 'before' | 'after',
+): number {
+  let best = 0;
+  for (const o of own) {
+    if (o.position !== position) continue;
+    const tokens = o.word.trim().split(/\s+/).map(bareWord).filter(Boolean);
+    const k = tokens.length;
+    if (k === 0 || k > side.length || k <= best) continue;
+    const at = position === 'before' ? side.slice(side.length - k) : side.slice(0, k);
+    if (at.every((w, j) => w === tokens[j])) best = k;
+  }
+  return best;
 }
 
 /**
@@ -244,8 +275,20 @@ function bareWord(w: string): string {
  * date (Ajay rule 1), and a qualifier anywhere else in the quote ("on or
  * about", "before": DATE_LABEL_QUALIFIERS, as normalizeDate never reads a
  * label holding one) means no fact.
+ *
+ * Ajay e7d1c49e: one of the field's own meaning words IMMEDIATELY before the
+ * date (or immediately after, for a word signed with position 'after') is not
+ * a qualifier for that field. Every other word outside the date is checked as
+ * before, so "since about 05.03.2026" still refuses ("about"). A field with no
+ * list is as before.
  */
-function readDate(value: unknown, quote: string, key: string, today?: string): string | null {
+function readDate(
+  value: unknown,
+  quote: string,
+  key: string,
+  today?: string,
+  ownWords: readonly DateOwnMeaningWord[] = [],
+): string | null {
   if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value.trim())) return null;
   const v = value.trim();
   const opts = { fieldKey: key, ...(today ? { today } : {}) };
@@ -262,7 +305,11 @@ function readDate(value: unknown, quote: string, key: string, today?: string): s
         .replace(/^[([]+|[.,;:!?)\]]+$/g, '');
       const n = normalizeDate(run, opts);
       if (!n.ok || n.value !== v) continue;
-      const outside = [...words.slice(0, i), ...words.slice(i + len)].map(bareWord);
+      const before = words.slice(0, i).map(bareWord);
+      const after = words.slice(i + len).map(bareWord);
+      const dropBefore = ownWordsNextToDate(before, ownWords, 'before');
+      const dropAfter = ownWordsNextToDate(after, ownWords, 'after');
+      const outside = [...before.slice(0, before.length - dropBefore), ...after.slice(dropAfter)];
       return outside.some((w) => DATE_LABEL_QUALIFIERS.has(w)) ? null : v;
     }
   }
@@ -361,6 +408,7 @@ function readValue(
   value: unknown,
   quote: string,
   today?: string,
+  ownWords: readonly DateOwnMeaningWord[] = [],
 ): string | string[] | number | null {
   const { item } = spec;
   if (spec.type === 'list') {
@@ -376,7 +424,7 @@ function readValue(
   }
   switch (spec.type) {
     case 'date':
-      return readDate(value, quote, item.key, today);
+      return readDate(value, quote, item.key, today, ownWords);
     case 'money':
       return readMoney(value, quote);
     case 'choice':
@@ -609,7 +657,13 @@ export function validateExtraction(parsed: unknown, ctx: ValidateContext): Valid
       unresolved.add(spec.item.key);
       continue;
     }
-    const value = readValue(spec, e.value, quote, ctx.today);
+    const value = readValue(
+      spec,
+      e.value,
+      quote,
+      ctx.today,
+      ctx.dateOwnMeaningWords?.get(spec.item.key) ?? [],
+    );
     if (value === null) {
       drop('bad_value');
       unresolved.add(spec.item.key);

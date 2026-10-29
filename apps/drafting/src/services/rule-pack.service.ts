@@ -72,6 +72,20 @@ export interface RulePackFact {
    * services/v3/extractor.service.ts; buildChecklist and extractLines ignore it.
    */
   extract_hint?: string;
+  /**
+   * T-683 (Ajay e7d1c49e, "field-meaning words in the date check"): words
+   * that state what this date field is, not a doubt about the date, each with
+   * where it stands next to the date. Exactly as the pack writes them (legal
+   * content, signed per field; first: bail_regular custody_since). Read only
+   * by services/v3/validate.ts; v2 ignores it.
+   */
+  date_own_meaning_words?: DateOwnMeaningWord[];
+}
+
+/** T-683: one field-meaning word and its position: immediately before or after the date. */
+export interface DateOwnMeaningWord {
+  word: string;
+  position: 'before' | 'after';
 }
 
 /**
@@ -256,11 +270,15 @@ function factFromDef(
  * T-190: the pack's question and `ask_when_empty`, when the pack gives them.
  * The text is kept byte for byte: it is Ajay's signed wording.
  */
-function packQuestion(
-  def: Obj,
-): Pick<RulePackFact, 'question' | 'ask_when_empty' | 'blocks_confirm' | 'extract_hint'> {
-  const out: Pick<RulePackFact, 'question' | 'ask_when_empty' | 'blocks_confirm' | 'extract_hint'> =
-    {};
+type PackQuestionKeys =
+  | 'question'
+  | 'ask_when_empty'
+  | 'blocks_confirm'
+  | 'extract_hint'
+  | 'date_own_meaning_words';
+
+function packQuestion(def: Obj): Pick<RulePackFact, PackQuestionKeys> {
+  const out: Pick<RulePackFact, PackQuestionKeys> = {};
   if (typeof def.question === 'string' && def.question.trim() !== '') {
     out.question = { text: def.question, source: 'pack' };
   }
@@ -269,6 +287,18 @@ function packQuestion(
   // T-683: kept byte for byte (Ajay's signed wording), like the question.
   if (typeof def.extract_hint === 'string' && def.extract_hint.trim() !== '') {
     out.extract_hint = def.extract_hint;
+  }
+  // T-683: kept as written; an entry that is not {word, position: before|after} is skipped.
+  if (Array.isArray(def.date_own_meaning_words)) {
+    const words = def.date_own_meaning_words.flatMap((e: unknown): DateOwnMeaningWord[] =>
+      isObj(e) &&
+      typeof e.word === 'string' &&
+      e.word.trim() !== '' &&
+      (e.position === 'before' || e.position === 'after')
+        ? [{ word: e.word, position: e.position }]
+        : [],
+    );
+    if (words.length > 0) out.date_own_meaning_words = words;
   }
   return out;
 }
