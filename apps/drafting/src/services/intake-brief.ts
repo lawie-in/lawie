@@ -1456,10 +1456,17 @@ export function ledgerGivenKeys(
     if (typeof f.display !== 'string' || f.display.trim() === '') continue;
     // T-668b (AJ-668-M5, M5b; pack-neutral per AJ-655-M1): a party name with a
     // non-answer and a tail (`Not known (…)`) is no fact either.
-    const noFact = isPartyNameGuardedField(lastSegment(f.key))
-      ? isPartyNonAnswer
-      : isEmptyOrNonAnswer;
-    if (isNoFactGuardedField(lastSegment(f.key)) && (noFact(f.display) || noFact(f.value))) {
+    // T-668c: the generic party keys (fixed.first_party, fixed.other_party) too.
+    const seg = lastSegment(f.key);
+    const partyKey =
+      isPartyNameGuardedField(seg) ||
+      f.key === FIXED_KEYS.firstParty ||
+      f.key === FIXED_KEYS.otherParty;
+    if (
+      (partyKey && isPartyNonAnswer(f.display)) ||
+      (partyKey && isPartyNonAnswer(f.value)) ||
+      (isNoFactGuardedField(seg) && (isEmptyOrNonAnswer(f.display) || isEmptyOrNonAnswer(f.value)))
+    ) {
       continue;
     }
     const declined = [f.display, String(f.value)].some((value) =>
@@ -1918,8 +1925,12 @@ function confirmState(
         i.required &&
         // T-668b (AJ-668-M5 to M5e): on O.39 and the M1 packs a non-answer
         // with a tail (`Not known (…)`) is missing too. One rule, party names only.
-        (nonAnswer ? isPartyNonAnswer(i.value) : isEmpty(i.value)) &&
-        !given.has(i.key),
+        // T-668c: the ledger exemption applies to emptiness, never to a non-answer.
+        (nonAnswer
+          ? isEmpty(i.value)
+            ? !given.has(i.key)
+            : isPartyNonAnswer(i.value)
+          : isEmpty(i.value) && !given.has(i.key)),
     );
     if (!courtChosen) blockers.push('court');
     if (missingParties.length > 0) blockers.push('parties');
