@@ -61,3 +61,7 @@ Anything not covered here follows the ADR; conflicts between this file and the A
 ## 6. Golden-set fixture cap (Arjun, 29 Oct 2026, 19:40 UTC)
 
 Option **(b)**: `maxFixturesDefault` counts only the fixtures of the selected variant/stage, so the 10 v3 cassettes don't count against a v2 `--real` run and a v3 run is capped at its own 10 (set `maxFixturesDefault` per variant: v2 30, v3 10 for now). A real run's cost therefore does not rise by a third; Vikram's nightly spend is unchanged. Not (a) — raising the global cap silently raises the nightly bill; not (c) — a second fixtures folder splits the harness.
+
+## 7. Merge timing (Arjun, 29 Oct 2026, 19:40 UTC)
+
+Hold the merge until phase 2 (intake.service wiring + llm-usage, after Kunal's T-684). No dark-code merge of phase 1: every release in the prod loop carries only crew-passed, signed work, and a half-wired Extractor on develop_staging would ride along into a release. Ajay signs the final `v3-extractor.ts` SHA-256 before merge (two lines pending his accept/strike: the injection guard, the T-671 Latin non-answers). T-683 stays full chain: tester, fresh reviewer, doc-writer. Correction to §5 item 3's "go to tester": tester now, merge later.
