@@ -335,3 +335,10 @@ Asked by Arjun at 19:09 UTC (CFO's Opus-vs-Sonnet decision). JSON: `handoff/ops/
 - **Part 2, generations:** reads completed, non-fixture rows (projection: runId, the 4 token totals, llmCalls, calls.sectionId). It prints per-draft mean/p50/p95, how many runs have more than one row, and how many drafts repeat a sectionId call (a retry or repair proxy).
 - **Output:** numbers and stage/call/model names only. The JS was tested locally on saved log samples (the log part).
 - **Running it:** default stays 13; run pinned with `--document-version 18`.
+
+### SSM version 19 (29 Oct 2026, 19:20 UTC, Nikhil): Active, NOT default
+Asked by Arjun at 19:12 UTC (Vikram's reconciliation against the Anthropic Console). JSON: `handoff/ops/runbooks/lawie-prod-ops-v19.json`. The only change from v18, besides the description, is the new action `token-totals`, which takes no params. It runs as ubuntu with the env loaded like deploy.
+- **Part 1, logs:** sums the drafting out-log `llm_call` records per model | stage for 24 h, 7 d and month-to-date: calls, input, output, cache_write, cache_read.
+- **Part 2, generations:** aggregates per aiModel | runOrigin | status with the same windows: rows, llmCalls, and the 4 token sums.
+- **Output:** numbers and model/stage names only. The log part was tested locally.
+- **Running it:** default stays 13; run pinned with `--document-version 19`.
