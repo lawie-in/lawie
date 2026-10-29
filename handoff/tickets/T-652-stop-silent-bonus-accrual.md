@@ -1,6 +1,6 @@
 # T-652 — Stop the silent login and rating bonus accrual
 
-Status: assigned to kunal, 28 Oct 2026. Ajay AJ-646-M9b (639892f7), 28 Oct 2026: processing with no stated purpose breaches DPDP purpose limitation.
+Status: Merged into develop_staging (5f23509c, CI 1218 green), 29 Oct 2026. Release note: POST /credits/rate/:docId now 404.
 
 ## Problem
 Users were never offered these bonuses, but the code still grants them into earnedCredits, which can't be spent:

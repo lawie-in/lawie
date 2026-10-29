@@ -791,7 +791,10 @@ describe('T-139 round 4, C2: station prefix and suffix', () => {
     ['पुलिस थाना कोतवाली', 'कोतवाली'],
     ['थाना भवन थाना', 'थाना भवन'],
     ['Thana Bhawan PS', 'Thana Bhawan'],
-    ['थाना सिविल लाइन्स', 'सिविल लाइन्स'], // Ajay accepted this risk
+    // T-638 A3 (Ajay, 28 Oct 2026) amends C2: a leading bare थाना is part of the name and stays;
+    // it is stripped only with a separator (थाना - कोतवाली). This flips the earlier "accepted risk" row.
+    ['थाना सिविल लाइन्स', 'थाना सिविल लाइन्स'],
+    ['थाना - कोतवाली', 'कोतवाली'],
   ])('"%s" prints as "%s"', (value, expected) => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
     require('./setupEnv');

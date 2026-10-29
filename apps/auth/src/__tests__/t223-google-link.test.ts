@@ -114,6 +114,7 @@ async function googleSignIn(email: string, id: string) {
   return supertest(server).get('/google/callback').query({ state }).redirects(0);
 }
 
+// T-652: the earnedCredits signup grant is gone, so this must stay 0; the free Ink is `seeds`.
 const signupRows = (id: unknown) =>
   mongoose.connection
     .db!.collection('creditledgers')
@@ -137,7 +138,7 @@ describe('T-223 AC6 Google link grants the sign-up bonus once', () => {
 
     await waitFor(async () => (await seeds(u._id)) === 1);
     const afterLink = (await rawUsers().findOne({ _id: u._id }))!;
-    expect(await signupRows(u._id)).toBe(1);
+    expect(await signupRows(u._id)).toBe(0); // T-652: no signup_bonus creditledger row
     expect(afterLink.inkTopup).toBe(10);
     expect(afterLink.signupBonusGrantedAt).toBeInstanceOf(Date);
 
@@ -147,8 +148,9 @@ describe('T-223 AC6 Google link grants the sign-up bonus once', () => {
     await new Promise((r) => setTimeout(r, 200));
     const afterRepeat = (await rawUsers().findOne({ _id: u._id }))!;
     expect(await seeds(u._id)).toBe(1);
-    expect(await signupRows(u._id)).toBe(1);
-    expect(afterRepeat.earnedCredits).toBe(afterLink.earnedCredits);
+    expect(await signupRows(u._id)).toBe(0); // T-652: no signup_bonus creditledger row
+    expect(afterRepeat.earnedCredits ?? 0).toBe(0);
+    expect(afterLink.earnedCredits ?? 0).toBe(0);
     expect(afterRepeat.signupBonusGrantedAt).toEqual(afterLink.signupBonusGrantedAt);
     expect(afterRepeat.inkTopup).toBe(10);
   });
@@ -170,7 +172,37 @@ describe('T-223 AC6 Google link grants the sign-up bonus once', () => {
     expect(await seeds(u._id)).toBe(1);
     const doc = (await rawUsers().findOne({ _id: u._id }))!;
     expect(doc.googleId).toBe('g-t223-link2');
-    expect(await signupRows(u._id)).toBe(1);
+    expect(await signupRows(u._id)).toBe(0); // T-652: no signup_bonus creditledger row
     expect(doc.inkTopup).toBe(10);
+  });
+});
+
+describe('T-652 Google callback sign-in accrues nothing', () => {
+  it('repeat sign-ins of a legacy Google user (backdated claim, balance 6): no login_bonus row, balance and lastLoginBonusAt untouched', async () => {
+    const old = new Date(Date.now() - 3 * 86_400_000);
+    const u = await User.create({
+      email: 't652-g@example.com',
+      name: 'Google Legacy',
+      authProvider: 'google',
+      googleId: 'g-t652-legacy',
+      emailVerified: true,
+    });
+    await rawUsers().updateOne(
+      { _id: u._id },
+      { $set: { earnedCredits: 6, lastLoginBonusAt: old, signupBonusGrantedAt: old } },
+    );
+    for (let i = 0; i < 2; i += 1) {
+      const res = await googleSignIn('t652-g@example.com', 'g-t652-legacy');
+      expect(res.status).toBe(302);
+      await new Promise((r) => setTimeout(r, 250));
+    }
+    const doc = (await rawUsers().findOne({ _id: u._id }))!;
+    expect(doc.earnedCredits).toBe(6);
+    expect(doc.lastLoginBonusAt).toEqual(old);
+    expect(
+      await mongoose.connection.db!.collection('creditledgers').countDocuments({ userId: u._id }),
+    ).toBe(0);
+    expect(await seeds(u._id)).toBe(0); // marker already set: no second free Ink
+    expect(doc.inkTopup ?? 0).toBe(0);
   });
 });

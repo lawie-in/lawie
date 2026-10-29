@@ -180,8 +180,8 @@ describe('fixtures: the signed skeletons', () => {
   // T-245a: the SHA-256 line printed under each signed md block is the hash of the block (Ajay,
   // v4/v5/v6/v2); the pinned values are the same as t374-skeletons SIGNED.blockSha.
   const T245A_BLOCK_SHA: Record<string, string> = {
-    // T-612: v6 (re-signed 26 Oct 2026)
-    bail_regular: '91fbd67a36b0909aa857d3f597da6b28c33d9cd0c7827692fd491b3a726fff41',
+    // T-638: v7 (re-signed 28 Oct 2026)
+    bail_regular: 'b15e03a2354a22c722c513f13ae6637810d5d00aee4d76699701d03e05fd2e04',
     bail_anticipatory: '98dc226270fde6c570a66b8dab833267118ce82731d9a70d2bde2b7d0106caca',
     bail_before_magistrate: '7f8a6c1eee3a299769df4cf3ecca8e962ce381c96022a05a30c4fb5c056d1a14',
     default_bail: '1abd4b802a904b54c53dc1bfbbf43ee6ce5749b2abb0a61cc46bf8a431ad5dc6',
