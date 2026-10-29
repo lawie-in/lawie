@@ -54,3 +54,41 @@ Fill from §2a. Cost per draft = Σ over stages of (input×in_rate + output×out
 - Priya: ticket the blind A/B (one lead; golden-set harness; outputs a table of 20 drafts with tokens and checker metrics; Anushka's blind scoring as the last step).
 - Ajay: picks the 4 argued-pack matters and confirms the rubric.
 - Arjun: reads the results and recommends per pack; founder decides.
+
+## 7. Vikram (29 Oct 2026): cost per draft S1–S3, against Ink value and the cap
+
+**Prices verified** on platform.claude.com/docs/en/about-claude/pricing, 29 Oct ~19:20 UTC. Opus 5.5 is **exactly 2× Sonnet 5.5 on every token class**: input $4 vs $2, 5-min write $5 vs $2.50, 1-h write $8 vs $4, cache read $0.20 vs $0.10, output $20 vs $10. Sonnet's cache read is **$0.10** (0.05× input), so the skill table's 0.20 is wrong. Haiku 5.5 is unchanged ($0.10 / $0.50, read $0.01, 1-h write $0.20, ≤100k prompts). ₹88/$.
+
+**Basis:** §2a (prod) has not landed. These figures use **develop** body-stage rows since 15 Oct: 753 golden-set drafts plus 14 user drafts, all Sonnet 5.5. I will re-run on §2a the same day it lands. Because Opus is a flat 2×, S2 = 2 × S1 body cost exactly, before any change in thinking tokens. S3 assumes the gate's reviewer pass costs 40% of the body on Sonnet. That is my placeholder; replace it with §2a's reviewer tokens.
+
+| ₹ per draft (body + reviewer; intake ₹0.18 extra, unchanged) | Mean | p95 | p99 | Max |
+|---|---|---|---|---|
+| **S1 Sonnet** (golden set / user rows) | 2.2 / 3.6 | 6.0 / 7.7 | 9.5 / n/a | 12.6 |
+| **S2 Opus drafter** | 4.5 / 7.3 | 11.9 / 15.5 | 19.0 / n/a | 25.2 |
+| **S3 Opus drafter + reviewer** | 6.2 / 10.2 | 16.7 / 21.7 | 26.6 / n/a | 35.3 |
+
+Thinking risk: Opus's thinking cannot be turned off. At effort `high`, output tokens may rise 20–30%. Output is about 60% of body cost, so that adds about 15% to S2/S3: S2 user p95 → ≈ ₹18, S3 user p95 → ≈ ₹25.
+
+**Ink value of a 2-Ink draft (net of GST and Razorpay):** Pro yearly ₹18.4 · Solo yearly ₹22.0 · Pro monthly ₹22.1 · Solo monthly ₹26.4 · top-ups ₹29.5 (₹499 pack) to ₹35.9 (₹65 pack).
+
+**Margin at the mean (user rows), line 60%:**
+| | Pro yearly ₹18.4 | Solo monthly ₹26.4 |
+|---|---|---|
+| S1 | 80% ✅ | 86% ✅ |
+| S2 | 60% ⚠️ on the line | 72% ✅ |
+| S3 | 45% ❌ | 61% ⚠️ |
+
+**Where the ₹18 cap (900 paise × 2 Ink) binds:**
+- **S1:** never. The max seen is ₹12.6.
+- **S2:** at about p99 on the golden set (₹19), and at user p95 once Opus thinking is counted (≈ ₹18). Roughly 1–5% of 2-Ink drafts would be **refused**.
+- **S3:** at p95 (₹21.7 user rows). About 5–10% of argued-pack drafts refused. That is not acceptable.
+- 4-Ink (₹36) and 5-Ink (₹45) drafts clear the cap in every scenario.
+- Do not raise the cap to make Opus fit. The cap is the rule that a draft never costs more than it earns; at ₹18.4 on Pro yearly it already sits at break-even.
+
+**Finance ruling:**
+1. **No global switch to Opus.** S2 puts the typical draft exactly on the 60% line for our cheapest Ink, and the cap would refuse a few percent of runs. I agree with Arjun's §5.
+2. **Opus only per pack (argued packs), only after the blind A/B**, and only if that pack's measured p95 stays under the cap. If an argued pack needs Opus and its p95 does not fit 2 Ink, the pack moves up to **3 Ink** (cap ₹27, Pro yearly value ₹27.6). That is a price change, so it is the founder's call, with Meera's and Ajay's copy re-signed.
+3. **A/B spend approved, hard cap ₹600.** Expected cost is about ₹200: 10 Opus drafts at ₹7–15 plus 10 Sonnet at ₹3–8, plus checker passes. Record tokens per draft so the p95 above can be replaced with measured values.
+4. **v3 comes first.** v3 adds ₹3–5 per draft (extractor plus extra pass) on any model. S2 + v3 is ≈ ₹10–12 mean on a 2-Ink draft, which is under 60% on Pro yearly. Opus decisions are made on the v3 pipeline, not today's.
+
+Vikram, CFO
