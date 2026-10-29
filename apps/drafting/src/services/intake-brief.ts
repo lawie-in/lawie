@@ -192,6 +192,13 @@ export interface Brief {
    * entry stays banned (T-192). Absent for any other result or pack.
    */
   date_check?: { line: 'B2'; text: string };
+  /**
+   * T-655: the keys the server counts as given by the fact ledger
+   * (`ledgerGivenKeys`), on every pack, when it had the ledger. The web uses
+   * this as its given set and does not judge the ledger itself. Absent when the
+   * server had no ledger: then nothing counts as ledger-given (fails closed).
+   */
+  ledger_given_keys?: string[];
 }
 
 export interface LooseDate {
@@ -1380,8 +1387,11 @@ function isDeclinedUndertaking(given: GivenValue): boolean {
  * description), so it counts as given: it is not asked in the question rounds
  * and not listed as still unknown, even where Reception placed no value for it.
  * An entry with an empty display is not a fact, and a "No" on an undertaking
- * box (T-251) is an undertaking not yet given. Kept in step with
- * `ledgerGivenKeys` in apps/web/src/components/intake/briefTypes.ts.
+ * box (T-251) is an undertaking not yet given. T-655 (AJ-644-M3, FR-9): on
+ * an O.39 required field (plaintiff_name, defendant_name, main_suit_relief,
+ * restraint_sought) a §(j)3 non-answer in the display or the value is no fact,
+ * so it does not lift the block. The list is the one in o39-confirm-messages.ts
+ * (FR-5a). The web reads the result from `Brief.ledger_given_keys`.
  */
 export function ledgerGivenKeys(
   facts: ReadonlyArray<{ key: string; display: string; value: unknown }>,
@@ -1389,6 +1399,12 @@ export function ledgerGivenKeys(
   const out = new Set<string>();
   for (const f of facts) {
     if (typeof f.display !== 'string' || f.display.trim() === '') continue;
+    if (
+      isO39RequiredField(lastSegment(f.key)) &&
+      (isEmptyOrNonAnswer(f.display) || isEmptyOrNonAnswer(f.value))
+    ) {
+      continue;
+    }
     const declined = [f.display, String(f.value)].some((value) =>
       isDeclinedUndertaking({ key: f.key, value, source: 'description' }),
     );
@@ -1401,10 +1417,10 @@ export function ledgerGivenKeys(
  * T-498: a brief already built, with the facts the ledger holds taken off
  * "Still unknown" and off what Confirm waits for, as `buildBrief` does with
  * `ledgerGiven`. Items and values do not change; with no given keys the brief
- * is returned as it is.
+ * is returned as it is. T-655: the given keys are set on `ledger_given_keys`.
  */
 export function withoutLedgerGiven(brief: Brief, given: ReadonlySet<string>): Brief {
-  if (given.size === 0) return brief;
+  if (given.size === 0) return { ...brief, ledger_given_keys: [] };
   const confirm = confirmState(
     brief.kind.id,
     brief.kind.court_document,
@@ -1420,6 +1436,7 @@ export function withoutLedgerGiven(brief: Brief, given: ReadonlySet<string>): Br
     still_unknown: brief.still_unknown.filter((u) => !given.has(u.key)),
     ...confirm,
     can_confirm: confirm.confirm_blockers.length === 0,
+    ledger_given_keys: [...given],
   };
 }
 
@@ -1685,6 +1702,7 @@ export function buildBrief(input: BuildBriefInput): Brief {
     can_confirm: blockers.length === 0,
     ...confirm,
     ...(dateCheck ? { date_check: dateCheck } : {}),
+    ...(input.ledgerGiven ? { ledger_given_keys: [...input.ledgerGiven] } : {}),
   };
 }
 

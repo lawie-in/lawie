@@ -29,7 +29,6 @@ import {
   Ledger,
   LedgerFact,
   ledgerEntryOf,
-  ledgerGivenKeys,
   PART_ORDER,
   PART_TITLES,
   renderedLedgerFacts,
@@ -620,9 +619,9 @@ export default function BriefStep({
   const dateCheck = brief.date_check;
   const datesHeld = dateCheck !== undefined && datesAcceptedFor !== dateCheck.text;
   // T-498: a party name the ledger holds shows on its row, so it does not block
-  // Confirm. The service already leaves it out when it had the ledger; this
-  // keeps the screen in step when it did not. With no ledger nothing changes.
-  const ledgerGiven = ledgerGivenKeys(ledger);
+  // Confirm. T-655: the service's given set (`ledger_given_keys`); the screen
+  // does not judge the ledger. Absent: nothing is ledger-given (fails closed).
+  const ledgerGiven = new Set(brief.ledger_given_keys ?? []);
   // T-644 (AJ-644-M1, AJ-644-M2): on O.39 the service names the missing parties
   // (a §(j)3 non-answer counts), so the screen does not judge emptiness. An
   // older brief without the list has none.
