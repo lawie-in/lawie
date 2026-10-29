@@ -1,6 +1,6 @@
 # T-688: Split tests into a sanity tier (every push) and a full tier (release and nightly)
 
-Status: design (Arjun), raised 29 Oct 2026 by the founder
+Status: assigned to shashank, 29 Oct 2026 (Arjun ruled the design; waiting on Ajay to confirm the legal-gate list), raised 29 Oct 2026 by the founder
 Priority: P1 (process). Owner: Arjun picks the tiers; a lead builds it after that.
 
 ## Why
@@ -20,3 +20,27 @@ The founder wanted basic sanity tests. Drafting now has 319 test files and about
 
 ## Touches
 Root config: ci.yml and the jest configs. One lead holds the root-config slot alone.
+
+## Arjun's ruling (29 Oct 2026)
+- **Mechanism:** Jest `projects` in each workspace.
+  - A `sanity` project whose testMatch is an explicit list of globs; the `full` project is everything, unchanged. No file moves, renames or tags.
+  - ci.yml runs `test --selectProjects sanity` on every push (blocking).
+  - A new full-tests.yml runs the full tier nightly on develop_staging and on every push to release/**.
+  - Coverage thresholds apply to the full tier only.
+  - A scripts test checks that every sanity glob matches at least one file and sets minimum file counts: drafting 25, web 10, auth 10, billing 6.
+- **Sanity contents:**
+  - drafting:
+    - route smoke: bail_regular and one plaint, intake confirm including the T-668c 400;
+    - court-rules snapshots;
+    - Ink hold, credits and cost cap;
+    - the delivery gate: T-611, T-637 and T-678;
+    - fact-ledger and confirmState: t644, t668*;
+    - t607 settings;
+    - PDF and annexure unit tests;
+    - the legal gates, which Ajay confirms.
+  - web: t616, BriefStep and OneFlow confirm, useSubscribe, t543, dashboard typed text, t642.
+  - auth: t616b, t642, t298 and t673, t657.
+  - billing: t413, t415 and t646 webhook grant, the GST invoice gate, t583.
+  - email-worker, gateway, shared and scripts: the whole suite.
+- **Cap (founder):** the whole sanity CI run takes no more than 5 minutes of wall-clock time, with all workspaces running in parallel. A run over 5 minutes fails the T-688 acceptance and the sanity list gets trimmed.
+- **Lead:** shashank. Root config, so he holds the slot alone. His claim covers ci.yml, the new full-tests.yml, the five jest.config files and scripts/__tests__.
