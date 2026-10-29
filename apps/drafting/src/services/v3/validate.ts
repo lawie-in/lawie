@@ -562,7 +562,9 @@ export function validateExtraction(parsed: unknown, ctx: ValidateContext): Valid
   const specs = fieldSpecs(ctx.checklist);
   const unresolved = new Set<string>();
   const nonAnswers: NonAnswer[] = [];
-  const valid: LedgerCandidate[] = [];
+  /** Where each non-answer came from, for the same-turn rule below (internal). */
+  const nonAnswerFrom = new Map<NonAnswer, { kind: 'description' | 'answer'; turn: number }>();
+  let valid: LedgerCandidate[] = [];
 
   /** The source text an entry names, with the keys that answer was asked for. */
   const sourceOf = (
@@ -614,14 +616,20 @@ export function validateExtraction(parsed: unknown, ctx: ValidateContext): Valid
   };
 
   /** Rule 4: kept for the key it was given for; an answer counts only for its asked keys. */
-  const addNonAnswer = (spec: FieldSpec, src: { asked: string[] | null }, quote: string): void => {
+  const addNonAnswer = (
+    spec: FieldSpec,
+    src: { kind: 'description' | 'answer'; turn: number; asked: string[] | null },
+    quote: string,
+  ): void => {
     if (src.asked !== null && !src.asked.includes(spec.item.key)) {
       drop('non_answer_not_asked');
       return;
     }
     drop('non_answer');
     if (!nonAnswers.some((n) => n.key === spec.item.key && n.quote === quote)) {
-      nonAnswers.push({ key: spec.item.key, quote });
+      const n: NonAnswer = { key: spec.item.key, quote };
+      nonAnswers.push(n);
+      nonAnswerFrom.set(n, { kind: src.kind, turn: src.turn });
     }
   };
 
@@ -696,6 +704,30 @@ export function validateExtraction(parsed: unknown, ctx: ValidateContext): Valid
     if (typeof k === 'string' && specs.has(k)) unresolved.add(k);
   }
 
+  // Arjun §10 (a): one rule, decided here only, for a key with both a
+  // non-answer and a candidate on the same turn. A candidate bridgeable under
+  // §9a (verbatim or by a signed rule) that is not itself a non-answer wins,
+  // and that non-answer is dropped; otherwise the candidate is dropped and
+  // the non-answer stands (no fact). The brief and the bridge read the result.
+  const keptNonAnswers = nonAnswers.filter((n) => {
+    const from = nonAnswerFrom.get(n);
+    const spec = specs.get(n.key);
+    if (!from || !spec) return true;
+    const same = valid.filter(
+      (c) => c.key === n.key && c.source.kind === from.kind && c.source.turn === from.turn,
+    );
+    if (same.length === 0) return true;
+    const wins = (c: LedgerCandidate): boolean =>
+      derivationOf(c) !== 'model_text' &&
+      !(typeof c.value === 'string' && isNonAnswerFor(spec, c.value));
+    if (same.some(wins)) {
+      valid = valid.filter((c) => !same.includes(c) || wins(c));
+      return false;
+    }
+    valid = valid.filter((c) => !same.includes(c));
+    return true;
+  });
+
   // One value per key; two different values are a conflict, never a guess.
   const byKey = new Map<string, LedgerCandidate[]>();
   for (const c of valid) byKey.set(c.key, [...(byKey.get(c.key) ?? []), c]);
@@ -711,8 +743,8 @@ export function validateExtraction(parsed: unknown, ctx: ValidateContext): Valid
     unresolved.delete(key);
   }
 
-  result.nonAnswers = nonAnswers;
-  for (const n of nonAnswers) unresolved.delete(n.key);
+  result.nonAnswers = keptNonAnswers;
+  for (const n of keptNonAnswers) unresolved.delete(n.key);
   result.unresolved = [...unresolved];
   return { result, dropped };
 }

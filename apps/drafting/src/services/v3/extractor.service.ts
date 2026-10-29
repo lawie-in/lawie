@@ -21,7 +21,7 @@
  * Not Ink-charged: it spends no intake quota and no Ink (intake is free).
  * Logs ids, counts and reason codes only: never the prompt, the output or a quote.
  */
-import { randomUUID } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 
 import logger from '../../config/logger';
 import {
@@ -134,8 +134,19 @@ interface RunState {
 const RUN_STATE_MAX = 5000;
 const RUN_STATE_TTL_MS = 6 * 60 * 60 * 1000;
 const runs = new Map<string, RunState>();
-/** Arjun §2: one in-flight Extractor call per run, keyed by runId, with its turn. */
-const inFlight = new Map<string, { turn: number; promise: Promise<ExtractOutcome> }>();
+/** Arjun §2: one in-flight Extractor call per run, keyed by runId, with its turn and edits. */
+const inFlight = new Map<
+  string,
+  { turn: number; editsHash: string; promise: Promise<ExtractOutcome> }
+>();
+
+/**
+ * Arjun §10 (b): sha256 of the NFC-normalised JSON of the turn's answers, so
+ * a same-turn call is shared only when it carries the same words. Never logged.
+ */
+function editsHashOf(answers: ExtractInput['answers']): string {
+  return createHash('sha256').update(JSON.stringify(answers).normalize('NFC')).digest('hex');
+}
 
 /** Thrown into a step that is still running when the turn's one deadline passes. */
 class DeadlineError extends Error {
@@ -551,15 +562,19 @@ async function runExtract(input: ExtractInput): Promise<ExtractOutcome> {
  * One Extractor turn. Never throws: any failure is `degraded` with a reason
  * code, and the caller runs the v2 path for this turn.
  *
- * Arjun §2, one in-flight call per run (review round 1, finding 8): a second
- * call for the same run and turn while one is in flight gets the same
- * outcome; a call for another turn of that run is degraded at once with
- * 'in_flight' (it runs v2; no waiting, no second model call).
+ * Arjun §2, one in-flight call per run (review round 1, finding 8; §10 (b)):
+ * a second call for the same run, turn and edits while one is in flight gets
+ * the same outcome; any other call on that run (another turn, or the same
+ * turn with different edits) is degraded at once with 'in_flight' (it runs
+ * v2; no waiting, no second model call).
  */
 export function extractTurn(input: ExtractInput): Promise<ExtractOutcome> {
+  const editsHash = editsHashOf(input.answers);
   const pending = inFlight.get(input.runId);
   if (pending) {
-    if (pending.turn === input.turn) return pending.promise;
+    // Arjun §10 (b): shared only for the same turn AND the same edits; a
+    // same-turn call with other edits is never given the other answer's result.
+    if (pending.turn === input.turn && pending.editsHash === editsHash) return pending.promise;
     logCall(input, 'degraded', { model: '', effort: null }, 'in_flight');
     return Promise.resolve({ status: 'degraded', reason: 'in_flight' });
   }
@@ -571,6 +586,6 @@ export function extractTurn(input: ExtractInput): Promise<ExtractOutcome> {
     .finally(() => {
       if (inFlight.get(input.runId)?.promise === p) inFlight.delete(input.runId);
     });
-  inFlight.set(input.runId, { turn: input.turn, promise: p });
+  inFlight.set(input.runId, { turn: input.turn, editsHash, promise: p });
   return p;
 }

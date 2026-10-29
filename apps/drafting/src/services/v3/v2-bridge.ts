@@ -306,8 +306,11 @@ export function v2ExtractionFromV3(
  *    edit is held back (`held`, its index): nothing is written for the key,
  *    so neither the raw words nor an English value the user did not write
  *    reach the ledger, and the key stays asked (§9) until T-682.
- * 4. Anything else (no candidate, a list, a cleared value): the advocate's own
- *    text, the v2 path. A candidate for any other key is not written (T-685).
+ * 4. No candidate, but a non-answer for the key inside the edit (Arjun §10):
+ *    held, so the raw words never go through as typed.
+ * 5. Anything else (no candidate and no non-answer, a list, a cleared value):
+ *    the advocate's own text, the v2 path. A candidate for any other key is
+ *    not written (T-685).
  */
 export function editsFromV3(
   edits: readonly LedgerEdit[],
@@ -336,7 +339,8 @@ export function editsFromV3(
     // Review round 1, finding 4: the edit is emptied only when the WHOLE edit
     // is the non-answer (its words are the quote, or the whole edit is one by
     // the v2/signed rules). A non-answer inside a longer answer ("पिता का नाम
-    // पता नहीं, नाम Ramesh") does not wipe the rest: the edit goes on below.
+    // पता नहीं, नाम Ramesh") does not wipe the rest: with a candidate, only the
+    // bridged value is written; with none, the edit is held (Arjun §10).
     const spec = specs.get(e.key);
     const editText = fold(e.text);
     const whole =
@@ -349,6 +353,8 @@ export function editsFromV3(
       out.push({ ...e, text: '' });
       return;
     }
+    // Arjun §10 (b767383c): a non-answer inside the edit, not the whole of it.
+    const partialNonAnswer = result.nonAnswers.some((n) => n.key === e.key);
     const c = result.candidates.find(
       (x) =>
         x.key === e.key &&
@@ -357,6 +363,12 @@ export function editsFromV3(
         !Array.isArray(x.value),
     );
     if (!c) {
+      if (partialNonAnswer) {
+        // Ask again; write nothing: the raw words never go through as typed.
+        held.push(i);
+        return;
+      }
+      // No non-answer: v2 behaviour unchanged.
       out.push(e);
       return;
     }
@@ -366,6 +378,7 @@ export function editsFromV3(
       return;
     }
     replaced += 1;
+    // The bridged words ("Ramesh" exactly), never the raw edit.
     out.push({ ...e, text: span });
   });
   return { edits: out, held, replaced, nonAnswers };
