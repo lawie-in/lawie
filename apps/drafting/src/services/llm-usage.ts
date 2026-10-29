@@ -460,6 +460,8 @@ export interface LlmCallRecord {
   status: LlmCallStatus;
   /** T-683: the reason code of a 'degraded' line. Absent otherwise. */
   reason?: string;
+  /** T-683 (Arjun §9): v3 candidates not bridged into the v2 ledger. A count; extract lines only. */
+  bridge_skipped_non_verbatim?: number;
   input_tokens: number;
   output_tokens: number;
   cache_read_input_tokens: number;
@@ -490,6 +492,8 @@ export interface LlmCallLog {
   status: LlmCallStatus;
   /** T-683: a reason code for a 'degraded' line (e.g. 'timeout'). A code label, never text. */
   reason?: string;
+  /** T-683 (Arjun §9): how many v3 candidates were not bridged (not verbatim). A count, never text. */
+  bridgeSkippedNonVerbatim?: number;
   inputTokens?: number;
   outputTokens?: number;
   cacheReadInputTokens?: number;
@@ -515,6 +519,9 @@ export function logLlmCall(c: LlmCallLog): void {
     effort: c.effort,
     status: c.status,
     ...(c.status === 'degraded' && c.reason ? { reason: c.reason } : {}),
+    ...(typeof c.bridgeSkippedNonVerbatim === 'number'
+      ? { bridge_skipped_non_verbatim: c.bridgeSkippedNonVerbatim }
+      : {}),
     input_tokens: c.inputTokens ?? 0,
     output_tokens: c.outputTokens ?? 0,
     cache_read_input_tokens: c.cacheReadInputTokens ?? 0,

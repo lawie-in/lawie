@@ -1571,7 +1571,11 @@ async function briefWithPack(
   // (turn 0); its validated reads take the place of Reception's. Degraded, or
   // stage 0: null, and everything below runs as before.
   const v3 = await v3ResultFor(ctx, pack, checklist, req.description, [], 0, req.now);
-  const v3Reads = v3 ? briefReadsFromV3(v3) : null;
+  // Arjun §9: only verbatim values are bridged into the v2 ledger; the rest are asked.
+  const v3Bridge = v3
+    ? v2ExtractionFromV3(v3, req.description, checklist, referenceYear(req.now ?? new Date()))
+    : null;
+  const v3Reads = v3 && v3Bridge ? briefReadsFromV3(v3, v3Bridge.notBridged) : null;
   if (v3Reads) {
     for (const k of v3Reads.noRead) read.values.delete(k);
     for (const [k, v] of v3Reads.values) read.values.set(k, v);
@@ -1637,7 +1641,7 @@ async function briefWithPack(
         checklist,
         req,
         firstBrief,
-        v3 ? v2ExtractionFromV3(v3, req.description) : undefined,
+        v3Bridge ? { facts: v3Bridge.facts } : undefined,
       )
     : undefined;
   // T-660: the first brief is built before the ledger exists, so a custody
@@ -2111,9 +2115,11 @@ export async function updateLedger(
   const checklist = checklistFor(pack);
   // T-683 (stage ≥ 1): one Extractor turn per answer turn, on the answers'
   // own words (the description is not stored, T-682 Q4). Each text edit is
-  // one answer, numbered from 1; a read answer is written as its value.
-  // Degraded, or stage 0: the edits go in exactly as sent. Not charged.
+  // one answer, numbered from 1; a read answer is written as its value, and a
+  // non-answer (Ajay rule 4) as an empty edit. Degraded, or stage 0: the edits
+  // go in exactly as sent, so v2's own non-answer rule applies. Not charged.
   let edits = req.edits;
+  let held: ReadonlySet<number> = new Set();
   let v3Note = '';
   const answers = req.edits.flatMap((e, i) =>
     typeof e.text === 'string' && e.text.trim() !== ''
@@ -2131,18 +2137,33 @@ export async function updateLedger(
       req.now,
     );
     if (v3) {
-      const laid = editsFromV3(req.edits, v3);
+      // A v3 non-answer goes in as an empty edit: no fact, as v2 does for its own.
+      // Arjun §9: a value not verbatim in the answer is held back (nothing written).
+      const laid = editsFromV3(req.edits, v3, checklist, referenceYear(req.now ?? new Date()));
       edits = laid.edits;
-      v3Note = `, v3Read=${laid.replaced}`;
+      held = new Set(laid.held);
+      v3Note = `, v3Read=${laid.replaced}, v3NonAnswer=${laid.nonAnswers}, v3Held=${laid.held.length}`;
     }
   }
-  const { doc: after, results } = await applyEdits(
+  const { doc: after, results: applied } = await applyEdits(
     doc,
     checklist,
     edits,
     INTAKE_LIMITS.maxLedgerVersions,
     req.now,
   );
+  // Results in the request's order; a held edit (stage ≥ 1, §9) is 'skipped'.
+  const results: LedgerEditResult[] =
+    held.size === 0
+      ? applied
+      : (() => {
+          const rest = [...applied];
+          return req.edits.map((e, i) =>
+            held.has(i)
+              ? { key: e.key, status: 'skipped' as const }
+              : (rest.shift() as LedgerEditResult),
+          );
+        })();
   console.info(
     `[intake] ledger updated (ledgerId=${req.ledgerId}, version=${after.currentVersion}, edits=${req.edits.length}, saved=${results.filter((r) => r.status === 'saved').length}, unreadable=${results.filter((r) => r.status === 'unreadable').length}${v3Note})`,
   );

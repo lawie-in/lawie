@@ -38,12 +38,13 @@ import {
   onAppSettingInvalidated,
 } from '../app-settings.service';
 import { AuxCallError, AuxCallUsage, callAuxModel } from '../aux-llm';
-import { factTypeFor, isLedgerItem } from '../fact-ledger.service';
+import { factTypeFor, isLedgerItem, referenceYear } from '../fact-ledger.service';
 import { ChecklistItem, dateKindLabel } from '../intake-brief';
 import { AiEffort, logLlmCall, resolveModel } from '../llm-usage';
 import type { RulePack } from '../rule-pack.service';
 
 import type { ExtractResult } from './types';
+import { countNonVerbatim } from './v2-bridge';
 import { DropReason, isDerivedKey, validateExtraction } from './validate';
 
 // ── Limits (Arjun §2) ───────────────────────────────────────────────────────
@@ -350,7 +351,7 @@ async function takeUserSlot(userId: string, now: number): Promise<boolean> {
 function logCall(
   input: ExtractInput,
   status: 'completed' | 'degraded',
-  call: { model: string; effort: AiEffort | null; usage?: AuxCallUsage },
+  call: { model: string; effort: AiEffort | null; usage?: AuxCallUsage; bridgeSkipped?: number },
   reason?: DegradedReason,
 ): void {
   const u = call.usage;
@@ -361,6 +362,7 @@ function logCall(
     effort: call.effort,
     status,
     ...(status === 'degraded' && reason ? { reason } : {}),
+    ...(call.bridgeSkipped !== undefined ? { bridgeSkippedNonVerbatim: call.bridgeSkipped } : {}),
     ...(u
       ? {
           inputTokens: u.inputTokens,
@@ -479,13 +481,21 @@ async function runExtract(input: ExtractInput): Promise<ExtractOutcome> {
     return degraded(usage.usage.stopReason === 'max_tokens' ? 'max_tokens' : 'bad_json', usage);
   }
 
-  logCall(input, 'completed', { model, effort, usage: usage.usage });
   const { result, dropped } = validateExtraction(parsed, {
     checklist: input.checklist,
     description: input.description,
     answers: input.answers,
     ...(input.today ? { today: input.today } : {}),
   });
+  // Arjun §9: how many candidates the stage-1 bridge will not write to the v2 ledger.
+  const bridgeSkipped = countNonVerbatim(
+    result,
+    input.checklist,
+    input.description,
+    input.answers,
+    referenceYear(new Date()),
+  );
+  logCall(input, 'completed', { model, effort, usage: usage.usage, bridgeSkipped });
   logValidated(input, result, dropped);
   state.last = result;
   return { status: 'ok', result, dropped, usage };
