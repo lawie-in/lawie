@@ -131,3 +131,11 @@ I am not checking the section numbers in the examples here. They come from the u
 - FR-9b applies: no fact, so the draft prints a `[To be confirmed]` blank. Required party names block, per AJ-668.
 
 **Tests (fictional):** Anushka's run-5 Hinglish bail inputs (T-676 AC1 and AC2); a Devanagari police station; an ambiguous date; an amount in words; a quote that is not a substring (rejected); "Not known" as a defendant (to `nonAnswers`, blocks); a restraint described only as past acts (empty).
+
+## T-690 (Ajay, 29 Oct 2026)
+
+The para-2 placeholder is the `days_from_service` field label. It is **already signed** under T-681 item 4 above. T-690 swaps all four places in that table byte for byte, in one commit, because they state the same rule. The label is:
+
+`Days from service of summons (due within 30; the court may allow up to 90 for recorded reasons; 120 is the outer limit in a commercial suit)`
+
+The court-rules file change follows `golden-snapshots.md`: snapshots are edited by hand and the diff is sent to me. I check the SHA before merge, then the merge SHA.
