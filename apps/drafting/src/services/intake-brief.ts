@@ -22,11 +22,12 @@ import courtDocuments from '../config/intake/court-documents.json';
 import dateMeanings from '../config/intake/date-meanings.json';
 import {
   isEmptyOrNonAnswer,
+  isNoFactGuardedField,
   isO39RequiredField,
   O39_REQUIRED_FIELDS,
   requiredFieldBlockers,
   signedConfirmMessage,
-} from '../config/intake/o39-confirm-messages';
+} from '../config/intake/signed-confirm-messages';
 
 import {
   isCustodyChoice,
@@ -1432,10 +1433,12 @@ function isDeclinedUndertaking(given: GivenValue): boolean {
  * and not listed as still unknown, even where Reception placed no value for it.
  * An entry with an empty display is not a fact, and a "No" on an undertaking
  * box (T-251) is an undertaking not yet given. T-655 (AJ-644-M3, FR-9): on
- * an O.39 required field (plaintiff_name, defendant_name, main_suit_relief,
- * restraint_sought) a §(j)3 non-answer in the display or the value is no fact,
- * so it does not lift the block. The list is the one in o39-confirm-messages.ts
- * (FR-5a). The web reads the result from `Brief.ledger_given_keys`.
+ * plaintiff_name, defendant_name, main_suit_relief or restraint_sought a §(j)3
+ * non-answer in the display or the value is no fact, so it does not lift the
+ * block. The guard is isNoFactGuardedField in signed-confirm-messages.ts
+ * (FR-5a), which is pack-neutral per AJ-655-M1 (T-666): it applies in every
+ * pack, not only to an O.39 required field. The web reads the result from
+ * `Brief.ledger_given_keys`.
  */
 export function ledgerGivenKeys(
   facts: ReadonlyArray<{ key: string; display: string; value: unknown }>,
@@ -1444,7 +1447,7 @@ export function ledgerGivenKeys(
   for (const f of facts) {
     if (typeof f.display !== 'string' || f.display.trim() === '') continue;
     if (
-      isO39RequiredField(lastSegment(f.key)) &&
+      isNoFactGuardedField(lastSegment(f.key)) &&
       (isEmptyOrNonAnswer(f.display) || isEmptyOrNonAnswer(f.value))
     ) {
       continue;
@@ -1930,7 +1933,7 @@ function requiredItemBlockers(
   const values: Record<string, unknown> = {};
   for (const i of items) {
     const name = lastSegment(i.key);
-    if (isO39RequiredField(name)) values[name] = i.value;
+    if (isO39RequiredField(packId, name)) values[name] = i.value;
   }
   const signed = new Map<string, string>(
     requiredFieldBlockers(values).map((b) => [b.key as string, b.en]),
@@ -1946,7 +1949,10 @@ function requiredItemBlockers(
       const name = lastSegment(item.key);
       return {
         key: item.key,
-        en: signedConfirmMessage(packId, name)?.en ?? signed.get(name) ?? null,
+        en:
+          signedConfirmMessage(packId, name)?.en ??
+          (isO39RequiredField(packId, name) ? signed.get(name) : undefined) ??
+          null,
       };
     });
 }

@@ -1,5 +1,7 @@
 /**
- * T-629: the O.39 required fields that block Confirm (LEGAL CONTENT, Ajay).
+ * The signed confirm lines (LEGAL CONTENT, Ajay): T-629, the O.39 required
+ * fields that block Confirm; T-661, the per-pack signed ask lines
+ * (PACK_CONFIRM_MESSAGES, below).
  *
  * Signed in handoff/legal/T-613-o39-injunction-signed.md:
  *   §(g)   the flag on main_suit_relief and restraint_sought, and the EN and HI
@@ -87,9 +89,25 @@ export function isEmptyOrNonAnswer(value: unknown): boolean {
   return folded === '' || NON_ANSWERS.has(folded);
 }
 
-/** True for a field that has a signed message here. */
-export function isO39RequiredField(key: string): key is O39RequiredField {
+/**
+ * Pack-neutral, key only: true for a field id on the O.39 list, in any pack.
+ * AJ-655-M1 (T-655, handoff/legal/T-511-copy-rulings-ajay.md): "A non-answer is no fact on every path and in every pack (FR-9, M3)."
+ * The fact ledger (ledgerGivenKeys) uses this so that a non-answer on one of
+ * these keys counts as not given in every pack. Do not pack-scope it.
+ */
+export function isNoFactGuardedField(key: string): key is O39RequiredField {
   return (O39_REQUIRED_FIELDS as readonly string[]).includes(key);
+}
+
+/** T-666: the pack whose required fields these are. */
+const O39_PACK_ID = 'temporary_injunction_o39';
+
+/**
+ * T-666: pack-scoped. True for a field that has a signed O.39 message here,
+ * on the O.39 pack only: the same field id in another pack is not O.39-required.
+ */
+export function isO39RequiredField(packId: string | null, key: string): key is O39RequiredField {
+  return packId === O39_PACK_ID && isNoFactGuardedField(key);
 }
 
 /**
