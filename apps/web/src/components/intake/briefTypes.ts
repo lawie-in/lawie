@@ -105,6 +105,13 @@ export interface Brief {
   confirm_missing_party_keys?: string[];
   /** T-363 AC1: T-192's signed B2 line, when the brief's own s.138 dates give it. */
   date_check?: { line: 'B2'; text: string };
+  /**
+   * T-655: the keys the service counts as given by the fact ledger, on every
+   * pack. The screen uses this as its given set and does not judge the ledger
+   * itself (a §(j)3 non-answer on an O.39 required field is no fact). Absent:
+   * nothing counts as ledger-given (fails closed).
+   */
+  ledger_given_keys?: string[];
 }
 
 export interface BriefQuestion {
@@ -457,30 +464,6 @@ const DECLINED_UNDERTAKING_KEYS: ReadonlySet<string> = new Set(['willingness_to_
 function isDeclinableUndertaking(key: string): boolean {
   const at = key.lastIndexOf('.');
   return DECLINED_UNDERTAKING_KEYS.has(at < 0 ? key : key.slice(at + 1));
-}
-
-/**
- * T-498: the keys the fact ledger holds a fact for. The row shows that fact
- * (with "Please check" when read from the description), so it is given: not
- * asked in the rounds and not listed as still unknown. An empty display is not
- * a fact, and a "No" on an undertaking box (T-251) is not yet given. Kept in
- * step with `ledgerGivenKeys` in apps/drafting/src/services/intake-brief.ts.
- * Empty with no ledger, so nothing changes with the ledger off.
- */
-export function ledgerGivenKeys(ledger: Ledger | null | undefined): Set<string> {
-  const out = new Set<string>();
-  if (!ledger) return out;
-  for (const f of ledger.facts) {
-    if (typeof f.display !== 'string' || f.display.trim() === '') continue;
-    const declined =
-      isDeclinableUndertaking(f.key) &&
-      [f.display, String(f.value)].some((v) => {
-        const w = foldWord(v);
-        return w === 'no' || w === 'false';
-      });
-    if (!declined) out.add(f.key);
-  }
-  return out;
 }
 
 /**

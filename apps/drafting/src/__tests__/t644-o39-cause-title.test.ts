@@ -511,9 +511,9 @@ describe('T-644 F: brief route (confirmState), O.39', () => {
       expect(b.confirm_missing_party_keys).toEqual(base.confirm_missing_party_keys);
     });
 
-    it('withoutLedgerGiven with an empty set returns the brief as it was', () => {
+    it('withoutLedgerGiven with an empty set returns the brief as it was, with ledger_given_keys: [] (T-655)', () => {
       const base = brief([RELIEF, RESTRAINT]);
-      expect(withoutLedgerGiven(base, new Set())).toBe(base);
+      expect(withoutLedgerGiven(base, new Set())).toEqual({ ...base, ledger_given_keys: [] });
     });
   });
 });

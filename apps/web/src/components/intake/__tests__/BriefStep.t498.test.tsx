@@ -3,7 +3,6 @@ import { act } from 'react';
 import { createRoot, Root } from 'react-dom/client';
 
 import BriefStep from '../BriefStep';
-import { ledgerGivenKeys } from '../briefTypes';
 import type { Brief, BriefItem, Ledger, LedgerFact } from '../briefTypes';
 
 (globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -154,27 +153,9 @@ const confirmBtn = () =>
 const lineBtn = (text: string) =>
   Array.from(container.querySelectorAll('button')).find((b) => (b.textContent ?? '') === text);
 
-describe('ledgerGivenKeys (web), the same rule as the service', () => {
-  it('empty with no ledger', () => {
-    expect(ledgerGivenKeys(null).size).toBe(0);
-    expect(ledgerGivenKeys(undefined).size).toBe(0);
-  });
-  it('a fact with a display is given; an empty display is not', () => {
-    const g = ledgerGivenKeys(ledgerOf([fact('a', '412/2026'), fact('b', '  ')]));
-    expect([...g]).toEqual(['a']);
-  });
-  it('"No" / false on an undertaking box is not given; "Yes" is; another yes/no key is given', () => {
-    expect(ledgerGivenKeys(ledgerOf([fact('willingness_to_furnish_bond', 'No')])).size).toBe(0);
-    expect(ledgerGivenKeys(ledgerOf([fact('willingness_to_furnish_bond', 'no', false)])).size).toBe(
-      0,
-    );
-    expect(ledgerGivenKeys(ledgerOf([fact('willingness_to_furnish_bond', 'Yes')])).size).toBe(1);
-    expect(ledgerGivenKeys(ledgerOf([fact('sole_earning_member', 'No')])).size).toBe(1);
-  });
-  it('an unresolved key without a fact is not given', () => {
-    expect(ledgerGivenKeys(ledgerOf([], ['police_station'])).size).toBe(0);
-  });
-});
+// T-655: the screen no longer judges the ledger. The service's given set arrives as
+// `brief.ledger_given_keys`; an absent field means nothing counts as ledger-given.
+const held = (...keys: string[]): Partial<Brief> => ({ ledger_given_keys: keys });
 
 describe('BriefStep "Still unknown" with the ledger (T-498)', () => {
   it('hides the keys the ledger holds and shows the others', () => {
@@ -183,7 +164,7 @@ describe('BriefStep "Still unknown" with the ledger (T-498)', () => {
       fact('address', 'Mohalla Kadamkuan, Patna'),
       fact('facts_narrative', 'A land deal'),
     ]);
-    mount(briefOf(ITEMS), ledger);
+    mount(briefOf(ITEMS, held('applicant_age', 'address', 'facts_narrative')), ledger);
     const t = unknownText();
     expect(t).not.toContain('[AGE]');
     expect(t).not.toContain('[ADDRESS]');
@@ -201,20 +182,24 @@ describe('BriefStep "Still unknown" with the ledger (T-498)', () => {
   });
 
   it('a key unresolved without a fact is still listed', () => {
-    mount(briefOf(ITEMS), ledgerOf([fact('applicant_age', '34')], ['police_station']));
+    mount(
+      briefOf(ITEMS, held('applicant_age')),
+      ledgerOf([fact('applicant_age', '34')], ['police_station']),
+    );
     expect(unknownText()).toContain('[PS]');
     expect(unknownText()).not.toContain('[AGE]');
   });
 
   it('the whole section goes when every listed key is held', () => {
     const all = ITEMS.map((i) => fact(i.key, `value of ${i.key}`));
-    mount(briefOf(ITEMS), ledgerOf(all));
+    mount(briefOf(ITEMS, held(...ITEMS.map((i) => i.key))), ledgerOf(all));
     expect(unknownSection()).toBeNull();
   });
 
   it('an undertaking "No" fact does not hide the key', () => {
     const bond = item({ key: 'willingness_to_furnish_bond', label: 'Bond', placeholder: '[BOND]' });
-    mount(briefOf([bond]), ledgerOf([fact('willingness_to_furnish_bond', 'No')]));
+    // the service leaves a declined undertaking out of ledger_given_keys
+    mount(briefOf([bond], held()), ledgerOf([fact('willingness_to_furnish_bond', 'No')]));
     expect(unknownText()).toContain('[BOND]');
   });
 });
@@ -227,7 +212,13 @@ describe('BriefStep parties blocker with the ledger (T-498)', () => {
       fact('applicant_name', 'Ramesh Kumar Yadav'),
       fact('father_name', 'Suresh Yadav'),
     ]);
-    mount(briefOf(ITEMS, blocked(['parties'], PARTIES_MSG)), ledger);
+    mount(
+      briefOf(ITEMS, {
+        ...blocked(['parties'], PARTIES_MSG),
+        ...held('applicant_name', 'father_name'),
+      }),
+      ledger,
+    );
     expect(lineBtn(PARTIES_MSG)).toBeUndefined();
     expect(confirmBtn().getAttribute('aria-disabled')).not.toBe('true');
     act(() => confirmBtn().click());
@@ -236,7 +227,7 @@ describe('BriefStep parties blocker with the ledger (T-498)', () => {
 
   it('not lifted when only one of two missing parties is held: the server line stays, Confirm is off', () => {
     mount(
-      briefOf(ITEMS, blocked(['parties'], PARTIES_MSG)),
+      briefOf(ITEMS, { ...blocked(['parties'], PARTIES_MSG), ...held('father_name') }),
       ledgerOf([fact('father_name', 'Suresh Yadav')]),
     );
     expect(lineBtn(PARTIES_MSG)).toBeDefined();
@@ -253,7 +244,7 @@ describe('BriefStep parties blocker with the ledger (T-498)', () => {
 
   it('a ledger holding no party leaves the blocker', () => {
     mount(
-      briefOf(ITEMS, blocked(['parties'], PARTIES_MSG)),
+      briefOf(ITEMS, { ...blocked(['parties'], PARTIES_MSG), ...held('applicant_age') }),
       ledgerOf([fact('applicant_age', '34')]),
     );
     expect(lineBtn(PARTIES_MSG)).toBeDefined();
@@ -269,7 +260,10 @@ describe('BriefStep parties blocker with the ledger (T-498)', () => {
     mount(
       briefOf(
         ITEMS,
-        blocked(['court', 'parties'], 'Choose the court and add the parties to continue.'),
+        {
+          ...blocked(['court', 'parties'], 'Choose the court and add the parties to continue.'),
+          ...held('applicant_name', 'father_name'),
+        },
         noCourt,
       ),
       ledger,
@@ -286,7 +280,10 @@ describe('BriefStep parties blocker with the ledger (T-498)', () => {
     mount(
       briefOf(
         ITEMS,
-        blocked(['court', 'parties'], 'Choose the court and add the parties to continue.'),
+        {
+          ...blocked(['court', 'parties'], 'Choose the court and add the parties to continue.'),
+          ...held('father_name'),
+        },
         noCourt,
       ),
       ledgerOf([fact('father_name', 'Suresh Yadav')]),
@@ -296,7 +293,11 @@ describe('BriefStep parties blocker with the ledger (T-498)', () => {
 
   it('only the court blocked: unchanged, with or without a ledger', () => {
     const noCourt = { state: null, court_type: null, court: null } as Brief['court'];
-    const b = briefOf(ITEMS, blocked(['court'], 'Choose the court to continue.'), noCourt);
+    const b = briefOf(
+      ITEMS,
+      { ...blocked(['court'], 'Choose the court to continue.'), ...held('applicant_age') },
+      noCourt,
+    );
     mount(b, ledgerOf([fact('applicant_age', '34')]));
     expect(lineBtn('Choose the court to continue.')).toBeDefined();
   });
@@ -309,7 +310,10 @@ describe('BriefStep party read by the ledger shows "Please check" before Confirm
   const run = (source: LedgerFact['source']) => {
     const f = { ...fact('applicant_name', 'Ramesh Kumar Yadav'), source };
     mount(
-      briefOf(nameItem, blocked(['parties'], 'Add the name of the applicant to continue.')),
+      briefOf(nameItem, {
+        ...blocked(['parties'], 'Add the name of the applicant to continue.'),
+        ...held('applicant_name'),
+      }),
       ledgerOf([f]),
     );
   };

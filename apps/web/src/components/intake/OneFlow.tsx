@@ -40,7 +40,6 @@ import {
   KindSummary,
   Ledger,
   LedgerEditResult,
-  ledgerGivenKeys,
   NO_RULE_PACK,
   readFactCheckBanner,
   RenderedClause,
@@ -197,7 +196,8 @@ function openQuestions(
   round?: 1 | 2,
 ) {
   if (!brief) return [];
-  const given = ledgerGivenKeys(ledger);
+  // T-655: the service's given set; absent, nothing is ledger-given (fails closed).
+  const given = new Set(brief.ledger_given_keys ?? []);
   const open = new Set(
     brief.items
       .filter(

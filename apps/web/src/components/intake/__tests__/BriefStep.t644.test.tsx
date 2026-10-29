@@ -146,7 +146,10 @@ afterEach(() => {
   container.remove();
 });
 
-function mount(brief: Brief, ledger: Ledger | null = null) {
+// T-655: the screen takes the service's given set from `brief.ledger_given_keys` and does not
+// judge the ledger. `given` is that set; left out, the field is absent (nothing is given).
+function mount(brief: Brief, ledger: Ledger | null = null, given?: string[]) {
+  if (given) brief = { ...brief, ledger_given_keys: given };
   const noop = jest.fn();
   act(() => {
     root.render(
@@ -248,6 +251,7 @@ describe('T-644 BriefStep: the ledger gives a party', () => {
         NO_COURT,
       ),
       ledgerHolding('plaintiff_name'),
+      ['plaintiff_name'],
     );
     expect(confirmOff()).toBe(true);
     expect(messageBtn().textContent).toBe(`${COURT_EN}\n${RELIEF_EN}\n${RESTRAINT_EN}`);
@@ -268,6 +272,7 @@ describe('T-644 BriefStep: the ledger gives a party', () => {
         ),
       ),
       ledgerHolding('plaintiff_name'),
+      ['plaintiff_name'],
     );
     expect(messageBtn().textContent).toBe(`${DEFENDANT_EN}\n${RELIEF_EN}\n${RESTRAINT_EN}`);
     expect(container.textContent).not.toContain(PLAINTIFF_EN);
@@ -282,6 +287,7 @@ describe('T-644 BriefStep: the ledger gives a party', () => {
         }),
       ),
       ledgerHolding('plaintiff_name', 'defendant_name'),
+      ['plaintiff_name', 'defendant_name'],
     );
     expect(confirmOff()).toBe(false);
     press(confirmBtn() as HTMLButtonElement);
@@ -302,6 +308,7 @@ describe('T-644 BriefStep: the ledger gives a party', () => {
         ),
       ),
       ledgerHolding('plaintiff_name', 'defendant_name'),
+      ['plaintiff_name', 'defendant_name'],
     );
     expect(confirmOff()).toBe(true);
     expect(messageBtn().textContent).toBe(`${RELIEF_EN}\n${RESTRAINT_EN}`);
@@ -428,6 +435,7 @@ describe('T-644 BriefStep: a non-O.39 pack is unchanged', () => {
         OTHER,
       ),
       ledgerHolding('plaintiff_name', 'defendant_name'),
+      ['plaintiff_name', 'defendant_name'],
     );
     expect(confirmOff()).toBe(false);
     press(confirmBtn() as HTMLButtonElement);
