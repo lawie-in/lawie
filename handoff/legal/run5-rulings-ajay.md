@@ -147,3 +147,23 @@ The court-rules file change follows `golden-snapshots.md`: snapshots are edited 
 - **l.308–309** (validation) **stay**: more than 30 days needs a delay application, and a commercial suit cannot exceed 120. Do **not** add a hard 90-day block for ordinary suits: the proviso's 90 days is not treated as an absolute bar there. Instead add a **warning, not a block**, when days_from_service is over 90 in a non-commercial suit. Signed text: `This written statement is more than 90 days after service of summons. The court allows that only in exceptional cases, for reasons recorded in writing; set out the reasons in the delay application.`
 
 **T-690 MERGED (Ajay, 29 Oct 2026): develop_staging merge SHA 7f04908a.** Checked myself: it contains approved commit SHA c1ac9666, and written_statement.json and district_court_generic.json have no diff from c1ac9666 to the merge.
+
+## T-683: field-meaning words in the date check (Ajay, 29 Oct 2026). (c), complete rule
+
+- A field may list **its own meaning words**: words that state what the field is, not a doubt about the date.
+- A word on that list, **immediately before the date**, does not count as a qualifier for that field only.
+- Any other qualifier in the quote still refuses the date. So does an own-meaning word combined with a qualifier, e.g. `since about 05.03.2026` refuses because of "about".
+- The lists live in the pack/field config (legal content) and are not shared across fields.
+
+**Lists signed now:**
+- `custody_since`: `since`, `from`, `w.e.f.`, `with effect from`, `से` (after the date: `05.03.2026 से`), `se` (Hinglish, after the date).
+- No other field gets a list until I sign one.
+
+**Tests:**
+- `in judicial custody since 05.03.2026` → 2026-03-05.
+- `05.03.2026 से जेल में` → 2026-03-05.
+- `since about March 2026` → refused, ask.
+- `before 05.03.2026` on custody_since → refused.
+- `since 05.03.2026` on arrest_date → refused (no list there).
+
+v2's `normalizeDate` takes the same rule only if a v2 ticket asks; v3 first. The T-665b back-references (`since then`, `tab se`) are a separate rule and are unaffected.
