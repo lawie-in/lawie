@@ -26,7 +26,7 @@ import type { RunType } from '../models/Generation.model';
 import type { LoadSkeleton, Skeleton } from '../types/skeleton';
 import { startSseKeepAlive } from '../utils/sse-keepalive';
 
-import { APP_SETTING_KEYS, AppSettingMissingError, getAppSetting } from './app-settings.service';
+import { AppSettingMissingError } from './app-settings.service';
 import { AvermentLists, loadAvermentLists, resolveAverments } from './averments';
 import {
   briefText,
@@ -163,6 +163,7 @@ import {
   parseAnthropicMessageUsage,
   parseAnthropicStreamEvent,
   ParsedStreamFragment,
+  resolveModel,
   UsageMeter,
   UsageTotals,
 } from './llm-usage';
@@ -339,11 +340,11 @@ export async function* streamLLM(
   options: StreamLLMOptions = {},
 ): AsyncGenerator<string> {
   // Model lives in the AppSetting Mongo collection — NOT in env or in the
-  // codebase (per founder instruction 2026-05-11). If unset, getAppSetting
-  // throws AppSettingMissingError which propagates to the route → emitted as
-  // SSE `event: error` so the advocate sees a clear "configure ai.drafting_model
-  // in /admin/ai-config" message.
-  const model = await getAppSetting(APP_SETTING_KEYS.DRAFTING_MODEL);
+  // codebase (per founder instruction 2026-05-11). T-684: the drafter role
+  // (ai.model.drafter, falling back to ai.drafting_model for one release). If
+  // unset, resolveModel throws AppSettingMissingError which propagates to the
+  // route → emitted as SSE `event: error`; the key goes to the log only.
+  const model = await resolveModel('drafter');
   if (usage) {
     usage.model = model;
     usage.transport = 'direct';
@@ -545,6 +546,18 @@ export type GenerationFailedCode =
   | 'fact_conflict'
   | 'past_date_in_prayer';
 
+/**
+ * T-678: why the delivery gate withheld a draft, as codes only: the code, the
+ * gate rule id and the field keys it fired on. Never a value, a label or user
+ * text. Stored on the failed Generation row and logged.
+ */
+export interface GenerationFailure {
+  code: string;
+  rule: string;
+  keyA?: string;
+  keyB?: string;
+}
+
 /** Sentinel thrown after a mid-stream LLM failure so the route handler knows
  *  the SSE has already been ended and not to re-emit `done`. Carries whatever
  *  usage was captured before the failure (T-003) so the route can still
@@ -554,12 +567,15 @@ export class GenerationFailedError extends Error {
   readonly usage: UsageTotals;
   readonly aiModel?: string;
   readonly transport?: 'direct';
+  /** T-678: set only on a draft the delivery gate withheld. */
+  readonly failure?: GenerationFailure;
   constructor(
     message: string,
     code: GenerationFailedCode,
     usage: UsageTotals,
     aiModel?: string,
     transport?: 'direct',
+    failure?: GenerationFailure,
   ) {
     super(message);
     this.name = 'GenerationFailedError';
@@ -567,6 +583,7 @@ export class GenerationFailedError extends Error {
     this.usage = usage;
     this.aiModel = aiModel;
     this.transport = transport;
+    this.failure = failure;
   }
 }
 
@@ -721,8 +738,20 @@ export function factNeededLine(label: string): string {
   return `One detail is needed before the draft: ${label}.`;
 }
 
-/** Signed (Ajay, T-611 P1). `value` goes to the advocate only: never logged. */
-export function factConflictLine(value: string, labelA: string, labelB: string): string {
+/**
+ * Signed (Ajay, T-611 P1; T-678 T678-3 for P2). `value` goes to the advocate
+ * only: never logged. `inText`: the value is held inside the text fact B (P2),
+ * not under a label, so the facts give it "in" B, not "as" B.
+ */
+export function factConflictLine(
+  value: string,
+  labelA: string,
+  labelB: string,
+  inText = false,
+): string {
+  if (inText) {
+    return `The draft gives ${value} as the ${labelA}, but your facts give it in the ${labelB}. Which is right?`;
+  }
   return `The draft gives ${value} as the ${labelA}, but your facts give it as the ${labelB}. Which is right?`;
 }
 
@@ -811,13 +840,15 @@ export function withholdDraft(
   }
   let payload: Record<string, unknown>;
   let keys: string;
+  let failure: GenerationFailure;
   if (withheld.code === 'fact_conflict') {
     const c = withheld.conflict;
-    // P1 asks with both labels; a value that differs from its held fact (P3,
-    // P-R6) asks with both values (P-R2).
+    // P1 asks with both labels (P2: the value is "in" the text fact B, T678-3);
+    // a value that differs from its held fact (P3, P-R6) asks with both values (P-R2).
+    const rule = c.rule ?? (c.kind === 'wrong_label' ? 'P1' : 'P3');
     let reason: string;
     if (c.kind === 'wrong_label' && c.labelB !== null) {
-      reason = factConflictLine(c.value, c.labelA, c.labelB);
+      reason = factConflictLine(c.value, c.labelA, c.labelB, rule === 'P2');
     } else if (c.heldValue !== null && c.heldValue !== '') {
       reason = factMismatchLine(c.value, c.labelA, c.heldValue);
     } else {
@@ -836,6 +867,14 @@ export function withholdDraft(
       runId,
     };
     keys = `${c.keyA}${c.keyB ? `,${c.keyB}` : ''}`;
+    // T-678: the checker's rule tag (P1, P2, P3); a ref without one falls back
+    // to its kind (P1 a held value under another label, P3 a differing value).
+    failure = {
+      code: 'fact_conflict',
+      rule,
+      keyA: c.keyA,
+      ...(c.keyB ? { keyB: c.keyB } : {}),
+    };
   } else if (withheld.code === 'past_date_in_prayer') {
     // T-628 (Ajay, T-613 §(h)): the signed EN question with the date as written.
     // The date goes to the advocate in this event only: keys=restraint_sought
@@ -851,6 +890,7 @@ export function withholdDraft(
       runId,
     };
     keys = withheld.key;
+    failure = { code: 'past_date_in_prayer', rule: 'T613h', keyA: withheld.key };
   } else {
     const b = withheld.blank;
     payload = {
@@ -864,12 +904,16 @@ export function withholdDraft(
       runId,
     };
     keys = b.key;
+    failure = { code: 'fact_needed', rule: 'P6', keyA: b.key };
   }
   res.write(`event: error\ndata: ${JSON.stringify(payload)}\n\n`);
-  // T-611 P-R4: one line per withheld draft, for the withhold rate per pack.
-  // The pack id, the code and the keys only: never a value, a label or the question.
+  // T-611 P-R4 / T-678: one line per withheld draft, for the withhold rate per pack.
+  // The run id, the pack id, the rule, the code and the keys only: never a
+  // value, a label or the question.
   if (process.env.NODE_ENV !== 'test') {
-    console.info(`[drafting] draft withheld (kind=${packId}, code=${withheld.code}, keys=${keys})`);
+    console.info(
+      `[drafting] draft withheld (run=${runId}, kind=${packId}, rule=${failure.rule}, code=${withheld.code}, keys=${keys})`,
+    );
   }
   return new GenerationFailedError(
     `draft withheld: ${withheld.code} (keys=${keys})`,
@@ -877,6 +921,7 @@ export function withholdDraft(
     usage,
     aiModel,
     transport,
+    failure,
   );
 }
 
@@ -3342,7 +3387,7 @@ async function callD1Drafter(
   format: AutoParseableOutputFormat<DraftParagraphsOutput | null>,
   usage: CallUsageDraft,
 ): Promise<DraftParagraphsOutput | null> {
-  const model = await getAppSetting(APP_SETTING_KEYS.DRAFTING_MODEL);
+  const model = await resolveModel('drafter');
   usage.model = model;
   usage.transport = 'direct';
   // T-453: effort from ai.effort.body (default medium). Never throws.

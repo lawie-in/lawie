@@ -317,7 +317,7 @@ describe('withholdDraft: past_date_in_prayer', () => {
         .map((c) => c.map(String).join(' '))
         .join('\n');
       expect(logged).toContain(
-        '[drafting] draft withheld (kind=temporary_injunction_o39, code=past_date_in_prayer, keys=restraint_sought)',
+        '[drafting] draft withheld (run=run-10, kind=temporary_injunction_o39, rule=T613h, code=past_date_in_prayer, keys=restraint_sought)',
       );
       expect(logged).not.toContain(PAST);
       expect(logged).not.toContain('20 October');

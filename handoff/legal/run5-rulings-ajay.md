@@ -104,3 +104,38 @@ I am not checking the section numbers in the examples here. They come from the u
 - The five titles from the earlier ruling stay as they are.
 
 **Byte check on the new SHA.**
+
+## T-683: v3 Extractor, complete rule (Ajay, 29 Oct 2026; Arjun's design commit SHA c32293ae)
+
+**1. Output contract: yes, both `quote` and `value`.**
+- **`quote`:** the user's exact words, no more than 200 characters. Code checks that it is a verbatim substring of the user's text (after whitespace collapse only). A quote that fails the check means no fact.
+- **`value`:** normalised to English, using the quote **alone**. No outside knowledge, no inference beyond the quote, and no merging of two quotes.
+  - Proper names and places: carried over as given, transliterated to Latin script if written in Devanagari. Never translated or "corrected".
+  - Police stations: T-612 (6)/(6a)/(6b).
+  - Dates: ISO `YYYY-MM-DD`. Day-first for Indian input. An ambiguous date, such as one with a two-digit year or no year, gives no fact.
+  - Amounts: a figure in rupees. Words read per P3.
+  - Yes/no: नहीं, nahi, nahin and "koi nahi" mean **no**; हाँ, haan and ji haan mean **yes**.
+  - Hinglish and Hindi prose: rendered as a plain English fact, never quoted raw.
+- **Code checks:** the value's type and range per the field, and confidence below 0.6 means ask. A value that cannot be read from the quote alone gives no fact: the key goes to `unresolved` and the draft prints `[To be confirmed: <label>]` (P7/FR-9b).
+- **Storage:** the ledger stores both. The draft prints `value`. The T-611 checker reads `quote` as the user's text for P2.
+- **This replaces, for v3 only,** the "copy character for character, never translate" line in today's EXTRACT_SYSTEM_PROMPT. The v2 prompt is unchanged while v2 runs.
+
+**2. The prompt.** The developer drafts `apps/drafting/src/config/prompts/v3-extractor.ts` from rule 1 and rule 4. It is legal content from creation. I sign the **full text** by SHA-256 before merge. No other rules lines are needed from me first.
+
+**3. Hint.** The name `extract_hint` is OK. The O.39 `restraint_sought` hint is signed as written in T-613 (j)7(b), byte for byte: `Fill only from words in which the user says what the defendant should be stopped from doing from now on. Never turn acts the description says already happened into a restraint; if the description gives none, leave this empty.`
+
+**4. Non-answers: yes.**
+- A non-answer never produces a fact for **any** key: the §(j)3 list, plus the M5–M6 rule for party names, plus the Latin Hinglish forms added in T-671.
+- It is output under `nonAnswers` as `{key, quote}`.
+- It is never reassigned to another key, and never fills a field the user was not asked about.
+- FR-9b applies: no fact, so the draft prints a `[To be confirmed]` blank. Required party names block, per AJ-668.
+
+**Tests (fictional):** Anushka's run-5 Hinglish bail inputs (T-676 AC1 and AC2); a Devanagari police station; an ambiguous date; an amount in words; a quote that is not a substring (rejected); "Not known" as a defendant (to `nonAnswers`, blocks); a restraint described only as past acts (empty).
+
+## T-690 (Ajay, 29 Oct 2026)
+
+The para-2 placeholder is the `days_from_service` field label. It is **already signed** under T-681 item 4 above. T-690 swaps all four places in that table byte for byte, in one commit, because they state the same rule. The label is:
+
+`Days from service of summons (due within 30; the court may allow up to 90 for recorded reasons; 120 is the outer limit in a commercial suit)`
+
+The court-rules file change follows `golden-snapshots.md`: snapshots are edited by hand and the diff is sent to me. I check the SHA before merge, then the merge SHA.

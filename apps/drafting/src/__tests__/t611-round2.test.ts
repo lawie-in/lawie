@@ -191,7 +191,7 @@ describe('the withhold log line carries no value', () => {
         .map((c) => c.map(String).join(' '))
         .join('\n');
       expect(logged).toContain(
-        `[drafting] draft withheld (kind=${fx.pack}, code=fact_conflict, keys=cheque_date)`,
+        `[drafting] draft withheld (run=run-9, kind=${fx.pack}, rule=P3, code=fact_conflict, keys=cheque_date)`,
       );
       expect(logged).not.toContain('September 2026');
       expect(logged).not.toContain('Which is right');

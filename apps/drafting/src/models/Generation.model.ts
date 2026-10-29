@@ -16,6 +16,17 @@ export interface IGenerationCall {
   cacheCreation5mInputTokens?: number;
 }
 
+/**
+ * T-678 — why the delivery gate withheld a draft: codes and field keys only,
+ * never a value, a label or user text. Set only on a gate-withheld failed row.
+ */
+export interface IGenerationFailure {
+  code?: string;
+  rule?: string;
+  keyA?: string;
+  keyB?: string;
+}
+
 /** T-110 — what kind of attempt a row is. Revisions arrive with T-205. */
 export const RUN_TYPES = ['initial', 'revision'] as const;
 export type RunType = (typeof RUN_TYPES)[number];
@@ -97,6 +108,8 @@ export interface IGeneration extends Document {
   inkQuoted?: number;
   /** Per-section breakdown — how much of the cost is the repeated system prompt (feeds T-004). */
   calls?: IGenerationCall[];
+  /** T-678 — present only on a draft the delivery gate withheld. */
+  failure?: IGenerationFailure;
 
   createdAt: Date;
   updatedAt: Date;
@@ -112,6 +125,16 @@ const GenerationCallSchema = new Schema<IGenerationCall>(
     cacheReadInputTokens: { type: Number, default: undefined, min: 0 },
     cacheCreation1hInputTokens: { type: Number, default: undefined, min: 0 },
     cacheCreation5mInputTokens: { type: Number, default: undefined, min: 0 },
+  },
+  { _id: false },
+);
+
+const GenerationFailureSchema = new Schema<IGenerationFailure>(
+  {
+    code: { type: String, default: undefined },
+    rule: { type: String, default: undefined },
+    keyA: { type: String, default: undefined },
+    keyB: { type: String, default: undefined },
   },
   { _id: false },
 );
@@ -201,6 +224,8 @@ const GenerationSchema = new Schema<IGeneration>(
     paragraphsRequested: { type: Number, default: undefined, min: 1 },
     inkQuoted: { type: Number, default: undefined, min: 0 },
     calls: { type: [GenerationCallSchema], default: undefined },
+    /** T-678: optional, no index; absent on every row the gate did not withhold. */
+    failure: { type: GenerationFailureSchema, default: undefined },
   },
   { timestamps: true },
 );

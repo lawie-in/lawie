@@ -7,7 +7,18 @@
  */
 import logger from '../config/logger';
 
-import { APP_SETTING_KEYS, getAppSetting, onAppSettingInvalidated } from './app-settings.service';
+import {
+  APP_SETTING_KEYS,
+  AppSettingMissingError,
+  effortKeyChain,
+  getAppSetting,
+  MODEL_ROLE_REGISTRY,
+  MODEL_ROLES,
+  ModelRole,
+  modelKeyChain,
+  onAppSettingInvalidated,
+  roleForLegacyModelKey,
+} from './app-settings.service';
 
 // ── Pure stream-event parsers ────────────────────────────────────────────────
 // Take one already-JSON-parsed event/line and return whatever fragment of
@@ -162,30 +173,51 @@ export const AI_EFFORT_DEFAULTS: Record<LlmStage, AiEffort> = {
   body: 'medium',
 };
 
-const AI_EFFORT_KEYS: Record<LlmStage, string> = {
-  intake: APP_SETTING_KEYS.EFFORT_INTAKE,
-  preflight: APP_SETTING_KEYS.EFFORT_PREFLIGHT,
-  body: APP_SETTING_KEYS.EFFORT_BODY,
+/**
+ * T-684: each stage reads the effort of the model role that runs it. The
+ * stage names stay as they are (they mirror the llm_call log enum).
+ */
+const STAGE_ROLE: Record<LlmStage, ModelRole> = {
+  intake: 'extractor',
+  preflight: 'fact_checker',
+  body: 'drafter',
 };
+
+/**
+ * T-684: the default effort per role when no key in its chain is set. The
+ * three stage roles keep the T-453 stage defaults; legal_reviewer medium and
+ * language low (ADR-drafting-v3 §4); matcher follows the extractor.
+ */
+export const ROLE_EFFORT_DEFAULTS: Readonly<Record<ModelRole, AiEffort>> = Object.freeze({
+  matcher: AI_EFFORT_DEFAULTS.intake,
+  extractor: AI_EFFORT_DEFAULTS.intake,
+  drafter: AI_EFFORT_DEFAULTS.body,
+  fact_checker: AI_EFFORT_DEFAULTS.preflight,
+  legal_reviewer: 'medium',
+  language: 'low',
+});
 
 function isAiEffort(v: string): v is AiEffort {
   return (AI_EFFORTS as readonly string[]).includes(v);
 }
 
 /**
- * The resolved effort per stage, defaults included, for 60 s (as
+ * The resolved effort per role, defaults included, for 60 s (as
  * getAppSetting's own cache). getAppSetting never caches a missing key, so
  * without this every call would read Mongo while no ai.effort.* row exists,
  * and an invalid value would warn on every call. Cleared with the settings
- * cache (setAppSetting for an effort key, _clearAppSettingsCache).
+ * cache (setAppSetting for any effort key in the role's chain, _clearAppSettingsCache).
  */
 const AI_EFFORT_TTL_MS = 60_000;
-const effortCache = new Map<LlmStage, { value: AiEffort; expiresAt: number }>();
+const effortCache = new Map<ModelRole, { value: AiEffort; expiresAt: number }>();
 
 /** Test helper — clear the effort cache. NOT called in production paths. */
 export function _clearAiEffortCache(): void {
   effortCache.clear();
 }
+
+/** T-684: the legacy model keys already warned about in this process (key names only). */
+const warnedLegacyModelKeys = new Set<string>();
 
 // Guarded: a test that replaces app-settings.service wholesale may not provide it.
 if (typeof onAppSettingInvalidated === 'function') {
@@ -193,43 +225,116 @@ if (typeof onAppSettingInvalidated === 'function') {
     if (key === null) {
       effortCache.clear();
       intakeCapCache.clear();
+      warnedLegacyModelKeys.clear();
       return;
     }
     for (const kind of Object.keys(INTAKE_CAP_KEYS) as IntakeCapKind[])
       if (INTAKE_CAP_KEYS[kind] === key) intakeCapCache.delete(kind);
-    for (const stage of Object.keys(AI_EFFORT_KEYS) as LlmStage[])
-      if (AI_EFFORT_KEYS[stage] === key) effortCache.delete(stage);
+    for (const role of MODEL_ROLES)
+      if (effortKeyChain(role).includes(key)) effortCache.delete(role);
   });
 }
 
-async function resolveAiEffort(stage: LlmStage): Promise<AiEffort> {
-  const key = AI_EFFORT_KEYS[stage];
-  let raw: string;
-  try {
-    raw = await getAppSetting(key);
-  } catch {
-    return AI_EFFORT_DEFAULTS[stage];
+async function resolveRoleEffort(role: ModelRole): Promise<AiEffort> {
+  // Role key, then (matcher) the extractor's chain, then the T-453 stage key.
+  for (const key of effortKeyChain(role)) {
+    let raw: string;
+    try {
+      raw = await getAppSetting(key);
+    } catch {
+      continue; // missing, or the read failed: try the next key
+    }
+    const v = typeof raw === 'string' ? raw.trim().toLowerCase() : '';
+    if (isAiEffort(v)) return v;
+    // Once per key per cache period: the result is cached below.
+    logger.warn({ key }, `[llm-usage] ${key} is not a valid effort; using the default`);
   }
-  const v = typeof raw === 'string' ? raw.trim().toLowerCase() : '';
-  if (isAiEffort(v)) return v;
-  // Once per key per cache period: the fallback is cached below.
-  logger.warn({ key }, `[llm-usage] ${key} is not a valid effort; using the default`);
-  return AI_EFFORT_DEFAULTS[stage];
+  return ROLE_EFFORT_DEFAULTS[role];
 }
 
 /**
- * `ai.effort.<stage>`. Never throws: a missing key (or a settings read that
- * fails) is the default; a value outside low|medium|high|xhigh|max is the
- * default with a warn that names the key only, never the value. Cached 60 s
- * per stage, defaults included.
+ * T-684: `ai.effort.<role>`, then the old stage key (drafter ai.effort.body,
+ * extractor ai.effort.intake, fact_checker ai.effort.preflight; matcher the
+ * extractor's chain), then ROLE_EFFORT_DEFAULTS. Never throws: a missing key
+ * (or a settings read that fails) moves to the next key; a value outside
+ * low|medium|high|xhigh|max warns with the key name only, never the value, and
+ * moves to the next key. Cached 60 s per role, defaults included.
+ */
+export async function getRoleEffort(role: ModelRole): Promise<AiEffort> {
+  const now = Date.now();
+  const hit = effortCache.get(role);
+  if (hit && hit.expiresAt > now) return hit.value;
+  const value = await resolveRoleEffort(role);
+  effortCache.set(role, { value, expiresAt: now + AI_EFFORT_TTL_MS });
+  return value;
+}
+
+/**
+ * The effort for a stage: getRoleEffort of the stage's role (intake extractor,
+ * preflight fact_checker, body drafter). Never throws. Missing everywhere, it is
+ * AI_EFFORT_DEFAULTS[stage].
  */
 export async function getAiEffort(stage: LlmStage): Promise<AiEffort> {
-  const now = Date.now();
-  const hit = effortCache.get(stage);
-  if (hit && hit.expiresAt > now) return hit.value;
-  const value = await resolveAiEffort(stage);
-  effortCache.set(stage, { value, expiresAt: now + AI_EFFORT_TTL_MS });
-  return value;
+  return getRoleEffort(STAGE_ROLE[stage]);
+}
+
+// ── Model per role (T-684) ──────────────────────────────────────────────────
+//
+// Lives here, not in app-settings.service.ts, so it reads through the
+// module's exported getAppSetting: tests that mock getAppSetting (spread over
+// the real module) then still resolve.
+
+export type ModelSource = 'new' | 'legacy';
+
+export interface ResolvedModel {
+  model: string;
+  /** The key the value came from. */
+  key: string;
+  /** 'new' for an ai.model.* key, 'legacy' for a pre-T-684 key. */
+  source: ModelSource;
+}
+
+function isMissingSettingError(err: unknown): boolean {
+  return (
+    (typeof AppSettingMissingError === 'function' && err instanceof AppSettingMissingError) ||
+    (err instanceof Error && err.name === 'AppSettingMissingError')
+  );
+}
+
+/**
+ * T-684: the model id for a role, from the DB only (founder rule 2026-05-11:
+ * no env or code default). Order: `ai.model.<role>`, then (matcher only) the
+ * extractor's chain, then the legacy key (drafter ai.drafting_model, extractor
+ * ai.intake_model, fact_checker ai.preflight_model). A value from a legacy key
+ * logs one deprecation warn per legacy key per process (key names only).
+ *
+ * Throws AppSettingMissingError naming `ai.model.<role>` when no key in the
+ * chain is set. Any other read error propagates unchanged, as getAppSetting's did.
+ */
+export async function resolveModelWithSource(role: ModelRole): Promise<ResolvedModel> {
+  for (const key of modelKeyChain(role)) {
+    let model: string;
+    try {
+      model = await getAppSetting(key);
+    } catch (err) {
+      if (isMissingSettingError(err)) continue;
+      throw err;
+    }
+    const legacyRole = roleForLegacyModelKey(key);
+    if (legacyRole === undefined) return { model, key, source: 'new' };
+    if (!warnedLegacyModelKeys.has(key)) {
+      warnedLegacyModelKeys.add(key);
+      const replacedBy = MODEL_ROLE_REGISTRY[legacyRole].modelKey;
+      logger.warn({ key, replacedBy }, `Deprecated AppSetting ${key} in use; set ${replacedBy}`);
+    }
+    return { model, key, source: 'legacy' };
+  }
+  throw new AppSettingMissingError(MODEL_ROLE_REGISTRY[role].modelKey);
+}
+
+/** T-684: resolveModelWithSource(role).model. Same order and errors. */
+export async function resolveModel(role: ModelRole): Promise<string> {
+  return (await resolveModelWithSource(role)).model;
 }
 
 // ── intake max_tokens caps (T-453 follow-up) ────────────────────────────────
