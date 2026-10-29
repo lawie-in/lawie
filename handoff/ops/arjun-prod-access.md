@@ -342,3 +342,16 @@ Asked by Arjun at 19:12 UTC (Vikram's reconciliation against the Anthropic Conso
 - **Part 2, generations:** aggregates per aiModel | runOrigin | status with the same windows: rows, llmCalls, and the 4 token sums.
 - **Output:** numbers and model/stage names only. The log part was tested locally.
 - **Running it:** default stays 13; run pinned with `--document-version 19`.
+
+### SSM version 20 (29 Oct 2026, 19:35 UTC, Nikhil): Active, NOT default
+Asked by Arjun at 19:27 UTC (P1 draft latency). JSON: `handoff/ops/runbooks/lawie-prod-ops-v20.json`. The only change from v19, besides the description, is the new action `timeline` with params `since` (existing), `minutes` (`^[0-9]{1,2}$`) and `runid` (existing). Both `since` and `runid` are required. It reads four things:
+- **nginx config (as root):** grep of nginx.conf and sites-enabled for server_name, location, proxy_pass, proxy_buffering, proxy_*_timeout, proxy_http_version, proxy_cache, chunked_transfer_encoding, log_format, access_log, gzip and X-Accel-Buffering, with line numbers.
+- **nginx access log (as root):** lines in [since, since+minutes]. Each prints UTC time, a client tag (`c` + the first 6 hex chars of sha256 of the remote address), method, path (query stripped; id-like segments → `:id`), status, and any extra numeric fields. Referrer and user agent are dropped.
+- **llm_call (as ubuntu):** drafting out-log records in the window: time, stage, call, model, status.
+- **generations (as ubuntu, env loaded):** the rows for `runid`: status, runSequence, createdAt, updatedAt, durationMs, llmCalls.
+
+Notes:
+- The nginx parser was tested locally.
+- The remote address is the Cloudflare edge, so the client tag does NOT identify a browser.
+- A wide window overflows SSM's 24 KB output; use small windows.
+- Default stays 13; run pinned with `--document-version 20`.
