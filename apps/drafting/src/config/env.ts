@@ -30,6 +30,16 @@ const envSchema = z.object({
   FEATURE_DEFAULT_DESCRIBE_FIRST: z.enum(['on', 'off']).default('on'),
   FEATURE_DEFAULT_FACT_LEDGER: z.enum(['on', 'off']).default('off'),
 
+  // T-653 (Ajay AJ-646-M9c) — lets credits.service spend or grant the legacy earnedCredits
+  // bucket. Env only: no AppSetting, no admin toggle. Fails closed: only the exact string
+  // 'true' turns it on; unset, '', 'TRUE', '1', 'yes' or anything else is off, and an odd
+  // value never stops the service from starting. Turn on only after a signed bonus scheme;
+  // its offer and terms go to Ajay first. No such scheme exists today.
+  EARNED_CREDITS_SPEND_ENABLED: z
+    .string()
+    .optional()
+    .transform((v) => v === 'true'),
+
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),
   SENTRY_DSN: z.string().default(''),
 });
