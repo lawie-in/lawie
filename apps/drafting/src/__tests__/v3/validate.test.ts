@@ -3,6 +3,9 @@
  * "T-683: v3 Extractor, complete rule") on real packs. Pure: no model, no DB.
  * Fictional data only ("Sample Person" names).
  */
+import { readFileSync } from 'fs';
+import { join } from 'path';
+
 import { CONFIDENCE_FLOORS } from '@lawie/shared';
 
 import { buildChecklist, ChecklistItem } from '../../services/intake-brief';
@@ -1590,12 +1593,18 @@ describe('T-683 validate: raw Latin Hinglish is never verbatim (round 1, finding
 describe('T-683 validate: the deep import of the signed qualifier list (round 1, finding 3)', () => {
   it('@lawie/shared/dist/utils/normalize/date resolves under jest and gives the shared source list', async () => {
     const deep = await import('@lawie/shared/dist/utils/normalize/date');
-    const source = await import('../../../../../packages/shared/src/utils/normalize/date');
+    const text = readFileSync(
+      join(__dirname, '../../../../../packages/shared/src/utils/normalize/date.ts'),
+      'utf8',
+    );
+    // The shared source's own list, read as text (no TS import of the src file).
+    const block = /export const DATE_LABEL_QUALIFIERS[^=]*=\s*new Set\(\[([\s\S]*?)\]\)/.exec(text);
+    expect(block).not.toBeNull();
+    const sourceWords = [...(block?.[1] ?? '').matchAll(/'([^']+)'/g)].map((m) => m[1]);
     expect(deep.DATE_LABEL_QUALIFIERS).toBeInstanceOf(Set);
     expect(deep.DATE_LABEL_QUALIFIERS.size).toBeGreaterThan(20);
-    expect([...deep.DATE_LABEL_QUALIFIERS].sort()).toEqual(
-      [...source.DATE_LABEL_QUALIFIERS].sort(),
-    );
+    expect([...deep.DATE_LABEL_QUALIFIERS].sort()).toEqual([...sourceWords].sort());
+    for (const w of deep.DATE_LABEL_QUALIFIERS) expect(text).toContain(`'${w}'`);
     // The words the reader relies on.
     for (const w of ['about', 'before', 'since', 'from', 'or', 'between']) {
       expect(deep.DATE_LABEL_QUALIFIERS.has(w)).toBe(true);
