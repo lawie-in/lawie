@@ -25,3 +25,9 @@ Why: Order VII Rule 1 CPC requires the plaint to give the name, description and 
 - C1: tests use fictional placeholder parties only (as in AJ-655-BC2). No realistic names.
 - C2: golden snapshots are edited by hand only, and the diff goes to Priya and to me.
 - C3: no other text, field or order change in these three packs. I byte-check the pack JSON diff before naming an approved SHA. Nothing merges before I name one.
+
+## (3e)–(3g) Follow-up rulings (29 Oct 2026, on Tanvi's build of (3))
+
+- (3e) The condition goes through `computed_fields`: `{defendant}{defendants_title_suffix}`, giving ` & Ors. ... Defendants` for yes and ` ... Defendant` for no. Signed as smoke-rendered.
+- (3f) Option labels for `other_defendants` (ids stay `yes` / `no`, T-473): `Yes, there are other defendants` / `No, Defendant No. 1 is the only defendant`. Signed.
+- (3g) `other_defendants` gets `"blocks_confirm": true`. An unanswered field must never fall back to the singular title. Signed ask line, EN: `Say whether there are other defendants to continue.` HI: `आगे बढ़ने के लिए बताइए कि क्या अन्य प्रतिवादी भी हैं।` If the line needs code (the AJ-644-M1 path), the interim rule in (4) applies: config-only blocking is acceptable, and the line follows with the M1 lines.
