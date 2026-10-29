@@ -4,7 +4,8 @@
  *
  * - creation: POST /generate-from-template (model mocked at the SDK, as the
  *   sibling generate tests do) titles the document `<pack name> — <label>`;
- *   unknown id -> pack name only; typed name -> as typed; empty -> pack name only.
+ *   typed name -> as typed. An unresolved id is now
+ *   refused (T-686: 503 court_unavailable, no document), see below.
  * - downloads: PDF export Content-Disposition and the annexures PDF/DOCX
  *   filename and title (Chromium mocked at renderPdf).
  */
@@ -104,17 +105,20 @@ afterEach(() => jest.restoreAllMocks());
 
 describe('classic creation: the stored title carries the label, not the id', () => {
   async function create(courtName: string | undefined) {
+    const res = await post(courtName);
+    expect(res.status).toBe(200);
+    expect(res.text).toContain('event: done');
+    return LawieDocument.findOne({ userId: USER_ID }).sort({ createdAt: -1 }).lean();
+  }
+  async function post(courtName: string | undefined) {
     mockMessagesStream.mockResolvedValue(sdkAnswer('1. Applicant seeks bail.', 1000, 200));
     const form: Record<string, unknown> = { ...FORM };
     if (courtName === undefined) delete form.court_name;
     else form.court_name = courtName;
-    const res = await request(app)
+    return request(app)
       .post('/generate-from-template')
       .set(headers())
       .send({ template_id: 'bail_regular', form_data: form });
-    expect(res.status).toBe(200);
-    expect(res.text).toContain('event: done');
-    return LawieDocument.findOne({ userId: USER_ID }).sort({ createdAt: -1 }).lean();
   }
 
   it('a known id -> "<display name> — <label>"; courtName keeps the id', async () => {
@@ -126,9 +130,17 @@ describe('classic creation: the stored title carries the label, not the id', () 
     expect(doc!.courtName).toBe('up_district_lucknow');
   });
 
-  it('an unknown id -> the pack name only, no dangling dash, no id', async () => {
-    const doc = await create('up_district_nowhere');
-    expect(doc!.title).not.toContain('up_district_nowhere');
+  it('an unknown id -> 503 court_unavailable, no document, no model call (T-686)', async () => {
+    const res = await post('up_district_nowhere');
+    expect(res.status).toBe(503);
+    expect(res.body.error).toBe('court_unavailable');
+    expect(await LawieDocument.countDocuments({ userId: USER_ID })).toBe(0);
+    expect(mockMessagesStream).not.toHaveBeenCalled();
+  });
+
+  it('a typed court -> "<pack name> — <typed>", no dangling dash, no id', async () => {
+    const doc = await create('Sessions Court, Nowhere');
+    expect(doc!.title.endsWith(' — Sessions Court, Nowhere')).toBe(true);
     expect(doc!.title).not.toMatch(ID_SHAPE);
     expect(doc!.title).not.toMatch(/[—-]\s*$/);
     expect(doc!.title.trim().length).toBeGreaterThan(0);
@@ -144,8 +156,8 @@ describe('classic creation: the stored title carries the label, not the id', () 
     const known = await create('up_district_lucknow');
     const name = known!.title.replace(/ — District Court, Lucknow$/, '');
     await LawieDocument.deleteMany({});
-    const unknown = await create('up_district_nowhere');
-    expect(unknown!.title).toBe(name);
+    const typed = await create('Sessions Court, Nowhere');
+    expect(typed!.title).toBe(`${name} — Sessions Court, Nowhere`);
   });
 });
 
@@ -217,8 +229,16 @@ describe('download names carry no court id', () => {
     expect(cd).not.toContain('updistrictlucknow'); // the id once underscores are stripped
   });
 
-  it('annexures: unknown id gives the base title and filename without it', async () => {
+  it('annexures: an unknown id fails closed with 503 court_unavailable (T-686)', async () => {
     const id = await seedDoc(`${BASE} — up_district_nowhere`, 'up_district_nowhere');
+    const res = await request(app).post(`/${id}/annexures-pack?format=html`).set(headers());
+    expect(res.status).toBe(503);
+    expect(res.body.error).toBe('court_unavailable');
+    expect(JSON.stringify(res.body)).not.toContain('up_district_nowhere');
+  });
+
+  it('annexures: no court gives the base title and filename without a suffix', async () => {
+    const id = await seedDoc(BASE, '');
     const res = await request(app).post(`/${id}/annexures-pack?format=html`).set(headers());
     expect(res.status).toBe(200);
     expect(res.body.title).toBe(BASE);
