@@ -345,9 +345,19 @@ function demandCategory(raw: unknown): DemandCategory {
 //   "and" "or" "to" "r/w" "read with". "/" and "-" only join a 1-3 digit number
 //   that does not run on into a 4+ digit one, so "138/142" stays but the tail of
 //   "138/2024", "12-03-2024" or "987-654-3210" is dropped.
-// - One number right after BNSS/BNS/BSA/CrPC/CPC/IPC ("BNSS 483"), unless it
-//   runs on into a case-number shape ("IPC 123/2024").
-const LABEL_REF_SUB = String.raw`(?:\(\s*(?:\d{1,3}|[a-z]{1,4})\s*\))*`;
+// - Act and code tokens (Ajay, T-677 known limits, 29 Oct 2026): BNSS, BNS,
+//   BSA, IPC, IEA, PMLA, CrPC/Cr.P.C., CPC/C.P.C., and "<up to 3 words> Act"
+//   ("NI Act", "N.I. Act", "Hindu Marriage Act"; the words may not be of/the/
+//   under/in/for/and/or/with/to/dated/no/by/on/at/from/a/an).
+// - A chain right AFTER a code token ("BNSS 483", "IPC 302 and 34", "BNSS 483,
+//   484"), unless it runs on into a case-number shape ("IPC 123/2024").
+// - A chain right AFTER the word "Act", optionally with a comma: this keeps the
+//   year as typed ("Arbitration and Conciliation Act, 1996", "Specific Relief
+//   Act 1963"). A year anywhere else ("Bail application 2024") is dropped.
+// - A chain right BEFORE a code or Act token ("528 BNSS", "(now 528 BNSS)",
+//   "138 NI Act complaint", "302/34 IPC"), unless it is the tail of a case
+//   number ("123/2024 NI Act" drops 2024).
+const LABEL_REF_SUB = String.raw`(?:\(\s*(?:\d{1,3}|[a-z]{1,4})\s*\)){0,3}`;
 const labelRefNum = (max: number): string =>
   String.raw`\d{1,${max}}(?:-?[A-Za-z]{1,2})?\b${LABEL_REF_SUB}`;
 const LABEL_REF_WORD_JOIN = String.raw`\s*(?:,|&|\band\b|\bor\b|\bto\b|\br\/w\b|\bread\s+with\b)\s*`;
@@ -355,13 +365,74 @@ const labelRefChain = (max: number): string =>
   labelRefNum(max) +
   String.raw`(?:${LABEL_REF_WORD_JOIN}${labelRefNum(max)}` +
   String.raw`|\s*[/-]\s*${labelRefNum(3)}(?!\s*[/-]\s*\d{4})){0,3}`;
+const LABEL_CODE = String.raw`\b(?:BNSS|BNS|BSA|IPC|IEA|PMLA|Cr\.?\s?P\.?\s?C|C\.?\s?P\.?\s?C)\b\.?`;
+const LABEL_ACT_STOP = 'of|the|under|in|for|and|or|with|to|dated|no|by|on|at|from|a|an';
+const LABEL_ACT_NAME = String.raw`(?:(?!(?:${LABEL_ACT_STOP})\b)[a-z][a-z.']{0,19}\s{1,3}){0,3}act\b`;
+const LABEL_NOT_CASE_TAIL = String.raw`(?!\s*[/.-]\s*\d)`;
 const LABEL_REF_KEEP = new RegExp(
   String.raw`\b(?:(?:sections?|sec|u\/s)\b\.?|(?:s|ss)\.)\s*${labelRefChain(4)}` +
     String.raw`|\b(?:(?:orders?|rules?|articles?|regulations?|paras?)\b\.?|art\.)\s*${labelRefChain(3)}` +
-    String.raw`|\b(?:BNSS|BNS|BSA|CrPC|CPC|IPC)\b\.?\s*${labelRefNum(4)}(?!\s*[/.-]\s*\d)`,
+    String.raw`|${LABEL_CODE}\s*${labelRefChain(4)}${LABEL_NOT_CASE_TAIL}` +
+    String.raw`|\bact\b\s{0,3},?\s{0,3}${labelRefChain(4)}${LABEL_NOT_CASE_TAIL}` +
+    String.raw`|(?<!\d\s{0,3}[/.-]\s{0,3})\b${labelRefChain(4)}(?=\s{0,3}(?:${LABEL_CODE}|${LABEL_ACT_NAME}))`,
   'gi',
 );
+
+// T-677 safety net (Ajay): a title must never name a law and half-state its
+// provision. A "dangling spot" is one of:
+//   (a) a number, then a connector, then no number: "IPC 302 and", "Section 138/";
+//   (b) a code/Act token with no number right before it, then a connector,
+//       then no number: "Act," / "CrPC / BNSS" / "IPC / case";
+//   (c) a connector, then a code/Act token, then no number: "/ BNSS", "(now BNSS)",
+//       "/ NI Act";
+//   (d) a section marker (Section(s), Sec, s., ss., u/s) with no number after:
+//       "Petition under Section".
+// Code/Act tokens here: BNSS BNS BSA IPC IEA PMLA CrPC CPC "NI Act" and the
+// word "Act" itself (so "and Conciliation Act" is not a dangling spot).
+// Connectors: / , & and to r/w "read with" "(now". A number is a digit or an
+// upper-case Roman numeral (XXXIX). If the cleaned label has MORE dangling
+// spots than the original label, dropping digits made a half-stated provision,
+// so the original label is used (whitespace collapse and the 80-char cap only).
+// Matched case-insensitively except the Roman numerals, hence labelCi().
+const labelCi = (word: string): string => word.replace(/[a-z]/g, (c) => `[${c}${c.toUpperCase()}]`);
+const LABEL_NUM_AHEAD = String.raw`(?=\d|[IVXLCDM]{1,8}\b)`;
+const LABEL_NUM_BEHIND = String.raw`(?<!(?:\d[0-9A-Za-z()]{0,10}|\b[IVXLCDM]{1,8})\s{0,3})`;
+const LABEL_CONN =
+  String.raw`(?:\/|,|&|\b(?:${labelCi('and')}|${labelCi('to')}|${labelCi('r')}\/${labelCi('w')}` +
+  String.raw`|${labelCi('read')}\s{1,3}${labelCi('with')})\b` +
+  String.raw`|\(\s{0,3}${labelCi('now')}\b)`;
+const LABEL_CODE_CS =
+  String.raw`\b(?:${['bnss', 'bns', 'bsa', 'ipc', 'iea', 'pmla', 'act'].map(labelCi).join('|')}` +
+  String.raw`|${labelCi('cr')}\.?\s?${labelCi('p')}\.?\s?${labelCi('c')}` +
+  String.raw`|${labelCi('c')}\.?\s?${labelCi('p')}\.?\s?${labelCi('c')}` +
+  String.raw`|${labelCi('n')}\.?\s?${labelCi('i')}\.?\s{1,3}${labelCi('act')})\b\.?`;
+const LABEL_SECTION_CS =
+  String.raw`(?:\b(?:${labelCi('sections')}|${labelCi('section')}|${labelCi('sec')}|${labelCi('u')}\/${labelCi('s')})\b\.?` +
+  String.raw`|\b(?:${labelCi('ss')}|${labelCi('s')})\.)`;
+const LABEL_DANGLE = new RegExp(
+  String.raw`\d[0-9A-Za-z()]{0,12}\s{0,3}${LABEL_CONN}(?!\s{0,3}${LABEL_NUM_AHEAD})` +
+    String.raw`|${LABEL_NUM_BEHIND}${LABEL_CODE_CS}\s{0,3}${LABEL_CONN}(?!\s{0,3}${LABEL_NUM_AHEAD})` +
+    String.raw`|${LABEL_CONN}\s{0,3}${LABEL_CODE_CS}(?!\s{0,3},?\s{0,3}${LABEL_NUM_AHEAD})` +
+    String.raw`|${LABEL_SECTION_CS}(?!\s{0,3}${LABEL_NUM_AHEAD})`,
+  'g',
+);
 const LABEL_MAX = 80;
+
+function labelDangles(s: string): number {
+  return Array.from(s.matchAll(LABEL_DANGLE)).length;
+}
+
+// Collapse whitespace and cap at LABEL_MAX without leaving half a number: if
+// the cut splits a token with a digit in it, drop back to the last space.
+function capLabel(s: string): string {
+  const clean = s.replace(/\s+/g, ' ').trim();
+  const cut = clean.slice(0, LABEL_MAX);
+  if (clean.length <= LABEL_MAX || clean[LABEL_MAX] === ' ') return cut.trimEnd();
+  const ws = cut.lastIndexOf(' ');
+  const end = clean.indexOf(' ', LABEL_MAX);
+  const straddling = clean.slice(ws + 1, end === -1 ? undefined : end);
+  return (ws > 0 && /[0-9]/.test(straddling) ? cut.slice(0, ws) : cut).trimEnd();
+}
 
 function cleanLabel(raw: unknown): string {
   if (typeof raw !== 'string') return '';
@@ -375,15 +446,10 @@ function cleanLabel(raw: unknown): string {
     last = at + m[0].length;
   }
   out += raw.slice(last).replace(/[0-9]/g, '');
-  const clean = out.replace(/\s+/g, ' ').trim();
-  const cut = clean.slice(0, LABEL_MAX);
-  if (clean.length <= LABEL_MAX || clean[LABEL_MAX] === ' ') return cut;
-  // T-677: never leave half a provision number: if the cut splits a token with
-  // a digit in it, drop back to the last space.
-  const ws = cut.lastIndexOf(' ');
-  const end = clean.indexOf(' ', LABEL_MAX);
-  const straddling = clean.slice(ws + 1, end === -1 ? undefined : end);
-  return ws > 0 && /[0-9]/.test(straddling) ? cut.slice(0, ws).trim() : cut;
+  const cleaned = capLabel(out);
+  // T-677 safety net (LABEL_DANGLE above): never a half-stated provision.
+  const original = capLabel(raw);
+  return labelDangles(cleaned) > labelDangles(original) ? original : cleaned;
 }
 
 // ── T-610: reading the MATCH answer, the threshold and the top-3 pick ───────
