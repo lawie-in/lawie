@@ -1,6 +1,6 @@
 # T-668 — A typed "Not known" party blocks the brief in plaint packs too
 
-Status: backlog (unassigned). Found by Vishal's T-666 reviewer, 29 Oct 2026. Ajay to confirm the scope against AJ-655-M1 ("a non-answer is no fact", every path).
+Status: assigned to vishal, 29 Oct 2026. Ajay confirms the scope against AJ-655-M1 before build.
 
 ## Why
 T-655 makes a ledger "Not known" block. In the plaint packs, a "Not known" plaintiff or defendant that the user types into the brief text does not block confirm. AJ-655-M1 says every path.

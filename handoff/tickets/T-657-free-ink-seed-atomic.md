@@ -1,6 +1,6 @@
 # T-657 — Free 5 Ink seed must be atomic with its once-only marker
 
-Status: Merged into develop_staging (71bc4d71), 29 Oct 2026. Backfill: after the auth deploy, Arjun/Nikhil v11 dry run (--cutoff 2026-10-25T22:00:00Z), counts to Ajay; ambiguous/manual never auto-applied; --print-ids <class> bare ObjectIds only if Ajay asks; ids file stays on the box, deleted within 24 h.
+Status: CLOSED 29 Oct 2026. Shipped in v1.2.2 (main 0efac129). Backfill dry runs at 22:00Z and 20:00Z: all 3 candidates have_row, nothing granted, no --apply (Ajay AJ-657-CLOSED 015e4c16; cut-off 20:00Z per AJ-657-M1d).
 
 ## Problem
 In auth `grantSignupBonus`, setting the once-only marker (signupBonusGrantedAt) and seeding the free 5 Ink (inkTopup +10, inkledger free_seed) are two separate writes. If the DB fails between them, the marker is set but the user has NO free Ink, and no retry heals it.
