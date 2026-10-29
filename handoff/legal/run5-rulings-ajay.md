@@ -180,3 +180,5 @@ It is a warning, not a block. The l.7 replacement stands as signed. A commercial
 - l.224 and validation l.308–309 are unchanged.
 
 **T-690b APPROVED at 345ce1fc.** It counts as merged at the develop_staging merge SHA that contains it.
+
+**T-690b MERGED (Ajay, 29 Oct 2026): develop_staging merge SHA 461dd54b.** Checked myself: it contains approved commit SHA 345ce1fc, and written_statement.json and preflight.service.ts have no diff from 345ce1fc to the merge.
