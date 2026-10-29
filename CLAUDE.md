@@ -37,6 +37,7 @@ Every dev-crew subagent (`developer`, `tester`, `reviewer`, `doc-writer`) follow
 - End with your role's report format and nothing after it.
 - Say what you ran and what you did not run.
 - Never print the environment (`env`, `printenv`, `export`, `set`, `declare -x`, `/proc/*/environ`, `process.env` dumps); check a variable with `[ -n "$VAR" ] && echo set`, and run tests as `(unset REDIS_URL SENTRY_DSN; yarn workspace @lawie/<ws> test)`.
+- Test suites refuse to start if `SENTRY_DSN` (web: or `NEXT_PUBLIC_SENTRY_DSN`) is set; run them from the subshell above and never put a live DSN in a session environment.
 
 ## Quality gate
 
