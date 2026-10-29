@@ -71,21 +71,6 @@
         "why": "given"
       },
       {
-        "key": "antecedents",
-        "display": "The applicant has no previous criminal case.",
-        "why": "T-676: नहीं read as a fact"
-      },
-      {
-        "key": "recovery_status",
-        "display": "No recovery was made from the applicant.",
-        "why": "T-676"
-      },
-      {
-        "key": "dependants",
-        "display": "The applicant has one small child.",
-        "why": "T-676"
-      },
-      {
         "key": "police_station",
         "display": "Govindpura",
         "why": "T-676/T-612 (6): station name cleaned"
@@ -104,6 +89,21 @@
         "key": "custody_since",
         "unresolved": true,
         "why": "T-676 AC2: the words give no date, so the Extractor gives no value; T-682 derive() fills it from the arrest date"
+      },
+      {
+        "key": "antecedents",
+        "unresolved": true,
+        "why": "Arjun 9a: English prose the model rendered from Hinglish is held, never written; the key is asked again until T-682 stores typed values"
+      },
+      {
+        "key": "recovery_status",
+        "unresolved": true,
+        "why": "Arjun 9a: model-rendered prose is held: the raw words and the English rendering are both kept out of the ledger"
+      },
+      {
+        "key": "dependants",
+        "unresolved": true,
+        "why": "Arjun 9a: model-rendered prose is held"
       }
     ],
     "absent": [
@@ -121,13 +121,14 @@
     },
     "values": {
       "applicant_name": "Sample Person 1",
-      "antecedents": "The applicant has no previous criminal case.",
-      "recovery_status": "No recovery was made from the applicant.",
-      "dependants": "The applicant has one small child.",
       "police_station": "Govindpura",
       "arrest_date": "05.03.2026",
-      "fir_number": "55/2026"
-    }
+      "fir_number": "55/2026",
+      "antecedents": "The applicant has no previous criminal case.",
+      "recovery_status": "No recovery was made from the applicant.",
+      "dependants": "The applicant has one small child."
+    },
+    "held": ["antecedents", "dependants", "recovery_status"]
   },
   "recorded": {
     "v3_extract": {
@@ -136,7 +137,7 @@
         "{\"facts\": [{\"key\": \"applicant_name\", \"source\": \"description\", \"turn\": 0, \"quote\": \"for Sample Person 1\", \"value\": \"Sample Person 1\", \"confidence\": 0.97}, {\"key\": \"fir_number\", \"source\": \"description\", \"turn\": 0, \"quote\": \"FIR No. 55/2026\", \"value\": \"55/2026\", \"confidence\": 0.97}, {\"key\": \"arrest_date\", \"source\": \"description\", \"turn\": 0, \"quote\": \"Arrested on 05.03.2026\", \"value\": \"2026-03-05\", \"confidence\": 0.96}], \"non_answers\": [], \"unresolved\": []}",
         "{\"facts\": [{\"key\": \"antecedents\", \"source\": \"answer\", \"turn\": 1, \"quote\": \"Pehle koi criminal case? नहीं.\", \"value\": \"The applicant has no previous criminal case.\", \"confidence\": 0.95}, {\"key\": \"recovery_status\", \"source\": \"answer\", \"turn\": 2, \"quote\": \"Koi recovery nahi hui\", \"value\": \"No recovery was made from the applicant.\", \"confidence\": 0.95}, {\"key\": \"dependants\", \"source\": \"answer\", \"turn\": 3, \"quote\": \"ek chhota bachcha hai\", \"value\": \"The applicant has one small child.\", \"confidence\": 0.95}, {\"key\": \"police_station\", \"source\": \"answer\", \"turn\": 4, \"quote\": \"थाना Govindpura\", \"value\": \"Govindpura\", \"confidence\": 0.95}, {\"key\": \"custody_since\", \"source\": \"answer\", \"turn\": 5, \"quote\": \"Tab se jail mein hai\", \"value\": \"2026-03-05\", \"confidence\": 0.95}], \"non_answers\": [], \"unresolved\": []}"
       ],
-      "drafter": "1. That the applicant Sample Person 1 was arrested on 5 March 2026 in FIR No. 55/2026 registered at Police Station Govindpura.\n\n2. That the applicant has no previous criminal case.\n\n3. That no recovery was made from the applicant.\n\n4. That the applicant has one small child."
+      "drafter": "1. That the applicant Sample Person 1 was arrested on 5 March 2026 in FIR No. 55/2026 registered at Police Station Govindpura."
     }
   }
 }

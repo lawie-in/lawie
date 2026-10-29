@@ -50,7 +50,7 @@
       },
       {
         "key": "acts_complained_of",
-        "display": "On 02.09.2026 the defendant dug a trench on the plaintiff's plot and cut two trees.",
+        "display": "On 02.09.2026 the defendant dug a trench on the plaintiff's plot and cut two trees",
         "why": "the past acts go here, not into restraint_sought"
       },
       {
@@ -80,7 +80,7 @@
     "values": {
       "suit_number": "Title Suit 90 of 2026",
       "plaintiff_name": "Sample Person 1",
-      "acts_complained_of": "On 02.09.2026 the defendant dug a trench on the plaintiff's plot and cut two trees.",
+      "acts_complained_of": "On 02.09.2026 the defendant dug a trench on the plaintiff's plot and cut two trees",
       "ex_parte_sought": "No"
     }
   },
@@ -88,7 +88,7 @@
     "v3_extract_blocked": {
       "reception": "{\"outcome\": \"read\", \"read\": [], \"conflicts\": [], \"questions\": []}",
       "extract": [
-        "{\"facts\": [{\"key\": \"suit_number\", \"source\": \"description\", \"turn\": 0, \"quote\": \"Title Suit 90 of 2026\", \"value\": \"Title Suit 90 of 2026\", \"confidence\": 0.97}, {\"key\": \"plaintiff_name\", \"source\": \"description\", \"turn\": 0, \"quote\": \"plaintiff Sample Person 1\", \"value\": \"Sample Person 1\", \"confidence\": 0.97}, {\"key\": \"acts_complained_of\", \"source\": \"description\", \"turn\": 0, \"quote\": \"On 02.09.2026 the defendant dug a trench on the plaintiff's plot and cut two trees\", \"value\": \"On 02.09.2026 the defendant dug a trench on the plaintiff's plot and cut two trees.\", \"confidence\": 0.95}], \"non_answers\": [], \"unresolved\": [\"restraint_sought\"]}",
+        "{\"facts\": [{\"key\": \"suit_number\", \"source\": \"description\", \"turn\": 0, \"quote\": \"Title Suit 90 of 2026\", \"value\": \"Title Suit 90 of 2026\", \"confidence\": 0.97}, {\"key\": \"plaintiff_name\", \"source\": \"description\", \"turn\": 0, \"quote\": \"plaintiff Sample Person 1\", \"value\": \"Sample Person 1\", \"confidence\": 0.97}, {\"key\": \"acts_complained_of\", \"source\": \"description\", \"turn\": 0, \"quote\": \"On 02.09.2026 the defendant dug a trench on the plaintiff's plot and cut two trees\", \"value\": \"On 02.09.2026 the defendant dug a trench on the plaintiff's plot and cut two trees\", \"confidence\": 0.95}], \"non_answers\": [], \"unresolved\": [\"restraint_sought\"]}",
         "{\"facts\": [{\"key\": \"ex_parte_sought\", \"source\": \"answer\", \"turn\": 2, \"quote\": \"nahi\", \"value\": \"No\", \"confidence\": 0.95}], \"non_answers\": [{\"key\": \"defendant_name\", \"source\": \"answer\", \"turn\": 1, \"quote\": \"Not known\"}], \"unresolved\": []}"
       ],
       "drafter": "(phase 2: the drafter's reply is recorded when intake is wired to v3)"

@@ -21,7 +21,7 @@
       {
         "key": "new_facts_in_ws",
         "display": "a quit notice was given on 02.07.2026, that an AD card was signed on 06.07.2026, and that no rent has been paid since March 2026",
-        "why": "the three given facts, in English"
+        "why": "T-679 AC3: the user's own English words, verbatim (Arjun 9a): the three given facts"
       },
       {
         "key": "ws_filing_date",
@@ -64,7 +64,7 @@
     "unresolved": [],
     "dropped": {},
     "values": {
-      "new_facts_in_ws": "The written statement says a quit notice was given on 02.07.2026, an AD card was signed on 06.07.2026, and no rent has been paid since March 2026.",
+      "new_facts_in_ws": "a quit notice was given on 02.07.2026, that an AD card was signed on 06.07.2026, and that no rent has been paid since March 2026",
       "ws_filing_date": "20.09.2026",
       "suit_number": "Title Suit 77 of 2026",
       "plaintiff_name": "Sample Person 1",
@@ -74,7 +74,7 @@
   "recorded": {
     "v3_extract": {
       "reception": "{\"outcome\": \"read\", \"read\": [], \"conflicts\": [], \"questions\": []}",
-      "extract": "{\"facts\": [{\"key\": \"plaintiff_name\", \"source\": \"description\", \"turn\": 0, \"quote\": \"plaintiff Sample Person 1\", \"value\": \"Sample Person 1\", \"confidence\": 0.97}, {\"key\": \"defendant_name\", \"source\": \"description\", \"turn\": 0, \"quote\": \"defendant Sample Person 2\", \"value\": \"Sample Person 2\", \"confidence\": 0.97}, {\"key\": \"suit_number\", \"source\": \"description\", \"turn\": 0, \"quote\": \"Title Suit 77 of 2026\", \"value\": \"Title Suit 77 of 2026\", \"confidence\": 0.97}, {\"key\": \"ws_filing_date\", \"source\": \"description\", \"turn\": 0, \"quote\": \"The defendant filed the written statement on 20.09.2026\", \"value\": \"2026-09-20\", \"confidence\": 0.96}, {\"key\": \"new_facts_in_ws\", \"source\": \"description\", \"turn\": 0, \"quote\": \"a quit notice was given on 02.07.2026, that an AD card was signed on 06.07.2026, and that no rent has been paid since March 2026\", \"value\": \"The written statement says a quit notice was given on 02.07.2026, an AD card was signed on 06.07.2026, and no rent has been paid since March 2026.\", \"confidence\": 0.97}], \"non_answers\": [], \"unresolved\": []}",
+      "extract": "{\"facts\": [{\"key\": \"plaintiff_name\", \"source\": \"description\", \"turn\": 0, \"quote\": \"plaintiff Sample Person 1\", \"value\": \"Sample Person 1\", \"confidence\": 0.97}, {\"key\": \"defendant_name\", \"source\": \"description\", \"turn\": 0, \"quote\": \"defendant Sample Person 2\", \"value\": \"Sample Person 2\", \"confidence\": 0.97}, {\"key\": \"suit_number\", \"source\": \"description\", \"turn\": 0, \"quote\": \"Title Suit 77 of 2026\", \"value\": \"Title Suit 77 of 2026\", \"confidence\": 0.97}, {\"key\": \"ws_filing_date\", \"source\": \"description\", \"turn\": 0, \"quote\": \"The defendant filed the written statement on 20.09.2026\", \"value\": \"2026-09-20\", \"confidence\": 0.96}, {\"key\": \"new_facts_in_ws\", \"source\": \"description\", \"turn\": 0, \"quote\": \"a quit notice was given on 02.07.2026, that an AD card was signed on 06.07.2026, and that no rent has been paid since March 2026\", \"value\": \"a quit notice was given on 02.07.2026, that an AD card was signed on 06.07.2026, and that no rent has been paid since March 2026\", \"confidence\": 0.97}], \"non_answers\": [], \"unresolved\": []}",
       "drafter": "1. That the plaintiff Sample Person 1 replies to the written statement of the defendant Sample Person 2 in Title Suit 77 of 2026, filed on 20 September 2026.\n\n2. That the new facts in the written statement are a quit notice was given on 02.07.2026, that an AD card was signed on 06.07.2026, and that no rent has been paid since March 2026."
     }
   }

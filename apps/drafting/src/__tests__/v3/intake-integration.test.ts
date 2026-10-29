@@ -23,7 +23,10 @@ import { AppSetting } from '../../models/AppSetting.model';
 import { LlmAuxCall } from '../../models/LlmAuxCall.model';
 import * as credits from '../../services/credits.service';
 import { _clearAppSettingsCache } from '../../services/app-settings.service';
+import { buildChecklist } from '../../services/intake-brief';
+import { loadRulePack } from '../../services/rule-pack.service';
 import { _clearV3StageCache } from '../../services/v3/stage';
+import { validateExtraction } from '../../services/v3/validate';
 import type { ExtractResult } from '../../services/v3/types';
 import { sdkAnswer } from '../sdkStream';
 import { seedVerifiedUsers } from '../verifiedUser';
@@ -63,6 +66,51 @@ const result = (over: Partial<ExtractResult> = {}): ExtractResult => ({
   unresolved: [],
   ...over,
 });
+
+/**
+ * A result built the way production builds it: through validateExtraction, so
+ * every candidate carries its provenance tag (Arjun 9a). No test-only hook.
+ */
+interface ModelFact {
+  key: string;
+  value: unknown;
+  quote: string;
+  source?: 'description' | 'answer';
+  turn?: number;
+  confidence?: number;
+}
+function viaValidate(
+  facts: ModelFact[],
+  opts: {
+    description?: string;
+    answers?: Array<{ turn: number; askedKeys: string[]; text: string }>;
+    non_answers?: Array<{ key: string; quote: string; turn: number }>;
+    unresolved?: string[];
+  } = {},
+): ExtractResult {
+  const out = validateExtraction(
+    {
+      facts: facts.map((f) => ({
+        key: f.key,
+        source: f.source ?? 'description',
+        turn: f.turn ?? 0,
+        quote: f.quote,
+        value: f.value,
+        confidence: f.confidence ?? 0.97,
+      })),
+      non_answers: (opts.non_answers ?? []).map((n) => ({ ...n, source: 'answer' })),
+      unresolved: opts.unresolved ?? [],
+    },
+    {
+      checklist: buildChecklist(loadRulePack('bail_regular')!),
+      description: opts.description ?? DESC,
+      answers: opts.answers ?? [],
+      today: '2026-10-29',
+    },
+  );
+  return out.result;
+}
+const answerOf = (turn: number, key: string, text: string) => ({ turn, askedKeys: [key], text });
 
 const okOutcome = (r: ExtractResult) => ({
   status: 'ok' as const,
@@ -193,12 +241,10 @@ describe('stage 1, ok: candidates reach the brief and the ledger, no second v2 e
     await setStage('1');
     mockExtractTurn.mockResolvedValue(
       okOutcome(
-        result({
-          candidates: [
-            cand('fir_number', '55/2026', 'text', 'FIR No. 55/2026'),
-            cand('arrest_date', '2026-03-05', 'date', 'Arrested on 05.03.2026'),
-          ],
-        }),
+        viaValidate([
+          { key: 'fir_number', value: '55/2026', quote: 'FIR No. 55/2026' },
+          { key: 'arrest_date', value: '2026-03-05', quote: 'Arrested on 05.03.2026' },
+        ]),
       ),
     );
     mockStream.mockReset();
@@ -228,13 +274,11 @@ describe('stage 1, ok: candidates reach the brief and the ledger, no second v2 e
   it('a key with a non-answer, a conflict or unresolved gets no read, and is asked again', async () => {
     await setStage('1');
     mockExtractTurn.mockResolvedValue(
-      okOutcome(
-        result({
-          candidates: [cand('fir_number', '55/2026', 'text', 'FIR No. 55/2026')],
-          unresolved: ['arrest_date'],
-          nonAnswers: [{ key: 'police_station', quote: 'Not known' }],
-        }),
-      ),
+      okOutcome({
+        ...viaValidate([{ key: 'fir_number', value: '55/2026', quote: 'FIR No. 55/2026' }]),
+        unresolved: ['arrest_date'],
+        nonAnswers: [{ key: 'police_station', quote: 'Not known' }],
+      }),
     );
     mockStream.mockReset();
     mockStream.mockResolvedValueOnce(sdkAnswer(EMPTY_READ, 900, 120));
@@ -309,7 +353,10 @@ describe('the updateLedger turn (stage 1)', () => {
     const ledgerId = await startLedger();
     mockExtractTurn.mockResolvedValue(
       okOutcome(
-        result({ candidates: [cand('named_in_fir', 'No', 'choice', 'नहीं', 'answer', 1)] }),
+        viaValidate(
+          [{ key: 'named_in_fir', value: 'No', quote: 'नहीं', source: 'answer', turn: 1 }],
+          { description: '', answers: [answerOf(1, 'named_in_fir', 'नहीं')] },
+        ),
       ),
     );
     const res = await update_(ledgerId, [{ key: 'named_in_fir', text: 'नहीं' }]);
@@ -333,11 +380,18 @@ describe('the updateLedger turn (stage 1)', () => {
     const ledgerId = await startLedger();
     mockExtractTurn.mockResolvedValue(
       okOutcome(
-        result({
-          candidates: [
-            cand('police_station', 'Govindpura', 'name', 'थाना Govindpura', 'answer', 1),
+        viaValidate(
+          [
+            {
+              key: 'police_station',
+              value: 'Govindpura',
+              quote: 'थाना Govindpura',
+              source: 'answer',
+              turn: 1,
+            },
           ],
-        }),
+          { description: '', answers: [answerOf(1, 'police_station', 'थाना Govindpura')] },
+        ),
       ),
     );
     const res = await update_(ledgerId, [{ key: 'police_station', text: 'थाना Govindpura' }]);
@@ -354,6 +408,64 @@ describe('the updateLedger turn (stage 1)', () => {
     ]);
     expect(res.status).toBe(200);
     expect(JSON.stringify(valueOf(res, 'applicant_occupation'))).toContain('kuch kaam karta hai');
+  });
+
+  // ── Arjun 9a: only verbatim or signed-rule values are written ─────────────
+  const upd = async (key: string, text: string, value: unknown) => {
+    const ledgerId = await startLedger();
+    mockExtractTurn.mockResolvedValue(
+      okOutcome(
+        viaValidate([{ key, value, quote: text, source: 'answer', turn: 1 }], {
+          description: '',
+          answers: [answerOf(1, key, text)],
+        }),
+      ),
+    );
+    return update_(ledgerId, [{ key, text }]);
+  };
+
+  it('9a: a date in words is written, read by the v2 normaliser', async () => {
+    const res = await upd('arrest_date', '5 March 2026', '2026-03-05');
+    expect(res.status).toBe(200);
+    expect(JSON.stringify(valueOf(res, 'arrest_date'))).toContain('5 March 2026');
+  });
+
+  it('9a: a station needing transliteration (थाना कोतवाली -> Thana Kotwali) is held: nothing written, no raw words', async () => {
+    const res = await upd('police_station', 'थाना कोतवाली', 'Thana Kotwali');
+    expect(res.status).toBe(200);
+    expect(valueOf(res, 'police_station')).toBeUndefined();
+    expect(JSON.stringify(res.body.ledger)).not.toContain('कोतवाली');
+    expect(JSON.stringify(res.body.ledger)).not.toContain('Kotwali');
+  });
+
+  it('9a: model-rendered prose from Hinglish is held: nothing written, raw words never in the ledger', async () => {
+    const res = await upd(
+      'recovery_status',
+      'Koi recovery nahi hui',
+      'No recovery was made from the applicant.',
+    );
+    expect(res.status).toBe(200);
+    expect(valueOf(res, 'recovery_status')).toBeUndefined();
+    const all = JSON.stringify(res.body.ledger);
+    expect(all).not.toContain('nahi hui');
+    expect(all).not.toContain('No recovery was made');
+  });
+
+  it('9a: a v3 non-answer edit is an empty edit: no fact, "पता नहीं" never a value', async () => {
+    const ledgerId = await startLedger();
+    mockExtractTurn.mockResolvedValue(
+      okOutcome(
+        viaValidate([], {
+          description: '',
+          answers: [answerOf(1, 'police_station', 'पता नहीं')],
+          non_answers: [{ key: 'police_station', quote: 'पता नहीं', turn: 1 }],
+        }),
+      ),
+    );
+    const res = await update_(ledgerId, [{ key: 'police_station', text: 'पता नहीं' }]);
+    expect(res.status).toBe(200);
+    expect(valueOf(res, 'police_station')).toBeUndefined();
+    expect(JSON.stringify(res.body.ledger)).not.toContain('पता नहीं');
   });
 
   it('a degraded turn writes the edits as typed (v2)', async () => {
@@ -427,7 +539,10 @@ describe('no quota, no follow-up unit, no Ink for the v3 call', () => {
     const hold = jest.spyOn(credits, 'holdInk');
     mockExtractTurn.mockResolvedValue(
       okOutcome(
-        result({ candidates: [cand('named_in_fir', 'No', 'choice', 'नहीं', 'answer', 1)] }),
+        viaValidate(
+          [{ key: 'named_in_fir', value: 'No', quote: 'नहीं', source: 'answer', turn: 1 }],
+          { description: '', answers: [answerOf(1, 'named_in_fir', 'नहीं')] },
+        ),
       ),
     );
     const res = await update_(d.body.ledger.ledger_id, [{ key: 'named_in_fir', text: 'नहीं' }]);

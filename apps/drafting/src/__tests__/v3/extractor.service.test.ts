@@ -719,6 +719,47 @@ describe('extractTurn: nothing sensitive is logged, and Mongo is never touched',
     });
   });
 
+  it('9a: bridge_skipped_non_verbatim counts the held candidates on the extract line, a number only', async () => {
+    const prose = JSON.stringify({
+      facts: [
+        {
+          key: 'arrest_date',
+          source: 'description',
+          turn: 0,
+          quote: SECRET_QUOTE,
+          value: SECRET_VALUE,
+          confidence: 0.97,
+        },
+        {
+          key: 'recovery_status',
+          source: 'answer',
+          turn: 1,
+          quote: 'Koi recovery nahi hui',
+          value: 'No recovery was made from the applicant.',
+          confidence: 0.97,
+        },
+      ],
+    });
+    mockCall.mockResolvedValue(okResult(prose));
+    await extractTurn(
+      input({
+        turn: 1,
+        answers: [{ turn: 1, askedKeys: ['recovery_status'], text: 'Koi recovery nahi hui' }],
+      }),
+    );
+    const rec = mockLogLlmCall.mock.calls[0][0] as Record<string, unknown>;
+    expect(rec.bridgeSkippedNonVerbatim).toBe(1);
+    // A count only: no text of the prose or the quote is on the line.
+    expect(JSON.stringify(rec)).not.toContain('No recovery was made');
+    expect(JSON.stringify(rec)).not.toContain('nahi hui');
+  });
+
+  it('9a: all-verbatim candidates are held back for none', async () => {
+    await extractTurn(input());
+    const rec = mockLogLlmCall.mock.calls[0][0] as Record<string, unknown>;
+    expect(rec.bridgeSkippedNonVerbatim).toBe(0);
+  });
+
   it('the llm_call line carries ids, model, effort and token counts, purpose v3_extract, and no text', async () => {
     await extractTurn(input({ intakeId: 'intake-9' }));
     expect(mockLogLlmCall).toHaveBeenCalledTimes(1);

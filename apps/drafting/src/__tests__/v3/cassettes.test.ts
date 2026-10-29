@@ -15,7 +15,7 @@ import { join } from 'path';
 import { buildChecklist } from '../../services/intake-brief';
 import { loadRulePack } from '../../services/rule-pack.service';
 import { extractorLines, parseExtractorJson } from '../../services/v3/extractor.service';
-import { validateExtraction } from '../../services/v3/validate';
+import { derivationOf, validateExtraction } from '../../services/v3/validate';
 
 const DIR = join(__dirname, '../../../../../scripts/golden-set/fixtures');
 const TODAY = '2026-10-29';
@@ -35,6 +35,8 @@ interface Cassette {
     dropped: Record<string, number>;
     /** key -> the v3 candidate's own form (dates DD.MM.YYYY, money as rupees, lists joined by ', '). */
     values: Record<string, string>;
+    /** Keys the extractor reads as model-rendered prose (Arjun 9a): held, never written; asked again. */
+    held?: string[];
   };
   recorded: Record<string, { reception: string; extract: string | string[]; drafter: string }>;
 }
@@ -135,18 +137,35 @@ describe('golden-set cassettes 29-38 (T-683)', () => {
     }
     // No candidate beyond the expected ones: nothing invented.
     expect([...got.keys()].sort()).toEqual(Object.keys(want).sort());
-    // Every expected value has its harness (v2 display) expectation too.
+    // Every expected value has its harness (v2 display) expectation, or is held (9a) and expected unresolved.
+    const held = c.v3_expect.held ?? [];
     expect(
-      c.expect.ledger
-        .filter((l) => l.display !== undefined)
-        .map((l) => l.key)
-        .sort(),
+      [...c.expect.ledger.filter((l) => l.display !== undefined).map((l) => l.key), ...held].sort(),
     ).toEqual(Object.keys(want).sort());
+    for (const k of held) {
+      expect(c.expect.ledger.find((l) => l.key === k)?.unresolved).toBe(true);
+    }
   });
+
+  it.each(each)(
+    '%s: held keys are model_text (9a); every other candidate is verbatim or signed-rule',
+    (_id, c) => {
+      const { result } = replay(c);
+      const held = new Set(c.v3_expect.held ?? []);
+      for (const x of result.candidates) {
+        if (held.has(x.key)) expect(derivationOf(x)).toBe('model_text');
+        else expect(derivationOf(x)).not.toBe('model_text');
+      }
+      for (const k of held) expect(result.candidates.some((x) => x.key === k)).toBe(true);
+    },
+  );
 
   it.each(each)('%s: unresolved, non-answers, absent keys and drop counts', (_id, c) => {
     const { result, dropped } = replay(c);
-    const wantUnresolved = c.expect.ledger.filter((l) => l.unresolved).map((l) => l.key);
+    const held = new Set(c.v3_expect.held ?? []);
+    const wantUnresolved = c.expect.ledger
+      .filter((l) => l.unresolved && !held.has(l.key))
+      .map((l) => l.key);
     expect([...result.unresolved].sort()).toEqual([...wantUnresolved].sort());
     expect([...result.unresolved].sort()).toEqual([...c.v3_expect.unresolved].sort());
     expect(result.nonAnswers).toEqual(c.v3_expect.non_answers ?? []);
