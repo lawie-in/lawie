@@ -144,3 +144,29 @@ Would I use this on a real matter today? No: a declaration suit against an unnam
 ```
 
 Arjun: third round on the same item. The declaration path differs from eviction (which blocks): the brief's block line is client-side and clears on blur, and the server accepts the confirm. Custody (T-665b) is fixed by the smoke evidence.
+
+# Anushka run 5d — production v1.2.5, headline T-668c/T-668d re-check (29 Oct 2026, 16:52–17:25 UTC)
+
+Verbatim from session_01BmgAoYMpkTNwnBnT9k1DWA; scope = "Not known" party item + smoke; 1 draft.
+
+```
+VERDICT: PASS
+Tested: https://lawie.in (prod, v1.2.5) · 29 Oct 2026, 16:52–~17:25 UTC · same test account, 44 Ink at start, 42 at end · 1280 wide. Scope: the "Not known" party item + smoke only.
+
+Scenarios
+| # | What I did | Expected | What happened | Result |
+| 1 | Repeat of v1.2.4 #1: declaration (Gorakhpur), description "Defendant: Not known (a person claiming through a forged sale deed dated 12.02.2025 over plot no. 9, Mauza Basharatpur)"; answered "Not known" to the form's defendant-name question; brief defendant left as the app set it; court "District Court, Lucknow"; clicked an empty spot | Asked for the name; Confirm blocked; no Ink | Defendant box empty. After the click-away: "Add the name of the person or authority this is against or addressed to, to continue."; Confirm aria-disabled="true"; not clicked; Ink stayed 44 | Pass |
+| 2 | Repeat of v1.2.4 #2: same description; typed "Not known (a person claiming through a forged sale deed dated 12.02.2025)" into the defendant box; clicked an empty spot, waited 3 s | Blocked | After the click-away the box still holds the typed text; the same "Add the name…" line shows; Confirm aria-disabled="true"; not clicked; Ink stayed 44 | Pass |
+| 3 | Recovery suit, defendant "Not Known Traders, a partnership firm" | Passes as a real name | Box kept "Not Known Traders, a partnership firm"; no block line; Confirm enabled. Form asked: "Is "Not Known Traders" the firm's registered name? If not, what is its full name?" (fair check) | Pass |
+| 4 | Smoke: sign in, regular bail (Mumbai), PDF export | Draft + real PDF | Signed in; "APPLICATION FOR REGULAR BAIL UNDER SECTION 483 OF THE BHARATIYA NAGARIK SURAKSHA SANHITA, 2023"; "3. The applicant was arrested on 10 October 2026 and is now in judicial custody."; PDF 49,234 B, starts "%PDF"; 2 Ink (44 to 42) | Pass |
+
+Findings
+- Blocker: none. Major: none.
+- Minor: the form still says "If the name is not known, describe how this person is connected to that sale deed…". The brief no longer accepts that as a party, but the wording invites an answer that is then refused. No offer to show the party as "unknown" or leave it blank appeared.
+
+Not tested: written statement, replication, partition and eviction with "Not known (…)" in this release (passed in v1.2.3/v1.2.4 runs); phone width (not asked). Drafts used: 1 of 2 (smoke only); scenarios 1–3 needed no draft.
+
+Would I use this on a real matter today? On this item, yes: an unnamed party is now stopped before any Ink. The wider v1.2.2 findings (court lists, dropped facts, raw Hinglish) were not re-tested here.
+```
+
+Arjun: T-668 family closed on prod at v1.2.5 (main e0efa689). Minor (form wording "describe how this person is connected…" vs the brief's refusal) → Ajay's AJ-668c-P1 asked for the description route; the brief must accept a description as the party (M5b) — ticket T-668e, small, not urgent.
