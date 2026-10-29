@@ -264,7 +264,12 @@ function readMoney(value: unknown, quote: string): number | null {
   return null;
 }
 
-/** Ajay rule 1, yes/no words exactly as signed. */
+/**
+ * Ajay rule 1 (982e556c), yes/no words exactly as signed, plus plain English
+ * yes/no. No v2 module holds this list (the bail _averments "haan" entries are
+ * cue lists for another rule), so this is its one home in code; the prompt
+ * carries the same words as signed text.
+ */
 const NO_WORDS = ['नहीं', 'nahi', 'nahin', 'koi nahi', 'no'];
 const YES_WORDS = ['हाँ', 'haan', 'ji haan', 'yes'];
 
@@ -277,11 +282,11 @@ function hasWord(folded: string, word: string): boolean {
 }
 
 /**
- * Yes/no from the quote. The signed words decide when only one side's words
- * are present; both sides, or a "not known" shape the code cannot rule out
- * (pata/maloom/malum/पता/मालूम next to a no-word: T-671's forms are not in
- * code yet), give no fact. English prose with none of the words: the model's
- * reading of the quote stands.
+ * Yes/no from the quote alone (Ajay rule 1). A fact only when the quote holds
+ * a signed word of one side, and the model's value is that side. No such word
+ * (e.g. "The defendant denies the plaint"), words of both sides, or a "not
+ * known" shape the code cannot rule out (pata/maloom/malum/पता/मालूम next to a
+ * no-word: T-671's forms are not in code yet) give no fact.
  */
 function readYesNo(value: unknown, quote: string): 'yes' | 'no' | null {
   if (typeof value !== 'string') return null;
@@ -296,16 +301,28 @@ function readYesNo(value: unknown, quote: string): 'yes' | 'no' | null {
   }
   if (saysNo) return v === 'no' ? 'no' : null;
   if (saysYes) return v === 'yes' ? 'yes' : null;
-  return v;
+  return null;
 }
 
-function readChoice(item: ChecklistItem, value: unknown): string | null {
+/**
+ * One allowed option, by label or id. With a quote, the option is a fact only
+ * when the quote names its label (NFC, folded, case-insensitive, as a whole
+ * word run): value from the quote alone. A Yes or No option is read by the
+ * signed yes/no words instead (readYesNo). Null quote: the yes/no path, whose
+ * signed words readYesNo has already found in the quote.
+ */
+function readChoice(item: ChecklistItem, value: unknown, quote: string | null): string | null {
   if (typeof value !== 'string') return null;
   const v = fold(value);
-  const i = item.options.findIndex((o) => fold(o) === v);
-  if (i >= 0) return item.options[i];
-  const j = (item.optionIds ?? []).findIndex((id) => fold(id) === v);
-  return j >= 0 ? item.options[j] : null;
+  let i = item.options.findIndex((o) => fold(o) === v);
+  if (i < 0) i = (item.optionIds ?? []).findIndex((id) => fold(id) === v);
+  if (i < 0 || i >= item.options.length) return null;
+  const label = item.options[i];
+  if (quote === null) return label;
+  // A Yes or No option (e.g. Yes / No / Not known) is read by the signed yes/no words.
+  const l = fold(label);
+  if (l === 'yes' || l === 'no') return readYesNo(l, quote) === l ? label : null;
+  return hasWord(fold(quote), l) ? label : null;
 }
 
 /** A name or place: carried over as given. With a Latin quote, the name is in it. */
@@ -329,7 +346,8 @@ function readValue(
     if (!Array.isArray(value) || value.length === 0 || value.length > LIST_MAX_ITEMS) return null;
     const out: string[] = [];
     for (const raw of value) {
-      const s = item.kind === 'choices' ? readChoice(item, raw) : englishText(raw, LIST_ITEM_MAX);
+      const s =
+        item.kind === 'choices' ? readChoice(item, raw, quote) : englishText(raw, LIST_ITEM_MAX);
       if (s === null || !digitsFromQuote(s, quote)) return null;
       if (!out.includes(s)) out.push(s);
     }
@@ -343,9 +361,9 @@ function readValue(
     case 'choice':
       if (spec.yesNo) {
         const yn = readYesNo(value, quote);
-        return yn === null ? null : readChoice(item, yn);
+        return yn === null ? null : readChoice(item, yn, null);
       }
-      return readChoice(item, value);
+      return readChoice(item, value, quote);
     case 'name':
       return readName(spec, value, quote);
     default: {
