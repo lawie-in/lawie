@@ -341,7 +341,8 @@ describe('T-644 E: formRequiredFieldBlock (unit)', () => {
     ).toBeNull();
   });
   it('another template is unchanged: null', () => {
-    expect(formRequiredFieldBlock('plaint_recovery', {})).toBeNull();
+    // T-668: plaint_recovery is no longer "another template" (AJ-668-M3); a pack outside the 8 is.
+    expect(formRequiredFieldBlock('bail_regular', {})).toBeNull();
   });
 });
 
