@@ -1,6 +1,6 @@
 # T-682 — v3 P1: the fact ledger as an explicit typed store
 
-Status: backlog, drafting v3 Phase 1 (ADR handoff/design/ADR-drafting-v3.md, Arjun signed 26 Oct). Behind feature.drafting_v3_stage. Founder re-plan 29 Oct 2026.
+Status: assigned to tanvi, 29 Oct 2026. Schema first: TS types, Mongo shape, indexes, invariants (one ledger per run, append-only, every fact has source + quote, non-answers = no fact per AJ-655-M1) to Arjun for review BEFORE build.
 
 ## Acceptance criteria
 1. One typed ledger per run: key, type, value, display form(s), source span, status (held / unresolved / conflict), version.
