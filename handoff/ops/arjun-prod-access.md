@@ -282,3 +282,6 @@ JSON: `handoff/ops/runbooks/lawie-prod-ops-v11.json`, built from v10 (v10 is its
 - The script prints counts only (its header says no ids or PII on stdout/stderr).
 - `print_ids` is not added: the T-657 script has no `--print-ids` option (checked on `release/v1.2.2`). If Ajay needs ids, that is a script change first, then a new version.
 - v10 and v11 applied 09:00 UTC 29 Oct on the founder's v1.2.2 go; default = 11; both `get-document` == repo JSON.
+
+### SSM version 12 (29 Oct 2026, 09:09 UTC, Nikhil) — default
+Asked by Arjun at 09:08 UTC (Ajay, AJ-657-M1d). JSON: `handoff/ops/runbooks/lawie-prod-ops-v12.json`. The only change from v11, besides the description, is the backfill dry-run constant `--cutoff 2026-10-25T22:00:00Z` → `2026-10-25T20:00:00Z`. It is still dry run only, with no `--apply`. Active, default = 12, content == repo JSON.
