@@ -831,4 +831,281 @@ describe('POST /intake/brief/update — no model call', () => {
   });
 });
 
+// T-677: section numbers (148A, 138, 483) used to be stripped from the document
+// label with every other digit, giving "CAVEAT PETITION UNDER SECTION A CPC".
+describe('T-677 — section numbers survive in the document label', () => {
+  function briefWithKind(kind: unknown) {
+    const b: Record<string, unknown> = {
+      outcome: 'brief',
+      court_document: false,
+      brief: {
+        from: 'Ram Kumar',
+        to: 'Mohan Traders',
+        facts: [{ text: 'A fact.', source: 'own shop no. 4 in Boring Road, Patna' }],
+        requests: [],
+        unknowns: [],
+      },
+    };
+    if (kind !== undefined) b.document_kind = kind;
+    return JSON.stringify(b);
+  }
+
+  let freshId = 0;
+  async function nameViaModel(kind: unknown): Promise<string> {
+    mockModel(MATCH_NONE, briefWithKind(kind));
+    // The brief is cached per intake_id: a fresh id for every call.
+    freshId += 1;
+    const intakeId = `55555555-5555-4555-8555-${String(freshId).padStart(12, '0')}`;
+    const res = await post({ description: CONSENT, intake_id: intakeId });
+    expect(res.body.outcome).toBe('brief');
+    return res.body.brief.kind.name;
+  }
+
+  async function nameViaUpdate(kindName: string): Promise<string> {
+    const res = await request(app)
+      .post('/intake/brief/update')
+      .set(headers())
+      .send({ kind: 'none', kind_name: kindName, court_document: false, values: [] });
+    expect(res.status).toBe(200);
+    return res.body.brief.kind.name;
+  }
+
+  const KEPT = [
+    'Caveat petition under Section 148A CPC',
+    'NI Act Section 138 Complaint for dishonoured cheque',
+    'Application under Section 483 BNSS',
+  ];
+
+  describe('the intake model path', () => {
+    it.each(KEPT)('keeps the section number byte for byte: %s', async (label) => {
+      expect(await nameViaModel(label)).toBe(label);
+    });
+
+    it('never gives the broken caveat title the user saw', async () => {
+      const caveat = await nameViaModel('Caveat petition under Section 148A CPC');
+      expect(caveat).not.toBe('Caveat petition under Section A CPC');
+      expect(caveat).toContain('148A');
+    });
+
+    it('never gives the broken NI Act title the user saw', async () => {
+      const ni = await nameViaModel('NI Act Section 138 Complaint for dishonoured cheque');
+      expect(ni).not.toBe('NI Act Section Complaint for dishonoured cheque');
+      expect(ni).not.toBe('Section NI Act Complaint for dishonoured cheque');
+      expect(ni).toContain('138');
+    });
+
+    it.each([
+      ['missing', undefined],
+      ['a number', 483],
+      ['null', null],
+      ['an object', { a: 1 }],
+      ['an empty string', ''],
+      ['only digits', '12345'],
+    ])('document_kind that is %s falls back to Document', async (_n, kind) => {
+      expect(await nameViaModel(kind)).toBe('Document');
+    });
+  });
+
+  describe('the /update path (the web echoes kind_name back)', () => {
+    it.each([
+      ...KEPT,
+      'Application for bail under BNSS 483',
+      'Petition under Sections 138 and 141 NI Act',
+      'Complaint u/s 138/142 NI Act',
+      'Cruelty s. 498-A IPC',
+    ])('keeps the section number byte for byte: %s', async (label) => {
+      expect(await nameViaUpdate(label)).toBe(label);
+    });
+
+    it('is a fixed point: sending back the name it returned changes nothing', async () => {
+      for (const label of [
+        ...KEPT,
+        'Quashing under Section 528 BNSS in FIR No. 456/2023',
+        'Bail application in FIR No. 123/2024',
+      ]) {
+        const first = await nameViaUpdate(label);
+        const second = await nameViaUpdate(first);
+        expect(second).toBe(first);
+      }
+    });
+
+    it('an absent kind_name falls back to Document', async () => {
+      const res = await request(app)
+        .post('/intake/brief/update')
+        .set(headers())
+        .send({ kind: 'none', court_document: false, values: [] });
+      expect(res.body.brief.kind.name).toBe('Document');
+    });
+  });
+
+  describe('digits that are not section numbers are still dropped', () => {
+    it.each([
+      ['Bail application in FIR No. 123/2024', 'Bail application in FIR No. /'],
+      ['Bail application 2024', 'Bail application'],
+      ['Section 123456', 'Section'],
+      ['FIR Section 99999999', 'FIR Section'],
+      ['Call 9876543210', 'Call'],
+      ["Mother's 2 children", "Mother's children"],
+      ['IPC 123/2024 case', 'IPC / case'],
+      [
+        'Quashing under Section 528 BNSS in FIR No. 456/2023',
+        'Quashing under Section 528 BNSS in FIR No. /',
+      ],
+      ['W.P. No. 1234/2022 under Article 226', 'W.P. No. / under Article 226'],
+      ['CRL.M.C. 5678/2021 u/s 482 CrPC', 'CRL.M.C. / u/s 482 CrPC'],
+    ])('%s', async (label, expected) => {
+      expect(await nameViaUpdate(label)).toBe(expected);
+      expect(await nameViaModel(label)).toBe(expected);
+    });
+
+    it('a FIR and year in the label never reach the name', async () => {
+      const name = await nameViaUpdate('Bail application in FIR No. 123/2024');
+      expect(name).not.toContain('123');
+      expect(name).not.toContain('2024');
+    });
+  });
+
+  describe('table of kept section forms', () => {
+    it.each([
+      'Application under CPC 148A',
+      'Petition u/s 482 & 483',
+      'Section 138, 141 NI Act',
+      'Order 39 Rule 1 CPC',
+      'Article 226 writ',
+      'Application for bail under BNSS 483',
+    ])('%s is unchanged', async (label) => {
+      expect(await nameViaUpdate(label)).toBe(label);
+    });
+  });
+
+  describe('the other guards are unchanged', () => {
+    it('labels with no digits come through unchanged', async () => {
+      expect(await nameViaUpdate('letter to the landlord')).toBe('letter to the landlord');
+    });
+
+    it('collapses whitespace and trims', async () => {
+      expect(await nameViaUpdate('  Caveat \t petition   under\nSection   148A  CPC  ')).toBe(
+        'Caveat petition under Section 148A CPC',
+      );
+    });
+
+    it('caps the label at 80 characters', async () => {
+      expect(await nameViaUpdate('x'.repeat(100))).toBe('x'.repeat(80));
+      expect(await nameViaModel('x'.repeat(200))).toBe('x'.repeat(80));
+    });
+
+    // Changed in round 2: the old test locked a cut that left "Section 1".
+    // Now the cap never leaves half a provision number.
+    it('cap: a cut inside a number token backs up to the last space', async () => {
+      const label = `${'a'.repeat(70)} Section 148A CPC`;
+      const out = await nameViaUpdate(label);
+      expect(out).toBe(`${'a'.repeat(70)} Section`);
+      expect(out).toHaveLength(78);
+      expect(await nameViaModel(label)).toBe(out);
+    });
+
+    it('cap: a cut inside "148A" itself never leaves 1, 14 or 148', async () => {
+      for (const n of [68, 69, 70, 71]) {
+        const out = await nameViaUpdate(`${'a'.repeat(n)} Section 148A CPC`);
+        expect(out).toBe(`${'a'.repeat(n)} Section`);
+        expect(out).not.toMatch(/\d/);
+      }
+    });
+
+    it('cap: a cut that lands on a space keeps the 80 characters', async () => {
+      const out = await nameViaUpdate(`${'a'.repeat(72)} Section 148A CPC`);
+      expect(out).toBe(`${'a'.repeat(72)} Section`);
+      expect(out).toHaveLength(80);
+    });
+
+    it('cap: a token with no digit is cut where it falls', async () => {
+      const label = `${'a'.repeat(70)} Sectionxyz CPC`;
+      const out = await nameViaUpdate(label);
+      expect(out).toBe(label.slice(0, 80));
+      expect(out).toHaveLength(80);
+    });
+
+    it('cap: no whitespace at all is cut at exactly 80', async () => {
+      expect(await nameViaUpdate('x'.repeat(100))).toBe('x'.repeat(80));
+    });
+
+    it('cap: a label under 80 with a number is untouched', async () => {
+      const label = `${'a'.repeat(40)} Section 148A CPC`;
+      expect(await nameViaUpdate(label)).toBe(label);
+    });
+  });
+
+  describe('round 2: bracketed sub-sections, plurals, r/w, PII shapes, chain cap', () => {
+    const BRACKETS = [
+      'Application under Section 156(3) CrPC',
+      'Application u/s 175(3) BNSS',
+      'Section 3(1)(r) SC/ST Act',
+      'Section 156(3)',
+      'CrPC 156(3)',
+    ];
+    const PLURALS = [
+      'Order XXXIX Rules 1 and 2',
+      'Order XXXIX Rule 1',
+      'Order 39 Rules 1 and 2 CPC',
+    ];
+    const CHAINS = [
+      'Sections 138 & 141 r/w 142',
+      'Section 138 read with 141',
+      'Section 1234',
+      'Section 138/142/143',
+    ];
+
+    it.each([...BRACKETS, ...PLURALS])('model path keeps: %s', async (label) => {
+      expect(await nameViaModel(label)).toBe(label);
+    });
+
+    it.each([...BRACKETS, ...PLURALS, ...CHAINS])('/update keeps: %s', async (label) => {
+      expect(await nameViaUpdate(label)).toBe(label);
+    });
+
+    it.each([...BRACKETS, ...PLURALS, ...CHAINS])('/update is a fixed point: %s', async (label) => {
+      const first = await nameViaUpdate(label);
+      expect(await nameViaUpdate(first)).toBe(first);
+    });
+
+    it('a bracketed number is not stripped to an empty bracket', async () => {
+      const out = await nameViaUpdate('Application under Section 156(3) CrPC');
+      expect(out).toContain('156(3)');
+      expect(out).not.toContain('()');
+    });
+
+    it.each([
+      ['Bail order 2024', 'Bail order'],
+      ['Order 9876', 'Order'],
+      ['Rule 4111', 'Rule'],
+      ['Article 2024 matter', 'Article matter'],
+      ['Section 138/2024', 'Section 138/'],
+      ['Order 12-03-2024', 'Order 12--'],
+      ['Order 987-654-3210', 'Order 987--'],
+      ['Section 1234-5678-9012', 'Section 1234--'],
+      ['Section 1,2,3,4,5', 'Section 1,2,3,4,'],
+    ])('PII or case shape is dropped: %s', async (label, expected) => {
+      expect(await nameViaUpdate(label)).toBe(expected);
+      expect(await nameViaModel(label)).toBe(expected);
+    });
+
+    it('a date, phone or Aadhaar-shaped tail never survives', async () => {
+      for (const [label, secret] of [
+        ['Order 987-654-3210', '3210'],
+        ['Section 1234-5678-9012', '9012'],
+        ['Order 12-03-2024', '2024'],
+        ['Section 138/2024', '2024'],
+      ]) {
+        expect(await nameViaUpdate(label)).not.toContain(secret);
+      }
+    });
+
+    it('a chain keeps at most 4 numbers', async () => {
+      const out = await nameViaUpdate('Section 1, 2, 3, 4, 5, 6 NI Act');
+      expect(out).not.toMatch(/[5-6]/);
+      expect(out).toContain('1, 2, 3, 4');
+    });
+  });
+});
+
 seedVerifiedUsers('507f1f77bcf86cd799439081', '507f1f77bcf86cd799439082');

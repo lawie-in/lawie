@@ -772,6 +772,18 @@ describe('POST /generate-from-brief — no rule pack', () => {
     expect(sent[1].content).not.toContain('CLAUSES');
   });
 
+  it('T-677: a section number in the label reaches the Drafter and the saved title', async () => {
+    const fetchMock = mockModel(LETTER);
+    const name = 'Application under Section 483 BNSS';
+    // "Application" is a court signal, so the court is chosen too.
+    const res = await post(letter({ kind_name: name, court }));
+    expect(res.status).toBe(200);
+    const done = event(res.text, 'done')!;
+    const doc = await LawieDocument.findById(done.docId as string).lean();
+    expect(doc!.title).toContain('Application under Section 483 BNSS');
+    expect(bodyOf(fetchMock, 0).messages[1].content).toContain(`"document": "${name}"`);
+  });
+
   it('saves a guided document with its encrypted brief, one usage row, one charge and a demand signal', async () => {
     mockModel(LETTER);
     const intakeId = '66666666-6666-4666-8666-666666666666';

@@ -334,10 +334,56 @@ function demandCategory(raw: unknown): DemandCategory {
   return (DEMAND_CATEGORIES as readonly string[]).includes(v) ? (v as DemandCategory) : 'other';
 }
 
+// T-677: which digits cleanLabel keeps. Only provision numbers survive; every
+// other digit (case, FIR, W.P., year, phone, ID numbers) is dropped as before.
+// - A provision number is 1-4 digits (1-3 where noted), an optional 1-2 letter
+//   suffix as typed (148A, 498-A), then any bracketed sub-sections ("156(3)",
+//   "3(1)(r)"). 5+ digit runs never qualify.
+// - After section(s)/sec/s./ss./u/s: up to 4 digits. After order(s)/rule(s)/
+//   article(s)/art./regulation(s)/para(s): up to 3 digits ("Order 2024" drops).
+// - A chain of at most 4 numbers is kept after the marker. Joiners: "," "&"
+//   "and" "or" "to" "r/w" "read with". "/" and "-" only join a 1-3 digit number
+//   that does not run on into a 4+ digit one, so "138/142" stays but the tail of
+//   "138/2024", "12-03-2024" or "987-654-3210" is dropped.
+// - One number right after BNSS/BNS/BSA/CrPC/CPC/IPC ("BNSS 483"), unless it
+//   runs on into a case-number shape ("IPC 123/2024").
+const LABEL_REF_SUB = String.raw`(?:\(\s*(?:\d{1,3}|[a-z]{1,4})\s*\))*`;
+const labelRefNum = (max: number): string =>
+  String.raw`\d{1,${max}}(?:-?[A-Za-z]{1,2})?\b${LABEL_REF_SUB}`;
+const LABEL_REF_WORD_JOIN = String.raw`\s*(?:,|&|\band\b|\bor\b|\bto\b|\br\/w\b|\bread\s+with\b)\s*`;
+const labelRefChain = (max: number): string =>
+  labelRefNum(max) +
+  String.raw`(?:${LABEL_REF_WORD_JOIN}${labelRefNum(max)}` +
+  String.raw`|\s*[/-]\s*${labelRefNum(3)}(?!\s*[/-]\s*\d{4})){0,3}`;
+const LABEL_REF_KEEP = new RegExp(
+  String.raw`\b(?:(?:sections?|sec|u\/s)\b\.?|(?:s|ss)\.)\s*${labelRefChain(4)}` +
+    String.raw`|\b(?:(?:orders?|rules?|articles?|regulations?|paras?)\b\.?|art\.)\s*${labelRefChain(3)}` +
+    String.raw`|\b(?:BNSS|BNS|BSA|CrPC|CPC|IPC)\b\.?\s*${labelRefNum(4)}(?!\s*[/.-]\s*\d)`,
+  'gi',
+);
+const LABEL_MAX = 80;
+
 function cleanLabel(raw: unknown): string {
   if (typeof raw !== 'string') return '';
-  // Server-side guard on top of the prompt: no digits, no long strings.
-  return raw.replace(/[0-9]/g, '').replace(/\s+/g, ' ').trim().slice(0, 80);
+  // Server-side guard on top of the prompt: no long strings, and no digits
+  // except provision numbers (T-677, LABEL_REF_KEEP above).
+  let out = '';
+  let last = 0;
+  for (const m of raw.matchAll(LABEL_REF_KEEP)) {
+    const at = m.index ?? 0;
+    out += raw.slice(last, at).replace(/[0-9]/g, '') + m[0];
+    last = at + m[0].length;
+  }
+  out += raw.slice(last).replace(/[0-9]/g, '');
+  const clean = out.replace(/\s+/g, ' ').trim();
+  const cut = clean.slice(0, LABEL_MAX);
+  if (clean.length <= LABEL_MAX || clean[LABEL_MAX] === ' ') return cut;
+  // T-677: never leave half a provision number: if the cut splits a token with
+  // a digit in it, drop back to the last space.
+  const ws = cut.lastIndexOf(' ');
+  const end = clean.indexOf(' ', LABEL_MAX);
+  const straddling = clean.slice(ws + 1, end === -1 ? undefined : end);
+  return ws > 0 && /[0-9]/.test(straddling) ? cut.slice(0, ws).trim() : cut;
 }
 
 // ── T-610: reading the MATCH answer, the threshold and the top-3 pick ───────
