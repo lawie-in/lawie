@@ -13,7 +13,9 @@ import {
   cleanupMounted,
   click,
   mount,
+  press,
   q,
+  qa,
   stubMatchMedia,
   typeInto,
 } from '@/components/ui/__tests__/nl-test-utils';
@@ -100,6 +102,72 @@ describe('behaviour', () => {
     expect(mockApiFetch).not.toHaveBeenCalled();
     expect(JSON.stringify(dataLayer)).not.toContain(SECRET);
   });
+
+  it.each([
+    ['clicking a chip', '/dashboard/new?kind=bail_regular'],
+    ['Enter on a highlighted option', '/dashboard/new?kind=bail_regular'],
+    ['Draft with an option highlighted', '/dashboard/new?kind=bail_regular'],
+  ])(
+    'T-630: %s with text typed never reaches gtag, dataLayer, console, Sentry or the network',
+    (how, href) => {
+      const text = `Bail application ${SECRET}`;
+      const gtag = jest.fn();
+      const dataLayer: unknown[] = [];
+      const w = window as unknown as Record<string, unknown>;
+      w.gtag = gtag;
+      w.dataLayer = dataLayer;
+      const spies = (['log', 'info', 'warn', 'error', 'debug'] as const).map((m) =>
+        jest.spyOn(console, m).mockImplementation(() => undefined),
+      );
+      const globalFetch = jest.fn();
+      const originalFetch = (globalThis as { fetch?: unknown }).fetch;
+      (globalThis as { fetch?: unknown }).fetch = globalFetch;
+      const beacon = jest.fn();
+      Object.defineProperty(navigator, 'sendBeacon', { value: beacon, configurable: true });
+
+      try {
+        mount(<DashboardCommandBar />);
+        const input = q('[role=combobox]') as HTMLInputElement;
+        typeInto(input, text);
+        if (how === 'clicking a chip') {
+          click(qa('[role=option]')[0]);
+        } else if (how === 'Enter on a highlighted option') {
+          press(input, { key: 'ArrowDown' });
+          press(input, { key: 'Enter' });
+        } else {
+          press(input, { key: 'ArrowDown' });
+          click(q('button[type=submit]'));
+        }
+
+        expect(push).toHaveBeenCalledTimes(1);
+        expect(push).toHaveBeenCalledWith(href);
+        expect(window.sessionStorage.getItem('lawie:draft-prefill')).toBe(text);
+        expect(JSON.stringify(push.mock.calls)).not.toContain(SECRET);
+        const all = [
+          gtag,
+          mockSentry.addBreadcrumb,
+          mockSentry.captureMessage,
+          mockSentry.captureException,
+          mockApiFetch,
+          globalFetch,
+          beacon,
+          ...spies,
+        ];
+        for (const fn of all) {
+          expect(JSON.stringify(fn.mock.calls)).not.toContain(SECRET);
+        }
+        expect(gtag).not.toHaveBeenCalled();
+        expect(mockSentry.addBreadcrumb).not.toHaveBeenCalled();
+        expect(mockApiFetch).not.toHaveBeenCalled();
+        expect(globalFetch).not.toHaveBeenCalled();
+        expect(beacon).not.toHaveBeenCalled();
+        expect(JSON.stringify(dataLayer)).not.toContain(SECRET);
+      } finally {
+        (globalThis as { fetch?: unknown }).fetch = originalFetch;
+        delete (navigator as unknown as Record<string, unknown>).sendBeacon;
+      }
+    },
+  );
 });
 
 describe('GA route allowlist', () => {

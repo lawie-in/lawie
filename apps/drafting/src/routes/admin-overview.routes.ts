@@ -22,6 +22,16 @@ import { NOT_FIXTURE } from '../services/run-origin';
 /** T-563 — test accounts (develop-only bypass) are left out of every user count and feed. */
 const NOT_TEST_ACCOUNT = { isTestAccount: { $ne: true } };
 
+/** Raw collection the auth service's grantReferralInk writes its 'referral_bonus' row to. */
+const INK_LEDGER_COLLECTION = 'inkledger';
+
+interface ReferralInkRow {
+  userId: mongoose.Types.ObjectId;
+  reference?: string;
+  metadata?: { referralCode?: string; bonusInk?: number };
+  createdAt: Date;
+}
+
 const router = Router();
 
 function requireAdmin(req: Request, res: Response, next: () => void): void {
@@ -175,45 +185,61 @@ router.get(
     const since = new Date(Date.now() - 7 * 24 * 3600 * 1000);
 
     // Pull recent signups (User), drafts (Document), reviews (ReviewToken — submitted),
-    // redemptions (CreditLedger source=signup_bonus). Cap to 30 most recent overall.
-    const [recentSignups, recentDrafts, recentReviews, recentRedemptions, recentTopups] =
-      await Promise.all([
-        User.find({ createdAt: { $gte: since }, ...NOT_TEST_ACCOUNT })
-          .select('name email createdAt referredVia')
-          .sort({ createdAt: -1 })
-          .limit(15)
-          .lean(),
-        LawieDocument.find({ createdAt: { $gte: since }, isDeleted: { $ne: true }, ...NOT_FIXTURE })
-          .select('title userId createdAt docType')
-          .sort({ createdAt: -1 })
-          .limit(15)
-          .lean(),
-        ReviewToken.find({ isUsed: true, updatedAt: { $gte: since } })
-          .select('assignedTo documentId updatedAt reviewerErased')
-          .sort({ updatedAt: -1 })
-          .limit(15)
-          .lean(),
-        CreditLedger.find({
-          createdAt: { $gte: since },
-          source: { $in: ['signup_bonus', 'topup_purchase'] },
-        })
-          .sort({ createdAt: -1 })
-          .limit(15)
-          .lean(),
-        CreditLedger.find({
-          createdAt: { $gte: since },
-          source: 'topup_purchase',
-        })
-          .sort({ createdAt: -1 })
-          .limit(10)
-          .lean(),
-      ]);
+    // redemptions and top-ups. Cap to 30 most recent overall.
+    // T-652: a referral redemption is read from the inkledger 'referral_bonus' row that auth's
+    // grantReferralInk writes (once per user, fenced by referralInkGrantedAt). Signup stopped
+    // writing the creditledger 'signup_bonus' row in T-652; old rows are still read for history.
+    const db = mongoose.connection.db;
+    const [
+      recentSignups,
+      recentDrafts,
+      recentReviews,
+      legacyRedemptions,
+      referralInkRows,
+      recentTopups,
+    ] = await Promise.all([
+      User.find({ createdAt: { $gte: since }, ...NOT_TEST_ACCOUNT })
+        .select('name email createdAt referredVia')
+        .sort({ createdAt: -1 })
+        .limit(15)
+        .lean(),
+      LawieDocument.find({ createdAt: { $gte: since }, isDeleted: { $ne: true }, ...NOT_FIXTURE })
+        .select('title userId createdAt docType')
+        .sort({ createdAt: -1 })
+        .limit(15)
+        .lean(),
+      ReviewToken.find({ isUsed: true, updatedAt: { $gte: since } })
+        .select('assignedTo documentId updatedAt reviewerErased')
+        .sort({ updatedAt: -1 })
+        .limit(15)
+        .lean(),
+      CreditLedger.find({ createdAt: { $gte: since }, source: 'signup_bonus' })
+        .sort({ createdAt: -1 })
+        .limit(15)
+        .lean(),
+      db
+        ? db
+            .collection<ReferralInkRow>(INK_LEDGER_COLLECTION)
+            .find({ createdAt: { $gte: since }, reason: 'referral_bonus' })
+            .sort({ createdAt: -1 })
+            .limit(15)
+            .toArray()
+        : Promise.resolve([] as ReferralInkRow[]),
+      CreditLedger.find({
+        createdAt: { $gte: since },
+        source: 'topup_purchase',
+      })
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .lean(),
+    ]);
 
     // Decorate userIds with names for the feed
     const allUserIds = new Set<string>([
       ...recentDrafts.map((d) => String(d.userId)),
       ...recentReviews.map((r) => String(r.documentId)),
-      ...recentRedemptions.map((r) => String(r.userId)),
+      ...legacyRedemptions.map((r) => String(r.userId)),
+      ...referralInkRows.map((r) => String(r.userId)),
       ...recentTopups.map((t) => String(t.userId)),
     ]);
     const users = await User.find({ _id: { $in: [...allUserIds] } })
@@ -255,8 +281,25 @@ router.get(
         at: r.updatedAt,
       });
     }
-    for (const r of recentRedemptions) {
-      if (r.source !== 'signup_bonus') continue;
+    // T-652: one redemption per user. A user with an inkledger referral row is shown from it,
+    // so a pre-T-652 signup_bonus row for the same user is not listed a second time.
+    const referralInkUsers = new Set(referralInkRows.map((r) => String(r.userId)));
+    for (const r of referralInkRows) {
+      const owner =
+        (userMap.get(String(r.userId)) as { name?: string } | undefined)?.name ?? '(advocate)';
+      const code = r.metadata?.referralCode ?? r.reference;
+      const bonusInk = r.metadata?.bonusInk;
+      items.push({
+        type: 'redemption',
+        label: `${owner} redeemed referral`,
+        detail: [bonusInk !== undefined ? `${bonusInk} Ink` : '', code ?? '']
+          .filter(Boolean)
+          .join(' · '),
+        at: r.createdAt,
+      });
+    }
+    for (const r of legacyRedemptions) {
+      if (referralInkUsers.has(String(r.userId))) continue;
       const owner =
         (userMap.get(String(r.userId)) as { name?: string } | undefined)?.name ?? '(advocate)';
       items.push({

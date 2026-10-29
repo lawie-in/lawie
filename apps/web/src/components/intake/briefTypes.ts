@@ -58,6 +58,22 @@ export interface BriefItem {
   asked_blank?: boolean;
   /** T-629 (§(i)2): a blank answer here counts as answered once asked; send it in `asked_keys`. */
   blank_once_asked?: boolean;
+  /**
+   * T-638 (Ajay R1, B3): the service derived this value (custody_since from the
+   * date of arrest). Shown with `DATE_OF_ARREST_CAPTION`; never sent back as a
+   * value, so an edit is the only way it becomes the advocate's own.
+   */
+  derived_from?: 'arrest_date';
+}
+
+/** T-638 (Ajay R1 / B3, signed): beside a derived custody date, `<date> (date of arrest)`. */
+export const DATE_OF_ARREST_CAPTION = '(date of arrest)';
+
+/** T-638: the caption of a derived date, the date in the draft's format: "12 June 2026 (date of arrest)". */
+export function derivedDateCaption(item: Pick<BriefItem, 'derived_from' | 'value'>): string | null {
+  if (item.derived_from !== 'arrest_date' || typeof item.value !== 'string') return null;
+  const words = dateInWords(item.value);
+  return words === item.value ? null : `${words} ${DATE_OF_ARREST_CAPTION}`;
 }
 
 export interface BriefCourt {
@@ -85,8 +101,17 @@ export interface Brief {
   confirm_message: string | null;
   /** T-629: the keys of the required fields that block Confirm, in signed order. */
   confirm_blocking_keys?: string[];
+  /** T-644: on O.39, the party keys the service counted as missing, in line order. */
+  confirm_missing_party_keys?: string[];
   /** T-363 AC1: T-192's signed B2 line, when the brief's own s.138 dates give it. */
   date_check?: { line: 'B2'; text: string };
+  /**
+   * T-655: the keys the service counts as given by the fact ledger, on every
+   * pack. The screen uses this as its given set and does not judge the ledger
+   * itself (a §(j)3 non-answer on an O.39 required field is no fact). Absent:
+   * nothing counts as ledger-given (fails closed).
+   */
+  ledger_given_keys?: string[];
 }
 
 export interface BriefQuestion {
@@ -372,6 +397,11 @@ export function valuesAfter(brief: Brief, previous: GivenValue[]): GivenValue[] 
       emptyKeys.add(item.key);
       continue;
     }
+    // T-638 (B3): a derived value is the service's, not the advocate's: not sent back.
+    if (item.derived_from !== undefined) {
+      emptyKeys.add(item.key);
+      continue;
+    }
     placed.push({
       key: item.key,
       value: item.value as Value,
@@ -434,30 +464,6 @@ const DECLINED_UNDERTAKING_KEYS: ReadonlySet<string> = new Set(['willingness_to_
 function isDeclinableUndertaking(key: string): boolean {
   const at = key.lastIndexOf('.');
   return DECLINED_UNDERTAKING_KEYS.has(at < 0 ? key : key.slice(at + 1));
-}
-
-/**
- * T-498: the keys the fact ledger holds a fact for. The row shows that fact
- * (with "Please check" when read from the description), so it is given: not
- * asked in the rounds and not listed as still unknown. An empty display is not
- * a fact, and a "No" on an undertaking box (T-251) is not yet given. Kept in
- * step with `ledgerGivenKeys` in apps/drafting/src/services/intake-brief.ts.
- * Empty with no ledger, so nothing changes with the ledger off.
- */
-export function ledgerGivenKeys(ledger: Ledger | null | undefined): Set<string> {
-  const out = new Set<string>();
-  if (!ledger) return out;
-  for (const f of ledger.facts) {
-    if (typeof f.display !== 'string' || f.display.trim() === '') continue;
-    const declined =
-      isDeclinableUndertaking(f.key) &&
-      [f.display, String(f.value)].some((v) => {
-        const w = foldWord(v);
-        return w === 'no' || w === 'false';
-      });
-    if (!declined) out.add(f.key);
-  }
-  return out;
 }
 
 /**

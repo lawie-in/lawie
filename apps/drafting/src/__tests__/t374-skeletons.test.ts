@@ -42,10 +42,10 @@ const PACKS = ['bail_regular', 'bail_anticipatory', 'bail_before_magistrate', 'd
 /** SHA-256 of each signed md FILE, pinned (computed 14 Oct 2026, T-245a v4/v5/v6/v2), and of the json block + "\n". */
 const SIGNED: Record<string, { version: number; mdSha: string; blockSha: string }> = {
   bail_regular: {
-    // T-612: v6 (new grounds, medical None, sole earner), re-signed by Ajay 26 Oct 2026.
-    version: 6,
-    mdSha: '98c413b996074799bb51631c93af5a2eeb393f5b03beb344705cdd86345518a8',
-    blockSha: '91fbd67a36b0909aa857d3f597da6b28c33d9cd0c7827692fd491b3a726fff41',
+    // T-638: v7 (custody_status_derived, order 29), re-signed by Ajay 28 Oct 2026 (10f8fb64).
+    version: 7,
+    mdSha: '91deb259361bc4d8954d359b2f32d0889759096d9d2d6697e7000345069e0c3f',
+    blockSha: 'b15e03a2354a22c722c513f13ae6637810d5d00aee4d76699701d03e05fd2e04',
   },
   bail_anticipatory: {
     // T-612: v6, re-signed by Ajay 26 Oct 2026.
@@ -713,6 +713,8 @@ describe('bail_regular clause ids and order match the signed file (AC6)', () => 
   const EXPECTED: Array<[string, number]> = [
     ['opening', 10],
     ['fir_details', 20],
+    // T-638 (v7): the derived custody line, before custody_status
+    ['custody_status_derived', 29],
     ['custody_status', 30],
     ['arrested_on', 31],
     ['facts', 40],

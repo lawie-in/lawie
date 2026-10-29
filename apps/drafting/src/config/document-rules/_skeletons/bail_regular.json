@@ -1,6 +1,6 @@
 {
   "pack": "bail_regular",
-  "version": 6,
+  "version": 7,
   "bodyParagraphs": { "default": 10, "cap": 25 },
   "none_values": "first_bail_application.equals (T-334)",
   "antecedents_none_values": [
@@ -58,6 +58,41 @@
       ]
     },
     {
+      "id": "custody_status_derived",
+      "order": 29,
+      "required": false,
+      "source": "fixed",
+      "when": {
+        "all_of": [
+          {
+            "key": "currently_in_custody",
+            "in": [
+              "yes_judicial",
+              "yes_police"
+            ]
+          },
+          {
+            "key": "custody_since_derived",
+            "present": true
+          }
+        ]
+      },
+      "text": "The applicant was arrested on {custody_since} and is now in {custody_kind}.",
+      "slots": [
+        "custody_since",
+        "custody_kind"
+      ],
+      "derived": {
+        "custody_kind": {
+          "from": "currently_in_custody",
+          "map": {
+            "yes_judicial": "judicial custody",
+            "yes_police": "police custody"
+          }
+        }
+      }
+    },
+    {
       "id": "custody_status",
       "order": 30,
       "required": true,
@@ -82,7 +117,8 @@
             "yes_police": "police custody"
           }
         }
-      }
+      },
+      "skip_if_rendered": "custody_status_derived"
     },
     {
       "id": "arrested_on",
@@ -92,7 +128,8 @@
       "text": "The applicant was arrested on {arrest_date}.",
       "slots": [
         "arrest_date"
-      ]
+      ],
+      "skip_if_rendered": "custody_status_derived"
     },
     {
       "id": "facts",

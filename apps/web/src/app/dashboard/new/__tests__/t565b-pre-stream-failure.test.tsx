@@ -337,7 +337,7 @@ describe('T-565 W3: gates unchanged', () => {
   });
 
   it('402 with a cost: the paywall opens over the form, no failure card', async () => {
-    mockPrivacyFetch.mockResolvedValue(reply(402, { cost: 3, balance: { total: 1 } }));
+    mockPrivacyFetch.mockResolvedValue(reply(402, { cost: 3, balance: { total: 1, totalInk: 1 } }));
     await submitOneStepForm();
     expect(container.querySelector('[data-testid="paywall"]')).not.toBeNull();
     expect(text()).not.toContain(LINE);
@@ -346,7 +346,7 @@ describe('T-565 W3: gates unchanged', () => {
 
   it('402 for an unverified email: the verify modal path returns to the form, no failure card', async () => {
     mockVerifyInstead = true;
-    mockPrivacyFetch.mockResolvedValue(reply(402, { cost: 3, balance: { total: 1 } }));
+    mockPrivacyFetch.mockResolvedValue(reply(402, { cost: 3, balance: { total: 1, totalInk: 1 } }));
     await submitOneStepForm();
     expect(container.querySelector('[data-testid="paywall"]')).toBeNull();
     expect(text()).not.toContain(LINE);
@@ -464,7 +464,7 @@ describe('T-565 round 3: more pre-stream failures are request_failed', () => {
   });
 
   it('the paywall 402 (with data), the verify 402 and the privacy 403 are unchanged', async () => {
-    mockPrivacyFetch.mockResolvedValue(reply(402, { cost: 3, balance: { total: 1 } }));
+    mockPrivacyFetch.mockResolvedValue(reply(402, { cost: 3, balance: { total: 1, totalInk: 1 } }));
     await submitOneStepForm();
     expect(container.querySelector('[data-testid="paywall"]')).not.toBeNull();
     expect(text()).not.toContain(LINE);

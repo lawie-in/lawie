@@ -6,9 +6,16 @@
  * rule pack or without one.
  *
  * Everything the advocate types is held here, in memory, for the life of the
- * page. Going back and forward keeps all of it. Nothing is written to browser
- * storage, and it is dropped once the draft is written, on Cancel, and on
- * leaving the page.
+ * page. Going back and forward keeps all of it, and it is dropped once the draft
+ * is written, on Cancel, and on leaving the page.
+ *
+ * One exception (T-616/T-630, Priya/Arjun): while on the describe step, the
+ * description alone is also kept in this tab's sessionStorage under
+ * DRAFT_PREFILL_KEY, so a session that ends by itself mid-draft gives it back
+ * after the same user signs in again (lib/auth.ts keeps it for that user only
+ * and wipes it on sign-out or for anyone else). It is removed once the
+ * description has been used (the flow moves past describe) and on leaving the
+ * page in-app, unless a forced session end is under way. Nothing else is stored.
  *
  * Design: T-126 (`handoff/design/T-126-the-brief-spec.md`). Fixed wording comes
  * from the service and is printed as received.
@@ -33,7 +40,6 @@ import {
   KindSummary,
   Ledger,
   LedgerEditResult,
-  ledgerGivenKeys,
   NO_RULE_PACK,
   readFactCheckBanner,
   RenderedClause,
@@ -76,6 +82,7 @@ import {
 } from '@/components/VerifyEmailPrompt';
 import { notifyCreditsChanged } from '@/hooks/useCredits';
 import { apiFetch } from '@/lib/apiFetch';
+import { DESCRIPTION_MAX, DRAFT_PREFILL_KEY, capToLimit } from '@/lib/draftPrefill';
 import { signupConsentGate } from '@/lib/signupConsent';
 
 type Phase =
@@ -92,6 +99,36 @@ type Phase =
 const EMPTY_COURT: BriefCourt = { state: null, court_type: null, court: null };
 const UNREADABLE = 'We could not read that just now. Try again, or browse document types.';
 const JSON_POST = { method: 'POST', headers: { 'Content-Type': 'application/json' } } as const;
+
+/** T-616/T-630: how long typing must pause before the description is saved to this tab. */
+const DESCRIPTION_SAVE_DELAY_MS = 500;
+/**
+ * T-616: the marker endSessionForced (lib/auth.ts) writes before it leaves the page. Same string
+ * as auth.ts's FORCED_END_SUBJECT_KEY, which is not exported; only its presence is read here.
+ */
+const FORCED_END_SUBJECT_KEY = 'lawie:forced-end-subject';
+
+/**
+ * T-616/T-630: keeps the describe step's description in this tab (capped like the textarea), or
+ * removes it when blank. The value is never logged. Never throws (private mode, full quota).
+ */
+function saveDescriptionDraft(text: string): void {
+  try {
+    if (text.trim() === '') window.sessionStorage.removeItem(DRAFT_PREFILL_KEY);
+    else window.sessionStorage.setItem(DRAFT_PREFILL_KEY, capToLimit(text, DESCRIPTION_MAX));
+  } catch {
+    // Storage unavailable: typing goes on; the text just is not kept.
+  }
+}
+
+/** T-616: a forced session end is under way (its marker is set). Never throws. */
+function forcedEndUnderway(): boolean {
+  try {
+    return window.sessionStorage.getItem(FORCED_END_SUBJECT_KEY) !== null;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * T-147b: one answer or edit for the fact ledger, as the update route takes it.
@@ -159,7 +196,8 @@ function openQuestions(
   round?: 1 | 2,
 ) {
   if (!brief) return [];
-  const given = ledgerGivenKeys(ledger);
+  // T-655: the service's given set; absent, nothing is ledger-given (fails closed).
+  const given = new Set(brief.ledger_given_keys ?? []);
   const open = new Set(
     brief.items
       .filter(
@@ -766,7 +804,7 @@ function OneFlowSteps({
             if (typeof data.cost === 'number' && Number.isFinite(data.cost) && data.cost > 0) {
               setPaywall({
                 cost: data.cost,
-                balance: data.balance?.totalInk ?? data.balance?.total ?? 0,
+                balance: data.balance?.totalInk ?? 0,
               });
               setPhase('brief');
               return;
@@ -991,12 +1029,16 @@ function OneFlowSteps({
   // preset again after the advocate changes document. If the advocate has already
   // acted before the list arrived (typed, submitted, browsed, picked), their
   // choice stands and the preset is skipped.
+  // T-630: text the prefill put in the textarea is not "typed": the chip path brings
+  // both the text and the kind, so the preset still applies, whichever of the two
+  // effects runs first. Anything different from that text counts as typed.
   const initialKindDone = useRef(false);
+  const prefillText = useRef<string | undefined>(undefined);
   useEffect(() => {
     if (initialKindDone.current || !initialKind || loadingKinds) return;
     initialKindDone.current = true;
-    const acted =
-      phase !== 'describe' || busy || chosenKind.current !== undefined || description.trim() !== '';
+    const typed = description.trim() !== '' && description !== prefillText.current;
+    const acted = phase !== 'describe' || busy || chosenKind.current !== undefined || typed;
     const k = acted ? undefined : kinds.find((x) => x.template_id === initialKind);
     if (k) {
       setPreset({ id: k.template_id, name: k.display_name });
@@ -1014,18 +1056,67 @@ function OneFlowSteps({
   // twice, and the second read would find the key already removed. The ref survives that
   // re-run, so the first read's value is the one kept. Never submitted; never logged; not
   // applied over anything the advocate has already typed.
-  // On the chip path (`?kind=` preset) the key is still read and cleared at once, so a
-  // stale prefill can never show later, but it is not applied to the textarea.
+  // T-630: applied on the chip path (`?kind=`) too, so the text and the kind both arrive;
+  // with an unlisted kind the text shows on a plain describe. The same key brings back the
+  // description saved below after a forced session end (T-616); it replaces, never appends.
   const prefillRead = useRef(false);
   useEffect(() => {
     if (prefillRead.current) return;
     prefillRead.current = true;
     const text = takeDraftPrefill();
-    if (!text || initialKind) return;
+    if (!text) return;
+    prefillText.current = text;
     setDescription((typed) => (typed.trim() === '' ? text : typed));
-    // Mount only: `initialKind` is read as it was when the flow opened.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // T-616/T-630 (Priya/Arjun): on the describe step the description is saved to this tab
+  // under DRAFT_PREFILL_KEY, DESCRIPTION_SAVE_DELAY_MS after typing pauses, and at once when
+  // the page is hidden or left (pagehide; a reload or location.replace runs no React
+  // cleanup). A blank description removes the key. Once the flow moves past describe the
+  // description has been used and the key is removed ("Browse document types" is not past
+  // it). Declared after the prefill read, so the mount run never removes the key first.
+  const pendingSave = useRef<string | null>(null);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cancelSave = useCallback(() => {
+    if (saveTimer.current !== null) clearTimeout(saveTimer.current);
+    saveTimer.current = null;
+    pendingSave.current = null;
+  }, []);
+  const flushSave = useCallback(() => {
+    const text = pendingSave.current;
+    cancelSave();
+    if (text !== null) saveDescriptionDraft(text);
+  }, [cancelSave]);
+  useEffect(() => {
+    if (phase === 'browse') return;
+    if (phase !== 'describe') {
+      cancelSave();
+      saveDescriptionDraft('');
+      return;
+    }
+    if (saveTimer.current !== null) clearTimeout(saveTimer.current);
+    pendingSave.current = description;
+    saveTimer.current = setTimeout(flushSave, DESCRIPTION_SAVE_DELAY_MS);
+  }, [description, phase, cancelSave, flushSave]);
+  useEffect(() => {
+    const onHidden = () => {
+      if (document.visibilityState === 'hidden') flushSave();
+    };
+    window.addEventListener('pagehide', flushSave);
+    document.addEventListener('visibilitychange', onHidden);
+    return () => {
+      window.removeEventListener('pagehide', flushSave);
+      document.removeEventListener('visibilitychange', onHidden);
+      // Leaving in-app (React cleanup): the text goes, unless the session is being ended
+      // by itself (lib/auth.ts endSessionForced set its marker): then it is kept, with the
+      // latest keystrokes, for the same user's next sign-in.
+      if (forcedEndUnderway()) flushSave();
+      else {
+        cancelSave();
+        saveDescriptionDraft('');
+      }
+    };
+  }, [cancelSave, flushSave]);
 
   if (reading === 'loading') return <BriefLoading />;
   if (reading === 'failed') {

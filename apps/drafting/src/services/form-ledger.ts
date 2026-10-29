@@ -292,8 +292,9 @@ function requiredFieldView(formData: Readonly<Record<string, unknown>>): Record<
 
 /**
  * T-629 blocks_confirm / Ajay FR-1(b), FR-5, FR-5a; T-613 §(g), §(j)2, §(j)3:
- * the form route's required-field and non-answer pre-check (main_suit_relief,
- * restraint_sought on temporary_injunction_o39), run right after
+ * the form route's required-field and non-answer pre-check (plaintiff_name,
+ * defendant_name (T-644, AJ-644-M1), main_suit_relief, restraint_sought on
+ * temporary_injunction_o39), run right after
  * the plan check, before validateFormData (FR-5: an empty answer gets the
  * signed lines too) and before any Ink hold. The form field ids are the pack
  * keys (the promoted O.39 form keeps them; no alias renames them). The text

@@ -20,6 +20,7 @@ import { AppSettingMissingError, APP_SETTING_KEYS, getAppSetting } from './app-s
 import { AuxCallError, AuxCallUsage, callAuxModel } from './aux-llm';
 import { loadAvermentLists } from './averments';
 import { applyBailGuard } from './bail-guard';
+import { ledgerCustodyInputs } from './custody-since-derivation';
 import {
   applyEdits,
   carryOver,
@@ -1591,7 +1592,7 @@ async function briefWithPack(
       ...userValues(req.keep),
     ];
   }
-  const brief = buildBrief({
+  const briefInput = {
     kind: { id: pack.id, name: pack.name, court_document: isCourtDocument(pack.id) },
     checklist,
     values,
@@ -1599,15 +1600,28 @@ async function briefWithPack(
     description: req.description,
     reask: [...alsoAsk],
     holdNone: firstApplicationValues(pack.id),
-  });
+  };
+  const firstBrief = buildBrief(briefInput);
   console.info(
-    `[intake] brief built (intakeId=${ctx.intakeId}, kind=${pack.id}, read=${read.values.size}, byCode=${byCode.size}, dropped=${read.dropped.length}, unknown=${brief.still_unknown.length}${edit})`,
+    `[intake] brief built (intakeId=${ctx.intakeId}, kind=${pack.id}, read=${read.values.size}, byCode=${byCode.size}, dropped=${read.dropped.length}, unknown=${firstBrief.still_unknown.length}${edit})`,
   );
   // T-147b: what the normalizer could not read is always asked, through the same
   // questions, even when the brief already holds a value for it. The value stays.
   const ledger = ctx.ledger.enabled
-    ? await writeReceptionLedger(ctx, pack, checklist, req, brief)
+    ? await writeReceptionLedger(ctx, pack, checklist, req, firstBrief)
     : undefined;
+  // T-660: the first brief is built before the ledger exists, so a custody
+  // date it derived (T-638 R1) is checked again against the ledger's own
+  // wording, as generation reads it. A derived value has source null and is
+  // never written to the ledger, so the ledger is the same either way. No
+  // model call: buildBrief again, with the ledger's part of the rule.
+  const brief =
+    ledger && firstBrief.items.some((i) => i.derived_from !== undefined)
+      ? buildBrief({
+          ...briefInput,
+          ledgerCustody: ledgerCustodyInputs(ledger.facts, ledger.unresolved),
+        })
+      : firstBrief;
   const always: ReadonlySet<string> = new Set(
     ledger
       ? ledger.unresolved
@@ -1926,7 +1940,7 @@ export interface BriefUpdateRequest {
    * A key it holds a fact for is not still unknown and does not block Confirm.
    * The draft path does not send it.
    */
-  ledger?: Pick<LedgerView, 'facts'>;
+  ledger?: Pick<LedgerView, 'facts'> & Partial<Pick<LedgerView, 'unresolved'>>;
   /** T-629 (§(i)2): facts the advocate was asked and left blank (`buildBrief`'s `askedKeys`). */
   askedKeys?: readonly string[];
 }
@@ -1976,7 +1990,14 @@ export function updateBrief(req: BriefUpdateRequest): Brief | null {
     description: req.description,
     holdNone: firstApplicationValues(pack.id),
     askedKeys: req.askedKeys,
-    ...(req.ledger ? { ledgerGiven: ledgerGivenKeys(req.ledger.facts) } : {}),
+    ...(req.ledger
+      ? {
+          ledgerGiven: ledgerGivenKeys(req.ledger.facts),
+          // T-660: the ledger's wording too, so the brief derives custody_since
+          // (T-638 R1) only when generation will.
+          ledgerCustody: ledgerCustodyInputs(req.ledger.facts, req.ledger.unresolved ?? []),
+        }
+      : {}),
   });
 }
 

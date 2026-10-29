@@ -210,7 +210,7 @@ describe('T-298 c — signup seed and referral are order-independent', () => {
     await grantSignupBonus(u._id.toString());
     await grantSignupBonus(u._id.toString());
     await expectBalanceAndLedgerAgree(u._id, 10, 1);
-    expect((await User.findById(u._id).lean())!.earnedCredits).toBe(5);
+    expect((await User.findById(u._id).lean())!.earnedCredits ?? 0).toBe(0); // T-652
   });
 
   it('plain register (no code): 202, inkTopup 10 after verification, one ledger row, referralApplied absent', async () => {
