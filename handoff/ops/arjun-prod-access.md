@@ -318,3 +318,13 @@ Asked by Arjun at 11:29 UTC (T-678). JSON: `handoff/ops/runbooks/lawie-prod-ops-
 - **Plain lines that contain `runid`:** printed only through the first `(k=v, …)` group, with any other text replaced by `<text>` and quoted strings by `<q>`.
 - **Testing:** the JS was tested locally on saved prod log samples before publishing.
 - **Running it:** default stays 13; run pinned with `--document-version 17`.
+
+## Arjun (29 Oct 2026) — standing go for release deploys (founder, 29 Oct 2026, 11:40 UTC)
+
+Founder's word in Arjun's chat, answering "does merging a `release/*` PR into main count as your standing go for Nikhil to deploy it?": **"yes"**. Context: the prod fix loop — one headline ticket per release, releases cut from `develop_staging` head, Anushka re-checks the headline item after each deploy.
+
+Rule from now on:
+- A merge of a `release/*` branch into `main` IS the founder's go to deploy that merge commit to prod. No second message is needed.
+- Nikhil learns of the merge from Priya (merge SHA + release tag in his chat) or from his own scheduled check of `origin/main`; either way he verifies the SHA is a `release/*` merge on `main` before deploying — a direct push to main or a hotfix branch is NOT covered and still needs the founder's go in his chat.
+- Deploy per the current runbook: `deploy,branch=main` → health → logs → external curls → report to Arjun; rollback point = previous main.
+- Everything else on prod (env lines, seeds, document changes beyond read-only actions) still needs the founder's go in Nikhil's chat.
