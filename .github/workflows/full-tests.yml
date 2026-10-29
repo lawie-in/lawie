@@ -62,7 +62,9 @@ jobs:
             node_modules
             apps/*/node_modules
             packages/*/node_modules
-          key: ${{ runner.os }}-node20-modules-${{ hashFiles('yarn.lock') }}
+          key: ${{ runner.os }}-node${{ env.NODE_VERSION }}-modules-${{ hashFiles('yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-node${{ env.NODE_VERSION }}-modules-
       - if: steps.node-modules.outputs.cache-hit != 'true'
         run: yarn install --frozen-lockfile --prefer-offline
         timeout-minutes: 5
@@ -115,7 +117,9 @@ jobs:
             node_modules
             apps/*/node_modules
             packages/*/node_modules
-          key: ${{ runner.os }}-node20-modules-${{ hashFiles('yarn.lock') }}
+          key: ${{ runner.os }}-node${{ env.NODE_VERSION }}-modules-${{ hashFiles('yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-node${{ env.NODE_VERSION }}-modules-
       - if: steps.node-modules.outputs.cache-hit != 'true'
         run: yarn install --frozen-lockfile --prefer-offline
         timeout-minutes: 5
@@ -173,7 +177,9 @@ jobs:
             node_modules
             apps/*/node_modules
             packages/*/node_modules
-          key: ${{ runner.os }}-node20-modules-${{ hashFiles('yarn.lock') }}
+          key: ${{ runner.os }}-node${{ env.NODE_VERSION }}-modules-${{ hashFiles('yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-node${{ env.NODE_VERSION }}-modules-
       - if: steps.node-modules.outputs.cache-hit != 'true'
         run: yarn install --frozen-lockfile --prefer-offline
         timeout-minutes: 5
@@ -228,7 +234,9 @@ jobs:
             node_modules
             apps/*/node_modules
             packages/*/node_modules
-          key: ${{ runner.os }}-node20-modules-${{ hashFiles('yarn.lock') }}
+          key: ${{ runner.os }}-node${{ env.NODE_VERSION }}-modules-${{ hashFiles('yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-node${{ env.NODE_VERSION }}-modules-
       - if: steps.node-modules.outputs.cache-hit != 'true'
         run: yarn install --frozen-lockfile --prefer-offline
         timeout-minutes: 5
@@ -283,7 +291,9 @@ jobs:
             node_modules
             apps/*/node_modules
             packages/*/node_modules
-          key: ${{ runner.os }}-node20-modules-${{ hashFiles('yarn.lock') }}
+          key: ${{ runner.os }}-node${{ env.NODE_VERSION }}-modules-${{ hashFiles('yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-node${{ env.NODE_VERSION }}-modules-
       - if: steps.node-modules.outputs.cache-hit != 'true'
         run: yarn install --frozen-lockfile --prefer-offline
         timeout-minutes: 5
@@ -325,7 +335,9 @@ jobs:
             node_modules
             apps/*/node_modules
             packages/*/node_modules
-          key: ${{ runner.os }}-node20-modules-${{ hashFiles('yarn.lock') }}
+          key: ${{ runner.os }}-node${{ env.NODE_VERSION }}-modules-${{ hashFiles('yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-node${{ env.NODE_VERSION }}-modules-
       - if: steps.node-modules.outputs.cache-hit != 'true'
         run: yarn install --frozen-lockfile --prefer-offline
         timeout-minutes: 5

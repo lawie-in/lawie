@@ -343,8 +343,15 @@ function expectNodeModulesCache(id: string, job: any): void {
   expect({ id, cache: idx >= 0 }).toEqual({ id, cache: true });
   const c = steps[idx];
   expect(c.id).toBe('node-modules');
-  expect(String(c.with.path)).toContain('node_modules');
+  const cachePaths = String(c.with.path)
+    .split('\n')
+    .map((x) => x.trim())
+    .filter(Boolean);
+  expect(cachePaths).toEqual(
+    expect.arrayContaining(['node_modules', 'apps/*/node_modules', 'packages/*/node_modules']),
+  );
   expect(String(c.with.key)).toContain("hashFiles('yarn.lock')");
+  expect(String(c.with['restore-keys'] ?? '').trim()).not.toBe('');
   const install = steps.findIndex((s) => /yarn install/.test(String(s.run ?? '')));
   expect(idx).toBeLessThan(install);
 }
