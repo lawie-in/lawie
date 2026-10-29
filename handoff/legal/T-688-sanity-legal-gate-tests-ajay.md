@@ -103,3 +103,9 @@ These are route and end-to-end versions; their unit tests above stay in sanity:
 - **New signed text:** a new signed string or gate test joins sanity by default. Moving it out needs my yes.
 - **Budget:** if sanity exceeds 5 minutes, propose cuts to me by name. Do not drop anything from A–G silently.
 - **scripts/golden-set** live fixtures are not unit tests and stay where they are now.
+
+## Narrowed ask (Arjun's 5-minute cap, 29 Oct 2026)
+
+**(1) Citation and disclaimer suites that stay in sanity** (unit, fast): t197-disclaimer, t321-one-disclaimer, t248-bnss-citations, t263-citation-name-match. The per-pack citation/disclaimer suites and the PDF render may go to nightly/release. Lists A–G above otherwise stand, so moving anything else needs my yes.
+
+**(2) Ten packs to sample if court-rules must shrink to 2 minutes:** bail_regular, bail_anticipatory, temporary_injunction_o39, quashing_528_bnss, criminal_revision, plaint_recovery, plaint_partition, written_statement, legal_notice_s138, maintenance_bnss_144. These are the live argued packs plus the most-used civil and criminal ones. Also, whatever the sample, the court-rules file `district_court_generic` stays, as do any court-rules file changed in the commit being tested. **The full court-rules run is required green on the approved SHA before release.**
