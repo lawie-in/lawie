@@ -22,10 +22,15 @@ const WORKSPACES = [
 ];
 
 type Project = { displayName: { name: string }; testMatch: string[] };
-function loadConfig(ws: string): { projects: Project[] } {
+function loadJs(rel: string): any {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
-  return require(path.join(ROOT, ws, 'jest.config.js'));
+  return require(path.join(ROOT, rel));
 }
+function loadConfig(ws: string): { projects: Project[] } {
+  return loadJs(path.join(ws, 'jest.config.js'));
+}
+const baseJestConfig = (): { testMatch: string[]; coveragePathIgnorePatterns: string[] } =>
+  loadJs('jest.config.base.js');
 function project(ws: string, name: string): Project {
   const p = loadConfig(ws).projects.find((x) => x.displayName.name === name);
   if (!p) throw new Error(`${ws}: no ${name} project`);
@@ -41,6 +46,56 @@ const isGlob = (s: string) => s.includes('*');
 function resolveEntry(ws: string, entry: string): string {
   return path.join(ROOT, ws, entry.replace('<rootDir>/', '').replace(/\\([()[\]])/g, '$1'));
 }
+
+// Workspaces whose jest.config.js spreads ../../jest.config.base.
+const BASE_WORKSPACES = ['apps/drafting', 'apps/auth', 'apps/billing', 'apps/gateway'];
+// Checked against `git show 173f6e93:<ws>/package.json` and jest.config.js (pre-T-688): every
+// workspace's test script had --coverage; only these configs had a coverageThreshold.
+const HAD_COVERAGE = WORKSPACES;
+const HAD_THRESHOLD = ['apps/drafting', 'apps/web', 'apps/auth', 'apps/billing', 'apps/gateway'];
+
+// Arjun's non-legal picks, pinned per workspace (paths relative to the workspace root).
+const REQUIRED: Record<string, string[]> = {
+  'apps/drafting': [
+    't226-ink-holds.service',
+    't226-ink-holds.routes',
+    't226-ink-holds.heartbeat',
+    'templates.routes',
+    'intake-gate',
+  ].map((n) => `src/__tests__/${n}.test.ts`),
+  'apps/billing': [
+    't436-invoice-issue',
+    't413-manual-grant-alerts',
+    't413-topup-claim',
+    't413-webhook-ack-after-grant',
+    't415-grant-claim-state',
+    't583-subscribe-create-log',
+  ].map((n) => `src/__tests__/${n}.test.ts`),
+  'apps/web': [
+    'src/components/intake/__tests__/BriefStep.t629.test.tsx',
+    'src/components/intake/__tests__/BriefStep.t644.test.tsx',
+    'src/components/intake/__tests__/BriefStep.t668.test.tsx',
+    'src/components/intake/__tests__/BriefStep.t498.test.tsx',
+    'src/components/intake/__tests__/BriefStep.datecheck.test.tsx',
+    'src/components/intake/__tests__/t655-briefstep-given-keys.test.tsx',
+    'src/app/admin/__tests__/admin-layout-t616.test.tsx',
+    'src/app/auth/callback/__tests__/t616-callback-return.test.tsx',
+    'src/app/(auth)/login/__tests__/t616-login-next.test.tsx',
+    'src/lib/__tests__/auth-t616.test.ts',
+    'src/components/__tests__/SignupConsentPrompt.t642.test.tsx',
+    'src/components/__tests__/t642-entry-points.test.tsx',
+    'src/components/intake/__tests__/OneFlow.t642-gate.test.tsx',
+    'src/app/dashboard/new/__tests__/t642-gate.test.tsx',
+    '__tests__/t543-env-example.test.ts',
+  ],
+  'apps/auth': [
+    't616b-revoke-races',
+    't616b-session-refresh',
+    't642-signup-consent',
+    't657-backfill',
+    't657-free-seed-atomic',
+  ].map((n) => `src/__tests__/${n}.test.ts`),
+};
 
 const MIN_SANITY: Record<string, number> = {
   'apps/drafting': 25,
@@ -108,6 +163,9 @@ const FLOOR = [
   't674-court-label',
   't674-court-title',
   't634-document-court-type',
+  // Ajay's ruling (43728e3d): in drafting sanity, 63 files
+  't178-family-court-citation',
+  't429-discharge-ni-act-gate',
   // G
   't288-ink-log-redaction',
   't229-sentry-hooks',
@@ -155,11 +213,38 @@ describe('T-688 jest projects', () => {
 
     it('full testMatch equals the base testMatch (every test still runs in full)', () => {
       const full = project(ws, 'full').testMatch;
-      const expected =
-        ws === 'apps/web'
-          ? ['**/__tests__/**/*.test.ts', '**/__tests__/**/*.test.tsx']
-          : ['**/__tests__/**/*.test.ts'];
-      expect(full).toEqual(expected);
+      if (BASE_WORKSPACES.includes(ws)) {
+        expect(full).toEqual(baseJestConfig().testMatch);
+      } else if (ws === 'apps/web') {
+        expect(full).toEqual(['**/__tests__/**/*.test.ts', '**/__tests__/**/*.test.tsx']);
+      } else {
+        expect(full).toEqual(['**/__tests__/**/*.test.ts']);
+      }
+    });
+
+    it('test script still runs with --coverage where it did before T-688', () => {
+      if (HAD_COVERAGE.includes(ws)) expect(scripts(ws).test).toContain('--coverage');
+      expect(scripts(ws).test).not.toContain('--coverage=false');
+    });
+
+    it('coverageThreshold is still top-level where the config had it', () => {
+      const cfg = loadConfig(ws) as any;
+      if (HAD_THRESHOLD.includes(ws)) {
+        expect(cfg.coverageThreshold).toBeDefined();
+        expect(cfg.coverageThreshold.global).toBeDefined();
+      }
+      for (const p of cfg.projects) expect(p.coverageThreshold).toBeUndefined();
+    });
+
+    it('the full project keeps coveragePathIgnorePatterns where the base (or web config) had it', () => {
+      const full = project(ws, 'full') as any;
+      if (BASE_WORKSPACES.includes(ws)) {
+        expect(full.coveragePathIgnorePatterns).toEqual(
+          baseJestConfig().coveragePathIgnorePatterns,
+        );
+      } else if (ws === 'apps/web') {
+        expect(full.coveragePathIgnorePatterns).toEqual(['/node_modules/', '/.next/']);
+      }
     });
 
     it('sanity is a subset of what full matches (explicit entries sit under __tests__)', () => {
@@ -185,6 +270,24 @@ describe('T-688 jest projects', () => {
     expect(project(ws, 'sanity').testMatch.length).toBeGreaterThanOrEqual(min);
   });
 
+  describe.each(Object.entries(REQUIRED))('%s required sanity picks', (ws, files) => {
+    const rels = project(ws, 'sanity').testMatch.map((e) =>
+      path.relative(path.join(ROOT, ws), resolveEntry(ws, e)),
+    );
+    it.each(files)('%s is in sanity and exists on disk', (f) => {
+      expect(rels).toContain(path.normalize(f));
+      expect(fs.existsSync(path.join(ROOT, ws, f))).toBe(true);
+    });
+  });
+
+  it.each(['apps/drafting', 'apps/auth', 'apps/billing'])(
+    '%s setupDb keeps launchTimeout 30000',
+    (ws) => {
+      const src = fs.readFileSync(path.join(ROOT, ws, 'src/__tests__/setupDb.ts'), 'utf8');
+      expect(src).toMatch(/launchTimeout:\s*30000\b/);
+    },
+  );
+
   it('drafting golden update still targets the full project', () => {
     expect(scripts('apps/drafting')['test:golden:update']).toContain('--selectProjects full');
     expect(scripts('apps/drafting')['test:golden:update']).not.toContain('sanity');
@@ -206,6 +309,20 @@ describe('T-688 jest projects', () => {
       expect(names).not.toContain(name);
     });
 
+    it('drafting sanity holds at least 63 files (Ajay 43728e3d)', () => {
+      expect(names.length).toBeGreaterThanOrEqual(63);
+    });
+
+    it.each(['t236-recheck-after-citation-removal', 't346-citation-check-helper'])(
+      '%s is nightly only (not in sanity, still on disk for full)',
+      (name) => {
+        expect(names).not.toContain(name);
+        expect(
+          fs.existsSync(path.join(ROOT, 'apps/drafting/src/__tests__', `${name}.test.ts`)),
+        ).toBe(true);
+      },
+    );
+
     it('no t373-* or t115a/b/c file is in sanity', () => {
       expect(names.filter((n) => /^t373-/.test(n) || /^t115[abc]/.test(n))).toEqual([]);
     });
@@ -216,10 +333,70 @@ describe('T-688 jest projects', () => {
   });
 });
 
+function expectNodeModulesCache(id: string, job: any): void {
+  const steps: any[] = job.steps ?? [];
+  const idx = steps.findIndex(
+    (s) =>
+      String(s.uses ?? '').startsWith('actions/cache@') &&
+      String(s.with?.path ?? '').includes('node_modules'),
+  );
+  expect({ id, cache: idx >= 0 }).toEqual({ id, cache: true });
+  const c = steps[idx];
+  expect(c.id).toBe('node-modules');
+  expect(String(c.with.path)).toContain('node_modules');
+  expect(String(c.with.key)).toContain("hashFiles('yarn.lock')");
+  const install = steps.findIndex((s) => /yarn install/.test(String(s.run ?? '')));
+  expect(idx).toBeLessThan(install);
+}
+
 describe('T-688 ci.yml', () => {
   const ci = readYaml('.github/workflows/ci.yml');
   const jobs = Object.entries<any>(ci.jobs);
   const stepRuns = (job: any): string[] => (job.steps ?? []).map((s: any) => String(s.run ?? ''));
+
+  const installsOf = (job: any): any[] =>
+    (job.steps ?? []).filter((s: any) => /yarn install/.test(String(s.run ?? '')));
+  const testSteps = (job: any): any[] =>
+    (job.steps ?? []).filter((s: any) =>
+      /(test:sanity|jest -c scripts\/jest\.config\.js)/.test(String(s.run ?? '')),
+    );
+
+  it('every installing job: install has its own timeout, --prefer-offline, runs only on cache miss', () => {
+    const installing = jobs.filter(([, j]) => installsOf(j).length > 0);
+    expect(installing.length).toBeGreaterThan(0);
+    for (const [id, job] of installing) {
+      const installs = installsOf(job);
+      expect({ id, n: installs.length }).toEqual({ id, n: 1 });
+      const i = installs[0];
+      expect(i.run).toContain('--frozen-lockfile');
+      expect(i.run).toContain('--prefer-offline');
+      expect(i.if).toContain("steps.node-modules.outputs.cache-hit != 'true'");
+      expect({ id, t: typeof i['timeout-minutes'] }).toEqual({ id, t: 'number' });
+      expect(i['timeout-minutes']).toBeLessThanOrEqual(5);
+    }
+  });
+
+  it('every test step has its own timeout, so a cancelled run shows which step blew the budget', () => {
+    let seen = 0;
+    for (const [id, job] of jobs) {
+      for (const s of testSteps(job)) {
+        seen++;
+        expect({ id, run: s.run, t: typeof s['timeout-minutes'] }).toEqual({
+          id,
+          run: s.run,
+          t: 'number',
+        });
+        expect(s['timeout-minutes']).toBeLessThanOrEqual(5);
+      }
+    }
+    expect(seen).toBeGreaterThanOrEqual(7);
+  });
+
+  it('every installing job has the node_modules cache keyed on yarn.lock, before the install', () => {
+    for (const [id, job] of jobs.filter(([, j]) => installsOf(j).length > 0)) {
+      expectNodeModulesCache(id, job);
+    }
+  });
 
   it('every job has timeout-minutes <= 5', () => {
     for (const [id, job] of jobs) {
@@ -282,6 +459,27 @@ describe('T-688 full-tests.yml', () => {
       expect(allRuns.some((r) => r.includes(`@lawie/${name} test:sanity`))).toBe(false);
     },
   );
+
+  it('every job has the node_modules cache and a cache-miss-only --prefer-offline install with a timeout', () => {
+    const entries = Object.entries<any>(wf.jobs);
+    for (const [id, job] of entries) {
+      const installs = (job.steps ?? []).filter((s: any) =>
+        /yarn install/.test(String(s.run ?? '')),
+      );
+      if (installs.length === 0) continue;
+      expect({ id, n: installs.length }).toEqual({ id, n: 1 });
+      expect(installs[0].run).toContain('--frozen-lockfile');
+      expect(installs[0].run).toContain('--prefer-offline');
+      expect(installs[0].if).toContain("steps.node-modules.outputs.cache-hit != 'true'");
+      expect({ id, t: typeof installs[0]['timeout-minutes'] }).toEqual({ id, t: 'number' });
+      expectNodeModulesCache(id, job);
+    }
+    expect(
+      entries.filter(([, j]) =>
+        (j.steps ?? []).some((s: any) => /yarn install/.test(String(s.run ?? ''))),
+      ).length,
+    ).toBeGreaterThanOrEqual(6);
+  });
 
   it('runs web lint', () => {
     expect(allRuns.some((r) => /@lawie\/web (lint|eslint)/.test(r))).toBe(true);

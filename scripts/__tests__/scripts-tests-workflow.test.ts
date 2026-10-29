@@ -269,6 +269,20 @@ describe('scripts-tests workflow', () => {
     }
   });
 
+  it('push paths carry exactly the 6 T-688 extras (sanity-tier guard inputs)', () => {
+    const extras = [
+      'apps/*/jest.config.js',
+      'packages/*/jest.config.js',
+      'apps/*/package.json',
+      'packages/*/package.json',
+      '.github/workflows/ci.yml',
+      '.github/workflows/full-tests.yml',
+    ];
+    for (const p of extras) expect(on.push.paths.filter((x: string) => x === p)).toHaveLength(1);
+    expect(on.push.paths).toHaveLength(new Set(on.push.paths).size);
+    expect(on.push.paths.slice(-extras.length)).toEqual(extras);
+  });
+
   it('installs frozen with PUPPETEER_SKIP_DOWNLOAD "true" and runs yarn test:scripts', () => {
     const steps: any[] = wf.jobs['scripts-tests'].steps;
     const install = steps.find((s) => s.run === 'yarn install --frozen-lockfile');
