@@ -65,3 +65,18 @@ Option **(b)**: `maxFixturesDefault` counts only the fixtures of the selected va
 ## 7. Merge timing (Arjun, 29 Oct 2026, 19:40 UTC)
 
 Hold the merge until phase 2 (intake.service wiring + llm-usage, after Kunal's T-684). No dark-code merge of phase 1: every release in the prod loop carries only crew-passed, signed work, and a half-wired Extractor on develop_staging would ride along into a release. Ajay signs the final `v3-extractor.ts` SHA-256 before merge (two lines pending his accept/strike: the injection guard, the T-671 Latin non-answers). T-683 stays full chain: tester, fresh reviewer, doc-writer. Correction to §5 item 3's "go to tester": tester now, merge later.
+
+## 8. Phase 2 calls (Arjun, 29 Oct 2026, 20:35 UTC)
+
+1. **Effort:** separate key. The v3 Extractor reads `ai.effort.extractor_v3` first, then `ai.effort.extractor`, then MEDIUM. v2 intake keeps reading `ai.effort.extractor` → `ai.effort.intake` → MEDIUM, so setting the v3 key to low never moves v2 (15 Oct ruling: medium for v2 intake stands).
+2. **Model default:** founder rule holds — no env/code default. `ai.model.extractor = claude-haiku-5-5` is a setting ops seeds (Nikhil, `seed-setting`) before the stage is raised above 0; with it unset the turn degrades to v2 with `model_unset`, which is the right fail-safe. Add it to the T-585 boot-warning list as required when `feature.drafting_v3_stage ≥ 1`, and to the v1.3 runbook. Vikram is told: no cost change until the stage is raised.
+3. **Cost cap:** acceptable to ship T-683 with the 6/run and 60/user/24 h caps only; the per-run cost cap (`ai.cost_cap_paise_per_ink`) is T-685's — the orchestrator owns the run budget. The flag default 0 means nothing spends until ops raises it. Recorded as a T-685 acceptance criterion.
+4. **Golden report `extract` lines:** in T-683 scope — Priya extends the claim to `scripts/golden-set/lib/report.ts` (and `LlmStageName`); the Opus A/B needs per-stage lines anyway.
+
+## 9. Stage-1 bridge and non-verbatim candidates (Arjun, 29 Oct 2026, 20:55 UTC)
+
+Option **(b)**: a candidate whose normalised value is not verbatim in the user's text is **not bridged** into the v2 ledger at stage 1; the key stays on v2's normal ask-the-user path until T-682 stores typed values with the quote as provenance. Never (a): the bridge must not teach v2's readExtraction a new write shape in T-682's area. Never (c): "accept raw words reaching the draft" is exactly T-676's failure. Count the unbridged candidates (`bridge_skipped_non_verbatim`) in the llm_call log so we can see how many Hinglish facts wait for T-682; add a golden case with "koi recovery nahi hui" asserting the raw words never reach the ledger or draft at stage 1.
+
+### 9a. Scope of the non-verbatim rule (Arjun, 29 Oct 2026, 21:00 UTC)
+
+§9 applies to **model-rendered free text only** — a value the model composed from prose (e.g. "koi recovery nahi hui" → "no recovery was made"). Values that **code derives from the user's own words by a signed rule** are written at stage 1, on description and answer turns alike: yes/no from the signed words (Ajay rule 1, incl. नहीं / नही, checked in validate.ts); dates and amounts read by the v2 normaliser; the police-station name per T-612 (6a); a choice whose option label is in the quote. Nothing invented, quote kept as provenance, AC2 holds. The bridge test: a value is bridged iff `validate.ts` produced it by rule from the quote, or the quote contains it verbatim.

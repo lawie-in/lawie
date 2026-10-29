@@ -194,6 +194,20 @@ function expectedPack(id: Pack): any {
   } else if (id === 'written_statement') {
     insertBefore('summons_service_date', party('plaintiff_name', SIGNED.written_statement.label));
     insertRuleAfter('defendant_name must not be empty', SIGNED.written_statement.rule);
+    // T-690 (Ajay, 29 Oct 2026, T-681 item 4): the written statement time limit, three signed strings.
+    const days = p.form_schema.fields.find((f: any) => f.id === 'days_from_service');
+    days.label =
+      'Days from service of summons (due within 30; the court may allow up to 90 for recorded reasons; 120 is the outer limit in a commercial suit)';
+    const at = p.prompt_context.promptInstructions.findIndex((x: string) =>
+      x.startsWith('TIME LIMIT: Order VIII R.1'),
+    );
+    p.prompt_context.promptInstructions[at] =
+      'TIME LIMIT: Order VIII Rule 1 CPC \u2014 file the WS within 30 days of service of summons. The court may allow more time for reasons recorded in writing, up to 90 days from service. In a commercial suit the outer limit is 120 days, and after it the WS cannot be filed.';
+    const order8 = p.relevantActs
+      .flatMap((r: any) => r.sections ?? [])
+      .find((x: any) => x.number === 'Order VIII R.1');
+    order8.description =
+      "Written statement \u2014 30 days; up to 90 days with the court's leave; 120 days outer limit in a commercial suit";
   } else {
     p.causeTitle.format = p.causeTitle.format.replace(
       '{defendants} ... Defendants',
