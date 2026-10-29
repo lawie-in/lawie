@@ -9,7 +9,8 @@ import { scrubEvent, withoutRequestBody, withoutRequestQuery } from '../config/s
 
 describe('withoutRequestBody', () => {
   it('does not start Sentry when there is no DSN', () => {
-    expect(process.env.SENTRY_DSN).toBeUndefined();
+    // T-663: a boolean, so a failure can never print the variable's value.
+    expect(process.env.SENTRY_DSN === undefined).toBe(true);
     expect(Sentry.getClient()).toBeUndefined();
   });
 
@@ -89,6 +90,35 @@ describe('Sentry.init with a DSN set (T-136, part 2 condition 6)', () => {
       expect(out.request).not.toHaveProperty('data');
       expect(JSON.stringify(out)).not.toContain('Ramesh');
       expect(out.request?.url).toBe('http://x/api');
+    }
+  });
+
+  // T-663: the test sets its own fixture DSN; the module hands it to Sentry.init only and never
+  // writes it to the console. Assertions are booleans/counts so no DSN is ever printed.
+  it('uses a fixture DSN it sets itself and never writes the DSN to the console', () => {
+    const FIXTURE_DSN = 'https://fixture-key-t663@example.invalid/1';
+    jest.resetModules();
+    const init = jest.fn();
+    jest.doMock('@sentry/node', () => ({ init }));
+    const methods = ['log', 'info', 'warn', 'error', 'debug'] as const;
+    const spies = methods.map((m) => jest.spyOn(console, m).mockImplementation(() => undefined));
+    try {
+      process.env.SENTRY_DSN = FIXTURE_DSN;
+      let threw = false;
+      jest.isolateModules(() => {
+        try {
+          require('../config/sentry');
+        } catch {
+          threw = true;
+        }
+      });
+      expect(threw).toBe(false);
+      expect(init).toHaveBeenCalledTimes(1);
+      expect((init.mock.calls[0][0] as { dsn?: unknown }).dsn === FIXTURE_DSN).toBe(true);
+      const printed = spies.flatMap((s) => s.mock.calls).map((args) => JSON.stringify(args));
+      expect(printed.filter((text) => text.includes('fixture-key-t663')).length).toBe(0);
+    } finally {
+      for (const s of spies) s.mockRestore();
     }
   });
 });
