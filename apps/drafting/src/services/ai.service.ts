@@ -545,10 +545,6 @@ export type GenerationFailedCode =
   | 'fact_conflict'
   | 'past_date_in_prayer';
 
-/** Sentinel thrown after a mid-stream LLM failure so the route handler knows
- *  the SSE has already been ended and not to re-emit `done`. Carries whatever
- *  usage was captured before the failure (T-003) so the route can still
- *  record a Generation row for the attempt instead of losing it. */
 /**
  * T-678: why the delivery gate withheld a draft, as codes only: the code, the
  * gate rule id and the field keys it fired on. Never a value, a label or user
@@ -561,6 +557,10 @@ export interface GenerationFailure {
   keyB?: string;
 }
 
+/** Sentinel thrown after a mid-stream LLM failure so the route handler knows
+ *  the SSE has already been ended and not to re-emit `done`. Carries whatever
+ *  usage was captured before the failure (T-003) so the route can still
+ *  record a Generation row for the attempt instead of losing it. */
 export class GenerationFailedError extends Error {
   readonly code: GenerationFailedCode;
   readonly usage: UsageTotals;

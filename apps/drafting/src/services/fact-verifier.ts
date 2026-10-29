@@ -1030,10 +1030,12 @@ const DATE_NON_CUE_FORMS: readonly string[] = [
 const DATE_CUE_STOP = new Set(DATE_NON_CUE_FORMS.filter((f) => !f.includes(' ')));
 
 /**
- * Multi-word entries ("opposite party", "decree holder", "मकान मालिक"): removed
- * as whole phrases before the words are split, so their single words (e.g.
- * "holder", "मकान") still count elsewhere ("party" is a generic stop word
- * anyway, in CUE_STOP). Longest first.
+ * Multi-word entries ("opposite party", "decree holder", "मकान मालिक"), matched
+ * as whole phrases so their single words (e.g. "holder", "मकान") still count
+ * elsewhere ("party" is a generic stop word anyway, in CUE_STOP). On the label
+ * side (cueStems) they are removed before the words are split; on the draft
+ * side (cuedKeys) the words they cover are skipped by position (phraseStopped),
+ * so the other positions stay the same. Longest first.
  */
 const DATE_CUE_STOP_PHRASES: readonly string[] = DATE_NON_CUE_FORMS.filter((f) =>
   f.includes(' '),
