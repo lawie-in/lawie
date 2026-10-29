@@ -13,7 +13,8 @@
     "erase-user": "ts-node --transpile-only src/scripts/erase-user.ts",
     "test-accounts:list": "ts-node --transpile-only src/scripts/test-accounts.ts list",
     "test-accounts:delete": "ts-node --transpile-only src/scripts/test-accounts.ts delete",
-    "verify:resend-all": "ts-node --transpile-only scripts/verify-resend-all.ts"
+    "verify:resend-all": "ts-node --transpile-only scripts/verify-resend-all.ts",
+    "backfill:free-seed": "ts-node --transpile-only scripts/backfill-free-seed.ts"
   },
   "dependencies": {
     "@lawie/email-client": "1.0.0",

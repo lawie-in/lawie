@@ -194,6 +194,42 @@ function isComputedHere(f: LedgerFact): boolean {
   );
 }
 
+/** What the ledger tells the R1 / B1 rule, read the same way by the brief and by generation (T-660). */
+export interface LedgerCustodyInputs {
+  /** Every stored fact's raw_span and display, and every unresolved entry's raw_span (B1 scan). */
+  texts: string[];
+  /** A custody or remand date (other than custody_since) is held, or unresolved (B1). */
+  otherCustodyDate: boolean;
+  /** A custody_since fact is held (B5), whatever its display. */
+  custodySinceHeld: boolean;
+}
+
+/**
+ * T-660: the ledger's part of the rule, pure. Computed facts this module makes
+ * (the marker, a computed custody_since) are left out, so a request's own
+ * derivation never counts as held. `withCustodySinceDerived` reads the ledger
+ * through this, and the brief (intake-brief.ts) is given the same result.
+ */
+export function ledgerCustodyInputs(
+  facts: readonly LedgerFact[],
+  unresolved: ReadonlyArray<Pick<LedgerUnresolvedFact, 'key' | 'raw_span'>> = [],
+): LedgerCustodyInputs {
+  const stored = facts.filter((f) => !isComputedHere(f));
+  return {
+    texts: [
+      ...stored.flatMap((f) => [f.raw_span ?? '', typeof f.display === 'string' ? f.display : '']),
+      ...unresolved.map((u) => u.raw_span ?? ''),
+    ],
+    otherCustodyDate:
+      stored.some(
+        (f) =>
+          lastSegment(f.key) !== CUSTODY_SINCE_KEY &&
+          CUSTODY_OR_REMAND_DATE_KEYS.has(lastSegment(f.key)),
+      ) || unresolved.some((u) => CUSTODY_OR_REMAND_DATE_KEYS.has(lastSegment(u.key))),
+    custodySinceHeld: stored.some((f) => lastSegment(f.key) === CUSTODY_SINCE_KEY),
+  };
+}
+
 /**
  * The generation path (ai.service.ts, beside T-611 P5): the ledger's facts for
  * this request, with custody_since computed from arrest_date when R1 holds,
@@ -214,23 +250,14 @@ export function withCustodySinceDerived(
   const arrestFacts = of(ARREST_DATE_KEY).filter(
     (f) => f.type === 'date' && typeof f.value === 'string',
   );
-  const otherCustodyDate =
-    stored.some(
-      (f) =>
-        lastSegment(f.key) !== CUSTODY_SINCE_KEY &&
-        CUSTODY_OR_REMAND_DATE_KEYS.has(lastSegment(f.key)),
-    ) || unresolved.some((u) => CUSTODY_OR_REMAND_DATE_KEYS.has(lastSegment(u.key)));
+  const ledger = ledgerCustodyInputs(stored, unresolved);
   const result = deriveCustodySince({
     packId,
     custody: of(CUSTODY_CHOICE_KEY).flatMap((f) => [f.value, f.display]),
     arrestDates: arrestFacts.map((f) => String(f.value)),
-    custodySinceHeld: of(CUSTODY_SINCE_KEY).length > 0,
-    otherCustodyDate,
-    texts: [
-      described ?? '',
-      ...stored.flatMap((f) => [f.raw_span ?? '', typeof f.display === 'string' ? f.display : '']),
-      ...unresolved.map((u) => u.raw_span ?? ''),
-    ],
+    custodySinceHeld: ledger.custodySinceHeld,
+    otherCustodyDate: ledger.otherCustodyDate,
+    texts: [described ?? '', ...ledger.texts],
   });
   if (!('derived' in result)) return stored;
   const arrest = arrestFacts[0];

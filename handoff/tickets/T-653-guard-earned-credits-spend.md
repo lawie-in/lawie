@@ -1,6 +1,6 @@
 # T-653 — Guard: spendCredits refuses earnedCredits
 
-Status: backlog (unassigned). Ajay AJ-646-M9c (a2501db3), 28 Oct 2026.
+Status: assigned to kunal, 29 Oct 2026. Ajay AJ-646-M9c (a2501db3), 28 Oct 2026.
 
 ## Problem
 earnedCredits (the old login, rating and signup bonuses) can't be spent today only because `spendCredits` (drafting credits.service.ts ~602-650) has no callers. There is no guard. A future caller could spend Ink that users were never offered.

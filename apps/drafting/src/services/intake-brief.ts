@@ -1380,6 +1380,16 @@ export interface BuildBriefInput {
    * `BLANK_ONCE_ASKED` with no value, the item is marked `asked_blank`.
    */
   askedKeys?: readonly string[];
+  /**
+   * T-660: the ledger's part of the custody_since rule (T-638 R1 / B1), from
+   * `ledgerCustodyInputs` over the ledger's facts and unresolved entries, so
+   * the brief derives only when generation will. Absent: keys only, as before.
+   */
+  ledgerCustody?: {
+    texts: readonly string[];
+    otherCustodyDate: boolean;
+    custodySinceHeld: boolean;
+  };
 }
 
 /**
@@ -1621,6 +1631,7 @@ function deriveCustodySinceItem(
         !isEmpty(i.value),
     ) ||
     ledger.some((k) => k !== CUSTODY_SINCE_KEY && CUSTODY_OR_REMAND_DATE_KEYS.has(k)) ||
+    input.ledgerCustody?.otherCustodyDate === true ||
     statedDates(input.description).some(
       (d) => d.kind !== null && CUSTODY_OR_REMAND_KINDS.has(d.kind) && d.value !== arrestIso,
     );
@@ -1631,12 +1642,15 @@ function deriveCustodySinceItem(
     input.description,
     ...items.flatMap((i) => [...strings(i.value), ...strings(i.quote)]),
     ...unplaced.flatMap((u) => strings(u.value)),
+    // T-660: and the ledger's own wording, as generation scans it.
+    ...(input.ledgerCustody?.texts ?? []),
   ];
   const result = deriveCustodySince({
     packId: input.kind.id,
     custody: named(CUSTODY_CHOICE_KEY).flatMap((i) => strings(i.value)),
     arrestDates,
-    custodySinceHeld: ledger.includes(CUSTODY_SINCE_KEY),
+    custodySinceHeld:
+      ledger.includes(CUSTODY_SINCE_KEY) || input.ledgerCustody?.custodySinceHeld === true,
     otherCustodyDate,
     texts,
   });
