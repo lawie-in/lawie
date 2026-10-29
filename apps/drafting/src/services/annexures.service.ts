@@ -23,6 +23,7 @@ import { join } from 'path';
 
 import { CaseSide, CLIENT_ROLE_TABLE, ClientRoleRow, storesState } from './brief-party-fields';
 import { renderPdf } from './pdf-export.service';
+import { policeStationName } from './police-station-name';
 import {
   chosenCourtHeading,
   CourtLookupData,
@@ -493,7 +494,10 @@ function annexureListOfDates(formData: Record<string, unknown>): string {
   );
   const firDate = safeDateEsc(formData.fir_date ?? formData.date_of_fir);
   const firNo = safeEsc(formData.fir_number ?? formData.fir_no ?? formData.complaint_number);
-  const ps = safeEsc(formData.police_station ?? formData.ps_name);
+  // T-638 (Ajay T-612 (6), (6a), (6b)): "Police Station {name}" in prose, the
+  // name without its own station marker.
+  const psRaw = str(formData.police_station ?? formData.ps_name);
+  const ps = esc(psRaw === '___________' ? psRaw : policeStationName(psRaw));
   const arrestDate = safeDateEsc(formData.date_of_arrest ?? formData.arrest_date);
   // T-349: "4 April 2026" (T-340's formatter), local date as before.
   const filingDate = formatDraftDate(new Date());
@@ -502,7 +506,7 @@ function annexureListOfDates(formData: Record<string, unknown>): string {
     [eventDate !== '___________' ? eventDate : '___________', 'Date of alleged incident/event'],
     [
       firDate !== '___________' ? firDate : '___________',
-      `FIR No. ${firNo} registered at PS ${ps}`,
+      `FIR No. ${firNo} registered at Police Station ${ps}`,
     ],
     [arrestDate !== '___________' ? arrestDate : '___________', 'Date of arrest / apprehension'],
     [filingDate, 'Filing of the present application/petition'],

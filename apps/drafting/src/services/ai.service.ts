@@ -75,6 +75,7 @@ import {
   SIDED_PACKS,
 } from './brief-party-fields';
 import { citationWarnings, removeUngivenCitations } from './citation-check';
+import { withCustodySinceDerived } from './custody-since-derivation';
 import {
   buildDraftParagraphsSchema,
   D1DrafterFact,
@@ -2352,9 +2353,13 @@ export async function streamGenerateFromBrief(
         ...limitedInput,
         ledger: {
           ...limitedInput.ledger,
-          facts: withAmountInWordsFact(
-            limitedInput.ledger.facts,
-            buildChecklist(limitedInput.pack),
+          // T-638 (Ajay R1, B1-B5): on a regular bail, custody_since from the
+          // held arrest_date (and its marker), per request, never stored.
+          facts: withCustodySinceDerived(
+            withAmountInWordsFact(limitedInput.ledger.facts, buildChecklist(limitedInput.pack)),
+            limitedInput.pack.id,
+            limitedInput.described,
+            limitedInput.ledger.unresolved ?? [],
           ),
         },
       }

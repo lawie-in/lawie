@@ -32,6 +32,15 @@ import {
   needsNotInCustodyWarning,
   REGULAR_BAIL_NOT_IN_CUSTODY_WARNING,
 } from './bail-guard';
+import {
+  ARREST_DATE_KEY,
+  CUSTODY_CHOICE_KEY,
+  CUSTODY_OR_REMAND_DATE_KEYS,
+  CUSTODY_OR_REMAND_KINDS,
+  CUSTODY_SINCE_KEY,
+  CUSTODY_SINCE_PACK_ID,
+  deriveCustodySince,
+} from './custody-since-derivation';
 import { datesInText, iso, isOwnWords, normalise } from './intake-text';
 import { isLawSwitchPack } from './law-switch';
 import type { RulePack, RulePackFact } from './rule-pack.service';
@@ -147,6 +156,13 @@ export interface BriefItem {
    * Tells the web app which blank answers to send back as `asked_keys`.
    */
   blank_once_asked?: true;
+  /**
+   * T-638 (Ajay R1, B3): on a regular bail, the value is not the advocate's:
+   * custody_since is the date of arrest, derived. The brief shows it as
+   * `<date> (date of arrest)`. The web app does not send it back as a value,
+   * so it is worked out again on every update; an edit makes it given.
+   */
+  derived_from?: 'arrest_date';
 }
 
 export interface BriefCourt {
@@ -1274,6 +1290,20 @@ const NONE_ANSWERS = new Set(
 );
 
 /**
+ * T-638 (Ajay, T-612 (4)): the Devanagari non-answers, folded with their vowel
+ * signs kept. `foldAnswer` drops combining marks, so "नहीं" would fold to "नह"
+ * and also match "नहा"; these are compared whole, marks included.
+ */
+const foldKeepingMarks = (v: string): string =>
+  normalise(v)
+    .replace(/[^\p{L}\p{M}\p{N}]+/gu, ' ')
+    .trim();
+// Ajay A1a (290692f0): the no-anusvara spellings count too.
+const NONE_ANSWERS_DEVANAGARI = new Set(
+  ['नहीं', 'कोई नहीं', 'नही', 'कोई नही'].map(foldKeepingMarks),
+);
+
+/**
  * True when this answer writes no fact (T-190), on a fact the pack asks for
  * when empty only: "Not known" or "Not given", or a "none" answer on a fact
  * that is used only when present (`medical_condition`, `local_ties`, `co_accused_bail_court`,
@@ -1289,7 +1319,10 @@ export function isNoFactAnswer(
   // reuses a key such as `dependants` is not affected.
   if (item.askWhenEmpty !== true) return false;
   if (NOT_KNOWN_ANSWERS.has(folded)) return true;
-  return NONE_IS_EMPTY_KEYS.has(lastSegment(item.key)) && NONE_ANSWERS.has(folded);
+  return (
+    NONE_IS_EMPTY_KEYS.has(lastSegment(item.key)) &&
+    (NONE_ANSWERS.has(folded) || NONE_ANSWERS_DEVANAGARI.has(foldKeepingMarks(value)))
+  );
 }
 
 // ── Building the brief ──────────────────────────────────────────────────────
@@ -1531,6 +1564,78 @@ function hiddenByShowIf(checklist: ChecklistItem[], placed: Map<string, GivenVal
  * item has the same fact name. Otherwise it is kept under `unplaced`, so a
  * change of kind loses nothing.
  */
+/**
+ * T-638 (Ajay R1, T-611; B1-B5, T-612 file): on a regular bail with the
+ * applicant in custody and no custody_since given, the brief shows the date of
+ * arrest as custody_since, marked `derived_from`, so the advocate sees it
+ * before drafting. Only with the description (the rule reads it for B1): a
+ * brief worked out again without it derives nothing. Not derived, so asked
+ * (B2), when the description says a B1 word, or a custody or remand date
+ * other than the date of arrest is held, stated, or held by the ledger.
+ */
+function deriveCustodySinceItem(
+  items: BriefItem[],
+  input: BuildBriefInput,
+  unplaced: ReadonlyArray<{ value: string | string[] }>,
+): void {
+  if (input.kind.id !== CUSTODY_SINCE_PACK_ID || input.description === undefined) return;
+  const at = items.findIndex((i) => lastSegment(i.key) === CUSTODY_SINCE_KEY && i.kind === 'date');
+  if (at < 0) return;
+  const item = items[at];
+  if (!isEmpty(item.value) || item.asked_empty === true) return;
+  const strings = (v: string | string[] | null | undefined): string[] =>
+    v === null || v === undefined ? [] : Array.isArray(v) ? v : [v];
+  const named = (name: string): BriefItem[] => items.filter((i) => lastSegment(i.key) === name);
+  const ledger = [...(input.ledgerGiven ?? [])].map(lastSegment);
+  // Every arrest date the brief holds, as the generation path reads every
+  // arrest_date fact: more than one is not derived from (asked).
+  const arrestDates = named(ARREST_DATE_KEY)
+    .flatMap((i) => strings(i.value))
+    .map((d) => d.trim())
+    .filter((d) => d !== '');
+  const uniqueArrest = [...new Set(arrestDates)];
+  const arrestIso = uniqueArrest.length === 1 ? uniqueArrest[0] : null;
+  const otherCustodyDate =
+    items.some(
+      (i) =>
+        lastSegment(i.key) !== CUSTODY_SINCE_KEY &&
+        CUSTODY_OR_REMAND_DATE_KEYS.has(lastSegment(i.key)) &&
+        !isEmpty(i.value),
+    ) ||
+    ledger.some((k) => k !== CUSTODY_SINCE_KEY && CUSTODY_OR_REMAND_DATE_KEYS.has(k)) ||
+    statedDates(input.description).some(
+      (d) => d.kind !== null && CUSTODY_OR_REMAND_KINDS.has(d.kind) && d.value !== arrestIso,
+    );
+  // B1 "the description or the ledger": the description (with the answers, as
+  // the web app sends it), every value and quote on the brief (the ledger
+  // mirrors them, T-335), and the values no item took.
+  const texts = [
+    input.description,
+    ...items.flatMap((i) => [...strings(i.value), ...strings(i.quote)]),
+    ...unplaced.flatMap((u) => strings(u.value)),
+  ];
+  const result = deriveCustodySince({
+    packId: input.kind.id,
+    custody: named(CUSTODY_CHOICE_KEY).flatMap((i) => strings(i.value)),
+    arrestDates,
+    custodySinceHeld: ledger.includes(CUSTODY_SINCE_KEY),
+    otherCustodyDate,
+    texts,
+  });
+  if (!('derived' in result)) return;
+  const { quote: _quote, ...rest } = item;
+  void _quote;
+  // Source null: the value is the code's, not the description's nor the
+  // advocate's. overlayBrief and briefLedgerValues write no fact for it.
+  items[at] = {
+    ...rest,
+    value: result.derived.value,
+    source: null,
+    please_check: false,
+    derived_from: 'arrest_date',
+  };
+}
+
 export function buildBrief(input: BuildBriefInput): Brief {
   const byKey = new Map(input.checklist.map((i) => [i.key, i]));
   const byName = new Map<string, ChecklistItem[]>();
@@ -1634,6 +1739,8 @@ export function buildBrief(input: BuildBriefInput): Brief {
           : {}),
       };
     });
+  // T-638 (Ajay R1, B1-B5): custody_since from the date of arrest, when it applies.
+  deriveCustodySinceItem(items, input, [...unplaced.values()]);
 
   const court: BriefCourt = {
     state: clean(input.court?.state),

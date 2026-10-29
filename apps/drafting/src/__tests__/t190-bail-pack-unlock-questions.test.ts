@@ -244,12 +244,24 @@ describe.each(PACKS)('T-190 AC1-AC3 pack file %s', (packId) => {
   const want = expectedOrder(packId);
   // fir_date first (Addendum 5 #3), then the 16 T-190 items (13 for bail_anticipatory).
   const askedWant = ['fir_date', ...want];
+  const T638_ASKED = packId === 'bail_regular' ? ['custody_since'] : [];
+  const B2_QUESTION =
+    'Since what date has the applicant been in custody (the date of arrest or surrender)?';
 
   it.each(files)(
     '%s: the asked items are the signed ones, in order, with the exact text, all optional',
     (_n, path) => {
       const fields = rawFields(path);
-      const asked = fields.filter((f) => f.ask_when_empty === true);
+      const askedAll = fields.filter((f) => f.ask_when_empty === true);
+      // T-638 (Ajay B2, 28 Oct 2026): bail_regular also asks custody_since, with the signed question.
+      const t638 = askedAll.filter((f) => f.id === 'custody_since');
+      expect(t638.map((f) => f.id)).toEqual(T638_ASKED);
+      for (const f of t638) {
+        expect(f.question).toBe(B2_QUESTION);
+        expect(f.type).toBe('date');
+        expect(f.required).toBe(false);
+      }
+      const asked = askedAll.filter((f) => f.id !== 'custody_since');
       expect(asked.map((f) => f.id)).toEqual(askedWant);
       // the T-190 items are consecutive in the file (fir_date sits with the FIR fields)
       const at = fields.findIndex((f) => f.id === want[0]);
@@ -274,7 +286,14 @@ describe.each(PACKS)('T-190 AC1-AC3 pack file %s', (packId) => {
 
   it('the pack the service loads carries the same questions (source pack) and optional ask_when_empty items', () => {
     const cl = buildChecklist(loadRulePack(packId)!);
-    const asked = cl.filter((i) => i.askWhenEmpty);
+    const askedAll = cl.filter((i) => i.askWhenEmpty);
+    // T-638 (Ajay B2): custody_since is asked on bail_regular, with the signed question.
+    expect(askedAll.filter((i) => i.key === 'custody_since').map((i) => i.key)).toEqual(T638_ASKED);
+    for (const i of askedAll.filter((x) => x.key === 'custody_since')) {
+      expect(i.question).toBe(B2_QUESTION);
+      expect(i.required).toBe(false);
+    }
+    const asked = askedAll.filter((i) => i.key !== 'custody_since');
     expect(asked.map((i) => i.key)).toEqual(askedWant);
     for (const i of asked) {
       expect(i.question).toBe(signedOf(i.key, packId).question);
@@ -422,10 +441,13 @@ describe.each(PACKS)('T-190 buildQuestions on %s', (packId) => {
     expect([...inPack].sort((a, b) => a - b)).toEqual(inPack);
     expect(keys.indexOf(PROTECTED)).toBeLessThan(firstOpt);
     // signed order among the asked optional ones
+    // T-638 (Ajay B2): custody_since is asked on bail_regular (no custody date derived or given), in pack order.
     const want = expectedOrder(packId).filter((k) => optional.includes(k));
-    expect(optional).toEqual(want);
+    expect(optional.filter((k) => k !== 'custody_since')).toEqual(want);
+    if (packId === 'bail_regular') expect(optional).toContain('custody_since');
+    else expect(optional).not.toContain('custody_since');
     // not-asked optional items stay out
-    for (const k of ['custody_since', 'additional_context', 'next_hearing_date']) {
+    for (const k of ['additional_context', 'next_hearing_date']) {
       expect(keys).not.toContain(k);
     }
     // advocate_enrollment is optional (not asked) in bail_regular and bail_anticipatory; interim_bail
@@ -459,13 +481,14 @@ describe('T-190 buildQuestions: exact lists, alwaysAsk, 240-character rule, conf
       'earlier_bail_applications',
       'facts_narrative',
       'grounds_for_bail',
+      // T-638 (Ajay B2): custody_since is asked in pack order; the cap of 10 now drops recovery_status.
+      'custody_since',
       'antecedents',
       'arrest_date',
       'investigation_status',
       'applicant_sex',
       'medical_condition',
       'named_in_fir',
-      'recovery_status',
     ]);
   });
 
