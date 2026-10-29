@@ -41,6 +41,7 @@ it('table cells use nl text tokens and no text-slate-*', async () => {
           title: 'Alpha',
           docType: 'bail_application',
           courtName: 'Patna High Court',
+          courtLabel: 'Patna High Court',
           status: 'finalised',
           createdAt: '2026-10-01T00:00:00Z',
         },

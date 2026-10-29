@@ -23,6 +23,7 @@ import { LawieDocument } from '../models/Document.model';
 import { Event } from '../models/Event.model';
 import { ReviewFeedback, REVIEW_VERDICTS, ReviewVerdict } from '../models/ReviewFeedback.model';
 import { ReviewToken } from '../models/ReviewToken.model';
+import { displayTitle, resolveCourtLabel } from '../services/court-label.service';
 import { decrypt } from '../utils/encryption';
 import { missingAsBlanks } from '../utils/missingAsBlanks';
 
@@ -279,11 +280,15 @@ router.get('/review/:token', async (req: Request, res: Response): Promise<void> 
     doc.finalContent ? decrypt(doc.finalContent) : decrypt(doc.generatedContent),
   );
 
+  // T-674 AC3 (R4): the reviewer sees a court label, never the stored court id.
+  const courtLabel = await resolveCourtLabel(doc.courtName);
+
   res.json({
     document: {
-      title: doc.title,
+      title: displayTitle(doc.title, doc.courtName, courtLabel),
       docType: doc.docType,
       courtName: doc.courtName,
+      courtLabel,
       content,
       sectionsCited: doc.sectionsCited,
     },
