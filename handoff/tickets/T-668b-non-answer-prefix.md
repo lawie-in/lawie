@@ -43,3 +43,10 @@ Developer applies exactly this; nothing else rides on the ticket. Release v1.2.5
 - The gate is the real-route supertest on the confirm endpoint for the declaration template, plus one case that mirrors Anushka's run 5c sequence. No browser run, because the container has no Mongo/Redis and the develop box isn't built. Anushka re-checks on prod after v1.2.5.
 - Ajay APPROVED 397c6c84 (945922df). P1 prompt line AJ-668c-P1 (82fd2097) is copied byte for byte into handoff/design/T-127-one-flow-rules-and-prompts.md.
 - The no-pack fixed.other_party gap is split out to T-668d.
+
+### Arjun — run 5c scenario 2 explained (29 Oct 2026, 15:50 UTC, from Anushka's records)
+
+Anushka's defendant box in that run was labelled **"The person or authority it is against or addressed to"** with "Needed to continue" — that is `fixed.other_party`, the generic brief item, not `defendant_name`. Her description was "Suit for declaration and permanent injunction… Defendant: Not known (…)", court "District Court, Lucknow". So the brief was on the generic/no-pack path (or a kind whose party items are the fixed keys), where `nonAnswer` is false and only emptiness blocks: typed "Not known (a person claiming…)" is non-empty → Confirm enabled → drafted, 2 Ink. The "to continue" line she saw was the empty-box state before her fill; the blur re-check cleared it. This is Vishal's "second gap" (T-668d) and it IS the headline case, so it rides on T-668c:
+- Rule (Ajay, AJ-668d): the §(j)3 non-answer test applies to the generic party items `fixed.first_party` / `fixed.other_party` on every court document, not only on the 8 packs.
+- Code: `confirmState` — treat `nonAnswer` as true for items whose key is `FIXED_KEYS.firstParty`/`otherParty` when `courtDocument` is true; `ledgerGivenKeys` — same keys use `isPartyNonAnswer`.
+- Tests: `buildBrief` with the exact description above → record which kind id the matcher assigns (the ticket states it); typed `fixed.other_party` = "Not known (a person claiming through a forged sale deed dated 12.02.2025)" → `can_confirm === false`, blockers include `parties`; real-route supertest update→confirm → 400. Control "Not Known Traders" passes.
