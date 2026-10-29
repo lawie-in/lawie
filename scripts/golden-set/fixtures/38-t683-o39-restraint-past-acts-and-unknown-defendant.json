@@ -1,0 +1,88 @@
+{
+  "id": "38-t683-o39-restraint-past-acts-and-unknown-defendant",
+  "pack": "temporary_injunction_o39",
+  "title": "T-683 / T-613 (j)7(b), O.39: acts that already happened are not a restraint (empty); 'Not known' as the defendant is a non-answer; nahi on ex-parte is No",
+  "risk": "T-613 (j)7(b): never turn past acts into a restraint; AJ-668 M5: 'Not known' as a party name never becomes a name and the required party blocks.",
+  "source": "Ajay T-683 test list (a restraint described only as past acts; 'Not known' as a defendant) and rule 3 (the signed hint). The hint is followed by the model: the recorded reply here is what a model that follows it returns; only a --real run proves the model does. Phase 1 cassette: the recorded extract reply is the v3 Extractor's (T-683) reply; it is replayed through services/v3/validate.ts by apps/drafting/src/__tests__/v3/cassettes.test.ts. Intake is not wired to v3 until phase 2, so golden:set cannot run it yet (the recorded variant is v3_extract, which the default dry run skips). Ledger displays: dates DD.MM.YYYY, amounts as rupees, lists joined by ', '.",
+  "review": "drafted by dev from Anushka's reports, not yet reviewed by Anushka",
+  "ajay": "Ajay, T-683 test list (handoff/legal/run5-rulings-ajay.md, 29 Oct 2026): expected candidates are legal-content expectations",
+  "language": "en",
+  "description": "Application under Order 39 Rules 1 and 2 CPC in Title Suit 90 of 2026 by plaintiff Sample Person 1. On 02.09.2026 the defendant dug a trench on the plaintiff's plot and cut two trees.",
+  "court": {
+    "state": "Bihar",
+    "court_type": "civil_court",
+    "court": "bihar_civil_patna"
+  },
+  "answers": [
+    {
+      "key": "defendant_name",
+      "value": "Not known"
+    },
+    {
+      "key": "ex_parte_sought",
+      "value": "nahi"
+    }
+  ],
+  "v3_stage": 1,
+  "v3_answers": [
+    {
+      "turn": 1,
+      "asked": ["defendant_name"],
+      "text": "Not known"
+    },
+    {
+      "turn": 2,
+      "asked": ["ex_parte_sought"],
+      "text": "nahi"
+    }
+  ],
+  "expect": {
+    "ledger": [
+      {
+        "key": "suit_number",
+        "display": "Title Suit 90 of 2026",
+        "why": "given"
+      },
+      {
+        "key": "plaintiff_name",
+        "display": "Sample Person 1",
+        "why": "given"
+      },
+      {
+        "key": "acts_complained_of",
+        "display": "On 02.09.2026 the defendant dug a trench on the plaintiff's plot and cut two trees.",
+        "why": "the past acts go here, not into restraint_sought"
+      },
+      {
+        "key": "ex_parte_sought",
+        "display": "No",
+        "why": "nahi is No"
+      },
+      {
+        "key": "restraint_sought",
+        "unresolved": true,
+        "why": "T-613 (j)7(b): the description gives past acts only, so the restraint is left empty"
+      }
+    ]
+  },
+  "v3_expect": {
+    "non_answers": [
+      {
+        "key": "defendant_name",
+        "quote": "Not known"
+      }
+    ],
+    "absent_keys": ["defendant_name", "restraint_sought"],
+    "unresolved": ["restraint_sought"],
+    "dropped": {
+      "non_answer": 1
+    }
+  },
+  "recorded": {
+    "v3_extract": {
+      "reception": "{\"outcome\": \"read\", \"read\": [], \"conflicts\": [], \"questions\": []}",
+      "extract": "{\"facts\": [{\"key\": \"suit_number\", \"source\": \"description\", \"turn\": 0, \"quote\": \"Title Suit 90 of 2026\", \"value\": \"Title Suit 90 of 2026\", \"confidence\": 0.97}, {\"key\": \"plaintiff_name\", \"source\": \"description\", \"turn\": 0, \"quote\": \"plaintiff Sample Person 1\", \"value\": \"Sample Person 1\", \"confidence\": 0.97}, {\"key\": \"acts_complained_of\", \"source\": \"description\", \"turn\": 0, \"quote\": \"On 02.09.2026 the defendant dug a trench on the plaintiff's plot and cut two trees\", \"value\": \"On 02.09.2026 the defendant dug a trench on the plaintiff's plot and cut two trees.\", \"confidence\": 0.95}, {\"key\": \"ex_parte_sought\", \"source\": \"answer\", \"turn\": 2, \"quote\": \"nahi\", \"value\": \"No\", \"confidence\": 0.95}], \"non_answers\": [{\"key\": \"defendant_name\", \"source\": \"answer\", \"turn\": 1, \"quote\": \"Not known\"}], \"unresolved\": [\"restraint_sought\"]}",
+      "drafter": "(phase 2: the drafter's reply is recorded when intake is wired to v3)"
+    }
+  }
+}

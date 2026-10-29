@@ -1,0 +1,60 @@
+{
+  "id": "33-t679-replication-keeps-notice-dates",
+  "pack": "replication",
+  "title": "T-679 AC3, replication: the quit notice (02.07.2026), the AD (06.07.2026) and 'no rent since March 2026' are kept as given",
+  "risk": "T-679 AC3: the replication lost the quit-notice date, the AD date and 'no rent since March 2026'. Each digit run of the value must be in the quote, and none may be dropped from what the quote gives.",
+  "source": "T-679 AC3. Facts re-made with fictional names. Phase 1 cassette: the recorded extract reply is the v3 Extractor's (T-683) reply; it is replayed through services/v3/validate.ts by apps/drafting/src/__tests__/v3/cassettes.test.ts. Intake is not wired to v3 until phase 2, so golden:set cannot run it yet (the recorded variant is v3_extract, which the default dry run skips). Ledger displays: dates DD.MM.YYYY, amounts as rupees, lists joined by ', '.",
+  "review": "drafted by dev from Anushka's reports, not yet reviewed by Anushka",
+  "ajay": "Ajay, T-683 test list (handoff/legal/run5-rulings-ajay.md, 29 Oct 2026): expected candidates are legal-content expectations",
+  "language": "en",
+  "description": "Replication by plaintiff Sample Person 1 to the written statement of defendant Sample Person 2 in Title Suit 77 of 2026. The defendant filed the written statement on 20.09.2026. The new facts in the written statement: the defendant says a quit notice was given on 02.07.2026, that an AD card was signed on 06.07.2026, and that no rent has been paid since March 2026.",
+  "court": {
+    "state": "Bihar",
+    "court_type": "civil_court",
+    "court": "bihar_civil_patna"
+  },
+  "answers": [],
+  "v3_stage": 1,
+  "v3_answers": [],
+  "expect": {
+    "ledger": [
+      {
+        "key": "new_facts_in_ws",
+        "display": "The written statement says a quit notice was given on 02.07.2026, an AD card was signed on 06.07.2026, and no rent has been paid since March 2026.",
+        "why": "the three given facts, in English"
+      },
+      {
+        "key": "ws_filing_date",
+        "display": "20.09.2026",
+        "why": "given"
+      },
+      {
+        "key": "suit_number",
+        "display": "Title Suit 77 of 2026",
+        "why": "given"
+      },
+      {
+        "key": "plaintiff_name",
+        "display": "Sample Person 1",
+        "why": "given"
+      },
+      {
+        "key": "defendant_name",
+        "display": "Sample Person 2",
+        "why": "given"
+      }
+    ]
+  },
+  "v3_expect": {
+    "absent_keys": [],
+    "unresolved": [],
+    "dropped": {}
+  },
+  "recorded": {
+    "v3_extract": {
+      "reception": "{\"outcome\": \"read\", \"read\": [], \"conflicts\": [], \"questions\": []}",
+      "extract": "{\"facts\": [{\"key\": \"plaintiff_name\", \"source\": \"description\", \"turn\": 0, \"quote\": \"plaintiff Sample Person 1\", \"value\": \"Sample Person 1\", \"confidence\": 0.97}, {\"key\": \"defendant_name\", \"source\": \"description\", \"turn\": 0, \"quote\": \"defendant Sample Person 2\", \"value\": \"Sample Person 2\", \"confidence\": 0.97}, {\"key\": \"suit_number\", \"source\": \"description\", \"turn\": 0, \"quote\": \"Title Suit 77 of 2026\", \"value\": \"Title Suit 77 of 2026\", \"confidence\": 0.97}, {\"key\": \"ws_filing_date\", \"source\": \"description\", \"turn\": 0, \"quote\": \"The defendant filed the written statement on 20.09.2026\", \"value\": \"2026-09-20\", \"confidence\": 0.96}, {\"key\": \"new_facts_in_ws\", \"source\": \"description\", \"turn\": 0, \"quote\": \"a quit notice was given on 02.07.2026, that an AD card was signed on 06.07.2026, and that no rent has been paid since March 2026\", \"value\": \"The written statement says a quit notice was given on 02.07.2026, an AD card was signed on 06.07.2026, and no rent has been paid since March 2026.\", \"confidence\": 0.97}], \"non_answers\": [], \"unresolved\": []}",
+      "drafter": "(phase 2: the drafter's reply is recorded when intake is wired to v3)"
+    }
+  }
+}

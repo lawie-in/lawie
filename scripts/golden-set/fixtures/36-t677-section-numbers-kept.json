@@ -1,0 +1,52 @@
+{
+  "id": "36-t677-section-numbers-kept",
+  "pack": "bail_regular",
+  "title": "T-677, bail: section numbers with brackets (303(2), 115(2), 351(3)) and BNSS 483 are kept as given; a section the quote does not hold is not added",
+  "risk": "T-677 (Anushka run 5): section numbers were stripped from titles ('SECTION A CPC', 'Section NI Act'). The Extractor must keep the number exactly and never add one.",
+  "source": "T-677 (handoff/tickets/T-677-section-numbers-stripped.md) AC1/AC3 at the extraction step only; the title builder is not exercised. The alphanumeric 148A case is a unit test in __tests__/v3/validate.test.ts. Phase 1 cassette: the recorded extract reply is the v3 Extractor's (T-683) reply; it is replayed through services/v3/validate.ts by apps/drafting/src/__tests__/v3/cassettes.test.ts. Intake is not wired to v3 until phase 2, so golden:set cannot run it yet (the recorded variant is v3_extract, which the default dry run skips). Ledger displays: dates DD.MM.YYYY, amounts as rupees, lists joined by ', '.",
+  "review": "drafted by dev from Anushka's reports, not yet reviewed by Anushka",
+  "ajay": "Ajay, T-683 test list (handoff/legal/run5-rulings-ajay.md, 29 Oct 2026): expected candidates are legal-content expectations",
+  "language": "en",
+  "description": "Bail application for Sample Person 1 in FIR No. 57/2026 under sections 303(2), 115(2) and 351(3) of the BNS. Bail is sought under section 483 of the BNSS.",
+  "court": {
+    "state": "Uttar Pradesh",
+    "court_type": "sessions",
+    "court": "up_sessions_lucknow"
+  },
+  "answers": [],
+  "v3_stage": 1,
+  "v3_answers": [],
+  "expect": {
+    "ledger": [
+      {
+        "key": "sections_charged",
+        "display": "303(2), 115(2), 351(3)",
+        "why": "T-677: numbers kept; the invented 109 is dropped"
+      },
+      {
+        "key": "procedure_code",
+        "display": "BNSS and BSA",
+        "why": "BNSS section 483 gives the BNSS option"
+      },
+      {
+        "key": "fir_number",
+        "display": "57/2026",
+        "why": "given"
+      }
+    ]
+  },
+  "v3_expect": {
+    "absent_keys": [],
+    "unresolved": [],
+    "dropped": {
+      "bad_value": 1
+    }
+  },
+  "recorded": {
+    "v3_extract": {
+      "reception": "{\"outcome\": \"read\", \"read\": [], \"conflicts\": [], \"questions\": []}",
+      "extract": "{\"facts\": [{\"key\": \"fir_number\", \"source\": \"description\", \"turn\": 0, \"quote\": \"FIR No. 57/2026\", \"value\": \"57/2026\", \"confidence\": 0.97}, {\"key\": \"sections_charged\", \"source\": \"description\", \"turn\": 0, \"quote\": \"sections 303(2), 115(2) and 351(3) of the BNS\", \"value\": [\"303(2)\", \"115(2)\", \"351(3)\"], \"confidence\": 0.97}, {\"key\": \"procedure_code\", \"source\": \"description\", \"turn\": 0, \"quote\": \"section 483 of the BNSS\", \"value\": \"BNSS and BSA\", \"confidence\": 0.95}, {\"key\": \"sections_charged\", \"source\": \"description\", \"turn\": 0, \"quote\": \"sections 303(2), 115(2) and 351(3) of the BNS\", \"value\": [\"303(2)\", \"115(2)\", \"351(3)\", \"109\"], \"confidence\": 0.97}], \"non_answers\": [], \"unresolved\": []}",
+      "drafter": "(phase 2: the drafter's reply is recorded when intake is wired to v3)"
+    }
+  }
+}

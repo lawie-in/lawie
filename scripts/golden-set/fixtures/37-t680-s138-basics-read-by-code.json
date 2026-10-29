@@ -1,0 +1,99 @@
+{
+  "id": "37-t680-s138-basics-read-by-code",
+  "pack": "legal_notice_s138",
+  "title": "T-680, s.138 notice: payee, drawer, cheque, amount in words, the day-first dates and the notice date 23.08.2026 are read by code; a two-digit-year date and the model's amount_in_words are not",
+  "risk": "T-680 / T-679 AC2: the NI Act basics. The notice date (23.08.2026) drives the limitation warning, so it must be read exactly. amount_in_words is derived by code from cheque_amount (T-611 P5), never read from the model.",
+  "source": "T-680 (handoff/tickets/T-680-ni-act-complaint-quality.md) at the extraction step only; the limitation warning and the s.142 pleading are draft-level and not exercised here. Ajay T-683 rule 1 (P3 amounts, ambiguous date gives no fact), Arjun T-683 answers section 5. Phase 1 cassette: the recorded extract reply is the v3 Extractor's (T-683) reply; it is replayed through services/v3/validate.ts by apps/drafting/src/__tests__/v3/cassettes.test.ts. Intake is not wired to v3 until phase 2, so golden:set cannot run it yet (the recorded variant is v3_extract, which the default dry run skips). Ledger displays: dates DD.MM.YYYY, amounts as rupees, lists joined by ', '.",
+  "review": "drafted by dev from Anushka's reports, not yet reviewed by Anushka",
+  "ajay": "Ajay, T-683 test list (handoff/legal/run5-rulings-ajay.md, 29 Oct 2026): expected candidates are legal-content expectations",
+  "language": "en",
+  "description": "Notice under section 138 of the NI Act for the payee Sample Person 1 against the drawer Sample Person 2 (an individual). Cheque no. 000123 dated 10.07.2026 for teen lakh rupees drawn on Sample Bank, Sample Branch was presented on 15.07.2026 and returned unpaid on 17.07.2026 for insufficient funds. The return memo was received on 20/7/26. The notice was sent on 23.08.2026.",
+  "court": null,
+  "answers": [],
+  "v3_stage": 1,
+  "v3_answers": [],
+  "expect": {
+    "ledger": [
+      {
+        "key": "applicant_name",
+        "display": "Sample Person 1",
+        "why": "given"
+      },
+      {
+        "key": "respondent_name",
+        "display": "Sample Person 2",
+        "why": "given"
+      },
+      {
+        "key": "respondent_type",
+        "display": "Individual",
+        "why": "choice label"
+      },
+      {
+        "key": "cheque_number",
+        "display": "000123",
+        "why": "given"
+      },
+      {
+        "key": "cheque_date",
+        "display": "10.07.2026",
+        "why": "day first"
+      },
+      {
+        "key": "cheque_amount",
+        "display": "300000",
+        "why": "teen lakh rupees by P3"
+      },
+      {
+        "key": "presentation_date",
+        "display": "15.07.2026",
+        "why": "given"
+      },
+      {
+        "key": "dishonour_date",
+        "display": "17.07.2026",
+        "why": "given"
+      },
+      {
+        "key": "notice_sent_date",
+        "display": "23.08.2026",
+        "why": "T-680: the notice date"
+      },
+      {
+        "key": "drawee_bank",
+        "display": "Sample Bank",
+        "why": "given"
+      },
+      {
+        "key": "drawee_branch",
+        "display": "Sample Branch",
+        "why": "given"
+      },
+      {
+        "key": "dishonour_reason",
+        "display": "Insufficient funds",
+        "why": "given"
+      },
+      {
+        "key": "memo_received_date",
+        "unresolved": true,
+        "why": "20/7/26 has a two-digit year: ambiguous, no fact"
+      }
+    ]
+  },
+  "v3_expect": {
+    "absent_keys": ["amount_in_words"],
+    "unresolved": ["memo_received_date"],
+    "dropped": {
+      "not_on_list": 1,
+      "bad_value": 1
+    }
+  },
+  "recorded": {
+    "v3_extract": {
+      "reception": "{\"outcome\": \"read\", \"read\": [], \"conflicts\": [], \"questions\": []}",
+      "extract": "{\"facts\": [{\"key\": \"applicant_name\", \"source\": \"description\", \"turn\": 0, \"quote\": \"payee Sample Person 1\", \"value\": \"Sample Person 1\", \"confidence\": 0.97}, {\"key\": \"respondent_name\", \"source\": \"description\", \"turn\": 0, \"quote\": \"drawer Sample Person 2\", \"value\": \"Sample Person 2\", \"confidence\": 0.97}, {\"key\": \"respondent_type\", \"source\": \"description\", \"turn\": 0, \"quote\": \"(an individual)\", \"value\": \"Individual\", \"confidence\": 0.95}, {\"key\": \"cheque_number\", \"source\": \"description\", \"turn\": 0, \"quote\": \"000123\", \"value\": \"000123\", \"confidence\": 0.97}, {\"key\": \"cheque_date\", \"source\": \"description\", \"turn\": 0, \"quote\": \"dated 10.07.2026\", \"value\": \"2026-07-10\", \"confidence\": 0.96}, {\"key\": \"cheque_amount\", \"source\": \"description\", \"turn\": 0, \"quote\": \"teen lakh rupees\", \"value\": 300000, \"confidence\": 0.96}, {\"key\": \"amount_in_words\", \"source\": \"description\", \"turn\": 0, \"quote\": \"teen lakh rupees\", \"value\": \"Rupees Three Lakh only\", \"confidence\": 0.96}, {\"key\": \"drawee_bank\", \"source\": \"description\", \"turn\": 0, \"quote\": \"Sample Bank\", \"value\": \"Sample Bank\", \"confidence\": 0.97}, {\"key\": \"drawee_branch\", \"source\": \"description\", \"turn\": 0, \"quote\": \"Sample Branch\", \"value\": \"Sample Branch\", \"confidence\": 0.97}, {\"key\": \"presentation_date\", \"source\": \"description\", \"turn\": 0, \"quote\": \"presented on 15.07.2026\", \"value\": \"2026-07-15\", \"confidence\": 0.96}, {\"key\": \"dishonour_date\", \"source\": \"description\", \"turn\": 0, \"quote\": \"returned unpaid on 17.07.2026\", \"value\": \"2026-07-17\", \"confidence\": 0.96}, {\"key\": \"dishonour_reason\", \"source\": \"description\", \"turn\": 0, \"quote\": \"insufficient funds\", \"value\": \"Insufficient funds\", \"confidence\": 0.97}, {\"key\": \"memo_received_date\", \"source\": \"description\", \"turn\": 0, \"quote\": \"received on 20/7/26\", \"value\": \"2026-07-20\", \"confidence\": 0.96}, {\"key\": \"notice_sent_date\", \"source\": \"description\", \"turn\": 0, \"quote\": \"sent on 23.08.2026\", \"value\": \"2026-08-23\", \"confidence\": 0.96}], \"non_answers\": [], \"unresolved\": []}",
+      "drafter": "(phase 2: the drafter's reply is recorded when intake is wired to v3)"
+    }
+  }
+}

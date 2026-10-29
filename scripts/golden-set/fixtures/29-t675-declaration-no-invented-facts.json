@@ -1,0 +1,68 @@
+{
+  "id": "29-t675-declaration-no-invented-facts",
+  "pack": "plaint_declaration",
+  "title": "T-675, declaration plaint: facts the description does not give (no consideration, no Sub-Registrar, out of possession, a limitation date) never reach the ledger",
+  "risk": "T-675 (Anushka run 5): a declaration plaint stated 'did not receive any consideration' and 'did not appear before the Sub-Registrar' with no such fact in the input; verified on oath. Under v3 a fact needs a verbatim quote and every number in a value must come from the quote.",
+  "source": "T-675 (handoff/tickets/T-675-no-invented-facts-in-pleadings.md) AC1-AC2; Ajay T-683 rule 1 (quote must be a substring; no inference beyond the quote). Facts re-made with fictional names. Phase 1 cassette: the recorded extract reply is the v3 Extractor's (T-683) reply; it is replayed through services/v3/validate.ts by apps/drafting/src/__tests__/v3/cassettes.test.ts. Intake is not wired to v3 until phase 2, so golden:set cannot run it yet (the recorded variant is v3_extract, which the default dry run skips). Ledger displays: dates DD.MM.YYYY, amounts as rupees, lists joined by ', '.",
+  "review": "drafted by dev from Anushka's reports, not yet reviewed by Anushka",
+  "ajay": "Ajay, T-683 test list (handoff/legal/run5-rulings-ajay.md, 29 Oct 2026): expected candidates are legal-content expectations",
+  "language": "en",
+  "description": "Plaint for declaration of title. Plaintiff Sample Person 1, aged 52, son of Sample Person 3, resident of Ward 4, Sample Nagar, Patna, against defendant Sample Person 2. The plaintiff holds Plot 17 in Sample Nagar under a sale deed. The defendant now says the plot is his.",
+  "court": {
+    "state": "Bihar",
+    "court_type": "civil_court",
+    "court": "bihar_civil_patna"
+  },
+  "answers": [],
+  "v3_stage": 1,
+  "v3_answers": [],
+  "expect": {
+    "ledger": [
+      {
+        "key": "plaintiff_name",
+        "display": "Sample Person 1",
+        "why": "given in the description"
+      },
+      {
+        "key": "plaintiff_age",
+        "display": "52",
+        "why": "given"
+      },
+      {
+        "key": "plaintiff_father_name",
+        "display": "Sample Person 3",
+        "why": "given"
+      },
+      {
+        "key": "defendant_name",
+        "display": "Sample Person 2",
+        "why": "given"
+      },
+      {
+        "key": "limitation_basis",
+        "unresolved": true,
+        "why": "T-675: the quote is real but the date in the value is not in it, so no fact; the key is asked, not invented"
+      },
+      {
+        "key": "declaration_sought",
+        "unresolved": true,
+        "why": "the model could not read it from the quote alone"
+      }
+    ]
+  },
+  "v3_expect": {
+    "absent_keys": ["source_of_title", "documents_relied_upon", "possession_status"],
+    "unresolved": ["declaration_sought", "limitation_basis"],
+    "dropped": {
+      "span_not_found": 3,
+      "bad_value": 1
+    }
+  },
+  "recorded": {
+    "v3_extract": {
+      "reception": "{\"outcome\": \"read\", \"read\": [], \"conflicts\": [], \"questions\": []}",
+      "extract": "{\"facts\": [{\"key\": \"plaintiff_name\", \"source\": \"description\", \"turn\": 0, \"quote\": \"Plaintiff Sample Person 1\", \"value\": \"Sample Person 1\", \"confidence\": 0.97}, {\"key\": \"plaintiff_age\", \"source\": \"description\", \"turn\": 0, \"quote\": \"aged 52\", \"value\": \"52\", \"confidence\": 0.97}, {\"key\": \"plaintiff_father_name\", \"source\": \"description\", \"turn\": 0, \"quote\": \"son of Sample Person 3\", \"value\": \"Sample Person 3\", \"confidence\": 0.97}, {\"key\": \"defendant_name\", \"source\": \"description\", \"turn\": 0, \"quote\": \"defendant Sample Person 2\", \"value\": \"Sample Person 2\", \"confidence\": 0.97}, {\"key\": \"source_of_title\", \"source\": \"description\", \"turn\": 0, \"quote\": \"the plaintiff did not receive any consideration\", \"value\": \"The plaintiff did not receive any consideration for the sale deed.\", \"confidence\": 0.9}, {\"key\": \"documents_relied_upon\", \"source\": \"description\", \"turn\": 0, \"quote\": \"did not appear before the Sub-Registrar\", \"value\": \"The plaintiff did not appear before the Sub-Registrar.\", \"confidence\": 0.9}, {\"key\": \"possession_status\", \"source\": \"description\", \"turn\": 0, \"quote\": \"the plaintiff is out of possession\", \"value\": \"Out of possession\", \"confidence\": 0.9}, {\"key\": \"limitation_basis\", \"source\": \"description\", \"turn\": 0, \"quote\": \"The defendant now says the plot is his\", \"value\": \"Art. 58, 3 years from 15.06.2024\", \"confidence\": 0.9}], \"non_answers\": [], \"unresolved\": [\"declaration_sought\", \"limitation_basis\"]}",
+      "drafter": "(phase 2: the drafter's reply is recorded when intake is wired to v3)"
+    }
+  }
+}
