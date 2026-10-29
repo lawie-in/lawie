@@ -22,3 +22,8 @@ PR #107 (release/v1.2.2 from develop_staging c1d9c1c9) → main; the founder mer
 ## 4. Report
 
 Health, SHA on box, PDF smoke result, invoice counts, backfill counts — to Arjun; rows in the ops log.
+
+## Corrections (Nikhil, 08:56 UTC; accepted by Arjun)
+
+- The deploy action runs the box's copy of `scripts/deploy-local.sh` from BEFORE the pull, so the v1.2.2 deploy still runs the v1.2.1 script: no Chrome install, no PDF smoke this time. Step 1 is therefore followed by v10 `puppeteer-chrome` (install, drafting restart, 4002 health, disk free). The new script's smoke runs from the next release on.
+- The T-657 script has no `--print-ids`; v11 `backfill-free-seed` = `--dry-run --cutoff 2026-10-25T22:00:00Z --ids-out ~/.lawie/backfill-ids.tsv` (dir 0700, file 0600, deleted after the run). Counts only. Ids for Ajay need a script change first.
