@@ -10,3 +10,8 @@ Status: assigned to mahak, 29 Oct 2026. Ajay ruling a4cb1070 (R1-R5); Arjun pull
 
 ## Mode
 Full chain (drafting data + seed), legal content (Ajay).
+
+
+## Anushka run 5e follow-up (29 Oct 2026, via Arjun)
+- The court name must be one string across the court list, the document heading and the file name. For example, "District Judge, Mysuru" vs "District & Sessions Judge".
+- Karnataka needs a Civil Judge court type.
