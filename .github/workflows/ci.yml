@@ -117,9 +117,23 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'yarn'
-      - run: yarn install --frozen-lockfile
+      # T-688: install time varied 1-5 minutes between runners and broke the 5-minute cap, so
+      # node_modules is cached on yarn.lock and the install runs only on a cache miss.
+      - name: Cache node_modules
+        id: node-modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: ${{ runner.os }}-node20-modules-${{ hashFiles('yarn.lock') }}
+      - if: steps.node-modules.outputs.cache-hit != 'true'
+        run: yarn install --frozen-lockfile --prefer-offline
+        timeout-minutes: 2
       - run: yarn workspace @lawie/shared build
       - run: yarn workspace @lawie/gateway test:sanity
+        timeout-minutes: 2
 
   # ── Test Auth ────────────────────────────────────────────────────────────
   test-auth:
@@ -153,7 +167,20 @@ jobs:
           key: mongoms-${{ runner.os }}-7.0.24-${{ hashFiles('yarn.lock') }}
           restore-keys: |
             mongoms-${{ runner.os }}-7.0.24-
-      - run: yarn install --frozen-lockfile
+      # T-688: install time varied 1-5 minutes between runners and broke the 5-minute cap, so
+      # node_modules is cached on yarn.lock and the install runs only on a cache miss.
+      - name: Cache node_modules
+        id: node-modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: ${{ runner.os }}-node20-modules-${{ hashFiles('yarn.lock') }}
+      - if: steps.node-modules.outputs.cache-hit != 'true'
+        run: yarn install --frozen-lockfile --prefer-offline
+        timeout-minutes: 2
       - run: yarn workspace @lawie/shared build
       # T-223: auth resolves @lawie/email-client from its dist (gitignored), so build it first.
       - run: yarn workspace @lawie/email-client build
@@ -161,6 +188,7 @@ jobs:
       - name: Pre-download Mongo binary
         run: yarn workspace @lawie/auth node -e "require('mongodb-memory-server').MongoMemoryServer.create().then(s => s.stop()).catch(e => { console.error(e); process.exit(1); })"
       - run: yarn workspace @lawie/auth test:sanity
+        timeout-minutes: 2
 
   # ── Test Drafting ────────────────────────────────────────────────────────
   test-drafting:
@@ -193,13 +221,27 @@ jobs:
           key: mongoms-${{ runner.os }}-7.0.24-${{ hashFiles('yarn.lock') }}
           restore-keys: |
             mongoms-${{ runner.os }}-7.0.24-
-      - run: yarn install --frozen-lockfile
+      # T-688: install time varied 1-5 minutes between runners and broke the 5-minute cap, so
+      # node_modules is cached on yarn.lock and the install runs only on a cache miss.
+      - name: Cache node_modules
+        id: node-modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: ${{ runner.os }}-node20-modules-${{ hashFiles('yarn.lock') }}
+      - if: steps.node-modules.outputs.cache-hit != 'true'
+        run: yarn install --frozen-lockfile --prefer-offline
+        timeout-minutes: 2
       - run: yarn workspace @lawie/shared build
       - run: yarn workspace @lawie/drafting build
       # T-211: download the binary once, serially, before parallel Jest workers race for it. No-op on a cache hit.
       - name: Pre-download Mongo binary
         run: yarn workspace @lawie/drafting node -e "require('mongodb-memory-server').MongoMemoryServer.create().then(s => s.stop()).catch(e => { console.error(e); process.exit(1); })"
       - run: yarn workspace @lawie/drafting test:sanity
+        timeout-minutes: 3
       # T-264: the golden-set dry run (recorded replies, in-memory DB, no secrets) on every drafting run.
       - name: Golden set — dry run (recorded replies, no cost)
         run: yarn workspace @lawie/drafting golden:set --dry-run
@@ -234,12 +276,26 @@ jobs:
           key: mongoms-${{ runner.os }}-7.0.24-${{ hashFiles('yarn.lock') }}
           restore-keys: |
             mongoms-${{ runner.os }}-7.0.24-
-      - run: yarn install --frozen-lockfile
+      # T-688: install time varied 1-5 minutes between runners and broke the 5-minute cap, so
+      # node_modules is cached on yarn.lock and the install runs only on a cache miss.
+      - name: Cache node_modules
+        id: node-modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: ${{ runner.os }}-node20-modules-${{ hashFiles('yarn.lock') }}
+      - if: steps.node-modules.outputs.cache-hit != 'true'
+        run: yarn install --frozen-lockfile --prefer-offline
+        timeout-minutes: 2
       - run: yarn workspace @lawie/shared build
       - name: Pre-download Mongo binary
         run: yarn workspace @lawie/drafting node -e "require('mongodb-memory-server').MongoMemoryServer.create().then(s => s.stop()).catch(e => { console.error(e); process.exit(1); })"
       - name: Golden-set harness tests
         run: yarn jest -c scripts/jest.config.js scripts/golden-set/__tests__ --coverage=false
+        timeout-minutes: 2
 
   # ── Test Billing ─────────────────────────────────────────────────────────
   test-billing:
@@ -267,7 +323,20 @@ jobs:
           key: mongoms-${{ runner.os }}-7.0.24-${{ hashFiles('yarn.lock') }}
           restore-keys: |
             mongoms-${{ runner.os }}-7.0.24-
-      - run: yarn install --frozen-lockfile
+      # T-688: install time varied 1-5 minutes between runners and broke the 5-minute cap, so
+      # node_modules is cached on yarn.lock and the install runs only on a cache miss.
+      - name: Cache node_modules
+        id: node-modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: ${{ runner.os }}-node20-modules-${{ hashFiles('yarn.lock') }}
+      - if: steps.node-modules.outputs.cache-hit != 'true'
+        run: yarn install --frozen-lockfile --prefer-offline
+        timeout-minutes: 2
       - run: yarn workspace @lawie/shared build
       # T-436: billing resolves @lawie/email-client from its dist (gitignored), so build it first.
       - run: yarn workspace @lawie/email-client build
@@ -275,6 +344,7 @@ jobs:
       - name: Pre-download Mongo binary
         run: yarn workspace @lawie/billing node -e "require('mongodb-memory-server').MongoMemoryServer.create().then(s => s.stop()).catch(e => { console.error(e); process.exit(1); })"
       - run: yarn workspace @lawie/billing test:sanity
+        timeout-minutes: 2
 
   # ── Test Email worker (T-320) ───────────────────────────────────────────
   # Redis service for the T-220 AC4 retry/replay test (real BullMQ queue, forced provider
@@ -306,15 +376,30 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'yarn'
-      - run: yarn install --frozen-lockfile
+      # T-688: install time varied 1-5 minutes between runners and broke the 5-minute cap, so
+      # node_modules is cached on yarn.lock and the install runs only on a cache miss.
+      - name: Cache node_modules
+        id: node-modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: ${{ runner.os }}-node20-modules-${{ hashFiles('yarn.lock') }}
+      - if: steps.node-modules.outputs.cache-hit != 'true'
+        run: yarn install --frozen-lockfile --prefer-offline
+        timeout-minutes: 2
       - run: yarn workspace @lawie/shared build
       # email-worker resolves @lawie/email-client from its dist, so build it first.
       - run: yarn workspace @lawie/email-client build
       - run: yarn workspace @lawie/email-worker build
       - run: yarn workspace @lawie/email-worker test:sanity
+        timeout-minutes: 3
       # T-688: packages/email-client's whole suite (it has no job of its own). This job's filter
       # already lists packages/email-client/**, and the client is built above.
       - run: yarn workspace @lawie/email-client test:sanity
+        timeout-minutes: 2
 
   # ── Web build (T-369) ───────────────────────────────────────────────────
   # Typecheck, production build and sanity tests for apps/web. Next 16 + React 19 cannot prerender
@@ -335,7 +420,20 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'yarn'
-      - run: yarn install --frozen-lockfile
+      # T-688: install time varied 1-5 minutes between runners and broke the 5-minute cap, so
+      # node_modules is cached on yarn.lock and the install runs only on a cache miss.
+      - name: Cache node_modules
+        id: node-modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: ${{ runner.os }}-node20-modules-${{ hashFiles('yarn.lock') }}
+      - if: steps.node-modules.outputs.cache-hit != 'true'
+        run: yarn install --frozen-lockfile --prefer-offline
+        timeout-minutes: 2
       - run: yarn workspace @lawie/shared build
       - name: Typecheck
         run: yarn workspace @lawie/web tsc --noEmit -p tsconfig.typecheck.json
@@ -343,4 +441,6 @@ jobs:
         env:
           NODE_ENV: production
         run: yarn workspace @lawie/web build
+        timeout-minutes: 2
       - run: yarn workspace @lawie/web test:sanity
+        timeout-minutes: 2

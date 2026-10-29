@@ -31,6 +31,13 @@ on:
       - 'apps/*/src/__tests__/setupEnv.ts'
       - 'apps/web/jest.setup-env.ts'
       - '.github/workflows/scripts-tests.yml'
+      # T-688: the sanity-tier guard reads these; a tier change re-runs it.
+      - 'apps/*/jest.config.js'
+      - 'packages/*/jest.config.js'
+      - 'apps/*/package.json'
+      - 'packages/*/package.json'
+      - '.github/workflows/ci.yml'
+      - '.github/workflows/full-tests.yml'
   # No paths filter on PRs: a required check that a PR never starts stays "Expected" forever.
   pull_request:
     branches: [main, develop, develop_staging]

@@ -52,7 +52,20 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'yarn'
-      - run: yarn install --frozen-lockfile
+      # T-688: install time varied 1-5 minutes between runners and broke the 5-minute cap, so
+      # node_modules is cached on yarn.lock and the install runs only on a cache miss.
+      - name: Cache node_modules
+        id: node-modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: ${{ runner.os }}-node20-modules-${{ hashFiles('yarn.lock') }}
+      - if: steps.node-modules.outputs.cache-hit != 'true'
+        run: yarn install --frozen-lockfile --prefer-offline
+        timeout-minutes: 5
       - run: yarn workspace @lawie/shared build
       - run: yarn workspace @lawie/gateway test
       - uses: codecov/codecov-action@v4
@@ -92,7 +105,20 @@ jobs:
           key: mongoms-${{ runner.os }}-7.0.24-${{ hashFiles('yarn.lock') }}
           restore-keys: |
             mongoms-${{ runner.os }}-7.0.24-
-      - run: yarn install --frozen-lockfile
+      # T-688: install time varied 1-5 minutes between runners and broke the 5-minute cap, so
+      # node_modules is cached on yarn.lock and the install runs only on a cache miss.
+      - name: Cache node_modules
+        id: node-modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: ${{ runner.os }}-node20-modules-${{ hashFiles('yarn.lock') }}
+      - if: steps.node-modules.outputs.cache-hit != 'true'
+        run: yarn install --frozen-lockfile --prefer-offline
+        timeout-minutes: 5
       - run: yarn workspace @lawie/shared build
       # T-223: auth resolves @lawie/email-client from its dist (gitignored), so build it first.
       - run: yarn workspace @lawie/email-client build
@@ -137,7 +163,20 @@ jobs:
           key: mongoms-${{ runner.os }}-7.0.24-${{ hashFiles('yarn.lock') }}
           restore-keys: |
             mongoms-${{ runner.os }}-7.0.24-
-      - run: yarn install --frozen-lockfile
+      # T-688: install time varied 1-5 minutes between runners and broke the 5-minute cap, so
+      # node_modules is cached on yarn.lock and the install runs only on a cache miss.
+      - name: Cache node_modules
+        id: node-modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: ${{ runner.os }}-node20-modules-${{ hashFiles('yarn.lock') }}
+      - if: steps.node-modules.outputs.cache-hit != 'true'
+        run: yarn install --frozen-lockfile --prefer-offline
+        timeout-minutes: 5
       - run: yarn workspace @lawie/shared build
       - run: yarn workspace @lawie/drafting build
       # T-211: download the binary once, serially, before parallel Jest workers race for it. No-op on a cache hit.
@@ -179,7 +218,20 @@ jobs:
           key: mongoms-${{ runner.os }}-7.0.24-${{ hashFiles('yarn.lock') }}
           restore-keys: |
             mongoms-${{ runner.os }}-7.0.24-
-      - run: yarn install --frozen-lockfile
+      # T-688: install time varied 1-5 minutes between runners and broke the 5-minute cap, so
+      # node_modules is cached on yarn.lock and the install runs only on a cache miss.
+      - name: Cache node_modules
+        id: node-modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: ${{ runner.os }}-node20-modules-${{ hashFiles('yarn.lock') }}
+      - if: steps.node-modules.outputs.cache-hit != 'true'
+        run: yarn install --frozen-lockfile --prefer-offline
+        timeout-minutes: 5
       - run: yarn workspace @lawie/shared build
       # T-436: billing resolves @lawie/email-client from its dist (gitignored), so build it first.
       - run: yarn workspace @lawie/email-client build
@@ -221,7 +273,20 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'yarn'
-      - run: yarn install --frozen-lockfile
+      # T-688: install time varied 1-5 minutes between runners and broke the 5-minute cap, so
+      # node_modules is cached on yarn.lock and the install runs only on a cache miss.
+      - name: Cache node_modules
+        id: node-modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: ${{ runner.os }}-node20-modules-${{ hashFiles('yarn.lock') }}
+      - if: steps.node-modules.outputs.cache-hit != 'true'
+        run: yarn install --frozen-lockfile --prefer-offline
+        timeout-minutes: 5
       - run: yarn workspace @lawie/shared build
       # email-worker resolves @lawie/email-client from its dist, so build it first.
       - run: yarn workspace @lawie/email-client build
@@ -250,7 +315,20 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'yarn'
-      - run: yarn install --frozen-lockfile
+      # T-688: install time varied 1-5 minutes between runners and broke the 5-minute cap, so
+      # node_modules is cached on yarn.lock and the install runs only on a cache miss.
+      - name: Cache node_modules
+        id: node-modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: ${{ runner.os }}-node20-modules-${{ hashFiles('yarn.lock') }}
+      - if: steps.node-modules.outputs.cache-hit != 'true'
+        run: yarn install --frozen-lockfile --prefer-offline
+        timeout-minutes: 5
       - run: yarn workspace @lawie/shared build
       - run: yarn workspace @lawie/web test
       # Read-only: the web "lint" script runs eslint --fix, which rewrites files. Same glob, no --fix.

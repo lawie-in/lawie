@@ -51,9 +51,12 @@ const SANITY_FILES = [
   't197-disclaimer',
   't321-one-disclaimer',
   't322-signed-blank-covers-clause',
-  // B. Citations (Ajay's narrowed ask)
+  // B. Citations (Ajay's narrowed ask; t178 and t429 back in per Ajay 43728e3d,
+  // t236 and t346 full only)
+  't178-family-court-citation',
   't248-bnss-citations',
   't263-citation-name-match',
+  't429-discharge-ni-act-gate',
   // C. Fact checker and ledger (T-611 policy)
   't611-verifier',
   't611-amount-in-words',
