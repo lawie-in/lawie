@@ -48,6 +48,8 @@ interface DocumentData {
   docType: string;
   courtType: string;
   courtName: string;
+  // T-674 AC3: the on-screen court label; courtName may be an internal id.
+  courtLabel?: string;
   content: string;
   status: 'draft' | 'finalised' | 'exported';
   sectionsCited: string[];
@@ -526,7 +528,7 @@ export default function DocumentEditorPage() {
                 {/* A document with no rule pack has no type of its own: its name is its title. */}
                 {doc.docType === 'guided' ? doc.title : doc.docType.replace(/_/g, ' ')}
               </h1>
-              <p className="text-xs text-slate-400">{doc.courtName}</p>
+              <p className="text-xs text-slate-400">{doc.courtLabel ?? ''}</p>
             </div>
           </div>
 
@@ -739,7 +741,9 @@ export default function DocumentEditorPage() {
             </div>
             <div className="flex justify-between">
               <dt className="text-slate-400">Court</dt>
-              <dd className="max-w-[140px] truncate font-medium text-slate-700">{doc.courtName}</dd>
+              <dd className="max-w-[140px] truncate font-medium text-slate-700">
+                {doc.courtLabel || '—'}
+              </dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-slate-400">Status</dt>

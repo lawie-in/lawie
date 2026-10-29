@@ -25,6 +25,8 @@ interface DocumentSummary {
   title: string;
   docType: string;
   courtName: string;
+  // T-674 AC3: the on-screen court label; courtName may be an internal id.
+  courtLabel?: string;
   status: 'draft' | 'finalised' | 'exported';
   createdAt: string;
 }
@@ -208,7 +210,7 @@ export default function MyDocumentsPage() {
                   </td>
                   <td className="hidden px-4 py-3 sm:table-cell">
                     <span className="text-nl-muted max-w-[160px] truncate text-xs">
-                      {doc.courtName || '—'}
+                      {doc.courtLabel || '—'}
                     </span>
                   </td>
                   <td className="px-4 py-3">
