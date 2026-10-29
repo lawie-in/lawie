@@ -460,7 +460,7 @@ export interface CreditBalance {
   topupCredits: number;
   earnedCredits: number;
   subscriptionCredits: number;
-  total: number;
+  // T-667: no `total` (it summed earnedCredits in). The balance is `totalInk`.
   // Ink buckets (SCRUM-101) — human-readable Ink values (stored units ÷ 2)
   inkSub: number;
   inkAnnualCarry: number;
@@ -503,7 +503,6 @@ export async function getCreditBalance(userId: string): Promise<CreditBalance> {
     topupCredits: 0,
     earnedCredits: 0,
     subscriptionCredits: 0,
-    total: 0,
     inkSub: 0,
     inkAnnualCarry: 0,
     inkTopup: 0,
@@ -531,7 +530,6 @@ export async function getCreditBalance(userId: string): Promise<CreditBalance> {
     topupCredits: topup,
     earnedCredits: earned,
     subscriptionCredits: sub,
-    total: topup + earned + sub,
     inkSub: Math.floor(inkSubUnits / 2),
     inkAnnualCarry: Math.floor(inkCarryUnits / 2),
     inkTopup: Math.floor(inkTopupUnits / 2),
@@ -540,6 +538,37 @@ export async function getCreditBalance(userId: string): Promise<CreditBalance> {
     planTier: normalizePlanTier(u?.planTier),
     billingCycle: (u?.billingCycle as 'none' | 'monthly' | 'yearly') ?? 'none',
   };
+}
+
+// ── Amount validation ─────────────────────────────────────────────────────────
+
+/**
+ * T-667: a credit spend or grant was asked for an amount that is not a finite
+ * number > 0 (NaN, ±Infinity, zero, negative, or not a number at all). Thrown
+ * before any read or write. The message names the operation and, for a finite
+ * amount only, echoes it; it never carries a user id.
+ */
+export class InvalidCreditAmountError extends Error {
+  readonly code = 'invalid_credit_amount';
+  readonly operation: 'spendCredits' | 'grantCredits';
+  constructor(operation: 'spendCredits' | 'grantCredits', amount: unknown) {
+    super(
+      typeof amount === 'number' && Number.isFinite(amount)
+        ? `${operation}: amount must be > 0 (got ${amount})`
+        : `${operation}: amount must be a finite number`,
+    );
+    this.name = 'InvalidCreditAmountError';
+    this.operation = operation;
+  }
+}
+
+function assertValidCreditAmount(
+  operation: 'spendCredits' | 'grantCredits',
+  amount: unknown,
+): void {
+  if (typeof amount !== 'number' || !Number.isFinite(amount) || amount <= 0) {
+    throw new InvalidCreditAmountError(operation, amount);
+  }
 }
 
 // ── Grants ──────────────────────────────────────────────────────────────────
@@ -554,7 +583,8 @@ export async function grantCredits(input: {
   metadata?: Record<string, unknown>;
 }): Promise<number> {
   const { userId, bucket, amount, source, reference, templateId, metadata } = input;
-  if (amount <= 0) throw new Error(`grantCredits: amount must be > 0 (got ${amount})`);
+  // T-667: refuse NaN / Infinity / <= 0 before any check, read or write.
+  assertValidCreditAmount('grantCredits', amount);
   // T-653: defence in depth — nothing may add to earnedCredits while the flag is off.
   if (bucket === 'earnedCredits' && !isEarnedSpendEnabled()) {
     throw new EarnedCreditsSpendDisabledError();
@@ -650,14 +680,15 @@ export async function spendCredits(input: {
   reference?: string;
 }): Promise<{ spent: Array<{ bucket: CreditBucket; amount: number }>; totalSpent: number }> {
   const { userId, amount, templateId, reference } = input;
-  if (amount <= 0) throw new Error(`spendCredits: amount must be > 0 (got ${amount})`);
+  // T-667: refuse NaN / Infinity / <= 0 before the balance read or any write.
+  assertValidCreditAmount('spendCredits', amount);
 
   const earnedAllowed = isEarnedSpendEnabled();
   const balance = await getCreditBalance(userId);
-  const spendable = earnedAllowed
-    ? balance.total
-    : balance.topupCredits + balance.subscriptionCredits;
-  if (balance.total < amount) {
+  // T-667: the balance has no `total`; the legacy all-bucket sum is local here.
+  const allBuckets = balance.topupCredits + balance.earnedCredits + balance.subscriptionCredits;
+  const spendable = earnedAllowed ? allBuckets : balance.topupCredits + balance.subscriptionCredits;
+  if (allBuckets < amount) {
     throw new InsufficientCreditsError(amount, spendable);
   }
 

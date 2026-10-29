@@ -194,6 +194,14 @@ function isComputedHere(f: LedgerFact): boolean {
   );
 }
 
+/** The arrest_date facts generation derives from: type date, string value. */
+function arrestDateFacts(facts: readonly LedgerFact[]): LedgerFact[] {
+  return facts.filter(
+    (f) =>
+      lastSegment(f.key) === ARREST_DATE_KEY && f.type === 'date' && typeof f.value === 'string',
+  );
+}
+
 /** What the ledger tells the R1 / B1 rule, read the same way by the brief and by generation (T-660). */
 export interface LedgerCustodyInputs {
   /** Every stored fact's raw_span and display, and every unresolved entry's raw_span (B1 scan). */
@@ -202,6 +210,16 @@ export interface LedgerCustodyInputs {
   otherCustodyDate: boolean;
   /** A custody_since fact is held (B5), whatever its display. */
   custodySinceHeld: boolean;
+  /** T-665: the held dates of arrest: arrest_date facts of type date with a string value. */
+  arrestDates: string[];
+  /** T-665: the custody answer: every currently_in_custody fact's value and display. */
+  custodyAnswer: unknown[];
+  /**
+   * T-665 (Ajay, 309b4377): the ledger holds an arrest_date fact of any type or
+   * value, or an unresolved arrest_date entry. The brief then reads only the
+   * usable ledger dates (`arrestDates`). Generation does not read this.
+   */
+  arrestDateHeld: boolean;
 }
 
 /**
@@ -227,6 +245,13 @@ export function ledgerCustodyInputs(
           CUSTODY_OR_REMAND_DATE_KEYS.has(lastSegment(f.key)),
       ) || unresolved.some((u) => CUSTODY_OR_REMAND_DATE_KEYS.has(lastSegment(u.key))),
     custodySinceHeld: stored.some((f) => lastSegment(f.key) === CUSTODY_SINCE_KEY),
+    arrestDates: arrestDateFacts(stored).map((f) => String(f.value)),
+    arrestDateHeld:
+      stored.some((f) => lastSegment(f.key) === ARREST_DATE_KEY) ||
+      unresolved.some((u) => lastSegment(u.key) === ARREST_DATE_KEY),
+    custodyAnswer: stored
+      .filter((f) => lastSegment(f.key) === CUSTODY_CHOICE_KEY)
+      .flatMap((f) => [f.value, f.display]),
   };
 }
 
@@ -246,15 +271,13 @@ export function withCustodySinceDerived(
 ): LedgerFact[] {
   if (packId !== CUSTODY_SINCE_PACK_ID) return [...facts];
   const stored = facts.filter((f) => !isComputedHere(f));
-  const of = (name: string) => stored.filter((f) => lastSegment(f.key) === name);
-  const arrestFacts = of(ARREST_DATE_KEY).filter(
-    (f) => f.type === 'date' && typeof f.value === 'string',
-  );
+  // The first arrest fact gives the display text only; the rule reads ledgerCustodyInputs.
+  const arrestFacts = arrestDateFacts(stored);
   const ledger = ledgerCustodyInputs(stored, unresolved);
   const result = deriveCustodySince({
     packId,
-    custody: of(CUSTODY_CHOICE_KEY).flatMap((f) => [f.value, f.display]),
-    arrestDates: arrestFacts.map((f) => String(f.value)),
+    custody: ledger.custodyAnswer,
+    arrestDates: ledger.arrestDates,
     custodySinceHeld: ledger.custodySinceHeld,
     otherCustodyDate: ledger.otherCustodyDate,
     texts: [described ?? '', ...ledger.texts],

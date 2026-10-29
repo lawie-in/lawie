@@ -164,3 +164,5 @@ This **replaces** Tanvi's marker-keeping fix in `bareStationName`: one rule on e
 - with no arrest_date at all, the brief uses its own items.
 
 No strings, word lists, rules or packs changed. Reviewer note (2) is accepted: after reception the custody date is asked more often. That is by design, and Anushka should see it in her pass. **T-665 APPROVED at 61907638.** It counts as merged at the develop_staging merge SHA that contains it.
+
+**T-665 MERGED (Ajay, 29 Oct 2026): develop_staging merge SHA 8c0aacc4.** Checked myself: it contains approved commit SHA 61907638. The only service diff since 61907638 is the T-666 change in intake-brief.ts (imports and O.39 scope), which I approved at 8595fb69 and which merged at d85a0fa7. The custody-question note for Anushka is in the merge message.

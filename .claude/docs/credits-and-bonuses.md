@@ -19,8 +19,8 @@ Ajay AJ-646-M9c / AC3. `spendCredits` and `grantCredits` (`apps/drafting/src/ser
 - The flag is env-only (`apps/drafting/src/config/env.ts`): no AppSetting, no admin override. Off by default, and `.env.example` carries it as `false`. Read at call time (`isEarnedSpendEnabled`).
 - Fail-closed parse: unset, `''`, `TRUE`, `1`, `yes` or anything else is off. An odd value never stops boot.
 - Keep it off. It may be turned on only after Ajay has signed an offer and terms for a bonus scheme (none exists).
-- `grantCredits` throws the same error for the `earnedCredits` bucket with the flag off, before any write (checked after the `amount > 0` check).
-- Check order in `spendCredits` with the flag off. The amount must be > 0 first, then:
+- `grantCredits` throws the same error for the `earnedCredits` bucket with the flag off, before any write (checked after the amount validation).
+- Check order in `spendCredits` with the flag off. The amount must be a finite number > 0 first (else `InvalidCreditAmountError`), then:
   1. total (topup + earned + sub) < amount: `InsufficientCreditsError`, with `available` = topup + sub (earned is never reported).
   2. else, if the plan (order topup, earned, sub) would take anything from earned: the typed refusal, before any write (all or nothing).
   3. else a normal spend.
@@ -31,9 +31,9 @@ Known limits:
 
 - A crash between debits leaves the earlier debits without a ledger row.
 - A debit the server applied but the driver reported as an error is not re-credited.
-- `NaN` passes the `amount <= 0` check and writes nothing. Non-finite amount hardening is a separate follow-up.
-- `getCreditBalance().total` still includes `earnedCredits`, and the 402 body from `enforceCredits` includes `balance.earnedCredits`. This is T-664, a separate ticket.
-- The source-scan test in `apps/drafting/src/__tests__/t653-earned-credits-guard.test.ts` only walks `*/src`. A future writer under `apps/*/scripts` would escape it (follow-up).
+- Amount checks (T-667): `spendCredits` and `grantCredits` throw `InvalidCreditAmountError` (`code` `invalid_credit_amount`) first, before the earned-flag check, any read or any write, for NaN, +-Infinity, a non-number, zero and negatives. Any finite amount above 0 is accepted, including non-integers such as 0.5 and very large values. There is no size cap, so two `grantCredits` calls of `Number.MAX_VALUE` would make `$inc` store `Infinity`. Nothing calls `grantCredits` outside the service. A cap or `Number.isSafeInteger` needs a ruling from Priya or Vikram first.
+- The balance has no `total` (T-667). `getCreditBalance()`, `GET /credits/balance` and the 402 body from `enforceCredits` carry `totalInk`; `earnedCredits` stays in the balance object as a bucket figure. `spendInk` and `holdInk` do not validate their cost argument (it is computed server-side), and the web `CreditBalance` type in `apps/web/src/hooks/useCredits.ts` still declares a `total` the server no longer sends (nothing reads it). Both are T-670.
+- The source-scan test in `apps/drafting/src/__tests__/t653-earned-credits-guard.test.ts` walks `src` and `scripts` under each `apps/*` and `packages/*` child. A writer in any other folder escapes it: the repo-root `scripts/`, symlinked dirs, and `.mts`/`.cts` files.
 
 ## Credit ledger (`creditledger`)
 

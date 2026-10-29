@@ -43,6 +43,7 @@ import {
   CUSTODY_SINCE_KEY,
   CUSTODY_SINCE_PACK_ID,
   deriveCustodySince,
+  type LedgerCustodyInputs,
 } from './custody-since-derivation';
 import { datesInText, iso, isOwnWords, normalise } from './intake-text';
 import { isLawSwitchPack } from './law-switch';
@@ -1386,12 +1387,15 @@ export interface BuildBriefInput {
    * T-660: the ledger's part of the custody_since rule (T-638 R1 / B1), from
    * `ledgerCustodyInputs` over the ledger's facts and unresolved entries, so
    * the brief derives only when generation will. Absent: keys only, as before.
+   * T-665 (Ajay, 2af703ea): its arrest dates win over the brief's items when it
+   * holds any, and a different date on the brief asks. Its custody answer is
+   * the only one read: none held means no derivation. Both optional in this
+   * type; a missing custodyAnswer counts as none held.
    */
-  ledgerCustody?: {
-    texts: readonly string[];
-    otherCustodyDate: boolean;
-    custodySinceHeld: boolean;
-  };
+  ledgerCustody?: Readonly<
+    Omit<LedgerCustodyInputs, 'arrestDates' | 'custodyAnswer' | 'arrestDateHeld'> &
+      Partial<Pick<LedgerCustodyInputs, 'arrestDates' | 'custodyAnswer' | 'arrestDateHeld'>>
+  >;
 }
 
 /**
@@ -1630,14 +1634,23 @@ function deriveCustodySinceItem(
     v === null || v === undefined ? [] : Array.isArray(v) ? v : [v];
   const named = (name: string): BriefItem[] => items.filter((i) => lastSegment(i.key) === name);
   const ledger = [...(input.ledgerGiven ?? [])].map(lastSegment);
-  // Every arrest date the brief holds, as the generation path reads every
-  // arrest_date fact: more than one is not derived from (asked).
-  const arrestDates = named(ARREST_DATE_KEY)
-    .flatMap((i) => strings(i.value))
-    .map((d) => d.trim())
-    .filter((d) => d !== '');
-  const uniqueArrest = [...new Set(arrestDates)];
-  const arrestIso = uniqueArrest.length === 1 ? uniqueArrest[0] : null;
+  const uniqueDates = (dates: readonly string[]): string[] => [
+    ...new Set(dates.map((d) => d.trim()).filter((d) => d !== '')),
+  ];
+  // Every arrest date, as the generation path reads every arrest_date fact:
+  // more than one is not derived from (asked). T-665: the ledger's dates win
+  // when it holds any (never mixed with the items'); else the brief's items.
+  const itemArrest = uniqueDates(named(ARREST_DATE_KEY).flatMap((i) => strings(i.value)));
+  const ledgerArrest = uniqueDates(input.ledgerCustody?.arrestDates ?? []);
+  // T-665 (Ajay, 309b4377): any arrest_date fact or unresolved entry in the
+  // ledger makes the ledger decide: only its usable dates count (none: asked).
+  const arrestDates =
+    input.ledgerCustody?.arrestDateHeld === true || ledgerArrest.length > 0
+      ? ledgerArrest
+      : itemArrest;
+  // T-665 guard: the brief shows a different arrest date than the ledger holds: ask.
+  if (ledgerArrest.length > 0 && itemArrest.some((d) => !ledgerArrest.includes(d))) return;
+  const arrestIso = arrestDates.length === 1 ? arrestDates[0] : null;
   const otherCustodyDate =
     items.some(
       (i) =>
@@ -1660,9 +1673,17 @@ function deriveCustodySinceItem(
     // T-660: and the ledger's own wording, as generation scans it.
     ...(input.ledgerCustody?.texts ?? []),
   ];
+  const ledgerAnswer = (input.ledgerCustody?.custodyAnswer ?? []).filter(
+    (v) => v !== null && v !== undefined && String(v).trim() !== '',
+  );
   const result = deriveCustodySince({
     packId: input.kind.id,
-    custody: named(CUSTODY_CHOICE_KEY).flatMap((i) => strings(i.value)),
+    // T-665 (Ajay, 2af703ea): with a ledger, only its custody answer (value and
+    // display), as generation reads it; none held means not derived (asked).
+    // With no ledger, the brief's items, as before.
+    custody: input.ledgerCustody
+      ? ledgerAnswer
+      : named(CUSTODY_CHOICE_KEY).flatMap((i) => strings(i.value)),
     arrestDates,
     custodySinceHeld:
       ledger.includes(CUSTODY_SINCE_KEY) || input.ledgerCustody?.custodySinceHeld === true,

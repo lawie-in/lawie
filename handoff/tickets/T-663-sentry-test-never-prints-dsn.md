@@ -1,6 +1,6 @@
 # T-663 — Sentry tests must never print a real DSN; suites fail fast if SENTRY_DSN is set
 
-Status: backlog (unassigned). Arjun ruling, 29 Oct 2026, after a test run printed the live drafting DSN into a subagent transcript (low severity).
+Status: assigned to tanvi, 29 Oct 2026. Arjun ruling (low severity).
 
 ## Acceptance criteria
 1. apps/drafting sentry.test.ts (and any other service's Sentry tests) never reads the real env var. It sets a fixture DSN itself and asserts the real value is never printed.

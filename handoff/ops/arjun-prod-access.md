@@ -285,3 +285,21 @@ JSON: `handoff/ops/runbooks/lawie-prod-ops-v11.json`, built from v10 (v10 is its
 
 ### SSM version 12 (29 Oct 2026, 09:09 UTC, Nikhil) — default
 Asked by Arjun at 09:08 UTC (Ajay, AJ-657-M1d). JSON: `handoff/ops/runbooks/lawie-prod-ops-v12.json`. The only change from v11, besides the description, is the backfill dry-run constant `--cutoff 2026-10-25T22:00:00Z` → `2026-10-25T20:00:00Z`. It is still dry run only, with no `--apply`. Active, default = 12, content == repo JSON.
+
+### SSM version 13 (29 Oct 2026, 09:38 UTC, Nikhil) — default
+Asked by the founder in Nikhil's chat ("set the env variable JWT_EXPIRES_IN to 2d"). JSON: `handoff/ops/runbooks/lawie-prod-ops-v13.json`. The only change from v12, besides the description, is that `JWT_EXPIRES_IN` is added to `env-set`'s `envkey` allowedValues. It passes the runtime secret-name guard (no KEY/SECRET/TOKEN/PASS/DSN/URI in the name). Active, default = 13, content == repo JSON.
+
+### SSM version 14 (29 Oct 2026, 10:05 UTC, Nikhil): Active, NOT default
+Asked by Arjun at 10:04 UTC (Ajay). JSON: `handoff/ops/runbooks/lawie-prod-ops-v14.json`. The only change from v13, besides the description, is the new action `get-setting` with param `settingkey` (`^feature\.[a-z0-9_.-]{1,60}$`, default `feature.unset`, refused at default).
+- Runs as ubuntu with the env loaded like deploy, from `apps/drafting`.
+- `node -e` uses mongoose to read `appsettings.findOne({key})` (value field only). The key is passed as argv, not spliced into the code, and the JS re-checks the feature-only pattern.
+- Prints `key=value` or `key unset`. On error it prints only the error name.
+- `update-document-default-version 14` was blocked by the session permission check, so the default stays 13. Run get-setting pinned: `--document-version 14`.
+
+### SSM version 15 (29 Oct 2026, 10:09 UTC, Nikhil): Active, NOT default
+Asked by Arjun at 10:08 UTC (Ajay, AJ-668-M4). JSON: `handoff/ops/runbooks/lawie-prod-ops-v15.json`. The only change from v14, besides the description, is the new action `count-generations`, with params `templateids` (`^[a-z0-9_]{1,40}(,[a-z0-9_]{1,40}){0,7}$`, default `unset`, refused at default) and `since` (`^YYYY-MM-DDTHH:MM:SSZ$`).
+- Runs as ubuntu with the env loaded like deploy, from `apps/drafting`. `node -e` and mongoose read the `generations` collection only.
+- For each templateId it prints `before` (createdAt < since) and `since` (≥ since) counts. It then prints the rows since `since`: `_id`, `runId`, `status`, `createdAt` (projection only, so no userId and no content), sorted, capped at 200.
+- Params are passed as argv and re-validated in the JS. On error it prints only the error name.
+- The default stays 13 (the flip was blocked at 10:05 and not retried); run it pinned with `--document-version 15`.
+- Shorthand `--parameters` splits on commas, so send one template per call or use the JSON `--parameters` form for a list.

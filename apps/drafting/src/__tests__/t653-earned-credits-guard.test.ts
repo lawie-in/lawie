@@ -24,6 +24,7 @@ import { User } from '../models/User.model';
 import {
   EarnedCreditsSpendDisabledError,
   InsufficientCreditsError,
+  InvalidCreditAmountError,
   grantCredits,
   isEarnedSpendEnabled,
   spendCredits,
@@ -532,13 +533,15 @@ describe('T-653 guarded debit: a concurrent drain undoes this call and writes no
 
 describe('T-653 spendCredits argument checks', () => {
   it.each([0, -1, -0.5])(
-    'amount %p throws the plain Error before any read or write',
+    'amount %p throws InvalidCreditAmountError (T-667) before any read or write',
     async (amount) => {
       await seed({ topup: 5, earned: 5, sub: 5 });
       const find = jest.spyOn(User, 'findById');
       const foau = jest.spyOn(User, 'findOneAndUpdate');
       const err = await caught(spendCredits({ userId: USER_ID, amount }));
-      expect(err).toBeInstanceOf(Error);
+      expect(err).toBeInstanceOf(InvalidCreditAmountError);
+      expect((err as InvalidCreditAmountError).code).toBe('invalid_credit_amount');
+      expect((err as InvalidCreditAmountError).operation).toBe('spendCredits');
       expect(err).not.toBeInstanceOf(InsufficientCreditsError);
       expect(err).not.toBeInstanceOf(EarnedCreditsSpendDisabledError);
       expect((err as Error).message).toBe(`spendCredits: amount must be > 0 (got ${amount})`);
@@ -559,9 +562,17 @@ describe('T-653 spendCredits argument checks', () => {
     expect(err).not.toBeInstanceOf(EarnedCreditsSpendDisabledError);
   });
 
-  it('NaN is not rejected by the amount check (same as before T-653) but it writes nothing', async () => {
+  it('NaN is rejected by the amount check (T-667) with InvalidCreditAmountError, no read, no write', async () => {
     await seed({ topup: 5, earned: 5, sub: 5 });
-    await caught(spendCredits({ userId: USER_ID, amount: Number.NaN }));
+    const find = jest.spyOn(User, 'findById');
+    const foau = jest.spyOn(User, 'findOneAndUpdate');
+    const err = await caught(spendCredits({ userId: USER_ID, amount: Number.NaN }));
+    expect(err).toBeInstanceOf(InvalidCreditAmountError);
+    expect((err as InvalidCreditAmountError).code).toBe('invalid_credit_amount');
+    expect((err as InvalidCreditAmountError).operation).toBe('spendCredits');
+    expect((err as Error).message).toBe('spendCredits: amount must be a finite number');
+    expect(find).not.toHaveBeenCalled();
+    expect(foau).not.toHaveBeenCalled();
     expect(await raw()).toMatchObject({
       topupCredits: 5,
       earnedCredits: 5,
@@ -668,10 +679,11 @@ describe('T-653 grantCredits', () => {
   );
 
   it.each([false, true])(
-    'flag %p: amount <= 0 is rejected first, with the plain Error',
+    'flag %p: amount <= 0 is rejected first, with InvalidCreditAmountError (T-667)',
     async (on) => {
       setFlag(on);
       await seed({ earned: 5 });
+      const foau = jest.spyOn(User, 'findByIdAndUpdate');
       const err = await caught(
         grantCredits({
           userId: USER_ID,
@@ -680,8 +692,42 @@ describe('T-653 grantCredits', () => {
           source: 'admin_grant',
         }),
       );
+      expect(err).toBeInstanceOf(InvalidCreditAmountError);
       expect(err).not.toBeInstanceOf(EarnedCreditsSpendDisabledError);
+      expect((err as InvalidCreditAmountError).code).toBe('invalid_credit_amount');
+      expect((err as InvalidCreditAmountError).operation).toBe('grantCredits');
       expect((err as Error).message).toBe('grantCredits: amount must be > 0 (got 0)');
+      expect(foau).not.toHaveBeenCalled();
+      expect(await raw()).toMatchObject({ earnedCredits: 5 });
+      expect(await rowCount()).toBe(0);
+    },
+  );
+
+  it.each([
+    ['NaN', Number.NaN],
+    ['Infinity', Number.POSITIVE_INFINITY],
+    ['-Infinity', Number.NEGATIVE_INFINITY],
+    ["'5'", '5' as unknown as number],
+    ['undefined', undefined as unknown as number],
+    ['null', null as unknown as number],
+  ])(
+    'amount %s: InvalidCreditAmountError (finite-number message), no read, no write, no row',
+    async (_label, amount) => {
+      setFlag(true);
+      await seed({ topup: 1, earned: 5 });
+      const foau = jest.spyOn(User, 'findByIdAndUpdate');
+      const find = jest.spyOn(User, 'findById');
+      const create = jest.spyOn(CreditLedger, 'create');
+      const err = await caught(
+        grantCredits({ userId: USER_ID, bucket: 'topupCredits', amount, source: 'admin_grant' }),
+      );
+      expect(err).toBeInstanceOf(InvalidCreditAmountError);
+      expect((err as InvalidCreditAmountError).operation).toBe('grantCredits');
+      expect((err as Error).message).toBe('grantCredits: amount must be a finite number');
+      expect(foau).not.toHaveBeenCalled();
+      expect(find).not.toHaveBeenCalled();
+      expect(create).not.toHaveBeenCalled();
+      expect(await raw()).toMatchObject({ topupCredits: 1, earnedCredits: 5 });
       expect(await rowCount()).toBe(0);
     },
   );
@@ -745,8 +791,11 @@ describe('T-653 source scan: only credits.service writes earnedCredits', () => {
     for (const group of ['apps', 'packages']) {
       const base = path.join(repoRoot, group);
       for (const pkg of fs.readdirSync(base, { withFileTypes: true })) {
-        const src = path.join(base, pkg.name, 'src');
-        if (pkg.isDirectory() && fs.existsSync(src)) walk(src, files);
+        // T-667: also walk <pkg>/scripts (backfills and seeds can write balances too).
+        for (const sub of ['src', 'scripts']) {
+          const dir = path.join(base, pkg.name, sub);
+          if (pkg.isDirectory() && fs.existsSync(dir)) walk(dir, files);
+        }
       }
     }
     return files.map((f) => path.relative(repoRoot, f));
@@ -797,6 +846,16 @@ describe('T-653 source scan: only credits.service writes earnedCredits', () => {
     expect(files).toContain(SERVICE);
     expect(files).toContain('apps/auth/src/models/User.model.ts');
     expect(files.some((f) => f.includes('__tests__'))).toBe(false);
+  });
+
+  it('T-667: the scan also walks apps/*/scripts (real script files are in the list)', () => {
+    const files = sourceFiles();
+    expect(files).toContain('apps/billing/scripts/backfill-invoices.ts');
+    expect(files).toContain('apps/auth/scripts/backfill-free-seed.ts');
+    expect(files).toContain('apps/drafting/scripts/seed-app-setting.ts');
+    expect(files.filter((f) => /^apps\/[^/]+\/scripts\//.test(f)).length).toBeGreaterThanOrEqual(
+      10,
+    );
   });
 
   it('no other file contains an earnedCredits write', () => {

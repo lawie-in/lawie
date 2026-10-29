@@ -1,6 +1,6 @@
 # T-665 — Arrest dates and the custody answer come from the ledger too
 
-Status: built, READY 29 Oct (61907638), awaiting Ajay byte check. Ajay rulings 2af703ea, 309b4377. Batch note: the custody question is asked more often (by design).
+Status: merged into develop_staging 8c0aacc4 (tanvi, CI green), 29 Oct 2026. Batch note: the custody question is asked more often (by design).
 
 ## Why
 T-660 made `ledgerCustodyInputs` the one source for ledger wording in the brief and in generation. The arrest dates and the custody answer are still read from the brief's own items, not from the ledger.

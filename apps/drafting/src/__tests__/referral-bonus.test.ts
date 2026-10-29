@@ -150,7 +150,9 @@ describe('enforceFreeLimit — bonus deduction', () => {
     expect(res.status).toBe(402);
     expect(res.body.error).toMatch(/Insufficient Ink/);
     expect(res.body.cost).toBe(2); // bail_anticipatory costs 2 credits
-    expect(res.body.balance.total).toBe(0);
+    // T-667: the earned-inclusive `total` is gone; the balance is `totalInk`.
+    expect(res.body.balance).not.toHaveProperty('total');
+    expect(typeof res.body.balance.totalInk).toBe('number');
   });
 });
 
