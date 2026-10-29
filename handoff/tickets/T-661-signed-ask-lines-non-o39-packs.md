@@ -1,6 +1,6 @@
 # T-661 — Signed ask lines for the party fields in non-O.39 packs (plaint_partition, replication, written_statement)
 
-Status: backlog. Goes next after T-655 merges. A follow-up to T-650, 29 Oct 2026. Legal content: Ajay byte-checks.
+Status: assigned to vishal, 29 Oct 2026.
 
 ## Problem
 On the brief route, an unanswered plaint_partition `other_defendants` (blocks_confirm: true) blocks Confirm with NO message (confirm_message is null). The form route says "<label> is required". The signed ask line needs the M1 code path: o39-confirm-messages.ts, form-ledger and intake-brief confirmState.
