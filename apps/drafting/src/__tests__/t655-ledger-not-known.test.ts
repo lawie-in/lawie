@@ -22,7 +22,7 @@ import request from 'supertest';
 
 import app from '../app';
 import redis from '../config/redis';
-import { O39_NON_ANSWERS } from '../config/intake/o39-confirm-messages';
+import { O39_NON_ANSWERS } from '../config/intake/signed-confirm-messages';
 import { AppSetting } from '../models/AppSetting.model';
 import { Court } from '../models/Court.model';
 import { Generation } from '../models/Generation.model';
@@ -510,13 +510,13 @@ describe('T-655 F (FR-5a): one copy of the section (j)3 list', () => {
   const read = (p: string) => fs.readFileSync(p, 'utf8');
   const rel = (p: string) => path.relative(SRC, p);
 
-  it('intake-brief.ts gets its non-answer check from o39-confirm-messages.ts', () => {
+  it('intake-brief.ts gets its non-answer check from signed-confirm-messages.ts', () => {
     const src = read(path.join(SRC, 'services/intake-brief.ts'));
     expect(src).toMatch(
-      /import\s*\{[^}]*\bisEmptyOrNonAnswer\b[^}]*\}\s*from\s*'\.\.\/config\/intake\/o39-confirm-messages'/,
+      /import\s*\{[^}]*\bisEmptyOrNonAnswer\b[^}]*\}\s*from\s*'\.\.\/config\/intake\/signed-confirm-messages'/,
     );
     expect(src).toMatch(
-      /import\s*\{[^}]*\bisO39RequiredField\b[^}]*\}\s*from\s*'\.\.\/config\/intake\/o39-confirm-messages'/,
+      /import\s*\{[^}]*\bisNoFactGuardedField\b[^}]*\}\s*from\s*'\.\.\/config\/intake\/signed-confirm-messages'/,
     );
   });
 
@@ -540,9 +540,12 @@ describe('T-655 F (FR-5a): one copy of the section (j)3 list', () => {
       })
       .map(rel)
       .sort();
-    // o39-confirm-messages.ts is the signed list. form-ledger.ts has the older FR-9
+    // signed-confirm-messages.ts is the signed list. form-ledger.ts has the older FR-9
     // NO_FACT_ANSWERS list (Ajay 4813ba79), not added by T-655; this pins that no third copy appears.
-    expect(holders).toEqual(['config/intake/o39-confirm-messages.ts', 'services/form-ledger.ts']);
+    expect(holders).toEqual([
+      'config/intake/signed-confirm-messages.ts',
+      'services/form-ledger.ts',
+    ]);
   });
 
   it('the web holds no copy of the list and no ledger judge (the mirror is deleted)', () => {

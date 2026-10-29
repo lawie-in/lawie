@@ -23,7 +23,7 @@ import {
   O39_REQUIRED_FIELDS,
   requiredFieldBlockers,
   signedConfirmMessage,
-} from '../config/intake/o39-confirm-messages';
+} from '../config/intake/signed-confirm-messages';
 import {
   BriefItem,
   buildBrief,
@@ -84,7 +84,7 @@ const itemOf = (b: { items: BriefItem[] }, name: string) => {
 };
 
 // ── A. The messages file ─────────────────────────────────────────────────────────────────
-describe('o39-confirm-messages: the signed strings', () => {
+describe('signed-confirm-messages: the signed strings', () => {
   it('EN and HI are byte for byte the signed text', () => {
     expect(O39_CONFIRM_MESSAGES.main_suit_relief.en).toBe(SIGNED_RELIEF_EN);
     expect(O39_CONFIRM_MESSAGES.main_suit_relief.hi).toBe(SIGNED_RELIEF_HI);
@@ -99,8 +99,8 @@ describe('o39-confirm-messages: the signed strings', () => {
       'main_suit_relief',
       'restraint_sought',
     ]);
-    expect(isO39RequiredField('restraint_sought')).toBe(true);
-    expect(isO39RequiredField('acts_complained_of')).toBe(false);
+    expect(isO39RequiredField('temporary_injunction_o39', 'restraint_sought')).toBe(true);
+    expect(isO39RequiredField('temporary_injunction_o39', 'acts_complained_of')).toBe(false);
   });
 
   it('the non-answer list is exactly the ten signed values', () => {
@@ -177,7 +177,7 @@ describe('fail closed: every blocks_confirm field in a pack has a signed message
   // pack has a signed line for it (PACK_CONFIRM_MESSAGES), with a non-empty EN and HI.
   const unmessaged = (flagged: Array<{ pack: string; id: string }>) =>
     flagged.filter((f) => {
-      if (isO39RequiredField(f.id)) return false;
+      if (isO39RequiredField(f.pack, f.id)) return false;
       const m = signedConfirmMessage(f.pack, f.id);
       return !(m !== null && m.en.length > 0 && m.hi.length > 0);
     });
@@ -200,7 +200,7 @@ describe('fail closed: every blocks_confirm field in a pack has a signed message
       ]),
     );
     expect(unmessaged(flagged)).toEqual([]);
-    for (const f of flagged.filter((x) => isO39RequiredField(x.id))) {
+    for (const f of flagged.filter((x) => isO39RequiredField(x.pack, x.id))) {
       expect(O39_CONFIRM_MESSAGES[f.id as 'main_suit_relief'].en.length).toBeGreaterThan(0);
       expect(O39_CONFIRM_MESSAGES[f.id as 'main_suit_relief'].hi.length).toBeGreaterThan(0);
     }

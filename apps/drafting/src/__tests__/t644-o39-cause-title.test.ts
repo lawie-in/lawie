@@ -23,7 +23,7 @@ import { Generation } from '../models/Generation.model';
 import { User } from '../models/User.model';
 import { createVerifiedUser } from './verifiedUser';
 import { _clearAppSettingsCache } from '../services/app-settings.service';
-import { O39_CONFIRM_MESSAGES } from '../config/intake/o39-confirm-messages';
+import { O39_CONFIRM_MESSAGES } from '../config/intake/signed-confirm-messages';
 import { formRequiredFieldBlock } from '../services/form-ledger';
 import {
   buildBrief,
@@ -341,7 +341,8 @@ describe('T-644 E: formRequiredFieldBlock (unit)', () => {
     ).toBeNull();
   });
   it('another template is unchanged: null', () => {
-    expect(formRequiredFieldBlock('plaint_recovery', {})).toBeNull();
+    // T-668: plaint_recovery is no longer "another template" (AJ-668-M3); a pack outside the 8 is.
+    expect(formRequiredFieldBlock('bail_regular', {})).toBeNull();
   });
 });
 

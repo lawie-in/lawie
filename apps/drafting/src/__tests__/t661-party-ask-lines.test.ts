@@ -12,7 +12,7 @@ import {
   O39_CONFIRM_MESSAGES,
   PACK_CONFIRM_MESSAGES,
   signedConfirmMessage,
-} from '../config/intake/o39-confirm-messages';
+} from '../config/intake/signed-confirm-messages';
 import { buildBrief, buildChecklist, GivenValue } from '../services/intake-brief';
 import { loadRulePack } from '../services/rule-pack.service';
 
