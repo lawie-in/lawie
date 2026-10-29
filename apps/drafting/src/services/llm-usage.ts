@@ -438,14 +438,28 @@ export function setLlmLogFixtureId(id: string | null): void {
   currentFixtureId = id;
 }
 
+/**
+ * T-683: the stage on an llm_call line. The effort stages, plus 'extract' for
+ * the v3 Extractor (role C), which reads its effort per role (getRoleEffort).
+ */
+export type LlmLogStage = LlmStage | 'extract';
+
+/**
+ * T-683: 'degraded' is a v3 Extractor turn that fell back to v2 (Arjun,
+ * T-683 answers §4 item 6). It carries a reason code, never text.
+ */
+export type LlmCallStatus = 'completed' | 'failed' | 'degraded';
+
 /** The fields of one llm_call line, as logged. Ids and counts only. */
 export interface LlmCallRecord {
   event: 'llm_call';
-  stage: LlmStage;
+  stage: LlmLogStage;
   call: string;
   model: string;
   effort: AiEffort | null;
-  status: 'completed' | 'failed';
+  status: LlmCallStatus;
+  /** T-683: the reason code of a 'degraded' line. Absent otherwise. */
+  reason?: string;
   input_tokens: number;
   output_tokens: number;
   cache_read_input_tokens: number;
@@ -468,12 +482,14 @@ export function setLlmCallListener(fn: ((r: LlmCallRecord) => void) | null): voi
 }
 
 export interface LlmCallLog {
-  stage: LlmStage;
+  stage: LlmLogStage;
   /** Which call within the stage (intake_match, preflight, stream, d1, ...). A code label, never text. */
   call: string;
   model: string;
   effort: AiEffort | null;
-  status: 'completed' | 'failed';
+  status: LlmCallStatus;
+  /** T-683: a reason code for a 'degraded' line (e.g. 'timeout'). A code label, never text. */
+  reason?: string;
   inputTokens?: number;
   outputTokens?: number;
   cacheReadInputTokens?: number;
@@ -498,6 +514,7 @@ export function logLlmCall(c: LlmCallLog): void {
     model: c.model,
     effort: c.effort,
     status: c.status,
+    ...(c.status === 'degraded' && c.reason ? { reason: c.reason } : {}),
     input_tokens: c.inputTokens ?? 0,
     output_tokens: c.outputTokens ?? 0,
     cache_read_input_tokens: c.cacheReadInputTokens ?? 0,

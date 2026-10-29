@@ -30,11 +30,10 @@ import {
   V3ExtractLine,
 } from '../../config/prompts/v3-extractor';
 import redis from '../../config/redis';
-import { APP_SETTING_KEYS, getAppSetting } from '../app-settings.service';
 import { AuxCallError, AuxCallUsage, callAuxModel } from '../aux-llm';
 import { factTypeFor, isLedgerItem } from '../fact-ledger.service';
 import { ChecklistItem, dateKindLabel } from '../intake-brief';
-import { AiEffort, logLlmCall } from '../llm-usage';
+import { AiEffort, getRoleEffort, logLlmCall, resolveModel } from '../llm-usage';
 import type { RulePack } from '../rule-pack.service';
 
 import type { ExtractResult } from './types';
@@ -51,12 +50,12 @@ export const EXTRACTOR_LIMITS = {
   timeoutMs: 20_000,
 } as const;
 
-/** T-684 adds these keys to APP_SETTING_KEYS; read by name until it merges. */
-export const EXTRACTOR_MODEL_SETTING = 'ai.model.extractor';
-export const EXTRACTOR_EFFORT_SETTING = 'ai.effort.extractor';
-/** Arjun §2: the Phase 1 default when neither setting is readable. */
+/**
+ * Arjun §5 item 3: the model ai.model.extractor is to be set to in Phase 1.
+ * A documented value only, never a code fallback (founder rule 2026-05-11):
+ * an unset model degrades the turn ('model_unset').
+ */
 export const EXTRACTOR_DEFAULT_MODEL = 'claude-haiku-5-5';
-export const EXTRACTOR_DEFAULT_EFFORT: AiEffort = 'low';
 
 /** The llm_call label and the LlmAuxCall purpose of this call. */
 export const EXTRACTOR_CALL = 'v3_extract' as const;
@@ -81,6 +80,8 @@ export interface ExtractInput {
 }
 
 export type DegradedReason =
+  /** T-684: neither ai.model.extractor nor ai.intake_model is set (no code default). */
+  | 'model_unset'
   | 'input_too_large'
   | 'user_cap'
   | 'rate_check_failed'
@@ -148,35 +149,13 @@ export function _resetExtractorState(): void {
   inFlight.clear();
 }
 
-// ── Settings ────────────────────────────────────────────────────────────────
-
-const EFFORTS: readonly AiEffort[] = ['low', 'medium', 'high', 'xhigh', 'max'];
-
-async function readSetting(key: string): Promise<string | null> {
-  try {
-    const v = (await getAppSetting(key)).trim();
-    return v === '' ? null : v;
-  } catch {
-    return null;
-  }
-}
-
-/** ai.model.extractor, else ai.intake_model (one release, ADR §4), else the Phase 1 default. */
-export async function extractorModel(): Promise<string> {
-  return (
-    (await readSetting(EXTRACTOR_MODEL_SETTING)) ??
-    (await readSetting(APP_SETTING_KEYS.INTAKE_MODEL)) ??
-    EXTRACTOR_DEFAULT_MODEL
-  );
-}
-
-/** ai.effort.extractor, default low. Any other value is the default. */
-export async function extractorEffort(): Promise<AiEffort> {
-  const v = (await readSetting(EXTRACTOR_EFFORT_SETTING))?.toLowerCase();
-  return v !== undefined && (EFFORTS as readonly string[]).includes(v)
-    ? (v as AiEffort)
-    : EXTRACTOR_DEFAULT_EFFORT;
-}
+// ── Settings (T-684) ────────────────────────────────────────────────────────
+//
+// The model is the extractor role's: ai.model.extractor, else ai.intake_model
+// for one release (resolveModel). No code default (founder rule 2026-05-11):
+// unset everywhere, the turn is degraded with 'model_unset'. The effort is
+// getRoleEffort('extractor'): ai.effort.extractor, else ai.effort.intake, else
+// T-684's role default. Both are read through llm-usage, never by key here.
 
 // ── The prompt ──────────────────────────────────────────────────────────────
 
@@ -305,24 +284,33 @@ async function takeUserSlot(userId: string, now: number): Promise<boolean> {
 
 // ── Logging (ids, counts, reason codes only) ────────────────────────────────
 
-function logDegraded(input: ExtractInput, reason: DegradedReason): void {
-  // TODO(T-683 phase 2, after T-684): llm-usage.ts has no 'extract' stage and no
-  // 'degraded' status yet; log it as an llm_call line with stage 'extract',
-  // status 'degraded' and this reason once llm-usage.ts is granted.
-  try {
-    logger.warn(
-      {
-        event: 'v3_extract_degraded',
-        reason,
-        run_id: input.runId,
-        ...(input.intakeId ? { intake_id: input.intakeId } : {}),
-        turn: input.turn,
-      },
-      'v3_extract_degraded',
-    );
-  } catch {
-    // Logging must never fail a turn.
-  }
+/** The llm_call line: stage 'extract'; 'degraded' carries the reason code. Never text. */
+function logCall(
+  input: ExtractInput,
+  status: 'completed' | 'degraded',
+  call: { model: string; effort: AiEffort | null; usage?: AuxCallUsage },
+  reason?: DegradedReason,
+): void {
+  const u = call.usage;
+  logLlmCall({
+    stage: 'extract',
+    call: EXTRACTOR_CALL,
+    model: call.model,
+    effort: call.effort,
+    status,
+    ...(status === 'degraded' && reason ? { reason } : {}),
+    ...(u
+      ? {
+          inputTokens: u.inputTokens,
+          outputTokens: u.outputTokens,
+          cacheReadInputTokens: u.cacheReadInputTokens,
+          cacheCreationInputTokens: u.cacheCreationInputTokens,
+          stopReason: u.stopReason,
+        }
+      : {}),
+    ...(input.intakeId ? { intakeId: input.intakeId } : {}),
+    runId: input.runId,
+  });
 }
 
 function logValidated(
@@ -353,8 +341,11 @@ function logValidated(
 // ── The call ────────────────────────────────────────────────────────────────
 
 async function runExtract(input: ExtractInput): Promise<ExtractOutcome> {
+  // Set once the model is known, so a degraded line names it ('' before).
+  let model = '';
+  let effort: AiEffort | null = null;
   const degraded = (reason: DegradedReason, usage?: ExtractUsage): ExtractOutcome => {
-    logDegraded(input, reason);
+    logCall(input, 'degraded', { model, effort, ...(usage ? { usage: usage.usage } : {}) }, reason);
     return usage ? { status: 'degraded', reason, usage } : { status: 'degraded', reason };
   };
 
@@ -370,6 +361,16 @@ async function runExtract(input: ExtractInput): Promise<ExtractOutcome> {
     return degraded('input_too_large');
   }
 
+  // Before the per-user slot, so an unset model never spends one.
+  try {
+    model = (await resolveModel('extractor')).trim();
+  } catch {
+    return degraded('model_unset');
+  }
+  // resolveModel returns the first key that exists, even blank: a blank id is no model.
+  if (model === '') return degraded('model_unset');
+  effort = await getRoleEffort('extractor');
+
   try {
     if (!(await takeUserSlot(input.userId, now))) return degraded('user_cap');
   } catch {
@@ -378,26 +379,8 @@ async function runExtract(input: ExtractInput): Promise<ExtractOutcome> {
   }
 
   state.calls += 1;
-  const [model, effort] = await Promise.all([extractorModel(), extractorEffort()]);
   const started = Date.now();
   const signal = AbortSignal.timeout(EXTRACTOR_LIMITS.timeoutMs);
-  // TODO(T-683 phase 2, after T-684): stage 'extract' (llm-usage.ts LlmStage) and its
-  // cost line against ai.cost_cap_paise_per_ink. Until then the intake stage carries it.
-  const log = (status: 'completed' | 'failed', u: AuxCallUsage): void =>
-    logLlmCall({
-      stage: 'intake',
-      call: EXTRACTOR_CALL,
-      model,
-      effort,
-      status,
-      inputTokens: u.inputTokens,
-      outputTokens: u.outputTokens,
-      cacheReadInputTokens: u.cacheReadInputTokens,
-      cacheCreationInputTokens: u.cacheCreationInputTokens,
-      stopReason: u.stopReason,
-      ...(input.intakeId ? { intakeId: input.intakeId } : {}),
-      runId: input.runId,
-    });
 
   let text: string;
   let usage: ExtractUsage;
@@ -412,7 +395,6 @@ async function runExtract(input: ExtractInput): Promise<ExtractOutcome> {
       },
       { signal, cacheSystem: true },
     );
-    log('completed', r);
     text = r.text;
     usage = { model, effort, usage: r, durationMs: Date.now() - started, status: 'completed' };
   } catch (err) {
@@ -420,7 +402,6 @@ async function runExtract(input: ExtractInput): Promise<ExtractOutcome> {
       err instanceof AuxCallError
         ? err.usage
         : { inputTokens: 0, outputTokens: 0, usageSource: 'estimated', transport: 'direct' };
-    log('failed', u);
     const failed: ExtractUsage = {
       model,
       effort,
@@ -436,6 +417,7 @@ async function runExtract(input: ExtractInput): Promise<ExtractOutcome> {
     return degraded(usage.usage.stopReason === 'max_tokens' ? 'max_tokens' : 'bad_json', usage);
   }
 
+  logCall(input, 'completed', { model, effort, usage: usage.usage });
   const { result, dropped } = validateExtraction(parsed, {
     checklist: input.checklist,
     description: input.description,
@@ -458,7 +440,7 @@ export function extractTurn(input: ExtractInput): Promise<ExtractOutcome> {
   if (pending) return pending;
   const p = runExtract(input)
     .catch((): ExtractOutcome => {
-      logDegraded(input, 'call_failed');
+      logCall(input, 'degraded', { model: '', effort: null }, 'call_failed');
       return { status: 'degraded', reason: 'call_failed' };
     })
     .finally(() => {
