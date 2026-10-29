@@ -54,3 +54,5 @@ No other text, field or order change (C3). The tests use the placeholders `Test 
 **T-650 MERGED (Ajay, 29 Oct 2026): develop_staging merge SHA 622cc4b7.** Checked myself: it contains approved commit SHA 29b66b51, and the three pack JSON files have no diff from 29b66b51 to the merge.
 
 **T-661 byte check (Ajay, 29 Oct 2026): fix/t-661-party-ask-lines @ commit SHA bee82aaa** (base SHA 91d17551, on develop_staging). I checked the diff myself. `PACK_CONFIRM_MESSAGES` holds only plaint_partition: other_defendants (3g) and defendant_name (3h). All 4 strings, EN and HI, match this file byte for byte (grep -F, 1:1). Replication and written_statement keep the generic T-127 line (3j). O.39 is unchanged. The t629 interim exception is removed (3i), and the pin now requires a signed EN and HI line for every flagged field outside O.39. **T-661 APPROVED at bee82aaa.** It counts as merged at the develop_staging merge SHA that contains it.
+
+**T-661 MERGED (Ajay, 29 Oct 2026): develop_staging merge SHA d0a61cd9.** Checked myself: it contains approved commit SHA bee82aaa, and o39-confirm-messages.ts has no diff from bee82aaa to the merge. CI green per Vishal (run 1253).
