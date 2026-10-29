@@ -1,0 +1,265 @@
+name: Full tests
+
+# ── T-688: the FULL tier (Arjun, 29 Oct 2026) ────────────────────────────────
+# Every test in every workspace, with coverage and its thresholds: `yarn workspace @lawie/<ws> test`
+# (jest --selectProjects full --coverage), plus the web lint and the Codecov uploads. ci.yml runs
+# only the sanity tier on every push (5-minute cap); this workflow is where everything else runs.
+# When: nightly on develop_staging, on every push to release/**, and on demand.
+# It is a separate workflow, so it never blocks a develop_staging merge. A red nightly run gets a
+# ticket, and the test that caught the problem moves into the sanity tier (T-688 AC2).
+# Release (Ajay, T-688 conditions): the full tier, including the full court-rules run, must be green
+# on the exact SHA approved before any release to main. Runs are grouped per commit and never
+# cancelled, so every pushed release/** SHA keeps its own result.
+
+on:
+  # Same docs-only skip as ci.yml (T-249).
+  push:
+    branches: ['release/**']
+    paths-ignore:
+      - 'handoff/**'
+      - '.claude/**'
+      - '**/*.md'
+  schedule:
+    - cron: '0 21 * * *' # 02:30 IST, after the golden set (02:00 IST)
+  workflow_dispatch:
+
+concurrency:
+  group: full-tests-${{ github.ref }}-${{ github.sha }}
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  # ── Gateway ──────────────────────────────────────────────────────────────
+  test-gateway:
+    name: Full — Gateway
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+    env:
+      NODE_ENV: test
+    steps:
+      # Nightly runs test develop_staging; '' means the event's own ref.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'schedule' && 'develop_staging' || '' }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'yarn'
+      - run: yarn install --frozen-lockfile
+      - run: yarn workspace @lawie/shared build
+      - run: yarn workspace @lawie/gateway test
+      - uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          flags: gateway
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  # ── Auth ─────────────────────────────────────────────────────────────────
+  test-auth:
+    name: Full — Auth
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+    env:
+      NODE_ENV: test
+      REDIS_TEST_URL: redis://localhost:6379
+      # T-211: one pinned Mongo binary in one absolute dir, shared by the pre-download step and the tests.
+      MONGOMS_VERSION: '7.0.24'
+      MONGOMS_DOWNLOAD_DIR: /home/runner/.cache/mongodb-binaries
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'schedule' && 'develop_staging' || '' }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'yarn'
+      - name: Cache Mongo binary
+        uses: actions/cache@v4
+        with:
+          path: /home/runner/.cache/mongodb-binaries
+          key: mongoms-${{ runner.os }}-7.0.24-${{ hashFiles('yarn.lock') }}
+          restore-keys: |
+            mongoms-${{ runner.os }}-7.0.24-
+      - run: yarn install --frozen-lockfile
+      - run: yarn workspace @lawie/shared build
+      # T-223: auth resolves @lawie/email-client from its dist (gitignored), so build it first.
+      - run: yarn workspace @lawie/email-client build
+      # T-211: download the binary once, serially, before parallel Jest workers race for it. No-op on a cache hit.
+      - name: Pre-download Mongo binary
+        run: yarn workspace @lawie/auth node -e "require('mongodb-memory-server').MongoMemoryServer.create().then(s => s.stop()).catch(e => { console.error(e); process.exit(1); })"
+      - run: yarn workspace @lawie/auth test
+      - uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          flags: auth
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  # ── Drafting ─────────────────────────────────────────────────────────────
+  test-drafting:
+    name: Full — Drafting
+    runs-on: ubuntu-latest
+    # About 20 minutes in CI before T-688; generous so a slow runner is not a red night.
+    timeout-minutes: 60
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+    env:
+      NODE_ENV: test
+      # T-211: one pinned Mongo binary in one absolute dir, shared by the pre-download step and the tests.
+      MONGOMS_VERSION: '7.0.24'
+      MONGOMS_DOWNLOAD_DIR: /home/runner/.cache/mongodb-binaries
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'schedule' && 'develop_staging' || '' }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'yarn'
+      - name: Cache Mongo binary
+        uses: actions/cache@v4
+        with:
+          path: /home/runner/.cache/mongodb-binaries
+          key: mongoms-${{ runner.os }}-7.0.24-${{ hashFiles('yarn.lock') }}
+          restore-keys: |
+            mongoms-${{ runner.os }}-7.0.24-
+      - run: yarn install --frozen-lockfile
+      - run: yarn workspace @lawie/shared build
+      - run: yarn workspace @lawie/drafting build
+      # T-211: download the binary once, serially, before parallel Jest workers race for it. No-op on a cache hit.
+      - name: Pre-download Mongo binary
+        run: yarn workspace @lawie/drafting node -e "require('mongodb-memory-server').MongoMemoryServer.create().then(s => s.stop()).catch(e => { console.error(e); process.exit(1); })"
+      - run: yarn workspace @lawie/drafting test
+      # T-688: scripts/golden-set/__tests__ (not under the drafting jest config); see ci.yml test-golden-set.
+      - name: Golden-set harness tests
+        if: ${{ !cancelled() }}
+        run: yarn jest -c scripts/jest.config.js scripts/golden-set/__tests__ --coverage=false
+      - uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          flags: drafting
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  # ── Billing ──────────────────────────────────────────────────────────────
+  test-billing:
+    name: Full — Billing
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NODE_ENV: test
+      # T-211: one pinned Mongo binary in one absolute dir, shared by the pre-download step and the tests.
+      MONGOMS_VERSION: '7.0.24'
+      MONGOMS_DOWNLOAD_DIR: /home/runner/.cache/mongodb-binaries
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'schedule' && 'develop_staging' || '' }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'yarn'
+      - name: Cache Mongo binary
+        uses: actions/cache@v4
+        with:
+          path: /home/runner/.cache/mongodb-binaries
+          key: mongoms-${{ runner.os }}-7.0.24-${{ hashFiles('yarn.lock') }}
+          restore-keys: |
+            mongoms-${{ runner.os }}-7.0.24-
+      - run: yarn install --frozen-lockfile
+      - run: yarn workspace @lawie/shared build
+      # T-436: billing resolves @lawie/email-client from its dist (gitignored), so build it first.
+      - run: yarn workspace @lawie/email-client build
+      # T-211: download the binary once, serially, before parallel Jest workers race for it. No-op on a cache hit.
+      - name: Pre-download Mongo binary
+        run: yarn workspace @lawie/billing node -e "require('mongodb-memory-server').MongoMemoryServer.create().then(s => s.stop()).catch(e => { console.error(e); process.exit(1); })"
+      - run: yarn workspace @lawie/billing test
+      - uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          flags: billing
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  # ── Email worker and email-client ────────────────────────────────────────
+  # Redis service for the T-220 AC4 retry/replay test (real BullMQ queue). No Mongo.
+  test-email-worker:
+    name: Full — Email worker and email-client
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
+    env:
+      NODE_ENV: test
+      REDIS_URL: redis://localhost:6379
+      REDIS_TEST_URL: redis://localhost:6379
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'schedule' && 'develop_staging' || '' }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'yarn'
+      - run: yarn install --frozen-lockfile
+      - run: yarn workspace @lawie/shared build
+      # email-worker resolves @lawie/email-client from its dist, so build it first.
+      - run: yarn workspace @lawie/email-client build
+      - run: yarn workspace @lawie/email-worker build
+      - run: yarn workspace @lawie/email-worker test
+      - run: yarn workspace @lawie/email-client test
+      - uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          flags: email-worker
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  # ── Web: lint and tests ──────────────────────────────────────────────────
+  # The production build and typecheck stay in ci.yml (web-build); the lint moved here (Arjun).
+  test-web:
+    name: Full — Web
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NODE_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'schedule' && 'develop_staging' || '' }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'yarn'
+      - run: yarn install --frozen-lockfile
+      - run: yarn workspace @lawie/shared build
+      - run: yarn workspace @lawie/web test
+      # Read-only: the web "lint" script runs eslint --fix, which rewrites files. Same glob, no --fix.
+      # Runs even when the tests fail, so one night reports both.
+      - name: Lint
+        if: ${{ !cancelled() }}
+        run: yarn workspace @lawie/web eslint 'src/**/*.{ts,tsx}'
+      - uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          flags: web
+          token: ${{ secrets.CODECOV_TOKEN }}
