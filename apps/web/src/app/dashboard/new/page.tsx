@@ -419,9 +419,15 @@ function NewDocumentContent() {
             reason = data.error ?? data.message ?? reason;
             // 402 Insufficient credits — open the paywall modal instead of the
             // generation_failed card. The shape is { cost, balance: {...} } from
-            // enforceCredits.
+            // enforceCredits. T-664 (AJ-664-M1): the paywall shows `balance.totalInk`, the
+            // figure the spend gate and the 402 message use. Never `balance.total`: it
+            // includes the hidden legacy earnedCredits, which cannot be spent.
             if (res.status === 402 && data.cost && data.balance) {
-              paywallInfo = { cost: data.cost, balance: data.balance.total ?? 0 };
+              const totalInk: unknown = data.balance.totalInk;
+              paywallInfo = {
+                cost: data.cost,
+                balance: typeof totalInk === 'number' && Number.isFinite(totalInk) ? totalInk : 0,
+              };
             }
           } catch {
             /* non-JSON error body */

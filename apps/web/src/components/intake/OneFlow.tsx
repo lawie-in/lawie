@@ -804,7 +804,7 @@ function OneFlowSteps({
             if (typeof data.cost === 'number' && Number.isFinite(data.cost) && data.cost > 0) {
               setPaywall({
                 cost: data.cost,
-                balance: data.balance?.totalInk ?? data.balance?.total ?? 0,
+                balance: data.balance?.totalInk ?? 0,
               });
               setPhase('brief');
               return;
