@@ -270,12 +270,17 @@ describe('T-298 / Arjun — maxUses can never be overshot', () => {
     expect(results.map((r) => r.status)).toEqual([202, 202, 202, 202, 202]);
     for (const r of results) expect(r.body).toEqual(results[0].body);
 
-    const code = await ReferralCode.findOne({ code: 'ONESLOT' }).lean();
-    expect(code!.uses).toBe(1);
-
     const found = await User.find({ email: /^slot\d@example.com$/ }).lean();
     expect(found).toHaveLength(5);
     for (const u of found) await waitForReferralDecision(u._id);
+
+    // T-673: registerUser fires the referral claim in the background, so the 202 does not mean the
+    // claim has landed. referralStatus is written only after a claim has finished (rollback
+    // included), so `uses` is read only once all five decisions are in; reading it earlier flaked
+    // with 0 under CPU load. The assertion is unchanged: exactly one slot taken.
+    const code = await ReferralCode.findOne({ code: 'ONESLOT' }).lean();
+    expect(code!.uses).toBe(1);
+
     // re-read after every decision has landed (a refused claim is released in the background)
     const users = await User.find({ email: /^slot\d@example.com$/ }).lean();
     // The last-slot holder (uses == maxUses) is still granted at verification (uses > maxUses rule).

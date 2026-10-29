@@ -31,3 +31,22 @@ Read the branch and the failing path myself. The matcher (`isPartyNonAnswer`) is
 - Tester runs Anushka's exact declaration scenario in the browser (Playwright, dev box or local) before merge: Confirm disabled, no Ink spent.
 
 Developer applies exactly this; nothing else rides on the ticket. Release v1.2.5 = this alone.
+
+### Arjun — corrections to the strike-2 note (29 Oct 2026, 15:20 UTC, on Vishal's findings)
+
+1. **confirmState expression — Vishal's version approved** (276/276): `(nonAnswer ? (isEmpty(i.value) ? !given.has(i.key) : isPartyNonAnswer(i.value)) : (isEmpty(i.value) && !given.has(i.key)))`. The ledger exemption applies to an empty value only; a typed non-answer is missing whatever the ledger holds. My draft expression was wrong because `isPartyNonAnswer('')` is true.
+2. **Key correction**: `plaint_declaration` uses `plaintiff_name` / `defendant_name`, not the FIXED_KEYS — my root cause named the wrong key. The real hole in run 5c is the value `"Defendant: Not known"` (the advocate's own text, label included): `isPartyNonAnswer` returns false for it, so no blocker. Fix belongs in `isPartyNonAnswer` (signed-confirm-messages.ts): strip a leading party-role label (`plaintiff|defendant|petitioner|respondent|applicant|accused|complainant|opposite party|tenant|landlord` + optional number, followed by `:`, `-`, `–` or `—`) before the non-answer test. **Rule is Ajay's** (AJ-668c); it rides on T-668c, and Priya extends Vishal's claim to `apps/drafting/src/config/intake/signed-confirm-messages.ts` and its test.
+3. **Scenario 2 of run 5c** (typed `Not known (…)` in the brief box, line shows while typing, clears on blur, Confirm drafts) is not yet explained by (1)+(2). Before merge, the tester reproduces it against the real update→confirm path with the ledger on (the web sends the ledger facts back; check whether the fact's `display` for `defendant_name` is label-prefixed by the web or the extractor after blur) and the ticket records what actually let it through. No merge on a theory.
+4. **Prompts**: AJ-668c-P1 goes into both the pack prompt and `RECEPTION_GUIDED_SYSTEM_PROMPT` — same line, both places; legal content, Ajay signs once for both.
+
+## T-668c merge gate (Arjun, 29 Oct 2026, via message; recorded by Priya)
+- The gate is the real-route supertest on the confirm endpoint for the declaration template, plus one case that mirrors Anushka's run 5c sequence. No browser run, because the container has no Mongo/Redis and the develop box isn't built. Anushka re-checks on prod after v1.2.5.
+- Ajay APPROVED 397c6c84 (945922df). P1 prompt line AJ-668c-P1 (82fd2097) is copied byte for byte into handoff/design/T-127-one-flow-rules-and-prompts.md.
+- The no-pack fixed.other_party gap is split out to T-668d.
+
+### Arjun — run 5c scenario 2 explained (29 Oct 2026, 15:50 UTC, from Anushka's records)
+
+Anushka's defendant box in that run was labelled **"The person or authority it is against or addressed to"** with "Needed to continue" — that is `fixed.other_party`, the generic brief item, not `defendant_name`. Her description was "Suit for declaration and permanent injunction… Defendant: Not known (…)", court "District Court, Lucknow". So the brief was on the generic/no-pack path (or a kind whose party items are the fixed keys), where `nonAnswer` is false and only emptiness blocks: typed "Not known (a person claiming…)" is non-empty → Confirm enabled → drafted, 2 Ink. The "to continue" line she saw was the empty-box state before her fill; the blur re-check cleared it. This is Vishal's "second gap" (T-668d) and it IS the headline case, so it rides on T-668c:
+- Rule (Ajay, AJ-668d): the §(j)3 non-answer test applies to the generic party items `fixed.first_party` / `fixed.other_party` on every court document, not only on the 8 packs.
+- Code: `confirmState` — treat `nonAnswer` as true for items whose key is `FIXED_KEYS.firstParty`/`otherParty` when `courtDocument` is true; `ledgerGivenKeys` — same keys use `isPartyNonAnswer`.
+- Tests: `buildBrief` with the exact description above → record which kind id the matcher assigns (the ticket states it); typed `fixed.other_party` = "Not known (a person claiming through a forged sale deed dated 12.02.2025)" → `can_confirm === false`, blockers include `parties`; real-route supertest update→confirm → 400. Control "Not Known Traders" passes.
