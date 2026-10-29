@@ -480,8 +480,8 @@ describe('T-146 criterion 5: placeholder coverage of every document rule', () =>
     ],
     'rcr_petition.json': ['cause_title:petitioner', 'cause_title:respondent'],
     'receiver_appointment.json': ['cause_title:respondent'],
-    // T-644: plaintiff is filled; replication has no defendant_name field.
-    'replication.json': ['cause_title:defendant'],
+    // T-650 (Ajay, 29 Oct 2026): replication now has a required defendant_name, so its cause title is
+    // fully fillable and has no entry here.
     'rera_complaint.json': [
       'cause_title:complainant',
       'cause_title:rera_office_location',
@@ -522,12 +522,17 @@ describe('T-146 criterion 5: placeholder coverage of every document rule', () =>
       'prayer:officials_named',
       'prayer:primary_direction',
     ],
-    // T-644: defendant is filled; written_statement has no plaintiff_name field.
-    'written_statement.json': ['cause_title:plaintiff'],
+    // T-650 (Ajay, 29 Oct 2026): written_statement now has a required plaintiff_name; no entry here.
   };
 
   it('bail_before_magistrate has no placeholder the engine cannot fill', () => {
     expect(unfillable()['bail_before_magistrate.json']).toBeUndefined();
+  });
+
+  it('T-650: replication, written_statement and plaint_partition have no unfillable placeholder', () => {
+    for (const f of ['replication.json', 'written_statement.json', 'plaint_partition.json']) {
+      expect(unfillable()[f]).toBeUndefined();
+    }
   });
 
   it('no other document rule has an unfillable placeholder beyond the recorded list', () => {
