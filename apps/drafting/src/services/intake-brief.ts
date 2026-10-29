@@ -25,6 +25,7 @@ import {
   isO39RequiredField,
   O39_REQUIRED_FIELDS,
   requiredFieldBlockers,
+  signedConfirmMessage,
 } from '../config/intake/o39-confirm-messages';
 
 import {
@@ -1873,13 +1874,16 @@ function confirmState(
     } else if (!courtChosen) {
       confirm_message = courtLine;
     } else if (missingParties.length > 0) {
-      confirm_message = `Add the name of the ${partyLabel(missingParties[0].label)} to continue.`;
+      // T-661: the pack's signed line when Ajay signed one (T-650 (3h)), else the T-127 line.
+      confirm_message =
+        signedConfirmMessage(packId, lastSegment(missingParties[0].key))?.en ??
+        `Add the name of the ${partyLabel(missingParties[0].label)} to continue.`;
     }
   }
 
   // T-644: set only when an O.39 party is missing, so other briefs are unchanged.
   const parties = partyKeys.length > 0 ? { confirm_missing_party_keys: partyKeys } : {};
-  const required = requiredItemBlockers(items);
+  const required = requiredItemBlockers(packId, items);
   if (required.length === 0) return { confirm_blockers: blockers, confirm_message, ...parties };
   blockers.push('required_fields');
   const lines = [
@@ -1898,8 +1902,13 @@ function confirmState(
  * T-629: the `blocks_confirm` items still empty or a non-answer, in §(j)2
  * order, each with its signed EN message. A flagged fact with no signed
  * message still blocks (fail closed), with no line of its own.
+ *
+ * T-661: a field outside the O.39 list takes the pack's signed line
+ * (PACK_CONFIRM_MESSAGES, e.g. T-650 (3g) for plaint_partition
+ * other_defendants) when there is one.
  */
 function requiredItemBlockers(
+  packId: string | null,
   items: ReadonlyArray<BriefItem>,
 ): Array<{ key: string; en: string | null }> {
   const open = items.filter((i) => i.blocks_confirm === true && isEmptyOrNonAnswer(i.value));
@@ -1919,7 +1928,13 @@ function requiredItemBlockers(
   return open
     .map((item, index) => ({ item, index }))
     .sort((a, b) => rank(a.item.key) - rank(b.item.key) || a.index - b.index)
-    .map(({ item }) => ({ key: item.key, en: signed.get(lastSegment(item.key)) ?? null }));
+    .map(({ item }) => {
+      const name = lastSegment(item.key);
+      return {
+        key: item.key,
+        en: signedConfirmMessage(packId, name)?.en ?? signed.get(name) ?? null,
+      };
+    });
 }
 
 // ── An edited description (T-150, Rule A) ───────────────────────────────────
