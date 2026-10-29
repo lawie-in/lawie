@@ -80,3 +80,41 @@ Option **(b)**: a candidate whose normalised value is not verbatim in the user's
 ### 9a. Scope of the non-verbatim rule (Arjun, 29 Oct 2026, 21:00 UTC)
 
 §9 applies to **model-rendered free text only** — a value the model composed from prose (e.g. "koi recovery nahi hui" → "no recovery was made"). Values that **code derives from the user's own words by a signed rule** are written at stage 1, on description and answer turns alike: yes/no from the signed words (Ajay rule 1, incl. नहीं / नही, checked in validate.ts); dates and amounts read by the v2 normaliser; the police-station name per T-612 (6a); a choice whose option label is in the quote. Nothing invented, quote kept as provenance, AC2 holds. The bridge test: a value is bridged iff `validate.ts` produced it by rule from the quote, or the quote contains it verbatim.
+
+## 10. Two-strike fix note (Arjun, 29 Oct 2026, 22:10 UTC) — branch d2543c8b after two failed reviews
+
+Read `v2-bridge.ts` `editsFromV3` (≈320–375), `extractor.service.ts` `extractTurn` (≈558–580) and `v2-bridge.test.ts` 105–127 on the branch. Round 1's "partial non-answer does not empty the edit" fix opened the hole: for "पता नहीं, Ramesh" with **no** candidate for the key, the code falls through `if (!c) { out.push(e); return; }` and sends the raw text to v2 as typed — raw "पता नहीं" reaches ledger and draft (T-676 AC2 broken).
+
+**Must-fix — `editsFromV3`, exact change.** After the `whole` check:
+
+```ts
+const partialNonAnswer = result.nonAnswers.some((n) => n.key === e.key); // not whole, but present
+const c = result.candidates.find(/* as now */);
+if (!c) {
+  if (partialNonAnswer) {
+    held.push(i);
+    return;
+  } // ask again; write nothing (NEW)
+  out.push(e);
+  return; // no non-answer: v2 behaviour unchanged
+}
+const span = bridgeable(c, e.text, item, refYear, true);
+if (span === null) {
+  held.push(i);
+  return;
+}
+replaced += 1;
+out.push({ ...e, text: span }); // "Ramesh" exactly, never the raw edit
+```
+
+`bridgeable` must return the candidate's value only when §9a holds (verbatim in the edit, or code-derived by a signed rule); "Ramesh" is verbatim → written as `Ramesh`.
+
+**Should-fix (a) — one rule for description and answer turns, in one place.** In `validate.ts`, when a key has both a non-answer and a candidate on the same turn: if the candidate is bridgeable under §9a and is not itself a non-answer, drop the non-answer for that key (the candidate wins); otherwise drop the candidate (the non-answer stands = no fact). The brief and the bridge then read the same `result`; neither re-decides.
+
+**Should-fix (b) — `extractTurn` in-flight sharing.** Store `{ turn, editsHash, promise }` in `inFlight`, where `editsHash` = sha256 of the NFC-normalised JSON of the turn's answers/edits (never logged). Share the pending promise only when `turn` **and** `editsHash` match; a same-turn call with different edits is degraded `in_flight` (v2 runs that turn), never silently given the other answer's result.
+
+**(c) claim:** Priya extends T-683's claim to `apps/drafting/src/__tests__/v3/v3-groups-and-report.test.ts` and the `scripts/golden-set/run.ts` hunks (~36, ~82–115); Kunal's T-684 is merged, so no overlap remains.
+
+**Tests (named):** `partial-non-answer-no-candidate-held` ("पता नहीं, Ramesh", no candidate → `held: [0]`, `edits: []`, nothing typed through); `partial-non-answer-with-candidate-writes-value` (candidate "Ramesh" → edit text exactly `Ramesh`, `replaced: 1`); `description-turn-non-answer-vs-candidate-one-rule` (brief view and bridge agree for both branches); `in-flight-same-turn-different-edits-degrades` and `in-flight-identical-shared`. Update v2-bridge.test.ts 115–127 accordingly (the round-1 expectation "goes in as typed" was the bug).
+
+Round 3 scoped to these hunks: developer → tester → fresh reviewer. If it fails again, the branch comes to me.
