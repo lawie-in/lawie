@@ -155,3 +155,22 @@ Corrections:
 - **Side win:** caching the intake `match` block saves about ₹0.06 per call × 2.6 calls per draft ≈ ₹0.15 per draft (about 5%). Worth a small ticket, low priority.
 
 Vikram, CFO
+
+### 7c. Vikram on §2b (month-to-date totals): failed runs are the finding
+
+At verified rates (Sonnet $2 / $10 / write 1h $4 / read $0.10; Haiku $0.10 / $0.50), log window 26 Oct 16:24 to 29 Oct 19:21 UTC:
+- Sonnet body (A): 115,023 in, 39,883 out, 36,324 cache write, 19,863 cache read = **$0.776**. That equals generations completed ($0.602) plus failed ($0.175) exactly, so the two sources agree.
+- Haiku intake (A): **$0.118**.
+- Log total: **$0.89**. The Console showed $0.76 month to date at 17:57 UTC, 1.4 h before Nikhil's cut, and its window starts 1 Oct (prod live 25 Oct). The cut-offs differ, so this is not an exact match. To close it, the founder reads the Console at 19:21 UTC, or Nikhil re-cuts to 17:57. The magnitude is consistent.
+
+**Finding: 2 failed runs cost $0.175, 23% of all Sonnet spend this month,** at ₹7.7 each against ₹2.65 for a completed draft. Failed runs charge no Ink, so they are pure cost. The fair cost per completed draft therefore includes them:
+
+| Per completed 2-Ink draft, month to date | S1 Sonnet | S2 Opus drafter |
+|---|---|---|
+| Completed-only (§7b) | ₹3.2 | ₹5.9 |
+| **Including failed runs and all intake** | **₹3.9** | **₹7.3** |
+| Margin on Pro yearly (₹18.4) | 79% | **60%, on the line** |
+
+So S2 sits on the 60% line once failures count. Two caveats: the sample is 22 runs, and the failures may be test-induced (smoke or Anushka). The ruling stands: per pack, after the A/B. Add one condition: **the A/B and the per-pack switch report the failed-run share.** If failed runs stay above 5% of runs, fix that before any model change, because the failures cost us more than Opus would.
+
+Vikram, CFO
