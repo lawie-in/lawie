@@ -30,7 +30,6 @@ import { Court } from '../models/Court.model';
 import { Event } from '../models/Event.model';
 import { LlmAuxCall } from '../models/LlmAuxCall.model';
 
-import { APP_SETTING_KEYS, getAppSetting } from './app-settings.service';
 import {
   ChargedSection,
   normaliseBnsSection,
@@ -49,6 +48,7 @@ import {
   logLlmCall,
   parseAnthropicMessageUsage,
   priceUsage,
+  resolveModel,
 } from './llm-usage';
 import { lookupOldToNew } from './sections.service';
 import {
@@ -636,9 +636,10 @@ async function runLLMChecks(
 
   try {
     // Model id is configured at runtime via the AppSetting collection.
-    // If the key is unset, getAppSetting throws → caught below → preflight
-    // degrades gracefully to rules-only (fail-open per ADR-018).
-    const model = await getAppSetting(APP_SETTING_KEYS.PREFLIGHT_MODEL);
+    // T-684: the fact_checker role (ai.model.fact_checker, falling back to
+    // ai.preflight_model for one release). If unset, resolveModel throws →
+    // caught below → preflight degrades gracefully to rules-only (fail-open per ADR-018).
+    const model = await resolveModel('fact_checker');
     const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
     // T-453: effort from ai.effort.preflight (default low). Never throws.
     const effort = await getAiEffort('preflight');
