@@ -4,14 +4,14 @@
   "title": "T-678, written statement: the summons date and a repayment date held only in the additional pleas are both used, and the draft is delivered, not withheld",
   "risk": "T-678 (P1): a WS was withheld with 'The draft gives 15.06.2025 as the Date of service of summons on defendant, but your facts give it as the Additional pleas'. 'defendant' in the summons label was read as a date cue, so 'the Defendant repaid ... on 15.06.2025' was cued to the summons date. The draft must be delivered (no fact_conflict, no fact_needed).",
   "source": "T-678 (handoff/tickets/T-678-ws-gate-dead-end.md); Ajay rulings T678-1, T678-2 (handoff/legal/T-611-fact-checker-policy-signed.md). Facts re-made with fictional names. Live run only, no recorded replies.",
-  "review": "drafted by dev from Anushka's report, not yet reviewed by Anushka",
+  "review": "drafted by dev from Anushka's reports, not yet reviewed by Anushka",
   "ajay": null,
   "language": "en",
   "description": "Written statement for the defendant Sample Person 1 in Title Suit 112 of 2026, filed by the plaintiff Sample Person 2. Summons was served on the defendant on 05.10.2026. Additional pleas: the Defendant repaid the loan in full to the Plaintiff on 15.06.2025 by bank transfer, before the suit was filed. The plaint's paragraphs 1 to 5 are denied. Prayer: dismiss the suit with costs.",
   "court": {
     "state": "Bihar",
-    "court_type": "civil",
-    "court": "civil_judge_senior_division"
+    "court_type": "civil_court",
+    "court": "bihar_civil_patna"
   },
   "answers": [],
   "expect": {

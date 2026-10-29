@@ -173,6 +173,30 @@ describe('T678-1: role words are never date cues, in any template', () => {
     'nyayalay',
     'kirayedar',
   ];
+  it("the typed list is in Ajay's signed T678-1a row (read from the policy file)", () => {
+    const policy = readFileSync(
+      join(
+        __dirname,
+        '..',
+        '..',
+        '..',
+        '..',
+        'handoff',
+        'legal',
+        'T-611-fact-checker-policy-signed.md',
+      ),
+      'utf8',
+    );
+    const row = policy.split('\n').find((l) => l.startsWith('| T678-1a'))!;
+    expect(row).toBeDefined();
+    const missing = [...EN_WORDS, ...HI.filter((w) => !w.endsWith('गण')), ...HINGLISH].filter(
+      (w) =>
+        !row.includes(w) && !(w === 'aavedak' || w === 'avedak' || w === 'aaropi' || w === 'aropi'),
+    );
+    expect(missing).toEqual([]);
+    for (const w of ['aavedak/avedak', 'aaropi/aropi']) expect(row).toContain(w);
+  });
+
   const plural = (w: string) => (/^[a-z]/.test(w) ? `${w}s` : w);
   const ROLES = [...EN_WORDS, ...EN_WORDS.map(plural), ...HI, ...HINGLISH];
   const ids = listRulePackIds();
