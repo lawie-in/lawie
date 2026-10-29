@@ -319,6 +319,16 @@ describe('T-650 E: form route refuses an empty new field', () => {
     ['plaint_partition', 'other_defendants', OTHER_LABEL],
   ];
 
+  // T-668 (AJ-668-M3): a required party name is now refused first by formRequiredFieldBlock, with
+  // the brief's own line (the pack's signed line, else the T-127 line), not "<label> is required".
+  // other_defendants is not a party name: validateFormData still answers it.
+  const expectedRefusal = (id: Pack, field: string, label: string): string =>
+    field === 'other_defendants'
+      ? `${label} is required`
+      : id === 'plaint_partition'
+        ? 'Add the name of Defendant No. 1 to continue.'
+        : `Add the name of the ${field === 'defendant_name' ? 'defendant' : 'plaintiff'} to continue.`;
+
   it.each(REQUIRED_LABELS)(
     '%s: no %s gives 400 "%s is required" and nothing runs',
     async (id, field, label) => {
@@ -337,7 +347,7 @@ describe('T-650 E: form route refuses an empty new field', () => {
         .set(headers())
         .send({ template_id: byFile.get(`${id}.json`)!.template_id, form_data: form });
       expect(res.status).toBe(400);
-      expect(JSON.stringify(res.body)).toContain(`${label} is required`);
+      expect(JSON.stringify(res.body)).toContain(expectedRefusal(id, field, label));
       expect(mockMessagesStream).not.toHaveBeenCalled();
       expect(await Generation.countDocuments({})).toBe(0);
       expect(await LawieDocument.countDocuments({})).toBe(0);
@@ -363,7 +373,7 @@ describe('T-650 E: form route refuses an empty new field', () => {
         .set(headers())
         .send({ template_id: byFile.get(`${id}.json`)!.template_id, form_data: form });
       expect(res.status).toBe(400);
-      expect(JSON.stringify(res.body)).toContain(`${label} is required`);
+      expect(JSON.stringify(res.body)).toContain(expectedRefusal(id, field, label));
     },
   );
 });
