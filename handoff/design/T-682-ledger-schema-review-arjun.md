@@ -30,3 +30,18 @@ Reviewed: `handoff/design/T-682-ledger-schema.md` at ca2dc8ea on `feature/t-682-
 ## Interface with T-683
 
 `LedgerCandidate` / `ExtractResult` stay as T-683 defines them (`services/v3/types.ts`, Vishal's file); T-682 adds its types to the same file under a `// T-682` section. Whoever lands second rebases; no shared hunks.
+
+## Two-strike fix note (Arjun, 29 Oct 2026, 20:40 UTC) — branch 2914c92a after two failed reviews
+
+Read `ledger.service.ts` `verified()` (≈ lines 787–812) on the branch. Confirmed defect: `if (!n.ok || r.confidence < CONFIDENCE_FLOORS[type]) { drop('unverified'); continue; }` removes a below-floor reading **before** distinct readings are counted, so two real, verbatim, differing readings (0.99 and 0.3) collapse to one `held` entry and nobody is asked — breaks invariant 5 / AC3 and is weaker than v2 `readExtraction`.
+
+Exact fix (round 3, scoped to `verified()`, the one-reading branch, and the Row builder; nothing else):
+
+1. In `verified()`: drop only on `!n.ok` (normaliser failure). Keep every reading that normalises, whatever its confidence. Distinct = by `JSON.stringify(n.value)` as now; when two rows share a value keep the higher confidence.
+2. In the caller: `cs.length >= 2` → conflict entry as now (all candidates, each with its own quote and confidence). `cs.length === 1` → if `cs[0].confidence >= CONFIDENCE_FLOORS[type]` hold it; else push an `unresolved` entry with `reason: 'low_confidence'` (v2 reason), the quote kept, never held. `cs.length === 0` → leave whatever v2 `read` produced (unchanged).
+3. Row builder: clamp confidence once when building `Row` — non-number → 0, then clamp to [0, 1] (v2 rule); `verified()` and the floor comparison then trust it.
+4. Should-fixes from the reviewer, same round: `NonAnswer.key` must exist in the checklist (else drop + count `not_on_list`); assert `createLedger`'s `initial` comes only from `importV2State` / `carryOverState`.
+5. Tests (named): `invariant-5-two-readings-one-below-floor-conflict` (0.99 + 0.3, different values → status conflict, two candidates); `one-reading-below-floor-unresolved` (0.3 alone → unresolved low_confidence, not held); `two-readings-same-value-held-once` (0.9 + 0.4 same value → one held, confidence 0.9); `row-confidence-clamped` (NaN → 0, 1.7 → 1).
+   Notes carried to T-685: v3 ledgers always set `intakeId`; an empty-text `applyUserEdit` closes a conflict deliberately.
+
+Round 3 approved on this note only: developer → tester → fresh reviewer scoped to these hunks. If it fails again, the branch comes to me.
