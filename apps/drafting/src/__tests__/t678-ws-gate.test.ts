@@ -9,7 +9,8 @@
  *
  * Anushka's matter, fictional names. The model is the Anthropic SDK stub.
  */
-import { readFileSync } from 'fs';
+import { execFileSync } from 'child_process';
+import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 
 import './setupDb';
@@ -343,6 +344,52 @@ describe('T678-1: role words are never date cues, in any template', () => {
     expect(run('Date of notice to opposite party', 'That notice was sent')).not.toEqual([]);
     expect(run('Date of decree holder notice', 'That the decree holder was present')).toEqual([]);
     expect(run('Date of holder notice', 'That the holder was present')).not.toEqual([]);
+  });
+
+  // Ajay T678-BC (297c9a90): the 15 Hindi oblique plurals. Read from the signed row, not retyped.
+  describe('T678-BC: Hindi oblique plurals are non-cues (forms read from the signed row)', () => {
+    const POLICY_REL = 'handoff/legal/T-611-fact-checker-policy-signed.md';
+    const repoRoot = join(__dirname, '..', '..', '..', '..');
+    const policyText = (() => {
+      const f = join(repoRoot, POLICY_REL);
+      const local = existsSync(f) ? readFileSync(f, 'utf8') : '';
+      if (local.includes('| T678-BC')) return local;
+      return execFileSync('git', ['-C', repoRoot, 'show', `297c9a90:${POLICY_REL}`], {
+        encoding: 'utf8',
+      });
+    })();
+    const row = policyText.split('\n').find((l) => l.startsWith('| T678-BC'))!;
+    const MARK = 'explicit forms to `DATE_NON_CUE_HI`, plus their tests: ';
+    const forms = row
+      .slice(row.indexOf(MARK) + MARK.length)
+      .split('. A delta limited')[0]
+      .split(', ')
+      .map((w) => w.trim());
+
+    it('the signed row yields exactly 15 Hindi forms', () => {
+      expect(row).toBeDefined();
+      expect(forms).toHaveLength(15);
+      for (const w of forms) expect(w).toMatch(/^[\p{Script=Devanagari}\s]+$/u);
+    });
+
+    const run = (label: string, sentence: string) =>
+      verifyDraft(
+        inputOf(PACK, `1. ${sentence} 11 February 2026.`, [
+          fact('some_date', label, 'date', '2026-01-10', '10 January 2026'),
+        ]),
+      ).filter((v) => v.conflict || v.reason === 'differs');
+
+    it('each form, alone with a date, gives no cue and no conflict', () => {
+      const bad = forms.filter((w) => run('सूचना की तारीख', `वह ${w} के साथ`).length > 0);
+      expect(bad).toEqual([]);
+    });
+    it('each form is a non-cue even when the same word is in the field label', () => {
+      const bad = forms.filter((w) => run(`${w} की तारीख`, `${w} को सूचना`).length > 0);
+      expect(bad).toEqual([]);
+    });
+    it('control: a real Hindi field noun still cues', () => {
+      expect(run('सूचना की तारीख', 'सूचना भेजी गई')).not.toEqual([]);
+    });
   });
 
   it('the summons field still has its own cues: "summons served" is a cue, "Defendant" is not', () => {
