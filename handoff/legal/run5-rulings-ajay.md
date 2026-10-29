@@ -167,3 +167,16 @@ The court-rules file change follows `golden-snapshots.md`: snapshots are edited 
 - `since 05.03.2026` on arrest_date → refused (no list there).
 
 v2's `normalizeDate` takes the same rule only if a v2 ticket asks; v3 first. The T-665b back-references (`since then`, `tab se`) are a separate rule and are unaffected.
+
+**T-690b, the 90-day warning without a commercial field (Ajay, 29 Oct 2026): (a), with the text reworded.** Show the warning for any WS more than 90 days after service. My earlier text fits only ordinary suits, because a commercial suit may go to 120 days. It is replaced, and this is the signed text:
+
+`This written statement is more than 90 days after service of summons. In an ordinary suit the court allows that only in exceptional cases; in a commercial suit it can be allowed up to 120 days, for reasons recorded in writing and on payment of costs, and not after that. Set out the reasons in the delay application.`
+
+It is a warning, not a block. The l.7 replacement stands as signed. A commercial-suit field is not needed now; if one is added later, the warning can split by suit type with my sign-off.
+
+**T-690b byte check (Ajay, 29 Oct 2026): fix/t-690b-ws-protocol-and-warning @ commit SHA 345ce1fc.** I checked the diff myself:
+- The l.7 `change_protocol` and the `ws_over_90_days` text both match the signed lines byte for byte (grep -F).
+- The warning is `severity: 'soft'`, written_statement only, and fires only when the value is strictly over 90. A missing or non-finite value gives no warning, which is accepted: such a value is not a valid day count.
+- l.224 and validation l.308–309 are unchanged.
+
+**T-690b APPROVED at 345ce1fc.** It counts as merged at the develop_staging merge SHA that contains it.
