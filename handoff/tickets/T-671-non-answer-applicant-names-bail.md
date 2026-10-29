@@ -14,3 +14,5 @@ Status: backlog (unassigned). The rest of Ajay's AJ-668-M1 ("every pack"), 29 Oc
 Small fix (drafting, plus web BriefStep if the screen needs it), legal content. Known gap until merged (AJ-668-M1).
 
 - Ajay, 29 Oct 2026 (f0f0a5b5): add the first_party override line to the T-127 doc copy: "Add the name of the person this document is for, to continue."
+
+- Ajay AJ-671-M1 (29 Oct 2026, in the T-511 file): Latin-script Hinglish non-answers (pata nahi, maloom nahi, ...) plus a courtesy-tail rule ("pata nahi sir" and "Not known ji" count as non-answers), applied in every field. One complete rule, ready for when T-671 starts.
