@@ -44,3 +44,13 @@ Root config: ci.yml and the jest configs. One lead holds the root-config slot al
   - email-worker, gateway, shared and scripts: the whole suite.
 - **Cap (founder):** the whole sanity CI run takes no more than 5 minutes of wall-clock time, with all workspaces running in parallel. A run over 5 minutes fails the T-688 acceptance and the sanity list gets trimmed.
 - **Lead:** shashank. Root config, so he holds the slot alone. His claim covers ci.yml, the new full-tests.yml, the five jest.config files and scripts/__tests__.
+
+## Arjun, the 5-minute cap (29 Oct 2026, replaces the contents list above where they differ)
+- **How it's measured:** wall clock of the sanity CI run. It's a parallel matrix with one runner per workspace, so the slowest workspace sets the time. ci.yml sets `timeout-minutes: 5` on the sanity job, so a slow tier fails red.
+- **Budgets:** drafting 3:30 or less (tests 2:00 or less), web 2:30, auth 1:30, billing 1:00, the small workspaces 0:30.
+- **Trimmed sanity list:**
+  - drafting: route smoke (one template plus the T-668c confirm 400), all court-rules snapshots, Ink hold/release, the delivery gate including the T-678 checker, t644 and t668*, t607. PDF render and the per-pack citation/disclaimer suites move to full unless Ajay names them as gates.
+  - web: t616, BriefStep confirm blocking, t543, t642.
+  - auth: t616b, t642, t657.
+  - billing: t413, t415, t646, t583.
+- **Fallback:** if drafting can't fit in 2 minutes, court-rules in sanity drops to 10 sampled packs (Ajay picks them) and the rest move to full.
