@@ -208,6 +208,10 @@ function expectedPack(id: Pack): any {
       .find((x: any) => x.number === 'Order VIII R.1');
     order8.description =
       "Written statement \u2014 30 days; up to 90 days with the court's leave; 120 days outer limit in a commercial suit";
+    // T-690b (Ajay, 29 Oct 2026): the change protocol names the Order VIII Rule 1 limits.
+    const changeProtocol: string =
+      "All edits require CLO sign-off. Para-wise denial structure and the Order VIII Rule 1 time limits (30 days; up to 90 with the court's leave; 120 days outer limit in a commercial suit) are non-negotiable.";
+    p._meta.change_protocol = changeProtocol;
   } else {
     p.causeTitle.format = p.causeTitle.format.replace(
       '{defendants} ... Defendants',
