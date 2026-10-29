@@ -303,3 +303,10 @@ Asked by Arjun at 10:08 UTC (Ajay, AJ-668-M4). JSON: `handoff/ops/runbooks/lawie
 - Params are passed as argv and re-validated in the JS. On error it prints only the error name.
 - The default stays 13 (the flip was blocked at 10:05 and not retried); run it pinned with `--document-version 15`.
 - Shorthand `--parameters` splits on commas, so send one template per call or use the JSON `--parameters` form for a list.
+
+### SSM version 16 (29 Oct 2026, 11:28 UTC, Nikhil): Active, NOT default
+Asked by Arjun at 11:27 UTC (T-681). JSON: `handoff/ops/runbooks/lawie-prod-ops-v16.json`. The only change from v15, besides the description, is the new action `generation-latency`, which takes no params.
+- Runs as ubuntu with the env loaded like deploy, from `apps/drafting`.
+- A `node -e` mongoose aggregate on `generations` only, for createdAt in the last 24 h and in the last 7 d.
+- Grouped by templateId + status, it prints count, how many rows have durationMs, and nearest-rank p50/p95 of `durationMs`. Numbers and template names only.
+- Default stays 13; run it pinned with `--document-version 16`.
