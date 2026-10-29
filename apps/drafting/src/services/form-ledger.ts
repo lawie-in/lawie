@@ -16,6 +16,8 @@
 import type { LedgerFact, LedgerUnresolvedFact } from '@lawie/shared';
 
 import {
+  isEmptyOrNonAnswer,
+  isNonAnswerPartyPack,
   O39_REQUIRED_FIELDS,
   requiredFieldBlockers,
 } from '../config/intake/signed-confirm-messages';
@@ -27,9 +29,10 @@ import {
   isMultiItem,
   referenceYear,
 } from './fact-ledger.service';
-import { buildChecklist } from './intake-brief';
+import { buildChecklist, partyConfirmLine } from './intake-brief';
 import type { Brief, ChecklistItem } from './intake-brief';
 import { normalise } from './intake-text';
+import { loadRulePack } from './rule-pack.service';
 import type { RulePack } from './rule-pack.service';
 
 /**
@@ -301,12 +304,46 @@ function requiredFieldView(formData: Readonly<Record<string, unknown>>): Record<
  * the plan check, before validateFormData (FR-5: an empty answer gets the
  * signed lines too) and before any Ink hold. The form field ids are the pack
  * keys (the promoted O.39 form keeps them; no alias renames them). The text
- * comes only from signed-confirm-messages.ts. Every other template: null.
+ * comes only from signed-confirm-messages.ts.
+ *
+ * T-668 (AJ-668-M1, AJ-668-M3): on the NON_ANSWER_PARTY_PACKS templates, a
+ * required party name (the brief's own rule: buildChecklist's partyName) that
+ * is empty or a §(j)3 non-answer blocks, with the brief's line for the first
+ * missing party in pack order (partyConfirmLine); the keys are every missing
+ * party, in pack order. No pack (null or unreadable): null, and formGateFiles
+ * answers. Every other template: null.
  */
 export function formRequiredFieldBlock(
   templateId: string,
   formData: Readonly<Record<string, unknown>>,
 ): FormRequiredFieldBlock | null {
+  if (isNonAnswerPartyPack(templateId)) {
+    let pack: RulePack | null;
+    try {
+      pack = loadRulePack(templateId);
+    } catch {
+      return null;
+    }
+    if (pack === null) return null;
+    const missingParties = buildChecklist(pack).filter((i) => {
+      if (!i.partyName || !i.required) return false;
+      const v = Object.prototype.hasOwnProperty.call(formData, i.key) ? formData[i.key] : undefined;
+      // As requiredFieldView: any value that is not text is no answer.
+      const readable =
+        v === null ||
+        v === undefined ||
+        typeof v === 'string' ||
+        (Array.isArray(v) && v.every((e) => typeof e === 'string'));
+      return isEmptyOrNonAnswer(readable ? v : '');
+    });
+    if (missingParties.length === 0) return null;
+    return {
+      error: 'brief_not_confirmed',
+      message: partyConfirmLine(templateId, missingParties[0].key, missingParties[0].label),
+      blockers: ['required_fields'],
+      confirm_blocking_keys: missingParties.map((i) => i.key),
+    };
+  }
   if (templateId !== O39_TEMPLATE_ID) return null;
   const missing = requiredFieldBlockers(requiredFieldView(formData));
   if (missing.length === 0) return null;

@@ -409,9 +409,10 @@ describe('T-644 BriefStep: a non-O.39 pack is unchanged', () => {
     expect(messageBtn().textContent).toBe(COMBINED_EN);
   });
 
-  it('a stray confirm_missing_party_keys is ignored: the old required-and-empty rule decides', () => {
-    // On other packs the service never sends the list. If one arrived, the screen still judges
-    // emptiness itself: a "Not known" value is not empty there, so the party is not missing.
+  it('T-668: a listed "Not known" party on plaint_recovery keeps Confirm off (the list decides)', () => {
+    // T-668 (AJ-668-M1): plaint_recovery is one of the 8 packs where the service names the
+    // missing parties, a non-answer counting. The screen follows the list, so a "Not known"
+    // value, which the old required-and-empty rule would call given, is missing.
     mount(
       briefOf(
         ITEMS({ plaintiff: 'Not known', defendant: DEFENDANT }, true),
@@ -422,8 +423,25 @@ describe('T-644 BriefStep: a non-O.39 pack is unchanged', () => {
         OTHER,
       ),
     );
-    expect(container.textContent).not.toContain('Add the name of the plaintiff');
-    expect(confirmOff()).toBe(false);
+    expect(container.textContent).toContain('Add the name of the plaintiff');
+    expect(confirmOff()).toBe(true);
+  });
+
+  it('T-668: on a pack outside the 8 the screen still follows a list when one is sent (the service sends none there)', () => {
+    // Was "a stray list is ignored" (T-644). The screen now follows the list whenever it is
+    // present, whatever the pack, so this documents that; the guard is on the service side
+    // (NON_ANSWER_PARTY_PACKS), not in BriefStep.
+    mount(
+      briefOf(
+        ITEMS({ plaintiff: 'Not known', defendant: DEFENDANT }, true),
+        blocked(['parties'], ['Add the name of the plaintiff to continue.'], {
+          confirm_missing_party_keys: ['plaintiff_name'],
+        }),
+        COURT,
+        'bail_regular',
+      ),
+    );
+    expect(confirmOff()).toBe(true);
   });
 
   it('the ledger holding the parties lifts them as before (T-498)', () => {

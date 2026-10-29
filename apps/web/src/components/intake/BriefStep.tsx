@@ -640,7 +640,9 @@ export default function BriefStep({
   const missingPartyKeys = brief.confirm_missing_party_keys ?? [];
   const partyMissing = (i: BriefItem): boolean =>
     i.party_name &&
-    (o39 ? missingPartyKeys.includes(i.key) : i.required && isEmptyValue(i.value)) &&
+    (o39 || brief.confirm_missing_party_keys !== undefined
+      ? missingPartyKeys.includes(i.key)
+      : i.required && isEmptyValue(i.value)) &&
     !ledgerGiven.has(i.key);
   const partiesNeeded =
     brief.confirm_blockers.includes('parties') && brief.items.some(partyMissing);

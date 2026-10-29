@@ -111,6 +111,31 @@ export function isO39RequiredField(packId: string | null, key: string): key is O
 }
 
 /**
+ * T-668: the packs where a required party name that is a §(j)3 non-answer
+ * (O39_NON_ANSWERS) counts as missing at confirm, as on O.39.
+ * AJ-668-M1 (handoff/legal/T-511-copy-rulings-ajay.md): the plaint packs plus
+ * replication and written_statement; party-name fields only; bail/applicant
+ * names are out (T-671); the existing list and lines, no new strings. The form
+ * route is in (AJ-668-M2, AJ-668-M3): form-ledger formRequiredFieldBlock uses
+ * this list too.
+ */
+export const NON_ANSWER_PARTY_PACKS: readonly string[] = [
+  'plaint_declaration',
+  'plaint_eviction',
+  'plaint_injunction',
+  'plaint_recovery',
+  'plaint_specific_performance',
+  'plaint_partition',
+  'replication',
+  'written_statement',
+];
+
+/** T-668 (AJ-668-M1): true for a pack on NON_ANSWER_PARTY_PACKS. */
+export function isNonAnswerPartyPack(packId: string | null): boolean {
+  return packId !== null && NON_ANSWER_PARTY_PACKS.includes(packId);
+}
+
+/**
  * The required fields still empty (or a non-answer), in §(j)2 order, each
  * with its signed EN message. `values` is keyed by field id.
  */

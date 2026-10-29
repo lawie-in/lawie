@@ -22,6 +22,7 @@ import courtDocuments from '../config/intake/court-documents.json';
 import dateMeanings from '../config/intake/date-meanings.json';
 import {
   isEmptyOrNonAnswer,
+  isNonAnswerPartyPack,
   isNoFactGuardedField,
   isO39RequiredField,
   O39_REQUIRED_FIELDS,
@@ -1503,6 +1504,17 @@ function partyLabel(label: string): string {
   return stripped.length > 0 ? stripped : 'party';
 }
 
+/**
+ * T-668: the confirm line for a missing party name, shared by the brief and the
+ * form route: the pack's signed line (T-661, T-650 (3h)), else the T-127 line.
+ */
+export function partyConfirmLine(packId: string | null, key: string, label: string): string {
+  return (
+    signedConfirmMessage(packId, lastSegment(key))?.en ??
+    `Add the name of the ${partyLabel(label)} to continue.`
+  );
+}
+
 // ── IPC on a matter dated on or after 1 July 2024 (AJ-2026-10-08-T139, part 5) ──
 
 /** Ajay's text, exact. Shown with "Please check" on the sections item. */
@@ -1884,12 +1896,15 @@ function confirmState(
   let partyKeys: string[] = [];
   if (courtDocument) {
     const o39 = packId === 'temporary_injunction_o39';
+    // T-668 (AJ-668-M1): in the plaint packs, replication and written_statement
+    // a typed §(j)3 non-answer party name is missing too, as on O.39.
+    const nonAnswer = o39 || isNonAnswerPartyPack(packId);
     const courtChosen = court.state !== null && court.court_type !== null && court.court !== null;
     const missingParties = items.filter(
       (i) =>
         i.party_name &&
         i.required &&
-        (o39 ? isEmptyOrNonAnswer(i.value) : isEmpty(i.value)) &&
+        (nonAnswer ? isEmptyOrNonAnswer(i.value) : isEmpty(i.value)) &&
         !given.has(i.key),
     );
     if (!courtChosen) blockers.push('court');
@@ -1913,13 +1928,15 @@ function confirmState(
       confirm_message = courtLine;
     } else if (missingParties.length > 0) {
       // T-661: the pack's signed line when Ajay signed one (T-650 (3h)), else the T-127 line.
-      confirm_message =
-        signedConfirmMessage(packId, lastSegment(missingParties[0].key))?.en ??
-        `Add the name of the ${partyLabel(missingParties[0].label)} to continue.`;
+      confirm_message = partyConfirmLine(packId, missingParties[0].key, missingParties[0].label);
     }
+    // T-668: on these packs the screen follows the service's missing party keys
+    // (a non-answer counts), in item order; empty (so absent) when none is missing.
+    if (!o39 && nonAnswer) partyKeys = missingParties.map((i) => i.key);
   }
 
-  // T-644: set only when an O.39 party is missing, so other briefs are unchanged.
+  // T-644: set only when an O.39 party is missing; T-668: or a party on one of the
+  // 8 AJ-668-M1 packs (NON_ANSWER_PARTY_PACKS). Other briefs are unchanged.
   const parties = partyKeys.length > 0 ? { confirm_missing_party_keys: partyKeys } : {};
   const required = requiredItemBlockers(packId, items);
   if (required.length === 0) return { confirm_blockers: blockers, confirm_message, ...parties };
