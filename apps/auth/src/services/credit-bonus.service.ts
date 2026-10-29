@@ -18,7 +18,6 @@
 import mongoose from 'mongoose';
 
 import logger from '../config/logger';
-import { User } from '../models/User.model';
 
 /**
  * T-351 (Priya, on the founder's delegation, 12 Oct 2026): no free Ink until the address is
@@ -28,7 +27,7 @@ import { User } from '../models/User.model';
  * stamped. Calling grantSignupBonus again after T-223 sets emailVerified
  * then grants it exactly once (the signupBonusGrantedAt guard still applies).
  */
-const VERIFIED_FOR_BONUS = {
+export const VERIFIED_FOR_BONUS = {
   $or: [
     { authProvider: 'google' },
     { emailVerified: true },
@@ -36,6 +35,9 @@ const VERIFIED_FOR_BONUS = {
     { googleId: { $exists: true, $nin: [null, ''] } },
   ],
 };
+
+/** SCRUM-101 / T-657 — the free seed: 5 Ink, stored at 2 units per Ink. */
+export const FREE_SEED_UNITS = 10;
 
 /**
  * Grant referral Ink to a newly-signed-up user.
@@ -138,66 +140,134 @@ export async function referralInkLanded(userId: string, referralCode: string): P
  * drafting signal; the free Ink seed is the only effect.
  * T-351: grants nothing to an email user whose address is not verified yet; call again once
  * it is (T-223) and it grants then.
- * Idempotent — uses signupBonusGrantedAt as an atomic guard so retries,
- * double-taps, or supervisor restarts never seed the user twice.
- * Non-fatal — never throws.
+ *
+ * T-657 (Priya/Arjun/Ajay): the once-only marker and the Ink land in ONE atomic write.
+ *  (a) One raw `users` pipeline findOneAndUpdate (like grantTestInk). Its filter is the guard:
+ *      marker absent or null AND VERIFIED_FOR_BONUS. Its $set adds 10 units to inkTopup and
+ *      stamps signupBonusGrantedAt and freeSeedAt ('$$NOW') together. Two parallel calls give
+ *      exactly one +10: the loser matches nothing.
+ *  (b) Then the inkledger row, keyed on the user (`_id: 'free_seed:<userId>'`), so it is written
+ *      at most once; a duplicate key (E11000) counts as written.
+ *  (c) Heal: if (a) matched nothing but the user has freeSeedAt (marked by THIS code, so the Ink
+ *      did land) and the row is missing, (b) is retried. A marker set by older code (no
+ *      freeSeedAt) is never healed here; the T-657 backfill script covers those.
+ * Invariant: a marker set here means inkTopup was incremented. A failure in (a) writes nothing
+ * and the next call retries; a failure in (b) is healed by the next call. Never marked without
+ * the Ink.
+ * freeSeedAt is raw-only (not in the Mongoose schema), like inkTopup.
+ * Non-fatal — never throws. Logs carry userId and the error name only (no message, T-210).
  */
 export async function grantSignupBonus(userId: string): Promise<void> {
   if (!mongoose.Types.ObjectId.isValid(userId)) return;
-
-  const updated = await User.findOneAndUpdate(
-    {
-      _id: new mongoose.Types.ObjectId(userId),
-      $and: [
-        { $or: [{ signupBonusGrantedAt: { $exists: false } }, { signupBonusGrantedAt: null }] },
-        // T-351: Google or verified email only. An unverified call matches nothing and leaves
-        // signupBonusGrantedAt unset, so a call after verification still grants (once).
-        VERIFIED_FOR_BONUS,
-      ],
-    },
-    // T-652 (AJ-646-M9c): only the once-only marker. No earnedCredits grant.
-    { $set: { signupBonusGrantedAt: new Date() } },
-    { new: true },
-  ).lean();
-
-  // null → already granted, unverified email user (T-351), or user not found. Skip the Ink seed.
-  if (!updated) return;
-
-  // Seed 5 Ink (10 units) into inkTopup — one-time free tier (SCRUM-101).
-  // T-298 (Arjun, ruling c): order-independent with the referral grant, which may already have
-  // created inkTopup. The once-only guard is signupBonusGrantedAt above (we only get here on
-  // the winning call), so this always adds 10 and only fills the other ink fields if absent.
-  // Pipeline update = one atomic write. balanceAfter comes from the returned document.
   const conn = mongoose.connection;
-  if (conn.db) {
-    try {
-      const inkSeeded = await conn.db.collection('users').findOneAndUpdate(
-        { _id: new mongoose.Types.ObjectId(userId) },
-        [
-          {
-            $set: {
-              inkTopup: { $add: [{ $ifNull: ['$inkTopup', 0] }, 10] },
-              inkSub: { $ifNull: ['$inkSub', 0] },
-              inkAnnualCarry: { $ifNull: ['$inkAnnualCarry', 0] },
-              inkSubMonthlyAllotment: { $ifNull: ['$inkSubMonthlyAllotment', 0] },
-            },
-          },
+  if (!conn.db) return;
+  const _id = new mongoose.Types.ObjectId(userId);
+  const users = conn.db.collection('users');
+
+  const seeded = await users
+    .findOneAndUpdate(
+      {
+        _id,
+        $and: [
+          { $or: [{ signupBonusGrantedAt: { $exists: false } }, { signupBonusGrantedAt: null }] },
+          // T-351: Google or verified email only. An unverified call matches nothing and leaves
+          // signupBonusGrantedAt unset, so a call after verification still grants (once).
+          VERIFIED_FOR_BONUS,
         ],
-        { returnDocument: 'after' },
-      );
-      if (inkSeeded) {
-        await conn.db.collection('inkledger').insertOne({
-          userId: new mongoose.Types.ObjectId(userId),
-          delta: 10,
-          reason: 'free_seed',
-          sourceBucket: 'topup',
-          balanceAfter: inkSeeded['inkTopup'],
-          createdAt: new Date(),
-        });
-      }
-    } catch (err) {
-      console.warn('[auth] ink seed failed:', err instanceof Error ? err.message : err);
-    }
+      },
+      [
+        {
+          $set: {
+            // T-298 (Arjun, ruling c): order-independent with the referral grant, which may
+            // already have created inkTopup ($inc). So always $add 10, never $set 10, and only
+            // fill the other ink fields if absent. The once-only guard is this same update's
+            // filter (the marker), so only the winning call adds the 10.
+            inkTopup: { $add: [{ $ifNull: ['$inkTopup', 0] }, FREE_SEED_UNITS] },
+            inkSub: { $ifNull: ['$inkSub', 0] },
+            inkAnnualCarry: { $ifNull: ['$inkAnnualCarry', 0] },
+            inkSubMonthlyAllotment: { $ifNull: ['$inkSubMonthlyAllotment', 0] },
+            signupBonusGrantedAt: '$$NOW',
+            freeSeedAt: '$$NOW',
+          },
+        },
+      ],
+      { returnDocument: 'after' },
+    )
+    .catch((err: unknown) => {
+      // Nothing was written (one atomic update); the next call retries.
+      logger.warn({ userId, errName: errNameOf(err) }, 'Free Ink seed failed; nothing written');
+      return undefined;
+    });
+  // undefined: the update threw (logged); null: it matched nothing.
+  if (seeded === undefined) return;
+
+  if (seeded) {
+    await insertFreeSeedRow(userId, _id, seeded['inkTopup']);
+    return;
+  }
+
+  // null → already granted, unverified email user (T-351), or user not found. Heal only a user
+  // this code marked (freeSeedAt) whose ledger row is missing.
+  try {
+    const marked = await users.findOne(
+      { _id, freeSeedAt: { $exists: true } },
+      { projection: { _id: 1, inkTopup: 1 } },
+    );
+    if (!marked) return;
+    const hasRow = await conn.db
+      .collection<StringIdRow>('inkledger')
+      .findOne({ _id: freeSeedLedgerId(userId) }, { projection: { _id: 1 } });
+    if (hasRow) return;
+    // balanceAfter here is approximate: the current inkTopup, which may have moved since the
+    // seed (spends, referral Ink, top-ups).
+    await insertFreeSeedRow(userId, _id, marked['inkTopup']);
+  } catch (err) {
+    logger.warn({ userId, errName: errNameOf(err) }, 'Free Ink seed ledger heal failed');
+  }
+}
+
+/** T-657 — an inkledger row keyed by a string _id (the free_seed row). */
+type StringIdRow = { _id: string; [key: string]: unknown };
+
+/**
+ * T-657 — the free_seed ledger row's deterministic _id: at most one per user. Normalised through
+ * the ObjectId (lower-case hex), so an upper-case id string never misses the existing row.
+ * LOCKSTEP: scripts/backfill-free-seed.ts has a copy (it cannot import this module: env init).
+ */
+export function freeSeedLedgerId(userId: string | mongoose.Types.ObjectId): string {
+  // Callers validate first; a non-ObjectId input (never written) is lower-cased, not thrown on.
+  const hex = mongoose.Types.ObjectId.isValid(userId)
+    ? new mongoose.Types.ObjectId(userId).toHexString()
+    : String(userId).toLowerCase();
+  return `free_seed:${hex}`;
+}
+
+function errNameOf(err: unknown): string {
+  return err instanceof Error ? err.name : 'unknown';
+}
+
+/** Insert the free_seed row; a duplicate key means it is already there. Never throws. */
+async function insertFreeSeedRow(
+  userId: string,
+  _id: mongoose.Types.ObjectId,
+  balanceAfter: unknown,
+): Promise<void> {
+  const db = mongoose.connection.db;
+  if (!db) return;
+  try {
+    await db.collection<StringIdRow>('inkledger').insertOne({
+      _id: freeSeedLedgerId(userId),
+      userId: _id,
+      delta: FREE_SEED_UNITS,
+      reason: 'free_seed',
+      sourceBucket: 'topup',
+      balanceAfter,
+      createdAt: new Date(),
+    });
+  } catch (err) {
+    if ((err as { code?: unknown } | null)?.code === 11000) return;
+    // The user already has the Ink and the marker; the next call heals the row.
+    logger.warn({ userId, errName: errNameOf(err) }, 'Free Ink seed ledger insert failed');
   }
 }
 

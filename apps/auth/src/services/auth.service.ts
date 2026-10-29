@@ -27,6 +27,7 @@ import {
 } from '../models/User.model';
 import { buildSignupSource, UpdateMeInput, UtmTags } from '../validators/auth.validator';
 
+import { grantSignupBonus } from './credit-bonus.service';
 import { generateTokenPair, verifyRefreshToken } from './jwt.service';
 import {
   releasePasswordChangeAttempt,
@@ -228,7 +229,8 @@ export async function registerUser(
 
 /**
  * T-522 — what loginUser does once the password is proved, shared so that a 'signin' verify
- * link signs in exactly the same way: token pair, then session with authAt. No bonus (T-652).
+ * link signs in exactly the same way: token pair, then session with authAt. No bonus (T-652);
+ * T-657: a fire-and-forget free Ink self-heal (grantSignupBonus) after the session.
  * T-563: exported so the test sign-up bypass signs in the same way.
  */
 export async function startSignedInSession(
@@ -253,7 +255,20 @@ export async function startSignedInSession(
     { ...meta, authAt: new Date().toISOString() },
   );
 
-  // T-652 (Ajay AJ-646-M9b): signing in grants no bonus and writes no ledger row.
+  // T-652 (Ajay AJ-646-M9b): signing in grants no bonus (no earnedCredits, no creditledger row).
+  // T-657 (Priya): self-heal of the advertised free Ink only. grantSignupBonus acts only when
+  // the once-only marker is absent or null (and the user is verified, its own atomic filter), or
+  // re-writes a missing free_seed row for a user it already seeded; otherwise it matches
+  // nothing. Skipped for unverified users (no DB round trip) and for test accounts
+  // (grantTestInk is their grant). Fire-and-forget: no await, it never blocks or fails sign-in.
+  const verifiedForBonus =
+    user.authProvider === 'google' || user.emailVerified === true || Boolean(user.googleId);
+  if (verifiedForBonus && user.isTestAccount !== true) {
+    // The error name only: no userId, message, stack, email or name (Arjun, T-657).
+    void grantSignupBonus(user._id.toString()).catch((err: unknown) => {
+      logger.warn({ errName: errorKindOf(err) }, 'Signup bonus failed');
+    });
+  }
   return tokens;
 }
 
