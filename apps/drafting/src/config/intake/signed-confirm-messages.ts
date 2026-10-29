@@ -109,12 +109,26 @@ const NON_ANSWER_TAIL = /^(\s*[(,;:]|\s*\.(?:$|\s+[^\p{L}\s])|\s+[-–])/u;
  * NON_ANSWER_TAIL. Never inside a word: `Nilesh` is not `nil`, `Nagendra` is
  * not `NA`, `Unknownia` is not `unknown`. A list is a non-answer when every
  * entry is.
+ *
+ * AJ-668c-M6: for the check only, one leading role label (LEADING_ROLE_LABEL)
+ * is stripped first and M5 to M5d apply to what remains, so `Defendant: Not
+ * known` and a bare `Defendant` block, while `Respondent: Not Known Traders`
+ * stays a name. The stored and printed value is never changed.
  */
 export function isPartyNonAnswer(value: unknown): boolean {
   if (Array.isArray(value)) return value.every(isPartyNonAnswer);
   if (isEmptyOrNonAnswer(value)) return true;
   if (typeof value !== 'string') return false;
   const folded = fold(value);
+  if (startsWithNonAnswer(folded)) return true;
+  const label = LEADING_ROLE_LABEL.exec(folded);
+  if (label === null) return false;
+  const rest = folded.slice(label[0].length);
+  return isEmptyOrNonAnswer(rest) || startsWithNonAnswer(rest);
+}
+
+/** AJ-668-M5 to M5d on a folded value: a non-answer then NON_ANSWER_TAIL. */
+function startsWithNonAnswer(folded: string): boolean {
   for (const answer of NON_ANSWERS) {
     if (folded.startsWith(answer) && NON_ANSWER_TAIL.test(folded.slice(answer.length))) {
       return true;
@@ -122,6 +136,50 @@ export function isPartyNonAnswer(value: unknown): boolean {
   }
   return false;
 }
+
+/**
+ * AJ-668c-M6 (handoff/legal/T-511-copy-rulings-ajay.md): the role labels, as
+ * whole words on a folded value (case-insensitive, whitespace collapsed),
+ * singular or plural. English, Hindi (with -गण) and Hinglish, as listed.
+ */
+const ROLE_LABEL_WORDS = [
+  'plaintiffs?',
+  'defendants?',
+  'applicants?',
+  'petitioners?',
+  'respondents?',
+  'complainants?',
+  'accused',
+  'appellants?',
+  'opposite part(?:y|ies)',
+  'part(?:y|ies)',
+  'names?',
+  '(?:वादी|प्रतिवादी|आवेदक|याचिकाकर्ता|प्रत्यर्थी|परिवादी|शिकायतकर्ता|अभियुक्त|आरोपी|विपक्षी|नाम)(?:-?\\s?गण)?',
+  'vadi',
+  'prativadi',
+  'aavedak',
+  'avedak',
+  'abhiyukt',
+  'aaropi',
+  'aropi',
+].join('|');
+
+/** AJ-668c-M6 numbering after a label: `No.`/`No`/`#`/`संख्या`/`नं.` plus digits, or bare digits. */
+const ROLE_LABEL_NUMBER = '(?:\\s*(?:(?:no\\.?|#|संख्या|नं\\.)\\s*)?\\d+)?';
+
+/** AJ-668c-M6 abbreviations: P, D, R or A followed directly by a number (P1, D-2). */
+const ROLE_LABEL_ABBREVIATION = '[pdra]-?\\d+';
+
+/**
+ * AJ-668c-M6: one leading role label, with an optional leading "the" and its
+ * numbering, then the separator: whitespace, or optional whitespace, one of
+ * `:` `-` `–` `—`, optional whitespace. At the end of the value it is a bare
+ * label, which blocks (a role is not a name).
+ */
+const LEADING_ROLE_LABEL = new RegExp(
+  `^(?:the\\s+)?(?:(?:${ROLE_LABEL_WORDS})${ROLE_LABEL_NUMBER}|${ROLE_LABEL_ABBREVIATION})(?:\\s*[:\\-–—]\\s*|\\s+|$)`,
+  'u',
+);
 
 /**
  * AJ-668-M5, M5b: the party-name keys among the guarded fields. The ledger
