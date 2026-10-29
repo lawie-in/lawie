@@ -4,11 +4,18 @@
  * Three buckets per user (User collection):
  *   • topupCredits        — purchased one-off, permanent until spent
  *   • earnedCredits       — legacy: signup/login/rating accrual stopped in T-652 (AJ-646-M9b/c);
- *                           existing balances kept, hidden and unspendable
+ *                           existing balances kept and hidden. T-653 (AJ-646-M9c): spendCredits
+ *                           and grantCredits refuse this bucket (EarnedCreditsSpendDisabledError)
+ *                           unless env EARNED_CREDITS_SPEND_ENABLED is exactly 'true'. It is off:
+ *                           no bonus scheme exists, and any future scheme's offer and terms go
+ *                           to Ajay first.
  *   • subscriptionCredits — monthly/yearly plan allocation, lapses on cycle
  *
  * Spend order (most-perishable last so users don't lose value):
  *   topupCredits → earnedCredits → subscriptionCredits
+ * (earnedCredits only when the flag above is on.) spendCredits is a legacy
+ * path with no callers; drafts are paid in Ink (holdInk / settleInk
+ * (releaseInk on failure)).
  *
  * Every grant + spend writes a CreditLedger row for audit + founder dashboard.
  *
@@ -24,6 +31,7 @@ import type { LedgerFact } from '@lawie/shared';
 import mongoose from 'mongoose';
 
 import { DOC_TYPE_ALIASES, NON_TEMPLATE_PRICES, TEMPLATE_PRICES } from '../config/catalogue';
+import { env } from '../config/env';
 import { CreditBucket, CreditLedger, CreditSource } from '../models/CreditLedger.model';
 import { Generation } from '../models/Generation.model';
 import { IInkHold, User } from '../models/User.model';
@@ -547,6 +555,10 @@ export async function grantCredits(input: {
 }): Promise<number> {
   const { userId, bucket, amount, source, reference, templateId, metadata } = input;
   if (amount <= 0) throw new Error(`grantCredits: amount must be > 0 (got ${amount})`);
+  // T-653: defence in depth — nothing may add to earnedCredits while the flag is off.
+  if (bucket === 'earnedCredits' && !isEarnedSpendEnabled()) {
+    throw new EarnedCreditsSpendDisabledError();
+  }
   if (!mongoose.Types.ObjectId.isValid(userId)) {
     throw new Error(`grantCredits: invalid userId "${userId}"`);
   }
@@ -593,12 +605,43 @@ export class InsufficientCreditsError extends Error {
 }
 
 /**
+ * T-653 (Ajay AJ-646-M9c): the legacy earnedCredits bucket may be spent or
+ * granted only when env EARNED_CREDITS_SPEND_ENABLED is exactly 'true'. Read at
+ * call time, not at import, so tests can toggle it.
+ */
+export function isEarnedSpendEnabled(): boolean {
+  return env.EARNED_CREDITS_SPEND_ENABLED === true;
+}
+
+/** T-653: a spend or grant would touch earnedCredits while the flag is off. */
+export class EarnedCreditsSpendDisabledError extends Error {
+  readonly code = 'earned_credits_spend_disabled';
+  constructor() {
+    super('The earnedCredits bucket cannot be spent: no signed bonus scheme is active.');
+    this.name = 'EarnedCreditsSpendDisabledError';
+  }
+}
+
+/**
  * Spend N credits in priority order: topup → earned → subscription.
- * Writes one CreditLedger row per bucket touched. Atomic per-bucket via $inc
- * with a balance guard.
+ * Legacy path with no callers (drafts are paid in Ink via holdInk / settleInk
+ * (releaseInk on failure)).
  *
- * Throws InsufficientCreditsError if the total available across all 3 buckets
- * is less than the cost. Re-throws on any DB error.
+ * T-653: earnedCredits is unspendable unless env EARNED_CREDITS_SPEND_ENABLED
+ * is on. It is off: no bonus scheme exists, and any future scheme's offer and
+ * terms go to Ajay first. The whole plan is computed before any write; with
+ * the flag off, the order of checks is:
+ *   1. topup + earned + sub < amount → InsufficientCreditsError, with
+ *      `available` = topup + sub (earned is never reported).
+ *   2. the plan (same order) would take anything from earnedCredits →
+ *      EarnedCreditsSpendDisabledError. Nothing is debited.
+ * With the flag on, behaviour is as before (check 1 reports the full total).
+ *
+ * Each bucket debit is a guarded update ({[bucket]: {$gte: take}}). If one
+ * matches nothing (a concurrent spend drained it), the debits already made in
+ * this call are re-credited (best effort) and InsufficientCreditsError is
+ * thrown. Ledger rows are written only after every debit has landed, one per
+ * bucket touched. Re-throws on any DB error (after the same best-effort undo).
  */
 export async function spendCredits(input: {
   userId: string;
@@ -609,34 +652,78 @@ export async function spendCredits(input: {
   const { userId, amount, templateId, reference } = input;
   if (amount <= 0) throw new Error(`spendCredits: amount must be > 0 (got ${amount})`);
 
+  const earnedAllowed = isEarnedSpendEnabled();
   const balance = await getCreditBalance(userId);
+  const spendable = earnedAllowed
+    ? balance.total
+    : balance.topupCredits + balance.subscriptionCredits;
   if (balance.total < amount) {
-    throw new InsufficientCreditsError(amount, balance.total);
+    throw new InsufficientCreditsError(amount, spendable);
   }
 
-  const userObjectId = new mongoose.Types.ObjectId(userId);
-  let remaining = amount;
-  const spent: Array<{ bucket: CreditBucket; amount: number }> = [];
-
-  // Drain in priority order
+  // Plan the whole spend before any write, in priority order.
   const order: Array<{ bucket: CreditBucket; available: number }> = [
     { bucket: 'topupCredits', available: balance.topupCredits },
     { bucket: 'earnedCredits', available: balance.earnedCredits },
     { bucket: 'subscriptionCredits', available: balance.subscriptionCredits },
   ];
-
+  const plan: Array<{ bucket: CreditBucket; amount: number }> = [];
+  let remaining = amount;
   for (const { bucket, available } of order) {
     if (remaining <= 0) break;
     if (available <= 0) continue;
     const take = Math.min(available, remaining);
+    plan.push({ bucket, amount: take });
+    remaining -= take;
+  }
+  if (!earnedAllowed && plan.some((p) => p.bucket === 'earnedCredits')) {
+    throw new EarnedCreditsSpendDisabledError();
+  }
 
-    const after = await User.findByIdAndUpdate(
-      userObjectId,
-      { $inc: { [bucket]: -take } },
-      { new: true },
-    ).lean();
-    const balanceAfter = (after?.[bucket] as number | undefined) ?? 0;
+  const userObjectId = new mongoose.Types.ObjectId(userId);
+  const landed: Array<{ bucket: CreditBucket; amount: number; balanceAfter: number }> = [];
+  const undoLanded = async (): Promise<void> => {
+    for (const { bucket, amount: take } of landed) {
+      try {
+        await User.findByIdAndUpdate(userObjectId, { $inc: { [bucket]: take } });
+      } catch (err) {
+        // The error class only, never ids, amounts or the driver's message.
+        console.error(
+          '[drafting] spendCredits undo failed:',
+          err instanceof Error ? err.name : 'unknown',
+        );
+      }
+    }
+  };
 
+  for (const { bucket, amount: take } of plan) {
+    let after;
+    try {
+      after = await User.findOneAndUpdate(
+        { _id: userObjectId, [bucket]: { $gte: take } },
+        { $inc: { [bucket]: -take } },
+        { new: true },
+      ).lean();
+    } catch (err) {
+      await undoLanded();
+      throw err;
+    }
+    if (!after) {
+      // A concurrent spend drained this bucket: undo this call's debits.
+      await undoLanded();
+      const now = await User.findById(userObjectId)
+        .lean()
+        .catch(() => null);
+      const nowSpendable =
+        (now?.topupCredits ?? 0) +
+        (now?.subscriptionCredits ?? 0) +
+        (earnedAllowed ? (now?.earnedCredits ?? 0) : 0);
+      throw new InsufficientCreditsError(amount, nowSpendable);
+    }
+    landed.push({ bucket, amount: take, balanceAfter: (after[bucket] as number | undefined) ?? 0 });
+  }
+
+  for (const { bucket, amount: take, balanceAfter } of landed) {
     await CreditLedger.create({
       userId: userObjectId,
       source: 'draft_spent',
@@ -646,12 +733,9 @@ export async function spendCredits(input: {
       reference,
       templateId,
     });
-
-    spent.push({ bucket, amount: take });
-    remaining -= take;
   }
 
-  return { spent, totalSpent: amount };
+  return { spent: plan, totalSpent: amount };
 }
 
 // ── Ink spend (new ink system — SCRUM-101) ────────────────────────────────

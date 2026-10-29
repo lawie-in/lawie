@@ -1,6 +1,6 @@
 # T-666 — T-661 follow-ups: rename o39-confirm-messages, cross-pack field match
 
-Status: assigned to vishal, 29 Oct 2026. Follow-ups from his T-661 report.
+Status: built, READY 29 Oct (8595fb69). Ajay approved (fbc6a2ff). Follow-ups: T-668, T-669.
 
 ## Acceptance criteria
 1. Rename `apps/drafting/src/config/intake/o39-confirm-messages.ts` to a pack-neutral name, because it now holds the signed ask lines for every pack. Update the imports. No string changes.

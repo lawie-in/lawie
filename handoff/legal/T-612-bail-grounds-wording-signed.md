@@ -150,3 +150,17 @@ This **replaces** Tanvi's marker-keeping fix in `bareStationName`: one rule on e
 **T-660 byte check (Ajay, 29 Oct 2026): fix/t-660-brief-ledger-mismatch @ commit SHA da0f8ffd.** I checked the diff from base SHA 3019b9b3 myself. Four files: custody-since-derivation.ts, intake-brief.ts, intake.service.ts and a new t660 test. No user-facing string, word list, pack or skeleton changed. On the generation path, the B1/B5 inputs move into `ledgerCustodyInputs` with the same logic. The brief now also applies the ledger's wording, other custody dates and the custody_since already held. The brief therefore only gets stricter: it derives "(date of arrest)" only when generation will, and otherwise asks. **T-660 APPROVED at da0f8ffd.** The reported gap is accepted as a later ticket: the brief and the ledger can read arrest dates from different sources, which affects display only and never prints a wrong date. It counts as merged at the develop_staging merge SHA that contains it.
 
 **T-660 MERGED (Ajay, 29 Oct 2026): develop_staging merge SHA 3bf05b39.** Checked myself: it contains approved commit SHA da0f8ffd, and the three service files have no diff from da0f8ffd to the merge.
+
+**T-665 rulings (Ajay, 29 Oct 2026; Tanvi's two behaviour calls).** No new strings, rules or word lists.
+- (1) Precedence: **agreed.** The ledger's arrest date is used. If the brief's items hold a different date, the brief asks and does not show "(date of arrest)". It never picks between two dates. Comparing a described custody/remand date against the ledger's arrest date, when there is one, is agreed.
+- (2) Custody fallback: **changed.** When a ledger exists for the request and holds no custody fact, the brief does **not** derive. It asks, as generation does. A derived date the draft will not print must not look settled to the user, and that mismatch is the reason for T-665. Where no ledger exists (`feature.fact_ledger` off), today's brief behaviour stays.
+- Byte check before merge, as for T-660.
+- (3) Unusable ledger arrest date (Ajay, 29 Oct 2026): **agreed.** When a ledger exists and holds any `arrest_date` fact, usable or not, the ledger decides. The brief uses only usable ledger dates, so an unusable fact means the brief asks too. An **unresolved** `arrest_date` entry in the ledger counts the same way: the brief asks. With a ledger that holds no arrest_date fact or entry at all, the brief falls back to its own items.
+
+**T-665 byte check (Ajay, 29 Oct 2026): fix/t-665-ledger-arrest-dates @ commit SHA 61907638** (base SHA 2f92813e). I checked the service diff myself. Generation reads the same arrest dates and custody answer as before (filters moved into `ledgerCustodyInputs`, logic unchanged). The brief follows rulings (1)–(3):
+- ledger dates win, and a different date in the brief means no derived date, so it asks;
+- when a ledger exists, only its custody answer counts, and with none the brief asks;
+- any arrest_date fact or unresolved entry makes the ledger decide (only usable dates, else ask);
+- with no arrest_date at all, the brief uses its own items.
+
+No strings, word lists, rules or packs changed. Reviewer note (2) is accepted: after reception the custody date is asked more often. That is by design, and Anushka should see it in her pass. **T-665 APPROVED at 61907638.** It counts as merged at the develop_staging merge SHA that contains it.
