@@ -258,7 +258,7 @@ JSON: `handoff/ops/runbooks/lawie-prod-ops-v8.json`. Only change vs v7, besides 
 ### SSM version 9 (27 Oct 2026, 13:43 UTC, Nikhil) — default
 On Arjun's word (13:41 UTC, release v1.2.0). JSON: `handoff/ops/runbooks/lawie-prod-ops-v9.json`; SSM content == repo JSON. Only change vs v8 (besides the description) is the new action `seed-courts`. Its function `seed_courts_run` loads the env exactly like `seed_run`/deploy (v4 loader, as ubuntu) and runs `yarn -s workspace @lawie/drafting seed:courts`. It takes no parameters. The script (`apps/drafting/src/scripts/seed-courts.ts`) is upsert-on-courtId only: idempotent, nothing deleted.
 
-### SSM version 10: PREPARED, not applied (28 Oct 2026, 21:10 UTC, Nikhil)
+### SSM version 10 (prepared 28 Oct 21:10, applied 29 Oct 2026 09:00 UTC, Nikhil)
 JSON: `handoff/ops/runbooks/lawie-prod-ops-v10.json`, built from v9. Plans: `billing-env-2026-10-27.md` and `puppeteer-chrome-2026-10-28.md`. Applied only on the founder's go in Nikhil's chat.
 
 **`env-set`**
@@ -275,9 +275,10 @@ JSON: `handoff/ops/runbooks/lawie-prod-ops-v10.json`, built from v9. Plans: `bil
 
 Note for billing step 3: pm2 keeps the old env across a plain `restart`. After `env-set`, use the existing `action=restart service=lawie-billing` (then `lawie-email-worker`), which runs `pm2 reload ecosystem.config.js --only <svc> --update-env`.
 
-### SSM version 11: PREPARED, not applied (29 Oct 2026, 09:00 UTC, Nikhil)
+### SSM version 11 (prepared and applied 29 Oct 2026 09:00 UTC, Nikhil) — default
 JSON: `handoff/ops/runbooks/lawie-prod-ops-v11.json`, built from v10 (v10 is itself not applied yet; both are applied on the v1.2.2 go). Plan: `release-v1.2.2-2026-10-29.md` §3. Only change vs v10: the new action `backfill-free-seed`, which takes no params.
 - Runs as ubuntu with the env loaded like deploy: `yarn -s workspace @lawie/auth backfill:free-seed --dry-run --cutoff 2026-10-25T22:00:00Z --ids-out /home/ubuntu/.lawie/backfill-ids.tsv`. There is no `--apply` anywhere in the document.
 - The dir is 0700; the script creates the ids file 0600 with `wx`, so a leftover file would make the run fail. The action therefore removes any old file before the run and always removes the new one after, whatever the exit code. The ids never leave the box.
 - The script prints counts only (its header says no ids or PII on stdout/stderr).
 - `print_ids` is not added: the T-657 script has no `--print-ids` option (checked on `release/v1.2.2`). If Ajay needs ids, that is a script change first, then a new version.
+- v10 and v11 applied 09:00 UTC 29 Oct on the founder's v1.2.2 go; default = 11; both `get-document` == repo JSON.
