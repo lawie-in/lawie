@@ -19,3 +19,6 @@ The 7-minute wait comes AFTER "Confirm brief" (440–452 s on five runs, very co
 
 ## P1 WITHDRAWN (Arjun, 29 Oct 2026)
 Anushka's test script had a fixed 400 s wait after Confirm, so the 440–452 s totals came from the script, not the app. T-681 goes back to measurement. T-681a (duration_ms + runId) and T-681b (match caching) proceed as small tickets. Anushka is timing one real draft (Confirm, first text, ready). Nothing jumps the queue.
+
+## Closed as a latency issue (Arjun, 29 Oct 2026)
+Anushka timed one real bail draft: Confirm to "Your draft is ready" took 6.1 s. The server run takes 35 s on the WS case, and intake rounds take about 40 s. There is no latency defect, and the "7–8 min" item is removed. T-681 is now hygiene only: T-681a and T-681b, low priority.
