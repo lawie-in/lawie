@@ -13,9 +13,20 @@
     "court_type": "civil_court",
     "court": "bihar_civil_patna"
   },
-  "answers": [],
+  "answers": [
+    {
+      "key": "other_defendants",
+      "value": "No, Defendant No. 1 is the only defendant"
+    }
+  ],
   "v3_stage": 1,
-  "v3_answers": [],
+  "v3_answers": [
+    {
+      "turn": 1,
+      "asked": ["other_defendants"],
+      "text": "No, Defendant No. 1 is the only defendant"
+    }
+  ],
   "expect": {
     "ledger": [
       {
@@ -29,27 +40,56 @@
         "why": "given"
       },
       {
+        "key": "other_defendants",
+        "display": "No, Defendant No. 1 is the only defendant",
+        "why": "T-679: the user's own answer on the questions step names the option"
+      },
+      {
         "key": "valuation",
-        "display": "4000000",
+        "display": "Rs 40,00,000",
         "why": "Rs 40,00,000 read as 40,00,000 rupees"
       },
       {
         "key": "court_fee_paid",
-        "display": "1500",
+        "display": "Rs 1,500",
         "why": "Rs 1,500"
+      }
+    ],
+    "present": [
+      {
+        "any_of": ["Sample Person 1"],
+        "why": "T-679 AC1: the plaintiff given in the description is in the draft"
+      },
+      {
+        "any_of": ["Sample Person 2"],
+        "why": "T-679 AC1: the defendant given in the description is in the draft"
+      },
+      {
+        "any_of": ["40,00,000"],
+        "why": "T-679 AC2: the valuation given reaches the draft"
       }
     ]
   },
   "v3_expect": {
     "absent_keys": [],
     "unresolved": [],
-    "dropped": {}
+    "dropped": {},
+    "values": {
+      "plaintiff_name": "Sample Person 1",
+      "defendant_name": "Sample Person 2",
+      "other_defendants": "No, Defendant No. 1 is the only defendant",
+      "valuation": "4000000",
+      "court_fee_paid": "1500"
+    }
   },
   "recorded": {
     "v3_extract": {
       "reception": "{\"outcome\": \"read\", \"read\": [], \"conflicts\": [], \"questions\": []}",
-      "extract": "{\"facts\": [{\"key\": \"plaintiff_name\", \"source\": \"description\", \"turn\": 0, \"quote\": \"Plaintiff Sample Person 1\", \"value\": \"Sample Person 1\", \"confidence\": 0.97}, {\"key\": \"defendant_name\", \"source\": \"description\", \"turn\": 0, \"quote\": \"defendant Sample Person 2\", \"value\": \"Sample Person 2\", \"confidence\": 0.97}, {\"key\": \"valuation\", \"source\": \"description\", \"turn\": 0, \"quote\": \"valued at Rs 40,00,000\", \"value\": 4000000, \"confidence\": 0.96}, {\"key\": \"court_fee_paid\", \"source\": \"description\", \"turn\": 0, \"quote\": \"court fee of Rs 1,500\", \"value\": 1500, \"confidence\": 0.96}], \"non_answers\": [], \"unresolved\": []}",
-      "drafter": "(phase 2: the drafter's reply is recorded when intake is wired to v3)"
+      "extract": [
+        "{\"facts\": [{\"key\": \"plaintiff_name\", \"source\": \"description\", \"turn\": 0, \"quote\": \"Plaintiff Sample Person 1\", \"value\": \"Sample Person 1\", \"confidence\": 0.97}, {\"key\": \"defendant_name\", \"source\": \"description\", \"turn\": 0, \"quote\": \"defendant Sample Person 2\", \"value\": \"Sample Person 2\", \"confidence\": 0.97}, {\"key\": \"valuation\", \"source\": \"description\", \"turn\": 0, \"quote\": \"valued at Rs 40,00,000\", \"value\": 4000000, \"confidence\": 0.96}, {\"key\": \"court_fee_paid\", \"source\": \"description\", \"turn\": 0, \"quote\": \"court fee of Rs 1,500\", \"value\": 1500, \"confidence\": 0.96}], \"non_answers\": [], \"unresolved\": [\"other_defendants\"]}",
+        "{\"facts\": [{\"key\": \"other_defendants\", \"source\": \"answer\", \"turn\": 1, \"quote\": \"No, Defendant No. 1 is the only defendant\", \"value\": \"No, Defendant No. 1 is the only defendant\", \"confidence\": 0.97}], \"non_answers\": [], \"unresolved\": []}"
+      ],
+      "drafter": "1. That the plaintiff Sample Person 1 sues the defendant Sample Person 2 for partition of the joint family property valued at Rs 40,00,000.\n\n2. That court fee of Rs 1,500 has been paid."
     }
   }
 }

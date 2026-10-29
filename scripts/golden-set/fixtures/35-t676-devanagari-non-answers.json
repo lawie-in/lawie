@@ -57,6 +57,11 @@
   "expect": {
     "ledger": [
       {
+        "key": "applicant_name",
+        "display": "Sample Person 1",
+        "why": "given"
+      },
+      {
         "key": "fir_number",
         "display": "56/2026",
         "why": "given"
@@ -65,6 +70,12 @@
         "key": "named_in_fir",
         "display": "No",
         "why": "T-676: नहीं on a yes/no/not-known choice is No"
+      }
+    ],
+    "absent": [
+      {
+        "any_of": ["पता नहीं", "koi nahi", "नहीं"],
+        "why": "rule 4: a non-answer never reaches the draft"
       }
     ]
   },
@@ -88,13 +99,21 @@
     "dropped": {
       "non_answer": 3,
       "non_answer_not_asked": 1
+    },
+    "values": {
+      "applicant_name": "Sample Person 1",
+      "fir_number": "56/2026",
+      "named_in_fir": "No"
     }
   },
   "recorded": {
     "v3_extract": {
       "reception": "{\"outcome\": \"read\", \"read\": [], \"conflicts\": [], \"questions\": []}",
-      "extract": "{\"facts\": [{\"key\": \"fir_number\", \"source\": \"description\", \"turn\": 0, \"quote\": \"FIR No. 56/2026\", \"value\": \"56/2026\", \"confidence\": 0.97}, {\"key\": \"named_in_fir\", \"source\": \"answer\", \"turn\": 3, \"quote\": \"नहीं\", \"value\": \"No\", \"confidence\": 0.95}], \"non_answers\": [{\"key\": \"police_station\", \"source\": \"answer\", \"turn\": 1, \"quote\": \"पता नहीं\"}, {\"key\": \"dependants\", \"source\": \"answer\", \"turn\": 2, \"quote\": \"नहीं\"}, {\"key\": \"medical_condition\", \"source\": \"answer\", \"turn\": 4, \"quote\": \"koi nahi\"}, {\"key\": \"fir_number\", \"source\": \"answer\", \"turn\": 1, \"quote\": \"पता नहीं\"}], \"unresolved\": []}",
-      "drafter": "(phase 2: the drafter's reply is recorded when intake is wired to v3)"
+      "extract": [
+        "{\"facts\": [{\"key\": \"applicant_name\", \"source\": \"description\", \"turn\": 0, \"quote\": \"for Sample Person 1\", \"value\": \"Sample Person 1\", \"confidence\": 0.97}, {\"key\": \"fir_number\", \"source\": \"description\", \"turn\": 0, \"quote\": \"FIR No. 56/2026\", \"value\": \"56/2026\", \"confidence\": 0.97}], \"non_answers\": [], \"unresolved\": []}",
+        "{\"facts\": [{\"key\": \"named_in_fir\", \"source\": \"answer\", \"turn\": 3, \"quote\": \"नहीं\", \"value\": \"No\", \"confidence\": 0.95}], \"non_answers\": [{\"key\": \"police_station\", \"source\": \"answer\", \"turn\": 1, \"quote\": \"पता नहीं\"}, {\"key\": \"dependants\", \"source\": \"answer\", \"turn\": 2, \"quote\": \"नहीं\"}, {\"key\": \"medical_condition\", \"source\": \"answer\", \"turn\": 4, \"quote\": \"koi nahi\"}, {\"key\": \"fir_number\", \"source\": \"answer\", \"turn\": 1, \"quote\": \"पता नहीं\"}], \"unresolved\": []}"
+      ],
+      "drafter": "1. That the applicant Sample Person 1 is not named in FIR No. 56/2026."
     }
   }
 }

@@ -54,12 +54,18 @@ jest.mock('../../config/logger', () => {
 
 import logger from '../../config/logger';
 import { V3_EXTRACTOR_SYSTEM_PROMPT } from '../../config/prompts/v3-extractor';
+import {
+  AppSettingMissingError,
+  _clearAppSettingsCache,
+} from '../../services/app-settings.service';
 import { AuxCallError } from '../../services/aux-llm';
+import { _clearAiEffortCache } from '../../services/llm-usage';
 import { buildChecklist, ChecklistItem } from '../../services/intake-brief';
 import { loadRulePack, RulePack } from '../../services/rule-pack.service';
 import {
   _resetExtractorState,
-  EXTRACTOR_DEFAULT_MODEL,
+  EXTRACTOR_V3_EFFORT_KEYS,
+  extractorV3Effort,
   EXTRACTOR_LIMITS,
   estimateInputTokens,
   extractorLines,
@@ -135,6 +141,14 @@ const loggerCalls = (): unknown[][] =>
     (k) => (logger[k] as jest.Mock).mock.calls,
   );
 
+/** Settings by key; any other key is missing (AppSettingMissingError), as in production. */
+function setSettings(m: Record<string, string>): void {
+  mockSetting.mockImplementation(async (k: string) => {
+    if (k in m) return m[k];
+    throw new AppSettingMissingError(k);
+  });
+}
+
 let mongoSpies: jest.SpyInstance[] = [];
 
 beforeEach(() => {
@@ -143,8 +157,9 @@ beforeEach(() => {
   mockExec.mockResolvedValue(redisCount(1));
   mockZrem.mockResolvedValue(1);
   mockCall.mockResolvedValue(okResult());
-  // No settings readable by default: the code falls back to its default.
-  mockSetting.mockRejectedValue(new Error('missing'));
+  _clearAiEffortCache();
+  // T-684: the model is read through resolveModel('extractor'); no code default.
+  setSettings({ 'ai.model.extractor': 'claude-extractor-test' });
   mongoSpies = [
     jest.spyOn(mongoose.Model, 'create'),
     jest.spyOn(mongoose.Model.prototype, 'save'),
@@ -168,8 +183,8 @@ describe('extractTurn: the ok path', () => {
     ]);
     expect(out.result.unresolved).toEqual(['fir_number']);
     expect(out.usage).toMatchObject({
-      model: EXTRACTOR_DEFAULT_MODEL,
-      effort: 'low',
+      model: 'claude-extractor-test',
+      effort: 'medium',
       status: 'completed',
     });
     expect(out.usage.usage.inputTokens).toBe(900);
@@ -193,7 +208,7 @@ describe('extractTurn: the ok path', () => {
     expect(req.user).toContain('turn="1"');
     expect(req.maxTokens).toBe(EXTRACTOR_LIMITS.maxTokens);
     expect(EXTRACTOR_LIMITS.maxTokens).toBe(1500);
-    expect(req.effort).toBe('low');
+    expect(req.effort).toBe('medium');
     expect(opts.cacheSystem).toBe(true);
     expect(opts.signal).toBeInstanceOf(AbortSignal);
     expect(abort).toHaveBeenCalledWith(20_000);
@@ -230,12 +245,8 @@ describe('extractTurn: the ok path', () => {
   });
 });
 
-describe('extractTurn: the model setting', () => {
-  const settings = (m: Record<string, string>) =>
-    mockSetting.mockImplementation(async (k: string) => {
-      if (k in m) return m[k];
-      throw new Error('missing');
-    });
+describe('extractTurn: the model setting (T-684 resolveModel, no code default)', () => {
+  const settings = setSettings;
 
   it('uses ai.model.extractor when set', async () => {
     settings({ 'ai.model.extractor': 'claude-extractor-x', 'ai.intake_model': 'claude-intake-y' });
@@ -249,25 +260,154 @@ describe('extractTurn: the model setting', () => {
     expect(mockCall.mock.calls[0][0].model).toBe('claude-intake-y');
   });
 
-  it('falls back to ai.intake_model when ai.model.extractor is blank', async () => {
-    settings({ 'ai.model.extractor': '   ', 'ai.intake_model': 'claude-intake-y' });
-    await extractTurn(input());
-    expect(mockCall.mock.calls[0][0].model).toBe('claude-intake-y');
+  it('no code default: neither set gives degraded model_unset, no Redis slot, no model call (v2 runs)', async () => {
+    settings({});
+    const out = await extractTurn(input());
+    expect(out).toEqual({ status: 'degraded', reason: 'model_unset' });
+    expect(mockCall).not.toHaveBeenCalled();
+    // The model is resolved before the per-user slot, so an unset model spends none.
+    expect(mockExec).not.toHaveBeenCalled();
   });
 
-  it('uses the Phase 1 default (Haiku, low) when neither is readable', async () => {
+  it('a blank ai.model.extractor is no model: degraded model_unset', async () => {
+    settings({ 'ai.model.extractor': '   ', 'ai.intake_model': 'claude-intake-y' });
+    const out = await extractTurn(input());
+    expect(out).toEqual({ status: 'degraded', reason: 'model_unset' });
+    expect(mockCall).not.toHaveBeenCalled();
+  });
+
+  it('a settings read error other than "missing" also degrades (never throws)', async () => {
+    mockSetting.mockRejectedValue(new Error('mongo down'));
+    const out = await extractTurn(input());
+    expect(out).toMatchObject({ status: 'degraded' });
+    expect(mockCall).not.toHaveBeenCalled();
+  });
+
+  // Arjun 5e493930 section 8: ai.effort.extractor_v3, then ai.effort.extractor, then MEDIUM.
+  it('the v3 effort key ai.effort.extractor_v3 wins over ai.effort.extractor', async () => {
+    setSettings({
+      'ai.model.extractor': 'm',
+      'ai.effort.extractor_v3': 'low',
+      'ai.effort.extractor': 'high',
+    });
     await extractTurn(input());
-    expect(mockCall.mock.calls[0][0].model).toBe('claude-haiku-5-5');
     expect(mockCall.mock.calls[0][0].effort).toBe('low');
   });
 
-  it('reads the effort from ai.effort.extractor; a bad value is the default', async () => {
-    settings({ 'ai.effort.extractor': 'High' });
+  it('falls back to ai.effort.extractor when the v3 key is missing', async () => {
+    setSettings({ 'ai.model.extractor': 'm', 'ai.effort.extractor': 'high' });
     await extractTurn(input());
     expect(mockCall.mock.calls[0][0].effort).toBe('high');
-    settings({ 'ai.effort.extractor': 'turbo' });
+  });
+
+  it('is medium when neither is set', async () => {
+    setSettings({ 'ai.model.extractor': 'm' });
     await extractTurn(input());
-    expect(mockCall.mock.calls[1][0].effort).toBe('low');
+    expect(mockCall.mock.calls[0][0].effort).toBe('medium');
+  });
+
+  it('a bad v3 value moves on to ai.effort.extractor', async () => {
+    setSettings({
+      'ai.model.extractor': 'm',
+      'ai.effort.extractor_v3': 'turbo',
+      'ai.effort.extractor': 'high',
+    });
+    await extractTurn(input());
+    expect(mockCall.mock.calls[0][0].effort).toBe('high');
+  });
+
+  it("setting the v3 key never changes v2's effort (getRoleEffort('extractor'))", async () => {
+    const { getRoleEffort } = jest.requireActual(
+      '../../services/llm-usage',
+    ) as typeof import('../../services/llm-usage');
+    setSettings({ 'ai.model.extractor': 'm', 'ai.effort.extractor_v3': 'max' });
+    _clearAiEffortCache();
+    expect(await getRoleEffort('extractor')).toBe('medium');
+    setSettings({
+      'ai.model.extractor': 'm',
+      'ai.effort.extractor_v3': 'max',
+      'ai.effort.extractor': 'low',
+    });
+    _clearAiEffortCache();
+    expect(await getRoleEffort('extractor')).toBe('low');
+  });
+});
+
+describe('extractorV3Effort (Arjun 5e493930 section 8)', () => {
+  const keysRead = () => mockSetting.mock.calls.map((c) => c[0] as string);
+
+  it('the chain is ai.effort.extractor_v3, then ai.effort.extractor', () => {
+    expect([...EXTRACTOR_V3_EFFORT_KEYS]).toEqual([
+      'ai.effort.extractor_v3',
+      'ai.effort.extractor',
+    ]);
+  });
+
+  it('the v3 key wins and stops the chain', async () => {
+    setSettings({ 'ai.effort.extractor_v3': 'High', 'ai.effort.extractor': 'low' });
+    expect(await extractorV3Effort()).toBe('high');
+    expect(keysRead()).toEqual(['ai.effort.extractor_v3']);
+  });
+
+  it('falls back to ai.effort.extractor, then medium', async () => {
+    setSettings({ 'ai.effort.extractor': 'low' });
+    expect(await extractorV3Effort()).toBe('low');
+    _resetExtractorState();
+    setSettings({});
+    expect(await extractorV3Effort()).toBe('medium');
+  });
+
+  it('ai.effort.intake is never read, even when it is the only key set', async () => {
+    setSettings({ 'ai.effort.intake': 'max' });
+    expect(await extractorV3Effort()).toBe('medium');
+    expect(keysRead()).not.toContain('ai.effort.intake');
+  });
+
+  it('a bad value falls through to the next key, and a failed read does too', async () => {
+    setSettings({ 'ai.effort.extractor_v3': 'turbo', 'ai.effort.extractor': 'low' });
+    expect(await extractorV3Effort()).toBe('low');
+    _resetExtractorState();
+    mockSetting.mockImplementation(async (k: string) => {
+      if (k === 'ai.effort.extractor_v3') throw new Error('mongo down');
+      return 'high';
+    });
+    expect(await extractorV3Effort()).toBe('high');
+    _resetExtractorState();
+    setSettings({ 'ai.effort.extractor_v3': 'turbo', 'ai.effort.extractor': '' });
+    expect(await extractorV3Effort()).toBe('medium');
+  });
+
+  it('a bad value warns with the key name only, never the value', async () => {
+    setSettings({ 'ai.effort.extractor_v3': 'SECRET-BAD' });
+    await extractorV3Effort();
+    const all = JSON.stringify((logger.warn as jest.Mock).mock.calls);
+    expect(all).toContain('ai.effort.extractor_v3');
+    expect(all).not.toContain('SECRET-BAD');
+  });
+
+  it('is cached for 60 s, and the cache clears on a settings invalidation', async () => {
+    setSettings({ 'ai.effort.extractor_v3': 'low' });
+    expect(await extractorV3Effort()).toBe('low');
+    setSettings({ 'ai.effort.extractor_v3': 'high' });
+    expect(await extractorV3Effort()).toBe('low');
+    expect(mockSetting).toHaveBeenCalledTimes(1);
+    _clearAppSettingsCache(); // notifies the invalidation listeners
+    expect(await extractorV3Effort()).toBe('high');
+  });
+
+  it('expires after 60 s', async () => {
+    setSettings({ 'ai.effort.extractor_v3': 'low' });
+    const now = jest.spyOn(Date, 'now').mockReturnValue(5_000_000);
+    expect(await extractorV3Effort()).toBe('low');
+    setSettings({ 'ai.effort.extractor_v3': 'high' });
+    now.mockReturnValue(5_000_000 + 60_001);
+    expect(await extractorV3Effort()).toBe('high');
+  });
+
+  it('never throws, and the turn uses it: the call carries the v3 effort', async () => {
+    setSettings({ 'ai.model.extractor': 'm', 'ai.effort.extractor_v3': 'xhigh' });
+    await extractTurn(input());
+    expect(mockCall.mock.calls[0][0].effort).toBe('xhigh');
   });
 });
 
@@ -432,14 +572,42 @@ describe('extractTurn: failures degrade, never throw, never retry', () => {
     expect(out).toEqual({ status: 'degraded', reason: 'input_too_large' });
   });
 
-  it('a degraded turn logs one v3_extract_degraded line with the reason code', async () => {
+  it('a degraded turn logs one llm_call line: stage extract, status degraded, a reason, no text', async () => {
     mockCall.mockRejectedValue(new Error('boom'));
     await extractTurn(input({ intakeId: 'intake-1' }));
-    const lines = loggerCalls()
+    const lines = mockLogLlmCall.mock.calls
       .map((c) => c[0] as Record<string, unknown>)
-      .filter((o) => o?.event === 'v3_extract_degraded');
+      .filter((o) => o.status === 'degraded');
     expect(lines).toHaveLength(1);
-    expect(lines[0]).toMatchObject({ reason: 'call_failed', intake_id: 'intake-1', turn: 0 });
+    expect(lines[0]).toMatchObject({
+      stage: 'extract',
+      call: 'v3_extract',
+      status: 'degraded',
+      reason: 'call_failed',
+      intakeId: 'intake-1',
+    });
+    for (const v of Object.values(lines[0]))
+      expect(typeof v === 'string' ? v.length < 80 : true).toBe(true);
+    // The old v3_extract_degraded logger line is gone.
+    expect(JSON.stringify(loggerCalls())).not.toContain('v3_extract_degraded');
+  });
+
+  it('a model_unset turn logs a degraded line with reason model_unset and an empty model', async () => {
+    setSettings({});
+    await extractTurn(input());
+    expect(mockLogLlmCall).toHaveBeenCalledTimes(1);
+    expect(mockLogLlmCall.mock.calls[0][0]).toMatchObject({
+      stage: 'extract',
+      status: 'degraded',
+      reason: 'model_unset',
+    });
+  });
+
+  it('a completed turn carries no reason', async () => {
+    await extractTurn(input());
+    const rec = mockLogLlmCall.mock.calls[0][0] as Record<string, unknown>;
+    expect(rec.status).toBe('completed');
+    expect(rec).not.toHaveProperty('reason');
   });
 });
 
@@ -557,8 +725,8 @@ describe('extractTurn: nothing sensitive is logged, and Mongo is never touched',
     const rec = mockLogLlmCall.mock.calls[0][0] as Record<string, unknown>;
     expect(rec).toMatchObject({
       call: 'v3_extract',
-      model: EXTRACTOR_DEFAULT_MODEL,
-      effort: 'low',
+      model: 'claude-extractor-test',
+      effort: 'medium',
       status: 'completed',
       inputTokens: 900,
       outputTokens: 80,

@@ -30,7 +30,7 @@
       },
       {
         "key": "valuation_for_jurisdiction",
-        "display": "300000",
+        "display": "Rs 3,00,000",
         "why": "Rs 3,00,000"
       },
       {
@@ -43,18 +43,39 @@
         "display": "Sample Person 2",
         "why": "given"
       }
+    ],
+    "present": [
+      {
+        "any_of": ["House 12, Ward 4, Sample Nagar, Patna 800001"],
+        "why": "T-679 AC2: the plaintiff address given reaches the draft, digits intact"
+      },
+      {
+        "any_of": ["Flat 9, Sample Apartments, Gaya"],
+        "why": "T-679 AC2: the defendant address given reaches the draft"
+      },
+      {
+        "any_of": ["3,00,000"],
+        "why": "T-679 AC2: the valuation given reaches the draft"
+      }
     ]
   },
   "v3_expect": {
     "absent_keys": [],
     "unresolved": [],
-    "dropped": {}
+    "dropped": {},
+    "values": {
+      "plaintiff_address": "House 12, Ward 4, Sample Nagar, Patna 800001",
+      "defendant_address": "Flat 9, Sample Apartments, Gaya",
+      "valuation_for_jurisdiction": "300000",
+      "plaintiff_name": "Sample Person 1",
+      "defendant_name": "Sample Person 2"
+    }
   },
   "recorded": {
     "v3_extract": {
       "reception": "{\"outcome\": \"read\", \"read\": [], \"conflicts\": [], \"questions\": []}",
       "extract": "{\"facts\": [{\"key\": \"plaintiff_name\", \"source\": \"description\", \"turn\": 0, \"quote\": \"Plaintiff Sample Person 1\", \"value\": \"Sample Person 1\", \"confidence\": 0.97}, {\"key\": \"defendant_name\", \"source\": \"description\", \"turn\": 0, \"quote\": \"defendant Sample Person 2\", \"value\": \"Sample Person 2\", \"confidence\": 0.97}, {\"key\": \"plaintiff_address\", \"source\": \"description\", \"turn\": 0, \"quote\": \"House 12, Ward 4, Sample Nagar, Patna 800001\", \"value\": \"House 12, Ward 4, Sample Nagar, Patna 800001\", \"confidence\": 0.97}, {\"key\": \"defendant_address\", \"source\": \"description\", \"turn\": 0, \"quote\": \"Flat 9, Sample Apartments, Gaya\", \"value\": \"Flat 9, Sample Apartments, Gaya\", \"confidence\": 0.97}, {\"key\": \"valuation_for_jurisdiction\", \"source\": \"description\", \"turn\": 0, \"quote\": \"Valuation for jurisdiction Rs 3,00,000\", \"value\": 300000, \"confidence\": 0.96}], \"non_answers\": [], \"unresolved\": []}",
-      "drafter": "(phase 2: the drafter's reply is recorded when intake is wired to v3)"
+      "drafter": "1. That the plaintiff Sample Person 1 of House 12, Ward 4, Sample Nagar, Patna 800001 sues the defendant Sample Person 2 of Flat 9, Sample Apartments, Gaya.\n\n2. That the valuation of the suit for jurisdiction is Rs 3,00,000."
     }
   }
 }

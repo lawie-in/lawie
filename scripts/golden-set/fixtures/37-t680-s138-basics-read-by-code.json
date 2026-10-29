@@ -36,27 +36,27 @@
       },
       {
         "key": "cheque_date",
-        "display": "10.07.2026",
+        "display": "10 July 2026",
         "why": "day first"
       },
       {
         "key": "cheque_amount",
-        "display": "300000",
+        "display": "Rs 3,00,000",
         "why": "teen lakh rupees by P3"
       },
       {
         "key": "presentation_date",
-        "display": "15.07.2026",
+        "display": "15 July 2026",
         "why": "given"
       },
       {
         "key": "dishonour_date",
-        "display": "17.07.2026",
+        "display": "17 July 2026",
         "why": "given"
       },
       {
         "key": "notice_sent_date",
-        "display": "23.08.2026",
+        "display": "23 August 2026",
         "why": "T-680: the notice date"
       },
       {
@@ -71,13 +71,19 @@
       },
       {
         "key": "dishonour_reason",
-        "display": "Insufficient funds",
+        "display": "insufficient funds",
         "why": "given"
       },
       {
         "key": "memo_received_date",
         "unresolved": true,
         "why": "20/7/26 has a two-digit year: ambiguous, no fact"
+      }
+    ],
+    "present": [
+      {
+        "any_of": ["23 August 2026"],
+        "why": "T-680: the notice date is read exactly, so the limitation warning can work from it"
       }
     ]
   },
@@ -87,13 +93,27 @@
     "dropped": {
       "not_on_list": 1,
       "bad_value": 1
+    },
+    "values": {
+      "applicant_name": "Sample Person 1",
+      "respondent_name": "Sample Person 2",
+      "respondent_type": "Individual",
+      "cheque_number": "000123",
+      "cheque_date": "10.07.2026",
+      "cheque_amount": "300000",
+      "presentation_date": "15.07.2026",
+      "dishonour_date": "17.07.2026",
+      "notice_sent_date": "23.08.2026",
+      "drawee_bank": "Sample Bank",
+      "drawee_branch": "Sample Branch",
+      "dishonour_reason": "Insufficient funds"
     }
   },
   "recorded": {
     "v3_extract": {
       "reception": "{\"outcome\": \"read\", \"read\": [], \"conflicts\": [], \"questions\": []}",
       "extract": "{\"facts\": [{\"key\": \"applicant_name\", \"source\": \"description\", \"turn\": 0, \"quote\": \"payee Sample Person 1\", \"value\": \"Sample Person 1\", \"confidence\": 0.97}, {\"key\": \"respondent_name\", \"source\": \"description\", \"turn\": 0, \"quote\": \"drawer Sample Person 2\", \"value\": \"Sample Person 2\", \"confidence\": 0.97}, {\"key\": \"respondent_type\", \"source\": \"description\", \"turn\": 0, \"quote\": \"(an individual)\", \"value\": \"Individual\", \"confidence\": 0.95}, {\"key\": \"cheque_number\", \"source\": \"description\", \"turn\": 0, \"quote\": \"000123\", \"value\": \"000123\", \"confidence\": 0.97}, {\"key\": \"cheque_date\", \"source\": \"description\", \"turn\": 0, \"quote\": \"dated 10.07.2026\", \"value\": \"2026-07-10\", \"confidence\": 0.96}, {\"key\": \"cheque_amount\", \"source\": \"description\", \"turn\": 0, \"quote\": \"teen lakh rupees\", \"value\": 300000, \"confidence\": 0.96}, {\"key\": \"amount_in_words\", \"source\": \"description\", \"turn\": 0, \"quote\": \"teen lakh rupees\", \"value\": \"Rupees Three Lakh only\", \"confidence\": 0.96}, {\"key\": \"drawee_bank\", \"source\": \"description\", \"turn\": 0, \"quote\": \"Sample Bank\", \"value\": \"Sample Bank\", \"confidence\": 0.97}, {\"key\": \"drawee_branch\", \"source\": \"description\", \"turn\": 0, \"quote\": \"Sample Branch\", \"value\": \"Sample Branch\", \"confidence\": 0.97}, {\"key\": \"presentation_date\", \"source\": \"description\", \"turn\": 0, \"quote\": \"presented on 15.07.2026\", \"value\": \"2026-07-15\", \"confidence\": 0.96}, {\"key\": \"dishonour_date\", \"source\": \"description\", \"turn\": 0, \"quote\": \"returned unpaid on 17.07.2026\", \"value\": \"2026-07-17\", \"confidence\": 0.96}, {\"key\": \"dishonour_reason\", \"source\": \"description\", \"turn\": 0, \"quote\": \"insufficient funds\", \"value\": \"Insufficient funds\", \"confidence\": 0.97}, {\"key\": \"memo_received_date\", \"source\": \"description\", \"turn\": 0, \"quote\": \"received on 20/7/26\", \"value\": \"2026-07-20\", \"confidence\": 0.96}, {\"key\": \"notice_sent_date\", \"source\": \"description\", \"turn\": 0, \"quote\": \"sent on 23.08.2026\", \"value\": \"2026-08-23\", \"confidence\": 0.96}], \"non_answers\": [], \"unresolved\": []}",
-      "drafter": "(phase 2: the drafter's reply is recorded when intake is wired to v3)"
+      "drafter": "1. That you, Sample Person 2, issued to my client Sample Person 1 a cheque no. 000123 dated 10 July 2026 for Rs 3,00,000 drawn on Sample Bank, Sample Branch.\n\n2. That my client presented the said cheque on 15 July 2026 and it was returned unpaid on 17 July 2026 for insufficient funds.\n\n3. That this notice is sent on 23 August 2026."
     }
   }
 }

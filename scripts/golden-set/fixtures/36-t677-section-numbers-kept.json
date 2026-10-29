@@ -19,8 +19,13 @@
   "expect": {
     "ledger": [
       {
+        "key": "applicant_name",
+        "display": "Sample Person 1",
+        "why": "given"
+      },
+      {
         "key": "sections_charged",
-        "display": "303(2), 115(2), 351(3)",
+        "display": "sections 303(2), 115(2) and 351(3) of the BNS",
         "why": "T-677: numbers kept; the invented 109 is dropped"
       },
       {
@@ -33,6 +38,26 @@
         "display": "57/2026",
         "why": "given"
       }
+    ],
+    "present": [
+      {
+        "any_of": ["303(2)"],
+        "why": "T-677: the bracketed section number is kept"
+      },
+      {
+        "any_of": ["115(2)"],
+        "why": "T-677: the bracketed section number is kept"
+      },
+      {
+        "any_of": ["351(3)"],
+        "why": "T-677: the bracketed section number is kept"
+      }
+    ],
+    "absent": [
+      {
+        "any_of": ["section 109", "sections 109", "109 of the BNS"],
+        "why": "T-677: a section the user never gave is not added"
+      }
     ]
   },
   "v3_expect": {
@@ -40,13 +65,18 @@
     "unresolved": ["procedure_code"],
     "dropped": {
       "bad_value": 1
+    },
+    "values": {
+      "applicant_name": "Sample Person 1",
+      "sections_charged": "303(2), 115(2), 351(3)",
+      "fir_number": "57/2026"
     }
   },
   "recorded": {
     "v3_extract": {
       "reception": "{\"outcome\": \"read\", \"read\": [], \"conflicts\": [], \"questions\": []}",
-      "extract": "{\"facts\": [{\"key\": \"fir_number\", \"source\": \"description\", \"turn\": 0, \"quote\": \"FIR No. 57/2026\", \"value\": \"57/2026\", \"confidence\": 0.97}, {\"key\": \"sections_charged\", \"source\": \"description\", \"turn\": 0, \"quote\": \"sections 303(2), 115(2) and 351(3) of the BNS\", \"value\": [\"303(2)\", \"115(2)\", \"351(3)\"], \"confidence\": 0.97}, {\"key\": \"sections_charged\", \"source\": \"description\", \"turn\": 0, \"quote\": \"sections 303(2), 115(2) and 351(3) of the BNS\", \"value\": [\"303(2)\", \"115(2)\", \"351(3)\", \"109\"], \"confidence\": 0.97}], \"non_answers\": [], \"unresolved\": [\"procedure_code\"]}",
-      "drafter": "(phase 2: the drafter's reply is recorded when intake is wired to v3)"
+      "extract": "{\"facts\": [{\"key\": \"applicant_name\", \"source\": \"description\", \"turn\": 0, \"quote\": \"for Sample Person 1\", \"value\": \"Sample Person 1\", \"confidence\": 0.97}, {\"key\": \"fir_number\", \"source\": \"description\", \"turn\": 0, \"quote\": \"FIR No. 57/2026\", \"value\": \"57/2026\", \"confidence\": 0.97}, {\"key\": \"sections_charged\", \"source\": \"description\", \"turn\": 0, \"quote\": \"sections 303(2), 115(2) and 351(3) of the BNS\", \"value\": [\"303(2)\", \"115(2)\", \"351(3)\"], \"confidence\": 0.97}, {\"key\": \"sections_charged\", \"source\": \"description\", \"turn\": 0, \"quote\": \"sections 303(2), 115(2) and 351(3) of the BNS\", \"value\": [\"303(2)\", \"115(2)\", \"351(3)\", \"109\"], \"confidence\": 0.97}], \"non_answers\": [], \"unresolved\": [\"procedure_code\"]}",
+      "drafter": "{\"paragraphs\": [{\"clauseId\": \"opening\", \"factRefs\": [\"applicant_name\"], \"text\": \"\", \"items\": []}, {\"clauseId\": \"fir_details\", \"factRefs\": [\"fir_number\", \"sections_charged\"], \"text\": \"\", \"items\": []}]}"
     }
   }
 }
