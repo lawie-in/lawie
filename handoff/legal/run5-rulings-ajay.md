@@ -139,3 +139,9 @@ The para-2 placeholder is the `days_from_service` field label. It is **already s
 `Days from service of summons (due within 30; the court may allow up to 90 for recorded reasons; 120 is the outer limit in a commercial suit)`
 
 The court-rules file change follows `golden-snapshots.md`: snapshots are edited by hand and the diff is sent to me. I check the SHA before merge, then the merge SHA.
+
+**T-690 byte check (Ajay, 29 Oct 2026): fix/t-690-ws-limitation-line @ commit SHA c1ac9666.** I checked the config diff myself. All four strings occur byte for byte in this file (grep -F), l.224 is untouched, and only these two files changed: written_statement.json and court-rules/district_court_generic.json. The tests are added. **T-690 APPROVED at c1ac9666.** It counts as merged at the develop_staging merge SHA that contains it.
+
+**T-690b (separate, low priority):**
+- **l.7 `change_protocol`** is internal, but it misstates the rule. Signed replacement: `All edits require CLO sign-off. Para-wise denial structure and the Order VIII Rule 1 time limits (30 days; up to 90 with the court's leave; 120 days outer limit in a commercial suit) are non-negotiable.`
+- **l.308–309** (validation) **stay**: more than 30 days needs a delay application, and a commercial suit cannot exceed 120. Do **not** add a hard 90-day block for ordinary suits: the proviso's 90 days is not treated as an absolute bar there. Instead add a **warning, not a block**, when days_from_service is over 90 in a non-commercial suit. Signed text: `This written statement is more than 90 days after service of summons. The court allows that only in exceptional cases, for reasons recorded in writing; set out the reasons in the delay application.`
