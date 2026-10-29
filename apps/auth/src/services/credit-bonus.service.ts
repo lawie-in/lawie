@@ -1,35 +1,31 @@
 /**
  * Auth-side credit-bonus helper.
  *
- * Drafting service owns the canonical credit accounting (CreditLedger collection,
- * spend/grant logic), but for **bonuses fired from auth events** (daily login,
- * referral signup) we write directly to the shared Mongo collections to avoid a
- * cross-service round-trip on the login hot path.
+ * Drafting service owns the canonical credit accounting, but for **grants fired from auth
+ * events** (signup, referral signup, the develop-only test account) we write directly to the
+ * shared Mongo collections to avoid a cross-service round-trip on the sign-up path.
  *
- * The CreditLedger schema is duplicated here only to the extent of what we INSERT
- * — we do NOT register a Mongoose model for it (drafting will register the
- * canonical one). We just use `mongoose.connection.collection('creditledgers')`
- * directly.
+ * SCRUM-101: grantSignupBonus seeds 5 Ink (10 units) into inkTopup.
  *
- * SCRUM-101: grantSignupBonus also seeds 5 Ink (10 units) into inkTopup.
+ * T-652 (Ajay AJ-646-M9b and AJ-646-M9c, 28 Oct 2026): every earnedCredits accrual is stopped.
+ * The daily login bonus (+2, source `login_bonus`), the rating bonus (+1, `rating_bonus`, in
+ * drafting) and the signup earnedCredits grant (+5, `signup_bonus`) are removed. Users were
+ * never offered them, so the processing had no stated purpose (DPDP purpose limitation).
+ * Signing in grants nothing and writes no creditledger row. The only signup effect left is the
+ * advertised, spendable free Ink seed. Existing earnedCredits stay as they are: hidden,
+ * unspendable, unmentioned. Any future bonus scheme's offer and terms go to Ajay first.
  */
 import mongoose from 'mongoose';
 
 import logger from '../config/logger';
 import { User } from '../models/User.model';
 
-export const DAILY_LOGIN_BONUS = 2;
-// Free credits given to every new user on signup — change this to adjust the grant.
-// Flipped 10 → 5 per founder direction 2026-05-26 (SCRUM-100). Second 5 unlocks
-// after user submits a review (SCRUM-101).
-export const SIGNUP_BONUS_CREDITS = 5;
-
 /**
  * T-351 (Priya, on the founder's delegation, 12 Oct 2026): no free Ink until the address is
  * verified. Google sign-in counts as verified. This filter goes inside each bonus's atomic
  * findOneAndUpdate, so the eligibility check and the grant are one write: an unverified email
- * user matches nothing, gets nothing, and has no idempotency marker (signupBonusGrantedAt /
- * lastLoginBonusAt) stamped. Calling grantSignupBonus again after T-223 sets emailVerified
+ * user matches nothing, gets nothing, and has no idempotency marker (signupBonusGrantedAt)
+ * stamped. Calling grantSignupBonus again after T-223 sets emailVerified
  * then grants it exactly once (the signupBonusGrantedAt guard still applies).
  */
 const VERIFIED_FOR_BONUS = {
@@ -40,56 +36,6 @@ const VERIFIED_FOR_BONUS = {
     { googleId: { $exists: true, $nin: [null, ''] } },
   ],
 };
-
-/**
- * Grant the daily login bonus if the user hasn't received it today.
- * Returns the amount granted (0 if already claimed today, or if the user is an email user
- * whose address is not verified yet — T-351).
- */
-export async function tryGrantDailyLoginBonus(userId: string): Promise<number> {
-  if (!mongoose.Types.ObjectId.isValid(userId)) return 0;
-  const startOfToday = new Date();
-  startOfToday.setHours(0, 0, 0, 0);
-
-  // Atomic guard — only one of two simultaneous logins grants.
-  // T-351: and only for a Google or verified-email user (VERIFIED_FOR_BONUS).
-  const updated = await User.findOneAndUpdate(
-    {
-      _id: new mongoose.Types.ObjectId(userId),
-      $and: [
-        {
-          $or: [
-            { lastLoginBonusAt: { $exists: false } },
-            { lastLoginBonusAt: null },
-            { lastLoginBonusAt: { $lt: startOfToday } },
-          ],
-        },
-        VERIFIED_FOR_BONUS,
-        // T-563 (Arjun default 4): a test account never gets the daily login bonus.
-        { isTestAccount: { $ne: true } },
-      ],
-    },
-    {
-      $inc: { earnedCredits: DAILY_LOGIN_BONUS },
-      $set: { lastLoginBonusAt: new Date() },
-    },
-    { new: true },
-  ).lean();
-
-  // null → already claimed today, unverified email user (T-351), or no such user.
-  if (!updated) return 0;
-
-  await writeLedgerRow({
-    userId,
-    source: 'login_bonus',
-    bucket: 'earnedCredits',
-    amount: DAILY_LOGIN_BONUS,
-    balanceAfter: updated.earnedCredits ?? DAILY_LOGIN_BONUS,
-    reference: 'Daily login bonus',
-  });
-
-  return DAILY_LOGIN_BONUS;
-}
 
 /**
  * Grant referral Ink to a newly-signed-up user.
@@ -187,11 +133,13 @@ export async function referralInkLanded(userId: string, referralCode: string): P
 }
 
 /**
- * Grant SIGNUP_BONUS_CREDITS to a newly-registered user.
+ * Seed a newly-registered user's free Ink: 5 Ink (10 units) into inkTopup, plus one inkledger
+ * row with reason 'free_seed'. T-652 (AJ-646-M9c): no earnedCredits, no creditledger row, no
+ * drafting signal; the free Ink seed is the only effect.
  * T-351: grants nothing to an email user whose address is not verified yet; call again once
  * it is (T-223) and it grants then.
  * Idempotent — uses signupBonusGrantedAt as an atomic guard so retries,
- * double-taps, or supervisor restarts never credit the user twice.
+ * double-taps, or supervisor restarts never seed the user twice.
  * Non-fatal — never throws.
  */
 export async function grantSignupBonus(userId: string): Promise<void> {
@@ -207,25 +155,13 @@ export async function grantSignupBonus(userId: string): Promise<void> {
         VERIFIED_FOR_BONUS,
       ],
     },
-    {
-      $inc: { earnedCredits: SIGNUP_BONUS_CREDITS },
-      $set: { signupBonusGrantedAt: new Date() },
-    },
+    // T-652 (AJ-646-M9c): only the once-only marker. No earnedCredits grant.
+    { $set: { signupBonusGrantedAt: new Date() } },
     { new: true },
   ).lean();
 
-  // null → already granted, unverified email user (T-351), or user not found.
-  // Skip ledger + Ink seed + drafting signal.
+  // null → already granted, unverified email user (T-351), or user not found. Skip the Ink seed.
   if (!updated) return;
-
-  await writeLedgerRow({
-    userId,
-    source: 'signup_bonus',
-    bucket: 'earnedCredits',
-    amount: SIGNUP_BONUS_CREDITS,
-    balanceAfter: updated.earnedCredits ?? SIGNUP_BONUS_CREDITS,
-    reference: `Signup bonus (${SIGNUP_BONUS_CREDITS} free drafts)`,
-  });
 
   // Seed 5 Ink (10 units) into inkTopup — one-time free tier (SCRUM-101).
   // T-298 (Arjun, ruling c): order-independent with the referral grant, which may already have
@@ -262,55 +198,6 @@ export async function grantSignupBonus(userId: string): Promise<void> {
     } catch (err) {
       console.warn('[auth] ink seed failed:', err instanceof Error ? err.message : err);
     }
-  }
-
-  // Signal drafting service so enforceFreeLimit can consume these as bonus drafts.
-  const draftingUrl = process.env.DRAFTING_SERVICE_URL ?? 'http://localhost:4002';
-  try {
-    await fetch(`${draftingUrl}/internal/grant-bonus`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-internal-secret': process.env.INTERNAL_SECRET ?? '',
-      },
-      body: JSON.stringify({ userId, bonus: SIGNUP_BONUS_CREDITS }),
-    });
-  } catch {
-    console.warn(`[auth] failed to signal drafting signup bonus for user ${userId}`);
-  }
-}
-
-// ── Internal — minimal ledger insert ────────────────────────────────────────
-
-async function writeLedgerRow(row: {
-  userId: string;
-  source: string;
-  bucket: string;
-  amount: number;
-  balanceAfter: number;
-  reference?: string;
-  metadata?: Record<string, unknown>;
-}): Promise<void> {
-  const conn = mongoose.connection;
-  if (!conn.db) return; // not connected — bonus accounting silently degraded
-  try {
-    await conn.db.collection('creditledgers').insertOne({
-      userId: new mongoose.Types.ObjectId(row.userId),
-      source: row.source,
-      bucket: row.bucket,
-      amount: row.amount,
-      balanceAfter: row.balanceAfter,
-      reference: row.reference,
-      metadata: row.metadata,
-      createdAt: new Date(),
-    });
-  } catch (err) {
-    // Never break a login due to ledger insert failure. We'll surface this
-    // via Sentry once that's wired into auth.
-    console.warn(
-      '[auth] credit-bonus ledger insert failed:',
-      err instanceof Error ? err.message : err,
-    );
   }
 }
 

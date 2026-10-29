@@ -3,6 +3,8 @@
  *
  * Tracks referral-granted bonus drafts for a user in the drafting service.
  * Populated by POST /internal/grant-bonus (called by auth service after referral signup).
+ * T-652: only auth's referral.service.ts (signalDraftingBonus) calls it now; the signup bonus
+ * stopped sending its signal in T-652.
  *
  * `used` is incremented atomically by enforceFreeLimit each time a bonus draft is consumed.
  * A user's remaining bonus = granted - used.
@@ -13,8 +15,8 @@ import mongoose, { Document, Schema, Types } from 'mongoose';
 
 export interface IBonusCredit extends Document {
   userId: Types.ObjectId;
-  granted: number;  // total bonus drafts granted (e.g. 25 from referral)
-  used: number;     // bonus drafts already consumed
+  granted: number; // total bonus drafts granted (e.g. 25 from referral)
+  used: number; // bonus drafts already consumed
   createdAt: Date;
   updatedAt: Date;
 }

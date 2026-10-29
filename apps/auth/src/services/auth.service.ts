@@ -27,7 +27,6 @@ import {
 } from '../models/User.model';
 import { buildSignupSource, UpdateMeInput, UtmTags } from '../validators/auth.validator';
 
-import { tryGrantDailyLoginBonus } from './credit-bonus.service';
 import { generateTokenPair, verifyRefreshToken } from './jwt.service';
 import {
   releasePasswordChangeAttempt,
@@ -229,9 +228,8 @@ export async function registerUser(
 
 /**
  * T-522 — what loginUser does once the password is proved, shared so that a 'signin' verify
- * link signs in exactly the same way: token pair, session with authAt, then the daily bonus.
- * T-563: exported so the test sign-up bypass signs in the same way (the daily bonus itself
- * skips test accounts).
+ * link signs in exactly the same way: token pair, then session with authAt. No bonus (T-652).
+ * T-563: exported so the test sign-up bypass signs in the same way.
  */
 export async function startSignedInSession(
   user: IUser,
@@ -255,9 +253,7 @@ export async function startSignedInSession(
     { ...meta, authAt: new Date().toISOString() },
   );
 
-  // SCRUM-73 — daily login bonus, non-blocking on the login hot path.
-  void tryGrantDailyLoginBonus(user._id.toString());
-
+  // T-652 (Ajay AJ-646-M9b): signing in grants no bonus and writes no ledger row.
   return tokens;
 }
 
@@ -349,7 +345,7 @@ export async function loginUser(
     throw new AppError(403, DEACTIVATED_MESSAGE);
   }
 
-  // T-522: token pair, session with authAt (the password was just proved), daily bonus.
+  // T-522: token pair, session with authAt (the password was just proved).
   const tokens = await startSignedInSession(user, meta);
 
   return { user, tokens };

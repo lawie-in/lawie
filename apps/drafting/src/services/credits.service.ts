@@ -3,7 +3,8 @@
  *
  * Three buckets per user (User collection):
  *   • topupCredits        — purchased one-off, permanent until spent
- *   • earnedCredits       — login/rating bonuses, permanent
+ *   • earnedCredits       — legacy: signup/login/rating accrual stopped in T-652 (AJ-646-M9b/c);
+ *                           existing balances kept, hidden and unspendable
  *   • subscriptionCredits — monthly/yearly plan allocation, lapses on cycle
  *
  * Spend order (most-perishable last so users don't lose value):
@@ -20,7 +21,7 @@
  */
 import { settleYearlyDrip } from '@lawie/shared';
 import type { LedgerFact } from '@lawie/shared';
-import mongoose, { Types } from 'mongoose';
+import mongoose from 'mongoose';
 
 import { DOC_TYPE_ALIASES, NON_TEMPLATE_PRICES, TEMPLATE_PRICES } from '../config/catalogue';
 import { CreditBucket, CreditLedger, CreditSource } from '../models/CreditLedger.model';
@@ -1458,48 +1459,4 @@ export function startHoldSweep(intervalMs: number = INK_HOLD_SWEEP_INTERVAL_MS):
 export function stopHoldSweep(): void {
   if (sweepTimer) clearInterval(sweepTimer);
   sweepTimer = null;
-}
-
-// ── Daily login bonus + rating bonus helpers ───────────────────────────────
-
-export const DAILY_LOGIN_BONUS = 2;
-export const RATING_BONUS_PER_DRAFT = 1;
-
-/**
- * Grant the daily login bonus if the user hasn't received it today (IST).
- * Returns the amount granted (0 if already claimed today).
- *
- * Called from the auth service /login + /refresh handlers. We use a single
- * atomic findOneAndUpdate guard with $lt on lastLoginBonusAt so simultaneous
- * logins from two devices grant only once.
- */
-export async function tryGrantDailyLoginBonus(userId: string): Promise<number> {
-  if (!mongoose.Types.ObjectId.isValid(userId)) return 0;
-  const startOfToday = new Date();
-  startOfToday.setHours(0, 0, 0, 0);
-
-  const updated = await User.findOneAndUpdate(
-    {
-      _id: new Types.ObjectId(userId),
-      $or: [{ lastLoginBonusAt: null }, { lastLoginBonusAt: { $lt: startOfToday } }],
-    },
-    {
-      $inc: { earnedCredits: DAILY_LOGIN_BONUS },
-      $set: { lastLoginBonusAt: new Date() },
-    },
-    { new: true },
-  ).lean();
-
-  if (!updated) return 0;
-
-  await CreditLedger.create({
-    userId: new Types.ObjectId(userId),
-    source: 'login_bonus',
-    bucket: 'earnedCredits',
-    amount: DAILY_LOGIN_BONUS,
-    balanceAfter: updated.earnedCredits ?? DAILY_LOGIN_BONUS,
-    reference: 'Daily login bonus',
-  });
-
-  return DAILY_LOGIN_BONUS;
 }
