@@ -90,6 +90,60 @@ export function isEmptyOrNonAnswer(value: unknown): boolean {
 }
 
 /**
+ * AJ-668-M5, M5b, M5c, M5d: what may follow a §(j)3 non-answer at the start
+ * of a party name: optional whitespace, then an opening bracket, a comma, a
+ * semicolon or a colon; or (M5d) a full stop that ends the value or is
+ * followed by whitespace and then a non-letter (any script: `\p{L}`), so
+ * `nil.` and `nil. (see below)` block while `Na. Muthukumar` stays a name; or
+ * (M5c) whitespace and then a hyphen or an en dash, so `Na-Young Kim` and
+ * `Nil-Kanth` stay names while `N/A - to be traced` blocks. A bare `-` is a
+ * non-answer by equality. A space then a word does not count (M5b replaces
+ * M5's "space"), so `Not Known Traders` stays a name.
+ */
+const NON_ANSWER_TAIL = /^(\s*[(,;:]|\s*\.(?:$|\s+[^\p{L}\s])|\s+[-–])/u;
+
+/**
+ * AJ-668-M5, M5b (handoff/legal/T-511-copy-rulings-ajay.md), party-name fields
+ * only: true when isEmptyOrNonAnswer is, or when the value (trimmed,
+ * case-insensitive) begins with a non-answer from O39_NON_ANSWERS followed by
+ * NON_ANSWER_TAIL. Never inside a word: `Nilesh` is not `nil`, `Nagendra` is
+ * not `NA`, `Unknownia` is not `unknown`. A list is a non-answer when every
+ * entry is.
+ */
+export function isPartyNonAnswer(value: unknown): boolean {
+  if (Array.isArray(value)) return value.every(isPartyNonAnswer);
+  if (isEmptyOrNonAnswer(value)) return true;
+  if (typeof value !== 'string') return false;
+  const folded = fold(value);
+  for (const answer of NON_ANSWERS) {
+    if (folded.startsWith(answer) && NON_ANSWER_TAIL.test(folded.slice(answer.length))) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * AJ-668-M5, M5b: the party-name keys among the guarded fields. The ledger
+ * (ledgerGivenKeys) reads these with isPartyNonAnswer, pack-neutral per
+ * AJ-655-M1; the other guarded keys keep isEmptyOrNonAnswer.
+ */
+export function isPartyNameGuardedField(key: string): boolean {
+  return key === 'plaintiff_name' || key === 'defendant_name';
+}
+
+/**
+ * AJ-668-M5a (LEGAL CONTENT, Ajay): signed confirm lines for one generic
+ * brief field, keyed by its item key (FIXED_KEYS.otherParty in intake-brief.ts).
+ * Its label starts with "The", and the T-127 line would end "addressed to to
+ * continue", so this field has its own signed line. EN only, as signed.
+ */
+export const GENERIC_PARTY_LINE_OVERRIDES: Readonly<Record<string, string>> = {
+  'fixed.other_party':
+    'Add the name of the person or authority this is against or addressed to, to continue.',
+};
+
+/**
  * Pack-neutral, key only: true for a field id on the O.39 list, in any pack.
  * AJ-655-M1 (T-655, handoff/legal/T-511-copy-rulings-ajay.md): "A non-answer is no fact on every path and in every pack (FR-9, M3)."
  * The fact ledger (ledgerGivenKeys) uses this so that a non-answer on one of
@@ -137,12 +191,17 @@ export function isNonAnswerPartyPack(packId: string | null): boolean {
 
 /**
  * The required fields still empty (or a non-answer), in §(j)2 order, each
- * with its signed EN message. `values` is keyed by field id.
+ * with its signed EN message. `values` is keyed by field id. AJ-668-M5e: the
+ * party names (plaintiff_name, defendant_name) use isPartyNonAnswer, so a
+ * non-answer with a tail blocks; main_suit_relief and restraint_sought keep
+ * the exact isEmptyOrNonAnswer.
  */
 export function requiredFieldBlockers(
   values: Readonly<Record<string, unknown>>,
 ): Array<{ key: O39RequiredField; en: string }> {
-  return O39_REQUIRED_FIELDS.filter((key) => isEmptyOrNonAnswer(values[key])).map((key) => ({
+  return O39_REQUIRED_FIELDS.filter((key) =>
+    (isPartyNameGuardedField(key) ? isPartyNonAnswer : isEmptyOrNonAnswer)(values[key]),
+  ).map((key) => ({
     key,
     en: O39_CONFIRM_MESSAGES[key].en,
   }));
