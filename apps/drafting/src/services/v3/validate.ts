@@ -42,7 +42,7 @@ import { CUSTODY_SINCE_DERIVED_KEY } from '../custody-since-derivation';
 import { factTypeFor, isLedgerItem, locateSpan } from '../fact-ledger.service';
 import type { ChecklistItem } from '../intake-brief';
 import { isNoFactAnswer } from '../intake-brief';
-import { stripStationMarkerOnce } from '../police-station-name';
+import { policeStationName, stripStationMarkerOnce } from '../police-station-name';
 
 import type { ExtractResult, LedgerCandidate, LedgerCandidateType, NonAnswer } from './types';
 
@@ -378,6 +378,68 @@ function readValue(
   }
 }
 
+// ── How a value was produced (Arjun §9a, cd426386) ──────────────────────────
+//
+// Internal provenance for the stage-1 bridge (v2-bridge.ts), never logged and
+// not part of LedgerCandidate (Arjun's interface; T-682 adopts it):
+//   verbatim     the value stands in the quote as the user wrote it;
+//   signed_rule  code produced it from the quote by a signed rule: yes/no
+//                from the signed words, a date or amount read by code, the
+//                police station per T-612 (6a), a choice whose label is in the quote;
+//   model_text   anything else (e.g. Hinglish prose rendered into English).
+// The bridge writes the first two into the v2 ledger, never the third.
+
+export type Derivation = 'verbatim' | 'signed_rule' | 'model_text';
+
+const derivations = new WeakMap<LedgerCandidate, Derivation>();
+
+/** How code produced this candidate's value; model_text for a candidate validate did not make. */
+export function derivationOf(c: LedgerCandidate): Derivation {
+  return derivations.get(c) ?? 'model_text';
+}
+
+/** The value stands in the quote (NFC, whitespace and case folded). */
+function inQuote(value: string, quote: string): boolean {
+  const v = fold(value);
+  return v !== '' && fold(quote).includes(v);
+}
+
+/**
+ * T-612 (6a)/(6b) on the quote: the station table applied as the ledger stores
+ * it, with a kept leading थाना read as "Thana" ((6a): "थाना कोतवाली" keeps the
+ * marker as part of the name). True when that gives the value.
+ */
+function stationBySignedRule(value: string, quote: string): boolean {
+  const bare = policeStationName(quote).replace(/^थाना(?=\s)/u, 'Thana');
+  return fold(bare) === fold(value);
+}
+
+function derivationFor(
+  spec: FieldSpec,
+  value: LedgerCandidate['value'],
+  quote: string,
+): Derivation {
+  switch (spec.type) {
+    case 'date':
+    case 'money':
+    case 'choice':
+      // readDate/readMoney read the quote by code; readYesNo/readChoice need the
+      // signed yes/no words or the option's label in the quote.
+      return 'signed_rule';
+    case 'list':
+      if (spec.item.kind === 'choices') return 'signed_rule';
+      return Array.isArray(value) && value.every((v) => inQuote(v, quote))
+        ? 'verbatim'
+        : 'model_text';
+    case 'name':
+      if (typeof value !== 'string') return 'model_text';
+      if (inQuote(value, quote)) return 'verbatim';
+      return spec.policeStation && stationBySignedRule(value, quote) ? 'signed_rule' : 'model_text';
+    default:
+      return inQuote(String(value), quote) ? 'verbatim' : 'model_text';
+  }
+}
+
 // ── The answer ──────────────────────────────────────────────────────────────
 
 type Obj = Record<string, unknown>;
@@ -510,13 +572,15 @@ export function validateExtraction(parsed: unknown, ctx: ValidateContext): Valid
       unresolved.add(spec.item.key);
       continue;
     }
-    valid.push({
+    const candidate: LedgerCandidate = {
       key: spec.item.key,
       value,
       type: spec.type,
       source: { kind: src.kind, turn: src.turn, quote },
       confidence: c,
-    });
+    };
+    derivations.set(candidate, derivationFor(spec, value, quote));
+    valid.push(candidate);
   }
 
   // Non-answers the model named: only what code also reads as one.
