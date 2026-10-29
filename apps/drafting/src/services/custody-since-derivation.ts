@@ -194,6 +194,38 @@ function isComputedHere(f: LedgerFact): boolean {
   );
 }
 
+/**
+ * T-665b (Ajay, 29 Oct 2026, 6cac06e3, in the T-612 file): an unresolved
+ * custody_since entry whose WHOLE span is one of these back-references to the
+ * arrest counts as neither held (B5) nor another custody date (B1), so R1
+ * derives from the arrest date. Closed list: nothing else, no prefix or
+ * suffix match. Legal content: do not change without his sign-off.
+ */
+export const CUSTODY_SINCE_BACK_REFERENCES: readonly string[] = [
+  'since then',
+  'since that date',
+  'since that day',
+  'from then',
+  'since the arrest',
+  'since arrest',
+  'tab se',
+  'तब से',
+  'usi din se',
+  'उसी दिन से',
+];
+
+const BACK_REFERENCE_SET: ReadonlySet<string> = new Set(CUSTODY_SINCE_BACK_REFERENCES.map(fold));
+
+/**
+ * True when the whole span, after trimming whitespace and end punctuation and
+ * folding case, is exactly one of `CUSTODY_SINCE_BACK_REFERENCES`.
+ */
+export function isCustodySinceBackReference(span: string | null | undefined): boolean {
+  if (typeof span !== 'string') return false;
+  const whole = fold(span.replace(/^[\s\p{P}]+|[\s\p{P}]+$/gu, ''));
+  return whole !== '' && BACK_REFERENCE_SET.has(whole);
+}
+
 /** The arrest_date facts generation derives from: type date, string value. */
 function arrestDateFacts(facts: readonly LedgerFact[]): LedgerFact[] {
   return facts.filter(
@@ -233,6 +265,10 @@ export function ledgerCustodyInputs(
   unresolved: ReadonlyArray<Pick<LedgerUnresolvedFact, 'key' | 'raw_span'>> = [],
 ): LedgerCustodyInputs {
   const stored = facts.filter((f) => !isComputedHere(f));
+  // T-665b: an unresolved custody_since that only refers back to the arrest is no custody date.
+  const custodyUnresolved = unresolved.filter(
+    (u) => !(lastSegment(u.key) === CUSTODY_SINCE_KEY && isCustodySinceBackReference(u.raw_span)),
+  );
   return {
     texts: [
       ...stored.flatMap((f) => [f.raw_span ?? '', typeof f.display === 'string' ? f.display : '']),
@@ -243,7 +279,7 @@ export function ledgerCustodyInputs(
         (f) =>
           lastSegment(f.key) !== CUSTODY_SINCE_KEY &&
           CUSTODY_OR_REMAND_DATE_KEYS.has(lastSegment(f.key)),
-      ) || unresolved.some((u) => CUSTODY_OR_REMAND_DATE_KEYS.has(lastSegment(u.key))),
+      ) || custodyUnresolved.some((u) => CUSTODY_OR_REMAND_DATE_KEYS.has(lastSegment(u.key))),
     custodySinceHeld: stored.some((f) => lastSegment(f.key) === CUSTODY_SINCE_KEY),
     arrestDates: arrestDateFacts(stored).map((f) => String(f.value)),
     arrestDateHeld:
@@ -253,6 +289,42 @@ export function ledgerCustodyInputs(
       .filter((f) => lastSegment(f.key) === CUSTODY_CHOICE_KEY)
       .flatMap((f) => [f.value, f.display]),
   };
+}
+
+/**
+ * R1 on a ledger: the one decision generation (`withCustodySinceDerived`) and
+ * the ledger view (fact-ledger.service.ts `ledgerView`, T-665b) both read.
+ * Computed facts this module makes are left out.
+ */
+function ledgerDerivation(
+  facts: readonly LedgerFact[],
+  unresolved: ReadonlyArray<Pick<LedgerUnresolvedFact, 'key' | 'raw_span'>>,
+  packId: string,
+  described: string | null | undefined,
+): CustodySinceDerivation {
+  const ledger = ledgerCustodyInputs(facts, unresolved);
+  return deriveCustodySince({
+    packId,
+    custody: ledger.custodyAnswer,
+    arrestDates: ledger.arrestDates,
+    custodySinceHeld: ledger.custodySinceHeld,
+    otherCustodyDate: ledger.otherCustodyDate,
+    texts: [described ?? '', ...ledger.texts],
+  });
+}
+
+/**
+ * T-665b (Ajay, 2e119150): true when R1 derives custody_since for this ledger,
+ * by the same decision as generation. Without `described`, only the ledger's
+ * own wording is scanned for B1.
+ */
+export function custodySinceDerivesFromLedger(
+  facts: readonly LedgerFact[],
+  unresolved: ReadonlyArray<Pick<LedgerUnresolvedFact, 'key' | 'raw_span'>>,
+  packId: string,
+  described?: string | null,
+): boolean {
+  return 'derived' in ledgerDerivation(facts, unresolved, packId, described);
 }
 
 /**
@@ -273,15 +345,7 @@ export function withCustodySinceDerived(
   const stored = facts.filter((f) => !isComputedHere(f));
   // The first arrest fact gives the display text only; the rule reads ledgerCustodyInputs.
   const arrestFacts = arrestDateFacts(stored);
-  const ledger = ledgerCustodyInputs(stored, unresolved);
-  const result = deriveCustodySince({
-    packId,
-    custody: ledger.custodyAnswer,
-    arrestDates: ledger.arrestDates,
-    custodySinceHeld: ledger.custodySinceHeld,
-    otherCustodyDate: ledger.otherCustodyDate,
-    texts: [described ?? '', ...ledger.texts],
-  });
+  const result = ledgerDerivation(stored, unresolved, packId, described);
   if (!('derived' in result)) return stored;
   const arrest = arrestFacts[0];
   return [

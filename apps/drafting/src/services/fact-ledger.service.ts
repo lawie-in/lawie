@@ -48,6 +48,12 @@ import { FactLedgerModel, IFactLedger, IFactLedgerVersion } from '../models/Fact
 import { decrypt, encrypt } from '../utils/encryption';
 
 import {
+  CUSTODY_SINCE_KEY,
+  CUSTODY_SINCE_PACK_ID,
+  custodySinceDerivesFromLedger,
+  isCustodySinceBackReference,
+} from './custody-since-derivation';
+import {
   BriefItem,
   ChecklistItem,
   dateKindLabel,
@@ -847,6 +853,30 @@ function sameEntries(a: LedgerFact[], b: LedgerFact[]): boolean {
  * an edit of an earlier value. For a key with several entries (T-189) every
  * entry carries the earlier entries' displays, comma-joined.
  */
+/**
+ * T-665b (Ajay, 2e119150): the unresolved entries the brief is shown. Read-time
+ * display view only: the stored entry is never deleted, changed or resealed.
+ * On a regular bail, an unresolved custody_since whose whole span is a signed
+ * back-reference to the arrest ("since then", ...) is left out of a COPY when
+ * R1 derives for this ledger (the same decision as generation), so the row
+ * shows the derived date instead of "To be asked". Otherwise the stored array
+ * is returned as it is. Known limit: the description is not stored, so a B1
+ * word only in the description is not seen here; the brief and generation
+ * still refuse and B2 is still asked (ask_when_empty). Display only.
+ */
+function viewUnresolved(
+  packId: string,
+  facts: readonly LedgerFact[],
+  unresolved: LedgerUnresolvedFact[],
+): LedgerUnresolvedFact[] {
+  if (packId !== CUSTODY_SINCE_PACK_ID) return unresolved;
+  const backReference = (u: LedgerUnresolvedFact): boolean =>
+    lastSegment(u.key) === CUSTODY_SINCE_KEY && isCustodySinceBackReference(u.raw_span);
+  if (!unresolved.some(backReference)) return unresolved;
+  if (!custodySinceDerivesFromLedger(facts, unresolved, packId)) return unresolved;
+  return unresolved.filter((u) => !backReference(u));
+}
+
 export function ledgerView(
   doc: Pick<IFactLedger, 'id' | 'runType' | 'documentKind' | 'versions'>,
   checklist: ChecklistItem[],
@@ -874,7 +904,7 @@ export function ledgerView(
     run_type: doc.runType,
     document_kind: doc.documentKind,
     facts,
-    unresolved: currentOpen.unresolved,
+    unresolved: viewUnresolved(doc.documentKind, currentOpen.facts, currentOpen.unresolved),
     fields: Object.fromEntries(checklist.filter(isLedgerItem).map((i) => [i.key, factTypeFor(i)])),
   };
 }
