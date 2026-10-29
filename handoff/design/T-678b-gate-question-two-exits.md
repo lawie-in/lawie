@@ -17,12 +17,12 @@ Row `actions` (the intake class: row from 640px, column-reverse below), under th
 
 | | Control | Label | Behaviour |
 |---|---|---|---|
-| Primary (right, last in DOM) | `ui/Button` primary | `Yes, it is the <label A>` (T678-4, `<label A>` filled, never truncated) | Records the value as user-confirmed for label A and re-runs; the button shows the spinner and both controls go inert; the folio then moves to the `Writing your {document}…` state with the inkwell as today. |
+| Primary (right, last in DOM) | `ui/Button` primary | `Yes, it is the <label A>` (T678-4, `<label A>` filled, never truncated) | Records the value as user-confirmed for label A and re-runs (no new charge, no cost line); the button shows the spinner and both controls go inert; the folio then moves to the `Writing your {document}…` state with the inkwell as today. |
 | Secondary (left, first in DOM) | `ui/Button` ghost (upgraded from the text link so the two choices read as peers) | `Back to the brief` | As today. |
 
 Label rules: the primary's text may wrap to two lines (`white-space: normal`, `text-align: center`, 12px vertical padding, min height 48); the ghost keeps one line. Both are full width below 640. The primary carries `aria-describedby={questionId}`.
 
-Ink: the re-run takes Ink only on delivery (T678-4). If Arjun rules the re-run is a *new* charge, the `InkCostLine` sits under the primary exactly as under `Try again` (T-388: the button waits for a known cost); if it is the same hold, no cost line. The build asks Arjun; the layout has the slot either way.
+Ink (Arjun, 29 Oct): the re-run is not a new charge: one re-run per withheld run, Ink hold 0, Ink taken only on delivery as before. So there is **no cost line under the primary** and nothing under it at all; the button never says or implies "free". The primary does not wait on a cost state (it is never blocked the way `Try again` is).
 
 ## 3. States
 
@@ -44,3 +44,4 @@ Folio full width with the 16px gutter; icon and heading on one row; buttons stac
 4. Confirming sets both controls inert, shows the spinner, and the screen proceeds to the writing state; a failure goes to the error branch.
 5. Tab order: ghost, then primary; Enter on the focused heading does nothing.
 6. Contrast of Brass icon on the folio is decorative (`aria-hidden`); text pairs are the existing tokens.
+7. Nothing under or beside the primary mentions Ink or cost; the word "free" does not appear on the gate.
