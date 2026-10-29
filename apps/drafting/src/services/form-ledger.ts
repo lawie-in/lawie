@@ -15,7 +15,10 @@
  */
 import type { LedgerFact, LedgerUnresolvedFact } from '@lawie/shared';
 
-import { O39_REQUIRED_FIELDS, requiredFieldBlockers } from '../config/intake/o39-confirm-messages';
+import {
+  O39_REQUIRED_FIELDS,
+  requiredFieldBlockers,
+} from '../config/intake/signed-confirm-messages';
 
 import {
   applyEdit,
@@ -298,7 +301,7 @@ function requiredFieldView(formData: Readonly<Record<string, unknown>>): Record<
  * the plan check, before validateFormData (FR-5: an empty answer gets the
  * signed lines too) and before any Ink hold. The form field ids are the pack
  * keys (the promoted O.39 form keeps them; no alias renames them). The text
- * comes only from o39-confirm-messages.ts. Every other template: null.
+ * comes only from signed-confirm-messages.ts. Every other template: null.
  */
 export function formRequiredFieldBlock(
   templateId: string,

@@ -23,7 +23,7 @@ import { Generation } from '../models/Generation.model';
 import { User } from '../models/User.model';
 import { createVerifiedUser } from './verifiedUser';
 import { _clearAppSettingsCache } from '../services/app-settings.service';
-import { O39_CONFIRM_MESSAGES } from '../config/intake/o39-confirm-messages';
+import { O39_CONFIRM_MESSAGES } from '../config/intake/signed-confirm-messages';
 import { formRequiredFieldBlock } from '../services/form-ledger';
 import {
   buildBrief,
