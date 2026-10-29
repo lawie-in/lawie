@@ -1,6 +1,6 @@
 # T-668 — A typed "Not known" party blocks the brief in plaint packs too
 
-Status: assigned to vishal, 29 Oct 2026. Ajay confirms the scope against AJ-655-M1 before build.
+Status: building (vishal), 29 Oct 2026. PRIORITY: the replication/WS form route is live on prod since v1.2.2 (no flag). Ajay AJ-668-M1..M4a: 0 prod generations, so no exposure and no notice. Form route moved in (M2/M3). Follow-up: T-671.
 
 ## Why
 T-655 makes a ledger "Not known" block. In the plaint packs, a "Not known" plaintiff or defendant that the user types into the brief text does not block confirm. AJ-655-M1 says every path.
