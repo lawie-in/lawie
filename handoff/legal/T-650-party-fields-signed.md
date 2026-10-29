@@ -48,3 +48,5 @@ No other text, field or order change (C3). The tests use the placeholders `Test 
 
 - (3h) The interim generic brief line `Add the name of the defendant no. 1 to continue.` is accepted for T-650. T-661 replaces it with this signed line. EN: `Add the name of Defendant No. 1 to continue.` HI: `आगे बढ़ने के लिए प्रतिवादी संख्या 1 का नाम जोड़िए।`
 - (3i) The t629 exception for exactly `plaint_partition#other_defendants` is accepted. T-661 removes it.
+
+- (3j) T-661 scope (Priya, 29 Oct 2026): the generic "<label> is required" on the form route, and the generic T-127 brief line for replication and written_statement, are acceptable. They name a signed field label, assert nothing about the law and block generation. No signed form-route lines are needed. Matching M1 for consistency is a UX call (Priya), not a legal requirement.
