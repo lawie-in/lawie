@@ -274,3 +274,10 @@ JSON: `handoff/ops/runbooks/lawie-prod-ops-v10.json`, built from v9. Plans: `bil
 - Then `pm2 restart lawie-drafting`, the 4002 health gate (10×3 s, exit 5 if not 200) and a `df -h /` line.
 
 Note for billing step 3: pm2 keeps the old env across a plain `restart`. After `env-set`, use the existing `action=restart service=lawie-billing` (then `lawie-email-worker`), which runs `pm2 reload ecosystem.config.js --only <svc> --update-env`.
+
+### SSM version 11: PREPARED, not applied (29 Oct 2026, 09:00 UTC, Nikhil)
+JSON: `handoff/ops/runbooks/lawie-prod-ops-v11.json`, built from v10 (v10 is itself not applied yet; both are applied on the v1.2.2 go). Plan: `release-v1.2.2-2026-10-29.md` §3. Only change vs v10: the new action `backfill-free-seed`, which takes no params.
+- Runs as ubuntu with the env loaded like deploy: `yarn -s workspace @lawie/auth backfill:free-seed --dry-run --cutoff 2026-10-25T22:00:00Z --ids-out /home/ubuntu/.lawie/backfill-ids.tsv`. There is no `--apply` anywhere in the document.
+- The dir is 0700; the script creates the ids file 0600 with `wx`, so a leftover file would make the run fail. The action therefore removes any old file before the run and always removes the new one after, whatever the exit code. The ids never leave the box.
+- The script prints counts only (its header says no ids or PII on stdout/stderr).
+- `print_ids` is not added: the T-657 script has no `--print-ids` option (checked on `release/v1.2.2`). If Ajay needs ids, that is a script change first, then a new version.
