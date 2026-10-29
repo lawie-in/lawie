@@ -59,6 +59,7 @@ import {
   resolveCourtLabel,
   resolveCourtLabels,
 } from '../services/court-label.service';
+import { courtUnavailableBody, resolveFormCourt } from '../services/court-resolve.service';
 import {
   costForTemplate,
   DraftQuote,
@@ -1084,6 +1085,32 @@ router.post(
     res.setHeader('X-Run-Sequence', String(runSequence));
     const startedAt = Date.now();
 
+    // T-686: a picked court id that does not resolve (inactive, not found, or
+    // the lookup timed out twice) stops the run here: before the Ink hold and
+    // any model call, so no raw id reaches a draft and no Ink is taken. A typed
+    // court name or an empty court goes on as before. Ids only in the log.
+    const formCourt = await resolveFormCourt(form_data.court_name);
+    if (formCourt.status === 'unavailable') {
+      console.error(
+        `[drafting] court unavailable (courtId=${String(form_data.court_name)}, reason=${formCourt.reason}, kind=${template_id}, runId=${runId})`,
+      );
+      await recordGeneration({
+        userId: payload.sub,
+        docType: TEMPLATE_TO_DOC_TYPE[template_id] || DOC_TYPES.PETITION,
+        status: 'failed',
+        templateId: template_id,
+        intakeId: intake_id,
+        usage: { inputTokens: 0, outputTokens: 0, llmCalls: 0, usageSource: 'provider' },
+        paragraphCount: 0,
+        durationMs: Date.now() - startedAt,
+        runId,
+        runSequence,
+        runType,
+      });
+      res.status(503).json(courtUnavailableBody(runId));
+      return;
+    }
+
     // T-226: hold the cost before any model call (402/409 refusals as JSON;
     // no header has been sent yet). Every ending below closes the hold.
     // The pre-stream 500 body below: the error code only (Ajay, T-567), never a
@@ -1106,6 +1133,8 @@ router.post(
             runSequence,
             runType,
             gate,
+            // T-686: the court is looked up once, above.
+            ...(formCourt.status === 'resolved' ? { resolvedCourt: formCourt.court } : {}),
           },
           res,
         );
@@ -2587,9 +2616,26 @@ router.post(
     // brief path saves its court id only in doc.courtName (its formInputs hold
     // only the party inputs and court labels, T-381); the template path saves it in both. No court found means
     // no courtData, and the pack keeps its court-rules designation.
+    // T-686: an id-shaped court that does not resolve (inactive, not found, or
+    // the lookup timed out twice) fails closed, as the form route does: no raw
+    // id is printed. A typed court name is looked up as before; no court keeps
+    // the court rules.
     let courtData: CourtLookupData | undefined;
     const courtId = String(doc.courtName || formData.court_name || '').trim();
-    if (courtId) {
+    const packCourt = await resolveFormCourt(courtId);
+    if (packCourt.status === 'unavailable') {
+      const kind = String(formData.template_id || doc.docType || '');
+      const docRunId = doc.runId ? String(doc.runId) : null;
+      console.error(
+        `[drafting] court unavailable (courtId=${courtId}, reason=${packCourt.reason}, kind=${kind}, runId=${docRunId ?? 'none'})`,
+      );
+      res.status(503).json(courtUnavailableBody(docRunId));
+      return;
+    }
+    if (packCourt.status === 'resolved') courtData = packCourt.court;
+    if (packCourt.status === 'typed') {
+      // Not id-shaped: looked up as before (an active row is used; none, or a
+      // lookup error, keeps the court rules).
       try {
         const found = await Court.findOne({ courtId, isActive: true }).maxTimeMS(5000).lean();
         if (found) {

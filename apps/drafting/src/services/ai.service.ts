@@ -1172,6 +1172,11 @@ export interface TemplateGenerateInput {
    * runs on this route (Ajay FR-2), whatever `feature.fact_ledger` says.
    */
   gate?: { pack: RulePack; lists: AvermentLists };
+  /**
+   * T-686: the form's court, already resolved by the route (court-resolve.service)
+   * before the Ink hold, so the court is looked up once. Absent: looked up here.
+   */
+  resolvedCourt?: CourtLookupData;
 }
 
 /**
@@ -1253,9 +1258,10 @@ export async function streamGenerateFromTemplate(
   }
 
   // ── Look up court data from DB (SCRUM-50) ─────────────────────────────────
-  let courtData: CourtLookupData | undefined;
+  // T-686: a court the route already resolved is not looked up again.
+  let courtData: CourtLookupData | undefined = input.resolvedCourt;
   const courtId = String(convertedFormData.court_name ?? '');
-  if (courtId) {
+  if (courtId && !courtData) {
     try {
       const court = await Court.findOne({ courtId, isActive: true }).maxTimeMS(5000).lean();
       if (court) {

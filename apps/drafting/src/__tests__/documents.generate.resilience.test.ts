@@ -14,6 +14,7 @@ import app from '../app';
 import { AppSetting } from '../models/AppSetting.model';
 import { Generation } from '../models/Generation.model';
 import { User } from '../models/User.model';
+import { seedCourts } from './seedCourts';
 import { createVerifiedUser } from './verifiedUser';
 import { recordGeneration } from '../routes/documents.routes';
 import { _clearAppSettingsCache } from '../services/app-settings.service';
@@ -60,6 +61,9 @@ afterEach(() => {
   mockMessagesStream.mockReset();
   jest.restoreAllMocks();
 });
+
+// T-686: an id-shaped court with no active row stops the run, so the court is seeded.
+seedCourts('test_court');
 
 describe('recordGeneration — duplicate (runId, runSequence)', () => {
   it('returns duplicate: true instead of throwing when another request already recorded this attempt', async () => {
