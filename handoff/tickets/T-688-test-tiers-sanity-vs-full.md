@@ -7,7 +7,7 @@ Priority: P1 (process). Owner: Arjun picks the tiers; a lead builds it after tha
 The founder wanted basic sanity tests. Drafting now has 319 test files and about 18,500 cases, because every ticket added its own tNNN file. A full local run takes about 35 minutes and CI takes about 20 more, so each merge costs about an hour and the queue is serial.
 
 ## Acceptance criteria
-1. A **sanity** tier runs in CI on every push to develop_staging and finishes in under 5 minutes per workspace. It holds:
+1. A **sanity** tier runs in CI on every push to develop_staging and finishes in **under 5 minutes total, across all workspaces combined** (founder, 29 Oct 2026). This is a hard cap. It holds:
    - one smoke test per route;
    - the court-rules snapshots;
    - Ink, billing and auth;
