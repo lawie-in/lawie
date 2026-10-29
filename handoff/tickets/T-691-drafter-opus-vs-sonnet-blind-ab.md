@@ -22,3 +22,8 @@ Switch a pack to Opus only if Anushka's blind score improves by one severity cla
 
 ## Depends on
 T-684 (per-role model settings) merged; T-686 merged (slot).
+
+## Ajay (29 Oct 2026, handoff/legal/T-691-ab-matters-and-rubric-ajay.md, 4b613f3b)
+- Matters: golden 23 (regular bail) and 24 (anticipatory bail). NEW fictional fixtures for O.39 and s.528 BNSS quashing; Ajay signs their facts. Spare: 26 (certiorari).
+- Rubric confirmed. Blockers also include: a wrong or invented citation, a repealed code alone, an invented fact, changed signed text, a wrong court.
+- Arjun holds the A/B key. Ajay checks citations separately before the key is opened.
