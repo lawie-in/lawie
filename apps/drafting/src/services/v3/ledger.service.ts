@@ -57,6 +57,7 @@ import {
   isLedgerItem,
   isMultiItem,
   LEDGER_DETAILS,
+  normalizeForItem,
   type LedgerEdit,
   type LedgerEditResult,
   LedgerFullError,
@@ -71,6 +72,7 @@ import { loadRulePack } from '../rule-pack.service';
 
 import { fromV2, fromV2Fact, fromV2Unresolved, toV2Fact, toV2Unresolved } from './from-v2';
 import type {
+  ConflictCandidate,
   DropCount,
   DropReason,
   ExtractResult,
@@ -114,6 +116,8 @@ export async function isLedgerV3On(): Promise<boolean> {
 export const LEDGER_V3_MAX_VERSIONS = 100;
 /** The largest sealed version accepted (Arjun Q9): never a silent Mongo 16 MB failure. */
 export const LEDGER_V3_MAX_SEALED_BYTES = 2 * 1024 * 1024;
+/** The sealed versions of one ledger together (Mongo's document limit is 16 MB). */
+export const LEDGER_V3_MAX_DOC_SEALED_BYTES = 12 * 1024 * 1024;
 /** A quote's longest length (T-683). A narrative item's words are its value, so its quote may be longer (v2 SPAN_MAX). */
 export const QUOTE_MAX = 200;
 
@@ -130,6 +134,14 @@ export class LedgerVersionTooLargeError extends Error {
   constructor() {
     super('ledger version is too large');
     this.name = 'LedgerVersionTooLargeError';
+  }
+}
+
+/** A sealed version that does not decrypt to a ledger state. Fixed message, no content. */
+export class LedgerSealedUnreadableError extends Error {
+  constructor() {
+    super('sealed ledger version is unreadable');
+    this.name = 'LedgerSealedUnreadableError';
   }
 }
 
@@ -182,13 +194,19 @@ function seal(state: LedgerSealedState): string {
 
 function unseal(v: Pick<IFactLedgerV3Version, 'sealed'> | undefined): LedgerSealedState {
   if (!v) return { entries: [], nonAnswers: [] };
-  const parsed: unknown = JSON.parse(decrypt(v.sealed));
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(decrypt(v.sealed));
+  } catch {
+    // Fixed text only: a parse error message could carry a snippet of the plaintext.
+    throw new LedgerSealedUnreadableError();
+  }
   const ok =
     typeof parsed === 'object' &&
     parsed !== null &&
     Array.isArray((parsed as LedgerSealedState).entries) &&
     Array.isArray((parsed as LedgerSealedState).nonAnswers);
-  if (!ok) throw new Error('sealed does not hold a ledger state');
+  if (!ok) throw new LedgerSealedUnreadableError();
   const s = parsed as LedgerSealedState;
   return { entries: [...s.entries], nonAnswers: [...s.nonAnswers] };
 }
@@ -311,6 +329,11 @@ async function append(
     changedKeys: changedKeys(before, after),
     sealed: seal(after),
   };
+  // Q9 / review: the whole document's sealed size, checked before the write (typed, nothing stored).
+  const total =
+    doc.versions.reduce((n, v) => n + Buffer.byteLength(v.sealed, 'utf8'), 0) +
+    Buffer.byteLength(version.sealed, 'utf8');
+  if (total > LEDGER_V3_MAX_DOC_SEALED_BYTES) throw new LedgerVersionTooLargeError();
   const updated = await FactLedgerV3Model.findOneAndUpdate(
     { _id: doc._id, userId: doc.userId, currentVersion: expected },
     { $push: { versions: version }, $set: { currentVersion: next } },
@@ -543,6 +566,13 @@ export async function createLedger(args: {
   reason?: Extract<LedgerVersionReason, 'extract' | 'import_v2' | 'kind_change'>;
   importedFrom?: string;
 }): Promise<LedgerSnapshot> {
+  if (
+    typeof args.runId !== 'string' ||
+    args.runId === '' ||
+    !mongoose.isValidObjectId(args.userId)
+  ) {
+    throw new LedgerNotFoundV3Error();
+  }
   const existing = await FactLedgerV3Model.findOne({ runId: args.runId, userId: args.userId });
   if (existing)
     return snapshotOf(existing, unseal(existing.versions[existing.versions.length - 1]));
@@ -662,14 +692,27 @@ export async function appendCandidates(
   const byKey = new Map(items.filter(isLedgerItem).map((i) => [i.key, i]));
 
   const fresh: LedgerSealedState = { entries: [], nonAnswers: [] };
-  const raw: Array<{ key: string; span: string; option?: string; confidence: number }> = [];
-  for (const c of result.candidates) {
+  type Row = { key: string; span: string; option?: string; confidence: number };
+  const raw: Row[] = [];
+  /** The candidate each raw row came from (its source kind and turn). */
+  const rowSource = new Map<Row, LedgerCandidate['source']>();
+  // Review round 1: a conflict's readings go through the same pipeline as any
+  // candidate (on-list, model-readable, quote length, verbatim span, v2
+  // non-answers), so a conflict never seals the model's quote or value.
+  const conflictKeys = new Set<string>();
+  const all: LedgerCandidate[] = [...result.candidates];
+  for (const c of result.conflicts) {
+    if (c.values.length > 0) conflictKeys.add(c.key);
+    for (const v of c.values) all.push({ ...v, key: c.key });
+  }
+  for (const c of all) {
     if (DERIVED_ONLY_KEYS.has(lastSegment(c.key))) {
       drop('derived_key');
       continue;
     }
     const item = byKey.get(c.key);
-    if (!item) {
+    // A description reading keeps v2's model-readable rule (readExtraction's), here too.
+    if (!item || (!answer && !item.modelReadable)) {
       drop('not_on_list');
       continue;
     }
@@ -691,27 +734,31 @@ export async function appendCandidates(
       drop('no_fact_answer');
       continue;
     }
-    const values = Array.isArray(c.value) ? c.value : [c.value];
+    const rows: Row[] = [];
     if (isMultiItem(item) && Array.isArray(c.value)) {
-      for (const v of values) {
-        const s = String(v);
+      for (const v of c.value) {
+        const t = String(v);
         // A list item is its own words; a choice is its option, on the candidate's quote.
-        raw.push(
+        rows.push(
           item.kind === 'choices'
-            ? { key: item.key, span, option: s, confidence: c.confidence }
-            : { key: item.key, span: nfc(s), confidence: c.confidence },
+            ? { key: item.key, span, option: t, confidence: c.confidence }
+            : { key: item.key, span: nfc(t), confidence: c.confidence },
         );
       }
-      continue;
+    } else {
+      rows.push({
+        key: item.key,
+        span,
+        ...(typeof c.value === 'string' && (item.kind === 'choice' || item.kind === 'choices')
+          ? { option: c.value }
+          : {}),
+        confidence: c.confidence,
+      });
     }
-    raw.push({
-      key: item.key,
-      span,
-      ...(typeof c.value === 'string' && (item.kind === 'choice' || item.kind === 'choices')
-        ? { option: c.value }
-        : {}),
-      confidence: c.confidence,
-    });
+    for (const r of rows) {
+      raw.push(r);
+      rowSource.set(r, c.source);
+    }
   }
   const read = readExtraction(items, text, { facts: raw }, referenceYear(now), now);
   for (const d of read.dropped) drop(d.reason);
@@ -725,55 +772,116 @@ export async function appendCandidates(
   for (const f of read.facts) {
     fresh.entries.push({ ...fromV2Fact(f), origin: origin(f.raw_span, f.confidence) });
   }
-  const conflictOf = (key: string, cs: LedgerCandidate[]): LedgerEntry | null => {
-    const item = byKey.get(key);
-    if (!item) return null;
-    const first = cs[0];
+  // readExtraction's own date context (T-469), so a conflict reading is read the same way.
+  const allowed = items.filter((i) => i.modelReadable && isLedgerItem(i));
+  const dates = {
+    asked: allowed.filter((i) => factTypeFor(i) === 'date').map((i) => i.key),
+    pack: items.filter((i) => factTypeFor(i) === 'date').map((i) => i.key),
+    now,
+  };
+  /**
+   * The verified, distinct readings of one key: rows that passed the pipeline
+   * above, re-read by the v2 normalizer from the located span (the option for
+   * a choice), at or above the type's floor. The rest are dropped as `unverified`.
+   */
+  const verified = (key: string): ConflictCandidate[] => {
+    const item = byKey.get(key) as ChecklistItem;
+    const type = factTypeFor(item);
+    const out = new Map<string, ConflictCandidate>();
+    for (const r of raw.filter((x) => x.key === key)) {
+      const n = normalizeForItem(
+        item,
+        type === 'enum' ? (r.option ?? r.span) : r.span,
+        referenceYear(now),
+        dates,
+      );
+      if (!n.ok || r.confidence < CONFIDENCE_FLOORS[type]) {
+        drop('unverified');
+        continue;
+      }
+      const k = JSON.stringify(n.value);
+      const src = rowSource.get(r) as LedgerCandidate['source'];
+      if (!out.has(k)) {
+        out.set(k, {
+          value: n.value,
+          display: n.display,
+          source: { kind: src.kind, turn: src.turn, quote: r.span },
+          confidence: r.confidence,
+        });
+      }
+    }
+    return [...out.values()];
+  };
+  const conflictOf = (key: string, cs: ConflictCandidate[]): LedgerEntry => {
+    const item = byKey.get(key) as ChecklistItem;
     return {
       ...fromV2Unresolved({
         id: crypto.randomUUID(),
         key,
         label: item.label,
-        type: (read.facts.find((f) => f.key === key) ?? { type: 'text' }).type,
-        raw_span: nfc(first?.source.quote ?? ''),
+        type: factTypeFor(item),
+        raw_span: cs[0].source.quote,
         source: answer ? 'asked' : 'user',
         reason: 'conflicting_values',
         detail: LEDGER_DETAILS.conflicting_values,
       }),
       status: 'conflict',
-      origin: origin(nfc(first?.source.quote ?? ''), first?.confidence ?? 0),
-      candidates: cs.map((c) => ({
-        value: c.value,
-        source: { ...c.source, quote: nfc(c.source.quote) },
-        confidence: c.confidence,
-      })),
+      origin: origin(cs[0].source.quote, cs[0].confidence),
+      candidates: cs,
     };
   };
+  // Keys with two values (readExtraction) or a reported conflict: a conflict
+  // only with two or more distinct verified readings; one is held; none stays unresolved.
+  const twoValues = new Set(
+    read.unresolved.filter((u) => u.reason === 'conflicting_values').map((u) => u.key),
+  );
   for (const u of read.unresolved) {
-    if (u.reason === 'conflicting_values') {
-      const e = conflictOf(
-        u.key,
-        result.candidates.filter((c) => c.key === u.key),
-      );
-      if (e) fresh.entries.push({ ...e, type: u.type });
-      continue;
-    }
+    if (u.reason === 'conflicting_values') continue;
     fresh.entries.push({ ...fromV2Unresolved(u), origin: origin(u.raw_span, 0) });
   }
-  for (const c of result.conflicts) {
-    if (DERIVED_ONLY_KEYS.has(lastSegment(c.key))) {
-      drop('derived_key');
-      continue;
+  for (const key of new Set([...twoValues, ...conflictKeys])) {
+    const item = byKey.get(key);
+    if (!item || isMultiItem(item) || !raw.some((r) => r.key === key)) continue;
+    const cs = verified(key);
+    const others = fresh.entries.filter((e) => e.key !== key);
+    if (cs.length >= 2) {
+      fresh.entries = [...others, conflictOf(key, cs)];
+    } else if (cs.length === 1) {
+      const v = cs[0];
+      fresh.entries = [
+        ...others,
+        {
+          id: crypto.randomUUID(),
+          key,
+          label: item.label,
+          type: factTypeFor(item),
+          status: 'held',
+          value: v.value,
+          display: v.display ?? '',
+          origin: origin(v.source.quote, v.confidence),
+          requiredInDraft: item.required && item.notInDraft !== true,
+        },
+      ];
+    } else if (twoValues.has(key)) {
+      const u = read.unresolved.find((x) => x.key === key && x.reason === 'conflicting_values');
+      if (u) {
+        fresh.entries = [
+          ...others,
+          {
+            ...fromV2Unresolved({
+              ...u,
+              reason: 'low_confidence',
+              detail: LEDGER_DETAILS.low_confidence,
+            }),
+            origin: origin(u.raw_span, 0),
+          },
+        ];
+      }
     }
-    const e = conflictOf(c.key, c.values);
-    if (!e) {
-      drop('not_on_list');
-      continue;
-    }
-    fresh.entries = [...fresh.entries.filter((x) => x.key !== c.key), e];
   }
   for (const key of result.nonAnswers) {
-    if (!byKey.has(key)) {
+    const item = byKey.get(key);
+    if (!item || (!answer && !item.modelReadable)) {
       drop('not_on_list');
       continue;
     }
@@ -827,7 +935,8 @@ function merge(
         entries: [...state.entries.filter((e) => e.key !== key), ...entries],
         nonAnswers: answer ? state.nonAnswers.filter((n) => n.key !== key) : state.nonAnswers,
       };
-      if (wasConflict && answer) resolved = true;
+      // Resolved only when a held value actually replaces the conflict.
+      if (wasConflict && answer && entries.some((e) => e.status === 'held')) resolved = true;
     };
     // The advocate's own value or non-answer is never replaced by a description reading.
     if (!answer && (wasAsked || wasNonAnswer)) continue;
@@ -842,6 +951,8 @@ function merge(
       // Unresolved or conflict in this turn. A held value is not downgraded by an unresolved reading.
       if (now.every((e) => e.status === 'unresolved') && wasHeld.length > 0) continue;
       if (!answer && wasConflict) continue;
+      // An unreadable or below-floor answer leaves a conflict open (as applyUserEdit does).
+      if (answer && wasConflict && now.every((e) => e.status === 'unresolved')) continue;
       replace(now);
       continue;
     }
@@ -867,7 +978,8 @@ function merge(
         reason: 'conflicting_values' satisfies UnresolvedReason,
         detail: LEDGER_DETAILS.conflicting_values,
         candidates: [first, second].map((e) => ({
-          value: e.value as LedgerCandidate['value'],
+          value: e.value as ConflictCandidate['value'],
+          display: e.display,
           source: {
             kind: e.origin.source === 'asked' ? 'answer' : 'description',
             turn: e.origin.turn ?? 0,

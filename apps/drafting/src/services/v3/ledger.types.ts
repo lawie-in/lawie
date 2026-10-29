@@ -88,9 +88,21 @@ export interface LedgerEntry {
   reason?: string;
   detail?: string;
   /** conflict: the competing readings, each with its own quote. */
-  candidates?: Array<Pick<LedgerCandidate, 'value' | 'source' | 'confidence'>>;
+  candidates?: ConflictCandidate[];
   /** held only. */
   requiredInDraft?: boolean;
+}
+
+/**
+ * One verified reading of a conflict: its value re-read by code from the
+ * located span (`source.quote` is that span, verbatim in the turn's text),
+ * never the model's value or quote as sent.
+ */
+export interface ConflictCandidate {
+  value: Fact['value'];
+  display?: string;
+  source: LedgerCandidate['source'];
+  confidence: number;
 }
 
 /**
@@ -146,7 +158,9 @@ export type DropReason =
   | 'no_span'
   | 'span_not_found'
   | 'no_fact_answer'
-  | 'derived_key';
+  | 'derived_key'
+  /** A conflict reading the normalizer could not read, or read below the type's floor. */
+  | 'unverified';
 
 export type DropCount = Partial<Record<DropReason, number>>;
 
