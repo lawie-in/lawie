@@ -295,3 +295,11 @@ Asked by Arjun at 10:04 UTC (Ajay). JSON: `handoff/ops/runbooks/lawie-prod-ops-v
 - `node -e` uses mongoose to read `appsettings.findOne({key})` (value field only). The key is passed as argv, not spliced into the code, and the JS re-checks the feature-only pattern.
 - Prints `key=value` or `key unset`. On error it prints only the error name.
 - `update-document-default-version 14` was blocked by the session permission check, so the default stays 13. Run get-setting pinned: `--document-version 14`.
+
+### SSM version 15 (29 Oct 2026, 10:09 UTC, Nikhil): Active, NOT default
+Asked by Arjun at 10:08 UTC (Ajay, AJ-668-M4). JSON: `handoff/ops/runbooks/lawie-prod-ops-v15.json`. The only change from v14, besides the description, is the new action `count-generations`, with params `templateids` (`^[a-z0-9_]{1,40}(,[a-z0-9_]{1,40}){0,7}$`, default `unset`, refused at default) and `since` (`^YYYY-MM-DDTHH:MM:SSZ$`).
+- Runs as ubuntu with the env loaded like deploy, from `apps/drafting`. `node -e` and mongoose read the `generations` collection only.
+- For each templateId it prints `before` (createdAt < since) and `since` (≥ since) counts. It then prints the rows since `since`: `_id`, `runId`, `status`, `createdAt` (projection only, so no userId and no content), sorted, capped at 200.
+- Params are passed as argv and re-validated in the JS. On error it prints only the error name.
+- The default stays 13 (the flip was blocked at 10:05 and not retried); run it pinned with `--document-version 15`.
+- Shorthand `--parameters` splits on commas, so send one template per call or use the JSON `--parameters` form for a list.
