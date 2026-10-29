@@ -46,6 +46,7 @@
         "type": "textarea",
         "required": true
       },
+      { "id": "plaintiff_name", "label": "Plaintiff full name", "type": "text", "required": true },
       {
         "id": "summons_service_date",
         "label": "Date of service of summons on defendant",
@@ -302,6 +303,7 @@
   "validation_rules": [
     "suit_number must not be empty",
     "defendant_name must not be empty",
+    "plaintiff_name must not be empty",
     "summons_service_date must not be empty",
     "days_from_service must not exceed 30 unless delay_application provided",
     "In commercial suits, days_from_service cannot exceed 120 (SCG Contracts)",

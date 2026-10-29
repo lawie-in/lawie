@@ -172,6 +172,20 @@ describe('o39-confirm-messages: the signed strings', () => {
 });
 
 describe('fail closed: every blocks_confirm field in a pack has a signed message', () => {
+  // INTERIM EXCEPTION (Priya granted, T-650, 29 Oct 2026): plaint_partition#other_defendants blocks Confirm
+  // by config only (Ajay's (3g) rules the signed EN/HI ask line may follow via the M1 path). The line and
+  // the silent Confirm-block UX gap are follow-up ticket T-661. This is the ONLY unmessaged field allowed;
+  // any other blocks_confirm field without a signed message still fails this pin.
+  const INTERIM_UNMESSAGED: ReadonlyArray<{ pack: string; id: string }> = [
+    { pack: 'plaint_partition', id: 'other_defendants' },
+  ];
+  const unmessaged = (flagged: Array<{ pack: string; id: string }>) =>
+    flagged.filter(
+      (f) =>
+        !isO39RequiredField(f.id) &&
+        !INTERIM_UNMESSAGED.some((x) => x.pack === f.pack && x.id === f.id),
+    );
+
   it('iterates every rule pack JSON', () => {
     const dir = join(__dirname, '..', 'config', 'document-rules');
     const flagged: Array<{ pack: string; id: string }> = [];
@@ -181,18 +195,39 @@ describe('fail closed: every blocks_confirm field in a pack has a signed message
         if (f.blocks_confirm === true) flagged.push({ pack: id, id: f.id });
       }
     }
-    // The two O.39 fields, and nothing else flagged.
+    // The two O.39 fields, the T-650 interim field, and nothing else flagged.
     expect(flagged).toEqual(
       expect.arrayContaining([
         { pack: O39, id: 'main_suit_relief' },
         { pack: O39, id: 'restraint_sought' },
+        { pack: 'plaint_partition', id: 'other_defendants' },
       ]),
     );
-    for (const f of flagged) {
-      expect(isO39RequiredField(f.id)).toBe(true);
+    expect(unmessaged(flagged)).toEqual([]);
+    for (const f of flagged.filter((x) => isO39RequiredField(x.id))) {
       expect(O39_CONFIRM_MESSAGES[f.id as 'main_suit_relief'].en.length).toBeGreaterThan(0);
       expect(O39_CONFIRM_MESSAGES[f.id as 'main_suit_relief'].hi.length).toBeGreaterThan(0);
     }
+  });
+
+  it('positive control: any other unmessaged blocks_confirm field still fails the pin', () => {
+    expect(unmessaged([{ pack: 'bail_regular', id: 'some_new_field' }])).toEqual([
+      { pack: 'bail_regular', id: 'some_new_field' },
+    ]);
+    // the exception is exactly that pack and field, not the field name on another pack
+    expect(unmessaged([{ pack: 'replication', id: 'other_defendants' }])).toEqual([
+      { pack: 'replication', id: 'other_defendants' },
+    ]);
+    expect(unmessaged([{ pack: 'plaint_partition', id: 'defendants_details' }])).toEqual([
+      { pack: 'plaint_partition', id: 'defendants_details' },
+    ]);
+    // the allowed ones pass
+    expect(
+      unmessaged([
+        { pack: 'plaint_partition', id: 'other_defendants' },
+        { pack: O39, id: 'main_suit_relief' },
+      ]),
+    ).toEqual([]);
   });
 
   it('the pack flags exactly the two fields, through the loader', () => {

@@ -865,12 +865,13 @@ describe('T-429 G: criminal_revision {applicable_section} (00d9401)', () => {
   });
 
   describe('(iv) other packs are unchanged', () => {
+    // T-650 (Ajay, 29 Oct 2026, 3e): plaint_partition declares computed_fields too (defendants_title_suffix).
     it('rule files other than criminal_revision declaring computed_fields (the premise)', () => {
       const declaring = readdirSync(RULES_DIR)
         .filter((n) => n.endsWith('.json'))
         .filter((n) => 'computed_fields' in JSON.parse(readFileSync(join(RULES_DIR, n), 'utf8')))
         .map((n) => n.replace(/\.json$/, ''));
-      expect(declaring).toEqual(['criminal_revision']);
+      expect(declaring).toEqual(['criminal_revision', 'plaint_partition']);
     });
 
     it.each(['discharge_application', 'quashing_528_bnss', 'bail_regular', 'legal_notice_s138'])(
