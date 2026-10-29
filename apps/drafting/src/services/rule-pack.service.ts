@@ -65,6 +65,13 @@ export interface RulePackFact {
    * Ajay, T-613 §(g): main_suit_relief and restraint_sought on the O.39 pack).
    */
   blocks_confirm?: true;
+  /**
+   * T-683 (v3 Extractor, role C): the pack's reading hint for this fact,
+   * exactly as the file writes it (legal content, signed by Ajay; first:
+   * T-613 (j)7(b) on the O.39 restraint_sought). Read only by
+   * services/v3/extractor.service.ts; buildChecklist and extractLines ignore it.
+   */
+  extract_hint?: string;
 }
 
 /**
@@ -251,13 +258,18 @@ function factFromDef(
  */
 function packQuestion(
   def: Obj,
-): Pick<RulePackFact, 'question' | 'ask_when_empty' | 'blocks_confirm'> {
-  const out: Pick<RulePackFact, 'question' | 'ask_when_empty' | 'blocks_confirm'> = {};
+): Pick<RulePackFact, 'question' | 'ask_when_empty' | 'blocks_confirm' | 'extract_hint'> {
+  const out: Pick<RulePackFact, 'question' | 'ask_when_empty' | 'blocks_confirm' | 'extract_hint'> =
+    {};
   if (typeof def.question === 'string' && def.question.trim() !== '') {
     out.question = { text: def.question, source: 'pack' };
   }
   if (def.ask_when_empty === true) out.ask_when_empty = true;
   if (def.blocks_confirm === true) out.blocks_confirm = true;
+  // T-683: kept byte for byte (Ajay's signed wording), like the question.
+  if (typeof def.extract_hint === 'string' && def.extract_hint.trim() !== '') {
+    out.extract_hint = def.extract_hint;
+  }
   return out;
 }
 

@@ -92,7 +92,13 @@ export interface RenderedExpectation {
 /** One model reply per call purpose, for `--dry-run`. */
 export interface RecordedReplies {
   reception: string;
-  extract: string;
+  /**
+   * The extraction pass's reply (v2 EXTRACT_SYSTEM_PROMPT, or T-683's v3
+   * Extractor prompt). A string is the same reply on every call (as before);
+   * a list is one reply per extraction call in order, the last one repeated
+   * after the list runs out.
+   */
+  extract: string | string[];
   /**
    * The Drafter's reply. On a pack on a signed skeleton (D1, English) this is
    * the structured answer as JSON text, `{"paragraphs":[{clauseId, factRefs,
@@ -129,6 +135,11 @@ export interface Fixture {
   expect: FixtureExpectations;
   /** Recorded replies by variant, for `--dry-run`. `clean` is the default variant. */
   recorded?: Record<string, RecordedReplies>;
+  /**
+   * T-683: the drafting v3 stage this fixture runs at (feature.drafting_v3_stage,
+   * fixture user only, via setFixtureV3Stage). Absent: 0, v2 unchanged.
+   */
+  v3_stage?: 0 | 1 | 2 | 3;
 }
 
 // ── What a run produces ────────────────────────────────────────────────────
