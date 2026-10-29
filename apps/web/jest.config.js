@@ -36,6 +36,8 @@ module.exports = {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^@lawie/shared$': '<rootDir>/../../packages/shared/src',
   },
+  // T-663: fails the suite fast if SENTRY_DSN or NEXT_PUBLIC_SENTRY_DSN is set in the shell.
+  setupFiles: ['<rootDir>/jest.setup-env.ts'],
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
   testPathIgnorePatterns: ['/node_modules/', '/.next/'],
   modulePathIgnorePatterns: ['<rootDir>/.next/'],

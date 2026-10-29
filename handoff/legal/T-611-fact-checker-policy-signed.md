@@ -95,3 +95,12 @@ Also recorded: the T-488 correction in `go-live-ruling-23-oct.md` (it was never 
 **T-637 APPROVED at a42e2f58.** It counts as merged at the develop_staging merge SHA that contains a42e2f58. FR-6 (the ledger-flag state in the release note) and FR-7 conditions still apply.
 
 **T-637 merged (Ajay, 27 Oct 2026):** develop_staging merge SHA `1701b2da53abc4fb7096f20f76df55d7a9daf94b` contains a42e2f58. I checked it myself: form-ledger and fact-verifier have their approved hashes after the merge. CI is pending.
+
+## T-678 rulings (Ajay, 29 Oct 2026; Vishal's proposals (1)–(3) and Arjun's exit)
+
+| # | Ruling |
+|---|---|
+| T678-1 | **Signed.** Party-role words (defendant, plaintiff, petitioner, respondent, complainant, accused, applicant, and their Hindi forms) never count as date-role cues. A date cue must be a role word of the dated field itself, e.g. service/summons, arrest, notice, filing. |
+| T678-2 | **Signed, narrowed.** A date held only inside a user text fact (P2) passes when the draft sentence carries **no** date-role cue for a dated field. When the sentence does use it in the role of a dated field (for example "summons served on 15.06.2025"), P2 as signed still applies and the checker repairs, then asks. Vishal's broader wording ("never raising P1 against a dated field") is **not** signed, because it would hide a real misplaced date. |
+| T678-3 | **Signed, new user question for a P2 conflict** (the value is held inside a text fact, not under a label): `The draft gives <value> as the <label A>, but your facts give it in the <label B>. Which is right?` The repair line stays P-R1 P2 as signed. The P1 question (`…give it as the <label B>…`) stays for value-under-label conflicts. |
+| T678-4 | **Exit on a gate question (Arjun): signed in principle, text below.** The button confirms the draft's use of that value: `Yes, it is the <label A>`. Effect: that value is recorded as user-confirmed for `<label A>` only (`source: user`, in the ledger). The draft is re-run, the checker accepts that one use, and no further question is asked about it. Ink is taken only on delivery, as now. "Back to the brief" stays alongside. A generic "the facts are right, continue" is **not** signed: it does not say which of the two the user confirms. Rajesh designs it. Whether it ships in T-678 or a follow-up is Priya's call. HI text when Hindi UI lands: verify. |

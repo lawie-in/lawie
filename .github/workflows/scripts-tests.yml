@@ -28,6 +28,8 @@ on:
       - 'yarn.lock'
       - 'jest.config.base.js'
       - 'tsconfig*.json'
+      - 'apps/*/src/__tests__/setupEnv.ts'
+      - 'apps/web/jest.setup-env.ts'
       - '.github/workflows/scripts-tests.yml'
   # No paths filter on PRs: a required check that a PR never starts stays "Expected" forever.
   pull_request:

@@ -1,3 +1,8 @@
+// T-663: a real DSN in the shell must never reach a test (it leaked into a transcript once).
+if (process.env.SENTRY_DSN !== undefined) {
+  throw new Error('SENTRY_DSN set — unset it, see CLAUDE.md');
+}
+
 // T-563: the bypass and production-marker variables must never be inherited from the shell the
 // suite runs in; a test sets its own fake values. Deleted before anything reads the env.
 for (const name of [

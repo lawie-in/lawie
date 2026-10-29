@@ -21,9 +21,12 @@
 import courtDocuments from '../config/intake/court-documents.json';
 import dateMeanings from '../config/intake/date-meanings.json';
 import {
+  GENERIC_PARTY_LINE_OVERRIDES,
   isEmptyOrNonAnswer,
   isNonAnswerPartyPack,
   isNoFactGuardedField,
+  isPartyNameGuardedField,
+  isPartyNonAnswer,
   isO39RequiredField,
   O39_REQUIRED_FIELDS,
   requiredFieldBlockers,
@@ -1451,10 +1454,12 @@ export function ledgerGivenKeys(
   const out = new Set<string>();
   for (const f of facts) {
     if (typeof f.display !== 'string' || f.display.trim() === '') continue;
-    if (
-      isNoFactGuardedField(lastSegment(f.key)) &&
-      (isEmptyOrNonAnswer(f.display) || isEmptyOrNonAnswer(f.value))
-    ) {
+    // T-668b (AJ-668-M5, M5b; pack-neutral per AJ-655-M1): a party name with a
+    // non-answer and a tail (`Not known (…)`) is no fact either.
+    const noFact = isPartyNameGuardedField(lastSegment(f.key))
+      ? isPartyNonAnswer
+      : isEmptyOrNonAnswer;
+    if (isNoFactGuardedField(lastSegment(f.key)) && (noFact(f.display) || noFact(f.value))) {
       continue;
     }
     const declined = [f.display, String(f.value)].some((value) =>
@@ -1500,15 +1505,22 @@ function partyLabel(label: string): string {
     .replace(/[:/]+\s*$/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
-    .toLowerCase();
+    .toLowerCase()
+    // AJ-668-M5a: the T-127 line adds its own "the", so one leading "the" goes.
+    .replace(/^the\s+/, '');
   return stripped.length > 0 ? stripped : 'party';
 }
 
 /**
  * T-668: the confirm line for a missing party name, shared by the brief and the
- * form route: the pack's signed line (T-661, T-650 (3h)), else the T-127 line.
+ * form route: the field's signed override (AJ-668-M5a, the generic
+ * person-or-authority field), else the pack's signed line (T-661, T-650 (3h)),
+ * else the T-127 line.
  */
 export function partyConfirmLine(packId: string | null, key: string, label: string): string {
+  if (Object.prototype.hasOwnProperty.call(GENERIC_PARTY_LINE_OVERRIDES, key)) {
+    return GENERIC_PARTY_LINE_OVERRIDES[key];
+  }
   return (
     signedConfirmMessage(packId, lastSegment(key))?.en ??
     `Add the name of the ${partyLabel(label)} to continue.`
@@ -1904,7 +1916,9 @@ function confirmState(
       (i) =>
         i.party_name &&
         i.required &&
-        (nonAnswer ? isEmptyOrNonAnswer(i.value) : isEmpty(i.value)) &&
+        // T-668b (AJ-668-M5 to M5e): on O.39 and the M1 packs a non-answer
+        // with a tail (`Not known (…)`) is missing too. One rule, party names only.
+        (nonAnswer ? isPartyNonAnswer(i.value) : isEmpty(i.value)) &&
         !given.has(i.key),
     );
     if (!courtChosen) blockers.push('court');

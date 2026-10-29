@@ -1,6 +1,6 @@
 # T-663 — Sentry tests must never print a real DSN; suites fail fast if SENTRY_DSN is set
 
-Status: assigned to tanvi, 29 Oct 2026. Arjun ruling (low severity).
+Status: merged into develop_staging 88ce6fc8 (tanvi, CI green), 29 Oct 2026. Arjun OK. Founder actions still open: remove SENTRY_DSN and NEXT_PUBLIC_SENTRY_DSN from the cloud env; rotate the drafting DSN at the next prod env edit.
 
 ## Acceptance criteria
 1. apps/drafting sentry.test.ts (and any other service's Sentry tests) never reads the real env var. It sets a fixture DSN itself and asserts the real value is never printed.
