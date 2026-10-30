@@ -326,21 +326,32 @@ export function formRequiredFieldBlock(
       return null;
     }
     if (pack === null) return null;
-    const missingParties = buildChecklist(pack).filter((i) => {
-      if (!i.partyName || !i.required) return false;
-      const v = Object.prototype.hasOwnProperty.call(formData, i.key) ? formData[i.key] : undefined;
+    // The party value as the check reads it; the block and the AJ-668e line
+    // both read this one view, so they cannot drift.
+    const partyView = (key: string): unknown => {
+      const v = Object.prototype.hasOwnProperty.call(formData, key) ? formData[key] : undefined;
       // As requiredFieldView: any value that is not text is no answer.
       const readable =
         v === null ||
         v === undefined ||
         typeof v === 'string' ||
         (Array.isArray(v) && v.every((e) => typeof e === 'string'));
-      return isPartyNonAnswer(readable ? v : '');
+      return readable ? v : '';
+    };
+    const missingParties = buildChecklist(pack).filter((i) => {
+      if (!i.partyName || !i.required) return false;
+      return isPartyNonAnswer(partyView(i.key));
     });
     if (missingParties.length === 0) return null;
     return {
       error: 'brief_not_confirmed',
-      message: partyConfirmLine(templateId, missingParties[0].key, missingParties[0].label),
+      // AJ-668e: a non-answer followed by more text gets the signed AJ-668e line.
+      message: partyConfirmLine(
+        templateId,
+        missingParties[0].key,
+        missingParties[0].label,
+        partyView(missingParties[0].key),
+      ),
       blockers: ['required_fields'],
       confirm_blocking_keys: missingParties.map((i) => i.key),
     };
@@ -350,7 +361,8 @@ export function formRequiredFieldBlock(
   if (missing.length === 0) return null;
   return {
     error: 'brief_not_confirmed',
-    message: missing.map((b) => b.en).join('\n'),
+    // AJ-668e follow-up: an identical line shows once; the keys keep every field.
+    message: [...new Set(missing.map((b) => b.en))].join('\n'),
     blockers: ['required_fields'],
     confirm_blocking_keys: missing.map((b) => b.key),
   };

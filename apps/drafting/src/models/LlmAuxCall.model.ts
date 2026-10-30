@@ -19,6 +19,11 @@ export const LLM_AUX_PURPOSES = [
    * intake id, so these rows have none (intakeId is required for every other purpose).
    */
   'preflight',
+  /**
+   * T-683: the v3 Extractor (role C, ADR-drafting-v3), one call per intake
+   * turn behind feature.drafting_v3_stage >= 1. Carries an intake id, as intake rows do.
+   */
+  'v3_extract',
 ] as const;
 export type LlmAuxPurpose = (typeof LLM_AUX_PURPOSES)[number];
 

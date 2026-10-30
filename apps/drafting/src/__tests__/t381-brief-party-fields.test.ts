@@ -1143,16 +1143,18 @@ const packPost = (id: string) => request(app).post(`/${id}/annexures-pack`).set(
 const docGet = (id: string) => request(app).get(`/${id}`).set(headers());
 
 /** The HTML of one annexure, from its label to the next one. */
-function annexure(letter: string, next?: string): string {
-  const from = html.indexOf(`<div class="annexure-label">ANNEXURE ${letter}</div>`);
-  expect(from).toBeGreaterThanOrEqual(0);
-  const to = next
-    ? html.indexOf(`<div class="annexure-label">ANNEXURE ${next}</div>`, from)
-    : html.length;
-  return html.slice(from, to);
+// T-689c: found by heading, since the letters depend on whether the Synopsis is attached.
+function annexure(heading: string): string {
+  const m = new RegExp(
+    `<div class="annexure-label">ANNEXURE [A-Z]</div>\\s*<h2>${heading}</h2>`,
+  ).exec(html);
+  expect(m).not.toBeNull();
+  const from = m!.index;
+  const to = html.indexOf('<div class="annexure-label">', from + 1);
+  return html.slice(from, to === -1 ? undefined : to);
 }
-const memo = () => annexure('A', 'B');
-const vakalatnama = () => annexure('E', 'F');
+const memo = () => annexure('Memo of Parties');
+const vakalatnama = () => annexure('Vakalatnama');
 
 /** A document row as the collection holds it, with the pieces a test overrides. */
 async function insertDoc(fields: Record<string, unknown>): Promise<string> {

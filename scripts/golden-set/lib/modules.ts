@@ -65,6 +65,11 @@ export function purposeOf(system: string): CallPurpose {
     join(DRAFTING_DIR, 'src', 'services', 'drafter.prompts'),
   );
   if (system === ip.EXTRACT_SYSTEM_PROMPT) return 'extract';
+  // T-683: the v3 Extractor's prompt (config/prompts/v3-extractor.ts) is an extraction pass too.
+  const v3 = requireFromDrafting<Record<string, string>>(
+    join(DRAFTING_DIR, 'src', 'config', 'prompts', 'v3-extractor'),
+  );
+  if (system === v3.V3_EXTRACTOR_SYSTEM_PROMPT) return 'extract';
   if (system === ip.RECEPTION_PACK_SYSTEM_PROMPT) return 'reception';
   if (
     system === dp.DRAFTER_LEDGER_SYSTEM_PROMPT ||
@@ -80,6 +85,17 @@ export function purposeOf(system: string): CallPurpose {
     return 'repair';
   if (system === dp.DRAFTER_FACT_REPAIR_SYSTEM_PROMPT) return 'fact_repair';
   return 'other';
+}
+
+/**
+ * T-683: the recorded extraction reply for the `index`-th extraction call of
+ * a fixture (0-based). A string is the same reply every time; a list gives
+ * one per call, the last repeated after it runs out.
+ */
+export function extractReplyAt(extract: string | string[], index: number): string {
+  if (typeof extract === 'string') return extract;
+  if (extract.length === 0) throw new Error('golden-set stub: an empty list of extraction replies');
+  return extract[Math.min(Math.max(0, index), extract.length - 1)];
 }
 
 /** The stream events of one answer, in the shapes the SDK emits. Token counts are estimates. */
@@ -157,14 +173,19 @@ export function installModelSeam(mode: 'stub' | 'real'): ModelSeam {
   let replies: RecordedReplies | null = null;
   let extracts: string[] = [];
   let calls: CallPurpose[] = [];
+  /** T-683: extraction calls since the fixture's replies were set. */
+  let extractIndex = 0;
 
   const stubText = (p: CallPurpose): string => {
     if (!replies) throw new Error('golden-set stub: no recorded replies for this fixture');
     switch (p) {
       case 'reception':
         return replies.reception;
-      case 'extract':
-        return replies.extract;
+      case 'extract': {
+        const text = extractReplyAt(replies.extract, extractIndex);
+        extractIndex += 1;
+        return text;
+      }
       case 'drafter':
         return replies.drafter;
       case 'repair':
@@ -225,6 +246,7 @@ export function installModelSeam(mode: 'stub' | 'real'): ModelSeam {
   return {
     setReplies: (r) => {
       replies = r;
+      extractIndex = 0;
     },
     takeExtractReplies: () => {
       const out = extracts;

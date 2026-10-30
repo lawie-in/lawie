@@ -135,7 +135,33 @@
               "ai_prompt"
             ],
             "question": "Since what date has the applicant been in custody (the date of arrest or surrender)?",
-            "ask_when_empty": true
+            "ask_when_empty": true,
+            "date_own_meaning_words": [
+              {
+                "word": "since",
+                "position": "before"
+              },
+              {
+                "word": "from",
+                "position": "before"
+              },
+              {
+                "word": "w.e.f.",
+                "position": "before"
+              },
+              {
+                "word": "with effect from",
+                "position": "before"
+              },
+              {
+                "word": "से",
+                "position": "after"
+              },
+              {
+                "word": "se",
+                "position": "after"
+              }
+            ]
           },
           {
             "field_id": "earlier_bail_applications",

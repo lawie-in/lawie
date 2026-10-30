@@ -51,7 +51,16 @@ Rules:
 Reply with JSON only, no other text, in exactly this shape:
 {"template_id": string or null, "confidence": "high" | "medium" | "low", "alternatives": [template_id, ...], "is_legal_drafting": boolean, "is_court_document": boolean, "category": string}`;
 
-export function buildMatchUserPrompt(description: string, catalogue: CatalogueEntry[]): string {
+/**
+ * T-681b: the match user prompt in two parts, for prompt caching. `catalogue` is the
+ * catalogue part: the same bytes for every request with the same catalogue, so it carries
+ * the cache breakpoint. `tail` is the rest (the blank line and the user's description).
+ * `catalogue + tail` is exactly buildMatchUserPrompt's text: no text is added or moved.
+ */
+export function buildMatchUserParts(
+  description: string,
+  catalogue: CatalogueEntry[],
+): { catalogue: string; tail: string } {
   const lines = catalogue.map(
     (t) =>
       `${t.template_id} | ${t.display_name} | ${t.category} | ${oneLine(t.description, 140)}` +
@@ -60,13 +69,21 @@ export function buildMatchUserPrompt(description: string, catalogue: CatalogueEn
         ? ` | match terms: ${t.match_terms.join(', ')}`
         : ''),
   );
-  return `Catalogue (template_id | name | category | description):
-${lines.join('\n')}
+  return {
+    catalogue: `Catalogue (template_id | name | category | description):
+${lines.join('\n')}`,
+    tail: `
 
 User's description:
 <description>
 ${description}
-</description>`;
+</description>`,
+  };
+}
+
+export function buildMatchUserPrompt(description: string, catalogue: CatalogueEntry[]): string {
+  const parts = buildMatchUserParts(description, catalogue);
+  return parts.catalogue + parts.tail;
 }
 
 export const FILL_SYSTEM_PROMPT = `You read a user's description of a legal matter and copy out the details it states, into the fields of a form.

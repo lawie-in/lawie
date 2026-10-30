@@ -87,6 +87,9 @@ async function main(): Promise<void> {
       }
       if (apply) {
         // Insert-only: $setOnInsert never touches a row that appeared meanwhile.
+        // Timestamps are set by hand inside $setOnInsert with timestamps: false, so
+        // Mongoose adds no `$set: { updatedAt }` that would bump an existing row.
+        const now = new Date();
         const r = await AppSetting.updateOne(
           { key: newKey },
           {
@@ -95,9 +98,11 @@ async function main(): Promise<void> {
               value: legacy.value,
               description: `Copied from ${legacyKey} (T-684 migration)`,
               ...(legacy.updatedBy ? { updatedBy: legacy.updatedBy } : {}),
+              createdAt: now,
+              updatedAt: now,
             },
           },
-          { upsert: true },
+          { upsert: true, timestamps: false },
         );
         if (r.upsertedCount === 1) {
           copied++;

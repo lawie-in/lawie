@@ -71,7 +71,8 @@ export function renderSummary(s: Summary): string[] {
 
 // ── T-453: per-stage model usage (median / p90 per call, stop reasons, cap hits) ──
 
-const STAGES: readonly LlmStageName[] = ['intake', 'preflight', 'body'];
+// T-683 (Arjun §8 item 4): 'extract' is the v3 Extractor's stage; a degraded line counts as failed.
+const STAGES: readonly LlmStageName[] = ['intake', 'extract', 'preflight', 'body'];
 
 /** Nearest-rank percentile of an ascending list: the value at rank ceil(q * n). */
 function nearestRank(sorted: number[], q: number): number {

@@ -33,7 +33,15 @@ import {
   renderDateConfidence,
   samplesFor,
 } from './lib/calibrate';
-import { estimateCost, Rate, renderEstimate, RUN_LIMITS } from './lib/cost';
+import {
+  estimateCost,
+  fixtureGroup,
+  MAX_FIXTURES_DEFAULT,
+  Rate,
+  renderEstimate,
+  RUN_LIMITS,
+  selectedGroup,
+} from './lib/cost';
 import { checkComposition, FixtureFileError, loadFixtures, selectFixtures } from './lib/fixtures';
 import {
   DRAFTING_DIR,
@@ -74,6 +82,8 @@ export function parseArgs(argv: string[]): Args {
     verbose: false,
     errors: [],
   };
+  // T-683 (Arjun §6): the default cap is the selected variant's, known only after --stub.
+  let maxFixturesGiven = false;
   const num = (v: string | undefined, flag: string): number => {
     const n = Number(v);
     if (!Number.isInteger(n) || n <= 0) a.errors.push(`${flag} needs a positive whole number`);
@@ -93,8 +103,10 @@ export function parseArgs(argv: string[]): Args {
         .map((s) => s.trim())
         .filter(Boolean);
     else if (f === '--stub') a.variant = argv[++i] ?? '';
-    else if (f === '--max-fixtures') a.maxFixtures = num(argv[++i], f);
-    else if (f === '--max-tokens') a.maxTokens = num(argv[++i], f);
+    else if (f === '--max-fixtures') {
+      a.maxFixtures = num(argv[++i], f);
+      maxFixturesGiven = true;
+    } else if (f === '--max-tokens') a.maxTokens = num(argv[++i], f);
     else if (f === '--out') a.out = resolve(process.cwd(), argv[++i] ?? '');
     else a.errors.push(`unknown option ${f}`);
   }
@@ -102,6 +114,7 @@ export function parseArgs(argv: string[]): Args {
     a.errors.push(
       'choose --dry-run (recorded replies, free) or --real (the real model; costs money)',
     );
+  if (!maxFixturesGiven) a.maxFixtures = MAX_FIXTURES_DEFAULT[selectedGroup(a.variant)];
   if (a.maxFixtures > RUN_LIMITS.maxFixturesHard)
     a.errors.push(`--max-fixtures is capped at ${RUN_LIMITS.maxFixturesHard}`);
   return a;
@@ -149,10 +162,24 @@ async function main(): Promise<number> {
   }
   const composition = checkComposition(all);
   for (const p of composition) console.warn(`golden-set: composition: ${p}`);
-  const chosen = selectFixtures(all, args.only);
+  let chosen = selectFixtures(all, args.only);
   if (chosen.length === 0) {
     console.error('golden-set: no fixture matches --only');
     return 2;
+  }
+  // T-683 (Arjun §6, b452537e): a --real run runs and counts only the fixtures of
+  // its own variant/stage, so the v3 cassettes never run in, or count against, a v2 run.
+  const group = selectedGroup(args.variant);
+  if (args.mode === 'real') {
+    const other = chosen.filter((f) => fixtureGroup(f) !== group).length;
+    chosen = chosen.filter((f) => fixtureGroup(f) === group);
+    const otherGroup = group === 'v2' ? 'v3' : 'v2';
+    if (other > 0)
+      console.log(`golden-set: ${other} ${otherGroup} fixtures left out (${group} run).`);
+    if (chosen.length === 0) {
+      console.error(`golden-set: no ${group} fixture selected`);
+      return 2;
+    }
   }
   // Arjun (T-373): the count cap guards spend, so it applies to --real only; a dry run is free.
   if (args.mode === 'real' && chosen.length > args.maxFixtures) {
@@ -253,6 +280,9 @@ async function main(): Promise<number> {
       return n.ok ? n.value : null;
     };
     const dateRows: DateConfidenceRow[] = [];
+    const v3StageMod = requireFromDrafting<{
+      setFixtureV3Stage(stage: 0 | 1 | 2 | 3 | null): void;
+    }>(join(DRAFTING_DIR, 'src', 'services', 'v3', 'stage'));
     let used = 0;
     let capped = false;
     let breach = false;
@@ -264,7 +294,14 @@ async function main(): Promise<number> {
         results.push(skipped(f, `token cap ${args.maxTokens} reached; not run`));
       } else {
         seam.setReplies(args.mode === 'dry' ? f.recorded![args.variant] : null);
-        const { value: ev } = await muted(args.verbose, () => runFixture(d, seam, f));
+        // T-683: the drafting v3 stage this fixture runs at (fixture user only); absent, 0.
+        v3StageMod.setFixtureV3Stage(f.v3_stage ?? null);
+        let ev: Awaited<ReturnType<typeof runFixture>>;
+        try {
+          ({ value: ev } = await muted(args.verbose, () => runFixture(d, seam, f)));
+        } finally {
+          v3StageMod.setFixtureV3Stage(null);
+        }
         used += ev.tokens.inputTokens + ev.tokens.outputTokens;
         if (!ev.isolation.ok) breach = true;
         samples.push(...samplesFor(f, ev.extraction, ev.ledger));
