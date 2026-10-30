@@ -14,9 +14,13 @@
  *                              findings. Nothing that can be read off a
  *                              scoring file (placeholders, withheld) and
  *                              nothing shared by a matter's two drafts (the
- *                              intake), so a row cannot be joined to a D-file
- *                              or to its pair. Outside scoring/, so shipping
+ *                              intake). Outside scoring/, so shipping
  *                              scoring/ to Anushka never ships it. For Vikram.
+ *                              Residual: a holder of both scoring/ and vikram/
+ *                              can match metrics rows to drafts by output
+ *                              length. The two folders and the run's console
+ *                              output must never be in one person's hands
+ *                              before the key is opened.
  *   vikram/intake-spend.json   the intake spend of each matter, in a shuffled
  *                              order with no matter or draft id.
  *   KEY.sealed.json            D-id -> {fixtureId, model, runId, metricsId,
@@ -330,7 +334,12 @@ export function unseal(path: string, passphrase: string): KeyPayload {
   decipher.setAAD(AAD);
   decipher.setAuthTag(tag);
   const pt = Buffer.concat([decipher.update(Buffer.from(s.ct, 'base64')), decipher.final()]);
-  return JSON.parse(pt.toString('utf8')) as KeyPayload;
+  const payload = JSON.parse(pt.toString('utf8')) as { version?: unknown };
+  if (payload.version !== 2)
+    throw new Error(
+      `unsupported T-691 key payload version ${String(payload.version)} (this writer reads version 2 only)`,
+    );
+  return payload as KeyPayload;
 }
 
 // ── Write ──────────────────────────────────────────────────────────────────

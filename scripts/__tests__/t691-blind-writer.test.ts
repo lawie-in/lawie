@@ -289,6 +289,24 @@ describe('seal / unseal', () => {
     expect(err?.message).not.toMatch(/bad tag length/);
   });
 
+  it('a sealed version-1 payload is refused, though it decrypts under the right passphrase', () => {
+    const v1 = {
+      version: 1,
+      seed: 9,
+      entries: { D01: { fixtureId: 'a', model: 'm', runId: null } },
+    };
+    const p = path.join(tmp, 'v1.json');
+    // seal() takes a KeyPayload (version 2), so the old shape is passed through a cast
+    fs.writeFileSync(p, JSON.stringify(seal(v1 as unknown as KeyPayload, PASS)));
+    expect(() => unseal(p, PASS)).toThrow(/unsupported T-691 key payload version 1/);
+    // a payload with no version at all is refused the same way
+    const p2 = path.join(tmp, 'nov.json');
+    fs.writeFileSync(p2, JSON.stringify(seal({ seed: 1 } as unknown as KeyPayload, PASS)));
+    expect(() => unseal(p2, PASS)).toThrow(/unsupported T-691 key payload version undefined/);
+    // version 2 still opens
+    expect(unseal(sealedFile('v2ok.json'), PASS).version).toBe(2);
+  });
+
   it('a changed header (alg) is refused', () => {
     const p = sealedFile('alg.json');
     const s = JSON.parse(fs.readFileSync(p, 'utf8'));
@@ -538,7 +556,7 @@ describe('writeBlind', () => {
       const r = write(uniqEight(), 15, 'm-linkless');
       // the clear key file shows none of its payload
       const keyRaw = fs.readFileSync(r.keyPath, 'utf8');
-      expect(keyRaw).not.toMatch(/metricsId|M0\d|D0\d|fixtureId/);
+      expect(keyRaw).not.toMatch(/metricsId|fixtureId|fx-|run-id-/);
       // no scoring file names an M-id; metrics and intake-spend name no D-id
       for (const f of r.scoringFiles)
         expect(fs.readFileSync(f, 'utf8')).not.toMatch(/\bM\d{2}\b|metricsId/);

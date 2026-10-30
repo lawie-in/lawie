@@ -990,10 +990,11 @@ async function main(): Promise<number> {
       console.log(
         `ab: matter ${f.id}: ${written} drafts recorded${intake.error ? ` (intake stopped: ${intake.error})` : ''}.`,
       );
-      // Amounts only, lower first: never the arm or the run order.
-      const sorted = [...armSpends].sort((a, b) => a - b);
+      // The matter's total only (intake plus both arms) and the running total: a per-arm or
+      // intake amount here would match the M-rows of vikram/metrics.json and the intake list.
+      const matterUsd = intakeUsd + armSpends.reduce((a, b) => a + b, 0);
       console.log(
-        `ab: matter ${f.id}: spend intake ${money(intakeUsd)}; drafts ${sorted.map(money).join(' and ')}; running total ${money(spentUsd)}.`,
+        `ab: matter ${f.id}: spend ${money(matterUsd)}; running total ${money(spentUsd)}.`,
       );
       // Arjun (T-691): once the running total has passed the cap, stop; never continue past it.
       if (spentUsd * USD_INR > BUDGET_INR) {

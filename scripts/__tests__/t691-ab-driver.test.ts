@@ -728,27 +728,30 @@ describe('integration: --dry on golden 23 (in-memory Mongo, stub seam)', () => {
     for (const x of arr) expect(Math.abs(x.spend.inr - x.spend.usd * USD_INR)).toBeLessThan(1e-9);
   });
 
-  it('metrics spend per draft is in USD and rupees at 88, and adds up to the stdout matter line', () => {
+  it('metrics spend per draft is in USD and rupees at 88; intake plus both drafts is the stdout matter total', () => {
     const m = readJson(path.join(dir, 'vikram', 'metrics.json'));
     const key = unseal(path.join(dir, 'KEY.sealed.json'), PASS);
     const intakeUsd = Object.values(key.intake)[0].spend?.usd as number;
     const spends = Object.values<{ spend: { usd: number; inr: number } }>(m).map((r) => r.spend);
+    expect(spends).toHaveLength(2);
     for (const x of spends) expect(Math.abs(x.inr - x.usd * USD_INR)).toBeLessThan(1e-9);
-    const line = run.stdout.split('\n').find((l) => /matter 23\S*: spend intake/.test(l));
+    const totalUsd = intakeUsd + spends[0].usd + spends[1].usd;
+    const line = run.stdout.split('\n').find((l) => /^ab: matter 23\S*: spend /.test(l)) as string;
     expect(line).toBeDefined();
-    const usds = [...(line as string).matchAll(/\(\$([0-9.]+)\)/g)].map((x) => Number(x[1]));
-    expect(usds).toHaveLength(4); // intake, two drafts, running total
-    const [intakeU, d1, d2, total] = usds;
-    const sorted = spends.map((x) => x.usd).sort((a, b) => a - b);
-    expect(intakeU).toBeCloseTo(intakeUsd, 3);
-    expect(d1).toBeCloseTo(sorted[0], 3);
-    expect(d2).toBeCloseTo(sorted[1], 3);
-    expect(total).toBeCloseTo(intakeUsd + sorted[0] + sorted[1], 3);
-    // the line names no model, arm or order, and the drafts are listed lower first
+    // exactly two amounts: the matter total and the running total, each as "₹x.xx ($y.yyyy)"
+    const rupees = [...line.matchAll(/₹([0-9.]+) \(\$([0-9.]+)\)/g)];
+    expect(line.match(/₹/g)).toHaveLength(2);
+    expect(rupees).toHaveLength(2);
+    const [matter, running] = rupees.map((x) => ({ inr: Number(x[1]), usd: Number(x[2]) }));
+    expect(matter.usd).toBeCloseTo(totalUsd, 4);
+    expect(matter.inr).toBeCloseTo(totalUsd * USD_INR, 2);
+    // a one-matter run: the running total is the matter total
+    expect(running).toEqual(matter);
+    expect(line).toMatch(/spend ₹[0-9.]+ \(\$[0-9.]+\); running total ₹[0-9.]+ \(\$[0-9.]+\)\.$/);
+    // no intake or per-arm amount, no model, arm, order or ids
     expect(line).not.toMatch(
-      /claude|opus|sonnet|haiku|\barm\b|\border\b|\bfirst\b|\bsecond\b|\bD\d{2}\b/i,
+      /intake|drafts|claude|opus|sonnet|haiku|\barm\b|\border\b|\bfirst\b|\bsecond\b|\b[DM]\d{2}\b/i,
     );
-    expect(d1).toBeLessThanOrEqual(d2);
   });
 
   it('nothing outside KEY.sealed.json joins a scoring file to a metrics row', () => {
@@ -758,7 +761,7 @@ describe('integration: --dry on golden 23 (in-memory Mongo, stub seam)', () => {
     const clear = fs.readFileSync(path.join(dir, 'KEY.sealed.json'), 'utf8');
     for (const e of Object.values(key.entries)) {
       expect(clear).not.toContain(e.fixtureId);
-      expect(clear).not.toContain(e.metricsId);
+      expect(clear).not.toContain('metricsId');
     }
     // with a wrong passphrase the key stays shut
     expect(() => unseal(path.join(dir, 'KEY.sealed.json'), PASS + 'x')).toThrow();
