@@ -78,7 +78,8 @@ const NON_ANSWERS = new Set(O39_NON_ANSWERS.map(fold));
 
 /**
  * AJ-683-M2 (handoff/legal/T-511-copy-rulings-ajay.md; replaces the AJ-671-M1
- * list): the courtesy/filler tail words, byte for byte as signed. Dropped from
+ * list) and AJ-671-M2 (temporal fillers): the courtesy/filler tail words and
+ * phrases, byte for byte as signed. A phrase strips as a whole. Dropped from
  * the END of a value for the non-answer check only, never from what is stored.
  */
 export const COURTESY_TAIL_WORDS: readonly string[] = [
@@ -113,6 +114,17 @@ export const COURTESY_TAIL_WORDS: readonly string[] = [
   'भैया',
   'दीदी',
   'कृपया',
+  // AJ-671-M2: temporal fillers, stripped the same way.
+  'yet',
+  'as yet',
+  'abhi',
+  'abhi tak',
+  'as of now',
+  'at present',
+  'currently',
+  'for now',
+  'अभी',
+  'अभी तक',
 ];
 
 const COURTESY_TAIL = COURTESY_TAIL_WORDS.map((w) => w.normalize('NFC').toLowerCase()).sort(
@@ -131,7 +143,8 @@ const TAIL_GAP = /[\s.,!?;:।॥…]+$/u;
  * it is not a non-answer by itself. "Ji Ram" is unchanged: tail words only.
  */
 export function stripCourtesyTail(value: string): string {
-  let rest = value.normalize('NFC');
+  // Whitespace collapsed so a phrase ("abhi  tak") matches as one.
+  let rest = value.normalize('NFC').replace(/\s+/g, ' ');
   let stripped = false;
   for (;;) {
     const body = rest.replace(TAIL_GAP, '');
