@@ -292,6 +292,21 @@ describe('scripts-tests workflow', () => {
     expect(steps.filter((s) => s.run === 'yarn test:scripts')).toHaveLength(1);
   });
 
+  it('builds @lawie/shared once, after install and before yarn test:scripts (T-691 driver needs dist/)', () => {
+    const steps: any[] = wf.jobs['scripts-tests'].steps;
+    const idx = (cmd: string) => steps.findIndex((s) => s.run === cmd);
+    const build = 'yarn workspace @lawie/shared build';
+    expect(steps.filter((s) => s.run === build)).toHaveLength(1);
+    expect(idx('yarn install --frozen-lockfile')).toBeGreaterThanOrEqual(0);
+    expect(idx(build)).toBeGreaterThan(idx('yarn install --frozen-lockfile'));
+    expect(idx(build)).toBeLessThan(idx('yarn test:scripts'));
+  });
+
+  it('push paths include packages/shared/** and apps/drafting/src/** (T-691)', () => {
+    expect(on.push.paths).toContain('packages/shared/**');
+    expect(on.push.paths).toContain('apps/drafting/src/**');
+  });
+
   it('uses node 20, a time limit and a cancelling concurrency group', () => {
     const job = wf.jobs['scripts-tests'];
     const setup = job.steps.find((s: any) => String(s.uses).startsWith('actions/setup-node@'));
