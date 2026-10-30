@@ -34,6 +34,7 @@ import {
   PART_TITLES,
   renderedLedgerFacts,
   revealLabel,
+  shownSoftFindings,
   Value,
 } from './briefTypes';
 import CourtPicker from './CourtPicker';
@@ -55,7 +56,7 @@ import {
 } from './ui';
 import ValueInput from './ValueInput';
 
-import { ErrorState, Skeleton } from '@/components/ui';
+import { ErrorState, Notice, Skeleton } from '@/components/ui';
 import { useSignupConsent } from '@/lib/signupConsent';
 
 /**
@@ -1139,6 +1140,12 @@ export default function BriefStep({
           {DESCRIPTION_IS_USED}
         </p>
       )}
+
+      {/* T-690b (Rajesh): the brief's soft findings, directly above Confirm and the Ink cost
+          line. They never change either. Shown from the brief as the last update sent it. */}
+      {shownSoftFindings(brief.soft_findings).map((f) => (
+        <Notice key={f.rule_id} variant="warn" text={f.text} className="mt-4" />
+      ))}
 
       <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-center gap-x-5">

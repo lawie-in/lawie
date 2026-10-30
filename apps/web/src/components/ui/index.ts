@@ -48,4 +48,5 @@ export {
   type DialogVariant,
 } from './Dialog';
 export { Lamp, DustMotes, type DustMotesProps } from './Lamp';
+export { Notice, type NoticeProps, type NoticeVariant } from './Notice';
 export * from './motion';
