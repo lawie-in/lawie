@@ -2583,7 +2583,13 @@ router.post(
 function partyMappingOf(
   doc: { rulePackId?: string | null; brief?: string | null },
   formData: Record<string, unknown>,
-): { packId: string; mapped: PartyFieldsResult; briefCourtDocument?: boolean } {
+): {
+  packId: string;
+  mapped: PartyFieldsResult;
+  /** T-689c (AJ-689c-b): the values mapped, for the Synopsis side rule. */
+  values: Record<string, unknown>;
+  briefCourtDocument?: boolean;
+} {
   const packId =
     doc.rulePackId || (typeof formData.template_id === 'string' ? formData.template_id.trim() : '');
   const fromBrief =
@@ -2591,16 +2597,19 @@ function partyMappingOf(
   const sealed = hasPartyInputs(packId, formData);
   if (fromBrief && (packId === GUIDED_ID || !sealed)) {
     const stored = readStoredBrief(decrypt(doc.brief as string));
+    const values = sealed ? formData : flattenPartyValues(stored.values);
     return {
       packId,
-      mapped: mapPartyFields(packId, sealed ? formData : flattenPartyValues(stored.values)),
+      mapped: mapPartyFields(packId, values),
+      values,
       ...(stored.courtDocument !== undefined ? { briefCourtDocument: stored.courtDocument } : {}),
     };
   }
-  return { packId, mapped: mapPartyFields(packId, formData) };
+  return { packId, mapped: mapPartyFields(packId, formData), values: formData };
 }
 
-// POST /documents/:id/annexures-pack — SCRUM-65: generate 7 mandatory annexures as a multi-page PDF
+// POST /documents/:id/annexures-pack — SCRUM-65: generate the annexures as a multi-page PDF
+// (T-689c: the Synopsis only for the packs and courts in annexureBApplies)
 // Court-rule aware: designation, verification language, party labels from court_rules JSON.
 // Returns: application/pdf — single PDF with each annexure on a fresh page.
 // T-579: `?format=html` returns application/json `{ title, filename, html }` instead
@@ -2631,13 +2640,18 @@ router.post(
     let bodyParaCount: number;
     let formData: Record<string, unknown>;
     let party: PartyFieldsResult;
+    let partyValues: Record<string, unknown>;
+    let packId: string;
     try {
       const content = doc.finalContent ? decrypt(doc.finalContent) : decrypt(doc.generatedContent);
       bodyParaCount = estimateBodyParaCount(content);
       formData = readFormInputs(doc) ?? {};
       // T-381: the client and the opposite party by Ajay's signed rule. An
       // older brief draft is mapped from its encrypted brief.
-      party = partyMappingOf(doc, formData).mapped;
+      const mapping = partyMappingOf(doc, formData);
+      party = mapping.mapped;
+      partyValues = mapping.values;
+      packId = mapping.packId;
     } catch (err) {
       console.error(
         `[drafting] Annexures pack: could not read document ${String(doc._id)}:`,
@@ -2701,6 +2715,19 @@ router.post(
       }
     }
 
+    // T-689c (AJ-689c-a rule 3): the Synopsis follows the pack and the court
+    // type, the first non-blank string of: the stored doc.courtType, the form's
+    // court_type, then the chosen court's own type from the lookup above
+    // (courtData.courtType; review round 1: a template-path High Court pack
+    // whose form has no court_type, e.g. quashing_528_bnss, may store none).
+    // Each is passed as stored; none means no Synopsis (annexureBApplies).
+    // AJ-689c-b: never for a respondent-side client, read from the values
+    // mapped above.
+    const nonBlank = (v: unknown): string | undefined =>
+      typeof v === 'string' && v.trim() !== '' ? v : undefined;
+    const courtType =
+      nonBlank(doc.courtType) ?? nonBlank(formData.court_type) ?? nonBlank(courtData?.courtType);
+
     let pdfBuffer: Buffer | undefined;
     let html: string | undefined;
     try {
@@ -2710,6 +2737,9 @@ router.post(
         advocateName: payload.name || undefined,
         enrollmentNumber: await profileEnrollmentNumber(payload.sub),
         courtData,
+        rulePackId: packId || undefined,
+        courtType,
+        partyValues,
       };
       if (asHtml) html = buildAnnexuresHtml(packInput).html;
       else pdfBuffer = await buildAnnexuresPack(packInput);

@@ -74,7 +74,9 @@ const bihar = (extra: Record<string, unknown>) => render({ ...BASE_BIHAR, ...ext
 describe('T-164 affidavit place of verification', () => {
   it('AC2: place Patna prints "Verified at Patna"', async () => {
     const html = await bihar({ place: 'Patna' });
-    expect(html).toContain('ANNEXURE G');
+    // T-689c: no pack or court type, so no Synopsis and the Affidavit is the sixth, F
+    expect(html).toMatch(/ANNEXURE F<\/div>\s*<h2>Affidavit<\/h2>/);
+    expect(html).not.toContain('ANNEXURE G');
     expect(html).toContain('Verified at Patna');
   });
 

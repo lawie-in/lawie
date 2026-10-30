@@ -88,12 +88,33 @@ const SPARSE_FORM: Record<string, unknown> = {
   respondent_name: 'State of Bihar',
 };
 
+// T-689c: the Synopsis (Annexure B) only for a High Court and a pack not on the deny
+// list, so inputs 0 and 2 (district court) run A to F and inputs 1 and 3 (High Court)
+// run A to G. PARTS_OF is the number of parts each is expected to have.
 const INPUTS = [
-  { formData: BIHAR_FORM, bodyParaCount: 8, advocateName: 'Adv. Ravi Shankar' },
-  { formData: JHARKHAND_FORM, bodyParaCount: 12, enrollmentNumber: 'JHA/2020/567' },
-  { formData: SPARSE_FORM },
-  { formData: { ...BIHAR_FORM, applicant_name: 'राम कुमार <b>&</b>' }, bodyParaCount: 3 },
+  {
+    formData: BIHAR_FORM,
+    bodyParaCount: 8,
+    advocateName: 'Adv. Ravi Shankar',
+    rulePackId: 'bail_anticipatory',
+    courtType: 'district_court',
+  },
+  {
+    formData: JHARKHAND_FORM,
+    bodyParaCount: 12,
+    enrollmentNumber: 'JHA/2020/567',
+    rulePackId: 'bail_anticipatory',
+    courtType: 'high_court',
+  },
+  { formData: SPARSE_FORM, rulePackId: 'bail_anticipatory', courtType: 'district_court' },
+  {
+    formData: { ...BIHAR_FORM, applicant_name: 'राम कुमार <b>&</b>' },
+    bodyParaCount: 3,
+    rulePackId: 'bail_anticipatory',
+    courtType: 'high_court',
+  },
 ];
+const PARTS_OF = [6, 7, 6, 7];
 
 beforeEach(() => {
   mockRenderPdf.mockReset();
@@ -114,14 +135,16 @@ describe('T-579 1: buildAnnexuresHtml is the single source', () => {
     },
   );
 
-  it('the body of .html is the 7 parts joined with a newline, inside the wrapper', () => {
-    const { html, parts } = buildAnnexuresHtml(INPUTS[0]);
-    expect(html.startsWith('<!DOCTYPE html>') || html.startsWith('<!doctype html>')).toBe(true);
-    expect(html).toContain(parts.map((p) => p.html).join('\n'));
+  it('the body of .html is the parts joined with a newline, inside the wrapper', () => {
+    for (const input of [INPUTS[0], INPUTS[1]]) {
+      const { html, parts } = buildAnnexuresHtml(input);
+      expect(html.startsWith('<!DOCTYPE html>') || html.startsWith('<!doctype html>')).toBe(true);
+      expect(html).toContain(parts.map((p) => p.html).join('\n'));
+    }
   });
 
-  it('has exactly 7 parts, A to G, with the signed labels and headings in order', () => {
-    const { parts } = buildAnnexuresHtml(INPUTS[0]);
+  it('a High Court input has exactly 7 parts, A to G, with the signed labels and headings in order', () => {
+    const { parts } = buildAnnexuresHtml(INPUTS[1]);
     expect(parts.map((p) => [p.label, p.heading])).toEqual([
       ['ANNEXURE A', 'Memo of Parties'],
       ['ANNEXURE B', 'Synopsis'],
@@ -133,10 +156,23 @@ describe('T-579 1: buildAnnexuresHtml is the single source', () => {
     ]);
   });
 
+  it('a district court input has exactly 6 parts, A to F, no Synopsis, no gap (T-689c)', () => {
+    const { parts } = buildAnnexuresHtml(INPUTS[0]);
+    expect(parts.map((p) => [p.label, p.heading])).toEqual([
+      ['ANNEXURE A', 'Memo of Parties'],
+      ['ANNEXURE B', 'List of Dates and Chronology of Events'],
+      ['ANNEXURE C', 'Index of Documents Annexed'],
+      ['ANNEXURE D', 'Vakalatnama'],
+      ['ANNEXURE E', 'Court Fee Paid Statement'],
+      ['ANNEXURE F', 'Affidavit'],
+    ]);
+  });
+
   it.each(INPUTS.map((input, i) => [i, input] as const))(
     'input %i: every part prints its label and heading and ends with its own T-317 line',
-    (_i, input) => {
+    (i, input) => {
       const { parts, html } = buildAnnexuresHtml(input);
+      expect(parts).toHaveLength(PARTS_OF[i]);
       for (const p of parts) {
         expect(p.html).toContain(p.label);
         expect(p.html).toContain(p.heading);
@@ -144,14 +180,16 @@ describe('T-579 1: buildAnnexuresHtml is the single source', () => {
         expect(p.html.trimEnd().endsWith(`${DISCLAIMER}\n</div>`)).toBe(true);
         expect(p.html.split(DISCLAIMER_TEXT)).toHaveLength(2); // once per part
       }
-      expect(html.split(DISCLAIMER_TEXT)).toHaveLength(8); // 7 in the document
+      expect(html.split(DISCLAIMER_TEXT)).toHaveLength(PARTS_OF[i] + 1); // one per part
     },
   );
 
-  it('annexures B to G start on a new page, A does not', () => {
-    const { parts } = buildAnnexuresHtml(INPUTS[0]);
-    expect(parts[0].html).not.toContain('page-break');
-    for (const p of parts.slice(1)) expect(p.html).toContain('page-break');
+  it('annexures B onwards start on a new page, A does not', () => {
+    for (const input of [INPUTS[0], INPUTS[1]]) {
+      const { parts } = buildAnnexuresHtml(input);
+      expect(parts[0].html).not.toContain('page-break');
+      for (const p of parts.slice(1)) expect(p.html).toContain('page-break');
+    }
   });
 });
 
@@ -259,8 +297,11 @@ describe('T-579 2: POST /documents/:id/annexures-pack?format=html', () => {
     expect(res.body.title).toBe('Bail Application — Patna HC');
     expect(res.body.filename).toBe('Bail Application  Patna HC_annexures.docx');
     expect(res.body.html).toContain('ANNEXURE A');
-    expect(res.body.html).toContain('ANNEXURE G');
-    expect(res.body.html.split(DISCLAIMER_TEXT)).toHaveLength(8);
+    // T-689c: makeDoc is a district court bail, so no Synopsis: A to F, 6 disclaimers
+    expect(res.body.html).toContain('ANNEXURE F');
+    expect(res.body.html).not.toContain('ANNEXURE G');
+    expect(res.body.html).not.toContain('>Synopsis</h2>');
+    expect(res.body.html.split(DISCLAIMER_TEXT)).toHaveLength(7);
     // No Chromium on this path.
     expect(mockRenderPdf).not.toHaveBeenCalled();
 

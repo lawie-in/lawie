@@ -85,18 +85,45 @@ interface Rendered {
   affidavit: string;
 }
 
-async function render(formData: Record<string, unknown>): Promise<Rendered> {
+/**
+ * T-689c: the annexure with this heading, from its label to the next annexure's label
+ * (or the end); '' when it is not attached. Found by heading, not by letter, since the
+ * Synopsis (Annexure B when attached) moves the letters of the rest.
+ */
+function sectionOf(html: string, heading: string): string {
+  const m = new RegExp(`class="annexure-label">ANNEXURE [A-Z]</div>\\s*<h2>${heading}</h2>`).exec(
+    html,
+  );
+  if (!m) return '';
+  const next = html.indexOf('class="annexure-label"', m.index + 1);
+  return html.slice(m.index, next === -1 ? undefined : next);
+}
+
+/**
+ * The pack id and court type default to what the route passes: the form's template_id
+ * and court_type. `pack` overrides them (T-689c).
+ */
+async function render(
+  formData: Record<string, unknown>,
+  pack: { rulePackId?: string; courtType?: string } = {},
+): Promise<Rendered> {
   mockRender.mockClear();
-  await buildAnnexuresPack({ formData, bodyParaCount: 5, advocateName: 'Adv. Test' });
+  await buildAnnexuresPack({
+    formData,
+    bodyParaCount: 5,
+    advocateName: 'Adv. Test',
+    rulePackId: typeof formData.template_id === 'string' ? formData.template_id : undefined,
+    courtType: typeof formData.court_type === 'string' ? formData.court_type : undefined,
+    ...pack,
+  });
   const html = String(mockRender.mock.calls[0][0]);
-  const at = (l: string) => html.indexOf(`ANNEXURE ${l}`);
   return {
     html,
-    memo: html.slice(at('A'), at('B')),
-    synopsis: html.slice(at('B'), at('C')),
-    index: html.slice(at('D'), at('E')),
-    vakalatnama: html.slice(at('E'), at('F')),
-    affidavit: html.slice(at('G')),
+    memo: sectionOf(html, 'Memo of Parties'),
+    synopsis: sectionOf(html, 'Synopsis'),
+    index: sectionOf(html, 'Index of Documents Annexed'),
+    vakalatnama: sectionOf(html, 'Vakalatnama'),
+    affidavit: sectionOf(html, 'Affidavit'),
   };
 }
 
@@ -106,6 +133,7 @@ async function renderPack(
   raw: Record<string, unknown>,
   base: Record<string, unknown> = {},
   courtId = 'allahabad_hc',
+  pack: { rulePackId?: string; courtType?: string } = {},
 ): Promise<Rendered> {
   const mapped = mapPartyFields(id, raw);
   expect(mapped.missing).toEqual([]);
@@ -113,7 +141,7 @@ async function renderPack(
     { template_id: id, court_id: courtId, court_type: 'high_court', ...base },
     mapped,
   );
-  return render(formData);
+  return render(formData, pack);
 }
 
 /** The two Memo rows as [label, cell text]. */
@@ -302,8 +330,30 @@ describe('T-424 B: vakalatnama, index and synopsis', () => {
       expect(index).not.toMatch(STALE_RE);
     });
 
+    it('T-689c: counter and rejoinder affidavits are on the no-Synopsis list, even before a High Court', async () => {
+      const r = await renderPack(id, { ...raw, ...STALE });
+      expect(r.synopsis).toBe('');
+      expect(r.html).not.toContain('>Synopsis</h2>');
+      expect(r.html).not.toContain('As required by High Court Practice');
+      // A to F: the Affidavit is the sixth and last
+      expect(r.html).toMatch(/ANNEXURE F<\/div>\s*<h2>Affidavit<\/h2>/);
+      expect(r.html).not.toContain('ANNEXURE G');
+    });
+
     it('the synopsis party bullet is "Petitioner: <petitioner>", never "Applicant/Petitioner"', async () => {
-      const { synopsis } = await renderPack(id, { ...raw, ...STALE });
+      // The Synopsis is never attached to these two packs now (above), so its sided
+      // wording is checked by handing the same sided form to a pack that gets it.
+      const { synopsis, html } = await renderPack(id, { ...raw, ...STALE }, {}, 'allahabad_hc', {
+        rulePackId: 'fir_quashing',
+        courtType: 'high_court',
+      });
+      if (client === 'respondent') {
+        // T-689c AJ-689c-b: a respondent-side client blocks the Synopsis, whatever the pack.
+        expect(synopsis).toBe('');
+        expect(html).not.toContain('>Synopsis</h2>');
+        return;
+      }
+      expect(synopsis).not.toBe('');
       expect(synopsis).toContain(`<li>Petitioner: ${NITA.name}</li>`);
       expect(synopsis).not.toContain('Applicant/Petitioner');
       expect(synopsis).not.toMatch(STALE_RE);

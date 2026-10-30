@@ -14,6 +14,7 @@ import { LawieDocument } from '../models/Document.model';
 import { Generation } from '../models/Generation.model';
 import { Template } from '../models/Template.model';
 import { User } from '../models/User.model';
+import { docTypeLabelForPackId } from '../services/doc-type-label';
 import { getUsdInrRate } from '../services/llm-usage';
 import { NOT_FIXTURE, NOT_FIXTURE_GENERATION } from '../services/run-origin';
 
@@ -283,6 +284,8 @@ router.get(
           _id: String(d._id),
           title: d.title,
           docType: d.docType,
+          // T-689c: the rule pack's name for the type; null falls back to the docType.
+          docTypeLabel: docTypeLabelForPackId(d.rulePackId),
           userName: u?.name ?? '—',
           exportedAs: (d as Record<string, unknown>)['exportedAs'] ?? [],
           exportedAt: d.updatedAt,
