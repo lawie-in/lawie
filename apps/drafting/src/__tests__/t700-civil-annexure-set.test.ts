@@ -510,3 +510,63 @@ describe('T-689d: Annexure B and the court fee always agree on the court type', 
     },
   );
 });
+
+// ── AJ-700-BC (3): a court-rule role never prints a (civil) / (criminal) pair ─
+
+describe('T-700 AJ-700-BC (3): Memo roles from the court rule', () => {
+  const PAIR = /\(civil\)|\(criminal\)/;
+  const roleCells = (b: Built) =>
+    [...part(b, 'Memo of Parties').matchAll(/<tr>\s*<td>([^<]*)<\/td>/g)].map((m) => m[1].trim());
+
+  it.each(['delhi_district', 'up_district'])(
+    'vakalatnama at %s (civil): the respondent role is "Defendant"',
+    (court) => {
+      const b = build('vakalatnama', 'district_court', { court_id: court });
+      expect(part(b, 'Memo of Parties')).toContain('<td>Defendant</td>');
+      expect(b.html).not.toMatch(PAIR);
+    },
+  );
+
+  it.each(['delhi_district', 'up_district'])(
+    'a criminal pack at %s: the respondent role is "Opposite Party"',
+    (court) => {
+      for (const pack of ['discharge_application', 'criminal_revision']) {
+        const b = build(pack, 'district_court', { ...CRIMINAL_FORM, court_id: court });
+        expect(annexureSetFor(pack)).toBe('criminal');
+        expect(part(b, 'Memo of Parties')).toContain('<td>Opposite Party</td>');
+        expect(b.html).not.toMatch(PAIR);
+      }
+    },
+  );
+
+  it.each([
+    ['counter_affidavit', 'jharkhand_hc', 'high_court'],
+    ['rejoinder_affidavit', 'jharkhand_hc', 'high_court'],
+    ['counter_affidavit', 'delhi_district', 'district_court'],
+    ['rejoinder_affidavit', 'up_district', 'district_court'],
+  ])(
+    '%s at %s with no client_side: both roles are "[To be confirmed: role]", never Applicant',
+    (pack, court, ct) => {
+      const b = build(pack, ct, { court_id: court });
+      expect(roleCells(b)).toEqual(['[To be confirmed: role]', '[To be confirmed: role]']);
+      expect(part(b, 'Memo of Parties')).not.toMatch(/applicant/i);
+      expect(b.html).not.toMatch(PAIR);
+    },
+  );
+
+  it.each(['counter_affidavit', 'rejoinder_affidavit'])(
+    '%s with client_side set: still Petitioner / Respondent',
+    (pack) => {
+      for (const side of ['petitioner', 'respondent']) {
+        const b = build(pack, 'district_court', {
+          court_id: 'delhi_district',
+          client_side: side,
+          petitioner_name: 'Nita Lal',
+          respondent_name: 'Mohan Lal',
+        });
+        expect(roleCells(b)).toEqual(['Petitioner', 'Respondent']);
+        expect(b.html).not.toContain('[To be confirmed: role]');
+      }
+    },
+  );
+});
