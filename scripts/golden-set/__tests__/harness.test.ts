@@ -10,7 +10,7 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 
 import { evaluate, skipped } from '../lib/assert';
-import { estimateCost, RUN_LIMITS } from '../lib/cost';
+import { estimateCost, fixtureGroup, MAX_FIXTURES_DEFAULT, RUN_LIMITS } from '../lib/cost';
 import { checkComposition, checkFixture, loadFixtures } from '../lib/fixtures';
 import { renderFixture, renderSummary, summarise } from '../lib/report';
 import { purposeOf, stubEvents, stubParsedMessage, systemText } from '../lib/modules';
@@ -384,10 +384,15 @@ describe('cost: the estimate and the caps', () => {
     expect(RUN_LIMITS.maxFixturesHard).toBeGreaterThan(RUN_LIMITS.maxFixturesDefault);
     expect(RUN_LIMITS.maxTokensDefault).toBeGreaterThan(0);
   });
-  it('T-373: the count caps are 30 by default and 40 hard (the 25 fixtures fit under the default)', () => {
+  it('T-373 / T-683: the count caps are per group (v2 30, v3 10) and 40 hard; each group fits its own default', () => {
     expect(RUN_LIMITS.maxFixturesDefault).toBe(30);
     expect(RUN_LIMITS.maxFixturesHard).toBe(40);
-    expect(fixtures.length).toBeLessThanOrEqual(RUN_LIMITS.maxFixturesDefault);
+    expect(MAX_FIXTURES_DEFAULT).toEqual({ v2: 30, v3: 10 });
+    const v2 = fixtures.filter((f) => fixtureGroup(f) === 'v2').length;
+    const v3 = fixtures.filter((f) => fixtureGroup(f) === 'v3').length;
+    expect(v2).toBeLessThanOrEqual(MAX_FIXTURES_DEFAULT.v2);
+    expect(v3).toBeLessThanOrEqual(MAX_FIXTURES_DEFAULT.v3);
+    expect(v2 + v3).toBe(fixtures.length);
   });
 });
 

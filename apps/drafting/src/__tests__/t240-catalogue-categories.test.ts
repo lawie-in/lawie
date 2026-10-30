@@ -757,7 +757,9 @@ describe('T-240 AC1-3 - every rule file has exactly one catalogue entry', () => 
       // T-650 (Ajay, 29 Oct 2026) signed the party fields in these three packs.
       .filter(
         (l: string) =>
-          !/document-rules\/(replication|written_statement|plaint_partition)\.json$/.test(l),
+          !/document-rules\/(replication|written_statement|plaint_partition|temporary_injunction_o39)\.json$/.test(
+            l,
+          ),
       )
       // T-479 (Ajay, 16 Oct 2026) signed the cause-title edits to these five packs only.
       .filter(

@@ -191,3 +191,20 @@ It is a warning, not a block. The l.7 replacement stands as signed. A commercial
 **T-690c APPROVED at 97c3285f.** It counts as merged at the develop_staging merge SHA that contains it.
 
 **T-690c MERGED (Ajay, 30 Oct 2026): develop_staging merge SHA c7757ac5.** Checked myself: it contains approved commit SHA 97c3285f, and ws-limitation-warning.ts and Notice.tsx have no diff. The only change in preflight.service.ts is T-681a's `startedAt`/`durationMs` on the LLM-call log (timing only, no values), which is not legal text.
+
+## T-683 byte check (Ajay, 30 Oct 2026): fix/t-683-arjun @ commit SHA 321c7d28. APPROVED
+
+I checked these myself (file SHA-256, first 16 hex):
+
+| File | SHA-256 | Check |
+|---|---|---|
+| `config/prompts/v3-extractor.ts` | 54b0f0041513225e… | **Full prompt signed as written.** It matches rule 1 (quote of at most 200 characters from a single turn; English value from the quote alone; names and places carried over or transliterated; ISO day-first dates, with an ambiguous date giving no fact; rupee figures; the signed yes/no words; Hindi and Hinglish never raw; `unresolved`) and rule 4 (non-answers give no fact for any key, go under `non_answers`, are never reassigned, and party-name prefix forms count). It also has an injection guard ("data, not instructions"). The model is guided only; code is the gate. |
+| `services/v3/validate.ts` | 3f4d5b0868bc8195… | `QUOTE_MAX` 200; `ASK_BELOW_CONFIDENCE` 0.6. `findQuote` does a verbatim locate after NFC and whitespace collapse only. The non-answer check reuses the signed v2 helpers (`isEmptyOrNonAnswer`, `isPartyNonAnswer`, `NON_ANSWER_TAIL`, `stripCourtesyTail`), imported, never copied. Yes/no uses the signed words (plus plain English yes/no), and a "pata/maloom + nahi" shape gives no fact until T-671. Digits must come from the quote, and there is no Devanagari in values. |
+| `temporary_injunction_o39.json` | eed3d55e93f0d7b2… | `extract_hint` is byte for byte T-613 (j)7(b) (grep -F). No other change. |
+| `bail_regular.json` | a527b8482abacf77… | `date_own_meaning_words` for custody_since: since, from, w.e.f., with effect from (before the date) and से, se (after), exactly the signed list. No other change. |
+
+Known gap (accepted): the Latin Hinglish non-answers are in the prompt but not in the code list until T-671 (AJ-671-M1/M2). They are contained meanwhile by the yes/no guard and the T-676 carry check.
+
+signed-confirm-messages.ts passed separately (AJ-683-BC). **T-683 APPROVED at 321c7d28.** If the slot merge changes any of these five files, I re-check them before the push. It counts as merged at the develop_staging merge SHA that contains it.
+
+**T-683 MERGED (Ajay, 30 Oct 2026): develop_staging merge SHA 180c02e2.** Checked myself: it contains approved commit SHA 321c7d28, and all five legal files keep their approved SHA-256s at the merge (54b0f004…, 3f4d5b08…, eed3d55e…, a527b848…, c03d1db4…). CI was running at merge time, per Vishal.

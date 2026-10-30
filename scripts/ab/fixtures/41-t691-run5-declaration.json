@@ -1,0 +1,50 @@
+{
+  "id": "41-t691-run5-declaration",
+  "pack": "plaint_declaration",
+  "title": "T-691 A/B, run 5 #1 (v2 copy): declaration of title and cancellation of a forged sale deed (Lucknow)",
+  "risk": "Anushka run 5 Blocker 2: the declaration plaint added facts never given (consideration not received; no appearance before the Sub-Registrar); Major: the valuation given was dropped into a blank",
+  "source": "handoff/tickets/anushka-run5-prod-v1.2.2.md scenario 1 and Blockers 1-2; facts re-made fictionally from her report and from the T-683 fixture 32 (read-only). Court moved to Lucknow, which the court list holds (Sitapur is not in it: Blocker 1, a catalogue gap that is the same for both arms). Dates: father's death 14.02.2011, impugned deed 12.02.2025, knowledge 03.08.2026. Expectation basis: each `why` starts with the ruling it rests on (file in handoff/legal); no expectation cites case law. Court line excluded from scoring: known T-674 gap (no Civil Judge courts in the catalogue); Ajay, 30 Oct 2026.",
+  "review": "drafted by dev from Anushka's reports, not yet reviewed by Anushka",
+  "ajay": "Ajay, 30 Oct 2026, T-691 (handoff/legal/T-691-ab-matters-and-rubric-ajay.md)",
+  "language": "en",
+  "description": "Suit for declaration of title and cancellation of a sale deed. Plaintiff: Sample Person 1, child of Sample Person 3, aged 60, resident of Plot 000, Sample Nagar, Lucknow. Defendant: Sample Person 2, child of Sample Person 4, resident of Plot 001, Sample Nagar, Lucknow. The plaintiff owns agricultural plot no. 002, Sample Nagar, District Lucknow, inherited from the plaintiff's father Sample Person 3, who died on 14.02.2011; the plaintiff's name is in the khatauni and the plaintiff is in possession. On 03.08.2026 the plaintiff learnt from a new khatauni extract that a sale deed dated 12.02.2025 had been registered in the defendant's favour over this plot. The plaintiff never signed that sale deed; the plaintiff's signature on it is forged. The plaintiff asks for a declaration that the plaintiff is the owner of the plot and that the sale deed dated 12.02.2025 is void and not binding on the plaintiff, and for its cancellation. Valuation for jurisdiction Rs 3,00,000; court fee paid on that valuation. The cause of action arose on 03.08.2026, when the plaintiff learnt of the deed. The plot lies within the jurisdiction of this court. Documents: the khatauni extracts, the death certificate of the plaintiff's father and a certified copy of the sale deed dated 12.02.2025.",
+  "court": {
+    "state": "Uttar Pradesh",
+    "court_type": "district_court",
+    "court": "up_district_lucknow"
+  },
+  "answers": [],
+  "expect": {
+    "absent": [
+      {
+        "any_of": [
+          "consideration was received",
+          "consideration was not received",
+          "received any consideration",
+          "did not receive any consideration",
+          "no consideration",
+          "without consideration"
+        ],
+        "why": "T-675 test (a): no consideration fact is given, so the draft states neither receipt nor non-receipt"
+      },
+      {
+        "any_of": ["before the Sub-Registrar", "before the Sub Registrar"],
+        "why": "T-675 test (b): no fact about appearing before the Sub-Registrar is given, so the draft states neither appearance nor non-appearance"
+      },
+      {
+        "any_of": ["Lawie"],
+        "why": "T-485 (3), T-245 file: the Lawie disclaimer is never inside the court document's text"
+      },
+      {
+        "any_of": ["Shri/Smt"],
+        "why": "T-485 (4), T-245 file: never print both Shri and Smt."
+      }
+    ],
+    "present": [
+      {
+        "any_of": ["3,00,000"],
+        "why": "T-675: the valuation paragraph is built from the given value (Rs 3,00,000); O.VII R.1(i) CPC requires the valuation (Ajay, T-691 signing)"
+      }
+    ]
+  }
+}
