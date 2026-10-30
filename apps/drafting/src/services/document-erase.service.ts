@@ -14,7 +14,8 @@
  *      steps that remove or unset what they are read from
  *   2. reviewtokens, then reviewfeedbacks: deleted by documentId
  *   3. factdiffs: deleted by documentId and by ledgerId (deleteFactDiffsFor)
- *   4. factledgers, llmauxcalls: deleted through the saved intake/ledger ids
+ *   4. factledgers, llmauxcalls: deleted through the saved intake/ledger ids;
+ *      factledgers_v3 (T-682) through the saved intake ids
  *   5. generations, usagelogs, templateusages (documentId) and events (docId):
  *      kept, ids and numbers only, with the link unset
  *   6. documents: the row itself
@@ -37,6 +38,7 @@ import { LawieDocument } from '../models/Document.model';
 import { Event } from '../models/Event.model';
 import { FactDiff } from '../models/FactDiff.model';
 import { FactLedgerModel } from '../models/FactLedger.model';
+import { FactLedgerV3Model } from '../models/FactLedgerV3.model';
 import { Generation } from '../models/Generation.model';
 import { LlmAuxCall } from '../models/LlmAuxCall.model';
 import { ReviewFeedback } from '../models/ReviewFeedback.model';
@@ -52,6 +54,7 @@ export type EraseCollection =
   | 'reviewtokens'
   | 'factdiffs'
   | 'factledgers'
+  | 'factledgers_v3'
   | 'llmauxcalls'
   | 'generations'
   | 'usagelogs'
@@ -200,6 +203,14 @@ export async function eraseDocument(documentId: string): Promise<EraseResult> {
       ledgerIds.length === 0
         ? 0
         : (await FactLedgerModel.deleteMany({ _id: { $in: ledgerIds } })).deletedCount;
+
+    // T-682: a v3 ledger is reached through its intake, as v2's are; only the
+    // intakes no other live document reaches (erasableLinks).
+    step = 'factledgers_v3';
+    counts.factledgers_v3 =
+      intakeIds.length === 0
+        ? 0
+        : (await FactLedgerV3Model.deleteMany({ intakeId: { $in: intakeIds } })).deletedCount;
 
     step = 'llmauxcalls';
     counts.llmauxcalls =

@@ -29,7 +29,8 @@
  *        `reviewerErased: true` is set. The admin panel shows "reviewer: erased".
  *   3. reviewfeedbacks, reviewtokens: deleted by the user's document ids (tokens
  *      on the user's own documents go with the documents)
- *   4. factdiffs (deleteFactDiffsFor), factledgers, generations, llmauxcalls,
+ *   4. factdiffs (deleteFactDiffsFor), factledgers, factledgers_v3 (T-682),
+ *      generations, llmauxcalls,
  *      usagelogs, events, templateusages, sectionbookmarks, sectionrecents,
  *      bonuscredits: by userId
  *   5. documents: by userId, including isDeleted rows and rows a T-115b
@@ -57,6 +58,7 @@ import { LawieDocument } from '../models/Document.model';
 import { Event } from '../models/Event.model';
 import { FactDiff } from '../models/FactDiff.model';
 import { FactLedgerModel } from '../models/FactLedger.model';
+import { FactLedgerV3Model } from '../models/FactLedgerV3.model';
 import { Generation } from '../models/Generation.model';
 import { LlmAuxCall } from '../models/LlmAuxCall.model';
 import { ReviewFeedback } from '../models/ReviewFeedback.model';
@@ -78,6 +80,7 @@ export type AccountEraseStep =
   | 'reviewtokens'
   | 'factdiffs'
   | 'factledgers'
+  | 'factledgers_v3'
   | 'generations'
   | 'llmauxcalls'
   | 'usagelogs'
@@ -134,6 +137,7 @@ async function intakeIdsFor(uid: Types.ObjectId): Promise<string[]> {
   const lists = await Promise.all([
     Generation.distinct('intakeId', { userId: uid }),
     FactLedgerModel.distinct('intakeId', { userId: uid }),
+    FactLedgerV3Model.distinct('intakeId', { userId: uid }),
     LlmAuxCall.distinct('intakeId', { userId: uid }),
   ]);
   const ids = new Set<string>();
@@ -285,6 +289,10 @@ export async function eraseAccount(input: AccountEraseInput): Promise<AccountEra
 
     step = 'factledgers';
     counts.factledgers = await remove(FactLedgerModel, byUser);
+
+    // T-682 (Arjun Q5): the v3 typed ledgers go with the account, like v2's.
+    step = 'factledgers_v3';
+    counts.factledgers_v3 = await remove(FactLedgerV3Model, byUser);
 
     step = 'generations';
     counts.generations = await remove(Generation, byUser);
