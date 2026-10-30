@@ -526,9 +526,20 @@ export default function DocumentEditorPage() {
             {/* T-138: a guided document's title is typed by the advocate and can be one long
                 unbroken word. Below md it may shrink and break; from md it is as it was. */}
             <div className="min-w-0 break-words">
-              <h1 className="text-base font-bold capitalize text-slate-900">
+              {/* T-689b: the pack's name for the type (docTypeLabel) is shown as the pack
+                  writes it, so `capitalize` applies only to the title and the humanised
+                  docType fallback. */}
+              <h1
+                className={
+                  doc.docType !== 'guided' && doc.docTypeLabel
+                    ? 'text-base font-bold text-slate-900'
+                    : 'text-base font-bold capitalize text-slate-900'
+                }
+              >
                 {/* A document with no rule pack has no type of its own: its name is its title. */}
-                {doc.docType === 'guided' ? doc.title : doc.docType.replace(/_/g, ' ')}
+                {doc.docType === 'guided'
+                  ? doc.title
+                  : doc.docTypeLabel || doc.docType.replace(/_/g, ' ')}
               </h1>
               <p className="text-xs text-slate-400">{doc.courtLabel ?? ''}</p>
             </div>
