@@ -47,3 +47,10 @@ Data sources, in evaluation order:
 Architecture: ingest, then split paragraphs with citation, bench, date and court metadata; hybrid search (BM25 plus embeddings); re-rank; summaries only from retrieved text; a cite-check that refuses any citation not resolved to a stored judgment. T-710 uses the same store plus the matter facts. Cost: embeddings for 1-2M judgments plus per-query summaries, Ink-gated.
 T-711: no external data. An alias/tokeniser layer on our codes plus old-to-new maps (IPC-BNS, CrPC-BNSS, IEA-BSA). Cheapest; goes first.
 Ajay: the licence, and the liability wording for "no invented citations".
+
+## Decisions delegated to the team (founder, 30 Oct 2026: "Take all the decisions yourselves... just scope the work, don't start anything")
+Priya's defaults, for Arjun and Vikram to confirm next month:
+1. Pricing: case research and argument prep are charged in Ink per use (the same Ink gating as drafting); Vikram sets the Ink price from measured cost. The section finder is free with a daily limit.
+2. Data source: start with the official SC portal/eSCR (free) for T-709 v1; ask Indian Kanoon in writing for a commercial licence and price. Any paid source needs a monthly cap that Vikram sets, at or below projected research revenue.
+3. Order: T-711 first, then the T-709 data-source ADR (Arjun), then T-709 v1 (SC only), then T-710.
+Nothing starts until next month.
