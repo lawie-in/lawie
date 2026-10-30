@@ -1,6 +1,6 @@
 # T-684b: Per-role model settings follow-ups
 
-Status: item 1 MERGED into develop_staging cb7e4f80 (30 Oct 2026); item 8 MERGED 8ee8b64c (30 Oct 2026), so item 6 (prod migration, Nikhil, founder go) is unblocked; items 2-7 backlog. Raised 29 Oct 2026 by Kunal at T-684 READY (0896cfa9)
+Status: items 1 and 8 MERGED (cb7e4f80, 8ee8b64c). Item 6 DONE on prod 30 Oct 2026 10:37 UTC (Nikhil: 3 role keys set, 0 errors, legacy keys kept). Items 2-5 and 7 backlog (next month). Raised 29 Oct 2026 by Kunal at T-684 READY (0896cfa9)
 Priority: P2. The legacy-key removal waits until T-684 has been on prod for one release.
 
 1. The admin AI settings page's Copy action should use an insert-only PUT, so it never overwrites an existing ai.model.* key.
@@ -15,3 +15,6 @@ Priority: P2. The legacy-key removal waits until T-684 has been on prod for one 
 
 ## Added 30 Oct 2026 (Shashank, from item 1 review)
 8. apps/drafting/scripts/migrate-model-settings.ts:90-101 bumps updatedAt on rows that already exist (the same bug item 1 round 1 had). Fix it so existing rows are left untouched, before item 6 runs on prod. Item 6 is blocked until this is merged.
+
+## Deferred (next month)
+- Remove the resolveModel legacy-key fallback (drafting, S), once one release has run on role keys only (Arjun, 30 Oct 2026).
