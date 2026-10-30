@@ -1,6 +1,6 @@
 # T-705: Revising a draft (one free, then charged)
 
-Status: building (arjun). Raised 30 Oct 2026 by Priya on the founder's order via Arjun (13:40 UTC). Built by Arjun directly with crew agents; no dev lead.
+Status: MERGED into develop_staging ebf00150 (30 Oct 2026; Ajay approved). PRICE NOT YET APPROVED BY THE FOUNDER: must not reach prod until he does. Was: building (arjun). Raised 30 Oct 2026 by Priya on the founder's order via Arjun (13:40 UTC). Built by Arjun directly with crew agents; no dev lead.
 
 Scope: after a draft, the user can ask for a revision. The first revision is free; each one after that is charged per draft.
 
