@@ -393,11 +393,23 @@ async function takeUserSlot(userId: string, now: number): Promise<boolean> {
 function logCall(
   input: ExtractInput,
   status: 'completed' | 'degraded',
-  call: { model: string; effort: AiEffort | null; usage?: AuxCallUsage; bridgeSkipped?: number },
+  call: {
+    model: string;
+    effort: AiEffort | null;
+    usage?: AuxCallUsage;
+    bridgeSkipped?: number;
+    /** T-681a: epoch ms just before the model call; absent when no call was made. */
+    startedAt?: number;
+    /** T-681a: model call start to response or failure, ms; 0 when no call was made. */
+    durationMs?: number;
+  },
   reason?: DegradedReason,
 ): void {
   const u = call.usage;
   logLlmCall({
+    // T-681a: a line with no model call (a cap, an unset model) is stamped now, 0 ms.
+    startedAt: call.startedAt ?? Date.now(),
+    durationMs: call.durationMs ?? 0,
     stage: 'extract',
     call: EXTRACTOR_CALL,
     model: call.model,
@@ -450,8 +462,20 @@ async function runExtract(input: ExtractInput): Promise<ExtractOutcome> {
   // Set once the model is known, so a degraded line names it ('' before).
   let model = '';
   let effort: AiEffort | null = null;
+  /** T-681a: set just before the model call, for the llm_call line's started_at; unset before it. */
+  const timing: { started?: number } = {};
   const degraded = (reason: DegradedReason, usage?: ExtractUsage): ExtractOutcome => {
-    logCall(input, 'degraded', { model, effort, ...(usage ? { usage: usage.usage } : {}) }, reason);
+    logCall(
+      input,
+      'degraded',
+      {
+        model,
+        effort,
+        ...(usage ? { usage: usage.usage, durationMs: usage.durationMs } : {}),
+        ...(timing.started !== undefined ? { startedAt: timing.started } : {}),
+      },
+      reason,
+    );
     return usage ? { status: 'degraded', reason, usage } : { status: 'degraded', reason };
   };
 
@@ -496,6 +520,7 @@ async function runExtract(input: ExtractInput): Promise<ExtractOutcome> {
 
   state.calls += 1;
   const started = Date.now();
+  timing.started = started;
 
   let text: string;
   let usage: ExtractUsage;
@@ -552,7 +577,14 @@ async function runExtract(input: ExtractInput): Promise<ExtractOutcome> {
     input.answers,
     referenceYear(new Date()),
   );
-  logCall(input, 'completed', { model, effort, usage: usage.usage, bridgeSkipped });
+  logCall(input, 'completed', {
+    model,
+    effort,
+    usage: usage.usage,
+    bridgeSkipped,
+    startedAt: started,
+    durationMs: usage.durationMs,
+  });
   logValidated(input, result, dropped);
   state.last = result;
   return { status: 'ok', result, dropped, usage };
