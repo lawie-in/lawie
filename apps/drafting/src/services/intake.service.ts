@@ -78,7 +78,7 @@ import {
 } from './intake-text';
 import {
   buildFillUserPrompt,
-  buildMatchUserPrompt,
+  buildMatchUserParts,
   buildReceptionGuidedUserPrompt,
   buildExtractUserPrompt,
   buildReceptionPackUserPrompt,
@@ -1061,6 +1061,8 @@ async function modelCall(
   system: string,
   user: string,
   maxTokens: number,
+  /** T-681b: the cacheable leading part of `user` (the match catalogue); see callAuxModel. */
+  cachedUserPrefix?: string,
 ): Promise<string | null> {
   const started = Date.now();
   // T-453: effort per stage from ai.effort.intake (default medium). Never throws.
@@ -1086,6 +1088,7 @@ async function modelCall(
       user,
       maxTokens,
       effort,
+      ...(cachedUserPrefix !== undefined ? { cachedUserPrefix } : {}),
     });
     log('completed', r);
     await recordAuxCall({
@@ -1196,12 +1199,15 @@ export async function runIntake(req: IntakeRequest): Promise<IntakeResponse> {
     return fillTemplate(ctx, config, req);
   }
 
+  // T-681b: the catalogue part carries the cache breakpoint; the text is buildMatchUserPrompt's.
+  const matchParts = buildMatchUserParts(req.description, catalogue);
   const text = await modelCall(
     ctx,
     'intake_match',
     MATCH_SYSTEM_PROMPT,
-    buildMatchUserPrompt(req.description, catalogue),
+    matchParts.catalogue + matchParts.tail,
     INTAKE_LIMITS.matchMaxTokens,
+    matchParts.catalogue,
   );
   if (text === null) return { intake_id: intakeId, outcome: 'unavailable' };
 
@@ -1347,7 +1353,8 @@ async function cachedModelCall(
   system: string,
   user: string,
   maxTokens: number,
-  opts: { write?: boolean; fresh?: boolean } = {},
+  /** T-681b: `cachedUserPrefix` is passed through to modelCall; not part of the cache key. */
+  opts: { write?: boolean; fresh?: boolean; cachedUserPrefix?: string } = {},
 ): Promise<{ text: string | null; fromCache: boolean }> {
   const cacheParts = intakeCacheParts(ctx, purpose, system, user);
   if (!opts.fresh) {
@@ -1355,7 +1362,7 @@ async function cachedModelCall(
     if (cached !== null) return { text: cached, fromCache: true };
   }
   await ctx.spend();
-  const text = await modelCall(ctx, purpose, system, user, maxTokens);
+  const text = await modelCall(ctx, purpose, system, user, maxTokens, opts.cachedUserPrefix);
   if (text !== null && opts.write !== false && parseModelJson(text) !== null) {
     await writeIntakeCache(cacheParts, text);
   }
@@ -1819,14 +1826,16 @@ export async function runBriefIntake(req: BriefIntakeRequest): Promise<BriefInta
     const keywords = matchKeywords(req.description, allowed);
     const keywordIds = keywords.candidates.map((c) => c.templateId);
     const displayNames = displayNameIndex(catalogue);
-    const matchUser = buildMatchUserPrompt(req.description, catalogue);
+    // T-681b: the catalogue part carries the cache breakpoint; the text is buildMatchUserPrompt's.
+    const matchParts = buildMatchUserParts(req.description, catalogue);
+    const matchUser = matchParts.catalogue + matchParts.tail;
     const first = await cachedModelCall(
       ctx,
       'intake_match',
       MATCH_SYSTEM_PROMPT,
       matchUser,
       INTAKE_LIMITS.matchMaxTokens,
-      { write: false },
+      { write: false, cachedUserPrefix: matchParts.catalogue },
     );
     if (first.text === null) return { intake_id: intakeId, outcome: 'unavailable' };
 
@@ -1842,7 +1851,7 @@ export async function runBriefIntake(req: BriefIntakeRequest): Promise<BriefInta
         MATCH_SYSTEM_PROMPT,
         matchUser,
         INTAKE_LIMITS.matchRetryMaxTokens,
-        { write: false, fresh: true },
+        { write: false, fresh: true, cachedUserPrefix: matchParts.catalogue },
       );
       if (retry.text !== null) {
         const again = readMatchAnswer(parseModelJson(retry.text), allowed, displayNames);

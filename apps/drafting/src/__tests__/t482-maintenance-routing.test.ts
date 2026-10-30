@@ -24,7 +24,7 @@ import { _clearAppSettingsCache } from '../services/app-settings.service';
 import { getCatalogue } from '../services/intake.service';
 import { buildMatchUserPrompt, MATCH_SYSTEM_PROMPT } from '../services/intake.prompts';
 import { loadTemplateConfig } from '../services/template-engine.service';
-import { SdkStreamParams, sdkAnswer } from './sdkStream';
+import { SdkStreamParams, sdkAnswer, systemText } from './sdkStream';
 
 const mockMessagesStream = jest.fn();
 jest.mock('@anthropic-ai/sdk', () =>
@@ -237,14 +237,21 @@ describe('T-482 E: POST /intake routing, mocked model', () => {
       .mockResolvedValue(sdkAnswer(JSON.stringify({ fields: [] }), 900, 100));
     await request(app).post('/intake').set(headers()).send({ description: DESC, language: 'en' });
     const p = mockMessagesStream.mock.calls[0][0] as SdkStreamParams;
-    const user = p.messages.map((m) => m.content).join('\n');
+    // T-681b: the user turn is two text blocks (catalogue, then the description); read their text
+    const user = p.messages
+      .map((m) =>
+        typeof m.content === 'string'
+          ? m.content
+          : (m.content as unknown as Array<{ text: string }>).map((b) => b.text).join(''),
+      )
+      .join('\n');
     expect(user).toContain(DESC);
     expect(user).toContain(
       `${MAINT} | Maintenance Application (s.144 BNSS) | family | ${SHORT_DESCRIPTION} | match terms: `,
     );
     expect(user).toContain('bharan-poshan');
     expect(user).toContain('भरण-पोषण');
-    expect(p.system).toContain('Hindu Adoptions and Maintenance Act (HAMA)');
+    expect(systemText(p.system)).toContain('Hindu Adoptions and Maintenance Act (HAMA)');
   });
 
   it('a high-confidence maintenance match reaches the pack', async () => {

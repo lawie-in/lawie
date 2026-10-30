@@ -25,6 +25,43 @@ export interface AuxCallInput {
   maxTokens: number;
   /** T-453: output_config.effort. Omitted from the request when absent. */
   effort?: AiEffort;
+  /**
+   * T-681b: a leading part of `user` that is the same bytes on every request (the match
+   * catalogue). When given, and `user` starts with it, the user turn is sent as two text
+   * blocks, this prefix (carrying the call's one cache breakpoint) then the rest; the
+   * system goes as one block with no breakpoint, so the cached prefix is system + this.
+   * Same text, byte for byte. Absent (every other call): the request is unchanged.
+   */
+  cachedUserPrefix?: string;
+}
+
+/** T-681b: same 1h TTL as ai.service.ts SYSTEM_CACHE_TTL (not imported: ADR-019 §3.12). */
+const AUX_CACHE_TTL = '1h' as const;
+
+/** T-681b: system and messages for the request; plain strings unless a cached prefix applies. */
+function auxPromptParts(
+  input: AuxCallInput,
+): Pick<Anthropic.MessageStreamParams, 'system' | 'messages'> {
+  const prefix = input.cachedUserPrefix;
+  if (!prefix || !input.user.startsWith(prefix) || input.user.length === prefix.length) {
+    return { system: input.system, messages: [{ role: 'user', content: input.user }] };
+  }
+  return {
+    system: [{ type: 'text', text: input.system }],
+    messages: [
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: prefix,
+            cache_control: { type: 'ephemeral', ttl: AUX_CACHE_TTL },
+          },
+          { type: 'text', text: input.user.slice(prefix.length) },
+        ],
+      },
+    ],
+  };
 }
 
 export interface AuxCallUsage {
@@ -76,8 +113,7 @@ export async function callAuxModel(input: AuxCallInput): Promise<AuxCallResult> 
     const stream = await directClient.messages.stream({
       model: input.model,
       max_tokens: input.maxTokens,
-      system: input.system,
-      messages: [{ role: 'user', content: input.user }],
+      ...auxPromptParts(input),
       ...(input.effort ? { output_config: { effort: input.effort } } : {}),
     });
     for await (const event of stream) {
