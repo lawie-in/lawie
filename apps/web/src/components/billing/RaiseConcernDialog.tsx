@@ -111,8 +111,11 @@ export interface RaiseConcernDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   payment: ConcernPaymentSummary;
-  /** 201: the concern as returned (or built from what was sent when the body is short). */
-  onSubmitted: (concern: PaymentConcern) => void;
+  /**
+   * 201: the concern as returned (or built from what was sent when the body is short), and
+   * whether billing says the acknowledgement email was accepted for sending (AJ-646-M11 (1)).
+   */
+  onSubmitted: (concern: PaymentConcern, ack: { ackEmailQueued: boolean }) => void;
   /** 404 / 409: the row is stale; the list should reload. */
   onStale?: () => void;
   /** Return focus to the row's button (design: focus returns to Raise a concern). */
@@ -180,13 +183,21 @@ export function RaiseConcernDialog({
         },
       );
       if (res.status === 201 || res.ok) {
-        const body = (await res.json().catch(() => null)) as { concern?: unknown } | null;
+        const body = (await res.json().catch(() => null)) as {
+          concern?: unknown;
+          ackEmailQueued?: unknown;
+        } | null;
+        // AJ-646-M11 (1f07122c) condition (1): only an explicit true counts.
+        const ackEmailQueued =
+          body?.ackEmailQueued === true ||
+          (body?.concern as { ackEmailQueued?: unknown } | null | undefined)?.ackEmailQueued ===
+            true;
         const parsed = parseConcern(body?.concern);
         const concern: PaymentConcern = parsed
           ? { reason, note: trimmed, ...parsed }
           : { id: '', status: 'open', reference: '', reason, note: trimmed };
         setSending(false);
-        onSubmitted(concern);
+        onSubmitted(concern, { ackEmailQueued });
         onOpenChange(false);
         return;
       }

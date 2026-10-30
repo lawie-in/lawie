@@ -210,18 +210,98 @@ async function subscriptionIdFromInvoice(invoiceId: string): Promise<string | nu
   }
 }
 
-/** Plan context through the local Subscription row, or null. */
+/** The Razorpay subscription id a payment entity belongs to: its own field, else its invoice's. */
+async function subscriptionIdOf(entity: Entity): Promise<string | null> {
+  if (typeof entity.subscription_id === 'string' && entity.subscription_id) {
+    return entity.subscription_id;
+  }
+  if (typeof entity.invoice_id === 'string' && entity.invoice_id) {
+    return subscriptionIdFromInvoice(entity.invoice_id);
+  }
+  return null;
+}
+
+/**
+ * A plan cycle's grant row (`sub_renewal`, written by grantSubscriptionInk after the
+ * T-399 / T-415 cycle claim is won) counts for a payment when it is for the same user and
+ * subscription and was written within this window of the payment's Razorpay created_at.
+ * The grant follows the charge webhook (Razorpay retries it for about 24 h); cycles are a
+ * month or a year apart, so the window can never reach another cycle's grant.
+ */
+export const PLAN_GRANT_MATCH_BEFORE_MS = 10 * 60 * 1000;
+export const PLAN_GRANT_MATCH_AFTER_MS = 72 * 60 * 60 * 1000;
+
+/**
+ * T-646 (Arjun, 30 Oct): the Ink the ledger confirms a plan payment granted, in ledger
+ * units, or null. Exactly one `sub_renewal` row must match (user, subscription id in its
+ * metadata, created in the window above); none, or more than one, is not a confirmation.
+ * The sub_renewal row carries no payment id, so the match is by subscription and cycle time.
+ * The amount is the row's own delta, never the subscription's current plan.
+ */
+export async function confirmedPlanGrantUnits(input: {
+  userId: string;
+  razorpaySubscriptionId: string;
+  paymentCreatedAt: Date;
+}): Promise<number | null> {
+  const { userId, razorpaySubscriptionId, paymentCreatedAt } = input;
+  const db = mongoose.connection.db;
+  if (!db || !mongoose.Types.ObjectId.isValid(userId)) return null;
+  const at = paymentCreatedAt.getTime();
+  if (!Number.isFinite(at)) return null;
+  const rows = await db
+    .collection('inkledger')
+    .find(
+      {
+        userId: new mongoose.Types.ObjectId(userId),
+        reason: 'sub_renewal',
+        'metadata.razorpaySubscriptionId': razorpaySubscriptionId,
+        createdAt: {
+          $gte: new Date(at - PLAN_GRANT_MATCH_BEFORE_MS),
+          $lte: new Date(at + PLAN_GRANT_MATCH_AFTER_MS),
+        },
+      },
+      { projection: { delta: 1 } },
+    )
+    .limit(2)
+    .toArray();
+  if (rows.length !== 1) return null;
+  const delta = rows[0].delta;
+  return typeof delta === 'number' && delta > 0 ? delta : null;
+}
+
+/** A plan payment whose grant the ledger confirms, or null (see confirmedPlanGrantUnits). */
+export async function confirmedPlanGrantForPayment(
+  entity: Entity,
+  hint: { userId?: string; razorpaySubscriptionId?: string | null; createdAt?: Date } = {},
+): Promise<{ userId: string; razorpaySubscriptionId: string; grantedUnits: number } | null> {
+  const subId = hint.razorpaySubscriptionId || (await subscriptionIdOf(entity));
+  if (!subId) return null;
+  let userId = hint.userId;
+  if (!userId) {
+    const sub = await Subscription.findOne({ razorpaySubscriptionId: subId }, { userId: 1 }).lean();
+    if (!sub) return null;
+    userId = String(sub.userId);
+  }
+  const createdAt = fromUnixSeconds(entity.created_at) ?? hint.createdAt ?? null;
+  if (!createdAt) return null;
+  const grantedUnits = await confirmedPlanGrantUnits({
+    userId,
+    razorpaySubscriptionId: subId,
+    paymentCreatedAt: createdAt,
+  });
+  return grantedUnits === null ? null : { userId, razorpaySubscriptionId: subId, grantedUnits };
+}
+
+/**
+ * Plan context through the local Subscription row, or null. Its Ink is what the ledger
+ * confirms was granted for this cycle (confirmedPlanGrantUnits), else 0: never the
+ * subscription's current plan, which may have changed since the charge.
+ */
 async function subscriptionContextFor(
   entity: Entity,
   ctx: PaymentContext,
 ): Promise<PaymentContext | null> {
-  let subId =
-    typeof entity.subscription_id === 'string' && entity.subscription_id
-      ? entity.subscription_id
-      : null;
-  if (!subId && typeof entity.invoice_id === 'string' && entity.invoice_id) {
-    subId = await subscriptionIdFromInvoice(entity.invoice_id);
-  }
+  const subId = await subscriptionIdOf(entity);
   if (!subId) return null;
   const sub = await Subscription.findOne({ razorpaySubscriptionId: subId }).lean();
   if (!sub) return null;
@@ -230,12 +310,26 @@ async function subscriptionContextFor(
   const plan =
     (typeof planId === 'string' ? findSubscriptionPlan(planId) : undefined) ??
     (typeof rzpPlanId === 'string' ? findPlanByRazorpayId(rzpPlanId) : undefined);
+  // Only a settled charge can have granted; a failed or processing one is never looked up.
+  const paid = entity.status === 'captured' || entity.status === 'refunded';
+  let inkUnits = ctx.inkUnits;
+  if (inkUnits === undefined) {
+    const createdAt = fromUnixSeconds(entity.created_at);
+    inkUnits =
+      paid && createdAt
+        ? ((await confirmedPlanGrantUnits({
+            userId: String(sub.userId),
+            razorpaySubscriptionId: subId,
+            paymentCreatedAt: createdAt,
+          })) ?? 0)
+        : 0;
+  }
   return {
     ...ctx,
     userId: String(sub.userId),
     kind: 'plan',
     razorpaySubscriptionId: subId,
-    inkUnits: ctx.inkUnits ?? (plan ? plan.inkPerCycle * 2 : 0),
+    inkUnits,
     ...(plan ? { planId: plan.id } : {}),
   };
 }
@@ -645,7 +739,7 @@ export async function listPaymentsForUser(userId: string): Promise<PaymentRowVie
     const rzp = r.razorpayPaymentId as string;
     const counted = STATUS_RANK[r.status] >= STATUS_RANK.paid;
     const addedUnits = counted ? Math.max(0, r.inkUnits ?? 0) : 0;
-    // AJ-646-M10: the Ink taken back is never more than was added.
+    // AJ-646-M10 (5c2db598): the Ink taken back is never more than was added.
     const reversedUnits = counted ? Math.min(addedUnits, Math.max(0, r.inkReversedUnits ?? 0)) : 0;
     const netUnits = Math.max(0, addedUnits - reversedUnits);
     return {

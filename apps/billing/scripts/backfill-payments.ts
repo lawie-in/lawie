@@ -11,6 +11,9 @@
  *   backfilled: those rows start at deploy, from the webhook.
  * - The pre-Ink 15 Jun test payment is before the window and so is never touched.
  *
+ * Plan Ink (Arjun, 30 Oct): only what the ink ledger confirms that cycle granted
+ * (confirmedPlanGrantUnits); an unconfirmed plan payment is written with inkUnits 0.
+ *
  * Attribution, per payment (the same resolver the webhook uses):
  *   the existing Payment row; notes (user_id + sku_id); the POST /topup/order row;
  *   the T-413 top-up claim `topup:<order_id>` in inkledger; else, for a subscription charge,
@@ -50,7 +53,9 @@ import { env } from '../src/config/env';
 import { razorpay } from '../src/config/razorpay';
 import { Payment } from '../src/models/Payment.model';
 import { Subscription } from '../src/models/Subscription.model';
+import { fromUnix } from '../src/services/invoice.service';
 import {
+  confirmedPlanGrantUnits,
   type PaymentContext,
   resolvePaymentContext,
   upsertPaymentFromEntity,
@@ -108,10 +113,20 @@ async function subscriptionContext(entity: Entity): Promise<PaymentContext | nul
   const plan =
     (sub.planId ? findSubscriptionPlan(sub.planId) : undefined) ??
     findPlanByRazorpayId(String((sub as unknown as Entity).razorpayPlanId ?? ''));
+  // T-646 (Arjun, 30 Oct, (b)/(d)): the Ink is what the ledger confirms this cycle granted
+  // (the sub_renewal row for this user and subscription at the payment's time), never the
+  // subscription's current plan. Unconfirmed: 0, so no "+N Ink" is shown. The plan id is a
+  // label only.
+  const createdAt = fromUnix(entity.created_at, new Date(Number.NaN));
+  const confirmed = await confirmedPlanGrantUnits({
+    userId: String(sub.userId),
+    razorpaySubscriptionId: subId,
+    paymentCreatedAt: createdAt,
+  });
   return {
     userId: String(sub.userId),
     kind: 'plan',
-    inkUnits: plan ? plan.inkPerCycle * 2 : 0,
+    inkUnits: confirmed ?? 0,
     razorpaySubscriptionId: subId,
     ...(plan ? { planId: plan.id } : {}),
   };

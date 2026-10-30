@@ -153,9 +153,11 @@ function classify(
     case 'admin_grant':
       return { kind: 'grant', label: 'admin_grant' };
     case 'test_grant':
-      // AJ-646-M8: "Test Ink" only on a T-563 test account (users.isTestAccount === true).
-      // grantTestInk writes this reason only for such an account, but if the flag is ever
-      // cleared the row stays: a real user then sees the neutral admin-grant label.
+      // AJ-646-M8, AJ-646-M11 (1f07122c) condition (2): "Test Ink" only on a test or fixture
+      // account: a T-563 test account (users.isTestAccount === true) or the T-147e golden-set
+      // fixture user (run-origin isFixtureUser). grantTestInk writes this reason only for a test
+      // account, but if the flag is ever cleared the row stays: a real user then sees the
+      // neutral admin-grant label.
       return { kind: 'grant', label: isTestAccount ? 'test_grant' : 'admin_grant' };
     case 'generate':
     case 'regenerate':
@@ -539,7 +541,7 @@ export async function getInkHistory(
 
   const newestFirst = replayInkLedger(windowRows, {
     start: startState,
-    isTestAccount: user.isTestAccount === true,
+    isTestAccount: user.isTestAccount === true || isFixtureUser(userId),
   }).reverse();
 
   let start = 0;

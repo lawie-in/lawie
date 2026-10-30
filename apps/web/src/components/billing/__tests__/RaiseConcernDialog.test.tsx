@@ -206,9 +206,42 @@ describe('submit', () => {
         reason: 'wrong_amount',
         note: 'Charged 99',
       }),
+      { ackEmailQueued: false },
     );
     expect(onOpenChange).toHaveBeenCalledWith(false);
     expect(onStale).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['top-level true', { ackEmailQueued: true }, true],
+    ['top-level false', { ackEmailQueued: false }, false],
+    ['missing', {}, false],
+    ['the string "true"', { ackEmailQueued: 'true' }, false],
+    ['1', { ackEmailQueued: 1 }, false],
+  ])('201 passes ackEmailQueued (%s) up as %s', async (_n, extra, expected) => {
+    mockApiFetch.mockResolvedValue(
+      res(201, { concern: { id: 'c1', status: 'open', reference: 'CN-0001' }, ...extra }),
+    );
+    open();
+    choose('wrong_amount');
+    type('Charged 99');
+    await submit();
+    expect(onSubmitted).toHaveBeenCalledTimes(1);
+    expect(onSubmitted.mock.calls[0][1]).toEqual({ ackEmailQueued: expected });
+  });
+
+  it('a 201 with an unreadable body passes ackEmailQueued false', async () => {
+    mockApiFetch.mockResolvedValue({
+      ok: true,
+      status: 201,
+      json: async () => {
+        throw new Error('x');
+      },
+    });
+    open();
+    choose('charged_twice');
+    await submit();
+    expect(onSubmitted.mock.calls[0][1]).toEqual({ ackEmailQueued: false });
   });
 
   it('a 201 with an unreadable body still counts as sent', async () => {
@@ -224,6 +257,7 @@ describe('submit', () => {
     await submit();
     expect(onSubmitted).toHaveBeenCalledWith(
       expect.objectContaining({ status: 'open', reason: 'charged_twice' }),
+      { ackEmailQueued: false },
     );
   });
 

@@ -11,6 +11,11 @@
  *   - DESIGN: Rajesh's design note (handoff/design/T-646-payment-ink-history-concern.md); the
  *     bracketed placeholders, not yet signed by Ajay.
  *   - DEV: plain wording added by the developer where neither gives one; for Ajay's check.
+ *   - AJ-646-M11 (commit 1f07122c): every DESIGN/DEV string here is signed as written at
+ *     639d5bf8, with three conditions: the long concern-sent line only when the acknowledgement
+ *     email was accepted for sending (else `concernSentShort`); "Test Ink" only on test or
+ *     fixture accounts; a negative {signed} uses U+2212 (as M10).
+ *   - AJ-646-M10 (commit 5c2db598): the refund Ink line.
  */
 import { formatInvoiceDate } from '@/components/billing/InvoicesCard';
 import { formatInk } from '@/components/ui';
@@ -66,7 +71,7 @@ export const PAYMENT_COPY = {
   amountInclGst: (amount: string) => `${amount} incl. GST`,
   refundedAmount: (amount: string) => `Refunded ${amount}`, // DEV (VIKRAM §1: both figures)
   inkChange: (signed: string) => `${signed} Ink`, // DESIGN ("−2 Ink" / "+50 Ink")
-  /** Ink a refund took back, n unsigned (VIKRAM §3). AJ-646-M10. */
+  /** Ink a refund took back, n unsigned (VIKRAM §3). AJ-646-M10 (5c2db598). */
   inkTakenBack: (n: string) => `\u2212${n} Ink removed for the refund`,
   referenceAria: (tail: string) => `Payment reference ending ${tail}`, // DEV
   copyReference: 'Copy reference', // DESIGN
@@ -81,7 +86,9 @@ export const PAYMENT_COPY = {
     refunded: 'Concern: refunded',
   } as Record<string, string>, // DESIGN §3
   concernStatusOther: 'Concern raised', // DEV (a status the design does not name)
+  /** AJ-646-M11 (1f07122c): only when the POST says the acknowledgement email was accepted. */
   concernSent: 'Concern sent. We have emailed you an acknowledgement.', // DESIGN §3
+  concernSentShort: 'Concern sent.', // AJ-646-M11 (1f07122c), the signed short form
   toastClose: 'Close', // DEV (Toast close button name)
   toastRegion: 'Notifications', // DEV
 

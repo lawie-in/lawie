@@ -324,6 +324,18 @@ describe('refunded plan payment with no Payment row (grantedFor)', () => {
     const u = await seedUser();
     await seedSub(u, 'sub_t436', { planId: 'solo_monthly' });
     await User.updateOne({ _id: u }, { $set: { inkSub: PLAN_UNITS } });
+    // AJ-646-M10 / Arjun round 3: a no-row plan payment is reversed only when the ledger
+    // confirms the cycle's grant: one sub_renewal row for this user and subscription, written
+    // shortly after the payment's created_at (2026-10-01T10:00:00Z in refundWithEntity).
+    await ledger().insertOne({
+      userId: u,
+      delta: PLAN_UNITS,
+      reason: 'sub_renewal',
+      sourceBucket: 'sub',
+      balanceAfter: PLAN_UNITS,
+      metadata: { razorpaySubscriptionId: 'sub_t436' },
+      createdAt: new Date('2026-10-01T10:00:05Z'),
+    });
     return u;
   }
   const refundWithEntity = (entity: Record<string, unknown>, refundId: string, amount = 79900) => ({

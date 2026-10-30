@@ -108,6 +108,7 @@ describe('POST /payments/:id/concerns - happy path', () => {
         status: 'open',
         reference: expect.stringMatching(/^PC-[A-HJ-NP-Z2-9]{8}$/),
       },
+      ackEmailQueued: true,
     });
     expect(JSON.stringify(res.body)).not.toContain('4111');
 
@@ -190,6 +191,77 @@ describe('POST /payments/:id/concerns - happy path', () => {
     const pay = await mkPayment(u);
     const res = await post(u, String(pay._id), { reason: 'charged_no_ink' });
     expect(res.status).toBe(201);
+    expect(enqueueEmail).not.toHaveBeenCalled();
+  });
+});
+
+describe('POST /payments/:id/concerns - ackEmailQueued (AJ-646-M11 (1))', () => {
+  const ackCall = (c: unknown[]) =>
+    (c[0] as { template: string }).template === 'billing.concernReceived';
+
+  it('true when the acknowledgement enqueue resolves', async () => {
+    const u = await seedUser();
+    const pay = await mkPayment(u);
+    const res = await post(u, String(pay._id), { reason: 'charged_no_ink' });
+    expect(res.status).toBe(201);
+    expect(res.body.ackEmailQueued).toBe(true);
+  });
+
+  it('false when every enqueue rejects; the concern is still stored and 201', async () => {
+    const u = await seedUser();
+    const pay = await mkPayment(u);
+    (enqueueEmail as jest.Mock).mockRejectedValue(new Error('queue down'));
+    const res = await post(u, String(pay._id), { reason: 'charged_no_ink' });
+    expect(res.status).toBe(201);
+    expect(res.body.ackEmailQueued).toBe(false);
+    expect(await PaymentConcern.findById(res.body.concern.id).lean()).toMatchObject({
+      status: 'open',
+    });
+  });
+
+  it('false when only the acknowledgement rejects (the support notice resolving does not count)', async () => {
+    const u = await seedUser();
+    const pay = await mkPayment(u);
+    (enqueueEmail as jest.Mock).mockImplementation(async (job: { template: string }) => {
+      if (job.template === 'billing.concernReceived') throw new Error('ack failed');
+    });
+    const res = await post(u, String(pay._id), { reason: 'charged_no_ink' });
+    expect(res.status).toBe(201);
+    expect(res.body.ackEmailQueued).toBe(false);
+    expect((enqueueEmail as jest.Mock).mock.calls.some(ackCall)).toBe(true);
+  });
+
+  it('true when the acknowledgement resolves and only the support notice fails', async () => {
+    const u = await seedUser();
+    const pay = await mkPayment(u);
+    (enqueueEmail as jest.Mock).mockImplementation(async (job: { template: string }) => {
+      if (job.template !== 'billing.concernReceived') throw new Error('notice failed');
+    });
+    const res = await post(u, String(pay._id), { reason: 'charged_no_ink' });
+    expect(res.status).toBe(201);
+    expect(res.body.ackEmailQueued).toBe(true);
+  });
+
+  it('false when the acknowledgement enqueue never answers (times out); still 201', async () => {
+    const u = await seedUser();
+    const pay = await mkPayment(u);
+    (enqueueEmail as jest.Mock).mockImplementation((job: { template: string }) =>
+      job.template === 'billing.concernReceived'
+        ? new Promise(() => undefined)
+        : Promise.resolve(undefined),
+    );
+    const res = await post(u, String(pay._id), { reason: 'charged_no_ink' });
+    expect(res.status).toBe(201);
+    expect(res.body.ackEmailQueued).toBe(false);
+  }, 15000);
+
+  it('false (strictly boolean) with REDIS_URL unset; still 201 and nothing queued', async () => {
+    (env as unknown as Record<string, unknown>).REDIS_URL = undefined;
+    const u = await seedUser();
+    const pay = await mkPayment(u);
+    const res = await post(u, String(pay._id), { reason: 'charged_no_ink' });
+    expect(res.status).toBe(201);
+    expect(res.body.ackEmailQueued).toBe(false);
     expect(enqueueEmail).not.toHaveBeenCalled();
   });
 });

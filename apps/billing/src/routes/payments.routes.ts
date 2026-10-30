@@ -9,7 +9,10 @@
  *   500 read failed
  *
  * POST /payments/:id/concerns  { reason, note }
- *   201 { concern: { id, status, reference } }
+ *   201 { concern: { id, status, reference }, ackEmailQueued: boolean }
+ *       ackEmailQueued (AJ-646-M11 (1)): true only when the acknowledgement email's enqueue
+ *       resolved; false when it failed, timed out or no queue is configured. A queue
+ *       failure never fails the concern.
  *   400 bad body; 404 unknown, malformed or another user's payment;
  *   409 an open concern exists; 429 rate limited (+ Retry-After);
  *   503 the rate-limit store is down (fail closed, nothing stored); 500 otherwise
@@ -90,7 +93,8 @@ router.post('/payments/:id/concerns', authenticate, async (req: Request, res: Re
         res.status(429).json({ error: 'rate_limited', retryAfter: result.retryAfterSeconds });
         return;
       case 'created':
-        res.status(201).json({ concern: result.concern });
+        // AJ-646-M11 (1): the web shows the long toast only when this is true.
+        res.status(201).json({ concern: result.concern, ackEmailQueued: result.ackEmailQueued });
         return;
     }
   } catch (err) {

@@ -115,7 +115,12 @@ export interface ConcernView {
 }
 
 export type CreateConcernResult =
-  | { status: 'created'; concern: ConcernView }
+  | {
+      status: 'created';
+      concern: ConcernView;
+      /** AJ-646-M11 (1): true only when the acknowledgement's enqueue resolved. */
+      ackEmailQueued: boolean;
+    }
   | { status: 'not_found' }
   | { status: 'conflict' }
   | { status: 'rate_limited'; retryAfterSeconds: number };
@@ -182,11 +187,12 @@ export async function createPaymentConcern(input: {
 
   const concernId = String(created._id);
   logger.info({ concernId, paymentId, userId, reason: body.reason }, 'payment concern created');
-  await queueConcernEmails(concernId, userId);
+  const { ackQueued } = await queueConcernEmails(concernId, userId);
 
   return {
     status: 'created',
     concern: { id: concernId, status: created.status, reference: created.reference },
+    ackEmailQueued: ackQueued,
   };
 }
 
@@ -206,12 +212,23 @@ function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
 /**
  * Queues the acknowledgement and the support notice, ids only, and sets each
  * marker on success. Never throws. With REDIS_URL unset nothing is queued.
+ *
+ * AJ-646-M11 (1): `ackQueued` is true only when the acknowledgement's enqueue call
+ * resolved (the marker write after it does not count either way); false when it failed,
+ * timed out or was skipped (no queue).
  */
-export async function queueConcernEmails(concernId: string, userId: string): Promise<void> {
+export async function queueConcernEmails(
+  concernId: string,
+  userId: string,
+): Promise<{ ackQueued: boolean }> {
   if (!env.REDIS_URL) {
-    logger.warn({ concernId }, 'payment concern: REDIS_URL not set; emails not queued');
-    return;
+    logger.warn(
+      { concernId, ackQueued: false },
+      'payment concern: REDIS_URL not set; emails not queued',
+    );
+    return { ackQueued: false };
   }
+  let ackQueued = false;
   const jobs = [
     {
       template: CONCERN_ACK_TEMPLATE,
@@ -236,6 +253,7 @@ export async function queueConcernEmails(concernId: string, userId: string): Pro
           }),
           CONCERN_EMAIL_ENQUEUE_TIMEOUT_MS,
         );
+        if (j.template === CONCERN_ACK_TEMPLATE) ackQueued = true;
         await PaymentConcern.updateOne(
           { _id: new mongoose.Types.ObjectId(concernId), [j.marker]: null },
           { $set: { [j.marker]: new Date() } },
@@ -243,11 +261,12 @@ export async function queueConcernEmails(concernId: string, userId: string): Pro
       } catch (err) {
         logger.error(
           { concernId, template: j.template, errName: err instanceof Error ? err.name : 'unknown' },
-          'payment concern: email not queued',
+          'payment concern: email not queued (or marker not set)',
         );
       }
     }),
   );
+  return { ackQueued };
 }
 
 // ── Email view for the worker (no note) ──────────────────────────────────────

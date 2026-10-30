@@ -13,8 +13,10 @@ import request from 'supertest';
 
 import app from '../app';
 import { createVerifiedUser } from './verifiedUser';
+import { GOLDEN_SET_USER_ID } from '../services/run-origin';
 import {
   currentBucketsWithHolds,
+  getInkHistory,
   replayInkLedger,
   walkBack,
 } from '../services/ink-history.service';
@@ -406,6 +408,37 @@ describe('labels: Ajay M8 test grant, refund reversal, plan changes', () => {
       expect(await labelFor(flag)).toBe('admin_grant');
     },
   );
+
+  // AJ-646-M11 (1f07122c) condition 2: "Test Ink" only for test or fixture accounts.
+  // getInkHistory returns an empty page for the golden-set fixture user before it reads
+  // any row, so the fixture user never gets a label at all, and in particular never a
+  // real-looking one. The `|| isFixtureUser(userId)` in the replay call is therefore not
+  // reachable through getInkHistory (reported to the lead).
+  it('the fixture user: a test_grant row is never listed, so no label shows (no leak)', async () => {
+    const fixtureOid = new mongoose.Types.ObjectId(GOLDEN_SET_USER_ID);
+    await seedUser({ inkTopup: 20 }, GOLDEN_SET_USER_ID);
+    await seedRows([{ delta: 20, reason: 'test_grant', at: daysAgo(1), userId: fixtureOid }]);
+    const page = await getInkHistory(GOLDEN_SET_USER_ID);
+    expect(page.entries).toEqual([]);
+    expect(page.nextCursor).toBeNull();
+  });
+
+  it('a real user (isTestAccount false or absent) never gets test_grant, with or without other rows', async () => {
+    await seedUser({ inkTopup: 24, isTestAccount: false });
+    await seedRows([
+      { delta: 20, reason: 'test_grant', at: daysAgo(2) },
+      { delta: 4, reason: 'admin_grant', at: daysAgo(1) },
+    ]);
+    const labels = (await getInkHistory(USER_ID)).entries.map((e) => e.label);
+    expect(labels).toEqual(['admin_grant', 'admin_grant']);
+    expect(labels).not.toContain('test_grant');
+  });
+
+  it('a test account (isTestAccount === true) still gets test_grant through getInkHistory', async () => {
+    await seedUser({ inkTopup: 20, isTestAccount: true });
+    await seedRows([{ delta: 20, reason: 'test_grant', at: daysAgo(1) }]);
+    expect((await getInkHistory(USER_ID)).entries.map((e) => e.label)).toEqual(['test_grant']);
+  });
 
   it('admin_grant is admin_grant for everyone', async () => {
     await seedUser({ inkTopup: 4, isTestAccount: true });

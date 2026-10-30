@@ -5,6 +5,7 @@ import { act } from 'react';
 
 import { cleanupMounted, mount, stubMatchMedia } from '@/components/ui/__tests__/nl-test-utils';
 
+import { PAYMENT_COPY, formatSignedInk } from '../paymentCopy';
 import {
   PaymentHistoryCard,
   inkLines,
@@ -487,7 +488,10 @@ describe('concern states', () => {
     mockApiFetch.mockImplementation(async (path: string, init?: { method?: string }) => {
       if (path === '/api/billing/payments') return res(200, { payments });
       if (path === '/api/billing/payments/p1/concerns' && init?.method === 'POST') {
-        return res(201, { concern: { id: 'c1', status: 'open', reference: 'CN-0042' } });
+        return res(201, {
+          concern: { id: 'c1', status: 'open', reference: 'CN-0042' },
+          ackEmailQueued: true,
+        });
       }
       return res(404, {});
     });
@@ -529,6 +533,122 @@ describe('concern states', () => {
     await act(async () => btn('Submit')!.click());
     await flush();
     expect(listCalls()).toBe(2);
+  });
+});
+
+describe('concern toast text follows ackEmailQueued (AJ-646-M11 (1))', () => {
+  const LONG = 'Concern sent. We have emailed you an acknowledgement.';
+  const SHORT = 'Concern sent.';
+
+  async function submitWith(postBody: unknown) {
+    payments = [pay()];
+    mockApiFetch.mockImplementation(async (path: string, init?: { method?: string }) => {
+      if (path === '/api/billing/payments') return res(200, { payments });
+      if (path === '/api/billing/payments/p1/concerns' && init?.method === 'POST') {
+        return res(201, postBody);
+      }
+      return res(404, {});
+    });
+    await render();
+    await act(async () => btn('Raise a concern', row('p1'))!.click());
+    const select = document.querySelector('[role="dialog"] select') as HTMLSelectElement;
+    const setter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')!.set!;
+    act(() => {
+      setter.call(select, 'charged_no_ink');
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    await act(async () => btn('Submit')!.click());
+    await flush();
+  }
+  const concern = { id: 'c1', status: 'open', reference: 'CN-0042' };
+
+  it('copy: the long and short strings are exact', () => {
+    expect(PAYMENT_COPY.concernSent).toBe(LONG);
+    expect(PAYMENT_COPY.concernSentShort).toBe(SHORT);
+  });
+
+  it('ackEmailQueued === true (top level) shows the long text', async () => {
+    await submitWith({ concern, ackEmailQueued: true });
+    expect(body()).toContain(LONG);
+  });
+
+  it.each([
+    ['false', { concern, ackEmailQueued: false }],
+    ['missing', { concern }],
+    ['the string "true"', { concern, ackEmailQueued: 'true' }],
+    ['1', { concern, ackEmailQueued: 1 }],
+    ['null', { concern, ackEmailQueued: null }],
+  ])('ackEmailQueued %s shows only the short text', async (_n, postBody) => {
+    await submitWith(postBody);
+    expect(body()).toContain(SHORT);
+    expect(body()).not.toContain('emailed you');
+    expect(body()).not.toContain('acknowledgement');
+    // The concern still went through: the row shows it.
+    expect(row('p1').textContent).toContain('Concern: open');
+  });
+
+  it('an unreadable body also gets the short text', async () => {
+    payments = [pay()];
+    mockApiFetch.mockImplementation(async (path: string, init?: { method?: string }) => {
+      if (path === '/api/billing/payments') return res(200, { payments });
+      if (init?.method === 'POST') {
+        return {
+          ok: true,
+          status: 201,
+          json: async () => {
+            throw new Error('x');
+          },
+        };
+      }
+      return res(404, {});
+    });
+    await render();
+    await act(async () => btn('Raise a concern', row('p1'))!.click());
+    const select = document.querySelector('[role="dialog"] select') as HTMLSelectElement;
+    const setter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')!.set!;
+    act(() => {
+      setter.call(select, 'charged_no_ink');
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    await act(async () => btn('Submit')!.click());
+    await flush();
+    expect(body()).toContain(SHORT);
+    expect(body()).not.toContain('emailed you');
+  });
+});
+
+describe('negative Ink uses U+2212, never ASCII hyphen (AJ-646-M11 (3))', () => {
+  it('formatSignedInk and inkChange', () => {
+    expect(formatSignedInk(-2)).toBe('\u22122');
+    expect(formatSignedInk(-2.5)).toBe('\u22122.5');
+    expect(formatSignedInk(-2)).not.toContain('-');
+    expect(PAYMENT_COPY.inkChange(formatSignedInk(-2))).toBe('\u22122 Ink');
+    expect(PAYMENT_COPY.inkChange(formatSignedInk(-2))).not.toContain('-');
+    expect(PAYMENT_COPY.inkChange(formatSignedInk(50))).toBe('+50 Ink');
+  });
+
+  it('inkTakenBack (the M10 line) stays exact', () => {
+    expect(PAYMENT_COPY.inkTakenBack('20')).toBe('\u221220 Ink removed for the refund');
+    expect(PAYMENT_COPY.inkTakenBack('20')).not.toContain('-');
+  });
+
+  it('a row with a negative net Ink renders the true minus and no hyphen', async () => {
+    payments = [pay({ id: 'neg', inkAddedInk: null, inkDelta: -2 })];
+    await render();
+    const text = Array.from(row('neg').querySelectorAll('span.block'))
+      .map((s) => s.textContent ?? '')
+      .filter((t) => t.includes(' Ink'));
+    expect(text).toEqual(['\u22122 Ink']);
+    expect(text.join('')).not.toContain('-');
+  });
+
+  it('the M10 line on a refunded row is exact: true minus, no hyphen', async () => {
+    payments = [
+      pay({ status: 'refunded', refundedPaise: 6500, inkAddedInk: 50, inkReversedInk: 50 }),
+    ];
+    await render();
+    expect(row('p1').textContent).toContain('\u221250 Ink removed for the refund');
+    expect(row('p1').textContent).not.toContain('-50 Ink');
   });
 });
 

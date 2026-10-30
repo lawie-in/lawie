@@ -25,7 +25,7 @@ import logger from '../config/logger';
 import { Payment } from '../models/Payment.model';
 
 import { REFUND_REVERSAL_REASON, reverseRefundInk, topupClaimId } from './ink-ledger.service';
-import { resolvePaymentContext } from './payment-record.service';
+import { confirmedPlanGrantForPayment } from './payment-record.service';
 
 /** Sentry, ids and numbers only; the request and user are stripped. */
 function reportRefundInk(
@@ -107,15 +107,26 @@ async function grantedFor(
       };
     }
   }
-  // No row and no top-up claim: a plan charge whose row was never written. Attribute it the
-  // way the webhook does (subscription_id, or invoice -> subscription -> local row).
-  if (!row && paymentEntity && entityAmount) {
-    const ctx = await resolvePaymentContext({ ...paymentEntity, id: razorpayPaymentId });
-    if (ctx?.userId && ctx.kind && (ctx.inkUnits ?? 0) > 0) {
+  // No granted row and no top-up claim: a plan charge whose row was never written, or was
+  // written with no Ink. Granted ONLY when the ledger confirms this cycle's grant
+  // (confirmedPlanGrantForPayment: the sub_renewal row for this user and subscription at this
+  // payment's time), and for the amount that row granted. Otherwise unresolved.
+  if (paymentEntity && entityAmount && (!row || row.kind === 'plan')) {
+    const confirmed = await confirmedPlanGrantForPayment(
+      { ...paymentEntity, id: razorpayPaymentId },
+      row
+        ? {
+            userId: String(row.userId),
+            razorpaySubscriptionId: row.razorpaySubscriptionId ?? null,
+            createdAt: row.createdAt,
+          }
+        : {},
+    );
+    if (confirmed) {
       return {
-        userId: ctx.userId,
-        kind: ctx.kind,
-        grantedUnits: ctx.inkUnits as number,
+        userId: confirmed.userId,
+        kind: 'plan',
+        grantedUnits: confirmed.grantedUnits,
         amountPaise: entityAmount,
       };
     }

@@ -138,7 +138,7 @@ export function concernChip(status: string): { variant: ChipVariant; label: stri
 /**
  * VIKRAM §3: the Ink lines under the purpose. Line 1: "+{added} Ink" (or the net inkDelta when
  * billing did not send inkAddedInk). Line 2, refunded / partly refunded rows with
- * inkReversedInk > 0 only: "−{n} Ink removed for the refund" (AJ-646-M10), n clamped to the Ink
+ * inkReversedInk > 0 only: "−{n} Ink removed for the refund" (AJ-646-M10, 5c2db598), n clamped to the Ink
  * added when both are known. A fully refunded top-up shows both.
  */
 export function inkLines(row: PaymentRow): string[] {
@@ -150,7 +150,7 @@ export function inkLines(row: PaymentRow): string[] {
   }
   const refunded = row.status === 'refunded' || row.status === 'partly_refunded';
   if (refunded && row.inkReversedInk !== null && row.inkReversedInk > 0) {
-    // AJ-646-M10: never more than was added (when both are known).
+    // AJ-646-M10 (5c2db598): never more than was added (when both are known).
     const shown =
       row.inkAddedInk !== null ? Math.min(row.inkReversedInk, row.inkAddedInk) : row.inkReversedInk;
     if (shown > 0) lines.push(PAYMENT_COPY.inkTakenBack(formatInk(shown)));
@@ -527,10 +527,14 @@ function PaymentHistoryCardBody() {
           payment={summaryFor(dialog.row)}
           onCloseAutoFocus={restoreFocus}
           onStale={() => void load()}
-          onSubmitted={(concern) => {
+          onSubmitted={(concern, { ackEmailQueued }) => {
             const id = dialog.row.id;
             setSentConcerns((prev) => ({ ...prev, [id]: concern }));
-            toast.show({ kind: 'success', message: PAYMENT_COPY.concernSent });
+            // AJ-646-M11 (1f07122c) condition (1): the long line only when the email was accepted.
+            toast.show({
+              kind: 'success',
+              message: ackEmailQueued ? PAYMENT_COPY.concernSent : PAYMENT_COPY.concernSentShort,
+            });
             // Focus target: the row's View button replaces Raise a concern.
             focusViewFor.current = id;
           }}
