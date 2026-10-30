@@ -49,3 +49,10 @@ Then a fresh reviewer, and Arjun gives AB_ARJUN_GO after reading Ajay's signed f
 - Arjun reads the sealed key file only after both scores are in.
 - Shashank sends Priya the key file's SHA-256 and the branch name for this ticket.
 - Scoring falls under the 75% stop rule: if the stop hits first, the drafts keep and are scored next month.
+
+## Run done (Shashank, 30 Oct 2026 12:45 UTC)
+One --real run, exit 0. Spend ₹256.87 (below the ₹400 stop and the ₹600 cap). 20/20 drafts delivered.
+- Branch: ab/t-691-run-20261030 @ ccb73b28. Never merged; Arjun deletes it after he opens the key.
+- Outputs: scripts/ab/out/run-20261030/2026-10-30T12-45-00-272Z/ (scoring/, vikram/, KEY.sealed.json), committed unread.
+- Key SHA-256: 27f5d4ca0824f1ed6792768a253b1d8a2e76108331cd22a70bec15c68bcc011f
+- Scoring: Ajay and Anushka (scoring/), Vikram (vikram/). Arjun opens the key only after both scores are in.
