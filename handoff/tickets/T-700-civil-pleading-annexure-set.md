@@ -1,6 +1,6 @@
 # T-700: Civil pleadings get their own annexure set
 
-Status: READY (vishal, fix/t-700-civil-annexure-set @ d0fc22df, 30 Oct 2026; reviewer round 2 PASS; Ajay AJ-700-BC3 84802333). Was: ASSIGNED vishal 30 Oct 2026 (v1.3.0, full chain). Was: backlog, P1, the v1.3.0 headline (legal; Ajay ruled AJ-700 acb308d9; ready to assign next session). Raised 30 Oct 2026 by Priya from Anushka run 5h on prod v1.2.9 (FAIL, pre-existing). Folds in T-689d.
+Status: MERGED into develop_staging 10195894 (30 Oct 2026, CI 1750 green). Was: READY (vishal, fix/t-700-civil-annexure-set @ d0fc22df, 30 Oct 2026; reviewer round 2 PASS; Ajay AJ-700-BC3 84802333). Was: ASSIGNED vishal 30 Oct 2026 (v1.3.0, full chain). Was: backlog, P1, the v1.3.0 headline (legal; Ajay ruled AJ-700 acb308d9; ready to assign next session). Raised 30 Oct 2026 by Priya from Anushka run 5h on prod v1.2.9 (FAIL, pre-existing). Folds in T-689d.
 
 ## What is wrong
 annexures.service.ts builds one annexure set for every pack, and it is the criminal-bail set. Now that a written statement no longer gets the Synopsis (T-689c), the rest is visible:
