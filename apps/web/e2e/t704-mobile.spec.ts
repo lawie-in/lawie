@@ -269,6 +269,22 @@ async function expectNothingClipped(page: Page): Promise<void> {
   expect(offenders, 'elements cut off past the right edge').toEqual([]);
 }
 
+/** T-704a: the document header uses the nl tokens, not slate. */
+async function expectDocHeaderTokens(page: Page): Promise<void> {
+  const back = page.getByTitle('Back to dashboard');
+  const title = page.getByRole('heading', { level: 1 }).first();
+  const subtitle = title.locator('xpath=following-sibling::p[1]');
+  for (const [loc, token] of [
+    [back, 'text-nl-soft'],
+    [title, 'text-nl-text'],
+    [subtitle, 'text-nl-soft'],
+  ] as const) {
+    const cls = (await loc.getAttribute('class')) ?? '';
+    expect(cls, `class "${cls}"`).not.toMatch(/text-slate-/);
+    expect(cls).toContain(token);
+  }
+}
+
 async function expectMainWide(page: Page): Promise<void> {
   const width = await page
     .locator('main')
@@ -312,6 +328,10 @@ test.describe('T-704 a: no horizontal page overflow', () => {
     await page.goto('/dashboard/new');
     await expect(page.getByLabel('Your matter')).toBeVisible();
     await settle(page);
+    // T-704a: the heading keeps the folio's inset at 390 (>= 16px from the edge).
+    const h1 = page.getByRole('heading', { level: 1 }).first();
+    const left = await h1.evaluate((el) => el.getBoundingClientRect().left);
+    expect(left).toBeGreaterThanOrEqual(16);
     await expectNoSidewaysScroll(page);
     await expectNothingClipped(page);
     await expectMainWide(page);
@@ -323,6 +343,7 @@ test.describe('T-704 a: no horizontal page overflow', () => {
     await page.goto('/dashboard/documents/d1');
     await expect(page.locator('.ProseMirror')).toBeVisible();
     await settle(page);
+    await expectDocHeaderTokens(page);
     await expectNoSidewaysScroll(page);
     await expectNothingClipped(page);
     await expectMainWide(page);
@@ -409,6 +430,18 @@ test.describe('T-704 d: screenshots for review', () => {
 
     await page.goto('/dashboard/documents/d1');
     await expect(page.locator('.ProseMirror')).toBeVisible();
+    await saveShot(page, testInfo, 'any', 't704-document');
+  });
+});
+
+test.describe('T-704a: document page screenshot at 1280', () => {
+  test('document page header', async ({ page, context }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop-1280', 'the 1280 screenshot is taken here');
+    await hideDevOverlay(page);
+    await seedSignedIn(page, context, { mocks: draftingMocks() });
+    await page.goto('/dashboard/documents/d1');
+    await expect(page.locator('.ProseMirror')).toBeVisible();
+    await expectDocHeaderTokens(page);
     await saveShot(page, testInfo, 'any', 't704-document');
   });
 });

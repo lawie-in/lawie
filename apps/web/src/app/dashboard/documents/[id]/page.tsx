@@ -518,7 +518,7 @@ export default function DocumentEditorPage() {
           <div className="flex min-w-0 items-center gap-3">
             <button
               onClick={() => router.push('/dashboard')}
-              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              className="text-nl-soft hover:bg-nl-brass-light hover:text-nl-text rounded-lg p-1.5"
               title="Back to dashboard"
             >
               <ArrowLeft size={18} />
@@ -532,8 +532,8 @@ export default function DocumentEditorPage() {
               <h1
                 className={
                   doc.docType !== 'guided' && doc.docTypeLabel
-                    ? 'text-base font-bold text-slate-900'
-                    : 'text-base font-bold capitalize text-slate-900'
+                    ? 'text-nl-text text-base font-bold'
+                    : 'text-nl-text text-base font-bold capitalize'
                 }
               >
                 {/* A document with no rule pack has no type of its own: its name is its title. */}
@@ -541,7 +541,7 @@ export default function DocumentEditorPage() {
                   ? doc.title
                   : doc.docTypeLabel || doc.docType.replace(/_/g, ' ')}
               </h1>
-              <p className="text-xs text-slate-400">{doc.courtLabel ?? ''}</p>
+              <p className="text-nl-soft text-xs">{doc.courtLabel ?? ''}</p>
             </div>
           </div>
 
