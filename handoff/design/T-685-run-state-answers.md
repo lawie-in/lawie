@@ -121,3 +121,5 @@ Rules for the edit: (a) each existing model call site becomes `const r = (await 
 **Q5 — facts for generation at stage ≥ 2:** when the run's `ledgerStore` is `v3` and a v3 ledger exists for the intake, generation reads `factsForGeneration` (v3); otherwise v2 `currentState` as today. T-682 condition 6 proves the two are byte-equal for the v2 fixtures; add one test that a fixture intake written at stage 1 yields byte-equal facts from both readers, so the draft input does not change by the switch alone.
 
 Grant: `ai.service.ts` is added to Vishal's T-685 files for the hooks parameter only (Priya), with Ajay's diff check at merge.
+
+**Ajay's condition on Q1 (30 Oct 2026, accepted):** a replayed step substitutes the stored *model output* only; every check that ran on the live output (the T-611 gates included) runs again on the replayed output, none skipped. A replay that bypasses a check counts as a legal change and fails his diff check. So `hooks.before` sits exactly at the model call, never around the checks that follow it.
