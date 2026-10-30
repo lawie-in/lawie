@@ -1,6 +1,6 @@
 # T-683 — v3 P1: Extractor role (C)
 
-Status: backlog, drafting v3 Phase 1 (ADR handoff/design/ADR-drafting-v3.md, Arjun signed 26 Oct). Behind feature.drafting_v3_stage. Founder re-plan 29 Oct 2026.
+Status: MERGED into develop_staging 180c02e2 (30 Oct 2026; CI 1586 green; Ajay 96f3129c). Behind stage 0; Phase 1 completes with T-685. Was: backlog, drafting v3 Phase 1 (ADR handoff/design/ADR-drafting-v3.md, Arjun signed 26 Oct). Behind feature.drafting_v3_stage. Founder re-plan 29 Oct 2026.
 
 ## Acceptance criteria
 1. One Sonnet call per intake turn: description + answer → ledger candidates. Code validates types and ranges and rejects bad values.
