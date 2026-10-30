@@ -54,6 +54,7 @@ import type { RulePack, RulePackFact } from './rule-pack.service';
 import { s138BriefDateCheck } from './s138-date-checks';
 import { evaluateShowIf } from './template-engine.service';
 import { humaniseOptionLabel } from './template-promoter';
+import { WS_OVER_90_DAYS_WARNING, wsOver90DaysWarningApplies } from './ws-limitation-warning';
 
 // ── Shapes ──────────────────────────────────────────────────────────────────
 
@@ -222,6 +223,13 @@ export interface Brief {
    * server had no ledger: then nothing counts as ledger-given (fails closed).
    */
   ledger_given_keys?: string[];
+  /**
+   * T-690c: soft findings on the brief's own values, shown on the brief screen
+   * before Confirm (the ready screen gets them from the generate response's
+   * `done` event, taken from the brief rebuilt there). Warnings only: they never block Confirm. On written_statement, Ajay's signed
+   * `ws_over_90_days` text when days_from_service is over 90. Absent when none.
+   */
+  soft_findings?: Array<{ rule_id: string; text: string }>;
 }
 
 export interface LooseDate {
@@ -1869,6 +1877,10 @@ export function buildBrief(input: BuildBriefInput): Brief {
   // T-363 AC1: T-192's B2 on the brief's own dates, for the advocate to confirm.
   const dateCheck = s138BriefDateCheck(input.kind.id, items);
 
+  // T-690c: T-690b's 90-day warning on the guided brief path. A warning only:
+  // it never touches can_confirm or the blockers. Worked out on every build.
+  const softFindings = wsBriefSoftFindings(input.kind.id, items);
+
   return {
     kind: input.kind,
     court,
@@ -1880,7 +1892,24 @@ export function buildBrief(input: BuildBriefInput): Brief {
     ...confirm,
     ...(dateCheck ? { date_check: dateCheck } : {}),
     ...(input.ledgerGiven ? { ledger_given_keys: [...input.ledgerGiven] } : {}),
+    ...(softFindings.length > 0 ? { soft_findings: softFindings } : {}),
   };
+}
+
+/**
+ * T-690c: on a written_statement brief, the signed `ws_over_90_days` warning
+ * when the placed days_from_service value (a string; lists are ignored) is over
+ * 90. Empty for any other kind, for no kind, and for a missing value.
+ */
+function wsBriefSoftFindings(
+  kindId: string | null,
+  items: BriefItem[],
+): Array<{ rule_id: string; text: string }> {
+  if (kindId !== 'written_statement') return [];
+  const value = items.find((i) => i.key === 'days_from_service')?.value;
+  if (typeof value !== 'string') return [];
+  if (!wsOver90DaysWarningApplies('written_statement', { days_from_service: value })) return [];
+  return [{ rule_id: 'ws_over_90_days', text: WS_OVER_90_DAYS_WARNING }];
 }
 
 /**
