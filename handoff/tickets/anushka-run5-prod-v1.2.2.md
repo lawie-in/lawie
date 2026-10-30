@@ -261,3 +261,38 @@ Not tested: phone width (not asked); PDF byte-check (smoke asked only for the ex
 Would I use this on a real matter today? On this item, yes: a late WS is now flagged before Confirm and on the ready screen. The wider v1.3 items (dropped facts and others) remain open.
 
 Arjun: T-690b closed on prod. Minors to Priya for tickets: (a) warning should also derive from the service date when the days figure is blank (Ajay: is the date alone enough to warn?); (b) document page top label "Petition" for a written statement.
+
+## Run 5h — prod v1.2.9 (main 3082cc49), 30 Oct 2026 07:55–08:08 UTC — T-689c re-check
+
+Headline: T-689c (no Synopsis on defence pleadings), T-689b naming, T-668e party description. Verdict received by Arjun 08:08 UTC, verbatim:
+
+VERDICT: FAIL
+Tested: https://lawie.in (prod, v1.2.9) · 30 Oct 2026, 07:55–08:08 UTC · same test account, signed in by script, 34 Ink at start, 32 at end · 1280 wide. Scope: WS naming, WS and HC annexures, party-field wording, smoke.
+
+Scenarios
+| # | What I did | Expected | What happened | Result |
+| 1 | Opened the run-5g Mysuru WS: list, page header, Document info | All say "Written Statement" | List "Written Statement (Order VIII CPC) — IN THE COURT OF DISTRICT JUDGE, MYSURU"; header "Written Statement | District Court, Mysuru"; Document info "Type: Written Statement" | Pass |
+| 2 | Downloaded that WS's annexures (7 pages, 108,018 B, "%PDF"), read the text | No Synopsis; letters without gap; "Nature of matter: Written Statement (Order VIII CPC)" | No Synopsis; annexures A–F in order with no gap. "Nature of matter" appears nowhere in the file | Partial |
+| 3 | Read the same WS annexures as a lawyer | Annexures for a civil written statement | Criminal-bail boilerplate (Blocker below) | Fail |
+| 4 | HC anticipatory bail for petitioner Sanjay Kumar Mishra, High Court of Judicature at Patna (draft 1 of 2, 2 Ink); downloaded annexures (8 pages, 115,193 B, "%PDF") | Synopsis present | Annexure B "SYNOPSIS", "Nature of matter: Anticipatory Bail Application"; index lists "2. Synopsis — Annexure B". Draft heading "IN THE HIGH COURT OF JUDICATURE AT PATNA", "…UNDER SECTION 482 OF THE BHARATIYA NAGARIK SURAKSHA SANHITA, 2023" | Pass |
+| 5 | Declaration brief, defendant box "a person claiming through a forged sale deed", clicked elsewhere (no draft) | Accepted | No block line; Confirm enabled | Pass |
+| 6 | Same box changed to "Not known (buyer)" | Instruction shown; blocked | "Give the name, or only a description that identifies the party, without words like "Not known"." plus "Needed to continue"; Confirm aria-disabled="true" | Pass |
+| 7 | Same box changed to "Not Known Traders" | Accepted | No block line; Confirm enabled | Pass |
+| 8 | Smoke: signed-in dashboard, open newest document, export buttons | Loads, opens, export present | "Your shelf" loads signed in; HC anticipatory bail opens; PDF and DOCX buttons present (2) | Pass |
+
+Findings
+- Blocker: the WS annexures are built from a criminal-bail template, so the wrong document content reaches the filing pack:
+  - Annexure A Memo of Parties: "Applicant  Prakash Gowda" (he is the Defendant); "Respondent  ___________" (the Plaintiff, Lakshmi Narayan Hegde, is missing).
+  - Annexure B List of Dates: "FIR No. ___________ registered at Police Station ___________", "Date of arrest / apprehension", "Filing of the present application/petition". None of the given dates (10.01.2025 loan, 15.06.2025 repayment, 01.07.2026 summons) are listed.
+  - Annexure C Index: "7. Copy of FIR / Complaint (if available)", "8. Identity and Address Proof of Applicant/Petitioner".
+  - Annexure F Affidavit: "That I am the above-named Applicant/Petitioner in the accompanying matter…", "…paragraphs 1 to 39 of the above petition…".
+  - Steps: open the run-5g Mysuru WS → Create annexures → Download annexures (PDF).
+  - A court would not accept these with a written statement; a hurried junior could file them as they are.
+- Major: "Nature of matter: Written Statement (Order VIII CPC)" is not in the WS annexures at all. The release claim cannot be confirmed because the only "Nature of matter" line was in the removed Synopsis.
+- Minor: none new.
+
+Not tested: phone width (not asked); annexures of other civil documents (probably the same template — worth checking with the fix). Drafts used: 1 of 2. Annexure PDFs read as text with pdftotext only.
+
+Would I use this on a real matter today? Not the WS annexures: they describe the defendant as an applicant in an FIR matter. The WS naming, HC Synopsis and party-field fixes are good.
+
+Arjun: T-689b, T-668e and the T-689c Synopsis rule PASS on prod. FAIL is on the annexure pack for civil pleadings (pre-existing: annexures.service.ts is the criminal-bail set for every pack) and on the Nature-of-matter line living only in the removed Synopsis. Next headline (v1.3.0): civil-pleading annexure set — legal content, Ajay rules what a WS/suit pack contains (Memo of Parties with Plaintiff/Defendant, List of Dates from the brief, Index, Affidavit in the defendant's voice; no FIR lines) and where "Nature of matter" goes when there is no Synopsis. Not a rollback: v1.2.8 had the same annexure content plus a wrong Synopsis.

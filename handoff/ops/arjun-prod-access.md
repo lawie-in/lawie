@@ -420,3 +420,14 @@ Rule from now on: **Arjun may merge any `release/*` PR into `main`** without a p
 2. the previous loop's Anushka check on prod passed (or the founder overruled it in writing);
 3. the release PR was cut by Priya from `develop_staging` head with the standard exclusions and its "What a user can now do" is in the PR body.
 The overnight 08:00 IST window of 29 Oct is superseded. Nikhil's standing deploy go (merge of a `release/*` PR into `main`) is unchanged. Merging `develop_staging` into `develop` stays the founder's alone.
+
+### SSM version 21 (30 Oct 2026, 07:55 UTC, Nikhil): Active, NOT default
+Asked by Arjun at 07:52 UTC (repo going private). JSON: `handoff/ops/runbooks/lawie-prod-ops-v21.json`. The only change from v20, besides the description, is the new action `git-remote`, which takes no params. It runs as ubuntu in `~/lawie` and prints:
+- the `origin` URL, with any https userinfo replaced by `<userinfo-masked>`;
+- the fetch-URL count;
+- the first word of `credential.helper` only (an inline `!…` helper shows as `inline-shell-helper`);
+- whether `~/.git-credentials` exists;
+- the file NAMES in `~/.ssh`;
+- the `Host`/`Hostname` lines of `~/.ssh/config`.
+
+It never prints a token or key. The masking and helper reduction were tested locally. Default stays 13; run it pinned with `--document-version 21`.
