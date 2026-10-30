@@ -47,6 +47,7 @@ import { TemplateUsage } from '../models/TemplateUsage.model';
 import { UsageLog } from '../models/UsageLog.model';
 
 import { deleteFactDiffsFor } from './fact-diff-log';
+import { V3RunModel } from './v3/run.model';
 
 export type EraseCollection =
   | 'links'
@@ -211,6 +212,8 @@ export async function eraseDocument(documentId: string): Promise<EraseResult> {
       intakeIds.length === 0
         ? 0
         : (await FactLedgerV3Model.deleteMany({ intakeId: { $in: intakeIds } })).deletedCount;
+    // T-685 (Arjun §12.2): the v3 run docs of the same intakes go with their ledger.
+    if (intakeIds.length > 0) await V3RunModel.deleteMany({ intakeId: { $in: intakeIds } });
 
     step = 'llmauxcalls';
     counts.llmauxcalls =

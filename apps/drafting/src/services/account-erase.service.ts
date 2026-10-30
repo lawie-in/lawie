@@ -69,6 +69,7 @@ import { TemplateUsage } from '../models/TemplateUsage.model';
 import { UsageLog } from '../models/UsageLog.model';
 
 import { deleteFactDiffsFor } from './fact-diff-log';
+import { V3RunModel } from './v3/run.model';
 
 export type AccountEraseStep =
   | 'read'
@@ -293,6 +294,8 @@ export async function eraseAccount(input: AccountEraseInput): Promise<AccountEra
     // T-682 (Arjun Q5): the v3 typed ledgers go with the account, like v2's.
     step = 'factledgers_v3';
     counts.factledgers_v3 = await remove(FactLedgerV3Model, byUser);
+    // T-685 (Arjun §12.2): the v3 run docs go with the account, next to the ledger.
+    await remove(V3RunModel, byUser);
 
     step = 'generations';
     counts.generations = await remove(Generation, byUser);
