@@ -24,9 +24,11 @@ import {
   AppSettingMissingError,
   _clearAppSettingsCache,
   getAppSetting,
+  getConfigWarnings,
   insertAppSettingIfAbsent,
   listAppSettings,
   onAppSettingInvalidated,
+  primeConfigWarnings,
   setAppSetting,
 } from '../services/app-settings.service';
 
@@ -477,6 +479,67 @@ describe('PUT /admin/app-settings/:key?ifAbsent=1 (T-684b)', () => {
     expect((await AppSetting.findOne({ key: 'ai.model.drafter' }).lean())?.value).toBe(
       winner.body.value,
     );
+  });
+});
+
+// ── T-684b x T-683: insert path keeps the v3 stage tracking ──────────────────
+
+describe('insert-only writes and the v3 stage warning (T-684b, T-683)', () => {
+  const STAGE = 'feature.drafting_v3_stage';
+  const seed = async (entries: Record<string, string>): Promise<void> => {
+    for (const [key, value] of Object.entries(entries)) {
+      await AppSetting.create({ key, value });
+    }
+  };
+  const BASE = {
+    'ai.model.drafter': 'model-x',
+    'ai.model.fact_checker': 'model-x',
+    'ai.intake_model': 'legacy-model',
+  };
+  const put = (path: string) => supertest(app).put(path).set(ADMIN_HEADERS);
+
+  it('inserting stage 1 with ai.model.extractor missing adds the warning', async () => {
+    await seed(BASE);
+    expect(await primeConfigWarnings()).toEqual([]); // no stage row: stage 0
+    const r = await insertAppSettingIfAbsent({ key: STAGE, value: '1' });
+    expect(r.inserted).toBe(true);
+    expect(getConfigWarnings()).toEqual(['ai.model.extractor']);
+  });
+
+  it('inserting stage 0 leaves no warning', async () => {
+    await seed(BASE);
+    await primeConfigWarnings();
+    const r = await insertAppSettingIfAbsent({ key: STAGE, value: '0' });
+    expect(r.inserted).toBe(true);
+    expect(getConfigWarnings()).toEqual([]);
+  });
+
+  it('a not-inserted call (stage row exists as 0) does not raise the tracked stage', async () => {
+    await seed({ ...BASE, [STAGE]: '0' });
+    expect(await primeConfigWarnings()).toEqual([]);
+    const r = await insertAppSettingIfAbsent({ key: STAGE, value: '1' });
+    expect(r).toEqual({ inserted: false });
+    expect(getConfigWarnings()).toEqual([]);
+    expect((await AppSetting.findOne({ key: STAGE }).lean())?.value).toBe('0');
+  });
+
+  it('a not-inserted call (stage row exists as 1) does not lower the tracked stage', async () => {
+    await seed({ ...BASE, [STAGE]: '1' });
+    expect(await primeConfigWarnings()).toEqual(['ai.model.extractor']);
+    const r = await insertAppSettingIfAbsent({ key: STAGE, value: '0' });
+    expect(r).toEqual({ inserted: false });
+    expect(getConfigWarnings()).toEqual(['ai.model.extractor']);
+  });
+
+  it('through the route: PUT ?ifAbsent=1 of stage 1 adds the warning (200), a second PUT is 409 and changes nothing', async () => {
+    await seed(BASE);
+    expect(await primeConfigWarnings()).toEqual([]);
+    const first = await put(`/admin/app-settings/${STAGE}?ifAbsent=1`).send({ value: '1' });
+    expect(first.status).toBe(200);
+    expect(getConfigWarnings()).toEqual(['ai.model.extractor']);
+    const second = await put(`/admin/app-settings/${STAGE}?ifAbsent=1`).send({ value: '0' });
+    expect(second.status).toBe(409);
+    expect(getConfigWarnings()).toEqual(['ai.model.extractor']);
   });
 });
 

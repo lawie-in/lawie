@@ -227,13 +227,14 @@ export async function insertAppSettingIfAbsent(input: {
   // Timestamps are set by hand inside $setOnInsert with timestamps: false, so
   // Mongoose adds no `$set: { updatedAt }` that would touch an existing row.
   const now = new Date();
+  const storedValue = value.trim();
   try {
     const r = await AppSetting.updateOne(
       { key },
       {
         $setOnInsert: {
           key,
-          value: value.trim(),
+          value: storedValue,
           ...(description !== undefined ? { description: description.trim() } : {}),
           ...(updatedBy ? { updatedBy } : {}),
           createdAt: now,
@@ -251,6 +252,7 @@ export async function insertAppSettingIfAbsent(input: {
 
   cache.delete(key);
   trackRequired(key, false);
+  trackV3Stage(key, storedValue);
   notifyInvalidated(key);
 
   const doc = await AppSetting.findOne({ key }).lean();
