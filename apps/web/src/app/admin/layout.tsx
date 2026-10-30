@@ -23,6 +23,7 @@ import {
   FileText,
   Home,
   Loader2,
+  Menu,
   Settings2,
   ShieldCheck,
   Tag,
@@ -32,8 +33,10 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 import { useAuth } from '@/context/AuthContext';
+import { cn } from '@/lib/cn';
 import { buildLoginRedirect } from '@/lib/safeReturnPath';
 
 interface NavItem {
@@ -64,6 +67,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter();
   const pathname = usePathname() ?? '';
   const { user, isLoading } = useAuth();
+  // T-704: below md the sidebar is a drawer opened from the header toggle.
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Close the drawer on navigation.
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [pathname]);
+
+  // Escape closes the drawer.
+  useEffect(() => {
+    if (!sidebarOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSidebarOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [sidebarOpen]);
 
   // ── Auth gating ───────────────────────────────────────────────────────────
   if (isLoading) {
@@ -119,8 +139,22 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className="flex min-h-screen bg-slate-50">
-      {/* ── Sidebar ────────────────────────────────────────────────────── */}
-      <aside className="flex w-60 flex-col border-r border-slate-200 bg-slate-900 text-slate-100">
+      {/* T-704: mobile overlay — tapping it closes the drawer */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-20 bg-black/50 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* ── Sidebar — fixed drawer on mobile, static on desktop ─────────── */}
+      <aside
+        id="admin-sidebar"
+        className={cn(
+          'fixed inset-y-0 left-0 z-30 flex w-60 flex-col overflow-y-auto border-r border-slate-200 bg-slate-900 text-slate-100 transition-transform duration-200 md:relative md:translate-x-0 md:overflow-visible',
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full',
+        )}
+      >
         <div className="flex items-center gap-3 px-5 py-5">
           <span className="flex h-8 w-8 items-center justify-center rounded-md bg-amber-400 text-sm font-bold text-slate-900">
             L
@@ -163,8 +197,22 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </aside>
 
       {/* ── Main pane ──────────────────────────────────────────────────── */}
-      <main className="min-w-0 flex-1">
-        <div className="mx-auto max-w-6xl px-8 py-8">{children}</div>
+      <main className="min-w-0 flex-1 overflow-x-clip">
+        {/* T-704: mobile header with the sidebar toggle */}
+        <div className="flex items-center border-b border-slate-200 bg-white px-4 py-3 md:hidden">
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(true)}
+            aria-label="Open menu"
+            aria-controls="admin-sidebar"
+            aria-expanded={sidebarOpen}
+            className="text-slate-600"
+          >
+            <Menu size={20} />
+          </button>
+          <span className="ml-3 text-sm font-semibold text-slate-800">Lawie</span>
+        </div>
+        <div className="mx-auto max-w-6xl px-4 py-8 md:px-8">{children}</div>
       </main>
     </div>
   );

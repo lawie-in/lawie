@@ -280,30 +280,32 @@ export default function PanelReviewPage() {
             No tokens match this filter.
           </div>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-slate-100 bg-slate-50 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                <th className="px-4 py-3">Advocate</th>
-                <th className="px-4 py-3">Document</th>
-                <th className="px-4 py-3 text-center">Status</th>
-                <th className="px-4 py-3">Verdict</th>
-                <th className="px-4 py-3">Submitted</th>
-                <th className="px-4 py-3" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filtered.map((r) => (
-                <RowGroup
-                  key={r.token}
-                  row={r}
-                  expanded={expandedToken === r.token}
-                  onToggle={() => setExpandedToken((t) => (t === r.token ? null : r.token))}
-                  onCopy={() => copyUrl(reviewUrl(r.token))}
-                  onDisable={() => handleDisable(r.token)}
-                />
-              ))}
-            </tbody>
-          </table>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px] text-sm">
+              <thead>
+                <tr className="border-b border-slate-100 bg-slate-50 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                  <th className="px-4 py-3">Advocate</th>
+                  <th className="px-4 py-3">Document</th>
+                  <th className="px-4 py-3 text-center">Status</th>
+                  <th className="px-4 py-3">Verdict</th>
+                  <th className="px-4 py-3">Submitted</th>
+                  <th className="px-4 py-3" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filtered.map((r) => (
+                  <RowGroup
+                    key={r.token}
+                    row={r}
+                    expanded={expandedToken === r.token}
+                    onToggle={() => setExpandedToken((t) => (t === r.token ? null : r.token))}
+                    onCopy={() => copyUrl(reviewUrl(r.token))}
+                    onDisable={() => handleDisable(r.token)}
+                  />
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 

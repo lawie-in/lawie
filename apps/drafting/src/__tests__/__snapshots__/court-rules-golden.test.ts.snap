@@ -31,7 +31,7 @@ exports[`court-rules-golden — T-700 written statement annexures pack HTML a wr
     <tr>
       <td>Plaintiff</td>
       <td>
-        <strong>[To be confirmed: name of the Plaintiff]</strong>
+        <strong>GOLDEN_PLAINTIFF</strong>
       </td>
     </tr>
     <tr>

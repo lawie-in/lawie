@@ -111,6 +111,68 @@ describe('T-700 AC1: a written statement (the run-5h acceptance case)', () => {
     expect(rows[1].cell).toContain('Dev Kumar');
   });
 
+  // T-700b (Ajay's conditions (1) to (3)): the WS pack's own plaintiff_name field.
+  it('T-700b: the plaintiff name from the brief prints exactly as stored', () => {
+    const rows = memoRows(ws('high_court', { plaintiff_name: 'Lakshmi Narayan Hegde' }));
+    expect(rows.map((r) => r.label)).toEqual(['Plaintiff', 'Defendant']);
+    expect(rows[0].cell).toBe('Lakshmi Narayan Hegde');
+    expect(rows[1].cell).toContain('Dev Kumar');
+  });
+
+  it.each(['Not known', 'N/A', 'nil.', 'Plaintiff: not known', '-'])(
+    'T-700b: a non-answer plaintiff name (%s) still prints the placeholder (AJ-668-M5 to M5e)',
+    (name) => {
+      const rows = memoRows(ws('high_court', { plaintiff_name: name }));
+      expect(rows[0].cell).toBe('[To be confirmed: name of the Plaintiff]');
+    },
+  );
+
+  it('T-700b: a name that only looks like a non-answer is a name (Not Known Traders, Na. Muthukumar)', () => {
+    expect(memoRows(ws('high_court', { plaintiff_name: 'Not Known Traders' }))[0].cell).toBe(
+      'Not Known Traders',
+    );
+    expect(memoRows(ws('high_court', { plaintiff_name: 'Na. Muthukumar' }))[0].cell).toBe(
+      'Na. Muthukumar',
+    );
+  });
+
+  it('T-700b: several plaintiff names print as "Plaintiff No. n", each as given (AJ-700b (G))', () => {
+    const b = build(
+      'written_statement',
+      'high_court',
+      { client_role: 'defendant', defendant_name: 'Dev Kumar' },
+      {
+        partyValues: {
+          defendant_name: 'Dev Kumar',
+          plaintiff_name: ['Lakshmi Narayan Hegde', 'Sarojini Hegde', ''],
+        },
+      },
+    );
+    const rows = memoRows(b);
+    expect(rows.map((r) => r.label)).toEqual([
+      'Plaintiff No. 1',
+      'Plaintiff No. 2',
+      'Plaintiff No. 3',
+      'Defendant',
+    ]);
+    expect(rows[0].cell).toBe('Lakshmi Narayan Hegde');
+    expect(rows[1].cell).toBe('Sarojini Hegde');
+    expect(rows[2].cell).toBe('[To be confirmed: name of the Plaintiff]');
+    expect(rows[3].cell).toContain('Dev Kumar');
+  });
+
+  it("T-700b guard: with plaintiff_name but no defendant_name, the client's Defendant row does not print the plaintiff's name", () => {
+    const b = build('written_statement', 'high_court', {
+      client_role: 'defendant',
+      plaintiff_name: 'Lakshmi Narayan Hegde',
+    });
+    const rows = memoRows(b);
+    expect(rows.map((r) => r.label)).toEqual(['Plaintiff', 'Defendant']);
+    expect(rows[0].cell).toBe('Lakshmi Narayan Hegde');
+    expect(rows[1].cell).toMatch(/^\[To be confirmed: name of the Defendant\]/);
+    expect(rows[1].cell).not.toContain('Lakshmi Narayan Hegde');
+  });
+
   it('the Index: Nature line first, the pleading, the Order VIII Rule 1A list, then the rest (AJ-700b A)', () => {
     const b = ws('high_court');
     expect(part(b, 'Index of Documents Annexed')).toContain(
@@ -193,6 +255,19 @@ describe('T-700 AC2: the other civil documents', () => {
       'List of documents relied on (Order VII Rule 14 CPC)',
     );
     expect(memoRows(b).map((r) => r.label)).toEqual(['Plaintiff', 'Defendant']);
+    expect(memoRows(b)[1].cell).toBe('[To be confirmed: name of the Defendant]');
+  });
+
+  it("T-700b: a replication prints the brief's defendant_name on the Defendant row, exactly as stored", () => {
+    const b = build('replication', 'high_court', {
+      client_role: 'plaintiff',
+      plaintiff_name: 'Raj Mehta',
+      defendant_name: 'Kiran Bose',
+    });
+    const rows = memoRows(b);
+    expect(rows.map((r) => r.label)).toEqual(['Plaintiff', 'Defendant']);
+    expect(rows[0].cell).toContain('Raj Mehta');
+    expect(rows[1].cell).toBe('Kiran Bose');
   });
 
   it('a plaint has the Order VII Rule 14 list, Plaintiff/Defendant, no FIR or Applicant text', () => {
@@ -275,6 +350,17 @@ describe('T-700 AC2: the other civil documents', () => {
     expect(rows[1].cell).toContain('Sita Mehta');
     expect(rows[2].cell).toContain('Kiran Bose');
     expect(rows[3].cell).toContain('[To be confirmed: name of the Defendant]');
+  });
+
+  it('T-700b plaint_partition: the Defendant row prints defendant_name; absent, the placeholder', () => {
+    const base = { court_id: 'delhi_district', plaintiff_name: 'Raj Mehta' };
+    const withDef = memoRows(
+      build('plaint_partition', 'district_court', { ...base, defendant_name: 'Kiran Bose' }),
+    );
+    expect(withDef.map((r) => r.label)).toEqual(['Plaintiff', 'Defendant']);
+    expect(withDef[1].cell).toBe('Kiran Bose');
+    const without = memoRows(build('plaint_partition', 'district_court', base));
+    expect(without[1].cell).toBe('[To be confirmed: name of the Defendant]');
   });
 
   it('plaint_partition: the Memo prints "Defendant", never the form hint (AJ-700b H)', () => {

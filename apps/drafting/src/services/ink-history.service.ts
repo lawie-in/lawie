@@ -56,6 +56,7 @@ const ROW_PROJECTION = {
   reason: 1,
   sourceBucket: 1,
   runId: 1,
+  runSequence: 1,
   createdAt: 1,
   'metadata.buckets': 1,
 } as const;
@@ -77,6 +78,10 @@ export type InkHistoryLabel =
   | 'admin_grant'
   | 'test_grant'
   | 'draft'
+  /** T-705: a paid revision (ledger reason `regenerate`). */
+  | 'revision'
+  /** T-705: the free revision; no ledger row, from its completed Generation row (delta 0). */
+  | 'revision_free'
   | 'refund_reversal'
   | 'other';
 
@@ -117,6 +122,7 @@ interface LedgerRow {
   reason?: unknown;
   sourceBucket?: unknown;
   runId?: unknown;
+  runSequence?: unknown;
   createdAt?: unknown;
 }
 
@@ -128,6 +134,9 @@ interface Draft {
   deltaUnits: number;
   balanceUnits: number;
   runId: string | null;
+  /** T-705: the attempt and reason, so a revision is never merged into its draft. */
+  runSequence?: number | null;
+  reason?: string;
 }
 
 const USAGE_REASONS = new Set(['generate', 'regenerate']);
@@ -160,8 +169,10 @@ function classify(
       // neutral admin-grant label.
       return { kind: 'grant', label: isTestAccount ? 'test_grant' : 'admin_grant' };
     case 'generate':
-    case 'regenerate':
       return { kind: 'usage', label: 'draft' };
+    case 'regenerate':
+      // T-705: a paid revision of a draft.
+      return { kind: 'usage', label: 'revision' };
     case 'refund_reversal':
       return { kind: 'refund_reversal', label: 'refund_reversal' };
     default:
@@ -278,13 +289,17 @@ export function replayInkLedger(
     if (applied === 0) continue;
 
     const runId = typeof row.runId === 'string' && row.runId !== '' ? row.runId : null;
+    const runSequence = typeof row.runSequence === 'number' ? row.runSequence : null;
     const last = out[out.length - 1];
+    // T-705: one entry per attempt and reason; a revision shares its draft's runId.
     if (
       USAGE_REASONS.has(reason) &&
       runId !== null &&
       last !== undefined &&
       last.kind === 'usage' &&
-      last.runId === runId
+      last.runId === runId &&
+      (last.runSequence ?? null) === runSequence &&
+      last.reason === reason
     ) {
       last.deltaUnits += applied;
       last.balanceUnits = total();
@@ -292,9 +307,65 @@ export function replayInkLedger(
       continue;
     }
 
-    out.push({ id, createdAt, kind, label, deltaUnits: applied, balanceUnits: total(), runId });
+    out.push({
+      id,
+      createdAt,
+      kind,
+      label,
+      deltaUnits: applied,
+      balanceUnits: total(),
+      runId,
+      runSequence,
+      reason,
+    });
   }
 
+  return out;
+}
+
+/**
+ * T-705: the free revisions (no ledger row) merged into the replayed entries
+ * (oldest first) by createdAt. Each is a 0 Ink usage entry whose balance is
+ * the one before it (or `startUnits` when it is first). Pure: exported for tests.
+ */
+export function mergeFreeRevisions(
+  drafts: readonly Draft[],
+  free: ReadonlyArray<{ id: string; createdAt: Date; runId: string | null }>,
+  startUnits: number,
+): Draft[] {
+  if (free.length === 0) return [...drafts];
+  const sorted = [...free].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+  const out: Draft[] = [];
+  let i = 0;
+  let balance = startUnits;
+  for (const d of drafts) {
+    while (i < sorted.length && sorted[i].createdAt <= d.createdAt) {
+      const f = sorted[i++];
+      out.push({
+        id: `rev-${f.id}`,
+        createdAt: f.createdAt,
+        kind: 'usage',
+        label: 'revision_free',
+        deltaUnits: 0,
+        balanceUnits: balance,
+        runId: f.runId,
+      });
+    }
+    out.push(d);
+    balance = d.balanceUnits;
+  }
+  for (; i < sorted.length; i++) {
+    const f = sorted[i];
+    out.push({
+      id: `rev-${f.id}`,
+      createdAt: f.createdAt,
+      kind: 'usage',
+      label: 'revision_free',
+      deltaUnits: 0,
+      balanceUnits: balance,
+      runId: f.runId,
+    });
+  }
   return out;
 }
 
@@ -539,10 +610,35 @@ export async function getInkHistory(
     for (const k of walked.unknown) startState[k] = fwd[k];
   }
 
-  const newestFirst = replayInkLedger(windowRows, {
+  const replayed = replayInkLedger(windowRows, {
     start: startState,
     isTestAccount: user.isTestAccount === true || isFixtureUser(userId),
-  }).reverse();
+  });
+
+  // T-705: the free revisions have no ledger row; their completed Generation rows
+  // (runType 'revision', inkQuoted 0) in the same window. Ids, run ids and times only.
+  // The window's lower bound, as the ledger rows': past the 500-row cut, or the 90 days.
+  const windowStart =
+    '$lte' in olderFilter ? { $gt: (olderFilter as { $lte: Date }).$lte } : { $gte: since };
+  const freeRows = await Generation.find({
+    userId: uid,
+    runType: 'revision',
+    status: 'completed',
+    inkQuoted: 0,
+    createdAt: windowStart,
+  })
+    .select('_id runId createdAt')
+    .lean();
+  const startUnits = startState.sub + startState.annual_carry + startState.topup;
+  const newestFirst = mergeFreeRevisions(
+    replayed,
+    freeRows.map((g) => ({
+      id: String(g._id),
+      createdAt: asDate(g.createdAt),
+      runId: typeof g.runId === 'string' && g.runId !== '' ? g.runId : null,
+    })),
+    startUnits,
+  ).reverse();
 
   let start = 0;
   if (opts.cursor) {

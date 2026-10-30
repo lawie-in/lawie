@@ -12,6 +12,8 @@ export interface RunContext {
   runSequence: number;
   /** The template or rule pack id of the run, where there is one. */
   templateId?: string;
+  /** T-705 (Vikram): set only on a revision attempt: free or paid. */
+  revision?: 'free' | 'paid';
 }
 
 const storage = new AsyncLocalStorage<RunContext>();
@@ -22,6 +24,7 @@ export function runWithRunContext<T>(ctx: RunContext, fn: () => T): T {
     runId: ctx.runId,
     runSequence: ctx.runSequence,
     ...(ctx.templateId ? { templateId: ctx.templateId } : {}),
+    ...(ctx.revision ? { revision: ctx.revision } : {}),
   };
   return storage.run(store, fn);
 }

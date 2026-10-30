@@ -235,7 +235,7 @@ function StepBreadcrumb({ state }: { state: PipelineState }) {
   return (
     <div className="flex flex-wrap items-center gap-1">
       {STEP_LABELS.map((label, i) => (
-        <span key={i} className="flex items-center gap-1">
+        <span key={i} className="flex flex-wrap items-center gap-1">
           <span
             style={{
               fontSize: '11px',
@@ -380,7 +380,7 @@ function VerifyingCard({ state }: { state: PipelineState }) {
         padding: '18px 20px',
       }}
     >
-      <div className="mb-3 flex items-center gap-3">
+      <div className="mb-3 flex flex-wrap items-center gap-3 gap-y-1">
         <div
           className="flex-shrink-0"
           style={{
@@ -395,7 +395,7 @@ function VerifyingCard({ state }: { state: PipelineState }) {
         >
           <VerifyingIcon />
         </div>
-        <div className="flex-1">
+        <div className="min-w-0 flex-1">
           <div style={{ fontSize: '14px', fontWeight: 500, marginBottom: 2 }}>
             Checking your inputs…
           </div>
@@ -545,7 +545,7 @@ function DraftingCard({ templateName, state }: { templateName?: string; state: P
         padding: '18px 20px',
       }}
     >
-      <div className="mb-3 flex items-center gap-3">
+      <div className="mb-3 flex flex-wrap items-center gap-3 gap-y-1">
         <div
           className="flex-shrink-0"
           style={{
@@ -560,7 +560,7 @@ function DraftingCard({ templateName, state }: { templateName?: string; state: P
         >
           <DraftingIcon />
         </div>
-        <div className="flex-1">
+        <div className="min-w-0 flex-1">
           <div style={{ fontSize: '14px', fontWeight: 500, marginBottom: 2 }}>
             Writing your {templateName ?? 'document'}…
           </div>
@@ -601,7 +601,7 @@ function ReadyCard({
         padding: '18px 20px',
       }}
     >
-      <div className="mb-3 flex items-center gap-3">
+      <div className="mb-3 flex flex-wrap items-center gap-3 gap-y-1">
         <div
           className="flex-shrink-0"
           style={{
@@ -616,7 +616,7 @@ function ReadyCard({
         >
           <CheckIcon />
         </div>
-        <div className="flex-1">
+        <div className="min-w-0 flex-1">
           <div style={{ fontSize: '14px', fontWeight: 500, color: '#04342C', marginBottom: 2 }}>
             Draft ready
           </div>

@@ -24,12 +24,10 @@ interface AdminPageHeaderProps {
 
 export function AdminPageHeader({ title, eyebrow, statusBadge, children }: AdminPageHeaderProps) {
   return (
-    <header className="mb-8 flex items-start justify-between gap-6">
-      <div>
+    <header className="mb-8 flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+      <div className="min-w-0">
         <div className="flex items-center gap-2 text-[11px] font-semibold tracking-[0.12em]">
-          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-amber-700">
-            FOUNDER-ONLY
-          </span>
+          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-amber-700">FOUNDER-ONLY</span>
           {eyebrow && (
             <span className="text-slate-400">
               <span className="px-1">·</span>
@@ -39,7 +37,7 @@ export function AdminPageHeader({ title, eyebrow, statusBadge, children }: Admin
         </div>
         <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-900">{title}</h1>
       </div>
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         {statusBadge}
         {children}
       </div>

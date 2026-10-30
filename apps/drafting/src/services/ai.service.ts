@@ -1861,6 +1861,34 @@ export interface BriefGenerateInput {
    * back to today's path.
    */
   loadSkeleton?: LoadSkeleton;
+  /**
+   * T-705: present only on a revision of a delivered draft. The Drafter's
+   * system prompt gets REVISION_INSTRUCTION (Ajay, signed) appended; the
+   * earlier draft and the user's note go in the user message only. Absent:
+   * every prompt is exactly as before.
+   */
+  revision?: { previousDraft: string; note: string };
+}
+
+/**
+ * T-705 — the drafter instruction for a revision. Ajay, signed 30 Oct 2026
+ * (handoff/legal/T-703-T-705-signoff-ajay.md (a)). Byte-identical; do not edit.
+ */
+export const REVISION_INSTRUCTION =
+  "The user has asked for a revision of the draft below. Apply the revision note. Keep every fact, party, date and amount as in the brief and the fact ledger. Do not add any fact that is not in the brief or the fact ledger; if the note asks for one, leave it out and make the rest of the revision. Keep the user's own edits in the draft. Do not change the standard paragraphs, the verification or the disclaimer. Change only what the note asks and what that change requires.";
+
+/** T-705: `system` with REVISION_INSTRUCTION after it on a revision, else unchanged. */
+function withRevisionInstruction(system: string, revision: BriefGenerateInput['revision']): string {
+  return revision ? `${system}\n\n${REVISION_INSTRUCTION}` : system;
+}
+
+/**
+ * T-705: the user message with the earlier draft and the note after it, on a
+ * revision; unchanged otherwise. The note is user content only, never system text.
+ */
+function withRevisionContent(user: string, revision: BriefGenerateInput['revision']): string {
+  if (!revision) return user;
+  return `${user}\n\nDRAFT:\n${revision.previousDraft}\n\nREVISION NOTE:\n${revision.note}`;
 }
 
 export interface BriefGenerateResult extends TemplateGenerateResult {
@@ -2684,13 +2712,19 @@ export async function streamGenerateFromBrief(
       // T-431: a sided pack's system prompt ends with the deponent line; it
       // varies per request, so that prompt is not cached (T-437).
       for await (const text of streamLLM(
-        withDeponentLine(
-          ledgerInput ? DRAFTER_LEDGER_SYSTEM_PROMPT : DRAFTER_PACK_SYSTEM_PROMPT,
-          deponentLine,
+        withRevisionInstruction(
+          withDeponentLine(
+            ledgerInput ? DRAFTER_LEDGER_SYSTEM_PROMPT : DRAFTER_PACK_SYSTEM_PROMPT,
+            deponentLine,
+          ),
+          input.revision,
         ),
-        ledgerInput
-          ? buildLedgerDrafterUserPrompt(ledgerInput)
-          : buildDrafterUserPrompt(promptInput),
+        withRevisionContent(
+          ledgerInput
+            ? buildLedgerDrafterUserPrompt(ledgerInput)
+            : buildDrafterUserPrompt(promptInput),
+          input.revision,
+        ),
         8192,
         draft,
         { cacheSystem: deponentLine === null },
@@ -3551,10 +3585,9 @@ async function d1GenerateFromBrief(c: D1Context): Promise<BriefGenerateResult> {
   const format = d1OutputFormat(
     buildDraftParagraphsSchema(skeleton, draftFactRefs(skeleton, ledger.facts)),
   );
-  const user = buildD1DrafterUserPrompt(
-    pack.name,
-    d1DrafterFacts(skeleton, ledger.facts),
-    skeleton,
+  const user = withRevisionContent(
+    buildD1DrafterUserPrompt(pack.name, d1DrafterFacts(skeleton, ledger.facts), skeleton),
+    input.revision,
   );
   const failed = (err: unknown): GenerationFailedError => {
     const classified = classifyLlmError(err);
@@ -3587,7 +3620,12 @@ async function d1GenerateFromBrief(c: D1Context): Promise<BriefGenerateResult> {
     const sectionId = attempt === 0 ? 'body' : 'body_retry';
     const draft: CallUsageDraft = { inputTokens: 0, outputTokens: 0, usageSource: 'none' };
     try {
-      output = await callD1Drafter(DRAFTER_D1_SYSTEM_PROMPT, user, format, draft);
+      output = await callD1Drafter(
+        withRevisionInstruction(DRAFTER_D1_SYSTEM_PROMPT, input.revision),
+        user,
+        format,
+        draft,
+      );
       c.recordCall(sectionId, draft, '');
     } catch (llmErr) {
       c.recordCall(sectionId, draft, '');
