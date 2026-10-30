@@ -48,3 +48,5 @@ I read all eight myself. Facts: fictional placeholders throughout. BNS/BNSS sect
 4. **Expectations vs scoring:** noted. The expectations document each matter, Anushka's blind score decides the A/B, and my citation check runs blind before the key is opened.
 
 Edits are limited to the `ajay` field, the 41/43/44 scoring note, the 45 police-station option, the 45/46 gap tags and the 41–43 `why` text. A delta limited to those I approve on sight.
+
+**Re-check at commit SHA f9eee4b1 (Ajay, 30 Oct 2026).** The only fixture change since ba9a2828 is the reworded `why` in 46, which I accept; the rest is test-script changes. The signing above carries over to f9eee4b1. My edits (the ajay field, the 41/43/44 court note, the 45 police-station option, the 45/46 gap tags, the 41–43 valuation `why`) are **not yet applied**. A delta limited to them I approve on sight.
