@@ -1,0 +1,75 @@
+{
+  "id": "30-t675-written-statement-no-invented-pleas",
+  "pack": "written_statement",
+  "title": "T-675 AC3, written statement: an admission and a repayment date the user never gave are not facts",
+  "risk": "T-675 AC3: the same invented-fact behaviour in the other civil packs. An admission with no quote in the text, and a repayment date that is not in the quote it cites, must not reach the ledger.",
+  "source": "T-675 AC3; Ajay T-683 rule 1. Facts re-made with fictional names. Phase 1 cassette: the recorded extract reply is the v3 Extractor's (T-683) reply; it is replayed through services/v3/validate.ts by apps/drafting/src/__tests__/v3/cassettes.test.ts. Intake is not wired to v3 until phase 2, so golden:set cannot run it yet (the recorded variant is v3_extract, which the default dry run skips). Ledger displays: dates DD.MM.YYYY, amounts as rupees, lists joined by ', '.",
+  "review": "drafted by dev from Anushka's reports, not yet reviewed by Anushka",
+  "ajay": "Ajay, T-683 test list (handoff/legal/run5-rulings-ajay.md, 29 Oct 2026): expected candidates are legal-content expectations",
+  "language": "en",
+  "description": "Written statement for the defendant Sample Person 1 in Title Suit 55 of 2026, filed by the plaintiff Sample Person 2. Summons was served on the defendant on 05.10.2026. The defendant denies the plaint.",
+  "court": {
+    "state": "Bihar",
+    "court_type": "civil_court",
+    "court": "bihar_civil_patna"
+  },
+  "answers": [],
+  "v3_stage": 1,
+  "v3_answers": [],
+  "expect": {
+    "ledger": [
+      {
+        "key": "defendant_name",
+        "display": "Sample Person 1",
+        "why": "given"
+      },
+      {
+        "key": "plaintiff_name",
+        "display": "Sample Person 2",
+        "why": "given"
+      },
+      {
+        "key": "suit_number",
+        "display": "Title Suit 55 of 2026",
+        "why": "given"
+      },
+      {
+        "key": "summons_service_date",
+        "display": "5 October 2026",
+        "why": "given, day first"
+      },
+      {
+        "key": "additional_pleas",
+        "unresolved": true,
+        "why": "T-675: the repayment date is not in its quote, so no fact"
+      }
+    ],
+    "absent": [
+      {
+        "any_of": ["5,00,000", "15.06.2025", "15 June 2025", "admits the loan"],
+        "why": "T-675 AC3: no admission or repayment the user never gave"
+      }
+    ]
+  },
+  "v3_expect": {
+    "absent_keys": ["specific_admissions"],
+    "unresolved": ["additional_pleas"],
+    "dropped": {
+      "span_not_found": 1,
+      "bad_value": 1
+    },
+    "values": {
+      "defendant_name": "Sample Person 1",
+      "plaintiff_name": "Sample Person 2",
+      "suit_number": "Title Suit 55 of 2026",
+      "summons_service_date": "05.10.2026"
+    }
+  },
+  "recorded": {
+    "v3_extract": {
+      "reception": "{\"outcome\": \"read\", \"read\": [], \"conflicts\": [], \"questions\": []}",
+      "extract": "{\"facts\": [{\"key\": \"defendant_name\", \"source\": \"description\", \"turn\": 0, \"quote\": \"the defendant Sample Person 1\", \"value\": \"Sample Person 1\", \"confidence\": 0.97}, {\"key\": \"plaintiff_name\", \"source\": \"description\", \"turn\": 0, \"quote\": \"the plaintiff Sample Person 2\", \"value\": \"Sample Person 2\", \"confidence\": 0.97}, {\"key\": \"suit_number\", \"source\": \"description\", \"turn\": 0, \"quote\": \"Title Suit 55 of 2026\", \"value\": \"Title Suit 55 of 2026\", \"confidence\": 0.97}, {\"key\": \"summons_service_date\", \"source\": \"description\", \"turn\": 0, \"quote\": \"Summons was served on the defendant on 05.10.2026\", \"value\": \"2026-10-05\", \"confidence\": 0.96}, {\"key\": \"specific_admissions\", \"source\": \"description\", \"turn\": 0, \"quote\": \"the defendant admits the loan of 5,00,000\", \"value\": \"The defendant admits the loan of Rs 5,00,000.\", \"confidence\": 0.9}, {\"key\": \"additional_pleas\", \"source\": \"description\", \"turn\": 0, \"quote\": \"The defendant denies the plaint\", \"value\": \"The defendant repaid the loan on 15.06.2025.\", \"confidence\": 0.9}], \"non_answers\": [], \"unresolved\": []}",
+      "drafter": "1. That the defendant Sample Person 1 in Title Suit 55 of 2026 filed by the plaintiff Sample Person 2 was served with summons on 5 October 2026.\n\n2. That the defendant denies the plaint."
+    }
+  }
+}
