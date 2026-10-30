@@ -35,3 +35,9 @@ T-684 (per-role model settings) merged; T-686 merged (slot).
 4. 6-8 fixtures in scripts/ab/fixtures; Ajay signs the facts.
 5. Interleave the arms, randomise the order, report raw and uncached-equivalent cost.
 No model run until Arjun reviews the harness and says go. Vikram's ₹600 cap stands.
+
+## Arjun's two-strike ruling (30 Oct 2026): the operator
+Runner = Shashank, in his own session (not a crew agent). README §Operator wording, exact:
+"The runner is Shashank. He runs `--real` once with AB_ARJUN_GO=1, never opens scoring/, vikram/ or the key file, and forwards: scoring/ (drafts only, model hidden, random order) to Anushka and Ajay; vikram/ + the console cost lines to Vikram; the key file to Arjun. The holding rule (nobody holds any two of scoring, costs, key) binds the recipients until Arjun opens the key after Anushka's and Ajay's scores are in. If Shashank must open any artefact to debug a failed run, he says so in the ticket and the run is void."
+Also: at the end of the run the harness prints a SHA-256 of the key file to the console, so Arjun can confirm it was not altered.
+Then a fresh reviewer, and Arjun gives AB_ARJUN_GO after reading Ajay's signed fixtures.
