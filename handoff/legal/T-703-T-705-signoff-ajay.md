@@ -41,3 +41,11 @@ Conditions:
 2. A fact taken from a document carries a verbatim quote from that document (T-683 quote rule, ≤200 chars) and is shown in the brief for the user to confirm or correct before drafting, like any other extracted fact.
 3. No document text, file name or quote in logs, Sentry or metrics (names only at debug, as designed; debug off in prod).
 4. The 24-hour TTL and erasure with intake/document/account are tested.
+
+## T-705 byte check (Ajay, 30 Oct 2026): feature/t-705-revisions at SHA b21b3139
+
+- ai.service.ts: `REVISION_INSTRUCTION` is byte-identical to (a) above (checked by string compare). It is appended to the system prompt on both drafter paths (ledger/pack and D1), and only on a revision. `DRAFT:` / `REVISION NOTE:` go in the user message only (signed as labels; never printed). No other prompt text changed; verify/repair and T-611 untouched.
+- Web strings (b): title, label, free line, `This revision costs {n} Ink.`, helper, `Revise`, limit, all byte-identical. Ink history: `Revision` + `−{n} Ink` (U+2212, the debit column) and `Revision — free` (U+2014). `Cancel` reuses the app's existing string: OK.
+- Conditions: a withheld or failed revision is free and keeps the free one; the note is user content only.
+
+**T-705 APPROVED at b21b3139.** It counts as merged at the develop_staging merge SHA that contains it.
