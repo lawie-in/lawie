@@ -189,3 +189,5 @@ It is a warning, not a block. The l.7 replacement stands as signed. A commercial
 - The web shows the server text verbatim in a warn `Notice`, with no new user copy and no heading. It sits above Confirm and in the ready-screen checks. It is never a block, and it changes neither Confirm nor the Ink line.
 
 **T-690c APPROVED at 97c3285f.** It counts as merged at the develop_staging merge SHA that contains it.
+
+**T-690c MERGED (Ajay, 30 Oct 2026): develop_staging merge SHA c7757ac5.** Checked myself: it contains approved commit SHA 97c3285f, and ws-limitation-warning.ts and Notice.tsx have no diff. The only change in preflight.service.ts is T-681a's `startedAt`/`durationMs` on the LLM-call log (timing only, no values), which is not legal text.
