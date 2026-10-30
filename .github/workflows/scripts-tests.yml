@@ -31,6 +31,12 @@ on:
       - 'apps/*/src/__tests__/setupEnv.ts'
       - 'apps/web/jest.setup-env.ts'
       - '.github/workflows/scripts-tests.yml'
+      # T-695: the CI font-resilience scripts (also under scripts/**; listed by name on purpose),
+      # and the two layouts whose next/font calls the T-695 test checks the prefetch list against.
+      - 'scripts/ci/prefetch-fonts.sh'
+      - 'scripts/ci/prefetch-fonts.build.sh'
+      - 'apps/web/src/app/layout.tsx'
+      - 'apps/web/src/app/(marketing)/layout.tsx'
       # T-691: a drafting or shared change re-runs the T-691 driver test.
       - 'packages/shared/**'
       - 'apps/drafting/src/**'
