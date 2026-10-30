@@ -19,7 +19,7 @@ Opus 5.5: D01, D02, D05, D06, D07, D09, D10, D12, D14, D16. Sonnet 5.5: D03, D04
 | Partition Patna | D12 Blocker | D13 Major | **Sonnet, one class** | Opus |
 | Quashing Patna HC | D14 Major | D19 Blocker | **Opus, one class** | Opus |
 
-Blockers: 4 each arm. Invented-fact blockers (Ajay): Sonnet 2 (D17, D19), Opus 1 (D10). Only 2 of 10 matters differ by a class, one each way. Ajay prefers Opus on 5 (argued civil matters), Sonnet slightly on 2, ties 3. No matter is fileable in either arm; the faults are shared pipeline faults (facts dropped to {{MISSING}}, uninstructed reliefs, raw form answers, template garbles).
+Blockers by Anushka's class scores: 4 drafts each arm (Opus D01, D10, D12, D16; Sonnet D04, D15, D17, D19). Ajay's legal read: 4 blockers in total across the 20 drafts, all invented facts, on 3 drafts — D19 (Sonnet) 1, D10 (Opus) 1, D17 (Sonnet) 2; no invented case law. Only 2 of 10 matters differ by a class, one each way. Ajay prefers Opus on 5 (argued civil matters), Sonnet slightly on 2, ties 3. No matter is fileable in either arm; the faults are shared pipeline faults (facts dropped to {{MISSING}}, uninstructed reliefs, raw form answers, template garbles).
 
 ## Cost (Vikram)
 Opus mean ₹18.7 vs Sonnet ₹6.8 per draft (2.8×, ~1.6× output tokens); Opus over the Ink price cap on 5 of 10 matters, all argued packs. Fails the cost half at current prices.
