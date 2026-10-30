@@ -10,6 +10,10 @@
  * - `feature.template_civil_plaint`: the whole `civil_plaints_suits` catalogue
  *   category, and the legacy POST /generate docType 'plaint' (Arjun, 13 Oct 2026).
  *
+ * T-705 follow-up: `feature.revisions` (per user) hides draft revisions
+ * (POST /documents/:id/revise, and `revisable` on GET /documents/:id) until the
+ * founder confirms the revision price. AppSetting only: no env default, off in code.
+ *
  * All three are off in code: no AppSetting doc, any value other than 'on', or
  * any read error means off. Turning one on is an AppSetting change only.
  */
@@ -34,6 +38,8 @@ import { isFixtureUser } from './run-origin';
 export const DESCRIBE_FIRST_SETTING = 'feature.describe_first';
 export const TOOL_TIMELINE_SETTING = 'feature.tool_timeline';
 export const TOOL_BAIL_CHECKER_SETTING = 'feature.tool_bail_checker';
+/** T-705 follow-up: draft revisions (revise route, `revisable` flag). Off in code. */
+export const REVISIONS_SETTING = 'feature.revisions';
 // T-600: the template-switch facts live in the pure config/catalogue/template-switches.ts
 // (no env, so the landing exporter can read them); re-exported here for every importer.
 export {
@@ -91,6 +97,7 @@ async function readSwitch(setting: string): Promise<boolean> {
  * (T-356) holds a value other than 'on'/'off'. Read from `env` at call time
  * (not captured at import) so tests can replace it. 'on' means on for everyone.
  * Any other switch (the three T-375 switches included) has no env default: off.
+ * T-705 follow-up: feature.revisions has no env default either (AppSetting only).
  */
 function envDefaultFor(setting: string): boolean {
   if (setting === DESCRIBE_FIRST_SETTING) return env.FEATURE_DEFAULT_DESCRIBE_FIRST === 'on';
