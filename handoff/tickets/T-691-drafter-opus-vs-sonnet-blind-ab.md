@@ -1,6 +1,6 @@
 # T-691: Blind A/B test of the drafting model, Opus 5.5 vs Sonnet 5.5
 
-Status: backlog. Assign after T-686 merges (one lead, small). Raised 29 Oct 2026 at the founder's request. Design: Arjun, handoff/finance/drafting-model-opus-vs-sonnet.md section 5.
+Status: tooling merged into develop_staging cd61d3dd + CI fix 39d09b7f, 30 Oct 2026. The --real run waits on the founder setting GOLDEN_SET_ANTHROPIC_API_KEY and AB_KEY_PASSPHRASE in the environment.
 Budget: about ₹600 of model spend (Vikram tracks it).
 
 ## Acceptance criteria
