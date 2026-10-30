@@ -208,3 +208,12 @@ Known gap (accepted): the Latin Hinglish non-answers are in the prompt but not i
 signed-confirm-messages.ts passed separately (AJ-683-BC). **T-683 APPROVED at 321c7d28.** If the slot merge changes any of these five files, I re-check them before the push. It counts as merged at the develop_staging merge SHA that contains it.
 
 **T-683 MERGED (Ajay, 30 Oct 2026): develop_staging merge SHA 180c02e2.** Checked myself: it contains approved commit SHA 321c7d28, and all five legal files keep their approved SHA-256s at the merge (54b0f004…, 3f4d5b08…, eed3d55e…, a527b848…, c03d1db4…). CI was running at merge time, per Vishal.
+
+**T-690c-2 / AJ-690c (Ajay, 30 Oct 2026), complete.** **Yes, the date alone warns.**
+- When `days_from_service` is blank and a valid `summons_service_date` is held, compute the days from that date to today (IST calendar days). Show the **same signed warning, byte for byte**, when the result is strictly over 90. No new wording.
+- If both are given, warn when **either** is over 90.
+- A future or invalid service date gives no warning.
+- **The computed figure is for the warning only.** It is never written into the draft or the ledger, because the filing date is not a given fact. So `[To be confirmed: days from service…]` stays as is.
+- It is soft only, as before.
+
+Tests: service date 120 days before today with days blank → warning; service date 10 days before → none; typed 95 plus service date 10 days before → warning; future date → none; the draft text is unchanged in all cases.

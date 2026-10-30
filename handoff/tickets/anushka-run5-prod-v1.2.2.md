@@ -232,3 +232,32 @@ Would I use this on a real matter today? No: a written statement 121 days after 
 ```
 
 Arjun: T-686 and T-690 pass on prod; T-690b (>90-day warning) fails — strike 1, re-opened with Kunal (warning not reached on the brief path). v1.2.7 stays deployed (nothing regressed).
+
+## Run 5g — prod v1.2.8 (main 19b1738e), 30 Oct 2026 04:52–~05:20 UTC — T-690b re-check
+
+Headline: T-690b (WS 90-day warning). Verdict received by Arjun 05:02 UTC, verbatim:
+
+VERDICT: PASS
+Tested: https://lawie.in (prod, v1.2.8) · 30 Oct 2026, 04:52–~05:20 UTC · same test account, signed in by script, 36 Ink at start, 34 at end · 1280 wide. Scope: WS 90-day warning, Document info type, 2-minute smoke.
+
+Scenarios
+| # | What I did | Expected | What happened | Result |
+| 1 | Mysuru WS, description "Summons served on 01.07.2026."; brief "Days from service of summons" = 121; clicked elsewhere | Amber warning above Confirm | Above "Confirm brief and continue": "This written statement is more than 90 days after service of summons. In an ordinary suit the court allows that only in exceptional cases; in a commercial suit it can be allowed up to 120 days, for reasons recorded in writing and on payment of costs, and not after that. Set out the reasons in the delay application." | Pass |
+| 2 | Same brief, changed days to 30, clicked elsewhere | Warning goes | Warning gone; Confirm still enabled | Pass |
+| 3 | Changed back to 121, Confirm | Warning returns; drafts; Ink charged | Warning back; Confirm worked; "2 Ink used" (36 to 34); ready screen shows the same warning text first under "Checks run for you" | Pass |
+| 4 | Same description, days left empty (service date 1 July 2026 only on the brief), brief only, no draft | Warning or not | No warning: the date is shown ("Date of service or receipt … You wrote") but nothing warns until a days figure is entered | Minor (see below) |
+| 5 | Smoke: signed-in state, dashboard, open newest document, export buttons | Loads; opens; export present | Dashboard "Your shelf" loads signed in; newest document "Written Statement (Order VIII CPC) — IN THE COURT OF DISTRICT JUDGE, MYSURU" opens; Document info "Type: Written Statement", "Court: District Court, Mysuru"; PDF and DOCX buttons present (2) | Pass |
+
+Findings
+- Blocker: none. Major: none.
+- Minor:
+  - The warning is driven only by the typed "days" figure. With the service date 1 July 2026 on the brief and days left blank, nothing warns, and the draft carries "[To be confirmed: days from service…]". A junior who skips the days question gets no warning. Steps: scenario 4.
+  - The document page's top label still reads "Petition" (above "District Court, Mysuru") while Document info says "Written Statement".
+  - The warning wording matches my reading (ordinary suit: exceptional cases only; commercial: up to 120 with recorded reasons and costs). A practising advocate should confirm the final text.
+- Outside scope, already ticketed: the result screen still says "We could not find this from your brief in the draft: … receipt of Rs. 2,00,000 admitted …" (given facts dropped, v1.3).
+
+Not tested: phone width (not asked); PDF byte-check (smoke asked only for the export button). Drafts used: 1 of 2.
+
+Would I use this on a real matter today? On this item, yes: a late WS is now flagged before Confirm and on the ready screen. The wider v1.3 items (dropped facts and others) remain open.
+
+Arjun: T-690b closed on prod. Minors to Priya for tickets: (a) warning should also derive from the service date when the days figure is blank (Ajay: is the date alone enough to warn?); (b) document page top label "Petition" for a written statement.
