@@ -1,0 +1,143 @@
+{
+  "id": "34-t676-bail-hinglish-answers-read-as-facts",
+  "pack": "bail_regular",
+  "title": "T-676, regular bail: Anushka's Hinglish and Hindi answers are read as English facts; the Devanagari never reaches a value",
+  "risk": "T-676 AC1 (Anushka run 5): 'Pehle koi criminal case? नहीं.', 'Koi recovery nahi hui', 'ek chhota bachcha hai…' and 'थाना Govindpura' were printed verbatim in the draft.",
+  "source": "T-676 (handoff/tickets/T-676-bail-hinglish-raw-passthrough.md) AC1; Ajay T-683 rule 1 (never quoted raw) and T-612 (6). Fictional data. Each answer is typed on its own question, as the questions step sends them. AC2 (custody since the arrest date) is T-682's derive(): the Extractor leaves custody_since unresolved, and this cassette cannot show the derived value until T-682 is wired. Phase 1 cassette: the recorded extract reply is the v3 Extractor's (T-683) reply; it is replayed through services/v3/validate.ts by apps/drafting/src/__tests__/v3/cassettes.test.ts. Intake is not wired to v3 until phase 2, so golden:set cannot run it yet (the recorded variant is v3_extract, which the default dry run skips). Ledger displays: dates DD.MM.YYYY, amounts as rupees, lists joined by ', '.",
+  "review": "drafted by dev from Anushka's reports, not yet reviewed by Anushka",
+  "ajay": "Ajay, T-683 test list (handoff/legal/run5-rulings-ajay.md, 29 Oct 2026): expected candidates are legal-content expectations",
+  "language": "bilingual",
+  "description": "Regular bail application for Sample Person 1, son of Sample Person 3, in FIR No. 55/2026. Arrested on 05.03.2026.",
+  "court": {
+    "state": "Uttar Pradesh",
+    "court_type": "sessions",
+    "court": "up_sessions_lucknow"
+  },
+  "answers": [
+    {
+      "key": "antecedents",
+      "value": "Pehle koi criminal case? नहीं."
+    },
+    {
+      "key": "recovery_status",
+      "value": "Koi recovery nahi hui"
+    },
+    {
+      "key": "dependants",
+      "value": "ek chhota bachcha hai"
+    },
+    {
+      "key": "police_station",
+      "value": "थाना Govindpura"
+    },
+    {
+      "key": "custody_since",
+      "value": "Tab se jail mein hai"
+    }
+  ],
+  "v3_stage": 1,
+  "v3_answers": [
+    {
+      "turn": 1,
+      "asked": ["antecedents"],
+      "text": "Pehle koi criminal case? नहीं."
+    },
+    {
+      "turn": 2,
+      "asked": ["recovery_status"],
+      "text": "Koi recovery nahi hui"
+    },
+    {
+      "turn": 3,
+      "asked": ["dependants"],
+      "text": "ek chhota bachcha hai"
+    },
+    {
+      "turn": 4,
+      "asked": ["police_station"],
+      "text": "थाना Govindpura"
+    },
+    {
+      "turn": 5,
+      "asked": ["custody_since"],
+      "text": "Tab se jail mein hai"
+    }
+  ],
+  "expect": {
+    "ledger": [
+      {
+        "key": "applicant_name",
+        "display": "Sample Person 1",
+        "why": "given"
+      },
+      {
+        "key": "police_station",
+        "display": "Govindpura",
+        "why": "T-676/T-612 (6): station name cleaned"
+      },
+      {
+        "key": "arrest_date",
+        "display": "5 March 2026",
+        "why": "given"
+      },
+      {
+        "key": "fir_number",
+        "display": "55/2026",
+        "why": "given"
+      },
+      {
+        "key": "custody_since",
+        "unresolved": true,
+        "why": "T-676 AC2: the words give no date, so the Extractor gives no value; T-682 derive() fills it from the arrest date"
+      },
+      {
+        "key": "antecedents",
+        "unresolved": true,
+        "why": "Arjun 9a: English prose the model rendered from Hinglish is held, never written; the key is asked again until T-682 stores typed values"
+      },
+      {
+        "key": "recovery_status",
+        "unresolved": true,
+        "why": "Arjun 9a: model-rendered prose is held: the raw words and the English rendering are both kept out of the ledger"
+      },
+      {
+        "key": "dependants",
+        "unresolved": true,
+        "why": "Arjun 9a: model-rendered prose is held"
+      }
+    ],
+    "absent": [
+      {
+        "any_of": ["nahi hui", "chhota bachcha", "koi criminal case", "नहीं", "थाना"],
+        "why": "T-676 AC1: Hinglish and Hindi answers never reach the draft verbatim"
+      }
+    ]
+  },
+  "v3_expect": {
+    "absent_keys": [],
+    "unresolved": ["custody_since"],
+    "dropped": {
+      "bad_value": 1
+    },
+    "values": {
+      "applicant_name": "Sample Person 1",
+      "police_station": "Govindpura",
+      "arrest_date": "05.03.2026",
+      "fir_number": "55/2026",
+      "antecedents": "The applicant has no previous criminal case.",
+      "recovery_status": "No recovery was made from the applicant.",
+      "dependants": "The applicant has one small child."
+    },
+    "held": ["antecedents", "dependants", "recovery_status"]
+  },
+  "recorded": {
+    "v3_extract": {
+      "reception": "{\"outcome\": \"read\", \"read\": [], \"conflicts\": [], \"questions\": []}",
+      "extract": [
+        "{\"facts\": [{\"key\": \"applicant_name\", \"source\": \"description\", \"turn\": 0, \"quote\": \"for Sample Person 1\", \"value\": \"Sample Person 1\", \"confidence\": 0.97}, {\"key\": \"fir_number\", \"source\": \"description\", \"turn\": 0, \"quote\": \"FIR No. 55/2026\", \"value\": \"55/2026\", \"confidence\": 0.97}, {\"key\": \"arrest_date\", \"source\": \"description\", \"turn\": 0, \"quote\": \"Arrested on 05.03.2026\", \"value\": \"2026-03-05\", \"confidence\": 0.96}], \"non_answers\": [], \"unresolved\": []}",
+        "{\"facts\": [{\"key\": \"antecedents\", \"source\": \"answer\", \"turn\": 1, \"quote\": \"Pehle koi criminal case? नहीं.\", \"value\": \"The applicant has no previous criminal case.\", \"confidence\": 0.95}, {\"key\": \"recovery_status\", \"source\": \"answer\", \"turn\": 2, \"quote\": \"Koi recovery nahi hui\", \"value\": \"No recovery was made from the applicant.\", \"confidence\": 0.95}, {\"key\": \"dependants\", \"source\": \"answer\", \"turn\": 3, \"quote\": \"ek chhota bachcha hai\", \"value\": \"The applicant has one small child.\", \"confidence\": 0.95}, {\"key\": \"police_station\", \"source\": \"answer\", \"turn\": 4, \"quote\": \"थाना Govindpura\", \"value\": \"Govindpura\", \"confidence\": 0.95}, {\"key\": \"custody_since\", \"source\": \"answer\", \"turn\": 5, \"quote\": \"Tab se jail mein hai\", \"value\": \"2026-03-05\", \"confidence\": 0.95}], \"non_answers\": [], \"unresolved\": []}"
+      ],
+      "drafter": "1. That the applicant Sample Person 1 was arrested on 5 March 2026 in FIR No. 55/2026 registered at Police Station Govindpura."
+    }
+  }
+}

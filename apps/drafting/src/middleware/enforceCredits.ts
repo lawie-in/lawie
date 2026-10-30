@@ -5,8 +5,9 @@
  * The free-tier-monthly-N counter is still here as a SAFETY NET (only for
  * accounts on planTier='free' AND with zero credit balance — prevents a user
  * with all 0 buckets from somehow drafting endlessly if the deduct call is
- * skipped). The primary tier gate is `spendCredits` called from the route
- * handler itself.
+ * skipped). The live gate checks Ink units: the route debits through
+ * credits.service `holdInk` / `settleInk` (`releaseInk` on failure).
+ * `spendCredits` is a legacy credits path with no callers.
  *
  * This middleware does NOT deduct — it is a quick early 402 that stops
  * obvious "out of Ink" cases without burning Anthropic spend. It is not

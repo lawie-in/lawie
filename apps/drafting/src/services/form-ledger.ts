@@ -15,7 +15,12 @@
  */
 import type { LedgerFact, LedgerUnresolvedFact } from '@lawie/shared';
 
-import { O39_REQUIRED_FIELDS, requiredFieldBlockers } from '../config/intake/o39-confirm-messages';
+import {
+  isNonAnswerPartyPack,
+  isPartyNonAnswer,
+  O39_REQUIRED_FIELDS,
+  requiredFieldBlockers,
+} from '../config/intake/signed-confirm-messages';
 
 import {
   applyEdit,
@@ -24,9 +29,10 @@ import {
   isMultiItem,
   referenceYear,
 } from './fact-ledger.service';
-import { buildChecklist } from './intake-brief';
+import { buildChecklist, partyConfirmLine } from './intake-brief';
 import type { Brief, ChecklistItem } from './intake-brief';
 import { normalise } from './intake-text';
+import { loadRulePack } from './rule-pack.service';
 import type { RulePack } from './rule-pack.service';
 
 /**
@@ -292,23 +298,71 @@ function requiredFieldView(formData: Readonly<Record<string, unknown>>): Record<
 
 /**
  * T-629 blocks_confirm / Ajay FR-1(b), FR-5, FR-5a; T-613 §(g), §(j)2, §(j)3:
- * the form route's required-field and non-answer pre-check (main_suit_relief,
- * restraint_sought on temporary_injunction_o39), run right after
+ * the form route's required-field and non-answer pre-check (plaintiff_name,
+ * defendant_name (T-644, AJ-644-M1), main_suit_relief, restraint_sought on
+ * temporary_injunction_o39), run right after
  * the plan check, before validateFormData (FR-5: an empty answer gets the
  * signed lines too) and before any Ink hold. The form field ids are the pack
  * keys (the promoted O.39 form keeps them; no alias renames them). The text
- * comes only from o39-confirm-messages.ts. Every other template: null.
+ * comes only from signed-confirm-messages.ts.
+ *
+ * T-668 (AJ-668-M1, AJ-668-M3): on the NON_ANSWER_PARTY_PACKS templates, a
+ * required party name (the brief's own rule: buildChecklist's partyName) that
+ * is empty or a §(j)3 non-answer (with a tail, AJ-668-M5, M5b: isPartyNonAnswer)
+ * blocks, with the brief's line for the first
+ * missing party in pack order (partyConfirmLine); the keys are every missing
+ * party, in pack order. No pack (null or unreadable): null, and formGateFiles
+ * answers. Every other template: null.
  */
 export function formRequiredFieldBlock(
   templateId: string,
   formData: Readonly<Record<string, unknown>>,
 ): FormRequiredFieldBlock | null {
+  if (isNonAnswerPartyPack(templateId)) {
+    let pack: RulePack | null;
+    try {
+      pack = loadRulePack(templateId);
+    } catch {
+      return null;
+    }
+    if (pack === null) return null;
+    // The party value as the check reads it; the block and the AJ-668e line
+    // both read this one view, so they cannot drift.
+    const partyView = (key: string): unknown => {
+      const v = Object.prototype.hasOwnProperty.call(formData, key) ? formData[key] : undefined;
+      // As requiredFieldView: any value that is not text is no answer.
+      const readable =
+        v === null ||
+        v === undefined ||
+        typeof v === 'string' ||
+        (Array.isArray(v) && v.every((e) => typeof e === 'string'));
+      return readable ? v : '';
+    };
+    const missingParties = buildChecklist(pack).filter((i) => {
+      if (!i.partyName || !i.required) return false;
+      return isPartyNonAnswer(partyView(i.key));
+    });
+    if (missingParties.length === 0) return null;
+    return {
+      error: 'brief_not_confirmed',
+      // AJ-668e: a non-answer followed by more text gets the signed AJ-668e line.
+      message: partyConfirmLine(
+        templateId,
+        missingParties[0].key,
+        missingParties[0].label,
+        partyView(missingParties[0].key),
+      ),
+      blockers: ['required_fields'],
+      confirm_blocking_keys: missingParties.map((i) => i.key),
+    };
+  }
   if (templateId !== O39_TEMPLATE_ID) return null;
   const missing = requiredFieldBlockers(requiredFieldView(formData));
   if (missing.length === 0) return null;
   return {
     error: 'brief_not_confirmed',
-    message: missing.map((b) => b.en).join('\n'),
+    // AJ-668e follow-up: an identical line shows once; the keys keep every field.
+    message: [...new Set(missing.map((b) => b.en))].join('\n'),
     blockers: ['required_fields'],
     confirm_blocking_keys: missing.map((b) => b.key),
   };

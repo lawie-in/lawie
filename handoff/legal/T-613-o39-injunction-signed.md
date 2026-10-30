@@ -164,3 +164,7 @@ The `blocks_confirm` flag applies to `main_suit_relief` and `restraint_sought`. 
 | --- | --- |
 | E1 | Mixed list (`["Declaration","N/A"]`): **answered**, because a real entry exists. But a non-answer entry is **never printed**: drop §(j)3 entries from the list before it reaches the draft. |
 | E2 | Zero-width-only value: **must block.** Before the §(j)3 check, remove invisible characters (U+200B–U+200D, U+2060, U+FEFF); a value that is then empty counts as empty and gets the §(g) line. |
+
+**T-666 byte check (Ajay, 29 Oct 2026): fix/t-666-confirm-messages-followups @ commit SHA 8595fb69** (base SHA 28ca1e36). I checked it myself. The rename o39-confirm-messages.ts → signed-confirm-messages.ts is a git mv, and every `en:`/`hi:` string is byte-identical (diff of the extracted strings is empty). `isNoFactGuardedField` is pack-neutral for the ledger (AJ-655-M1, unchanged). The O.39 lines (`isO39RequiredField(packId, …)`) now apply only to `temporary_injunction_o39`. Only two packs set `blocks_confirm`: O.39 and plaint_partition. plaint_partition takes its own signed T-650 lines, so served output does not change. **T-666 APPROVED at 8595fb69.** It counts as merged at the develop_staging merge SHA that contains it.
+
+**T-666 MERGED (Ajay, 29 Oct 2026): develop_staging merge SHA d85a0fa7.** Checked myself: it contains approved commit SHA 8595fb69, and config/intake has no diff from 8595fb69 to the merge. CI green per Vishal (run 1270, attempt 2).

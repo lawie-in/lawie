@@ -48,6 +48,8 @@ interface DocumentData {
   docType: string;
   courtType: string;
   courtName: string;
+  // T-674 AC3: the on-screen court label; courtName may be an internal id.
+  courtLabel?: string;
   content: string;
   status: 'draft' | 'finalised' | 'exported';
   sectionsCited: string[];
@@ -67,6 +69,8 @@ interface DocumentData {
   courtDocument?: boolean;
   /** T-381 — the brief or the form inputs hold at least one party. Absent means no card. */
   hasParty?: boolean;
+  /** T-689 — the rule pack's name for the document type. Null or absent: show the humanised docType. */
+  docTypeLabel?: string | null;
 }
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
@@ -522,11 +526,22 @@ export default function DocumentEditorPage() {
             {/* T-138: a guided document's title is typed by the advocate and can be one long
                 unbroken word. Below md it may shrink and break; from md it is as it was. */}
             <div className="min-w-0 break-words">
-              <h1 className="text-base font-bold capitalize text-slate-900">
+              {/* T-689b: the pack's name for the type (docTypeLabel) is shown as the pack
+                  writes it, so `capitalize` applies only to the title and the humanised
+                  docType fallback. */}
+              <h1
+                className={
+                  doc.docType !== 'guided' && doc.docTypeLabel
+                    ? 'text-base font-bold text-slate-900'
+                    : 'text-base font-bold capitalize text-slate-900'
+                }
+              >
                 {/* A document with no rule pack has no type of its own: its name is its title. */}
-                {doc.docType === 'guided' ? doc.title : doc.docType.replace(/_/g, ' ')}
+                {doc.docType === 'guided'
+                  ? doc.title
+                  : doc.docTypeLabel || doc.docType.replace(/_/g, ' ')}
               </h1>
-              <p className="text-xs text-slate-400">{doc.courtName}</p>
+              <p className="text-xs text-slate-400">{doc.courtLabel ?? ''}</p>
             </div>
           </div>
 
@@ -733,13 +748,20 @@ export default function DocumentEditorPage() {
           <dl className="mt-3 space-y-2 text-xs">
             <div className="flex justify-between">
               <dt className="text-slate-400">Type</dt>
-              <dd className="font-medium capitalize text-slate-700">
-                {doc.docType.replace(/_/g, ' ')}
-              </dd>
+              {/* T-689: the pack's label is already cased; only the enum fallback is capitalised. */}
+              {doc.docTypeLabel ? (
+                <dd className="font-medium text-slate-700">{doc.docTypeLabel}</dd>
+              ) : (
+                <dd className="font-medium capitalize text-slate-700">
+                  {doc.docType.replace(/_/g, ' ')}
+                </dd>
+              )}
             </div>
             <div className="flex justify-between">
               <dt className="text-slate-400">Court</dt>
-              <dd className="max-w-[140px] truncate font-medium text-slate-700">{doc.courtName}</dd>
+              <dd className="max-w-[140px] truncate font-medium text-slate-700">
+                {doc.courtLabel || '—'}
+              </dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-slate-400">Status</dt>

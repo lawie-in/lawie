@@ -88,7 +88,9 @@ const question = (key: string, round: 1 | 2, over: Partial<BriefQuestion> = {}):
   options: [],
   ...over,
 });
-const briefOf = (items: BriefItem[]): Brief => ({
+// T-655: the service's given set arrives as `ledger_given_keys`; the screen does not judge the
+// ledger. Left out (undefined), the field is absent and nothing counts as ledger-given.
+const briefOf = (items: BriefItem[], ledgerGivenKeys?: string[]): Brief => ({
   kind: { id: 'bail_regular', name: 'Regular bail', court_document: true },
   court: { state: 'bihar', court_type: 'sessions', court: 'patna' },
   items,
@@ -98,6 +100,7 @@ const briefOf = (items: BriefItem[]): Brief => ({
   can_confirm: true,
   confirm_blockers: [],
   confirm_message: null,
+  ...(ledgerGivenKeys ? { ledger_given_keys: ledgerGivenKeys } : {}),
 });
 
 let container: HTMLDivElement;
@@ -189,8 +192,10 @@ describe('T-498 openQuestions: a fact the ledger holds is not asked', () => {
     ['police_station'],
   );
 
+  const HELD = ['fir_number', 'applicant_age', 'address'];
+
   it('round 1 skips fir_number (held) and asks police_station (unresolved, no fact) and father_name (nothing)', async () => {
-    await start({ brief: briefOf(items), ledger, questions });
+    await start({ brief: briefOf(items, HELD), ledger, questions });
     const q = asked();
     expect(q).toContain('QUESTION police_station');
     expect(q).toContain('QUESTION father_name');
@@ -198,7 +203,7 @@ describe('T-498 openQuestions: a fact the ledger holds is not asked', () => {
   });
 
   it('round 2 is not offered at all when everything left in it is held', async () => {
-    await start({ brief: briefOf(items), ledger, questions });
+    await start({ brief: briefOf(items, HELD), ledger, questions });
     await act(async () => buttonWith('Continue')?.click());
     await flush();
     // no answers: round 2 holds applicant_age and address, both held, so the brief shows
@@ -223,7 +228,7 @@ describe('T-498 openQuestions: a fact the ledger holds is not asked', () => {
 
   it('a held key whose item the service marks reask (T-150) is still asked', async () => {
     const reasked = items.map((i) => (i.key === 'applicant_age' ? { ...i, reask: true } : i));
-    await start({ brief: briefOf(reasked), ledger, questions });
+    await start({ brief: briefOf(reasked, HELD), ledger, questions });
     await act(async () => buttonWith('Continue')?.click());
     await flush();
     expect(asked()).toEqual(['QUESTION applicant_age']);
@@ -237,7 +242,8 @@ describe('T-498 openQuestions: a fact the ledger holds is not asked', () => {
       options: ['Yes', 'No'],
     });
     await start({
-      brief: briefOf([bond]),
+      // the service leaves a declined undertaking out of ledger_given_keys
+      brief: briefOf([bond], []),
       ledger: ledgerOf([fact('willingness_to_furnish_bond', 'No')], []),
       questions: [
         question('willingness_to_furnish_bond', 1, { kind: 'choice', options: ['Yes', 'No'] }),
@@ -266,7 +272,7 @@ describe('T-498 openQuestions: a fact the ledger holds is not asked', () => {
       please_check: true,
     });
     await start({
-      brief: briefOf([eb, items[0]]),
+      brief: briefOf([eb, items[0]], ['fir_number']),
       ledger: ledgerOf([fact('fir_number', '412/2026')], []),
       questions: [
         question('earlier_bail_applications', 1, { confirm: true, kind: 'narrative' }),
@@ -299,7 +305,11 @@ describe('T-498 "Please check" suggestion under a question the ledger could not 
   });
   const ps = item({ key: 'police_station', label: 'Police Station' });
   const base = (items: BriefItem[], unresolved: string[], facts: LedgerFact[] = []) => ({
-    brief: briefOf(items),
+    // the service's given set for these facts (they are all plain, given values)
+    brief: briefOf(
+      items,
+      facts.map((f) => f.key),
+    ),
     ledger: ledgerOf(facts, unresolved),
     questions: [
       question('police_station', 1),

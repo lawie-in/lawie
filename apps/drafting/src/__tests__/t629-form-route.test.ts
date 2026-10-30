@@ -15,10 +15,14 @@ import { AppSetting } from '../models/AppSetting.model';
 import { LawieDocument } from '../models/Document.model';
 import { Generation } from '../models/Generation.model';
 import { User } from '../models/User.model';
+import { seedCourts } from './seedCourts';
 import { createVerifiedUser } from './verifiedUser';
 import { _clearAppSettingsCache } from '../services/app-settings.service';
 import { formRequiredFieldBlock } from '../services/form-ledger';
 import { sdkAnswer } from './sdkStream';
+
+// T-686: an id-shaped court with no active row stops the run, so the court is seeded.
+seedCourts('bihar_civil_junior_patna');
 
 jest.setTimeout(60_000);
 
@@ -110,14 +114,22 @@ async function expectNothingRan() {
 }
 
 describe('T-629 AC8 unit: formRequiredFieldBlock', () => {
-  const ok = { main_suit_relief: 'Declaration of title', restraint_sought: 'raising construction' };
+  // T-644: the parties are required too, so a "valid" form holds both (fictional names).
+  const parties = { plaintiff_name: 'Ramesh Kumar Verma', defendant_name: 'Sunita Devi Agarwal' };
+  const ok = {
+    ...parties,
+    main_suit_relief: 'Declaration of title',
+    restraint_sought: 'raising construction',
+  };
 
   it('valid values: null', () => {
     expect(formRequiredFieldBlock(O39, ok)).toBeNull();
   });
 
   it('both empty: both signed lines in (j)2 order, keys in the same order', () => {
-    expect(formRequiredFieldBlock(O39, { main_suit_relief: '', restraint_sought: '' })).toEqual({
+    expect(
+      formRequiredFieldBlock(O39, { ...parties, main_suit_relief: '', restraint_sought: '' }),
+    ).toEqual({
       error: 'brief_not_confirmed',
       message: `${L1}\n${L2}`,
       blockers: ['required_fields'],
@@ -126,7 +138,7 @@ describe('T-629 AC8 unit: formRequiredFieldBlock', () => {
   });
 
   it('both missing from form_data: both lines', () => {
-    expect(formRequiredFieldBlock(O39, {})).toMatchObject({
+    expect(formRequiredFieldBlock(O39, parties)).toMatchObject({
       message: `${L1}\n${L2}`,
       confirm_blocking_keys: ['main_suit_relief', 'restraint_sought'],
     });
@@ -152,8 +164,11 @@ describe('T-629 AC8 unit: formRequiredFieldBlock', () => {
 
   it('whitespace only and null count as empty', () => {
     expect(
-      formRequiredFieldBlock(O39, { main_suit_relief: '   \n\t ', restraint_sought: null })
-        ?.message,
+      formRequiredFieldBlock(O39, {
+        ...parties,
+        main_suit_relief: '   \n\t ',
+        restraint_sought: null,
+      })?.message,
     ).toBe(`${L1}\n${L2}`);
   });
 
@@ -174,7 +189,9 @@ describe('T-629 AC8 unit: formRequiredFieldBlock', () => {
       'nil construction or any alienation',
       'unknown persons acting for the defendant',
     ])
-      expect(formRequiredFieldBlock(O39, { main_suit_relief: v, restraint_sought: v })).toBeNull();
+      expect(
+        formRequiredFieldBlock(O39, { ...parties, main_suit_relief: v, restraint_sought: v }),
+      ).toBeNull();
   });
 
   const BAD_SHAPES: [string, unknown][] = [
@@ -203,7 +220,9 @@ describe('T-629 AC8 unit: formRequiredFieldBlock', () => {
 
   it('an array of real strings is an answer', () => {
     const v = ['Declaration of title', 'Permanent injunction'];
-    expect(formRequiredFieldBlock(O39, { main_suit_relief: v, restraint_sought: v })).toBeNull();
+    expect(
+      formRequiredFieldBlock(O39, { ...parties, main_suit_relief: v, restraint_sought: v }),
+    ).toBeNull();
   });
 
   it('other templates: null, even with empty required fields', () => {

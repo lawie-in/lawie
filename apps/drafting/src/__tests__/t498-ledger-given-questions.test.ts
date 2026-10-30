@@ -311,8 +311,11 @@ describe('T-498 case B: ledger off, the brief-only questions as before', () => {
     ];
     const plain = buildBrief({ kind, checklist, values });
     const empty = buildBrief({ kind, checklist, values, ledgerGiven: new Set() });
-    expect(empty).toEqual(plain);
-    expect(withoutLedgerGiven(plain, new Set())).toBe(plain);
+    // T-655: with a ledger (even an empty given set) the brief says so: ledger_given_keys: [].
+    // Without a ledger the field is absent, so the web counts nothing as given.
+    expect(empty).toEqual({ ...plain, ledger_given_keys: [] });
+    expect('ledger_given_keys' in plain).toBe(false);
+    expect(withoutLedgerGiven(plain, new Set())).toEqual({ ...plain, ledger_given_keys: [] });
     expect(buildQuestions(plain, new Map(), new Set(), new Set(), { checklist })).toEqual(
       buildQuestions(plain, new Map(), new Set(), new Set(), {
         checklist,

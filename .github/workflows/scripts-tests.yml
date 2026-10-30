@@ -13,6 +13,13 @@ name: Scripts tests
 # scan tests scan the real tracked tree and expect exit 0), ecosystem.config.js and docs/DEPLOY.md
 # (deploy-local.test); plus install inputs (package.json, yarn.lock, .husky/ via prepare) and
 # this file.
+# T-698: docs pushes still START a run (the paths above need them), but must never cancel a code
+# run: with one per-ref group, every handoff/docs push after a code merge cancelled that merge's
+# run. So concurrency is per job, not per workflow. The `changes` job sets code=false only for a
+# push whose own files (diffed against the commit before the push) are all docs: handoff/**,
+# .claude/docs/**, docs/** or *.md at any depth. Such a run gets its own per-SHA group and cancels
+# nothing. Every other run (code push, pull_request, workflow_dispatch) shares the per-ref "code"
+# group with cancel-in-progress, as before. A later code push does not cancel a docs run either.
 on:
   push:
     branches: [main, develop, develop_staging, 'release/**', 'hotfix/**', 'feature/**', 'fix/**']
@@ -28,24 +35,74 @@ on:
       - 'yarn.lock'
       - 'jest.config.base.js'
       - 'tsconfig*.json'
+      - 'apps/*/src/__tests__/setupEnv.ts'
+      - 'apps/web/jest.setup-env.ts'
       - '.github/workflows/scripts-tests.yml'
+      # T-695: the CI font-resilience scripts (also under scripts/**; listed by name on purpose),
+      # and the two layouts whose next/font calls the T-695 test checks the prefetch list against.
+      - 'scripts/ci/prefetch-fonts.sh'
+      - 'scripts/ci/prefetch-fonts.build.sh'
+      - 'apps/web/src/app/layout.tsx'
+      - 'apps/web/src/app/(marketing)/layout.tsx'
+      # T-691: a drafting or shared change re-runs the T-691 driver test.
+      - 'packages/shared/**'
+      - 'apps/drafting/src/**'
+      # T-688: the sanity-tier guard reads these; a tier change re-runs it.
+      - 'apps/*/jest.config.js'
+      - 'packages/*/jest.config.js'
+      - 'apps/*/package.json'
+      - 'packages/*/package.json'
+      - '.github/workflows/ci.yml'
+      - '.github/workflows/full-tests.yml'
   # No paths filter on PRs: a required check that a PR never starts stays "Expected" forever.
   pull_request:
     branches: [main, develop, develop_staging]
   workflow_dispatch:
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
+# No workflow-level concurrency (T-698): it is set on the scripts-tests job, keyed on `changes`.
+# paths-filter on push needs only contents: read (it diffs with git, using the checkout's token).
 permissions:
   contents: read
 
 jobs:
+  changes:
+    name: Detect docs-only push
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      # Only a push can be docs-only; pull_request and workflow_dispatch always count as code.
+      code: ${{ github.event_name != 'push' && 'true' || steps.filter.outputs.code }}
+    steps:
+      - uses: actions/checkout@v4
+        if: github.event_name == 'push'
+      - uses: dorny/paths-filter@v3
+        id: filter
+        if: github.event_name == 'push'
+        with:
+          # Diff this push's own changes: when base names the pushed branch itself, paths-filter
+          # compares against github.event.before (the commit before the push). Not ci.yml's
+          # merge-base with main/develop_staging, which would see every code change on the branch
+          # and call a docs push "code". Left unset, base defaults to the repo default branch
+          # (main), which has the same problem on every branch but main.
+          # First push of a new branch (before = all zeros): paths-filter diffs against the merge-base
+          # with the default branch instead, which in practice is "code" (the safe side).
+          base: ${{ github.ref_name }}
+          # code = true if any changed file is outside the docs set. 'every': a file counts only if
+          # it matches all the patterns, i.e. it is not under any of the negated docs globs.
+          # One line on purpose: a line with ':' is read as inline filter YAML, not a file path.
+          predicate-quantifier: 'every'
+          filters: "code: ['**', '!handoff/**', '!.claude/docs/**', '!docs/**', '!**/*.md']"
+
   scripts-tests:
     name: Run scripts tests
+    needs: changes
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # T-698: code runs share the per-ref group and cancel the older code run; a docs-only push
+    # gets a per-SHA group, so it neither cancels nor is cancelled by anything.
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}-${{ needs.changes.outputs.code == 'true' && 'code' || github.sha }}
+      cancel-in-progress: ${{ needs.changes.outputs.code == 'true' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -59,6 +116,9 @@ jobs:
       - run: yarn install --frozen-lockfile
         env:
           PUPPETEER_SKIP_DOWNLOAD: 'true'
+      # T-691: the A/B driver test spawns scripts/ab/run-ab.ts, which loads drafting, which needs
+      # @lawie/shared's dist/. Build it first, mirroring ci.yml.
+      - run: yarn workspace @lawie/shared build
       # jest and ts-jest are hoisted to the root node_modules from the workspaces.
       # ubuntu-latest ships shellcheck, so deploy-local.test's shellcheck test runs here
       # (it skips only when shellcheck is not on PATH).

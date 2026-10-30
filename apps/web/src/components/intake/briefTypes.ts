@@ -58,6 +58,22 @@ export interface BriefItem {
   asked_blank?: boolean;
   /** T-629 (§(i)2): a blank answer here counts as answered once asked; send it in `asked_keys`. */
   blank_once_asked?: boolean;
+  /**
+   * T-638 (Ajay R1, B3): the service derived this value (custody_since from the
+   * date of arrest). Shown with `DATE_OF_ARREST_CAPTION`; never sent back as a
+   * value, so an edit is the only way it becomes the advocate's own.
+   */
+  derived_from?: 'arrest_date';
+}
+
+/** T-638 (Ajay R1 / B3, signed): beside a derived custody date, `<date> (date of arrest)`. */
+export const DATE_OF_ARREST_CAPTION = '(date of arrest)';
+
+/** T-638: the caption of a derived date, the date in the draft's format: "12 June 2026 (date of arrest)". */
+export function derivedDateCaption(item: Pick<BriefItem, 'derived_from' | 'value'>): string | null {
+  if (item.derived_from !== 'arrest_date' || typeof item.value !== 'string') return null;
+  const words = dateInWords(item.value);
+  return words === item.value ? null : `${words} ${DATE_OF_ARREST_CAPTION}`;
 }
 
 export interface BriefCourt {
@@ -70,6 +86,33 @@ export interface LooseDate {
   value: string;
   kind: string | null;
   meaning: string | null;
+}
+
+/** T-690b: one soft finding on the brief. `text` is signed copy, shown as sent. */
+export interface SoftFinding {
+  rule_id: string;
+  text: string;
+}
+
+/**
+ * T-690b: the soft findings to show, one per screen each: entries not in shape or
+ * with empty text are dropped, and a repeat (same rule_id, or same text) is shown once.
+ */
+export function shownSoftFindings(raw: unknown): SoftFinding[] {
+  if (!Array.isArray(raw)) return [];
+  const out: SoftFinding[] = [];
+  const ids = new Set<string>();
+  const texts = new Set<string>();
+  for (const f of raw) {
+    if (typeof f !== 'object' || f === null) continue;
+    const { rule_id, text } = f as Record<string, unknown>;
+    if (typeof rule_id !== 'string' || typeof text !== 'string' || text.trim() === '') continue;
+    if (ids.has(rule_id) || texts.has(text)) continue;
+    ids.add(rule_id);
+    texts.add(text);
+    out.push({ rule_id, text });
+  }
+  return out;
 }
 
 export interface Brief {
@@ -85,8 +128,23 @@ export interface Brief {
   confirm_message: string | null;
   /** T-629: the keys of the required fields that block Confirm, in signed order. */
   confirm_blocking_keys?: string[];
+  /** T-644: on O.39, the party keys the service counted as missing, in line order. */
+  confirm_missing_party_keys?: string[];
   /** T-363 AC1: T-192's signed B2 line, when the brief's own s.138 dates give it. */
   date_check?: { line: 'B2'; text: string };
+  /**
+   * T-690b: soft findings the service puts on the brief (the written statement's
+   * over-90-days warning). `text` is Ajay's signed wording: shown verbatim, never
+   * reworded or cut. Absent when no warning applies.
+   */
+  soft_findings?: SoftFinding[];
+  /**
+   * T-655: the keys the service counts as given by the fact ledger, on every
+   * pack. The screen uses this as its given set and does not judge the ledger
+   * itself (a §(j)3 non-answer on an O.39 required field is no fact). Absent:
+   * nothing counts as ledger-given (fails closed).
+   */
+  ledger_given_keys?: string[];
 }
 
 export interface BriefQuestion {
@@ -292,6 +350,12 @@ export interface DraftResult {
    */
   disclaimer?: string | null;
   /**
+   * T-690b/T-690c: the soft findings of the brief the draft was written from, read
+   * from the generate response's `done` event (`soft_findings`), never from the
+   * brief on screen. Absent when it sent none.
+   */
+  softFindings?: SoftFinding[];
+  /**
    * T-373 (ADR-025 D1): the clauses the renderer printed, as the service sent them.
    * Present only for a D1 pack; the checks panel is then built from this list.
    */
@@ -372,6 +436,11 @@ export function valuesAfter(brief: Brief, previous: GivenValue[]): GivenValue[] 
       emptyKeys.add(item.key);
       continue;
     }
+    // T-638 (B3): a derived value is the service's, not the advocate's: not sent back.
+    if (item.derived_from !== undefined) {
+      emptyKeys.add(item.key);
+      continue;
+    }
     placed.push({
       key: item.key,
       value: item.value as Value,
@@ -434,30 +503,6 @@ const DECLINED_UNDERTAKING_KEYS: ReadonlySet<string> = new Set(['willingness_to_
 function isDeclinableUndertaking(key: string): boolean {
   const at = key.lastIndexOf('.');
   return DECLINED_UNDERTAKING_KEYS.has(at < 0 ? key : key.slice(at + 1));
-}
-
-/**
- * T-498: the keys the fact ledger holds a fact for. The row shows that fact
- * (with "Please check" when read from the description), so it is given: not
- * asked in the rounds and not listed as still unknown. An empty display is not
- * a fact, and a "No" on an undertaking box (T-251) is not yet given. Kept in
- * step with `ledgerGivenKeys` in apps/drafting/src/services/intake-brief.ts.
- * Empty with no ledger, so nothing changes with the ledger off.
- */
-export function ledgerGivenKeys(ledger: Ledger | null | undefined): Set<string> {
-  const out = new Set<string>();
-  if (!ledger) return out;
-  for (const f of ledger.facts) {
-    if (typeof f.display !== 'string' || f.display.trim() === '') continue;
-    const declined =
-      isDeclinableUndertaking(f.key) &&
-      [f.display, String(f.value)].some((v) => {
-        const w = foldWord(v);
-        return w === 'no' || w === 'false';
-      });
-    if (!declined) out.add(f.key);
-  }
-  return out;
 }
 
 /**

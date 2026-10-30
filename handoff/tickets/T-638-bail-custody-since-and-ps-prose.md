@@ -1,4 +1,4 @@
-Status: assigned 28 Oct 2026 (see leads.md)
+Status: Merged into develop_staging (93896c47, CI 1212 green), 29 Oct 2026.
 
 # T-638: Bail "in custody since" from the arrest date (Ajay R1); police station in prose; Hindi non-answers
 

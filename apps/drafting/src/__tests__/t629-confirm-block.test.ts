@@ -22,7 +22,8 @@ import {
   O39_NON_ANSWERS,
   O39_REQUIRED_FIELDS,
   requiredFieldBlockers,
-} from '../config/intake/o39-confirm-messages';
+  signedConfirmMessage,
+} from '../config/intake/signed-confirm-messages';
 import {
   BriefItem,
   buildBrief,
@@ -46,7 +47,9 @@ const SIGNED_RELIEF_EN = 'Add the relief sought in the main suit to continue.';
 const SIGNED_RELIEF_HI = 'आगे बढ़ने के लिए मुख्य वाद में माँगी गई राहत जोड़िए।';
 const SIGNED_RESTRAINT_EN = 'Add the acts the defendant should be restrained from, to continue.';
 const SIGNED_RESTRAINT_HI = 'आगे बढ़ने के लिए वे कार्य जोड़िए जिनसे प्रतिवादी को रोका जाना है।';
-const COURT_PARTIES_MSG = 'Choose the court and add the parties to continue.';
+// T-644, AJ-644-M1 (typed byte for byte from handoff/legal/T-511-copy-rulings-ajay.md).
+const SIGNED_PLAINTIFF_EN = "Add the plaintiff's name to continue.";
+const SIGNED_DEFENDANT_EN = "Add the defendant's name to continue.";
 const COURT_ONLY_MSG = 'Choose the court to continue.';
 
 const O39 = 'temporary_injunction_o39';
@@ -81,7 +84,7 @@ const itemOf = (b: { items: BriefItem[] }, name: string) => {
 };
 
 // ── A. The messages file ─────────────────────────────────────────────────────────────────
-describe('o39-confirm-messages: the signed strings', () => {
+describe('signed-confirm-messages: the signed strings', () => {
   it('EN and HI are byte for byte the signed text', () => {
     expect(O39_CONFIRM_MESSAGES.main_suit_relief.en).toBe(SIGNED_RELIEF_EN);
     expect(O39_CONFIRM_MESSAGES.main_suit_relief.hi).toBe(SIGNED_RELIEF_HI);
@@ -89,10 +92,15 @@ describe('o39-confirm-messages: the signed strings', () => {
     expect(O39_CONFIRM_MESSAGES.restraint_sought.hi).toBe(SIGNED_RESTRAINT_HI);
   });
 
-  it('the field order is main_suit_relief, then restraint_sought', () => {
-    expect([...O39_REQUIRED_FIELDS]).toEqual(['main_suit_relief', 'restraint_sought']);
-    expect(isO39RequiredField('restraint_sought')).toBe(true);
-    expect(isO39RequiredField('acts_complained_of')).toBe(false);
+  it('the field order is plaintiff_name, defendant_name (T-644), main_suit_relief, restraint_sought', () => {
+    expect([...O39_REQUIRED_FIELDS]).toEqual([
+      'plaintiff_name',
+      'defendant_name',
+      'main_suit_relief',
+      'restraint_sought',
+    ]);
+    expect(isO39RequiredField('temporary_injunction_o39', 'restraint_sought')).toBe(true);
+    expect(isO39RequiredField('temporary_injunction_o39', 'acts_complained_of')).toBe(false);
   });
 
   it('the non-answer list is exactly the ten signed values', () => {
@@ -149,17 +157,31 @@ describe('o39-confirm-messages: the signed strings', () => {
 
   it('requiredFieldBlockers returns the open fields in signed order, with the EN line', () => {
     expect(requiredFieldBlockers({})).toEqual([
+      { key: 'plaintiff_name', en: SIGNED_PLAINTIFF_EN },
+      { key: 'defendant_name', en: SIGNED_DEFENDANT_EN },
       { key: 'main_suit_relief', en: SIGNED_RELIEF_EN },
       { key: 'restraint_sought', en: SIGNED_RESTRAINT_EN },
     ]);
-    expect(requiredFieldBlockers({ main_suit_relief: 'x', restraint_sought: 'N/A' })).toEqual([
-      { key: 'restraint_sought', en: SIGNED_RESTRAINT_EN },
-    ]);
-    expect(requiredFieldBlockers({ main_suit_relief: 'x', restraint_sought: 'y' })).toEqual([]);
+    const parties = { plaintiff_name: 'Ramesh Kumar Verma', defendant_name: 'Sunita Devi Agarwal' };
+    expect(
+      requiredFieldBlockers({ ...parties, main_suit_relief: 'x', restraint_sought: 'N/A' }),
+    ).toEqual([{ key: 'restraint_sought', en: SIGNED_RESTRAINT_EN }]);
+    expect(
+      requiredFieldBlockers({ ...parties, main_suit_relief: 'x', restraint_sought: 'y' }),
+    ).toEqual([]);
   });
 });
 
 describe('fail closed: every blocks_confirm field in a pack has a signed message', () => {
+  // T-661: no exception. A blocks_confirm field is messaged when it is an O.39 required field, or the
+  // pack has a signed line for it (PACK_CONFIRM_MESSAGES), with a non-empty EN and HI.
+  const unmessaged = (flagged: Array<{ pack: string; id: string }>) =>
+    flagged.filter((f) => {
+      if (isO39RequiredField(f.pack, f.id)) return false;
+      const m = signedConfirmMessage(f.pack, f.id);
+      return !(m !== null && m.en.length > 0 && m.hi.length > 0);
+    });
+
   it('iterates every rule pack JSON', () => {
     const dir = join(__dirname, '..', 'config', 'document-rules');
     const flagged: Array<{ pack: string; id: string }> = [];
@@ -169,18 +191,39 @@ describe('fail closed: every blocks_confirm field in a pack has a signed message
         if (f.blocks_confirm === true) flagged.push({ pack: id, id: f.id });
       }
     }
-    // The two O.39 fields, and nothing else flagged.
+    // The two O.39 fields, the T-650 field, and nothing else flagged unmessaged.
     expect(flagged).toEqual(
       expect.arrayContaining([
         { pack: O39, id: 'main_suit_relief' },
         { pack: O39, id: 'restraint_sought' },
+        { pack: 'plaint_partition', id: 'other_defendants' },
       ]),
     );
-    for (const f of flagged) {
-      expect(isO39RequiredField(f.id)).toBe(true);
+    expect(unmessaged(flagged)).toEqual([]);
+    for (const f of flagged.filter((x) => isO39RequiredField(x.pack, x.id))) {
       expect(O39_CONFIRM_MESSAGES[f.id as 'main_suit_relief'].en.length).toBeGreaterThan(0);
       expect(O39_CONFIRM_MESSAGES[f.id as 'main_suit_relief'].hi.length).toBeGreaterThan(0);
     }
+  });
+
+  it('positive control: any other unmessaged blocks_confirm field still fails the pin', () => {
+    expect(unmessaged([{ pack: 'bail_regular', id: 'some_new_field' }])).toEqual([
+      { pack: 'bail_regular', id: 'some_new_field' },
+    ]);
+    // a signed line is for exactly that pack and field, not the field name on another pack
+    expect(unmessaged([{ pack: 'replication', id: 'other_defendants' }])).toEqual([
+      { pack: 'replication', id: 'other_defendants' },
+    ]);
+    expect(unmessaged([{ pack: 'plaint_partition', id: 'defendants_details' }])).toEqual([
+      { pack: 'plaint_partition', id: 'defendants_details' },
+    ]);
+    // the messaged ones pass
+    expect(
+      unmessaged([
+        { pack: 'plaint_partition', id: 'other_defendants' },
+        { pack: O39, id: 'main_suit_relief' },
+      ]),
+    ).toEqual([]);
   });
 
   it('the pack flags exactly the two fields, through the loader', () => {
@@ -244,11 +287,13 @@ describe('confirmState: the required fields block Confirm', () => {
     expect(b.can_confirm).toBe(true);
   });
 
-  it('(j)2 order: no court and no parties: court+parties line, then both fields', () => {
+  it('(j)2 order (AJ-644-M2): no court and no parties: court line, both party lines, then both fields', () => {
     const b = brief([], {}, NO_COURT);
     expect(b.confirm_blockers).toEqual(['court', 'parties', 'required_fields']);
     expect(b.confirm_message!.split('\n')).toEqual([
-      COURT_PARTIES_MSG,
+      COURT_ONLY_MSG,
+      SIGNED_PLAINTIFF_EN,
+      SIGNED_DEFENDANT_EN,
       SIGNED_RELIEF_EN,
       SIGNED_RESTRAINT_EN,
     ]);
@@ -267,10 +312,11 @@ describe('confirmState: the required fields block Confirm', () => {
   it('(j)2 order: parties missing, court chosen: the party line precedes the fields', () => {
     const b = brief([RELIEF]);
     expect(b.confirm_blockers).toEqual(['parties', 'required_fields']);
-    const lines = b.confirm_message!.split('\n');
-    expect(lines).toHaveLength(2);
-    expect(lines[0]).toMatch(/^Add the name of the .* to continue\.$/);
-    expect(lines[1]).toBe(SIGNED_RESTRAINT_EN);
+    expect(b.confirm_message!.split('\n')).toEqual([
+      SIGNED_PLAINTIFF_EN,
+      SIGNED_DEFENDANT_EN,
+      SIGNED_RESTRAINT_EN,
+    ]);
   });
 
   it('a value read from the description lifts the blocker (the brief shows it to confirm)', () => {

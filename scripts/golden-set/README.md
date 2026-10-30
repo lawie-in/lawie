@@ -61,20 +61,20 @@ GOLDEN_SET_ANTHROPIC_API_KEY=... GOLDEN_SET_MONGODB_URI=... \
   yarn workspace @lawie/drafting golden:set --real
 ```
 
-| Option                 | Meaning                                                                                                                                 |
-| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `--dry-run` / `--real` | One is required. The runner refuses to call the real model without `--real`.                                                            |
-| `--only 1a,06`         | Run only these fixture ids (or id prefixes).                                                                                            |
-| `--stub <variant>`     | Dry run only. Selects the recorded replies to use (default `clean`). Fixtures with no replies for that variant are skipped.             |
-| `--calibrate`          | Also report per-fact-type confidence distributions and suggested floors (AC7).                                                          |
-| `--max-fixtures <n>`   | `--real` only: refuses to start if more fixtures are selected. The default is 30; the hard cap is 40. A dry run never refuses on count. |
-| `--max-tokens <n>`     | Stops starting new fixtures once the run has used this many tokens. The default is 600000. A capped run exits 1.                        |
-| `--out <dir>`          | Where the results JSON goes. The default is `scripts/golden-set/results/`, which is git-ignored.                                        |
-| `--verbose`            | Also prints the service's own log lines for each fixture. These are ids and counts only.                                                |
+| Option                 | Meaning                                                                                                                                                                                                                                                                                                                  |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `--dry-run` / `--real` | One is required. The runner refuses to call the real model without `--real`.                                                                                                                                                                                                                                             |
+| `--only 1a,06`         | Run only these fixture ids (or id prefixes).                                                                                                                                                                                                                                                                             |
+| `--stub <variant>`     | Dry run only. Selects the recorded replies to use (default `clean`). Fixtures with no replies for that variant are skipped.                                                                                                                                                                                              |
+| `--calibrate`          | Also report per-fact-type confidence distributions and suggested floors (AC7).                                                                                                                                                                                                                                           |
+| `--max-fixtures <n>`   | `--real` only: refuses to start if more fixtures are selected. The default is per variant: 30 for v2, 10 for the v3 variant (`--stub v3_extract`); the hard cap is 40. A `--real` run runs and counts only the fixtures of its own variant, so the v3 cassettes never run in a v2 run. A dry run never refuses on count. |
+| `--max-tokens <n>`     | Stops starting new fixtures once the run has used this many tokens. The default is 600000. A capped run exits 1.                                                                                                                                                                                                         |
+| `--out <dir>`          | Where the results JSON goes. The default is `scripts/golden-set/results/`, which is git-ignored.                                                                                                                                                                                                                         |
+| `--verbose`            | Also prints the service's own log lines for each fixture. These are ids and counts only.                                                                                                                                                                                                                                 |
 
 ### Model usage per stage (T-453)
 
-The runner listens in-process to the service's `llm_call` records (stage, call, model, effort, status, token counts, stop reason; ids and counts only). After the fixture lines it prints a block with, per stage, the median and p90 tokens per completed call, the count of each stop reason, and every call that stopped on `max_tokens` (a cap hit). The results JSON gains `llmCalls`: `{ summary, calls }` for each fixture. Use it to see whether a lower effort or a cap is cutting calls off. The golden set runs intake and drafting only; it does not exercise the preflight stage.
+The runner listens in-process to the service's `llm_call` records (stage, call, model, effort, status, token counts, stop reason; ids and counts only). After the fixture lines it prints a block with, per stage, the median and p90 tokens per completed call, the count of each stop reason, and every call that stopped on `max_tokens` (a cap hit). The results JSON gains `llmCalls`: `{ summary, calls }` for each fixture. Use it to see whether a lower effort or a cap is cutting calls off. The golden set runs intake, extract (the v3 Extractor, T-683) and drafting; it does not exercise the preflight stage. The report has a row for each stage, and a degraded extract line counts as failed. Fixtures 29-38 are the v3 Extractor cassettes (Anushka run-5 cases T-675 to T-680): a fixture sets `v3_stage` to run at that stage, and its recorded `extract` reply is one string or a list with one reply per call.
 
 ### Date confidence (T-453)
 
@@ -139,6 +139,16 @@ Each time, it runs the dry run. It also runs the real set only when both reposit
 A pull request from the same repository that changes `scripts/golden-set/**` runs that PR's own code with the production database secret, so review changes to this folder before CI runs them. Pull requests from forks get no secrets, so they run the dry run only.
 
 To make it a blocking pre-merge gate, add "Golden set — Drafting (real model)" as a required check on `develop` in the branch protection settings.
+
+## Unit tests
+
+The harness's own tests live in `scripts/golden-set/__tests__`. They are not part of the drafting Jest config or of `yarn test:scripts`. Run them with:
+
+```sh
+yarn jest -c scripts/jest.config.js scripts/golden-set/__tests__ --coverage=false
+```
+
+CI runs them in the `test-golden-set` job in `.github/workflows/ci.yml` and in `.github/workflows/full-tests.yml` (T-688).
 
 ## Adding a fixture
 

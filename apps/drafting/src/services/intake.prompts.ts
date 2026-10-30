@@ -51,7 +51,16 @@ Rules:
 Reply with JSON only, no other text, in exactly this shape:
 {"template_id": string or null, "confidence": "high" | "medium" | "low", "alternatives": [template_id, ...], "is_legal_drafting": boolean, "is_court_document": boolean, "category": string}`;
 
-export function buildMatchUserPrompt(description: string, catalogue: CatalogueEntry[]): string {
+/**
+ * T-681b: the match user prompt in two parts, for prompt caching. `catalogue` is the
+ * catalogue part: the same bytes for every request with the same catalogue, so it carries
+ * the cache breakpoint. `tail` is the rest (the blank line and the user's description).
+ * `catalogue + tail` is exactly buildMatchUserPrompt's text: no text is added or moved.
+ */
+export function buildMatchUserParts(
+  description: string,
+  catalogue: CatalogueEntry[],
+): { catalogue: string; tail: string } {
   const lines = catalogue.map(
     (t) =>
       `${t.template_id} | ${t.display_name} | ${t.category} | ${oneLine(t.description, 140)}` +
@@ -60,13 +69,21 @@ export function buildMatchUserPrompt(description: string, catalogue: CatalogueEn
         ? ` | match terms: ${t.match_terms.join(', ')}`
         : ''),
   );
-  return `Catalogue (template_id | name | category | description):
-${lines.join('\n')}
+  return {
+    catalogue: `Catalogue (template_id | name | category | description):
+${lines.join('\n')}`,
+    tail: `
 
 User's description:
 <description>
 ${description}
-</description>`;
+</description>`,
+  };
+}
+
+export function buildMatchUserPrompt(description: string, catalogue: CatalogueEntry[]): string {
+  const parts = buildMatchUserParts(description, catalogue);
+  return parts.catalogue + parts.tail;
 }
 
 export const FILL_SYSTEM_PROMPT = `You read a user's description of a legal matter and copy out the details it states, into the fields of a form.
@@ -145,6 +162,7 @@ Step 3. Write the questions.
 - Ask only about lines of the CHECKLIST. Never ask about anything that is not on it.
 - One line per question. Plain words. At most 25 words.
 - Never ask for something already given. Never suggest an answer. Never word a question so that it points to one answer.
+For a required party (plaintiff, defendant, applicant, petitioner, respondent, complainant, accused, or the person or authority the document is against), never offer to leave it blank, mark it unknown, show it as unknown, or use any other placeholder. Ask for the party's name. If the user says the name is not known, ask for a description that identifies the party (for example, how the party is connected to the facts), and never suggest a placeholder.
 
 Return JSON only, with no other text, in one of these shapes:
 
@@ -182,6 +200,7 @@ Usually: who it is from, who it is to, any other parties, what happened in order
 Step 3. Decide whether to ask or to write the brief.
 - Ask only for what is needed and missing. At most 5 questions. One thing per question. Plain words.
 - Never ask for something already given. Never suggest an answer. Never guess.
+For a required party (plaintiff, defendant, applicant, petitioner, respondent, complainant, accused, or the person or authority the document is against), never offer to leave it blank, mark it unknown, show it as unknown, or use any other placeholder. Ask for the party's name. If the user says the name is not known, ask for a description that identifies the party (for example, how the party is connected to the facts), and never suggest a placeholder.
 - In strict mode, always ask for the court or authority, the parties and the dates if any of them is missing.
 - In light mode, ask nothing if the description is enough.
 - In round 2, ask only what is still missing after the answers.

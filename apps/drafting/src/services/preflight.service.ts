@@ -30,7 +30,6 @@ import { Court } from '../models/Court.model';
 import { Event } from '../models/Event.model';
 import { LlmAuxCall } from '../models/LlmAuxCall.model';
 
-import { APP_SETTING_KEYS, getAppSetting } from './app-settings.service';
 import {
   ChargedSection,
   normaliseBnsSection,
@@ -49,6 +48,7 @@ import {
   logLlmCall,
   parseAnthropicMessageUsage,
   priceUsage,
+  resolveModel,
 } from './llm-usage';
 import { lookupOldToNew } from './sections.service';
 import {
@@ -60,6 +60,7 @@ import {
   resolveAdvocate,
   resolveEnrollmentNumber,
 } from './template-engine.service';
+import { WS_OVER_90_DAYS_WARNING, wsOver90DaysWarningApplies } from './ws-limitation-warning';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -242,6 +243,9 @@ function nearMatch(a: string, b: string): boolean {
   const common = [...setA].filter((w) => setB.has(w) && w.length > 2).length;
   return common >= 2 && common >= Math.min(setA.size, setB.size) * 0.8;
 }
+
+// T-690b: wsOver90DaysWarningApplies and WS_OVER_90_DAYS_WARNING live in
+// ./ws-limitation-warning (T-690c), shared with the guided brief.
 
 // ── Pure-rule layer ───────────────────────────────────────────────────────────
 
@@ -521,6 +525,16 @@ async function runPureRules(
     }
   }
 
+  // ── T-690b: written statement more than 90 days after service (soft) ─────
+  // A warning, never a block (Ajay, 29 Oct 2026).
+  if (wsOver90DaysWarningApplies(templateId, formData)) {
+    findings.push({
+      rule_id: 'ws_over_90_days',
+      severity: 'soft',
+      question: WS_OVER_90_DAYS_WARNING,
+    });
+  }
+
   return findings;
 }
 
@@ -636,9 +650,10 @@ async function runLLMChecks(
 
   try {
     // Model id is configured at runtime via the AppSetting collection.
-    // If the key is unset, getAppSetting throws → caught below → preflight
-    // degrades gracefully to rules-only (fail-open per ADR-018).
-    const model = await getAppSetting(APP_SETTING_KEYS.PREFLIGHT_MODEL);
+    // T-684: the fact_checker role (ai.model.fact_checker, falling back to
+    // ai.preflight_model for one release). If unset, resolveModel throws →
+    // caught below → preflight degrades gracefully to rules-only (fail-open per ADR-018).
+    const model = await resolveModel('fact_checker');
     const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
     // T-453: effort from ai.effort.preflight (default low). Never throws.
     const effort = await getAiEffort('preflight');
@@ -660,6 +675,8 @@ async function runLLMChecks(
         model,
         effort: effort ?? null,
         status: 'failed',
+        startedAt,
+        durationMs: Date.now() - startedAt,
       });
       throw callErr;
     }
@@ -676,6 +693,8 @@ async function runLLMChecks(
       cacheReadInputTokens: callUsage.cacheReadInputTokens,
       cacheCreationInputTokens: callUsage.cacheCreationInputTokens,
       stopReason: typeof response?.stop_reason === 'string' ? response.stop_reason : null,
+      startedAt,
+      durationMs,
     });
 
     // T-453: the first text block, not content[0] — Haiku 5.5 thinks by default,

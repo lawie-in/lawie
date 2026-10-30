@@ -564,13 +564,22 @@ describe('AC4(a): no fixture matter in any user-facing list', () => {
     expect(real.body.remaining).toBe(FREE_TIER_MONTHLY_LIMIT - 1);
   });
 
-  it('the rating bonus: a fixture draft is not found by the rating route (no Ink for a fixture draft)', async () => {
+  it('T-652: the rate route is gone: 404 for a fixture draft and a real draft, nothing granted', async () => {
+    const before = await CreditLedger.countDocuments({});
     await LawieDocument.updateOne({ _id: realRun.docId }, { $set: { runType: 'fixture' } });
-    const res = await request(app)
+    const fixtureDraft = await request(app)
       .post(`/credits/rate/${realRun.docId}`)
       .set(headers(REAL))
       .send({ stars: 5 });
-    expect(res.status).toBe(404);
+    expect(fixtureDraft.status).toBe(404);
+    await LawieDocument.updateOne({ _id: realRun.docId }, { $unset: { runType: '' } });
+    const realDraft = await request(app)
+      .post(`/credits/rate/${realRun.docId}`)
+      .set(headers(REAL))
+      .send({ stars: 5 });
+    expect(realDraft.status).toBe(404);
+    expect(await CreditLedger.countDocuments({})).toBe(before);
+    expect(await CreditLedger.countDocuments({ source: 'rating_bonus' })).toBe(0);
   });
 });
 

@@ -28,6 +28,7 @@ import app from '../app';
 import logger from '../config/logger';
 import { AppSetting } from '../models/AppSetting.model';
 import { User } from '../models/User.model';
+import { seedCourts } from './seedCourts';
 import { createVerifiedUser } from './verifiedUser';
 import { _clearAppSettingsCache } from '../services/app-settings.service';
 import * as aiService from '../services/ai.service';
@@ -46,6 +47,9 @@ jest.mock('@anthropic-ai/sdk', () =>
   // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-require-imports
   require('./sdkStream').sdkModuleStub((...args: unknown[]) => mockMessagesStream(...args)),
 );
+
+// T-686: an id-shaped court with no active row stops the run, so the court is seeded.
+seedCourts('district_sessions_patna');
 
 jest.setTimeout(60_000);
 

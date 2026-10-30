@@ -4,7 +4,7 @@ import mongoose from 'mongoose';
 let mongoServer: MongoMemoryServer;
 
 beforeAll(async () => {
-  mongoServer = await MongoMemoryServer.create();
+  mongoServer = await MongoMemoryServer.create({ instance: { launchTimeout: 30000 } });
   const uri = mongoServer.getUri();
   await mongoose.connect(uri);
 }, 60_000); // Allow time for first-time binary download

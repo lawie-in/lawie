@@ -20,9 +20,13 @@ import { AppSetting } from '../models/AppSetting.model';
 import { LawieDocument } from '../models/Document.model';
 import { Generation } from '../models/Generation.model';
 import { User } from '../models/User.model';
+import { seedCourts } from './seedCourts';
 import { createVerifiedUser } from './verifiedUser';
 import { _clearAppSettingsCache } from '../services/app-settings.service';
 import { sdkAnswer } from './sdkStream';
+
+// T-686: an id-shaped court with no active row stops the run, so the court is seeded.
+seedCourts('bihar_civil_junior_patna', 'district_sessions_patna');
 
 jest.setTimeout(60_000);
 

@@ -752,6 +752,15 @@ describe('T-240 AC1-3 - every rule file has exactly one catalogue entry', () => 
       .filter((l: string) => !/document-rules\/_averments\//.test(l))
       // T-374 (Ajay, 13 Oct 2026) signed clause skeletons live in document-rules/_skeletons/.
       .filter((l: string) => !/document-rules\/_skeletons\//.test(l))
+      // T-638 (Ajay B2, 28 Oct 2026) signed the custody_since question in bail_regular (rule pack and template).
+      .filter((l: string) => !/(document-rules|templates)\/bail_regular\.json$/.test(l))
+      // T-650 (Ajay, 29 Oct 2026) signed the party fields in these three packs.
+      .filter(
+        (l: string) =>
+          !/document-rules\/(replication|written_statement|plaint_partition|temporary_injunction_o39)\.json$/.test(
+            l,
+          ),
+      )
       // T-479 (Ajay, 16 Oct 2026) signed the cause-title edits to these five packs only.
       .filter(
         (l: string) =>

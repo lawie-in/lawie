@@ -1,0 +1,176 @@
+# Drafting model: Claude Opus 5.5 vs Sonnet 5.5 — data for the CFO's decision (Arjun, 29 Oct 2026)
+
+Founder's ask (29 Oct, 19:05 UTC): "test about having opus for drafting model… generate all the data so that CFO can do the calculations… and your opinion on quality". Vikram computes; Arjun gives the technical facts and the quality view; the founder decides. Nothing in prod changes until then — the switch is one AppSetting (`ai.drafting_model`; after T-684, `ai.model.drafter`), no code.
+
+## 1. List prices (Anthropic first-party API, from the claude-api skill table cached 2026-10-06; Vikram re-checks platform.claude.com/pricing before signing)
+
+| model                                  | id                  | input $/MTok | output $/MTok | cache write (1 h) $/MTok | cache read $/MTok                         |
+| -------------------------------------- | ------------------- | ------------ | ------------- | ------------------------ | ----------------------------------------- |
+| Claude Sonnet 5.5                      | `claude-sonnet-5-5` | 2.00         | 10.00         | 4.00                     | 0.10 (skill table says 0.20 — **verify**) |
+| Claude Opus 5.5                        | `claude-opus-5-5`   | 4.00         | 20.00         | 8.00 (2× input — verify) | 0.20                                      |
+| Claude Haiku 5.5 (intake/checks today) | `claude-haiku-5-5`  | 0.10         | 0.50          | 0.20                     | 0.01                                      |
+
+Prod AppSettings today: `ai.drafting_model=claude-sonnet-5-5`, `ai.intake_model=ai.preflight_model=claude-haiku-5-5`, `ai.rates.*` as seeded 27 Oct, `finance.usd_inr=88`. Opus is **2× Sonnet on every token class**. Batch API (50% off) is not usable: drafts stream live.
+
+Opus 5.5 API differences that matter (skill, model-migration): thinking cannot be disabled — effort is the only control and its **default is `medium`** (Sonnet's is `high`); forced `tool_choice` is a 400 (we don't use it in drafting); same tokenizer/context as Sonnet 5.5. Our `ai.effort.*` setting must be set explicitly for Opus or we get a different effort than today.
+
+## 2. Per-draft token profile (prod, Nikhil's read-only pull — appended below when it lands)
+
+Fill from §2a. Cost per draft = Σ over stages of (input×in_rate + output×out_rate + cache_write×cw_rate + cache_read×cr_rate) / 1e6 × 88 ₹/$. Today only the `body` (Drafter) stage and the delivery-gate/reviewer calls would move to Opus if `ai.drafting_model` changes; intake, preflight and Language stay Haiku. Vikram: compute three scenarios —
+
+- **S1 Sonnet everywhere (today).**
+- **S2 Opus for the Drafter only** (`ai.drafting_model` → `claude-opus-5-5`, everything else unchanged): body-stage tokens × Opus rates.
+- **S3 Opus for Drafter + the gate's reviewer pass** (argued packs only: bail family, O.39, quashing, revision, appeal — the ADR's "argued" list).
+
+## 3. Revenue and guard-rails per draft (from the ADR cost section and T-588/T-595)
+
+- A draft costs the user 2 Ink today (typical); one Ink earns ₹9.19 net at the worst plan (Pro yearly) → **₹18.4 per draft floor**, up to ₹19–₹25 on monthly/top-up pricing (Vikram has the exact per-plan Ink value).
+- Cost cap rule in prod: `ai.cost_cap_paise_per_ink = 900` → a 2-Ink draft may spend at most ₹18 of model cost before the run is refused. **If Opus pushes a draft past ₹18 the run is cut off by the cap, not just dearer** — Vikram checks S2/S3 p95 against this cap, not only the mean.
+- Margin rule (ADR): never spend more on one draft than it brings in. Decision input = S2/S3 p95 cost vs ₹18.4.
+
+## 4. Latency
+
+- Prod generation (whole run) p50 ≈ 10 s, p95 ≈ 11 s on Sonnet (Nikhil, 29 Oct 11:28). Opus 5.5 at the same effort streams slower per token; expect ~1.5–2× on the body stage. User-visible time is dominated by intake (7–8 min, T-681), so a +10 s draft is not the UX problem today.
+
+## 5. Quality — Arjun's opinion
+
+**Short answer: not yet, and not globally.** Reasons:
+
+1. The failures Anushka found (invented facts, dropped amounts, raw Hinglish copied in, stripped section numbers) are **information-flow failures**, not model-capability failures: the facts never reached the prompt as structured facts, or reached it as raw text the model copied. A stronger model guesses better; it does not get facts it was not given. Drafting v3 Phase 1 (typed fact ledger + Extractor + checker, now building) fixes that for any model. Switching to Opus before v3 would mask some symptoms in the golden set and make the v3 acceptance baseline noisy.
+2. Where Opus plausibly helps: **argument quality** on argued packs (bail grounds, O.39 balance of convenience, quashing) and following Ajay's long per-pack instructions without dropping clauses. That is a real, measurable gain — on those packs, for the Drafter and the legal-reviewer pass only (scenario S3), behind the per-pack model setting T-684 ships this week.
+3. Cost is 2× on the stage that is already ~90% of the per-draft spend; at today's pricing it likely crosses the ₹18 cap on long plaints (Vikram's p95 will say). The cap would start refusing runs silently unless raised, which breaks the margin rule.
+4. Effort matters more than model: Sonnet 5.5 at `high` with v3's structured input is the baseline to beat; Opus 5.5 defaults to `medium`. A fair test holds effort constant.
+
+**Recommended test (cheap, decisive, ~₹600 of model spend):**
+
+- Blind A/B: the 6 matters from Anushka's run 5 (declaration, O.39, partition ×2, WS, bail ×2) + 4 argued-pack matters Ajay picks = 10 matters × 2 models = 20 drafts, same prompts, same effort (`high`), v2 pipeline as on prod today, run from the golden-set harness on the develop box or a cloud session (cassettes record tokens for Vikram).
+- Scoring: Anushka blind (model hidden, random order) with her usual rubric per draft: blockers/majors/minors + "would I file it"; plus the golden-set checker metrics (fact-checker violations, legal-reviewer findings, placeholders left) per draft.
+- Decision rule proposed to the founder: switch a pack to Opus only if Anushka's blind score improves by ≥1 severity class on ≥60% of that pack's matters AND Vikram's p95 cost stays under the cap. Otherwise stay on Sonnet and let v3 land.
+
+## 6. What each person does
+
+- Nikhil: token profile (§2a) — today.
+- Vikram: S1/S2/S3 cost per draft (mean, p95) in ₹, vs per-plan Ink revenue and the ₹18 cap; flags where the cap binds.
+- Priya: ticket the blind A/B (one lead; golden-set harness; outputs a table of 20 drafts with tokens and checker metrics; Anushka's blind scoring as the last step).
+- Ajay: picks the 4 argued-pack matters and confirms the rubric.
+- Arjun: reads the results and recommends per pack; founder decides.
+
+## 7. Vikram (29 Oct 2026): cost per draft S1–S3, against Ink value and the cap
+
+**Prices verified** on platform.claude.com/docs/en/about-claude/pricing, 29 Oct ~19:20 UTC. Opus 5.5 is **exactly 2× Sonnet 5.5 on every token class**: input $4 vs $2, 5-min write $5 vs $2.50, 1-h write $8 vs $4, cache read $0.20 vs $0.10, output $20 vs $10. Sonnet's cache read is **$0.10** (0.05× input), so the skill table's 0.20 is wrong. Haiku 5.5 is unchanged ($0.10 / $0.50, read $0.01, 1-h write $0.20, ≤100k prompts). ₹88/$.
+
+**Basis:** §2a (prod) has not landed. These figures use **develop** body-stage rows since 15 Oct: 753 golden-set drafts plus 14 user drafts, all Sonnet 5.5. I will re-run on §2a the same day it lands. Because Opus is a flat 2×, S2 = 2 × S1 body cost exactly, before any change in thinking tokens. S3 assumes the gate's reviewer pass costs 40% of the body on Sonnet. That is my placeholder; replace it with §2a's reviewer tokens.
+
+| ₹ per draft (body + reviewer; intake ₹0.18 extra, unchanged) | Mean       | p95         | p99        | Max  |
+| ------------------------------------------------------------ | ---------- | ----------- | ---------- | ---- |
+| **S1 Sonnet** (golden set / user rows)                       | 2.2 / 3.6  | 6.0 / 7.7   | 9.5 / n/a  | 12.6 |
+| **S2 Opus drafter**                                          | 4.5 / 7.3  | 11.9 / 15.5 | 19.0 / n/a | 25.2 |
+| **S3 Opus drafter + reviewer**                               | 6.2 / 10.2 | 16.7 / 21.7 | 26.6 / n/a | 35.3 |
+
+Thinking risk: Opus's thinking cannot be turned off. At effort `high`, output tokens may rise 20–30%. Output is about 60% of body cost, so that adds about 15% to S2/S3: S2 user p95 → ≈ ₹18, S3 user p95 → ≈ ₹25.
+
+**Ink value of a 2-Ink draft (net of GST and Razorpay):** Pro yearly ₹18.4 · Solo yearly ₹22.0 · Pro monthly ₹22.1 · Solo monthly ₹26.4 · top-ups ₹29.5 (₹499 pack) to ₹35.9 (₹65 pack).
+
+**Margin at the mean (user rows), line 60%:**
+| | Pro yearly ₹18.4 | Solo monthly ₹26.4 |
+|---|---|---|
+| S1 | 80% ✅ | 86% ✅ |
+| S2 | 60% ⚠️ on the line | 72% ✅ |
+| S3 | 45% ❌ | 61% ⚠️ |
+
+**Where the ₹18 cap (900 paise × 2 Ink) binds:**
+
+- **S1:** never. The max seen is ₹12.6.
+- **S2:** at about p99 on the golden set (₹19), and at user p95 once Opus thinking is counted (≈ ₹18). Roughly 1–5% of 2-Ink drafts would be **refused**.
+- **S3:** at p95 (₹21.7 user rows). About 5–10% of argued-pack drafts refused. That is not acceptable.
+- 4-Ink (₹36) and 5-Ink (₹45) drafts clear the cap in every scenario.
+- Do not raise the cap to make Opus fit. The cap is the rule that a draft never costs more than it earns; at ₹18.4 on Pro yearly it already sits at break-even.
+
+**Finance ruling:**
+
+1. **No global switch to Opus.** S2 puts the typical draft exactly on the 60% line for our cheapest Ink, and the cap would refuse a few percent of runs. I agree with Arjun's §5.
+2. **Opus only per pack (argued packs), only after the blind A/B**, and only if that pack's measured p95 stays under the cap. If an argued pack needs Opus and its p95 does not fit 2 Ink, the pack moves up to **3 Ink** (cap ₹27, Pro yearly value ₹27.6). That is a price change, so it is the founder's call, with Meera's and Ajay's copy re-signed.
+3. **A/B spend approved, hard cap ₹600.** Expected cost is about ₹200: 10 Opus drafts at ₹7–15 plus 10 Sonnet at ₹3–8, plus checker passes. Record tokens per draft so the p95 above can be replaced with measured values.
+4. **v3 comes first.** v3 adds ₹3–5 per draft (extractor plus extra pass) on any model. S2 + v3 is ≈ ₹10–12 mean on a 2-Ink draft, which is under 60% on Pro yearly. Opus decisions are made on the v3 pipeline, not today's.
+
+Vikram, CFO
+
+## 2a. Prod token profile (Nikhil, 29 Oct 2026 19:15 UTC, doc v18 `token-stats`; numbers only)
+
+Caveats: drafting out log starts 26 Oct 16:24, so "7 d" ≈ 3 days (172 llm_call records); llm_call carries no runId, so per-draft totals come from `generations` (completed, non-fixture) and cover the body (Drafter) stage only; intake calls are per call, not per draft.
+
+Per call, last 24 h (stage | call | model, n; mean/p50/p95):
+
+- body | d1 | sonnet-5-5, n4: in 5216/5169/5329; out 600/399/1175; cache_write 2154/2152/2175; cache_read 0
+- body | stream | sonnet-5-5, n20: in 3094/1918/7065; out 1458/1609/2403; cache_write 693/0/3296; cache_read 779/859/3296
+- intake | extract | haiku-5-5, n12: in 1857/1817/2127; out 1071/1049/1956; no cache
+- intake | match | haiku-5-5, n36: in 7256/7237/7362; out 224/213/384; no cache
+- intake | reception | haiku-5-5, n61: in 1475/1320/2424; out 1375/1199/2521; no cache
+
+Per draft (generations, completed, body stage): 7 d, 20 drafts — input 4277/4196/12305 · output 1532/1371/2743 · cache_write 1534/859/4284 · cache_read 711/0/4284 · llmCalls 1/1/3. 24 h, 14 drafts — input 3805/690/14800 · output 1594/1371/4930 · cache_write 1203/859/5642 · cache_read 710/0/5642. Retry/repair share 0%.
+
+### Arjun's arithmetic (Vikram verifies; ₹88/$)
+
+Body stage per draft, Sonnet 5.5 (S1): mean = 4277×2 + 1532×10 + 1534×4 + 711×0.1 = 30,087 µ$ → **$0.030 ≈ ₹2.65**; p95 ≈ 12305×2 + 2743×10 + 4284×4 + 4284×0.1 = 69,604 µ$ → **$0.070 ≈ ₹6.1**.
+Intake per draft, Haiku (≈1 match + 4 reception + 1.5 extract): in ≈ 16k × 0.1 + out ≈ 7.5k × 0.5 = 1.6 + 3.75 = 5.35 µ$·1e3 → **≈ $0.0054 ≈ ₹0.47** (unchanged across scenarios).
+
+- **S1 today:** ≈ ₹3.1 mean, ≈ ₹6.6 p95 per draft (matches Vikram's ₹2.4–3.8 develop run).
+- **S2 Opus Drafter:** body ×2 → ≈ ₹5.3 mean, ≈ ₹12.2 p95; total ≈ ₹5.8 mean / ₹12.7 p95. Under the ₹18 cap at p95, but a long plaint at the 24 h max (14.8k in + 4.9k out) ≈ ₹14.5 — close.
+- **S3 Opus Drafter + reviewer (argued packs):** add one Opus reviewer pass ≈ body input again + ~800 out → ≈ +₹2.3 mean → ≈ ₹8 mean / ₹16 p95 on those packs — at the cap's edge.
+  Side finding for T-681: the intake `match` call sends ~7.2k input tokens with no cache on every intake; caching its system/catalogue block would cut that to ~₹0.01 per call (Haiku cache read $0.01/MTok) — a ticket-sized win independent of the model question.
+
+## 2b. Prod token totals for Console reconciliation (Nikhil, 29 Oct 2026 19:21 UTC, doc v19 `token-totals`)
+
+Format: calls · input · output · cache_write · cache_read. Log starts 26 Oct 16:24 UTC, so "7 d" = month-to-date = 26 Oct 16:24 → 29 Oct 19:21; 1–26 Oct is Console-only (prod went live 25 Oct).
+A) All llm_call records: 24 h — haiku-5-5 × intake 109 · 373,500 · 104,770 · 0 · 0 | sonnet-5-5 × body 24 · 82,746 · 31,553 · 22,477 · 15,579. MTD — haiku × intake 139 · 500,936 · 135,289 · 0 · 0 | sonnet × body 33 · 115,023 · 39,883 · 36,324 · 19,863.
+B) generations (aiModel × origin × status; rows · llmCalls · in · out · cw · cr): 24 h — sonnet user completed 14 · 18 · 53,267 · 22,309 · 16,835 · 9,937 | failed 2 · 6 · 29,479 · 9,244 · 5,642 · 5,642. MTD — completed 20 · 27 · 85,544 · 30,639 · 30,682 · 14,221 | failed 2 · 6 · 29,479 · 9,244 · 5,642 · 5,642 | no-model failed 2 (instant vakalatnama failures). Fixture rows: 0.
+Caveats: llm_call has no user/run fields (smoke-account calls can't be excluded from A); B could exclude the smoke account by userId but Nikhil doesn't read userIds — Vikram treats MTD as "all prod usage incl. the founder's/Anushka's test drafts" (≈ all of it, pre-customers). Body calls A 33 vs B 35 differ by 2 (log start).
+Price correction (Vikram, pricing page 29 Oct): Sonnet 5.5 cache read is **$0.10**/MTok (the skill table's 0.20 is wrong); Opus = exactly 2× Sonnet on every class.
+
+### 7b. Vikram on §2a (prod, 29 Oct ~19:40 UTC): verified, three corrections
+
+**Arjun's S1 body figures check out.** Mean 30,081 µ$ = ₹2.65. The "p95" of 69,604 µ$ = ₹6.1 adds up each component's own p95, so it is an upper bound, not a true p95. Fine to use as the planning ceiling.
+
+Corrections:
+1. **Intake per completed draft is ₹0.56, not ₹0.47.** In the last 24 h there were 61 reception, 36 match and 12 extract calls for 14 completed drafts, so the abandoned intakes' cost lands on the drafts that complete. Totals: 373k tokens in and 105k out = $0.090, divided by 14 = $0.0064.
+2. **Arjun's "long plaint ≈ ₹14.5" on Opus leaves out the cache write.** With the 24 h p95 row (14.8k in, 4.9k out, 5.6k cache write, 5.6k cache read) on Opus: $0.204 = **₹18.0** body + ₹0.56 intake. That is **at the ₹18 cap**, not ₹3.5 under it.
+3. **The S3 reviewer pass at p95** (12.3k in + 0.8k out on Opus) is ≈ ₹5.7, so S3 p95 ≈ **₹18.5, over the cap**. Arjun's ₹16 is low.
+
+**Console reconciliation (24 h ≈ calendar day):**
+- Haiku from §2a = $0.090 vs Console $0.08 ✅.
+- Sonnet from generations = 14 × $0.0284 = $0.40 vs Console $0.45. That is 89%; the rest is probably gate and d1 calls outside `generations`.
+- Reconciled within about 10%. That is good enough for a decision, but not for audit. Month to date ($0.76) follows when Nikhil's totals land.
+
+**Prod-based table, ₹ per 2-Ink draft (intake ₹0.56 included):**
+| | Mean | p95 (ceiling) | Pro yearly ₹18.4 | Solo monthly ₹26.4 | ₹18 cap |
+|---|---|---|---|---|---|
+| S1 Sonnet | 3.2 | 6.7 | 83% ✅ | 88% ✅ | never |
+| S2 Opus drafter | 5.9 | 12.8 (worst row 18.6) | 68% ✅ | 78% ✅ | binds only on the longest drafts (<5%) |
+| S3 Opus drafter + reviewer | 8.2–8.8 | ≈ 18.5 | 52–55% ❌ | 67–69% ✅ | binds at p95 (~5%) |
+
+**Ruling, updated:**
+- Prod is cheaper than develop's user rows, so **finance no longer blocks S2** for argued packs: 68% on our cheapest Ink. It still needs the blind A/B to show a quality gain (Arjun §5), and a per-pack switch, not a global one.
+- **S3 stays blocked at 2 Ink.** It is below 60% on Pro yearly and refuses about 5% at the cap. Either keep the reviewer on Sonnet (S2 economics), or price that pack at 3 Ink (founder's call).
+- Opus effort must be set explicitly to the effort we test with. If `high` raises output 20–30%, S2's mean goes to about ₹6.6 (64%). Still above the line.
+- **Side win:** caching the intake `match` block saves about ₹0.06 per call × 2.6 calls per draft ≈ ₹0.15 per draft (about 5%). Worth a small ticket, low priority.
+
+Vikram, CFO
+
+### 7c. Vikram on §2b (month-to-date totals): failed runs are the finding
+
+At verified rates (Sonnet $2 / $10 / write 1h $4 / read $0.10; Haiku $0.10 / $0.50), log window 26 Oct 16:24 to 29 Oct 19:21 UTC:
+- Sonnet body (A): 115,023 in, 39,883 out, 36,324 cache write, 19,863 cache read = **$0.776**. That equals generations completed ($0.602) plus failed ($0.175) exactly, so the two sources agree.
+- Haiku intake (A): **$0.118**.
+- Log total: **$0.89**. The Console showed $0.76 month to date at 17:57 UTC, 1.4 h before Nikhil's cut, and its window starts 1 Oct (prod live 25 Oct). The cut-offs differ, so this is not an exact match. To close it, the founder reads the Console at 19:21 UTC, or Nikhil re-cuts to 17:57. The magnitude is consistent.
+
+**Finding: 2 failed runs cost $0.175, 23% of all Sonnet spend this month,** at ₹7.7 each against ₹2.65 for a completed draft. Failed runs charge no Ink, so they are pure cost. The fair cost per completed draft therefore includes them:
+
+| Per completed 2-Ink draft, month to date | S1 Sonnet | S2 Opus drafter |
+|---|---|---|
+| Completed-only (§7b) | ₹3.2 | ₹5.9 |
+| **Including failed runs and all intake** | **₹3.9** | **₹7.3** |
+| Margin on Pro yearly (₹18.4) | 79% | **60%, on the line** |
+
+So S2 sits on the 60% line once failures count. Two caveats: the sample is 22 runs, and the failures may be test-induced (smoke or Anushka). The ruling stands: per pack, after the A/B. Add one condition: **the A/B and the per-pack switch report the failed-run share.** If failed runs stay above 5% of runs, fix that before any model change, because the failures cost us more than Opus would.
+
+Vikram, CFO

@@ -25,6 +25,10 @@ interface DocumentSummary {
   title: string;
   docType: string;
   courtName: string;
+  // T-674 AC3: the on-screen court label; courtName may be an internal id.
+  courtLabel?: string;
+  // T-689b: the pack's name for the type; null or absent falls back to the docType.
+  docTypeLabel?: string | null;
   status: 'draft' | 'finalised' | 'exported';
   createdAt: string;
 }
@@ -202,13 +206,18 @@ export default function MyDocumentsPage() {
                     </Link>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="text-nl-soft text-xs capitalize">
-                      {doc.docType.replace(/_/g, ' ')}
-                    </span>
+                    {/* T-689b: the pack's name as the pack writes it, else the humanised docType. */}
+                    {doc.docTypeLabel ? (
+                      <span className="text-nl-soft text-xs">{doc.docTypeLabel}</span>
+                    ) : (
+                      <span className="text-nl-soft text-xs capitalize">
+                        {doc.docType.replace(/_/g, ' ')}
+                      </span>
+                    )}
                   </td>
                   <td className="hidden px-4 py-3 sm:table-cell">
                     <span className="text-nl-muted max-w-[160px] truncate text-xs">
-                      {doc.courtName || '—'}
+                      {doc.courtLabel || '—'}
                     </span>
                   </td>
                   <td className="px-4 py-3">

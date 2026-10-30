@@ -13,11 +13,9 @@ import { Response } from 'express';
 const mockMessagesStream = jest.fn();
 jest.mock('@anthropic-ai/sdk', () => {
   const actual = jest.requireActual('@anthropic-ai/sdk');
-  const Ctor: Record<string, unknown> & jest.Mock = jest
-    .fn()
-    .mockImplementation(() => ({
-      messages: { stream: (...a: unknown[]) => mockMessagesStream(...a) },
-    })) as never;
+  const Ctor: Record<string, unknown> & jest.Mock = jest.fn().mockImplementation(() => ({
+    messages: { stream: (...a: unknown[]) => mockMessagesStream(...a) },
+  })) as never;
   // Real error classes, so `instanceof` in the service works as it does in production.
   Ctor.APIError = actual.APIError;
   Ctor.APIConnectionError = actual.APIConnectionError;
@@ -149,8 +147,11 @@ describe('T-567 classifyLlmError userMessage', () => {
     expect(event.reason).toBe(SIGNED);
     expect(event.code).toBe('auth');
     expect(event.retryable).toBe(false);
-    expect(JSON.stringify(event)).not.toMatch(/ai\.drafting_model|admin|app setting|configured/i);
-    expect(failure.message).toContain('ai.drafting_model');
+    expect(JSON.stringify(event)).not.toMatch(
+      /ai\.drafting_model|ai\.model\.drafter|admin|app setting|configured/i,
+    );
+    // T-684: with nothing set the error names the role key, not the legacy key.
+    expect(failure.message).toContain('ai.model.drafter');
   });
 
   it('the detail of the underlying error is never in the event', async () => {

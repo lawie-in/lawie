@@ -2,7 +2,7 @@
 
 `apps/drafting/src/__tests__/court-rules.test.ts` and `court-rules-golden.test.ts` are snapshot tests over the court-rules config (`apps/drafting/src/config/court-rules/`, etc.) — see `.claude/docs/legal-content-paths.md` for the full path list these snapshots cover.
 
-`apps/drafting/package.json` has a `test:golden:update` script (`jest --testPathPattern=court-rules-golden --updateSnapshot --forceExit`) that rewrites the golden snapshots to match current output.
+`apps/drafting/package.json` has a `test:golden:update` script (`jest --selectProjects full --testPathPattern=court-rules-golden --updateSnapshot --forceExit`) that rewrites the golden snapshots to match current output.
 
 **The `tester` agent must never run this script or pass `--updateSnapshot` to any test command.** These snapshots encode legal content — a drafting change that alters generated legal text should fail its snapshot test, not have the snapshot silently rewritten to match. If a golden snapshot test fails:
 

@@ -8,8 +8,9 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "lint": "eslint 'src/**/*.ts' --fix",
-    "test": "jest --coverage --forceExit --detectOpenHandles",
-    "test:watch": "jest --watch",
+    "test": "jest --selectProjects full --coverage --forceExit --detectOpenHandles",
+    "test:sanity": "jest --selectProjects sanity --coverage=false --forceExit",
+    "test:watch": "jest --selectProjects full --watch",
     "backfill:yearly-drip": "ts-node --transpile-only scripts/backfill-yearly-drip.ts",
     "backfill:invoices": "ts-node --transpile-only scripts/backfill-invoices.ts",
     "check:live-sub-duplicates": "ts-node --transpile-only scripts/check-live-subscription-duplicates.ts"

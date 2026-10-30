@@ -214,8 +214,8 @@ describe('scripts-tests workflow', () => {
     expect(wf.name).toBe('Scripts tests');
   });
 
-  it('has exactly one job, id scripts-tests, named "Run scripts tests"', () => {
-    expect(Object.keys(wf.jobs)).toEqual(['scripts-tests']);
+  it('has exactly two jobs (changes, scripts-tests); scripts-tests is named "Run scripts tests"', () => {
+    expect(Object.keys(wf.jobs)).toEqual(['changes', 'scripts-tests']);
     expect(wf.jobs['scripts-tests'].name).toBe('Run scripts tests');
     // Branch protection requires the job's check-run name ("Run scripts tests"); a PR's check
     // list displays it as "<workflow name> / <job name>", which is what the docs quote.
@@ -269,6 +269,20 @@ describe('scripts-tests workflow', () => {
     }
   });
 
+  it('push paths carry exactly the 6 T-688 extras (sanity-tier guard inputs)', () => {
+    const extras = [
+      'apps/*/jest.config.js',
+      'packages/*/jest.config.js',
+      'apps/*/package.json',
+      'packages/*/package.json',
+      '.github/workflows/ci.yml',
+      '.github/workflows/full-tests.yml',
+    ];
+    for (const p of extras) expect(on.push.paths.filter((x: string) => x === p)).toHaveLength(1);
+    expect(on.push.paths).toHaveLength(new Set(on.push.paths).size);
+    expect(on.push.paths.slice(-extras.length)).toEqual(extras);
+  });
+
   it('installs frozen with PUPPETEER_SKIP_DOWNLOAD "true" and runs yarn test:scripts', () => {
     const steps: any[] = wf.jobs['scripts-tests'].steps;
     const install = steps.find((s) => s.run === 'yarn install --frozen-lockfile');
@@ -278,13 +292,33 @@ describe('scripts-tests workflow', () => {
     expect(steps.filter((s) => s.run === 'yarn test:scripts')).toHaveLength(1);
   });
 
-  it('uses node 20, a time limit and a cancelling concurrency group', () => {
+  it('builds @lawie/shared once, after install and before yarn test:scripts (T-691 driver needs dist/)', () => {
+    const steps: any[] = wf.jobs['scripts-tests'].steps;
+    const idx = (cmd: string) => steps.findIndex((s) => s.run === cmd);
+    const build = 'yarn workspace @lawie/shared build';
+    expect(steps.filter((s) => s.run === build)).toHaveLength(1);
+    expect(idx('yarn install --frozen-lockfile')).toBeGreaterThanOrEqual(0);
+    expect(idx(build)).toBeGreaterThan(idx('yarn install --frozen-lockfile'));
+    expect(idx(build)).toBeLessThan(idx('yarn test:scripts'));
+  });
+
+  it('push paths include packages/shared/** and apps/drafting/src/** (T-691)', () => {
+    expect(on.push.paths).toContain('packages/shared/**');
+    expect(on.push.paths).toContain('apps/drafting/src/**');
+  });
+
+  it('uses node 20, a time limit and a job-level concurrency group (T-698: none at workflow level)', () => {
     const job = wf.jobs['scripts-tests'];
     const setup = job.steps.find((s: any) => String(s.uses).startsWith('actions/setup-node@'));
     expect(String(setup.with['node-version'])).toBe('20');
     expect(job['timeout-minutes']).toBe(10);
-    expect(wf.concurrency['cancel-in-progress']).toBe(true);
-    expect(wf.concurrency.group).toBe('${{ github.workflow }}-${{ github.ref }}');
+    expect(wf.concurrency).toBeUndefined();
+    expect(job.concurrency.group).toBe(
+      "${{ github.workflow }}-${{ github.ref }}-${{ needs.changes.outputs.code == 'true' && 'code' || github.sha }}",
+    );
+    expect(job.concurrency['cancel-in-progress']).toBe(
+      "${{ needs.changes.outputs.code == 'true' }}",
+    );
   });
 });
 

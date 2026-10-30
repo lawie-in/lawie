@@ -95,6 +95,15 @@ const JHARKHAND_FORM: Record<string, unknown> = {
   sections_charged: ['103'],
 };
 
+/**
+ * T-689c: the letter an annexure is printed under, found by its heading, so the
+ * tests do not hard-code which letter the Synopsis (when attached) pushes along.
+ */
+function letterOf(html: string, heading: string): string | undefined {
+  const re = new RegExp(`class="annexure-label">ANNEXURE ([A-Z])</div>\\s*<h2>${heading}</h2>`);
+  return re.exec(html)?.[1];
+}
+
 // ── estimateBodyParaCount ─────────────────────────────────────────────────────
 
 describe('estimateBodyParaCount', () => {
@@ -145,6 +154,9 @@ describe('buildAnnexuresPack — Bihar district', () => {
       advocateName: 'Adv. Ravi Shankar',
       // T-311/T-313: no advocate_enrollment typed in BIHAR_FORM, so the profile number pairs with the profile name
       enrollmentNumber: 'BAR/2018/1234',
+      // T-689c: a district court gets no Synopsis, so the pack runs A to F
+      rulePackId: 'bail_anticipatory',
+      courtType: 'district_court',
     });
   });
 
@@ -158,46 +170,46 @@ describe('buildAnnexuresPack — Bihar district', () => {
     expect(capturedHtml).toContain('Ramesh Kumar');
   });
 
-  it('contains Annexure B — Synopsis', () => {
-    expect(capturedHtml).toContain('ANNEXURE B');
-    expect(capturedHtml).toContain('Synopsis');
+  it('has no Annexure B — Synopsis (district court, T-689c)', () => {
+    expect(capturedHtml).not.toContain('>Synopsis</h2>');
+    expect(capturedHtml).not.toContain('As required by High Court Practice');
+    expect(letterOf(capturedHtml, 'Synopsis')).toBeUndefined();
   });
 
-  it('contains Annexure C — List of Dates with FIR date', () => {
-    expect(capturedHtml).toContain('ANNEXURE C');
+  it('contains Annexure B — List of Dates with FIR date (no Synopsis before it)', () => {
+    expect(letterOf(capturedHtml, 'List of Dates and Chronology of Events')).toBe('B');
     expect(capturedHtml).toContain('List of Dates');
     expect(capturedHtml).toContain('091/2024');
   });
 
-  it('contains Annexure D — Index of Documents with all 10 entries', () => {
-    expect(capturedHtml).toContain('ANNEXURE D');
+  it('contains Annexure C — Index of Documents with all 10 entries', () => {
+    expect(letterOf(capturedHtml, 'Index of Documents Annexed')).toBe('C');
     expect(capturedHtml).toContain('Index of Documents');
     expect(capturedHtml).toContain('Vakalatnama');
     expect(capturedHtml).toContain('Court Fee');
   });
 
-  it('contains Annexure E — Vakalatnama with advocate name', () => {
-    expect(capturedHtml).toContain('ANNEXURE E');
-    expect(capturedHtml).toContain('Vakalatnama');
+  it('contains Annexure D — Vakalatnama with advocate name', () => {
+    expect(letterOf(capturedHtml, 'Vakalatnama')).toBe('D');
     expect(capturedHtml).toContain('Adv. Ravi Shankar');
     expect(capturedHtml).toContain('BAR/2018/1234');
   });
 
-  it('contains Annexure F — Court Fee Statement', () => {
-    expect(capturedHtml).toContain('ANNEXURE F');
+  it('contains Annexure E — Court Fee Statement', () => {
+    expect(letterOf(capturedHtml, 'Court Fee Paid Statement')).toBe('E');
     expect(capturedHtml).toContain('Court Fee');
   });
 
-  it('contains Annexure G — Affidavit with deponent name', () => {
-    expect(capturedHtml).toContain('ANNEXURE G');
-    expect(capturedHtml).toContain('Affidavit');
+  it('contains Annexure F — Affidavit with deponent name, and no Annexure G', () => {
+    expect(letterOf(capturedHtml, 'Affidavit')).toBe('F');
     expect(capturedHtml).toContain('RAMESH KUMAR');
+    expect(capturedHtml).not.toContain('ANNEXURE G');
   });
 
   it('contains page-break dividers between annexures', () => {
-    // Annexures B–G use class="page-break" (A does not) = 6 page-break divs
+    // Annexures B–F use class="page-break" (A does not) = 5 page-break divs
     const pageBreaks = (capturedHtml.match(/class="page-break"/g) ?? []).length;
-    expect(pageBreaks).toBeGreaterThanOrEqual(6);
+    expect(pageBreaks).toBeGreaterThanOrEqual(5);
   });
 
   it('uses Bihar verification format (verify contents of application)', () => {
@@ -229,6 +241,9 @@ describe('buildAnnexuresPack — Jharkhand HC', () => {
       bodyParaCount: 12,
       advocateName: 'Adv. Sunita Kumari',
       enrollmentNumber: 'JHA/2020/567',
+      // T-689c: the Synopsis is for a High Court and a pack not on the deny list
+      rulePackId: 'bail_anticipatory',
+      courtType: 'high_court',
     });
   });
 
@@ -255,8 +270,13 @@ describe('buildAnnexuresPack — Jharkhand HC', () => {
   });
 
   it('Synopsis references the HC context', () => {
-    expect(capturedHtml).toContain('ANNEXURE B');
+    expect(letterOf(capturedHtml, 'Synopsis')).toBe('B');
     expect(capturedHtml).toContain('High Court Practice');
+  });
+
+  it('runs A to G with the Synopsis attached', () => {
+    const labels = capturedHtml.match(/annexure-label">ANNEXURE [A-Z]</g) ?? [];
+    expect(labels.map((l) => l.slice(-2, -1))).toEqual(['A', 'B', 'C', 'D', 'E', 'F', 'G']);
   });
 });
 
@@ -279,6 +299,8 @@ describe('buildAnnexuresPack — fallback (no court_id)', () => {
 async function packHtml(
   formData: Record<string, unknown>,
   courtData?: CourtLookupData,
+  // T-689c: the pack and court type; default is a sessions bail (no Synopsis)
+  pack: { rulePackId?: string; courtType?: string } = {},
 ): Promise<string> {
   const puppeteer = jest.requireMock('puppeteer') as { launch: jest.Mock };
   const page = (await (await puppeteer.launch()).newPage()) as { setContent: jest.Mock };
@@ -287,7 +309,7 @@ async function packHtml(
     html = h;
     return Promise.resolve(undefined);
   });
-  await buildAnnexuresPack({ formData, bodyParaCount: 8, courtData });
+  await buildAnnexuresPack({ formData, bodyParaCount: 8, courtData, ...pack });
   return html;
 }
 
@@ -356,10 +378,21 @@ describe('buildAnnexuresPack — chosen court (T-156)', () => {
     const draftHeader = buildPlaceholderContext(cfg, SESSIONS_FORM, undefined, court).court_header;
     expect(draftHeader).toBe(chosenCourtHeading(court)!.header);
 
-    const html = await packHtml(SESSIONS_FORM, court);
-    // Memo, Synopsis ("Court:" line), Vakalatnama, Court Fee, Affidavit
+    const html = await packHtml(SESSIONS_FORM, court, {
+      rulePackId: 'bail_regular',
+      courtType: 'sessions',
+    });
+    // Memo, Vakalatnama, Court Fee, Affidavit (a sessions bail has no Synopsis, T-689c)
     const count = html.split(draftHeader).length - 1;
-    expect(count).toBeGreaterThanOrEqual(5);
+    expect(count).toBeGreaterThanOrEqual(4);
+    expect(html).not.toContain('>Synopsis</h2>');
+
+    // With the Synopsis attached (a High Court) its "Court:" line is a fifth
+    const hcHtml = await packHtml(SESSIONS_FORM, court, {
+      rulePackId: 'bail_regular',
+      courtType: 'high_court',
+    });
+    expect(hcHtml.split(draftHeader).length - 1).toBeGreaterThanOrEqual(5);
     expect(html).not.toContain(COURT_RULE_LINE);
     // no choice-style "X / Y" designation (the pack has other " / " in unrelated text)
     expect(html).not.toMatch(/JUDGE\s*\/\s*/);
@@ -368,7 +401,11 @@ describe('buildAnnexuresPack — chosen court (T-156)', () => {
   });
 
   it('Synopsis court line carries the chosen header', async () => {
-    const html = await packHtml(SESSIONS_FORM, GAYA);
+    // The Synopsis is attached only for a High Court (T-689c)
+    const html = await packHtml(SESSIONS_FORM, GAYA, {
+      rulePackId: 'bail_regular',
+      courtType: 'high_court',
+    });
     expect(textOf(html)).toContain(`Court: ${chosenCourtHeading(GAYA)!.header}`);
   });
 

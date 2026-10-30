@@ -25,6 +25,7 @@ import { User } from '../models/User.model';
 import {
   formGateFiles,
   GenerationFailedError,
+  GenerationFailure,
   streamGenerateFromBrief,
   streamGenerateGuided,
   streamGenerateFromTemplate,
@@ -54,6 +55,12 @@ import {
   storesState,
 } from '../services/brief-party-fields';
 import {
+  displayTitle,
+  resolveCourtLabel,
+  resolveCourtLabels,
+} from '../services/court-label.service';
+import { courtUnavailableBody, resolveFormCourt } from '../services/court-resolve.service';
+import {
   costForTemplate,
   DraftQuote,
   extendInkHold,
@@ -75,6 +82,7 @@ import {
   unitsFromInk,
   wasInkSettled,
 } from '../services/credits.service';
+import { docTypeLabelFor, docTypeLabelForPackId } from '../services/doc-type-label';
 import { eraseDocument } from '../services/document-erase.service';
 import { packOptionIds, skeletonValueLists, skeletonWhenHolds } from '../services/draft-renderer';
 import {
@@ -118,6 +126,7 @@ import {
 } from '../services/pdf-export.service';
 import { preflightCheck } from '../services/preflight.service';
 import { applyFieldAliases, loadRulePack, loadSkeleton } from '../services/rule-pack.service';
+import { runWithRunContext } from '../services/run-context';
 import { NOT_FIXTURE, NOT_FIXTURE_GENERATION } from '../services/run-origin';
 import { withS138DateChecks } from '../services/s138-date-checks';
 import {
@@ -270,6 +279,8 @@ export interface RecordGenerationInput {
   /** T-577: the quoted paragraph count and Ink, only when the pack asked for a count. */
   paragraphsRequested?: number;
   inkQuoted?: number;
+  /** T-678: the gate's codes on a withheld draft (codes and keys only, no user text). */
+  failure?: GenerationFailure;
 }
 
 /**
@@ -320,6 +331,8 @@ export async function recordGeneration(
         ? { paragraphsRequested: input.paragraphsRequested }
         : {}),
       ...(input.inkQuoted !== undefined ? { inkQuoted: input.inkQuoted } : {}),
+      // T-678: present only on a draft the gate withheld, so every other row is written as before.
+      ...(input.failure !== undefined ? { failure: input.failure } : {}),
       costUsd,
       costStatus: rate.costStatus,
       rateInputUsdPerMTok: rate.costStatus === 'priced' ? rate.rate.inputUsdPerMTok : undefined,
@@ -474,7 +487,7 @@ export async function withInkHold(
    * asking quote changes anything (quote stored on the hold, settle at the
    * delivered band).
    */
-  key: { runId: string; runSequence: number; quote?: DraftQuote },
+  key: { runId: string; runSequence: number; quote?: DraftQuote; templateId?: string },
   cost: number,
   preStreamError: Record<string, unknown>,
   run: (ink: InkHoldHandle) => Promise<void>,
@@ -791,7 +804,8 @@ export async function withInkHold(
   };
 
   try {
-    await run(handle);
+    // T-681a: every model call of the run logs its run id (ids only).
+    await runWithRunContext({ runId, runSequence, templateId: key.templateId }, () => run(handle));
   } finally {
     await stopBeats();
     await release();
@@ -833,12 +847,34 @@ router.get('/', authenticate, async (req: Request, res: Response): Promise<void>
     isDeleted: { $ne: true },
     ...NOT_FIXTURE,
   })
-    .select('title docType courtName status createdAt')
+    .select('title docType courtName status createdAt rulePackId')
     .sort({ createdAt: -1 })
     .limit(50)
     .lean();
 
-  res.json({ documents: docs });
+  // T-674 AC3 (R4): courtName may hold a court id; the screen gets courtLabel.
+  const labels = await resolveCourtLabels(docs.map((d) => d.courtName));
+  // T-689b: the pack's name for the type, as GET /:id gives it; null (guided, no
+  // pack, unreadable pack) and the screen falls back to the humanised docType.
+  // One lookup per distinct rulePackId; rulePackId itself is not sent.
+  const typeLabels = new Map<string, string | null>();
+  const typeLabelFor = (id: unknown): string | null => {
+    if (typeof id !== 'string') return null;
+    if (!typeLabels.has(id)) typeLabels.set(id, docTypeLabelForPackId(id));
+    return typeLabels.get(id) ?? null;
+  };
+  res.json({
+    documents: docs.map(({ rulePackId, ...d }) => {
+      const courtLabel = labels.get(String(d.courtName ?? '')) ?? '';
+      const docTypeLabel = typeLabelFor(rulePackId);
+      return {
+        ...d,
+        title: displayTitle(d.title, d.courtName, courtLabel),
+        courtLabel,
+        docTypeLabel,
+      };
+    }),
+  });
 });
 
 // GET /documents/template-configs — list available template configs for the form builder
@@ -1067,12 +1103,38 @@ router.post(
     res.setHeader('X-Run-Sequence', String(runSequence));
     const startedAt = Date.now();
 
+    // T-686: a picked court id that does not resolve (inactive, not found, or
+    // the lookup timed out twice) stops the run here: before the Ink hold and
+    // any model call, so no raw id reaches a draft and no Ink is taken. A typed
+    // court name or an empty court goes on as before. Ids only in the log.
+    const formCourt = await resolveFormCourt(form_data.court_name);
+    if (formCourt.status === 'unavailable') {
+      console.error(
+        `[drafting] court unavailable (courtId=${String(form_data.court_name)}, reason=${formCourt.reason}, kind=${template_id}, runId=${runId})`,
+      );
+      await recordGeneration({
+        userId: payload.sub,
+        docType: TEMPLATE_TO_DOC_TYPE[template_id] || DOC_TYPES.PETITION,
+        status: 'failed',
+        templateId: template_id,
+        intakeId: intake_id,
+        usage: { inputTokens: 0, outputTokens: 0, llmCalls: 0, usageSource: 'provider' },
+        paragraphCount: 0,
+        durationMs: Date.now() - startedAt,
+        runId,
+        runSequence,
+        runType,
+      });
+      res.status(503).json(courtUnavailableBody(runId));
+      return;
+    }
+
     // T-226: hold the cost before any model call (402/409 refusals as JSON;
     // no header has been sent yet). Every ending below closes the hold.
     // The pre-stream 500 body below: the error code only (Ajay, T-567), never a
     // message; the detail goes to the log.
     const holdError = { error: 'Generation failed' };
-    const inkKey = { runId, runSequence };
+    const inkKey = { runId, runSequence, templateId: template_id };
     const inkCost = chargedCost(req); // T-227: no default price
     await withInkHold(req, res, inkKey, inkCost, holdError, async (ink) => {
       // Stream the AI response via config-driven pipeline
@@ -1089,6 +1151,8 @@ router.post(
             runSequence,
             runType,
             gate,
+            // T-686: the court is looked up once, above.
+            ...(formCourt.status === 'resolved' ? { resolvedCourt: formCourt.court } : {}),
           },
           res,
         );
@@ -1115,6 +1179,7 @@ router.post(
             runId,
             runSequence,
             runType,
+            failure: genErr.failure,
           });
           // Ended only now — after the row exists — so a fast retry's
           // resolveRun query can never race the write that makes it findable.
@@ -1169,11 +1234,16 @@ router.post(
       let duplicateAttempt = false;
       try {
         const encryptedContent = encrypt(result.fullText);
-        const title =
-          `${templateConfig.display_name} — ${String(form_data.court_name || form_data.state || '')}`.slice(
-            0,
-            300,
-          );
+        // T-674 AC3 (R4): the title carries the court's label, never its id; an
+        // unknown id leaves just the pack name. A typed court name stays as typed.
+        const titleCourt = form_data.court_name
+          ? await resolveCourtLabel(String(form_data.court_name))
+          : String(form_data.state || '');
+        const title = (
+          titleCourt
+            ? `${templateConfig.display_name} — ${titleCourt}`
+            : templateConfig.display_name
+        ).slice(0, 300);
         // Sequential, not Promise.all — Generation.documentId needs the Document's _id.
         const doc = await LawieDocument.create({
           userId: payload.sub,
@@ -1815,7 +1885,7 @@ router.post(
     // The pre-stream 500 body below.
     const holdError = { error: 'Generation failed' };
     // T-577: the quote rides with the key; only an asking quote changes the hold.
-    const inkKey = { runId, runSequence, quote: runQuote };
+    const inkKey = { runId, runSequence, quote: runQuote, templateId: recordId };
     const gateCost = chargedCost(req); // T-227: no default price (throws if enforceCredits did not run)
     // T-577: the hold is the route's quote (T-388). For a pack that does not
     // ask it is the same figure enforceCredits stashed.
@@ -1893,6 +1963,7 @@ router.post(
           runType,
           ledger: ledger ? 'on' : 'off',
           ...quoteRecord,
+          failure: failed?.failure,
         });
         if (failed) {
           // The error event was already sent. End only now, after the row exists.
@@ -2102,6 +2173,11 @@ router.post(
         // T-577: only when the pack asked for a count. inkDebited (T-545,
         // added by sendDone) is the settled figure, at most inkQuoted.
         ...(runQuote.asks ? { inkQuoted: runQuote.ink, paragraphsDelivered } : {}),
+        // T-690c: the soft findings of the brief this draft was written from (the
+        // one rebuilt above from the sent values). A warning only. Absent when none.
+        ...(brief.soft_findings && brief.soft_findings.length > 0
+          ? { soft_findings: brief.soft_findings }
+          : {}),
       });
     });
   },
@@ -2184,12 +2260,37 @@ router.get(
       );
     }
 
+    // T-674 AC3 (R4): the screen gets a label, never the stored court id.
+    const courtLabel = await resolveCourtLabel(doc.courtName);
+
+    // T-689: the pack's own name for the document type; the stored docType is a
+    // coarse enum. No pack, the guided id (its kind name sits in the encrypted
+    // brief, which is not read for this) or an unreadable pack gives null and the
+    // page falls back to the humanised docType. Never fails the request.
+    let docTypeLabel: string | null = null;
+    if (
+      typeof doc.rulePackId === 'string' &&
+      doc.rulePackId !== '' &&
+      doc.rulePackId !== GUIDED_ID
+    ) {
+      try {
+        docTypeLabel = docTypeLabelFor(loadRulePack(doc.rulePackId));
+      } catch (err) {
+        console.error(
+          `[drafting] Get document: could not read the rule pack of document ${String(doc._id)}:`,
+          err instanceof Error ? err.name : 'UnknownError',
+        );
+      }
+    }
+
     res.json({
       _id: doc._id,
-      title: doc.title,
+      title: displayTitle(doc.title, doc.courtName, courtLabel),
       docType: doc.docType,
+      docTypeLabel,
       courtType: doc.courtType,
       courtName: doc.courtName,
+      courtLabel,
       content,
       status: doc.status,
       sectionsCited: doc.sectionsCited,
@@ -2408,7 +2509,13 @@ router.post(
       metadata: { format: 'pdf', docType: doc.docType },
     });
 
-    const filename = `${doc.title.replace(/[^a-zA-Z0-9\s-]/g, '').slice(0, 60)}.pdf`;
+    // T-674 AC3 (R4): the file name never carries a court id.
+    const shownTitle = displayTitle(
+      doc.title,
+      doc.courtName,
+      await resolveCourtLabel(doc.courtName),
+    );
+    const filename = `${shownTitle.replace(/[^a-zA-Z0-9\s-]/g, '').slice(0, 60)}.pdf`;
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Content-Length', pdfBuffer.length);
@@ -2476,7 +2583,13 @@ router.post(
 function partyMappingOf(
   doc: { rulePackId?: string | null; brief?: string | null },
   formData: Record<string, unknown>,
-): { packId: string; mapped: PartyFieldsResult; briefCourtDocument?: boolean } {
+): {
+  packId: string;
+  mapped: PartyFieldsResult;
+  /** T-689c (AJ-689c-b): the values mapped, for the Synopsis side rule. */
+  values: Record<string, unknown>;
+  briefCourtDocument?: boolean;
+} {
   const packId =
     doc.rulePackId || (typeof formData.template_id === 'string' ? formData.template_id.trim() : '');
   const fromBrief =
@@ -2484,16 +2597,19 @@ function partyMappingOf(
   const sealed = hasPartyInputs(packId, formData);
   if (fromBrief && (packId === GUIDED_ID || !sealed)) {
     const stored = readStoredBrief(decrypt(doc.brief as string));
+    const values = sealed ? formData : flattenPartyValues(stored.values);
     return {
       packId,
-      mapped: mapPartyFields(packId, sealed ? formData : flattenPartyValues(stored.values)),
+      mapped: mapPartyFields(packId, values),
+      values,
       ...(stored.courtDocument !== undefined ? { briefCourtDocument: stored.courtDocument } : {}),
     };
   }
-  return { packId, mapped: mapPartyFields(packId, formData) };
+  return { packId, mapped: mapPartyFields(packId, formData), values: formData };
 }
 
-// POST /documents/:id/annexures-pack — SCRUM-65: generate 7 mandatory annexures as a multi-page PDF
+// POST /documents/:id/annexures-pack — SCRUM-65: generate the annexures as a multi-page PDF
+// (T-689c: the Synopsis only for the packs and courts in annexureBApplies)
 // Court-rule aware: designation, verification language, party labels from court_rules JSON.
 // Returns: application/pdf — single PDF with each annexure on a fresh page.
 // T-579: `?format=html` returns application/json `{ title, filename, html }` instead
@@ -2524,13 +2640,18 @@ router.post(
     let bodyParaCount: number;
     let formData: Record<string, unknown>;
     let party: PartyFieldsResult;
+    let partyValues: Record<string, unknown>;
+    let packId: string;
     try {
       const content = doc.finalContent ? decrypt(doc.finalContent) : decrypt(doc.generatedContent);
       bodyParaCount = estimateBodyParaCount(content);
       formData = readFormInputs(doc) ?? {};
       // T-381: the client and the opposite party by Ajay's signed rule. An
       // older brief draft is mapped from its encrypted brief.
-      party = partyMappingOf(doc, formData).mapped;
+      const mapping = partyMappingOf(doc, formData);
+      party = mapping.mapped;
+      partyValues = mapping.values;
+      packId = mapping.packId;
     } catch (err) {
       console.error(
         `[drafting] Annexures pack: could not read document ${String(doc._id)}:`,
@@ -2553,9 +2674,26 @@ router.post(
     // brief path saves its court id only in doc.courtName (its formInputs hold
     // only the party inputs and court labels, T-381); the template path saves it in both. No court found means
     // no courtData, and the pack keeps its court-rules designation.
+    // T-686: an id-shaped court that does not resolve (inactive, not found, or
+    // the lookup timed out twice) fails closed, as the form route does: no raw
+    // id is printed. A typed court name is looked up as before; no court keeps
+    // the court rules.
     let courtData: CourtLookupData | undefined;
     const courtId = String(doc.courtName || formData.court_name || '').trim();
-    if (courtId) {
+    const packCourt = await resolveFormCourt(courtId);
+    if (packCourt.status === 'unavailable') {
+      const kind = String(formData.template_id || doc.docType || '');
+      const docRunId = doc.runId ? String(doc.runId) : null;
+      console.error(
+        `[drafting] court unavailable (courtId=${courtId}, reason=${packCourt.reason}, kind=${kind}, runId=${docRunId ?? 'none'})`,
+      );
+      res.status(503).json(courtUnavailableBody(docRunId));
+      return;
+    }
+    if (packCourt.status === 'resolved') courtData = packCourt.court;
+    if (packCourt.status === 'typed') {
+      // Not id-shaped: looked up as before (an active row is used; none, or a
+      // lookup error, keeps the court rules).
       try {
         const found = await Court.findOne({ courtId, isActive: true }).maxTimeMS(5000).lean();
         if (found) {
@@ -2577,6 +2715,19 @@ router.post(
       }
     }
 
+    // T-689c (AJ-689c-a rule 3): the Synopsis follows the pack and the court
+    // type, the first non-blank string of: the stored doc.courtType, the form's
+    // court_type, then the chosen court's own type from the lookup above
+    // (courtData.courtType; review round 1: a template-path High Court pack
+    // whose form has no court_type, e.g. quashing_528_bnss, may store none).
+    // Each is passed as stored; none means no Synopsis (annexureBApplies).
+    // AJ-689c-b: never for a respondent-side client, read from the values
+    // mapped above.
+    const nonBlank = (v: unknown): string | undefined =>
+      typeof v === 'string' && v.trim() !== '' ? v : undefined;
+    const courtType =
+      nonBlank(doc.courtType) ?? nonBlank(formData.court_type) ?? nonBlank(courtData?.courtType);
+
     let pdfBuffer: Buffer | undefined;
     let html: string | undefined;
     try {
@@ -2586,6 +2737,9 @@ router.post(
         advocateName: payload.name || undefined,
         enrollmentNumber: await profileEnrollmentNumber(payload.sub),
         courtData,
+        rulePackId: packId || undefined,
+        courtType,
+        partyValues,
       };
       if (asHtml) html = buildAnnexuresHtml(packInput).html;
       else pdfBuffer = await buildAnnexuresPack(packInput);
@@ -2611,12 +2765,18 @@ router.post(
       metadata: { format: asHtml ? 'annexures_docx' : 'annexures_pdf', docType: doc.docType },
     });
 
+    // T-674 AC3 (R4): the title and file name never carry a court id.
+    const shownTitle = displayTitle(
+      doc.title,
+      doc.courtName,
+      await resolveCourtLabel(doc.courtName),
+    );
     if (html !== undefined) {
-      res.json({ title: doc.title, filename: annexuresFilename(doc.title, 'docx'), html });
+      res.json({ title: shownTitle, filename: annexuresFilename(shownTitle, 'docx'), html });
       return;
     }
 
-    const filename = annexuresFilename(doc.title, 'pdf');
+    const filename = annexuresFilename(shownTitle, 'pdf');
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Content-Length', pdfBuffer!.length);

@@ -58,7 +58,7 @@ exports[`court-rules-golden — annexures pack HTML per court allahabad_hc rende
   <h2>Synopsis</h2>
   <p style="text-align:center">(As required by High Court Practice)</p>
   <br>
-  <p><strong>Nature of matter:</strong> BAIL ANTICIPATORY</p>
+  <p><strong>Nature of matter:</strong> Anticipatory Bail Application</p>
   <p><strong>Brief synopsis of the case:</strong></p>
   <ul>
     <li>Applicant/Petitioner: GOLDEN_APPLICANT</li>
@@ -79,7 +79,7 @@ exports[`court-rules-golden — annexures pack HTML per court allahabad_hc rende
   <table>
     <tr><th style="width:28%">Date</th><th>Event</th></tr>
     <tr><td>10 January 2026</td><td>Date of alleged incident/event</td></tr>
-    <tr><td>15 January 2026</td><td>FIR No. 001/2026 registered at PS GOLDEN_PS</td></tr>
+    <tr><td>15 January 2026</td><td>FIR No. 001/2026 registered at Police Station GOLDEN_PS</td></tr>
     <tr><td>___________</td><td>Date of arrest / apprehension</td></tr>
     <tr><td>10 May 2026</td><td>Filing of the present application/petition</td></tr>
     <tr><td colspan="2"><em>[Advocate to add further dates as appropriate before filing.]</em></td></tr>
@@ -267,31 +267,12 @@ exports[`court-rules-golden — annexures pack HTML per court bihar_district ren
 
 <div class="page-break">
   <div class="annexure-label">ANNEXURE B</div>
-  <h2>Synopsis</h2>
-  <p style="text-align:center">(As required by High Court Practice)</p>
-  <br>
-  <p><strong>Nature of matter:</strong> BAIL ANTICIPATORY</p>
-  <p><strong>Brief synopsis of the case:</strong></p>
-  <ul>
-    <li>Applicant/Petitioner: GOLDEN_APPLICANT</li>
-    <li>Sections invoked: 103, 109</li>
-    <li>FIR/Complaint No.: 001/2026, PS: GOLDEN_PS</li>
-    <li>Court: IN THE COURT OF DISTRICT &amp; SESSIONS JUDGE</li>
-    <li>Year: 2026</li>
-  </ul>
-  <p>The petitioner has approached this Hon'ble Court seeking relief as set out in the accompanying petition/application. The facts are briefly summarised hereunder for the convenience of this Hon'ble Court.</p>
-  <p><em>[Advocate to insert 3–5 sentence summary of the factual background before filing.]</em></p>
-  <div class="disclaimer">Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice.</div>
-</div>
-
-<div class="page-break">
-  <div class="annexure-label">ANNEXURE C</div>
   <h2>List of Dates and Chronology of Events</h2>
   <br>
   <table>
     <tr><th style="width:28%">Date</th><th>Event</th></tr>
     <tr><td>10 January 2026</td><td>Date of alleged incident/event</td></tr>
-    <tr><td>15 January 2026</td><td>FIR No. 001/2026 registered at PS GOLDEN_PS</td></tr>
+    <tr><td>15 January 2026</td><td>FIR No. 001/2026 registered at Police Station GOLDEN_PS</td></tr>
     <tr><td>___________</td><td>Date of arrest / apprehension</td></tr>
     <tr><td>10 May 2026</td><td>Filing of the present application/petition</td></tr>
     <tr><td colspan="2"><em>[Advocate to add further dates as appropriate before filing.]</em></td></tr>
@@ -300,28 +281,27 @@ exports[`court-rules-golden — annexures pack HTML per court bihar_district ren
 </div>
 
 <div class="page-break">
-  <div class="annexure-label">ANNEXURE D</div>
+  <div class="annexure-label">ANNEXURE C</div>
   <h2>Index of Documents Annexed</h2>
   <br>
   <table>
     <tr><th style="width:8%">Sr.</th><th>Document</th><th style="width:32%">Reference / Page No.</th></tr>
     <tr><td>1.</td><td>Memo of Parties</td><td>Annexure A</td></tr>
-    <tr><td>2.</td><td>Synopsis</td><td>Annexure B</td></tr>
-    <tr><td>3.</td><td>List of Dates and Chronology</td><td>Annexure C</td></tr>
-    <tr><td>4.</td><td>Index of Documents Annexed</td><td>Annexure D (this document)</td></tr>
-    <tr><td>5.</td><td>Vakalatnama</td><td>Annexure E</td></tr>
-    <tr><td>6.</td><td>Court Fee Paid Statement</td><td>Annexure F</td></tr>
-    <tr><td>7.</td><td>Affidavit of GOLDEN_APPLICANT</td><td>Annexure G</td></tr>
-    <tr><td>8.</td><td>Copy of FIR No. 001/2026</td><td>Annexure H (to be annexed by advocate)</td></tr>
-    <tr><td>9.</td><td>Identity and Address Proof of Applicant/Petitioner</td><td>Annexure I (to be annexed by advocate)</td></tr>
-    <tr><td>10.</td><td>Any other document relied upon</td><td>Annexure J onwards (as applicable)</td></tr>
+    <tr><td>2.</td><td>List of Dates and Chronology</td><td>Annexure B</td></tr>
+    <tr><td>3.</td><td>Index of Documents Annexed</td><td>Annexure C (this document)</td></tr>
+    <tr><td>4.</td><td>Vakalatnama</td><td>Annexure D</td></tr>
+    <tr><td>5.</td><td>Court Fee Paid Statement</td><td>Annexure E</td></tr>
+    <tr><td>6.</td><td>Affidavit of GOLDEN_APPLICANT</td><td>Annexure F</td></tr>
+    <tr><td>7.</td><td>Copy of FIR No. 001/2026</td><td>Annexure G (to be annexed by advocate)</td></tr>
+    <tr><td>8.</td><td>Identity and Address Proof of Applicant/Petitioner</td><td>Annexure H (to be annexed by advocate)</td></tr>
+    <tr><td>9.</td><td>Any other document relied upon</td><td>Annexure I onwards (as applicable)</td></tr>
   </table>
   <p style="margin-top:1em"><em>Note: Page numbers to be filled in by advocate before filing.</em></p>
   <div class="disclaimer">Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice.</div>
 </div>
 
 <div class="page-break">
-  <div class="annexure-label">ANNEXURE E</div>
+  <div class="annexure-label">ANNEXURE D</div>
   <h2>Vakalatnama</h2>
   <p style="text-align:center">IN THE COURT OF DISTRICT &amp; SESSIONS JUDGE</p>
   <br>
@@ -360,7 +340,7 @@ exports[`court-rules-golden — annexures pack HTML per court bihar_district ren
 </div>
 
 <div class="page-break">
-  <div class="annexure-label">ANNEXURE F</div>
+  <div class="annexure-label">ANNEXURE E</div>
   <h2>Court Fee Paid Statement</h2>
   <p style="text-align:center">IN THE COURT OF DISTRICT &amp; SESSIONS JUDGE</p>
   <br>
@@ -381,7 +361,7 @@ exports[`court-rules-golden — annexures pack HTML per court bihar_district ren
 </div>
 
 <div class="page-break">
-  <div class="annexure-label">ANNEXURE G</div>
+  <div class="annexure-label">ANNEXURE F</div>
   <h2>Affidavit</h2>
   <p style="text-align:center">IN THE COURT OF DISTRICT &amp; SESSIONS JUDGE</p>
   <br>
@@ -479,31 +459,12 @@ exports[`court-rules-golden — annexures pack HTML per court cjm_generic render
 
 <div class="page-break">
   <div class="annexure-label">ANNEXURE B</div>
-  <h2>Synopsis</h2>
-  <p style="text-align:center">(As required by High Court Practice)</p>
-  <br>
-  <p><strong>Nature of matter:</strong> BAIL ANTICIPATORY</p>
-  <p><strong>Brief synopsis of the case:</strong></p>
-  <ul>
-    <li>Applicant/Petitioner: GOLDEN_APPLICANT</li>
-    <li>Sections invoked: 103, 109</li>
-    <li>FIR/Complaint No.: 001/2026, PS: GOLDEN_PS</li>
-    <li>Court: IN THE COURT OF CHIEF JUDICIAL MAGISTRATE</li>
-    <li>Year: 2026</li>
-  </ul>
-  <p>The petitioner has approached this Hon'ble Court seeking relief as set out in the accompanying petition/application. The facts are briefly summarised hereunder for the convenience of this Hon'ble Court.</p>
-  <p><em>[Advocate to insert 3–5 sentence summary of the factual background before filing.]</em></p>
-  <div class="disclaimer">Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice.</div>
-</div>
-
-<div class="page-break">
-  <div class="annexure-label">ANNEXURE C</div>
   <h2>List of Dates and Chronology of Events</h2>
   <br>
   <table>
     <tr><th style="width:28%">Date</th><th>Event</th></tr>
     <tr><td>10 January 2026</td><td>Date of alleged incident/event</td></tr>
-    <tr><td>15 January 2026</td><td>FIR No. 001/2026 registered at PS GOLDEN_PS</td></tr>
+    <tr><td>15 January 2026</td><td>FIR No. 001/2026 registered at Police Station GOLDEN_PS</td></tr>
     <tr><td>___________</td><td>Date of arrest / apprehension</td></tr>
     <tr><td>10 May 2026</td><td>Filing of the present application/petition</td></tr>
     <tr><td colspan="2"><em>[Advocate to add further dates as appropriate before filing.]</em></td></tr>
@@ -512,28 +473,27 @@ exports[`court-rules-golden — annexures pack HTML per court cjm_generic render
 </div>
 
 <div class="page-break">
-  <div class="annexure-label">ANNEXURE D</div>
+  <div class="annexure-label">ANNEXURE C</div>
   <h2>Index of Documents Annexed</h2>
   <br>
   <table>
     <tr><th style="width:8%">Sr.</th><th>Document</th><th style="width:32%">Reference / Page No.</th></tr>
     <tr><td>1.</td><td>Memo of Parties</td><td>Annexure A</td></tr>
-    <tr><td>2.</td><td>Synopsis</td><td>Annexure B</td></tr>
-    <tr><td>3.</td><td>List of Dates and Chronology</td><td>Annexure C</td></tr>
-    <tr><td>4.</td><td>Index of Documents Annexed</td><td>Annexure D (this document)</td></tr>
-    <tr><td>5.</td><td>Vakalatnama</td><td>Annexure E</td></tr>
-    <tr><td>6.</td><td>Court Fee Paid Statement</td><td>Annexure F</td></tr>
-    <tr><td>7.</td><td>Affidavit of GOLDEN_APPLICANT</td><td>Annexure G</td></tr>
-    <tr><td>8.</td><td>Copy of FIR No. 001/2026</td><td>Annexure H (to be annexed by advocate)</td></tr>
-    <tr><td>9.</td><td>Identity and Address Proof of Applicant/Petitioner</td><td>Annexure I (to be annexed by advocate)</td></tr>
-    <tr><td>10.</td><td>Any other document relied upon</td><td>Annexure J onwards (as applicable)</td></tr>
+    <tr><td>2.</td><td>List of Dates and Chronology</td><td>Annexure B</td></tr>
+    <tr><td>3.</td><td>Index of Documents Annexed</td><td>Annexure C (this document)</td></tr>
+    <tr><td>4.</td><td>Vakalatnama</td><td>Annexure D</td></tr>
+    <tr><td>5.</td><td>Court Fee Paid Statement</td><td>Annexure E</td></tr>
+    <tr><td>6.</td><td>Affidavit of GOLDEN_APPLICANT</td><td>Annexure F</td></tr>
+    <tr><td>7.</td><td>Copy of FIR No. 001/2026</td><td>Annexure G (to be annexed by advocate)</td></tr>
+    <tr><td>8.</td><td>Identity and Address Proof of Applicant/Petitioner</td><td>Annexure H (to be annexed by advocate)</td></tr>
+    <tr><td>9.</td><td>Any other document relied upon</td><td>Annexure I onwards (as applicable)</td></tr>
   </table>
   <p style="margin-top:1em"><em>Note: Page numbers to be filled in by advocate before filing.</em></p>
   <div class="disclaimer">Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice.</div>
 </div>
 
 <div class="page-break">
-  <div class="annexure-label">ANNEXURE E</div>
+  <div class="annexure-label">ANNEXURE D</div>
   <h2>Vakalatnama</h2>
   <p style="text-align:center">IN THE COURT OF CHIEF JUDICIAL MAGISTRATE</p>
   <br>
@@ -572,7 +532,7 @@ exports[`court-rules-golden — annexures pack HTML per court cjm_generic render
 </div>
 
 <div class="page-break">
-  <div class="annexure-label">ANNEXURE F</div>
+  <div class="annexure-label">ANNEXURE E</div>
   <h2>Court Fee Paid Statement</h2>
   <p style="text-align:center">IN THE COURT OF CHIEF JUDICIAL MAGISTRATE</p>
   <br>
@@ -593,7 +553,7 @@ exports[`court-rules-golden — annexures pack HTML per court cjm_generic render
 </div>
 
 <div class="page-break">
-  <div class="annexure-label">ANNEXURE G</div>
+  <div class="annexure-label">ANNEXURE F</div>
   <h2>Affidavit</h2>
   <p style="text-align:center">IN THE COURT OF CHIEF JUDICIAL MAGISTRATE</p>
   <br>
@@ -691,31 +651,12 @@ exports[`court-rules-golden — annexures pack HTML per court consumer_commissio
 
 <div class="page-break">
   <div class="annexure-label">ANNEXURE B</div>
-  <h2>Synopsis</h2>
-  <p style="text-align:center">(As required by High Court Practice)</p>
-  <br>
-  <p><strong>Nature of matter:</strong> BAIL ANTICIPATORY</p>
-  <p><strong>Brief synopsis of the case:</strong></p>
-  <ul>
-    <li>Applicant/Petitioner: GOLDEN_APPLICANT</li>
-    <li>Sections invoked: 103, 109</li>
-    <li>FIR/Complaint No.: 001/2026, PS: GOLDEN_PS</li>
-    <li>Court: BEFORE THE DISTRICT CONSUMER DISPUTES REDRESSAL COMMISSION</li>
-    <li>Year: 2026</li>
-  </ul>
-  <p>The petitioner has approached this Hon'ble Court seeking relief as set out in the accompanying petition/application. The facts are briefly summarised hereunder for the convenience of this Hon'ble Court.</p>
-  <p><em>[Advocate to insert 3–5 sentence summary of the factual background before filing.]</em></p>
-  <div class="disclaimer">Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice.</div>
-</div>
-
-<div class="page-break">
-  <div class="annexure-label">ANNEXURE C</div>
   <h2>List of Dates and Chronology of Events</h2>
   <br>
   <table>
     <tr><th style="width:28%">Date</th><th>Event</th></tr>
     <tr><td>10 January 2026</td><td>Date of alleged incident/event</td></tr>
-    <tr><td>15 January 2026</td><td>FIR No. 001/2026 registered at PS GOLDEN_PS</td></tr>
+    <tr><td>15 January 2026</td><td>FIR No. 001/2026 registered at Police Station GOLDEN_PS</td></tr>
     <tr><td>___________</td><td>Date of arrest / apprehension</td></tr>
     <tr><td>10 May 2026</td><td>Filing of the present application/petition</td></tr>
     <tr><td colspan="2"><em>[Advocate to add further dates as appropriate before filing.]</em></td></tr>
@@ -724,28 +665,27 @@ exports[`court-rules-golden — annexures pack HTML per court consumer_commissio
 </div>
 
 <div class="page-break">
-  <div class="annexure-label">ANNEXURE D</div>
+  <div class="annexure-label">ANNEXURE C</div>
   <h2>Index of Documents Annexed</h2>
   <br>
   <table>
     <tr><th style="width:8%">Sr.</th><th>Document</th><th style="width:32%">Reference / Page No.</th></tr>
     <tr><td>1.</td><td>Memo of Parties</td><td>Annexure A</td></tr>
-    <tr><td>2.</td><td>Synopsis</td><td>Annexure B</td></tr>
-    <tr><td>3.</td><td>List of Dates and Chronology</td><td>Annexure C</td></tr>
-    <tr><td>4.</td><td>Index of Documents Annexed</td><td>Annexure D (this document)</td></tr>
-    <tr><td>5.</td><td>Vakalatnama</td><td>Annexure E</td></tr>
-    <tr><td>6.</td><td>Court Fee Paid Statement</td><td>Annexure F</td></tr>
-    <tr><td>7.</td><td>Affidavit of GOLDEN_APPLICANT</td><td>Annexure G</td></tr>
-    <tr><td>8.</td><td>Copy of FIR No. 001/2026</td><td>Annexure H (to be annexed by advocate)</td></tr>
-    <tr><td>9.</td><td>Identity and Address Proof of Applicant/Petitioner</td><td>Annexure I (to be annexed by advocate)</td></tr>
-    <tr><td>10.</td><td>Any other document relied upon</td><td>Annexure J onwards (as applicable)</td></tr>
+    <tr><td>2.</td><td>List of Dates and Chronology</td><td>Annexure B</td></tr>
+    <tr><td>3.</td><td>Index of Documents Annexed</td><td>Annexure C (this document)</td></tr>
+    <tr><td>4.</td><td>Vakalatnama</td><td>Annexure D</td></tr>
+    <tr><td>5.</td><td>Court Fee Paid Statement</td><td>Annexure E</td></tr>
+    <tr><td>6.</td><td>Affidavit of GOLDEN_APPLICANT</td><td>Annexure F</td></tr>
+    <tr><td>7.</td><td>Copy of FIR No. 001/2026</td><td>Annexure G (to be annexed by advocate)</td></tr>
+    <tr><td>8.</td><td>Identity and Address Proof of Applicant/Petitioner</td><td>Annexure H (to be annexed by advocate)</td></tr>
+    <tr><td>9.</td><td>Any other document relied upon</td><td>Annexure I onwards (as applicable)</td></tr>
   </table>
   <p style="margin-top:1em"><em>Note: Page numbers to be filled in by advocate before filing.</em></p>
   <div class="disclaimer">Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice.</div>
 </div>
 
 <div class="page-break">
-  <div class="annexure-label">ANNEXURE E</div>
+  <div class="annexure-label">ANNEXURE D</div>
   <h2>Vakalatnama</h2>
   <p style="text-align:center">BEFORE THE DISTRICT CONSUMER DISPUTES REDRESSAL COMMISSION</p>
   <br>
@@ -784,7 +724,7 @@ exports[`court-rules-golden — annexures pack HTML per court consumer_commissio
 </div>
 
 <div class="page-break">
-  <div class="annexure-label">ANNEXURE F</div>
+  <div class="annexure-label">ANNEXURE E</div>
   <h2>Court Fee Paid Statement</h2>
   <p style="text-align:center">BEFORE THE DISTRICT CONSUMER DISPUTES REDRESSAL COMMISSION</p>
   <br>
@@ -805,7 +745,7 @@ exports[`court-rules-golden — annexures pack HTML per court consumer_commissio
 </div>
 
 <div class="page-break">
-  <div class="annexure-label">ANNEXURE G</div>
+  <div class="annexure-label">ANNEXURE F</div>
   <h2>Affidavit</h2>
   <p style="text-align:center">BEFORE THE DISTRICT CONSUMER DISPUTES REDRESSAL COMMISSION</p>
   <br>
@@ -903,31 +843,12 @@ exports[`court-rules-golden — annexures pack HTML per court delhi_district ren
 
 <div class="page-break">
   <div class="annexure-label">ANNEXURE B</div>
-  <h2>Synopsis</h2>
-  <p style="text-align:center">(As required by High Court Practice)</p>
-  <br>
-  <p><strong>Nature of matter:</strong> BAIL ANTICIPATORY</p>
-  <p><strong>Brief synopsis of the case:</strong></p>
-  <ul>
-    <li>Applicant/Petitioner: GOLDEN_APPLICANT</li>
-    <li>Sections invoked: 103, 109</li>
-    <li>FIR/Complaint No.: 001/2026, PS: GOLDEN_PS</li>
-    <li>Court: IN THE COURT OF ADDITIONAL SESSIONS JUDGE</li>
-    <li>Year: 2026</li>
-  </ul>
-  <p>The petitioner has approached this Hon'ble Court seeking relief as set out in the accompanying petition/application. The facts are briefly summarised hereunder for the convenience of this Hon'ble Court.</p>
-  <p><em>[Advocate to insert 3–5 sentence summary of the factual background before filing.]</em></p>
-  <div class="disclaimer">Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice.</div>
-</div>
-
-<div class="page-break">
-  <div class="annexure-label">ANNEXURE C</div>
   <h2>List of Dates and Chronology of Events</h2>
   <br>
   <table>
     <tr><th style="width:28%">Date</th><th>Event</th></tr>
     <tr><td>10 January 2026</td><td>Date of alleged incident/event</td></tr>
-    <tr><td>15 January 2026</td><td>FIR No. 001/2026 registered at PS GOLDEN_PS</td></tr>
+    <tr><td>15 January 2026</td><td>FIR No. 001/2026 registered at Police Station GOLDEN_PS</td></tr>
     <tr><td>___________</td><td>Date of arrest / apprehension</td></tr>
     <tr><td>10 May 2026</td><td>Filing of the present application/petition</td></tr>
     <tr><td colspan="2"><em>[Advocate to add further dates as appropriate before filing.]</em></td></tr>
@@ -936,28 +857,27 @@ exports[`court-rules-golden — annexures pack HTML per court delhi_district ren
 </div>
 
 <div class="page-break">
-  <div class="annexure-label">ANNEXURE D</div>
+  <div class="annexure-label">ANNEXURE C</div>
   <h2>Index of Documents Annexed</h2>
   <br>
   <table>
     <tr><th style="width:8%">Sr.</th><th>Document</th><th style="width:32%">Reference / Page No.</th></tr>
     <tr><td>1.</td><td>Memo of Parties</td><td>Annexure A</td></tr>
-    <tr><td>2.</td><td>Synopsis</td><td>Annexure B</td></tr>
-    <tr><td>3.</td><td>List of Dates and Chronology</td><td>Annexure C</td></tr>
-    <tr><td>4.</td><td>Index of Documents Annexed</td><td>Annexure D (this document)</td></tr>
-    <tr><td>5.</td><td>Vakalatnama</td><td>Annexure E</td></tr>
-    <tr><td>6.</td><td>Court Fee Paid Statement</td><td>Annexure F</td></tr>
-    <tr><td>7.</td><td>Affidavit of GOLDEN_APPLICANT</td><td>Annexure G</td></tr>
-    <tr><td>8.</td><td>Copy of FIR No. 001/2026</td><td>Annexure H (to be annexed by advocate)</td></tr>
-    <tr><td>9.</td><td>Identity and Address Proof of Applicant/Petitioner</td><td>Annexure I (to be annexed by advocate)</td></tr>
-    <tr><td>10.</td><td>Any other document relied upon</td><td>Annexure J onwards (as applicable)</td></tr>
+    <tr><td>2.</td><td>List of Dates and Chronology</td><td>Annexure B</td></tr>
+    <tr><td>3.</td><td>Index of Documents Annexed</td><td>Annexure C (this document)</td></tr>
+    <tr><td>4.</td><td>Vakalatnama</td><td>Annexure D</td></tr>
+    <tr><td>5.</td><td>Court Fee Paid Statement</td><td>Annexure E</td></tr>
+    <tr><td>6.</td><td>Affidavit of GOLDEN_APPLICANT</td><td>Annexure F</td></tr>
+    <tr><td>7.</td><td>Copy of FIR No. 001/2026</td><td>Annexure G (to be annexed by advocate)</td></tr>
+    <tr><td>8.</td><td>Identity and Address Proof of Applicant/Petitioner</td><td>Annexure H (to be annexed by advocate)</td></tr>
+    <tr><td>9.</td><td>Any other document relied upon</td><td>Annexure I onwards (as applicable)</td></tr>
   </table>
   <p style="margin-top:1em"><em>Note: Page numbers to be filled in by advocate before filing.</em></p>
   <div class="disclaimer">Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice.</div>
 </div>
 
 <div class="page-break">
-  <div class="annexure-label">ANNEXURE E</div>
+  <div class="annexure-label">ANNEXURE D</div>
   <h2>Vakalatnama</h2>
   <p style="text-align:center">IN THE COURT OF ADDITIONAL SESSIONS JUDGE</p>
   <br>
@@ -996,7 +916,7 @@ exports[`court-rules-golden — annexures pack HTML per court delhi_district ren
 </div>
 
 <div class="page-break">
-  <div class="annexure-label">ANNEXURE F</div>
+  <div class="annexure-label">ANNEXURE E</div>
   <h2>Court Fee Paid Statement</h2>
   <p style="text-align:center">IN THE COURT OF ADDITIONAL SESSIONS JUDGE</p>
   <br>
@@ -1017,7 +937,7 @@ exports[`court-rules-golden — annexures pack HTML per court delhi_district ren
 </div>
 
 <div class="page-break">
-  <div class="annexure-label">ANNEXURE G</div>
+  <div class="annexure-label">ANNEXURE F</div>
   <h2>Affidavit</h2>
   <p style="text-align:center">IN THE COURT OF ADDITIONAL SESSIONS JUDGE</p>
   <br>
@@ -1118,7 +1038,7 @@ exports[`court-rules-golden — annexures pack HTML per court delhi_hc renders a
   <h2>Synopsis</h2>
   <p style="text-align:center">(As required by High Court Practice)</p>
   <br>
-  <p><strong>Nature of matter:</strong> BAIL ANTICIPATORY</p>
+  <p><strong>Nature of matter:</strong> Anticipatory Bail Application</p>
   <p><strong>Brief synopsis of the case:</strong></p>
   <ul>
     <li>Applicant/Petitioner: GOLDEN_APPLICANT</li>
@@ -1139,7 +1059,7 @@ exports[`court-rules-golden — annexures pack HTML per court delhi_hc renders a
   <table>
     <tr><th style="width:28%">Date</th><th>Event</th></tr>
     <tr><td>10 January 2026</td><td>Date of alleged incident/event</td></tr>
-    <tr><td>15 January 2026</td><td>FIR No. 001/2026 registered at PS GOLDEN_PS</td></tr>
+    <tr><td>15 January 2026</td><td>FIR No. 001/2026 registered at Police Station GOLDEN_PS</td></tr>
     <tr><td>___________</td><td>Date of arrest / apprehension</td></tr>
     <tr><td>10 May 2026</td><td>Filing of the present application/petition</td></tr>
     <tr><td colspan="2"><em>[Advocate to add further dates as appropriate before filing.]</em></td></tr>
@@ -1327,31 +1247,12 @@ exports[`court-rules-golden — annexures pack HTML per court district_court_gen
 
 <div class="page-break">
   <div class="annexure-label">ANNEXURE B</div>
-  <h2>Synopsis</h2>
-  <p style="text-align:center">(As required by High Court Practice)</p>
-  <br>
-  <p><strong>Nature of matter:</strong> BAIL ANTICIPATORY</p>
-  <p><strong>Brief synopsis of the case:</strong></p>
-  <ul>
-    <li>Applicant/Petitioner: GOLDEN_APPLICANT</li>
-    <li>Sections invoked: 103, 109</li>
-    <li>FIR/Complaint No.: 001/2026, PS: GOLDEN_PS</li>
-    <li>Court: IN THE COURT OF [To be confirmed: court designation]</li>
-    <li>Year: 2026</li>
-  </ul>
-  <p>The petitioner has approached this Hon'ble Court seeking relief as set out in the accompanying petition/application. The facts are briefly summarised hereunder for the convenience of this Hon'ble Court.</p>
-  <p><em>[Advocate to insert 3–5 sentence summary of the factual background before filing.]</em></p>
-  <div class="disclaimer">Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice.</div>
-</div>
-
-<div class="page-break">
-  <div class="annexure-label">ANNEXURE C</div>
   <h2>List of Dates and Chronology of Events</h2>
   <br>
   <table>
     <tr><th style="width:28%">Date</th><th>Event</th></tr>
     <tr><td>10 January 2026</td><td>Date of alleged incident/event</td></tr>
-    <tr><td>15 January 2026</td><td>FIR No. 001/2026 registered at PS GOLDEN_PS</td></tr>
+    <tr><td>15 January 2026</td><td>FIR No. 001/2026 registered at Police Station GOLDEN_PS</td></tr>
     <tr><td>___________</td><td>Date of arrest / apprehension</td></tr>
     <tr><td>10 May 2026</td><td>Filing of the present application/petition</td></tr>
     <tr><td colspan="2"><em>[Advocate to add further dates as appropriate before filing.]</em></td></tr>
@@ -1360,28 +1261,27 @@ exports[`court-rules-golden — annexures pack HTML per court district_court_gen
 </div>
 
 <div class="page-break">
-  <div class="annexure-label">ANNEXURE D</div>
+  <div class="annexure-label">ANNEXURE C</div>
   <h2>Index of Documents Annexed</h2>
   <br>
   <table>
     <tr><th style="width:8%">Sr.</th><th>Document</th><th style="width:32%">Reference / Page No.</th></tr>
     <tr><td>1.</td><td>Memo of Parties</td><td>Annexure A</td></tr>
-    <tr><td>2.</td><td>Synopsis</td><td>Annexure B</td></tr>
-    <tr><td>3.</td><td>List of Dates and Chronology</td><td>Annexure C</td></tr>
-    <tr><td>4.</td><td>Index of Documents Annexed</td><td>Annexure D (this document)</td></tr>
-    <tr><td>5.</td><td>Vakalatnama</td><td>Annexure E</td></tr>
-    <tr><td>6.</td><td>Court Fee Paid Statement</td><td>Annexure F</td></tr>
-    <tr><td>7.</td><td>Affidavit of GOLDEN_APPLICANT</td><td>Annexure G</td></tr>
-    <tr><td>8.</td><td>Copy of FIR No. 001/2026</td><td>Annexure H (to be annexed by advocate)</td></tr>
-    <tr><td>9.</td><td>Identity and Address Proof of Applicant/Petitioner</td><td>Annexure I (to be annexed by advocate)</td></tr>
-    <tr><td>10.</td><td>Any other document relied upon</td><td>Annexure J onwards (as applicable)</td></tr>
+    <tr><td>2.</td><td>List of Dates and Chronology</td><td>Annexure B</td></tr>
+    <tr><td>3.</td><td>Index of Documents Annexed</td><td>Annexure C (this document)</td></tr>
+    <tr><td>4.</td><td>Vakalatnama</td><td>Annexure D</td></tr>
+    <tr><td>5.</td><td>Court Fee Paid Statement</td><td>Annexure E</td></tr>
+    <tr><td>6.</td><td>Affidavit of GOLDEN_APPLICANT</td><td>Annexure F</td></tr>
+    <tr><td>7.</td><td>Copy of FIR No. 001/2026</td><td>Annexure G (to be annexed by advocate)</td></tr>
+    <tr><td>8.</td><td>Identity and Address Proof of Applicant/Petitioner</td><td>Annexure H (to be annexed by advocate)</td></tr>
+    <tr><td>9.</td><td>Any other document relied upon</td><td>Annexure I onwards (as applicable)</td></tr>
   </table>
   <p style="margin-top:1em"><em>Note: Page numbers to be filled in by advocate before filing.</em></p>
   <div class="disclaimer">Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice.</div>
 </div>
 
 <div class="page-break">
-  <div class="annexure-label">ANNEXURE E</div>
+  <div class="annexure-label">ANNEXURE D</div>
   <h2>Vakalatnama</h2>
   <p style="text-align:center">IN THE COURT OF [To be confirmed: court designation]</p>
   <br>
@@ -1420,7 +1320,7 @@ exports[`court-rules-golden — annexures pack HTML per court district_court_gen
 </div>
 
 <div class="page-break">
-  <div class="annexure-label">ANNEXURE F</div>
+  <div class="annexure-label">ANNEXURE E</div>
   <h2>Court Fee Paid Statement</h2>
   <p style="text-align:center">IN THE COURT OF [To be confirmed: court designation]</p>
   <br>
@@ -1441,7 +1341,7 @@ exports[`court-rules-golden — annexures pack HTML per court district_court_gen
 </div>
 
 <div class="page-break">
-  <div class="annexure-label">ANNEXURE G</div>
+  <div class="annexure-label">ANNEXURE F</div>
   <h2>Affidavit</h2>
   <p style="text-align:center">IN THE COURT OF [To be confirmed: court designation]</p>
   <br>
@@ -1539,31 +1439,12 @@ exports[`court-rules-golden — annexures pack HTML per court jharkhand_district
 
 <div class="page-break">
   <div class="annexure-label">ANNEXURE B</div>
-  <h2>Synopsis</h2>
-  <p style="text-align:center">(As required by High Court Practice)</p>
-  <br>
-  <p><strong>Nature of matter:</strong> BAIL ANTICIPATORY</p>
-  <p><strong>Brief synopsis of the case:</strong></p>
-  <ul>
-    <li>Applicant/Petitioner: GOLDEN_APPLICANT</li>
-    <li>Sections invoked: 103, 109</li>
-    <li>FIR/Complaint No.: 001/2026, PS: GOLDEN_PS</li>
-    <li>Court: IN THE COURT OF DISTRICT &amp; SESSIONS JUDGE</li>
-    <li>Year: 2026</li>
-  </ul>
-  <p>The petitioner has approached this Hon'ble Court seeking relief as set out in the accompanying petition/application. The facts are briefly summarised hereunder for the convenience of this Hon'ble Court.</p>
-  <p><em>[Advocate to insert 3–5 sentence summary of the factual background before filing.]</em></p>
-  <div class="disclaimer">Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice.</div>
-</div>
-
-<div class="page-break">
-  <div class="annexure-label">ANNEXURE C</div>
   <h2>List of Dates and Chronology of Events</h2>
   <br>
   <table>
     <tr><th style="width:28%">Date</th><th>Event</th></tr>
     <tr><td>10 January 2026</td><td>Date of alleged incident/event</td></tr>
-    <tr><td>15 January 2026</td><td>FIR No. 001/2026 registered at PS GOLDEN_PS</td></tr>
+    <tr><td>15 January 2026</td><td>FIR No. 001/2026 registered at Police Station GOLDEN_PS</td></tr>
     <tr><td>___________</td><td>Date of arrest / apprehension</td></tr>
     <tr><td>10 May 2026</td><td>Filing of the present application/petition</td></tr>
     <tr><td colspan="2"><em>[Advocate to add further dates as appropriate before filing.]</em></td></tr>
@@ -1572,28 +1453,27 @@ exports[`court-rules-golden — annexures pack HTML per court jharkhand_district
 </div>
 
 <div class="page-break">
-  <div class="annexure-label">ANNEXURE D</div>
+  <div class="annexure-label">ANNEXURE C</div>
   <h2>Index of Documents Annexed</h2>
   <br>
   <table>
     <tr><th style="width:8%">Sr.</th><th>Document</th><th style="width:32%">Reference / Page No.</th></tr>
     <tr><td>1.</td><td>Memo of Parties</td><td>Annexure A</td></tr>
-    <tr><td>2.</td><td>Synopsis</td><td>Annexure B</td></tr>
-    <tr><td>3.</td><td>List of Dates and Chronology</td><td>Annexure C</td></tr>
-    <tr><td>4.</td><td>Index of Documents Annexed</td><td>Annexure D (this document)</td></tr>
-    <tr><td>5.</td><td>Vakalatnama</td><td>Annexure E</td></tr>
-    <tr><td>6.</td><td>Court Fee Paid Statement</td><td>Annexure F</td></tr>
-    <tr><td>7.</td><td>Affidavit of GOLDEN_APPLICANT</td><td>Annexure G</td></tr>
-    <tr><td>8.</td><td>Copy of FIR No. 001/2026</td><td>Annexure H (to be annexed by advocate)</td></tr>
-    <tr><td>9.</td><td>Identity and Address Proof of Applicant/Petitioner</td><td>Annexure I (to be annexed by advocate)</td></tr>
-    <tr><td>10.</td><td>Any other document relied upon</td><td>Annexure J onwards (as applicable)</td></tr>
+    <tr><td>2.</td><td>List of Dates and Chronology</td><td>Annexure B</td></tr>
+    <tr><td>3.</td><td>Index of Documents Annexed</td><td>Annexure C (this document)</td></tr>
+    <tr><td>4.</td><td>Vakalatnama</td><td>Annexure D</td></tr>
+    <tr><td>5.</td><td>Court Fee Paid Statement</td><td>Annexure E</td></tr>
+    <tr><td>6.</td><td>Affidavit of GOLDEN_APPLICANT</td><td>Annexure F</td></tr>
+    <tr><td>7.</td><td>Copy of FIR No. 001/2026</td><td>Annexure G (to be annexed by advocate)</td></tr>
+    <tr><td>8.</td><td>Identity and Address Proof of Applicant/Petitioner</td><td>Annexure H (to be annexed by advocate)</td></tr>
+    <tr><td>9.</td><td>Any other document relied upon</td><td>Annexure I onwards (as applicable)</td></tr>
   </table>
   <p style="margin-top:1em"><em>Note: Page numbers to be filled in by advocate before filing.</em></p>
   <div class="disclaimer">Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice.</div>
 </div>
 
 <div class="page-break">
-  <div class="annexure-label">ANNEXURE E</div>
+  <div class="annexure-label">ANNEXURE D</div>
   <h2>Vakalatnama</h2>
   <p style="text-align:center">IN THE COURT OF DISTRICT &amp; SESSIONS JUDGE</p>
   <br>
@@ -1632,7 +1512,7 @@ exports[`court-rules-golden — annexures pack HTML per court jharkhand_district
 </div>
 
 <div class="page-break">
-  <div class="annexure-label">ANNEXURE F</div>
+  <div class="annexure-label">ANNEXURE E</div>
   <h2>Court Fee Paid Statement</h2>
   <p style="text-align:center">IN THE COURT OF DISTRICT &amp; SESSIONS JUDGE</p>
   <br>
@@ -1653,7 +1533,7 @@ exports[`court-rules-golden — annexures pack HTML per court jharkhand_district
 </div>
 
 <div class="page-break">
-  <div class="annexure-label">ANNEXURE G</div>
+  <div class="annexure-label">ANNEXURE F</div>
   <h2>Affidavit</h2>
   <p style="text-align:center">IN THE COURT OF DISTRICT &amp; SESSIONS JUDGE</p>
   <br>
@@ -1754,7 +1634,7 @@ exports[`court-rules-golden — annexures pack HTML per court jharkhand_hc rende
   <h2>Synopsis</h2>
   <p style="text-align:center">(As required by High Court Practice)</p>
   <br>
-  <p><strong>Nature of matter:</strong> BAIL ANTICIPATORY</p>
+  <p><strong>Nature of matter:</strong> Anticipatory Bail Application</p>
   <p><strong>Brief synopsis of the case:</strong></p>
   <ul>
     <li>Applicant/Petitioner: GOLDEN_APPLICANT</li>
@@ -1775,7 +1655,7 @@ exports[`court-rules-golden — annexures pack HTML per court jharkhand_hc rende
   <table>
     <tr><th style="width:28%">Date</th><th>Event</th></tr>
     <tr><td>10 January 2026</td><td>Date of alleged incident/event</td></tr>
-    <tr><td>15 January 2026</td><td>FIR No. 001/2026 registered at PS GOLDEN_PS</td></tr>
+    <tr><td>15 January 2026</td><td>FIR No. 001/2026 registered at Police Station GOLDEN_PS</td></tr>
     <tr><td>___________</td><td>Date of arrest / apprehension</td></tr>
     <tr><td>10 May 2026</td><td>Filing of the present application/petition</td></tr>
     <tr><td colspan="2"><em>[Advocate to add further dates as appropriate before filing.]</em></td></tr>
@@ -1963,31 +1843,12 @@ exports[`court-rules-golden — annexures pack HTML per court jmfc_generic rende
 
 <div class="page-break">
   <div class="annexure-label">ANNEXURE B</div>
-  <h2>Synopsis</h2>
-  <p style="text-align:center">(As required by High Court Practice)</p>
-  <br>
-  <p><strong>Nature of matter:</strong> BAIL ANTICIPATORY</p>
-  <p><strong>Brief synopsis of the case:</strong></p>
-  <ul>
-    <li>Applicant/Petitioner: GOLDEN_APPLICANT</li>
-    <li>Sections invoked: 103, 109</li>
-    <li>FIR/Complaint No.: 001/2026, PS: GOLDEN_PS</li>
-    <li>Court: IN THE COURT OF JUDICIAL MAGISTRATE FIRST CLASS</li>
-    <li>Year: 2026</li>
-  </ul>
-  <p>The petitioner has approached this Hon'ble Court seeking relief as set out in the accompanying petition/application. The facts are briefly summarised hereunder for the convenience of this Hon'ble Court.</p>
-  <p><em>[Advocate to insert 3–5 sentence summary of the factual background before filing.]</em></p>
-  <div class="disclaimer">Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice.</div>
-</div>
-
-<div class="page-break">
-  <div class="annexure-label">ANNEXURE C</div>
   <h2>List of Dates and Chronology of Events</h2>
   <br>
   <table>
     <tr><th style="width:28%">Date</th><th>Event</th></tr>
     <tr><td>10 January 2026</td><td>Date of alleged incident/event</td></tr>
-    <tr><td>15 January 2026</td><td>FIR No. 001/2026 registered at PS GOLDEN_PS</td></tr>
+    <tr><td>15 January 2026</td><td>FIR No. 001/2026 registered at Police Station GOLDEN_PS</td></tr>
     <tr><td>___________</td><td>Date of arrest / apprehension</td></tr>
     <tr><td>10 May 2026</td><td>Filing of the present application/petition</td></tr>
     <tr><td colspan="2"><em>[Advocate to add further dates as appropriate before filing.]</em></td></tr>
@@ -1996,28 +1857,27 @@ exports[`court-rules-golden — annexures pack HTML per court jmfc_generic rende
 </div>
 
 <div class="page-break">
-  <div class="annexure-label">ANNEXURE D</div>
+  <div class="annexure-label">ANNEXURE C</div>
   <h2>Index of Documents Annexed</h2>
   <br>
   <table>
     <tr><th style="width:8%">Sr.</th><th>Document</th><th style="width:32%">Reference / Page No.</th></tr>
     <tr><td>1.</td><td>Memo of Parties</td><td>Annexure A</td></tr>
-    <tr><td>2.</td><td>Synopsis</td><td>Annexure B</td></tr>
-    <tr><td>3.</td><td>List of Dates and Chronology</td><td>Annexure C</td></tr>
-    <tr><td>4.</td><td>Index of Documents Annexed</td><td>Annexure D (this document)</td></tr>
-    <tr><td>5.</td><td>Vakalatnama</td><td>Annexure E</td></tr>
-    <tr><td>6.</td><td>Court Fee Paid Statement</td><td>Annexure F</td></tr>
-    <tr><td>7.</td><td>Affidavit of GOLDEN_APPLICANT</td><td>Annexure G</td></tr>
-    <tr><td>8.</td><td>Copy of FIR No. 001/2026</td><td>Annexure H (to be annexed by advocate)</td></tr>
-    <tr><td>9.</td><td>Identity and Address Proof of Applicant/Petitioner</td><td>Annexure I (to be annexed by advocate)</td></tr>
-    <tr><td>10.</td><td>Any other document relied upon</td><td>Annexure J onwards (as applicable)</td></tr>
+    <tr><td>2.</td><td>List of Dates and Chronology</td><td>Annexure B</td></tr>
+    <tr><td>3.</td><td>Index of Documents Annexed</td><td>Annexure C (this document)</td></tr>
+    <tr><td>4.</td><td>Vakalatnama</td><td>Annexure D</td></tr>
+    <tr><td>5.</td><td>Court Fee Paid Statement</td><td>Annexure E</td></tr>
+    <tr><td>6.</td><td>Affidavit of GOLDEN_APPLICANT</td><td>Annexure F</td></tr>
+    <tr><td>7.</td><td>Copy of FIR No. 001/2026</td><td>Annexure G (to be annexed by advocate)</td></tr>
+    <tr><td>8.</td><td>Identity and Address Proof of Applicant/Petitioner</td><td>Annexure H (to be annexed by advocate)</td></tr>
+    <tr><td>9.</td><td>Any other document relied upon</td><td>Annexure I onwards (as applicable)</td></tr>
   </table>
   <p style="margin-top:1em"><em>Note: Page numbers to be filled in by advocate before filing.</em></p>
   <div class="disclaimer">Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice.</div>
 </div>
 
 <div class="page-break">
-  <div class="annexure-label">ANNEXURE E</div>
+  <div class="annexure-label">ANNEXURE D</div>
   <h2>Vakalatnama</h2>
   <p style="text-align:center">IN THE COURT OF JUDICIAL MAGISTRATE FIRST CLASS</p>
   <br>
@@ -2056,7 +1916,7 @@ exports[`court-rules-golden — annexures pack HTML per court jmfc_generic rende
 </div>
 
 <div class="page-break">
-  <div class="annexure-label">ANNEXURE F</div>
+  <div class="annexure-label">ANNEXURE E</div>
   <h2>Court Fee Paid Statement</h2>
   <p style="text-align:center">IN THE COURT OF JUDICIAL MAGISTRATE FIRST CLASS</p>
   <br>
@@ -2077,7 +1937,7 @@ exports[`court-rules-golden — annexures pack HTML per court jmfc_generic rende
 </div>
 
 <div class="page-break">
-  <div class="annexure-label">ANNEXURE G</div>
+  <div class="annexure-label">ANNEXURE F</div>
   <h2>Affidavit</h2>
   <p style="text-align:center">IN THE COURT OF JUDICIAL MAGISTRATE FIRST CLASS</p>
   <br>
@@ -2178,7 +2038,7 @@ exports[`court-rules-golden — annexures pack HTML per court patna_hc renders a
   <h2>Synopsis</h2>
   <p style="text-align:center">(As required by High Court Practice)</p>
   <br>
-  <p><strong>Nature of matter:</strong> BAIL ANTICIPATORY</p>
+  <p><strong>Nature of matter:</strong> Anticipatory Bail Application</p>
   <p><strong>Brief synopsis of the case:</strong></p>
   <ul>
     <li>Applicant/Petitioner: GOLDEN_APPLICANT</li>
@@ -2199,7 +2059,7 @@ exports[`court-rules-golden — annexures pack HTML per court patna_hc renders a
   <table>
     <tr><th style="width:28%">Date</th><th>Event</th></tr>
     <tr><td>10 January 2026</td><td>Date of alleged incident/event</td></tr>
-    <tr><td>15 January 2026</td><td>FIR No. 001/2026 registered at PS GOLDEN_PS</td></tr>
+    <tr><td>15 January 2026</td><td>FIR No. 001/2026 registered at Police Station GOLDEN_PS</td></tr>
     <tr><td>___________</td><td>Date of arrest / apprehension</td></tr>
     <tr><td>10 May 2026</td><td>Filing of the present application/petition</td></tr>
     <tr><td colspan="2"><em>[Advocate to add further dates as appropriate before filing.]</em></td></tr>
@@ -2387,31 +2247,12 @@ exports[`court-rules-golden — annexures pack HTML per court sessions_generic r
 
 <div class="page-break">
   <div class="annexure-label">ANNEXURE B</div>
-  <h2>Synopsis</h2>
-  <p style="text-align:center">(As required by High Court Practice)</p>
-  <br>
-  <p><strong>Nature of matter:</strong> BAIL ANTICIPATORY</p>
-  <p><strong>Brief synopsis of the case:</strong></p>
-  <ul>
-    <li>Applicant/Petitioner: GOLDEN_APPLICANT</li>
-    <li>Sections invoked: 103, 109</li>
-    <li>FIR/Complaint No.: 001/2026, PS: GOLDEN_PS</li>
-    <li>Court: IN THE COURT OF SESSIONS JUDGE</li>
-    <li>Year: 2026</li>
-  </ul>
-  <p>The petitioner has approached this Hon'ble Court seeking relief as set out in the accompanying petition/application. The facts are briefly summarised hereunder for the convenience of this Hon'ble Court.</p>
-  <p><em>[Advocate to insert 3–5 sentence summary of the factual background before filing.]</em></p>
-  <div class="disclaimer">Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice.</div>
-</div>
-
-<div class="page-break">
-  <div class="annexure-label">ANNEXURE C</div>
   <h2>List of Dates and Chronology of Events</h2>
   <br>
   <table>
     <tr><th style="width:28%">Date</th><th>Event</th></tr>
     <tr><td>10 January 2026</td><td>Date of alleged incident/event</td></tr>
-    <tr><td>15 January 2026</td><td>FIR No. 001/2026 registered at PS GOLDEN_PS</td></tr>
+    <tr><td>15 January 2026</td><td>FIR No. 001/2026 registered at Police Station GOLDEN_PS</td></tr>
     <tr><td>___________</td><td>Date of arrest / apprehension</td></tr>
     <tr><td>10 May 2026</td><td>Filing of the present application/petition</td></tr>
     <tr><td colspan="2"><em>[Advocate to add further dates as appropriate before filing.]</em></td></tr>
@@ -2420,28 +2261,27 @@ exports[`court-rules-golden — annexures pack HTML per court sessions_generic r
 </div>
 
 <div class="page-break">
-  <div class="annexure-label">ANNEXURE D</div>
+  <div class="annexure-label">ANNEXURE C</div>
   <h2>Index of Documents Annexed</h2>
   <br>
   <table>
     <tr><th style="width:8%">Sr.</th><th>Document</th><th style="width:32%">Reference / Page No.</th></tr>
     <tr><td>1.</td><td>Memo of Parties</td><td>Annexure A</td></tr>
-    <tr><td>2.</td><td>Synopsis</td><td>Annexure B</td></tr>
-    <tr><td>3.</td><td>List of Dates and Chronology</td><td>Annexure C</td></tr>
-    <tr><td>4.</td><td>Index of Documents Annexed</td><td>Annexure D (this document)</td></tr>
-    <tr><td>5.</td><td>Vakalatnama</td><td>Annexure E</td></tr>
-    <tr><td>6.</td><td>Court Fee Paid Statement</td><td>Annexure F</td></tr>
-    <tr><td>7.</td><td>Affidavit of GOLDEN_APPLICANT</td><td>Annexure G</td></tr>
-    <tr><td>8.</td><td>Copy of FIR No. 001/2026</td><td>Annexure H (to be annexed by advocate)</td></tr>
-    <tr><td>9.</td><td>Identity and Address Proof of Applicant/Petitioner</td><td>Annexure I (to be annexed by advocate)</td></tr>
-    <tr><td>10.</td><td>Any other document relied upon</td><td>Annexure J onwards (as applicable)</td></tr>
+    <tr><td>2.</td><td>List of Dates and Chronology</td><td>Annexure B</td></tr>
+    <tr><td>3.</td><td>Index of Documents Annexed</td><td>Annexure C (this document)</td></tr>
+    <tr><td>4.</td><td>Vakalatnama</td><td>Annexure D</td></tr>
+    <tr><td>5.</td><td>Court Fee Paid Statement</td><td>Annexure E</td></tr>
+    <tr><td>6.</td><td>Affidavit of GOLDEN_APPLICANT</td><td>Annexure F</td></tr>
+    <tr><td>7.</td><td>Copy of FIR No. 001/2026</td><td>Annexure G (to be annexed by advocate)</td></tr>
+    <tr><td>8.</td><td>Identity and Address Proof of Applicant/Petitioner</td><td>Annexure H (to be annexed by advocate)</td></tr>
+    <tr><td>9.</td><td>Any other document relied upon</td><td>Annexure I onwards (as applicable)</td></tr>
   </table>
   <p style="margin-top:1em"><em>Note: Page numbers to be filled in by advocate before filing.</em></p>
   <div class="disclaimer">Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice.</div>
 </div>
 
 <div class="page-break">
-  <div class="annexure-label">ANNEXURE E</div>
+  <div class="annexure-label">ANNEXURE D</div>
   <h2>Vakalatnama</h2>
   <p style="text-align:center">IN THE COURT OF SESSIONS JUDGE</p>
   <br>
@@ -2480,7 +2320,7 @@ exports[`court-rules-golden — annexures pack HTML per court sessions_generic r
 </div>
 
 <div class="page-break">
-  <div class="annexure-label">ANNEXURE F</div>
+  <div class="annexure-label">ANNEXURE E</div>
   <h2>Court Fee Paid Statement</h2>
   <p style="text-align:center">IN THE COURT OF SESSIONS JUDGE</p>
   <br>
@@ -2501,7 +2341,7 @@ exports[`court-rules-golden — annexures pack HTML per court sessions_generic r
 </div>
 
 <div class="page-break">
-  <div class="annexure-label">ANNEXURE G</div>
+  <div class="annexure-label">ANNEXURE F</div>
   <h2>Affidavit</h2>
   <p style="text-align:center">IN THE COURT OF SESSIONS JUDGE</p>
   <br>
@@ -2599,31 +2439,12 @@ exports[`court-rules-golden — annexures pack HTML per court up_district render
 
 <div class="page-break">
   <div class="annexure-label">ANNEXURE B</div>
-  <h2>Synopsis</h2>
-  <p style="text-align:center">(As required by High Court Practice)</p>
-  <br>
-  <p><strong>Nature of matter:</strong> BAIL ANTICIPATORY</p>
-  <p><strong>Brief synopsis of the case:</strong></p>
-  <ul>
-    <li>Applicant/Petitioner: GOLDEN_APPLICANT</li>
-    <li>Sections invoked: 103, 109</li>
-    <li>FIR/Complaint No.: 001/2026, PS: GOLDEN_PS</li>
-    <li>Court: IN THE COURT OF DISTRICT &amp; SESSIONS JUDGE</li>
-    <li>Year: 2026</li>
-  </ul>
-  <p>The petitioner has approached this Hon'ble Court seeking relief as set out in the accompanying petition/application. The facts are briefly summarised hereunder for the convenience of this Hon'ble Court.</p>
-  <p><em>[Advocate to insert 3–5 sentence summary of the factual background before filing.]</em></p>
-  <div class="disclaimer">Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice.</div>
-</div>
-
-<div class="page-break">
-  <div class="annexure-label">ANNEXURE C</div>
   <h2>List of Dates and Chronology of Events</h2>
   <br>
   <table>
     <tr><th style="width:28%">Date</th><th>Event</th></tr>
     <tr><td>10 January 2026</td><td>Date of alleged incident/event</td></tr>
-    <tr><td>15 January 2026</td><td>FIR No. 001/2026 registered at PS GOLDEN_PS</td></tr>
+    <tr><td>15 January 2026</td><td>FIR No. 001/2026 registered at Police Station GOLDEN_PS</td></tr>
     <tr><td>___________</td><td>Date of arrest / apprehension</td></tr>
     <tr><td>10 May 2026</td><td>Filing of the present application/petition</td></tr>
     <tr><td colspan="2"><em>[Advocate to add further dates as appropriate before filing.]</em></td></tr>
@@ -2632,28 +2453,27 @@ exports[`court-rules-golden — annexures pack HTML per court up_district render
 </div>
 
 <div class="page-break">
-  <div class="annexure-label">ANNEXURE D</div>
+  <div class="annexure-label">ANNEXURE C</div>
   <h2>Index of Documents Annexed</h2>
   <br>
   <table>
     <tr><th style="width:8%">Sr.</th><th>Document</th><th style="width:32%">Reference / Page No.</th></tr>
     <tr><td>1.</td><td>Memo of Parties</td><td>Annexure A</td></tr>
-    <tr><td>2.</td><td>Synopsis</td><td>Annexure B</td></tr>
-    <tr><td>3.</td><td>List of Dates and Chronology</td><td>Annexure C</td></tr>
-    <tr><td>4.</td><td>Index of Documents Annexed</td><td>Annexure D (this document)</td></tr>
-    <tr><td>5.</td><td>Vakalatnama</td><td>Annexure E</td></tr>
-    <tr><td>6.</td><td>Court Fee Paid Statement</td><td>Annexure F</td></tr>
-    <tr><td>7.</td><td>Affidavit of GOLDEN_APPLICANT</td><td>Annexure G</td></tr>
-    <tr><td>8.</td><td>Copy of FIR No. 001/2026</td><td>Annexure H (to be annexed by advocate)</td></tr>
-    <tr><td>9.</td><td>Identity and Address Proof of Applicant/Petitioner</td><td>Annexure I (to be annexed by advocate)</td></tr>
-    <tr><td>10.</td><td>Any other document relied upon</td><td>Annexure J onwards (as applicable)</td></tr>
+    <tr><td>2.</td><td>List of Dates and Chronology</td><td>Annexure B</td></tr>
+    <tr><td>3.</td><td>Index of Documents Annexed</td><td>Annexure C (this document)</td></tr>
+    <tr><td>4.</td><td>Vakalatnama</td><td>Annexure D</td></tr>
+    <tr><td>5.</td><td>Court Fee Paid Statement</td><td>Annexure E</td></tr>
+    <tr><td>6.</td><td>Affidavit of GOLDEN_APPLICANT</td><td>Annexure F</td></tr>
+    <tr><td>7.</td><td>Copy of FIR No. 001/2026</td><td>Annexure G (to be annexed by advocate)</td></tr>
+    <tr><td>8.</td><td>Identity and Address Proof of Applicant/Petitioner</td><td>Annexure H (to be annexed by advocate)</td></tr>
+    <tr><td>9.</td><td>Any other document relied upon</td><td>Annexure I onwards (as applicable)</td></tr>
   </table>
   <p style="margin-top:1em"><em>Note: Page numbers to be filled in by advocate before filing.</em></p>
   <div class="disclaimer">Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice.</div>
 </div>
 
 <div class="page-break">
-  <div class="annexure-label">ANNEXURE E</div>
+  <div class="annexure-label">ANNEXURE D</div>
   <h2>Vakalatnama</h2>
   <p style="text-align:center">IN THE COURT OF DISTRICT &amp; SESSIONS JUDGE</p>
   <br>
@@ -2692,7 +2512,7 @@ exports[`court-rules-golden — annexures pack HTML per court up_district render
 </div>
 
 <div class="page-break">
-  <div class="annexure-label">ANNEXURE F</div>
+  <div class="annexure-label">ANNEXURE E</div>
   <h2>Court Fee Paid Statement</h2>
   <p style="text-align:center">IN THE COURT OF DISTRICT &amp; SESSIONS JUDGE</p>
   <br>
@@ -2713,7 +2533,7 @@ exports[`court-rules-golden — annexures pack HTML per court up_district render
 </div>
 
 <div class="page-break">
-  <div class="annexure-label">ANNEXURE G</div>
+  <div class="annexure-label">ANNEXURE F</div>
   <h2>Affidavit</h2>
   <p style="text-align:center">IN THE COURT OF DISTRICT &amp; SESSIONS JUDGE</p>
   <br>

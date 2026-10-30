@@ -6,14 +6,16 @@
  * Court-rule aware: designation, verification language, and party labels read from
  * the court_rules JSON that matches the document's court_id field in form_data.
  *
- * 7 Annexures:
- *   A — Memo of Parties
- *   B — Synopsis (HC practice)
- *   C — List of Dates and Chronology of Events
- *   D — Index of Documents Annexed
- *   E — Vakalatnama
- *   F — Court Fee Paid Statement
- *   G — Affidavit on Separate Sheet with Notary Block (absorbs SCRUM-66)
+ * Annexures, in this order:
+ *   Memo of Parties
+ *   Synopsis (HC practice) — only where annexureBApplies (T-689c, AJ-689c-a;
+ *     never for a respondent-side client, AJ-689c-b)
+ *   List of Dates and Chronology of Events
+ *   Index of Documents Annexed
+ *   Vakalatnama
+ *   Court Fee Paid Statement
+ *   Affidavit on Separate Sheet with Notary Block (absorbs SCRUM-66)
+ * Lettered from A in order with no gap: A to G with the Synopsis, A to F without.
  *
  * Arjun (CTO) reviewer: architecture. Ajay (CLO) reviewer: legal correctness.
  */
@@ -21,8 +23,21 @@
 import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 
-import { CaseSide, CLIENT_ROLE_TABLE, ClientRoleRow, storesState } from './brief-party-fields';
+import type { CourtType } from '@lawie/shared';
+
+import {
+  CaseSide,
+  CLIENT_ROLE_TABLE,
+  ClientRole,
+  CLIENT_ROLES,
+  ClientRoleRow,
+  flattenPartyValues,
+  storesState,
+} from './brief-party-fields';
+import { GUIDED_PACK_ID } from './doc-type-label';
 import { renderPdf } from './pdf-export.service';
+import { policeStationName } from './police-station-name';
+import { RULE_PACKS_DIR } from './rule-pack.service';
 import {
   chosenCourtHeading,
   CourtLookupData,
@@ -207,12 +222,16 @@ function firstNonBlank(...values: unknown[]): unknown {
 
 // ── T-396: party keys, relation and State line ───────────────────────────────
 
-/** The pack's signed client-role row (brief-party-fields), if it has one. */
-function packRow(formData: Record<string, unknown>): ClientRoleRow | undefined {
-  const id = String(formData.template_id ?? formData.doc_type ?? '').trim();
+/** The signed client-role row (brief-party-fields) for a pack id, if it has one. */
+function rowFor(id: string): ClientRoleRow | undefined {
   return Object.prototype.hasOwnProperty.call(CLIENT_ROLE_TABLE, id)
     ? CLIENT_ROLE_TABLE[id]
     : undefined;
+}
+
+/** The pack's signed client-role row (brief-party-fields), if it has one. */
+function packRow(formData: Record<string, unknown>): ClientRoleRow | undefined {
+  return rowFor(String(formData.template_id ?? formData.doc_type ?? '').trim());
 }
 
 /** The opposite side's named fields for the pack (empty for State / no-field rows). */
@@ -354,6 +373,7 @@ function annexureMemoOfParties(
   formData: Record<string, unknown>,
   rules: CourtRules,
   pageBreak: boolean,
+  label: string,
 ): string {
   // T-424 (Addendum 5): each party under its own role; the client's details
   // only on the client's row.
@@ -412,7 +432,7 @@ function annexureMemoOfParties(
 
   return `
 <div class="${pageBreak ? 'page-break' : ''}">
-  <div class="annexure-label">ANNEXURE A</div>
+  <div class="annexure-label">${label}</div>
   <h2>Memo of Parties</h2>
   <p style="text-align:center">${courtDesig}</p>
   <br>
@@ -445,16 +465,174 @@ function annexureMemoOfParties(
 </div>`;
 }
 
-// ── Annexure B — Synopsis ─────────────────────────────────────────────────────
+// ── Synopsis (Annexure B when attached) ───────────────────────────────────────
 
-function annexureSynopsis(formData: Record<string, unknown>, rules: CourtRules): string {
+/**
+ * T-689c, AJ-689c-a (2) (Ajay, via Priya, 30 Oct 2026): the packs that never
+ * get the Synopsis annexure, whatever the court. AJ-689c-d (3): nor a guided
+ * brief (GUIDED_PACK_ID, 'guided').
+ */
+export const NO_SYNOPSIS_PACK_IDS: ReadonlySet<string> = new Set([
+  'written_statement',
+  'replication',
+  'counter_affidavit',
+  'rejoinder_affidavit',
+  'memo_of_parties',
+  'list_of_dates',
+  'synopsis',
+  'vakalatnama',
+  'affidavit_identity',
+  'affidavit_in_support',
+  'production_of_documents',
+  // AJ-689c-d (3): no Synopsis for a guided brief.
+  GUIDED_PACK_ID,
+]);
+
+/**
+ * T-689c, AJ-689c-a (3): the only court types (COURT_TYPES, @lawie/shared)
+ * that get the Synopsis annexure. Unknown, missing or any other type: none.
+ */
+export const SYNOPSIS_COURT_TYPES: ReadonlySet<CourtType> = new Set<CourtType>([
+  'high_court',
+  'high_court_bench',
+  'supreme_court',
+]);
+
+/**
+ * T-689c, AJ-689c-b (Ajay, via Priya, 30 Oct 2026): the client_role option ids
+ * (brief-party-fields CLIENT_ROLES) by the side they put the client on. The
+ * respondent side is the respondent and the defendant; the filing side is the
+ * petitioner, applicant, plaintiff and appellant. The accused is on neither
+ * (it files bail and quashing, and defends a trial): no side.
+ */
+const ROLE_SIDE: Readonly<Record<ClientRole, CaseSide | null>> = {
+  petitioner: 'petitioner',
+  applicant: 'petitioner',
+  plaintiff: 'petitioner',
+  appellant: 'petitioner',
+  respondent: 'respondent',
+  defendant: 'respondent',
+  accused: null,
+};
+
+/**
+ * T-689c, AJ-689c-b: the client fields of CLIENT_ROLE_TABLE that put the client
+ * on the respondent (opposite-party, defence) side. Every other client field
+ * (applicant, petitioner, plaintiff, appellant, aggrieved, complainant, victim)
+ * is the filing side; client_name has no side of its own (client_role gives it).
+ */
+const RESPONDENT_SIDE_CLIENT_FIELDS: ReadonlySet<string> = new Set([
+  'respondent_name',
+  'defendant_name',
+]);
+
+/** An option label or id as its id, as brief-party-fields reads client_role. */
+function roleId(v: unknown): string {
+  return typeof v === 'string'
+    ? v
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '')
+    : '';
+}
+
+/**
+ * T-689c, AJ-689c-b: the client's side for the Synopsis rule, from what the
+ * party resolver (brief-party-fields) reads, in its order:
+ *   1. `client_side` as the resolver set it (sided packs, clientSideOf);
+ *   2. else an answered `client_role` (rule 1: it overrides the table), by
+ *      ROLE_SIDE; an accused client has no side and the table is not read;
+ *   3. else the pack's row in CLIENT_ROLE_TABLE: 'respondent' for a
+ *      RESPONDENT_SIDE_CLIENT_FIELDS client field, 'petitioner' for any other.
+ * null when none says (no client_side, no recognised client_role, no row or a
+ * row with no client field). 'petitioner' here means only "not the respondent
+ * side". `partyValues` is what the resolver mapped (the form, or a brief's
+ * values); absent, the form. Pure.
+ */
+export function synopsisClientSide(input: {
+  rulePackId?: string | null;
+  formData: Record<string, unknown>;
+  partyValues?: Record<string, unknown>;
+}): CaseSide | null {
+  const resolved = clientSideOf(input.formData);
+  if (resolved) return resolved;
+  const role = roleId(flattenPartyValues(input.partyValues ?? input.formData).client_role);
+  if ((CLIENT_ROLES as readonly string[]).includes(role)) return ROLE_SIDE[role as ClientRole];
+  const row = typeof input.rulePackId === 'string' ? rowFor(input.rulePackId) : undefined;
+  if (!row || row.client === null || row.client === 'client_name') return null;
+  return RESPONDENT_SIDE_CLIENT_FIELDS.has(row.client) ? 'respondent' : 'petitioner';
+}
+
+/**
+ * T-689c, AJ-689c-a (2)-(3) and AJ-689c-b: whether the pack gets the Synopsis
+ * annexure. True only for a pack id not in NO_SYNOPSIS_PACK_IDS, a court type
+ * in SYNOPSIS_COURT_TYPES (both matched exactly), and a client not on the
+ * respondent side (AJ-689c-b: "A respondent-side client BLOCKS B"). With no
+ * side (`clientSide` absent or null) the deny list and the court list decide.
+ * A missing pack id or court type is false (fails closed).
+ */
+export function annexureBApplies(input: {
+  rulePackId?: string | null;
+  courtType?: string | null;
+  clientSide?: CaseSide | null;
+}): boolean {
+  const { rulePackId, courtType, clientSide } = input;
+  if (typeof rulePackId !== 'string' || rulePackId === '') return false;
+  if (typeof courtType !== 'string') return false;
+  if (NO_SYNOPSIS_PACK_IDS.has(rulePackId)) return false;
+  if (clientSide === 'respondent') return false;
+  return SYNOPSIS_COURT_TYPES.has(courtType as CourtType);
+}
+
+/** T-689c, AJ-689c-a (1): printed when the pack has no display name. */
+export const NATURE_OF_MATTER_PLACEHOLDER = '[To be confirmed: Nature of matter]';
+
+/** A pack id is a rule file name without `.json` (as rule-pack.service PACK_ID). */
+const NATURE_PACK_ID = /^[a-z0-9_]+$/;
+
+/**
+ * T-689c, AJ-689c-a (1): the "Nature of matter", unescaped: the pack's raw
+ * catalogue name, byte for byte, as template-promoter sets `display_name` (the
+ * rule file's `displayName`, else its `title`, each when a non-empty string;
+ * never trimmed, recased or humanised). NATURE_OF_MATTER_PLACEHOLDER when
+ * neither exists, or the pack id is missing, not a pack id, or its rule file is
+ * missing or unreadable. Reads `dir/<id>.json` only.
+ */
+export function natureOfMatter(
+  rulePackId: string | null | undefined,
+  dir: string = RULE_PACKS_DIR,
+): string {
+  if (typeof rulePackId !== 'string' || !NATURE_PACK_ID.test(rulePackId)) {
+    return NATURE_OF_MATTER_PLACEHOLDER;
+  }
+  let source: unknown;
+  try {
+    source = JSON.parse(readFileSync(join(dir, `${rulePackId}.json`), 'utf-8'));
+  } catch {
+    return NATURE_OF_MATTER_PLACEHOLDER;
+  }
+  if (typeof source !== 'object' || source === null || Array.isArray(source)) {
+    return NATURE_OF_MATTER_PLACEHOLDER;
+  }
+  const { displayName, title } = source as Record<string, unknown>;
+  if (typeof displayName === 'string' && displayName.length > 0) return displayName;
+  if (typeof title === 'string' && title.length > 0) return title;
+  return NATURE_OF_MATTER_PLACEHOLDER;
+}
+
+function annexureSynopsis(
+  formData: Record<string, unknown>,
+  rules: CourtRules,
+  label: string,
+  nature: string,
+): string {
   // T-424 (Ajay, 14 Oct): on a sided pack the party line is "Petitioner:" and
   // names the petitioner.
   const sided = clientSideOf(formData) !== null;
   const applicant = safeEsc(sided ? formData.petitioner_name : applicantNameOf(formData));
   const partyLabel = sided ? 'Petitioner' : 'Applicant/Petitioner';
   const courtDesig = esc(rules.designation);
-  const docType = safeEsc(formData.template_id ?? formData.doc_type ?? 'Application');
   const sections = str(formData.sections_charged ?? formData.bns_sections ?? formData.sections, '');
   const firNo = safeEsc(formData.fir_number ?? formData.fir_no ?? formData.complaint_number);
   const ps = safeEsc(formData.police_station ?? formData.ps_name);
@@ -470,11 +648,11 @@ function annexureSynopsis(formData: Record<string, unknown>, rules: CourtRules):
 
   return `
 <div class="page-break">
-  <div class="annexure-label">ANNEXURE B</div>
+  <div class="annexure-label">${label}</div>
   <h2>Synopsis</h2>
   <p style="text-align:center">(As required by High Court Practice)</p>
   <br>
-  <p><strong>Nature of matter:</strong> ${esc(docType.replace(/_/g, ' ').toUpperCase())}</p>
+  <p><strong>Nature of matter:</strong> ${esc(nature)}</p>
   <p><strong>Brief synopsis of the case:</strong></p>
   <ul>
     ${bulletPoints.map((b) => `<li>${b}</li>`).join('\n    ')}
@@ -485,15 +663,18 @@ function annexureSynopsis(formData: Record<string, unknown>, rules: CourtRules):
 </div>`;
 }
 
-// ── Annexure C — List of Dates ────────────────────────────────────────────────
+// ── List of Dates ─────────────────────────────────────────────────────────────
 
-function annexureListOfDates(formData: Record<string, unknown>): string {
+function annexureListOfDates(formData: Record<string, unknown>, label: string): string {
   const eventDate = safeDateEsc(
     formData.event_date ?? formData.incident_date ?? formData.date_of_incident,
   );
   const firDate = safeDateEsc(formData.fir_date ?? formData.date_of_fir);
   const firNo = safeEsc(formData.fir_number ?? formData.fir_no ?? formData.complaint_number);
-  const ps = safeEsc(formData.police_station ?? formData.ps_name);
+  // T-638 (Ajay T-612 (6), (6a), (6b)): "Police Station {name}" in prose, the
+  // name without its own station marker.
+  const psRaw = str(formData.police_station ?? formData.ps_name);
+  const ps = esc(psRaw === '___________' ? psRaw : policeStationName(psRaw));
   const arrestDate = safeDateEsc(formData.date_of_arrest ?? formData.arrest_date);
   // T-349: "4 April 2026" (T-340's formatter), local date as before.
   const filingDate = formatDraftDate(new Date());
@@ -502,7 +683,7 @@ function annexureListOfDates(formData: Record<string, unknown>): string {
     [eventDate !== '___________' ? eventDate : '___________', 'Date of alleged incident/event'],
     [
       firDate !== '___________' ? firDate : '___________',
-      `FIR No. ${firNo} registered at PS ${ps}`,
+      `FIR No. ${firNo} registered at Police Station ${ps}`,
     ],
     [arrestDate !== '___________' ? arrestDate : '___________', 'Date of arrest / apprehension'],
     [filingDate, 'Filing of the present application/petition'],
@@ -510,7 +691,7 @@ function annexureListOfDates(formData: Record<string, unknown>): string {
 
   return `
 <div class="page-break">
-  <div class="annexure-label">ANNEXURE C</div>
+  <div class="annexure-label">${label}</div>
   <h2>List of Dates and Chronology of Events</h2>
   <br>
   <table>
@@ -522,39 +703,80 @@ function annexureListOfDates(formData: Record<string, unknown>): string {
 </div>`;
 }
 
-// ── Annexure D — Index of Documents ──────────────────────────────────────────
+// ── Index of Documents ───────────────────────────────────────────────────────
 
-function annexureIndexOfDocuments(formData: Record<string, unknown>): string {
+/** T-689c: the annexures the builder can attach, in pack order. */
+type AnnexureKind =
+  | 'memo'
+  | 'synopsis'
+  | 'dates'
+  | 'index'
+  | 'vakalatnama'
+  | 'court_fee'
+  | 'affidavit';
+
+/** T-689c: one attached annexure and the letter it is printed under. */
+interface AttachedAnnexure {
+  kind: AnnexureKind;
+  letter: string;
+}
+
+/**
+ * T-689c, AJ-689c-a (4): the n-th annexure's letter, from A with no gap
+ * (0 -> "A"). The pack has at most 7 attached annexures and 3 index rows
+ * after them, so it never runs past "J".
+ */
+function annexureLetter(n: number): string {
+  return String.fromCharCode('A'.charCodeAt(0) + n);
+}
+
+/**
+ * The index annexure. T-689c, AJ-689c-a (4): built from the same list of
+ * attached annexures as the pack, so its letters and serial numbers always
+ * match what is attached; the advocate's further annexures follow on from the
+ * last attached letter.
+ */
+function annexureIndexOfDocuments(
+  formData: Record<string, unknown>,
+  label: string,
+  attached: readonly AttachedAnnexure[],
+): string {
   const firNo = safeEsc(formData.fir_number ?? formData.fir_no ?? formData.complaint_number);
   // T-424: "Affidavit of" the deponent, who is the client on a sided pack.
   const applicant = safeEsc(clientNameOf(formData));
 
-  const stdDocs: Array<[string, string, string]> = [
-    ['1', 'Memo of Parties', 'Annexure A'],
-    ['2', 'Synopsis', 'Annexure B'],
-    ['3', 'List of Dates and Chronology', 'Annexure C'],
-    ['4', 'Index of Documents Annexed', 'Annexure D (this document)'],
-    ['5', 'Vakalatnama', 'Annexure E'],
-    ['6', 'Court Fee Paid Statement', 'Annexure F'],
-    ['7', 'Affidavit of ' + applicant, 'Annexure G'],
+  const documentOf: Readonly<Record<AnnexureKind, string>> = {
+    memo: 'Memo of Parties',
+    synopsis: 'Synopsis',
+    dates: 'List of Dates and Chronology',
+    index: 'Index of Documents Annexed',
+    vakalatnama: 'Vakalatnama',
+    court_fee: 'Court Fee Paid Statement',
+    affidavit: 'Affidavit of ' + applicant,
+  };
+  const rows: Array<[string, string]> = attached.map(({ kind, letter }) => [
+    documentOf[kind],
+    kind === 'index' ? `Annexure ${letter} (this document)` : `Annexure ${letter}`,
+  ]);
+  const next = (k: number): string => annexureLetter(attached.length + k);
+  rows.push(
     [
-      '8',
       firNo !== '___________'
         ? `Copy of FIR No. ${firNo}`
         : 'Copy of FIR / Complaint (if available)',
-      'Annexure H (to be annexed by advocate)',
+      `Annexure ${next(0)} (to be annexed by advocate)`,
     ],
     [
-      '9',
       'Identity and Address Proof of Applicant/Petitioner',
-      'Annexure I (to be annexed by advocate)',
+      `Annexure ${next(1)} (to be annexed by advocate)`,
     ],
-    ['10', 'Any other document relied upon', 'Annexure J onwards (as applicable)'],
-  ];
+    ['Any other document relied upon', `Annexure ${next(2)} onwards (as applicable)`],
+  );
+  const stdDocs: Array<[string, string, string]> = rows.map(([d, r], i) => [String(i + 1), d, r]);
 
   return `
 <div class="page-break">
-  <div class="annexure-label">ANNEXURE D</div>
+  <div class="annexure-label">${label}</div>
   <h2>Index of Documents Annexed</h2>
   <br>
   <table>
@@ -566,9 +788,13 @@ function annexureIndexOfDocuments(formData: Record<string, unknown>): string {
 </div>`;
 }
 
-// ── Annexure E — Vakalatnama ──────────────────────────────────────────────────
+// ── Vakalatnama ───────────────────────────────────────────────────────────────
 
-function annexureVakalatnama(formData: Record<string, unknown>, rules: CourtRules): string {
+function annexureVakalatnama(
+  formData: Record<string, unknown>,
+  rules: CourtRules,
+  label: string,
+): string {
   // T-424: the client appoints the advocate; on a sided pack, the deponent.
   const applicant = safeEsc(clientNameOf(formData));
   const applicantAddr = safeEsc(clientAddressOf(formData));
@@ -578,7 +804,7 @@ function annexureVakalatnama(formData: Record<string, unknown>, rules: CourtRule
 
   return `
 <div class="page-break">
-  <div class="annexure-label">ANNEXURE E</div>
+  <div class="annexure-label">${label}</div>
   <h2>Vakalatnama</h2>
   <p style="text-align:center">${courtDesig}</p>
   <br>
@@ -617,9 +843,13 @@ function annexureVakalatnama(formData: Record<string, unknown>, rules: CourtRule
 </div>`;
 }
 
-// ── Annexure F — Court Fee Statement ─────────────────────────────────────────
+// ── Court Fee Statement ──────────────────────────────────────────────────────
 
-function annexureCourtFeeStatement(formData: Record<string, unknown>, rules: CourtRules): string {
+function annexureCourtFeeStatement(
+  formData: Record<string, unknown>,
+  rules: CourtRules,
+  label: string,
+): string {
   const courtDesig = esc(rules.designation);
   const courtType = str(formData.court_type ?? rules.courtType, 'district_court');
 
@@ -628,7 +858,7 @@ function annexureCourtFeeStatement(formData: Record<string, unknown>, rules: Cou
 
   return `
 <div class="page-break">
-  <div class="annexure-label">ANNEXURE F</div>
+  <div class="annexure-label">${label}</div>
   <h2>Court Fee Paid Statement</h2>
   <p style="text-align:center">${courtDesig}</p>
   <br>
@@ -649,12 +879,13 @@ function annexureCourtFeeStatement(formData: Record<string, unknown>, rules: Cou
 </div>`;
 }
 
-// ── Annexure G — Affidavit (absorbs SCRUM-66) ────────────────────────────────
+// ── Affidavit (absorbs SCRUM-66) ─────────────────────────────────────────────
 
 function annexureAffidavit(
   formData: Record<string, unknown>,
   rules: CourtRules,
   bodyParaCount: number,
+  label: string,
 ): string {
   // T-424 (Ajay, 44bf8a5): on a sided pack the deponent is the client, and the
   // designation follows the client's side; an explicit one still wins.
@@ -687,7 +918,7 @@ function annexureAffidavit(
 
   return `
 <div class="page-break">
-  <div class="annexure-label">ANNEXURE G</div>
+  <div class="annexure-label">${label}</div>
   <h2>Affidavit</h2>
   <p style="text-align:center">${courtDesig}</p>
   <br>
@@ -750,6 +981,21 @@ export interface AnnexuresInput {
    * `court_header` for it instead of the court-rules designation line.
    */
   courtData?: CourtLookupData;
+  /**
+   * T-689c: the document's rule pack id (the brief's rule pack, else the
+   * form's template_id). With courtType, decides whether the Synopsis is
+   * attached (annexureBApplies) and names its "Nature of matter"
+   * (natureOfMatter). Absent: no Synopsis.
+   */
+  rulePackId?: string;
+  /** T-689c: the document's court type (COURT_TYPES). Absent: no Synopsis. */
+  courtType?: string;
+  /**
+   * T-689c (AJ-689c-b): the party values the resolver mapped (the form, or an
+   * older brief draft's values), read for client_role only
+   * (synopsisClientSide). Absent: formData.
+   */
+  partyValues?: Record<string, unknown>;
 }
 
 /** T-579: one annexure of the pack: its label and heading as printed, and its HTML. */
@@ -766,7 +1012,11 @@ export interface AnnexurePart {
 export interface AnnexuresHtml {
   /** The full wrapped document (doctype, CSS, body) that the PDF path renders. */
   html: string;
-  /** The 7 annexures A to G in order; `parts[i].html` joined with "\n" is the body. */
+  /**
+   * The attached annexures in order, lettered from A with no gap (A to G with
+   * the Synopsis, A to F without, T-689c); `parts[i].html` joined with "\n" is
+   * the body.
+   */
   parts: AnnexurePart[];
 }
 
@@ -785,12 +1035,23 @@ export function annexuresFilename(docTitle: string, ext: 'pdf' | 'docx'): string
 }
 
 /**
- * T-579: build the HTML of all 7 mandatory annexures (one source for both
- * renderers). Each annexure after the first starts with the page-break class.
- * Court rules are resolved automatically from formData.court_id / court_type + state.
+ * T-579: build the HTML of the annexures (one source for both renderers). Each
+ * annexure after the first starts with the page-break class. Court rules are
+ * resolved automatically from formData.court_id / court_type + state.
+ * T-689c: the Synopsis only where annexureBApplies; the rest lettered from A in
+ * order with no gap, the index built from the same list.
  */
 export function buildAnnexuresHtml(input: AnnexuresInput): AnnexuresHtml {
-  const { formData, bodyParaCount = 10, advocateName, enrollmentNumber, courtData } = input;
+  const {
+    formData,
+    bodyParaCount = 10,
+    advocateName,
+    enrollmentNumber,
+    courtData,
+    rulePackId,
+    courtType,
+    partyValues,
+  } = input;
 
   // T-300: the same advocate name as the draft (resolveAdvocateName): the typed
   // name where this template declares the field, else the profile name.
@@ -824,42 +1085,73 @@ export function buildAnnexuresHtml(input: AnnexuresInput): AnnexuresHtml {
   const chosen = chosenCourtHeading(courtData);
   const rules: CourtRules = chosen ? { ...resolved, designation: chosen.header } : resolved;
 
-  const parts: AnnexurePart[] = [
-    {
-      label: 'ANNEXURE A',
-      heading: 'Memo of Parties',
-      html: annexureMemoOfParties(enrichedForm, rules, false), // A — first page, no break
-    },
-    { label: 'ANNEXURE B', heading: 'Synopsis', html: annexureSynopsis(enrichedForm, rules) },
-    {
-      label: 'ANNEXURE C',
-      heading: 'List of Dates and Chronology of Events',
-      html: annexureListOfDates(enrichedForm),
-    },
-    {
-      label: 'ANNEXURE D',
-      heading: 'Index of Documents Annexed',
-      html: annexureIndexOfDocuments(enrichedForm),
-    },
-    { label: 'ANNEXURE E', heading: 'Vakalatnama', html: annexureVakalatnama(enrichedForm, rules) },
-    {
-      label: 'ANNEXURE F',
-      heading: 'Court Fee Paid Statement',
-      html: annexureCourtFeeStatement(enrichedForm, rules),
-    },
-    {
-      label: 'ANNEXURE G',
-      heading: 'Affidavit',
-      html: annexureAffidavit(enrichedForm, rules, bodyParaCount),
-    },
+  // T-689c (AJ-689c-a, AJ-689c-b): the Synopsis only where it applies (never
+  // for a respondent-side client); every annexure is lettered by its place in
+  // this one list, and the index is built from it.
+  const clientSide = synopsisClientSide({ rulePackId, formData: enrichedForm, partyValues });
+  const kinds: AnnexureKind[] = [
+    'memo',
+    ...(annexureBApplies({ rulePackId, courtType, clientSide }) ? (['synopsis'] as const) : []),
+    'dates',
+    'index',
+    'vakalatnama',
+    'court_fee',
+    'affidavit',
   ];
+  const attached: AttachedAnnexure[] = kinds.map((kind, i) => ({
+    kind,
+    letter: annexureLetter(i),
+  }));
+
+  const partOf = (kind: AnnexureKind, label: string): Omit<AnnexurePart, 'label'> => {
+    switch (kind) {
+      case 'memo':
+        // The first page, no break.
+        return {
+          heading: 'Memo of Parties',
+          html: annexureMemoOfParties(enrichedForm, rules, false, label),
+        };
+      case 'synopsis':
+        return {
+          heading: 'Synopsis',
+          html: annexureSynopsis(enrichedForm, rules, label, natureOfMatter(rulePackId)),
+        };
+      case 'dates':
+        return {
+          heading: 'List of Dates and Chronology of Events',
+          html: annexureListOfDates(enrichedForm, label),
+        };
+      case 'index':
+        return {
+          heading: 'Index of Documents Annexed',
+          html: annexureIndexOfDocuments(enrichedForm, label, attached),
+        };
+      case 'vakalatnama':
+        return { heading: 'Vakalatnama', html: annexureVakalatnama(enrichedForm, rules, label) };
+      case 'court_fee':
+        return {
+          heading: 'Court Fee Paid Statement',
+          html: annexureCourtFeeStatement(enrichedForm, rules, label),
+        };
+      case 'affidavit':
+        return {
+          heading: 'Affidavit',
+          html: annexureAffidavit(enrichedForm, rules, bodyParaCount, label),
+        };
+    }
+  };
+
+  const parts: AnnexurePart[] = attached.map(({ kind, letter }) => {
+    const label = `ANNEXURE ${letter}`;
+    return { label, ...partOf(kind, label) };
+  });
 
   const html = wrapHtml(parts.map((p) => p.html).join('\n'));
   return { html, parts };
 }
 
 /**
- * Build a multi-page PDF containing all 7 mandatory annexures.
+ * Build a multi-page PDF containing the annexures (buildAnnexuresHtml).
  * Each annexure starts on a new page (page-break-before: always).
  * T-579: a thin wrapper, buildAnnexuresHtml then renderPdf.
  */

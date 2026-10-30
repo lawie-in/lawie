@@ -46,6 +46,7 @@
         "type": "textarea",
         "required": true
       },
+      { "id": "defendant_name", "label": "Defendant full name", "type": "text", "required": true },
       {
         "id": "ws_filing_date",
         "label": "Date WS filed by defendant",
@@ -255,6 +256,7 @@
   "validation_rules": [
     "suit_number must not be empty",
     "plaintiff_name must not be empty",
+    "defendant_name must not be empty",
     "leave_application_filed must be true (leave is mandatory under Order VIII R.9)",
     "new_facts_in_ws must not be empty — replication is restricted to dealing with new facts",
     "additional_pleas_admit_deny must not be empty",
