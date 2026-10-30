@@ -112,16 +112,21 @@ describe('T-683 strike 3: candidate containing a non-answer', () => {
 
 describe('T-683 round 2: signed tails, courtesy words, lists, not-asked keys', () => {
   it.each([
-    ['ramesh, Not known', 'Not known.'],
-    ['ramesh, nil', 'nil.'],
-  ])('punctuated-quote-still-carries: %s', (value, quote) => {
-    // carriesNonAnswer trims the quote's edge punctuation. (The pipeline refuses
-    // a model quote that still has its full stop as not_a_non_answer: reported.)
+    ['ramesh, Not known.', 'ramesh, Not known', 'Not known.'],
+    ['Ramesh, nil.', 'Ramesh, nil', 'nil.'],
+  ])('punctuated-quote-still-carries: %s', (text, value, quote) => {
     expect(carriesNonAnswer(value, quote)).toBe(true);
-    const bare = quote.replace(/\.$/, '');
-    const o2 = run(value, [value], [{ quote: bare, turn: 1 }]);
-    expect(o2.result.candidates).toEqual([]);
-    expect(o2.dropped.contains_non_answer).toBe(1);
+    const o = run(text, [value], [{ quote, turn: 1 }]);
+    expect(o.result.candidates).toEqual([]);
+    expect(o.result.nonAnswers).toEqual([{ key: KEY, quote }]);
+    expect(o.dropped.non_answer).toBe(1);
+    expect(o.dropped.contains_non_answer).toBe(1);
+  });
+
+  it('punctuated-quote-control: a bare "." is not a non-answer', () => {
+    const o = run('Ramesh.', ['Ramesh'], [{ quote: '.', turn: 1 }]);
+    expect(o.result.candidates.map((c) => c.value)).toEqual(['Ramesh']);
+    expect(o.dropped.not_a_non_answer).toBe(1);
   });
 
   it.each([
