@@ -1,0 +1,362 @@
+{
+  "M01": {
+    "tokens": {
+      "input": 4595,
+      "output": 937,
+      "cacheRead": 0,
+      "cacheCreation": 2127
+    },
+    "costUsd": {
+      "raw": 0.027068,
+      "uncachedEquivalent": 0.022814
+    },
+    "spend": {
+      "usd": 0.027068,
+      "inr": 2.3819839999999997
+    },
+    "factDiffs": 0,
+    "legalReviewer": "n/a"
+  },
+  "M02": {
+    "tokens": {
+      "input": 7786,
+      "output": 4659,
+      "cacheRead": 0,
+      "cacheCreation": 4284
+    },
+    "costUsd": {
+      "raw": 0.07929800000000001,
+      "uncachedEquivalent": 0.07073
+    },
+    "spend": {
+      "usd": 0.07929800000000001,
+      "inr": 6.978224000000001
+    },
+    "factDiffs": 3,
+    "legalReviewer": "n/a"
+  },
+  "M03": {
+    "tokens": {
+      "input": 8447,
+      "output": 7250,
+      "cacheRead": 0,
+      "cacheCreation": 4284
+    },
+    "costUsd": {
+      "raw": 0.21305999999999997,
+      "uncachedEquivalent": 0.195924
+    },
+    "spend": {
+      "usd": 0.21305999999999997,
+      "inr": 18.74928
+    },
+    "factDiffs": 10,
+    "legalReviewer": "n/a"
+  },
+  "M04": {
+    "tokens": {
+      "input": 7302,
+      "output": 6489,
+      "cacheRead": 4284,
+      "cacheCreation": 0
+    },
+    "costUsd": {
+      "raw": 0.1598448,
+      "uncachedEquivalent": 0.176124
+    },
+    "spend": {
+      "usd": 0.1598448,
+      "inr": 14.0663424
+    },
+    "factDiffs": 1,
+    "legalReviewer": "n/a"
+  },
+  "M05": {
+    "tokens": {
+      "input": 9171,
+      "output": 6509,
+      "cacheRead": 4284,
+      "cacheCreation": 0
+    },
+    "costUsd": {
+      "raw": 0.0838604,
+      "uncachedEquivalent": 0.092
+    },
+    "spend": {
+      "usd": 0.0838604,
+      "inr": 7.3797152
+    },
+    "factDiffs": 4,
+    "legalReviewer": "n/a"
+  },
+  "M06": {
+    "tokens": {
+      "input": 5207,
+      "output": 1302,
+      "cacheRead": 0,
+      "cacheCreation": 2174
+    },
+    "costUsd": {
+      "raw": 0.03213,
+      "uncachedEquivalent": 0.027782
+    },
+    "spend": {
+      "usd": 0.03213,
+      "inr": 2.8274399999999997
+    },
+    "factDiffs": 0,
+    "legalReviewer": "n/a"
+  },
+  "M07": {
+    "tokens": {
+      "input": 4595,
+      "output": 1013,
+      "cacheRead": 0,
+      "cacheCreation": 2127
+    },
+    "costUsd": {
+      "raw": 0.055656,
+      "uncachedEquivalent": 0.047148
+    },
+    "spend": {
+      "usd": 0.055656,
+      "inr": 4.897728
+    },
+    "factDiffs": 0,
+    "legalReviewer": "n/a"
+  },
+  "M08": {
+    "tokens": {
+      "input": 17446,
+      "output": 9858,
+      "cacheRead": 5642,
+      "cacheCreation": 0
+    },
+    "costUsd": {
+      "raw": 0.1340362,
+      "uncachedEquivalent": 0.144756
+    },
+    "spend": {
+      "usd": 0.1340362,
+      "inr": 11.7951856
+    },
+    "factDiffs": 5,
+    "legalReviewer": "n/a"
+  },
+  "M09": {
+    "tokens": {
+      "input": 15208,
+      "output": 5387,
+      "cacheRead": 4284,
+      "cacheCreation": 1358
+    },
+    "costUsd": {
+      "raw": 0.0901464,
+      "uncachedEquivalent": 0.09557
+    },
+    "spend": {
+      "usd": 0.0901464,
+      "inr": 7.9328832
+    },
+    "factDiffs": 1,
+    "legalReviewer": "n/a"
+  },
+  "M10": {
+    "tokens": {
+      "input": 5221,
+      "output": 1329,
+      "cacheRead": 0,
+      "cacheCreation": 2175
+    },
+    "costUsd": {
+      "raw": 0.064864,
+      "uncachedEquivalent": 0.056164
+    },
+    "spend": {
+      "usd": 0.064864,
+      "inr": 5.708032
+    },
+    "factDiffs": 0,
+    "legalReviewer": "n/a"
+  },
+  "M11": {
+    "tokens": {
+      "input": 14856,
+      "output": 5926,
+      "cacheRead": 4284,
+      "cacheCreation": 0
+    },
+    "costUsd": {
+      "raw": 0.0894004,
+      "uncachedEquivalent": 0.09754
+    },
+    "spend": {
+      "usd": 0.0894004,
+      "inr": 7.8672352000000005
+    },
+    "factDiffs": 4,
+    "legalReviewer": "n/a"
+  },
+  "M12": {
+    "tokens": {
+      "input": 14994,
+      "output": 9934,
+      "cacheRead": 4284,
+      "cacheCreation": 0
+    },
+    "costUsd": {
+      "raw": 0.25951280000000004,
+      "uncachedEquivalent": 0.275792
+    },
+    "spend": {
+      "usd": 0.25951280000000004,
+      "inr": 22.837126400000002
+    },
+    "factDiffs": 12,
+    "legalReviewer": "n/a"
+  },
+  "M13": {
+    "tokens": {
+      "input": 9529,
+      "output": 8706,
+      "cacheRead": 4284,
+      "cacheCreation": 0
+    },
+    "costUsd": {
+      "raw": 0.2130928,
+      "uncachedEquivalent": 0.22937200000000002
+    },
+    "spend": {
+      "usd": 0.2130928,
+      "inr": 18.7521664
+    },
+    "factDiffs": 4,
+    "legalReviewer": "n/a"
+  },
+  "M14": {
+    "tokens": {
+      "input": 18786,
+      "output": 9179,
+      "cacheRead": 5642,
+      "cacheCreation": 0
+    },
+    "costUsd": {
+      "raw": 0.1299262,
+      "uncachedEquivalent": 0.140646
+    },
+    "spend": {
+      "usd": 0.1299262,
+      "inr": 11.4335056
+    },
+    "factDiffs": 7,
+    "legalReviewer": "n/a"
+  },
+  "M15": {
+    "tokens": {
+      "input": 8640,
+      "output": 7303,
+      "cacheRead": 4284,
+      "cacheCreation": 0
+    },
+    "costUsd": {
+      "raw": 0.1814768,
+      "uncachedEquivalent": 0.19775600000000002
+    },
+    "spend": {
+      "usd": 0.1814768,
+      "inr": 15.9699584
+    },
+    "factDiffs": 4,
+    "legalReviewer": "n/a"
+  },
+  "M16": {
+    "tokens": {
+      "input": 23068,
+      "output": 19313,
+      "cacheRead": 5642,
+      "cacheCreation": 0
+    },
+    "costUsd": {
+      "raw": 0.4796604,
+      "uncachedEquivalent": 0.5011
+    },
+    "spend": {
+      "usd": 0.4796604,
+      "inr": 42.2101152
+    },
+    "factDiffs": 27,
+    "legalReviewer": "n/a"
+  },
+  "M17": {
+    "tokens": {
+      "input": 20626,
+      "output": 17035,
+      "cacheRead": 4284,
+      "cacheCreation": 1358
+    },
+    "costUsd": {
+      "raw": 0.4349248,
+      "uncachedEquivalent": 0.445772
+    },
+    "spend": {
+      "usd": 0.4349248,
+      "inr": 38.2733824
+    },
+    "factDiffs": 20,
+    "legalReviewer": "n/a"
+  },
+  "M18": {
+    "tokens": {
+      "input": 5221,
+      "output": 1463,
+      "cacheRead": 0,
+      "cacheCreation": 2175
+    },
+    "costUsd": {
+      "raw": 0.033772,
+      "uncachedEquivalent": 0.029422
+    },
+    "spend": {
+      "usd": 0.033772,
+      "inr": 2.9719360000000004
+    },
+    "factDiffs": 0,
+    "legalReviewer": "n/a"
+  },
+  "M19": {
+    "tokens": {
+      "input": 7774,
+      "output": 5284,
+      "cacheRead": 4284,
+      "cacheCreation": 0
+    },
+    "costUsd": {
+      "raw": 0.0688164,
+      "uncachedEquivalent": 0.07695600000000001
+    },
+    "spend": {
+      "usd": 0.0688164,
+      "inr": 6.0558432
+    },
+    "factDiffs": 3,
+    "legalReviewer": "n/a"
+  },
+  "M20": {
+    "tokens": {
+      "input": 5207,
+      "output": 985,
+      "cacheRead": 0,
+      "cacheCreation": 2174
+    },
+    "costUsd": {
+      "raw": 0.05792,
+      "uncachedEquivalent": 0.049224
+    },
+    "spend": {
+      "usd": 0.05792,
+      "inr": 5.09696
+    },
+    "factDiffs": 0,
+    "legalReviewer": "n/a"
+  }
+}

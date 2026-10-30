@@ -1,0 +1,122 @@
+[
+  {
+    "tokens": {
+      "input": 4754,
+      "output": 4340,
+      "cacheRead": 0,
+      "cacheCreation": 0
+    },
+    "spend": {
+      "usd": 0.0026454,
+      "inr": 0.2327952
+    }
+  },
+  {
+    "tokens": {
+      "input": 4437,
+      "output": 4051,
+      "cacheRead": 0,
+      "cacheCreation": 0
+    },
+    "spend": {
+      "usd": 0.0024692,
+      "inr": 0.2172896
+    }
+  },
+  {
+    "tokens": {
+      "input": 5050,
+      "output": 5396,
+      "cacheRead": 0,
+      "cacheCreation": 0
+    },
+    "spend": {
+      "usd": 0.003203,
+      "inr": 0.281864
+    }
+  },
+  {
+    "tokens": {
+      "input": 5241,
+      "output": 6970,
+      "cacheRead": 0,
+      "cacheCreation": 0
+    },
+    "spend": {
+      "usd": 0.0040091,
+      "inr": 0.35280079999999997
+    }
+  },
+  {
+    "tokens": {
+      "input": 4712,
+      "output": 4865,
+      "cacheRead": 0,
+      "cacheCreation": 0
+    },
+    "spend": {
+      "usd": 0.0029037,
+      "inr": 0.2555256
+    }
+  },
+  {
+    "tokens": {
+      "input": 4866,
+      "output": 5058,
+      "cacheRead": 0,
+      "cacheCreation": 0
+    },
+    "spend": {
+      "usd": 0.0030156000000000002,
+      "inr": 0.2653728
+    }
+  },
+  {
+    "tokens": {
+      "input": 5030,
+      "output": 6766,
+      "cacheRead": 0,
+      "cacheCreation": 0
+    },
+    "spend": {
+      "usd": 0.0038859999999999997,
+      "inr": 0.341968
+    }
+  },
+  {
+    "tokens": {
+      "input": 4350,
+      "output": 3463,
+      "cacheRead": 0,
+      "cacheCreation": 0
+    },
+    "spend": {
+      "usd": 0.0021665,
+      "inr": 0.190652
+    }
+  },
+  {
+    "tokens": {
+      "input": 5032,
+      "output": 6271,
+      "cacheRead": 0,
+      "cacheCreation": 0
+    },
+    "spend": {
+      "usd": 0.0036387,
+      "inr": 0.3202056
+    }
+  },
+  {
+    "tokens": {
+      "input": 4879,
+      "output": 4227,
+      "cacheRead": 0,
+      "cacheCreation": 0
+    },
+    "spend": {
+      "usd": 0.0026014000000000002,
+      "inr": 0.22892320000000002
+    }
+  }
+]
