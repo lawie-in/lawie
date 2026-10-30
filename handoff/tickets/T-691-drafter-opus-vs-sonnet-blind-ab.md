@@ -27,3 +27,11 @@ T-684 (per-role model settings) merged; T-686 merged (slot).
 - Matters: golden 23 (regular bail) and 24 (anticipatory bail). NEW fictional fixtures for O.39 and s.528 BNSS quashing; Ajay signs their facts. Spare: 26 (certiorari).
 - Rubric confirmed. Blockers also include: a wrong or invented citation, a repealed code alone, an invented fact, changed signed text, a wrong court.
 - Arjun holds the A/B key. Ajay checks citations separately before the key is opened.
+
+## Arjun decisions (30 Oct 2026)
+1. The A/B must NOT touch prod. It runs against an ephemeral Mongo (mongodb-memory-server or a docker mongo); the fixtures are self-contained.
+2. Legal-reviewer "n/a in v2" is fine.
+3. Same ledger for both arms: run intake once, then generate twice (option a).
+4. 6-8 fixtures in scripts/ab/fixtures; Ajay signs the facts.
+5. Interleave the arms, randomise the order, report raw and uncached-equivalent cost.
+No model run until Arjun reviews the harness and says go. Vikram's ₹600 cap stands.
