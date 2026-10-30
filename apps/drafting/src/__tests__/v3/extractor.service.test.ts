@@ -1041,3 +1041,107 @@ describe('extractTurn: one 20 s deadline covers the whole turn (round 1, finding
     expect((mockCall.mock.calls[0][1] as { signal: AbortSignal }).signal).toBe(ctrl.signal);
   });
 });
+
+describe('extractTurn: the llm_call line carries started-at and duration (321c7d28, T-681a)', () => {
+  type Line = Record<string, unknown>;
+  const lines = (): Line[] => mockLogLlmCall.mock.calls.map((c) => c[0] as Line);
+  const textFree = (rec: Line): void => {
+    // Only these keys, all codes, ids and numbers: no prompt, output, quote or value.
+    const allowed = new Set([
+      'startedAt',
+      'durationMs',
+      'stage',
+      'call',
+      'model',
+      'effort',
+      'status',
+      'reason',
+      'bridgeSkippedNonVerbatim',
+      'inputTokens',
+      'outputTokens',
+      'cacheReadInputTokens',
+      'cacheCreationInputTokens',
+      'stopReason',
+      'intakeId',
+      'runId',
+    ]);
+    for (const k of Object.keys(rec)) expect(allowed.has(k)).toBe(true);
+    for (const v of Object.values(rec))
+      expect(typeof v === 'string' ? v.length < 80 : true).toBe(true);
+  };
+
+  it('a completed line has a numeric startedAt inside the call window and a whole, non-negative durationMs', async () => {
+    const before = Date.now();
+    await extractTurn(input({ intakeId: 'intake-t1' }));
+    const after = Date.now();
+    expect(lines()).toHaveLength(1);
+    const rec = lines()[0];
+    expect(rec.status).toBe('completed');
+    expect(typeof rec.startedAt).toBe('number');
+    expect(rec.startedAt as number).toBeGreaterThanOrEqual(before);
+    expect(rec.startedAt as number).toBeLessThanOrEqual(after);
+    expect(Number.isInteger(rec.durationMs)).toBe(true);
+    expect(rec.durationMs as number).toBeGreaterThanOrEqual(0);
+    expect(rec.durationMs as number).toBeLessThanOrEqual(after - before);
+    textFree(rec);
+  });
+
+  it('a degraded line after a model call (call_failed) has the same startedAt and durationMs', async () => {
+    mockCall.mockRejectedValue(new Error('boom'));
+    const before = Date.now();
+    await extractTurn(input());
+    const after = Date.now();
+    const rec = lines().filter((o) => o.status === 'degraded')[0];
+    expect(rec.reason).toBe('call_failed');
+    expect(rec.startedAt as number).toBeGreaterThanOrEqual(before);
+    expect(rec.startedAt as number).toBeLessThanOrEqual(after);
+    expect(Number.isInteger(rec.durationMs)).toBe(true);
+    expect(rec.durationMs as number).toBeGreaterThanOrEqual(0);
+    textFree(rec);
+  });
+
+  it('a degraded line after a reply (bad_json) carries both fields', async () => {
+    mockCall.mockResolvedValue(okResult('not json at all'));
+    await extractTurn(input());
+    const rec = lines().filter((o) => o.status === 'degraded')[0];
+    expect(rec.reason).toBe('bad_json');
+    expect(typeof rec.startedAt).toBe('number');
+    expect(Number.isInteger(rec.durationMs)).toBe(true);
+  });
+
+  it('a degraded line with no model call (model_unset) is stamped now with 0 ms', async () => {
+    setSettings({});
+    const before = Date.now();
+    await extractTurn(input());
+    const after = Date.now();
+    const rec = lines()[0];
+    expect(rec.reason).toBe('model_unset');
+    expect(rec.startedAt as number).toBeGreaterThanOrEqual(before);
+    expect(rec.startedAt as number).toBeLessThanOrEqual(after);
+    expect(rec.durationMs).toBe(0);
+    expect(mockCall).not.toHaveBeenCalled();
+    textFree(rec);
+  });
+
+  it('the real logLlmCall turns the fields into started_at (ISO 8601) and duration_ms (whole ms), with no text', async () => {
+    const actual = jest.requireActual(
+      '../../services/llm-usage',
+    ) as typeof import('../../services/llm-usage');
+    await extractTurn(input({ intakeId: 'intake-t5' }));
+    const received: Array<Record<string, unknown>> = [];
+    actual.setLlmCallListener((r) => received.push(r as unknown as Record<string, unknown>));
+    try {
+      actual.logLlmCall(lines()[0] as unknown as Parameters<typeof actual.logLlmCall>[0]);
+    } finally {
+      actual.setLlmCallListener(null);
+    }
+    expect(received).toHaveLength(1);
+    const r = received[0];
+    expect(r.event).toBe('llm_call');
+    expect(typeof r.started_at).toBe('string');
+    expect(new Date(r.started_at as string).toISOString()).toBe(r.started_at);
+    expect(Number.isInteger(r.duration_ms)).toBe(true);
+    expect(r.duration_ms as number).toBeGreaterThanOrEqual(0);
+    expect(JSON.stringify(r)).not.toMatch(/arrest|police|नहीं/i);
+  });
+});
