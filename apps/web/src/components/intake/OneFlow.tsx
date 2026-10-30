@@ -43,6 +43,7 @@ import {
   NO_RULE_PACK,
   readFactCheckBanner,
   RenderedClause,
+  shownSoftFindings,
   Value,
   valuesAfter,
   withAskedKeys,
@@ -944,6 +945,10 @@ function OneFlowSteps({
             : missing.map((m) => m.id),
         );
         const name = current.kind.name;
+        // T-690c: the soft findings of the brief this draft was written from, as the
+        // service's `done` sends them (rebuilt there from the values it drafted). Never
+        // from the brief on screen, which can be stale after a failed update.
+        const softFindings = shownSoftFindings(done.soft_findings);
         // The draft is written. Nothing the advocate typed is kept on this page any longer.
         reset();
         // T-147d: present only for a draft written from the fact ledger.
@@ -967,6 +972,7 @@ function OneFlowSteps({
           disclaimer:
             typeof done.disclaimer === 'string' ? done.disclaimer : (factCheck?.disclaimer ?? null),
           ...(rendered ? { rendered } : {}),
+          ...(softFindings.length > 0 ? { softFindings } : {}),
           // T-545: the Ink the server says it settled, and nothing else (never the quote).
           // Absent (no settle), 0 or not a number: no chip.
           ...(typeof done.inkDebited === 'number' && done.inkDebited > 0

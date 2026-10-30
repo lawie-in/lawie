@@ -23,7 +23,8 @@ Tokens are CSS variables scoped to the opt-in class `.nl`, not `:root`. A subtre
 
 ## Components
 
-- `ui/`: Button (and Spinner), Input, Textarea, Chip, InkChip, Card, Skeleton, EmptyState, ErrorState, Inkwell, Seal, ToastProvider and useToast, Banner, Dialog, Lamp, DustMotes. Import from `components/ui`.
+- `ui/`: Button (and Spinner), Input, Textarea, Chip, InkChip, Card, Skeleton, EmptyState, ErrorState, Inkwell, Seal, ToastProvider and useToast, Banner, Notice, Dialog, Lamp, DustMotes. Import from `components/ui`.
+- `Notice` (T-690b): an inline note inside a folio or panel. `<Notice variant="warn" text={...} />` (only `warn` exists): `role="status"`, warn tokens (`nl-warn`, `nl-warn-light`), AlertTriangle icon, no button and no dismiss. The `text` prop is the only content and is printed as passed (signed copy is never reworded). Used for the brief's `soft_findings` on the brief screen and the draft-ready screen.
 - `shell/`: TopBar, LawieMark, CommandBar, ThemeProvider, ThemeToggle.
 - CommandBar uses Radix Popover (no cmdk). It binds Ctrl/Cmd+K by default via its `hotkey` prop, and `components/sections/SectionFinderPanel.tsx` binds the same shortcut. With `hotkeyExclusive` (used on `/dashboard`) CommandBar takes the key in a window capture-phase listener: every Ctrl/Meta+K variant is prevented and stopped so the section finder never sees it, and a plain press focuses the bar (IME composition is ignored). Set `hotkeySuspended` while a modal is open (the top-up modal does); the key then reaches the section finder again. The section finder is a dialog below 768px (inert page, scroll lock) and a rail only at 1280px and up; it ignores Escape and Ctrl/Cmd+K/F11 while another dialog is open. The top-up modal is a Radix Dialog (focus trap, bottom sheet at 640px and below, hides while Razorpay Checkout is open). Pass `hotkey={false}` only to turn the shortcut off entirely.
 

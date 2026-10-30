@@ -126,6 +126,7 @@ import {
 } from '../services/pdf-export.service';
 import { preflightCheck } from '../services/preflight.service';
 import { applyFieldAliases, loadRulePack, loadSkeleton } from '../services/rule-pack.service';
+import { runWithRunContext } from '../services/run-context';
 import { NOT_FIXTURE, NOT_FIXTURE_GENERATION } from '../services/run-origin';
 import { withS138DateChecks } from '../services/s138-date-checks';
 import {
@@ -486,7 +487,7 @@ export async function withInkHold(
    * asking quote changes anything (quote stored on the hold, settle at the
    * delivered band).
    */
-  key: { runId: string; runSequence: number; quote?: DraftQuote },
+  key: { runId: string; runSequence: number; quote?: DraftQuote; templateId?: string },
   cost: number,
   preStreamError: Record<string, unknown>,
   run: (ink: InkHoldHandle) => Promise<void>,
@@ -803,7 +804,8 @@ export async function withInkHold(
   };
 
   try {
-    await run(handle);
+    // T-681a: every model call of the run logs its run id (ids only).
+    await runWithRunContext({ runId, runSequence, templateId: key.templateId }, () => run(handle));
   } finally {
     await stopBeats();
     await release();
@@ -1117,7 +1119,7 @@ router.post(
     // The pre-stream 500 body below: the error code only (Ajay, T-567), never a
     // message; the detail goes to the log.
     const holdError = { error: 'Generation failed' };
-    const inkKey = { runId, runSequence };
+    const inkKey = { runId, runSequence, templateId: template_id };
     const inkCost = chargedCost(req); // T-227: no default price
     await withInkHold(req, res, inkKey, inkCost, holdError, async (ink) => {
       // Stream the AI response via config-driven pipeline
@@ -1868,7 +1870,7 @@ router.post(
     // The pre-stream 500 body below.
     const holdError = { error: 'Generation failed' };
     // T-577: the quote rides with the key; only an asking quote changes the hold.
-    const inkKey = { runId, runSequence, quote: runQuote };
+    const inkKey = { runId, runSequence, quote: runQuote, templateId: recordId };
     const gateCost = chargedCost(req); // T-227: no default price (throws if enforceCredits did not run)
     // T-577: the hold is the route's quote (T-388). For a pack that does not
     // ask it is the same figure enforceCredits stashed.
@@ -2156,6 +2158,11 @@ router.post(
         // T-577: only when the pack asked for a count. inkDebited (T-545,
         // added by sendDone) is the settled figure, at most inkQuoted.
         ...(runQuote.asks ? { inkQuoted: runQuote.ink, paragraphsDelivered } : {}),
+        // T-690c: the soft findings of the brief this draft was written from (the
+        // one rebuilt above from the sent values). A warning only. Absent when none.
+        ...(brief.soft_findings && brief.soft_findings.length > 0
+          ? { soft_findings: brief.soft_findings }
+          : {}),
       });
     });
   },

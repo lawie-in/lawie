@@ -283,6 +283,8 @@ describe('logLlmCall', () => {
       cacheCreationInputTokens: 4,
       stopReason: 'end_turn',
       intakeId: 'i-1',
+      startedAt: Date.UTC(2026, 9, 30, 10, 0, 0),
+      durationMs: 1234,
     });
     expect(info.mock.calls[0][0]).toEqual({
       event: 'llm_call',
@@ -296,6 +298,8 @@ describe('logLlmCall', () => {
       cache_read_input_tokens: 3,
       cache_creation_input_tokens: 4,
       stop_reason: 'end_turn',
+      duration_ms: 1234,
+      started_at: '2026-10-30T10:00:00.000Z',
       intake_id: 'i-1',
     });
   });
@@ -309,6 +313,8 @@ describe('logLlmCall', () => {
       model: 'm',
       effort: null,
       status: 'failed',
+      startedAt: Date.UTC(2026, 9, 30, 11, 0, 0),
+      durationMs: 7,
     });
     expect(info.mock.calls[0][0]).toEqual({
       event: 'llm_call',
@@ -322,6 +328,8 @@ describe('logLlmCall', () => {
       cache_read_input_tokens: 0,
       cache_creation_input_tokens: 0,
       stop_reason: null,
+      duration_ms: 7,
+      started_at: '2026-10-30T11:00:00.000Z',
       fixture_id: 'fx-9',
     });
   });
@@ -334,6 +342,8 @@ describe('logLlmCall', () => {
       model: 'm',
       effort: 'medium',
       status: 'completed',
+      startedAt: 1_700_000_000_000,
+      durationMs: 42,
       prompt: SECRET_PROMPT,
       draft: SECRET_PROMPT,
       userId: 'user-123',
@@ -352,11 +362,15 @@ describe('logLlmCall', () => {
       'cache_read_input_tokens',
       'cache_creation_input_tokens',
       'stop_reason',
+      'duration_ms',
+      'started_at',
       'intake_id',
       'run_id',
       'fixture_id',
     ];
     for (const k of Object.keys(rec)) expect(allowed).toContain(k);
+    expect(Number.isInteger(rec.duration_ms)).toBe(true);
+    expect(rec.started_at).toBe(new Date(1_700_000_000_000).toISOString());
     const s = JSON.stringify(info.mock.calls);
     expect(s).not.toContain(SECRET_PROMPT);
     expect(s).not.toContain('user-123');
@@ -368,7 +382,15 @@ describe('logLlmCall', () => {
       throw new Error('x');
     });
     expect(() =>
-      logLlmCall({ stage: 'body', call: 'd1', model: 'm', effort: 'low', status: 'completed' }),
+      logLlmCall({
+        stage: 'body',
+        call: 'd1',
+        model: 'm',
+        effort: 'low',
+        status: 'completed',
+        startedAt: 0,
+        durationMs: 0,
+      }),
     ).not.toThrow();
   });
 
@@ -385,6 +407,8 @@ describe('logLlmCall', () => {
       model: 'm',
       effort: 'low',
       status: 'completed',
+      startedAt: 0,
+      durationMs: 0,
     } as const;
     logLlmCall(c);
     logLlmCall(c);

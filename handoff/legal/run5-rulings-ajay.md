@@ -182,3 +182,12 @@ It is a warning, not a block. The l.7 replacement stands as signed. A commercial
 **T-690b APPROVED at 345ce1fc.** It counts as merged at the develop_staging merge SHA that contains it.
 
 **T-690b MERGED (Ajay, 29 Oct 2026): develop_staging merge SHA 461dd54b.** Checked myself: it contains approved commit SHA 345ce1fc, and written_statement.json and preflight.service.ts have no diff from 345ce1fc to the merge.
+
+**T-690c byte check (Ajay, 30 Oct 2026): fix/t-690c-ws-warning-brief-path @ commit SHA 97c3285f.** I checked it myself:
+- `services/ws-limitation-warning.ts` holds the signed over-90 text byte for byte (grep -F, 316 bytes) with the same strictly-over-90 test.
+- preflight imports it, and the new module is on the legal-content list.
+- The web shows the server text verbatim in a warn `Notice`, with no new user copy and no heading. It sits above Confirm and in the ready-screen checks. It is never a block, and it changes neither Confirm nor the Ink line.
+
+**T-690c APPROVED at 97c3285f.** It counts as merged at the develop_staging merge SHA that contains it.
+
+**T-690c MERGED (Ajay, 30 Oct 2026): develop_staging merge SHA c7757ac5.** Checked myself: it contains approved commit SHA 97c3285f, and ws-limitation-warning.ts and Notice.tsx have no diff. The only change in preflight.service.ts is T-681a's `startedAt`/`durationMs` on the LLM-call log (timing only, no values), which is not legal text.
