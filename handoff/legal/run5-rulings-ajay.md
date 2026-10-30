@@ -104,3 +104,81 @@ I am not checking the section numbers in the examples here. They come from the u
 - The five titles from the earlier ruling stay as they are.
 
 **Byte check on the new SHA.**
+
+## T-683: v3 Extractor, complete rule (Ajay, 29 Oct 2026; Arjun's design commit SHA c32293ae)
+
+**1. Output contract: yes, both `quote` and `value`.**
+- **`quote`:** the user's exact words, no more than 200 characters. Code checks that it is a verbatim substring of the user's text (after whitespace collapse only). A quote that fails the check means no fact.
+- **`value`:** normalised to English, using the quote **alone**. No outside knowledge, no inference beyond the quote, and no merging of two quotes.
+  - Proper names and places: carried over as given, transliterated to Latin script if written in Devanagari. Never translated or "corrected".
+  - Police stations: T-612 (6)/(6a)/(6b).
+  - Dates: ISO `YYYY-MM-DD`. Day-first for Indian input. An ambiguous date, such as one with a two-digit year or no year, gives no fact.
+  - Amounts: a figure in rupees. Words read per P3.
+  - Yes/no: नहीं, nahi, nahin and "koi nahi" mean **no**; हाँ, haan and ji haan mean **yes**.
+  - Hinglish and Hindi prose: rendered as a plain English fact, never quoted raw.
+- **Code checks:** the value's type and range per the field, and confidence below 0.6 means ask. A value that cannot be read from the quote alone gives no fact: the key goes to `unresolved` and the draft prints `[To be confirmed: <label>]` (P7/FR-9b).
+- **Storage:** the ledger stores both. The draft prints `value`. The T-611 checker reads `quote` as the user's text for P2.
+- **This replaces, for v3 only,** the "copy character for character, never translate" line in today's EXTRACT_SYSTEM_PROMPT. The v2 prompt is unchanged while v2 runs.
+
+**2. The prompt.** The developer drafts `apps/drafting/src/config/prompts/v3-extractor.ts` from rule 1 and rule 4. It is legal content from creation. I sign the **full text** by SHA-256 before merge. No other rules lines are needed from me first.
+
+**3. Hint.** The name `extract_hint` is OK. The O.39 `restraint_sought` hint is signed as written in T-613 (j)7(b), byte for byte: `Fill only from words in which the user says what the defendant should be stopped from doing from now on. Never turn acts the description says already happened into a restraint; if the description gives none, leave this empty.`
+
+**4. Non-answers: yes.**
+- A non-answer never produces a fact for **any** key: the §(j)3 list, plus the M5–M6 rule for party names, plus the Latin Hinglish forms added in T-671.
+- It is output under `nonAnswers` as `{key, quote}`.
+- It is never reassigned to another key, and never fills a field the user was not asked about.
+- FR-9b applies: no fact, so the draft prints a `[To be confirmed]` blank. Required party names block, per AJ-668.
+
+**Tests (fictional):** Anushka's run-5 Hinglish bail inputs (T-676 AC1 and AC2); a Devanagari police station; an ambiguous date; an amount in words; a quote that is not a substring (rejected); "Not known" as a defendant (to `nonAnswers`, blocks); a restraint described only as past acts (empty).
+
+## T-690 (Ajay, 29 Oct 2026)
+
+The para-2 placeholder is the `days_from_service` field label. It is **already signed** under T-681 item 4 above. T-690 swaps all four places in that table byte for byte, in one commit, because they state the same rule. The label is:
+
+`Days from service of summons (due within 30; the court may allow up to 90 for recorded reasons; 120 is the outer limit in a commercial suit)`
+
+The court-rules file change follows `golden-snapshots.md`: snapshots are edited by hand and the diff is sent to me. I check the SHA before merge, then the merge SHA.
+
+**T-690 byte check (Ajay, 29 Oct 2026): fix/t-690-ws-limitation-line @ commit SHA c1ac9666.** I checked the config diff myself. All four strings occur byte for byte in this file (grep -F), l.224 is untouched, and only these two files changed: written_statement.json and court-rules/district_court_generic.json. The tests are added. **T-690 APPROVED at c1ac9666.** It counts as merged at the develop_staging merge SHA that contains it.
+
+**T-690b (separate, low priority):**
+- **l.7 `change_protocol`** is internal, but it misstates the rule. Signed replacement: `All edits require CLO sign-off. Para-wise denial structure and the Order VIII Rule 1 time limits (30 days; up to 90 with the court's leave; 120 days outer limit in a commercial suit) are non-negotiable.`
+- **l.308–309** (validation) **stay**: more than 30 days needs a delay application, and a commercial suit cannot exceed 120. Do **not** add a hard 90-day block for ordinary suits: the proviso's 90 days is not treated as an absolute bar there. Instead add a **warning, not a block**, when days_from_service is over 90 in a non-commercial suit. Signed text: `This written statement is more than 90 days after service of summons. The court allows that only in exceptional cases, for reasons recorded in writing; set out the reasons in the delay application.`
+
+**T-690 MERGED (Ajay, 29 Oct 2026): develop_staging merge SHA 7f04908a.** Checked myself: it contains approved commit SHA c1ac9666, and written_statement.json and district_court_generic.json have no diff from c1ac9666 to the merge.
+
+## T-683: field-meaning words in the date check (Ajay, 29 Oct 2026). (c), complete rule
+
+- A field may list **its own meaning words**: words that state what the field is, not a doubt about the date.
+- A word on that list, **immediately before the date**, does not count as a qualifier for that field only.
+- Any other qualifier in the quote still refuses the date. So does an own-meaning word combined with a qualifier, e.g. `since about 05.03.2026` refuses because of "about".
+- The lists live in the pack/field config (legal content) and are not shared across fields.
+
+**Lists signed now:**
+- `custody_since`: `since`, `from`, `w.e.f.`, `with effect from`, `से` (after the date: `05.03.2026 से`), `se` (Hinglish, after the date).
+- No other field gets a list until I sign one.
+
+**Tests:**
+- `in judicial custody since 05.03.2026` → 2026-03-05.
+- `05.03.2026 से जेल में` → 2026-03-05.
+- `since about March 2026` → refused, ask.
+- `before 05.03.2026` on custody_since → refused.
+- `since 05.03.2026` on arrest_date → refused (no list there).
+
+v2's `normalizeDate` takes the same rule only if a v2 ticket asks; v3 first. The T-665b back-references (`since then`, `tab se`) are a separate rule and are unaffected.
+
+**T-690b, the 90-day warning without a commercial field (Ajay, 29 Oct 2026): (a), with the text reworded.** Show the warning for any WS more than 90 days after service. My earlier text fits only ordinary suits, because a commercial suit may go to 120 days. It is replaced, and this is the signed text:
+
+`This written statement is more than 90 days after service of summons. In an ordinary suit the court allows that only in exceptional cases; in a commercial suit it can be allowed up to 120 days, for reasons recorded in writing and on payment of costs, and not after that. Set out the reasons in the delay application.`
+
+It is a warning, not a block. The l.7 replacement stands as signed. A commercial-suit field is not needed now; if one is added later, the warning can split by suit type with my sign-off.
+
+**T-690b byte check (Ajay, 29 Oct 2026): fix/t-690b-ws-protocol-and-warning @ commit SHA 345ce1fc.** I checked the diff myself:
+- The l.7 `change_protocol` and the `ws_over_90_days` text both match the signed lines byte for byte (grep -F).
+- The warning is `severity: 'soft'`, written_statement only, and fires only when the value is strictly over 90. A missing or non-finite value gives no warning, which is accepted: such a value is not a valid day count.
+- l.224 and validation l.308–309 are unchanged.
+
+**T-690b APPROVED at 345ce1fc.** It counts as merged at the develop_staging merge SHA that contains it.
+
+**T-690b MERGED (Ajay, 29 Oct 2026): develop_staging merge SHA 461dd54b.** Checked myself: it contains approved commit SHA 345ce1fc, and written_statement.json and preflight.service.ts have no diff from 345ce1fc to the merge.

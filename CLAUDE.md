@@ -26,6 +26,8 @@ Express 4 + Mongoose 8 services. Next.js 16 + React 19 + Tailwind 3 web. Redis v
 
 ## Commits
 
+**Push rule (founder, 29 Oct 2026):** never `cd <dir> && git push` (or commit/merge) in one command; the permission check blocks it. Run git with `git -C <worktree> ...` from the start folder, e.g. `git -C /home/user/lawie-wt/<lead> push origin develop_staging`.
+
 Conventional commits, enforced by commitlint (lower-case subject, 100 chars max). Husky runs gitleaks and lint-staged on commit — confirm `gitleaks` is installed locally, or the secret scan silently degrades to a warning.
 
 ## Crew protocol

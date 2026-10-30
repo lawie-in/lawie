@@ -9,6 +9,7 @@ import app from '../app';
 import { AppSetting } from '../models/AppSetting.model';
 import { LawieDocument } from '../models/Document.model';
 import { Generation } from '../models/Generation.model';
+import { seedCourts } from './seedCourts';
 import { createVerifiedUser } from './verifiedUser';
 import { _clearAppSettingsCache } from '../services/app-settings.service';
 import { sdkAnswer } from './sdkStream';
@@ -81,6 +82,9 @@ afterEach(() => {
   mockMessagesStream.mockReset();
   jest.restoreAllMocks();
 });
+
+// T-686: an id-shaped court with no active row stops the run, so the court is seeded.
+seedCourts('district_sessions_patna');
 
 describe('T-477: Generation.onlyWhenStrips', () => {
   const post = () =>

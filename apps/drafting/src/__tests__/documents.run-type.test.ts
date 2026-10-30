@@ -11,6 +11,7 @@ import request from 'supertest';
 import app from '../app';
 import { AppSetting } from '../models/AppSetting.model';
 import { effectiveRunType, Generation } from '../models/Generation.model';
+import { seedCourts } from './seedCourts';
 import { createVerifiedUser } from './verifiedUser';
 import { resolveRun } from '../routes/documents.routes';
 import { _clearAppSettingsCache } from '../services/app-settings.service';
@@ -79,6 +80,9 @@ beforeEach(async () => {
 afterEach(() => {
   jest.restoreAllMocks();
 });
+
+// T-686: an id-shaped court with no active row stops the run, so the court is seeded.
+seedCourts('district_sessions_patna');
 
 describe('T-110 — runType on /generate-from-template', () => {
   it('a first draft writes runType initial on the Generation row', async () => {
