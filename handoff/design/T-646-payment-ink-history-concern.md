@@ -81,3 +81,14 @@ Rounds 1 and 2 failed on provenance (unrecorded Ajay rulings, since recorded at 
 3. Check only: whether `issueCreditNoteOnRefund` (T-436) can throw and block `reverseInkForRefund` in the same handler. If it can, isolate it (catch + Sentry, ids only) so the Ink reversal still runs (Vikram §5: the reversal rides the same refund event).
 Then: fresh tester, Arjun's reviewer re-checks the delta, Ajay gets the new SHA (strings unchanged), Priya's slot, merge. The `.env.example` SUPPORT_NOTIFY_EMAIL line remains the founder's and gates the merge (t543 in web sanity).
 Noted, not required: the dead `|| isFixtureUser` clause in drafting ink-history (unreachable; harmless); a pending refund_reversal row makes the drafting walk-back off by that debit until it is marked done.
+
+## Round 3b — Arjun's rulings (30 Oct 2026, 08:45 UTC)
+
+Branch at 035668ab carries the three merge conditions (tester: full billing suite 2489/2489). Two findings from that tester, ruled:
+
+1. **One grant reversed twice** (0-Ink lost-claim row confirms the cycle's `sub_renewal` grant; the granting row then reverses it again). Ruling: **option B**. The invariant lives in the ledger: one `sub_renewal` grant is reversed at most once across all refunds, whichever Payment row claimed it. The `refund_reversal` row records the grant's ledger row id and the confirming `razorpayPaymentId`; before reversing, sum prior reversals for that grant (userId-scoped, `userId_1_createdAt_-1` prefix) and reverse `granted − alreadyReversed`, clamped at 0. A 0 result is one ids-only log line, no Sentry. The existing `unresolved` path is unchanged. Option A (window exclusions) rejected: heuristic, fails on delayed webhooks. The test pinning the double reversal is replaced by one that seeds extra Ink in the bucket and proves the second refund takes none of it.
+2. **History shows +0 / −0 after a confirmed refund of a 0-Ink row.** Fix now. Do not back-fill `inkUnits` (the row granted nothing). Drop the view's cap so `inkReversedInk` shows as stored: added 0, removed −100, matching the balance drop. M10 string, no copy change; Ajay informed for the record.
+
+`.env.example`: founder authorised (his chat, 30 Oct) adding `SUPPORT_NOTIFY_EMAIL=contact@lawie.in`. Shashank's developer adds it with Edit; any hook or deny refusal is a stop and the founder adds the line himself.
+
+Path: same developer → fresh tester (full billing, bite on the clamp) → Arjun's reviewer on the delta → Ajay gets the SHA → Priya's slot → merge.
