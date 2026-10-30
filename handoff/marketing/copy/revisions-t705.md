@@ -21,4 +21,4 @@ For Ajay: everything above. The pricing FAQ answer is the public claim; the in-a
 ## Ajay ruling, 30 Oct
 - In-app strings stay as merged; moving to this wording needs a ticket.
 - Help text, not-enough-Ink and failed lines: signed, with "You can revise a draft up to 10 times." added to the help text.
-- Pricing FAQ: signed with "You can revise a draft up to 10 times." added. HELD until Priya confirms the 10 against the code cap, and live only after Anushka's prod PASS.
+- Pricing FAQ: signed with "You can revise a draft up to 10 times." added. The 10 is CONFIRMED against the code (Priya, 30 Oct: the cap is 10 revisions per draft; the 5 is only how many old versions are kept). Live only after Anushka's prod PASS.
