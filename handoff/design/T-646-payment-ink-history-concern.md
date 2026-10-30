@@ -121,3 +121,12 @@ Path unchanged: same developer → fresh tester (full billing; the duplicate-cha
 4. The branch does not touch the yearly refund path; remaining drips after a yearly refund are T-701.
 
 **(g)/(h) (08:48 UTC):** the `sub_renewal` grant row carries no cycle key, so: (g) `grantSubscriptionInk` now stores `metadata.paidCount` and `metadata.periodStart` (optional inputs from subscription.service.ts, no reordering); the losing-charge back-fill matches on them. (h) Legacy backfill rule, no window: a subscription with exactly one unstamped grant and exactly one captured plan charge in total is attributed (row `inkUnits` from the grant delta, grant stamped atomically if empty); anything else is ambiguous → `inkUnits` 0, ids-only log, manual refund; the dry run reports counts and a two-charge subscription is asserted ambiguous and untouched. Safe because go-live was 23 Oct (at most one cycle in prod).
+
+## Round 3b — Arjun's review at 9b5ef4dc (09:30 UTC): FAIL
+
+Ajay AJ-646-BC2 PASS (abc79c38) stands for the strings. Reviewer verdict fail:
+- **Must-fix:** `scripts/backfill-payments.ts` counts paid invoices carrying a payment id, not captured charges; one invoice can carry two captured charges (the duplicate-charge case). A legacy grant could be attributed to the duplicate and later reversed twice (once via the duplicate's linked reversal, once via the original's row with no per-grant cap). Fix: count real captured plan charges over all time (max of paid invoices and distinct captured/refunded payment ids known for the subscription), and treat the subscription as ambiguous if any of its Payment rows already has `inkUnits > 0`. Test added for that case.
+- **Conditions:** (1) `inkReversalLinked` matches on `metadata.grantPaymentId` only (test at round3b:471 inverted); (2) `alreadyReversed` also counts pending reversal rows (excluding the current refund) so two concurrent refunds cannot both take the full grant; (3) backfill apply errors are caught per payment and counted ambiguous, not aborting the run; plus one plan-side clamp test with a legacy reversal alongside a linked one.
+- Confirmed clean: no window code; atomic if-empty stamp that never throws; clamp arithmetic; ids-only logs; `paymentCopy.ts` comment-only.
+
+Path: same developer → fresh tester → Arjun's reviewer on the new delta → new SHA to Ajay → Priya's slot (held).
