@@ -447,3 +447,12 @@ Asked by Arjun at 13:01 UTC (T-691). JSON: `handoff/ops/runbooks/lawie-prod-ops-
 - `node --env-file` reads only that one name. It prints `NAME=on` or `NAME=off` (surrounding quotes stripped), `other` for any other value, or `unset`. No other value can be printed.
 - The filter was tested locally.
 - Default stays 13; run it pinned with `--document-version 24`.
+
+### SSM version 25: PREPARED, not applied (30 Oct 2026, 13:58 UTC, Nikhil)
+Asked by Arjun at 13:50 UTC (T-646): prepare only, do NOT run. The founder's go comes from his chat after Anushka's check. JSON: `handoff/ops/runbooks/lawie-prod-ops-v25.json`, built from v24. The only change is the new action `backfill-payments`, which reuses the `mode` param (`dryrun|apply`, default `dryrun`).
+- **How it runs:** as ubuntu with the env loaded like deploy, from `apps/billing`. One heredoc per mode with the flag written literally (the v23 lesson): `npx --no -- ts-node --transpile-only scripts/backfill-payments.ts --dry-run`, or `--apply` in the apply branch. It refuses if the script is not on the box.
+- **What is printed:** stdout and stderr go through an on-box awk filter. Only the script's counts JSON line passes (`{apply, listed, attributed, ambiguous, alreadyRecorded, written}`), plus the `backfill-payments failed: <ErrorName>` / Usage line.
+- **What is not printed:** the per-row `ambiguous … payment pay_… subscription sub_…` lines and the `unattributed payment ids:` / `refunded before deploy …` lists become counts only (`ambiguous lines`, `unattributed ids`, `refunded-kept-ink ids`). No payment or subscription id or row content is printed. The script's own target line (redacted Mongo URI) is dropped too.
+- **Exit code:** passes through (`pipefail`).
+- **Testing:** the filter was tested locally on sample lines.
+- **To use:** `update-document` → run pinned `--document-version 25` with `mode=dryrun`, then `mode=apply` on the founder's go.
