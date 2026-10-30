@@ -61,3 +61,4 @@ Any NEW file that holds a prompt is legal content from the day it is created. A 
 
 - `apps/drafting/src/config/prompts/v3-extractor.ts` (drafting v3 Extractor prompt, T-683). Added by Priya, 29 Oct 2026, per the v3 ADR (Ajay signs prompts and hints). Any change comes with Ajay's signed text.
 - `apps/drafting/src/services/v3/validate.ts` (Ajay's signed rule-1 yes/no words NO_WORDS/YES_WORDS and the T-671 Hinglish non-answer guard, T-683). Added by Priya, 29 Oct 2026. Any change comes with Ajay's signed text.
+- `apps/drafting/src/services/ws-limitation-warning.ts` (Ajay's signed WS over-90-days warning text, T-690b, AJ 4020a9a9). Added by Priya, 30 Oct 2026.
