@@ -13,3 +13,5 @@ AJ-683-M2 says the rule applies everywhere the non-answer check runs. T-683 wire
 
 ## Depends on
 T-683 merged (the helper lives there).
+
+- Ajay AJ-671-M2 (30 Oct): add the temporal fillers to the same tail list (yet, as yet, abhi, abhi tak, as of now, at present, currently, for now, अभी, अभी तक). "not known yet" is a non-answer.
