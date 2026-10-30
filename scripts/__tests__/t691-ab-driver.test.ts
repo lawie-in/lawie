@@ -348,9 +348,11 @@ describe('the eight scripts/ab fixtures', () => {
     for (const f of loaded) expect(checkFixture(f)).toEqual([]);
   });
 
-  it.each(files)('%s: ajay null, the exact review string, no v3_stage', (file) => {
+  it.each(files)('%s: signed ajay string, the exact review string, no v3_stage', (file) => {
     const raw = JSON.parse(fs.readFileSync(path.join(AB_FIXTURES_DIR, file), 'utf8'));
-    expect(raw.ajay).toBeNull();
+    expect(raw.ajay).toBe(
+      'Ajay, 30 Oct 2026, T-691 (handoff/legal/T-691-ab-matters-and-rubric-ajay.md)',
+    );
     expect(raw.review).toBe(REVIEW_STATUS);
     expect(raw).not.toHaveProperty('v3_stage');
     expect(raw.id).toBe(file.replace(/\.json$/, ''));

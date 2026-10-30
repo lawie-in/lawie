@@ -5,7 +5,7 @@
   "risk": "Anushka run 5 4b: with surrender and remand the custody date is asked, never derived; once answered it prints the given-date line; no custody length is invented",
   "source": "handoff/tickets/anushka-run5-prod-v1.2.2.md scenario 4b; facts re-made fictionally from her report. The description mentions surrender and remand, so the T-638 B2 question is answered on the questions step (custody_since). Added for AJ-683-M2: one answer with a courtesy tail ('Not known bhai.'), a non-answer under that rule. v2 does not strip tails until T-683c ships. Dates: offence 01.10.2026, FIR 02.10.2026, surrender and custody 20.10.2026, all after 1 July 2024 (BNS, BNSS). Expectation basis: each `why` starts with the ruling it rests on (file in handoff/legal); no expectation cites case law.",
   "review": "drafted by dev from Anushka's reports, not yet reviewed by Anushka",
-  "ajay": null,
+  "ajay": "Ajay, 30 Oct 2026, T-691 (handoff/legal/T-691-ab-matters-and-rubric-ajay.md)",
   "language": "en",
   "description": "Regular bail for my client Sample Person 1, son of Sample Person 3, aged 35, resident of Plot 000, Sample Nagar, Patna. Sessions Court Patna. FIR No. 000/2026 dated 02.10.2026, PS Sample Nagar, Patna, under Sections 115(2) and 352 BNS, for an incident on 01.10.2026. He surrendered before the court on 20.10.2026 and was remanded to judicial custody. The quarrel arose from a parking dispute with a neighbour; the injury alleged is simple. Charge sheet not yet filed. No earlier bail application. He has no previous criminal case.",
   "court": {
@@ -65,7 +65,7 @@
       },
       {
         "any_of": ["Not known bhai", "Not known"],
-        "why": "AJ-683-M2 (T-511 file): 'Not known bhai.' is a non-answer after the courtesy tail is dropped, so it is no fact and never printed"
+        "why": "AJ-683-M2 (T-511 file): 'Not known bhai.' is a non-answer after the courtesy tail is dropped, so it is no fact and never printed — known pipeline gap until T-683c"
       },
       {
         "any_of": [

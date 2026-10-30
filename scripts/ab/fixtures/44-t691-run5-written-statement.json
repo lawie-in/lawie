@@ -3,9 +3,9 @@
   "pack": "written_statement",
   "title": "T-691 A/B, run 5 #3c/5e (v2 copy): written statement, part loan repaid, summons and repayment dates kept apart (Mysuru)",
   "risk": "Anushka run 5 Blocker 5 and 5e: the summons and repayment dates were confused and the WS could not be made; an admission the defendant never gave must not be pleaded; the old wrong time-limit line must not return",
-  "source": "handoff/tickets/anushka-run5-prod-v1.2.2.md scenario 3c, Blocker 5 and run 5e; facts re-made fictionally from her report (T-683 fixture 30 read, not copied: it asserts the opposite case). Dates: loan 10.01.2025, repayment 15.06.2025, summons 05.10.2026 (25 days before 30.10.2026, inside the 30-day limit). Expectation basis: each `why` starts with the ruling it rests on (file in handoff/legal); no expectation cites case law.",
+  "source": "handoff/tickets/anushka-run5-prod-v1.2.2.md scenario 3c, Blocker 5 and run 5e; facts re-made fictionally from her report (T-683 fixture 30 read, not copied: it asserts the opposite case). Dates: loan 10.01.2025, repayment 15.06.2025, summons 05.10.2026 (25 days before 30.10.2026, inside the 30-day limit). Expectation basis: each `why` starts with the ruling it rests on (file in handoff/legal); no expectation cites case law. Court line excluded from scoring: known T-674 gap (no Civil Judge courts in the catalogue); Ajay, 30 Oct 2026.",
   "review": "drafted by dev from Anushka's reports, not yet reviewed by Anushka",
-  "ajay": null,
+  "ajay": "Ajay, 30 Oct 2026, T-691 (handoff/legal/T-691-ab-matters-and-rubric-ajay.md)",
   "language": "en",
   "description": "Written statement for the defendant. Defendant: Sample Person 2, child of Sample Person 4, aged 50, resident of Plot 000, Sample Nagar, Mysuru, in O.S. No. 000 of 2026 before the District Court, Mysuru, filed by the plaintiff Sample Person 1 for recovery of Rs 5,00,000 said to have been lent on 10.01.2025. The defendant took only Rs 2,00,000 from the plaintiff and repaid it fully by bank transfer on 15.06.2025 (UTR no. SAMPLE-UTR-000). The defendant denies taking Rs 5,00,000 and denies that anything is due. Summons was served on the defendant on 05.10.2026. Documents: the defendant's bank statement showing the transfer of 15.06.2025. The defendant asks that the suit be dismissed with costs.",
   "court": {

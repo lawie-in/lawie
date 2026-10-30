@@ -5,7 +5,7 @@
   "risk": "Anushka run 5 4a, 5 and Blocker 3: 'tab se jail mein hai' left custody blank; Hinglish and Devanagari answers were pasted raw; the heading offered s.439 CrPC for an Oct-2026 FIR",
   "source": "handoff/tickets/anushka-run5-prod-v1.2.2.md scenarios 4a and 5, Blocker 3 and the bail Major; facts re-made fictionally from her report and from the T-683 fixture 34 (read-only). Added for AJ-683-M2: one answer with a courtesy tail ('pata nahi sir ji'), a non-answer under that rule. v2 does not strip tails until T-683c ships. Dates: offence 15.10.2026, FIR 16.10.2026, arrest 18.10.2026, all after 1 July 2024 (BNS, BNSS). Expectation basis: each `why` starts with the ruling it rests on (file in handoff/legal); no expectation cites case law.",
   "review": "drafted by dev from Anushka's reports, not yet reviewed by Anushka",
-  "ajay": null,
+  "ajay": "Ajay, 30 Oct 2026, T-691 (handoff/legal/T-691-ab-matters-and-rubric-ajay.md)",
   "language": "bilingual",
   "description": "Regular bail for Sample Person 1, son of Sample Person 3, age 28, R/o Plot 000, Sample Nagar, Bhopal. Sessions Court Bhopal. FIR No. 000/2026 dated 16.10.2026, थाना Govindpura, BNS 303(2), offence date 15.10.2026. 18.10.2026 ko arrest kiya, tab se jail mein hai. Chargesheet abhi file nahi hui. Pehle koi bail application nahi lagayi. Mobile phone chori ka aarop hai, woh false implication hai.",
   "court": {
@@ -39,11 +39,11 @@
     "exact": [
       {
         "any_of": ["The applicant was arrested on"],
-        "why": "T-638 R1/B3 (T-612 (5), skeleton v7 custody_status_derived) with T-676 and the T-665b ruling: 'tab se jail mein hai' with the given arrest date prints the signed derived line `The applicant was arrested on {custody_since} and is now in {custody_kind}.`"
+        "why": "T-665b (T-612 file, ruling and follow-up (1)): 'tab se jail mein hai' counts as the back-reference 'tab se', so custody_since derives from the given arrest date under T-638 R1 and the draft prints the signed derived line (T-638 B3, T-612 (5), skeleton v7) `The applicant was arrested on {custody_since} and is now in {custody_kind}.`; T-676 agrees"
       },
       {
         "any_of": ["and is now in judicial custody"],
-        "why": "T-638 R1/B3 (T-612 (5)): the derived line's custody kind, judicial custody as answered"
+        "why": "T-665b with T-638 R1/B3 (T-612 (5)): with 'tab se' read as the back-reference, the derived line's custody kind is judicial custody, as answered"
       },
       {
         "any_of": ["Section 483 of the Bharatiya Nagarik Suraksha Sanhita, 2023"],
@@ -52,14 +52,18 @@
     ],
     "present": [
       {
-        "any_of": ["Police Station Govindpura", "Police Station थाना Govindpura"],
+        "any_of": [
+          "Police Station Govindpura",
+          "Police Station थाना Govindpura",
+          "Police Station Thana Govindpura"
+        ],
         "why": "T-612 (6)/(6a): prose reads `Police Station {police_station}`; a leading bare थाना is not stripped, and printing it is accepted"
       }
     ],
     "absent": [
       {
         "any_of": ["[To be confirmed: in custody since", "[To be confirmed: Custody Status]"],
-        "why": "T-665b ruling (1) (T-612 file) and T-676: custody since the arrest date prints the derived line with no blank"
+        "why": "T-665b (T-612 file, ruling and follow-up (1)): 'tab se jail mein hai' counts as 'tab se', so custody since the arrest date prints the derived line with no blank; T-676 agrees"
       },
       {
         "any_of": ["[To be confirmed: Section 439"],
@@ -75,7 +79,7 @@
       },
       {
         "any_of": ["pata nahi", "sir ji"],
-        "why": "AJ-683-M2 (T-511 file) with T-676: 'pata nahi sir ji' is a non-answer after the courtesy tail is dropped, so it is no fact and is never printed raw"
+        "why": "AJ-683-M2 (T-511 file) with T-676: 'pata nahi sir ji' is a non-answer after the courtesy tail is dropped, so it is no fact and is never printed raw — known pipeline gap until T-683c"
       },
       {
         "any_of": [

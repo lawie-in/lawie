@@ -5,7 +5,7 @@
   "risk": "Anushka run 5 3a and Majors: a sole defendant must not read '& Ors.'; the Rs 40,00,000 valuation given became a [To be confirmed] blank",
   "source": "handoff/tickets/anushka-run5-prod-v1.2.2.md scenario 3a and Majors; facts re-made fictionally from her report and from the T-683 fixture 31 (read-only). Dates: death 10.05.2020, demand 01.06.2026, refusal 20.06.2026. Expectation basis: each `why` starts with the ruling it rests on (file in handoff/legal); no expectation cites case law.",
   "review": "drafted by dev from Anushka's reports, not yet reviewed by Anushka",
-  "ajay": null,
+  "ajay": "Ajay, 30 Oct 2026, T-691 (handoff/legal/T-691-ab-matters-and-rubric-ajay.md)",
   "language": "en",
   "description": "Suit for partition. Plaintiff: Sample Person 1, child of late Sample Person 3, aged 48, resident of Plot 000, Sample Nagar, Patna. Defendant: Sample Person 2, child of late Sample Person 3, aged 45, the plaintiff's sibling, of the same address. Their father Sample Person 3 died intestate on 10.05.2020; their mother died before him, and the two children are his only heirs. The joint family property is a two-storey house on Plot 000, Sample Nagar, Patna, and 1 acre of agricultural land at Plot 001, Sample Nagar, District Patna, both ancestral. The plaintiff claims a half share. Both live in the house; the defendant alone collects the rent of the ground floor and cultivates the land. The plaintiff asked for partition by letter dated 01.06.2026 and the defendant refused by reply dated 20.06.2026. The property is valued at Rs 40,00,000 and court fee of Rs 1,500 is paid. The defendant is the only defendant.",
   "court": {
@@ -41,7 +41,7 @@
     "present": [
       {
         "any_of": ["40,00,000"],
-        "why": "T-675: the valuation paragraph is built from the given value (Rs 40,00,000)"
+        "why": "T-675: the valuation paragraph is built from the given value (Rs 40,00,000); O.VII R.1(i) CPC requires the valuation (Ajay, T-691 signing)"
       }
     ]
   }
