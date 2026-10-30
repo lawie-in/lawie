@@ -10,6 +10,10 @@ name: Golden set — Drafting (real model)
 # needs two secrets, referenced by name only; without them it is skipped with a notice
 # and the job stays green. A real run writes fixture rows (runType "fixture") to the
 # database given by GOLDEN_SET_MONGODB_URI and costs money: see scripts/golden-set/README.md.
+# Before the real run, a fixture-DB check (T-659, Arjun 29 Oct) connects and pings that
+# database; no model call is made before it. If the DB is unreachable (e.g. Atlas rejects
+# the runner's IP), a push run skips the real run with a notice and stays green, like the
+# missing-secrets path; a schedule or workflow_dispatch run fails with an error annotation.
 
 on:
   # Same docs-only skip as ci.yml (T-249); the paths filter below decides whether the golden set runs.
@@ -103,15 +107,42 @@ jobs:
       - name: Golden set — skipped, secrets not set
         if: steps.gate.outputs.run == 'true' && steps.gate.outputs.secrets != 'true'
         run: echo "::notice::Golden set real run skipped — GOLDEN_SET_ANTHROPIC_API_KEY and GOLDEN_SET_MONGODB_URI are not set for this repository."
-      - name: Golden set — real model
+      - name: Golden set — check the fixture DB
+        id: dbcheck
         if: steps.gate.outputs.run == 'true' && steps.gate.outputs.secrets == 'true'
+        # Only the DB secret, only to this step. The helper prints one line and never the URI.
+        # Exit 0 reachable, 3 unreachable; anything else (2 no URI, 4 error) fails the job.
+        env:
+          GOLDEN_SET_MONGODB_URI: ${{ secrets.GOLDEN_SET_MONGODB_URI }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          set +e
+          # No tsconfig on purpose: the options are given here (ts-node's default is node16).
+          yarn --silent ts-node --transpile-only -O '{"module":"commonjs","moduleResolution":"node"}' scripts/ci/golden-db-reachable.ts
+          code=$?
+          set -e
+          if [ "$code" = "0" ]; then
+            echo "reachable=true" >> "$GITHUB_OUTPUT"
+          elif [ "$code" = "3" ]; then
+            echo "reachable=false" >> "$GITHUB_OUTPUT"
+            if [ "$EVENT" = "schedule" ] || [ "$EVENT" = "workflow_dispatch" ]; then
+              echo "::error::golden set failed: fixture DB unreachable ($EVENT)"
+              exit 1
+            fi
+            echo "::notice::golden set skipped: fixture DB unreachable"
+          else
+            echo "::error::golden set: the fixture DB check failed (exit $code)"
+            exit 1
+          fi
+      - name: Golden set — real model
+        if: steps.gate.outputs.run == 'true' && steps.gate.outputs.secrets == 'true' && steps.dbcheck.outputs.reachable == 'true'
         # The secrets reach this step only: not install, not the dry run.
         env:
           GOLDEN_SET_ANTHROPIC_API_KEY: ${{ secrets.GOLDEN_SET_ANTHROPIC_API_KEY }}
           GOLDEN_SET_MONGODB_URI: ${{ secrets.GOLDEN_SET_MONGODB_URI }}
         run: yarn workspace @lawie/drafting golden:set --real --calibrate --out "$RUNNER_TEMP/golden-set"
       - uses: actions/upload-artifact@v4
-        if: always() && steps.gate.outputs.run == 'true' && steps.gate.outputs.secrets == 'true'
+        if: always() && steps.gate.outputs.run == 'true' && steps.gate.outputs.secrets == 'true' && steps.dbcheck.outputs.reachable == 'true'
         with:
           name: golden-set-results
           path: ${{ runner.temp }}/golden-set
