@@ -60,7 +60,7 @@ import {
   resolveAdvocate,
   resolveEnrollmentNumber,
 } from './template-engine.service';
-import { WS_OVER_90_DAYS_WARNING, wsOver90DaysWarningApplies } from './ws-limitation-warning';
+import { WS_OVER_90_DAYS_WARNING, wsOver90DaysApplies } from './ws-limitation-warning';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -526,8 +526,9 @@ async function runPureRules(
   }
 
   // ── T-690b: written statement more than 90 days after service (soft) ─────
-  // A warning, never a block (Ajay, 29 Oct 2026).
-  if (wsOver90DaysWarningApplies(templateId, formData)) {
+  // A warning, never a block (Ajay, 29 Oct 2026). T-690c (AJ-690c): the typed
+  // days_from_service or the summons_service_date, either one over 90.
+  if (wsOver90DaysApplies(templateId, formData)) {
     findings.push({
       rule_id: 'ws_over_90_days',
       severity: 'soft',

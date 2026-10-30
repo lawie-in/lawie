@@ -3,7 +3,7 @@
 /**
  * T-381 — the Annexures card on the document page. One button calls
  * POST /api/documents/:id/annexures-pack and offers the one PDF it returns
- * (the 7 annexures). Spec: handoff/marketing/annexures-button-spec-t381.md.
+ * (the pack's annexure set, T-700). Spec: handoff/marketing/annexures-button-spec-t381.md.
  *
  * States: idle, loading, success (one download), party details missing (422),
  * error (with retry). Nothing is stored: each press makes a fresh pack, and a

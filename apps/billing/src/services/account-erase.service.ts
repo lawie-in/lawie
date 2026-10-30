@@ -13,6 +13,9 @@
  *   creditledgers  usage rows (CREDIT_USAGE_SOURCES): `reference` unset (it
  *                  can hold a draft title); the rows themselves are kept
  *   subscriptions  kept as they are (ids and amounts only)
+ *   payments       kept as they are (T-646: ids, amounts, statuses, dates only)
+ *   paymentconcerns T-646 (Arjun ruling 5): the customer's free-text `note` is
+ *                  unset; the row (reason code, status, reference, dates) is kept
  *
  * Kept rows keep `userId` as an opaque reference: auth hard-deletes the User
  * document last, so nothing billing-side needs rewriting for that.
@@ -45,6 +48,8 @@ import { CouponUsage } from '../models/CouponUsage.model';
  *                         `metadata.note` are the admin's free text)   -> keep, scrubbed
  *   referral_bonus        (as above; `reference` and `metadata` hold the referral
  *                         code)                                         -> keep, scrubbed
+ *   refund_reversal       T-646: Ink taken back by a refund (billing; ids and
+ *                         numbers only)                                 -> keep (payment)
  * An unknown reason is kept: this delete only ever removes rows known to be usage.
  */
 export const INK_USAGE_REASONS = ['generate', 'regenerate'] as const;
@@ -67,7 +72,8 @@ export type BillingEraseStep =
   | 'couponusages'
   | 'inkledger'
   | 'inkledger_scrubbed'
-  | 'creditledgers';
+  | 'creditledgers'
+  | 'paymentconcerns';
 
 export interface BillingEraseResult {
   ok: boolean;
@@ -75,7 +81,8 @@ export interface BillingEraseResult {
   /**
    * couponusages, inkledger: rows deleted. inkledger_scrubbed: grant rows whose
    * reference/metadata were unset. creditledgers: rows whose `reference` was
-   * unset. On a dry run, the rows that would be.
+   * unset. paymentconcerns (T-646): concerns whose `note` was unset. On a dry
+   * run, the rows that would be.
    */
   counts: Partial<Record<BillingEraseStep, number>>;
   failedAt?: BillingEraseStep;
@@ -135,6 +142,14 @@ export async function eraseBillingAccount(input: {
     counts.creditledgers = dryRun
       ? await credit.countDocuments(creditFilter)
       : (await credit.updateMany(creditFilter, { $unset: { reference: '' } })).modifiedCount;
+
+    // T-646 (Arjun ruling 5): the concern note is the only free text a concern holds.
+    step = 'paymentconcerns';
+    const concernFilter = { userId: uid, note: { $exists: true } };
+    const concerns = db.collection('paymentconcerns');
+    counts.paymentconcerns = dryRun
+      ? await concerns.countDocuments(concernFilter)
+      : (await concerns.updateMany(concernFilter, { $unset: { note: '' } })).modifiedCount;
   } catch (err) {
     logger.warn(
       {

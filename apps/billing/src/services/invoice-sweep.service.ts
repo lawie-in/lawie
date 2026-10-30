@@ -40,6 +40,7 @@ import {
   unqueuedEmailFilter,
 } from './invoice-email.service';
 import { issueInvoice } from './invoice.service';
+import { alertStuckProcessingPayments } from './payment-record.service';
 
 /** How often the sweep runs (startInvoiceSweep's default). */
 export const INVOICE_SWEEP_INTERVAL_MS = 5 * 60 * 1000;
@@ -310,7 +311,21 @@ function sweepTick(): void {
     })
     .finally(() => {
       sweepRunning = false;
+      paymentCheckTick();
     });
+}
+
+// T-646 (Vikram 2): payments still processing 24 h after the attempt, one Sentry event each
+// (ids only, checkingAlertedAt CAS). Rides this sweep's timer, after the invoice run and outside
+// its lock, so the invoice sweep's timing is unchanged. Never overlaps itself; never throws.
+let paymentCheckRunning = false;
+
+function paymentCheckTick(): void {
+  if (paymentCheckRunning) return;
+  paymentCheckRunning = true;
+  void alertStuckProcessingPayments().finally(() => {
+    paymentCheckRunning = false;
+  });
 }
 
 /**

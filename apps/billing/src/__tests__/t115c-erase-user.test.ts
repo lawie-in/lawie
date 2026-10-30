@@ -168,7 +168,13 @@ describe('POST /internal/erase-user — erase', () => {
     expect(res.body).toEqual({
       ok: true,
       dryRun: false,
-      counts: { couponusages: 2, inkledger: 2, inkledger_scrubbed: 2, creditledgers: 1 },
+      counts: {
+        couponusages: 2,
+        inkledger: 2,
+        inkledger_scrubbed: 2,
+        creditledgers: 1,
+        paymentconcerns: 0,
+      },
     });
     expect(res.headers['cache-control']).toBe('no-store');
 
@@ -242,6 +248,7 @@ describe('POST /internal/erase-user — erase', () => {
       inkledger: 0,
       inkledger_scrubbed: 0,
       creditledgers: 0,
+      paymentconcerns: 0,
     });
     expect(JSON.stringify(await db().collection('inkledger').find({ userId: uid }).toArray())).toBe(
       snapshot,
@@ -266,7 +273,13 @@ describe('POST /internal/erase-user — erase', () => {
     expect(res.body).toEqual({
       ok: true,
       dryRun: true,
-      counts: { couponusages: 2, inkledger: 2, inkledger_scrubbed: 2, creditledgers: 1 },
+      counts: {
+        couponusages: 2,
+        inkledger: 2,
+        inkledger_scrubbed: 2,
+        creditledgers: 1,
+        paymentconcerns: 0,
+      },
     });
     const after = JSON.stringify([
       await db().collection('inkledger').find({}).sort({ _id: 1 }).toArray(),
