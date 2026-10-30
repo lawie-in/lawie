@@ -5,3 +5,5 @@ Status: building (arjun). Raised 30 Oct 2026 by Priya on the founder's order via
 Scope: after a draft, the user can ask for a revision. The first revision is free; each one after that is charged per draft.
 
 Gates: the price per revision is the founder's call with Vikram; Ajay and Meera sign the user-facing copy and terms; billing changes follow the Ink rules in .claude/docs/credits-and-bonuses.md.
+
+Price proposed by Vikram (via Arjun, 30 Oct 2026): one free revision per draft; each further revision costs the same Ink as the original quote (100%). Waiting on the founder's confirmation (money). Copy: Ajay and Meera, later.
