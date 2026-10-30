@@ -208,6 +208,7 @@ import {
   PLACEHOLDER_ALIASES,
   MONTH_NAMES,
 } from './template-engine.service';
+import type { StepId, V3StageName } from './v3/stages';
 import {
   validate,
   ValidationWarning,
@@ -2370,9 +2371,51 @@ export function heldLabelBlanksAsMissing(text: string, facts: readonly LedgerFac
   });
 }
 
+/** T-685 (Arjun §13 Q1): a stored model output to use instead of the model call. */
+export interface StepReplay {
+  text: string;
+}
+
+/**
+ * T-685 (Arjun §13 Q1): the v3 orchestrator's hooks at each model call. Absent:
+ * nothing here changes. `before` sits at the model call only: on a replay the
+ * stored output takes the model's place and every check after it runs again.
+ * A hook ends the run by throwing a GenerationFailedError (e.g. the cost cap)
+ * after it has written its own SSE error; a step's own catch rethrows it.
+ */
+export interface RunHooks {
+  /** Before a model call: the stored output (replay), or undefined to call the model. */
+  before(
+    step: StepId,
+    projected: { inputTokens: number; maxOutputTokens: number; model: string },
+  ): Promise<StepReplay | undefined>;
+  /** After a live model call: its usage and the output text; no text when the call failed. */
+  after(step: StepId, usage: CallUsage, output?: string): Promise<void>;
+  stage(stage: V3StageName, round?: number): void;
+}
+
+/** T-685: a replayed output, as one chunk of the model's stream. */
+async function* replayedText(text: string): AsyncGenerator<string> {
+  yield text;
+}
+
+/** T-685: what a body call is projected to use, for the cap check before it (hooks only). */
+async function projectedCall(
+  system: string,
+  user: string,
+  maxOutputTokens: number,
+): Promise<{ inputTokens: number; maxOutputTokens: number; model: string }> {
+  return {
+    inputTokens: estimateOutputTokens(system + user),
+    maxOutputTokens,
+    model: await resolveModel('drafter'),
+  };
+}
+
 export async function streamGenerateFromBrief(
   rawInput: BriefGenerateInput,
   res: Response,
+  hooks?: RunHooks,
 ): Promise<BriefGenerateResult> {
   // T-245a: the six bail packs' law switch, read from the ledger's machine
   // values (ISO dates, option ids), else the brief's. With a ledger, its
@@ -2672,6 +2715,7 @@ export async function streamGenerateFromBrief(
         meter,
         recordCall,
         callInfo: () => ({ aiModel, transport }),
+        hooks,
       });
     }
 
@@ -2680,21 +2724,29 @@ export async function streamGenerateFromBrief(
     // gate below may withhold it: its body goes out with the system's parts
     // once the gates have passed.
     const streamBody = !ledgerInput && gateLedger === null && pack.id !== PAST_DATE_GATE_PACK_ID;
+    hooks?.stage('draft');
+    // T-685: step `draft`. A replay takes the model's place; everything after runs as on a live call.
+    let replay: StepReplay | undefined;
+    /** T-685: the call's usage went to hooks.after (once per call). */
+    let draftAccounted = false;
     try {
       // T-431: a sided pack's system prompt ends with the deponent line; it
       // varies per request, so that prompt is not cached (T-437).
-      for await (const text of streamLLM(
-        withDeponentLine(
-          ledgerInput ? DRAFTER_LEDGER_SYSTEM_PROMPT : DRAFTER_PACK_SYSTEM_PROMPT,
-          deponentLine,
-        ),
-        ledgerInput
-          ? buildLedgerDrafterUserPrompt(ledgerInput)
-          : buildDrafterUserPrompt(promptInput),
-        8192,
-        draft,
-        { cacheSystem: deponentLine === null },
-      )) {
+      const drafterSystem = withDeponentLine(
+        ledgerInput ? DRAFTER_LEDGER_SYSTEM_PROMPT : DRAFTER_PACK_SYSTEM_PROMPT,
+        deponentLine,
+      );
+      const drafterUser = ledgerInput
+        ? buildLedgerDrafterUserPrompt(ledgerInput)
+        : buildDrafterUserPrompt(promptInput);
+      replay = hooks
+        ? await hooks.before('draft', await projectedCall(drafterSystem, drafterUser, 8192))
+        : undefined;
+      for await (const text of replay
+        ? replayedText(replay.text)
+        : streamLLM(drafterSystem, drafterUser, 8192, draft, {
+            cacheSystem: deponentLine === null,
+          })) {
         raw += text;
         // The clause report after the document is for the server, never for the user.
         const visible = filter.push(text);
@@ -2706,9 +2758,18 @@ export async function streamGenerateFromBrief(
       }
       const tail = filter.end();
       if (tail && streamBody) res.write(`data: ${JSON.stringify({ text: tail })}\n\n`);
-      recordCall('body', draft, raw);
+      if (!replay) recordCall('body', draft, raw);
+      if (hooks && !replay) {
+        draftAccounted = true;
+        await hooks.after('draft', callUsageOf('body', draft, raw), raw);
+      }
     } catch (llmErr) {
-      recordCall('body', draft, raw);
+      // T-685: a hook ended the run (its own error event is out); never a Drafter failure.
+      if (llmErr instanceof GenerationFailedError) throw llmErr;
+      if (!replay) recordCall('body', draft, raw);
+      if (hooks && !replay && !draftAccounted) {
+        await hooks.after('draft', callUsageOf('body', draft, raw));
+      }
       const classified = classifyLlmError(llmErr);
       if (process.env.NODE_ENV !== 'test') {
         console.error(
@@ -2747,26 +2808,38 @@ export async function streamGenerateFromBrief(
     // ── One repair pass, at our cost (decision D3) ────────────────────────────
     if (missing.length > 0 && output.body.length > 0) {
       res.write(`event: repair\ndata: ${JSON.stringify({ missing: missing.length })}\n\n`);
+      hooks?.stage('repair', 1);
       let repairRaw = '';
       const repairDraft: CallUsageDraft = { inputTokens: 0, outputTokens: 0, usageSource: 'none' };
+      // T-685: step `repair.1`; set when the stored output replaces the call.
+      let repairReplay: StepReplay | undefined;
+      /** T-685: the call's usage went to hooks.after (once per call). */
+      let repairAccounted = false;
       try {
         const missingIds = missing.map((m) => m.id);
         // T-431: the repair may add the verification, so it gets the same line.
-        for await (const text of streamLLM(
-          withDeponentLine(
-            ledgerInput ? DRAFTER_LEDGER_REPAIR_SYSTEM_PROMPT : DRAFTER_REPAIR_SYSTEM_PROMPT,
-            deponentLine,
-          ),
-          ledgerInput
-            ? buildLedgerRepairUserPrompt(ledgerInput, output.body, missingIds)
-            : buildRepairUserPrompt(promptInput, output.body, missingIds),
-          8192,
-          repairDraft,
-          { cacheSystem: deponentLine === null },
-        )) {
+        const repairSystem = withDeponentLine(
+          ledgerInput ? DRAFTER_LEDGER_REPAIR_SYSTEM_PROMPT : DRAFTER_REPAIR_SYSTEM_PROMPT,
+          deponentLine,
+        );
+        const repairUser = ledgerInput
+          ? buildLedgerRepairUserPrompt(ledgerInput, output.body, missingIds)
+          : buildRepairUserPrompt(promptInput, output.body, missingIds);
+        repairReplay = hooks
+          ? await hooks.before('repair.1', await projectedCall(repairSystem, repairUser, 8192))
+          : undefined;
+        for await (const text of repairReplay
+          ? replayedText(repairReplay.text)
+          : streamLLM(repairSystem, repairUser, 8192, repairDraft, {
+              cacheSystem: deponentLine === null,
+            })) {
           repairRaw += text;
         }
-        recordCall('repair', repairDraft, repairRaw);
+        if (!repairReplay) recordCall('repair', repairDraft, repairRaw);
+        if (hooks && !repairReplay) {
+          repairAccounted = true;
+          await hooks.after('repair.1', callUsageOf('repair', repairDraft, repairRaw), repairRaw);
+        }
         const second = splitDrafterOutput(repairRaw);
         const secondBody = cleaned(second.body);
         // The repair may add clauses and nothing else. If it dropped or rewrote
@@ -2788,8 +2861,13 @@ export async function streamGenerateFromBrief(
           }
         }
       } catch (repairErr) {
+        // T-685: a hook ended the run (its own error event is out); not a failed repair.
+        if (repairErr instanceof GenerationFailedError) throw repairErr;
         // A failed repair never fails the draft. Its tokens are still counted.
-        recordCall('repair', repairDraft, repairRaw);
+        if (!repairReplay) recordCall('repair', repairDraft, repairRaw);
+        if (hooks && !repairReplay && !repairAccounted) {
+          await hooks.after('repair.1', callUsageOf('repair', repairDraft, repairRaw));
+        }
         if (process.env.NODE_ENV !== 'test') {
           console.error(
             `[drafting] Repair pass failed (kind=${pack.id}, runId=${input.runId}):`,
@@ -2836,8 +2914,16 @@ export async function streamGenerateFromBrief(
     // becomes {{MISSING: label}}. A draft that passes is unchanged. Nothing
     // here is logged but ids and counts.
     let factCheck: FactCheckOutcome | undefined;
-    /** The fact repair call: one model call on the signed fact-repair prompt (T-147d). */
-    const factRepair: FactRepairCall = async (system, user) => {
+    /**
+     * The fact repair call: one model call on the signed fact-repair prompt (T-147d).
+     * T-685: `step` names the call for the v3 hooks only (`repair.2` for the
+     * held-blank repair, `verify` for the fact verifier's repair).
+     */
+    const factRepairAs = async (
+      step: StepId,
+      system: string,
+      user: string,
+    ): Promise<string | null> => {
       res.write(`event: repair\ndata: ${JSON.stringify({ facts: true })}\n\n`);
       let factRaw = '';
       const factDraft: CallUsageDraft = {
@@ -2845,17 +2931,34 @@ export async function streamGenerateFromBrief(
         outputTokens: 0,
         usageSource: 'none',
       };
+      let factReplay: StepReplay | undefined;
+      /** T-685: the call's usage went to hooks.after (once per call). */
+      let factAccounted = false;
       try {
+        factReplay = hooks
+          ? await hooks.before(step, await projectedCall(system, user, 8192))
+          : undefined;
         // T-437: cached only when it is the constant fact-repair prompt.
-        for await (const text of streamLLM(system, user, 8192, factDraft, {
-          cacheSystem: system === DRAFTER_FACT_REPAIR_SYSTEM_PROMPT,
-        }))
+        for await (const text of factReplay
+          ? replayedText(factReplay.text)
+          : streamLLM(system, user, 8192, factDraft, {
+              cacheSystem: system === DRAFTER_FACT_REPAIR_SYSTEM_PROMPT,
+            }))
           factRaw += text;
-        recordCall('fact_repair', factDraft, factRaw);
+        if (!factReplay) recordCall('fact_repair', factDraft, factRaw);
+        if (hooks && !factReplay) {
+          factAccounted = true;
+          await hooks.after(step, callUsageOf('fact_repair', factDraft, factRaw), factRaw);
+        }
         return factRaw;
       } catch (factErr) {
+        // T-685: a hook ended the run (its own error event is out); not a failed repair.
+        if (factErr instanceof GenerationFailedError) throw factErr;
         // A failed repair never fails the draft: the placeholders follow. Its tokens are counted.
-        recordCall('fact_repair', factDraft, factRaw);
+        if (!factReplay) recordCall('fact_repair', factDraft, factRaw);
+        if (hooks && !factReplay && !factAccounted) {
+          await hooks.after(step, callUsageOf('fact_repair', factDraft, factRaw));
+        }
         if (process.env.NODE_ENV !== 'test') {
           console.error(
             `[drafting] Fact repair pass failed (kind=${pack.id}, runId=${input.runId}):`,
@@ -2865,6 +2968,10 @@ export async function streamGenerateFromBrief(
         return null;
       }
     };
+    const factRepairFor =
+      (step: StepId): FactRepairCall =>
+      (system, user) =>
+        factRepairAs(step, system, user);
     /** The verifier's input for a body, on this draft's ledger (T-147d). */
     const verifierInputFor = (body: string, ledger: NonNullable<typeof input.ledger>) => ({
       body,
@@ -2894,7 +3001,11 @@ export async function streamGenerateFromBrief(
         output = { ...output, body: bodyFill.text };
       }
       if (bodyFill.left.length > 0) {
-        const repaired = await repairHeldBlanks(verifierInputFor(output.body, ledger), factRepair);
+        hooks?.stage('repair', 2);
+        const repaired = await repairHeldBlanks(
+          verifierInputFor(output.body, ledger),
+          factRepairFor('repair.2'),
+        );
         if (repaired !== output.body) {
           // T-200, R2b.4: the held-blank repair is a model repair. A paragraph is
           // recorded again only when its change stays inside a sentence of a
@@ -2910,7 +3021,11 @@ export async function streamGenerateFromBrief(
           output = { ...output, body: repaired };
         }
       }
-      factCheck = await verifyAndRepair(verifierInputFor(output.body, ledger), factRepair);
+      hooks?.stage('verify');
+      factCheck = await verifyAndRepair(
+        verifierInputFor(output.body, ledger),
+        factRepairFor('verify'),
+      );
       // T-200: the fact check's edits record the changed paragraphs again. With
       // no model repair applied (afterRepair null) only code edited the body
       // (R2b.1). With one, a paragraph counts only when its change stays inside
@@ -3036,7 +3151,11 @@ export async function streamGenerateFromBrief(
         output = { ...output, body: bodyFill.text };
       }
       if (bodyFill.left.length > 0) {
-        const repairedBody = await repairHeldBlanks(verifierInputFor(output.body, g), factRepair);
+        hooks?.stage('repair', 2);
+        const repairedBody = await repairHeldBlanks(
+          verifierInputFor(output.body, g),
+          factRepairFor('repair.2'),
+        );
         if (repairedBody !== output.body) {
           recordAgainAfterCodeEdit(
             output.report,
@@ -3100,6 +3219,7 @@ export async function streamGenerateFromBrief(
     }
 
     // ── The body takes its place among the parts the system wrote ─────────────
+    hooks?.stage('render');
     renderedSections[bodyAt] = { ...renderedSections[bodyAt], content: output.body };
     // T-472: the computed paragraph takes the number after the model's last one.
     const limitationNumber =
@@ -3479,6 +3599,8 @@ interface D1Context {
   meter: UsageMeter;
   recordCall: (sectionId: string, d: CallUsageDraft, text: string) => void;
   callInfo: () => { aiModel?: string; transport?: 'direct' };
+  /** T-685: the v3 orchestrator's hooks; absent on v2. */
+  hooks?: RunHooks;
 }
 
 /**
@@ -3583,14 +3705,40 @@ async function d1GenerateFromBrief(c: D1Context): Promise<BriefGenerateResult> {
     );
   };
   let output: DraftParagraphsOutput | null = null;
+  c.hooks?.stage('draft');
   for (let attempt = 0; attempt < D1_ATTEMPTS && output === null; attempt++) {
     const sectionId = attempt === 0 ? 'body' : 'body_retry';
     const draft: CallUsageDraft = { inputTokens: 0, outputTokens: 0, usageSource: 'none' };
+    // T-685: step `draft`. A replay is the stored structured answer, read by the same parse.
+    let replay: StepReplay | undefined;
+    /** T-685: the call's usage went to hooks.after (once per call). */
+    let accounted = false;
     try {
-      output = await callD1Drafter(DRAFTER_D1_SYSTEM_PROMPT, user, format, draft);
-      c.recordCall(sectionId, draft, '');
+      replay = c.hooks
+        ? await c.hooks.before(
+            'draft',
+            await projectedCall(DRAFTER_D1_SYSTEM_PROMPT, user, D1_MAX_TOKENS),
+          )
+        : undefined;
+      output = replay
+        ? format.parse(replay.text)
+        : await callD1Drafter(DRAFTER_D1_SYSTEM_PROMPT, user, format, draft);
+      if (!replay) c.recordCall(sectionId, draft, '');
+      if (c.hooks && !replay) {
+        accounted = true;
+        await c.hooks.after(
+          'draft',
+          callUsageOf(sectionId, draft, ''),
+          output === null ? undefined : JSON.stringify(output),
+        );
+      }
     } catch (llmErr) {
-      c.recordCall(sectionId, draft, '');
+      // T-685: a hook ended the run (its own error event is out); never a Drafter failure.
+      if (llmErr instanceof GenerationFailedError) throw llmErr;
+      if (!replay) c.recordCall(sectionId, draft, '');
+      if (c.hooks && !replay && !accounted) {
+        await c.hooks.after('draft', callUsageOf(sectionId, draft, ''));
+      }
       throw failed(llmErr);
     }
   }
@@ -3644,6 +3792,7 @@ async function d1GenerateFromBrief(c: D1Context): Promise<BriefGenerateResult> {
   let body = citations.text;
 
   // ── The fact verifier, read-only (Arjun, D1 call shape 3) ─────────────────
+  c.hooks?.stage('verify');
   // An `unsupported` date or amount stated by value in a held own-words fact's
   // raw_span is the advocate's own statement, not a finding (the renderer's rule).
   const ownWordsKeys = new Set(
@@ -3759,6 +3908,7 @@ async function d1GenerateFromBrief(c: D1Context): Promise<BriefGenerateResult> {
         });
 
   // ── The body takes its place among the parts the system wrote ─────────────
+  c.hooks?.stage('render');
   renderedSections[c.bodyAt] = { ...renderedSections[c.bodyAt], content: body };
   const { fullText, bodyParaCount } = assembleDocument(renderedSections);
   c.ctx.body_para_count = String(bodyParaCount);

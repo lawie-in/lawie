@@ -504,6 +504,26 @@ export async function startAttempt(
   return next;
 }
 
+/**
+ * Clear every generate step output (everything but the intake turns), so no
+ * step replays: the confirmed input changed (a new ledger version or other
+ * values) under the same runId. The cap, cost and attempts stay (a resume
+ * gets no fresh budget).
+ */
+export async function resetSteps(
+  run: V3RunSnapshot,
+  owner: string,
+  now: Date = new Date(),
+): Promise<V3RunSnapshot> {
+  const keys = generateOutputKeys(run);
+  if (keys.length === 0) return run;
+  const $unset: Record<string, ''> = {};
+  for (const k of keys) $unset[`outputs.${k}`] = '';
+  const next = await guardedWrite(run, owner, { $set: { round: 0 }, $unset }, {}, now);
+  logger.info({ runDocId: run.id, steps: keys.length }, 'T-685: v3 run steps reset');
+  return next;
+}
+
 // ── Cost and cap (answers §7, §8) ───────────────────────────────────────────
 
 /**

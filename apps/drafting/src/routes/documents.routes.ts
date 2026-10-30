@@ -136,6 +136,7 @@ import {
   listTemplateConfigs,
   validateFormData,
 } from '../services/template-engine.service';
+import { prepareV3Generate } from '../services/v3/orchestrator';
 import {
   readFilingChecklist,
   readFormInputs,
@@ -1669,6 +1670,29 @@ router.post(
       };
     }
 
+    // T-685: at feature.drafting_v3_stage ≥ 2 the v3 orchestrator runs this
+    // generate (a pack, an intake and a ledger for it). Null: nothing below changes.
+    const v3 =
+      pack && templateConfig && intake_id
+        ? await prepareV3Generate({ userId: payload.sub, intakeId: intake_id, kind })
+        : null;
+    // T-685 (Arjun §13 Q5): with a v3 ledger, generation reads its facts; s.138 as above.
+    const v3Facts = ledger && v3 ? v3.ledgerFacts() : null;
+    if (ledger && v3Facts) {
+      ledger = {
+        ...ledger,
+        id: v3Facts.id,
+        version: v3Facts.version,
+        facts: withS138DateChecks(
+          v3Facts.facts,
+          kind,
+          v3Facts.unresolved.map((u) => u.key),
+        ),
+        unresolved: v3Facts.unresolved,
+        runType: factDiffRunType(v3Facts.runType),
+      };
+    }
+
     // T-577: the one quote (after the ledger, which can change the minimum;
     // before any hold or model call). For a pack that does not ask it is
     // costForTemplate, the price enforceCredits checked, and nothing below
@@ -1875,6 +1899,15 @@ router.post(
     // T-577: the hold is the route's quote (T-388). For a pack that does not
     // ask it is the same figure enforceCredits stashed.
     const inkCost = runQuote.asks ? runQuote.ink : gateCost;
+    // T-685 (§5): the run doc, its lease and this attempt, before the hold; the
+    // previous attempt's hold is released first. A live lease elsewhere is a 409.
+    if (v3) {
+      const opened = await v3.open({ runId, runSequence, inkCost });
+      if (!opened.ok) {
+        res.status(opened.status).json(opened.body);
+        return;
+      }
+    }
     await withInkHold(req, res, inkKey, inkCost, holdError, async (ink) => {
       let result;
       try {
@@ -1890,7 +1923,7 @@ router.post(
         };
         result =
           pack && templateConfig
-            ? await streamGenerateFromBrief(
+            ? await (v3 ? v3.generate : streamGenerateFromBrief)(
                 {
                   ...common,
                   pack,
@@ -2124,6 +2157,8 @@ router.post(
         // No user text in the ledger: a draft with no rule pack has a name the user may have typed.
         reference: `${pack ? pack.name : 'Starting draft'}${docId ? ` (${docId})` : ''}`,
       });
+      // T-685: the run delivered (deliver step, ref = the Document). Never throws.
+      if (v3) await v3.delivered(docId, docId !== null && !duplicateAttempt);
 
       ink.sendDone({
         complete: true,
@@ -2164,7 +2199,8 @@ router.post(
           ? { soft_findings: brief.soft_findings }
           : {}),
       });
-    });
+      // T-685: every ending (done, error, cap, a refused hold) stops the lease timer and returns the lease.
+    }).finally(() => v3?.end());
   },
 );
 
