@@ -94,3 +94,18 @@ Branch at 035668ab carries the three merge conditions (tester: full billing suit
 Path: same developer → fresh tester (full billing, bite on the clamp) → Arjun's reviewer on the delta → Ajay gets the SHA → Priya's slot → merge.
 
 **Correction (08:40 UTC):** ruling 2 above is withdrawn. Shashank pointed out it would breach AJ-646-M10's signed condition ("never more than was added"). The view keeps its cap; a 0-Ink row's confirmed reversal shows in the user's Ink history (ledger `refund_reversal` row), which the tester confirms. No question to Ajay.
+
+## Round 3b — final (08:45 UTC, supersedes the two entries above)
+
+Ajay signed AJ-646-M10a (b8271c41): the reversed figure may show above the added figure, only for ledger-linked reversals; back-filling `inkUnits` refused.
+
+**Refund policy (Arjun; Vikram asked to confirm same day):** Ink is taken back only by refunding the charge that granted it. Refunding a charge that granted nothing takes nothing.
+
+Design:
+- `sub_renewal` grant rows carry `metadata.razorpayPaymentId` of the charge that won the claim. A 0-Ink Payment row's refund confirms a grant by `userId` + that payment id only — no time window. No match → existing `unresolved` path (nothing reversed, one ids-only Sentry).
+- Option B stays as the backstop: grant id on the `refund_reversal` row; reverse `granted − alreadyReversed`, clamped at 0; a 0 result is one ids-only log line, no Sentry.
+- No legacy fallback: pre-existing grants have no payment id, but their Payment rows carry `inkUnits > 0` and reverse through the row.
+- View: per M10a, a ledger-linked reversal shows its full reversed figure (added 0, −100 removed); other rows keep the cap.
+- `.env.example` `SUPPORT_NOTIFY_EMAIL` line: Shashank's session was also refused; the founder adds it himself.
+
+Path unchanged: same developer → fresh tester (full billing; the duplicate-charge refund now reverses 0, the failed-row-write case reverses by payment id, the clamp bites) → Arjun's reviewer on the delta → Ajay the SHA → Priya's slot → merge.
