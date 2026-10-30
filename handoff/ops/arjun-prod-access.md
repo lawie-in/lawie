@@ -456,3 +456,10 @@ Asked by Arjun at 13:50 UTC (T-646): prepare only, do NOT run. The founder's go 
 - **Exit code:** passes through (`pipefail`).
 - **Testing:** the filter was tested locally on sample lines.
 - **To use:** `update-document` → run pinned `--document-version 25` with `mode=dryrun`, then `mode=apply` on the founder's go.
+
+### SSM version 26: PREPARED, not applied (30 Oct 2026, 14:52 UTC, Nikhil)
+Asked by Arjun at 14:46 UTC (Anushka's model-grid test). Prepare only; run on his word after her "restored". JSON: `handoff/ops/runbooks/lawie-prod-ops-v26.json`, built from v25 (v25 is also unapplied). The only change is the new action `llm-usage-window`, with params `userid` (`^[0-9a-f]{24}$`), `since` (existing) and `until` (same ISO pattern). All three are required; the window must be over 0 and at most 24 h.
+- **How it runs:** as ubuntu with the env loaded like deploy, from `apps/drafting`. A `node -e` mongoose read of `generations` (role drafter) and `llmauxcalls` (purpose `preflight` → fact_checker, `intake_*` → extractor) for that userId and window. Projection only; 300 rows max per collection.
+- **Per row it prints:** time, source, role, purpose, runId, runSequence, intakeId, model, status, durationMs, input/output tokens, costUsd and costStatus. No content and no other user field.
+- **Rates check:** for the distinct models in the window, it checks whether an `appsettings` row `ai.rates.<model lower-cased>` exists. It prints only the model names without one, never a rate value.
+- **To use:** `update-document` (v25 and v26), then run pinned `--document-version 26`.
