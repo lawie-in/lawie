@@ -70,9 +70,10 @@ In a dry run only matters 23 and 24 have recorded replies. Matters 39-46 show as
 
 Cap: ₹600 at ₹88 per dollar (Vikram).
 
-- Up front: the run is refused if the typical estimate is over the cap.
-- Before a matter: stop if spend so far plus that matter's worst case (about ₹135) would pass the cap.
-- After a matter: stop once spend has passed the cap.
+- Up front (`--real` only): the run is refused if the typical estimate is over the cap.
+- Up front (`--real` only): the run is refused if one matter's worst case alone is over the cap.
+- Before a matter (`--real` only): stop if spend so far plus that matter's worst case (computed by `estimateAb` in `run-ab.ts`) would pass the cap.
+- After a matter: stop once the running total has passed the cap. The code does not check the mode here, so it applies to a dry run too (a dry run's stub token counts are not billed, and the console says the cap is not applied to a dry run).
 
 Exit codes: 0 done; 1 a cap stopped the run, or an arm's model, effort or ledger was not as forced; 2 refused; 3 fixture isolation breached; 4 harness error.
 
@@ -80,21 +81,31 @@ Exit codes: 0 done; 1 a cap stopped the run, or an arm's model, effort or ledger
 
 `scripts/ab/out/<stamp>/` (git-ignored; nothing in `out/` is ever committed):
 
-| Path                         | What                                                                                                                                            | Who sees it               |
-| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
-| `scoring/D01.md` .. `D20.md` | The blind drafts in random order: the facts given and the delivered text (or "WITHHELD" and the reason code). No model, tokens, cost or timing. | Anushka, Ajay (via Arjun) |
-| `vikram/metrics.json`        | Per draft, under M-ids unrelated to the D-ids: tokens, cost, spend, fact-checker findings (`factDiffs`).                                        | Vikram                    |
-| `vikram/intake-spend.json`   | Intake spend per matter, shuffled, with no ids.                                                                                                 | Vikram                    |
-| `KEY.sealed.json`            | Maps D-id to model, fixture and run; the M-id map; placeholders; withheld flags; intake. AES-256-GCM under Arjun's passphrase.                  | Arjun                     |
-| console output               | Per-matter totals and the running total only.                                                                                                   | The operator              |
+| Path                         | What                                                                                                                                                                               | Who sees it                             |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| `scoring/D01.md` .. `D20.md` | The blind drafts in random order: the facts given and the delivered text (or "WITHHELD" and the reason code). No model, tokens, cost or timing.                                    | Anushka, Ajay (forwarded by the runner) |
+| `vikram/metrics.json`        | Per draft, under M-ids unrelated to the D-ids: tokens, cost, spend, fact-checker findings (`factDiffs`).                                                                           | Vikram                                  |
+| `vikram/intake-spend.json`   | Intake spend per matter, shuffled, with no ids.                                                                                                                                    | Vikram                                  |
+| `KEY.sealed.json`            | Maps D-id to model, fixture and run; the M-id map; placeholders; withheld flags; intake; the two shuffle seeds. AES-256-GCM under Arjun's passphrase.                              | Arjun                                   |
+| console output               | Ids, counts, amounts and paths only: the estimate, per-matter totals, the running total, token totals, warnings and output paths. Never per-arm amounts, model names or blind ids. | Vikram (the cost lines only)            |
+
+At the end of a run the harness prints the SHA-256 of KEY.sealed.json to the console; Arjun compares it to the file he receives to confirm it was not altered.
+
+A `--dry` run without `AB_KEY_PASSPHRASE` seals its key under a random throwaway passphrase that cannot be recovered. Dry keys are for checking the layout only.
 
 The console and logs carry ids and amounts only, never document content, the arm, the run order or the passphrase.
 
+## Operator
+
+The runner is Shashank. He runs `--real` once with AB_ARJUN_GO=1, never opens scoring/, vikram/ or the key file, and forwards: scoring/ (drafts only, model hidden, random order) to Anushka and Ajay; vikram/ + the console cost lines to Vikram; the key file to Arjun. The holding rule (nobody holds any two of scoring, costs, key) binds the recipients until Arjun opens the key after Anushka's and Ajay's scores are in. If Shashank must open any artefact to debug a failed run, he says so in the ticket and the run is void.
+
+This is Arjun's two-strike ruling, recorded in the T-691 ticket.
+
 ## HAND-OFF RULES (mandatory)
 
-1. Arjun sends ONLY `out/<stamp>/scoring/` to Anushka for blind scoring, and to Ajay for his citation check.
-2. `vikram/`, `KEY.sealed.json` and the console output stay with the operator. They go only to Vikram (`vikram/`) and Arjun (the key).
-3. Any two of `scoring/`, `vikram/` and the console output must never be in one person's hands before the key is opened.
+1. ONLY `out/<stamp>/scoring/` goes to Anushka for blind scoring, and to Ajay for his citation check. The runner forwards it (see Operator).
+2. The runner forwards and never opens anything. `scoring/` goes to Anushka and Ajay; `vikram/` and the console cost lines go to Vikram; the key file goes to Arjun.
+3. The holding rule: nobody holds any two of scoring, costs, key. It binds the recipients until Arjun opens the key after Anushka's and Ajay's scores are in.
    - Someone with both `scoring/` and `vikram/` can match metrics rows to drafts by output length.
    - The console's per-matter totals together with `vikram/` can group metrics rows into matters by their sum.
 4. Nobody who holds `vikram/` or the console output scores drafts or checks citations.

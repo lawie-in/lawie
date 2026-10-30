@@ -37,7 +37,7 @@
  * isolation breached; 4 harness error.
  */
 /* eslint-disable no-console */
-import { randomBytes } from 'crypto';
+import { createHash, randomBytes } from 'crypto';
 import { readFileSync } from 'fs';
 import { join, resolve } from 'path';
 
@@ -1043,6 +1043,11 @@ async function main(): Promise<number> {
     console.log(`ab: metrics (for Vikram; never ship with scoring/): ${w.metricsPath}`);
     console.log(`ab: intake spend per matter (for Vikram, no ids): ${w.intakePath}`);
     console.log(`ab: sealed key (for Arjun): ${w.keyPath}`);
+    // Arjun (T-691): the hash of the key file's bytes as written, so the file he receives can
+    // be checked for changes. The hash only: never the contents, the passphrase or any id.
+    console.log(
+      `ab: key file sha256 ${createHash('sha256').update(readFileSync(w.keyPath)).digest('hex')}`,
+    );
 
     if (breach || !settingsUnchanged) {
       console.error(

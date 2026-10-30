@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 
 import {
@@ -673,6 +674,20 @@ describe('integration: --dry on golden 23 (in-memory Mongo, stub seam)', () => {
     expect(printed(/^ab: scoring files/)).toContain(path.join(dir, 'scoring'));
   });
 
+  it('prints the sealed key file sha256 once, matching the file, and nothing else on the line', () => {
+    const lines = run.stdout.split('\n').filter((l) => /sha256/i.test(l));
+    expect(lines).toHaveLength(1);
+    const want = createHash('sha256')
+      .update(fs.readFileSync(path.join(dir, 'KEY.sealed.json')))
+      .digest('hex');
+    expect(want).toMatch(/^[0-9a-f]{64}$/);
+    // exactly the label and the hash: no path, passphrase, id or model
+    expect(lines[0]).toBe(`ab: key file sha256 ${want}`);
+    // and it comes right after the sealed-key path line
+    const all = run.stdout.split('\n');
+    expect(all[all.findIndex((l) => /^ab: sealed key/.test(l)) + 1]).toBe(lines[0]);
+  });
+
   it('metrics.json: M-ids, as many rows as scoring files, no D-id, no intake, no placeholders, no withheld', () => {
     const raw = fs.readFileSync(path.join(dir, 'vikram', 'metrics.json'), 'utf8');
     const m = JSON.parse(raw);
@@ -763,6 +778,7 @@ describe('integration: --dry on golden 23 (in-memory Mongo, stub seam)', () => {
       ['N', 'alg', 'ct', 'iv', 'kdf', 'p', 'r', 'salt', 'tag', 'v'].sort(),
     );
     for (const k of ['salt', 'iv', 'tag', 'ct']) delete sealedJson[k];
+    expect(sealedJson).toEqual({ v: 1, alg: 'aes-256-gcm', kdf: 'scrypt', N: 32768, r: 8, p: 1 });
     expect(JSON.stringify(sealedJson)).not.toMatch(
       /\b[DM]\d{2}\b|fixtureId|metricsId|claude|opus|sonnet|haiku/i,
     );

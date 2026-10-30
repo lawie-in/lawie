@@ -561,6 +561,7 @@ describe('writeBlind', () => {
         ['N', 'alg', 'ct', 'iv', 'kdf', 'p', 'r', 'salt', 'tag', 'v'].sort(),
       );
       for (const k of ['salt', 'iv', 'tag', 'ct']) delete sealedJson[k];
+      expect(sealedJson).toEqual({ v: 1, alg: 'aes-256-gcm', kdf: 'scrypt', N: 32768, r: 8, p: 1 });
       expect(JSON.stringify(sealedJson)).not.toMatch(
         /\b[DM]\d{2}\b|fixtureId|metricsId|claude|opus|sonnet|haiku/i,
       );
