@@ -324,16 +324,16 @@ describe('refunded plan payment with no Payment row (grantedFor)', () => {
     const u = await seedUser();
     await seedSub(u, 'sub_t436', { planId: 'solo_monthly' });
     await User.updateOne({ _id: u }, { $set: { inkSub: PLAN_UNITS } });
-    // AJ-646-M10 / Arjun round 3: a no-row plan payment is reversed only when the ledger
-    // confirms the cycle's grant: one sub_renewal row for this user and subscription, written
-    // shortly after the payment's created_at (2026-10-01T10:00:00Z in refundWithEntity).
+    // AJ-646-M10 / Arjun round 3b: a no-row plan payment is reversed only when the ledger
+    // confirms the grant BY PAYMENT ID: one sub_renewal row for this user whose
+    // metadata.razorpayPaymentId is this payment (pay_norow in refundWithEntity).
     await ledger().insertOne({
       userId: u,
       delta: PLAN_UNITS,
       reason: 'sub_renewal',
       sourceBucket: 'sub',
       balanceAfter: PLAN_UNITS,
-      metadata: { razorpaySubscriptionId: 'sub_t436' },
+      metadata: { razorpaySubscriptionId: 'sub_t436', razorpayPaymentId: 'pay_norow' },
       createdAt: new Date('2026-10-01T10:00:05Z'),
     });
     return u;
@@ -445,9 +445,16 @@ describe('plan row on the webhook replay path (SHOULD a)', () => {
     expect(await ledger().countDocuments({ userId: u, delta: { $gt: 0 } })).toBe(grants);
     expect(await Payment.countDocuments({ razorpayPaymentId: 'pay_replay' })).toBe(1);
 
-    // A refund of that 0-Ink row reverses through the ledger confirmation. The grant was
-    // written just now; the payment entity is created at the same time, so exactly one
-    // sub_renewal row is in its window.
+    // Round 3b: the grant row was stamped with the charge that won the claim (pay_replay, the
+    // first delivery), so a refund of that payment's 0-Ink row reverses through the ledger
+    // confirmation BY PAYMENT ID.
+    expect(
+      await ledger().countDocuments({
+        userId: u,
+        reason: 'sub_renewal',
+        'metadata.razorpayPaymentId': 'pay_replay',
+      }),
+    ).toBe(1);
     const refundRes = await webhook('refund.processed', {
       ...refundPayload({ refundId: 'rfnd_replay', paymentId: 'pay_replay', amount: 79900 }),
       payment: {

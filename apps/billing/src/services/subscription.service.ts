@@ -2218,6 +2218,41 @@ function restoreClaim(
 }
 
 /**
+ * T-646 (Arjun, 3b g): one atomic, only-if-empty stamp of a charge's payment id on its
+ * cycle's sub_renewal grant row. A set field is never changed. Never throws; logs ids only.
+ */
+async function stampLostClaimGrant(
+  userId: mongoose.Types.ObjectId,
+  subId: string,
+  cycleKey: Record<string, unknown>,
+  razorpayPaymentId: string,
+): Promise<void> {
+  const db = mongoose.connection.db;
+  if (!db) return;
+  try {
+    const stamped = await db.collection('inkledger').findOneAndUpdate(
+      {
+        userId,
+        reason: 'sub_renewal',
+        'metadata.razorpaySubscriptionId': subId,
+        ...cycleKey,
+        'metadata.razorpayPaymentId': { $in: [null] },
+      },
+      { $set: { 'metadata.razorpayPaymentId': razorpayPaymentId } },
+    );
+    logger.info(
+      { subId, razorpayPaymentId, stamped: stamped !== null },
+      'lost-claim charge: grant row payment id back-fill',
+    );
+  } catch (err) {
+    logger.error(
+      { subId, razorpayPaymentId, errName: err instanceof Error ? err.name : 'unknown' },
+      'lost-claim charge: grant row payment id back-fill failed',
+    );
+  }
+}
+
+/**
  * T-646 (Arjun round 3, 3): the credit note for a refund could not be recorded. One Sentry
  * event per refund, ids and the error class only; request and user stripped.
  */
@@ -2684,11 +2719,30 @@ async function applySubscriptionEvent(
         }
       }
 
+      const chargeEntityId = paymentEntityOf(payload)?.id;
+      const chargePaymentId =
+        typeof chargeEntityId === 'string' && chargeEntityId ? chargeEntityId : undefined;
       if (planSku && !isNewCycle) {
         logger.info(
           { subId, event, paidCount },
           'subscription cycle already granted, no second grant',
         );
+        // T-646 (Arjun, 3b g): this charge lost the cycle claim (the grant went to a sibling
+        // delivery, e.g. subscription.activated without a payment entity). Stamp this charge's
+        // payment id on THAT cycle's grant row, only if it has none, so a refund of this charge
+        // finds the grant by payment id. Keyed like the claim: paid_count, else current_start.
+        // paid_count 0 granted nothing: no stamp. After the claim; nothing reordered.
+        const cycleKey =
+          typeof paidCount === 'number'
+            ? paidCount > 0
+              ? { 'metadata.paidCount': paidCount }
+              : null
+            : currentStart
+              ? { 'metadata.periodStart': new Date(currentStart * 1000) }
+              : null;
+        if (event === 'subscription.charged' && chargePaymentId && cycleKey) {
+          await stampLostClaimGrant(sub.userId, subId, cycleKey, chargePaymentId);
+        }
       } else if (planSku) {
         let grantFailed = false;
         try {
@@ -2700,6 +2754,13 @@ async function applySubscriptionEvent(
             planRenewsAt: chargeAt ? new Date(chargeAt * 1000) : undefined,
             razorpaySubscriptionId: subId,
             amountInr: planSku.priceInr,
+            // T-646 (Arjun final, 3b): the charge that won this claim, for refund attribution.
+            // Absent when the winning event carries no payment entity (e.g. an activated
+            // event without one); that grant is then reversible only through its Payment row.
+            ...(chargePaymentId ? { razorpayPaymentId: chargePaymentId } : {}),
+            // T-646 (Arjun, 3b g): the same cycle key the claim above used.
+            ...(typeof paidCount === 'number' ? { paidCount } : {}),
+            ...(currentStart ? { periodStart: new Date(currentStart * 1000) } : {}),
           });
         } catch (err) {
           grantFailed = true;
@@ -2783,7 +2844,7 @@ async function applySubscriptionEvent(
         kind: 'plan',
         // Arjun round 3 (1): Ink only when THIS delivery's claim made a new cycle (isNewCycle).
         // A lost claim / replay or paid_count 0 writes 0, so a refund of it goes through the
-        // ledger confirmation (confirmedPlanGrantUnits) instead.
+        // ledger confirmation by payment id (confirmedPlanGrantUnits) instead.
         inkUnits: planSku && isNewCycle ? planSku.inkPerCycle * 2 : 0,
         razorpaySubscriptionId: subId,
         ...(planSku ? { planId: planSku.id } : {}),

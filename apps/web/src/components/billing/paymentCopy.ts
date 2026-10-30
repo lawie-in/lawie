@@ -16,6 +16,8 @@
  *     email was accepted for sending (else `concernSentShort`); "Test Ink" only on test or
  *     fixture accounts; a negative {signed} uses U+2212 (as M10).
  *   - AJ-646-M10 (commit 5c2db598): the refund Ink line.
+ *   - AJ-646-M10a (commit b8271c41): for a reversal the ledger links to this payment, {n} in
+ *     that line is the Ink actually reversed, even above the added figure; string unchanged.
  */
 import { formatInvoiceDate } from '@/components/billing/InvoicesCard';
 import { formatInk } from '@/components/ui';

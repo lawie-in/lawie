@@ -222,79 +222,84 @@ async function subscriptionIdOf(entity: Entity): Promise<string | null> {
 }
 
 /**
- * A plan cycle's grant row (`sub_renewal`, written by grantSubscriptionInk after the
- * T-399 / T-415 cycle claim is won) counts for a payment when it is for the same user and
- * subscription and was written within this window of the payment's Razorpay created_at.
- * The grant follows the charge webhook (Razorpay retries it for about 24 h); cycles are a
- * month or a year apart, so the window can never reach another cycle's grant.
- */
-export const PLAN_GRANT_MATCH_BEFORE_MS = 10 * 60 * 1000;
-export const PLAN_GRANT_MATCH_AFTER_MS = 72 * 60 * 60 * 1000;
-
-/**
- * T-646 (Arjun, 30 Oct): the Ink the ledger confirms a plan payment granted, in ledger
- * units, or null. Exactly one `sub_renewal` row must match (user, subscription id in its
- * metadata, created in the window above); none, or more than one, is not a confirmation.
- * The sub_renewal row carries no payment id, so the match is by subscription and cycle time.
+ * T-646 (Arjun final, 3b): the Ink the ledger confirms THIS plan payment granted, in ledger
+ * units, or null. Attribution is by payment id only: the `sub_renewal` row that
+ * grantSubscriptionInk writes after the T-399 / T-415 cycle claim is won carries
+ * `metadata.razorpayPaymentId` of the charge that won it. Match: this user AND that payment id,
+ * nothing else. One row per payment id is expected; none, or more than one, is not a
+ * confirmation. Grants written before this change carry no payment id and never match (no
+ * legacy fallback): their Payment rows carry the Ink and refunds reverse through the row.
  * The amount is the row's own delta, never the subscription's current plan.
  */
 export async function confirmedPlanGrantUnits(input: {
   userId: string;
-  razorpaySubscriptionId: string;
-  paymentCreatedAt: Date;
+  razorpayPaymentId: string;
 }): Promise<number | null> {
-  const { userId, razorpaySubscriptionId, paymentCreatedAt } = input;
+  return (await confirmedPlanGrant(input))?.units ?? null;
+}
+
+/**
+ * As confirmedPlanGrantUnits, plus the matched sub_renewal row's `_id` (as a string), so a
+ * refund can record which grant it reversed (Arjun option B).
+ */
+export async function confirmedPlanGrant(input: {
+  userId: string;
+  razorpayPaymentId: string;
+}): Promise<{ units: number; grantLedgerId: string } | null> {
+  const { userId, razorpayPaymentId } = input;
   const db = mongoose.connection.db;
-  if (!db || !mongoose.Types.ObjectId.isValid(userId)) return null;
-  const at = paymentCreatedAt.getTime();
-  if (!Number.isFinite(at)) return null;
+  if (!db || !mongoose.Types.ObjectId.isValid(userId) || !razorpayPaymentId) return null;
   const rows = await db
     .collection('inkledger')
     .find(
       {
+        // userId first: the inkledger {userId: 1, createdAt: -1} index (T-519).
         userId: new mongoose.Types.ObjectId(userId),
         reason: 'sub_renewal',
-        'metadata.razorpaySubscriptionId': razorpaySubscriptionId,
-        createdAt: {
-          $gte: new Date(at - PLAN_GRANT_MATCH_BEFORE_MS),
-          $lte: new Date(at + PLAN_GRANT_MATCH_AFTER_MS),
-        },
+        'metadata.razorpayPaymentId': razorpayPaymentId,
       },
-      { projection: { delta: 1 } },
+      { projection: { _id: 1, delta: 1 } },
     )
     .limit(2)
     .toArray();
   if (rows.length !== 1) return null;
   const delta = rows[0].delta;
-  return typeof delta === 'number' && delta > 0 ? delta : null;
+  return typeof delta === 'number' && delta > 0
+    ? { units: delta, grantLedgerId: String(rows[0]._id) }
+    : null;
 }
 
-/** A plan payment whose grant the ledger confirms, or null (see confirmedPlanGrantUnits). */
+/**
+ * A plan payment whose grant the ledger confirms by payment id, or null. The user comes from
+ * the hint (the Payment row), else the local Subscription the payment belongs to.
+ */
 export async function confirmedPlanGrantForPayment(
   entity: Entity,
-  hint: { userId?: string; razorpaySubscriptionId?: string | null; createdAt?: Date } = {},
-): Promise<{ userId: string; razorpaySubscriptionId: string; grantedUnits: number } | null> {
-  const subId = hint.razorpaySubscriptionId || (await subscriptionIdOf(entity));
-  if (!subId) return null;
+  hint: { userId?: string; razorpaySubscriptionId?: string | null } = {},
+): Promise<{
+  userId: string;
+  grantedUnits: number;
+  grantLedgerId: string;
+} | null> {
+  const razorpayPaymentId = typeof entity.id === 'string' ? entity.id : '';
+  if (!razorpayPaymentId) return null;
   let userId = hint.userId;
   if (!userId) {
+    const subId = hint.razorpaySubscriptionId || (await subscriptionIdOf(entity));
+    if (!subId) return null;
     const sub = await Subscription.findOne({ razorpaySubscriptionId: subId }, { userId: 1 }).lean();
     if (!sub) return null;
     userId = String(sub.userId);
   }
-  const createdAt = fromUnixSeconds(entity.created_at) ?? hint.createdAt ?? null;
-  if (!createdAt) return null;
-  const grantedUnits = await confirmedPlanGrantUnits({
-    userId,
-    razorpaySubscriptionId: subId,
-    paymentCreatedAt: createdAt,
-  });
-  return grantedUnits === null ? null : { userId, razorpaySubscriptionId: subId, grantedUnits };
+  const grant = await confirmedPlanGrant({ userId, razorpayPaymentId });
+  return grant === null
+    ? null
+    : { userId, grantedUnits: grant.units, grantLedgerId: grant.grantLedgerId };
 }
 
 /**
  * Plan context through the local Subscription row, or null. Its Ink is what the ledger
- * confirms was granted for this cycle (confirmedPlanGrantUnits), else 0: never the
+ * confirms this payment granted (confirmedPlanGrantUnits, by payment id), else 0: never the
  * subscription's current plan, which may have changed since the charge.
  */
 async function subscriptionContextFor(
@@ -314,13 +319,12 @@ async function subscriptionContextFor(
   const paid = entity.status === 'captured' || entity.status === 'refunded';
   let inkUnits = ctx.inkUnits;
   if (inkUnits === undefined) {
-    const createdAt = fromUnixSeconds(entity.created_at);
+    const razorpayPaymentId = typeof entity.id === 'string' ? entity.id : '';
     inkUnits =
-      paid && createdAt
+      paid && razorpayPaymentId
         ? ((await confirmedPlanGrantUnits({
             userId: String(sub.userId),
-            razorpaySubscriptionId: subId,
-            paymentCreatedAt: createdAt,
+            razorpayPaymentId,
           })) ?? 0)
         : 0;
   }
@@ -611,8 +615,18 @@ export interface PaymentRowView {
   inkDelta: number;
   /** Vikram 3: Ink this payment added (granted units / 2). 0 for failed / processing. */
   inkAddedInk: number;
-  /** Vikram 3: Ink its refunds took back (reversed units / 2, >= 0). 0 for failed / processing. */
+  /**
+   * Vikram 3: Ink its refunds took back (reversed units / 2, >= 0). 0 for failed / processing.
+   * Capped at inkAddedInk (AJ-646-M10) unless inkReversalLinked (AJ-646-M10a b8271c41).
+   */
   inkReversedInk: number;
+  /**
+   * AJ-646-M10a (b8271c41): true when a refund of THIS payment reversed Ink against a named
+   * grant (a done refund_reversal row with this payment's id and a grantLedgerId). Then
+   * inkReversedInk is the stored figure, uncapped (a 0-Ink row whose grant the ledger
+   * confirmed by payment id can show Ink removed with none added on the row).
+   */
+  inkReversalLinked: boolean;
   referenceTail: string;
   invoiceId: string | null;
   /** `note` goes back to its owner here only (Arjun/Priya follow-up); null when empty. */
@@ -729,6 +743,36 @@ export async function listPaymentsForUser(userId: string): Promise<PaymentRowVie
   ]);
   const invoiceByPayment = new Map<string, string>();
   for (const inv of invoices) invoiceByPayment.set(inv.paymentId, String(inv._id));
+
+  // AJ-646-M10a (b8271c41): payments whose refund reversal is ledger-linked (named grant).
+  // userId first: the inkledger {userId: 1, createdAt: -1} index (T-519).
+  const linked = new Set<string>();
+  const db = mongoose.connection.db;
+  if (db) {
+    const linkRows = await db
+      .collection('inkledger')
+      .find(
+        {
+          userId: uid,
+          reason: REFUND_REVERSAL_REASON,
+          state: 'done',
+          'metadata.grantLedgerId': { $type: 'string' },
+          $or: [
+            { 'metadata.grantPaymentId': { $in: rzpIds } },
+            { 'metadata.razorpayPaymentId': { $in: rzpIds } },
+          ],
+        },
+        { projection: { metadata: 1 } },
+      )
+      .toArray();
+    const wanted = new Set(rzpIds);
+    for (const l of linkRows) {
+      const m = (l.metadata ?? {}) as Record<string, unknown>;
+      for (const v of [m.grantPaymentId, m.razorpayPaymentId]) {
+        if (typeof v === 'string' && wanted.has(v)) linked.add(v);
+      }
+    }
+  }
   // The newest concern per payment.
   const concernByPayment = new Map<string, PaymentRowView['concern']>();
   for (const c of concerns) {
@@ -751,9 +795,26 @@ export async function listPaymentsForUser(userId: string): Promise<PaymentRowVie
     const rzp = r.razorpayPaymentId as string;
     const counted = STATUS_RANK[r.status] >= STATUS_RANK.paid;
     const addedUnits = counted ? Math.max(0, r.inkUnits ?? 0) : 0;
-    // AJ-646-M10 (5c2db598): the Ink taken back is never more than was added.
-    const reversedUnits = counted ? Math.min(addedUnits, Math.max(0, r.inkReversedUnits ?? 0)) : 0;
-    const netUnits = Math.max(0, addedUnits - reversedUnits);
+    const storedReversed = counted ? Math.max(0, r.inkReversedUnits ?? 0) : 0;
+    const inkReversalLinked = counted && linked.has(rzp);
+    // AJ-646-M10 (5c2db598): the Ink taken back is never more than was added, for ordinary
+    // rows. AJ-646-M10a (b8271c41): a ledger-linked reversal shows the stored figure, uncapped.
+    const reversedUnits = inkReversalLinked ? storedReversed : Math.min(addedUnits, storedReversed);
+    if (!inkReversalLinked && storedReversed > addedUnits) {
+      logger.warn(
+        {
+          paymentId: String(r._id),
+          razorpayPaymentId: rzp,
+          addedUnits,
+          storedReversedUnits: storedReversed,
+        },
+        'payment history: reversal exceeds added and is not ledger-linked; capped',
+      );
+    }
+    // Net: may be negative only for a linked row (Ink removed against a confirmed grant).
+    const netUnits = inkReversalLinked
+      ? addedUnits - reversedUnits
+      : Math.max(0, addedUnits - reversedUnits);
     return {
       id: String(r._id),
       createdAt: r.createdAt,
@@ -765,6 +826,7 @@ export async function listPaymentsForUser(userId: string): Promise<PaymentRowVie
       inkDelta: netUnits / 2,
       inkAddedInk: addedUnits / 2,
       inkReversedInk: reversedUnits / 2,
+      inkReversalLinked,
       referenceTail: rzp.slice(-REFERENCE_TAIL_LENGTH),
       invoiceId: invoiceByPayment.get(rzp) ?? null,
       concern: concernByPayment.get(String(r._id)) ?? null,

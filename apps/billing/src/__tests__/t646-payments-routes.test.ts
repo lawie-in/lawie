@@ -139,6 +139,7 @@ describe('GET /payments', () => {
       inkDelta: 10,
       inkAddedInk: 10,
       inkReversedInk: 0,
+      inkReversalLinked: false,
       referenceTail: 'QRSTUVWX',
       invoiceId: null,
       concern: null,

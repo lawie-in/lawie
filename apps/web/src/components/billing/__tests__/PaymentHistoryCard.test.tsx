@@ -41,6 +41,7 @@ function pay(over: Record<string, unknown> = {}) {
     inkDelta: 50,
     inkAddedInk: 50,
     inkReversedInk: 0,
+    inkReversalLinked: false,
     referenceTail: 'AB12',
     invoiceId: null,
     concern: null,
@@ -339,6 +340,106 @@ describe('Ink lines (Vikram §3, AJ-646-M10)', () => {
       [null, null],
       [null, null],
     ]);
+  });
+
+  describe('AJ-646-M10a: ledger-linked reversal is uncapped', () => {
+    it('linked 0-Ink row shows only the "removed" line, no "+" line', async () => {
+      payments = [
+        pay({
+          status: 'refunded',
+          kind: 'plan',
+          refundedPaise: 79900,
+          inkDelta: -100,
+          inkAddedInk: 0,
+          inkReversedInk: 100,
+          inkReversalLinked: true,
+        }),
+      ];
+      await render();
+      expect(inkText('p1')).toEqual([REMOVED(100)]);
+      expect(row('p1').textContent).toContain('\u2212100 Ink removed for the refund');
+      expect(row('p1').textContent).not.toMatch(/\+\d+ Ink/);
+    });
+
+    it('linked with reversed above added shows the reversed figure', async () => {
+      payments = [
+        pay({
+          status: 'refunded',
+          refundedPaise: 6500,
+          inkAddedInk: 50,
+          inkReversedInk: 80,
+          inkReversalLinked: true,
+        }),
+      ];
+      await render();
+      expect(inkText('p1')).toEqual(['+50 Ink', REMOVED(80)]);
+    });
+
+    it('unlinked: still capped at the added figure; a 0-added unlinked row shows no removed line', async () => {
+      payments = [
+        pay({ id: 'a', status: 'refunded', inkAddedInk: 50, inkReversedInk: 80 }),
+        pay({
+          id: 'b',
+          status: 'refunded',
+          inkAddedInk: 0,
+          inkDelta: 0,
+          inkReversedInk: 10,
+          inkReversalLinked: false,
+        }),
+      ];
+      await render();
+      expect(inkText('a')).toEqual(['+50 Ink', REMOVED(50)]);
+      expect(inkText('b')).toEqual([]);
+    });
+
+    it('parsePayments counts inkReversalLinked only when it is exactly true', () => {
+      const vals = [true, false, 'true', 1, null, undefined, {}];
+      const parsed = parsePayments({
+        payments: vals.map((v, i) => pay({ id: `r${i}`, inkReversalLinked: v })),
+      })!;
+      expect(parsed.map((p) => p.inkReversalLinked)).toEqual([
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+      ]);
+    });
+
+    it.each([
+      [
+        'linked, added 0',
+        {
+          status: 'refunded',
+          inkAddedInk: 0,
+          inkDelta: -10,
+          inkReversedInk: 10,
+          inkReversalLinked: true,
+        },
+        [REMOVED(10)],
+      ],
+      [
+        'linked, added unknown',
+        {
+          status: 'refunded',
+          inkAddedInk: null,
+          inkDelta: 0,
+          inkReversedInk: 10,
+          inkReversalLinked: true,
+        },
+        [REMOVED(10)],
+      ],
+      [
+        'linked but paid: a stray reversal is not shown',
+        { status: 'paid', inkAddedInk: 50, inkReversedInk: 10, inkReversalLinked: true },
+        ['+50 Ink'],
+      ],
+    ] as [string, Partial<PaymentRow>, string[]][])('inkLines %s', (_n, over, expected) => {
+      const r = { ...(pay() as unknown as PaymentRow), ...over };
+      expect(inkLines(r)).toEqual(expected);
+    });
   });
 
   describe('inkLines (direct)', () => {

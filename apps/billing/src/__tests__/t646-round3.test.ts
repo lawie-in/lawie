@@ -14,8 +14,6 @@ import { User } from '../models/User.model';
 import {
   confirmedPlanGrantUnits,
   upsertPaymentFromEntity,
-  PLAN_GRANT_MATCH_AFTER_MS,
-  PLAN_GRANT_MATCH_BEFORE_MS,
   reversedUnitsForPayment,
 } from '../services/payment-record.service';
 
@@ -29,10 +27,11 @@ import {
   webhook,
 } from './t436-helpers';
 
-// T-646 round 3 (Arjun's two-strike ruling, AJ-646-M10 5c2db598): a refunded plan payment
-// with no Payment row is "granted" only when the Ink ledger confirms a grant for that
-// subscription cycle. Otherwise 'unresolved' (Sentry error, ids only), NO reversal, and the
-// row recordRefundSafely writes shows 0 Ink. The amount comes from the ledger row.
+// T-646 round 3 / 3b (Arjun's two-strike ruling, AJ-646-M10 5c2db598): a refunded plan payment
+// with no Payment row (or a 0-Ink one) is "granted" only when the Ink ledger confirms THIS
+// payment granted: one sub_renewal row for the user whose metadata.razorpayPaymentId is this
+// payment. No time window. Otherwise 'unresolved' (Sentry error, ids only), NO reversal, and
+// the row recordRefundSafely writes shows 0 Ink. The amount comes from the ledger row.
 
 jest.mock('../config/razorpay', () => ({
   razorpay: {
@@ -89,19 +88,31 @@ async function seedPlanUser(units = PLAN_UNITS, planId = 'solo_monthly') {
   return u;
 }
 
-/** A sub_renewal ledger row; `at` is the Date it was written. */
+/**
+ * A sub_renewal ledger row; `at` is the Date it was written. `paymentId` is the charge that
+ * won the claim (metadata.razorpayPaymentId); default pay_norow, null for a legacy row.
+ */
 function grant(
   u: mongoose.Types.ObjectId,
   at: Date,
-  over: { delta?: number; subId?: string; userId?: mongoose.Types.ObjectId } = {},
+  over: {
+    delta?: number;
+    subId?: string;
+    userId?: mongoose.Types.ObjectId;
+    paymentId?: string | null;
+  } = {},
 ) {
+  const paymentId = over.paymentId === undefined ? 'pay_norow' : over.paymentId;
   return ledger().insertOne({
     userId: over.userId ?? u,
     delta: over.delta ?? PLAN_UNITS,
     reason: 'sub_renewal',
     sourceBucket: 'sub',
     balanceAfter: over.delta ?? PLAN_UNITS,
-    metadata: { razorpaySubscriptionId: over.subId ?? SUB },
+    metadata: {
+      razorpaySubscriptionId: over.subId ?? SUB,
+      ...(paymentId ? { razorpayPaymentId: paymentId } : {}),
+    },
     createdAt: at,
   });
 }
@@ -160,7 +171,7 @@ describe("Arjun's case: a second charge on a subscription already granted this c
         createdAt: new Date(createdMs),
         updatedAt: new Date(createdMs),
       });
-      await grant(u, new Date(createdMs + 5000));
+      await grant(u, new Date(createdMs + 5000), { paymentId: 'pay_P1' });
       // P2: a few hours later, same S, no Payment row and no ledger grant.
       const p2At = new Date(createdMs + hours * HOUR).toISOString();
       const res = await webhook('refund.processed', refundOf('pay_P2', 'rfnd_P2', p2At));
@@ -210,30 +221,14 @@ describe('confirmed path: exactly one matching sub_renewal row', () => {
     });
   });
 
-  it('boundaries: a grant 5 minutes before and 71 hours after the payment both confirm', async () => {
+  it('time is irrelevant: a grant written days before or after the payment confirms by id', async () => {
     const u = await seedPlanUser();
-    await grant(u, new Date(createdMs - 5 * MIN));
-    expect(
-      await confirmedPlanGrantUnits({
-        userId: String(u),
-        razorpaySubscriptionId: SUB,
-        paymentCreatedAt: new Date(createdMs),
-      }),
-    ).toBe(PLAN_UNITS);
+    const input = { userId: String(u), razorpayPaymentId: 'pay_norow' };
+    await grant(u, new Date(createdMs - 5 * 24 * HOUR));
+    expect(await confirmedPlanGrantUnits(input)).toBe(PLAN_UNITS);
     await ledger().deleteMany({});
-    await grant(u, new Date(createdMs + 71 * HOUR));
-    expect(
-      await confirmedPlanGrantUnits({
-        userId: String(u),
-        razorpaySubscriptionId: SUB,
-        paymentCreatedAt: new Date(createdMs),
-      }),
-    ).toBe(PLAN_UNITS);
-  });
-
-  it('the window constants are 10 minutes before and 72 hours after', () => {
-    expect(PLAN_GRANT_MATCH_BEFORE_MS).toBe(10 * MIN);
-    expect(PLAN_GRANT_MATCH_AFTER_MS).toBe(72 * HOUR);
+    await grant(u, new Date(createdMs + 200 * HOUR));
+    expect(await confirmedPlanGrantUnits(input)).toBe(PLAN_UNITS);
   });
 });
 
@@ -259,29 +254,28 @@ describe('unconfirmed paths: unresolved, no reversal, recordRefundSafely writes 
     await expectUnresolved(u, 'rfnd_u1');
   });
 
-  it('two matching rows (ambiguous)', async () => {
+  it('two rows carrying the same payment id (ambiguous)', async () => {
     const u = await seedPlanUser();
     await grant(u, new Date(createdMs + 1000));
     await grant(u, new Date(createdMs + 2 * HOUR));
     await expectUnresolved(u, 'rfnd_u2');
   });
 
-  it('a row more than 10 minutes before the payment', async () => {
+  it('a grant stamped with ANOTHER payment id does not confirm', async () => {
     const u = await seedPlanUser();
-    await grant(u, new Date(createdMs - 11 * MIN));
+    await grant(u, new Date(createdMs + 1000), { paymentId: 'pay_other' });
     await expectUnresolved(u, 'rfnd_u3');
   });
 
-  it('a row more than 72 hours after the payment', async () => {
+  it('a legacy grant with no payment id does not confirm (no runtime fallback)', async () => {
     const u = await seedPlanUser();
-    await grant(u, new Date(createdMs + 73 * HOUR));
+    await grant(u, new Date(createdMs + 1000), { paymentId: null });
     await expectUnresolved(u, 'rfnd_u4');
   });
 
-  it("a row for another subscription id or another user's id does not confirm", async () => {
+  it("another user's row with this payment id does not confirm for this user", async () => {
     const u = await seedPlanUser();
     const other = await seedUser();
-    await grant(u, new Date(createdMs + 1000), { subId: 'sub_other' });
     await grant(u, new Date(createdMs + 1000), { userId: other });
     await expectUnresolved(u, 'rfnd_u5');
   });
@@ -292,7 +286,7 @@ describe('unconfirmed paths: unresolved, no reversal, recordRefundSafely writes 
       userId: u,
       delta: PLAN_UNITS,
       reason: 'topup',
-      metadata: { razorpaySubscriptionId: SUB },
+      metadata: { razorpaySubscriptionId: SUB, razorpayPaymentId: 'pay_norow' },
       createdAt: new Date(createdMs + 1000),
     });
     await expectUnresolved(u, 'rfnd_u6');
@@ -310,10 +304,9 @@ describe('unconfirmed paths: unresolved, no reversal, recordRefundSafely writes 
 });
 
 describe('(d) the context behind the backfill: confirmedPlanGrantUnits', () => {
-  const input = (u: mongoose.Types.ObjectId, at = createdMs) => ({
+  const input = (u: mongoose.Types.ObjectId) => ({
     userId: String(u),
-    razorpaySubscriptionId: SUB,
-    paymentCreatedAt: new Date(at),
+    razorpayPaymentId: 'pay_norow',
   });
 
   it('returns the ledger delta for exactly one match, not the current plan', async () => {
@@ -326,10 +319,10 @@ describe('(d) the context behind the backfill: confirmedPlanGrantUnits', () => {
     expect(await confirmedPlanGrantUnits(input(u))).toBe(40);
   });
 
-  it('returns null for none, two, out of window, a non-positive delta, a bad id', async () => {
+  it('returns null for none, two, another payment id, a non-positive delta, a bad id', async () => {
     const u = await seedPlanUser();
     expect(await confirmedPlanGrantUnits(input(u))).toBeNull();
-    await grant(u, new Date(createdMs + 73 * HOUR));
+    await grant(u, new Date(createdMs + 1000), { paymentId: 'pay_other' });
     expect(await confirmedPlanGrantUnits(input(u))).toBeNull();
     await ledger().deleteMany({});
     await grant(u, new Date(createdMs + 1000));
@@ -339,13 +332,11 @@ describe('(d) the context behind the backfill: confirmedPlanGrantUnits', () => {
     await grant(u, new Date(createdMs + 1000), { delta: 0 });
     expect(await confirmedPlanGrantUnits(input(u))).toBeNull();
     expect(await confirmedPlanGrantUnits({ ...input(u), userId: 'not-an-object-id' })).toBeNull();
-    expect(
-      await confirmedPlanGrantUnits({ ...input(u), paymentCreatedAt: new Date(NaN) }),
-    ).toBeNull();
+    expect(await confirmedPlanGrantUnits({ ...input(u), razorpayPaymentId: '' })).toBeNull();
   });
 });
 
-describe('(d) the attribution resolver the webhook and the backfill share (subscription_id)', () => {
+describe('(d) the attribution resolver the webhook and the backfill share (payment id)', () => {
   const entity = (status: string) => ({
     id: 'pay_ctx',
     amount: 79900,
@@ -356,7 +347,7 @@ describe('(d) the attribution resolver the webhook and the backfill share (subsc
 
   it('writes the ledger-confirmed Ink, not the current plan', async () => {
     const u = await seedPlanUser(40, 'pro_yearly');
-    await grant(u, new Date(createdMs + 1000), { delta: 40 });
+    await grant(u, new Date(createdMs + 1000), { delta: 40, paymentId: 'pay_ctx' });
     expect(await upsertPaymentFromEntity(entity('captured'))).toBe(true);
     expect(await payRow('pay_ctx')).toMatchObject({ kind: 'plan', inkUnits: 40 });
   });
@@ -366,15 +357,15 @@ describe('(d) the attribution resolver the webhook and the backfill share (subsc
     expect(await upsertPaymentFromEntity(entity('captured'))).toBe(true);
     expect(await payRow('pay_ctx')).toMatchObject({ kind: 'plan', inkUnits: 0 });
     await Payment.deleteMany({});
-    await grant(u, new Date(createdMs + 1000));
-    await grant(u, new Date(createdMs + 2000));
+    await grant(u, new Date(createdMs + 1000), { paymentId: 'pay_ctx' });
+    await grant(u, new Date(createdMs + 2000), { paymentId: 'pay_ctx' });
     expect(await upsertPaymentFromEntity(entity('captured'))).toBe(true);
     expect(await payRow('pay_ctx')).toMatchObject({ inkUnits: 0 });
   });
 
   it('a failed payment is never given Ink, even with a matching grant', async () => {
     const u = await seedPlanUser();
-    await grant(u, new Date(createdMs + 1000));
+    await grant(u, new Date(createdMs + 1000), { paymentId: 'pay_ctx' });
     expect(await upsertPaymentFromEntity(entity('failed'))).toBe(true);
     expect(await payRow('pay_ctx')).toMatchObject({ inkUnits: 0 });
   });
@@ -456,7 +447,7 @@ describe('(1) plan-charge Payment row inkUnits follows isNewCycle', () => {
     expect((await inkOf(u)).inkSub).toBe(PLAN_UNITS);
   });
 
-  describe('a refund of the 0-Ink row goes through the ledger confirmation', () => {
+  describe('a refund of the 0-Ink row goes through the ledger confirmation by payment id', () => {
     // Charge 1 grants (ledger sub_renewal row, written "now"); charge 2 is the lost claim.
     // The refund names charge 2 (row inkUnits 0), with a payment entity created at `at`.
     async function setup(secondChargeAt: string) {
@@ -475,58 +466,18 @@ describe('(1) plan-charge Payment row inkUnits follows isNewCycle', () => {
     }
     const refundOfN2 = (at: string) => refundOf('pay_n2', 'rfnd_n2', at);
 
-    it('ledger confirms (exactly one sub_renewal row in the window): reverses that row’s delta', async () => {
+    it('the grant is stamped with the winning charge (pay_n1), so the 0-Ink row n2 is unresolved: nothing reversed', async () => {
       const at = nowIso();
       const u = await setup(at);
+      // n2 lost the claim; the cycle's grant keeps n1's id (never overwritten).
+      expect(
+        await ledger().countDocuments({
+          reason: 'sub_renewal',
+          'metadata.razorpayPaymentId': 'pay_n1',
+        }),
+      ).toBe(1);
       const res = await webhook('refund.processed', refundOfN2(at));
       expect(res.status).toBe(200);
-      // OBSERVED: the single grant (written for charge 1) is the one row in charge 2's window,
-      // so the 0-Ink row's refund reverses the cycle's grant. Not an error, no Sentry.
-      expect(await ledger().findOne({ _id: 'refund:rfnd_n2' as never })).toMatchObject({
-        reason: 'refund_reversal',
-        state: 'done',
-        delta: -PLAN_UNITS,
-      });
-      expect((await inkOf(u)).inkSub ?? 0).toBe(0);
-      expect(Sentry.captureMessage).not.toHaveBeenCalled();
-      // OBSERVED: the row itself stays at inkUnits 0 (the confirmation is not written back),
-      // while inkReversedUnits records the 100 units taken back.
-      expect(await payRow('pay_n2')).toMatchObject({
-        status: 'refunded',
-        inkUnits: 0,
-        inkReversedUnits: PLAN_UNITS,
-      });
-      const shown = (await get(u)).body.payments.find(
-        (p: { referenceTail: string; status: string }) => p.status === 'refunded',
-      );
-      // OBSERVED: history shows 0 added and 0 taken back for this row (the view caps the
-      // reversed Ink at the row's own inkUnits), though the user's balance did drop by 100.
-      expect([shown.inkAddedInk, shown.inkReversedInk]).toEqual([0, 0]);
-    });
-
-    it('the same single grant is also reversible via the 0-Ink row AND the granting row (two refunds, one grant)', async () => {
-      const at = nowIso();
-      const u = await setup(at);
-      await webhook('refund.processed', refundOf('pay_n2', 'rfnd_n2', at));
-      await webhook('refund.processed', refundOf('pay_n1', 'rfnd_n1', at));
-      // OBSERVED: pay_n2 (0-Ink row) reversed the grant via the ledger match, then pay_n1
-      // (its own row, 100 units) is reversed again. Two reversals of ONE grant of 100 units:
-      // the second finds nothing left to take and is recorded as a shortfall.
-      const rows = await ledger().find({ reason: 'refund_reversal' }).sort({ _id: 1 }).toArray();
-      expect(rows.map((r) => [r._id, Math.abs(r.delta)])).toEqual([
-        ['refund:rfnd_n1', 0],
-        ['refund:rfnd_n2', PLAN_UNITS],
-      ]);
-      expect((await inkOf(u)).inkSub ?? 0).toBe(0);
-    });
-
-    it('ledger does not confirm (grant outside the 10 minute-before window): unresolved, nothing reversed', async () => {
-      const later = new Date(Date.now() + 2 * HOUR).toISOString();
-      const u = await setup(later);
-      const res = await webhook('refund.processed', refundOfN2(later));
-      expect(res.status).toBe(200);
-      // OBSERVED: the grant is 2 h before charge 2, outside the window; no reversal, the user
-      // keeps the Ink, a refund-ink-unresolved Sentry error is raised, and the row stays 0.
       expect(await reversals()).toBe(0);
       expect((await inkOf(u)).inkSub).toBe(PLAN_UNITS);
       expectUnresolvedReported('rfnd_n2', 'pay_n2');
@@ -535,6 +486,19 @@ describe('(1) plan-charge Payment row inkUnits follows isNewCycle', () => {
         inkUnits: 0,
         inkReversedUnits: 0,
       });
+    });
+
+    it('refunding the granting charge n1 reverses the grant', async () => {
+      const at = nowIso();
+      const u = await setup(at);
+      await webhook('refund.processed', refundOf('pay_n1', 'rfnd_n1', at));
+      expect(await ledger().findOne({ _id: 'refund:rfnd_n1' as never })).toMatchObject({
+        reason: 'refund_reversal',
+        state: 'done',
+        delta: -PLAN_UNITS,
+      });
+      expect((await inkOf(u)).inkSub ?? 0).toBe(0);
+      expect(Sentry.captureMessage).not.toHaveBeenCalled();
     });
   });
 });

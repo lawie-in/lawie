@@ -68,6 +68,27 @@ interface Granted {
   kind: 'plan' | 'topup';
   grantedUnits: number;
   amountPaise: number;
+  /**
+   * Arjun option B: the inkledger row that granted this Ink (the T-413 top-up claim
+   * `topup:<orderId>`, or the plan cycle's sub_renewal row), and its delta. Null when the
+   * grant row cannot be named (never guessed): then no per-grant cap applies.
+   */
+  grantLedgerId: string | null;
+  grantLedgerUnits: number | null;
+}
+
+type LedgerDoc = { _id: unknown } & Record<string, unknown>;
+
+/** The granted top-up claim for an order: `topup:<orderId>`, granted (not pending), delta > 0. */
+async function topupGrantRow(orderId: string): Promise<{ row: LedgerDoc; delta: number } | null> {
+  const db = mongoose.connection.db;
+  if (!orderId || !db) return null;
+  const claim = await db
+    .collection<{ _id: string } & Record<string, unknown>>('inkledger')
+    .findOne({ _id: topupClaimId(orderId) });
+  const delta = typeof claim?.delta === 'number' ? claim.delta : 0;
+  if (!claim || !claim.userId || delta <= 0 || claim.state === 'pending') return null;
+  return { row: claim, delta };
 }
 
 /** What the payment granted: its Payment row, else the T-413 top-up claim for its order. */
@@ -80,37 +101,65 @@ async function grantedFor(
       ? paymentEntity.amount
       : null;
   const row = await Payment.findOne({ razorpayPaymentId }).lean();
+  const orderId =
+    typeof paymentEntity?.order_id === 'string' && paymentEntity.order_id
+      ? paymentEntity.order_id
+      : (row?.razorpayOrderId ?? '');
   if (row && row.inkUnits > 0) {
+    // Name the grant row this payment's Ink came from, without guessing: a top-up's claim
+    // for its order; a plan charge's sub_renewal row carrying this payment id. A legacy plan
+    // grant has no payment id: no grant named, the row reverses as before (no cap).
+    let grantLedgerId: string | null = null;
+    let grantLedgerUnits: number | null = null;
+    if (row.kind === 'topup') {
+      const g = await topupGrantRow(row.razorpayOrderId ?? orderId);
+      if (g) {
+        grantLedgerId = String(g.row._id);
+        grantLedgerUnits = g.delta;
+      }
+    } else {
+      const g = await confirmedPlanGrantForPayment(
+        { ...(paymentEntity ?? {}), id: razorpayPaymentId },
+        {
+          userId: String(row.userId),
+          razorpaySubscriptionId: row.razorpaySubscriptionId ?? null,
+        },
+      );
+      if (g) {
+        grantLedgerId = g.grantLedgerId;
+        grantLedgerUnits = g.grantedUnits;
+      }
+    }
+    if (!grantLedgerId) {
+      logger.info(
+        { razorpayPaymentId, kind: row.kind },
+        'refund ink: grant row not identified; per-grant cap not applied',
+      );
+    }
     return {
       userId: String(row.userId),
       kind: row.kind,
       grantedUnits: row.inkUnits,
       amountPaise: row.amountPaise > 0 ? row.amountPaise : (entityAmount ?? 0),
+      grantLedgerId,
+      grantLedgerUnits,
     };
   }
-  const orderId =
-    typeof paymentEntity?.order_id === 'string' && paymentEntity.order_id
-      ? paymentEntity.order_id
-      : (row?.razorpayOrderId ?? '');
-  const db = mongoose.connection.db;
-  if (orderId && db) {
-    const claim = await db
-      .collection<{ _id: string } & Record<string, unknown>>('inkledger')
-      .findOne({ _id: topupClaimId(orderId) });
-    const delta = typeof claim?.delta === 'number' ? claim.delta : 0;
-    if (claim && claim.userId && delta > 0 && claim.state !== 'pending') {
-      return {
-        userId: String(claim.userId),
-        kind: 'topup',
-        grantedUnits: delta,
-        amountPaise: entityAmount ?? row?.amountPaise ?? 0,
-      };
-    }
+  const topup = await topupGrantRow(orderId);
+  if (topup) {
+    return {
+      userId: String(topup.row.userId),
+      kind: 'topup',
+      grantedUnits: topup.delta,
+      amountPaise: entityAmount ?? row?.amountPaise ?? 0,
+      grantLedgerId: String(topup.row._id),
+      grantLedgerUnits: topup.delta,
+    };
   }
   // No granted row and no top-up claim: a plan charge whose row was never written, or was
   // written with no Ink. Granted ONLY when the ledger confirms this cycle's grant
-  // (confirmedPlanGrantForPayment: the sub_renewal row for this user and subscription at this
-  // payment's time), and for the amount that row granted. Otherwise unresolved.
+  // (confirmedPlanGrantForPayment: the sub_renewal row for this user carrying THIS payment's
+  // id), and for the amount that row granted. Otherwise unresolved.
   if (paymentEntity && entityAmount && (!row || row.kind === 'plan')) {
     const confirmed = await confirmedPlanGrantForPayment(
       { ...paymentEntity, id: razorpayPaymentId },
@@ -118,7 +167,6 @@ async function grantedFor(
         ? {
             userId: String(row.userId),
             razorpaySubscriptionId: row.razorpaySubscriptionId ?? null,
-            createdAt: row.createdAt,
           }
         : {},
     );
@@ -128,10 +176,47 @@ async function grantedFor(
         kind: 'plan',
         grantedUnits: confirmed.grantedUnits,
         amountPaise: entityAmount,
+        grantLedgerId: confirmed.grantLedgerId,
+        grantLedgerUnits: confirmed.grantedUnits,
       };
     }
   }
   return null;
+}
+
+/**
+ * Arjun option B: units already reversed against one grant row, across ALL payments and
+ * refunds (done refund_reversal rows naming it in metadata.grantLedgerId), this refund
+ * excluded. Counts each row's dueUnits (what was charged against the grant), so a shortfall
+ * is not tried again through another payment row. userId first: the inkledger
+ * {userId: 1, createdAt: -1} index (T-519).
+ */
+async function reversedAgainstGrant(
+  userId: string,
+  grantLedgerId: string,
+  refundId: string,
+): Promise<number> {
+  const db = mongoose.connection.db;
+  if (!db || !mongoose.Types.ObjectId.isValid(userId)) return 0;
+  const rows = await db
+    .collection('inkledger')
+    .find(
+      {
+        userId: new mongoose.Types.ObjectId(userId),
+        reason: REFUND_REVERSAL_REASON,
+        state: 'done',
+        'metadata.grantLedgerId': grantLedgerId,
+        'metadata.refundId': { $ne: refundId },
+      },
+      { projection: { metadata: 1 } },
+    )
+    .toArray();
+  let units = 0;
+  for (const r of rows) {
+    const m = (r.metadata ?? {}) as Record<string, unknown>;
+    if (typeof m.dueUnits === 'number' && m.dueUnits > 0) units += m.dueUnits;
+  }
+  return units;
 }
 
 /** Refunds and dues already reversed for this payment (done rows, other refunds). */
@@ -171,6 +256,7 @@ export type RefundInkOutcome =
   | 'already_reversed'
   | 'nothing_due'
   | 'unresolved'
+  | 'grant_already_reversed'
   | 'stale_claim'
   | 'user_not_found';
 
@@ -192,13 +278,31 @@ export async function reverseInkForRefund(input: {
   }
 
   const prior = await priorReversals(razorpayPaymentId, refundId, granted.userId);
-  const dueUnits = refundDueUnits({
+  const proRataUnits = refundDueUnits({
     grantedUnits: granted.grantedUnits,
     amountPaise: granted.amountPaise,
     refundPaise,
     prevRefundPaise: prior.refundPaise,
     prevDueUnits: prior.dueUnits,
   });
+
+  // Arjun option B: one grant is reversed at most once in total, whichever payment row
+  // claims it. due = min(pro rata for this payment, granted − alreadyReversed for the grant).
+  let dueUnits = proRataUnits;
+  if (granted.grantLedgerId) {
+    const grantUnits = granted.grantLedgerUnits ?? granted.grantedUnits;
+    const already = await reversedAgainstGrant(granted.userId, granted.grantLedgerId, refundId);
+    const remaining = Math.max(0, grantUnits - already);
+    if (remaining === 0) {
+      // Expected (another payment row already took this grant back): no debit, no Sentry.
+      logger.info(
+        { ...ids, grantLedgerId: granted.grantLedgerId },
+        'refund ink: grant already fully reversed; nothing debited',
+      );
+      return 'grant_already_reversed';
+    }
+    dueUnits = Math.min(proRataUnits, remaining);
+  }
 
   const result = await reverseRefundInk({
     userId: granted.userId,
@@ -207,6 +311,9 @@ export async function reverseInkForRefund(input: {
     refundPaise,
     dueUnits,
     preferBucket: granted.kind === 'topup' ? 'topup' : 'sub',
+    ...(granted.grantLedgerId
+      ? { grant: { ledgerId: granted.grantLedgerId, paymentId: razorpayPaymentId } }
+      : {}),
   });
 
   switch (result.status) {

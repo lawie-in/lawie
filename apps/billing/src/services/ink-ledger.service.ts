@@ -288,6 +288,18 @@ export async function grantSubscriptionInk(input: {
   planRenewsAt?: Date;
   razorpaySubscriptionId?: string;
   amountInr?: number;
+  /**
+   * T-646 (Arjun final, 3b): the charge that won this cycle's claim. Stored as
+   * metadata.razorpayPaymentId so a refund of THAT charge (and only it) can find this grant.
+   */
+  razorpayPaymentId?: string;
+  /**
+   * T-646 (Arjun, 3b g): the cycle key the claim used, so a lost-claim charge can find THIS
+   * cycle's grant row: Razorpay paid_count, else current_start. metadata.paidCount /
+   * metadata.periodStart.
+   */
+  paidCount?: number;
+  periodStart?: Date;
 }): Promise<number> {
   const {
     userId,
@@ -297,6 +309,9 @@ export async function grantSubscriptionInk(input: {
     planRenewsAt,
     razorpaySubscriptionId,
     amountInr,
+    razorpayPaymentId,
+    paidCount,
+    periodStart,
   } = input;
 
   if (!mongoose.Types.ObjectId.isValid(userId)) return 0;
@@ -328,7 +343,15 @@ export async function grantSubscriptionInk(input: {
     sourceBucket: 'sub',
     balanceAfter: totalAfter,
     reference: `${planTier} ${billingCycle} renewal`,
-    metadata: { razorpaySubscriptionId, amountInr, planTier, billingCycle },
+    metadata: {
+      razorpaySubscriptionId,
+      amountInr,
+      planTier,
+      billingCycle,
+      ...(razorpayPaymentId ? { razorpayPaymentId } : {}),
+      ...(typeof paidCount === 'number' ? { paidCount } : {}),
+      ...(periodStart ? { periodStart } : {}),
+    },
     createdAt: new Date(),
   });
 
@@ -908,8 +931,16 @@ export async function reverseRefundInk(input: {
   refundPaise: number;
   dueUnits: number;
   preferBucket: 'sub' | 'topup';
+  /**
+   * Arjun option B (round 3b): the inkledger row this refund reverses against, and the
+   * payment that resolved to it. Written to metadata.grantLedgerId / metadata.grantPaymentId.
+   */
+  grant?: { ledgerId: string; paymentId: string };
 }): Promise<RefundReversalResult> {
   const { userId, refundId, razorpayPaymentId, refundPaise, preferBucket } = input;
+  const grantMeta = input.grant
+    ? { grantLedgerId: input.grant.ledgerId, grantPaymentId: input.grant.paymentId }
+    : {};
   const dueUnits = Math.max(0, Math.floor(input.dueUnits));
   if (!mongoose.Types.ObjectId.isValid(userId)) return { status: 'user_not_found' };
   const oid = new mongoose.Types.ObjectId(userId);
@@ -933,7 +964,7 @@ export async function reverseRefundInk(input: {
       reason: REFUND_REVERSAL_REASON,
       sourceBucket: BUCKET_OF[order[0]],
       reference: razorpayPaymentId,
-      metadata: { razorpayPaymentId, refundId, refundPaise, dueUnits },
+      metadata: { razorpayPaymentId, refundId, refundPaise, dueUnits, ...grantMeta },
       state: 'pending',
       claimedAt: new Date(),
       claimToken,
@@ -1041,6 +1072,7 @@ export async function reverseRefundInk(input: {
               refundId,
               refundPaise,
               dueUnits,
+              ...grantMeta,
               debitedUnits,
               shortfallUnits,
               buckets: {

@@ -75,6 +75,11 @@ export interface PaymentRow {
   inkAddedInk: number | null;
   /** Ink a refund took back; null when billing did not send it (then not shown). */
   inkReversedInk: number | null;
+  /**
+   * AJ-646-M10a (b8271c41): true only when billing's ledger links the reversed grant to THIS
+   * payment. Exactly `true` counts; missing or anything else is false.
+   */
+  inkReversalLinked: boolean;
   referenceTail: string;
   invoiceId: string | null;
   concern: PaymentConcern | null;
@@ -110,6 +115,7 @@ export function parsePayments(body: unknown): PaymentRow[] | null {
       inkDelta: isNum(r.inkDelta) ? r.inkDelta : 0,
       inkAddedInk: isNum(r.inkAddedInk) ? r.inkAddedInk : null,
       inkReversedInk: isNum(r.inkReversedInk) ? r.inkReversedInk : null,
+      inkReversalLinked: r.inkReversalLinked === true,
       referenceTail: r.referenceTail,
       invoiceId: typeof r.invoiceId === 'string' && r.invoiceId ? r.invoiceId : null,
       concern: parseConcern(r.concern),
@@ -138,8 +144,10 @@ export function concernChip(status: string): { variant: ChipVariant; label: stri
 /**
  * VIKRAM §3: the Ink lines under the purpose. Line 1: "+{added} Ink" (or the net inkDelta when
  * billing did not send inkAddedInk). Line 2, refunded / partly refunded rows with
- * inkReversedInk > 0 only: "−{n} Ink removed for the refund" (AJ-646-M10, 5c2db598), n clamped to the Ink
- * added when both are known. A fully refunded top-up shows both.
+ * inkReversedInk > 0 only: "−{n} Ink removed for the refund" (AJ-646-M10, 5c2db598). When the
+ * reversal is ledger-linked to this payment (AJ-646-M10a, b8271c41), n is the Ink actually
+ * reversed, even above the added figure (with added 0 only this line shows). Otherwise n is
+ * clamped to the Ink added when both are known (M10). A fully refunded top-up shows both.
  */
 export function inkLines(row: PaymentRow): string[] {
   const lines: string[] = [];
@@ -150,9 +158,13 @@ export function inkLines(row: PaymentRow): string[] {
   }
   const refunded = row.status === 'refunded' || row.status === 'partly_refunded';
   if (refunded && row.inkReversedInk !== null && row.inkReversedInk > 0) {
-    // AJ-646-M10 (5c2db598): never more than was added (when both are known).
-    const shown =
-      row.inkAddedInk !== null ? Math.min(row.inkReversedInk, row.inkAddedInk) : row.inkReversedInk;
+    // AJ-646-M10a (b8271c41): a ledger-linked reversal shows the Ink actually reversed, uncapped.
+    // Otherwise AJ-646-M10 (5c2db598): never more than was added (when both are known).
+    const shown = row.inkReversalLinked
+      ? row.inkReversedInk
+      : row.inkAddedInk !== null
+        ? Math.min(row.inkReversedInk, row.inkAddedInk)
+        : row.inkReversedInk;
     if (shown > 0) lines.push(PAYMENT_COPY.inkTakenBack(formatInk(shown)));
   }
   return lines;

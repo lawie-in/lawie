@@ -471,6 +471,45 @@ describe('labels: Ajay M8 test grant, refund reversal, plan changes', () => {
     expect(e[2].balanceAfter).toBe(2);
   });
 
+  it('AJ-646-M10c: a linked refund of a 0-Ink payment shows the Refund row with the full -n reversed', async () => {
+    // The plan grant (100 units = 50 Ink) was won by a charge whose own Payment row says 0 Ink;
+    // the refund of that charge reverses the whole grant against the named grant row.
+    await seedUser({ inkSub: 0 });
+    await seedRows([
+      {
+        delta: 100,
+        reason: 'sub_renewal',
+        sourceBucket: 'sub',
+        at: daysAgo(3),
+        metadata: { razorpayPaymentId: 'pay_zero_ink' },
+      },
+      {
+        delta: -100,
+        reason: 'refund_reversal',
+        sourceBucket: 'sub',
+        at: daysAgo(1),
+        metadata: {
+          razorpayPaymentId: 'pay_zero_ink',
+          refundId: 'rfnd_zero_ink',
+          dueUnits: 100,
+          grantLedgerId: 'led_grant_1',
+          grantPaymentId: 'pay_zero_ink',
+          buckets: { sub: 100, annual_carry: 0, topup: 0 },
+        },
+      },
+    ]);
+    const e = (await get()).body.entries;
+    expect(e[0]).toMatchObject({
+      kind: 'refund_reversal',
+      label: 'refund_reversal',
+      inkDelta: -50,
+      balanceAfter: 0,
+    });
+    expect(e[1]).toMatchObject({ inkDelta: 50, balanceAfter: 50 });
+    // Ids from the billing metadata never reach the customer's history.
+    expect(JSON.stringify(e)).not.toMatch(/pay_zero_ink|rfnd_zero_ink|led_grant_1/);
+  });
+
   it('a pending refund reversal (delta 0) is not shown', async () => {
     await seedUser({ inkTopup: 4 });
     await seedRows([
