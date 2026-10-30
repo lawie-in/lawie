@@ -134,3 +134,10 @@ Grant: `ai.service.ts` is added to Vishal's T-685 files for the hooks parameter 
 6. **Failed Generation usage = the orchestrator's own call count** on cap/fail-safe — yes; set `usageSource: 'estimated'` on that row.
 
 **`confirm` reset on input-hash change: confirmed.** Under the same `runId`, when the hash of (ledger version, pack id, quote inputs) differs from the stored one, `resetSteps` clears every non-intake output and resets `capBasePaise`/`capPaise`, as the new-`runId` path does (§12.3). An old draft never replays against new facts. Add the test `confirm-hash-change-resets-steps`.
+
+## 15. Tester's two design points at d3c30eef (Arjun, 30 Oct 2026) — both block merge
+
+1. **A `capped` run stays capped.** On resume of a run whose status is `capped` (or `failed` by cap), the orchestrator refuses **before taking a hold**: same `event: error`, `code: 'cost_cap'`, `retryable: false`, no Ink movement, no model call. Replay never turns a capped run into a delivered one; §8's "nothing was charged" must stay true. The way out for the user is a new run: the web clears `run_id` after a non-retryable error — that is a logic-only web change with no screen change, filed as **T-685b** (Priya), not in this ticket. Test: `capped-run-refuses-on-resume`.
+2. **Verify runs on a v3-only intake.** Skipping the verifier because no v2 ledger doc was read is a skipped check (Ajay's condition, §13) and a regression of T-611; not acceptable. The route/orchestrator hands verify the facts from `factsForGeneration` in the shape the verifier takes today (T-682 condition 6 makes the two byte-equal); the adaptation lives in `documents.routes.ts`/`v3/orchestrator.ts`, never in the legal files. Stages for such an intake are then draft, verify, repair.N as needed, render, done. Test: `v3-only-intake-runs-verify`.
+
+`repair.2` with no route-level test (a v3 ledger turns two held addresses into a conflict): accepted for P1 with the unit-tested mapping; note it in the doc-writer's gaps list.
