@@ -23,3 +23,8 @@ Status: ASSIGNED kunal 30 Oct 2026 (P1, full chain, legal). Was: backlog. Raised
 2. No Annexure B for: written_statement, replication, counter_affidavit, rejoinder_affidavit, memo_of_parties, list_of_dates, synopsis, vakalatnama, affidavit_identity, affidavit_in_support, production_of_documents. A pack with no side row gets B only if rule 3 holds.
 3. B only for high_court, high_court_bench and supreme_court. Unknown or missing court: no B.
 4. Renumber with no gap, and build the index annexure from the same list so the letters always match.
+
+## Ajay AJ-689c-b (2e9c765d), 30 Oct 2026
+1. "No gap" also covers the advocate-annexed index rows and the serial numbers.
+2. A respondent-side client blocks Annexure B (the side row names the respondent or opposite party). With no side info, the deny list and the court list decide.
+3. Golden snapshots: the High Court cases get a pack id and court type and keep their Synopsis. Only the trial-court snapshots change, hand-edited per golden-snapshots.md. Ajay sees the full diff; only "B removed" or "letters closing up" changes are allowed.
