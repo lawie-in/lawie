@@ -1,6 +1,6 @@
 # T-707: Drafting still works after the Ink balance goes negative
 
-Status: UNCONFIRMED, P1 (downgraded from P0 by Arjun, 30 Oct 2026 17:27 UTC). Anushka did not observe or report it: the smoke account never went below 10 Ink. Waiting on the founder to name the account or the symptom. Meanwhile: Arjun's code check of the hold/settle path, and Anushka's live zero-balance test after the v1.3.1 deploy. Was: P0, open. Raised 30 Oct 2026 by Priya from the founder (Anushka reported it from prod during the model-grid test). Arjun decides who fixes it; it is a money leak.
+Status: CLOSED, not observed. The founder, 30 Oct 2026: "My bad, no negative case I saw." Arjun's audit found no path to draft at a negative balance. The real holes it found are tracked in T-707a and T-707b. Was: UNCONFIRMED, P1 (downgraded from P0 by Arjun, 30 Oct 2026 17:27 UTC). Anushka did not observe or report it: the smoke account never went below 10 Ink. Waiting on the founder to name the account or the symptom. Meanwhile: Arjun's code check of the hold/settle path, and Anushka's live zero-balance test after the v1.3.1 deploy. Was: P0, open. Raised 30 Oct 2026 by Priya from the founder (Anushka reported it from prod during the model-grid test). Arjun decides who fixes it; it is a money leak.
 
 On prod, the app kept drafting after the account's Ink balance went below zero. A user can draft without paying.
 
