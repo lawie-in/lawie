@@ -164,11 +164,12 @@ describe('AC1 run document: open is idempotent', () => {
       capBasePaise: 0,
       round: 0,
       settled: false,
-      extractorCalls: 0,
-      extractorDegraded: false,
       runType: 'user',
       schemaVersion: 1,
     });
+    // §14.1: the Extractor's counts are not copied; the fields stay unset.
+    expect(run.extractorCalls).toBeUndefined();
+    expect(run.extractorDegraded).toBeUndefined();
     expect(run.step).toBeUndefined();
     expect(run.outputs).toEqual({});
     expect(run.attempts).toEqual([]);
