@@ -70,3 +70,14 @@ Concern state on the row: a `ui/Chip`: `[Concern: open]` warn, `[Concern: resolv
 4. Ink rows show titles only, the running balance matches the ledger (test), credits in Moss text.
 5. Concern dialog: reason required, note required only for Something else, 500-char cap, success toast, state chip on the row, no second open concern.
 6. 360: no horizontal scroll, amounts and references never wrap, 44px targets.
+
+## Round 3 — Arjun's review (two-strike rule), 30 Oct 2026, branch 8b59a4c1
+
+Rounds 1 and 2 failed on provenance (unrecorded Ajay rulings, since recorded at c5c2b222 and 5c2db598), not on code. Round 3 added the ledger-confirmed plan-grant rule in `grantedFor` and AJ-646-M11's conditions. Ajay: AJ-646-BC PASS at 8b59a4c1 (51a9ea0c). Claim scope checked by Arjun: every changed file is in the shashank row or Priya's extension; no legal-content path touched.
+
+**Arjun's reviewer: VERDICT pass**, no must-fix, two should-fixes. Arjun raises them to conditions of merge because they touch money; both are small:
+1. `subscription.service.ts` ~2749–2755: `recordPaymentSafely` gets `inkUnits: planSku.inkPerCycle * 2` on every branch, including the lost-claim (`planSku && !isNewCycle`) and paid_count-0 branches. A different payment id landing there would record a full grant that never happened, and `refund-ink.service.ts:83` trusts a row with `inkUnits > 0` before it checks the ledger. Fix: `inkUnits: planSku && isNewCycle ? planSku.inkPerCycle * 2 : 0`. Test: a second charge on an already-granted cycle → row inkUnits 0; its refund goes through the ledger confirmation.
+2. `refund-ink.service.ts` `priorReversals` and `payment-record.service.ts` `reversedUnitsForPayment` query `inkledger` by `{reason, state, metadata.razorpayPaymentId}` with no `userId` — correct, but an unindexed full scan on every refund webhook. Fix: add `userId` to both filters (uses the existing `{userId, createdAt}` index).
+3. Check only: whether `issueCreditNoteOnRefund` (T-436) can throw and block `reverseInkForRefund` in the same handler. If it can, isolate it (catch + Sentry, ids only) so the Ink reversal still runs (Vikram §5: the reversal rides the same refund event).
+Then: fresh tester, Arjun's reviewer re-checks the delta, Ajay gets the new SHA (strings unchanged), Priya's slot, merge. The `.env.example` SUPPORT_NOTIFY_EMAIL line remains the founder's and gates the merge (t543 in web sanity).
+Noted, not required: the dead `|| isFixtureUser` clause in drafting ink-history (unreachable; harmless); a pending refund_reversal row makes the drafting walk-back off by that debit until it is marked done.
