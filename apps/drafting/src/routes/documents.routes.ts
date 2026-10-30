@@ -82,7 +82,7 @@ import {
   unitsFromInk,
   wasInkSettled,
 } from '../services/credits.service';
-import { docTypeLabelFor } from '../services/doc-type-label';
+import { docTypeLabelFor, docTypeLabelForPackId } from '../services/doc-type-label';
 import { eraseDocument } from '../services/document-erase.service';
 import { packOptionIds, skeletonValueLists, skeletonWhenHolds } from '../services/draft-renderer';
 import {
@@ -847,17 +847,32 @@ router.get('/', authenticate, async (req: Request, res: Response): Promise<void>
     isDeleted: { $ne: true },
     ...NOT_FIXTURE,
   })
-    .select('title docType courtName status createdAt')
+    .select('title docType courtName status createdAt rulePackId')
     .sort({ createdAt: -1 })
     .limit(50)
     .lean();
 
   // T-674 AC3 (R4): courtName may hold a court id; the screen gets courtLabel.
   const labels = await resolveCourtLabels(docs.map((d) => d.courtName));
+  // T-689b: the pack's name for the type, as GET /:id gives it; null (guided, no
+  // pack, unreadable pack) and the screen falls back to the humanised docType.
+  // One lookup per distinct rulePackId; rulePackId itself is not sent.
+  const typeLabels = new Map<string, string | null>();
+  const typeLabelFor = (id: unknown): string | null => {
+    if (typeof id !== 'string') return null;
+    if (!typeLabels.has(id)) typeLabels.set(id, docTypeLabelForPackId(id));
+    return typeLabels.get(id) ?? null;
+  };
   res.json({
-    documents: docs.map((d) => {
+    documents: docs.map(({ rulePackId, ...d }) => {
       const courtLabel = labels.get(String(d.courtName ?? '')) ?? '';
-      return { ...d, title: displayTitle(d.title, d.courtName, courtLabel), courtLabel };
+      const docTypeLabel = typeLabelFor(rulePackId);
+      return {
+        ...d,
+        title: displayTitle(d.title, d.courtName, courtLabel),
+        courtLabel,
+        docTypeLabel,
+      };
     }),
   });
 });

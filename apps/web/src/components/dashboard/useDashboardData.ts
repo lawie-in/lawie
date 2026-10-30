@@ -70,8 +70,25 @@ function useLoadable<T>(load: () => Promise<T>): Loadable<T> {
 export interface DashboardSummary {
   draftsThisMonth: number;
   byType: Record<string, number>;
+  /** T-689b: by screen label; absent from an older server (the tile then uses byType). */
+  byTypeLabelled?: Array<{ key: string; label: string; n: number }>;
   statusCounts: { draft: number; finalised: number; exported: number };
   inkUsedThisMonth: number;
+}
+
+/** T-689b: the well-formed byTypeLabelled rows, or undefined when there are none. */
+function parseByTypeLabelled(v: unknown): DashboardSummary['byTypeLabelled'] {
+  if (!Array.isArray(v)) return undefined;
+  const rows: NonNullable<DashboardSummary['byTypeLabelled']> = [];
+  for (const r of v) {
+    if (!isRecord(r)) continue;
+    const n = count(r.n);
+    if (typeof r.key !== 'string' || r.key === '') continue;
+    if (typeof r.label !== 'string' || r.label.trim() === '') continue;
+    if (n === null || n <= 0) continue;
+    rows.push({ key: r.key, label: r.label, n });
+  }
+  return rows.length > 0 ? rows : undefined;
 }
 
 function count(v: unknown): number | null {
@@ -98,9 +115,11 @@ export function parseDashboardSummary(body: unknown): DashboardSummary | null {
     const n = count(v);
     if (k && n !== null && n > 0) byType[k] = n;
   }
+  const byTypeLabelled = parseByTypeLabelled(body.byTypeLabelled);
   return {
     draftsThisMonth: drafts,
     byType,
+    ...(byTypeLabelled ? { byTypeLabelled } : {}),
     statusCounts: { draft, finalised, exported },
     inkUsedThisMonth: inkUsed,
   };
