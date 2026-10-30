@@ -106,6 +106,21 @@ export async function primeConfigWarnings(): Promise<string[]> {
       }
     }
   }
+  // T-685 (answers §7): optional, so an info line only when unset, never a config warning.
+  // The logger is loaded here, not at the top: scripts import this module without the service env.
+  try {
+    await getAppSetting(APP_SETTING_KEYS.COST_CAP_PAISE_PER_INK);
+  } catch (err) {
+    if (err instanceof AppSettingMissingError) {
+      const { default: logger } = await import('../config/logger').catch(() => ({
+        default: null,
+      }));
+      logger?.info(
+        { setting: APP_SETTING_KEYS.COST_CAP_PAISE_PER_INK },
+        'Optional AppSetting is not configured; using default 900',
+      );
+    }
+  }
   return getConfigWarnings();
 }
 
@@ -274,6 +289,13 @@ export const APP_SETTING_KEYS = {
    * (credits.service quoteDraft), never a failed draft.
    */
   PARAGRAPH_BANDS_PREFIX: 'pricing.paragraph_bands',
+  /**
+   * T-685 (ADR-drafting-v3 §4, Vikram; Arjun, T-685 answers §7): the v3 run's
+   * cost cap in paise per Ink quoted; cap = value × Ink quoted. Optional: a
+   * missing or invalid value falls back to the code default 900 in
+   * v3/run.service.ts (getCostCapPaisePerInk), never a failed draft.
+   */
+  COST_CAP_PAISE_PER_INK: 'ai.cost_cap_paise_per_ink',
 } as const;
 
 // ── T-684: model and effort per role (ADR-drafting-v3 §3, §4) ───────────────

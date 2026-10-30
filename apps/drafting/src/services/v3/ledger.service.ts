@@ -43,7 +43,6 @@ import {
   type IFactLedgerV3Version,
 } from '../../models/FactLedgerV3.model';
 import { decrypt, encrypt } from '../../utils/encryption';
-import { AppSettingMissingError, getAppSetting } from '../app-settings.service';
 import {
   ARREST_DATE_KEY,
   CUSTODY_CHOICE_KEY,
@@ -84,30 +83,18 @@ import type {
   LedgerVersionReason,
   NonAnswer,
 } from './ledger.types';
+import { v3Stage } from './stage';
 
 // ── The switch ──────────────────────────────────────────────────────────────
+//
+// T-685 (answers §4): one stage reader, v3/stage.ts (one cache, the fixture
+// override everywhere). The T-682 reader that stood here is retired.
 
-export const DRAFTING_V3_STAGE_SETTING = 'feature.drafting_v3_stage';
+export { DRAFTING_V3_STAGE_SETTING, v3Stage } from './stage';
 
-/**
- * The v3 stage (0 = off). A missing setting, a value that is not a whole
- * number ≥ 0, or a read error is 0: fail closed, v2 runs. Never throws.
- */
-export async function draftingV3Stage(): Promise<number> {
-  try {
-    const raw = (await getAppSetting(DRAFTING_V3_STAGE_SETTING)).trim();
-    return /^\d+$/.test(raw) ? Number(raw) : 0;
-  } catch (err) {
-    if (!(err instanceof AppSettingMissingError)) {
-      logger.warn({ setting: DRAFTING_V3_STAGE_SETTING }, 'T-682: v3 stage unreadable; off');
-    }
-    return 0;
-  }
-}
-
-/** True when the v3 ledger is on (stage ≥ 1). */
-export async function isLedgerV3On(): Promise<boolean> {
-  return (await draftingV3Stage()) >= 1;
+/** True when the v3 ledger is on for this user (stage ≥ 1). Never throws. */
+export async function isLedgerV3On(userId: string | undefined): Promise<boolean> {
+  return (await v3Stage(userId)) >= 1;
 }
 
 // ── Limits and errors ───────────────────────────────────────────────────────
