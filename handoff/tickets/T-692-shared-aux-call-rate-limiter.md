@@ -23,3 +23,5 @@ Files are granted after Explore.
 - Redis down: **fail-open, degraded** — the limiter logs `aux_limiter_degraded` once per minute and lets calls through with the per-process concurrency cap only (in memory). Aux calls are not billed to the user, so an outage must not block intake; the body stage keeps its own Ink/cost-cap guards, which fail closed.
 - Over-limit response: 429 JSON `{ error: 'busy', retry_after_ms }` on intake routes; never a 503 (the T-616 refresh limiter's fail-closed rule is for auth, not here).
 - Tests: concurrency cap holds under 20 parallel calls; per-user counter resets; Redis-down path logs once and passes; 429 backoff then degrade; body calls untouched.
+
+- The per-run limit reads the run from apps/drafting/src/services/run-context.ts (T-681a, Arjun 30 Oct). Never add a second AsyncLocalStorage.
