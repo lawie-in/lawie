@@ -79,31 +79,96 @@ const NAMED_EXCEPTIONS_SIGNED_TYPES: readonly string[] = [
  * fails the test until someone decides which list it belongs to.
  */
 const NAMED_EXCEPTIONS_UNSIGNED_TYPES: readonly string[] = [
-  'affidavit_identity', 'affidavit_in_support', 'aoa', 'bail_cancellation', 'cat_oa',
-  'certiorari', 'condonation_of_delay', 'consumer_complaint', 'counter_affidavit',
-  'criminal_appeal', 'criminal_revision', 'curative_petition', 'discharge_application',
-  'distribution_agreement', 'divorce_hma', 'divorce_mutual_consent', 'divorce_sma',
-  'dv_act_complaint', 'employment_agreement', 'fir_quashing', 'founders_agreement',
-  'franchise_agreement', 'gift_deed', 'gpa', 'guardianship_petition', 'habeas_corpus',
-  'ibc_application', 'interim_application', 'itat_appeal', 'joint_development_agreement',
-  'judicial_separation', 'lease_deed', 'legal_notice_breach_of_contract',
-  'legal_notice_consumer_deficiency', 'legal_notice_copyright_infringement',
-  'legal_notice_defamation', 'legal_notice_eviction', 'legal_notice_s138', 'legal_notice_s80',
-  'legal_notice_trademark_infringement', 'license_agreement', 'list_of_dates', 'loan_agreement',
-  'mact_claim', 'maintenance_bnss_144', 'mandamus', 'memo_of_parties', 'moa', 'mortgage_deed',
-  'mou', 'nda', 'partition_deed', 'pil', 'posh_complaint', 'quashing_528_bnss', 'quo_warranto',
-  'rcr_petition', 'rejoinder_affidavit', 'release_deed', 'rent_agreement', 'replication',
-  'rera_complaint', 'restoration_application', 'review_petition', 'sale_deed',
-  'service_agreement', 'shareholders_agreement', 'slp', 'spa', 'surrender_application',
-  'suspension_of_sentence', 'synopsis', 'vakalatnama', 'will', 'writ_petition_civil',
-  'writ_petition_criminal', 'written_statement',
+  'affidavit_identity',
+  'affidavit_in_support',
+  'aoa',
+  'bail_cancellation',
+  'cat_oa',
+  'certiorari',
+  'condonation_of_delay',
+  'consumer_complaint',
+  'counter_affidavit',
+  'criminal_appeal',
+  'criminal_revision',
+  'curative_petition',
+  'discharge_application',
+  'distribution_agreement',
+  'divorce_hma',
+  'divorce_mutual_consent',
+  'divorce_sma',
+  'dv_act_complaint',
+  'employment_agreement',
+  'fir_quashing',
+  'founders_agreement',
+  'franchise_agreement',
+  'gift_deed',
+  'gpa',
+  'guardianship_petition',
+  'habeas_corpus',
+  'ibc_application',
+  'interim_application',
+  'itat_appeal',
+  'joint_development_agreement',
+  'judicial_separation',
+  'lease_deed',
+  'legal_notice_breach_of_contract',
+  'legal_notice_consumer_deficiency',
+  'legal_notice_copyright_infringement',
+  'legal_notice_defamation',
+  'legal_notice_eviction',
+  'legal_notice_s138',
+  'legal_notice_s80',
+  'legal_notice_trademark_infringement',
+  'license_agreement',
+  'list_of_dates',
+  'loan_agreement',
+  'mact_claim',
+  'maintenance_bnss_144',
+  'mandamus',
+  'memo_of_parties',
+  'moa',
+  'mortgage_deed',
+  'mou',
+  'nda',
+  'partition_deed',
+  'pil',
+  'posh_complaint',
+  'quashing_528_bnss',
+  'quo_warranto',
+  'rcr_petition',
+  'rejoinder_affidavit',
+  'release_deed',
+  'rent_agreement',
+  'replication',
+  'rera_complaint',
+  'restoration_application',
+  'review_petition',
+  'sale_deed',
+  'service_agreement',
+  'shareholders_agreement',
+  'slp',
+  'spa',
+  'surrender_application',
+  'suspension_of_sentence',
+  'synopsis',
+  'vakalatnama',
+  'will',
+  'writ_petition_civil',
+  'writ_petition_criminal',
+  'written_statement',
   // AJ-2026-10-07-T149-types: either party files these, so Ajay removed them from the
   // signed list. They keep today's labels.
-  'amendment_of_pleadings', 'production_of_documents', 'receiver_appointment',
+  'amendment_of_pleadings',
+  'production_of_documents',
+  'receiver_appointment',
 ];
 
 /** AJ-2026-10-07-T149-types: removed from the signed list, keep today's labels. */
-const AJAY_REMOVED_TYPES = ['amendment_of_pleadings', 'production_of_documents', 'receiver_appointment'];
+const AJAY_REMOVED_TYPES = [
+  'amendment_of_pleadings',
+  'production_of_documents',
+  'receiver_appointment',
+];
 
 const PLAINT_AND_O39 = SIGNED_DOCUMENT_TYPES.filter(
   (t) => t.startsWith('plaint_') || t === 'temporary_injunction_o39',
@@ -191,13 +256,16 @@ describe('T-149 criterion 3: no choice string in a printed label of a signed typ
     expect(unsigned).toEqual([...NAMED_EXCEPTIONS_UNSIGNED_TYPES].sort());
   });
 
-  it.each(AJAY_REMOVED_TYPES)('%s (AJ-2026-10-07-T149-types): not signed, keeps today UP and Delhi party_designation', (t) => {
-    expect(SIGNED_DOCUMENT_TYPES).not.toContain(t);
-    for (const ref of ['up_district', 'delhi_district']) {
-      const courtRule = loadCourtRule(ref)!;
-      expect(partyDesignationFor(courtRule, t)).toBe(courtRule.party_designation);
-    }
-  });
+  it.each(AJAY_REMOVED_TYPES)(
+    '%s (AJ-2026-10-07-T149-types): not signed, keeps today UP and Delhi party_designation',
+    (t) => {
+      expect(SIGNED_DOCUMENT_TYPES).not.toContain(t);
+      for (const ref of ['up_district', 'delhi_district']) {
+        const courtRule = loadCourtRule(ref)!;
+        expect(partyDesignationFor(courtRule, t)).toBe(courtRule.party_designation);
+      }
+    },
+  );
 
   it('unsigned types in UP and Delhi keep the court rule labels as today (named exception)', () => {
     for (const ref of ['up_district', 'delhi_district']) {
@@ -318,7 +386,10 @@ describe("T-149 criterion 5: Anushka's scenario 3, regular bail, Sessions Court 
   });
 
   it('the brief path is fed the same labels (helper that streamGenerateFromBrief uses)', () => {
-    const lines = drafterPartyDesignationLines(courtDataFor('up_district').courtRule, 'bail_regular');
+    const lines = drafterPartyDesignationLines(
+      courtDataFor('up_district').courtRule,
+      'bail_regular',
+    );
     expect(lines).toContain('Party designation, petitioner: "Applicant"');
     expect(lines).toContain('Party designation, respondent: "Opposite Party"');
     expect(lines.join('\n')).not.toMatch(CHOICE);
@@ -346,8 +417,10 @@ describe("T-149 criterion 5: Anushka's scenario 3, regular bail, Sessions Court 
     expect(bail).toContain('Opposite Party');
     expect(bail).not.toMatch(/\(civil\)|\(criminal\)/);
 
-    // An unsigned type keeps today's behaviour (named exception).
+    // An unsigned type takes the court rule's label, but never the slash pair (T-700,
+    // AJ-700-BC (3)): criminal_revision is a criminal pack, so it prints "Opposite Party".
     const unsigned = await memo('criminal_revision');
-    expect(unsigned).toMatch(/\(civil\)|\(criminal\)/);
+    expect(unsigned).toContain('Opposite Party');
+    expect(unsigned).not.toMatch(/\(civil\)|\(criminal\)/);
   });
 });

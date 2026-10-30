@@ -364,7 +364,8 @@ describe('T-311 annexures (Memo of Parties and Vakalatnama)', () => {
       PROFILE_NUM,
     );
     expect(html).not.toContain(FORGED);
-    printedTwice(html, PROFILE_NUM);
+    // T-700: mandamus is civil_other (Memo + Index, no Vakalatnama page), so it prints once.
+    expect(count(html, PROFILE_NUM)).toBe(1);
   });
   it('default_bail declares advocate_enrollment (T-382): a typed one prints', async () => {
     const html = await annexuresHtml(

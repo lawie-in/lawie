@@ -1268,8 +1268,9 @@ describe('T-381 C: POST /documents/:id/annexures-pack from a brief draft (AC3)',
     expect(a).not.toContain('State of');
     expect(html).not.toContain('GENERIC ADDRESS');
 
-    const e = vakalatnama();
-    expect(e).toContain('I/We, <strong>Jai Mehta</strong>, resident of 12 Lake Road, Patna,');
+    // T-700 (AJ-700a (1)): on a civil pack the Vakalatnama is an Index row only; no annexure page.
+    expect(html).not.toContain('<h2>Vakalatnama</h2>');
+    expect(html).toContain('<td>Vakalatnama</td><td>___________</td>');
   });
 
   it('a draft made before T-381 (template_id and source only; names only in doc.brief) falls back and renders names', async () => {
@@ -1287,9 +1288,9 @@ describe('T-381 C: POST /documents/:id/annexures-pack from a brief draft (AC3)',
     expect(res.status).toBe(200);
     expect(memo()).toContain('<strong>Old Plaintiff</strong>');
     expect(memo()).toContain('<strong>Old Defendant</strong>');
-    expect(vakalatnama()).toContain(
-      'I/We, <strong>Old Plaintiff</strong>, resident of 1 Old Road,',
-    );
+    // T-700 (AJ-700a (1)): on a civil pack the Vakalatnama is an Index row only; no annexure page.
+    expect(html).not.toContain('<h2>Vakalatnama</h2>');
+    expect(html).toContain('<td>Vakalatnama</td><td>___________</td>');
   });
 
   it('a pre-T-381 draft without a stored brief is refused, not blank', async () => {
@@ -1452,9 +1453,9 @@ describe('T-381 C: POST annexures-pack from a form draft', () => {
     expect(a).toContain('3 Form Street');
     expect(a).not.toContain('GENERIC');
     expect(a).not.toContain('Age: 99');
-    expect(vakalatnama()).toContain(
-      'I/We, <strong>Form Plaintiff</strong>, resident of 3 Form Street,',
-    );
+    // T-700 (AJ-700a (1)): on a civil pack the Vakalatnama is an Index row only; no annexure page.
+    expect(html).not.toContain('<h2>Vakalatnama</h2>');
+    expect(html).toContain('<td>Vakalatnama</td><td>___________</td>');
     expect(html).not.toContain('GENERIC');
   });
 

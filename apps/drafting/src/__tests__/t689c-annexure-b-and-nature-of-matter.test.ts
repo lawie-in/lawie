@@ -263,6 +263,12 @@ function build(rulePackId: string | undefined, courtType: string | undefined, ex
 const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
 const labelsOf = (b: ReturnType<typeof build>) => b.parts.map((p) => p.label);
 const labelsUpTo = (n: number) => LETTERS.slice(0, n).map((l) => `ANNEXURE ${l}`);
+/** T-700 (AJ-700 (2)): the Index annexure, and its first line (Nature of matter, AJ-689c-a bytes). */
+const indexHtmlOf = (b: ReturnType<typeof build>) =>
+  b.parts.find((p) => p.heading === 'Index of Documents Annexed')!.html;
+const NATURE_LINE = (v: string) => `<p><strong>Nature of matter:</strong> ${v}</p>`;
+const INDEX_HEAD = '<h2>Index of Documents Annexed</h2>\n  <br>\n  ';
+const headingsOf = (b: ReturnType<typeof build>) => b.parts.map((p) => p.heading);
 
 const SYNOPSIS_HEAD =
   '<h2>Synopsis</h2>\n  <p style="text-align:center">(As required by High Court Practice)</p>\n  <br>\n  <p><strong>Nature of matter:</strong> ';
@@ -271,21 +277,23 @@ const SYNOPSIS_FIXED =
   '<p>The petitioner has approached this Hon\'ble Court seeking relief as set out in the accompanying petition/application. The facts are briefly summarised hereunder for the convenience of this Hon\'ble Court.</p>\n  <p><em>[Advocate to insert 3–5 sentence summary of the factual background before filing.]</em></p>\n  <div class="disclaimer">Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice.</div>';
 
 describe('T-689c c: the pack with and without the Synopsis', () => {
-  it('(i) a written statement before a High Court: no Synopsis, A to F, no gap, no G', () => {
+  it('(i) a written statement before a High Court: no Synopsis, the civil set A to D (T-700), Nature on the Index', () => {
     const b = build('written_statement', 'high_court');
-    expect(labelsOf(b)).toEqual(labelsUpTo(6));
+    expect(labelsOf(b)).toEqual(labelsUpTo(4));
     expect(b.html).not.toContain('Synopsis');
     expect(b.html).not.toContain('As required by High Court Practice');
-    expect(b.html).not.toContain('Nature of matter');
-    expect(b.html).not.toContain('ANNEXURE G');
-    expect(b.parts.map((p) => p.heading)).toEqual([
+    expect(b.html).not.toContain('ANNEXURE E');
+    expect(headingsOf(b)).toEqual([
       'Memo of Parties',
       'List of Dates and Chronology of Events',
       'Index of Documents Annexed',
-      'Vakalatnama',
-      'Court Fee Paid Statement',
-      'Affidavit',
+      'VERIFICATION',
     ]);
+    // AJ-700 (2): Nature of matter is the first line of the Index, once, nowhere else
+    expect(indexHtmlOf(b)).toContain(
+      `${INDEX_HEAD}${NATURE_LINE('Written Statement (Order VIII CPC)')}\n  <table>`,
+    );
+    expect(b.html.split('Nature of matter').length - 1).toBe(1);
   });
 
   it('(ii) a s.528 BNSS quashing petition before a High Court: Synopsis with the raw displayName, A to G', () => {
@@ -323,16 +331,24 @@ describe('T-689c c: the pack with and without the Synopsis', () => {
     },
   );
 
-  it('(vi) no rulePackId: no Synopsis, even before a High Court (fails closed)', () => {
+  it('(vi) no rulePackId: no Synopsis, even before a High Court (fails closed); Memo + Index only (T-700)', () => {
     const b = build(undefined, 'high_court');
-    expect(labelsOf(b)).toEqual(labelsUpTo(6));
-    expect(b.html).not.toContain('Synopsis');
+    expect(labelsOf(b)).toEqual(labelsUpTo(2));
+    expect(b.html).not.toContain('>Synopsis</h2>');
+    expect(indexHtmlOf(b)).toContain(`${INDEX_HEAD}${NATURE_LINE(PLACEHOLDER)}`);
   });
 
-  it('(vi) no courtType: no Synopsis, even with a non-denied pack (fails closed)', () => {
+  it('(vi) no courtType: the court rule type decides (AJ-700a (4)): a High Court rule brings the Synopsis', () => {
+    // BASE_FORM's court_id is jharkhand_hc, whose rule says high_court
     const b = build('quashing_528_bnss', undefined);
+    expect(labelsOf(b)).toEqual(labelsUpTo(7));
+    expect(b.parts[1].heading).toBe('Synopsis');
+  });
+
+  it('(vi) no courtType and a trial-court rule: no Synopsis (the helper never invents a High Court)', () => {
+    const b = build('quashing_528_bnss', undefined, { court_id: 'sessions_generic' });
     expect(labelsOf(b)).toEqual(labelsUpTo(6));
-    expect(b.html).not.toContain('Synopsis');
+    expect(b.html).not.toContain('>Synopsis</h2>');
   });
 
   it('(vi) neither: no Synopsis, and the form court_type alone does not bring it back', () => {
@@ -344,15 +360,24 @@ describe('T-689c c: the pack with and without the Synopsis', () => {
     expect(b.html).not.toContain('Synopsis');
   });
 
-  it('(vi) an unknown court type string: no Synopsis', () => {
-    for (const c of ['HIGH_COURT', ' high_court', '', 'sessions']) {
+  it('(vi) an unknown non-blank court type string: no Synopsis (taken as given, never trimmed)', () => {
+    for (const c of ['HIGH_COURT', ' high_court', 'sessions']) {
       expect(labelsOf(build('bail_regular', c))).toEqual(labelsUpTo(6));
     }
   });
 
+  it('(vi) an empty court type string falls through to the court rule type (AJ-700a (4))', () => {
+    // it was "no Synopsis" before T-700; the helper skips a blank and the rule says high_court
+    expect(labelsOf(build('bail_regular', ''))).toEqual(labelsUpTo(7));
+  });
+
+  // T-700: written_statement and replication are the pleading set (A to D); the rest of the
+  // list is Memo + Index (A to B). None has a Synopsis.
   it.each(DENIED)('(ix) %s before a High Court never has a Synopsis', (id) => {
     const b = build(id, 'high_court');
-    expect(labelsOf(b)).toEqual(labelsUpTo(6));
+    expect(labelsOf(b)).toEqual(
+      labelsUpTo(id === 'written_statement' || id === 'replication' ? 4 : 2),
+    );
     expect(b.html).not.toContain('>Synopsis</h2>');
     expect(b.html).not.toContain('As required by High Court Practice');
   });
@@ -369,9 +394,11 @@ describe('T-689c c: the pack with and without the Synopsis', () => {
       );
     }) as typeof fs.readFileSync);
     try {
+      // T-700: an unknown pack is a civil pack with no signed Synopsis wording (AJ-700b (E)),
+      // so its Nature of matter prints on the Index (AJ-700 (2)).
       const b = build('t689c_unnamed_pack', 'high_court');
-      expect(b.parts[1].heading).toBe('Synopsis');
-      expect(b.parts[1].html).toContain(`${SYNOPSIS_HEAD}${PLACEHOLDER}</p>`);
+      expect(headingsOf(b)).not.toContain('Synopsis');
+      expect(indexHtmlOf(b)).toContain(`${INDEX_HEAD}${NATURE_LINE(PLACEHOLDER)}`);
       expect(b.html).toContain('[To be confirmed: Nature of matter]');
       expect(b.html).not.toContain('&amp;#');
       expect(b.html).not.toContain('&#91;');
@@ -394,8 +421,8 @@ describe('T-689c c: the pack with and without the Synopsis', () => {
     }) as typeof fs.readFileSync);
     try {
       const b = build('t689c_escape_pack', 'high_court');
-      const html = b.parts[1].html;
-      expect(html).toContain(`${SYNOPSIS_HEAD}Tom &amp; Jerry &lt;Order&gt; (S.1 Act)</p>`);
+      const html = indexHtmlOf(b);
+      expect(html).toContain(NATURE_LINE('Tom &amp; Jerry &lt;Order&gt; (S.1 Act)'));
       expect(html).not.toContain('&amp;amp;');
       expect(html).not.toContain('&amp;lt;');
       expect(html).not.toContain('Tom & Jerry');
@@ -408,14 +435,20 @@ describe('T-689c c: the pack with and without the Synopsis', () => {
 // ── AJ-689c-d: guided briefs and the title fallback ──────────────────────────
 
 describe('T-689c AJ-689c-d (3): no Annexure B for a guided brief', () => {
-  it.each(SYNOPSIS_COURTS)('guided before %s: no Synopsis, labels A to F', (court) => {
-    const b = build('guided', court);
-    expect(labelsOf(b)).toEqual(labelsUpTo(6));
-    expect(b.html).not.toContain('>Synopsis</h2>');
-    expect(b.html).not.toContain('As required by High Court Practice');
-    expect(b.html).not.toContain('Nature of matter');
-    expect(b.parts.map((p) => p.heading)).not.toContain('Synopsis');
-  });
+  it.each(SYNOPSIS_COURTS)(
+    'guided before %s: no Synopsis, Memo + Index (A to B), Nature placeholder on the Index',
+    (court) => {
+      const b = build('guided', court);
+      expect(labelsOf(b)).toEqual(labelsUpTo(2));
+      expect(b.html).not.toContain('>Synopsis</h2>');
+      expect(b.html).not.toContain('As required by High Court Practice');
+      // AJ-700a (6): a guided brief prints the AJ-689c-a placeholder, on the Index only
+      expect(indexHtmlOf(b)).toContain(`${INDEX_HEAD}${NATURE_LINE(PLACEHOLDER)}`);
+      // the label once, plus the placeholder's own words once
+      expect(b.html.split('Nature of matter').length - 1).toBe(2);
+      expect(b.parts.map((p) => p.heading)).not.toContain('Synopsis');
+    },
+  );
 
   it('control: the same build with a non-denied pack gets the Synopsis (the guided case is not a broken build)', () => {
     expect(labelsOf(build('quashing_528_bnss', 'high_court'))).toEqual(labelsUpTo(7));
@@ -473,11 +506,10 @@ describe('T-689c AJ-689c-d (2): Nature of matter falls back to the rule file tit
     }
   };
 
-  it('end to end: a title-only pack prints its title in the Synopsis', () => {
+  it('end to end: a title-only pack prints its title on the Index', () => {
     withFile('t689c_title_only', { title: 'Writ of Mandamus (Art. 226)' }, () => {
       const b = build('t689c_title_only', 'high_court');
-      expect(b.parts[1].heading).toBe('Synopsis');
-      expect(b.parts[1].html).toContain(`${SYNOPSIS_HEAD}Writ of Mandamus (Art. 226)</p>`);
+      expect(indexHtmlOf(b)).toContain(NATURE_LINE('Writ of Mandamus (Art. 226)'));
       expect(b.html).not.toContain(PLACEHOLDER);
     });
   });
@@ -485,7 +517,7 @@ describe('T-689c AJ-689c-d (2): Nature of matter falls back to the rule file tit
   it('end to end: displayName wins when both exist', () => {
     withFile('t689c_both', { displayName: 'Shown Name', title: 'Hidden Title' }, () => {
       const b = build('t689c_both', 'high_court');
-      expect(b.parts[1].html).toContain(`${SYNOPSIS_HEAD}Shown Name</p>`);
+      expect(indexHtmlOf(b)).toContain(NATURE_LINE('Shown Name'));
       expect(b.html).not.toContain('Hidden Title');
     });
   });
@@ -497,22 +529,22 @@ describe('T-689c AJ-689c-d (2): Nature of matter falls back to the rule file tit
   ])('end to end: %s prints the placeholder only', (_n, body) => {
     withFile('t689c_none', body, () => {
       const b = build('t689c_none', 'high_court');
-      expect(b.parts[1].html).toContain(`${SYNOPSIS_HEAD}${PLACEHOLDER}</p>`);
+      expect(indexHtmlOf(b)).toContain(NATURE_LINE(PLACEHOLDER));
     });
   });
 
   it('end to end: an empty displayName falls to the title', () => {
     withFile('t689c_empty_dn', { displayName: '', title: 'Fallback Title' }, () => {
-      expect(build('t689c_empty_dn', 'high_court').parts[1].html).toContain(
-        `${SYNOPSIS_HEAD}Fallback Title</p>`,
+      expect(indexHtmlOf(build('t689c_empty_dn', 'high_court'))).toContain(
+        NATURE_LINE('Fallback Title'),
       );
     });
   });
 
   it('end to end: a title with & < > is escaped exactly once', () => {
     withFile('t689c_title_esc', { title: 'Tom & Jerry <Order> (S.1 Act)' }, () => {
-      const html = build('t689c_title_esc', 'high_court').parts[1].html;
-      expect(html).toContain(`${SYNOPSIS_HEAD}Tom &amp; Jerry &lt;Order&gt; (S.1 Act)</p>`);
+      const html = indexHtmlOf(build('t689c_title_esc', 'high_court'));
+      expect(html).toContain(NATURE_LINE('Tom &amp; Jerry &lt;Order&gt; (S.1 Act)'));
       expect(html).not.toContain('&amp;amp;');
       expect(html).not.toContain('&amp;lt;');
       expect(html).not.toContain('Tom & Jerry');
@@ -568,8 +600,8 @@ describe('T-689c c(vii): the index annexure matches what is attached', () => {
     expect(rows[6][1]).toMatch(/^Affidavit of /);
   });
 
-  it('without the Synopsis (6 parts): serials 1-9, letters A-F, then G, H, "I onwards"', () => {
-    const b = build('written_statement', 'high_court');
+  it('without the Synopsis (criminal, 6 parts): serials 1-9, letters A-F, then G, H, "I onwards"', () => {
+    const b = build('bail_regular', 'sessions');
     const rows = indexRows(b);
     expect(rows.map((r) => r[0])).toEqual(['1', '2', '3', '4', '5', '6', '7', '8', '9']);
     expect(rows.slice(0, 6).map((r) => r[2])).toEqual([
@@ -586,12 +618,38 @@ describe('T-689c c(vii): the index annexure matches what is attached', () => {
     expect(rows.map((r) => r[1])).not.toContain('Synopsis');
   });
 
+  it('T-700: a written statement (4 parts): the pleading row first, then A-D, then the rest (AJ-700b A order)', () => {
+    const b = build('written_statement', 'high_court');
+    const rows = indexRows(b);
+    expect(rows.map((r) => r[0])).toEqual(['1', '2', '3', '4', '5', '6', '7', '8', '9']);
+    expect(rows.map((r) => r[1])).toEqual([
+      'Written Statement (Order VIII CPC)',
+      'Memo of Parties',
+      'List of Dates and Chronology',
+      'Index of Documents Annexed',
+      'Verification',
+      'List of documents relied on (Order VIII Rule 1A CPC)',
+      'Documents as annexed by the advocate',
+      'Vakalatnama',
+      'Court fee',
+    ]);
+    expect(rows.map((r) => r[2])).toEqual([
+      '___________',
+      'Annexure A',
+      'Annexure B',
+      'Annexure C (this document)',
+      'Annexure D',
+      'Annexure E (to be annexed by advocate)',
+      'Annexure F onwards (as applicable)',
+      '___________',
+      '___________',
+    ]);
+  });
+
   it.each([
     ['quashing_528_bnss', 'high_court'],
     ['bail_regular', 'supreme_court'],
-    ['written_statement', 'high_court'],
     ['bail_regular', 'sessions'],
-    [undefined, 'high_court'],
   ])('%p before %p: every attached row names the same letter as the part itself', (id, court) => {
     const b = build(id, court);
     const rows = indexRows(b);
@@ -951,12 +1009,14 @@ describe('T-689c AJ-689c-b: the pack end to end', () => {
   });
 
   it('a written statement (a defendant client by its table) before a High Court: no Synopsis either way', () => {
-    expect(labelsOf(run({}, undefined, 'written_statement'))).toEqual(labelsUpTo(6));
+    expect(labelsOf(run({}, undefined, 'written_statement'))).toEqual(labelsUpTo(4));
   });
 
-  it('with no side information the Synopsis follows the deny list and the court list as before', () => {
-    expect(labelsOf(run({}, undefined, 'divorce_mutual_consent'))).toEqual(labelsUpTo(7));
-    expect(labelsOf(run({}, undefined, 't689c_no_such_pack'))).toEqual(labelsUpTo(7));
+  it('with no side information a criminal pack keeps the court list; a civil pack gets no Synopsis (T-700, AJ-700b E)', () => {
+    expect(labelsOf(run({}, undefined, 'bail_regular'))).toEqual(labelsUpTo(7));
+    // family and unknown packs are civil_other: Memo + Index, no Synopsis
+    expect(labelsOf(run({}, undefined, 'divorce_mutual_consent'))).toEqual(labelsUpTo(2));
+    expect(labelsOf(run({}, undefined, 't689c_no_such_pack'))).toEqual(labelsUpTo(2));
   });
 
   it('the attached Synopsis block is byte-identical whichever way the petitioner side is known', () => {
