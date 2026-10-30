@@ -25,3 +25,5 @@ Real holes found on the way (next month unless noted):
 - **H2 — negative bucket from outside the app:** clamp each bucket with `$max: [0, …]` in the hold/release pipelines + a one-off repair. 
 - **H4 — NaN cost passes the guard** (theoretical): `Number.isFinite(cost) && cost >= 0` at the top of `holdInk`.
 Untested today: negative bucket/total, `$set` between hold and release, NaN cost, concurrent free revisions.
+
+Audit (Arjun, 30 Oct 2026): no code path lets a negative balance draft. The hold is one atomic write with a balance >= cost filter, the settle step only refunds, and concurrent holds are covered by tests. The two real holes found are T-707a (phantom Ink refund) and T-707b (concurrent free revisions). H2 (bucket clamp) and H4 (NaN guard) are P3, next month.
