@@ -172,7 +172,22 @@ export interface V3LedgerFacts {
 
 export type V3OpenResult =
   | { ok: true }
-  | { ok: false; status: number; body: Record<string, unknown> };
+  | { ok: false; sent: false; status: number; body: Record<string, unknown> }
+  /** §15.1: the refusal is already written to the response (SSE). */
+  | { ok: false; sent: true };
+
+/**
+ * §15.1: this runId ended on the cap: an attempt of it `capped`, the run
+ * `capped` on it, or one of its steps failed `cost_cap`. Ids and codes only.
+ */
+function cappedOnRunId(run: R.V3RunSnapshot, runId: string): boolean {
+  if (run.attempts.some((a) => a.runId === runId && a.outcome === 'capped')) return true;
+  const last = run.attempts[run.attempts.length - 1];
+  if (run.status === 'capped' && last?.runId === runId) return true;
+  return Object.values(run.outputs).some(
+    (o) => o?.runId === runId && o.status === 'failed' && o.reason === 'cost_cap',
+  );
+}
 
 export class V3Generate {
   private run: R.V3RunSnapshot | null = null;
@@ -230,27 +245,47 @@ export class V3Generate {
    * take the lease and start its renew timer, release the previous attempt's
    * hold where it delivered nothing, and record this attempt.
    */
-  async open(attempt: {
-    runId: string;
-    runSequence: number;
-    inkCost: number;
-  }): Promise<V3OpenResult> {
+  async open(
+    attempt: {
+      runId: string;
+      runSequence: number;
+      inkCost: number;
+    },
+    res: Response,
+  ): Promise<V3OpenResult> {
     this.attempt = { runId: attempt.runId, runSequence: attempt.runSequence };
     // §14.4: the cap's Ink is the held cost, rounded up, at least 1.
     this.inkQuoted = Math.max(1, Math.ceil(attempt.inkCost));
     try {
-      await R.openRun({
+      const { run: opened } = await R.openRun({
         intakeId: this.intakeId,
         userId: this.userId,
         stage: this.stage,
         ledgerStore: this.ledger.store,
         ledgerId: this.ledger.ledgerId,
       });
+      // §15.1: a capped run stays capped. A resume of it (same runId) is
+      // refused here, before the lease, the hold, any Ink or any model call;
+      // nothing is recorded. A new run (a new runId) gets its own cap.
+      if (cappedOnRunId(opened, attempt.runId)) {
+        this.refuseCapped(res);
+        logger.info(
+          { runDocId: opened.id, runId: attempt.runId, runSequence: attempt.runSequence },
+          'T-685: resume of a capped run refused',
+        );
+        await this.end();
+        return { ok: false, sent: true };
+      }
       try {
         this.run = await R.takeLease(this.intakeId, this.userId, this.owner);
       } catch (err) {
         if (err instanceof R.RunLeaseHeldError) {
-          return { ok: false, status: 409, body: { error: err.message, runId: attempt.runId } };
+          return {
+            ok: false,
+            sent: false,
+            status: 409,
+            body: { error: err.message, runId: attempt.runId },
+          };
         }
         throw err;
       }
@@ -281,7 +316,7 @@ export class V3Generate {
         `T-685: v3 run open failed (${err instanceof Error ? err.name : 'unknown'})`,
       );
       await this.end();
-      return { ok: false, status: 503, body: { error: 'try_again' } };
+      return { ok: false, sent: false, status: 503, body: { error: 'try_again' } };
     }
   }
 
@@ -360,6 +395,25 @@ export class V3Generate {
   }
 
   // ── internals ─────────────────────────────────────────────────────────────
+
+  /**
+   * §15.1: the §8 cost_cap error as the stream's only event. No header has
+   * been sent (no hold, no stream yet), so the SSE headers are set as the
+   * stream sets them, then the response ends.
+   */
+  private refuseCapped(res: Response): void {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    writeSseError(res, {
+      reason: COST_CAP_MESSAGE,
+      retryable: false,
+      code: 'cost_cap',
+      runId: this.runId(),
+    });
+    res.end();
+  }
 
   private runId(): string {
     return this.attempt?.runId ?? '';

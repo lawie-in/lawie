@@ -1677,10 +1677,28 @@ router.post(
         ? await prepareV3Generate({ userId: payload.sub, intakeId: intake_id, kind })
         : null;
     // T-685 (Arjun §13 Q5): with a v3 ledger, generation reads its facts; s.138 as above.
-    const v3Facts = ledger && v3 ? v3.ledgerFacts() : null;
-    if (ledger && v3Facts) {
+    // §15.2: also when no v2 ledger doc was read (a v3-only intake), so the
+    // ledger path, the fact verifier with it, runs as for any ledger draft.
+    const v3Facts = v3 ? v3.ledgerFacts() : null;
+    if (v3Facts) {
+      let lists: AvermentLists;
+      if (ledger) {
+        lists = ledger.lists;
+      } else {
+        try {
+          lists = loadAvermentLists(kind);
+        } catch (err) {
+          // Ids only: never a fact value.
+          console.error(
+            `[drafting] averment list unreadable (kind=${kind}):`,
+            err instanceof Error ? err.name : 'unknown',
+          );
+          res.status(503).json({ error: 'averments_unavailable' });
+          return;
+        }
+      }
       ledger = {
-        ...ledger,
+        lists,
         id: v3Facts.id,
         version: v3Facts.version,
         facts: withS138DateChecks(
@@ -1902,9 +1920,10 @@ router.post(
     // T-685 (§5): the run doc, its lease and this attempt, before the hold; the
     // previous attempt's hold is released first. A live lease elsewhere is a 409.
     if (v3) {
-      const opened = await v3.open({ runId, runSequence, inkCost });
+      const opened = await v3.open({ runId, runSequence, inkCost }, res);
       if (!opened.ok) {
-        res.status(opened.status).json(opened.body);
+        // §15.1: a capped run's refusal is already sent (SSE, before any hold).
+        if (!opened.sent) res.status(opened.status).json(opened.body);
         return;
       }
     }
