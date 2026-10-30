@@ -77,6 +77,96 @@ function fold(v: string): string {
 const NON_ANSWERS = new Set(O39_NON_ANSWERS.map(fold));
 
 /**
+ * AJ-683-M2 (handoff/legal/T-511-copy-rulings-ajay.md; replaces the AJ-671-M1
+ * list) and AJ-671-M2 (temporal fillers): the courtesy/filler tail words and
+ * phrases, byte for byte as signed. A phrase strips as a whole. Dropped from
+ * the END of a value for the non-answer check only, never from what is stored.
+ */
+export const COURTESY_TAIL_WORDS: readonly string[] = [
+  'sir',
+  'sirji',
+  'ji',
+  'jee',
+  'madam',
+  "ma'am",
+  'maam',
+  'mam',
+  'saab',
+  'saheb',
+  'sahab',
+  'sahib',
+  'bhai',
+  'bhaiya',
+  'bhaiyya',
+  'didi',
+  'please',
+  'pls',
+  'plz',
+  'yaar',
+  'ok',
+  'okay',
+  'जी',
+  'सर',
+  'साहब',
+  'साहेब',
+  'मैडम',
+  'भाई',
+  'भैया',
+  'दीदी',
+  'कृपया',
+  // AJ-671-M2: temporal fillers, stripped the same way.
+  'yet',
+  'as yet',
+  'abhi',
+  'abhi tak',
+  'as of now',
+  'at present',
+  'currently',
+  'for now',
+  'अभी',
+  'अभी तक',
+];
+
+const COURTESY_TAIL = COURTESY_TAIL_WORDS.map((w) => w.normalize('NFC').toLowerCase()).sort(
+  (x, y) => y.length - x.length,
+);
+
+/** End punctuation and spaces, allowed between and after tail words. */
+const TAIL_GAP = /[\s.,!?;:।॥…]+$/u;
+
+/**
+ * AJ-683-M2: the value without one or more trailing courtesy words (whole
+ * words, case-insensitive, optional end punctuation between and after them),
+ * for the non-answer check only. "pata nahi sir ji" -> "pata nahi",
+ * "Not known bhai." -> "Not known", "Ramesh Bhai" -> "Ramesh" (still a name,
+ * so it passes). A value made only of tail words ("Sir") comes back unchanged:
+ * it is not a non-answer by itself. "Ji Ram" is unchanged: tail words only.
+ */
+export function stripCourtesyTail(value: string): string {
+  // Whitespace collapsed so a phrase ("abhi  tak") matches as one.
+  let rest = value.normalize('NFC').replace(/\s+/g, ' ');
+  let stripped = false;
+  for (;;) {
+    const body = rest.replace(TAIL_GAP, '');
+    const lower = body.toLowerCase();
+    // The cut below is by length; if lower-casing changed it, strip nothing more.
+    if (lower.length !== body.length) break;
+    const word = COURTESY_TAIL.find(
+      (w) =>
+        lower.endsWith(w) &&
+        (lower.length === w.length ||
+          !/[\p{L}\p{M}\p{N}']/u.test(lower[lower.length - w.length - 1])),
+    );
+    if (word === undefined) break;
+    rest = body.slice(0, body.length - word.length);
+    stripped = true;
+  }
+  if (!stripped) return value;
+  const out = rest.replace(TAIL_GAP, '').trim();
+  return out === '' ? value : out;
+}
+
+/**
  * §(j)3: true when the value gives nothing: null, blank, an empty list, or a
  * non-answer from the list as the whole value. A list is empty when every
  * entry is.
@@ -100,7 +190,7 @@ export function isEmptyOrNonAnswer(value: unknown): boolean {
  * non-answer by equality. A space then a word does not count (M5b replaces
  * M5's "space"), so `Not Known Traders` stays a name.
  */
-const NON_ANSWER_TAIL = /^(\s*[(,;:]|\s*\.(?:$|\s+[^\p{L}\s])|\s+[-–])/u;
+export const NON_ANSWER_TAIL = /^(\s*[(,;:]|\s*\.(?:$|\s+[^\p{L}\s])|\s+[-–])/u;
 
 /**
  * AJ-668-M5, M5b (handoff/legal/T-511-copy-rulings-ajay.md), party-name fields
@@ -182,6 +272,49 @@ const LEADING_ROLE_LABEL = new RegExp(
 );
 
 /**
+ * AJ-668e (LEGAL CONTENT, Ajay; handoff/legal/T-511-copy-rulings-ajay.md): the
+ * signed line shown instead of a party's confirm line when the value starts
+ * with a non-answer followed by more text (isNonAnswerWithText), e.g. `Not
+ * known (buyer under the sale deed)`. A bare non-answer (`Not known`, `N/A`,
+ * empty, a bare role label) keeps the party's own line. The block itself is
+ * unchanged (M5b). EN only, as signed; HI later with the Hindi mechanism.
+ */
+export const NON_ANSWER_WITH_TEXT_PARTY_LINE =
+  'Give the name, or only a description that identifies the party, without words like "Not known".';
+
+/** Only spaces and end punctuation (TAIL_GAP's set): no text of its own. */
+const GAP_ONLY = /^[\s.,!?;:।॥…]*$/u;
+
+/**
+ * AJ-668e: true when isPartyNonAnswer blocks the value because it starts with
+ * a §(j)3 non-answer, then NON_ANSWER_TAIL, then more text (after one leading
+ * role label is stripped, AJ-668c-M6, and trailing courtesy/temporal words,
+ * AJ-683-M2/AJ-671-M2, for the check only). False for a bare non-answer, for a
+ * non-answer followed only by tail words or end punctuation (`Not known.`,
+ * `Not known, sir`), and for any value that passes. A list is true when it
+ * blocks and one of its entries is. Chooses the message only; never the block.
+ */
+export function isNonAnswerWithText(value: unknown): boolean {
+  if (Array.isArray(value)) return isPartyNonAnswer(value) && value.some(isNonAnswerWithText);
+  if (typeof value !== 'string' || !isPartyNonAnswer(value)) return false;
+  const folded = fold(stripCourtesyTail(value));
+  if (hasTextAfterNonAnswer(folded)) return true;
+  const label = LEADING_ROLE_LABEL.exec(folded);
+  return label !== null && hasTextAfterNonAnswer(folded.slice(label[0].length));
+}
+
+/** AJ-668e on a folded value: a non-answer, NON_ANSWER_TAIL, then some text. */
+function hasTextAfterNonAnswer(folded: string): boolean {
+  for (const answer of NON_ANSWERS) {
+    if (!folded.startsWith(answer)) continue;
+    const after = folded.slice(answer.length);
+    const tail = NON_ANSWER_TAIL.exec(after);
+    if (tail !== null && !GAP_ONLY.test(after.slice(tail[0].length))) return true;
+  }
+  return false;
+}
+
+/**
  * AJ-668-M5, M5b: the party-name keys among the guarded fields. The ledger
  * (ledgerGivenKeys) reads these with isPartyNonAnswer, pack-neutral per
  * AJ-655-M1; the other guarded keys keep isEmptyOrNonAnswer.
@@ -252,7 +385,9 @@ export function isNonAnswerPartyPack(packId: string | null): boolean {
  * with its signed EN message. `values` is keyed by field id. AJ-668-M5e: the
  * party names (plaintiff_name, defendant_name) use isPartyNonAnswer, so a
  * non-answer with a tail blocks; main_suit_relief and restraint_sought keep
- * the exact isEmptyOrNonAnswer.
+ * the exact isEmptyOrNonAnswer. AJ-668e: a party name that is a non-answer
+ * followed by more text gets NON_ANSWER_WITH_TEXT_PARTY_LINE instead of its
+ * own line; the block is unchanged.
  */
 export function requiredFieldBlockers(
   values: Readonly<Record<string, unknown>>,
@@ -261,7 +396,10 @@ export function requiredFieldBlockers(
     (isPartyNameGuardedField(key) ? isPartyNonAnswer : isEmptyOrNonAnswer)(values[key]),
   ).map((key) => ({
     key,
-    en: O39_CONFIRM_MESSAGES[key].en,
+    en:
+      isPartyNameGuardedField(key) && isNonAnswerWithText(values[key])
+        ? NON_ANSWER_WITH_TEXT_PARTY_LINE
+        : O39_CONFIRM_MESSAGES[key].en,
   }));
 }
 

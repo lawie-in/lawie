@@ -4,6 +4,8 @@
  *   GET   /admin/app-settings           — list all settings (founder-only)
  *   GET   /admin/app-settings/registry  — the known AI keys, no values (founder-only, T-684)
  *   PUT   /admin/app-settings/:key      — upsert one setting (founder-only)
+ *   PUT   /admin/app-settings/:key?ifAbsent=1 — insert only: 409 if the key is
+ *         already set, never overwritten (founder-only, T-684b)
  *
  * Currently used for AI model selection per role (ai.model.<role>,
  * ai.effort.<role>; T-684) but the model is generic — anything that should be
@@ -15,6 +17,7 @@ import { authenticate } from '../middleware/authenticate';
 import {
   AI_EFFORT_VALUES,
   getAppSettingsRegistry,
+  insertAppSettingIfAbsent,
   listAppSettings,
   setAppSetting,
 } from '../services/app-settings.service';
@@ -89,6 +92,28 @@ router.put(
       (typeof description !== 'string' || description.length > 500)
     ) {
       res.status(400).json({ error: 'description must be a string (max 500 chars)' });
+      return;
+    }
+
+    // T-684b: ?ifAbsent=1 makes the write insert-only (the admin page's Copy).
+    const { ifAbsent } = req.query;
+    if (ifAbsent !== undefined && ifAbsent !== '1') {
+      res.status(400).json({ error: 'ifAbsent must be 1' });
+      return;
+    }
+    if (ifAbsent === '1') {
+      const result = await insertAppSettingIfAbsent({
+        key,
+        value: isEffortKey ? value.trim().toLowerCase() : value,
+        description: typeof description === 'string' ? description : undefined,
+        updatedBy: req.jwtPayload?.sub,
+      });
+      if (!result.inserted) {
+        // Never echo the stored value.
+        res.status(409).json({ error: `${key} is already set; not overwritten.` });
+        return;
+      }
+      res.json(result.setting);
       return;
     }
 

@@ -33,11 +33,15 @@ async function build(form: Record<string, unknown>): Promise<{
     formData: { court_id: 'bihar_district', court_type: 'district_court', ...form },
     bodyParaCount: 5,
     advocateName: 'Adv. Test',
+    // T-689c: a district court, so no Synopsis and the pack runs A to F
+    rulePackId: typeof form.template_id === 'string' ? form.template_id : 'bail_regular',
+    courtType: 'district_court',
   });
   const html = String(mockRender.mock.calls[0][0]);
+  // The Memo is the first annexure and the Affidavit the last; found by heading, not letter.
   const a = html.indexOf('ANNEXURE A');
-  const b = html.indexOf('ANNEXURE B');
-  const g = html.indexOf('ANNEXURE G');
+  const b = html.indexOf('class="annexure-label"', a + 1);
+  const g = html.search(/class="annexure-label">ANNEXURE [A-Z]<\/div>\s*<h2>Affidavit<\/h2>/);
   return { html, memo: html.slice(a, b), affidavit: html.slice(g) };
 }
 
@@ -236,10 +240,10 @@ describe('T-396 AC (Addendum 4 point 1): State line only when the counterpart is
 });
 
 describe('T-396 (T-317 Addendum 5): Annexure A footer', () => {
-  it('Annexure A ends with the disclaimer, and the pack has it once per annexure (7)', async () => {
+  it('Annexure A ends with the disclaimer, and the pack has it once per annexure (6, no Synopsis in a district court)', async () => {
     const { html, memo } = await build(WOMAN);
     expect(memo.split(DISCLAIMER).length - 1).toBe(1);
     expect(memo.indexOf(DISCLAIMER)).toBeGreaterThan(memo.indexOf('Bar Enrolment No.'));
-    expect(html.split(DISCLAIMER).length - 1).toBe(7);
+    expect(html.split(DISCLAIMER).length - 1).toBe(6);
   });
 });

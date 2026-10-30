@@ -116,7 +116,8 @@
         "type": "textarea",
         "required": true,
         "question": "What should the defendant be stopped from doing from now on (for example: raising any construction, transferring or mortgaging the property, dispossessing the plaintiff)? Describe the acts, not past events.",
-        "blocks_confirm": true
+        "blocks_confirm": true,
+        "extract_hint": "Fill only from words in which the user says what the defendant should be stopped from doing from now on. Never turn acts the description says already happened into a restraint; if the description gives none, leave this empty."
       },
       {
         "id": "ex_parte_sought",

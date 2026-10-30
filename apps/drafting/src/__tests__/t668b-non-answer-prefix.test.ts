@@ -21,6 +21,7 @@ import {
   isEmptyOrNonAnswer,
   isPartyNameGuardedField,
   isPartyNonAnswer,
+  NON_ANSWER_WITH_TEXT_PARTY_LINE,
 } from '../config/intake/signed-confirm-messages';
 import { AppSetting } from '../models/AppSetting.model';
 import { LawieDocument } from '../models/Document.model';
@@ -208,7 +209,8 @@ describe('T-668b brief', () => {
     );
     expect(b.can_confirm).toBe(false);
     expect(b.confirm_blockers).toContain('parties');
-    expect(b.confirm_message!.split('\n')[0]).toBe(DEFENDANT_LINE);
+    // AJ-668e: a non-answer followed by text gets the new signed line; the block is unchanged
+    expect(b.confirm_message!.split('\n')[0]).toBe(NON_ANSWER_WITH_TEXT_PARTY_LINE);
     expect((b.confirm_missing_party_keys ?? []).map(lastSeg)).toEqual(['defendant_name']);
   });
 
@@ -271,7 +273,8 @@ describe('T-668b O.39 (AJ-668-M5e): party names use the one rule; relief and res
       user('defendant_name', 'Sample Person 2'),
     ]);
     expect(b.confirm_blockers).toContain('parties');
-    expect(b.confirm_message!.split('\n')[0]).toBe("Add the plaintiff's name to continue.");
+    // AJ-668e: the value is a non-answer with text, so the new line replaces the plaintiff line
+    expect(b.confirm_message!.split('\n')[0]).toBe(NON_ANSWER_WITH_TEXT_PARTY_LINE);
     expect((b.confirm_missing_party_keys ?? []).map(lastSeg)).toEqual(['plaintiff_name']);
   });
 
@@ -340,7 +343,8 @@ describe('T-668b O.39 (AJ-668-M5e): party names use the one rule; relief and res
       defendant_name: 'Sample Person 2',
     });
     expect(block!.error).toBe('brief_not_confirmed');
-    expect(block!.message.split('\n')[0]).toBe("Add the plaintiff's name to continue.");
+    // AJ-668e: the new signed line for a non-answer with text (the block and keys are unchanged)
+    expect(block!.message.split('\n')[0]).toBe(NON_ANSWER_WITH_TEXT_PARTY_LINE);
     expect(block!.confirm_blocking_keys).toEqual([
       'plaintiff_name',
       'main_suit_relief',
@@ -563,24 +567,26 @@ describe('T-668b form route: POST /generate-from-template', () => {
     const res = await postForm('plaint_declaration', { defendant_name: ANUSHKA });
     expect(res.status).toBe(400);
     expect(res.body.error).toBe('brief_not_confirmed');
-    expect(res.body.message).toBe(DEFENDANT_LINE);
+    expect(res.body.message).toBe(NON_ANSWER_WITH_TEXT_PARTY_LINE);
     expect(res.body.blockers).toEqual(['required_fields']);
     expect(res.body.confirm_blocking_keys.map(lastSeg)).toEqual(['defendant_name']);
     expect(res.text).not.toContain('event: done');
     await expectNothingRan();
   });
 
-  it.each(['N/A - to be traced', 'nil.', 'Not known - claims through deed', 'पता नहीं (…)'])(
-    'plaint_declaration plaintiff_name %j: 400 and nothing ran',
-    async (word) => {
-      mockMessagesStream.mockResolvedValue(sdkAnswer('1. A sample body.', 4000, 800));
-      const res = await postForm('plaint_declaration', { plaintiff_name: word });
-      expect(res.status).toBe(400);
-      expect(res.body.error).toBe('brief_not_confirmed');
-      expect(res.body.message).toBe('Add the name of the plaintiff to continue.');
-      await expectNothingRan();
-    },
-  );
+  it.each([
+    ['N/A - to be traced', NON_ANSWER_WITH_TEXT_PARTY_LINE],
+    ['nil.', 'Add the name of the plaintiff to continue.'],
+    ['Not known - claims through deed', NON_ANSWER_WITH_TEXT_PARTY_LINE],
+    ['पता नहीं (…)', NON_ANSWER_WITH_TEXT_PARTY_LINE],
+  ])('plaint_declaration plaintiff_name %j: 400 and nothing ran', async (word, line) => {
+    mockMessagesStream.mockResolvedValue(sdkAnswer('1. A sample body.', 4000, 800));
+    const res = await postForm('plaint_declaration', { plaintiff_name: word });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('brief_not_confirmed');
+    expect(res.body.message).toBe(line);
+    await expectNothingRan();
+  });
 
   it.each(PACKS)('%s: a prefixed non-answer defendant is stopped before any run', async (id) => {
     mockMessagesStream.mockResolvedValue(sdkAnswer('1. A sample body.', 4000, 800));
@@ -606,7 +612,7 @@ describe('T-668b form route: POST /generate-from-template', () => {
         ...validForm('plaint_declaration'),
         defendant_name: ANUSHKA,
       })?.message,
-    ).toBe(DEFENDANT_LINE);
+    ).toBe(NON_ANSWER_WITH_TEXT_PARTY_LINE);
     expect(
       formRequiredFieldBlock('plaint_declaration', {
         ...validForm('plaint_declaration'),

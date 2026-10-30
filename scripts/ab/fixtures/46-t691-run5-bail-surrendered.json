@@ -1,0 +1,87 @@
+{
+  "id": "46-t691-run5-bail-surrendered",
+  "pack": "bail_regular",
+  "title": "T-691 A/B, run 5 #4b (v2 copy): regular bail after surrender and remand (Patna)",
+  "risk": "Anushka run 5 4b: with surrender and remand the custody date is asked, never derived; once answered it prints the given-date line; no custody length is invented",
+  "source": "handoff/tickets/anushka-run5-prod-v1.2.2.md scenario 4b; facts re-made fictionally from her report. The description mentions surrender and remand, so the T-638 B2 question is answered on the questions step (custody_since). Added for AJ-683-M2: one answer with a courtesy tail ('Not known bhai.'), a non-answer under that rule. v2 does not strip tails until T-683c ships. Dates: offence 01.10.2026, FIR 02.10.2026, surrender and custody 20.10.2026, all after 1 July 2024 (BNS, BNSS). Expectation basis: each `why` starts with the ruling it rests on (file in handoff/legal); no expectation cites case law.",
+  "review": "drafted by dev from Anushka's reports, not yet reviewed by Anushka",
+  "ajay": "Ajay, 30 Oct 2026, T-691 (handoff/legal/T-691-ab-matters-and-rubric-ajay.md)",
+  "language": "en",
+  "description": "Regular bail for my client Sample Person 1, son of Sample Person 3, aged 35, resident of Plot 000, Sample Nagar, Patna. Sessions Court Patna. FIR No. 000/2026 dated 02.10.2026, PS Sample Nagar, Patna, under Sections 115(2) and 352 BNS, for an incident on 01.10.2026. He surrendered before the court on 20.10.2026 and was remanded to judicial custody. The quarrel arose from a parking dispute with a neighbour; the injury alleged is simple. Charge sheet not yet filed. No earlier bail application. He has no previous criminal case.",
+  "court": {
+    "state": "Bihar",
+    "court_type": "sessions",
+    "court": "bihar_sessions_patna"
+  },
+  "answers": [
+    {
+      "key": "currently_in_custody",
+      "value": "Yes — Judicial custody"
+    },
+    {
+      "key": "custody_since",
+      "value": "20.10.2026"
+    },
+    {
+      "key": "investigation_status",
+      "value": "Under investigation"
+    },
+    {
+      "key": "earlier_bail_applications",
+      "value": "None"
+    },
+    {
+      "key": "applicant_occupation",
+      "value": "Not known bhai."
+    }
+  ],
+  "expect": {
+    "exact": [
+      {
+        "any_of": ["The applicant has been in judicial custody since"],
+        "why": "T-612 (5) (given custody_since) with T-638 B1/B2: after surrender and remand the date is asked, and the answered date prints the given-date line `The applicant has been in {custody_kind} since {custody_since}.`"
+      },
+      {
+        "any_of": ["Section 483 of the Bharatiya Nagarik Suraksha Sanhita, 2023"],
+        "why": "T-245 Addendum 1 (BNSS form, byte-exact; bail_regular Court of Session 439 -> 483; #8: an FIR on or after 1 July 2024 uses the BNSS)"
+      }
+    ],
+    "absent": [
+      {
+        "any_of": ["The applicant was arrested on"],
+        "why": "T-638 B1 (T-612 file) and T-611 R1: surrender or remand in the description means the derived arrest-date line is not used"
+      },
+      {
+        "any_of": ["[To be confirmed: in custody since"],
+        "why": "T-638 B2: the custody date was asked and answered (20.10.2026), so no blank"
+      },
+      {
+        "any_of": ["prolonged custody"],
+        "why": "T-359 (skeleton-bail_regular-signed rules): custody length has no clause unless the advocate gave it, and the prolonged_custody ground was not ticked"
+      },
+      {
+        "any_of": ["[To be confirmed: Section 439"],
+        "why": "T-245 Addendum 1 #8: an FIR dated 02.10.2026 forces the BNSS, so no CrPC/BNSS choice blank"
+      },
+      {
+        "any_of": ["Not known bhai", "Not known"],
+        "why": "AJ-683-M2 (T-511 file): 'Not known bhai.' is a non-answer after the courtesy tail is dropped, so it is no fact and never printed — known pipeline gap until T-683c"
+      },
+      {
+        "any_of": [
+          "[To be confirmed: date of the alleged offence",
+          "[To be confirmed: whether the IPC or the BNS applies"
+        ],
+        "why": "T-245 S-text: the offence date is given (after 1 July 2024) and the sections given are BNS, so neither offence-law blank applies"
+      },
+      {
+        "any_of": ["Lawie"],
+        "why": "T-485 (3), T-245 file: the Lawie disclaimer is never inside the court document's text"
+      },
+      {
+        "any_of": ["Shri/Smt"],
+        "why": "T-485 (4), T-245 file: never print both Shri and Smt."
+      }
+    ]
+  }
+}

@@ -78,7 +78,7 @@ import {
 } from './intake-text';
 import {
   buildFillUserPrompt,
-  buildMatchUserPrompt,
+  buildMatchUserParts,
   buildReceptionGuidedUserPrompt,
   buildExtractUserPrompt,
   buildReceptionPackUserPrompt,
@@ -109,6 +109,10 @@ import {
   loadTemplateConfig,
   TemplateConfig,
 } from './template-engine.service';
+import { EXTRACTOR_CALL, ExtractOutcome, extractTurn } from './v3/extractor.service';
+import { v3Stage } from './v3/stage';
+import type { ExtractResult } from './v3/types';
+import { briefReadsFromV3, editsFromV3, v2ExtractionFromV3 } from './v3/v2-bridge';
 
 // The text helpers live in intake-text.ts. They are re-exported here so existing imports keep working.
 export { datesInText, normalise, parseModelJson } from './intake-text';
@@ -1061,6 +1065,8 @@ async function modelCall(
   system: string,
   user: string,
   maxTokens: number,
+  /** T-681b: the cacheable leading part of `user` (the match catalogue); see callAuxModel. */
+  cachedUserPrefix?: string,
 ): Promise<string | null> {
   const started = Date.now();
   // T-453: effort per stage from ai.effort.intake (default medium). Never throws.
@@ -1090,6 +1096,7 @@ async function modelCall(
       user,
       maxTokens,
       effort,
+      ...(cachedUserPrefix !== undefined ? { cachedUserPrefix } : {}),
     });
     log('completed', r);
     await recordAuxCall({
@@ -1200,12 +1207,15 @@ export async function runIntake(req: IntakeRequest): Promise<IntakeResponse> {
     return fillTemplate(ctx, config, req);
   }
 
+  // T-681b: the catalogue part carries the cache breakpoint; the text is buildMatchUserPrompt's.
+  const matchParts = buildMatchUserParts(req.description, catalogue);
   const text = await modelCall(
     ctx,
     'intake_match',
     MATCH_SYSTEM_PROMPT,
-    buildMatchUserPrompt(req.description, catalogue),
+    matchParts.catalogue + matchParts.tail,
     INTAKE_LIMITS.matchMaxTokens,
+    matchParts.catalogue,
   );
   if (text === null) return { intake_id: intakeId, outcome: 'unavailable' };
 
@@ -1351,7 +1361,8 @@ async function cachedModelCall(
   system: string,
   user: string,
   maxTokens: number,
-  opts: { write?: boolean; fresh?: boolean } = {},
+  /** T-681b: `cachedUserPrefix` is passed through to modelCall; not part of the cache key. */
+  opts: { write?: boolean; fresh?: boolean; cachedUserPrefix?: string } = {},
 ): Promise<{ text: string | null; fromCache: boolean }> {
   const cacheParts = intakeCacheParts(ctx, purpose, system, user);
   if (!opts.fresh) {
@@ -1359,7 +1370,7 @@ async function cachedModelCall(
     if (cached !== null) return { text: cached, fromCache: true };
   }
   await ctx.spend();
-  const text = await modelCall(ctx, purpose, system, user, maxTokens);
+  const text = await modelCall(ctx, purpose, system, user, maxTokens, opts.cachedUserPrefix);
   if (text !== null && opts.write !== false && parseModelJson(text) !== null) {
     await writeIntakeCache(cacheParts, text);
   }
@@ -1398,18 +1409,23 @@ async function writeReceptionLedger(
   checklist: ChecklistItem[],
   req: BriefIntakeRequest,
   brief: Brief,
+  /**
+   * T-683 (stage ≥ 1, the Extractor answered): its description candidates in
+   * the v2 extraction shape. Then no v2 extraction call is made; absent, as before.
+   */
+  v3Read?: Record<string, unknown>,
 ): Promise<LedgerView | undefined> {
   try {
     const lines = extractLines(checklist);
     const text =
-      lines.length === 0
+      v3Read !== undefined || lines.length === 0
         ? null
         : await extractCall(ctx, buildExtractUserPrompt(lines, req.description));
     const refYear = referenceYear(req.now ?? new Date());
     const read = readExtraction(
       checklist,
       req.description,
-      text === null ? null : parseModelJson(text),
+      v3Read ?? (text === null ? null : parseModelJson(text)),
       refYear,
     );
     // T-190 AC8: a "none" read from the description for earlier bail
@@ -1435,7 +1451,7 @@ async function writeReceptionLedger(
     });
     const count = (r: string) => read.dropped.filter((d) => d.reason === r).length;
     console.info(
-      `[intake] ledger written (intakeId=${ctx.intakeId}, ledgerId=${String(doc.id)}, kind=${pack.id}, called=${text !== null}, facts=${state.facts.length}, unresolved=${state.unresolved.length}, droppedNotOnList=${count('not_on_list')}, droppedNoSpan=${count('no_span')}, droppedSpanNotFound=${count('span_not_found')}, droppedNoFact=${count('no_fact_answer')}, heldForConfirm=${held}, overlayAskedEmpty=${overlay.askedEmpty}, overlayWritten=${overlay.written}, overlayUnreadable=${overlay.unreadable})`,
+      `[intake] ledger written (intakeId=${ctx.intakeId}, ledgerId=${String(doc.id)}, kind=${pack.id}, called=${text !== null}, facts=${state.facts.length}, unresolved=${state.unresolved.length}, droppedNotOnList=${count('not_on_list')}, droppedNoSpan=${count('no_span')}, droppedSpanNotFound=${count('span_not_found')}, droppedNoFact=${count('no_fact_answer')}, heldForConfirm=${held}, overlayAskedEmpty=${overlay.askedEmpty}, overlayWritten=${overlay.written}, overlayUnreadable=${overlay.unreadable}${v3Read !== undefined ? ', v3=true' : ''})`,
     );
     return ledgerView(doc, checklist);
   } catch (err) {
@@ -1562,7 +1578,21 @@ async function briefWithPack(
   }
 
   const read = checkRead(checklist, req.description, parsed);
+  // T-683: at feature.drafting_v3_stage ≥ 1 the Extractor reads the description
+  // (turn 0); its validated reads take the place of Reception's. Degraded, or
+  // stage 0: null, and everything below runs as before.
+  const v3 = await v3ResultFor(ctx, pack, checklist, req.description, [], 0, req.now);
+  // Arjun §9: only verbatim values are bridged into the v2 ledger; the rest are asked.
+  const v3Bridge = v3
+    ? v2ExtractionFromV3(v3, req.description, checklist, referenceYear(req.now ?? new Date()))
+    : null;
+  const v3Reads = v3 && v3Bridge ? briefReadsFromV3(v3, v3Bridge.notBridged, v3Bridge.spans) : null;
+  if (v3Reads) {
+    for (const k of v3Reads.noRead) read.values.delete(k);
+    for (const [k, v] of v3Reads.values) read.values.set(k, v);
+  }
   const byCode = datesReadByCode(checklist, req.description, read.values);
+  if (v3Reads) for (const k of v3Reads.noRead) byCode.delete(k);
   const readValues = new Map([...read.values, ...byCode]);
   // AJ-2026-10-08-T139 part 4: the words of a checked amount are derived, not asked.
   read.dropped.push(
@@ -1598,6 +1628,8 @@ async function briefWithPack(
       ...userValues(req.keep),
     ];
   }
+  // T-683: a v3 conflict or unreadable key is asked again, never guessed.
+  if (v3Reads && v3Reads.ask.size > 0) alsoAsk = new Set([...alsoAsk, ...v3Reads.ask]);
   const briefInput = {
     kind: { id: pack.id, name: pack.name, court_document: isCourtDocument(pack.id) },
     checklist,
@@ -1614,7 +1646,14 @@ async function briefWithPack(
   // T-147b: what the normalizer could not read is always asked, through the same
   // questions, even when the brief already holds a value for it. The value stays.
   const ledger = ctx.ledger.enabled
-    ? await writeReceptionLedger(ctx, pack, checklist, req, firstBrief)
+    ? await writeReceptionLedger(
+        ctx,
+        pack,
+        checklist,
+        req,
+        firstBrief,
+        v3Bridge ? { facts: v3Bridge.facts } : undefined,
+      )
     : undefined;
   // T-660: the first brief is built before the ledger exists, so a custody
   // date it derived (T-638 R1) is checked again against the ledger's own
@@ -1756,6 +1795,63 @@ async function briefWithNoPack(
   return { intake_id: ctx.intakeId, outcome: 'brief', brief, questions: [] };
 }
 
+// ── T-683: the v3 Extractor behind feature.drafting_v3_stage ────────────────
+
+/** Today in India, ISO YYYY-MM-DD. */
+function istToday(now: Date): string {
+  return new Date(now.getTime() + 330 * 60_000).toISOString().slice(0, 10);
+}
+
+/**
+ * T-683 (Arjun, T-683 answers §4 item 4): one Extractor turn, at stage ≥ 1
+ * only. Null at stage 0, and when the turn is degraded or reused: the caller then runs
+ * its v2 path unchanged. Never charged: no intake quota, no follow-up, no Ink.
+ * The LlmAuxCall row (purpose v3_extract) is written whenever a call was made.
+ * Never throws.
+ */
+async function v3ResultFor(
+  ctx: { userId: string; intakeId: string },
+  pack: RulePack,
+  checklist: ChecklistItem[],
+  description: string,
+  answers: Array<{ turn: number; askedKeys: string[]; text: string }>,
+  turn: number,
+  now?: Date,
+): Promise<ExtractResult | null> {
+  try {
+    if ((await v3Stage(ctx.userId)) < 1) return null;
+    const outcome: ExtractOutcome = await extractTurn({
+      userId: ctx.userId,
+      runId: ctx.intakeId,
+      intakeId: ctx.intakeId,
+      turn,
+      pack,
+      checklist,
+      description,
+      answers,
+      today: istToday(now ?? new Date()),
+    });
+    const usage = outcome.status === 'reused' ? undefined : outcome.usage;
+    if (usage) {
+      await recordAuxCall({
+        intakeId: ctx.intakeId,
+        userId: ctx.userId,
+        purpose: EXTRACTOR_CALL,
+        status: usage.status,
+        model: usage.model,
+        usage: usage.usage,
+        durationMs: usage.durationMs,
+      });
+    }
+    // Review round 1, finding 1: only a fresh reading of this turn is used. A
+    // 'reused' result (the run's 6-call cap) holds older answers, so the turn
+    // runs the v2 path, as Arjun §2 says ("asks in code").
+    return outcome.status === 'ok' ? outcome.result : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Describe, and get a brief back. Throws IntakeLimitError for a 429. Every
  * other failure is `outcome: unavailable`.
@@ -1823,14 +1919,16 @@ export async function runBriefIntake(req: BriefIntakeRequest): Promise<BriefInta
     const keywords = matchKeywords(req.description, allowed);
     const keywordIds = keywords.candidates.map((c) => c.templateId);
     const displayNames = displayNameIndex(catalogue);
-    const matchUser = buildMatchUserPrompt(req.description, catalogue);
+    // T-681b: the catalogue part carries the cache breakpoint; the text is buildMatchUserPrompt's.
+    const matchParts = buildMatchUserParts(req.description, catalogue);
+    const matchUser = matchParts.catalogue + matchParts.tail;
     const first = await cachedModelCall(
       ctx,
       'intake_match',
       MATCH_SYSTEM_PROMPT,
       matchUser,
       INTAKE_LIMITS.matchMaxTokens,
-      { write: false },
+      { write: false, cachedUserPrefix: matchParts.catalogue },
     );
     if (first.text === null) return { intake_id: intakeId, outcome: 'unavailable' };
 
@@ -1846,7 +1944,7 @@ export async function runBriefIntake(req: BriefIntakeRequest): Promise<BriefInta
         MATCH_SYSTEM_PROMPT,
         matchUser,
         INTAKE_LIMITS.matchRetryMaxTokens,
-        { write: false, fresh: true },
+        { write: false, fresh: true, cachedUserPrefix: matchParts.catalogue },
       );
       if (retry.text !== null) {
         const again = readMatchAnswer(parseModelJson(retry.text), allowed, displayNames);
@@ -2031,15 +2129,59 @@ export async function updateLedger(
   const pack = allowed.has(req.kind) ? loadRulePack(req.kind) : null;
   if (!pack) throw new LedgerNotFoundError();
   const checklist = checklistFor(pack);
-  const { doc: after, results } = await applyEdits(
+  // T-683 (stage ≥ 1): one Extractor turn per answer turn, on the answers'
+  // own words (the description is not stored, T-682 Q4). Each text edit is
+  // one answer, numbered from 1; a read answer is written as its value, and a
+  // non-answer (Ajay rule 4) as an empty edit. Degraded, or stage 0: the edits
+  // go in exactly as sent, so v2's own non-answer rule applies. Not charged.
+  let edits = req.edits;
+  let held: ReadonlySet<number> = new Set();
+  let v3Note = '';
+  const answers = req.edits.flatMap((e, i) =>
+    typeof e.text === 'string' && e.text.trim() !== ''
+      ? [{ turn: i + 1, askedKeys: [e.key], text: e.text }]
+      : [],
+  );
+  if (answers.length > 0 && typeof doc.intakeId === 'string' && doc.intakeId !== '') {
+    const v3 = await v3ResultFor(
+      { userId: req.userId, intakeId: doc.intakeId },
+      pack,
+      checklist,
+      '',
+      answers,
+      doc.currentVersion + 1,
+      req.now,
+    );
+    if (v3) {
+      // A v3 non-answer goes in as an empty edit: no fact, as v2 does for its own.
+      // Arjun §9: a value not verbatim in the answer is held back (nothing written).
+      const laid = editsFromV3(req.edits, v3, checklist, referenceYear(req.now ?? new Date()));
+      edits = laid.edits;
+      held = new Set(laid.held);
+      v3Note = `, v3Read=${laid.replaced}, v3NonAnswer=${laid.nonAnswers}, v3Held=${laid.held.length}`;
+    }
+  }
+  const { doc: after, results: applied } = await applyEdits(
     doc,
     checklist,
-    req.edits,
+    edits,
     INTAKE_LIMITS.maxLedgerVersions,
     req.now,
   );
+  // Results in the request's order; a held edit (stage ≥ 1, §9) is 'skipped'.
+  const results: LedgerEditResult[] =
+    held.size === 0
+      ? applied
+      : (() => {
+          const rest = [...applied];
+          return req.edits.map((e, i) =>
+            held.has(i)
+              ? { key: e.key, status: 'skipped' as const }
+              : (rest.shift() as LedgerEditResult),
+          );
+        })();
   console.info(
-    `[intake] ledger updated (ledgerId=${req.ledgerId}, version=${after.currentVersion}, edits=${req.edits.length}, saved=${results.filter((r) => r.status === 'saved').length}, unreadable=${results.filter((r) => r.status === 'unreadable').length})`,
+    `[intake] ledger updated (ledgerId=${req.ledgerId}, version=${after.currentVersion}, edits=${req.edits.length}, saved=${results.filter((r) => r.status === 'saved').length}, unreadable=${results.filter((r) => r.status === 'unreadable').length}${v3Note})`,
   );
   return { ledger: ledgerView(after, checklist), results };
 }
