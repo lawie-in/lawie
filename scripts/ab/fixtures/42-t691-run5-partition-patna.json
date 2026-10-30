@@ -1,0 +1,48 @@
+{
+  "id": "42-t691-run5-partition-patna",
+  "pack": "plaint_partition",
+  "title": "T-691 A/B, run 5 #3a (v2 copy): partition between two siblings, one defendant (Patna)",
+  "risk": "Anushka run 5 3a and Majors: a sole defendant must not read '& Ors.'; the Rs 40,00,000 valuation given became a [To be confirmed] blank",
+  "source": "handoff/tickets/anushka-run5-prod-v1.2.2.md scenario 3a and Majors; facts re-made fictionally from her report and from the T-683 fixture 31 (read-only). Dates: death 10.05.2020, demand 01.06.2026, refusal 20.06.2026. Expectation basis: each `why` starts with the ruling it rests on (file in handoff/legal); no expectation cites case law.",
+  "review": "drafted by dev from Anushka's reports, not yet reviewed by Anushka",
+  "ajay": null,
+  "language": "en",
+  "description": "Suit for partition. Plaintiff: Sample Person 1, child of late Sample Person 3, aged 48, resident of Plot 000, Sample Nagar, Patna. Defendant: Sample Person 2, child of late Sample Person 3, aged 45, the plaintiff's sibling, of the same address. Their father Sample Person 3 died intestate on 10.05.2020; their mother died before him, and the two children are his only heirs. The joint family property is a two-storey house on Plot 000, Sample Nagar, Patna, and 1 acre of agricultural land at Plot 001, Sample Nagar, District Patna, both ancestral. The plaintiff claims a half share. Both live in the house; the defendant alone collects the rent of the ground floor and cultivates the land. The plaintiff asked for partition by letter dated 01.06.2026 and the defendant refused by reply dated 20.06.2026. The property is valued at Rs 40,00,000 and court fee of Rs 1,500 is paid. The defendant is the only defendant.",
+  "court": {
+    "state": "Bihar",
+    "court_type": "civil_court",
+    "court": "bihar_civil_patna"
+  },
+  "answers": [
+    {
+      "key": "other_defendants",
+      "value": "No, Defendant No. 1 is the only defendant"
+    }
+  ],
+  "expect": {
+    "absent": [
+      {
+        "any_of": ["& Ors."],
+        "why": "T-650 (3c)/(3d): with other_defendants = no the title is `{defendant} ... Defendant`; '& Ors.' is never printed unconditionally"
+      },
+      {
+        "any_of": ["... Defendants"],
+        "why": "T-650 (3c)/(3e): the singular suffix ` ... Defendant` when there is one defendant"
+      },
+      {
+        "any_of": ["Lawie"],
+        "why": "T-485 (3), T-245 file: the Lawie disclaimer is never inside the court document's text"
+      },
+      {
+        "any_of": ["Shri/Smt"],
+        "why": "T-485 (4), T-245 file: never print both Shri and Smt."
+      }
+    ],
+    "present": [
+      {
+        "any_of": ["40,00,000"],
+        "why": "T-675: the valuation paragraph is built from the given value (Rs 40,00,000)"
+      }
+    ]
+  }
+}

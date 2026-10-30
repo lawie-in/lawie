@@ -1,0 +1,97 @@
+{
+  "id": "45-t691-run5-bail-hinglish-custody",
+  "pack": "bail_regular",
+  "title": "T-691 A/B, run 5 #4a/#5 (v2 copy): regular bail, Hinglish arrest and custody, Hinglish answers (Bhopal)",
+  "risk": "Anushka run 5 4a, 5 and Blocker 3: 'tab se jail mein hai' left custody blank; Hinglish and Devanagari answers were pasted raw; the heading offered s.439 CrPC for an Oct-2026 FIR",
+  "source": "handoff/tickets/anushka-run5-prod-v1.2.2.md scenarios 4a and 5, Blocker 3 and the bail Major; facts re-made fictionally from her report and from the T-683 fixture 34 (read-only). Added for AJ-683-M2: one answer with a courtesy tail ('pata nahi sir ji'), a non-answer under that rule. v2 does not strip tails until T-683c ships. Dates: offence 15.10.2026, FIR 16.10.2026, arrest 18.10.2026, all after 1 July 2024 (BNS, BNSS). Expectation basis: each `why` starts with the ruling it rests on (file in handoff/legal); no expectation cites case law.",
+  "review": "drafted by dev from Anushka's reports, not yet reviewed by Anushka",
+  "ajay": null,
+  "language": "bilingual",
+  "description": "Regular bail for Sample Person 1, son of Sample Person 3, age 28, R/o Plot 000, Sample Nagar, Bhopal. Sessions Court Bhopal. FIR No. 000/2026 dated 16.10.2026, थाना Govindpura, BNS 303(2), offence date 15.10.2026. 18.10.2026 ko arrest kiya, tab se jail mein hai. Chargesheet abhi file nahi hui. Pehle koi bail application nahi lagayi. Mobile phone chori ka aarop hai, woh false implication hai.",
+  "court": {
+    "state": "Madhya Pradesh",
+    "court_type": "sessions",
+    "court": "mp_sessions_bhopal"
+  },
+  "answers": [
+    {
+      "key": "currently_in_custody",
+      "value": "Yes — Judicial custody"
+    },
+    {
+      "key": "antecedents",
+      "value": "Pehle koi criminal case? नहीं."
+    },
+    {
+      "key": "recovery_status",
+      "value": "Koi recovery nahi hui"
+    },
+    {
+      "key": "dependants",
+      "value": "ek chhota bachcha hai"
+    },
+    {
+      "key": "applicant_occupation",
+      "value": "pata nahi sir ji"
+    }
+  ],
+  "expect": {
+    "exact": [
+      {
+        "any_of": ["The applicant was arrested on"],
+        "why": "T-638 R1/B3 (T-612 (5), skeleton v7 custody_status_derived) with T-676 and the T-665b ruling: 'tab se jail mein hai' with the given arrest date prints the signed derived line `The applicant was arrested on {custody_since} and is now in {custody_kind}.`"
+      },
+      {
+        "any_of": ["and is now in judicial custody"],
+        "why": "T-638 R1/B3 (T-612 (5)): the derived line's custody kind, judicial custody as answered"
+      },
+      {
+        "any_of": ["Section 483 of the Bharatiya Nagarik Suraksha Sanhita, 2023"],
+        "why": "T-245 Addendum 1 (BNSS form, byte-exact; bail_regular Court of Session 439 -> 483; #8: an FIR on or after 1 July 2024 uses the BNSS)"
+      }
+    ],
+    "present": [
+      {
+        "any_of": ["Police Station Govindpura", "Police Station थाना Govindpura"],
+        "why": "T-612 (6)/(6a): prose reads `Police Station {police_station}`; a leading bare थाना is not stripped, and printing it is accepted"
+      }
+    ],
+    "absent": [
+      {
+        "any_of": ["[To be confirmed: in custody since", "[To be confirmed: Custody Status]"],
+        "why": "T-665b ruling (1) (T-612 file) and T-676: custody since the arrest date prints the derived line with no blank"
+      },
+      {
+        "any_of": ["[To be confirmed: Section 439"],
+        "why": "T-245 Addendum 1 #8: an FIR dated 16.10.2026 forces the BNSS, so no CrPC/BNSS choice blank"
+      },
+      {
+        "any_of": ["nahi hui", "chhota bachcha", "koi criminal case", "नहीं", "tab se jail"],
+        "why": "T-676: Hindi and Hinglish answers are read as facts and written in English, never quoted verbatim"
+      },
+      {
+        "any_of": ["PS Govindpura"],
+        "why": "T-612 (6): never 'PS' in prose"
+      },
+      {
+        "any_of": ["pata nahi", "sir ji"],
+        "why": "AJ-683-M2 (T-511 file) with T-676: 'pata nahi sir ji' is a non-answer after the courtesy tail is dropped, so it is no fact and is never printed raw"
+      },
+      {
+        "any_of": [
+          "[To be confirmed: date of the alleged offence",
+          "[To be confirmed: whether the IPC or the BNS applies"
+        ],
+        "why": "T-245 S-text: the offence date is given (after 1 July 2024) and the sections given are BNS, so neither offence-law blank applies"
+      },
+      {
+        "any_of": ["Lawie"],
+        "why": "T-485 (3), T-245 file: the Lawie disclaimer is never inside the court document's text"
+      },
+      {
+        "any_of": ["Shri/Smt"],
+        "why": "T-485 (4), T-245 file: never print both Shri and Smt."
+      }
+    ]
+  }
+}

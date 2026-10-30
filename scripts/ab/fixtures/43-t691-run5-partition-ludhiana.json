@@ -1,0 +1,54 @@
+{
+  "id": "43-t691-run5-partition-ludhiana",
+  "pack": "plaint_partition",
+  "title": "T-691 A/B, run 5 #3b (v2 copy): partition among four children, three defendants (Ludhiana)",
+  "risk": "Anushka run 5 3b and Majors: all three defendants must be shown and the title must take '& Ors.'; the Rs 30,00,000 valuation given became a [To be confirmed] blank",
+  "source": "handoff/tickets/anushka-run5-prod-v1.2.2.md scenario 3b and Majors; facts re-made fictionally from her report. Dates: death 02.03.2024, demand 15.07.2026, refusal 01.08.2026. Expectation basis: each `why` starts with the ruling it rests on (file in handoff/legal); no expectation cites case law.",
+  "review": "drafted by dev from Anushka's reports, not yet reviewed by Anushka",
+  "ajay": null,
+  "language": "en",
+  "description": "Suit for partition. Plaintiff: Sample Person 1, child of late Sample Person 5, aged 39, resident of Plot 000, Sample Nagar, Ludhiana. Defendants: (1) Sample Person 2, (2) Sample Person 6 and (3) Sample Person 7, all children of late Sample Person 5 and residents of Plot 000, Sample Nagar, Ludhiana. Sample Person 5 died intestate on 02.03.2024, leaving these four children as the only heirs. The property is the father's self-acquired house at Plot 000, Sample Nagar, Ludhiana, and a shop at Plot 001, Sample Nagar, Ludhiana. The plaintiff claims a one-fourth share. Defendant No. 1 occupies the shop and keeps its income; all four live in the house. The plaintiff asked for partition on 15.07.2026 and the defendants refused on 01.08.2026. The property is valued at Rs 30,00,000 and court fee of Rs 1,500 is paid.",
+  "court": {
+    "state": "Punjab",
+    "court_type": "district_court",
+    "court": "pb_district_ludhiana"
+  },
+  "answers": [
+    {
+      "key": "other_defendants",
+      "value": "Yes, there are other defendants"
+    }
+  ],
+  "expect": {
+    "exact": [
+      {
+        "any_of": ["& Ors. ... Defendants"],
+        "why": "T-650 (3c)/(3e): with other_defendants = yes the title is `{defendant} & Ors. ... Defendants`, the literal '& Ors.'"
+      },
+      {
+        "any_of": ["Sample Person 6"],
+        "why": "T-650 (3), Why: Order VII Rule 1 CPC, the plaint names each defendant; every co-sharer is a necessary party"
+      },
+      {
+        "any_of": ["Sample Person 7"],
+        "why": "T-650 (3), Why: Order VII Rule 1 CPC, the plaint names each defendant; every co-sharer is a necessary party"
+      }
+    ],
+    "present": [
+      {
+        "any_of": ["30,00,000"],
+        "why": "T-675: the valuation paragraph is built from the given value (Rs 30,00,000)"
+      }
+    ],
+    "absent": [
+      {
+        "any_of": ["Lawie"],
+        "why": "T-485 (3), T-245 file: the Lawie disclaimer is never inside the court document's text"
+      },
+      {
+        "any_of": ["Shri/Smt"],
+        "why": "T-485 (4), T-245 file: never print both Shri and Smt."
+      }
+    ]
+  }
+}

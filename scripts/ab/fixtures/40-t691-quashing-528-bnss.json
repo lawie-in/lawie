@@ -1,0 +1,46 @@
+{
+  "id": "40-t691-quashing-528-bnss",
+  "pack": "quashing_528_bnss",
+  "title": "T-691 A/B, quashing under s.528 BNSS (Patna High Court): a civil dispute given a criminal colour, offence after 1 July 2024",
+  "risk": "T-691 argued-pack matter (Ajay #4): the quashing grounds argued from the facts given, under Section 528 BNSS and the BNS sections as registered, with no invented fact",
+  "source": "handoff/legal/T-691-ab-matters-and-rubric-ajay.md (1) matter 4; new fictional fixture drafted by dev; Ajay signs its facts before the run. Dates: offence 01.08.2026 and FIR 20.08.2026, both after 1 July 2024, so BNS and BNSS only (T-245). Expectation basis: each `why` starts with the ruling it rests on (file in handoff/legal); no expectation cites case law.",
+  "review": "drafted by dev from Anushka's reports, not yet reviewed by Anushka",
+  "ajay": null,
+  "language": "en",
+  "description": "Petition under Section 528 BNSS before the Patna High Court to quash FIR No. 000/2026 dated 20.08.2026, PS Sample Nagar, District Patna, Bihar, registered under Sections 318(4) and 351(2) BNS, and all proceedings arising from it. Petitioner: Sample Person 1, child of Sample Person 3, aged 41, resident of Plot 000, Sample Nagar, Patna. Respondent No. 1: State of Bihar. Respondent No. 2 (informant): Sample Person 2, resident of Plot 001, Sample Nagar, Patna. Facts: under a written agreement dated 05.03.2026 the petitioner agreed to supply building material worth Rs 2,50,000 to the informant, who paid the full amount in advance. The petitioner delivered material worth Rs 1,50,000 on 20.03.2026 and 02.04.2026 against delivery challans. The supplier's factory then shut and the balance could not be delivered; by letter dated 10.07.2026 the petitioner offered to refund the remaining Rs 1,00,000. The informant refused the refund and on 20.08.2026 lodged the FIR saying the petitioner cheated the informant on 01.08.2026 and threatened the informant; the FIR gives no words, date or place of any threat. Charge sheet No. 000/2026 was filed on 15.10.2026 and the Chief Judicial Magistrate, Patna took cognizance on 22.10.2026 in Case No. 000/2026. Relief sought: quash the FIR, the charge sheet, the cognizance order and the whole proceedings. Grounds: the dispute is civil, arising from a supply contract that was partly performed; there was no dishonest intention at the start, as material worth Rs 1,50,000 was delivered and a refund offered, so the ingredients of cheating under Section 318(4) BNS are not made out; the FIR gives no particulars of any threat, so Section 351(2) BNS is not made out; the FIR was lodged to recover money. No other remedy stops this abuse of process: the trial court cannot quash the proceedings. Documents: the agreement dated 05.03.2026, the delivery challans of 20.03.2026 and 02.04.2026, the letter dated 10.07.2026, the FIR, the charge sheet and the cognizance order.",
+  "court": {
+    "state": "Bihar",
+    "court_type": "high_court",
+    "court": "patna_hc"
+  },
+  "answers": [],
+  "expect": {
+    "exact": [
+      {
+        "any_of": ["Section 528 of the Bharatiya Nagarik Suraksha Sanhita, 2023"],
+        "why": "T-245 table (quashing_528_bnss 482 -> 528) and Addendum 1 (BNSS form, byte-exact; #8: an FIR on or after 1 July 2024 uses the BNSS)"
+      },
+      {
+        "any_of": ["318(4)"],
+        "why": "T-245 S-text: cite the offences as the brief gives them; never convert a section from one code to the other"
+      }
+    ],
+    "absent": [
+      {
+        "any_of": [
+          "[To be confirmed: date of the alleged offence",
+          "[To be confirmed: whether the IPC or the BNS applies"
+        ],
+        "why": "T-245 S-text: the offence date is given (after 1 July 2024) and the sections given are BNS, so neither offence-law blank applies"
+      },
+      {
+        "any_of": ["Lawie"],
+        "why": "T-485 (3), T-245 file: the Lawie disclaimer is never inside the court document's text"
+      },
+      {
+        "any_of": ["Shri/Smt"],
+        "why": "T-485 (4), T-245 file: never print both Shri and Smt."
+      }
+    ]
+  }
+}
