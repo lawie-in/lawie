@@ -130,3 +130,11 @@ Ajay AJ-646-BC2 PASS (abc79c38) stands for the strings. Reviewer verdict fail:
 - Confirmed clean: no window code; atomic if-empty stamp that never throws; clamp arithmetic; ids-only logs; `paymentCopy.ts` comment-only.
 
 Path: same developer → fresh tester → Arjun's reviewer on the new delta → new SHA to Ajay → Priya's slot (held).
+
+## Round 3c — Arjun's review at be7d0b5d (09:50 UTC): PASS
+
+Delta 9b5ef4dc..be7d0b5d, six billing files. Must-fix closed: backfill charge count = max(paid invoices, |E ∪ R|) and any inked Payment row on the subscription makes it ambiguous; reviewer found no path where a legacy and a linked reversal hit one grant. C1 (`grantPaymentId`-only link), C2 (`capAfterClaim` after the claim insert; two concurrent refunds can only under-reverse, never over-reverse; cap-lookup error rolls the claim back), C3 (per-payment catch, counts continue) verified. Tester: full billing 2540/2540, web sanity 286/287 (t543 only). Ajay **APPROVED at be7d0b5d** (4539fcdf).
+
+Accepted as follow-ups, not blocking: (1) backfill pass 1 can miss a captured charge whose context does not resolve or that predates `BACKFILL_FROM` with no row — cannot double-reverse, may misattribute between two charges on one invoice; the prod dry run's counts are checked against Razorpay's payment count before apply. (2) A refund that sees another refund's pending claim returns `grant_already_reversed` rather than busy, and the outcome label stays `reversed` when the cap lowers due to 0 — safe (under-reverse only); Priya files a P3 follow-up.
+
+Merge: exactly be7d0b5d plus the origin merge, in Priya's slot, once the founder's `.env.example` `SUPPORT_NOTIFY_EMAIL` line is in. Merge SHA to Ajay.
