@@ -73,7 +73,7 @@ describe('T-666 AC1: the rename, no string changes', () => {
     expect(stale).toEqual([]);
   });
 
-  it('exports the same names as before, plus isNoFactGuardedField (T-666) and NON_ANSWER_PARTY_PACKS, isNonAnswerPartyPack (T-668)', () => {
+  it('exports the same names as before, plus isNoFactGuardedField (T-666) and NON_ANSWER_PARTY_PACKS, isNonAnswerPartyPack (T-668), NON_ANSWER_WITH_TEXT_PARTY_LINE, isNonAnswerWithText (T-668e)', () => {
     expect(Object.keys(signed).sort()).toEqual(
       [
         'O39_CONFIRM_MESSAGES',
@@ -83,11 +83,13 @@ describe('T-666 AC1: the rename, no string changes', () => {
         'PACK_CONFIRM_MESSAGES',
         'NON_ANSWER_PARTY_PACKS',
         'NON_ANSWER_TAIL',
+        'NON_ANSWER_WITH_TEXT_PARTY_LINE',
         'COURTESY_TAIL_WORDS',
         'stripCourtesyTail',
         'isEmptyOrNonAnswer',
         'isNoFactGuardedField',
         'isNonAnswerPartyPack',
+        'isNonAnswerWithText',
         'isO39RequiredField',
         'isPartyNameGuardedField',
         'isPartyNonAnswer',
