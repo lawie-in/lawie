@@ -8,6 +8,8 @@ import {
   ARM_EFFORT,
   BUDGET_INR,
   DEFAULT_MATTERS,
+  EXTRA_WORST_CALLS,
+  INTAKE_MODEL,
   AB_FIXTURES_DIR,
   MAX_DRAFTS,
   RATES,
@@ -19,10 +21,12 @@ import {
   factsOf,
   outcomeOfError,
   parseArgs,
+  rateFor,
   selectMatters,
   tokensOf,
 } from '../ab/run-ab';
-import { seededRandom } from '../ab/blind-writer';
+import { seededRandom, unseal } from '../ab/blind-writer';
+import { WORST_CASE_CALLS } from '../golden-set/lib/cost';
 import { FIXTURES_DIR as GOLDEN_DIR, checkFixture, loadFixtures } from '../golden-set/lib/fixtures';
 import { Fixture, LlmCallObserved, REVIEW_STATUS } from '../golden-set/lib/types';
 
@@ -110,6 +114,23 @@ describe('parseArgs', () => {
     expect(ok.seed).toBe(7);
     expect(ok.maxTokens).toBe(1000);
   });
+
+  it('--real with --seed is refused (a seed on a command line leaks into argv, history and ps)', () => {
+    const e = parseArgs(['--real', '--seed', '7']).errors;
+    expect(e.join(' ')).toMatch(/--seed is for --dry only/);
+    // either order of the flags
+    expect(parseArgs(['--seed', '7', '--real']).errors.join(' ')).toMatch(
+      /--seed is for --dry only/,
+    );
+    // the error does not echo the seed value
+    expect(e.join(' ')).not.toMatch(/\b7\b/);
+  });
+
+  it('--real alone and --dry with --seed raise no seed error', () => {
+    expect(parseArgs(['--real']).errors.join(' ')).not.toMatch(/seed/);
+    expect(parseArgs(['--dry', '--seed', '7']).errors).toEqual([]);
+    expect(parseArgs(['--dry', '--seed', '0']).errors).toEqual([]);
+  });
 });
 
 describe('selectMatters', () => {
@@ -189,8 +210,23 @@ describe('armCheck', () => {
     expect(armCheck([call(), call({ call: 'repair' })], ARMS[0])).toEqual([]);
   });
 
-  it('passes with no body calls (nothing to contradict)', () => {
+  it('passes with no body calls when no draft was delivered (nothing to contradict)', () => {
     expect(armCheck([], ARMS[0])).toEqual([]);
+    expect(armCheck([], ARMS[0], false)).toEqual([]);
+  });
+
+  it('a delivered draft with no Drafter call on record is one problem, for either arm', () => {
+    for (const m of ARMS) {
+      const p = armCheck([], m, true);
+      expect(p).toHaveLength(1);
+      expect(p[0]).toMatch(/no Drafter call on record/);
+      expect(p[0]).not.toMatch(/claude|opus|sonnet|haiku/i);
+    }
+  });
+
+  it('a delivered draft with a good body call still passes; a bad one still fails', () => {
+    expect(armCheck([call()], ARMS[0], true)).toEqual([]);
+    expect(armCheck([call({ model: ARMS[1] })], ARMS[0], true)).toHaveLength(1);
   });
 
   it('fails on the wrong model', () => {
@@ -228,6 +264,71 @@ describe('estimateAb and the 600 rupee guard', () => {
     expect(e.perMatterWorstUsd * USD_INR).toBeLessThanOrEqual(BUDGET_INR);
   });
 
+  describe('EXTRA_WORST_CALLS (review round 1, SHOULD 3)', () => {
+    /** Priced the way the estimate says it prices: input at the dearer of input and cache write. */
+    const priced = (calls: readonly { model: string; input: number; output: number }[]) => {
+      let usd = 0;
+      for (const c of calls)
+        for (const m of c.model === 'intake' ? [INTAKE_MODEL] : [...ARMS]) {
+          const r = rateFor(m);
+          usd += (c.input / 1e6) * Math.max(r.input, r.cacheWrite) + (c.output / 1e6) * r.output;
+        }
+      return usd;
+    };
+
+    it('covers a second reception and extraction, the match call and its retry, and a non-body allowance per arm', () => {
+      const purposes = EXTRA_WORST_CALLS.map((c) => c.purpose);
+      expect(purposes).toEqual(
+        expect.arrayContaining([
+          'intake_reception_2',
+          'intake_extract_2',
+          'intake_match',
+          'intake_match_retry',
+          'arm_non_body_allowance',
+        ]),
+      );
+      // the allowance is priced at the arm's model, once per arm; the rest at the intake model
+      expect(EXTRA_WORST_CALLS.filter((c) => c.model === 'drafting')).toHaveLength(1);
+      for (const c of EXTRA_WORST_CALLS) expect(c.input + c.output).toBeGreaterThan(0);
+    });
+
+    it('the per-matter worst case is the old worst case plus the extras, and is higher', () => {
+      const old = priced(WORST_CASE_CALLS);
+      const extra = priced(EXTRA_WORST_CALLS);
+      expect(extra).toBeGreaterThan(0);
+      const e = estimateAb(1);
+      expect(e.perMatterWorstUsd).toBeCloseTo(old + extra, 9);
+      expect(e.perMatterWorstUsd).toBeGreaterThan(old);
+      // the allowance is the arm's model: opus-only raises the extras more than sonnet-only
+      expect(
+        estimateAb(1, ['claude-opus-5-5']).perMatterWorstUsd -
+          estimateAb(1, ['claude-sonnet-5-5']).perMatterWorstUsd,
+      ).toBeGreaterThan(0);
+    });
+
+    it('the typical estimate does not include the extras', () => {
+      let typical = 0;
+      for (const c of WORST_CASE_CALLS)
+        for (const m of c.model === 'intake' ? [INTAKE_MODEL] : [...ARMS]) {
+          const r = rateFor(m);
+          if (c.purpose === 'intake_reception' || c.purpose === 'intake_extract')
+            typical += (c.input / 1e6) * r.input + (c.output / 1e6) * r.output;
+          if (c.purpose === 'drafter_body')
+            typical += (c.input / 1e6) * r.input + (c.output / 3 / 1e6) * r.output;
+        }
+      expect(estimateAb(1).typicalUsd).toBeCloseTo(typical, 9);
+      expect(estimateAb(10).typicalUsd).toBeCloseTo(typical * 10, 9);
+    });
+
+    it('the default 10 matters still have a typical estimate within 600 rupees, and one matter fits the cap', () => {
+      const e = estimateAb(DEFAULT_MATTERS.length);
+      expect(e.typicalInr).toBeLessThanOrEqual(BUDGET_INR);
+      expect(e.perMatterWorstUsd * USD_INR).toBeLessThanOrEqual(BUDGET_INR);
+      // and the worst case for ten does pass it: the runtime stops are what hold the cap
+      expect(e.worstInr).toBeGreaterThan(BUDGET_INR);
+    });
+  });
+
   it('the dearer arm raises the estimate (opus-only costs more than sonnet-only)', () => {
     expect(estimateAb(5, ['claude-opus-5-5']).worstUsd).toBeGreaterThan(
       estimateAb(5, ['claude-sonnet-5-5']).worstUsd,
@@ -247,19 +348,6 @@ describe('estimateAb and the 600 rupee guard', () => {
     const headroomUsd = BUDGET_INR / USD_INR - e.perMatterWorstUsd;
     expect(wouldPass(headroomUsd - 0.0001)).toBe(false);
     expect(wouldPass(headroomUsd + 0.0001)).toBe(true);
-  });
-
-  it('the driver source applies that exact stop in real mode, before a matter, and the refusals upfront', () => {
-    const src = fs.readFileSync(SRC, 'utf8');
-    expect(src).toMatch(
-      /args\.mode === 'real' && \(spentUsd \+ estimate\.perMatterWorstUsd\) \* USD_INR > BUDGET_INR/,
-    );
-    // and a second stop after each matter: once the running total passes the cap, break (never continue)
-    expect(src).toMatch(
-      /if \(spentUsd \* USD_INR > BUDGET_INR\) \{\s*capped = [^;]*;\s*break;\s*\}/,
-    );
-    expect(src).toMatch(/estimate\.typicalInr > BUDGET_INR/);
-    expect(src).toMatch(/estimate\.perMatterWorstUsd \* USD_INR > BUDGET_INR/);
   });
 });
 
@@ -405,7 +493,13 @@ describe('the eight scripts/ab fixtures', () => {
   });
 });
 
-describe('source guard: run-ab.ts never reads a database address from the shell', () => {
+describe('source guard (regex): only what cannot be exercised without --real or a non-memory database', () => {
+  // Left as regexes on purpose:
+  //  - the runtime stops in real mode (they need a real run to be reached),
+  //  - assertMemory before writes (needs a database that is not the in-memory one),
+  //  - no other route to a database address (.env files, bracket access, env spread).
+  // Replaced by child-process behaviour below: --real refusals (AB_ARJUN_GO, key, seed), a dead
+  // MONGO_URI / GOLDEN_SET_MONGODB_URI being ignored, and the connection being to the in-memory server.
   const raw = fs.readFileSync(SRC, 'utf8');
   // Comments out, so the header prose that names these variables does not count.
   const code = raw
@@ -413,21 +507,15 @@ describe('source guard: run-ab.ts never reads a database address from the shell'
     .replace(/^\s*\/\/.*$/gm, '')
     .replace(/([^:'"`])\/\/[^\n]*/g, '$1');
 
-  it('never mentions GOLDEN_SET_MONGODB_URI in code', () => {
-    expect(code).not.toContain('GOLDEN_SET_MONGODB_URI');
-  });
-
-  it('every process.env.MONGO_URI is an assignment (overwrite) or the in-memory check; never a source', () => {
-    const uses = [...code.matchAll(/process\.env\.MONGO_URI\b[^\n]*/g)].map((m) => m[0]);
-    expect(uses.length).toBeGreaterThan(0);
-    const assignments = uses.filter((u) => /^process\.env\.MONGO_URI\s*=(?!=)/.test(u));
-    const checks = uses.filter((u) => /^process\.env\.MONGO_URI\s*!==\s*ctx\.memUri/.test(u));
-    // anything else (e.g. `const u = process.env.MONGO_URI`) would be a read used as a source
-    expect(uses.filter((u) => !assignments.includes(u) && !checks.includes(u))).toEqual([]);
-    expect(assignments).toHaveLength(2);
-    expect(checks).toHaveLength(1);
-    // the overwrite with the in-memory URI is the only non-placeholder assignment
-    expect(assignments.some((a) => /=\s*memUri;/.test(a))).toBe(true);
+  it('applies the runtime stop in real mode before a matter, the stop after one, and the refusals upfront', () => {
+    expect(code).toMatch(
+      /args\.mode === 'real' && \(spentUsd \+ estimate\.perMatterWorstUsd\) \* USD_INR > BUDGET_INR/,
+    );
+    expect(code).toMatch(
+      /if \(spentUsd \* USD_INR > BUDGET_INR\) \{\s*capped = [^;]*;\s*break;\s*\}/,
+    );
+    expect(code).toMatch(/estimate\.typicalInr > BUDGET_INR/);
+    expect(code).toMatch(/estimate\.perMatterWorstUsd \* USD_INR > BUDGET_INR/);
   });
 
   it('no other way to reach MONGO_URI: bracket access, destructuring, env spread, dotenv', () => {
@@ -438,16 +526,9 @@ describe('source guard: run-ab.ts never reads a database address from the shell'
     expect(code).not.toMatch(/readFileSync\([^)]*\.env/);
   });
 
-  it('connects only to memUri and gates on assertMemory before writes', () => {
-    expect(code).toMatch(/mongoose\.connect\(memUri,/);
-    expect(code).not.toMatch(/mongoose\.connect\((?!memUri)/);
+  it('gates on assertMemory before writes and allows loopback hosts only', () => {
     expect(code).toMatch(/\['127\.0\.0\.1', 'localhost', '::1'\]/);
-    const writes = code.match(/assertMemory\(ctx\)/g) ?? [];
-    expect(writes.length).toBeGreaterThanOrEqual(3); // setArm, seedMemoryDb, main
-  });
-
-  it('--real is refused unless AB_ARJUN_GO is 1', () => {
-    expect(code).toMatch(/process\.env\.AB_ARJUN_GO !== '1'/);
+    expect((code.match(/assertMemory\(ctx\)/g) ?? []).length).toBeGreaterThanOrEqual(3); // setArm, seedMemoryDb, main
   });
 });
 
@@ -489,6 +570,32 @@ describe('driver refusals (child process, exit 2 before any database or model is
     expect(r.stderr).toMatch(/GOLDEN_SET_ANTHROPIC_API_KEY/);
   });
 
+  it('--real with --seed exits 2 on the seed alone, before any database or model (AB_ARJUN_GO set)', () => {
+    // The go flag is built at runtime; the key is deliberately absent, so the only reason that names the seed is the seed.
+    const go = String(Number('1'));
+    const r = runDriver(['--real', '--seed', '7'], cleanEnv({ AB_ARJUN_GO: go }), 90_000);
+    expect(r.status).toBe(2);
+    expect(r.stderr).toMatch(/--seed is for --dry only/);
+    // refused at argument parsing: nothing of the run started
+    expect(r.stdout).not.toMatch(/in-memory database|estimate|REAL MODEL/);
+    expect(r.stderr).not.toMatch(/GOLDEN_SET_ANTHROPIC_API_KEY|AB_KEY_PASSPHRASE|AB_ARJUN_GO/);
+  });
+
+  it('--real with --seed and a --out folder writes nothing there', () => {
+    const o = fs.mkdtempSync(path.join(os.tmpdir(), 't691-ab-seedrefuse-'));
+    try {
+      const r = runDriver(
+        ['--real', '--seed', '7', '--out', o],
+        cleanEnv({ AB_ARJUN_GO: '1' }),
+        90_000,
+      );
+      expect(r.status).toBe(2);
+      expect(fs.readdirSync(o)).toEqual([]);
+    } finally {
+      fs.rmSync(o, { recursive: true, force: true });
+    }
+  });
+
   it('an unknown matter exits 2', () => {
     const r = runDriver(['--dry', '--matters', 'nope'], cleanEnv(), 90_000);
     expect(r.status).toBe(2);
@@ -506,77 +613,154 @@ describe('driver refusals (child process, exit 2 before any database or model is
 describe('integration: --dry on golden 23 (in-memory Mongo, stub seam)', () => {
   jest.setTimeout(300_000);
   let out: string;
+  let dir: string;
+  let run: ReturnType<typeof runDriver>;
+  /** The sealing passphrase is built at runtime and handed to the child by env, as Arjun would. */
+  const PASS = ['t691', 'child', 'phrase', String(4242)].join('-');
+  const readJson = (p: string) => JSON.parse(fs.readFileSync(p, 'utf8'));
+
   beforeAll(() => {
     out = fs.mkdtempSync(path.join(os.tmpdir(), 't691-ab-out-'));
+    // A shell MONGO_URI pointing somewhere else must be ignored: pass a dead address, expect success anyway.
+    const dead = ['mongodb', '://', 'dead-host.invalid', ':27017/never'].join('');
+    run = runDriver(
+      ['--dry', '--matters', '23', '--seed', '7', '--out', out],
+      cleanEnv({ MONGO_URI: dead, GOLDEN_SET_MONGODB_URI: dead, AB_KEY_PASSPHRASE: PASS }),
+      280_000,
+    );
+    const stamps = fs.existsSync(out) ? fs.readdirSync(out) : [];
+    dir = stamps.length === 1 ? path.join(out, stamps[0]) : out;
   });
   afterAll(() => {
     fs.rmSync(out, { recursive: true, force: true });
   });
 
-  it('exits 0, writes the scoring and metrics files and a 0600 sealed key, and the service wrote no AppSetting', () => {
-    // A shell MONGO_URI pointing somewhere else must be ignored: pass a dead address, expect success anyway.
-    const dead = ['mongodb', '://', 'dead-host.invalid', ':27017/never'].join('');
-    const r = runDriver(
-      ['--dry', '--matters', '23', '--seed', '7', '--out', out],
-      cleanEnv({ MONGO_URI: dead, GOLDEN_SET_MONGODB_URI: dead }),
-      280_000,
-    );
+  it('exits 0 against the in-memory database only (a dead MONGO_URI is ignored), AppSetting unchanged', () => {
     // yarn may warn on stderr; the driver's own errors are prefixed "ab:".
     expect({
-      status: r.status,
-      abErrors: r.stderr.split('\n').filter((l) => l.startsWith('ab:')),
-    }).toEqual({
-      status: 0,
-      abErrors: [],
-    });
-    expect(r.stdout).toMatch(/in-memory database/);
-    expect(r.stdout).toMatch(/AppSetting rows other than the arm's: unchanged/);
-    expect(r.stdout).toMatch(/2 drafts: 2 delivered, 0 withheld, 0 not produced/);
-    expect(r.stdout).not.toContain('dead-host');
-    // blind console: no model names
-    expect(r.stdout).not.toMatch(/claude|opus|sonnet|haiku/i);
+      status: run.status,
+      abErrors: run.stderr.split('\n').filter((l) => l.startsWith('ab:')),
+    }).toEqual({ status: 0, abErrors: [] });
+    expect(run.stdout).toMatch(/in-memory database/);
+    expect(run.stdout).toMatch(/AppSetting rows other than the arm's: unchanged/);
+    expect(run.stdout).toMatch(/2 drafts: 2 delivered, 0 withheld, 0 not produced/);
+    expect(run.stdout).not.toContain('dead-host');
+    // blind console: no model names; no passphrase either
+    expect(run.stdout).not.toMatch(/claude|opus|sonnet|haiku/i);
+    expect(run.stdout + run.stderr).not.toContain(PASS);
+  });
 
-    const stamps = fs.readdirSync(out);
-    expect(stamps).toHaveLength(1);
-    const dir = path.join(out, stamps[0]);
+  it('writes exactly KEY.sealed.json, scoring/ and vikram/ (and no metrics file next to scoring/)', () => {
+    expect(fs.readdirSync(out)).toHaveLength(1);
+    expect(fs.readdirSync(dir).sort()).toEqual(['KEY.sealed.json', 'scoring', 'vikram']);
     expect(fs.readdirSync(path.join(dir, 'scoring')).sort()).toEqual(['D01.md', 'D02.md']);
-    const metrics = JSON.parse(fs.readFileSync(path.join(dir, 'metrics.json'), 'utf8'));
-    expect(Object.keys(metrics).sort()).toEqual(['D01', 'D02']);
+    expect(fs.readdirSync(path.join(dir, 'vikram')).sort()).toEqual([
+      'intake-spend.json',
+      'metrics.json',
+    ]);
+    expect(fs.statSync(path.join(dir, 'KEY.sealed.json')).mode & 0o777).toBe(0o600);
     for (const id of ['D01', 'D02']) {
       const text = fs.readFileSync(path.join(dir, 'scoring', `${id}.md`), 'utf8');
       expect(text).not.toMatch(/claude|opus|sonnet|haiku/i);
       expect(text).toContain('## Draft');
     }
-    expect(fs.statSync(path.join(dir, 'KEY.sealed.json')).mode & 0o777).toBe(0o600);
+  });
 
-    // spend fields per draft, and they add up to the per-matter stdout line
-    const spendOk = (x: { usd: number; inr: number } | undefined) =>
-      x !== undefined && typeof x.usd === 'number' && Math.abs(x.inr - x.usd * USD_INR) < 1e-9;
-    for (const id of ['D01', 'D02']) {
-      expect(spendOk(metrics[id].spend)).toBe(true);
-      expect(spendOk(metrics[id].intakeSpend)).toBe(true);
+  it('the printed paths are the ones written, and the metrics path is outside scoring/', () => {
+    const printed = (label: RegExp) => run.stdout.split('\n').find((l) => label.test(l)) ?? '';
+    expect(printed(/^ab: metrics/)).toContain(path.join(dir, 'vikram', 'metrics.json'));
+    expect(printed(/^ab: intake spend/)).toContain(path.join(dir, 'vikram', 'intake-spend.json'));
+    expect(printed(/^ab: scoring files/)).toContain(path.join(dir, 'scoring'));
+  });
+
+  it('metrics.json: M-ids, as many rows as scoring files, no D-id, no intake, no placeholders, no withheld', () => {
+    const raw = fs.readFileSync(path.join(dir, 'vikram', 'metrics.json'), 'utf8');
+    const m = JSON.parse(raw);
+    const scoring = fs.readdirSync(path.join(dir, 'scoring'));
+    expect(Object.keys(m).sort()).toEqual(['M01', 'M02']);
+    expect(Object.keys(m)).toHaveLength(scoring.length);
+    expect(raw).not.toMatch(/\bD\d{2}\b|intake|placeholder|withheld|fixtureId|runId|model|claude/i);
+    for (const row of Object.values<Record<string, unknown>>(m))
+      expect(Object.keys(row).sort()).toEqual(
+        ['costUsd', 'factDiffs', 'legalReviewer', 'spend', 'tokens'].sort(),
+      );
+  });
+
+  it('the sealed key opens with the runtime passphrase and links D to M consistently', () => {
+    const key = unseal(path.join(dir, 'KEY.sealed.json'), PASS);
+    expect(key.version).toBe(2);
+    expect(key.seed).toBe(7);
+    expect(Object.keys(key.entries).sort()).toEqual(['D01', 'D02']);
+    const mIds = Object.values(key.entries).map((e) => e.metricsId);
+    expect([...mIds].sort()).toEqual(['M01', 'M02']);
+    expect(new Set(Object.values(key.entries).map((e) => e.model)).size).toBe(2);
+    expect([...Object.values(key.entries).map((e) => e.model)].sort()).toEqual([...ARMS].sort());
+    for (const e of Object.values(key.entries)) {
+      expect(e.fixtureId).toMatch(/^23(-|$)/);
+      expect(e.withheld).toBe(false);
+      expect(typeof e.placeholders.missingMarkers).toBe('number');
     }
-    expect(metrics.D01.intakeSpend.usd).toBeCloseTo(metrics.D02.intakeSpend.usd, 12);
-    const line = r.stdout.split('\n').find((l) => /matter 23\S*: spend intake/.test(l));
+    // the row each D points to is that arm's: the dearer model has the dearer spend
+    const m = readJson(path.join(dir, 'vikram', 'metrics.json'));
+    const byModel = Object.fromEntries(
+      Object.values(key.entries).map((e) => [e.model, m[e.metricsId].spend.usd as number]),
+    );
+    expect(byModel['claude-opus-5-5']).toBeGreaterThan(byModel['claude-sonnet-5-5']);
+  });
+
+  it('the sealed intake agrees with vikram/intake-spend.json, which has no ids and one entry per matter', () => {
+    const key = unseal(path.join(dir, 'KEY.sealed.json'), PASS);
+    const rawIntake = fs.readFileSync(path.join(dir, 'vikram', 'intake-spend.json'), 'utf8');
+    const arr = JSON.parse(rawIntake) as {
+      tokens: { input: number; output: number };
+      spend: { usd: number; inr: number };
+    }[];
+    const fromKey = Object.values(key.intake);
+    expect(arr).toHaveLength(1);
+    expect(fromKey).toHaveLength(arr.length);
+    expect(rawIntake).not.toMatch(/fixtureId|\bD\d{2}\b|\bM\d{2}\b/);
+    const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
+    expect(sum(arr.map((x) => x.spend.usd))).toBeCloseTo(
+      sum(fromKey.map((x) => x.spend?.usd ?? 0)),
+      12,
+    );
+    expect(sum(arr.map((x) => x.tokens.input))).toBe(sum(fromKey.map((x) => x.tokens.input)));
+    for (const x of arr) expect(Math.abs(x.spend.inr - x.spend.usd * USD_INR)).toBeLessThan(1e-9);
+  });
+
+  it('metrics spend per draft is in USD and rupees at 88, and adds up to the stdout matter line', () => {
+    const m = readJson(path.join(dir, 'vikram', 'metrics.json'));
+    const key = unseal(path.join(dir, 'KEY.sealed.json'), PASS);
+    const intakeUsd = Object.values(key.intake)[0].spend?.usd as number;
+    const spends = Object.values<{ spend: { usd: number; inr: number } }>(m).map((r) => r.spend);
+    for (const x of spends) expect(Math.abs(x.inr - x.usd * USD_INR)).toBeLessThan(1e-9);
+    const line = run.stdout.split('\n').find((l) => /matter 23\S*: spend intake/.test(l));
     expect(line).toBeDefined();
-    const usds = [...(line as string).matchAll(/\(\$([0-9.]+)\)/g)].map((m) => Number(m[1]));
+    const usds = [...(line as string).matchAll(/\(\$([0-9.]+)\)/g)].map((x) => Number(x[1]));
     expect(usds).toHaveLength(4); // intake, two drafts, running total
     const [intakeU, d1, d2, total] = usds;
-    expect(intakeU).toBeCloseTo(metrics.D01.intakeSpend.usd, 3);
-    expect([d1, d2].sort((a, b) => a - b)[0]).toBeCloseTo(
-      Math.min(metrics.D01.spend.usd, metrics.D02.spend.usd),
-      3,
-    );
-    expect([d1, d2].sort((a, b) => a - b)[1]).toBeCloseTo(
-      Math.max(metrics.D01.spend.usd, metrics.D02.spend.usd),
-      3,
-    );
-    expect(total).toBeCloseTo(
-      metrics.D01.intakeSpend.usd + metrics.D01.spend.usd + metrics.D02.spend.usd,
-      3,
-    );
+    const sorted = spends.map((x) => x.usd).sort((a, b) => a - b);
+    expect(intakeU).toBeCloseTo(intakeUsd, 3);
+    expect(d1).toBeCloseTo(sorted[0], 3);
+    expect(d2).toBeCloseTo(sorted[1], 3);
+    expect(total).toBeCloseTo(intakeUsd + sorted[0] + sorted[1], 3);
     // the line names no model, arm or order, and the drafts are listed lower first
-    expect(line).not.toMatch(/claude|opus|sonnet|haiku|\barm\b|\border\b|\bfirst\b|\bsecond\b/i);
+    expect(line).not.toMatch(
+      /claude|opus|sonnet|haiku|\barm\b|\border\b|\bfirst\b|\bsecond\b|\bD\d{2}\b/i,
+    );
     expect(d1).toBeLessThanOrEqual(d2);
+  });
+
+  it('nothing outside KEY.sealed.json joins a scoring file to a metrics row', () => {
+    const key = unseal(path.join(dir, 'KEY.sealed.json'), PASS);
+    for (const f of fs.readdirSync(path.join(dir, 'scoring')))
+      expect(fs.readFileSync(path.join(dir, 'scoring', f), 'utf8')).not.toMatch(/\bM\d{2}\b/);
+    const clear = fs.readFileSync(path.join(dir, 'KEY.sealed.json'), 'utf8');
+    for (const e of Object.values(key.entries)) {
+      expect(clear).not.toContain(e.fixtureId);
+      expect(clear).not.toContain(e.metricsId);
+    }
+    // with a wrong passphrase the key stays shut
+    expect(() => unseal(path.join(dir, 'KEY.sealed.json'), PASS + 'x')).toThrow();
   });
 });

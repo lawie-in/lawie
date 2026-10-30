@@ -9,11 +9,21 @@
  *                              delivered text (or "WITHHELD by the gates" and
  *                              the reason code). No model, effort, tokens,
  *                              cost, timing, ids or arm label. For Anushka.
- *   metrics.json               by blind id: tokens, cost, fact-checker
- *                              findings, placeholders, withheld. For Vikram.
- *   KEY.sealed.json            blind id -> {fixtureId, model, runId} and the
- *                              shuffle seed, AES-256-GCM under a scrypt key
- *                              from a passphrase (Arjun's). Mode 0600.
+ *   vikram/metrics.json        by a SECOND random id (M01..), independent
+ *                              of the D-ids: tokens, cost, spend, fact-checker
+ *                              findings. Nothing that can be read off a
+ *                              scoring file (placeholders, withheld) and
+ *                              nothing shared by a matter's two drafts (the
+ *                              intake), so a row cannot be joined to a D-file
+ *                              or to its pair. Outside scoring/, so shipping
+ *                              scoring/ to Anushka never ships it. For Vikram.
+ *   vikram/intake-spend.json   the intake spend of each matter, in a shuffled
+ *                              order with no matter or draft id.
+ *   KEY.sealed.json            D-id -> {fixtureId, model, runId, metricsId,
+ *                              placeholders, withheld}, the intake per matter
+ *                              and both shuffle seeds, AES-256-GCM under a
+ *                              scrypt key from a passphrase (Arjun's). Mode 0600.
+ *                              The only place a D-id meets an M-id.
  *
  * Nothing here prints. The caller prints counts and paths only.
  */
@@ -96,7 +106,10 @@ export interface WriteResult {
   dir: string;
   scoringDir: string;
   scoringFiles: string[];
+  /** out/<stamp>/vikram/metrics.json, keyed by M-id. */
   metricsPath: string;
+  /** out/<stamp>/vikram/intake-spend.json, no ids. */
+  intakePath: string;
   keyPath: string;
   counts: { drafts: number; delivered: number; withheld: number; failed: number };
   warnings: {
@@ -159,8 +172,24 @@ export function randomSeed(): number {
   return randomBytes(4).readUInt32BE(0);
 }
 
-export function blindId(index: number, total: number): string {
-  return `D${String(index + 1).padStart(Math.max(2, String(total).length), '0')}`;
+export function blindId(index: number, total: number, prefix: 'D' | 'M' = 'D'): string {
+  return `${prefix}${String(index + 1).padStart(Math.max(2, String(total).length), '0')}`;
+}
+
+/** The second shuffle's seed when only the first is given (tests); otherwise from crypto. */
+export function metricsSeedFor(seed: number | undefined): number {
+  return seed === undefined
+    ? randomSeed()
+    : (Math.imul(seed ^ 0x85ebca6b, 0xc2b2ae35) ^ 0x27d4eb2f) >>> 0;
+}
+
+/** One row of vikram/metrics.json: cost and tokens only, nothing readable off a scoring file. */
+export interface VikramRow {
+  tokens: AbTokens;
+  costUsd: AbMetrics['costUsd'];
+  spend: { usd: number; inr: number } | null;
+  factDiffs: number;
+  legalReviewer: 'n/a';
 }
 
 /** Placeholder counts in a delivered text. */
@@ -223,12 +252,22 @@ export interface KeyEntry {
   fixtureId: string;
   model: string;
   runId: string | null;
+  /** This draft's row in vikram/metrics.json. Only here. */
+  metricsId: string;
+  /** Readable off the scoring file, so kept out of the plain metrics. */
+  placeholders: AbMetrics['placeholders'];
+  withheld: boolean;
 }
 
 export interface KeyPayload {
-  version: 1;
+  version: 2;
+  /** The D-order shuffle. */
   seed: number;
+  /** The M-order shuffle. */
+  metricsSeed: number;
   entries: Record<string, KeyEntry>;
+  /** The shared intake of each matter, by fixture id. */
+  intake: Record<string, { tokens: AbTokens; spend: { usd: number; inr: number } | null }>;
 }
 
 interface SealedFile {
@@ -249,6 +288,7 @@ const SCRYPT = { N: 1 << 15, r: 8, p: 1 } as const;
 /** scrypt needs 128 * N * r bytes (32 MiB here); Node's default ceiling is exactly that, so raise it. */
 const SCRYPT_MAXMEM = 64 * 1024 * 1024;
 export const MIN_PASSPHRASE = 12;
+const GCM_TAG_BYTES = 16;
 
 function deriveKey(passphrase: string, salt: Buffer, N: number, r: number, p: number): Buffer {
   return scryptSync(passphrase, salt, 32, { N, r, p, maxmem: SCRYPT_MAXMEM });
@@ -260,7 +300,7 @@ export function seal(payload: KeyPayload, passphrase: string): SealedFile {
   const salt = randomBytes(16);
   const iv = randomBytes(12);
   const key = deriveKey(passphrase, salt, SCRYPT.N, SCRYPT.r, SCRYPT.p);
-  const cipher = createCipheriv('aes-256-gcm', key, iv);
+  const cipher = createCipheriv('aes-256-gcm', key, iv, { authTagLength: GCM_TAG_BYTES });
   cipher.setAAD(AAD);
   const ct = Buffer.concat([cipher.update(JSON.stringify(payload), 'utf8'), cipher.final()]);
   return {
@@ -280,10 +320,15 @@ export function unseal(path: string, passphrase: string): KeyPayload {
   const s = JSON.parse(readFileSync(path, 'utf8')) as SealedFile;
   if (s.v !== 1 || s.alg !== 'aes-256-gcm' || s.kdf !== 'scrypt')
     throw new Error('not a T-691 sealed key');
+  const tag = Buffer.from(s.tag, 'base64');
+  // A truncated tag would weaken the GCM check: only the full 16 bytes are accepted.
+  if (tag.length !== GCM_TAG_BYTES) throw new Error('not a T-691 sealed key (bad tag length)');
   const key = deriveKey(passphrase, Buffer.from(s.salt, 'base64'), s.N, s.r, s.p);
-  const decipher = createDecipheriv('aes-256-gcm', key, Buffer.from(s.iv, 'base64'));
+  const decipher = createDecipheriv('aes-256-gcm', key, Buffer.from(s.iv, 'base64'), {
+    authTagLength: GCM_TAG_BYTES,
+  });
   decipher.setAAD(AAD);
-  decipher.setAuthTag(Buffer.from(s.tag, 'base64'));
+  decipher.setAuthTag(tag);
   const pt = Buffer.concat([decipher.update(Buffer.from(s.ct, 'base64')), decipher.final()]);
   return JSON.parse(pt.toString('utf8')) as KeyPayload;
 }
@@ -300,19 +345,32 @@ export function writeBlind(drafts: readonly AbDraft[], opts: WriteOptions): Writ
   if (typeof opts.passphrase !== 'string' || opts.passphrase.length < MIN_PASSPHRASE)
     throw new Error(`the key passphrase must be at least ${MIN_PASSPHRASE} characters`);
   const seed = opts.seed ?? randomSeed();
+  const metricsSeed = metricsSeedFor(opts.seed);
   const dir = join(opts.outRoot, opts.stamp ?? defaultStamp());
   const scoringDir = join(dir, 'scoring');
+  const vikramDir = join(dir, 'vikram');
   mkdirSync(scoringDir, { recursive: true });
+  mkdirSync(vikramDir, { recursive: true });
 
   const order = seededShuffle(drafts, seed);
+  // A second, independent order for the metrics rows: M-ids say nothing about D-ids.
+  const mOrder = seededShuffle(
+    order.map((_, i) => i),
+    metricsSeed,
+  );
+  const mIdOf = new Map<number, string>();
+  mOrder.forEach((dIndex, j) => mIdOf.set(dIndex, blindId(j, order.length, 'M')));
+
   const entries: Record<string, KeyEntry> = {};
-  const metrics: Record<string, AbMetrics> = {};
+  const rows: Record<string, VikramRow> = {};
+  const intake: KeyPayload['intake'] = {};
   const scoringFiles: string[] = [];
   const counts = { drafts: order.length, delivered: 0, withheld: 0, failed: 0 };
   const warnings = { modelWordInBody: 0, modelWordInMetadata: 0 };
 
   order.forEach((d, i) => {
     const id = blindId(i, order.length);
+    const mId = mIdOf.get(i)!;
     const file = renderScoringFile(id, d);
     if (file.bodyNamesModel) warnings.modelWordInBody += 1;
     if (file.metadataScrubbed) warnings.modelWordInMetadata += 1;
@@ -320,17 +378,45 @@ export function writeBlind(drafts: readonly AbDraft[], opts: WriteOptions): Writ
     writeFileSync(path, file.text);
     scoringFiles.push(path);
     counts[d.outcome.kind] += 1;
-    entries[id] = { fixtureId: d.fixtureId, model: d.model, runId: d.runId };
-    metrics[id] = { ...d.metrics, withheld: d.outcome.kind === 'withheld', legalReviewer: 'n/a' };
+    const withheld = d.outcome.kind === 'withheld';
+    entries[id] = {
+      fixtureId: d.fixtureId,
+      model: d.model,
+      runId: d.runId,
+      metricsId: mId,
+      placeholders: d.metrics.placeholders,
+      withheld,
+    };
+    rows[mId] = {
+      tokens: d.metrics.tokens,
+      costUsd: d.metrics.costUsd,
+      spend: d.metrics.spend ?? null,
+      factDiffs: d.metrics.factDiffs,
+      legalReviewer: 'n/a',
+    };
+    if (!(d.fixtureId in intake))
+      intake[d.fixtureId] = {
+        tokens: d.metrics.intakeTokens,
+        spend: d.metrics.intakeSpend ?? null,
+      };
   });
 
-  const metricsPath = join(dir, 'metrics.json');
-  writeFileSync(metricsPath, JSON.stringify(metrics, null, 2));
+  // Rows in M-id order, so the file's own order says nothing either.
+  const sortedRows: Record<string, VikramRow> = {};
+  for (const k of Object.keys(rows).sort()) sortedRows[k] = rows[k];
+  const metricsPath = join(vikramDir, 'metrics.json');
+  writeFileSync(metricsPath, JSON.stringify(sortedRows, null, 2));
+  // Intake per matter: amounts only, shuffled, no matter id.
+  const intakePath = join(vikramDir, 'intake-spend.json');
+  writeFileSync(
+    intakePath,
+    JSON.stringify(seededShuffle(Object.values(intake), metricsSeed ^ 0x5bd1e995), null, 2),
+  );
 
   const keyPath = join(dir, 'KEY.sealed.json');
-  const sealed = seal({ version: 1, seed, entries }, opts.passphrase);
+  const sealed = seal({ version: 2, seed, metricsSeed, entries, intake }, opts.passphrase);
   writeFileSync(keyPath, JSON.stringify(sealed), { mode: 0o600 });
   chmodSync(keyPath, 0o600); // the mode above is masked by umask and ignored for an existing file
 
-  return { dir, scoringDir, scoringFiles, metricsPath, keyPath, counts, warnings };
+  return { dir, scoringDir, scoringFiles, metricsPath, intakePath, keyPath, counts, warnings };
 }

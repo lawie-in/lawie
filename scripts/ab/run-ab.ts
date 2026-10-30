@@ -24,7 +24,9 @@
  * - Hard cost guard: ₹600 at ₹88/$ (Vikram, handoff/finance/drafting-model-opus-vs-sonnet.md).
  *   Before a matter: refuse if spend so far plus its worst case would pass ₹600 (--real).
  *   After a matter: stop once the running total has passed ₹600, and never continue.
- *   Spend per matter per arm ($ and ₹) goes to metrics.json; stdout shows amounts only.
+ *   Spend per draft ($ and ₹) goes to vikram/metrics.json under M-ids that are independent of
+ *   the D-ids; intake spend per matter to vikram/intake-spend.json with no ids. stdout shows
+ *   amounts only, sorted, never the arm, the run order or a D-id.
  *
  * Output (scripts/ab/out/<stamp>/, git-ignored): see blind-writer.ts. The
  * console shows counts, aggregate cost and paths only: never a model per
@@ -156,6 +158,10 @@ export function parseArgs(argv: string[]): Args {
   }
   if (a.mode === null)
     a.errors.push('choose --dry (stub replies, free) or --real (the real model; costs money)');
+  // The seed fixes the arm order and the blind shuffle; on a command line it lands in argv,
+  // shell history and ps. A real run always draws both from crypto (review round 1, MUST 2).
+  if (a.mode === 'real' && a.seed !== null)
+    a.errors.push('--seed is for --dry only: a real run draws its order from crypto');
   if (a.matters.length === 0) a.errors.push('--matters needs at least one id');
   if (new Set(a.matters).size !== a.matters.length) a.errors.push('--matters lists an id twice');
   if (a.matters.length * ARMS.length > MAX_DRAFTS)
@@ -223,7 +229,29 @@ export interface AbEstimate {
 }
 
 /**
- * From the golden set's per-call caps (WORST_CASE_CALLS): the intake once per
+ * Calls the golden set's WORST_CASE_CALLS leaves out (review round 1). Coverage:
+ * - Intake: this driver makes at most two intake requests per matter
+ *   (POST /intake/brief, then /intake/brief/update when the fixture has
+ *   answers), so a second reception and a second extraction call, plus the
+ *   match call and its one retry (INTAKE_LIMITS.matchMaxTokens 300, retry 600;
+ *   about 7.2k input on prod, Arjun's note §2a). Priced at the intake model.
+ * - Non-body calls during an arm (counted in spend as otherUsd): none run on
+ *   v2's /generate-from-brief today (the golden set does not exercise
+ *   preflight). An allowance of one full-cap call per arm at the arm's model
+ *   covers one if a later pipeline adds it.
+ * Not covered: a body prompt beyond WORST_CASE_CALLS' 9k input (prod p95 12.3k,
+ * max 14.8k); the runtime guards bound that overshoot to one matter.
+ */
+export const EXTRA_WORST_CALLS = [
+  { purpose: 'intake_reception_2', model: 'intake', input: 4_000, output: 4_000 },
+  { purpose: 'intake_extract_2', model: 'intake', input: 3_000, output: 3_000 },
+  { purpose: 'intake_match', model: 'intake', input: 8_000, output: 300 },
+  { purpose: 'intake_match_retry', model: 'intake', input: 8_000, output: 600 },
+  { purpose: 'arm_non_body_allowance', model: 'drafting', input: 15_000, output: 8_192 },
+] as const;
+
+/**
+ * From the golden set's per-call caps (WORST_CASE_CALLS) plus EXTRA_WORST_CALLS: the intake once per
  * matter at the intake model; the Drafter, repair and fact-repair calls once
  * per arm at that arm's model. Worst case prices every input token at the
  * dearer of input and 1 h cache write. Typical: intake plus the body call at a
@@ -233,7 +261,7 @@ export function estimateAb(matters: number, arms: readonly string[] = ARMS): AbE
   const intake = rateFor(INTAKE_MODEL);
   let worst = 0;
   let typical = 0;
-  for (const c of WORST_CASE_CALLS) {
+  for (const c of [...WORST_CASE_CALLS, ...EXTRA_WORST_CALLS]) {
     const models = c.model === 'intake' ? [INTAKE_MODEL] : [...arms];
     for (const m of models) {
       const r = c.model === 'intake' ? intake : rateFor(m);
@@ -298,8 +326,16 @@ export function armOrder(rnd: () => number): string[] {
  * The Drafter calls of one arm must all have run on the arm's model at effort
  * high. Problems in plain words, with no model named (the console is blind).
  */
-export function armCheck(bodyCalls: readonly LlmCallObserved[], model: string): string[] {
+export function armCheck(
+  bodyCalls: readonly LlmCallObserved[],
+  model: string,
+  /** True when the arm delivered a draft: then at least one Drafter call must have been seen. */
+  delivered = false,
+): string[] {
   const p: string[] = [];
+  // A delivered draft with no Drafter call on record proves nothing about the arm's model or effort.
+  if (delivered && bodyCalls.length === 0)
+    p.push('a delivered draft has no Drafter call on record');
   for (const c of bodyCalls) {
     if (c.model !== model) p.push(`a Drafter call (${c.call}) ran on a model other than the arm's`);
     if (c.effort !== ARM_EFFORT)
@@ -602,7 +638,7 @@ async function runArm(
   const armCalls = ctx.llmCalls.slice(from);
   const bodyCalls = armCalls.filter((c) => c.stage === 'body');
   const armProblems = [
-    ...armCheck(bodyCalls, model),
+    ...armCheck(bodyCalls, model, outcome.kind === 'delivered'),
     ...(await ledgerShared(ctx, intake, started)),
   ];
   // Any other call during the arm (none expected on v2) is not the arm's, but it is spend.
@@ -1003,7 +1039,8 @@ async function main(): Promise<number> {
       `ab: spend ${inr(spentUsd)} (${args.mode === 'dry' ? 'stub token counts, nothing billed' : 'at the rates above'}); tokens ${used}.`,
     );
     console.log(`ab: scoring files: ${w.scoringDir}`);
-    console.log(`ab: metrics (for Vikram): ${w.metricsPath}`);
+    console.log(`ab: metrics (for Vikram; never ship with scoring/): ${w.metricsPath}`);
+    console.log(`ab: intake spend per matter (for Vikram, no ids): ${w.intakePath}`);
     console.log(`ab: sealed key (for Arjun): ${w.keyPath}`);
 
     if (breach || !settingsUnchanged) {
