@@ -22,3 +22,11 @@ Reuse the existing amber soft-finding card in both places: same markup, role="st
 (a) Guided brief: directly above the Ink cost line and the Confirm button, inside the brief folio, after the last fact row. It never changes the button or the cost line. It stays while the user edits, unless a date edit clears the condition.
 (b) Draft ready: the first item in the checks panel (the rail at 1280, the bottom sheet at 360). It does not appear on the folio. The checks chip count includes it.
 Show one instance of the text per screen.
+
+## Rajesh card spec (30 Oct 2026)
+Build `ui/Notice` with variant `warn` in components/ui (not inside intake). It is the one soft-finding card from now on.
+- Look: Amber Soft fill (--amber-soft); a full 1px --line border, radius 4; padding 12/16.
+- Icon: AlertTriangle 20px in --amber, aria-hidden.
+- Text: Body Small in Text colour (not Amber). The signed text is the only child.
+- Behaviour: role="status"; no button, no dismiss.
+On the ready screen: the first item in "Checks run for you", the same component, no count.
