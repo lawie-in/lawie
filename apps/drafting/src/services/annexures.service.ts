@@ -398,6 +398,29 @@ interface MemoOptions {
    * only as printed there), after the signed labels.
    */
   packLabels?: readonly [string | undefined, string | undefined] | null;
+  /**
+   * AJ-700-BC (3): the pack is criminal (annexureSetFor). A court-rule role
+   * "X (civil) / Y (criminal)" prints only the role for the pack's side.
+   */
+  criminal?: boolean;
+  /**
+   * AJ-700-BC (3): a counter or rejoinder affidavit with no client_side: a
+   * role not signed for it prints ROLE_PLACEHOLDER, never the court rule's.
+   */
+  unsided?: boolean;
+}
+
+/** AJ-700-BC (3): printed for a role that cannot be determined. */
+export const ROLE_PLACEHOLDER = '[To be confirmed: role]';
+
+/**
+ * AJ-700-BC (3): a court-rule role written "X (civil) / Y (criminal)" (as
+ * delhi_district and up_district write theirs) as the one role for the pack's
+ * side: X on a civil pack, Y on a criminal one. Any other label as given.
+ */
+export function roleForSide(label: string, criminal: boolean): string {
+  const m = /^(.+?) \(civil\) \/ (.+?) \(criminal\)$/.exec(label);
+  return m ? (criminal ? m[2] : m[1]) : label;
 }
 
 /** The client's age, relation and address lines, as the Memo has always printed them. */
@@ -474,24 +497,35 @@ function twoPartyMemoRows(
   // T-424 (Ajay, ad5aeb3): on a sided pack the labels are always exactly
   // "Petitioner" and "Respondent", whatever the court rule or signed label says.
   // T-700 (AJ-700a (2)): writ_petition_criminal's party is the Petitioner.
+  // AJ-700-BC (3): a court-rule role only for the pack's side; on an unsided
+  // counter/rejoinder affidavit, the placeholder instead of the court rule.
+  const courtRole = (...labels: Array<string | undefined>): string => {
+    if (options.unsided) return ROLE_PLACEHOLDER;
+    const label = labels.find((l): l is string => l !== undefined) ?? '';
+    return roleForSide(label, options.criminal === true);
+  };
   const applicantLabel =
     side || options.petitionerRole
       ? 'Petitioner'
       : esc(
           signed?.petitioner ??
             packLabels?.[0] ??
-            rules.party_designation.applicant ??
-            rules.party_designation.petitioner ??
-            'Applicant',
+            courtRole(
+              rules.party_designation.applicant,
+              rules.party_designation.petitioner,
+              'Applicant',
+            ),
         );
   const respondentLabel = side
     ? 'Respondent'
     : esc(
         signed?.respondent ??
           packLabels?.[1] ??
-          rules.party_designation.respondent ??
-          rules.party_designation.opposite_party ??
-          'Respondent',
+          courtRole(
+            rules.party_designation.respondent,
+            rules.party_designation.opposite_party,
+            'Respondent',
+          ),
       );
 
   const clientDetails = memoClientDetails;
@@ -1684,8 +1718,12 @@ export function buildAnnexuresHtml(input: AnnexuresInput): AnnexuresHtml {
     (set === 'pleading' || set === 'o39') && civilLabels
       ? { rows: civilMemoRows(enrichedForm, partyValues, setPackId, civilLabels, clientSide) }
       : set === 'civil_other'
-        ? { packLabels: otherLabels }
-        : { petitionerRole };
+        ? { packLabels: otherLabels, criminal: false }
+        : {
+            petitionerRole,
+            criminal: set === 'criminal',
+            unsided: set === 'sided' && clientSideOf(enrichedForm) === null,
+          };
 
   // AJ-700 (2), AJ-700a (6): "Nature of matter" on the Index of every court
   // document (a guided brief: the placeholder, as natureOfMatter gives it).
