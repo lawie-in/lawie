@@ -6,7 +6,8 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "test": "jest --coverage --forceExit"
+    "test": "jest --selectProjects full --coverage --forceExit",
+    "test:sanity": "jest --selectProjects sanity --coverage=false --forceExit"
   },
   "dependencies": {
     "bullmq": "^5.12.0",

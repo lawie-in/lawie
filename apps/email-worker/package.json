@@ -7,8 +7,9 @@
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "test": "jest --coverage --forceExit --detectOpenHandles",
-    "test:watch": "jest --watch",
+    "test": "jest --selectProjects full --coverage --forceExit --detectOpenHandles",
+    "test:sanity": "jest --selectProjects sanity --coverage=false --forceExit",
+    "test:watch": "jest --selectProjects full --watch",
     "lint": "eslint 'src/**/*.ts' --fix",
     "replay": "ts-node --transpile-only scripts/replay.ts",
     "queue:purge": "ts-node --transpile-only scripts/queue-purge.ts"

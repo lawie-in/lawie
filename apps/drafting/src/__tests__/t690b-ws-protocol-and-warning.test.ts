@@ -150,8 +150,14 @@ describe('T-690b B. soft warning via preflightCheck', () => {
       }
     };
     walk(root);
+    // T-690c: the literal moved to the shared pure module; the T-690c tests also
+    // type the signed text, so they are expected hits too.
     expect(hits.sort()).toEqual(
-      ['__tests__/t690b-ws-protocol-and-warning.test.ts', 'services/preflight.service.ts'].sort(),
+      [
+        '__tests__/t690b-ws-protocol-and-warning.test.ts',
+        '__tests__/t690c-ws-warning-brief-path.test.ts',
+        'services/ws-limitation-warning.ts',
+      ].sort(),
     );
   });
 
