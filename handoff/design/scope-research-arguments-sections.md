@@ -37,3 +37,13 @@ T-711 first (small, also fixes the tools pages), then the T-709 data-source deci
 ## Questions for the founder
 1. Should case research be its own paid feature (Ink per search) or part of plans?
 2. Budget ceiling for a judgment data source per month?
+
+## Arjun's early read (30 Oct 2026; to be verified next month, then an ADR)
+Data sources, in evaluation order:
+1. Official and free: the SC judgments portal and eSCR (SC complete); HC sites via eCourts/NJDG (patchy). Public records, so no licence issue, but each site's scraping terms need checking. High engineering cost (crawler, OCR).
+2. Indian Kanoon paid API: broadest coverage. A written licence for commercial reuse and storing the text is the biggest gate.
+3. SCC Online / Manupatra: best quality, but no AI or redistribution licence. Treat as "the user brings their own subscription".
+4. Open datasets (OpenNyAI etc.): for building and evaluation only.
+Architecture: ingest, then split paragraphs with citation, bench, date and court metadata; hybrid search (BM25 plus embeddings); re-rank; summaries only from retrieved text; a cite-check that refuses any citation not resolved to a stored judgment. T-710 uses the same store plus the matter facts. Cost: embeddings for 1-2M judgments plus per-query summaries, Ink-gated.
+T-711: no external data. An alias/tokeniser layer on our codes plus old-to-new maps (IPC-BNS, CrPC-BNSS, IEA-BSA). Cheapest; goes first.
+Ajay: the licence, and the liability wording for "no invented citations".
