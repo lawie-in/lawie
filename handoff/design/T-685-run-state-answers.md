@@ -96,3 +96,30 @@ Send me the list after you have read this, before the developer starts: expected
 2. **Erasure is in T-685, not a follow-up.** Stage 2 must not go on with run docs that outlive the ledger. Add one call each: `document-erase.service.ts` deletes `v3_runs` by `intakeId` next to the ledger delete; `account-erase.service.ts` deletes by `userId`. Hard delete, same transaction/ordering as the ledger, one test per file (run doc gone after each erase). Priya extends the grant to those two files (I have asked her); nothing else in them changes.
 3. **Fields confirmed:** `rev` (optimistic version, every write conditional on it), `capBasePaise` (spend at hold time; cap compares `costPaiseSoFar - capBasePaise` against `capPaise`), `documentId`, `runType` (the fixture plugin), and per-output `reruns`, `retries`, `runId`, `runSequence`, `sealedOmitted`, `reason`. Plaintext rule of §2 still applies to all of them (ids, counts, reasons, paise only).
    **New `runId` vs resume:** confirmed. A new `runId` (a new paid run after a `completed` one) clears every non-intake output and resets `capBasePaise`/`capPaise` for the new quote, so it never replays the old draft; `attempts[]` and the intake outputs are kept. A resume (same `runId`, new `runSequence`) keeps all outputs and the cap.
+
+## 13. Part-2 BLOCKED questions (Arjun, 30 Oct 2026) — these amend §3, §4, §9, §10
+
+**Q1 — step boundaries inside `streamGenerateFromBrief`: option (C), narrowly.**
+One optional parameter `hooks?: RunHooks` on `streamGenerateFromBrief`, default undefined, with the v2 path byte-identical when absent:
+```ts
+interface RunHooks {
+  /** Before a model call: return stored output to use instead of calling (replay), or undefined to call. May throw CostCapError. */
+  before(step: StepId, projected: { inputTokens: number; maxOutputTokens: number; model: string }): Promise<StepReplay | undefined>;
+  /** After a model call: usage of that call and the step's output text (the orchestrator seals it). May throw CostCapError. */
+  after(step: StepId, usage: CallUsage, output?: string): Promise<void>;
+  stage(stage: V3StageName, round?: number): void;
+}
+```
+Rules for the edit: (a) each existing model call site becomes `const r = (await hooks?.before(id, proj)) ?? await <the same call>` followed by `await hooks?.after(id, usage, text)`; on replay the function writes the stored text to `res` exactly where it writes the model's text today; (b) **no prompt string, check, order of checks, threshold or label changes** — the diff is control flow only; (c) `UsageMeter` keeps working as now (the hooks are additive); (d) the four step ids inside the stream are `draft`, `verify`, `repair.N`, `render` — Vishal maps each to its call site and lists the mapping in the developer report; a call site that fits none stops the chain and asks; (e) `CostCapError` thrown from a hook ends the stream through the existing error path (Ink released by `finish`). Ajay checks the final diff of `ai.service.ts` as "no legal text changed" on the merge SHA (as T-683). Option (A) is rejected: a crash in repair would re-pay the draft, which is the one thing AC2 forbids. Option (B) is rejected for this ticket: a split of the legal file is Phase 2 work.
+
+**Q2 — preflight:** the brief route has none; there is **no `preflight` step** on the brief path. Drop it from §3 and from the emitted stages (the enum may keep the name for T-538).
+
+**Q3 — derive:** T-682 invariant 6 holds: **derived values are computed at read, never stored.** There is **no `derive` step** in T-685; s. 138 (`withS138DateChecks` in the route), law switch and limitation stay exactly where they run today. §10's second bullet is withdrawn for Phase 1; moving those into the orchestrator is a Phase 2 ticket with Ajay.
+
+**Q4 — opening the run:** in T-685 the run doc is **opened at generate**, when the first `hold` is taken; intake turns are already recorded as ledger versions and are not copied into the run doc (`intake.turn.N` rows dropped from §3). The extractor read-through is **withdrawn**: `extractor.service.ts` keeps its in-memory state; at open, the orchestrator copies `extractorCalls`/`extractorDegraded` from that state if present (best effort, ids and counts). `extractorDegraded` is true for any degraded turn, with or without a model call, with its reason code.
+
+**Q5 — facts for generation at stage ≥ 2:** when the run's `ledgerStore` is `v3` and a v3 ledger exists for the intake, generation reads `factsForGeneration` (v3); otherwise v2 `currentState` as today. T-682 condition 6 proves the two are byte-equal for the v2 fixtures; add one test that a fixture intake written at stage 1 yields byte-equal facts from both readers, so the draft input does not change by the switch alone.
+
+Grant: `ai.service.ts` is added to Vishal's T-685 files for the hooks parameter only (Priya), with Ajay's diff check at merge.
+
+**Ajay's condition on Q1 (30 Oct 2026, accepted):** a replayed step substitutes the stored *model output* only; every check that ran on the live output (the T-611 gates included) runs again on the replayed output, none skipped. A replay that bypasses a check counts as a legal change and fails his diff check. So `hooks.before` sits exactly at the model call, never around the checks that follow it.
