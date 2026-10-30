@@ -123,3 +123,14 @@ Rules for the edit: (a) each existing model call site becomes `const r = (await 
 Grant: `ai.service.ts` is added to Vishal's T-685 files for the hooks parameter only (Priya), with Ajay's diff check at merge.
 
 **Ajay's condition on Q1 (30 Oct 2026, accepted):** a replayed step substitutes the stored *model output* only; every check that ran on the live output (the T-611 gates included) runs again on the replayed output, none skipped. A replay that bypasses a check counts as a legal change and fails his diff check. So `hooks.before` sits exactly at the model call, never around the checks that follow it.
+
+## 14. Part-2 built (d6fef931) — six rulings (Arjun, 30 Oct 2026)
+
+1. **Extractor counts: (b) drop the copy.** `extractorCalls`/`extractorDegraded` stay optional fields, unset in T-685. No export from `extractor.service.ts`.
+2. **Fail-safe, relaxed two ways:** (i) a provider-side failure (429, 529, 5xx, timeout, connection reset) does **not** count toward the two re-runs — only a step found `running` (a crash) or a step that threw a non-provider error does; (ii) `retry_exhausted` **expires 15 min** after it was set, after which one more re-run is allowed. Error codes for the provider case stay what the stream sends today.
+3. **Stage-2 intake with no v3 ledger runs v2.** Confirmed; no run doc is opened and nothing is recorded.
+4. **Approximations:** `inkQuoted = ceil(inkCost), min 1` — yes. `settled = "doc saved and not a duplicate"` — yes, with a code comment that it is derived, not the settle result. **Unpriced model: never 0.** Price it at the **highest rate in the configured table** with one `warn` (ids only); if the table has no rate at all, the cap cannot be enforced, so the run **falls back to v2** for that attempt (fail closed on v3, not on drafting).
+5. **Lease renew stops at request end, not on client disconnect** — yes; the run continues server-side exactly as the Ink heartbeat does.
+6. **Failed Generation usage = the orchestrator's own call count** on cap/fail-safe — yes; set `usageSource: 'estimated'` on that row.
+
+**`confirm` reset on input-hash change: confirmed.** Under the same `runId`, when the hash of (ledger version, pack id, quote inputs) differs from the stored one, `resetSteps` clears every non-intake output and resets `capBasePaise`/`capPaise`, as the new-`runId` path does (§12.3). An old draft never replays against new facts. Add the test `confirm-hash-change-resets-steps`.
