@@ -16,3 +16,6 @@ Anushka's recommendation (https://claude.ai/artifact/S6uDQVcPPuPJBagdyEQURb):
 - Fact checker: Haiku 5.5. Sonnet showed no gain.
 - Fix the pipeline for the facts that every model drops (WS amounts and loan date, declaration valuation, bail "charge sheet not filed").
 Open question for the founder: AC1 above (Haiku for 1-Ink packs) came from Vikram's cost table, where a Sonnet Extractor puts 1-Ink packs under water. Does "Sonnet for all packs" stand, with the 1-Ink price raised, or by pack price?
+
+## Founder answer (30 Oct 2026): Option 1
+A Sonnet Extractor for EVERY pack. AC1 is replaced: there is no Haiku Extractor for 1-Ink packs. Vikram's costing means 1-Ink packs go to 2 Ink (the minimum price becomes 2 Ink; Solo's 50 Ink buys at most 25 drafts). The founder asked Vikram for market research first, then a conclusion on the final price. The price change (billing catalogue, plus the "short ones 1 Ink" copy re-signed by Meera and Ajay) waits for that conclusion. Nothing changes on prod until the price is set.
