@@ -12,3 +12,4 @@ Gate: Ajay rules AJ-695b, i.e. whether Google's served subset woff2 files count 
 3. OFL.txt and the notices next to each family, with the source URL, the date and the SHA-256 of each file (Ajay AJ-695).
 4. The rendered font is unchanged; Rajesh confirms with one screenshot.
 5. Starts from Tanvi's parked branch fix/t-695-self-host-fonts @ 81947995.
+6. T-695's test that mirrors the layouts' next/font/google calls must be relaxed (or dropped) for any font that moves to next/font/local (Tanvi).
