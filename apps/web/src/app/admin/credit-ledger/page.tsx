@@ -137,7 +137,7 @@ export default function CreditLedgerPage() {
       </AdminPageHeader>
 
       {loading ? (
-        <div className="flex items-center gap-2 py-10 text-sm text-slate-400">
+        <div className="flex flex-wrap items-center gap-2 py-10 text-sm text-slate-400">
           <Loader2 size={14} className="animate-spin" />
           Loading ledger…
         </div>
@@ -176,14 +176,14 @@ export default function CreditLedgerPage() {
           {/* Bucket bar */}
           {kpis && totalBuckets > 0 && (
             <section className="mb-5 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-              <header className="mb-3 flex items-center justify-between">
+              <header className="mb-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
                 <h2 className="text-sm font-semibold text-slate-800">
                   Credits by bucket{' '}
                   <span className="ml-1 text-xs font-normal text-slate-400">
                     (P2 / P4 enforcement)
                   </span>
                 </h2>
-                <div className="flex items-center gap-3 text-[11px]">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
                   <BucketChip
                     color="bg-amber-400"
                     label="subscriptionCredits"
@@ -218,7 +218,7 @@ export default function CreditLedgerPage() {
                   title="topupCredits"
                 />
               </div>
-              <div className="mt-3 grid grid-cols-3 gap-2 border-t border-slate-100 pt-3 text-xs">
+              <div className="mt-3 grid grid-cols-1 gap-2 border-t border-slate-100 pt-3 text-xs sm:grid-cols-3">
                 <BucketBreakdown
                   label="Subscription"
                   value={kpis.bucketSums.subscriptionCredits}
@@ -266,73 +266,75 @@ export default function CreditLedgerPage() {
                 No ledger entries match this filter.
               </div>
             ) : (
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-slate-100 text-left text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-                    <th className="px-4 py-2">Time</th>
-                    <th className="px-4 py-2">Advocate</th>
-                    <th className="px-4 py-2">Tier</th>
-                    <th className="px-4 py-2">Source</th>
-                    <th className="px-4 py-2">Bucket</th>
-                    <th className="px-4 py-2 text-right">±</th>
-                    <th className="px-4 py-2 text-right">Balance</th>
-                    <th className="px-4 py-2">Reference</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {entries.map((e) => (
-                    <tr key={e._id}>
-                      <td className="px-4 py-2.5 font-mono text-xs text-slate-500">
-                        {new Date(e.createdAt).toLocaleTimeString('en-IN', {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </td>
-                      <td className="px-4 py-2.5 text-slate-700">{e.userName}</td>
-                      <td className="px-4 py-2.5">
-                        <span
-                          className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${
-                            e.userTier === 'free'
-                              ? 'bg-slate-100 text-slate-600'
-                              : e.userTier === 'practice'
-                                ? 'bg-amber-100 text-amber-700'
-                                : 'bg-purple-100 text-purple-700'
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[640px] text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-100 text-left text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                      <th className="px-4 py-2">Time</th>
+                      <th className="px-4 py-2">Advocate</th>
+                      <th className="px-4 py-2">Tier</th>
+                      <th className="px-4 py-2">Source</th>
+                      <th className="px-4 py-2">Bucket</th>
+                      <th className="px-4 py-2 text-right">±</th>
+                      <th className="px-4 py-2 text-right">Balance</th>
+                      <th className="px-4 py-2">Reference</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {entries.map((e) => (
+                      <tr key={e._id}>
+                        <td className="px-4 py-2.5 font-mono text-xs text-slate-500">
+                          {new Date(e.createdAt).toLocaleTimeString('en-IN', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </td>
+                        <td className="px-4 py-2.5 text-slate-700">{e.userName}</td>
+                        <td className="px-4 py-2.5">
+                          <span
+                            className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${
+                              e.userTier === 'free'
+                                ? 'bg-slate-100 text-slate-600'
+                                : e.userTier === 'practice'
+                                  ? 'bg-amber-100 text-amber-700'
+                                  : 'bg-purple-100 text-purple-700'
+                            }`}
+                          >
+                            {e.userTier}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2.5 text-slate-700">
+                          {SOURCE_LABEL[e.source] ?? e.source}
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <span
+                            className={`rounded px-1.5 py-0.5 font-mono text-[10px] ${BUCKET_PILL[e.bucket] ?? ''}`}
+                          >
+                            {e.bucket}
+                          </span>
+                        </td>
+                        <td
+                          className={`px-4 py-2.5 text-right font-mono text-sm font-semibold ${
+                            e.amount >= 0 ? 'text-green-600' : 'text-red-500'
                           }`}
                         >
-                          {e.userTier}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2.5 text-slate-700">
-                        {SOURCE_LABEL[e.source] ?? e.source}
-                      </td>
-                      <td className="px-4 py-2.5">
-                        <span
-                          className={`rounded px-1.5 py-0.5 font-mono text-[10px] ${BUCKET_PILL[e.bucket] ?? ''}`}
-                        >
-                          {e.bucket}
-                        </span>
-                      </td>
-                      <td
-                        className={`px-4 py-2.5 text-right font-mono text-sm font-semibold ${
-                          e.amount >= 0 ? 'text-green-600' : 'text-red-500'
-                        }`}
-                      >
-                        {e.amount >= 0 ? `+${e.amount}` : e.amount}
-                      </td>
-                      <td className="px-4 py-2.5 text-right font-mono text-slate-700">
-                        {e.balanceAfter}
-                      </td>
-                      <td className="px-4 py-2.5 text-xs text-slate-500">{e.reference ?? '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                          {e.amount >= 0 ? `+${e.amount}` : e.amount}
+                        </td>
+                        <td className="px-4 py-2.5 text-right font-mono text-slate-700">
+                          {e.balanceAfter}
+                        </td>
+                        <td className="px-4 py-2.5 text-xs text-slate-500">{e.reference ?? '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </section>
 
           {/* Telemetry */}
           <section className="mt-5 rounded-xl border border-slate-700 bg-slate-900 p-5 font-mono text-[11px] text-slate-200 shadow-sm">
-            <header className="mb-2 flex items-center gap-1.5 text-amber-300">
+            <header className="mb-2 flex flex-wrap items-center gap-1.5 text-amber-300">
               <Coins size={11} />
               <span className="font-semibold tracking-[0.1em]">
                 TELEMETRY EVENTS EMITTED · LAST 5 MIN
@@ -399,10 +401,10 @@ function KpiTile({
 
 function BucketChip({ color, label, value }: { color: string; label: string; value: number }) {
   return (
-    <div className="flex items-center gap-1.5">
-      <span className={`h-2 w-2 rounded-sm ${color}`} />
-      <code className="text-slate-700">{label}</code>
-      <span className="font-mono text-slate-500">{value.toLocaleString('en-IN')}</span>
+    <div className="flex min-w-0 items-center gap-1.5">
+      <span className={`h-2 w-2 shrink-0 rounded-sm ${color}`} />
+      <code className="break-all text-slate-700">{label}</code>
+      <span className="break-all font-mono text-slate-500">{value.toLocaleString('en-IN')}</span>
     </div>
   );
 }

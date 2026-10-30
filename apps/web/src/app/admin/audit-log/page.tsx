@@ -189,83 +189,85 @@ export default function AdminAuditLogPage() {
             No events match this filter.
           </div>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-slate-100 bg-slate-50 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                <th className="w-4 px-4 py-3" />
-                <th className="px-4 py-3">Time</th>
-                <th className="px-4 py-3">Advocate</th>
-                <th className="px-4 py-3">Event</th>
-                <th className="px-4 py-3 text-center">Severity</th>
-                <th className="px-4 py-3">IP address</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {logs.map((log) => (
-                <>
-                  <tr
-                    key={log._id}
-                    className="cursor-pointer hover:bg-slate-50"
-                    onClick={() => setExpanded(expanded === log._id ? null : log._id)}
-                  >
-                    <td className="px-4 py-3 text-slate-400">
-                      {expanded === log._id ? (
-                        <ChevronDown size={12} />
-                      ) : (
-                        <ChevronRight size={12} />
-                      )}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-xs text-slate-500">
-                      {new Date(log.createdAt).toLocaleString('en-IN', {
-                        day: '2-digit',
-                        month: 'short',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        second: '2-digit',
-                      })}
-                    </td>
-                    <td className="px-4 py-3">
-                      {log.userName ? (
-                        <div>
-                          <p className="font-medium text-slate-800">{log.userName}</p>
-                          <p className="text-[11px] text-slate-400">{log.userEmail}</p>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-slate-400">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <code className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] text-slate-700">
-                        {log.eventType}
-                      </code>
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                          SEVERITY_COLORS[log.severity] ?? 'bg-slate-100 text-slate-600'
-                        }`}
-                      >
-                        {log.severity}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 font-mono text-xs text-slate-500">
-                      {log.ipAddress || '—'}
-                    </td>
-                  </tr>
-                  {expanded === log._id && log.metadata && (
-                    <tr key={`${log._id}-meta`}>
-                      <td colSpan={6} className="bg-slate-50 px-8 py-3">
-                        <pre className="overflow-x-auto rounded-lg bg-slate-100 p-3 font-mono text-[11px] text-slate-700">
-                          {JSON.stringify(log.metadata, null, 2)}
-                        </pre>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px] text-sm">
+              <thead>
+                <tr className="border-b border-slate-100 bg-slate-50 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                  <th className="w-4 px-4 py-3" />
+                  <th className="px-4 py-3">Time</th>
+                  <th className="px-4 py-3">Advocate</th>
+                  <th className="px-4 py-3">Event</th>
+                  <th className="px-4 py-3 text-center">Severity</th>
+                  <th className="px-4 py-3">IP address</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {logs.map((log) => (
+                  <>
+                    <tr
+                      key={log._id}
+                      className="cursor-pointer hover:bg-slate-50"
+                      onClick={() => setExpanded(expanded === log._id ? null : log._id)}
+                    >
+                      <td className="px-4 py-3 text-slate-400">
+                        {expanded === log._id ? (
+                          <ChevronDown size={12} />
+                        ) : (
+                          <ChevronRight size={12} />
+                        )}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-xs text-slate-500">
+                        {new Date(log.createdAt).toLocaleString('en-IN', {
+                          day: '2-digit',
+                          month: 'short',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          second: '2-digit',
+                        })}
+                      </td>
+                      <td className="px-4 py-3">
+                        {log.userName ? (
+                          <div>
+                            <p className="font-medium text-slate-800">{log.userName}</p>
+                            <p className="text-[11px] text-slate-400">{log.userEmail}</p>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-slate-400">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <code className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] text-slate-700">
+                          {log.eventType}
+                        </code>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                            SEVERITY_COLORS[log.severity] ?? 'bg-slate-100 text-slate-600'
+                          }`}
+                        >
+                          {log.severity}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 font-mono text-xs text-slate-500">
+                        {log.ipAddress || '—'}
                       </td>
                     </tr>
-                  )}
-                </>
-              ))}
-            </tbody>
-          </table>
+                    {expanded === log._id && log.metadata && (
+                      <tr key={`${log._id}-meta`}>
+                        <td colSpan={6} className="bg-slate-50 px-8 py-3">
+                          <pre className="overflow-x-auto rounded-lg bg-slate-100 p-3 font-mono text-[11px] text-slate-700">
+                            {JSON.stringify(log.metadata, null, 2)}
+                          </pre>
+                        </td>
+                      </tr>
+                    )}
+                  </>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
