@@ -1,6 +1,6 @@
 # T-700: Civil pleadings get their own annexure set
 
-Status: ASSIGNED vishal 30 Oct 2026 (v1.3.0, full chain). Was: backlog, P1, the v1.3.0 headline (legal; Ajay ruled AJ-700 acb308d9; ready to assign next session). Raised 30 Oct 2026 by Priya from Anushka run 5h on prod v1.2.9 (FAIL, pre-existing). Folds in T-689d.
+Status: READY (vishal, fix/t-700-civil-annexure-set @ d0fc22df, 30 Oct 2026; reviewer round 2 PASS; Ajay AJ-700-BC3 84802333). Was: ASSIGNED vishal 30 Oct 2026 (v1.3.0, full chain). Was: backlog, P1, the v1.3.0 headline (legal; Ajay ruled AJ-700 acb308d9; ready to assign next session). Raised 30 Oct 2026 by Priya from Anushka run 5h on prod v1.2.9 (FAIL, pre-existing). Folds in T-689d.
 
 ## What is wrong
 annexures.service.ts builds one annexure set for every pack, and it is the criminal-bail set. Now that a written statement no longer gets the Synopsis (T-689c), the rest is visible:
@@ -39,3 +39,16 @@ Ajay rules (AJ-700) on the annexure set for a WS or suit:
    - counter and rejoinder affidavits get no separate affidavit;
    - all other civil packs get Memo of Parties plus Index only.
 The tests are in Ajay's ruling row. Snapshots are hand-edited, with the diff sent to Ajay.
+
+## Shipped (Vishal, 30 Oct 2026)
+SHAs: source 375a817b, 058e04eb, 71bb3803, 409ffd47; tests cd4c1361, 03565199, d0fc22df; base c4df708f. Full drafting tier: 358/358 suites, 20,300 tests, 93/93 snapshots. Anushka checks it in the combined v1.3.0 release.
+
+## Deferred (next month, no new tickets)
+- Several defendants in one Memo of Parties row.
+- Supreme Court Synopsis without Process fee.
+- A criminal guided matter can't be detected.
+- A writ_petition_criminal with no pack id shows "Applicant" (it should print Petitioner).
+- O.39 plaintiff-side numbering is untested.
+- Civil packs get no Synopsis until signed wording exists.
+- A stale docstring.
+- The O.39 verificationTemplate at the foot of the application is unchecked.

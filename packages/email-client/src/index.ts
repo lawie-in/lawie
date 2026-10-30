@@ -40,6 +40,10 @@ export type EmailTemplate =
   | 'billing.lowCreditWarning'
   | 'billing.taxInvoice'
   | 'billing.creditNote'
+  // T-646 (Arjun ruling 4): the payment-concern acknowledgement and the support notice. Both jobs
+  // carry { userId, concernId } only; the worker fetches the rest from billing at send time.
+  | 'billing.concernReceived'
+  | 'admin.paymentConcern'
   | 'drafting.draftComplete'
   | 'admin.referralIssued'
   | 'admin.advocatePackInvite'
@@ -68,6 +72,10 @@ const TIER_BY_TEMPLATE: Record<EmailTemplate, 'high' | 'low'> = {
   'billing.lowCreditWarning': 'low',
   'billing.taxInvoice': 'high',
   'billing.creditNote': 'high',
+  // T-646: the customer just raised it; the acknowledgement goes at once.
+  'billing.concernReceived': 'high',
+  // T-646: support has a 24 h acknowledgement clock (AJ-646-M3), so not the low tier.
+  'admin.paymentConcern': 'high',
   'drafting.draftComplete': 'low',
   'admin.referralIssued': 'low',
   'admin.advocatePackInvite': 'low',

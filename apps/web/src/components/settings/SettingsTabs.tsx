@@ -9,20 +9,26 @@
  * mounted and inactive ones carry the `hidden` attribute, so form state, the Plan block's pending
  * poll and its pageshow handling survive a tab switch.
  *
- * The selected tab is kept in the URL hash (#profile, #plan, #account, #appearance) with
+ * The selected tab is kept in the URL hash (#profile, #plan, #billing, #account, #appearance) with
  * history.replaceState, so there is no navigation and no new history entry. SSR renders Profile;
  * the hash is read before paint on the client.
+ *
+ * T-646 (Rajesh's design §5): a third tab, Billing, after Plan. Deep links
+ * `?tab=billing#payments`, `#ink` and `#payment-<id>` open it: the hash names a section inside
+ * the tab, so the tab comes from `?tab=` (or from the section hash itself).
  */
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { cn } from '@/lib/cn';
 
-export type SettingsTabId = 'profile' | 'plan' | 'account' | 'appearance';
+export type SettingsTabId = 'profile' | 'plan' | 'billing' | 'account' | 'appearance';
 
 /** Copy §6.1 (signed). Privacy is out of scope here (T-529). */
 export const SETTINGS_TABS: readonly { id: SettingsTabId; label: string }[] = [
   { id: 'profile', label: 'Profile' },
   { id: 'plan', label: 'Plan' },
+  // T-646 (Rajesh's design §5).
+  { id: 'billing', label: 'Billing' },
   { id: 'account', label: 'Account' },
   { id: 'appearance', label: 'Appearance' },
 ];
@@ -38,6 +44,32 @@ export function tabFromHash(hash: string | null | undefined): SettingsTabId | nu
   return SETTINGS_TABS.some((t) => t.id === key) ? (key as SettingsTabId) : null;
 }
 
+/** T-646: section hashes that live in the Billing tab (`#payments`, `#ink`, `#payment-<id>`). */
+export function isBillingSectionHash(hash: string | null | undefined): boolean {
+  const key = (hash ?? '').replace(/^#/, '');
+  return key === 'payments' || key === 'ink' || /^payment-[A-Za-z0-9_-]{1,64}$/.test(key);
+}
+
+/**
+ * T-646: the tab a location opens. A tab hash wins (`#plan`); else `?tab=` (`?tab=billing`);
+ * else a Billing section hash opens Billing; else null.
+ */
+export function tabFromLocation(
+  search: string | null | undefined,
+  hash: string | null | undefined,
+): SettingsTabId | null {
+  const fromHash = tabFromHash(hash);
+  if (fromHash) return fromHash;
+  let fromQuery: SettingsTabId | null = null;
+  try {
+    fromQuery = tabFromHash(new URLSearchParams(search ?? '').get('tab'));
+  } catch {
+    fromQuery = null;
+  }
+  if (fromQuery) return fromQuery;
+  return isBillingSectionHash(hash) ? 'billing' : null;
+}
+
 // useLayoutEffect on the client (no flash of Profile for /settings#plan); useEffect on the
 // server, where neither runs.
 const useIsomorphicLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect;
@@ -51,8 +83,8 @@ export function useSettingsTab(): [SettingsTabId, (next: SettingsTabId) => void]
 
   useIsomorphicLayoutEffect(() => {
     const read = () => {
-      const fromHash = tabFromHash(window.location.hash);
-      if (fromHash) setTab(fromHash);
+      const fromLocation = tabFromLocation(window.location.search, window.location.hash);
+      if (fromLocation) setTab(fromLocation);
     };
     read();
     // A link to /dashboard/settings#plan followed while already on the page.
@@ -89,6 +121,7 @@ export function SettingsTabList({ active, onSelect, labelledBy }: SettingsTabLis
   const refs = useRef<Record<SettingsTabId, HTMLButtonElement | null>>({
     profile: null,
     plan: null,
+    billing: null,
     account: null,
     appearance: null,
   });

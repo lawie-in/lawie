@@ -308,11 +308,11 @@ describe('T-509 AC2 subscribed user: status card and switch note', () => {
     expect(banner).not.toBeNull();
     // AJ-509-M2: signed text with the support address as a mailto link.
     expect(banner.textContent).toBe(
-      'Your last payment did not go through. For help, write to support@lawie.in.',
+      'Your last payment did not go through. For help, write to contact@lawie.in.',
     );
     const link = banner.querySelector('a')!;
-    expect(link.getAttribute('href')).toBe('mailto:support@lawie.in');
-    expect(link.textContent).toBe('support@lawie.in');
+    expect(link.getAttribute('href')).toBe('mailto:contact@lawie.in');
+    expect(link.textContent).toBe('contact@lawie.in');
     expect(text()).not.toContain('Update your payment details');
     // Priya: no Retry payment button and no banner action.
     expect(banner.querySelector('button')).toBeNull();
