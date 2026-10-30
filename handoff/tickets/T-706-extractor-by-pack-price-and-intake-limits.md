@@ -19,3 +19,6 @@ Open question for the founder: AC1 above (Haiku for 1-Ink packs) came from Vikra
 
 ## Founder answer (30 Oct 2026): Option 1
 A Sonnet Extractor for EVERY pack. AC1 is replaced: there is no Haiku Extractor for 1-Ink packs. Vikram's costing means 1-Ink packs go to 2 Ink (the minimum price becomes 2 Ink; Solo's 50 Ink buys at most 25 drafts). The founder asked Vikram for market research first, then a conclusion on the final price. The price change (billing catalogue, plus the "short ones 1 Ink" copy re-signed by Meera and Ajay) waits for that conclusion. Nothing changes on prod until the price is set.
+
+## Extractor switched on prod, 30 Oct 2026 (before the 2-Ink minimum)
+The founder's instruction (17:58 UTC, via Arjun): ai.model.extractor is set to claude-sonnet-5-5 on prod through Nikhil's settings action, with no deploy. The drafter stays Sonnet and the checker stays Haiku. Vikram's two-week cost check starts today. The free-intake limits (10/20 per day) and the T-708 price changes stay as next month's build. Until then, an account can run up to 40 free Sonnet intakes a day (about ₹65 a day at worst per abuser); the founder accepted this risk.
