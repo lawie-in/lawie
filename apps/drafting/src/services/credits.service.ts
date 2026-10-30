@@ -1016,8 +1016,14 @@ export async function holdInk(input: {
    * `quotedUnits`. Absent → the hold is written exactly as before.
    */
   quoted?: boolean;
+  /**
+   * T-705: the inkledger reason the settle of this hold writes ('regenerate'
+   * for a paid revision). Stored on the hold so a sweep settle writes the
+   * same reason. Absent → the hold is written exactly as before ('generate').
+   */
+  reason?: 'regenerate';
 }): Promise<HoldInkResult> {
-  const { userId, costCredits, runId, runSequence, quoted } = input;
+  const { userId, costCredits, runId, runSequence, quoted, reason } = input;
   // T-147e: a golden-set run is never held or charged.
   if (isFixtureUser(userId)) return { ok: true, fixture: true };
   if (!mongoose.Types.ObjectId.isValid(userId)) return { ok: false, reason: 'user_not_found' };
@@ -1076,6 +1082,7 @@ export async function holdInk(input: {
                   unit: 'ink2',
                   expiresAt: { $literal: expiresAt },
                   ...(quoted === true ? { quotedUnits: { $literal: costUnits } } : {}),
+                  ...(reason === 'regenerate' ? { reason: { $literal: reason } } : {}),
                 },
               ],
             ],
@@ -1101,6 +1108,20 @@ export async function holdInk(input: {
     return { ok: false, reason: 'duplicate' };
   }
   return { ok: false, reason: 'insufficient_ink' };
+}
+
+/**
+ * T-705: does this user have an open hold on any attempt of this run? A hold
+ * means an attempt is in flight (a revision then answers 409 run_in_progress).
+ * Read only. A fixture user never has holds.
+ */
+export async function hasOpenHoldForRun(userId: string, runId: string): Promise<boolean> {
+  if (isFixtureUser(userId) || !mongoose.Types.ObjectId.isValid(userId)) return false;
+  const found = await inkUsers().findOne(
+    { _id: new mongoose.Types.ObjectId(userId), inkHolds: { $elemMatch: { runId } } },
+    { projection: { _id: 1 } },
+  );
+  return found !== null;
 }
 
 /**
@@ -1250,7 +1271,8 @@ export async function releaseInk(
  *      (internal ids and units only) and those rows are lost; the Ink stays
  *      kept (`settled: true, reason: 'ledger_failed'`).
  * The rows are still written as upserts keyed (userId, runId, runSequence,
- * sourceBucket, reason 'generate'), as a second guard against a duplicate.
+ * sourceBucket, reason), as a second guard against a duplicate. The reason is
+ * 'generate', or the hold's stored 'regenerate' for a paid revision (T-705).
  *
  * `actualUnits` (T-202): when below the hold, the difference goes back to
  * the buckets in the same write as the $pull. The kept part is taken from the
@@ -1349,6 +1371,9 @@ export async function settleInk(
   if (!before || !removed) return { settled: false, reason: 'no_hold' };
 
   const ledgerReference = reference ?? removed.reference;
+  // T-705: a paid revision's hold carries 'regenerate'; every other hold writes 'generate'.
+  const ledgerReason: 'generate' | 'regenerate' =
+    removed.reason === 'regenerate' ? 'regenerate' : 'generate';
   // Balance after this settle: the hold was already off the buckets, and the
   // refund went back on. Same balanceAfter shape as spendInk's rows.
   const totalAfter =
@@ -1392,13 +1417,13 @@ export async function settleInk(
             runId,
             runSequence,
             sourceBucket: row.sourceBucket,
-            reason: 'generate',
+            reason: ledgerReason,
           },
           update: {
             $setOnInsert: {
               userId: oid,
               delta: row.delta,
-              reason: 'generate',
+              reason: ledgerReason,
               sourceBucket: row.sourceBucket,
               balanceAfter: row.balanceAfter,
               reference: ledgerReference,

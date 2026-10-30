@@ -3,6 +3,22 @@ import mongoose, { Document, Schema, Types } from 'mongoose';
 
 import { fixtureOriginPlugin, RUN_ORIGINS, RunOrigin } from '../services/run-origin';
 
+/** T-705: how many revisions a draft may have (the 11th is refused, 429 revision_limit). */
+export const REVISION_LIMIT = 10;
+/** T-705: how many earlier versions a document keeps (oldest dropped first). */
+export const PREVIOUS_VERSIONS_KEEP = 5;
+
+/**
+ * T-705 — one earlier text of the document, kept when a revision replaced it.
+ * `content` is sealed with the same helper as generatedContent / finalContent
+ * (utils/encryption). Erased with the document (it lives on the row).
+ */
+export interface IPreviousVersion {
+  version: number;
+  content: string;
+  createdAt: Date;
+}
+
 export interface IDocument extends Document {
   userId: Types.ObjectId;
   templateId?: Types.ObjectId;
@@ -62,6 +78,16 @@ export interface IDocument extends Document {
   /** T-003 §3.8 — the run that produced this document, and which attempt within it. */
   runId?: string;
   runSequence?: number;
+
+  /**
+   * T-705 — revisions delivered on this draft. `count` counts delivered
+   * revisions only (a failed, withheld or refused one is not counted);
+   * `freeUsed` is set by the first delivered revision. Absent on older rows,
+   * which read as {count: 0, freeUsed: false}.
+   */
+  revisions?: { count: number; freeUsed: boolean };
+  /** T-705 — the texts revisions replaced, newest last, at most PREVIOUS_VERSIONS_KEEP. Sealed. */
+  previousVersions?: IPreviousVersion[];
 
   /** T-106 — the rule pack the draft was written under. Unset for a draft from a form. */
   rulePackId?: string;
@@ -191,6 +217,31 @@ const DocumentSchema = new Schema<IDocument>(
 
     runId: { type: String, default: undefined },
     runSequence: { type: Number, default: undefined },
+
+    // T-705: no defaults, so a document that was never revised is written as before.
+    revisions: {
+      type: new Schema(
+        {
+          count: { type: Number, default: 0, min: 0 },
+          freeUsed: { type: Boolean, default: false },
+        },
+        { _id: false },
+      ),
+      default: undefined,
+    },
+    previousVersions: {
+      type: [
+        new Schema<IPreviousVersion>(
+          {
+            version: { type: Number, required: true },
+            content: { type: String, required: true },
+            createdAt: { type: Date, required: true },
+          },
+          { _id: false },
+        ),
+      ],
+      default: undefined,
+    },
 
     rulePackId: { type: String, default: undefined, maxlength: 100 },
     startingDraft: { type: Boolean, default: undefined },

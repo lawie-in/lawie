@@ -479,6 +479,8 @@ export interface LlmCallRecord {
   /** T-681a: the run's template or rule pack id, from the run context. */
   template_id?: string;
   fixture_id?: string;
+  /** T-705 (Vikram): a revision attempt's call, free or paid. Absent on every other call. */
+  revision?: 'free' | 'paid';
 }
 
 /**
@@ -565,6 +567,7 @@ export function logLlmCall(c: LlmCallLog): void {
     ...(runId ? { run_id: runId } : {}),
     ...(inRun ? { run_sequence: inRun.runSequence } : {}),
     ...(inRun?.templateId ? { template_id: inRun.templateId } : {}),
+    ...(inRun?.revision ? { revision: inRun.revision } : {}),
     ...(currentFixtureId ? { fixture_id: currentFixtureId } : {}),
   };
   try {
