@@ -109,3 +109,5 @@ Design:
 - `.env.example` `SUPPORT_NOTIFY_EMAIL` line: Shashank's session was also refused; the founder adds it himself.
 
 Path unchanged: same developer → fresh tester (full billing; the duplicate-charge refund now reverses 0, the failed-row-write case reverses by payment id, the clamp bites) → Arjun's reviewer on the delta → Ajay the SHA → Priya's slot → merge.
+
+**Precedence note (08:42 UTC):** Ajay also issued AJ-646-M10b (f7804234, "cap stays") in reply to the withdrawn ruling before this final design reached him. M10a is the ruling in force for the view; M10b's cap is superseded, its test condition (Ink history shows the full "Refund −{n}" line) is kept and added to the tester's pass.
