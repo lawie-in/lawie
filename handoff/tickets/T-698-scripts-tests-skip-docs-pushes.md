@@ -1,6 +1,6 @@
 # T-698: Scripts tests should not be cancelled by docs-only pushes
 
-Status: ASSIGNED shashank 30 Oct 2026. Was: backlog (small, CI). Raised 30 Oct 2026 by Priya from Vishal's report.
+Status: MERGED into develop_staging 00f067f9 (30 Oct 2026, all green). Was: ASSIGNED shashank 30 Oct 2026. Was: backlog (small, CI). Raised 30 Oct 2026 by Priya from Vishal's report.
 
 Every Scripts tests run on develop_staging from 180c02e2 on (runs 780 and 786-791) was cancelled by the next push of handoff/docs files (one concurrency group), so the code merge went unverified until run 792.
 
