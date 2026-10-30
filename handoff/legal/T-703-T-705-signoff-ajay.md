@@ -49,3 +49,5 @@ Conditions:
 - Conditions: a withheld or failed revision is free and keeps the free one; the note is user content only.
 
 **T-705 APPROVED at b21b3139.** It counts as merged at the develop_staging merge SHA that contains it.
+
+**T-705 as merged (30 Oct 2026).** Approved SHA b21b3139 is an ancestor of develop_staging merge SHA **ebf00150**. 21 of its 22 files are byte-identical. The document page differs only in CSS class names from the T-704a auto-merge (no copy, no legal text). **T-705 MERGED at ebf00150.**
