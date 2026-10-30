@@ -88,6 +88,11 @@ beforeEach(() => {
     if (path === '/api/auth/me') return meReply();
     if (path === '/api/billing/invoices') return reply(200, { data: [] });
     if (path === '/api/billing/plans') return reply(200, { subscriptions: [], topups: [] });
+    // T-646: the Billing tab's cards load on mount (every panel stays mounted).
+    if (path === '/api/billing/payments') return reply(200, { payments: [] });
+    if (path.startsWith('/api/credits/history')) {
+      return reply(200, { entries: [], balance: 0, nextCursor: null });
+    }
     return reply(200, {});
   });
   mockPrivacyFetch.mockResolvedValue(reply(200, {}));

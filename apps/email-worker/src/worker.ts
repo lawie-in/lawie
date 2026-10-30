@@ -641,6 +641,103 @@ function invoiceRenderData(view: InvoiceEmailView, userId: string): Record<strin
     : { ...common, invoiceNumber: view.number };
 }
 
+// ── T-646: payment-concern emails (billing) ──────────────────────────────────
+
+/** The concern templates. Both resolve everything, recipient included, through billing. */
+const CONCERN_TEMPLATES: ReadonlySet<EmailTemplate> = new Set<EmailTemplate>([
+  'billing.concernReceived',
+  'admin.paymentConcern',
+]);
+
+/**
+ * What billing's concern email-view returns on 200. Ids, the reference, the reason code, the
+ * customer's address (acknowledgement recipient), its masked form, links and the support
+ * address. Never the concern note (Arjun ruling 5). Never log any of it except the ids.
+ */
+export interface ConcernEmailView {
+  concernId: string;
+  userId: string;
+  paymentId: string;
+  razorpayPaymentId: string;
+  reference: string;
+  reason: string;
+  email: string;
+  /** Greeting only; '' when unknown. */
+  name: string;
+  maskedEmail: string;
+  paymentUrl: string;
+  adminUrl: string;
+  notifyTo: string;
+}
+
+export type ConcernViewResult =
+  | { status: 'ok'; view: ConcernEmailView }
+  | { status: 'erased' }
+  | { status: 'rejected'; httpStatus: number };
+
+export type FetchConcernViewFn = (concernId: string) => Promise<ConcernViewResult>;
+
+function parseConcernView(body: unknown): ConcernEmailView | null {
+  if (!body || typeof body !== 'object') return null;
+  const b = body as Record<string, unknown>;
+  const fields = [
+    'concernId',
+    'userId',
+    'paymentId',
+    'razorpayPaymentId',
+    'reference',
+    'reason',
+    'email',
+    'paymentUrl',
+    'adminUrl',
+    'notifyTo',
+  ] as const;
+  if (!fields.every((f) => nonEmpty(b[f]))) return null;
+  if (b.maskedEmail !== undefined && typeof b.maskedEmail !== 'string') return null;
+  if (b.name !== undefined && typeof b.name !== 'string') return null;
+  return {
+    concernId: b.concernId as string,
+    userId: b.userId as string,
+    paymentId: b.paymentId as string,
+    razorpayPaymentId: b.razorpayPaymentId as string,
+    reference: b.reference as string,
+    reason: b.reason as string,
+    email: b.email as string,
+    name: typeof b.name === 'string' ? b.name : '',
+    maskedEmail: typeof b.maskedEmail === 'string' ? b.maskedEmail : '',
+    paymentUrl: b.paymentUrl as string,
+    adminUrl: b.adminUrl as string,
+    notifyTo: b.notifyTo as string,
+  };
+}
+
+/** Same error handling as the invoice view: value-free BillingViewError on anything retryable. */
+export const fetchConcernViewViaBilling: FetchConcernViewFn = async (concernId) => {
+  if (!env.BILLING_SERVICE_URL) throw new BillingViewError('NO_BILLING_URL');
+  const base = env.BILLING_SERVICE_URL.replace(/\/+$/, '');
+  let res: Response;
+  try {
+    res = await fetch(
+      `${base}/internal/payment-concerns/${encodeURIComponent(concernId)}/email-view`,
+      {
+        method: 'GET',
+        headers: { [INTERNAL_HEADERS.SECRET]: env.INTERNAL_SECRET },
+        signal: AbortSignal.timeout(BILLING_VIEW_TIMEOUT_MS),
+      },
+    );
+  } catch (err) {
+    const name = (err as { name?: unknown } | null)?.name;
+    throw new BillingViewError(name === 'TimeoutError' ? 'TIMEOUT' : 'NETWORK');
+  }
+  if (res.status === 410) return { status: 'erased' };
+  if (res.status === 400 || res.status === 404)
+    return { status: 'rejected', httpStatus: res.status };
+  if (!res.ok) throw new BillingViewError(`HTTP_${res.status}`);
+  const view = parseConcernView(await res.json().catch(() => null));
+  if (!view) throw new BillingViewError('BAD_RESPONSE');
+  return { status: 'ok', view };
+};
+
 const UNFILLED_PLACEHOLDER_MESSAGE = 'email has unfilled footer placeholders; not sent';
 const NO_STREET_ADDRESS_MESSAGE =
   'password reset email needs the supplier street address; not sent';
@@ -679,6 +776,7 @@ export function createProcessor(
   passwordReset: MintPasswordResetFn = mintPasswordResetViaAuth,
   signupAttempt: PrepareSignupAttemptFn = prepareSignupAttemptViaAuth,
   welcome: PrepareWelcomeFn = prepareWelcomeViaAuth,
+  concernView: FetchConcernViewFn = fetchConcernViewViaBilling,
 ): Processor<EmailJobData> {
   return async (job: Job<EmailJobData>) => {
     const { template, cc, bcc, replyTo, data } = job.data;
@@ -696,6 +794,10 @@ export function createProcessor(
     const invoiceKind = INVOICE_TEMPLATE_KIND[template];
     const rawInvoiceId = data?.invoiceId;
     const invoiceId = invoiceKind && nonEmpty(rawInvoiceId) ? rawInvoiceId : undefined;
+    // T-646: both concern emails resolve the recipient and every field through billing.
+    const isConcern = CONCERN_TEMPLATES.has(template);
+    const rawConcernId = data?.concernId;
+    const concernId = isConcern && nonEmpty(rawConcernId) ? rawConcernId : undefined;
     // All of these resolve the recipient through auth or billing; the job's to/cc/bcc/replyTo
     // are never used.
     const userIdOnly =
@@ -704,7 +806,8 @@ export function createProcessor(
       isPasswordReset ||
       isSignupAttempt ||
       isWelcome ||
-      invoiceKind !== undefined;
+      invoiceKind !== undefined ||
+      isConcern;
     // T-358: which verify-link mail this is, for the outcome report (set once known).
     let mail: VerifyMail | null = isVerify ? 'verify' : null;
     Sentry.addBreadcrumb({
@@ -920,6 +1023,70 @@ export function createProcessor(
         }
         to = [view.customer.email];
         renderData = invoiceRenderData(view, userId);
+      }
+      if (isConcern) {
+        // T-646 (Arjun rulings 4-5): the job carries { userId, concernId } only. Recipient,
+        // reference and links come from billing at send time; the note never does.
+        if (!userId || !concernId || !OBJECT_ID.test(concernId)) {
+          logger.error(
+            { jobId, template: ids.template, userId: ids.userId },
+            'Concern email job without valid ids',
+          );
+          throw new UnrecoverableError('concern email job without a valid userId and concernId');
+        }
+        if (!isTemplateRegistered(template)) {
+          throw new Error(`Template "${template}" is not registered`);
+        }
+        const result = await concernView(concernId);
+        if (result.status === 'erased') {
+          logger.info(
+            { jobId, template: ids.template, userId: ids.userId, concernId, status: 410 },
+            'Concern email not sent: user erased or being erased',
+          );
+          return { skipped: 'erased' };
+        }
+        if (result.status === 'rejected') {
+          logger.warn(
+            {
+              jobId,
+              template: ids.template,
+              userId: ids.userId,
+              concernId,
+              status: result.httpStatus,
+            },
+            'Concern email not sent: billing has no such concern',
+          );
+          throw new UnrecoverableError(`concern email-view HTTP_${result.httpStatus}`);
+        }
+        const { view } = result;
+        if (view.userId !== userId || view.concernId !== concernId) {
+          logger.error(
+            { jobId, template: ids.template, userId: ids.userId, concernId },
+            'Concern email not sent: billing row does not match the job',
+          );
+          throw new UnrecoverableError('concern email-view does not match the job');
+        }
+        if (template === 'billing.concernReceived') {
+          to = [view.email];
+          renderData = {
+            name: view.name,
+            reference: view.reference,
+            paymentUrl: view.paymentUrl,
+            userId,
+          };
+        } else {
+          to = [view.notifyTo];
+          renderData = {
+            reference: view.reference,
+            concernId: view.concernId,
+            paymentId: view.paymentId,
+            razorpayPaymentId: view.razorpayPaymentId,
+            reason: view.reason,
+            maskedEmail: view.maskedEmail,
+            adminUrl: view.adminUrl,
+            userId,
+          };
+        }
       }
 
       const rendered = await renderTemplate(template, renderData);

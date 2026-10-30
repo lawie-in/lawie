@@ -13,6 +13,7 @@ import courtsRoutes from './routes/courts.routes';
 import creditsRoutes from './routes/credits.routes';
 import dashboardRoutes from './routes/dashboard.routes';
 import documentsRoutes from './routes/documents.routes';
+import inkHistoryRoutes from './routes/ink-history.routes';
 import intakeRoutes from './routes/intake.routes';
 import internalRoutes from './routes/internal.routes';
 import reviewRoutes from './routes/review.routes';
@@ -67,6 +68,7 @@ app.use('/users', usersRoutes);
 app.use('/', internalRoutes);
 app.use('/', appSettingsRoutes);
 app.use('/', creditsRoutes);
+app.use('/', inkHistoryRoutes); // T-646 — GET /credits/history
 app.use('/', dashboardRoutes); // T-506 — GET /dashboard/summary
 app.use('/', adminOverviewRoutes);
 app.use('/', adminUsersRoutes);
