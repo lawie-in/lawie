@@ -28,6 +28,7 @@ import {
   withEnv,
 } from './helpers/t220-capture';
 import {
+  CONCERN_SENTINEL_FIELDS,
   INVOICE_SENTINEL_FIELDS,
   SIGNUP_ATTEMPT_SENTINEL_FIELDS,
   renderReal,
@@ -158,6 +159,8 @@ describe('tripwire: every registered template vs TEMPLATE_FOOTERS', () => {
     url: 'https://app.lawie.in/x',
     // billing.taxInvoice / billing.creditNote (T-436 b/c) refuse to render without these.
     ...INVOICE_SENTINEL_FIELDS,
+    // T-646: billing.concernReceived / admin.paymentConcern refuse to render without these.
+    ...CONCERN_SENTINEL_FIELDS,
     // auth.signupAttempt (T-522) refuses to render without its two page links.
     ...SIGNUP_ATTEMPT_SENTINEL_FIELDS,
   };

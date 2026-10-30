@@ -288,6 +288,18 @@ export async function grantSubscriptionInk(input: {
   planRenewsAt?: Date;
   razorpaySubscriptionId?: string;
   amountInr?: number;
+  /**
+   * T-646 (Arjun final, 3b): the charge that won this cycle's claim. Stored as
+   * metadata.razorpayPaymentId so a refund of THAT charge (and only it) can find this grant.
+   */
+  razorpayPaymentId?: string;
+  /**
+   * T-646 (Arjun, 3b g): the cycle key the claim used, so a lost-claim charge can find THIS
+   * cycle's grant row: Razorpay paid_count, else current_start. metadata.paidCount /
+   * metadata.periodStart.
+   */
+  paidCount?: number;
+  periodStart?: Date;
 }): Promise<number> {
   const {
     userId,
@@ -297,6 +309,9 @@ export async function grantSubscriptionInk(input: {
     planRenewsAt,
     razorpaySubscriptionId,
     amountInr,
+    razorpayPaymentId,
+    paidCount,
+    periodStart,
   } = input;
 
   if (!mongoose.Types.ObjectId.isValid(userId)) return 0;
@@ -328,7 +343,15 @@ export async function grantSubscriptionInk(input: {
     sourceBucket: 'sub',
     balanceAfter: totalAfter,
     reference: `${planTier} ${billingCycle} renewal`,
-    metadata: { razorpaySubscriptionId, amountInr, planTier, billingCycle },
+    metadata: {
+      razorpaySubscriptionId,
+      amountInr,
+      planTier,
+      billingCycle,
+      ...(razorpayPaymentId ? { razorpayPaymentId } : {}),
+      ...(typeof paidCount === 'number' ? { paidCount } : {}),
+      ...(periodStart ? { periodStart } : {}),
+    },
     createdAt: new Date(),
   });
 
@@ -847,4 +870,255 @@ export async function cancelSubscriptionInk(userId: string): Promise<void> {
   });
 
   logger.info({ userId }, 'subscription ink cancelled (inkSub + inkAnnualCarry zeroed)');
+}
+
+// ── T-646: refund reversal (Vikram 5) ─────────────────────────────────────────
+
+/** T-646: the inkledger reason for Ink taken back by a refund. Kept on account erase. */
+export const REFUND_REVERSAL_REASON = 'refund_reversal';
+
+/** T-646 (Vikram 5): the ledger row _id, and idempotency key, for one Razorpay refund. */
+export function refundReversalId(refundId: string): string {
+  return `refund:${refundId}`;
+}
+
+/** CAS attempts at the balance debit before the reversal gives up (and the webhook retries). */
+export const REFUND_DEBIT_ATTEMPTS = 5;
+
+type InkBucketField = 'inkSub' | 'inkAnnualCarry' | 'inkTopup';
+const BUCKET_OF: Record<InkBucketField, InkLedgerRow['sourceBucket']> = {
+  inkSub: 'sub',
+  inkAnnualCarry: 'annual_carry',
+  inkTopup: 'topup',
+};
+
+/** Thrown when the balance kept changing under the debit; the webhook returns 500 and retries. */
+export class RefundDebitContendedError extends Error {
+  constructor() {
+    super('refund Ink debit lost every compare-and-set attempt');
+    this.name = 'RefundDebitContendedError';
+  }
+}
+
+export type RefundReversalResult =
+  | { status: 'reversed'; dueUnits: number; debitedUnits: number; shortfallUnits: number }
+  | { status: 'already_reversed' }
+  | { status: 'stale_claim' }
+  | { status: 'user_not_found' };
+
+/**
+ * T-646 (Vikram 5): take back `dueUnits` of Ink for one Razorpay refund, never
+ * below zero. Idempotent on `refund:<refundId>` (the ledger row _id), on the
+ * T-413 claim pattern:
+ *
+ * 1. Insert the claim row (state 'pending', delta 0). A duplicate means another
+ *    attempt got here first: 'done' -> no-op; 'pending' and fresh -> throws
+ *    GrantClaimBusyError (the webhook 500s and Razorpay retries); 'pending' and
+ *    stale -> 'stale_claim' (the earlier attempt may or may not have debited, so
+ *    nothing is debited again; the caller reports it for a manual check).
+ * 2. Debit by compare-and-set on the three balances: the payment's own bucket
+ *    first (`preferBucket`), then the others. Takes min(due, balance); the rest
+ *    is the shortfall (spent Ink, Vikram 5).
+ * 3. Mark the row 'done' with the signed delta, balance after and the figures.
+ *
+ * A failed debit deletes this attempt's claim and rethrows, so a retry reverses
+ * once. Logs carry ids and numbers only.
+ */
+export async function reverseRefundInk(input: {
+  userId: string;
+  refundId: string;
+  razorpayPaymentId: string;
+  refundPaise: number;
+  dueUnits: number;
+  preferBucket: 'sub' | 'topup';
+  /**
+   * Arjun option B (round 3b): the inkledger row this refund reverses against, and the
+   * payment that resolved to it. Written to metadata.grantLedgerId / metadata.grantPaymentId.
+   */
+  grant?: { ledgerId: string; paymentId: string };
+  /**
+   * Arjun review (condition 2): run AFTER this refund's claim row is inserted (so concurrent
+   * refunds see each other's pending claims) and before the debit. Returns the most this
+   * refund may still take; the claim's dueUnits is lowered to it. Concurrent refunds of one
+   * grant can then only under-reverse, never over-reverse.
+   */
+  capAfterClaim?: (dueUnits: number) => Promise<number>;
+}): Promise<RefundReversalResult> {
+  const { userId, refundId, razorpayPaymentId, refundPaise, preferBucket } = input;
+  const grantMeta = input.grant
+    ? { grantLedgerId: input.grant.ledgerId, grantPaymentId: input.grant.paymentId }
+    : {};
+  let dueUnits = Math.max(0, Math.floor(input.dueUnits));
+  if (!mongoose.Types.ObjectId.isValid(userId)) return { status: 'user_not_found' };
+  const oid = new mongoose.Types.ObjectId(userId);
+
+  const db = mongoose.connection.db;
+  if (!db) throw new Error('ink-ledger: database not connected');
+  const ledger = db.collection<{ _id: string } & Record<string, unknown>>('inkledger');
+
+  const claimId = refundReversalId(refundId);
+  const claimToken = newClaimToken();
+  const order: InkBucketField[] =
+    preferBucket === 'topup'
+      ? ['inkTopup', 'inkSub', 'inkAnnualCarry']
+      : ['inkSub', 'inkAnnualCarry', 'inkTopup'];
+
+  try {
+    await ledger.insertOne({
+      _id: claimId,
+      userId: oid,
+      delta: 0,
+      reason: REFUND_REVERSAL_REASON,
+      sourceBucket: BUCKET_OF[order[0]],
+      reference: razorpayPaymentId,
+      metadata: { razorpayPaymentId, refundId, refundPaise, dueUnits, ...grantMeta },
+      state: 'pending',
+      claimedAt: new Date(),
+      claimToken,
+      createdAt: new Date(),
+    });
+  } catch (err) {
+    if ((err as { code?: unknown } | null)?.code !== 11000) throw err;
+    const existing = await ledger.findOne({ _id: claimId });
+    if (!existing) throw new GrantClaimBusyError();
+    if (existing.state !== 'pending') return { status: 'already_reversed' };
+    const claimedAt = existing.claimedAt as Date | undefined;
+    if (claimedAt instanceof Date && Date.now() - claimedAt.getTime() <= CLAIM_STALE_MS) {
+      logger.warn({ refundId }, 'ink-ledger: refund reversal pending elsewhere; retry');
+      throw new GrantClaimBusyError();
+    }
+    logger.error({ refundId }, 'ink-ledger: stale refund reversal claim; needs a manual check');
+    return { status: 'stale_claim' };
+  }
+
+  const rollbackClaim = async (errName: string): Promise<void> => {
+    try {
+      await ledger.deleteOne({ _id: claimId, state: 'pending', claimToken });
+    } catch (rollbackErr) {
+      logger.error(
+        {
+          refundId,
+          errName,
+          rollbackErrName: rollbackErr instanceof Error ? rollbackErr.name : 'unknown',
+        },
+        'ink-ledger: refund reversal claim rollback failed',
+      );
+    }
+  };
+
+  if (input.capAfterClaim) {
+    try {
+      const cap = Math.max(0, Math.floor(await input.capAfterClaim(dueUnits)));
+      if (cap < dueUnits) {
+        dueUnits = cap;
+        await ledger.updateOne(
+          { _id: claimId, claimToken, state: 'pending' },
+          { $set: { 'metadata.dueUnits': dueUnits } },
+        );
+      }
+    } catch (err) {
+      await rollbackClaim(err instanceof Error ? err.name : 'unknown');
+      throw err;
+    }
+  }
+
+  let debited: Record<InkBucketField, number> = { inkSub: 0, inkAnnualCarry: 0, inkTopup: 0 };
+  let totalAfter = 0;
+  try {
+    let done = false;
+    for (let i = 0; i < REFUND_DEBIT_ATTEMPTS && !done; i += 1) {
+      const user = await User.findById(oid).select('inkSub inkAnnualCarry inkTopup').lean();
+      if (!user) {
+        await rollbackClaim('UserNotFound');
+        logger.warn({ refundId }, 'ink-ledger: refund reversal for unknown user; nothing debited');
+        return { status: 'user_not_found' };
+      }
+      const before: Record<InkBucketField, number> = {
+        inkSub: Math.max(0, (user.inkSub as number | undefined) ?? 0),
+        inkAnnualCarry: Math.max(0, (user.inkAnnualCarry as number | undefined) ?? 0),
+        inkTopup: Math.max(0, (user.inkTopup as number | undefined) ?? 0),
+      };
+      const take: Record<InkBucketField, number> = { inkSub: 0, inkAnnualCarry: 0, inkTopup: 0 };
+      let left = dueUnits;
+      for (const f of order) {
+        take[f] = Math.min(before[f], left);
+        left -= take[f];
+      }
+      const totalBefore = before.inkSub + before.inkAnnualCarry + before.inkTopup;
+      const takenTotal = take.inkSub + take.inkAnnualCarry + take.inkTopup;
+      if (takenTotal === 0) {
+        debited = take;
+        totalAfter = totalBefore;
+        done = true;
+        break;
+      }
+      const $inc: Record<string, number> = {};
+      for (const f of order) if (take[f] > 0) $inc[f] = -take[f];
+      // Compare-and-set: only if no balance moved since the read.
+      const res = await User.collection.updateOne(
+        {
+          _id: oid,
+          $expr: {
+            $and: (['inkSub', 'inkAnnualCarry', 'inkTopup'] as InkBucketField[]).map((f) => ({
+              $eq: [{ $ifNull: [`$${f}`, 0] }, (user[f] as number | undefined) ?? 0],
+            })),
+          },
+        },
+        { $inc },
+      );
+      if (res.modifiedCount === 1) {
+        debited = take;
+        totalAfter = totalBefore - takenTotal;
+        done = true;
+      }
+    }
+    if (!done) throw new RefundDebitContendedError();
+  } catch (err) {
+    await rollbackClaim(err instanceof Error ? err.name : 'unknown');
+    throw err;
+  }
+
+  const debitedUnits = debited.inkSub + debited.inkAnnualCarry + debited.inkTopup;
+  const shortfallUnits = dueUnits - debitedUnits;
+  try {
+    await retryOnThrow(() =>
+      ledger.updateOne(
+        { _id: claimId, claimToken },
+        {
+          $set: {
+            state: 'done',
+            delta: -debitedUnits,
+            balanceAfter: totalAfter,
+            doneAt: new Date(),
+            metadata: {
+              razorpayPaymentId,
+              refundId,
+              refundPaise,
+              dueUnits,
+              ...grantMeta,
+              debitedUnits,
+              shortfallUnits,
+              buckets: {
+                sub: debited.inkSub,
+                annual_carry: debited.inkAnnualCarry,
+                topup: debited.inkTopup,
+              },
+            },
+          },
+        },
+      ),
+    );
+  } catch (err) {
+    // The debit stood; the row stays 'pending' and a retry will see a stale claim, not debit again.
+    logger.error(
+      { refundId, debitedUnits, errName: err instanceof Error ? err.name : 'unknown' },
+      'ink-ledger: refund reversal debited but ledger row not marked done',
+    );
+  }
+
+  logger.info(
+    { refundId, razorpayPaymentId, dueUnits, debitedUnits, shortfallUnits },
+    'refund ink reversed',
+  );
+  return { status: 'reversed', dueUnits, debitedUnits, shortfallUnits };
 }

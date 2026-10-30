@@ -31,6 +31,8 @@ import {
   streamGenerateFromTemplate,
 } from '../services/ai.service';
 import {
+  AnnexureBriefDate,
+  annexureCourtType,
   annexuresFilename,
   buildAnnexuresHtml,
   buildAnnexuresPack,
@@ -40,6 +42,7 @@ import { AvermentLists, factEntriesByKey, loadAvermentLists } from '../services/
 import {
   briefText,
   clampTarget,
+  drafterBrief,
   missingFromRendered,
   STARTING_DRAFT_FOOTER,
   STARTING_DRAFT_LABEL,
@@ -2608,6 +2611,49 @@ function partyMappingOf(
   return { packId, mapped: mapPartyFields(packId, formData), values: formData };
 }
 
+/**
+ * T-700 (AJ-700a (7)): on the brief path, the brief's dates with their labels,
+ * as the Drafter is given them (briefParts via drafterBrief: a "Not known" or
+ * blank date is not listed). The stored brief is worked out again with
+ * updateBrief, with no model call. Undefined on the template path. Throws when
+ * the stored brief cannot be decrypted or parsed. Logs nothing.
+ */
+function briefDatesOf(
+  doc: { brief?: string | null },
+  formData: Record<string, unknown>,
+): { dates: AnnexureBriefDate[]; kind?: string } | undefined {
+  if (formData.source !== 'brief' || typeof doc.brief !== 'string' || doc.brief === '') {
+    return undefined;
+  }
+  const stored: unknown = JSON.parse(decrypt(doc.brief));
+  if (!stored || typeof stored !== 'object' || Array.isArray(stored)) return { dates: [] };
+  const b = stored as {
+    kind?: unknown;
+    kind_name?: unknown;
+    court_document?: unknown;
+    court?: unknown;
+    values?: unknown;
+  };
+  // AJ-700c (2): the stored brief's kind (a rule-pack id, or 'none' for a
+  // guided brief), for the set of a document with no pack id of its own.
+  const kind = typeof b.kind === 'string' ? { kind: b.kind } : {};
+  if (typeof b.kind !== 'string' || !Array.isArray(b.values)) return { dates: [], ...kind };
+  const brief = updateBrief({
+    kind: b.kind,
+    ...(typeof b.kind_name === 'string' ? { kindName: b.kind_name } : {}),
+    ...(typeof b.court_document === 'boolean' ? { courtDocument: b.court_document } : {}),
+    values: b.values as Parameters<typeof updateBrief>[0]['values'],
+    ...(b.court && typeof b.court === 'object'
+      ? { court: b.court as Parameters<typeof updateBrief>[0]['court'] }
+      : {}),
+  });
+  if (!brief) return { dates: [], ...kind };
+  return {
+    dates: drafterBrief(brief, null).dates.map((d) => ({ date_of: d.date_of, date: d.date })),
+    ...kind,
+  };
+}
+
 // POST /documents/:id/annexures-pack — SCRUM-65: generate the annexures as a multi-page PDF
 // (T-689c: the Synopsis only for the packs and courts in annexureBApplies)
 // Court-rule aware: designation, verification language, party labels from court_rules JSON.
@@ -2670,6 +2716,24 @@ router.post(
     }
     formData = applyPartyFields(formData, party);
 
+    // T-700 (AJ-700a (7)): the brief's dates, for a civil List of Dates. They
+    // are optional: a stored brief that cannot be read gives none (only the
+    // "advocate to add" row), never a failed pack. Only the id and the error
+    // name are logged.
+    let briefDates: AnnexureBriefDate[] | undefined;
+    let briefKind: string | undefined;
+    try {
+      const stored = briefDatesOf(doc, formData);
+      briefDates = stored?.dates;
+      briefKind = stored?.kind;
+    } catch (err) {
+      console.warn(
+        `[drafting] Annexures pack: brief dates unreadable for document ${String(doc._id)}:`,
+        err instanceof Error ? err.name : 'UnknownError',
+      );
+      briefDates = [];
+    }
+
     // T-156: the chosen court, looked up the same way the draft paths do. The
     // brief path saves its court id only in doc.courtName (its formInputs hold
     // only the party inputs and court labels, T-381); the template path saves it in both. No court found means
@@ -2715,18 +2779,19 @@ router.post(
       }
     }
 
-    // T-689c (AJ-689c-a rule 3): the Synopsis follows the pack and the court
-    // type, the first non-blank string of: the stored doc.courtType, the form's
-    // court_type, then the chosen court's own type from the lookup above
-    // (courtData.courtType; review round 1: a template-path High Court pack
-    // whose form has no court_type, e.g. quashing_528_bnss, may store none).
-    // Each is passed as stored; none means no Synopsis (annexureBApplies).
+    // T-689c (AJ-689c-a rule 3), T-689d (AJ-700a (4)): the Synopsis and the
+    // court fee follow one court type (annexureCourtType), the first non-blank
+    // string of: the chosen court's own type from the lookup above
+    // (courtData.courtType; a chosen court wins over a stale stored type), the
+    // form's court_type, then the stored doc.courtType. Each is passed as
+    // stored; none here leaves the builder to fall back to the court rule.
     // AJ-689c-b: never for a respondent-side client, read from the values
     // mapped above.
-    const nonBlank = (v: unknown): string | undefined =>
-      typeof v === 'string' && v.trim() !== '' ? v : undefined;
-    const courtType =
-      nonBlank(doc.courtType) ?? nonBlank(formData.court_type) ?? nonBlank(courtData?.courtType);
+    const courtType = annexureCourtType({
+      courtData,
+      formCourtType: formData.court_type,
+      docCourtType: doc.courtType,
+    });
 
     let pdfBuffer: Buffer | undefined;
     let html: string | undefined;
@@ -2740,6 +2805,8 @@ router.post(
         rulePackId: packId || undefined,
         courtType,
         partyValues,
+        briefDates,
+        briefKind,
       };
       if (asHtml) html = buildAnnexuresHtml(packInput).html;
       else pdfBuffer = await buildAnnexuresPack(packInput);

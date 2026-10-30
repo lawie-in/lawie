@@ -105,15 +105,18 @@ afterEach(() => jest.restoreAllMocks());
 // ── d. the annexures-pack route ──────────────────────────────────────────────
 
 describe('T-689c d: POST /:id/annexures-pack', () => {
-  it('a written statement before a High Court: no Synopsis, no Nature of matter, A to F', async () => {
+  it('a written statement before a High Court: no Synopsis, the civil set A to D, Nature of matter on the Index only (T-700)', async () => {
     const id = await insertDoc(
       { rulePackId: 'written_statement', courtType: 'high_court' },
       { ...FORM, template_id: 'written_statement' },
     );
     const html = await packHtml(id);
     expect(html).not.toContain(SYNOPSIS);
-    expect(html).not.toContain('Nature of matter');
-    expect(labelsIn(html)).toBe('ABCDEF');
+    expect(html.split('Nature of matter').length - 1).toBe(1);
+    expect(html).toContain(
+      '<h2>Index of Documents Annexed</h2>\n  <br>\n  <p><strong>Nature of matter:</strong> Written Statement (Order VIII CPC)</p>',
+    );
+    expect(labelsIn(html)).toBe('ABCD');
   });
 
   it('a s.528 BNSS quashing petition before a High Court: Synopsis with the raw displayName, A to G', async () => {
@@ -159,20 +162,24 @@ describe('T-689c d: POST /:id/annexures-pack', () => {
     },
   );
 
-  it('doc.courtType wins over the form court_type (sessions vs high_court: no Synopsis)', async () => {
+  // T-689d, AJ-700a (4) reverses T-689c d: the form court_type now beats a stored doc.courtType.
+  it('the form court_type wins over doc.courtType (stale sessions vs form high_court: Synopsis)', async () => {
     const id = await insertDoc(
       { rulePackId: 'quashing_528_bnss', courtType: 'sessions' },
       { ...FORM, template_id: 'quashing_528_bnss', court_type: 'high_court' },
     );
-    expect(await packHtml(id)).not.toContain(SYNOPSIS);
+    expect(await packHtml(id)).toContain(SYNOPSIS);
   });
 
-  it('doc.courtType high_court wins over a form court_type of sessions: Synopsis', async () => {
+  it('the form court_type wins over doc.courtType (stale high_court vs form sessions: no Synopsis)', async () => {
     const id = await insertDoc(
       { rulePackId: 'quashing_528_bnss', courtType: 'high_court' },
       { ...FORM, template_id: 'quashing_528_bnss', court_type: 'sessions' },
     );
-    expect(await packHtml(id)).toContain(SYNOPSIS);
+    const html = await packHtml(id);
+    expect(html).not.toContain(SYNOPSIS);
+    // and the court fee agrees: both annexures follow the one court type (T-689d)
+    expect(html).not.toContain('Process fee');
   });
 
   it.each(['', '   ', '\t'])(
@@ -186,22 +193,44 @@ describe('T-689c d: POST /:id/annexures-pack', () => {
     },
   );
 
-  it('a doc.courtType with spaces around it is not trimmed: it is no court type, so no Synopsis', async () => {
+  it('a form court_type with spaces around it is not trimmed: it is no court type, so no Synopsis', async () => {
     const id = await insertDoc(
-      { rulePackId: 'quashing_528_bnss', courtType: ' high_court ' },
-      { ...FORM, template_id: 'quashing_528_bnss', court_type: 'high_court' },
+      { rulePackId: 'quashing_528_bnss', courtType: 'high_court' },
+      { ...FORM, template_id: 'quashing_528_bnss', court_type: ' high_court ' },
     );
     expect(await packHtml(id)).not.toContain(SYNOPSIS);
   });
 
-  it('no court type anywhere: no Synopsis', async () => {
+  it('no court type anywhere (AJ-700a (4)): the court rule type decides; jharkhand_hc is a High Court', async () => {
     const id = await insertDoc(
       { rulePackId: 'quashing_528_bnss' },
       { ...FORM, template_id: 'quashing_528_bnss' },
     );
     const html = await packHtml(id);
+    expect(html).toContain(SYNOPSIS);
+    expect(labelsIn(html)).toBe('ABCDEFG');
+  });
+
+  it('T-689d: a High Court document with no form court_type: Synopsis and High Court court fee agree', async () => {
+    const id = await insertDoc(
+      { rulePackId: 'quashing_528_bnss', courtType: 'high_court' },
+      { ...FORM, template_id: 'quashing_528_bnss' },
+    );
+    const html = await packHtml(id);
+    expect(FORM).not.toHaveProperty('court_type');
+    expect(html).toContain(SYNOPSIS);
+    expect(html).toContain('Process fee');
+  });
+
+  it('T-689d: the same document with a trial court chosen and a stale doc.courtType high_court: neither', async () => {
+    await createActiveCourt(HC_ID, { courtType: 'sessions' });
+    const id = await insertDoc(
+      { rulePackId: 'quashing_528_bnss', courtName: HC_ID, courtType: 'high_court' },
+      { ...FORM, template_id: 'quashing_528_bnss' },
+    );
+    const html = await packHtml(id);
     expect(html).not.toContain(SYNOPSIS);
-    expect(labelsIn(html)).toBe('ABCDEF');
+    expect(html).not.toContain('Process fee');
   });
 
   it('the form court_type alone (no doc.courtType) is enough', async () => {
@@ -334,62 +363,67 @@ describe('T-689c d2: the court type falls back to the chosen court row', () => {
     const id = await insertDoc({ rulePackId: 'quashing_528_bnss', courtName: HC_ID }, QUASH_FORM);
     const html = await packHtml(id);
     expect(html).not.toContain(SYNOPSIS);
-    expect(html).not.toContain('Nature of matter');
+    // AJ-700 (2): Nature of matter is on the Index (criminal set, no Synopsis)
+    expect(html.split('Nature of matter').length - 1).toBe(1);
     expect(labelsIn(html)).toBe('ABCDEF');
   });
 
-  it('(b) no court at all (none): no Synopsis, A to F', async () => {
+  it('(b) no court row: the court rule type decides (AJ-700a (4), jharkhand_hc): Synopsis, A to G', async () => {
     const id = await insertDoc({ rulePackId: 'quashing_528_bnss' }, QUASH_FORM);
     const html = await packHtml(id);
-    expect(html).not.toContain(SYNOPSIS);
-    expect(labelsIn(html)).toBe('ABCDEF');
+    expect(html).toContain(SYNOPSIS);
+    expect(labelsIn(html)).toBe('ABCDEFG');
   });
 
-  it('(c) doc.courtType sessions beats a High Court row: no Synopsis', async () => {
+  // T-689d, AJ-700a (4) reverses T-689c d2 (c): the chosen court's row is the first source,
+  // then the form court_type, then doc.courtType.
+  it('(c) a High Court row beats a stale doc.courtType sessions: Synopsis', async () => {
     await createActiveCourt(HC_ID);
     const id = await insertDoc(
       { rulePackId: 'quashing_528_bnss', courtName: HC_ID, courtType: 'sessions' },
       QUASH_FORM,
     );
-    expect(await packHtml(id)).not.toContain(SYNOPSIS);
+    expect(await packHtml(id)).toContain(SYNOPSIS);
   });
 
-  it('(c) form court_type sessions beats a High Court row: no Synopsis', async () => {
+  it('(c) a High Court row beats a form court_type sessions: Synopsis', async () => {
     await createActiveCourt(HC_ID);
     const id = await insertDoc(
       { rulePackId: 'quashing_528_bnss', courtName: HC_ID },
       { ...QUASH_FORM, court_type: 'sessions' },
     );
-    expect(await packHtml(id)).not.toContain(SYNOPSIS);
+    expect(await packHtml(id)).toContain(SYNOPSIS);
   });
 
-  it('(c) doc.courtType high_court beats a sessions row: Synopsis', async () => {
+  it('(c) a sessions row beats a stale doc.courtType high_court: no Synopsis, no Process fee', async () => {
     await createActiveCourt(HC_ID, { courtType: 'sessions' });
     const id = await insertDoc(
       { rulePackId: 'quashing_528_bnss', courtName: HC_ID, courtType: 'high_court' },
       QUASH_FORM,
     );
-    expect(await packHtml(id)).toContain(SYNOPSIS);
+    const html = await packHtml(id);
+    expect(html).not.toContain(SYNOPSIS);
+    expect(html).not.toContain('Process fee');
   });
 
-  it('(c) form court_type high_court beats a sessions row: Synopsis', async () => {
+  it('(c) a sessions row beats a form court_type high_court: no Synopsis', async () => {
     await createActiveCourt(HC_ID, { courtType: 'sessions' });
     const id = await insertDoc(
       { rulePackId: 'quashing_528_bnss', courtName: HC_ID },
       { ...QUASH_FORM, court_type: 'high_court' },
     );
-    expect(await packHtml(id)).toContain(SYNOPSIS);
+    expect(await packHtml(id)).not.toContain(SYNOPSIS);
   });
 
   it.each(['', '   ', '\t'])(
-    '(c) a blank doc.courtType (%j) falls to the form court_type (sessions) over a High Court row',
+    '(c) a blank doc.courtType (%j) and a form court_type sessions: the High Court row still decides',
     async (blank) => {
       await createActiveCourt(HC_ID);
       const id = await insertDoc(
         { rulePackId: 'quashing_528_bnss', courtName: HC_ID, courtType: blank },
         { ...QUASH_FORM, court_type: 'sessions' },
       );
-      expect(await packHtml(id)).not.toContain(SYNOPSIS);
+      expect(await packHtml(id)).toContain(SYNOPSIS);
     },
   );
 
@@ -414,13 +448,21 @@ describe('T-689c d2: the court type falls back to the chosen court row', () => {
     expect(await packHtml(id)).toContain(SYNOPSIS);
   });
 
-  it('(c) a non-blank but unknown doc.courtType is used as is and does not fall through: no Synopsis', async () => {
+  it('(c) a non-blank but unknown form court_type is used as is and does not fall through: no Synopsis', async () => {
+    const id = await insertDoc(
+      { rulePackId: 'quashing_528_bnss' },
+      { ...QUASH_FORM, court_type: 'HIGH_COURT' },
+    );
+    expect(await packHtml(id)).not.toContain(SYNOPSIS);
+  });
+
+  it('(c) an unknown doc.courtType under a High Court row: the row decides', async () => {
     await createActiveCourt(HC_ID);
     const id = await insertDoc(
       { rulePackId: 'quashing_528_bnss', courtName: HC_ID, courtType: 'HIGH_COURT' },
       QUASH_FORM,
     );
-    expect(await packHtml(id)).not.toContain(SYNOPSIS);
+    expect(await packHtml(id)).toContain(SYNOPSIS);
   });
 
   it('(d) typed court name that finds an active high_court row: Synopsis', async () => {
@@ -439,24 +481,24 @@ describe('T-689c d2: the court type falls back to the chosen court row', () => {
     expect(await packHtml(id)).not.toContain(SYNOPSIS);
   });
 
-  it('(d) typed court name with no matching row: no Synopsis, A to F', async () => {
+  it('(d) typed court name with no matching row: falls to the court rule type (High Court): Synopsis, A to G', async () => {
     const id = await insertDoc(
       { rulePackId: 'quashing_528_bnss', courtName: 'Typed Court With No Row' },
       QUASH_FORM,
     );
     const html = await packHtml(id);
-    expect(html).not.toContain(SYNOPSIS);
-    expect(labelsIn(html)).toBe('ABCDEF');
+    expect(html).toContain(SYNOPSIS);
+    expect(labelsIn(html)).toBe('ABCDEFG');
   });
 
-  it('(d) typed court name whose row is inactive: no Synopsis', async () => {
+  it('(d) typed court name whose row is inactive: the row is skipped, the court rule type decides', async () => {
     const typed = 'Typed Inactive High Court';
-    await createActiveCourt(typed, { courtType: 'high_court', isActive: false });
+    await createActiveCourt(typed, { courtType: 'sessions', isActive: false });
     const id = await insertDoc({ rulePackId: 'quashing_528_bnss', courtName: typed }, QUASH_FORM);
-    expect(await packHtml(id)).not.toContain(SYNOPSIS);
+    expect(await packHtml(id)).toContain(SYNOPSIS);
   });
 
-  it('(d) typed court lookup that throws: the pack still builds, no Synopsis', async () => {
+  it('(d) typed court lookup that throws: the pack still builds, the court rule type decides', async () => {
     jest.spyOn(console, 'warn').mockImplementation(() => undefined);
     jest.spyOn(Court, 'findOne').mockImplementation((() => {
       throw new Error('db down');
@@ -466,8 +508,8 @@ describe('T-689c d2: the court type falls back to the chosen court row', () => {
       QUASH_FORM,
     );
     const html = await packHtml(id);
-    expect(html).not.toContain(SYNOPSIS);
-    expect(labelsIn(html)).toBe('ABCDEF');
+    expect(html).toContain(SYNOPSIS);
+    expect(labelsIn(html)).toBe('ABCDEFG');
   });
 
   it('(d) a typed lookup that throws still uses a stored doc.courtType', async () => {
@@ -503,17 +545,20 @@ describe('T-689c d2: the court type falls back to the chosen court row', () => {
   it.each([
     ['a stored high_court', { courtType: 'high_court' }],
     ['the High Court row alone', {}],
-  ])('(e) guided before a High Court (%s): no Synopsis, A to F', async (_n, extra) => {
-    await createActiveCourt(HC_ID);
-    const id = await insertDoc(
-      { rulePackId: 'guided', courtName: HC_ID, brief: briefOf(), ...extra },
-      { template_id: 'guided', source: 'brief' },
-    );
-    const res = await supertest(app).post(`/${id}/annexures-pack?format=html`).set(AUTH);
-    expect(res.status).toBe(200);
-    expect(res.body.html).not.toContain(SYNOPSIS);
-    expect(labelsIn(res.body.html)).toBe('ABCDEF');
-  });
+  ])(
+    '(e) guided before a High Court (%s): no Synopsis, Memo + Index (A to B)',
+    async (_n, extra) => {
+      await createActiveCourt(HC_ID);
+      const id = await insertDoc(
+        { rulePackId: 'guided', courtName: HC_ID, brief: briefOf(), ...extra },
+        { template_id: 'guided', source: 'brief' },
+      );
+      const res = await supertest(app).post(`/${id}/annexures-pack?format=html`).set(AUTH);
+      expect(res.status).toBe(200);
+      expect(res.body.html).not.toContain(SYNOPSIS);
+      expect(labelsIn(res.body.html)).toBe('AB');
+    },
+  );
 
   it('(e) control: the same brief document under a non-denied pack id has the Synopsis', async () => {
     await createActiveCourt(HC_ID);

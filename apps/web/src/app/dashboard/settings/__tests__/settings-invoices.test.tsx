@@ -1,5 +1,5 @@
 // T-436 (c) AC6: the Invoices card sits on /dashboard/settings in the spec order:
-// Profile, Plan, Invoices, Close account, Sign out.
+// Profile, Plan, then (T-646) the Billing tab: Invoices, Payments, Ink history, then Close account, Sign out.
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 
@@ -31,10 +31,12 @@ let root: Root;
 
 beforeEach(() => {
   mockApiFetch.mockReset();
-  mockApiFetch.mockResolvedValue({
-    ok: true,
-    status: 200,
-    json: async () => ({
+  const ok = (body: unknown) => ({ ok: true, status: 200, json: async () => body });
+  mockApiFetch.mockImplementation(async (path: string) => {
+    if (path === '/api/billing/payments') return ok({ payments: [] });
+    if (path.startsWith('/api/credits/history'))
+      return ok({ entries: [], balance: 0, nextCursor: null });
+    return ok({
       data: [
         {
           id: 'i1',
@@ -45,7 +47,7 @@ beforeEach(() => {
           originalInvoiceNumber: null,
         },
       ],
-    }),
+    });
   });
   container = document.createElement('div');
   document.body.appendChild(container);
@@ -66,10 +68,18 @@ async function mount() {
 }
 
 describe('T-436 settings page: Invoices card', () => {
-  it('cards are in order Profile, Plan, Invoices, Close account (with Sign out), Appearance', async () => {
+  it('cards are in order Profile, Plan, Invoices, Payments, Ink history, Close account (with Sign out), Appearance', async () => {
     await mount();
     const headings = Array.from(container.querySelectorAll('h2')).map((h) => h.textContent);
-    expect(headings).toEqual(['Profile', 'Plan', 'Invoices', 'Close account', 'Appearance']);
+    expect(headings).toEqual([
+      'Profile',
+      'Plan',
+      'Invoices',
+      'Payments',
+      'Ink history',
+      'Close account',
+      'Appearance',
+    ]);
     const text = container.textContent ?? '';
     expect(text.lastIndexOf('Close account')).toBeLessThan(text.indexOf('Sign out'));
   });
@@ -89,5 +99,18 @@ describe('T-436 settings page: Invoices card', () => {
     const inv = byId('invoices-heading');
     const close = byId('close-account-heading');
     expect(inv.compareDocumentPosition(close) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('T-646: Invoices is in the Billing panel, not the Plan panel', async () => {
+    await mount();
+    const panel = container.querySelector('#settings-panel-billing')!;
+    expect(panel.querySelector('#invoices-heading')).not.toBeNull();
+    expect(panel.querySelector('#payments-heading')).not.toBeNull();
+    expect(panel.querySelector('#ink-history-heading')).not.toBeNull();
+    expect(container.querySelector('#settings-panel-plan #invoices-heading')).toBeNull();
+    expect(mockApiFetch).toHaveBeenCalledWith('/api/billing/payments');
+    expect(
+      mockApiFetch.mock.calls.some((c) => String(c[0]).startsWith('/api/credits/history?limit=20')),
+    ).toBe(true);
   });
 });

@@ -6,7 +6,9 @@ import { flushSync } from 'react-dom';
 
 import ConfirmCloseAccountDialog from '@/components/account/ConfirmCloseAccountDialog';
 import { GST_STATE_NAG_STRINGS, GstStatePicker } from '@/components/billing/GstStatePicker';
+import { InkHistoryCard } from '@/components/billing/InkHistoryCard';
 import { InvoicesCard, type InvoiceRow } from '@/components/billing/InvoicesCard';
+import { PaymentHistoryCard } from '@/components/billing/PaymentHistoryCard';
 import { PlanPanel } from '@/components/billing/PlanPanel';
 import {
   PrivacyBlockedNotice,
@@ -77,6 +79,7 @@ export default function SettingsPage() {
   const [closeOpen, setCloseOpen] = useState(false);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   // T-525: Profile, Plan, Account, Appearance; every panel stays mounted (hidden when inactive).
+  // T-646: Billing after Plan (Invoices, Payments, Ink history).
   const [tab, selectTab] = useSettingsTab();
   const reducedMotion = usePrefersReducedMotion();
   // T-436 (b): the State picker sits in the Plan block (spec §2: saved on change).
@@ -331,8 +334,8 @@ export default function SettingsPage() {
         </Card>
       </SettingsTabPanel>
 
-      {/* Plan (T-509): status, plan cards and Cancel, then Invoices (T-436). Not a Card: PlanPanel
-          brings its own cards and cards do not nest (DESIGN.md). */}
+      {/* Plan (T-509): status, plan cards and Cancel. Not a Card: PlanPanel brings its own cards
+          and cards do not nest (DESIGN.md). T-646: Invoices moved to the Billing tab. */}
       <SettingsTabPanel id="plan" active={tab}>
         <section aria-labelledby="plan-heading">
           <h2 id="plan-heading" className={CARD_HEADING}>
@@ -356,9 +359,14 @@ export default function SettingsPage() {
             }
           />
         </section>
+      </SettingsTabPanel>
 
-        {/* T-436 — Invoices (Rajesh's spec, as settled by Arjun): after Plan. */}
+      {/* T-646 (Rajesh's design §5): Billing is the record. Invoices (T-436, unchanged), then
+          Payments, then Ink history. */}
+      <SettingsTabPanel id="billing" active={tab}>
         <InvoicesCard onRowsLoaded={onInvoicesLoaded} />
+        <PaymentHistoryCard />
+        <InkHistoryCard />
       </SettingsTabPanel>
 
       {/* Account: T-115c Close account (Rajesh's spec §1: apart from Sign out so it is not hit by

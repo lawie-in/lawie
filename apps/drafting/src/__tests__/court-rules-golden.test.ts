@@ -273,3 +273,38 @@ describe('court-rules-golden — annexures pack HTML per court', () => {
     });
   }
 });
+
+// ── T-700 (AJ-700, AJ-700a (8)): the civil set, one written-statement golden ──
+
+describe('court-rules-golden — T-700 written statement annexures pack HTML', () => {
+  it('a written statement before a High Court renders its civil annexure set deterministically', async () => {
+    const puppeteer = jest.requireMock('puppeteer') as {
+      __mockPage: { setContent: jest.Mock };
+    };
+    let captured = '';
+    puppeteer.__mockPage.setContent.mockImplementationOnce((html: string) => {
+      captured = html;
+      return Promise.resolve(undefined);
+    });
+
+    await buildAnnexuresPack({
+      formData: {
+        template_id: 'written_statement',
+        state: 'jharkhand',
+        court_type: 'high_court',
+        court_id: 'jharkhand_hc',
+        plaintiff_name: 'GOLDEN_PLAINTIFF',
+        defendant_name: 'GOLDEN_DEFENDANT',
+        client_name: 'GOLDEN_DEFENDANT',
+        client_role: 'defendant',
+        place: 'RANCHI',
+      },
+      bodyParaCount: 10,
+      advocateName: 'GOLDEN_ADV',
+      rulePackId: 'written_statement',
+      courtType: 'high_court',
+    });
+
+    expect(captured).toMatchSnapshot();
+  });
+});

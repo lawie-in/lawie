@@ -793,13 +793,16 @@ describe('AC9: a billing renewal while a hold is open', () => {
       .sort();
   }
 
-  it('nothing outside credits.service and the User model writes inkHolds or inkSettled (billing is untouched)', () => {
+  it('nothing outside credits.service and the User model writes inkHolds or inkSettled (billing is untouched); ink-history.service only reads them', () => {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const path = require('path') as typeof import('path');
     const apps = path.resolve(__dirname, '../../..');
     expect(filesTouchingHoldFields(apps)).toEqual([
       'drafting/src/models/User.model.ts',
       'drafting/src/services/credits.service.ts',
+      // T-646: a READ-ONLY reader (the Ink history adds open holds back into the balance anchor).
+      // The write guard below stays strict: see the next test.
+      'drafting/src/services/ink-history.service.ts',
     ]);
   });
 

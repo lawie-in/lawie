@@ -1,4 +1,4 @@
-// T-525 stage B: the Settings tabs (Profile, Plan, Account, Appearance). Hand-built ARIA tabs;
+// T-525 stage B: the Settings tabs (Profile, Plan, Billing (T-646), Account, Appearance). Hand-built ARIA tabs;
 // every panel stays mounted and inactive ones are `hidden`; the tab lives in location.hash.
 // break-ui cases: hash garbage, rapid switching, double-click on Save / Sign out, long identity.
 import { act, useEffect } from 'react';
@@ -58,7 +58,7 @@ const FALLBACK_ROW = {
 };
 let invoices: unknown[];
 
-const TABS = ['Profile', 'Plan', 'Account', 'Appearance'];
+const TABS = ['Profile', 'Plan', 'Billing', 'Account', 'Appearance'];
 const tabs = () => Array.from(document.querySelectorAll<HTMLElement>('[role="tab"]'));
 const tab = (name: string) => tabs().find((t) => t.textContent === name) as HTMLElement;
 const panels = () => Array.from(document.querySelectorAll<HTMLElement>('[role="tabpanel"]'));
@@ -106,7 +106,7 @@ beforeEach(() => {
 afterEach(cleanupMounted);
 
 describe('roles and structure', () => {
-  it('h1 Settings names a tablist with Profile, Plan, Account, Appearance', async () => {
+  it('h1 Settings names a tablist with Profile, Plan, Billing, Account, Appearance', async () => {
     await page();
     const h1 = document.querySelector('h1') as HTMLElement;
     expect(h1.textContent).toBe('Settings');
@@ -129,14 +129,16 @@ describe('roles and structure', () => {
 
   it('roving tabindex: only the selected tab is tabbable', async () => {
     await page();
-    expect(tabs().map((t) => t.tabIndex)).toEqual([0, -1, -1, -1]);
+    expect(tabs().map((t) => t.tabIndex)).toEqual([0, -1, -1, -1, -1]);
     click(tab('Account'));
-    expect(tabs().map((t) => t.tabIndex)).toEqual([-1, -1, 0, -1]);
+    expect(tabs().map((t) => t.tabIndex)).toEqual([-1, -1, -1, 0, -1]);
+    click(tab('Billing'));
+    expect(tabs().map((t) => t.tabIndex)).toEqual([-1, -1, 0, -1, -1]);
   });
 
-  it('all four panels are mounted, three of them hidden', async () => {
+  it('all five panels are mounted, four of them hidden', async () => {
     await page();
-    expect(panels()).toHaveLength(4);
+    expect(panels()).toHaveLength(5);
     expect(visiblePanels()).toHaveLength(1);
     expect(visiblePanels()[0].id).toBe('settings-panel-profile');
     // Mounted content of hidden panels is still in the DOM
@@ -183,9 +185,13 @@ describe('keyboard', () => {
     await page();
     tab('Profile').focus();
     for (let i = 0; i < 25; i += 1) press(document.activeElement as Element, { key: 'ArrowRight' });
-    // 25 steps from index 0 -> index 1
-    expect(tab('Plan').getAttribute('aria-selected')).toBe('true');
-    expect(visiblePanels().map((p) => p.id)).toEqual(['settings-panel-plan']);
+    // 25 steps from index 0 around 5 tabs -> index 0 again
+    expect(tab('Profile').getAttribute('aria-selected')).toBe('true');
+    expect(visiblePanels().map((p) => p.id)).toEqual(['settings-panel-profile']);
+    press(document.activeElement as Element, { key: 'ArrowRight' });
+    press(document.activeElement as Element, { key: 'ArrowRight' });
+    expect(tab('Billing').getAttribute('aria-selected')).toBe('true');
+    expect(visiblePanels().map((p) => p.id)).toEqual(['settings-panel-billing']);
     expect(tabs().filter((t) => t.getAttribute('aria-selected') === 'true')).toHaveLength(1);
   });
 });
@@ -193,6 +199,7 @@ describe('keyboard', () => {
 describe('the hash', () => {
   it.each([
     ['#plan', 'Plan'],
+    ['#billing', 'Billing'],
     ['#account', 'Account'],
     ['#appearance', 'Appearance'],
     ['#PLAN', 'Plan'],
@@ -411,5 +418,98 @@ describe('Profile card (T-510 behaviour through the restyle)', () => {
     const email = document.getElementById('profile-email') as HTMLInputElement;
     expect(email.value).toBe(mockUser.email);
     expect(email.disabled).toBe(true);
+  });
+});
+
+describe('T-646 Billing tab and its deep links', () => {
+  // jsdom has no scrollIntoView; the Billing cards call it for #payments / #ink after loading.
+  const scrolled: string[] = [];
+  beforeEach(() => {
+    scrolled.length = 0;
+    Element.prototype.scrollIntoView = function (this: Element) {
+      scrolled.push(this.id);
+    };
+  });
+  afterEach(() => {
+    delete (Element.prototype as Partial<Element>).scrollIntoView;
+  });
+
+  it.each([
+    ['#payments', 'payments'],
+    ['?tab=billing#ink', 'ink'],
+    ['#payment-65f1a2b3c4d5e6f708091a2b', 'payments'], // a row not in the list scrolls to the card
+  ])('%s scrolls to #%s once the cards have loaded', async (suffix, id) => {
+    window.history.replaceState(null, '', `/dashboard/settings${suffix}`);
+    mount(
+      <ThemeProvider>
+        <SettingsPage />
+      </ThemeProvider>,
+    );
+    await flush();
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 50));
+    });
+    expect(scrolled).toContain(id);
+  });
+  it('Billing sits between Plan and Account and holds Invoices, Payments and Ink history', async () => {
+    await page('#billing');
+    expect(tab('Billing').getAttribute('aria-selected')).toBe('true');
+    const panel = visiblePanels()[0];
+    expect(panel.id).toBe('settings-panel-billing');
+    expect(panel.querySelector('#payments')).not.toBeNull();
+    expect(panel.querySelector('#ink')).not.toBeNull();
+    expect(panel.textContent).toContain('Invoices');
+    // Invoices left the Plan panel
+    const plan = document.getElementById('settings-panel-plan') as HTMLElement;
+    expect(plan.textContent).not.toContain('Invoices');
+  });
+
+  it.each([
+    ['?tab=billing', 'Billing'],
+    ['?tab=billing#payments', 'Billing'],
+    ['?tab=billing#ink', 'Billing'],
+    ['#payments', 'Billing'],
+    ['#ink', 'Billing'],
+    ['#payment-65f1a2b3c4d5e6f708091a2b', 'Billing'],
+    ['?tab=plan', 'Plan'],
+    ['#account', 'Account'],
+    ['?tab=billing#account', 'Account'], // a tab hash wins
+  ])('opening /dashboard/settings%s selects %s', async (suffix, label) => {
+    window.history.replaceState(null, '', `/dashboard/settings${suffix}`);
+    mount(
+      <ThemeProvider>
+        <SettingsPage />
+      </ThemeProvider>,
+    );
+    await flush();
+    expect(tab(label).getAttribute('aria-selected')).toBe('true');
+    expect(visiblePanels()).toHaveLength(1);
+  });
+
+  it.each(['?tab=nope', '?tab=', '#payment-', '#payment-../x', '#payments-x', '#inkwell'])(
+    'a bad link %s falls back to Profile',
+    async (suffix) => {
+      window.history.replaceState(null, '', `/dashboard/settings${suffix}`);
+      mount(
+        <ThemeProvider>
+          <SettingsPage />
+        </ThemeProvider>,
+      );
+      await flush();
+      expect(tab('Profile').getAttribute('aria-selected')).toBe('true');
+    },
+  );
+
+  it('tabFromLocation and isBillingSectionHash', () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { tabFromLocation, isBillingSectionHash } = require('@/components/settings/SettingsTabs');
+    expect(tabFromLocation('?tab=billing', '')).toBe('billing');
+    expect(tabFromLocation('', '#payments')).toBe('billing');
+    expect(tabFromLocation('?tab=billing', '#plan')).toBe('plan');
+    expect(tabFromLocation(null, null)).toBeNull();
+    expect(isBillingSectionHash('#ink')).toBe(true);
+    expect(isBillingSectionHash('#payment-abc123')).toBe(true);
+    expect(isBillingSectionHash('#payment-a b')).toBe(false);
+    expect(isBillingSectionHash('#plan')).toBe(false);
   });
 });

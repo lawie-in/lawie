@@ -51,9 +51,18 @@ const FINDING = [{ rule_id: 'ws_over_90_days', text: SIGNED }];
 const WS_PACK = loadRulePack('written_statement')!;
 const WS_CHECKLIST = buildChecklist(WS_PACK);
 
+// AJ-690c: a service date alone now warns when it is over 90 IST calendar days back, so the
+// days-only cases use a RECENT date, worked out from today's IST calendar date (UTC+05:30).
+const istDaysAgo = (n: number): string => {
+  const d = new Date(Date.now() + (5 * 60 + 30) * 60 * 1000);
+  d.setUTCDate(d.getUTCDate() - n);
+  return d.toISOString().slice(0, 10);
+};
+const RECENT = istDaysAgo(10);
+
 const typed = (key: string, value: string): GivenValue => ({ key, value, source: 'user' });
 const wsValues = (days?: string): GivenValue[] => [
-  typed('summons_service_date', '2026-07-01'),
+  typed('summons_service_date', RECENT),
   ...(days === undefined ? [] : [typed('days_from_service', days)]),
 ];
 
@@ -230,7 +239,7 @@ const wsUpdate = (days?: string, extra: Record<string, unknown> = {}) =>
   update({
     kind: 'written_statement',
     values: [
-      { key: 'summons_service_date', value: '2026-07-01', source: 'user' },
+      { key: 'summons_service_date', value: RECENT, source: 'user' },
       ...(days === undefined ? [] : [{ key: 'days_from_service', value: days, source: 'user' }]),
     ],
     ...extra,
@@ -260,7 +269,7 @@ afterEach(() => {
 });
 
 describe('T-690c part 3a: POST /intake/brief/update (Anushka run 5f)', () => {
-  it("Anushka's steps: service 1 July 2026, 121 days -> 200 and the one signed finding", async () => {
+  it("Anushka's steps: a recent service date, 121 days typed -> 200 and the one signed finding", async () => {
     const res = await wsUpdate('121');
     expect(res.status).toBe(200);
     expect(res.body.brief.soft_findings).toEqual(FINDING);
@@ -341,7 +350,7 @@ describe('T-690c part 3a: POST /intake/brief/update (Anushka run 5f)', () => {
       kind_name: 'Written statement',
       court_document: true,
       values: [
-        { key: 'summons_service_date', value: '2026-07-01', source: 'user' },
+        { key: 'summons_service_date', value: RECENT, source: 'user' },
         { key: 'days_from_service', value: '121', source: 'user' },
       ],
     });
@@ -388,10 +397,10 @@ describe('T-690c part 3b: POST /intake/brief (keep carries the values)', () => {
       .post('/intake/brief')
       .set(headers)
       .send({
-        description: 'I act for the defendant in a money suit; summons were served on 1 July 2026.',
+        description: 'I act for the defendant in a money suit; summons were served a few days ago.',
         kind: 'written_statement',
         keep: [
-          { key: 'summons_service_date', value: '2026-07-01', source: 'user' },
+          { key: 'summons_service_date', value: RECENT, source: 'user' },
           { key: 'days_from_service', value: days, source: 'user' },
         ],
       });
@@ -435,7 +444,7 @@ describe('T-690c part 3c: POST /generate-from-brief is not blocked by the warnin
   const values = (days: string) => [
     { key: 'plaintiff_name', value: 'Sample Person 2' },
     { key: 'defendant_name', value: 'Sample Person 1' },
-    { key: 'summons_service_date', value: '2026-07-01' },
+    { key: 'summons_service_date', value: RECENT },
     { key: 'days_from_service', value: days },
     { key: 'additional_pleas', value: 'The loan was repaid in full before the suit was filed.' },
   ];
