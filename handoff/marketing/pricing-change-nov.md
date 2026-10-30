@@ -124,3 +124,9 @@ To confirm with Vikram before I draft: top-up packs unchanged (₹65/3, ₹199/1
 3. Ajay re-signs: pricing FAQ, landing 1.6, deck slide 10, ad description 3, T-511 §4.1 plan cards, emails that name 50 Ink.
 4. Dev lead ticket for the web strings (through Priya). Deck and ads updated by me the same day.
 5. One LinkedIn/WhatsApp post from the founder: "Solo now gives 60 Ink a month at the same price." Ajay signs. No "more for free", no comparison with the old plan beyond the number.
+
+## Vikram's answers (30 Oct)
+1. Top-up prices and Ink amounts stay (₹65/3, ₹199/10, ₹499/28) for now. Flag: with a 2-Ink minimum the ₹65/3 pack buys one draft plus one Ink that cannot be used alone. Vikram will recommend ₹65/4 Ink to the founder; HOLD the mini-pack line of copy until the founder answers.
+2. Pro stays ₹1,999 and 150 Ink.
+3. "720" is only the annual total of the yearly Solo plan. This change publishes no yearly copy; Ajay's existing hold on yearly text stands. No yearly text, as today.
+4. Ship date comes from Priya with T-706/T-708 next month, sent to me and Ajay together so the re-sign and the Ads pause land the same day.
