@@ -92,3 +92,5 @@ Branch at 035668ab carries the three merge conditions (tester: full billing suit
 `.env.example`: founder authorised (his chat, 30 Oct) adding `SUPPORT_NOTIFY_EMAIL=contact@lawie.in`. Shashank's developer adds it with Edit; any hook or deny refusal is a stop and the founder adds the line himself.
 
 Path: same developer → fresh tester (full billing, bite on the clamp) → Arjun's reviewer on the delta → Ajay gets the SHA → Priya's slot → merge.
+
+**Correction (08:40 UTC):** ruling 2 above is withdrawn. Shashank pointed out it would breach AJ-646-M10's signed condition ("never more than was added"). The view keeps its cap; a 0-Ink row's confirmed reversal shows in the user's Ink history (ledger `refund_reversal` row), which the tester confirms. No question to Ajay.
