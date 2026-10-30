@@ -1,6 +1,6 @@
 # T-690c: Written statement limitation warning when only the service date is given
 
-Status: ASSIGNED tanvi 30 Oct 2026 (v1.3.0, full chain). Was: backlog (ready; Ajay ruled AJ-690c 8b650c1a). Raised 30 Oct 2026 by Priya from Anushka run 5g on prod v1.2.8 (PASS).
+Status: READY (tanvi, fix/t-690c-warning-from-service-date @ a3f2b994, 30 Oct 2026); waiting on Ajay's byte check. Was: ASSIGNED tanvi 30 Oct 2026 (v1.3.0, full chain). Was: backlog (ready; Ajay ruled AJ-690c 8b650c1a). Raised 30 Oct 2026 by Priya from Anushka run 5g on prod v1.2.8 (PASS).
 
 The 90-day warning (T-690b) fires only on the typed "days from service" figure. If the brief has the service-of-summons date but the days are blank, nothing warns, and the draft carries "[To be confirmed: days from service…]".
 
