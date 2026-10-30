@@ -56,7 +56,7 @@ import type { RulePack, RulePackFact } from './rule-pack.service';
 import { s138BriefDateCheck } from './s138-date-checks';
 import { evaluateShowIf } from './template-engine.service';
 import { humaniseOptionLabel } from './template-promoter';
-import { WS_OVER_90_DAYS_WARNING, wsOver90DaysWarningApplies } from './ws-limitation-warning';
+import { WS_OVER_90_DAYS_WARNING, wsOver90DaysApplies } from './ws-limitation-warning';
 
 // ── Shapes ──────────────────────────────────────────────────────────────────
 
@@ -1911,17 +1911,26 @@ export function buildBrief(input: BuildBriefInput): Brief {
 
 /**
  * T-690c: on a written_statement brief, the signed `ws_over_90_days` warning
- * when the placed days_from_service value (a string; lists are ignored) is over
- * 90. Empty for any other kind, for no kind, and for a missing value.
+ * when the placed days_from_service value is over 90, or (AJ-690c) the placed
+ * summons_service_date is over 90 IST calendar days before today; either one
+ * warns. Only string values are read (lists are ignored). Empty for any other
+ * kind, for no kind, and when neither qualifies. The days worked out from the
+ * date are for this check only: no item, ledger fact or draft text gets them.
  */
 function wsBriefSoftFindings(
   kindId: string | null,
   items: BriefItem[],
 ): Array<{ rule_id: string; text: string }> {
   if (kindId !== 'written_statement') return [];
-  const value = items.find((i) => i.key === 'days_from_service')?.value;
-  if (typeof value !== 'string') return [];
-  if (!wsOver90DaysWarningApplies('written_statement', { days_from_service: value })) return [];
+  const stringValue = (key: string): string | undefined => {
+    const value = items.find((i) => i.key === key)?.value;
+    return typeof value === 'string' ? value : undefined;
+  };
+  const facts = {
+    days_from_service: stringValue('days_from_service'),
+    summons_service_date: stringValue('summons_service_date'),
+  };
+  if (!wsOver90DaysApplies('written_statement', facts)) return [];
   return [{ rule_id: 'ws_over_90_days', text: WS_OVER_90_DAYS_WARNING }];
 }
 
