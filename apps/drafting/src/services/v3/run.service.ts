@@ -49,6 +49,10 @@ import { isStepId, parseStepId, stepPolicy, type StepId } from './stages';
 
 /** Answers §5: a lease is 60 s from when it is taken or renewed. */
 export const V3_RUN_LEASE_MS = 60_000;
+/** §14.2 (i): the reason code of a step failed on the provider's side; it never counts as a re-run. */
+export const PROVIDER_FAILED_REASON = 'provider_failed';
+/** §14.2 (ii): how long a `retry_exhausted` step stays exhausted. */
+export const RETRY_EXHAUSTED_TTL_MS = 15 * 60 * 1000;
 /** Answers §7 / ADR §4 (Vikram, signed): the code default of ai.cost_cap_paise_per_ink. */
 export const COST_CAP_PAISE_PER_INK_DEFAULT = 900;
 /** An upper bound on a configured per-Ink cap (₹10,000), so a typo cannot lift the cap off. */
@@ -150,8 +154,9 @@ export interface V3RunSnapshot {
   capPaise?: number;
   capBasePaise: number;
   inkQuoted?: number;
-  extractorCalls: number;
-  extractorDegraded: boolean;
+  /** §14.1: unset in T-685 (no copy from the Extractor's in-memory state). */
+  extractorCalls?: number;
+  extractorDegraded?: boolean;
   round: number;
   status: V3RunStatus;
   settled: boolean;
@@ -507,8 +512,9 @@ export async function startAttempt(
 /**
  * Clear every generate step output (everything but the intake turns), so no
  * step replays: the confirmed input changed (a new ledger version or other
- * values) under the same runId. The cap, cost and attempts stay (a resume
- * gets no fresh budget).
+ * values) under the same runId. As a new runId (§12.3, §14): the cap is unset
+ * until `fixCap` takes it from the new quote, and `capBasePaise` is the cost
+ * so far (pinned, so a concurrent cost add is a race). Cost and attempts stay.
  */
 export async function resetSteps(
   run: V3RunSnapshot,
@@ -516,10 +522,18 @@ export async function resetSteps(
   now: Date = new Date(),
 ): Promise<V3RunSnapshot> {
   const keys = generateOutputKeys(run);
-  if (keys.length === 0) return run;
+  if (keys.length === 0 && run.capPaise === undefined) return run;
   const $unset: Record<string, ''> = {};
   for (const k of keys) $unset[`outputs.${k}`] = '';
-  const next = await guardedWrite(run, owner, { $set: { round: 0 }, $unset }, {}, now);
+  $unset.capPaise = '';
+  $unset.inkQuoted = '';
+  const next = await guardedWrite(
+    run,
+    owner,
+    { $set: { round: 0, capBasePaise: run.costPaiseSoFar }, $unset },
+    { costPaiseSoFar: run.costPaiseSoFar },
+    now,
+  );
   logger.info({ runDocId: run.id, steps: keys.length }, 'T-685: v3 run steps reset');
   return next;
 }
@@ -626,7 +640,7 @@ export async function getExtractorCalls(
   userId: string,
 ): Promise<{ calls: number; degraded: boolean } | null> {
   const run = await findRun(intakeId, userId);
-  return run ? { calls: run.extractorCalls, degraded: run.extractorDegraded } : null;
+  return run ? { calls: run.extractorCalls ?? 0, degraded: run.extractorDegraded === true } : null;
 }
 
 /**
@@ -647,7 +661,7 @@ export async function recordExtractorCall(
     opts.degraded === true ? { extractorDegraded: true } : {},
     now,
   );
-  return run ? { calls: run.extractorCalls, degraded: run.extractorDegraded } : null;
+  return run ? { calls: run.extractorCalls ?? 0, degraded: run.extractorDegraded === true } : null;
 }
 
 // ── Status ──────────────────────────────────────────────────────────────────
@@ -860,12 +874,35 @@ export async function beginStep(
   }
 
   // failed
+  // §14.2 (i): a provider-side failure (429, 529, 5xx, timeout, reset) never
+  // counts toward the re-runs: the step runs again with its counters as they were.
+  if (existing.reason === PROVIDER_FAILED_REASON) {
+    return {
+      action: 'run',
+      run: await start({ reruns: existing.reruns, retries: existing.retries }, existing.ref),
+      rerun: false,
+      previous: existing,
+    };
+  }
   if (sameAttempt(existing, attempt)) return failSafe('failed_terminal');
   if (policy === 'per_attempt') {
     return {
       action: 'run',
       run: await start({ reruns: 0, retries: 0 }),
       rerun: false,
+      previous: existing,
+    };
+  }
+  // §14.2 (ii): retry_exhausted expires 15 min after it was set; then one more re-run.
+  if (
+    existing.reason === 'retry_exhausted' &&
+    existing.endedAt !== undefined &&
+    now.getTime() - new Date(existing.endedAt).getTime() >= RETRY_EXHAUSTED_TTL_MS
+  ) {
+    return {
+      action: 'run',
+      run: await start({ reruns: existing.reruns, retries: existing.retries }, existing.ref),
+      rerun: true,
       previous: existing,
     };
   }

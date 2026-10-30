@@ -138,8 +138,9 @@ export interface IV3Run extends Document {
   /** costPaiseSoFar when capPaise was fixed: cost before the hold does not count against the cap. */
   capBasePaise: number;
   inkQuoted?: number;
-  extractorCalls: number;
-  extractorDegraded: boolean;
+  /** §14.1: optional and unset in T-685 (the Extractor's counts are not copied). */
+  extractorCalls?: number;
+  extractorDegraded?: boolean;
   /** The current repair round (0 = none). */
   round: number;
   status: V3RunStatus;
@@ -225,8 +226,8 @@ const V3RunSchema = new Schema<IV3Run>(
     capPaise: { type: Number, min: 0 },
     capBasePaise: { type: Number, required: true, min: 0, default: 0 },
     inkQuoted: { type: Number, min: 1 },
-    extractorCalls: { type: Number, required: true, min: 0, default: 0 },
-    extractorDegraded: { type: Boolean, required: true, default: false },
+    extractorCalls: { type: Number, min: 0 },
+    extractorDegraded: { type: Boolean },
     round: { type: Number, required: true, min: 0, default: 0 },
     status: { type: String, enum: V3_RUN_STATUSES, required: true, default: 'intake' },
     settled: { type: Boolean, required: true, default: false },

@@ -2389,8 +2389,11 @@ export interface RunHooks {
     step: StepId,
     projected: { inputTokens: number; maxOutputTokens: number; model: string },
   ): Promise<StepReplay | undefined>;
-  /** After a live model call: its usage and the output text; no text when the call failed. */
-  after(step: StepId, usage: CallUsage, output?: string): Promise<void>;
+  /**
+   * After a live model call: its usage and the output text. A failed call has
+   * no text and carries its classified error code (the same code the stream sends).
+   */
+  after(step: StepId, usage: CallUsage, output?: string, failure?: { code: string }): Promise<void>;
   stage(stage: V3StageName, round?: number): void;
 }
 
@@ -2768,7 +2771,9 @@ export async function streamGenerateFromBrief(
       if (llmErr instanceof GenerationFailedError) throw llmErr;
       if (!replay) recordCall('body', draft, raw);
       if (hooks && !replay && !draftAccounted) {
-        await hooks.after('draft', callUsageOf('body', draft, raw));
+        await hooks.after('draft', callUsageOf('body', draft, raw), undefined, {
+          code: classifyLlmError(llmErr).code,
+        });
       }
       const classified = classifyLlmError(llmErr);
       if (process.env.NODE_ENV !== 'test') {
@@ -2866,7 +2871,9 @@ export async function streamGenerateFromBrief(
         // A failed repair never fails the draft. Its tokens are still counted.
         if (!repairReplay) recordCall('repair', repairDraft, repairRaw);
         if (hooks && !repairReplay && !repairAccounted) {
-          await hooks.after('repair.1', callUsageOf('repair', repairDraft, repairRaw));
+          await hooks.after('repair.1', callUsageOf('repair', repairDraft, repairRaw), undefined, {
+            code: classifyLlmError(repairErr).code,
+          });
         }
         if (process.env.NODE_ENV !== 'test') {
           console.error(
@@ -2957,7 +2964,9 @@ export async function streamGenerateFromBrief(
         // A failed repair never fails the draft: the placeholders follow. Its tokens are counted.
         if (!factReplay) recordCall('fact_repair', factDraft, factRaw);
         if (hooks && !factReplay && !factAccounted) {
-          await hooks.after(step, callUsageOf('fact_repair', factDraft, factRaw));
+          await hooks.after(step, callUsageOf('fact_repair', factDraft, factRaw), undefined, {
+            code: classifyLlmError(factErr).code,
+          });
         }
         if (process.env.NODE_ENV !== 'test') {
           console.error(
@@ -3737,7 +3746,9 @@ async function d1GenerateFromBrief(c: D1Context): Promise<BriefGenerateResult> {
       if (llmErr instanceof GenerationFailedError) throw llmErr;
       if (!replay) c.recordCall(sectionId, draft, '');
       if (c.hooks && !replay && !accounted) {
-        await c.hooks.after('draft', callUsageOf(sectionId, draft, ''));
+        await c.hooks.after('draft', callUsageOf(sectionId, draft, ''), undefined, {
+          code: classifyLlmError(llmErr).code,
+        });
       }
       throw failed(llmErr);
     }

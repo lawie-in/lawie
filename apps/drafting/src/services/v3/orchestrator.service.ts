@@ -41,11 +41,13 @@ import {
   streamGenerateFromBrief,
   writeSseError,
 } from '../ai.service';
+import { listAppSettings } from '../app-settings.service';
 import { INK_HOLD_MAX_HEARTBEAT_MS, releaseInk } from '../credits.service';
 import {
   type CallUsage,
   getModelRates,
   getUsdInrRate,
+  type ModelRate,
   priceUsage,
   type UsageTotals,
 } from '../llm-usage';
@@ -109,20 +111,41 @@ export function emitStage(res: Response, runId: string, stage: V3StageName, roun
 
 // ── Cost ────────────────────────────────────────────────────────────────────
 
-/** The paise of a call's tokens on `model`. 0 when the model has no rate (logged, key only). */
-async function pricePaise(
-  model: string | undefined,
-  usage: Pick<CallUsage, 'inputTokens' | 'outputTokens'> &
-    Partial<Pick<CallUsage, 'cacheCreationInputTokens' | 'cacheReadInputTokens'>>,
-): Promise<number> {
-  if (!model) return 0;
-  const rates = await getModelRates(model);
-  if (rates.costStatus !== 'priced') {
-    logger.warn({ model }, 'T-685: no rate for the model; the call is priced 0');
-    return 0;
+/** The provider-side codes of classifyLlmError (429, 529/5xx, timeout/reset): §14.2 (i). */
+const PROVIDER_CODES: ReadonlySet<string> = new Set([
+  'rate_limited',
+  'provider_unavailable',
+  'network',
+]);
+
+const RATES_PREFIX = 'ai.rates.';
+
+/**
+ * §14.4: the highest rate in the configured `ai.rates.*` table, field by
+ * field, read through getModelRates (each key's slug is its own slug). Null
+ * when the table has no usable rate: the cap cannot be enforced, so v3 does
+ * not run.
+ */
+async function highestConfiguredRate(): Promise<ModelRate | null> {
+  const keys = (await listAppSettings())
+    .map((s) => s.key)
+    .filter((k) => k.startsWith(RATES_PREFIX) && k.length > RATES_PREFIX.length);
+  const rates: ModelRate[] = [];
+  for (const k of keys) {
+    const r = await getModelRates(k.slice(RATES_PREFIX.length));
+    if (r.costStatus === 'priced') rates.push(r.rate);
   }
-  const usd = priceUsage(usage, rates.rate, model);
-  return usd * (await getUsdInrRate()) * 100;
+  if (rates.length === 0) return null;
+  const max = (f: (r: ModelRate) => number | undefined): number | undefined => {
+    const v = rates.map(f).filter((n): n is number => typeof n === 'number');
+    return v.length > 0 ? Math.max(...v) : undefined;
+  };
+  return {
+    inputUsdPerMTok: max((r) => r.inputUsdPerMTok) as number,
+    outputUsdPerMTok: max((r) => r.outputUsdPerMTok) as number,
+    cacheWriteUsdPerMTok: max((r) => r.cacheWriteUsdPerMTok),
+    cacheReadUsdPerMTok: max((r) => r.cacheReadUsdPerMTok),
+  };
 }
 
 /** A run doc's input fingerprint: the generation input without the attempt's ids. */
@@ -164,6 +187,10 @@ export class V3Generate {
   /** This request's live calls, for a failed Generation row's usage. */
   private readonly calls: CallUsage[] = [];
   private model: string | undefined;
+  /** Steps whose call failed on the provider's side in this request (§14.2 (i)). */
+  private readonly providerFailed = new Set<StepId>();
+  /** One warn per request for a model priced at the fallback rate. */
+  private unpricedWarned = false;
   private sentrySent = false;
   private ended = false;
 
@@ -172,6 +199,8 @@ export class V3Generate {
     private readonly intakeId: string,
     private readonly stage: V3RunStage,
     private readonly ledger: LedgerSnapshot,
+    /** §14.4: the price of a model with no rate of its own: the table's highest. */
+    private readonly fallbackRate: ModelRate,
   ) {}
 
   /** The ledger version the steps run at. */
@@ -207,6 +236,7 @@ export class V3Generate {
     inkCost: number;
   }): Promise<V3OpenResult> {
     this.attempt = { runId: attempt.runId, runSequence: attempt.runSequence };
+    // §14.4: the cap's Ink is the held cost, rounded up, at least 1.
     this.inkQuoted = Math.max(1, Math.ceil(attempt.inkCost));
     try {
       await R.openRun({
@@ -283,7 +313,12 @@ export class V3Generate {
     }
   };
 
-  /** After the hold is closed: the deliver step (ref = the Document) and the run delivered. Never throws. */
+  /**
+   * After the hold is closed: the deliver step (ref = the Document) and the
+   * run delivered. Never throws. `settled` is DERIVED by the route ("doc saved
+   * and not a duplicate", §14.4), not the settle result: withInkHold does not
+   * expose that.
+   */
   async delivered(docId: string | null, settled: boolean): Promise<void> {
     if (!this.run || docId === null) return;
     try {
@@ -381,7 +416,7 @@ export class V3Generate {
   private hooks(): RunHooks {
     return {
       before: (step, projected) => this.before(step, projected),
-      after: (step, usage, output) => this.after(step, usage, output),
+      after: (step, usage, output, failure) => this.after(step, usage, output, failure),
       stage: (stage, round) => {
         if (this.res) emitStage(this.res, this.runId(), stage, round);
       },
@@ -415,7 +450,7 @@ export class V3Generate {
         this.begun.add(step);
       }
     }
-    const paise = await pricePaise(projected.model, {
+    const paise = await this.pricePaise(projected.model, {
       inputTokens: projected.inputTokens,
       outputTokens: projected.maxOutputTokens,
     });
@@ -423,12 +458,19 @@ export class V3Generate {
     return undefined;
   }
 
-  private async after(step: StepId, usage: CallUsage, output?: string): Promise<void> {
+  private async after(
+    step: StepId,
+    usage: CallUsage,
+    output?: string,
+    failure?: { code: string },
+  ): Promise<void> {
     if (output === undefined) {
+      // §14.2 (i): a provider-side failure is not counted as a re-run when the step is closed.
+      if (failure && PROVIDER_CODES.has(failure.code)) this.providerFailed.add(step);
       // A failed (or empty) call: its cost only. Never throws, so the step's own error path runs.
       try {
         this.calls.push(usage);
-        await this.addCost(await pricePaise(this.model, usage));
+        await this.addCost(await this.pricePaise(this.model, usage));
       } catch (err) {
         logger.warn(
           { runDocId: this.run?.id, step },
@@ -438,7 +480,7 @@ export class V3Generate {
       return;
     }
     this.calls.push(usage);
-    const paise = await pricePaise(this.model, usage);
+    const paise = await this.pricePaise(this.model, usage);
     await this.addCost(paise);
     const run = this.current();
     if (this.begun.has(step) && run.outputs[step]?.status === 'running') {
@@ -464,20 +506,53 @@ export class V3Generate {
     if (R.capReached(this.current())) throw await this.capTrip(step);
   }
 
+  /** The paise of a call on `model`: its own rate, else (§14.4) the table's highest, never 0. */
+  private async pricePaise(
+    model: string | undefined,
+    usage: Pick<CallUsage, 'inputTokens' | 'outputTokens'> &
+      Partial<Pick<CallUsage, 'cacheCreationInputTokens' | 'cacheReadInputTokens'>>,
+  ): Promise<number> {
+    const own = model ? await getModelRates(model) : null;
+    let rate: ModelRate;
+    if (own?.costStatus === 'priced') {
+      rate = own.rate;
+    } else {
+      rate = this.fallbackRate;
+      if (!this.unpricedWarned) {
+        this.unpricedWarned = true;
+        logger.warn(
+          { runId: this.runId(), intakeId: this.intakeId, model: model ?? null },
+          'T-685: no rate for the model; priced at the highest configured rate',
+        );
+      }
+    }
+    return priceUsage(usage, rate, model) * (await getUsdInrRate()) * 100;
+  }
+
   private async addCost(paise: number): Promise<void> {
     if (paise <= 0) return;
     const next = await R.addCost(this.intakeId, this.userId, paise);
     if (next) this.run = next;
   }
 
-  /** Steps begun in this request and still running: failed, so a new attempt may retry once (§3). */
+  /**
+   * Steps begun in this request and still running: failed, so a new attempt
+   * may retry once (§3). §14.2 (i): a step whose call failed on the
+   * provider's side (or a run ended by a provider code) is failed as
+   * `provider_failed`, which never counts toward the re-runs.
+   */
   private async closeOpenSteps(reason: string): Promise<void> {
-    const code = /^[a-z0-9_.:-]{1,64}$/.test(reason) ? reason : 'error';
+    const code = PROVIDER_CODES.has(reason)
+      ? R.PROVIDER_FAILED_REASON
+      : /^[a-z0-9_.:-]{1,64}$/.test(reason)
+        ? reason
+        : 'error';
     for (const step of [...this.begun]) {
       try {
         const run = this.current();
         if (run.outputs[step]?.status !== 'running') continue;
-        this.run = await R.failStep(run, this.owner, step, code);
+        const stepCode = this.providerFailed.has(step) ? R.PROVIDER_FAILED_REASON : code;
+        this.run = await R.failStep(run, this.owner, step, stepCode);
       } catch (err) {
         logger.warn(
           { runDocId: this.run?.id, step },
@@ -504,13 +579,16 @@ export class V3Generate {
     }
   }
 
+  /**
+   * The failed Generation row's usage on a cap or fail-safe ending: this
+   * request's own calls, summed here, so `usageSource: 'estimated'` (§14.6).
+   */
   private usageTotals(): UsageTotals {
-    const sources = new Set(this.calls.map((c) => c.usageSource));
     return {
       inputTokens: this.calls.reduce((n, c) => n + c.inputTokens, 0),
       outputTokens: this.calls.reduce((n, c) => n + c.outputTokens, 0),
       llmCalls: this.calls.length,
-      usageSource: sources.size > 1 ? 'mixed' : sources.has('estimated') ? 'estimated' : 'provider',
+      usageSource: 'estimated',
       calls: [...this.calls],
     };
   }
@@ -576,11 +654,13 @@ export class V3Generate {
 }
 
 /**
- * The v3 orchestrator for this generate, or null: stage < 2, or no ledger for
- * the intake (the route then runs as before). The run's ledger store is the
- * one fixed when its run doc was opened, else the one openLedgerForRun finds
- * now (T-682 condition 7). Never throws: an unreadable run or ledger is null
- * (logged, ids only).
+ * The v3 orchestrator for this generate, or null, and then the route runs v2
+ * exactly as before, with no run doc opened and nothing recorded:
+ *  - stage < 2;
+ *  - no v3 ledger for the intake (§14.3), including a run fixed on a v2 store;
+ *  - a ledger of another kind;
+ *  - no usable rate in the ai.rates.* table (§14.4: the cap cannot be enforced);
+ *  - an unreadable run, ledger or table (logged, ids only). Never throws.
  */
 export async function prepareV3Generate(args: {
   userId: string;
@@ -594,8 +674,13 @@ export async function prepareV3Generate(args: {
     const ledger = existing
       ? await openLedger(existing.ledgerId, args.userId)
       : await openLedgerForRun(args.intakeId, args.userId);
-    if (!ledger || ledger.packId !== args.kind) return null;
-    return new V3Generate(args.userId, args.intakeId, stage as V3RunStage, ledger);
+    if (!ledger || ledger.store !== 'v3' || ledger.packId !== args.kind) return null;
+    const fallbackRate = await highestConfiguredRate();
+    if (!fallbackRate) {
+      logger.warn({ intakeId: args.intakeId }, 'T-685: no ai.rates.* rate configured; v2 runs');
+      return null;
+    }
+    return new V3Generate(args.userId, args.intakeId, stage as V3RunStage, ledger, fallbackRate);
   } catch (err) {
     logger.warn(
       { intakeId: args.intakeId },
