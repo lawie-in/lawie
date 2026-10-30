@@ -149,6 +149,8 @@ export function stripCourtesyTail(value: string): string {
   for (;;) {
     const body = rest.replace(TAIL_GAP, '');
     const lower = body.toLowerCase();
+    // The cut below is by length; if lower-casing changed it, strip nothing more.
+    if (lower.length !== body.length) break;
     const word = COURTESY_TAIL.find(
       (w) =>
         lower.endsWith(w) &&

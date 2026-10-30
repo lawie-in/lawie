@@ -344,11 +344,12 @@ export function editsFromV3(
     // bridged value is written; with none, the edit is held (Arjun §10).
     const spec = specs.get(e.key);
     const editText = fold(e.text);
+    // Reviewer round 2: whatever the model returned, an edit that is itself a
+    // non-answer (courtesy tail off, AJ-683-M2) is one; "not known sir" never
+    // goes to v2 as typed.
     const whole =
       result.nonAnswers.some((n) => n.key === e.key && fold(n.quote) === editText) ||
-      (spec !== undefined &&
-        result.nonAnswers.some((n) => n.key === e.key) &&
-        isNonAnswerFor(spec, e.text));
+      (spec !== undefined && isNonAnswerFor(spec, e.text));
     if (whole) {
       nonAnswers += 1;
       out.push({ ...e, text: '' });
