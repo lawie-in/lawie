@@ -267,6 +267,7 @@ function logBodyCall(
   completed: boolean,
   d: CallUsageDraft,
   stopReason: string | null | undefined,
+  startedAt: number,
 ): void {
   logLlmCall({
     stage: 'body',
@@ -279,6 +280,9 @@ function logBodyCall(
     cacheReadInputTokens: d.cacheReadInputTokens,
     cacheCreationInputTokens: d.cacheCreationInputTokens,
     stopReason: stopReason ?? null,
+    startedAt,
+    // T-681a: called when the stream ends or the response is read, on success and failure.
+    durationMs: Date.now() - startedAt,
   });
 }
 
@@ -361,6 +365,7 @@ export async function* streamLLM(
   const seen: CallUsageDraft = usage ?? { inputTokens: 0, outputTokens: 0, usageSource: 'none' };
   let stopReason: string | undefined;
   let completed = false;
+  const startedAt = Date.now();
   try {
     const stream = await directClient.messages.stream({
       model,
@@ -377,7 +382,7 @@ export async function* streamLLM(
     }
     completed = true;
   } finally {
-    logBodyCall('stream', model, effort, completed, seen, stopReason);
+    logBodyCall('stream', model, effort, completed, seen, stopReason, startedAt);
   }
 }
 
@@ -3394,6 +3399,7 @@ async function callD1Drafter(
   const effort = await getAiEffort('body');
   let stopReason: string | null = null;
   let completed = false;
+  const startedAt = Date.now();
   try {
     const message = await directClient.messages.parse({
       model,
@@ -3409,7 +3415,7 @@ async function callD1Drafter(
     completed = true;
     return message.parsed_output ?? null;
   } finally {
-    logBodyCall('d1', model, effort, completed, usage, stopReason);
+    logBodyCall('d1', model, effort, completed, usage, stopReason, startedAt);
   }
 }
 
