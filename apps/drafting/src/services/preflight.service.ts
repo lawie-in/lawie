@@ -694,6 +694,8 @@ async function runLLMChecks(
         model,
         effort: effort ?? null,
         status: 'failed',
+        startedAt,
+        durationMs: Date.now() - startedAt,
       });
       throw callErr;
     }
@@ -710,6 +712,8 @@ async function runLLMChecks(
       cacheReadInputTokens: callUsage.cacheReadInputTokens,
       cacheCreationInputTokens: callUsage.cacheCreationInputTokens,
       stopReason: typeof response?.stop_reason === 'string' ? response.stop_reason : null,
+      startedAt,
+      durationMs,
     });
 
     // T-453: the first text block, not content[0] — Haiku 5.5 thinks by default,
