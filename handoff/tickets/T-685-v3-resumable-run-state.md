@@ -1,6 +1,6 @@
 # T-685 — v3 P1: resumable run state (orchestrator A)
 
-Status: backlog, drafting v3 Phase 1 (ADR handoff/design/ADR-drafting-v3.md, Arjun signed 26 Oct). Behind feature.drafting_v3_stage. Founder re-plan 29 Oct 2026.
+Status: ASSIGNED vishal 30 Oct 2026 (full chain; files after Explore). Was: backlog, drafting v3 Phase 1 (ADR handoff/design/ADR-drafting-v3.md, Arjun signed 26 Oct). Behind feature.drafting_v3_stage. Founder re-plan 29 Oct 2026.
 
 ## Acceptance criteria
 1. A run document: step, ledger version, outputs by step id. Every step is idempotent and persisted.
