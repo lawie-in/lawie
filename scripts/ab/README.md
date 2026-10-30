@@ -73,7 +73,7 @@ Cap: ₹600 at ₹88 per dollar (Vikram).
 - Up front (`--real` only): the run is refused if the typical estimate is over the cap.
 - Up front (`--real` only): the run is refused if one matter's worst case alone is over the cap.
 - Before a matter (`--real` only): stop if spend so far plus that matter's worst case (computed by `estimateAb` in `run-ab.ts`) would pass the cap.
-- After a matter: stop once the running total has passed the cap. The code does not check the mode here, so it applies to a dry run too (a dry run's stub token counts are not billed, and the console says the cap is not applied to a dry run).
+- After a matter: stop once the running total has passed the cap. The cap is enforced after each matter, in dry runs too; the upfront estimate check is skipped in dry runs.
 
 Exit codes: 0 done; 1 a cap stopped the run, or an arm's model, effort or ledger was not as forced; 2 refused; 3 fixture isolation breached; 4 harness error.
 
@@ -107,7 +107,7 @@ This is Arjun's two-strike ruling, recorded in the T-691 ticket.
 2. The runner forwards and never opens anything. `scoring/` goes to Anushka and Ajay; `vikram/` and the console cost lines go to Vikram; the key file goes to Arjun.
 3. The holding rule: nobody holds any two of scoring, costs, key. It binds the recipients until Arjun opens the key after Anushka's and Ajay's scores are in.
    - Someone with both `scoring/` and `vikram/` can match metrics rows to drafts by output length.
-   - The console's per-matter totals together with `vikram/` can group metrics rows into matters by their sum.
+   - Costs never sit with `scoring/` or the key.
 4. Nobody who holds `vikram/` or the console output scores drafts or checks citations.
 5. Order: Anushka scores, and Ajay sends his citation findings, BEFORE Arjun opens the key (Ajay's condition).
 6. A withheld draft counts as withheld and is never re-run.

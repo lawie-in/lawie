@@ -904,7 +904,7 @@ async function main(): Promise<number> {
       `ab: mode ${args.mode === 'real' ? 'REAL MODEL' : 'dry run (stub replies)'}, in-memory database, ${matters.length} matters x ${ARMS.length} arms at effort ${ARM_EFFORT}.`,
     );
     console.log(
-      `ab: estimate typical ${inr(estimate.typicalUsd)}, worst case ${inr(estimate.worstUsd)} (₹${USD_INR}/$); hard cap ₹${BUDGET_INR}${args.mode === 'dry' ? ' (not applied to a dry run)' : ''}; token cap ${args.maxTokens}.`,
+      `ab: estimate typical ${inr(estimate.typicalUsd)}, worst case ${inr(estimate.worstUsd)} (₹${USD_INR}/$); hard cap ₹${BUDGET_INR}${args.mode === 'dry' ? ' (cap enforced after each matter; the upfront estimate check is skipped in dry runs)' : ''}; token cap ${args.maxTokens}.`,
     );
     if (throwaway)
       console.log(
