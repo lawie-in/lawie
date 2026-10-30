@@ -1,12 +1,13 @@
 /**
  * Annexures Pack Generator — SCRUM-65
  *
- * Generates the 7 mandatory court-filing annexures that accompany every drafted document.
+ * Generates the court-filing annexures that accompany a drafted document.
  * Output: single multi-page PDF rendered by Puppeteer (page-break-before on each annexure).
  * Court-rule aware: designation, verification language, and party labels read from
  * the court_rules JSON that matches the document's court_id field in form_data.
  *
- * Annexures, in this order:
+ * T-700 (AJ-700, AJ-700a): the set depends on the pack (annexureSetFor).
+ * Criminal packs (isCriminalCategory, plus writ_petition_criminal), in this order:
  *   Memo of Parties
  *   Synopsis (HC practice) — only where annexureBApplies (T-689c, AJ-689c-a;
  *     never for a respondent-side client, AJ-689c-b)
@@ -15,7 +16,14 @@
  *   Vakalatnama
  *   Court Fee Paid Statement
  *   Affidavit on Separate Sheet with Notary Block (absorbs SCRUM-66)
- * Lettered from A in order with no gap: A to G with the Synopsis, A to F without.
+ * Civil pleadings (written_statement, replication, plaint_*): Memo of Parties,
+ *   [Synopsis], List of Dates, Index, the pack's own Verification (if any).
+ * O.39 application: Memo of Parties, [Synopsis], [List of Dates, only with
+ *   dates], Index, Affidavit in support.
+ * Counter / rejoinder affidavits and every other civil pack: Memo of Parties,
+ *   [Synopsis], Index. On civil packs the Vakalatnama and court fee are Index
+ *   rows only.
+ * Lettered from A in order with no gap.
  *
  * Arjun (CTO) reviewer: architecture. Ajay (CLO) reviewer: legal correctness.
  */
@@ -35,9 +43,10 @@ import {
   storesState,
 } from './brief-party-fields';
 import { GUIDED_PACK_ID } from './doc-type-label';
+import { isCourtDocument } from './intake-brief';
 import { renderPdf } from './pdf-export.service';
 import { policeStationName } from './police-station-name';
-import { RULE_PACKS_DIR } from './rule-pack.service';
+import { loadRulePack, RULE_PACKS_DIR, RulePack } from './rule-pack.service';
 import {
   chosenCourtHeading,
   CourtLookupData,
@@ -45,6 +54,7 @@ import {
   declaredFieldIds,
   formatDraftDate,
   formatIsoDraftDate,
+  isCriminalCategory,
   loadTemplateConfig,
   MatterTypeOverride,
   normaliseRelation,
@@ -369,12 +379,77 @@ function stateName(value: unknown): unknown {
 
 // ── Annexure A — Memo of Parties ──────────────────────────────────────────────
 
+/** One row of the Memo of Parties, each part already escaped. */
+interface MemoRow {
+  label: string;
+  name: string;
+  /** Printed right after the name (the client's details, the State line). */
+  extra: string;
+}
+
+/** T-700: how the Memo of Parties is built for the pack's set. */
+interface MemoOptions {
+  /** Civil pleadings and O.39 (civilMemoRows): these rows instead of the two below. */
+  rows?: MemoRow[];
+  /** AJ-700a (2): writ_petition_criminal's party is the Petitioner, never the Applicant. */
+  petitionerRole?: boolean;
+  /** AJ-700 (3): another civil pack's own roles (its cause title), after the signed labels. */
+  packLabels?: readonly [string, string] | null;
+}
+
+/** The client's age, relation and address lines, as the Memo has always printed them. */
+function memoClientDetails(age: string, relation: string, addr: string): string {
+  return `<br>
+        ${age !== '___________' ? `Age: ${age} years<br>` : ''}
+        ${relation}<br>
+        ${addr !== '___________' ? addr : '___________'}`;
+}
+
 function annexureMemoOfParties(
   formData: Record<string, unknown>,
   rules: CourtRules,
   pageBreak: boolean,
   label: string,
+  options: MemoOptions = {},
 ): string {
+  const advocateName = safeEsc(formData.advocate_name);
+  const courtDesig = esc(rules.designation);
+  const rows = options.rows ?? twoPartyMemoRows(formData, rules, options);
+
+  return `
+<div class="${pageBreak ? 'page-break' : ''}">
+  <div class="annexure-label">${label}</div>
+  <h2>Memo of Parties</h2>
+  <p style="text-align:center">${courtDesig}</p>
+  <br>
+  <table>
+    <tr><th style="width:30%">Role</th><th>Name, Address &amp; Description</th></tr>${rows
+      .map(
+        (r) => `
+    <tr>
+      <td>${r.label}</td>
+      <td>
+        <strong>${r.name}</strong>${r.extra}
+      </td>
+    </tr>`,
+      )
+      .join('')}
+  </table>
+  <div class="sig-block">
+    <p>Through Advocate:</p>
+    <p><strong>${advocateName !== '___________' ? advocateName : '[Advocate Name]'}</strong></p>
+    <p>Bar Enrolment No.: ${safeEsc(formData.enrollment_number)}</p>
+  </div>
+  <div class="disclaimer">Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice.</div>
+</div>`;
+}
+
+/** The Memo's two rows (client side, opposite side) as before T-700. */
+function twoPartyMemoRows(
+  formData: Record<string, unknown>,
+  rules: CourtRules,
+  options: MemoOptions,
+): MemoRow[] {
   // T-424 (Addendum 5): each party under its own role; the client's details
   // only on the client's row.
   const side = clientSideOf(formData);
@@ -385,37 +460,38 @@ function annexureMemoOfParties(
   const templateId = String(formData.template_id ?? formData.doc_type ?? '').trim();
   const stateIsCounterpart = storesState(templateId);
   const state = safeEsc(stateName(firstNonBlank(formData.state, formData.jurisdiction)));
-  const advocateName = safeEsc(formData.advocate_name);
   const applicantAddr = safeEsc(applicantAddressOf(formData));
   const applicantAge = safeEsc(applicantAgeOf(formData));
   const applicantRelation = relationOf(formData);
-  const courtDesig = esc(rules.designation);
 
   // T-149: a signed document type uses the signed labels; others as before.
   const signed = signedPartyLabels(rules, String(formData.template_id ?? formData.doc_type ?? ''));
+  // T-700 (AJ-700 (3)): another civil pack's own roles, after the signed labels.
+  const packLabels = options.packLabels ?? null;
   // T-424 (Ajay, ad5aeb3): on a sided pack the labels are always exactly
   // "Petitioner" and "Respondent", whatever the court rule or signed label says.
-  const applicantLabel = side
-    ? 'Petitioner'
-    : esc(
-        signed?.petitioner ??
-          rules.party_designation.applicant ??
-          rules.party_designation.petitioner ??
-          'Applicant',
-      );
+  // T-700 (AJ-700a (2)): writ_petition_criminal's party is the Petitioner.
+  const applicantLabel =
+    side || options.petitionerRole
+      ? 'Petitioner'
+      : esc(
+          signed?.petitioner ??
+            packLabels?.[0] ??
+            rules.party_designation.applicant ??
+            rules.party_designation.petitioner ??
+            'Applicant',
+        );
   const respondentLabel = side
     ? 'Respondent'
     : esc(
         signed?.respondent ??
+          packLabels?.[1] ??
           rules.party_designation.respondent ??
           rules.party_designation.opposite_party ??
           'Respondent',
       );
 
-  const clientDetails = (age: string, relation: string, addr: string): string => `<br>
-        ${age !== '___________' ? `Age: ${age} years<br>` : ''}
-        ${relation}<br>
-        ${addr !== '___________' ? addr : '___________'}`;
+  const clientDetails = memoClientDetails;
   const deponentDetails = side
     ? clientDetails(
         safeEsc(formData.deponent_age),
@@ -429,40 +505,189 @@ function annexureMemoOfParties(
       : ''
     : clientDetails(applicantAge, applicantRelation, applicantAddr);
   const secondRowDetails = side === 'respondent' ? deponentDetails : '';
-
-  return `
-<div class="${pageBreak ? 'page-break' : ''}">
-  <div class="annexure-label">${label}</div>
-  <h2>Memo of Parties</h2>
-  <p style="text-align:center">${courtDesig}</p>
-  <br>
-  <table>
-    <tr><th style="width:30%">Role</th><th>Name, Address &amp; Description</th></tr>
-    <tr>
-      <td>${applicantLabel}</td>
-      <td>
-        <strong>${applicant}</strong>${firstRowDetails}
-      </td>
-    </tr>
-    <tr>
-      <td>${respondentLabel}</td>
-      <td>
-        <strong>${respondent}</strong>${secondRowDetails}${
-          stateIsCounterpart
-            ? `<br>
+  const stateLine = stateIsCounterpart
+    ? `<br>
         ${state !== '___________' ? `State of ${state}, through the concerned authority` : '___________'}`
-            : ''
-        }
-      </td>
-    </tr>
-  </table>
-  <div class="sig-block">
-    <p>Through Advocate:</p>
-    <p><strong>${advocateName !== '___________' ? advocateName : '[Advocate Name]'}</strong></p>
-    <p>Bar Enrolment No.: ${safeEsc(formData.enrollment_number)}</p>
-  </div>
-  <div class="disclaimer">Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice.</div>
-</div>`;
+    : '';
+
+  return [
+    { label: applicantLabel, name: applicant, extra: firstRowDetails },
+    { label: respondentLabel, name: respondent, extra: `${secondRowDetails}${stateLine}` },
+  ];
+}
+
+/** T-700, AJ-700a (3): the placeholder for a side with no name. */
+export function civilPartyPlaceholder(side: 'Plaintiff' | 'Defendant'): string {
+  return `[To be confirmed: name of the ${side}]`;
+}
+
+/**
+ * The several names one party field holds (a list value with more than one
+ * name), each exactly as given; null when it holds one name or none.
+ */
+function severalNames(value: unknown): string[] | null {
+  if (!Array.isArray(value) || value.length < 2) return null;
+  return value.map((v) => (typeof v === 'string' ? v.trim() : ''));
+}
+
+/**
+ * T-700 (AJ-700 (1), (3); AJ-700a (3)): the Memo rows of a civil pleading or
+ * the O.39 application, plaintiff side first, each party in the pack's own
+ * role (`labels`, from its cause title). The client's details print on the
+ * client's row only. Where the pack's signed row has no field for the
+ * opposite party (counterpart NONE: written_statement, replication,
+ * plaint_partition), it prints civilPartyPlaceholder. Several names on a side
+ * print as "Plaintiff No. 1", "Defendant No. 1", ..., each as given, and a
+ * party with no name gets the placeholder. The cause title is not touched.
+ */
+function civilMemoRows(
+  formData: Record<string, unknown>,
+  partyValues: Record<string, unknown> | undefined,
+  packId: string,
+  labels: readonly [string, string],
+  clientSide: CaseSide | null,
+): MemoRow[] {
+  const row = rowFor(packId);
+  const flat = flattenPartyValues(partyValues ?? formData);
+  const clientIsDefendant = clientSide === 'respondent';
+  const clientDetails = memoClientDetails(
+    safeEsc(applicantAgeOf(formData)),
+    relationOf(formData),
+    safeEsc(applicantAddressOf(formData)),
+  );
+
+  const clientNames = (row?.client ? severalNames(flat[row.client]) : null) ?? [
+    str(applicantNameOf(formData), ''),
+  ];
+  const counterpartNames: string[] =
+    row?.counterpart.kind === 'none'
+      ? ['']
+      : ((row?.counterpart.kind === 'field' && row.counterpart.fields.length === 1
+          ? severalNames(flat[row.counterpart.fields[0]])
+          : null) ?? [str(respondentNameOf(formData), '')]);
+
+  const sideRows = (
+    names: string[],
+    role: 'Plaintiff' | 'Defendant',
+    singleLabel: string,
+    extra: string,
+  ): MemoRow[] =>
+    names.map((name, i) => ({
+      label: esc(names.length > 1 ? `${role} No. ${i + 1}` : singleLabel),
+      name: esc(name.trim() !== '' ? name : civilPartyPlaceholder(role)),
+      extra,
+    }));
+
+  const plaintiffRows = clientIsDefendant
+    ? sideRows(counterpartNames, 'Plaintiff', labels[0], '')
+    : sideRows(clientNames, 'Plaintiff', labels[0], clientDetails);
+  const defendantRows = clientIsDefendant
+    ? sideRows(clientNames, 'Defendant', labels[1], clientDetails)
+    : sideRows(counterpartNames, 'Defendant', labels[1], '');
+  return [...plaintiffRows, ...defendantRows];
+}
+
+// ── T-700 / T-689d: the court type and the pack's annexure set ────────────────
+
+/** A string with something other than spaces in it, as given; else undefined. */
+function nonBlankString(v: unknown): string | undefined {
+  return typeof v === 'string' && v.trim() !== '' ? v : undefined;
+}
+
+/**
+ * T-689d, AJ-700a (4): the one court type every annexure uses (the Synopsis
+ * gate and the court-fee annexure alike): the first non-blank string of the
+ * chosen court's lookup type, the form's `court_type`, the stored
+ * `doc.courtType`, then the court rule's `courtType`. Each as given, never
+ * trimmed or mapped. Undefined when none is given. Pure.
+ */
+export function annexureCourtType(input: {
+  courtData?: Pick<CourtLookupData, 'courtType'> | null;
+  formCourtType?: unknown;
+  docCourtType?: unknown;
+  rulesCourtType?: unknown;
+}): string | undefined {
+  return (
+    nonBlankString(input.courtData?.courtType) ??
+    nonBlankString(input.formCourtType) ??
+    nonBlankString(input.docCourtType) ??
+    nonBlankString(input.rulesCourtType)
+  );
+}
+
+/**
+ * T-700 (AJ-700, AJ-700a): the annexure sets.
+ *   criminal     the criminal set (AJ-700 rule 0), unchanged
+ *   pleading     written_statement, replication, plaint_* (AJ-700 (1))
+ *   o39          temporary_injunction_o39 (AJ-700 (3))
+ *   sided        counter_affidavit, rejoinder_affidavit (AJ-700 (3))
+ *   civil_other  every other pack, a guided brief and no pack: Memo + Index
+ */
+export type AnnexureSet = 'criminal' | 'pleading' | 'o39' | 'sided' | 'civil_other';
+
+/** AJ-700a (2): criminal by subject matter though its category is `writ`; party: Petitioner. */
+const CRIMINAL_BY_ID: ReadonlySet<string> = new Set(['writ_petition_criminal']);
+
+/** AJ-700 (3): the affidavits that get no separate affidavit. */
+const SIDED_SET_IDS: ReadonlySet<string> = new Set(['counter_affidavit', 'rejoinder_affidavit']);
+
+const O39_PACK_ID = 'temporary_injunction_o39';
+
+/** AJ-700 (1): the civil pleadings. */
+function isPleadingId(id: string): boolean {
+  return id === 'written_statement' || id === 'replication' || id.startsWith('plaint_');
+}
+
+/** The rule pack, or null when there is none or it cannot be read. */
+function packOf(id: string): RulePack | null {
+  try {
+    return loadRulePack(id);
+  } catch {
+    return null;
+  }
+}
+
+/** The pack's `category` (rule pack, else template config); null when neither says. */
+function packCategory(id: string): string | null {
+  const pack = packOf(id);
+  if (pack) return pack.category;
+  try {
+    return loadTemplateConfig(id)?.category ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * T-700 (AJ-700 rule 0, AJ-700a (2)): the annexure set a pack gets. Criminal:
+ * the T-566 isCriminalCategory test on the pack's category, plus
+ * writ_petition_criminal by id. Every other pack is civil, by kind.
+ */
+export function annexureSetFor(packId: string | null | undefined): AnnexureSet {
+  const id = typeof packId === 'string' ? packId.trim() : '';
+  if (id === '') return 'civil_other';
+  if (CRIMINAL_BY_ID.has(id) || isCriminalCategory(packCategory(id))) return 'criminal';
+  if (isPleadingId(id)) return 'pleading';
+  if (id === O39_PACK_ID) return 'o39';
+  if (SIDED_SET_IDS.has(id)) return 'sided';
+  return 'civil_other';
+}
+
+/** The pack's first two cause-title roles (its own party labels), or null. */
+function packPartyLabels(pack: RulePack | null): readonly [string, string] | null {
+  const d = pack?.causeTitle?.partyDesignations ?? [];
+  return d.length >= 2 ? [d[0].label, d[1].label] : null;
+}
+
+/**
+ * T-700 (AJ-700 (1)): the rule the Index's list of documents relied on cites:
+ * Order VIII Rule 1A CPC for a written statement, Order VII Rule 14 CPC for a
+ * plaint; null for any other pack (replication included: not ruled).
+ */
+function documentsRuleOf(id: string): string | null {
+  if (id === 'written_statement') return 'Order VIII Rule 1A CPC';
+  if (id.startsWith('plaint_')) return 'Order VII Rule 14 CPC';
+  return null;
 }
 
 // ── Synopsis (Annexure B when attached) ───────────────────────────────────────
@@ -626,12 +851,14 @@ function annexureSynopsis(
   rules: CourtRules,
   label: string,
   nature: string,
+  petitionerRole = false,
 ): string {
   // T-424 (Ajay, 14 Oct): on a sided pack the party line is "Petitioner:" and
   // names the petitioner.
   const sided = clientSideOf(formData) !== null;
   const applicant = safeEsc(sided ? formData.petitioner_name : applicantNameOf(formData));
-  const partyLabel = sided ? 'Petitioner' : 'Applicant/Petitioner';
+  // T-700 (AJ-700a (2)): writ_petition_criminal's party is the Petitioner.
+  const partyLabel = sided || petitionerRole ? 'Petitioner' : 'Applicant/Petitioner';
   const courtDesig = esc(rules.designation);
   const sections = str(formData.sections_charged ?? formData.bns_sections ?? formData.sections, '');
   const firNo = safeEsc(formData.fir_number ?? formData.fir_no ?? formData.complaint_number);
@@ -703,6 +930,67 @@ function annexureListOfDates(formData: Record<string, unknown>, label: string): 
 </div>`;
 }
 
+/** T-700 (AJ-700a (7)): one date of the brief, with the brief's own label. */
+export interface AnnexureBriefDate {
+  /** What the date is, as the brief labels it. */
+  date_of: string;
+  /** The date as the brief holds it. */
+  date: string;
+}
+
+/** One List of Dates row: the date as given, and its label, both unescaped. */
+type DateRow = readonly [date: string, event: string];
+
+/** A date answered "Not known", or blank: never listed (AJ-700a (7)). */
+function isListedDate(v: unknown): v is string {
+  return typeof v === 'string' && v.trim() !== '' && !/^not known$/i.test(v.trim());
+}
+
+/** AJ-700a (7), brief path: the brief's dates with their labels, in the brief's order. */
+function briefDateRows(dates: readonly AnnexureBriefDate[]): DateRow[] {
+  return dates.filter((d) => isListedDate(d.date)).map((d) => [d.date, d.date_of] as const);
+}
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * AJ-700a (7), template path: the pack's filled date-type form fields, each
+ * with its signed form label, in date order (ISO dates by date; any other
+ * value after them, in form order). Nothing is computed.
+ */
+function formDateRows(pack: RulePack | null, formData: Record<string, unknown>): DateRow[] {
+  const rows = (pack?.facts ?? [])
+    .filter((f) => f.type === 'date')
+    .map((f) => ({ value: formData[f.key] ?? formData[f.name], label: f.label }))
+    .filter((r): r is { value: string; label: string } => isListedDate(r.value))
+    .map((r) => ({ value: r.value.trim(), label: r.label }));
+  const iso = rows.filter((r) => ISO_DATE.test(r.value));
+  const other = rows.filter((r) => !ISO_DATE.test(r.value));
+  iso.sort((a, b) => (a.value < b.value ? -1 : a.value > b.value ? 1 : 0));
+  return [...iso, ...other].map((r) => [r.value, r.label] as const);
+}
+
+/**
+ * T-700 (AJ-700 (1), AJ-700a (7)): the civil List of Dates: only the given
+ * dates, with no FIR, arrest or filing line; none given, only the "advocate to
+ * add" row.
+ */
+function annexureCivilListOfDates(rows: readonly DateRow[], label: string): string {
+  return `
+<div class="page-break">
+  <div class="annexure-label">${label}</div>
+  <h2>List of Dates and Chronology of Events</h2>
+  <br>
+  <table>
+    <tr><th style="width:28%">Date</th><th>Event</th></tr>${rows
+      .map(([d, e]) => `\n    <tr><td>${safeDateEsc(d)}</td><td>${esc(e)}</td></tr>`)
+      .join('')}
+    <tr><td colspan="2"><em>[Advocate to add further dates as appropriate before filing.]</em></td></tr>
+  </table>
+  <div class="disclaimer">Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice.</div>
+</div>`;
+}
+
 // ── Index of Documents ───────────────────────────────────────────────────────
 
 /** T-689c: the annexures the builder can attach, in pack order. */
@@ -713,7 +1001,8 @@ type AnnexureKind =
   | 'index'
   | 'vakalatnama'
   | 'court_fee'
-  | 'affidavit';
+  | 'affidavit'
+  | 'verification';
 
 /** T-689c: one attached annexure and the letter it is printed under. */
 interface AttachedAnnexure {
@@ -723,23 +1012,49 @@ interface AttachedAnnexure {
 
 /**
  * T-689c, AJ-689c-a (4): the n-th annexure's letter, from A with no gap
- * (0 -> "A"). The pack has at most 7 attached annexures and 3 index rows
- * after them, so it never runs past "J".
+ * (0 -> "A"). A pack has at most 7 attached annexures (the criminal set) and
+ * 3 lettered index rows after them, so it never runs past "J".
  */
 function annexureLetter(n: number): string {
   return String.fromCharCode('A'.charCodeAt(0) + n);
 }
+
+/** T-700: what the Index lists besides the attached annexures. */
+interface IndexOptions {
+  set: AnnexureSet;
+  /** AJ-700 (2): the "Nature of matter" first line, unescaped; null: none. */
+  nature: string | null;
+  /** AJ-700a (2): writ_petition_criminal's party is the Petitioner. */
+  petitionerRole: boolean;
+  /** AJ-700 (1): a pleading's own row (its nature of matter), unescaped. */
+  pleading?: string;
+  /** AJ-700 (1): the rule the list of documents relied on cites (documentsRuleOf). */
+  documentsRule?: string | null;
+  /** AJ-700a (1): the "Court fee" row, where payable. */
+  courtFee: boolean;
+}
+
+/** The Reference column of an index row that is neither attached nor lettered. */
+const INDEX_REFERENCE_BLANK = '___________';
 
 /**
  * The index annexure. T-689c, AJ-689c-a (4): built from the same list of
  * attached annexures as the pack, so its letters and serial numbers always
  * match what is attached; the advocate's further annexures follow on from the
  * last attached letter.
+ * T-700: the criminal set keeps its FIR and identity rows. A civil pleading
+ * lists the pleading first, then the attached annexures, its list of documents
+ * relied on (AJ-700 (1)), the documents the advocate annexes, the Vakalatnama
+ * and, where payable, the court fee (AJ-700a (1)). Every other civil pack lists
+ * the attached annexures, any other document relied upon, the Vakalatnama and,
+ * where payable, the court fee. "Nature of matter" is the first line on every
+ * court document (AJ-700 (2)).
  */
 function annexureIndexOfDocuments(
   formData: Record<string, unknown>,
   label: string,
   attached: readonly AttachedAnnexure[],
+  options: IndexOptions,
 ): string {
   const firNo = safeEsc(formData.fir_number ?? formData.fir_no ?? formData.complaint_number);
   // T-424: "Affidavit of" the deponent, who is the client on a sided pack.
@@ -753,32 +1068,69 @@ function annexureIndexOfDocuments(
     vakalatnama: 'Vakalatnama',
     court_fee: 'Court Fee Paid Statement',
     affidavit: 'Affidavit of ' + applicant,
+    verification: 'Verification',
   };
-  const rows: Array<[string, string]> = attached.map(({ kind, letter }) => [
+  const attachedRows: Array<[string, string]> = attached.map(({ kind, letter }) => [
     documentOf[kind],
     kind === 'index' ? `Annexure ${letter} (this document)` : `Annexure ${letter}`,
   ]);
   const next = (k: number): string => annexureLetter(attached.length + k);
-  rows.push(
-    [
-      firNo !== '___________'
-        ? `Copy of FIR No. ${firNo}`
-        : 'Copy of FIR / Complaint (if available)',
-      `Annexure ${next(0)} (to be annexed by advocate)`,
-    ],
-    [
-      'Identity and Address Proof of Applicant/Petitioner',
-      `Annexure ${next(1)} (to be annexed by advocate)`,
-    ],
-    ['Any other document relied upon', `Annexure ${next(2)} onwards (as applicable)`],
-  );
+  const rows: Array<[string, string]> = [];
+  if (options.set === 'criminal') {
+    rows.push(...attachedRows);
+    rows.push(
+      [
+        firNo !== '___________'
+          ? `Copy of FIR No. ${firNo}`
+          : 'Copy of FIR / Complaint (if available)',
+        `Annexure ${next(0)} (to be annexed by advocate)`,
+      ],
+      [
+        options.petitionerRole
+          ? 'Identity and Address Proof of Petitioner'
+          : 'Identity and Address Proof of Applicant/Petitioner',
+        `Annexure ${next(1)} (to be annexed by advocate)`,
+      ],
+      ['Any other document relied upon', `Annexure ${next(2)} onwards (as applicable)`],
+    );
+  } else if (options.set === 'pleading') {
+    if (options.pleading !== undefined) {
+      rows.push([esc(options.pleading), INDEX_REFERENCE_BLANK]);
+    }
+    rows.push(...attachedRows);
+    let k = 0;
+    if (options.documentsRule) {
+      rows.push([
+        `List of documents relied on (${esc(options.documentsRule)})`,
+        `Annexure ${next(k++)} (to be annexed by advocate)`,
+      ]);
+    }
+    rows.push(
+      ['Documents as annexed by the advocate', `Annexure ${next(k)} onwards (as applicable)`],
+      ['Vakalatnama', INDEX_REFERENCE_BLANK],
+    );
+    if (options.courtFee) rows.push(['Court fee', INDEX_REFERENCE_BLANK]);
+  } else {
+    rows.push(...attachedRows);
+    rows.push(
+      ['Any other document relied upon', `Annexure ${next(0)} onwards (as applicable)`],
+      ['Vakalatnama', INDEX_REFERENCE_BLANK],
+    );
+    if (options.courtFee) rows.push(['Court fee', INDEX_REFERENCE_BLANK]);
+  }
   const stdDocs: Array<[string, string, string]> = rows.map(([d, r], i) => [String(i + 1), d, r]);
+  // AJ-700 (2): the AJ-689c-a bytes, as the Synopsis prints them.
+  const natureLine =
+    options.nature !== null
+      ? `
+  <p><strong>Nature of matter:</strong> ${esc(options.nature)}</p>`
+      : '';
 
   return `
 <div class="page-break">
   <div class="annexure-label">${label}</div>
   <h2>Index of Documents Annexed</h2>
-  <br>
+  <br>${natureLine}
   <table>
     <tr><th style="width:8%">Sr.</th><th>Document</th><th style="width:32%">Reference / Page No.</th></tr>
     ${stdDocs.map(([n, d, r]) => `<tr><td>${n}.</td><td>${d}</td><td>${r}</td></tr>`).join('\n    ')}
@@ -846,12 +1198,13 @@ function annexureVakalatnama(
 // ── Court Fee Statement ──────────────────────────────────────────────────────
 
 function annexureCourtFeeStatement(
-  formData: Record<string, unknown>,
   rules: CourtRules,
   label: string,
+  resolvedCourtType: string | undefined,
 ): string {
   const courtDesig = esc(rules.designation);
-  const courtType = str(formData.court_type ?? rules.courtType, 'district_court');
+  // T-689d (AJ-700a (4)): the same court type as the Synopsis gate.
+  const courtType = str(resolvedCourtType, 'district_court');
 
   // Court fee schedules vary widely — provide a reference template with blanks
   const isHC = courtType.includes('high_court') || courtType.includes('hc');
@@ -881,11 +1234,20 @@ function annexureCourtFeeStatement(
 
 // ── Affidavit (absorbs SCRUM-66) ─────────────────────────────────────────────
 
+/** T-700: an affidavit's own designation and verification, where the pack gives them. */
+interface AffidavitOptions {
+  /** The deponent's designation when none is given or sided (default: Applicant/Petitioner). */
+  designation?: string;
+  /** The verification, already filled from the pack's verificationTemplate (unescaped). */
+  verification?: string;
+}
+
 function annexureAffidavit(
   formData: Record<string, unknown>,
   rules: CourtRules,
   bodyParaCount: number,
   label: string,
+  options: AffidavitOptions = {},
 ): string {
   // T-424 (Ajay, 44bf8a5): on a sided pack the deponent is the client, and the
   // designation follows the client's side; an explicit one still wins.
@@ -893,7 +1255,9 @@ function annexureAffidavit(
   const deponentName = side ? formData.deponent_name : applicantNameOf(formData);
   const designationText =
     formData.deponent_designation ??
-    (side ? SIDED_DESIGNATION[side] : 'the above-named Applicant/Petitioner');
+    (side
+      ? SIDED_DESIGNATION[side]
+      : (options.designation ?? 'the above-named Applicant/Petitioner'));
   const deponent = safeEsc(deponentName);
   const deponentAge = safeEsc(side ? formData.deponent_age : applicantAgeOf(formData));
   const deponentRelation = side ? deponentRelationOf(formData) : relationOf(formData);
@@ -906,14 +1270,16 @@ function annexureAffidavit(
   const place = safeEsc(verifiedAt);
   const courtDesig = esc(rules.designation);
 
-  // Build verification text from court_rules.verification_format — fill placeholders
+  // Build verification text from court_rules.verification_format — fill placeholders.
+  // T-700 (AJ-700a (5)): the pack's own verification, where the caller gives it.
   const verificationText = esc(
-    rules.verification_format
-      .replace('{deponent_name}', () => str(deponentName))
-      .replace('{designation}', () => str(designationText))
-      .replace('{body_para_count}', () => String(bodyParaCount))
-      .replace('{place}', () => str(verifiedAt))
-      .replace('{date}', () => today),
+    options.verification ??
+      rules.verification_format
+        .replace('{deponent_name}', () => str(deponentName))
+        .replace('{designation}', () => str(designationText))
+        .replace('{body_para_count}', () => String(bodyParaCount))
+        .replace('{place}', () => str(verifiedAt))
+        .replace('{date}', () => today),
   );
 
   return `
@@ -961,6 +1327,61 @@ function annexureAffidavit(
 </div>`;
 }
 
+// ── Verification (T-700) ─────────────────────────────────────────────────────
+
+/** AJ-700 (1): printed where the draft gives no paragraph count. */
+export const PARAGRAPH_NUMBERS_PLACEHOLDER = '[To be confirmed: paragraph numbers]';
+
+/**
+ * T-700 (AJ-700 (1), AJ-700a (5)): the pack's signed verificationTemplate
+ * filled in, every other byte as signed. `{lastParagraph}` is the draft's
+ * paragraph count, else PARAGRAPH_NUMBERS_PLACEHOLDER; `{place}` and `{date}`
+ * as the affidavit fills them; any other `{key}` is the party value of that
+ * key, else the blank. Unescaped.
+ */
+function fillPackVerification(
+  template: string,
+  formData: Record<string, unknown>,
+  partyValues: Record<string, unknown> | undefined,
+  bodyParaCount: number | undefined,
+): string {
+  const flat = flattenPartyValues(partyValues ?? formData);
+  const today = formatDraftDate(new Date());
+  const place = firstNonBlank(formData.place, formData.city, formData.district);
+  return template.replace(/\{([A-Za-z0-9_]+)\}/g, (_m, key: string) => {
+    if (key === 'lastParagraph') {
+      return bodyParaCount !== undefined ? String(bodyParaCount) : PARAGRAPH_NUMBERS_PLACEHOLDER;
+    }
+    if (key === 'place') return str(place);
+    if (key === 'date') return today;
+    return str(firstNonBlank(formData[key], flat[key]));
+  });
+}
+
+/**
+ * T-700 (AJ-700 (1), AJ-700a (5)): the pleading's Verification page: the
+ * filled template's first line ("VERIFICATION") as the heading, the rest as
+ * signed.
+ */
+function annexureVerification(filled: string, label: string): { heading: string; html: string } {
+  const lines = filled.split('\n');
+  const heading = lines.length > 1 && lines[0].trim() !== '' ? lines[0].trim() : 'Verification';
+  const body = (heading === lines[0]?.trim() ? lines.slice(1) : lines)
+    .join('\n')
+    .replace(/^\n+/, '');
+  return {
+    heading,
+    html: `
+<div class="page-break">
+  <div class="annexure-label">${label}</div>
+  <h2>${esc(heading)}</h2>
+  <br>
+  <p>${esc(body).replace(/\n/g, '<br>')}</p>
+  <div class="disclaimer">Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice.</div>
+</div>`,
+  };
+}
+
 // ── Public API ────────────────────────────────────────────────────────────────
 
 export interface AnnexuresInput {
@@ -988,14 +1409,26 @@ export interface AnnexuresInput {
    * (natureOfMatter). Absent: no Synopsis.
    */
   rulePackId?: string;
-  /** T-689c: the document's court type (COURT_TYPES). Absent: no Synopsis. */
+  /**
+   * T-689c, T-689d: the document's court type (COURT_TYPES), as the route
+   * resolved it with annexureCourtType (chosen court, form, doc.courtType).
+   * Absent: resolved here from courtData, the form's court_type, then the
+   * court rule (annexureCourtType). Used for the Synopsis and the court fee.
+   */
   courtType?: string;
   /**
    * T-689c (AJ-689c-b): the party values the resolver mapped (the form, or an
-   * older brief draft's values), read for client_role only
-   * (synopsisClientSide). Absent: formData.
+   * older brief draft's values), read for client_role (synopsisClientSide),
+   * T-700 for several names on a side and the verification's party values.
+   * Absent: formData.
    */
   partyValues?: Record<string, unknown>;
+  /**
+   * T-700 (AJ-700a (7)): on the brief path, the brief's dates with their
+   * labels (given, even empty, means the brief path). Absent: the template
+   * path, which lists the pack's filled date-type form fields.
+   */
+  briefDates?: readonly AnnexureBriefDate[];
 }
 
 /** T-579: one annexure of the pack: its label and heading as printed, and its HTML. */
@@ -1013,9 +1446,8 @@ export interface AnnexuresHtml {
   /** The full wrapped document (doctype, CSS, body) that the PDF path renders. */
   html: string;
   /**
-   * The attached annexures in order, lettered from A with no gap (A to G with
-   * the Synopsis, A to F without, T-689c); `parts[i].html` joined with "\n" is
-   * the body.
+   * The attached annexures in order, lettered from A with no gap (T-689c; the
+   * set by pack, T-700); `parts[i].html` joined with "\n" is the body.
    */
   parts: AnnexurePart[];
 }
@@ -1040,6 +1472,8 @@ export function annexuresFilename(docTitle: string, ext: 'pdf' | 'docx'): string
  * resolved automatically from formData.court_id / court_type + state.
  * T-689c: the Synopsis only where annexureBApplies; the rest lettered from A in
  * order with no gap, the index built from the same list.
+ * T-700: the set by pack (annexureSetFor); T-689d: one court type
+ * (annexureCourtType) for the Synopsis and the court fee.
  */
 export function buildAnnexuresHtml(input: AnnexuresInput): AnnexuresHtml {
   const {
@@ -1051,6 +1485,7 @@ export function buildAnnexuresHtml(input: AnnexuresInput): AnnexuresHtml {
     rulePackId,
     courtType,
     partyValues,
+    briefDates,
   } = input;
 
   // T-300: the same advocate name as the draft (resolveAdvocateName): the typed
@@ -1085,23 +1520,111 @@ export function buildAnnexuresHtml(input: AnnexuresInput): AnnexuresHtml {
   const chosen = chosenCourtHeading(courtData);
   const rules: CourtRules = chosen ? { ...resolved, designation: chosen.header } : resolved;
 
+  // T-689d (AJ-700a (4)): one court type for the Synopsis gate and the court
+  // fee: the route's (chosen court, form, doc.courtType), else resolved here
+  // from the chosen court, the form, then the court rule.
+  const resolvedCourtType =
+    nonBlankString(courtType) ??
+    annexureCourtType({
+      courtData,
+      formCourtType: enrichedForm.court_type,
+      rulesCourtType: rules.courtType,
+    });
+
+  // T-700 (AJ-700, AJ-700a): the pack's set. The pack is the brief's rule pack,
+  // else the form's template_id.
+  const setPackId = str(firstNonBlank(rulePackId, templateId), '');
+  const set = annexureSetFor(setPackId);
+  const pack = set === 'criminal' || setPackId === '' ? null : packOf(setPackId);
+  const petitionerRole = CRIMINAL_BY_ID.has(setPackId);
+  const civilLabels = packPartyLabels(pack);
+
+  // T-700 (AJ-700a (7)): the civil List of Dates rows (brief path: the brief's
+  // dates; template path: the pack's filled date fields).
+  const civilDates: DateRow[] =
+    set === 'criminal'
+      ? []
+      : briefDates !== undefined
+        ? briefDateRows(briefDates)
+        : formDateRows(pack, enrichedForm);
+  // AJ-700a (5): the pack's own verification; an empty template, no page.
+  const verificationTemplate = pack?.verificationTemplate ?? null;
+
   // T-689c (AJ-689c-a, AJ-689c-b): the Synopsis only where it applies (never
   // for a respondent-side client); every annexure is lettered by its place in
   // this one list, and the index is built from it.
   const clientSide = synopsisClientSide({ rulePackId, formData: enrichedForm, partyValues });
-  const kinds: AnnexureKind[] = [
-    'memo',
-    ...(annexureBApplies({ rulePackId, courtType, clientSide }) ? (['synopsis'] as const) : []),
-    'dates',
-    'index',
-    'vakalatnama',
-    'court_fee',
-    'affidavit',
-  ];
+  const synopsis = annexureBApplies({ rulePackId, courtType: resolvedCourtType, clientSide })
+    ? (['synopsis'] as const)
+    : [];
+  const kindsBySet: Readonly<Record<AnnexureSet, AnnexureKind[]>> = {
+    criminal: ['memo', ...synopsis, 'dates', 'index', 'vakalatnama', 'court_fee', 'affidavit'],
+    pleading: [
+      'memo',
+      ...synopsis,
+      'dates',
+      'index',
+      ...(verificationTemplate !== null ? (['verification'] as const) : []),
+    ],
+    // AJ-700 (3): no List of Dates unless there are dates.
+    o39: [
+      'memo',
+      ...synopsis,
+      ...(civilDates.length > 0 ? (['dates'] as const) : []),
+      'index',
+      'affidavit',
+    ],
+    sided: ['memo', ...synopsis, 'index'],
+    civil_other: ['memo', ...synopsis, 'index'],
+  };
+  const kinds = kindsBySet[set];
   const attached: AttachedAnnexure[] = kinds.map((kind, i) => ({
     kind,
     letter: annexureLetter(i),
   }));
+
+  // T-700: the Memo by set. Pleadings and O.39: the pack's own roles
+  // (AJ-700 (1), (3)); counter/rejoinder: the main matter's (sided) roles;
+  // another civil pack: its own roles after the signed labels.
+  const memoOptions: MemoOptions =
+    (set === 'pleading' || set === 'o39') && civilLabels
+      ? { rows: civilMemoRows(enrichedForm, partyValues, setPackId, civilLabels, clientSide) }
+      : set === 'civil_other'
+        ? { packLabels: civilLabels }
+        : { petitionerRole };
+
+  // AJ-700 (2), AJ-700a (6): "Nature of matter" on the Index of every court
+  // document (a guided brief: the placeholder, as natureOfMatter gives it).
+  const nature = natureOfMatter(setPackId || undefined);
+  const indexOptions: IndexOptions = {
+    set,
+    nature: setPackId === GUIDED_PACK_ID || isCourtDocument(setPackId) ? nature : null,
+    petitionerRole,
+    ...(set === 'pleading' ? { pleading: nature, documentsRule: documentsRuleOf(setPackId) } : {}),
+    // AJ-700a (1): pleadings and the O.39 application carry the court fee.
+    courtFee: set === 'pleading' || set === 'o39',
+  };
+
+  // AJ-700 (3): the O.39 affidavit in support is by the plaintiff/applicant,
+  // verified with the pack's own template ("the above application").
+  const affidavitOptions: AffidavitOptions =
+    set === 'o39'
+      ? {
+          ...(civilLabels ? { designation: `the above-named ${civilLabels[0]}` } : {}),
+          ...(verificationTemplate !== null
+            ? {
+                verification: fillPackVerification(
+                  verificationTemplate,
+                  enrichedForm,
+                  partyValues,
+                  input.bodyParaCount,
+                ),
+              }
+            : {}),
+        }
+      : petitionerRole
+        ? { designation: SIDED_DESIGNATION.petitioner }
+        : {};
 
   const partOf = (kind: AnnexureKind, label: string): Omit<AnnexurePart, 'label'> => {
     switch (kind) {
@@ -1109,35 +1632,54 @@ export function buildAnnexuresHtml(input: AnnexuresInput): AnnexuresHtml {
         // The first page, no break.
         return {
           heading: 'Memo of Parties',
-          html: annexureMemoOfParties(enrichedForm, rules, false, label),
+          html: annexureMemoOfParties(enrichedForm, rules, false, label, memoOptions),
         };
       case 'synopsis':
         return {
           heading: 'Synopsis',
-          html: annexureSynopsis(enrichedForm, rules, label, natureOfMatter(rulePackId)),
+          html: annexureSynopsis(
+            enrichedForm,
+            rules,
+            label,
+            natureOfMatter(rulePackId),
+            petitionerRole,
+          ),
         };
       case 'dates':
         return {
           heading: 'List of Dates and Chronology of Events',
-          html: annexureListOfDates(enrichedForm, label),
+          html:
+            set === 'criminal'
+              ? annexureListOfDates(enrichedForm, label)
+              : annexureCivilListOfDates(civilDates, label),
         };
       case 'index':
         return {
           heading: 'Index of Documents Annexed',
-          html: annexureIndexOfDocuments(enrichedForm, label, attached),
+          html: annexureIndexOfDocuments(enrichedForm, label, attached, indexOptions),
         };
       case 'vakalatnama':
         return { heading: 'Vakalatnama', html: annexureVakalatnama(enrichedForm, rules, label) };
       case 'court_fee':
         return {
           heading: 'Court Fee Paid Statement',
-          html: annexureCourtFeeStatement(enrichedForm, rules, label),
+          html: annexureCourtFeeStatement(rules, label, resolvedCourtType),
         };
       case 'affidavit':
         return {
           heading: 'Affidavit',
-          html: annexureAffidavit(enrichedForm, rules, bodyParaCount, label),
+          html: annexureAffidavit(enrichedForm, rules, bodyParaCount, label, affidavitOptions),
         };
+      case 'verification':
+        return annexureVerification(
+          fillPackVerification(
+            verificationTemplate ?? '',
+            enrichedForm,
+            partyValues,
+            input.bodyParaCount,
+          ),
+          label,
+        );
     }
   };
 
