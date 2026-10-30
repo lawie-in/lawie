@@ -555,8 +555,15 @@ describe('writeBlind', () => {
     it('the D-M link exists nowhere outside KEY.sealed.json', () => {
       const r = write(uniqEight(), 15, 'm-linkless');
       // the clear key file shows none of its payload
-      const keyRaw = fs.readFileSync(r.keyPath, 'utf8');
-      expect(keyRaw).not.toMatch(/metricsId|fixtureId|fx-|run-id-/);
+      // The clear header is pinned; with the base64 fields (random bytes) removed, nothing else may name an id or a model.
+      const sealedJson = JSON.parse(fs.readFileSync(r.keyPath, 'utf8'));
+      expect(Object.keys(sealedJson).sort()).toEqual(
+        ['N', 'alg', 'ct', 'iv', 'kdf', 'p', 'r', 'salt', 'tag', 'v'].sort(),
+      );
+      for (const k of ['salt', 'iv', 'tag', 'ct']) delete sealedJson[k];
+      expect(JSON.stringify(sealedJson)).not.toMatch(
+        /\b[DM]\d{2}\b|fixtureId|metricsId|claude|opus|sonnet|haiku/i,
+      );
       // no scoring file names an M-id; metrics and intake-spend name no D-id
       for (const f of r.scoringFiles)
         expect(fs.readFileSync(f, 'utf8')).not.toMatch(/\bM\d{2}\b|metricsId/);

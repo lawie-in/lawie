@@ -755,14 +755,17 @@ describe('integration: --dry on golden 23 (in-memory Mongo, stub seam)', () => {
   });
 
   it('nothing outside KEY.sealed.json joins a scoring file to a metrics row', () => {
-    const key = unseal(path.join(dir, 'KEY.sealed.json'), PASS);
     for (const f of fs.readdirSync(path.join(dir, 'scoring')))
       expect(fs.readFileSync(path.join(dir, 'scoring', f), 'utf8')).not.toMatch(/\bM\d{2}\b/);
-    const clear = fs.readFileSync(path.join(dir, 'KEY.sealed.json'), 'utf8');
-    for (const e of Object.values(key.entries)) {
-      expect(clear).not.toContain(e.fixtureId);
-      expect(clear).not.toContain('metricsId');
-    }
+    // The clear header is pinned; with the base64 fields (random bytes) removed, nothing else may name an id or a model.
+    const sealedJson = JSON.parse(fs.readFileSync(path.join(dir, 'KEY.sealed.json'), 'utf8'));
+    expect(Object.keys(sealedJson).sort()).toEqual(
+      ['N', 'alg', 'ct', 'iv', 'kdf', 'p', 'r', 'salt', 'tag', 'v'].sort(),
+    );
+    for (const k of ['salt', 'iv', 'tag', 'ct']) delete sealedJson[k];
+    expect(JSON.stringify(sealedJson)).not.toMatch(
+      /\b[DM]\d{2}\b|fixtureId|metricsId|claude|opus|sonnet|haiku/i,
+    );
     // with a wrong passphrase the key stays shut
     expect(() => unseal(path.join(dir, 'KEY.sealed.json'), PASS + 'x')).toThrow();
   });

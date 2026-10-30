@@ -18,9 +18,11 @@
  *                              scoring/ to Anushka never ships it. For Vikram.
  *                              Residual: a holder of both scoring/ and vikram/
  *                              can match metrics rows to drafts by output
- *                              length. The two folders and the run's console
- *                              output must never be in one person's hands
- *                              before the key is opened.
+ *                              length. The console's per-matter totals,
+ *                              together with vikram/, can also group metrics
+ *                              rows into matters by sum. Any two of scoring/,
+ *                              vikram/ and the console output must never be
+ *                              in one person's hands before the key is opened.
  *   vikram/intake-spend.json   the intake spend of each matter, in a shuffled
  *                              order with no matter or draft id.
  *   KEY.sealed.json            D-id -> {fixtureId, model, runId, metricsId,
