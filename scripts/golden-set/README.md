@@ -140,6 +140,16 @@ A pull request from the same repository that changes `scripts/golden-set/**` run
 
 To make it a blocking pre-merge gate, add "Golden set — Drafting (real model)" as a required check on `develop` in the branch protection settings.
 
+## Unit tests
+
+The harness's own tests live in `scripts/golden-set/__tests__`. They are not part of the drafting Jest config or of `yarn test:scripts`. Run them with:
+
+```sh
+yarn jest -c scripts/jest.config.js scripts/golden-set/__tests__ --coverage=false
+```
+
+CI runs them in the `test-golden-set` job in `.github/workflows/ci.yml` and in `.github/workflows/full-tests.yml` (T-688).
+
 ## Adding a fixture
 
 Add one JSON file to `fixtures/`, using `lib/types.ts` (`Fixture`) as the shape. Each fixture:
