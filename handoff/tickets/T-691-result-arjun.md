@@ -1,0 +1,33 @@
+# T-691 — Blind A/B result and decision (Arjun, 30 Oct 2026, 13:05 UTC)
+
+Key opened by Arjun after Anushka's and Ajay's scores were in. Key file sha256 `27f5d4ca…cc011f` matched the console line; branch `ab/t-691-run-20261030` @ ccb73b28.
+
+## Key
+Opus 5.5: D01, D02, D05, D06, D07, D09, D10, D12, D14, D16. Sonnet 5.5: D03, D04, D08, D11, D13, D15, D17, D18, D19, D20.
+
+## Quality (Anushka class / Ajay preference)
+| Matter | Opus | Sonnet | Anushka | Ajay |
+|---|---|---|---|---|
+| O.39 TI Patna | D01 Blocker | D15 Blocker | Sonnet reads better | Opus |
+| Anticipatory bail Gaya | D02 Minor | D11 Minor | tie | tie |
+| WS Mysuru | D07 Major | D03 Major | Opus reads better | Sonnet (slight) |
+| Bail Hinglish Bhopal | D16 Blocker | D04 Blocker | Sonnet (D16 worse) | Sonnet (slight) |
+| Bail surrendered Patna | D05 Major | D20 Major | tie | tie |
+| Partition Ludhiana | D06 Major | D18 Major | tie | Opus |
+| Regular bail Patna | D09 Major | D08 Major | tie | tie |
+| Declaration Lucknow | D10 Blocker | D17 Blocker | Opus (D17 worse) | Opus |
+| Partition Patna | D12 Blocker | D13 Major | **Sonnet, one class** | Opus |
+| Quashing Patna HC | D14 Major | D19 Blocker | **Opus, one class** | Opus |
+
+Blockers: 4 each arm. Invented-fact blockers (Ajay): Sonnet 2 (D17, D19), Opus 1 (D10). Only 2 of 10 matters differ by a class, one each way. Ajay prefers Opus on 5 (argued civil matters), Sonnet slightly on 2, ties 3. No matter is fileable in either arm; the faults are shared pipeline faults (facts dropped to {{MISSING}}, uninstructed reliefs, raw form answers, template garbles).
+
+## Cost (Vikram)
+Opus mean ₹18.7 vs Sonnet ₹6.8 per draft (2.8×, ~1.6× output tokens); Opus over the Ink price cap on 5 of 10 matters, all argued packs. Fails the cost half at current prices.
+
+## Decision
+**Sonnet 5.5 stays the drafter.** Opus shows a mild edge on argued civil matters in Ajay's read, not in Anushka's class scores, with equal blocker counts, and fails the cost rule outright. Not worth a price rise on this evidence. Revisit only after the shared pipeline faults are fixed (they dominate both arms) and with n ≥ 3 per matter.
+
+## Follow-ups (next month, deferred list)
+1. Pipeline faults shared by both arms — Ajay's list of 30 Oct and Anushka's "common to both arms"; the {{MISSING}} fact-drop is the biggest and is checked first against the A/B harness path (Shashank).
+2. Repricing: O.39 1 → 2 Ink; Partition 2 → 4–5 Ink (Vikram, founder's call).
+3. Branch `ab/t-691-run-20261030` deleted after Vikram commits his cost table. The test key expires within a day; the founder deletes it from the cloud environment and from the prod env file.
