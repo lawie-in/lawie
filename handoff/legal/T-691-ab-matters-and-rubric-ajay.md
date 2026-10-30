@@ -60,3 +60,20 @@ Edits are limited to the `ajay` field, the 41/43/44 scoring note, the 45 police-
 - test-driver updates.
 
 No facts changed. This is within the pre-approved scope. **Fixtures 39–46 SIGNED at ab15d5e8; the A/B may run** (with goldens 23 and 24).
+
+## Blind legal scores (Ajay, 30 Oct 2026; run ab/t-691-run-20261030 @ commit SHA ccb73b28, scoring/ only, key unopened)
+
+| Fixture | Drafts | Blockers | Better (legal) | Note |
+|---|---|---|---|---|
+| 23 regular bail | D08 / D09 | 0 / 0 | tie | FIR date left MISSING in both |
+| 24 anticipatory bail | D02 / D11 | 0 / 0 | tie | punctuation only |
+| 39 O.39 | D01 / D15 | 0 / 0 | D01 | prayer (b) ex parte contradiction in both |
+| 40 quashing | D14 / D19 | 0 / 1 | D14 | D19 invents the informant's gender |
+| 41 declaration | D10 / D17 | 1 / 2 | D10 | both assert an undated "denied or threatened" act not in the input; D17 also invents gender |
+| 42 partition Patna | D12 / D13 | 0 / 0 | D12 | D13 mixes up its plaint and affidavit paragraphs |
+| 43 partition Ludhiana | D06 / D18 | 0 / 0 | D06 | D18 pleads s.6 coparcenary for a self-acquired property |
+| 44 written statement | D03 / D07 | 0 / 0 | D03 (slight) | core defence dropped in both |
+| 45 bail Hinglish | D04 / D16 | 0 / 0 | D04 (slight) | known T-683c/T-665b gaps in both |
+| 46 bail surrendered | D05 / D20 | 0 / 0 | tie | identical |
+
+Would file: none of the 20 as output. Most faults are shared by both drafts of a pair, so they come from the pipeline, not the model: given facts left as MISSING, uninstructed prayers, "R/o R/o", the "HIGH COURT OF Bihar" header. Legal edge per matter as in the "Better" column; the key maps drafts to arms. No invented case law in any draft. Verify list (kept out of signed text): O.VI R.15A CPC (commercial); Court Fees Act Sch. II Art. 17(vi) as in force in Bihar/Punjab; O.XX R.18 vs R.12 for mesne profits; O.39 R.3 as the source of the supporting affidavit; the paraphrased quashing "categories" in quotation marks; pecuniary jurisdiction of the Civil Judge (Sr. Div.), Patna for Rs 40,00,000.
