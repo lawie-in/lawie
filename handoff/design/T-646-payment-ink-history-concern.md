@@ -94,3 +94,47 @@ Branch at 035668ab carries the three merge conditions (tester: full billing suit
 Path: same developer → fresh tester (full billing, bite on the clamp) → Arjun's reviewer on the delta → Ajay gets the SHA → Priya's slot → merge.
 
 **Correction (08:40 UTC):** ruling 2 above is withdrawn. Shashank pointed out it would breach AJ-646-M10's signed condition ("never more than was added"). The view keeps its cap; a 0-Ink row's confirmed reversal shows in the user's Ink history (ledger `refund_reversal` row), which the tester confirms. No question to Ajay.
+
+## Round 3b — final (08:45 UTC, supersedes the two entries above)
+
+Ajay signed AJ-646-M10a (b8271c41): the reversed figure may show above the added figure, only for ledger-linked reversals; back-filling `inkUnits` refused.
+
+**Refund policy (Arjun; Vikram asked to confirm same day):** Ink is taken back only by refunding the charge that granted it. Refunding a charge that granted nothing takes nothing.
+
+Design:
+- `sub_renewal` grant rows carry `metadata.razorpayPaymentId` of the charge that won the claim. A 0-Ink Payment row's refund confirms a grant by `userId` + that payment id only — no time window. No match → existing `unresolved` path (nothing reversed, one ids-only Sentry).
+- Option B stays as the backstop: grant id on the `refund_reversal` row; reverse `granted − alreadyReversed`, clamped at 0; a 0 result is one ids-only log line, no Sentry.
+- No legacy fallback: pre-existing grants have no payment id, but their Payment rows carry `inkUnits > 0` and reverse through the row.
+- View: per M10a, a ledger-linked reversal shows its full reversed figure (added 0, −100 removed); other rows keep the cap.
+- `.env.example` `SUPPORT_NOTIFY_EMAIL` line: Shashank's session was also refused; the founder adds it himself.
+
+Path unchanged: same developer → fresh tester (full billing; the duplicate-charge refund now reverses 0, the failed-row-write case reverses by payment id, the clamp bites) → Arjun's reviewer on the delta → Ajay the SHA → Priya's slot → merge.
+
+**Precedence note (08:42 UTC):** Ajay also issued AJ-646-M10b (f7804234, "cap stays") in reply to the withdrawn ruling before this final design reached him. M10a is the ruling in force for the view; M10b's cap is superseded, its test condition (Ink history shows the full "Refund −{n}" line) is kept and added to the tester's pass.
+
+**Agreed record (08:43 UTC):** AJ-646-M10c (a5e9d2ce) is the ruling in force and closes the M10a/M10b crossing: a refund takes back only that payment's own grant (by payment id), a 0-grant charge takes nothing, M10a covers only the failed-row-write case, Ink history always shows "Refund −{n}" in full (tested). **Vikram confirmed** the policy, with two edges: (1) a partial refund of a granting charge reverses the same share, rounded down, never below zero (already ruled; tested); (2) yearly plans — each monthly drip is stamped with the yearly charge's payment id in T-646; stopping the remaining drips on a statutory yearly refund is a follow-up ticket Priya files, unless the branch already touches that path.
+
+**Developer-pass decisions (08:47 UTC):**
+1. Yearly drip stamp is out of T-646 (needs `packages/shared` and the Subscription model) → T-701.
+2. `subscription.activated` without a payment entity: the following `subscription.charged` that loses the claim back-fills `metadata.razorpayPaymentId` on the cycle's grant row, only if empty, in one atomic `findOneAndUpdate`; no reordering of the claim flow. Tested via refund of that charge.
+3. Backfill (`backfill-payments.ts`): one-shot offline attribution, never a runtime fallback. Exactly one unstamped `sub_renewal` grant and exactly one plan charge for the cycle → set the row's `inkUnits` from the grant and stamp the grant with the payment id; anything ambiguous → `inkUnits` 0, ids-only log, refund manual. Dry run reports attributed / ambiguous / already-recorded. Webhook-recorded payments and top-ups untouched.
+4. The branch does not touch the yearly refund path; remaining drips after a yearly refund are T-701.
+
+**(g)/(h) (08:48 UTC):** the `sub_renewal` grant row carries no cycle key, so: (g) `grantSubscriptionInk` now stores `metadata.paidCount` and `metadata.periodStart` (optional inputs from subscription.service.ts, no reordering); the losing-charge back-fill matches on them. (h) Legacy backfill rule, no window: a subscription with exactly one unstamped grant and exactly one captured plan charge in total is attributed (row `inkUnits` from the grant delta, grant stamped atomically if empty); anything else is ambiguous → `inkUnits` 0, ids-only log, manual refund; the dry run reports counts and a two-charge subscription is asserted ambiguous and untouched. Safe because go-live was 23 Oct (at most one cycle in prod).
+
+## Round 3b — Arjun's review at 9b5ef4dc (09:30 UTC): FAIL
+
+Ajay AJ-646-BC2 PASS (abc79c38) stands for the strings. Reviewer verdict fail:
+- **Must-fix:** `scripts/backfill-payments.ts` counts paid invoices carrying a payment id, not captured charges; one invoice can carry two captured charges (the duplicate-charge case). A legacy grant could be attributed to the duplicate and later reversed twice (once via the duplicate's linked reversal, once via the original's row with no per-grant cap). Fix: count real captured plan charges over all time (max of paid invoices and distinct captured/refunded payment ids known for the subscription), and treat the subscription as ambiguous if any of its Payment rows already has `inkUnits > 0`. Test added for that case.
+- **Conditions:** (1) `inkReversalLinked` matches on `metadata.grantPaymentId` only (test at round3b:471 inverted); (2) `alreadyReversed` also counts pending reversal rows (excluding the current refund) so two concurrent refunds cannot both take the full grant; (3) backfill apply errors are caught per payment and counted ambiguous, not aborting the run; plus one plan-side clamp test with a legacy reversal alongside a linked one.
+- Confirmed clean: no window code; atomic if-empty stamp that never throws; clamp arithmetic; ids-only logs; `paymentCopy.ts` comment-only.
+
+Path: same developer → fresh tester → Arjun's reviewer on the new delta → new SHA to Ajay → Priya's slot (held).
+
+## Round 3c — Arjun's review at be7d0b5d (09:50 UTC): PASS
+
+Delta 9b5ef4dc..be7d0b5d, six billing files. Must-fix closed: backfill charge count = max(paid invoices, |E ∪ R|) and any inked Payment row on the subscription makes it ambiguous; reviewer found no path where a legacy and a linked reversal hit one grant. C1 (`grantPaymentId`-only link), C2 (`capAfterClaim` after the claim insert; two concurrent refunds can only under-reverse, never over-reverse; cap-lookup error rolls the claim back), C3 (per-payment catch, counts continue) verified. Tester: full billing 2540/2540, web sanity 286/287 (t543 only). Ajay **APPROVED at be7d0b5d** (4539fcdf).
+
+Accepted as follow-ups, not blocking: (1) backfill pass 1 can miss a captured charge whose context does not resolve or that predates `BACKFILL_FROM` with no row — cannot double-reverse, may misattribute between two charges on one invoice; the prod dry run's counts are checked against Razorpay's payment count before apply. (2) A refund that sees another refund's pending claim returns `grant_already_reversed` rather than busy, and the outcome label stays `reversed` when the cap lowers due to 0 — safe (under-reverse only); Priya files a P3 follow-up.
+
+Merge: exactly be7d0b5d plus the origin merge, in Priya's slot, once the founder's `.env.example` `SUPPORT_NOTIFY_EMAIL` line is in. Merge SHA to Ajay.
