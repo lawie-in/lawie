@@ -440,3 +440,10 @@ Asked by the founder in Nikhil's chat ("run the model-settings migration… acti
 
 ### SSM version 23 (30 Oct 2026, 10:37 UTC, Nikhil): Active, NOT default
 Fix to v22's `migrate-model-settings`. In v22, `mode=apply` ran as a DRY RUN: the `--apply` flag passed as an argument through `sudo -u ubuntu -i bash -s -- "$FLAG"` never reached the script (it reported "Dry run" with no usage error), so nothing was written. The cause on the box is not confirmed; the same chain works locally. v23 has one heredoc per mode, with the flag written literally (`… migrate-model-settings.ts --apply` in the apply branch). It calls `npx --no -- ts-node`, so npm can never take a flag, and echoes `script args:` before running. Nothing else changes. JSON: `handoff/ops/runbooks/lawie-prod-ops-v23.json`. Default stays 13; run it pinned with `--document-version 23`.
+
+### SSM version 24 (30 Oct 2026, 13:05 UTC, Nikhil): Active, NOT default
+Asked by Arjun at 13:01 UTC (T-691). JSON: `handoff/ops/runbooks/lawie-prod-ops-v24.json`. The only change from v23, besides the description, is the new action `env-flag` with param `flagname` (allowedValues `FEATURE_DEFAULT_FACT_LEDGER|FEATURE_DEFAULT_DESCRIBE_FIRST`, the two non-secret on/off defaults).
+- It runs as root and finds the env file from `ecosystem.config.js` line 1.
+- `node --env-file` reads only that one name. It prints `NAME=on` or `NAME=off` (surrounding quotes stripped), `other` for any other value, or `unset`. No other value can be printed.
+- The filter was tested locally.
+- Default stays 13; run it pinned with `--document-version 24`.
