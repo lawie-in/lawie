@@ -410,3 +410,13 @@ Rules while the window is open:
 - Preconditions, checked and recorded per merge: CI — Test and Scripts tests green on the release source commit; the previous release's Anushka headline check = PASS; the PR body names one headline ticket.
 - After each merge Arjun posts the merge SHA in Nikhil's chat himself (Priya may be asleep); Nikhil deploys under the standing rule; Anushka re-checks; Arjun logs the loop here and in go-live-2026-10-23.md.
 - Window closes 08:00 IST 30 Oct; after that the default rule (only the founder merges to main) is back without a further word.
+
+## Standing merge authorisation (founder, 30 Oct 2026, 07:50 UTC)
+
+Founder, verbatim in Arjun's chat: "I am approving you for all the merge to main in future also."
+
+Rule from now on: **Arjun may merge any `release/*` PR into `main`** without a per-release go, provided all of:
+1. CI is green on the source `develop_staging` commit the release was cut from;
+2. the previous loop's Anushka check on prod passed (or the founder overruled it in writing);
+3. the release PR was cut by Priya from `develop_staging` head with the standard exclusions and its "What a user can now do" is in the PR body.
+The overnight 08:00 IST window of 29 Oct is superseded. Nikhil's standing deploy go (merge of a `release/*` PR into `main`) is unchanged. Merging `develop_staging` into `develop` stays the founder's alone.
