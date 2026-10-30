@@ -154,7 +154,12 @@ describe('T-638 annexures: "registered at Police Station {ps}"', () => {
   });
 
   it('the Synopsis label "PS: {ps}" is unchanged: a label, not prose', () => {
-    const html = part({ ...FORM, police_station: 'Kotwali' }, 'Synopsis');
+    // T-689c: the Synopsis is attached only for a High Court and a non-denied pack
+    const html = buildAnnexuresHtml({
+      formData: { ...FORM, police_station: 'Kotwali' },
+      rulePackId: 'bail_anticipatory',
+      courtType: 'high_court',
+    }).parts.find((p) => p.heading === 'Synopsis')!.html;
     expect(html).toContain('PS: Kotwali');
     expect(html).not.toContain('registered at');
   });

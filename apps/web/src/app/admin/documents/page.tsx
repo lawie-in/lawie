@@ -32,6 +32,8 @@ interface ExportRow {
   _id: string;
   title: string;
   docType: string;
+  // T-689c: the pack's name for the type; null or absent falls back to the docType.
+  docTypeLabel?: string | null;
   userName: string;
   exportedAs: string[];
   exportedAt: string;
@@ -225,8 +227,15 @@ export default function AdminDocumentsPage() {
                       <td className="max-w-[220px] truncate px-4 py-3 font-medium text-slate-800">
                         {ex.title || '(Untitled)'}
                       </td>
-                      <td className="px-4 py-3 text-xs capitalize text-slate-500">
-                        {ex.docType || '—'}
+                      {/* T-689c: the pack's name as the pack writes it, else the raw docType. */}
+                      <td
+                        className={
+                          ex.docTypeLabel
+                            ? 'px-4 py-3 text-xs text-slate-500'
+                            : 'px-4 py-3 text-xs capitalize text-slate-500'
+                        }
+                      >
+                        {ex.docTypeLabel || ex.docType || '—'}
                       </td>
                       <td className="px-4 py-3 text-xs text-slate-600">{ex.userName}</td>
                       <td className="px-4 py-3">

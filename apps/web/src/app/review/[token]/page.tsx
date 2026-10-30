@@ -29,6 +29,8 @@ interface ReviewPayload {
   document: {
     title: string;
     docType: string;
+    // T-689c: the pack's name for the type; null or absent falls back to the docType.
+    docTypeLabel?: string | null;
     courtName?: string;
     // T-674 AC3: the on-screen court label; courtName may be an internal id.
     courtLabel?: string;
@@ -215,7 +217,7 @@ export default function ReviewPage({ params }: { params: Promise<{ token: string
             </div>
             <div className="mt-1 flex items-center gap-2 text-xs text-slate-400">
               <span className="rounded bg-slate-100 px-1.5 py-0.5">
-                {data.document.docType.replace(/_/g, ' ')}
+                {data.document.docTypeLabel || data.document.docType.replace(/_/g, ' ')}
               </span>
               {data.document.courtLabel && <span>· {data.document.courtLabel}</span>}
             </div>

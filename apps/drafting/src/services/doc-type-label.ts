@@ -57,9 +57,32 @@ export function docTypeLabelFor(pack: { name?: unknown } | null | undefined): st
 export const GUIDED_PACK_ID = 'guided';
 
 /**
+ * T-689c: the rule-pack loader as it was when this module loaded. The negative cache
+ * below is used only when docTypeLabelForPackId is reading through this loader, so a
+ * test that passes its own loader, or spies on loadRulePack, never sees or fills it.
+ */
+const DEFAULT_LOADER = loadRulePack;
+
+/**
+ * T-689c: ids the default loader answered with no pack (no file, or an id it refuses).
+ * The loader caches the packs it reads but not the misses, so without this every list
+ * row with such an id would read the disk again. A load that threw is not kept here,
+ * so a transient read error is retried on the next call. Capped, since a stored id
+ * can be any string up to 100 characters; past the cap a miss is simply not kept.
+ */
+const packIdsWithNoPack = new Set<string>();
+const MAX_NO_PACK_IDS = 1000;
+
+/** For tests: forget the ids already found to have no pack. */
+export function _resetDocTypeLabelCache(): void {
+  packIdsWithNoPack.clear();
+}
+
+/**
  * T-689b: the docTypeLabel for a stored rulePackId, the one path the documents list
  * and the dashboard summary share. Not pure: it reads the pack through `load` (the
- * rule-pack loader by default, which caches each pack it reads).
+ * rule-pack loader by default, which caches each pack it reads; with that loader the
+ * ids that have no pack are remembered here too).
  *
  * A missing, empty or non-string id, the guided id (its kind name sits in the
  * encrypted brief, which is not read for this), a pack with no file or no usable
@@ -73,8 +96,15 @@ export function docTypeLabelForPackId(
   if (typeof rulePackId !== 'string' || rulePackId === '' || rulePackId === GUIDED_PACK_ID) {
     return null;
   }
+  const useCache = load === DEFAULT_LOADER;
+  if (useCache && packIdsWithNoPack.has(rulePackId)) return null;
   try {
-    return docTypeLabelFor(load(rulePackId));
+    const pack = load(rulePackId);
+    if (pack === null || pack === undefined) {
+      if (useCache && packIdsWithNoPack.size < MAX_NO_PACK_IDS) packIdsWithNoPack.add(rulePackId);
+      return null;
+    }
+    return docTypeLabelFor(pack);
   } catch (err) {
     console.error(
       `[drafting] Doc type label: could not read rule pack ${rulePackId}:`,

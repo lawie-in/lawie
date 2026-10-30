@@ -40,7 +40,8 @@ import {
 
 const BLANK = '[To be confirmed: place]';
 const PARTIES = { petitioner: 'Asha Devi', respondent: 'Ravi Kumar' };
-const BODY = 'M.J. No. _____ of 2026\n\nAsha Devi ... PETITIONER\n\nVERSUS\n\nRavi Kumar ... RESPONDENT\n\n1. The petitioner states.';
+const BODY =
+  'M.J. No. _____ of 2026\n\nAsha Devi ... PETITIONER\n\nVERSUS\n\nRavi Kumar ... RESPONDENT\n\n1. The petitioner states.';
 
 interface CourtEntry {
   courtId: string;
@@ -65,7 +66,9 @@ function findEntries(node: unknown, out: Map<string, CourtEntry>): void {
 }
 const ENTRIES = new Map<string, CourtEntry>();
 findEntries(
-  JSON.parse(readFileSync(join(__dirname, '..', 'config', 'courts', 'indian-courts.json'), 'utf-8')),
+  JSON.parse(
+    readFileSync(join(__dirname, '..', 'config', 'courts', 'indian-courts.json'), 'utf-8'),
+  ),
   ENTRIES,
 );
 
@@ -194,7 +197,11 @@ describe('T-176 family court seat heading', () => {
 
   describe('AC 6: other courts unchanged', () => {
     it.each([
-      ['district_court', 'District Court, Patna', 'IN THE COURT OF [To be confirmed: court designation]'],
+      [
+        'district_court',
+        'District Court, Patna',
+        'IN THE COURT OF [To be confirmed: court designation]',
+      ],
       ['district_court', 'Sessions Court, Patna', 'IN THE COURT OF SESSIONS JUDGE'],
       ['district_court', 'JMFC Patna', 'IN THE COURT OF JUDICIAL MAGISTRATE FIRST CLASS'],
       ['high_court', 'Patna High Court', 'IN THE HIGH COURT OF JUDICATURE AT PATNA'],
@@ -238,6 +245,17 @@ describe('T-176 family court seat heading', () => {
         return Promise.resolve(undefined);
       });
       await buildAnnexuresPack({ formData: form, bodyParaCount: 8, courtData: court });
+      // Memo, Vakalatnama, Court Fee, Affidavit: no Synopsis without a pack and a court type (T-689c)
+      expect(html.split(draftHeader).length - 1).toBeGreaterThanOrEqual(4);
+      expect(html).not.toContain('>Synopsis</h2>');
+      // With the Synopsis (a High Court bail) its "Court:" line is a fifth
+      await buildAnnexuresPack({
+        formData: form,
+        bodyParaCount: 8,
+        courtData: court,
+        rulePackId: 'bail_regular',
+        courtType: 'high_court',
+      });
       expect(html.split(draftHeader).length - 1).toBeGreaterThanOrEqual(5);
       expect(html).not.toContain('IN THE FAMILY COURT, DELHI');
     });
