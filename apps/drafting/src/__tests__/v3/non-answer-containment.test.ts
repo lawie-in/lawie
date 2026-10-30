@@ -292,6 +292,28 @@ describe('T-683 round 2: signed tails, courtesy words, lists, not-asked keys', (
   });
 });
 
+describe('T-683 final: silent model', () => {
+  const empty = { candidates: [], conflicts: [], unresolved: [], nonAnswers: [] };
+  it.each(['not known sir', 'पता नहीं जी'])(
+    'silent-model-whole-edit-non-answer: %s emptied',
+    (text) => {
+      const e = editsFromV3([{ key: KEY, text, fromQuestion: true }], empty, checklist, 2026);
+      expect(e.nonAnswers).toBe(1);
+      expect(e.edits.map((x) => x.text)).toEqual(['']);
+      expect(e.held).toEqual([]);
+    },
+  );
+  it.each(['Ramesh Bhai', 'Ramesh'])(
+    'silent-model-whole-edit-non-answer: %s passes as typed',
+    (text) => {
+      const e = editsFromV3([{ key: KEY, text, fromQuestion: true }], empty, checklist, 2026);
+      expect(e.nonAnswers).toBe(0);
+      expect(e.held).toEqual([]);
+      expect(e.edits.map((x) => x.text)).toEqual([text]);
+    },
+  );
+});
+
 describe('T-683 strike 3: bridge', () => {
   const nonAns = (quote: string) => ({
     candidates: [],
