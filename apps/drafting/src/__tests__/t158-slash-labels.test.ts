@@ -215,7 +215,10 @@ describe('T-158: every signed string matches the sign-off exactly', () => {
     expect(o.cause_title_format).toBe(
       '{courtDesignation}, {bench}\n{caseNomenclature}\n\nIn the matter of: {company_name}\n\n{applicant} ... APPLICANT\n\nVERSUS\n\n{respondent} ... CORPORATE DEBTOR',
     );
-    expect(o.party_designation).toMatchObject({ petitioner: 'Applicant', respondent: 'Corporate Debtor' });
+    expect(o.party_designation).toMatchObject({
+      petitioner: 'Applicant',
+      respondent: 'Corporate Debtor',
+    });
     expect(o.verification_format).toBe(SIGNED_NCLT_IBC_VERIFICATION);
   });
 
@@ -224,7 +227,10 @@ describe('T-158: every signed string matches the sign-off exactly', () => {
     expect(o.cause_title_format).toBe(
       '{courtDesignation}, {bench}\n{caseNomenclature}\n\nIn the matter of: {company_name}\n\n{applicant} ... PETITIONER\n\nVERSUS\n\n{respondent} ... RESPONDENT',
     );
-    expect(o.party_designation).toMatchObject({ petitioner: 'Petitioner', respondent: 'Respondent' });
+    expect(o.party_designation).toMatchObject({
+      petitioner: 'Petitioner',
+      respondent: 'Respondent',
+    });
     expect(o.verification_format).toBe(SIGNED_NCLT_COMPANIES_VERIFICATION);
   });
 
@@ -326,7 +332,12 @@ describe('T-158: ruleForMatter', () => {
     // exercised with a rule whose override is read by key.
     const base = nclt();
     const viaKey = ruleForMatter(
-      { ...base, matter_type_overrides: { insolvency_application: base.matter_type_overrides!.company_petition } },
+      {
+        ...base,
+        matter_type_overrides: {
+          insolvency_application: base.matter_type_overrides!.company_petition,
+        },
+      },
       'ibc_application',
     );
     expect(viaKey.party_designation?.petitioner).toBe('Petitioner');
@@ -430,8 +441,11 @@ describe('T-158 AC 5: NCLT drafts', () => {
       advocateName: 'Test Adv',
     });
     expect(html).toContain('Corporate Debtor');
-    expect(html).toContain('the Applicant herein above named');
-    expect(html).toContain('of the above application are true');
+    // T-700 (AJ-700 (3)): ibc_application is a civil_other pack, Memo + Index only; the IBC
+    // verification is not in the pack (it stays in the draft: the ctxFor test above).
+    expect(html).not.toContain('<h2>Affidavit</h2>');
+    expect(html).not.toContain('herein above named');
+    expect(html).not.toContain('of the above application are true');
     expect(html).not.toContain('Petitioner / Applicant');
     expect(html).not.toContain('Corporate Debtor / Company');
     expect(html).not.toContain('PETITIONER / APPLICANT');
@@ -456,7 +470,9 @@ describe('T-158 AC 5: NCLT drafts', () => {
       },
       advocateName: 'Test Adv',
     });
-    expect(html).toContain('do hereby verify that the contents of paragraphs');
+    // T-700: interim_application is civil_other: no affidavit page, so no verification text.
+    expect(html).not.toContain('<h2>Affidavit</h2>');
+    expect(html).not.toContain('do hereby verify that the contents of paragraphs');
     expect(html).not.toContain('the Applicant herein above named');
     expect(html).not.toContain('the Petitioner herein above named');
   });
@@ -553,7 +569,10 @@ describe('T-158 (AJ-2026-10-08-T158-diff) C2: "[To be confirmed:" prompt line', 
     '- If a designation above begins with "[To be confirmed:", reproduce it exactly as written wherever that party is named. Do not choose between the options.';
 
   it('NCLT interim_application (unknown matter type): the line is present, exactly once', () => {
-    const p = buildAISystemPrompt(loadTemplateConfig('interim_application')!, loadCourtRule('nclt'));
+    const p = buildAISystemPrompt(
+      loadTemplateConfig('interim_application')!,
+      loadCourtRule('nclt'),
+    );
     expect(p.split(LINE)).toHaveLength(2);
     expect(p.indexOf(LINE)).toBeGreaterThan(p.indexOf('PARTY DESIGNATIONS FOR THIS COURT'));
   });
@@ -576,7 +595,10 @@ describe('T-158 (AJ-2026-10-08-T158-diff) ibc_application labels and drt defenda
       readFileSync(join(SRC, 'config/document-rules/ibc_application.json'), 'utf-8'),
     );
     const byRole = Object.fromEntries(
-      cfg.causeTitle.partyDesignations.map((d: { role: string; label: string }) => [d.role, d.label]),
+      cfg.causeTitle.partyDesignations.map((d: { role: string; label: string }) => [
+        d.role,
+        d.label,
+      ]),
     );
     expect(byRole.applicant).toBe('Applicant');
     expect(byRole.corporate_debtor).toBe('Corporate Debtor');
@@ -611,7 +633,10 @@ describe('T-158 (AJ-2026-10-08-T158-A1-ext): family_court has no State party', (
   });
 
   it('the PARTY DESIGNATIONS prompt for family_court has no state line', () => {
-    const p = buildAISystemPrompt(loadTemplateConfig('bail_regular')!, loadCourtRule('family_court'));
+    const p = buildAISystemPrompt(
+      loadTemplateConfig('bail_regular')!,
+      loadCourtRule('family_court'),
+    );
     expect(p).toContain('PARTY DESIGNATIONS FOR THIS COURT');
     expect(p).not.toMatch(/^- state:/m);
   });
@@ -647,7 +672,10 @@ describe('T-158 Drafter path (drafterPartyDesignationLines, review round 1 fix)'
   }
 
   it('family_court: no state line, no "Not applicable"', () => {
-    const lines = drafterPartyDesignationLines(loadCourtRule('family_court') ?? undefined, 'bail_regular');
+    const lines = drafterPartyDesignationLines(
+      loadCourtRule('family_court') ?? undefined,
+      'bail_regular',
+    );
     expect(lines.length).toBeGreaterThan(0);
     expect(lines.join('\n')).not.toContain('Party designation, state:');
     expect(lines.join('\n')).not.toContain('Not applicable');
@@ -657,7 +685,10 @@ describe('T-158 Drafter path (drafterPartyDesignationLines, review round 1 fix)'
   });
 
   it('nclt + ibc_application: Applicant / Corporate Debtor, no placeholder, no C2 line', () => {
-    const lines = drafterPartyDesignationLines(loadCourtRule('nclt') ?? undefined, 'ibc_application');
+    const lines = drafterPartyDesignationLines(
+      loadCourtRule('nclt') ?? undefined,
+      'ibc_application',
+    );
     expect(lines).toContain('Party designation, petitioner: "Applicant"');
     expect(lines).toContain('Party designation, applicant: "Applicant"');
     expect(lines).toContain('Party designation, complainant: "Applicant"');
@@ -670,10 +701,15 @@ describe('T-158 Drafter path (drafterPartyDesignationLines, review round 1 fix)'
   });
 
   it('nclt + interim_application: placeholders present, C2 line exactly once, one "- " in the prompt', () => {
-    const lines = drafterPartyDesignationLines(loadCourtRule('nclt') ?? undefined, 'interim_application');
+    const lines = drafterPartyDesignationLines(
+      loadCourtRule('nclt') ?? undefined,
+      'interim_application',
+    );
     const text = lines.join('\n');
     expect(text).toContain('[To be confirmed: Applicant (IBC) or Petitioner (Companies Act)]');
-    expect(text).toContain('[To be confirmed: Corporate Debtor (IBC) or Respondent (Companies Act)]');
+    expect(text).toContain(
+      '[To be confirmed: Corporate Debtor (IBC) or Respondent (Companies Act)]',
+    );
     expect(lines.filter((l) => l.startsWith(C2_START))).toHaveLength(1);
     expect(lines.every((l) => !l.startsWith('- '))).toBe(true);
 

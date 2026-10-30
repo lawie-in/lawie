@@ -1,5 +1,98 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`court-rules-golden — T-700 written statement annexures pack HTML a written statement before a High Court renders its civil annexure set deterministically 1`] = `
+"<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><style>
+  @page { size: A4; margin: 1in 1in 1in 1.5in; }
+  body { font-family: "Times New Roman", Times, serif; font-size: 12pt; line-height: 1.8; color: #000; margin: 0; padding: 0; }
+  .page-break { page-break-before: always; }
+  .annexure-header { font-weight: bold; text-align: center; margin-bottom: 1em; font-size: 11pt; letter-spacing: 0.05em; text-transform: uppercase; }
+  .annexure-label { text-align: center; font-size: 10pt; margin-bottom: 0.5em; text-decoration: underline; }
+  h2 { font-size: 12pt; font-weight: bold; text-align: center; margin: 0.8em 0 0.5em; text-transform: uppercase; }
+  table { width: 100%; border-collapse: collapse; font-size: 11pt; margin: 0.8em 0; }
+  th { border: 1px solid #000; padding: 5px 8px; font-weight: bold; background: #f0f0f0; text-align: left; }
+  td { border: 1px solid #000; padding: 5px 8px; vertical-align: top; }
+  .sig-block { margin-top: 3em; }
+  .sig-line { border-top: 1px solid #000; width: 45%; display: inline-block; margin-top: 0.5em; }
+  .notary-box { border: 2px solid #000; padding: 1em; margin-top: 2em; min-height: 100px; }
+  .notary-title { font-weight: bold; text-align: center; margin-bottom: 0.5em; }
+  .stamp-placeholder { text-align: center; color: #999; font-style: italic; margin: 1em 0; font-size: 10pt; }
+  p { margin: 0 0 0.4em 0; }
+  .indent { margin-left: 2em; }
+  .right-align { text-align: right; }
+  .disclaimer { margin-top: 2em; padding-top: 0.8em; border-top: 1px solid #999; font-size: 9pt; color: #666; text-align: center; }
+</style></head><body>
+<div class="">
+  <div class="annexure-label">ANNEXURE A</div>
+  <h2>Memo of Parties</h2>
+  <p style="text-align:center">IN THE HIGH COURT OF JHARKHAND AT RANCHI</p>
+  <br>
+  <table>
+    <tr><th style="width:30%">Role</th><th>Name, Address &amp; Description</th></tr>
+    <tr>
+      <td>Plaintiff</td>
+      <td>
+        <strong>[To be confirmed: name of the Plaintiff]</strong>
+      </td>
+    </tr>
+    <tr>
+      <td>Defendant</td>
+      <td>
+        <strong>GOLDEN_DEFENDANT</strong><br>
+        
+        [To be confirmed: relation and name of parent or spouse]<br>
+        ___________
+      </td>
+    </tr>
+  </table>
+  <div class="sig-block">
+    <p>Through Advocate:</p>
+    <p><strong>GOLDEN_ADV</strong></p>
+    <p>Bar Enrolment No.: ___________</p>
+  </div>
+  <div class="disclaimer">Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice.</div>
+</div>
+
+<div class="page-break">
+  <div class="annexure-label">ANNEXURE B</div>
+  <h2>List of Dates and Chronology of Events</h2>
+  <br>
+  <table>
+    <tr><th style="width:28%">Date</th><th>Event</th></tr>
+    <tr><td colspan="2"><em>[Advocate to add further dates as appropriate before filing.]</em></td></tr>
+  </table>
+  <div class="disclaimer">Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice.</div>
+</div>
+
+<div class="page-break">
+  <div class="annexure-label">ANNEXURE C</div>
+  <h2>Index of Documents Annexed</h2>
+  <br>
+  <p><strong>Nature of matter:</strong> Written Statement (Order VIII CPC)</p>
+  <table>
+    <tr><th style="width:8%">Sr.</th><th>Document</th><th style="width:32%">Reference / Page No.</th></tr>
+    <tr><td>1.</td><td>Written Statement (Order VIII CPC)</td><td>___________</td></tr>
+    <tr><td>2.</td><td>Memo of Parties</td><td>Annexure A</td></tr>
+    <tr><td>3.</td><td>List of Dates and Chronology</td><td>Annexure B</td></tr>
+    <tr><td>4.</td><td>Index of Documents Annexed</td><td>Annexure C (this document)</td></tr>
+    <tr><td>5.</td><td>Verification</td><td>Annexure D</td></tr>
+    <tr><td>6.</td><td>List of documents relied on (Order VIII Rule 1A CPC)</td><td>Annexure E (to be annexed by advocate)</td></tr>
+    <tr><td>7.</td><td>Documents as annexed by the advocate</td><td>Annexure F onwards (as applicable)</td></tr>
+    <tr><td>8.</td><td>Vakalatnama</td><td>___________</td></tr>
+    <tr><td>9.</td><td>Court fee</td><td>___________</td></tr>
+  </table>
+  <p style="margin-top:1em"><em>Note: Page numbers to be filled in by advocate before filing.</em></p>
+  <div class="disclaimer">Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice.</div>
+</div>
+
+<div class="page-break">
+  <div class="annexure-label">ANNEXURE D</div>
+  <h2>VERIFICATION</h2>
+  <br>
+  <p>I, GOLDEN_DEFENDANT, son/daughter/wife of ___________, aged about ___________ years, resident of ___________, do hereby verify that the contents of paragraphs ___ to ___ of the above Written Statement are true to my personal knowledge, paragraphs ___ to ___ are based on records maintained by me, and paragraphs ___ to ___ are matters of legal submission believed true on advice of counsel. No part is false and nothing material has been concealed.<br><br>Verified at RANCHI on this 10 May 2026.<br><br>Defendant</p>
+  <div class="disclaimer">Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice.</div>
+</div></body></html>"
+`;
+
 exports[`court-rules-golden — annexures pack HTML per court allahabad_hc renders annexures HTML deterministically 1`] = `
 "<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><style>
   @page { size: A4; margin: 1in 1in 1in 1.5in; }
@@ -91,6 +184,7 @@ exports[`court-rules-golden — annexures pack HTML per court allahabad_hc rende
   <div class="annexure-label">ANNEXURE D</div>
   <h2>Index of Documents Annexed</h2>
   <br>
+  <p><strong>Nature of matter:</strong> Anticipatory Bail Application</p>
   <table>
     <tr><th style="width:8%">Sr.</th><th>Document</th><th style="width:32%">Reference / Page No.</th></tr>
     <tr><td>1.</td><td>Memo of Parties</td><td>Annexure A</td></tr>
@@ -284,6 +378,7 @@ exports[`court-rules-golden — annexures pack HTML per court bihar_district ren
   <div class="annexure-label">ANNEXURE C</div>
   <h2>Index of Documents Annexed</h2>
   <br>
+  <p><strong>Nature of matter:</strong> Anticipatory Bail Application</p>
   <table>
     <tr><th style="width:8%">Sr.</th><th>Document</th><th style="width:32%">Reference / Page No.</th></tr>
     <tr><td>1.</td><td>Memo of Parties</td><td>Annexure A</td></tr>
@@ -347,8 +442,7 @@ exports[`court-rules-golden — annexures pack HTML per court bihar_district ren
   <table>
     <tr><th>Sr.</th><th>Description</th><th>Amount (₹)</th><th>Mode of Payment</th></tr>
     <tr><td>1.</td><td>Court fee on application/petition</td><td>___________</td><td>Court Fee Stamp / DD / Online</td></tr>
-    <tr><td>2.</td><td>Process fee</td><td>___________</td><td>___________</td></tr>
-    <tr><td>3.</td><td>Miscellaneous (if any)</td><td>___________</td><td>___________</td></tr>
+    <tr><td>2.</td><td>Miscellaneous (if any)</td><td>___________</td><td>___________</td></tr>
     <tr><td colspan="2"><strong>Total</strong></td><td colspan="2"><strong>___________</strong></td></tr>
   </table>
   <p style="margin-top:1em"><em>Note: Court fee amounts to be confirmed from the applicable Court Fees Act / schedule in force for the relevant court. The advocate must affix court fee stamps or attach proof of online payment before filing.</em></p>
@@ -476,6 +570,7 @@ exports[`court-rules-golden — annexures pack HTML per court cjm_generic render
   <div class="annexure-label">ANNEXURE C</div>
   <h2>Index of Documents Annexed</h2>
   <br>
+  <p><strong>Nature of matter:</strong> Anticipatory Bail Application</p>
   <table>
     <tr><th style="width:8%">Sr.</th><th>Document</th><th style="width:32%">Reference / Page No.</th></tr>
     <tr><td>1.</td><td>Memo of Parties</td><td>Annexure A</td></tr>
@@ -539,8 +634,7 @@ exports[`court-rules-golden — annexures pack HTML per court cjm_generic render
   <table>
     <tr><th>Sr.</th><th>Description</th><th>Amount (₹)</th><th>Mode of Payment</th></tr>
     <tr><td>1.</td><td>Court fee on application/petition</td><td>___________</td><td>Court Fee Stamp / DD / Online</td></tr>
-    <tr><td>2.</td><td>Process fee</td><td>___________</td><td>___________</td></tr>
-    <tr><td>3.</td><td>Miscellaneous (if any)</td><td>___________</td><td>___________</td></tr>
+    <tr><td>2.</td><td>Miscellaneous (if any)</td><td>___________</td><td>___________</td></tr>
     <tr><td colspan="2"><strong>Total</strong></td><td colspan="2"><strong>___________</strong></td></tr>
   </table>
   <p style="margin-top:1em"><em>Note: Court fee amounts to be confirmed from the applicable Court Fees Act / schedule in force for the relevant court. The advocate must affix court fee stamps or attach proof of online payment before filing.</em></p>
@@ -668,6 +762,7 @@ exports[`court-rules-golden — annexures pack HTML per court consumer_commissio
   <div class="annexure-label">ANNEXURE C</div>
   <h2>Index of Documents Annexed</h2>
   <br>
+  <p><strong>Nature of matter:</strong> Anticipatory Bail Application</p>
   <table>
     <tr><th style="width:8%">Sr.</th><th>Document</th><th style="width:32%">Reference / Page No.</th></tr>
     <tr><td>1.</td><td>Memo of Parties</td><td>Annexure A</td></tr>
@@ -731,8 +826,7 @@ exports[`court-rules-golden — annexures pack HTML per court consumer_commissio
   <table>
     <tr><th>Sr.</th><th>Description</th><th>Amount (₹)</th><th>Mode of Payment</th></tr>
     <tr><td>1.</td><td>Court fee on application/petition</td><td>___________</td><td>Court Fee Stamp / DD / Online</td></tr>
-    <tr><td>2.</td><td>Process fee</td><td>___________</td><td>___________</td></tr>
-    <tr><td>3.</td><td>Miscellaneous (if any)</td><td>___________</td><td>___________</td></tr>
+    <tr><td>2.</td><td>Miscellaneous (if any)</td><td>___________</td><td>___________</td></tr>
     <tr><td colspan="2"><strong>Total</strong></td><td colspan="2"><strong>___________</strong></td></tr>
   </table>
   <p style="margin-top:1em"><em>Note: Court fee amounts to be confirmed from the applicable Court Fees Act / schedule in force for the relevant court. The advocate must affix court fee stamps or attach proof of online payment before filing.</em></p>
@@ -860,6 +954,7 @@ exports[`court-rules-golden — annexures pack HTML per court delhi_district ren
   <div class="annexure-label">ANNEXURE C</div>
   <h2>Index of Documents Annexed</h2>
   <br>
+  <p><strong>Nature of matter:</strong> Anticipatory Bail Application</p>
   <table>
     <tr><th style="width:8%">Sr.</th><th>Document</th><th style="width:32%">Reference / Page No.</th></tr>
     <tr><td>1.</td><td>Memo of Parties</td><td>Annexure A</td></tr>
@@ -923,8 +1018,7 @@ exports[`court-rules-golden — annexures pack HTML per court delhi_district ren
   <table>
     <tr><th>Sr.</th><th>Description</th><th>Amount (₹)</th><th>Mode of Payment</th></tr>
     <tr><td>1.</td><td>Court fee on application/petition</td><td>___________</td><td>Court Fee Stamp / DD / Online</td></tr>
-    <tr><td>2.</td><td>Process fee</td><td>___________</td><td>___________</td></tr>
-    <tr><td>3.</td><td>Miscellaneous (if any)</td><td>___________</td><td>___________</td></tr>
+    <tr><td>2.</td><td>Miscellaneous (if any)</td><td>___________</td><td>___________</td></tr>
     <tr><td colspan="2"><strong>Total</strong></td><td colspan="2"><strong>___________</strong></td></tr>
   </table>
   <p style="margin-top:1em"><em>Note: Court fee amounts to be confirmed from the applicable Court Fees Act / schedule in force for the relevant court. The advocate must affix court fee stamps or attach proof of online payment before filing.</em></p>
@@ -1071,6 +1165,7 @@ exports[`court-rules-golden — annexures pack HTML per court delhi_hc renders a
   <div class="annexure-label">ANNEXURE D</div>
   <h2>Index of Documents Annexed</h2>
   <br>
+  <p><strong>Nature of matter:</strong> Anticipatory Bail Application</p>
   <table>
     <tr><th style="width:8%">Sr.</th><th>Document</th><th style="width:32%">Reference / Page No.</th></tr>
     <tr><td>1.</td><td>Memo of Parties</td><td>Annexure A</td></tr>
@@ -1264,6 +1359,7 @@ exports[`court-rules-golden — annexures pack HTML per court district_court_gen
   <div class="annexure-label">ANNEXURE C</div>
   <h2>Index of Documents Annexed</h2>
   <br>
+  <p><strong>Nature of matter:</strong> Anticipatory Bail Application</p>
   <table>
     <tr><th style="width:8%">Sr.</th><th>Document</th><th style="width:32%">Reference / Page No.</th></tr>
     <tr><td>1.</td><td>Memo of Parties</td><td>Annexure A</td></tr>
@@ -1327,8 +1423,7 @@ exports[`court-rules-golden — annexures pack HTML per court district_court_gen
   <table>
     <tr><th>Sr.</th><th>Description</th><th>Amount (₹)</th><th>Mode of Payment</th></tr>
     <tr><td>1.</td><td>Court fee on application/petition</td><td>___________</td><td>Court Fee Stamp / DD / Online</td></tr>
-    <tr><td>2.</td><td>Process fee</td><td>___________</td><td>___________</td></tr>
-    <tr><td>3.</td><td>Miscellaneous (if any)</td><td>___________</td><td>___________</td></tr>
+    <tr><td>2.</td><td>Miscellaneous (if any)</td><td>___________</td><td>___________</td></tr>
     <tr><td colspan="2"><strong>Total</strong></td><td colspan="2"><strong>___________</strong></td></tr>
   </table>
   <p style="margin-top:1em"><em>Note: Court fee amounts to be confirmed from the applicable Court Fees Act / schedule in force for the relevant court. The advocate must affix court fee stamps or attach proof of online payment before filing.</em></p>
@@ -1456,6 +1551,7 @@ exports[`court-rules-golden — annexures pack HTML per court jharkhand_district
   <div class="annexure-label">ANNEXURE C</div>
   <h2>Index of Documents Annexed</h2>
   <br>
+  <p><strong>Nature of matter:</strong> Anticipatory Bail Application</p>
   <table>
     <tr><th style="width:8%">Sr.</th><th>Document</th><th style="width:32%">Reference / Page No.</th></tr>
     <tr><td>1.</td><td>Memo of Parties</td><td>Annexure A</td></tr>
@@ -1519,8 +1615,7 @@ exports[`court-rules-golden — annexures pack HTML per court jharkhand_district
   <table>
     <tr><th>Sr.</th><th>Description</th><th>Amount (₹)</th><th>Mode of Payment</th></tr>
     <tr><td>1.</td><td>Court fee on application/petition</td><td>___________</td><td>Court Fee Stamp / DD / Online</td></tr>
-    <tr><td>2.</td><td>Process fee</td><td>___________</td><td>___________</td></tr>
-    <tr><td>3.</td><td>Miscellaneous (if any)</td><td>___________</td><td>___________</td></tr>
+    <tr><td>2.</td><td>Miscellaneous (if any)</td><td>___________</td><td>___________</td></tr>
     <tr><td colspan="2"><strong>Total</strong></td><td colspan="2"><strong>___________</strong></td></tr>
   </table>
   <p style="margin-top:1em"><em>Note: Court fee amounts to be confirmed from the applicable Court Fees Act / schedule in force for the relevant court. The advocate must affix court fee stamps or attach proof of online payment before filing.</em></p>
@@ -1667,6 +1762,7 @@ exports[`court-rules-golden — annexures pack HTML per court jharkhand_hc rende
   <div class="annexure-label">ANNEXURE D</div>
   <h2>Index of Documents Annexed</h2>
   <br>
+  <p><strong>Nature of matter:</strong> Anticipatory Bail Application</p>
   <table>
     <tr><th style="width:8%">Sr.</th><th>Document</th><th style="width:32%">Reference / Page No.</th></tr>
     <tr><td>1.</td><td>Memo of Parties</td><td>Annexure A</td></tr>
@@ -1860,6 +1956,7 @@ exports[`court-rules-golden — annexures pack HTML per court jmfc_generic rende
   <div class="annexure-label">ANNEXURE C</div>
   <h2>Index of Documents Annexed</h2>
   <br>
+  <p><strong>Nature of matter:</strong> Anticipatory Bail Application</p>
   <table>
     <tr><th style="width:8%">Sr.</th><th>Document</th><th style="width:32%">Reference / Page No.</th></tr>
     <tr><td>1.</td><td>Memo of Parties</td><td>Annexure A</td></tr>
@@ -1923,8 +2020,7 @@ exports[`court-rules-golden — annexures pack HTML per court jmfc_generic rende
   <table>
     <tr><th>Sr.</th><th>Description</th><th>Amount (₹)</th><th>Mode of Payment</th></tr>
     <tr><td>1.</td><td>Court fee on application/petition</td><td>___________</td><td>Court Fee Stamp / DD / Online</td></tr>
-    <tr><td>2.</td><td>Process fee</td><td>___________</td><td>___________</td></tr>
-    <tr><td>3.</td><td>Miscellaneous (if any)</td><td>___________</td><td>___________</td></tr>
+    <tr><td>2.</td><td>Miscellaneous (if any)</td><td>___________</td><td>___________</td></tr>
     <tr><td colspan="2"><strong>Total</strong></td><td colspan="2"><strong>___________</strong></td></tr>
   </table>
   <p style="margin-top:1em"><em>Note: Court fee amounts to be confirmed from the applicable Court Fees Act / schedule in force for the relevant court. The advocate must affix court fee stamps or attach proof of online payment before filing.</em></p>
@@ -2071,6 +2167,7 @@ exports[`court-rules-golden — annexures pack HTML per court patna_hc renders a
   <div class="annexure-label">ANNEXURE D</div>
   <h2>Index of Documents Annexed</h2>
   <br>
+  <p><strong>Nature of matter:</strong> Anticipatory Bail Application</p>
   <table>
     <tr><th style="width:8%">Sr.</th><th>Document</th><th style="width:32%">Reference / Page No.</th></tr>
     <tr><td>1.</td><td>Memo of Parties</td><td>Annexure A</td></tr>
@@ -2264,6 +2361,7 @@ exports[`court-rules-golden — annexures pack HTML per court sessions_generic r
   <div class="annexure-label">ANNEXURE C</div>
   <h2>Index of Documents Annexed</h2>
   <br>
+  <p><strong>Nature of matter:</strong> Anticipatory Bail Application</p>
   <table>
     <tr><th style="width:8%">Sr.</th><th>Document</th><th style="width:32%">Reference / Page No.</th></tr>
     <tr><td>1.</td><td>Memo of Parties</td><td>Annexure A</td></tr>
@@ -2327,8 +2425,7 @@ exports[`court-rules-golden — annexures pack HTML per court sessions_generic r
   <table>
     <tr><th>Sr.</th><th>Description</th><th>Amount (₹)</th><th>Mode of Payment</th></tr>
     <tr><td>1.</td><td>Court fee on application/petition</td><td>___________</td><td>Court Fee Stamp / DD / Online</td></tr>
-    <tr><td>2.</td><td>Process fee</td><td>___________</td><td>___________</td></tr>
-    <tr><td>3.</td><td>Miscellaneous (if any)</td><td>___________</td><td>___________</td></tr>
+    <tr><td>2.</td><td>Miscellaneous (if any)</td><td>___________</td><td>___________</td></tr>
     <tr><td colspan="2"><strong>Total</strong></td><td colspan="2"><strong>___________</strong></td></tr>
   </table>
   <p style="margin-top:1em"><em>Note: Court fee amounts to be confirmed from the applicable Court Fees Act / schedule in force for the relevant court. The advocate must affix court fee stamps or attach proof of online payment before filing.</em></p>
@@ -2456,6 +2553,7 @@ exports[`court-rules-golden — annexures pack HTML per court up_district render
   <div class="annexure-label">ANNEXURE C</div>
   <h2>Index of Documents Annexed</h2>
   <br>
+  <p><strong>Nature of matter:</strong> Anticipatory Bail Application</p>
   <table>
     <tr><th style="width:8%">Sr.</th><th>Document</th><th style="width:32%">Reference / Page No.</th></tr>
     <tr><td>1.</td><td>Memo of Parties</td><td>Annexure A</td></tr>
@@ -2519,8 +2617,7 @@ exports[`court-rules-golden — annexures pack HTML per court up_district render
   <table>
     <tr><th>Sr.</th><th>Description</th><th>Amount (₹)</th><th>Mode of Payment</th></tr>
     <tr><td>1.</td><td>Court fee on application/petition</td><td>___________</td><td>Court Fee Stamp / DD / Online</td></tr>
-    <tr><td>2.</td><td>Process fee</td><td>___________</td><td>___________</td></tr>
-    <tr><td>3.</td><td>Miscellaneous (if any)</td><td>___________</td><td>___________</td></tr>
+    <tr><td>2.</td><td>Miscellaneous (if any)</td><td>___________</td><td>___________</td></tr>
     <tr><td colspan="2"><strong>Total</strong></td><td colspan="2"><strong>___________</strong></td></tr>
   </table>
   <p style="margin-top:1em"><em>Note: Court fee amounts to be confirmed from the applicable Court Fees Act / schedule in force for the relevant court. The advocate must affix court fee stamps or attach proof of online payment before filing.</em></p>
