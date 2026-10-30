@@ -82,6 +82,7 @@ import {
   unitsFromInk,
   wasInkSettled,
 } from '../services/credits.service';
+import { docTypeLabelFor } from '../services/doc-type-label';
 import { eraseDocument } from '../services/document-erase.service';
 import { packOptionIds, skeletonValueLists, skeletonWhenHolds } from '../services/draft-renderer';
 import {
@@ -2242,10 +2243,31 @@ router.get(
     // T-674 AC3 (R4): the screen gets a label, never the stored court id.
     const courtLabel = await resolveCourtLabel(doc.courtName);
 
+    // T-689: the pack's own name for the document type; the stored docType is a
+    // coarse enum. No pack, the guided id (its kind name sits in the encrypted
+    // brief, which is not read for this) or an unreadable pack gives null and the
+    // page falls back to the humanised docType. Never fails the request.
+    let docTypeLabel: string | null = null;
+    if (
+      typeof doc.rulePackId === 'string' &&
+      doc.rulePackId !== '' &&
+      doc.rulePackId !== GUIDED_ID
+    ) {
+      try {
+        docTypeLabel = docTypeLabelFor(loadRulePack(doc.rulePackId));
+      } catch (err) {
+        console.error(
+          `[drafting] Get document: could not read the rule pack of document ${String(doc._id)}:`,
+          err instanceof Error ? err.name : 'UnknownError',
+        );
+      }
+    }
+
     res.json({
       _id: doc._id,
       title: displayTitle(doc.title, doc.courtName, courtLabel),
       docType: doc.docType,
+      docTypeLabel,
       courtType: doc.courtType,
       courtName: doc.courtName,
       courtLabel,

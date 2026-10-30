@@ -22,3 +22,4 @@ Anushka's test script had a fixed 400 s wait after Confirm, so the 440–452 s t
 
 ## Closed as a latency issue (Arjun, 29 Oct 2026)
 Anushka timed one real bail draft: Confirm to "Your draft is ready" took 6.1 s. The server run takes 35 s on the WS case, and intake rounds take about 40 s. There is no latency defect, and the "7–8 min" item is removed. T-681 is now hygiene only: T-681a and T-681b, low priority.
+- Minor (Anushka v1.2.7): the loan-date question offers only "Date of filing / Not needed" as answers. Add a proper date option.

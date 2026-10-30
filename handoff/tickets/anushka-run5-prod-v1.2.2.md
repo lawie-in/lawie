@@ -201,3 +201,34 @@ Would I use this on a real matter today? On this item, yes: the WS now drafts wi
 ```
 
 Arjun: T-678 closed on prod at v1.2.6 (main aaed820c). Minors → T-674 (court name consistency list/heading/file name; Karnataka Civil Judge type), a small "Type: Petition" label fix, and the WS para-2 time-limit placeholder text is legal content for Ajay (new ticket). Dropped amounts = T-679, a v3 acceptance case.
+
+# Anushka run 5f — production v1.2.7, headline T-686 (+T-690/T-690b) re-check (30 Oct 2026, 00:27–01:05 UTC)
+
+Verbatim from session_01BmgAoYMpkTNwnBnT9k1DWA; scope = court names not codes, WS time-limit line and late warning, PDF smoke; 1 draft.
+
+```
+VERDICT: FAIL
+Tested: https://lawie.in (prod, v1.2.7) · 30 Oct 2026, 00:27–~01:05 UTC · same test account, 38 Ink at start, 36 at end · 1280 wide. Scope: court names not codes, WS time-limit line and late warning, PDF smoke.
+
+Scenarios
+| # | What I did | Expected | What happened | Result |
+| 1 | Scanned court lists in the brief: UP, Bihar, Telangana, Kerala, Rajasthan, Delhi, Tamil Nadu, West Bengal, Gujarat, Assam; every court type (62 lists) | No entry looks like a code | No entry with an underscore or a lowercase id; all read like "District Court, Patna", "Civil Court (Senior Division), Patna" | Pass |
+| 2 | Mysuru WS, description "Summons served on 01.07.2026." (121 days before today); same answers; court "District Court, Mysuru"; Confirm | Correct time-limit line; amber warning; still drafts | Brief and draft line: "due within 30; the court may allow up to 90 for recorded reasons; 120 is the outer limit in a commercial suit". Brief shows "Date of service or receipt … 1 July 2026". NO amber or late warning on the brief or the ready screen. Draft made (2 Ink). Para 2: "Summons in the suit was served on the Defendant on 1 July 2026." | Fail (warning) |
+| 3 | Same brief, typed "121" into "Days from service of summons", clicked elsewhere (brief only, no draft) | Amber warning | Value kept ("121"); only line shown: "Still unknown. These will be blanks in the draft."; no warning | Fail |
+| 4 | Heading, Document info and PDF of draft 2 | Court name, no code; real PDF | Heading "IN THE COURT OF DISTRICT & SESSIONS JUDGE, MYSURU"; Document info "District Court, Mysuru"; no "_district/_sessions/_civil" text; file "Written Statement Order VIII CPC  IN THE COURT OF DISTRICT J.pdf", 64,157 B, starts "%PDF" | Pass |
+
+Findings
+- Major: no late-filing warning. Service date 1 July 2026 is on the brief and in the draft, and 121 days was typed in, yet nothing warns that the WS is past 90 days. A careful advocate filing late needs that warning to prepare the delay application. Steps: New document → WS with "Summons served on 01.07.2026." → brief (optionally type 121 in "Days from service of summons") → no warning at any point.
+- Minor:
+  - The brief asks of the loan date "You wrote 10 January 2025. What is it the date of?" with only "Date of filing" / "Not needed" as choices.
+  - Document info still shows "Type: Petition" (T-689, known).
+  - Heading "DISTRICT & SESSIONS JUDGE" vs list/file name "DISTRICT JUDGE" (T-674, known).
+- Seen, outside scope: UP "District Court" still lists only Lucknow (T-674). Given facts still dropped: the result screen itself says "We could not find this from your brief in the draft: … receipt of Rs. 2,00,000 admitted … Bank statement … UTR SBIN0000123456" (v1.3 items).
+- The "Court unavailable, try again" path could not be reached (no switched-off court visible), as you said; a hand-typed court was not tried because the court box offers a list only.
+
+Not tested: hand-typed court drafting; phone width (not asked). Drafts used: 1 of 2.
+
+Would I use this on a real matter today? No: a written statement 121 days after service drafts with no warning that it is out of time.
+```
+
+Arjun: T-686 and T-690 pass on prod; T-690b (>90-day warning) fails — strike 1, re-opened with Kunal (warning not reached on the brief path). v1.2.7 stays deployed (nothing regressed).
