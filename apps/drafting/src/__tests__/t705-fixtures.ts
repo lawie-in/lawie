@@ -118,6 +118,7 @@ export async function seedWorld(userId: string, topup = 2000): Promise<void> {
   _clearAppSettingsCache();
   await AppSetting.create({ key: 'ai.drafting_model', value: MODEL });
   await AppSetting.create({ key: 'feature.describe_first', value: 'on' });
+  await AppSetting.create({ key: 'feature.revisions', value: 'on' });
   await AppSetting.create({
     key: `ai.rates.${MODEL}`,
     value: JSON.stringify({ input_usd_per_mtok: 3, output_usd_per_mtok: 15 }),

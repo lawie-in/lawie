@@ -102,7 +102,9 @@ import { FACT_CHECK_DISCLAIMER } from '../services/fact-verifier';
 import {
   bodyField,
   hiddenTemplateIds,
+  isSwitchOn,
   isTemplateEnabled,
+  REVISIONS_SETTING,
   TEMPLATE_NOT_FOUND,
   templateGuard,
 } from '../services/feature-switches';
@@ -2418,6 +2420,20 @@ export async function originalDraftQuote(
   return { ink: listed ?? null, initial };
 }
 
+/**
+ * T-705 follow-up: revisions ship dark behind `feature.revisions` (per user,
+ * AppSetting only, off in code; fixture users on). Off: the same 404
+ * `{ error: 'not_enabled' }` as describeFirstOnly, before any read of the
+ * document. isSwitchOn never throws; a read error is off.
+ */
+async function revisionsOnly(req: Request, res: Response, next: NextFunction): Promise<void> {
+  if (!(await isSwitchOn(REVISIONS_SETTING, req.jwtPayload!.sub))) {
+    res.status(404).json({ error: 'not_enabled' });
+    return;
+  }
+  next();
+}
+
 /** T-705: the price of the next revision: 0 for the first, else the original quote. */
 function nextRevisionInk(count: number, originalInk: number | null): number | null {
   return count === 0 ? 0 : originalInk;
@@ -2427,6 +2443,7 @@ router.post(
   '/:id/revise',
   validateObjectId,
   authenticate,
+  revisionsOnly, // T-705 follow-up: first after auth, before any read of the document
   requireCurrentPrivacy, // as generate-from-brief: a revision is a new draft text
   requireVerifiedEmail,
   describeFirstOnly,
@@ -3099,9 +3116,12 @@ router.get(
     // T-705: the revision state, and the original quote the dialog's cost line
     // needs. A failed read only hides the price (originalInk null); ids only.
     const revisions = revisionState(doc);
-    const revisable = isRevisableDoc(doc);
+    const docRevisable = isRevisableDoc(doc);
+    // T-705 follow-up: `revisable` is false while feature.revisions is off for this
+    // user, so the Revise button hides. The other revision fields are unchanged.
+    const revisable = docRevisable && (await isSwitchOn(REVISIONS_SETTING, payload.sub));
     let originalInk: number | null = null;
-    if (revisable) {
+    if (docRevisable) {
       try {
         originalInk = (
           await originalDraftQuote(payload.sub, doc.runId as string, doc.rulePackId as string)

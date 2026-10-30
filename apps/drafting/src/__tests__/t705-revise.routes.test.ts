@@ -17,6 +17,9 @@ import { Generation } from '../models/Generation.model';
 import { User } from '../models/User.model';
 import * as aiService from '../services/ai.service';
 import { GenerationFailedError, REVISION_INSTRUCTION } from '../services/ai.service';
+import { AppSetting } from '../models/AppSetting.model';
+import { _clearAppSettingsCache } from '../services/app-settings.service';
+import { GOLDEN_SET_USER_ID } from '../services/run-origin';
 import { releaseInk } from '../services/credits.service';
 import { setLlmCallListener, type LlmCallRecord } from '../services/llm-usage';
 import { draftAsText } from '../utils/draft-text';
@@ -879,6 +882,57 @@ describe('what the drafter is sent', () => {
     const { docId } = await draft();
     await rev(docId);
     expect(sentOf(0).model).toBe('claude-sonnet-4-5-20250929');
+  });
+});
+
+describe('feature.revisions switch (ships dark)', () => {
+  const setSwitch = async (value: 'on' | 'off' | null) => {
+    await AppSetting.deleteOne({ key: 'feature.revisions' });
+    if (value) await AppSetting.create({ key: 'feature.revisions', value });
+    _clearAppSettingsCache();
+  };
+
+  it.each([
+    ['absent', null],
+    ['off', 'off'],
+  ] as const)(
+    'switch %s: POST 404 not_enabled before validation, no hold, document unchanged; GET revisable false',
+    async (_n, value) => {
+      const { docId } = await draft();
+      const before = (await docRow(docId))!;
+      await setSwitch(value);
+      mockMessagesStream.mockReset();
+      // an invalid body too: the switch answers before validation
+      for (const body of [{ note: NOTE, expected_ink: 0 }, {}]) {
+        const res = await request(app).post(`/${docId}/revise`).set(headersFor(USER_ID)).send(body);
+        expect(res.status).toBe(404);
+        expect(res.body).toEqual({ error: 'not_enabled' });
+      }
+      await expectNothingHappened(docId, before);
+      const get = await request(app).get(`/${docId}`).set(headersFor(USER_ID));
+      expect(get.status).toBe(200);
+      expect(get.body.revisable).toBe(false);
+    },
+  );
+
+  it('switch on: the normal path works and GET says revisable', async () => {
+    const { docId } = await draft();
+    await setSwitch('on');
+    expect((await request(app).get(`/${docId}`).set(headersFor(USER_ID))).body.revisable).toBe(
+      true,
+    );
+    const res = await rev(docId);
+    expect(res.status).toBe(200);
+    expect(sseEvent(res.text, 'done')).toMatchObject({ revisions: { count: 1, freeUsed: true } });
+  });
+
+  it('a fixture (golden-set) user is always on, even with the switch absent', async () => {
+    await setSwitch(null);
+    const res = await request(app)
+      .post(`/${new mongoose.Types.ObjectId().toString()}/revise`)
+      .set(headersFor(GOLDEN_SET_USER_ID))
+      .send({ note: NOTE, expected_ink: 0 });
+    expect(res.body).not.toEqual({ error: 'not_enabled' });
   });
 });
 
