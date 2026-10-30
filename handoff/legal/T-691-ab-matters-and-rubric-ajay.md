@@ -50,3 +50,13 @@ I read all eight myself. Facts: fictional placeholders throughout. BNS/BNSS sect
 Edits are limited to the `ajay` field, the 41/43/44 scoring note, the 45 police-station option, the 45/46 gap tags and the 41–43 `why` text. A delta limited to those I approve on sight.
 
 **Re-check at commit SHA f9eee4b1 (Ajay, 30 Oct 2026).** The only fixture change since ba9a2828 is the reworded `why` in 46, which I accept; the rest is test-script changes. The signing above carries over to f9eee4b1. My edits (the ajay field, the 41/43/44 court note, the 45 police-station option, the 45/46 gap tags, the 41–43 valuation `why`) are **not yet applied**. A delta limited to them I approve on sight.
+
+**T-691 final (Ajay, 30 Oct 2026): commit SHA ab15d5e8.** I checked the delta from f9eee4b1 myself:
+- the `ajay` field on all 8 fixtures;
+- the 41/43/44 source notes for the T-674 court scoring exclusion (district courts kept);
+- the 45 police-station option and the T-665b whys;
+- the O.VII R.1(i) whys on 41–43;
+- the T-683c gap tags on 45/46;
+- test-driver updates.
+
+No facts changed. This is within the pre-approved scope. **Fixtures 39–46 SIGNED at ab15d5e8; the A/B may run** (with goldens 23 and 24).
