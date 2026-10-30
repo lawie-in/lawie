@@ -1,6 +1,6 @@
 # T-691b: Move the golden-set DB off production onto a fixtures cluster
 
-Status: waiting on the founder (cluster creation). Raised 30 Oct 2026 by Arjun. This settles the Atlas question from T-659.
+Status: RESCOPED by the founder 30 Oct 2026: no separate fixtures cluster. Instead, golden-set and other test runs tag everything they write with a distinct, recognisable runId (e.g. a test prefix), so test data can be told apart from customer data and cleaned up. Arjun designs it. Was: waiting on the founder (cluster creation). Raised 30 Oct 2026 by Arjun. This settles the Atlas question from T-659.
 
 ## Why
 GOLDEN_SET_MONGODB_URI points at PRODUCTION. The nightly golden set writes runType=fixture rows to prod. We will not open the prod cluster to 0.0.0.0/0 for a test job.
