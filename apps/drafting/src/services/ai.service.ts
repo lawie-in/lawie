@@ -26,7 +26,7 @@ import type { RunType } from '../models/Generation.model';
 import type { LoadSkeleton, Skeleton } from '../types/skeleton';
 import { startSseKeepAlive } from '../utils/sse-keepalive';
 
-import { APP_SETTING_KEYS, AppSettingMissingError, getAppSetting } from './app-settings.service';
+import { AppSettingMissingError } from './app-settings.service';
 import { AvermentLists, loadAvermentLists, resolveAverments } from './averments';
 import {
   briefText,
@@ -163,6 +163,7 @@ import {
   parseAnthropicMessageUsage,
   parseAnthropicStreamEvent,
   ParsedStreamFragment,
+  resolveModel,
   UsageMeter,
   UsageTotals,
 } from './llm-usage';
@@ -339,11 +340,11 @@ export async function* streamLLM(
   options: StreamLLMOptions = {},
 ): AsyncGenerator<string> {
   // Model lives in the AppSetting Mongo collection — NOT in env or in the
-  // codebase (per founder instruction 2026-05-11). If unset, getAppSetting
-  // throws AppSettingMissingError which propagates to the route → emitted as
-  // SSE `event: error` so the advocate sees a clear "configure ai.drafting_model
-  // in /admin/ai-config" message.
-  const model = await getAppSetting(APP_SETTING_KEYS.DRAFTING_MODEL);
+  // codebase (per founder instruction 2026-05-11). T-684: the drafter role
+  // (ai.model.drafter, falling back to ai.drafting_model for one release). If
+  // unset, resolveModel throws AppSettingMissingError which propagates to the
+  // route → emitted as SSE `event: error`; the key goes to the log only.
+  const model = await resolveModel('drafter');
   if (usage) {
     usage.model = model;
     usage.transport = 'direct';
@@ -1171,6 +1172,11 @@ export interface TemplateGenerateInput {
    * runs on this route (Ajay FR-2), whatever `feature.fact_ledger` says.
    */
   gate?: { pack: RulePack; lists: AvermentLists };
+  /**
+   * T-686: the form's court, already resolved by the route (court-resolve.service)
+   * before the Ink hold, so the court is looked up once. Absent: looked up here.
+   */
+  resolvedCourt?: CourtLookupData;
 }
 
 /**
@@ -1252,9 +1258,10 @@ export async function streamGenerateFromTemplate(
   }
 
   // ── Look up court data from DB (SCRUM-50) ─────────────────────────────────
-  let courtData: CourtLookupData | undefined;
+  // T-686: a court the route already resolved is not looked up again.
+  let courtData: CourtLookupData | undefined = input.resolvedCourt;
   const courtId = String(convertedFormData.court_name ?? '');
-  if (courtId) {
+  if (courtId && !courtData) {
     try {
       const court = await Court.findOne({ courtId, isActive: true }).maxTimeMS(5000).lean();
       if (court) {
@@ -3380,7 +3387,7 @@ async function callD1Drafter(
   format: AutoParseableOutputFormat<DraftParagraphsOutput | null>,
   usage: CallUsageDraft,
 ): Promise<DraftParagraphsOutput | null> {
-  const model = await getAppSetting(APP_SETTING_KEYS.DRAFTING_MODEL);
+  const model = await resolveModel('drafter');
   usage.model = model;
   usage.transport = 'direct';
   // T-453: effort from ai.effort.body (default medium). Never throws.

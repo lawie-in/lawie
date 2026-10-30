@@ -417,6 +417,8 @@ function NewDocumentContent() {
             const data = await res.json();
             errorBody = data;
             reason = data.error ?? data.message ?? reason;
+            // T-686: the card reads the code (court_unavailable shows its own line).
+            if (typeof data.error === 'string') setGenerationErrorCode(data.error);
             // 402 Insufficient credits — open the paywall modal instead of the
             // generation_failed card. The shape is { cost, balance: {...} } from
             // enforceCredits. T-664 (AJ-664-M1): the paywall shows `balance.totalInk`, the

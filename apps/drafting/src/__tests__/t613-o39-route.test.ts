@@ -9,6 +9,7 @@ import app from '../app';
 import { AppSetting } from '../models/AppSetting.model';
 import { LawieDocument } from '../models/Document.model';
 import { Generation } from '../models/Generation.model';
+import { seedCourts } from './seedCourts';
 import { createVerifiedUser } from './verifiedUser';
 import { _clearAppSettingsCache } from '../services/app-settings.service';
 import { sdkAnswer } from './sdkStream';
@@ -75,6 +76,9 @@ async function run(courtType: string, courtName: string) {
       form_data: { ...FORM, court_type: courtType, court_name: courtName },
     });
 }
+
+// T-686: an id-shaped court with no active row stops the run, so the court is seeded.
+seedCourts('bihar_civil_junior_patna');
 
 describe('T-613 E (route): O.39 saved document and generation record', () => {
   it('stores docType "injunction" (not "petition") on the document and the Generation', async () => {

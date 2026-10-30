@@ -19,7 +19,12 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-import { FACT_QUESTION_CODES, generationFailureCopy } from '@/components/intake/generationFailure';
+import {
+  COURT_UNAVAILABLE,
+  COURT_UNAVAILABLE_CODE,
+  FACT_QUESTION_CODES,
+  generationFailureCopy,
+} from '@/components/intake/generationFailure';
 import InkCostLine, { inkCostState } from '@/components/intake/InkCostLine';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -753,7 +758,12 @@ function GenerationFailedCard({
       : generationFailure === 'not_started'
         ? [DRAFT_COULD_NOT_START]
         : generationFailure === 'request_failed'
-          ? [SOMETHING_DID_NOT_WORK]
+          ? // T-686: a picked court id that did not resolve (503); Retry stays.
+            [
+              generationErrorCode === COURT_UNAVAILABLE_CODE
+                ? COURT_UNAVAILABLE
+                : SOMETHING_DID_NOT_WORK,
+            ]
           : generationFailure === 'in_progress'
             ? [CHECK_DOCUMENTS_LIST]
             : generationFailure === 'plan_required'
