@@ -393,8 +393,11 @@ interface MemoOptions {
   rows?: MemoRow[];
   /** AJ-700a (2): writ_petition_criminal's party is the Petitioner, never the Applicant. */
   petitionerRole?: boolean;
-  /** AJ-700 (3): another civil pack's own roles (its cause title), after the signed labels. */
-  packLabels?: readonly [string, string] | null;
+  /**
+   * AJ-700 (3): another civil pack's own roles (its cause title, AJ-700b (H):
+   * only as printed there), after the signed labels.
+   */
+  packLabels?: readonly [string | undefined, string | undefined] | null;
 }
 
 /** The client's age, relation and address lines, as the Memo has always printed them. */
@@ -673,10 +676,56 @@ export function annexureSetFor(packId: string | null | undefined): AnnexureSet {
   return 'civil_other';
 }
 
-/** The pack's first two cause-title roles (its own party labels), or null. */
-function packPartyLabels(pack: RulePack | null): readonly [string, string] | null {
-  const d = pack?.causeTitle?.partyDesignations ?? [];
-  return d.length >= 2 ? [d[0].label, d[1].label] : null;
+/**
+ * T-700, AJ-700b (H): the pack's i-th cause-title role label, only where the
+ * cause title itself prints it ("... <label>" in its format). A label that is
+ * only a form hint (e.g. "Defendants (all coparceners / co-sharers including
+ * women)") never prints in a document: undefined.
+ */
+function printedRoleLabel(pack: RulePack | null, i: number): string | undefined {
+  const d = pack?.causeTitle?.partyDesignations[i];
+  if (!d) return undefined;
+  return pack?.causeTitle?.format.includes(`... ${d.label}`) ? d.label : undefined;
+}
+
+/** AJ-700 (1), AJ-700b (H): the civil role word for a cause-title role id. */
+const CIVIL_ROLE_WORDS: Readonly<Record<string, string>> = {
+  plaintiff: 'Plaintiff',
+  defendant: 'Defendant',
+  defendants: 'Defendant',
+};
+
+/**
+ * The Memo roles of a pleading or the O.39 application: each the printed
+ * cause-title label, else the role word for its role id; null when either is
+ * missing.
+ */
+function civilRoleLabels(pack: RulePack | null): readonly [string, string] | null {
+  const roles = pack?.causeTitle?.partyDesignations ?? [];
+  const at = (i: number): string | undefined =>
+    printedRoleLabel(pack, i) ??
+    (roles[i] && Object.prototype.hasOwnProperty.call(CIVIL_ROLE_WORDS, roles[i].role)
+      ? CIVIL_ROLE_WORDS[roles[i].role]
+      : undefined);
+  const first = at(0);
+  const second = at(1);
+  return first !== undefined && second !== undefined ? [first, second] : null;
+}
+
+/**
+ * T-700, AJ-700b (E): the Synopsis role and noun of a civil pack, from the
+ * pack: a plaint is the Plaintiff's plaint, a (civil) writ the Petitioner's
+ * petition. Null for every other civil pack: it gets no Synopsis, so the
+ * criminal "Applicant/Petitioner" / "petition/application" wording never
+ * prints on it.
+ */
+function civilSynopsisWording(
+  id: string,
+  category: string | null,
+): { role: string; noun: string } | null {
+  if (id.startsWith('plaint_')) return { role: 'Plaintiff', noun: 'plaint' };
+  if (category === 'writ') return { role: 'Petitioner', noun: 'petition' };
+  return null;
 }
 
 /**
@@ -852,13 +901,19 @@ function annexureSynopsis(
   label: string,
   nature: string,
   petitionerRole = false,
+  civil: { role: string; noun: string } | null = null,
 ): string {
   // T-424 (Ajay, 14 Oct): on a sided pack the party line is "Petitioner:" and
   // names the petitioner.
   const sided = clientSideOf(formData) !== null;
   const applicant = safeEsc(sided ? formData.petitioner_name : applicantNameOf(formData));
   // T-700 (AJ-700a (2)): writ_petition_criminal's party is the Petitioner.
-  const partyLabel = sided || petitionerRole ? 'Petitioner' : 'Applicant/Petitioner';
+  // AJ-700b (E): a civil pack's own role.
+  const partyLabel = civil
+    ? civil.role
+    : sided || petitionerRole
+      ? 'Petitioner'
+      : 'Applicant/Petitioner';
   const courtDesig = esc(rules.designation);
   const sections = str(formData.sections_charged ?? formData.bns_sections ?? formData.sections, '');
   const firNo = safeEsc(formData.fir_number ?? formData.fir_no ?? formData.complaint_number);
@@ -868,7 +923,8 @@ function annexureSynopsis(
   const bulletPoints: string[] = [
     `${partyLabel}: ${applicant}`,
     sections ? `Sections invoked: ${esc(sections)}` : '',
-    firNo !== '___________' ? `FIR/Complaint No.: ${firNo}, PS: ${ps}` : '',
+    // AJ-700 rule 0: no FIR line on a civil pack.
+    !civil && firNo !== '___________' ? `FIR/Complaint No.: ${firNo}, PS: ${ps}` : '',
     `Court: ${courtDesig}`,
     `Year: ${year}`,
   ].filter(Boolean);
@@ -884,7 +940,7 @@ function annexureSynopsis(
   <ul>
     ${bulletPoints.map((b) => `<li>${b}</li>`).join('\n    ')}
   </ul>
-  <p>The petitioner has approached this Hon'ble Court seeking relief as set out in the accompanying petition/application. The facts are briefly summarised hereunder for the convenience of this Hon'ble Court.</p>
+  <p>The ${civil ? civil.role.toLowerCase() : 'petitioner'} has approached this Hon'ble Court seeking relief as set out in the accompanying ${civil ? civil.noun : 'petition/application'}. The facts are briefly summarised hereunder for the convenience of this Hon'ble Court.</p>
   <p><em>[Advocate to insert 3–5 sentence summary of the factual background before filing.]</em></p>
   <div class="disclaimer">Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice.</div>
 </div>`;
@@ -1218,8 +1274,7 @@ function annexureCourtFeeStatement(
   <table>
     <tr><th>Sr.</th><th>Description</th><th>Amount (₹)</th><th>Mode of Payment</th></tr>
     <tr><td>1.</td><td>Court fee on application/petition</td><td>___________</td><td>Court Fee Stamp / DD / Online</td></tr>
-    ${isHC ? '<tr><td>2.</td><td>Process fee</td><td>___________</td><td>___________</td></tr>' : ''}
-    <tr><td>${isHC ? '3' : '2'}.</td><td>Miscellaneous (if any)</td><td>___________</td><td>___________</td></tr>
+    ${isHC ? '<tr><td>2.</td><td>Process fee</td><td>___________</td><td>___________</td></tr>\n    ' : ''}<tr><td>${isHC ? '3' : '2'}.</td><td>Miscellaneous (if any)</td><td>___________</td><td>___________</td></tr>
     <tr><td colspan="2"><strong>Total</strong></td><td colspan="2"><strong>___________</strong></td></tr>
   </table>
   <p style="margin-top:1em"><em>Note: Court fee amounts to be confirmed from the applicable Court Fees Act / schedule in force for the relevant court. The advocate must affix court fee stamps or attach proof of online payment before filing.</em></p>
@@ -1238,8 +1293,30 @@ function annexureCourtFeeStatement(
 interface AffidavitOptions {
   /** The deponent's designation when none is given or sided (default: Applicant/Petitioner). */
   designation?: string;
-  /** The verification, already filled from the pack's verificationTemplate (unescaped). */
-  verification?: string;
+  /**
+   * AJ-700b (B): the document the affidavit supports, in lines 2-5 and the
+   * verification ("application" for O.39). Absent: as before
+   * ("petition/application"; the court rule's verification unchanged).
+   */
+  noun?: string;
+}
+
+/**
+ * AJ-700b (B): the court rule's affidavit verification with only its noun set
+ * ("the above <noun>") and a fixed role word ("the <Role> herein above named")
+ * set to the deponent's role; every other byte as the court rule has it.
+ */
+function withAffidavitNoun(text: string, noun: string, role: string | undefined): string {
+  const out = text.replace(
+    /the above (?:petition|plaint\/application|application|Original Application|complaint|appeal)\b/g,
+    () => `the above ${noun}`,
+  );
+  return role
+    ? out.replace(
+        /the (?:Applicant|Petitioner|Complainant|Appellant) herein above named/g,
+        () => `the ${role} herein above named`,
+      )
+    : out;
 }
 
 function annexureAffidavit(
@@ -1271,15 +1348,22 @@ function annexureAffidavit(
   const courtDesig = esc(rules.designation);
 
   // Build verification text from court_rules.verification_format — fill placeholders.
-  // T-700 (AJ-700a (5)): the pack's own verification, where the caller gives it.
+  const filledVerification = rules.verification_format
+    .replace('{deponent_name}', () => str(deponentName))
+    .replace('{designation}', () => str(designationText))
+    .replace('{body_para_count}', () => String(bodyParaCount))
+    .replace('{place}', () => str(verifiedAt))
+    .replace('{date}', () => today);
+  // AJ-700b (B): only the noun (and a fixed role word) change, where given.
+  const docNoun = options.noun ?? 'petition/application';
   const verificationText = esc(
-    options.verification ??
-      rules.verification_format
-        .replace('{deponent_name}', () => str(deponentName))
-        .replace('{designation}', () => str(designationText))
-        .replace('{body_para_count}', () => String(bodyParaCount))
-        .replace('{place}', () => str(verifiedAt))
-        .replace('{date}', () => today),
+    options.noun
+      ? withAffidavitNoun(
+          filledVerification,
+          options.noun,
+          options.designation?.replace(/^the above-named /, ''),
+        )
+      : filledVerification,
   );
 
   return `
@@ -1293,10 +1377,10 @@ function annexureAffidavit(
   <p>I, <strong>${deponent}</strong>,${deponentAge !== '___________' ? ` aged about ${deponentAge} years,` : ''} ${deponentRelation}, resident of ${deponentAddr !== '___________' ? deponentAddr : '___________'}, do hereby solemnly affirm and state on oath as under:</p>
   <br>
   <p class="indent">1. That I am ${designation} in the accompanying matter and am well acquainted with the facts of the case.</p>
-  <p class="indent">2. That the facts stated in the accompanying petition/application are true and correct to the best of my knowledge and belief.</p>
-  <p class="indent">3. That no material fact has been concealed or misstated in the accompanying petition/application.</p>
-  <p class="indent">4. That the Annexures filed along with the accompanying petition/application are true copies of the originals.</p>
-  <p class="indent">5. That this affidavit is being affirmed in support of the accompanying petition/application.</p>
+  <p class="indent">2. That the facts stated in the accompanying ${docNoun} are true and correct to the best of my knowledge and belief.</p>
+  <p class="indent">3. That no material fact has been concealed or misstated in the accompanying ${docNoun}.</p>
+  <p class="indent">4. That the Annexures filed along with the accompanying ${docNoun} are true copies of the originals.</p>
+  <p class="indent">5. That this affidavit is being affirmed in support of the accompanying ${docNoun}.</p>
   <br>
   <p>${verificationText.replace(/\n/g, '<br>')}</p>
   <br>
@@ -1537,7 +1621,15 @@ export function buildAnnexuresHtml(input: AnnexuresInput): AnnexuresHtml {
   const set = annexureSetFor(setPackId);
   const pack = set === 'criminal' || setPackId === '' ? null : packOf(setPackId);
   const petitionerRole = CRIMINAL_BY_ID.has(setPackId);
-  const civilLabels = packPartyLabels(pack);
+  // AJ-700b (H): roles as the cause title prints them, never a form hint.
+  const civilLabels = set === 'pleading' || set === 'o39' ? civilRoleLabels(pack) : null;
+  const otherLabels =
+    set === 'civil_other'
+      ? ([printedRoleLabel(pack, 0), printedRoleLabel(pack, 1)] as const)
+      : null;
+  // AJ-700b (E): a civil pack's Synopsis wording, from the pack; none, no Synopsis.
+  const synopsisWording =
+    set === 'criminal' ? null : civilSynopsisWording(setPackId, pack?.category ?? null);
 
   // T-700 (AJ-700a (7)): the civil List of Dates rows (brief path: the brief's
   // dates; template path: the pack's filled date fields).
@@ -1554,9 +1646,11 @@ export function buildAnnexuresHtml(input: AnnexuresInput): AnnexuresHtml {
   // for a respondent-side client); every annexure is lettered by its place in
   // this one list, and the index is built from it.
   const clientSide = synopsisClientSide({ rulePackId, formData: enrichedForm, partyValues });
-  const synopsis = annexureBApplies({ rulePackId, courtType: resolvedCourtType, clientSide })
-    ? (['synopsis'] as const)
-    : [];
+  const synopsis =
+    (set === 'criminal' || synopsisWording !== null) &&
+    annexureBApplies({ rulePackId, courtType: resolvedCourtType, clientSide })
+      ? (['synopsis'] as const)
+      : [];
   const kindsBySet: Readonly<Record<AnnexureSet, AnnexureKind[]>> = {
     criminal: ['memo', ...synopsis, 'dates', 'index', 'vakalatnama', 'court_fee', 'affidavit'],
     pleading: [
@@ -1590,7 +1684,7 @@ export function buildAnnexuresHtml(input: AnnexuresInput): AnnexuresHtml {
     (set === 'pleading' || set === 'o39') && civilLabels
       ? { rows: civilMemoRows(enrichedForm, partyValues, setPackId, civilLabels, clientSide) }
       : set === 'civil_other'
-        ? { packLabels: civilLabels }
+        ? { packLabels: otherLabels }
         : { petitionerRole };
 
   // AJ-700 (2), AJ-700a (6): "Nature of matter" on the Index of every court
@@ -1605,22 +1699,15 @@ export function buildAnnexuresHtml(input: AnnexuresInput): AnnexuresHtml {
     courtFee: set === 'pleading' || set === 'o39',
   };
 
-  // AJ-700 (3): the O.39 affidavit in support is by the plaintiff/applicant,
-  // verified with the pack's own template ("the above application").
+  // AJ-700 (3), AJ-700b (B): the O.39 affidavit in support is by the
+  // plaintiff/applicant, of "the application"; it ends with the court rule's
+  // affidavit verification, only its role and noun set. The pack's own
+  // verificationTemplate belongs to the application itself, not here.
   const affidavitOptions: AffidavitOptions =
     set === 'o39'
       ? {
           ...(civilLabels ? { designation: `the above-named ${civilLabels[0]}` } : {}),
-          ...(verificationTemplate !== null
-            ? {
-                verification: fillPackVerification(
-                  verificationTemplate,
-                  enrichedForm,
-                  partyValues,
-                  input.bodyParaCount,
-                ),
-              }
-            : {}),
+          noun: 'application',
         }
       : petitionerRole
         ? { designation: SIDED_DESIGNATION.petitioner }
@@ -1643,6 +1730,7 @@ export function buildAnnexuresHtml(input: AnnexuresInput): AnnexuresHtml {
             label,
             natureOfMatter(rulePackId),
             petitionerRole,
+            synopsisWording,
           ),
         };
       case 'dates':
