@@ -139,3 +139,55 @@ The para-2 placeholder is the `days_from_service` field label. It is **already s
 `Days from service of summons (due within 30; the court may allow up to 90 for recorded reasons; 120 is the outer limit in a commercial suit)`
 
 The court-rules file change follows `golden-snapshots.md`: snapshots are edited by hand and the diff is sent to me. I check the SHA before merge, then the merge SHA.
+
+**T-690 byte check (Ajay, 29 Oct 2026): fix/t-690-ws-limitation-line @ commit SHA c1ac9666.** I checked the config diff myself. All four strings occur byte for byte in this file (grep -F), l.224 is untouched, and only these two files changed: written_statement.json and court-rules/district_court_generic.json. The tests are added. **T-690 APPROVED at c1ac9666.** It counts as merged at the develop_staging merge SHA that contains it.
+
+**T-690b (separate, low priority):**
+- **l.7 `change_protocol`** is internal, but it misstates the rule. Signed replacement: `All edits require CLO sign-off. Para-wise denial structure and the Order VIII Rule 1 time limits (30 days; up to 90 with the court's leave; 120 days outer limit in a commercial suit) are non-negotiable.`
+- **l.308–309** (validation) **stay**: more than 30 days needs a delay application, and a commercial suit cannot exceed 120. Do **not** add a hard 90-day block for ordinary suits: the proviso's 90 days is not treated as an absolute bar there. Instead add a **warning, not a block**, when days_from_service is over 90 in a non-commercial suit. Signed text: `This written statement is more than 90 days after service of summons. The court allows that only in exceptional cases, for reasons recorded in writing; set out the reasons in the delay application.`
+
+**T-690 MERGED (Ajay, 29 Oct 2026): develop_staging merge SHA 7f04908a.** Checked myself: it contains approved commit SHA c1ac9666, and written_statement.json and district_court_generic.json have no diff from c1ac9666 to the merge.
+
+## T-683: field-meaning words in the date check (Ajay, 29 Oct 2026). (c), complete rule
+
+- A field may list **its own meaning words**: words that state what the field is, not a doubt about the date.
+- A word on that list, **immediately before the date**, does not count as a qualifier for that field only.
+- Any other qualifier in the quote still refuses the date. So does an own-meaning word combined with a qualifier, e.g. `since about 05.03.2026` refuses because of "about".
+- The lists live in the pack/field config (legal content) and are not shared across fields.
+
+**Lists signed now:**
+- `custody_since`: `since`, `from`, `w.e.f.`, `with effect from`, `से` (after the date: `05.03.2026 से`), `se` (Hinglish, after the date).
+- No other field gets a list until I sign one.
+
+**Tests:**
+- `in judicial custody since 05.03.2026` → 2026-03-05.
+- `05.03.2026 से जेल में` → 2026-03-05.
+- `since about March 2026` → refused, ask.
+- `before 05.03.2026` on custody_since → refused.
+- `since 05.03.2026` on arrest_date → refused (no list there).
+
+v2's `normalizeDate` takes the same rule only if a v2 ticket asks; v3 first. The T-665b back-references (`since then`, `tab se`) are a separate rule and are unaffected.
+
+**T-690b, the 90-day warning without a commercial field (Ajay, 29 Oct 2026): (a), with the text reworded.** Show the warning for any WS more than 90 days after service. My earlier text fits only ordinary suits, because a commercial suit may go to 120 days. It is replaced, and this is the signed text:
+
+`This written statement is more than 90 days after service of summons. In an ordinary suit the court allows that only in exceptional cases; in a commercial suit it can be allowed up to 120 days, for reasons recorded in writing and on payment of costs, and not after that. Set out the reasons in the delay application.`
+
+It is a warning, not a block. The l.7 replacement stands as signed. A commercial-suit field is not needed now; if one is added later, the warning can split by suit type with my sign-off.
+
+**T-690b byte check (Ajay, 29 Oct 2026): fix/t-690b-ws-protocol-and-warning @ commit SHA 345ce1fc.** I checked the diff myself:
+- The l.7 `change_protocol` and the `ws_over_90_days` text both match the signed lines byte for byte (grep -F).
+- The warning is `severity: 'soft'`, written_statement only, and fires only when the value is strictly over 90. A missing or non-finite value gives no warning, which is accepted: such a value is not a valid day count.
+- l.224 and validation l.308–309 are unchanged.
+
+**T-690b APPROVED at 345ce1fc.** It counts as merged at the develop_staging merge SHA that contains it.
+
+**T-690b MERGED (Ajay, 29 Oct 2026): develop_staging merge SHA 461dd54b.** Checked myself: it contains approved commit SHA 345ce1fc, and written_statement.json and preflight.service.ts have no diff from 345ce1fc to the merge.
+
+**T-690c byte check (Ajay, 30 Oct 2026): fix/t-690c-ws-warning-brief-path @ commit SHA 97c3285f.** I checked it myself:
+- `services/ws-limitation-warning.ts` holds the signed over-90 text byte for byte (grep -F, 316 bytes) with the same strictly-over-90 test.
+- preflight imports it, and the new module is on the legal-content list.
+- The web shows the server text verbatim in a warn `Notice`, with no new user copy and no heading. It sits above Confirm and in the ready-screen checks. It is never a block, and it changes neither Confirm nor the Ink line.
+
+**T-690c APPROVED at 97c3285f.** It counts as merged at the develop_staging merge SHA that contains it.
+
+**T-690c MERGED (Ajay, 30 Oct 2026): develop_staging merge SHA c7757ac5.** Checked myself: it contains approved commit SHA 97c3285f, and ws-limitation-warning.ts and Notice.tsx have no diff. The only change in preflight.service.ts is T-681a's `startedAt`/`durationMs` on the LLM-call log (timing only, no values), which is not legal text.

@@ -10,3 +10,10 @@ Status: backlog, drafting v3 Phase 1 (ADR handoff/design/ADR-drafting-v3.md, Arj
 
 ## Mode
 Full chain. Arjun reviews.
+
+
+## Added 29 Oct 2026 (Arjun, 5e493930)
+- The orchestrator enforces the per-run cost cap `ai.cost_cap_paise_per_ink` for all v3 stages. T-683 ships without it, behind the flag (default 0).
+- v1.3 runbook (ops): seed `ai.model.extractor=claude-haiku-5-5` and `ai.effort.extractor_v3` before feature.drafting_v3_stage goes above 0.
+
+- Reuse apps/drafting/src/services/run-context.ts (T-681a, Arjun 30 Oct) for the run context. Never add a second AsyncLocalStorage.

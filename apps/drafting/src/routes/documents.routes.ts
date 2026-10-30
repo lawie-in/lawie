@@ -59,6 +59,7 @@ import {
   resolveCourtLabel,
   resolveCourtLabels,
 } from '../services/court-label.service';
+import { courtUnavailableBody, resolveFormCourt } from '../services/court-resolve.service';
 import {
   costForTemplate,
   DraftQuote,
@@ -81,6 +82,7 @@ import {
   unitsFromInk,
   wasInkSettled,
 } from '../services/credits.service';
+import { docTypeLabelFor } from '../services/doc-type-label';
 import { eraseDocument } from '../services/document-erase.service';
 import { packOptionIds, skeletonValueLists, skeletonWhenHolds } from '../services/draft-renderer';
 import {
@@ -124,6 +126,7 @@ import {
 } from '../services/pdf-export.service';
 import { preflightCheck } from '../services/preflight.service';
 import { applyFieldAliases, loadRulePack, loadSkeleton } from '../services/rule-pack.service';
+import { runWithRunContext } from '../services/run-context';
 import { NOT_FIXTURE, NOT_FIXTURE_GENERATION } from '../services/run-origin';
 import { withS138DateChecks } from '../services/s138-date-checks';
 import {
@@ -484,7 +487,7 @@ export async function withInkHold(
    * asking quote changes anything (quote stored on the hold, settle at the
    * delivered band).
    */
-  key: { runId: string; runSequence: number; quote?: DraftQuote },
+  key: { runId: string; runSequence: number; quote?: DraftQuote; templateId?: string },
   cost: number,
   preStreamError: Record<string, unknown>,
   run: (ink: InkHoldHandle) => Promise<void>,
@@ -801,7 +804,8 @@ export async function withInkHold(
   };
 
   try {
-    await run(handle);
+    // T-681a: every model call of the run logs its run id (ids only).
+    await runWithRunContext({ runId, runSequence, templateId: key.templateId }, () => run(handle));
   } finally {
     await stopBeats();
     await release();
@@ -1084,12 +1088,38 @@ router.post(
     res.setHeader('X-Run-Sequence', String(runSequence));
     const startedAt = Date.now();
 
+    // T-686: a picked court id that does not resolve (inactive, not found, or
+    // the lookup timed out twice) stops the run here: before the Ink hold and
+    // any model call, so no raw id reaches a draft and no Ink is taken. A typed
+    // court name or an empty court goes on as before. Ids only in the log.
+    const formCourt = await resolveFormCourt(form_data.court_name);
+    if (formCourt.status === 'unavailable') {
+      console.error(
+        `[drafting] court unavailable (courtId=${String(form_data.court_name)}, reason=${formCourt.reason}, kind=${template_id}, runId=${runId})`,
+      );
+      await recordGeneration({
+        userId: payload.sub,
+        docType: TEMPLATE_TO_DOC_TYPE[template_id] || DOC_TYPES.PETITION,
+        status: 'failed',
+        templateId: template_id,
+        intakeId: intake_id,
+        usage: { inputTokens: 0, outputTokens: 0, llmCalls: 0, usageSource: 'provider' },
+        paragraphCount: 0,
+        durationMs: Date.now() - startedAt,
+        runId,
+        runSequence,
+        runType,
+      });
+      res.status(503).json(courtUnavailableBody(runId));
+      return;
+    }
+
     // T-226: hold the cost before any model call (402/409 refusals as JSON;
     // no header has been sent yet). Every ending below closes the hold.
     // The pre-stream 500 body below: the error code only (Ajay, T-567), never a
     // message; the detail goes to the log.
     const holdError = { error: 'Generation failed' };
-    const inkKey = { runId, runSequence };
+    const inkKey = { runId, runSequence, templateId: template_id };
     const inkCost = chargedCost(req); // T-227: no default price
     await withInkHold(req, res, inkKey, inkCost, holdError, async (ink) => {
       // Stream the AI response via config-driven pipeline
@@ -1106,6 +1136,8 @@ router.post(
             runSequence,
             runType,
             gate,
+            // T-686: the court is looked up once, above.
+            ...(formCourt.status === 'resolved' ? { resolvedCourt: formCourt.court } : {}),
           },
           res,
         );
@@ -1838,7 +1870,7 @@ router.post(
     // The pre-stream 500 body below.
     const holdError = { error: 'Generation failed' };
     // T-577: the quote rides with the key; only an asking quote changes the hold.
-    const inkKey = { runId, runSequence, quote: runQuote };
+    const inkKey = { runId, runSequence, quote: runQuote, templateId: recordId };
     const gateCost = chargedCost(req); // T-227: no default price (throws if enforceCredits did not run)
     // T-577: the hold is the route's quote (T-388). For a pack that does not
     // ask it is the same figure enforceCredits stashed.
@@ -2126,6 +2158,11 @@ router.post(
         // T-577: only when the pack asked for a count. inkDebited (T-545,
         // added by sendDone) is the settled figure, at most inkQuoted.
         ...(runQuote.asks ? { inkQuoted: runQuote.ink, paragraphsDelivered } : {}),
+        // T-690c: the soft findings of the brief this draft was written from (the
+        // one rebuilt above from the sent values). A warning only. Absent when none.
+        ...(brief.soft_findings && brief.soft_findings.length > 0
+          ? { soft_findings: brief.soft_findings }
+          : {}),
       });
     });
   },
@@ -2211,10 +2248,31 @@ router.get(
     // T-674 AC3 (R4): the screen gets a label, never the stored court id.
     const courtLabel = await resolveCourtLabel(doc.courtName);
 
+    // T-689: the pack's own name for the document type; the stored docType is a
+    // coarse enum. No pack, the guided id (its kind name sits in the encrypted
+    // brief, which is not read for this) or an unreadable pack gives null and the
+    // page falls back to the humanised docType. Never fails the request.
+    let docTypeLabel: string | null = null;
+    if (
+      typeof doc.rulePackId === 'string' &&
+      doc.rulePackId !== '' &&
+      doc.rulePackId !== GUIDED_ID
+    ) {
+      try {
+        docTypeLabel = docTypeLabelFor(loadRulePack(doc.rulePackId));
+      } catch (err) {
+        console.error(
+          `[drafting] Get document: could not read the rule pack of document ${String(doc._id)}:`,
+          err instanceof Error ? err.name : 'UnknownError',
+        );
+      }
+    }
+
     res.json({
       _id: doc._id,
       title: displayTitle(doc.title, doc.courtName, courtLabel),
       docType: doc.docType,
+      docTypeLabel,
       courtType: doc.courtType,
       courtName: doc.courtName,
       courtLabel,
@@ -2587,9 +2645,26 @@ router.post(
     // brief path saves its court id only in doc.courtName (its formInputs hold
     // only the party inputs and court labels, T-381); the template path saves it in both. No court found means
     // no courtData, and the pack keeps its court-rules designation.
+    // T-686: an id-shaped court that does not resolve (inactive, not found, or
+    // the lookup timed out twice) fails closed, as the form route does: no raw
+    // id is printed. A typed court name is looked up as before; no court keeps
+    // the court rules.
     let courtData: CourtLookupData | undefined;
     const courtId = String(doc.courtName || formData.court_name || '').trim();
-    if (courtId) {
+    const packCourt = await resolveFormCourt(courtId);
+    if (packCourt.status === 'unavailable') {
+      const kind = String(formData.template_id || doc.docType || '');
+      const docRunId = doc.runId ? String(doc.runId) : null;
+      console.error(
+        `[drafting] court unavailable (courtId=${courtId}, reason=${packCourt.reason}, kind=${kind}, runId=${docRunId ?? 'none'})`,
+      );
+      res.status(503).json(courtUnavailableBody(docRunId));
+      return;
+    }
+    if (packCourt.status === 'resolved') courtData = packCourt.court;
+    if (packCourt.status === 'typed') {
+      // Not id-shaped: looked up as before (an active row is used; none, or a
+      // lookup error, keeps the court rules).
       try {
         const found = await Court.findOne({ courtId, isActive: true }).maxTimeMS(5000).lean();
         if (found) {

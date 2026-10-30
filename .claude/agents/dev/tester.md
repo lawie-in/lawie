@@ -29,7 +29,7 @@ You have read-only `mongosh`/`redis-cli` access through Bash (`.claude/hooks/db-
 ```
 STATUS: green | red | blocked
 Tests added: <list, with which acceptance criterion each covers>
-Command run: <e.g. yarn workspace @lawie/drafting test> -> <summary line>
+Command run: <e.g. yarn workspace @lawie/drafting test:sanity> -> <summary line>
 Failures: <file:line -> what failed and why, or "none">
 Coverage: <coverage for the touched workspace>
 Criteria with no test: <list + why, or "none">

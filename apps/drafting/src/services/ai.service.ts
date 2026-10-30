@@ -267,6 +267,7 @@ function logBodyCall(
   completed: boolean,
   d: CallUsageDraft,
   stopReason: string | null | undefined,
+  startedAt: number,
 ): void {
   logLlmCall({
     stage: 'body',
@@ -279,6 +280,9 @@ function logBodyCall(
     cacheReadInputTokens: d.cacheReadInputTokens,
     cacheCreationInputTokens: d.cacheCreationInputTokens,
     stopReason: stopReason ?? null,
+    startedAt,
+    // T-681a: called when the stream ends or the response is read, on success and failure.
+    durationMs: Date.now() - startedAt,
   });
 }
 
@@ -361,6 +365,7 @@ export async function* streamLLM(
   const seen: CallUsageDraft = usage ?? { inputTokens: 0, outputTokens: 0, usageSource: 'none' };
   let stopReason: string | undefined;
   let completed = false;
+  const startedAt = Date.now();
   try {
     const stream = await directClient.messages.stream({
       model,
@@ -377,7 +382,7 @@ export async function* streamLLM(
     }
     completed = true;
   } finally {
-    logBodyCall('stream', model, effort, completed, seen, stopReason);
+    logBodyCall('stream', model, effort, completed, seen, stopReason, startedAt);
   }
 }
 
@@ -1172,6 +1177,11 @@ export interface TemplateGenerateInput {
    * runs on this route (Ajay FR-2), whatever `feature.fact_ledger` says.
    */
   gate?: { pack: RulePack; lists: AvermentLists };
+  /**
+   * T-686: the form's court, already resolved by the route (court-resolve.service)
+   * before the Ink hold, so the court is looked up once. Absent: looked up here.
+   */
+  resolvedCourt?: CourtLookupData;
 }
 
 /**
@@ -1253,9 +1263,10 @@ export async function streamGenerateFromTemplate(
   }
 
   // ── Look up court data from DB (SCRUM-50) ─────────────────────────────────
-  let courtData: CourtLookupData | undefined;
+  // T-686: a court the route already resolved is not looked up again.
+  let courtData: CourtLookupData | undefined = input.resolvedCourt;
   const courtId = String(convertedFormData.court_name ?? '');
-  if (courtId) {
+  if (courtId && !courtData) {
     try {
       const court = await Court.findOne({ courtId, isActive: true }).maxTimeMS(5000).lean();
       if (court) {
@@ -3388,6 +3399,7 @@ async function callD1Drafter(
   const effort = await getAiEffort('body');
   let stopReason: string | null = null;
   let completed = false;
+  const startedAt = Date.now();
   try {
     const message = await directClient.messages.parse({
       model,
@@ -3403,7 +3415,7 @@ async function callD1Drafter(
     completed = true;
     return message.parsed_output ?? null;
   } finally {
-    logBodyCall('d1', model, effort, completed, usage, stopReason);
+    logBodyCall('d1', model, effort, completed, usage, stopReason, startedAt);
   }
 }
 

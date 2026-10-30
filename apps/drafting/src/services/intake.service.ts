@@ -1081,8 +1081,12 @@ async function modelCall(
       cacheReadInputTokens: u.cacheReadInputTokens,
       cacheCreationInputTokens: u.cacheCreationInputTokens,
       stopReason: u.stopReason,
+      startedAt: callStarted,
+      durationMs: Date.now() - callStarted,
       intakeId: req.intakeId,
     });
+  // T-681a: the llm_call timing starts at the model call, after the settings read.
+  const callStarted = Date.now();
   try {
     const r = await callAuxModel({
       model: req.model,

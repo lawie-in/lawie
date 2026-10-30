@@ -60,6 +60,7 @@ import {
   resolveAdvocate,
   resolveEnrollmentNumber,
 } from './template-engine.service';
+import { WS_OVER_90_DAYS_WARNING, wsOver90DaysWarningApplies } from './ws-limitation-warning';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -242,6 +243,9 @@ function nearMatch(a: string, b: string): boolean {
   const common = [...setA].filter((w) => setB.has(w) && w.length > 2).length;
   return common >= 2 && common >= Math.min(setA.size, setB.size) * 0.8;
 }
+
+// T-690b: wsOver90DaysWarningApplies and WS_OVER_90_DAYS_WARNING live in
+// ./ws-limitation-warning (T-690c), shared with the guided brief.
 
 // ── Pure-rule layer ───────────────────────────────────────────────────────────
 
@@ -521,6 +525,16 @@ async function runPureRules(
     }
   }
 
+  // ── T-690b: written statement more than 90 days after service (soft) ─────
+  // A warning, never a block (Ajay, 29 Oct 2026).
+  if (wsOver90DaysWarningApplies(templateId, formData)) {
+    findings.push({
+      rule_id: 'ws_over_90_days',
+      severity: 'soft',
+      question: WS_OVER_90_DAYS_WARNING,
+    });
+  }
+
   return findings;
 }
 
@@ -661,6 +675,8 @@ async function runLLMChecks(
         model,
         effort: effort ?? null,
         status: 'failed',
+        startedAt,
+        durationMs: Date.now() - startedAt,
       });
       throw callErr;
     }
@@ -677,6 +693,8 @@ async function runLLMChecks(
       cacheReadInputTokens: callUsage.cacheReadInputTokens,
       cacheCreationInputTokens: callUsage.cacheCreationInputTokens,
       stopReason: typeof response?.stop_reason === 'string' ? response.stop_reason : null,
+      startedAt,
+      durationMs,
     });
 
     // T-453: the first text block, not content[0] — Haiku 5.5 thinks by default,

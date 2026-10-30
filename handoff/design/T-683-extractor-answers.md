@@ -65,3 +65,59 @@ Option **(b)**: `maxFixturesDefault` counts only the fixtures of the selected va
 ## 7. Merge timing (Arjun, 29 Oct 2026, 19:40 UTC)
 
 Hold the merge until phase 2 (intake.service wiring + llm-usage, after Kunal's T-684). No dark-code merge of phase 1: every release in the prod loop carries only crew-passed, signed work, and a half-wired Extractor on develop_staging would ride along into a release. Ajay signs the final `v3-extractor.ts` SHA-256 before merge (two lines pending his accept/strike: the injection guard, the T-671 Latin non-answers). T-683 stays full chain: tester, fresh reviewer, doc-writer. Correction to §5 item 3's "go to tester": tester now, merge later.
+
+## 8. Phase 2 calls (Arjun, 29 Oct 2026, 20:35 UTC)
+
+1. **Effort:** separate key. The v3 Extractor reads `ai.effort.extractor_v3` first, then `ai.effort.extractor`, then MEDIUM. v2 intake keeps reading `ai.effort.extractor` → `ai.effort.intake` → MEDIUM, so setting the v3 key to low never moves v2 (15 Oct ruling: medium for v2 intake stands).
+2. **Model default:** founder rule holds — no env/code default. `ai.model.extractor = claude-haiku-5-5` is a setting ops seeds (Nikhil, `seed-setting`) before the stage is raised above 0; with it unset the turn degrades to v2 with `model_unset`, which is the right fail-safe. Add it to the T-585 boot-warning list as required when `feature.drafting_v3_stage ≥ 1`, and to the v1.3 runbook. Vikram is told: no cost change until the stage is raised.
+3. **Cost cap:** acceptable to ship T-683 with the 6/run and 60/user/24 h caps only; the per-run cost cap (`ai.cost_cap_paise_per_ink`) is T-685's — the orchestrator owns the run budget. The flag default 0 means nothing spends until ops raises it. Recorded as a T-685 acceptance criterion.
+4. **Golden report `extract` lines:** in T-683 scope — Priya extends the claim to `scripts/golden-set/lib/report.ts` (and `LlmStageName`); the Opus A/B needs per-stage lines anyway.
+
+## 9. Stage-1 bridge and non-verbatim candidates (Arjun, 29 Oct 2026, 20:55 UTC)
+
+Option **(b)**: a candidate whose normalised value is not verbatim in the user's text is **not bridged** into the v2 ledger at stage 1; the key stays on v2's normal ask-the-user path until T-682 stores typed values with the quote as provenance. Never (a): the bridge must not teach v2's readExtraction a new write shape in T-682's area. Never (c): "accept raw words reaching the draft" is exactly T-676's failure. Count the unbridged candidates (`bridge_skipped_non_verbatim`) in the llm_call log so we can see how many Hinglish facts wait for T-682; add a golden case with "koi recovery nahi hui" asserting the raw words never reach the ledger or draft at stage 1.
+
+### 9a. Scope of the non-verbatim rule (Arjun, 29 Oct 2026, 21:00 UTC)
+
+§9 applies to **model-rendered free text only** — a value the model composed from prose (e.g. "koi recovery nahi hui" → "no recovery was made"). Values that **code derives from the user's own words by a signed rule** are written at stage 1, on description and answer turns alike: yes/no from the signed words (Ajay rule 1, incl. नहीं / नही, checked in validate.ts); dates and amounts read by the v2 normaliser; the police-station name per T-612 (6a); a choice whose option label is in the quote. Nothing invented, quote kept as provenance, AC2 holds. The bridge test: a value is bridged iff `validate.ts` produced it by rule from the quote, or the quote contains it verbatim.
+
+## 10. Two-strike fix note (Arjun, 29 Oct 2026, 22:10 UTC) — branch d2543c8b after two failed reviews
+
+Read `v2-bridge.ts` `editsFromV3` (≈320–375), `extractor.service.ts` `extractTurn` (≈558–580) and `v2-bridge.test.ts` 105–127 on the branch. Round 1's "partial non-answer does not empty the edit" fix opened the hole: for "पता नहीं, Ramesh" with **no** candidate for the key, the code falls through `if (!c) { out.push(e); return; }` and sends the raw text to v2 as typed — raw "पता नहीं" reaches ledger and draft (T-676 AC2 broken).
+
+**Must-fix — `editsFromV3`, exact change.** After the `whole` check:
+
+```ts
+const partialNonAnswer = result.nonAnswers.some((n) => n.key === e.key); // not whole, but present
+const c = result.candidates.find(/* as now */);
+if (!c) {
+  if (partialNonAnswer) {
+    held.push(i);
+    return;
+  } // ask again; write nothing (NEW)
+  out.push(e);
+  return; // no non-answer: v2 behaviour unchanged
+}
+const span = bridgeable(c, e.text, item, refYear, true);
+if (span === null) {
+  held.push(i);
+  return;
+}
+replaced += 1;
+out.push({ ...e, text: span }); // "Ramesh" exactly, never the raw edit
+```
+
+`bridgeable` must return the candidate's value only when §9a holds (verbatim in the edit, or code-derived by a signed rule); "Ramesh" is verbatim → written as `Ramesh`.
+
+**Should-fix (a) — one rule for description and answer turns, in one place.** In `validate.ts`, when a key has both a non-answer and a candidate on the same turn: if the candidate is bridgeable under §9a and is not itself a non-answer, drop the non-answer for that key (the candidate wins); otherwise drop the candidate (the non-answer stands = no fact). The brief and the bridge then read the same `result`; neither re-decides.
+
+**Should-fix (b) — `extractTurn` in-flight sharing.** Store `{ turn, editsHash, promise }` in `inFlight`, where `editsHash` = sha256 of the NFC-normalised JSON of the turn's answers/edits (never logged). Share the pending promise only when `turn` **and** `editsHash` match; a same-turn call with different edits is degraded `in_flight` (v2 runs that turn), never silently given the other answer's result.
+
+**(c) claim:** Priya extends T-683's claim to `apps/drafting/src/__tests__/v3/v3-groups-and-report.test.ts` and the `scripts/golden-set/run.ts` hunks (~36, ~82–115); Kunal's T-684 is merged, so no overlap remains.
+
+**Tests (named):** `partial-non-answer-no-candidate-held` ("पता नहीं, Ramesh", no candidate → `held: [0]`, `edits: []`, nothing typed through); `partial-non-answer-with-candidate-writes-value` (candidate "Ramesh" → edit text exactly `Ramesh`, `replaced: 1`); `description-turn-non-answer-vs-candidate-one-rule` (brief view and bridge agree for both branches); `in-flight-same-turn-different-edits-degrades` and `in-flight-identical-shared`. Update v2-bridge.test.ts 115–127 accordingly (the round-1 expectation "goes in as typed" was the bug).
+
+Round 3 scoped to these hunks: developer → tester → fresh reviewer. If it fails again, the branch comes to me.
+
+## 11. Strike-3 outcome (Arjun, 30 Oct 2026, 01:50 UTC) — branch `fix/t-683-arjun`
+Arjun took the code after round 3 failed (two-strike rule). Commits on top of Vishal's d032ff68: 98d2de03 (carries/wins, per-turn dedupe, bridge partial rule), 86648f96 + eeaff0d2 (signed-tail boundaries, courtesy tail AJ-683-M2 + AJ-671-M2, containment-only quotes, list edits held), 79c0060e (punctuated quotes accepted after edge strip), 26122453 (bridge whole-edit non-answer even with a silent model), tests 2bf25d05 / 57f58ef9 / 6e72beca (+ final). Fresh reviewer round 2: PASS (byte-exact courtesy list verified against Ajay's two rows). Accepted gaps, each with an owner: v2 paths don't strip the courtesy tail yet → T-683c (separate release, Ajay byte-check); Latin "pata nahi" → T-671 (it.todo in the suite); `contains_non_answer` may count twice for a candidate carrying two non-answers (metric only). Merge gate: Ajay re-checks `signed-confirm-messages.ts` on the final head (AJ-683-BC-pending); Vishal merges in his slot with doc-writer; release waits for Phase 1 (T-682 merged, T-685 pending), flag stays 0 in prod.

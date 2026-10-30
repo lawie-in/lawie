@@ -15,7 +15,7 @@ Express 4 + Mongoose 8 services. Next.js 16 + React 19 + Tailwind 3 web. Redis v
 
 ## Commands
 
-- Test: `yarn workspace @lawie/<name> test` (Jest + ts-jest, matches `**/__tests__/**/*.test.ts`). Build `@lawie/shared` first, as CI does.
+- Test (Jest + ts-jest, matches `**/__tests__/**/*.test.ts`, plus `.tsx` in web; two tiers, T-688): `yarn workspace @lawie/<name> test:sanity` is the sanity tier, which CI runs on every push and a lead runs before merging together with their own ticket's tests; `yarn workspace @lawie/<name> test` is the full tier with coverage (nightly and on `release/**`). For an ad-hoc run add `--selectProjects full` (`yarn workspace @lawie/<name> jest --selectProjects full <path>`); a bare `jest <path>` runs every sanity-listed file twice. Build `@lawie/shared` first, as CI does. Details: `.claude/docs/coverage.md`.
 - Lint: `yarn workspace @lawie/<name> lint` — runs `eslint --fix` and **rewrites files**. Never run this from a read-only role.
 - Typecheck/build: `yarn workspace @lawie/<name> build` — runs `tsc`.
 - Scripts/hook tests: `yarn test:scripts` (Jest, `scripts/__tests__`); require `Run scripts tests` (shown on PRs as `Scripts tests / Run scripts tests`) (T-593).
@@ -25,6 +25,8 @@ Express 4 + Mongoose 8 services. Next.js 16 + React 19 + Tailwind 3 web. Redis v
 `feature/scrum-<n>-<slug>` or `fix/<slug>` for a `SCRUM-n` ticket; `feature/t-<nnn>-<slug>` or `fix/t-<nnn>-<slug>` for a local `T-nnn` ticket (`handoff/tickets/`, used while Jira and Notion are paused pre-v1). Cut from `develop_staging`, merge back into `develop_staging` (founder, 11 Oct 2026). Only the founder merges `develop_staging` into `develop`; nobody else opens PRs to `develop` or merges into it. `main` is production. Five leads (`vishal`, `mahak`, `shashank`, `kunal`, `tanvi`) work one ticket each, assigned by Priya; see `.claude/docs/multi-lead.md`. Jira project key: `SCRUM`. Remote: `github.com/lawie-in/lawie`.
 
 ## Commits
+
+**Push rule (founder, 29 Oct 2026):** never `cd <dir> && git push` (or commit/merge) in one command; the permission check blocks it. Run git with `git -C <worktree> ...` from the start folder, e.g. `git -C /home/user/lawie-wt/<lead> push origin develop_staging`.
 
 Conventional commits, enforced by commitlint (lower-case subject, 100 chars max). Husky runs gitleaks and lint-staged on commit — confirm `gitleaks` is installed locally, or the secret scan silently degrades to a warning.
 
