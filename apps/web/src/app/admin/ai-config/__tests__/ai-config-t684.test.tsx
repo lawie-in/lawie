@@ -116,6 +116,7 @@ let listCalls: number;
 let listOkCount: number; // list GETs beyond this many fail (http 500)
 let onList: ((n: number) => void) | null;
 let putGate: Promise<void> | null;
+let beforePut: (() => void) | null; // runs when a PUT arrives, before the server decides
 
 function installRouter() {
   mockApiFetch.mockImplementation(
@@ -148,7 +149,13 @@ function installRouter() {
         if (putResult === 'throw') throw new Error('boom');
         if (putResult === 'error') return res({ error: putError }, false, 400);
         if (putResult === 'noerror') return res({}, false, 500);
-        const key = decodeURIComponent(url.split('/').pop() as string);
+        beforePut?.();
+        const [path, query] = url.split('?');
+        const key = decodeURIComponent(path.split('/').pop() as string);
+        // T-684b: insert-only PUT; the server refuses when the key already has a row.
+        if (query === 'ifAbsent=1' && settings.some((s) => s.key === key)) {
+          return res({ error: `${key} is already set; not overwritten.` }, false, 409);
+        }
         const body = JSON.parse(init.body as string);
         settings = settings.filter((s) => s.key !== key);
         settings.push(row(key, body.value, body.description));
@@ -219,6 +226,7 @@ beforeEach(() => {
   listOkCount = Infinity;
   onList = null;
   putGate = null;
+  beforePut = null;
   installRouter();
 });
 
@@ -702,7 +710,7 @@ describe('deprecated keys and the Copy action', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Copy to ai.model.drafter' }));
     await waitFor(() => expect(puts()).toHaveLength(1));
     const [url, init] = puts()[0];
-    expect(url).toBe('/api/drafting/admin/app-settings/ai.model.drafter');
+    expect(url).toBe('/api/drafting/admin/app-settings/ai.model.drafter?ifAbsent=1');
     expect(init.method).toBe('PUT');
     expect(JSON.parse(init.body)).toEqual({ value: 'VAL-legacy-drafter' });
     expect(init.body).not.toContain('description');
@@ -858,6 +866,62 @@ describe('settings list failure hides every editable row (T-684 review)', () => 
     expect(screen.queryByText(NOTE)).not.toBeInTheDocument();
     await fireEvent.click(screen.getByRole('button', { name: 'Edit ai.model.drafter' }));
     expect(screen.getByLabelText(/Value for ai\.model\.drafter/)).toBeInTheDocument();
+  });
+});
+
+describe('Copy is an insert-only PUT (T-684b)', () => {
+  const COPY = 'Copy to ai.model.drafter';
+  beforeEach(() => {
+    settings = [
+      row('ai.drafting_model', 'VAL-legacy-drafter'),
+      row('ai.model.extractor', 'VAL-new-e'),
+      row('ai.model.fact_checker', 'VAL-new-f'),
+    ];
+  });
+
+  it('sends ?ifAbsent=1 on the target key with the body unchanged', async () => {
+    await renderPage();
+    await fireEvent.click(screen.getByRole('button', { name: COPY }));
+    await waitFor(() => expect(puts()).toHaveLength(1));
+    const [url, init] = puts()[0];
+    expect(url).toBe('/api/drafting/admin/app-settings/ai.model.drafter?ifAbsent=1');
+    expect(JSON.parse(init.body)).toEqual({ value: 'VAL-legacy-drafter' });
+  });
+
+  it('a 409 shows "set meanwhile; not overwritten.", refetches the list, keeps the other value', async () => {
+    await renderPage();
+    // Someone sets the target after the pre-PUT re-check but before the write lands.
+    beforePut = () => {
+      settings = [...settings, row('ai.model.drafter', 'VAL-someone-else')];
+    };
+    const listsBefore = () =>
+      mockApiFetch.mock.calls.filter(([u]) => u === '/api/drafting/admin/app-settings').length;
+    const before = listsBefore();
+    await fireEvent.click(screen.getByRole('button', { name: COPY }));
+    const dep = within(rowOf('ai.drafting_model'));
+    expect(
+      await dep.findByText('ai.model.drafter was set meanwhile; not overwritten.'),
+    ).toBeInTheDocument();
+    expect(puts()).toHaveLength(1);
+    // pre-PUT re-check + the refetch after the 409
+    await waitFor(() => expect(listsBefore() - before).toBeGreaterThanOrEqual(2));
+    expect(within(rowOf('ai.model.drafter')).getByText('VAL-someone-else')).toBeInTheDocument();
+    expect(within(rowOf('ai.model.drafter')).queryByText('Saved')).not.toBeInTheDocument();
+    expect(settings.find((s) => s.key === 'ai.model.drafter')?.value).toBe('VAL-someone-else');
+  });
+
+  it('Save on an existing row stays a plain overwrite (no ifAbsent)', async () => {
+    await renderPage();
+    await fireEvent.click(screen.getByRole('button', { name: 'Edit ai.model.extractor' }));
+    fireEvent.change(screen.getByLabelText(/Value for ai\.model\.extractor/), {
+      target: { value: 'VAL-edited' },
+    });
+    await fireEvent.click(screen.getByRole('button', { name: /Save/ }));
+    await waitFor(() => expect(puts()).toHaveLength(1));
+    const [url] = puts()[0];
+    expect(url).toBe('/api/drafting/admin/app-settings/ai.model.extractor');
+    expect(url).not.toContain('ifAbsent');
+    expect(settings.find((s) => s.key === 'ai.model.extractor')?.value).toBe('VAL-edited');
   });
 });
 
