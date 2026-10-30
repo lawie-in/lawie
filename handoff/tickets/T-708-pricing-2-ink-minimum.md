@@ -10,5 +10,5 @@ Status: backlog, P1, billing, web and drafting (next month, with T-706). The fou
 5. Copy: the "short ones 1 Ink" wording and the plan pages are updated by Meera and re-signed by Ajay.
 6. Re-check after 2 weeks of prod data: any pack above ₹3.70 per Ink at p90 moves up one Ink (Vikram).
 7. Existing subscribers: Vikram and the founder decide how the Solo Ink increase applies to current plans.
-8. Mini pack (Vikram, 30 Oct 2026): with a 2-Ink minimum, the ₹65 / 3-Ink pack leaves 1 Ink that cannot be used alone. Proposed: ₹65 / 4 Ink (2 drafts, about 74% margin), price unchanged. WAITING ON THE FOUNDER.
+8. Mini pack (Vikram, 30 Oct 2026): with a 2-Ink minimum, the ₹65 / 3-Ink pack leaves 1 Ink that cannot be used alone. APPROVED by the founder (30 Oct 2026, "Yes whatever CFO has decided"): ₹65 / 4 Ink (2 drafts, about 74% margin), price unchanged.
 9. Ship date: set when T-706 and T-708 are scheduled next month. Send it to Meera and Ajay directly, so Ajay can re-sign the copy and the Google Ads campaign (its copy says "50 Ink") is paused first.
