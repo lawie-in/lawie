@@ -25,6 +25,43 @@ export interface AuxCallInput {
   maxTokens: number;
   /** T-453: output_config.effort. Omitted from the request when absent. */
   effort?: AiEffort;
+  /**
+   * T-681b: a leading part of `user` that is the same bytes on every request (the match
+   * catalogue). When given, and `user` starts with it, the user turn is sent as two text
+   * blocks, this prefix (carrying the call's one cache breakpoint) then the rest; the
+   * system goes as one block with no breakpoint, so the cached prefix is system + this.
+   * Same text, byte for byte. Absent (every other call): the request is unchanged.
+   */
+  cachedUserPrefix?: string;
+}
+
+/**
+ * T-681b: system and messages for the request; plain strings unless a cached prefix applies.
+ * The prefix block's TTL is AUX_SYSTEM_CACHE_TTL (below).
+ */
+function auxPromptParts(
+  input: AuxCallInput,
+): Pick<Anthropic.MessageStreamParams, 'system' | 'messages'> {
+  const prefix = input.cachedUserPrefix;
+  if (!prefix || !input.user.startsWith(prefix) || input.user.length === prefix.length) {
+    return { system: input.system, messages: [{ role: 'user', content: input.user }] };
+  }
+  return {
+    system: [{ type: 'text', text: input.system }],
+    messages: [
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: prefix,
+            cache_control: { type: 'ephemeral', ttl: AUX_SYSTEM_CACHE_TTL },
+          },
+          { type: 'text', text: input.user.slice(prefix.length) },
+        ],
+      },
+    ],
+  };
 }
 
 export interface AuxCallUsage {
@@ -98,6 +135,10 @@ export async function callAuxModel(
   });
 
   try {
+    // T-681b: the user turn (and, with a cached user prefix, the system block) from
+    // auxPromptParts; T-683's cacheSystem still decides a cached system block. With neither
+    // option this is exactly the plain-string request.
+    const parts = auxPromptParts(input);
     const params: Anthropic.MessageStreamParams = {
       model: input.model,
       max_tokens: input.maxTokens,
@@ -109,8 +150,8 @@ export async function callAuxModel(
               cache_control: { type: 'ephemeral', ttl: AUX_SYSTEM_CACHE_TTL },
             },
           ]
-        : input.system,
-      messages: [{ role: 'user', content: input.user }],
+        : parts.system,
+      messages: parts.messages,
       ...(input.effort ? { output_config: { effort: input.effort } } : {}),
     };
     // T-683: request options only when a signal is given, so a v2 call is sent exactly as before.
