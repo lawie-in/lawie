@@ -12,6 +12,7 @@ import { _clearAppSettingsCache } from '../../services/app-settings.service';
 import { createLedger as createV2Ledger } from '../../services/fact-ledger.service';
 import * as L from '../../services/v3/ledger.service';
 import type { LedgerEntry, LedgerSnapshot } from '../../services/v3/ledger.types';
+import { _clearV3StageCache } from '../../services/v3/stage';
 import {
   ARREST,
   CHECKLIST,
@@ -642,25 +643,26 @@ describe('feature.drafting_v3_stage fails closed', () => {
     await AppSetting.deleteMany({ key: L.DRAFTING_V3_STAGE_SETTING });
     if (value !== null) await AppSetting.create({ key: L.DRAFTING_V3_STAGE_SETTING, value });
     _clearAppSettingsCache();
+    _clearV3StageCache();
   };
 
   it('unset is off', async () => {
     await setStage(null);
-    expect(await L.draftingV3Stage()).toBe(0);
-    expect(await L.isLedgerV3On()).toBe(false);
+    expect(await L.v3Stage(USER_A)).toBe(0);
+    expect(await L.isLedgerV3On(USER_A)).toBe(false);
   });
 
   it.each(['0', '00', ' 0 '])('stage %j is off', async (v) => {
     await setStage(v);
-    expect(await L.isLedgerV3On()).toBe(false);
+    expect(await L.isLedgerV3On(USER_A)).toBe(false);
   });
 
-  it.each(['off', 'false', '-1', '1.5', 'abc', '1x'])(
-    'a value that is not a whole number (%j) is off',
+  it.each(['off', 'false', '-1', '1.5', 'abc', '1x', '4'])(
+    'a value that is not a stage 0-3 (%j) is off',
     async (v) => {
       await setStage(v);
-      expect(await L.isLedgerV3On()).toBe(false);
-      expect(await L.draftingV3Stage()).toBe(0);
+      expect(await L.isLedgerV3On(USER_A)).toBe(false);
+      expect(await L.v3Stage(USER_A)).toBe(0);
     },
   );
 
@@ -670,8 +672,8 @@ describe('feature.drafting_v3_stage fails closed', () => {
     [' 3 ', 3],
   ])('stage %j is on', async (v, n) => {
     await setStage(v);
-    expect(await L.isLedgerV3On()).toBe(true);
-    expect(await L.draftingV3Stage()).toBe(n);
+    expect(await L.isLedgerV3On(USER_A)).toBe(true);
+    expect(await L.v3Stage(USER_A)).toBe(n);
   });
 });
 
