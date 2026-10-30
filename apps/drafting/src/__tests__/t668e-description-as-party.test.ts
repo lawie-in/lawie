@@ -609,28 +609,32 @@ describe('T-668e (i): both parties a non-answer with text on O.39', () => {
     defendant_name: 'Unknown, the tenant',
   });
 
-  it('the brief shows the new line once per party, keys in order', () => {
+  it('the brief shows the new line exactly once (Ajay), both keys in order', () => {
     const b = briefOf(O39, both);
     expect(b.can_confirm).toBe(false);
     expect(b.confirm_blockers).toContain('parties');
     const lines = (b.confirm_message ?? '').split('\n');
-    expect(lines.filter((l) => l === NEW_LINE)).toHaveLength(2);
-    expect(lines[0]).toBe(NEW_LINE);
-    expect(lines[1]).toBe(NEW_LINE);
+    expect(lines.filter((l) => l === NEW_LINE)).toHaveLength(1);
+    // relief and restraint are missing in this brief, so their lines still follow
+    expect(lines).toEqual([
+      NEW_LINE,
+      O39_CONFIRM_MESSAGES.main_suit_relief.en,
+      O39_CONFIRM_MESSAGES.restraint_sought.en,
+    ]);
     expect((b.confirm_missing_party_keys ?? []).map(lastSeg)).toEqual([
       'plaintiff_name',
       'defendant_name',
     ]);
   });
 
-  it('the form route unit: the new line per party, then relief/restraint only if missing', () => {
+  it('the form route unit: the new line once, then relief/restraint only if missing', () => {
     const block = formRequiredFieldBlock(O39, {
       plaintiff_name: 'Not known (buyer under the sale deed)',
       defendant_name: 'Unknown, the tenant',
       main_suit_relief: 'A sample relief.',
       restraint_sought: 'A sample restraint.',
     });
-    expect(block!.message).toBe(`${NEW_LINE}\n${NEW_LINE}`);
+    expect(block!.message).toBe(NEW_LINE);
     expect(block!.confirm_blocking_keys).toEqual(['plaintiff_name', 'defendant_name']);
     const all = formRequiredFieldBlock(O39, {
       plaintiff_name: 'Not known (buyer under the sale deed)',
@@ -638,7 +642,6 @@ describe('T-668e (i): both parties a non-answer with text on O.39', () => {
     });
     expect(all!.message).toBe(
       [
-        NEW_LINE,
         NEW_LINE,
         O39_CONFIRM_MESSAGES.main_suit_relief.en,
         O39_CONFIRM_MESSAGES.restraint_sought.en,
@@ -649,6 +652,19 @@ describe('T-668e (i): both parties a non-answer with text on O.39', () => {
       'defendant_name',
       'main_suit_relief',
       'restraint_sought',
+    ]);
+  });
+
+  it('requiredFieldBlockers still returns one entry per key (same en twice)', () => {
+    expect(
+      requiredFieldBlockers({
+        ...o39Form(),
+        plaintiff_name: 'Not known (buyer under the sale deed)',
+        defendant_name: 'Unknown, the tenant',
+      }),
+    ).toEqual([
+      { key: 'plaintiff_name', en: NEW_LINE },
+      { key: 'defendant_name', en: NEW_LINE },
     ]);
   });
 
@@ -664,6 +680,20 @@ describe('T-668e (i): both parties a non-answer with text on O.39', () => {
       o39Form({ plaintiff_name: 'Not known', defendant_name: 'Not known (x)' }),
     );
     expect(rev!.message).toBe(`${O39_CONFIRM_MESSAGES.plaintiff_name.en}\n${NEW_LINE}`);
+    expect(rev!.confirm_blocking_keys).toEqual(['plaintiff_name', 'defendant_name']);
+    // brief: two DIFFERENT lines, keys in order
+    const mb = briefOf(
+      O39,
+      o39Values({ plaintiff_name: 'Not known (x)', defendant_name: 'Not known' }),
+    );
+    expect((mb.confirm_message ?? '').split('\n').slice(0, 2)).toEqual([
+      NEW_LINE,
+      O39_CONFIRM_MESSAGES.defendant_name.en,
+    ]);
+    expect((mb.confirm_missing_party_keys ?? []).map(lastSeg)).toEqual([
+      'plaintiff_name',
+      'defendant_name',
+    ]);
   });
 });
 

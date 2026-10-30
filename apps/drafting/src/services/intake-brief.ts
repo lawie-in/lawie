@@ -1995,7 +1995,9 @@ function confirmState(
       const partyBlockers = requiredFieldBlockers(partyValues).filter((b) =>
         missingNames.has(b.key),
       );
-      const partyLines = partyBlockers.map((b) => b.en);
+      // AJ-668e follow-up: an identical line shows once (both parties a non-answer
+      // with text); the keys below keep every party, in order.
+      const partyLines = [...new Set(partyBlockers.map((b) => b.en))];
       // The item keys, in the order of their lines.
       partyKeys = partyBlockers.flatMap((b) =>
         missingParties.filter((i) => lastSegment(i.key) === b.key).map((i) => i.key),

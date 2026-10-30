@@ -361,7 +361,8 @@ export function formRequiredFieldBlock(
   if (missing.length === 0) return null;
   return {
     error: 'brief_not_confirmed',
-    message: missing.map((b) => b.en).join('\n'),
+    // AJ-668e follow-up: an identical line shows once; the keys keep every field.
+    message: [...new Set(missing.map((b) => b.en))].join('\n'),
     blockers: ['required_fields'],
     confirm_blocking_keys: missing.map((b) => b.key),
   };
