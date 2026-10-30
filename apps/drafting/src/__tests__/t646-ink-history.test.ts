@@ -276,9 +276,11 @@ describe('usage grouping and document titles', () => {
     await seedRows([{ delta: 4, reason: 'admin_grant', sourceBucket: 'sub', at: daysAgo(6) }]);
     const res = await get();
     const usage = res.body.entries.filter((x: { kind: string }) => x.kind === 'usage');
-    expect(usage).toHaveLength(2);
+    // T-705 (Ajay): a paid revision is its own entry, not part of its draft's.
+    expect(usage).toHaveLength(3);
     expect(usage[0].inkDelta).toBe(-2); // run-2
-    expect(usage[1].inkDelta).toBe(-6); // run-1: 4 + 6 + 2 units
+    expect(usage[1]).toMatchObject({ label: 'revision', inkDelta: -1 }); // run-1 regenerate: 2 units
+    expect(usage[2]).toMatchObject({ label: 'draft', inkDelta: -5 }); // run-1 generate: 4 + 6 units
   });
 
   it('shows the document title only; a deleted or missing document is flagged, never named', async () => {

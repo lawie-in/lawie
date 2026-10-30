@@ -356,7 +356,7 @@ export default function AdminOverviewPage() {
                 ₹{kpis.monthlyRevenue.inr.toLocaleString('en-IN')}
               </p>
               <p className="mt-0.5 text-xs text-slate-400">MRR</p>
-              <div className="mt-4 grid grid-cols-3 gap-2 border-t border-slate-700 pt-3 text-xs">
+              <div className="mt-4 grid grid-cols-1 gap-2 border-t border-slate-700 pt-3 text-xs sm:grid-cols-3">
                 <Stat
                   label="Paid"
                   value={kpis.monthlyRevenue.paid.toLocaleString('en-IN')}
@@ -388,45 +388,49 @@ export default function AdminOverviewPage() {
         {topReferrals.length === 0 ? (
           <p className="py-6 text-center text-xs text-slate-400">No codes yet.</p>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-slate-100 text-left text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-                <th className="py-2 pr-4">Code</th>
-                <th className="py-2 pr-4">Label</th>
-                <th className="py-2 pr-4 text-center">Signups</th>
-                <th className="py-2 pr-4 text-center">Cap</th>
-                <th className="py-2 pr-4 text-center">Status</th>
-                <th className="py-2 pr-4">Created</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {topReferrals.map((rc) => (
-                <tr key={rc.code}>
-                  <td className="py-2.5 pr-4 font-mono font-semibold text-slate-900">{rc.code}</td>
-                  <td className="py-2.5 pr-4 text-slate-600">{rc.label ?? '—'}</td>
-                  <td className="py-2.5 pr-4 text-center font-mono text-slate-800">{rc.uses}</td>
-                  <td className="py-2.5 pr-4 text-center text-slate-500">{rc.maxUses ?? '∞'}</td>
-                  <td className="py-2.5 pr-4 text-center">
-                    {rc.isActive ? (
-                      <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-700">
-                        Active
-                      </span>
-                    ) : (
-                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
-                        Disabled
-                      </span>
-                    )}
-                  </td>
-                  <td className="py-2.5 pr-4 text-xs text-slate-500">
-                    {new Date(rc.createdAt).toLocaleDateString('en-IN', {
-                      day: '2-digit',
-                      month: 'short',
-                    })}
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[560px] text-sm">
+              <thead>
+                <tr className="border-b border-slate-100 text-left text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                  <th className="py-2 pr-4">Code</th>
+                  <th className="py-2 pr-4">Label</th>
+                  <th className="py-2 pr-4 text-center">Signups</th>
+                  <th className="py-2 pr-4 text-center">Cap</th>
+                  <th className="py-2 pr-4 text-center">Status</th>
+                  <th className="py-2 pr-4">Created</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {topReferrals.map((rc) => (
+                  <tr key={rc.code}>
+                    <td className="py-2.5 pr-4 font-mono font-semibold text-slate-900">
+                      {rc.code}
+                    </td>
+                    <td className="py-2.5 pr-4 text-slate-600">{rc.label ?? '—'}</td>
+                    <td className="py-2.5 pr-4 text-center font-mono text-slate-800">{rc.uses}</td>
+                    <td className="py-2.5 pr-4 text-center text-slate-500">{rc.maxUses ?? '∞'}</td>
+                    <td className="py-2.5 pr-4 text-center">
+                      {rc.isActive ? (
+                        <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-700">
+                          Active
+                        </span>
+                      ) : (
+                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
+                          Disabled
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-2.5 pr-4 text-xs text-slate-500">
+                      {new Date(rc.createdAt).toLocaleDateString('en-IN', {
+                        day: '2-digit',
+                        month: 'short',
+                      })}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
     </div>

@@ -113,7 +113,11 @@ export default function InkCostLine({
 
   if (state === 'loading') {
     return (
-      <p id={id} role="status" className="inline-flex items-center gap-2 text-sm text-slate-600">
+      <p
+        id={id}
+        role="status"
+        className="inline-flex flex-wrap items-center gap-2 text-sm text-slate-600"
+      >
         <Loader2 size={14} className="animate-spin motion-reduce:animate-none" aria-hidden="true" />
         {INK_COST_LOADING}
       </p>

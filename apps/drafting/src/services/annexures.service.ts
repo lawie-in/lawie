@@ -33,6 +33,8 @@ import { join } from 'path';
 
 import type { CourtType } from '@lawie/shared';
 
+import { isPartyNonAnswer } from '../config/intake/signed-confirm-messages';
+
 import {
   CaseSide,
   CLIENT_ROLE_TABLE,
@@ -577,9 +579,15 @@ function severalNames(value: unknown): string[] | null {
  * role (`labels`, from its cause title). The client's details print on the
  * client's row only. Where the pack's signed row has no field for the
  * opposite party (counterpart NONE: written_statement, replication,
- * plaint_partition), it prints civilPartyPlaceholder. Several names on a side
- * print as "Plaintiff No. 1", "Defendant No. 1", ..., each as given, and a
- * party with no name gets the placeholder. The cause title is not touched.
+ * plaint_partition), the opposite civil side's own field is read instead
+ * (T-700b: `plaintiff_name` when the client is the defendant, `defendant_name`
+ * otherwise), several names first, then the single value as stored
+ * (AJ-668d); a name that is a party non-answer (AJ-668-M5 to M5e,
+ * isPartyNonAnswer) counts as no name, and the client's own row never falls
+ * back to that opposite field. CLIENT_ROLE_TABLE is not changed.
+ * Several names on a side print as "Plaintiff No. 1", "Defendant No. 1", ...,
+ * each as given (AJ-700b (G)), and a party with no name gets
+ * civilPartyPlaceholder. The cause title is not touched.
  */
 function civilMemoRows(
   formData: Record<string, unknown>,
@@ -598,12 +606,20 @@ function civilMemoRows(
     safeEsc(applicantAddressOf(formData)),
   );
 
+  const oppositeField = clientIsDefendant ? 'plaintiff_name' : 'defendant_name';
+  // T-700b: the client's fallback name never reads the opposite side's field
+  // (applicantNameOf's role keys include plaintiff_name when the counterpart is
+  // NONE), so a WS with no defendant_name gets the Defendant placeholder.
+  const clientForm: Record<string, unknown> = { ...formData };
+  delete clientForm[oppositeField];
   const clientNames = (row?.client ? severalNames(flat[row.client]) : null) ?? [
-    str(applicantNameOf(formData), ''),
+    str(applicantNameOf(clientForm), ''),
   ];
   const counterpartNames: string[] =
     row?.counterpart.kind === 'none'
-      ? ['']
+      ? (severalNames(flat[oppositeField]) ?? [str(flat[oppositeField], '')]).map((name) =>
+          isPartyNonAnswer(name) ? '' : name,
+        )
       : ((row?.counterpart.kind === 'field' && row.counterpart.fields.length === 1
           ? severalNames(flat[row.counterpart.fields[0]])
           : null) ?? [str(respondentNameOf(formData), '')]);

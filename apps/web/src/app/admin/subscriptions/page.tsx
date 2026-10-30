@@ -195,79 +195,81 @@ export default function AdminSubscriptionsPage() {
         ) : subs.length === 0 ? (
           <div className="py-10 text-center text-sm text-slate-400">No subscriptions found.</div>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-slate-100 bg-slate-50 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                <th className="px-4 py-3">Advocate</th>
-                <th className="px-4 py-3">Plan</th>
-                <th className="px-4 py-3 text-center">Status</th>
-                <th className="px-4 py-3 text-right">Amount</th>
-                <th className="px-4 py-3">Period ends</th>
-                <th className="px-4 py-3">Razorpay ID</th>
-                <th className="px-4 py-3" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {subs.map((s) => (
-                <tr
-                  key={s._id}
-                  className="cursor-pointer hover:bg-slate-50"
-                  onClick={() => void openDetail(s.razorpaySubscriptionId)}
-                >
-                  <td className="px-4 py-3">
-                    <p className="font-medium text-slate-900">{s.userName || '—'}</p>
-                    <p className="text-xs text-slate-400">{s.userEmail}</p>
-                  </td>
-                  <td className="px-4 py-3 capitalize text-slate-600">{s.planLabel}</td>
-                  <td className="px-4 py-3 text-center">
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-[10px] font-medium capitalize ${STATUS_COLORS[s.status] ?? 'bg-slate-100 text-slate-500'}`}
-                    >
-                      {s.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono text-xs text-slate-800">
-                    ₹{s.amountInr.toLocaleString('en-IN')}
-                  </td>
-                  <td className="px-4 py-3 text-xs text-slate-400">
-                    {s.currentPeriodEnd
-                      ? new Date(s.currentPeriodEnd).toLocaleDateString('en-IN', {
-                          day: '2-digit',
-                          month: 'short',
-                          year: 'numeric',
-                        })
-                      : s.cancelledAt
-                        ? `Cancelled ${new Date(s.cancelledAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}`
-                        : '—'}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1.5">
-                      <span className="max-w-[120px] truncate font-mono text-[11px] text-slate-500">
-                        {s.razorpaySubscriptionId}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          copyId(s.razorpaySubscriptionId);
-                        }}
-                        className="text-slate-400 hover:text-slate-600"
-                      >
-                        {copied === s.razorpaySubscriptionId ? (
-                          <CheckCircle2 size={12} className="text-green-500" />
-                        ) : (
-                          <Copy size={12} />
-                        )}
-                      </button>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <ChevronRight size={14} className="text-slate-300" />
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px] text-sm">
+              <thead>
+                <tr className="border-b border-slate-100 bg-slate-50 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                  <th className="px-4 py-3">Advocate</th>
+                  <th className="px-4 py-3">Plan</th>
+                  <th className="px-4 py-3 text-center">Status</th>
+                  <th className="px-4 py-3 text-right">Amount</th>
+                  <th className="px-4 py-3">Period ends</th>
+                  <th className="px-4 py-3">Razorpay ID</th>
+                  <th className="px-4 py-3" />
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {subs.map((s) => (
+                  <tr
+                    key={s._id}
+                    className="cursor-pointer hover:bg-slate-50"
+                    onClick={() => void openDetail(s.razorpaySubscriptionId)}
+                  >
+                    <td className="px-4 py-3">
+                      <p className="font-medium text-slate-900">{s.userName || '—'}</p>
+                      <p className="text-xs text-slate-400">{s.userEmail}</p>
+                    </td>
+                    <td className="px-4 py-3 capitalize text-slate-600">{s.planLabel}</td>
+                    <td className="px-4 py-3 text-center">
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[10px] font-medium capitalize ${STATUS_COLORS[s.status] ?? 'bg-slate-100 text-slate-500'}`}
+                      >
+                        {s.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono text-xs text-slate-800">
+                      ₹{s.amountInr.toLocaleString('en-IN')}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-slate-400">
+                      {s.currentPeriodEnd
+                        ? new Date(s.currentPeriodEnd).toLocaleDateString('en-IN', {
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric',
+                          })
+                        : s.cancelledAt
+                          ? `Cancelled ${new Date(s.cancelledAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}`
+                          : '—'}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1.5">
+                        <span className="max-w-[120px] truncate font-mono text-[11px] text-slate-500">
+                          {s.razorpaySubscriptionId}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            copyId(s.razorpaySubscriptionId);
+                          }}
+                          className="text-slate-400 hover:text-slate-600"
+                        >
+                          {copied === s.razorpaySubscriptionId ? (
+                            <CheckCircle2 size={12} className="text-green-500" />
+                          ) : (
+                            <Copy size={12} />
+                          )}
+                        </button>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <ChevronRight size={14} className="text-slate-300" />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 

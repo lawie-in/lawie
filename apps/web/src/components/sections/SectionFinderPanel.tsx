@@ -1396,7 +1396,7 @@ function DetailCard({
           <div className="nl-skeleton h-5 w-2/3" />
           <div className="nl-skeleton h-3 w-1/2" />
         </div>
-        <div aria-hidden="true" className="gap-nl-2 grid grid-cols-2">
+        <div aria-hidden="true" className="gap-nl-2 grid grid-cols-1 sm:grid-cols-2">
           {[0, 1, 2, 3].map((i) => (
             <div key={i} className="nl-skeleton h-12" />
           ))}
@@ -1487,7 +1487,7 @@ function DetailCard({
       </div>
 
       {/* 4 metadata pills */}
-      <div className="gap-nl-2 grid grid-cols-2">
+      <div className="gap-nl-2 grid grid-cols-1 sm:grid-cols-2">
         <Pill
           label="Bailable"
           value={pillLabel(detail.bailable, 'Yes', 'No')}

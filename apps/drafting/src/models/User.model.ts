@@ -34,6 +34,11 @@ export interface IInkHold {
    * settle the same figure. Absent → the full hold, as before.
    */
   settleUnits?: number;
+  /**
+   * T-705: the inkledger reason the settle writes. Set only for a paid
+   * revision ('regenerate'); absent → 'generate', as before.
+   */
+  reason?: 'regenerate';
 }
 
 export interface IUserDrafting extends Document {
@@ -118,6 +123,8 @@ const UserSchema = new Schema<IUserDrafting>(
             // T-577: set only for a draft that asked for a paragraph count.
             quotedUnits: Number,
             settleUnits: Number,
+            // T-705: set only for a paid revision.
+            reason: { type: String, enum: ['regenerate'] },
           },
           { _id: false },
         ),

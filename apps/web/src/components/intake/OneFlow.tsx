@@ -84,6 +84,7 @@ import {
 import { notifyCreditsChanged } from '@/hooks/useCredits';
 import { apiFetch } from '@/lib/apiFetch';
 import { DESCRIPTION_MAX, DRAFT_PREFILL_KEY, capToLimit } from '@/lib/draftPrefill';
+import { readSseEvents } from '@/lib/generateStream';
 import { signupConsentGate } from '@/lib/signupConsent';
 
 type Phase =
@@ -842,68 +843,48 @@ function OneFlowSteps({
           return;
         }
 
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = '';
-        let event = '';
         let streamed = '';
         let assembled = '';
         let findings: Array<Finding & { details?: { clauseId?: string } }> = [];
-        let done: Record<string, unknown> | null = null;
+        let done = null as Record<string, unknown> | null;
+        let stopped = false as boolean;
 
-        for (;;) {
-          const { done: ended, value } = await reader.read();
-          if (ended) break;
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
-          buffer = lines.pop() ?? '';
-          for (const line of lines) {
-            if (line.startsWith('event: ')) {
-              event = line.slice(7).trim();
-              continue;
-            }
-            if (!line.startsWith('data: ')) continue;
-            let payload: Record<string, unknown>;
-            try {
-              payload = JSON.parse(line.slice(6)) as Record<string, unknown>;
-            } catch {
-              event = '';
-              continue;
-            }
-            if (event === 'error') {
-              setGenError({
-                // T-565 W13: no server reason is shown (''), except for insufficient_ink, whose
-                // reason is the card's heading (T-521), and a withheld draft's question (T-611
-                // fact_needed / fact_conflict, T-628 past_date_in_prayer), whose reason is Ajay's
-                // signed question (generationFailure FACT_QUESTION_CODES).
-                reason:
-                  (payload.code === INSUFFICIENT_INK_CODE ||
-                    (typeof payload.code === 'string' && FACT_QUESTION_CODES.has(payload.code))) &&
-                  typeof payload.reason === 'string'
-                    ? payload.reason
-                    : '',
-                retryable: payload.retryable !== false,
-                // T-521 (Arjun ruling 4): the code decides what is said about Ink.
-                source: 'error_event',
-                ...(typeof payload.code === 'string' ? { code: payload.code } : {}),
-                // T-567 item 41 / Ajay 41b: only an explicit `inkReleased: true` from the route
-                // allows "No Ink was used."; absent or anything else is not confirmed.
-                ...(payload.inkReleased === true ? { inkReleased: true } : {}),
-              });
-              return;
-            }
-            if (event === 'repair') setRepairing(true);
-            else if (event === 'warning' && Array.isArray(payload.warnings)) {
-              findings = payload.warnings as typeof findings;
-            } else if (event === 'template_sections' && Array.isArray(payload.sections)) {
-              assembled = (payload.sections as Array<{ content?: string }>)
-                .map((s) => s.content ?? '')
-                .join('\n\n');
-            } else if (event === 'done') done = payload;
-            else if (event === '' && typeof payload.text === 'string') streamed += payload.text;
-            event = '';
+        // T-705: the reader is shared with the revise dialog (lib/generateStream).
+        await readSseEvents(res.body, (event, payload) => {
+          if (event === 'error') {
+            setGenError({
+              // T-565 W13: no server reason is shown (''), except for insufficient_ink, whose
+              // reason is the card's heading (T-521), and a withheld draft's question (T-611
+              // fact_needed / fact_conflict, T-628 past_date_in_prayer), whose reason is Ajay's
+              // signed question (generationFailure FACT_QUESTION_CODES).
+              reason:
+                (payload.code === INSUFFICIENT_INK_CODE ||
+                  (typeof payload.code === 'string' && FACT_QUESTION_CODES.has(payload.code))) &&
+                typeof payload.reason === 'string'
+                  ? payload.reason
+                  : '',
+              retryable: payload.retryable !== false,
+              // T-521 (Arjun ruling 4): the code decides what is said about Ink.
+              source: 'error_event',
+              ...(typeof payload.code === 'string' ? { code: payload.code } : {}),
+              // T-567 item 41 / Ajay 41b: only an explicit `inkReleased: true` from the route
+              // allows "No Ink was used."; absent or anything else is not confirmed.
+              ...(payload.inkReleased === true ? { inkReleased: true } : {}),
+            });
+            stopped = true;
+            return false;
           }
-        }
+          if (event === 'repair') setRepairing(true);
+          else if (event === 'warning' && Array.isArray(payload.warnings)) {
+            findings = payload.warnings as typeof findings;
+          } else if (event === 'template_sections' && Array.isArray(payload.sections)) {
+            assembled = (payload.sections as Array<{ content?: string }>)
+              .map((s) => s.content ?? '')
+              .join('\n\n');
+          } else if (event === 'done') done = payload;
+          else if (event === '' && typeof payload.text === 'string') streamed += payload.text;
+        });
+        if (stopped) return;
 
         if (!done) {
           setGenError({
