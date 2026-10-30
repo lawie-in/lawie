@@ -8,8 +8,9 @@
     "build": "NODE_ENV=production next build",
     "start": "next start",
     "lint": "eslint 'src/**/*.{ts,tsx}' --fix",
-    "test": "jest --coverage --passWithNoTests",
-    "test:watch": "jest --watch",
+    "test": "jest --selectProjects full --coverage --passWithNoTests",
+    "test:sanity": "jest --selectProjects sanity --coverage=false",
+    "test:watch": "jest --selectProjects full --watch",
     "test:e2e": "playwright test",
     "test:e2e:update": "echo 'test:e2e:update: goldens are generated in CI (linux, real fonts) only; never commit goldens from a sandbox run.' && playwright test --update-snapshots"
   },

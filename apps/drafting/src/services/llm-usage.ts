@@ -19,6 +19,7 @@ import {
   onAppSettingInvalidated,
   roleForLegacyModelKey,
 } from './app-settings.service';
+import { currentRunContext } from './run-context';
 
 // ── Pure stream-event parsers ────────────────────────────────────────────────
 // Take one already-JSON-parsed event/line and return whatever fragment of
@@ -451,8 +452,16 @@ export interface LlmCallRecord {
   cache_read_input_tokens: number;
   cache_creation_input_tokens: number;
   stop_reason: string | null;
+  /** Request start to final chunk or response, whole ms, >= 0 (T-681a). Completed and failed calls. */
+  duration_ms: number;
+  /** When the request started, ISO 8601 UTC (T-681a). */
+  started_at: string;
   intake_id?: string;
   run_id?: string;
+  /** T-681a: the attempt within the run, from the run context. */
+  run_sequence?: number;
+  /** T-681a: the run's template or rule pack id, from the run context. */
+  template_id?: string;
   fixture_id?: string;
 }
 
@@ -479,10 +488,28 @@ export interface LlmCallLog {
   cacheReadInputTokens?: number;
   cacheCreationInputTokens?: number;
   stopReason?: string | null;
+  /** Request start, epoch ms (Date.now()) taken just before the provider call (T-681a). */
+  startedAt: number;
+  /** Request start to final chunk or response, ms (Date.now() delta), on completed and failed calls (T-681a). */
+  durationMs: number;
   /** The intake id, where the stage has one. */
   intakeId?: string;
-  /** The generation run id, where the stage has one. */
+  /**
+   * The generation run id, where the stage has one. When unset, the current
+   * run context (run-context.ts) gives it (T-681a); an explicit one wins.
+   */
   runId?: string;
+}
+
+/** T-681a: whole ms, never negative; 0 for a non-finite value. */
+function wholeMs(n: number): number {
+  return Number.isFinite(n) ? Math.max(0, Math.round(n)) : 0;
+}
+
+/** T-681a: epoch ms as ISO 8601; the epoch for a value Date cannot hold, so it never throws. */
+function isoAt(ms: number): string {
+  const d = new Date(Number.isFinite(ms) ? ms : 0);
+  return Number.isNaN(d.getTime()) ? new Date(0).toISOString() : d.toISOString();
 }
 
 /**
@@ -491,6 +518,11 @@ export interface LlmCallLog {
  * third parties. Never throws.
  */
 export function logLlmCall(c: LlmCallLog): void {
+  // T-681a: the run this call belongs to, when there is one. Ids and counts
+  // only. Sequence and template are taken only for the context's own run.
+  const ctx = currentRunContext();
+  const runId = c.runId || ctx?.runId;
+  const inRun = ctx && ctx.runId === runId ? ctx : undefined;
   const record: LlmCallRecord = {
     event: 'llm_call',
     stage: c.stage,
@@ -503,8 +535,12 @@ export function logLlmCall(c: LlmCallLog): void {
     cache_read_input_tokens: c.cacheReadInputTokens ?? 0,
     cache_creation_input_tokens: c.cacheCreationInputTokens ?? 0,
     stop_reason: c.stopReason ?? null,
+    duration_ms: wholeMs(c.durationMs),
+    started_at: isoAt(c.startedAt),
     ...(c.intakeId ? { intake_id: c.intakeId } : {}),
-    ...(c.runId ? { run_id: c.runId } : {}),
+    ...(runId ? { run_id: runId } : {}),
+    ...(inRun ? { run_sequence: inRun.runSequence } : {}),
+    ...(inRun?.templateId ? { template_id: inRun.templateId } : {}),
     ...(currentFixtureId ? { fixture_id: currentFixtureId } : {}),
   };
   try {
