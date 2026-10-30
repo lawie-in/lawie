@@ -16,3 +16,4 @@ Small fix (drafting, plus web BriefStep if the screen needs it), legal content. 
 - Ajay, 29 Oct 2026 (f0f0a5b5): add the first_party override line to the T-127 doc copy: "Add the name of the person this document is for, to continue."
 
 - Ajay AJ-671-M1 (29 Oct 2026, in the T-511 file): Latin-script Hinglish non-answers (pata nahi, maloom nahi, ...) plus a courtesy-tail rule ("pata nahi sir" and "Not known ji" count as non-answers), applied in every field. One complete rule, ready for when T-671 starts.
+- Ajay AJ-683-M2 (30 Oct 2026, T-511 file) REPLACES the AJ-671-M1 filler list. Applies everywhere the non-answer check runs, v3 included. Strip trailing tail words for the check only. The full Latin and Devanagari list is in the T-511 file. "Ramesh Bhai" still passes.
