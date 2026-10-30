@@ -22,6 +22,7 @@
  *   user's words or the signed-rule value; model prose is held back.
  * - `countNonVerbatim`: `bridge_skipped_non_verbatim` for the llm_call line.
  */
+import { O39_NON_ANSWERS } from '../../config/intake/signed-confirm-messages';
 import { locateSpan, normalizeForItem } from '../fact-ledger.service';
 import type { LedgerEdit } from '../fact-ledger.service';
 import { isNoFactAnswer } from '../intake-brief';
@@ -367,6 +368,24 @@ export function editsFromV3(
         x.source.turn === i + 1 &&
         !Array.isArray(x.value),
     );
+    // T-683 review, SHOULD 1: a list value is never bridged from the edit, so
+    // an edit on the list candidate's turn that carries a non-answer is held,
+    // never passed as typed. §10 (a) may have dropped that non-answer when the
+    // list won, so the signed list is read here too.
+    const listOnTurn = result.candidates.some(
+      (x) =>
+        x.key === e.key &&
+        x.source.kind === 'answer' &&
+        x.source.turn === i + 1 &&
+        Array.isArray(x.value),
+    );
+    if (
+      listOnTurn &&
+      (partialNonAnswer || O39_NON_ANSWERS.some((q) => carriesNonAnswer(editText, q)))
+    ) {
+      held.push(i);
+      return;
+    }
     if (!c) {
       if (partialNonAnswer) {
         // Ask again; write nothing: the raw words never go through as typed.

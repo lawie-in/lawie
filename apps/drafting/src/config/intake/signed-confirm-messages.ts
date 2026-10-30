@@ -77,6 +77,81 @@ function fold(v: string): string {
 const NON_ANSWERS = new Set(O39_NON_ANSWERS.map(fold));
 
 /**
+ * AJ-683-M2 (handoff/legal/T-511-copy-rulings-ajay.md; replaces the AJ-671-M1
+ * list): the courtesy/filler tail words, byte for byte as signed. Dropped from
+ * the END of a value for the non-answer check only, never from what is stored.
+ */
+export const COURTESY_TAIL_WORDS: readonly string[] = [
+  'sir',
+  'sirji',
+  'ji',
+  'jee',
+  'madam',
+  "ma'am",
+  'maam',
+  'mam',
+  'saab',
+  'saheb',
+  'sahab',
+  'sahib',
+  'bhai',
+  'bhaiya',
+  'bhaiyya',
+  'didi',
+  'please',
+  'pls',
+  'plz',
+  'yaar',
+  'ok',
+  'okay',
+  'जी',
+  'सर',
+  'साहब',
+  'साहेब',
+  'मैडम',
+  'भाई',
+  'भैया',
+  'दीदी',
+  'कृपया',
+];
+
+const COURTESY_TAIL = COURTESY_TAIL_WORDS.map((w) => w.normalize('NFC').toLowerCase()).sort(
+  (x, y) => y.length - x.length,
+);
+
+/** End punctuation and spaces, allowed between and after tail words. */
+const TAIL_GAP = /[\s.,!?;:।॥…]+$/u;
+
+/**
+ * AJ-683-M2: the value without one or more trailing courtesy words (whole
+ * words, case-insensitive, optional end punctuation between and after them),
+ * for the non-answer check only. "pata nahi sir ji" -> "pata nahi",
+ * "Not known bhai." -> "Not known", "Ramesh Bhai" -> "Ramesh" (still a name,
+ * so it passes). A value made only of tail words ("Sir") comes back unchanged:
+ * it is not a non-answer by itself. "Ji Ram" is unchanged: tail words only.
+ */
+export function stripCourtesyTail(value: string): string {
+  let rest = value.normalize('NFC');
+  let stripped = false;
+  for (;;) {
+    const body = rest.replace(TAIL_GAP, '');
+    const lower = body.toLowerCase();
+    const word = COURTESY_TAIL.find(
+      (w) =>
+        lower.endsWith(w) &&
+        (lower.length === w.length ||
+          !/[\p{L}\p{M}\p{N}']/u.test(lower[lower.length - w.length - 1])),
+    );
+    if (word === undefined) break;
+    rest = body.slice(0, body.length - word.length);
+    stripped = true;
+  }
+  if (!stripped) return value;
+  const out = rest.replace(TAIL_GAP, '').trim();
+  return out === '' ? value : out;
+}
+
+/**
  * §(j)3: true when the value gives nothing: null, blank, an empty list, or a
  * non-answer from the list as the whole value. A list is empty when every
  * entry is.
@@ -100,7 +175,7 @@ export function isEmptyOrNonAnswer(value: unknown): boolean {
  * non-answer by equality. A space then a word does not count (M5b replaces
  * M5's "space"), so `Not Known Traders` stays a name.
  */
-const NON_ANSWER_TAIL = /^(\s*[(,;:]|\s*\.(?:$|\s+[^\p{L}\s])|\s+[-–])/u;
+export const NON_ANSWER_TAIL = /^(\s*[(,;:]|\s*\.(?:$|\s+[^\p{L}\s])|\s+[-–])/u;
 
 /**
  * AJ-668-M5, M5b (handoff/legal/T-511-copy-rulings-ajay.md), party-name fields

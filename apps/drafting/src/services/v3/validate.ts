@@ -40,6 +40,8 @@ import {
   isEmptyOrNonAnswer,
   isPartyNameGuardedField,
   isPartyNonAnswer,
+  NON_ANSWER_TAIL,
+  stripCourtesyTail,
 } from '../../config/intake/signed-confirm-messages';
 import { CUSTODY_SINCE_DERIVED_KEY } from '../custody-since-derivation';
 import { factTypeFor, isLedgerItem, locateSpan } from '../fact-ledger.service';
@@ -209,9 +211,14 @@ export function findQuote(text: string, quote: string): string | null {
 
 /** Rule 4: a non-answer for this field, by the v2 rules (imported, never copied). */
 export function isNonAnswerFor(spec: FieldSpec, words: string): boolean {
-  if (isEmptyOrNonAnswer(words)) return true;
-  if (spec.partyName && isPartyNonAnswer(words)) return true;
-  return isNoFactAnswer(spec.item, words);
+  const check = (w: string): boolean =>
+    isEmptyOrNonAnswer(w) ||
+    (spec.partyName && isPartyNonAnswer(w)) ||
+    isNoFactAnswer(spec.item, w);
+  if (check(words)) return true;
+  // AJ-683-M2: trailing courtesy words ("sir", "जी") off, for the check only.
+  const bare = stripCourtesyTail(words);
+  return bare !== words && check(bare);
 }
 
 // ── Values ──────────────────────────────────────────────────────────────────
@@ -351,16 +358,54 @@ function hasWord(folded: string, word: string): boolean {
 }
 
 /**
- * T-676 AC2: the text carries the non-answer's words. A quote with a letter
- * counts only as whole words (any script), so "Nil" is not in "Nilesh" and
- * "Na" is not in "Narayan". A quote with no letter ("-", "?") counts only as
- * the whole text, so a hyphenated name is never flagged for its "-".
+ * What may follow a non-answer inside a longer text for it to count as one:
+ * the end, or Ajay's signed tail (AJ-668-M5 to M5d, NON_ANSWER_TAIL).
  */
-export function carriesNonAnswer(text: string, quote: string): boolean {
+function nonAnswerTailOk(tail: string): boolean {
+  return tail === '' || NON_ANSWER_TAIL.test(tail);
+}
+
+/** A folded quote without its edge punctuation ("not known." -> "not known"). */
+function stripQuoteEdges(q: string): string {
+  return q.replace(/^[^\p{L}\p{M}\p{N}]+|[^\p{L}\p{M}\p{N}]+$/gu, '');
+}
+
+/**
+ * SHOULD 4: the model's named non-answer stands in that turn's text as whole
+ * words (any script), edge punctuation off. Not the signed tail: "पता नहीं
+ * sir" is still a non-answer. A quote with no letter must be the whole text.
+ */
+export function quoteOccursAsWord(text: string, quote: string): boolean {
   const t = fold(text);
   const q = fold(quote);
   if (q === '') return false;
-  return /\p{L}/u.test(q) ? hasWord(t, q) : t === q;
+  if (!/\p{L}/u.test(q)) return t === q;
+  return hasWord(t, stripQuoteEdges(q));
+}
+
+/**
+ * T-676 AC2: the text carries the non-answer's words. A quote with a letter
+ * is trimmed of edge punctuation ("Not known." -> "not known") and counts
+ * only where it is not preceded by a letter, mark, digit or hyphen and the
+ * rest of the text is a non-answer tail, so "Nil" is not in "Nilesh". A quote
+ * with no letter ("-", "?") counts only as the whole text, so a hyphenated
+ * name is never flagged for its "-".
+ */
+export function carriesNonAnswer(text: string, quote: string): boolean {
+  // AJ-683-M2: "pata nahi sir" carries "pata nahi"; the tail is off for the check only.
+  const bare = stripCourtesyTail(text);
+  if (bare !== text && carriesNonAnswer(bare, quote)) return true;
+  const t = fold(text);
+  const q0 = fold(quote);
+  if (q0 === '') return false;
+  if (!/\p{L}/u.test(q0)) return t === q0;
+  const q = stripQuoteEdges(q0);
+  const w = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp(`(?<![\\p{L}\\p{M}\\p{N}-])${w}`, 'gu');
+  for (const m of t.matchAll(re)) {
+    if (nonAnswerTailOk(t.slice((m.index ?? 0) + m[0].length))) return true;
+  }
+  return false;
 }
 
 /**
@@ -578,6 +623,16 @@ export function validateExtraction(parsed: unknown, ctx: ValidateContext): Valid
   const nonAnswers: NonAnswer[] = [];
   /** Where each non-answer came from, for the same-turn rule below (internal). */
   const nonAnswerFrom = new Map<NonAnswer, { kind: 'description' | 'answer'; turn: number }>();
+  /**
+   * Non-answers on a turn that was not asked for their key: never output, but
+   * a candidate from that turn that carries their words still loses (§10 a).
+   */
+  const containmentOnly: Array<{
+    key: string;
+    quote: string;
+    kind: 'description' | 'answer';
+    turn: number;
+  }> = [];
   let valid: LedgerCandidate[] = [];
 
   /** The source text an entry names, with the keys that answer was asked for. */
@@ -632,11 +687,18 @@ export function validateExtraction(parsed: unknown, ctx: ValidateContext): Valid
   /** Rule 4: kept for the key it was given for; an answer counts only for its asked keys. */
   const addNonAnswer = (
     spec: FieldSpec,
-    src: { kind: 'description' | 'answer'; turn: number; asked: string[] | null },
+    src: { kind: 'description' | 'answer'; turn: number; text: string; asked: string[] | null },
     quote: string,
   ): void => {
+    // The quote must stand in that turn's text as a non-answer (whole words).
+    if (!quoteOccursAsWord(src.text, quote)) {
+      drop('not_a_non_answer');
+      unresolved.add(spec.item.key);
+      return;
+    }
     if (src.asked !== null && !src.asked.includes(spec.item.key)) {
       drop('non_answer_not_asked');
+      containmentOnly.push({ key: spec.item.key, quote, kind: src.kind, turn: src.turn });
       return;
     }
     drop('non_answer');
@@ -735,6 +797,21 @@ export function validateExtraction(parsed: unknown, ctx: ValidateContext): Valid
   // §9a (verbatim or by a signed rule) that is not itself a non-answer wins,
   // and that non-answer is dropped; otherwise the candidate is dropped and
   // the non-answer stands (no fact). The brief and the bridge read the result.
+  // A not-asked non-answer is no output, but a candidate from the same turn
+  // and key that carries its words is still no fact (T-683 review, SHOULD 3).
+  valid = valid.filter((c) => {
+    const hit = containmentOnly.some(
+      (x) =>
+        x.key === c.key &&
+        x.kind === c.source.kind &&
+        x.turn === c.source.turn &&
+        (Array.isArray(c.value)
+          ? c.value.some((v) => carriesNonAnswer(v, x.quote))
+          : typeof c.value === 'string' && carriesNonAnswer(c.value, x.quote)),
+    );
+    if (hit) drop('contains_non_answer');
+    return !hit;
+  });
   const keptNonAnswers = nonAnswers.filter((n) => {
     const from = nonAnswerFrom.get(n);
     const spec = specs.get(n.key);
