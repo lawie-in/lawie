@@ -1,6 +1,6 @@
 # T-691: Blind A/B test of the drafting model, Opus 5.5 vs Sonnet 5.5
 
-Status: DONE 30 Oct 2026. Decision (Arjun, handoff/tickets/T-691-result-arjun.md): Sonnet 5.5 stays the drafter. Opus had a mild edge on argued civil matters in Ajay's read only, the blocker counts were equal (4 each), and Opus fails the cost rule (2.8x Sonnet). Anushka's scores: handoff/tickets/T-691-anushka-blind-scores.md. Was: tooling merged into develop_staging cd61d3dd + CI fix 39d09b7f, 30 Oct 2026. The --real run waits on the founder setting GOLDEN_SET_ANTHROPIC_API_KEY and AB_KEY_PASSPHRASE in the environment.
+Status: DONE 30 Oct 2026. Decision (Arjun, handoff/tickets/T-691-result-arjun.md): Sonnet 5.5 stays the drafter. Opus had a mild edge on argued civil matters in Ajay's read only, the blocker counts were equal (4 each, per Arjun's result file; Ajay's legal read alone found 4 in total across all 20 drafts: D19 1, D10 1, D17 2), and Opus fails the cost rule (2.8x Sonnet). Anushka's scores: handoff/tickets/T-691-anushka-blind-scores.md. Was: tooling merged into develop_staging cd61d3dd + CI fix 39d09b7f, 30 Oct 2026. The --real run waits on the founder setting GOLDEN_SET_ANTHROPIC_API_KEY and AB_KEY_PASSPHRASE in the environment.
 Budget: about ₹600 of model spend (Vikram tracks it).
 
 ## Acceptance criteria
