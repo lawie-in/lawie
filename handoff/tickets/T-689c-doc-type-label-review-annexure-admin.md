@@ -1,6 +1,6 @@
 # T-689c: Doc type label on the review page, the annexure and admin
 
-Status: backlog. Raised 30 Oct 2026 by Priya from Kunal's T-689b follow-ups.
+Status: ASSIGNED kunal 30 Oct 2026 (P1, full chain, legal). Was: backlog. Raised 30 Oct 2026 by Priya from Kunal's T-689b follow-ups.
 
 1. The shared review page (apps/web review/[token]/page.tsx:218) still says "petition" for a written statement. Add docTypeLabel to the review payload and show it.
 2. annexures.service.ts:478 prints "Nature of matter: PETITION" in a generated annexure. This is document output and may be legal content: Ajay rules (AJ-689c) what it should print before anyone changes it.
