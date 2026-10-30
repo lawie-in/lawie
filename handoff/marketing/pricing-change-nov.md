@@ -13,6 +13,7 @@ To confirm with Vikram before I draft: top-up packs unchanged (₹65/3, ₹199/1
 | "50 Ink a month" / "Ink refills every month" | "60 Ink a month" |
 | Ajay's Ads condition 4: pause if the price, the 50 Ink or the templates change | The campaign PAUSES on ship day until the new ad text is signed. Headline 7 "Solo Plan ₹799 a Month" survives; description 3 does not |
 | Pro 150 Ink | Unchanged |
+| "₹65 for 3 Ink" (pricing page, landing 1.6, deck slide 10, T-511 §4.6 top-up dialog, strategy.md ad line "Top-ups from ₹65 (3 Ink)") | "₹65 for 4 Ink". Ads headline/description do not name the pack, so no ad change for this line |
 | Per-document costs (O.39 = 3, partition = 5) | Shown in-app by the cost line only. No per-document rupee or Ink figure in marketing (Vikram's rule) |
 
 ## Every current occurrence to change (grep, 30 Oct)
@@ -126,7 +127,7 @@ To confirm with Vikram before I draft: top-up packs unchanged (₹65/3, ₹199/1
 5. One LinkedIn/WhatsApp post from the founder: "Solo now gives 60 Ink a month at the same price." Ajay signs. No "more for free", no comparison with the old plan beyond the number.
 
 ## Vikram's answers (30 Oct)
-1. Top-up prices and Ink amounts stay (₹65/3, ₹199/10, ₹499/28) for now. Flag: with a 2-Ink minimum the ₹65/3 pack buys one draft plus one Ink that cannot be used alone. Vikram will recommend ₹65/4 Ink to the founder; HOLD the mini-pack line of copy until the founder answers.
+1. Top-ups: the mini pack becomes ₹65 / 4 Ink (CONFIRMED, founder via Priya, 30 Oct), shipping with the rest of the change. ₹199/10 and ₹499/28 stay. Do not publish before it ships.
 2. Pro stays ₹1,999 and 150 Ink.
 3. "720" is only the annual total of the yearly Solo plan. This change publishes no yearly copy; Ajay's existing hold on yearly text stands. No yearly text, as today.
 4. Ship date comes from Priya with T-706/T-708 next month, sent to me and Ajay together so the re-sign and the Ads pause land the same day.
