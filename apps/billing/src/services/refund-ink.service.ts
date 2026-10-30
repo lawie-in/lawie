@@ -138,13 +138,16 @@ async function grantedFor(
 async function priorReversals(
   razorpayPaymentId: string,
   refundId: string,
+  userId: string,
 ): Promise<{ refundPaise: number; dueUnits: number }> {
   const db = mongoose.connection.db;
-  if (!db) return { refundPaise: 0, dueUnits: 0 };
+  if (!db || !mongoose.Types.ObjectId.isValid(userId)) return { refundPaise: 0, dueUnits: 0 };
   const rows = await db
     .collection('inkledger')
     .find(
       {
+        // userId first: served by the inkledger {userId: 1, createdAt: -1} index (T-519).
+        userId: new mongoose.Types.ObjectId(userId),
         reason: REFUND_REVERSAL_REASON,
         state: 'done',
         'metadata.razorpayPaymentId': razorpayPaymentId,
@@ -188,7 +191,7 @@ export async function reverseInkForRefund(input: {
     return 'unresolved';
   }
 
-  const prior = await priorReversals(razorpayPaymentId, refundId);
+  const prior = await priorReversals(razorpayPaymentId, refundId, granted.userId);
   const dueUnits = refundDueUnits({
     grantedUnits: granted.grantedUnits,
     amountPaise: granted.amountPaise,

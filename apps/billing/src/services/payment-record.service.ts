@@ -504,7 +504,14 @@ export async function recordRefundSafely(
     const sameEntity = !!entity && entity.id === refund.paymentId;
     const entityRefunded = (sameEntity ? paise(entity.amount_refunded) : null) ?? 0;
     const refundAmount = paise(refund.amount) ?? 0;
-    const reversed = await reversedUnitsForPayment(refund.paymentId);
+    // The row's user scopes the ledger read (indexed). No row: nothing to update below.
+    const owner = await Payment.findOne(
+      { razorpayPaymentId: refund.paymentId },
+      { userId: 1 },
+    ).lean();
+    const reversed = owner
+      ? await reversedUnitsForPayment(refund.paymentId, String(owner.userId))
+      : 0;
     // Per-refund amounts keyed by Razorpay refund id (`refunds.<refundId>`): a redelivered
     // refund overwrites its own entry with the same amount, so it is never counted twice.
     // refundedPaise = max(previous, sum over distinct refunds, entity amount_refunded),
@@ -565,13 +572,18 @@ export async function recordRefundSafely(
 }
 
 /** Ledger units already taken back by refunds of this payment (done reversal rows). */
-export async function reversedUnitsForPayment(razorpayPaymentId: string): Promise<number> {
+export async function reversedUnitsForPayment(
+  razorpayPaymentId: string,
+  userId: string,
+): Promise<number> {
   const db = mongoose.connection.db;
-  if (!db) return 0;
+  if (!db || !mongoose.Types.ObjectId.isValid(userId)) return 0;
   const rows = await db
     .collection('inkledger')
     .find(
       {
+        // userId first: served by the inkledger {userId: 1, createdAt: -1} index (T-519).
+        userId: new mongoose.Types.ObjectId(userId),
         reason: REFUND_REVERSAL_REASON,
         state: 'done',
         'metadata.razorpayPaymentId': razorpayPaymentId,

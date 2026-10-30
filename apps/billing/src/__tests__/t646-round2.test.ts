@@ -436,12 +436,37 @@ describe('plan row on the webhook replay path (SHOULD a)', () => {
       status: 'paid',
       planId: 'solo_monthly',
       razorpaySubscriptionId: 'sub_t436',
-      inkUnits: PLAN_UNITS,
+      // Arjun round 3 (1): the redelivery lost the claim (not a new cycle), so the row carries
+      // no Ink of its own; a refund of it must go through the ledger's sub_renewal confirmation.
+      inkUnits: 0,
     });
     expect(String(row!.userId)).toBe(String(u));
     expect((await inkOf(u)).inkSub ?? 0).toBe(afterFirst);
     expect(await ledger().countDocuments({ userId: u, delta: { $gt: 0 } })).toBe(grants);
     expect(await Payment.countDocuments({ razorpayPaymentId: 'pay_replay' })).toBe(1);
+
+    // A refund of that 0-Ink row reverses through the ledger confirmation. The grant was
+    // written just now; the payment entity is created at the same time, so exactly one
+    // sub_renewal row is in its window.
+    const refundRes = await webhook('refund.processed', {
+      ...refundPayload({ refundId: 'rfnd_replay', paymentId: 'pay_replay', amount: 79900 }),
+      payment: {
+        entity: {
+          id: 'pay_replay',
+          amount: 79900,
+          status: 'captured',
+          subscription_id: 'sub_t436',
+          created_at: Math.floor(Date.now() / 1000),
+        },
+      },
+    });
+    expect(refundRes.status).toBe(200);
+    expect(await ledger().findOne({ _id: 'refund:rfnd_replay' as never })).toMatchObject({
+      reason: 'refund_reversal',
+      state: 'done',
+      delta: -PLAN_UNITS,
+    });
+    expect((await inkOf(u)).inkSub ?? 0).toBe(0);
   });
 });
 

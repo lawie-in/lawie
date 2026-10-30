@@ -2217,6 +2217,26 @@ function restoreClaim(
   };
 }
 
+/**
+ * T-646 (Arjun round 3, 3): the credit note for a refund could not be recorded. One Sentry
+ * event per refund, ids and the error class only; request and user stripped.
+ */
+function reportCreditNoteFailed(refundId: string, razorpayPaymentId: string, err: unknown): void {
+  const errorName = err instanceof Error ? err.name : 'unknown';
+  logger.error({ refundId, razorpayPaymentId, errName: errorName }, 'credit note record failed');
+  Sentry.withScope((scope) => {
+    scope.setSDKProcessingMetadata({ normalizedRequest: undefined, ipAddress: undefined });
+    scope.addEventProcessor((event) => {
+      delete event.request;
+      delete event.user;
+      return event;
+    });
+    scope.setFingerprint(['billing-credit-note-record-failed', refundId]);
+    scope.setTags({ refundId, razorpayPaymentId, errorName });
+    Sentry.captureMessage('Billing: credit note record failed on refund', 'error');
+  });
+}
+
 export function verifyWebhookSignature(rawBody: Buffer, signature: unknown): boolean {
   const expectedSignature = crypto
     .createHmac('sha256', env.RAZORPAY_WEBHOOK_SECRET)
@@ -2376,12 +2396,23 @@ export async function handleWebhookEvent(
       typeof refund.amount === 'number' &&
       (refund.status === undefined || refund.status === 'processed')
     ) {
-      await issueCreditNoteOnRefund({
-        refundId: refund.id,
-        paymentId: refund.payment_id,
-        amount: refund.amount,
-        processedAt: fromUnix(refund.created_at),
-      });
+      // Arjun round 3 (3): recording the credit note can throw (invoice.service.ts
+      // issueCreditNoteOnRefund -> recordCreditNoteForRefund). The Ink reversal and the
+      // payment row still run; the error is reported (ids only) and rethrown at the end, so
+      // the webhook still 500s and Razorpay retries the credit note as before (the reversal
+      // is idempotent on refund:<refundId>).
+      let creditNoteErr: unknown = null;
+      try {
+        await issueCreditNoteOnRefund({
+          refundId: refund.id,
+          paymentId: refund.payment_id,
+          amount: refund.amount,
+          processedAt: fromUnix(refund.created_at),
+        });
+      } catch (err) {
+        creditNoteErr = err;
+        reportCreditNoteFailed(refund.id, refund.payment_id, err);
+      }
       // T-646 (Vikram 5): the refund takes back its share of the payment's Ink,
       // never below zero, idempotent on refund:<refundId>. Throws (500, Razorpay
       // retries) only when the reversal could not run; the retry reverses once.
@@ -2397,6 +2428,7 @@ export async function handleWebhookEvent(
         paymentId: refund.payment_id,
         amount: refund.amount,
       });
+      if (creditNoteErr) throw creditNoteErr;
     } else {
       logger.warn({ event }, 'Webhook: refund.processed without a usable refund entity');
     }
@@ -2749,7 +2781,10 @@ async function applySubscriptionEvent(
       await recordPaymentSafely(payload, {
         userId: sub.userId.toString(),
         kind: 'plan',
-        inkUnits: planSku ? planSku.inkPerCycle * 2 : 0,
+        // Arjun round 3 (1): Ink only when THIS delivery's claim made a new cycle (isNewCycle).
+        // A lost claim / replay or paid_count 0 writes 0, so a refund of it goes through the
+        // ledger confirmation (confirmedPlanGrantUnits) instead.
+        inkUnits: planSku && isNewCycle ? planSku.inkPerCycle * 2 : 0,
         razorpaySubscriptionId: subId,
         ...(planSku ? { planId: planSku.id } : {}),
       });
