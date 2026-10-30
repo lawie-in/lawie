@@ -1,0 +1,18 @@
+Font files in this directory and where they come from (T-695, AJ-695).
+
+File: Mukta-Regular.ttf
+Upstream project: Mukta (https://github.com/EkType/Mukta, commit 418021bbb8f5e7bf0bfd96296f9e015bf953efed)
+Release: Version 2.538, as published in google/fonts commit 6157dfaa640ca5738b4d1a7070fe389c3036d7fc
+Source URL: https://raw.githubusercontent.com/google/fonts/6157dfaa640ca5738b4d1a7070fe389c3036d7fc/ofl/mukta/Mukta-Regular.ttf
+sha256: 2958e4af564507df2a856164df6f9978dacb03f999a4f34a0c269dc8a4de9688
+Unmodified: byte-identical to the upstream release artifact.
+
+File: Mukta-Medium.ttf
+Upstream project: Mukta (https://github.com/EkType/Mukta, commit 418021bbb8f5e7bf0bfd96296f9e015bf953efed)
+Release: Version 2.538, as published in google/fonts commit 6157dfaa640ca5738b4d1a7070fe389c3036d7fc
+Source URL: https://raw.githubusercontent.com/google/fonts/6157dfaa640ca5738b4d1a7070fe389c3036d7fc/ofl/mukta/Mukta-Medium.ttf
+sha256: 4db18bd8f19582607e8a6af0c4bf158b4b3378b426e42ad39d444d216c70074c
+Unmodified: byte-identical to the upstream release artifact.
+
+Licence: OFL.txt, verbatim from https://raw.githubusercontent.com/google/fonts/6157dfaa640ca5738b4d1a7070fe389c3036d7fc/ofl/mukta/OFL.txt
+(sha256 2ee5e8e47cd7d08f60bb9555f72b25912c9e81b13f5bc9a0551ddf943da6ca98). Copyright notice: OFL.txt and METADATA.pb from the same google/fonts directory.

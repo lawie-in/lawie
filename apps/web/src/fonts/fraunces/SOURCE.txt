@@ -1,0 +1,11 @@
+Font files in this directory and where they come from (T-695, AJ-695).
+
+File: Fraunces[SOFT,WONK,opsz,wght].ttf
+Upstream project: Fraunces (https://github.com/undercasetype/Fraunces, commit d6d385783609ceb11ac0f220f3abd9f1631c8a36)
+Release: Version 1.000;[b76b70a41], as published in google/fonts commit 6157dfaa640ca5738b4d1a7070fe389c3036d7fc
+Source URL: https://raw.githubusercontent.com/google/fonts/6157dfaa640ca5738b4d1a7070fe389c3036d7fc/ofl/fraunces/Fraunces[SOFT,WONK,opsz,wght].ttf
+sha256: 177ff6c0f14e5550a3c624247cd1189611d4eb65d000b14944c63d967958abbb
+Unmodified: byte-identical to the upstream release artifact.
+
+Licence: OFL.txt, verbatim from https://raw.githubusercontent.com/google/fonts/6157dfaa640ca5738b4d1a7070fe389c3036d7fc/ofl/fraunces/OFL.txt
+(sha256 bdf4c22802eaf804f998195871c6b8938aac2ac14b2d78a8bd66a6f1eced833b). Copyright notice: OFL.txt and METADATA.pb from the same google/fonts directory.

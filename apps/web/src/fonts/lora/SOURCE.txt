@@ -1,0 +1,13 @@
+Font files in this directory and where they come from (T-695, AJ-695).
+
+File: Lora[wght].ttf
+Upstream project: Lora (https://github.com/cyrealtype/Lora-Cyrillic, commit 403b1a66ca2e79f81d749c5299559e168591a4df)
+Release: Version 3.008, as published in google/fonts commit 6157dfaa640ca5738b4d1a7070fe389c3036d7fc
+Source URL: https://raw.githubusercontent.com/google/fonts/6157dfaa640ca5738b4d1a7070fe389c3036d7fc/ofl/lora/Lora[wght].ttf
+sha256: 822a6621ccbe8d97d20ac88c1c41f5615c9c2c202eaa75f272cd452aac6475a7
+Unmodified: byte-identical to the upstream release artifact.
+
+No official woff2 release artifact was found for Lora, so the released TTF is used (AJ-695).
+
+Licence: OFL.txt, verbatim from https://raw.githubusercontent.com/google/fonts/6157dfaa640ca5738b4d1a7070fe389c3036d7fc/ofl/lora/OFL.txt
+(sha256 1d9a970809ac804b582a6ce7f0ebc4e7fefcbfd7ff6299cad35ee656a21be716). Copyright notice: OFL.txt and METADATA.pb from the same google/fonts directory, plus FONTLOG.txt.

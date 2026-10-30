@@ -170,7 +170,7 @@ describe('T-436 AC4: source sweep over everything under (marketing)', () => {
     );
   });
 
-  // layout.tsx is covered here rather than rendered: it needs next/font/google, which Jest cannot load.
+  // layout.tsx is covered here rather than rendered: it needs next/font/local, which Jest cannot load.
   it.each(all.map((f) => [path.relative(ROOT, f), f]))(
     '%s has no Patna, Bihar or placeholder text',
     (_rel, f) => {

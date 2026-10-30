@@ -1,0 +1,13 @@
+Font files in this directory and where they come from (T-695, AJ-695).
+
+File: InterVariable.woff2
+Upstream project: Inter (https://github.com/rsms/inter)
+Release: v4.1 (font name table: Version 4.001;git-9221beed3)
+Source URL: https://github.com/rsms/inter/releases/download/v4.1/Inter-4.1.zip (zip member web/InterVariable.woff2)
+Zip: Inter-4.1.zip, sha256 9883fdd4a49d4fb66bd8177ba6625ef9a64aa45899767dde3d36aa425756b11e
+sha256: 693b77d4f32ee9b8bfc995589b5fad5e99adf2832738661f5402f9978429a8e3
+Unmodified: byte-identical to the upstream release artifact.
+
+Licence: OFL.txt is the zip member LICENSE.txt, byte-identical
+(sha256 262481e844521b326f5ecd053e59b98c8b2da78c8ee1bdbb6e8174305e54935a). It carries the copyright
+notice: Copyright (c) 2016 The Inter Project Authors (https://github.com/rsms/inter).

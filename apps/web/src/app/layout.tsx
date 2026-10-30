@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter, Lora, Mukta, Tiro_Devanagari_Hindi } from 'next/font/google';
+import localFont from 'next/font/local';
 
 import AnalyticsConsent from '@/components/AnalyticsConsent';
 import {
@@ -13,26 +13,58 @@ import { AuthProvider } from '@/context/AuthContext';
 import { SignupSourceCapture } from '@/lib/signup-source';
 import './globals.css';
 
-const inter = Inter({ subsets: ['latin'] });
+// T-695: every font is served from the repo (src/fonts/<family>/), so the build never fetches
+// fonts over the network. Each file is the font project's own release artifact, byte-identical
+// (AJ-695); src/fonts/<family>/SOURCE.txt records its release, URL and sha256, next to OFL.txt.
+// Same weights, styles, CSS variables and display as the next/font/google calls they replace;
+// adjustFontFallback is Arial for the sans fonts and Times New Roman for the serif fonts, as before.
+// Inter: the Inter 4.1 release's web/InterVariable.woff2. It also has an opsz axis (14-32); Google
+// served Inter fixed at opsz 14, so the @font-face pins opsz 14 (a CSS descriptor; the file is
+// unchanged). This call is identical to the one in (marketing)/layout.tsx on purpose, so both
+// emit the same file URL and a marketing page fetches Inter once (T-695 rework).
+const inter = localFont({
+  src: '../fonts/inter/InterVariable.woff2',
+  weight: '100 900',
+  style: 'normal',
+  display: 'swap',
+  variable: '--font-inter',
+  preload: true,
+  // Single quotes inside: Turbopack's next/font/local fails to parse a `"` in a declaration value.
+  declarations: [{ prop: 'font-variation-settings', value: "'opsz' 14" }],
+});
 // T-005 brand headings (describe-first screens). Exposed as a CSS variable, used via `font-heading`.
-const lora = Lora({ subsets: ['latin'], weight: ['600'], variable: '--font-lora' });
+// T-695 rework (T-584 budget): not preloaded. Lora paints only headings on some screens, never
+// above the fold on every route; those headings show the size-adjusted fallback until it loads.
+const lora = localFont({
+  src: '../fonts/lora/Lora[wght].ttf',
+  weight: '600',
+  style: 'normal',
+  display: 'swap',
+  variable: '--font-lora',
+  preload: false,
+  adjustFontFallback: 'Times New Roman',
+});
 // T-511 Night Library type (spec 2.3, Arjun 17 Oct). CSS variables only, used via `font-nl-body`
 // and `font-nl-display` and the `nl-*` type classes; the body font stays Inter until pages move.
 // preload is off so existing pages do not download the new fonts; a font file loads only when a
 // Night Library element uses it.
-const mukta = Mukta({
-  subsets: ['latin', 'devanagari'],
-  weight: ['400', '500'],
+const mukta = localFont({
+  src: [
+    { path: '../fonts/mukta/Mukta-Regular.ttf', weight: '400', style: 'normal' },
+    { path: '../fonts/mukta/Mukta-Medium.ttf', weight: '500', style: 'normal' },
+  ],
   display: 'swap',
   variable: '--font-mukta',
   preload: false,
 });
-const tiro = Tiro_Devanagari_Hindi({
-  subsets: ['latin', 'devanagari'],
+const tiro = localFont({
+  src: '../fonts/tiro-devanagari-hindi/TiroDevanagariHindi-Regular.ttf',
   weight: '400',
+  style: 'normal',
   display: 'swap',
   variable: '--font-tiro',
   preload: false,
+  adjustFontFallback: 'Times New Roman',
 });
 
 export const metadata: Metadata = {

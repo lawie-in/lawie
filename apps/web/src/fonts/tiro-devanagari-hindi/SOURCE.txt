@@ -1,0 +1,11 @@
+Font files in this directory and where they come from (T-695, AJ-695).
+
+File: TiroDevanagariHindi-Regular.ttf
+Upstream project: Tiro Devanagari Hindi, Indigo (https://github.com/TiroTypeworks/Indigo, commit 98b5d3a01c534b7029af04a59d31e0d7d90be15a)
+Release: Version 1.52, as published in google/fonts commit 6157dfaa640ca5738b4d1a7070fe389c3036d7fc
+Source URL: https://raw.githubusercontent.com/google/fonts/6157dfaa640ca5738b4d1a7070fe389c3036d7fc/ofl/tirodevanagarihindi/TiroDevanagariHindi-Regular.ttf
+sha256: d2abcb4d352f0bfab91632df5d9c8173882073c182e662fa731a5a738e6681d7
+Unmodified: byte-identical to the upstream release artifact.
+
+Licence: OFL.txt, verbatim from https://raw.githubusercontent.com/google/fonts/6157dfaa640ca5738b4d1a7070fe389c3036d7fc/ofl/tirodevanagarihindi/OFL.txt
+(sha256 2ed6051706542c5d6d96480318152b17900bb6d4dbadb11d7d5d6464d8b3e0dd). Copyright notice: OFL.txt and METADATA.pb from the same google/fonts directory.
