@@ -206,3 +206,5 @@ I checked these myself (file SHA-256, first 16 hex):
 Known gap (accepted): the Latin Hinglish non-answers are in the prompt but not in the code list until T-671 (AJ-671-M1/M2). They are contained meanwhile by the yes/no guard and the T-676 carry check.
 
 signed-confirm-messages.ts passed separately (AJ-683-BC). **T-683 APPROVED at 321c7d28.** If the slot merge changes any of these five files, I re-check them before the push. It counts as merged at the develop_staging merge SHA that contains it.
+
+**T-683 MERGED (Ajay, 30 Oct 2026): develop_staging merge SHA 180c02e2.** Checked myself: it contains approved commit SHA 321c7d28, and all five legal files keep their approved SHA-256s at the merge (54b0f004…, 3f4d5b08…, eed3d55e…, a527b848…, c03d1db4…). CI was running at merge time, per Vishal.
