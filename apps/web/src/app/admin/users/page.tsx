@@ -235,59 +235,61 @@ export default function AdminUsersPage() {
         ) : users.length === 0 ? (
           <div className="py-10 text-center text-sm text-slate-400">No users found.</div>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-slate-100 bg-slate-50 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                <th className="px-4 py-3">Name</th>
-                <th className="px-4 py-3">Email</th>
-                <th className="px-4 py-3 text-center">Plan</th>
-                <th className="px-4 py-3 text-center">Ink</th>
-                <th className="px-4 py-3">Joined</th>
-                <th className="px-4 py-3">Last active</th>
-                <th className="px-4 py-3" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {users.map((u) => (
-                <tr
-                  key={u._id}
-                  className={`cursor-pointer hover:bg-slate-50 ${!u.isActive ? 'opacity-50' : ''}`}
-                  onClick={() => void openDetail(u._id)}
-                >
-                  <td className="px-4 py-3 font-medium text-slate-900">{u.name || '—'}</td>
-                  <td className="px-4 py-3 text-slate-500">{u.email}</td>
-                  <td className="px-4 py-3 text-center">
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize ${TIER_COLORS[u.planTier]}`}
-                    >
-                      {u.planTier}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-center font-mono text-xs font-semibold text-slate-800">
-                    {u.totalInk}
-                  </td>
-                  <td className="px-4 py-3 text-xs text-slate-400">
-                    {new Date(u.createdAt).toLocaleDateString('en-IN', {
-                      day: '2-digit',
-                      month: 'short',
-                      year: 'numeric',
-                    })}
-                  </td>
-                  <td className="px-4 py-3 text-xs text-slate-400">
-                    {u.lastLoginAt
-                      ? new Date(u.lastLoginAt).toLocaleDateString('en-IN', {
-                          day: '2-digit',
-                          month: 'short',
-                        })
-                      : '—'}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <ChevronRight size={14} className="text-slate-300" />
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px] text-sm">
+              <thead>
+                <tr className="border-b border-slate-100 bg-slate-50 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                  <th className="px-4 py-3">Name</th>
+                  <th className="px-4 py-3">Email</th>
+                  <th className="px-4 py-3 text-center">Plan</th>
+                  <th className="px-4 py-3 text-center">Ink</th>
+                  <th className="px-4 py-3">Joined</th>
+                  <th className="px-4 py-3">Last active</th>
+                  <th className="px-4 py-3" />
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {users.map((u) => (
+                  <tr
+                    key={u._id}
+                    className={`cursor-pointer hover:bg-slate-50 ${!u.isActive ? 'opacity-50' : ''}`}
+                    onClick={() => void openDetail(u._id)}
+                  >
+                    <td className="px-4 py-3 font-medium text-slate-900">{u.name || '—'}</td>
+                    <td className="px-4 py-3 text-slate-500">{u.email}</td>
+                    <td className="px-4 py-3 text-center">
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize ${TIER_COLORS[u.planTier]}`}
+                      >
+                        {u.planTier}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-center font-mono text-xs font-semibold text-slate-800">
+                      {u.totalInk}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-slate-400">
+                      {new Date(u.createdAt).toLocaleDateString('en-IN', {
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric',
+                      })}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-slate-400">
+                      {u.lastLoginAt
+                        ? new Date(u.lastLoginAt).toLocaleDateString('en-IN', {
+                            day: '2-digit',
+                            month: 'short',
+                          })
+                        : '—'}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <ChevronRight size={14} className="text-slate-300" />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 

@@ -66,7 +66,7 @@ export default function QuestionsStep({
         what you can. Anything you skip becomes a visible blank in the draft.
       </p>
 
-      <div className={`${card} mt-6 flex items-center gap-3 !p-3.5`}>
+      <div className={`${card} mt-6 flex flex-wrap items-center gap-3 !p-3.5`}>
         <div className="min-w-0 flex-1">
           <p className="text-brand-muted text-xs font-semibold uppercase tracking-wider">
             {documentName ? documentName : 'Your description'}
