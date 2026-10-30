@@ -183,12 +183,19 @@ export function ShelfKpis({
   const showNudge = inkKnown && ink.totalInk < LOW_INK_THRESHOLD && !nudgeDismissed;
   const inkReference = ink.monthlyAllotment > 0 ? ink.monthlyAllotment : FREE_INK;
 
-  const byType = s
-    ? Object.entries(s.byType)
-        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-        .slice(0, 3)
-    : [];
-  const byTypeMax = byType.reduce((m, [, n]) => Math.max(m, n), 0);
+  // T-689b: the server's labelled rows (a written statement is "Written Statement", not
+  // "Petition") when it sends them; an older server's byType ids are humanised as before.
+  const byType: Array<{ key: string; label: string; n: number }> = !s
+    ? []
+    : s.byTypeLabelled && s.byTypeLabelled.length > 0
+      ? [...s.byTypeLabelled]
+          .sort((a, b) => b.n - a.n || a.label.localeCompare(b.label))
+          .slice(0, 3)
+      : Object.entries(s.byType)
+          .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+          .slice(0, 3)
+          .map(([docType, n]) => ({ key: docType, label: typeLabel(docType), n }));
+  const byTypeMax = byType.reduce((m, { n }) => Math.max(m, n), 0);
 
   return (
     <div className="gap-nl-4 grid grid-cols-2 min-[900px]:grid-cols-4">
@@ -276,10 +283,10 @@ export function ShelfKpis({
             <p className="nl-body text-nl-soft m-0">{DASHBOARD_COPY.draftsByTypeEmpty}</p>
           ) : (
             <ul role="list" className="gap-nl-3 m-0 flex list-none flex-col p-0">
-              {byType.map(([docType, n]) => (
-                <li key={docType} className="gap-nl-1 flex min-w-0 flex-col">
+              {byType.map(({ key, label, n }) => (
+                <li key={`${key}|${label}`} className="gap-nl-1 flex min-w-0 flex-col">
                   <span className="gap-nl-3 nl-body-sm text-nl-soft flex min-w-0 justify-between">
-                    <span className="min-w-0 truncate">{typeLabel(docType)}</span>
+                    <span className="min-w-0 truncate">{label}</span>
                     <span className="text-nl-text shrink-0 tabular-nums">{n}</span>
                   </span>
                   <Bar percent={pct(n, byTypeMax)} />

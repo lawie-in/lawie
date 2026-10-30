@@ -28,7 +28,11 @@
  *
  * Only one trailing segment is dropped. No pack, or a pack with no usable name, gives
  * null; the page then falls back to the humanised `docType`.
+ *
+ * docTypeLabelFor is pure; docTypeLabelForPackId (below) reads the pack from disk.
  */
+import { loadRulePack } from './rule-pack.service';
+
 const TRAILING_PARENTHETICAL = /\s+\(([^()]*)\)$/;
 
 const STATUTE_PREFIX = /^\s*(?:(?:order|section|rule|article|schedule)\b|sec\.|s\.|art\.)/i;
@@ -47,4 +51,44 @@ export function docTypeLabelFor(pack: { name?: unknown } | null | undefined): st
   if (tail === null || !isStatuteReference(tail[1])) return name;
   const stripped = name.slice(0, tail.index).trim();
   return stripped !== '' ? stripped : name;
+}
+
+/** The rulePackId a guided document stores; it has no pack file. */
+export const GUIDED_PACK_ID = 'guided';
+
+/**
+ * T-689b: the docTypeLabel for a stored rulePackId, the one path the documents list
+ * and the dashboard summary share. Not pure: it reads the pack through `load` (the
+ * rule-pack loader by default, which caches each pack it reads).
+ *
+ * A missing, empty or non-string id, the guided id (its kind name sits in the
+ * encrypted brief, which is not read for this), a pack with no file or no usable
+ * name, or a pack that fails to load gives null; the caller then falls back to the
+ * humanised docType. Never throws.
+ */
+export function docTypeLabelForPackId(
+  rulePackId: unknown,
+  load: (id: string) => { name?: unknown } | null = loadRulePack,
+): string | null {
+  if (typeof rulePackId !== 'string' || rulePackId === '' || rulePackId === GUIDED_PACK_ID) {
+    return null;
+  }
+  try {
+    return docTypeLabelFor(load(rulePackId));
+  } catch (err) {
+    console.error(
+      `[drafting] Doc type label: could not read rule pack ${rulePackId}:`,
+      err instanceof Error ? err.name : 'UnknownError',
+    );
+    return null;
+  }
+}
+
+/**
+ * T-689b: a docType id for the screen when there is no pack label, as the web's
+ * typeLabel does it ("bail_regular" -> "Bail regular").
+ */
+export function humaniseDocType(docType: string): string {
+  const s = docType.replace(/_/g, ' ').trim();
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 }
