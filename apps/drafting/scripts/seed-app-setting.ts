@@ -4,8 +4,12 @@
  *   yarn workspace @lawie/drafting seed:setting <key> <value> [description]
  *
  * Examples:
- *   yarn workspace @lawie/drafting seed:setting ai.drafting_model claude-sonnet-4-6
- *   yarn workspace @lawie/drafting seed:setting ai.preflight_model claude-haiku-4-5-20251001 "SCRUM-69 verifier"
+ *   yarn workspace @lawie/drafting seed:setting ai.model.drafter claude-sonnet-4-6
+ *   yarn workspace @lawie/drafting seed:setting ai.model.fact_checker claude-haiku-4-5-20251001 "SCRUM-69 verifier"
+ *   yarn workspace @lawie/drafting seed:setting ai.effort.drafter medium
+ *
+ * (T-684: ai.drafting_model, ai.intake_model and ai.preflight_model are
+ * deprecated; they are still read for one release when the role key is unset.)
  *
  * Intentional design notes:
  *   1. NO default values are baked into this script. The value comes from argv.
@@ -47,7 +51,7 @@ async function main(): Promise<void> {
         'Usage: yarn workspace @lawie/drafting seed:setting <key> <value> [description]',
         '',
         'Example:',
-        '  yarn workspace @lawie/drafting seed:setting ai.drafting_model claude-sonnet-4-6',
+        '  yarn workspace @lawie/drafting seed:setting ai.model.drafter claude-sonnet-4-6',
       ].join('\n'),
     );
     process.exit(2);
@@ -58,7 +62,9 @@ async function main(): Promise<void> {
   const description = rawDescription?.trim();
 
   if (!/^[a-z][a-z0-9_.-]*$/i.test(key) || key.length > 120) {
-    console.error(`✗ Invalid key "${key}". Must be lowercase alphanumeric with . _ - (max 120 chars).`);
+    console.error(
+      `✗ Invalid key "${key}". Must be lowercase alphanumeric with . _ - (max 120 chars).`,
+    );
     process.exit(2);
   }
   if (!value || value.length > 500) {

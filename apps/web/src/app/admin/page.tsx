@@ -36,10 +36,34 @@ interface ActivityItem {
   at: string;
 }
 
+type ModelRole =
+  | 'matcher'
+  | 'extractor'
+  | 'drafter'
+  | 'fact_checker'
+  | 'legal_reviewer'
+  | 'language';
+
 interface AiRuntime {
+  /** The drafter's resolved model (pre-T-684 shape; still sent). */
   drafting_model: string | null;
+  /** The fact checker's resolved model (pre-T-684 shape; still sent). */
   preflight_model: string | null;
+  /** T-684: resolved model per role. Absent from an older drafting service. */
+  models?: Partial<Record<ModelRole, string | null>>;
+  /** T-684: 'legacy' when a pre-T-684 key served the role. */
+  model_sources?: Partial<Record<ModelRole, 'new' | 'legacy' | null>>;
 }
+
+/** T-684: the runtime rows, in display order (required roles first). */
+const RUNTIME_ROLES: Array<{ role: ModelRole; label: string; required: boolean; unset: string }> = [
+  { role: 'drafter', label: 'Drafter', required: true, unset: '(not configured)' },
+  { role: 'extractor', label: 'Extractor', required: true, unset: '(not configured)' },
+  { role: 'fact_checker', label: 'Fact checker', required: true, unset: '(rules-only)' },
+  { role: 'matcher', label: 'Matcher', required: false, unset: '(not set)' },
+  { role: 'legal_reviewer', label: 'Legal reviewer', required: false, unset: '(not set)' },
+  { role: 'language', label: 'Language', required: false, unset: '(not set)' },
+];
 
 interface TopReferral {
   code: string;
@@ -278,16 +302,45 @@ export default function AdminOverviewPage() {
                 All systems
               </span>
             </header>
-            <RuntimeRow
-              label="ai.drafting_model"
-              value={aiRuntime?.drafting_model ?? '(not configured)'}
-              ok={!!aiRuntime?.drafting_model}
-            />
-            <RuntimeRow
-              label="ai.preflight_model"
-              value={aiRuntime?.preflight_model ?? '(rules-only)'}
-              ok={true}
-            />
+            {aiRuntime?.models ? (
+              RUNTIME_ROLES.map(({ role, label, required, unset }) => {
+                const models = aiRuntime.models ?? {};
+                const model = models[role] ?? null;
+                // The matcher falls back to the extractor's chain; the response
+                // does not say which key served it, so an id equal to the
+                // extractor's is shown as the fallback.
+                const viaExtractor =
+                  role === 'matcher' && !!model && model === (models.extractor ?? null);
+                return (
+                  <RuntimeRow
+                    key={role}
+                    label={label}
+                    value={model ?? unset}
+                    ok={!!model || role === 'fact_checker' || !required}
+                    tags={[
+                      ...(viaExtractor ? ['falls back to extractor'] : []),
+                      ...(aiRuntime.model_sources?.[role] === 'legacy' ? ['legacy key'] : []),
+                    ]}
+                  />
+                );
+              })
+            ) : (
+              <>
+                {/* Older drafting service without per-role models (pre-T-684). */}
+                <RuntimeRow
+                  label="ai.drafting_model"
+                  code
+                  value={aiRuntime?.drafting_model ?? '(not configured)'}
+                  ok={!!aiRuntime?.drafting_model}
+                />
+                <RuntimeRow
+                  label="ai.preflight_model"
+                  code
+                  value={aiRuntime?.preflight_model ?? '(rules-only)'}
+                  ok={true}
+                />
+              </>
+            )}
             <p className="mt-3 text-[11px] text-slate-400">
               Cache TTL ~1 min · Changes propagate without redeploy.
             </p>
@@ -408,15 +461,43 @@ function KpiTile({
   );
 }
 
-function RuntimeRow({ label, value, ok }: { label: string; value: string; ok: boolean }) {
+function RuntimeRow({
+  label,
+  value,
+  ok,
+  code,
+  tags = [],
+}: {
+  label: string;
+  value: string;
+  ok: boolean;
+  /** Render the label as a key name (the pre-T-684 rows). */
+  code?: boolean;
+  /** Short text tags after the value, e.g. "legacy key". */
+  tags?: string[];
+}) {
   return (
-    <div className="flex items-center justify-between py-1.5 text-xs">
-      <code className="font-mono text-slate-600">{label}</code>
-      <span
-        className={`flex items-center gap-1 font-mono ${ok ? 'text-slate-800' : 'text-amber-700'}`}
-      >
-        {!ok && <Sparkles size={11} />}
-        {value}
+    <div className="flex items-center justify-between gap-3 py-1.5 text-xs">
+      {code ? (
+        <code className="font-mono text-slate-600">{label}</code>
+      ) : (
+        <span className="text-slate-600">{label}</span>
+      )}
+      <span className="flex min-w-0 flex-wrap items-center justify-end gap-1">
+        <span
+          className={`flex items-center gap-1 font-mono ${ok ? 'text-slate-800' : 'text-amber-700'}`}
+        >
+          {!ok && <Sparkles size={11} />}
+          {value}
+        </span>
+        {tags.map((t) => (
+          <span
+            key={t}
+            className="rounded-full border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700"
+          >
+            {t}
+          </span>
+        ))}
       </span>
     </div>
   );

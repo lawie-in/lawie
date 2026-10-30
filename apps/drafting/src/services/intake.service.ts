@@ -16,7 +16,7 @@ import { LlmAuxCall, LlmAuxPurpose } from '../models/LlmAuxCall.model';
 import { presentDescription } from '../utils/presentDescription';
 import { PublicFormFieldKey, publicFormField } from '../utils/publicTemplateConfig';
 
-import { AppSettingMissingError, APP_SETTING_KEYS, getAppSetting } from './app-settings.service';
+import { AppSettingMissingError } from './app-settings.service';
 import { AuxCallError, AuxCallUsage, callAuxModel } from './aux-llm';
 import { loadAvermentLists } from './averments';
 import { applyBailGuard } from './bail-guard';
@@ -99,6 +99,7 @@ import {
   INTAKE_RECEPTION_CAP_DEFAULT,
   logLlmCall,
   priceUsage,
+  resolveModel,
 } from './llm-usage';
 import { loadRulePack, RulePack } from './rule-pack.service';
 import {
@@ -1165,10 +1166,11 @@ export async function runIntake(req: IntakeRequest): Promise<IntakeResponse> {
 
   let model: string;
   try {
-    model = await getAppSetting(APP_SETTING_KEYS.INTAKE_MODEL);
+    // T-684: the extractor role (ai.model.extractor, else ai.intake_model).
+    model = await resolveModel('extractor');
   } catch (err) {
     if (err instanceof AppSettingMissingError) {
-      console.error(`[intake] ${APP_SETTING_KEYS.INTAKE_MODEL} is not set (intakeId=${intakeId})`);
+      console.error(`[intake] ${err.key} is not set (intakeId=${intakeId})`);
     }
     return { intake_id: intakeId, outcome: 'unavailable' };
   }
@@ -1759,10 +1761,11 @@ export async function runBriefIntake(req: BriefIntakeRequest): Promise<BriefInta
 
   let model: string;
   try {
-    model = await getAppSetting(APP_SETTING_KEYS.INTAKE_MODEL);
+    // T-684: the extractor role (ai.model.extractor, else ai.intake_model).
+    model = await resolveModel('extractor');
   } catch (err) {
     if (err instanceof AppSettingMissingError) {
-      console.error(`[intake] ${APP_SETTING_KEYS.INTAKE_MODEL} is not set (intakeId=${intakeId})`);
+      console.error(`[intake] ${err.key} is not set (intakeId=${intakeId})`);
     }
     return { intake_id: intakeId, outcome: 'unavailable' };
   }

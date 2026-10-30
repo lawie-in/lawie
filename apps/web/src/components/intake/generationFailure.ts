@@ -60,6 +60,15 @@ export function refusedStartError(status: number, body: unknown): GenerationErro
   return { reason: SOMETHING_DID_NOT_WORK, retryable: true, source: 'start' };
 }
 
+/**
+ * T-686: the error a refused start carries (HTTP 503) when the picked court id did not
+ * resolve. Nothing started and no Ink was held; the card keeps its Retry.
+ */
+export const COURT_UNAVAILABLE_CODE = 'court_unavailable';
+
+/** T-686: the line shown for COURT_UNAVAILABLE_CODE (not draft wording, Priya 29 Oct 2026). */
+export const COURT_UNAVAILABLE = 'Court unavailable, try again';
+
 /** The SSE error code the server sends when the Ink hold was lost and could not be re-taken. */
 export const INSUFFICIENT_INK_CODE = 'insufficient_ink';
 

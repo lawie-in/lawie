@@ -30,7 +30,6 @@ import { Court } from '../models/Court.model';
 import { Event } from '../models/Event.model';
 import { LlmAuxCall } from '../models/LlmAuxCall.model';
 
-import { APP_SETTING_KEYS, getAppSetting } from './app-settings.service';
 import {
   ChargedSection,
   normaliseBnsSection,
@@ -49,6 +48,7 @@ import {
   logLlmCall,
   parseAnthropicMessageUsage,
   priceUsage,
+  resolveModel,
 } from './llm-usage';
 import { lookupOldToNew } from './sections.service';
 import {
@@ -242,6 +242,29 @@ function nearMatch(a: string, b: string): boolean {
   const common = [...setA].filter((w) => setB.has(w) && w.length > 2).length;
   return common >= 2 && common >= Math.min(setA.size, setB.size) * 0.8;
 }
+
+/**
+ * T-690b (Ajay, 29 Oct 2026, option (a)): a written statement filed more than
+ * 90 days after service of summons gets a soft warning, in any suit. Strictly
+ * greater than 90; a value that is missing, empty or not a finite number never
+ * qualifies. A later suit-type (commercial) check, if Ajay signs one, goes here.
+ */
+function wsOver90DaysWarningApplies(
+  templateId: string,
+  formData: Record<string, unknown>,
+): boolean {
+  if (templateId !== 'written_statement') return false;
+  const raw = formData['days_from_service'];
+  let days: number;
+  if (typeof raw === 'number') days = raw;
+  else if (typeof raw === 'string' && raw.trim() !== '') days = Number(raw.trim());
+  else return false;
+  return Number.isFinite(days) && days > 90;
+}
+
+/** T-690b: Ajay's signed warning text (run5-rulings-ajay.md, T-690b reworded). */
+const WS_OVER_90_DAYS_WARNING =
+  'This written statement is more than 90 days after service of summons. In an ordinary suit the court allows that only in exceptional cases; in a commercial suit it can be allowed up to 120 days, for reasons recorded in writing and on payment of costs, and not after that. Set out the reasons in the delay application.';
 
 // ── Pure-rule layer ───────────────────────────────────────────────────────────
 
@@ -521,6 +544,16 @@ async function runPureRules(
     }
   }
 
+  // ── T-690b: written statement more than 90 days after service (soft) ─────
+  // A warning, never a block (Ajay, 29 Oct 2026).
+  if (wsOver90DaysWarningApplies(templateId, formData)) {
+    findings.push({
+      rule_id: 'ws_over_90_days',
+      severity: 'soft',
+      question: WS_OVER_90_DAYS_WARNING,
+    });
+  }
+
   return findings;
 }
 
@@ -636,9 +669,10 @@ async function runLLMChecks(
 
   try {
     // Model id is configured at runtime via the AppSetting collection.
-    // If the key is unset, getAppSetting throws → caught below → preflight
-    // degrades gracefully to rules-only (fail-open per ADR-018).
-    const model = await getAppSetting(APP_SETTING_KEYS.PREFLIGHT_MODEL);
+    // T-684: the fact_checker role (ai.model.fact_checker, falling back to
+    // ai.preflight_model for one release). If unset, resolveModel throws →
+    // caught below → preflight degrades gracefully to rules-only (fail-open per ADR-018).
+    const model = await resolveModel('fact_checker');
     const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
     // T-453: effort from ai.effort.preflight (default low). Never throws.
     const effort = await getAiEffort('preflight');
