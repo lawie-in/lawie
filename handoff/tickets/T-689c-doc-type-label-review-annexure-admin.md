@@ -17,3 +17,9 @@ Status: ASSIGNED kunal 30 Oct 2026 (P1, full chain, legal). Was: backlog. Raised
 - Annexure B is a High Court-practice synopsis whose fixed text says "the petitioner has approached…". Attach it only for High Court or Supreme Court documents filed by the petitioner or applicant. Never attach it to trial-court documents or to defence pleadings (written statement, replication, reply).
 - The tests are in Ajay's ruling row. Legal content: Ajay byte-checks the final SHA before merge.
 - Priority: P1 (a wrong synopsis in a filed document). Item 2 above is the main work.
+
+## Ajay AJ-689c-a (91bdb434), 30 Oct 2026. Supersedes the "Nature of matter" wording above.
+1. Nature of matter prints the raw catalogue displayName, byte for byte (e.g. "Written Statement (Order VIII CPC)").
+2. No Annexure B for: written_statement, replication, counter_affidavit, rejoinder_affidavit, memo_of_parties, list_of_dates, synopsis, vakalatnama, affidavit_identity, affidavit_in_support, production_of_documents. A pack with no side row gets B only if rule 3 holds.
+3. B only for high_court, high_court_bench and supreme_court. Unknown or missing court: no B.
+4. Renumber with no gap, and build the index annexure from the same list so the letters always match.

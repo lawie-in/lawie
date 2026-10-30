@@ -204,6 +204,71 @@ export async function setAppSetting(input: {
 }
 
 /**
+ * T-684b: insert a setting only if its key has no row. Never overwrites: the
+ * write is a `$setOnInsert` upsert (as in scripts/migrate-model-settings.ts),
+ * so a row that appeared meanwhile is left as it is. A duplicate-key error
+ * (two concurrent inserts) counts as not inserted. Only after an insert does
+ * it run setAppSetting's post-write steps (cache, required-key state, listeners).
+ */
+export async function insertAppSettingIfAbsent(input: {
+  key: string;
+  value: string;
+  description?: string;
+  updatedBy?: string;
+}): Promise<
+  | {
+      inserted: true;
+      setting: { key: string; value: string; description?: string; updatedAt: Date };
+    }
+  | { inserted: false }
+> {
+  const { key, value, description, updatedBy } = input;
+  let upserted: boolean;
+  // Timestamps are set by hand inside $setOnInsert with timestamps: false, so
+  // Mongoose adds no `$set: { updatedAt }` that would touch an existing row.
+  const now = new Date();
+  const storedValue = value.trim();
+  try {
+    const r = await AppSetting.updateOne(
+      { key },
+      {
+        $setOnInsert: {
+          key,
+          value: storedValue,
+          ...(description !== undefined ? { description: description.trim() } : {}),
+          ...(updatedBy ? { updatedBy } : {}),
+          createdAt: now,
+          updatedAt: now,
+        },
+      },
+      { upsert: true, timestamps: false },
+    );
+    upserted = r.upsertedCount === 1;
+  } catch (err) {
+    if ((err as { code?: unknown } | null)?.code === 11000) return { inserted: false };
+    throw err;
+  }
+  if (!upserted) return { inserted: false };
+
+  cache.delete(key);
+  trackRequired(key, false);
+  trackV3Stage(key, storedValue);
+  notifyInvalidated(key);
+
+  const doc = await AppSetting.findOne({ key }).lean();
+  if (!doc) throw new Error(`App setting "${key}" was inserted but could not be read back.`);
+  return {
+    inserted: true,
+    setting: {
+      key: doc.key,
+      value: doc.value,
+      description: doc.description,
+      updatedAt: doc.updatedAt,
+    },
+  };
+}
+
+/**
  * List all settings (admin UI). Newest first.
  */
 export async function listAppSettings(): Promise<

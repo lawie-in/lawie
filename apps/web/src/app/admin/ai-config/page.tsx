@@ -189,10 +189,11 @@ export default function AiConfigPage() {
 
   /**
    * T-684: explicit "copy to the new key" action for a deprecated key. Writes
-   * the legacy value to its replacement with the same PUT, then reloads. Only
-   * offered while the replacement has no stored row, and re-checked against a
-   * fresh settings list just before the PUT (T-684 review), so a key set
-   * since the page loaded is never overwritten.
+   * the legacy value to its replacement, then reloads. Only offered while the
+   * replacement has no stored row, and re-checked against a fresh settings
+   * list just before the PUT (T-684 review). T-684b: the PUT is insert-only
+   * (?ifAbsent=1), so the server itself refuses (409) to overwrite a key set
+   * between that re-check and the write.
    */
   const handleCopy = async (fromKey: string, toKey: string) => {
     if (copyInFlight.current) return;
@@ -217,15 +218,21 @@ export default function AiConfigPage() {
         setCopyError({ key: fromKey, message: 'Nothing to copy.' });
         return;
       }
-      const res = await apiFetch(`/api/drafting/admin/app-settings/${encodeURIComponent(toKey)}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ value: source.value.trim() }),
-      });
+      const res = await apiFetch(
+        `/api/drafting/admin/app-settings/${encodeURIComponent(toKey)}?ifAbsent=1`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ value: source.value.trim() }),
+        },
+      );
       if (res.ok) {
         await fetchSettings();
         setSavedKey(toKey);
         setTimeout(() => setSavedKey(null), 2500);
+      } else if (res.status === 409) {
+        setCopyError({ key: fromKey, message: `${toKey} was set meanwhile; not overwritten.` });
+        await fetchSettings();
       } else {
         const data = await res.json();
         setCopyError({ key: fromKey, message: data.error ?? 'Save failed.' });
