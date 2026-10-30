@@ -1469,8 +1469,14 @@ describe('T-381 C: POST annexures-pack from a form draft', () => {
     });
     const res = await packPost(docId);
     expect(res.status).toBe(200);
-    expect(memo()).toContain('<strong>The Client</strong>');
-    expect(html).not.toContain('Not The Client');
+    const rows = [...memo().matchAll(/<tr>\s*<td>([^<]*)<\/td>\s*<td>([\s\S]*?)<\/td>\s*<\/tr>/g)];
+    const defendantRow = rows.find((m) => m[1].trim() === 'Defendant');
+    expect(defendantRow).toBeDefined();
+    // The client (Defendant) cell is the client's name and never the plaintiff's.
+    expect(defendantRow![2]).toContain('<strong>The Client</strong>');
+    expect(defendantRow![2]).not.toContain('Not The Client');
+    // T-700b: the Plaintiff row now prints the brief's plaintiff_name.
+    expect(memo()).toContain('<strong>Not The Client</strong>');
   });
 
   it('a bail State row prints exactly what the pack printed before T-381', async () => {
