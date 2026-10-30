@@ -501,8 +501,12 @@ function twoPartyMemoRows(
   // counter/rejoinder affidavit, the placeholder instead of the court rule.
   const courtRole = (...labels: Array<string | undefined>): string => {
     if (options.unsided) return ROLE_PLACEHOLDER;
-    const label = labels.find((l): l is string => l !== undefined) ?? '';
-    return roleForSide(label, options.criminal === true);
+    const criminal = options.criminal === true;
+    const given = labels.filter((l): l is string => l !== undefined);
+    // On a civil pack a "(civil) / (criminal)" pair among the candidates wins,
+    // so its civil role prints (e.g. "Plaintiff", not the rule's "Applicant").
+    const pair = criminal ? undefined : given.find((l) => roleForSide(l, false) !== l);
+    return roleForSide(pair ?? given[0] ?? '', criminal);
   };
   const applicantLabel =
     side || options.petitionerRole
@@ -583,6 +587,7 @@ function civilMemoRows(
   packId: string,
   labels: readonly [string, string],
   clientSide: CaseSide | null,
+  numberByPackRole = false,
 ): MemoRow[] {
   const row = rowFor(packId);
   const flat = flattenPartyValues(partyValues ?? formData);
@@ -610,7 +615,11 @@ function civilMemoRows(
     extra: string,
   ): MemoRow[] =>
     names.map((name, i) => ({
-      label: esc(names.length > 1 ? `${role} No. ${i + 1}` : singleLabel),
+      // AJ-700c (3): O.39 numbers by the pack's own role; pleadings by the
+      // role word (AJ-700b (C)). A single party gets no number.
+      label: esc(
+        names.length > 1 ? `${numberByPackRole ? singleLabel : role} No. ${i + 1}` : singleLabel,
+      ),
       name: esc(name.trim() !== '' ? name : civilPartyPlaceholder(role)),
       extra,
     }));
@@ -1547,6 +1556,13 @@ export interface AnnexuresInput {
    * path, which lists the pack's filled date-type form fields.
    */
   briefDates?: readonly AnnexureBriefDate[];
+  /**
+   * AJ-700c (2): the stored brief's kind (a rule-pack id, or 'none' for a
+   * guided brief). Read only when the document has no pack id or is a guided
+   * brief: a kind whose pack is criminal (annexureSetFor) gives the criminal
+   * set; anything else, Memo + Index.
+   */
+  briefKind?: string;
 }
 
 /** T-579: one annexure of the pack: its label and heading as printed, and its HTML. */
@@ -1604,6 +1620,7 @@ export function buildAnnexuresHtml(input: AnnexuresInput): AnnexuresHtml {
     courtType,
     partyValues,
     briefDates,
+    briefKind,
   } = input;
 
   // T-300: the same advocate name as the draft (resolveAdvocateName): the typed
@@ -1652,7 +1669,15 @@ export function buildAnnexuresHtml(input: AnnexuresInput): AnnexuresHtml {
   // T-700 (AJ-700, AJ-700a): the pack's set. The pack is the brief's rule pack,
   // else the form's template_id.
   const setPackId = str(firstNonBlank(rulePackId, templateId), '');
-  const set = annexureSetFor(setPackId);
+  // AJ-700c (2): a guided brief, or no pack id: the set follows the brief's
+  // kind when it names a criminal pack; otherwise Memo + Index.
+  const set =
+    (setPackId === '' || setPackId === GUIDED_PACK_ID) &&
+    typeof briefKind === 'string' &&
+    briefKind !== GUIDED_PACK_ID &&
+    annexureSetFor(briefKind) === 'criminal'
+      ? 'criminal'
+      : annexureSetFor(setPackId);
   const pack = set === 'criminal' || setPackId === '' ? null : packOf(setPackId);
   const petitionerRole = CRIMINAL_BY_ID.has(setPackId);
   // AJ-700b (H): roles as the cause title prints them, never a form hint.
@@ -1716,7 +1741,16 @@ export function buildAnnexuresHtml(input: AnnexuresInput): AnnexuresHtml {
   // another civil pack: its own roles after the signed labels.
   const memoOptions: MemoOptions =
     (set === 'pleading' || set === 'o39') && civilLabels
-      ? { rows: civilMemoRows(enrichedForm, partyValues, setPackId, civilLabels, clientSide) }
+      ? {
+          rows: civilMemoRows(
+            enrichedForm,
+            partyValues,
+            setPackId,
+            civilLabels,
+            clientSide,
+            set === 'o39',
+          ),
+        }
       : set === 'civil_other'
         ? { packLabels: otherLabels, criminal: false }
         : {

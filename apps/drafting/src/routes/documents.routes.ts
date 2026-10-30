@@ -2621,12 +2621,12 @@ function partyMappingOf(
 function briefDatesOf(
   doc: { brief?: string | null },
   formData: Record<string, unknown>,
-): AnnexureBriefDate[] | undefined {
+): { dates: AnnexureBriefDate[]; kind?: string } | undefined {
   if (formData.source !== 'brief' || typeof doc.brief !== 'string' || doc.brief === '') {
     return undefined;
   }
   const stored: unknown = JSON.parse(decrypt(doc.brief));
-  if (!stored || typeof stored !== 'object' || Array.isArray(stored)) return [];
+  if (!stored || typeof stored !== 'object' || Array.isArray(stored)) return { dates: [] };
   const b = stored as {
     kind?: unknown;
     kind_name?: unknown;
@@ -2634,7 +2634,10 @@ function briefDatesOf(
     court?: unknown;
     values?: unknown;
   };
-  if (typeof b.kind !== 'string' || !Array.isArray(b.values)) return [];
+  // AJ-700c (2): the stored brief's kind (a rule-pack id, or 'none' for a
+  // guided brief), for the set of a document with no pack id of its own.
+  const kind = typeof b.kind === 'string' ? { kind: b.kind } : {};
+  if (typeof b.kind !== 'string' || !Array.isArray(b.values)) return { dates: [], ...kind };
   const brief = updateBrief({
     kind: b.kind,
     ...(typeof b.kind_name === 'string' ? { kindName: b.kind_name } : {}),
@@ -2644,8 +2647,11 @@ function briefDatesOf(
       ? { court: b.court as Parameters<typeof updateBrief>[0]['court'] }
       : {}),
   });
-  if (!brief) return [];
-  return drafterBrief(brief, null).dates.map((d) => ({ date_of: d.date_of, date: d.date }));
+  if (!brief) return { dates: [], ...kind };
+  return {
+    dates: drafterBrief(brief, null).dates.map((d) => ({ date_of: d.date_of, date: d.date })),
+    ...kind,
+  };
 }
 
 // POST /documents/:id/annexures-pack — SCRUM-65: generate the annexures as a multi-page PDF
@@ -2715,8 +2721,11 @@ router.post(
     // "advocate to add" row), never a failed pack. Only the id and the error
     // name are logged.
     let briefDates: AnnexureBriefDate[] | undefined;
+    let briefKind: string | undefined;
     try {
-      briefDates = briefDatesOf(doc, formData);
+      const stored = briefDatesOf(doc, formData);
+      briefDates = stored?.dates;
+      briefKind = stored?.kind;
     } catch (err) {
       console.warn(
         `[drafting] Annexures pack: brief dates unreadable for document ${String(doc._id)}:`,
@@ -2797,6 +2806,7 @@ router.post(
         courtType,
         partyValues,
         briefDates,
+        briefKind,
       };
       if (asHtml) html = buildAnnexuresHtml(packInput).html;
       else pdfBuffer = await buildAnnexuresPack(packInput);
