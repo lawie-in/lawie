@@ -16,3 +16,9 @@ New acceptance criteria:
 4. Reproduce on the real update, confirm, generate path with her exact steps.
 5. The warning shows on the brief path, before confirm and on the ready screen. Rajesh says where it sits.
 6. A real-route test covers the brief path.
+
+## Rajesh placement (30 Oct 2026)
+Reuse the existing amber soft-finding card in both places: same markup, role="status" (never alert), AlertTriangle icon in Amber, no button.
+(a) Guided brief: directly above the Ink cost line and the Confirm button, inside the brief folio, after the last fact row. It never changes the button or the cost line. It stays while the user edits, unless a date edit clears the condition.
+(b) Draft ready: the first item in the checks panel (the rail at 1280, the bottom sheet at 360). It does not appear on the folio. The checks chip count includes it.
+Show one instance of the text per screen.
