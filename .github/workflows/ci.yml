@@ -451,10 +451,12 @@ jobs:
       - run: yarn workspace @lawie/shared build
       - name: Typecheck
         run: yarn workspace @lawie/web tsc --noEmit -p tsconfig.typecheck.json
+      # T-695: prefetch the Google fonts, build, and retry the build once only on a Google Fonts
+      # fetch error (runs 1540, 1549). The retry only follows a fast-failing fetch, hence 3 min.
       - name: Build
         env:
           NODE_ENV: production
-        run: yarn workspace @lawie/web build
-        timeout-minutes: 2
+        run: bash scripts/ci/prefetch-fonts.build.sh
+        timeout-minutes: 3
       - run: yarn workspace @lawie/web test:sanity
         timeout-minutes: 2

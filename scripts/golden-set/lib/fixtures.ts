@@ -24,14 +24,23 @@ export function checkFixture(f: Partial<Fixture>): string[] {
   const need = (cond: boolean, msg: string) => {
     if (!cond) problems.push(msg);
   };
-  need(typeof f.id === 'string' && ID.test(f.id), 'id must be lower-case letters, digits and dashes');
+  need(
+    typeof f.id === 'string' && ID.test(f.id),
+    'id must be lower-case letters, digits and dashes',
+  );
   need(typeof f.pack === 'string' && /^[a-z0-9_]+$/.test(f.pack), 'pack must be a rule-pack id');
   need(typeof f.title === 'string' && f.title.length > 0, 'title is required');
-  need(typeof f.risk === 'string' && f.risk.length >= 10, 'risk must name the failure or risk covered');
+  need(
+    typeof f.risk === 'string' && f.risk.length >= 10,
+    'risk must name the failure or risk covered',
+  );
   need(typeof f.source === 'string' && f.source.length > 0, 'source is required');
   need(f.review === REVIEW_STATUS, `review must read "${REVIEW_STATUS}"`);
   need(f.ajay === null || typeof f.ajay === 'string', 'ajay must be null or a reason');
-  need(typeof f.description === 'string' && f.description.length >= 20, 'description of at least 20 characters');
+  need(
+    typeof f.description === 'string' && f.description.length >= 20,
+    'description of at least 20 characters',
+  );
   need(
     f.court === null ||
       (typeof f.court === 'object' &&
@@ -51,17 +60,31 @@ export function checkFixture(f: Partial<Fixture>): string[] {
       (e.ledger?.length ?? 0);
     need(count > 0, 'expect must hold at least one explicit expectation');
     for (const t of [...(e.absent ?? []), ...(e.present ?? []), ...(e.exact ?? [])]) {
-      need(Array.isArray(t.any_of) && t.any_of.length > 0 && t.any_of.every((s) => typeof s === 'string' && s.length > 0), 'every text expectation needs a non-empty any_of');
+      need(
+        Array.isArray(t.any_of) &&
+          t.any_of.length > 0 &&
+          t.any_of.every((s) => typeof s === 'string' && s.length > 0),
+        'every text expectation needs a non-empty any_of',
+      );
       need(typeof t.why === 'string' && t.why.length > 0, 'every expectation needs a why');
     }
     for (const l of e.ledger ?? []) {
       need(typeof l.key === 'string', 'ledger expectation needs a key');
-      need((l.display !== undefined) !== (l.unresolved === true), `ledger ${l.key}: give display or unresolved: true, not both`);
+      need(
+        (l.display !== undefined) !== (l.unresolved === true),
+        `ledger ${l.key}: give display or unresolved: true, not both`,
+      );
     }
   }
   for (const [variant, r] of Object.entries(f.recorded ?? {})) {
+    // T-683: extract is one reply (every call) or a non-empty list (one per call).
+    const extractOk =
+      typeof r.extract === 'string' ||
+      (Array.isArray(r.extract) &&
+        r.extract.length > 0 &&
+        r.extract.every((x: unknown) => typeof x === 'string'));
     need(
-      typeof r.reception === 'string' && typeof r.extract === 'string' && typeof r.drafter === 'string',
+      typeof r.reception === 'string' && extractOk && typeof r.drafter === 'string',
       `recorded.${variant} needs reception, extract and drafter replies`,
     );
   }
@@ -72,7 +95,9 @@ export function checkFixture(f: Partial<Fixture>): string[] {
 export function loadFixtures(dir: string = FIXTURES_DIR): Fixture[] {
   const out: Fixture[] = [];
   const seen = new Set<string>();
-  for (const file of readdirSync(dir).filter((n) => n.endsWith('.json')).sort()) {
+  for (const file of readdirSync(dir)
+    .filter((n) => n.endsWith('.json'))
+    .sort()) {
     let parsed: Fixture;
     try {
       parsed = JSON.parse(readFileSync(join(dir, file), 'utf-8')) as Fixture;
