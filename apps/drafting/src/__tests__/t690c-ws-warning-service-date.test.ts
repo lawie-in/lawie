@@ -61,6 +61,16 @@ const istDaysAgo = (n: number, now: Date = new Date()): string => {
   return d.toISOString().slice(0, 10);
 };
 
+/**
+ * The computed day count must appear nowhere. Random ObjectIds (docId, runId) can hold "137" by
+ * chance, so ids are blanked first and the figure is looked for as a whole number or as "137 day(s)".
+ */
+const expectNoFigure = (text: string, figure = '137') => {
+  const clean = text.replace(/[0-9a-f]{24}/gi, 'ID');
+  expect(clean).not.toMatch(new RegExp(`(^|\\D)${figure}(\\D|$)`));
+  expect(clean).not.toContain(`${figure} day`);
+};
+
 const WS = 'written_statement';
 const applies = (formData: Record<string, unknown>, now: Date = NOW, id = WS) =>
   wsOver90DaysApplies(id, formData, now);
@@ -288,6 +298,14 @@ describe('T-690c-2 part 1: wsServiceDateOver90Days and wsOver90DaysApplies', () 
     });
   });
 
+  it('a leap-year span: 29 Feb 2028 is 91 days before 30 May 2028, 1 Mar 2028 is 90', () => {
+    // Counted by hand: 29 Feb -> 1 Mar is 1 day; 1 Mar -> 1 Apr 31; -> 1 May 30; -> 30 May 29.
+    // 1 + 31 + 30 + 29 = 91 from 29 Feb, so 90 from 1 Mar.
+    const now = new Date('2028-05-30T06:30:00Z');
+    expect(wsServiceDateOver90Days('2028-02-29', now)).toBe(true);
+    expect(wsServiceDateOver90Days('2028-03-01', now)).toBe(false);
+  });
+
   it('DAY constant sanity: the fixed-clock helper is a pure calendar step', () => {
     expect(istDaysAgo(0, NOW)).toBe('2026-10-30');
     expect((Date.parse('2026-10-30') - Date.parse(istDaysAgo(91, NOW))) / DAY).toBe(91);
@@ -312,9 +330,10 @@ describe('T-690c-2 part 2: buildBrief soft_findings from the service date', () =
     expect(brief(dateOnly(120)).soft_findings).toEqual(FINDING);
   });
 
-  it('date 91 days back -> present; 90 days back -> absent (not an empty array)', () => {
-    expect(brief(dateOnly(91)).soft_findings).toEqual(FINDING);
-    const b = brief(dateOnly(90));
+  it('date 95 days back -> present; 85 days back -> absent (not an empty array)', () => {
+    // The exact 90/91 boundary is Part 1 only (injected clock): here the real clock is read twice.
+    expect(brief(dateOnly(95)).soft_findings).toEqual(FINDING);
+    const b = brief(dateOnly(85));
     expect(b).not.toHaveProperty('soft_findings');
     expect(Object.keys(b)).not.toContain('soft_findings');
   });
@@ -407,7 +426,7 @@ describe('T-690c-2 part 2: buildBrief soft_findings from the service date', () =
       'days_from_service',
     );
     const json = JSON.stringify(warned);
-    expect(json).not.toContain('137');
+    expectNoFigure(json);
     // the warning is carried once and nowhere else
     expect(json.split(WS_OVER_90_DAYS_WARNING).length - 1).toBe(1);
     // the same brief with a recent date has the same item
@@ -558,7 +577,7 @@ describe('T-690c-2 part 3a: POST /intake/brief/update', () => {
     const item = res.body.brief.items.find((i: { key: string }) => i.key === 'days_from_service');
     expect(item.value).toBeNull();
     expect(item.placeholder).toContain('[To be confirmed: days from service');
-    expect(JSON.stringify(res.body)).not.toContain('137');
+    expectNoFigure(JSON.stringify(res.body));
   });
 });
 
@@ -602,11 +621,11 @@ describe('T-690c-2 part 3b: POST /generate-from-brief with a date alone', () => 
     expect(mockMessagesStream).toHaveBeenCalledTimes(1);
     const sent = JSON.stringify(mockMessagesStream.mock.calls[0]);
     expect(sent).toContain('[To be confirmed: days from service');
-    expect(sent).not.toContain('137');
+    expectNoFigure(sent);
 
     // What the user gets back (sections, done payload): the blank, not the figure.
     const out = res.text.replace(WS_OVER_90_DAYS_WARNING, '');
-    expect(out).not.toContain('137');
+    expectNoFigure(out);
   });
 
   it('with a recent date the blank is the same as with a date over 90 (the date changes nothing in the draft)', async () => {
